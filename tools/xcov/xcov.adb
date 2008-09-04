@@ -160,6 +160,7 @@ begin
             Disp_File_Summary;
          else
             Error ("unknown option: " & Arg);
+            return;
          end if;
       end;
    end loop;
