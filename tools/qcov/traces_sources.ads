@@ -22,6 +22,13 @@ with Traces;
 with Traces_Elf; use Traces_Elf;
 
 package Traces_Sources is
+   type DO178B_Level_Type is (Level_Raw, Level_A, Level_C);
+   --  Control the output line state.
+   --  Level_Raw gives the most detailed state.
+
+   DO178B_Level : DO178B_Level_Type := Level_Raw;
+   --  DO178B level for output state.
+
    --  Coverage state of a source line of code.
    type Line_State is
      (

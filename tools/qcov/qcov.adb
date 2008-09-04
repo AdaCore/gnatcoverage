@@ -24,16 +24,22 @@ with Traces_Sources; use Traces_Sources;
 with Display;
 
 procedure Qcov is
-   procedure Usage is
+   procedure Usage
+   is
+      procedure P (S : String) renames Put_Line;
    begin
-      Put_Line ("usage: " & Command_Name & " actions");
-      Put_Line ("actions is a list of:");
-      Put_Line (" -r FILENAME         Read (and merge) traces from FILENAME");
-      Put_Line (" -w FILENAME         Write traces to FILENAME");
-      Put_Line (" --dump-traces       Dump traces");
-      Put_Line (" --objdump-coverage  Annotate objdump -d output");
-      Put_Line (" -e FILENAME         Use FILENAME as executale");
-      Put_Line (" --color             Use vt100 colors in outputs");
+      P ("usage: " & Command_Name & " actions");
+      P ("actions is a list of:");
+      P (" -r FILENAME         Read (and merge) traces from FILENAME");
+      P (" -w FILENAME         Write traces to FILENAME");
+      P (" -e FILENAME         Use FILENAME as executale");
+      P (" --color             Use vt100 colors in outputs");
+      P (" --dump-traces       Dump traces");
+      P (" --objdump-coverage  Annotate objdump -d output");
+      P (" --exe-coverage      Generate object coverage report");
+      P (" --source-coverage   Generate source coverage report");
+      P (" --asm               Add assembly code in --source-coverage");
+      P (" --level=a/c         Select DO178B level for --source-coverage");
    end Usage;
 
    procedure Error (Msg : String) is
@@ -129,6 +135,15 @@ begin
             Flag_Show_Asm := True;
          elsif Arg = "--missing-files" then
             Flag_Show_Missing := True;
+         elsif Arg (Arg'First .. Arg'First + 7) = "--level=" then
+            if Arg = "--level=a" then
+               DO178B_Level := Level_A;
+            elsif Arg = "--level=c" then
+               DO178B_Level := Level_C;
+            else
+               Error ("bad parameter for --level");
+               return;
+            end if;
          elsif Arg = "--source-coverage" then
             Build_Sections;
             Set_Trace_State;

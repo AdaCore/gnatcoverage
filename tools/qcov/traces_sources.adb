@@ -174,6 +174,34 @@ package body Traces_Sources is
       end case;
    end Set_Color;
 
+   type State_Map_Array is
+     array (DO178B_Level_Type, Line_State) of Line_State;
+   State_Map : constant State_Map_Array :=
+     (Level_Raw => (No_Code => No_Code,
+                    Not_Covered => Not_Covered,
+                    Partially_Covered => Partially_Covered,
+                    Covered => Covered,
+                    Covered_No_Branch => Covered_No_Branch,
+                    Branch_Taken => Branch_Taken,
+                    Branch_Fallthrough => Branch_Fallthrough,
+                    Branch_Covered => Branch_Covered),
+      Level_A   => (No_Code => No_Code,
+                    Not_Covered => Not_Covered,
+                    Partially_Covered => Partially_Covered,
+                    Covered => Partially_Covered,
+                    Covered_No_Branch => Covered_No_Branch,
+                    Branch_Taken => Branch_Taken,
+                    Branch_Fallthrough => Branch_Fallthrough,
+                    Branch_Covered => Branch_Covered),
+      Level_C   => (No_Code => No_Code,
+                    Not_Covered => Not_Covered,
+                    Partially_Covered => Covered_No_Branch,
+                    Covered => Covered_No_Branch,
+                    Covered_No_Branch => Covered_No_Branch,
+                    Branch_Taken => Covered_No_Branch,
+                    Branch_Fallthrough => Covered_No_Branch,
+                    Branch_Covered => Covered_No_Branch));
+
    procedure Disp_File_Line_State (Filename : String; File : Source_Lines)
    is
       use Source_Lines_Vectors;
@@ -181,8 +209,8 @@ package body Traces_Sources is
       use Ada.Text_IO;
       use Display;
 
-      type State_Map_Array is array (Line_State) of Character;
-      Map : constant State_Map_Array :=
+      type State_Char_Array is array (Line_State) of Character;
+      State_Char : constant State_Char_Array :=
         (No_Code => '.',
          Not_Covered => '-',
          Partially_Covered => '!',
@@ -191,11 +219,13 @@ package body Traces_Sources is
          Branch_Taken => '>',
          Branch_Fallthrough => 'v',
          Branch_Covered => '*');
+
       F : File_Type;
       Has_Source : Boolean;
       Line : Natural;
 
       Info : Addresses_Info_Acc;
+      Ls : Line_State;
    begin
       begin
          Open (F, In_File, Filename);
@@ -210,10 +240,12 @@ package body Traces_Sources is
             Has_Source := False;
       end;
       for I in Integer range First .. Last (File) loop
-         Set_Color (File.Table (I).State);
+         Ls := File.Table (I).State;
+         Ls := State_Map (DO178B_Level, Ls);
+         Set_Color (Ls);
          Put (I, 4);
          Put (' ');
-         Put (Map (File.Table (I).State));
+         Put (State_Char (Ls));
          Put (": ");
          if Has_Source then
             Put (Get_Line (F));
