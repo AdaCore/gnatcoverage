@@ -1,9 +1,9 @@
-all: qcov
+all: xcov
 
-qcov: force
-	gnatmake -gnat05 -gnatwae -g qcov
+xcov: force
+	gnatmake -gnat05 -gnatwae -g xcov
 
 clean: force
-	$(RM) -f *.o *.ali qcov
+	$(RM) -f *.o *.ali xcov
 
 force:

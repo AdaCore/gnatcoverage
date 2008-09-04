@@ -23,7 +23,7 @@ with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
 with Display;
 
-procedure Qcov is
+procedure Xcov is
    procedure Usage
    is
       procedure P (S : String) renames Put_Line;
@@ -163,4 +163,4 @@ begin
          end if;
       end;
    end loop;
-end Qcov;
+end Xcov;
