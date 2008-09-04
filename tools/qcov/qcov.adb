@@ -39,7 +39,7 @@ procedure Qcov is
       P (" --exe-coverage      Generate object coverage report");
       P (" --source-coverage   Generate source coverage report");
       P (" --asm               Add assembly code in --source-coverage");
-      P (" --level=a/c         Select DO178B level for --source-coverage");
+      P (" --level=A/C         Select DO178B level for --source-coverage");
    end Usage;
 
    procedure Error (Msg : String) is
@@ -136,9 +136,9 @@ begin
          elsif Arg = "--missing-files" then
             Flag_Show_Missing := True;
          elsif Arg (Arg'First .. Arg'First + 7) = "--level=" then
-            if Arg = "--level=a" then
+            if Arg = "--level=A" or else Arg = "--level=a" then
                DO178B_Level := Level_A;
-            elsif Arg = "--level=c" then
+            elsif Arg = "--level=C" or else Arg = "--level=c" then
                DO178B_Level := Level_C;
             else
                Error ("bad parameter for --level");
