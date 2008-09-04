@@ -18,7 +18,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with Interfaces; use Interfaces;
-with System;
 
 package Elf_Common is
    subtype Elf_Half  is Unsigned_16;

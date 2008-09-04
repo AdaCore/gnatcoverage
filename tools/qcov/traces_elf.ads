@@ -16,7 +16,6 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Elf_Files; use Elf_Files;
 with Traces;
 with Elf_Common;
 with Interfaces;

@@ -59,9 +59,9 @@ package body Disa_Ppc is
    end Bin_Image;
 
    --  Some well-known spr
-   Spr_Xer : constant Unsigned_32 := 2#00001_00000#;
+   --Spr_Xer : constant Unsigned_32 := 2#00001_00000#;
    Spr_Lr  : constant Unsigned_32 := 2#01000_00000#;
-   Spr_Ctr : constant Unsigned_32 := 2#01001_00000#;
+   --Spr_Ctr : constant Unsigned_32 := 2#01001_00000#;
 
    procedure Disassemble_Insn (Addr : System.Address;
                                Pc : Traces.Pc_Type;
@@ -218,7 +218,7 @@ package body Disa_Ppc is
 
       procedure Add_Simm
       is
-         V : Unsigned_16 := Unsigned_16 (Get_Field (16, 16));
+         V : constant Unsigned_16 := Unsigned_16 (Get_Field (16, 16));
       begin
          if (V and 16#8000#) /= 0 then
             Add ("-0x");
@@ -231,7 +231,7 @@ package body Disa_Ppc is
 
       procedure Add_Uimm
       is
-         V : Unsigned_16 := Unsigned_16 (Get_Field (16, 16));
+         V : constant Unsigned_16 := Unsigned_16 (Get_Field (16, 16));
       begin
          Add ("0x");
          Add (Hex_Image (V));

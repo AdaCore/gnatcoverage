@@ -17,13 +17,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with System; use System;
-with System.Storage_Elements; use System.Storage_Elements;
 with Elf_Common; use Elf_Common;
 with Elf_Arch; use Elf_Arch;
 with Ada.Unchecked_Conversion;
-with Ada.Unchecked_Deallocation;
 with GNAT.OS_Lib;
-with Interfaces; use Interfaces;
 
 package Elf_Files is
    type Elf_File is limited private;

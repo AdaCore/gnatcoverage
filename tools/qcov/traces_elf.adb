@@ -33,6 +33,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 with Traces_Sources;
 with Disa_Ppc;
 with Display;
+with Elf_Files; use Elf_Files;
 
 package body Traces_Elf is
    Empty_String_Acc : constant String_Acc := new String'("");
@@ -93,73 +94,6 @@ package body Traces_Elf is
                      El : Addresses_Info_Acc)
      renames Addresses_Containers.Insert;
 
-   procedure Insert2 (Set : in out Addresses_Containers.Set;
-                      El : Addresses_Info_Acc)
-   is
-      use Addresses_Containers;
-
-      Prev_Cur : Cursor;
-      Prev_El : Addresses_Info_Acc;
-      Cut_El : Addresses_Info_Acc;
-   begin
-      --Put_Line ("try to insert:");
-      --Disp_Address (El);
-
-      --  Element whose First is <= EL.First
-      Prev_Cur := Floor (Set, El);
-
-      if Prev_Cur = No_Element then
-         Prev_Cur := First (Set);
-         if Prev_Cur = No_Element then
-            --  The set is empty.
-            Addresses_Containers.Insert (Set, El);
-            return;
-         end if;
-      end if;
-
-      Prev_El := Element (Prev_Cur);
-
-      if Prev_El.Last <= El.First then
-         Put_Line ("prev_el.last < el.first; prev_el:");
-         Disp_Address (Prev_El);
-         raise Program_Error;
-      end if;
-      if El.Last > Prev_El.Last then
-         Put_Line ("el.last > prev_el.last; prev_el:");
-         Disp_Address (Prev_El);
-         raise Program_Error;
-      end if;
-
-      --  Split Prev_El in two if it overlaps EL.
-      if Prev_El.First < El.First and Prev_El.Last > El.Last then
-         --  Split Next in 2: Prev_El : Prev_El.First .. El.First - 1
-         --                   Cut_El  : El.Last + 1 .. Prev_El.Last
-         Cut_El := new Addresses_Info'(Prev_El.all);
-         Cut_El.First := El.Last + 1;
-         Prev_El.Last := El.First - 1;
-         begin
-            Addresses_Containers.Insert (Set, Cut_El);
-         exception
-            when others =>
-               Put_Line ("while inserting: ");
-               Disp_Address (Cut_El);
-               raise;
-         end;
-      elsif Prev_El.First < El.First then
-         Prev_El.Last := El.First - 1;
-      elsif Prev_El.Last > El.Last then
-         Prev_El.First := El.Last + 1;
-      elsif Prev_El.First = El.First and Prev_El.Last = El.Last then
-         raise Program_Error;
-      end if;
-      El.Parent := Prev_El;
-      Addresses_Containers.Insert (Set, El);
-   exception
-      when others =>
-         Disp_Addresses (Set);
-         raise;
-   end Insert2;
-
    procedure Disp_Sections_Addresses is
    begin
       Disp_Addresses (Sections_Set);
@@ -189,11 +123,8 @@ package body Traces_Elf is
    Sec_Debug_Abbrev  : Elf_Half := 0;
    Sec_Debug_Info    : Elf_Half := 0;
    Sec_Debug_Line    : Elf_Half := 0;
-   Sec_Debug_Aranges : Elf_Half := 0;
+   --Sec_Debug_Aranges : Elf_Half := 0;
    Sec_Debug_Str     : Elf_Half := 0;
-   Sec_Trace_Abbrev  : Elf_Half := 0;
-   Sec_Trace_Info    : Elf_Half := 0;
-   Sec_Trace_Aranges : Elf_Half := 0;
 
    Exe_File : Elf_File;
    Is_Big_Endian : Boolean;
@@ -235,16 +166,8 @@ package body Traces_Elf is
                Sec_Debug_Info := I;
             elsif Name = ".debug_line" then
                Sec_Debug_Line := I;
-            elsif Name = ".debug_aranges" then
-               Sec_Debug_Aranges := I;
             elsif Name = ".debug_str" then
                Sec_Debug_Str := I;
-            elsif Name = ".trace_abbrev" then
-               Sec_Trace_Abbrev := I;
-            elsif Name = ".trace_info" then
-               Sec_Trace_Info := I;
-            elsif Name = ".trace_aranges" then
-               Sec_Trace_Aranges := I;
             end if;
          end;
       end loop;
@@ -313,7 +236,7 @@ package body Traces_Elf is
       type Fat_String_Acc is access Fat_String;
       function To_Fat_String is new Ada.Unchecked_Conversion
         (Address, Fat_String_Acc);
-      Str : Fat_String_Acc := To_Fat_String (Addr);
+      Str : constant Fat_String_Acc := To_Fat_String (Addr);
    begin
       if Addr = Null_Address then
          return "";
@@ -486,8 +409,6 @@ package body Traces_Elf is
    procedure Build_Debug_Compile_Units
    is
       use Dwarf;
-      use System;
-      use System.Storage_Elements;
 
       Abbrev_Len : Elf_Size;
       Abbrevs : Binary_Content_Acc;
@@ -981,7 +902,6 @@ package body Traces_Elf is
    procedure Build_Sections
    is
       Shdr : Elf_Shdr_Acc;
-      It : Entry_Iterator;
       Addr : Pc_Type;
       Last : Pc_Type;
    begin
@@ -1277,7 +1197,7 @@ package body Traces_Elf is
                when EM_PPC =>
                   declare
                      Insn : Binary_Content (0 .. 3);
-                     Op : Unsigned_8 := Trace.Op and 3;
+                     Op : constant Unsigned_8 := Trace.Op and 3;
                   begin
                      --  Instructions length is 4.
                      if Trace.Last - Trace.First < 3 then
@@ -1462,7 +1382,7 @@ package body Traces_Elf is
         (Pc - Last_Section.First)'Address;
    end Get_Section_Addr;
 
-   Get_Symbol_Sym : Addresses_Info_Acc :=
+   Get_Symbol_Sym : constant Addresses_Info_Acc :=
      new Addresses_Info (Symbol_Addresses);
 
    procedure Get_Symbol (Pc : Pc_Type;

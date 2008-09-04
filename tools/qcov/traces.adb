@@ -16,13 +16,9 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Interfaces; use Interfaces;
-with Ada.Containers.Ordered_Sets;
 with Ada.Unchecked_Conversion;
 with Qemu_Traces; use Qemu_Traces;
-with GNAT.Table;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
-with System;
 with Ada.Text_Io; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Elf_Common; use Elf_Common;
@@ -379,6 +375,7 @@ package body Traces is
          raise Write_Error with "failed to write header";
       end if;
 
+      pragma Warnings (Off);
       if Pc_Type_Size = 4 then
          Addr := E32'Address;
          Res_Size := E32_Size;
@@ -386,11 +383,13 @@ package body Traces is
          Addr := E64'Address;
          Res_Size := E64_Size;
       end if;
+      pragma Warnings (On);
 
       Cur := First (Entries);
       while Cur /= No_Element loop
          E := Element (Cur);
 
+         pragma Warnings (Off);
          if Pc_Type_Size = 4 then
             E32 := (Pc => E.First,
                     Size => Unsigned_16 (E.Last - E.First + 1),
@@ -399,6 +398,7 @@ package body Traces is
          else
             raise Program_Error;
          end if;
+         pragma Warnings (On);
 
          if Write (Fd, Addr, Res_Size) /= Res_Size then
             Close (Fd);
@@ -450,7 +450,7 @@ package body Traces is
 
       loop
          declare
-            Line : String := Get_Line;
+            Line : constant String := Get_Line;
             Pos : Natural := Line'First;
             Pc : Pc_Type := 0;
             Op : Unsigned_8;
@@ -532,7 +532,7 @@ package body Traces is
 
    procedure Init (Iterator : out Entry_Iterator; Pc : Pc_Type)
    is
-      Key : Trace_Entry := (Pc, Pc, 0, Unknown);
+      Key : constant Trace_Entry := (Pc, Pc, 0, Unknown);
    begin
       Iterator := (Cur => Floor (Entries, Key));
       if Iterator.Cur = No_Element then

@@ -16,9 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Ada.Unchecked_Conversion;
-with GNAT.OS_Lib;
---with Hex_Images; use Hex_Images;
+with Interfaces; use Interfaces;
 
 package body Elf_Files is
    function Get_My_Data return Elf_Uchar
@@ -123,7 +121,7 @@ package body Elf_Files is
 
       Lseek (File.Fd, Long_Integer (File.Ehdr.E_Shoff), Seek_Set);
 
-      Size := Natural (File.Ehdr.E_Shnum) * Natural (Elf_Shdr_Size);
+      Size := Natural (File.Ehdr.E_Shnum) * Elf_Shdr_Size;
 
       if Read (File.Fd, File.Shdr (0)'Address, Size) /= Size then
          raise Error;

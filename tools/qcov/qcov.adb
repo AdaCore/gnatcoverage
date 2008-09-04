@@ -36,6 +36,12 @@ procedure Qcov is
       Put_Line (" --color             Use vt100 colors in outputs");
    end Usage;
 
+   procedure Error (Msg : String) is
+   begin
+      Put_Line (Standard_Output, Msg);
+      Set_Exit_Status (Failure);
+   end Error;
+
    Arg_Index : Natural;
    Arg_Count : constant Natural := Argument_Count;
 
@@ -53,7 +59,10 @@ begin
          Arg : constant String := Argument (Arg_Index);
       begin
          Arg_Index := Arg_Index + 1;
-         if Arg = "-r" then
+         if Arg = "-h" then
+            Usage;
+            return;
+         elsif Arg = "-r" then
             if Arg_Index > Arg_Count then
                Put_Line ("missing FILENAME to -r");
                return;
@@ -68,21 +77,21 @@ begin
             Dump_Traces;
          elsif Arg = "-w" then
             if Arg_Index > Arg_Count then
-               Put_Line ("missing FILENAME to -w");
+               Error ("missing FILENAME to -w");
                return;
             end if;
             Write_Trace_File (Argument (Arg_Index));
             Arg_Index := Arg_Index + 1;
          elsif Arg = "-e" then
             if Arg_Index > Arg_Count then
-               Put_Line ("missing FILENAME to -e");
+               Error ("missing FILENAME to -e");
                return;
             end if;
             begin
                Open_File (Argument (Arg_Index));
             exception
                when others =>
-                  Put_Line ("cannot open " & Argument (Arg_Index));
+                  Error ("cannot open " & Argument (Arg_Index));
                   return;
             end;
             Has_Exec := True;
@@ -92,6 +101,10 @@ begin
          elsif Arg = "--color" then
             Display.Flag_Color := True;
          elsif Arg = "--exe-coverage" then
+            if not Has_Exec then
+               Error ("option --exe-coverage requires an executable");
+               return;
+            end if;
             Build_Sections;
             Build_Debug_Compile_Units;
             Set_Trace_State;
@@ -131,8 +144,7 @@ begin
             Build_Symbols;
             Disp_File_Summary;
          else
-            Put_Line ("unknown option: " & Arg);
-            return;
+            Error ("unknown option: " & Arg);
          end if;
       end;
    end loop;

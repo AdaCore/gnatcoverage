@@ -33,6 +33,7 @@ package body Traces_Sources is
    end Equivalent;
 
    function Equal (L, R : Source_Lines) return Boolean is
+      pragma Unreferenced (L, R);
    begin
       return False;
    end Equal;
@@ -110,9 +111,9 @@ package body Traces_Sources is
    is
       procedure Process (Key : String_Acc; Element : in out Source_Lines)
       is
+         pragma Unreferenced (Key);
          use Source_Lines_Vectors;
-         use Traces;
-         L : Natural := Last (Element);
+         L : constant Natural := Last (Element);
       begin
          if L < Line then
             Set_Last (Element, Line);
@@ -136,9 +137,9 @@ package body Traces_Sources is
    is
       procedure Process (Key : String_Acc; Element : in out Source_Lines)
       is
+         pragma Unreferenced (Key);
          use Source_Lines_Vectors;
-         use Traces;
-         L : Natural := Last (Element);
+         L : constant Natural := Last (Element);
       begin
          if L < Line then
             Set_Last (Element, Line);
