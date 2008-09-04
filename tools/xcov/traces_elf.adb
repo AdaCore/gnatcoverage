@@ -1313,7 +1313,8 @@ package body Traces_Elf is
 
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
          Sym := Get_Sym
-           (Exe_File, Symtabs (0)'Address + Storage_Offset (I * Elf_Sym_Size));
+           (Exe_File,
+            Symtabs (0)'Address + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (Sym.St_Info);
          if  Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE then
             Addresses_Containers.Insert
