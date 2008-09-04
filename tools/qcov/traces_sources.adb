@@ -38,6 +38,7 @@ package body Traces_Sources is
       return False;
    end Equal;
 
+   --  Contains all the files.
    Filenames : Filenames_Maps.Map;
 
    function Find_File (Filename : String_Acc) return Filenames_Maps.Cursor
@@ -101,8 +102,8 @@ package body Traces_Sources is
          Both_Taken => Covered),
       Branch_Covered =>
         (Not_Covered => Partially_Covered,
-         Covered | Branch_Taken | Fallthrough_Taken => Covered,
-         Both_Taken => Branch_Covered)
+         Branch_Taken | Fallthrough_Taken => Covered,
+         Covered | Both_Taken => Branch_Covered)
       );
 
    procedure Add_Line_State (File : Filenames_Maps.Cursor;
@@ -114,6 +115,7 @@ package body Traces_Sources is
          pragma Unreferenced (Key);
          use Source_Lines_Vectors;
          L : constant Natural := Last (Element);
+         Ls : Line_State;
       begin
          if L < Line then
             Set_Last (Element, Line);
@@ -124,8 +126,9 @@ package body Traces_Sources is
          if State = Unknown then
             raise Program_Error;
          end if;
-         Element.Table (Line).State :=
-           Update_Table (Element.Table (Line).State, State);
+         Ls := Element.Table (Line).State;
+         Ls := Update_Table (Ls, State);
+         Element.Table (Line).State := Ls;
       end Process;
    begin
       Filenames_Maps.Update_Element (Filenames, File, Process'Access);
@@ -183,7 +186,7 @@ package body Traces_Sources is
         (No_Code => '.',
          Not_Covered => '-',
          Partially_Covered => '!',
-         Covered => 'x',
+         Covered => '?',
          Covered_No_Branch => '+',
          Branch_Taken => '>',
          Branch_Fallthrough => 'v',

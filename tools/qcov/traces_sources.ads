@@ -22,6 +22,7 @@ with Traces;
 with Traces_Elf; use Traces_Elf;
 
 package Traces_Sources is
+   --  Coverage state of a source line of code.
    type Line_State is
      (
       --  No instructions executed.
@@ -30,11 +31,11 @@ package Traces_Sources is
       --  Some instructions not covered in the line.
       Partially_Covered,
 
-      --  Covered at instructions level but there are decisions not
+      --  Covered at instructions level but there are branches partially
       --  covered.
-      Covered,
+      Covered, -- Branch_Partially_Covered
 
-      --  All instruction executed.
+      --  All instructions executed.
       --  Only one branch and one decision taken.
       Branch_Taken,
       Branch_Fallthrough,
@@ -42,18 +43,23 @@ package Traces_Sources is
       --  Covered at decision level.
       Branch_Covered,
 
-      --  Same as covered but no branches
+      --  Same as covered but no branches.
       Covered_No_Branch,
 
       --  Initial state: no code for this line.
       No_Code
       );
 
+   --  Data associated with a SLOC.
    type Line_Info is record
+      --  The coverage state.
       State : Line_State;
+
+      --  Object code for this line.
       Lines : Addresses_Line_Chain;
    end record;
 
+   --  Describe a source file - one element per line.
    package Source_Lines_Vectors is new GNAT.Dynamic_Tables
      (Table_Component_Type => Line_Info,
       Table_Index_Type => Natural,
@@ -63,10 +69,12 @@ package Traces_Sources is
 
    subtype Source_Lines is Source_Lines_Vectors.Instance;
 
+   --  Containers helpers.
    function Hash (El : String_Acc) return Ada.Containers.Hash_Type;
    function Equivalent (L, R : String_Acc) return Boolean;
    function Equal (L, R : Source_Lines) return Boolean;
 
+   --  Describe all the source files.
    package Filenames_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type => String_Acc,
       Element_Type => Source_Lines,
@@ -74,10 +82,17 @@ package Traces_Sources is
       Equivalent_Keys => Equivalent,
       "=" => Equal);
 
+   --  Find or create a new source file.
    function Find_File (Filename : String_Acc) return Filenames_Maps.Cursor;
+
+   --  Lets know File that Line exists and add the addresses range for Info.
+   --  (This knowledge comes from debugging informations).
    procedure Add_Line (File : Filenames_Maps.Cursor;
                        Line : Natural;
                        Info : Addresses_Info_Acc);
+
+   --  Same as Add_Line but with a State.
+   --  (The knowledge comes from execution traces).
    procedure Add_Line_State (File : Filenames_Maps.Cursor;
                              Line : Natural;
                              State : Traces.Trace_State);
