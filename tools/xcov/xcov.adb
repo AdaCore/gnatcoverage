@@ -135,7 +135,9 @@ begin
             Flag_Show_Asm := True;
          elsif Arg = "--missing-files" then
             Flag_Show_Missing := True;
-         elsif Arg (Arg'First .. Arg'First + 7) = "--level=" then
+         elsif Arg'Length > 8
+           and then Arg (Arg'First .. Arg'First + 7) = "--level="
+         then
             if Arg = "--level=A" or else Arg = "--level=a" then
                DO178B_Level := Level_A;
             elsif Arg = "--level=C" or else Arg = "--level=c" then
