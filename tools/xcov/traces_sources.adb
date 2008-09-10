@@ -19,6 +19,7 @@
 with Ada.Strings.Hash;
 with Ada.Text_Io;
 with Ada.Integer_Text_IO;
+with Ada.Directories;
 with Display;
 
 package body Traces_Sources is
@@ -232,7 +233,7 @@ package body Traces_Sources is
          Put_Line (Filename & ':');
          Has_Source := True;
       exception
-         when Name_Error =>
+         when Ada.Text_IO.Name_Error =>
             Put_Line (Filename & ": (can't open)");
             if not Flag_Show_Missing then
                return;
@@ -265,7 +266,7 @@ package body Traces_Sources is
          Line := Last (File) + 1;
          while not End_Of_File (F) loop
             Put (Line, 4);
-            Put (" .: ");
+            Put (State_Char (No_Code) & ':');
             Put (Get_Line (F));
             New_Line;
             Line := Line + 1;
@@ -278,16 +279,37 @@ package body Traces_Sources is
    is
       use Filenames_Maps;
       use Ada.Text_IO;
+      use Ada.Directories;
 
-      procedure Process (Key : String_Acc; Element : in Source_Lines) is
+      Flag_Write_Stdout : constant Boolean := False;
+
+      procedure Process (Key : String_Acc; Element : in Source_Lines)
+      is
+         Output : File_Type;
       begin
+         if not Flag_Write_Stdout then
+            declare
+               Output_Filename : constant String :=
+                 Simple_Name (Key.all) & ".xcov";
+            begin
+               Create (Output, Out_File, Output_Filename);
+               Set_Output (Output);
+            exception
+               when Ada.Text_IO.Name_Error =>
+                  Put_Line (Standard_Error,
+                            "cannot open " & Output_Filename);
+                  return;
+            end;
+         end if;
          Disp_File_Line_State (Key.all, Element);
+         if not Flag_Write_Stdout then
+            Set_Output (Standard_Output);
+            Close (Output);
+         end if;
       end Process;
       Cur : Cursor;
    begin
-      Put_Line ("0: unknown, .: no code");
-      Put_Line ("-: not covered, !: partially covered");
-      Put_Line ("+: covered, *: branch covered");
+      --  Iterates on all files.
       Cur := First (Filenames);
       while Cur /= No_Element loop
          Query_Element (Cur, Process'Access);
