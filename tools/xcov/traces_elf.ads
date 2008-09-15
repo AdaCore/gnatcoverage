@@ -16,7 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Traces;
+with Traces; use Traces;
 with Elf_Common;
 with Interfaces;
 
@@ -24,8 +24,9 @@ package Traces_Elf is
    type String_Acc is access String;
 
    --  Open an ELF file.
+   --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
-   procedure Open_File (Filename : String);
+   procedure Open_File (Filename : String; Text_Start : Pc_Type);
 
    --  Build sections map.
    procedure Build_Sections;

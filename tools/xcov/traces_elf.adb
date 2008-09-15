@@ -22,9 +22,9 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Vectors;
 with Ada.Containers.Ordered_Sets;
 with Elf_Common; use Elf_Common;
+with Elf32;
 with Interfaces; use Interfaces;
 with Hex_Images; use Hex_Images;
-with Traces; use Traces;
 with Elf_Arch; use Elf_Arch;
 with Dwarf;
 with Dwarf_Handling;  use Dwarf_Handling;
@@ -120,13 +120,17 @@ package body Traces_Elf is
    end Disp_Lines_Addresses;
 
    --  Sections index.
-   Sec_Debug_Abbrev  : Elf_Half := 0;
-   Sec_Debug_Info    : Elf_Half := 0;
-   Sec_Debug_Line    : Elf_Half := 0;
+   Sec_Debug_Abbrev   : Elf_Half := 0;
+   Sec_Debug_Info     : Elf_Half := 0;
+   Sec_Debug_Info_Rel : Elf_Half := 0;
+   Sec_Debug_Line     : Elf_Half := 0;
+   Sec_Debug_Line_Rel : Elf_Half := 0;
    --Sec_Debug_Aranges : Elf_Half := 0;
-   Sec_Debug_Str     : Elf_Half := 0;
+   Sec_Debug_Str      : Elf_Half := 0;
 
    Exe_File : Elf_File;
+   Exe_Text_Start : Elf_Addr;
+   Exe_Machine : Elf_Half;
    Is_Big_Endian : Boolean;
 
    --  FIXME.
@@ -148,10 +152,15 @@ package body Traces_Elf is
 
    Bad_Stmt_List : constant Unsigned_64 := Unsigned_64'Last;
 
-   procedure Open_File (Filename : String) is
+   procedure Open_File (Filename : String; Text_Start : Pc_Type)
+   is
+      Ehdr : Elf_Ehdr;
    begin
       Open_File (Exe_File, Filename);
-      Is_Big_Endian := Get_Ehdr (Exe_File).E_Ident (EI_DATA) = ELFDATA2MSB;
+      Exe_Text_Start := Text_Start;
+      Ehdr := Get_Ehdr (Exe_File);
+      Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
+      Exe_Machine := Ehdr.E_Machine;
 
       --  Be sure the section headers are loaded.
       Load_Shdr (Exe_File);
@@ -164,8 +173,12 @@ package body Traces_Elf is
                Sec_Debug_Abbrev := I;
             elsif Name = ".debug_info" then
                Sec_Debug_Info := I;
+            elsif Name = ".rela.debug_info" then
+               Sec_Debug_Info_Rel := I;
             elsif Name = ".debug_line" then
                Sec_Debug_Line := I;
+            elsif Name = ".rela.debug_line" then
+               Sec_Debug_Line_Rel := I;
             elsif Name = ".debug_str" then
                Sec_Debug_Str := I;
             end if;
@@ -195,6 +208,18 @@ package body Traces_Elf is
       end if;
    end Read_Word4;
 
+   procedure Read_Word4 (Base : Address;
+                         Off : in out Storage_Offset;
+                         Res : out Integer_32)
+   is
+      function To_Integer_32 is new Ada.Unchecked_Conversion
+        (Unsigned_32, Integer_32);
+      R : Unsigned_32;
+   begin
+      Read_Word4 (Base, Off, R);
+      Res := To_Integer_32 (R);
+   end Read_Word4;
+
    procedure Read_Word2 (Base : Address;
                          Off : in out Storage_Offset;
                          Res : out Unsigned_16) is
@@ -205,6 +230,29 @@ package body Traces_Elf is
          Read_Word2_Le (Base, Off, Res);
       end if;
    end Read_Word2;
+
+   procedure Write_Word4 (Base : Address;
+                          Off : in out Storage_Offset;
+                          Val : Unsigned_32) is
+   begin
+      if Is_Big_Endian then
+         Write_Word4_Be (Base, Off, Val);
+      else
+         Write_Word4_Le (Base, Off, Val);
+      end if;
+   end Write_Word4;
+
+   procedure Write_Word4 (Base : Address;
+                          Off : in out Storage_Offset;
+                          Val : Integer_32)
+   is
+      function To_Unsigned_32 is new Ada.Unchecked_Conversion
+        (Integer_32, Unsigned_32);
+      R : Unsigned_32;
+   begin
+      R := To_Unsigned_32 (Val);
+      Write_Word4 (Base, Off, R);
+   end Write_Word4;
 
    procedure Read_Address (Base : Address;
                            Off : in out Storage_Offset;
@@ -405,6 +453,66 @@ package body Traces_Elf is
       end case;
    end Skip_Dwarf_Form;
 
+   procedure Apply_Relocations (Sec_Rel : Elf_Half;
+                                Data : in out Binary_Content)
+   is
+      use Elf32;
+      Relocs_Len : Elf_Size;
+      Relocs : Binary_Content_Acc;
+      Relocs_Base : Address;
+
+      Shdr : Elf_Shdr_Acc;
+      Off : Storage_Offset;
+
+      R : Elf_Rela;
+   begin
+      Shdr := Get_Shdr (Exe_File, Sec_Rel);
+      if Shdr.Sh_Type /= SHT_RELA then
+         raise Program_Error;
+      end if;
+      if Natural (Shdr.Sh_Entsize) /= Elf_Rela_Size then
+         raise Program_Error;
+      end if;
+      Relocs_Len := Get_Section_Length (Exe_File, Sec_Rel);
+      Relocs := new Binary_Content (0 .. Relocs_Len - 1);
+      Load_Section (Exe_File, Sec_Rel, Relocs (0)'Address);
+      Relocs_Base := Relocs (0)'Address;
+
+      Off := 0;
+      while Off < Storage_Offset (Relocs_Len) loop
+         if Off + Storage_Offset (Elf_Rela_Size) > Storage_Offset (Relocs_Len)
+         then
+            --  Truncated.
+            raise Program_Error;
+         end if;
+
+         --  Read relocation entry.
+         Read_Word4 (Relocs_Base, Off, R.R_Offset);
+         Read_Word4 (Relocs_Base, Off, R.R_Info);
+         Read_Word4 (Relocs_Base, Off, R.R_Addend);
+
+         if R.R_Offset > Data'Last then
+            raise Program_Error;
+         end if;
+
+         case Exe_Machine is
+            when EM_PPC =>
+               case Elf_R_Type (R.R_Info) is
+                  when R_PPC_ADDR32 =>
+                     null;
+                  when others =>
+                     raise Program_Error;
+               end case;
+            when others =>
+               raise Program_Error;
+         end case;
+
+         Write_Word4 (Data (0)'Address,
+                      Storage_Offset (R.R_Offset), R.R_Addend);
+      end loop;
+      Unchecked_Deallocation (Relocs);
+   end Apply_Relocations;
+
    --  Extract lang, subprogram name and stmt_list (offset in .debug_line).
    procedure Build_Debug_Compile_Units
    is
@@ -468,21 +576,22 @@ package body Traces_Elf is
       Base := Infos (0)'Address;
       Load_Section (Exe_File, Sec_Debug_Info, Base);
 
+      if Sec_Debug_Info_Rel /= 0 then
+         Apply_Relocations (Sec_Debug_Info_Rel, Infos.all);
+      end if;
+
       Off := 0;
 
-      loop
+      while Off < Storage_Offset (Shdr.Sh_Size) loop
          --  Read .debug_info header:
          --    Length, version, offset in .debug_abbrev, pointer size.
-         if Off >= Storage_Offset (Shdr.Sh_Size) then
-            return;
-         end if;
          Read_Word4 (Base, Off, Len);
          Last := Off + Storage_Offset (Len);
          Read_Word2 (Base, Off, Ver);
          Read_Word4 (Base, Off, Abbrev_Off);
          Read_Byte (Base, Off, Ptr_Sz);
          if Ver /= 2 and Ver /= 3 then
-            return;
+            exit;
          end if;
          Level := 0;
 
@@ -560,11 +669,13 @@ package body Traces_Elf is
                      --  This field are not required.
                      At_Low_Pc := 1;
                      At_High_Pc := 1;
+                  else
+                     Cu_Base_Pc := At_Low_Pc;
                   end if;
                   Current_Cu := new Addresses_Info'
                     (Kind => Compile_Unit_Addresses,
-                     First => Pc_Type (At_Low_Pc),
-                     Last => Pc_Type (At_High_Pc - 1),
+                     First => Exe_Text_Start + Pc_Type ( At_Low_Pc),
+                     Last => Exe_Text_Start + Pc_Type (At_High_Pc - 1),
                      Parent => null,
                      Compile_Unit_Filename =>
                        new String'(Read_String (At_Name)),
@@ -576,18 +687,13 @@ package body Traces_Elf is
                   --Ctxt.Lang := At_Lang;
                   At_Lang := 0;
                   At_Stmt_List := Bad_Stmt_List;
-                  if At_Low_Pc /= 0 and At_High_Pc /= 0 then
-                     Cu_Base_Pc := At_Low_Pc;
-                  else
-                     raise Program_Error;
-                  end if;
                when DW_Tag_Subprogram =>
                   if At_High_Pc > At_Low_Pc then
                      Current_Subprg :=
                        New Addresses_Info'
                        (Kind => Subprogram_Addresses,
-                        First => Pc_Type (At_Low_Pc),
-                        Last => Pc_Type (At_High_Pc - 1),
+                        First => Exe_Text_Start + Pc_Type (At_Low_Pc),
+                        Last => Exe_Text_Start + Pc_Type (At_High_Pc - 1),
                         Parent => Current_Cu,
                         Subprogram_Name =>
                           new String'(Read_String (At_Name)));
@@ -603,6 +709,9 @@ package body Traces_Elf is
          end loop;
          Unchecked_Deallocation (Map);
       end loop;
+
+      Unchecked_Deallocation (Infos);
+      Unchecked_Deallocation (Abbrevs);
    end Build_Debug_Compile_Units;
 
    package Filenames_Vectors is new Ada.Containers.Vectors
@@ -661,7 +770,7 @@ package body Traces_Elf is
          Insert (Lines_Set,
                  new Addresses_Info'
                  (Kind => Line_Addresses,
-                  First => Pc_Type (Pc),
+                  First => Exe_Text_Start + Pc_Type (Pc),
                   Last => 0,
                   Parent => null,
                   Line_Next => null,
@@ -678,6 +787,10 @@ package body Traces_Elf is
          Lines_Len := Get_Section_Length (Exe_File, Sec_Debug_Line);
          Lines := new Binary_Content (0 .. Lines_Len - 1);
          Load_Section (Exe_File, Sec_Debug_Line, Lines (0)'Address);
+
+         if Sec_Debug_Line_Rel /= 0 then
+            Apply_Relocations (Sec_Debug_Line_Rel, Lines.all);
+         end if;
       end if;
 
       Base := Lines (0)'Address;
@@ -919,8 +1032,8 @@ package body Traces_Elf is
            = (SHF_ALLOC or SHF_EXECINSTR)
            and then (Shdr.Sh_Type = SHT_PROGBITS)
          then
-            Addr := Pc_Type (Shdr.Sh_Addr);
-            Last := Pc_Type (Shdr.Sh_Addr + Shdr.Sh_Size - 1);
+            Addr := Pc_Type (Shdr.Sh_Addr + Exe_Text_Start);
+            Last := Pc_Type (Shdr.Sh_Addr + Exe_Text_Start + Shdr.Sh_Size - 1);
 
             Insert (Sections_Set,
                     New Addresses_Info'
@@ -1193,14 +1306,27 @@ package body Traces_Elf is
             exit when Addr > Sec.Last;
             exit when Trace.First > Sec.Last;
 
-            case Machine is
+            case Exe_Machine is
                when EM_PPC =>
                   declare
                      Insn : Binary_Content (0 .. 3);
                      Op : constant Unsigned_8 := Trace.Op and 3;
+                     Trace_Len : constant Pc_Type :=
+                       Trace.Last - Trace.First + 1;
+
+                     procedure Update_Or_Split (Next_State : Trace_State)
+                     is
+                     begin
+                        if Trace_Len = 4 then
+                           Update_State (It, Next_State);
+                        else
+                           Split_Trace (It, Trace.Last - 4,
+                                        Covered, Next_State);
+                        end if;
+                     end Update_Or_Split;
                   begin
                      --  Instructions length is 4.
-                     if Trace.Last - Trace.First < 3 then
+                     if Trace_Len < 4 then
                         raise Program_Error;
                      end if;
                      case Op is
@@ -1220,15 +1346,12 @@ package body Traces_Elf is
                               --  bc always
                               Update_State (It, Covered);
                            else
-                              Split_Trace (It, Trace.Last - 4,
-                                           Covered, Branch_Taken);
+                              Update_Or_Split (Branch_Taken);
                            end if;
                         when 2 =>
-                           Split_Trace (It, Trace.Last - 4,
-                                        Covered, Fallthrough_Taken);
+                           Update_Or_Split (Fallthrough_Taken);
                         when 3 =>
-                           Split_Trace (It, Trace.Last - 4,
-                                        Covered, Both_Taken);
+                           Update_Or_Split (Both_Taken);
                         when others =>
                            raise Program_Error;
                      end case;

@@ -51,7 +51,28 @@ procedure Xcov is
    Arg_Index : Natural;
    Arg_Count : constant Natural := Argument_Count;
 
+   function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
+   is
+      Res : Pc_Type;
+      Pos : Natural;
+   begin
+      if S'Length < 3
+        or else S (S'First) /= '0'
+        or else (S (S'First + 1) /= 'x' and then S (S'First + 1) /= 'X')
+      then
+         Error ("missing '0x' prefix for " & Flag_Name);
+         raise Constraint_Error;
+      end if;
+      Pos := S'First + 2;
+      Get_Pc (Res, S, Pos);
+      if Pos <= S'Last then
+         Error ("bad hexadecimal number for " & Flag_Name);
+      end if;
+      return Res;
+   end Parse_Hex;
+
    Has_Exec : Boolean := False;
+   Text_Start : Pc_Type := 0;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -94,7 +115,7 @@ begin
                return;
             end if;
             begin
-               Open_File (Argument (Arg_Index));
+               Open_File (Argument (Arg_Index), Text_Start);
             exception
                when others =>
                   Error ("cannot open " & Argument (Arg_Index));
@@ -146,6 +167,16 @@ begin
                Error ("bad parameter for --level");
                return;
             end if;
+         elsif Arg'Length > 4
+           and then Arg (Arg'First .. Arg'First + 12) = "--text-start="
+         then
+            begin
+               Text_Start := Parse_Hex
+                 (Arg (Arg'First + 13 .. Arg'Last), "--text-start");
+            exception
+               when Constraint_Error =>
+                  return;
+            end;
          elsif Arg = "--source-coverage" then
             Build_Sections;
             Set_Trace_State;
