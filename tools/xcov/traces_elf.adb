@@ -1414,7 +1414,7 @@ package body Traces_Elf is
       Ok : Boolean;
    begin
       Symtab_Idx := Get_Shdr_By_Name (Exe_File, ".symtab");
-      if Symtab_Idx = 0 then
+      if Symtab_Idx = SHN_UNDEF then
          return;
       end if;
       Symtab_Shdr := Get_Shdr (Exe_File, Symtab_Idx);
@@ -1439,13 +1439,16 @@ package body Traces_Elf is
            (Exe_File,
             Symtabs (0)'Address + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (Sym.St_Info);
-         if  Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE then
+         if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
+           and then Sym.St_Shndx /= SHN_UNDEF
+         then
             Addresses_Containers.Insert
               (Symbols_Set,
                new Addresses_Info'
                (Kind => Symbol_Addresses,
-                First => Pc_Type (Sym.St_Value),
-                Last => Pc_Type (Sym.St_Value + Sym.St_Size - 1),
+                First => Exe_Text_Start + Pc_Type (Sym.St_Value),
+                Last => Exe_Text_Start + Pc_Type (Sym.St_Value
+                                                  + Sym.St_Size - 1),
                 Parent => null,
                 Symbol_Name => new String'
                 (Read_String (Strtabs (Sym.St_Name)'Address))),

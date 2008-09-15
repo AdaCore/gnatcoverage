@@ -240,7 +240,7 @@ package body Elf_Files is
             return I;
          end if;
       end loop;
-      return 0;
+      return SHN_UNDEF;
    end Get_Shdr_By_Name;
 
    function Get_Shdr_By_Name (File : Elf_File; Name : String)
