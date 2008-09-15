@@ -105,6 +105,12 @@ package Traces is
    procedure Split_Trace (Iterator : in out Entry_Iterator;
                           Pc : Pc_Type;
                           Cur_State, Next_State : Trace_State);
+
+   --  Convert hexa-decimal string contained in Line (Pos ..) to a Pc_Type.
+   --  Put the result to RES, POS contains the index past the last character
+   --  accepted.
+   procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural);
+
 private
    --  Operations for ordered_sets.
    function "=" (L, R : Trace_Entry) return Boolean;
