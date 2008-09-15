@@ -417,7 +417,7 @@ package body Traces is
       C : Character;
    begin
       Res := 0;
-      while Pos < Line'Last loop
+      while Pos <= Line'Last loop
          C := Line (Pos);
          case C is
          when '0' .. '9' =>
