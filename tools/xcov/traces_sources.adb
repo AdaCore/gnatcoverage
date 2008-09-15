@@ -266,6 +266,7 @@ package body Traces_Sources is
          Line := Last (File) + 1;
          while not End_Of_File (F) loop
             Put (Line, 4);
+            Put (' ');
             Put (State_Char (No_Code) & ':');
             Put (Get_Line (F));
             New_Line;
