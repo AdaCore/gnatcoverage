@@ -216,4 +216,48 @@ package body Dwarf_Handling is
       end loop;
    end Read_String;
 
+   procedure Write_Byte (Addr : Address; Val : Unsigned_8)
+   is
+      type Unsigned_8_Acc is access all Unsigned_8;
+      function To_Unsigned_8_Acc is new Ada.Unchecked_Conversion
+        (Address, Unsigned_8_Acc);
+   begin
+      To_Unsigned_8_Acc (Addr).all := Val;
+   end Write_Byte;
+
+   procedure Write_Word4_Le (Base : Address;
+                             Off : in out Storage_Offset;
+                             Val : in Unsigned_32)
+   is
+      B0, B1, B2, B3 : Unsigned_8;
+   begin
+      B0 := Unsigned_8 (Shift_Right (Val, 0) and 16#Ff#);
+      B1 := Unsigned_8 (Shift_Right (Val, 8) and 16#Ff#);
+      B2 := Unsigned_8 (Shift_Right (Val, 16) and 16#Ff#);
+      B3 := Unsigned_8 (Shift_Right (Val, 24) and 16#Ff#);
+
+      Write_Byte (Base + Off + 0, B0);
+      Write_Byte (Base + Off + 1, B1);
+      Write_Byte (Base + Off + 2, B2);
+      Write_Byte (Base + Off + 3, B3);
+      Off := Off + 4;
+   end Write_Word4_Le;
+
+   procedure Write_Word4_Be (Base : Address;
+                             Off : in out Storage_Offset;
+                             Val : in Unsigned_32)
+   is
+      B0, B1, B2, B3 : Unsigned_8;
+   begin
+      B0 := Unsigned_8 (Shift_Right (Val, 24) and 16#Ff#);
+      B1 := Unsigned_8 (Shift_Right (Val, 16) and 16#Ff#);
+      B2 := Unsigned_8 (Shift_Right (Val, 8) and 16#Ff#);
+      B3 := Unsigned_8 (Shift_Right (Val, 0) and 16#Ff#);
+
+      Write_Byte (Base + Off + 0, B0);
+      Write_Byte (Base + Off + 1, B1);
+      Write_Byte (Base + Off + 2, B2);
+      Write_Byte (Base + Off + 3, B3);
+      Off := Off + 4;
+   end Write_Word4_Be;
 end Dwarf_Handling;

@@ -34,21 +34,21 @@ package Dwarf_Handling is
                             Off : in out Storage_Offset;
                             Res : out Unsigned_64);
 
+   procedure Read_Word8_Be (Base : Address;
+                            Off : in out Storage_Offset;
+                            Res : out Unsigned_64);
+
    procedure Read_Word4_Le (Base : Address;
+                            Off : in out Storage_Offset;
+                            Res : out Unsigned_32);
+
+   procedure Read_Word4_Be (Base : Address;
                             Off : in out Storage_Offset;
                             Res : out Unsigned_32);
 
    procedure Read_Word2_Le (Base : Address;
                             Off : in out Storage_Offset;
                             Res : out Unsigned_16);
-
-   procedure Read_Word8_Be (Base : Address;
-                            Off : in out Storage_Offset;
-                            Res : out Unsigned_64);
-
-   procedure Read_Word4_Be (Base : Address;
-                            Off : in out Storage_Offset;
-                            Res : out Unsigned_32);
 
    procedure Read_Word2_Be (Base : Address;
                             Off : in out Storage_Offset;
@@ -67,4 +67,13 @@ package Dwarf_Handling is
                            Res : out Unsigned_32);
 
    procedure Read_String (Base : Address; Off : in out Storage_Offset);
+
+   procedure Write_Word4_Le (Base : Address;
+                             Off : in out Storage_Offset;
+                             Val : in Unsigned_32);
+
+   procedure Write_Word4_Be (Base : Address;
+                             Off : in out Storage_Offset;
+                             Val : in Unsigned_32);
+
 end Dwarf_Handling;
