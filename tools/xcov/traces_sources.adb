@@ -267,7 +267,8 @@ package body Traces_Sources is
          while not End_Of_File (F) loop
             Put (Line, 4);
             Put (' ');
-            Put (State_Char (No_Code) & ':');
+            Put (State_Char (No_Code));
+            Put (": ");
             Put (Get_Line (F));
             New_Line;
             Line := Line + 1;
@@ -321,49 +322,40 @@ package body Traces_Sources is
    procedure Disp_File_Summary
    is
       use Ada.Text_IO;
+      use Ada.Directories;
 
       procedure Process (Key : String_Acc; File : in Source_Lines)
       is
+         use Ada.Integer_Text_IO;
          use Source_Lines_Vectors;
          use Display;
 
+         type Stat_Array is array (Line_State) of Natural;
+         Stats : Stat_Array := (others => 0);
+         Total : Natural;
+
          State : Line_State;
-         Result : Line_State := No_Code;
       begin
          for I in Integer range First .. Last (File) loop
             State := File.Table (I).State;
-            case State is
-               when No_Code =>
-                  null;
-               when Not_Covered
-                 | Partially_Covered
-                 | Covered
-                 | Covered_No_Branch
-                 | Branch_Covered =>
-                  Result := Line_State'Min (Result, State);
-               when Branch_Taken | Branch_Fallthrough =>
-                  Result := Line_State'Min (Result, Covered);
-            end case;
+            State := State_Map (DO178B_Level, State);
+            Stats (State) := Stats (State) + 1;
          end loop;
 
-         Set_Color (Result);
-         Put (Key.all);
+         Total := 0;
+         for J in Stats'Range loop
+            Total := Total + Stats (J);
+         end loop;
+         Total := Total - Stats (No_Code);
+
+         Put (Simple_Name (Key.all));
          Put (": ");
-         case Result is
-            when Branch_Taken | Branch_Fallthrough =>
-               raise Program_Error;
-            when No_Code =>
-               Put ("no code found");
-            when Not_Covered =>
-               Put ("some lines are not covered");
-            when Partially_Covered =>
-               Put ("all lines are covered");
-            when Covered =>
-               Put ("all instructions are covered - some decisions not taken");
-            when Covered_No_Branch | Branch_Covered =>
-               Put ("all instructions covered, all decisions taken");
-         end case;
-         Set_Color (Black);
+         if Total = 0 then
+            Put ("no code");
+         else
+            Put (Stats (Covered_No_Branch) * 100 / Total, 0);
+            Put ("% of" & Natural'Image (Total) & " lines covered");
+         end if;
          New_Line;
       end Process;
 
