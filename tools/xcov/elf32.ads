@@ -118,6 +118,10 @@ package Elf32 is
    R_SPARC_LO10 :    constant Elf32_Word := 12; -- (S + A) & 0x3ff
    R_SPARC_UA32 :    constant Elf32_Word := 23; -- (S + A)
 
+   --  For PPC.
+   R_PPC_NONE   : constant Elf32_Word := 0;
+   R_PPC_ADDR32 : constant Elf32_Word := 1; -- S + A
+
    type Elf32_Phdr is record
       P_Type   : Elf32_Word;
       P_Offset : Elf32_Off;
