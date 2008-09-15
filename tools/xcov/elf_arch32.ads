@@ -34,7 +34,8 @@ package Elf_Arch32 is
    Elf_Ehdr_Size : constant Natural := Elf32_Ehdr_Size;
    Elf_Shdr_Size : constant Natural := Elf32_Shdr_Size;
    Elf_Phdr_Size : constant Natural := Elf32_Phdr_Size;
-   Elf_Sym_Size : constant Natural := Elf32_Sym_Size;
+   Elf_Sym_Size  : constant Natural := Elf32_Sym_Size;
+   Elf_Rela_Size : constant Natural := Elf32_Rela_Size;
 
    Elf_Arch_Class : constant Elf_Uchar := ELFCLASS32;
 
@@ -44,4 +45,11 @@ package Elf_Arch32 is
      renames Elf32_Shdr_Swap;
    procedure Elf_Sym_Swap (Ehdr : in out Elf_Sym)
      renames Elf32_Sym_Swap;
+
+   function Elf_R_Sym (I : Elf_Word) return Elf_Word
+     renames Elf32_R_Sym;
+   function Elf_R_Type (I : Elf_Word) return Elf_Word
+     renames Elf32_R_Type;
+   function Elf_R_Info (S, T : Elf_Word) return Elf_Word
+     renames Elf32_R_Info;
 end Elf_Arch32;
