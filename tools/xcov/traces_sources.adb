@@ -230,7 +230,6 @@ package body Traces_Sources is
    begin
       begin
          Open (F, In_File, Filename);
-         Put_Line (Filename & ':');
          Has_Source := True;
       exception
          when Ada.Text_IO.Name_Error =>
@@ -240,6 +239,7 @@ package body Traces_Sources is
             end if;
             Has_Source := False;
       end;
+      Put_Line (Filename & ':');
       for I in Integer range First .. Last (File) loop
          Ls := File.Table (I).State;
          Ls := State_Map (DO178B_Level, Ls);
@@ -289,6 +289,14 @@ package body Traces_Sources is
       is
          Output : File_Type;
       begin
+         --  Do not try to process files whose source is not available.
+         if not Flag_Show_Missing
+           and then not Exists (Key.all)
+         then
+            return;
+         end if;
+
+         --  Redirect output.
          if not Flag_Write_Stdout then
             declare
                Output_Filename : constant String :=
@@ -303,7 +311,9 @@ package body Traces_Sources is
                   return;
             end;
          end if;
+
          Disp_File_Line_State (Key.all, Element);
+
          if not Flag_Write_Stdout then
             Set_Output (Standard_Output);
             Close (Output);
