@@ -74,6 +74,7 @@ procedure Xcov is
 
    Has_Exec : Boolean := False;
    Text_Start : Pc_Type := 0;
+   Format : Output_Format := Format_Xcov;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -178,13 +179,24 @@ begin
                when Constraint_Error =>
                   return;
             end;
+         elsif Arg'Length > 16
+           and then Arg (Arg'First .. Arg'First + 15) = "--output-format="
+         then
+            if Arg (Arg'First + 16 .. Arg'Last) = "xcov" then
+               Format := Format_Xcov;
+            elsif Arg (Arg'First + 16 .. Arg'Last) = "html" then
+               Format := Format_Html;
+            else
+               Error ("bad parameter for --output-format");
+               return;
+            end if;
          elsif Arg = "--source-coverage" then
             Build_Sections;
             Set_Trace_State;
             Build_Debug_Lines;
             Build_Source_Lines;
             Build_Symbols;
-            Disp_Line_State;
+            Disp_Line_State (Format);
          elsif Arg = "--file-coverage" then
             Build_Sections;
             Set_Trace_State;

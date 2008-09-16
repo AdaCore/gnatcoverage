@@ -126,8 +126,10 @@ package Traces_Sources is
    -- found.
    Flag_Show_Missing : Boolean := False;
 
+   type Output_Format is (Format_Xcov, Format_Html);
+
    --  Display source lines with status.
-   procedure Disp_Line_State;
+   procedure Disp_Line_State (Format : Output_Format);
 
    --  Display a per file summary.
    procedure Disp_File_Summary;
@@ -182,4 +184,23 @@ private
       Branch_Taken => '>',
       Branch_Fallthrough => 'v',
       Branch_Covered => '*');
+
+   type Pretty_Printer is abstract tagged limited record
+      Need_Sources : Boolean;
+   end record;
+
+   type Stat_Array is array (Line_State) of Natural;
+
+   procedure Pretty_Print_Start (Pp : in out Pretty_Printer) is null;
+   procedure Pretty_Print_Finish (Pp : in out Pretty_Printer) is null;
+   procedure Pretty_Print_File (Pp : in out Pretty_Printer;
+                                Source_Filename : String;
+                                Stats : Stat_Array;
+                                Skip : out Boolean) is abstract;
+   procedure Pretty_Print_Line (Pp : in out Pretty_Printer;
+                                Line_Num : Natural;
+                                State : Line_State;
+                                Line : String) is abstract;
+   procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
+
 end Traces_Sources;
