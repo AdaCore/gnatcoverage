@@ -61,7 +61,7 @@ package body Disa_Ppc is
    --  Some well-known spr
    --Spr_Xer : constant Unsigned_32 := 2#00001_00000#;
    Spr_Lr  : constant Unsigned_32 := 2#01000_00000#;
-   --Spr_Ctr : constant Unsigned_32 := 2#01001_00000#;
+   Spr_Ctr : constant Unsigned_32 := 2#01001_00000#;
 
    procedure Disassemble_Insn (Addr : System.Address;
                                Pc : Traces.Pc_Type;
@@ -787,6 +787,10 @@ package body Disa_Ppc is
                      Spr := Get_Field (11, 10);
                      if Spr = Spr_Lr then
                         Add ("mtlr");
+                        Add_HT;
+                        Add_Reg (Get_Field_D);
+                     elsif Spr = Spr_Ctr then
+                        Add ("mtctr");
                         Add_HT;
                         Add_Reg (Get_Field_D);
                      else
