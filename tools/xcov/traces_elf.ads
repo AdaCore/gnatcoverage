@@ -34,6 +34,9 @@ package Traces_Elf is
    --  Show coverage of sections.
    procedure Disp_Sections_Coverage;
 
+   --  Show coverage of subprograms.
+   procedure Disp_Subprograms_Coverage;
+
    --  Using the executable, correctly set the state of every traces.
    procedure Set_Trace_State;
 

@@ -60,53 +60,6 @@ package body Traces_Sources is
       return Res;
    end Find_File;
 
-   use Traces;
-
-   subtype Known_Trace_State is
-     Trace_State range Not_Covered .. Trace_State'Last;
-   type State_Update_Table_Type is array (Line_State, Known_Trace_State)
-     of Line_State;
-
-   Update_Table : constant State_Update_Table_Type :=
-     (
-      No_Code =>
-        (Not_Covered => Not_Covered,
-         Covered => Covered_No_Branch,
-         Branch_Taken => Branch_Taken,
-         Fallthrough_Taken => Branch_Fallthrough,
-         Both_Taken => Branch_Covered),
-      Not_Covered =>
-        (Not_Covered => Not_Covered,
-         others => Partially_Covered),
-      Partially_Covered =>
-        (others => Partially_Covered),
-      Covered =>
-        (Not_Covered => Partially_Covered,
-         others => Covered),
-      Covered_No_Branch =>
-        (Not_Covered => Partially_Covered,
-         Covered => Covered_No_Branch,
-         Branch_Taken => Branch_Taken,
-         Fallthrough_Taken => Branch_Fallthrough,
-         Both_Taken => Branch_Covered),
-      Branch_Taken =>
-        (Not_Covered => Partially_Covered,
-         Covered => Branch_Taken,
-         Branch_Taken => Covered,
-         Fallthrough_Taken => Covered,
-         Both_Taken => Covered),
-      Branch_Fallthrough =>
-        (Not_Covered => Partially_Covered,
-         Covered => Branch_Fallthrough,
-         Branch_Taken => Covered,
-         Fallthrough_Taken => Covered,
-         Both_Taken => Covered),
-      Branch_Covered =>
-        (Not_Covered => Partially_Covered,
-         Branch_Taken | Fallthrough_Taken => Covered,
-         Covered | Both_Taken => Branch_Covered)
-      );
-
    procedure Add_Line_State (File : Filenames_Maps.Cursor;
                              Line : Natural;
                              State : Traces.Trace_State)
@@ -209,17 +162,6 @@ package body Traces_Sources is
       use Ada.Integer_Text_IO;
       use Ada.Text_IO;
       use Display;
-
-      type State_Char_Array is array (Line_State) of Character;
-      State_Char : constant State_Char_Array :=
-        (No_Code => '.',
-         Not_Covered => '-',
-         Partially_Covered => '!',
-         Covered => '?',
-         Covered_No_Branch => '+',
-         Branch_Taken => '>',
-         Branch_Fallthrough => 'v',
-         Branch_Covered => '*');
 
       F : File_Type;
       Has_Source : Boolean;

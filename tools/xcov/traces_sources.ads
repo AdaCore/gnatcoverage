@@ -18,7 +18,7 @@
 ------------------------------------------------------------------------------
 with GNAT.Dynamic_Tables;
 with Ada.Containers.Hashed_Maps;
-with Traces;
+with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
 
 package Traces_Sources is
@@ -56,6 +56,21 @@ package Traces_Sources is
       --  Initial state: no code for this line.
       No_Code
       );
+
+   subtype Known_Trace_State is
+     Trace_State range Not_Covered .. Trace_State'Last;
+   type State_Update_Table_Type is array (Line_State, Known_Trace_State)
+     of Line_State;
+
+   --  Table to merge trace_states.
+   --  The initial Line_State must be No_Code.
+   --  Update the line_state using:
+   --    New_State := Update_Table (Old_State, Trace_State);
+   Update_Table : constant State_Update_Table_Type;
+
+   --  Characters identifying a Line_State.
+   type State_Char_Array is array (Line_State) of Character;
+   State_Char : constant State_Char_Array;
 
    --  Data associated with a SLOC.
    type Line_Info is record
@@ -116,4 +131,55 @@ package Traces_Sources is
 
    --  Display a per file summary.
    procedure Disp_File_Summary;
+
+private
+   Update_Table : constant State_Update_Table_Type :=
+     (
+      No_Code =>
+        (Not_Covered => Not_Covered,
+         Covered => Covered_No_Branch,
+         Branch_Taken => Branch_Taken,
+         Fallthrough_Taken => Branch_Fallthrough,
+         Both_Taken => Branch_Covered),
+      Not_Covered =>
+        (Not_Covered => Not_Covered,
+         others => Partially_Covered),
+      Partially_Covered =>
+        (others => Partially_Covered),
+      Covered =>
+        (Not_Covered => Partially_Covered,
+         others => Covered),
+      Covered_No_Branch =>
+        (Not_Covered => Partially_Covered,
+         Covered => Covered_No_Branch,
+         Branch_Taken => Branch_Taken,
+         Fallthrough_Taken => Branch_Fallthrough,
+         Both_Taken => Branch_Covered),
+      Branch_Taken =>
+        (Not_Covered => Partially_Covered,
+         Covered => Branch_Taken,
+         Branch_Taken => Covered,
+         Fallthrough_Taken => Covered,
+         Both_Taken => Covered),
+      Branch_Fallthrough =>
+        (Not_Covered => Partially_Covered,
+         Covered => Branch_Fallthrough,
+         Branch_Taken => Covered,
+         Fallthrough_Taken => Covered,
+         Both_Taken => Covered),
+      Branch_Covered =>
+        (Not_Covered => Partially_Covered,
+         Branch_Taken | Fallthrough_Taken => Covered,
+         Covered | Both_Taken => Branch_Covered)
+      );
+
+   State_Char : constant State_Char_Array :=
+     (No_Code => '.',
+      Not_Covered => '-',
+      Partially_Covered => '!',
+      Covered => '?',
+      Covered_No_Branch => '+',
+      Branch_Taken => '>',
+      Branch_Fallthrough => 'v',
+      Branch_Covered => '*');
 end Traces_Sources;

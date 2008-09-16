@@ -1202,6 +1202,70 @@ package body Traces_Elf is
       Set_Color (Black);
    end Disp_Sections_Coverage;
 
+   procedure Disp_Subprograms_Coverage
+   is
+      use Addresses_Containers;
+      use Display;
+      use Traces_Sources;
+      It : Entry_Iterator;
+      Trace : Trace_Entry;
+      Addr : Pc_Type;
+      Next_Addr : Pc_Type;
+
+      Cur : Cursor;
+      Sym : Addresses_Info_Acc;
+
+      State : Line_State;
+   begin
+      if Is_Empty (Symbols_Set) then
+         return;
+      end if;
+      Cur := First (Symbols_Set);
+      while Cur /= No_Element loop
+         Sym := Element (Cur);
+
+         Addr := Sym.First;
+         Init (It, Addr);
+         Get_Next_Trace (Trace, It);
+
+         if Trace /= Bad_Trace and then Trace.Last < Sym.First then
+            State := Not_Covered;
+         else
+            State := No_Code;
+
+            --  Iterate on addresses range for this section.
+            loop
+               State := Update_Table (State, Trace.State);
+               Next_Addr := Trace.Last + 1;
+               exit when Next_Addr > Sym.Last;
+
+               Get_Next_Trace (Trace, It);
+
+               if Trace = Bad_Trace or else Trace.First /= Next_Addr then
+                  State := Partially_Covered;
+                  exit;
+               end if;
+               Addr := Next_Addr;
+            end loop;
+         end if;
+
+         Put (Hex_Image (Sym.First));
+         Put ('-');
+         Put (Hex_Image (Sym.Last));
+         Put (' ');
+         Put (State_Char (State));
+         Put (": ");
+         Put (Sym.Symbol_Name.all);
+         New_Line;
+
+         if Flag_Show_Asm then
+            Disp_Line (Sym);
+         end if;
+
+         Next (Cur);
+      end loop;
+   end Disp_Subprograms_Coverage;
+
    procedure Build_Source_Lines
    is
       use Addresses_Containers;
@@ -1338,12 +1402,15 @@ package body Traces_Elf is
                                 Section (Trace.Last - 3 - Sec.First + I);
                            end loop;
                            if (Insn(0) and 16#Fc#) = 16#48# then
-                              --  b, ba, bl and bla
+                              --  Opc = 18: b, ba, bl and bla
                               Update_State (It, Covered);
-                           elsif (Insn(0) and 16#Fd#) = 16#42#
+                           elsif ((Insn(0) and 16#Fe#) = 16#42#
+                                  or else (Insn(0) and 16#Fe#) = 16#4e#)
                              and then (Insn(1) and 16#80#) = 16#80#
                            then
-                              --  bc always
+                              --  Opc = 16 (bcx) or Opc = 19 (bcctrx)
+                              --   BO = 1x1xx
+                              --  bc/bcctr always
                               Update_State (It, Covered);
                            else
                               Update_Or_Split (Branch_Taken);

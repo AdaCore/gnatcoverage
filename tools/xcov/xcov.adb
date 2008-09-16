@@ -38,6 +38,7 @@ procedure Xcov is
       P (" --objdump-coverage  Annotate objdump -d output");
       P (" --exe-coverage      Generate object coverage report");
       P (" --source-coverage   Generate source coverage report");
+      P (" --function-coverage Generate function coverage report");
       P (" --asm               Add assembly code in --source-coverage");
       P (" --level=A/C         Select DO178B level for --source-coverage");
    end Usage;
@@ -191,6 +192,11 @@ begin
             Build_Source_Lines;
             Build_Symbols;
             Disp_File_Summary;
+         elsif Arg = "--function-coverage" then
+            Build_Sections;
+            Set_Trace_State;
+            Build_Symbols;
+            Disp_Subprograms_Coverage;
          else
             Error ("unknown option: " & Arg);
             return;
