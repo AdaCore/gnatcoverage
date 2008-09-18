@@ -126,9 +126,6 @@ package Traces_Sources is
    -- found.
    Flag_Show_Missing : Boolean := False;
 
-   --  Display source lines with status.
-   procedure Disp_Line_State;
-
    --  Display a per file summary.
    procedure Disp_File_Summary;
 

@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------------
 with Ada.Strings.Hash;
 with Ada.Text_Io;
-with Ada.Integer_Text_IO;
 with Ada.Directories;
 
 package body Traces_Sources is
@@ -189,86 +188,11 @@ package body Traces_Sources is
       return (Nbr => Stats (Covered_No_Branch), Total => Total);
    end Get_Pourcentage;
 
-   type Xcov_Pretty_Printer is new Pretty_Printer with record
-      Xcov_File : Ada.Text_Io.File_Type;
-   end record;
-
-   procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
-                                Source_Filename : String;
-                                Stats : Stat_Array;
-                                Skip : out Boolean);
-
-   procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;
-                                Line_Num : Natural;
-                                State : Line_State;
-                                Line : String);
-
-   procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer);
-
-   procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
-                                Source_Filename : String;
-                                Stats : Stat_Array;
-                                Skip : out Boolean)
-   is
-      use Ada.Text_IO;
-      use Ada.Directories;
-   begin
-      Skip := True;
-
-      --  Do not try to process files whose source is not available.
-      if not Flag_Show_Missing
-        and then not Exists (Source_Filename)
-      then
-         return;
-      end if;
-
-      declare
-         Output_Filename : constant String :=
-           Simple_Name (Source_Filename) & ".xcov";
-      begin
-         Create (Pp.Xcov_File, Out_File, Output_Filename);
-      exception
-         when Ada.Text_IO.Name_Error =>
-            Put_Line (Standard_Error,
-                      "cannot open " & Output_Filename);
-            return;
-      end;
-
-      Skip := False;
-
-      Put_Line (Pp.Xcov_File, Source_Filename & ':');
-      Put_Line (Pp.Xcov_File, Get_Stat_String (Stats));
-   end Pretty_Print_File;
-
-   procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;
-                                Line_Num : Natural;
-                                State : Line_State;
-                                Line : String)
-   is
-      use Ada.Text_IO;
-      use Ada.Integer_Text_IO;
-   begin
-      Put (Pp.Xcov_File, Line_Num, 4);
-      Put (Pp.Xcov_File, ' ');
-      Put (Pp.Xcov_File, State_Char (State));
-      Put (Pp.Xcov_File, ": ");
-      Put (Pp.Xcov_File, Line);
-      New_Line (Pp.Xcov_File);
-   end Pretty_Print_Line;
-
-   procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer)
-   is
-      use Ada.Text_IO;
-   begin
-      Close (Pp.Xcov_File);
-   end Pretty_Print_End_File;
-
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
                                    Filename : String;
                                    File : Source_Lines)
    is
       use Source_Lines_Vectors;
-      use Ada.Integer_Text_IO;
       use Ada.Text_IO;
 
       F : File_Type;
@@ -357,13 +281,6 @@ package body Traces_Sources is
       Pretty_Print_Finish (Pp);
    end Disp_Line_State;
 
-   procedure Disp_Line_State
-   is
-      Xcov : Xcov_Pretty_Printer;
-   begin
-      Disp_Line_State (Xcov);
-   end Disp_Line_State;
-
    procedure Disp_File_Summary
    is
       use Ada.Text_IO;
@@ -371,7 +288,6 @@ package body Traces_Sources is
 
       procedure Process (Key : String_Acc; File : in Source_Lines)
       is
-         use Ada.Integer_Text_IO;
          use Source_Lines_Vectors;
 
          Stats : Stat_Array := (others => 0);

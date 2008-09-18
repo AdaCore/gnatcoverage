@@ -314,10 +314,10 @@ package body Traces_Sources.Html is
       Close (Pp.Html_File);
    end Pretty_Print_End_File;
 
-   procedure Disp_Line_State
+   procedure Generate_Report
    is
       Html : Html_Pretty_Printer;
    begin
       Traces_Sources.Disp_Line_State (Html);
-   end Disp_Line_State;
+   end Generate_Report;
 end Traces_Sources.Html;

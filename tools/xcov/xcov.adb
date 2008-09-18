@@ -22,6 +22,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
 with Traces_Sources.Html;
+with Traces_Sources.Xcov;
 with Display;
 
 procedure Xcov is
@@ -200,9 +201,9 @@ begin
             Build_Symbols;
             case Format is
                when Format_Xcov =>
-                  Traces_Sources.Disp_Line_State;
+                  Traces_Sources.Xcov.Generate_Report;
                when Format_Html =>
-                  Traces_Sources.Html.Disp_Line_State;
+                  Traces_Sources.Html.Generate_Report;
             end case;
          elsif Arg = "--file-coverage" then
             Build_Sections;
