@@ -332,9 +332,43 @@ package body Traces_Sources is
       return Res;
    end To_Xml_String;
 
+   procedure Generate_Css_File
+   is
+      use Ada.Text_IO;
+      F : File_Type;
+
+      procedure P (S : String) is
+      begin
+         Put_Line (F, S);
+      end P;
+   begin
+      Create (F, Out_File, "xcov.css");
+      P ("span.covered { background-color: #80ff80; }");
+      P ("span.not_covered { background-color: red; }");
+      P ("span.partially_covered { background-color: orange; }");
+      P ("span.no_code_odd { }");
+      P ("span.no_code_even { background-color: #f0f0f0; }");
+      P ("table.SumTable td { background-color: #B0C4DE; }");
+      P ("td.SumHead { color: white; }");
+      P ("td.SumFile { color: green; }");
+      P ("td.SumNoFile { color: grey; }");
+      P ("table.SumTable td.SumBarCover { background-color: green; }");
+      P ("table.SumTable td.SumBarNoCover { background-color: red; }");
+      P ("td.SumPourcent, td.SumLineCov { text-align: right; }");
+      Close (F);
+   exception
+      when Name_Error =>
+         Put_Line (Standard_Error, "warning: cannot create xcov.css file");
+         return;
+   end Generate_Css_File;
+
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer)
    is
       use Ada.Text_IO;
+      procedure P (S : String) is
+      begin
+         Put_Line (Pp.Index_File, S);
+      end P;
    begin
       begin
          Create (Pp.Index_File, Out_File, "index.html");
@@ -347,16 +381,21 @@ package body Traces_Sources is
 
       Pp.Global_Pourcentage := (0, 0);
 
-      Put_Line (Pp.Index_File, "<html lang=""en"">");
-      Put_Line (Pp.Index_File, "<head>");
-      Put_Line (Pp.Index_File, "  <title>Coverage results</title>");
-      Put_Line (Pp.Index_File, "</head>");
-      Put_Line (Pp.Index_File, "<body>");
-      Put_Line (Pp.Index_File, "  <table cellspacing=""1"">");
-      Put_Line (Pp.Index_File, "    <tr>");
-      Put_Line (Pp.Index_File, "      <td>Filename</td>");
-      Put_Line (Pp.Index_File, "      <td>Coverage</td>");
-      Put_Line (Pp.Index_File, "    </tr>");
+      Generate_Css_File;
+
+      P ("<html lang=""en"">");
+      P ("<head>");
+      P ("  <title>Coverage results</title>");
+      P ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
+      P ("</head>");
+      P ("<body>");
+      P ("<h1 align=""center"">XCOV coverage report</h1>");
+      P ("  <table width=""80%"" cellspacing=""1"" class=""SumTable"""
+           & " align=""center"">");
+      P ("    <tr>");
+      P ("      <td class=""SumHead"" width=""60%"">Filename</td>");
+      P ("      <td class=""SumHead"" colspan=""3"">Coverage</td>");
+      P ("    </tr>");
    end Pretty_Print_Start;
 
    procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer)
@@ -377,37 +416,82 @@ package body Traces_Sources is
       use Ada.Text_IO;
       use Ada.Integer_Text_Io;
       use Ada.Directories;
+
+      procedure Pi (S : String) is
+      begin
+         Put (Pp.Index_File, S);
+      end Pi;
+
+      procedure Ni is
+      begin
+         New_Line (Pp.Index_File);
+      end Ni;
+
       Simple_Source_Filename : constant String :=
         Simple_Name (Source_Filename);
+
       Output_Filename : constant String := Simple_Source_Filename & ".html";
+      Exist : constant Boolean :=
+        Flag_Show_Missing or else Exists (Source_Filename);
       P : constant Pourcentage := Get_Pourcentage (Stats);
+      Pc : Natural;
+
    begin
       Skip := True;
 
-      Put_Line (Pp.Index_File, "    <tr>");
-      Put_Line (Pp.Index_File,
-                "      <td><a href=""" & Output_Filename & """>"
-                & Simple_Source_Filename & "</a></td>");
-      Put (Pp.Index_File, "      <td>");
+      Pi ("    <tr>"); Ni;
+
+      --  First column: file name
+      Pi ("      <td title=""" & Source_Filename & '"');
+      if Exist then
+         Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"
+               & Simple_Source_Filename & "</a>");
+      else
+         Pi (" class=""SumNoFile"">" & Simple_Source_Filename);
+      end if;
+      Pi ("</td>"); Ni;
+
+      -- Second column: bar
+      Pi ("      <td class=""SumBar"" align=""center"" width=""15%"">"); Ni;
+      Pi ("        <table border=""0"" cellspacing=""0"">"
+            & "<tr height=""10"">");
+      if P.Total = 0 or P.Nbr = 0 then
+         Pi ("<td class=""SumBarNocover"" width=""100""></td>");
+      elsif P.Nbr = P.Total then
+         Pi ("<td class=""SumBarCover"" width=""100""></td>");
+      else
+         Pc := P.Nbr * 100 / P.Total;
+         Pi ("<td class=""SumBarCover"" width=""");
+         Put (Pp.Index_File, Pc, 0);
+         Pi ("""></td>");
+         Pi ("<td class=""SumBarNoCover"" width=""");
+         Put (Pp.Index_File, 100 - Pc, 0);
+         Pi ("""></td>");
+      end if;
+      Pi ("</tr></table>"); Ni;
+      Pi ("      </td>"); Ni;
+
+      --  Third column: pourcentage
+      Pi ("      <td class=""SumPourcent"" width=""10%"">");
       if P.Total = 0 then
-         Put (Pp.Index_File, "no code");
+         Pi ("no code");
       else
          Put (Pp.Index_File, P.Nbr * 100 / P.Total, 0);
-         Put (Pp.Index_File,"%");
+         Pi (" %");
       end if;
-      Put_Line (Pp.Index_File, "</td>");
-      Put (Pp.Index_File, "      <td>");
+      Pi ("</td>"); Ni;
+
+      --  Fourth column: lines figure
+      Pi ("      <td class=""SumLineCov"" width=""15%"">");
       Put (Pp.Index_File, P.Nbr, 0);
-      Put (Pp.Index_File, " / ");
+      Pi (" / ");
       Put (Pp.Index_File, P.Total, 0);
-      Put (Pp.Index_File, " lines");
-      Put_Line (Pp.Index_File, "</td>");
-      Put_Line (Pp.Index_File, "    </tr>");
+      Pi (" lines</td>"); Ni;
+
+      Pi ("    </tr>"); Ni;
 
       --  Do not try to process files whose source is not available.
-      if not Flag_Show_Missing
-        and then not Exists (Source_Filename)
-      then
+      if not Exist then
          return;
       end if;
 
@@ -426,20 +510,11 @@ package body Traces_Sources is
       Put_Line (Pp.Html_File, "<head>");
       Put_Line (Pp.Html_File, "  <title>Coverage of "
                 & To_Xml_String (Simple_Source_Filename) & "</title>");
-      Put_Line (Pp.Html_File, "  <style type=""text/css"">");
-      Put_Line (Pp.Html_File,
-                "    span.covered { background-color: #80ff80; }");
-      Put_Line (Pp.Html_File,
-                "    span.not_covered { background-color: red; }");
-      Put_Line (Pp.Html_File,
-                "    span.partially_covered { background-color: orange; }");
-      Put_Line (Pp.Html_File,
-                "    span.no_code_odd { }");
-      Put_Line (Pp.Html_File,
-                "    span.no_code_even { background-color: #f0f0f0; }");
-      Put_Line (Pp.Html_File, "  </style>");
+      Put_Line (Pp.Html_File, "  <link rel=""stylesheet"" type=""text/css"" "
+                  & "href=""xcov.css"">");
       Put_Line (Pp.Html_File, "</head>");
       Put_Line (Pp.Html_File, "<body>");
+      Put_Line (Pp.Html_File, "<h1>" & Simple_Source_Filename & "</h1>");
       Put_Line (Pp.Html_File, Get_Stat_String (Stats));
       Put_Line (Pp.Html_File, "<pre>");
    end Pretty_Print_File;
