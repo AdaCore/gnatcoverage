@@ -21,6 +21,7 @@ with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
+with Traces_Sources.Html;
 with Display;
 
 procedure Xcov is
@@ -74,6 +75,7 @@ procedure Xcov is
 
    Has_Exec : Boolean := False;
    Text_Start : Pc_Type := 0;
+   type Output_Format is (Format_Xcov, Format_Html);
    Format : Output_Format := Format_Xcov;
 begin
    --  Require at least one argument.
@@ -196,7 +198,12 @@ begin
             Build_Debug_Lines;
             Build_Source_Lines;
             Build_Symbols;
-            Disp_Line_State (Format);
+            case Format is
+               when Format_Xcov =>
+                  Traces_Sources.Disp_Line_State;
+               when Format_Html =>
+                  Traces_Sources.Html.Disp_Line_State;
+            end case;
          elsif Arg = "--file-coverage" then
             Build_Sections;
             Set_Trace_State;
