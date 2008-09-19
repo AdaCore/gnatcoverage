@@ -22,6 +22,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
 with Traces_Sources.Html;
+with Traces_Sources.Gcov;
 with Traces_Sources.Xcov;
 with Display;
 
@@ -76,7 +77,7 @@ procedure Xcov is
 
    Has_Exec : Boolean := False;
    Text_Start : Pc_Type := 0;
-   type Output_Format is (Format_Xcov, Format_Html);
+   type Output_Format is (Format_Xcov, Format_Gcov, Format_Html);
    Format : Output_Format := Format_Xcov;
 begin
    --  Require at least one argument.
@@ -187,6 +188,8 @@ begin
          then
             if Arg (Arg'First + 16 .. Arg'Last) = "xcov" then
                Format := Format_Xcov;
+            elsif Arg (Arg'First + 16 .. Arg'Last) = "gcov" then
+               Format := Format_Gcov;
             elsif Arg (Arg'First + 16 .. Arg'Last) = "html" then
                Format := Format_Html;
             else
@@ -202,6 +205,8 @@ begin
             case Format is
                when Format_Xcov =>
                   Traces_Sources.Xcov.Generate_Report;
+               when Format_Gcov =>
+                  Traces_Sources.Gcov.Generate_Report;
                when Format_Html =>
                   Traces_Sources.Html.Generate_Report;
             end case;
