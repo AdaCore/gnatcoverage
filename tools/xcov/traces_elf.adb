@@ -1657,7 +1657,6 @@ package body Traces_Elf is
       end loop;
    end Disassemble;
 
-
    procedure Disp_Line (Info : Addresses_Info_Acc)
    is
       It : Entry_Iterator;
@@ -1709,4 +1708,67 @@ package body Traces_Elf is
       end loop;
    end Disp_Line;
 
+   procedure Disp_Routines_List
+   is
+      use Addresses_Containers;
+
+      Sec, Sym : Addresses_Info_Acc;
+      Cur_Sec, Cur_Sym : Cursor;
+      Addr : Pc_Type;
+   begin
+      Cur_Sec := First (Sections_Set);
+      Cur_Sym := First (Symbols_Set);
+      if Cur_Sym /= No_Element then
+         Sym := Element (Cur_Sym);
+      else
+         Sym := null;
+      end if;
+      while Cur_Sec /= No_Element loop
+         Sec := Element (Cur_Sec);
+         Addr := Sec.First;
+
+         --  Get the first symbol in the section.
+         while Sym /= null and then Sym.First < Addr loop
+            Next (Cur_Sym);
+            if Cur_Sym = No_Element then
+               Sym := null;
+               exit;
+            end if;
+            Sym := Element (Cur_Sym);
+         end loop;
+
+         while Sym /= null and then Sym.Last <= Sec.Last loop
+            if Sym.First > Sym.Last then
+               if Sym.First <= Sec.Last then
+                  Put_Line
+                    (Standard_Error, "empty symbol " & Sym.Symbol_Name.all
+                       & " at " & Hex_Image (Sym.First));
+               end if;
+            else
+               if Sym.First > Addr then
+                  Put_Line
+                    (Standard_Error, "no symbols for "
+                       & Hex_Image (Addr) & "-" & Hex_Image (Sym.First - 1));
+               end if;
+               Put_Line (Sym.Symbol_Name.all);
+               Addr := Sym.Last + 1;
+            end if;
+
+            Next (Cur_Sym);
+            if Cur_Sym = No_Element then
+               Sym := null;
+               exit;
+            end if;
+            Sym := Element (Cur_Sym);
+         end loop;
+
+         if Addr < Sec.Last then
+            Put_Line
+              (Standard_Error, "no symbols for "
+                 & Hex_Image (Addr) & "-" & Hex_Image (Sec.Last));
+         end if;
+
+         Next (Cur_Sec);
+      end loop;
+   end Disp_Routines_List;
 end Traces_Elf;

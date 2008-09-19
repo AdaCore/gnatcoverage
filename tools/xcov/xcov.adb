@@ -158,6 +158,10 @@ begin
          elsif Arg = "--dump-symbols" then
             Build_Symbols;
             Disp_Symbols_Addresses;
+         elsif Arg = "--disp-routines" then
+            Build_Sections;
+            Build_Symbols;
+            Disp_Routines_List;
          elsif Arg = "--asm" then
             Flag_Show_Asm := True;
          elsif Arg = "--missing-files" then
