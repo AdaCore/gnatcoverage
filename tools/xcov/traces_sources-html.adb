@@ -21,6 +21,18 @@ with Ada.Integer_Text_IO;
 with Ada.Directories;
 
 package body Traces_Sources.Html is
+   type String_Cst_Acc is access constant String;
+   subtype S is String;
+   
+   type Strings_Arr is array (Natural range <>) of String_Cst_Acc;
+   
+   procedure Put (F : File_Type; Strings : Strings_Arr) is
+   begin
+      for I in Strings'Range loop
+	 Put_Line (F, Strings (I).all);
+      end loop;
+   end Put;
+   
    type Html_Pretty_Printer is new Pretty_Printer with record
       Html_File : Ada.Text_IO.File_Type;
       Index_File : Ada.Text_IO.File_Type;
@@ -42,6 +54,17 @@ package body Traces_Sources.Html is
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer);
    
+   procedure Plh (Pp : in out Html_Pretty_Printer; Str : String) is
+   begin
+      Put_Line (Pp.Html_File, Str);
+   end Plh;
+   
+   procedure Wrh (Pp : in out Html_Pretty_Printer; Str : String) is
+   begin
+      Put (Pp.Html_File, Str);
+   end Wrh;
+
+   --  Return the string S with '>', '<' and '&' replaced by XML entities.
    function To_Xml_String (S : String) return String
    is
       function Xml_Length (S : String) return Natural
@@ -84,29 +107,30 @@ package body Traces_Sources.Html is
       pragma Assert (Idx = S'Last + 1);
       return Res;
    end To_Xml_String;
+   
+   CSS : constant Strings_Arr :=
+     (
+      new S'("tr.covered { background-color: #80ff80; }"),
+      new S'("tr.not_covered { background-color: red; }"),
+      new S'("tr.partially_covered { background-color: orange; }"),
+      new S'("tr.no_code_odd { }"),
+      new S'("tr.no_code_even { background-color: #f0f0f0; }"),
+      new S'("table.SumTable td { background-color: #B0C4DE; }"),
+      new S'("td.SumHead { color: white; }"),
+      new S'("td.SumFile { color: green; }"),
+      new S'("td.SumNoFile { color: grey; }"),
+      new S'("table.SumTable td.SumBarCover { background-color: green; }"),
+      new S'("table.SumTable td.SumBarNoCover { background-color: red; }"),
+      new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
+      new S'("table.SourceFile td pre { margin: 0; }")
+     );
 
    procedure Generate_Css_File
    is
       F : File_Type;
-
-      procedure P (S : String) is
-      begin
-         Put_Line (F, S);
-      end P;
    begin
       Create (F, Out_File, "xcov.css");
-      P ("span.covered { background-color: #80ff80; }");
-      P ("span.not_covered { background-color: red; }");
-      P ("span.partially_covered { background-color: orange; }");
-      P ("span.no_code_odd { }");
-      P ("span.no_code_even { background-color: #f0f0f0; }");
-      P ("table.SumTable td { background-color: #B0C4DE; }");
-      P ("td.SumHead { color: white; }");
-      P ("td.SumFile { color: green; }");
-      P ("td.SumNoFile { color: grey; }");
-      P ("table.SumTable td.SumBarCover { background-color: green; }");
-      P ("table.SumTable td.SumBarNoCover { background-color: red; }");
-      P ("td.SumPourcent, td.SumLineCov { text-align: right; }");
+      Put (F, CSS);
       Close (F);
    exception
       when Name_Error =>
@@ -253,17 +277,18 @@ package body Traces_Sources.Html is
 
       Skip := False;
 
-      Put_Line (Pp.Html_File, "<html lang=""en"">");
-      Put_Line (Pp.Html_File, "<head>");
-      Put_Line (Pp.Html_File, "  <title>Coverage of "
+      Plh (Pp, "<html lang=""en"">");
+      Plh (Pp, "<head>");
+      Plh (Pp, "  <title>Coverage of "
                 & To_Xml_String (Simple_Source_Filename) & "</title>");
-      Put_Line (Pp.Html_File, "  <link rel=""stylesheet"" type=""text/css"" "
+      Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
                   & "href=""xcov.css"">");
-      Put_Line (Pp.Html_File, "</head>");
-      Put_Line (Pp.Html_File, "<body>");
-      Put_Line (Pp.Html_File, "<h1>" & Simple_Source_Filename & "</h1>");
-      Put_Line (Pp.Html_File, Get_Stat_String (Stats));
-      Put_Line (Pp.Html_File, "<pre>");
+      Plh (Pp, "</head>");
+      Plh (Pp, "<body>");
+      Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
+      Plh (Pp, Get_Stat_String (Stats));
+      Plh (Pp, "<table width=""100%"" cellpadding=""0"" class=""SourceFile"">");
+      --Plh (Pp, "<pre>");
    end Pretty_Print_File;
 
    procedure Pretty_Print_Line (Pp : in out Html_Pretty_Printer;
@@ -273,44 +298,43 @@ package body Traces_Sources.Html is
    is
       use Ada.Integer_Text_IO;
    begin
-      Put (Pp.Html_File, "<span class=");
+      Put (Pp.Html_File, "  <tr class=");
       case State is
          when Not_Covered =>
-            Put (Pp.Html_File, """not_covered""      ");
+            Wrh (Pp, """not_covered""");
          when Partially_Covered
            | Branch_Taken
            | Branch_Fallthrough
            | Covered =>
-            Put (Pp.Html_File, """partially_covered""");
+            Wrh (Pp, """partially_covered""");
          when Branch_Covered
            | Covered_No_Branch =>
-            Put (Pp.Html_File, """covered""          ");
+            Wrh (Pp, """covered""");
          when No_Code =>
             if Line_Num mod 2 = 1 then
-               Put (Pp.Html_File, """no_code_odd""      ");
+               Wrh (Pp, """no_code_odd""");
             else
-               Put (Pp.Html_File, """no_code_even""     ");
+               Wrh (Pp, """no_code_even""");
             end if;
       end case;
-      Put (Pp.Html_File, ">");
-
-      Put (Pp.Html_File, Line_Num, 4);
-      Put (Pp.Html_File, ' ');
+      Plh(Pp, ">");
+      
+      Wrh (Pp, "    <td><pre>");
+      Put (Pp.Html_File, Line_Num, 0);
+      Plh (Pp, "</pre></td>");
+      Wrh (pp, "    <td><pre>");
       Put (Pp.Html_File, State_Char (State));
-      Put (Pp.Html_File, ": ");
-      Put (Pp.Html_File, To_Xml_String (Line));
-      if Line'Length < 80 then
-         Put (Pp.Html_File, (1 .. 80 - Line'Length => ' '));
-      end if;
-      Put (Pp.Html_File, "</span>");
-      New_Line (Pp.Html_File);
+      Plh (Pp, "</pre></td>");
+      Wrh (Pp, "    <td><pre>");
+      Wrh (Pp, To_Xml_String (Line));
+      Plh (Pp, "</pre></td>");
+      Plh (Pp, "  </tr>");
    end Pretty_Print_Line;
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer) is
    begin
-      Put_Line (Pp.Html_File, "</pre>");
-      Put_Line (Pp.Html_File, "</body>");
-      Put_Line (Pp.Html_File, "</html>");
+      Plh (Pp, "</body>");
+      Plh (Pp, "</html>");
       Close (Pp.Html_File);
    end Pretty_Print_End_File;
 
