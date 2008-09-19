@@ -1751,8 +1751,10 @@ package body Traces_Elf is
                        & Hex_Image (Addr) & "-" & Hex_Image (Sym.First - 1));
                end if;
                Put_Line (Sym.Symbol_Name.all);
-               Addr := Sym.Last + 1;
-            end if;
+               Addr := Sym.Last;
+               exit when Addr = Pc_Type'Last;
+               Addr := Addr + 1;
+             end if;
 
             Next (Cur_Sym);
             if Cur_Sym = No_Element then
