@@ -29,7 +29,7 @@ package Traces_Elf is
    --  Exception Elf_Files.Error is raised in case of error.
    procedure Open_File (Filename : String; Text_Start : Pc_Type);
 
-   --  Build sections map.
+   --  Build sections map for the current ELF file.
    procedure Build_Sections;
 
    --  Show coverage of sections.
@@ -68,6 +68,8 @@ package Traces_Elf is
    type Addresses_Info(<>) is limited private;
    type Addresses_Info_Acc is access Addresses_Info;
 
+   --  Display El.
+   --  Mostly a debug procedure.
    procedure Disp_Address (El : Addresses_Info_Acc);
 
    type Addresses_Line_Chain is private;
