@@ -57,6 +57,10 @@ package body Traces_Elf is
                                     State : Trace_State;
                                     Insn : Binary_Content);
 
+   type Disassemble_Cb is access procedure (Addr : Pc_Type;
+                                            State : Trace_State;
+                                            Insn : Binary_Content);
+
    procedure Disassemble (First, Last : Pc_Type;
                           State : Trace_State;
                           Cb : Disassemble_Cb);
@@ -1265,7 +1269,15 @@ package body Traces_Elf is
          New_Line;
 
          if Flag_Show_Asm then
-            Disp_Line (Sym, Put_Line'Access, Textio_Disassemble_Cb'Access);
+            declare
+               Label : constant String := Get_Label (Sym);
+            begin
+               if Label'Length > 0 then
+                  Put_Line (Label);
+               end if;
+            end;
+            Disp_Assembly_Lines
+              (Sym, Textio_Disassemble_Cb'Access);
          end if;
 
          Next (Cur);
@@ -1698,32 +1710,38 @@ package body Traces_Elf is
       end loop;
    end Disassemble;
 
-   procedure Disp_Line (Info : Addresses_Info_Acc;
-                        Label_Cb : access procedure (S : String);
-                        Disa_Cb : Disassemble_Cb)
+   function Get_Label (Info : Addresses_Info_Acc) return String
+   is
+      Line : String (1 .. 64);
+      Line_Pos : Natural;
+   begin
+      --  Display address.
+      Line_Pos := Line'First;
+      Get_Symbol (Info.First, Line, Line_Pos);
+      if Line_Pos > Line'First then
+         Line (Line_Pos) := ':';
+         return Line (Line'First + 1 .. Line_Pos);
+      else
+         return "";
+      end if;
+   end Get_Label;
+
+   procedure Disp_Assembly_Lines
+     (Info : Addresses_Info_Acc;
+      Cb : access procedure (Addr : Pc_Type;
+                             State : Trace_State;
+                             Insn : Binary_Content))
    is
       It : Entry_Iterator;
       E : Trace_Entry;
       Addr : Pc_Type;
       Next_Addr : Pc_Type;
       State : Trace_State;
-
-      Line : String (1 .. 64);
-      Line_Pos : Natural;
    begin
       --Disp_Address (Info);
       Init (It, Info.First);
       Get_Next_Trace (E, It);
       Addr := Info.First;
-
-      --  Display address.
-      Display.Set_Color (Display.Black);
-      Line_Pos := Line'First;
-      Get_Symbol (Addr, Line, Line_Pos);
-      if Line_Pos > Line'First then
-         Line (Line_Pos) := ':';
-         Label_Cb.all (Line (Line'First + 1 .. Line_Pos));
-      end if;
 
       loop
          Next_Addr := Info.Last;
@@ -1744,11 +1762,11 @@ package body Traces_Elf is
                Next_Addr := E.First - 1;
             end if;
          end if;
-         Disassemble (Addr, Next_Addr, State, Disa_Cb);
+         Disassemble (Addr, Next_Addr, State, Cb);
          exit when Next_Addr >= Info.Last;
          Addr := Next_Addr + 1;
       end loop;
-   end Disp_Line;
+   end Disp_Assembly_Lines;
 
    procedure Disp_Routines_List
    is

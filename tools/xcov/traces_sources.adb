@@ -203,11 +203,6 @@ package body Traces_Sources is
          Pretty_Print_Insn (Pp, Addr, State, Insn);
       end Disassemble_Cb;
 
-      procedure Print_Label (Label : String) is
-      begin
-         Pretty_Print_Label (Pp, Label);
-      end Print_Label;
-
       F : File_Type;
       Has_Source : Boolean;
       Line : Natural;
@@ -253,7 +248,14 @@ package body Traces_Sources is
          if Flag_Show_Asm then
             Info := Get_First (File.Table (I).Lines);
             while Info /= null loop
-               Disp_Line (Info, Print_Label'Access, Disassemble_Cb'Unrestricted_Access);
+               declare
+                  Label : constant String := Get_Label (Info);
+               begin
+                  if Label'Length > 0 then
+                     Pretty_Print_Label (Pp, Label);
+                  end if;
+               end;
+               Disp_Assembly_Lines (Info, Disassemble_Cb'Access);
                Info := Get_Line_Next (Info);
             end loop;
          end if;

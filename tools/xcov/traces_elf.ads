@@ -81,19 +81,21 @@ package Traces_Elf is
    type Binary_Content is array (Elf_Arch.Elf_Size range <>)
      of Interfaces.Unsigned_8;
 
+   --  Return the symbol for Addr followed by a colon (':').
+   --  Return an empty string if none.
+   function Get_Label (Info : Addresses_Info_Acc) return String;
+
    --  Generate the disassembly for INSN.
    --  INSN is exactly one instruction.
    --  PC is the target address of INSN (used to display branch targets).
    function Disassemble (Insn : Binary_Content; Pc : Pc_Type) return String;
 
-   type Disassemble_Cb is access procedure (Addr : Pc_Type;
-                                            State : Trace_State;
-                                            Insn : Binary_Content);
-
-   procedure Disp_Line (Info : Addresses_Info_Acc;
-                        Label_Cb : access procedure (S : String);
-                        Disa_Cb : Disassemble_Cb);
-
+   --  Call CB for each insn in INFO.
+   procedure Disp_Assembly_Lines
+     (Info : Addresses_Info_Acc;
+      Cb : access procedure (Addr : Pc_Type;
+                             State : Trace_State;
+                             Insn : Binary_Content));
 private
    type Addresses_Kind is
      (
