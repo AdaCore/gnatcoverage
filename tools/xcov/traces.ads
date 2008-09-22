@@ -111,7 +111,18 @@ package Traces is
    --  accepted.
    procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural);
 
+   type Trace_State_Map is array (Trace_State) of Character;
+   Trace_State_Char : constant Trace_State_Map;
+
 private
+   Trace_State_Char : constant Trace_State_Map :=
+     (Unknown => '?',
+      Not_Covered => '-',
+      Covered => '+',
+      Branch_Taken => '>',
+      Fallthrough_Taken => 'v',
+      Both_Taken => '*');
+
    --  Operations for ordered_sets.
    function "=" (L, R : Trace_Entry) return Boolean;
    function "<" (L, R : Trace_Entry) return Boolean;

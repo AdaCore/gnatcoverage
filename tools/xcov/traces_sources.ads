@@ -20,6 +20,7 @@ with GNAT.Dynamic_Tables;
 with Ada.Containers.Hashed_Maps;
 with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
+with System;
 
 package Traces_Sources is
    type DO178B_Level_Type is (Level_Raw, Level_A, Level_C);
@@ -205,6 +206,14 @@ private
                                 Line_Num : Natural;
                                 State : Line_State;
                                 Line : String) is abstract;
+   procedure Pretty_Print_Label (Pp : in out Pretty_Printer;
+                                 Label : String) is null;
+   procedure Pretty_Print_Insn (Pp : in out Pretty_Printer;
+                                Pc : Pc_Type;
+                                State : Trace_State;
+                                Insn : System.Address;
+                                Insn_Len : Natural;
+                                Res : String) is null;
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
 
    procedure Disp_Line_State (Pp : in out Pretty_Printer'Class);

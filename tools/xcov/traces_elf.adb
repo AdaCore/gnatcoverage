@@ -52,7 +52,16 @@ package body Traces_Elf is
    Symbols_Set : Addresses_Containers.Set;
    Lines_Set : Addresses_Containers.Set;
 
-   procedure Disassemble (First, Last : Pc_Type; State : Trace_State);
+
+   procedure Textio_Disassemble_Cb (Addr : Pc_Type;
+                                    State : Trace_State;
+                                    Insn : Address;
+                                    Insn_Len : Natural;
+                                    Res : String);
+
+   procedure Disassemble (First, Last : Pc_Type;
+                          State : Trace_State;
+                          Cb : Disassemble_Cb);
 
    procedure Disp_Address (El : Addresses_Info_Acc) is
    begin
@@ -1186,7 +1195,7 @@ package body Traces_Elf is
             end if;
 
             Set_Color (State);
-            Disassemble (Addr, Last_Addr, State);
+            Disassemble (Addr, Last_Addr, State, Textio_Disassemble_Cb'Access);
 
             Addr := Last_Addr;
             exit when Addr = Pc_Type'Last;
@@ -1259,7 +1268,7 @@ package body Traces_Elf is
          New_Line;
 
          if Flag_Show_Asm then
-            Disp_Line (Sym);
+            Disp_Line (Sym, Put_Line'Access, Textio_Disassemble_Cb'Access);
          end if;
 
          Next (Cur);
@@ -1627,7 +1636,31 @@ package body Traces_Elf is
       Add ('>');
    end Get_Symbol;
 
-   procedure Disassemble (First, Last : Pc_Type; State : Trace_State)
+   procedure Textio_Disassemble_Cb (Addr : Pc_Type;
+                                    State : Trace_State;
+                                    Insn : Address;
+                                    Insn_Len : Natural;
+                                    Res : String)
+   is
+   begin
+      Set_Color (State);
+      Put (Hex_Image (Addr));
+      Put (' ');
+      Disp_State_Char (State);
+      Put (":");
+      Put (Ascii.HT);
+      for I in 1 .. Insn_Len loop
+         Put (Hex_Image (Read_Byte (Insn + Storage_Offset (I - 1))));
+         Put (' ');
+      end loop;
+      Put ("  ");
+      Put (Res);
+      New_Line;
+   end Textio_Disassemble_Cb;
+
+   procedure Disassemble (First, Last : Pc_Type;
+                          State : Trace_State;
+                          Cb : Disassemble_Cb)
    is
       Pc : Pc_Type;
       Addr : Address;
@@ -1637,27 +1670,18 @@ package body Traces_Elf is
    begin
       Pc := First;
       while Pc < Last loop
-         Put (Hex_Image (Pc));
-         Put (' ');
-         Disp_State_Char (State);
-         Put (":");
          Addr := Get_Section_Addr (Pc);
          Disa_Ppc.Disassemble_Insn
            (Addr, Pc, Line, Line_Pos, Insn_Len, Get_Symbol'Access);
-         Put (Ascii.HT);
-         for I in 1 .. Insn_Len loop
-            Put (Hex_Image (Read_Byte (Addr + Storage_Offset (I - 1))));
-            Put (' ');
-         end loop;
-         Put ("  ");
-         Put (Line (1 .. Line_Pos - 1));
-         New_Line;
+         Cb.all (Pc, State, Addr, Insn_Len, Line (1 .. Line_Pos - 1));
          Pc := Pc + Pc_Type (Insn_Len);
          exit when Pc = 0;
       end loop;
    end Disassemble;
 
-   procedure Disp_Line (Info : Addresses_Info_Acc)
+   procedure Disp_Line (Info : Addresses_Info_Acc;
+                        Label_Cb : access procedure (S : String);
+                        Disa_Cb : Disassemble_Cb)
    is
       It : Entry_Iterator;
       E : Trace_Entry;
@@ -1678,8 +1702,8 @@ package body Traces_Elf is
       Line_Pos := Line'First;
       Get_Symbol (Addr, Line, Line_Pos);
       if Line_Pos > Line'First then
-         Put (Line (Line'First + 1 .. Line_Pos - 1));
-         Put_Line (":");
+         Line (Line_Pos) := ':';
+         Label_Cb.all (Line (Line'First + 1 .. Line_Pos));
       end if;
 
       loop
@@ -1701,8 +1725,7 @@ package body Traces_Elf is
                Next_Addr := E.First - 1;
             end if;
          end if;
-         Set_Color (State);
-         Disassemble (Addr, Next_Addr, State);
+         Disassemble (Addr, Next_Addr, State, Disa_Cb);
          exit when Next_Addr >= Info.Last;
          Addr := Next_Addr + 1;
       end loop;

@@ -19,23 +19,27 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Directories;
+with Hex_Images; use Hex_Images;
+with System.Storage_Elements;
+with Dwarf_Handling;
 
 package body Traces_Sources.Html is
    type String_Cst_Acc is access constant String;
    subtype S is String;
-   
+
    type Strings_Arr is array (Natural range <>) of String_Cst_Acc;
-   
+
    procedure Put (F : File_Type; Strings : Strings_Arr) is
    begin
       for I in Strings'Range loop
-	 Put_Line (F, Strings (I).all);
+         Put_Line (F, Strings (I).all);
       end loop;
    end Put;
-   
+
    type Html_Pretty_Printer is new Pretty_Printer with record
       Html_File : Ada.Text_IO.File_Type;
       Index_File : Ada.Text_IO.File_Type;
+      Has_Insn_Table : Boolean;
       Global_Pourcentage : Pourcentage;
    end record;
 
@@ -52,13 +56,22 @@ package body Traces_Sources.Html is
                                 State : Line_State;
                                 Line : String);
 
+   procedure Pretty_Print_Label (Pp : in out Html_Pretty_Printer;
+                                 Label : String);
+   procedure Pretty_Print_Insn (Pp : in out Html_Pretty_Printer;
+                                Pc : Pc_Type;
+                                State : Trace_State;
+                                Insn : System.Address;
+                                Insn_Len : Natural;
+                                Res : String);
+
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer);
-   
+
    procedure Plh (Pp : in out Html_Pretty_Printer; Str : String) is
    begin
       Put_Line (Pp.Html_File, Str);
    end Plh;
-   
+
    procedure Wrh (Pp : in out Html_Pretty_Printer; Str : String) is
    begin
       Put (Pp.Html_File, Str);
@@ -107,7 +120,7 @@ package body Traces_Sources.Html is
       pragma Assert (Idx = S'Last + 1);
       return Res;
    end To_Xml_String;
-   
+
    CSS : constant Strings_Arr :=
      (
       new S'("tr.covered { background-color: #80ff80; }"),
@@ -137,7 +150,7 @@ package body Traces_Sources.Html is
          Put_Line (Standard_Error, "warning: cannot create xcov.css file");
          return;
    end Generate_Css_File;
-   
+
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer)
    is
       procedure P (S : String) is
@@ -197,15 +210,15 @@ package body Traces_Sources.Html is
         Flag_Show_Missing or else Exists (Source_Filename);
       P : constant Pourcentage := Get_Pourcentage (Stats);
       Pc : Natural;
-      
+
       procedure Pi (S : String) is
       begin
-	 Put (Pp.Index_File, S);
+         Put (Pp.Index_File, S);
       end Pi;
-   
+
       procedure Ni is
       begin
-	 New_Line (Pp.Index_File);
+         New_Line (Pp.Index_File);
       end Ni;
    begin
       Skip := True;
@@ -282,14 +295,50 @@ package body Traces_Sources.Html is
       Plh (Pp, "  <title>Coverage of "
                 & To_Xml_String (Simple_Source_Filename) & "</title>");
       Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
-                  & "href=""xcov.css"">");
+             & "href=""xcov.css"">");
+      if Flag_Show_Asm then
+         Plh (Pp, "  <script language=""JavaScript"" "
+                & "type=""text/javascript"">");
+         Plh (Pp, "    function flip(atr) {");
+         Plh (Pp, "      var asm = atr.nextSibling.nextSibling;");
+         Plh (Pp, "      if (asm.style.display == ""none"")");
+         Plh (Pp, "        asm.style.display = """";");
+         Plh (Pp, "      else");
+         Plh (Pp, "        asm.style.display = ""none"";");
+         Plh (Pp, "    }");
+         Plh (Pp, "  </script>");
+      end if;
       Plh (Pp, "</head>");
       Plh (Pp, "<body>");
       Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
       Plh (Pp, Get_Stat_String (Stats));
+
       Plh (Pp, "<table width=""100%"" cellpadding=""0"" class=""SourceFile"">");
       --Plh (Pp, "<pre>");
+      Pp.Has_Insn_Table := False;
    end Pretty_Print_File;
+
+   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer)
+   is
+   begin
+      if Pp.Has_Insn_Table then
+         return;
+      end if;
+      Plh (Pp, "  <tr style=""display: none""><td></td><td></td>");
+      Plh (Pp, "    <td><table width=""100%"">");
+      Pp.Has_Insn_Table := True;
+   end Open_Insn_Table;
+
+   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer)
+   is
+   begin
+      if not Pp.Has_Insn_Table then
+         return;
+      end if;
+      Plh (Pp, "    </table></td>");
+      Plh (Pp, "  </tr>");
+      Pp.Has_Insn_Table := False;
+   end Close_Insn_Table;
 
    procedure Pretty_Print_Line (Pp : in out Html_Pretty_Printer;
                                 Line_Num : Natural;
@@ -298,6 +347,8 @@ package body Traces_Sources.Html is
    is
       use Ada.Integer_Text_IO;
    begin
+      Close_Insn_Table (Pp);
+
       Put (Pp.Html_File, "  <tr class=");
       case State is
          when Not_Covered =>
@@ -317,8 +368,11 @@ package body Traces_Sources.Html is
                Wrh (Pp, """no_code_even""");
             end if;
       end case;
-      Plh(Pp, ">");
-      
+      if Flag_Show_Asm and then State /= No_Code then
+         Wrh (Pp, " onclick=""flip(this)""");
+      end if;
+      Plh (Pp, ">");
+
       Wrh (Pp, "    <td><pre>");
       Put (Pp.Html_File, Line_Num, 0);
       Plh (Pp, "</pre></td>");
@@ -331,8 +385,59 @@ package body Traces_Sources.Html is
       Plh (Pp, "  </tr>");
    end Pretty_Print_Line;
 
+   procedure Pretty_Print_Label (Pp : in out Html_Pretty_Printer;
+                                 Label : String) is
+   begin
+      Open_Insn_Table (Pp);
+      Plh (Pp, "      <tr>");
+      Wrh (Pp, "        <td><pre>");
+      Wrh (Pp, To_Xml_String (Label));
+      Plh (Pp, "</pre></td>");
+      Plh (Pp, "      </tr>");
+   end Pretty_Print_Label;
+
+   procedure Pretty_Print_Insn (Pp : in out Html_Pretty_Printer;
+                                Pc : Pc_Type;
+                                State : Trace_State;
+                                Insn : System.Address;
+                                Insn_Len : Natural;
+                                Res : String)
+   is
+      use Dwarf_Handling;
+      use System.Storage_Elements;
+   begin
+      Open_Insn_Table (Pp);
+      Wrh (Pp, "      <tr class=""");
+      case State is
+         when Unknown =>
+            raise Program_Error;
+         when Not_Covered =>
+            Wrh (Pp, "not_covered");
+         when Covered | Both_Taken =>
+            Wrh (Pp, "covered");
+         when Branch_Taken
+           | Fallthrough_Taken =>
+            Wrh (pp, "partially_covered");
+      end case;
+      Plh (Pp, """>");
+      Wrh (Pp, "        <td><pre>");
+      Wrh (PP, Hex_Image (Pc));
+      Wrh (PP, ' ' & Trace_State_Char (State) & ':');
+      Wrh (PP, "  ");
+      for I in 1 .. Insn_Len loop
+         Wrh (Pp, Hex_Image (Read_Byte (Insn + Storage_Offset (I - 1))));
+         Wrh (PP, " ");
+      end loop;
+      Wrh (PP, "  ");
+      Wrh (PP, Res);
+      Plh (Pp, "</pre></td>");
+      Plh (Pp, "      </tr>");
+   end Pretty_Print_Insn;
+
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer) is
    begin
+      Close_Insn_Table (Pp);
+      Plh (Pp, "</table>");
       Plh (Pp, "</body>");
       Plh (Pp, "</html>");
       Close (Pp.Html_File);

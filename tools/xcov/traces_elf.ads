@@ -19,6 +19,7 @@
 with Traces; use Traces;
 with Elf_Common;
 with Interfaces;
+with System;
 
 package Traces_Elf is
    type String_Acc is access String;
@@ -77,7 +78,15 @@ package Traces_Elf is
    function Get_Line_Next (Line : Addresses_Info_Acc)
                           return Addresses_Info_Acc;
 
-   procedure Disp_Line (Info : Addresses_Info_Acc);
+   type Disassemble_Cb is access procedure (Addr : Pc_Type;
+                                            State : Trace_State;
+                                            Insn : System.Address;
+                                            Insn_Len : Natural;
+                                            Res : String);
+
+   procedure Disp_Line (Info : Addresses_Info_Acc;
+                        Label_Cb : access procedure (S : String);
+                        Disa_Cb : Disassemble_Cb);
 
 private
    type Addresses_Kind is
