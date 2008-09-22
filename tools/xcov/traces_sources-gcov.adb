@@ -28,6 +28,7 @@ package body Traces_Sources.gcov is
    procedure Pretty_Print_File (Pp : in out Gcov_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
+                                Has_Source : Boolean;
                                 Skip : out Boolean);
 
    procedure Pretty_Print_Line (Pp : in out Gcov_Pretty_Printer;
@@ -40,6 +41,7 @@ package body Traces_Sources.gcov is
    procedure Pretty_Print_File (Pp : in out Gcov_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
+                                Has_Source : Boolean;
                                 Skip : out Boolean)
    is
       pragma Unreferenced (Stats);
@@ -48,9 +50,7 @@ package body Traces_Sources.gcov is
       Skip := True;
 
       --  Do not try to process files whose source is not available.
-      if not Flag_Show_Missing
-        and then not Exists (Source_Filename)
-      then
+      if not Flag_Show_Missing and then not Has_Source then
          return;
       end if;
 
@@ -79,17 +79,17 @@ package body Traces_Sources.gcov is
       use Ada.Integer_Text_IO;
    begin
       case State is
-	 when No_Code =>
-	    Put (Pp.Gcov_File, "        -");
-	 when Partially_Covered
-	   | Covered 
-	   | Branch_Covered
-	   | Branch_Taken 
-	   | Branch_Fallthrough
-	   | Covered_No_Branch =>
-	    Put (Pp.Gcov_File, "        1");
-	 when Not_Covered =>
-	    Put (Pp.Gcov_File, "    #####");
+         when No_Code =>
+            Put (Pp.Gcov_File, "        -");
+         when Partially_Covered
+           | Covered
+           | Branch_Covered
+           | Branch_Taken
+           | Branch_Fallthrough
+           | Covered_No_Branch =>
+            Put (Pp.Gcov_File, "        1");
+         when Not_Covered =>
+            Put (Pp.Gcov_File, "    #####");
       end case;
       Put (Pp.Gcov_File, ':');
       Put (Pp.Gcov_File, Line_Num, 5);

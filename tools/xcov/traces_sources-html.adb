@@ -47,6 +47,7 @@ package body Traces_Sources.Html is
    procedure Pretty_Print_File (Pp : in out Html_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
+                                Has_Source : Boolean;
                                 Skip : out Boolean);
 
    procedure Pretty_Print_Line (Pp : in out Html_Pretty_Printer;
@@ -193,6 +194,7 @@ package body Traces_Sources.Html is
    procedure Pretty_Print_File (Pp : in out Html_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
+                                Has_Source : Boolean;
                                 Skip : out Boolean)
    is
       use Ada.Integer_Text_Io;
@@ -202,8 +204,6 @@ package body Traces_Sources.Html is
         Simple_Name (Source_Filename);
 
       Output_Filename : constant String := Simple_Source_Filename & ".html";
-      Exist : constant Boolean :=
-        Flag_Show_Missing or else Exists (Source_Filename);
       P : constant Pourcentage := Get_Pourcentage (Stats);
       Pc : Natural;
 
@@ -223,7 +223,7 @@ package body Traces_Sources.Html is
 
       --  First column: file name
       Pi ("      <td title=""" & Source_Filename & '"');
-      if Exist then
+      if Has_Source or Flag_Show_Missing then
          Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"
                & Simple_Source_Filename & "</a>");
       else
@@ -271,7 +271,7 @@ package body Traces_Sources.Html is
       Pi ("    </tr>"); Ni;
 
       --  Do not try to process files whose source is not available.
-      if not Exist then
+      if not (Has_Source or Flag_Show_Missing) then
          return;
       end if;
 

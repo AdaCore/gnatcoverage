@@ -129,6 +129,8 @@ package Traces_Sources is
    --  Display a per file summary.
    procedure Disp_File_Summary;
 
+   procedure Add_Source_Rebase (Old_Prefix : String;
+                                New_Prefix : String);
 private
    Update_Table : constant State_Update_Table_Type :=
      (
@@ -205,6 +207,7 @@ private
    procedure Pretty_Print_File (Pp : in out Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
+                                Has_Source : Boolean;
                                 Skip : out Boolean) is abstract;
    procedure Pretty_Print_Line (Pp : in out Pretty_Printer;
                                 Line_Num : Natural;

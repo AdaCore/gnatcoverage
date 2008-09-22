@@ -28,6 +28,7 @@ package body Traces_Sources.xcov is
    procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
+                                Has_Source : Boolean;
                                 Skip : out Boolean);
 
    procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;
@@ -40,6 +41,7 @@ package body Traces_Sources.xcov is
    procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
+                                Has_Source : Boolean;
                                 Skip : out Boolean)
    is
       use Ada.Directories;
@@ -47,9 +49,7 @@ package body Traces_Sources.xcov is
       Skip := True;
 
       --  Do not try to process files whose source is not available.
-      if not Flag_Show_Missing
-        and then not Exists (Source_Filename)
-      then
+      if not Flag_Show_Missing and then not Has_Source then
          return;
       end if;
 

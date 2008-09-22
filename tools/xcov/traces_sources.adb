@@ -188,6 +188,33 @@ package body Traces_Sources is
       return (Nbr => Stats (Covered_No_Branch), Total => Total);
    end Get_Pourcentage;
 
+   type Source_Rebase_Entry;
+   type Source_Rebase_Entry_Acc is access Source_Rebase_Entry;
+   type Source_Rebase_Entry is record
+      Old_Prefix : String_Acc;
+      New_Prefix : String_Acc;
+      Next : Source_Rebase_Entry_Acc;
+   end record;
+
+   First_Source_Rebase_Entry : Source_Rebase_Entry_Acc := null;
+   Last_Source_Rebase_Entry : Source_Rebase_Entry_Acc := null;
+
+   procedure Add_Source_Rebase (Old_Prefix : String;
+                                New_Prefix : String)
+   is
+      E : Source_Rebase_Entry_Acc;
+   begin
+      E := new Source_Rebase_Entry'(Old_Prefix => new String'(Old_Prefix),
+                                    New_Prefix => new String'(New_Prefix),
+                                    Next => null);
+      if First_Source_Rebase_Entry = null then
+         First_Source_Rebase_Entry := E;
+      else
+         Last_Source_Rebase_Entry.Next := E;
+      end if;
+      Last_Source_Rebase_Entry := E;
+   end Add_Source_Rebase;
+
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
                                    Filename : String;
                                    File : Source_Lines)
@@ -203,7 +230,20 @@ package body Traces_Sources is
          Pretty_Print_Insn (Pp, Addr, State, Insn);
       end Disassemble_Cb;
 
+      procedure Try_Open (F : in out File_Type;
+                          Name : String;
+                          Success : out Boolean)
+      is
+      begin
+         Open (F, In_File, Name);
+         Success := True;
+      exception
+         when Name_Error =>
+            Success := False;
+      end Try_Open;
+
       F : File_Type;
+      Ok : Boolean;
       Has_Source : Boolean;
       Line : Natural;
 
@@ -219,22 +259,43 @@ package body Traces_Sources is
          Stats (Ls) := Stats (Ls) + 1;
       end loop;
 
-      Pretty_Print_File (Pp, Filename, Stats, Skip);
-      if Skip then
-         return;
+      Try_Open (F, Filename, Ok);
+      if not Ok then
+         declare
+            E : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
+            First : constant Positive := Filename'First;
+         begin
+            while E /= null loop
+               if Filename'Length > E.Old_Prefix'Length
+                 and then (Filename (First .. First + E.Old_Prefix'Length - 1)
+                             = E.Old_Prefix.all)
+               then
+                  Try_Open (F,
+                            E.New_Prefix.all
+                              & Filename (First + E.Old_Prefix'Length
+                                            .. Filename'Last),
+                            Ok);
+                  exit when Ok;
+               end if;
+               E := E.Next;
+            end loop;
+         end;
       end if;
 
-      begin
-         Open (F, In_File, Filename);
+      if not Ok then
+         Put_Line (Standard_Error, "can't open: " & Filename);
+         Has_Source := False;
+      else
          Has_Source := True;
-      exception
-         when Ada.Text_IO.Name_Error =>
-            Put_Line (Filename & ": (can't open)");
-            if not Flag_Show_Missing then
-               return;
-            end if;
-            Has_Source := False;
-      end;
+      end if;
+
+      Pretty_Print_File (Pp, Filename, Stats, Has_Source, Skip);
+      if Skip then
+         if Has_Source then
+            Close (F);
+         end if;
+         return;
+      end if;
 
       for I in Integer range First .. Last (File) loop
          Ls := File.Table (I).State;

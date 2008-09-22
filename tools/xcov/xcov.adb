@@ -177,7 +177,7 @@ begin
                Error ("bad parameter for --level");
                return;
             end if;
-         elsif Arg'Length > 4
+         elsif Arg'Length > 13
            and then Arg (Arg'First .. Arg'First + 12) = "--text-start="
          then
             begin
@@ -200,6 +200,25 @@ begin
                Error ("bad parameter for --output-format");
                return;
             end if;
+         elsif Arg'Length > 16
+           and then Arg (Arg'First .. Arg'First + 15) = "--source-rebase="
+         then
+            declare
+               Pos : Natural := 0;
+            begin
+               for I in Arg'First + 16 .. Arg'Last loop
+                  if Arg (I) = ':' then
+                     Pos := I;
+                     exit;
+                  end if;
+               end loop;
+               if Pos = 0 then
+                  Error ("missing ':' in --source-rebase=");
+                  return;
+               end if;
+               Add_Source_Rebase (Arg (Arg'First + 16 .. Pos - 1),
+                                  Arg (Pos + 1 .. Arg'Last));
+            end;
          elsif Arg = "--source-coverage" then
             Build_Sections;
             Set_Trace_State;
