@@ -25,6 +25,10 @@ package Disa_Ppc is
                                               Line : in out String;
                                               Line_Pos : in out Natural);
 
+   --  Return the length of the instruction at Addr.
+   function Get_Insn_Length (Addr : System.Address) return Positive;
+   pragma Inline (Get_Insn_Length);
+
    --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.
    --  LINE_POS is the index of the next character to be written (ie line
    --   length if Line'First = 1).

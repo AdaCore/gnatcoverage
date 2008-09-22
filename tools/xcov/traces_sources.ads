@@ -20,7 +20,6 @@ with GNAT.Dynamic_Tables;
 with Ada.Containers.Hashed_Maps;
 with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
-with System;
 
 package Traces_Sources is
    type DO178B_Level_Type is (Level_Raw, Level_A, Level_C);
@@ -196,8 +195,13 @@ private
       Need_Sources : Boolean;
    end record;
 
+   --  Called once at the beginning of the process.
    procedure Pretty_Print_Start (Pp : in out Pretty_Printer) is null;
+
+   --  Called once at the end of the process.
    procedure Pretty_Print_Finish (Pp : in out Pretty_Printer) is null;
+
+   --  Called at the beginning of a source file display.
    procedure Pretty_Print_File (Pp : in out Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
@@ -211,9 +215,7 @@ private
    procedure Pretty_Print_Insn (Pp : in out Pretty_Printer;
                                 Pc : Pc_Type;
                                 State : Trace_State;
-                                Insn : System.Address;
-                                Insn_Len : Natural;
-                                Res : String) is null;
+                                Insn : Binary_Content) is null;
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
 
    procedure Disp_Line_State (Pp : in out Pretty_Printer'Class);

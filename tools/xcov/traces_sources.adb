@@ -197,12 +197,10 @@ package body Traces_Sources is
 
       procedure Disassemble_Cb (Addr : Pc_Type;
                                 State : Trace_State;
-                                Insn : System.Address;
-                                Insn_Len : Natural;
-                                Res : String)
+                                Insn : Binary_Content)
       is
       begin
-         Pretty_Print_Insn (Pp, Addr, State, Insn, Insn_Len, Res);
+         Pretty_Print_Insn (Pp, Addr, State, Insn);
       end Disassemble_Cb;
 
       procedure Print_Label (Label : String) is

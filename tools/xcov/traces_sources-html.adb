@@ -20,8 +20,6 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Directories;
 with Hex_Images; use Hex_Images;
-with System.Storage_Elements;
-with Dwarf_Handling;
 
 package body Traces_Sources.Html is
    type String_Cst_Acc is access constant String;
@@ -61,9 +59,7 @@ package body Traces_Sources.Html is
    procedure Pretty_Print_Insn (Pp : in out Html_Pretty_Printer;
                                 Pc : Pc_Type;
                                 State : Trace_State;
-                                Insn : System.Address;
-                                Insn_Len : Natural;
-                                Res : String);
+                                Insn : Binary_Content);
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer);
 
@@ -399,12 +395,8 @@ package body Traces_Sources.Html is
    procedure Pretty_Print_Insn (Pp : in out Html_Pretty_Printer;
                                 Pc : Pc_Type;
                                 State : Trace_State;
-                                Insn : System.Address;
-                                Insn_Len : Natural;
-                                Res : String)
+                                Insn : Binary_Content)
    is
-      use Dwarf_Handling;
-      use System.Storage_Elements;
    begin
       Open_Insn_Table (Pp);
       Wrh (Pp, "      <tr class=""");
@@ -424,12 +416,12 @@ package body Traces_Sources.Html is
       Wrh (PP, Hex_Image (Pc));
       Wrh (PP, ' ' & Trace_State_Char (State) & ':');
       Wrh (PP, "  ");
-      for I in 1 .. Insn_Len loop
-         Wrh (Pp, Hex_Image (Read_Byte (Insn + Storage_Offset (I - 1))));
+      for I in Insn'Range loop
+         Wrh (Pp, Hex_Image (Insn (I)));
          Wrh (PP, " ");
       end loop;
       Wrh (PP, "  ");
-      Wrh (PP, Res);
+      Wrh (PP, Disassemble (Insn, Pc));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "      </tr>");
    end Pretty_Print_Insn;

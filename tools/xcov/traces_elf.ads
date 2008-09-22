@@ -18,8 +18,8 @@
 ------------------------------------------------------------------------------
 with Traces; use Traces;
 with Elf_Common;
+with Elf_Arch;
 with Interfaces;
-with System;
 
 package Traces_Elf is
    type String_Acc is access String;
@@ -78,11 +78,17 @@ package Traces_Elf is
    function Get_Line_Next (Line : Addresses_Info_Acc)
                           return Addresses_Info_Acc;
 
+   type Binary_Content is array (Elf_Arch.Elf_Size range <>)
+     of Interfaces.Unsigned_8;
+
+   --  Generate the disassembly for INSN.
+   --  INSN is exactly one instruction.
+   --  PC is the target address of INSN (used to display branch targets).
+   function Disassemble (Insn : Binary_Content; Pc : Pc_Type) return String;
+
    type Disassemble_Cb is access procedure (Addr : Pc_Type;
                                             State : Trace_State;
-                                            Insn : System.Address;
-                                            Insn_Len : Natural;
-                                            Res : String);
+                                            Insn : Binary_Content);
 
    procedure Disp_Line (Info : Addresses_Info_Acc;
                         Label_Cb : access procedure (S : String);

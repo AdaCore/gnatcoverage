@@ -55,9 +55,7 @@ package body Traces_Elf is
 
    procedure Textio_Disassemble_Cb (Addr : Pc_Type;
                                     State : Trace_State;
-                                    Insn : Address;
-                                    Insn_Len : Natural;
-                                    Res : String);
+                                    Insn : Binary_Content);
 
    procedure Disassemble (First, Last : Pc_Type;
                           State : Trace_State;
@@ -145,7 +143,6 @@ package body Traces_Elf is
    --  FIXME.
    Addr_Size : Natural := 0;
 
-   type Binary_Content is array (Elf_Size range <>) of Unsigned_8;
    type Binary_Content_Acc is access Binary_Content;
    procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
      (Binary_Content, Binary_Content_Acc);
@@ -1636,11 +1633,27 @@ package body Traces_Elf is
       Add ('>');
    end Get_Symbol;
 
+   --  INSN is exactly one instruction.
+   --  Generate the disassembly for INSN.
+   function Disassemble (Insn : Binary_Content; Pc : Pc_Type) return String
+   is
+      Addr : Address;
+      Line_Pos : Natural;
+      Line : String (1 .. 128);
+      Insn_Len : Natural := 0;
+   begin
+      Addr := Insn (Insn'First)'Address;
+      Disa_Ppc.Disassemble_Insn
+        (Addr, Pc, Line, Line_Pos, Insn_Len, Get_Symbol'Access);
+      if Insn_Len /= Insn'Length then
+         raise Constraint_Error;
+      end if;
+      return Line (1 .. Line_Pos - 1);
+   end Disassemble;
+
    procedure Textio_Disassemble_Cb (Addr : Pc_Type;
                                     State : Trace_State;
-                                    Insn : Address;
-                                    Insn_Len : Natural;
-                                    Res : String)
+                                    Insn : Binary_Content)
    is
    begin
       Set_Color (State);
@@ -1649,12 +1662,12 @@ package body Traces_Elf is
       Disp_State_Char (State);
       Put (":");
       Put (Ascii.HT);
-      for I in 1 .. Insn_Len loop
-         Put (Hex_Image (Read_Byte (Insn + Storage_Offset (I - 1))));
+      for I in Insn'Range loop
+         Put (Hex_Image (Insn (I)));
          Put (' ');
       end loop;
       Put ("  ");
-      Put (Res);
+      Put (Disassemble (Insn, Addr));
       New_Line;
    end Textio_Disassemble_Cb;
 
@@ -1662,6 +1675,9 @@ package body Traces_Elf is
                           State : Trace_State;
                           Cb : Disassemble_Cb)
    is
+      type Binary_Content_Thin_Acc is access Binary_Content (Elf_Size);
+      function To_Binary_Content_Thin_Acc is new Ada.Unchecked_Conversion
+        (Address, Binary_Content_Thin_Acc);
       Pc : Pc_Type;
       Addr : Address;
       Line_Pos : Natural;
@@ -1671,9 +1687,12 @@ package body Traces_Elf is
       Pc := First;
       while Pc < Last loop
          Addr := Get_Section_Addr (Pc);
+         Insn_Len := Disa_Ppc.Get_Insn_Length (Addr);
          Disa_Ppc.Disassemble_Insn
            (Addr, Pc, Line, Line_Pos, Insn_Len, Get_Symbol'Access);
-         Cb.all (Pc, State, Addr, Insn_Len, Line (1 .. Line_Pos - 1));
+         Cb.all
+           (Pc, State,
+            To_Binary_Content_Thin_Acc (Addr)(0 .. Elf_Size (Insn_Len) - 1));
          Pc := Pc + Pc_Type (Insn_Len);
          exit when Pc = 0;
       end loop;

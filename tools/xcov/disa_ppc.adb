@@ -23,6 +23,13 @@ with System.Storage_Elements;
 with Hex_Images; use Hex_Images;
 
 package body Disa_Ppc is
+   function Get_Insn_Length (Addr : System.Address) return Positive
+   is
+      pragma Unreferenced (Addr);
+   begin
+      return 4;
+   end Get_Insn_Length;
+
    function Read_Byte (Addr : Address) return Unsigned_8
    is
       type Unsigned_8_Acc is access all Unsigned_8;
