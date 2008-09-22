@@ -215,6 +215,32 @@ package body Traces_Sources is
       Last_Source_Rebase_Entry := E;
    end Add_Source_Rebase;
 
+
+   type Source_Search_Entry;
+   type Source_Search_Entry_Acc is access Source_Search_Entry;
+   type Source_Search_Entry is record
+      Prefix : String_Acc;
+      Next : Source_Search_Entry_Acc;
+   end record;
+
+   First_Source_Search_Entry : Source_Search_Entry_Acc := null;
+   Last_Source_Search_Entry : Source_Search_Entry_Acc := null;
+
+
+   procedure Add_Source_Search (Prefix : String)
+   is
+      E : Source_Search_Entry_Acc;
+   begin
+      E := new Source_Search_Entry'(Prefix => new String'(Prefix),
+                                    Next => null);
+      if First_Source_Search_Entry = null then
+         First_Source_Search_Entry := E;
+      else
+         Last_Source_Search_Entry.Next := E;
+      end if;
+      Last_Source_Search_Entry := E;
+   end Add_Source_Search;
+
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
                                    Filename : String;
                                    File : Source_Lines)
@@ -259,7 +285,10 @@ package body Traces_Sources is
          Stats (Ls) := Stats (Ls) + 1;
       end loop;
 
+      --  Try original path.
       Try_Open (F, Filename, Ok);
+
+      --  Try to rebase.
       if not Ok then
          declare
             E : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
@@ -277,6 +306,19 @@ package body Traces_Sources is
                             Ok);
                   exit when Ok;
                end if;
+               E := E.Next;
+            end loop;
+         end;
+      end if;
+
+      --  Try source path.
+      if not Ok then
+         declare
+            E : Source_Search_Entry_Acc := First_Source_Search_Entry;
+         begin
+            while E /= null loop
+               Try_Open (F, E.Prefix.all & '/' & Filename, Ok);
+               exit when Ok;
                E := E.Next;
             end loop;
          end;

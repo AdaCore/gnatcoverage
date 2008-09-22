@@ -131,6 +131,8 @@ package Traces_Sources is
 
    procedure Add_Source_Rebase (Old_Prefix : String;
                                 New_Prefix : String);
+
+   procedure Add_Source_Search (Prefix : String);
 private
    Update_Table : constant State_Update_Table_Type :=
      (

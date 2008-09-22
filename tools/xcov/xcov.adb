@@ -219,6 +219,10 @@ begin
                Add_Source_Rebase (Arg (Arg'First + 16 .. Pos - 1),
                                   Arg (Pos + 1 .. Arg'Last));
             end;
+         elsif Arg'Length > 16
+           and then Arg (Arg'First .. Arg'First + 15) = "--source-search="
+         then
+            Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
          elsif Arg = "--source-coverage" then
             Build_Sections;
             Set_Trace_State;

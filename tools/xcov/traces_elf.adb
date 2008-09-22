@@ -1719,6 +1719,9 @@ package body Traces_Elf is
       Line_Pos := Line'First;
       Get_Symbol (Info.First, Line, Line_Pos);
       if Line_Pos > Line'First then
+         if Line_Pos > Line'Last then
+            Line_Pos := Line'Last;
+         end if;
          Line (Line_Pos) := ':';
          return Line (Line'First + 1 .. Line_Pos);
       else
