@@ -87,6 +87,21 @@ begin
    end if;
 
    Arg_Index := 1;
+   declare
+      Cmd : constant String := Argument (Arg_Index);
+   begin
+      if Cmd = "--disp-routines" then
+         if Arg_Index = Arg_Count then
+            Error ("missing FILEs to --disp-routines");
+            return;
+         end if;
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Disp_Routines_List (Argument (I));
+         end loop;
+         return;
+      end if;
+   end;
+
    while Arg_Index <= Arg_Count loop
       declare
          Arg : constant String := Argument (Arg_Index);
@@ -158,8 +173,6 @@ begin
          elsif Arg = "--dump-symbols" then
             Build_Symbols;
             Disp_Symbols_Addresses;
-         elsif Arg = "--disp-routines" then
-            Disp_Routines_List;
          elsif Arg = "--asm" then
             Flag_Show_Asm := True;
          elsif Arg = "--missing-files" then

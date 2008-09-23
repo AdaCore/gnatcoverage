@@ -63,7 +63,7 @@ package Traces_Elf is
 
    --  Display the list of routines (on standard output).
    --  Display errors on standard error.
-   procedure Disp_Routines_List;
+   procedure Disp_Routines_List (Filename : String);
 
    type Addresses_Info(<>) is limited private;
    type Addresses_Info_Acc is access Addresses_Info;
