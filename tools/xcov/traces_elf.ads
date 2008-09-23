@@ -16,10 +16,12 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+with Ada.Unchecked_Deallocation;
 with Traces; use Traces;
 with Elf_Common;
 with Elf_Arch;
 with Interfaces;
+with Ada.Containers.Ordered_Sets;
 
 package Traces_Elf is
    type String_Acc is access String;
@@ -61,11 +63,7 @@ package Traces_Elf is
    procedure Disp_Symbols_Addresses;
    procedure Disp_Lines_Addresses;
 
-   --  Display the list of routines (on standard output).
-   --  Display errors on standard error.
-   procedure Disp_Routines_List (Filename : String);
-
-   type Addresses_Info(<>) is limited private;
+   type Addresses_Info;
    type Addresses_Info_Acc is access Addresses_Info;
 
    --  Display El.
@@ -83,6 +81,11 @@ package Traces_Elf is
    type Binary_Content is array (Elf_Arch.Elf_Size range <>)
      of Interfaces.Unsigned_8;
 
+   type Binary_Content_Acc is access Binary_Content;
+   procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
+     (Binary_Content, Binary_Content_Acc);
+
+
    --  Return the symbol for Addr followed by a colon (':').
    --  Return an empty string if none.
    function Get_Label (Info : Addresses_Info_Acc) return String;
@@ -98,7 +101,12 @@ package Traces_Elf is
       Cb : access procedure (Addr : Pc_Type;
                              State : Trace_State;
                              Insn : Binary_Content));
-private
+
+   function "<" (L, R : Addresses_Info_Acc) return Boolean;
+
+   package Addresses_Containers is new Ada.Containers.Ordered_Sets
+     (Element_Type => Addresses_Info_Acc);
+
    type Addresses_Kind is
      (
       Section_Addresses,
@@ -129,6 +137,7 @@ private
       end case;
    end record;
 
+private
    type Addresses_Line_Chain is record
       First, Last : Addresses_Info_Acc := null;
    end record;

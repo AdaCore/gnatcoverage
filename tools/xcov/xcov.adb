@@ -24,6 +24,7 @@ with Traces_Sources; use Traces_Sources;
 with Traces_Sources.Html;
 with Traces_Sources.Gcov;
 with Traces_Sources.Xcov;
+with Traces_Names;
 with Display;
 
 procedure Xcov is
@@ -96,7 +97,7 @@ begin
             return;
          end if;
          for I in Arg_Index + 1 .. Arg_Count loop
-            Disp_Routines_List (Argument (I));
+            Traces_Names.Disp_Routines_List (Argument (I));
          end loop;
          return;
       end if;
