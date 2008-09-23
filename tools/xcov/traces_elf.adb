@@ -1429,29 +1429,6 @@ package body Traces_Elf is
       end loop;
    end Set_Trace_State;
 
-   procedure Append (Chain : in out Addresses_Line_Chain;
-                     Line : Addresses_Info_Acc) is
-   begin
-      if Chain.First = null then
-         Chain.First := Line;
-      else
-         Chain.Last.Line_Next := Line;
-      end if;
-      Chain.Last := Line;
-   end Append;
-
-   function Get_First (Chain : Addresses_Line_Chain)
-                      return Addresses_Info_Acc is
-   begin
-      return Chain.First;
-   end Get_First;
-
-   function Get_Line_Next (Line : Addresses_Info_Acc)
-                          return Addresses_Info_Acc is
-   begin
-      return Line.Line_Next;
-   end Get_Line_Next;
-
    procedure Build_Symbols
    is
       use Addresses_Containers;

@@ -70,14 +70,6 @@ package Traces_Elf is
    --  Mostly a debug procedure.
    procedure Disp_Address (El : Addresses_Info_Acc);
 
-   type Addresses_Line_Chain is private;
-   procedure Append (Chain : in out Addresses_Line_Chain;
-                     Line : Addresses_Info_Acc);
-   function Get_First (Chain : Addresses_Line_Chain)
-                      return Addresses_Info_Acc;
-   function Get_Line_Next (Line : Addresses_Info_Acc)
-                          return Addresses_Info_Acc;
-
    type Binary_Content is array (Elf_Arch.Elf_Size range <>)
      of Interfaces.Unsigned_8;
 
@@ -135,10 +127,5 @@ package Traces_Elf is
             Line_Number : Natural;
             Line_Next : Addresses_Info_Acc;
       end case;
-   end record;
-
-private
-   type Addresses_Line_Chain is record
-      First, Last : Addresses_Info_Acc := null;
    end record;
 end Traces_Elf;

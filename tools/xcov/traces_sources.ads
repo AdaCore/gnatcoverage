@@ -72,6 +72,10 @@ package Traces_Sources is
    type State_Char_Array is array (Line_State) of Character;
    State_Char : constant State_Char_Array;
 
+   type Addresses_Line_Chain is record
+      First, Last : Addresses_Info_Acc := null;
+   end record;
+
    --  Data associated with a SLOC.
    type Line_Info is record
       --  The coverage state.

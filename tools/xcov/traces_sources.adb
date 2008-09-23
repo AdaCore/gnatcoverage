@@ -58,6 +58,23 @@ package body Traces_Sources is
       return Res;
    end Find_File;
 
+   procedure Append (Chain : in out Addresses_Line_Chain;
+                     Line : Addresses_Info_Acc) is
+   begin
+      if Chain.First = null then
+         Chain.First := Line;
+      else
+         Chain.Last.Line_Next := Line;
+      end if;
+      Chain.Last := Line;
+   end Append;
+
+   function Get_First (Chain : Addresses_Line_Chain)
+                      return Addresses_Info_Acc is
+   begin
+      return Chain.First;
+   end Get_First;
+
    procedure Add_Line_State (File : Filenames_Maps.Cursor;
                              Line : Natural;
                              State : Traces.Trace_State)
@@ -359,7 +376,7 @@ package body Traces_Sources is
                   end if;
                end;
                Disp_Assembly_Lines (Info, Disassemble_Cb'Access);
-               Info := Get_Line_Next (Info);
+               Info := Info.Line_Next;
             end loop;
          end if;
       end loop;
