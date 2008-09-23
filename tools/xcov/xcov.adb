@@ -37,13 +37,12 @@ procedure Xcov is
       P (" -r FILENAME         Read (and merge) traces from FILENAME");
       P (" -w FILENAME         Write traces to FILENAME");
       P (" -e FILENAME         Use FILENAME as executale");
-      P (" --color             Use vt100 colors in outputs");
       P (" --dump-traces       Dump traces");
-      P (" --objdump-coverage  Annotate objdump -d output");
       P (" --exe-coverage      Generate object coverage report");
       P (" --source-coverage   Generate source coverage report");
       P (" --function-coverage Generate function coverage report");
       P (" --asm               Add assembly code in --source-coverage");
+      P (" --output-format=html/xcov/gcov  Select output format");
       P (" --level=A/C         Select DO178B level for --source-coverage");
    end Usage;
 
