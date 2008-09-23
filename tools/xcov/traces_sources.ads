@@ -20,6 +20,7 @@ with GNAT.Dynamic_Tables;
 with Ada.Containers.Hashed_Maps;
 with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
+with Strings; use Strings;
 
 package Traces_Sources is
    type DO178B_Level_Type is (Level_Raw, Level_A, Level_C);
@@ -96,8 +97,6 @@ package Traces_Sources is
    subtype Source_Lines is Source_Lines_Vectors.Instance;
 
    --  Containers helpers.
-   function Hash (El : String_Acc) return Ada.Containers.Hash_Type;
-   function Equivalent (L, R : String_Acc) return Boolean;
    function Equal (L, R : Source_Lines) return Boolean;
 
    --  Describe all the source files.

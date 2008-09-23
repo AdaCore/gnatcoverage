@@ -27,6 +27,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Dwarf_Handling; use Dwarf_Handling;
+with Strings; use Strings;
 
 package body Traces_Names is
    procedure Disp_Routines_List (Efile : Elf_File)

@@ -22,10 +22,9 @@ with Elf_Common;
 with Elf_Arch;
 with Interfaces;
 with Ada.Containers.Ordered_Sets;
+with Strings; use Strings;
 
 package Traces_Elf is
-   type String_Acc is access String;
-
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.

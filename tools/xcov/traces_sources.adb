@@ -16,21 +16,10 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Ada.Strings.Hash;
 with Ada.Text_Io;
 with Ada.Directories;
 
 package body Traces_Sources is
-   function Hash (El : String_Acc) return Ada.Containers.Hash_Type is
-   begin
-      return Ada.Strings.Hash (El.all);
-   end Hash;
-
-   function Equivalent (L, R : String_Acc) return Boolean is
-   begin
-      return L.all = R.all;
-   end Equivalent;
-
    function Equal (L, R : Source_Lines) return Boolean is
       pragma Unreferenced (L, R);
    begin
