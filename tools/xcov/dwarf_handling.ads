@@ -67,6 +67,7 @@ package Dwarf_Handling is
                            Res : out Unsigned_32);
 
    procedure Read_String (Base : Address; Off : in out Storage_Offset);
+   function Read_String (Addr : Address) return String;
 
    procedure Write_Word4_Le (Base : Address;
                              Off : in out Storage_Offset;
