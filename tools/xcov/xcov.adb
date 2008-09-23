@@ -36,7 +36,7 @@ procedure Xcov is
       P ("actions is a list of:");
       P (" -r FILENAME         Read (and merge) traces from FILENAME");
       P (" -w FILENAME         Write traces to FILENAME");
-      P (" -e FILENAME         Use FILENAME as executale");
+      P (" -e FILENAME         Use FILENAME as executable");
       P (" --dump-traces       Dump traces");
       P (" --exe-coverage      Generate object coverage report");
       P (" --source-coverage   Generate source coverage report");
