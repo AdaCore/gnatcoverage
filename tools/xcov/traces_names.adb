@@ -34,6 +34,8 @@ package body Traces_Names is
 
    type Subprogram_Name is record
       Filename : String_Acc;
+      --Insns : Binary_Content_Acc;
+      --Traces : Xxx;
    end record;
 
    function Equal (L, R : Subprogram_Name) return Boolean

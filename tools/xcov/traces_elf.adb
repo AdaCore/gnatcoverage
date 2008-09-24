@@ -1030,7 +1030,7 @@ package body Traces_Elf is
       end loop;
    end Build_Sections;
 
-   procedure Disp_Sections_Coverage
+   procedure Disp_Sections_Coverage (Base : Traces_Base)
    is
       use Addresses_Containers;
       use Display;
@@ -1081,7 +1081,7 @@ package body Traces_Elf is
 
          Addr := Sec.First;
          Last_Addr := Sec.Last;
-         Init (It, Addr);
+         Init (Base, It, Addr);
          Get_Next_Trace (Trace, It);
 
          --  Search next matching symbol.
@@ -1184,7 +1184,7 @@ package body Traces_Elf is
       Set_Color (Black);
    end Disp_Sections_Coverage;
 
-   procedure Disp_Subprograms_Coverage
+   procedure Disp_Subprograms_Coverage (Base : Traces_Base)
    is
       use Addresses_Containers;
       use Display;
@@ -1207,7 +1207,7 @@ package body Traces_Elf is
          Sym := Element (Cur);
 
          Addr := Sym.First;
-         Init (It, Addr);
+         Init (Base, It, Addr);
          Get_Next_Trace (Trace, It);
 
          if Trace /= Bad_Trace and then Trace.Last < Sym.First then
@@ -1249,14 +1249,14 @@ package body Traces_Elf is
                end if;
             end;
             Disp_Assembly_Lines
-              (Sym, Textio_Disassemble_Cb'Access);
+              (Sym, Base, Textio_Disassemble_Cb'Access);
          end if;
 
          Next (Cur);
       end loop;
    end Disp_Subprograms_Coverage;
 
-   procedure Build_Source_Lines
+   procedure Build_Source_Lines (Base : in out Traces_Base)
    is
       use Addresses_Containers;
       use Traces_Sources;
@@ -1272,7 +1272,7 @@ package body Traces_Elf is
 
       Debug : constant Boolean := False;
    begin
-      Init (It, 0);
+      Init (Base, It, 0);
       Get_Next_Trace (E, It);
       No_Traces := E = Bad_Trace;
 
@@ -1331,7 +1331,7 @@ package body Traces_Elf is
       end loop;
    end Build_Source_Lines;
 
-   procedure Set_Trace_state
+   procedure Set_Trace_State (Base : in out Traces_Base)
    is
       use Addresses_Containers;
       Cur : Cursor;
@@ -1353,7 +1353,7 @@ package body Traces_Elf is
          Load_Section (Exe_File, Sec.Section_Index, Section (0)'Address);
 
          Addr := Sec.First;
-         Init (It, Addr);
+         Init (Base, It, Addr);
          Get_Next_Trace (Trace, It);
 
          while Trace /= Bad_Trace loop
@@ -1372,9 +1372,9 @@ package body Traces_Elf is
                      is
                      begin
                         if Trace_Len = 4 then
-                           Update_State (It, Next_State);
+                           Update_State (Base, It, Next_State);
                         else
-                           Split_Trace (It, Trace.Last - 4,
+                           Split_Trace (Base, It, Trace.Last - 4,
                                         Covered, Next_State);
                         end if;
                      end Update_Or_Split;
@@ -1385,7 +1385,7 @@ package body Traces_Elf is
                      end if;
                      case Op is
                         when 0 =>
-                           Update_State (It, Covered);
+                           Update_State (Base, It, Covered);
                         when 1 =>
                            for I in Unsigned_32 range 0 .. 3 loop
                               Insn (I) :=
@@ -1393,7 +1393,7 @@ package body Traces_Elf is
                            end loop;
                            if (Insn(0) and 16#Fc#) = 16#48# then
                               --  Opc = 18: b, ba, bl and bla
-                              Update_State (It, Covered);
+                              Update_State (Base, It, Covered);
                            elsif ((Insn(0) and 16#Fe#) = 16#42#
                                   or else (Insn(0) and 16#Fe#) = 16#4e#)
                              and then (Insn(1) and 16#80#) = 16#80#
@@ -1401,7 +1401,7 @@ package body Traces_Elf is
                               --  Opc = 16 (bcx) or Opc = 19 (bcctrx)
                               --   BO = 1x1xx
                               --  bc/bcctr always
-                              Update_State (It, Covered);
+                              Update_State (Base, It, Covered);
                            else
                               Update_Or_Split (Branch_Taken);
                            end if;
@@ -1680,6 +1680,7 @@ package body Traces_Elf is
 
    procedure Disp_Assembly_Lines
      (Info : Addresses_Info_Acc;
+      Base : Traces_Base;
       Cb : access procedure (Addr : Pc_Type;
                              State : Trace_State;
                              Insn : Binary_Content))
@@ -1691,7 +1692,7 @@ package body Traces_Elf is
       State : Trace_State;
    begin
       --Disp_Address (Info);
-      Init (It, Info.First);
+      Init (Base, It, Info.First);
       Get_Next_Trace (E, It);
       Addr := Info.First;
 

@@ -25,6 +25,8 @@ with Traces_Sources.Html;
 with Traces_Sources.Gcov;
 with Traces_Sources.Xcov;
 with Traces_Names;
+with Traces_Files; use Traces_Files;
+with Traces_Dbase; use Traces_Dbase;
 with Display;
 
 procedure Xcov is
@@ -79,6 +81,7 @@ procedure Xcov is
    Text_Start : Pc_Type := 0;
    type Output_Format is (Format_Xcov, Format_Gcov, Format_Html);
    Format : Output_Format := Format_Xcov;
+   Base : Traces_Base;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -127,20 +130,20 @@ begin
                Put_Line ("missing FILENAME to -r");
                return;
             end if;
-            Read_Trace_File (Argument (Arg_Index));
+            Read_Trace_File (Base, Argument (Arg_Index));
             Arg_Index := Arg_Index + 1;
          elsif Arg = "--dump-traces" then
-            Dump_Traces;
+            Dump_Traces (Base);
          elsif Arg = "--dump-traces-state" then
             Build_Sections;
-            Set_Trace_State;
-            Dump_Traces;
+            Set_Trace_State (Base);
+            Dump_Traces (Base);
          elsif Arg = "-w" then
             if Arg_Index > Arg_Count then
                Error ("missing FILENAME to -w");
                return;
             end if;
-            Write_Trace_File (Argument (Arg_Index));
+            Write_Trace_File (Base, Argument (Arg_Index));
             Arg_Index := Arg_Index + 1;
          elsif Arg = "-e" then
             if Arg_Index > Arg_Count then
@@ -156,8 +159,8 @@ begin
             end;
             Has_Exec := True;
             Arg_Index := Arg_Index + 1;
-         elsif Arg = "--objdump-coverage" then
-            Annotate_Objdump;
+--         elsif Arg = "--objdump-coverage" then
+--            Annotate_Objdump;
          elsif Arg = "--color" then
             Display.Flag_Color := True;
          elsif Arg = "--exe-coverage" then
@@ -167,9 +170,9 @@ begin
             end if;
             Build_Sections;
             Build_Debug_Compile_Units;
-            Set_Trace_State;
+            Set_Trace_State (Base);
             Build_Symbols;
-            Disp_Sections_Coverage;
+            Disp_Sections_Coverage (Base);
          elsif Arg = "--dump-sections" then
             Build_Sections;
             Disp_Sections_Addresses;
@@ -248,30 +251,30 @@ begin
             Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
          elsif Arg = "--source-coverage" then
             Build_Sections;
-            Set_Trace_State;
+            Set_Trace_State (Base);
             Build_Debug_Lines;
-            Build_Source_Lines;
+            Build_Source_Lines (Base);
             Build_Symbols;
             case Format is
                when Format_Xcov =>
-                  Traces_Sources.Xcov.Generate_Report;
+                  Traces_Sources.Xcov.Generate_Report (Base);
                when Format_Gcov =>
-                  Traces_Sources.Gcov.Generate_Report;
+                  Traces_Sources.Gcov.Generate_Report (Base);
                when Format_Html =>
-                  Traces_Sources.Html.Generate_Report;
+                  Traces_Sources.Html.Generate_Report (Base);
             end case;
          elsif Arg = "--file-coverage" then
             Build_Sections;
-            Set_Trace_State;
+            Set_Trace_State (Base);
             Build_Debug_Lines;
-            Build_Source_Lines;
+            Build_Source_Lines (Base);
             Build_Symbols;
             Disp_File_Summary;
          elsif Arg = "--function-coverage" then
             Build_Sections;
-            Set_Trace_State;
+            Set_Trace_State (Base);
             Build_Symbols;
-            Disp_Subprograms_Coverage;
+            Disp_Subprograms_Coverage (Base);
          else
             Error ("unknown option: " & Arg);
             return;

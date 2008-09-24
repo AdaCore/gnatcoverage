@@ -103,11 +103,11 @@ package body Traces_Sources.gcov is
       Close (Pp.Gcov_File);
    end Pretty_Print_End_File;
 
-   procedure Generate_Report
+   procedure Generate_Report (Base : Traces_Base)
    is
       Gcov : Gcov_Pretty_Printer;
    begin
-      Traces_Sources.Disp_Line_State (Gcov);
+      Traces_Sources.Disp_Line_State (Gcov, Base);
    end Generate_Report;
 
 end Traces_Sources.Gcov;

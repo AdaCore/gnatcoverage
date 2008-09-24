@@ -16,7 +16,6 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Ada.Containers.Ordered_Sets;
 with Interfaces; use Interfaces;
 with System;
 
@@ -67,44 +66,16 @@ package Traces is
                                         Op => 0,
                                         State => Unknown);
 
-   --  This exception is raised if the trace file is invalid or corrupted.
-   Bad_File_Format : exception;
-
-   --  This exception is raise in case of OS error during write.
-   Write_Error : exception;
-
-   --  Load in memory (and possibly merge) a trace file.
-   procedure Read_Trace_File (Filename : String);
-
-   --  Write traces to a file.
-   --  Always generate a consolidated file.
-   procedure Write_Trace_File (Filename : String);
+   --  Display a string for OP.
+   procedure Dump_Op (Op : Unsigned_8);
 
    --  Dump (on standard output) a trace entry.
    procedure Dump_Entry (E : Trace_Entry);
-
-   --  Dump (on standard output) the content of traces.
-   procedure Dump_Traces;
-
-   --  Add coverage annotations to the objdump disassembly output.
-   --  Read objdump output from standard input.
-   procedure Annotate_Objdump;
 
    --  Display a character representing the state.
    procedure Disp_State_Char (State : Trace_State);
 
    procedure Set_Color (State : Trace_State);
-
-   --  Return a trace that contains or follows ADDR.
-   type Entry_Iterator is limited private;
-   procedure Init (Iterator : out Entry_Iterator; Pc : Pc_Type);
-   procedure Get_Next_Trace (Trace : out Trace_Entry;
-                             Iterator : in out Entry_Iterator);
-
-   procedure Update_State (Iterator : Entry_Iterator; State : Trace_State);
-   procedure Split_Trace (Iterator : in out Entry_Iterator;
-                          Pc : Pc_Type;
-                          Cur_State, Next_State : Trace_State);
 
    --  Convert hexa-decimal string contained in Line (Pos ..) to a Pc_Type.
    --  Put the result to RES, POS contains the index past the last character
@@ -123,16 +94,4 @@ private
       Fallthrough_Taken => 'v',
       Both_Taken => '*');
 
-   --  Operations for ordered_sets.
-   function "=" (L, R : Trace_Entry) return Boolean;
-   function "<" (L, R : Trace_Entry) return Boolean;
-
-   package Entry_Set is new Ada.Containers.Ordered_Sets
-     (Element_Type => Trace_Entry,
-      "<" => "<",
-      "=" => "=");
-
-   type Entry_Iterator is record
-      Cur : Entry_Set.Cursor;
-   end record;
 end Traces;

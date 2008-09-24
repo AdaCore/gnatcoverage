@@ -21,6 +21,7 @@ with Ada.Containers.Hashed_Maps;
 with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
 with Strings; use Strings;
+with Traces_Dbase; use Traces_Dbase;
 
 package Traces_Sources is
    type DO178B_Level_Type is (Level_Raw, Level_A, Level_C);
@@ -226,6 +227,7 @@ private
                                 Insn : Binary_Content) is null;
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
 
-   procedure Disp_Line_State (Pp : in out Pretty_Printer'Class);
+   procedure Disp_Line_State (Pp : in out Pretty_Printer'Class;
+                              Base : Traces_Base);
 
 end Traces_Sources;

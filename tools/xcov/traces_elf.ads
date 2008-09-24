@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 with Ada.Unchecked_Deallocation;
 with Traces; use Traces;
+with Traces_Dbase; use Traces_Dbase;
 with Elf_Common;
 with Elf_Arch;
 with Interfaces;
@@ -34,13 +35,13 @@ package Traces_Elf is
    procedure Build_Sections;
 
    --  Show coverage of sections.
-   procedure Disp_Sections_Coverage;
+   procedure Disp_Sections_Coverage (Base : Traces_Base);
 
    --  Show coverage of subprograms.
-   procedure Disp_Subprograms_Coverage;
+   procedure Disp_Subprograms_Coverage (Base : Traces_Base);
 
    --  Using the executable, correctly set the state of every traces.
-   procedure Set_Trace_State;
+   procedure Set_Trace_State (Base : in out Traces_Base);
 
    --  Read dwarfs info to build compile_units/subprograms lists.
    procedure Build_Debug_Compile_Units;
@@ -53,7 +54,7 @@ package Traces_Elf is
 
    --  Create per file line state.
    --  Also update lines state from traces state.
-   procedure Build_Source_Lines;
+   procedure Build_Source_Lines (Base : in out Traces_Base);
 
    --  Display lists.
    procedure Disp_Sections_Addresses;
@@ -89,6 +90,7 @@ package Traces_Elf is
    --  Call CB for each insn in INFO.
    procedure Disp_Assembly_Lines
      (Info : Addresses_Info_Acc;
+      Base : Traces_Base;
       Cb : access procedure (Addr : Pc_Type;
                              State : Trace_State;
                              Insn : Binary_Content));
