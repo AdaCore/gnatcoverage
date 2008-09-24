@@ -17,6 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with Interfaces; use Interfaces;
+with Ada.Unchecked_Deallocation;
 
 package body Elf_Files is
    function Get_My_Data return Elf_Uchar
@@ -95,9 +96,12 @@ package body Elf_Files is
    procedure Close_File (File : in out Elf_File)
    is
       use GNAT.OS_Lib;
+      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
+        (String, String_Acc);
    begin
       Close (File.Fd);
       File.Fd := Invalid_Fd;
+      Unchecked_Deallocation (File.Filename);
    end Close_File;
 
    function Get_Status (File : Elf_File) return Elf_File_Status is
