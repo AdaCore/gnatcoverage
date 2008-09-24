@@ -89,6 +89,7 @@ begin
    Arg_Index := 1;
    declare
       Cmd : constant String := Argument (Arg_Index);
+      Mode_Exclude : Boolean := False;
    begin
       if Cmd = "--disp-routines" then
          if Arg_Index = Arg_Count then
@@ -96,8 +97,19 @@ begin
             return;
          end if;
          for I in Arg_Index + 1 .. Arg_Count loop
-            Traces_Names.Disp_Routines_List (Argument (I));
+            declare
+               Arg : constant String := Argument (I);
+            begin
+               if Arg = "--exclude" then
+                  Mode_Exclude := True;
+               elsif Arg = "--include" then
+                  Mode_Exclude := False;
+               else
+                  Traces_Names.Read_Routines_Name (Arg, Mode_Exclude);
+               end if;
+            end;
          end loop;
+         Traces_Names.Disp_All_Routines;
          return;
       end if;
    end;

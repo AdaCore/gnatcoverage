@@ -22,5 +22,16 @@ package Strings is
    type String_Acc is access String;
 
    function Hash (El : String_Acc) return Ada.Containers.Hash_Type;
-   function Equivalent (L, R : String_Acc) return Boolean;
+   --  Compute an hash from EL.
+
+   function Equal (L, R : String_Acc) return Boolean;
+   --  Return true iff L and R designate the same string.
+
+   function Less_Than (L, R : String_Acc) return Boolean;
+   --  Return true iff L.all < R.all.
+
+private
+   pragma Inline (Hash);
+   pragma Inline (Equal);
+   pragma Inline (Less_Than);
 end Strings;

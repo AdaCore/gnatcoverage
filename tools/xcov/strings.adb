@@ -24,8 +24,13 @@ package body Strings is
       return Ada.Strings.Hash (El.all);
    end Hash;
 
-   function Equivalent (L, R : String_Acc) return Boolean is
+   function Equal (L, R : String_Acc) return Boolean is
    begin
       return L.all = R.all;
-   end Equivalent;
+   end Equal;
+
+   function Less_Than (L, R : String_Acc) return Boolean is
+   begin
+      return L.all < R.all;
+   end Less_Than;
 end Strings;

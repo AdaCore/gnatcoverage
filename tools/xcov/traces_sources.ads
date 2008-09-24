@@ -96,7 +96,7 @@ package Traces_Sources is
 
    subtype Source_Lines is Source_Lines_Vectors.Instance;
 
-   --  Containers helpers.
+   --  Containers helper.
    function Equal (L, R : Source_Lines) return Boolean;
 
    --  Describe all the source files.
@@ -104,7 +104,7 @@ package Traces_Sources is
      (Key_Type => String_Acc,
       Element_Type => Source_Lines,
       Hash => Hash,
-      Equivalent_Keys => Equivalent,
+      Equivalent_Keys => Equal,
       "=" => Equal);
 
    --  Find or create a new source file.

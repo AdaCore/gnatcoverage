@@ -20,5 +20,7 @@
 package Traces_Names is
    --  Display the list of routines (on standard output).
    --  Display errors on standard error.
-   procedure Disp_Routines_List (Filename : String);
+   procedure Read_Routines_Name (Filename : String; Exclude : Boolean);
+
+   procedure Disp_All_Routines;
 end Traces_Names;
