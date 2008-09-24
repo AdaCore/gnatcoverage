@@ -98,10 +98,16 @@ package body Elf_Files is
       use GNAT.OS_Lib;
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
         (String, String_Acc);
+      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
+        (Elf_Shdr_Arr, Elf_Shdr_Arr_Acc);
+      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
+        (Elf_Strtab, Elf_Strtab_Acc);
    begin
       Close (File.Fd);
       File.Fd := Invalid_Fd;
       Unchecked_Deallocation (File.Filename);
+      Unchecked_Deallocation (File.Shdr);
+      Unchecked_Deallocation (File.Sh_Strtab);
    end Close_File;
 
    function Get_Status (File : Elf_File) return Elf_File_Status is

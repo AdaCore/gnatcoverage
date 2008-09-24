@@ -64,6 +64,9 @@ package body Traces_Names is
       type Set_Acc_Array is array (0 .. Nbr_Shdr) of Set_Acc;
       Shdr_Sets : Set_Acc_Array := (others => null);
 
+      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
+        (Addresses_Info, Addresses_Info_Acc);
+
       Shdr : Elf_Shdr_Acc;
       Last : Pc_Type;
       Addr : Pc_Type;
@@ -179,6 +182,8 @@ package body Traces_Names is
 
             --  Get the first symbol in the section.
             while Sym /= null and then Sym.First < Addr loop
+               Unchecked_Deallocation (Sym.Symbol_Name);
+               Unchecked_Deallocation (Sym);
                Next (Cur_Sym);
                if not Has_Element (Cur_Sym) then
                   Sym := null;
@@ -206,15 +211,16 @@ package body Traces_Names is
                      if not Has_Element (Cur_Name) then
                         Names.Insert (Sym.Symbol_Name,
                                       Subprogram_Name'(Filename => Filename));
-                     elsif Element (Cur_Name).Filename = Filename then
-                        Put_Line (Standard_Error,
-                                  "symbol " & Sym.Symbol_Name.all
-                                    & " is defined twice in " & Filename.all);
+                        Sym.Symbol_Name := null;
+                     else
+                        if Element (Cur_Name).Filename = Filename then
+                           Put_Line (Standard_Error,
+                                     "symbol " & Sym.Symbol_Name.all
+                                     & " is defined twice in " & Filename.all);
+                        end if;
                      end if;
-                  else
-                     if Has_Element (Cur_Name) then
-                        Names.Delete (Sym.Symbol_Name);
-                     end if;
+                  elsif Has_Element (Cur_Name) then
+                     Names.Delete (Sym.Symbol_Name);
                   end if;
                   --Put_Line (Sym.Symbol_Name.all);
                   Addr := Sym.Last;
@@ -222,6 +228,8 @@ package body Traces_Names is
                   Addr := Addr + 1;
                end if;
 
+               Unchecked_Deallocation (Sym.Symbol_Name);
+               Unchecked_Deallocation (Sym);
                Next (Cur_Sym);
                if not Has_Element (Cur_Sym) then
                   Sym := null;

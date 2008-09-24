@@ -17,9 +17,13 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with Ada.Containers;
+with Ada.Unchecked_Deallocation;
 
 package Strings is
    type String_Acc is access String;
+
+   procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
+     (String, String_Acc);
 
    function Hash (El : String_Acc) return Ada.Containers.Hash_Type;
    --  Compute an hash from EL.
