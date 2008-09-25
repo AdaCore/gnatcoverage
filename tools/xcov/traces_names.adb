@@ -26,6 +26,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Dwarf_Handling; use Dwarf_Handling;
+with Traces_Sources; use Traces_Sources;
 
 package body Traces_Names is
 
@@ -304,6 +305,31 @@ package body Traces_Names is
       return Element (Cur).Traces;
    end Add_Traces;
 
+   function Compute_Routine_State (N : Subprogram_Name)
+                                  return Line_State
+   is
+      State : Line_State := No_Code;
+      Addr : Pc_Type := N.Insns'First;
+      It : Entry_Iterator;
+      T : Trace_Entry;
+   begin
+      Init (N.Traces.all, It, 0);
+      loop
+         Get_Next_Trace (T, It);
+         exit when T = Bad_Trace;
+         if T.First > Addr then
+            return Partially_Covered;
+         end if;
+         State := Update_Table (State, T.State);
+         Addr := T.Last + 1;
+      end loop;
+      if State = No_Code then
+         return Not_Covered;
+      else
+         return State;
+      end if;
+   end Compute_Routine_State;
+
    procedure Dump_Routines_Traces
    is
       use Names_Maps;
@@ -318,13 +344,18 @@ package body Traces_Names is
             Set_Trace_State (El.Traces.all, El.Insns.all);
          end if;
       end Update;
-
    begin
       Cur := Names.First;
       while Has_Element (Cur) loop
          Names.Update_Element (Cur, Update'Access);
          E := Element (Cur);
          Put (Key (Cur).all);
+
+         if E.Traces /= null then
+            Put (' ');
+            Put (State_Char (Compute_Routine_State (E)));
+         end if;
+
          if E.Insns /= null then
             Put (":  " & Hex_Image (E.Insns'First)
                    & '-' & Hex_Image (E.Insns'Last));
@@ -332,6 +363,10 @@ package body Traces_Names is
          New_Line;
          if E.Traces /= null then
             Dump_Traces (E.Traces.all);
+            if Flag_Show_Asm then
+               Disp_Assembly_Lines
+                 (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access);
+            end if;
          end if;
          Next (Cur);
       end loop;

@@ -81,6 +81,9 @@ package Traces_Elf is
    --  Mostly a debug procedure.
    procedure Disp_Address (El : Addresses_Info_Acc);
 
+   --  If True, Disp_Line_State will also display assembly code.
+   Flag_Show_Asm : Boolean := False;
+
    --  Return the symbol for Addr followed by a colon (':').
    --  Return an empty string if none.
    function Get_Label (Info : Addresses_Info_Acc) return String;
@@ -92,11 +95,17 @@ package Traces_Elf is
 
    --  Call CB for each insn in INFO.
    procedure Disp_Assembly_Lines
-     (Info : Addresses_Info_Acc;
+     (Insns : Binary_Content;
       Base : Traces_Base;
       Cb : access procedure (Addr : Pc_Type;
                              State : Trace_State;
                              Insn : Binary_Content));
+
+   --  Simple callback from the previous subprogram.
+   procedure Textio_Disassemble_Cb (Addr : Pc_Type;
+                                    State : Trace_State;
+                                    Insn : Binary_Content);
+
 
    function "<" (L, R : Addresses_Info_Acc) return Boolean;
 

@@ -76,6 +76,7 @@ package body Traces_Sources is
          Ls : Line_State;
       begin
          if L < Line then
+            --  Expand lines table.
             Set_Last (Element, Line);
             for I in L + 1 .. Line loop
                Element.Table (I) := (State => No_Code, others => <>);
@@ -103,6 +104,7 @@ package body Traces_Sources is
          L : constant Natural := Last (Element);
       begin
          if L < Line then
+            --  Expand the tables.  The lines added are marked as no_code.
             Set_Last (Element, Line);
             for I in L + 1 .. Line loop
                Element.Table (I) := (State => No_Code, others => <>);
@@ -281,6 +283,7 @@ package body Traces_Sources is
       Line : Natural;
 
       Info : Addresses_Info_Acc;
+      Sec_Info : Addresses_Info_Acc;
       Ls : Line_State;
 
       Stats : Stat_Array := (others => 0);
@@ -346,6 +349,7 @@ package body Traces_Sources is
          return;
       end if;
 
+      --  Iterate over each lines of the file.
       for I in Integer range First .. Last (File) loop
          Ls := File.Table (I).State;
          Ls := State_Map (DO178B_Level, Ls);
@@ -356,6 +360,7 @@ package body Traces_Sources is
          end if;
 
          if Flag_Show_Asm then
+            --  Iterate over each insns block for the source line.
             Info := Get_First (File.Table (I).Lines);
             while Info /= null loop
                declare
@@ -365,7 +370,15 @@ package body Traces_Sources is
                      Pretty_Print_Label (Pp, Label);
                   end if;
                end;
-               Disp_Assembly_Lines (Info, Base, Disassemble_Cb'Access);
+               Sec_Info := Info.Parent;
+               while Sec_Info /= null
+                 and then Sec_Info.Kind /= Section_Addresses
+               loop
+                  Sec_Info := Sec_Info.Parent;
+               end loop;
+               Disp_Assembly_Lines
+                 (Sec_Info.Section_Content (Info.First .. Info.Last),
+                  Base, Disassemble_Cb'Access);
                Info := Info.Line_Next;
             end loop;
          end if;

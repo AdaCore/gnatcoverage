@@ -49,15 +49,11 @@ package body Traces_Elf is
    Lines_Set : Addresses_Containers.Set;
 
 
-   procedure Textio_Disassemble_Cb (Addr : Pc_Type;
-                                    State : Trace_State;
-                                    Insn : Binary_Content);
-
    type Disassemble_Cb is access procedure (Addr : Pc_Type;
                                             State : Trace_State;
                                             Insn : Binary_Content);
 
-   procedure Disassemble (First, Last : Pc_Type;
+   procedure Disassemble (Insns : Binary_Content;
                           State : Trace_State;
                           Cb : Disassemble_Cb);
 
@@ -66,15 +62,15 @@ package body Traces_Elf is
       Put (Hex_Image (El.First) & '-' & Hex_Image (El.Last));
       case El.Kind is
          when Section_Addresses =>
-            Put_Line (" code in section " & El.Section_Name.all);
+            Put_Line (" section " & El.Section_Name.all);
          when Compile_Unit_Addresses =>
-            Put_Line (" code from " & El.Compile_Unit_Filename.all);
+            Put_Line (" compile unit from " & El.Compile_Unit_Filename.all);
          when Subprogram_Addresses =>
-            Put_Line (" code for " & El.Subprogram_Name.all);
+            Put_Line (" subprogram " & El.Subprogram_Name.all);
          when Symbol_Addresses =>
             Put_Line (" symbol for " & El.Symbol_Name.all);
          when Line_Addresses =>
-            Put_Line (' ' & El.Line_Filename.all & ':'
+            Put_Line (" line " & El.Line_Filename.all & ':'
                       & Natural'Image (El.Line_Number));
       end case;
       if False and El.Parent /= null then
@@ -496,6 +492,8 @@ package body Traces_Elf is
       Unchecked_Deallocation (Relocs);
    end Apply_Relocations;
 
+   function Get_Section_By_Addr (Pc : Pc_Type) return Addresses_Info_Acc;
+
    --  Extract lang, subprogram name and stmt_list (offset in .debug_line).
    procedure Build_Debug_Compile_Units
    is
@@ -538,6 +536,7 @@ package body Traces_Elf is
 
       Current_Cu : Addresses_Info_Acc;
       Current_Subprg : Addresses_Info_Acc;
+      Addr : Pc_Type;
    begin
       --  Return now if already loaded.
       if not Addresses_Containers.Is_Empty (Compile_Units_Set) then
@@ -655,11 +654,12 @@ package body Traces_Elf is
                   else
                      Cu_Base_Pc := At_Low_Pc;
                   end if;
+                  Addr := Exe_Text_Start + Pc_Type (At_Low_Pc);
                   Current_Cu := new Addresses_Info'
                     (Kind => Compile_Unit_Addresses,
-                     First => Exe_Text_Start + Pc_Type ( At_Low_Pc),
+                     First => Addr,
                      Last => Exe_Text_Start + Pc_Type (At_High_Pc - 1),
-                     Parent => null,
+                     Parent => Get_Section_By_Addr (Addr),
                      Compile_Unit_Filename =>
                        new String'(Read_String (At_Name)),
                      Stmt_List => Unsigned_32 (At_Stmt_List));
@@ -702,7 +702,7 @@ package body Traces_Elf is
       Element_Type => String_Acc,
       "=" => "=");
 
-   procedure Build_Debug_Line (CU_Offset : Unsigned_32)
+   procedure Read_Debug_Line (CU_Offset : Unsigned_32)
    is
       use Dwarf;
       Base : Address;
@@ -750,6 +750,7 @@ package body Traces_Elf is
 
       procedure New_Raw is
       begin
+         --  Note: Last and Parent are set by Build_Debug_Lines.
          Insert (Lines_Set,
                  new Addresses_Info'
                  (Kind => Line_Addresses,
@@ -902,7 +903,7 @@ package body Traces_Elf is
          end if;
       end loop;
       Unchecked_Deallocation (Opc_Length);
-   end Build_Debug_Line;
+   end Read_Debug_Line;
 
    procedure Build_Debug_Lines
    is
@@ -927,7 +928,7 @@ package body Traces_Elf is
       Cur_Cu := First (Compile_Units_Set);
       while Cur_Cu /= No_Element loop
          Cu := Element (Cur_Cu);
-         Build_Debug_Line (Cu.Stmt_List);
+         Read_Debug_Line (Cu.Stmt_List);
          Next (Cur_Cu);
       end loop;
 
@@ -1032,6 +1033,8 @@ package body Traces_Elf is
       end loop;
    end Build_Sections;
 
+   procedure Load_Section_Content (Sec : Addresses_Info_Acc);
+
    procedure Disp_Sections_Coverage (Base : Traces_Base)
    is
       use Addresses_Containers;
@@ -1066,6 +1069,7 @@ package body Traces_Elf is
       end if;
       while Cur /= No_Element loop
          Sec := Element (Cur);
+         Load_Section_Content (Sec);
 
          --  Display section name.
          Set_Color (Black);
@@ -1170,7 +1174,8 @@ package body Traces_Elf is
             end if;
 
             Set_Color (State);
-            Disassemble (Addr, Last_Addr, State, Textio_Disassemble_Cb'Access);
+            Disassemble (Sec.Section_Content (Addr .. Last_Addr),
+                         State, Textio_Disassemble_Cb'Access);
 
             Addr := Last_Addr;
             exit when Addr = Pc_Type'Last;
@@ -1532,13 +1537,14 @@ package body Traces_Elf is
 
    Last_Section : Addresses_Info_Acc;
 
-   function Get_Section_Addr (Pc : Pc_Type) return Address
+   function Get_Section_By_Addr (Pc : Pc_Type) return Addresses_Info_Acc
    is
    begin
       --  Search if not in the last section.
       if Last_Section = null
         or else (Pc not in Last_Section.First .. Last_Section.Last)
       then
+         --  FIXME: use container primitives.
          declare
             use Addresses_Containers;
             Cur : Cursor;
@@ -1557,17 +1563,23 @@ package body Traces_Elf is
                end if;
                Next (Cur);
             end loop;
-            if Last_Section = null then
-               return Null_Address;
-            end if;
-            if Last_Section.Section_Content = null then
-               Load_Section_Content (Last_Section);
-            end if;
          end;
       end if;
 
-      return Last_Section.Section_Content (Pc)'Address;
-   end Get_Section_Addr;
+      return Last_Section;
+   end Get_Section_By_Addr;
+
+--     function Get_Section_Addr (Pc : Pc_Type) return Address
+--     is
+--        Res : Addresses_Info_Acc;
+--     begin
+--        Res := Get_Section_By_Addr (Pc);
+--        if Res /= null then
+--           return Res.Section_Content (Pc)'Address;
+--        else
+--           return Null_Address;
+--        end if;
+--     end Get_Section_Addr;
 
    Get_Symbol_Sym : constant Addresses_Info_Acc :=
      new Addresses_Info (Symbol_Addresses);
@@ -1658,7 +1670,7 @@ package body Traces_Elf is
       New_Line;
    end Textio_Disassemble_Cb;
 
-   procedure Disassemble (First, Last : Pc_Type;
+   procedure Disassemble (Insns : Binary_Content;
                           State : Trace_State;
                           Cb : Disassemble_Cb)
    is
@@ -1671,9 +1683,9 @@ package body Traces_Elf is
       Line : String (1 .. 128);
       Insn_Len : Natural := 0;
    begin
-      Pc := First;
-      while Pc < Last loop
-         Addr := Get_Section_Addr (Pc);
+      Pc := Insns'First;
+      while Pc < Insns'Last loop
+         Addr := Insns (Pc)'Address;
          Insn_Len := Disa_Ppc.Get_Insn_Length (Addr);
          Disa_Ppc.Disassemble_Insn
            (Addr, Pc, Line, Line_Pos, Insn_Len, Get_Symbol'Access);
@@ -1705,7 +1717,7 @@ package body Traces_Elf is
    end Get_Label;
 
    procedure Disp_Assembly_Lines
-     (Info : Addresses_Info_Acc;
+     (Insns : Binary_Content;
       Base : Traces_Base;
       Cb : access procedure (Addr : Pc_Type;
                              State : Trace_State;
@@ -1718,31 +1730,31 @@ package body Traces_Elf is
       State : Trace_State;
    begin
       --Disp_Address (Info);
-      Init (Base, It, Info.First);
+      Init (Base, It, Insns'First);
       Get_Next_Trace (E, It);
-      Addr := Info.First;
+      Addr := Insns'First;
 
       loop
-         Next_Addr := Info.Last;
+         Next_Addr := Insns'Last;
 
          --  Find matching trace.
-         while Addr > E.Last loop
+         while E /= Bad_Trace and then Addr > E.Last loop
             Get_Next_Trace (E, It);
          end loop;
          --Dump_Entry (E);
-         if Addr >= E.First and Addr <= E.Last then
+         if E /= Bad_Trace and then (Addr >= E.First and Addr <= E.Last) then
             State := E.State;
             if E.Last < Next_Addr then
                Next_Addr := E.Last;
             end if;
          else
             State := Not_Covered;
-            if E.First < Next_Addr then
+            if E /= Bad_Trace and then E.First < Next_Addr then
                Next_Addr := E.First - 1;
             end if;
          end if;
-         Disassemble (Addr, Next_Addr, State, Cb);
-         exit when Next_Addr >= Info.Last;
+         Disassemble (Insns (Addr .. Next_Addr), State, Cb);
+         exit when Next_Addr >= Insns'Last;
          Addr := Next_Addr + 1;
       end loop;
    end Disp_Assembly_Lines;

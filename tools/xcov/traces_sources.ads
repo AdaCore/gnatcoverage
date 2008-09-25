@@ -123,9 +123,6 @@ package Traces_Sources is
                              Line : Natural;
                              State : Traces.Trace_State);
 
-   --  If True, Disp_Line_State will also display assembly code.
-   Flag_Show_Asm : Boolean := False;
-
    -- If True, Disp_Line_State will also display info for files that are not
    -- found.
    Flag_Show_Missing : Boolean := False;
