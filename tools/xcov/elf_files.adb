@@ -115,6 +115,11 @@ package body Elf_Files is
       return File.Status;
    end Get_Status;
 
+   function Get_Filename (File : Elf_File) return String is
+   begin
+      return File.Filename.all;
+   end Get_Filename;
+
    procedure Load_Shdr (File : in out Elf_File)
    is
       use GNAT.OS_Lib;

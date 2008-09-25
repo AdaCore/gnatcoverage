@@ -20,22 +20,19 @@ with Ada.Unchecked_Deallocation;
 with Ada.Containers.Ordered_Maps;
 with Elf_Common; use Elf_Common;
 with Elf_Arch; use Elf_Arch;
-with Elf_Files; use Elf_Files;
-with Traces_Elf; use Traces_Elf;
 with Traces; use Traces;
 with Interfaces; use Interfaces;
 with System.Storage_Elements; use System.Storage_Elements;
 with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Dwarf_Handling; use Dwarf_Handling;
-with Strings; use Strings;
 
 package body Traces_Names is
 
    type Subprogram_Name is record
       Filename : String_Acc;
-      --Insns : Binary_Content_Acc;
-      --Traces : Xxx;
+      Insns : Binary_Content_Acc;
+      Traces : Traces_Base_Acc;
    end record;
 
    function Equal (L, R : Subprogram_Name) return Boolean
@@ -212,7 +209,9 @@ package body Traces_Names is
                   if not Exclude then
                      if not Has_Element (Cur_Name) then
                         Names.Insert (Sym.Symbol_Name,
-                                      Subprogram_Name'(Filename => Filename));
+                                      Subprogram_Name'(Filename => Filename,
+                                                       Insns => null,
+                                                       Traces => null));
                         Sym.Symbol_Name := null;
                      else
                         if Element (Cur_Name).Filename = Filename then
@@ -275,4 +274,67 @@ package body Traces_Names is
          Next (Cur);
       end loop;
    end Disp_All_Routines;
+
+   function Add_Traces (Routine_Name : String_Acc;
+                        Content : Binary_Content) return Traces_Base_Acc
+   is
+      use Names_Maps;
+      Cur : Cursor;
+
+      procedure Update (Key : String_Acc; El : in out Subprogram_Name)
+      is
+         pragma Unreferenced (Key);
+      begin
+         if El.Insns = null and Content'Length > 0 then
+            El.Insns := new Binary_Content'(Content);
+         else
+            --  Check!
+            null;
+         end if;
+         if El.Traces = null then
+            El.Traces := new Traces_Base;
+         end if;
+      end Update;
+   begin
+      Cur := Names.Find (Routine_Name);
+      if not Has_Element (Cur) then
+         return null;
+      end if;
+      Names.Update_Element (Cur, Update'Access);
+      return Element (Cur).Traces;
+   end Add_Traces;
+
+   procedure Dump_Routines_Traces
+   is
+      use Names_Maps;
+      Cur : Cursor;
+      E : Subprogram_Name;
+
+      procedure Update (Key : String_Acc; El : in out Subprogram_Name)
+      is
+         pragma Unreferenced (Key);
+      begin
+         if El.Insns /= null and then El.Traces /= null then
+            Set_Trace_State (El.Traces.all, El.Insns.all);
+         end if;
+      end Update;
+
+   begin
+      Cur := Names.First;
+      while Has_Element (Cur) loop
+         Names.Update_Element (Cur, Update'Access);
+         E := Element (Cur);
+         Put (Key (Cur).all);
+         if E.Insns /= null then
+            Put (":  " & Hex_Image (E.Insns'First)
+                   & '-' & Hex_Image (E.Insns'Last));
+         end if;
+         New_Line;
+         if E.Traces /= null then
+            Dump_Traces (E.Traces.all);
+         end if;
+         Next (Cur);
+      end loop;
+   end Dump_Routines_Traces;
+
 end Traces_Names;

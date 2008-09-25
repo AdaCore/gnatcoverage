@@ -32,6 +32,7 @@ with Traces_Sources;
 with Disa_Ppc;
 with Display;
 with Elf_Files; use Elf_Files;
+with Traces_Names;
 
 package body Traces_Elf is
    Empty_String_Acc : constant String_Acc := new String'("");
@@ -1025,7 +1026,8 @@ package body Traces_Elf is
                      Parent => null,
                      Section_Name =>
                        new String'(Get_Shdr_Name (Exe_File, Idx)),
-                     Section_Index => Idx));
+                     Section_Index => Idx,
+                     Section_Content => null));
          end if;
       end loop;
    end Build_Sections;
@@ -1184,6 +1186,15 @@ package body Traces_Elf is
       Set_Color (Black);
    end Disp_Sections_Coverage;
 
+   procedure Load_Section_Content (Sec : Addresses_Info_Acc) is
+   begin
+      if Sec.Section_Content = null then
+         Sec.Section_Content := new Binary_Content (Sec.First .. Sec.Last);
+         Load_Section (Exe_File, Sec.Section_Index,
+                       Sec.Section_Content (Sec.First)'Address);
+      end if;
+   end Load_Section_Content;
+
    procedure Disp_Subprograms_Coverage (Base : Traces_Base)
    is
       use Addresses_Containers;
@@ -1191,65 +1202,66 @@ package body Traces_Elf is
       use Traces_Sources;
       It : Entry_Iterator;
       Trace : Trace_Entry;
-      Addr : Pc_Type;
-      Next_Addr : Pc_Type;
+      First, Last : Pc_Type;
 
       Cur : Cursor;
       Sym : Addresses_Info_Acc;
+      Sec : Addresses_Info_Acc;
 
-      State : Line_State;
+      Subprogram_Base : Traces_Base_Acc;
    begin
       if Is_Empty (Symbols_Set) then
          return;
       end if;
-      Cur := First (Symbols_Set);
+      Cur := Symbols_Set.First;
       while Cur /= No_Element loop
          Sym := Element (Cur);
 
-         Addr := Sym.First;
-         Init (Base, It, Addr);
-         Get_Next_Trace (Trace, It);
+         Sec := Sym.Parent;
+         Load_Section_Content (Sec);
 
-         if Trace /= Bad_Trace and then Trace.Last < Sym.First then
-            State := Not_Covered;
-         else
-            State := No_Code;
+         declare
+            subtype Rebased_Type is Binary_Content (0 .. Sym.Last - Sym.First);
+         begin
+            Subprogram_Base := Traces_Names.Add_Traces
+              (Sym.Symbol_Name,
+               Rebased_Type (Sec.Section_Content (Sym.First .. Sym.Last)));
+         exception
+            when others =>
+               Disp_Address (Sym);
+               raise;
+         end;
 
-            --  Iterate on addresses range for this section.
-            loop
-               State := Update_Table (State, Trace.State);
-               Next_Addr := Trace.Last + 1;
-               exit when Next_Addr > Sym.Last;
+         if Subprogram_Base /= null then
+            Init (Base, It, Sym.First);
+            Get_Next_Trace (Trace, It);
+
+            if False then
+               Put (Hex_Image (Sym.First));
+               Put ('-');
+               Put (Hex_Image (Sym.Last));
+               Put (": ");
+               Put (Sym.Symbol_Name.all);
+               New_Line;
+            end if;
+
+            while Trace /= Bad_Trace loop
+               exit when Trace.First > Sym.Last;
+               if Trace.Last >= Sym.First then
+                  if Trace.First > Sym.First then
+                     First := Trace.First - Sym.First;
+                  else
+                     First := 0;
+                  end if;
+                  Last := Trace.Last - Sym.First;
+                  if Last > Sym.Last - Sym.First then
+                     Last := Sym.Last - Sym.First;
+                  end if;
+                  Add_Entry (Subprogram_Base.all, First, Last, Trace.Op);
+               end if;
 
                Get_Next_Trace (Trace, It);
-
-               if Trace = Bad_Trace or else Trace.First /= Next_Addr then
-                  State := Partially_Covered;
-                  exit;
-               end if;
-               Addr := Next_Addr;
             end loop;
-         end if;
-
-         Put (Hex_Image (Sym.First));
-         Put ('-');
-         Put (Hex_Image (Sym.Last));
-         Put (' ');
-         Put (State_Char (State));
-         Put (": ");
-         Put (Sym.Symbol_Name.all);
-         New_Line;
-
-         if Flag_Show_Asm then
-            declare
-               Label : constant String := Get_Label (Sym);
-            begin
-               if Label'Length > 0 then
-                  Put_Line (Label);
-               end if;
-            end;
-            Disp_Assembly_Lines
-              (Sym, Base, Textio_Disassemble_Cb'Access);
          end if;
 
          Next (Cur);
@@ -1331,99 +1343,101 @@ package body Traces_Elf is
       end loop;
    end Build_Source_Lines;
 
+   procedure Set_Trace_State (Base : in out Traces_Base;
+                              Section : Binary_Content)
+   is
+      use Addresses_Containers;
+
+      It : Entry_Iterator;
+      Trace : Trace_Entry;
+      Addr : Pc_Type;
+   begin
+      Addr := Section'First;
+      Init (Base, It, Addr);
+      Get_Next_Trace (Trace, It);
+
+      while Trace /= Bad_Trace loop
+         exit when Addr > Section'Last;
+         exit when Trace.First > Section'Last;
+
+         case Exe_Machine is
+            when EM_PPC =>
+               declare
+                  Insn : Binary_Content (0 .. 3);
+                  Op : constant Unsigned_8 := Trace.Op and 3;
+                  Trace_Len : constant Pc_Type :=
+                    Trace.Last - Trace.First + 1;
+
+                  procedure Update_Or_Split (Next_State : Trace_State)
+                  is
+                  begin
+                     if Trace_Len = 4 then
+                        Update_State (Base, It, Next_State);
+                     else
+                        Split_Trace (Base, It, Trace.Last - 4,
+                                     Covered, Next_State);
+                     end if;
+                  end Update_Or_Split;
+               begin
+                  --  Instructions length is 4.
+                  if Trace_Len < 4 then
+                     raise Program_Error;
+                  end if;
+                  case Op is
+                     when 0 =>
+                        Update_State (Base, It, Covered);
+                     when 1 =>
+                        for I in Unsigned_32 range 0 .. 3 loop
+                           Insn (I) := Section (Trace.Last - 3 + I);
+                        end loop;
+                        if (Insn(0) and 16#Fc#) = 16#48# then
+                           --  Opc = 18: b, ba, bl and bla
+                           Update_State (Base, It, Covered);
+                        elsif ((Insn(0) and 16#Fe#) = 16#42#
+                                 or else (Insn(0) and 16#Fe#) = 16#4e#)
+                          and then (Insn(1) and 16#80#) = 16#80#
+                        then
+                           --  Opc = 16 (bcx) or Opc = 19 (bcctrx)
+                           --   BO = 1x1xx
+                           --  bc/bcctr always
+                           Update_State (Base, It, Covered);
+                        else
+                           Update_Or_Split (Branch_Taken);
+                        end if;
+                     when 2 =>
+                        Update_Or_Split (Fallthrough_Taken);
+                     when 3 =>
+                        Update_Or_Split (Both_Taken);
+                     when others =>
+                        raise Program_Error;
+                  end case;
+               end;
+            when others =>
+               exit;
+         end case;
+
+         Addr := Trace.Last;
+         exit when Addr = Pc_Type'Last;
+         Addr := Addr + 1;
+         Get_Next_Trace (Trace, It);
+      end loop;
+   end Set_Trace_State;
+
    procedure Set_Trace_State (Base : in out Traces_Base)
    is
       use Addresses_Containers;
       Cur : Cursor;
       Sec : Addresses_Info_Acc;
 
-      Section_Length : Elf_Size;
-      Section : Binary_Content_Acc;
-
-      It : Entry_Iterator;
-      Trace : Trace_Entry;
-      Addr : Pc_Type;
    begin
       Cur := First (Sections_Set);
       while Cur /= No_Element loop
          Sec := Element (Cur);
 
-         Section_Length := Get_Section_Length (Exe_File, Sec.Section_Index);
-         Section := new Binary_Content (0 .. Section_Length - 1);
-         Load_Section (Exe_File, Sec.Section_Index, Section (0)'Address);
+         Load_Section_Content (Sec);
 
-         Addr := Sec.First;
-         Init (Base, It, Addr);
-         Get_Next_Trace (Trace, It);
-
-         while Trace /= Bad_Trace loop
-            exit when Addr > Sec.Last;
-            exit when Trace.First > Sec.Last;
-
-            case Exe_Machine is
-               when EM_PPC =>
-                  declare
-                     Insn : Binary_Content (0 .. 3);
-                     Op : constant Unsigned_8 := Trace.Op and 3;
-                     Trace_Len : constant Pc_Type :=
-                       Trace.Last - Trace.First + 1;
-
-                     procedure Update_Or_Split (Next_State : Trace_State)
-                     is
-                     begin
-                        if Trace_Len = 4 then
-                           Update_State (Base, It, Next_State);
-                        else
-                           Split_Trace (Base, It, Trace.Last - 4,
-                                        Covered, Next_State);
-                        end if;
-                     end Update_Or_Split;
-                  begin
-                     --  Instructions length is 4.
-                     if Trace_Len < 4 then
-                        raise Program_Error;
-                     end if;
-                     case Op is
-                        when 0 =>
-                           Update_State (Base, It, Covered);
-                        when 1 =>
-                           for I in Unsigned_32 range 0 .. 3 loop
-                              Insn (I) :=
-                                Section (Trace.Last - 3 - Sec.First + I);
-                           end loop;
-                           if (Insn(0) and 16#Fc#) = 16#48# then
-                              --  Opc = 18: b, ba, bl and bla
-                              Update_State (Base, It, Covered);
-                           elsif ((Insn(0) and 16#Fe#) = 16#42#
-                                  or else (Insn(0) and 16#Fe#) = 16#4e#)
-                             and then (Insn(1) and 16#80#) = 16#80#
-                           then
-                              --  Opc = 16 (bcx) or Opc = 19 (bcctrx)
-                              --   BO = 1x1xx
-                              --  bc/bcctr always
-                              Update_State (Base, It, Covered);
-                           else
-                              Update_Or_Split (Branch_Taken);
-                           end if;
-                        when 2 =>
-                           Update_Or_Split (Fallthrough_Taken);
-                        when 3 =>
-                           Update_Or_Split (Both_Taken);
-                        when others =>
-                           raise Program_Error;
-                     end case;
-                  end;
-               when others =>
-                  exit;
-            end case;
-
-            Addr := Trace.Last;
-            exit when Addr = Pc_Type'Last;
-            Addr := Addr + 1;
-            Get_Next_Trace (Trace, It);
-         end loop;
-
-         Unchecked_Deallocation (Section);
+         Set_Trace_State (Base, Sec.Section_Content.all);
+         -- Unchecked_Deallocation (Section);
 
          Next (Cur);
       end loop;
@@ -1432,6 +1446,11 @@ package body Traces_Elf is
    procedure Build_Symbols
    is
       use Addresses_Containers;
+
+      type Addr_Info_Acc_Arr is array (0 .. Get_Shdr_Num (Exe_File))
+        of Addresses_Info_Acc;
+      Sections_Info : Addr_Info_Acc_Arr := (others => null);
+      Sec : Addresses_Info_Acc;
 
       Symtab_Idx : Elf_Half;
       Symtab_Shdr : Elf_Shdr_Acc;
@@ -1447,6 +1466,22 @@ package body Traces_Elf is
       Cur : Cursor;
       Ok : Boolean;
    begin
+      --  Build_Sections must be called before.
+      if Sections_Set.Is_Empty then
+         raise Program_Error;
+      end if;
+
+      if not Symbols_Set.Is_Empty then
+         return;
+      end if;
+
+      Cur := First (Sections_Set);
+      while Has_Element (Cur) loop
+         Sec := Element (Cur);
+         Sections_Info (Sec.Section_Index) := Sec;
+         Next (Cur);
+      end loop;
+
       Symtab_Idx := Get_Shdr_By_Name (Exe_File, ".symtab");
       if Symtab_Idx = SHN_UNDEF then
          return;
@@ -1474,7 +1509,9 @@ package body Traces_Elf is
             Symtabs (0)'Address + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (Sym.St_Info);
          if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
-           and then Sym.St_Shndx /= SHN_UNDEF
+           and then Sym.St_Shndx in Sections_Info'Range
+           and then Sections_Info (Sym.St_Shndx) /= null
+           and then Sym.St_Size > 0
          then
             Addresses_Containers.Insert
               (Symbols_Set,
@@ -1483,7 +1520,7 @@ package body Traces_Elf is
                 First => Exe_Text_Start + Pc_Type (Sym.St_Value),
                 Last => Exe_Text_Start + Pc_Type (Sym.St_Value
                                                   + Sym.St_Size - 1),
-                Parent => null,
+                Parent => Sections_Info (Sym.St_Shndx),
                 Symbol_Name => new String'
                 (Read_String (Strtabs (Sym.St_Name)'Address))),
                Cur, Ok);
@@ -1493,10 +1530,6 @@ package body Traces_Elf is
       Unchecked_Deallocation (Symtabs);
    end Build_Symbols;
 
-   type  Section_Content_Type is array (Elf_Half range <>)
-     of Binary_Content_Acc;
-   type Section_Content_Acc is access Section_Content_Type;
-   Section_Content : Section_Content_Acc;
    Last_Section : Addresses_Info_Acc;
 
    function Get_Section_Addr (Pc : Pc_Type) return Address
@@ -1510,10 +1543,8 @@ package body Traces_Elf is
             use Addresses_Containers;
             Cur : Cursor;
             Sec : Addresses_Info_Acc;
-            Len : Elf_Size;
-            Idx : Elf_Half;
          begin
-            Idx := 0;
+            Last_Section := null;
             Cur := First (Sections_Set);
             loop
                if Cur = No_Element then
@@ -1522,25 +1553,20 @@ package body Traces_Elf is
                Sec := Element (Cur);
                if Pc in Sec.First .. Sec.Last then
                   Last_Section := Sec;
-                  Idx := Sec.Section_Index;
                   exit;
                end if;
                Next (Cur);
             end loop;
-            if Section_Content = null then
-               Section_Content :=
-                 new Section_Content_Type(0 .. Get_Shdr_Num (Exe_File) - 1);
+            if Last_Section = null then
+               return Null_Address;
             end if;
-            if Section_Content (Idx) = null then
-               Len := Get_Section_Length (Exe_File, Idx);
-               Section_Content (Idx) := new Binary_Content (0 .. Len - 1);
-               Load_Section (Exe_File, Idx, Section_Content (Idx)(0)'Address);
+            if Last_Section.Section_Content = null then
+               Load_Section_Content (Last_Section);
             end if;
          end;
       end if;
 
-      return Section_Content (Last_Section.Section_Index)
-        (Pc - Last_Section.First)'Address;
+      return Last_Section.Section_Content (Pc)'Address;
    end Get_Section_Addr;
 
    Get_Symbol_Sym : constant Addresses_Info_Acc :=
@@ -1720,4 +1746,10 @@ package body Traces_Elf is
          Addr := Next_Addr + 1;
       end loop;
    end Disp_Assembly_Lines;
+
+   procedure Build_Routine_Names is
+   begin
+      Traces_Names.Read_Routines_Name
+        (Exe_File, new String'(Get_Filename (Exe_File)), False);
+   end Build_Routine_Names;
 end Traces_Elf;

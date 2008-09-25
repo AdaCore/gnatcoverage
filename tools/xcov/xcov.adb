@@ -271,10 +271,12 @@ begin
             Build_Symbols;
             Disp_File_Summary;
          elsif Arg = "--function-coverage" then
+            Build_Routine_Names;
             Build_Sections;
-            Set_Trace_State (Base);
+            --Set_Trace_State (Base);
             Build_Symbols;
             Disp_Subprograms_Coverage (Base);
+            Traces_Names.Dump_Routines_Traces;
          else
             Error ("unknown option: " & Arg);
             return;

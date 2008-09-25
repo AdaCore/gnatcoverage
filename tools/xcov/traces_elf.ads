@@ -26,6 +26,13 @@ with Ada.Containers.Ordered_Sets;
 with Strings; use Strings;
 
 package Traces_Elf is
+   type Binary_Content is array (Elf_Arch.Elf_Size range <>)
+     of Interfaces.Unsigned_8;
+
+   type Binary_Content_Acc is access Binary_Content;
+   procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
+     (Binary_Content, Binary_Content_Acc);
+
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
@@ -42,6 +49,8 @@ package Traces_Elf is
 
    --  Using the executable, correctly set the state of every traces.
    procedure Set_Trace_State (Base : in out Traces_Base);
+   procedure Set_Trace_State (Base : in out Traces_Base;
+                              Section : Binary_Content);
 
    --  Read dwarfs info to build compile_units/subprograms lists.
    procedure Build_Debug_Compile_Units;
@@ -56,6 +65,8 @@ package Traces_Elf is
    --  Also update lines state from traces state.
    procedure Build_Source_Lines (Base : in out Traces_Base);
 
+   procedure Build_Routine_Names;
+
    --  Display lists.
    procedure Disp_Sections_Addresses;
    procedure Disp_Compile_Units_Addresses;
@@ -69,14 +80,6 @@ package Traces_Elf is
    --  Display El.
    --  Mostly a debug procedure.
    procedure Disp_Address (El : Addresses_Info_Acc);
-
-   type Binary_Content is array (Elf_Arch.Elf_Size range <>)
-     of Interfaces.Unsigned_8;
-
-   type Binary_Content_Acc is access Binary_Content;
-   procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-     (Binary_Content, Binary_Content_Acc);
-
 
    --  Return the symbol for Addr followed by a colon (':').
    --  Return an empty string if none.
@@ -116,6 +119,7 @@ package Traces_Elf is
          when Section_Addresses =>
             Section_Name : String_Acc;
             Section_Index : Elf_Common.Elf_Half;
+            Section_Content : Binary_Content_Acc;
          when Compile_Unit_Addresses =>
             Compile_Unit_Filename : String_Acc;
             Stmt_List : Interfaces.Unsigned_32;

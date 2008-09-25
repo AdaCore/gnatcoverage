@@ -50,6 +50,8 @@ package Elf_Files is
    --  Return status of previous operation.
    function Get_Status (File : Elf_File) return Elf_File_Status;
 
+   function Get_Filename (File : Elf_File) return String;
+
    --  Get ELF header.
    type Elf_Ehdr_Acc is access constant Elf_Ehdr;
 
