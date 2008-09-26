@@ -193,7 +193,9 @@ package body Traces_Sources is
       end loop;
       Total := Total - Stats (No_Code);
 
-      return (Nbr => Stats (Covered_No_Branch), Total => Total);
+      return (Nbr => Stats (Covered_No_Branch)
+                + Stats (Branch_Covered),
+              Total => Total);
    end Get_Pourcentage;
 
    type Source_Rebase_Entry;
