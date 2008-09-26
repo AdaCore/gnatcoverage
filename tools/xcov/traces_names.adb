@@ -362,7 +362,7 @@ package body Traces_Names is
          end if;
          New_Line;
          if E.Traces /= null then
-            Dump_Traces (E.Traces.all);
+            -- Dump_Traces (E.Traces.all);
             if Flag_Show_Asm then
                Disp_Assembly_Lines
                  (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access);
