@@ -191,6 +191,51 @@ package body Traces_Sources.Html is
       Close (Pp.Index_File);
    end Pretty_Print_Finish;
 
+   procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array)
+   is
+      use Ada.Integer_Text_IO;
+      P : constant Pourcentage := Get_Pourcentage (Stats);
+      Pc : Natural;
+   begin
+      -- Second column: bar
+      Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
+      New_Line (F);
+      Put (F, "        <table border=""0"" cellspacing=""0"">"
+            & "<tr height=""10"">");
+      if P.Total = 0 or P.Nbr = 0 then
+         Put (F, "<td class=""SumBarNocover"" width=""100""></td>");
+      elsif P.Nbr = P.Total then
+         Put (F, "<td class=""SumBarCover"" width=""100""></td>");
+      else
+         Pc := P.Nbr * 100 / P.Total;
+         Put (F, "<td class=""SumBarCover"" width=""");
+         Put (F, Pc, 0);
+         Put (F, """></td>");
+         Put (F, "<td class=""SumBarNoCover"" width=""");
+         Put (F, 100 - Pc, 0);
+         Put (F, """></td>");
+      end if;
+      Put_Line (F, "</tr></table>");
+      Put_Line (F, "      </td>");
+
+      --  Third column: pourcentage
+      Put (F, "      <td class=""SumPourcent"" width=""10%"">");
+      if P.Total = 0 then
+         Put (F, "no code");
+      else
+         Put (F, P.Nbr * 100 / P.Total, 0);
+         Put (F, " %");
+      end if;
+      Put_Line (F, "</td>");
+
+      --  Fourth column: lines figure
+      Put (F, "      <td class=""SumLineCov"" width=""15%"">");
+      Put (F, P.Nbr, 0);
+      Put (F, " / ");
+      Put (F, P.Total, 0);
+      Put_Line (F, " lines</td>");
+   end Print_Coverage_Stats;
+
    procedure Pretty_Print_File (Pp : in out Html_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
@@ -204,8 +249,6 @@ package body Traces_Sources.Html is
         Simple_Name (Source_Filename);
 
       Output_Filename : constant String := Simple_Source_Filename & ".html";
-      P : constant Pourcentage := Get_Pourcentage (Stats);
-      Pc : Natural;
 
       procedure Pi (S : String) is
       begin
@@ -231,42 +274,7 @@ package body Traces_Sources.Html is
       end if;
       Pi ("</td>"); Ni;
 
-      -- Second column: bar
-      Pi ("      <td class=""SumBar"" align=""center"" width=""15%"">"); Ni;
-      Pi ("        <table border=""0"" cellspacing=""0"">"
-            & "<tr height=""10"">");
-      if P.Total = 0 or P.Nbr = 0 then
-         Pi ("<td class=""SumBarNocover"" width=""100""></td>");
-      elsif P.Nbr = P.Total then
-         Pi ("<td class=""SumBarCover"" width=""100""></td>");
-      else
-         Pc := P.Nbr * 100 / P.Total;
-         Pi ("<td class=""SumBarCover"" width=""");
-         Put (Pp.Index_File, Pc, 0);
-         Pi ("""></td>");
-         Pi ("<td class=""SumBarNoCover"" width=""");
-         Put (Pp.Index_File, 100 - Pc, 0);
-         Pi ("""></td>");
-      end if;
-      Pi ("</tr></table>"); Ni;
-      Pi ("      </td>"); Ni;
-
-      --  Third column: pourcentage
-      Pi ("      <td class=""SumPourcent"" width=""10%"">");
-      if P.Total = 0 then
-         Pi ("no code");
-      else
-         Put (Pp.Index_File, P.Nbr * 100 / P.Total, 0);
-         Pi (" %");
-      end if;
-      Pi ("</td>"); Ni;
-
-      --  Fourth column: lines figure
-      Pi ("      <td class=""SumLineCov"" width=""15%"">");
-      Put (Pp.Index_File, P.Nbr, 0);
-      Pi (" / ");
-      Put (Pp.Index_File, P.Total, 0);
-      Pi (" lines</td>"); Ni;
+      Print_Coverage_Stats (Pp.Index_File, Stats);
 
       Pi ("    </tr>"); Ni;
 
@@ -307,7 +315,9 @@ package body Traces_Sources.Html is
       Plh (Pp, "</head>");
       Plh (Pp, "<body>");
       Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
-      Plh (Pp, Get_Stat_String (Stats));
+      Plh (Pp, "<table class=""SumTable"" align=""Center""><tr>");
+      Print_Coverage_Stats (Pp.Html_File, Stats);
+      Plh (Pp, "</tr></table>");
 
       Plh (Pp, "<table width=""100%"" cellpadding=""0"" class=""SourceFile"">");
       --Plh (Pp, "<pre>");
