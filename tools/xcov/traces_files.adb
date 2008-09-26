@@ -104,7 +104,8 @@ package body Traces_Files is
 
    end Read_Trace_File_Header;
 
-   procedure Read_Trace_File (Base : in out Traces_Base; Filename : String)
+   procedure Read_Trace_File (Filename : String;
+                              Cb : access procedure (E : Trace_Entry))
    is
       Desc : Trace_File_Descriptor;
       E32 : Trace_Entry32;
@@ -164,25 +165,53 @@ package body Traces_Files is
                Put (Hex_Image (E32.Pc + Unsigned_32 (E32.Size) - 1));
                Put (": ");
                Put (Hex_Image (E32.Op));
-                  Put (' ');
-                  Dump_Op (E32.Op);
+               Put (' ');
+               Dump_Op (E32.Op);
                New_Line;
             end if;
          end if;
 
          --  Add the entry in the AVL.
-         Add_Entry (Base,
-		    First => E32.Pc,
-                    Last => E32.Pc + Pc_Type (E32.Size) - 1,
-                    Op => E32.Op);
+         Cb.all (Trace_Entry'(First => E32.Pc,
+                              Last => E32.Pc + Pc_Type (E32.Size) - 1,
+                              Op => E32.Op,
+                              State => Unknown));
       end loop;
 
       Close (Desc.Fd);
+   end Read_Trace_File;
+
+   procedure Read_Trace_File (Base : in out Traces_Base; Filename : String)
+   is
+      procedure Cb (E : Trace_Entry) is
+      begin
+         Add_Entry (Base,
+                    First => E.First,
+                    Last => E.Last,
+                    Op => E.Op);
+      end Cb;
+   begin
+      Read_Trace_File (Filename, Cb'Access);
 
       Merge_Entries (Base);
-
-      --  Dump_Tree;
    end Read_Trace_File;
+
+   procedure Dump_Trace_File (Filename : String)
+   is
+      procedure Cb (E : Trace_Entry) is
+      begin
+         Put (Hex_Image (E.First));
+         Put ('-');
+         Put (Hex_Image (E.Last));
+         Put (": ");
+         Put (Hex_Image (E.Op));
+         Put (' ');
+         Dump_Op (E.Op);
+         New_Line;
+      end Cb;
+   begin
+      Read_Trace_File (Filename, Cb'Access);
+   end Dump_Trace_File;
 
    procedure Write_Trace_File (Base : Traces_Base; Filename : String)
    is
@@ -244,7 +273,7 @@ package body Traces_Files is
             Close (Fd);
             raise Write_Error with "failed to write entry";
          end if;
-	 
+
          Get_Next_Trace (E, Cur);
       end loop;
 

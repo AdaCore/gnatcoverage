@@ -32,6 +32,9 @@ package Traces_Files is
    --  Always generate a consolidated file.
    procedure Write_Trace_File (Base : Traces_Base; Filename : String);
 
+   --  Raw dump of a trace file.
+   procedure Dump_Trace_File (Filename : String);
+
    --  Add coverage annotations to the objdump disassembly output.
    --  Read objdump output from standard input.
    --procedure Annotate_Objdump;

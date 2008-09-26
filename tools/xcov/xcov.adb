@@ -114,6 +114,15 @@ begin
          end loop;
          Traces_Names.Disp_All_Routines;
          return;
+      elsif Cmd = "--dump-trace-file" then
+         if Arg_Index = Arg_Count then
+            Put_Line ("missing FILENAME to --dump-trace-file");
+            return;
+         end if;
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Dump_Trace_File (Argument (I));
+         end loop;
+         return;
       end if;
    end;
 
