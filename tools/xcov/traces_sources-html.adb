@@ -431,7 +431,7 @@ package body Traces_Sources.Html is
          Wrh (PP, " ");
       end loop;
       Wrh (PP, "  ");
-      Wrh (PP, Disassemble (Insn, Pc));
+      Wrh (PP, To_Xml_String (Disassemble (Insn, Pc)));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "      </tr>");
    end Pretty_Print_Insn;
