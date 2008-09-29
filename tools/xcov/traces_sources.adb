@@ -29,7 +29,7 @@ package body Traces_Sources is
    --  Contains all the files.
    Filenames : Filenames_Maps.Map;
 
-   function Find_File (Filename : String_Acc) return Filenames_Maps.Cursor
+   function Find_File (Filename : String_Acc) return Source_File
    is
       use Filenames_Maps;
       Res : Cursor;
@@ -44,7 +44,7 @@ package body Traces_Sources is
             raise Program_Error;
          end if;
       end if;
-      return Res;
+      return Source_File'(Cur => Res);
    end Find_File;
 
    procedure Append (Chain : in out Addresses_Line_Chain;
@@ -64,7 +64,7 @@ package body Traces_Sources is
       return Chain.First;
    end Get_First;
 
-   procedure Add_Line_State (File : Filenames_Maps.Cursor;
+   procedure Add_Line_State (File : Source_File;
                              Line : Natural;
                              State : Traces.Trace_State)
    is
@@ -90,10 +90,10 @@ package body Traces_Sources is
          Element.Table (Line).State := Ls;
       end Process;
    begin
-      Filenames_Maps.Update_Element (Filenames, File, Process'Access);
+      Filenames_Maps.Update_Element (Filenames, File.Cur, Process'Access);
    end Add_Line_State;
 
-   procedure Add_Line (File : Filenames_Maps.Cursor;
+   procedure Add_Line (File : Source_File;
                        Line : Natural;
                        Info : Addresses_Info_Acc)
    is
@@ -113,26 +113,8 @@ package body Traces_Sources is
          Append (Element.Table (Line).Lines, Info);
       end Process;
    begin
-      Filenames_Maps.Update_Element (Filenames, File, Process'Access);
+      Filenames_Maps.Update_Element (Filenames, File.Cur, Process'Access);
    end Add_Line;
-
---     procedure Set_Color (State : Line_State)
---     is
---        use Display;
---     begin
---        case State is
---           when No_Code =>
---              Set_Color (Black);
---           when Not_Covered =>
---              Set_Color (Red);
---           when Partially_Covered =>
---              Set_Color (Magenta);
---           when Covered | Branch_Taken | Branch_Fallthrough =>
---              Set_Color (Cyan);
---           when Covered_No_Branch | Branch_Covered =>
---              Set_Color (Green);
---        end case;
---     end Set_Color;
 
    type State_Map_Array is
      array (DO178B_Level_Type, Line_State) of Line_State;
@@ -337,7 +319,7 @@ package body Traces_Sources is
       end if;
 
       if not Ok then
-         Put_Line (Standard_Error, "can't open: " & Filename);
+         Put_Line (Standard_Error, "warning: can't open " & Filename);
          Has_Source := False;
       else
          Has_Source := True;

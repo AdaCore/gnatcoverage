@@ -1283,7 +1283,7 @@ package body Traces_Elf is
       use Traces_Sources;
       Cur : Cursor;
       Line : Addresses_Info_Acc;
-      Prev_File : Filenames_Maps.Cursor;
+      Prev_File : Source_File;
       Prev_Filename : String_Acc := null;
 
       It : Entry_Iterator;

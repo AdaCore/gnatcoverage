@@ -74,6 +74,36 @@ package Traces_Sources is
    type State_Char_Array is array (Line_State) of Character;
    State_Char : constant State_Char_Array;
 
+   type Source_File is private;
+
+   --  Find or create a new source file.
+   function Find_File (Filename : String_Acc) return Source_File;
+
+   --  Lets know File that Line exists and add the addresses range for Info.
+   --  (This knowledge comes from debugging informations).
+   procedure Add_Line (File : Source_File;
+                       Line : Natural;
+                       Info : Addresses_Info_Acc);
+
+   --  Same as Add_Line but with a State.
+   --  (The knowledge comes from execution traces).
+   procedure Add_Line_State (File : Source_File;
+                             Line : Natural;
+                             State : Traces.Trace_State);
+
+   -- If True, Disp_Line_State will also display info for files that are not
+   -- found.
+   Flag_Show_Missing : Boolean := False;
+
+   --  Display a per file summary.
+   procedure Disp_File_Summary;
+
+   procedure Add_Source_Rebase (Old_Prefix : String;
+                                New_Prefix : String);
+
+   procedure Add_Source_Search (Prefix : String);
+
+private
    type Addresses_Line_Chain is record
       First, Last : Addresses_Info_Acc := null;
    end record;
@@ -108,33 +138,10 @@ package Traces_Sources is
       Equivalent_Keys => Equal,
       "=" => Equal);
 
-   --  Find or create a new source file.
-   function Find_File (Filename : String_Acc) return Filenames_Maps.Cursor;
+   type Source_File is record
+      Cur : Filenames_Maps.Cursor;
+   end record;
 
-   --  Lets know File that Line exists and add the addresses range for Info.
-   --  (This knowledge comes from debugging informations).
-   procedure Add_Line (File : Filenames_Maps.Cursor;
-                       Line : Natural;
-                       Info : Addresses_Info_Acc);
-
-   --  Same as Add_Line but with a State.
-   --  (The knowledge comes from execution traces).
-   procedure Add_Line_State (File : Filenames_Maps.Cursor;
-                             Line : Natural;
-                             State : Traces.Trace_State);
-
-   -- If True, Disp_Line_State will also display info for files that are not
-   -- found.
-   Flag_Show_Missing : Boolean := False;
-
-   --  Display a per file summary.
-   procedure Disp_File_Summary;
-
-   procedure Add_Source_Rebase (Old_Prefix : String;
-                                New_Prefix : String);
-
-   procedure Add_Source_Search (Prefix : String);
-private
    Update_Table : constant State_Update_Table_Type :=
      (
       No_Code =>
