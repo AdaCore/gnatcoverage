@@ -195,6 +195,7 @@ begin
             Build_Debug_Lines;
             Disp_Lines_Addresses;
          elsif Arg = "--dump-symbols" then
+            Build_Sections;
             Build_Symbols;
             Disp_Symbols_Addresses;
          elsif Arg = "--asm" then
