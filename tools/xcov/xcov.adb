@@ -186,12 +186,15 @@ begin
             Build_Sections;
             Disp_Sections_Addresses;
          elsif Arg = "--dump-compile-units" then
+            Build_Sections;
             Build_Debug_Compile_Units;
             Disp_Compile_Units_Addresses;
          elsif Arg = "--dump-subprograms" then
+            Build_Sections;
             Build_Debug_Compile_Units;
             Disp_Subprograms_Addresses;
          elsif Arg = "--dump-lines" then
+            Build_Sections;
             Build_Debug_Lines;
             Disp_Lines_Addresses;
          elsif Arg = "--dump-symbols" then
