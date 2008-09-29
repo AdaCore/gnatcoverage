@@ -30,7 +30,6 @@ with System; use System;
 with System.Storage_Elements; use System.Storage_Elements;
 with Traces_Sources;
 with Disa_Ppc;
-with Display;
 with Elf_Files; use Elf_Files;
 with Traces_Names;
 
@@ -1042,7 +1041,6 @@ package body Traces_Elf is
    procedure Disp_Sections_Coverage (Base : Traces_Base)
    is
       use Addresses_Containers;
-      use Display;
       Cur : Cursor;
       Sec : Addresses_Info_Acc;
       It : Entry_Iterator;
@@ -1076,7 +1074,6 @@ package body Traces_Elf is
          Load_Section_Content (Sec);
 
          --  Display section name.
-         Set_Color (Black);
          Put ("Section ");
          Put (Sec.Section_Name.all);
          Put (':');
@@ -1121,7 +1118,6 @@ package body Traces_Elf is
             --  Display subprogram name.
             if Subprg /= null then
                if Addr = Subprg.First then
-                  Set_Color (Black);
                   New_Line;
                   Put ('<');
                   Put (Subprg.Subprogram_Name.all);
@@ -1139,7 +1135,6 @@ package body Traces_Elf is
                            or else (Subprg.Subprogram_Name.all
                                     /= Symbol.Symbol_Name.all))
                then
-                  Set_Color (Black);
                   Put ('<');
                   Put (Symbol.Symbol_Name.all);
                   Put ('>');
@@ -1177,7 +1172,6 @@ package body Traces_Elf is
                end if;
             end if;
 
-            Set_Color (State);
             Disassemble (Sec.Section_Content (Addr .. Last_Addr),
                          State, Textio_Disassemble_Cb'Access);
 
@@ -1192,7 +1186,6 @@ package body Traces_Elf is
 
          Next (Cur);
       end loop;
-      Set_Color (Black);
    end Disp_Sections_Coverage;
 
    procedure Load_Section_Content (Sec : Addresses_Info_Acc) is
@@ -1207,7 +1200,6 @@ package body Traces_Elf is
    procedure Disp_Subprograms_Coverage (Base : Traces_Base)
    is
       use Addresses_Containers;
-      use Display;
       use Traces_Sources;
       It : Entry_Iterator;
       Trace : Trace_Entry;
@@ -1656,7 +1648,6 @@ package body Traces_Elf is
                                     Insn : Binary_Content)
    is
    begin
-      Set_Color (State);
       Put (Hex_Image (Addr));
       Put (' ');
       Disp_State_Char (State);

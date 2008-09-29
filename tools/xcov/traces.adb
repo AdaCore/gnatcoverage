@@ -19,8 +19,6 @@
 with Qemu_Traces; use Qemu_Traces;
 with Ada.Text_Io; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
---with Elf_Common; use Elf_Common;
-with Display;
 
 package body Traces is
    procedure Dump_Op (Op : Unsigned_8) is
@@ -51,19 +49,6 @@ package body Traces is
          when Both_Taken => Put ('*');
       end case;
    end Disp_State_Char;
-
-   procedure Set_Color (State : Trace_State)
-   is
-      use Display;
-      C : Color;
-   begin
-      case State is
-         when Unknown | Not_Covered => C := Red;
-         when Covered | Both_Taken => C := Green;
-         when Branch_Taken | Fallthrough_Taken => C := Cyan;
-      end case;
-      Set_Color (C);
-   end Set_Color;
 
    procedure Dump_Entry (E : Trace_Entry) is
    begin

@@ -27,7 +27,6 @@ with Traces_Sources.Xcov;
 with Traces_Names;
 with Traces_Files; use Traces_Files;
 with Traces_Dbase; use Traces_Dbase;
-with Display;
 
 procedure Xcov is
    procedure Usage
@@ -170,8 +169,6 @@ begin
             Arg_Index := Arg_Index + 1;
 --         elsif Arg = "--objdump-coverage" then
 --            Annotate_Objdump;
-         elsif Arg = "--color" then
-            Display.Flag_Color := True;
          elsif Arg = "--exe-coverage" then
             if not Has_Exec then
                Error ("option --exe-coverage requires an executable");

@@ -75,8 +75,6 @@ package Traces is
    --  Display a character representing the state.
    procedure Disp_State_Char (State : Trace_State);
 
-   procedure Set_Color (State : Trace_State);
-
    --  Convert hexa-decimal string contained in Line (Pos ..) to a Pc_Type.
    --  Put the result to RES, POS contains the index past the last character
    --  accepted.
