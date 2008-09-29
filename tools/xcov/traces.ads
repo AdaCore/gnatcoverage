@@ -24,7 +24,7 @@ package Traces is
    subtype Pc_Type is Unsigned_32;
    Pc_Type_Size : constant Unsigned_8 := Pc_Type'Size / System.Storage_Unit;
 
-   --  Target machine.
+   --  Target machine.  The value is the EM field defined by ELF.
    --  Set to 0 when unknown.
    Machine : Unsigned_16 := 0;
 
@@ -34,6 +34,7 @@ package Traces is
       --  Not yet filled.
       Unknown,
 
+      --  The code is not covered.  No instruction was executed.
       Not_Covered,
 
       --  The code is fully covered (and there is no conditionnal branches).
@@ -80,6 +81,7 @@ package Traces is
    --  accepted.
    procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural);
 
+   --  One character representation of a state.
    type Trace_State_Map is array (Trace_State) of Character;
    Trace_State_Char : constant Trace_State_Map;
 
