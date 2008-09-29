@@ -491,10 +491,13 @@ package body Disa_Ppc is
                Add (Hex_Image (Bi));
                Add (',');
                Bd := Shift_Left (Bd, 2);
-               if (Bd or 16#8000#) /= 0 then
+               if (Bd and 16#8000#) /= 0 then
                   Bd := Bd or 16#Ffff0000#;
                end if;
                Add (Hex_Image (Pc + Bd));
+               if Proc_Cb /= null then
+                  Proc_Cb.all (Pc + Bd, Line, Line_Pos);
+               end if;
             end;
          when 16#11# =>
             Add ("sc");
