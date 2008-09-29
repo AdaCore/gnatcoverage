@@ -175,8 +175,9 @@ package body Traces_Sources is
       end loop;
       Total := Total - Stats (No_Code);
 
-      return (Nbr => Stats (Covered_No_Branch)
-                + Stats (Branch_Covered),
+      return (Fully => Stats (Covered_No_Branch) + Stats (Branch_Covered),
+              Partial => Stats (Partially_Covered) + Stats (Covered)
+                + Stats (Branch_Taken) + Stats (Branch_Fallthrough),
               Total => Total);
    end Get_Pourcentage;
 
@@ -273,6 +274,7 @@ package body Traces_Sources is
       Stats : Stat_Array := (others => 0);
       Skip : Boolean;
    begin
+      --  Compute the summary.
       for I in Integer range First .. Last (File) loop
          Ls := File.Table (I).State;
          Ls := State_Map (DO178B_Level, Ls);

@@ -130,6 +130,7 @@ package body Traces_Sources.Html is
       new S'("td.SumFile { color: green; }"),
       new S'("td.SumNoFile { color: grey; }"),
       new S'("table.SumTable td.SumBarCover { background-color: green; }"),
+      new S'("table.SumTable td.SumBarPartial { background-color: orange; }"),
       new S'("table.SumTable td.SumBarNoCover { background-color: red; }"),
       new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
       new S'("table.SourceFile td pre { margin: 0; }")
@@ -164,7 +165,7 @@ package body Traces_Sources.Html is
             raise;
       end;
 
-      Pp.Global_Pourcentage := (0, 0);
+      Pp.Global_Pourcentage := (0, 0, 0);
 
       Generate_Css_File;
 
@@ -195,25 +196,35 @@ package body Traces_Sources.Html is
    is
       use Ada.Integer_Text_IO;
       P : constant Pourcentage := Get_Pourcentage (Stats);
-      Pc : Natural;
+      Fully, Partial, Uncover : Natural;
    begin
       -- Second column: bar
       Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
       New_Line (F);
       Put (F, "        <table border=""0"" cellspacing=""0"">"
-            & "<tr height=""10"">");
-      if P.Total = 0 or P.Nbr = 0 then
-         Put (F, "<td class=""SumBarNocover"" width=""100""></td>");
-      elsif P.Nbr = P.Total then
+             & "<tr height=""10"">");
+      if P.Fully = P.Total then
+         --  Also includes P.Total = 0.
          Put (F, "<td class=""SumBarCover"" width=""100""></td>");
       else
-         Pc := P.Nbr * 100 / P.Total;
-         Put (F, "<td class=""SumBarCover"" width=""");
-         Put (F, Pc, 0);
-         Put (F, """></td>");
-         Put (F, "<td class=""SumBarNoCover"" width=""");
-         Put (F, 100 - Pc, 0);
-         Put (F, """></td>");
+         Fully := P.Fully * 100 / P.Total;
+         if Fully /= 0 then
+            Put (F, "<td class=""SumBarCover"" width=""");
+            Put (F, Fully, 0);
+            Put (F, """></td>");
+         end if;
+         Partial := P.Partial * 100 / P.Total;
+         if Partial /= 0 then
+            Put (F, "<td class=""SumBarPartial"" width=""");
+            Put (F, Partial, 0);
+            Put (F, """></td>");
+         end if;
+         Uncover := 100 - (Fully + Partial);
+         if Uncover /= 0 then
+            Put (F, "<td class=""SumBarNoCover"" width=""");
+            Put (F, Uncover, 0);
+            Put (F, """></td>");
+         end if;
       end if;
       Put_Line (F, "</tr></table>");
       Put_Line (F, "      </td>");
@@ -223,14 +234,14 @@ package body Traces_Sources.Html is
       if P.Total = 0 then
          Put (F, "no code");
       else
-         Put (F, P.Nbr * 100 / P.Total, 0);
+         Put (F, P.Fully * 100 / P.Total, 0);
          Put (F, " %");
       end if;
       Put_Line (F, "</td>");
 
       --  Fourth column: lines figure
       Put (F, "      <td class=""SumLineCov"" width=""15%"">");
-      Put (F, P.Nbr, 0);
+      Put (F, P.Fully, 0);
       Put (F, " / ");
       Put (F, P.Total, 0);
       Put_Line (F, " lines</td>");

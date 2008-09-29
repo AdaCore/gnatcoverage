@@ -197,7 +197,8 @@ private
    function Get_Stat_String (Stats : Stat_Array) return String;
 
    type Pourcentage is record
-      Nbr : Natural;
+      Fully : Natural;
+      Partial : Natural;
       Total : Natural;
    end record;
 
