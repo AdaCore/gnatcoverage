@@ -22,12 +22,14 @@ package body Traces_Dbase is
 
    function "=" (L, R : Trace_Entry) return Boolean is
    begin
-      return L.First = R.First and L.Last = R.Last;
+      --  Overlap.
+      return L.First <= R.Last and L.Last >= R.First;
    end "=";
 
    function "<" (L, R : Trace_Entry) return Boolean is
    begin
-      return L.First < R.First;
+      --  Disjoint and inferior.
+      return L.Last < R.First;
    end "<";
 
    use Entry_Set;
@@ -35,7 +37,7 @@ package body Traces_Dbase is
    --  Add a trace entry in the ordered_Set.  May discard useless entries
    --  or merge entries.
    procedure Add_Entry (Base : in out Traces_Base;
-			First : Pc_Type; Last : Pc_Type; Op : Unsigned_8)
+                        First : Pc_Type; Last : Pc_Type; Op : Unsigned_8)
    is
       Cur : Cursor;
       Status : Boolean;
@@ -125,7 +127,7 @@ package body Traces_Dbase is
    end Dump_Traces;
 
    procedure Init (Base : Traces_Base;
-		   Iterator : out Entry_Iterator; Pc : Pc_Type)
+                   Iterator : out Entry_Iterator; Pc : Pc_Type)
    is
       Key : constant Trace_Entry := (Pc, Pc, 0, Unknown);
    begin
@@ -147,7 +149,7 @@ package body Traces_Dbase is
    end Get_Next_Trace;
 
    procedure Update_State (Base : in out Traces_Base;
-			   Iterator : Entry_Iterator; State : Trace_State)
+                           Iterator : Entry_Iterator; State : Trace_State)
    is
       Cur : Cursor;
       Trace : Trace_Entry;
@@ -163,7 +165,7 @@ package body Traces_Dbase is
    end Update_State;
 
    procedure Split_Trace (Base : in out Traces_Base;
-			  Iterator : in out Entry_Iterator;
+                          Iterator : in out Entry_Iterator;
                           Pc : Pc_Type;
                           Cur_State, Next_State : Trace_State)
    is

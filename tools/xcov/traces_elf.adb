@@ -39,7 +39,7 @@ package body Traces_Elf is
 
    function "<" (L, R : Addresses_Info_Acc) return Boolean is
    begin
-      return L.First < R.First;
+      return L.Last < R.First;
    end "<";
 
    Sections_Set : Addresses_Containers.Set;
@@ -539,8 +539,12 @@ package body Traces_Elf is
       Addr : Pc_Type;
    begin
       --  Return now if already loaded.
-      if not Addresses_Containers.Is_Empty (Compile_Units_Set) then
+      if not Compile_Units_Set.Is_Empty then
          return;
+      end if;
+
+      if Sections_Set.Is_Empty then
+         raise Program_Error;
       end if;
 
       --  Load .debug_abbrev
@@ -755,7 +759,7 @@ package body Traces_Elf is
                  new Addresses_Info'
                  (Kind => Line_Addresses,
                   First => Exe_Text_Start + Pc_Type (Pc),
-                  Last => 0,
+                  Last => Exe_Text_Start + Pc_Type (Pc),
                   Parent => null,
                   Line_Next => null,
                   Line_Filename => Filenames_Vectors.Element (Filenames, File),
@@ -1610,17 +1614,14 @@ package body Traces_Elf is
 
    begin
       Get_Symbol_Sym.First := Pc;
-      Cur := Ceiling (Symbols_Set, Get_Symbol_Sym);
+      Get_Symbol_Sym.Last := Pc;
+      Cur := Floor (Symbols_Set, Get_Symbol_Sym);
       if Cur = No_Element then
          return;
       end if;
       Sym := Element (Cur);
-      if Sym.First > Pc then
-         Previous (Cur);
-         if Cur = No_Element then
-            return;
-         end if;
-         Sym := Element (Cur);
+      if Pc > Sym.Last then
+         return;
       end if;
 
       Add (" <");
@@ -1679,16 +1680,12 @@ package body Traces_Elf is
         (Address, Binary_Content_Thin_Acc);
       Pc : Pc_Type;
       Addr : Address;
-      Line_Pos : Natural;
-      Line : String (1 .. 128);
       Insn_Len : Natural := 0;
    begin
       Pc := Insns'First;
       while Pc < Insns'Last loop
          Addr := Insns (Pc)'Address;
          Insn_Len := Disa_Ppc.Get_Insn_Length (Addr);
-         Disa_Ppc.Disassemble_Insn
-           (Addr, Pc, Line, Line_Pos, Insn_Len, Get_Symbol'Access);
          Cb.all
            (Pc, State,
             To_Binary_Content_Thin_Acc (Addr)(0 .. Elf_Size (Insn_Len) - 1));
