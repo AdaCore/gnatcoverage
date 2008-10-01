@@ -16,6 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+with Interfaces; use Interfaces;
 with System;
 with Traces;
 
@@ -38,4 +39,30 @@ package Disa_Ppc is
                                Line_Pos : out Natural;
                                Insn_Len : out Natural;
                                Proc_Cb : Symbol_Proc_Type);
+
+   type String_Cst_Acc is access constant String;
+   type Ppc_Fields is
+     (
+      F_AA, F_LK, F_Rc, F_OE, F_U, F_Br_Hint, F_L,
+
+      F_A, F_B, F_C, F_D, F_S,
+      F_FA, F_FB, F_FC, F_FD, F_FS,
+      F_SIMM, F_UIMM,
+      F_CrfD, F_CrfS, F_CrbD, F_CrbA, F_CrbB,
+      F_BO, F_BI, F_BD,
+      F_LI, F_SH, F_MB, F_ME, F_CRM, F_Sr, F_Tbr, F_Spr, F_NB,
+      F_Disp, F_Imm, F_Fm, F_TO, F_Eof);
+
+   --  These fields add characters to the mnemonic.
+   subtype Ppc_Mnemo_Fields is Ppc_Fields range F_AA .. F_L;
+
+   type Ppc_Fields_Arr is array (0 .. 5) of Ppc_Fields;
+
+   type Ppc_Insn_Descr is record
+      Name : String_Cst_Acc;
+      Insn : Unsigned_32;
+      Fields : Ppc_Fields_Arr;
+   end record;
+
+
 end Disa_Ppc;

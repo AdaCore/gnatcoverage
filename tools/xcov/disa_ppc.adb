@@ -17,7 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with System; use System;
-with Interfaces; use Interfaces;
+--with Interfaces; use Interfaces;
 with Ada.Unchecked_Conversion;
 with System.Storage_Elements;
 with Hex_Images; use Hex_Images;
@@ -54,21 +54,669 @@ package body Disa_Ppc is
         or Shift_Left (Unsigned_32 (B3), 0);
    end Get_Insn;
 
-   function Bin_Image (Val : Unsigned_32; Len : Natural := 32) return String
-   is
-      Res : String (1 .. 32);
-   begin
-      for I in 0 .. Len - 1 loop
-         Res (32 - I) := Character'Val (Character'Pos ('0') +
-                                        (Shift_Right (Val, I) and 1));
-      end loop;
-      return Res (32 + 1 - Len .. 32);
-   end Bin_Image;
+   subtype S is String;
 
-   --  Some well-known spr
-   --Spr_Xer : constant Unsigned_32 := 2#00001_00000#;
-   Spr_Lr  : constant Unsigned_32 := 2#01000_00000#;
-   Spr_Ctr : constant Unsigned_32 := 2#01001_00000#;
+   type Ppc_Insns_Descs is array (Natural range <>) of Ppc_Insn_Descr;
+
+   Ppc_Insns : constant Ppc_Insns_Descs :=
+     (
+      (new S'("twi"),
+       2#000011_00000_00000_0000000000000000#,
+       (F_TO, F_A, F_SIMM, others => F_Eof)),
+      (new S'("mulli"),
+       2#000111_00000_00000_0000000000000000#,
+       (F_D, F_A, F_SIMM, others => F_Eof)),
+      (new S'("subfic"),
+       2#001000_00000_00000_0000000000000000#,
+       (F_D, F_A, F_SIMM, others => F_Eof)),
+      (new S'("cmpli"),
+       2#001010_00000_00000_0000000000000000#,
+       (F_L, F_CrfD, F_A, F_UIMM, others => F_Eof)),
+      (new S'("cmpi"),
+       2#001011_00000_00000_0000000000000000#,
+       (F_L, F_CrfD, F_A, F_SIMM, others => F_Eof)),
+      (new S'("addic"),
+       2#001100_00000_00000_0000000000000000#,
+       (F_D, F_A, F_SIMM, others => F_Eof)),
+      (new S'("addic."),
+       2#001101_00000_00000_0000000000000000#,
+       (F_D, F_A, F_SIMM, others => F_Eof)),
+      (new S'("li"), -- Simplified mnemonic
+       2#001110_00000_00000_0000000000000000#,
+       (F_D, F_SIMM, others => F_Eof)),
+      (new S'("addi"),
+       2#001110_00000_00000_0000000000000000#,
+       (F_D, F_A, F_SIMM, others => F_Eof)),
+      (new S'("lis"), -- Simplified mnemonic
+       2#001111_00000_00000_0000000000000000#,
+       (F_D, F_SIMM, others => F_Eof)),
+      (new S'("addis"),
+       2#001111_00000_00000_0000000000000000#,
+       (F_D, F_A, F_SIMM, others => F_Eof)),
+      (new S'("blt"), -- Simplified mnemonic
+       2#010000_01100_00000_0000000000000000#,
+       (F_AA, F_LK, F_Br_Hint, F_CrfS, F_BD, others => F_Eof)),
+      (new S'("bgt"), -- Simplified mnemonic
+       2#010000_01100_00001_0000000000000000#,
+       (F_AA, F_LK, F_Br_Hint, F_CrfS, F_BD, others => F_Eof)),
+      (new S'("beq"), -- Simplified mnemonic
+       2#010000_01100_00010_0000000000000000#,
+       (F_AA, F_LK, F_Br_Hint, F_CrfS, F_BD, others => F_Eof)),
+      (new S'("bge"), -- Simplified mnemonic
+       2#010000_00100_00000_0000000000000000#,
+       (F_AA, F_LK, F_Br_Hint, F_CrfS, F_BD, others => F_Eof)),
+      (new S'("ble"), -- Simplified mnemonic
+       2#010000_00100_00001_0000000000000000#,
+       (F_AA, F_LK, F_Br_Hint, F_CrfS, F_BD, others => F_Eof)),
+      (new S'("bne"), -- Simplified mnemonic
+       2#010000_00100_00010_0000000000000000#,
+       (F_AA, F_LK, F_Br_Hint, F_CrfS, F_BD, others => F_Eof)),
+      (new S'("bc"),
+       2#010000_00000_00000_0000000000000000#,
+       (F_AA, F_LK, F_BO, F_BI, F_BD, others => F_Eof)),
+      (new S'("sc"),
+       2#010001_00000_00000_00000000000000_10#,
+       (others => F_Eof)),
+      (new S'("b"),
+       2#010010_00000_00000_0000000000000000#,
+       (F_AA, F_LK, F_Li, Others => F_Eof)),
+      (new S'("mcrf"),
+       2#010011_00000_00000_00000_00000000000#,
+       (F_Crfd, F_Crfs, others => F_Eof)),
+      (new S'("blr"), -- Simpliflied mnemonic
+       2#010011_10100_00000_00000_0000010000_0#,
+       (others => F_Eof)),
+      (new S'("bclr"),
+       2#010011_00000_00000_00000_0000010000_0#,
+       (F_LK, F_BO, F_BI, others => F_Eof)),
+      (new S'("crnor"),
+       2#010011_00000_00000_00000_0000100001_0#,
+       (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("rfi"),
+       2#010011_00000_00000_00000_0000110010_0#,
+       (others => F_Eof)),
+      (new S'("crandc"),
+       2#010011_00000_00000_00000_0010000001_0#,
+       (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("isync"),
+       2#010011_00000_00000_00000_0010010110_0#,
+       (others => F_Eof)),
+      (new S'("crxor"),
+       2#010011_00000_00000_00000_0011000001_0#,
+       (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("crnand"),
+       2#010011_00000_00000_00000_0011100001_0#,
+       (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("crand"),
+       2#010011_00000_00000_00000_0100000001_0#,
+       (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("creqv"),
+       2#010011_00000_00000_00000_0100100001_0#,
+       (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("crorc"),
+       2#010011_00000_00000_00000_0110100001_0#,
+       (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("cror"),
+       2#010011_00000_00000_00000_0111000001_0#,
+       (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("bcctr"),
+       2#010011_00000_00000_00000_1000010000_0#,
+       (F_LK, F_BO, F_BI, others => F_Eof)),
+      (new S'("rlwimi"),
+       2#010100_00000_00000_00000_0000000000_0#,
+       (F_Rc, F_A, F_S, F_SH, F_MB, F_ME, others => F_Eof)),
+      (new S'("clrlwi"), -- Simplified mnemonic
+       2#010101_00000_00000_00000_00000_11111_0#,
+       (F_Rc, F_A, F_S, F_MB, others => F_Eof)),
+      (new S'("rlwinm"),
+       2#010101_00000_00000_00000_00000_00000_0#,
+       (F_Rc, F_A, F_S, F_SH, F_MB, F_ME, others => F_Eof)),
+      (new S'("rlwnm"),
+       2#010111_00000_00000_00000_0000000000_0#,
+       (F_Rc, F_A, F_S, F_B, F_MB, F_ME, others => F_Eof)),
+      (new S'("ori"),
+       2#011000_00000_00000_0000000000000000#,
+       (F_A, F_S, F_UIMM, others => F_Eof)),
+      (new S'("oris"),
+       2#011001_00000_00000_0000000000000000#,
+       (F_A, F_S, F_UIMM, others => F_Eof)),
+      (new S'("xori"),
+       2#011010_00000_00000_0000000000000000#,
+       (F_A, F_S, F_UIMM, others => F_Eof)),
+      (new S'("xoris"),
+       2#011011_00000_00000_0000000000000000#,
+       (F_A, F_S, F_UIMM, others => F_Eof)),
+      (new S'("andi."),
+       2#011100_00000_00000_0000000000000000#,
+       (F_A, F_S, F_UIMM, others => F_Eof)),
+      (new S'("andis."),
+       2#011101_00000_00000_0000000000000000#,
+       (F_A, F_S, F_UIMM, others => F_Eof)),
+      (new S'("cmp"),
+       2#011111_00000_00000_0000000000000000#,
+       (F_L, F_CrfD, F_A, F_B, others => F_Eof)),
+      (new S'("tw"),
+       2#011111_00000_00000_00000_0000000100_0#,
+       (F_TO, F_A, F_B, others => F_Eof)),
+      (new S'("subfc"),
+       2#011111_00000_00000_00000_0_000001000_0#,
+       (F_OE, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("addc"),
+       2#011111_00000_00000_00000_0_000001010_0#,
+       (F_Oe, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("mulhwu"),
+       2#011111_00000_00000_00000_0_000001011_0#,
+       (F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("mfcr"),
+       2#011111_00000_00000_00000_0_000010011_0#,
+       (F_D, others => F_Eof)),
+      (new S'("lwarx"),
+       2#011111_00000_00000_00000_0_000010100_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("lwzx"),
+       2#011111_00000_00000_00000_0_000010111_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("slw"),
+       2#011111_00000_00000_00000_0_000011000_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("cntlzw"),
+       2#011111_00000_00000_00000_0_000011010_0#,
+       (F_Rc, F_A, F_S, others => F_Eof)),
+      (new S'("and"),
+       2#011111_00000_00000_00000_0_000011100_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("cmpl"),
+       2#011111_00000_00000_00000_0_000100000_0#,
+       (F_L, F_CrfD, F_A, F_B, others => F_Eof)),
+      (new S'("subf"),
+       2#011111_00000_00000_00000_0_000101000_0#,
+       (F_Oe, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("dcbst"),
+       2#011111_00000_00000_00000_0_000110110_0#,
+       (F_A, F_B, others => F_Eof)),
+      (new S'("lwzux"),
+       2#011111_00000_00000_00000_0_000110111_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("andc"),
+       2#011111_00000_00000_00000_0_000111100_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("mulhw"),
+       2#011111_00000_00000_00000_0_001001011_0#,
+       (F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("mfmsr"),
+       2#011111_00000_00000_00000_0_001010011_0#,
+       (F_D, others => F_Eof)),
+      (new S'("dcbf"),
+       2#011111_00000_00000_00000_0_001010110_0#,
+       (F_A, F_B, others => F_Eof)),
+      (new S'("lbzx"),
+       2#011111_00000_00000_00000_0_001010111_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("neg"),
+       2#011111_00000_00000_00000_0_001101000_0#,
+       (F_Oe, F_Rc, F_D, F_A, others => F_Eof)),
+      (new S'("lbzux"),
+       2#011111_00000_00000_00000_0_001110111_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("nor"),
+       2#011111_00000_00000_00000_0_001111100_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("subfe"),
+       2#011111_00000_00000_00000_0_010001000_0#,
+       (F_Oe, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("adde"),
+       2#011111_00000_00000_00000_0_010001010_0#,
+       (F_Oe, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("mtcrf"),
+       2#011111_00000_0000000000_0010010000_0#,
+       (F_CRM, F_S, others => F_Eof)),
+      (new S'("mtmsr"),
+       2#011111_00000_00000_00000_0010010010_0#,
+       (F_S, others => F_Eof)),
+
+      (new S'("stwcx."),
+       2#011111_00000_00000_00000_0010010110_1#,
+       (F_A, F_S, F_B, others => F_Eof)),
+      (new S'("stwx"),
+       2#011111_00000_00000_00000_0010010111_0#,
+       (F_A, F_S, F_B, others => F_Eof)),
+      (new S'("stwux"),
+       2#011111_00000_00000_00000_0010110111_0#,
+       (F_A, F_S, F_B, others => F_Eof)),
+      (new S'("subfze"),
+       2#011111_00000_00000_00000_0_011001000_0#,
+       (F_Oe, F_Rc, F_D, F_A, others => F_Eof)),
+      (new S'("addze"),
+       2#011111_00000_00000_00000_0_011001010_0#,
+       (F_Oe, F_Rc, F_D, F_A, others => F_Eof)),
+      (new S'("mtsr"),
+       2#011111_00000_00000_00000_0011010010_0#,
+       (F_SR, F_S, others => F_Eof)),
+      (new S'("stbx"),
+       2#011111_00000_00000_00000_0011010111_0#,
+       (F_S, F_A, F_B, others => F_Eof)),
+      (new S'("subfme"),
+       2#011111_00000_00000_00000_0_011101000_0#,
+       (F_Oe, F_Rc, F_D, F_A, others => F_Eof)),
+      (new S'("addme"),
+       2#011111_00000_00000_00000_0_011101010_0#,
+       (F_Oe, F_Rc, F_D, F_A, others => F_Eof)),
+      (new S'("mullw"),
+       2#011111_00000_00000_00000_0_011101011_0#,
+       (F_Oe, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("mtsrin"),
+       2#011111_00000_00000_00000_0011110010_0#,
+       (F_S, F_B, others => F_Eof)),
+      (new S'("dcbtst"),
+       2#011111_00000_00000_00000_0011110110_0#,
+       (F_A, F_B, others => F_Eof)),
+      (new S'("stbux"),
+       2#011111_00000_00000_00000_0011110111_0#,
+       (F_S, F_A, F_B, others => F_Eof)),
+      (new S'("add"),
+       2#011111_00000_00000_00000_0_100001010_0#,
+       (F_Oe, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("dcbt"),
+       2#011111_00000_00000_00000_0100010110_0#,
+       (F_A, F_B, others => F_Eof)),
+      (new S'("lhzx"),
+       2#011111_00000_00000_00000_0100010111_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("eqv"),
+       2#011111_00000_00000_00000_0100011100_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("tlbie"),
+       2#011111_00000_00000_00000_0100110010_0#,
+       (F_B, others => F_Eof)),
+      (new S'("eciwx"),
+       2#011111_00000_00000_00000_0100110110_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("lhzux"),
+       2#011111_00000_00000_00000_0100110111_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("xor"),
+       2#011111_00000_00000_00000_0100111100_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("mflr"),  --  Simplified mnemonic.
+       2#011111_00000_01000_00000_0101010011_0#,
+       (F_D, others => F_Eof)),
+      (new S'("mfctr"),  --  Simplified mnemonic.
+       2#011111_00000_01001_00000_0101010011_0#,
+       (F_D, others => F_Eof)),
+      (new S'("mfspr"),
+       2#011111_00000_00000_00000_0101010011_0#,
+       (F_D, F_Spr, others => F_Eof)),
+      (new S'("lhax"),
+       2#011111_00000_00000_00000_0101010111_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("tlbia"),
+       2#011111_00000_00000_00000_0101110010_0#,
+       (others => F_Eof)),
+      (new S'("mftb"),
+       2#011111_00000_00000_00000_0101110011_0#,
+       (F_D, F_Tbr, others => F_Eof)),
+      (new S'("lhaux"),
+       2#011111_00000_00000_00000_0101110111_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("sthx"),
+       2#011111_00000_00000_00000_0110010111_0#,
+       (F_S, F_A, F_B, others => F_Eof)),
+      (new S'("orc"),
+       2#011111_00000_00000_00000_0110011100_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("ecowx"),
+       2#011111_00000_00000_00000_0110110110_0#,
+       (F_S, F_A, F_B, others => F_Eof)),
+      (new S'("sthux"),
+       2#011111_00000_00000_00000_0110110111_0#,
+       (F_S, F_A, F_B, others => F_Eof)),
+      (new S'("or"),
+       2#011111_00000_00000_00000_0110111100_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("divwu"),
+       2#011111_00000_00000_00000_0111001011_0#,
+       (F_Oe, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("mtlr"), -- Simplified mnemonic
+       2#011111_00000_01000_00000_0111010011_0#,
+       (F_S, others => F_Eof)),
+      (new S'("mtctr"), -- Simplified mnemonic
+       2#011111_00000_01001_00000_0111010011_0#,
+       (F_S, others => F_Eof)),
+      (new S'("mtspr"),
+       2#011111_00000_00000_00000_0111010011_0#,
+       (F_Spr, F_S, others => F_Eof)),
+
+      (new S'("dcbi"),
+       2#011111_00000_00000_00000_0111010110_0#,
+       (F_A, F_B, others => F_Eof)),
+      (new S'("nandx"),
+       2#011111_00000_00000_00000_0111011100_0#,
+       (F_Rc, F_S, F_A, F_B, others => F_Eof)),
+      (new S'("divw"),
+       2#011111_00000_00000_00000_0111101011_0#,
+       (F_Oe, F_Rc, F_D, F_A, F_B, others => F_Eof)),
+      (new S'("mcrxr"),
+       2#011111_00000_00000_00000_1000000000_0#,
+       (F_CrfD, others => F_Eof)),
+      (new S'("lswx"),
+       2#011111_00000_00000_00000_1000010101_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("lwbrx"),
+       2#011111_00000_00000_00000_1000010110_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("lfsx"),
+       2#011111_00000_00000_00000_1000010111_0#,
+       (F_FD, F_A, F_B, others => F_Eof)),
+      (new S'("srw"),
+       2#011111_00000_00000_00000_1000011000_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("tlbsync"),
+       2#011111_00000_00000_00000_1000110110_0#,
+       (others => F_Eof)),
+      (new S'("lfsux"),
+       2#011111_00000_00000_00000_1000110111_0#,
+       (F_FD, F_A, F_B, others => F_Eof)),
+      (new S'("mfsr"),
+       2#011111_00000_00000_00000_1001010011_0#,
+       (F_D, F_SR, others => F_Eof)),
+      (new S'("lswi"),
+       2#011111_00000_00000_00000_1001010101_0#,
+       (F_D, F_A, F_NB, others => F_Eof)),
+      (new S'("sync"),
+       2#011111_00000_00000_00000_1001010110_0#,
+       (others => F_Eof)),
+      (new S'("lfdx"),
+       2#011111_00000_00000_00000_1001010111_0#,
+       (F_FD, F_A, F_B, others => F_Eof)),
+      (new S'("lfdux"),
+       2#011111_00000_00000_00000_1001110111_0#,
+       (F_FD, F_A, F_B, others => F_Eof)),
+      (new S'("mfsrin"),
+       2#011111_00000_00000_00000_1010010011_0#,
+       (F_D, F_B, others => F_Eof)),
+      (new S'("stswx"),
+       2#011111_00000_00000_00000_1010010101_0#,
+       (F_S, F_A, F_B, others => F_Eof)),
+      (new S'("stwbrx"),
+       2#011111_00000_00000_00000_1010010110_0#,
+       (F_S, F_A, F_B, others => F_Eof)),
+      (new S'("stfsx"),
+       2#011111_00000_00000_00000_1010010111_0#,
+       (F_FS, F_A, F_B, others => F_Eof)),
+      (new S'("stfsux"),
+       2#011111_00000_00000_00000_1010110111_0#,
+       (F_FS, F_A, F_B, others => F_Eof)),
+      (new S'("stswi"),
+       2#011111_00000_00000_00000_1011010101_0#,
+       (F_S, F_A, F_NB, others => F_Eof)),
+      (new S'("stfdx"),
+       2#011111_00000_00000_00000_1011010111_0#,
+       (F_FS, F_A, F_B, others => F_Eof)),
+      (new S'("dcba"),
+       2#011111_00000_00000_00000_1011110110_0#,
+       (F_A, F_B, others => F_Eof)),
+      (new S'("stfdux"),
+       2#011111_00000_00000_00000_1011110111_0#,
+       (F_FS, F_A, F_B, others => F_Eof)),
+      (new S'("lhbrx"),
+       2#011111_00000_00000_00000_1100010110_0#,
+       (F_D, F_A, F_B, others => F_Eof)),
+      (new S'("sraw"),
+       2#011111_00000_00000_00000_1100011000_0#,
+       (F_Rc, F_A, F_S, F_B, others => F_Eof)),
+      (new S'("srawi"),
+       2#011111_00000_00000_00000_1100111000_0#,
+       (F_Rc, F_A, F_S, F_SH, others => F_Eof)),
+      (new S'("eieio"),
+       2#011111_00000_00000_00000_1101010110_0#,
+       (others => F_Eof)),
+      (new S'("sthbrx"),
+       2#011111_00000_00000_00000_1110010110_0#,
+       (F_S, F_A, F_B, others => F_Eof)),
+      (new S'("extsh"),
+       2#011111_00000_00000_00000_1110011010_0#,
+       (F_Rc, F_A, F_S, others => F_Eof)),
+      (new S'("extsb"),
+       2#011111_00000_00000_00000_1110111010_0#,
+       (F_A, F_S, others => F_Eof)),
+      (new S'("icbi"),
+       2#011111_00000_00000_00000_1111010110_0#,
+       (F_A, F_B, others => F_Eof)),
+      (new S'("stfiwx"),
+       2#011111_00000_00000_00000_1111010111_0#,
+       (F_FS, F_A, F_B, others => F_Eof)),
+
+      (new S'("dcbz"),
+       2#011111_00000_00000_00000_1111110110_0#,
+       (F_A, F_B, others => F_Eof)),
+      (new S'("lwz"),
+       2#100000_00000_00000_00000_0000000000_0#,
+       (F_U, F_D, F_Disp, F_A, others => F_Eof)),
+      (new S'("lbz"),
+       2#100010_00000_00000_00000_0000000000_0#,
+       (F_U, F_D, F_Disp, F_A, others => F_Eof)),
+      (new S'("stw"),
+       2#100100_00000_00000_00000_0000000000_0#,
+       (F_U, F_S, F_Disp, F_A, others => F_Eof)),
+      (new S'("stb"),
+       2#100110_00000_00000_00000_0000000000_0#,
+       (F_U, F_S, F_Disp, F_A, others => F_Eof)),
+      (new S'("lhz"),
+       2#101000_00000_00000_00000_0000000000_0#,
+       (F_U, F_D, F_Disp, F_A, others => F_Eof)),
+      (new S'("lha"),
+       2#101010_00000_00000_00000_0000000000_0#,
+       (F_U, F_D, F_Disp, F_A, others => F_Eof)),
+      (new S'("sth"),
+       2#101100_00000_00000_00000_0000000000_0#,
+       (F_U, F_S, F_Disp, F_A, others => F_Eof)),
+      (new S'("lmw"),
+       2#101110_00000_00000_00000_0000000000_0#,
+       (F_D, F_Disp, F_A, others => F_Eof)),
+      (new S'("stmw"),
+       2#101111_00000_00000_00000_0000000000_0#,
+       (F_S, F_Disp, F_A, others => F_Eof)),
+      (new S'("lfs"),
+       2#110000_00000_00000_00000_0000000000_0#,
+       (F_U, F_FD, F_Disp, F_A, others => F_Eof)),
+      (new S'("lfd"),
+       2#110010_00000_00000_00000_0000000000_0#,
+       (F_U, F_FD, F_Disp, F_A, others => F_Eof)),
+      (new S'("stfs"),
+       2#110100_00000_00000_00000_0000000000_0#,
+       (F_U, F_FS, F_Disp, F_A, others => F_Eof)),
+      (new S'("stfd"),
+       2#110110_00000_00000_00000_0000000000_0#,
+       (F_U, F_FS, F_Disp, F_A, others => F_Eof)),
+
+      (new S'("fdivs"),
+       2#111011_00000_00000_00000_00000_10010_0#,
+       (F_Rc, F_FD, F_FA, F_FB, others => F_Eof)),
+      (new S'("fsubs"),
+       2#111011_00000_00000_00000_00000_10100_0#,
+       (F_Rc, F_FD, F_FA, F_FB, others => F_Eof)),
+      (new S'("fadds"),
+       2#111011_00000_00000_00000_00000_10101_0#,
+       (F_Rc, F_FD, F_FA, F_FB, others => F_Eof)),
+      (new S'("fsqrts"),
+       2#111011_00000_00000_00000_00000_10110_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("fres"),
+       2#111011_00000_00000_00000_00000_11000_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("fmuls"),
+       2#111011_00000_00000_00000_00000_11001_0#,
+       (F_Rc, F_FD, F_FA, F_FC, others => F_Eof)),
+      (new S'("fmsubs"),
+       2#111011_00000_00000_00000_00000_11100_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+      (new S'("fmadds"),
+       2#111011_00000_00000_00000_00000_11101_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+
+
+      (new S'("fnmsubs"),
+       2#111011_00000_00000_00000_00000_11110_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+      (new S'("fnmadds"),
+       2#111011_00000_00000_00000_00000_11111_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+      (new S'("fcmpu"),
+       2#111111_00000_00000_00000_0000000000_0#,
+       (F_CrfD, F_FA, F_FB, others => F_Eof)),
+      (new S'("frsp"),
+       2#111111_00000_00000_00000_0000001100_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("fctiw"),
+       2#111111_00000_00000_00000_0000001110_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("fctiwz"),
+       2#111111_00000_00000_00000_0000001111_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("fdiv"),
+       2#111111_00000_00000_00000_00000_10010_0#,
+       (F_Rc, F_FD, F_FA, F_FB, others => F_Eof)),
+      (new S'("fsub"),
+       2#111111_00000_00000_00000_00000_10100_0#,
+       (F_Rc, F_FD, F_FA, F_FB, others => F_Eof)),
+      (new S'("fadd"),
+       2#111111_00000_00000_00000_00000_10101_0#,
+       (F_Rc, F_FD, F_FA, F_FB, others => F_Eof)),
+      (new S'("fsqrt"),
+       2#111111_00000_00000_00000_00000_10110_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("fsel"),
+       2#111111_00000_00000_00000_00000_10111_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+      (new S'("fmul"),
+       2#111111_00000_00000_00000_00000_11001_0#,
+       (F_Rc, F_FD, F_FA, F_FC, others => F_Eof)),
+      (new S'("frsqrte"),
+       2#111111_00000_00000_00000_00000_11010_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("fmsub"),
+       2#111111_00000_00000_00000_00000_11100_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+      (new S'("fmadd"),
+       2#111111_00000_00000_00000_00000_11101_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+      (new S'("fnmsub"),
+       2#111111_00000_00000_00000_00000_11110_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+      (new S'("fnmadd"),
+       2#111111_00000_00000_00000_00000_11111_0#,
+       (F_Rc, F_FD, F_FA, F_FB, F_FC, others => F_Eof)),
+      (new S'("fcmpo"),
+       2#111111_00000_00000_00000_0000100000_0#,
+       (F_CrfD, F_FA, F_FB, others => F_Eof)),
+      (new S'("mtfsb1"),
+       2#111111_00000_00000_00000_0000100110_0#,
+       (F_Rc, F_CrbD , others => F_Eof)),
+      (new S'("fneg"),
+       2#111111_00000_00000_00000_0000101000_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("mcrfs"),
+       2#111111_00000_00000_00000_0001000000_0#,
+       (F_CrfD, F_crfS, others => F_Eof)),
+      (new S'("mtfsb0"),
+       2#111111_00000_00000_00000_0001000110_0#,
+       (F_Rc, F_CrbD, others => F_Eof)),
+      (new S'("fmr"),
+       2#111111_00000_00000_00000_0001001000_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("mtfsfi"),
+       2#111111_00000_00000_00000_0010000110_0#,
+       (F_Rc, F_CrfD, F_IMM, others => F_Eof)),
+      (new S'("fnabs"),
+       2#111111_00000_00000_00000_0010001000_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("fabs"),
+       2#111111_00000_00000_00000_0100001000_0#,
+       (F_Rc, F_FD, F_FB, others => F_Eof)),
+      (new S'("mffs"),
+       2#111111_00000_00000_00000_1001000111_0#,
+       (F_Rc, F_D, others => F_Eof)),
+      (new S'("mtfsf"),
+       2#111111_00000_00000_00000_1011000111_0#,
+       (F_Rc, F_FM, F_FB, others => F_Eof))
+     );
+
+   subtype Bit_Number is Natural range 0 .. 31;
+
+   type Field_Type is record
+      First, Last : Bit_Number;
+   end record;
+
+   --  Use the PowerPC Big-endian convention.
+   --  Ie bit 0 is 2**31.
+   function Field (F : Field_Type) return Unsigned_32
+   is
+      pragma Assert (not (F.First = 0 and F.Last = 31));
+      Nbr_Bits : constant Bit_Number := F.Last - F.First + 1;
+   begin
+      pragma Assert (F.First <= F.Last);
+      return ((2 ** Nbr_Bits) - 1) * (2 ** (31 - F.Last));
+   end Field;
+
+   type Fields_Mask_Type is array (Ppc_Fields'First .. Ppc_Fields'Pred (F_Eof))
+     of Field_Type;
+   Fields_Mask : constant Fields_Mask_Type :=
+     (F_TO | F_D | F_FD | F_BO | F_S | F_FS | F_CrbD => (6, 10),
+      F_A | F_FA | F_BI | F_CrbA => (11, 15),
+      F_B | F_FB | F_Crbb | F_Sh | F_Nb => (16, 20),
+      F_C | F_FC | F_MB => (21, 25),
+      F_ME => (26, 30),
+      F_CrfD => (6, 8),
+      F_Crfs => (11, 13),
+      F_L => (10, 10),
+      F_Bd => (16, 29),
+      F_Aa => (30, 30),
+      F_Lk => (31, 31),
+      F_Fm => (7, 14),
+      F_Imm => (16, 19),
+      F_Crm => (12, 19),
+      F_Li => (6, 29),
+      F_Rc => (31, 31),
+      F_Spr | F_Tbr => (11, 20),
+      F_OE => (21, 21),
+      F_Sr => (12, 15),
+      F_Br_Hint => (10, 10),
+      F_U => (5, 5),
+      F_SIMM | F_UIMM | F_Disp => (16, 31));
+
+   type Insns_Masks_Type is array (Ppc_Insns'Range) of Unsigned_32;
+   Insns_Mask : Insns_Masks_Type;
+
+   procedure Gen_Masks
+   is
+      --M_Opc : constant Unsigned_32 := Field ((0, 5));
+      Mask : Unsigned_32;
+      --Prev : Unsigned_32;
+      F : Ppc_Fields;
+   begin
+      --Prev := 0;
+      for I in Ppc_Insns'Range loop
+         declare
+            Insn : Ppc_Insn_Descr renames Ppc_Insns (I);
+         begin
+            --  Be sure the insns are ordered.
+            --pragma Assert (Insn.Insn > Prev,
+            --              "insn " & Insn.Name.all & " is not ordered");
+            --Prev := Insn.Insn;
+
+            Mask := 0;
+            for J in Insn.Fields'Range loop
+               F := Insn.Fields (J);
+               exit when F = F_Eof;
+               Mask := Mask or Field (Fields_Mask (F));
+            end loop;
+            Insns_Mask (I) := not Mask;
+
+            pragma Assert ((Insn.Insn and Mask) = 0,
+                           "Bad insn for " & Insn.Name.all);
+         end;
+      end loop;
+   end Gen_Masks;
 
    procedure Disassemble_Insn (Addr : System.Address;
                                Pc : Traces.Pc_Type;
@@ -78,7 +726,6 @@ package body Disa_Ppc is
                                Proc_Cb : Symbol_Proc_Type)
    is
       W : Unsigned_32;
-      Opcd : Unsigned_8;
 
       --  Add CHAR to the line.
       procedure Add (C : Character);
@@ -131,101 +778,17 @@ package body Disa_Ppc is
          Add_Digit (Natural (L));
       end Add_Num2;
 
-      procedure Add_Reg (Reg : Unsigned_32) is
-      begin
-         Add ('r');
-         Add_Num2 (Reg);
-      end Add_Reg;
 
-      procedure Add_Fp (Reg : Unsigned_32) is
-      begin
-         Add ('f');
-         Add_Num2 (Reg);
-      end Add_Fp;
-
-      procedure Add_Cr (Reg : Unsigned_32) is
-      begin
-         Add ("cr");
-         Add_Num2 (Reg);
-      end Add_Cr;
-
-      procedure Add_Crb (Reg : Unsigned_32) is
-      begin
-         Add ("crb");
-         Add_Num2 (Reg);
-      end Add_Crb;
-
-      function Get_Field (Pos, Len : Natural) return Unsigned_32
+      function Get_Field (F : Field_Type) return Unsigned_32
       is
+         Len : constant Natural := F.Last - F.First + 1;
       begin
-         return Shift_Right (Shift_Left (W, Pos), 32 - Len);
+         return Shift_Right (Shift_Left (W, F.First), 32 - Len);
       end Get_Field;
 
-      function Get_Field_D return Unsigned_32 is
-      begin
-         return Get_Field (6, 5);
-      end Get_Field_D;
-
-      function Get_Field_S return Unsigned_32 renames Get_Field_D;
-
-      function Get_Field_A return Unsigned_32 is
-      begin
-         return Get_Field (11, 5);
-      end Get_Field_A;
-
-      function Get_Field_B return Unsigned_32 is
-      begin
-         return Get_Field (16, 5);
-      end Get_Field_B;
-
-      function Get_Field_C return Unsigned_32 is
-      begin
-         return Get_Field (21, 5);
-      end Get_Field_C;
-
-      function Get_Field_Sh return Unsigned_32 is
-      begin
-         return Get_Field (16, 5);
-      end Get_Field_Sh;
-
-      function Get_Field_Mb return Unsigned_32 is
-      begin
-         return Get_Field (21, 5);
-      end Get_Field_Mb;
-
-      function Get_Field_Me return Unsigned_32 is
-      begin
-         return Get_Field (26, 5);
-      end Get_Field_Me;
-
-      function Get_Field_Crfd return Unsigned_32 is
-      begin
-         return Get_Field (6, 3);
-      end Get_Field_Crfd;
-
-      function Get_Field_Crfs return Unsigned_32 is
-      begin
-         return Get_Field (11, 3);
-      end Get_Field_Crfs;
-
-      function Get_Field_Bo return Unsigned_8 is
-      begin
-         return Unsigned_8 (Get_Field (6, 5));
-      end Get_Field_Bo;
-
-      function Get_Field_Bi return Unsigned_8 is
-      begin
-         return Unsigned_8 (Get_Field (11, 5));
-      end Get_Field_Bi;
-
-      function Get_Field_Lk return Unsigned_8 is
-      begin
-         return Unsigned_8 (Get_Field (31, 1));
-      end Get_Field_Lk;
-
-      procedure Add_Simm
+      procedure Add_Simm (Val : Unsigned_32)
       is
-         V : constant Unsigned_16 := Unsigned_16 (Get_Field (16, 16));
+         V : constant Unsigned_16 := Unsigned_16 (Val);
       begin
          if (V and 16#8000#) /= 0 then
             Add ("-0x");
@@ -238,793 +801,161 @@ package body Disa_Ppc is
 
       procedure Add_Uimm
       is
-         V : constant Unsigned_16 := Unsigned_16 (Get_Field (16, 16));
+         V : constant Unsigned_16 := Unsigned_16 (Get_Field ((16, 31)));
       begin
          Add ("0x");
          Add (Hex_Image (V));
       end Add_Uimm;
 
-      procedure Add_Load_Store (Name : String; Reg : Character) is
-      begin
-         Add (Name);
-         if Get_Field (5, 1) /= 0 then
-            Add ('u');
-         end if;
-         Add_HT;
-         Add (Reg);
-         Add_Num2 (Get_Field_D);
-         Add (',');
-         Add_Simm;
-         Add ('(');
-         Add_Reg (Get_Field_A);
-         Add (')');
-      end Add_Load_Store;
+      pragma Unreferenced (Add_Uimm);
 
-      procedure Add_Int_Load_Store (Name : String) is
-      begin
-         Add_Load_Store (Name, 'r');
-      end Add_Int_Load_Store;
-
-      procedure Add_Fp_Load_Store (Name : String) is
-      begin
-         Add_Load_Store (Name, 'f');
-      end Add_Fp_Load_Store;
-
-      procedure Add_Rc_Ht (Name : String) is
-      begin
-         Add (Name);
-         if Get_Field (31, 1) = 1 then
-            Add ('.');
-         end if;
-         Add_Ht;
-      end Add_Rc_Ht;
-
-      procedure Add_D_A_Rc (Name : String) is
-      begin
-         Add_Rc_Ht (Name);
-         Add_Reg (Get_Field_D);
-         Add (',');
-         Add_Reg (Get_Field_A);
-      end Add_D_A_Rc;
-
-      procedure Add_D (Name : String) is
-      begin
-         Add (Name);
-         Add_Ht;
-         Add_Reg (Get_Field_D);
-      end Add_D;
-
-      procedure Add_D_A_Simm (Name : String) is
-      begin
-         Add_D (Name);
-         Add (',');
-         Add_Reg (Get_Field_A);
-         Add (',');
-         Add_Simm;
-      end Add_D_A_Simm;
-
-      procedure Add_D_A_B_Rc (Name : String) is
-      begin
-         Add_D_A_Rc (Name);
-         Add (',');
-         Add_Reg (Get_Field_B);
-      end Add_D_A_B_Rc;
-
-      procedure Add_A_S_Rc (Name : String) is
-      begin
-         Add_Rc_HT (Name);
-         Add_Reg (Get_Field_A);
-         Add (',');
-         Add_Reg (Get_Field_S);
-      end Add_A_S_Rc;
-
-      procedure Add_A_S_B_Rc (Name : String) is
-      begin
-         Add_A_S_Rc (Name);
-         Add (',');
-         Add_Reg (Get_Field_B);
-      end Add_A_S_B_Rc;
-
-      procedure Add_S_A_Uimm (Name : String) is
-      begin
-         Add (Name);
-         Add_HT;
-         Add_Reg (Get_Field_S);
-         Add (',');
-         Add_Reg (Get_Field_A);
-         Add (',');
-         Add_Uimm;
-      end Add_S_A_Uimm;
-
-      procedure Add_A_S_Sh_Mb_Me_Rc (Name : String) is
-      begin
-         Add_A_S_Rc (Name);
-         Add (',');
-         Add_Num2 (Get_Field_Sh);
-         Add (',');
-         Add_Num2 (Get_Field_Mb);
-         Add (',');
-         Add_Num2 (Get_Field_Me);
-      end Add_A_S_Sh_Mb_Me_Rc;
-
-      procedure Add_A_B (Name : String) is
-      begin
-         Add (Name);
-         Add_HT;
-         Add_Reg (Get_Field_A);
-         Add (',');
-         Add_Reg (Get_Field_B);
-      end Add_A_B;
-
-      procedure Add_Crfd (Name : String) is
-      begin
-         Add (Name);
-         Add_Ht;
-         Add_Cr (Get_Field_Crfd);
-         Add (',');
-      end Add_Crfd;
-
-      procedure Add_Crfd_A (Name : String) is
-      begin
-         Add_Crfd (Name);
-         Add_Reg (Get_Field_A);
-         Add (',');
-      end Add_Crfd_A;
-
-      procedure Add_Crbd_Crba_Crbb (Name : String) is
-      begin
-         Add (Name);
-         Add_Ht;
-         Add_Crb (Get_Field_D);
-         Add (',');
-         Add_Crb (Get_Field_A);
-         Add (',');
-         Add_Crb (Get_Field_B);
-      end Add_Crbd_Crba_Crbb;
-
-      procedure Add_Fd_Rc (Name : String) is
-      begin
-         Add_Rc_Ht (Name);
-         Add_Fp (Get_Field_D);
-      end Add_Fd_Rc;
-
-      procedure Add_Fd_Fb_Rc (Name : String) is
-      begin
-         Add_Fd_Rc (Name);
-         Add (',');
-         Add_Fp (Get_Field_B);
-      end Add_Fd_Fb_Rc;
-
-      procedure Add_Fd_Fa_Fb_Rc (Name : String) is
-      begin
-         Add_Fd_Rc (Name);
-         Add (',');
-         Add_Fp (Get_Field_A);
-         Add (',');
-         Add_Fp (Get_Field_B);
-      end Add_Fd_Fa_Fb_Rc;
-
-      procedure Add_Fd_Fa_Fb_Fc_Rc (Name : String) is
-      begin
-         Add_Fd_Fa_Fb_Rc (Name);
-         Add (',');
-         Add_Fp (Get_Field_C);
-      end Add_Fd_Fa_Fb_Fc_Rc;
-
+      Insn_Index : Integer := -1;
    begin
       W := Get_Insn (Addr);
       Insn_Len := 4;
       Line_Pos := Line'First;
 
-      Opcd := Unsigned_8 (Shift_Right (W, 26));
-      case Opcd is
-         when 16#7# =>
-            Add_D_A_Simm ("mulli");
-         when 16#8# =>
-            Add_D_A_Simm ("subfic");
-         when 16#A# =>
-            Add_Crfd_A ("cmpli");
-            Add_Uimm;
-         when 16#B# =>
-            Add_Crfd_A ("cmpi");
-            Add_Simm;
-         when 16#C# =>
-            Add_D_A_Simm ("addic");
-         when 16#D# =>
-            Add_D_A_Simm ("addic.");
-         when 16#E# =>
-            declare
-               D : constant Unsigned_32 := Get_Field_D;
-               A : constant Unsigned_32 := Get_Field_A;
-            begin
-               if A = 0 then
-                  Add ("li");
-                  Add_HT;
-                  Add_Reg (D);
+      --  Find insn.
+      for I in Ppc_Insns'Range loop
+         if (W and Insns_Mask (I)) = Ppc_Insns (I).Insn then
+            Insn_Index := I;
+            exit;
+         end if;
+      end loop;
+
+      if Insn_Index > 0 then
+         declare
+            Insn : Ppc_Insn_Descr renames Ppc_Insns (Insn_Index);
+            Has_Ht : Boolean := False;
+            Is_First : Boolean := True;
+            F : Ppc_Fields;
+            Val : Unsigned_32;
+         begin
+            Add (Insn.Name.all);
+            for I in Insn.Fields'Range loop
+               F := Insn.Fields (I);
+               exit when F = F_Eof;
+               if F not in Ppc_Mnemo_Fields then
+                  if not Has_Ht then
+                     Add_Ht;
+                     Has_Ht := True;
+                     Is_First := False;
+                  elsif Is_First then
+                     Is_First := False;
+                  else
+                     Add (',');
+                  end if;
                else
-                  Add ("addi");
-                  Add_HT;
-                  Add_Reg (D);
-                  Add (',');
-                  Add_Reg (A);
+                  pragma Assert (Is_First);
+                  null;
                end if;
-               Add (',');
-               Add_Simm;
-            end;
-         when 16#F# =>
-            declare
-               D : constant Unsigned_32 := Get_Field_D;
-               A : constant Unsigned_32 := Get_Field_A;
-            begin
-               if A = 0 then
-                  Add ("lis");
-                  Add_HT;
-                  Add_Reg (D);
-               else
-                  Add ("addis");
-                  Add_HT;
-                  Add_Reg (D);
-                  Add (',');
-                  Add_Reg (A);
-               end if;
-               Add (',');
-               Add_Uimm;
-            end;
-         when 16#10# =>
-            declare
-               Bd : Unsigned_32 := Get_Field (16, 14);
-               Bo : constant Unsigned_8 := Get_Field_Bo;
-               Bi : constant Unsigned_8 := Get_Field_Bi;
-               Aa : constant Unsigned_32 := Get_Field (30, 1);
-               Lk : constant Unsigned_8 := Get_Field_Lk;
-            begin
-               Add ("bc");
-               if Lk = 1 then
-                  Add ('l');
-               end if;
-               if Aa = 1 then
-                  Add ('a');
-               end if;
-               Add_HT;
-               Add (Hex_Image (Bo));
-               Add (',');
-               Add (Hex_Image (Bi));
-               Add (',');
-               Bd := Shift_Left (Bd, 2);
-               if (Bd and 16#8000#) /= 0 then
-                  Bd := Bd or 16#Ffff0000#;
-               end if;
-               Add (Hex_Image (Pc + Bd));
-               if Proc_Cb /= null then
-                  Proc_Cb.all (Pc + Bd, Line, Line_Pos);
-               end if;
-            end;
-         when 16#11# =>
-            Add ("sc");
-         when 16#12# =>
-            declare
-               Aa : constant Unsigned_8 := Unsigned_8 (Get_Field (30, 1));
-               Lk : constant Unsigned_8 := Unsigned_8 (Get_Field (31, 1));
-               Li : Unsigned_32 := Get_Field (6, 24);
-               Target : Unsigned_32;
-            begin
-               if (Li and 16#800000#) /= 0 then
-                  Li := Li or 16#Ff000000#;
-               end if;
-               Target := Shift_Left (Li, 2);
-               Add ('b');
-               if Lk = 1 then
-                  Add ('l');
-               end if;
-               if Aa = 1 then
-                  Add ('a');
-               else
-                  Target := Target + Pc;
-               end if;
-               Add_HT;
-               Add ("0x");
-               Add (Hex_Image (Target));
-               if Proc_Cb /= null then
-                  Proc_Cb.all (Target, Line, Line_Pos);
-               end if;
-            end;
-         when 16#13# =>
-            declare
-               Xo : constant Unsigned_32 := Get_Field (21, 10);
-               Bo, Bi, Lk : Unsigned_8;
-            begin
-               case Xo is
-                  when 2#0000000000# =>
-                     Add_Crfd ("mcrf");
-                     Add_Cr (Get_Field_Crfs);
-                  when 2#0000010000# => -- bclrx
-                     Bo := Get_Field_Bo;
-                     Bi := Get_Field_Bi;
-                     Lk := Get_Field_Lk;
-                     if Bo = 16#14# and Bi = 0 and Lk = 0 then
-                        Add ("blr");
-                     else
-                        Add ("bclr");
-                        Add_HT;
-                        Add (Hex_Image (Bo));
-                        Add (',');
-                        Add (Hex_Image (Bi));
-                        Add (',');
-                        Add_Digit (Natural (Lk));
+
+               Val := Get_Field (Fields_Mask (F));
+
+               case F is
+                  when F_OE =>
+                     if Val /= 0 then
+                        Add ('o');
                      end if;
-                  when 2#0000100001# =>
-                     Add_Crbd_Crba_Crbb ("crnor");
-                  when 2#000110010# =>
-                     Add ("rfi");
-                  when 2#0010010110# =>
-                     Add ("isync");
-                  when 2#0011000001# =>
-                     Add_Crbd_Crba_Crbb ("crxor");
-                  when 2#0100100001# =>
-                     Add_Crbd_Crba_Crbb ("creqv");
-                  when 2#0111000001# =>
-                     Add_Crbd_Crba_Crbb ("cror");
-                  when 2#1000010000# =>
-                     Add ("bcctr");
-                     if Get_Field_Lk /= 0 then
+                  when F_Rc =>
+                     if Val /= 0 then
+                        Add ('.');
+                     end if;
+                  when F_AA =>
+                     if Val /= 0 then
+                        Add ('a');
+                     end if;
+                  when F_LK =>
+                     if Val /= 0 then
                         Add ('l');
                      end if;
-                     Add_Ht;
-                     Add (Hex_Image (Get_Field_Bo));
-                     Add (',');
-                     Add (Hex_Image (Get_Field_Bi));
-                  when others =>
-                     Add ("unknown op: 13-xo=");
-                     Add (Bin_Image (Xo, 10));
-               end case;
-            end;
-         when 16#14# =>
-            Add_A_S_Sh_Mb_Me_Rc ("rlwimi");
-         when 16#15# =>
-            Add_A_S_Sh_Mb_Me_Rc ("rlwinm");
-         when 16#17# =>
-            Add_A_S_B_Rc ("rlwnm");
-            Add (',');
-            Add_Reg (Get_Field_Mb);
-            Add (',');
-            Add_Reg (Get_Field_Me);
-         when 16#18# =>
-            Add_S_A_Uimm ("ori");
-         when 16#19# =>
-            Add_S_A_Uimm ("oris");
-         when 16#1A# =>
-            Add_S_A_Uimm ("xori");
-         when 16#1B# =>
-            Add_S_A_Uimm ("xoris");
-         when 16#1C# =>
-            Add_S_A_Uimm ("andi.");
-         when 16#1D# =>
-            Add_S_A_Uimm ("andis.");
-         when 16#1f# =>
-            declare
-               Xo : constant Unsigned_32 := Get_Field (21, 10);
-               Spr : Unsigned_32;
-               Rc : Unsigned_32;
-               S, A, B : Unsigned_32;
-               Crfd : Unsigned_8;
-            begin
-               case Xo is
-                  when 2#0000000000# =>
-                     Crfd := Unsigned_8 (Get_Field (6, 3));
-                     Add ("cmpw");
-                     Add_Ht;
+                  when F_Br_Hint =>
+                     if Val = 0 then
+                        Add ('-');
+                     else
+                        Add ('+');
+                     end if;
+                  when F_L =>
+                     if Val = 0 then
+                        Add ('w');
+                     else
+                        Add ('d');
+                     end if;
+                  when F_U =>
+                     if Val /= 0 then
+                        Add ('u');
+                     end if;
+                  when F_A | F_D | F_S | F_B =>
+                     Add ('r');
+                     Add_Num2 (Val);
+                  when F_FA | F_FD | F_FS | F_FB | F_FC =>
+                     Add ('f');
+                     Add_Num2 (Val);
+                  when F_Disp =>
+                     pragma Assert (Insn.Fields (I + 1) = F_A);
+                     pragma Assert (Insn.Fields (I + 2) = F_Eof);
+                     Add_Simm (Val);
+                     Add ("(r");
+                     Add_Num2 (Get_Field (Fields_Mask (F_A)));
+                     Add (')');
+                     exit;
+                  when F_Simm =>
+                     Add_Simm (Val);
+                  when F_Li =>
+                     declare
+                        Target : Unsigned_32;
+                     begin
+                        --  Sign extend
+                        if (Val and 16#800000#) /= 0 then
+                           Val := Val or 16#Ff000000#;
+                        end if;
+                        Target := Shift_Left (Val, 2);
+                        --  Test AA field.
+                        if (W and 2) = 0 then
+                           Target := Target + Pc;
+                        end if;
+                        Add ("0x");
+                        Add (Hex_Image (Target));
+                        if Proc_Cb /= null then
+                           Proc_Cb.all (Target, Line, Line_Pos);
+                        end if;
+                     end;
+                  when F_BD =>
+                     declare
+                        Target : Unsigned_32;
+                     begin
+                        --  Sign extend
+                        if (Val and 16#8000#) /= 0 then
+                           Val := Val or 16#Ffff0000#;
+                        end if;
+                        Target := Shift_Left (Val, 2);
+                        --  Test AA field.
+                        if (W and 2) = 0 then
+                           Target := Target + Pc;
+                        end if;
+                        Add ("0x");
+                        Add (Hex_Image (Target));
+                        if Proc_Cb /= null then
+                           Proc_Cb.all (Target, Line, Line_Pos);
+                        end if;
+                     end;
+                  when F_CrfD | F_CrfS =>
                      Add ("cr");
-                     Add_Digit (Natural (Crfd));
-                     Add (',');
-                     --Add_Digit (Natural (Get_Field (9, 1)));
-                     --Add (',');
-                     Add_Reg (Get_Field_A);
-                     Add (',');
-                     Add_Reg (Get_Field_B);
-                  when 2#0000001000# =>
-                     Add_D_A_B_Rc ("subfc");
-                  when 2#1000001000# =>
-                     Add_D_A_B_Rc ("subfco");
-                  when 2#0000001010# =>
-                     Add_D_A_B_Rc ("addc");
-                  when 2#1000001010# =>
-                     Add_D_A_B_Rc ("addco");
-                  when 2#0000001011# =>
-                     Add_D_A_B_Rc ("mulhwu");
-                  when 2#0000010011# =>
-                     Add ("mfcr");
-                     Add_Ht;
-                     Add_Reg (Get_Field_A);
-                  when 2#0000010100# =>
-                     Add_D_A_B_Rc ("lwarx"); -- Rc = 0
-                  when 2#0000010111# =>
-                     Add_D_A_B_Rc ("lwzx"); -- Rc = 0
-                  when 2#0000011000# =>
-                     Add_A_S_B_Rc ("slw");
-                  when 2#0000011010# =>
-                     Add_A_S_Rc ("cntlzw");
-                  when 2#0000011100# =>
-                     Add_A_S_B_Rc ("and");
-                  when 2#0000100000# =>
-                     Add_Crfd_A ("cmpl");
-                     Add_Reg (Get_Field_B);
-                  when 2#0000101000# =>
-                     Add_D_A_B_Rc ("subf");
-                  when 2#1000101000# =>
-                     Add_D_A_B_Rc ("subfo");
-                  when 2#0000110110# =>
-                     Add_A_B ("dcbst");
-                  when 2#0000111100# =>
-                     Add_A_S_B_Rc ("andc");
-                  when 2#0001001011# =>
-                     Add_D_A_B_Rc ("mulhw");
-                  when 2#0001010011# =>
-                     Add ("mfmsr");
-                     Add_Ht;
-                     Add_Reg (Get_Field_D);
-                  when 2#0001010110# =>
-                     Add_A_B ("dcbf");
-                  when 2#0001010111# =>
-                     Add_D_A_B_Rc ("lbzx"); -- Rc = 0
-                  when 2#0001101000# =>
-                     Add_D_A_Rc ("neg");
-                  when 2#1001101000# =>
-                     Add_D_A_Rc ("nego");
-                  when 2#0001110111# =>
-                     Add_D_A_B_Rc ("lbzux"); -- Rc = 0
-                  when 2#0001111100# =>
-                     Add_A_S_B_Rc ("nor");
-                  when 2#0010001000# =>
-                     Add_D_A_B_Rc ("subfe");
-                  when 2#1010001000# =>
-                     Add_D_A_B_Rc ("subfeo");
-                  when 2#0010001010# =>
-                     Add_D_A_B_Rc ("adde");
-                  when 2#1010001010# =>
-                     Add_D_A_B_Rc ("addeo");
-                  when 2#0010010000# =>
-                     Add ("mtcrf");
-                     Add_Ht;
-                     Add ("0x");
-                     Add (Hex_Image (Unsigned_8 (Get_Field (12, 8))));
-                     Add (',');
-                     Add_Reg (Get_Field_S);
-                  when 2#0010010010# =>
-                     Add ("mtmsr");
-                     Add_HT;
-                     Add_Reg (Get_Field_S);
-                  when 2#0010010110# =>
-                     Add_D_A_B_Rc ("stwcx"); -- S = D, Rc = 1
-                  when 2#0010010111# =>
-                     Add_D_A_B_Rc ("stwu"); -- S = D, Rc = 0
-                  when 2#0010110111# =>
-                     Add_D_A_B_Rc ("stwux"); -- S = D, Rc = 0
-                  when 2#0011001000# =>
-                     Add_D_A_Rc ("subfz");
-                  when 2#1011001000# =>
-                     Add_D_A_Rc ("subfzo");
-                  when 2#0011001010# =>
-                     Add_D_A_Rc ("addze");
-                  when 2#1011001010# =>
-                     Add_D_A_Rc ("addzeo");
-                  when 2#0011010010# =>
-                     Add ("mtsr");
-                     Add_HT;
-                     Add_Num2 (Get_Field (12, 4));
-                     Add (',');
-                     Add_Reg (Get_Field_S);
-                  when 2#0011010111# =>
-                     Add_D_A_B_Rc ("stbx"); -- S = D, Rc = 0
-                  when 2#0011101000# =>
-                     Add_D_A_Rc ("subfme");
-                  when 2#1011101000# =>
-                     Add_D_A_Rc ("subfmeo");
-                  when 2#0011101010# =>
-                     Add_D_A_Rc ("addme");
-                  when 2#1011101010# =>
-                     Add_D_A_Rc ("addmeo");
-                  when 2#0011101011# =>
-                     Add_D_A_B_Rc ("mullw");
-                  when 2#1011101011# =>
-                     Add_D_A_B_Rc ("mullwo");
-                  when 2#0011110010# =>
-                     Add_D ("mtsrin");  -- S = D
-                     Add (',');
-                     Add_Reg (Get_Field_B);
-                  when 2#0011110111# =>
-                     Add_D_A_B_Rc ("stbux"); -- S=D, Rc = 0
-                  when 2#0100001010# =>
-                     Add_D_A_B_Rc ("add");
-                  when 2#1100001010# =>
-                     Add_D_A_B_Rc ("addo");
-                  when 2#0100010111# =>
-                     Add_D_A_B_Rc ("lhzx"); -- Rc = 0
-                  when 2#0100110010# =>
-                     Add ("tlbie");
-                     Add_Ht;
-                     Add_Reg (Get_Field_B);
-                  when 2#0100111100# =>
-                     Add_A_S_B_Rc ("xor");
-                  when 2#0101010011# =>
-                     Spr := Get_Field (11, 10);
-                     if Spr = Spr_Lr then
-                        Add ("mflr");
-                        Add_Ht;
-                        Add_Reg (Get_Field_D);
-                     else
-                        Add ("mfspr");
-                        Add_HT;
-                        Add_Reg (Get_Field_D);
-                        Add (",0x" );
-                        Add (Hex_Image (Unsigned_16 (Spr)));
-                     end if;
-                  when 2#0101010111# =>
-                     Add_D_A_B_Rc ("lhax"); -- Rc = 0
-                  when 2#0101110011# =>
-                     Add ("mftb");
-                     Add_HT;
-                     Add_Reg (Get_Field_D);
-                     Add (",0x" );
-                     Add (Hex_Image (Unsigned_16 (Get_Field (11, 10))));
-                  when 2#0110010111# =>
-                     Add_D_A_B_Rc ("sthx"); -- D = S, Rc = 0
-                  when 2#0110011100# =>
-                     Add_A_S_B_Rc ("orc");
-                  when 2#0110111100# =>
-                     S := Get_Field_S;
-                     A := Get_Field_A;
-                     B := Get_Field_B;
-                     Rc := Get_Field (31, 1);
-                     if S = B and Rc = 0 then
-                        Add ("mov");
-                        Add_Ht;
-                        Add_Reg (A);
-                        Add (',');
-                        Add_Reg (S);
-                     else
-                        Add_Rc_HT ("or");
-                        Add_Reg (A);
-                        Add (',');
-                        Add_Reg (S);
-                        Add (',');
-                        Add_Reg (B);
-                     end if;
-                  when 2#0111001011# =>
-                     Add_D_A_B_Rc ("divwu");
-                  when 2#1111001011# =>
-                     Add_D_A_B_Rc ("divwuo");
-                  when 2#0111010011# =>
-                     Spr := Get_Field (11, 10);
-                     if Spr = Spr_Lr then
-                        Add ("mtlr");
-                        Add_HT;
-                        Add_Reg (Get_Field_D);
-                     elsif Spr = Spr_Ctr then
-                        Add ("mtctr");
-                        Add_HT;
-                        Add_Reg (Get_Field_D);
-                     else
-                        Add ("mtspr");
-                        Add_HT;
-                        Add_Reg (Get_Field_D);
-                        Add (",0x");
-                        Add (Hex_Image (Unsigned_16 (Spr)));
-                     end if;
-                  when 2#0111011100# =>
-                     Add_A_S_B_Rc ("nand");
-                  when 2#0111101011# =>
-                     Add_D_A_B_Rc ("divw");
-                  when 2#1111101011# =>
-                     Add_D_A_B_Rc ("divwo");
-                  when 2#1000010110# =>
-                     Add_D_A_B_Rc ("lwbrx"); -- Rc = 0
-                  when 2#1000010111# =>
-                     Add_D_A_B_Rc ("lfsx"); -- Rc = 0
-                  when 2#1000011000# =>
-                     Add_A_S_B_Rc ("srw");
-                  when 2#1000110110# =>
-                     Add ("tlbsync");
-                  when 2#1000110111# =>
-                     Add_D_A_B_Rc ("lfsux"); -- Rc = 0
-                  when 2#1001010011# =>
-                     Add ("mfsr");
-                     Add_HT;
-                     Add_Reg (Get_Field_D);
-                     Add (',');
-                     Add_Num2 (Get_Field (12,3));
-                  when 2#1001010110# =>
-                     Add ("sync");
-                  when 2#1001010111# =>
-                     Add_D_A_B_Rc ("lfdx"); -- Rc = 0;
-                  when 2#1001110111# =>
-                     Add_D_A_B_Rc ("lfdxu"); -- Rc = 0;
-                  when 2#1010010011# =>
-                     Add_D ("mfsrin");
-                     Add (',');
-                     Add_Reg (Get_Field_B);
-                  when 2#1010010110# =>
-                     Add_D_A_B_Rc ("stwbrx"); -- S = D, Rc
-                  when 2#1010010111# =>
-                     Add_D_A_B_Rc ("stfsx"); -- S = R, Rc = 0
-                  when 2#1011010111# =>
-                     Add_D_A_B_Rc ("stfdx"); -- S = R, Rc = 0
-                  when 2#1011110111# =>
-                     Add_D_A_B_Rc ("stfdux"); -- S = R, Rc = 0
-                  when 2#1100010110# =>
-                     Add_D_A_B_Rc ("lhbrx"); -- Rc = 0
-                  when 2#1100011000# =>
-                     Add_A_S_B_Rc ("sraw");
-                  when 2#1100111000# =>
-                     Add_A_S_Rc ("srawi");
-                     Add (',');
-                     Add_Num2 (Get_Field_Sh);
-                  when 2#1101010110# =>
-                     Add ("eieio");
-                  when 2#1110010110# =>
-                     Add_D_A_B_Rc ("sthbrx"); -- S = R, Rc = 0
-                  when 2#1110011010# =>
-                     Add_A_S_Rc ("extsh");
-                  when 2#1110111010# =>
-                     Add_A_S_Rc ("extsb");
-                  when 2#1111010110# =>
-                     Add_A_B ("ibci");
+                     Add_Num2 (Val);
+                  when F_BI | F_BO | F_SH | F_MB | F_ME =>
+                     Add_Num2 (Val);
                   when others =>
-                     Add ("unknown op: 1f-xo=");
-                     Add (Bin_Image (Xo, 10));
+                     Add (Hex_Image (Val));
                end case;
-            end;
-         when 16#20# | 16#21#=>
-            Add_Int_Load_Store ("lwz");
-         when 16#22# | 16#23# =>
-            Add_Int_Load_Store ("lbz");
-         when 16#24# | 16#25# =>
-            Add_Int_Load_Store ("stw");
-         when 16#26# | 16#27# =>
-            Add_Int_Load_Store ("stb");
-         when 16#28# | 16#29# =>
-            Add_Int_Load_Store ("lhz");
-         when 16#2a# | 16#2b# =>
-            Add_Int_Load_Store ("lha");
-         when 16#2c# | 16#2d# =>
-            Add_Int_Load_Store ("sth");
-         when 16#30# | 16#31# =>
-            Add_Fp_Load_Store ("lfs");
-         when 16#32# | 16#33# =>
-            Add_Fp_Load_Store ("lfd");
-         when 16#34# | 16#35# =>
-            Add_Fp_Load_Store ("stfs");
-         when 16#36# | 16#37# =>
-            Add_Fp_Load_Store ("stfd");
-         when 16#3B# =>
-            declare
-               Xo : constant Unsigned_32 := Get_Field (26, 5);
-            begin
-               case Xo is
-                  when 2#10010# =>
-                     Add_Fd_Fa_Fb_Rc ("fdivs");
-                  when 2#10100# =>
-                     Add_Fd_Fa_Fb_Rc ("fsubs");
-                  when 2#10101# =>
-                     Add_Fd_Fa_Fb_Rc ("fadds");
-                  when 2#11001# =>
-                     Add_Fd_Rc ("fmuls");
-                     Add (',');
-                     Add_Fp (Get_Field_A);
-                     Add (',');
-                     Add_Fp (Get_Field_C);
-                  when 2#11100# =>
-                     Add_Fd_Fa_Fb_Fc_Rc ("fmsubs");
-                  when 2#11101# =>
-                     Add_Fd_Fa_Fb_Fc_Rc ("fmadds");
-                  when 2#11110# =>
-                     Add_Fd_Fa_Fb_Fc_Rc ("fnmsubs");
-                  when 2#11111# =>
-                     Add_Fd_Fa_Fb_Fc_Rc ("fnmadds");
-                  when others =>
-                     Add ("unknown op: 3b-xo=");
-                     Add (Bin_Image (Xo, 5));
-               end case;
-            end;
-         when 16#3F# =>
-            declare
-               Xo : constant Unsigned_32 := Get_Field (21, 10);
-            begin
-               case Xo and 2#11111# is
-                  when 2#10010# =>
-                     Add_Fd_Fa_Fb_Rc ("fdiv");
-                     return;
-                  when 2#10100# =>
-                     Add_Fd_Fa_Fb_Rc ("fsub");
-                     return;
-                  when 2#10101# =>
-                     Add_Fd_Fa_Fb_Rc ("fadd");
-                     return;
-                  when 2#11001# =>
-                     Add_Fd_Rc ("fmul");
-                     Add (',');
-                     Add_Fp (Get_Field_A);
-                     Add (',');
-                     Add_Fp (Get_Field_C);
-                     return;
-                  when 2#11100# =>
-                     Add_Fd_Fa_Fb_Fc_Rc ("fmsub");
-                     return;
-                  when 2#11101# =>
-                     Add_Fd_Fa_Fb_Fc_Rc ("fmadd");
-                     return;
-                  when 2#11110# =>
-                     Add_Fd_Fa_Fb_Fc_Rc ("fnmsub");
-                     return;
-                  when 2#11111# =>
-                     Add_Fd_Fa_Fb_Fc_Rc ("fnmadd");
-                     return;
-                  when others =>
-                     null;
-               end case;
-               case Xo is
-                  when 2#0000000000# =>
-                     Add_Crfd ("fcmpu");
-                     Add_Fp (Get_Field_A);
-                     Add (',');
-                     Add_Fp (Get_Field_B);
-                  when 2#0000001100# =>
-                     Add_Fd_fb_Rc ("frsp");
-                  when 2#0000001110# =>
-                     Add_Fd_Fb_Rc ("fctiw");
-                  when 2#0000001111# =>
-                     Add_Fd_Fb_Rc ("fctiwz");
-                  when 2#0000100000# =>
-                     Add_Crfd ("fcmpo");
-                     Add_Fp (Get_Field_A);
-                     Add (',');
-                     Add_Fp (Get_Field_B);
-                  when 2#0000100110# =>
-                     Add_Rc_Ht ("mtfsb1");
-                     Add_Crb (Get_Field_D);
-                  when 2#0001000000# =>
-                     Add_Crfd ("mcrfs");
-                     Add_Cr (Get_Field_Crfs);
-                  when 2#0001000110# =>
-                     Add_Rc_Ht ("mtfsb0");
-                     Add_Crb (Get_Field_D);
-                  when 2#0000101000# =>
-                     Add_Fd_fb_Rc ("fneg");
-                  when 2#0001001000# =>
-                     Add_Fd_Fb_Rc ("fmr");
-                  when 2#0010000110# =>
-                     Add_Rc_HT ("mtfsfi");
-                     Add_Cr (Get_Field_Crfd);
-                     Add (",0x");
-                     Add (Hex_Image (Unsigned_8 (Get_Field (16, 4))));
-                  when 2#0010001000# =>
-                     Add_Fd_Fb_Rc ("fnabs");
-                  when 2#0100001000# =>
-                     Add_Fd_Fb_Rc ("fabs");
-                  when 2#1001000111# =>
-                     Add_Rc_HT ("mffs");
-                     Add_Fp (Get_Field_D);
-                  when 2#1011000111# =>
-                     Add_Rc_Ht ("mtfsf");
-                     Add ("0x");
-                     Add (Hex_Image (Unsigned_8 (Get_Field (7, 8))));
-                     Add (',');
-                     Add_Fp (Get_Field_B);
-                  when others =>
-                     Add ("unknown op: 3f-xo=");
-                     Add (Bin_Image (Xo, 10));
-               end case;
-            end;
-
-         when 16#00# | 16#01# | 16#02# | 16#1e# =>
-            Add (".long");
-            Add_HT;
-            Add ("0x");
-            Add (Hex_Image (W));
-
-         when others =>
-            Add ("unknown op: ");
-            Add (Hex_Image (Opcd));
-      end case;
+            end loop;
+         end;
+      else
+         Add (".long ");
+         Add (Hex_Image (W));
+      end if;
    end Disassemble_Insn;
+
+begin
+   Gen_Masks;
 end Disa_Ppc;
 
