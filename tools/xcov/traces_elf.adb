@@ -977,20 +977,23 @@ package body Traces_Elf is
          end loop;
 
          if N_Line /= null then
+            --  Set Last.
             Line.Last := N_Line.First - 1;
             if Subprg /= null then
                Line.Parent := Subprg;
             end if;
          end if;
          if Subprg /= null
-           and then (Line.Last > Subprg.Last or Line.Last = 0)
+           and then (Line.Last > Subprg.Last or Line.Last = Line.First)
          then
+            --  Truncate current line to this subprogram.
             Line.Last := Subprg.Last;
             Line.Parent := Subprg;
          end if;
          if Cu /= null
-           and then (Line.Last > Cu.Last or Line.Last = 0)
+           and then (Line.Last > Cu.Last or Line.Last = Line.First)
          then
+            --  Truncate current line to the CU.
             Line.Last := Cu.Last;
             Line.Parent := Cu;
          end if;
