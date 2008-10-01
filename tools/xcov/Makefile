@@ -3,7 +3,7 @@ GNATMAKE=gnatmake
 all: xcov
 
 xcov: force
-	$(GNATMAKE) -gnat05 -gnatwae -g xcov
+	$(GNATMAKE) -gnat05 -gnatwae -gnata -g xcov
 
 clean: force
 	$(RM) -f *.o *.ali xcov
