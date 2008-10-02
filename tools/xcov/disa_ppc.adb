@@ -715,8 +715,8 @@ package body Disa_Ppc is
             end loop;
             Insns_Mask (I) := not Mask;
 
-            pragma Assert ((Insn.Insn and Mask) = 0,
-                           "Bad insn for " & Insn.Name.all);
+            --  pragma Assert ((Insn.Insn and Mask) = 0,
+            --               "Bad insn for " & Insn.Name.all);
          end;
       end loop;
    end Gen_Masks;
