@@ -318,7 +318,8 @@ package body Traces_Names is
          Get_Next_Trace (T, It);
          exit when T = Bad_Trace;
          if T.First > Addr then
-            return Partially_Covered;
+            State := Update_Table (State, Not_Covered);
+            exit;
          end if;
          State := Update_Table (State, T.State);
          Addr := T.Last + 1;
@@ -326,7 +327,7 @@ package body Traces_Names is
       if State = No_Code then
          return Not_Covered;
       else
-         return State;
+         return State_Map (DO178B_Level, State);
       end if;
    end Compute_Routine_State;
 
@@ -357,7 +358,7 @@ package body Traces_Names is
          end if;
 
          if E.Insns /= null then
-            Put (":  " & Hex_Image (E.Insns'First)
+            Put (": " & Hex_Image (E.Insns'First)
                    & '-' & Hex_Image (E.Insns'Last));
          end if;
          New_Line;

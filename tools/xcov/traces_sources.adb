@@ -116,34 +116,6 @@ package body Traces_Sources is
       Filenames_Maps.Update_Element (Filenames, File.Cur, Process'Access);
    end Add_Line;
 
-   type State_Map_Array is
-     array (DO178B_Level_Type, Line_State) of Line_State;
-   State_Map : constant State_Map_Array :=
-     (Level_Raw => (No_Code => No_Code,
-                    Not_Covered => Not_Covered,
-                    Partially_Covered => Partially_Covered,
-                    Covered => Covered,
-                    Covered_No_Branch => Covered_No_Branch,
-                    Branch_Taken => Branch_Taken,
-                    Branch_Fallthrough => Branch_Fallthrough,
-                    Branch_Covered => Branch_Covered),
-      Level_A   => (No_Code => No_Code,
-                    Not_Covered => Not_Covered,
-                    Partially_Covered => Partially_Covered,
-                    Covered => Partially_Covered,
-                    Covered_No_Branch => Covered_No_Branch,
-                    Branch_Taken => Partially_Covered,
-                    Branch_Fallthrough => Partially_Covered,
-                    Branch_Covered => Covered_No_Branch),
-      Level_C   => (No_Code => No_Code,
-                    Not_Covered => Not_Covered,
-                    Partially_Covered => Covered_No_Branch,
-                    Covered => Covered_No_Branch,
-                    Covered_No_Branch => Covered_No_Branch,
-                    Branch_Taken => Covered_No_Branch,
-                    Branch_Fallthrough => Covered_No_Branch,
-                    Branch_Covered => Covered_No_Branch));
-
    function Get_Stat_String (Stats : Stat_Array) return String
    is
       Total : Natural := 0;

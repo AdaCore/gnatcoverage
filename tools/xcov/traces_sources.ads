@@ -74,6 +74,10 @@ package Traces_Sources is
    type State_Char_Array is array (Line_State) of Character;
    State_Char : constant State_Char_Array;
 
+   --  Degradation of a state according to the level.
+   type State_Map_Array is array (DO178B_Level_Type, Line_State) of Line_State;
+   State_Map : constant State_Map_Array;
+
    type Source_File is private;
 
    --  Find or create a new source file.
@@ -191,6 +195,33 @@ private
       Branch_Taken => '>',
       Branch_Fallthrough => 'v',
       Branch_Covered => '*');
+
+   State_Map : constant State_Map_Array :=
+     (Level_Raw => (No_Code => No_Code,
+                    Not_Covered => Not_Covered,
+                    Partially_Covered => Partially_Covered,
+                    Covered => Covered,
+                    Covered_No_Branch => Covered_No_Branch,
+                    Branch_Taken => Branch_Taken,
+                    Branch_Fallthrough => Branch_Fallthrough,
+                    Branch_Covered => Branch_Covered),
+      Level_A   => (No_Code => No_Code,
+                    Not_Covered => Not_Covered,
+                    Partially_Covered => Partially_Covered,
+                    Covered => Partially_Covered,
+                    Covered_No_Branch => Covered_No_Branch,
+                    Branch_Taken => Partially_Covered,
+                    Branch_Fallthrough => Partially_Covered,
+                    Branch_Covered => Covered_No_Branch),
+      Level_C   => (No_Code => No_Code,
+                    Not_Covered => Not_Covered,
+                    Partially_Covered => Covered_No_Branch,
+                    Covered => Covered_No_Branch,
+                    Covered_No_Branch => Covered_No_Branch,
+                    Branch_Taken => Covered_No_Branch,
+                    Branch_Fallthrough => Covered_No_Branch,
+                    Branch_Covered => Covered_No_Branch));
+
 
    type Stat_Array is array (Line_State) of Natural;
 
