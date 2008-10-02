@@ -16,10 +16,13 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+pragma Restrictions (No_Elaboration_Code);
+
 with Interfaces; use Interfaces;
 with Ppc_Descs; use Ppc_Descs;
 
 package Ppc_Opcodes is
+   
    type String_Cst_Acc is access constant String;
 
    type Ppc_Fields_Arr is array (0 .. 5) of Ppc_Fields;
