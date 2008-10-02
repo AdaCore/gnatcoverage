@@ -159,6 +159,9 @@ package body Disa_Ppc is
       (new S'("cror"),
        2#010011_00000_00000_00000_0111000001_0#,
        (F_CrbD, F_CrbA, F_CrbB, others => F_Eof)),
+      (new S'("bctrl"),  -- Simplified mnemonic
+       2#010011_10100_00000_00000_1000010000_1#,
+       (others => F_Eof)),
       (new S'("bcctr"),
        2#010011_00000_00000_00000_1000010000_0#,
        (F_LK, F_BO, F_BI, others => F_Eof)),
