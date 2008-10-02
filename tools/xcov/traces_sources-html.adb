@@ -114,7 +114,7 @@ package body Traces_Sources.Html is
                Idx := Idx + 1;
          end case;
       end loop;
-      pragma Assert (Idx = S'Last + 1);
+      pragma Assert (Idx = Res'Last + 1);
       return Res;
    end To_Xml_String;
 
