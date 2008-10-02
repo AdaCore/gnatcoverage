@@ -34,13 +34,19 @@ package Ppc_Descs is
       F_LI, F_SH, F_MB, F_ME, F_CRM, F_Sr, F_Tbr, F_Spr, F_NB,
       F_Disp, F_Imm, F_Fm, F_TO,
 
+      F_OPC,
+      F_XO,
       F_Eof);
 
    --  These fields add characters to the mnemonic.
    subtype Ppc_Mnemo_Fields is Ppc_Fields range F_AA .. F_L;
 
    --  Non fake fields.
-   subtype Ppc_Valid_Fields is Ppc_Fields range Ppc_Fields'First .. F_To;
+   subtype Ppc_Valid_Fields is Ppc_Fields range Ppc_Fields'First .. F_XO;
+
+   --  Generate a bit mask from a field.
+   --  Use the PowerPC Big-endian convention, ie bit 0 is 2**31.
+   function Get_Mask (Field : Ppc_Fields) return Unsigned_32;
 
    --  A bit number.  PPC convention (LSB) is assumed.
    subtype Bit_Number is Natural range 0 .. 31;
@@ -49,10 +55,6 @@ package Ppc_Descs is
    type Field_Type is record
       First, Last : Bit_Number;
    end record;
-
-   --  Generate a bit mask from a field.
-   --  Use the PowerPC Big-endian convention, ie bit 0 is 2**31.
-   function Get_Mask (F : Field_Type) return Unsigned_32;
 
    type Fields_Mask_Type is array (Ppc_Valid_Fields) of Field_Type;
 
@@ -79,6 +81,8 @@ package Ppc_Descs is
       F_Sr => (12, 15),
       F_Br_Hint => (10, 10),
       F_U => (5, 5),
-      F_SIMM | F_UIMM | F_Disp => (16, 31));
+      F_SIMM | F_UIMM | F_Disp => (16, 31),
+      F_OPC => (0, 5),
+      F_XO => (21, 30));
 
 end Ppc_Descs;

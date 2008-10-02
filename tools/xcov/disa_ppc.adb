@@ -49,7 +49,7 @@ package body Disa_Ppc is
             for J in Insn.Fields'Range loop
                F := Insn.Fields (J);
                exit when F = F_Eof;
-               Mask := Mask or Get_Mask (Fields_Mask (F));
+               Mask := Mask or Get_Mask (F);
             end loop;
             Insns_Mask (I) := not Mask;
 
