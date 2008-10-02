@@ -16,27 +16,14 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with System;
-with Traces;
 
-package Disa_Ppc is
-   --  Call-back used to find a relocation symbol.
-   type Symbol_Proc_Type is access procedure (Pc : Traces.Pc_Type;
-                                              Line : in out String;
-                                              Line_Pos : in out Natural);
-
-   --  Return the length of the instruction at Addr.
-   function Get_Insn_Length (Addr : System.Address) return Positive;
-   pragma Inline (Get_Insn_Length);
-
-   --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.
-   --  LINE_POS is the index of the next character to be written (ie line
-   --   length if Line'First = 1).
-   procedure Disassemble_Insn (Addr : System.Address;
-                               Pc : Traces.Pc_Type;
-                               Line : out String;
-                               Line_Pos : out Natural;
-                               Insn_Len : out Natural;
-                               Proc_Cb : Symbol_Proc_Type);
-
-end Disa_Ppc;
+package body Ppc_Descs is
+   function Get_Mask (F : Field_Type) return Unsigned_32
+   is
+      pragma Assert (not (F.First = 0 and F.Last = 31));
+      Nbr_Bits : constant Bit_Number := F.Last - F.First + 1;
+   begin
+      pragma Assert (F.First <= F.Last);
+      return ((2 ** Nbr_Bits) - 1) * (2 ** (31 - F.Last));
+   end Get_Mask;
+end Ppc_Descs;
