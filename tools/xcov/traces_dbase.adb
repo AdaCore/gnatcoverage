@@ -54,6 +54,9 @@ package body Traces_Dbase is
       if Status = False then
          --  Merge
          E := Element (Cur);
+         if E.First > First then
+            E.First := First;
+         end if;
          E.Op := E.Op or Op;
          Replace_Element (Base, Cur, E);
       end if;
