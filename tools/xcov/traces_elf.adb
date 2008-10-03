@@ -1213,6 +1213,8 @@ package body Traces_Elf is
       Sec : Addresses_Info_Acc;
 
       Subprogram_Base : Traces_Base_Acc;
+
+      Debug : constant Boolean := False;
    begin
       if Is_Empty (Symbols_Set) then
          return;
@@ -1240,7 +1242,7 @@ package body Traces_Elf is
             Init (Base, It, Sym.First);
             Get_Next_Trace (Trace, It);
 
-            if False then
+            if Debug then
                Put (Hex_Image (Sym.First));
                Put ('-');
                Put (Hex_Image (Sym.Last));
@@ -1251,6 +1253,9 @@ package body Traces_Elf is
 
             while Trace /= Bad_Trace loop
                exit when Trace.First > Sym.Last;
+               if Debug then
+                  Dump_Entry (Trace);
+               end if;
                if Trace.Last >= Sym.First then
                   if Trace.First > Sym.First then
                      First := Trace.First - Sym.First;
@@ -1260,6 +1265,14 @@ package body Traces_Elf is
                   Last := Trace.Last - Sym.First;
                   if Last > Sym.Last - Sym.First then
                      Last := Sym.Last - Sym.First;
+                  end if;
+                  if Debug then
+                     Put (Hex_Image (First));
+                     Put ('-');
+                     Put (Hex_Image (Last));
+                     Put (": ");
+                     Dump_Op (Trace.Op);
+                     New_Line;
                   end if;
                   Add_Entry (Subprogram_Base.all, First, Last, Trace.Op);
                end if;
