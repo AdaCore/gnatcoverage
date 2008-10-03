@@ -92,6 +92,26 @@ begin
       end loop;
    end;
 
+   --  Check instructions are corresctly ordered.
+   --  (only done for non-simplified one).
+   declare
+      Last : Unsigned_32;
+   begin
+      Last := Ppc_Insns (Ppc_Insns'First).Insn;
+
+      for I in Ppc_Insns'First + 1 .. Ppc_Insns'Last loop
+         if Simplified (I) < 0 then
+            if Ppc_Insns (I).Insn <= Last then
+               Put_Line (Standard_Error,
+                         "Instruction " & Ppc_Insns (I).Name.all
+                           & " is not correctly ordered");
+               raise Program_Error;
+            end if;
+            Last := Ppc_Insns (I).Insn;
+         end if;
+      end loop;
+   end;
+
    if Action = Action_Disa_Opcodes then
       --  Output ppc_disopc.tmpl
       declare
@@ -113,6 +133,7 @@ begin
       Put_Line ("     (");
    end if;
 
+   --  Generate the instruction table.
    for I in Ppc_Insns'Range loop
       declare
          Insn : Ppc_Insn_Descr renames Ppc_Insns (I);
@@ -193,7 +214,8 @@ begin
                Print_Field_If_Not_Exist (F_RC, "RC");
             end if;
             if V /= 0 then
-               Put (" XXX");
+               Put_Line (" XXX");
+               raise Program_Error;
             end if;
          end Print_Opcode;
 
@@ -231,9 +253,10 @@ begin
 
    if Action = Action_Disa_Opcodes then
       Put_Line ("     );");
-   end if;
 
-   if Action = Action_Disa_Opcodes then
+      --  Generate the Index table.
+      --  This table speed-up the search by having to first instruction
+      --  that correspond to the OPC.
       declare
          Firsts : array (Natural range 0 .. 64) of Integer := (others => -1);
          Opc : Natural;
