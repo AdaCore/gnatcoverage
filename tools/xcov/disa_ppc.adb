@@ -22,43 +22,9 @@ with Ada.Unchecked_Conversion;
 with System.Storage_Elements;
 with Hex_Images; use Hex_Images;
 with Ppc_Descs; use Ppc_Descs;
-with Ppc_Opcodes; use Ppc_Opcodes;
+with Ppc_Disopc; use Ppc_Disopc;
 
 package body Disa_Ppc is
-   type Insns_Masks_Type is array (Ppc_Insns'Range) of Unsigned_32;
-   Insns_Mask : Insns_Masks_Type;
-
-   procedure Gen_Masks
-   is
-      --M_Opc : constant Unsigned_32 := Field ((0, 5));
-      Mask : Unsigned_32;
-      --Prev : Unsigned_32;
-      F : Ppc_Fields;
-   begin
-      --Prev := 0;
-      for I in Ppc_Insns'Range loop
-         declare
-            Insn : Ppc_Insn_Descr renames Ppc_Insns (I);
-         begin
-            --  Be sure the insns are ordered.
-            --pragma Assert (Insn.Insn > Prev,
-            --              "insn " & Insn.Name.all & " is not ordered");
-            --Prev := Insn.Insn;
-
-            Mask := 0;
-            for J in Insn.Fields'Range loop
-               F := Insn.Fields (J);
-               exit when F = F_Eof;
-               Mask := Mask or Get_Mask (F);
-            end loop;
-            Insns_Mask (I) := not Mask;
-
-            --  pragma Assert ((Insn.Insn and Mask) = 0,
-            --               "Bad insn for " & Insn.Name.all);
-         end;
-      end loop;
-   end Gen_Masks;
-
    function Get_Insn_Length (Addr : System.Address) return Positive
    is
       pragma Unreferenced (Addr);
@@ -150,14 +116,6 @@ package body Disa_Ppc is
          Add_Digit (Natural (L));
       end Add_Num2;
 
-
-      function Get_Field (F : Field_Type) return Unsigned_32
-      is
-         Len : constant Natural := F.Last - F.First + 1;
-      begin
-         return Shift_Right (Shift_Left (W, F.First), 32 - Len);
-      end Get_Field;
-
       procedure Add_Simm (Val : Unsigned_32)
       is
          V : constant Unsigned_16 := Unsigned_16 (Val);
@@ -171,25 +129,27 @@ package body Disa_Ppc is
          end if;
       end Add_Simm;
 
-      procedure Add_Uimm
+      procedure Add_Uimm (Val : Unsigned_32)
       is
-         V : constant Unsigned_16 := Unsigned_16 (Get_Field ((16, 31)));
+         V : constant Unsigned_16 := Unsigned_16 (Val);
       begin
          Add ("0x");
          Add (Hex_Image (V));
       end Add_Uimm;
 
-      pragma Unreferenced (Add_Uimm);
-
       Insn_Index : Integer := -1;
+      Opc : Natural;
    begin
       W := Get_Insn (Addr);
       Insn_Len := 4;
       Line_Pos := Line'First;
 
       --  Find insn.
-      for I in Ppc_Insns'Range loop
-         if (W and Insns_Mask (I)) = Ppc_Insns (I).Insn then
+      Opc := Natural (Get_Field (F_OPC, W));
+      --  Should be Ppc_Opc_Index (opc + 1) - 1, but this would miss
+      --  the with-update instructions.
+      for I in Ppc_Opc_Index (Opc) .. Ppc_Opc_Index (Opc + 1) loop
+         if (W and Ppc_Insns (I).Mask) = Ppc_Insns (I).Insn then
             Insn_Index := I;
             exit;
          end if;
@@ -222,7 +182,7 @@ package body Disa_Ppc is
                   null;
                end if;
 
-               Val := Get_Field (Fields_Mask (F));
+               Val := Get_Field (F, W);
 
                case F is
                   when F_OE =>
@@ -268,11 +228,13 @@ package body Disa_Ppc is
                      pragma Assert (Insn.Fields (I + 2) = F_Eof);
                      Add_Simm (Val);
                      Add ("(r");
-                     Add_Num2 (Get_Field (Fields_Mask (F_A)));
+                     Add_Num2 (Get_Field (F_A, W));
                      Add (')');
                      exit;
                   when F_Simm =>
                      Add_Simm (Val);
+                  when F_Uimm =>
+                     Add_Uimm (Val);
                   when F_Li =>
                      declare
                         Target : Unsigned_32;
@@ -326,8 +288,5 @@ package body Disa_Ppc is
          Add (Hex_Image (W));
       end if;
    end Disassemble_Insn;
-
-begin
-   Gen_Masks;
 end Disa_Ppc;
 

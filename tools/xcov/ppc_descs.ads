@@ -48,6 +48,9 @@ package Ppc_Descs is
    --  Use the PowerPC Big-endian convention, ie bit 0 is 2**31.
    function Get_Mask (Field : Ppc_Fields) return Unsigned_32;
 
+   --  Extract field FIELD from V.
+   function Get_Field (Field : Ppc_Fields; V : Unsigned_32) return Unsigned_32;
+
    --  A bit number.  PPC convention (LSB) is assumed.
    subtype Bit_Number is Natural range 0 .. 31;
 
@@ -85,4 +88,14 @@ package Ppc_Descs is
       F_OPC => (0, 5),
       F_XO => (21, 30));
 
+   --  Opcode field shift.
+   --  This unfortunately duplicates the values of Fields_Mask, but required
+   --  to be static.
+   S_OPC : constant := 2 ** (31 - 5);
+   S_BO  : constant := 2 ** (31 - 10);
+   S_BI  : constant := 2 ** (31 - 15);
+   S_LK  : constant := 2 ** (31 - 31);
+   S_XO  : constant := 2 ** (31 - 30);
+   S_RC  : constant := 2 ** (31 - 31);
+   S_SPR : constant := 2 ** (31 - 20);
 end Ppc_Descs;

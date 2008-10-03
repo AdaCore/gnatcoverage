@@ -22,14 +22,45 @@ with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
 with Interfaces; use Interfaces;
 with Ppc_Descs; use Ppc_Descs;
 with Ppc_Opcodes; use Ppc_Opcodes;
+with Hex_Images; use Hex_Images;
+with Ada.Command_Line; use Ada.Command_Line;
 
 procedure Ppc_Genopc is
+   procedure Usage is
+   begin
+      Put_Line ("usage: "
+                  & Command_Name & " [--regenerate | --disa-opcodes ]");
+      Set_Exit_Status (Failure);
+   end Usage;
+
+   type Action_Type is (Action_Regenerate,
+                        Action_Disa_Opcodes);
+   Action : Action_Type := Action_Disa_Opcodes;
+
    --  If no -1, index of the corresponding generic mnemonic.
    Simplified : array (Natural range Ppc_Insns'Range) of Integer
      := (others => -1);
 
    Masks : array (Ppc_Insns'Range) of Unsigned_32;
 begin
+   if Argument_Count > 1 then
+      Usage;
+      return;
+   elsif Argument_Count = 1 then
+      declare
+         Arg : constant String := Argument (1);
+      begin
+         if Arg = "--regenerate" then
+            Action := Action_Regenerate;
+         elsif Arg = "--disa-opcodes" then
+            Action := Action_Disa_Opcodes;
+         else
+            Usage;
+            return;
+         end if;
+      end;
+   end if;
+
    --  Compute Masks.
    for I in Ppc_Insns'Range loop
       declare
@@ -61,16 +92,34 @@ begin
       end loop;
    end;
 
+   if Action = Action_Disa_Opcodes then
+      --  Output ppc_disopc.tmpl
+      declare
+         F : File_Type;
+      begin
+         Open (F, In_File, "ppc_disopc.tmpl");
+         loop
+            declare
+               L : constant String := Get_Line (F);
+            begin
+               exit when L = "end Ppc_Disopc;";
+               Put_Line (L);
+            end;
+         end loop;
+         Close (F);
+      end;
+      Put_Line ("   Ppc_Insns : constant array (Natural range <>) of "
+                  & "Ppc_Insn_Descr :=");
+      Put_Line ("     (");
+   end if;
+
    for I in Ppc_Insns'Range loop
       declare
          Insn : Ppc_Insn_Descr renames Ppc_Insns (I);
 
-         function Get_Field (Field : Ppc_Fields) return Unsigned_32
-         is
-            F : constant Field_Type := Fields_Mask (Field);
-            Len : constant Natural := F.Last - F.First + 1;
+         function Get_Field (Field : Ppc_Fields) return Unsigned_32 is
          begin
-            return Shift_Right (Shift_Left (Insn.Insn, F.First), 32 - Len);
+            return Get_Field (Field, Insn.Insn);
          end Get_Field;
 
          V : Unsigned_32;
@@ -128,7 +177,31 @@ begin
                Print_Field_If_Nonzero (Field, Name);
             end if;
          end Print_Field_If_Not_Exist;
+
+         procedure Print_Opcode is
+         begin
+            V := Insn.Insn;
+
+            Print_Field_Always (F_Opc, "OPC");
+            Print_Field_If_Nonzero (F_Xo, "XO");
+            if Simplified (I) >= 0 then
+               Print_Field_If_Exist (F_BO, "BO");
+               Print_Field_If_Exist (F_BI, "BI");
+               Print_Field_If_Exist (F_Spr, "SPR");
+               Print_Field_If_Exist (F_LK, "LK");
+            else
+               Print_Field_If_Not_Exist (F_RC, "RC");
+            end if;
+            if V /= 0 then
+               Put (" XXX");
+            end if;
+         end Print_Opcode;
+
       begin
+         if I /= Ppc_Insns'First then
+            Put_Line (",");
+         end if;
+
          Put ("      (new S'(""" & Insn.Name.all & """),");
          if Simplified (I) >= 0 then
             Put ("  -- Simplified mnemonic");
@@ -136,22 +209,14 @@ begin
          New_Line;
 
          Put ("       ");
-         V := Insn.Insn;
-
-         Print_Field_Always (F_Opc, "OPC");
-         Print_Field_If_Nonzero (F_Xo, "XO");
-         if Simplified (I) >= 0 then
-            Print_Field_If_Exist (F_BO, "BO");
-            Print_Field_If_Exist (F_BI, "BI");
-            Print_Field_If_Exist (F_Spr, "SPR");
-            Print_Field_If_Exist (F_LK, "LK");
-         else
-            Print_Field_If_Not_Exist (F_RC, "RC");
-         end if;
-         if V /= 0 then
-            Put (" XXX");
-         end if;
+         Print_Opcode;
          Put_Line (",");
+
+         if Action = Action_Disa_Opcodes then
+            Put ("       16#");
+            Put (Hex_Image (Masks (I)));
+            Put_Line ("#,");
+         end if;
 
          Put ("       (");
          for J in Insn.Fields'Range loop
@@ -159,10 +224,58 @@ begin
             Put (Ppc_Fields'Image (Insn.Fields (J)));
             Put (", ");
          end loop;
-         Put_Line ("others => F_Eof)),");
-
-
-         --Insns_Mask (I) := not Mask;
+         Put ("others => F_Eof))");
       end;
    end loop;
+   New_Line;
+
+   if Action = Action_Disa_Opcodes then
+      Put_Line ("     );");
+   end if;
+
+   if Action = Action_Disa_Opcodes then
+      declare
+         Firsts : array (Natural range 0 .. 64) of Integer := (others => -1);
+         Opc : Natural;
+         Last : Natural := 0;
+      begin
+         for I in Ppc_Insns'Range loop
+            Opc := Natural (Get_Field (F_OPC, Ppc_Insns (I).Insn));
+            if Firsts (Opc) < 0 then
+               Firsts (Opc) := I;
+
+               --  Trick for 'with update' instructions.
+               if Last = Opc - 1
+                 and then Ppc_Insns (I - 1).Fields (0) = F_U
+               then
+                  Firsts (Last) := I - 1;
+                  Last := Last + 2;
+               else
+                  while Last < Opc loop
+                     Firsts (Last) := I;
+                     Last := Last + 1;
+                  end loop;
+                  Last := Last + 1;
+               end if;
+            end if;
+         end loop;
+         Firsts (Firsts'Last) := Ppc_Insns'Last + 1;
+
+         New_Line;
+         Put_Line
+           ("   Ppc_Opc_Index : constant array (0 .. 64) of Integer :=");
+         Put_Line ("     (");
+         for I in Firsts'Range loop
+            Put ("     ");
+            Put (Natural'Image (I) & " => " & Integer'Image (Firsts (I)));
+            if I /= Firsts'Last then
+               Put (",");
+            end if;
+            New_Line;
+         end loop;
+         Put_Line ("     );");
+      end;
+      New_Line;
+      Put_Line ("end Ppc_Disopc;");
+   end if;
 end Ppc_Genopc;
