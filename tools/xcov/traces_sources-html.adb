@@ -205,25 +205,32 @@ package body Traces_Sources.Html is
              & "<tr height=""10"">");
       if P.Fully = P.Total then
          --  Also includes P.Total = 0.
-         Put (F, "<td class=""SumBarCover"" width=""100""></td>");
+         Put (F, "<td class=""SumBarCover"" width=""100"""
+                & " title=""100% fully covered""></td>");
       else
          Fully := P.Fully * 100 / P.Total;
          if Fully /= 0 then
             Put (F, "<td class=""SumBarCover"" width=""");
             Put (F, Fully, 0);
-            Put (F, """></td>");
+            Put (F, """ title=""");
+            Put (F, Fully, 0);
+            Put (F, "% fully covered""></td>");
          end if;
          Partial := P.Partial * 100 / P.Total;
          if Partial /= 0 then
             Put (F, "<td class=""SumBarPartial"" width=""");
             Put (F, Partial, 0);
-            Put (F, """></td>");
+            Put (F, """ title=""");
+            Put (F, Partial, 0);
+            Put (F, "% partially covered""></td>");
          end if;
          Uncover := 100 - (Fully + Partial);
          if Uncover /= 0 then
             Put (F, "<td class=""SumBarNoCover"" width=""");
             Put (F, Uncover, 0);
-            Put (F, """></td>");
+            Put (F, """ title=""");
+            Put (F, Uncover, 0);
+            Put (F, "% not covered""></td>");
          end if;
       end if;
       Put_Line (F, "</tr></table>");
@@ -366,7 +373,7 @@ package body Traces_Sources.Html is
    begin
       Close_Insn_Table (Pp);
 
-      Put (Pp.Html_File, "  <tr class=");
+      Wrh (Pp, "  <tr class=");
       case State is
          when Not_Covered =>
             Wrh (Pp, """not_covered""");
@@ -385,6 +392,28 @@ package body Traces_Sources.Html is
                Wrh (Pp, """no_code_even""");
             end if;
       end case;
+
+      Wrh (Pp, " title=""");
+      case State is
+         when Not_Covered =>
+            Wrh (Pp, "code not covered");
+         when Partially_Covered =>
+            Wrh (Pp, "code partially covered");
+         when Branch_Taken
+           | Branch_Fallthrough
+           | Covered =>
+            Wrh (Pp, "code partially covered at decision level");
+         when Branch_Covered
+           | Covered_No_Branch =>
+            Wrh (Pp, "code covered");
+         when No_Code =>
+            Wrh (Pp, "no code generated for this line");
+      end case;
+      if Flag_Show_Asm and then State /= No_Code then
+         Wrh (Pp, " (click to display/mask assembly code)");
+      end if;
+      Wrh (Pp, """");
+
       if Flag_Show_Asm and then State /= No_Code then
          Wrh (Pp, " onclick=""flip(this)""");
       end if;
