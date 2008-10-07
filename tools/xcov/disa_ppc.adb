@@ -155,7 +155,7 @@ package body Disa_Ppc is
          end if;
       end loop;
 
-      if Insn_Index > 0 then
+      if Insn_Index >= 0 then
          declare
             Insn : Ppc_Insn_Descr renames Ppc_Insns (Insn_Index);
             Has_Ht : Boolean := False;
@@ -163,15 +163,21 @@ package body Disa_Ppc is
             F : Ppc_Fields;
             Val : Unsigned_32;
          begin
+            --  Display mnemonic.
+            --  This is a bounded string padded with spaces.
             for I in Insn.Name'Range loop
                exit when Insn.Name (I) = ' ';
                Add (Insn.Name (I));
             end loop;
 
+            --  Display fields.
             for I in Insn.Fields'Range loop
                F := Insn.Fields (I);
                exit when F = F_Eof;
                if F not in Ppc_Mnemo_Fields then
+                  --  Some fields are parts of the mnemonic.
+                  --  Add spaces when displaying the first field which is not
+                  --  part of the mnemonic.
                   if not Has_Ht then
                      Add_Ht;
                      Has_Ht := True;
@@ -179,6 +185,7 @@ package body Disa_Ppc is
                   elsif Is_First then
                      Is_First := False;
                   else
+                     --  Add a comma separator between fields.
                      Add (',');
                   end if;
                else
@@ -186,8 +193,10 @@ package body Disa_Ppc is
                   null;
                end if;
 
+               --  Extract field value.
                Val := Get_Field (F, W);
 
+               --  Display field value.
                case F is
                   when F_OE =>
                      if Val /= 0 then
@@ -240,43 +249,35 @@ package body Disa_Ppc is
                   when F_Uimm =>
                      Add_Uimm (Val);
                   when F_Li =>
-                     declare
-                        Target : Unsigned_32;
-                     begin
-                        --  Sign extend
-                        if (Val and 16#800000#) /= 0 then
-                           Val := Val or 16#Ff000000#;
-                        end if;
-                        Target := Shift_Left (Val, 2);
-                        --  Test AA field.
-                        if (W and 2) = 0 then
-                           Target := Target + Pc;
-                        end if;
-                        Add ("0x");
-                        Add (Hex_Image (Target));
-                        if Proc_Cb /= null then
-                           Proc_Cb.all (Target, Line, Line_Pos);
-                        end if;
-                     end;
+                     Val := Shift_Left (Val, 2);
+                     --  Sign extend
+                     if (Val and 16#800000#) /= 0 then
+                        Val := Val or 16#Ff000000#;
+                     end if;
+                     --  Test AA field.
+                     if (W and 2) = 0 then
+                        Val := Val + Pc;
+                     end if;
+                     Add ("0x");
+                     Add (Hex_Image (Val));
+                     if Proc_Cb /= null then
+                        Proc_Cb.all (Val, Line, Line_Pos);
+                     end if;
                   when F_BD =>
-                     declare
-                        Target : Unsigned_32;
-                     begin
-                        --  Sign extend
-                        if (Val and 16#8000#) /= 0 then
-                           Val := Val or 16#Ffff0000#;
-                        end if;
-                        Target := Shift_Left (Val, 2);
-                        --  Test AA field.
-                        if (W and 2) = 0 then
-                           Target := Target + Pc;
-                        end if;
-                        Add ("0x");
-                        Add (Hex_Image (Target));
-                        if Proc_Cb /= null then
-                           Proc_Cb.all (Target, Line, Line_Pos);
-                        end if;
-                     end;
+                     Val := Shift_Left (Val, 2);
+                     --  Sign extend
+                     if (Val and 16#8000#) /= 0 then
+                        Val := Val or 16#Ffff0000#;
+                     end if;
+                     --  Test AA field.
+                     if (W and 2) = 0 then
+                        Val := Val + Pc;
+                     end if;
+                     Add ("0x");
+                     Add (Hex_Image (Val));
+                     if Proc_Cb /= null then
+                        Proc_Cb.all (Val, Line, Line_Pos);
+                     end if;
                   when F_CrfD | F_CrfS =>
                      Add ("cr");
                      Add_Num2 (Val);
