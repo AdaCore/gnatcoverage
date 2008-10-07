@@ -22,18 +22,7 @@ with Interfaces; use Interfaces;
 with Ppc_Descs; use Ppc_Descs;
 
 package Ppc_Disopc is
-
-   type String_Cst_Acc is access constant String;
-
+   
    type Ppc_Fields_Arr is array (0 .. 5) of Ppc_Fields;
-
-   type Ppc_Insn_Descr is record
-      Name : String_Cst_Acc;
-      Insn : Unsigned_32;
-      Mask : Unsigned_32;
-      Fields : Ppc_Fields_Arr;
-   end record;
-
-   subtype S is String;
 
 end Ppc_Disopc;

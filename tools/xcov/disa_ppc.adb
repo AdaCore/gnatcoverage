@@ -163,7 +163,11 @@ package body Disa_Ppc is
             F : Ppc_Fields;
             Val : Unsigned_32;
          begin
-            Add (Insn.Name.all);
+            for I in Insn.Name'Range loop
+               exit when Insn.Name (I) = ' ';
+               Add (Insn.Name (I));
+            end loop;
+
             for I in Insn.Fields'Range loop
                F := Insn.Fields (I);
                exit when F = F_Eof;

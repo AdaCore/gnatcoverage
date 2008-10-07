@@ -42,6 +42,9 @@ procedure Ppc_Genopc is
      := (others => -1);
 
    Masks : array (Ppc_Insns'Range) of Unsigned_32;
+
+   --  Maximum length of instructions name.
+   Max_Len : Natural;
 begin
    if Argument_Count > 1 then
       Usage;
@@ -60,6 +63,11 @@ begin
          end if;
       end;
    end if;
+
+   --  Compute Max_Len
+   for I in Ppc_Insns'Range loop
+      Max_Len := Natural'Max (Max_Len, Ppc_Insns (I).Name'Length);
+   end loop;
 
    --  Compute Masks.
    for I in Ppc_Insns'Range loop
@@ -128,6 +136,13 @@ begin
          end loop;
          Close (F);
       end;
+      Put_Line ("   type Ppc_Insn_Descr is record");
+      Put_Line ("      Name : String (1 .." & Natural'Image (Max_Len) & ");");
+      Put_Line ("      Insn : Unsigned_32;");
+      Put_Line ("      Mask : Unsigned_32;");
+      Put_Line ("      Fields : Ppc_Fields_Arr;");
+      Put_Line ("   end record;");
+      New_Line;
       Put_Line ("   Ppc_Insns : constant array (Natural range <>) of "
                   & "Ppc_Insn_Descr :=");
       Put_Line ("     (");
@@ -224,7 +239,12 @@ begin
             Put_Line (",");
          end if;
 
-         Put ("      (new S'(""" & Insn.Name.all & """),");
+         if Action = Action_Disa_Opcodes then
+            Put ("      (""" & Insn.Name.all
+                   & (1 .. Max_Len - Insn.Name'Length => ' ') & """,");
+         else
+            Put ("      (new S'(""" & Insn.Name.all & """),");
+         end if;
          if Simplified (I) >= 0 then
             Put ("  -- Simplified mnemonic");
          end if;
