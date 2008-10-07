@@ -16,8 +16,14 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-
-package Traces_Sources.Xcov is
-   --  Generate the report in xcov format.
-   procedure Generate_Report (Base : Traces_Base; Sym : Symbolizer'Class);
-end Traces_Sources.Xcov;
+package body Disa_Symbolize is
+   procedure Symbolize (Sym : Nul_Symbolizer_Type;
+                        Pc : Traces.Pc_Type;
+                        Line : in out String;
+                        Line_Pos : in out Natural)
+   is
+      pragma Unreferenced (Sym, Pc, Line, Line_Pos);
+   begin
+      return;
+   end Symbolize;
+end Disa_Symbolize;

@@ -20,6 +20,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Directories;
 with Hex_Images; use Hex_Images;
+with Traces_Disa; use Traces_Disa;
 
 package body Traces_Sources.Html is
    type String_Cst_Acc is access constant String;
@@ -60,7 +61,8 @@ package body Traces_Sources.Html is
    procedure Pretty_Print_Insn (Pp : in out Html_Pretty_Printer;
                                 Pc : Pc_Type;
                                 State : Trace_State;
-                                Insn : Binary_Content);
+                                Insn : Binary_Content;
+                                Sym : Symbolizer'Class);
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer);
 
@@ -445,7 +447,8 @@ package body Traces_Sources.Html is
    procedure Pretty_Print_Insn (Pp : in out Html_Pretty_Printer;
                                 Pc : Pc_Type;
                                 State : Trace_State;
-                                Insn : Binary_Content)
+                                Insn : Binary_Content;
+                                Sym : Symbolizer'Class)
    is
    begin
       Open_Insn_Table (Pp);
@@ -471,7 +474,7 @@ package body Traces_Sources.Html is
          Wrh (Pp, " ");
       end loop;
       Wrh (Pp, "  ");
-      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc)));
+      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc, Sym)));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "      </tr>");
    end Pretty_Print_Insn;
@@ -485,10 +488,10 @@ package body Traces_Sources.Html is
       Close (Pp.Html_File);
    end Pretty_Print_End_File;
 
-   procedure Generate_Report (Base : Traces_Base)
+   procedure Generate_Report (Base : Traces_Base; Sym : Symbolizer'Class)
    is
       Html : Html_Pretty_Printer;
    begin
-      Traces_Sources.Disp_Line_State (Html, Base);
+      Traces_Sources.Disp_Line_State (Html, Base, Sym);
    end Generate_Report;
 end Traces_Sources.Html;

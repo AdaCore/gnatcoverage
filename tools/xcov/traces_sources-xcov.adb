@@ -20,6 +20,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Directories;
 with Hex_Images; use Hex_Images;
+with Traces_Disa; use Traces_Disa;
 
 package body Traces_Sources.Xcov is
    type Xcov_Pretty_Printer is new Pretty_Printer with record
@@ -42,7 +43,8 @@ package body Traces_Sources.Xcov is
    procedure Pretty_Print_Insn (Pp : in out Xcov_Pretty_Printer;
                                 Pc : Pc_Type;
                                 State : Trace_State;
-                                Insn : Binary_Content);
+                                Insn : Binary_Content;
+                                Sym : Symbolizer'Class);
 
    procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer);
 
@@ -103,7 +105,8 @@ package body Traces_Sources.Xcov is
    procedure Pretty_Print_Insn (Pp : in out Xcov_Pretty_Printer;
                                 Pc : Pc_Type;
                                 State : Trace_State;
-                                Insn : Binary_Content)
+                                Insn : Binary_Content;
+                                Sym : Symbolizer'Class)
    is
    begin
       Put (Pp.Xcov_File, Hex_Image (Pc));
@@ -113,7 +116,7 @@ package body Traces_Sources.Xcov is
          Put (Pp.Xcov_File, " ");
       end loop;
       Put (Pp.Xcov_File, " ");
-      Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc));
+      Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Sym));
    end Pretty_Print_Insn;
 
    procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer) is
@@ -121,11 +124,11 @@ package body Traces_Sources.Xcov is
       Close (Pp.Xcov_File);
    end Pretty_Print_End_File;
 
-   procedure Generate_Report (Base : Traces_Base)
+   procedure Generate_Report (Base : Traces_Base; Sym : Symbolizer'Class)
    is
       Xcov : Xcov_Pretty_Printer;
    begin
-      Traces_Sources.Disp_Line_State (Xcov, Base);
+      Traces_Sources.Disp_Line_State (Xcov, Base, Sym);
    end Generate_Report;
 
 end Traces_Sources.Xcov;

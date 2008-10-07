@@ -39,5 +39,5 @@ package Traces_Names is
    function Add_Traces (Routine_Name : String_Acc;
                         Content : Binary_Content) return Traces_Base_Acc;
 
-   procedure Dump_Routines_Traces;
+   procedure Dump_Routines_Traces (Exec : Exe_File_Type);
 end Traces_Names;

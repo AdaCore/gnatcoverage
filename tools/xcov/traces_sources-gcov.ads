@@ -19,5 +19,5 @@
 
 package Traces_Sources.Gcov is
    --  Generate the report in gcov format.
-   procedure Generate_Report (Base : Traces_Base);
+   procedure Generate_Report (Base : Traces_Base; Sym : Symbolizer'Class);
 end Traces_Sources.Gcov;

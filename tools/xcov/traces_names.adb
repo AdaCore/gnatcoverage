@@ -27,6 +27,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Dwarf_Handling; use Dwarf_Handling;
 with Traces_Sources; use Traces_Sources;
+with Traces_Disa;
 
 package body Traces_Names is
 
@@ -331,9 +332,10 @@ package body Traces_Names is
       end if;
    end Compute_Routine_State;
 
-   procedure Dump_Routines_Traces
+   procedure Dump_Routines_Traces (Exec : Exe_File_Type)
    is
       use Names_Maps;
+      use Traces_Disa;
       Cur : Cursor;
       E : Subprogram_Name;
 
@@ -342,7 +344,7 @@ package body Traces_Names is
          pragma Unreferenced (Key);
       begin
          if El.Insns /= null and then El.Traces /= null then
-            Set_Trace_State (El.Traces.all, El.Insns.all);
+            Set_Trace_State (Exec, El.Traces.all, El.Insns.all);
          end if;
       end Update;
    begin
@@ -366,7 +368,8 @@ package body Traces_Names is
             --  Dump_Traces (E.Traces.all);
             if Flag_Show_Asm then
                Disp_Assembly_Lines
-                 (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access);
+                 (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access,
+                  Exec);
             end if;
          end if;
          Next (Cur);

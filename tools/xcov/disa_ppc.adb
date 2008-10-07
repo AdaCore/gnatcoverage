@@ -61,7 +61,7 @@ package body Disa_Ppc is
                                Line : out String;
                                Line_Pos : out Natural;
                                Insn_Len : out Natural;
-                               Proc_Cb : Symbol_Proc_Type)
+                               Sym : Symbolizer'Class)
    is
       W : Unsigned_32;
 
@@ -260,9 +260,7 @@ package body Disa_Ppc is
                      end if;
                      Add ("0x");
                      Add (Hex_Image (Val));
-                     if Proc_Cb /= null then
-                        Proc_Cb.all (Val, Line, Line_Pos);
-                     end if;
+                     Sym.Symbolize (Val, Line, Line_Pos);
                   when F_BD =>
                      Val := Shift_Left (Val, 2);
                      --  Sign extend
@@ -275,9 +273,7 @@ package body Disa_Ppc is
                      end if;
                      Add ("0x");
                      Add (Hex_Image (Val));
-                     if Proc_Cb /= null then
-                        Proc_Cb.all (Val, Line, Line_Pos);
-                     end if;
+                     Sym.Symbolize (Val, Line, Line_Pos);
                   when F_CrfD | F_CrfS =>
                      Add ("cr");
                      Add_Num2 (Val);

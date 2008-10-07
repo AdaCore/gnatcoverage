@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 with Ada.Text_IO;
 with Ada.Directories;
+with Traces_Disa;
 
 package body Traces_Sources is
    function Equal (L, R : Source_Lines) return Boolean is
@@ -206,18 +207,21 @@ package body Traces_Sources is
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
                                    Base : Traces_Base;
+                                   Sym : Symbolizer'Class;
                                    Filename : String;
                                    File : Source_Lines)
    is
       use Source_Lines_Vectors;
       use Ada.Text_IO;
+      use Traces_Disa;
 
       procedure Disassemble_Cb (Addr : Pc_Type;
                                 State : Trace_State;
-                                Insn : Binary_Content)
+                                Insn : Binary_Content;
+                                Sym : Symbolizer'Class)
       is
       begin
-         Pretty_Print_Insn (Pp, Addr, State, Insn);
+         Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
       end Disassemble_Cb;
 
       procedure Try_Open (F : in out File_Type;
@@ -320,7 +324,7 @@ package body Traces_Sources is
             Info := Get_First (File.Table (I).Lines);
             while Info /= null loop
                declare
-                  Label : constant String := Get_Label (Info);
+                  Label : constant String := Get_Label (Sym, Info);
                begin
                   if Label'Length > 0 then
                      Pretty_Print_Label (Pp, Label);
@@ -334,7 +338,7 @@ package body Traces_Sources is
                end loop;
                Disp_Assembly_Lines
                  (Sec_Info.Section_Content (Info.First .. Info.Last),
-                  Base, Disassemble_Cb'Access);
+                  Base, Disassemble_Cb'Access, Sym);
                Info := Info.Line_Next;
             end loop;
          end if;
@@ -352,7 +356,8 @@ package body Traces_Sources is
    end Disp_File_Line_State;
 
    procedure Disp_Line_State (Pp : in out Pretty_Printer'Class;
-                              Base : Traces_Base)
+                              Base : Traces_Base;
+                              Sym : Symbolizer'Class)
    is
       use Filenames_Maps;
       use Ada.Text_IO;
@@ -360,7 +365,7 @@ package body Traces_Sources is
 
       procedure Process (Key : String_Acc; Element : Source_Lines) is
       begin
-         Disp_File_Line_State (Pp, Base, Key.all, Element);
+         Disp_File_Line_State (Pp, Base, Sym, Key.all, Element);
       end Process;
       Cur : Cursor;
    begin

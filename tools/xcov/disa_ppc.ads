@@ -18,13 +18,9 @@
 ------------------------------------------------------------------------------
 with System;
 with Traces;
+with Disa_Symbolize; use Disa_Symbolize;
 
 package Disa_Ppc is
-   --  Call-back used to find a relocation symbol.
-   type Symbol_Proc_Type is access procedure (Pc : Traces.Pc_Type;
-                                              Line : in out String;
-                                              Line_Pos : in out Natural);
-
    --  Return the length of the instruction at Addr.
    function Get_Insn_Length (Addr : System.Address) return Positive;
    pragma Inline (Get_Insn_Length);
@@ -37,6 +33,6 @@ package Disa_Ppc is
                                Line : out String;
                                Line_Pos : out Natural;
                                Insn_Len : out Natural;
-                               Proc_Cb : Symbol_Proc_Type);
+                               Sym : Symbolizer'Class);
 
 end Disa_Ppc;

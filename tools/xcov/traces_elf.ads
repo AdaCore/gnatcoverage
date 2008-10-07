@@ -19,11 +19,14 @@
 with Ada.Unchecked_Deallocation;
 with Traces; use Traces;
 with Traces_Dbase; use Traces_Dbase;
-with Elf_Common;
-with Elf_Arch;
+with Elf_Common; use Elf_Common;
+with Elf_Arch; use Elf_Arch;
 with Interfaces;
 with Ada.Containers.Ordered_Sets;
 with Strings; use Strings;
+with System; use System;
+with Elf_Files;
+with Disa_Symbolize; use Disa_Symbolize;
 
 package Traces_Elf is
    type Binary_Content is array (Elf_Arch.Elf_Size range <>)
@@ -33,46 +36,52 @@ package Traces_Elf is
    procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
      (Binary_Content, Binary_Content_Acc);
 
+   type Exe_File_Type is limited new Symbolizer with private;
+
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
-   procedure Open_File (Filename : String; Text_Start : Pc_Type);
+   procedure Open_File
+     (Exec : out Exe_File_Type; Filename : String; Text_Start : Pc_Type);
 
    --  Build sections map for the current ELF file.
-   procedure Build_Sections;
+   procedure Build_Sections (Exec : in out Exe_File_Type);
 
    --  Show coverage of sections.
-   procedure Disp_Sections_Coverage (Base : Traces_Base);
+   procedure Disp_Sections_Coverage (Exec : Exe_File_Type; Base : Traces_Base);
 
-   --  Show coverage of subprograms.
-   procedure Disp_Subprograms_Coverage (Base : Traces_Base);
+   --  Fill Traces_Names with traces from BASE.
+   procedure Add_Subprograms_Traces (Exec : Exe_File_Type; Base : Traces_Base);
 
    --  Using the executable, correctly set the state of every traces.
-   procedure Set_Trace_State (Base : in out Traces_Base);
-   procedure Set_Trace_State (Base : in out Traces_Base;
+   procedure Set_Trace_State (Exec : Exe_File_Type;
+                              Base : in out Traces_Base);
+   procedure Set_Trace_State (Exec : Exe_File_Type;
+                              Base : in out Traces_Base;
                               Section : Binary_Content);
 
    --  Read dwarfs info to build compile_units/subprograms lists.
-   procedure Build_Debug_Compile_Units;
+   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type);
 
    --  Read ELF symbol table.
-   procedure Build_Symbols;
+   procedure Build_Symbols (Exec : in out Exe_File_Type);
 
    --  Read dwarfs info to build lines list.
-   procedure Build_Debug_Lines;
+   procedure Build_Debug_Lines (Exec : in out Exe_File_Type);
 
    --  Create per file line state.
    --  Also update lines state from traces state.
-   procedure Build_Source_Lines (Base : in out Traces_Base);
+   procedure Build_Source_Lines (Exec : Exe_File_Type;
+                                 Base : in out Traces_Base);
 
-   procedure Build_Routine_Names;
+   procedure Build_Routine_Names (Exec : Exe_File_Type);
 
    --  Display lists.
-   procedure Disp_Sections_Addresses;
-   procedure Disp_Compile_Units_Addresses;
-   procedure Disp_Subprograms_Addresses;
-   procedure Disp_Symbols_Addresses;
-   procedure Disp_Lines_Addresses;
+   procedure Disp_Sections_Addresses (Exe : Exe_File_Type);
+   procedure Disp_Compile_Units_Addresses (Exe : Exe_File_Type);
+   procedure Disp_Subprograms_Addresses (Exe : Exe_File_Type);
+   procedure Disp_Symbols_Addresses (Exe : Exe_File_Type);
+   procedure Disp_Lines_Addresses (Exe : Exe_File_Type);
 
    type Addresses_Info;
    type Addresses_Info_Acc is access Addresses_Info;
@@ -81,30 +90,9 @@ package Traces_Elf is
    --  Mostly a debug procedure.
    procedure Disp_Address (El : Addresses_Info_Acc);
 
-   --  If True, Disp_Line_State will also display assembly code.
-   Flag_Show_Asm : Boolean := False;
-
-   --  Return the symbol for Addr followed by a colon (':').
-   --  Return an empty string if none.
-   function Get_Label (Info : Addresses_Info_Acc) return String;
-
-   --  Generate the disassembly for INSN.
-   --  INSN is exactly one instruction.
-   --  PC is the target address of INSN (used to display branch targets).
-   function Disassemble (Insn : Binary_Content; Pc : Pc_Type) return String;
-
-   --  Call CB for each insn in INFO.
-   procedure Disp_Assembly_Lines
-     (Insns : Binary_Content;
-      Base : Traces_Base;
-      Cb : access procedure (Addr : Pc_Type;
-                             State : Trace_State;
-                             Insn : Binary_Content));
-
-   --  Simple callback from the previous subprogram.
-   procedure Textio_Disassemble_Cb (Addr : Pc_Type;
-                                    State : Trace_State;
-                                    Insn : Binary_Content);
+   --  Get symbol (if any) containing PC.
+   function Get_Symbol (Exec : Exe_File_Type; Pc : Pc_Type)
+                       return Addresses_Info_Acc;
 
    function "<" (L, R : Addresses_Info_Acc) return Boolean;
 
@@ -141,4 +129,43 @@ package Traces_Elf is
             Line_Next : Addresses_Info_Acc;
       end case;
    end record;
+
+private
+   type Exe_File_Type is limited new Symbolizer with record
+      --  Sections index.
+      Sec_Debug_Abbrev   : Elf_Half := 0;
+      Sec_Debug_Info     : Elf_Half := 0;
+      Sec_Debug_Info_Rel : Elf_Half := 0;
+      Sec_Debug_Line     : Elf_Half := 0;
+      Sec_Debug_Line_Rel : Elf_Half := 0;
+      Sec_Debug_Str      : Elf_Half := 0;
+
+      Exe_File : Elf_Files.Elf_File;
+      Exe_Text_Start : Elf_Addr;
+      Exe_Machine : Elf_Half;
+      Is_Big_Endian : Boolean;
+
+      --  FIXME.
+      Addr_Size : Natural := 0;
+
+      Debug_Str_Base : Address := Null_Address;
+      Debug_Str_Len : Elf_Size;
+      Debug_Strs : Binary_Content_Acc;
+
+      --  .debug_lines content.
+      Lines_Len : Elf_Size := 0;
+      Lines : Binary_Content_Acc := null;
+
+      Sections_Set : Addresses_Containers.Set;
+      Compile_Units_Set : Addresses_Containers.Set;
+      Subprograms_Set : Addresses_Containers.Set;
+      Symbols_Set : Addresses_Containers.Set;
+      Lines_Set : Addresses_Containers.Set;
+   end record;
+
+   procedure Symbolize (Sym : Exe_File_Type;
+                        Pc : Traces.Pc_Type;
+                        Line : in out String;
+                        Line_Pos : in out Natural);
+
 end Traces_Elf;

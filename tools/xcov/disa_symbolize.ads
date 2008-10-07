@@ -16,8 +16,22 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+with Traces;
 
-package Traces_Sources.Xcov is
-   --  Generate the report in xcov format.
-   procedure Generate_Report (Base : Traces_Base; Sym : Symbolizer'Class);
-end Traces_Sources.Xcov;
+package Disa_Symbolize is
+   --  Call-back used to find a relocation symbol.
+   type Symbolizer is limited interface;
+   procedure Symbolize (Sym : Symbolizer;
+                        Pc : Traces.Pc_Type;
+                        Line : in out String;
+                        Line_Pos : in out Natural) is abstract;
+
+   type Nul_Symbolizer_Type is new Symbolizer with null record;
+   procedure Symbolize (Sym : Nul_Symbolizer_Type;
+                        Pc : Traces.Pc_Type;
+                        Line : in out String;
+                        Line_Pos : in out Natural);
+
+   Nul_Symbolizer : constant Nul_Symbolizer_Type := (others => <>);
+
+end Disa_Symbolize;

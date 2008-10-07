@@ -19,19 +19,16 @@
 with Ada.Unchecked_Conversion;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Vectors;
-with Elf_Common; use Elf_Common;
 with Elf32;
 with Interfaces; use Interfaces;
 with Hex_Images; use Hex_Images;
-with Elf_Arch; use Elf_Arch;
 with Dwarf;
 with Dwarf_Handling;  use Dwarf_Handling;
-with System; use System;
 with System.Storage_Elements; use System.Storage_Elements;
 with Traces_Sources;
-with Disa_Ppc;
 with Elf_Files; use Elf_Files;
 with Traces_Names;
+with Traces_Disa;
 
 package body Traces_Elf is
    Empty_String_Acc : constant String_Acc := new String'("");
@@ -40,20 +37,6 @@ package body Traces_Elf is
    begin
       return L.Last < R.First;
    end "<";
-
-   Sections_Set : Addresses_Containers.Set;
-   Compile_Units_Set : Addresses_Containers.Set;
-   Subprograms_Set : Addresses_Containers.Set;
-   Symbols_Set : Addresses_Containers.Set;
-   Lines_Set : Addresses_Containers.Set;
-
-   type Disassemble_Cb is access procedure (Addr : Pc_Type;
-                                            State : Trace_State;
-                                            Insn : Binary_Content);
-
-   procedure Disassemble (Insns : Binary_Content;
-                          State : Trace_State;
-                          Cb : Disassemble_Cb);
 
    procedure Disp_Address (El : Addresses_Info_Acc) is
    begin
@@ -95,114 +78,94 @@ package body Traces_Elf is
                      El : Addresses_Info_Acc)
      renames Addresses_Containers.Insert;
 
-   procedure Disp_Sections_Addresses is
+   procedure Disp_Sections_Addresses (Exe : Exe_File_Type) is
    begin
-      Disp_Addresses (Sections_Set);
+      Disp_Addresses (Exe.Sections_Set);
    end Disp_Sections_Addresses;
 
-   procedure Disp_Compile_Units_Addresses is
+   procedure Disp_Compile_Units_Addresses (Exe : Exe_File_Type) is
    begin
-      Disp_Addresses (Compile_Units_Set);
+      Disp_Addresses (Exe.Compile_Units_Set);
    end Disp_Compile_Units_Addresses;
 
-   procedure Disp_Subprograms_Addresses is
+   procedure Disp_Subprograms_Addresses (Exe : Exe_File_Type) is
    begin
-      Disp_Addresses (Subprograms_Set);
+      Disp_Addresses (Exe.Subprograms_Set);
    end Disp_Subprograms_Addresses;
 
-   procedure Disp_Symbols_Addresses is
+   procedure Disp_Symbols_Addresses (Exe : Exe_File_Type) is
    begin
-      Disp_Addresses (Symbols_Set);
+      Disp_Addresses (Exe.Symbols_Set);
    end Disp_Symbols_Addresses;
 
-   procedure Disp_Lines_Addresses is
+   procedure Disp_Lines_Addresses (Exe : Exe_File_Type) is
    begin
-      Disp_Addresses (Lines_Set);
+      Disp_Addresses (Exe.Lines_Set);
    end Disp_Lines_Addresses;
-
-   --  Sections index.
-   Sec_Debug_Abbrev   : Elf_Half := 0;
-   Sec_Debug_Info     : Elf_Half := 0;
-   Sec_Debug_Info_Rel : Elf_Half := 0;
-   Sec_Debug_Line     : Elf_Half := 0;
-   Sec_Debug_Line_Rel : Elf_Half := 0;
-   Sec_Debug_Str      : Elf_Half := 0;
-
-   Exe_File : Elf_File;
-   Exe_Text_Start : Elf_Addr;
-   Exe_Machine : Elf_Half;
-   Is_Big_Endian : Boolean;
-
-   --  FIXME.
-   Addr_Size : Natural := 0;
-
-   Debug_Str_Base : Address := Null_Address;
-   Debug_Str_Len : Elf_Size;
-   Debug_Strs : Binary_Content_Acc;
-
-   --  .debug_lines content.
-   Lines_Len : Elf_Size := 0;
-   Lines : Binary_Content_Acc := null;
 
    Bad_Stmt_List : constant Unsigned_64 := Unsigned_64'Last;
 
-   procedure Open_File (Filename : String; Text_Start : Pc_Type)
+   procedure Open_File
+     (Exec : out Exe_File_Type; Filename : String; Text_Start : Pc_Type)
    is
       Ehdr : Elf_Ehdr;
    begin
-      Open_File (Exe_File, Filename);
-      Exe_Text_Start := Text_Start;
-      Ehdr := Get_Ehdr (Exe_File);
-      Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
-      Exe_Machine := Ehdr.E_Machine;
+      Open_File (Exec.Exe_File, Filename);
+      Exec.Exe_Text_Start := Text_Start;
+      Ehdr := Get_Ehdr (Exec.Exe_File);
+      Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
+      Exec.Exe_Machine := Ehdr.E_Machine;
 
       --  Be sure the section headers are loaded.
-      Load_Shdr (Exe_File);
+      Load_Shdr (Exec.Exe_File);
 
-      for I in 0 .. Get_Shdr_Num (Exe_File) - 1 loop
+      for I in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
          declare
-            Name : constant String := Get_Shdr_Name (Exe_File, I);
+            Name : constant String := Get_Shdr_Name (Exec.Exe_File, I);
          begin
             if Name = ".debug_abbrev" then
-               Sec_Debug_Abbrev := I;
+               Exec.Sec_Debug_Abbrev := I;
             elsif Name = ".debug_info" then
-               Sec_Debug_Info := I;
+               Exec.Sec_Debug_Info := I;
             elsif Name = ".rela.debug_info" then
-               Sec_Debug_Info_Rel := I;
+               Exec.Sec_Debug_Info_Rel := I;
             elsif Name = ".debug_line" then
-               Sec_Debug_Line := I;
+               Exec.Sec_Debug_Line := I;
             elsif Name = ".rela.debug_line" then
-               Sec_Debug_Line_Rel := I;
+               Exec.Sec_Debug_Line_Rel := I;
             elsif Name = ".debug_str" then
-               Sec_Debug_Str := I;
+               Exec.Sec_Debug_Str := I;
             end if;
          end;
       end loop;
    end Open_File;
 
-   procedure Read_Word8 (Base : Address;
+   procedure Read_Word8 (Exec : Exe_File_Type;
+                         Base : Address;
                          Off : in out Storage_Offset;
                          Res : out Unsigned_64) is
    begin
-      if Is_Big_Endian then
+      if Exec.Is_Big_Endian then
          Read_Word8_Be (Base, Off, Res);
       else
          Read_Word8_Le (Base, Off, Res);
       end if;
    end Read_Word8;
 
-   procedure Read_Word4 (Base : Address;
+   procedure Read_Word4 (Exec : Exe_File_Type;
+                         Base : Address;
                          Off : in out Storage_Offset;
                          Res : out Unsigned_32) is
    begin
-      if Is_Big_Endian then
+      if Exec.Is_Big_Endian then
          Read_Word4_Be (Base, Off, Res);
       else
          Read_Word4_Le (Base, Off, Res);
       end if;
    end Read_Word4;
 
-   procedure Read_Word4 (Base : Address;
+   procedure Read_Word4 (Exec : Exe_File_Type;
+                         Base : Address;
                          Off : in out Storage_Offset;
                          Res : out Integer_32)
    is
@@ -210,33 +173,36 @@ package body Traces_Elf is
         (Unsigned_32, Integer_32);
       R : Unsigned_32;
    begin
-      Read_Word4 (Base, Off, R);
+      Read_Word4 (Exec, Base, Off, R);
       Res := To_Integer_32 (R);
    end Read_Word4;
 
-   procedure Read_Word2 (Base : Address;
+   procedure Read_Word2 (Exec : Exe_File_Type;
+                         Base : Address;
                          Off : in out Storage_Offset;
                          Res : out Unsigned_16) is
    begin
-      if Is_Big_Endian then
+      if Exec.Is_Big_Endian then
          Read_Word2_Be (Base, Off, Res);
       else
          Read_Word2_Le (Base, Off, Res);
       end if;
    end Read_Word2;
 
-   procedure Write_Word4 (Base : Address;
+   procedure Write_Word4 (Exec : Exe_File_Type;
+                          Base : Address;
                           Off : in out Storage_Offset;
                           Val : Unsigned_32) is
    begin
-      if Is_Big_Endian then
+      if Exec.Is_Big_Endian then
          Write_Word4_Be (Base, Off, Val);
       else
          Write_Word4_Le (Base, Off, Val);
       end if;
    end Write_Word4;
 
-   procedure Write_Word4 (Base : Address;
+   procedure Write_Word4 (Exec : Exe_File_Type;
+                          Base : Address;
                           Off : in out Storage_Offset;
                           Val : Integer_32)
    is
@@ -245,10 +211,11 @@ package body Traces_Elf is
       R : Unsigned_32;
    begin
       R := To_Unsigned_32 (Val);
-      Write_Word4 (Base, Off, R);
+      Write_Word4 (Exec, Base, Off, R);
    end Write_Word4;
 
-   procedure Read_Address (Base : Address;
+   procedure Read_Address (Exec : Exe_File_Type;
+                           Base : Address;
                            Off : in out Storage_Offset;
                            Sz : Natural;
                            Res : out Unsigned_64)
@@ -258,17 +225,18 @@ package body Traces_Elf is
          declare
             V : Unsigned_32;
          begin
-            Read_Word4 (Base, Off, V);
+            Read_Word4 (Exec, Base, Off, V);
             Res := Unsigned_64 (V);
          end;
       elsif Sz = 8 then
-         Read_Word8 (Base, Off, Res);
+         Read_Word8 (Exec, Base, Off, Res);
       else
          raise Program_Error;
       end if;
    end Read_Address;
 
-   procedure Read_Dwarf_Form_U64 (Base : Address;
+   procedure Read_Dwarf_Form_U64 (Exec : Exe_File_Type;
+                                  Base : Address;
                                   Off : in out Storage_Offset;
                                   Form : Unsigned_32;
                                   Res : out Unsigned_64)
@@ -277,7 +245,7 @@ package body Traces_Elf is
    begin
       case Form is
          when DW_FORM_Addr =>
-            Read_Address (Base, Off, Addr_Size, Res);
+            Read_Address (Exec, Base, Off, Exec.Addr_Size, Res);
          when DW_FORM_Flag =>
             declare
                V : Unsigned_8;
@@ -296,7 +264,7 @@ package body Traces_Elf is
             declare
                V : Unsigned_16;
             begin
-               Read_Word2 (Base, Off, V);
+               Read_Word2 (Exec, Base, Off, V);
                Res := Unsigned_64 (V);
             end;
          when DW_FORM_Data4
@@ -304,11 +272,11 @@ package body Traces_Elf is
             declare
                V : Unsigned_32;
             begin
-               Read_Word4 (Base, Off, V);
+               Read_Word4 (Exec, Base, Off, V);
                Res := Unsigned_64 (V);
             end;
          when DW_FORM_Data8 =>
-            Read_Word8 (Base, Off, Res);
+            Read_Word8 (Exec, Base, Off, Res);
          when DW_FORM_Sdata =>
             declare
                V : Unsigned_32;
@@ -332,7 +300,8 @@ package body Traces_Elf is
       end case;
    end Read_Dwarf_Form_U64;
 
-   procedure Read_Dwarf_Form_String (Base : Address;
+   procedure Read_Dwarf_Form_String (Exec : in out Exe_File_Type;
+                                     Base : Address;
                                      Off : in out Storage_Offset;
                                      Form : Unsigned_32;
                                      Res : out Address)
@@ -344,19 +313,21 @@ package body Traces_Elf is
             declare
                V : Unsigned_32;
             begin
-               Read_Word4 (Base, Off, V);
-               if Debug_Str_Base = Null_Address then
-                  if Sec_Debug_Str /= 0 then
-                     Debug_Str_Len := Get_Section_Length
-                       (Exe_File, Sec_Debug_Str);
-                     Debug_Strs := new Binary_Content (0 .. Debug_Str_Len - 1);
-                     Debug_Str_Base := Debug_Strs (0)'Address;
-                     Load_Section (Exe_File, Sec_Debug_Str, Debug_Str_Base);
+               Read_Word4 (Exec, Base, Off, V);
+               if Exec.Debug_Str_Base = Null_Address then
+                  if Exec.Sec_Debug_Str /= 0 then
+                     Exec.Debug_Str_Len := Get_Section_Length
+                       (Exec.Exe_File, Exec.Sec_Debug_Str);
+                     Exec.Debug_Strs :=
+                       new Binary_Content (0 .. Exec.Debug_Str_Len - 1);
+                     Exec.Debug_Str_Base := Exec.Debug_Strs (0)'Address;
+                     Load_Section (Exec.Exe_File,
+                                   Exec.Sec_Debug_Str, Exec.Debug_Str_Base);
                   else
                      return;
                   end if;
                end if;
-               Res := Debug_Str_Base + Storage_Offset (V);
+               Res := Exec.Debug_Str_Base + Storage_Offset (V);
             end;
          when DW_FORM_String =>
             Res := Base + Off;
@@ -374,7 +345,8 @@ package body Traces_Elf is
       end case;
    end Read_Dwarf_Form_String;
 
-   procedure Skip_Dwarf_Form (Base : Address;
+   procedure Skip_Dwarf_Form (Exec : Exe_File_Type;
+                              Base : Address;
                               Off : in out Storage_Offset;
                               Form : Unsigned_32)
    is
@@ -382,7 +354,7 @@ package body Traces_Elf is
    begin
       case Form is
          when DW_FORM_Addr =>
-            Off := Off + Storage_Offset (Addr_Size);
+            Off := Off + Storage_Offset (Exec.Addr_Size);
          when DW_FORM_Block1 =>
             declare
                V : Unsigned_8;
@@ -428,7 +400,8 @@ package body Traces_Elf is
       end case;
    end Skip_Dwarf_Form;
 
-   procedure Apply_Relocations (Sec_Rel : Elf_Half;
+   procedure Apply_Relocations (Exec : Exe_File_Type;
+                                Sec_Rel : Elf_Half;
                                 Data : in out Binary_Content)
    is
       use Elf32;
@@ -441,16 +414,16 @@ package body Traces_Elf is
 
       R : Elf_Rela;
    begin
-      Shdr := Get_Shdr (Exe_File, Sec_Rel);
+      Shdr := Get_Shdr (Exec.Exe_File, Sec_Rel);
       if Shdr.Sh_Type /= SHT_RELA then
          raise Program_Error;
       end if;
       if Natural (Shdr.Sh_Entsize) /= Elf_Rela_Size then
          raise Program_Error;
       end if;
-      Relocs_Len := Get_Section_Length (Exe_File, Sec_Rel);
+      Relocs_Len := Get_Section_Length (Exec.Exe_File, Sec_Rel);
       Relocs := new Binary_Content (0 .. Relocs_Len - 1);
-      Load_Section (Exe_File, Sec_Rel, Relocs (0)'Address);
+      Load_Section (Exec.Exe_File, Sec_Rel, Relocs (0)'Address);
       Relocs_Base := Relocs (0)'Address;
 
       Off := 0;
@@ -463,15 +436,15 @@ package body Traces_Elf is
          end if;
 
          --  Read relocation entry.
-         Read_Word4 (Relocs_Base, Off, R.R_Offset);
-         Read_Word4 (Relocs_Base, Off, R.R_Info);
-         Read_Word4 (Relocs_Base, Off, R.R_Addend);
+         Read_Word4 (Exec, Relocs_Base, Off, R.R_Offset);
+         Read_Word4 (Exec, Relocs_Base, Off, R.R_Info);
+         Read_Word4 (Exec, Relocs_Base, Off, R.R_Addend);
 
          if R.R_Offset > Data'Last then
             raise Program_Error;
          end if;
 
-         case Exe_Machine is
+         case Exec.Exe_Machine is
             when EM_PPC =>
                case Elf_R_Type (R.R_Info) is
                   when R_PPC_ADDR32 =>
@@ -483,16 +456,15 @@ package body Traces_Elf is
                raise Program_Error;
          end case;
 
-         Write_Word4 (Data (0)'Address,
+         Write_Word4 (Exec,
+                      Data (0)'Address,
                       Storage_Offset (R.R_Offset), R.R_Addend);
       end loop;
       Unchecked_Deallocation (Relocs);
    end Apply_Relocations;
 
-   function Get_Section_By_Addr (Pc : Pc_Type) return Addresses_Info_Acc;
-
    --  Extract lang, subprogram name and stmt_list (offset in .debug_line).
-   procedure Build_Debug_Compile_Units
+   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type)
    is
       use Dwarf;
 
@@ -532,34 +504,35 @@ package body Traces_Elf is
 
       Current_Cu : Addresses_Info_Acc;
       Current_Subprg : Addresses_Info_Acc;
+      Sec : Addresses_Info_Acc;
       Addr : Pc_Type;
    begin
       --  Return now if already loaded.
-      if not Compile_Units_Set.Is_Empty then
+      if not Exec.Compile_Units_Set.Is_Empty then
          return;
       end if;
 
-      if Sections_Set.Is_Empty then
+      if Exec.Sections_Set.Is_Empty then
          raise Program_Error;
       end if;
 
       --  Load .debug_abbrev
-      Abbrev_Len := Get_Section_Length (Exe_File, Sec_Debug_Abbrev);
+      Abbrev_Len := Get_Section_Length (Exec.Exe_File, Exec.Sec_Debug_Abbrev);
       Abbrevs := new Binary_Content (0 .. Abbrev_Len - 1);
       Abbrev_Base := Abbrevs (0)'Address;
-      Load_Section (Exe_File, Sec_Debug_Abbrev, Abbrev_Base);
+      Load_Section (Exec.Exe_File, Exec.Sec_Debug_Abbrev, Abbrev_Base);
 
       Map := null;
 
       --  Load .debug_info
-      Shdr := Get_Shdr (Exe_File, Sec_Debug_Info);
-      Info_Len := Get_Section_Length (Exe_File, Sec_Debug_Info);
+      Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Debug_Info);
+      Info_Len := Get_Section_Length (Exec.Exe_File, Exec.Sec_Debug_Info);
       Infos := new Binary_Content (0 .. Info_Len - 1);
       Base := Infos (0)'Address;
-      Load_Section (Exe_File, Sec_Debug_Info, Base);
+      Load_Section (Exec.Exe_File, Exec.Sec_Debug_Info, Base);
 
-      if Sec_Debug_Info_Rel /= 0 then
-         Apply_Relocations (Sec_Debug_Info_Rel, Infos.all);
+      if Exec.Sec_Debug_Info_Rel /= 0 then
+         Apply_Relocations (Exec, Exec.Sec_Debug_Info_Rel, Infos.all);
       end if;
 
       Off := 0;
@@ -567,17 +540,17 @@ package body Traces_Elf is
       while Off < Storage_Offset (Shdr.Sh_Size) loop
          --  Read .debug_info header:
          --    Length, version, offset in .debug_abbrev, pointer size.
-         Read_Word4 (Base, Off, Len);
+         Read_Word4 (Exec, Base, Off, Len);
          Last := Off + Storage_Offset (Len);
-         Read_Word2 (Base, Off, Ver);
-         Read_Word4 (Base, Off, Abbrev_Off);
+         Read_Word2 (Exec, Base, Off, Ver);
+         Read_Word4 (Exec, Base, Off, Abbrev_Off);
          Read_Byte (Base, Off, Ptr_Sz);
          if Ver /= 2 and Ver /= 3 then
             exit;
          end if;
          Level := 0;
 
-         Addr_Size := Natural (Ptr_Sz);
+         Exec.Addr_Size := Natural (Ptr_Sz);
          Cu_Base_Pc := 0;
 
          Build_Abbrev_Map (Abbrev_Base + Storage_Offset (Abbrev_Off), Map);
@@ -620,25 +593,25 @@ package body Traces_Elf is
 
                case Name is
                   when DW_AT_Sibling =>
-                     Read_Dwarf_Form_U64 (Base, Off, Form, At_Sib);
+                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Sib);
                   when DW_AT_Name =>
-                     Read_Dwarf_Form_String (Base, Off, Form, At_Name);
+                     Read_Dwarf_Form_String (Exec, Base, Off, Form, At_Name);
                   when DW_AT_Stmt_List =>
-                     Read_Dwarf_Form_U64 (Base, Off, Form, At_Stmt_List);
+                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Stmt_List);
                   when DW_AT_Low_Pc =>
-                     Read_Dwarf_Form_U64 (Base, Off, Form, At_Low_Pc);
+                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Low_Pc);
                      if Form /= DW_FORM_Addr then
                         At_Low_Pc := At_Low_Pc + Cu_Base_Pc;
                      end if;
                   when DW_AT_High_Pc =>
-                     Read_Dwarf_Form_U64 (Base, Off, Form, At_High_Pc);
+                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_High_Pc);
                      if Form /= DW_FORM_Addr then
                         At_High_Pc := At_High_Pc + Cu_Base_Pc;
                      end if;
                   when DW_AT_Language =>
-                     Read_Dwarf_Form_U64 (Base, Off, Form, At_Lang);
+                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Lang);
                   when others =>
-                     Skip_Dwarf_Form (Base, Off, Form);
+                     Skip_Dwarf_Form (Exec, Base, Off, Form);
                end case;
             end loop;
             case Tag is
@@ -650,18 +623,40 @@ package body Traces_Elf is
                   else
                      Cu_Base_Pc := At_Low_Pc;
                   end if;
-                  Addr := Exe_Text_Start + Pc_Type (At_Low_Pc);
+
+                  Addr := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
+
+                  --  Find section of this symbol.
+                  if Sec = null
+                    or else (Addr not in Sec.First .. Sec.Last)
+                  then
+                     declare
+                        use Addresses_Containers;
+                        Cur_Sec : Cursor;
+                     begin
+                        Cur_Sec := First (Exec.Sections_Set);
+                        loop
+                           if Cur_Sec = No_Element then
+                              raise Program_Error;
+                           end if;
+                           Sec := Element (Cur_Sec);
+                           exit when Addr in Sec.First .. Sec.Last;
+                           Next (Cur_Sec);
+                        end loop;
+                     end;
+                  end if;
+
                   Current_Cu := new Addresses_Info'
                     (Kind => Compile_Unit_Addresses,
                      First => Addr,
-                     Last => Exe_Text_Start + Pc_Type (At_High_Pc - 1),
-                     Parent => Get_Section_By_Addr (Addr),
+                     Last => Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
+                     Parent => Sec,
                      Compile_Unit_Filename =>
                        new String'(Read_String (At_Name)),
                      Stmt_List => Unsigned_32 (At_Stmt_List));
                   if At_High_Pc > At_Low_Pc then
                      --  Do not insert empty units.
-                     Insert (Compile_Units_Set, Current_Cu);
+                     Insert (Exec.Compile_Units_Set, Current_Cu);
                   end if;
                   --  Ctxt.Lang := At_Lang;
                   At_Lang := 0;
@@ -671,12 +666,12 @@ package body Traces_Elf is
                      Current_Subprg :=
                        new Addresses_Info'
                        (Kind => Subprogram_Addresses,
-                        First => Exe_Text_Start + Pc_Type (At_Low_Pc),
-                        Last => Exe_Text_Start + Pc_Type (At_High_Pc - 1),
+                        First => Exec.Exe_Text_Start + Pc_Type (At_Low_Pc),
+                        Last => Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
                         Parent => Current_Cu,
                         Subprogram_Name =>
                           new String'(Read_String (At_Name)));
-                     Insert (Subprograms_Set, Current_Subprg);
+                     Insert (Exec.Subprograms_Set, Current_Subprg);
                   end if;
                when others =>
                   null;
@@ -698,7 +693,8 @@ package body Traces_Elf is
       Element_Type => String_Acc,
       "=" => "=");
 
-   procedure Read_Debug_Line (CU_Offset : Unsigned_32)
+   procedure Read_Debug_Line (Exec : in out Exe_File_Type;
+                              CU_Offset : Unsigned_32)
    is
       use Dwarf;
       Base : Address;
@@ -747,11 +743,11 @@ package body Traces_Elf is
       procedure New_Raw is
       begin
          --  Note: Last and Parent are set by Build_Debug_Lines.
-         Insert (Lines_Set,
+         Insert (Exec.Lines_Set,
                  new Addresses_Info'
                  (Kind => Line_Addresses,
-                  First => Exe_Text_Start + Pc_Type (Pc),
-                  Last => Exe_Text_Start + Pc_Type (Pc),
+                  First => Exec.Exe_Text_Start + Pc_Type (Pc),
+                  Last => Exec.Exe_Text_Start + Pc_Type (Pc),
                   Parent => null,
                   Line_Next => null,
                   Line_Filename => Filenames_Vectors.Element (Filenames, File),
@@ -763,30 +759,32 @@ package body Traces_Elf is
       end New_Raw;
    begin
       --  Load .debug_line
-      if Lines = null then
-         Lines_Len := Get_Section_Length (Exe_File, Sec_Debug_Line);
-         Lines := new Binary_Content (0 .. Lines_Len - 1);
-         Load_Section (Exe_File, Sec_Debug_Line, Lines (0)'Address);
+      if Exec.Lines = null then
+         Exec.Lines_Len := Get_Section_Length (Exec.Exe_File,
+                                               Exec.Sec_Debug_Line);
+         Exec.Lines := new Binary_Content (0 .. Exec.Lines_Len - 1);
+         Load_Section (Exec.Exe_File,
+                       Exec.Sec_Debug_Line, Exec.Lines (0)'Address);
 
-         if Sec_Debug_Line_Rel /= 0 then
-            Apply_Relocations (Sec_Debug_Line_Rel, Lines.all);
+         if Exec.Sec_Debug_Line_Rel /= 0 then
+            Apply_Relocations (Exec, Exec.Sec_Debug_Line_Rel, Exec.Lines.all);
          end if;
       end if;
 
-      Base := Lines (0)'Address;
+      Base := Exec.Lines (0)'Address;
 
       Off := Storage_Offset (CU_Offset);
-      if Off
-        >= Storage_Offset (Get_Section_Length (Exe_File, Sec_Debug_Line))
+      if Off >= Storage_Offset (Get_Section_Length (Exec.Exe_File,
+                                                    Exec.Sec_Debug_Line))
       then
          return;
       end if;
 
       --  Read header.
-      Read_Word4 (Base, Off, Total_Len);
+      Read_Word4 (Exec, Base, Off, Total_Len);
       Last := Off + Storage_Offset (Total_Len);
-      Read_Word2 (Base, Off, Version);
-      Read_Word4 (Base, Off, Prolog_Len);
+      Read_Word2 (Exec, Base, Off, Version);
+      Read_Word4 (Exec, Base, Off, Prolog_Len);
       Read_Byte (Base, Off, Min_Insn_Len);
       Read_Byte (Base, Off, Dflt_Is_Stmt);
       Read_Byte (Base, Off, Line_Base);
@@ -855,7 +853,7 @@ package body Traces_Elf is
                   case Ext_Opc is
                      when DW_LNE_Set_Address =>
                         Read_Address
-                          (Base, Off, Elf_Arch.Elf_Addr'Size / 8, Pc);
+                          (Exec, Base, Off, Elf_Arch.Elf_Addr'Size / 8, Pc);
                      when others =>
                         null;
                   end case;
@@ -902,7 +900,7 @@ package body Traces_Elf is
       Unchecked_Deallocation (Opc_Length);
    end Read_Debug_Line;
 
-   procedure Build_Debug_Lines
+   procedure Build_Debug_Lines (Exec : in out Exe_File_Type)
    is
       use Addresses_Containers;
       Cur_Cu : Cursor;
@@ -914,30 +912,30 @@ package body Traces_Elf is
       N_Line : Addresses_Info_Acc;
    begin
       --  Return now if already loaded.
-      if not Addresses_Containers.Is_Empty (Lines_Set) then
+      if not Exec.Lines_Set.Is_Empty then
          return;
       end if;
 
       --  Be sure compile units are loaded.
-      Build_Debug_Compile_Units;
+      Build_Debug_Compile_Units (Exec);
 
       --  Read all debug_line
-      Cur_Cu := First (Compile_Units_Set);
+      Cur_Cu := First (Exec.Compile_Units_Set);
       while Cur_Cu /= No_Element loop
          Cu := Element (Cur_Cu);
-         Read_Debug_Line (Cu.Stmt_List);
+         Read_Debug_Line (Exec, Cu.Stmt_List);
          Next (Cur_Cu);
       end loop;
 
       --  Set .Last and parent.
-      Cur_Line := First (Lines_Set);
-      Cur_Subprg := First (Subprograms_Set);
+      Cur_Line := First (Exec.Lines_Set);
+      Cur_Subprg := First (Exec.Subprograms_Set);
       if Cur_Subprg /= No_Element then
          Subprg := Element (Cur_Subprg);
       else
          Subprg := null;
       end if;
-      Cur_Cu := First (Compile_Units_Set);
+      Cur_Cu := First (Exec.Compile_Units_Set);
       if Cur_Cu /= No_Element then
          Cu := Element (Cur_Cu);
       else
@@ -996,46 +994,48 @@ package body Traces_Elf is
       end loop;
    end Build_Debug_Lines;
 
-   procedure Build_Sections
+   procedure Build_Sections (Exec : in out Exe_File_Type)
    is
       Shdr : Elf_Shdr_Acc;
       Addr : Pc_Type;
       Last : Pc_Type;
    begin
       --  Return now if already built.
-      if not Addresses_Containers.Is_Empty (Sections_Set) then
+      if not Exec.Sections_Set.Is_Empty then
          return;
       end if;
 
       --  Iterate over all section headers.
-      for Idx in 0 .. Get_Shdr_Num (Exe_File) - 1 loop
-         Shdr := Get_Shdr (Exe_File, Idx);
+      for Idx in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
+         Shdr := Get_Shdr (Exec.Exe_File, Idx);
 
          --  Only A+X sections are interesting.
          if (Shdr.Sh_Flags and (SHF_ALLOC or SHF_EXECINSTR))
            = (SHF_ALLOC or SHF_EXECINSTR)
            and then (Shdr.Sh_Type = SHT_PROGBITS)
          then
-            Addr := Pc_Type (Shdr.Sh_Addr + Exe_Text_Start);
-            Last := Pc_Type (Shdr.Sh_Addr + Exe_Text_Start + Shdr.Sh_Size - 1);
+            Addr := Pc_Type (Shdr.Sh_Addr + Exec.Exe_Text_Start);
+            Last := Pc_Type (Shdr.Sh_Addr + Exec.Exe_Text_Start
+                               + Shdr.Sh_Size - 1);
 
-            Insert (Sections_Set,
+            Insert (Exec.Sections_Set,
                     new Addresses_Info'
                     (Kind => Section_Addresses,
                      First => Addr,
                      Last => Last,
                      Parent => null,
                      Section_Name =>
-                       new String'(Get_Shdr_Name (Exe_File, Idx)),
+                       new String'(Get_Shdr_Name (Exec.Exe_File, Idx)),
                      Section_Index => Idx,
                      Section_Content => null));
          end if;
       end loop;
    end Build_Sections;
 
-   procedure Load_Section_Content (Sec : Addresses_Info_Acc);
+   procedure Load_Section_Content (Exec : Exe_File_Type;
+                                   Sec : Addresses_Info_Acc);
 
-   procedure Disp_Sections_Coverage (Base : Traces_Base)
+   procedure Disp_Sections_Coverage (Exec : Exe_File_Type; Base : Traces_Base)
    is
       use Addresses_Containers;
       Cur : Cursor;
@@ -1053,22 +1053,22 @@ package body Traces_Elf is
       Last_Addr : Pc_Type;
       State : Trace_State;
    begin
-      Cur := First (Sections_Set);
-      if not Is_Empty (Subprograms_Set) then
-         Cur_Subprg := First (Subprograms_Set);
+      Cur := First (Exec.Sections_Set);
+      if not Is_Empty (Exec.Subprograms_Set) then
+         Cur_Subprg := First (Exec.Subprograms_Set);
          Subprg := Element (Cur_Subprg);
       else
          Subprg := null;
       end if;
-      if not Is_Empty (Symbols_Set) then
-         Cur_Symbol := First (Symbols_Set);
+      if not Is_Empty (Exec.Symbols_Set) then
+         Cur_Symbol := First (Exec.Symbols_Set);
          Symbol := Element (Cur_Symbol);
       else
          Symbol := null;
       end if;
       while Cur /= No_Element loop
          Sec := Element (Cur);
-         Load_Section_Content (Sec);
+         Load_Section_Content (Exec, Sec);
 
          --  Display section name.
          Put ("Section ");
@@ -1169,8 +1169,9 @@ package body Traces_Elf is
                end if;
             end if;
 
-            Disassemble (Sec.Section_Content (Addr .. Last_Addr),
-                         State, Textio_Disassemble_Cb'Access);
+            Traces_Disa.Disassemble
+              (Sec.Section_Content (Addr .. Last_Addr),
+               State, Traces_Disa.Textio_Disassemble_Cb'Access, Exec);
 
             Addr := Last_Addr;
             exit when Addr = Pc_Type'Last;
@@ -1185,16 +1186,17 @@ package body Traces_Elf is
       end loop;
    end Disp_Sections_Coverage;
 
-   procedure Load_Section_Content (Sec : Addresses_Info_Acc) is
+   procedure Load_Section_Content (Exec : Exe_File_Type;
+                                   Sec : Addresses_Info_Acc) is
    begin
       if Sec.Section_Content = null then
          Sec.Section_Content := new Binary_Content (Sec.First .. Sec.Last);
-         Load_Section (Exe_File, Sec.Section_Index,
+         Load_Section (Exec.Exe_File, Sec.Section_Index,
                        Sec.Section_Content (Sec.First)'Address);
       end if;
    end Load_Section_Content;
 
-   procedure Disp_Subprograms_Coverage (Base : Traces_Base)
+   procedure Add_Subprograms_Traces (Exec : Exe_File_Type; Base : Traces_Base)
    is
       use Addresses_Containers;
       use Traces_Sources;
@@ -1210,16 +1212,20 @@ package body Traces_Elf is
 
       Debug : constant Boolean := False;
    begin
-      if Is_Empty (Symbols_Set) then
+      if Is_Empty (Exec.Symbols_Set) then
          return;
       end if;
-      Cur := Symbols_Set.First;
+
+      --  Iterate on symbols.
+      Cur := Exec.Symbols_Set.First;
       while Cur /= No_Element loop
          Sym := Element (Cur);
 
+         --  Be sure the section is loaded.
          Sec := Sym.Parent;
-         Load_Section_Content (Sec);
+         Load_Section_Content (Exec, Sec);
 
+         --  Add the code for the symbol.
          declare
             subtype Rebased_Type is Binary_Content (0 .. Sym.Last - Sym.First);
          begin
@@ -1233,6 +1239,7 @@ package body Traces_Elf is
          end;
 
          if Subprogram_Base /= null then
+            --  Add traces for this symbol.
             Init (Base, It, Sym.First);
             Get_Next_Trace (Trace, It);
 
@@ -1277,9 +1284,10 @@ package body Traces_Elf is
 
          Next (Cur);
       end loop;
-   end Disp_Subprograms_Coverage;
+   end Add_Subprograms_Traces;
 
-   procedure Build_Source_Lines (Base : in out Traces_Base)
+   procedure Build_Source_Lines (Exec : Exe_File_Type;
+                                 Base : in out Traces_Base)
    is
       use Addresses_Containers;
       use Traces_Sources;
@@ -1300,7 +1308,7 @@ package body Traces_Elf is
       No_Traces := E = Bad_Trace;
 
       --  Iterate on lines.
-      Cur := First (Lines_Set);
+      Cur := First (Exec.Lines_Set);
       while Cur /= No_Element loop
          Line := Element (Cur);
 
@@ -1354,7 +1362,8 @@ package body Traces_Elf is
       end loop;
    end Build_Source_Lines;
 
-   procedure Set_Trace_State (Base : in out Traces_Base;
+   procedure Set_Trace_State (Exec : Exe_File_Type;
+                              Base : in out Traces_Base;
                               Section : Binary_Content)
    is
       use Addresses_Containers;
@@ -1371,7 +1380,7 @@ package body Traces_Elf is
          exit when Addr > Section'Last;
          exit when Trace.First > Section'Last;
 
-         case Exe_Machine is
+         case Exec.Exe_Machine is
             when EM_PPC =>
                declare
                   Insn : Binary_Content (0 .. 3);
@@ -1434,31 +1443,31 @@ package body Traces_Elf is
       end loop;
    end Set_Trace_State;
 
-   procedure Set_Trace_State (Base : in out Traces_Base)
+   procedure Set_Trace_State (Exec : Exe_File_Type; Base : in out Traces_Base)
    is
       use Addresses_Containers;
       Cur : Cursor;
       Sec : Addresses_Info_Acc;
 
    begin
-      Cur := First (Sections_Set);
+      Cur := First (Exec.Sections_Set);
       while Cur /= No_Element loop
          Sec := Element (Cur);
 
-         Load_Section_Content (Sec);
+         Load_Section_Content (Exec, Sec);
 
-         Set_Trace_State (Base, Sec.Section_Content.all);
+         Set_Trace_State (Exec, Base, Sec.Section_Content.all);
          --  Unchecked_Deallocation (Section);
 
          Next (Cur);
       end loop;
    end Set_Trace_State;
 
-   procedure Build_Symbols
+   procedure Build_Symbols (Exec : in out Exe_File_Type)
    is
       use Addresses_Containers;
 
-      type Addr_Info_Acc_Arr is array (0 .. Get_Shdr_Num (Exe_File))
+      type Addr_Info_Acc_Arr is array (0 .. Get_Shdr_Num (Exec.Exe_File))
         of Addresses_Info_Acc;
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
       Sec : Addresses_Info_Acc;
@@ -1478,26 +1487,26 @@ package body Traces_Elf is
       Ok : Boolean;
    begin
       --  Build_Sections must be called before.
-      if Sections_Set.Is_Empty then
+      if Exec.Sections_Set.Is_Empty then
          raise Program_Error;
       end if;
 
-      if not Symbols_Set.Is_Empty then
+      if not Exec.Symbols_Set.Is_Empty then
          return;
       end if;
 
-      Cur := First (Sections_Set);
+      Cur := First (Exec.Sections_Set);
       while Has_Element (Cur) loop
          Sec := Element (Cur);
          Sections_Info (Sec.Section_Index) := Sec;
          Next (Cur);
       end loop;
 
-      Symtab_Idx := Get_Shdr_By_Name (Exe_File, ".symtab");
+      Symtab_Idx := Get_Shdr_By_Name (Exec.Exe_File, ".symtab");
       if Symtab_Idx = SHN_UNDEF then
          return;
       end if;
-      Symtab_Shdr := Get_Shdr (Exe_File, Symtab_Idx);
+      Symtab_Shdr := Get_Shdr (Exec.Exe_File, Symtab_Idx);
       if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
         or else Symtab_Shdr.Sh_Link = 0
         or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
@@ -1506,17 +1515,17 @@ package body Traces_Elf is
       end if;
       Strtab_Idx := Elf_Half (Symtab_Shdr.Sh_Link);
 
-      Symtab_Len := Get_Section_Length (Exe_File, Symtab_Idx);
+      Symtab_Len := Get_Section_Length (Exec.Exe_File, Symtab_Idx);
       Symtabs := new Binary_Content (0 .. Symtab_Len - 1);
-      Load_Section (Exe_File, Symtab_Idx, Symtabs (0)'Address);
+      Load_Section (Exec.Exe_File, Symtab_Idx, Symtabs (0)'Address);
 
-      Strtab_Len := Get_Section_Length (Exe_File, Strtab_Idx);
+      Strtab_Len := Get_Section_Length (Exec.Exe_File, Strtab_Idx);
       Strtabs := new Binary_Content (0 .. Strtab_Len - 1);
-      Load_Section (Exe_File, Strtab_Idx, Strtabs (0)'Address);
+      Load_Section (Exec.Exe_File, Strtab_Idx, Strtabs (0)'Address);
 
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
          Sym := Get_Sym
-           (Exe_File,
+           (Exec.Exe_File,
             Symtabs (0)'Address + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (Sym.St_Info);
          if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
@@ -1525,12 +1534,12 @@ package body Traces_Elf is
            and then Sym.St_Size > 0
          then
             Addresses_Containers.Insert
-              (Symbols_Set,
+              (Exec.Symbols_Set,
                new Addresses_Info'
                (Kind => Symbol_Addresses,
-                First => Exe_Text_Start + Pc_Type (Sym.St_Value),
-                Last => Exe_Text_Start + Pc_Type (Sym.St_Value
-                                                  + Sym.St_Size - 1),
+                First => Exec.Exe_Text_Start + Pc_Type (Sym.St_Value),
+                Last => Exec.Exe_Text_Start + Pc_Type (Sym.St_Value
+                                                         + Sym.St_Size - 1),
                 Parent => Sections_Info (Sym.St_Shndx),
                 Symbol_Name => new String'
                 (Read_String (Strtabs (Sym.St_Name)'Address))),
@@ -1541,62 +1550,36 @@ package body Traces_Elf is
       Unchecked_Deallocation (Symtabs);
    end Build_Symbols;
 
-   Last_Section : Addresses_Info_Acc;
-
-   function Get_Section_By_Addr (Pc : Pc_Type) return Addresses_Info_Acc
-   is
-   begin
-      --  Search if not in the last section.
-      if Last_Section = null
-        or else (Pc not in Last_Section.First .. Last_Section.Last)
-      then
-         --  FIXME: use container primitives.
-         declare
-            use Addresses_Containers;
-            Cur : Cursor;
-            Sec : Addresses_Info_Acc;
-         begin
-            Last_Section := null;
-            Cur := First (Sections_Set);
-            loop
-               if Cur = No_Element then
-                  raise Program_Error;
-               end if;
-               Sec := Element (Cur);
-               if Pc in Sec.First .. Sec.Last then
-                  Last_Section := Sec;
-                  exit;
-               end if;
-               Next (Cur);
-            end loop;
-         end;
-      end if;
-
-      return Last_Section;
-   end Get_Section_By_Addr;
-
---     function Get_Section_Addr (Pc : Pc_Type) return Address
---     is
---        Res : Addresses_Info_Acc;
---     begin
---        Res := Get_Section_By_Addr (Pc);
---        if Res /= null then
---           return Res.Section_Content (Pc)'Address;
---        else
---           return Null_Address;
---        end if;
---     end Get_Section_Addr;
-
    Get_Symbol_Sym : constant Addresses_Info_Acc :=
      new Addresses_Info (Symbol_Addresses);
 
-   procedure Get_Symbol (Pc : Pc_Type;
-                         Line : in out String;
-                         Line_Pos : in out Natural)
+   function Get_Symbol (Exec : Exe_File_Type; Pc : Pc_Type)
+                       return Addresses_Info_Acc
    is
       use Addresses_Containers;
       Cur : Cursor;
       Sym : Addresses_Info_Acc;
+   begin
+      Get_Symbol_Sym.First := Pc;
+      Get_Symbol_Sym.Last := Pc;
+      Cur := Floor (Exec.Symbols_Set, Get_Symbol_Sym);
+      if Cur = No_Element then
+         return null;
+      end if;
+      Sym := Element (Cur);
+      if Pc > Sym.Last then
+         return null;
+      else
+         return Sym;
+      end if;
+   end Get_Symbol;
+
+   procedure Symbolize (Sym : Exe_File_Type;
+                        Pc : Traces.Pc_Type;
+                        Line : in out String;
+                        Line_Pos : in out Natural)
+   is
+      Symbol : constant Addresses_Info_Acc := Get_Symbol (Sym, Pc);
 
       procedure Add (C : Character) is
       begin
@@ -1615,151 +1598,22 @@ package body Traces_Elf is
       end Add;
 
    begin
-      Get_Symbol_Sym.First := Pc;
-      Get_Symbol_Sym.Last := Pc;
-      Cur := Floor (Symbols_Set, Get_Symbol_Sym);
-      if Cur = No_Element then
-         return;
-      end if;
-      Sym := Element (Cur);
-      if Pc > Sym.Last then
+      if Symbol = null then
          return;
       end if;
 
       Add (" <");
-      Add (Sym.Symbol_Name.all);
-      if Pc /= Sym.First then
+      Add (Symbol.Symbol_Name.all);
+      if Pc /= Symbol.First then
          Add ('+');
-         Add (Hex_Image (Pc - Sym.First));
+         Add (Hex_Image (Pc - Symbol.First));
       end if;
       Add ('>');
-   end Get_Symbol;
+   end Symbolize;
 
-   --  INSN is exactly one instruction.
-   --  Generate the disassembly for INSN.
-   function Disassemble (Insn : Binary_Content; Pc : Pc_Type) return String
-   is
-      Addr : Address;
-      Line_Pos : Natural;
-      Line : String (1 .. 128);
-      Insn_Len : Natural := 0;
-   begin
-      Addr := Insn (Insn'First)'Address;
-      Disa_Ppc.Disassemble_Insn
-        (Addr, Pc, Line, Line_Pos, Insn_Len, Get_Symbol'Access);
-      if Insn_Len /= Insn'Length then
-         raise Constraint_Error;
-      end if;
-      return Line (1 .. Line_Pos - 1);
-   end Disassemble;
-
-   procedure Textio_Disassemble_Cb (Addr : Pc_Type;
-                                    State : Trace_State;
-                                    Insn : Binary_Content)
-   is
-   begin
-      Put (Hex_Image (Addr));
-      Put (' ');
-      Disp_State_Char (State);
-      Put (":");
-      Put (ASCII.HT);
-      for I in Insn'Range loop
-         Put (Hex_Image (Insn (I)));
-         Put (' ');
-      end loop;
-      Put ("  ");
-      Put (Disassemble (Insn, Addr));
-      New_Line;
-   end Textio_Disassemble_Cb;
-
-   procedure Disassemble (Insns : Binary_Content;
-                          State : Trace_State;
-                          Cb : Disassemble_Cb)
-   is
-      type Binary_Content_Thin_Acc is access Binary_Content (Elf_Size);
-      function To_Binary_Content_Thin_Acc is new Ada.Unchecked_Conversion
-        (Address, Binary_Content_Thin_Acc);
-      Pc : Pc_Type;
-      Addr : Address;
-      Insn_Len : Natural := 0;
-   begin
-      Pc := Insns'First;
-      while Pc < Insns'Last loop
-         Addr := Insns (Pc)'Address;
-         Insn_Len := Disa_Ppc.Get_Insn_Length (Addr);
-         Cb.all
-           (Pc, State,
-            To_Binary_Content_Thin_Acc (Addr)(0 .. Elf_Size (Insn_Len) - 1));
-         Pc := Pc + Pc_Type (Insn_Len);
-         exit when Pc = 0;
-      end loop;
-   end Disassemble;
-
-   function Get_Label (Info : Addresses_Info_Acc) return String
-   is
-      Line : String (1 .. 64);
-      Line_Pos : Natural;
-   begin
-      --  Display address.
-      Line_Pos := Line'First;
-      Get_Symbol (Info.First, Line, Line_Pos);
-      if Line_Pos > Line'First then
-         if Line_Pos > Line'Last then
-            Line_Pos := Line'Last;
-         end if;
-         Line (Line_Pos) := ':';
-         return Line (Line'First + 1 .. Line_Pos);
-      else
-         return "";
-      end if;
-   end Get_Label;
-
-   procedure Disp_Assembly_Lines
-     (Insns : Binary_Content;
-      Base : Traces_Base;
-      Cb : access procedure (Addr : Pc_Type;
-                             State : Trace_State;
-                             Insn : Binary_Content))
-   is
-      It : Entry_Iterator;
-      E : Trace_Entry;
-      Addr : Pc_Type;
-      Next_Addr : Pc_Type;
-      State : Trace_State;
-   begin
-      --  Disp_Address (Info);
-      Init (Base, It, Insns'First);
-      Get_Next_Trace (E, It);
-      Addr := Insns'First;
-
-      loop
-         Next_Addr := Insns'Last;
-
-         --  Find matching trace.
-         while E /= Bad_Trace and then Addr > E.Last loop
-            Get_Next_Trace (E, It);
-         end loop;
-         --  Dump_Entry (E);
-         if E /= Bad_Trace and then (Addr >= E.First and Addr <= E.Last) then
-            State := E.State;
-            if E.Last < Next_Addr then
-               Next_Addr := E.Last;
-            end if;
-         else
-            State := Not_Covered;
-            if E /= Bad_Trace and then E.First < Next_Addr then
-               Next_Addr := E.First - 1;
-            end if;
-         end if;
-         Disassemble (Insns (Addr .. Next_Addr), State, Cb);
-         exit when Next_Addr >= Insns'Last;
-         Addr := Next_Addr + 1;
-      end loop;
-   end Disp_Assembly_Lines;
-
-   procedure Build_Routine_Names is
+   procedure Build_Routine_Names (Exec : Exe_File_Type) is
    begin
       Traces_Names.Read_Routines_Name
-        (Exe_File, new String'(Get_Filename (Exe_File)), False);
+        (Exec.Exe_File, new String'(Get_Filename (Exec.Exe_File)), False);
    end Build_Routine_Names;
 end Traces_Elf;

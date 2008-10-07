@@ -27,6 +27,7 @@ with Traces_Sources.Xcov;
 with Traces_Names;
 with Traces_Files; use Traces_Files;
 with Traces_Dbase; use Traces_Dbase;
+with Traces_Disa;
 
 procedure Xcov is
    procedure Usage
@@ -81,6 +82,8 @@ procedure Xcov is
    type Output_Format is (Format_Xcov, Format_Gcov, Format_Html);
    Format : Output_Format := Format_Xcov;
    Base : Traces_Base;
+
+   Exec : Exe_File_Type;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -140,26 +143,13 @@ begin
             end if;
             Read_Trace_File (Base, Argument (Arg_Index));
             Arg_Index := Arg_Index + 1;
-         elsif Arg = "--dump-traces" then
-            Dump_Traces (Base);
-         elsif Arg = "--dump-traces-state" then
-            Build_Sections;
-            Set_Trace_State (Base);
-            Dump_Traces (Base);
-         elsif Arg = "-w" then
-            if Arg_Index > Arg_Count then
-               Error ("missing FILENAME to -w");
-               return;
-            end if;
-            Write_Trace_File (Base, Argument (Arg_Index));
-            Arg_Index := Arg_Index + 1;
          elsif Arg = "-e" then
             if Arg_Index > Arg_Count then
                Error ("missing FILENAME to -e");
                return;
             end if;
             begin
-               Open_File (Argument (Arg_Index), Text_Start);
+               Open_File (Exec, Argument (Arg_Index), Text_Start);
             exception
                when others =>
                   Error ("cannot open " & Argument (Arg_Index));
@@ -169,37 +159,50 @@ begin
             Arg_Index := Arg_Index + 1;
 --         elsif Arg = "--objdump-coverage" then
 --            Annotate_Objdump;
+         elsif Arg = "--dump-traces" then
+            Dump_Traces (Base);
+         elsif Arg = "--dump-traces-state" then
+            Build_Sections (Exec);
+            Set_Trace_State (Exec, Base);
+            Dump_Traces (Base);
+         elsif Arg = "-w" then
+            if Arg_Index > Arg_Count then
+               Error ("missing FILENAME to -w");
+               return;
+            end if;
+            Write_Trace_File (Base, Argument (Arg_Index));
+            Arg_Index := Arg_Index + 1;
          elsif Arg = "--exe-coverage" then
             if not Has_Exec then
                Error ("option --exe-coverage requires an executable");
                return;
             end if;
-            Build_Sections;
-            Build_Debug_Compile_Units;
-            Set_Trace_State (Base);
-            Build_Symbols;
-            Disp_Sections_Coverage (Base);
+            Build_Sections (Exec);
+            Build_Debug_Compile_Units (Exec);
+            Set_Trace_State (Exec, Base);
+            Build_Symbols (Exec);
+            Disp_Sections_Coverage (Exec, Base);
          elsif Arg = "--dump-sections" then
-            Build_Sections;
-            Disp_Sections_Addresses;
+            Build_Sections (Exec);
+            Disp_Sections_Addresses (Exec);
          elsif Arg = "--dump-compile-units" then
-            Build_Sections;
-            Build_Debug_Compile_Units;
-            Disp_Compile_Units_Addresses;
+            Build_Sections (Exec);
+            Build_Debug_Compile_Units (Exec);
+            Disp_Compile_Units_Addresses (Exec);
          elsif Arg = "--dump-subprograms" then
-            Build_Sections;
-            Build_Debug_Compile_Units;
-            Disp_Subprograms_Addresses;
+            Build_Sections (Exec);
+            Build_Debug_Compile_Units (Exec);
+            Disp_Subprograms_Addresses (Exec);
          elsif Arg = "--dump-lines" then
-            Build_Sections;
-            Build_Debug_Lines;
-            Disp_Lines_Addresses;
+            Build_Sections (Exec);
+            Build_Debug_Lines (Exec);
+            Disp_Lines_Addresses (Exec);
          elsif Arg = "--dump-symbols" then
-            Build_Sections;
-            Build_Symbols;
-            Disp_Symbols_Addresses;
+            Build_Sections (Exec);
+            Build_Symbols (Exec);
+            Disp_Symbols_Addresses (Exec);
          elsif Arg = "--asm" then
-            Flag_Show_Asm := True;
+            Traces_Disa.Flag_Show_Asm := True;
          elsif Arg = "--missing-files" then
             Flag_Show_Missing := True;
          elsif Arg'Length > 8
@@ -260,32 +263,32 @@ begin
          then
             Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
          elsif Arg = "--source-coverage" then
-            Build_Sections;
-            Set_Trace_State (Base);
-            Build_Debug_Lines;
-            Build_Source_Lines (Base);
-            Build_Symbols;
+            Build_Sections (Exec);
+            Set_Trace_State (Exec, Base);
+            Build_Debug_Lines (Exec);
+            Build_Source_Lines (Exec, Base);
+            Build_Symbols (Exec);
             case Format is
                when Format_Xcov =>
-                  Traces_Sources.Xcov.Generate_Report (Base);
+                  Traces_Sources.Xcov.Generate_Report (Base, Exec);
                when Format_Gcov =>
-                  Traces_Sources.Gcov.Generate_Report (Base);
+                  Traces_Sources.Gcov.Generate_Report (Base, Exec);
                when Format_Html =>
-                  Traces_Sources.Html.Generate_Report (Base);
+                  Traces_Sources.Html.Generate_Report (Base, Exec);
             end case;
          elsif Arg = "--file-coverage" then
-            Build_Sections;
-            Set_Trace_State (Base);
-            Build_Debug_Lines;
-            Build_Source_Lines (Base);
-            Build_Symbols;
+            Build_Sections (Exec);
+            Set_Trace_State (Exec, Base);
+            Build_Debug_Lines (Exec);
+            Build_Source_Lines (Exec, Base);
+            Build_Symbols (Exec);
             Disp_File_Summary;
          elsif Arg = "--function-coverage" then
-            Build_Routine_Names;
-            Build_Sections;
-            Build_Symbols;
-            Disp_Subprograms_Coverage (Base);
-            Traces_Names.Dump_Routines_Traces;
+            Build_Routine_Names (Exec);
+            Build_Sections (Exec);
+            Build_Symbols (Exec);
+            Add_Subprograms_Traces (Exec, Base);
+            Traces_Names.Dump_Routines_Traces (Exec);
          else
             Error ("unknown option: " & Arg);
             return;
