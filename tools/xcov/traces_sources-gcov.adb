@@ -20,9 +20,9 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Directories;
 
-package body Traces_Sources.gcov is
-      type Gcov_Pretty_Printer is new Pretty_Printer with record
-      Gcov_File : Ada.Text_Io.File_Type;
+package body Traces_Sources.Gcov is
+   type Gcov_Pretty_Printer is new Pretty_Printer with record
+      Gcov_File : Ada.Text_IO.File_Type;
    end record;
 
    procedure Pretty_Print_File (Pp : in out Gcov_Pretty_Printer;

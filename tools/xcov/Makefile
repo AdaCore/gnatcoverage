@@ -1,12 +1,12 @@
 GNATMAKE=gnatmake
-
+ADAFLAGS=-gnat05 -gnatwae -gnata -g -gnatyg-s
 all: xcov
 
 xcov: force
-	$(GNATMAKE) -gnat05 -gnatwae -gnata -g $@
+	$(GNATMAKE) $(ADAFLAGS) $@
 
 ppc_genopc: force
-	$(GNATMAKE) -gnat05 -gnatwae -gnata -g $@
+	$(GNATMAKE) $(ADAFLAGS) $@
 
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@

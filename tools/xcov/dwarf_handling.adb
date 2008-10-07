@@ -46,7 +46,7 @@ package body Dwarf_Handling is
             Res := N_Res;
          end if;
          if Res (V) /= Null_Address then
-            --Put_Line ("!! abbrev override !!");
+            --  Put_Line ("!! abbrev override !!");
             return;
          end if;
          Res (V) := Base + Off;
@@ -246,7 +246,7 @@ package body Dwarf_Handling is
 
    procedure Write_Word4_Le (Base : Address;
                              Off : in out Storage_Offset;
-                             Val : in Unsigned_32)
+                             Val : Unsigned_32)
    is
       B0, B1, B2, B3 : Unsigned_8;
    begin
@@ -264,7 +264,7 @@ package body Dwarf_Handling is
 
    procedure Write_Word4_Be (Base : Address;
                              Off : in out Storage_Offset;
-                             Val : in Unsigned_32)
+                             Val : Unsigned_32)
    is
       B0, B1, B2, B3 : Unsigned_8;
    begin

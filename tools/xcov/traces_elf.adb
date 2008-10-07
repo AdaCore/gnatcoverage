@@ -47,7 +47,6 @@ package body Traces_Elf is
    Symbols_Set : Addresses_Containers.Set;
    Lines_Set : Addresses_Containers.Set;
 
-
    type Disassemble_Cb is access procedure (Addr : Pc_Type;
                                             State : Trace_State;
                                             Insn : Binary_Content);
@@ -127,7 +126,6 @@ package body Traces_Elf is
    Sec_Debug_Info_Rel : Elf_Half := 0;
    Sec_Debug_Line     : Elf_Half := 0;
    Sec_Debug_Line_Rel : Elf_Half := 0;
-   --Sec_Debug_Aranges : Elf_Half := 0;
    Sec_Debug_Str      : Elf_Half := 0;
 
    Exe_File : Elf_File;
@@ -145,7 +143,6 @@ package body Traces_Elf is
    --  .debug_lines content.
    Lines_Len : Elf_Size := 0;
    Lines : Binary_Content_Acc := null;
-
 
    Bad_Stmt_List : constant Unsigned_64 := Unsigned_64'Last;
 
@@ -353,7 +350,7 @@ package body Traces_Elf is
                      Debug_Str_Len := Get_Section_Length
                        (Exe_File, Sec_Debug_Str);
                      Debug_Strs := new Binary_Content (0 .. Debug_Str_Len - 1);
-                     Debug_Str_Base := Debug_Strs(0)'Address;
+                     Debug_Str_Base := Debug_Strs (0)'Address;
                      Load_Section (Exe_File, Sec_Debug_Str, Debug_Str_Base);
                   else
                      return;
@@ -458,7 +455,8 @@ package body Traces_Elf is
 
       Off := 0;
       while Off < Storage_Offset (Relocs_Len) loop
-         if Off + Storage_Offset (Elf_Rela_Size) > Storage_Offset (Relocs_Len)
+         if
+           Off + Storage_Offset (Elf_Rela_Size) > Storage_Offset (Relocs_Len)
          then
             --  Truncated.
             raise Program_Error;
@@ -510,7 +508,6 @@ package body Traces_Elf is
       Base : Address;
       Off : Storage_Offset;
       Aoff : Storage_Offset;
-      --Old_Off : Storage_Offset;
 
       Len : Unsigned_32;
       Ver : Unsigned_16;
@@ -589,7 +586,6 @@ package body Traces_Elf is
          loop
             << Again >> null;
             exit when Off >= Last;
-            --Old_Off := Off;
             Read_ULEB128 (Base, Off, Num);
             if Num = 0 then
                Level := Level - 1;
@@ -622,9 +618,6 @@ package body Traces_Elf is
                Read_ULEB128 (Abbrev, Aoff, Form);
                exit when Name = 0 and Form = 0;
 
-               --Old_Off := Off;
-               --Disp_Dwarf_Form (Base, Off, Form);
-
                case Name is
                   when DW_AT_Sibling =>
                      Read_Dwarf_Form_U64 (Base, Off, Form, At_Sib);
@@ -649,7 +642,7 @@ package body Traces_Elf is
                end case;
             end loop;
             case Tag is
-               when DW_Tag_Compile_Unit =>
+               when DW_TAG_Compile_Unit =>
                   if At_Low_Pc = 0 and At_High_Pc = 0 then
                      --  This field are not required.
                      At_Low_Pc := 1;
@@ -670,13 +663,13 @@ package body Traces_Elf is
                      --  Do not insert empty units.
                      Insert (Compile_Units_Set, Current_Cu);
                   end if;
-                  --Ctxt.Lang := At_Lang;
+                  --  Ctxt.Lang := At_Lang;
                   At_Lang := 0;
                   At_Stmt_List := Bad_Stmt_List;
-               when DW_Tag_Subprogram =>
+               when DW_TAG_Subprogram =>
                   if At_High_Pc > At_Low_Pc then
                      Current_Subprg :=
-                       New Addresses_Info'
+                       new Addresses_Info'
                        (Kind => Subprogram_Addresses,
                         First => Exe_Text_Start + Pc_Type (At_Low_Pc),
                         Last => Exe_Text_Start + Pc_Type (At_High_Pc - 1),
@@ -763,10 +756,10 @@ package body Traces_Elf is
                   Line_Next => null,
                   Line_Filename => Filenames_Vectors.Element (Filenames, File),
                   Line_Number => Natural (Line)));
-         --Put_Line ("pc: " & Hex_Image (Pc)
-         --          & " file (" & Natural'Image (File) & "): "
-         --          & Read_String (Filenames_Vectors.Element (Filenames, File))
-         --          & ", line: " & Unsigned_32'Image (Line));
+         --  Put_Line ("pc: " & Hex_Image (Pc)
+         --        & " file (" & Natural'Image (File) & "): "
+         --        & Read_String (Filenames_Vectors.Element (Filenames, File))
+         --        & ", line: " & Unsigned_32'Image (Line));
       end New_Raw;
    begin
       --  Load .debug_line
@@ -783,7 +776,8 @@ package body Traces_Elf is
       Base := Lines (0)'Address;
 
       Off := Storage_Offset (CU_Offset);
-      if Off >= Storage_Offset (Get_Section_Length (Exe_File, Sec_Debug_Line))
+      if Off
+        >= Storage_Offset (Get_Section_Length (Exe_File, Sec_Debug_Line))
       then
          return;
       end if;
@@ -866,7 +860,7 @@ package body Traces_Elf is
                         null;
                   end case;
                   Off := Old_Off + Storage_Offset (Ext_Len);
-                  --raise Program_Error;
+                  --  raise Program_Error;
                when others =>
                   for J in 1 .. Opc_Length (B) loop
                      Read_ULEB128 (Base, Off, Arg);
@@ -1026,7 +1020,7 @@ package body Traces_Elf is
             Last := Pc_Type (Shdr.Sh_Addr + Exe_Text_Start + Shdr.Sh_Size - 1);
 
             Insert (Sections_Set,
-                    New Addresses_Info'
+                    new Addresses_Info'
                     (Kind => Section_Addresses,
                      First => Addr,
                      Last => Last,
@@ -1407,12 +1401,12 @@ package body Traces_Elf is
                         for I in Unsigned_32 range 0 .. 3 loop
                            Insn (I) := Section (Trace.Last - 3 + I);
                         end loop;
-                        if (Insn(0) and 16#Fc#) = 16#48# then
+                        if (Insn (0) and 16#Fc#) = 16#48# then
                            --  Opc = 18: b, ba, bl and bla
                            Update_State (Base, It, Covered);
-                        elsif ((Insn(0) and 16#Fe#) = 16#42#
-                                 or else (Insn(0) and 16#Fe#) = 16#4e#)
-                          and then (Insn(1) and 16#80#) = 16#80#
+                        elsif ((Insn (0) and 16#Fe#) = 16#42#
+                                 or else (Insn (0) and 16#Fe#) = 16#4e#)
+                          and then (Insn (1) and 16#80#) = 16#80#
                         then
                            --  Opc = 16 (bcx) or Opc = 19 (bcctrx)
                            --   BO = 1x1xx
@@ -1454,7 +1448,7 @@ package body Traces_Elf is
          Load_Section_Content (Sec);
 
          Set_Trace_State (Base, Sec.Section_Content.all);
-         -- Unchecked_Deallocation (Section);
+         --  Unchecked_Deallocation (Section);
 
          Next (Cur);
       end loop;
@@ -1668,7 +1662,7 @@ package body Traces_Elf is
       Put (' ');
       Disp_State_Char (State);
       Put (":");
-      Put (Ascii.HT);
+      Put (ASCII.HT);
       for I in Insn'Range loop
          Put (Hex_Image (Insn (I)));
          Put (' ');
@@ -1733,7 +1727,7 @@ package body Traces_Elf is
       Next_Addr : Pc_Type;
       State : Trace_State;
    begin
-      --Disp_Address (Info);
+      --  Disp_Address (Info);
       Init (Base, It, Insns'First);
       Get_Next_Trace (E, It);
       Addr := Insns'First;
@@ -1745,7 +1739,7 @@ package body Traces_Elf is
          while E /= Bad_Trace and then Addr > E.Last loop
             Get_Next_Trace (E, It);
          end loop;
-         --Dump_Entry (E);
+         --  Dump_Entry (E);
          if E /= Bad_Trace and then (Addr >= E.First and Addr <= E.Last) then
             State := E.State;
             if E.Last < Next_Addr then

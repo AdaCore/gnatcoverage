@@ -22,14 +22,14 @@ with Traces; use Traces;
 
 package Traces_Dbase is
    type Traces_Base is limited private;
-   
+
    type Traces_Base_Acc is access Traces_Base;
-   
+
    --  Add a trace entry in the ordered_Set.  May discard useless entries
    --  or merge entries.
    procedure Add_Entry (Base : in out Traces_Base;
-			First : Pc_Type; Last : Pc_Type; Op : Unsigned_8);
-   
+                        First : Pc_Type; Last : Pc_Type; Op : Unsigned_8);
+
    --  Walk the set and try to merge entries.
    procedure Merge_Entries (Base : in out Traces_Base);
 
@@ -39,14 +39,14 @@ package Traces_Dbase is
    --  Return a trace that contains or follows ADDR.
    type Entry_Iterator is limited private;
    procedure Init (Base : Traces_Base;
-		   Iterator : out Entry_Iterator; Pc : Pc_Type);
+                   Iterator : out Entry_Iterator; Pc : Pc_Type);
    procedure Get_Next_Trace (Trace : out Trace_Entry;
                              Iterator : in out Entry_Iterator);
 
    procedure Update_State (Base : in out Traces_Base;
-			   Iterator : Entry_Iterator; State : Trace_State);
+                           Iterator : Entry_Iterator; State : Trace_State);
    procedure Split_Trace (Base : in out Traces_Base;
-			  Iterator : in out Entry_Iterator;
+                          Iterator : in out Entry_Iterator;
                           Pc : Pc_Type;
                           Cur_State, Next_State : Trace_State);
 
@@ -59,9 +59,9 @@ private
      (Element_Type => Trace_Entry,
       "<" => "<",
       "=" => "=");
-   
+
    type Traces_Base is new Entry_Set.Set with null record;
-   
+
    type Entry_Iterator is record
       Cur : Entry_Set.Cursor;
    end record;

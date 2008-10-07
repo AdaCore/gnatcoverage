@@ -30,8 +30,8 @@ package body Ppc_Descs is
 
    function Get_Field (Field : Ppc_Fields; V : Unsigned_32) return Unsigned_32
    is
-     F : constant Field_Type := Fields_Mask (Field);
-     Len : constant Natural := F.Last - F.First + 1;
+      F : constant Field_Type := Fields_Mask (Field);
+      Len : constant Natural := F.Last - F.First + 1;
    begin
       return Shift_Right (Shift_Left (V, F.First), 32 - Len);
    end Get_Field;

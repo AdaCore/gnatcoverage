@@ -21,9 +21,9 @@ with Ada.Integer_Text_IO;
 with Ada.Directories;
 with Hex_Images; use Hex_Images;
 
-package body Traces_Sources.xcov is
+package body Traces_Sources.Xcov is
    type Xcov_Pretty_Printer is new Pretty_Printer with record
-      Xcov_File : Ada.Text_Io.File_Type;
+      Xcov_File : Ada.Text_IO.File_Type;
    end record;
 
    procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
@@ -106,14 +106,14 @@ package body Traces_Sources.xcov is
                                 Insn : Binary_Content)
    is
    begin
-      Put (PP.Xcov_File, Hex_Image (Pc));
-      Put (PP.Xcov_File, ' ' & Trace_State_Char (State) & ":  ");
+      Put (Pp.Xcov_File, Hex_Image (Pc));
+      Put (Pp.Xcov_File, ' ' & Trace_State_Char (State) & ":  ");
       for I in Insn'Range loop
          Put (Pp.Xcov_File, Hex_Image (Insn (I)));
-         Put (PP.Xcov_File, " ");
+         Put (Pp.Xcov_File, " ");
       end loop;
-      Put (PP.Xcov_File, " ");
-      Put_Line (PP.Xcov_File, Disassemble (Insn, Pc));
+      Put (Pp.Xcov_File, " ");
+      Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc));
    end Pretty_Print_Insn;
 
    procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer) is

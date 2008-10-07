@@ -16,7 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Ada.Text_Io;
+with Ada.Text_IO;
 with Ada.Directories;
 
 package body Traces_Sources is
@@ -180,7 +180,6 @@ package body Traces_Sources is
       Last_Source_Rebase_Entry := E;
    end Add_Source_Rebase;
 
-
    type Source_Search_Entry;
    type Source_Search_Entry_Acc is access Source_Search_Entry;
    type Source_Search_Entry is record
@@ -190,7 +189,6 @@ package body Traces_Sources is
 
    First_Source_Search_Entry : Source_Search_Entry_Acc := null;
    Last_Source_Search_Entry : Source_Search_Entry_Acc := null;
-
 
    procedure Add_Source_Search (Prefix : String)
    is
@@ -360,7 +358,7 @@ package body Traces_Sources is
       use Ada.Text_IO;
       use Ada.Directories;
 
-      procedure Process (Key : String_Acc; Element : in Source_Lines) is
+      procedure Process (Key : String_Acc; Element : Source_Lines) is
       begin
          Disp_File_Line_State (Pp, Base, Key.all, Element);
       end Process;
@@ -383,7 +381,7 @@ package body Traces_Sources is
       use Ada.Text_IO;
       use Ada.Directories;
 
-      procedure Process (Key : String_Acc; File : in Source_Lines)
+      procedure Process (Key : String_Acc; File : Source_Lines)
       is
          use Source_Lines_Vectors;
 

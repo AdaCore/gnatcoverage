@@ -95,8 +95,8 @@ package Traces_Sources is
                              Line : Natural;
                              State : Traces.Trace_State);
 
-   -- If True, Disp_Line_State will also display info for files that are not
-   -- found.
+   --  If True, Disp_Line_State will also display info for files that are not
+   --  found.
    Flag_Show_Missing : Boolean := False;
 
    --  Display a per file summary.
@@ -221,7 +221,6 @@ private
                     Branch_Taken => Covered_No_Branch,
                     Branch_Fallthrough => Covered_No_Branch,
                     Branch_Covered => Covered_No_Branch));
-
 
    type Stat_Array is array (Line_State) of Natural;
 

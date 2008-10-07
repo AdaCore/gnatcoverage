@@ -90,7 +90,7 @@ package body Disa_Ppc is
          end if;
       end Add;
 
-      procedure Add_Ht is
+      procedure Add_HT is
       begin
          Add (' ');
          while Line_Pos - Line'First < 7 loop
@@ -179,7 +179,7 @@ package body Disa_Ppc is
                   --  Add spaces when displaying the first field which is not
                   --  part of the mnemonic.
                   if not Has_Ht then
-                     Add_Ht;
+                     Add_HT;
                      Has_Ht := True;
                      Is_First := False;
                   elsif Is_First then
@@ -244,11 +244,11 @@ package body Disa_Ppc is
                      Add_Num2 (Get_Field (F_A, W));
                      Add (')');
                      exit;
-                  when F_Simm =>
+                  when F_SIMM =>
                      Add_Simm (Val);
-                  when F_Uimm =>
+                  when F_UIMM =>
                      Add_Uimm (Val);
-                  when F_Li =>
+                  when F_LI =>
                      Val := Shift_Left (Val, 2);
                      --  Sign extend
                      if (Val and 16#800000#) /= 0 then
@@ -294,4 +294,3 @@ package body Disa_Ppc is
       end if;
    end Disassemble_Insn;
 end Disa_Ppc;
-

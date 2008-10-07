@@ -49,7 +49,7 @@ package Elf_Common is
    EM_MIPS        : constant Elf_Half := 8;  --  MIPS RS3000 Big-Endian
    EM_MIPS_RS4_BE : constant Elf_Half := 10; --  MIPS RS4000 Big-Endian
    EM_PPC         : constant Elf_Half := 20; --  PowerPc
-   -- RESERVED : constant Elf_Half := 11; -- -16 Reserved for future use
+   --  RESERVED : constant Elf_Half := 11; -- -16 Reserved for future use
 
    --  e_version
    EV_NONE    : constant Elf_Uchar := 0; --  Invalid versionn
@@ -64,7 +64,7 @@ package Elf_Common is
    EI_DATA    : constant Natural := 5;  --  Data encoding
    EI_VERSION : constant Natural := 6;  --  File version
    EI_PAD     : constant Natural := 7;  --  Start of padding bytes
-   --EI_NIDENT  : constant Natural := 16; --  Size of e_ident[]
+   --  EI_NIDENT  : constant Natural := 16; --  Size of e_ident[]
 
    --  Magic values.
    ELFMAG0 : constant Elf_Uchar := 16#7f#; --  e_ident[EI_MAG0]
@@ -88,7 +88,7 @@ package Elf_Common is
    SHN_COMMON    : constant Elf_Half := 16#fff2#; --
    SHN_HIRESERVE : constant Elf_Half := 16#ffff#; --
 
-   -- Sh_type.
+   --  Sh_type.
    SHT_NULL          : constant Elf_Word := 0;
    SHT_PROGBITS      : constant Elf_Word := 1;
    SHT_SYMTAB        : constant Elf_Word := 2;
@@ -124,7 +124,6 @@ package Elf_Common is
    SHT_LOUSER        : constant Elf_Word := 16#80000000#;
    SHT_HIUSER        : constant Elf_Word := 16#ffffffff#;
 
-
    SHF_WRITE     : constant := 16#1#;
    SHF_ALLOC     : constant := 16#2#;
    SHF_EXECINSTR : constant := 16#4#;
@@ -152,7 +151,6 @@ package Elf_Common is
    STT_FILE    : constant Elf_Uchar := 4;
    STT_LOPROC  : constant Elf_Uchar := 13;
    STT_HIPROC  : constant Elf_Uchar := 15;
-
 
    PT_NULL         : constant Elf_Word := 0;
    PT_LOAD         : constant Elf_Word := 1;

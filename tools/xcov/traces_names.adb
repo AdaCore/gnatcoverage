@@ -170,7 +170,7 @@ package body Traces_Names is
             Addr := Pc_Type (Shdr.Sh_Addr);
             Last := Pc_Type (Shdr.Sh_Addr + Shdr.Sh_Size - 1);
 
-            --Put_Line ("# " & Hex_Image (Addr) & "-" & Hex_Image (Last)
+            --  Put_Line ("# " & Hex_Image (Addr) & "-" & Hex_Image (Last)
             --            & ": " & Get_Shdr_Name (Efile, I));
 
             Cur_Sym := First (Shdr_Sets (I).all);
@@ -203,7 +203,7 @@ package body Traces_Names is
                   if Sym.First > Addr then
                      Put_Line
                        (Standard_Error, "no symbols for "
-                          & Hex_Image (Addr) & "-" & Hex_Image (Sym.First - 1));
+                        & Hex_Image (Addr) & "-" & Hex_Image (Sym.First - 1));
                   end if;
 
                   Cur_Name := Names.Find (Sym.Symbol_Name);
@@ -224,7 +224,7 @@ package body Traces_Names is
                   elsif Has_Element (Cur_Name) then
                      Names.Delete (Sym.Symbol_Name);
                   end if;
-                  --Put_Line (Sym.Symbol_Name.all);
+                  --  Put_Line (Sym.Symbol_Name.all);
                   Addr := Sym.Last;
                   exit when Addr = Pc_Type'Last;
                   Addr := Addr + 1;
@@ -363,7 +363,7 @@ package body Traces_Names is
          end if;
          New_Line;
          if E.Traces /= null then
-            -- Dump_Traces (E.Traces.all);
+            --  Dump_Traces (E.Traces.all);
             if Flag_Show_Asm then
                Disp_Assembly_Lines
                  (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access);

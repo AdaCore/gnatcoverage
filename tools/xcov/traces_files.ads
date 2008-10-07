@@ -37,6 +37,6 @@ package Traces_Files is
 
    --  Add coverage annotations to the objdump disassembly output.
    --  Read objdump output from standard input.
-   --procedure Annotate_Objdump;
+   --  procedure Annotate_Objdump;
 
 end Traces_Files;

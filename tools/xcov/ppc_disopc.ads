@@ -22,8 +22,10 @@ with Interfaces; use Interfaces;
 with Ppc_Descs; use Ppc_Descs;
 
 package Ppc_Disopc is
-   
+
    type Ppc_Fields_Arr is array (0 .. 5) of Ppc_Fields;
+
+   pragma Style_Checks ("-r");
 
    type Ppc_Insn_Descr is record
       Name : String (1 .. 7);

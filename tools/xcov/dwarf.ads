@@ -179,7 +179,6 @@ package Dwarf is
    DW_FORM_Ref_Udata : constant := 16#15#; -- reference
    DW_FORM_Indirect  : constant := 16#16#; -- (see Section 7.5.3)
 
-
    DW_OP_Addr        : constant := 16#03#; -- 1 constant address (target spec)
    DW_OP_Deref       : constant := 16#06#; -- 0
    DW_OP_Const1u     : constant := 16#08#; -- 1 1-byte constant
@@ -449,5 +448,3 @@ package Dwarf is
    DW_EH_PE_Datarel : constant Unsigned_8 := 16#30#;
    DW_EH_PE_Format_Mask : constant Unsigned_8 := 16#0f#;
 end Dwarf;
-
-

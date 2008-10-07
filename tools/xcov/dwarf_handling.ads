@@ -71,10 +71,10 @@ package Dwarf_Handling is
 
    procedure Write_Word4_Le (Base : Address;
                              Off : in out Storage_Offset;
-                             Val : in Unsigned_32);
+                             Val : Unsigned_32);
 
    procedure Write_Word4_Be (Base : Address;
                              Off : in out Storage_Offset;
-                             Val : in Unsigned_32);
+                             Val : Unsigned_32);
 
 end Dwarf_Handling;

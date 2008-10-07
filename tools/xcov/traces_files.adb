@@ -17,7 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with Ada.Unchecked_Conversion;
-with Ada.Text_Io; use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces; use Interfaces;
 with Qemu_Traces; use Qemu_Traces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
@@ -48,7 +48,7 @@ package body Traces_Files is
 
       --  Parameter from header.
       Kind : Unsigned_8;
-      sizeof_target_pc : unsigned_8;
+      Sizeof_Target_Pc : Unsigned_8;
       Big_Endian : Boolean;
       Machine : Unsigned_16;
    end record;
@@ -64,7 +64,8 @@ package body Traces_Files is
       Hdr : Trace_Header;
    begin
       --  Read header.
-      if Read (Desc.Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size
+      if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
+        /= Trace_Header_Size
       then
          raise Bad_File_Format with "cannot read header";
       end if;
@@ -78,7 +79,7 @@ package body Traces_Files is
          raise Bad_File_Format with "invalid header (bad version)";
       end if;
 
-      Desc.Kind := hdr.Kind;
+      Desc.Kind := Hdr.Kind;
       if Desc.Kind /= Qemu_Trace_Kind_Raw then
          raise Bad_File_Format with "invalid header (bad kind)";
       end if;
@@ -94,12 +95,13 @@ package body Traces_Files is
       Desc.Big_Endian := Hdr.Big_Endian = 1;
 
       Desc.Machine := Unsigned_16 (Hdr.Machine_Hi) * 256
-        + unsigned_16 (Hdr.Machine_Lo);
+        + Unsigned_16 (Hdr.Machine_Lo);
 
       if Machine = 0 or Machine = Desc.Machine then
          Machine := Desc.Machine;
       else
-         raise Bad_File_Format with "target machine doesn't match previous one";
+         raise Bad_File_Format
+           with "target machine doesn't match previous one";
       end if;
 
    end Read_Trace_File_Header;
@@ -280,35 +282,12 @@ package body Traces_Files is
       Close (Fd);
    end Write_Trace_File;
 
---     procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural)
---     is
---        Digit : Pc_Type;
---        C : Character;
---     begin
---        Res := 0;
---        while Pos <= Line'Last loop
---           C := Line (Pos);
---           case C is
---           when '0' .. '9' =>
---              Digit := Character'Pos (C) - Character'Pos ('0');
---           when 'a' .. 'f' =>
---              Digit := Character'Pos (C) - Character'Pos ('a') + 10;
---           when 'A' .. 'F' =>
---              Digit := Character'Pos (C) - Character'Pos ('A') + 10;
---           when others =>
---              return;
---           end case;
---           Res := Shift_Left (Res, 4) or Digit;
---           Pos := Pos + 1;
---        end loop;
---     end Get_Pc;
-
 --     procedure Annotate_Objdump
 --     is
 --        use Display;
 --        Cur : Cursor := First (Entries);
 --        E : Trace_Entry;
---        Sym : constant array (Unsigned_8 range 0 .. 3) of Character := "+>v*";
+--       Sym : constant array (Unsigned_8 range 0 .. 3) of Character := "+>v*";
 --     begin
 --        if Cur = No_Element then
 --           E := (First => 1, Last => 0, Op => 0, State => Unknown);

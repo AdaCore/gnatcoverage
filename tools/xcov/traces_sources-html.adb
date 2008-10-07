@@ -198,7 +198,7 @@ package body Traces_Sources.Html is
       P : constant Pourcentage := Get_Pourcentage (Stats);
       Fully, Partial, Uncover : Natural;
    begin
-      -- Second column: bar
+      --  Second column: bar
       Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
       New_Line (F);
       Put (F, "        <table border=""0"" cellspacing=""0"">"
@@ -260,7 +260,7 @@ package body Traces_Sources.Html is
                                 Has_Source : Boolean;
                                 Skip : out Boolean)
    is
-      use Ada.Integer_Text_Io;
+      use Ada.Integer_Text_IO;
       use Ada.Directories;
 
       Simple_Source_Filename : constant String :=
@@ -337,8 +337,8 @@ package body Traces_Sources.Html is
       Print_Coverage_Stats (Pp.Html_File, Stats);
       Plh (Pp, "</tr></table>");
 
-      Plh (Pp, "<table width=""100%"" cellpadding=""0"" class=""SourceFile"">");
-      --Plh (Pp, "<pre>");
+      Plh (Pp, "<table width=""100%"" cellpadding=""0"" "
+           & "class=""SourceFile"">");
       Pp.Has_Insn_Table := False;
    end Pretty_Print_File;
 
@@ -422,7 +422,7 @@ package body Traces_Sources.Html is
       Wrh (Pp, "    <td><pre>");
       Put (Pp.Html_File, Line_Num, 0);
       Plh (Pp, "</pre></td>");
-      Wrh (pp, "    <td><pre>");
+      Wrh (Pp, "    <td><pre>");
       Put (Pp.Html_File, State_Char (State));
       Plh (Pp, "</pre></td>");
       Wrh (Pp, "    <td><pre>");
@@ -459,19 +459,19 @@ package body Traces_Sources.Html is
             Wrh (Pp, "covered");
          when Branch_Taken
            | Fallthrough_Taken =>
-            Wrh (pp, "partially_covered");
+            Wrh (Pp, "partially_covered");
       end case;
       Plh (Pp, """>");
       Wrh (Pp, "        <td><pre>");
-      Wrh (PP, Hex_Image (Pc));
-      Wrh (PP, ' ' & Trace_State_Char (State) & ':');
-      Wrh (PP, "  ");
+      Wrh (Pp, Hex_Image (Pc));
+      Wrh (Pp, ' ' & Trace_State_Char (State) & ':');
+      Wrh (Pp, "  ");
       for I in Insn'Range loop
          Wrh (Pp, Hex_Image (Insn (I)));
-         Wrh (PP, " ");
+         Wrh (Pp, " ");
       end loop;
-      Wrh (PP, "  ");
-      Wrh (PP, To_Xml_String (Disassemble (Insn, Pc)));
+      Wrh (Pp, "  ");
+      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc)));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "      </tr>");
    end Pretty_Print_Insn;

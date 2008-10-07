@@ -68,7 +68,6 @@ package Elf_Files is
    function Get_Shdr (File : Elf_File; Index : Elf_Half)
                      return Elf_Shdr_Acc;
 
-
    function Get_Shdr_Name (File : Elf_File; Index : Elf_Half)
                           return String;
 

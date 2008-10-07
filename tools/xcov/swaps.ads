@@ -23,7 +23,6 @@ package Swaps is
    function Swap_32 (V : Unsigned_32) return Unsigned_32;
    function Swap_64 (V : Unsigned_64) return Unsigned_64;
 
-
    function Swap (V : Unsigned_16) return Unsigned_16
      renames Swap_16;
    function Swap (V : Unsigned_32) return Unsigned_32

@@ -164,7 +164,7 @@ begin
          is
             F : constant Unsigned_32 := Get_Field (Field);
          begin
-            if Field /= F_Opc then
+            if Field /= F_OPC then
                Put (" + ");
             end if;
             Put (Natural (F), 0);
@@ -206,7 +206,7 @@ begin
             end if;
          end Print_Field_If_Exist;
 
-         procedure Print_Field_If_Not_exist (Field : Ppc_Fields; Name : String)
+         procedure Print_Field_If_Not_Exist (Field : Ppc_Fields; Name : String)
          is
          begin
             if not Has_Field (I, Field) then
@@ -218,15 +218,15 @@ begin
          begin
             V := Insn.Insn;
 
-            Print_Field_Always (F_Opc, "OPC");
-            Print_Field_If_Nonzero (F_Xo, "XO");
+            Print_Field_Always (F_OPC, "OPC");
+            Print_Field_If_Nonzero (F_XO, "XO");
             if Simplified (I) >= 0 then
                Print_Field_If_Exist (F_BO, "BO");
                Print_Field_If_Exist (F_BI, "BI");
                Print_Field_If_Exist (F_Spr, "SPR");
                Print_Field_If_Exist (F_LK, "LK");
             else
-               Print_Field_If_Not_Exist (F_RC, "RC");
+               Print_Field_If_Not_Exist (F_Rc, "RC");
             end if;
             if V /= 0 then
                Put_Line (" XXX");

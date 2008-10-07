@@ -57,10 +57,10 @@ package body Elf_Files is
       end if;
 
       --  Read the Ehdr
-      if Read (File.Fd, File.Ehdr'address, Elf_Ehdr_Size) /= Elf_Ehdr_Size then
+      if Read (File.Fd, File.Ehdr'Address, Elf_Ehdr_Size) /= Elf_Ehdr_Size then
          File.Status := Status_Read_Error;
          Close (File.Fd);
-         File.Fd := Invalid_Fd;
+         File.Fd := Invalid_FD;
          raise Error;
       end if;
 
@@ -71,7 +71,7 @@ package body Elf_Files is
       then
          File.Status := Status_Bad_Magic;
          Close (File.Fd);
-         File.Fd := Invalid_Fd;
+         File.Fd := Invalid_FD;
          raise Error;
       end if;
 
@@ -81,7 +81,7 @@ package body Elf_Files is
       then
          File.Status := Status_Bad_Class;
          Close (File.Fd);
-         File.Fd := Invalid_Fd;
+         File.Fd := Invalid_FD;
          raise Error;
       end if;
 
@@ -104,7 +104,7 @@ package body Elf_Files is
         (Elf_Strtab, Elf_Strtab_Acc);
    begin
       Close (File.Fd);
-      File.Fd := Invalid_Fd;
+      File.Fd := Invalid_FD;
       Unchecked_Deallocation (File.Filename);
       Unchecked_Deallocation (File.Shdr);
       Unchecked_Deallocation (File.Sh_Strtab);
@@ -151,10 +151,11 @@ package body Elf_Files is
       File.Sh_Strtab :=
         new Elf_Strtab (0 .. File.Shdr (File.Ehdr.E_Shstrndx).Sh_Size);
       Load_Section (File, File.Ehdr.E_Shstrndx, File.Sh_Strtab (0)'Address);
-      -- File.Sh_Strtab := Get_Strtab (File, Get_Ehdr (File).E_Shstrndx);
+      --  File.Sh_Strtab := Get_Strtab (File, Get_Ehdr (File).E_Shstrndx);
    end Load_Shdr;
 
-   procedure Load_Section (File : Elf_File; Shdr : Elf_Shdr_Acc; Addr : Address)
+   procedure Load_Section
+     (File : Elf_File; Shdr : Elf_Shdr_Acc; Addr : Address)
    is
       use GNAT.OS_Lib;
       Size : Natural;
@@ -234,7 +235,6 @@ package body Elf_Files is
          return String (Strtab (Idx .. E - 1));
       end if;
    end Get_String;
-
 
    function Get_Shdr_Name (File : Elf_File; Index : Elf_Half)
                           return String

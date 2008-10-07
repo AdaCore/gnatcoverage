@@ -106,7 +106,6 @@ package Traces_Elf is
                                     State : Trace_State;
                                     Insn : Binary_Content);
 
-
    function "<" (L, R : Addresses_Info_Acc) return Boolean;
 
    package Addresses_Containers is new Ada.Containers.Ordered_Sets
