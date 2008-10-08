@@ -140,6 +140,36 @@ package body Traces_Elf is
       end loop;
    end Open_File;
 
+   procedure Close_File (Exec : in out Exe_File_Type) is
+   begin
+      Close_File (Exec.Exe_File);
+
+      Unchecked_Deallocation (Exec.Lines);
+      Exec.Lines_Len := 0;
+
+      Unchecked_Deallocation (Exec.Debug_Strs);
+      Exec.Debug_Str_Base := Null_Address;
+      Exec.Debug_Str_Len := 0;
+
+      Exec.Sec_Debug_Abbrev   := 0;
+      Exec.Sec_Debug_Info     := 0;
+      Exec.Sec_Debug_Info_Rel := 0;
+      Exec.Sec_Debug_Line     := 0;
+      Exec.Sec_Debug_Line_Rel := 0;
+      Exec.Sec_Debug_Str      := 0;
+   end Close_File;
+
+   procedure Clear_File (Exec : in out Exe_File_Type) is
+   begin
+      --  FIXME: free content.
+
+      Exec.Sections_Set.Clear;
+      Exec.Compile_Units_Set.Clear;
+      Exec.Subprograms_Set.Clear;
+      Exec.Symbols_Set.Clear;
+      Exec.Lines_Set.Clear;
+   end Clear_File;
+
    procedure Read_Word8 (Exec : Exe_File_Type;
                          Base : Address;
                          Off : in out Storage_Offset;

@@ -84,6 +84,7 @@ procedure Xcov is
    Base : Traces_Base;
 
    Exec : Exe_File_Type;
+   Sub_Exec : Exe_File_Type;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -115,6 +116,81 @@ begin
             end;
          end loop;
          Traces_Names.Disp_All_Routines;
+         return;
+      elsif Cmd = "--consolidate" then
+         if Arg_Index = Arg_Count then
+            Error ("missing FILEs to --consolidate");
+            return;
+         end if;
+         Arg_Index := Arg_Index + 1;
+         while Arg_Index <= Arg_Count loop
+            declare
+               Arg : constant String := Argument (Arg_Index);
+            begin
+               Arg_Index := Arg_Index + 1;
+               if Arg'Length > 10
+                 and then Arg (Arg'First .. Arg'First + 9) = "--include="
+               then
+                  Traces_Names.Read_Routines_Name
+                    (Arg (Arg'First + 10 .. Arg'Last), False);
+               elsif Arg = "-e" then
+                  if Arg_Index > Arg_Count then
+                     Error ("missing FILENAME to -e");
+                     return;
+                  end if;
+                  begin
+                     Open_File (Exec, Argument (Arg_Index), Text_Start);
+                  exception
+                     when others =>
+                        Error ("cannot open " & Argument (Arg_Index));
+                        return;
+                  end;
+                  Has_Exec := True;
+                  Arg_Index := Arg_Index + 1;
+               elsif Arg = "--asm" then
+                  Traces_Disa.Flag_Show_Asm := True;
+               else
+                  if Arg (Arg'First) = '-' then
+                     Error ("unknown option " & Arg);
+                     return;
+                  else
+                     exit;
+                  end if;
+               end if;
+            end;
+         end loop;
+
+         if Arg_Index > Arg_Count then
+            Error ("no trace files given");
+            return;
+         end if;
+         Arg_Index := Arg_Index - 1;
+         while Arg_Index <= Arg_Count loop
+            if Arg_Index + 1 > Arg_Count then
+               Error ("EXEC_file TRACE_file expected");
+               return;
+            end if;
+            begin
+               Open_File (Sub_Exec, Argument (Arg_Index), Text_Start);
+            exception
+               when others =>
+                  Error ("cannot open " & Argument (Arg_Index));
+                  return;
+            end;
+            Build_Sections (Sub_Exec);
+            Build_Symbols (Sub_Exec);
+            begin
+               Read_Trace_File (Base, Argument (Arg_Index + 1));
+            exception
+               when others =>
+                  Error ("cannot open tracefile " & Argument (Arg_Index + 1));
+                  raise;
+            end;
+            Add_Subprograms_Traces (Sub_Exec, Base);
+            Init_Base (Base);
+            Arg_Index := Arg_Index + 2;
+         end loop;
+         Traces_Names.Dump_Routines_Traces (Exec);
          return;
       elsif Cmd = "--dump-trace-file" then
          if Arg_Index = Arg_Count then

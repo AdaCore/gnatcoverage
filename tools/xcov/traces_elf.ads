@@ -29,6 +29,8 @@ with Elf_Files;
 with Disa_Symbolize; use Disa_Symbolize;
 
 package Traces_Elf is
+   --  An array of byte.
+   --  Used to store ELF sections.
    type Binary_Content is array (Elf_Arch.Elf_Size range <>)
      of Interfaces.Unsigned_8;
 
@@ -36,6 +38,8 @@ package Traces_Elf is
    procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
      (Binary_Content, Binary_Content_Acc);
 
+   --  Executable file type.
+   --  Extracted information are stored into such object.
    type Exe_File_Type is limited new Symbolizer with private;
 
    --  Open an ELF file.
@@ -43,6 +47,14 @@ package Traces_Elf is
    --  Exception Elf_Files.Error is raised in case of error.
    procedure Open_File
      (Exec : out Exe_File_Type; Filename : String; Text_Start : Pc_Type);
+
+   --  Close the ELF file.
+   --  The resources are still present but nothing anymore can be read from
+   --  the file.
+   procedure Close_File (Exec : in out Exe_File_Type);
+
+   --  Free built informations.
+   procedure Clear_File (Exec : in out Exe_File_Type);
 
    --  Build sections map for the current ELF file.
    procedure Build_Sections (Exec : in out Exe_File_Type);

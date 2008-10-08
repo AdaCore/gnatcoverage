@@ -25,6 +25,9 @@ package Traces_Dbase is
 
    type Traces_Base_Acc is access Traces_Base;
 
+   --  Clear BASE.
+   procedure Init_Base (Base : in out Traces_Base);
+
    --  Add a trace entry in the ordered_Set.  May discard useless entries
    --  or merge entries.
    procedure Add_Entry (Base : in out Traces_Base;

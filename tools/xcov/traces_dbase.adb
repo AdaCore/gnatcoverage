@@ -34,6 +34,11 @@ package body Traces_Dbase is
 
    use Entry_Set;
 
+   procedure Init_Base (Base : in out Traces_Base) is
+   begin
+      Base.Clear;
+   end Init_Base;
+
    --  Add a trace entry in the ordered_Set.  May discard useless entries
    --  or merge entries.
    procedure Add_Entry (Base : in out Traces_Base;
