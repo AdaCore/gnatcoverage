@@ -1,0 +1,57 @@
+C:\home\Matteo\workspace\adacore_svn\couverture\tests\hello/b~hello.adb:
+77% of 9 lines covered
+   1 .: pragma Ada_95;
+   2 .: pragma Source_File_Name (ada_main, Spec_File_Name => "b~hello.ads");
+   3 .: pragma Source_File_Name (ada_main, Body_File_Name => "b~hello.adb");
+   4 .: 
+   5 .: package body ada_main is
+   6 .:    pragma Warnings (Off);
+   7 .:    procedure adainit is
+   8 .:       E3 : Boolean; pragma Import (Ada, E3, "textio_E");
+   9 .: 
+  10 .:    begin
+  11 .:       null;
+  12 .: 
+  13 +:       E3 := True;
+  14 +:    end adainit;
+  15 .: 
+  16 .:    procedure adafinal is
+  17 .:    begin
+  18 .:       null;
+  19 -:    end adafinal;
+  20 .: 
+  21 .:    procedure Break_Start is
+  22 .:    begin
+  23 .:       null;
+  24 -:    end;
+  25 .: 
+  26 +:    procedure main is
+  27 .: 
+  28 .:       procedure Ada_Main_Program;
+  29 .:       pragma Import (Ada, Ada_Main_Program, "_ada_hello");
+  30 .: 
+  31 +:       Ensure_Reference : aliased System.Address := Ada_Main_Program_Name'Address;
+  32 .:       pragma Volatile (Ensure_Reference);
+  33 .: 
+  34 .:    begin
+  35 +:       adainit;
+  36 .:       Break_Start;
+  37 +:       Ada_Main_Program;
+  38 +:    end;
+  39 .: 
+  40 .: --  BEGIN Object file/option list
+  41 .:    --   .\textio.o
+  42 .:    --   .\hello.o
+  43 .:    --   -L.\
+  44 .:    --   -L../support/src/ppc-elf\
+  45 .:    --   -LC:\Programs\AdaTEST95\2.0\lib\adatest\
+  46 .:    --   -LC:\GNATPRO\6.1.1\tools\asis\asis-6.1.1-src\obj\
+  47 .:    --   -LC:\GNATPRO\6.1.1\tools\asis\asis-6.1.1-src\lib\
+  48 .:    --   -LC:\GNATPRO\6.1.1\tools\asis\asis-6.1.1-src\asis\
+  49 .:    --   -LC:\GNATPRO\6.1.1\tools\asis\asis-6.1.1-src\gnat\
+  50 .:    --   -LC:/GNATPRO/6.1.1/lib/gcc/powerpc-elf/4.1.3/rts-zfp/adalib\
+  51 .:    --   -static
+  52 .:    --   -lgnat
+  53 .: --  END Object file/option list   
+  54 .: 
+  55 .: end ada_main;

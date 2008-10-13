@@ -1,0 +1,40 @@
+V "GNAT Lib v6.1"
+A -O
+A -gnatA
+A -gnatWb
+A -gnatiw
+A -g
+A -g
+A -gnatws
+P
+R nnnnnnnnnnnnnnnnrnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnvnnvnnnnnnnnnnnnnnn
+
+U ada_main%b		b~hello.adb		182ddf15 NE PK IL
+W system%s		system.ads		system.ali
+
+U ada_main%s		b~hello.ads		afcc6436 EE NE PK IL
+W system%s		system.ads		system.ali
+
+D b~hello.ads		20080926122722 310067d7
+D b~hello.adb		20080926122722 292db8c2
+D system.ads		20071215102022 9ecc03e1
+X 1 b~hello.ads
+4K9*ada_main 42l5 42e13 2|5b14 55l5 55t13
+8a4*GNAT_Version{string} 10r22
+12a4*Ada_Main_Program_Name{string} 13r22 2|31r52
+15U14*adafinal 16r22 2|16b14 19l8 19t16
+18U14*adainit 19r22 2|7b14 14l8 14t15 35r7
+21U14*Break_Start 22r22 2|21b14 24t7 36r7
+24U14*main 25r22 2|26b14 38t7
+27M9*Version_32 28r22 29r22 30r22
+28m4*u00001{27M9} 32r22
+29m4*u00002{27M9} 33r22
+30m4*u00003{27M9} 34r22
+X 2 b~hello.adb
+8b7*E3{boolean} 8m41 13m7
+28U17*Ada_Main_Program 29b<ada,_ada_hello>27 37r7
+31m7 Ensure_Reference{3|89M9} 32r24
+X 3 system.ads
+62K9*System 1|3w6 2|31r34 3|172e11
+89M9*Address 2|31r41
+
