@@ -803,7 +803,11 @@ package Ppc_Disopc is
       ("mtfsf  ",
        63 * S_OPC + 711 * S_XO,
        16#fe0107fe#,
-       (F_RC, F_FM, F_FB, others => F_Eof))
+       (F_RC, F_FM, F_FB, others => F_Eof)),
+      ("-------",  --  Sentinel
+       63 * S_OPC,
+       16#00000000#,
+       (others => F_Eof))
      );
 
    Ppc_Opc_Index : constant array (0 .. 64) of Integer :=

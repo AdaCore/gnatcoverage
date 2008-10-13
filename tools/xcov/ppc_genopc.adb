@@ -269,9 +269,16 @@ begin
          Put ("others => F_Eof))");
       end;
    end loop;
-   New_Line;
 
    if Action = Action_Disa_Opcodes then
+
+      --  A sentinel.
+      Put_Line (",");
+      Put_Line ("      ("""  & (1 .. Max_Len => '-') & """,  --  Sentinel");
+      Put_Line ("       63 * S_OPC,");
+      Put_Line ("       16#00000000#,");
+      Put_Line ("       (others => F_Eof))");
+
       Put_Line ("     );");
 
       --  Generate the Index table.
@@ -320,5 +327,7 @@ begin
       end;
       New_Line;
       Put_Line ("end Ppc_Disopc;");
+   else
+      New_Line;
    end if;
 end Ppc_Genopc;
