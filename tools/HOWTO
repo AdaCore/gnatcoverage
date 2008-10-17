@@ -1,0 +1,64 @@
+
+======================================================================
+== This is an introductory HOWTO for the current Couverture toolset == 
+======================================================================
+
+General process
+---------------
+
+The general process is as follows:
+
+* build your executable with the powerpc-elf GNAT toolchain, with special
+  glue to let the program run into qemu,
+
+* run through our instrumented qemu to generate an execution trace,
+
+* use our "xcov" coverage analyzer to generate user level relevant info, eg
+  annotated sources, from one or more traces.
+
+As of today, both the traces and the xcov outputs are generated in the
+the current directory of the user running the command.
+
+A simple "hello world" example is available from tests/hello in the
+"couverture" repository (svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture),
+with a Makefile exposing the details of the different steps.
+
+The Makefile exploits only part of the current xcov possibilities (eg defaults
+to the xcov output format and is able to produce html or gcov like outputs).
+"xcov -h" will list the various options with a short descriptive text.
+
+Getting the Components
+----------------------
+
+* Compilation toolchain:
+
+The latest powerpc-elf GNATPro release we have is 6.1.2, available for
+x86-windows and sparc-solaris hosts.
+
+For partners without access to AdaCore machines, these are available from
+GNATtracker (http://www.gnattracker.com). Log in using the email address &
+password which were transmitted to you by Zepur on May 5 and go to the
+Download pane.
+
+Otherwise, we also have a 20080427-41 x86-linux wavefront installed in
+chinon:/usr/local.
+
+* Qemu:
+
+A binary version is built nightly on two AdaCore machines: chinon (x86-linux)
+and tallinn (x86-windows), avail in ~gnatmail/gcc-41/install-<machine>/bin/.
+
+Sources to build elsewhere if need be are available from
+svn+ssh://svn.eu.adacore.com/Dev/trunk/qemu (configure+make in principle).
+
+Be sure to use a 3.x GCC to build from sources. There are known problems
+with the 4.x series.
+
+* xcov
+
+A binary version is built on AdaCore machines together with Qemu.
+
+Sources to build elsewhere if need be are available from
+svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture/tools/xcov (make).
+
+
