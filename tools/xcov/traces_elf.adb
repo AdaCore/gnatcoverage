@@ -29,6 +29,7 @@ with Traces_Sources;
 with Elf_Files; use Elf_Files;
 with Traces_Names;
 with Traces_Disa;
+with Ppc_Descs;
 
 package body Traces_Elf is
    Empty_String_Acc : constant String_Acc := new String'("");
@@ -115,6 +116,13 @@ package body Traces_Elf is
       Ehdr := Get_Ehdr (Exec.Exe_File);
       Exec.Is_Big_Endian := Ehdr.E_Ident (EI_DATA) = ELFDATA2MSB;
       Exec.Exe_Machine := Ehdr.E_Machine;
+
+      if Machine = 0 then
+         Machine := Ehdr.E_Machine;
+      elsif Machine /= Ehdr.E_Machine then
+         --  Mixing different architectures.
+         raise Program_Error;
+      end if;
 
       --  Be sure the section headers are loaded.
       Load_Shdr (Exec.Exe_File);
@@ -1413,7 +1421,10 @@ package body Traces_Elf is
          case Exec.Exe_Machine is
             when EM_PPC =>
                declare
-                  Insn : Binary_Content (0 .. 3);
+                  use Ppc_Descs;
+
+                  Insn : Unsigned_32;
+                  Opc, Xo, Bo : Unsigned_32;
                   Op : constant Unsigned_8 := Trace.Op and 3;
                   Trace_Len : constant Pc_Type :=
                     Trace.Last - Trace.First + 1;
@@ -1434,22 +1445,24 @@ package body Traces_Elf is
                      raise Program_Error;
                   end if;
                   case Op is
-                     when 0 =>
-                        Update_State (Base, It, Covered);
-                     when 1 =>
-                        for I in Unsigned_32 range 0 .. 3 loop
-                           Insn (I) := Section (Trace.Last - 3 + I);
-                        end loop;
-                        if (Insn (0) and 16#Fc#) = 16#48# then
+                     --  when 0 =>
+                     --   Update_State (Base, It, Covered);
+                     when 0 | 1 =>
+                        Insn := Get_Insn (Section (Trace.Last - 3)'Address);
+                        Opc := Get_Field (F_OPC, Insn);
+                        Xo := Get_Field (F_XO, Insn);
+                        Bo := Get_Field (F_BO, Insn);
+                        if Opc = 18 then
                            --  Opc = 18: b, ba, bl and bla
                            Update_State (Base, It, Covered);
-                        elsif ((Insn (0) and 16#Fe#) = 16#42#
-                                 or else (Insn (0) and 16#Fe#) = 16#4e#)
-                          and then (Insn (1) and 16#80#) = 16#80#
+                        elsif (Opc = 16
+                                 or else (Opc = 19
+                                            and (Xo = 528 or Xo = 16)))
+                          and then (Bo and 2#10100#) = 2#10100#
                         then
-                           --  Opc = 16 (bcx) or Opc = 19 (bcctrx)
+                           --  insn: bcx, bcctrx, bclrx
                            --   BO = 1x1xx
-                           --  bc/bcctr always
+                           --  bc/bcctr/bclr always
                            Update_State (Base, It, Covered);
                         else
                            Update_Or_Split (Branch_Taken);
