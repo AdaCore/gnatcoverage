@@ -33,9 +33,6 @@ package Traces_Dbase is
    procedure Add_Entry (Base : in out Traces_Base;
                         First : Pc_Type; Last : Pc_Type; Op : Unsigned_8);
 
-   --  Walk the set and try to merge entries.
-   procedure Merge_Entries (Base : in out Traces_Base);
-
    --  Dump (on standard output) the content of traces.
    procedure Dump_Traces (Base : Traces_Base);
 

@@ -67,63 +67,6 @@ package body Traces_Dbase is
       end if;
    end Add_Entry;
 
-   --  Walk the set and try to merge entries.
-   procedure Merge_Entries (Base : in out Traces_Base)
-   is
-      Cur : Cursor;
-      N_Cur : Cursor;
-      E : Trace_Entry;
-
-      --  Merged entry.
-      M : Trace_Entry;
-      M_Pos : Cursor;
-      Modified : Boolean;
-   begin
-      M_Pos := First (Base);
-      if M_Pos = No_Element then
-         return;
-      end if;
-      M := Element (M_Pos);
-      Modified := False;
-
-      Cur := Next (M_Pos);
-
-      while Cur /= No_Element loop
-         E := Element (Cur);
-         N_Cur := Next (Cur);
-
-         --  If two traces are consecutive and the first one does not
-         --  terminate with a jump, merge the traces.
-         if E.First = M.Last + 1
-           and then M.Op = Trace_Op_Block
-           and then (E.Op and Trace_Op_Block) /= 0
-         then
-            M.Last := E.Last;
-            M.Op := M.Op or E.Op;
-            Modified := True;
-            Delete (Base, Cur);
-
-         --  Merge two entries.
-         elsif E.First >= M.First
-           and then E.Last = M.Last
-         then
-            M.Op := M.Op or E.Op;
-            Modified := True;
-            Delete (Base, Cur);
-
-         else
-            if Modified then
-               Modified := False;
-               Replace_Element (Base, M_Pos, M);
-            end if;
-            M := E;
-            M_Pos := Cur;
-         end if;
-
-         Cur := N_Cur;
-      end loop;
-   end Merge_Entries;
-
    procedure Dump_Traces (Base : Traces_Base)
    is
       Cur : Cursor := First (Base);

@@ -194,8 +194,6 @@ package body Traces_Files is
       end Cb;
    begin
       Read_Trace_File (Filename, Cb'Access);
-
-      Merge_Entries (Base);
    end Read_Trace_File;
 
    procedure Dump_Trace_File (Filename : String)
