@@ -16,8 +16,34 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+with Ada.Unchecked_Conversion;
+with System.Storage_Elements;
 
 package body Ppc_Descs is
+   function Read_Byte (Addr : Address) return Unsigned_8
+   is
+      type Unsigned_8_Acc is access all Unsigned_8;
+      function To_Unsigned_8_Acc is new Ada.Unchecked_Conversion
+        (Address, Unsigned_8_Acc);
+   begin
+      return To_Unsigned_8_Acc (Addr).all;
+   end Read_Byte;
+
+   function Get_Insn (Addr : Address) return Unsigned_32
+   is
+      use System.Storage_Elements;
+      B0, B1, B2, B3 : Unsigned_8;
+   begin
+      B0 := Read_Byte (Addr + 0);
+      B1 := Read_Byte (Addr + 1);
+      B2 := Read_Byte (Addr + 2);
+      B3 := Read_Byte (Addr + 3);
+      return Shift_Left (Unsigned_32 (B0), 24)
+        or Shift_Left (Unsigned_32 (B1), 16)
+        or Shift_Left (Unsigned_32 (B2), 8)
+        or Shift_Left (Unsigned_32 (B3), 0);
+   end Get_Insn;
+
    function Get_Mask (Field : Ppc_Fields) return Unsigned_32
    is
       F : constant Field_Type := Fields_Mask (Field);

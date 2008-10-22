@@ -18,8 +18,6 @@
 ------------------------------------------------------------------------------
 with System; use System;
 with Interfaces; use Interfaces;
-with Ada.Unchecked_Conversion;
-with System.Storage_Elements;
 with Hex_Images; use Hex_Images;
 with Ppc_Descs; use Ppc_Descs;
 with Ppc_Disopc; use Ppc_Disopc;
@@ -31,30 +29,6 @@ package body Disa_Ppc is
    begin
       return 4;
    end Get_Insn_Length;
-
-   function Read_Byte (Addr : Address) return Unsigned_8
-   is
-      type Unsigned_8_Acc is access all Unsigned_8;
-      function To_Unsigned_8_Acc is new Ada.Unchecked_Conversion
-        (Address, Unsigned_8_Acc);
-   begin
-      return To_Unsigned_8_Acc (Addr).all;
-   end Read_Byte;
-
-   function Get_Insn (Addr : Address) return Unsigned_32
-   is
-      use System.Storage_Elements;
-      B0, B1, B2, B3 : Unsigned_8;
-   begin
-      B0 := Read_Byte (Addr + 0);
-      B1 := Read_Byte (Addr + 1);
-      B2 := Read_Byte (Addr + 2);
-      B3 := Read_Byte (Addr + 3);
-      return Shift_Left (Unsigned_32 (B0), 24)
-        or Shift_Left (Unsigned_32 (B1), 16)
-        or Shift_Left (Unsigned_32 (B2), 8)
-        or Shift_Left (Unsigned_32 (B3), 0);
-   end Get_Insn;
 
    procedure Disassemble_Insn (Addr : System.Address;
                                Pc : Traces.Pc_Type;
