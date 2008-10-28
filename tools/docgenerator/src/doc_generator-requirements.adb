@@ -22,6 +22,8 @@ with Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded.Text_IO;
 
+with Doc_Generator.Utils;
+
 package body Doc_Generator.Requirements is
    use Ada.Text_IO;
    use Ada.Strings.Unbounded;
@@ -56,18 +58,22 @@ package body Doc_Generator.Requirements is
       loop
          declare
             T : String := Trim (Get_Line (F), Both);
-            --  Sub : String := Get_Interesting_Substring (T, Std_Prefix, " ");
+
             Exp_Cov : Function_Coverage := NOT_COVERED;
             --  Pos : Positive;
          begin
             exit when T = End_Tag;
-
-
-            D.Targets.Append
-              (new Target '
-                 (ID => Null_Unbounded_String,
-                  Description => Null_Unbounded_String,
-                  Subprogram => Remove_Std_prefix (To_Unbounded_String (T))));
+            declare
+               Sub : String := Get_Interesting_Substring (T, Std_Prefix, " ");
+               Exp : Function_Coverage := Get_Coverage (T);
+            begin
+               D.Targets.Append
+                 (new Target '
+                    (ID => Null_Unbounded_String,
+                     Description => Null_Unbounded_String,
+                     Subprogram => To_Unbounded_String (Sub),
+                     Expected_Coverage => Exp));
+            end;
          end;
       end loop;
    end Create_Driver;
@@ -130,20 +136,8 @@ package body Doc_Generator.Requirements is
    --  at the moment this is just for debug purpose --
 
    procedure Parse_File (Path : String) is
-      Req_File : File_Type;
    begin
-      Open (Req_File, IN_FILE, Path);
-      while not End_Of_File (Req_File) loop
-         declare
-            F_Name : String := Get_Line (Req_File);
-            F : File_Type;
-         begin
-            Open (F, IN_FILE, F_Name);
-            Parse_Requirements (F);
-            Close (F);
-         end;
-      end loop;
-      Close (Req_File);
+      Doc_Generator.Utils.Parse_File_List (Path, Parse_Requirements'Access);
    end Parse_File;
 
    -----------
@@ -154,12 +148,12 @@ package body Doc_Generator.Requirements is
 
       procedure Print_Driver (It : Driver_List.Cursor) is
          Dr : Driver_Ref := Driver_List.Element (It);
-
          procedure Print_Target (It : Target_List.Cursor) is
             T : Target_Ref := Target_List.Element (It);
          begin
             Ada.Strings.Unbounded.Text_IO.Put_Line
-              ("        " & T.Subprogram);
+              ("        " & T.Subprogram & " with expected result: " &
+               Function_Coverage'Image (T.Expected_Coverage));
          end Print_Target;
 
       begin
@@ -174,7 +168,7 @@ package body Doc_Generator.Requirements is
          Ada.Strings.Unbounded.Text_IO.Put_Line ("Requirement " & Req.ID);
          Ada.Strings.Unbounded.Text_IO.Put_Line ("  " & Req.Description);
          Ada.Text_IO.Put_Line
-           ("  checked by " & Natural'Image
+           ("   checked by " & Natural'Image
               (Integer (Req.Drivers.Length)) & " drivers:");
          Req.Drivers.Iterate (Print_Driver'Access);
       end Print_Req;

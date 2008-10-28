@@ -41,13 +41,13 @@ private
    Driver_Expected_Tag : constant String := "--@expected";
    End_Tag : constant String := "--@end";
 
-   --  a Darget is a subprogram invoked by a test case
+   --  a Target is a subprogram invoked by a test case
    type Target is tagged
       record
          ID : Ada.Strings.Unbounded.Unbounded_String;
          Subprogram : Ada.Strings.Unbounded.Unbounded_String;
          Description : Ada.Strings.Unbounded.Unbounded_String;
-         --  Expected_Output
+         Expected_Coverage : Function_Coverage;
       end record;
 
    type Target_Ref is access all Target'Class;

@@ -20,21 +20,25 @@
 with Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 with Doc_Generator.Requirements;
+with Doc_Generator.Target_Tests;
 
 procedure Generate_Doc is
 begin
-   if Ada.Command_Line.Argument_Count /= 1 then
+   if Ada.Command_Line.Argument_Count /= 2 then
       Put_Line ("Error");
    else
       declare
-         File_Name : String := Ada.Command_Line.Argument (1);
+         Req_File_Name : String := Ada.Command_Line.Argument (1);
+         Target_File_Name : String := Ada.Command_Line.Argument (2);
       begin
-         Put_Line (File_Name);
+         --  Put_Line (Req_File_Name);
          --  pick the first file (the requirement file)
-         Doc_Generator.Requirements.Parse_File (File_Name);
+         Doc_Generator.Requirements.Parse_File (Req_File_Name);
          Doc_Generator.Requirements.Print;
+         Doc_Generator.Target_Tests.Parse_File (Target_File_Name);
+         Doc_Generator.Target_Tests.Print;
       end;
    end if;
-   exception
-      when others => Put_Line ("Excpetion Raised");
+   --  exception
+   --   when others => Put_Line ("Excpetion Raised");
 end Generate_Doc;

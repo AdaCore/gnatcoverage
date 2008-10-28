@@ -29,6 +29,15 @@ package Doc_Generator is
    type Line_Coverage is
      (COVERED, NOT_CONVERED, PARTIALLY_COVERED);
 
+   Coverage_Values : array (Function_Coverage'Range) of String (1 .. 1) :=
+     (COVERED => "+",
+      NOT_COVERED => "-",
+      PARTIALLY_COVERED => "!");
+
+   --  return the expected coverage value contained in the string
+   --  looks for the values: "!", "+", "-"
+   function Get_Coverage (S : String) return Function_Coverage;
+
    --  Return the substring of Str between Left_tag and Rigth_Tag;
    --  if Left_Tag or Right_Tag are not found, it returns an empty string
    function Get_Interesting_Substring
@@ -48,7 +57,15 @@ package Doc_Generator is
    --  Remove the standard prefix (see private part) from S
    function Remove_Std_prefix
      (S : in Ada.Strings.Unbounded.Unbounded_String)
-     return Ada.Strings.Unbounded.Unbounded_String;
+      return Ada.Strings.Unbounded.Unbounded_String;
+
+   --  Remove To_Remove from S (if present)
+   function Remove (S : String; To_Remove : String) return String;
+
+   function Replace_All (S : String; Pattern : String; By : String)
+     return String;
+
+   procedure To_Lower (S : in out String);
 
 private
 

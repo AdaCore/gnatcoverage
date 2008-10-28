@@ -20,20 +20,47 @@
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with Ada.Strings.Unbounded;
+with Ada.Strings.Unbounded.Text_IO;
 
 package body Doc_Generator is
    use Ada.Strings;
    use Ada.Strings.Fixed;
 
+   function Get_Coverage (S : String) return Function_Coverage
+   is
+      Pos : Natural := 0;
+      --  look for the ":" character and start looking for coverage value
+      --  from there
+      Start_Pos : Natural := Index (S, ":");
+      Val : Function_Coverage := NOT_COVERED;
+   begin
+
+      --  loop over all possible character representing a coverage value
+      for V in Function_Coverage'Range loop
+         --  exit in advance if a result has been found
+         exit when Pos > 0;
+         Pos := Index (S, Coverage_Values (V), Start_Pos);
+         Val := V;
+      end loop;
+
+      if Pos = 0 then
+         --  if no result has been found, then the spec were badly written
+         raise Program_Error;
+      else
+         return Val;
+      end if;
+   end Get_Coverage;
+
+
    function Get_Interesting_Substring
      (Str : String;
       Left_Tag, Right_Tag : String) return String
    is
-      --  the positions of LEft_Tag and Right_Tag
+      --  the positions of Left_Tag and Right_Tag
       Pos1 : Natural := Index
         (Str, Left_Tag) + Left_Tag'Length;
       Pos2 : Natural := Index
-        (Str, Right_Tag, Backward) - 1;
+        (Str, Right_Tag, Pos1) - 1;
    begin
       --  return the substring
       return Ada.Strings.Unbounded.Slice
@@ -70,5 +97,41 @@ package body Doc_Generator is
    begin
       Pos := Index (Str, Tag);
    end Starts_With;
+
+   function Remove (S : String; To_Remove : String) return String is
+      Pos : Natural := Index (S, To_Remove);
+   begin
+      if Pos > 0 then
+         return Delete (S, Pos, Pos + To_Remove'Length);
+      else
+         return S;
+      end if;
+   end Remove;
+
+   function Replace_All (S : String; Pattern : String; By : String)
+                         return String is
+      use Ada.Strings;
+      use Ada.Strings.Unbounded;
+      Res : Ada.Strings.Unbounded.Unbounded_String
+        := To_Unbounded_String (S);
+      Pos : Natural := 0;
+   begin
+      loop
+         Pos := Index (Res, Pattern);
+         exit when Pos = 0;
+         Ada.Strings.Unbounded.Text_IO.Put_Line (Res);
+         Res := Ada.Strings.Unbounded.Replace_Slice
+           (Res, Pos, Pos + Pattern'Length - 1, By);
+      end loop;
+      return To_String (Res);
+   end Replace_All;
+
+   procedure To_Lower (S : in out String) is
+   begin
+      for I in S'Range loop
+         null;
+      end loop;
+   end To_Lower;
+
 
 end Doc_Generator;
