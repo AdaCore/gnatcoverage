@@ -46,12 +46,15 @@ package body Doc_Generator.Target_Tests is
             --  change "-" in the file name with Ada counterpart
             Prefix : String := Replace_All (Pr, "-", ".");
          begin
+            To_Lower (Prefix);
+            To_Lower (S2);
 
             Pos := Index (S2, " ");
             if Pos > 0 then
                return Prefix & "." & Delete (S2, Pos, S2'Length);
             end if;
-            return Prefix & "." & S;
+
+            return Prefix & "." & S2;
 
          end;
 

@@ -67,6 +67,7 @@ package body Doc_Generator.Requirements is
                Sub : String := Get_Interesting_Substring (T, Std_Prefix, " ");
                Exp : Function_Coverage := Get_Coverage (T);
             begin
+               To_Lower (Sub);
                D.Targets.Append
                  (new Target '
                     (ID => Null_Unbounded_String,

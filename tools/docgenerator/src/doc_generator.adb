@@ -21,6 +21,8 @@ with Ada.Strings.Fixed;
 with Ada.Text_IO;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Text_IO;
+with Ada.Strings.Maps;
+with Ada.Strings.Maps.Constants;
 
 package body Doc_Generator is
    use Ada.Strings;
@@ -129,7 +131,8 @@ package body Doc_Generator is
    procedure To_Lower (S : in out String) is
    begin
       for I in S'Range loop
-         null;
+         S (I) := Ada.Strings.Maps.Value
+           (Ada.Strings.Maps.Constants.Lower_Case_Map, S (I));
       end loop;
    end To_Lower;
 
