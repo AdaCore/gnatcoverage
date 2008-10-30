@@ -17,6 +17,7 @@ private
          ID : Ada.Strings.Unbounded.Unbounded_String;
          Subprogram : Ada.Strings.Unbounded.Unbounded_String;
          Description : Ada.Strings.Unbounded.Unbounded_String;
+         In_File : Ada.Strings.Unbounded.Unbounded_String;
       end record;
 
    type Target_Ref is access all Target;

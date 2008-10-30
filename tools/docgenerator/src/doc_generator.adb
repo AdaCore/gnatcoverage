@@ -121,7 +121,7 @@ package body Doc_Generator is
       loop
          Pos := Index (Res, Pattern);
          exit when Pos = 0;
-         Ada.Strings.Unbounded.Text_IO.Put_Line (Res);
+         --  Ada.Strings.Unbounded.Text_IO.Put_Line (Res);
          Res := Ada.Strings.Unbounded.Replace_Slice
            (Res, Pos, Pos + Pattern'Length - 1, By);
       end loop;

@@ -74,6 +74,7 @@ private
          ID : Ada.Strings.Unbounded.Unbounded_String;
          Description : Ada.Strings.Unbounded.Unbounded_String;
          Drivers : Driver_List.List := Driver_List.Empty_List;
+         In_File : Ada.Strings.Unbounded.Unbounded_String;
       end record;
 
    type Requirement_Ref is access Requirement;

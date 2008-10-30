@@ -86,6 +86,7 @@ package body Doc_Generator.Requirements is
 
       --  create a new requirement
       R := new Requirement;
+      R.In_File := To_Unbounded_String (Name (F));
       R.ID := To_Unbounded_String
         (Get_Interesting_Substring (Line, Requirement_Start_Tag,
          Requirement_End_Tag));
@@ -153,25 +154,35 @@ package body Doc_Generator.Requirements is
             T : Target_Ref := Target_List.Element (It);
          begin
             Ada.Strings.Unbounded.Text_IO.Put_Line
-              ("        " & T.Subprogram & " with expected result: " &
-               Function_Coverage'Image (T.Expected_Coverage));
+              ("<tr><td><a href=""#" & T.Subprogram & """/>" & T.Subprogram &
+               "</a></td><td><i>" &
+               Function_Coverage'Image (T.Expected_Coverage) &
+               "</i></td></tr>");
          end Print_Target;
 
       begin
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("    " & Dr.Subprogram & " exercising:");
+           ("<tr><td colspan=""2""><b>" & Dr.Subprogram &
+            " exercising:</b></td></tr>");
          Dr.Targets.Iterate (Print_Target'Access);
       end Print_Driver;
 
       procedure Print_Req (It : Requirement_List.Cursor) is
          Req : Requirement_Ref := Requirement_List.Element (It);
       begin
-         Ada.Strings.Unbounded.Text_IO.Put_Line ("Requirement " & Req.ID);
-         Ada.Strings.Unbounded.Text_IO.Put_Line ("  " & Req.Description);
+         Ada.Strings.Unbounded.Text_IO.Put_Line
+           ("<H3>Requirement " & Req.ID & "</H3>");
+         Ada.Strings.Unbounded.Text_IO.Put_Line
+           ("<p><b>Description: </b>" & Req.Description & "</p>");
          Ada.Text_IO.Put_Line
-           ("   checked by " & Natural'Image
-              (Integer (Req.Drivers.Length)) & " drivers:");
+           ("<b>checked by:</b>" & Natural'Image
+              (Integer (Req.Drivers.Length)) & " drivers in <a href=""" &
+            To_String (Req.In_File) & """/>file</a></i>");
+         Ada.Text_IO.Put_Line
+           ("<table border=""1"" cellspacing=""1" &
+            " class=""SumTable"" align=""center"">");
          Req.Drivers.Iterate (Print_Driver'Access);
+          Ada.Text_IO.Put_Line ("</table>");
       end Print_Req;
 
    begin

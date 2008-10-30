@@ -31,12 +31,28 @@ begin
          Req_File_Name : String := Ada.Command_Line.Argument (1);
          Target_File_Name : String := Ada.Command_Line.Argument (2);
       begin
+         Put_Line ("<html>");
+         Put_Line ("<head>");
+         Put_Line ("<title>XCOV Qualification Evidence</title>");
+         Put_Line ("<link rel=""stylesheet"" type=""text/css""" &
+                   "href=""xcov.css"">");
+         Put_Line ("</head>");
+         Put_Line ("<body>");
+         Put_Line ("<h1 align=""center"">" &
+                   "XCOV Qualification Documentation</h1>");
+         Put_Line ("<h2>Tool Operational Requirements</h2>");
+
          --  Put_Line (Req_File_Name);
          --  pick the first file (the requirement file)
          Doc_Generator.Requirements.Parse_File (Req_File_Name);
          Doc_Generator.Requirements.Print;
+
+         Put_Line ("<h2>Target test cases</h2>");
+
          Doc_Generator.Target_Tests.Parse_File (Target_File_Name);
          Doc_Generator.Target_Tests.Print;
+         Put_Line ("</body>");
+         Put_Line ("</html>");
       end;
    end if;
    --  exception

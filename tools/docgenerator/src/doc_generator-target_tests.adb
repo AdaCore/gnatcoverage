@@ -61,6 +61,9 @@ package body Doc_Generator.Target_Tests is
       end Peek_Procedure_Name;
 
    begin
+
+      T.In_File := To_Unbounded_String (Name (F));
+
       while not End_Of_File (F) loop
          declare
             Line : String := Get_Line (F);
@@ -124,9 +127,12 @@ package body Doc_Generator.Target_Tests is
          use Ada.Strings.Unbounded;
          T : Target_Ref := Target_List.Element (It);
       begin
-         Put_Line ("Target " & T.ID & ":");
-         Put_Line ("   subprogram: " & T.Subprogram);
-         Put_Line ("   description: " & T.Description);
+         Put_Line ("<h3>Target " & T.ID & "</h3>");
+         Put_Line ("<b>subprogram:</b> " & "<a name=""" & T.Subprogram &
+                   """ id=""" & T.Subprogram & """>" & T.Subprogram
+                   & "</a> in " &
+                   "<a href=""" & To_String (T.In_File) & """/>file</a><br/>");
+         Put_Line ("<b>description:</b> " & T.Description);
       end Print_Target;
 
    begin
