@@ -104,7 +104,7 @@ package body Doc_Generator is
       Pos : Natural := Index (S, To_Remove);
    begin
       if Pos > 0 then
-         return Delete (S, Pos, Pos + To_Remove'Length);
+         return Delete (S, Pos, Pos + To_Remove'Length - 1);
       else
          return S;
       end if;

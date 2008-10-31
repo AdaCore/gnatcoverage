@@ -87,5 +87,7 @@ private
 
    File_Parsed : Boolean := False;
 
+   Test_Cases_N : Natural := 0;
+
 end Doc_Generator.Requirements;
 

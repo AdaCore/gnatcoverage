@@ -71,7 +71,9 @@ package body Doc_Generator.Target_Tests is
             --  look for the Id_Tag
             Starts_With (Line, Id_Tag, Pos);
             if Pos > 0 then
-               --  save id here
+               T.ID := To_Unbounded_String
+               (Ada.Strings.Fixed.Trim
+                  (Remove (Remove (Line, Id_Tag), "}"), Ada.Strings.Both));
                exit;
             end if;
             Desc := Desc & " " & Ada.Strings.Fixed.Trim
@@ -127,11 +129,13 @@ package body Doc_Generator.Target_Tests is
          use Ada.Strings.Unbounded;
          T : Target_Ref := Target_List.Element (It);
       begin
-         Put_Line ("<h3>Target " & T.ID & "</h3>");
-         Put_Line ("<b>subprogram:</b> " & "<a name=""" & T.Subprogram &
-                   """ id=""" & T.Subprogram & """>" & T.Subprogram
-                   & "</a> in " &
-                   "<a href=""" & To_String (T.In_File) & """/>file</a><br/>");
+         Put_Line ("<h3>Test case <a name=""" & T.Subprogram & """ id=""" &
+                   T.Subprogram & """>" & T.ID & "</a></h3>");
+         Put_Line ("<b>ID: </b>" & T.ID & "<br/>");
+         Put_Line ("<b>subprogram:</b> " & T.Subprogram
+                   & " in " &
+                   "<a href=""file:///" & To_String (T.In_File)
+                   & """/>file</a><br/>");
          Put_Line ("<b>description:</b> " & T.Description);
       end Print_Target;
 

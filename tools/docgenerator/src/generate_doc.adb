@@ -33,21 +33,41 @@ begin
       begin
          Put_Line ("<html>");
          Put_Line ("<head>");
+         Put_Line ("<script src=""jshelper.js"">");
+         Put_Line ("</script>");
+
          Put_Line ("<title>XCOV Qualification Evidence</title>");
          Put_Line ("<link rel=""stylesheet"" type=""text/css""" &
                    "href=""xcov.css"">");
          Put_Line ("</head>");
+
          Put_Line ("<body>");
-         Put_Line ("<h1 align=""center"">" &
-                   "XCOV Qualification Documentation</h1>");
-         Put_Line ("<h2>Tool Operational Requirements</h2>");
+         Put_Line ("<b>Contents</b><br/>");
+         Put_Line ("<ol>");
+         Put_Line ("<li><a href=""#TORs"">" &
+                   "Tool Operation Requirements</a></li>");
+         Put_Line ("<li><a href=""#Tests"">" &
+                   "Target Test Cases</a></li>");
+         Put_Line ("</ol>");
+
+
+         Put_Line ("<h1><a name=""TORs"" id=""TORs""/>" &
+                     "Tool Operational Requirements</a></h1>");
+         Put_Line ("<h2>Requirement analysis strategy</h2>");
+         Put_Line ("<h2>Requirements</h2>");
+
 
          --  Put_Line (Req_File_Name);
          --  pick the first file (the requirement file)
          Doc_Generator.Requirements.Parse_File (Req_File_Name);
          Doc_Generator.Requirements.Print;
 
-         Put_Line ("<h2>Target test cases</h2>");
+         Put_Line ("<br/><br/>");
+
+         Put_Line ("<h1><a name""Tests"" id=""Tests"">" &
+                   "Target test cases</a></h1>");
+         Put_Line ("<h2>Test cases definition strategy</h2>");
+         Put_Line ("<h2>Test cases</h2>");
 
          Doc_Generator.Target_Tests.Parse_File (Target_File_Name);
          Doc_Generator.Target_Tests.Print;

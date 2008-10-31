@@ -74,6 +74,7 @@ package body Doc_Generator.Requirements is
                      Description => Null_Unbounded_String,
                      Subprogram => To_Unbounded_String (Sub),
                      Expected_Coverage => Exp));
+               Test_Cases_N := Test_Cases_N + 1;
             end;
          end;
       end loop;
@@ -163,7 +164,7 @@ package body Doc_Generator.Requirements is
       begin
          Ada.Strings.Unbounded.Text_IO.Put_Line
            ("<tr><td colspan=""2""><b>" & Dr.Subprogram &
-            " exercising:</b></td></tr>");
+            " exercising test cases:</b></td></tr>");
          Dr.Targets.Iterate (Print_Target'Access);
       end Print_Driver;
 
@@ -171,22 +172,38 @@ package body Doc_Generator.Requirements is
          Req : Requirement_Ref := Requirement_List.Element (It);
       begin
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("<H3>Requirement " & Req.ID & "</H3>");
+           ("<H3>Requirement <a name=""" & Req.ID & """ id=""" & Req.ID &
+            """>" & Req.ID & "</a></H3>");
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("<p><b>Description: </b>" & Req.Description & "</p>");
+           ("<b>ID: </b>" & Req.ID & "<br/>");
+         Ada.Strings.Unbounded.Text_IO.Put_Line
+           ("<b>Specification: </b>" & Req.Description & "<br/>");
          Ada.Text_IO.Put_Line
            ("<b>checked by:</b>" & Natural'Image
-              (Integer (Req.Drivers.Length)) & " drivers in <a href=""" &
-            To_String (Req.In_File) & """/>file</a></i>");
+              (Integer (Req.Drivers.Length)) &
+            " drivers in <a href=""file:///" &
+            To_String (Req.In_File) & """/>file</a></i><br/>");
+         Ada.Strings.Unbounded.Text_IO.Put_Line
+           ("<a href=""#" & Req.ID & """ onclick=""showhide('" &
+            Req.ID & "_TC');"">" & "Toogle detailed test cases information" &
+            "</a>");
+         Ada.Strings.Unbounded.Text_IO.Put_Line
+           ("<div id=""" & Req.ID & "_TC"" style=""display: none;"">");
          Ada.Text_IO.Put_Line
-           ("<table border=""1"" cellspacing=""1" &
+            ("<table border=""1"" cellspacing=""1" &
             " class=""SumTable"" align=""center"">");
          Req.Drivers.Iterate (Print_Driver'Access);
-          Ada.Text_IO.Put_Line ("</table>");
+         Ada.Text_IO.Put_Line ("</table>");
+          Ada.Text_IO.Put_Line ("</div>");
       end Print_Req;
 
    begin
       Req_List.Iterate (Print_Req'Access);
+      Ada.Text_IO.Put_Line ("<h2>Statistics</h2>");
+      Ada.Text_IO.Put_Line ("<b>" & Natural'Image (Integer (Req_List.Length))
+                            & " requirements </b><br/>");
+      Ada.Text_IO.Put_Line ("tested by <b>" & Natural'Image (Test_Cases_N) &
+                           " tests</b> for each target language");
    end Print;
 
 end Doc_Generator.Requirements;
