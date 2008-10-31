@@ -30,11 +30,46 @@ package body Doc_Generator.Requirements is
    use Ada.Strings.Fixed;
    use Ada.Strings;
 
+   procedure Add_Code (F : File_Type);
+
    procedure Create_Driver (R : in Requirement_Ref;
                             Line : String; F : File_Type);
 
    procedure Create_Requirement (R : in out Requirement_Ref;
                                  Line : String; F : File_Type);
+
+
+   procedure Add_Code (F : File_Type) is
+      use Doc_Generator.Utils;
+      Pos : Integer := 0;
+      Code : Ada.Strings.Unbounded.Unbounded_String :=
+        Ada.Strings.Unbounded.Null_Unbounded_String;
+      Current_Procedure_Name : Ada.Strings.Unbounded.Unbounded_String;
+      First_Found : Boolean := False;
+   begin
+      while not End_Of_File (F) loop
+         declare
+            Line : String := Get_Line (F);
+         begin
+            Starts_With (Line, "procedure", Pos);
+            if Pos > 0 then
+               if not First_Found then
+                  First_Found := True;
+               else
+                  Trim (Line, Both);
+                  Ada.Strings.Unbounded.Text_IO.Put_Line
+                    ("the code for AAA" & Current_Procedure_Name & "AAA is");
+                  Ada.Strings.Unbounded.Text_IO.Put_Line (Code);
+               end if;
+               Code := To_Unbounded_String (Line);
+               Current_Procedure_Name :=
+                 To_Unbounded_String (Get_Procedure_Name (Line));
+            else
+               Code := Code & Line;
+            end if;
+         end;
+      end loop;
+   end Add_Code;
 
 
    procedure Create_Driver (R : in Requirement_Ref;
@@ -134,11 +169,22 @@ package body Doc_Generator.Requirements is
             end if;
          end;
       end loop;
+
+      declare
+         Body_File : File_Type;
+         File_Name : String := Overwrite
+           (Name (F), Name (F)'Length, "b");
+      begin
+         Open (Body_File, IN_FILE, File_Name);
+         Add_Code (Body_File);
+      end;
+
    end Parse_Requirements;
 
    --  at the moment this is just for debug purpose --
 
    procedure Parse_File (Path : String) is
+
    begin
       Doc_Generator.Utils.Parse_File_List (Path, Parse_Requirements'Access);
    end Parse_File;
@@ -181,7 +227,7 @@ package body Doc_Generator.Requirements is
          Ada.Text_IO.Put_Line
            ("<b>checked by:</b>" & Natural'Image
               (Integer (Req.Drivers.Length)) &
-            " drivers in <a href=""file:///" &
+            " test cases in <a href=""file:///" &
             To_String (Req.In_File) & """/>file</a></i><br/>");
          Ada.Strings.Unbounded.Text_IO.Put_Line
            ("<a href=""#" & Req.ID & """ onclick=""showhide('" &
@@ -201,7 +247,7 @@ package body Doc_Generator.Requirements is
       Req_List.Iterate (Print_Req'Access);
       Ada.Text_IO.Put_Line ("<h2>Statistics</h2>");
       Ada.Text_IO.Put_Line ("<b>" & Natural'Image (Integer (Req_List.Length))
-                            & " requirements </b><br/>");
+                            & " requirements </b>");
       Ada.Text_IO.Put_Line ("tested by <b>" & Natural'Image (Test_Cases_N) &
                            " tests</b> for each target language");
    end Print;
