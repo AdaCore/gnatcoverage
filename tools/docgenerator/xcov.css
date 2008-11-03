@@ -38,3 +38,9 @@ table.SumTable td.SumBarPartial { background-color: orange; }
 table.SumTable td.SumBarNoCover { background-color: red; }
 td.SumPourcent, td.SumLineCov { text-align: right; }
 table.SourceFile td pre { margin: 0; }
+
+tr.code { background-color: lightgrey; }
+tr.code {font-family : courier; }
+
+table.summary { border-width: thin; }
+table.summary { border-spacing: 2px; }
