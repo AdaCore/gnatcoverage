@@ -5,6 +5,34 @@ with Doc_Generator.Utils;
 with Ada.Strings.Fixed;
 
 package body Doc_Generator.Target_Tests is
+   use Ada.Text_IO;
+
+   procedure Add_Code (F : File_Type);
+
+   procedure Add_Code (F : File_Type) is
+      use Doc_Generator.Utils;
+      use Ada.Strings.Unbounded;
+
+      procedure Analyze
+        (P_Name : String;
+         Code : Unbounded_String) is
+         Tmp : Target_Ref := null;
+         N : String := P_Name;
+      begin
+         To_Lower (N);
+         Tmp := T_Map.Element (N);
+         Tmp.Code := Code;
+      exception
+         when Constraint_Error =>
+            Put_Line ("Problem: looking for " & P_Name);
+      end Analyze;
+
+   begin
+
+      Get_And_Analyse_Procedure_Code
+        (F, Analyze'Access);
+
+   end Add_Code;
 
    procedure Create_Target (F : Ada.Text_IO.File_Type) is
       use Ada.Text_IO;
@@ -98,10 +126,24 @@ package body Doc_Generator.Target_Tests is
 
       All_Targets.Append (T);
 
+      declare
+         Last_Pos_Of_Point : Natural :=
+           Ada.Strings.Unbounded.Index
+             (T.Subprogram, ".", Ada.Strings.Backward) + 1;
+         Relative_Proc_Name : String :=
+           Ada.Strings.Unbounded.Slice
+             (T.Subprogram, Last_Pos_Of_Point,
+              Ada.Strings.Unbounded.Length (T.Subprogram));
+      begin
+         --  Ada.Text_IO.Put_Line ("Insert " & Relative_Proc_Name);
+         T_Map.Insert (Relative_Proc_Name, T);
+      end;
+
    end Create_Target;
 
    procedure Parse_Targets (F : Ada.Text_IO.File_Type) is
       use Ada.Text_IO;
+      use Ada.Strings.Fixed;
    begin
       while not End_Of_File (F) loop
          declare
@@ -114,6 +156,15 @@ package body Doc_Generator.Target_Tests is
             end if;
          end;
       end loop;
+
+      declare
+         Body_File : File_Type;
+         File_Name : String := Overwrite
+           (Name (F), Name (F)'Length, "b");
+      begin
+         Open (Body_File, IN_FILE, File_Name);
+         Add_Code (Body_File);
+      end;
    end Parse_Targets;
 
    procedure Parse_File (Path : String) is
@@ -131,12 +182,32 @@ package body Doc_Generator.Target_Tests is
       begin
          Put_Line ("<h3>Test case <a name=""" & T.Subprogram & """ id=""" &
                    T.Subprogram & """>" & T.ID & "</a></h3>");
-         Put_Line ("<b>ID: </b>" & T.ID & "<br/>");
-         Put_Line ("<b>subprogram:</b> " & T.Subprogram
+         Put_Line ("<table class=""summary"">");
+         Put_Line ("<tr><td><b>ID: </b></td><td>" & T.ID & "</td></tr>");
+         Put_Line ("<tr><td><b>subprogram:</b></td><td>" & T.Subprogram
                    & " in " &
                    "<a href=""file:///" & To_String (T.In_File)
-                   & """/>file</a><br/>");
-         Put_Line ("<b>description:</b> " & T.Description);
+                   & """/>file</a></td></tr>");
+         Put_Line ("<tr><td><b>description:</b></td><td>" & T.Description
+                   & "</td></tr>");
+         Put_Line ("</table>");
+
+         Ada.Strings.Unbounded.Text_IO.Put_Line
+           ("<a href=""#" & T.ID & """ onclick=""showhide('" &
+            T.ID & "_Code');"">" & "Show code" &
+            "</a>");
+         Ada.Strings.Unbounded.Text_IO.Put_Line
+           ("<div id=""" & T.ID & "_Code"" style=""display: none;"">");
+         Ada.Text_IO.Put_Line
+            ("<table border=""1"" cellspacing=""1""" &
+            ">");
+         Ada.Text_IO.Put_Line ("<tr class=""code"">" &
+                               "<td>");
+         Ada.Strings.Unbounded.Text_IO.Put_Line (T.Code);
+         Ada.Text_IO.Put_Line ("</td></tr>");
+         Ada.Text_IO.Put_Line ("</table>");
+         Ada.Text_IO.Put_Line ("</div>");
+
       end Print_Target;
 
    begin

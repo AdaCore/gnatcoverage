@@ -47,7 +47,6 @@ package Doc_Generator is
    --  Return the position of Tag within Str
    procedure Starts_With
      (Str : String; Tag : String; Pos : out Natural);
-   pragma Inline (Starts_With);
 
    --  Removes Prefix from S
    function Remove_Prefix

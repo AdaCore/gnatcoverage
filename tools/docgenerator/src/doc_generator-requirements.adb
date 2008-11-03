@@ -41,34 +41,24 @@ package body Doc_Generator.Requirements is
 
    procedure Add_Code (F : File_Type) is
       use Doc_Generator.Utils;
-      Pos : Integer := 0;
-      Code : Ada.Strings.Unbounded.Unbounded_String :=
-        Ada.Strings.Unbounded.Null_Unbounded_String;
-      Current_Procedure_Name : Ada.Strings.Unbounded.Unbounded_String;
-      First_Found : Boolean := False;
+
+      procedure Analyze
+        (P_Name : String;
+         Code : Unbounded_String) is
+         Tmp : Driver_Ref := null;
+      begin
+         Tmp := T_Map.Element (P_Name);
+         Tmp.Code := Code;
+      exception
+         when Constraint_Error =>
+            null;
+      end Analyze;
+
    begin
-      while not End_Of_File (F) loop
-         declare
-            Line : String := Get_Line (F);
-         begin
-            Starts_With (Line, "procedure", Pos);
-            if Pos > 0 then
-               if not First_Found then
-                  First_Found := True;
-               else
-                  Trim (Line, Both);
-                  Ada.Strings.Unbounded.Text_IO.Put_Line
-                    ("the code for AAA" & Current_Procedure_Name & "AAA is");
-                  Ada.Strings.Unbounded.Text_IO.Put_Line (Code);
-               end if;
-               Code := To_Unbounded_String (Line);
-               Current_Procedure_Name :=
-                 To_Unbounded_String (Get_Procedure_Name (Line));
-            else
-               Code := Code & Line;
-            end if;
-         end;
-      end loop;
+
+      Get_And_Analyse_Procedure_Code
+        (F, Analyze'Access);
+
    end Add_Code;
 
 
@@ -83,6 +73,22 @@ package body Doc_Generator.Requirements is
       D.Subprogram := Remove_Std_prefix
         (To_Unbounded_String (Trim (Get_Line (F), Both)));
       R.Drivers.Append (D);
+
+      --  insert the couple (procedure_name, pointer_to_obj) in the map
+      --  as a key, we use the relative procedure name
+      declare
+         Last_Pos_Of_Point : Natural :=
+           Ada.Strings.Unbounded.Index
+             (D.Subprogram, ".", Ada.Strings.Backward) + 1;
+         Relative_Proc_Name : String :=
+           Ada.Strings.Unbounded.Slice
+             (D.Subprogram, Last_Pos_Of_Point,
+              Ada.Strings.Unbounded.Length (D.Subprogram));
+      begin
+         T_Map.Insert
+           (Relative_Proc_Name, D);
+         --  Ada.Text_IO.Put_Line (Relative_Proc_Name);
+      end;
 
       --  skip the lines not containing the invocation of targets
       while Trim (Get_Line (F), Both) /= Driver_Expected_Tag loop
@@ -209,8 +215,12 @@ package body Doc_Generator.Requirements is
 
       begin
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("<tr><td colspan=""2""><b>" & Dr.Subprogram &
+           ("<tr bgcolor=""LemonChiffon""><td colspan=""2""><b>" &
+            Dr.Subprogram &
             " exercising test cases:</b></td></tr>");
+         Ada.Strings.Unbounded.Text_IO.Put_Line
+           ("<tr class=""code""><td colspan=""2"">"
+            & Dr.Code & "</td></tr>");
          Dr.Targets.Iterate (Print_Target'Access);
       end Print_Driver;
 
@@ -220,15 +230,18 @@ package body Doc_Generator.Requirements is
          Ada.Strings.Unbounded.Text_IO.Put_Line
            ("<H3>Requirement <a name=""" & Req.ID & """ id=""" & Req.ID &
             """>" & Req.ID & "</a></H3>");
+         Put_Line ("<table class=""summary"">");
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("<b>ID: </b>" & Req.ID & "<br/>");
+           ("<tr><td><b>ID: </b></td><td>" & Req.ID & "</td></tr>");
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("<b>Specification: </b>" & Req.Description & "<br/>");
+           ("<tr><td><b>Specification: </b></td><td>" &
+            Req.Description & "</td></tr>");
          Ada.Text_IO.Put_Line
-           ("<b>checked by:</b>" & Natural'Image
+           ("<tr><td><b>checked by:</b></td><td>" & Natural'Image
               (Integer (Req.Drivers.Length)) &
-            " test cases in <a href=""file:///" &
-            To_String (Req.In_File) & """/>file</a></i><br/>");
+            " test suites in <a href=""file:///" &
+            To_String (Req.In_File) & """/>file</a></i></td></tr>");
+         Put_Line ("</table>");
          Ada.Strings.Unbounded.Text_IO.Put_Line
            ("<a href=""#" & Req.ID & """ onclick=""showhide('" &
             Req.ID & "_TC');"">" & "Toogle detailed test cases information" &
@@ -237,10 +250,10 @@ package body Doc_Generator.Requirements is
            ("<div id=""" & Req.ID & "_TC"" style=""display: none;"">");
          Ada.Text_IO.Put_Line
             ("<table border=""1"" cellspacing=""1" &
-            " class=""SumTable"" align=""center"">");
+            " align=""center"">");
          Req.Drivers.Iterate (Print_Driver'Access);
          Ada.Text_IO.Put_Line ("</table>");
-          Ada.Text_IO.Put_Line ("</div>");
+          Ada.Text_IO.Put_Line ("</div><br/><br/>");
       end Print_Req;
 
    begin

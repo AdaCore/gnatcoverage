@@ -18,7 +18,9 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Unbounded;
+with Ada.Strings.Hash;
 
 package Doc_Generator.Requirements is
 
@@ -60,6 +62,7 @@ private
    type Driver is new Target with
       record
          Targets : Target_List.List := Target_List.Empty_List;
+         Code : Ada.Strings.Unbounded.Unbounded_String;
       end record;
 
    type Driver_Ref is access Driver;
@@ -85,9 +88,17 @@ private
    --  the list of requirements
    Req_List : Requirement_List.List := Requirement_List.Empty_List;
 
-   File_Parsed : Boolean := False;
-
    Test_Cases_N : Natural := 0;
+
+   --  a map to get easy access to a target from its function name
+
+   package Target_Map is new Ada.Containers.Indefinite_Hashed_Maps
+     (String,
+      Driver_Ref,
+      Ada.Strings.Hash,
+      "=");
+
+   T_Map : Target_Map.Map := Target_Map.Empty_Map;
 
 end Doc_Generator.Requirements;
 
