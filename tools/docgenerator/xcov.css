@@ -44,3 +44,7 @@ tr.code {font-family : courier; }
 
 table.summary { border-width: thin; }
 table.summary { border-spacing: 2px; }
+
+td.PARTIALLY_COVERED { text-align:center; background-color: orange; }
+td.NOT_COVERED { text-align:center; background-color: red; }
+td.COVERED { text-align:center; background-color: green; }

@@ -78,6 +78,9 @@ package body Doc_Generator.Target_Tests is
             To_Lower (S2);
 
             Pos := Index (S2, " ");
+            if Pos = 0 then
+               Pos := Index (S2, ";");
+            end if;
             if Pos > 0 then
                return Prefix & "." & Delete (S2, Pos, S2'Length);
             end if;
@@ -197,7 +200,8 @@ package body Doc_Generator.Target_Tests is
             T.ID & "_Code');"">" & "Show code" &
             "</a>");
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("<div id=""" & T.ID & "_Code"" style=""display: none;"">");
+           ("<div id=""" & T.ID & "_Code"" style=""display: " &
+            Show_Detailed_Info & ";"">");
          Ada.Text_IO.Put_Line
             ("<table border=""1"" cellspacing=""1""" &
             ">");

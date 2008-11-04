@@ -70,4 +70,7 @@ private
 
    Std_Prefix : constant String := "--@";
 
+   --  Show_Detailed_Info : String := "none";
+   Show_Detailed_Info : String := "block";
+
 end Doc_Generator;

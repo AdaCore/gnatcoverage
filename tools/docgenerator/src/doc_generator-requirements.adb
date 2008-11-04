@@ -70,8 +70,8 @@ package body Doc_Generator.Requirements is
       D.ID :=
         Remove_Std_prefix
           (To_Unbounded_String (Trim (Get_Line (F), Both)));
-      D.Subprogram := Remove_Std_prefix
-        (To_Unbounded_String (Trim (Get_Line (F), Both)));
+      D.Subprogram := Remove_Prefix
+        (To_Unbounded_String (Trim (Get_Line (F), Both)), Driver_Name_Tag);
       R.Drivers.Append (D);
 
       --  insert the couple (procedure_name, pointer_to_obj) in the map
@@ -208,20 +208,22 @@ package body Doc_Generator.Requirements is
          begin
             Ada.Strings.Unbounded.Text_IO.Put_Line
               ("<tr><td><a href=""#" & T.Subprogram & """/>" & T.Subprogram &
-               "</a></td><td><i>" &
+               "</a></td><td class=""" &
+               Function_Coverage'Image (T.Expected_Coverage) & """><i>" &
                Function_Coverage'Image (T.Expected_Coverage) &
                "</i></td></tr>");
          end Print_Target;
 
       begin
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("<tr bgcolor=""LemonChiffon""><td colspan=""2""><b>" &
-            Dr.Subprogram &
-            " exercising test cases:</b></td></tr>");
+           ("<tr><td rowspan=""1"" colspan=""2""> </td></tr>" &
+            "<tr bgcolor=""LemonChiffon""><td colspan=""2"">suite <b>" &
+            Dr.Subprogram & "</b>" &
+            " exercising test cases:</td></tr>");
+         Dr.Targets.Iterate (Print_Target'Access);
          Ada.Strings.Unbounded.Text_IO.Put_Line
            ("<tr class=""code""><td colspan=""2"">"
             & Dr.Code & "</td></tr>");
-         Dr.Targets.Iterate (Print_Target'Access);
       end Print_Driver;
 
       procedure Print_Req (It : Requirement_List.Cursor) is
@@ -230,6 +232,9 @@ package body Doc_Generator.Requirements is
          Ada.Strings.Unbounded.Text_IO.Put_Line
            ("<H3>Requirement <a name=""" & Req.ID & """ id=""" & Req.ID &
             """>" & Req.ID & "</a></H3>");
+
+         --  print recap
+
          Put_Line ("<table class=""summary"">");
          Ada.Strings.Unbounded.Text_IO.Put_Line
            ("<tr><td><b>ID: </b></td><td>" & Req.ID & "</td></tr>");
@@ -242,18 +247,23 @@ package body Doc_Generator.Requirements is
             " test suites in <a href=""file:///" &
             To_String (Req.In_File) & """/>file</a></i></td></tr>");
          Put_Line ("</table>");
+
+         --  print table
+
+         --  print code
          Ada.Strings.Unbounded.Text_IO.Put_Line
            ("<a href=""#" & Req.ID & """ onclick=""showhide('" &
-            Req.ID & "_TC');"">" & "Toogle detailed test cases information" &
+            Req.ID & "_TC');"">" & "Toogle detailed test suites information" &
             "</a>");
          Ada.Strings.Unbounded.Text_IO.Put_Line
-           ("<div id=""" & Req.ID & "_TC"" style=""display: none;"">");
+           ("<div id=""" & Req.ID & "_TC"" style=""display: " &
+            Show_Detailed_Info & ";"">");
          Ada.Text_IO.Put_Line
             ("<table border=""1"" cellspacing=""1" &
             " align=""center"">");
          Req.Drivers.Iterate (Print_Driver'Access);
          Ada.Text_IO.Put_Line ("</table>");
-          Ada.Text_IO.Put_Line ("</div><br/><br/>");
+         Ada.Text_IO.Put_Line ("</div><br/><br/>");
       end Print_Req;
 
    begin
@@ -262,7 +272,7 @@ package body Doc_Generator.Requirements is
       Ada.Text_IO.Put_Line ("<b>" & Natural'Image (Integer (Req_List.Length))
                             & " requirements </b>");
       Ada.Text_IO.Put_Line ("tested by <b>" & Natural'Image (Test_Cases_N) &
-                           " tests</b> for each target language");
+                           " tests</b> for each target language.");
    end Print;
 
 end Doc_Generator.Requirements;
