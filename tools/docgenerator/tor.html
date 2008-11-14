@@ -1,0 +1,643 @@
+<html>
+<head>
+<script src="jshelper.js">
+</script>
+<title>XCOV Qualification Evidence</title>
+<link rel="stylesheet" type="text/css"href="xcov.css">
+</head>
+<body>
+<b>Contents</b><br/>
+<ol>
+<li><a href="#TORs">Tool Operation Requirements</a></li>
+<li><a href="#Tests">Target Test Cases</a></li>
+</ol>
+<h1><a name="TORs" id="TORs"/>Tool Operational Requirements</a></h1>
+<h2>Requirement analysis strategy</h2>
+<h2>Requirements</h2>
+<H3>Requirement <a name="SB" id="SB">SB</a></H3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SB</td></tr>
+<tr><td><b>Specification: </b></td><td> Simple boolean expressions composed by a single boolean value should be correctly treated. To verify this requirement, it should be tested also the correct behaviour when the boolean expression contains the negation operator (in Ada: "not"; in C/C++: "!") and when the else branch of an if statement is missing.</td></tr>
+<tr><td><b>checked by:</b></td><td> 3 test suites in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\src\drivers-level_a.ads"/>file</a></i></td></tr>
+</table>
+<a href="#SB" onclick="showhide('SB_TC');">Toogle detailed test suites information</a>
+<div id="SB_TC" style="display: block;">
+<table border="1" cellspacing="1 align="center">
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Simple_Boolean_Exp_1</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean"/>level_a_testcases.test_1.atomic_boolean</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean_not"/>level_a_testcases.test_1.atomic_boolean_not</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean_no_else"/>level_a_testcases.test_1.atomic_boolean_no_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_Boolean_Exp_1 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.Atomic_Boolean (True); <br/>  4.          Level_A_Testcases.Test_1.Atomic_Boolean_Not (True); <br/>  5.          Level_A_Testcases.Test_1.Atomic_Boolean_No_Else (True); <br/>  6.       <b>end</b> Simple_Boolean_Exp_1;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Simple_Boolean_Exp_2</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean"/>level_a_testcases.test_1.atomic_boolean</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean_not"/>level_a_testcases.test_1.atomic_boolean_not</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean_no_else"/>level_a_testcases.test_1.atomic_boolean_no_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_Boolean_Exp_2 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.Atomic_Boolean (False); <br/>  4.          Level_A_Testcases.Test_1.Atomic_Boolean_Not (False); <br/>  5.          Level_A_Testcases.Test_1.Atomic_Boolean_No_Else (False); <br/>  6.       <b>end</b> Simple_Boolean_Exp_2;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Simple_Boolean_Exp_3</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean"/>level_a_testcases.test_1.atomic_boolean</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean_not"/>level_a_testcases.test_1.atomic_boolean_not</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.atomic_boolean_no_else"/>level_a_testcases.test_1.atomic_boolean_no_else</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_Boolean_Exp_3 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>null;</b> <br/>  4.       <b>end</b> Simple_Boolean_Exp_3;</td></tr>
+</table>
+</div><br/><br/>
+<H3>Requirement <a name="SC" id="SC">SC</a></H3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SC</td></tr>
+<tr><td><b>Specification: </b></td><td> Boolean expressions composed by a single short circuit operator should be properly treated. To verify this requirement it is necessary to try all possible combinations of the negation operator with short circuit operators.</td></tr>
+<tr><td><b>checked by:</b></td><td> 11 test suites in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\src\drivers-level_a.ads"/>file</a></i></td></tr>
+</table>
+<a href="#SC" onclick="showhide('SC_TC');">Toogle detailed test suites information</a>
+<div id="SC_TC" style="display: block;">
+<table border="1" cellspacing="1 align="center">
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_1</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_1 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (False, True); <br/>  4.          Level_A_Testcases.Test_1.And_Then (True, False); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Or_Else (False, True); <br/>  7.          Level_A_Testcases.Test_1.Or_Else (True, False); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_1 (False, True); <br/>  10.          Level_A_Testcases.Test_1.And_Then_Not_1 (True, False); <br/>  11.     <br/>  12.          Level_A_Testcases.Test_1.And_Then_Not_2 (False, True); <br/>  13.          Level_A_Testcases.Test_1.And_Then_Not_2 (True, False); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.And_Then_Not_3 (False, True); <br/>  16.          Level_A_Testcases.Test_1.And_Then_Not_3 (True, False); <br/>  17.     <br/>  18.          Level_A_Testcases.Test_1.Or_Else_Not_1 (False, True); <br/>  19.          Level_A_Testcases.Test_1.Or_Else_Not_1 (True, False); <br/>  20.     <br/>  21.          Level_A_Testcases.Test_1.Or_Else_Not_2 (False, True); <br/>  22.          Level_A_Testcases.Test_1.Or_Else_Not_2 (True, False); <br/>  23.     <br/>  24.          Level_A_Testcases.Test_1.Or_Else_Not_3 (False, True); <br/>  25.          Level_A_Testcases.Test_1.Or_Else_Not_3 (True, False); <br/>  26.     <br/>  27.          Cover_Test_2_Tc1_For_And_Then; <br/>  28.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  29.                                         B2 => False, B3 => True); <br/>  30.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  31.                                         B2 => True, B3 =>False); <br/>  32.       <b>end</b> Short_Circuit_1;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_2</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_2 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (True, True); <br/>  4.          Level_A_Testcases.Test_1.And_Then (False, False); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Or_Else (True, True); <br/>  7.          Level_A_Testcases.Test_1.Or_Else (False, False); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_1 (True, True); <br/>  10.          Level_A_Testcases.Test_1.And_Then_Not_1 (False, False); <br/>  11.     <br/>  12.          Level_A_Testcases.Test_1.And_Then_Not_2 (True, True); <br/>  13.          Level_A_Testcases.Test_1.And_Then_Not_2 (False, False); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.And_Then_Not_3 (True, True); <br/>  16.          Level_A_Testcases.Test_1.And_Then_Not_3 (False, False); <br/>  17.     <br/>  18.          Level_A_Testcases.Test_1.Or_Else_Not_1 (True, True); <br/>  19.          Level_A_Testcases.Test_1.Or_Else_Not_1 (False, False); <br/>  20.     <br/>  21.          Level_A_Testcases.Test_1.Or_Else_Not_2 (True, True); <br/>  22.          Level_A_Testcases.Test_1.Or_Else_Not_2 (False, False); <br/>  23.     <br/>  24.          Level_A_Testcases.Test_1.Or_Else_Not_3 (True, True); <br/>  25.          Level_A_Testcases.Test_1.Or_Else_Not_3 (False, False); <br/>  26.     <br/>  27.          Cover_Test_2_Tc1_For_And_Then; <br/>  28.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  29.                                         B2 => True, B3 => True); <br/>  30.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  31.                                         B2 => False, B3 =>False); <br/>  32.       <b>end</b> Short_Circuit_2;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_3</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_3 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (True, True); <br/>  4.          Level_A_Testcases.Test_1.And_Then (False, True); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Or_Else (True, True); <br/>  7.          Level_A_Testcases.Test_1.Or_Else (False, True); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_1 (True, True); <br/>  10.          Level_A_Testcases.Test_1.And_Then_Not_1 (False, True); <br/>  11.     <br/>  12.          Level_A_Testcases.Test_1.And_Then_Not_2 (True, True); <br/>  13.          Level_A_Testcases.Test_1.And_Then_Not_2 (False, True); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.And_Then_Not_3 (True, True); <br/>  16.          Level_A_Testcases.Test_1.And_Then_Not_3 (False, True); <br/>  17.     <br/>  18.          Level_A_Testcases.Test_1.Or_Else_Not_1 (True, True); <br/>  19.          Level_A_Testcases.Test_1.Or_Else_Not_1 (False, True); <br/>  20.     <br/>  21.          Level_A_Testcases.Test_1.Or_Else_Not_2 (True, True); <br/>  22.          Level_A_Testcases.Test_1.Or_Else_Not_2 (False, True); <br/>  23.     <br/>  24.          Level_A_Testcases.Test_1.Or_Else_Not_3 (True, True); <br/>  25.          Level_A_Testcases.Test_1.Or_Else_Not_3 (False, True); <br/>  26.     <br/>  27.          Cover_Test_2_Tc1_For_And_Then; <br/>  28.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  29.                                         B2 => True, B3 => True); <br/>  30.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  31.                                         B2 => False, B3 =>True); <br/>  32.       <b>end</b> Short_Circuit_3;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_4</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_4 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (True, True); <br/>  4.          Level_A_Testcases.Test_1.And_Then (True, False); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Or_Else (True, True); <br/>  7.          Level_A_Testcases.Test_1.Or_Else (True, False); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_1 (True, True); <br/>  10.          Level_A_Testcases.Test_1.And_Then_Not_1 (True, False); <br/>  11.     <br/>  12.          Level_A_Testcases.Test_1.And_Then_Not_2 (True, True); <br/>  13.          Level_A_Testcases.Test_1.And_Then_Not_2 (True, False); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.And_Then_Not_3 (True, True); <br/>  16.          Level_A_Testcases.Test_1.And_Then_Not_3 (True, False); <br/>  17.     <br/>  18.          Level_A_Testcases.Test_1.Or_Else_Not_1 (True, True); <br/>  19.          Level_A_Testcases.Test_1.Or_Else_Not_1 (True, False); <br/>  20.     <br/>  21.          Level_A_Testcases.Test_1.Or_Else_Not_2 (True, True); <br/>  22.          Level_A_Testcases.Test_1.Or_Else_Not_2 (True, False); <br/>  23.     <br/>  24.          Level_A_Testcases.Test_1.Or_Else_Not_3 (True, True); <br/>  25.          Level_A_Testcases.Test_1.Or_Else_Not_3 (True, False); <br/>  26.     <br/>  27.          Cover_Test_2_Tc1_For_And_Then; <br/>  28.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  29.                                         B2 => True, B3 => True); <br/>  30.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  31.                                         B2 => True, B3 =>False); <br/>  32.       <b>end</b> Short_Circuit_4;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_5</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_5 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (False, False); <br/>  4.          Level_A_Testcases.Test_1.And_Then (True, False); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Or_Else (False, False); <br/>  7.          Level_A_Testcases.Test_1.Or_Else (True, False); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_1 (False, False); <br/>  10.          Level_A_Testcases.Test_1.And_Then_Not_1 (True, False); <br/>  11.     <br/>  12.          Level_A_Testcases.Test_1.And_Then_Not_2 (False, False); <br/>  13.          Level_A_Testcases.Test_1.And_Then_Not_2 (True, False); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.And_Then_Not_3 (False, False); <br/>  16.          Level_A_Testcases.Test_1.And_Then_Not_3 (True, False); <br/>  17.     <br/>  18.          Level_A_Testcases.Test_1.Or_Else_Not_1 (False, False); <br/>  19.          Level_A_Testcases.Test_1.Or_Else_Not_1 (True, False); <br/>  20.     <br/>  21.          Level_A_Testcases.Test_1.Or_Else_Not_2 (False, False); <br/>  22.          Level_A_Testcases.Test_1.Or_Else_Not_2 (True, False); <br/>  23.     <br/>  24.          Level_A_Testcases.Test_1.Or_Else_Not_3 (False, False); <br/>  25.          Level_A_Testcases.Test_1.Or_Else_Not_3 (True, False); <br/>  26.     <br/>  27.          Cover_Test_2_Tc1_For_And_Then; <br/>  28.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  29.                                         B2 => False, B3 => False); <br/>  30.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  31.                                         B2 => True, B3 =>False); <br/>  32.       <b>end</b> Short_Circuit_5;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_6</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_6 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (False, False); <br/>  4.          Level_A_Testcases.Test_1.And_Then (False, True); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Or_Else (False, False); <br/>  7.          Level_A_Testcases.Test_1.Or_Else (False, True); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_1 (False, False); <br/>  10.          Level_A_Testcases.Test_1.And_Then_Not_1 (False, True); <br/>  11.     <br/>  12.          Level_A_Testcases.Test_1.And_Then_Not_2 (False, False); <br/>  13.          Level_A_Testcases.Test_1.And_Then_Not_2 (False, True); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.And_Then_Not_3 (False, False); <br/>  16.          Level_A_Testcases.Test_1.And_Then_Not_3 (False, True); <br/>  17.     <br/>  18.          Level_A_Testcases.Test_1.Or_Else_Not_1 (False, False); <br/>  19.          Level_A_Testcases.Test_1.Or_Else_Not_1 (False, True); <br/>  20.     <br/>  21.          Level_A_Testcases.Test_1.Or_Else_Not_2 (False, False); <br/>  22.          Level_A_Testcases.Test_1.Or_Else_Not_2 (False, True); <br/>  23.     <br/>  24.          Level_A_Testcases.Test_1.Or_Else_Not_3 (False, False); <br/>  25.          Level_A_Testcases.Test_1.Or_Else_Not_3 (False, True); <br/>  26.     <br/>  27.          Cover_Test_2_Tc1_For_And_Then; <br/>  28.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  29.                                         B2 => False, B3 => False); <br/>  30.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  31.                                         B2 => False, B3 => True); <br/>  32.       <b>end</b> Short_Circuit_6;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_7</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_7 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (False, True); <br/>  4.     <br/>  5.          Level_A_Testcases.Test_1.Or_Else (False, True); <br/>  6.     <br/>  7.          Level_A_Testcases.Test_1.And_Then_Not_1 (False, True); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_2 (False, True); <br/>  10.     <br/>  11.          Level_A_Testcases.Test_1.And_Then_Not_3 (False, True); <br/>  12.     <br/>  13.          Level_A_Testcases.Test_1.Or_Else_Not_1 (False, True); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.Or_Else_Not_2 (False, True); <br/>  16.     <br/>  17.          Level_A_Testcases.Test_1.Or_Else_Not_3 (False, True); <br/>  18.     <br/>  19.          Cover_Test_2_Tc1_For_And_Then; <br/>  20.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  21.                                         B2 => False, B3 => True); <br/>  22.     <br/>  23.       <b>end</b> Short_Circuit_7;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_8</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_8 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (False, False); <br/>  4.     <br/>  5.          Level_A_Testcases.Test_1.Or_Else (False, False); <br/>  6.     <br/>  7.          Level_A_Testcases.Test_1.And_Then_Not_1 (False, False); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_2 (False, False); <br/>  10.     <br/>  11.          Level_A_Testcases.Test_1.And_Then_Not_3 (False, False); <br/>  12.     <br/>  13.          Level_A_Testcases.Test_1.Or_Else_Not_1 (False, False); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.Or_Else_Not_2 (False, False); <br/>  16.     <br/>  17.          Level_A_Testcases.Test_1.Or_Else_Not_3 (False, False); <br/>  18.     <br/>  19.          Cover_Test_2_Tc1_For_And_Then; <br/>  20.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  21.                                         B2 => False, B3 => False); <br/>  22.     <br/>  23.     <br/>  24.       <b>end</b> Short_Circuit_8;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_9</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_9 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (True, False); <br/>  4.     <br/>  5.          Level_A_Testcases.Test_1.Or_Else (True, False); <br/>  6.     <br/>  7.          Level_A_Testcases.Test_1.And_Then_Not_1 (True, False); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_2 (True, False); <br/>  10.     <br/>  11.          Level_A_Testcases.Test_1.And_Then_Not_3 (True, False); <br/>  12.     <br/>  13.          Level_A_Testcases.Test_1.Or_Else_Not_1 (True, False); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.Or_Else_Not_2 (True, False); <br/>  16.     <br/>  17.          Level_A_Testcases.Test_1.Or_Else_Not_3 (True, False); <br/>  18.     <br/>  19.          Cover_Test_2_Tc1_For_And_Then; <br/>  20.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  21.                                         B2 => True, B3 => False); <br/>  22.     <br/>  23.       <b>end</b> Short_Circuit_9;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_10</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_10 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then (True, True); <br/>  4.     <br/>  5.          Level_A_Testcases.Test_1.Or_Else (True, True); <br/>  6.     <br/>  7.          Level_A_Testcases.Test_1.And_Then_Not_1 (True, True); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.And_Then_Not_2 (True, True); <br/>  10.     <br/>  11.          Level_A_Testcases.Test_1.And_Then_Not_3 (True, True); <br/>  12.     <br/>  13.          Level_A_Testcases.Test_1.Or_Else_Not_1 (True, True); <br/>  14.     <br/>  15.          Level_A_Testcases.Test_1.Or_Else_Not_2 (True, True); <br/>  16.     <br/>  17.          Level_A_Testcases.Test_1.Or_Else_Not_3 (True, True); <br/>  18.     <br/>  19.          Cover_Test_2_Tc1_For_And_Then; <br/>  20.          Level_A_Testcases.Test_2.TC1a (Cover_And_Then_1 => True, <br/>  21.                                         B2 => True, B3 => True); <br/>  22.     <br/>  23.       <b>end</b> Short_Circuit_10;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_11</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then"/>level_a_testcases.test_1.and_then</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else"/>level_a_testcases.test_1.or_else</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_1"/>level_a_testcases.test_1.and_then_not_1</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_2"/>level_a_testcases.test_1.and_then_not_2</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_not_3"/>level_a_testcases.test_1.and_then_not_3</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_1"/>level_a_testcases.test_1.or_else_not_1</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_2"/>level_a_testcases.test_1.or_else_not_2</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_not_3"/>level_a_testcases.test_1.or_else_not_3</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_11 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>null;</b> <br/>  4.       <b>end</b> Short_Circuit_11;</td></tr>
+</table>
+</div><br/><br/>
+<H3>Requirement <a name="CT" id="CT">CT</a></H3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>CT</td></tr>
+<tr><td><b>Specification: </b></td><td> Boolean expressions composed by short circuit operators and coupled conditions should be properly treated. A coupled condition is a condition whose value depends on the value of another condition.</td></tr>
+<tr><td><b>checked by:</b></td><td> 5 test suites in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\src\drivers-level_a.ads"/>file</a></i></td></tr>
+</table>
+<a href="#CT" onclick="showhide('CT_TC');">Toogle detailed test suites information</a>
+<div id="CT_TC" style="display: block;">
+<table border="1" cellspacing="1 align="center">
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Coupled_Terms_1</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_and_then"/>level_a_testcases.test_1.coupled_and_then</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_or_else"/>level_a_testcases.test_1.coupled_or_else</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.indirectly_coupled"/>level_a_testcases.test_1.indirectly_coupled</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Coupled_Terms_1 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.Coupled_And_Then (False, True); <br/>  4.          Level_A_Testcases.Test_1.Coupled_And_Then (True, False); <br/>  5.          Level_A_Testcases.Test_1.Coupled_And_Then (True, True); <br/>  6.     <br/>  7.          Level_A_Testcases.Test_1.Coupled_Or_Else (True, True); <br/>  8.          Level_A_Testcases.Test_1.Coupled_Or_Else (False, True); <br/>  9.          Level_A_Testcases.Test_1.Coupled_Or_Else (False, False); <br/>  10.     <br/>  11.          Level_A_Testcases.Test_1.Indirectly_Coupled (False, True); <br/>  12.          Level_A_Testcases.Test_1.Indirectly_Coupled (True, False); <br/>  13.          Level_A_Testcases.Test_1.Indirectly_Coupled (True, True); <br/>  14.       <b>end</b> Coupled_Terms_1;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Coupled_Terms_2</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_and_then"/>level_a_testcases.test_1.coupled_and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_or_else"/>level_a_testcases.test_1.coupled_or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.indirectly_coupled"/>level_a_testcases.test_1.indirectly_coupled</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Coupled_Terms_2 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.Coupled_And_Then (False, True); <br/>  4.          Level_A_Testcases.Test_1.Coupled_And_Then (True, False); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Coupled_Or_Else (True, True); <br/>  7.          Level_A_Testcases.Test_1.Coupled_Or_Else (False, True); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.Indirectly_Coupled (False, True); <br/>  10.          Level_A_Testcases.Test_1.Indirectly_Coupled (True, False); <br/>  11.       <b>end</b> Coupled_Terms_2;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Coupled_Terms_3</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_and_then"/>level_a_testcases.test_1.coupled_and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_or_else"/>level_a_testcases.test_1.coupled_or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.indirectly_coupled"/>level_a_testcases.test_1.indirectly_coupled</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Coupled_Terms_3 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.Coupled_And_Then (False, True); <br/>  4.          Level_A_Testcases.Test_1.Coupled_And_Then (True, True); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Coupled_Or_Else (True, True); <br/>  7.          Level_A_Testcases.Test_1.Coupled_Or_Else (False, False); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.Indirectly_Coupled (False, True); <br/>  10.          Level_A_Testcases.Test_1.Indirectly_Coupled (True, True); <br/>  11.       <b>end</b> Coupled_Terms_3;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Coupled_Terms_4</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_and_then"/>level_a_testcases.test_1.coupled_and_then</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_or_else"/>level_a_testcases.test_1.coupled_or_else</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.indirectly_coupled"/>level_a_testcases.test_1.indirectly_coupled</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Coupled_Terms_4 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.Coupled_And_Then (True, False); <br/>  4.          Level_A_Testcases.Test_1.Coupled_And_Then (True, True); <br/>  5.     <br/>  6.          Level_A_Testcases.Test_1.Coupled_Or_Else (False, True); <br/>  7.          Level_A_Testcases.Test_1.Coupled_Or_Else (False, False); <br/>  8.     <br/>  9.          Level_A_Testcases.Test_1.Indirectly_Coupled (True, False); <br/>  10.          Level_A_Testcases.Test_1.Indirectly_Coupled (True, True); <br/>  11.       <b>end</b> Coupled_Terms_4;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Coupled_Terms_5</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_and_then"/>level_a_testcases.test_1.coupled_and_then</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.coupled_or_else"/>level_a_testcases.test_1.coupled_or_else</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.indirectly_coupled"/>level_a_testcases.test_1.indirectly_coupled</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Coupled_Terms_5 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>null;</b> <br/>  4.       <b>end</b> Coupled_Terms_5;</td></tr>
+</table>
+</div><br/><br/>
+<H3>Requirement <a name="SCC" id="SCC">SCC</a></H3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCC</td></tr>
+<tr><td><b>Specification: </b></td><td> Chains of the same short circuit operator should be proerly treated. Since the correct treatment for boolean expressions containing a single short-circuit operators is already tested, longer short-circuit operators chains should be used to to verify this requirement.</td></tr>
+<tr><td><b>checked by:</b></td><td> 3 test suites in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\src\drivers-level_a.ads"/>file</a></i></td></tr>
+</table>
+<a href="#SCC" onclick="showhide('SCC_TC');">Toogle detailed test suites information</a>
+<div id="SCC_TC" style="display: block;">
+<table border="1" cellspacing="1 align="center">
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_Chain_1</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_chain"/>level_a_testcases.test_1.and_then_chain</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_chain"/>level_a_testcases.test_1.or_else_chain</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_Chain_1 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then_Chain (True, True, True, True); <br/>  4.          Level_A_Testcases.Test_1.And_Then_Chain (True, True, True, False); <br/>  5.          Level_A_Testcases.Test_1.And_Then_Chain (True, True, False, False); <br/>  6.          Level_A_Testcases.Test_1.And_Then_Chain (True, False, False, False); <br/>  7.     <br/>  8.          Level_A_Testcases.Test_1.Or_Else_Chain (False, False, False, False); <br/>  9.          Level_A_Testcases.Test_1.Or_Else_Chain (False, False, False, True); <br/>  10.          Level_A_Testcases.Test_1.Or_Else_Chain (False, True, True, True); <br/>  11.          Level_A_Testcases.Test_1.Or_Else_Chain (False, True, True, True); <br/>  12.       <b>end</b> Short_Circuit_Chain_1;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_Chain_2</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_chain"/>level_a_testcases.test_1.and_then_chain</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_chain"/>level_a_testcases.test_1.or_else_chain</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_Chain_2 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.Test_1.And_Then_Chain (False, True, True, True); <br/>  4.          Level_A_Testcases.Test_1.And_Then_Chain (True, True, True, False); <br/>  5.          Level_A_Testcases.Test_1.And_Then_Chain (True, True, False, False); <br/>  6.          Level_A_Testcases.Test_1.And_Then_Chain (True, False, False, False); <br/>  7.     <br/>  8.          Level_A_Testcases.Test_1.Or_Else_Chain (True, False, False, False); <br/>  9.          Level_A_Testcases.Test_1.Or_Else_Chain (False, False, False, True); <br/>  10.          Level_A_Testcases.Test_1.Or_Else_Chain (False, True, True, True); <br/>  11.          Level_A_Testcases.Test_1.Or_Else_Chain (False, True, True, True); <br/>  12.       <b>end</b> Short_Circuit_Chain_2;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Short_Circuit_Chain_3</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_1.and_then_chain"/>level_a_testcases.test_1.and_then_chain</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_1.or_else_chain"/>level_a_testcases.test_1.or_else_chain</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Short_Circuit_Chain_3 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>null;</b> <br/>  4.       <b>end</b> Short_Circuit_Chain_3;</td></tr>
+</table>
+</div><br/><br/>
+<H3>Requirement <a name="SWH" id="SWH">SWH</a></H3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SWH</td></tr>
+<tr><td><b>Specification: </b></td><td> While loops governed by a single boolean expression (which can be either single boolean value or a (chain of) short-circuit operator(s) shall be treated correctly.</td></tr>
+<tr><td><b>checked by:</b></td><td> 3 test suites in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\src\drivers-level_a-loops.ads"/>file</a></i></td></tr>
+</table>
+<a href="#SWH" onclick="showhide('SWH_TC');">Toogle detailed test suites information</a>
+<div id="SWH_TC" style="display: block;">
+<table border="1" cellspacing="1 align="center">
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Loops.Simple_While_1</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_while"/>level_a_testcases.test_3.simple_while</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_while_sc"/>level_a_testcases.test_3.simple_while_sc</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_While_1 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.test_3.Simple_While (3); <br/>  4.          Level_A_Testcases.test_3.Simple_While_SC (3, 4); <br/>  5.       <b>end</b> Simple_While_1;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Loops.Simple_While_2</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_while"/>level_a_testcases.test_3.simple_while</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_while_sc"/>level_a_testcases.test_3.simple_while_sc</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_While_2 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.test_3.Simple_While (-3); <br/>  4.          Level_A_Testcases.test_3.Simple_While_SC (4, 3); <br/>  5.       <b>end</b> Simple_While_2;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Loops.Simple_While_3</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_while"/>level_a_testcases.test_3.simple_while</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_while_sc"/>level_a_testcases.test_3.simple_while_sc</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_While_3 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>null;</b> <br/>  4.       <b>end</b> Simple_While_3;</td></tr>
+</table>
+</div><br/><br/>
+<H3>Requirement <a name="SFO" id="SFO">SFO</a></H3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SFO</td></tr>
+<tr><td><b>Specification: </b></td><td> For loops iterating over an integer range and with a simple exit condition shall be treated correctly.</td></tr>
+<tr><td><b>checked by:</b></td><td> 4 test suites in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\src\drivers-level_a-loops.ads"/>file</a></i></td></tr>
+</table>
+<a href="#SFO" onclick="showhide('SFO_TC');">Toogle detailed test suites information</a>
+<div id="SFO_TC" style="display: block;">
+<table border="1" cellspacing="1 align="center">
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Loops.Simple_For_1</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_for_up"/>level_a_testcases.test_3.simple_for_up</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_for_low"/>level_a_testcases.test_3.simple_for_low</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.static_for"/>level_a_testcases.test_3.static_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.range_for"/>level_a_testcases.test_3.range_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.enum_for"/>level_a_testcases.test_3.enum_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_For_1 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.test_3.Simple_For_Up (3); <br/>  4.          Level_A_Testcases.test_3.Simple_For_Low (3); <br/>  5.          Level_A_Testcases.test_3.Static_For; <br/>  6.          Level_A_Testcases.test_3.Range_For (3); <br/>  7.          Level_A_Testcases.test_3.Enum_For; <br/>  8.       <b>end</b> Simple_For_1;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Loops.Simple_For_2</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_for_up"/>level_a_testcases.test_3.simple_for_up</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_for_low"/>level_a_testcases.test_3.simple_for_low</a></td><td class="PARTIALLY_COVERED"><i>PARTIALLY_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.static_for"/>level_a_testcases.test_3.static_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.range_for"/>level_a_testcases.test_3.range_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.enum_for"/>level_a_testcases.test_3.enum_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_For_2 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.test_3.Simple_For_Up (-3); <br/>  4.          Level_A_Testcases.test_3.Simple_For_Low (15); <br/>  5.          Level_A_Testcases.test_3.Static_For; <br/>  6.          Level_A_Testcases.test_3.Range_For (3); <br/>  7.          Level_A_Testcases.test_3.Enum_For; <br/>  8.       <b>end</b> Simple_For_2;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Loops.Simple_For_3</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_for_up"/>level_a_testcases.test_3.simple_for_up</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_for_low"/>level_a_testcases.test_3.simple_for_low</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.static_for"/>level_a_testcases.test_3.static_for</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.range_for"/>level_a_testcases.test_3.range_for</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.enum_for"/>level_a_testcases.test_3.enum_for</a></td><td class="NOT_COVERED"><i>NOT_COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_For_3 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>null;</b> <br/>  4.       <b>end</b> Simple_For_3;</td></tr>
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Loops.Simple_For_4</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_for_up"/>level_a_testcases.test_3.simple_for_up</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.simple_for_low"/>level_a_testcases.test_3.simple_for_low</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.static_for"/>level_a_testcases.test_3.static_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.range_for"/>level_a_testcases.test_3.range_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr><td><a href="#level_a_testcases.test_3.enum_for"/>level_a_testcases.test_3.enum_for</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Simple_For_4 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.test_3.Simple_For_Up (3); <br/>  4.          Level_A_Testcases.test_3.Simple_For_Up (-3); <br/>  5.          Level_A_Testcases.test_3.Simple_For_Low (3); <br/>  6.          Level_A_Testcases.test_3.Simple_For_Low (-3); <br/>  7.          Level_A_Testcases.test_3.Static_For; <br/>  8.          Level_A_Testcases.test_3.Range_For (3); <br/>  9.          Level_A_Testcases.test_3.Enum_For; <br/>  10.       <b>end</b> Simple_For_4;</td></tr>
+</table>
+</div><br/><br/>
+<H3>Requirement <a name="LOO" id="LOO">LOO</a></H3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>LOO</td></tr>
+<tr><td><b>Specification: </b></td><td> Loops with explicit exit (or break) statements shall be treated correctly. Considered loops includes those with multiple exit points.</td></tr>
+<tr><td><b>checked by:</b></td><td> 1 test suites in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\src\drivers-level_a-loops.ads"/>file</a></i></td></tr>
+</table>
+<a href="#LOO" onclick="showhide('LOO_TC');">Toogle detailed test suites information</a>
+<div id="LOO_TC" style="display: block;">
+<table border="1" cellspacing="1 align="center">
+<tr><td rowspan="1" colspan="2"> </td></tr><tr bgcolor="LemonChiffon"><td colspan="2">suite <b>Drivers.Level_A.Loops.Loop_Expl_1</b> exercising test cases:</td></tr>
+<tr><td><a href="#level_a_testcases.test_3.loop_explicit_exit"/>level_a_testcases.test_3.loop_explicit_exit</a></td><td class="COVERED"><i>COVERED</i></td></tr>
+<tr class="code"><td colspan="2">1.       <b>procedure</b> Loop_Expl_1 <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          Level_A_Testcases.test_3.Loop_Explicit_Exit (3); <br/>  4.       <b>end</b> Loop_Expl_1;</td></tr>
+</table>
+</div><br/><br/>
+<h2>Statistics</h2>
+<b> 7 requirements </b>
+tested by <b> 145 tests</b> for each target language.
+<br/><br/>
+<h1><a name"Tests" id="Tests">Target test cases</a></h1>
+<h2>Test cases definition strategy</h2>
+<h2>Test cases</h2>
+<h3>Test case <a name="level_a_testcases.test_1.atomic_boolean" id="level_a_testcases.test_1.atomic_boolean">AB1</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>AB1</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.atomic_boolean in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing atomic boolean values.</td></tr>
+</table>
+<a href="#AB1" onclick="showhide('AB1_Code');">Show code</a>
+<div id="AB1_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Atomic_Boolean <br/>  2.         (A : Boolean) <br/>  3.       <b>is</b> <br/>  4.       <b>begin</b> <br/>  5.          <b>if</b> A <b>then</b> <br/>  6.             Check_Point ("A.Test1.Atomic_Boolean.1"); <br/>  7.          <b>else</b> <br/>  8.             Check_Point ("A.Test1.Atomic_Boolean.2"); <br/>  9.          <b>end</b> <b>if;</b> <br/>  10.          Atomic_Boolean_C (A); <br/>  11.       <b>end</b> Atomic_Boolean;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.atomic_boolean_not" id="level_a_testcases.test_1.atomic_boolean_not">AB2</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>AB2</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.atomic_boolean_not in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing unary operator "not".</td></tr>
+</table>
+<a href="#AB2" onclick="showhide('AB2_Code');">Show code</a>
+<div id="AB2_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Atomic_Boolean_Not <br/>  2.         (A : Boolean) <br/>  3.       <b>is</b> <br/>  4.       <b>begin</b> <br/>  5.          <b>if</b> <b>not</b> A <b>then</b> <br/>  6.             Check_Point ("A.Test1.Atomic_Boolean_Not.1"); <br/>  7.          <b>else</b> <br/>  8.             Check_Point ("A.Test1.Atomic_Boolean_Not.2"); <br/>  9.          <b>end</b> <b>if;</b> <br/>  10.          Atomic_Boolean_Not_C (A); <br/>  11.       <b>end</b> Atomic_Boolean_Not;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.atomic_boolean_no_else" id="level_a_testcases.test_1.atomic_boolean_no_else">AB3</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>AB3</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.atomic_boolean_no_else in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing atomic boolean values (if statement without else branch).</td></tr>
+</table>
+<a href="#AB3" onclick="showhide('AB3_Code');">Show code</a>
+<div id="AB3_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Atomic_Boolean_No_Else <br/>  2.         (A : Boolean) <br/>  3.       <b>is</b> <br/>  4.       <b>begin</b> <br/>  5.          <b>if</b> A <b>then</b> <br/>  6.             Check_Point ("A.Test1.Atomic_Boolean_No_Else.1"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          Atomic_Boolean_No_Else_C (A); <br/>  9.       <b>end</b> Atomic_Boolean_No_Else;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.and_then" id="level_a_testcases.test_1.and_then">SCO1</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO1</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.and_then in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing single simple "and then" operator.</td></tr>
+</table>
+<a href="#SCO1" onclick="showhide('SCO1_Code');">Show code</a>
+<div id="SCO1_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> And_Then <br/>  2.         (A, B : Boolean) <b>is</b> <br/>  3.       <b>begin</b> <br/>  4.          <b>if</b> A <b>and</b> <b>then</b> B <b>then</b> <br/>  5.             Check_Point ("A.Test1.And_Then_Chain.1"); <br/>  6.          <b>else</b> <br/>  7.             Check_Point ("A.Test1.And_Then_Chain.2"); <br/>  8.          <b>end</b> <b>if;</b> <br/>  9.          And_Then_C (A, B); <br/>  10.       <b>end</b> And_Then;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.or_else" id="level_a_testcases.test_1.or_else">SCO2</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO2</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.or_else in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing single simple "or else" operator.</td></tr>
+</table>
+<a href="#SCO2" onclick="showhide('SCO2_Code');">Show code</a>
+<div id="SCO2_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Or_Else <br/>  2.         (A, B : Boolean) <b>is</b> <br/>  3.       <b>begin</b> <br/>  4.          <b>if</b> A <b>or</b> <b>else</b> B <b>then</b> <br/>  5.             Check_Point ("A.Test1.Or_Else_Chain.1"); <br/>  6.          <b>else</b> <br/>  7.             Check_Point ("A.Test1.Or_Else_Chain.2"); <br/>  8.          <b>end</b> <b>if;</b> <br/>  9.          Or_Else_C (A, B); <br/>  10.       <b>end</b> Or_Else;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.and_then_chain" id="level_a_testcases.test_1.and_then_chain">SCO3</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO3</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.and_then_chain in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing concatenation of "and then" operators.</td></tr>
+</table>
+<a href="#SCO3" onclick="showhide('SCO3_Code');">Show code</a>
+<div id="SCO3_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> And_Then_Chain <br/>  2.         (A, B, C, D : Boolean) <b>is</b> <br/>  3.       <b>begin</b> <br/>  4.          <b>if</b> A <b>and</b> <b>then</b> B <b>and</b> <b>then</b> C <b>and</b> <b>then</b> D <b>then</b> <br/>  5.             Check_Point ("A.Test1.TC3c.1"); <br/>  6.          <b>else</b> <br/>  7.             Check_Point ("A.Test1.TC3c.2"); <br/>  8.          <b>end</b> <b>if;</b> <br/>  9.          And_Then_Chain_C (A, B, C, D); <br/>  10.       <b>end</b> And_Then_Chain;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.or_else_chain" id="level_a_testcases.test_1.or_else_chain">SCO4</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO4</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.or_else_chain in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing concatenation of "or else" operators.</td></tr>
+</table>
+<a href="#SCO4" onclick="showhide('SCO4_Code');">Show code</a>
+<div id="SCO4_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Or_Else_Chain <br/>  2.         (A, B, C, D : Boolean) <b>is</b> <br/>  3.       <b>begin</b> <br/>  4.          <b>if</b> A <b>or</b> <b>else</b> B <b>or</b> <b>else</b> C <b>or</b> <b>else</b> D <b>then</b> <br/>  5.             Check_Point ("A.Test1.TC3d.1"); <br/>  6.          <b>else</b> <br/>  7.             Check_Point ("A.Test1.TC3d.2"); <br/>  8.          <b>end</b> <b>if;</b> <br/>  9.          Or_Else_Chain_C (A, B, C, D); <br/>  10.       <b>end</b> Or_Else_Chain;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.coupled_and_then" id="level_a_testcases.test_1.coupled_and_then">SCO5</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO5</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.coupled_and_then in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing concatenation of coupled terms using "and then".</td></tr>
+</table>
+<a href="#SCO5" onclick="showhide('SCO5_Code');">Show code</a>
+<div id="SCO5_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Coupled_And_Then (A, B : Boolean) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>if</b> A <b>and</b> <b>then</b> A <b>and</b> <b>then</b> B <b>then</b> <br/>  4.             Check_Point ("A.Test1.Coupled_And_Then.1"); <br/>  5.          <b>else</b> <br/>  6.             Check_Point ("A.Test1.Coupled_And_Then.2"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          Coupled_And_Then_C (A, B); <br/>  9.       <b>end</b> Coupled_And_Then;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.coupled_or_else" id="level_a_testcases.test_1.coupled_or_else">SCO6</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO6</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.coupled_or_else in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing concatenation of coupled terms using "or else".</td></tr>
+</table>
+<a href="#SCO6" onclick="showhide('SCO6_Code');">Show code</a>
+<div id="SCO6_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Coupled_Or_Else (A, B : Boolean) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>if</b> A <b>or</b> <b>else</b> A <b>or</b> <b>else</b> B <b>then</b> <br/>  4.             Check_Point ("A.Test1.Coupled_Or_Else.1"); <br/>  5.          <b>else</b> <br/>  6.             Check_Point ("A.Test1.Coupled_Or_Else.2"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          Coupled_Or_Else_C (A, B); <br/>  9.       <b>end</b> Coupled_Or_Else;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.indirectly_coupled" id="level_a_testcases.test_1.indirectly_coupled">COU1</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>COU1</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.indirectly_coupled in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing coupled conditions: the data flow causing the coupling is more complex thain in Coupled_And_Then and Coupled_Or_Else.</td></tr>
+</table>
+<a href="#COU1" onclick="showhide('COU1_Code');">Show code</a>
+<div id="COU1_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Indirectly_Coupled (A, B : Boolean) <b>is</b> <br/>  2.          C : Boolean := A; <br/>  3.       <b>begin</b> <br/>  4.          <b>if</b> A <b>and</b> <b>then</b> B <b>and</b> <b>then</b> C <b>then</b> <br/>  5.             Check_Point ("A.Test1.Indirectly_Coupled.1"); <br/>  6.          <b>else</b> <br/>  7.             Check_Point ("A.Test1.Indirectly_Coupled.2"); <br/>  8.          <b>end</b> <b>if;</b> <br/>  9.          Indirectly_Coupled_C (A, B); <br/>  10.       <b>end</b> Indirectly_Coupled;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.and_then_not_1" id="level_a_testcases.test_1.and_then_not_1">COU2</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>COU2</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.and_then_not_1 in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Combinining "and then" operator and "not" ("not" on second operand).</td></tr>
+</table>
+<a href="#COU2" onclick="showhide('COU2_Code');">Show code</a>
+<div id="COU2_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> And_Then_Not_1 (A, B : Boolean) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>if</b> A <b>and</b> <b>then</b> <b>not</b> B <b>then</b> <br/>  4.             Check_Point ("A.Test1.And_Then_Not_1.1"); <br/>  5.          <b>else</b> <br/>  6.             Check_Point ("A.Test1.And_Then_Not_1.2"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          And_Then_Not_1_C (A, B); <br/>  9.       <b>end</b> And_Then_Not_1;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.and_then_not_2" id="level_a_testcases.test_1.and_then_not_2">SCO7</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO7</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.and_then_not_2 in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Combinining "and then" operator and "not" ("not" on both operands).</td></tr>
+</table>
+<a href="#SCO7" onclick="showhide('SCO7_Code');">Show code</a>
+<div id="SCO7_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> And_Then_Not_2 (A, B : Boolean) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>if</b> <b>not</b> A <b>and</b> <b>then</b> <b>not</b> B <b>then</b> <br/>  4.             Check_Point ("A.Test1.And_Then_Not_2.1"); <br/>  5.          <b>else</b> <br/>  6.             Check_Point ("A.Test1.And_Then_Not_2.2"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          And_Then_Not_2_C (A, B); <br/>  9.       <b>end</b> And_Then_Not_2;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.and_then_not_3" id="level_a_testcases.test_1.and_then_not_3">SCO8</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO8</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.and_then_not_3 in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Combinining "and then" operator and "not" ("not" on first operand).</td></tr>
+</table>
+<a href="#SCO8" onclick="showhide('SCO8_Code');">Show code</a>
+<div id="SCO8_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> And_Then_Not_3 (A, B : Boolean) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>if</b> <b>not</b> A <b>and</b> <b>then</b> B <b>then</b> <br/>  4.             Check_Point ("A.Test1.And_Then_Not_3.1"); <br/>  5.          <b>else</b> <br/>  6.             Check_Point ("A.Test1.And_Then_Not_3.2"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          And_Then_Not_3_C (A, B); <br/>  9.       <b>end</b> And_Then_Not_3;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.or_else_not_1" id="level_a_testcases.test_1.or_else_not_1">SCO9</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO9</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.or_else_not_1 in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Combinining "or else" operator and "not" ("not" on second operand).</td></tr>
+</table>
+<a href="#SCO9" onclick="showhide('SCO9_Code');">Show code</a>
+<div id="SCO9_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Or_Else_Not_1 (A, B : Boolean) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>if</b> A <b>or</b> <b>else</b> <b>not</b> B <b>then</b> <br/>  4.             Check_Point ("A.Test1.Or_Else_Not_1.1"); <br/>  5.          <b>else</b> <br/>  6.             Check_Point ("A.Test1.Or_Else_Not_1.2"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          Or_Else_Not_1_C (A, B); <br/>  9.       <b>end</b> Or_Else_Not_1;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.or_else_not_2" id="level_a_testcases.test_1.or_else_not_2">SCO10</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO10</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.or_else_not_2 in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Combinining "or else" operator and "not" ("not" on both operands).</td></tr>
+</table>
+<a href="#SCO10" onclick="showhide('SCO10_Code');">Show code</a>
+<div id="SCO10_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Or_Else_Not_2 (A, B : Boolean) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>if</b> <b>not</b> A <b>or</b> <b>else</b> <b>not</b> B <b>then</b> <br/>  4.             Check_Point ("A.Test1.Or_Else_Not_2.1"); <br/>  5.          <b>else</b> <br/>  6.             Check_Point ("A.Test1.Or_Else_Not_2.2"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          Or_Else_Not_2_C (A, B); <br/>  9.       <b>end</b> Or_Else_Not_2;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_1.or_else_not_3" id="level_a_testcases.test_1.or_else_not_3">SCO11</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>SCO11</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_1.or_else_not_3 in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_1.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Combinining "or else" operator and "not" ("not" on first operand).</td></tr>
+</table>
+<a href="#SCO11" onclick="showhide('SCO11_Code');">Show code</a>
+<div id="SCO11_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Or_Else_Not_3 (A, B : Boolean) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>if</b> <b>not</b> A <b>or</b> <b>else</b> B <b>then</b> <br/>  4.             Check_Point ("A.Test1.Or_Else_Not_3.1"); <br/>  5.          <b>else</b> <br/>  6.             Check_Point ("A.Test1.Or_Else_Not_3.2"); <br/>  7.          <b>end</b> <b>if;</b> <br/>  8.          Or_Else_Not_3_C (A, B); <br/>  9.       <b>end</b> Or_Else_Not_3;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_3.simple_while" id="level_a_testcases.test_3.simple_while">WHI1</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>WHI1</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_3.simple_while in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_3.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing while loops governed by a simple boolean expression.</td></tr>
+</table>
+<a href="#WHI1" onclick="showhide('WHI1_Code');">Show code</a>
+<div id="WHI1_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Simple_While (I : Integer) <b>is</b> <br/>  2.          J : Integer := 0; <br/>  3.       <b>begin</b> <br/>  4.          <b>while</b> J < I <b>loop</b> <br/>  5.             Check_Point ("Simple_While.1"); <br/>  6.             J := J + 1; <br/>  7.          <b>end</b> <b>loop;</b> <br/>  8.          Check_Point ("Simple_While.2"); <br/>  9.          Simple_While_C (I); <br/>  10.       <b>end</b> Simple_While;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_3.simple_while_sc" id="level_a_testcases.test_3.simple_while_sc">WHI2</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>WHI2</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_3.simple_while_sc in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_3.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing while loops governed by a boolean condition composed of a short circuit operator.</td></tr>
+</table>
+<a href="#WHI2" onclick="showhide('WHI2_Code');">Show code</a>
+<div id="WHI2_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Simple_While_SC (I, L : Integer) <b>is</b> <br/>  2.          J : Integer := 0; <br/>  3.          K : Integer := 0; <br/>  4.       <b>begin</b> <br/>  5.          <b>while</b> J < I <b>and</b> <b>then</b> K < L <b>loop</b> <br/>  6.             Check_Point ("Simple_While_SC.1"); <br/>  7.             J := J + 1; <br/>  8.             K := K + 1; <br/>  9.          <b>end</b> <b>loop;</b> <br/>  10.          Check_Point ("Simple_While_SC.2"); <br/>  11.          Simple_While_SC_C (I, L); <br/>  12.       <b>end</b> Simple_While_SC;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_3.simple_for_up" id="level_a_testcases.test_3.simple_for_up">FOR1</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>FOR1</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_3.simple_for_up in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_3.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing for loops with integer ranges (upper bounds as parameter).</td></tr>
+</table>
+<a href="#FOR1" onclick="showhide('FOR1_Code');">Show code</a>
+<div id="FOR1_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Simple_For_Up (I : Integer) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>for</b> J <b>in</b> 0 .. I <b>loop</b> <br/>  4.             Check_Point ("Simple_For_Up.1"); <br/>  5.          <b>end</b> <b>loop;</b> <br/>  6.          Check_Point ("Simple_For_Up.2"); <br/>  7.          Simple_For_Up_C (I); <br/>  8.       <b>end</b> Simple_For_Up;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_3.simple_for_low" id="level_a_testcases.test_3.simple_for_low">FOR2</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>FOR2</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_3.simple_for_low in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_3.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing for loops with integer ranges (lower bounds as parameter).</td></tr>
+</table>
+<a href="#FOR2" onclick="showhide('FOR2_Code');">Show code</a>
+<div id="FOR2_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Simple_For_Low (I : Integer) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>for</b> J <b>in</b> I .. 10 <b>loop</b> <br/>  4.             Check_Point ("Simple_For_Low.1"); <br/>  5.          <b>end</b> <b>loop;</b> <br/>  6.          Check_Point ("Simple_For_Low.2"); <br/>  7.          Simple_For_Low_C (I); <br/>  8.       <b>end</b> Simple_For_Low;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_3.static_for" id="level_a_testcases.test_3.static_for">FOR3</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>FOR3</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_3.static_for in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_3.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing for loops with statically known integer bounds.</td></tr>
+</table>
+<a href="#FOR3" onclick="showhide('FOR3_Code');">Show code</a>
+<div id="FOR3_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Static_For <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>for</b> J <b>in</b> 0 .. 10 <b>loop</b> <br/>  4.             Check_Point ("Static_For.1"); <br/>  5.          <b>end</b> <b>loop;</b> <br/>  6.          Check_Point ("Static_For.2"); <br/>  7.          Static_For_C; <br/>  8.       <b>end</b> Static_For;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_3.range_for" id="level_a_testcases.test_3.range_for">FOR4</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>FOR4</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_3.range_for in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_3.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing for governed by a range type.</td></tr>
+</table>
+<a href="#FOR4" onclick="showhide('FOR4_Code');">Show code</a>
+<div id="FOR4_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Range_For (R : My_Range) <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>for</b> J <b>in</b> 0 .. R <b>loop</b> <br/>  4.             Check_Point ("Range_For.1"); <br/>  5.          <b>end</b> <b>loop;</b> <br/>  6.          Check_Point ("Range_For.2"); <br/>  7.          Range_For_C (Integer (R)); <br/>  8.       <b>end</b> Range_For;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_3.enum_for" id="level_a_testcases.test_3.enum_for">FOR5</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>FOR5</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_3.enum_for in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_3.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing for loops governed by a an enumeration range.</td></tr>
+</table>
+<a href="#FOR5" onclick="showhide('FOR5_Code');">Show code</a>
+<div id="FOR5_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Enum_For <b>is</b> <br/>  2.       <b>begin</b> <br/>  3.          <b>for</b> J <b>in</b> Enum'Range <b>loop</b> <br/>  4.             Check_Point ("Enum_For.1"); <br/>  5.          <b>end</b> <b>loop;</b> <br/>  6.          Check_Point ("Enum_For.2"); <br/>  7.          Enum_For_C; <br/>  8.       <b>end</b> Enum_For;
+</td></tr>
+</table>
+</div>
+<h3>Test case <a name="level_a_testcases.test_3.loop_explicit_exit" id="level_a_testcases.test_3.loop_explicit_exit">LOO1</a></h3>
+<table class="summary">
+<tr><td><b>ID: </b></td><td>LOO1</td></tr>
+<tr><td><b>subprogram:</b></td><td>level_a_testcases.test_3.loop_explicit_exit in <a href="file:///c:\home\matteo\workspace\adacore_svn\couverture\tests\qualification\a\testcases\src\level_a_testcases-test_3.ads"/>file</a></td></tr>
+<tr><td><b>description:</b></td><td> Testing loops with explicit exit (or break) statement</td></tr>
+</table>
+<a href="#LOO1" onclick="showhide('LOO1_Code');">Show code</a>
+<div id="LOO1_Code" style="display: block;">
+<table border="1" cellspacing="1">
+<tr class="code"><td>
+1.       <b>procedure</b> Loop_Explicit_Exit (I : Integer) <b>is</b> <br/>  2.          J : Integer := 0; <br/>  3.       <b>begin</b> <br/>  4.          <b>loop</b> <br/>  5.             <b>exit</b> <b>when</b> J >= I; <br/>  6.             J := J + 1; <br/>  7.             Check_Point ("Loop_Explicit_Ecit.1"); <br/>  8.          <b>end</b> <b>loop;</b> <br/>  9.          Check_Point ("Loop_Explicit_Ecit.2"); <br/>  10.          Loop_Explicit_Exit_C (I); <br/>  11.       <b>end</b> Loop_Explicit_Exit;
+</td></tr>
+</table>
+</div>
+</body>
+</html>
