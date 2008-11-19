@@ -1,8 +1,0 @@
-hello.adb:
-100% of 3 lines covered
-   1 .: with Textio; use Textio;
-   2 .: 
-   3 +: procedure Hello is
-   4 .: begin
-   5 +:    Put_Line ("Hello qemu world");
-   6 +: end Hello;
