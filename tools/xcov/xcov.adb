@@ -28,6 +28,7 @@ with Traces_Names;
 with Traces_Files; use Traces_Files;
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Disa;
+with Version;
 
 procedure Xcov is
    procedure Usage
@@ -201,6 +202,12 @@ begin
             Dump_Trace_File (Argument (I));
          end loop;
          return;
+      elsif Cmd = "-h" or else Cmd = "--help" then
+         Usage;
+         return;
+      elsif Cmd = "--version" then
+         Put_Line ("XCOV Pro " & Version.Xcov_Version);
+         return;
       end if;
    end;
 
@@ -209,7 +216,7 @@ begin
          Arg : constant String := Argument (Arg_Index);
       begin
          Arg_Index := Arg_Index + 1;
-         if Arg = "-h" then
+         if Arg = "-h" or else Arg = "--help" then
             Usage;
             return;
          elsif Arg = "-r" then
