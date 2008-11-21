@@ -1,0 +1,37 @@
+\input texinfo  @c -*-texinfo-*-
+@input texiplus
+@c %**start of header
+@c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+@c                                                                            o
+@c                            XCOV DOCUMENTATION                              o
+@c                                                                            o
+@c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
+@setfilename xcov.info
+@settitle Xcov Users Guide
+@c %**end of header
+
+@titlepage
+@title Xcov Users Guide
+@end titlepage
+
+@ifinfo
+@c    Node,    Next,   Pred,  Ancestor
+@node Top,    ,       ,  (dir)
+
+@menu 
+* About::     About this Guide
+* Explore::   Introducing Explore - the base example
+* Xcov::      Explore Coverage Analysis with Xcov
+@end menu
+
+@node About, Explore, Top, Top
+
+@node Explore, Xcov, About, Top
+@node Xcov, , Explore, Top
+@end ifinfo
+
+This is the Xcov Users Guide
+
+@bye
+
