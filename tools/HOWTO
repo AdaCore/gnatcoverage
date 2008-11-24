@@ -41,7 +41,9 @@ password which were transmitted to you by Zepur on May 5 and go to the
 Download pane.
 
 Otherwise, we also have a 20080427-41 x86-linux wavefront installed in
-chinon:/usr/local.
+chinon:/usr/local, and a binary package in ~gnatmail/gcc-43/binaries:
+
+  20081027/ppc-elf-linux/gnatpro-6.2.0w-20081027-43-powerpc-elf-chinon.tar.gz
 
 * Qemu:
 
@@ -49,10 +51,22 @@ A binary version is built nightly on two AdaCore machines: chinon (x86-linux)
 and tallinn (x86-windows), avail in ~gnatmail/gcc-41/install-<machine>/bin/.
 
 Sources to build elsewhere if need be are available from
-svn+ssh://svn.eu.adacore.com/Dev/trunk/qemu (configure+make in principle).
+svn+ssh://svn.eu.adacore.com/Dev/trunk/qemu.
+
+The base "configure" options to use are:
+  --target-list=ppc-softmmu
+  --disable-kqemu --disable-sdl --disable-gfx-check --disable-vnc-tls
 
 Be sure to use a 3.x GCC to build from sources. There are known problems
 with the 4.x series.
+
+And if you are using a 32bit compiler on a 64bit host on linux, prefix
+your "configure" call by "linux32", like so:
+
+  qemu/qemu-0.9.1 $ linux32 ./configure [...]
+
+then, run "make" and this produces the "ppc-softmmu/qemu-system-ppc"
+binary you need.
 
 * xcov
 
