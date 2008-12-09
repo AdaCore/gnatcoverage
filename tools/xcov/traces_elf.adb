@@ -1400,6 +1400,7 @@ package body Traces_Elf is
       end loop;
    end Build_Source_Lines;
 
+   --  Modify the state of traces according to the corresponding code.
    procedure Set_Trace_State (Exec : Exe_File_Type;
                               Base : in out Traces_Base;
                               Section : Binary_Content)
@@ -1413,6 +1414,13 @@ package body Traces_Elf is
       Addr := Section'First;
       Init (Base, It, Addr);
       Get_Next_Trace (Trace, It);
+
+      --  Skip traces that are before the section.
+      while Trace /= Bad_Trace
+        and then Trace.Last < Section'First
+      loop
+         Get_Next_Trace (Trace, It);
+      end loop;
 
       while Trace /= Bad_Trace loop
          exit when Addr > Section'Last;
@@ -1491,7 +1499,6 @@ package body Traces_Elf is
       use Addresses_Containers;
       Cur : Cursor;
       Sec : Addresses_Info_Acc;
-
    begin
       Cur := First (Exec.Sections_Set);
       while Cur /= No_Element loop
