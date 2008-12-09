@@ -32,6 +32,6 @@ package Disa_Symbolize is
                         Line : in out String;
                         Line_Pos : in out Natural);
 
-   Nul_Symbolizer : constant Nul_Symbolizer_Type := (others => <>);
+   Nul_Symbolizer : constant Nul_Symbolizer_Type := (null record);
 
 end Disa_Symbolize;
