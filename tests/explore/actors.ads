@@ -10,6 +10,13 @@
 --  software components, for instance to support port/actor ownership.
 
 package Actors is
-   type Actor is abstract tagged null record;
+   type Actor is abstract tagged private;
    type Actor_Ref is access all Actor'Class;
+
+   function Live (A : Actor'Class) return Boolean;
+   procedure Kill (A : in out Actor'Class);
+private
+   type Actor is abstract tagged record
+      Live : Boolean := True;
+   end record;
 end;

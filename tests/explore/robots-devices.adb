@@ -133,8 +133,16 @@ package body Robots.Devices is
 
       procedure Setup_Blocks_On (Map : in out Geomap) is
          X, Y : Natural;
-         Stepx : Natural := Map'Length (Sqx) / 5;
-         Stepy : Natural := Map'Length (Sqy) / 5;
+
+         --  Setup ~ 1 block per five squares in both directions
+
+         Wx : Natural := Map'Length (Sqx);
+         Wy : Natural := Map'Length (Sqy);
+         Nx : Natural := Wx / 5;
+         Ny : Natural := Wy / 5;
+
+         Stepx : Natural := Wx / (Nx + 1);
+         Stepy : Natural := Wy / (Ny + 1);
       begin
          Y := Map'First(Sqy) + Stepy;
          while Y <= Map'Last(Sqy) loop

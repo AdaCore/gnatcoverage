@@ -2,89 +2,18 @@
 --                                 EXPLORE                                --
 ----------------------------------------------------------------------------
 
---  This is the main unit for the Explore example.
+--  This is the main unit for the Explore example, a sample application used
+--  to introduce/illustrate a number of concepts in the Xcov documentation.
+--
+--  This example features a fake robot exploring a field, controled through
+--  communication channels by a inhabited control station off the field. See
+--  the Overview dummy spec for an functional and organisational overview,
+--  separated out to allow inclusion into the documentation.
 
--------------------------
--- Functional overview --
--------------------------
+with Overview, Actors, Robots, Stations, Controls, Geomaps;
+use  Overview, Actors, Robots, Stations, Controls, Geomaps;
 
---  This example implements software pieces involved in the following
---  imaginary situation:
---
---  - A pilotless robot is set on a field to explore, where we expect to
---    find either regular ground or rock blocks.
---
---  - An inhabited station off the field communicates with the robot to
---    control it and visualize the explored portions of the field.
-
---  The robot is equipped with several devices:
---
---  - a steering engine, able to have the robot perform a short step
---    forward or rotate 90 deg either way without advancing,
---
---  - a front radar, able to probe the field characteristics (ground or
---    block) one step ahead,
---
---  - a locator, able to evaluate the robot's position and orientation on
---    the field.
---
---  The robot communicates with the station via two channels/links:
---
---  - a control link, through which the station sends commands for the
---    robot to execute (probe ahead, step forward, ...)
---
---  - a situation link, through which the robot sends info about it's
---    current situation (position, orientation, field ahead).
---
---  The field is modeled as a set of squares.  Below is a schematic
---  illustration of the various parts involved, with ...
---
---  'R' represting the robot (would actually be different characters for
---  each possible orientation), 'S' the station, '#' blocks and '?' squares
---  yet unexplored:
---
---            field                               view
---          ##########                          ??????????
---          #  #     #  <- control link         ?  #  ? ??
---          #    R<==========================>S ??   R  ??
---          #  #     #   situation link ->      ?  ?    ??
---          ##########                          ??????????
---
---  The Robot and Station active entities are both called Actors in this
---  world, and Links are attached to local Ports owned by these actors.
---
-
------------------------------------
--- General software organization --
------------------------------------
-
---  The set of units and essential abstractions involved is sketched below -
---  units underlined, associated abstractions parenthesized).
---
---  This set is a pretty straightforward mapping of the general concepts
---  involved, as described in the Functional Overview.  Only "Stacks" is a
---  pure support unit, offering the well known datastructure abstraction.
---
---  See the package specs for extra descriptive details.
---
---                              =======
---                              Explore
---                              =======
---
---   Geomaps (field Map, Situations + Links instance)
---   =======
---
---   Actors (Actor)         Robots (Robot)        Stations (Station)
---   ======                 ======                ========
---
---   Links (IOports, IOlinks)           Stacks (Stack)
---   =====                              ======
---
---   Controls (Robot_Control + Links instance)
---   ========
-
-with Robots, Stations, Controls, Geomaps;
-use Robots, Stations, Controls, Geomaps;
+-- with Support;
 
 -------------
 -- Explore --
@@ -126,10 +55,12 @@ begin
          SR_Situation_Link);
    end;
 
-   --  Then run the cycles.
+   --  Then run the cycles until one of the actors dies.
 
    while True loop
       Run (S);
+      exit when not Live (S.all);
       Run (R);
+      exit when not Live (R.all);
    end loop;
 end;

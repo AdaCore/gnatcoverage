@@ -2,7 +2,7 @@
 --                             GEOMAPS (BODY)                             --
 ----------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
+with Text_IO; use Text_IO;
 
 package body Geomaps is
 

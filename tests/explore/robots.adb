@@ -2,7 +2,6 @@
 --                             ROBOTS (BODY)                              --
 ----------------------------------------------------------------------------
 
-
 with Robots.Devices;
 
 package body Robots is
@@ -36,7 +35,7 @@ package body Robots is
    procedure Process_Action (R : Robot_Access; Ctrl : Robot_Control) is
    begin
       --  Should check that the command is safe here.  Blind deferral
-      --  to the devices ay lead to crash.
+      --  to the devices may lead to crash.
 
       Devices.Execute (Ctrl, R.H.DH);
    end;
@@ -86,14 +85,14 @@ package body Robots is
         := new Situation_Links.IOport (Capacity => 1,
                                        Owner => Actor_Ref (R));
       R.Robot_Control_Inp
-        := new Robot_Control_Links.IOport (Capacity => 1,
+        := new Robot_Control_Links.IOport (Capacity => 2,
                                            Owner => Actor_Ref (R));
 
       --  Emitters of Probe commands expect being able to fetch the
-      --  Situation right after the request is sent, so we must make that
-      --  at least these ones are processed immediately.
+      --  Situation right after the request is sent, so we make sure
+      --  that at least these ones are processed immediately.
 
-      On_Push (R.Robot_Control_Inp, Process_One_Control'Access);
+      --  On_Push (R.Robot_Control_Inp, Process_One_Control'Access);
 
       R.H := new Robot_Hardware;
       Devices.Init (R.H.DH);

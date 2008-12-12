@@ -5,8 +5,7 @@
 --  This package offers a simple "bounded stack" data structure abstraction
 
 generic
-   type Data_Type is private;
-   --  The elements data type
+   type Data_Type is private;  --  The elements data type
 package Stacks is
    type Stack (Capacity : Natural) is private;
 
@@ -28,8 +27,6 @@ private
    type Data_Array is array (Natural range <>) of Data_Type;
    type Stack (Capacity : Natural) is record
       Items : Data_Array (1 .. Capacity);
-      --  The data store.
-
       Top_In : Natural := 0;
       --  The index in Items where the top element is stored.
       --  Increase on successful push, decrease on successful pop.

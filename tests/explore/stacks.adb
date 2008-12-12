@@ -1,12 +1,12 @@
-----------------------------------------------------------------------------
---                               STACKS (BODY)                            --
-----------------------------------------------------------------------------
+---------------------
+--  STACKS (BODY)  --
+---------------------
 
 package body Stacks is
 
-   function Size (S : Stack) return Natural;
-   pragma Inline (Size);
-   --  Number of elements currently available in S
+   -------------------------
+   -- Classical accessors --
+   -------------------------
 
    function Size (S : Stack) return Natural is
    begin

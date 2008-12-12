@@ -31,7 +31,7 @@
 --  At this stage, a port may connect to at most one link and links support
 --  only one to one connections.
 
-with Actors, Stacks;
+with Actors, Queues;
 use  Actors;
 
 generic
@@ -78,16 +78,16 @@ package Links is
 private
 
    --  While they are intended to represent almost concrete concepts, ports
-   --  as we expose them much resemble stacks, except for the support of a
+   --  as we expose them much resemble queues, except for the support of a
    --  callback on push.
 
-   package Data_Stack_P is new Stacks (Data_Type => Data_Type);
-   use Data_Stack_P;
+   package Data_Queue_P is new Queues (Data_Type => Data_Type);
+   use Data_Queue_P;
 
-   subtype Data_Stack is Data_Stack_P.Stack;
+   subtype Data_Queue is Data_Queue_P.Queue;
 
    type IOport (Capacity : Natural; Owner : Actor_Ref) is record
-      Data : Data_Stack (Capacity => Capacity);
+      Data : Data_Queue (Capacity => Capacity);
       Push_Callback : Callback_Access;
 
       Link : IOlink_Access;
