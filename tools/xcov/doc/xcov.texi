@@ -1,5 +1,5 @@
 \input texinfo  @c -*-texinfo-*-
-@input texiplus
+
 @c %**start of header
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 @c                                                                            o
@@ -8,30 +8,297 @@
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
 @setfilename xcov.info
-@settitle Xcov Users Guide
+@settitle Xcov Fundamentals
 @c %**end of header
 
+@set explore_dir ../examples/explore
+
+@macro term{t}
+@slanted{\t\}
+@end macro
+ 
 @titlepage
-@title Xcov Users Guide
+@title Xcov Fundamentals
+
+@noindent
+This document describes the fundamentals of Xcov, a non intrusive
+structural coverage analysis framework.
+
+We will first introduce a simple application example to be used as a
+support to illustrate various points in the subsequent chapters.
 @end titlepage
 
-@ifinfo
-@c    Node,    Next,   Pred,  Ancestor
-@node Top,    ,       ,  (dir)
+@contents
 
-@menu 
-* About::     About this Guide
-* Explore::   Introducing Explore - the base example
-* Xcov::      Explore Coverage Analysis with Xcov
-@end menu
+@chapter The ``Explore'' Guide Example
+@noindent
+The Explore example is a toy Ada application we use throughout the Xcov
+documentation to introduce and illustrate a number of concepts.
+@c
+Below is a short functional and organisational description, verbatim from
+the sources:
 
-@node About, Explore, Top, Top
+@smallexample
+@verbatiminclude @value{explore_dir}/overview.ads
+@end smallexample
 
-@node Explore, Xcov, About, Top
-@node Xcov, , Explore, Top
-@end ifinfo
+@chapter Structural Coverage Analysis Basics
 
-This is the Xcov Users Guide
+@section General Definition & Rationale
+@noindent
+To a first approximation, structural coverage analysis may be viewed as a
+software development activity aimed at analysing which pieces of an
+application source code are exercised by executions of the application
+software.
+@c
+There may be several reasons why such an activity is performed and extra
+details about what exactly is to be evaluated.
+
+Our focus here is the use of coverage analysis in software certification
+processes, such as the DO178B standard enforced in the civilian avionics
+domain.
+@c
+In this context, the application code and the test sequences are both
+derived from a common set of requirements, independently, and structural
+coverage analysis is one of the means of confronting the pieces.
+@c
+Essentially, it allows assessing the testing campain quality and helps the
+identification of various forms of pointless code or of requirements
+imprecision/incompleteness,
+
+DO178B distinguishes four certification levels, from A, the strictest, to
+D, and defines specific structural coverage objectives for each, to be
+fulfilled in addition to those of the lower levels.
+@c
+Coverage analysis is the process through which one determines if the
+coverage objectives are met.
+
+@section Primary Process Model
+@noindent
+In this section we introduce the base elements of a coverage analysis
+process together with @term{terms} we will be reusing throughout this
+document.
+
+The base process comprises three principal steps:
+@enumerate
+@item
+A binary @term{executable program} is produced from a set of
+@term{sources}, typically by a development toolchain with a compiler, a
+linker etc.
+
+@item
+The program is run within an @term{execution environment}, and this
+execution produces @term{raw coverage data} about paths it exercises.
+@c
+The form of this raw information depends on the coverage analysis toolset
+technology.
+@c
+This is most often binary data.
+
+@item
+The raw coverage data is interpreted or @term{mapped} into some user
+readable representation.
+@end enumerate
+
+The common GCC/GCOV process is exactly along those lines, for instance: the
+program is compiled and linked by GCC with special command-line options,
+execution produces a binary data file and the GCOV tool can then be used to
+generate annotated sources from the original files, the executable and the
+execution data.
+@c
+Below is an example to illustrate for a simple test of the Explore queues
+abstraction, compiled with the GNAT toolchain for Ada:
+
+@smallexample
+# Build with gcov related options - produces executable program
+
+    $ gnatmake test_queues.adb -fprofile-arcs -ftest-coverage
+    [...]
+
+# Run program - produces raw coverage data files (queues.gcda, ...)
+
+    $ ./test_queues
+
+# Map to user representation - produces annotated sources (queues.adb.gcov, ...)
+ 
+    $ gcov test_queues
+@end smallexample
+  
+The annotations are in the first column for each source line: @code{-}
+indicates there is no associated object code, numbers indicates the number
+of times code for this line was executed, and @code{#} signs indicates
+object code never executed:
+
+@smallexample
+        [...]
+        1:    9:procedure Test_Queues is
+        -:   10:   package Integer_Queues is new Queues (Data_Type => Integer);
+        -:   11:   use Integer_Queues;
+        -:   12:
+        -:   13:   X : Integer;
+        1:   14:   Q : Integer_Queues.Queue (Capacity => 1);
+        -:   15:begin
+        1:   16:   Push (12, Q);
+        1:   17:   Pop (X, Q);
+        1:   18:   if X /= 12 then
+    #####:   19:      raise Program_Error;
+        -:   20:   end if;
+        -:   21:end;
+@end smallexample
+
+In this excerpt, the never executed code is expected to show up this way,
+as it is intended to trigger only when the test didn't behave as it should.
+@c
+This points at an important distinction to make: the @code{Test_Queues}
+procedure in this example is @term{testing code} written to exercise pieces
+of the @code{Queues} abstraction, and only the latter is going to be part
+of the application.
+@c
+From this perspective, we're only really interested in the coverage results
+for such @term{applicative} code, much less in the results for the testing
+bits.
+
+The production of raw coverage data at run time always implies some sort of
+@term{instrumentation} to have the execution produce information it
+normally wouldn't produce.
+@c
+This may be achieved in several possible manners:
+@itemize
+@item
+Explicit statements maintaining the coverage state are added to the program
+sources, this is what many commercial products do.
+
+@item
+The development toolchain inserts extra machine state and instructions in
+the program executable code, this is the GCC/GCOV approach.
+
+@item
+The execution environment is setup to produce a trace of the program paths
+taken at the machine instruction level, leaving the program code untouched.
+
+@end itemize
+
+There are variants of each technique in the field, each with it's own set
+of advantages and drawbacks compared to others.
+
+@section Typical Process Extensions
+@noindent
+While the base process works fine for simple cases, refinements are useful
+in many situations.
+@c
+The following sections introduce a number of possible process extensions.
+
+@subsection Coverage Data Capitalization
+@noindent
+We denote by @term{capitalization} all the elements related to the fact
+that proper coverage of a common piece of applicative code might require
+several test executions, each providing its own partial coverage outcome.
+@c
+The different tests could for instance be several executions of the same
+program with behavior differences caused by external input variations.
+@c
+They could also be executions of different programs feeding the same
+applicative code with different parameters internally.
+@c
+The common applicative code coverage is the combination of the partial
+coverage results, which first need to be stored (capitalized) to be unified
+later on.
+
+Consider for instance a common data structure implementation such as
+the bounded @code{Queues} Ada package in the Explore example.
+@c
+To honor a common requirement, it contains simple error handling code so
+that an "Ada exception X is raised on attempts to extract an item out of an
+empty queue", and we expect this code not to be exercised in regular
+executions.
+@c
+It remains applicative code, still, and even the weakest DO178B
+certification level requires tests to cover it, to make sure that at least
+minimal checks on its behavior with respect to requirements were performed.
+@c
+Something has to be done outside nominal executions in this case.
+@c
+One possibility is to construct a separate program dedicated to just
+testing this abstraction, which would force an artificial queue overflow.
+@c
+Of course, this is a simple introductory example and the dedicated test
+program could well cover the whole package on its own in this case.
+@c
+Such one-shot full coverage is sometimes not possible in more complex
+situations, and the example shows it is already partially impossible with
+only regular Explore executions.
+
+Besides, even if full coverage a some applicative components could
+theortically be achieved from a single execution, it is often just more
+convenient or sensible to be able to reach the goal in an incremental
+fashion.
+@c
+In the Explore case, for instance, a strategy like "purpose is to maximize
+the entire application coverage by running a minimal number of sessions"
+would be a pain and actually go against the requirements based testing
+philosophy.
+@c
+One instead typically runs different sessions to verify different specific
+application requirements, each session produces it's own coverage data,
+capitalized, and then a capitalization-aware coverage analysis toolset
+comes gathers these partial coverage results into a single view.
+
+@subsection Coverage Data Consolidation
+@noindent
+Coverage data @term{consolidation} relates to the fact that coverage of all
+the pieces of a final application is often not performed with all the
+pieces integrated together.
+@c
+In complex systems, this integration is a delicate process, not possible
+before late stages of the project, and it is often useful or simply
+unavoidable to perform coverage analysis on pieces independently from
+others.
+@c
+Consolidation, in this context, denotes the process of gathering the
+coverage information for the various pieces into a unified view, or of
+checking that there is relevant coverage data for all the bits of a
+final system of interest.
+@c
+Technically, consolidation can be viewed as a set of means to use a
+generalized capitalization capability for all the pieces of a system.
+
+The need for coverage data consolidation often correlates with testing
+strategies: whether coverage data is obtained from unit testing of
+individual components, from integration testing of the system as a whole,
+from some intermediate organisation, or possibly from a mix of all these.
+@c
+Any of these could apply to the Explore example case.
+
+@subsection Process Integration
+@noindent
+As hinted by the previous sections, coverage analysis is a potentially
+complex activity: indeed, depending on the context, it involves potentially
+complex metrics, on potentially complex software involved in potentially
+complex project development cycles.
+
+@term{Process integration} refers to the organizaton of the analysis
+toolset that will provide consistent and easy access to all the features of
+interest for a given project.
+@c
+The toolset needs to be both powerful enough to provide the desired
+functionalities and flexible enough to accomodate the various possible
+project organizations in the field.
+
+@chapter Xcov Fundamentals
+
+@section Key characteristics
+
+The Xcov framework leverages now open possibilities of instrumenting
+execution environments to produce traces about the code they execute.
+
+Map up to source
+
+@section Challenges
+
+@subsection Grounds
+
+@section Toolset Qualification
+
 
 @bye
 
