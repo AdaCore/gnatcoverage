@@ -11,7 +11,7 @@
 @settitle Xcov Fundamentals
 @c %**end of header
 
-@set explore_dir ../examples/explore
+@set explore_dir examples/explore
 
 @macro term{t}
 @slanted{\t\}
