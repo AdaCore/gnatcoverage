@@ -14,7 +14,7 @@
 @set explore_dir examples/explore
 
 @macro term{t}
-@slanted{\t\}
+@i{\t\}
 @end macro
  
 @titlepage
