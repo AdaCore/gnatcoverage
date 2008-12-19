@@ -25,7 +25,7 @@ ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 doc: doc/xcov.pdf doc/xcov.info doc/xcov.html doc/xcov.txt
 
 doc/xcov.pdf: doc/xcov.texi
-	texi2pdf $<
+	texi2pdf -b $<
 	mv xcov.pdf $@
 	$(RM) *.aux *.cp *.fn *.ky *.log *.pg *.toc *.tp *.vr
 
