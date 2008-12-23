@@ -46,7 +46,10 @@
 --
 --  The Robot and Station active entities are both called Actors in this
 --  world, and Links are attached to local Ports owned by these actors.
-
+--
+--  The Robot runs in one of two modes: in Cautious mode, it wont execute
+--  unsafe commands like stepping forward with a rock block ahead.  In Dumb
+--  mode it executes all the commands it receives.
 
 --------------------
 -- Sample session --
@@ -70,7 +73,8 @@
 --
 --   Robot is arbitrarily placed in the upperwest corner, heading east]
 --
---  'N'op, 'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? P
+--  'C'autious mode, 'D'umb mode
+--  'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? P
 --
 --       [Station asks for user input, user types "P" to probe ahead.
 --        Robot answers with it's current situation: position (x=2, y=2),
@@ -85,12 +89,14 @@
 --
 --  [Probe command processing done, Next cycle ...]
 --
---  'N'op, 'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? L
+--  'C'autious mode, 'D'umb mode
+--  'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? L
 --
 --       [User asks "rotate left (counterclockwise)", station sends out
 --        command followed by a Probe request.
 --        Robot processes both requests and answers: position unchanged,
---        now heading north, square ahead is a block]
+--        now heading north, square ahead is a block.
+--        Station displays its current knowledge of the field]:
 --
 --  ?#???
 --  ?^ ??
@@ -99,7 +105,8 @@
 --  ?????
 --
 --  [etc until user requests 'Q'uit or crashes the robot by asking
---   it to step forward into a block]
+--   it to step forward into a block, in Dumb mode]
+
 
 -----------------------------------
 -- General software organization --
@@ -118,7 +125,7 @@
 --                              Explore
 --                              =======
 --
---   Geomaps (field Map, Situations + Links instance)
+--   Geomaps (field Map, Situations + Situation_Links)
 --   =======
 --
 --   Actors (Actor)         Robots (Robot)        Stations (Station)
@@ -127,7 +134,7 @@
 --   Links (IOports, IOlinks)      Queues (Queue)
 --   =====                         ======
 --
---   Controls (Robot_Control + Links instance)
+--   Controls (Robot_Control + Robot_Control_Links)
 --   ========
 
 package Overview is end;

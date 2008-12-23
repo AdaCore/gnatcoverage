@@ -8,6 +8,9 @@
 --  received through an input Control port. Placed on a field, the Robot is
 --  able to evaluate its current Situation (location, orientation, field
 --  square ahead), and send this through an output Situation port.
+--
+--  A Robot operates in one of several modes, as described in the Controls
+--  abstraction.
 
 with Actors, Geomaps, Controls;
 use Actors, Geomaps, Controls;
@@ -28,6 +31,8 @@ package Robots is
    procedure Run (R : Robot_Access);
    --  Run robot R - process pending messages on input ports
 
+   type Robot_Opmode is (Cautious, Dumb);
+
 private
 
    type Robot_Hardware;
@@ -38,6 +43,7 @@ private
       Robot_Situation_Outp : Situation_Links.IOport_Access;
 
       H : Robot_Hardware_Access;
+      Mode : Robot_Opmode := Cautious;
    end record;
 end;
 

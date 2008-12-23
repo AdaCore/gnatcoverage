@@ -52,17 +52,28 @@ package body Stations is
          end loop;
       end;
 
-      --  Robot_Control / User input associations
+      C : Character;  -- User input - next op to perform
 
-      Robot_Control_Map : constant array (Robot_Control) of Character
-        := (Nop          => 'N',
-            Probe        => 'P',
-            Step_Forward => 'S',
-            Rotate_Left  => 'L',
-            Rotate_Right => 'R');
-
-      C : Character;                -- User input - next op to perform
-      Ctrl : Robot_Control := Nop;  -- Associated Robot_Control
+      function Control_For
+        (C : Character) return Robot_Control is
+      begin
+         case C is
+            when 'P' =>
+              return (Code => Probe, Value => 0);
+            when 'S' =>
+               return (Code => Step_Forward, Value => 0);
+            when 'L' =>
+               return (Code => Rotate_Left, Value => 0);
+            when 'R' =>
+               return (Code => Rotate_Right, Value => 0);
+            when 'C' =>
+               return (Code => Opmode, Value => Robot_Opmode'Pos (Cautious));
+            when 'D' =>
+               return (Code => Opmode, Value => Robot_Opmode'Pos (Dumb));
+            when others =>
+               return (Code => Nop, Value => 0);
+         end case;
+      end;
    begin
 
       --  In case something came in since last time ...
@@ -73,34 +84,34 @@ package body Stations is
       --  internal control code.  The internal code will remain a Nop if the
       --  input isn't recognized.
 
-      Put ("'N'op, 'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
+      Put_Line ("'C'autious mode, 'D'umb mode");
+      Put ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
       Flush;
       Get (C);
 
       if C = 'Q' then
          Kill (Sta.All);
          return;
+      else
+         declare
+            Ctrl : Robot_Control := Control_For (C);
+         begin
+
+            --  Push the command out to the robot, so that it executes, and
+            --  follow with a probe request so that a situation update gets
+            --  sent if this is not just what we asked.
+
+            Push (Ctrl, Robot_Control_Outport (Sta.all));
+            if Ctrl.Code /= Probe then
+               Push ((Code => Probe, Value => 0),
+                     Robot_Control_Outport (Sta.all));
+            end if;
+
+            --  In case the Robot reacts instantly ...
+
+            Process_Pending_Inputs (Sta);
+         end;
       end if;
-
-      for Candidate in Robot_Control_Map'Range loop
-         if C = Robot_Control_Map (Candidate) then
-            Ctrl := Candidate;
-         end if;
-      end loop;
-
-      --  Push the command out to the robot, so that it executes, and follow
-      --  with a probe request so that a situation update gets sent if this
-      --  is not just what we asked.
-
-      Push (Ctrl, Robot_Control_Outport (Sta.all));
-      if Ctrl /= Probe then
-         Push (Probe, Robot_Control_Outport (Sta.all));
-      end if;
-
-      --  In case the Robot reacts instantly ...
-
-      Process_Pending_Inputs (Sta);
-
    end;
 
    ----------
@@ -127,7 +138,5 @@ package body Stations is
                                        Owner => Actor_Ref (Sta));
       All_Unknown (Sta.Map);
    end;
-
-
 
 end;

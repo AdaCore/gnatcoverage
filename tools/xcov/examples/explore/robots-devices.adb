@@ -56,7 +56,7 @@ package body Robots.Devices is
       --  If the engine is asked to push the robot into a rock block,
       --  the robot dies.
 
-      if Ctrl = Step_Forward and then H.Situ.Sqa = Block then
+      if Ctrl.Code = Step_Forward and then H.Situ.Sqa = Block then
          Dump (H.Map, H.Situ);
          raise Program_Error;
       end if;
@@ -64,7 +64,7 @@ package body Robots.Devices is
       --  Otherwise, just pretend a real engine acted as requested
       --  by updating the position/direction accordingly ...
 
-      case Ctrl is
+      case Ctrl.Code is
          when Nop => null;
 
          when Rotate_Left =>

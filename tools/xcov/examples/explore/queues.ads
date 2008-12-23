@@ -17,7 +17,7 @@ package Queues is
 
    procedure Push (Item : Data_Type; Q : in out Queue);
    --  Push Item at the back of queue Q if it is not Full,
-   --  raise Program_Error and leave S unchanged otherwise.
+   --  raise Program_Error and leave Q unchanged otherwise.
 
    procedure Pop (Item : out Data_Type; Q : in out Queue);
    --  Pop the top element off the head of Q into Item if Q is not Empty,

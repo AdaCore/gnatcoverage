@@ -32,13 +32,63 @@ package body Robots is
 
    use Robot_Control_Links;
 
-   procedure Process_Action (R : Robot_Access; Ctrl : Robot_Control) is
-   begin
-      --  Should check that the command is safe here.  Blind deferral
-      --  to the devices may lead to crash.
+   function Unsafe (Ctrl : Robot_Control; R : Robot_Access) return Boolean;
+   --  Whether execution of CTRL by Robot R is unsafe
 
-      Devices.Execute (Ctrl, R.H.DH);
+   procedure Process_Action (Ctrl : Robot_Control; R : Robot_Access);
+   --  Have R process command CTRL, requiring device action
+
+   procedure Process_Probe (R : Robot_Access);
+   --  Have robot R process a Probe request
+
+   procedure Process_Next_Control (Port : Robot_Control_Links.IOport_Access);
+   --  Process the next control command available from PORT
+
+   ------------
+   -- Unsafe --
+   ------------
+
+   function Unsafe
+     (Ctrl : Robot_Control; R : Robot_Access) return Boolean
+   is
+      Situ : Situation;
+   begin
+      Devices.Probe (Situ, R.H.DH);
+
+      --  Given the current situation in SITU, evaluate evaluate
+      --  if the CTRL command is unsafe.  Start by assuming it is
+      --  not and adjust.
+
+      declare
+         Is_Unsafe : Boolean := False;
+      begin
+         --  Stepping forward with a rock block on the square ahead
+         --  would crash the robot on the block
+
+         if Ctrl.Code = Step_Forward and then Situ.Sqa = Block then
+            Is_Unsafe := True;
+         end if;
+
+         return Is_Unsafe;
+      end;
    end;
+
+   --------------------
+   -- Process_Action --
+   --------------------
+
+   procedure Process_Action (Ctrl : Robot_Control; R : Robot_Access) is
+   begin
+      if R.Mode = Cautious and then Unsafe (Ctrl, R) then
+         return;
+      else
+         Devices.Execute (Ctrl, R.H.DH);
+      end if;
+   end;
+
+   -------------------
+   -- Process_Probe --
+   -------------------
 
    procedure Process_Probe (R : Robot_Access) is
       Situ : Situation;
@@ -47,7 +97,11 @@ package body Robots is
       Situation_Links.Push (Situ, Robot_Situation_Outport (R.all));
    end;
 
-   procedure Process_One_Control
+   --------------------------
+   -- Process_Next_Control --
+   --------------------------
+
+   procedure Process_Next_Control
      (Port : Robot_Control_Links.IOport_Access)
    is
       Ctrl : Robot_Control;
@@ -55,9 +109,13 @@ package body Robots is
    begin
       Pop (Ctrl, Port);
 
-      case Ctrl is
-         when Nop | Step_Forward | Rotate_Left | Rotate_Right =>
-            Process_Action (Robot, Ctrl);
+      case Ctrl.Code is
+         when Nop =>
+            null;
+         when Opmode =>
+            Robot.Mode := Robot_Opmode'Val (Ctrl.Value);
+         when Step_Forward | Rotate_Left | Rotate_Right =>
+            Process_Action (Ctrl, Robot);
          when Probe =>
             Process_Probe (Robot);
       end case;
@@ -71,7 +129,7 @@ package body Robots is
       Control_Port : IOport_Access := Robot_Control_Inport (R.all);
    begin
       while not Empty (Control_Port) loop
-         Process_One_Control (Control_Port);
+         Process_Next_Control (Control_Port);
       end loop;
    end;
 
