@@ -35,7 +35,7 @@ to illustrate various points in the subsequent chapters.
 
 @c ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
-@node explore
+@c @node explore
 @chapter The ``Explore'' Guide Example
 @noindent
 The Explore example is a toy Ada application we use throughout the Xcov
@@ -48,7 +48,7 @@ the sources:
 @verbatiminclude @value{explore_dir}/overview.ads
 @end smallexample
 
-@node coverage-basics
+@c @node coverage-basics
 @chapter Structural Coverage Analysis Basics
 
 @section General Definition & Rationale
@@ -172,11 +172,11 @@ readable representation.
 @end enumerate
 
 As an illustrative example, consider the common GCC/GCOV process, exactly
-along those lines: the program is compiled and linked by GCC @footnote{GCC:
-The GNU Compiler Collection - http://gcc.gnu.org} with special command-line
-options, execution produces a binary data file and the GCOV tool can then
-be used to generate annotated sources from the original files, the
-executable and the execution data.
+along those lines: the program is compiled and linked by GCC 
+@c @footnote{GCC:The GNU Compiler Collection - http://gcc.gnu.org}
+with special command-line options, execution produces a binary data file
+and the GCOV tool can then be used to generate annotated sources from
+the original files, the executable and the execution data.
 @c
 Below is an example to illustrate for a simple test of the Explore queues
 abstraction, compiled with the GNAT toolchain for Ada:
