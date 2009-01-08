@@ -21,6 +21,16 @@ with Ada.Directories;
 with Traces_Disa;
 
 package body Traces_Sources is
+   procedure Append (Chain : in out Addresses_Line_Chain;
+                     Line : Addresses_Info_Acc);
+   function Get_First (Chain : Addresses_Line_Chain)
+                      return Addresses_Info_Acc;
+   procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
+                                   Base : Traces_Base;
+                                   Sym : Symbolizer'Class;
+                                   Filename : String;
+                                   File : Source_Lines);
+
    function Equal (L, R : Source_Lines) return Boolean is
       pragma Unreferenced (L, R);
    begin
@@ -69,6 +79,8 @@ package body Traces_Sources is
                              Line : Natural;
                              State : Traces.Trace_State)
    is
+      procedure Process (Key : String_Acc; Element : in out Source_Lines);
+
       procedure Process (Key : String_Acc; Element : in out Source_Lines)
       is
          pragma Unreferenced (Key);
@@ -98,6 +110,8 @@ package body Traces_Sources is
                        Line : Natural;
                        Info : Addresses_Info_Acc)
    is
+      procedure Process (Key : String_Acc; Element : in out Source_Lines);
+
       procedure Process (Key : String_Acc; Element : in out Source_Lines)
       is
          pragma Unreferenced (Key);
@@ -218,16 +232,22 @@ package body Traces_Sources is
       procedure Disassemble_Cb (Addr : Pc_Type;
                                 State : Trace_State;
                                 Insn : Binary_Content;
-                                Sym : Symbolizer'Class)
-      is
+                                Sym : Symbolizer'Class);
+      procedure Try_Open (F : in out File_Type;
+                          Name : String;
+                          Success : out Boolean);
+
+      procedure Disassemble_Cb (Addr : Pc_Type;
+                                State : Trace_State;
+                                Insn : Binary_Content;
+                                Sym : Symbolizer'Class) is
       begin
          Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
       end Disassemble_Cb;
 
       procedure Try_Open (F : in out File_Type;
                           Name : String;
-                          Success : out Boolean)
-      is
+                          Success : out Boolean) is
       begin
          Open (F, In_File, Name);
          Success := True;
@@ -363,6 +383,8 @@ package body Traces_Sources is
       use Ada.Text_IO;
       use Ada.Directories;
 
+      procedure Process (Key : String_Acc; Element : Source_Lines);
+
       procedure Process (Key : String_Acc; Element : Source_Lines) is
       begin
          Disp_File_Line_State (Pp, Base, Sym, Key.all, Element);
@@ -385,6 +407,8 @@ package body Traces_Sources is
    is
       use Ada.Text_IO;
       use Ada.Directories;
+
+      procedure Process (Key : String_Acc; File : Source_Lines);
 
       procedure Process (Key : String_Acc; File : Source_Lines)
       is

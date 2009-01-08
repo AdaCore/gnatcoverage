@@ -27,6 +27,8 @@ with Traces; use Traces;
 with System;
 
 package body Traces_Files is
+   function Is_Big_Endian return Boolean;
+
    --  Test if the host is big endian.
    function Is_Big_Endian return Boolean
    is
@@ -58,6 +60,10 @@ package body Traces_Files is
 
    E32_Size : constant Natural := Trace_Entry32'Size / System.Storage_Unit;
    E64_Size : constant Natural := Trace_Entry64'Size / System.Storage_Unit;
+
+   procedure Read_Trace_File_Header (Desc : in out Trace_File_Descriptor);
+   procedure Read_Trace_File (Filename : String;
+                              Cb : access procedure (E : Trace_Entry));
 
    procedure Read_Trace_File_Header (Desc : in out Trace_File_Descriptor)
    is
@@ -103,7 +109,6 @@ package body Traces_Files is
          raise Bad_File_Format
            with "target machine doesn't match previous one";
       end if;
-
    end Read_Trace_File_Header;
 
    procedure Read_Trace_File (Filename : String;
@@ -185,6 +190,8 @@ package body Traces_Files is
 
    procedure Read_Trace_File (Base : in out Traces_Base; Filename : String)
    is
+      procedure Cb (E : Trace_Entry);
+
       procedure Cb (E : Trace_Entry) is
       begin
          Add_Entry (Base,
@@ -198,6 +205,8 @@ package body Traces_Files is
 
    procedure Dump_Trace_File (Filename : String)
    is
+      procedure Cb (E : Trace_Entry);
+
       procedure Cb (E : Trace_Entry) is
       begin
          Put (Hex_Image (E.First));

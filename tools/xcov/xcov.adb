@@ -31,6 +31,10 @@ with Traces_Disa;
 with Version;
 
 procedure Xcov is
+   procedure Usage;
+   procedure Error (Msg : String);
+   function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
+
    procedure Usage
    is
       procedure P (S : String) renames Put_Line;
@@ -240,8 +244,6 @@ begin
             end;
             Has_Exec := True;
             Arg_Index := Arg_Index + 1;
---         elsif Arg = "--objdump-coverage" then
---            Annotate_Objdump;
          elsif Arg = "--dump-traces" then
             Dump_Traces (Base);
          elsif Arg = "--dump-traces-state" then

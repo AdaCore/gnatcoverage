@@ -88,6 +88,17 @@ package body Traces_Dbase is
       end if;
    end Init;
 
+   --  Get the cursor for the current trace.
+   function Get_Trace_Cur (Base : Traces_Base;
+                           Iterator : Entry_Iterator) return Cursor is
+   begin
+      if Iterator.Cur = No_Element then
+         return Last (Base);
+      else
+         return Previous (Iterator.Cur);
+      end if;
+   end Get_Trace_Cur;
+
    procedure Get_Next_Trace (Trace : out Trace_Entry;
                              Iterator : in out Entry_Iterator) is
    begin
@@ -105,11 +116,7 @@ package body Traces_Dbase is
       Cur : Cursor;
       Trace : Trace_Entry;
    begin
-      if Iterator.Cur = No_Element then
-         Cur := Last (Base);
-      else
-         Cur := Previous (Iterator.Cur);
-      end if;
+      Cur := Get_Trace_Cur (Base, Iterator);
       Trace := Element (Cur);
       Trace.State := State;
       Replace_Element (Base, Cur, Trace);
@@ -118,23 +125,22 @@ package body Traces_Dbase is
    procedure Split_Trace (Base : in out Traces_Base;
                           Iterator : in out Entry_Iterator;
                           Pc : Pc_Type;
-                          Cur_State, Next_State : Trace_State)
+                          Prev_State : Trace_State)
    is
       Cur : Cursor;
-      Trace, Next_Trace : Trace_Entry;
+      Trace, Prev_Trace : Trace_Entry;
    begin
-      if Iterator.Cur = No_Element then
-         Cur := Last (Base);
-      else
-         Cur := Previous (Iterator.Cur);
-      end if;
+      Cur := Get_Trace_Cur (Base, Iterator);
       Trace := Element (Cur);
-      Next_Trace := Trace;
-      Trace.State := Cur_State;
-      Trace.Last := Pc;
+      Prev_Trace := Trace;
+
+      --  First modify the element so that Prev_Trace can be inserted
+      --  without violating the no-duplicate elements rule.
+      Trace.First := Pc + 1;
       Replace_Element (Base, Cur, Trace);
-      Next_Trace.First := Pc + 1;
-      Next_Trace.State := Next_State;
-      Insert (Base, Next_Trace);
+
+      Prev_Trace.State := Prev_State;
+      Prev_Trace.Last := Pc;
+      Insert (Base, Prev_Trace);
    end Split_Trace;
 end Traces_Dbase;

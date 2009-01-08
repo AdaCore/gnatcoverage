@@ -48,7 +48,7 @@ package Traces_Dbase is
    procedure Split_Trace (Base : in out Traces_Base;
                           Iterator : in out Entry_Iterator;
                           Pc : Pc_Type;
-                          Cur_State, Next_State : Trace_State);
+                          Prev_State : Trace_State);
 
 private
    --  Operations for ordered_sets.

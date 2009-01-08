@@ -28,6 +28,8 @@ package body Traces_Sources.Html is
 
    type Strings_Arr is array (Natural range <>) of String_Cst_Acc;
 
+   procedure Put (F : File_Type; Strings : Strings_Arr);
+
    procedure Put (F : File_Type; Strings : Strings_Arr) is
    begin
       for I in Strings'Range loop

@@ -30,8 +30,59 @@ with Elf_Files; use Elf_Files;
 with Traces_Names;
 with Traces_Disa;
 with Ppc_Descs;
+with Sparc_Descs;
 
 package body Traces_Elf is
+   procedure Disp_Addresses (Set : Addresses_Containers.Set);
+   procedure Read_Word8 (Exec : Exe_File_Type;
+                         Base : Address;
+                         Off : in out Storage_Offset;
+                         Res : out Unsigned_64);
+   procedure Read_Word4 (Exec : Exe_File_Type;
+                         Base : Address;
+                         Off : in out Storage_Offset;
+                         Res : out Unsigned_32);
+   procedure Read_Word4 (Exec : Exe_File_Type;
+                         Base : Address;
+                         Off : in out Storage_Offset;
+                         Res : out Integer_32);
+   procedure Read_Word2 (Exec : Exe_File_Type;
+                         Base : Address;
+                         Off : in out Storage_Offset;
+                         Res : out Unsigned_16);
+   procedure Write_Word4 (Exec : Exe_File_Type;
+                          Base : Address;
+                          Off : in out Storage_Offset;
+                          Val : Unsigned_32);
+   procedure Write_Word4 (Exec : Exe_File_Type;
+                          Base : Address;
+                          Off : in out Storage_Offset;
+                          Val : Integer_32);
+   procedure Read_Address (Exec : Exe_File_Type;
+                           Base : Address;
+                           Off : in out Storage_Offset;
+                           Sz : Natural;
+                           Res : out Unsigned_64);
+   procedure Read_Dwarf_Form_U64 (Exec : Exe_File_Type;
+                                  Base : Address;
+                                  Off : in out Storage_Offset;
+                                  Form : Unsigned_32;
+                                  Res : out Unsigned_64);
+   procedure Read_Dwarf_Form_String (Exec : in out Exe_File_Type;
+                                     Base : Address;
+                                     Off : in out Storage_Offset;
+                                     Form : Unsigned_32;
+                                     Res : out Address);
+   procedure Skip_Dwarf_Form (Exec : Exe_File_Type;
+                              Base : Address;
+                              Off : in out Storage_Offset;
+                              Form : Unsigned_32);
+   procedure Apply_Relocations (Exec : Exe_File_Type;
+                                Sec_Rel : Elf_Half;
+                                Data : in out Binary_Content);
+   procedure Read_Debug_Line (Exec : in out Exe_File_Type;
+                              CU_Offset : Unsigned_32);
+
    Empty_String_Acc : constant String_Acc := new String'("");
 
    function "<" (L, R : Addresses_Info_Acc) return Boolean is
@@ -778,6 +829,8 @@ package body Traces_Elf is
       Filenames : Filenames_Vectors.Vector;
       Dir : String_Acc;
 
+      procedure New_Raw;
+
       procedure New_Raw is
       begin
          --  Note: Last and Parent are set by Build_Debug_Lines.
@@ -1430,6 +1483,7 @@ package body Traces_Elf is
             when EM_PPC =>
                declare
                   use Ppc_Descs;
+                  procedure Update_Or_Split (Next_State : Trace_State);
 
                   Insn : Unsigned_32;
                   Opc, Xo, Bo : Unsigned_32;
@@ -1440,12 +1494,10 @@ package body Traces_Elf is
                   procedure Update_Or_Split (Next_State : Trace_State)
                   is
                   begin
-                     if Trace_Len = 4 then
-                        Update_State (Base, It, Next_State);
-                     else
-                        Split_Trace (Base, It, Trace.Last - 4,
-                                     Covered, Next_State);
+                     if Trace_Len > 4 then
+                        Split_Trace (Base, It, Trace.Last - 4, Covered);
                      end if;
+                     Update_State (Base, It, Next_State);
                   end Update_Or_Split;
                begin
                   --  Instructions length is 4.
@@ -1483,6 +1535,104 @@ package body Traces_Elf is
                         raise Program_Error;
                   end case;
                end;
+
+            when EM_SPARC =>
+               declare
+                  use Sparc_Descs;
+                  Op : constant Unsigned_8 := Trace.Op and 3;
+                  Pc1 : Pc_Type;
+                  Trace_Len : constant Pc_Type :=
+                    Trace.Last - Trace.First + 1;
+                  Insn1, Insn2 : Unsigned_32;
+                  Nstate : Trace_State;
+
+                  type Br_Kind is (Br_None,
+                                   Br_Cond, Br_Cond_A,
+                                   Br_Trap, Br_Call, Br_Jmpl, Br_Rett);
+
+                  Br1, Br2, Br : Br_Kind;
+
+                  function Get_Br (Insn : Unsigned_32) return Br_Kind is
+                  begin
+                     case Shift_Right (Insn, 30) is
+                        when 0 =>
+                           case Shift_Right (Insn, 22) and 7 is
+                              when 2#010# | 2#110# | 2#111# =>
+                                 if (Shift_Right (Insn, 29) and 1) = 0 then
+                                    return Br_Cond;
+                                 else
+                                    return Br_Cond_A;
+                                 end if;
+                              when others =>
+                                 return Br_None;
+                           end case;
+                        when 1 =>
+                           return Br_Call;
+                        when 2 =>
+                           case Shift_Right (Insn, 19) and 2#111_111# is
+                              when 2#11000# =>
+                                 return Br_Jmpl;
+                              when 2#111001# =>
+                                 return Br_Rett;
+                              when 2#111_010# =>
+                                 return Br_Trap;
+                              when others =>
+                                 return Br_None;
+                           end case;
+                        when others =>
+                           return Br_None;
+                     end case;
+                  end Get_Br;
+               begin
+                  --  Instructions length is 4.
+                  if Trace_Len < 4 then
+                     raise Program_Error;
+                  end if;
+                  --  Extract last two instructions.
+                  if Trace_Len > 7 then
+                     Insn1 := Get_Insn (Section (Trace.Last - 7)'Address);
+                     Br1 := Get_Br (Insn1);
+                  else
+                     Br1 := Br_None;
+                  end if;
+                  Insn2 := Get_Insn (Section (Trace.Last - 3)'Address);
+                  Br2 := Get_Br (Insn2);
+
+                  --  Code until the first branch is covered.
+                  if Br1 = Br_None then
+                     Pc1 := Trace.Last - 4;
+                     Br := Br2;
+                  else
+                     Pc1 := Trace.Last - 8;
+                     Br := Br1;
+                  end if;
+                  Split_Trace (Base, It, Pc1, Covered);
+
+                  case Br is
+                     when Br_Cond | Br_Cond_A =>
+                        case Op is
+                           when 0 => Nstate := Covered;
+                           when 1 => Nstate := Branch_Taken;
+                           when 2 => Nstate := Fallthrough_Taken;
+                           when 3 => Nstate := Both_Taken;
+                           when others =>
+                              raise Program_Error;
+                        end case;
+                     when Br_None | Br_Call | Br_Trap | Br_Jmpl | Br_Rett =>
+                        Nstate := Covered;
+                  end case;
+
+                  --  Branch instruction state.
+                  if Br1 = Br_None then
+                     Update_State (Base, It, Nstate);
+                  else
+                     Split_Trace (Base, It, Pc1 + 4, Nstate);
+
+                     --  FIXME: is it sure.
+                     Update_State (Base, It, Covered);
+                  end if;
+               end;
+
             when others =>
                exit;
          end case;
@@ -1629,6 +1779,9 @@ package body Traces_Elf is
                         Line : in out String;
                         Line_Pos : in out Natural)
    is
+      procedure Add (C : Character);
+      procedure Add (Str : String);
+
       Symbol : constant Addresses_Info_Acc := Get_Symbol (Sym, Pc);
 
       procedure Add (C : Character) is

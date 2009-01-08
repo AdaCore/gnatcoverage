@@ -21,8 +21,10 @@ with Ada.Text_IO; use Ada.Text_IO;
 with System; use System;
 with Interfaces; use Interfaces;
 with Elf_Arch; use Elf_Arch;
+with Elf_Common;
 with Hex_Images; use Hex_Images;
-with Disa_Ppc; use Disa_Ppc;
+with Disa_Ppc;
+with Disa_Sparc;
 
 package body Traces_Disa is
    function Get_Label (Sym : Symbolizer'Class; Info : Addresses_Info_Acc)
@@ -64,7 +66,16 @@ package body Traces_Disa is
       Insn_Len : Natural := 0;
    begin
       Addr := Insn (Insn'First)'Address;
-      Disa_Ppc.Disassemble_Insn (Addr, Pc, Line, Line_Pos, Insn_Len, Sym);
+      case Machine is
+         when Elf_Common.EM_PPC =>
+            Disa_Ppc.Disassemble_Insn
+              (Addr, Pc, Line, Line_Pos, Insn_Len, Sym);
+         when Elf_Common.EM_SPARC =>
+            Disa_Sparc.Disassemble_Insn
+              (Addr, Pc, Line, Line_Pos, Insn_Len, Sym);
+         when others =>
+            return "";
+      end case;
       --  Get_Symbol'Access);
       if Insn_Len /= Insn'Length then
          raise Constraint_Error;
@@ -107,7 +118,14 @@ package body Traces_Disa is
       Pc := Insns'First;
       while Pc < Insns'Last loop
          Addr := Insns (Pc)'Address;
-         Insn_Len := Disa_Ppc.Get_Insn_Length (Addr);
+         case Machine is
+            when Elf_Common.EM_PPC =>
+               Insn_Len := 4;
+            when Elf_Common.EM_SPARC =>
+               Insn_Len := 4;
+            when others =>
+               exit;
+         end case;
          Cb.all
            (Pc, State,
             To_Binary_Content_Thin_Acc (Addr)(0 .. Elf_Size (Insn_Len) - 1),

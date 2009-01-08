@@ -37,6 +37,10 @@ package body Traces_Names is
       Traces : Traces_Base_Acc;
    end record;
 
+   function Equal (L, R : Subprogram_Name) return Boolean;
+   function Compute_Routine_State (N : Subprogram_Name)
+                                  return Line_State;
+
    function Equal (L, R : Subprogram_Name) return Boolean
    is
       pragma Unreferenced (L, R);
@@ -283,6 +287,8 @@ package body Traces_Names is
       use Names_Maps;
       Cur : Cursor;
 
+      procedure Update (Key : String_Acc; El : in out Subprogram_Name);
+
       procedure Update (Key : String_Acc; El : in out Subprogram_Name)
       is
          pragma Unreferenced (Key);
@@ -338,6 +344,8 @@ package body Traces_Names is
       use Traces_Disa;
       Cur : Cursor;
       E : Subprogram_Name;
+
+      procedure Update (Key : String_Acc; El : in out Subprogram_Name);
 
       procedure Update (Key : String_Acc; El : in out Subprogram_Name)
       is
