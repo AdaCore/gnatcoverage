@@ -1,0 +1,1100 @@
+# Patch to add support for Couverture and Leon2 on qemu r6194 (Jan 2009)
+#
+# Example of configuration (on Darwin):
+# xxx/configure --disable-aio --disable-cocoa --disable-gfx-check --target-list=sparc-softmmu
+#
+# Example of use:
+# ./qemu-system-sparc -nographic -M at697 -kernel ../main -trace main.trace
+
+Index: Makefile.target
+===================================================================
+--- Makefile.target	(revision 6194)
++++ Makefile.target	(working copy)
+@@ -694,7 +694,7 @@
+ else
+ OBJS+= sun4m.o tcx.o pcnet.o iommu.o m48t59.o slavio_intctl.o
+ OBJS+= slavio_timer.o slavio_serial.o slavio_misc.o fdc.o sparc32_dma.o
+-OBJS+= cs4231.o ptimer.o eccmemctl.o sbi.o sun4c_intctl.o
++OBJS+= cs4231.o ptimer.o eccmemctl.o sbi.o sun4c_intctl.o leon.o
+ endif
+ endif
+ ifeq ($(TARGET_BASE_ARCH), arm)
+Index: target-sparc/helper.c
+===================================================================
+--- target-sparc/helper.c	(revision 6194)
++++ target-sparc/helper.c	(working copy)
+@@ -731,6 +731,11 @@
+ #endif
+ }
+ 
++void cpu_sparc_set_intctl(CPUSPARCState *env, intctl_model intctl)
++{
++    env->intctl = intctl;
++}
++
+ static const sparc_def_t sparc_defs[] = {
+ #ifdef TARGET_SPARC64
+     {
+@@ -1166,7 +1171,7 @@
+         .iu_version = 0xf2000000,
+         .fpu_version = 4 << 17, /* FPU version 4 (Meiko) */
+         .mmu_version = 0xf2000000,
+-        .mmu_bm = 0x00004000,
++        .mmu_bm = 0x00000000,
+         .mmu_ctpr_mask = 0x007ffff0,
+         .mmu_cxr_mask = 0x0000003f,
+         .mmu_sfsr_mask = 0xffffffff,
+Index: target-sparc/machine.c
+===================================================================
+--- target-sparc/machine.c	(revision 6194)
++++ target-sparc/machine.c	(working copy)
+@@ -23,6 +23,7 @@
+     qemu_register_machine(&sbook_machine);
+     qemu_register_machine(&ss1000_machine);
+     qemu_register_machine(&ss2000_machine);
++    qemu_register_machine(&at697_machine);
+ #endif
+ }
+ 
+Index: target-sparc/cpu.h
+===================================================================
+--- target-sparc/cpu.h	(revision 6194)
++++ target-sparc/cpu.h	(working copy)
+@@ -188,6 +188,14 @@
+ #define MIN_NWINDOWS 3
+ #define MAX_NWINDOWS 32
+ 
++typedef enum intctl_model {
++  intctl_none,
++  intctl_sun4c,
++  intctl_sun4m,
++  intctl_sun4u,
++  intctl_leon2
++} intctl_model;
++
+ #if !defined(TARGET_SPARC64)
+ #define NB_MMU_MODES 2
+ #else
+@@ -279,6 +287,7 @@
+     int      psref;    /* enable fpu */
+     target_ulong version;
+     int interrupt_index;
++    intctl_model intctl; /* interrupt controller model */
+     uint32_t nwindows;
+     /* NOTE: we allow 8 more registers to handle wrapping */
+     target_ulong regbase[MAX_NWINDOWS * 16 + 8];
+@@ -340,6 +349,7 @@
+ 
+ /* helper.c */
+ CPUSPARCState *cpu_sparc_init(const char *cpu_model);
++void cpu_sparc_set_intctl(CPUSPARCState *env, intctl_model intctl);
+ void cpu_sparc_set_id(CPUSPARCState *env, unsigned int cpu);
+ void sparc_cpu_list (FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt,
+                                                  ...));
+@@ -500,6 +510,9 @@
+ /* sum4m.c, sun4u.c */
+ void cpu_check_irqs(CPUSPARCState *env);
+ 
++/* leon.c */
++void leon2_intctl_ack(CPUSPARCState *env, int intno);
++
+ #ifdef TARGET_SPARC64
+ /* sun4u.c */
+ void cpu_tick_set_count(void *opaque, uint64_t count);
+Index: target-sparc/op_helper.c
+===================================================================
+--- target-sparc/op_helper.c	(revision 6194)
++++ target-sparc/op_helper.c	(working copy)
+@@ -2995,6 +2995,21 @@
+     env->pc = env->tbr;
+     env->npc = env->pc + 4;
+     env->exception_index = 0;
++
++#if !defined(CONFIG_USER_ONLY)
++    switch (env->intctl) {
++    case intctl_sun4c:
++    case intctl_sun4m:
++      cpu_check_irqs(env);
++      break;
++    case intctl_leon2:
++      if ((intno & ~15) == TT_EXTINT)
++	leon2_intctl_ack (env, intno);
++      break;
++    default:
++      break;
++    }
++#endif
+ }
+ #endif
+ 
+Index: vl.c
+===================================================================
+--- vl.c	(revision 6194)
++++ vl.c	(working copy)
+@@ -4078,6 +4078,7 @@
+     QEMU_OPTION_icount,
+     QEMU_OPTION_uuid,
+     QEMU_OPTION_incoming,
++    QEMU_OPTION_trace,
+ };
+ 
+ typedef struct QEMUOption {
+@@ -4196,6 +4197,7 @@
+     { "tb-size", HAS_ARG, QEMU_OPTION_tb_size },
+     { "icount", HAS_ARG, QEMU_OPTION_icount },
+     { "incoming", HAS_ARG, QEMU_OPTION_incoming },
++    { "trace", HAS_ARG, QEMU_OPTION_trace },
+     { NULL },
+ };
+ 
+@@ -5121,6 +5123,20 @@
+             case QEMU_OPTION_incoming:
+                 incoming = optarg;
+                 break;
++	    case QEMU_OPTION_trace:
++		if (tracefile != NULL) {
++		    fprintf(stderr, "option -trace already specified\n");
++		    exit(1);
++		}
++		if (strstart (optarg, "nobuf,", &optarg))
++		    tracefile_nobuf = 1;
++		tracefile = fopen(optarg, "wb");
++		if (tracefile == NULL) {
++		    fprintf(stderr, "can't open file %s\n", optarg);
++		    exit (1);
++		}
++		trace_init();
++		break;
+             }
+         }
+     }
+Index: cpu-exec.c
+===================================================================
+--- cpu-exec.c	(revision 6194)
++++ cpu-exec.c	(working copy)
+@@ -21,6 +21,8 @@
+ #define CPU_NO_GLOBAL_REGS
+ #include "exec.h"
+ #include "disas.h"
++#include "elf.h"
++#include <stdio.h>
+ #include "tcg.h"
+ #include "kvm.h"
+ 
+@@ -46,8 +48,28 @@
+ #define env cpu_single_env
+ #endif
+ 
++#if defined(TARGET_PPC)
++#define ENV_GET_PC(e) ((e)->nip)
++#define EM_PPC 20
++#elif defined(TARGET_SPARC)
++#define ENV_GET_PC(e) ((e)->pc)
++#define EM_SPARC 2
++#else
++#error "Define ENV_GET_PC for your cpu"
++#endif
++
++#include "qemu-traces.h"
++
++static void trace_before_exec(TranslationBlock *);
++static void trace_after_exec(TranslationBlock *, TranslationBlock *, int);
++static void trace_at_fault(target_ulong);
++
+ int tb_invalidated_flag;
+ 
++/* trace  */
++FILE *tracefile;
++int tracefile_nobuf;
++
+ //#define DEBUG_EXEC
+ //#define DEBUG_SIGNAL
+ 
+@@ -447,12 +469,9 @@
+ 			    type != TT_EXTINT) {
+ 			    env->interrupt_request &= ~CPU_INTERRUPT_HARD;
+                             env->exception_index = env->interrupt_index;
++			    env->interrupt_index = 0;
+                             do_interrupt(env);
+-			    env->interrupt_index = 0;
+-#if !defined(TARGET_SPARC64) && !defined(CONFIG_USER_ONLY)
+-                            cpu_check_irqs(env);
+-#endif
+-                        next_tb = 0;
++			    next_tb = 0;
+ 			}
+ 		    } else if (interrupt_request & CPU_INTERRUPT_TIMER) {
+ 			//do_interrupt(0, 0, 0, 0, 0);
+@@ -583,6 +602,7 @@
+                             lookup_symbol(tb->pc));
+                 }
+ #endif
++
+                 /* see if we can patch the calling TB. When the TB
+                    spans two pages, we cannot safely do a direct
+                    jump. */
+@@ -606,6 +626,9 @@
+                     env->current_tb = NULL;
+ 
+                 while (env->current_tb) {
++		  if (tracefile)
++		    trace_before_exec(tb);
++
+                     tc_ptr = tb->tc_ptr;
+                 /* execute the generated code */
+ #if defined(__sparc__) && !defined(HOST_SOLARIS)
+@@ -615,6 +638,12 @@
+ #endif
+                     next_tb = tcg_qemu_tb_exec(tc_ptr);
+                     env->current_tb = NULL;
++		    
++		    if (tracefile)
++		      trace_after_exec
++			(tb, (TranslationBlock*)(long)(next_tb & ~3),
++			 (int)next_tb & 3);
++
+                     if ((next_tb & 3) == 2) {
+                         /* Instruction counter expired.  */
+                         int insns_left;
+@@ -654,6 +683,8 @@
+ #endif
+             } /* for(;;) */
+         } else {
++	    if (tracefile)
++		trace_at_fault (ENV_GET_PC(env));
+             env_to_regs();
+         }
+     } /* for(;;) */
+@@ -1498,3 +1529,105 @@
+ #endif
+ 
+ #endif /* !defined(CONFIG_SOFTMMU) */
++
++
++#define MAX_TRACE_ENTRIES 1024
++static struct trace_entry trace_entries[MAX_TRACE_ENTRIES];
++static struct trace_entry *trace_current = trace_entries;
++
++void trace_init (void)
++{
++    static struct trace_header hdr = { QEMU_TRACE_MAGIC };
++
++    //memset(&hdr, 0, sizeof(hdr));
++    //memcpy(hdr.magic, QEMU_TRACE_MAGIC, sizeof(hdr.magic));
++    hdr.version = QEMU_TRACE_VERSION;
++    hdr.sizeof_target_pc = sizeof(target_ulong);
++#ifdef WORDS_BIGENDIAN
++    hdr.big_endian = 1;
++#else
++    hdr.big_endian = 0;
++#endif
++    hdr.machine[0] = ELF_MACHINE >> 8;
++    hdr.machine[1] = ELF_MACHINE;
++    fwrite(&hdr, sizeof(hdr), 1, tracefile);
++}
++
++void trace_flush(void)
++{
++    size_t len = (trace_current - trace_entries) * sizeof (trace_entries[0]);
++    fwrite(trace_entries, len, 1, tracefile);
++    trace_current = trace_entries;
++    if (tracefile_nobuf)
++      fflush(tracefile);
++}
++
++static void trace_before_exec(TranslationBlock *tb)
++{
++#ifdef DEBUG_TRACE 
++    printf("From " TARGET_FMT_lx " - "
++	   TARGET_FMT_lx "\n", tb->pc, tb->pc + tb->size - 1);
++#endif
++    trace_current->pc = tb->pc;
++    trace_current->size = tb->size;
++    trace_current->op = TRACE_OP_BLOCK;
++}
++
++static void trace_after_exec(TranslationBlock *tb, TranslationBlock *last_tb, int br)
++{
++#ifdef DEBUG_TRACE
++    printf("... to " TARGET_FMT_lx " (" TARGET_FMT_lx ")",
++	    tb->pc + tb->size - 1, env->nip);
++    if (last_tb)
++	printf(" (last_ip=" TARGET_FMT_lx ", targ=%d)",
++		last_tb ? last_tb->pc + last_tb->size - 1 : 0, br);
++    printf("[tb->tflags=%04x, op=%04x\n", tb->tflags, trace_current->op);
++#endif
++    /* note: if last_tb is not set, we don't know if we exited from tb or not.
++     */
++    if (last_tb) {
++	if (last_tb == tb)
++	    trace_current->op = TRACE_OP_BLOCK + (1 <<  br);
++	else {
++	    trace_current->pc = last_tb->pc + last_tb->size - 1;
++	    trace_current->size = 1;
++	    trace_current->op = (1 << br);
++	}
++	if ((last_tb->tflags & trace_current->op) == trace_current->op)
++	  return;
++	last_tb->tflags |= trace_current->op;
++    }
++    else {
++	if (tb->tflags & TRACE_OP_BLOCK)
++	    return;
++	tb->tflags |= TRACE_OP_BLOCK;
++    }
++
++    if (++trace_current == trace_entries + MAX_TRACE_ENTRIES
++	|| tracefile_nobuf)
++	trace_flush();
++}
++
++static void trace_at_fault(target_ulong pc)
++{
++#ifdef DEBUG_TRACE
++    printf("... fault at " TARGET_FMT_lx "\n", pc);
++#endif
++    if (pc >= trace_current->pc
++	&& pc < trace_current->pc + trace_current->size) {
++	trace_current->op = TRACE_OP_BLOCK | TRACE_OP_FAULT;
++	trace_current->size = pc - trace_current->pc + 1;
++    }
++    else {
++	return;
++#if 0
++	trace_current->pc = pc;
++	trace_current->size = 0;
++	trace_current->op = TRACE_OP_FAULT;
++#endif
++    }
++
++    if (++trace_current == trace_entries + MAX_TRACE_ENTRIES
++	|| tracefile_nobuf)
++	trace_flush();
++}
+Index: qemu-traces.h
+===================================================================
+--- qemu-traces.h	(revision 0)
++++ qemu-traces.h	(revision 0)
+@@ -0,0 +1,67 @@
++/* Qemu trace file format.
++   It requires proper definition for uintXX_t where XX is 8, 16, 32 and 64
++   and target_ulong (32 or 64 bits).  */
++
++#ifndef QEMU_TRACE_H
++#define QEMU_TRACE_H
++
++/* File header definition.  */
++struct trace_header
++{
++    char magic[12];
++#define QEMU_TRACE_MAGIC "#QEMU-Traces"
++
++    uint8_t version;
++#define QEMU_TRACE_VERSION 1
++    
++    /* File kind.  */
++    uint8_t kind;
++#define QEMU_TRACE_KIND_RAW 0
++
++    /* Sizeof (target_pc).  Indicates struct trace_entry length.  */
++    uint8_t sizeof_target_pc;
++
++    /* True if host was big endian.  All the trace data used the host
++       endianness.  */
++    uint8_t big_endian;
++
++    /* Target machine (use ELF number) - always in big endian.  */
++    uint8_t machine[2];
++
++    uint16_t _pad;
++};
++
++/* Header is followed by trace entries.  */
++struct trace_entry
++{
++    target_ulong pc;
++    uint16_t size;
++    uint8_t op;
++};
++
++struct trace_entry32
++{
++    uint32_t pc;
++    uint16_t size;
++    uint8_t op;
++    uint8_t _pad[1];
++};
++
++struct trace_entry64
++{
++    uint64_t pc;
++    uint16_t size;
++    uint8_t op;
++    uint8_t _pad[5];
++};
++
++/* _BLOCK means pc .. pc+size-1 was executed.  */
++#define TRACE_OP_BLOCK 0x10
++#define TRACE_OP_FAULT 0x20
++#define TRACE_OP_BR0 0x01 /* Branch 0 taken at pc.  */
++#define TRACE_OP_BR1 0x02
++#define TRACE_OP_BR2 0x04
++#define TRACE_OP_BR3 0x08
++
++
++#endif /* QEMU_TRACE_H */
+Index: exec-all.h
+===================================================================
+--- exec-all.h	(revision 6194)
++++ exec-all.h	(working copy)
+@@ -61,6 +61,11 @@
+ 
+ #include "qemu-log.h"
+ 
++extern FILE *tracefile;
++extern int tracefile_nobuf;
++void trace_init(void);
++void trace_flush(void);
++
+ void gen_intermediate_code(CPUState *env, struct TranslationBlock *tb);
+ void gen_intermediate_code_pc(CPUState *env, struct TranslationBlock *tb);
+ void gen_pc_load(CPUState *env, struct TranslationBlock *tb,
+@@ -157,6 +162,7 @@
+     struct TranslationBlock *jmp_next[2];
+     struct TranslationBlock *jmp_first;
+     uint32_t icount;
++    uint32_t tflags;
+ };
+ 
+ static inline unsigned int tb_jmp_cache_hash_page(target_ulong pc)
+Index: configure
+===================================================================
+--- configure	(revision 6194)
++++ configure	(working copy)
+@@ -386,6 +386,11 @@
+       sdl="no" ;
+       audio_drv_list="coreaudio `echo $audio_drv_list | sed s,coreaudio,,g`"
+   ;;
++  --disable-cocoa)
++      cocoa="no" ;
++      audio_drv_list="`echo $audio_drv_list | sed s,coreaudio,,g`"
++      OS_LDFLAGS=""
++  ;;
+   --disable-gfx-check) check_gfx="no"
+   ;;
+   --disable-system) softmmu="no"
+@@ -517,6 +522,7 @@
+ echo "  --disable-werror         disable compilation abort on warning"
+ echo "  --disable-sdl            disable SDL"
+ echo "  --enable-cocoa           enable COCOA (Mac OS X only)"
++echo "  --disable-cocoa          disable COCOA (default)"
+ echo "  --audio-drv-list=LIST    set audio drivers list:"
+ echo "                           Available drivers: $audio_possible_drivers"
+ echo "  --audio-card-list=LIST   set list of additional emulated audio cards"
+Index: hw/leon.c
+===================================================================
+--- hw/leon.c	(revision 0)
++++ hw/leon.c	(revision 0)
+@@ -0,0 +1,560 @@
++/*
++ * QEMU Leon2 System Emulator
++ *
++ * Copyright (c) 2009 AdaCore
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in
++ * all copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
++ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++ * THE SOFTWARE.
++ */
++#include "hw.h"
++#include "qemu-timer.h"
++#include "qemu-char.h"
++#include "sysemu.h"
++#include "boards.h"
++
++//#define DEBUG_IO
++
++#ifdef DEBUG_IO
++#define DPRINTF(fmt, args...)                           \
++    do { printf("Leon: " fmt , ##args); } while (0)
++#else
++#define DPRINTF(fmt, args...)
++#endif
++
++/* Default system clock.  */
++#define CPU_CLK (80 * 1000 * 1000)
++
++/* Leon registers.  */
++#define MCFG1 0x00
++#define MCFG2 0x04
++#define MCFG3 0x08
++
++#define TIMC1 0x40
++#define TIMR1 0x44
++#define TIMCTR1 0x48
++#define WDG 0x4c
++#define TIMC2 0x50
++#define TIMR2 0x54
++#define TIMCTR2 0x58
++#define SCAC 0x60
++#define SCAR 0x64
++
++#define UAD1 0x70
++#define UAS1 0x74
++#define UAC1 0x78
++#define UASCA1 0x7c
++#define UAD2 0x80
++#define UAS2 0x84
++#define UAC2 0x88
++#define UASCA2 0x8c
++
++#define ITMP 0x90
++#define ITP 0x94
++#define ITF 0x98
++#define ITC 0x9c
++
++#define IODAT 0xa0
++#define IODIR 0xa4
++#define IOIT 0xa8
++
++#define UAS_DR 0x01
++#define UAS_TS 0x02
++#define UAS_TH 0x04
++#define UAS_BR 0x08
++#define UAS_OV 0x10
++#define UAS_PE 0x20
++#define UAS_FE 0x40
++
++#define TIMCTR_EN 0x01
++#define TIMCTR_RL 0x02
++#define TIMCTR_LD 0x04
++
++#define PROM_FILENAME        "grmon"
++
++#define MAX_PILS 16
++
++static void main_cpu_reset(void *opaque)
++{
++    CPUState *env = opaque;
++
++    cpu_reset(env);
++    env->halted = 0;
++}
++
++struct LeonUartState
++{
++    uint32_t uac;
++    uint32_t uasca;
++    CharDriverState *chr;
++};
++
++struct LeonTimerState
++{
++    uint32_t rld;
++    uint32_t ctr;
++
++    uint32_t stopped_count; /* Count when stopped.  */
++    uint32_t scar; /* Copy of iostate->scar.  */
++
++    uint64_t load_time;
++    uint64_t next_time;
++    QEMUTimer *timer;
++    qemu_irq irq;
++};
++
++struct LeonIntState {
++    uint32_t itmp;
++    uint32_t itp;
++    uint32_t itf;
++    CPUState *env;
++};
++
++typedef struct LeonIoState
++{
++    uint32_t mcfg[3];
++
++    struct LeonIntState intctl;
++
++    uint32_t scar;
++    uint32_t wdg;
++    uint32_t iodata;
++    uint32_t iodir;
++    uint32_t ioit;
++    struct LeonTimerState timr1;
++    struct LeonTimerState timr2;
++    struct LeonUartState uart1;
++    struct LeonUartState uart2;
++} LeonIoState;
++
++static struct LeonIntState *leon_intctl;
++
++static void leon_check_irqs(struct LeonIntState *s)
++{
++    uint32_t pend = (s->itp | s->itf) & s->itmp;
++    uint32_t m;
++    int i;
++    int num = 0;
++    CPUSPARCState *env = s->env;
++
++    /* First level 1 */
++    m = pend & (s->itmp >> 16);
++    if (m != 0) {
++	for (i = 15; i != 0; i--)
++	    if (m & (1 << i)) {
++		num = i;
++		break;
++	    }
++    }
++    /* Level 0 */
++    if (num == 0) {
++	m = pend & ~(s->itmp >> 16);
++	if (m != 0) {
++	    for (i = 15; i != 0; i--)
++		if (m & (1 << i)) {
++		    num = i;
++		    break;
++		}
++	}
++    }
++
++#if 0
++    printf ("Leon2 check interrupt: num=%d int_index=0x%02x "
++	    "pend=%04x itp=%04x, itmp=%04x\n",
++	    num, env->interrupt_index, pend, s->itp, s->itmp);
++#endif
++
++    if (num && (env->interrupt_index == 0 ||
++		(env->interrupt_index & ~15) == TT_EXTINT)) {
++	int old_interrupt = env->interrupt_index;
++
++	env->interrupt_index = TT_EXTINT | num;
++	if (old_interrupt != env->interrupt_index) {
++	    DPRINTF("Set CPU IRQ %d\n", num);
++	    cpu_interrupt(env, CPU_INTERRUPT_HARD);
++	}
++    } else if (!num && (env->interrupt_index & ~15) == TT_EXTINT) {
++        DPRINTF("Reset CPU IRQ %d\n", env->interrupt_index & 15);
++        env->interrupt_index = 0;
++        cpu_reset_interrupt(env, CPU_INTERRUPT_HARD);
++    }
++}
++
++void leon2_intctl_ack(CPUSPARCState *env, int intno)
++{
++    uint32_t mask;
++
++    intno &= 15;
++    mask = 1 << intno;
++
++    DPRINTF ("intctl ack %d\n", intno);
++
++    /* Clear registers.  */
++    leon_intctl->itp &= ~mask;
++    leon_intctl->itf &= ~mask;
++
++    leon_check_irqs(leon_intctl);
++}
++
++static void leon_set_irq(void *opaque, int irq, int level)
++{
++    struct LeonIntState *s = opaque;
++
++    if (level) {
++        DPRINTF("Raise CPU IRQ %d\n", irq);
++	s->itp = 1 << irq;
++        leon_check_irqs(s);
++    } else {
++        DPRINTF("Lower CPU IRQ %d\n", irq);
++        s->itp &= ~(1 << irq);
++	leon_check_irqs(s);
++    }
++}
++
++static void leon_uart_init (CharDriverState *chr,
++			    struct LeonUartState *s, qemu_irq irq)
++{
++    s->chr = chr;
++    s->uac = 0;
++}
++
++static void leon_timer_reload (struct LeonTimerState *s,
++			       uint64_t start_time, uint32_t cnt)
++{
++    s->load_time = start_time;
++    start_time += muldiv64((cnt + 1) * (s->scar + 1),
++			   ticks_per_sec, CPU_CLK);
++    qemu_mod_timer(s->timer, start_time);
++    s->next_time = start_time;
++}
++
++static void leon_irq_timer(void *opaque)
++{
++    struct LeonTimerState *s = opaque;
++
++    qemu_set_irq(s->irq, 1);
++    if (s->ctr & TIMCTR_RL)
++	leon_timer_reload (s, s->next_time, s->rld);
++}
++
++static uint32_t leon_timer_read_counter (struct LeonTimerState *s)
++{
++    uint32_t res;
++    uint64_t delta;
++
++    if (s->ctr & TIMCTR_EN) {
++	delta = qemu_get_clock(vm_clock) -  s->load_time;
++	res = muldiv64(delta, CPU_CLK, ticks_per_sec * (s->scar + 1));
++	return s->rld + 1 - res;
++    }
++    else {
++	return s->stopped_count;
++    }
++}
++
++static void leon_write_timctr (struct LeonTimerState *s, uint32_t val)
++{
++    /* Handle LD + EN.  */
++    if (val & TIMCTR_LD) {
++	if (val & TIMCTR_EN)
++	    leon_timer_reload (s, qemu_get_clock(vm_clock), s->rld);
++	else {
++	    s->stopped_count = s->rld;
++	    qemu_del_timer (s->timer);
++	}
++    }
++    else if ((val ^ s->ctr) & TIMCTR_EN) {
++	if (val & TIMCTR_EN)
++	    leon_timer_reload (s, qemu_get_clock(vm_clock), s->stopped_count);
++	else {
++	    s->stopped_count = leon_timer_read_counter (s);
++	    qemu_del_timer (s->timer);
++	}
++    }
++    /* Handle RL.  */
++    s->ctr = val & (TIMCTR_EN | TIMCTR_RL);
++}
++
++static void leon_timer_init (struct LeonTimerState *s, qemu_irq irq)
++{
++    s->timer = qemu_new_timer(vm_clock, leon_irq_timer, s);
++    s->irq = irq;
++}
++
++static uint32_t leon_io_readl(void *opaque, target_phys_addr_t addr)
++{
++    LeonIoState *s = opaque;
++    uint32_t ret;
++
++    switch (addr) {
++    case MCFG1:
++    case MCFG2:
++    case MCFG3:
++	ret = s->mcfg[(addr - MCFG1) >> 2];
++	break;
++    case ITMP:
++	ret = s->intctl.itmp;
++	break;
++    case ITF:
++	ret = s->intctl.itf;
++	break;
++    case ITC:
++	ret = 0;
++	break;
++    case WDG:
++	ret = s->wdg;
++	break;
++    case SCAR:
++	ret = s->scar;
++	break;
++    case UAC1:
++	ret = s->uart1.uac;
++	break;
++    case UASCA1:
++	ret = s->uart1.uasca;
++	break;
++    case UAS1:
++	ret = UAS_TS | UAS_TH;
++	break;
++
++    case TIMR1:
++	ret = s->timr1.rld;
++	break;
++    case TIMR2:
++	ret = s->timr2.rld;
++	break;
++    case TIMCTR1:
++	ret = s->timr1.ctr;
++	break;
++    case TIMCTR2:
++	ret = s->timr2.ctr;
++	break;
++    case TIMC1:
++	ret = leon_timer_read_counter (&s->timr1);
++	break;
++    case TIMC2:
++	ret = leon_timer_read_counter (&s->timr2);
++	break;
++
++    case IODAT:
++	ret = s->iodata;
++	break;
++    case IODIR:
++	ret = s->iodir;
++	break;
++    case IOIT:
++	ret = s->ioit;
++	break;
++    default:
++	printf ("Leon: read unknown register 0x%04x\n", (int)addr);
++	ret = 0;
++	break;
++	}
++
++    DPRINTF("read reg 0x%02x = %x\n", (unsigned)addr, ret);
++
++    return ret;
++}
++
++static void leon_io_writel(void *opaque, target_phys_addr_t addr,
++			   uint32_t val)
++{
++    LeonIoState *s = opaque;
++
++    DPRINTF("write reg 0x%02x = %x\n", (unsigned)addr, val);
++
++    switch (addr) {
++    case MCFG1:
++    case MCFG2:
++    case MCFG3:
++	s->mcfg[(addr - MCFG1) >> 2] = val;
++	break;
++    case ITMP:
++	s->intctl.itmp = val;
++	break;
++    case ITF:
++	s->intctl.itf = val & 0xfffe;
++	leon_check_irqs(&s->intctl);
++	break;
++    case WDG:
++	s->wdg = val & 0x00ffffff;
++	break;
++    case SCAR:
++	s->scar = val & 0x3ff;
++	s->timr1.scar = s->scar;
++	s->timr2.scar = s->scar;
++	break;
++    case UAC1:
++	s->uart1.uac = val & 0x1ff;
++	break;
++    case UASCA1:
++	s->uart1.uasca = val & 0x3ff;
++	break;
++    case UAD1:
++        {
++	    unsigned char c = val;
++	    qemu_chr_write(s->uart1.chr, &c, 1);
++	}
++	break;
++
++    case SCAC:
++	break;
++    case TIMR1:
++	s->timr1.rld = val & 0x00ffffff;
++	break;
++    case TIMR2:
++	s->timr2.rld = val & 0x00ffffff;
++	break;
++    case TIMCTR1:
++	leon_write_timctr (&s->timr1, val);
++	break;
++    case TIMCTR2:
++	leon_write_timctr (&s->timr2, val);
++	break;
++
++    case IODAT:
++	s->iodata = val & 0xffff;
++	break;
++    case IODIR:
++	s->iodir = val & 0x3ffff;
++	break;
++    case IOIT:
++	s->ioit = val;
++	break;
++
++    default:
++	printf ("Leon: write unknown register 0x%04x=%x\n", (int)addr, val);
++    }
++}
++
++static CPUReadMemoryFunc *leon_io_read[3] = {
++    NULL,
++    NULL,
++    leon_io_readl
++};
++
++static CPUWriteMemoryFunc *leon_io_write[3] = {
++    NULL,
++    NULL,
++    leon_io_writel,
++};
++
++static void at697_hw_init(ram_addr_t RAM_size, int vga_ram_size,
++			  const char *boot_device, DisplayState *ds,
++			  const char *kernel_filename,
++			  const char *kernel_cmdline,
++			  const char *initrd_filename, const char *cpu_model)
++{
++    CPUState *env;
++    ram_addr_t ram_offset, prom_offset;
++    int ret;
++    char buf[1024];
++    qemu_irq *cpu_irqs;
++    int bios_size;
++    int leon_io_memory;
++    LeonIoState *s;
++
++    /* init CPU */
++    if (!cpu_model)
++	cpu_model = "LEON2";
++
++    env = cpu_init(cpu_model);
++    if (!env) {
++        fprintf(stderr, "qemu: Unable to find Sparc CPU definition\n");
++        exit(1);
++    }
++
++    cpu_sparc_set_intctl(env, intctl_leon2);
++    cpu_sparc_set_id(env, 0);
++
++    qemu_register_reset(main_cpu_reset, env);
++
++    s = qemu_mallocz(sizeof(struct LeonIoState));
++    if (!s)
++	exit(1);
++    leon_intctl = &s->intctl;
++    leon_intctl->env = env;
++
++    cpu_irqs = qemu_allocate_irqs(leon_set_irq, leon_intctl, MAX_PILS);
++
++    /* allocate RAM */
++    if ((uint64_t)RAM_size > (1UL << 30)) {
++        fprintf(stderr,
++                "qemu: Too much memory for this machine: %d, maximum 1G\n",
++                (unsigned int)(RAM_size / (1024 * 1024)));
++        exit(1);
++    }
++    ram_offset = qemu_ram_alloc(RAM_size);
++    cpu_register_physical_memory(0x40000000, RAM_size, ram_offset);
++
++    /* load boot prom */
++    if (bios_name == NULL)
++        bios_name = PROM_FILENAME;
++    snprintf(buf, sizeof(buf), "%s/%s", bios_dir, bios_name);
++    bios_size = get_image_size(buf);
++    if (bios_size > 0) {
++	bios_size = (bios_size + TARGET_PAGE_SIZE - 1) & TARGET_PAGE_MASK;
++	prom_offset = qemu_ram_alloc(bios_size);
++	cpu_register_physical_memory(0x00000000, bios_size,
++				     prom_offset | IO_MEM_ROM);
++        ret = load_image_targphys(buf, 0x00000000, bios_size);
++	if (ret < 0 || ret > bios_size) {
++	    fprintf(stderr, "qemu: could not load prom '%s'\n",
++		    buf);
++	    exit(1);
++	}
++    }
++
++    leon_io_memory = cpu_register_io_memory(0, leon_io_read,
++					    leon_io_write, s);
++    cpu_register_physical_memory(0x80000000, 0x1000, leon_io_memory);
++
++    leon_timer_init (&s->timr1, cpu_irqs[8]);
++    leon_timer_init (&s->timr2, cpu_irqs[9]);
++
++    if (serial_hds[0])
++	leon_uart_init (serial_hds[0], &s->uart1, cpu_irqs[3]);
++    if (serial_hds[1])
++	leon_uart_init (serial_hds[1], &s->uart2, cpu_irqs[2]);
++
++    /* Can directly load an application. */
++    if (kernel_filename != NULL) {
++	long kernel_size;
++	uint64_t entry;
++
++	kernel_size = load_elf(kernel_filename, 0, &entry, NULL, NULL);
++	if (kernel_size < 0) {
++	    fprintf(stderr, "qemu: could not load kernel '%s'\n",
++		    kernel_filename);
++	    exit(1);
++	}
++	if (bios_size <= 0) {
++	    /* If there is no bios/monitor, start the application.  */
++	    env->pc = entry;
++	    env->npc = entry + 4;
++	}
++    }
++}
++
++QEMUMachine at697_machine = {
++    .name = "at697",
++    .desc = "Leon-2 Atmel 697",
++    .init = at697_hw_init,
++    .ram_require = 1UL << 20,
++    .nodisk_ok = 1,
++    .use_scsi = 0,
++};
+Index: hw/sun4m.c
+===================================================================
+--- hw/sun4m.c	(revision 6194)
++++ hw/sun4m.c	(working copy)
+@@ -451,6 +451,7 @@
+             fprintf(stderr, "qemu: Unable to find Sparc CPU definition\n");
+             exit(1);
+         }
++        cpu_sparc_set_intctl(env, intctl_sun4m);
+         cpu_sparc_set_id(env, i);
+         envs[i] = env;
+         if (i == 0) {
+@@ -1257,6 +1258,7 @@
+             fprintf(stderr, "qemu: Unable to find Sparc CPU definition\n");
+             exit(1);
+         }
++        cpu_sparc_set_intctl(env, intctl_sun4m);
+         cpu_sparc_set_id(env, i);
+         envs[i] = env;
+         if (i == 0) {
+@@ -1482,6 +1484,7 @@
+         exit(1);
+     }
+ 
++    cpu_sparc_set_intctl(env, intctl_sun4c);
+     cpu_sparc_set_id(env, 0);
+ 
+     qemu_register_reset(main_cpu_reset, env);
+Index: hw/boards.h
+===================================================================
+--- hw/boards.h	(revision 6194)
++++ hw/boards.h	(working copy)
+@@ -71,6 +71,9 @@
+ extern QEMUMachine sun4v_machine;
+ extern QEMUMachine niagara_machine;
+ 
++/* leon.c */
++extern QEMUMachine at697_machine;
++
+ /* integratorcp.c */
+ extern QEMUMachine integratorcp_machine;
+ 
