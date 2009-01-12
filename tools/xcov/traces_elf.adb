@@ -1366,6 +1366,7 @@ package body Traces_Elf is
                      Dump_Op (Trace.Op);
                      New_Line;
                   end if;
+                  --  Add or merge the entry.
                   Add_Entry (Subprogram_Base.all, First, Last, Trace.Op);
                end if;
 
@@ -1454,8 +1455,7 @@ package body Traces_Elf is
    end Build_Source_Lines;
 
    --  Modify the state of traces according to the corresponding code.
-   procedure Set_Trace_State (Exec : Exe_File_Type;
-                              Base : in out Traces_Base;
+   procedure Set_Trace_State (Base : in out Traces_Base;
                               Section : Binary_Content)
    is
       use Addresses_Containers;
@@ -1479,7 +1479,7 @@ package body Traces_Elf is
          exit when Addr > Section'Last;
          exit when Trace.First > Section'Last;
 
-         case Exec.Exe_Machine is
+         case Machine is
             when EM_PPC =>
                declare
                   use Ppc_Descs;
@@ -1570,7 +1570,7 @@ package body Traces_Elf is
                            return Br_Call;
                         when 2 =>
                            case Shift_Right (Insn, 19) and 2#111_111# is
-                              when 2#11000# =>
+                              when 2#111000# =>
                                  return Br_Jmpl;
                               when 2#111001# =>
                                  return Br_Rett;
@@ -1606,7 +1606,9 @@ package body Traces_Elf is
                      Pc1 := Trace.Last - 8;
                      Br := Br1;
                   end if;
-                  Split_Trace (Base, It, Pc1, Covered);
+                  if Pc1 + 1 > Trace.First then
+                     Split_Trace (Base, It, Pc1, Covered);
+                  end if;
 
                   case Br is
                      when Br_Cond | Br_Cond_A =>
@@ -1656,7 +1658,7 @@ package body Traces_Elf is
 
          Load_Section_Content (Exec, Sec);
 
-         Set_Trace_State (Exec, Base, Sec.Section_Content.all);
+         Set_Trace_State (Base, Sec.Section_Content.all);
          --  Unchecked_Deallocation (Section);
 
          Next (Cur);

@@ -31,6 +31,13 @@ package Traces_Names is
    procedure Read_Routines_Name
      (Efile : Elf_File; Filename : String_Acc; Exclude : Boolean);
 
+   --  Read a list of routines name from a text file.  The format is very
+   --  simple:
+   --  * lines starting with '#' are ignored
+   --  * one name per line
+   --  * no blanks allowed.
+   procedure Read_Routines_Name_From_Text (Filename : String);
+
    --  Display the list of routines (on standard output).
    procedure Disp_All_Routines;
 
@@ -39,5 +46,10 @@ package Traces_Names is
    function Add_Traces (Routine_Name : String_Acc;
                         Content : Binary_Content) return Traces_Base_Acc;
 
+   --  Raised if consolidation is not possible.
+   --  (eg: different code for a function).
+   Consolidation_Error : exception;
+
    procedure Dump_Routines_Traces (Exec : Exe_File_Type);
+   procedure Dump_Routines_Traces;
 end Traces_Names;

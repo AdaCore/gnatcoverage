@@ -68,8 +68,7 @@ package Traces_Elf is
    --  Using the executable, correctly set the state of every traces.
    procedure Set_Trace_State (Exec : Exe_File_Type;
                               Base : in out Traces_Base);
-   procedure Set_Trace_State (Exec : Exe_File_Type;
-                              Base : in out Traces_Base;
+   procedure Set_Trace_State (Base : in out Traces_Base;
                               Section : Binary_Content);
 
    --  Read dwarfs info to build compile_units/subprograms lists.

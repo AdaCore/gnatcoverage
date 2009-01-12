@@ -23,12 +23,15 @@ package body Traces_Dbase is
    function "=" (L, R : Trace_Entry) return Boolean is
    begin
       --  Overlap.
+      --  This relocation is reflexive and symmetric.
       return L.First <= R.Last and L.Last >= R.First;
    end "=";
 
    function "<" (L, R : Trace_Entry) return Boolean is
    begin
       --  Disjoint and inferior.
+      --  This relation is irreflexive, asymmetric and transitive
+      --   (provided A.First < A.Last).
       return L.Last < R.First;
    end "<";
 
@@ -46,25 +49,74 @@ package body Traces_Dbase is
    is
       Cur : Cursor;
       Status : Boolean;
-      E : Trace_Entry;
    begin
       --  Discard fault.
       if (Op and Trace_Op_Fault) /= 0 then
          return;
       end if;
 
+      --  Try to insert.
       Insert (Base,
               Trace_Entry'(First, Last, Op, Unknown),
               Cur, Status);
-      if Status = False then
-         --  Merge
-         E := Element (Cur);
-         if E.First > First then
-            E.First := First;
-         end if;
-         E.Op := E.Op or Op;
-         Replace_Element (Base, Cur, E);
+
+      if Status then
+         return;
       end if;
+
+      declare
+         N_First, N_Last : Pc_Type;
+         E : constant Trace_Entry := Element (Cur);
+      begin
+         if (Op and Trace_Op_Block) = 0 then
+            --  Just merge flags.
+            if First /= Last then
+               raise Program_Error;
+            end if;
+            Replace_Element (Base, Cur, Trace_Entry'(E.First, E.Last,
+                                                     Op or E.Op, E.State));
+         else
+            --  Merge
+            --  First add entries for before and after E.
+            if First < E.First then
+               Add_Entry (Base, First, E.First - 1, Op);
+               N_First := E.First;
+            else
+               N_First := First;
+            end if;
+
+            if Last > E.Last then
+               Add_Entry (Base, E.Last + 1, Last, Op);
+               N_Last := E.Last;
+            else
+               N_Last := Last;
+            end if;
+
+            --  Then merge with E.
+            if E.First < N_First then
+               --  Split.
+               Replace_Element (Base, Cur, Trace_Entry'(E.First, N_First - 1,
+                                                        E.Op, E.State));
+               Insert (Base,
+                       Trace_Entry'(N_First, N_Last, E.Op or Op, E.State));
+               if E.Last > N_Last then
+                  Insert (Base,
+                          Trace_Entry'(N_Last + 1, E.Last, E.Op, E.State));
+               end if;
+            elsif E.Last > N_Last then
+               pragma Assert (E.First = N_First);
+               Replace_Element (Base, Cur, Trace_Entry'(N_First, N_Last,
+                                                        Op or E.Op, E.State));
+               Insert (Base,
+                       Trace_Entry'(N_Last + 1, E.Last, E.Op, E.State));
+            else
+               pragma Assert (N_First = E.First);
+               pragma Assert (N_Last = E.Last);
+               Replace_Element (Base, Cur, Trace_Entry'(N_First, N_Last,
+                                                        Op or E.Op, E.State));
+            end if;
+         end if;
+      end;
    end Add_Entry;
 
    procedure Dump_Traces (Base : Traces_Base)

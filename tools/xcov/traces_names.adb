@@ -28,6 +28,7 @@ with Hex_Images; use Hex_Images;
 with Dwarf_Handling; use Dwarf_Handling;
 with Traces_Sources; use Traces_Sources;
 with Traces_Disa;
+with Disa_Symbolize;
 
 package body Traces_Names is
 
@@ -269,6 +270,41 @@ package body Traces_Names is
          raise;
    end Read_Routines_Name;
 
+   procedure Read_Routines_Name_From_Text (Filename : String)
+   is
+      F : File_Type;
+   begin
+      Open (F, In_File, Filename);
+      while not End_Of_File (F) loop
+         declare
+            L : constant String := Get_Line (F);
+            Name : String_Acc;
+            Cur : Names_Maps.Cursor;
+         begin
+            if L (L'First) = '#' then
+               null;
+            else
+               Name := new String'(L);
+               Cur := Names.Find (Name);
+               if Names_Maps.Has_Element (Cur) then
+                  Put_Line (Standard_Error,
+                            "symbol " & Name.all & " is already defined");
+               else
+                  Names.Insert (Name,
+                                Subprogram_Name'(Filename => null,
+                                                 Insns => null,
+                                                 Traces => null));
+               end if;
+            end if;
+         end;
+      end loop;
+      Close (F);
+   exception
+      when Name_Error | Status_Error =>
+         Put_Line (Standard_Output, "cannot open: " & Filename);
+         raise;
+   end Read_Routines_Name_From_Text;
+
    procedure Disp_All_Routines
    is
       use Names_Maps;
@@ -296,8 +332,15 @@ package body Traces_Names is
          if El.Insns = null and Content'Length > 0 then
             El.Insns := new Binary_Content'(Content);
          else
-            --  Check!
-            null;
+            --  FIXME: check the contents are similar
+            --  FIXME: check size at first ?
+            if Content'Length /= El.Insns.all'Length then
+               Put_Line (Standard_Error,
+                         "different function size for " & Routine_Name.all);
+--               Put_Line (Standard_Error,
+--                         " (reference is " & El.Filename.all & ")");
+               raise Consolidation_Error;
+            end if;
          end if;
          if El.Traces = null then
             El.Traces := new Traces_Base;
@@ -312,8 +355,7 @@ package body Traces_Names is
       return Element (Cur).Traces;
    end Add_Traces;
 
-   function Compute_Routine_State (N : Subprogram_Name)
-                                  return Line_State
+   function Compute_Routine_State (N : Subprogram_Name) return Line_State
    is
       State : Line_State := No_Code;
       Addr : Pc_Type := N.Insns'First;
@@ -331,6 +373,9 @@ package body Traces_Names is
          State := Update_Table (State, T.State);
          Addr := T.Last + 1;
       end loop;
+      if Addr < N.Insns'Last then
+         State := Update_Table (State, Not_Covered);
+      end if;
       if State = No_Code then
          return Not_Covered;
       else
@@ -344,25 +389,16 @@ package body Traces_Names is
       use Traces_Disa;
       Cur : Cursor;
       E : Subprogram_Name;
-
-      procedure Update (Key : String_Acc; El : in out Subprogram_Name);
-
-      procedure Update (Key : String_Acc; El : in out Subprogram_Name)
-      is
-         pragma Unreferenced (Key);
-      begin
-         if El.Insns /= null and then El.Traces /= null then
-            Set_Trace_State (Exec, El.Traces.all, El.Insns.all);
-         end if;
-      end Update;
    begin
       Cur := Names.First;
       while Has_Element (Cur) loop
-         Names.Update_Element (Cur, Update'Access);
          E := Element (Cur);
          Put (Key (Cur).all);
 
          if E.Traces /= null then
+            if E.Insns /= null then
+               Set_Trace_State (E.Traces.all, E.Insns.all);
+            end if;
             Put (' ');
             Put (State_Char (Compute_Routine_State (E)));
          end if;
@@ -380,6 +416,46 @@ package body Traces_Names is
                   Exec);
             end if;
          end if;
+         Next (Cur);
+      end loop;
+   end Dump_Routines_Traces;
+
+   procedure Dump_Routines_Traces
+   is
+      use Names_Maps;
+      use Traces_Disa;
+      Cur : Cursor;
+      E : Subprogram_Name;
+   begin
+      Cur := Names.First;
+      while Has_Element (Cur) loop
+         E := Element (Cur);
+         Put (Key (Cur).all);
+
+         if E.Traces /= null then
+            if E.Insns /= null then
+               Set_Trace_State (E.Traces.all, E.Insns.all);
+            end if;
+            Dump_Traces (E.Traces.all);
+            Put (' ');
+            Put (State_Char (Compute_Routine_State (E)));
+         end if;
+
+         if E.Insns /= null then
+            Put (": " & Hex_Image (E.Insns'First)
+                   & '-' & Hex_Image (E.Insns'Last));
+         end if;
+         New_Line;
+
+         if E.Traces /= null then
+            Dump_Traces (E.Traces.all);
+            if Flag_Show_Asm then
+               Disp_Assembly_Lines
+                 (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access,
+                  Disa_Symbolize.Nul_Symbolizer);
+            end if;
+         end if;
+
          Next (Cur);
       end loop;
    end Dump_Routines_Traces;

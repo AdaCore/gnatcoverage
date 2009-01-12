@@ -138,6 +138,11 @@ begin
                then
                   Traces_Names.Read_Routines_Name
                     (Arg (Arg'First + 10 .. Arg'Last), False);
+               elsif Arg'Length > 14
+                 and then Arg (Arg'First .. Arg'First + 14) = "--include-list="
+               then
+                  Traces_Names.Read_Routines_Name_From_Text
+                    (Arg (Arg'First + 15 .. Arg'Last));
                elsif Arg = "-e" then
                   if Arg_Index > Arg_Count then
                      Error ("missing FILENAME to -e");
@@ -175,6 +180,8 @@ begin
                Error ("EXEC_file TRACE_file expected");
                return;
             end if;
+
+            --  Read Exe
             begin
                Open_File (Sub_Exec, Argument (Arg_Index), Text_Start);
             exception
@@ -184,6 +191,9 @@ begin
             end;
             Build_Sections (Sub_Exec);
             Build_Symbols (Sub_Exec);
+
+            --  Read traces.
+            Init_Base (Base);
             begin
                Read_Trace_File (Base, Argument (Arg_Index + 1));
             exception
@@ -192,10 +202,15 @@ begin
                   raise;
             end;
             Add_Subprograms_Traces (Sub_Exec, Base);
-            Init_Base (Base);
+            Close_File (Sub_Exec);
+            Clear_File (Sub_Exec);
             Arg_Index := Arg_Index + 2;
          end loop;
-         Traces_Names.Dump_Routines_Traces (Exec);
+         if Has_Exec then
+            Traces_Names.Dump_Routines_Traces (Exec);
+         else
+            Traces_Names.Dump_Routines_Traces;
+         end if;
          return;
       elsif Cmd = "--dump-trace-file" then
          if Arg_Index = Arg_Count then
