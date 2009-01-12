@@ -440,7 +440,7 @@ package body Traces_Names is
             if E.Insns /= null then
                Set_Trace_State (E.Traces.all, E.Insns.all);
             end if;
-            Dump_Traces (E.Traces.all);
+            --  Dump_Traces (E.Traces.all);
             Put (' ');
             Put (State_Char (Compute_Routine_State (E)));
          end if;
@@ -452,7 +452,7 @@ package body Traces_Names is
          New_Line;
 
          if E.Traces /= null then
-            Dump_Traces (E.Traces.all);
+            --  Dump_Traces (E.Traces.all);
             if Flag_Show_Asm then
                Disp_Assembly_Lines
                  (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access,
