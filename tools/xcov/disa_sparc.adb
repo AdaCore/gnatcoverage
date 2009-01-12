@@ -212,28 +212,11 @@ package body Disa_Sparc is
 --          Add (Hex_Digit (Natural (Shift_Right (V, 0) and 16#0f#)));
 --       end Add_Byte;
 
-      procedure Disp_Const (Mask : Unsigned_32)
-      is
---         L : Natural;
-         V : Unsigned_32;
+      procedure Disp_Hex (V : Unsigned_32) is
       begin
---         L := Lo;
-         --  Proc_Cb.all (Addr, Line (Lo .. Line'Last), Lo);
-         V := W and Mask;
-
-         --  Extend sign.
-         if (W and ((Mask + 1) / 2)) /= 0 then
-            V := V or not Mask;
-         end if;
---           if L /= Lo then
---              if V = 0 then
---                 return;
---              end if;
---              Add (" + ");
---           end if;
          Add ("0x");
          Add (Hex_Image (V));
-      end Disp_Const;
+      end Disp_Hex;
 
       procedure Add_Cond (Str : String)
       is
@@ -309,7 +292,8 @@ package body Disa_Sparc is
             Imm := Get_Field (F_Simm13, W);
             if Imm /= 0 then
                Add ('+');
-               Disp_Const (Imm);
+               Add ("0x");
+               Add (Hex_Image (Unsigned_16 (Imm)));
             end if;
          else
             Imm := Get_Field (F_Rs2, W);
@@ -324,9 +308,10 @@ package body Disa_Sparc is
       procedure Disp_Reg_Imm is
       begin
          if Get_Field (F_I, W) /= 0 then
-            Disp_Const (16#1fff#);
+            Add ("0x");
+            Add (Hex_Image (Unsigned_16 ((Get_Field (F_Simm13, W)))));
          else
-            Add_Ireg (W and 31);
+            Add_Ireg (Get_Field (F_Rs2, W));
          end if;
       end Disp_Reg_Imm;
 
@@ -370,11 +355,7 @@ package body Disa_Sparc is
             when Format_Ticc =>
                Add (Bicc_Map (Get_Field (F_Cond, W)).all);
                Add_HT;
-               if Get_Field (F_I, W) /= 0 then
-                  Disp_Const (16#ff#);
-               else
-                  Add_Ireg (W and 31);
-               end if;
+               Disp_Reg_Imm;
             when others =>
                Add ("unhandled format op=");
                Add (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
@@ -395,7 +376,7 @@ package body Disa_Sparc is
                when 2#000# =>
                   Add ("unimp");
                   Add_HT;
-                  Disp_Const (Get_Field (F_Disp22, W));
+                  Disp_Hex (Get_Field (F_Disp22, W));
                when 2#010# =>
                   Add_Cond ("b");
                when 2#100# =>
@@ -409,8 +390,8 @@ package body Disa_Sparc is
                         Add ("sethi");
                         Add_HT;
                         Add_Ireg (Rd);
-                        Add (", ");
-                        Disp_Const (16#3f_Ffff#);
+                        Add (',');
+                        Disp_Hex (Shift_Left (Imm22, 10));
                      end if;
                   end;
                when others =>
@@ -422,38 +403,57 @@ package body Disa_Sparc is
             Add ("call");
             Add_HT;
             Add ("Ox");
-            Add (Hex_Image (Shift_Left (W, 2)));
+            Add (Hex_Image (Pc + Shift_Left (W, 2)));
          when 2#10# =>
             declare
                Op3 : constant Unsigned_32 := Get_Field (F_Op3, W);
                Rd : Unsigned_32;
             begin
-               --  or rd,%g0,xx => mov.
-               if Op3 = 2
-                 and then Get_Field (F_Rs1, W) = 0
-               then
-                  Add ("mov");
-                  Add_HT;
-                  Disp_Reg_Imm;
-                  Add (',');
-                  Add_Ireg (Get_Field (F_Rd, W));
-                  return;
-               elsif Op3 = 16#30# then
-                  Rd := Get_Field (F_Rd, W);
-                  Add ("wr");
-                  Add_HT;
-                  Add_Ireg (Get_Field (F_Rs1, W));
-                  Add (',');
-                  Disp_Reg_Imm;
-                  Add (',');
-                  if Rd = 0 then
-                     Add ("%y");
-                  else
-                     Add ("%asr");
-                     Add_D2 (Rd);
-                  end if;
-                  return;
-               end if;
+               case Op3 is
+                  when 16#02# =>
+                     --  or rd,%g0,xx => mov.
+                     if Get_Field (F_Rs1, W) = 0 then
+                        Add ("mov");
+                        Add_HT;
+                        Disp_Reg_Imm;
+                        Add (',');
+                        Add_Ireg (Get_Field (F_Rd, W));
+                        return;
+                     end if;
+                  when 16#30# =>
+                     Rd := Get_Field (F_Rd, W);
+                     Add ("wr");
+                     Add_HT;
+                     Add_Ireg (Get_Field (F_Rs1, W));
+                     Add (',');
+                     Disp_Reg_Imm;
+                     Add (',');
+                     if Rd = 0 then
+                        Add ("%y");
+                     else
+                        Add ("%asr");
+                        Add_D2 (Rd);
+                     end if;
+                     return;
+                  when 16#38# =>
+                     if Get_Field (F_Rd, W) = 0
+                       and then Get_Field (F_I, W) = 1
+                       and then Get_Field (F_Simm13, W) = 8
+                     then
+                        case Get_Field (F_Rs1, W) is
+                           when 15 => -- %o7
+                              Add ("retl");
+                              return;
+                           when 31 => -- %i7
+                              Add ("ret");
+                              return;
+                           when others =>
+                              null;
+                        end case;
+                     end if;
+                  when others =>
+                     null;
+               end case;
                Disp_Format3 (Insn_Desc_10);
             end;
          when 2#11# =>
