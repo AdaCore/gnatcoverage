@@ -421,7 +421,8 @@ package body Disa_Sparc is
             --  Call
             Add ("call");
             Add_HT;
-            Disp_Const (16#3fff_Ffff#);
+            Add ("Ox");
+            Add (Hex_Image (Shift_Left (W, 2)));
          when 2#10# =>
             declare
                Op3 : constant Unsigned_32 := Get_Field (F_Op3, W);
