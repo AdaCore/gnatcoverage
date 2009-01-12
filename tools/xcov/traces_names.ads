@@ -44,6 +44,7 @@ package Traces_Names is
    --  Add traces for routine_name.
    --  Return null if we don't want coverage for it.
    function Add_Traces (Routine_Name : String_Acc;
+                        Filename : String;
                         Content : Binary_Content) return Traces_Base_Acc;
 
    --  Raised if consolidation is not possible.

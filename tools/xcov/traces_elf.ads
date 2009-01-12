@@ -56,6 +56,9 @@ package Traces_Elf is
    --  Free built informations.
    procedure Clear_File (Exec : in out Exe_File_Type);
 
+   --  Get the filename of Exec.
+   function Get_Filename (Exec : Exe_File_Type) return String;
+
    --  Build sections map for the current ELF file.
    procedure Build_Sections (Exec : in out Exe_File_Type);
 

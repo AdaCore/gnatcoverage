@@ -318,6 +318,7 @@ package body Traces_Names is
    end Disp_All_Routines;
 
    function Add_Traces (Routine_Name : String_Acc;
+                        Filename : String;
                         Content : Binary_Content) return Traces_Base_Acc
    is
       use Names_Maps;
@@ -331,14 +332,17 @@ package body Traces_Names is
       begin
          if El.Insns = null and Content'Length > 0 then
             El.Insns := new Binary_Content'(Content);
+            El.Filename := new String'(Filename);
          else
             --  FIXME: check the contents are similar
             --  FIXME: check size at first ?
             if Content'Length /= El.Insns.all'Length then
                Put_Line (Standard_Error,
-                         "different function size for " & Routine_Name.all);
---               Put_Line (Standard_Error,
---                         " (reference is " & El.Filename.all & ")");
+                         "error: different function size for "
+                           & Routine_Name.all);
+               Put_Line (Standard_Error,
+                         " (reference is " & El.Filename.all
+                           & ", file is " & Filename & ")");
                raise Consolidation_Error;
             end if;
          end if;

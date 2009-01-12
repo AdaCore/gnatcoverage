@@ -229,6 +229,11 @@ package body Traces_Elf is
       Exec.Lines_Set.Clear;
    end Clear_File;
 
+   function Get_Filename (Exec : Exe_File_Type) return String is
+   begin
+      return Get_Filename (Exec.Exe_File);
+   end Get_Filename;
+
    procedure Read_Word8 (Exec : Exe_File_Type;
                          Base : Address;
                          Off : in out Storage_Offset;
@@ -1300,6 +1305,7 @@ package body Traces_Elf is
       Sec : Addresses_Info_Acc;
 
       Subprogram_Base : Traces_Base_Acc;
+      Filename : constant String := Get_Filename (Exec);
 
       Debug : constant Boolean := False;
    begin
@@ -1321,7 +1327,7 @@ package body Traces_Elf is
             subtype Rebased_Type is Binary_Content (0 .. Sym.Last - Sym.First);
          begin
             Subprogram_Base := Traces_Names.Add_Traces
-              (Sym.Symbol_Name,
+              (Sym.Symbol_Name, Filename,
                Rebased_Type (Sec.Section_Content (Sym.First .. Sym.Last)));
          exception
             when others =>
