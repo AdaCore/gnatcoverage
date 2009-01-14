@@ -1,4 +1,4 @@
-with Textio; use Textio;
+with Text_Io; use Text_Io;
 
 procedure Hello is
 begin
