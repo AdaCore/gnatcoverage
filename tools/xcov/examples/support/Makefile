@@ -32,14 +32,22 @@ RM=rm
 
 all: $(TESTS:%=%.adb.xcov)
 
-CROSS = $(TARGET)-
+# XCOV : produce annotated sources + html from a trace file and the
+# corresponding executable
 
 %.adb.xcov: %.trace
 	$(XCOV) -r $< -e $(basename $<) \
 	 --output-format=html --asm --source-coverage
 
+# QEMU : produce execution trace from executable program execution within
+# instrumented target emulation environment.
+
 %.trace: %.bin
 	$(QEMU) -nographic -M prep -L . -bios $< -trace $@ /dev/null
+
+# CROSS toolchain : produce executable program from sources + target bsp
+
+CROSS = $(TARGET)-
 
 %.bin: %
 	$(CROSS)objcopy -O binary $< $@
@@ -53,6 +61,8 @@ start.o: $(TARGET_SUPPORT_DIR)/start.s
 
 c_io.o: $(TARGET_SUPPORT_DIR)/c_io.c
 	$(CROSS)gcc -c $(CFLAGS) -o $@ $<
+
+# Housekeeping
 
 clean:
 	$(RM) -f *.o *.ali *.bin *.trace b~* *~ *.xcov $(TESTS)
