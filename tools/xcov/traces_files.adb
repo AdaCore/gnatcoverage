@@ -86,7 +86,9 @@ package body Traces_Files is
       end if;
 
       Desc.Kind := Hdr.Kind;
-      if Desc.Kind /= Qemu_Trace_Kind_Raw then
+      if Desc.Kind /= Qemu_Trace_Kind_Raw
+        and then Desc.Kind /= Qemu_Trace_Kind_History
+      then
          raise Bad_File_Format with "invalid header (bad kind)";
       end if;
 
