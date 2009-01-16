@@ -47,7 +47,8 @@ package Traces_Disa is
      (Insn : Binary_Content; Pc : Pc_Type; Sym : Symbolizer'Class)
      return String;
 
-   --  Call CB for each insn in INFO.
+   --  Call CB for each insn in INSNS.
+   --  The state of the insn is computed.
    procedure Disp_Assembly_Lines
      (Insns : Binary_Content;
       Base : Traces_Base;
