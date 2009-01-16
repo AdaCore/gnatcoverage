@@ -62,8 +62,6 @@ package body Traces_Files is
    E64_Size : constant Natural := Trace_Entry64'Size / System.Storage_Unit;
 
    procedure Read_Trace_File_Header (Desc : in out Trace_File_Descriptor);
-   procedure Read_Trace_File (Filename : String;
-                              Cb : access procedure (E : Trace_Entry));
 
    procedure Read_Trace_File_Header (Desc : in out Trace_File_Descriptor)
    is
@@ -205,23 +203,9 @@ package body Traces_Files is
       Read_Trace_File (Filename, Cb'Access);
    end Read_Trace_File;
 
-   procedure Dump_Trace_File (Filename : String)
-   is
-      procedure Cb (E : Trace_Entry);
-
-      procedure Cb (E : Trace_Entry) is
-      begin
-         Put (Hex_Image (E.First));
-         Put ('-');
-         Put (Hex_Image (E.Last));
-         Put (": ");
-         Put (Hex_Image (E.Op));
-         Put (' ');
-         Dump_Op (E.Op);
-         New_Line;
-      end Cb;
+   procedure Dump_Trace_File (Filename : String) is
    begin
-      Read_Trace_File (Filename, Cb'Access);
+      Read_Trace_File (Filename, Dump_Entry'Access);
    end Dump_Trace_File;
 
    procedure Write_Trace_File (Base : Traces_Base; Filename : String)

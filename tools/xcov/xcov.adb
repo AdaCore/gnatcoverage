@@ -28,6 +28,7 @@ with Traces_Names;
 with Traces_Files; use Traces_Files;
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Disa;
+with Traces_History;
 with Version;
 
 procedure Xcov is
@@ -241,6 +242,19 @@ begin
          end if;
          for I in Arg_Index + 1 .. Arg_Count loop
             Dump_Trace_File (Argument (I));
+         end loop;
+         return;
+      elsif Cmd = "--dump-trace-asm" then
+         Arg_Index := Arg_Index + 1;
+         if Arg_Index + 1 < Arg_Count then
+            Put_Line ("missing FILENAME to --dump-trace-asm");
+            return;
+         end if;
+         Open_File (Exec, Argument (Arg_Index), Text_Start);
+         Build_Sections (Exec);
+         Build_Symbols (Exec);
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Traces_History.Dump_Traces_With_Asm (Exec, Argument (I));
          end loop;
          return;
       elsif Cmd = "-h" or else Cmd = "--help" then

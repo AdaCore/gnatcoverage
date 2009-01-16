@@ -1128,9 +1128,6 @@ package body Traces_Elf is
       end loop;
    end Build_Sections;
 
-   procedure Load_Section_Content (Exec : Exe_File_Type;
-                                   Sec : Addresses_Info_Acc);
-
    procedure Disp_Sections_Coverage (Exec : Exe_File_Type; Base : Traces_Base)
    is
       use Addresses_Containers;

@@ -42,6 +42,12 @@ package Traces_Elf is
    --  Extracted information are stored into such object.
    type Exe_File_Type is limited new Symbolizer with private;
 
+   --  Makes symbolize non-abstract.
+   procedure Symbolize (Sym : Exe_File_Type;
+                        Pc : Traces.Pc_Type;
+                        Line : in out String;
+                        Line_Pos : in out Natural);
+
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
@@ -59,8 +65,15 @@ package Traces_Elf is
    --  Get the filename of Exec.
    function Get_Filename (Exec : Exe_File_Type) return String;
 
+   type Addresses_Info;
+   type Addresses_Info_Acc is access Addresses_Info;
+
    --  Build sections map for the current ELF file.
    procedure Build_Sections (Exec : in out Exe_File_Type);
+
+   --  Load the content of a section.
+   procedure Load_Section_Content (Exec : Exe_File_Type;
+                                   Sec : Addresses_Info_Acc);
 
    --  Show coverage of sections.
    procedure Disp_Sections_Coverage (Exec : Exe_File_Type; Base : Traces_Base);
@@ -96,9 +109,6 @@ package Traces_Elf is
    procedure Disp_Subprograms_Addresses (Exe : Exe_File_Type);
    procedure Disp_Symbols_Addresses (Exe : Exe_File_Type);
    procedure Disp_Lines_Addresses (Exe : Exe_File_Type);
-
-   type Addresses_Info;
-   type Addresses_Info_Acc is access Addresses_Info;
 
    --  Display El.
    --  Mostly a debug procedure.
@@ -176,10 +186,5 @@ private
       Symbols_Set : Addresses_Containers.Set;
       Lines_Set : Addresses_Containers.Set;
    end record;
-
-   procedure Symbolize (Sym : Exe_File_Type;
-                        Pc : Traces.Pc_Type;
-                        Line : in out String;
-                        Line_Pos : in out Natural);
 
 end Traces_Elf;

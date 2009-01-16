@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                        Copyright (C) 2009, AdaCore                       --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,32 +16,9 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Traces_Dbase; use Traces_Dbase;
-with Traces;
+with Traces_Elf; use Traces_Elf;
 
-package Traces_Files is
-   --  This exception is raised if the trace file is invalid or corrupted.
-   Bad_File_Format : exception;
-
-   --  This exception is raise in case of OS error during write.
-   Write_Error : exception;
-
-   --  Load in memory (and possibly merge) a trace file.
-   procedure Read_Trace_File (Base : in out Traces_Base; Filename : String);
-
-   --  Read a trace file, call CB for each entry.
-   procedure Read_Trace_File (Filename : String;
-                              Cb : access procedure (E : Traces.Trace_Entry));
-
-   --  Write traces to a file.
-   --  Always generate a consolidated file.
-   procedure Write_Trace_File (Base : Traces_Base; Filename : String);
-
-   --  Raw dump of a trace file.
-   procedure Dump_Trace_File (Filename : String);
-
-   --  Add coverage annotations to the objdump disassembly output.
-   --  Read objdump output from standard input.
-   --  procedure Annotate_Objdump;
-
-end Traces_Files;
+package Traces_History is
+   procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
+                                   Trace_Filename : String);
+end Traces_History;
