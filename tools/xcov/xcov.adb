@@ -56,6 +56,9 @@ procedure Xcov is
       P (" --dump-trace-file FILES");
       P ("   Raw display of trace files");
       New_Line;
+      P (" --dump-trace-asm EXE TRACE_FILES");
+      P ("   Raw display of trace files with assembly code for each trace");
+      New_Line;
       P (" --help  -h");
       P ("   Display this help");
       New_Line;
@@ -420,7 +423,7 @@ begin
             Build_Symbols (Exec);
             Disp_File_Summary;
          elsif Arg = "--function-coverage" then
-            Build_Routine_Names (Exec);
+            Build_Routines_Name (Exec);
             Build_Sections (Exec);
             Build_Symbols (Exec);
             Add_Subprograms_Traces (Exec, Base);

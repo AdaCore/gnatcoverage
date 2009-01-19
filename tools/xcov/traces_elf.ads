@@ -101,7 +101,8 @@ package Traces_Elf is
    procedure Build_Source_Lines (Exec : Exe_File_Type;
                                  Base : in out Traces_Base);
 
-   procedure Build_Routine_Names (Exec : Exe_File_Type);
+   --  Call Traces_Names.Read_Routines_Name on EXEC.
+   procedure Build_Routines_Name (Exec : Exe_File_Type);
 
    --  Display lists.
    procedure Disp_Sections_Addresses (Exe : Exe_File_Type);

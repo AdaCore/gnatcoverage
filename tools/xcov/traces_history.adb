@@ -51,8 +51,8 @@ package body Traces_History is
                Sec := Sec.Parent;
             end loop;
             Load_Section_Content (Exe, Sec);
-            Disassemble (Sec.Section_Content (E.First .. E.Last), Covered,
-                         Textio_Disassemble_Cb'Access, Exe);
+            For_Each_Insn (Sec.Section_Content (E.First .. E.Last), Covered,
+                           Textio_Disassemble_Cb'Access, Exe);
          end if;
       end Disp_Entry;
    begin

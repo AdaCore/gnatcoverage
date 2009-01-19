@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -35,10 +35,12 @@ package Traces_Disa is
                                             Insn : Binary_Content;
                                             Sym : Symbolizer'Class);
 
-   procedure Disassemble (Insns : Binary_Content;
-                          State : Trace_State;
-                          Cb : Disassemble_Cb;
-                          Sym : Symbolizer'Class);
+   --  Call CB for each instruction of INSNS.
+   --  (State and Sym are parameters of CB).
+   procedure For_Each_Insn (Insns : Binary_Content;
+                            State : Trace_State;
+                            Cb : Disassemble_Cb;
+                            Sym : Symbolizer'Class);
 
    --  Generate the disassembly for INSN.
    --  INSN is exactly one instruction.

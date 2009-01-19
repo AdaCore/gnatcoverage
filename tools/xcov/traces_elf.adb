@@ -1262,7 +1262,7 @@ package body Traces_Elf is
                end if;
             end if;
 
-            Traces_Disa.Disassemble
+            Traces_Disa.For_Each_Insn
               (Sec.Section_Content (Addr .. Last_Addr),
                State, Traces_Disa.Textio_Disassemble_Cb'Access, Exec);
 
@@ -1819,9 +1819,9 @@ package body Traces_Elf is
       Add ('>');
    end Symbolize;
 
-   procedure Build_Routine_Names (Exec : Exe_File_Type) is
+   procedure Build_Routines_Name (Exec : Exe_File_Type) is
    begin
       Traces_Names.Read_Routines_Name
         (Exec.Exe_File, new String'(Get_Filename (Exec.Exe_File)), False);
-   end Build_Routine_Names;
+   end Build_Routines_Name;
 end Traces_Elf;

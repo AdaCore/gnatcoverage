@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                      Copyright (C) 2008-2009, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,11 +16,9 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Ada.Unchecked_Conversion;
 with Ada.Text_IO; use Ada.Text_IO;
 with System; use System;
 with Interfaces; use Interfaces;
-with Elf_Arch; use Elf_Arch;
 with Elf_Common;
 with Hex_Images; use Hex_Images;
 with Disa_Ppc;
@@ -53,13 +51,6 @@ package body Traces_Disa is
      (Insn : Binary_Content; Pc : Pc_Type; Sym : Symbolizer'Class)
      return String
    is
---        procedure Get_Symbol (Pc : Pc_Type;
---                              Line : in out String;
---                              Line_Pos : in out Natural) is
---        begin
---           Get_Symbol (Exec, Pc, Line, Line_Pos);
---        end Get_Symbol;
-
       Addr : Address;
       Line_Pos : Natural;
       Line : String (1 .. 128);
@@ -76,7 +67,6 @@ package body Traces_Disa is
          when others =>
             return "";
       end case;
-      --  Get_Symbol'Access);
       if Insn_Len /= Insn'Length then
          raise Constraint_Error;
       end if;
@@ -103,21 +93,16 @@ package body Traces_Disa is
       New_Line;
    end Textio_Disassemble_Cb;
 
-   procedure Disassemble (Insns : Binary_Content;
-                          State : Trace_State;
-                          Cb : Disassemble_Cb;
-                          Sym : Symbolizer'Class)
+   procedure For_Each_Insn (Insns : Binary_Content;
+                            State : Trace_State;
+                            Cb : Disassemble_Cb;
+                            Sym : Symbolizer'Class)
    is
-      type Binary_Content_Thin_Acc is access Binary_Content (Elf_Size);
-      function To_Binary_Content_Thin_Acc is new Ada.Unchecked_Conversion
-        (Address, Binary_Content_Thin_Acc);
       Pc : Pc_Type;
-      Addr : Address;
       Insn_Len : Natural := 0;
    begin
       Pc := Insns'First;
       while Pc < Insns'Last loop
-         Addr := Insns (Pc)'Address;
          case Machine is
             when Elf_Common.EM_PPC =>
                Insn_Len := 4;
@@ -126,14 +111,11 @@ package body Traces_Disa is
             when others =>
                exit;
          end case;
-         Cb.all
-           (Pc, State,
-            To_Binary_Content_Thin_Acc (Addr)(0 .. Elf_Size (Insn_Len) - 1),
-            Sym);
+         Cb.all (Pc, State, Insns (Pc .. Pc + Pc_Type (Insn_Len - 1)), Sym);
          Pc := Pc + Pc_Type (Insn_Len);
          exit when Pc = 0;
       end loop;
-   end Disassemble;
+   end For_Each_Insn;
 
    procedure Disp_Assembly_Lines
      (Insns : Binary_Content;
@@ -174,7 +156,7 @@ package body Traces_Disa is
                Next_Addr := E.First - 1;
             end if;
          end if;
-         Disassemble (Insns (Addr .. Next_Addr), State, Cb, Sym);
+         For_Each_Insn (Insns (Addr .. Next_Addr), State, Cb, Sym);
          exit when Next_Addr >= Insns'Last;
          Addr := Next_Addr + 1;
       end loop;
