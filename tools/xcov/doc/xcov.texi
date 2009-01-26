@@ -11,41 +11,63 @@
 @settitle Xcov documentation
 @c %**end of header
 
+@macro bibref {entry}
+[@cite{\entry\}]
+@end macro
+
+@macro bibdef {entry}
+@anchor{\entry\}[\entry\]
+@end macro
+
 @c Directory where the Explore guide example is stored
 @set explore_dir examples/explore
 
-@c Typeset text to be considered as a term being defined at the point
-@c this macro appears.
-@macro term{t}
-@i{\t\}
-@end macro
- 
 @titlepage
 @title Xcov Fundamentals & Users Guide
 @end titlepage
 
 @contents
 
-@c ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+@c *******************************************************************
+@c *                         ABOUT THIS DOCUMENT                     *
+@c *******************************************************************
+
 @node Top
 @top  About this Document
 
 @noindent
-This document describes the fundamentals of Xcov, a non intrusive
-structural coverage analysis framework.
+This document introduces the fundamentals of Xcov, a non intrusive
+structural coverage analysis framework, together with a toolset user's
+guide.
 
 @ref{explore} presents a simple application example, support to
 illustrate various points in the subsequent chapters.
 
-@ref{cov-basics} introduces the basic.
+@ref{scov-basics} introduces the contextual elements of the Xcov's
+development: a general definition and rationale for ``Structural
+Coverage Analysis'', the process model we consider, and then an
+identification of different possible kinds of analysis activities.
+
+@ref{xcov-grounds} describes the Xcov framework core operation mode and
+capabilities.
+
+@ref{xcov-guide} is a toolset user's guide, with details on the tools
+command lines, use examples for various situations and outputs
+interpretation guidelines.
 
 @menu
-* explore::    The Explore Guide Example
-* cov-basics:: Structural Coverage Basics
+* explore::      The Explore Guide Example
+* scov-basics::  Structural Coverage Basics
+* xcov-grounds:: Xcov Fundamentals
+* xcov-guide::   Xcov User's Guide
 @end menu
 
 
-@node explore,cov-basics,Top,Top
+@c *******************************************************************
+@c *                      COVERAGE ANALYSIS BASICS                   *
+@c *******************************************************************
+
+@node explore,scov-basics,Top,Top
 @chapter The ``Explore'' Guide Example
 @noindent
 The Explore example is a toy Ada application we use throughout the Xcov
@@ -58,7 +80,7 @@ the sources:
 @c @verbatiminclude @value{explore_dir}/overview.ads
 @end smallexample
 
-@node cov-basics,,explore,Top
+@node scov-basics,xcov-grounds,explore,Top
 @chapter Structural Coverage Analysis Basics
 
 @section General Definition & Rationale
@@ -84,7 +106,7 @@ helps the identification of various forms of pointless code or of
 requirements imprecision/incompleteness,
 
 In the following sections we introduce the elements of a coverage
-analysis process together with @term{terms} to be reused throughout this
+analysis process together with @dfn{terms} to be reused throughout this
 document.
 
 @section Process Model
@@ -95,12 +117,12 @@ A typical base coverage analysis process comprises three principal
 steps:
 @enumerate
 @item
-A binary @term{executable program} is produced from a set of
-@term{sources} by a development toolchain with a compiler, a linker etc.
+A binary @dfn{executable program} is produced from a set of
+@dfn{sources} by a development toolchain with a compiler, a linker etc.
 
 @item
-The program is run within an @term{execution environment}, and this
-execution produces @term{raw coverage data} about paths it exercises.
+The program is run within an @dfn{execution environment}, and this
+execution produces @dfn{raw coverage data} about paths it exercises.
 @c
 The form of this raw information depends on the coverage analysis toolset
 technology.
@@ -108,7 +130,7 @@ technology.
 This is most often binary data.
 
 @item
-The raw coverage data is interpreted or @term{mapped} into some user
+The raw coverage data is interpreted or @dfn{mapped} into some user
 readable representation.
 @end enumerate
 
@@ -164,15 +186,15 @@ In this excerpt, the never executed code is expected to show up this way,
 as it is intended to trigger only when the test didn't behave as it should.
 @c
 This points at an important distinction to make: the @code{Test_Queues}
-procedure in this example is @term{testing code} written to exercise
+procedure in this example is @dfn{testing code} written to exercise
 pieces of the @code{Queues} abstraction, and only the latter an actual
 part of the application.
 @c
 Most of the time, we're only really interested in the coverage results
-for such @term{applicative} code.
+for such @dfn{applicative} code.
 
 The production of raw coverage data at run time always implies some sort of
-@term{instrumentation} to have the execution produce information it
+@dfn{instrumentation} to have the execution produce information it
 normally wouldn't produce.
 @c
 This may be achieved in several possible manners:
@@ -207,7 +229,7 @@ useful in some cases, as outlined in the following sections.
 @subsection Coverage Data Capitalization
 @noindent
 
-@term{Capitalization} denotes all the elements related to the fact that
+@dfn{Capitalization} denotes all the elements related to the fact that
 proper coverage of a common piece of applicative code might require several
 test executions, each providing its own partial coverage outcome.
 @c
@@ -255,10 +277,10 @@ the entire application coverage by running a minimal number of sessions"
 would be a pain and actually go against the requirements based testing
 philosophy.
 @c
-One instead typically runs different sessions to verify different specific
-application requirements, each session produces it's own coverage data,
-capitalized, and then a capitalization-aware coverage analysis toolset
-unifies these partial coverage results into a single view.
+One instead typically runs different sessions to verify different
+specific application requirements, each session produces it's own
+coverage data, capitalized, and a capitalization-aware coverage analysis
+toolset unifies these partial coverage results into a single view.
 
 @subsection Coverage Data Consolidation
 @noindent
@@ -269,7 +291,7 @@ In complex systems, this integration is a delicate process, not possible
 before late stages of the project, and it is often useful or simply
 unavoidable to perform coverage analysis on segregated pieces first.
 @c
-In this context, @term{Consolidation} denotes the process of gathering
+In this context, @dfn{Consolidation} denotes the process of gathering
 the coverage information for the various pieces of a system into a
 unified view, for instance to check that proper coverage was achieved
 for all the pieces.
@@ -291,7 +313,7 @@ complex activity, which requires potentially complex metrics on
 potentially complex software involved in potentially complex project
 development cycles.
 
-@term{Process integration} refers to the organizaton of the analysis
+@dfn{Process integration} refers to the organizaton of the analysis
 toolset that will provide consistent and easy access to all the features of
 interest for a given project.
 @c
@@ -301,8 +323,8 @@ project organizations in the field.
 
 @section Coverage Analysis Classification
 @noindent
-We distinguish two broad classes of analysis activities: @term{source}
-and @term{object} coverage analysis.
+We distinguish two broad classes of analysis activities: @dfn{source}
+and @dfn{object} coverage analysis.
 @c
 The process always consists in the evaluation of various possible
 coverage quantifiers, most often driven by specific objectives.
@@ -318,11 +340,11 @@ Object Coverage Analysis focuses on machine object code coverage.
 We will distinguish two major related quantifiers:
 
 @itemize
-@item @term{Object Instruction Coverage (OIC)},
+@item @dfn{Object Instruction Coverage (OIC)},
 a quantification of the program machine instructions exercised by a set
 of program executions.
 
-@item @term{Object Branch Coverage (OBC)},
+@item @dfn{Object Branch Coverage (OBC)},
 OIC + a quantification of the directions taken by each machine
 conditional branch instruction in the program as exercised by a set of
 executions.
@@ -341,52 +363,53 @@ machine code properties of interest for the end user.
 Source Coverage Analysis focuses on user source code and simply
 abstracts the machine code away.
 @c
-The DO-178B ``structural coverage'' criteria operate at this level,
-with three quantifiers defined over three core elements:
+The DO-178B structural coverage criteria operate at this level, with
+three quantifiers defined over three core elements:
 
 @itemize
-@item @term{Source statement},
+@item @dfn{Source statement},
 just referred to in the usual programming language sense.
 
-@item @term{Decision},
+@item @dfn{Decision},
 defined as ``a Boolean expression composed of conditions and zero or
 more Boolean operators.''.
 
-@item @term{Condition},
-defined as ``a decision without a Boolean operator'', with an extra
+@item @dfn{Condition},
+defined as ``a decision without a Boolean operator'' with an extra
 detail: ``If a condition appears more than once in a decision, each
 occurrence is a distinct condition.''.
 @end itemize
 
-@noindent And then:
+@noindent Then we have:
 @itemize
-@item @term{Source Statement Coverage (SSC)},
+@item @dfn{Source Statement Coverage (SSC)},
 a quantification of the source statements exercised by a set of
 program executions.
 
-@item @term{Source Decision Coverage (SDC)},
-SSC + a quantification of the values taken by each logical decision as
-exercised by a set of program executions + a quantification of which
-entry/exit points were exercised as well.
+@item @dfn{Source Decision Coverage (SDC)},
+SSC + a quantification of the values taken by each logical decision and
+of which entry/exit points were exercised by a set of program
+executions.
 
-@item @term{Source Modified Condition/Decision Coverage (SMCDC)},
-SDC + a quantification of wich conditions were shown to have independant
-effect on their decisions out of a set of program executions.
+@item @dfn{Source Modified Condition/Decision Coverage (SMCDC)},
+SDC + a quantification of wich conditions took their two possible
+outcome and which were shown to have independant effect on their
+decisions out of a set of program executions.
 @end itemize
 
 The quantifier names are often used standalone to denote coverage
-objectives, for instance ``achieving Source Statement Coverage'' to
-denotes covering 100% of the program source statements, and the
-``source'' part is often omitted and implicitly assumed.
+objectives, for instance ``achieving Source Statement Coverage'' denotes
+covering 100% of the program source statements, and the ``source'' part
+is often omitted and implicitly assumed.
 @c
 DO-178B attaches specific structural coverage objectives to different
-certification levels this way, with @term{Statement Coverage} at level C,
-@term{Decision Coverage} at level B and @term{Modified
+certification levels this way, with @dfn{Statement Coverage} at level C,
+@dfn{Decision Coverage} at level B and @dfn{Modified
 Condition/Decision Coverage} at level A.
 
-Below is an simple illustration of the principal differences over a
-simple example out of the Explore sources, part of the Robot abstraction
-behavior:
+Below is a simple illustration of the principal differences between the
+criteria over a simple example out of the Explore sources, part of the
+Robot abstraction behavior:
 @smallexample
    --  Whether execution of CTRL by Robot R is unsafe
 
@@ -414,16 +437,16 @@ behavior:
    end;
 @end smallexample
 
-The Statement Coverage criterion requires execution of all the source
-statements at least once.
+Statement Coverage of the @code{Unsafe} function requires execution of
+all the source statements at least once.
 @c
-This can be achieved with a single call to the function in this example,
-as soon as the boolean decision controlling the @code{if} statement
-evaluates to @code{True}.
+This can be achieved with a single call to the function, as soon as the
+boolean decision controlling the @code{if} statement evaluates to
+@code{True}.
 
 Decision Coverage requires that every decision has evaluated at least
 once to @code{True} and at least once @code{False}, which necessitates
-at least two calls in our example, one to exercise the @code{then} part
+at least two calls in our example: one to exercise the @code{then} part
 of the @code{if} statement and one to exercise the implicit null
 @code{else} part.
 @c
@@ -437,22 +460,35 @@ the decision outcome in an independant manner.
 This is expected to be possible with Nconditions+1 evaluations, so
 enforces a more precise testing of the expressions structure while
 keeping the test base complexity linear with the number of conditions.
+@c
+While this general principe always holds, there exist several variants
+of the MCDC criteria, with differences in the way independance may be
+shown.
 
 @subsection Source vs Object Quantifiers
 @noindent
-Both kinds of quantifiers have pros and cons, very dependent on the
-use context and general purpose.
+Object and Source quantifiers have both pros and cons, some very
+dependent on the evaluation context and purpose.
 @c
 An interesting and difficult question is that of the possible
-``equivalence'' of one with criterion to another one, for some
-definition of ``equivalence'' to start with.
+equivalence of one criterion to another one, for some definition of
+``equivalence'' to start with.
 @c
-For instance, it is established that OBC can sometimes be achieved
-with less tests than SMCDC
+For instance, it is established that OBC does not always imply MCDC
+in the general case @bibref{AR07/20}.
+@c
+It only does when a number of conditions hold together, such as: 1/ the
+only boolean binary operators in use are those with short-circuit
+semantics (@code{and then} and @code{or else} in Ada), 2/ Different
+kinds of binary boolean operators are never mixed in the same
+expression, and 3/ the machine code includes one conditional branch
+instruction per condition.
 
+@c *******************************************************************
+@c *                           XCOV FUNDAMENTALS                     *
+@c *******************************************************************
 
-@c ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-
+@node xcov-grounds,xcov-guide,scov-basics,Top
 @chapter Xcov Fundamentals
 
 @section Instrumentation Level and Raw Coverage Data
@@ -461,24 +497,24 @@ The core principle in the Xcov framework is to leverage the generation
 of raw coverage data by a virtual execution environment instrumented to
 produce machine level traces about the code it executes.
 
-The environment would typically be an emulator representative of a real
-target machine microprocessor, possibly augmented with extensions to let
-it communicate with external devices.
+The environment typically is a representative emulator of a real target
+machine microprocessor, possibly augmented with extensions to let it
+communicate with external devices.
 @c
-It could also be a pure virtual machine such as existing ones for Java
-or Caml like languages.
+It may also be a pure virtual machine such as existing ones for Java or
+Caml like languages.
 @c
 In any case, the program itself isn't instrumented, so coverage
-measurements can be performed on target code as embedded eventually, and
-the virtual environment runs on development hosts, which offers a lot of
-flexibility.
+measurements can be performed on target code, as embedded eventually,
+and the virtual environment runs on development hosts, which offers a
+lot of flexibility.
 
 The raw coverage data out of the execution environment is very low level
 information about the executed instruction and branch sequences at the
 machine level.
 @c
-The actual contents may vary, depending on the kind of analysis
-anticipated.
+The actual contents structure may vary, depending on the kind of
+analysis anticipated.
 
 @section Object Coverage Analysis
 @noindent
@@ -500,7 +536,7 @@ correspondance, Xcov is also able to render the object coverage outcome
 through source annotations, with source line annnotations derived from
 those of all the associated machine instructions.
 @c
-Typically, a source line is marked as @term{fully}/@term{partially}
+Typically, a source line is marked as @dfn{fully}/@dfn{partially}
 covered when all/part of the associated machine instructions were
 executed, and the instruction/line correspondance is extracted from
 standard DWARF debug information or alike.
@@ -508,54 +544,53 @@ standard DWARF debug information or alike.
 @section Source Coverage Analysis
 @noindent
 Xcov is also designed to allow Source Coverage Analysis, with central
-focus on user source code and support for the three DO-178B quantifiers:
-Statement Coverage, Decision Coverage and Modified Condition/Decision
-Coverage.
+focus on user source code and support for the three DO-178B criteria:
+Statement, Decision and Modified Condition/Decision Coverage.
 
-Relies on Source Coverage Obligations
-
-Only the way to relate excution traces to obligations differs amongst
-levels.
-
-
-@subsection Base Restrictions and Compiler Assumptions
-
-Base compiler assumption: a conditional branch per condition.
+The first important element for this purpose is the introduction of
+@dfn{Source Coverage Obligations} (SCOs), compact tables generated to
+indicate the source elements of relevance to coverage analysis
+activities.
 @c
-Then:
+SCOs are designed to be independant from the target certification level,
+which only influences the way a given trace is determined to meet.
 
-@enumerate
-@item
-The set of binary operators allowed over boolean entities is restricted to
-the short-circuit operators (@code{and then} + @code{or else} in Ada),
+Another element of note is the execution trace contents, in particular
+when the MCDC criterion is involved.
+@c
+Indeed, the object coverage flat execution traces aren't precise enough
+in this case unless very strong constraints are met by the source
+constructs.
 
-@item
-Binary operators over boolean entities may only appear in explicit control
-flow decisions (as part of @code{X} in @code{[els]if X, while X, exit when
-X} in Ada).
+To relax the source constraints for MCDC, Xcov uses SCOs and precise
+debug information to associate conditional branches with conditions,
+then traces are extended to track the history of run-time behavior at
+those branch points.
+@c
+This way the toolset is able to reconstruct the exercised
+condition/decision vectors without modifying the program as other
+instrumentation techniques would have done.
 
-@item
-Different kinds of binary operators over boolean entities may not be mixed
-together in the same expression (@code{A and then B and then C} is allowed,
-@code{A or else B and then C} is not).
+On the code generation front, using extended traces or flat ones with
+source constraints, the MCDC capabilities of Xcov rely on the presence
+of a conditional branch instruction for each non-constant condition.
+@c
+For the GCC compilation toolchain, we provide a set of compilation
+options suitable for the Source Coverage analysis activity.
+@c
+This set of options is designed to remain reasonable for production use,
+so that source coverage analysis may be performed on the final code, as
+embedded eventually.
+@c
+If the production code absolutely requires options incompatible with the
+source coverage analysis process, the latter remains doable with its own
+set of options and Xcov allows object coverage analysis on the final
+bits in any case.
 
-@end enumerate
-
-Implications (no expr in assignments).
-
-Position wrt extreme mcdc considerations
-
-@subsection Relaxing constraints with additional compiler support
-
-Expansion of boolean assignments and return statements => relax
-restrictions on decision contexts.
-
-Precise debug info to map branches to conditions => relax restrictions
-on expression structure.
-
-Source Coverage => Specific compilation options, reasonable for
-operational use => possible object analysis on final code.
-
+@c *******************************************************************
+@c *                          USER'S GUIDE                           *
+@c *******************************************************************
+@node xcov-guide,,xcov-grounds,Top
 @chapter Xcov User's Guide
 
 @section Base Process
@@ -590,6 +625,11 @@ Expansions, precise debug info ...
 
 @section Trace Format Definition
 
+@chapter Bibliography
+
+@bibdef{AR07/20} Object-Oriented Technology Verification Phase 3
+Report: Structural Coverage at the source code and object code levels.
+John J. Chilenski and John L. Kurtz. DOT/FAA/AR-07/20.
 
 @bye
 
