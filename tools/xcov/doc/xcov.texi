@@ -11,12 +11,12 @@
 @settitle Xcov documentation
 @c %**end of header
 
-@macro bibref {entry}
-[@cite{\entry\}]
+@macro xcov
+@command{xcov}
 @end macro
 
-@macro bibdef {entry}
-@anchor{\entry\}[\entry\]
+@macro bibref {entry}
+[@cite{\entry\}]
 @end macro
 
 @c Directory where the Explore guide example is stored
@@ -51,7 +51,7 @@ identification of different possible kinds of analysis activities.
 @ref{xcov-grounds} describes the Xcov framework core operation mode and
 capabilities.
 
-@ref{xcov-guide} is a toolset user's guide, with details on the tools
+@ref{xcov-guide} is the toolset user's guide, with details on the tools
 command lines, use examples for various situations and outputs
 interpretation guidelines.
 
@@ -113,21 +113,17 @@ document.
 
 @subsection Primary Process Abstractions
 @noindent
-A typical base coverage analysis process comprises three principal
+A typical coverage analysis base process comprises three principal
 steps:
 @enumerate
 @item
-A binary @dfn{executable program} is produced from a set of
-@dfn{sources} by a development toolchain with a compiler, a linker etc.
+A binary @dfn{executable program} is produced from a set of program
+@dfn{sources} by development toolchains with compilers, linkers, etc.
 
 @item
-The program is run within an @dfn{execution environment}, and this
-execution produces @dfn{raw coverage data} about paths it exercises.
-@c
-The form of this raw information depends on the coverage analysis toolset
-technology.
-@c
-This is most often binary data.
+The executable program is run within an @dfn{execution environment}, and
+this execution produces @dfn{raw coverage data} about paths it
+exercises.
 
 @item
 The raw coverage data is interpreted or @dfn{mapped} into some user
@@ -135,8 +131,7 @@ readable representation.
 @end enumerate
 
 As an illustrative example, consider the common GCC/GCOV process, exactly
-along those lines: the program is compiled and linked by GCC 
-@c @footnote{GCC:The GNU Compiler Collection - http://gcc.gnu.org}
+along those lines: the program is compiled and linked by GCC @bibref{gcc} 
 with special command-line options, execution produces a binary data file
 and the GCOV tool can then be used to generate annotated sources from
 the original files, the executable and the execution data.
@@ -193,25 +188,30 @@ part of the application.
 Most of the time, we're only really interested in the coverage results
 for such @dfn{applicative} code.
 
-The production of raw coverage data at run time always implies some sort of
-@dfn{instrumentation} to have the execution produce information it
-normally wouldn't produce.
+The form of the raw information depends on the coverage analysis toolset
+technology.
+@c
+This is most often binary data.
+@c
+The production of raw coverage data at run time always involves some
+sort of @dfn{instrumentation} to have the execution produce information
+it normally wouldn't produce.
 @c
 This may be achieved in several possible manners:
 @itemize
-@item
-Explicit statements and data structures to maintain the coverage state
-are added to the program sources.
+@item @dfn{Source Instrumentation}:
+The coverage analysis toolset adds explicit statements and data
+structures to the program source to maintain the coverage state.
 @c
 This is what many commercial products do.
 
-@item
-The development toolchain inserts extra machine state and instructions in
-the program executable code.
+@item @dfn{Object Instrumentation}:
+The development toolchain inserts extra machine state and instructions
+in the program executable object code.
 @c
 This is the GCC/GCOV approach.
 
-@item
+@item @dfn{Environment Instrumentation}:
 The execution environment is setup to produce a trace of the program paths
 taken at the machine instruction level, leaving the program code untouched.
 @c
@@ -228,7 +228,6 @@ useful in some cases, as outlined in the following sections.
 
 @subsection Coverage Data Capitalization
 @noindent
-
 @dfn{Capitalization} denotes all the elements related to the fact that
 proper coverage of a common piece of applicative code might require several
 test executions, each providing its own partial coverage outcome.
@@ -327,17 +326,19 @@ We distinguish two broad classes of analysis activities: @dfn{source}
 and @dfn{object} coverage analysis.
 @c
 The process always consists in the evaluation of various possible
-coverage quantifiers, most often driven by specific objectives.
-@c
-Every toolsets offers its own spectrum of analysis possibilities, with
+@dfn{coverage quantifiers} such as ``which program statements were
+covered/not-covered by this set of executions ? What percentage of the
+total source code do these values represent ?'', most often driven by
+specific objectives.
+
+Every toolset offers its own spectrum of analysis possibilities, with
 variations in the implementation schemes behind the scene, in particular
 regarding the instrumentation mode.
 
 @subsection Object Coverage Analysis
 @noindent
-Object Coverage Analysis focuses on machine object code coverage.
-@c
-We will distinguish two major related quantifiers:
+Object Coverage Analysis focuses on machine object code coverage,
+with two essential quantifiers:
 
 @itemize
 @item @dfn{Object Instruction Coverage (OIC)},
@@ -410,7 +411,9 @@ Condition/Decision Coverage} at level A.
 Below is a simple illustration of the principal differences between the
 criteria over a simple example out of the Explore sources, part of the
 Robot abstraction behavior:
+
 @smallexample
+
    --  Whether execution of CTRL by Robot R is unsafe
 
    function Unsafe
@@ -501,8 +504,12 @@ The environment typically is a representative emulator of a real target
 machine microprocessor, possibly augmented with extensions to let it
 communicate with external devices.
 @c
-It may also be a pure virtual machine such as existing ones for Java or
-Caml like languages.
+For common architectures, we leverage Qemu @bibref{qemu} for this
+purpose, as a reliable and efficient free-software emulator we can
+instrument to generate the traces.
+
+The environment may also be a pure virtual machine such as existing ones
+for Java or Caml like languages.
 @c
 In any case, the program itself isn't instrumented, so coverage
 measurements can be performed on target code, as embedded eventually,
@@ -547,36 +554,33 @@ Xcov is also designed to allow Source Coverage Analysis, with central
 focus on user source code and support for the three DO-178B criteria:
 Statement, Decision and Modified Condition/Decision Coverage.
 
-The first important element for this purpose is the introduction of
-@dfn{Source Coverage Obligations} (SCOs), compact tables generated to
-indicate the source elements of relevance to coverage analysis
-activities.
+For MCDC, the framework sets up the necessary elements to be able to
+reconstruct the exercised run-time condition/decision vectors, without
+ever modifying the program as other instrumentation techniques would do.
+@c
+An important element for this purpose is the introduction of @dfn{Source
+Coverage Obligations} (SCOs), compact tables generated to indicate the
+source elements of relevance to coverage analysis activities.
 @c
 SCOs are designed to be independant from the target certification level,
 which only influences the way a given trace is determined to meet.
 
-Another element of note is the execution trace contents, in particular
-when the MCDC criterion is involved.
+For Qemu targets and the GCC compilation toochain, the toolset uses SCOs
+and precise debug information to associate conditional branches with
+conditions, then traces are extended to track the history of run-time
+behavior at those branch points.
 @c
 Indeed, the object coverage flat execution traces aren't precise enough
 in this case unless very strong constraints are met by the source
 constructs.
 
-To relax the source constraints for MCDC, Xcov uses SCOs and precise
-debug information to associate conditional branches with conditions,
-then traces are extended to track the history of run-time behavior at
-those branch points.
-@c
-This way the toolset is able to reconstruct the exercised
-condition/decision vectors without modifying the program as other
-instrumentation techniques would have done.
-
 On the code generation front, using extended traces or flat ones with
 source constraints, the MCDC capabilities of Xcov rely on the presence
 of a conditional branch instruction for each non-constant condition.
 @c
-For the GCC compilation toolchain, we provide a set of compilation
-options suitable for the Source Coverage analysis activity.
+We provide a set of compilation options suitable for both this
+particular purpose and for the Source Coverage analysis activity in
+general.
 @c
 This set of options is designed to remain reasonable for production use,
 so that source coverage analysis may be performed on the final code, as
@@ -591,9 +595,56 @@ bits in any case.
 @c *                          USER'S GUIDE                           *
 @c *******************************************************************
 @node xcov-guide,,xcov-grounds,Top
-@chapter Xcov User's Guide
 
-@section Base Process
+@chapter Xcov User's Guide - Qemu/GCC edition
+
+@section Getting Started
+
+@subsection Package Contents
+
+As of today, the Xcov framework comprises two core command line
+components:
+
+@itemize
+
+@item
+An instrumented version of Qemu, able to generate execution traces of
+the machine code it executes, and
+
+@item
+The @xcov{} trace analyzer, able to decode the execution traces out of
+Qemu into various user readable formats, text or html, some of which may
+be visualized through GPS, the GNAT Programming Studio graphical IDE
+(starting from version 4.3.0).
+
+@end itemize
+
+@noindent
+The package also includes
+
+@itemize
+@item
+A thin Qemu Board Support Package to link with your executable,
+
+@item
+A couple of low level components for Ada, in case they are not included
+in your run-time library (simple IO, memory copy/set/compare services,
+...),
+
+@item
+A number of example programs you can exercise to get familiar with the
+toolset capabilities and which we'll use throughout the rest of this
+document,
+
+@item
+A support @code{Makefile} to automate and illustrate the
+build/run/analyze sequence for the examples.
+
+@end itemize
+
+@subsection Quick Start
+
+@section Simple Object Coverage Analysis
 
 Compilation options.
 
@@ -601,15 +652,15 @@ Compilation options.
 
 @subsection Source Annotations
 
-@subsection Levels of Results Interpretation
+@subsection Ada Constructs of Note
 
-Yes/No vs details 
+@subsubsection Generics
 
-@section Ada Constructs of Note
+@subsubsection Inlining
 
-@subsection Generics
+@section Simple Source Coverage Analysis
 
-@subsection Inlining
+Capabilities and documentation to be developped.
 
 @section GNAT specificities
 
@@ -617,19 +668,63 @@ Yes/No vs details
 
 Expansions, precise debug info ...
 
-@section Capitalization
+-O1 -fpreserve-control-flow
 
-@section Consolidation
+@section Coverage Data Capitalization
+
+@section Coverage Data Consolidation
+
+@section @code{xcov} command line summary
 
 @chapter Appendices
 
 @section Trace Format Definition
 
+@c *******************************************************************
+@c *                          BIBLIOGRAPHY                           *
+@c *******************************************************************
+
 @chapter Bibliography
 
-@bibdef{AR07/20} Object-Oriented Technology Verification Phase 3
-Report: Structural Coverage at the source code and object code levels.
-John J. Chilenski and John L. Kurtz. DOT/FAA/AR-07/20.
+@macro CHILENSKI
+John J. Chilenski
+@end macro
+
+@macro KURTZ
+John L. Kurtz
+@end macro
+
+@macro bibdef {entry}
+@item @anchor{\entry\}[\entry\]
+@end macro
+
+@table @strong
+
+@bibdef{ar07/20}	
+Object-Oriented Technology Verification Phase 3 Report: Structural
+Coverage at the source code and object code levels.
+@c
+@CHILENSKI{} and @KURTZ{}.
+@c
+DOT/FAA/AR-07/20.
+
+@bibdef{gcc}
+@c
+GCC: The GNU Compiler Collection.
+@c
+http://gcc.gnu.org
+
+@bibdef{qemu}
+@c
+QEMU, a Fast and Portable Dynamic Translator.
+@c
+Fabrice Bellard.
+@c
+Proceedings of the ``USENIX 2005 Annual Technical Conference, FREENIX
+Track'', pp 41-46.
+@c
+http://bellard.org/qemu/
+
+@end table
 
 @bye
-
