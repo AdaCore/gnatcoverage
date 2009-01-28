@@ -312,9 +312,9 @@ complex activity, which requires potentially complex metrics on
 potentially complex software involved in potentially complex project
 development cycles.
 
-@dfn{Process integration} refers to the organizaton of the analysis
-toolset that will provide consistent and easy access to all the features of
-interest for a given project.
+@dfn{Process integration} refers to the organization of the analysis
+toolset that will provide consistent and easy access to all the features
+of interest for a given project.
 @c
 The toolset needs to be both powerful enough to provide the desired
 functionalities and flexible enough to accomodate the various possible
@@ -327,9 +327,9 @@ and @dfn{object} coverage analysis.
 @c
 The process always consists in the evaluation of various possible
 @dfn{coverage quantifiers} such as ``which program statements were
-covered/not-covered by this set of executions ? What percentage of the
-total source code do these values represent ?'', most often driven by
-specific objectives.
+covered/not-covered by this set of executions ?'' or ``What percentage
+of the total source code do these values represent ?'', most often
+driven by specific objectives.
 
 Every toolset offers its own spectrum of analysis possibilities, with
 variations in the implementation schemes behind the scene, in particular
@@ -408,9 +408,9 @@ certification levels this way, with @dfn{Statement Coverage} at level C,
 @dfn{Decision Coverage} at level B and @dfn{Modified
 Condition/Decision Coverage} at level A.
 
-Below is a simple illustration of the principal differences between the
-criteria over a simple example out of the Explore sources, part of the
-Robot abstraction behavior:
+Below is an illustration of the principal differences between the
+criteria over a simple example function out of an early version of the
+Explore sources:
 
 @smallexample
 
@@ -428,10 +428,11 @@ Robot abstraction behavior:
       declare
          Is_Unsafe : Boolean := False;
       begin
-         --  Stepping forward with a rock block on the square ahead
-         --  would crash the robot on the block
+         --  Stepping ahead into a rock block or a water pit is unsafe
 
-         if Ctrl.Code = Step_Forward and then Situ.Sqa = Block then
+         if Ctrl.Code = Step_Forward
+            and then (Situ.Sqa = Block or else Situ.Sqa = Water)
+         then
             Is_Unsafe := True;
          end if;
 
@@ -449,12 +450,11 @@ boolean decision controlling the @code{if} statement evaluates to
 
 Decision Coverage requires that every decision has evaluated at least
 once to @code{True} and at least once @code{False}, which necessitates
-at least two calls in our example: one to exercise the @code{then} part
-of the @code{if} statement and one to exercise the implicit null
-@code{else} part.
+at least two calls in our example to exercise the @code{if} controlling
+expression properly.
 @c
 It also requires going through every possible entry and exit point,
-without impact of note on the simple example at hand.
+without further impact of note on the simple example at hand.
 
 Modified Condition/Decision Coverage requires additional variations over
 the conditions, and combinations to show that each condition can affect
@@ -484,11 +484,11 @@ It only does when a number of conditions hold together, such as: 1/ the
 only boolean binary operators in use are those with short-circuit
 semantics (@code{and then} and @code{or else} in Ada), 2/ Different
 kinds of binary boolean operators are never mixed in the same
-expression, and 3/ the machine code includes one conditional branch
+expression, and 3/ the machine code features one conditional branch
 instruction per condition.
 
 @c *******************************************************************
-@c *                           XCOV FUNDAMENTALS                     *
+@c *                        XCOV FUNDAMENTALS                        *
 @c *******************************************************************
 
 @node xcov-grounds,xcov-guide,scov-basics,Top
@@ -553,14 +553,15 @@ standard DWARF debug information or alike.
 Xcov is also designed to allow Source Coverage Analysis, with central
 focus on user source code and support for the three DO-178B criteria:
 Statement, Decision and Modified Condition/Decision Coverage.
-
+@c
 For MCDC, the framework sets up the necessary elements to be able to
 reconstruct the exercised run-time condition/decision vectors, without
 ever modifying the program as other instrumentation techniques would do.
-@c
-An important element for this purpose is the introduction of @dfn{Source
-Coverage Obligations} (SCOs), compact tables generated to indicate the
-source elements of relevance to coverage analysis activities.
+
+An important element for source coverage analysis with Xcov is the
+introduction of @dfn{Source Coverage Obligations} (SCOs), compact tables
+generated to indicate the source elements of relevance to coverage
+analysis activities.
 @c
 SCOs are designed to be independant from the target certification level,
 which only influences the way a given trace is determined to meet.
@@ -624,12 +625,13 @@ The package also includes
 
 @itemize
 @item
-A thin Qemu Board Support Package to link with your executable,
+A light Qemu Board Support Package to link with your executable to let
+it run within the emulated environment,
 
 @item
-A couple of low level components for Ada, in case they are not included
-in your run-time library (simple IO, memory copy/set/compare services,
-...),
+A couple of low level components for Ada (simple IO, memory block
+copy/set/compare services, ...) in case they are not included in your
+run-time library
 
 @item
 A number of example programs you can exercise to get familiar with the
@@ -637,30 +639,97 @@ toolset capabilities and which we'll use throughout the rest of this
 document,
 
 @item
-A support @code{Makefile} to automate and illustrate the
-build/run/analyze sequence for the examples.
+A support @code{Makefile} to automate an illustrative build/run/analyze
+sequence for the examples.
 
 @end itemize
 
 @subsection Quick Start
 
+We will start by running one of the provided examples thanks to the
+support @code{Makefile}, assuming you have both your target compilation
+toolchain and the Xcov package installed.
+
+The first step is to setup the @code{PATH} environment variable to
+include locations for both the target compiler and the Xcov @samp{bin}
+directory.
+@c
+For example with a @code{bash} like shell:
+
+@smallexample
+$ PATH=/usr/local/gnatpro/6.1.2/bin:/usr/local/xcov-1.0.0/bin:$PATH
+@end smallexample
+
+Then switch to the Xcov @code{explore} example directory and exercise
+the @code{test_queues} test there for your target, thanks to the local
+@code{Makefile}:
+
+@smallexample
+.../examples/explore $ make TESTS=test_queues TARGET=powerpc-elf
+@end smallexample
+
+This performs a build/run/analyze sequence out of which object coverage
+results rendered in sources are produced in html format.
+@c
+No user interaction is required for this specific test.
+@c
+To get a first idea of what is going on, let's looks at comments Over
+the sequence out of the @code{make} invocation above:
+
+@smallexample
+
+# Step 1:  Build an executable program suitable for Qemu. This is a
+# -------  regular <target>-gnatmake build with a couple of extra bsp
+#          components for startup/io + a dedicated linker script:
+
+powerpc-elf-gcc -c -o start.o ../support/powerpc-elf/start.s
+powerpc-elf-gcc -c -g -O1 -fpreserve-control-flow -o c_io.o .../c_io.c
+
+powerpc-elf-gnatmake -g -O1 -fpreserve-control-flow test_queues
+ ... -largs start.o c_io.o -Wl,-T../support/powerpc-elf/gnu.ld -nostdlib
+[...]
+powerpc-elf-objcopy -O binary test_queues test_queues.bin
+
+# Step 2:  Run the '.bin' executable program within the instrumented Qemu,
+# -------  requesting the production of an execution '.trace' file:
+
+qemu-system-ppc -nographic -M prep -L . -bios test_queues.bin
+                -trace test_queues.trace /dev/null
+
+# Step 3:  Ask xcov to analyze the trace and produce an html version of
+# -------  the results, with object coverage info rendered on source:
+
+xcov -r test_queues.trace -e test_queues \
+         --output-format=html --asm --source-coverage
+mv index.html index-test_queues.html
+
+@end smallexample
+
+The local @code{explore/Makefile} actually just includes a generic
+@code{support/Makefile} for all the examples, which you may reuse and
+adapt to your specific needs.
+@c
+We will now get into the @xcov{} features in more details.
+
 @section Simple Object Coverage Analysis
 
 Compilation options.
 
-@subsection Assembly Annotations
+@subsection Annotated Assembly Output
 
-@subsection Source Annotations
+@subsection Annotated Source Output
 
-@subsection Ada Constructs of Note
-
-@subsubsection Generics
-
-@subsubsection Inlining
+@subsection Html output
 
 @section Simple Source Coverage Analysis
 
 Capabilities and documentation to be developped.
+
+@section Ada Constructs of Note
+
+@subsubsection Generics
+
+@subsubsection Inlining
 
 @section GNAT specificities
 
