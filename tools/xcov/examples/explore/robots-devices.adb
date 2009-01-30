@@ -1,6 +1,21 @@
-----------------------------------------------------------------------------
---                             ROBOTS.DEVICES (BODY)                      --
-----------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--                                                                          --
+--                              Couverture                                  --
+--                                                                          --
+--                     Copyright (C) 2008-2009, AdaCore                     --
+--                                                                          --
+-- Couverture is free software; you can redistribute it  and/or modify it   --
+-- under terms of the GNU General Public License as published by the Free   --
+-- Software Foundation; either version 2, or (at your option) any later     --
+-- version.  Couverture is distributed in the hope that it will be useful,  --
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHAN-  --
+-- TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public --
+-- License  for more details. You  should  have  received a copy of the GNU --
+-- General Public License  distributed with GNAT; see file COPYING. If not, --
+-- write  to  the Free  Software  Foundation,  59 Temple Place - Suite 330, --
+-- Boston, MA 02111-1307, USA.                                              --
+--                                                                          --
+------------------------------------------------------------------------------
 
 --  This is a fake implementation of the Robots.Devices for the Explore
 --  example, allowing simple simulations without real hardware.
@@ -32,9 +47,8 @@ package body Robots.Devices is
      (Situ : out Situation; H : Hardware_Access) is
    begin
       --  The current situation is updated by every op execution, so ...
-
       Situ := H.Situ;
-   end;
+   end Probe;
 
    -----------------
    -- Probe_Ahead --
@@ -44,7 +58,21 @@ package body Robots.Devices is
       Posa : constant Position := Pos_Ahead_Of (Situ);
    begin
       Situ.Sqa := Map (Posa.X, Posa.Y);
-   end;
+   end Probe_Ahead;
+
+   ------------
+   -- Unsafe --
+   ------------
+
+   function Unsafe
+     (Ctrl : Robot_Control; H : Hardware_Access) return Boolean
+   is
+   begin
+      --  Stepping forward into a rock block or a water pit is unsafe ...
+
+      return Ctrl.Code = Step_Forward
+        and then (H.Situ.Sqa = Block or else H.Situ.Sqa = Water);
+   end Unsafe;
 
    -------------
    -- Execute --
@@ -53,10 +81,9 @@ package body Robots.Devices is
    procedure Execute
      (Ctrl : Robot_Control; H : Hardware_Access) is
    begin
-      --  If the engine is asked to push the robot into a rock block,
-      --  the robot dies.
+      --  Executing an unsafe command kills ...
 
-      if Ctrl.Code = Step_Forward and then H.Situ.Sqa = Block then
+      if Unsafe (Ctrl, H) then
          Dump (H.Map, H.Situ);
          raise Program_Error;
       end if;
@@ -92,7 +119,7 @@ package body Robots.Devices is
       --  new Square ahead.
 
       Probe_Ahead (H.Situ, H.Map);
-   end;
+   end Execute;
 
    --------------
    -- Fake_Map --
@@ -100,36 +127,40 @@ package body Robots.Devices is
 
    procedure Fake_Map (Map : in out Geomap) is
 
+      procedure Block_Borders_On (Map : in out Geomap);
+      procedure Clear_Playzone_On (Map : in out Geomap);
+      procedure Setup_Blocks_On (Map : in out Geomap);
+
       procedure Block_Borders_On (Map : in out Geomap) is
          X, Y : Natural;
       begin
-         X := Map'First(Sqx);
+         X := Map'First (Sqx);
          for Y in Map'Range (Sqy) loop
             Map (X, Y) := Block;
          end loop;
-         X := Map'Last(Sqx);
+         X := Map'Last (Sqx);
          for Y in Map'Range (Sqy) loop
             Map (X, Y) := Block;
          end loop;
 
-         Y := Map'First(Sqy);
+         Y := Map'First (Sqy);
          for X in Map'Range (Sqx) loop
             Map (X, Y) := Block;
          end loop;
-         Y := Map'Last(Sqy);
+         Y := Map'Last (Sqy);
          for X in Map'Range (Sqx) loop
             Map (X, Y) := Block;
          end loop;
-      end;
+      end Block_Borders_On;
 
       procedure Clear_Playzone_On (Map : in out Geomap) is
       begin
-         for X in Map'First (Sqx) + 1 .. Map'Last(Sqx) - 1 loop
-            for Y in Map'First (Sqy) + 1 .. Map'Last(Sqy) - 1 loop
-               Map (X, Y) := Clear;
+         for X in Map'First (Sqx) + 1 .. Map'Last (Sqx) - 1 loop
+            for Y in Map'First (Sqy) + 1 .. Map'Last (Sqy) - 1 loop
+               Map (X, Y) := Ground;
             end loop;
          end loop;
-      end;
+      end Clear_Playzone_On;
 
       procedure Setup_Blocks_On (Map : in out Geomap) is
          X, Y : Natural;
@@ -144,22 +175,22 @@ package body Robots.Devices is
          Stepx : Natural := Wx / (Nx + 1);
          Stepy : Natural := Wy / (Ny + 1);
       begin
-         Y := Map'First(Sqy) + Stepy;
-         while Y <= Map'Last(Sqy) loop
-            X := Map'First(Sqx) + Stepx;
-            while X <= Map'Last(Sqx) loop
+         Y := Map'First (Sqy) + Stepy;
+         while Y <= Map'Last (Sqy) loop
+            X := Map'First (Sqx) + Stepx;
+            while X <= Map'Last (Sqx) loop
                Map (X, Y) := Block;
                X := X + Stepx;
             end loop;
             Y := Y + Stepy;
          end loop;
-      end;
+      end Setup_Blocks_On;
 
    begin
       Block_Borders_On (Map);
       Clear_Playzone_On (Map);
       Setup_Blocks_On (Map);
-   end;
+   end Fake_Map;
 
    ----------
    -- Init --
@@ -180,6 +211,6 @@ package body Robots.Devices is
       H.Situ.Dir := East;
 
       Probe_Ahead (H.Situ, H.Map);
-   end;
+   end Init;
 
-end;
+end Robots.Devices;

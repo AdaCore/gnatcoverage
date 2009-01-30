@@ -1,6 +1,21 @@
-----------------------------------------------------------------------------
---                               LINKS (BODY)                             --
-----------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--                                                                          --
+--                              Couverture                                  --
+--                                                                          --
+--                     Copyright (C) 2008-2009, AdaCore                     --
+--                                                                          --
+-- Couverture is free software; you can redistribute it  and/or modify it   --
+-- under terms of the GNU General Public License as published by the Free   --
+-- Software Foundation; either version 2, or (at your option) any later     --
+-- version.  Couverture is distributed in the hope that it will be useful,  --
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHAN-  --
+-- TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public --
+-- License  for more details. You  should  have  received a copy of the GNU --
+-- General Public License  distributed with GNAT; see file COPYING. If not, --
+-- write  to  the Free  Software  Foundation,  59 Temple Place - Suite 330, --
+-- Boston, MA 02111-1307, USA.                                              --
+--                                                                          --
+------------------------------------------------------------------------------
 
 package body Links is
 
@@ -12,7 +27,7 @@ package body Links is
      (Port : IOport_Access; Callback : Callback_Access) is
    begin
       Port.Push_Callback := Callback;
-   end;
+   end On_Push;
 
    procedure Push (Item : Data_Type; Port : IOport_Access) is
    begin
@@ -20,22 +35,22 @@ package body Links is
       if Port.Push_Callback /= null then
          Port.Push_Callback.all (Port);
       end if;
-   end;
+   end Push;
 
    procedure Pop (Item : out Data_Type; Port : IOport_Access) is
    begin
       Pop (Item, Port.Data);
-   end;
+   end Pop;
 
    function Full (Port : IOport_Access) return Boolean is
    begin
       return Full (Port.Data);
-   end;
+   end Full;
 
    function Empty (Port : IOport_Access) return Boolean is
    begin
       return Empty (Port.Data);
-   end;
+   end Empty;
 
    ------------------------
    -- IOlinks operations --
@@ -50,12 +65,11 @@ package body Links is
       Link : IOlink_Access := Port.Link;
       Data : Data_Type;
    begin
-
       while not Empty (Link.Outp) loop
          Pop (Data, Link.Outp);
          Push (Data, Link.Inp);
       end loop;
-   end;
+   end Flush;
 
    procedure Connect
      (Outp, Inp : IOport_Access; Link : IOlink_Access) is
@@ -67,7 +81,7 @@ package body Links is
       Link.Outp := Outp;
 
       On_Push (Outp, Flush'Access);
-   end;
+   end Connect;
 
-end;
+end Links;
 

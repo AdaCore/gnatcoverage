@@ -1,6 +1,21 @@
-----------------------------------------------------------------------------
---                             STATIONS (BODY)                            --
-----------------------------------------------------------------------------
+------------------------------------------------------------------------------
+--                                                                          --
+--                              Couverture                                  --
+--                                                                          --
+--                     Copyright (C) 2008-2009, AdaCore                     --
+--                                                                          --
+-- Couverture is free software; you can redistribute it  and/or modify it   --
+-- under terms of the GNU General Public License as published by the Free   --
+-- Software Foundation; either version 2, or (at your option) any later     --
+-- version.  Couverture is distributed in the hope that it will be useful,  --
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHAN-  --
+-- TABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public --
+-- License  for more details. You  should  have  received a copy of the GNU --
+-- General Public License  distributed with GNAT; see file COPYING. If not, --
+-- write  to  the Free  Software  Foundation,  59 Temple Place - Suite 330, --
+-- Boston, MA 02111-1307, USA.                                              --
+--                                                                          --
+------------------------------------------------------------------------------
 
 with Text_IO; use Text_IO;
 
@@ -14,13 +29,13 @@ package body Stations is
      (Sta : Station) return Robot_Control_Links.IOport_Access is
    begin
       return Sta.Robot_Control_Outp;
-   end;
+   end Robot_Control_Outport;
 
    function Robot_Situation_Inport
      (Sta : Station) return Situation_Links.IOport_Access is
    begin
       return Sta.Robot_Situation_Inp;
-   end;
+   end Robot_Situation_Inport;
 
    use Robot_Control_Links, Situation_Links;
 
@@ -30,6 +45,7 @@ package body Stations is
 
    procedure Run (Sta : Station_Access) is
 
+      procedure Update (Map : in out Geomap; Situ : Situation);
       --  Update MAP from the info found in SITU, about the kind of square
       --  probed ahead of a given position.
 
@@ -37,8 +53,9 @@ package body Stations is
          Posa : constant Position := Pos_Ahead_Of (Situ);
       begin
          Map (Posa.X, Posa.Y) := Situ.Sqa;
-      end;
+      end Update;
 
+      procedure Process_Pending_Inputs (Sta : Station_Access);
       --  Fetch and process pending Situation inputs - update and
       --  dump the map of our local view of the field.
 
@@ -50,30 +67,33 @@ package body Stations is
             Update (Sta.Map, Situ);
             Dump (Sta.Map, Situ);
          end loop;
-      end;
+      end Process_Pending_Inputs;
 
       C : Character;  -- User input - next op to perform
+
+      function Control_For (C : Character) return Robot_Control;
+      --  Map user input characater C to Robot_Control command
 
       function Control_For
         (C : Character) return Robot_Control is
       begin
          case C is
-            when 'P' =>
-              return (Code => Probe, Value => 0);
-            when 'S' =>
+            when 'p' | 'P' =>
+               return (Code => Probe, Value => 0);
+            when 's' | 'S' =>
                return (Code => Step_Forward, Value => 0);
-            when 'L' =>
+            when 'l' | 'L' =>
                return (Code => Rotate_Left, Value => 0);
-            when 'R' =>
+            when 'r' | 'R' =>
                return (Code => Rotate_Right, Value => 0);
-            when 'C' =>
+            when 'c' | 'C' =>
                return (Code => Opmode, Value => Robot_Opmode'Pos (Cautious));
-            when 'D' =>
+            when 'd' | 'D' =>
                return (Code => Opmode, Value => Robot_Opmode'Pos (Dumb));
             when others =>
                return (Code => Nop, Value => 0);
          end case;
-      end;
+      end Control_For;
    begin
 
       --  In case something came in since last time ...
@@ -90,7 +110,7 @@ package body Stations is
       Get (C);
 
       if C = 'Q' then
-         Kill (Sta.All);
+         Kill (Sta.all);
          return;
       else
          declare
@@ -112,7 +132,7 @@ package body Stations is
             Process_Pending_Inputs (Sta);
          end;
       end if;
-   end;
+   end Run;
 
    ----------
    -- Init --
@@ -120,14 +140,17 @@ package body Stations is
 
    procedure Init (Sta : Station_Access) is
 
+      procedure All_Unknown (Map : in out Geomap);
+      --  Fill all the squares in MAP as Unknown
+
       procedure All_Unknown (Map : in out Geomap) is
       begin
-         for X in Map'range (Sqx) loop
+         for X in Map'Range (Sqx) loop
             for Y in Map'Range (Sqy) loop
                Map (X, Y) := Unknown;
             end loop;
          end loop;
-      end;
+      end All_Unknown;
 
    begin
       Sta.Robot_Control_Outp
@@ -137,6 +160,6 @@ package body Stations is
         := new Situation_Links.IOport (Capacity => 1,
                                        Owner => Actor_Ref (Sta));
       All_Unknown (Sta.Map);
-   end;
+   end Init;
 
-end;
+end Stations;

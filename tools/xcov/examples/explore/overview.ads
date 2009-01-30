@@ -1,3 +1,8 @@
+------------------------------------------------------------------------------
+--                        Couverture/Explore example                        --
+--                     Copyright (C) 2008-2009, AdaCore                     --
+------------------------------------------------------------------------------
+
 -------------------------
 -- Functional overview --
 -------------------------
@@ -137,4 +142,4 @@
 --   Controls (Robot_Control + Robot_Control_Links)
 --   ========
 
-package Overview is end;
+package Overview is end Overview;
