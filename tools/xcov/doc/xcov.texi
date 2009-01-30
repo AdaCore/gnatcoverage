@@ -472,20 +472,25 @@ shown.
 @noindent
 Object and Source quantifiers have both pros and cons, some very
 dependent on the evaluation context and purpose.
-@c
+
 An interesting and difficult question is that of the possible
 equivalence of one criterion to another one, for some definition of
 ``equivalence'' to start with.
 @c
-For instance, it is established that OBC does not always imply MCDC
-in the general case @bibref{AR07/20}.
+For instance, it is established that OBC does not always imply MCDC in
+the general case @bibref{AR07/20}.
 @c
-It only does when a number of conditions hold together, such as: 1/ the
-only boolean binary operators in use are those with short-circuit
+It only does when a number of conditions hold together, such as: 1/
+the only boolean binary operators in use are those with short-circuit
 semantics (@code{and then} and @code{or else} in Ada), 2/ Different
-kinds of binary boolean operators are never mixed in the same
-expression, and 3/ the machine code features one conditional branch
-instruction per condition.
+binary boolean operators are never mixed in the same expression, and
+3/ the machine code features one conditional branch instruction per
+condition.
+
+Conversely, even when OBC implies some source criteria, it is
+often too strong for this purpose.
+
+[TO BE REFINED]
 
 @c *******************************************************************
 @c *                        XCOV FUNDAMENTALS                        *
@@ -500,8 +505,8 @@ The core principle in the Xcov framework is to leverage the generation
 of raw coverage data by a virtual execution environment instrumented to
 produce machine level traces about the code it executes.
 
-The environment typically is a representative emulator of a real target
-machine microprocessor, possibly augmented with extensions to let it
+The environment typically is a representative emulator of a real
+target microprocessor, possibly augmented with extensions to let it
 communicate with external devices.
 @c
 For common architectures, we leverage Qemu @bibref{qemu} for this
@@ -697,10 +702,10 @@ qemu-system-ppc -nographic -M prep -L . -bios test_queues.bin
                 -trace test_queues.trace /dev/null
 
 # Step 3:  Ask xcov to analyze the trace and produce an html version of
-# -------  the results, with object coverage info rendered on source:
+# -------  the results, with object coverage branch info rendered on source:
 
 xcov -r test_queues.trace -e test_queues \
-         --output-format=html --asm --source-coverage
+         --output-format=html --asm --coverage=branch
 mv index.html index-test_queues.html
 
 @end smallexample
@@ -711,25 +716,168 @@ adapt to your specific needs.
 @c
 We will now get into the @xcov{} features in more details.
 
+For simple cases as in the example above, the @option{-r} and
+@option{-e} command line options specify the trace and executable
+program files to use, respectively.
+@c
+Then:
+
+@itemize
+@item @option{--coverage}
+specifies the kind of information to produce, with variants to support
+different kinds of coverage analysis activities (OBC, SDC, ...), and
+
+@item @option{--output-format}
+specifies how the selected information should be presented (annotated
+source or assembly, html with colors, ...)
+@end itemize
+
 @section Simple Object Coverage Analysis
 
-Compilation options.
+@option{--coverage} accepts variants to request instruction and branch
+coverage reports:
 
-@subsection Annotated Assembly Output
+@itemize
+@item @option{--coverage=insn}
+tells we are interested in Object @dfn{Instruction} Coverage, hence
+don't need details about the directions taken by conditional branches.
+We just need to know whether they have been executed or not.
 
-@subsection Annotated Source Output
+@item @option{--coverage=branch}
+tells we are interested in Object @dfn{Branch} Coverage, hence
+do need details about the directions taken by conditional branches.
+@end itemize
 
-@subsection Html output
+@noindent
+Then:
+
+@itemize
+@item @option{--output-format=asm}
+produces annotated assembly code on standard output,
+
+@item @option{--output-format=xcov/gprof}
+produces annotated source files in the current directory, with the
+object code for each source line interspersed if the @option{--asm}
+option is provided as well,
+
+@item @option{--output-format=html}
+produces annotated sources as well, in html format with colors and
+an index summarizing the overall coverage status per compilation unit.
+@end itemize
+
+@noindent
+The following sections provides extra details and examples for each
+situation.
+
+In principle, this is all pretty independant of the program
+compilation options.
+@c
+Aggressive optimizations very often make source to object code
+associations more difficult, however.
+@c
+Besides, if source coverage analysis is to be performed as well, the
+whole process is simpler if the same compilation options are used, and
+these have to be strictly controlled for source coverage.
+
+@subsection --output-format=asm
+@noindent
+This produces annotated assembly code for all the program routines on
+standard output.
+@c
+The annotations are visible as a special character at the beginning of
+each machine code line, with variants for instruction or branch modes,
+as described by the following tables.
+
+The Note column contains the annotation character, the ``Means ...''
+column contains a short description of the annotation meaning and the
+``Coverage'' column qualifies the instruction coverage.
+
+@noindent
+For Instruction coverage we have:
+
+@multitable @columnfractions .1 .7 .2
+@headitem Note @tab Means ... @tab Coverage
+
+@item '+'
+@tab Instruction was executed
+@tab Full
+
+@item '-'
+@tab Instruction was never executed
+@tab Null
+
+@end multitable
+
+@noindent
+For Branch coverage, the ``instruction was executed'' case is refined
+into several subcases for conditional branch instructions:
+
+@multitable @columnfractions .1 .7 .2
+@headitem Note @tab Means ... @tab Coverage
+
+@item '>'
+@tab Conditional branch was executed, always taken
+@tab Partial
+
+@item 'v'
+@tab Conditional branch was executed, never taken
+@tab Partial
+
+@item '*'
+@tab
+Conditional branch was executed, taken and not taken
+@tab Full
+ 
+@end multitable
+
+Example
+
+Synthetic function coverage in this dump ?
+
+@subsection --output-format=xcov/gprof
+@noindent
+This combination produces annotated source files with the @code{.xcov}
+extension in the current directory, one per original compilation unit.
+@c
+The annotations are visible as a special character at the beginning of
+every source line, to synthetize the coverage status of all the
+machine instructions generated for this line, in a way which depends
+on the insn/branch coverage mode:
+
+Note that these annotations are really meant to convey object code
+properties, hence are of a different nature than what the DO-178B
+structural coverage criteria refer to.
+
+A source line of code typically translates into multiple machine
+instructions and we defined a different mapping of object code to
+source line annotations for each DO-178B certification level.
+@c
+
+Requires -g
+
+Different interpretation levels.
+
+Asm interpersed.
+
+Examples
+
+@subsection --object-coverage --output-format=html
 
 @section Simple Source Coverage Analysis
 
 Capabilities and documentation to be developped.
 
+Compilation options have to be strictly controlled.
+
+Requires extended traces for MCDC, checkpoint info instead 
+
+Focuses on source, through Source Coverage Obligations.
+
 @section Ada Constructs of Note
 
-@subsubsection Generics
+@subsection Generics
 
-@subsubsection Inlining
+@subsection Inlining
 
 @section GNAT specificities
 
@@ -763,29 +911,26 @@ John J. Chilenski
 John L. Kurtz
 @end macro
 
-@macro bibdef {entry}
-@item @anchor{\entry\}[\entry\]
+@macro bibdef{entry}
+@anchor{\entry\}@strong{[\entry\]}
 @end macro
 
-@table @strong
-
-@bibdef{ar07/20}	
-Object-Oriented Technology Verification Phase 3 Report: Structural
-Coverage at the source code and object code levels.
+@multitable @columnfractions .1 .8
+@item @bibdef{ar07/20}
+@tab Object-Oriented Technology Verification Phase 3 Report:
+Structural Coverage at the source code and object code levels.
 @c
 @CHILENSKI{} and @KURTZ{}.
 @c
 DOT/FAA/AR-07/20.
 
-@bibdef{gcc}
-@c
-GCC: The GNU Compiler Collection.
+@item @bibdef{gcc}
+@tab GCC: The GNU Compiler Collection.
 @c
 http://gcc.gnu.org
 
-@bibdef{qemu}
-@c
-QEMU, a Fast and Portable Dynamic Translator.
+@item @bibdef{qemu}
+@tab QEMU, a Fast and Portable Dynamic Translator.
 @c
 Fabrice Bellard.
 @c
@@ -794,6 +939,6 @@ Track'', pp 41-46.
 @c
 http://bellard.org/qemu/
 
-@end table
+@end multitable
 
 @bye
