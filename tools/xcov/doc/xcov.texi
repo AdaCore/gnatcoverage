@@ -732,20 +732,19 @@ specifies how the selected information should be presented (annotated
 source or assembly, html with colors, ...)
 @end itemize
 
-@section Simple Object Coverage Analysis
+@section Object Coverage Analysis
 
-@option{--coverage} accepts variants to request instruction and branch
-coverage reports:
+@option{--coverage} accepts variants to request object instruction or
+branch coverage reports:
 
 @itemize
 @item @option{--coverage=insn}
-tells we are interested in Object @dfn{Instruction} Coverage, hence
-don't need details about the directions taken by conditional branches.
-We just need to know whether they have been executed or not.
+requests @dfn{Object Instruction Coverage} data, with an indication for
+every instruction of whether it has been executed or not.
 
 @item @option{--coverage=branch}
-tells we are interested in Object @dfn{Branch} Coverage, hence
-do need details about the directions taken by conditional branches.
+requests @dfn{Object Branch Coverage} data, with extra details about
+the directions taken by conditional branch instructions.
 @end itemize
 
 @noindent
@@ -755,14 +754,16 @@ Then:
 @item @option{--output-format=asm}
 produces annotated assembly code on standard output,
 
-@item @option{--output-format=xcov/gprof}
+@item @option{--output-format=xcov/gcov}
 produces annotated source files in the current directory, with the
 object code for each source line interspersed if the @option{--asm}
 option is provided as well,
 
 @item @option{--output-format=html}
-produces annotated sources as well, in html format with colors and
-an index summarizing the overall coverage status per compilation unit.
+produces annotated sources as well, in html format with colors,
+@option{--asm} code expandable from each source line by a click on the
+annotation, and an index summarizing the overall coverage status per
+compilation unit.
 @end itemize
 
 @noindent
@@ -779,14 +780,14 @@ Besides, if source coverage analysis is to be performed as well, the
 whole process is simpler if the same compilation options are used, and
 these have to be strictly controlled for source coverage.
 
-@subsection --output-format=asm
+@subsection @code{--output-format=asm}
 @noindent
-This produces annotated assembly code for all the program routines on
-standard output.
+For branch coverage analysis, @option{--output-format=asm} produces
+annotated assembly code for all the program routines on standard output.
 @c
 The annotations are visible as a special character at the beginning of
-each machine code line, with variants for instruction or branch modes,
-as described by the following tables.
+each machine code line, with variants for instruction or branch coverage
+modes, as described by the following tables.
 
 The Note column contains the annotation character, the ``Means ...''
 column contains a short description of the annotation meaning and the
@@ -797,14 +798,12 @@ For Instruction coverage we have:
 
 @multitable @columnfractions .1 .7 .2
 @headitem Note @tab Means ... @tab Coverage
-
-@item '+'
-@tab Instruction was executed
-@tab Full
-
 @item '-'
 @tab Instruction was never executed
 @tab Null
+@item '+'
+@tab Instruction was executed
+@tab Full
 
 @end multitable
 
@@ -814,44 +813,120 @@ into several subcases for conditional branch instructions:
 
 @multitable @columnfractions .1 .7 .2
 @headitem Note @tab Means ... @tab Coverage
-
 @item '>'
 @tab Conditional branch was executed, always taken
 @tab Partial
-
 @item 'v'
 @tab Conditional branch was executed, never taken
 @tab Partial
-
 @item '*'
 @tab
 Conditional branch was executed, taken and not taken
 @tab Full
- 
+
 @end multitable
 
-Example
+To illustrate the output format, we will consider the Branch Coverage
+outcome for a piece of the Explore example, produced out of a couple of
+runs within Qemu for the PowerPC architecture.
+@c
+The original source of interest is the @code{if} statement which
+controls the Station processing termination, upon a Quit request
+from the user:
 
-Synthetic function coverage in this dump ?
+@smallexample
 
-@subsection --output-format=xcov/gprof
+   procedure Run (Sta : Station_Access) is
+      ...
+      Put ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
+      Flush;
+      Get (C);
+
+      if C = 'Q' or else C = 'q' then
+         Kill (Sta.all);
+         return;
+      else
+      ...
+@end smallexample
+
+We first run a sample session to exercise Probe, then Quit with 'Q',
+and request branch coverage data in assembly format:
+
+@smallexample
+
+... $ make TESTS=explore trace
+[Explore runs in Qemu - type 'p', then 'Q']
+
+... $ xcov -r explore.trace -e explore
+      --coverage=branch --output-format=asm
+
+@end smallexample
+
+For the code associated with the source bits of interest, This yields
+the following assembly coverage report excerpt:
+
+
+@smallexample
+...
+<stations__run>:
+...
+fffc1c0c +:     4b ff e6 7d   bl     0xfffc0288 <text_io__get>
+fffc1c10 +:     2f 83 00 51   cmpiw  cr7,r3,0x0051
+fffc1c14 *:     41 9e 00 0c   beq-   cr7,0xfffc1c20 <stations__run+00000078>
+fffc1c18 +:     2f 83 00 71   cmpiw  cr7,r3,0x0071
+fffc1c1c >:     40 9e 00 10   bne-   cr7,0xfffc1c2c <stations__run+00000084>
+fffc1c20 +:     7f e3 fb 78   or     r3,r31,r31
+fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
+...
+@end smallexample
+
+@code{beq} and @code{bne} are the two conditional branch instructions
+associated with the two conditions.
+@c
+In addition to straightforward coverage of the rest of the code, the '*'
+for the first branch indicates that it is fully covered and the '>' for
+the second branch indicates partial coverage only.
+@c
+Indeed, on 'p' both conditions were evaluated to False, then on 'Q' the
+first condition was evaluated to True and the second one was
+short-circuited.
+
+As a second experiment, the user quits with 'Q' immediatly, in which
+case the first conditional branch is only partially covered and the
+second one is not even exercised:
+
+@smallexample
+...
+<stations__run>:
+...
+fffc1c0c +:     4b ff e6 7d   bl     0xfffc0288 <text_io__get>
+fffc1c10 +:     2f 83 00 51   cmpiw  cr7,r3,0x0051
+fffc1c14 >:     41 9e 00 0c   beq-   cr7,0xfffc1c20 <stations__run+00000078>
+fffc1c18 -:     2f 83 00 71   cmpiw  cr7,r3,0x0071
+fffc1c1c -:     40 9e 00 10   bne-   cr7,0xfffc1c2c <stations__run+00000084>
+fffc1c20 +:     7f e3 fb 78   or     r3,r31,r31
+fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
+...
+@end smallexample
+
+@subsection @code{--output-format=xcov/gcov}
 @noindent
-This combination produces annotated source files with the @code{.xcov}
-extension in the current directory, one per original compilation unit.
+@option{--output-format=xcov} produces annotated source files with the
+@code{.xcov} extension in the current directory, one per original
+compilation unit.
 @c
 The annotations are visible as a special character at the beginning of
-every source line, to synthetize the coverage status of all the
-machine instructions generated for this line, in a way which depends
-on the insn/branch coverage mode:
-
-Note that these annotations are really meant to convey object code
-properties, hence are of a different nature than what the DO-178B
-structural coverage criteria refer to.
+every source line, which synthesizes the coverage status of all the
+machine instructions generated for this line.
+@c
+These annotations are really meant to convey object code properties,
+hence are of a different nature than what the DO-178B structural
+coverage criteria refer to.
 
 A source line of code typically translates into multiple machine
 instructions and we defined a different mapping of object code to
-source line annotations for each DO-178B certification level.
-@c
+source line annotations for instruction or branch coverage:
+
 
 Requires -g
 
@@ -861,9 +936,12 @@ Asm interpersed.
 
 Examples
 
-@subsection --object-coverage --output-format=html
+@option{--output-format=gcov} produces the outcome in a format
+similar to what GNU gcov outputs. [insn/branch coverage ?]
 
-@section Simple Source Coverage Analysis
+@subsection @code{--output-format=html}
+
+@section Source Coverage Analysis
 
 Capabilities and documentation to be developped.
 
