@@ -3,8 +3,9 @@
 == This is an introductory HOWTO for the current Couverture toolset == 
 ======================================================================
 
-General process
----------------
+---------------------
+-- General process --
+---------------------
 
 The general process is as follows:
 
@@ -27,8 +28,9 @@ The Makefile exploits only part of the current xcov possibilities (eg defaults
 to the xcov output format and is able to produce html or gcov like outputs).
 "xcov -h" will list the various options with a short descriptive text.
 
-Getting the Components
-----------------------
+----------------------------
+-- Getting the Components --
+----------------------------
 
 * Compilation toolchain:
 
@@ -75,4 +77,68 @@ A binary version is built on AdaCore machines together with Qemu.
 Sources to build elsewhere if need be are available from
 svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture/tools/xcov (make).
 
+--------------------------------------------------------
+-- Sample toolset build session on cardhu (x86-linux) --
+--------------------------------------------------------
 
+##### SETUP WORKING DIRECTORY
+
+$ mkdir coverage
+$ cd coverage
+
+coverage $ mkdir -p local/bin  # where the tools will be installed
+
+##### BUILD & INSTALL QEMU
+# get access to a gcc 3.4 native compiler,
+# retrieve the sources, build & install
+
+coverage $ PATH=/usr/local/gnat-5.04a1/bin/:$PATH
+         $ svn checkout svn+ssh://svn.eu.adacore.com/Dev/trunk/qemu
+         $ cd qemu/qemu-0.9.1
+
+qemu-0.9.1 $ ./configure --target-list=ppc-softmmu --target-list=ppc-softmmu \
+             --disable-kqemu --disable-sdl --disable-gfx-check \
+             --disable-vnc-tls
+           $ make
+           $ cp ppc-softmmu/qemu-system-ppc ../../local/bin
+           $ cd ../..
+
+coverage $
+
+# BUILD & INSTALL XCOV
+# get access to an Ada 2005 capable native compiler,
+# retrieve the sources, build & install
+
+coverage $ PATH=/usr/local/gnatpro/6.2.1/bin:$PATH
+         $ svn checkout \
+           svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture/tools/xcov
+         $ cd xcov
+
+xcov $ make
+     $ cp xcov ../local/bin
+     $ cd ..
+
+coverage $
+
+# INSTALL CROSS COMPILER (for experiments)
+
+coverage $ tar xzf ~gnatmail/gcc-43/binaries/20081027/ppc-elf-linux/
+           gnatpro-6.2.0w-20081027-43-powerpc-elf-chinon.tar.gz
+         $ cd gnat-6.2.0w-powerpc-elf-bin
+
+gnat-6.2.0w-powerpc-elf-bin $ ./doinstall (in /.../coverage/local)
+                            $ cd ..
+coverage $
+
+# EXPERIMENT on example
+
+coverage $ PATH=$PWD/local/bin:$PATH
+         $ cd xcov/examples/hello
+
+hello $ make
+powerpc-elf-gnatmake [...]
+qemu-system-ppc [...] hello.bin -trace hello.trace
+Hello qemu world
+xcov -r hello.trace -e hello [...]
+
+      $ mozilla file:$PWD/index-hello.html
