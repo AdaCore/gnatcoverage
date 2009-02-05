@@ -14,6 +14,7 @@
 QEMU=qemu-system-ppc
 XCOV=xcov
 CFLAGS=-g -O1 -fpreserve-control-flow
+AFLAGS=-gnaty
 
 # Set of main target programs for which we want to produce coverage info,
 # to be defined from the command line or by includers:
@@ -30,30 +31,39 @@ SUPPORT_DIRS=$(BASE_SUPPORT_DIR) $(TARGET_SUPPORT_DIR)
 
 RM=rm
 
-all: $(TESTS:%=%.adb.xcov)
+.PRECIOUS: %.trace
 
-# XCOV : produce annotated sources + html from a trace file and the
+all: build trace analyze
+
+# XCOV : produce annotated sources or html from a trace file and the
 # corresponding executable
 
-%.adb.xcov: %.trace
+analyze: $(TESTS:%=index-%.html)
+
+index-%.html: %.trace
 	$(XCOV) -r $< -e $(basename $<) \
 	 --output-format=html --asm --source-coverage
+	mv index.html $@
 
 # QEMU : produce execution trace from executable program execution within
 # instrumented target emulation environment.
 
-%.trace: %.bin
+trace: $(TESTS:%=%.trace)
+
+%.trace: %.bin force
 	$(QEMU) -nographic -M prep -L . -bios $< -trace $@ /dev/null
 
 # CROSS toolchain : produce executable program from sources + target bsp
 
 CROSS = $(TARGET)-
 
+build: $(TESTS:%=%.bin)
+
 %.bin: %
 	$(CROSS)objcopy -O binary $< $@
 
 $(TESTS): start.o c_io.o force
-	$(CROSS)gnatmake $(CFLAGS) $@ $(SUPPORT_DIRS:%=-I%) \
+	$(CROSS)gnatmake $(CFLAGS) $(AFLAGS) $@ $(SUPPORT_DIRS:%=-I%) \
 	-largs start.o c_io.o -Wl,-T$(TARGET_SUPPORT_DIR)/gnu.ld -nostdlib
 
 start.o: $(TARGET_SUPPORT_DIR)/start.s
