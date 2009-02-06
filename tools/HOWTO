@@ -20,13 +20,15 @@ The general process is as follows:
 As of today, both the traces and the xcov outputs are generated in the
 the current directory of the user running the command.
 
-A simple "hello world" example is available from tests/hello in the
+A couple of examples are available from tools/xcov/examples in the
 "couverture" repository (svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture),
 with a Makefile exposing the details of the different steps.
 
 The Makefile exploits only part of the current xcov possibilities (eg defaults
 to the xcov output format and is able to produce html or gcov like outputs).
 "xcov -h" will list the various options with a short descriptive text.
+
+There's a start of a user documentation in tools/xcov/doc.
 
 ----------------------------
 -- Getting the Components --
@@ -76,6 +78,8 @@ A binary version is built on AdaCore machines together with Qemu.
 
 Sources to build elsewhere if need be are available from
 svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture/tools/xcov (make).
+
+This requires an Ada2005 capable compiler.
 
 --------------------------------------------------------
 -- Sample toolset build session on cardhu (x86-linux) --
