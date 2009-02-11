@@ -82,6 +82,7 @@ DEF_HELPER_0(fcmpeq_fcc2, void)
 DEF_HELPER_0(fcmpeq_fcc3, void)
 #endif
 DEF_HELPER_1(raise_exception, void, int)
+DEF_HELPER_1(trap_always, void, int)
 #define F_HELPER_0_0(name) DEF_HELPER_0(f ## name, void)
 #define F_HELPER_DQ_0_0(name)                   \
     F_HELPER_0_0(name ## d);                    \

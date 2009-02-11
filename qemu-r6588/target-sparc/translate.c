@@ -2044,7 +2044,7 @@ static void disas_sparc_insn(DisasContext * dc)
     case 2:                     /* FPU & Logical Operations */
         {
             unsigned int xop = GET_FIELD(insn, 7, 12);
-            if (xop == 0x3a) {  /* generate trap */
+            if (xop == 0x3a) {  /* ta, tcc: generate trap */
                 int cond;
 
                 cpu_src1 = get_src1(insn, cpu_src1);
@@ -2069,7 +2069,7 @@ static void disas_sparc_insn(DisasContext * dc)
                         tcg_gen_andi_tl(cpu_dst, cpu_dst, V8_TRAP_MASK);
                     tcg_gen_addi_tl(cpu_dst, cpu_dst, TT_TRAP);
                     tcg_gen_trunc_tl_i32(cpu_tmp32, cpu_dst);
-                    gen_helper_raise_exception(cpu_tmp32);
+                    gen_helper_trap_always(cpu_tmp32);
                 } else if (cond != 0) {
                     TCGv r_cond = tcg_temp_new();
                     int l1;
@@ -2102,8 +2102,9 @@ static void disas_sparc_insn(DisasContext * dc)
 
                     gen_set_label(l1);
                     tcg_temp_free(r_cond);
+
+		    gen_op_next_insn();
                 }
-                gen_op_next_insn();
                 tcg_gen_exit_tb(0);
                 dc->is_br = 1;
                 goto jmp_insn;

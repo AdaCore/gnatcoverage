@@ -60,6 +60,12 @@ void HELPER(raise_exception)(int tt)
     raise_exception(tt);
 }
 
+void HELPER(trap_always)(int tt)
+{
+    env->exception_index = tt;
+    do_interrupt (env);
+}
+
 static inline void set_cwp(int new_cwp)
 {
     cpu_set_cwp(env, new_cwp);
