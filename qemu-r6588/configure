@@ -256,9 +256,7 @@ else
 fi
 darwin_user="yes"
 cocoa="yes"
-audio_drv_list="coreaudio"
 audio_possible_drivers="coreaudio sdl fmod"
-OS_LDFLAGS="-framework CoreFoundation -framework IOKit"
 ;;
 SunOS)
     solaris="yes"
@@ -401,10 +399,9 @@ for opt do
   ;;
   --enable-profiler) profiler="yes"
   ;;
-  --enable-cocoa)
-      cocoa="yes" ;
-      sdl="no" ;
-      audio_drv_list="coreaudio `echo $audio_drv_list | sed s,coreaudio,,g`"
+  --enable-cocoa) cocoa="yes"
+  ;;
+  --disable-cocoa) cocoa="no"
   ;;
   --disable-gfx-check) check_gfx="no"
   ;;
@@ -537,6 +534,7 @@ echo "  --disable-sparse         disable sparse checker (default)"
 echo "  --disable-werror         disable compilation abort on warning"
 echo "  --disable-sdl            disable SDL"
 echo "  --enable-cocoa           enable COCOA (Mac OS X only)"
+echo "  --disable-cocoa          disable COCOA (default)"
 echo "  --audio-drv-list=LIST    set audio drivers list:"
 echo "                           Available drivers: $audio_possible_drivers"
 echo "  --audio-card-list=LIST   set list of emulated audio cards [$audio_card_list]"
@@ -804,6 +802,17 @@ else
        audio_drv_list="`echo $audio_drv_list | sed s,coreaudio,,g`"
     fi
 fi # -z $sdl
+
+##########################################
+# MacOSX
+if test "$cocoa" = "yes" ; then
+    sdl="no"
+    audio_drv_list="coreaudio `echo $audio_drv_list | sed s,coreaudio,,g`"
+fi
+if test "$cocoa" = "yes" || 
+    echo "$audio_drv_list" | grep -q coreaudio ; then
+    OS_LDFLAGS="-framework CoreFoundation -framework IOKit"
+fi
 
 ##########################################
 # VNC TLS detection
