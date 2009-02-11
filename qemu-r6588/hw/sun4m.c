@@ -454,6 +454,7 @@ static void sun4m_hw_init(const struct sun4m_hwdef *hwdef, ram_addr_t RAM_size,
             fprintf(stderr, "qemu: Unable to find Sparc CPU definition\n");
             exit(1);
         }
+        cpu_sparc_set_intctl(env, intctl_sun4m);
         cpu_sparc_set_id(env, i);
         envs[i] = env;
         if (i == 0) {
@@ -1251,6 +1252,7 @@ static void sun4d_hw_init(const struct sun4d_hwdef *hwdef, ram_addr_t RAM_size,
             fprintf(stderr, "qemu: Unable to find Sparc CPU definition\n");
             exit(1);
         }
+        cpu_sparc_set_intctl(env, intctl_sun4m);
         cpu_sparc_set_id(env, i);
         envs[i] = env;
         if (i == 0) {
@@ -1467,6 +1469,7 @@ static void sun4c_hw_init(const struct sun4c_hwdef *hwdef, ram_addr_t RAM_size,
         exit(1);
     }
 
+    cpu_sparc_set_intctl(env, intctl_sun4c);
     cpu_sparc_set_id(env, 0);
 
     qemu_register_reset(main_cpu_reset, env);

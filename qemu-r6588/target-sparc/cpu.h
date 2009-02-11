@@ -188,6 +188,14 @@
 #define MIN_NWINDOWS 3
 #define MAX_NWINDOWS 32
 
+typedef enum intctl_model {
+  intctl_none,
+  intctl_sun4c,
+  intctl_sun4m,
+  intctl_sun4u,
+  intctl_leon2
+} intctl_model;
+
 #if !defined(TARGET_SPARC64)
 #define NB_MMU_MODES 2
 #else
@@ -279,6 +287,7 @@ typedef struct CPUSPARCState {
     int      psref;    /* enable fpu */
     target_ulong version;
     int interrupt_index;
+    intctl_model intctl; /* interrupt controller model */
     uint32_t nwindows;
     /* NOTE: we allow 8 more registers to handle wrapping */
     target_ulong regbase[MAX_NWINDOWS * 16 + 8];
@@ -340,6 +349,7 @@ typedef struct CPUSPARCState {
 
 /* helper.c */
 CPUSPARCState *cpu_sparc_init(const char *cpu_model);
+void cpu_sparc_set_intctl(CPUSPARCState *env, intctl_model intctl);
 void cpu_sparc_set_id(CPUSPARCState *env, unsigned int cpu);
 void sparc_cpu_list (FILE *f, int (*cpu_fprintf)(FILE *f, const char *fmt,
                                                  ...));
@@ -499,6 +509,9 @@ static inline void cpu_clone_regs(CPUState *env, target_ulong newsp)
 
 /* sum4m.c, sun4u.c */
 void cpu_check_irqs(CPUSPARCState *env);
+
+/* leon.c */
+void leon2_intctl_ack(CPUSPARCState *env, int intno);
 
 #ifdef TARGET_SPARC64
 /* sun4u.c */

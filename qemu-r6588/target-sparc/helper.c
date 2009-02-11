@@ -733,6 +733,11 @@ void cpu_sparc_set_id(CPUSPARCState *env, unsigned int cpu)
 #endif
 }
 
+void cpu_sparc_set_intctl(CPUSPARCState *env, intctl_model intctl)
+{
+    env->intctl = intctl;
+}
+
 static const sparc_def_t sparc_defs[] = {
 #ifdef TARGET_SPARC64
     {
@@ -1168,7 +1173,7 @@ static const sparc_def_t sparc_defs[] = {
         .iu_version = 0xf2000000,
         .fpu_version = 4 << 17, /* FPU version 4 (Meiko) */
         .mmu_version = 0xf2000000,
-        .mmu_bm = 0x00004000,
+        .mmu_bm = 0x00000000,
         .mmu_ctpr_mask = 0x007ffff0,
         .mmu_cxr_mask = 0x0000003f,
         .mmu_sfsr_mask = 0xffffffff,

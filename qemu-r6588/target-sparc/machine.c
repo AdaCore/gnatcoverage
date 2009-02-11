@@ -23,6 +23,7 @@ void register_machines(void)
     qemu_register_machine(&sbook_machine);
     qemu_register_machine(&ss1000_machine);
     qemu_register_machine(&ss2000_machine);
+    qemu_register_machine(&at697_machine);
 #endif
 }
 

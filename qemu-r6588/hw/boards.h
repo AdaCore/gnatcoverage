@@ -72,6 +72,9 @@ extern QEMUMachine sun4u_machine;
 extern QEMUMachine sun4v_machine;
 extern QEMUMachine niagara_machine;
 
+/* leon.c */
+extern QEMUMachine at697_machine;
+
 /* integratorcp.c */
 extern QEMUMachine integratorcp_machine;
 

@@ -887,6 +887,7 @@ uint64_t helper_ld_asi(target_ulong addr, int asi, int size, int sign)
             break;
         }
         break;
+    case 0x1: /* Leon2 forced cache miss */
     case 0xb: /* Supervisor data access */
         switch(size) {
         case 1:
@@ -2995,6 +2996,21 @@ void do_interrupt(CPUState *env)
     env->pc = env->tbr;
     env->npc = env->pc + 4;
     env->exception_index = 0;
+
+#if !defined(CONFIG_USER_ONLY)
+    switch (env->intctl) {
+    case intctl_sun4c:
+    case intctl_sun4m:
+      cpu_check_irqs(env);
+      break;
+    case intctl_leon2:
+      if ((intno & ~15) == TT_EXTINT)
+	leon2_intctl_ack (env, intno);
+      break;
+    default:
+      break;
+    }
+#endif
 }
 #endif
 

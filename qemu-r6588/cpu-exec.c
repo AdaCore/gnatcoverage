@@ -446,12 +446,9 @@ int cpu_exec(CPUState *env1)
 			    type != TT_EXTINT) {
 			    env->interrupt_request &= ~CPU_INTERRUPT_HARD;
                             env->exception_index = env->interrupt_index;
-                            do_interrupt(env);
 			    env->interrupt_index = 0;
-#if !defined(TARGET_SPARC64) && !defined(CONFIG_USER_ONLY)
-                            cpu_check_irqs(env);
-#endif
-                        next_tb = 0;
+                            do_interrupt(env);
+			    next_tb = 0;
 			}
 		    } else if (interrupt_request & CPU_INTERRUPT_TIMER) {
 			//do_interrupt(0, 0, 0, 0, 0);
