@@ -30,6 +30,7 @@ with Traces_Dbase; use Traces_Dbase;
 with Traces_Disa;
 with Traces_History;
 with Version;
+with Qemudrv;
 
 procedure Xcov is
    procedure Usage;
@@ -259,6 +260,9 @@ begin
          for I in Arg_Index + 1 .. Arg_Count loop
             Traces_History.Dump_Traces_With_Asm (Exec, Argument (I));
          end loop;
+         return;
+      elsif Cmd = "--run" then
+         Qemudrv.Driver (Arg_Index + 1);
          return;
       elsif Cmd = "-h" or else Cmd = "--help" then
          Usage;
