@@ -21,6 +21,9 @@
 #define CPU_NO_GLOBAL_REGS
 #include "exec.h"
 #include "disas.h"
+#include "elf.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include "tcg.h"
 #include "kvm.h"
 
@@ -46,9 +49,20 @@
 #define env cpu_single_env
 #endif
 
+#include "qemu-traces.h"
+
+static void trace_before_exec(TranslationBlock *);
+static void trace_after_exec(TranslationBlock *, unsigned long);
+static void trace_at_fault(CPUState *e);
+
 int tb_invalidated_flag;
 
-//#define DEBUG_EXEC
+/* trace  */
+FILE *tracefile;
+int tracefile_nobuf;
+int tracefile_history;
+
+#define DEBUG_EXEC
 //#define DEBUG_SIGNAL
 
 void cpu_loop_exit(void)
@@ -577,17 +591,17 @@ int cpu_exec(CPUState *env1)
                              (long)tb->tc_ptr, tb->pc,
                              lookup_symbol(tb->pc));
 #endif
+
                 /* see if we can patch the calling TB. When the TB
                    spans two pages, we cannot safely do a direct
                    jump. */
-                {
-                    if (next_tb != 0 &&
+		if (next_tb != 0 &&
+		        !tracefile_history &&
 #ifdef USE_KQEMU
                         (env->kqemu_enabled != 2) &&
 #endif
                         tb->page_addr[1] == -1) {
                     tb_add_jump((TranslationBlock *)(next_tb & ~3), next_tb & 3, tb);
-                }
                 }
                 spin_unlock(&tb_lock);
                 env->current_tb = tb;
@@ -600,6 +614,9 @@ int cpu_exec(CPUState *env1)
                     env->current_tb = NULL;
 
                 while (env->current_tb) {
+		  if (tracefile)
+		    trace_before_exec(tb);
+
                     tc_ptr = tb->tc_ptr;
                 /* execute the generated code */
 #if defined(__sparc__) && !defined(HOST_SOLARIS)
@@ -609,6 +626,10 @@ int cpu_exec(CPUState *env1)
 #endif
                     next_tb = tcg_qemu_tb_exec(tc_ptr);
                     env->current_tb = NULL;
+		    
+		    if (tracefile)
+		      trace_after_exec (tb, next_tb);
+
                     if ((next_tb & 3) == 2) {
                         /* Instruction counter expired.  */
                         int insns_left;
@@ -648,6 +669,8 @@ int cpu_exec(CPUState *env1)
 #endif
             } /* for(;;) */
         } else {
+	    if (tracefile)
+		trace_at_fault (env);
             env_to_regs();
         }
     } /* for(;;) */
@@ -1492,3 +1515,143 @@ int cpu_signal_handler(int host_signum, void *pinfo,
 #endif
 
 #endif /* !defined(CONFIG_SOFTMMU) */
+
+
+#define MAX_TRACE_ENTRIES 1024
+static struct trace_entry trace_entries[MAX_TRACE_ENTRIES];
+static struct trace_entry *trace_current = trace_entries;
+static TranslationBlock *trace_current_tb;
+
+static void trace_flush(void)
+{
+    size_t len = (trace_current - trace_entries) * sizeof (trace_entries[0]);
+    fwrite(trace_entries, len, 1, tracefile);
+    trace_current = trace_entries;
+    if (tracefile_nobuf)
+      fflush(tracefile);
+}
+
+static void trace_before_exec(TranslationBlock *tb)
+{
+#ifdef DEBUG_TRACE 
+    printf("From " TARGET_FMT_lx " - "
+	   TARGET_FMT_lx "\n", tb->pc, tb->pc + tb->size - 1);
+#endif
+    trace_current_tb = tb;
+}
+
+/* TB is the tb we jumped to, LAST_TB (if not null) is the last executed tb.  */
+static void trace_after_exec(TranslationBlock *tb, unsigned long next_tb)
+{
+    TranslationBlock *last_tb = (TranslationBlock*)(next_tb & ~3);
+    int br = next_tb & 3;
+
+#ifdef DEBUG_TRACE
+    printf("... to " TARGET_FMT_lx " (" TARGET_FMT_lx ")",
+	    tb->pc + tb->size - 1, env->nip);
+    if (last_tb)
+	printf(" (last_ip=" TARGET_FMT_lx ", targ=%d)",
+		last_tb ? last_tb->pc + last_tb->size - 1 : 0, br);
+    printf("[tb->tflags=%04x, op=%04x\n", tb->tflags, trace_current->op);
+#endif
+
+    /* note: if last_tb is not set, we don't know if we exited from tb or not.
+     */
+    if (last_tb) {
+	if (last_tb == tb) {
+	    /* Block fully executed with a static branch.  */
+	    trace_current->pc = tb->pc;
+	    trace_current->size = tb->size;
+	    trace_current->op = TRACE_OP_BLOCK + (1 << br);
+	}
+	else {
+	    /* Threaded execution.  */
+	    trace_current->pc = last_tb->pc + last_tb->size - 1;
+	    trace_current->size = 1;
+	    trace_current->op = (1 << br);
+	}
+
+	if ((last_tb->tflags & trace_current->op) == trace_current->op) {
+	    if (!tracefile_history)
+		return;
+	}
+	last_tb->tflags |= trace_current->op;
+    }
+    else {
+	/* Non-static branch.  */
+	if (!tracefile_history && tb->tflags & TRACE_OP_BLOCK)
+	    return;
+	trace_current->pc = tb->pc;
+	trace_current->size = tb->size;
+	trace_current->op = TRACE_OP_BLOCK;
+	tb->tflags |= TRACE_OP_BLOCK;
+    }
+
+    if (++trace_current == trace_entries + MAX_TRACE_ENTRIES
+	|| tracefile_nobuf)
+	trace_flush();
+}
+
+static void trace_at_fault(CPUState *e)
+{
+    target_ulong cs_base, pc;
+    int flags;
+
+    cpu_get_tb_cpu_state(e, &pc, &cs_base, &flags);
+
+#ifdef DEBUG_TRACE
+    printf("... fault at " TARGET_FMT_lx "\n", pc);
+#endif
+    if (pc >= trace_current_tb->pc
+	&& pc < trace_current_tb->pc + trace_current_tb->size) {
+	if (!tracefile_history && trace_current_tb->tflags & TRACE_OP_BLOCK)
+	    return;
+	trace_current->pc = trace_current_tb->pc;
+	trace_current->op = TRACE_OP_FAULT;
+	trace_current->size = pc - trace_current->pc + 1;
+	if (trace_current->size == trace_current_tb->size)
+	    trace_current->op = TRACE_OP_FAULT | TRACE_OP_BLOCK;
+    }
+    else {
+	if (!tracefile_history) {
+	    /* Discard single fault.  */
+	    return;
+	}
+	trace_current->pc = pc;
+	trace_current->size = 0;
+	trace_current->op = TRACE_OP_FAULT;
+    }
+
+    if (++trace_current == trace_entries + MAX_TRACE_ENTRIES
+	|| tracefile_nobuf)
+	trace_flush();
+}
+
+static void trace_cleanup (void)
+{
+    trace_flush ();
+    fclose(tracefile);
+}
+
+void trace_init (void)
+{
+    static struct trace_header hdr = { QEMU_TRACE_MAGIC };
+
+    //memset(&hdr, 0, sizeof(hdr));
+    //memcpy(hdr.magic, QEMU_TRACE_MAGIC, sizeof(hdr.magic));
+    hdr.version = QEMU_TRACE_VERSION;
+    hdr.sizeof_target_pc = sizeof(target_ulong);
+    hdr.kind = tracefile_history ?
+	QEMU_TRACE_KIND_HISTORY : QEMU_TRACE_KIND_RAW;
+#ifdef WORDS_BIGENDIAN
+    hdr.big_endian = 1;
+#else
+    hdr.big_endian = 0;
+#endif
+    hdr.machine[0] = ELF_MACHINE >> 8;
+    hdr.machine[1] = ELF_MACHINE;
+    fwrite(&hdr, sizeof(hdr), 1, tracefile);
+
+    atexit (trace_cleanup);
+}
+

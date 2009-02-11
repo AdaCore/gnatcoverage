@@ -4130,6 +4130,7 @@ enum {
     QEMU_OPTION_old_param,
     QEMU_OPTION_tb_size,
     QEMU_OPTION_incoming,
+    QEMU_OPTION_trace,
 };
 
 typedef struct QEMUOption {
@@ -4259,6 +4260,7 @@ static const QEMUOption qemu_options[] = {
 #endif
     { "tb-size", HAS_ARG, QEMU_OPTION_tb_size },
     { "incoming", HAS_ARG, QEMU_OPTION_incoming },
+    { "trace", HAS_ARG, QEMU_OPTION_trace },
     { NULL },
 };
 
@@ -5219,6 +5221,26 @@ int main(int argc, char **argv, char **envp)
             case QEMU_OPTION_incoming:
                 incoming = optarg;
                 break;
+	    case QEMU_OPTION_trace:
+		if (tracefile != NULL) {
+		    fprintf(stderr, "option -trace already specified\n");
+		    exit(1);
+		}
+		while (1) {
+		  if (strstart (optarg, "nobuf,", &optarg))
+		    tracefile_nobuf = 1;
+		  else if (strstart (optarg, "history,", &optarg))
+		    tracefile_history = 1;
+		  else
+		    break;
+		}
+		tracefile = fopen(optarg, "wb");
+		if (tracefile == NULL) {
+		    fprintf(stderr, "can't open file %s\n", optarg);
+		    exit (1);
+		}
+		trace_init();
+		break;
             }
         }
     }

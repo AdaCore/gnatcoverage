@@ -59,6 +59,11 @@ extern uint32_t gen_opc_hflags[OPC_BUF_SIZE];
 
 #include "qemu-log.h"
 
+extern FILE *tracefile;
+extern int tracefile_nobuf;
+extern int tracefile_history;
+void trace_init(void);
+
 void gen_intermediate_code(CPUState *env, struct TranslationBlock *tb);
 void gen_intermediate_code_pc(CPUState *env, struct TranslationBlock *tb);
 void gen_pc_load(CPUState *env, struct TranslationBlock *tb,
@@ -155,6 +160,7 @@ struct TranslationBlock {
     struct TranslationBlock *jmp_next[2];
     struct TranslationBlock *jmp_first;
     uint32_t icount;
+    uint32_t tflags;
 };
 
 static inline unsigned int tb_jmp_cache_hash_page(target_ulong pc)
