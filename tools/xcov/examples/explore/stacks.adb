@@ -23,37 +23,39 @@ package body Stacks is
    -- Classical accessors --
    -------------------------
 
+   function Size (S : Stack) return Natural;
+
    function Size (S : Stack) return Natural is
    begin
-      return S.Top_In;
-   end;
+      return S.Size;
+   end Size;
 
    function Full (S : Stack) return Boolean is
    begin
       return Size (S) = S.Capacity;
-   end;
+   end Full;
 
    function Empty (S : Stack) return Boolean is
    begin
       return Size (S) = 0;
-   end;
+   end Empty;
 
    procedure Pop (Item : out Data_Type; S : in out Stack) is
    begin
       if Empty (S) then
          raise Program_Error;
       end if;
-      Item := S.Items (S.Top_In);
-      S.Top_In := S.Top_In - 1;
-   end;
+      Item := S.Items (S.Size);
+      S.Size := S.Size - 1;
+   end Pop;
 
    procedure Push (Item : Data_Type; S : in out Stack) is
    begin
       if Full (S) then
          raise Program_Error;
       end if;
-      S.Top_In := S.Top_In + 1;
-      S.Items (S.Top_In) := Item;
-   end;
+      S.Size := S.Size + 1;
+      S.Items (S.Size) := Item;
+   end Push;
 
-end;
+end Stacks;

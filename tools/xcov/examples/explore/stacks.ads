@@ -42,9 +42,7 @@ private
    type Data_Array is array (Natural range <>) of Data_Type;
    type Stack (Capacity : Natural) is record
       Items : Data_Array (1 .. Capacity);
-      Top_In : Natural := 0;
-      --  The index in Items where the top element is stored.
-      --  Increase on successful push, decrease on successful pop.
+      Size  : Natural := 0;
+      --  The number of Items currently available in the stack
    end record;
-
-end;
+end Stacks;

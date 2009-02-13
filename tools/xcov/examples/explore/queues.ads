@@ -39,10 +39,11 @@ package Queues is
    --  raise Program_Error and leave Item undefined otherwise.
 
 private
+
    type Data_Array is array (Natural range <>) of Data_Type;
    type Queue (Capacity : Natural) is record
       Items : Data_Array (1 .. Capacity);
-      Front, Back : Natural := 1;
       Size : Natural := 0;
+      Front, Back : Natural := 1;
    end record;
 end Queues;

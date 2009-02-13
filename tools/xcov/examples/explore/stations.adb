@@ -72,7 +72,8 @@ package body Stations is
       C : Character;  -- User input - next op to perform
 
       function Control_For (C : Character) return Robot_Control;
-      --  Map user input characater C to Robot_Control command
+      --  Map user input character C to Robot_Control command, Nop if
+      --  the input isn't recognized.
 
       function Control_For
         (C : Character) return Robot_Control is
@@ -101,15 +102,14 @@ package body Stations is
       Process_Pending_Inputs (Sta);
 
       --  Get the next command from the terminal line and map it to an
-      --  internal control code.  The internal code will remain a Nop if the
-      --  input isn't recognized.
+      --  internal control code.
 
       Put_Line ("'C'autious mode, 'D'umb mode");
       Put ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
       Flush;
       Get (C);
 
-      if C = 'Q' then
+      if C = 'Q' or else C = 'q' then
          Kill (Sta.all);
          return;
       else
@@ -123,8 +123,7 @@ package body Stations is
 
             Push (Ctrl, Robot_Control_Outport (Sta.all));
             if Ctrl.Code /= Probe then
-               Push ((Code => Probe, Value => 0),
-                     Robot_Control_Outport (Sta.all));
+               Push (Control_For ('P'), Robot_Control_Outport (Sta.all));
             end if;
 
             --  In case the Robot reacts instantly ...

@@ -2,9 +2,9 @@
 -- Test_Stacks --
 -----------------
 
--- Exercise the Stacks abstraction
+--  Exercise the Stacks abstraction
 
-with Stacks;
+with Stacks, Support;
 
 procedure Test_Stacks is
    package Integer_Stacks is new Stacks (Data_Type => Integer);
@@ -18,5 +18,5 @@ begin
    if X /= 12 then
       raise Program_Error;
    end if;
-end;
+end Test_Stacks;
 
