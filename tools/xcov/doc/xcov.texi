@@ -93,9 +93,9 @@ the application software.
 There may be several reasons why such an activity is performed and extra
 details about what exactly is to be evaluated.
 
-Our focus here is the use of coverage analysis in software certification
-processes such as the DO-178B standard enforced in the civilian avionics
-domain.
+One of our target applications is the use of coverage analysis in
+software certification processes such as the DO-178B standard enforced
+in the civilian avionics domain.
 @c
 In this context, the application code and the test sequences are both
 derived from a common set of requirements, independently, and structural
@@ -113,7 +113,7 @@ document.
 
 @subsection Primary Process Abstractions
 @noindent
-A typical coverage analysis base process comprises three principal
+A typical coverage analysis elementary process comprises three principal
 steps:
 @enumerate
 @item
@@ -153,10 +153,10 @@ abstraction, compiled with the GNAT toolchain for Ada:
     $ gcov test_queues
 @end smallexample
   
-The annotations are in the first column for each source line: @code{-}
-indicates there is no associated object code, numbers indicates the number
-of times code for this line was executed, and @code{#} signs indicates
-object code never executed:
+The annotations are in the first column for each source line: @code{'-'}
+indicates there is no associated object code, numbers indicates the
+number of times code for this line was executed, and @code{'#'} signs
+indicates object code never executed:
 
 @smallexample
 
@@ -182,11 +182,11 @@ as it is intended to trigger only when the test didn't behave as it should.
 @c
 This points at an important distinction to make: the @code{Test_Queues}
 procedure in this example is @dfn{testing code} written to exercise
-pieces of the @code{Queues} abstraction, and only the latter an actual
-part of the application.
+pieces of the @code{Queues} abstraction, and only the latter will be an
+actual part of the application.
 @c
-Most of the time, we're only really interested in the coverage results
-for such @dfn{applicative} code.
+Most of the time, we're only interested in the coverage results for such
+@dfn{applicative} code.
 
 The form of the raw information depends on the coverage analysis toolset
 technology.
@@ -222,25 +222,25 @@ virtual execution environments do.
 
 There are variants of each technique in the field, each with it's own set
 of advantages and drawbacks compared to others.
-
-While this base process applies to many situations, refinements are
+@c
+While the base process applies to many situations, refinements are
 useful in some cases, as outlined in the following sections.
 
 @subsection Coverage Data Capitalization
 @noindent
-@dfn{Capitalization} denotes all the elements related to the fact that
-proper coverage of a common piece of applicative code might require several
-test executions, each providing its own partial coverage outcome.
+Proper coverage of applicative code often requires several test
+executions on possibly disjoint pieces of the final system, with each
+test providing its own partial coverage outcome.
 @c
-The different tests could for instance be several executions of the same
+@dfn{Capitalization} denotes the storage of the partial results and the
+analysis framework capabilities to process the capitalized data.
+
+Different tests could for instance be several executions of the same
 program with behavior differences caused by external input variations.
 @c
-They could also be executions of different programs feeding the same
-applicative code with different parameters internally.
-@c
-The common applicative code coverage is the combination of the partial
-coverage results, which first need to be stored (capitalized) to be unified
-later on.
+They could also be executions of different programs exercizing different
+units of the applicative code or common applicative code with different
+parameters.
 
 Consider for instance a common data structure implementation such as
 the bounded @code{Queues} Ada package in the Explore example.
@@ -259,13 +259,13 @@ Something has to be done outside nominal executions in this case.
 One possibility is to construct a separate program dedicated to just
 testing this abstraction, which would force an artificial queue underflow.
 @c
-Of course, this is a simple introductory example and the dedicated test
-program could well cover the whole package on its own in this case.
-@c
-Such one-shot full coverage is sometimes not possible in more complex
+Of course, the dedicated test program could well cover the whole package
+on its own on such a simple example.
+
+One-shot full coverage is generally not possible in more complex
 situations, however, and the example shows it is already partially
 impossible with only regular Explore executions.
-
+@c
 Besides, even if full coverage a some applicative components could
 theortically be achieved from a single execution, it is often just more
 convenient or sensible to be able to reach the goal in an incremental
@@ -290,10 +290,9 @@ In complex systems, this integration is a delicate process, not possible
 before late stages of the project, and it is often useful or simply
 unavoidable to perform coverage analysis on segregated pieces first.
 @c
-In this context, @dfn{Consolidation} denotes the process of gathering
-the coverage information for the various pieces of a system into a
-unified view, for instance to check that proper coverage was achieved
-for all the pieces.
+@dfn{Consolidation} denotes the process of gathering the coverage
+information for the various pieces of a system into a unified view, for
+instance to check that proper coverage was achieved for all the pieces.
 @c
 Technically, consolidation can be viewed as a set of means to use a
 generalized capitalization capability for all the pieces of a system.
@@ -499,7 +498,7 @@ often too strong for this purpose.
 @node xcov-grounds,xcov-guide,scov-basics,Top
 @chapter Xcov Fundamentals
 
-@section Instrumentation Level and Raw Coverage Data
+@section Instrumentation & Raw Coverage Data
 @noindent
 The core principle in the Xcov framework is to leverage the generation
 of raw coverage data by a virtual execution environment instrumented to
@@ -705,7 +704,7 @@ qemu-system-ppc -nographic -M prep -L . -bios test_queues.bin
 # -------  the results, with object coverage branch info rendered on source:
 
 xcov -r test_queues.trace -e test_queues \
-         --output-format=html --asm --coverage=branch
+         --annotate=html --asm --coverage=branch
 mv index.html index-test_queues.html
 
 @end smallexample
@@ -727,7 +726,7 @@ Then:
 specifies the kind of information to produce, with variants to support
 different kinds of coverage analysis activities (OBC, SDC, ...), and
 
-@item @option{--output-format}
+@item @option{--annotate}
 specifies how the selected information should be presented (annotated
 source or assembly, html with colors, ...)
 @end itemize
@@ -751,19 +750,17 @@ the directions taken by conditional branch instructions.
 Then:
 
 @itemize
-@item @option{--output-format=asm}
+@item @option{--annotate=asm}
 produces annotated assembly code on standard output,
 
-@item @option{--output-format=xcov/gcov}
-produces annotated source files in the current directory, with the
-object code for each source line interspersed if the @option{--asm}
-option is provided as well,
+@item @option{--annotate=xcov[+asm]}
+produces annotated source files, with the object code for each source
+line interspersed if the @code{+asm} variant is selected,
 
-@item @option{--output-format=html}
-produces annotated sources as well, in html format with colors,
-@option{--asm} code expandable from each source line by a click on the
-annotation, and an index summarizing the overall coverage status per
-compilation unit.
+@item @option{--annotate=html[+asm]}
+produces annotated sources in html format with colors, @code{+asm}
+code expandable from each source line by a click on the annotation, and
+an index summarizing the overall coverage status per compilation unit.
 @end itemize
 
 @noindent
@@ -780,9 +777,9 @@ Besides, if source coverage analysis is to be performed as well, the
 whole process is simpler if the same compilation options are used, and
 these have to be strictly controlled for source coverage.
 
-@subsection @code{--output-format=asm}
+@subsection @code{--annotate=asm}
 @noindent
-For branch coverage analysis, @option{--output-format=asm} produces
+For branch coverage analysis, @option{--annotate=asm} produces
 annotated assembly code for all the program routines on standard output.
 @c
 The annotations are visible as a special character at the beginning of
@@ -804,7 +801,6 @@ For Instruction coverage we have:
 @item '+'
 @tab Instruction was executed
 @tab Full
-
 @end multitable
 
 @noindent
@@ -823,7 +819,6 @@ into several subcases for conditional branch instructions:
 @tab
 Conditional branch was executed, taken and not taken
 @tab Full
-
 @end multitable
 
 To illustrate the output format, we will consider the Branch Coverage
@@ -858,7 +853,7 @@ and request branch coverage data in assembly format:
 [Explore runs in Qemu - type 'p', then 'Q']
 
 ... $ xcov -r explore.trace -e explore
-      --coverage=branch --output-format=asm
+      --coverage=branch --annotate=asm
 
 @end smallexample
 
@@ -880,15 +875,15 @@ fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
 ...
 @end smallexample
 
-@code{beq} and @code{bne} are the two conditional branch instructions
-associated with the two conditions.
+@code{beq} and @code{bne} are two conditional branch instructions,
+each associated with one of the two conditions.
 @c
 In addition to straightforward coverage of the rest of the code, the '*'
 for the first branch indicates that it is fully covered and the '>' for
 the second branch indicates partial coverage only.
 @c
-Indeed, on 'p' both conditions were evaluated to False, then on 'Q' the
-first condition was evaluated to True and the second one was
+Indeed, both conditions were evaluated to False on the 'p' input, then
+on 'Q' the first condition was evaluated to True and the second one was
 short-circuited.
 
 As a second experiment, the user quits with 'Q' immediatly, in which
@@ -909,9 +904,9 @@ fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
 ...
 @end smallexample
 
-@subsection @code{--output-format=xcov/gcov}
+@subsection @code{--annotate=xcov[+asm]}
 @noindent
-@option{--output-format=xcov} produces annotated source files with the
+@option{--annotate=xcov} produces annotated source files with the
 @code{.xcov} extension in the current directory, one per original
 compilation unit.
 @c
@@ -924,22 +919,46 @@ hence are of a different nature than what the DO-178B structural
 coverage criteria refer to.
 
 A source line of code typically translates into multiple machine
-instructions and we defined a different mapping of object code to
-source line annotations for instruction or branch coverage:
+instructions, printed next to their associated source line when the
+@option{+asm} option extension is used.
+@c
+We defined a different synthesis of source line from object code
+annotations for instruction or branch coverage.
+@c
+For instruction coverage:
 
+@multitable @columnfractions .1 .8
+@headitem Note @tab Means ...
+@item '-'
+@tab None of the machine instructions associated with the line
+was not executed
+@item '!'
+@tab At least one of the machine instructions associated with the line
+was not executed
+@item '+'
+@tab All the machine instructions associated with the line were executed
+@end multitable
+
+@noindent
+For branch coverage, the @code{'+'} case is refined into:
+
+@multitable @columnfractions .1 .8
+@headitem Note @tab Means ...
+@item '>'
+@tab Object code includes a single conditional branch, taken
+@item 'v'
+@tab Object code includes a single conditional branch, not taken
+@item '*'
+@tab All object code conditional branches were fully covered
+@item '?'
+@tab Some of object code conditional branches were partially covered
+@end multitable
 
 Requires -g
 
-Different interpretation levels.
-
-Asm interpersed.
-
 Examples
 
-@option{--output-format=gcov} produces the outcome in a format
-similar to what GNU gcov outputs. [insn/branch coverage ?]
-
-@subsection @code{--output-format=html}
+@subsection @code{--annotate=html[+asm]}
 
 @section Source Coverage Analysis
 
