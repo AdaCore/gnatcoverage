@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -260,6 +260,18 @@ begin
          for I in Arg_Index + 1 .. Arg_Count loop
             Traces_History.Dump_Traces_With_Asm (Exec, Argument (I));
          end loop;
+         return;
+      elsif Cmd = "--show-graph" then
+         Arg_Index := Arg_Index + 1;
+         if Arg_Index + 1 < Arg_Count then
+            Put_Line ("missing EXE to --show-graph");
+            return;
+         end if;
+         Open_File (Exec, Argument (Arg_Index), Text_Start);
+         Build_Sections (Exec);
+         Build_Symbols (Exec);
+         Build_Debug_Lines (Exec);
+         Traces_History.Generate_Graph (Exec);
          return;
       elsif Cmd = "--run" then
          Qemudrv.Driver (Arg_Index + 1);
