@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -23,6 +23,9 @@ package Traces is
    --  Define the size of the PC.
    subtype Pc_Type is Unsigned_32;
    Pc_Type_Size : constant Unsigned_8 := Pc_Type'Size / System.Storage_Unit;
+
+   --  Type of a branch instruction.
+   type Branch_Kind is (Br_None, Br_Call, Br_Ret, Br_Jmp);
 
    --  Target machine.  The value is the EM field defined by ELF.
    --  Set to 0 when unknown.
