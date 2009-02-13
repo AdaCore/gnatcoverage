@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -233,6 +233,11 @@ package body Traces_Elf is
    begin
       return Get_Filename (Exec.Exe_File);
    end Get_Filename;
+
+   function Get_Machine (Exec : Exe_File_Type) return Unsigned_16 is
+   begin
+      return Exec.Exe_Machine;
+   end Get_Machine;
 
    procedure Read_Word8 (Exec : Exe_File_Type;
                          Base : Address;
@@ -836,7 +841,11 @@ package body Traces_Elf is
 
       procedure New_Raw;
 
-      procedure New_Raw is
+      procedure New_Raw
+      is
+         use Addresses_Containers;
+         Pos : Cursor;
+         Inserted : Boolean;
       begin
          --  Note: Last and Parent are set by Build_Debug_Lines.
          Insert (Exec.Lines_Set,
@@ -847,7 +856,10 @@ package body Traces_Elf is
                   Parent => null,
                   Line_Next => null,
                   Line_Filename => Filenames_Vectors.Element (Filenames, File),
-                  Line_Number => Natural (Line)));
+                  Line_Number => Natural (Line)),
+                 Pos, Inserted);
+         --  Ok, this may fail (if there are two lines number for the same pc).
+
          --  Put_Line ("pc: " & Hex_Image (Pc)
          --        & " file (" & Natural'Image (File) & "): "
          --        & Read_String (Filenames_Vectors.Element (Filenames, File))
@@ -1824,4 +1836,38 @@ package body Traces_Elf is
       Traces_Names.Read_Routines_Name
         (Exec.Exe_File, new String'(Get_Filename (Exec.Exe_File)), False);
    end Build_Routines_Name;
+
+   procedure Init_Iterator (Exe : Exe_File_Type;
+                            Kind : Addresses_Kind;
+                            It : out Addresses_Iterator)
+   is
+      use Addresses_Containers;
+   begin
+      case Kind is
+         when Section_Addresses =>
+            It.Cur := First (Exe.Sections_Set);
+         when Compile_Unit_Addresses =>
+            It.Cur := First (Exe.Compile_Units_Set);
+         when Subprogram_Addresses =>
+            It.Cur := First (Exe.Subprograms_Set);
+         when Symbol_Addresses =>
+            It.Cur := First (Exe.Symbols_Set);
+         when Line_Addresses =>
+            It.Cur := First (Exe.Lines_Set);
+      end case;
+   end Init_Iterator;
+
+   procedure Next_Iterator (It : in out Addresses_Iterator;
+                            Addr : out Addresses_Info_Acc)
+   is
+      use Addresses_Containers;
+   begin
+      if It.Cur = No_Element then
+         Addr := null;
+      else
+         Addr := Element (It.Cur);
+         Next (It.Cur);
+      end if;
+   end Next_Iterator;
+
 end Traces_Elf;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -65,6 +65,9 @@ package Traces_Elf is
    --  Get the filename of Exec.
    function Get_Filename (Exec : Exe_File_Type) return String;
 
+   --  Get the machine type (ELF machine id).
+   function Get_Machine (Exec : Exe_File_Type) return Interfaces.Unsigned_16;
+
    type Addresses_Info;
    type Addresses_Info_Acc is access Addresses_Info;
 
@@ -119,11 +122,6 @@ package Traces_Elf is
    function Get_Symbol (Exec : Exe_File_Type; Pc : Pc_Type)
                        return Addresses_Info_Acc;
 
-   function "<" (L, R : Addresses_Info_Acc) return Boolean;
-
-   package Addresses_Containers is new Ada.Containers.Ordered_Sets
-     (Element_Type => Addresses_Info_Acc);
-
    type Addresses_Kind is
      (
       Section_Addresses,
@@ -133,9 +131,26 @@ package Traces_Elf is
       Line_Addresses
       );
 
+   type Addresses_Iterator is limited private;
+   procedure Init_Iterator (Exe : Exe_File_Type;
+                            Kind : Addresses_Kind;
+                            It : out Addresses_Iterator);
+   procedure Next_Iterator (It : in out Addresses_Iterator;
+                            Addr : out Addresses_Info_Acc);
+
+   function "<" (L, R : Addresses_Info_Acc) return Boolean;
+
+   package Addresses_Containers is new Ada.Containers.Ordered_Sets
+     (Element_Type => Addresses_Info_Acc);
+
    type Addresses_Info (Kind : Addresses_Kind := Section_Addresses) is record
+      --  Range of the info.
       First, Last : Traces.Pc_Type;
+
+      --  Sections have no parent.
+      --  The parent of a symbol is a section.
       Parent : Addresses_Info_Acc;
+
       case Kind is
          when Section_Addresses =>
             Section_Name : String_Acc;
@@ -188,4 +203,7 @@ private
       Lines_Set : Addresses_Containers.Set;
    end record;
 
+   type Addresses_Iterator is limited record
+      Cur : Addresses_Containers.Cursor;
+   end record;
 end Traces_Elf;
