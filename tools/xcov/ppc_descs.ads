@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -52,8 +52,12 @@ package Ppc_Descs is
    --  Use the PowerPC Big-endian convention, ie bit 0 is 2**31.
    function Get_Mask (Field : Ppc_Fields) return Unsigned_32;
 
-   --  Extract field FIELD from V.
+   --  Extract field FIELD from V as an unsigned value.
    function Get_Field (Field : Ppc_Fields; V : Unsigned_32) return Unsigned_32;
+
+   --  Extract field FIELD from V and sign-extend.
+   function Get_Signed_Field (Field : Ppc_Fields; V : Unsigned_32)
+                             return Unsigned_32;
 
    --  A bit number.  PPC convention (LSB) is assumed.
    subtype Bit_Number is Natural range 0 .. 31;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -59,7 +59,17 @@ package body Ppc_Descs is
       F : constant Field_Type := Fields_Mask (Field);
       Len : constant Natural := F.Last - F.First + 1;
    begin
+      --  First shift to the left to remove left bits.
+      --  Then shift to the right to put the value on the right.
       return Shift_Right (Shift_Left (V, F.First), 32 - Len);
    end Get_Field;
 
+   function Get_Signed_Field (Field : Ppc_Fields; V : Unsigned_32)
+                             return Unsigned_32
+   is
+      F : constant Field_Type := Fields_Mask (Field);
+      Len : constant Natural := F.Last - F.First + 1;
+   begin
+      return Shift_Right_Arithmetic (Shift_Left (V, F.First), 32 - Len);
+   end Get_Signed_Field;
 end Ppc_Descs;
