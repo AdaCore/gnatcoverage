@@ -17,9 +17,15 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Containers.Ordered_Maps;
+with Interfaces;
+with Elf_Common;
+with Hex_Images;
 with Traces; use Traces;
 with Traces_Files;
 with Traces_Disa;
+with Ppc_Descs;
+with Disa_Ppc;
 
 package body Traces_History is
    procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
@@ -59,4 +65,370 @@ package body Traces_History is
       Traces_Files.Read_Trace_File (Trace_Filename, Disp_Entry'Access);
    end Dump_Traces_With_Asm;
 
+   type Graph_Node;
+   type Graph_Node_Acc is access Graph_Node;
+
+   type Graph_Node is record
+      --  Corresponding statement.
+      Stmt : Natural;
+      Line : Addresses_Info_Acc;
+      First, Last : Pc_Type;
+
+      Branch : Branch_Kind;
+      Flag_Indir, Flag_Cond : Boolean;
+      Flag_Entry : Boolean;
+
+      Prev : Graph_Node_Acc;
+      Next_Ft, Next_Br : Graph_Node_Acc;
+      Link_Ft, Link_Br : Graph_Node_Acc;
+   end record;
+
+   type Graph_Node_Vector is array (Natural range <>) of Graph_Node_Acc;
+   type Graph_Node_Vec_Acc is access Graph_Node_Vector;
+
+   package Node_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type => Pc_Type,
+      Element_Type => Graph_Node_Acc,
+      "<" => Interfaces."<");
+
+   procedure Get_Entry (Nodes : in out Node_Maps.Map;
+                        Pc : Pc_Type;
+                        Res : out Graph_Node_Acc)
+   is
+      use Node_Maps;
+      Cur : Cursor;
+   begin
+      Cur := Nodes.Find (Pc);
+      if Cur /= No_Element then
+         Res := Element (Cur);
+         Res.Flag_Entry := True;
+      else
+         Res := new Graph_Node'(Stmt => 0,
+                                Line => null,
+                                First => Pc,
+                                Last => Pc,
+                                Branch => Br_None,
+                                Flag_Indir => False,
+                                Flag_Cond => False,
+                                Flag_Entry => False,
+                                others => null);
+         Nodes.Insert (Pc, Res);
+      end if;
+   end Get_Entry;
+
+   procedure Generate_Graph (Exe : Exe_File_Type)
+   is
+      use Interfaces;
+
+      It : Addresses_Iterator;
+      Sym_It : Addresses_Iterator;
+      Line_It : Addresses_Iterator;
+      Sym : Addresses_Info_Acc;
+      Sec : Addresses_Info_Acc;
+      Line : Addresses_Info_Acc;
+      Pc, Npc : Pc_Type;
+      Machine : constant Unsigned_16 := Get_Machine (Exe);
+      Nodes : Node_Maps.Map;
+   begin
+      --  Load sections.
+      Init_Iterator (Exe, Section_Addresses, It);
+      loop
+         Next_Iterator (It, Sec);
+         exit when Sec = null;
+         Load_Section_Content (Exe, Sec);
+      end loop;
+
+      Init_Iterator (Exe, Symbol_Addresses, Sym_It);
+      Init_Iterator (Exe, Line_Addresses, Line_It);
+      Next_Iterator (Line_It, Line);
+      loop
+         Next_Iterator (Sym_It, Sym);
+         exit when Sym = null;
+
+         New_Line;
+         Disp_Address (Sym);
+
+         Sec := Sym.Parent;
+         pragma Assert (Sec.Section_Content /= null);
+
+         Pc := Sym.First;
+         Nodes.Clear;
+
+         case Machine is
+            when Elf_Common.EM_PPC =>
+               declare
+                  use Disa_Ppc;
+                  Insn : Unsigned_32;
+                  Branch : Branch_Kind;
+                  Flag_Indir, Flag_Cond : Boolean;
+                  Dest : Pc_Type;
+                  Verbose : constant Boolean := False;
+                  Node, Node_Ft, Node_Br : Graph_Node_Acc;
+               begin
+                  Get_Entry (Nodes, Pc, Node_Br);
+                  while Pc < Sym.Last loop
+                     Insn := Ppc_Descs.Get_Insn
+                       (Sec.Section_Content (Pc)'Address);
+                     Get_Insn_Properties (Insn, Pc,
+                                          Branch, Flag_Indir, Flag_Cond,
+                                          Dest);
+
+                     if Verbose then
+                        Put (Hex_Images.Hex_Image (Pc));
+                        Put (": ");
+                        Put (Traces_Disa.Disassemble
+                               (Sec.Section_Content (Pc .. Pc + 3), Pc, Exe));
+                        New_Line;
+                        case Branch is
+                           when Br_Jmp =>
+                              Put ("  jump");
+                           when Br_Call =>
+                              Put ("  call");
+                           when Br_Ret =>
+                              Put ("  ret");
+                           when Br_None =>
+                              null;
+                        end case;
+                        if Branch /= Br_None then
+                           if Flag_Cond then
+                              Put (" +conditional");
+                           end if;
+                           if Flag_Indir then
+                              Put (" +indir");
+                           else
+                              Put (' ');
+                              Put (Hex_Images.Hex_Image (Dest));
+                              if Dest in Sym.First .. Sym.Last then
+                                 Put (" (intra-routine)");
+                              end if;
+                           end if;
+                           New_Line;
+                        end if;
+                     end if;
+
+                     if Branch /= Br_None then
+                        if Flag_Indir then
+                           Node_Br := null;
+                        elsif Dest not in Sym.First .. Sym.Last then
+                           Node_Br := null;
+                        else
+                           Get_Entry (Nodes, Dest, Node_Br);
+                        end if;
+                        if Flag_Cond then
+                           Get_Entry (Nodes, Pc + 4, Node_Ft);
+                        else
+                           Node_Ft := null;
+                        end if;
+                        if not Nodes.Contains (Pc) then
+                           Node := new Graph_Node'(Stmt => 0,
+                                                   Line => null,
+                                                   First => Pc,
+                                                   Last => Pc + 3,
+                                                   Branch => Branch,
+                                                   Flag_Indir => Flag_Indir,
+                                                   Flag_Cond => Flag_Cond,
+                                                   Flag_Entry => False,
+                                                   others => null);
+                           Nodes.Insert (Pc, Node);
+                        else
+                           Node := Nodes.Element (Pc);
+                           if Node.Branch /= Br_None then
+                              raise Program_Error;
+                           end if;
+                        end if;
+                        Node.Branch := Branch;
+                        Node.Flag_Indir := Flag_Indir;
+                        Node.Flag_Cond := Flag_Cond;
+                        Node.Next_Br := Node_Br;
+                        Node.Next_Ft := Node_Ft;
+                     end if;
+                     Npc := Pc + 4;
+                     exit when Npc < Pc;
+                     Pc := Npc;
+                  end loop;
+               end;
+            when others =>
+               raise Program_Error;
+         end case;
+
+         --  Second pass: extend the graph blocks.
+         if Nodes.Is_Empty then
+            --  There should be at least the entry point.
+            raise Program_Error;
+         end if;
+
+         --  Find the line for the PC.
+         Pc := Sym.First;
+         while Line /= null and then Line.Last < Pc loop
+            Next_Iterator (Line_It, Line);
+         end loop;
+
+         declare
+            use Node_Maps;
+            Cur : Cursor;
+            C, N : Graph_Node_Acc;
+            Stmt : Natural := 1;
+         begin
+            Cur := Nodes.First;
+            C := Element (Cur);
+            loop
+               if False then
+                  declare
+                     use Hex_Images;
+                  begin
+                     Put (Hex_Image (C.First));
+                     Put ('-');
+                     Put (Hex_Image (C.Last));
+                     Put (", key:");
+                     Put (Hex_Image (Key (Cur)));
+                     New_Line;
+                  end;
+               end if;
+
+               --  Skip lines starting before the current block.
+               while Line /= null and then Line.First < C.First loop
+                  Next_Iterator (Line_It, Line);
+               end loop;
+
+               --  If the current block starts at a new line, increase the
+               --  stmt counter.
+               if Line /= null and then C.First = Line.First then
+                  C.Line := Line;
+                  Stmt := Stmt + 1;
+                  C.Stmt := Stmt;
+                  Next_Iterator (Line_It, Line);
+               end if;
+
+               Next (Cur);
+               exit when Cur = No_Element;
+
+               N := Element (Cur);
+               if Line /= null and then Line.First < N.First - 1 then
+                  C.Last := Line.First - 1;
+                  if True then
+                     Put_Line ("*add line at "
+                                 & Hex_Images.Hex_Image (Line.First));
+                  end if;
+                  Stmt := Stmt + 1;
+                  Nodes.Insert (Line.First,
+                                new Graph_Node'(Stmt => Stmt,
+                                                Line => Line,
+                                                First => Line.First,
+                                                Last => N.First - 1,
+                                                Branch => Br_None,
+                                                Flag_Indir => False,
+                                                Flag_Cond => False,
+                                                Flag_Entry => False,
+                                                others => null));
+               else
+                  C.Last := N.First - 1;
+               end if;
+               N.Stmt := Stmt;
+
+               C := N;
+            end loop;
+            C.Last := Sym.Last;
+         end;
+
+         --  Third pass: build the vector.
+         declare
+            use Node_Maps;
+            use Hex_Images;
+            use Traces_Disa;
+            Cur : Cursor;
+            Vec : Graph_Node_Vec_Acc;
+            E : Graph_Node_Acc;
+            Idx : Natural;
+            Nbr_In_Jmp : Natural := 0;
+         begin
+            Vec := new Graph_Node_Vector (0 .. Integer (Nodes.Length) - 1);
+            Idx := 0;
+            Cur := Nodes.First;
+            while Cur /= No_Element loop
+               Vec (Idx) := Element (Cur);
+               Idx := Idx + 1;
+               Next (Cur);
+            end loop;
+
+            for I in Vec'Range loop
+               E := Vec (I);
+               Put (Hex_Image (E.First));
+               Put ('-');
+               Put (Hex_Image (E.Last));
+               Put (", stmt:");
+               Put (Natural'Image (E.Stmt));
+               if E.Line /= null then
+                  Put (',');
+                  Disp_Address (E.Line);
+                  --  Put (", line:");
+                  --  Put (Natural'Image (E.Line.Line_Number));
+               end if;
+               New_Line;
+               For_Each_Insn (Sec.Section_Content (E.First .. E.Last),
+                              Covered,
+                              Textio_Disassemble_Cb'Access,
+                              Exe);
+               case E.Branch is
+                  when Br_Jmp =>
+                     Put ("  jump");
+                  when Br_Call =>
+                     Put ("  call");
+                  when Br_Ret =>
+                     Put ("  ret");
+                  when Br_None =>
+                     null;
+               end case;
+               if E.Branch /= Br_None then
+                  if E.Flag_Cond then
+                     Put (" +conditional");
+                  end if;
+                  if E.Flag_Indir then
+                     Put (" +indir");
+                  end if;
+                  if E.Next_Ft /= null then
+                     Put (" v:");
+                     Put (Hex_Image (E.Next_Ft.First));
+                     if E.Next_Ft.Stmt = E.Stmt then
+                        Put ("(in)");
+                     end if;
+                  end if;
+                  if E.Next_Br /= null then
+                     if E.Next_Br.First <= E.First then
+                        Put (" ^:");
+                     else
+                        Put (" >:");
+                     end if;
+                     Put (Hex_Image (E.Next_Br.First));
+                     if E.Next_Br.Stmt = E.Stmt then
+                        Put ("(in)");
+                     end if;
+                  end if;
+                  New_Line;
+               end if;
+
+               if E.Branch /= Br_None and E.Flag_Cond then
+                  if False
+                    and then E.Next_Ft /= null
+                    and then E.Next_Ft.Stmt = E.Stmt
+                    and then E.Next_Ft.First > E.First
+                  then
+                     Nbr_In_Jmp := Nbr_In_Jmp + 1;
+                  end if;
+                  if E.Next_Br /= null
+                    and then E.Next_Br.Stmt = E.Stmt
+                    and then E.Next_Br.First > E.First
+                  then
+                     Nbr_In_Jmp := Nbr_In_Jmp + 1;
+                  end if;
+               end if;
+            end loop;
+
+            if Nbr_In_Jmp /= 0 then
+               Put_Line (Natural'Image (Nbr_In_Jmp) & " intra-jumps for "
+                           & Sym.Symbol_Name.all);
+            end if;
+         end;
+
+      end loop;
+   end Generate_Graph;
 end Traces_History;
