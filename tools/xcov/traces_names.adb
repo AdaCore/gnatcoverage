@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                      Copyright (C) 2008-2009, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -34,8 +34,15 @@ package body Traces_Names is
 
    type Subprogram_Name is record
       Filename : String_Acc;
+      --  Name of the file which the instructions where read from.
+      --  Currently used only in error messages.
+      --  FIXME: use a ref to elf_file.
+
       Insns : Binary_Content_Acc;
+      --  Subprogram binary content.
+
       Traces : Traces_Base_Acc;
+      --  Traces for the subprogram.
    end record;
 
    function Equal (L, R : Subprogram_Name) return Boolean;
@@ -335,7 +342,6 @@ package body Traces_Names is
             El.Filename := new String'(Filename);
          else
             --  FIXME: check the contents are similar
-            --  FIXME: check size at first ?
             if Content'Length /= El.Insns.all'Length then
                Put_Line (Standard_Error,
                          "error: different function size for "
