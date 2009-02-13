@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -263,4 +263,67 @@ package body Disa_Ppc is
          Add (Hex_Image (W));
       end if;
    end Disassemble_Insn;
+
+   procedure Get_Insn_Properties (Insn : Unsigned_32;
+                                  Pc : Unsigned_32;
+                                  Branch : out Branch_Kind;
+                                  Flag_Indir : out Boolean;
+                                  Flag_Cond : out Boolean;
+                                  Dest : out Unsigned_32)
+   is
+      Opc, Xo, Bo : Unsigned_32;
+      D : Unsigned_32;
+   begin
+      Opc := Get_Field (F_OPC, Insn);
+      Xo := Get_Field (F_XO, Insn);
+
+      --  To be overriden for non-common cases.
+      if Get_Field (F_LK, Insn) = 1 then
+         Branch := Br_Call;
+      else
+         Branch := Br_Jmp;
+      end if;
+
+      if Opc = 18 then
+         --  Opc = 18: b, ba, bl and bla
+         Flag_Indir := False;
+         Flag_Cond := False;
+         D := Shift_Left (Get_Signed_Field (F_LI, Insn), 2);
+         if Get_Field (F_AA, Insn) = 1 then
+            Dest := D;
+         else
+            Dest := Pc + D;
+         end if;
+         return;
+      elsif Opc = 16 then
+         --  bcx.
+         Flag_Indir := False;
+         D := Shift_Left (Get_Signed_Field (F_BD, Insn), 2);
+         if Get_Field (F_AA, Insn) = 1 then
+            Dest := D;
+         else
+            Dest := Pc + D;
+         end if;
+      elsif Opc = 19 and Xo = 16 then
+         --  bclrx.
+         Flag_Indir := True;
+         Dest := 0;
+         if Branch = Br_Jmp then
+            Branch := Br_Ret;
+         end if;
+      elsif Opc = 19 and Xo = 528 then
+         --  bcctrx
+         Flag_Indir := True;
+         Dest := 0;
+      else
+         Branch := Br_None;
+         Flag_Indir := False;
+         Flag_Cond := False;
+         Dest := 0;
+         return;
+      end if;
+
+      Bo := Get_Field (F_BO, Insn);
+      Flag_Cond := not ((Bo and 2#10100#) = 2#10100#);
+   end Get_Insn_Properties;
 end Disa_Ppc;

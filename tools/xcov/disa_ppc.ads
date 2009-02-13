@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,7 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with System;
-with Traces;
+with Interfaces;
+with Traces; use Traces;
 with Disa_Symbolize; use Disa_Symbolize;
 
 package Disa_Ppc is
@@ -29,10 +30,16 @@ package Disa_Ppc is
    --  LINE_POS is the index of the next character to be written (ie line
    --   length if Line'First = 1).
    procedure Disassemble_Insn (Addr : System.Address;
-                               Pc : Traces.Pc_Type;
+                               Pc : Pc_Type;
                                Line : out String;
                                Line_Pos : out Natural;
                                Insn_Len : out Natural;
                                Sym : Symbolizer'Class);
 
+   procedure Get_Insn_Properties (Insn : Interfaces.Unsigned_32;
+                                  Pc : Pc_Type;
+                                  Branch : out Branch_Kind;
+                                  Flag_Indir : out Boolean;
+                                  Flag_Cond : out Boolean;
+                                  Dest : out Pc_Type);
 end Disa_Ppc;
