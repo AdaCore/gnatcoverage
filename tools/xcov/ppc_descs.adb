@@ -20,6 +20,8 @@ with Ada.Unchecked_Conversion;
 with System.Storage_Elements;
 
 package body Ppc_Descs is
+   function Read_Byte (Addr : Address) return Unsigned_8;
+
    function Read_Byte (Addr : Address) return Unsigned_8
    is
       type Unsigned_8_Acc is access all Unsigned_8;

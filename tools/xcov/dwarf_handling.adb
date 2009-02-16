@@ -3,7 +3,7 @@
 --                              Couverture                                  --
 --                                                                          --
 --                     Copyright (C) 2006 Tristan Gingold                   --
---                        Copyright (C) 2008, AdaCore                       --
+--                      Copyright (C) 2008-2009, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -20,6 +20,8 @@
 with Ada.Unchecked_Conversion;
 
 package body Dwarf_Handling is
+   procedure Write_Byte (Addr : Address; Val : Unsigned_8);
+
    procedure Build_Abbrev_Map (Base : Address; Res : out Abbrev_Map_Acc)
    is
       Max : Unsigned_32;

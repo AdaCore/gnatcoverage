@@ -21,6 +21,7 @@ with System.Storage_Elements;
 with Ada.Unchecked_Conversion;
 
 package body Sparc_Descs is
+   function Read_Byte (Addr : Address) return Unsigned_8;
 
    function Read_Byte (Addr : Address) return Unsigned_8
    is
