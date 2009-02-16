@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -20,6 +20,10 @@ with Interfaces; use Interfaces;
 with Ada.Unchecked_Deallocation;
 
 package body Elf_Files is
+   function Get_My_Data return Elf_Uchar;
+   function Get_String (Strtab : Elf_Strtab_Acc; Idx : Elf_Size)
+                       return String;
+
    function Get_My_Data return Elf_Uchar
    is
       type Arr4 is array (0 .. 3) of Elf_Uchar;
