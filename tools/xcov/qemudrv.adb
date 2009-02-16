@@ -22,6 +22,8 @@ with Ada.Command_Line; use Ada.Command_Line;
 with GNAT.Command_Line; use GNAT.Command_Line;
 --  with GNAT.Strings; use GNAT.Strings;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
+with Traces_Files; use Traces_Files;
+with Qemu_Traces;
 with Qemudrv_Base; use Qemudrv_Base;
 
 package body Qemudrv is
@@ -44,8 +46,11 @@ package body Qemudrv is
    --  Executable to run.
 
    Getopt_Switches : constant String :=
-     "v -verbose t: -target= o: -output= h -help";
+     "v -verbose t: -target= o: -output= h -help -tag= -T:";
    --  String for Getopt.
+
+   Tag : String_Access;
+   --  Tag to write in the trace file.
 
    procedure Error (Msg : String);
    --  Display the message on the error output and set exit status.
@@ -108,6 +113,10 @@ package body Qemudrv is
            or else (S = '-' and then Full_Switch (Parser) = "-output")
          then
             Output := new String'(Parameter (Parser));
+         elsif S = 'T'
+           or else (S = '-' and then Full_Switch (Parser) = "-tag")
+         then
+            Tag := new String'(Parameter (Parser));
          elsif S = 'h'
            or else (S = '-' and then Full_Switch (Parser) = "-help")
          then
@@ -143,6 +152,19 @@ package body Qemudrv is
 
       if Output = null then
          Output := new String'(Exe_File.all & ".trace");
+      end if;
+
+      --  Write the tag.
+      if Tag /= null then
+         declare
+            Trace_File : Trace_File_Type;
+         begin
+            Create_Trace_File (Trace_File);
+            Append_Info (Trace_File,
+                         Qemu_Traces.Info_Kind_User_Tag, Tag.all);
+            Write_Trace_File (Output.all, Trace_File);
+            Free (Trace_File);
+         end;
       end if;
 
       --  Search for the driver.

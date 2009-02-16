@@ -113,6 +113,7 @@ procedure Xcov is
    Text_Start : Pc_Type := 0;
    type Output_Format is (Format_Xcov, Format_Gcov, Format_Html);
    Format : Output_Format := Format_Xcov;
+   Trace_File : Trace_File_Type;
    Base : Traces_Base;
 
    Exec : Exe_File_Type;
@@ -222,7 +223,7 @@ begin
             --  Read traces.
             Init_Base (Base);
             begin
-               Read_Trace_File (Base, Argument (Arg_Index + 1));
+               Read_Trace_File (Argument (Arg_Index + 1), Trace_File, Base);
             exception
                when others =>
                   Error ("cannot open tracefile " & Argument (Arg_Index + 1));
@@ -231,6 +232,7 @@ begin
             Add_Subprograms_Traces (Sub_Exec, Base);
             Close_File (Sub_Exec);
             Clear_File (Sub_Exec);
+            Free (Trace_File);
             Arg_Index := Arg_Index + 2;
          end loop;
          if Has_Exec then
@@ -298,7 +300,7 @@ begin
                Put_Line ("missing FILENAME to -r");
                return;
             end if;
-            Read_Trace_File (Base, Argument (Arg_Index));
+            Read_Trace_File (Argument (Arg_Index), Trace_File, Base);
             Arg_Index := Arg_Index + 1;
          elsif Arg = "-e" then
             if Arg_Index > Arg_Count then
@@ -325,7 +327,7 @@ begin
                Error ("missing FILENAME to -w");
                return;
             end if;
-            Write_Trace_File (Base, Argument (Arg_Index));
+            Write_Trace_File (Argument (Arg_Index), Trace_File, Base);
             Arg_Index := Arg_Index + 1;
          elsif Arg = "--exe-coverage" then
             if not Has_Exec then

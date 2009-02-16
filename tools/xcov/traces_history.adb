@@ -31,7 +31,10 @@ package body Traces_History is
    procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
                                    Trace_Filename : String)
    is
+      use Traces_Files;
       Addr : Addresses_Info_Acc := null;
+
+      procedure Disp_Entry (E : Trace_Entry);
 
       procedure Disp_Entry (E : Trace_Entry)
       is
@@ -61,8 +64,11 @@ package body Traces_History is
                            Textio_Disassemble_Cb'Access, Exe);
          end if;
       end Disp_Entry;
+
+      File : Trace_File_Type;
    begin
-      Traces_Files.Read_Trace_File (Trace_Filename, Disp_Entry'Access);
+      Read_Trace_File (Trace_Filename, File, null, Disp_Entry'Access);
+      Free (File);
    end Dump_Traces_With_Asm;
 
    type Graph_Node;
@@ -90,6 +96,10 @@ package body Traces_History is
      (Key_Type => Pc_Type,
       Element_Type => Graph_Node_Acc,
       "<" => Interfaces."<");
+
+   procedure Get_Entry (Nodes : in out Node_Maps.Map;
+                        Pc : Pc_Type;
+                        Res : out Graph_Node_Acc);
 
    procedure Get_Entry (Nodes : in out Node_Maps.Map;
                         Pc : Pc_Type;

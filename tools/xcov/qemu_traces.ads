@@ -57,7 +57,7 @@ package Qemu_Traces is
 
    --  Meta informations.
    --  This is a special section that is followed by a standard trace section.
-   --  The header fields after Kind should be 0.
+   --  The header fields after Kind (but big_endian) should be 0.
    --  The header is followed by Trace_Info records.
    Qemu_Trace_Kind_Info : constant Unsigned_8 := 2;
 
@@ -84,6 +84,8 @@ package Qemu_Traces is
       Info_Kind   : Unsigned_32;
       Info_Length : Unsigned_32;
    end record;
+
+   Trace_Info_Alignment : constant := 4;
 
    --  End of the section.  Length must be 0.
    Info_Kind_End           : constant Unsigned_32 := 0;

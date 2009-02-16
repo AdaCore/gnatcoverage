@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                    Copyright (C) 2008-2009, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,8 +17,9 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with Ada.Unchecked_Conversion;
+with Ada.Unchecked_Deallocation;
+with Ada.Characters.Handling;
 with Ada.Text_IO; use Ada.Text_IO;
-with Interfaces; use Interfaces;
 with Qemu_Traces; use Qemu_Traces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 with Hex_Images; use Hex_Images;
@@ -52,28 +53,27 @@ package body Traces_Files is
       Kind : Unsigned_8;
       Sizeof_Target_Pc : Unsigned_8;
       Big_Endian : Boolean;
-      Machine : Unsigned_16;
    end record;
 
    Trace_Header_Size : constant Natural :=
      Trace_Header'Size / System.Storage_Unit;
 
+   Trace_Info_Header_Size : constant Natural :=
+     Trace_Info_Header'Size / System.Storage_Unit;
+
    E32_Size : constant Natural := Trace_Entry32'Size / System.Storage_Unit;
    E64_Size : constant Natural := Trace_Entry64'Size / System.Storage_Unit;
 
-   procedure Read_Trace_File_Header (Desc : in out Trace_File_Descriptor);
+   procedure Check_Header (Desc : in out Trace_File_Descriptor;
+                          Hdr : Trace_Header);
 
-   procedure Read_Trace_File_Header (Desc : in out Trace_File_Descriptor)
-   is
-      Hdr : Trace_Header;
+   procedure Decode_Trace_Header (Hdr : Trace_Header;
+                                  Trace_File : in out Trace_File_Type;
+                                  Desc : in out Trace_File_Descriptor);
+
+   procedure Check_Header (Desc : in out Trace_File_Descriptor;
+                          Hdr : Trace_Header) is
    begin
-      --  Read header.
-      if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
-        /= Trace_Header_Size
-      then
-         raise Bad_File_Format with "cannot read header";
-      end if;
-
       --  Check header.
       if Hdr.Magic /= Qemu_Trace_Magic then
          raise Bad_File_Format with "invalid header (bad magic)";
@@ -83,6 +83,17 @@ package body Traces_Files is
          raise Bad_File_Format with "invalid header (bad version)";
       end if;
 
+      if Hdr.Big_Endian /= 0 and Hdr.Big_Endian /= 1 then
+         raise Bad_File_Format with "invalid header (bad endianness)";
+      end if;
+      Desc.Big_Endian := Hdr.Big_Endian = 1;
+   end Check_Header;
+
+   procedure Decode_Trace_Header (Hdr : Trace_Header;
+                                  Trace_File : in out Trace_File_Type;
+                                  Desc : in out Trace_File_Descriptor)
+   is
+   begin
       Desc.Kind := Hdr.Kind;
       if Desc.Kind /= Qemu_Trace_Kind_Raw
         and then Desc.Kind /= Qemu_Trace_Kind_History
@@ -95,24 +106,75 @@ package body Traces_Files is
          raise Bad_File_Format with "invalid header (bad pc size)";
       end if;
 
-      if Hdr.Big_Endian /= 0 and Hdr.Big_Endian /= 1 then
-         raise Bad_File_Format with "invalid header (bad endianness)";
-      end if;
-      Desc.Big_Endian := Hdr.Big_Endian = 1;
-
-      Desc.Machine := Unsigned_16 (Hdr.Machine_Hi) * 256
+      Trace_File.Machine := Unsigned_16 (Hdr.Machine_Hi) * 256
         + Unsigned_16 (Hdr.Machine_Lo);
 
-      if Machine = 0 or Machine = Desc.Machine then
-         Machine := Desc.Machine;
+      if Machine = 0 or Machine = Trace_File.Machine then
+         Machine := Trace_File.Machine;
       else
          raise Bad_File_Format
            with "target machine doesn't match previous one";
       end if;
-   end Read_Trace_File_Header;
+   end Decode_Trace_Header;
 
-   procedure Read_Trace_File (Filename : String;
-                              Cb : access procedure (E : Trace_Entry))
+   procedure Read_Trace_File_Infos (Trace_File : out Trace_File_Type;
+                                    Desc : Trace_File_Descriptor)
+   is
+      Ihdr : Trace_Info_Header;
+      Pad : String (1 .. Trace_Info_Alignment);
+      Pad_Len : Natural;
+   begin
+      loop
+         --  Read header.
+         if Read (Desc.Fd, Ihdr'Address, Trace_Info_Header_Size)
+           /= Trace_Info_Header_Size
+         then
+            raise Bad_File_Format with "cannot read info header";
+         end if;
+
+         if Desc.Big_Endian /= My_Big_Endian then
+            Swaps.Swap_32 (Ihdr.Info_Kind);
+            Swaps.Swap_32 (Ihdr.Info_Length);
+         end if;
+
+         if Ihdr.Info_Kind = Info_Kind_End then
+            if Ihdr.Info_Length /= 0 then
+               raise Bad_File_Format with "bad end info length";
+            end if;
+            exit;
+         end if;
+
+         --  Read data.
+         declare
+            Data : String (1 .. Natural (Ihdr.Info_Length));
+         begin
+            if Read (Desc.Fd, Data'Address, Data'Length) /= Data'Length then
+               raise Bad_File_Format with "cannot read info data";
+            end if;
+
+            Append_Info (Trace_File, Ihdr.Info_Kind, Data);
+         end;
+
+         --  Read pad.
+         Pad_Len := Natural (Ihdr.Info_Length) mod Trace_Info_Alignment;
+         if Pad_Len /= 0 then
+            Pad_Len := Trace_Info_Alignment - Pad_Len;
+            if Read (Desc.Fd, Pad'Address, Pad_Len) /= Pad_Len then
+               raise Bad_File_Format with "cannot read info pad";
+            end if;
+            if Pad (1 .. Pad_Len) /= (1 .. Pad_Len => Character'Val (0)) then
+               raise Bad_File_Format with "bad padding content";
+            end if;
+         end if;
+
+      end loop;
+   end Read_Trace_File_Infos;
+
+   procedure Read_Trace_File
+     (Filename : String;
+      Trace_File : out Trace_File_Type;
+      Info_Cb : access procedure (File : Trace_File_Type);
+      Trace_Cb : access procedure (E : Trace_Entry))
    is
       Desc : Trace_File_Descriptor;
       E32 : Trace_Entry32;
@@ -127,13 +189,43 @@ package body Traces_Files is
          raise Bad_File_Format with "cannot open file " & Filename;
       end if;
 
+      declare
+         Hdr : Trace_Header;
       begin
-         Read_Trace_File_Header (Desc);
+         --  Read header.
+         if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
+           /= Trace_Header_Size
+         then
+            raise Bad_File_Format with "cannot read header";
+         end if;
+         Check_Header (Desc, Hdr);
+
+         if Hdr.Kind = Qemu_Trace_Kind_Info then
+            Read_Trace_File_Infos (Trace_File, Desc);
+            --  Read header.
+            Res := Read (Desc.Fd, Hdr'Address, Trace_Header_Size);
+            if Res = 0 then
+               if Info_Cb /= null then
+                  Info_Cb.all (Trace_File);
+               end if;
+               Close (Desc.Fd);
+               return;
+            end if;
+            if Res /= Trace_Header_Size then
+               raise Bad_File_Format with "cannot read header";
+            end if;
+            Check_Header (Desc, Hdr);
+         end if;
+         Decode_Trace_Header (Hdr, Trace_File, Desc);
       exception
          when others =>
             Close (Desc.Fd);
             raise;
       end;
+
+      if Info_Cb /= null then
+         Info_Cb.all (Trace_File);
+      end if;
 
       if Desc.Sizeof_Target_Pc = 4 then
          Addr := E32'Address;
@@ -179,16 +271,18 @@ package body Traces_Files is
          end if;
 
          --  Add the entry in the AVL.
-         Cb.all (Trace_Entry'(First => E32.Pc,
-                              Last => E32.Pc + Pc_Type (E32.Size) - 1,
-                              Op => E32.Op,
-                              State => Unknown));
+         Trace_Cb.all (Trace_Entry'(First => E32.Pc,
+                                    Last => E32.Pc + Pc_Type (E32.Size) - 1,
+                                    Op => E32.Op,
+                                    State => Unknown));
       end loop;
 
       Close (Desc.Fd);
    end Read_Trace_File;
 
-   procedure Read_Trace_File (Base : in out Traces_Base; Filename : String)
+   procedure Read_Trace_File (Filename : String;
+                              Trace_File : out Trace_File_Type;
+                              Base : in out Traces_Base)
    is
       procedure Cb (E : Trace_Entry);
 
@@ -200,17 +294,129 @@ package body Traces_Files is
                     Op => E.Op);
       end Cb;
    begin
-      Read_Trace_File (Filename, Cb'Access);
+      Read_Trace_File (Filename, Trace_File, null, Cb'Access);
    end Read_Trace_File;
 
-   procedure Dump_Trace_File (Filename : String) is
+   procedure Dump_Infos (Trace_File : Trace_File_Type)
+   is
+      Info : Trace_File_Info_Acc;
+      Is_Print : Boolean;
    begin
-      Read_Trace_File (Filename, Dump_Entry'Access);
+      Info := Trace_File.First_Infos;
+      while Info /= null loop
+         Put ("Tag  : " & Hex_Image (Info.Kind));
+         case Info.Kind is
+            when Info_Kind_User_Tag =>
+               Put (" (User_Tag)");
+            when others =>
+               null;
+         end case;
+         New_Line;
+         Put_Line ("Len  :" & Natural'Image (Info.Raw_Length));
+
+         Put ("Data :");
+         Is_Print := True;
+         for I in Info.Data'Range loop
+            if not Ada.Characters.Handling.Is_Graphic (Info.Data (I)) then
+               Is_Print := False;
+               exit;
+            end if;
+         end loop;
+         if Is_Print then
+            Put (' ');
+            Put_Line (Info.Data);
+         else
+            for I in Info.Data'Range loop
+               Put (' ');
+               Put (Hex_Image (Unsigned_8 (Character'Pos (Info.Data (I)))));
+            end loop;
+         end if;
+
+         Info := Info.Next;
+         New_Line;
+      end loop;
+   end Dump_Infos;
+
+   procedure Dump_Trace_File (Filename : String)
+   is
+      Trace_File : Trace_File_Type;
+   begin
+      Read_Trace_File (Filename, Trace_File,
+                       Dump_Infos'Access, Dump_Entry'Access);
+      Free (Trace_File);
    end Dump_Trace_File;
 
-   procedure Write_Trace_File (Base : Traces_Base; Filename : String)
+   procedure Write_Trace_File_Info (Fd : File_Descriptor;
+                                    Trace_File : Trace_File_Type)
    is
-      Fd : File_Descriptor;
+      Hdr : Trace_Header;
+      Info : Trace_File_Info_Acc;
+      Ihdr : Trace_Info_Header;
+   begin
+      Hdr := (Magic => Qemu_Trace_Magic,
+              Version => Qemu_Trace_Version,
+              Kind => Qemu_Trace_Kind_Info,
+              Sizeof_Target_Pc => 0,
+              Big_Endian => Boolean'Pos (Is_Big_Endian),
+              Machine_Hi => 0,
+              Machine_Lo => 0,
+              Padding => 0);
+
+      if Write (Fd, Hdr'Address, Trace_Header_Size)
+        /= Trace_Header_Size
+      then
+         raise Write_Error with "failed to write first header";
+      end if;
+
+      Info := Trace_File.First_Infos;
+      while Info /= null loop
+         declare
+            Pad : constant String (1 .. Trace_Info_Alignment) :=
+              (others => Character'Val (0));
+            Pad_Len : Natural;
+         begin
+            Ihdr.Info_Kind := Info.Kind;
+            Ihdr.Info_Length := Unsigned_32 (Info.Raw_Length);
+
+            if Write (Fd, Ihdr'Address, Trace_Info_Header_Size)
+              /= Trace_Info_Header_Size
+            then
+               raise Write_Error with "failed to write info header";
+            end if;
+
+            if Write (Fd, Info.Data'Address, Info.Raw_Length)
+              /= Info.Raw_Length
+            then
+               raise Write_Error with "failed to write info data";
+            end if;
+
+            Pad_Len := Info.Raw_Length mod Trace_Info_Alignment;
+            if Pad_Len /= 0 then
+               Pad_Len := Trace_Info_Alignment - Pad_Len;
+               if Write (Fd, Pad'Address, Pad_Len) /= Pad_Len then
+                  raise Write_Error with "failed to write info pad";
+               end if;
+            end if;
+         end;
+
+         Info := Info.Next;
+      end loop;
+
+      --  Write the terminator.
+      Ihdr.Info_Kind := Info_Kind_End;
+      Ihdr.Info_Length := 0;
+      if Write (Fd, Ihdr'Address, Trace_Info_Header_Size)
+        /= Trace_Info_Header_Size
+      then
+         raise Write_Error with "failed to write info header";
+      end if;
+   end Write_Trace_File_Info;
+
+   procedure Write_Trace_File_Traces (Fd : File_Descriptor;
+                                      Trace_File : Trace_File_Type;
+                                      Base : Traces_Base)
+   is
+      pragma Unreferenced (Trace_File);
       Hdr : Trace_Header;
 
       E : Trace_Entry;
@@ -220,11 +426,6 @@ package body Traces_Files is
       Res_Size : Natural;
       Cur : Entry_Iterator;
    begin
-      Fd := Create_File (Filename, Binary);
-      if Fd = Invalid_FD then
-         raise Write_Error with "failed to create the file";
-      end if;
-
       Hdr := (Magic => Qemu_Trace_Magic,
               Version => Qemu_Trace_Version,
               Kind => Qemu_Trace_Kind_Raw,
@@ -235,7 +436,6 @@ package body Traces_Files is
              Padding => 0);
 
       if Write (Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size then
-         Close (Fd);
          raise Write_Error with "failed to write header";
       end if;
 
@@ -265,15 +465,103 @@ package body Traces_Files is
          pragma Warnings (On);
 
          if Write (Fd, Addr, Res_Size) /= Res_Size then
-            Close (Fd);
             raise Write_Error with "failed to write entry";
          end if;
 
          Get_Next_Trace (E, Cur);
       end loop;
+   end Write_Trace_File_Traces;
+
+   procedure Write_Trace_File (Filename : String;
+                               Trace_File : Trace_File_Type;
+                               Base : Traces_Base)
+   is
+      Fd : File_Descriptor;
+   begin
+      Fd := Create_File (Filename, Binary);
+      if Fd = Invalid_FD then
+         raise Write_Error with "failed to create the file";
+      end if;
+
+      if Trace_File.First_Infos /= null
+        or else Trace_File.Kind = Qemu_Trace_Kind_Info
+      then
+         Write_Trace_File_Info (Fd, Trace_File);
+      end if;
+
+      --  Stop now if we only dump infos.
+      if Trace_File.Kind = Qemu_Trace_Kind_Info then
+         return;
+      end if;
+
+      Write_Trace_File_Traces (Fd, Trace_File, Base);
 
       Close (Fd);
+   exception
+      when others =>
+         Close (Fd);
+         raise;
    end Write_Trace_File;
+
+   procedure Write_Trace_File (Filename : String;
+                               Trace_File : Trace_File_Type)
+   is
+      Fd : File_Descriptor;
+   begin
+      Fd := Create_File (Filename, Binary);
+      if Fd = Invalid_FD then
+         raise Write_Error with "failed to create the file";
+      end if;
+
+      Write_Trace_File_Info (Fd, Trace_File);
+
+      Close (Fd);
+   exception
+      when others =>
+         Close (Fd);
+         raise;
+   end Write_Trace_File;
+
+   procedure Append_Info (File : in out Trace_File_Type;
+                          Kind : Unsigned_32;
+                          Data : String)
+   is
+      Info : constant Trace_File_Info_Acc := new Trace_File_Info'(Data'Length,
+                                                                  null,
+                                                                  Kind,
+                                                                  Data);
+   begin
+      if File.Last_Infos = null then
+         File.First_Infos := Info;
+      else
+         File.Last_Infos.Next := Info;
+      end if;
+      File.Last_Infos := Info;
+   end Append_Info;
+
+   procedure Free (Trace_File : in out Trace_File_Type)
+   is
+      procedure Unchecked_Deallocation is new
+        Ada.Unchecked_Deallocation (Trace_File_Info, Trace_File_Info_Acc);
+      Info, N_Info : Trace_File_Info_Acc;
+   begin
+      Info := Trace_File.First_Infos;
+      while Info /= null loop
+         N_Info := Info.Next;
+         Unchecked_Deallocation (Info);
+         Info := N_Info;
+      end loop;
+   end Free;
+
+   procedure Create_Trace_File (Trace_File : out Trace_File_Type) is
+   begin
+      Trace_File := Trace_File_Type'(Kind => Qemu_Trace_Kind_Info,
+                                     Sizeof_Target_Pc => 0,
+                                     Big_Endian => Is_Big_Endian,
+                                     Machine => 0,
+                                     First_Infos => null,
+                                     Last_Infos => null);
+   end Create_Trace_File;
 
 --     procedure Annotate_Objdump
 --     is
