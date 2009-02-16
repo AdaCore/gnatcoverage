@@ -1565,6 +1565,8 @@ package body Traces_Elf is
                                    Br_Cond, Br_Cond_A,
                                    Br_Trap, Br_Call, Br_Jmpl, Br_Rett);
 
+                  function Get_Br (Insn : Unsigned_32) return Br_Kind;
+
                   Br1, Br2, Br : Br_Kind;
 
                   function Get_Br (Insn : Unsigned_32) return Br_Kind is

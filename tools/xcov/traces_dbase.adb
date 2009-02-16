@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -36,6 +36,9 @@ package body Traces_Dbase is
    end "<";
 
    use Entry_Set;
+
+   function Get_Trace_Cur (Base : Traces_Base;
+                           Iterator : Entry_Iterator) return Cursor;
 
    procedure Init_Base (Base : in out Traces_Base) is
    begin
