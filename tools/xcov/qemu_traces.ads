@@ -101,6 +101,19 @@ package Qemu_Traces is
    --  User data.
    Info_Kind_User_Tag      : constant Unsigned_32 := 3;
 
+   --  Date & time.
+   Info_Kind_Date          : constant Unsigned_32 := 4;
+
+   type Trace_Info_Date is record
+      Year  : Unsigned_16;
+      Month : Unsigned_8;   --  1 .. 12
+      Day   : Unsigned_8;   --  1 .. 31
+      Hour  : Unsigned_8;   --  0 .. 23
+      Min   : Unsigned_8;   --  0 .. 59
+      Sec   : Unsigned_8;   --  0 .. 59
+      Pad   : Unsigned_8;   --  0
+   end record;
+
    --  Standard 64 and 32bits trace entries.
    type Trace_Entry64 is record
       Pc : Unsigned_64;

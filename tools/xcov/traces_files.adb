@@ -303,11 +303,16 @@ package body Traces_Files is
       Is_Print : Boolean;
    begin
       Info := Trace_File.First_Infos;
-      while Info /= null loop
+      if Info = null then
+         return;
+      end if;
+      loop
          Put ("Tag  : " & Hex_Image (Info.Kind));
          case Info.Kind is
             when Info_Kind_User_Tag =>
                Put (" (User_Tag)");
+            when Info_Kind_Date =>
+               Put (" (Date)");
             when others =>
                null;
          end case;
@@ -330,9 +335,53 @@ package body Traces_Files is
                Put (' ');
                Put (Hex_Image (Unsigned_8 (Character'Pos (Info.Data (I)))));
             end loop;
+            New_Line;
          end if;
 
+         case Info.Kind is
+            when Info_Kind_Date =>
+               declare
+                  Date_Info  : Trace_Info_Date;
+                  subtype String_8 is String (1 .. 8);
+                  function Str_To_Date_Info is new Ada.Unchecked_Conversion
+                    (String_8, Trace_Info_Date);
+
+                  procedure Put_Pad (Num : Natural; Width : Positive);
+
+                  procedure Put_Pad (Num : Natural; Width : Positive)
+                  is
+                     Res : String (1 .. Width);
+                     V : Natural := Num;
+                  begin
+                     for I in reverse Res'Range loop
+                        Res (I) := Character'Val ((V rem 10)
+                                                  + Character'Pos ('0'));
+                        V := V / 10;
+                     end loop;
+                     Put (Res);
+                  end Put_Pad;
+               begin
+                  Date_Info := Str_To_Date_Info (Info.Data);
+                  Put ("       ");
+                  Put_Pad (Natural (Date_Info.Year), 4);
+                  Put ('-');
+                  Put_Pad (Natural (Date_Info.Month), 2);
+                  Put ('-');
+                  Put_Pad (Natural (Date_Info.Day), 2);
+                  Put (' ');
+                  Put_Pad (Natural (Date_Info.Hour), 2);
+                  Put (':');
+                  Put_Pad (Natural (Date_Info.Min), 2);
+                  Put (':');
+                  Put_Pad (Natural (Date_Info.Sec), 2);
+                  New_Line;
+               end;
+            when others =>
+               null;
+         end case;
+
          Info := Info.Next;
+         exit when Info = null;
          New_Line;
       end loop;
    end Dump_Infos;

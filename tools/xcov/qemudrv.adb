@@ -17,8 +17,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Unchecked_Conversion;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
+with Interfaces;
 with GNAT.Command_Line; use GNAT.Command_Line;
 --  with GNAT.Strings; use GNAT.Strings;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
@@ -154,18 +156,35 @@ package body Qemudrv is
          Output := new String'(Exe_File.all & ".trace");
       end if;
 
-      --  Write the tag.
-      if Tag /= null then
-         declare
-            Trace_File : Trace_File_Type;
-         begin
-            Create_Trace_File (Trace_File);
-            Append_Info (Trace_File,
-                         Qemu_Traces.Info_Kind_User_Tag, Tag.all);
-            Write_Trace_File (Output.all, Trace_File);
-            Free (Trace_File);
-         end;
-      end if;
+      --  Create the trace file.
+      declare
+         use Qemu_Traces;
+         use Interfaces;
+         Trace_File : Trace_File_Type;
+         Date_Info  : Trace_Info_Date;
+         Date       : constant OS_Time := Current_Time;
+         subtype String_8 is String (1 .. 8);
+         function Date_Info_To_Str is new Ada.Unchecked_Conversion
+           (Trace_Info_Date, String_8);
+      begin
+         Create_Trace_File (Trace_File);
+         Date_Info := Trace_Info_Date'(Year => Unsigned_16 (GM_Year (Date)),
+                                       Month => Unsigned_8 (GM_Month (Date)),
+                                       Day => Unsigned_8 (GM_Day (Date)),
+                                       Hour => Unsigned_8 (GM_Hour (Date)),
+                                       Min => Unsigned_8 (GM_Minute (Date)),
+                                       Sec => Unsigned_8 (GM_Second (Date)),
+                                       Pad => 0);
+         Append_Info (Trace_File,
+                      Info_Kind_Date, Date_Info_To_Str (Date_Info));
+
+         Append_Info (Trace_File, Info_Kind_Exec_Filename, Exe_File.all);
+         if Tag /= null then
+            Append_Info (Trace_File, Info_Kind_User_Tag, Tag.all);
+         end if;
+         Write_Trace_File (Output.all, Trace_File);
+         Free (Trace_File);
+      end;
 
       --  Search for the driver.
       for I in Drivers'Range loop
