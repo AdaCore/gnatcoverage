@@ -62,6 +62,8 @@ extern uint32_t gen_opc_hflags[OPC_BUF_SIZE];
 extern FILE *tracefile;
 extern int tracefile_nobuf;
 extern int tracefile_history;
+extern struct trace_entry *trace_current;
+void trace_flush(void);
 void trace_init(void);
 
 void gen_intermediate_code(CPUState *env, struct TranslationBlock *tb);
