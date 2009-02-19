@@ -109,6 +109,81 @@ procedure Xcov is
       return Res;
    end Parse_Hex;
 
+   function Option_Parameter (S : String) return String;
+   --  Assuming that S is of the form "<part1>=<part2>",
+   --  return "<part2>".
+
+   function Begins_With (S : String; Beginning : String) return Boolean;
+   --  If the beginning of S is equal to Beginnning, return True;
+   --  otherwise, return False.
+
+   function Begins_With (S : String; Beginning : String) return Boolean is
+      Length : constant Integer := Beginning'Length;
+   begin
+      return S'Length > Length
+        and then S (S'First .. S'First + Length - 1) = Beginning;
+   end Begins_With;
+
+   function Option_Parameter (S : String) return String is
+   begin
+      for J in S'Range loop
+         if S (J) = '=' then
+            return S (J + 1 .. S'Last);
+         end if;
+      end loop;
+      return S;
+   end Option_Parameter;
+
+   type Coverage_Action is (Insn_Coverage, Branch_Coverage, Stmt_Coverage,
+                            Decision_Coverage, MCDC_Coverage,
+                            Unknown_Coverage);
+
+   Action                : Coverage_Action := Unknown_Coverage;
+   Coverage_Option       : constant String := "--coverage=";
+   Coverage_Option_Short : constant String := "-c";
+
+   function To_Coverage_Action (Option : String) return Coverage_Action is
+   begin
+      if Option = "insn" then
+         return Insn_Coverage;
+      elsif Option = "branch" then
+         return Branch_Coverage;
+      elsif Option = "stmt" then
+         return Stmt_Coverage;
+      elsif Option = "decision" then
+         return Decision_Coverage;
+      elsif Option = "mcdc" then
+         return MCDC_Coverage;
+      else
+         return Unknown_Coverage;
+      end if;
+   end To_Coverage_Action;
+
+   type Annotation_Format is (Annotate_Asm, Annotate_Xcov, Annotate_Html,
+                              Annotate_Xcov_Asm, Annotate_Html_Asm,
+                              Annotate_Unknown);
+
+   Annotations           : Annotation_Format;
+   Annotate_Option       : constant String := "--annotate=";
+   Annotate_Option_Short : constant String := "-a";
+
+   function To_Annotation_Format (Option : String) return Annotation_Format is
+   begin
+      if Option = "asm" then
+         return Annotate_Asm;
+      elsif Option = "xcov" then
+         return Annotate_Xcov;
+      elsif Option = "html" then
+         return Annotate_Html;
+      elsif Option = "xcov+asm" then
+         return Annotate_Xcov_Asm;
+      elsif Option = "html+asm" then
+         return Annotate_Html_Asm;
+      else
+         return Annotate_Unknown;
+      end if;
+   end To_Annotation_Format;
+
    Has_Exec : Boolean := False;
    Text_Start : Pc_Type := 0;
    type Output_Format is (Format_Xcov, Format_Gcov, Format_Html);
@@ -446,10 +521,109 @@ begin
             Build_Symbols (Exec);
             Add_Subprograms_Traces (Exec, Base);
             Traces_Names.Dump_Routines_Traces (Exec);
+
+         --------------------
+         -- New Option set --
+         --------------------
+
+         elsif Arg = Annotate_Option_Short then
+            if Arg_Index > Arg_Count then
+               Put_Line ("Missing annotation format to"
+                         & Annotate_Option_Short);
+               return;
+            end if;
+            Annotations := To_Annotation_Format (Argument (Arg_Index));
+            if Annotations = Annotate_Unknown then
+               Error ("bad parameter for " & Annotate_Option_Short);
+               return;
+            end if;
+            Arg_Index := Arg_Index + 1;
+         elsif Begins_With (Arg, Annotate_Option) then
+            Annotations := To_Annotation_Format (Option_Parameter (Arg));
+            if Annotations = Annotate_Unknown then
+               Error ("bad parameter for " & Annotate_Option);
+               return;
+            end if;
+         elsif Arg = Coverage_Option_Short then
+            if Arg_Index > Arg_Count then
+               Put_Line ("Missing coverage action to "
+                         & Coverage_Option_Short);
+               return;
+            end if;
+            Action := To_Coverage_Action (Argument (Arg_Index));
+            if Action = Unknown_Coverage then
+               Error ("bad parameter for " & Coverage_Option_Short);
+               return;
+            end if;
+            Arg_Index := Arg_Index + 1;
+         elsif Begins_With (Arg, Coverage_Option) then
+            Action := To_Coverage_Action (Option_Parameter (Arg));
+            if Action = Unknown_Coverage then
+               Error ("bad parameter for " & Coverage_Option);
+               return;
+            end if;
          else
             Error ("unknown option: " & Arg);
             return;
          end if;
       end;
    end loop;
+
+   if Action = Unknown_Coverage then
+      --  If we end up here, that means that we are using the old interface;
+      --  the rest of the code is specific to the new interface, so... return.
+      --  When the old interface has been obsoleted, this will be removed.
+      return;
+   end if;
+
+   case Action is
+      when Insn_Coverage =>
+         Put_Line ("Insn coverage has not been implemented yet.");
+         return;
+      when Branch_Coverage =>
+         null;
+      when Stmt_Coverage =>
+         Put_Line ("Stmt coverage has not been implemented yet.");
+         return;
+      when Decision_Coverage =>
+         Put_Line ("Decision coverage has not been implemented yet.");
+         return;
+      when MCDC_Coverage =>
+         Put_Line ("MCDC coverage has not been implemented yet.");
+         return;
+      when Unknown_Coverage =>
+         Put_Line ("Please specify a coverage operation.");
+         return;
+   end case;
+
+   Build_Routines_Name (Exec);
+   Build_Sections (Exec);
+   Set_Trace_State (Exec, Base);
+   Build_Debug_Lines (Exec);
+   Build_Source_Lines (Exec, Base);
+   Build_Symbols (Exec);
+
+   case Annotations is
+      when Annotate_Asm =>
+         if Action in Stmt_Coverage .. MCDC_Coverage then
+            Error ("Asm format not supported for source coverage.");
+            return;
+         end if;
+         Traces_Disa.Flag_Show_Asm := True;
+         Add_Subprograms_Traces (Exec, Base);
+         Traces_Names.Dump_Routines_Traces (Exec);
+      when Annotate_Xcov =>
+         Traces_Sources.Xcov.Generate_Report (Base, Exec);
+      when Annotate_Html =>
+         Traces_Sources.Html.Generate_Report (Base, Exec);
+      when Annotate_Xcov_Asm =>
+         Traces_Disa.Flag_Show_Asm := True;
+         Traces_Sources.Xcov.Generate_Report (Base, Exec);
+      when Annotate_Html_Asm =>
+         Traces_Disa.Flag_Show_Asm := True;
+         Traces_Sources.Html.Generate_Report (Base, Exec);
+      when Annotate_Unknown =>
+         Put_Line ("Please specify an annotation format.");
+         return;
+   end case;
 end Xcov;
