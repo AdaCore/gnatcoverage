@@ -35,7 +35,7 @@ package Traces_Files is
    --  This exception is raised if the trace file is invalid or corrupted.
    Bad_File_Format : exception;
 
-   --  This exception is raise in case of OS error during write.
+   --  This exception is raised in case of OS error during write.
    Write_Error : exception;
 
    --  Load in memory (and possibly merge) a trace file.
