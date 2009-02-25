@@ -1518,7 +1518,7 @@ int cpu_signal_handler(int host_signum, void *pinfo,
 
 #define MAX_TRACE_ENTRIES 1024
 struct trace_entry trace_entries[MAX_TRACE_ENTRIES];
-struct trace_entry *trace_current;
+struct trace_entry *trace_current = trace_entries;
 static TranslationBlock *trace_current_tb;
 
 static void trace_before_exec(TranslationBlock *tb)
