@@ -31,6 +31,9 @@ with Traces_Disa;
 with Traces_History;
 with Version;
 with Qemudrv;
+with Execs_Dbase; use Execs_Dbase;
+with Options_Files; use Options_Files;
+with Strings; use Strings;
 
 procedure Xcov is
    procedure Usage;
@@ -136,6 +139,10 @@ procedure Xcov is
       return S;
    end Option_Parameter;
 
+   Routine_List_Filename     : String_Acc := null;
+   Routine_List_Option       : constant String := "--routine-list=";
+   Routine_List_Option_Short : constant String := "-l";
+
    type Coverage_Action is (Insn_Coverage, Branch_Coverage, Stmt_Coverage,
                             Decision_Coverage, MCDC_Coverage,
                             Unknown_Coverage);
@@ -186,6 +193,10 @@ procedure Xcov is
       end if;
    end To_Annotation_Format;
 
+   Trace_File_Name : File_Name;
+   Exec_File_Name : File_Name;
+   EB_Input : Command_Line_Input := New_Command_Line_Input;
+
    Has_Exec : Boolean := False;
    Text_Start : Pc_Type := 0;
    type Output_Format is (Format_Xcov, Format_Gcov, Format_Html);
@@ -195,6 +206,9 @@ procedure Xcov is
 
    Exec : Exe_File_Type;
    Sub_Exec : Exe_File_Type;
+
+   First_Exec : Exe_File_Acc;
+   Exec_Base  : Exec_Base_Type := Get_Exec_Base;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -528,6 +542,16 @@ begin
          -- New Option set --
          --------------------
 
+         elsif Arg = Routine_List_Option_Short then
+            if Arg_Index > Arg_Count then
+               Put_Line ("Missing function list parameter to "
+                         & Routine_List_Option_Short);
+               return;
+            end if;
+            Routine_List_Filename := new String'(Argument (Arg_Index));
+            Arg_Index := Arg_Index + 1;
+         elsif Begins_With (Arg, Routine_List_Option) then
+            Routine_List_Filename := new String'(Option_Parameter (Arg));
          elsif Arg = Annotate_Option_Short then
             if Arg_Index > Arg_Count then
                Put_Line ("Missing annotation format to"
@@ -564,9 +588,23 @@ begin
                Error ("bad parameter for " & Coverage_Option);
                return;
             end if;
-         else
+         elsif Arg (1) = '-' then
             Error ("unknown option: " & Arg);
             return;
+         else
+            --  Trace file and Exe file
+            if Arg_Index > Arg_Count then
+               --  We are waiting for two parameters (for now;
+               --  at some point, the trace file will contain the
+               --  the path to the exe file, and the exe file will not
+               --  be passed in command line).
+               Put_Line ("Missing exe file for trace file " & Arg);
+               return;
+            end if;
+            Trace_File_Name := new String'(Arg);
+            Exec_File_Name   := new String'(Argument (Arg_Index));
+            Arg_Index := Arg_Index + 1;
+            Add_Input (EB_Input, Trace_File_Name, Exec_File_Name);
          end if;
       end;
    end loop;
@@ -598,12 +636,45 @@ begin
          return;
    end case;
 
-   Build_Routines_Name (Exec);
-   Build_Sections (Exec);
-   Set_Trace_State (Exec, Base);
-   Build_Debug_Lines (Exec);
-   Build_Source_Lines (Exec, Base);
-   Build_Symbols (Exec);
+   Read_Traces (EB_Input, Base);
+   Open_Execs (EB_Input, Exec_Base);
+
+   if Routine_List_Filename /= null then
+      Traces_Names.Read_Routines_Name_From_Text (Routine_List_Filename.all);
+   else
+      declare
+      begin
+         Build_Routines_Names (Exec_Base);
+      exception
+         when Routine_Name_Ambiguity =>
+            Put_Line ("Please specify a routine list.");
+            return;
+      end;
+   end if;
+
+   Build_Elf (Exec_Base);
+   Build_Traces (Exec_Base, Base);
+
+   if Annotations /= Annotate_Asm then
+      --  ??? The build of the debug information should not be needed
+      --  for every exec; only the ones for which we need to gather
+      --  source information. The former can be much bigger than
+      --  than the latter, so we'd rather avoid build the debug info
+      --  for it if they are not useful.
+      --  This means that this operation should probably not be done
+      --  in execs_dbase, but in traces_names.
+      Build_Debug (Exec_Base, Base);
+   end if;
+
+   --  ??? For now, Generate_Report still suppose that only one Exec is
+   --  provided to xcov. What it should do when several Execs are given
+   --  is still to be defined.
+   First_Exec := Deprecated_First_Exec (Exec_Base);
+   --  declare
+   --  First : constant Execs_Maps.Cursor := Execs_Maps.First (Exec_Base);
+   --  begin
+   --  First_Exec := Execs_Maps.Element (First).Exec;
+   --  end;
 
    case Annotations is
       when Annotate_Asm =>
@@ -612,18 +683,21 @@ begin
             return;
          end if;
          Traces_Disa.Flag_Show_Asm := True;
-         Add_Subprograms_Traces (Exec, Base);
-         Traces_Names.Dump_Routines_Traces (Exec);
+         Traces_Names.Dump_Routines_Traces;
       when Annotate_Xcov =>
-         Traces_Sources.Xcov.Generate_Report (Base, Exec);
+         Traces_Sources.Xcov.Generate_Report (Base,
+                                              First_Exec.all);
       when Annotate_Html =>
-         Traces_Sources.Html.Generate_Report (Base, Exec);
+         Traces_Sources.Html.Generate_Report (Base,
+                                              First_Exec.all);
       when Annotate_Xcov_Asm =>
          Traces_Disa.Flag_Show_Asm := True;
-         Traces_Sources.Xcov.Generate_Report (Base, Exec);
+         Traces_Sources.Xcov.Generate_Report (Base,
+                                              First_Exec.all);
       when Annotate_Html_Asm =>
          Traces_Disa.Flag_Show_Asm := True;
-         Traces_Sources.Html.Generate_Report (Base, Exec);
+         Traces_Sources.Html.Generate_Report (Base,
+                                              First_Exec.all);
       when Annotate_Unknown =>
          Put_Line ("Please specify an annotation format.");
          return;

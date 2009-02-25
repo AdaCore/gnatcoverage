@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -52,5 +52,7 @@ package Traces_Names is
    Consolidation_Error : exception;
 
    procedure Dump_Routines_Traces (Exec : Exe_File_Type);
+   --  ??? Obsolete. To be removed.
+
    procedure Dump_Routines_Traces;
 end Traces_Names;

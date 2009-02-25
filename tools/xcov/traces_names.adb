@@ -27,6 +27,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Dwarf_Handling; use Dwarf_Handling;
 with Traces_Sources; use Traces_Sources;
+with Execs_Dbase; use Execs_Dbase;
 with Traces_Disa;
 with Disa_Symbolize;
 
@@ -36,7 +37,10 @@ package body Traces_Names is
       Filename : String_Acc;
       --  Name of the file which the instructions where read from.
       --  Currently used only in error messages.
-      --  FIXME: use a ref to elf_file.
+
+      Exec  : Exe_File_Acc;
+      --  Pointer to the Exec file where this subprogram has first been
+      --  found.
 
       Insns : Binary_Content_Acc;
       --  Subprogram binary content.
@@ -103,6 +107,8 @@ package body Traces_Names is
       Cur_Name : Names_Maps.Cursor;
       Cur : Addresses_Containers.Cursor;
       Ok : Boolean;
+
+      Exec : Exe_File_Acc;
    begin
       --  Search symtab and strtab.
       --  Exit in case of failure.
@@ -222,8 +228,10 @@ package body Traces_Names is
                   Cur_Name := Names.Find (Sym.Symbol_Name);
                   if not Exclude then
                      if not Has_Element (Cur_Name) then
+                        Open_Exec (Get_Exec_Base, Filename.all, Exec);
                         Names.Insert (Sym.Symbol_Name,
                                       Subprogram_Name'(Filename => Filename,
+                                                       Exec => Exec,
                                                        Insns => null,
                                                        Traces => null));
                         Sym.Symbol_Name := null;
@@ -299,6 +307,7 @@ package body Traces_Names is
                else
                   Names.Insert (Name,
                                 Subprogram_Name'(Filename => null,
+                                                 Exec => null,
                                                  Insns => null,
                                                  Traces => null));
                end if;
@@ -340,6 +349,7 @@ package body Traces_Names is
          if El.Insns = null and Content'Length > 0 then
             El.Insns := new Binary_Content'(Content);
             El.Filename := new String'(Filename);
+            Open_Exec (Get_Exec_Base, Filename, El.Exec);
          else
             --  FIXME: check the contents are similar
             if Content'Length /= El.Insns.all'Length then
@@ -460,9 +470,15 @@ package body Traces_Names is
          if E.Traces /= null then
             --  Dump_Traces (E.Traces.all);
             if Flag_Show_Asm then
-               Disp_Assembly_Lines
-                 (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access,
-                  Disa_Symbolize.Nul_Symbolizer);
+               if E.Exec = null then
+                  Disp_Assembly_Lines
+                    (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access,
+                     Disa_Symbolize.Nul_Symbolizer);
+               else
+                  Disp_Assembly_Lines
+                    (E.Insns.all, E.Traces.all, Textio_Disassemble_Cb'Access,
+                     E.Exec.all);
+               end if;
             end if;
          end if;
 

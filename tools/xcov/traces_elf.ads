@@ -42,6 +42,8 @@ package Traces_Elf is
    --  Extracted information are stored into such object.
    type Exe_File_Type is limited new Symbolizer with private;
 
+   type Exe_File_Acc is access Exe_File_Type;
+
    --  Makes symbolize non-abstract.
    procedure Symbolize (Sym : Exe_File_Type;
                         Pc : Traces.Pc_Type;

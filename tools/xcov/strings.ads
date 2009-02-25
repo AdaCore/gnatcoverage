@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -21,6 +21,8 @@ with Ada.Unchecked_Deallocation;
 
 package Strings is
    type String_Acc is access String;
+
+   subtype File_Name is String_Acc;
 
    procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
      (String, String_Acc);
