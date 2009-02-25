@@ -34,10 +34,6 @@ with Disa_Symbolize;
 package body Traces_Names is
 
    type Subprogram_Name is record
-      Filename : String_Acc;
-      --  Name of the file which the instructions where read from.
-      --  Currently used only in error messages.
-
       Exec  : Exe_File_Acc;
       --  Pointer to the Exec file where this subprogram has first been
       --  found.
@@ -227,16 +223,15 @@ package body Traces_Names is
 
                   Cur_Name := Names.Find (Sym.Symbol_Name);
                   if not Exclude then
+                     Open_Exec (Get_Exec_Base, Filename.all, Exec);
                      if not Has_Element (Cur_Name) then
-                        Open_Exec (Get_Exec_Base, Filename.all, Exec);
                         Names.Insert (Sym.Symbol_Name,
-                                      Subprogram_Name'(Filename => Filename,
-                                                       Exec => Exec,
+                                      Subprogram_Name'(Exec => Exec,
                                                        Insns => null,
                                                        Traces => null));
                         Sym.Symbol_Name := null;
                      else
-                        if Element (Cur_Name).Filename = Filename then
+                        if Element (Cur_Name).Exec = Exec then
                            Put_Line (Standard_Error,
                                      "symbol " & Sym.Symbol_Name.all
                                      & " is defined twice in " & Filename.all);
@@ -306,8 +301,7 @@ package body Traces_Names is
                             "symbol " & Name.all & " is already defined");
                else
                   Names.Insert (Name,
-                                Subprogram_Name'(Filename => null,
-                                                 Exec => null,
+                                Subprogram_Name'(Exec => null,
                                                  Insns => null,
                                                  Traces => null));
                end if;
@@ -348,7 +342,6 @@ package body Traces_Names is
       begin
          if El.Insns = null and Content'Length > 0 then
             El.Insns := new Binary_Content'(Content);
-            El.Filename := new String'(Filename);
             Open_Exec (Get_Exec_Base, Filename, El.Exec);
          else
             --  FIXME: check the contents are similar
@@ -357,7 +350,7 @@ package body Traces_Names is
                          "error: different function size for "
                            & Routine_Name.all);
                Put_Line (Standard_Error,
-                         " (reference is " & El.Filename.all
+                         " (reference is " & Get_Filename (El.Exec.all)
                            & ", file is " & Filename & ")");
                raise Consolidation_Error;
             end if;
