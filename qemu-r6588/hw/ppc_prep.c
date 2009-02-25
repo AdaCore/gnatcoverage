@@ -633,7 +633,7 @@ static void ppc_prep_init (ram_addr_t ram_size, int vga_ram_size,
                 break;
             }
         }
-        if (ppc_boot_device == '\0') {
+        if (0 && ppc_boot_device == '\0') {
             fprintf(stderr, "No valid boot device for Mac99 machine\n");
             exit(1);
         }
