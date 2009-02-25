@@ -21,9 +21,16 @@ with GNAT.Strings; use GNAT.Strings;
 
 package Qemudrv_Base is
    type Driver_Target is record
-      Target : String_Access;
-      Command : String_Access;
-      Options : String_List_Access;
+      --  Name of the target (triplet).
+      Target        : String_Access;
+
+      --  Post-build command and option list (may be null).
+      Build_Command : String_Access;
+      Build_Options : String_List_Access;
+
+      --  Run command and option list.
+      Run_Command   : String_Access;
+      Run_Options   : String_List_Access;
    end record;
 
    type Driver_Target_Array is array (Natural range <>) of Driver_Target;
@@ -31,21 +38,32 @@ package Qemudrv_Base is
    Drivers : constant Driver_Target_Array :=
      (
       (Target => new String'("powerpc-elf"),
-       Command => new String'("qemu-system-ppc"),
-       Options => new String_List'(new String'("-nographic"),
-                                   new String'("-M"),
-                                   new String'("prep"),
-                                   new String'("$dir_exe"),
-                                   new String'("-bios"),
-                                   new String'("$base_exe"))
+       Build_Command => new String'("powerpc-elf-objcopy"),
+       Build_Options => new String_List'(new String'("-O"),
+                                         new String'("binary"),
+                                         new String'("$exe"),
+                                         new String'("$bin")),
+       Run_Command => new String'("qemu-system-ppc"),
+       Run_Options => new String_List'(new String'("-nographic"),
+                                       new String'("-M"),
+                                       new String'("prep"),
+                                       new String'("-boot"),
+                                       new String'("n"),
+                                       new String'("-no-reboot"),
+                                       new String'("-L"),
+                                       new String'("$dir_exe"),
+                                       new String'("-bios"),
+                                       new String'("$base_bin"))
       ),
       (Target => new String'("leon-elf"),
-       Command => new String'("qemu-system-sparc"),
-       Options => new String_List'(new String'("-nographic"),
-                                   new String'("-M"),
-                                   new String'("at697"),
-                                   new String'("-kernel"),
-                                   new String'("$exe"))
+       Build_Command => null,
+       Build_Options => null,
+       Run_Command => new String'("qemu-system-sparc"),
+       Run_Options => new String_List'(new String'("-nographic"),
+                                       new String'("-M"),
+                                       new String'("at697"),
+                                       new String'("-kernel"),
+                                       new String'("$exe"))
       )
      );
 end Qemudrv_Base;

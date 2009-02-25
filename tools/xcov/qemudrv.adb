@@ -20,6 +20,7 @@
 with Ada.Unchecked_Conversion;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Directories; use Ada.Directories;
 with Interfaces;
 with GNAT.Command_Line; use GNAT.Command_Line;
 --  with GNAT.Strings; use GNAT.Strings;
@@ -94,6 +95,7 @@ package body Qemudrv is
       Args : constant String_List_Access :=
         new String_List (1 .. Arg_Count - First_Option + 1);
 
+      Driver_Index : Integer;
       S : Character;
    begin
       --  Set progname.
@@ -198,57 +200,118 @@ package body Qemudrv is
       end;
 
       --  Search for the driver.
+      Driver_Index := -1;
       for I in Drivers'Range loop
          if Drivers (I).Target.all = Target.all then
-            declare
-               L : constant Natural := Drivers (I).Options'Length;
-               Args : String_List (1 .. L + 2);
-               Success : Boolean;
-               Prg : String_Access;
-            begin
-               --  Find executable.
-               Prg := Locate_Exec_On_Path (Drivers (I).Command.all);
-               if Prg = null then
-                  Error (Progname.all & ": cannot find "
-                           & Drivers (I).Command.all
-                           & " on your path");
-                  return;
-               end if;
-
-               --  Copy arguments and replace meta-one.
-               Args (1 .. L) := Drivers (I).Options.all;
-               for J in 1 .. L loop
-                  if Args (J).all = "$exe" then
-                     Args (J) := Exe_File;
-                  end if;
-               end loop;
-               Args (L + 1) := new String'("-trace");
-               Args (L + 2) := Output;
-
-               if Verbose then
-                  Put ("exec: ");
-                  Put (Prg.all);
-                  for I in Args'Range loop
-                     Put (' ');
-                     Put (Args (I).all);
-                  end loop;
-                  New_Line;
-               end if;
-
-               --  Run.
-               Spawn (Prg.all, Args, Success);
-               return;
-            end;
+            Driver_Index := I;
+            exit;
          end if;
       end loop;
 
-      Error (Progname.all & ": unknown target " & Target.all);
-      Put_Line ("Known targets are:");
-      for I in Drivers'Range loop
-         Put (' ');
-         Put (Drivers (I).Target.all);
-      end loop;
-      New_Line;
+      if Driver_Index < 0 then
+         Error (Progname.all & ": unknown target " & Target.all);
+         Put_Line ("Known targets are:");
+         for I in Drivers'Range loop
+            Put (' ');
+            Put (Drivers (I).Target.all);
+         end loop;
+         New_Line;
+         return;
+      end if;
+
+      if Drivers (Driver_Index).Build_Command /= null then
+         declare
+            Driver : Driver_Target renames Drivers (Driver_Index);
+            L : constant Natural := Driver.Build_Options'Length;
+            Args : String_List (1 .. L);
+            Success : Boolean;
+            Prg : String_Access;
+         begin
+            --  Find executable.
+            Prg := Locate_Exec_On_Path (Driver.Build_Command.all);
+            if Prg = null then
+               Error (Progname.all & ": cannot find "
+                        & Driver.Build_Command.all
+                        & " on your path");
+               return;
+            end if;
+
+            --  Copy arguments and replace meta-one.
+            Args (1 .. L) := Driver.Build_Options.all;
+            for J in 1 .. L loop
+               if Args (J).all = "$exe" then
+                  Args (J) := Exe_File;
+               elsif Args (J).all = "$bin" then
+                  Args (J) := new String'(Exe_File.all & ".bin");
+               end if;
+            end loop;
+
+            if Verbose then
+               Put ("exec: ");
+               Put (Prg.all);
+               for I in Args'Range loop
+                  Put (' ');
+                  Put (Args (I).all);
+               end loop;
+               New_Line;
+            end if;
+
+            --  Run.
+            Spawn (Prg.all, Args, Success);
+            if not Success then
+               Error (Progname.all & ": execution of "
+                        & Driver.Build_Command.all
+                        & " failed");
+               return;
+            end if;
+         end;
+      end if;
+
+      declare
+         Driver : Driver_Target renames Drivers (Driver_Index);
+         L : constant Natural := Driver.Run_Options'Length;
+         Args : String_List (1 .. L + 2);
+         Success : Boolean;
+         Prg : String_Access;
+      begin
+         --  Find executable.
+         Prg := Locate_Exec_On_Path (Driver.Run_Command.all);
+         if Prg = null then
+            Error (Progname.all & ": cannot find "
+                     & Driver.Run_Command.all
+                     & " on your path");
+            return;
+         end if;
+
+         --  Copy arguments and replace meta-one.
+         Args (1 .. L) := Driver.Run_Options.all;
+         for J in 1 .. L loop
+            if Args (J).all = "$exe" then
+               Args (J) := Exe_File;
+            elsif Args (J).all = "$dir_exe" then
+               Args (J) := new String'(Containing_Directory (Exe_File.all));
+            elsif Args (J).all = "$base_bin" then
+               Args (J) := new String'(Simple_Name (Exe_File.all) & ".bin");
+            end if;
+         end loop;
+         Args (L + 1) := new String'("-trace");
+         Args (L + 2) := Output;
+
+         if Verbose then
+            Put ("exec: ");
+            Put (Prg.all);
+            for I in Args'Range loop
+               Put (' ');
+               Put (Args (I).all);
+            end loop;
+            New_Line;
+         end if;
+
+         --  Run.
+         Spawn (Prg.all, Args, Success);
+         return;
+      end;
+
    exception
       when Invalid_Switch =>
          Error (Progname.all
