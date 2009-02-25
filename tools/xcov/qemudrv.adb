@@ -55,8 +55,16 @@ package body Qemudrv is
    Tag : String_Access;
    --  Tag to write in the trace file.
 
+   Exec_Error : exception;
+   --  Raised when subprogram execution failed.  The error message shall be
+   --  generated before raising the exception.
+
    procedure Error (Msg : String);
    --  Display the message on the error output and set exit status.
+
+   procedure Run_Command (Command : String_Access;
+                          Options : String_List);
+   --  Spawn command with options.
 
    procedure Error (Msg : String) is
    begin
@@ -86,6 +94,52 @@ package body Qemudrv is
       P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
       P ("  -o FILE  --output=FILE       Write traces to FILE");
    end Help;
+
+   procedure Run_Command (Command : String_Access;
+                          Options : String_List)
+   is
+      Args : String_List (1 .. Options'Length) := Options;
+      Success : Boolean;
+      Prg : String_Access;
+   begin
+      --  Find executable.
+      Prg := Locate_Exec_On_Path (Command.all);
+      if Prg = null then
+         Error (Progname.all & ": cannot find "
+                  & Command.all
+                  & " on your path");
+         raise Exec_Error;
+      end if;
+
+      --  Copy arguments and replace meta-one.
+      for J in Args'Range loop
+         if Args (J).all = "$exe" then
+            Args (J) := Exe_File;
+         elsif Args (J).all = "$bin" then
+            Args (J) := new String'(Exe_File.all & ".bin");
+         elsif Args (J).all = "$dir_exe" then
+            Args (J) := new String'(Containing_Directory (Exe_File.all));
+         elsif Args (J).all = "$base_bin" then
+            Args (J) := new String'(Simple_Name (Exe_File.all) & ".bin");
+         end if;
+      end loop;
+
+      if Verbose then
+         Put ("exec: ");
+         Put (Prg.all);
+         for I in Args'Range loop
+            Put (' ');
+            Put (Args (I).all);
+         end loop;
+         New_Line;
+      end if;
+
+      --  Run.
+      Spawn (Prg.all, Args, Success);
+      if not Success then
+         raise Exec_Error;
+      end if;
+   end Run_Command;
 
    procedure Driver (First_Option : Natural := 1)
    is
@@ -219,97 +273,22 @@ package body Qemudrv is
          return;
       end if;
 
+      --  Build the executable (if necessary).
       if Drivers (Driver_Index).Build_Command /= null then
-         declare
-            Driver : Driver_Target renames Drivers (Driver_Index);
-            L : constant Natural := Driver.Build_Options'Length;
-            Args : String_List (1 .. L);
-            Success : Boolean;
-            Prg : String_Access;
-         begin
-            --  Find executable.
-            Prg := Locate_Exec_On_Path (Driver.Build_Command.all);
-            if Prg = null then
-               Error (Progname.all & ": cannot find "
-                        & Driver.Build_Command.all
-                        & " on your path");
-               return;
-            end if;
-
-            --  Copy arguments and replace meta-one.
-            Args (1 .. L) := Driver.Build_Options.all;
-            for J in 1 .. L loop
-               if Args (J).all = "$exe" then
-                  Args (J) := Exe_File;
-               elsif Args (J).all = "$bin" then
-                  Args (J) := new String'(Exe_File.all & ".bin");
-               end if;
-            end loop;
-
-            if Verbose then
-               Put ("exec: ");
-               Put (Prg.all);
-               for I in Args'Range loop
-                  Put (' ');
-                  Put (Args (I).all);
-               end loop;
-               New_Line;
-            end if;
-
-            --  Run.
-            Spawn (Prg.all, Args, Success);
-            if not Success then
-               Error (Progname.all & ": execution of "
-                        & Driver.Build_Command.all
-                        & " failed");
-               return;
-            end if;
-         end;
+         Run_Command (Drivers (Driver_Index).Build_Command,
+                      Drivers (Driver_Index).Build_Options.all);
       end if;
 
+      --  Run qemu.
       declare
          Driver : Driver_Target renames Drivers (Driver_Index);
          L : constant Natural := Driver.Run_Options'Length;
-         Args : String_List (1 .. L + 2);
-         Success : Boolean;
-         Prg : String_Access;
+         Opts : String_List (1 .. L + 2);
       begin
-         --  Find executable.
-         Prg := Locate_Exec_On_Path (Driver.Run_Command.all);
-         if Prg = null then
-            Error (Progname.all & ": cannot find "
-                     & Driver.Run_Command.all
-                     & " on your path");
-            return;
-         end if;
-
-         --  Copy arguments and replace meta-one.
-         Args (1 .. L) := Driver.Run_Options.all;
-         for J in 1 .. L loop
-            if Args (J).all = "$exe" then
-               Args (J) := Exe_File;
-            elsif Args (J).all = "$dir_exe" then
-               Args (J) := new String'(Containing_Directory (Exe_File.all));
-            elsif Args (J).all = "$base_bin" then
-               Args (J) := new String'(Simple_Name (Exe_File.all) & ".bin");
-            end if;
-         end loop;
-         Args (L + 1) := new String'("-trace");
-         Args (L + 2) := Output;
-
-         if Verbose then
-            Put ("exec: ");
-            Put (Prg.all);
-            for I in Args'Range loop
-               Put (' ');
-               Put (Args (I).all);
-            end loop;
-            New_Line;
-         end if;
-
-         --  Run.
-         Spawn (Prg.all, Args, Success);
-         return;
+         Opts (1 .. L) := Driver.Run_Options.all;
+         Opts (L + 1) := new String'("-trace");
+         Opts (L + 2) := Output;
+         Run_Command (Driver.Run_Command, Opts);
       end;
 
    exception
@@ -320,6 +299,8 @@ package body Qemudrv is
       when Invalid_Parameter =>
          Error (Progname.all
                   & ": missing parameter for " & Full_Switch (Parser));
+         return;
+      when Exec_Error =>
          return;
    end Driver;
 end Qemudrv;
