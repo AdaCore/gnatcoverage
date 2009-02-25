@@ -200,6 +200,7 @@ case $targetos in
 CYGWIN*)
 mingw32="yes"
 OS_CFLAGS="-mno-cygwin"
+OS_LDFLAGS="-mno-cygwin"
 if [ "$cpu" = "i386" ] ; then
     kqemu="yes"
 fi
@@ -1041,7 +1042,7 @@ cat > $TMPC <<EOF
 int main(void) { struct iovec iov; return 0; }
 EOF
 iovec=no
-if $cc $ARCH_CFLAGS -o $TMPE $TMPC > /dev/null 2> /dev/null ; then
+if $cc $ARCH_CFLAGS -o $TMPE ${OS_CFLAGS} $TMPC > /dev/null 2> /dev/null ; then
   iovec=yes
 fi
 
