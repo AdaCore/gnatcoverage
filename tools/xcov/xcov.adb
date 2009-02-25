@@ -66,6 +66,8 @@ procedure Xcov is
       P (" --version");
       P ("   Display version");
       New_Line;
+      Qemudrv.Help (" ");
+      New_Line;
       P (" ACTION...");
       P ("   Execute action one after the other, ACTION is a list of:");
       P ("   -r FILENAME         Read (and merge) traces from FILENAME");

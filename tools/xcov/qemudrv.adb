@@ -63,16 +63,27 @@ package body Qemudrv is
       Set_Exit_Status (Failure);
    end Error;
 
-   procedure Help (Indent : String := "") is
+   procedure Help (Indent : String := "")
+   is
+      procedure P (Str : String);
+
+      procedure P (Str : String) is
+      begin
+         Put_Line (Indent & Str);
+      end P;
    begin
       if not Is_Xcov then
          Put ("Usage: " & Progname.all);
       else
          Put (Indent & "--run");
       end if;
-      Put_Line (" [OPTIONS] FILE");
-      Put_Line (Indent & "  Options are:");
-      Put_Line (Indent & "  -t TARGET  --target=TARGET   Set the target");
+      Put (" [OPTIONS] FILE");
+      New_Line;
+      P ("  Options are:");
+      P ("  -t TARGET  --target=TARGET   Set the target");
+      P ("  -v --verbose                 Be verbose");
+      P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
+      P ("  -o FILE  --output=FILE       Write traces to FILE");
    end Help;
 
    procedure Driver (First_Option : Natural := 1)
@@ -232,7 +243,7 @@ package body Qemudrv is
       end loop;
 
       Error (Progname.all & ": unknown target " & Target.all);
-      Put_Line ("Knwon targets are:");
+      Put_Line ("Known targets are:");
       for I in Drivers'Range loop
          Put (' ');
          Put (Drivers (I).Target.all);
