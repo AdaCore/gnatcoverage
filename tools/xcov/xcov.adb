@@ -674,26 +674,16 @@ begin
       Arg_Index := Arg_Index + 1;
    end loop;
 
+   Traces_Names.Build_Routines_Trace_State;
+
    if Annotations /= Annotate_Asm then
-      --  ??? The build of the debug information should not be needed
-      --  for every exec; only the ones for which we need to gather
-      --  source information. The former can be much bigger than
-      --  than the latter, so we'd rather avoid build the debug info
-      --  for it if they are not useful.
-      --  This means that this operation should probably not be done
-      --  in execs_dbase, but in traces_names.
-      Build_Debug (Exec_Base, Base);
+      Traces_Names.Build_Source_Lines;
    end if;
 
    --  ??? For now, Generate_Report still suppose that only one Exec is
    --  provided to xcov. What it should do when several Execs are given
    --  is still to be defined.
    First_Exec := Deprecated_First_Exec (Exec_Base);
-   --  declare
-   --  First : constant Execs_Maps.Cursor := Execs_Maps.First (Exec_Base);
-   --  begin
-   --  First_Exec := Execs_Maps.Element (First).Exec;
-   --  end;
 
    case Annotations is
       when Annotate_Asm =>

@@ -27,7 +27,6 @@
 with Strings; use Strings;
 with Ada.Containers.Hashed_Maps;
 with Traces_Elf; use Traces_Elf;
-with Traces_Dbase; use Traces_Dbase;
 
 package Execs_Dbase is
 
@@ -54,12 +53,6 @@ package Execs_Dbase is
       File_Name : String);
    --  Similar to Open_Exec, but does not return the result; just insert
    --  it in the Exec database if it does not already exists.
-
-   procedure Build_Debug
-     (Execs : Exec_Base_Type;
-      Base  : in out Traces_Base);
-   --  For all exec in the Execs database, read the debug info and
-   --  update the source line information in the exec and in Base.
 
    Routine_Name_Ambiguity : exception;
 

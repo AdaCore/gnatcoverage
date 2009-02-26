@@ -94,29 +94,6 @@ package body Execs_Dbase is
       end;
    end Build_Routines_Names;
 
-   procedure Build_Debug
-     (Execs : Exec_Base_Type;
-      Base  : in out Traces_Base)
-   is
-      use Execs_Maps;
-      Position : Cursor := First (Execs.all);
-      Exec     : Exe_File_Acc;
-   begin
-      while Position /= No_Element loop
-         Exec := Element (Position).Exec;
-         --  ??? The build of the debug information should not be needed
-         --  for every exec; only the ones for which we need to gather
-         --  source information. The former can be much bigger than
-         --  than the latter, so we'd rather avoid build the debug info
-         --  for it if they are not useful.
-         --  This means that this operation should probably not be done
-         --  in execs_dbase, but in traces_names.
-         Build_Debug_Lines (Exec.all);
-         Build_Source_Lines (Exec.all, Base);
-         Next (Position);
-      end loop;
-   end Build_Debug;
-
    function Deprecated_First_Exec
      (Execs : Exec_Base_Type)
      return Exe_File_Acc

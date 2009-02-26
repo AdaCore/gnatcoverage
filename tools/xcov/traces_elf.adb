@@ -1331,12 +1331,10 @@ package body Traces_Elf is
          Load_Section_Content (Exec.all, Sec);
 
          --  Add the code for the symbol.
-         declare
-            subtype Rebased_Type is Binary_Content (0 .. Sym.Last - Sym.First);
          begin
             Subprogram_Base := Traces_Names.Add_Traces
               (Sym.Symbol_Name, Exec,
-               Rebased_Type (Sec.Section_Content (Sym.First .. Sym.Last)));
+               Sec.Section_Content (Sym.First .. Sym.Last));
          exception
             when others =>
                Disp_Address (Sym);
@@ -1363,14 +1361,10 @@ package body Traces_Elf is
                   Dump_Entry (Trace);
                end if;
                if Trace.Last >= Sym.First then
-                  if Trace.First > Sym.First then
-                     First := Trace.First - Sym.First;
-                  else
-                     First := 0;
-                  end if;
-                  Last := Trace.Last - Sym.First;
-                  if Last > Sym.Last - Sym.First then
-                     Last := Sym.Last - Sym.First;
+                  First := Trace.First;
+                  Last := Trace.Last;
+                  if Last > Sym.Last then
+                     Last := Sym.Last;
                   end if;
                   if Debug then
                      Put (Hex_Image (First));
@@ -1463,6 +1457,96 @@ package body Traces_Elf is
             Get_Next_Trace (E, It);
             No_Traces := E = Bad_Trace;
          end loop;
+
+         Next (Cur);
+      end loop;
+   end Build_Source_Lines;
+
+   procedure Build_Source_Lines (Exec : Exe_File_Type;
+                                 Base : in out Traces_Base;
+                                 Section : Binary_Content)
+   is
+      use Addresses_Containers;
+      use Traces_Sources;
+      Cur : Cursor;
+      Line : Addresses_Info_Acc;
+      Prev_File : Source_File;
+      Prev_Filename : String_Acc := null;
+
+      It : Entry_Iterator;
+      E : Trace_Entry;
+      Pc : Pc_Type;
+      No_Traces : Boolean;
+
+      Debug : constant Boolean := False;
+   begin
+      Pc := Section'First;
+      Init (Base, It, Pc);
+      Get_Next_Trace (E, It);
+      No_Traces := E = Bad_Trace;
+
+      --  Skip traces that are before the section.
+      while E /= Bad_Trace
+        and then E.Last < Section'First
+      loop
+         Get_Next_Trace (E, It);
+      end loop;
+
+      --  Iterate on lines.
+      Cur := First (Exec.Lines_Set);
+      while Cur /= No_Element loop
+         Line := Element (Cur);
+
+         --  Get corresponding file (check previous file for speed-up).
+         if Line.Line_Filename /= Prev_Filename then
+            Prev_File := Find_File (Line.Line_Filename);
+            Prev_Filename := Line.Line_Filename;
+         end if;
+
+         --  Only add lines that are in Section.
+         if Line.First >= Section'First
+           and then Line.Last <= Section'Last then
+
+            Add_Line (Prev_File, Line.Line_Number, Line);
+
+            --  Skip not-matching traces.
+            while not No_Traces and then E.Last < Line.First loop
+               --  There is no source line for this entry.
+               Get_Next_Trace (E, It);
+               No_Traces := E = Bad_Trace;
+            end loop;
+
+            if Debug then
+               New_Line;
+               Disp_Address (Line);
+            end if;
+
+            Pc := Line.First;
+            loop
+               --  From PC to E.First
+               if No_Traces or else Pc < E.First then
+                  if Debug then
+                     Put_Line ("no trace for pc=" & Hex_Image (Pc));
+                  end if;
+                  Add_Line_State (Prev_File, Line.Line_Number, Not_Covered);
+               end if;
+
+               exit when No_Traces or else E.First > Line.Last;
+
+               if Debug then
+                  Put_Line ("merge with:");
+                  Dump_Entry (E);
+               end if;
+
+               --  From E.First to min (E.Last, line.last)
+               Add_Line_State (Prev_File, Line.Line_Number, E.State);
+
+               exit when E.Last >= Line.Last;
+               Pc := E.Last + 1;
+               Get_Next_Trace (E, It);
+               No_Traces := E = Bad_Trace;
+            end loop;
+         end if;
 
          Next (Cur);
       end loop;

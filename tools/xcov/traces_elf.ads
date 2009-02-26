@@ -103,8 +103,16 @@ package Traces_Elf is
 
    --  Create per file line state.
    --  Also update lines state from traces state.
+   --  ??? Obsolete. Should be removed when the old command line
+   --  interface is retired.
    procedure Build_Source_Lines (Exec : Exe_File_Type;
                                  Base : in out Traces_Base);
+
+   --  Build source lines for a section of an exec and only
+   --  for this section.
+   procedure Build_Source_Lines (Exec : Exe_File_Type;
+                                 Base : in out Traces_Base;
+                                 Section : Binary_Content);
 
    --  Call Traces_Names.Read_Routines_Name on EXEC.
    procedure Build_Routines_Name (Exec : Exe_File_Type);

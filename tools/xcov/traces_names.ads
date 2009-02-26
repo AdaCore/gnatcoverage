@@ -54,8 +54,21 @@ package Traces_Names is
    --  (eg: different code for a function).
    Consolidation_Error : exception;
 
+   procedure Build_Source_Lines;
+   --  Go through the routine database and, for each routine,
+   --  populate the source database (in traces_sources) with
+   --  the routine's source information.
+
+   procedure Build_Routines_Trace_State;
+   --  Go through the routine database and, for each routine,
+   --  compute the state of its trace. This should be used only
+   --  when the subroutine database has been populated with its
+   --  traces.
+
    procedure Dump_Routines_Traces (Exec : Exe_File_Type);
-   --  ??? Obsolete. To be removed.
+   --  ??? Obsolete. To be removed when the old options have been
+   --  retired.
 
    procedure Dump_Routines_Traces;
+
 end Traces_Names;

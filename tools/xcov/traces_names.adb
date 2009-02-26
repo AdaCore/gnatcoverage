@@ -392,6 +392,21 @@ package body Traces_Names is
       end if;
    end Compute_Routine_State;
 
+   procedure Build_Routines_Trace_State is
+      use Names_Maps;
+      Cur : Cursor;
+      E : Subprogram_Name;
+   begin
+      Cur := Names.First;
+      while Has_Element (Cur) loop
+         E := Element (Cur);
+         if E.Insns /= null then
+            Set_Trace_State (E.Traces.all, E.Insns.all);
+         end if;
+         Next (Cur);
+      end loop;
+   end Build_Routines_Trace_State;
+
    procedure Dump_Routines_Traces (Exec : Exe_File_Type)
    is
       use Names_Maps;
@@ -405,9 +420,6 @@ package body Traces_Names is
          Put (Key (Cur).all);
 
          if E.Traces /= null then
-            if E.Insns /= null then
-               Set_Trace_State (E.Traces.all, E.Insns.all);
-            end if;
             Put (' ');
             Put (State_Char (Compute_Routine_State (E)));
          end if;
@@ -442,10 +454,6 @@ package body Traces_Names is
          Put (Key (Cur).all);
 
          if E.Traces /= null then
-            if E.Insns /= null then
-               Set_Trace_State (E.Traces.all, E.Insns.all);
-            end if;
-            --  Dump_Traces (E.Traces.all);
             Put (' ');
             Put (State_Char (Compute_Routine_State (E)));
          end if;
@@ -457,7 +465,6 @@ package body Traces_Names is
          New_Line;
 
          if E.Traces /= null then
-            --  Dump_Traces (E.Traces.all);
             if Flag_Show_Asm then
                if E.Exec = null then
                   Disp_Assembly_Lines
@@ -474,5 +481,19 @@ package body Traces_Names is
          Next (Cur);
       end loop;
    end Dump_Routines_Traces;
+
+   procedure Build_Source_Lines is
+      use Names_Maps;
+      Cur : Cursor;
+      E : Subprogram_Name;
+   begin
+      Cur := Names.First;
+      while Has_Element (Cur) loop
+         E := Element (Cur);
+         Build_Debug_Lines (E.Exec.all);
+         Build_Source_Lines (E.Exec.all, E.Traces.all, E.Insns.all);
+         Next (Cur);
+      end loop;
+   end Build_Source_Lines;
 
 end Traces_Names;
