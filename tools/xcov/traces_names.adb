@@ -27,7 +27,6 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Dwarf_Handling; use Dwarf_Handling;
 with Traces_Sources; use Traces_Sources;
-with Execs_Dbase; use Execs_Dbase;
 with Traces_Disa;
 with Disa_Symbolize;
 
@@ -325,7 +324,7 @@ package body Traces_Names is
    end Disp_All_Routines;
 
    function Add_Traces (Routine_Name : String_Acc;
-                        Filename : String;
+                        Exec : Exe_File_Acc;
                         Content : Binary_Content) return Traces_Base_Acc
    is
       use Names_Maps;
@@ -339,7 +338,7 @@ package body Traces_Names is
       begin
          if El.Insns = null and Content'Length > 0 then
             El.Insns := new Binary_Content'(Content);
-            Open_Exec (Get_Exec_Base, Filename, El.Exec);
+            El.Exec := Exec;
          else
             --  FIXME: check the contents are similar
             if Content'Length /= El.Insns.all'Length then
@@ -348,7 +347,7 @@ package body Traces_Names is
                            & Routine_Name.all);
                Put_Line (Standard_Error,
                          " (reference is " & Get_Filename (El.Exec.all)
-                           & ", file is " & Filename & ")");
+                           & ", file is " & Get_Filename (Exec.all) & ")");
                raise Consolidation_Error;
             end if;
          end if;

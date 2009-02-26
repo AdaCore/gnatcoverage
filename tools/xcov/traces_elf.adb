@@ -1314,7 +1314,6 @@ package body Traces_Elf is
       Sec : Addresses_Info_Acc;
 
       Subprogram_Base : Traces_Base_Acc;
-      Filename : constant String := Get_Filename (Exec.all);
 
       Debug : constant Boolean := False;
    begin
@@ -1336,7 +1335,7 @@ package body Traces_Elf is
             subtype Rebased_Type is Binary_Content (0 .. Sym.Last - Sym.First);
          begin
             Subprogram_Base := Traces_Names.Add_Traces
-              (Sym.Symbol_Name, Filename,
+              (Sym.Symbol_Name, Exec,
                Rebased_Type (Sec.Section_Content (Sym.First .. Sym.Last)));
          exception
             when others =>
