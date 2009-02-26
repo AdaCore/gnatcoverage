@@ -58,6 +58,8 @@ package body Execs_Dbase is
                     Exec_File_Name.all,
                     Text_Start);
          Insert (Execs.all, Exec_File_Name, Base_Entry);
+         Build_Sections (Exec.all);
+         Build_Symbols (Exec.all);
       end if;
    end Open_Exec;
 
@@ -91,35 +93,6 @@ package body Execs_Dbase is
          Build_Routines_Name (First_Exec.all);
       end;
    end Build_Routines_Names;
-
-   procedure Build_Elf (Execs : Exec_Base_Type) is
-      use Execs_Maps;
-      Position : Cursor := First (Execs.all);
-      Exec     : Exe_File_Acc;
-   begin
-      while Position /= No_Element loop
-         Exec := Element (Position).Exec;
-         Build_Sections (Exec.all);
-         Build_Symbols (Exec.all);
-         Next (Position);
-      end loop;
-   end Build_Elf;
-
-   procedure Build_Traces
-     (Execs : Exec_Base_Type;
-      Base  : in out Traces_Base)
-   is
-      use Execs_Maps;
-      Position : Cursor := First (Execs.all);
-      Exec     : Exe_File_Acc;
-   begin
-      while Position /= No_Element loop
-         Exec := Element (Position).Exec;
-         Set_Trace_State (Exec.all, Base);
-         Add_Subprograms_Traces (Exec.all, Base);
-         Next (Position);
-      end loop;
-   end Build_Traces;
 
    procedure Build_Debug
      (Execs : Exec_Base_Type;

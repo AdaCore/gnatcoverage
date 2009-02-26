@@ -84,7 +84,7 @@ package Traces_Elf is
    procedure Disp_Sections_Coverage (Exec : Exe_File_Type; Base : Traces_Base);
 
    --  Fill Traces_Names with traces from BASE.
-   procedure Add_Subprograms_Traces (Exec : Exe_File_Type; Base : Traces_Base);
+   procedure Add_Subprograms_Traces (Exec : Exe_File_Acc; Base : Traces_Base);
 
    --  Using the executable, correctly set the state of every traces.
    procedure Set_Trace_State (Exec : Exe_File_Type;
@@ -132,6 +132,15 @@ package Traces_Elf is
       Symbol_Addresses,
       Line_Addresses
       );
+
+   --  Canonical use of iterators:
+   --
+   --  Init_Iterator (Exe, Section_Addresses, It);
+   --  loop
+   --     Next_Iterator (It, Sec);
+   --     exit when Sec = null;
+   --     ...
+   --  end loop;
 
    type Addresses_Iterator is limited private;
    procedure Init_Iterator (Exe : Exe_File_Type;

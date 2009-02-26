@@ -1301,7 +1301,7 @@ package body Traces_Elf is
       end if;
    end Load_Section_Content;
 
-   procedure Add_Subprograms_Traces (Exec : Exe_File_Type; Base : Traces_Base)
+   procedure Add_Subprograms_Traces (Exec : Exe_File_Acc; Base : Traces_Base)
    is
       use Addresses_Containers;
       use Traces_Sources;
@@ -1314,7 +1314,7 @@ package body Traces_Elf is
       Sec : Addresses_Info_Acc;
 
       Subprogram_Base : Traces_Base_Acc;
-      Filename : constant String := Get_Filename (Exec);
+      Filename : constant String := Get_Filename (Exec.all);
 
       Debug : constant Boolean := False;
    begin
@@ -1329,7 +1329,7 @@ package body Traces_Elf is
 
          --  Be sure the section is loaded.
          Sec := Sym.Parent;
-         Load_Section_Content (Exec, Sec);
+         Load_Section_Content (Exec.all, Sec);
 
          --  Add the code for the symbol.
          declare
@@ -1833,10 +1833,17 @@ package body Traces_Elf is
       Add ('>');
    end Symbolize;
 
-   procedure Build_Routines_Name (Exec : Exe_File_Type) is
+   procedure Build_Routines_Name (Exec : Exe_File_Type)
+   is
+      It : Addresses_Iterator;
+      Sym : Addresses_Info_Acc;
    begin
-      Traces_Names.Read_Routines_Name
-        (Exec.Exe_File, new String'(Get_Filename (Exec.Exe_File)), False);
+      Init_Iterator (Exec, Symbol_Addresses, It);
+      loop
+         Next_Iterator (It, Sym);
+         exit when Sym = null;
+         Traces_Names.Add_Routine_Name (Sym.Symbol_Name);
+      end loop;
    end Build_Routines_Name;
 
    procedure Init_Iterator (Exe : Exe_File_Type;

@@ -28,8 +28,11 @@ package Traces_Names is
    procedure Read_Routines_Name (Filename : String; Exclude : Boolean);
 
    --  Same but directly from an ELF_FILE.
-   procedure Read_Routines_Name
-     (Efile : Elf_File; Filename : String_Acc; Exclude : Boolean);
+   procedure Read_Routines_Name (Efile : Elf_File; Exclude : Boolean);
+
+   --  Add a single name.
+   --  Raise CE if the name is already in the base.
+   procedure Add_Routine_Name (Name : String_Acc);
 
    --  Read a list of routines name from a text file.  The format is very
    --  simple:

@@ -64,8 +64,15 @@ package body Traces_Names is
 
    Names : Names_Maps.Map;
 
-   procedure Read_Routines_Name
-     (Efile : Elf_File; Filename : String_Acc; Exclude : Boolean)
+   procedure Add_Routine_Name (Name : String_Acc) is
+   begin
+      Names.Insert (Name,
+                    Subprogram_Name'(Exec => null,
+                                     Insns => null,
+                                     Traces => null));
+   end Add_Routine_Name;
+
+   procedure Read_Routines_Name (Efile : Elf_File; Exclude : Boolean)
    is
       use Addresses_Containers;
       use Names_Maps;
@@ -103,8 +110,6 @@ package body Traces_Names is
       Cur_Name : Names_Maps.Cursor;
       Cur : Addresses_Containers.Cursor;
       Ok : Boolean;
-
-      Exec : Exe_File_Acc;
    begin
       --  Search symtab and strtab.
       --  Exit in case of failure.
@@ -223,19 +228,14 @@ package body Traces_Names is
 
                   Cur_Name := Names.Find (Sym.Symbol_Name);
                   if not Exclude then
-                     Open_Exec (Get_Exec_Base, Filename.all, Exec);
                      if not Has_Element (Cur_Name) then
-                        Names.Insert (Sym.Symbol_Name,
-                                      Subprogram_Name'(Exec => Exec,
-                                                       Insns => null,
-                                                       Traces => null));
+                        Add_Routine_Name (Sym.Symbol_Name);
                         Sym.Symbol_Name := null;
                      else
-                        if Element (Cur_Name).Exec = Exec then
-                           Put_Line (Standard_Error,
-                                     "symbol " & Sym.Symbol_Name.all
-                                     & " is defined twice in " & Filename.all);
-                        end if;
+                        Put_Line (Standard_Error,
+                                  "symbol " & Sym.Symbol_Name.all
+                                    & " is defined twice in " &
+                                    Get_Filename (Efile));
                      end if;
                   elsif Has_Element (Cur_Name) then
                      Names.Delete (Sym.Symbol_Name);
@@ -272,7 +272,7 @@ package body Traces_Names is
    begin
       Open_File (Efile, Filename);
       Load_Shdr (Efile);
-      Read_Routines_Name (Efile, new String'(Filename), Exclude);
+      Read_Routines_Name (Efile, Exclude);
       Close_File (Efile);
    exception
       when Elf_Files.Error =>
@@ -300,10 +300,7 @@ package body Traces_Names is
                   Put_Line (Standard_Error,
                             "symbol " & Name.all & " is already defined");
                else
-                  Names.Insert (Name,
-                                Subprogram_Name'(Exec => null,
-                                                 Insns => null,
-                                                 Traces => null));
+                  Add_Routine_Name (Name);
                end if;
             end if;
          end;

@@ -24,10 +24,16 @@ package Traces_Files is
    --  Trace file descriptor.
    type Trace_File_Type is limited private;
 
-   --  Add an info to trace file descriptor.
+   --  Add an info to trace file.
+   --  We use a string type even if any byte stream is allowed.
    procedure Append_Info (File : in out Trace_File_Type;
                           Kind : Unsigned_32;
                           Data : String);
+
+   --  Get an info from trace file.
+   --  Return an empty string if the info is not found.
+   function Get_Info (File : Trace_File_Type; Kind : Unsigned_32)
+                     return String;
 
    --  Deallocate all dynamic data.
    procedure Free (Trace_File : in out Trace_File_Type);

@@ -45,22 +45,15 @@ package Execs_Dbase is
    --  Search for a file named File_Name in the Exec database. If one
    --  found, return it; otherwise, open File_Name and add it to the
    --  database, then return it in Exec.
+   --
+   --  Sections and symbols are read.
+   --  In case of error, exception is propagated (see trace_elf.ads)
 
    procedure Insert_Exec
      (Execs     : Exec_Base_Type;
       File_Name : String);
    --  Similar to Open_Exec, but does not return the result; just insert
    --  it in the Exec database if it does not already exists.
-
-   procedure Build_Elf (Execs : Exec_Base_Type);
-   --  For all exec in the Execs database, build the section/symbol
-   --  information.
-
-   procedure Build_Traces
-     (Execs : Exec_Base_Type;
-      Base  : in out Traces_Base);
-   --  Go through all exec in the Execs database and update the traces
-   --  database with the gathered information.
 
    procedure Build_Debug
      (Execs : Exec_Base_Type;

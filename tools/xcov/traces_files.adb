@@ -575,10 +575,8 @@ package body Traces_Files is
                           Kind : Unsigned_32;
                           Data : String)
    is
-      Info : constant Trace_File_Info_Acc := new Trace_File_Info'(Data'Length,
-                                                                  null,
-                                                                  Kind,
-                                                                  Data);
+      Info : constant Trace_File_Info_Acc :=
+        new Trace_File_Info'(Data'Length, null, Kind, Data);
    begin
       if File.Last_Infos = null then
          File.First_Infos := Info;
@@ -587,6 +585,21 @@ package body Traces_Files is
       end if;
       File.Last_Infos := Info;
    end Append_Info;
+
+   function Get_Info (File : Trace_File_Type; Kind : Unsigned_32)
+                     return String
+   is
+      Info : Trace_File_Info_Acc;
+   begin
+      Info := File.First_Infos;
+      while Info /= null loop
+         if Info.Kind = Kind then
+            return Info.Data;
+         end if;
+         Info := Info.Next;
+      end loop;
+      return "";
+   end Get_Info;
 
    procedure Free (Trace_File : in out Trace_File_Type)
    is

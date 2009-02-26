@@ -31,8 +31,8 @@ with Traces_Disa;
 with Traces_History;
 with Version;
 with Qemudrv;
+with Qemu_Traces;
 with Execs_Dbase; use Execs_Dbase;
-with Options_Files; use Options_Files;
 with Strings; use Strings;
 
 procedure Xcov is
@@ -193,9 +193,8 @@ procedure Xcov is
       end if;
    end To_Annotation_Format;
 
-   Trace_File_Name : File_Name;
-   Exec_File_Name : File_Name;
-   EB_Input : Command_Line_Input := New_Command_Line_Input;
+   --  Trace_File_Name : File_Name;
+   --  Exec_File_Name : File_Name;
 
    Has_Exec : Boolean := False;
    Text_Start : Pc_Type := 0;
@@ -205,10 +204,10 @@ procedure Xcov is
    Base : Traces_Base;
 
    Exec : Exe_File_Type;
-   Sub_Exec : Exe_File_Type;
+   Sub_Exec : Exe_File_Acc;
 
    First_Exec : Exe_File_Acc;
-   Exec_Base  : Exec_Base_Type := Get_Exec_Base;
+   Exec_Base  : constant Exec_Base_Type := Get_Exec_Base;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -302,14 +301,15 @@ begin
 
             --  Read Exe
             begin
-               Open_File (Sub_Exec, Argument (Arg_Index), Text_Start);
+               Sub_Exec := new Exe_File_Type;
+               Open_File (Sub_Exec.all, Argument (Arg_Index), Text_Start);
             exception
                when others =>
                   Error ("cannot open " & Argument (Arg_Index));
                   return;
             end;
-            Build_Sections (Sub_Exec);
-            Build_Symbols (Sub_Exec);
+            Build_Sections (Sub_Exec.all);
+            Build_Symbols (Sub_Exec.all);
 
             --  Read traces.
             Init_Base (Base);
@@ -321,8 +321,7 @@ begin
                   raise;
             end;
             Add_Subprograms_Traces (Sub_Exec, Base);
-            Close_File (Sub_Exec);
-            Clear_File (Sub_Exec);
+            Close_File (Sub_Exec.all);
             Free (Trace_File);
             Arg_Index := Arg_Index + 2;
          end loop;
@@ -332,9 +331,9 @@ begin
             Traces_Names.Dump_Routines_Traces;
          end if;
          return;
-      elsif Cmd = "--dump-trace-file" then
+      elsif Cmd = "--dump-trace" then
          if Arg_Index = Arg_Count then
-            Put_Line ("missing FILENAME to --dump-trace-file");
+            Put_Line ("missing FILENAME to --dump-trace");
             return;
          end if;
          for I in Arg_Index + 1 .. Arg_Count loop
@@ -352,6 +351,14 @@ begin
          Build_Symbols (Exec);
          for I in Arg_Index + 1 .. Arg_Count loop
             Traces_History.Dump_Traces_With_Asm (Exec, Argument (I));
+         end loop;
+         return;
+      elsif Cmd = "--dump-symbols" then
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Open_File (Exec, Argument (I), 0);
+            Build_Sections (Exec);
+            Build_Symbols (Exec);
+            Disp_Symbols_Addresses (Exec);
          end loop;
          return;
       elsif Cmd = "--show-graph" then
@@ -535,7 +542,7 @@ begin
             Build_Routines_Name (Exec);
             Build_Sections (Exec);
             Build_Symbols (Exec);
-            Add_Subprograms_Traces (Exec, Base);
+            --  Add_Subprograms_Traces (Exec, Base);
             Traces_Names.Dump_Routines_Traces (Exec);
 
          --------------------
@@ -592,19 +599,9 @@ begin
             Error ("unknown option: " & Arg);
             return;
          else
-            --  Trace file and Exe file
-            if Arg_Index > Arg_Count then
-               --  We are waiting for two parameters (for now;
-               --  at some point, the trace file will contain the
-               --  the path to the exe file, and the exe file will not
-               --  be passed in command line).
-               Put_Line ("Missing exe file for trace file " & Arg);
-               return;
-            end if;
-            Trace_File_Name := new String'(Arg);
-            Exec_File_Name   := new String'(Argument (Arg_Index));
-            Arg_Index := Arg_Index + 1;
-            Add_Input (EB_Input, Trace_File_Name, Exec_File_Name);
+            --  Not an option.
+            Arg_Index := Arg_Index - 1;
+            exit;
          end if;
       end;
    end loop;
@@ -613,6 +610,11 @@ begin
       --  If we end up here, that means that we are using the old interface;
       --  the rest of the code is specific to the new interface, so... return.
       --  When the old interface has been obsoleted, this will be removed.
+      return;
+   end if;
+
+   if Arg_Index > Arg_Count then
+      Error ("missing trace files(s)");
       return;
    end if;
 
@@ -636,24 +638,41 @@ begin
          return;
    end case;
 
-   Read_Traces (EB_Input, Base);
-   Open_Execs (EB_Input, Exec_Base);
-
    if Routine_List_Filename /= null then
       Traces_Names.Read_Routines_Name_From_Text (Routine_List_Filename.all);
    else
-      declare
-      begin
-         Build_Routines_Names (Exec_Base);
-      exception
-         when Routine_Name_Ambiguity =>
-            Put_Line ("Please specify a routine list.");
-            return;
-      end;
+      if Arg_Index /= Arg_Count then
+         Error ("routine list required when multiple trace files");
+         return;
+      end if;
    end if;
 
-   Build_Elf (Exec_Base);
-   Build_Traces (Exec_Base, Base);
+   --  Read traces.
+   while Arg_Index <= Arg_Count loop
+      Init_Base (Base);
+      Read_Trace_File (Argument (Arg_Index), Trace_File, Base);
+      declare
+         Exe_Name : constant String :=
+           Get_Info (Trace_File, Qemu_Traces.Info_Kind_Exec_Filename);
+         Exe_File : Exe_File_Acc;
+      begin
+         if Exe_Name = "" then
+            Error ("cannot find exec filename in trace file "
+                     & Argument (Arg_Index));
+            return;
+         end if;
+         Open_Exec (Get_Exec_Base, Exe_Name, Exe_File);
+
+         if Arg_Index = Arg_Count
+           and then Routine_List_Filename = null
+         then
+            Build_Routines_Name (Exe_File.all);
+         end if;
+
+         Add_Subprograms_Traces (Exe_File, Base);
+      end;
+      Arg_Index := Arg_Index + 1;
+   end loop;
 
    if Annotations /= Annotate_Asm then
       --  ??? The build of the debug information should not be needed
