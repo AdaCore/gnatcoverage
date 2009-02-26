@@ -41,6 +41,10 @@ doc/xcov.txt: doc/xcov.texi
 clean:
 	$(RM) *.o *.ali xcov b~*
 
+##########################
+# Installation/Packaging #
+##########################
+
 install:
 	$(MKDIR) $(PREFIX)/bin
 	$(MKDIR) $(PREFIX)/share/examples/xcov
@@ -49,6 +53,7 @@ install:
 	$(MKDIR) $(PREFIX)/share/doc/xcov/pdf
 	$(MKDIR) $(PREFIX)/share/doc/xcov/info
 	$(MKDIR) $(PREFIX)/share/doc/xcov/txt
+	$(CP) README $(PREFIX)
 	$(CP) xcov $(PREFIX)/bin
 	$(CP) -r examples/* $(PREFIX)/share/examples/xcov
 	$(CP) -r doc/*.html $(PREFIX)/share/doc/xcov/html
