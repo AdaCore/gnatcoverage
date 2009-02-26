@@ -50,8 +50,8 @@ index-%.html: %.trace
 
 trace: $(TESTS:%=%.trace)
 
-%.trace: %.bin force
-	$(QEMU) -nographic -M prep -L . -bios $< -trace $@ /dev/null
+%.trace: % force
+	xcov --run $< --target=$(TARGET)
 
 # CROSS toolchain : produce executable program from sources + target bsp
 
