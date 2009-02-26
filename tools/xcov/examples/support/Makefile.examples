@@ -1,0 +1,58 @@
+# This support Makefile is a helper for examples packaged together with the
+# xcov/qemu bundle for coverage analysis.  The intent is to have this Makefile
+# invoked from the example dedicated directories.
+
+# It is useful both to factorize the work for different examples and to
+# illustrate a typical coverage data generation sequence for a program
+# starting from sources.
+
+# The basic idea is
+#  1/ Build the program executable from the sources
+#  2/ Run it through qemu to get execution traces
+#  3/ Use xcov to produce user level coverage data from the traces
+
+include ../support/Makefile.common
+
+.PRECIOUS: %.trace
+
+all: build trace analyze
+
+# XCOV : produce annotated sources or html from a trace file and the
+# corresponding executable
+
+analyze: $(TESTS:%=index-%.html)
+
+index-%.html: %.trace
+	$(XCOV) -r $< -e $(basename $<) \
+	 --output-format=html --asm --source-coverage
+	mv index.html $@
+
+# QEMU : produce execution trace from executable program execution within
+# instrumented target emulation environment.
+
+trace: $(TESTS:%=%.trace)
+
+%.trace: % force
+	xcov --run $< --target=$(TARGET)
+
+# CROSS toolchain : produce executable program from sources + target bsp
+
+build: $(TESTS:%=%.bin)
+
+%.bin: %
+	$(CROSS)objcopy -O binary $< $@
+
+$(TESTS): support force
+	$(BUILDER) -p -P$@
+
+support:
+	$(MAKE) -C ../support
+
+# Housekeeping
+
+clean:
+	$(MAKE) -C ../support clean
+	$(RM) -rf obj lib
+	$(RM) -f *.bin *.trace *~ *.xcov *.html *.css $(TESTS)
+
+.PHONY: force clean

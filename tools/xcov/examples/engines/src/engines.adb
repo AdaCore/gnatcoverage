@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                      Copyright (C) 2008-2009, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,42 +17,20 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-package body Text_IO is
+package body Engines is
 
-   procedure Flush is
-   begin
-      null;
-   end Flush;
+   --------------
+   -- State_Of --
+   --------------
 
-   procedure New_Line is
+   function State_Of (E : Engine) return State is
    begin
-      Put (ASCII.LF);
-   end New_Line;
-
-   procedure Put (Item : in Character) is
-      procedure Internal (C   : Character);
-      pragma Import (C, Internal, "putchar");
-   begin
-      Internal (Item);
-   end Put;
-
-   procedure Put (Item : in String) is
-   begin
-      for I in Item'Range loop
-         Put (Item (I));
-      end loop;
-   end Put;
-
-   procedure Put_Line (Item : in String) is
-   begin
-      Put (Item);
-      New_Line;
-   end Put_Line;
-
-   procedure Get (Item : out Character) is
-      function Internal return Character;
-      pragma Import (C, Internal, "getchar");
-   begin
-      Item := Internal;
-   end Get;
-end Text_IO;
+      if E.P >= Stable_P and then E.T >= Stable_T then
+         return Critical;
+      elsif E.P >= Stable_P or else E.T >= Stable_T then
+         return Alarming;
+      else
+         return Stable;
+      end if;
+   end State_Of;
+end Engines;

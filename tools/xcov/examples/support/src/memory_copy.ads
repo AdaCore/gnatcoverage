@@ -17,54 +17,29 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
------------------
--- Test_Queues --
------------------
+--  This package provides general block copy mechanisms analgous to those
+--  provided by the C routines memcpy and memmove allowing for copies with
+--  and without possible overflow.
 
-with Last_Chance_Handler;
-with Queues;
+with System; use System;
+with Interfaces.C; use Interfaces.C;
 
-procedure Test_Queues is
+package Memory_Copy is
+pragma Preelaborate;
 
-   package Integer_Queues is new Queues (Data_Type => Integer);
-   use Integer_Queues;
+   procedure memcpy (Dest : Address; Src : Address; N : size_t);
+   pragma Export (C, memcpy, "memcpy");
+   --  Copies N storage units from area starting at Src to area starting
+   --  at Dest without any check for buffer overflow. The memory areas
+   --  must not overlap, or the result of this call is undefined.
 
-   X : Integer;
-   Q : Integer_Queues.Queue (Capacity => 3);
-begin
-   if not Empty (Q) then
-      raise Program_Error;
-   end if;
+   procedure memmove (Dest : Address; Src : Address; N : size_t);
+   pragma Export (C, memmove, "memmove");
+   --  Copies N storage units from area starting at S2 to area starting
+   --  at S1 without any check for buffer overflow. The difference between
+   --  this memmove and memcpy is that with memmove, the storage areas may
+   --  overlap (forwards or backwards) and the result is correct (i.e. it
+   --  is as if S2 is first moved to a temporary area, and then this area
+   --  is copied to S1 in a separate step).
 
-   Push (1, Q);
-   Push (2, Q);
-   Push (3, Q);
-
-   Pop (X, Q);
-   if X /= 1 then
-      raise Program_Error;
-   end if;
-
-   Push (4, Q);
-   if not Full (Q) then
-      raise Program_Error;
-   end if;
-
-   Pop (X, Q);
-   if X /= 2 then
-      raise Program_Error;
-   end if;
-   Pop (X, Q);
-   if X /= 3 then
-      raise Program_Error;
-   end if;
-   Pop (X, Q);
-   if X /= 4 then
-      raise Program_Error;
-   end if;
-
-   if not Empty (Q) then
-      raise Program_Error;
-   end if;
-end Test_Queues;
-
+end Memory_Copy;

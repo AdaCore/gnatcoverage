@@ -17,9 +17,21 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Get the required extra support units for Explore to work
---  in a zfp/qemu context.
+package body Last_Chance_Handler is
 
-with Last_Chance_Handler, Memory, Memory_Copy, Memory_Compare;
-package Support is end Support;
+   -------------------------
+   -- Last_Chance_Handler --
+   -------------------------
 
+   procedure Last_Chance_Handler (Msg : System.Address; Line : Integer) is
+      pragma Unreferenced (Msg, Line);
+
+      procedure C_Abort;
+      pragma Import (C, C_Abort, "abort");
+      pragma No_Return (C_Abort);
+   begin
+      --  No return procedure.
+      C_Abort;
+   end Last_Chance_Handler;
+
+end Last_Chance_Handler;

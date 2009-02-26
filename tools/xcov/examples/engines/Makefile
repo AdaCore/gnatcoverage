@@ -1,2 +1,2 @@
 TESTS=test_engines
-include ../support/Makefile
+include ../support/Makefile.examples

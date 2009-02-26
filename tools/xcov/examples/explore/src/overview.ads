@@ -111,7 +111,7 @@
 --
 --  [etc until user requests 'Q'uit or crashes the robot by asking
 --   it to step forward into a block, in Dumb mode]
-
+--
 
 -----------------------------------
 -- General software organization --

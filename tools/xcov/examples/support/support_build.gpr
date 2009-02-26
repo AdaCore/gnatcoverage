@@ -1,0 +1,27 @@
+project Support_Build is
+
+   type Target_Type is ("native", "powerpc-elf");
+   Target : Target_Type := external ("TARGET", "powerpc-elf");
+
+   case Target is
+     when "native" =>
+       for Languages use ("ada");
+       for Source_Dirs use ("src");
+     when others =>
+       for Languages use ("ada", "c");
+       for Source_Dirs use ("src", "src/" & Target);
+   end case;
+
+   for Object_Dir use "obj/" & Target;
+   for Library_Kind use "static";
+   for Library_Auto_Init use "False";
+   for Library_Dir use "lib/" & Target;
+   for Library_Name use "support";
+
+  package Compiler is
+     for Default_Switches ("C") use ("-g", "-O1", "-fpreserve-control-flow");
+     for Default_Switches ("Ada") use 
+       Compiler'Default_Switches("C") & ("-gnaty", "-gnatw.Xe");
+  end Compiler;
+
+end Support_Build;

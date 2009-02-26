@@ -1,0 +1,35 @@
+# This file contains the common definitions used by all other Makefiles.
+
+QEMU=qemu-system-ppc
+XCOV=xcov
+
+# Set of main target programs for which we want to produce coverage info,
+# to be defined from the command line or by includers:
+# TESTS=
+
+# Both a target specific support subdir and a target toolchain prefix:
+TARGET = powerpc-elf
+
+# Base dir for the support library:
+BASE_SUPPORT_DIR = ../support
+
+# CROSS toolchain : produce executable program from sources + target bsp
+
+ifneq ($(TARGET),)
+  CROSS = $(TARGET)-
+  TARGETNAME = $(TARGET)
+else
+  CROSS =
+  TARGETNAME = native
+endif
+
+# Access to common support files like this Makefile and to target specific
+# sources such as the qemu bsp:
+TARGET_SUPPORT_LIB = $(BASE_SUPPORT_DIR)/lib/$(TARGETNAME)
+TARGETCONFIG=$(TARGET_SUPPORT_LIB)/$(TARGETNAME).cgpr
+
+BUILDER=gprbuild -XTARGET=$(TARGETNAME) --config=$(TARGETCONFIG)
+MKDIR=mkdir -p
+RM=rm
+CP=cp
+

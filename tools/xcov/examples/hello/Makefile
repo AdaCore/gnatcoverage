@@ -1,2 +1,2 @@
 TESTS=hello
-include ../support/Makefile
+include ../support/Makefile.examples

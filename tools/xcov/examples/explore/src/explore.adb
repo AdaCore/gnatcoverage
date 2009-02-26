@@ -28,8 +28,6 @@
 with Overview, Actors, Robots, Stations, Controls, Geomaps;
 use  Overview, Actors, Robots, Stations, Controls, Geomaps;
 
-with Support;
-
 -------------
 -- Explore --
 -------------
