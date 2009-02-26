@@ -18,10 +18,14 @@ project Support_Build is
    for Library_Dir use "lib/" & Target;
    for Library_Name use "support";
 
-  package Compiler is
-     for Default_Switches ("C") use ("-g", "-O1", "-fpreserve-control-flow");
-     for Default_Switches ("Ada") use 
-       Compiler'Default_Switches("C") & ("-gnaty", "-gnatw.Xe");
-  end Compiler;
+   package Compiler is
+      for Default_Switches ("C") use ("-g", "-O1", "-fpreserve-control-flow");
+      for Default_Switches ("Ada") use 
+        Compiler'Default_Switches("C") & ("-gnaty", "-gnatw.Xe");
+   end Compiler;
+
+   package Builder is
+      for Global_Configuration_Pragmas use "zfp.adc";
+   end Builder;
 
 end Support_Build;
