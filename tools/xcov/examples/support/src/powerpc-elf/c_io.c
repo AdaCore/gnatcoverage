@@ -16,52 +16,58 @@
  * Boston, MA 02111-1307, USA.                                              *
  *                                                                          *
  ****************************************************************************/
-static void outb(int port, unsigned char v)
+
+static void
+__outb(int port, unsigned char v)
 {
   *((volatile unsigned char *)(0x80000000 + port)) = v;
 }
 
-static unsigned char inb(int port)
+static unsigned char
+__inb(int port)
 {
   return *((volatile unsigned char *)(0x80000000 + port));
 }
 
 void abort (void)
 {
-  outb (0x92, 0x01);
+  __outb (0x92, 0x01);
   while (1)
     ;
 }
 
 int putchar(int c)
 {
-  outb (0x3f8 + 0x00, c);
+  __outb (0x3f8 + 0x00, c);
   return c;
 }
 
-int checkkey (void)
+static int
+__checkkey (void)
 {
-  return inb (0x3f8 + 0x05) & 0x01;
+  return __inb (0x3f8 + 0x05) & 0x01;
 }
 
 int getchar (void)
 {
-  while (!checkkey ())
+  while (!__checkkey ())
     ;
-  return inb(0x3f8 + 0x00);
+  return __inb(0x3f8 + 0x00);
 }
 
 int fsync (int fd)
 {
 }
 
-static void memcpy (unsigned char *d, unsigned char *s, int len)
+static void
+__memcpy (unsigned char *d, unsigned char *s, int len)
 {
   while (len--)
     *d++ = *s++;
 }
 
-static void bzero (unsigned char *d, int len)
+static void
+__bzero (unsigned char *d, int len)
 {
   while (len--)
     *d++ = 0;
@@ -75,11 +81,11 @@ extern char __bss_start[], __bss_end[];
 
 void cmain (void)
 {
-  memcpy (__sdata2_start, __sdata2_load, __sdata2_end - __sdata2_start);
-  memcpy (__data_start, __data_load, __data_end - __data_start);
-  bzero (__sbss2_start, __sbss2_end - __sbss2_start);
-  bzero (__sbss_start, __sbss_end - __sbss_start);
-  bzero (__bss_start, __bss_end - __bss_start);
+  __memcpy (__sdata2_start, __sdata2_load, __sdata2_end - __sdata2_start);
+  __memcpy (__data_start, __data_load, __data_end - __data_start);
+  __bzero (__sbss2_start, __sbss2_end - __sbss2_start);
+  __bzero (__sbss_start, __sbss_end - __sbss_start);
+  __bzero (__bss_start, __bss_end - __bss_start);
   main();
   abort ();
 }
