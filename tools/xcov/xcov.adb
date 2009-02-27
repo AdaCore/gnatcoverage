@@ -22,7 +22,6 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
 with Traces_Sources.Html;
-with Traces_Sources.Gcov;
 with Traces_Sources.Xcov;
 with Traces_Names;
 with Traces_Files; use Traces_Files;
@@ -50,14 +49,7 @@ procedure Xcov is
       P (" --disp-routines {[--exclude|--include] FILE}");
       P ("    Build a list of routines from executable files");
       New_Line;
-      P (" --consolidate OPTIONS {EXEFILE TRACEFILE}");
-      P ("   Options are:");
-      P ("   --include=RFILE      Read routines list from executable");
-      P ("   --include-list=TFILE Read routine list from text file");
-      P ("   -e EFILE             Use executable to display output");
-      P ("   --asm                Display assembly code during output");
-      New_Line;
-      P (" --dump-trace-file FILES");
+      P (" --dump-trace FILES");
       P ("   Raw display of trace files");
       New_Line;
       P (" --dump-trace-asm EXE TRACE_FILES");
@@ -200,13 +192,10 @@ procedure Xcov is
 
    Has_Exec : Boolean := False;
    Text_Start : Pc_Type := 0;
-   type Output_Format is (Format_Xcov, Format_Gcov, Format_Html);
-   Format : Output_Format := Format_Xcov;
    Trace_File : Trace_File_Type;
    Base : Traces_Base;
 
    Exec : Exe_File_Type;
-   Sub_Exec : Exe_File_Acc;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -238,97 +227,6 @@ begin
             end;
          end loop;
          Traces_Names.Disp_All_Routines;
-         return;
-      elsif Cmd = "--consolidate" then
-         if Arg_Index = Arg_Count then
-            Error ("missing FILEs to --consolidate");
-            return;
-         end if;
-         Arg_Index := Arg_Index + 1;
-         while Arg_Index <= Arg_Count loop
-            declare
-               Arg : constant String := Argument (Arg_Index);
-            begin
-               Arg_Index := Arg_Index + 1;
-               if Arg'Length > 10
-                 and then Arg (Arg'First .. Arg'First + 9) = "--include="
-               then
-                  Traces_Names.Read_Routines_Name
-                    (Arg (Arg'First + 10 .. Arg'Last), False);
-               elsif Arg'Length > 14
-                 and then Arg (Arg'First .. Arg'First + 14) = "--include-list="
-               then
-                  Traces_Names.Read_Routines_Name_From_Text
-                    (Arg (Arg'First + 15 .. Arg'Last));
-               elsif Arg = "-e" then
-                  if Arg_Index > Arg_Count then
-                     Error ("missing FILENAME to -e");
-                     return;
-                  end if;
-                  begin
-                     Open_File (Exec, Argument (Arg_Index), Text_Start);
-                  exception
-                     when others =>
-                        Error ("cannot open " & Argument (Arg_Index));
-                        return;
-                  end;
-                  Has_Exec := True;
-                  Arg_Index := Arg_Index + 1;
-               elsif Arg = "--asm" then
-                  Traces_Disa.Flag_Show_Asm := True;
-               else
-                  if Arg (Arg'First) = '-' then
-                     Error ("unknown option " & Arg);
-                     return;
-                  else
-                     exit;
-                  end if;
-               end if;
-            end;
-         end loop;
-
-         if Arg_Index > Arg_Count then
-            Error ("no trace files given");
-            return;
-         end if;
-         Arg_Index := Arg_Index - 1;
-         while Arg_Index <= Arg_Count loop
-            if Arg_Index + 1 > Arg_Count then
-               Error ("EXEC_file TRACE_file expected");
-               return;
-            end if;
-
-            --  Read Exe
-            begin
-               Sub_Exec := new Exe_File_Type;
-               Open_File (Sub_Exec.all, Argument (Arg_Index), Text_Start);
-            exception
-               when others =>
-                  Error ("cannot open " & Argument (Arg_Index));
-                  return;
-            end;
-            Build_Sections (Sub_Exec.all);
-            Build_Symbols (Sub_Exec.all);
-
-            --  Read traces.
-            Init_Base (Base);
-            begin
-               Read_Trace_File (Argument (Arg_Index + 1), Trace_File, Base);
-            exception
-               when others =>
-                  Error ("cannot open tracefile " & Argument (Arg_Index + 1));
-                  raise;
-            end;
-            Add_Subprograms_Traces (Sub_Exec, Base);
-            Close_File (Sub_Exec.all);
-            Free (Trace_File);
-            Arg_Index := Arg_Index + 2;
-         end loop;
-         if Has_Exec then
-            Traces_Names.Dump_Routines_Traces (Exec);
-         else
-            Traces_Names.Dump_Routines_Traces;
-         end if;
          return;
       elsif Cmd = "--dump-trace" then
          if Arg_Index = Arg_Count then
@@ -389,10 +287,7 @@ begin
          Arg : constant String := Argument (Arg_Index);
       begin
          Arg_Index := Arg_Index + 1;
-         if Arg = "-h" or else Arg = "--help" then
-            Usage;
-            return;
-         elsif Arg = "-r" then
+         if Arg = "-r" then
             if Arg_Index > Arg_Count then
                Put_Line ("missing FILENAME to -r");
                return;
@@ -455,8 +350,6 @@ begin
             Build_Sections (Exec);
             Build_Symbols (Exec);
             Disp_Symbols_Addresses (Exec);
-         elsif Arg = "--asm" then
-            Traces_Disa.Flag_Show_Asm := True;
          elsif Arg = "--missing-files" then
             Flag_Show_Missing := True;
          elsif Arg'Length > 8
@@ -480,19 +373,11 @@ begin
                when Constraint_Error =>
                   return;
             end;
-         elsif Arg'Length > 16
-           and then Arg (Arg'First .. Arg'First + 15) = "--output-format="
-         then
-            if Arg (Arg'First + 16 .. Arg'Last) = "xcov" then
-               Format := Format_Xcov;
-            elsif Arg (Arg'First + 16 .. Arg'Last) = "gcov" then
-               Format := Format_Gcov;
-            elsif Arg (Arg'First + 16 .. Arg'Last) = "html" then
-               Format := Format_Html;
-            else
-               Error ("bad parameter for --output-format");
-               return;
-            end if;
+
+         --------------------
+         -- New Option set --
+         --------------------
+
          elsif Arg'Length > 16
            and then Arg (Arg'First .. Arg'First + 15) = "--source-rebase="
          then
@@ -516,38 +401,6 @@ begin
            and then Arg (Arg'First .. Arg'First + 15) = "--source-search="
          then
             Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
-         elsif Arg = "--source-coverage" then
-            Build_Sections (Exec);
-            Set_Trace_State (Exec, Base);
-            Build_Debug_Lines (Exec);
-            --  Build_Source_Lines (Exec, Base);
-            Build_Symbols (Exec);
-            case Format is
-               when Format_Xcov =>
-                  Traces_Sources.Xcov.Generate_Report;
-               when Format_Gcov =>
-                  Traces_Sources.Gcov.Generate_Report;
-               when Format_Html =>
-                  Traces_Sources.Html.Generate_Report;
-            end case;
-         elsif Arg = "--file-coverage" then
-            Build_Sections (Exec);
-            Set_Trace_State (Exec, Base);
-            Build_Debug_Lines (Exec);
-            --  Build_Source_Lines (Exec, Base);
-            Build_Symbols (Exec);
-            Disp_File_Summary;
-         elsif Arg = "--function-coverage" then
-            Build_Routines_Name (Exec);
-            Build_Sections (Exec);
-            Build_Symbols (Exec);
-            --  Add_Subprograms_Traces (Exec, Base);
-            Traces_Names.Dump_Routines_Traces (Exec);
-
-         --------------------
-         -- New Option set --
-         --------------------
-
          elsif Arg = Routine_List_Option_Short then
             if Arg_Index > Arg_Count then
                Put_Line ("Missing function list parameter to "
