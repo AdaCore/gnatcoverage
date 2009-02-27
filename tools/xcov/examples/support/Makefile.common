@@ -23,6 +23,14 @@ else
   TARGETNAME = native
 endif
 
+# Test host machine to determine the best environment when running xcov
+ifeq ($(OS),Windows_NT)
+ifneq ($(TERM),)
+  STTY_RAW = 1
+  STTY_OLD = $(shell stty -g)
+endif
+endif
+
 # Access to common support files like this Makefile and to target specific
 # sources such as the qemu bsp:
 TARGET_SUPPORT_LIB = $(BASE_SUPPORT_DIR)/lib/$(TARGETNAME)

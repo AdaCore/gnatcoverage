@@ -33,7 +33,14 @@ index-%.html: %.trace
 trace: $(TESTS:%=%.trace)
 
 %.trace: % force
-	xcov --run $< --target=$(TARGET)
+	@echo xcov --run $< --target=$(TARGET)
+ifeq ($(STTY_RAW),1)
+	@stty raw
+endif
+	@xcov --run $< --target=$(TARGET)
+ifeq ($(STTY_RAW),1)
+	@stty $(STTY_OLD)
+endif
 
 # CROSS toolchain : produce executable program from sources + target bsp
 
