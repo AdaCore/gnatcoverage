@@ -23,6 +23,8 @@ with Hex_Images; use Hex_Images;
 with Sparc_Descs; use Sparc_Descs;
 
 package body Disa_Sparc is
+   function Get_Field (Field : Sparc_Fields; V : Unsigned_32)
+                      return Unsigned_32;
 
    function Get_Field (Field : Sparc_Fields; V : Unsigned_32)
                       return Unsigned_32
@@ -173,6 +175,17 @@ package body Disa_Sparc is
       --  Add CHAR to the line.
       procedure Add (C : Character);
       pragma Inline (Add);
+
+      procedure Add (Str : String);
+      procedure Add_HT;
+      procedure Disp_Hex (V : Unsigned_32);
+      procedure Add_Cond (Str : String);
+      procedure Add_Ireg (R : Reg_Type);
+      procedure Add_D2 (N : Unsigned_32);
+      procedure Add_Freg (R : Reg_Type);
+      procedure Disp_Mem;
+      procedure Disp_Reg_Imm;
+      procedure Disp_Format3 (Map : Insn_Desc_Array);
 
       procedure Add (C : Character) is
       begin
