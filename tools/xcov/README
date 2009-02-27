@@ -1,21 +1,26 @@
 This is the README file for the binary distribution of the Xcov coverage
 analysis facility.
 
-INSTALLING
+INSTALL
+=======
 
-The quick way to install is to run the script 'doinstall' contained in this
-directory. This script asks a few questions about where you want the bundle to
-be installed and prompts you for confirmation before proceeding with the
-actual installation. At any time before this confirmation, you can interrupt
-it by pressing Ctrl-C.
+This distribution can be used standalone, without any specific installation
+step after unpacking.  The <unpack-subdir>/bin directory contains the toolset
+programs, which you may access by simply adjusting your PATH environment
+variable. The <unpack-subdir>/share directory contains the documentation and
+examples.
+
+If this is more convenient for you, you may transfer the contents of the "bin"
+and "share" subdirectories into their corresponding entries within a
+pre-existing installation tree, where a GNAT toolset is located for instance.
 
 USE
-
+===
 Using Xcov is documented in the "Xcov Fundamentals & Users Guide" available in
-this package, from the <installation root>/share/doc/xcov directory.
+this package, from the <unpack/installation-root>/share/doc/xcov directory.
 
 EXAMPLES
-
+========
 Examples are provided in the <installation root>/share/examples/xcov
 directory. The "Explore" example is introduced in the user's guide and used
 for illustration purposes there.
