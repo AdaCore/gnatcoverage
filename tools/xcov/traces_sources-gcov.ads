@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                      Copyright (C) 2008-2009, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -19,5 +19,5 @@
 
 package Traces_Sources.Gcov is
    --  Generate the report in gcov format.
-   procedure Generate_Report (Base : Traces_Base; Sym : Symbolizer'Class);
+   procedure Generate_Report;
 end Traces_Sources.Gcov;

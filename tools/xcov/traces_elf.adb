@@ -854,7 +854,6 @@ package body Traces_Elf is
                   First => Exec.Exe_Text_Start + Pc_Type (Pc),
                   Last => Exec.Exe_Text_Start + Pc_Type (Pc),
                   Parent => null,
-                  Line_Next => null,
                   Line_Filename => Filenames_Vectors.Element (Filenames, File),
                   Line_Number => Natural (Line)),
                  Pos, Inserted);
@@ -1386,84 +1385,8 @@ package body Traces_Elf is
       end loop;
    end Add_Subprograms_Traces;
 
-   procedure Build_Source_Lines (Exec : Exe_File_Type;
-                                 Base : in out Traces_Base)
-   is
-      use Addresses_Containers;
-      use Traces_Sources;
-      Cur : Cursor;
-      Line : Addresses_Info_Acc;
-      Prev_File : Source_File;
-      Prev_Filename : String_Acc := null;
-
-      It : Entry_Iterator;
-      E : Trace_Entry;
-      Pc : Pc_Type;
-      No_Traces : Boolean;
-
-      Debug : constant Boolean := False;
-   begin
-      Init (Base, It, 0);
-      Get_Next_Trace (E, It);
-      No_Traces := E = Bad_Trace;
-
-      --  Iterate on lines.
-      Cur := First (Exec.Lines_Set);
-      while Cur /= No_Element loop
-         Line := Element (Cur);
-
-         --  Get corresponding file (check previous file for speed-up).
-         if Line.Line_Filename /= Prev_Filename then
-            Prev_File := Find_File (Line.Line_Filename);
-            Prev_Filename := Line.Line_Filename;
-         end if;
-
-         Add_Line (Prev_File, Line.Line_Number, Line);
-
-         --  Skip not-matching traces.
-         while not No_Traces and then E.Last < Line.First loop
-            --  There is no source line for this entry.
-            Get_Next_Trace (E, It);
-            No_Traces := E = Bad_Trace;
-         end loop;
-
-         if Debug then
-            New_Line;
-            Disp_Address (Line);
-         end if;
-
-         Pc := Line.First;
-         loop
-            --  From PC to E.First
-            if No_Traces or else Pc < E.First then
-               if Debug then
-                  Put_Line ("no trace for pc=" & Hex_Image (Pc));
-               end if;
-               Add_Line_State (Prev_File, Line.Line_Number, Not_Covered);
-            end if;
-
-            exit when No_Traces or else E.First > Line.Last;
-
-            if Debug then
-               Put_Line ("merge with:");
-               Dump_Entry (E);
-            end if;
-
-            --  From E.First to min (E.Last, line.last)
-            Add_Line_State (Prev_File, Line.Line_Number, E.State);
-
-            exit when E.Last >= Line.Last;
-            Pc := E.Last + 1;
-            Get_Next_Trace (E, It);
-            No_Traces := E = Bad_Trace;
-         end loop;
-
-         Next (Cur);
-      end loop;
-   end Build_Source_Lines;
-
-   procedure Build_Source_Lines (Exec : Exe_File_Type;
-                                 Base : in out Traces_Base;
+   procedure Build_Source_Lines (Exec : Exe_File_Acc;
+                                 Base : Traces_Base_Acc;
                                  Section : Binary_Content)
    is
       use Addresses_Containers;
@@ -1481,7 +1404,7 @@ package body Traces_Elf is
       Debug : constant Boolean := False;
    begin
       Pc := Section'First;
-      Init (Base, It, Pc);
+      Init (Base.all, It, Pc);
       Get_Next_Trace (E, It);
       No_Traces := E = Bad_Trace;
 
@@ -1507,7 +1430,7 @@ package body Traces_Elf is
          if Line.First >= Section'First
            and then Line.Last <= Section'Last then
 
-            Add_Line (Prev_File, Line.Line_Number, Line);
+            Add_Line (Prev_File, Line.Line_Number, Line, Base, Exec);
 
             --  Skip not-matching traces.
             while not No_Traces and then E.Last < Line.First loop

@@ -392,7 +392,8 @@ package body Traces_Names is
       end if;
    end Compute_Routine_State;
 
-   procedure Build_Routines_Trace_State is
+   procedure Build_Routines_Trace_State
+   is
       use Names_Maps;
       Cur : Cursor;
       E : Subprogram_Name;
@@ -482,7 +483,8 @@ package body Traces_Names is
       end loop;
    end Dump_Routines_Traces;
 
-   procedure Build_Source_Lines is
+   procedure Build_Source_Lines
+   is
       use Names_Maps;
       Cur : Cursor;
       E : Subprogram_Name;
@@ -491,7 +493,7 @@ package body Traces_Names is
       while Has_Element (Cur) loop
          E := Element (Cur);
          Build_Debug_Lines (E.Exec.all);
-         Build_Source_Lines (E.Exec.all, E.Traces.all, E.Insns.all);
+         Build_Source_Lines (E.Exec, E.Traces, E.Insns.all);
          Next (Cur);
       end loop;
    end Build_Source_Lines;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -21,13 +21,11 @@ with Ada.Directories;
 with Traces_Disa;
 
 package body Traces_Sources is
-   procedure Append (Chain : in out Addresses_Line_Chain;
-                     Line : Addresses_Info_Acc);
-   function Get_First (Chain : Addresses_Line_Chain)
-                      return Addresses_Info_Acc;
+   procedure Append (Info : in out Line_Info;
+                     Line : Addresses_Info_Acc;
+                     Base : Traces_Base_Acc;
+                     Exec : Exe_File_Acc);
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
-                                   Base : Traces_Base;
-                                   Sym : Symbolizer'Class;
                                    Filename : String;
                                    File : Source_Lines);
 
@@ -58,22 +56,23 @@ package body Traces_Sources is
       return Source_File'(Cur => Res);
    end Find_File;
 
-   procedure Append (Chain : in out Addresses_Line_Chain;
-                     Line : Addresses_Info_Acc) is
+   procedure Append (Info : in out Line_Info;
+                     Line : Addresses_Info_Acc;
+                     Base : Traces_Base_Acc;
+                     Exec : Exe_File_Acc)
+   is
+      El : constant Line_Chain_Acc := new Line_Chain'(Line => Line,
+                                                      Base => Base,
+                                                      Exec => Exec,
+                                                      Link => null);
    begin
-      if Chain.First = null then
-         Chain.First := Line;
+      if Info.First_Line = null then
+         Info.First_Line := El;
       else
-         Chain.Last.Line_Next := Line;
+         Info.Last_Line.Link := El;
       end if;
-      Chain.Last := Line;
+      Info.Last_Line := El;
    end Append;
-
-   function Get_First (Chain : Addresses_Line_Chain)
-                      return Addresses_Info_Acc is
-   begin
-      return Chain.First;
-   end Get_First;
 
    procedure Add_Line_State (File : Source_File;
                              Line : Natural;
@@ -108,7 +107,9 @@ package body Traces_Sources is
 
    procedure Add_Line (File : Source_File;
                        Line : Natural;
-                       Info : Addresses_Info_Acc)
+                       Info : Addresses_Info_Acc;
+                       Base : Traces_Base_Acc;
+                       Exec : Exe_File_Acc)
    is
       procedure Process (Key : String_Acc; Element : in out Source_Lines);
 
@@ -125,7 +126,7 @@ package body Traces_Sources is
                Element.Table (I) := (State => No_Code, others => <>);
             end loop;
          end if;
-         Append (Element.Table (Line).Lines, Info);
+         Append (Element.Table (Line), Info, Base, Exec);
       end Process;
    begin
       Filenames_Maps.Update_Element (Filenames, File.Cur, Process'Access);
@@ -220,8 +221,8 @@ package body Traces_Sources is
    end Add_Source_Search;
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
-                                   Base : Traces_Base;
-                                   Sym : Symbolizer'Class;
+--                                   Base : Traces_Base;
+--                                   Sym : Symbolizer'Class;
                                    Filename : String;
                                    File : Source_Lines)
    is
@@ -261,7 +262,8 @@ package body Traces_Sources is
       Has_Source : Boolean;
       Line : Natural;
 
-      Info : Addresses_Info_Acc;
+      Info : Line_Chain_Acc;
+      Line_Info : Addresses_Info_Acc;
       Sec_Info : Addresses_Info_Acc;
       Ls : Line_State;
 
@@ -341,25 +343,27 @@ package body Traces_Sources is
 
          if Flag_Show_Asm then
             --  Iterate over each insns block for the source line.
-            Info := Get_First (File.Table (I).Lines);
+            Info := File.Table (I).First_Line;
             while Info /= null loop
+               Line_Info := Info.Line;
                declare
-                  Label : constant String := Get_Label (Sym, Info);
+                  Label : constant String :=
+                    Get_Label (Info.Exec.all, Line_Info);
                begin
                   if Label'Length > 0 then
                      Pretty_Print_Label (Pp, Label);
                   end if;
                end;
-               Sec_Info := Info.Parent;
+               Sec_Info := Line_Info.Parent;
                while Sec_Info /= null
                  and then Sec_Info.Kind /= Section_Addresses
                loop
                   Sec_Info := Sec_Info.Parent;
                end loop;
                Disp_Assembly_Lines
-                 (Sec_Info.Section_Content (Info.First .. Info.Last),
-                  Base, Disassemble_Cb'Access, Sym);
-               Info := Info.Line_Next;
+                 (Sec_Info.Section_Content (Line_Info.First .. Line_Info.Last),
+                  Info.Base.all, Disassemble_Cb'Access, Info.Exec.all);
+               Info := Info.Link;
             end loop;
          end if;
       end loop;
@@ -375,9 +379,7 @@ package body Traces_Sources is
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
 
-   procedure Disp_Line_State (Pp : in out Pretty_Printer'Class;
-                              Base : Traces_Base;
-                              Sym : Symbolizer'Class)
+   procedure Disp_Line_State (Pp : in out Pretty_Printer'Class)
    is
       use Filenames_Maps;
       use Ada.Text_IO;
@@ -387,7 +389,7 @@ package body Traces_Sources is
 
       procedure Process (Key : String_Acc; Element : Source_Lines) is
       begin
-         Disp_File_Line_State (Pp, Base, Sym, Key.all, Element);
+         Disp_File_Line_State (Pp, Key.all, Element);
       end Process;
       Cur : Cursor;
    begin

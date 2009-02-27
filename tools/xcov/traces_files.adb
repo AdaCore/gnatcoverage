@@ -29,6 +29,12 @@ with System;
 
 package body Traces_Files is
    function Is_Big_Endian return Boolean;
+   procedure Dump_Infos (Trace_File : Trace_File_Type);
+   procedure Write_Trace_File_Info (Fd : File_Descriptor;
+                                    Trace_File : Trace_File_Type);
+   procedure Write_Trace_File_Traces (Fd : File_Descriptor;
+                                      Trace_File : Trace_File_Type;
+                                      Base : Traces_Base);
 
    --  Test if the host is big endian.
    function Is_Big_Endian return Boolean
@@ -66,6 +72,8 @@ package body Traces_Files is
 
    procedure Check_Header (Desc : in out Trace_File_Descriptor;
                           Hdr : Trace_Header);
+   procedure Read_Trace_File_Infos (Trace_File : out Trace_File_Type;
+                                    Desc : Trace_File_Descriptor);
 
    procedure Decode_Trace_Header (Hdr : Trace_Header;
                                   Trace_File : in out Trace_File_Type;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -124,11 +124,11 @@ package body Traces_Sources.Xcov is
       Close (Pp.Xcov_File);
    end Pretty_Print_End_File;
 
-   procedure Generate_Report (Base : Traces_Base; Sym : Symbolizer'Class)
+   procedure Generate_Report
    is
       Xcov : Xcov_Pretty_Printer;
    begin
-      Traces_Sources.Disp_Line_State (Xcov, Base, Sym);
+      Traces_Sources.Disp_Line_State (Xcov);
    end Generate_Report;
 
 end Traces_Sources.Xcov;

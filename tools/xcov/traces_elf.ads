@@ -101,17 +101,10 @@ package Traces_Elf is
    --  Read dwarfs info to build lines list.
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type);
 
-   --  Create per file line state.
-   --  Also update lines state from traces state.
-   --  ??? Obsolete. Should be removed when the old command line
-   --  interface is retired.
-   procedure Build_Source_Lines (Exec : Exe_File_Type;
-                                 Base : in out Traces_Base);
-
    --  Build source lines for a section of an exec and only
    --  for this section.
-   procedure Build_Source_Lines (Exec : Exe_File_Type;
-                                 Base : in out Traces_Base;
+   procedure Build_Source_Lines (Exec : Exe_File_Acc;
+                                 Base : Traces_Base_Acc;
                                  Section : Binary_Content);
 
    --  Call Traces_Names.Read_Routines_Name on EXEC.
@@ -167,7 +160,10 @@ package Traces_Elf is
       First, Last : Traces.Pc_Type;
 
       --  Sections have no parent.
-      --  The parent of a symbol is a section.
+      --  Parent of a symbol is a section.
+      --  Parent of a CU is a section.
+      --  Parent of a subprogram is a CU.
+      --  Parent of a line is a subprogram or a CU.
       Parent : Addresses_Info_Acc;
 
       case Kind is
@@ -185,7 +181,6 @@ package Traces_Elf is
          when Line_Addresses =>
             Line_Filename : String_Acc;
             Line_Number : Natural;
-            Line_Next : Addresses_Info_Acc;
       end case;
    end record;
 

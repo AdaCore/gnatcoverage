@@ -146,6 +146,7 @@ procedure Xcov is
    type Coverage_Action is (Insn_Coverage, Branch_Coverage, Stmt_Coverage,
                             Decision_Coverage, MCDC_Coverage,
                             Unknown_Coverage);
+   function To_Coverage_Action (Option : String) return Coverage_Action;
 
    Action                : Coverage_Action := Unknown_Coverage;
    Coverage_Option       : constant String := "--coverage=";
@@ -171,6 +172,7 @@ procedure Xcov is
    type Annotation_Format is (Annotate_Asm, Annotate_Xcov, Annotate_Html,
                               Annotate_Xcov_Asm, Annotate_Html_Asm,
                               Annotate_Unknown);
+   function To_Annotation_Format (Option : String) return Annotation_Format;
 
    Annotations           : Annotation_Format;
    Annotate_Option       : constant String := "--annotate=";
@@ -205,9 +207,6 @@ procedure Xcov is
 
    Exec : Exe_File_Type;
    Sub_Exec : Exe_File_Acc;
-
-   First_Exec : Exe_File_Acc;
-   Exec_Base  : constant Exec_Base_Type := Get_Exec_Base;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -521,21 +520,21 @@ begin
             Build_Sections (Exec);
             Set_Trace_State (Exec, Base);
             Build_Debug_Lines (Exec);
-            Build_Source_Lines (Exec, Base);
+            --  Build_Source_Lines (Exec, Base);
             Build_Symbols (Exec);
             case Format is
                when Format_Xcov =>
-                  Traces_Sources.Xcov.Generate_Report (Base, Exec);
+                  Traces_Sources.Xcov.Generate_Report;
                when Format_Gcov =>
-                  Traces_Sources.Gcov.Generate_Report (Base, Exec);
+                  Traces_Sources.Gcov.Generate_Report;
                when Format_Html =>
-                  Traces_Sources.Html.Generate_Report (Base, Exec);
+                  Traces_Sources.Html.Generate_Report;
             end case;
          elsif Arg = "--file-coverage" then
             Build_Sections (Exec);
             Set_Trace_State (Exec, Base);
             Build_Debug_Lines (Exec);
-            Build_Source_Lines (Exec, Base);
+            --  Build_Source_Lines (Exec, Base);
             Build_Symbols (Exec);
             Disp_File_Summary;
          elsif Arg = "--function-coverage" then
@@ -680,11 +679,6 @@ begin
       Traces_Names.Build_Source_Lines;
    end if;
 
-   --  ??? For now, Generate_Report still suppose that only one Exec is
-   --  provided to xcov. What it should do when several Execs are given
-   --  is still to be defined.
-   First_Exec := Deprecated_First_Exec (Exec_Base);
-
    case Annotations is
       when Annotate_Asm =>
          if Action in Stmt_Coverage .. MCDC_Coverage then
@@ -694,19 +688,15 @@ begin
          Traces_Disa.Flag_Show_Asm := True;
          Traces_Names.Dump_Routines_Traces;
       when Annotate_Xcov =>
-         Traces_Sources.Xcov.Generate_Report (Base,
-                                              First_Exec.all);
+         Traces_Sources.Xcov.Generate_Report;
       when Annotate_Html =>
-         Traces_Sources.Html.Generate_Report (Base,
-                                              First_Exec.all);
+         Traces_Sources.Html.Generate_Report;
       when Annotate_Xcov_Asm =>
          Traces_Disa.Flag_Show_Asm := True;
-         Traces_Sources.Xcov.Generate_Report (Base,
-                                              First_Exec.all);
+         Traces_Sources.Xcov.Generate_Report;
       when Annotate_Html_Asm =>
          Traces_Disa.Flag_Show_Asm := True;
-         Traces_Sources.Html.Generate_Report (Base,
-                                              First_Exec.all);
+         Traces_Sources.Html.Generate_Report;
       when Annotate_Unknown =>
          Put_Line ("Please specify an annotation format.");
          return;

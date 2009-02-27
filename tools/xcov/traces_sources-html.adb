@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -68,19 +68,31 @@ package body Traces_Sources.Html is
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer);
 
-   procedure Plh (Pp : in out Html_Pretty_Printer; Str : String) is
+   procedure Plh (Pp : in out Html_Pretty_Printer'Class; Str : String);
+   procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String);
+
+   --  Return the string S with '>', '<' and '&' replaced by XML entities.
+   function To_Xml_String (S : String) return String;
+
+   procedure Generate_Css_File;
+   procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array);
+   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
+   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
+
+   procedure Plh (Pp : in out Html_Pretty_Printer'Class; Str : String) is
    begin
       Put_Line (Pp.Html_File, Str);
    end Plh;
 
-   procedure Wrh (Pp : in out Html_Pretty_Printer; Str : String) is
+   procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String) is
    begin
       Put (Pp.Html_File, Str);
    end Wrh;
 
-   --  Return the string S with '>', '<' and '&' replaced by XML entities.
    function To_Xml_String (S : String) return String
    is
+      function Xml_Length (S : String) return Natural;
+
       function Xml_Length (S : String) return Natural
       is
          Add : Natural := 0;
@@ -155,6 +167,8 @@ package body Traces_Sources.Html is
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer)
    is
+      procedure P (S : String);
+
       procedure P (S : String) is
       begin
          Put_Line (Pp.Index_File, S);
@@ -267,6 +281,9 @@ package body Traces_Sources.Html is
       use Ada.Integer_Text_IO;
       use Ada.Directories;
 
+      procedure Pi (S : String);
+      procedure Ni;
+
       Simple_Source_Filename : constant String :=
         Simple_Name (Source_Filename);
 
@@ -346,7 +363,7 @@ package body Traces_Sources.Html is
       Pp.Has_Insn_Table := False;
    end Pretty_Print_File;
 
-   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer)
+   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class)
    is
    begin
       if Pp.Has_Insn_Table then
@@ -357,7 +374,7 @@ package body Traces_Sources.Html is
       Pp.Has_Insn_Table := True;
    end Open_Insn_Table;
 
-   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer)
+   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class)
    is
    begin
       if not Pp.Has_Insn_Table then
@@ -490,10 +507,10 @@ package body Traces_Sources.Html is
       Close (Pp.Html_File);
    end Pretty_Print_End_File;
 
-   procedure Generate_Report (Base : Traces_Base; Sym : Symbolizer'Class)
+   procedure Generate_Report
    is
       Html : Html_Pretty_Printer;
    begin
-      Traces_Sources.Disp_Line_State (Html, Base, Sym);
+      Traces_Sources.Disp_Line_State (Html);
    end Generate_Report;
 end Traces_Sources.Html;

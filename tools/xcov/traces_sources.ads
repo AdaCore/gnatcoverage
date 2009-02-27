@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -88,7 +88,9 @@ package Traces_Sources is
    --  (This knowledge comes from debugging informations).
    procedure Add_Line (File : Source_File;
                        Line : Natural;
-                       Info : Addresses_Info_Acc);
+                       Info : Addresses_Info_Acc;
+                       Base : Traces_Base_Acc;
+                       Exec : Exe_File_Acc);
 
    --  Same as Add_Line but with a State.
    --  (The knowledge comes from execution traces).
@@ -109,8 +111,14 @@ package Traces_Sources is
    procedure Add_Source_Search (Prefix : String);
 
 private
-   type Addresses_Line_Chain is record
-      First, Last : Addresses_Info_Acc := null;
+   type Line_Chain;
+   type Line_Chain_Acc is access Line_Chain;
+
+   type Line_Chain is record
+      Line : Addresses_Info_Acc;
+      Base : Traces_Base_Acc;
+      Exec : Exe_File_Acc;
+      Link : Line_Chain_Acc;
    end record;
 
    --  Data associated with a SLOC.
@@ -119,7 +127,7 @@ private
       State : Line_State;
 
       --  Object code for this line.
-      Lines : Addresses_Line_Chain;
+      First_Line, Last_Line : Line_Chain_Acc;
    end record;
 
    --  Describe a source file - one element per line.
@@ -264,8 +272,5 @@ private
                                 Sym : Symbolizer'Class) is null;
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
 
-   procedure Disp_Line_State (Pp : in out Pretty_Printer'Class;
-                              Base : Traces_Base;
-                              Sym : Symbolizer'Class);
-
+   procedure Disp_Line_State (Pp : in out Pretty_Printer'Class);
 end Traces_Sources;
