@@ -3,7 +3,6 @@ analysis facility.
 
 INSTALL
 =======
-
 This distribution can be used standalone, without any specific installation
 step after unpacking.  The <unpack-subdir>/bin directory contains the toolset
 programs, which you may access by simply adjusting your PATH environment
@@ -21,6 +20,6 @@ this package, from the <unpack/installation-root>/share/doc/xcov directory.
 
 EXAMPLES
 ========
-Examples are provided in the <installation root>/share/examples/xcov
+Examples are provided in the <unpack/installation-root>/share/examples/xcov
 directory. The "Explore" example is introduced in the user's guide and used
 for illustration purposes there.
