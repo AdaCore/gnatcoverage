@@ -21,7 +21,7 @@ $(TARGET_SUPPORT_LIB)/gnu.ld: src/$(TARGETNAME)/gnu.ld
 	$(CP) $< $@
 
 $(TARGET_SUPPORT_LIB)/libsupport.a: force
-	$(BUILDER) -XBUILD=yes -p -Psupport_build
+	$(BUILDER) -XBUILD=yes -p -Psupport
 	$(BUILDER) -XUNITTEST=yes -XBUILD=yes -p -Psupport
 
 clean:
