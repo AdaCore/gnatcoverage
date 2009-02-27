@@ -663,9 +663,9 @@ begin
          end if;
          Open_Exec (Get_Exec_Base, Exe_Name, Exe_File);
 
-         if Arg_Index = Arg_Count
-           and then Routine_List_Filename = null
-         then
+         --  If there is not routine list, create it from the first executable.
+         --  A test above allows this only if there is one trace file.
+         if Routine_List_Filename = null then
             Build_Routines_Name (Exe_File.all);
          end if;
 
