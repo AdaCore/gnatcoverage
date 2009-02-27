@@ -250,12 +250,48 @@ begin
             Traces_History.Dump_Traces_With_Asm (Exec, Argument (I));
          end loop;
          return;
+      elsif Cmd = "--dump-sections" then
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Open_File (Exec, Argument (I), 0);
+            Build_Sections (Exec);
+            Disp_Sections_Addresses (Exec);
+            Close_File (Exec);
+         end loop;
+         return;
       elsif Cmd = "--dump-symbols" then
          for I in Arg_Index + 1 .. Arg_Count loop
             Open_File (Exec, Argument (I), 0);
             Build_Sections (Exec);
             Build_Symbols (Exec);
             Disp_Symbols_Addresses (Exec);
+            Close_File (Exec);
+         end loop;
+         return;
+      elsif Cmd = "--dump-compile-units" then
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Open_File (Exec, Argument (I), 0);
+            Build_Sections (Exec);
+            Build_Debug_Compile_Units (Exec);
+            Disp_Compile_Units_Addresses (Exec);
+            Close_File (Exec);
+         end loop;
+         return;
+      elsif Cmd = "--dump-subprograms" then
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Open_File (Exec, Argument (I), 0);
+            Build_Sections (Exec);
+            Build_Debug_Compile_Units (Exec);
+            Disp_Subprograms_Addresses (Exec);
+            Close_File (Exec);
+         end loop;
+         return;
+      elsif Cmd = "--dump-lines" then
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Open_File (Exec, Argument (I), 0);
+            Build_Sections (Exec);
+            Build_Debug_Lines (Exec);
+            Disp_Lines_Addresses (Exec);
+            Close_File (Exec);
          end loop;
          return;
       elsif Cmd = "--show-graph" then
@@ -308,8 +344,6 @@ begin
             end;
             Has_Exec := True;
             Arg_Index := Arg_Index + 1;
-         elsif Arg = "--dump-traces" then
-            Dump_Traces (Base);
          elsif Arg = "--dump-traces-state" then
             Build_Sections (Exec);
             Set_Trace_State (Exec, Base);
@@ -331,25 +365,6 @@ begin
             Set_Trace_State (Exec, Base);
             Build_Symbols (Exec);
             Disp_Sections_Coverage (Exec, Base);
-         elsif Arg = "--dump-sections" then
-            Build_Sections (Exec);
-            Disp_Sections_Addresses (Exec);
-         elsif Arg = "--dump-compile-units" then
-            Build_Sections (Exec);
-            Build_Debug_Compile_Units (Exec);
-            Disp_Compile_Units_Addresses (Exec);
-         elsif Arg = "--dump-subprograms" then
-            Build_Sections (Exec);
-            Build_Debug_Compile_Units (Exec);
-            Disp_Subprograms_Addresses (Exec);
-         elsif Arg = "--dump-lines" then
-            Build_Sections (Exec);
-            Build_Debug_Lines (Exec);
-            Disp_Lines_Addresses (Exec);
-         elsif Arg = "--dump-symbols" then
-            Build_Sections (Exec);
-            Build_Symbols (Exec);
-            Disp_Symbols_Addresses (Exec);
          elsif Arg = "--missing-files" then
             Flag_Show_Missing := True;
          elsif Arg'Length > 8
