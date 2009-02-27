@@ -17,7 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-package body Last_Chance_Handler is
+package body Simple_Last_Chance_Handler is
 
    -------------------------
    -- Last_Chance_Handler --
@@ -34,4 +34,4 @@ package body Last_Chance_Handler is
       C_Abort;
    end Last_Chance_Handler;
 
-end Last_Chance_Handler;
+end Simple_Last_Chance_Handler;

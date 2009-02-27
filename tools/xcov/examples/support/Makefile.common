@@ -24,8 +24,10 @@ else
 endif
 
 # Test host machine to determine the best environment when running xcov
-ifeq ($(OS),Windows_NT)
+# - in case of regular tests, forces "stty raw"
+# - in case of unit tests, do not do this (wrong output with AUnit)
 ifneq ($(TERM),)
+ifeq ($(UNIT_TESTS),)
   STTY_RAW = 1
   STTY_OLD = $(shell stty -g)
 endif

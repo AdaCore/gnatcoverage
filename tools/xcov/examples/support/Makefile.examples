@@ -20,7 +20,7 @@ all: build trace analyze
 # XCOV : produce annotated sources or html from a trace file and the
 # corresponding executable
 
-analyze: $(TESTS:%=index-%.html)
+analyze: $(TESTS:%=index-%.html) $(UNIT_TESTS:%=index-%.html)
 
 index-%.html: %.trace
 	$(XCOV) -r $< -e $(basename $<) \
@@ -30,7 +30,7 @@ index-%.html: %.trace
 # QEMU : produce execution trace from executable program execution within
 # instrumented target emulation environment.
 
-trace: $(TESTS:%=%.trace)
+trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 
 %.trace: % force
 	@echo xcov --run $< --target=$(TARGET)
@@ -44,13 +44,16 @@ endif
 
 # CROSS toolchain : produce executable program from sources + target bsp
 
-build: $(TESTS:%=%.bin)
+build: $(TESTS:%=%.bin) $(UNIT_TESTS:%=%.bin)
 
 %.bin: %
 	$(CROSS)objcopy -O binary $< $@
 
 $(TESTS): support force
 	$(BUILDER) -p -P$@
+
+$(UNIT_TESTS): support force
+	$(BUILDER) -XPLATFORM=$(TARGETNAME) -XRUNTIME=zfp -XUNITTEST=yes -p -Pharness
 
 support:
 	$(MAKE) -C ../support
