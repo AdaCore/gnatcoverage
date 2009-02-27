@@ -152,12 +152,14 @@ package body Stations is
       end All_Unknown;
 
    begin
-      Sta.Robot_Control_Outp
-        := new Robot_Control_Links.IOport (Capacity => 2,
-                                           Owner => Actor_Ref (Sta));
-      Sta.Robot_Situation_Inp
-        := new Situation_Links.IOport (Capacity => 1,
-                                       Owner => Actor_Ref (Sta));
+      Sta.Robot_Control_Outp :=
+        Robot_Control_Links.Create_IOport
+         (Capacity => 2,
+          Owner => Actor_Ref (Sta));
+      Sta.Robot_Situation_Inp :=
+        Situation_Links.Create_IOport
+         (Capacity => 1,
+          Owner => Actor_Ref (Sta));
       All_Unknown (Sta.Map);
    end Init;
 

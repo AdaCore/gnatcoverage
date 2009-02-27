@@ -17,53 +17,39 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
------------------
--- Test_Queues --
------------------
+with AUnit.Test_Fixtures;
 
-with Last_Chance_Handler;
-with Queues;
+with Actors;
 
-procedure Test_Queues is
+generic
 
-   package Integer_Queues is new Queues (Data_Type => Integer);
-   use Integer_Queues;
+   Act1, Act2 : Actors.Actor_Ref;
+   Data_Val1  : Links.Data_Type;
+   Data_Val2  : Links.Data_Type;
 
-   X : Integer;
-   Q : Integer_Queues.Queue (Capacity => 3);
-begin
-   if not Empty (Q) then
-      raise Program_Error;
-   end if;
+package Links.Gen_Test is
 
-   Push (1, Q);
-   Push (2, Q);
-   Push (3, Q);
+   type Test is new AUnit.Test_Fixtures.Test_Fixture with private;
 
-   Pop (X, Q);
-   if X /= 1 then
-      raise Program_Error;
-   end if;
+   procedure Set_Up (T : in out Test);
 
-   Push (4, Q);
-   if not Full (Q) then
-      raise Program_Error;
-   end if;
+   procedure Test_Full  (T : in out Test);
+   procedure Test_Empty (T : in out Test);
+   procedure Test_Pop   (T : in out Test);
+   procedure Test_Push  (T : in out Test);
+   procedure Test_Owner (T : in out Test);
 
-   Pop (X, Q);
-   if X /= 2 then
-      raise Program_Error;
-   end if;
-   Pop (X, Q);
-   if X /= 3 then
-      raise Program_Error;
-   end if;
-   Pop (X, Q);
-   if X /= 4 then
-      raise Program_Error;
-   end if;
+   procedure Test_Connect (T : in out Test);
 
-   if not Empty (Q) then
-      raise Program_Error;
-   end if;
-end Test_Queues;
+private
+
+   type Test is new AUnit.Test_Fixtures.Test_Fixture with record
+      Port0 : Links.IOport_Access := null;
+      Port1 : Links.IOport_Access := null;
+      Port4 : Links.IOport_Access := null;
+      Link  : Links.IOlink_Access := null;
+      Inp   : Links.IOport_Access := null;
+      Outp  : Links.IOport_Access := null;
+   end record;
+
+end Links.Gen_Test;

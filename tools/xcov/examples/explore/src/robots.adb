@@ -88,7 +88,7 @@ package body Robots is
      (Port : Robot_Control_Links.IOport_Access)
    is
       Ctrl : Robot_Control;
-      Robot : Robot_Access := Robot_Access (Port.Owner);
+      Robot : Robot_Access := Robot_Access (Owner (Port));
    begin
       Pop (Ctrl, Port);
 
@@ -122,12 +122,14 @@ package body Robots is
 
    procedure Init (R : Robot_Access) is
    begin
-      R.Robot_Situation_Outp
-        := new Situation_Links.IOport (Capacity => 1,
-                                       Owner => Actor_Ref (R));
-      R.Robot_Control_Inp
-        := new Robot_Control_Links.IOport (Capacity => 2,
-                                           Owner => Actor_Ref (R));
+      R.Robot_Situation_Outp :=
+        Situation_Links.Create_IOport
+         (Capacity => 1,
+          Owner => Actor_Ref (R));
+      R.Robot_Control_Inp :=
+        Robot_Control_Links.Create_IOport
+         (Capacity => 2,
+          Owner => Actor_Ref (R));
 
       --  Emitters of Probe commands expect being able to fetch the
       --  Situation right after the request is sent, so we make sure

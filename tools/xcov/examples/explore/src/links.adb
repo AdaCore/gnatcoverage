@@ -23,6 +23,15 @@ package body Links is
    -- IOport operations --
    -----------------------
 
+   function Create_IOport
+     (Capacity : Natural; Owner : Actor_Ref) return IOport_Access
+   is
+      Ret : IOport_Access := new IOport (Capacity);
+   begin
+      Ret.Owner := Owner;
+      return Ret;
+   end Create_IOport;
+
    procedure On_Push
      (Port : IOport_Access; Callback : Callback_Access) is
    begin
@@ -51,6 +60,11 @@ package body Links is
    begin
       return Empty (Port.Data);
    end Empty;
+
+   function Owner (Port : IOport_Access) return Actor_Ref is
+   begin
+      return Port.Owner;
+   end Owner;
 
    ------------------------
    -- IOlinks operations --

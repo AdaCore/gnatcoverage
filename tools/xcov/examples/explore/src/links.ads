@@ -57,8 +57,12 @@ package Links is
    -- IOport --
    ------------
 
-   type IOport (Capacity : Natural; Owner : Actor_Ref) is private;
+   type IOport (<>) is private;
    type IOport_Access is access IOport;
+
+   function Create_IOport
+     (Capacity : Natural; Owner : Actor_Ref) return IOport_Access;
+   --  The IO Port constructor.
 
    function Full (Port : IOport_Access) return Boolean;
    --  Whether Port is full with respect to its Capacity.
@@ -74,10 +78,8 @@ package Links is
    --  Pop the oldest data Item out of Port if it is not Empty,
    --  raise Program_Error and leave Item undefined otherwise.
 
-   type Callback_Access is access procedure (Port : IOport_Access);
-   procedure On_Push (Port : IOport_Access; Callback : Callback_Access);
-   --  Register Callback as a subprogram to be called every time data is
-   --  pushed into Port.
+   function Owner (Port : IOport_Access) return Actor_Ref;
+   --  Retrieve the owner of the port.
 
    ------------
    -- IOlink --
@@ -101,12 +103,19 @@ private
 
    subtype Data_Queue is Data_Queue_P.Queue;
 
-   type IOport (Capacity : Natural; Owner : Actor_Ref) is record
-      Data : Data_Queue (Capacity => Capacity);
+   type Callback_Access is access procedure (Port : IOport_Access);
+
+   type IOport (Capacity : Natural) is record
+      Data  : Data_Queue (Capacity => Capacity);
       Push_Callback : Callback_Access;
 
-      Link : IOlink_Access;
+      Owner : Actor_Ref;
+      Link  : IOlink_Access;
    end record;
+
+   procedure On_Push (Port : IOport_Access; Callback : Callback_Access);
+   --  Register Callback as a subprogram to be called every time data is
+   --  pushed into Port.
 
    type IOlink is record
       Inp, Outp : IOport_Access;
