@@ -1420,15 +1420,15 @@ package body Traces_Elf is
       while Cur /= No_Element loop
          Line := Element (Cur);
 
-         --  Get corresponding file (check previous file for speed-up).
-         if Line.Line_Filename /= Prev_Filename then
-            Prev_File := Find_File (Line.Line_Filename);
-            Prev_Filename := Line.Line_Filename;
-         end if;
-
          --  Only add lines that are in Section.
-         if Line.First >= Section'First
-           and then Line.Last <= Section'Last then
+         exit when Line.Last > Section'Last;
+         if Line.First >= Section'First then
+
+            --  Get corresponding file (check previous file for speed-up).
+            if Line.Line_Filename /= Prev_Filename then
+               Prev_File := Find_File (Line.Line_Filename);
+               Prev_Filename := Line.Line_Filename;
+            end if;
 
             Add_Line (Prev_File, Line.Line_Number, Line, Base, Exec);
 
