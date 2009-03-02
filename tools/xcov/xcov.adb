@@ -63,18 +63,11 @@ procedure Xcov is
       New_Line;
       Qemudrv.Help (" ");
       New_Line;
-      P (" ACTION...");
-      P ("   Execute action one after the other, ACTION is a list of:");
-      P ("   -r FILENAME         Read (and merge) traces from FILENAME");
-      P ("   -w FILENAME         Write traces to FILENAME");
-      P ("   -e FILENAME         Use FILENAME as executable");
-      P ("   --dump-traces       Dump traces");
-      P ("   --exe-coverage      Generate object coverage report");
-      P ("   --source-coverage   Generate source coverage report");
-      P ("   --function-coverage Generate function coverage report");
-      P ("   --asm               Add assembly code in --source-coverage");
-      P ("   --output-format=html/xcov/gcov  Select output format");
-      P ("   --level=A/C         Select DO178B level for --source-coverage");
+      P (" --coverage=[insn|branch] OPTIONS");
+      P ("   Generate coverage report");
+      P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
+      P ("   -a=FORM  --annotate=FORM      Generate a FORM report");
+      P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm");
    end Usage;
 
    procedure Error (Msg : String) is
@@ -187,10 +180,6 @@ procedure Xcov is
       end if;
    end To_Annotation_Format;
 
-   --  Trace_File_Name : File_Name;
-   --  Exec_File_Name : File_Name;
-
-   Has_Exec : Boolean := False;
    Text_Start : Pc_Type := 0;
    Trace_File : Trace_File_Type;
    Base : Traces_Base;
@@ -323,64 +312,12 @@ begin
          Arg : constant String := Argument (Arg_Index);
       begin
          Arg_Index := Arg_Index + 1;
-         if Arg = "-r" then
-            if Arg_Index > Arg_Count then
-               Put_Line ("missing FILENAME to -r");
-               return;
-            end if;
-            Read_Trace_File (Argument (Arg_Index), Trace_File, Base);
-            Arg_Index := Arg_Index + 1;
-         elsif Arg = "-e" then
-            if Arg_Index > Arg_Count then
-               Error ("missing FILENAME to -e");
-               return;
-            end if;
-            begin
-               Open_File (Exec, Argument (Arg_Index), Text_Start);
-            exception
-               when others =>
-                  Error ("cannot open " & Argument (Arg_Index));
-                  return;
-            end;
-            Has_Exec := True;
-            Arg_Index := Arg_Index + 1;
-         elsif Arg = "--dump-traces-state" then
-            Build_Sections (Exec);
-            Set_Trace_State (Exec, Base);
-            Dump_Traces (Base);
-         elsif Arg = "-w" then
-            if Arg_Index > Arg_Count then
-               Error ("missing FILENAME to -w");
-               return;
-            end if;
-            Write_Trace_File (Argument (Arg_Index), Trace_File, Base);
-            Arg_Index := Arg_Index + 1;
-         elsif Arg = "--exe-coverage" then
-            if not Has_Exec then
-               Error ("option --exe-coverage requires an executable");
-               return;
-            end if;
-            Build_Sections (Exec);
-            Build_Debug_Compile_Units (Exec);
-            Set_Trace_State (Exec, Base);
-            Build_Symbols (Exec);
-            Disp_Sections_Coverage (Exec, Base);
-         elsif Arg = "--missing-files" then
+         if Arg = "--missing-files" then
             Flag_Show_Missing := True;
-         elsif Arg'Length > 8
-           and then Arg (Arg'First .. Arg'First + 7) = "--level="
-         then
-            if Arg = "--level=A" or else Arg = "--level=a" then
-               DO178B_Level := Level_A;
-            elsif Arg = "--level=C" or else Arg = "--level=c" then
-               DO178B_Level := Level_C;
-            else
-               Error ("bad parameter for --level");
-               return;
-            end if;
          elsif Arg'Length > 13
            and then Arg (Arg'First .. Arg'First + 12) = "--text-start="
          then
+            --  FIXME: not yet supported.
             begin
                Text_Start := Parse_Hex
                  (Arg (Arg'First + 13 .. Arg'Last), "--text-start");
@@ -388,11 +325,6 @@ begin
                when Constraint_Error =>
                   return;
             end;
-
-         --------------------
-         -- New Option set --
-         --------------------
-
          elsif Arg'Length > 16
            and then Arg (Arg'First .. Arg'First + 15) = "--source-rebase="
          then
@@ -473,13 +405,6 @@ begin
       end;
    end loop;
 
-   if Action = Unknown_Coverage then
-      --  If we end up here, that means that we are using the old interface;
-      --  the rest of the code is specific to the new interface, so... return.
-      --  When the old interface has been obsoleted, this will be removed.
-      return;
-   end if;
-
    if Arg_Index > Arg_Count then
       Error ("missing trace files(s)");
       return;
@@ -501,7 +426,7 @@ begin
          Put_Line ("MCDC coverage has not been implemented yet.");
          return;
       when Unknown_Coverage =>
-         Put_Line ("Please specify a coverage operation.");
+         Error ("Please specify a coverage operation.");
          return;
    end case;
 
