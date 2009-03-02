@@ -192,6 +192,7 @@ begin
       return;
    end if;
 
+   --  Decode commands.
    Arg_Index := 1;
    declare
       Cmd : constant String := Argument (Arg_Index);
@@ -307,6 +308,7 @@ begin
       end if;
    end;
 
+   --  Decode options for --coverage (not included).
    while Arg_Index <= Arg_Count loop
       declare
          Arg : constant String := Argument (Arg_Index);
