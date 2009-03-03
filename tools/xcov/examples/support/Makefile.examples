@@ -23,8 +23,7 @@ all: build trace analyze
 analyze: $(TESTS:%=index-%.html) $(UNIT_TESTS:%=index-%.html)
 
 index-%.html: %.trace
-	$(XCOV) -r $< -e $(basename $<) \
-	 --output-format=html --asm --source-coverage
+	$(XCOV) --coverage=branch --annotate=html+asm $<
 	mv index.html $@
 
 # QEMU : produce execution trace from executable program execution within
