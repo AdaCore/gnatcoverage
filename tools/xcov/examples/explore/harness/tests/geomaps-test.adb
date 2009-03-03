@@ -17,45 +17,45 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-pragma Ada_2005;
+with AUnit.Assertions; use AUnit.Assertions;
 
-with AUnit.Test_Fixtures;
+package body Geomaps.Test is
 
-with Actors;
+   -----------------------
+   -- Test_Pos_Ahead_Of --
+   -----------------------
 
-generic
+   procedure Test_Pos_Ahead_Of (T : in out Test)
+   is
+      Situ : Situation :=
+               (Pos => (X => 3, Y => 3),
+                Dir => South,
+                Sqa => Ground);
+      Res  : Position;
 
-   Act1, Act2 : Actors.Actor_Ref;
-   Data_Val1  : Links.Data_Type;
-   Data_Val2  : Links.Data_Type;
+   begin
+      Res := Pos_Ahead_Of (Situ);
+      Assert
+        (Res.X = 3 and then Res.Y = 4,
+         "Pos_Ahead_Of returns incorrect value when going South");
 
-package Links.Gen_Test is
+      Situ.Dir := North;
+      Res := Pos_Ahead_Of (Situ);
+      Assert
+        (Res.X = 3 and then Res.Y = 2,
+         "Pos_Ahead_Of returns incorrect value when going North");
 
-   type Test is new AUnit.Test_Fixtures.Test_Fixture with private;
+      Situ.Dir := East;
+      Res := Pos_Ahead_Of (Situ);
+      Assert
+        (Res.X = 4 and then Res.Y = 3,
+         "Pos_Ahead_Of returns incorrect value when going East");
 
-   procedure Set_Up (T : in out Test);
+      Situ.Dir := West;
+      Res := Pos_Ahead_Of (Situ);
+      Assert
+        (Res.X = 2 and then Res.Y = 3,
+         "Pos_Ahead_Of returns incorrect value when going West");
+   end Test_Pos_Ahead_Of;
 
-   procedure Test_Full    (T : in out Test);
-   procedure Test_Empty   (T : in out Test);
-   procedure Test_Pop     (T : in out Test);
-   procedure Test_Push    (T : in out Test);
-   procedure Test_Owner   (T : in out Test);
-   procedure Test_Connect (T : in out Test);
-
-   --  The following tests require AUnit 3.2.
-   --  Uncomment also in links-gen_test-gen_suite.ad[bs] to enable
---     procedure Test_Pop_Raise  (T : in out Test);
---     procedure Test_Push_Raise (T : in out Test);
-
-private
-
-   type Test is new AUnit.Test_Fixtures.Test_Fixture with record
-      Port0 : Links.IOport_Access := Links.Create_IOport (0, null);
-      Port1 : Links.IOport_Access := Links.Create_IOport (1, null);
-      Port4 : Links.IOport_Access := Links.Create_IOport (4, null);
-      Link  : Links.IOlink_Access := new Links.IOlink;
-      Inp   : Links.IOport_Access := Links.Create_IOport (1, Act1);
-      Outp  : Links.IOport_Access := Links.Create_IOport (1, Act2);
-   end record;
-
-end Links.Gen_Test;
+end Geomaps.Test;

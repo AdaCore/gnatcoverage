@@ -18,6 +18,9 @@
 ------------------------------------------------------------------------------
 
 with Controls.Test.Suite;
+with Geomaps.Test.Suite;
+with Robots.Test.Suite;
+with Stations.Test.Suite;
 
 package body Main_Suite is
 
@@ -27,6 +30,15 @@ package body Main_Suite is
       AUnit.Test_Suites.Add_Test
         (Ret,
          Controls.Test.Suite.Robot_Control_Link_Suite.Suite);
+      AUnit.Test_Suites.Add_Test
+        (Ret,
+         Geomaps.Test.Suite.Suite);
+      AUnit.Test_Suites.Add_Test
+        (Ret,
+         Robots.Test.Suite.Suite);
+      AUnit.Test_Suites.Add_Test
+        (Ret,
+         Stations.Test.Suite.Suite);
       return Ret;
    end Suite;
 

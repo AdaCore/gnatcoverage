@@ -17,45 +17,25 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-pragma Ada_2005;
-
 with AUnit.Test_Fixtures;
+with Links.Gen_Test;
 
-with Actors;
+package Geomaps.Test is
 
-generic
+   type Test is new AUnit.Test_Fixtures.Test_Fixture with null record;
 
-   Act1, Act2 : Actors.Actor_Ref;
-   Data_Val1  : Links.Data_Type;
-   Data_Val2  : Links.Data_Type;
+   procedure Test_Pos_Ahead_Of (T : in out Test);
 
-package Links.Gen_Test is
+   package Situation_Link_Test is new Geomaps.Situation_Links.Gen_Test
+     (Act1      => null,
+      Act2      => null,
+      Data_Val1 => Situation'
+        (Pos => (1, 1),
+         Dir => South,
+         Sqa => Block),
+      Data_Val2 => Situation'
+        (Pos => (4, 3),
+         Dir => North,
+         Sqa => Water));
 
-   type Test is new AUnit.Test_Fixtures.Test_Fixture with private;
-
-   procedure Set_Up (T : in out Test);
-
-   procedure Test_Full    (T : in out Test);
-   procedure Test_Empty   (T : in out Test);
-   procedure Test_Pop     (T : in out Test);
-   procedure Test_Push    (T : in out Test);
-   procedure Test_Owner   (T : in out Test);
-   procedure Test_Connect (T : in out Test);
-
-   --  The following tests require AUnit 3.2.
-   --  Uncomment also in links-gen_test-gen_suite.ad[bs] to enable
---     procedure Test_Pop_Raise  (T : in out Test);
---     procedure Test_Push_Raise (T : in out Test);
-
-private
-
-   type Test is new AUnit.Test_Fixtures.Test_Fixture with record
-      Port0 : Links.IOport_Access := Links.Create_IOport (0, null);
-      Port1 : Links.IOport_Access := Links.Create_IOport (1, null);
-      Port4 : Links.IOport_Access := Links.Create_IOport (4, null);
-      Link  : Links.IOlink_Access := new Links.IOlink;
-      Inp   : Links.IOport_Access := Links.Create_IOport (1, Act1);
-      Outp  : Links.IOport_Access := Links.Create_IOport (1, Act2);
-   end record;
-
-end Links.Gen_Test;
+end Geomaps.Test;

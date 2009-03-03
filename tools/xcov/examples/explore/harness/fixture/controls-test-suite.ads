@@ -18,11 +18,12 @@
 ------------------------------------------------------------------------------
 
 with Links.Gen_Test.Gen_Suite;
+with Links.Gen_Test;
 
 package Controls.Test.Suite is
 
    package Robot_Control_Link_Suite is new
      Controls.Test.Robot_Link_Test.Gen_Suite
-       (Instance_Name => "Robot_Control_Link");
+       (Instance_Name => "Controls.Robot_Control_Link");
 
 end Controls.Test.Suite;

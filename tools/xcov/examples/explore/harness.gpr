@@ -14,5 +14,7 @@ project Harness is
 
    package Compiler renames Support.Compiler;
 
+   package IDE renames Support.IDE;
+
 end Harness;
 

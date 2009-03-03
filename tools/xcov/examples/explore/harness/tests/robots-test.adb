@@ -17,45 +17,41 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-pragma Ada_2005;
+with AUnit.Assertions; use AUnit.Assertions;
+with Geomaps;          use Geomaps, Geomaps.Situation_Links;
+with Controls;         use Controls, Controls.Robot_Control_Links;
 
-with AUnit.Test_Fixtures;
+package body Robots.Test is
 
-with Actors;
+   Test_Robot : aliased Robot;
 
-generic
+   function New_Actor (T : Test) return Actor_Ref is
+   begin
+      Test_Robot :=
+        (Actor with
+         Robot_Control_Inp    => null,
+         Robot_Situation_Outp => null,
+         H                    => null,
+         Mode                 => Cautious);
 
-   Act1, Act2 : Actors.Actor_Ref;
-   Data_Val1  : Links.Data_Type;
-   Data_Val2  : Links.Data_Type;
+      return Test_Robot'Access;
+   end New_Actor;
 
-package Links.Gen_Test is
+   ---------------
+   -- Test_Init --
+   ---------------
 
-   type Test is new AUnit.Test_Fixtures.Test_Fixture with private;
+   procedure Test_Init (T : in out Test) is
+   begin
+      Init (Robot_Access (T.Act));
 
-   procedure Set_Up (T : in out Test);
+      Assert
+        (Robot (T.Act.all).Robot_Control_Inp /= null,
+         "Robot Control in port not initialized after call to init");
 
-   procedure Test_Full    (T : in out Test);
-   procedure Test_Empty   (T : in out Test);
-   procedure Test_Pop     (T : in out Test);
-   procedure Test_Push    (T : in out Test);
-   procedure Test_Owner   (T : in out Test);
-   procedure Test_Connect (T : in out Test);
+      Assert
+        (Robot (T.Act.all).Robot_Situation_Outp /= null,
+         "Robot Control out port not initialized after call to init");
+   end Test_Init;
 
-   --  The following tests require AUnit 3.2.
-   --  Uncomment also in links-gen_test-gen_suite.ad[bs] to enable
---     procedure Test_Pop_Raise  (T : in out Test);
---     procedure Test_Push_Raise (T : in out Test);
-
-private
-
-   type Test is new AUnit.Test_Fixtures.Test_Fixture with record
-      Port0 : Links.IOport_Access := Links.Create_IOport (0, null);
-      Port1 : Links.IOport_Access := Links.Create_IOport (1, null);
-      Port4 : Links.IOport_Access := Links.Create_IOport (4, null);
-      Link  : Links.IOlink_Access := new Links.IOlink;
-      Inp   : Links.IOport_Access := Links.Create_IOport (1, Act1);
-      Outp  : Links.IOport_Access := Links.Create_IOport (1, Act2);
-   end record;
-
-end Links.Gen_Test;
+end Robots.Test;

@@ -30,12 +30,18 @@ package Links.Gen_Test.Gen_Suite is
 
 private
 
-   package Caller is new AUnit.Test_Caller (Links.Gen_Test.Test);
-   Test_Full_Access    : constant Caller.Test_Method := Test_Full'Access;
-   Test_Empty_Access   : constant Caller.Test_Method := Test_Empty'Access;
-   Test_Pop_Access     : constant Caller.Test_Method := Test_Pop'Access;
-   Test_Push_Access    : constant Caller.Test_Method := Test_Push'Access;
-   Test_Owner_Access   : constant Caller.Test_Method := Test_Owner'Access;
-   Test_Connect_Access : constant Caller.Test_Method := Test_Connect'Access;
+   package Caller is new AUnit.Test_Caller (Test);
+   Test_Full_Access       : constant Caller.Test_Method := Test_Full'Access;
+   Test_Empty_Access      : constant Caller.Test_Method := Test_Empty'Access;
+   Test_Pop_Access        : constant Caller.Test_Method := Test_Pop'Access;
+   Test_Push_Access       : constant Caller.Test_Method := Test_Push'Access;
+   Test_Owner_Access      : constant Caller.Test_Method := Test_Owner'Access;
+   Test_Connect_Access    : constant Caller.Test_Method := Test_Connect'Access;
+
+   --  The following test exceptions raise. They require AUnit 3.2.
+--     Test_Pop_Raise_Access  : constant Caller.Test_Method :=
+--                                Test_Pop_Raise'Access;
+--     Test_Push_Raise_Access : constant Caller.Test_Method :=
+--                                Test_Push_Raise'Access;
 
 end Links.Gen_Test.Gen_Suite;

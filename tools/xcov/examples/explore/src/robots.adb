@@ -62,7 +62,7 @@ package body Robots is
 
    procedure Process_Action (Ctrl : Robot_Control; R : Robot_Access) is
    begin
-      if R.Mode = Cautious and then Devices.Unsafe (Ctrl, R.H.DH) then
+      if R.Mode = Cautious and then not Devices.Safe (Ctrl, R.H.DH) then
          return;
       else
          Devices.Execute (Ctrl, R.H.DH);

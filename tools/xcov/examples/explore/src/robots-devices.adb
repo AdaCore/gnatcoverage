@@ -60,19 +60,43 @@ package body Robots.Devices is
       Situ.Sqa := Map (Posa.X, Posa.Y);
    end Probe_Ahead;
 
-   ------------
-   -- Unsafe --
-   ------------
+   ----------
+   -- Safe --
+   ----------
 
-   function Unsafe
+   function Safe
      (Ctrl : Robot_Control; H : Hardware_Access) return Boolean
    is
    begin
-      --  Stepping forward into a rock block or a water pit is unsafe ...
+      --  Safe when the block ahead is not a rock block or water, or we don't
+      --  step forward.
 
-      return Ctrl.Code = Step_Forward
-        and then (H.Situ.Sqa = Block or else H.Situ.Sqa = Water);
-   end Unsafe;
+      --  The following test is interesting to show the difference between
+      --  object branch coverage and MCDC:
+      --  Using
+      --    X := H.Situ.Sqa /= Block
+      --    Y := H.Situ.Sqa /= Water
+      --    Z := Ctrl.Code /= Stop_Forward
+      --
+      --  Object branch will require the following 3 tests
+      --     X Y Z Res
+      --  1: T T ? T
+      --  2: T F T T
+      --  3: F ? F F
+      --
+      --  While MCDC coverage will require the following 4 tests
+      --     X Y Z Res
+      --  1: T F F F
+      --  2: T T F T
+      --  3: F T F F
+      --  4: F T T T
+      --  with tests 1 & 2 testing independance of Y
+      --             2 & 3 testing independance of X
+      --             3 & 4 testing independance of Z
+
+      return (H.Situ.Sqa /= Block and then H.Situ.Sqa /= Water)
+        or else Ctrl.Code /= Step_Forward;
+   end Safe;
 
    -------------
    -- Execute --
@@ -83,7 +107,7 @@ package body Robots.Devices is
    begin
       --  Executing an unsafe command kills ...
 
-      if Unsafe (Ctrl, H) then
+      if not Safe (Ctrl, H) then
          Dump (H.Map, H.Situ);
          raise Program_Error;
       end if;

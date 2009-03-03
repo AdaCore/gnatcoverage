@@ -39,7 +39,17 @@ package body Links.Gen_Test.Gen_Suite is
           ("Test " & Instance_Name & ".Owner", Test_Owner_Access));
       AUnit.Test_Suites.Add_Test
         (Ret, Caller.Create
-          ("Test " & Instance_Name & ".Connect", Test_Connect_Access));
+           ("Test " & Instance_Name & ".Connect", Test_Connect_Access));
+
+--        AUnit.Test_Suites.Add_Test
+--          (Ret, Caller.Create
+--             ("Test " & Instance_Name & ".Pop raises expected exceptions",
+--              Test_Pop_Raise_Access));
+--        AUnit.Test_Suites.Add_Test
+--          (Ret, Caller.Create
+--             ("Test " & Instance_Name & ".Push raises expected exceptions",
+--              Test_Push_Raise_Access));
+
       return Ret;
    end Suite;
 

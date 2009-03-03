@@ -43,8 +43,10 @@ private package Robots.Devices is
    procedure Probe (Situ : out Situation; H : Hardware_Access);
    --  Use the devices to fill SITU with the current Situation
 
-   function Unsafe (Ctrl : Robot_Control; H : Hardware_Access) return Boolean;
-   --  Whether execution of CTRL by the devices is unsafe
+   function Safe (Ctrl : Robot_Control; H : Hardware_Access) return Boolean;
+   --  Whether execution of CTRL by the devices is safe.
+   --  CTRL is safe when the square ahead is neither a rock block nor water, or
+   --  CTRL is not a "step forward" command.
 
    procedure Execute (Ctrl : Robot_Control; H : Hardware_Access);
    --  Use the devices to execute CTRL
