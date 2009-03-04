@@ -9,7 +9,7 @@ project Explore is
    for Main use ("explore.adb");
 
    package Builder renames Support.Builder;
-
    package Compiler renames Support.Compiler;
+   package IDE renames Support.IDE;
 
 end Explore;

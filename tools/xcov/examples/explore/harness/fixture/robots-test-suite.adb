@@ -32,6 +32,9 @@ package body Robots.Test.Suite is
       AUnit.Test_Suites.Add_Test
         (Ret, Caller.Create
            ("Test Robots.Init", Test_Init_Access));
+      AUnit.Test_Suites.Add_Test
+        (Ret, Caller.Create
+           ("Test Robots.Run", Test_Run_Access));
       return Ret;
    end Suite;
 

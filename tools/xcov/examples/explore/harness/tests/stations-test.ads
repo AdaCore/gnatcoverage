@@ -21,9 +21,13 @@ with Actors.Test;
 
 package Stations.Test is
 
-   type Test is new Actors.Test.Test with null record;
+   type Test is new Actors.Test.Test with record
+      Test_Station : Station_Access := null;
+   end record;
 
-   function New_Actor (T : Test) return Actor_Ref;
+   function Actor (T : Test) return Actor_Ref;
+
+   procedure Set_Up (T : in out Test);
 
    procedure Test_Init (T : in out Test);
 

@@ -31,5 +31,7 @@ private
                                  Test_Live_And_Kill'Access;
    Test_Init_Access          : constant Caller.Test_Method :=
                                  Test_Init'Access;
+   Test_Run_Access           : constant Caller.Test_Method :=
+                                 Test_Run'Access;
 
 end Robots.Test.Suite;

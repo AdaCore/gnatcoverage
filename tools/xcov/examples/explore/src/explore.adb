@@ -28,6 +28,8 @@
 with Overview, Actors, Robots, Stations, Controls, Geomaps;
 use  Overview, Actors, Robots, Stations, Controls, Geomaps;
 
+with Robots_Devices.Dummy;
+
 -------------
 -- Explore --
 -------------
@@ -48,7 +50,7 @@ procedure Explore is
    S : Station_Access := new Station;
 
 begin
-   Init (R);
+   Init (R, Robots_Devices.Dummy.Get_Hardware);
    Init (S);
 
    --  Instantiate the Station/Robot communication Links and attach them

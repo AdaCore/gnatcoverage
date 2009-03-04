@@ -21,20 +21,19 @@ with AUnit.Assertions; use AUnit.Assertions;
 
 package body Actors.Test is
 
-   procedure Set_Up (T : in out Test) is
-   begin
-      T.Act := New_Actor (Test'Class (T));
-   end Set_Up;
-
-   ---------------
-   -- Test_Live --
-   ---------------
+   ------------------------
+   -- Test_Live_And_Kill --
+   ------------------------
 
    procedure Test_Live_And_Kill (T : in out Test) is
    begin
-      Assert (Live (T.Act.all), "Actor should be alived by default");
-      Kill (T.Act.all);
-      Assert (not Live (T.Act.all), "Actor should not be alived after a kill");
+      Assert
+        (Live (Actor (Test'Class (T)).all),
+         "Actor should be alived by default");
+      Kill (Actor (Test'Class (T)).all);
+      Assert
+        (not Live (Actor (Test'Class (T)).all),
+         "Actor should not be alived after a kill");
    end Test_Live_And_Kill;
 
 end Actors.Test;

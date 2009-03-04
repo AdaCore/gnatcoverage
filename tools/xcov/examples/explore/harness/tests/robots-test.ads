@@ -18,13 +18,52 @@
 ------------------------------------------------------------------------------
 
 with Actors.Test;
+with Robots_Devices;
+with Geomaps;
 
 package Robots.Test is
 
-   type Test is new Actors.Test.Test with null record;
+   type Test is new Actors.Test.Test with private;
 
-   function New_Actor (T : Test) return Actor_Ref;
+   function Actor (T : Test) return Actor_Ref;
+
+   procedure Set_Up (T : in out Test);
 
    procedure Test_Init (T : in out Test);
+   procedure Test_Run (T : in out Test);
+
+private
+
+   type Test_Env is record
+      Robot_Destroyed      : Boolean;
+      Probe_Ahead_Square   : Geomaps.Square;
+      Position             : Geomaps.Position;
+      Direction            : Geomaps.Direction;
+   end record;
+   type Test_Env_Access is access all Test_Env;
+
+   type Test is new Actors.Test.Test with record
+      Test_Robot : Robot_Access := null;
+      Hardware   : Robot_Hardware;
+      Env        : Test_Env_Access;
+   end record;
+
+   type Test_Engine is new Robots_Devices.Engine with record
+      Env : Test_Env_Access;
+   end record;
+   procedure Step_Forward (Device : access Test_Engine);
+   procedure Rotate_Left  (Device : access Test_Engine);
+   procedure Rotate_Right (Device : access Test_Engine);
+
+   type Test_Radar is new Robots_Devices.Radar with record
+      Env : Test_Env_Access;
+   end record;
+   function Probe_Ahead (Device : access Test_Radar) return Square;
+
+   type Test_Locator is new Robots_Devices.Locator with record
+      Env : Test_Env_Access;
+   end record;
+   function Get_Position  (Device : access Test_Locator) return Position;
+   function Get_Direction (Device : access Test_Locator) return Direction;
 
 end Robots.Test;

@@ -33,30 +33,39 @@
 with Controls, Geomaps;
 use Controls, Geomaps;
 
-private package Robots.Devices is
+package Robots_Devices is
 
-   type Hardware_Access is private;
+   type Engine is abstract tagged null record;
+   type Engine_Access is access all Engine'Class;
 
-   procedure Init (H : out Hardware_Access);
-   --  Initialize a Robot devices structure and have H designate it
+   procedure Step_Forward (Device : access Engine) is abstract;
+   --  Make the Engines step forward
 
-   procedure Probe (Situ : out Situation; H : Hardware_Access);
-   --  Use the devices to fill SITU with the current Situation
+   procedure Rotate_Left    (Device : access Engine) is abstract;
+   --  Make the Engines rotate left
 
-   function Safe (Ctrl : Robot_Control; H : Hardware_Access) return Boolean;
-   --  Whether execution of CTRL by the devices is safe.
-   --  CTRL is safe when the square ahead is neither a rock block nor water, or
-   --  CTRL is not a "step forward" command.
+   procedure Rotate_Right   (Device : access Engine) is abstract;
+   --  Make the Engines rotate right
 
-   procedure Execute (Ctrl : Robot_Control; H : Hardware_Access);
-   --  Use the devices to execute CTRL
+   type Radar is abstract tagged null record;
+   type Radar_Access is access all Radar'Class;
 
-private
+   function Probe_Ahead (Device : access Radar) return Square is abstract;
+   --  Use the radar to determine what kind of square is ahead
 
-   --  There will be fake implementations of this unit for pure software
-   --  simulation purposes, so we defer the type definition to the package
-   --  body.
+   type Locator is abstract tagged null record;
+   type Locator_Access is access all Locator'Class;
 
-   type Hardware;
-   type Hardware_Access is access Hardware;
-end Robots.Devices;
+   function Get_Position
+     (Device : access Locator) return Position is abstract;
+   function Get_Direction
+     (Device : access Locator) return Direction is abstract;
+   --  Use the locator to retrieve the current position and direction.
+
+   type Robot_Hardware is record
+      Eng : Engine_Access;
+      Rad : Radar_Access;
+      Loc : Locator_Access;
+   end record;
+
+end Robots_Devices;

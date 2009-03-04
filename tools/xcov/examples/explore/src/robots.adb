@@ -17,13 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Robots.Devices;
-
 package body Robots is
-
-   type Robot_Hardware is record
-      DH : Devices.Hardware_Access;
-   end record;
 
    --------------------
    -- IOports access --
@@ -47,38 +41,46 @@ package body Robots is
 
    use Robot_Control_Links;
 
-   procedure Process_Action (Ctrl : Robot_Control; R : Robot_Access);
-   --  Have robot R process command CTRL, requiring device action
-
-   procedure Process_Probe (R : Robot_Access);
-   --  Have robot R process a Probe request
+   function Safe (Cmd : Robot_Command; Sqa : Square) return Boolean;
+   --  Whether the command is safe with the Sqa square ahead
 
    procedure Process_Next_Control (Port : Robot_Control_Links.IOport_Access);
    --  Process the next control command available from PORT
 
-   --------------------
-   -- Process_Action --
-   --------------------
+   ----------
+   -- Safe --
+   ----------
 
-   procedure Process_Action (Ctrl : Robot_Control; R : Robot_Access) is
+   function Safe (Cmd : Robot_Command; Sqa : Square) return Boolean is
    begin
-      if R.Mode = Cautious and then not Devices.Safe (Ctrl, R.H.DH) then
-         return;
-      else
-         Devices.Execute (Ctrl, R.H.DH);
-      end if;
-   end Process_Action;
+      --  Safe when the block ahead is not a rock block or water, or we don't
+      --  step forward.
 
-   -------------------
-   -- Process_Probe --
-   -------------------
+      --  The following test is interesting to show the difference between
+      --  object branch coverage and MCDC:
+      --  Using
+      --    X := Sqa /= Block
+      --    Y := Sqa /= Water
+      --    Z := Cmd /= Step_Forward
+      --
+      --  Object branch will require the following 3 tests
+      --     X Y Z Res
+      --  1: T T ? T
+      --  2: T F T T
+      --  3: F ? F F
+      --
+      --  While MCDC coverage will require the following 4 tests
+      --     X Y Z Res
+      --  1: T F F F
+      --  2: T T F T
+      --  3: F T F F
+      --  4: F T T T
+      --  with tests 1 & 2 testing independance of Y
+      --             2 & 3 testing independance of X
+      --             3 & 4 testing independance of Z
 
-   procedure Process_Probe (R : Robot_Access) is
-      Situ : Situation;
-   begin
-      Devices.Probe (Situ, R.H.DH);
-      Situation_Links.Push (Situ, Robot_Situation_Outport (R.all));
-   end Process_Probe;
+      return (Sqa /= Block and then Sqa /= Water) or else Cmd /= Step_Forward;
+   end Safe;
 
    --------------------------
    -- Process_Next_Control --
@@ -87,20 +89,44 @@ package body Robots is
    procedure Process_Next_Control
      (Port : Robot_Control_Links.IOport_Access)
    is
-      Ctrl : Robot_Control;
+      Ctrl  : Robot_Control;
       Robot : Robot_Access := Robot_Access (Owner (Port));
+
    begin
       Pop (Ctrl, Port);
 
+      --  When in Cautious mode, the robot processes the the Ctrl only when the
+      --  action is safe.
+      if Robot.Mode = Cautious
+        and then not Safe (Ctrl.Code, Probe_Ahead (Robot.Hw.Rad))
+      then
+         return;
+      end if;
+
       case Ctrl.Code is
          when Nop =>
-            null;
+            return;
+
          when Opmode =>
             Robot.Mode := Robot_Opmode'Val (Ctrl.Value);
-         when Step_Forward | Rotate_Left | Rotate_Right =>
-            Process_Action (Ctrl, Robot);
+
+         when Step_Forward =>
+            Step_Forward (Robot.Hw.Eng);
+
+         when Rotate_Left =>
+            Rotate_Left (Robot.Hw.Eng);
+
+         when Rotate_Right =>
+            Rotate_Right (Robot.Hw.Eng);
+
          when Probe =>
-            Process_Probe (Robot);
+            Situation_Links.Push
+              (Situation'
+                 (Pos => Get_Position (Robot.Hw.Loc),
+                  Dir => Get_Direction (Robot.Hw.Loc),
+                  Sqa => Probe_Ahead (Robot.Hw.Rad)),
+               Robot_Situation_Outport (Robot.all));
+
       end case;
    end Process_Next_Control;
 
@@ -120,7 +146,7 @@ package body Robots is
    -- Init --
    ----------
 
-   procedure Init (R : Robot_Access) is
+   procedure Init (R : Robot_Access; Hw : Robot_Hardware) is
    begin
       R.Robot_Situation_Outp :=
         Situation_Links.Create_IOport
@@ -129,16 +155,8 @@ package body Robots is
       R.Robot_Control_Inp :=
         Robot_Control_Links.Create_IOport
          (Capacity => 2,
-          Owner => Actor_Ref (R));
-
-      --  Emitters of Probe commands expect being able to fetch the
-      --  Situation right after the request is sent, so we make sure
-      --  that at least these ones are processed immediately.
-
-      --  On_Push (R.Robot_Control_Inp, Process_One_Control'Access);
-
-      R.H := new Robot_Hardware;
-      Devices.Init (R.H.DH);
+          Owner    => Actor_Ref (R));
+      R.Hw := Hw;
    end Init;
 
 end Robots;

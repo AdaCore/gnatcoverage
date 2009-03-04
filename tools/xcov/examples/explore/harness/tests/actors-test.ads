@@ -21,13 +21,9 @@ with AUnit.Test_Fixtures;
 
 package Actors.Test is
 
-   type Test is abstract new AUnit.Test_Fixtures.Test_Fixture with record
-      Act : Actor_Ref;
-   end record;
+   type Test is abstract new AUnit.Test_Fixtures.Test_Fixture with null record;
 
-   function New_Actor (T : Test) return Actor_Ref is abstract;
-
-   procedure Set_Up (T : in out Test);
+   function Actor (T : Test) return Actor_Ref is abstract;
 
    procedure Test_Live_And_Kill (T : in out Test);
 

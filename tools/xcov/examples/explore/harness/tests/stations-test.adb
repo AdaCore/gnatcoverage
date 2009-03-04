@@ -18,23 +18,37 @@
 ------------------------------------------------------------------------------
 
 with AUnit.Assertions; use AUnit.Assertions;
+with Actors;           use Actors;
 with Geomaps;          use Geomaps, Geomaps.Situation_Links;
 with Controls;         use Controls, Controls.Robot_Control_Links;
 
 package body Stations.Test is
 
-   Test_Station : aliased Station;
+   -----------
+   -- Actor --
+   -----------
 
-   function New_Actor (T : Test) return Actor_Ref is
+   function Actor (T : Test) return Actor_Ref is
    begin
-      Test_Station :=
-        (Actor with
+      return Actor_Ref (T.Test_Station);
+   end Actor;
+
+   ------------
+   -- Set_Up --
+   ------------
+
+   procedure Set_Up (T : in out Test) is
+   begin
+      if T.Test_Station = null then
+         T.Test_Station := new Station;
+      end if;
+
+      T.Test_Station.all :=
+        (Actors.Actor with
          Robot_Control_Outp  => null,
          Robot_Situation_Inp => null,
          Map                 => (others => (others => Ground)));
-
-      return Test_Station'Access;
-   end New_Actor;
+   end Set_Up;
 
    ---------------
    -- Test_Init --
@@ -42,14 +56,14 @@ package body Stations.Test is
 
    procedure Test_Init (T : in out Test) is
    begin
-      Init (Station_Access (T.Act));
+      Init (T.Test_Station);
 
       Assert
-        (Station (T.Act.all).Robot_Control_Outp /= null,
+        (T.Test_Station.Robot_Control_Outp /= null,
          "Robot Constrol out port not initialized after call to init");
 
       Assert
-        (Station (T.Act.all).Robot_Situation_Inp /= null,
+        (T.Test_Station.Robot_Situation_Inp /= null,
          "Robot Constrol out port not initialized after call to init");
    end Test_Init;
 

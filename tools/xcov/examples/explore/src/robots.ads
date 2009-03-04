@@ -27,8 +27,8 @@
 --  A Robot operates in one of several modes, as described in the Controls
 --  abstraction.
 
-with Actors, Geomaps, Controls;
-use Actors, Geomaps, Controls;
+with Actors, Geomaps, Controls, Robots_Devices;
+use Actors, Geomaps, Controls, Robots_Devices;
 
 package Robots is
 
@@ -40,8 +40,9 @@ package Robots is
    function Robot_Situation_Outport
      (R : Robot) return Situation_Links.IOport_Access;
 
-   procedure Init (R : Robot_Access);
-   --  Initialize robot R - setup ports and internal devices
+   procedure Init (R : Robot_Access; Hw : Robot_Hardware);
+   --  Initialize robot R using the hardware Hw - setup ports and internal
+   --  devices
 
    procedure Run (R : Robot_Access);
    --  Run robot R - process pending messages on input ports
@@ -50,15 +51,12 @@ package Robots is
 
 private
 
-   type Robot_Hardware;
-   type Robot_Hardware_Access is access Robot_Hardware;
-
    type Robot is new Actor with record
-      Robot_Control_Inp : Robot_Control_Links.IOport_Access;
+      Robot_Control_Inp    : Robot_Control_Links.IOport_Access;
       Robot_Situation_Outp : Situation_Links.IOport_Access;
 
-      H : Robot_Hardware_Access;
-      Mode : Robot_Opmode := Cautious;
+      Hw                   : Robot_Hardware;
+      Mode                 : Robot_Opmode := Cautious;
    end record;
 
 end Robots;
