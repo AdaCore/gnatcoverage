@@ -153,7 +153,8 @@ package body Traces_Sources.Html is
       new S'("td.SumFile { color: green; }"),
       new S'("td.SumNoFile { color: grey; }"),
       new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
-      new S'("table.LegendTable { text-align: center; }"),
+      new S'("table.LegendTable "
+               & "{ margin-left:25%; width:50%; text-align: center; }"),
       new S'("table.SourceFile td pre { margin: 0; }")
      );
 
@@ -199,8 +200,7 @@ package body Traces_Sources.Html is
       P ("</head>");
       P ("<body>");
       P ("<h1 align=""center"">XCOV coverage report</h1>");
-      P ("  <table width=""80%"" cellspacing=""1"" class=""SumTable"""
-           & " align=""center"">");
+      P ("  <table cellspacing=""1"" class=""SumTable"">");
       P ("    <tr>");
       P ("      <td class=""SumHead"" width=""60%"">Filename</td>");
       P ("      <td class=""SumHead"" colspan=""3"">Coverage</td>");
@@ -228,8 +228,7 @@ package body Traces_Sources.Html is
       Pi ("  </table>");
 
       Pi ("  <hr/>");
-      Pi ("  <table width=""50%"" cellspacing=""1"" "
-            & "class=""LegendTable"" align=""center"">");
+      Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
       Pi ("    <tr>");
       Pi ("      <td class=""SumBarCover"" witdh=""33%"">"
             & "Fully covered</td>");
