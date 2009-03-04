@@ -136,19 +136,24 @@ package body Traces_Sources.Html is
 
    CSS : constant Strings_Arr :=
      (
+      new S'("table.SumTable, table.TotalTable "
+               & "{ margin-left:10%; width:80%; }"),
       new S'("tr.covered { background-color: #80ff80; }"),
       new S'("tr.not_covered { background-color: red; }"),
       new S'("tr.partially_covered { background-color: orange; }"),
       new S'("tr.no_code_odd { }"),
       new S'("tr.no_code_even { background-color: #f0f0f0; }"),
-      new S'("table.SumTable td { background-color: #B0C4DE; }"),
+      new S'("td.SumBarCover { background-color: green; }"),
+      new S'("td.SumBarPartial { background-color: orange; }"),
+      new S'("td.SumBarNoCover { background-color: red; }"),
+      new S'("td.SumHead, td.SumFile, td.SumNoFile, td.SumBar, "
+               & "td.SumPourcent, td.SumLineCov, td.SumTotal "
+               & "{ background-color: #B0C4DE; }"),
       new S'("td.SumHead { color: white; }"),
       new S'("td.SumFile { color: green; }"),
       new S'("td.SumNoFile { color: grey; }"),
-      new S'("table.SumTable td.SumBarCover { background-color: green; }"),
-      new S'("table.SumTable td.SumBarPartial { background-color: orange; }"),
-      new S'("table.SumTable td.SumBarNoCover { background-color: red; }"),
       new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
+      new S'("table.LegendTable { text-align: center; }"),
       new S'("table.SourceFile td pre { margin: 0; }")
      );
 
@@ -202,18 +207,41 @@ package body Traces_Sources.Html is
       P ("    </tr>");
    end Pretty_Print_Start;
 
-   procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer) is
-   begin
-      --  Total stats.
-      Put_Line (Pp.Index_File, "    <tr>");
-      Put_Line (Pp.Index_File,
-                "      <td title=""Total"" class=""SumTotal"">Total</td>");
-      Print_Coverage_Stats (Pp.Index_File, Pp.Global_Stats);
-      Put_Line (Pp.Index_File, "    </tr>");
+   procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer)
+   is
+      procedure Pi (S : String);
 
-      Put_Line (Pp.Index_File, "  </table>");
-      Put_Line (Pp.Index_File, "</body>");
-      Put_Line (Pp.Index_File, "</html>");
+      procedure Pi (S : String) is
+      begin
+         Put_Line (Pp.Index_File, S);
+      end Pi;
+
+   begin
+      Pi ("  </table>");
+      --  Total stats.
+      Pi ("  <hr/>");
+      Pi ("  <table width=""80%"" cellspacing=""1"" class=""TotalTable"">");
+      Pi ("    <tr>");
+      Pi ("      <td title=""Total"" class=""SumTotal"">Total</td>");
+      Print_Coverage_Stats (Pp.Index_File, Pp.Global_Stats);
+      Pi ("    </tr>");
+      Pi ("  </table>");
+
+      Pi ("  <hr/>");
+      Pi ("  <table width=""50%"" cellspacing=""1"" "
+            & "class=""LegendTable"" align=""center"">");
+      Pi ("    <tr>");
+      Pi ("      <td class=""SumBarCover"" witdh=""33%"">"
+            & "Fully covered</td>");
+      Pi ("      <td class=""SumBarPartial"">"
+            & "Partially covered</td>");
+      Pi ("      <td class=""SumBarNoCover"" witdh=""13%"">"
+            & "not covered2</td>");
+      Pi ("     </tr>");
+      Pi ("   </table>");
+
+      Pi ("</body>");
+      Pi ("</html>");
       Close (Pp.Index_File);
    end Pretty_Print_Finish;
 
@@ -226,8 +254,8 @@ package body Traces_Sources.Html is
       --  Second column: bar
       Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
       New_Line (F);
-      Put (F, "        <table border=""0"" cellspacing=""0"">"
-             & "<tr height=""10"">");
+      Put (F, "        <table border=""0"" cellspacing=""0"" "
+             & "class=""BarGraph""><tr height=""10"">");
       if P.Fully = P.Total then
          --  Also includes P.Total = 0.
          Put (F, "<td class=""SumBarCover"" width=""100"""
@@ -363,7 +391,7 @@ package body Traces_Sources.Html is
       Plh (Pp, "</head>");
       Plh (Pp, "<body>");
       Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
-      Plh (Pp, "<table class=""SumTable"" align=""Center""><tr>");
+      Plh (Pp, "<table class=""SumTable""><tr>");
       Print_Coverage_Stats (Pp.Html_File, Stats);
       Plh (Pp, "</tr></table>");
 
