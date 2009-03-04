@@ -204,6 +204,13 @@ package body Traces_Sources.Html is
 
    procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer) is
    begin
+      --  Total stats.
+      Put_Line (Pp.Index_File, "    <tr>");
+      Put_Line (Pp.Index_File,
+                "      <td title=""Total"" class=""SumTotal"">Total</td>");
+      Print_Coverage_Stats (Pp.Index_File, Pp.Global_Stats);
+      Put_Line (Pp.Index_File, "    </tr>");
+
       Put_Line (Pp.Index_File, "  </table>");
       Put_Line (Pp.Index_File, "</body>");
       Put_Line (Pp.Index_File, "</html>");
@@ -300,6 +307,8 @@ package body Traces_Sources.Html is
       end Ni;
    begin
       Skip := True;
+
+      --  Add a line in index.
 
       Pi ("    <tr>"); Ni;
 

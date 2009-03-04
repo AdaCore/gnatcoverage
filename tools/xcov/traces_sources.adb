@@ -221,8 +221,6 @@ package body Traces_Sources is
    end Add_Source_Search;
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
---                                   Base : Traces_Base;
---                                   Sym : Symbolizer'Class;
                                    Filename : String;
                                    File : Source_Lines)
    is
@@ -275,6 +273,11 @@ package body Traces_Sources is
          Ls := File.Table (I).State;
          Ls := State_Map (DO178B_Level, Ls);
          Stats (Ls) := Stats (Ls) + 1;
+      end loop;
+
+      --  Compute the global summary.
+      for I in Stats'Range loop
+         Pp.Global_Stats (I) := Pp.Global_Stats (I) + Stats (I);
       end loop;
 
       --  Try original path.
@@ -393,6 +396,8 @@ package body Traces_Sources is
       end Process;
       Cur : Cursor;
    begin
+      Pp.Global_Stats := (others => 0);
+
       Pretty_Print_Start (Pp);
 
       --  Iterates on all files.

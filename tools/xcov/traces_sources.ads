@@ -245,6 +245,7 @@ private
 
    type Pretty_Printer is abstract tagged limited record
       Need_Sources : Boolean;
+      Global_Stats : Stat_Array;
    end record;
 
    --  Called once at the beginning of the process.
