@@ -235,7 +235,7 @@ package body Traces_Sources.Html is
       Pi ("      <td class=""SumBarPartial"">"
             & "Partially covered</td>");
       Pi ("      <td class=""SumBarNoCover"" witdh=""13%"">"
-            & "not covered2</td>");
+            & "not covered</td>");
       Pi ("     </tr>");
       Pi ("   </table>");
 
