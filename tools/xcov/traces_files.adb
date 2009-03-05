@@ -348,42 +348,13 @@ package body Traces_Files is
 
          case Info.Kind is
             when Info_Kind_Date =>
-               declare
-                  Date_Info  : Trace_Info_Date;
-                  subtype String_8 is String (1 .. 8);
-                  function Str_To_Date_Info is new Ada.Unchecked_Conversion
-                    (String_8, Trace_Info_Date);
-
-                  procedure Put_Pad (Num : Natural; Width : Positive);
-
-                  procedure Put_Pad (Num : Natural; Width : Positive)
-                  is
-                     Res : String (1 .. Width);
-                     V : Natural := Num;
-                  begin
-                     for I in reverse Res'Range loop
-                        Res (I) := Character'Val ((V rem 10)
-                                                  + Character'Pos ('0'));
-                        V := V / 10;
-                     end loop;
-                     Put (Res);
-                  end Put_Pad;
-               begin
-                  Date_Info := Str_To_Date_Info (Info.Data);
-                  Put ("       ");
-                  Put_Pad (Natural (Date_Info.Year), 4);
-                  Put ('-');
-                  Put_Pad (Natural (Date_Info.Month), 2);
-                  Put ('-');
-                  Put_Pad (Natural (Date_Info.Day), 2);
-                  Put (' ');
-                  Put_Pad (Natural (Date_Info.Hour), 2);
-                  Put (':');
-                  Put_Pad (Natural (Date_Info.Min), 2);
-                  Put (':');
-                  Put_Pad (Natural (Date_Info.Sec), 2);
-                  New_Line;
-               end;
+               Put ("       ");
+               if Info.Data'Length /= 8 then
+                  Put ("!Bad Format!");
+               else
+                  Put (Format_Date_Info (Info.Data));
+               end if;
+               New_Line;
             when others =>
                null;
          end case;
@@ -608,6 +579,40 @@ package body Traces_Files is
       end loop;
       return "";
    end Get_Info;
+
+   function Format_Date_Info (Raw_String : String) return String
+   is
+      Date_Info  : Trace_Info_Date;
+      subtype String_8 is String (1 .. 8);
+      function Str_To_Date_Info is new Ada.Unchecked_Conversion
+        (String_8, Trace_Info_Date);
+
+      Res : String (1 .. 19) := "YYYY-MM-DD HH:MM:SS";
+      procedure Put_Pad (Num : Natural; S : out String);
+
+      procedure Put_Pad (Num : Natural; S : out String)
+      is
+         V : Natural := Num;
+      begin
+         for I in reverse S'Range loop
+            S (I) := Character'Val ((V rem 10)
+                                    + Character'Pos ('0'));
+            V := V / 10;
+         end loop;
+      end Put_Pad;
+   begin
+      if Raw_String = "" then
+         return "";
+      end if;
+      Date_Info := Str_To_Date_Info (Raw_String);
+      Put_Pad (Natural (Date_Info.Year), Res (1 .. 4));
+      Put_Pad (Natural (Date_Info.Month), Res (6 .. 7));
+      Put_Pad (Natural (Date_Info.Day), Res (9 .. 10));
+      Put_Pad (Natural (Date_Info.Hour), Res (12 .. 13));
+      Put_Pad (Natural (Date_Info.Min), Res (15 .. 16));
+      Put_Pad (Natural (Date_Info.Sec), Res (18 .. 19));
+      return Res;
+   end Format_Date_Info;
 
    procedure Free (Trace_File : in out Trace_File_Type)
    is

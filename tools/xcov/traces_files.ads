@@ -34,6 +34,7 @@ package Traces_Files is
    --  Return an empty string if the info is not found.
    function Get_Info (File : Trace_File_Type; Kind : Unsigned_32)
                      return String;
+   function Format_Date_Info (Raw_String : String) return String;
 
    --  Deallocate all dynamic data.
    procedure Free (Trace_File : in out Trace_File_Type);

@@ -33,6 +33,7 @@ with Qemudrv;
 with Qemu_Traces;
 with Execs_Dbase; use Execs_Dbase;
 with Strings; use Strings;
+with Traces_Files_List; use Traces_Files_List;
 
 procedure Xcov is
    procedure Usage;
@@ -181,7 +182,7 @@ procedure Xcov is
    end To_Annotation_Format;
 
    Text_Start : Pc_Type := 0;
-   Trace_File : Trace_File_Type;
+   Trace_File : Trace_File_Element_Acc;
    Base : Traces_Base;
 
    Exec : Exe_File_Type;
@@ -444,10 +445,14 @@ begin
    --  Read traces.
    while Arg_Index <= Arg_Count loop
       Init_Base (Base);
-      Read_Trace_File (Argument (Arg_Index), Trace_File, Base);
+      Trace_File := new Trace_File_Element;
+      Trace_File.Filename := new String'(Argument (Arg_Index));
+      Read_Trace_File (Trace_File.Filename.all,
+                       Trace_File.Trace, Base);
+      Traces_Files_List.Files.Append (Trace_File);
       declare
          Exe_Name : constant String :=
-           Get_Info (Trace_File, Qemu_Traces.Info_Kind_Exec_Filename);
+           Get_Info (Trace_File.Trace, Qemu_Traces.Info_Kind_Exec_Filename);
          Exe_File : Exe_File_Acc;
       begin
          if Exe_Name = "" then

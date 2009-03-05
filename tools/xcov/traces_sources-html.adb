@@ -21,6 +21,9 @@ with Ada.Integer_Text_IO;
 with Ada.Directories;
 with Hex_Images; use Hex_Images;
 with Traces_Disa; use Traces_Disa;
+with Traces_Files;
+with Traces_Files_List;
+with Qemu_Traces;
 
 package body Traces_Sources.Html is
    type String_Cst_Acc is access constant String;
@@ -136,7 +139,7 @@ package body Traces_Sources.Html is
 
    CSS : constant Strings_Arr :=
      (
-      new S'("table.SumTable, table.TotalTable "
+      new S'("table.SumTable, table.TotalTable, table.TracesFiles "
                & "{ margin-left:10%; width:80%; }"),
       new S'("tr.covered { background-color: #80ff80; }"),
       new S'("tr.not_covered { background-color: red; }"),
@@ -147,9 +150,10 @@ package body Traces_Sources.Html is
       new S'("td.SumBarPartial { background-color: orange; }"),
       new S'("td.SumBarNoCover { background-color: red; }"),
       new S'("td.SumHead, td.SumFile, td.SumNoFile, td.SumBar, "
-               & "td.SumPourcent, td.SumLineCov, td.SumTotal "
+               & "td.SumPourcent, td.SumLineCov, td.SumTotal, "
+               & "table.TracesFiles td"
                & "{ background-color: #B0C4DE; }"),
-      new S'("td.SumHead { color: white; }"),
+      new S'("td.SumHead, tr.Head td { color: white; }"),
       new S'("td.SumFile { color: green; }"),
       new S'("td.SumNoFile { color: grey; }"),
       new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
@@ -209,6 +213,12 @@ package body Traces_Sources.Html is
 
    procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer)
    is
+      use Traces_Files;
+      use Traces_Files_List;
+      use Traces_Files_Lists;
+      Cur : Traces_Files_Lists.Cursor;
+      El : Trace_File_Element_Acc;
+
       procedure Pi (S : String);
 
       procedure Pi (S : String) is
@@ -218,15 +228,17 @@ package body Traces_Sources.Html is
 
    begin
       Pi ("  </table>");
+
       --  Total stats.
       Pi ("  <hr/>");
-      Pi ("  <table width=""80%"" cellspacing=""1"" class=""TotalTable"">");
+      Pi ("  <table cellspacing=""1"" class=""TotalTable"">");
       Pi ("    <tr>");
       Pi ("      <td title=""Total"" class=""SumTotal"">Total</td>");
       Print_Coverage_Stats (Pp.Index_File, Pp.Global_Stats);
       Pi ("    </tr>");
       Pi ("  </table>");
 
+      --  Caption
       Pi ("  <hr/>");
       Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
       Pi ("    <tr>");
@@ -238,6 +250,40 @@ package body Traces_Sources.Html is
             & "not covered</td>");
       Pi ("     </tr>");
       Pi ("   </table>");
+
+      --  List of traces.
+      Pi ("  <hr/>");
+      Pi ("  <table cellspacing=""1"" class=""TracesFiles"">");
+      Pi ("    <tr class=""Head"">");
+      Pi ("      <td>Trace Filename</td>");
+      Pi ("      <td>Program</td>");
+      Pi ("      <td>Date</td>");
+      Pi ("      <td>Tag</td>");
+      Pi ("    </tr>");
+
+      Cur := Files.First;
+      while Has_Element (Cur) loop
+         El := Element (Cur);
+         Pi ("    <tr>");
+         Pi ("      <td>");
+         Pi (El.Filename.all);
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Get_Info (El.Trace, Qemu_Traces.Info_Kind_Exec_Filename));
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Format_Date_Info (Get_Info (El.Trace,
+                                         Qemu_Traces.Info_Kind_Date)));
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Format_Date_Info (Get_Info (El.Trace,
+                                         Qemu_Traces.Info_Kind_User_Tag)));
+         Pi ("      </td>");
+         Pi ("    </tr>");
+         Next (Cur);
+      end loop;
+
+      Pi ("  </table>");
 
       Pi ("</body>");
       Pi ("</html>");
