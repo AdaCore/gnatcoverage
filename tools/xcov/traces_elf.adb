@@ -1506,8 +1506,16 @@ package body Traces_Elf is
                   use Ppc_Descs;
                   procedure Update_Or_Split (Next_State : Trace_State);
 
+                  function Is_Conditional_Branch
+                    (Insn : Unsigned_32)
+                    return Boolean;
+                  --  Return True iff Insn is contains the opcode of a
+                  --  PPC conditional branch. This excludes
+                  --  any instructions that "branch always" (for example,
+                  --  B-form/XL-form branch conditionals marked as
+                  --  "branch always" by the BO field).
+
                   Insn : Unsigned_32;
-                  Opc, Xo, Bo : Unsigned_32;
                   Op : constant Unsigned_8 := Trace.Op and 3;
                   Trace_Len : constant Pc_Type :=
                     Trace.Last - Trace.First + 1;
@@ -1520,41 +1528,56 @@ package body Traces_Elf is
                      end if;
                      Update_State (Base, It, Next_State);
                   end Update_Or_Split;
+
+                  function Is_Conditional_Branch
+                    (Insn : Unsigned_32)
+                    return Boolean
+                  is
+                     Opc, Xo, Bo : Unsigned_32;
+                  begin
+                     Opc := Get_Field (F_OPC, Insn);
+                     Xo := Get_Field (F_XO, Insn);
+                     Bo := Get_Field (F_BO, Insn);
+                     --  Return True for conditional branch
+                     --  and only for them. That is to say:
+                     --  bcx, bcctrx, bclrx with BO /= 1x1xx
+                     --  (BO = 1x1xx means: "branch always";
+                     --  so it should be looked at as an unconditional
+                     --  branch).
+                     return ((Opc = 16
+                             or else (Opc = 19
+                                      and (Xo = 528 or Xo = 16)))
+                             and then (Bo and 2#10100#) /= 2#10100#);
+                  end Is_Conditional_Branch;
                begin
                   --  Instructions length is 4.
                   if Trace_Len < 4 then
                      raise Program_Error;
                   end if;
-                  case Op is
-                     --  when 0 =>
-                     --   Update_State (Base, It, Covered);
-                     when 0 | 1 =>
-                        Insn := Get_Insn (Section (Trace.Last - 3)'Address);
-                        Opc := Get_Field (F_OPC, Insn);
-                        Xo := Get_Field (F_XO, Insn);
-                        Bo := Get_Field (F_BO, Insn);
-                        if Opc = 18 then
-                           --  Opc = 18: b, ba, bl and bla
-                           Update_State (Base, It, Covered);
-                        elsif (Opc = 16
-                                 or else (Opc = 19
-                                            and (Xo = 528 or Xo = 16)))
-                          and then (Bo and 2#10100#) = 2#10100#
-                        then
-                           --  insn: bcx, bcctrx, bclrx
-                           --   BO = 1x1xx
-                           --  bc/bcctr/bclr always
-                           Update_State (Base, It, Covered);
-                        else
+                  Insn := Get_Insn (Section (Trace.Last - 3)'Address);
+
+                  if Is_Conditional_Branch (Insn) then
+                     case Op is
+                        when 0 | 1 =>
                            Update_Or_Split (Branch_Taken);
-                        end if;
-                     when 2 =>
-                        Update_Or_Split (Fallthrough_Taken);
-                     when 3 =>
-                        Update_Or_Split (Both_Taken);
-                     when others =>
-                        raise Program_Error;
-                  end case;
+                        when 2 =>
+                           Update_Or_Split (Fallthrough_Taken);
+                        when 3 =>
+                           Update_Or_Split (Both_Taken);
+                        when others =>
+                           raise Program_Error;
+                     end case;
+                  else
+                     --  Any other case than a conditional branch:
+                     --  * either a unconditional
+                     --  branch (Opc = 18: b, ba, bl and bla);
+                     --  * or a branch conditional with BO=1x1xx
+                     --  (branch always);
+                     --  * or not a branch. This last case
+                     --  may happen when a trace entry has been
+                     --  split; in such a case, the .
+                     Update_State (Base, It, Covered);
+                  end if;
                end;
 
             when EM_SPARC =>
