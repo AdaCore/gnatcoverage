@@ -276,8 +276,7 @@ package body Traces_Sources.Html is
                                          Qemu_Traces.Info_Kind_Date)));
          Pi ("      </td>");
          Pi ("      <td>");
-         Pi (Format_Date_Info (Get_Info (El.Trace,
-                                         Qemu_Traces.Info_Kind_User_Tag)));
+         Pi (Get_Info (El.Trace, Qemu_Traces.Info_Kind_User_Tag));
          Pi ("      </td>");
          Pi ("    </tr>");
          Next (Cur);
