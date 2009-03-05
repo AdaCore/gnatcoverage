@@ -54,7 +54,7 @@ procedure Xcov is
       New_Line;
       Qemudrv.Help (" ");
       New_Line;
-      P (" --coverage=[insn|branch] OPTIONS");
+      P (" --coverage=[insn|branch] OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a=FORM  --annotate=FORM      Generate a FORM report");
