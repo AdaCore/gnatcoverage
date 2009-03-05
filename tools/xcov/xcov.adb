@@ -44,18 +44,8 @@ procedure Xcov is
    is
       procedure P (S : String) renames Put_Line;
    begin
-      P ("usage: " & Command_Name & " actions");
-      New_Line;
-      P ("Primary actions:");
-      P (" --disp-routines {[--exclude|--include] FILE}");
-      P ("    Build a list of routines from executable files");
-      New_Line;
-      P (" --dump-trace FILES");
-      P ("   Raw display of trace files");
-      New_Line;
-      P (" --dump-trace-asm EXE TRACE_FILES");
-      P ("   Raw display of trace files with assembly code for each trace");
-      New_Line;
+      P ("usage: " & Command_Name & " ACTION");
+      P ("Action is one of:");
       P (" --help  -h");
       P ("   Display this help");
       New_Line;
@@ -69,6 +59,15 @@ procedure Xcov is
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a=FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm");
+      P (" --disp-routines {[--exclude|--include] FILE}");
+      P ("    Build a list of routines from executable files");
+      New_Line;
+      P (" --dump-trace FILES");
+      P ("   Raw display of trace files");
+      New_Line;
+      P (" --dump-trace-asm EXE TRACE_FILES");
+      P ("   Raw display of trace files with assembly code for each trace");
+      New_Line;
    end Usage;
 
    procedure Error (Msg : String) is

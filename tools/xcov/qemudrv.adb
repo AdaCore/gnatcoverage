@@ -90,6 +90,12 @@ package body Qemudrv is
       New_Line;
       P ("  Options are:");
       P ("  -t TARGET  --target=TARGET   Set the target");
+      Put (Indent & "    targets:");
+      for I in Drivers'Range loop
+         Put (' ');
+         Put (Drivers (I).Target.all);
+      end loop;
+      New_Line;
       P ("  -v --verbose                 Be verbose");
       P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
       P ("  -o FILE  --output=FILE       Write traces to FILE");
@@ -264,12 +270,7 @@ package body Qemudrv is
 
       if Driver_Index < 0 then
          Error (Progname.all & ": unknown target " & Target.all);
-         Put_Line ("Known targets are:");
-         for I in Drivers'Range loop
-            Put (' ');
-            Put (Drivers (I).Target.all);
-         end loop;
-         New_Line;
+         Error (Progname.all & " (use --help to get target list)");
          return;
       end if;
 
