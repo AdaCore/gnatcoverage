@@ -61,15 +61,6 @@ package Execs_Dbase is
    --  more than one exec in Execs, this may not be possible; if it
    --  cannot be done, raise Routine_Name_Ambiguity.
 
-   function Deprecated_First_Exec
-     (Execs : Exec_Base_Type)
-     return Exe_File_Acc;
-   --  Return the first entry of the database.
-   --  ??? This function will be removed soon. For now, it is only
-   --  needed because Traces_Sources can handle only one executable.
-   --  Traces_Sources will be modified to handle several executables
-   --  at some point, and Deprecated_First_Exec will be removed.
-
 private
 
    type Exec_Base_Entry is record

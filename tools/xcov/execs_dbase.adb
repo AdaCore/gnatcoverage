@@ -94,13 +94,4 @@ package body Execs_Dbase is
       end;
    end Build_Routines_Names;
 
-   function Deprecated_First_Exec
-     (Execs : Exec_Base_Type)
-     return Exe_File_Acc
-   is
-      First : constant Execs_Maps.Cursor := Execs_Maps.First (Execs.all);
-   begin
-      return Execs_Maps.Element (First).Exec;
-   end Deprecated_First_Exec;
-
 end Execs_Dbase;
