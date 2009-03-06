@@ -16,20 +16,24 @@ BASE_SUPPORT_DIR = ../support
 # CROSS toolchain : produce executable program from sources + target bsp
 
 ifneq ($(TARGET),)
-  CROSS = $(TARGET)-
+  CROSSPREFIX = $(TARGET)-
   TARGETNAME = $(TARGET)
 else
-  CROSS =
+  CROSSPREFIX =
   TARGETNAME = native
 endif
 
-# Test host machine to determine the best environment when running xcov
+# Determine tty adjustments commands around xcov --run,
+# default to NOPs.
+STTY_ADJUST=
+STTY_RESTORE=
+
+ifneq ($(TERM),)
 # - in case of regular tests, forces "stty raw"
 # - in case of unit tests, do not do this (wrong output with AUnit)
-ifneq ($(TERM),)
 ifeq ($(UNIT_TESTS),)
-  STTY_RAW = 1
-  STTY_OLD = $(shell stty -g)
+  STTY_ADJUST = stty raw
+  STTY_RESTORE = stty $(shell stty -g)
 endif
 endif
 

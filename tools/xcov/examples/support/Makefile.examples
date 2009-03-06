@@ -32,27 +32,26 @@ index-%.html: %.trace
 trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 
 %.trace: % force
-	@echo xcov --run $< --target=$(TARGET)
-ifeq ($(STTY_RAW),1)
-	@stty raw
-endif
-	@xcov --run $< --target=$(TARGET)
-ifeq ($(STTY_RAW),1)
-	@stty $(STTY_OLD)
-endif
+# echo the command we're planning to run while our term
+# is functional, then run silently in between the possibly
+# required stty adjustments. Switching to e.g raw would
+# have the command output start right after the command echo
+# on the same line, cumbersome.
+	@echo xcov --run --target=$(TARGET) $<
+	@$(STTY_ADJUST)
+	@xcov --run --target=$(TARGET) $<
+	@$(STTY_RESTORE)
 
 # CROSS toolchain : produce executable program from sources + target bsp
 
-build: $(TESTS:%=%.bin) $(UNIT_TESTS:%=%.bin)
-
-%.bin: %
-	$(CROSS)objcopy -O binary $< $@
+build: $(TESTS) $(UNIT_TESTS)
 
 $(TESTS): support force
 	$(BUILDER) -p -P$@
 
 $(UNIT_TESTS): support force
-	$(BUILDER) -XPLATFORM=$(TARGETNAME) -XRUNTIME=zfp -XUNITTEST=yes -p -Pharness
+	$(BUILDER) -XPLATFORM=$(TARGETNAME) -XRUNTIME=zfp \
+	 -XUNITTEST=yes -p -Pharness
 
 support:
 	$(MAKE) -C ../support
