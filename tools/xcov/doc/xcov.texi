@@ -15,6 +15,10 @@
 @command{xcov}
 @end macro
 
+@macro xrun
+@command{xcov --run}
+@end macro
+
 @macro bibref {entry}
 [@cite{\entry\}]
 @end macro
@@ -77,7 +81,8 @@ Below is a short functional and organisational description, verbatim from
 the sources:
 
 @smallexample
-@c @verbatiminclude @value{explore_dir}/overview.ads
+
+@verbatiminclude examples/explore/src/overview.ads
 @end smallexample
 
 @node scov-basics,xcov-grounds,explore,Top
@@ -121,7 +126,7 @@ A binary @dfn{executable program} is produced from a set of program
 @dfn{sources} by development toolchains with compilers, linkers, etc.
 
 @item
-The executable program is run within an @dfn{execution environment}, and
+The executable program runs within an @dfn{execution environment}, and
 this execution produces @dfn{raw coverage data} about paths it
 exercises.
 
@@ -258,13 +263,14 @@ Something has to be done outside nominal executions in this case.
 @c
 One possibility is to construct a separate program dedicated to just
 testing this abstraction, which would force an artificial queue underflow.
-@c
-Of course, the dedicated test program could well cover the whole package
-on its own on such a simple example.
 
-One-shot full coverage is generally not possible in more complex
-situations, however, and the example shows it is already partially
+The point is that one-shot full coverage is generally not possible in
+complex situations and the example shows it is already partially
 impossible with only regular Explore executions.
+@c
+System integration is most often a delicate process, not possible before
+late stages of the project, and it is often useful or simply unavoidable
+to perform coverage analysis on segregated pieces first.
 @c
 Besides, even if full coverage a some applicative components could
 theortically be achieved from a single execution, it is often just more
@@ -283,17 +289,14 @@ toolset unifies these partial coverage results into a single view.
 
 @subsection Coverage Data Consolidation
 @noindent
-Coverage of all the pieces of a final application is often not performed
-with all the pieces integrated together.
-@c
-In complex systems, this integration is a delicate process, not possible
-before late stages of the project, and it is often useful or simply
-unavoidable to perform coverage analysis on segregated pieces first.
-@c
 @dfn{Consolidation} denotes the process of gathering the coverage
-information for the various pieces of a system into a unified view, for
-instance to check that proper coverage was achieved for all the pieces.
+information for the various pieces of a system into a unified view, with
+explicit input on what pieces are expected to have been covered.
 @c
+Pieces for which coverage data is expected but not available are
+identified and data for pieces of no interest (e.g. unit test harness)
+may be abstracted away.
+@v
 Technically, consolidation can be viewed as a set of means to use a
 generalized capitalization capability for all the pieces of a system.
 
@@ -303,6 +306,11 @@ individual components, from integration testing of the system as a whole,
 from some intermediate organisation, or possibly from a mix of all these.
 @c
 Any of these could apply to the Explore example case.
+@c
+For instance, ``statement coverage of all the subprograms in an Explore
+executable'' could typically be analyzed from a mix of coverage data out
+of regular Explore execution sessions and of specific unit testing
+results.
 
 @subsection Process Integration
 @noindent
@@ -325,10 +333,10 @@ We distinguish two broad classes of analysis activities: @dfn{source}
 and @dfn{object} coverage analysis.
 @c
 The process always consists in the evaluation of various possible
-@dfn{coverage quantifiers} such as ``which program statements were
-covered/not-covered by this set of executions ?'' or ``What percentage
-of the total source code do these values represent ?'', most often
-driven by specific objectives.
+@dfn{coverage quantifiers} or @dfn{metrics} such as ``which program
+statements were covered/not-covered by this set of executions ?'' or
+``What percentage of the total source code do these values represent
+?'', most often driven by specific objectives.
 
 Every toolset offers its own spectrum of analysis possibilities, with
 variations in the implementation schemes behind the scene, in particular
@@ -340,21 +348,22 @@ Object Coverage Analysis focuses on machine object code coverage,
 with two essential quantifiers:
 
 @itemize
-@item @dfn{Object Instruction Coverage (OIC)},
-a quantification of the program machine instructions exercised by a set
-of program executions.
+@item @dfn{Object Instruction Coverage (OIC)} ;
+which/how-much of the program machine instructions were exercised by a
+set of program executions.
 
-@item @dfn{Object Branch Coverage (OBC)},
-OIC + a quantification of the directions taken by each machine
-conditional branch instruction in the program as exercised by a set of
-executions.
+@item @dfn{Object Branch Coverage (OBC)} ;
+OIC + indications on the machine decisions taken at each machine
+conditional branch instruction.
 @end itemize
 
 In both cases, results can be rendered on a representation of the
-machine code (for instance an annotated assembly language output) or on
-a representation of the program sources.
-@c
-The focus is always on machine code coverage, still, and source
+machine code or on a representation of the program sources, e.g. by way
+of an annotated assembly language output or of annotated sources with a
+note for each line to synthesize information about all the machine code
+generated for that line.
+
+The focus is always on machine code coverage, however, and source
 annotations in this context are just a means to organize and hilight
 machine code properties of interest for the end user.
 
@@ -364,11 +373,11 @@ Source Coverage Analysis focuses on user source code and simply
 abstracts the machine code away.
 @c
 The DO-178B structural coverage criteria operate at this level, with
-three quantifiers defined over three core elements:
+quantifiers defined over three core elements:
 
 @itemize
 @item @dfn{Source statement},
-just referred to in the usual programming language sense.
+in the usual programming language sense.
 
 @item @dfn{Decision},
 defined as ``a Boolean expression composed of conditions and zero or
@@ -380,21 +389,20 @@ detail: ``If a condition appears more than once in a decision, each
 occurrence is a distinct condition.''.
 @end itemize
 
-@noindent Then we have:
+@noindent The quantifiers are as follows:
 @itemize
-@item @dfn{Source Statement Coverage (SSC)},
-a quantification of the source statements exercised by a set of
+@item @dfn{Source Statement Coverage (SSC)} ;
+which/how-much of the source statements were exercised by a set of
 program executions.
 
-@item @dfn{Source Decision Coverage (SDC)},
-SSC + a quantification of the values taken by each logical decision and
-of which entry/exit points were exercised by a set of program
-executions.
+@item @dfn{Source Decision Coverage (SDC)} ;
+SSC + indications on the values taken by each logical decision and of
+which entry/exit points were exercised.
 
-@item @dfn{Source Modified Condition/Decision Coverage (SMCDC)},
-SDC + a quantification of wich conditions took their two possible
-outcome and which were shown to have independant effect on their
-decisions out of a set of program executions.
+@item @dfn{Source Modified Condition/Decision Coverage (SMCDC)} ;
+SDC + indications on which conditions took their two possible outcome
+and which were shown to have independant effect on their decisions out
+of a set of program executions.
 @end itemize
 
 The quantifier names are often used standalone to denote coverage
@@ -450,7 +458,7 @@ boolean decision controlling the @code{if} statement evaluates to
 Decision Coverage requires that every decision has evaluated at least
 once to @code{True} and at least once @code{False}, which necessitates
 at least two calls in our example to exercise the @code{if} controlling
-expression properly.
+expression both ways.
 @c
 It also requires going through every possible entry and exit point,
 without further impact of note on the simple example at hand.
@@ -486,8 +494,7 @@ binary boolean operators are never mixed in the same expression, and
 3/ the machine code features one conditional branch instruction per
 condition.
 
-Conversely, even when OBC implies some source criteria, it is
-often too strong for this purpose.
+Wrt SDC, OIC is too weak and OBC too strong.
 
 [TO BE REFINED]
 
@@ -498,7 +505,7 @@ often too strong for this purpose.
 @node xcov-grounds,xcov-guide,scov-basics,Top
 @chapter Xcov Fundamentals
 
-@section Instrumentation & Raw Coverage Data
+@section Instrumentation mode
 @noindent
 The core principle in the Xcov framework is to leverage the generation
 of raw coverage data by a virtual execution environment instrumented to
@@ -601,172 +608,126 @@ bits in any case.
 @c *******************************************************************
 @node xcov-guide,,xcov-grounds,Top
 
-@chapter Xcov User's Guide - Qemu/GCC edition
+@chapter Xcov User's Guide
 
 @section Getting Started
+@noindent
+Below is a verbatim copy of the distribution @code{README} file, which
+provides a brief description of the package contents, installation
+instructions and a Quick Start section, basic introduction to the
+toolset architecture and interface:
 
-@subsection Package Contents
+@smallexample
+@verbatiminclude README
+@end smallexample
 
-As of today, the Xcov framework comprises two core command line
-components:
+As suggested by the previous introduction, Xcov offers a front-end to
+various coverage analysis related functionalities, each activated by a
+toplevel of command line option:
 
 @itemize
-
-@item
-An instrumented version of Qemu, able to generate execution traces of
-the machine code it executes, and
-
-@item
-The @xcov{} trace analyzer, able to decode the execution traces out of
-Qemu into various user readable formats, text or html, some of which may
-be visualized through GPS, the GNAT Programming Studio graphical IDE
-(starting from version 4.3.0).
-
+@item @option{--run} ;
+run code within an instrumented environment to produce raw execution
+traces.
+@item @option{--coverage} ;
+process raw execution traces to produce user-level results.
 @end itemize
+
+The following sections provide further details on the various modes of
+operation, first for simple cases where a single trace is to be produced
+and analyzed, then for more sophisticated needs requiring coverage data
+capitalization and consolidation.
+
+@section Instrumented Execution
+
+@xrun{} exposes a unified interface to launch programs for a specific
+target machine within the corresponding instrumented execution
+environment, producing raw execution traces.
+@c
+The interface synopsis out of @command{xcov --help} is as follows:
+
+@smallexample
+ xcov ...
+ --run [OPTIONS] FILE
+   Options are:
+   -t TARGET  --target=TARGET   Set the target
+   -v --verbose                 Be verbose
+   -T TAG  --tag=TAG            Put TAG in tracefile
+   -o FILE  --output=FILE       Write traces to FILE
+
+@end smallexample
+
+The @code{FILE} argument is the executable program file name and may
+come before the other options.
+@c
+The Quick Start example illustrates a simple use for a
+@code{powerpc-elf} target, using the dedicated GCC compilation toolchain
+to build from sources and the @option{--target} execution engine
+selector:
+
+@smallexample
+
+powerpc-elf-gcc -c ... test_engines.adb
+...
+xcov --run test_engines --target=powerpc-elf
+
+@end smallexample
 
 @noindent
-The package also includes
+An extra @option{-v} requests verbose output, in particular the commands
+to run the program within the underlying instrumented environment.
 
-@itemize
-@item
-A light Qemu Board Support Package to link with your executable to let
-it run within the emulated environment,
-
-@item
-A couple of low level components for Ada (simple IO, memory block
-copy/set/compare services, ...) in case they are not included in your
-run-time library
-
-@item
-A number of example programs you can exercise to get familiar with the
-toolset capabilities and which we'll use throughout the rest of this
-document,
-
-@item
-A support @code{Makefile} to automate an illustrative build/run/analyze
-sequence for the examples.
-
-@end itemize
-
-@subsection Quick Start
-
-We will start by running one of the provided examples thanks to the
-support @code{Makefile}, assuming you have both your target compilation
-toolchain and the Xcov package installed.
-
-The first step is to setup the @code{PATH} environment variable to
-include locations for both the target compiler and the Xcov @samp{bin}
-directory.
+By default, @xrun{} produces the execution trace output in a file named
+after the executable input, with a @code{.trace} suffix -
+@code{test_engines.trace} in the example above.
 @c
-For example with a @code{bash} like shell:
+@option{--output} allows the selection of an alternate output file name.
 
-@smallexample
-$ PATH=/usr/local/gnatpro/6.1.2/bin:/usr/local/xcov-1.0.0/bin:$PATH
-@end smallexample
-
-Then switch to the Xcov @code{explore} example directory and exercise
-the @code{test_queues} test there for your target, thanks to the local
-@code{Makefile}:
-
-@smallexample
-.../examples/explore $ make TESTS=test_queues TARGET=powerpc-elf
-@end smallexample
-
-This performs a build/run/analyze sequence out of which object coverage
-results rendered in sources are produced in html format.
+The @option{--tag} option expects a string argument and stores it
+verbatim as an attribute in the output trace header.
 @c
-No user interaction is required for this specific test.
+The tag so associated with a trace can be retrieved from trace dumps
+and is output as part of some analysis reports.
 @c
-To get a first idea of what is going on, let's looks at comments Over
-the sequence out of the @code{make} invocation above:
-
-@smallexample
-
-# Step 1:  Build an executable program suitable for Qemu. This is a
-# -------  regular <target>-gnatmake build with a couple of extra bsp
-#          components for startup/io + a dedicated linker script:
-
-powerpc-elf-gcc -c -o start.o ../support/powerpc-elf/start.s
-powerpc-elf-gcc -c -g -O1 -fpreserve-control-flow -o c_io.o .../c_io.c
-
-powerpc-elf-gnatmake -g -O1 -fpreserve-control-flow test_queues
- ... -largs start.o c_io.o -Wl,-T../support/powerpc-elf/gnu.ld -nostdlib
-[...]
-powerpc-elf-objcopy -O binary test_queues test_queues.bin
-
-# Step 2:  Run the '.bin' executable program within the instrumented Qemu,
-# -------  requesting the production of an execution '.trace' file:
-
-qemu-system-ppc -nographic -M prep -L . -bios test_queues.bin
-                -trace test_queues.trace /dev/null
-
-# Step 3:  Ask xcov to analyze the trace and produce an html version of
-# -------  the results, with object coverage branch info rendered on source:
-
-xcov -r test_queues.trace -e test_queues \
-         --annotate=html --asm --coverage=branch
-mv index.html index-test_queues.html
-
-@end smallexample
-
-The local @code{explore/Makefile} actually just includes a generic
-@code{support/Makefile} for all the examples, which you may reuse and
-adapt to your specific needs.
-@c
-We will now get into the @xcov{} features in more details.
-
-For simple cases as in the example above, the @option{-r} and
-@option{-e} command line options specify the trace and executable
-program files to use, respectively.
-@c
-Then:
-
-@itemize
-@item @option{--coverage}
-specifies the kind of information to produce, with variants to support
-different kinds of coverage analysis activities (OBC, SDC, ...), and
-
-@item @option{--annotate}
-specifies how the selected information should be presented (annotated
-source or assembly, html with colors, ...)
-@end itemize
+It is useful as a flexible trace identification facility, structured as
+users see fit for custom trace management purposes.
 
 @section Object Coverage Analysis
 
-@option{--coverage} accepts variants to request object instruction or
-branch coverage reports:
+@option{--coverage} allows the selection of object instruction or branch
+coverage reports:
 
-@itemize
-@item @option{--coverage=insn}
-requests @dfn{Object Instruction Coverage} data, with an indication for
+@multitable @columnfractions .15 .8
+@item @command{=insn}
+@tab requests @dfn{Object Instruction Coverage} data, with an indication for
 every instruction of whether it has been executed or not.
 
-@item @option{--coverage=branch}
-requests @dfn{Object Branch Coverage} data, with extra details about
+@item @command{=branch}
+@tab requests @dfn{Object Branch Coverage} data, with extra details about
 the directions taken by conditional branch instructions.
-@end itemize
+@end multitable
 
 @noindent
-Then:
+An additional @option{--annotate} option selects the output format:
 
-@itemize
-@item @option{--annotate=asm}
-produces annotated assembly code on standard output,
+@multitable @columnfractions .15 .8
+@item @command{=asm}
+@tab produces annotated assembly code on standard output.
 
-@item @option{--annotate=xcov[+asm]}
-produces annotated source files, with the object code for each source
-line interspersed if the @code{+asm} variant is selected,
+@item @command{=xcov[+asm]}
+@tab produces annotated source files, with the object code for each source
+line interspersed if the @code{+asm} variant is selected.
 
-@item @option{--annotate=html[+asm]}
-produces annotated sources in html format with colors, @code{+asm}
-code expandable from each source line by a click on the annotation, and
-an index summarizing the overall coverage status per compilation unit.
-@end itemize
+@item @command{=html[+asm]}
+@tab
+produces a coverage summary index in html, with links to annotated
+sources [@code{+asm} code expandable from each source line].
+@end multitable
 
 @noindent
 The following sections provides extra details and examples for each
 situation.
-
+@c
 In principle, this is all pretty independant of the program
 compilation options.
 @c
@@ -779,47 +740,42 @@ these have to be strictly controlled for source coverage.
 
 @subsection @code{--annotate=asm}
 @noindent
-For branch coverage analysis, @option{--annotate=asm} produces
-annotated assembly code for all the program routines on standard output.
+For object coverage analysis, @option{--annotate=asm} produces annotated
+assembly code for all the program routines on standard output.
 @c
 The annotations are visible as a special character at the beginning of
 each machine code line, with variants for instruction or branch coverage
 modes, as described by the following tables.
 
-The Note column contains the annotation character, the ``Means ...''
-column contains a short description of the annotation meaning and the
-``Coverage'' column qualifies the instruction coverage.
+@*@noindent
+For @dfn{Object Instruction Coverage}:
 
-@noindent
-For Instruction coverage we have:
-
-@multitable @columnfractions .1 .7 .2
-@headitem Note @tab Means ... @tab Coverage
+@multitable @columnfractions .1 .8
+@item @i{Note} @tab @i{Means ...}
 @item '-'
 @tab Instruction was never executed
-@tab Null
 @item '+'
 @tab Instruction was executed
-@tab Full
+@end multitable
+
+@*@noindent
+For @dfn{Object Branch coverage}, the `+' case is refined for
+conditional branch instructions:
+
+@multitable @columnfractions .1 .7
+@item @i{Note} @tab @i{Means ...}
+@item '>'
+@tab Conditional branch was executed, always taken
+@item 'v'
+@tab Conditional branch was executed, never taken
+@item '*'
+@tab Conditional branch was executed, taken and not taken
 @end multitable
 
 @noindent
-For Branch coverage, the ``instruction was executed'' case is refined
-into several subcases for conditional branch instructions:
-
-@multitable @columnfractions .1 .7 .2
-@headitem Note @tab Means ... @tab Coverage
-@item '>'
-@tab Conditional branch was executed, always taken
-@tab Partial
-@item 'v'
-@tab Conditional branch was executed, never taken
-@tab Partial
-@item '*'
-@tab
-Conditional branch was executed, taken and not taken
-@tab Full
-@end multitable
+We qualify instructions marked with @option{+} or @option{*} as
+@dfn{fully covered}, those marked with @option{-} as @dfn{uncovered} and
+the others as @dfn{partially covered}.
 
 To illustrate the output format, we will consider the Branch Coverage
 outcome for a piece of the Explore example, produced out of a couple of
@@ -849,17 +805,14 @@ and request branch coverage data in assembly format:
 
 @smallexample
 
-... $ make TESTS=explore trace
+... $ xcov --run --target=powerpc-elf explore
 [Explore runs in Qemu - type 'p', then 'Q']
 
-... $ xcov -r explore.trace -e explore
-      --coverage=branch --annotate=asm
-
+... $ xcov --coverage=branch --annotate=asm explore.trace      
 @end smallexample
 
-For the code associated with the source bits of interest, This yields
+For the code associated with the source bits of interest, this yields
 the following assembly coverage report excerpt:
-
 
 @smallexample
 ...
@@ -867,16 +820,16 @@ the following assembly coverage report excerpt:
 ...
 fffc1c0c +:     4b ff e6 7d   bl     0xfffc0288 <text_io__get>
 fffc1c10 +:     2f 83 00 51   cmpiw  cr7,r3,0x0051
-fffc1c14 *:     41 9e 00 0c   beq-   cr7,0xfffc1c20 <stations__run+00000078>
+fffc1c14 *:     41 9e 00 0c   @b{beq-}   cr7,0xfffc1c20 <stations__run+00000078>
 fffc1c18 +:     2f 83 00 71   cmpiw  cr7,r3,0x0071
-fffc1c1c >:     40 9e 00 10   bne-   cr7,0xfffc1c2c <stations__run+00000084>
+fffc1c1c >:     40 9e 00 10   @b{bne-}   cr7,0xfffc1c2c <stations__run+00000084>
 fffc1c20 +:     7f e3 fb 78   or     r3,r31,r31
 fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
 ...
 @end smallexample
 
-@code{beq} and @code{bne} are two conditional branch instructions,
-each associated with one of the two conditions.
+The @code{beq} and @code{bne} instructions are two conditional branches
+corresponding to the two conditions.
 @c
 In addition to straightforward coverage of the rest of the code, the '*'
 for the first branch indicates that it is fully covered and the '>' for
@@ -886,9 +839,10 @@ Indeed, both conditions were evaluated to False on the 'p' input, then
 on 'Q' the first condition was evaluated to True and the second one was
 short-circuited.
 
-As a second experiment, the user quits with 'Q' immediatly, in which
-case the first conditional branch is only partially covered and the
-second one is not even exercised:
+We run a second experiment, when the user quits with 'Q' immediatly.
+@c
+We observe that the first conditional branch is only partially covered
+and the second one is not even exercised:
 
 @smallexample
 ...
@@ -914,61 +868,85 @@ The annotations are visible as a special character at the beginning of
 every source line, which synthesizes the coverage status of all the
 machine instructions generated for this line.
 @c
-These annotations are really meant to convey object code properties,
-hence are of a different nature than what the DO-178B structural
-coverage criteria refer to.
+The machine instructions are printed next to their associated source
+line when the @option{+asm} option extension is used.
 
-A source line of code typically translates into multiple machine
-instructions, printed next to their associated source line when the
-@option{+asm} option extension is used.
+Eventhough the annotations are rendered on source lines in this case,
+they are really meant to convey object code properties, hence are of a
+different nature than what the DO-178B structural coverage criteria
+refer to.
 @c
 We defined a different synthesis of source line from object code
 annotations for instruction or branch coverage.
-@c
+
+@*@noindent
 For instruction coverage:
 
 @multitable @columnfractions .1 .8
-@headitem Note @tab Means ...
+@item @i{Note} @tab @i{Means ...}
 @item '-'
-@tab None of the machine instructions associated with the line
-was not executed
+@tab None of the line instructions were executed
 @item '!'
-@tab At least one of the machine instructions associated with the line
-was not executed
+@tab At least one of the line instructions was not executed
 @item '+'
-@tab All the machine instructions associated with the line were executed
+@tab All the line instructions were executed
 @end multitable
 
 @noindent
 For branch coverage, the @code{'+'} case is refined into:
 
 @multitable @columnfractions .1 .8
-@headitem Note @tab Means ...
+@item @i{Note} @tab @i{Means ...}
 @item '>'
-@tab Object code includes a single conditional branch, taken
+@tab Object code features a single conditional branch, taken
 @item 'v'
-@tab Object code includes a single conditional branch, not taken
+@tab Object code features a single conditional branch, not taken
 @item '*'
-@tab All object code conditional branches were fully covered
+@tab Object code features conditional branches, all fully covered
 @item '?'
-@tab Some of object code conditional branches were partially covered
+@tab Object code features conditional branches, some partially covered
 @end multitable
 
-Requires -g
-
-Examples
+At this stage, @xcov{} relies on dwarf debug information to associate
+machine instructions with their corresponding source lines, so these
+annotations are only possible when this is available.
+@c
+In GCC parlance, this requires compilation with the @option{-g} command
+line switch, with no influence on the generated code by design.
 
 @subsection @code{--annotate=html[+asm]}
+@noindent
+@option{--annotate=html} produces one @code{.html} browsable annotated
+source file per original compilation unit in the current directory.
+@c
+It also generates an @code{index.html} page to summarize the coverage
+results and offer links to the annotated sources.
+
+With @code{+asm} in addition, the annotated machine code for each line
+may be expanded below it by a mouse click on the source annotation
+character.
 
 @section Source Coverage Analysis
 
+Focus on source, through Source Coverage Obligations. Object code
+abstracted away.
+
 Capabilities and documentation to be developped.
 
-Compilation options have to be strictly controlled.
+Requires extended traces for MCDC.
 
-Requires extended traces for MCDC, checkpoint info instead 
 
-Focuses on source, through Source Coverage Obligations.
+@section Synthetic Coverage Reports
+
+To be developped.
+
+@section Coverage Data Capitalization & Consolidation
+
+Trace tags and trace/program associations as a flexible device to
+implement custom trace management facilitites.
+
+@option{--routine-list} on  @command{xcov --coverage}.
+
 
 @section Ada Constructs of Note
 
@@ -982,11 +960,7 @@ Focuses on source, through Source Coverage Obligations.
 
 Expansions, precise debug info ...
 
--O1 -fpreserve-control-flow
-
-@section Coverage Data Capitalization
-
-@section Coverage Data Consolidation
+-fpreserve-control-flow
 
 @section @code{xcov} command line summary
 

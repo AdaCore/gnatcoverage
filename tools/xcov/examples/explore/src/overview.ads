@@ -35,18 +35,25 @@
 --  - a situation link, through which the robot sends info about it's
 --    current situation (position, orientation, field ahead).
 --
---  The field is modeled as a set of squares.  Below is a schematic
---  illustration of the various parts involved.
+--  The field is modeled as a set of squares, each represented by a
+--  single character to denote the square nature:
 --
---  'R' represents the robot (there is actually a different character for
---  each possible orientation), 'S' the station, '#' blocks, ' ' regular
---  ground and '?' squares yet unexplored:
+--     '#' is a rock block, ' ' is regular ground, '~' is water
+--
+--     '?' is a square yet unexplored
+--
+--     '<', '>', '^' or 'v' is the robot heading west, east, north
+--     or south, respectively.
+
+--  Below is a schematic illustration of the various parts involved
+--  for a rectangular field delimited by rock blocks, a robot heading
+--  south and an 'S' to materialize the Station:
 --
 --            field                               view
 --          ##########                          ??????????
 --          #  #     #  <- control link         ?  #  ? ??
---          #    R<==========================>S ??   R  ??
---          #  #     #   situation link ->      ?  ?    ??
+--          #    v<==========================>S ??   R  ??
+--          #  ~     #   situation link ->      ?  ?    ??
 --          ##########                          ??????????
 --
 --  The Robot and Station active entities are both called Actors in this
@@ -142,4 +149,5 @@
 --   Controls (Robot_Control + Robot_Control_Links)
 --   ========
 
-package Overview is end Overview;
+package Overview is
+end Overview;

@@ -1,6 +1,32 @@
 This is the README file for the binary distribution of the Xcov coverage
 analysis facility.
 
+PACKAGE CONTENTS
+================
+This package provides two core command line components:
+
+* An instrumented version of Qemu, able to generate execution traces of
+  the machine code it executes, and
+
+* The xcov front-end, used both as a wrapper of the instrumented execution
+  environment (xcov --run) and as a trace analyzer (xcov --coverage) able
+  to produce various user readable formats.
+
+As part of the examples subdirectory, the package also includes:
+
+* A light Qemu Board Support Package to link with your executable to let
+  it run within the emulated environment,
+
+* A couple of low level components for Ada (simple IO, memory block
+  copy/set/compare services, ...) in case they are not included in your
+  run-time library,
+
+* A number of example programs you can exercise to get familiar with the
+  toolset capabilities,
+
+* Support Makefiles to automate an illustrative build/run/analyze
+  sequence for the examples.
+
 INSTALL
 =======
 This distribution can be used standalone, without any specific installation
@@ -13,13 +39,57 @@ If this is more convenient for you, you may transfer the contents of the "bin"
 and "share" subdirectories into their corresponding entries within a
 pre-existing installation tree, where a GNAT toolset is located for instance.
 
-USE
-===
-Using Xcov is documented in the "Xcov Fundamentals & Users Guide" available in
-this package, from the <unpack/installation-root>/share/doc/xcov directory.
-
-EXAMPLES
-========
+QUICK START
+===========
 Examples are provided in the <unpack/installation-root>/share/examples/xcov
 directory. The "Explore" example is introduced in the user's guide and used
 for illustration purposes there.
+
+A simple start is to run one of the examples, assuming you have both your
+target compilation toolchain and this package installed.
+
+The first step is to setup the PATH environment variable to include locations
+for both the target compiler and the Xcov "bin" directory. For example with a
+bash like shell:
+
+  $ PATH=/usr/local/gnat/6.1.2/bin:/usr/local/xcov/bin:$PATH
+
+Then switch to the Xcov "engines" example directory and exercise the
+"test_engines" test there for your target, thanks to the local Makefile:
+
+  engines $ make TESTS=test_engines TARGET=powerpc-elf
+
+This performs a build/run/analyze sequence out of which object coverage
+results rendered in sources are produced in html format, browsable from
+an index page in index-test_engines.html.
+
+Here is a brief description of what is going on:
+
+# Step 1:  Build an executable program suitable for Qemu. This is a
+# -------  regular Ada build with a couple of extra bsp components for
+#          startup, io & a dedicated linker script:
+
+powerpc-elf-gcc -c -o start.o ../support/powerpc-elf/start.s
+...
+powerpc-elf-gcc -c -g -O1 -fpreserve-control-flow test_engines.adb
+...
+
+# Step 2:  Run the executable program within the instrumented Qemu
+# -------  to get an execution '.trace' file:
+
+xcov --run test_engines --target=powerpc-elf
+
+# Step 3:  Ask xcov to analyze the trace and produce an html version of
+# -------  the results, with object coverage branch info rendered on source:
+
+xcov --coverage=branch --annotate=html+asm test_engines.trace
+mv index.html index-test_engines.html
+
+The local Makefile actually just includes a generic Makefile common to all the
+examples, which you may reuse and adapt to your specific needs.
+
+DOCUMENTATION
+=============
+Further documentation is available from the "Xcov Fundamentals & Users Guide"
+in the <unpack/installation-root>/share/doc/xcov directory of this package.
+
