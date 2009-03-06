@@ -344,7 +344,7 @@ package body Traces_Sources is
             Pretty_Print_Line (Pp, I, Ls, "");
          end if;
 
-         if Flag_Show_Asm then
+         if Pp.Show_Asm then
             --  Iterate over each insns block for the source line.
             Info := File.Table (I).First_Line;
             while Info /= null loop
@@ -382,7 +382,8 @@ package body Traces_Sources is
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
 
-   procedure Disp_Line_State (Pp : in out Pretty_Printer'Class)
+   procedure Disp_Line_State (Pp      : in out Pretty_Printer'Class;
+                             Show_Asm : Boolean)
    is
       use Filenames_Maps;
       use Ada.Text_IO;
@@ -397,6 +398,7 @@ package body Traces_Sources is
       Cur : Cursor;
    begin
       Pp.Global_Stats := (others => 0);
+      Pp.Show_Asm := Show_Asm;
 
       Pretty_Print_Start (Pp);
 

@@ -20,6 +20,7 @@ with Traces_Elf; use Traces_Elf;
 with Traces_Dbase; use Traces_Dbase;
 with Strings; use Strings;
 with Elf_Files; use Elf_Files;
+with Ada.Text_IO; use Ada.Text_IO;
 
 package Traces_Names is
    --  Add (or remove if EXCLUDE is true) routines read from ELF file
@@ -70,5 +71,9 @@ package Traces_Names is
    --  retired.
 
    procedure Dump_Routines_Traces;
+
+   procedure Dump_Uncovered_Routines (Report : File_Access);
+   --  Go through the routine database and dump the list of uncovered
+   --  routines into Report.
 
 end Traces_Names;

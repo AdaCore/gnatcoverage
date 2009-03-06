@@ -23,7 +23,6 @@ with Elf_Arch; use Elf_Arch;
 with Traces; use Traces;
 with Interfaces; use Interfaces;
 with System.Storage_Elements; use System.Storage_Elements;
-with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Dwarf_Handling; use Dwarf_Handling;
 with Traces_Sources; use Traces_Sources;
@@ -497,5 +496,38 @@ package body Traces_Names is
          Next (Cur);
       end loop;
    end Build_Source_Lines;
+
+   procedure Dump_Uncovered_Routines (Report : File_Access)
+   is
+      use Names_Maps;
+      use Traces_Disa;
+      Cur : Cursor;
+      E : Subprogram_Name;
+      Routine_State : Line_State;
+      Routine_Name  : String_Acc;
+   begin
+      Put_Line (Report.all, "ERRORS BY ROUTINE:");
+      New_Line (Report.all);
+
+      Cur := Names.First;
+      while Has_Element (Cur) loop
+         E := Element (Cur);
+
+         Routine_Name := Key (Cur);
+         Routine_State := Compute_Routine_State (E);
+
+         if Routine_State /= Covered
+           and then Routine_State /= No_Code
+         then
+            Put (Report.all, Routine_Name.all & " not fully covered : ");
+            Put (Report.all, State_Char (Routine_State));
+            New_Line (Report.all);
+         end if;
+
+         Next (Cur);
+      end loop;
+
+      New_Line (Report.all);
+   end Dump_Uncovered_Routines;
 
 end Traces_Names;

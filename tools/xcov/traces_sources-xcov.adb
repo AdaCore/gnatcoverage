@@ -124,11 +124,11 @@ package body Traces_Sources.Xcov is
       Close (Pp.Xcov_File);
    end Pretty_Print_End_File;
 
-   procedure Generate_Report
+   procedure Generate_Report (Show_Asm : Boolean)
    is
       Xcov : Xcov_Pretty_Printer;
    begin
-      Traces_Sources.Disp_Line_State (Xcov);
+      Traces_Sources.Disp_Line_State (Xcov, Show_Asm);
    end Generate_Report;
 
 end Traces_Sources.Xcov;

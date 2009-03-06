@@ -19,5 +19,5 @@
 
 package Traces_Sources.Html is
    --  Display source lines with status.
-   procedure Generate_Report;
+   procedure Generate_Report (Show_Asm : Boolean);
 end Traces_Sources.Html;

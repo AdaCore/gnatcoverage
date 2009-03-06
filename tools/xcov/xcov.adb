@@ -23,6 +23,7 @@ with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
 with Traces_Sources.Html;
 with Traces_Sources.Xcov;
+with Traces_Sources.Report;
 with Traces_Names;
 with Traces_Files; use Traces_Files;
 with Traces_Dbase; use Traces_Dbase;
@@ -57,8 +58,9 @@ procedure Xcov is
       P (" --coverage=[insn|branch] OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
-      P ("   -a=FORM  --annotate=FORM      Generate a FORM report");
+      P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm");
+      New_Line;
       P (" --disp-routines {[--exclude|--include] FILE}");
       P ("    Build a list of routines from executable files");
       New_Line;
@@ -156,7 +158,7 @@ procedure Xcov is
 
    type Annotation_Format is (Annotate_Asm, Annotate_Xcov, Annotate_Html,
                               Annotate_Xcov_Asm, Annotate_Html_Asm,
-                              Annotate_Unknown);
+                              Annotate_Report, Annotate_Unknown);
    function To_Annotation_Format (Option : String) return Annotation_Format;
 
    Annotations           : Annotation_Format;
@@ -175,10 +177,15 @@ procedure Xcov is
          return Annotate_Xcov_Asm;
       elsif Option = "html+asm" then
          return Annotate_Html_Asm;
+      elsif Option = "report" then
+         return Annotate_Report;
       else
          return Annotate_Unknown;
       end if;
    end To_Annotation_Format;
+
+   Final_Report_Option       : constant String := "--report=";
+   Final_Report_Option_Short : constant String := "-o";
 
    Text_Start : Pc_Type := 0;
    Trace_File : Trace_File_Element_Acc;
@@ -396,6 +403,16 @@ begin
                Error ("bad parameter for " & Coverage_Option);
                return;
             end if;
+         elsif Arg = Final_Report_Option_Short then
+            if Arg_Index > Arg_Count then
+               Put_Line ("Missing final report name to "
+                         & Final_Report_Option_Short);
+               return;
+            end if;
+            Traces_Sources.Report.Open_Report_File (Argument (Arg_Index));
+            Arg_Index := Arg_Index + 1;
+         elsif Begins_With (Arg, Final_Report_Option) then
+            Traces_Sources.Report.Open_Report_File (Option_Parameter (Arg));
          elsif Arg (1) = '-' then
             Error ("unknown option: " & Arg);
             return;
@@ -487,17 +504,20 @@ begin
          Traces_Disa.Flag_Show_Asm := True;
          Traces_Names.Dump_Routines_Traces;
       when Annotate_Xcov =>
-         Traces_Sources.Xcov.Generate_Report;
+         Traces_Sources.Xcov.Generate_Report (False);
       when Annotate_Html =>
-         Traces_Sources.Html.Generate_Report;
+         Traces_Sources.Html.Generate_Report (False);
       when Annotate_Xcov_Asm =>
-         Traces_Disa.Flag_Show_Asm := True;
-         Traces_Sources.Xcov.Generate_Report;
+         Traces_Sources.Xcov.Generate_Report (True);
       when Annotate_Html_Asm =>
-         Traces_Disa.Flag_Show_Asm := True;
-         Traces_Sources.Html.Generate_Report;
+         Traces_Sources.Html.Generate_Report (True);
+      when Annotate_Report =>
+         Traces_Names.Dump_Uncovered_Routines
+           (Traces_Sources.Report.Get_Output);
+         Traces_Sources.Report.Finalize_Report;
       when Annotate_Unknown =>
          Put_Line ("Please specify an annotation format.");
          return;
    end case;
+
 end Xcov;

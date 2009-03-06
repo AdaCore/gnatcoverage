@@ -19,5 +19,5 @@
 
 package Traces_Sources.Xcov is
    --  Generate the report in xcov format.
-   procedure Generate_Report;
+   procedure Generate_Report (Show_Asm : Boolean);
 end Traces_Sources.Xcov;

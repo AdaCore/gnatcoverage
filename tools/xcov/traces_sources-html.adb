@@ -588,10 +588,10 @@ package body Traces_Sources.Html is
       Close (Pp.Html_File);
    end Pretty_Print_End_File;
 
-   procedure Generate_Report
+   procedure Generate_Report (Show_Asm : Boolean)
    is
       Html : Html_Pretty_Printer;
    begin
-      Traces_Sources.Disp_Line_State (Html);
+      Traces_Sources.Disp_Line_State (Html, Show_Asm);
    end Generate_Report;
 end Traces_Sources.Html;

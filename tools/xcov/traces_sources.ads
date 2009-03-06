@@ -246,6 +246,7 @@ private
    type Pretty_Printer is abstract tagged limited record
       Need_Sources : Boolean;
       Global_Stats : Stat_Array;
+      Show_Asm     : Boolean;
    end record;
 
    --  Called once at the beginning of the process.
@@ -273,5 +274,6 @@ private
                                 Sym : Symbolizer'Class) is null;
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
 
-   procedure Disp_Line_State (Pp : in out Pretty_Printer'Class);
+   procedure Disp_Line_State (Pp       : in out Pretty_Printer'Class;
+                              Show_Asm : Boolean);
 end Traces_Sources;
