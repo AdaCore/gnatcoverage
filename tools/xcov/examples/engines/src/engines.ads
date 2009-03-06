@@ -32,12 +32,8 @@ package Engines is
    Stable_P : constant := 10;
    Stable_T : constant := 50;
 
-   --  The engine synthetic state: Critical if both parameters are beyond
-   --  their respective stability threshold, Alarming if one parameter is,
-   --  Stable otherwise.
-
-   type State is (Stable, Alarming, Critical);
-
-   function State_Of (E : Engine) return State;
+   function Stable (E : Engine) return Boolean;
+   --  Whether the engine E is stable, iff both Pressure and Temperature
+   --  are below the stability threshold.
 
 end Engines;

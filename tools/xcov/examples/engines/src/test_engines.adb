@@ -17,7 +17,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Last_Chance_Handler;
 with Engines; use Engines;
 
 ------------------
@@ -25,22 +24,25 @@ with Engines; use Engines;
 ------------------
 procedure Test_Engines is
    E : Engine;
+
+   procedure Assert (X : Boolean);
+
+   procedure Assert (X : Boolean) is
+   begin
+      if not X then
+         raise Program_Error;
+      end if;
+   end Assert;
 begin
 
-   --  Exercise various conditions and decisions in State_Of.  Incomplete, as
-   --  this doesn't check the behavior on equality wrt thresholds, and misses
-   --  the Alarming combinations.
+   --  Exercise various condition/decision combinations in Stable.
 
    E.T := Stable_T + 1;
    E.P := Stable_P + 1;
-   if State_Of (E) /= Critical then
-      raise Program_Error;
-   end if;
+   Assert (not Stable (E));
 
    E.T := Stable_T - 1;
    E.P := Stable_P - 1;
-   if State_Of (E) /= Stable then
-      raise Program_Error;
-   end if;
+   Assert (Stable (E));
 
 end Test_Engines;
