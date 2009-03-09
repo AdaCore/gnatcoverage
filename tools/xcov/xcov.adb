@@ -484,6 +484,7 @@ begin
             return;
          end if;
          Traces_Disa.Flag_Show_Asm := True;
+         Coverage.Dump_Coverage_Option (Standard_Output);
          Traces_Names.Dump_Routines_Traces;
       when Annotate_Xcov =>
          Traces_Sources.Xcov.Generate_Report (False);
@@ -494,6 +495,7 @@ begin
       when Annotate_Html_Asm =>
          Traces_Sources.Html.Generate_Report (True);
       when Annotate_Report =>
+         Coverage.Dump_Coverage_Option (Traces_Sources.Report.Get_Output);
          Traces_Names.Dump_Uncovered_Routines
            (Traces_Sources.Report.Get_Output);
          Traces_Sources.Report.Finalize_Report;

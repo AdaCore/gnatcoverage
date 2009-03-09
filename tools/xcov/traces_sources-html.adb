@@ -24,6 +24,7 @@ with Traces_Disa; use Traces_Disa;
 with Traces_Files;
 with Traces_Files_List;
 with Qemu_Traces;
+with Coverage; use Coverage;
 
 package body Traces_Sources.Html is
    type String_Cst_Acc is access constant String;
@@ -204,6 +205,8 @@ package body Traces_Sources.Html is
       P ("</head>");
       P ("<body>");
       P ("<h1 align=""center"">XCOV coverage report</h1>");
+      P ("<h2 align=""center""> Coverage level: "
+         & To_Coverage_Option (Get_Action) & "</h2>");
       P ("  <table cellspacing=""1"" class=""SumTable"">");
       P ("    <tr>");
       P ("      <td class=""SumHead"" width=""60%"">Filename</td>");
@@ -435,6 +438,8 @@ package body Traces_Sources.Html is
       Plh (Pp, "</head>");
       Plh (Pp, "<body>");
       Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
+      Plh (Pp, "<h2 align=""center""> Coverage level: "
+           & To_Coverage_Option (Get_Action) & "</h2>");
       Plh (Pp, "<table class=""SumTable""><tr>");
       Print_Coverage_Stats (Pp.Html_File, Stats);
       Plh (Pp, "</tr></table>");

@@ -21,6 +21,7 @@ with Ada.Integer_Text_IO;
 with Ada.Directories;
 with Hex_Images; use Hex_Images;
 with Traces_Disa; use Traces_Disa;
+with Coverage; use Coverage;
 
 package body Traces_Sources.Xcov is
    type Xcov_Pretty_Printer is new Pretty_Printer with record
@@ -79,6 +80,8 @@ package body Traces_Sources.Xcov is
 
       Put_Line (Pp.Xcov_File, Source_Filename & ':');
       Put_Line (Pp.Xcov_File, Get_Stat_String (Stats));
+      Put_Line (Pp.Xcov_File, "Coverage level: "
+                & To_Coverage_Option (Get_Action));
    end Pretty_Print_File;
 
    procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;
