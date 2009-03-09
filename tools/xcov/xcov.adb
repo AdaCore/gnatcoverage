@@ -59,7 +59,7 @@ procedure Xcov is
       P ("   Generate coverage report");
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
-      P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm");
+      P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
       New_Line;
       P (" --disp-routines {[--exclude|--include] FILE}");
       P ("    Build a list of routines from executable files");
