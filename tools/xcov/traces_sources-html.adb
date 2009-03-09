@@ -423,7 +423,7 @@ package body Traces_Sources.Html is
                 & To_Xml_String (Simple_Source_Filename) & "</title>");
       Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
              & "href=""xcov.css"">");
-      if Flag_Show_Asm then
+      if Pp.Show_Asm then
          Plh (Pp, "  <script language=""JavaScript"" "
                 & "type=""text/javascript"">");
          Plh (Pp, "    function flip(atr) {");
@@ -516,12 +516,12 @@ package body Traces_Sources.Html is
          when No_Code =>
             Wrh (Pp, "no code generated for this line");
       end case;
-      if Flag_Show_Asm and then State /= No_Code then
+      if Pp.Show_Asm and then State /= No_Code then
          Wrh (Pp, " (click to display/mask assembly code)");
       end if;
       Wrh (Pp, """");
 
-      if Flag_Show_Asm and then State /= No_Code then
+      if Pp.Show_Asm and then State /= No_Code then
          Wrh (Pp, " onclick=""flip(this)""");
       end if;
       Plh (Pp, ">");
@@ -597,6 +597,7 @@ package body Traces_Sources.Html is
    is
       Html : Html_Pretty_Printer;
    begin
+      Html.Show_Asm := Show_Asm;
       Traces_Sources.Disp_Line_State (Html, Show_Asm);
    end Generate_Report;
 end Traces_Sources.Html;
