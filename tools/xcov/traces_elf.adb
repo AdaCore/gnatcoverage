@@ -31,6 +31,7 @@ with Traces_Names;
 with Traces_Disa;
 with Ppc_Descs;
 with Sparc_Descs;
+with Coverage; use Coverage;
 
 package body Traces_Elf is
    procedure Disp_Addresses (Set : Addresses_Containers.Set);
@@ -1481,6 +1482,34 @@ package body Traces_Elf is
    is
       use Addresses_Containers;
 
+      function Coverage_State (State : Trace_State) return Trace_State;
+      --  Given the branch coverage state of an instruction, return
+      --  the state that correspond to the actual coverage action
+      --  that xcov is performing.
+
+      function Coverage_State (State : Trace_State) return Trace_State is
+      begin
+         if Get_Action = Insn_Coverage then
+            --  Instruction coverage; no need to trace in which ways
+            --  a branch has been covered.
+            if State = Branch_Taken
+              or else State = Both_Taken
+              or else State = Fallthrough_Taken
+            then
+               return Covered;
+            else
+               return State;
+            end if;
+
+         else
+            --  Branch coverage; nothing to do.
+            --  In any other case (source coverage), the actual state will be
+            --  computed later, based on the branch coverage results and
+            --  the source coverage obligations.
+            return State;
+         end if;
+      end Coverage_State;
+
       It : Entry_Iterator;
       Trace : Trace_Entry;
       Addr : Pc_Type;
@@ -1524,9 +1553,11 @@ package body Traces_Elf is
                   is
                   begin
                      if Trace_Len > 4 then
-                        Split_Trace (Base, It, Trace.Last - 4, Covered);
+                        Split_Trace (Base, It, Trace.Last - 4,
+                                     Coverage_State (Covered));
                      end if;
-                     Update_State (Base, It, Next_State);
+                     Update_State (Base, It,
+                                   Coverage_State (Next_State));
                   end Update_Or_Split;
 
                   function Is_Conditional_Branch
@@ -1576,7 +1607,7 @@ package body Traces_Elf is
                      --  * or not a branch. This last case
                      --  may happen when a trace entry has been
                      --  split; in such a case, the .
-                     Update_State (Base, It, Covered);
+                     Update_State (Base, It, Coverage_State (Covered));
                   end if;
                end;
 
@@ -1653,7 +1684,8 @@ package body Traces_Elf is
                      Br := Br1;
                   end if;
                   if Pc1 + 1 > Trace.First then
-                     Split_Trace (Base, It, Pc1, Covered);
+                     Split_Trace (Base, It, Pc1,
+                                  Coverage_State (Covered));
                   end if;
 
                   case Br is
@@ -1672,12 +1704,12 @@ package body Traces_Elf is
 
                   --  Branch instruction state.
                   if Br1 = Br_None then
-                     Update_State (Base, It, Nstate);
+                     Update_State (Base, It, Coverage_State (Nstate));
                   else
-                     Split_Trace (Base, It, Pc1 + 4, Nstate);
+                     Split_Trace (Base, It, Pc1 + 4, Coverage_State (Nstate));
 
                      --  FIXME: is it sure.
-                     Update_State (Base, It, Covered);
+                     Update_State (Base, It, Coverage_State (Covered));
                   end if;
                end;
 

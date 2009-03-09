@@ -35,6 +35,7 @@ with Qemu_Traces;
 with Execs_Dbase; use Execs_Dbase;
 with Strings; use Strings;
 with Traces_Files_List; use Traces_Files_List;
+with Coverage; use Coverage;
 
 procedure Xcov is
    procedure Usage;
@@ -130,31 +131,7 @@ procedure Xcov is
    Routine_List_Option       : constant String := "--routine-list=";
    Routine_List_Option_Short : constant String := "-l";
 
-   type Coverage_Action is (Insn_Coverage, Branch_Coverage, Stmt_Coverage,
-                            Decision_Coverage, MCDC_Coverage,
-                            Unknown_Coverage);
-   function To_Coverage_Action (Option : String) return Coverage_Action;
-
-   Action                : Coverage_Action := Unknown_Coverage;
-   Coverage_Option       : constant String := "--coverage=";
-   Coverage_Option_Short : constant String := "-c";
-
-   function To_Coverage_Action (Option : String) return Coverage_Action is
-   begin
-      if Option = "insn" then
-         return Insn_Coverage;
-      elsif Option = "branch" then
-         return Branch_Coverage;
-      elsif Option = "stmt" then
-         return Stmt_Coverage;
-      elsif Option = "decision" then
-         return Decision_Coverage;
-      elsif Option = "mcdc" then
-         return MCDC_Coverage;
-      else
-         return Unknown_Coverage;
-      end if;
-   end To_Coverage_Action;
+   Action                    : Coverage_Action;
 
    type Annotation_Format is (Annotate_Asm, Annotate_Xcov, Annotate_Html,
                               Annotate_Xcov_Asm, Annotate_Html_Asm,
@@ -396,6 +373,7 @@ begin
                Error ("bad parameter for " & Coverage_Option_Short);
                return;
             end if;
+            Set_Action (Action);
             Arg_Index := Arg_Index + 1;
          elsif Begins_With (Arg, Coverage_Option) then
             Action := To_Coverage_Action (Option_Parameter (Arg));
@@ -403,6 +381,7 @@ begin
                Error ("bad parameter for " & Coverage_Option);
                return;
             end if;
+            Set_Action (Action);
          elsif Arg = Final_Report_Option_Short then
             if Arg_Index > Arg_Count then
                Put_Line ("Missing final report name to "
@@ -429,11 +408,14 @@ begin
       return;
    end if;
 
-   case Action is
+   case Get_Action is
       when Insn_Coverage =>
-         Put_Line ("Insn coverage has not been implemented yet.");
-         return;
+         --  Nothing left to be done after having called Set_Action;
+         --  Set_Trace_State will use Coverage's global variable
+         --  to determine what kind of object coverage should be performed.
+         null;
       when Branch_Coverage =>
+         --  Ditto.
          null;
       when Stmt_Coverage =>
          Put_Line ("Stmt coverage has not been implemented yet.");
@@ -497,7 +479,7 @@ begin
 
    case Annotations is
       when Annotate_Asm =>
-         if Action in Stmt_Coverage .. MCDC_Coverage then
+         if Get_Action in Source_Coverage_Action then
             Error ("Asm format not supported for source coverage.");
             return;
          end if;
