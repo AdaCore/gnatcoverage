@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                    Copyright (C) 2008-2009, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,21 +16,18 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Interfaces; use Interfaces;
+
+with Interfaces;         use Interfaces;
+with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
 package Swaps is
-   function Swap_16 (V : Unsigned_16) return Unsigned_16;
-   function Swap_32 (V : Unsigned_32) return Unsigned_32;
-   function Swap_64 (V : Unsigned_64) return Unsigned_64;
 
-   function Swap (V : Unsigned_16) return Unsigned_16
-     renames Swap_16;
-   function Swap (V : Unsigned_32) return Unsigned_32
-     renames Swap_32;
-   function Swap (V : Unsigned_64) return Unsigned_64
-     renames Swap_64;
+   function Swap is new Swapped2 (Unsigned_16);
+   function Swap is new Swapped4 (Unsigned_32);
+   function Swap is new Swapped8 (Unsigned_64);
 
    procedure Swap_16 (V : in out Unsigned_16);
    procedure Swap_32 (V : in out Unsigned_32);
    procedure Swap_64 (V : in out Unsigned_64);
+
 end Swaps;
