@@ -1,11 +1,8 @@
-# To run this example, there are two options: use
-#
-# $ make TESTS=explore
-#
-# to run the explore example, and use it interactively, or
-#
-# $ make UNIT_TESTS=test_explore
-#
-# to run the AUnit based unit testing of the explore example
-# in this case, AUnit needs to be installed for powerpc-elf.
+# This example features both an interactive program and a set of AUnit based
+# tests for some of the program units. This Makefile lets you select the
+# variant to exercise:
+
+# make TESTS=explore            runs the interactive program
+# make UNIT_TESTS=test_explore  runs the AUnit based tests
+
 include ../support/Makefile.examples
