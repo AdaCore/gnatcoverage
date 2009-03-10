@@ -41,46 +41,26 @@ package body Robots is
 
    use Robot_Control_Links;
 
-   function Safe (Cmd : Robot_Command; Sqa : Square) return Boolean;
-   --  Whether the command is safe with the Sqa square ahead
+   function Unsafe (Cmd : Robot_Command; Sqa : Square) return Boolean;
+   --  Whether execution of CMD is unsafe with the SQA square ahead
+
+   pragma Export (Ada, Unsafe, "robots__unsafe");
+   --  ??? prevent inlining
 
    procedure Process_Next_Control (Port : Robot_Control_Links.IOport_Access);
    --  Process the next control command available from PORT
 
-   ----------
-   -- Safe --
-   ----------
+   ------------
+   -- Unsafe --
+   ------------
 
-   function Safe (Cmd : Robot_Command; Sqa : Square) return Boolean is
+   function Unsafe (Cmd : Robot_Command; Sqa : Square) return Boolean is
    begin
-      --  Safe when the block ahead is not a rock block or water, or we don't
-      --  step forward.
+      --  Stepping forward into a rock block or a water pit is Unsafe
 
-      --  The following test is interesting to show the difference between
-      --  object branch coverage and MCDC:
-      --  Using
-      --    X := Sqa /= Block
-      --    Y := Sqa /= Water
-      --    Z := Cmd /= Step_Forward
-      --
-      --  Object branch will require the following 3 tests
-      --     X Y Z Res
-      --  1: T T ? T
-      --  2: T F T T
-      --  3: F ? F F
-      --
-      --  While MCDC coverage will require the following 4 tests
-      --     X Y Z Res
-      --  1: T F F F
-      --  2: T T F T
-      --  3: F T F F
-      --  4: F T T T
-      --  with tests 1 & 2 testing independance of Y
-      --             2 & 3 testing independance of X
-      --             3 & 4 testing independance of Z
-
-      return (Sqa /= Block and then Sqa /= Water) or else Cmd /= Step_Forward;
-   end Safe;
+      return Cmd = Step_Forward
+        and then (Sqa = Block or else Sqa = Water);
+   end Unsafe;
 
    --------------------------
    -- Process_Next_Control --
@@ -95,10 +75,10 @@ package body Robots is
    begin
       Pop (Ctrl, Port);
 
-      --  When in Cautious mode, the robot processes the the Ctrl only when the
-      --  action is safe.
+      --  In Cautious mode, the robot refuses to process unsafe controls
+
       if Robot.Mode = Cautious
-        and then not Safe (Ctrl.Code, Probe_Ahead (Robot.Hw.Rad))
+        and then Unsafe (Ctrl.Code, Probe_Ahead (Robot.Hw.Rad))
       then
          return;
       end if;
