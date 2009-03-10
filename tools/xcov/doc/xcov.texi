@@ -19,6 +19,10 @@
 @command{xcov --run}
 @end macro
 
+@macro h {text}  @c style for headers in descriptive tables
+@dfn{\text\}
+@end macro
+
 @macro bibref {entry}
 [@cite{\entry\}]
 @end macro
@@ -641,7 +645,7 @@ capitalization and consolidation.
 @section Instrumented Execution
 
 @xrun{} exposes a unified interface to launch programs for a specific
-target machine within the corresponding instrumented execution
+target machine within the appropriate instrumented execution
 environment, producing raw execution traces.
 @c
 The interface synopsis out of @command{xcov --help} is as follows:
@@ -657,20 +661,18 @@ The interface synopsis out of @command{xcov --help} is as follows:
 
 @end smallexample
 
-The @code{FILE} argument is the executable program file name and may
-come before the other options.
+The @code{FILE} argument is the executable program file name.
 @c
-The Quick Start example illustrates a simple use for a
-@code{powerpc-elf} target, using the dedicated GCC compilation toolchain
-to build from sources and the @option{--target} execution engine
-selector:
+The Quick Start example in the distribution @code{README} illustrates a
+simple use for a @code{powerpc-elf} target, using the dedicated GCC
+toolchain to build from sources and the @option{--target} execution
+engine selector:
 
 @smallexample
 
 powerpc-elf-gcc -c ... test_engines.adb
 ...
-xcov --run test_engines --target=powerpc-elf
-
+xcov --run --target=powerpc-elf test_engines
 @end smallexample
 
 @noindent
@@ -712,16 +714,18 @@ An additional @option{--annotate} option selects the output format:
 
 @multitable @columnfractions .15 .8
 @item @command{=asm}
-@tab produces annotated assembly code on standard output.
+@tab annotated assembly code on standard output.
 
 @item @command{=xcov[+asm]}
-@tab produces annotated source files, with the object code for each source
+@tab annotated source files, with the object code for each source
 line interspersed if the @code{+asm} variant is selected.
 
 @item @command{=html[+asm]}
-@tab
-produces a coverage summary index in html, with links to annotated
-sources [@code{+asm} code expandable from each source line].
+@tab html index of per source file coverage summary, with links to
+annotated sources [@code{+asm} code expandable from each source line].
+
+@item @command{=report}
+@tab synthetic report of per subprogram coverage results.
 @end multitable
 
 @noindent
@@ -740,8 +744,8 @@ these have to be strictly controlled for source coverage.
 
 @subsection @code{--annotate=asm}
 @noindent
-For object coverage analysis, @option{--annotate=asm} produces annotated
-assembly code for all the program routines on standard output.
+For object coverage analysis purposes, @option{--annotate=asm} produces
+annotated assembly code for all the program routines on standard output.
 @c
 The annotations are visible as a special character at the beginning of
 each machine code line, with variants for instruction or branch coverage
@@ -751,7 +755,7 @@ modes, as described by the following tables.
 For @dfn{Object Instruction Coverage}:
 
 @multitable @columnfractions .1 .8
-@item @i{Note} @tab @i{Means ...}
+@item @h{Note} @tab @h{Means ...}
 @item '-'
 @tab Instruction was never executed
 @item '+'
@@ -763,7 +767,7 @@ For @dfn{Object Branch coverage}, the `+' case is refined for
 conditional branch instructions:
 
 @multitable @columnfractions .1 .7
-@item @i{Note} @tab @i{Means ...}
+@item @h{Note} @tab @h{Means ...}
 @item '>'
 @tab Conditional branch was executed, always taken
 @item 'v'
@@ -860,9 +864,9 @@ fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
 
 @subsection @code{--annotate=xcov[+asm]}
 @noindent
-@option{--annotate=xcov} produces annotated source files with the
-@code{.xcov} extension in the current directory, one per original
-compilation unit.
+For object coverage analysis purposes, @option{--annotate=xcov} produces
+annotated source files with the @code{.xcov} extension in the current
+directory, one per original compilation unit.
 @c
 The annotations are visible as a special character at the beginning of
 every source line, which synthesizes the coverage status of all the
@@ -883,7 +887,7 @@ annotations for instruction or branch coverage.
 For instruction coverage:
 
 @multitable @columnfractions .1 .8
-@item @i{Note} @tab @i{Means ...}
+@item @h{Note} @tab @h{Means ...}
 @item '-'
 @tab None of the line instructions were executed
 @item '!'
@@ -896,15 +900,15 @@ For instruction coverage:
 For branch coverage, the @code{'+'} case is refined into:
 
 @multitable @columnfractions .1 .8
-@item @i{Note} @tab @i{Means ...}
+@item @h{Note} @tab @h{Means ...}
 @item '>'
-@tab Object code features a single conditional branch, taken
+@tab Object code features 1 conditional branch, always taken
 @item 'v'
-@tab Object code features a single conditional branch, not taken
+@tab Object code features 1 conditional branch, never taken
 @item '*'
-@tab Object code features conditional branches, all fully covered
+@tab Object code features >= 1 conditional branches, all fully covered
 @item '?'
-@tab Object code features conditional branches, some partially covered
+@tab Object code features > 1 conditional branches, some partially covered
 @end multitable
 
 At this stage, @xcov{} relies on dwarf debug information to associate
@@ -916,43 +920,159 @@ line switch, with no influence on the generated code by design.
 
 @subsection @code{--annotate=html[+asm]}
 @noindent
-@option{--annotate=html} produces one @code{.html} browsable annotated
-source file per original compilation unit in the current directory.
+For object coverage analysis purposes, @option{--annotate=html} produces
+one @code{.html} browsable annotated source file per original
+compilation unit in the current directory, with annotations identical to
+the @option{=xcov} ones.
 @c
-It also generates an @code{index.html} page to summarize the coverage
-results and offer links to the annotated sources.
-
-With @code{+asm} in addition, the annotated machine code for each line
+With the @code{+asm} extension, the annotated machine code for each line
 may be expanded below it by a mouse click on the source annotation
 character.
 
+This option also colorizes the source lines to reflect their object code
+coverage completeness and generates an @code{index.html} page to
+summarize the coverage results and provide links to the annotated
+sources.
+@c
+The color codes are as follows:
+
+@multitable @columnfractions .1 .25 .4
+@item @h{Color} @tab @h{Means ...} @tab @h{Corresponds to ...}
+@item green
+@tab Full coverage    @tab '+' or '*' lines
+@item orange
+@tab Partial coverage @tab '!', '<' or `>' lines
+@item red
+@tab Null coverage    @tab '-' lines
+@end multitable
+
+@subsection @code{--annotate=report}
+@noindent
+For object coverage analysis purposes, @option{--annotate=report}
+produces a synthetic summary of per function coverage results, with a
+single annotation assigned to each function in the same way it is to
+each source line in the @option{=xcov} or @option{'=html'} cases.
+
 @section Source Coverage Analysis
 
-Focus on source, through Source Coverage Obligations. Object code
-abstracted away.
+Focus on source, object code abstracted away.
 
-Capabilities and documentation to be developped.
+@noindent
+[CAPABILITIES AND DOCUMENTATION TO BE DEVELOPPED]
+
+Despite object code abstracted away, still relies on object code
+execution traces and requires a couple of assumptions to hold:
+
+@itemize
+@item
+binary boolean operators are restricted to short-circuit forms, and
+@item
+every condition is expected to materialize into a conditional branch.
+@end itemize
 
 Requires extended traces for MCDC.
 
-
-@section Synthetic Coverage Reports
-
-To be developped.
+Relies on a the notion of @dfn{Source Coverage Obligation}.
 
 @section Coverage Data Capitalization & Consolidation
+@c
+The @xcov{} philosophy with respect to coverage data capitalization is
+to provide flexible means to allow custom structured trace management
+facilities, not to dictate a specific organization.
+@c
+Two devices were introduced for this purpose: trace tags let users
+associate an arbitrary string with each execution trace, and
+@xrun{} stores a reference to the executable program there as well.
+@c
+In addition to this, @xcov{} features coverage consolidation
+capabilities to allow coverage analysis of a provided set of routines
+from traces of runs exercising them possibly in the context of
+different executable programs.
 
-Trace tags and trace/program associations as a flexible device to
-implement custom trace management facilitites.
+The @option{--routine-list} option allows the specification of a set of
+routine names of interest, as a simple list within a file, the name of
+which to be provided as the option's argument.
 
-@option{--routine-list} on  @command{xcov --coverage}.
+To illustrate, we analyze object branch coverage of the @code{Unsafe}
+function of the Explore @code{Robots} unit.
+@c
+We first run a simple interactive session which exercises the function
+only partially and look at the results:
 
+@smallexample
+
+$ cat unsafe.list
+ robots__unsafe
+
+$ xcov --run --target=powerpc-elf --tag 'Safe explore session' explore
+[... Probe, Step on clear square, Quit ...]
+
+$ xcov --coverage=branch --annotate=xcov+asm --routine-list=unsafe.list
+  explore.trace  
+   
+  robots.adb.xcov
+ [...]
+  57 .:  function Unsafe (Cmd : Robot_Command; Sqa : Square) return Boolean is
+  58 .:  begin
+  59 .:     --  Stepping forward into a rock block or a water pit is Unsafe
+  60 .:
+  61 .:     return Cmd = Step_Forward
+  62 !:       and then (Sqa = Block or else Sqa = Water);
+<robots__unsafe>:
+fffc13a4 +:  2f 83 00 02  cmpiw  cr7,r3,0x0002
+fffc13a8 *:  40 be 00 1c  bne+   cr7,0xfffc13c4 <robots__unsafe+00000020>
+fffc13ac +:  2f 84 00 01  cmpiw  cr7,r4,0x0001
+fffc13b0 v:  41 9e 00 0c  beq-   cr7,0xfffc13bc <robots__unsafe+00000018>
+fffc13b4 +:  2f 84 00 02  cmpiw  cr7,r4,0x0002
+fffc13b8 >:  40 be 00 0c  bne+   cr7,0xfffc13c4 <robots__unsafe+00000020>
+fffc13bc -:  38 60 00 01  li     r3,0x0001
+fffc13c0 -:  4e 80 00 20  blr
+fffc13c4 +:  38 60 00 00  li     r3,0x0000
+@end smallexample
+
+These results are as expected.
+@c
+The first branch is fully covered because the session featured both a
+Probe and a Step forward, so the @code{Cmd = Step_Forward} condition
+is exercised both ways.
+@c
+The two following branches are only partially covered because we never
+actually try any of the unsafe steps forward.
+
+We then run the provided unit tests in addition, combine the results
+and observe full object branch coverage:
+
+@smallexample
+$ make UNIT_TESTS=test_explore
+[...]
+xcov --run --target=powerpc-elf test_explore
+
+$ xcov --coverage=branch --annotate=xcov+asm --routine-list=unsafe.list
+  test_explore.trace explore.trace
+
+  robots.adb.xcov
+  [...]
+  57 .:    function Unsafe (Cmd : Robot_Command; Sqa : Square) return Boolean is
+  58 .:    begin
+  59 .:       --  Stepping forward into a rock block or a water pit is Unsafe
+  60 .:
+  61 .:       return Cmd = Step_Forward
+  62 *:         and then (Sqa = Block or else Sqa = Water);
+<robots__unsafe>:
+fffc3b00 +:  2f 83 00 02  cmpiw  cr7,r3,0x0002
+fffc3b04 *:  40 be 00 1c  bne+   cr7,0xfffc3b20 <robots__unsafe+00000020>
+fffc3b08 +:  2f 84 00 01  cmpiw  cr7,r4,0x0001
+fffc3b0c *:  41 9e 00 0c  beq-   cr7,0xfffc3b18 <robots__unsafe+00000018>
+fffc3b10 +:  2f 84 00 02  cmpiw  cr7,r4,0x0002
+fffc3b14 *:  40 be 00 0c  bne+   cr7,0xfffc3b20 <robots__unsafe+00000020>
+fffc3b18 +:  38 60 00 01  li     r3,0x0001
+fffc3b1c +:  4e 80 00 20  blr
+fffc3b20 +:  38 60 00 00  li     r3,0x0000
+@end smallexample
 
 @section Ada Constructs of Note
 
-@subsection Generics
-
-@subsection Inlining
+Generics, Inlining, object != source coverage modes ?
 
 @section GNAT specificities
 
@@ -962,11 +1082,11 @@ Expansions, precise debug info ...
 
 -fpreserve-control-flow
 
-@section @code{xcov} command line summary
-
 @chapter Appendices
 
 @section Trace Format Definition
+
+@section Source Coverage Obligations Definition
 
 @c *******************************************************************
 @c *                          BIBLIOGRAPHY                           *
