@@ -2,6 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
+--                    Copyright (C) 2006 Tristan Gingold                    --
 --                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
@@ -17,30 +18,13 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Traces;
+with Elf_Common;    use Elf_Common;
+with Disassemblers; use Disassemblers;
 
-package Disa_Symbolize is
+package Elf_Disassemblers is
 
-   --  Call-back used to find a relocation symbol
+   function Disa_For_Machine
+     (Machine : Elf_Half) return access Disassembler'Class;
+   pragma Inline (Disa_For_Machine);
 
-   type Symbolizer is limited interface;
-   procedure Symbolize
-     (Sym      : Symbolizer;
-      Pc       : Traces.Pc_Type;
-      Line     : in out String;
-      Line_Pos : in out Natural) is abstract;
-
-   type Nul_Symbolizer_Type is new Symbolizer with private;
-
-   overriding procedure Symbolize
-     (Sym      : Nul_Symbolizer_Type;
-      Pc       : Traces.Pc_Type;
-      Line     : in out String;
-      Line_Pos : in out Natural) is null;
-
-   Nul_Symbolizer : constant Nul_Symbolizer_Type;
-
-private
-   type Nul_Symbolizer_Type is new Symbolizer with null record;
-   Nul_Symbolizer : constant Nul_Symbolizer_Type := (null record);
-end Disa_Symbolize;
+end Elf_Disassemblers;

@@ -17,30 +17,31 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Traces;
+--  Abstract support for disassembly engines
 
-package Disa_Symbolize is
+with System;
+with Traces;         use Traces;
+with Disa_Symbolize; use Disa_Symbolize;
 
-   --  Call-back used to find a relocation symbol
+package Disassemblers is
 
-   type Symbolizer is limited interface;
-   procedure Symbolize
-     (Sym      : Symbolizer;
-      Pc       : Traces.Pc_Type;
-      Line     : in out String;
-      Line_Pos : in out Natural) is abstract;
+   type Disassembler is limited interface;
 
-   type Nul_Symbolizer_Type is new Symbolizer with private;
+   function Get_Insn_Length
+     (Self : Disassembler;
+      Addr : System.Address) return Positive is abstract;
+   --  Return the length of the instruction at Addr
 
-   overriding procedure Symbolize
-     (Sym      : Nul_Symbolizer_Type;
-      Pc       : Traces.Pc_Type;
-      Line     : in out String;
-      Line_Pos : in out Natural) is null;
+   procedure Disassemble_Insn
+     (Self     : Disassembler;
+      Addr     : System.Address;
+      Pc       : Pc_Type;
+      Line     : out String;
+      Line_Pos : out Natural;
+      Insn_Len : out Natural;
+      Sym      : Symbolizer'Class) is abstract;
+   --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.
+   --  LINE_POS is the index of the next character to be written (ie line
+   --  length if Line'First = 1).
 
-   Nul_Symbolizer : constant Nul_Symbolizer_Type;
-
-private
-   type Nul_Symbolizer_Type is new Symbolizer with null record;
-   Nul_Symbolizer : constant Nul_Symbolizer_Type := (null record);
-end Disa_Symbolize;
+end Disassemblers;

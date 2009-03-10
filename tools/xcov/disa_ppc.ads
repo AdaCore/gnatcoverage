@@ -17,19 +17,27 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+--  PowerPC disassembler
+
 with System;
 with Interfaces;
-with Traces;         use Traces;
+
 with Disa_Symbolize; use Disa_Symbolize;
+with Disassemblers;  use Disassemblers;
+with Traces;         use Traces;
 
 package Disa_Ppc is
 
-   function Get_Insn_Length (Addr : System.Address) return Positive;
-   pragma Inline (Get_Insn_Length);
+   type PPC_Disassembler is new Disassembler with private;
+
+   overriding function Get_Insn_Length
+     (Self : PPC_Disassembler;
+      Addr : System.Address) return Positive;
    --  Return the length of the instruction at Addr
 
-   procedure Disassemble_Insn
-     (Addr     : System.Address;
+   overriding procedure Disassemble_Insn
+     (Self     : PPC_Disassembler;
+      Addr     : System.Address;
       Pc       : Pc_Type;
       Line     : out String;
       Line_Pos : out Natural;
@@ -47,5 +55,8 @@ package Disa_Ppc is
       Flag_Cond  : out Boolean;
       Dest       : out Pc_Type);
    --  Comment needed???
+   --  Move to abstract Disassemblers package???
 
+private
+   type PPC_Disassembler is new Disassembler with null record;
 end Disa_Ppc;

@@ -16,10 +16,12 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with System; use System;
+
+with System;     use System;
 with Interfaces; use Interfaces;
+
 with Hex_Images; use Hex_Images;
-with Ppc_Descs; use Ppc_Descs;
+with Ppc_Descs;  use Ppc_Descs;
 with Ppc_Disopc; use Ppc_Disopc;
 
 package body Disa_Ppc is
@@ -28,7 +30,10 @@ package body Disa_Ppc is
    -- Get_Insn_Length --
    ---------------------
 
-   function Get_Insn_Length (Addr : System.Address) return Positive is
+   function Get_Insn_Length
+     (Self : PPC_Disassembler; Addr : System.Address) return Positive
+   is
+      pragma Unreferenced (Self);
       pragma Unreferenced (Addr);
    begin
       return 4;
@@ -39,13 +44,16 @@ package body Disa_Ppc is
    ----------------------
 
    procedure Disassemble_Insn
-     (Addr     : System.Address;
+     (Self     : PPC_Disassembler;
+      Addr     : System.Address;
       Pc       : Traces.Pc_Type;
       Line     : out String;
       Line_Pos : out Natural;
       Insn_Len : out Natural;
       Sym      : Symbolizer'Class)
    is
+      pragma Unreferenced (Self);
+
       W : Unsigned_32;
 
       procedure Add (C : Character);

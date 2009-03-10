@@ -19,10 +19,8 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with System; use System;
 with Interfaces; use Interfaces;
-with Elf_Common;
 with Hex_Images; use Hex_Images;
-with Disa_Ppc;
-with Disa_Sparc;
+with Elf_Disassemblers; use Elf_Disassemblers;
 
 package body Traces_Disa is
    function Get_Label (Sym : Symbolizer'Class; Info : Addresses_Info_Acc)
@@ -57,16 +55,9 @@ package body Traces_Disa is
       Insn_Len : Natural := 0;
    begin
       Addr := Insn (Insn'First)'Address;
-      case Machine is
-         when Elf_Common.EM_PPC =>
-            Disa_Ppc.Disassemble_Insn
-              (Addr, Pc, Line, Line_Pos, Insn_Len, Sym);
-         when Elf_Common.EM_SPARC =>
-            Disa_Sparc.Disassemble_Insn
-              (Addr, Pc, Line, Line_Pos, Insn_Len, Sym);
-         when others =>
-            return "";
-      end case;
+      Disa_For_Machine (Machine).
+        Disassemble_Insn (Addr, Pc, Line, Line_Pos, Insn_Len, Sym);
+
       if Insn_Len /= Insn'Length then
          raise Constraint_Error;
       end if;
@@ -103,14 +94,8 @@ package body Traces_Disa is
    begin
       Pc := Insns'First;
       while Pc < Insns'Last loop
-         case Machine is
-            when Elf_Common.EM_PPC =>
-               Insn_Len := 4;
-            when Elf_Common.EM_SPARC =>
-               Insn_Len := 4;
-            when others =>
-               exit;
-         end case;
+         Insn_Len :=
+           Disa_For_Machine (Machine).Get_Insn_Length (Insns (Pc)'Address);
          Cb.all (Pc, State, Insns (Pc .. Pc + Pc_Type (Insn_Len - 1)), Sym);
          Pc := Pc + Pc_Type (Insn_Len);
          exit when Pc = 0;

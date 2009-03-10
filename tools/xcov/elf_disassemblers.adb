@@ -2,7 +2,8 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                    Copyright (C) 2006 Tristan Gingold                    --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,14 +17,31 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-package body Disa_Symbolize is
-   procedure Symbolize (Sym : Nul_Symbolizer_Type;
-                        Pc : Traces.Pc_Type;
-                        Line : in out String;
-                        Line_Pos : in out Natural)
+
+with Disa_Ppc;
+with Disa_Sparc;
+
+package body Elf_Disassemblers is
+
+   Disa_For_Ppc   : aliased Disa_Ppc.PPC_Disassembler;
+   Disa_For_Sparc : aliased Disa_Sparc.SPARC_Disassembler;
+
+   ----------------------
+   -- Disa_For_Machine --
+   ----------------------
+
+   function Disa_For_Machine
+     (Machine : Elf_Half) return access Disassembler'Class
    is
-      pragma Unreferenced (Sym, Pc, Line, Line_Pos);
    begin
-      return;
-   end Symbolize;
-end Disa_Symbolize;
+      case Machine is
+         when EM_PPC =>
+            return Disa_For_Ppc'Access;
+         when EM_SPARC =>
+            return Disa_For_Sparc'Access;
+         when others =>
+            return null;
+      end case;
+   end Disa_For_Machine;
+
+end Elf_Disassemblers;
