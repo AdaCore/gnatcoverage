@@ -16,6 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Unchecked_Deallocation;
 with Traces; use Traces;
 with Traces_Dbase; use Traces_Dbase;
@@ -29,10 +30,9 @@ with Elf_Files;
 with Disa_Symbolize; use Disa_Symbolize;
 
 package Traces_Elf is
-   --  An array of byte.
-   --  Used to store ELF sections.
-   type Binary_Content is array (Elf_Arch.Elf_Size range <>)
-     of Interfaces.Unsigned_8;
+   type Binary_Content is
+     array (Elf_Arch.Elf_Size range <>) of Interfaces.Unsigned_8;
+   --  An array of byte, used to store ELF sections
 
    type Binary_Content_Acc is access Binary_Content;
    procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
@@ -220,4 +220,5 @@ private
    type Addresses_Iterator is limited record
       Cur : Addresses_Containers.Cursor;
    end record;
+
 end Traces_Elf;
