@@ -27,6 +27,10 @@ As part of the examples subdirectory, the package also includes:
 * Support Makefiles to automate an illustrative build/run/analyze
   sequence for the examples.
 
+The "Explore" example is introduced in the user's guide and used for
+illustration purposes there. It features both an interactive program and AUnit
+based tests for some of the program units.
+
 INSTALL
 =======
 This distribution can be used standalone, without any specific installation
@@ -41,11 +45,7 @@ pre-existing installation tree, where a GNAT toolset is located for instance.
 
 QUICK START
 ===========
-Examples are provided in the <unpack/installation-root>/share/examples/xcov
-directory. The "Explore" example is introduced in the user's guide and used
-for illustration purposes there.
-
-A simple start is to run one of the examples, assuming you have both your
+A quick starter is the "engines" basic example, assuming you have both your
 target compilation toolchain and this package installed.
 
 The first step is to setup the PATH environment variable to include locations
