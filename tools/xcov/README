@@ -5,31 +5,31 @@ PACKAGE CONTENTS
 ================
 This package provides two core command line components:
 
-* An instrumented version of Qemu, able to generate execution traces of
-  the machine code it executes, and
+* An instrumented version of Qemu, an open source processor emulator we
+  use as a program execution environment able to generate execution traces
+  of the machine code it executes, and
 
 * The xcov front-end, used both as a wrapper of the instrumented execution
-  environment (xcov --run) and as a trace analyzer (xcov --coverage) able
-  to produce various user readable formats.
+  environment (xcov --run) and as a trace analyzer able to render coverage
+  results in various user readable formats (xcov --coverage).
 
 As part of the examples subdirectory, the package also includes:
 
 * A light Qemu Board Support Package to link with your executable to let
   it run within the emulated environment,
 
-* A couple of low level components for Ada (simple IO, memory block
-  copy/set/compare services, ...) in case they are not included in your
-  run-time library,
+* A couple of very basic library components for Ada (simple IO, memory
+  copy/set/compare, ...) in case they are not available otherwise,
 
 * A number of example programs you can exercise to get familiar with the
-  toolset capabilities,
-
-* Support Makefiles to automate an illustrative build/run/analyze
-  sequence for the examples.
+  toolset, with Makefiles to illustrate build/run/analyze sequences.
 
 The "Explore" example is introduced in the user's guide and used for
 illustration purposes there. It features both an interactive program and AUnit
 based tests for some of the program units.
+
+The "Engines" example is used to provide a quick first contact with the
+tools, through the QUICK START section below.
 
 INSTALL
 =======
