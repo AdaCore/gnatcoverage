@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,18 +16,32 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Strings.Hash;
 
 package body Strings is
+
+   ----------
+   -- Hash --
+   ----------
+
    function Hash (El : String_Acc) return Ada.Containers.Hash_Type is
    begin
       return Ada.Strings.Hash (El.all);
    end Hash;
 
+   -----------
+   -- Equal --
+   -----------
+
    function Equal (L, R : String_Acc) return Boolean is
    begin
       return L.all = R.all;
    end Equal;
+
+   ---------------
+   -- Less_Than --
+   ---------------
 
    function Less_Than (L, R : String_Acc) return Boolean is
    begin

@@ -16,25 +16,29 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Containers;
 with Ada.Unchecked_Deallocation;
 
 package Strings is
+
    type String_Acc is access String;
 
    subtype File_Name is String_Acc;
 
-   procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-     (String, String_Acc);
+   procedure Unchecked_Deallocation is
+     new Ada.Unchecked_Deallocation (String, String_Acc);
 
    function Hash (El : String_Acc) return Ada.Containers.Hash_Type;
-   --  Compute an hash from EL.
+   --  Compute a hash from El.all
 
    function Equal (L, R : String_Acc) return Boolean;
-   --  Return true iff L and R designate the same string.
+   --  Return true iff L and R designate identical strings
+   --  Why not redefine operator "="???
 
    function Less_Than (L, R : String_Acc) return Boolean;
-   --  Return true iff L.all < R.all.
+   --  Return true iff L.all < R.all
+   --  Why not redefine operator "<"???
 
 private
    pragma Inline (Hash);
