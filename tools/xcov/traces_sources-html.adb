@@ -16,7 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Ada.Text_IO; use Ada.Text_IO;
+
 with Ada.Integer_Text_IO;
 with Ada.Directories;
 with Hex_Images; use Hex_Images;

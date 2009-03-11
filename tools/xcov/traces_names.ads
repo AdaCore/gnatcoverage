@@ -16,64 +16,61 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Traces_Elf; use Traces_Elf;
+
+--  Management of the routines database
+
 with Traces_Dbase; use Traces_Dbase;
+with Traces_Elf; use Traces_Elf;
 with Strings; use Strings;
-with Elf_Files; use Elf_Files;
-with Ada.Text_IO; use Ada.Text_IO;
 
 package Traces_Names is
-   --  Add (or remove if EXCLUDE is true) routines read from ELF file
-   --  Filename.
-   --  Display errors on standard error.
-   procedure Read_Routines_Name (Filename : String; Exclude : Boolean);
 
-   --  Same but directly from an ELF_FILE.
-   procedure Read_Routines_Name (Efile : Elf_File; Exclude : Boolean);
-
-   --  Add a single name.
-   --  Raise CE if the name is already in the base.
    procedure Add_Routine_Name (Name : String_Acc);
+   --  Add a routine name to the database, and allocate an associated
+   --  Subprogram_Info record (see below). Constraint_Error is propagated if
+   --  the name already exists.
 
-   --  Read a list of routines name from a text file.  The format is very
-   --  simple:
+   --  Information recorded about each subprogram in the routines database
+
+   type Subprogram_Info is record
+      Exec  : Exe_File_Acc;
+      --  Pointer to the Exec file where this subprogram has first been
+      --  found.
+
+      Insns : Binary_Content_Acc;
+      --  Subprogram binary content.
+
+      Traces : Traces_Base_Acc;
+      --  Traces for the subprogram.
+   end record;
+
+   procedure Remove_Routine_Name (Name : String_Acc);
+   --  Remove a routine from the database
+
+   procedure Iterate
+     (Proc : access procedure (Subp_Name : String_Acc;
+                               Subp_Info : in out Subprogram_Info));
+   --  Execute Proc for each routine in the database
+
+   procedure Read_Routines_Name_From_Text (Filename : String);
+   --  Read a list of routines name from a text file in the following format:
    --  * lines starting with '#' are ignored
    --  * one name per line
    --  * no blanks allowed.
-   procedure Read_Routines_Name_From_Text (Filename : String);
 
    --  Display the list of routines (on standard output).
    procedure Disp_All_Routines;
 
+   function Add_Traces
+     (Routine_Name : String_Acc;
+      Exec         : Exe_File_Acc;
+      Content      : Binary_Content) return Traces_Base_Acc;
    --  Add traces for routine_name.
    --  Return null if we don't want coverage for it.
-   function Add_Traces (Routine_Name : String_Acc;
-                        Exec : Exe_File_Acc;
-                        Content : Binary_Content) return Traces_Base_Acc;
+   --  Need definition for each parameter and for return value???
 
-   --  Raised if consolidation is not possible.
-   --  (eg: different code for a function).
    Consolidation_Error : exception;
-
-   procedure Build_Source_Lines;
-   --  Go through the routine database and, for each routine,
-   --  populate the source database (in traces_sources) with
-   --  the routine's source information.
-
-   procedure Build_Routines_Trace_State;
-   --  Go through the routine database and, for each routine,
-   --  compute the state of its trace. This should be used only
-   --  when the subroutine database has been populated with its
-   --  traces.
-
-   procedure Dump_Routines_Traces (Exec : Exe_File_Type);
-   --  ??? Obsolete. To be removed when the old options have been
-   --  retired.
-
-   procedure Dump_Routines_Traces;
-
-   procedure Dump_Uncovered_Routines (Report : File_Access);
-   --  Go through the routine database and dump the list of uncovered
-   --  routines into Report.
+   --  Raised if consolidation is not possible (eg different code for a
+   --  function).
 
 end Traces_Names;

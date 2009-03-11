@@ -18,6 +18,8 @@
 ------------------------------------------------------------------------------
 with GNAT.Dynamic_Tables;
 with Ada.Containers.Hashed_Maps;
+with Ada.Text_IO; use Ada.Text_IO;
+
 with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
 with Strings; use Strings;
@@ -109,6 +111,13 @@ package Traces_Sources is
                                 New_Prefix : String);
 
    procedure Add_Source_Search (Prefix : String);
+
+   procedure Dump_Routines_Traces;
+
+   procedure Dump_Uncovered_Routines (Report : File_Access);
+   --  Go through the routine database and dump the list of uncovered
+   --  routines into Report.
+   --  Should expose an iterator on routines and move this to Traces_xxx???
 
 private
    type Line_Chain;

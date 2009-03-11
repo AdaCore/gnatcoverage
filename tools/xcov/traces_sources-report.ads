@@ -17,8 +17,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
-
 package Traces_Sources.Report is
    --  Generate the final report, source-wise.
 

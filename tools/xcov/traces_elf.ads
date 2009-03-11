@@ -20,16 +20,18 @@
 with Ada.Unchecked_Deallocation;
 with Traces; use Traces;
 with Traces_Dbase; use Traces_Dbase;
-with Elf_Common; use Elf_Common;
-with Elf_Arch; use Elf_Arch;
+with Elf_Arch;     use Elf_Arch;
+with Elf_Common;   use Elf_Common;
+with Elf_Files;    use Elf_Files;
+with Strings;      use Strings;
+
 with Interfaces;
 with Ada.Containers.Ordered_Sets;
-with Strings; use Strings;
 with System; use System;
-with Elf_Files;
 with Disa_Symbolize; use Disa_Symbolize;
 
 package Traces_Elf is
+
    type Binary_Content is
      array (Elf_Arch.Elf_Size range <>) of Interfaces.Unsigned_8;
    --  An array of byte, used to store ELF sections
@@ -87,10 +89,9 @@ package Traces_Elf is
    procedure Add_Subprograms_Traces (Exec : Exe_File_Acc; Base : Traces_Base);
 
    --  Using the executable, correctly set the state of every traces.
-   procedure Set_Trace_State (Exec : Exe_File_Type;
-                              Base : in out Traces_Base);
-   procedure Set_Trace_State (Base : in out Traces_Base;
-                              Section : Binary_Content);
+   procedure Set_Trace_State (Exec : Exe_File_Type; Base : in out Traces_Base);
+   procedure Set_Trace_State
+     (Base : in out Traces_Base; Section : Binary_Content);
 
    --  Read dwarfs info to build compile_units/subprograms lists.
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type);
@@ -107,7 +108,6 @@ package Traces_Elf is
                                  Base : Traces_Base_Acc;
                                  Section : Binary_Content);
 
-   --  Call Traces_Names.Read_Routines_Name on EXEC.
    procedure Build_Routines_Name (Exec : Exe_File_Type);
 
    --  Display lists.
@@ -183,6 +183,21 @@ package Traces_Elf is
             Line_Number : Natural;
       end case;
    end record;
+
+   procedure Read_Routines_Name (Filename : String; Exclude : Boolean);
+   procedure Read_Routines_Name (Efile : Elf_File; Exclude : Boolean);
+   --  Add (or remove if EXCLUDE is true) routines read from an ELF image
+   --  to the routines database.
+   --  Display errors on standard error.
+
+   procedure Build_Source_Lines;
+   --  Go through the routine database and, for each routine, populate the
+   --  source database with the routine's source information.
+
+   procedure Build_Routines_Trace_State;
+   --  Go through the routine database and, for each routine, compute the
+   --  state of its trace. This should be used only when the subroutine
+   --  database has been populated with its traces.
 
 private
    type Exe_File_Type is limited new Symbolizer with record

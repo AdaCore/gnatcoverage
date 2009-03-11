@@ -16,9 +16,14 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Traces; use Traces;
+
 with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
+
+with Coverage; use Coverage;
+with Decision_Map;
+with Execs_Dbase; use Execs_Dbase;
+with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
 with Traces_Sources.Html;
@@ -32,10 +37,8 @@ with Traces_History;
 with Version;
 with Qemudrv;
 with Qemu_Traces;
-with Execs_Dbase; use Execs_Dbase;
 with Strings; use Strings;
 with Traces_Files_List; use Traces_Files_List;
-with Coverage; use Coverage;
 
 procedure Xcov is
    procedure Usage;
@@ -196,12 +199,35 @@ begin
                elsif Arg = "--include" then
                   Mode_Exclude := False;
                else
-                  Traces_Names.Read_Routines_Name (Arg, Mode_Exclude);
+                  Traces_Elf.Read_Routines_Name (Arg, Mode_Exclude);
                end if;
             end;
          end loop;
          Traces_Names.Disp_All_Routines;
          return;
+
+      elsif Cmd = "--analyze-routines" then
+         if Arg_Index = Arg_Count then
+            Error ("missing FILEs to --analyze-routines");
+            return;
+         end if;
+         for I in Arg_Index + 1 .. Arg_Count loop
+            declare
+               Arg : constant String := Argument (I);
+            begin
+               if Arg = "--exclude" then
+                  Mode_Exclude := True;
+               elsif Arg = "--include" then
+                  Mode_Exclude := False;
+               else
+                  Traces_Elf.Read_Routines_Name (Arg, Mode_Exclude);
+               end if;
+            end;
+         end loop;
+         Decision_Map.Analyze;
+         Decision_Map.Dump_Map;
+         return;
+
       elsif Cmd = "--dump-trace" then
          if Arg_Index = Arg_Count then
             Put_Line ("missing FILENAME to --dump-trace");
@@ -471,10 +497,10 @@ begin
       Arg_Index := Arg_Index + 1;
    end loop;
 
-   Traces_Names.Build_Routines_Trace_State;
+   Traces_Elf.Build_Routines_Trace_State;
 
    if Annotations /= Annotate_Asm then
-      Traces_Names.Build_Source_Lines;
+      Traces_Elf.Build_Source_Lines;
    end if;
 
    case Annotations is
@@ -485,7 +511,7 @@ begin
          end if;
          Traces_Disa.Flag_Show_Asm := True;
          Coverage.Dump_Coverage_Option (Standard_Output);
-         Traces_Names.Dump_Routines_Traces;
+         Traces_Sources.Dump_Routines_Traces;
       when Annotate_Xcov =>
          Traces_Sources.Xcov.Generate_Report (False);
       when Annotate_Html =>
@@ -496,7 +522,7 @@ begin
          Traces_Sources.Html.Generate_Report (True);
       when Annotate_Report =>
          Coverage.Dump_Coverage_Option (Traces_Sources.Report.Get_Output);
-         Traces_Names.Dump_Uncovered_Routines
+         Traces_Sources.Dump_Uncovered_Routines
            (Traces_Sources.Report.Get_Output);
          Traces_Sources.Report.Finalize_Report;
       when Annotate_Unknown =>

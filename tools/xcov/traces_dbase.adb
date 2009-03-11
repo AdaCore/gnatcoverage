@@ -198,4 +198,5 @@ package body Traces_Dbase is
       Prev_Trace.Last := Pc;
       Insert (Base, Prev_Trace);
    end Split_Trace;
+
 end Traces_Dbase;

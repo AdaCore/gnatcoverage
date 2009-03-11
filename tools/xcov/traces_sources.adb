@@ -16,15 +16,26 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Ada.Text_IO;
+
 with Ada.Directories;
+with Interfaces;
+
+with Hex_Images;
 with Traces_Disa;
+with Traces_Names; use Traces_Names;
 
 package body Traces_Sources is
    procedure Append (Info : in out Line_Info;
                      Line : Addresses_Info_Acc;
                      Base : Traces_Base_Acc;
                      Exec : Exe_File_Acc);
+
+   function Compute_Routine_State
+     (Insns  : Binary_Content_Acc;
+      Traces : Traces_Base_Acc) return Line_State;
+   --  Compute coverage information for the routine whose code is Insns, with
+   --  the given traces.
+
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
                                    Filename : String;
                                    File : Source_Lines);
@@ -225,7 +236,6 @@ package body Traces_Sources is
                                    File : Source_Lines)
    is
       use Source_Lines_Vectors;
-      use Ada.Text_IO;
       use Traces_Disa;
 
       procedure Disassemble_Cb (Addr : Pc_Type;
@@ -386,7 +396,6 @@ package body Traces_Sources is
                              Show_Asm : Boolean)
    is
       use Filenames_Maps;
-      use Ada.Text_IO;
       use Ada.Directories;
 
       procedure Process (Key : String_Acc; Element : Source_Lines);
@@ -414,7 +423,6 @@ package body Traces_Sources is
 
    procedure Disp_File_Summary
    is
-      use Ada.Text_IO;
       use Ada.Directories;
 
       procedure Process (Key : String_Acc; File : Source_Lines);
@@ -448,4 +456,118 @@ package body Traces_Sources is
       end loop;
    end Disp_File_Summary;
 
+   function Compute_Routine_State
+     (Insns  : Binary_Content_Acc;
+      Traces : Traces_Base_Acc) return Line_State
+   is
+      use type Interfaces.Unsigned_32;
+      State : Line_State := No_Code;
+      Addr : Pc_Type := Insns'First;
+      It : Entry_Iterator;
+      T : Trace_Entry;
+   begin
+      Init (Traces.all, It, 0);
+      loop
+         Get_Next_Trace (T, It);
+         exit when T = Bad_Trace;
+         if T.First > Addr then
+            State := Update_Table (State, Not_Covered);
+            exit;
+         end if;
+         State := Update_Table (State, T.State);
+         Addr := T.Last + 1;
+      end loop;
+      if Addr < Insns'Last then
+         State := Update_Table (State, Not_Covered);
+      end if;
+      if State = No_Code then
+         return Not_Covered;
+      else
+         return State_Map (DO178B_Level, State);
+      end if;
+   end Compute_Routine_State;
+
+   procedure Dump_Routines_Traces
+   is
+      use Traces_Disa;
+
+      procedure Process_One
+        (Name : String_Acc;
+         Info : in out Subprogram_Info);
+      --  Display traces for one routine
+
+      procedure Process_One
+        (Name : String_Acc;
+         Info : in out Subprogram_Info)
+      is
+         use Hex_Images;
+      begin
+         Put (Name.all);
+
+         if Info.Traces /= null then
+            Put (' ');
+            Put (State_Char (Compute_Routine_State (Info.Insns, Info.Traces)));
+         end if;
+
+         if Info.Insns /= null then
+            Put (": " & Hex_Image (Info.Insns'First)
+                 & '-' & Hex_Image (Info.Insns'Last));
+         end if;
+         New_Line;
+
+         if Info.Traces /= null then
+            if Flag_Show_Asm then
+               if Info.Exec = null then
+                  Disp_Assembly_Lines
+                    (Info.Insns.all, Info.Traces.all,
+                     Textio_Disassemble_Cb'Access,
+                     Disa_Symbolize.Nul_Symbolizer);
+               else
+                  Disp_Assembly_Lines
+                    (Info.Insns.all, Info.Traces.all,
+                     Textio_Disassemble_Cb'Access,
+                     Info.Exec.all);
+               end if;
+            end if;
+         end if;
+      end Process_One;
+
+   --  Start of processing for Dump_Routines_Traces
+
+   begin
+      Iterate (Process_One'Access);
+   end Dump_Routines_Traces;
+
+   procedure Dump_Uncovered_Routines (Report : File_Access) is
+      use Traces_Disa;
+
+      procedure Process_One
+        (Name : String_Acc;
+         Info : in out Subprogram_Info);
+      --  Report information for the given routine
+
+      procedure Process_One
+        (Name : String_Acc;
+         Info : in out Subprogram_Info)
+      is
+         Routine_State : constant Line_State :=
+                           Compute_Routine_State (Info.Insns, Info.Traces);
+      begin
+         if Routine_State /= Covered
+           and then Routine_State /= No_Code
+         then
+            Put (Report.all, Name.all & " not fully covered : ");
+            Put (Report.all, State_Char (Routine_State));
+            New_Line (Report.all);
+         end if;
+      end Process_One;
+
+   --  Start of processing for Dump_Uncovered_Routines
+
+   begin
+      Put_Line (Report.all, "ERRORS BY ROUTINE:");
+      New_Line (Report.all);
+      Iterate (Process_One'Access);
+      New_Line (Report.all);
+   end Dump_Uncovered_Routines;
 end Traces_Sources;
