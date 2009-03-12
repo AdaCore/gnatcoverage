@@ -139,6 +139,101 @@ package body Traces_History is
       Pc, Npc : Pc_Type;
       Machine : constant Unsigned_16 := Get_Machine (Exe);
       Nodes : Node_Maps.Map;
+
+      procedure Print_Branch
+        (Branch     : Branch_Kind;
+         Flag_Cond  : Boolean;
+         Flag_Indir : Boolean;
+         Node       : Graph_Node_Acc);
+      --  Display branching instruction information for the given
+      --  control flow graph node.
+
+      ------------------
+      -- Print_Branch --
+      ------------------
+
+      procedure Print_Branch
+        (Branch     : Branch_Kind;
+         Flag_Cond  : Boolean;
+         Flag_Indir : Boolean;
+         Node       : Graph_Node_Acc)
+      is
+         procedure Print_Flag (Flag : Boolean; Name : String);
+         --  Display information about a branch flag
+
+         procedure Print_Dest
+           (Dest_Char : Character;
+            Dest      : Graph_Node_Acc);
+         --  Display information about a branch destination
+
+         ----------------
+         -- Print_Flag --
+         ----------------
+
+         procedure Print_Flag (Flag : Boolean; Name : String) is
+         begin
+            if Flag then
+               Put (" +" & Name);
+            end if;
+         end Print_Flag;
+
+         ----------------
+         -- Print_Dest --
+         ----------------
+
+         procedure Print_Dest
+           (Dest_Char : Character;
+            Dest      : Graph_Node_Acc)
+         is
+         begin
+            if Dest = null then
+               return;
+            end if;
+
+            Put (" " & Dest_Char & ":");
+            Put (Hex_Images.Hex_Image (Dest.First));
+            if Dest.Stmt = Node.Stmt then
+               Put ("(in)");
+            end if;
+         end Print_Dest;
+
+      --  Start of processing for Print_Branch
+
+      begin
+         case Branch is
+            when Br_Jmp =>
+               Put ("  jump");
+            when Br_Call =>
+               Put ("  call");
+            when Br_Ret =>
+               Put ("  ret");
+            when Br_None =>
+               return;
+         end case;
+
+         Print_Flag (Flag_Cond,  "conditional");
+         Print_Flag (Flag_Indir, "indir");
+
+         if Node /= null then
+            Print_Dest ('v', Node.Next_Ft);
+
+            if Node.Next_Br /= null then
+               declare
+                  Br_Char : Character;
+               begin
+                  if Node.First < Node.Next_Br.First then
+                     Br_Char := '>';
+                  else
+                     Br_Char := '^';
+                  end if;
+                  Print_Dest (Br_Char, Node.Next_Br);
+               end;
+            end if;
+         end if;
+      end Print_Branch;
+
+   --  Start of processing for Generate_Graph
+
    begin
       --  Load sections.
       Init_Iterator (Exe, Section_Addresses, It);
@@ -194,32 +289,16 @@ package body Traces_History is
                      Put (": ");
                      Put (Traces_Disa.Disassemble (Insn, Pc, Exe));
                      New_Line;
-                     case Branch is
-                        when Br_Jmp =>
-                           Put ("  jump");
-                        when Br_Call =>
-                           Put ("  call");
-                        when Br_Ret =>
-                           Put ("  ret");
-                        when Br_None =>
-                           null;
-                     end case;
 
-                     if Branch /= Br_None then
-                        if Flag_Cond then
-                           Put (" +conditional");
+                     Print_Branch (Branch, Flag_Cond, Flag_Indir, null);
+                     if Branch /= Br_None and then not Flag_Indir then
+                        Put (' ');
+                        Put (Hex_Images.Hex_Image (Dest));
+                        if Dest in Sym.First .. Sym.Last then
+                           Put (" (intra-routine)");
                         end if;
-                        if Flag_Indir then
-                           Put (" +indir");
-                        else
-                           Put (' ');
-                           Put (Hex_Images.Hex_Image (Dest));
-                           if Dest in Sym.First .. Sym.Last then
-                              Put (" (intra-routine)");
-                           end if;
-                        end if;
-                        New_Line;
                      end if;
+                     New_Line;
                   end if;
                end;
 
@@ -396,44 +475,13 @@ package body Traces_History is
                               Covered,
                               Textio_Disassemble_Cb'Access,
                               Exe);
-               case E.Branch is
-                  when Br_Jmp =>
-                     Put ("  jump");
-                  when Br_Call =>
-                     Put ("  call");
-                  when Br_Ret =>
-                     Put ("  ret");
-                  when Br_None =>
-                     null;
-               end case;
 
-               if E.Branch /= Br_None then
-                  if E.Flag_Cond then
-                     Put (" +conditional");
-                  end if;
-                  if E.Flag_Indir then
-                     Put (" +indir");
-                  end if;
-                  if E.Next_Ft /= null then
-                     Put (" v:");
-                     Put (Hex_Image (E.Next_Ft.First));
-                     if E.Next_Ft.Stmt = E.Stmt then
-                        Put ("(in)");
-                     end if;
-                  end if;
-                  if E.Next_Br /= null then
-                     if E.Next_Br.First <= E.First then
-                        Put (" ^:");
-                     else
-                        Put (" >:");
-                     end if;
-                     Put (Hex_Image (E.Next_Br.First));
-                     if E.Next_Br.Stmt = E.Stmt then
-                        Put ("(in)");
-                     end if;
-                  end if;
-                  New_Line;
-               end if;
+               Print_Branch
+                 (Branch     => E.Branch,
+                  Flag_Cond  => E.Flag_Cond,
+                  Flag_Indir => E.Flag_Indir,
+                  Node       => E);
+               Nex_Line;
 
                if E.Branch /= Br_None and E.Flag_Cond then
                   if False
