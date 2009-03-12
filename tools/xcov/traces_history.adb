@@ -481,7 +481,7 @@ package body Traces_History is
                   Flag_Cond  => E.Flag_Cond,
                   Flag_Indir => E.Flag_Indir,
                   Node       => E);
-               Nex_Line;
+               New_Line;
 
                if E.Branch /= Br_None and E.Flag_Cond then
                   if False
