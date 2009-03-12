@@ -19,6 +19,9 @@
 
 with Ada.Containers.Ordered_Maps;
 with Ada.Text_IO; use Ada.Text_IO;
+with Interfaces;
+
+with Traces;
 
 package body Traces_Names is
 
@@ -119,45 +122,92 @@ package body Traces_Names is
       end loop;
    end Disp_All_Routines;
 
-   function Add_Traces (Routine_Name : String_Acc;
-                        Exec : Exe_File_Acc;
-                        Content : Binary_Content) return Traces_Base_Acc
+   procedure Add_Traces
+     (Routine_Name : String_Acc;
+      Exec         : Exe_File_Acc;
+      Content      : Binary_Content;
+      Base         : Traces_Base)
    is
       use Names_Maps;
-      Cur : Cursor;
+      use Traces;
+      use Interfaces;
 
-      procedure Update (Key : String_Acc; El : in out Subprogram_Info);
+      procedure Update (Key : String_Acc; Subp_Info : in out Subprogram_Info);
 
-      procedure Update (Key : String_Acc; El : in out Subprogram_Info)
+      procedure Update (Key : String_Acc; Subp_Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Key);
+         Trace_Cursor : Entry_Iterator;
+         Trace        : Trace_Entry;
+         First, Last  : Pc_Type;
       begin
-         if El.Insns = null and Content'Length > 0 then
-            El.Insns := new Binary_Content'(Content);
-            El.Exec := Exec;
+         --  First, check if a trace base has already been added to the
+         --  subprogram info; if so, check that it does not conflict with
+         --  the one given in parameter; if not, initialize the info with
+         --  an empty trace.
+         if Subp_Info.Insns = null and Content'Length > 0 then
+            Subp_Info.Insns := new Binary_Content'(Content);
+            Subp_Info.Exec := Exec;
          else
-            --  FIXME: check the contents are similar
-            if Content'Length /= El.Insns.all'Length then
+            --  Check that the Content passed in parameter is the same
+            --  as the one we already registered; if the two contents
+            --  were different (e.g. came from two executables compiled
+            --  with different compilation options), the consolidation would
+            --  not make sense.
+            --  ??? Checking the actual content is actually quite complicated;
+            --  we cannot just compare the binary content, as between two
+            --  different executables the same symbol may be located in a
+            --  different location. So far, we just make sure that the function
+            --  has the same size in the two executables.
+            if Content'Length /= Subp_Info.Insns.all'Length then
                Put_Line (Standard_Error,
                          "error: different function size for "
                            & Routine_Name.all);
                Put_Line (Standard_Error,
-                         " (reference is " & Get_Filename (El.Exec.all)
+                         " (reference is " & Get_Filename (Subp_Info.Exec.all)
                            & ", file is " & Get_Filename (Exec.all) & ")");
                raise Consolidation_Error;
             end if;
          end if;
-         if El.Traces = null then
-            El.Traces := new Traces_Base;
+         if Subp_Info.Traces = null then
+            Subp_Info.Traces := new Traces_Base;
          end if;
+
+         --  Now, update the subprogram traces with the trace base
+         --  given in parameter. Rebase the traces' addresses to
+         --  to subpgrogram address range (i.e. Subp_Info.Insns'Range).
+         Init (Base, Trace_Cursor, Content'First);
+         Get_Next_Trace (Trace, Trace_Cursor);
+         while Trace /= Bad_Trace loop
+            exit when Trace.First > Content'Last;
+
+            if Trace.Last >= Content'First then
+               if Trace.First >= Content'First then
+                  First := Trace.First - Content'First + Subp_Info.Insns'First;
+               else
+                  First := Subp_Info.Insns'First;
+               end if;
+
+               if Trace.Last <= Content'Last then
+                  Last := Trace.Last  - Content'First + Subp_Info.Insns'First;
+               else
+                  Last := Subp_Info.Insns'Last;
+               end if;
+
+               Add_Entry (Subp_Info.Traces.all, First, Last, Trace.Op);
+            end if;
+
+            Get_Next_Trace (Trace, Trace_Cursor);
+         end loop;
       end Update;
+
+      Cur : Cursor;
    begin
       Cur := Names.Find (Routine_Name);
       if not Has_Element (Cur) then
-         return null;
+         return;
       end if;
       Names.Update_Element (Cur, Update'Access);
-      return Element (Cur).Traces;
    end Add_Traces;
 
 end Traces_Names;

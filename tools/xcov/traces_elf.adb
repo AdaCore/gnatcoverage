@@ -1386,17 +1386,11 @@ package body Traces_Elf is
    is
       use Addresses_Containers;
       use Traces_Sources;
-      It : Entry_Iterator;
-      Trace : Trace_Entry;
-      First, Last : Pc_Type;
 
       Cur : Cursor;
       Sym : Addresses_Info_Acc;
       Sec : Addresses_Info_Acc;
 
-      Subprogram_Base : Traces_Base_Acc;
-
-      Debug : constant Boolean := False;
    begin
       if Is_Empty (Exec.Symbols_Set) then
          return;
@@ -1416,62 +1410,15 @@ package body Traces_Elf is
          --  Add the code for the symbol
 
          begin
-            Subprogram_Base := Traces_Names.Add_Traces
+            Traces_Names.Add_Traces
               (Sym.Symbol_Name, Exec,
-               Sec.Section_Content (Sym.First .. Sym.Last));
+               Sec.Section_Content (Sym.First .. Sym.Last),
+               Base);
          exception
             when others =>
                Disp_Address (Sym);
                raise;
          end;
-
-         if Subprogram_Base /= null then
-
-            --  Add traces for this symbol
-
-            Init (Base, It, Sym.First);
-            Get_Next_Trace (Trace, It);
-
-            if Debug then
-               Put (Hex_Image (Sym.First));
-               Put ('-');
-               Put (Hex_Image (Sym.Last));
-               Put (": ");
-               Put (Sym.Symbol_Name.all);
-               New_Line;
-            end if;
-
-            while Trace /= Bad_Trace loop
-               exit when Trace.First > Sym.Last;
-
-               if Debug then
-                  Dump_Entry (Trace);
-               end if;
-
-               if Trace.Last >= Sym.First then
-                  First := Trace.First;
-                  Last := Trace.Last;
-                  if Last > Sym.Last then
-                     Last := Sym.Last;
-                  end if;
-
-                  if Debug then
-                     Put (Hex_Image (First));
-                     Put ('-');
-                     Put (Hex_Image (Last));
-                     Put (": ");
-                     Dump_Op (Trace.Op);
-                     New_Line;
-                  end if;
-
-                  --  Add or merge the entry
-
-                  Add_Entry (Subprogram_Base.all, First, Last, Trace.Op);
-               end if;
-
-               Get_Next_Trace (Trace, It);
-            end loop;
-         end if;
 
          Next (Cur);
       end loop;

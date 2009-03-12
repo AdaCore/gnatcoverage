@@ -554,6 +554,7 @@ package body Traces_Sources is
                            Compute_Routine_State (Info.Insns, Info.Traces);
       begin
          if Routine_State /= Covered
+           and then Routine_State /= Branch_Covered
            and then Routine_State /= No_Code
          then
             Put (Report.all, Name.all & " not fully covered : ");
