@@ -65,8 +65,8 @@ procedure Xcov is
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
       New_Line;
-      P (" --disp-routines {[--exclude|--include] FILE}");
-      P ("    Build a list of routines from executable files");
+      P (" --disp-routines {[--exclude|--include] FILES}");
+      P ("    Build a list of routines from object files");
       New_Line;
       P (" --dump-trace FILES");
       P ("   Raw display of trace files");
