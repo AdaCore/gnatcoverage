@@ -98,7 +98,9 @@ package body Traces_Disa is
            Disa_For_Machine (Machine).Get_Insn_Length (Insns (Pc)'Address);
          Cb.all (Pc, State, Insns (Pc .. Pc + Pc_Type (Insn_Len - 1)), Sym);
          Pc := Pc + Pc_Type (Insn_Len);
+
          exit when Pc = 0;
+         --  When is this supposed to happen???
       end loop;
    end For_Each_Insn;
 
