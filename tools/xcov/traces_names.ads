@@ -58,8 +58,8 @@ package Traces_Names is
    --  * one name per line
    --  * no blanks allowed.
 
-   --  Display the list of routines (on standard output).
    procedure Disp_All_Routines;
+   --  Display the list of routines (on standard output).
 
    procedure Add_Traces
      (Routine_Name : String_Acc;

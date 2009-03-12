@@ -145,6 +145,7 @@ package body Traces_Names is
          --  subprogram info; if so, check that it does not conflict with
          --  the one given in parameter; if not, initialize the info with
          --  an empty trace.
+
          if Subp_Info.Insns = null and Content'Length > 0 then
             Subp_Info.Insns := new Binary_Content'(Content);
             Subp_Info.Exec := Exec;
@@ -159,6 +160,7 @@ package body Traces_Names is
             --  different executables the same symbol may be located in a
             --  different location. So far, we just make sure that the function
             --  has the same size in the two executables.
+
             if Content'Length /= Subp_Info.Insns.all'Length then
                Put_Line (Standard_Error,
                          "error: different function size for "
@@ -169,6 +171,7 @@ package body Traces_Names is
                raise Consolidation_Error;
             end if;
          end if;
+
          if Subp_Info.Traces = null then
             Subp_Info.Traces := new Traces_Base;
          end if;
@@ -176,6 +179,7 @@ package body Traces_Names is
          --  Now, update the subprogram traces with the trace base
          --  given in parameter. Rebase the traces' addresses to
          --  to subpgrogram address range (i.e. Subp_Info.Insns'Range).
+
          Init (Base, Trace_Cursor, Content'First);
          Get_Next_Trace (Trace, Trace_Cursor);
          while Trace /= Bad_Trace loop
@@ -189,7 +193,7 @@ package body Traces_Names is
                end if;
 
                if Trace.Last <= Content'Last then
-                  Last := Trace.Last  - Content'First + Subp_Info.Insns'First;
+                  Last := Trace.Last - Content'First + Subp_Info.Insns'First;
                else
                   Last := Subp_Info.Insns'Last;
                end if;
@@ -204,10 +208,10 @@ package body Traces_Names is
       Cur : Cursor;
    begin
       Cur := Names.Find (Routine_Name);
-      if not Has_Element (Cur) then
-         return;
+
+      if Has_Element (Cur) then
+         Names.Update_Element (Cur, Update'Access);
       end if;
-      Names.Update_Element (Cur, Update'Access);
    end Add_Traces;
 
 end Traces_Names;
