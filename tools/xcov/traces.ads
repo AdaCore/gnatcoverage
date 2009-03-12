@@ -23,6 +23,8 @@ with System;     use System;
 package Traces is
 
    Big_Endian_Host : constant Boolean := Default_Bit_Order = High_Order_First;
+   --  ??? Looks bogus: there is not relation between bit order and byte
+   --  endianness
 
    --  Define the size of the PC.
    subtype Pc_Type is Unsigned_32;
