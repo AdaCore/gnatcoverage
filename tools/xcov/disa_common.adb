@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2009, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,33 +17,29 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with System.Storage_Elements;
-with Ada.Unchecked_Conversion;
+with Swaps;  use Swaps;
+with Traces; use Traces;
 
-package body Sparc_Descs is
-   function Read_Byte (Addr : Address) return Unsigned_8;
+package body Disa_Common is
 
-   function Read_Byte (Addr : Address) return Unsigned_8
-   is
-      type Unsigned_8_Acc is access all Unsigned_8;
-      function To_Unsigned_8_Acc is new Ada.Unchecked_Conversion
-        (Address, Unsigned_8_Acc);
+   -----------------------
+   -- To_Big_Endian_U32 --
+   -----------------------
+
+   function To_Big_Endian_U32 (Bin : Binary_Content) return Unsigned_32 is
+      pragma Assert (Bin'Length = 4);
+
+      Bin_Aligned : Binary_Content (1 .. 4) := Bin;
+      for Bin_Aligned'Alignment use Unsigned_32'Alignment;
+
+      Result : Unsigned_32;
+      pragma Import (Ada, Result);
+      for Result'Address use Bin_Aligned'Address;
    begin
-      return To_Unsigned_8_Acc (Addr).all;
-   end Read_Byte;
+      if not Big_Endian_Host then
+         Swap_32 (Result);
+      end if;
+      return Result;
+   end To_Big_Endian_U32;
 
-   function Get_Insn (Addr : Address) return Unsigned_32
-   is
-      use System.Storage_Elements;
-      B0, B1, B2, B3 : Unsigned_8;
-   begin
-      B0 := Read_Byte (Addr + 0);
-      B1 := Read_Byte (Addr + 1);
-      B2 := Read_Byte (Addr + 2);
-      B3 := Read_Byte (Addr + 3);
-      return Shift_Left (Unsigned_32 (B0), 24)
-        or Shift_Left (Unsigned_32 (B1), 16)
-        or Shift_Left (Unsigned_32 (B2), 8)
-        or Shift_Left (Unsigned_32 (B3), 0);
-   end Get_Insn;
-end Sparc_Descs;
+end Disa_Common;

@@ -17,24 +17,28 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with System;     use System;
 with Interfaces; use Interfaces;
 
+with Disa_Common;
 with Hex_Images; use Hex_Images;
 with Ppc_Descs;  use Ppc_Descs;
 with Ppc_Disopc; use Ppc_Disopc;
 
 package body Disa_Ppc is
 
+   function To_Insn (Insn_Bin : Binary_Content) return Unsigned_32
+     renames Disa_Common.To_Big_Endian_U32;
+
    ---------------------
    -- Get_Insn_Length --
    ---------------------
 
    function Get_Insn_Length
-     (Self : PPC_Disassembler; Addr : System.Address) return Positive
+     (Self     : PPC_Disassembler;
+      Insn_Bin : Binary_Content) return Positive
    is
       pragma Unreferenced (Self);
-      pragma Unreferenced (Addr);
+      pragma Unreferenced (Insn_Bin);
    begin
       return 4;
    end Get_Insn_Length;
@@ -45,7 +49,7 @@ package body Disa_Ppc is
 
    procedure Disassemble_Insn
      (Self     : PPC_Disassembler;
-      Addr     : System.Address;
+      Insn_Bin : Binary_Content;
       Pc       : Traces.Pc_Type;
       Line     : out String;
       Line_Pos : out Natural;
@@ -54,7 +58,7 @@ package body Disa_Ppc is
    is
       pragma Unreferenced (Self);
 
-      W : Unsigned_32;
+      W : constant Unsigned_32 := To_Insn (Insn_Bin);
 
       procedure Add (C : Character);
       pragma Inline (Add);
@@ -171,7 +175,6 @@ package body Disa_Ppc is
    --  Start of processing for Disassemble_Insn
 
    begin
-      W := Get_Insn (Addr);
       Insn_Len := 4;
       Line_Pos := Line'First;
 
@@ -366,13 +369,18 @@ package body Disa_Ppc is
    -------------------------
 
    procedure Get_Insn_Properties
-     (Insn       : Unsigned_32;
+     (Self       : PPC_Disassembler;
+      Insn_Bin   : Binary_Content;
       Pc         : Unsigned_32;
       Branch     : out Branch_Kind;
       Flag_Indir : out Boolean;
       Flag_Cond  : out Boolean;
       Dest       : out Unsigned_32)
    is
+      pragma Unreferenced (Self);
+
+      Insn : constant Unsigned_32 := To_Insn (Insn_Bin);
+
       Opc, Xo, Bo : Unsigned_32;
       D : Unsigned_32;
    begin

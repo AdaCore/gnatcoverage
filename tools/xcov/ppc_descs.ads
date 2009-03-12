@@ -16,8 +16,8 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Interfaces; use Interfaces;
-with System; use System;
 
 package Ppc_Descs is
 
@@ -44,9 +44,6 @@ package Ppc_Descs is
 
    --  Non fake fields.
    subtype Ppc_Valid_Fields is Ppc_Fields range Ppc_Fields'First .. F_XO;
-
-   --  Read an instruction at ADDR.  No alignment required.
-   function Get_Insn (Addr : Address) return Unsigned_32;
 
    --  Generate a bit mask from a field.
    --  Use the PowerPC Big-endian convention, ie bit 0 is 2**31.

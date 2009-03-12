@@ -19,24 +19,23 @@
 
 --  SPARC disassembler
 
-with System;
-
 with Disa_Symbolize; use Disa_Symbolize;
 with Disassemblers;  use Disassemblers;
 with Traces;         use Traces;
+with Traces_Elf;     use Traces_Elf;
 
 package Disa_Sparc is
 
    type SPARC_Disassembler is new Disassembler with private;
 
    overriding function Get_Insn_Length
-     (Self : SPARC_Disassembler;
-      Addr : System.Address) return Positive;
-   --  Return the length of the instruction at Addr
+     (Self     : SPARC_Disassembler;
+      Insn_Bin : Binary_Content) return Positive;
+   --  Return the length of the instruction at the beginning of Insn_Bin
 
    overriding procedure Disassemble_Insn
      (Self     : SPARC_Disassembler;
-      Addr     : System.Address;
+      Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
       Line     : out String;
       Line_Pos : out Natural;
@@ -45,6 +44,20 @@ package Disa_Sparc is
    --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.
    --  LINE_POS is the index of the next character to be written (ie line
    --  length if Line'First = 1).
+
+   overriding procedure Get_Insn_Properties
+     (Self       : SPARC_Disassembler;
+      Insn_Bin   : Binary_Content;
+      Pc         : Pc_Type;
+      Branch     : out Branch_Kind;
+      Flag_Indir : out Boolean;
+      Flag_Cond  : out Boolean;
+      Dest       : out Pc_Type);
+   --  Determine whether the given instruction, located at PC, is a branch
+   --  instruction of some kind (indicated by Branch).
+   --  For a branch, indicate whether it is indirect (Flag_Indir) and whether
+   --  it is conditional (Flag_Cond), and determine its destination (Dest).
+   --  NOT IMPLEMENTED for SPARC (will raise Program_Error).
 
 private
    type SPARC_Disassembler is new Disassembler with null record;

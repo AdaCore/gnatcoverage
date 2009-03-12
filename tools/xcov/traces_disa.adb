@@ -16,8 +16,8 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Text_IO; use Ada.Text_IO;
-with System; use System;
 with Interfaces; use Interfaces;
 with Hex_Images; use Hex_Images;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -46,17 +46,16 @@ package body Traces_Disa is
    --  INSN is exactly one instruction.
    --  Generate the disassembly for INSN.
    function Disassemble
-     (Insn : Binary_Content; Pc : Pc_Type; Sym : Symbolizer'Class)
-     return String
+     (Insn : Binary_Content;
+      Pc   : Pc_Type;
+      Sym  : Symbolizer'Class) return String
    is
-      Addr : Address;
       Line_Pos : Natural;
       Line : String (1 .. 128);
-      Insn_Len : Natural := 0;
+      Insn_Len : Natural;
    begin
-      Addr := Insn (Insn'First)'Address;
       Disa_For_Machine (Machine).
-        Disassemble_Insn (Addr, Pc, Line, Line_Pos, Insn_Len, Sym);
+        Disassemble_Insn (Insn, Pc, Line, Line_Pos, Insn_Len, Sym);
 
       if Insn_Len /= Insn'Length then
          raise Constraint_Error;
@@ -95,7 +94,8 @@ package body Traces_Disa is
       Pc := Insns'First;
       while Pc < Insns'Last loop
          Insn_Len :=
-           Disa_For_Machine (Machine).Get_Insn_Length (Insns (Pc)'Address);
+           Disa_For_Machine (Machine).Get_Insn_Length
+                                        (Insns (Pc .. Insns'Last));
          Cb.all (Pc, State, Insns (Pc .. Pc + Pc_Type (Insn_Len - 1)), Sym);
          Pc := Pc + Pc_Type (Insn_Len);
 

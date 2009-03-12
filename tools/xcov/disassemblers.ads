@@ -19,8 +19,8 @@
 
 --  Abstract support for disassembly engines
 
-with System;
 with Traces;         use Traces;
+with Traces_Elf;     use Traces_Elf;
 with Disa_Symbolize; use Disa_Symbolize;
 
 package Disassemblers is
@@ -28,13 +28,13 @@ package Disassemblers is
    type Disassembler is limited interface;
 
    function Get_Insn_Length
-     (Self : Disassembler;
-      Addr : System.Address) return Positive is abstract;
-   --  Return the length of the instruction at Addr
+     (Self     : Disassembler;
+      Insn_Bin : Binary_Content) return Positive is abstract;
+   --  Return the length of the instruction at the beginning of Insn_Bin
 
    procedure Disassemble_Insn
      (Self     : Disassembler;
-      Addr     : System.Address;
+      Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
       Line     : out String;
       Line_Pos : out Natural;
@@ -43,5 +43,18 @@ package Disassemblers is
    --  Disassemble instruction at ADDR, and put the result in LINE/LINE_POS.
    --  LINE_POS is the index of the next character to be written (ie line
    --  length if Line'First = 1).
+
+   procedure Get_Insn_Properties
+     (Self       : Disassembler;
+      Insn_Bin   : Binary_Content;
+      Pc         : Pc_Type;
+      Branch     : out Branch_Kind;
+      Flag_Indir : out Boolean;
+      Flag_Cond  : out Boolean;
+      Dest       : out Pc_Type) is abstract;
+   --  Determine whether the given instruction, located at PC, is a branch
+   --  instruction of some kind (indicated by Branch).
+   --  For a branch, indicate whether it is indirect (Flag_Indir) and whether
+   --  it is conditional (Flag_Cond), and determine its destination (Dest).
 
 end Disassemblers;

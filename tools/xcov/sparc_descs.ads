@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                      Copyright (C) 2008, 2009, AdaCore                   --
+--                      Copyright (C) 2008-2009, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,8 +16,6 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Interfaces; use Interfaces;
-with System; use System;
 
 package Sparc_Descs is
    --  Fields of Sparc instructions.
@@ -90,8 +88,5 @@ package Sparc_Descs is
 
       F_Others => (0, 31)
      );
-
-   --  Extract instruction at ADDR.
-   function Get_Insn (Addr : Address) return Unsigned_32;
 
 end Sparc_Descs;

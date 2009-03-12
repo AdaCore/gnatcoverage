@@ -16,16 +16,16 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Ordered_Maps;
 with Interfaces;
-with Elf_Common;
+
+with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;
 with Traces; use Traces;
 with Traces_Files;
 with Traces_Disa;
-with Ppc_Descs;
-with Disa_Ppc;
 
 package body Traces_History is
    procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
@@ -164,102 +164,107 @@ package body Traces_History is
          Pc := Sym.First;
          Nodes.Clear;
 
-         case Machine is
-            when Elf_Common.EM_PPC =>
-               declare
-                  use Disa_Ppc;
-                  Insn : Unsigned_32;
-                  Branch : Branch_Kind;
-                  Flag_Indir, Flag_Cond : Boolean;
-                  Dest : Pc_Type;
-                  Verbose : constant Boolean := False;
-                  Node, Node_Ft, Node_Br : Graph_Node_Acc;
-               begin
-                  Get_Entry (Nodes, Pc, Node_Br);
-                  while Pc < Sym.Last loop
-                     Insn := Ppc_Descs.Get_Insn
-                       (Sec.Section_Content (Pc)'Address);
-                     Get_Insn_Properties (Insn, Pc,
-                                          Branch, Flag_Indir, Flag_Cond,
-                                          Dest);
+         declare
+            Branch : Branch_Kind;
+            Flag_Indir, Flag_Cond : Boolean;
+            Dest : Pc_Type;
+            Verbose : constant Boolean := False;
+            Node, Node_Ft, Node_Br : Graph_Node_Acc;
+            Insn_Len : Pc_Type;
+         begin
+            Get_Entry (Nodes, Pc, Node_Br);
+            while Pc < Sym.Last loop
+               Insn_Len :=
+                 Pc_Type (Disa_For_Machine (Machine).
+                            Get_Insn_Length
+                              (Sec.Section_Content
+                                 (Pc .. Sec.Section_Content'Last)));
 
-                     if Verbose then
-                        Put (Hex_Images.Hex_Image (Pc));
-                        Put (": ");
-                        Put (Traces_Disa.Disassemble
-                               (Sec.Section_Content (Pc .. Pc + 3), Pc, Exe));
-                        New_Line;
-                        case Branch is
-                           when Br_Jmp =>
-                              Put ("  jump");
-                           when Br_Call =>
-                              Put ("  call");
-                           when Br_Ret =>
-                              Put ("  ret");
-                           when Br_None =>
-                              null;
-                        end case;
-                        if Branch /= Br_None then
-                           if Flag_Cond then
-                              Put (" +conditional");
-                           end if;
-                           if Flag_Indir then
-                              Put (" +indir");
-                           else
-                              Put (' ');
-                              Put (Hex_Images.Hex_Image (Dest));
-                              if Dest in Sym.First .. Sym.Last then
-                                 Put (" (intra-routine)");
-                              end if;
-                           end if;
-                           New_Line;
-                        end if;
-                     end if;
+               declare
+                  Insn : Binary_Content renames
+                    Sec.Section_Content (Pc .. Pc + Insn_Len - 1);
+               begin
+                  Disa_For_Machine (Machine).Get_Insn_Properties
+                    (Insn, Pc,
+                     Branch, Flag_Indir, Flag_Cond,
+                     Dest);
+
+                  if Verbose then
+                     Put (Hex_Images.Hex_Image (Pc));
+                     Put (": ");
+                     Put (Traces_Disa.Disassemble (Insn, Pc, Exe));
+                     New_Line;
+                     case Branch is
+                        when Br_Jmp =>
+                           Put ("  jump");
+                        when Br_Call =>
+                           Put ("  call");
+                        when Br_Ret =>
+                           Put ("  ret");
+                        when Br_None =>
+                           null;
+                     end case;
 
                      if Branch /= Br_None then
-                        if Flag_Indir then
-                           Node_Br := null;
-                        elsif Dest not in Sym.First .. Sym.Last then
-                           Node_Br := null;
-                        else
-                           Get_Entry (Nodes, Dest, Node_Br);
-                        end if;
                         if Flag_Cond then
-                           Get_Entry (Nodes, Pc + 4, Node_Ft);
-                        else
-                           Node_Ft := null;
+                           Put (" +conditional");
                         end if;
-                        if not Nodes.Contains (Pc) then
-                           Node := new Graph_Node'(Stmt => 0,
-                                                   Line => null,
-                                                   First => Pc,
-                                                   Last => Pc + 3,
-                                                   Branch => Branch,
-                                                   Flag_Indir => Flag_Indir,
-                                                   Flag_Cond => Flag_Cond,
-                                                   Flag_Entry => False,
-                                                   others => null);
-                           Nodes.Insert (Pc, Node);
+                        if Flag_Indir then
+                           Put (" +indir");
                         else
-                           Node := Nodes.Element (Pc);
-                           if Node.Branch /= Br_None then
-                              raise Program_Error;
+                           Put (' ');
+                           Put (Hex_Images.Hex_Image (Dest));
+                           if Dest in Sym.First .. Sym.Last then
+                              Put (" (intra-routine)");
                            end if;
                         end if;
-                        Node.Branch := Branch;
-                        Node.Flag_Indir := Flag_Indir;
-                        Node.Flag_Cond := Flag_Cond;
-                        Node.Next_Br := Node_Br;
-                        Node.Next_Ft := Node_Ft;
+                        New_Line;
                      end if;
-                     Npc := Pc + 4;
-                     exit when Npc < Pc;
-                     Pc := Npc;
-                  end loop;
+                  end if;
                end;
-            when others =>
-               raise Program_Error;
-         end case;
+
+               if Branch /= Br_None then
+                  if Flag_Indir then
+                     Node_Br := null;
+                  elsif Dest not in Sym.First .. Sym.Last then
+                     Node_Br := null;
+                  else
+                     Get_Entry (Nodes, Dest, Node_Br);
+                  end if;
+                  if Flag_Cond then
+                     Get_Entry (Nodes, Pc + Insn_Len, Node_Ft);
+                  else
+                     Node_Ft := null;
+                  end if;
+
+                  if not Nodes.Contains (Pc) then
+                     Node := new Graph_Node'(Stmt => 0,
+                                             Line => null,
+                                             First => Pc,
+                                             Last => Pc + Insn_Len - 1,
+                                             Branch => Branch,
+                                             Flag_Indir => Flag_Indir,
+                                             Flag_Cond => Flag_Cond,
+                                             Flag_Entry => False,
+                                             others => null);
+                     Nodes.Insert (Pc, Node);
+                  else
+                     Node := Nodes.Element (Pc);
+                     if Node.Branch /= Br_None then
+                        raise Program_Error;
+                     end if;
+                  end if;
+                  Node.Branch := Branch;
+                  Node.Flag_Indir := Flag_Indir;
+                  Node.Flag_Cond := Flag_Cond;
+                  Node.Next_Br := Node_Br;
+                  Node.Next_Ft := Node_Ft;
+               end if;
+               Npc := Pc + Insn_Len;
+               exit when Npc < Pc;
+               Pc := Npc;
+            end loop;
+         end;
 
          --  Second pass: extend the graph blocks.
          if Nodes.Is_Empty then
@@ -268,6 +273,8 @@ package body Traces_History is
          end if;
 
          --  Find the line for the PC.
+         --  Inefficient, should have an index of lines sorted by PC range???
+
          Pc := Sym.First;
          while Line /= null and then Line.Last < Pc loop
             Next_Iterator (Line_It, Line);
@@ -277,7 +284,7 @@ package body Traces_History is
             use Node_Maps;
             Cur : Cursor;
             C, N : Graph_Node_Acc;
-            Stmt : Natural := 1;
+            Stmt : Natural := 0;
          begin
             Cur := Nodes.First;
             C := Element (Cur);
@@ -345,11 +352,13 @@ package body Traces_History is
             use Node_Maps;
             use Hex_Images;
             use Traces_Disa;
+
             Cur : Cursor;
             Vec : Graph_Node_Vec_Acc;
             E : Graph_Node_Acc;
             Idx : Natural;
             Nbr_In_Jmp : Natural := 0;
+            Prev_Stmt : Natural := 0;
          begin
             Vec := new Graph_Node_Vector (0 .. Integer (Nodes.Length) - 1);
             Idx := 0;
@@ -362,18 +371,27 @@ package body Traces_History is
 
             for I in Vec'Range loop
                E := Vec (I);
+
+               New_Line;
                Put (Hex_Image (E.First));
                Put ('-');
                Put (Hex_Image (E.Last));
                Put (", stmt:");
                Put (Natural'Image (E.Stmt));
+
+               if E.Stmt = Prev_Stmt then
+                  Put (" (continued)");
+               end if;
+               Prev_Stmt := E.Stmt;
+
                if E.Line /= null then
-                  Put (',');
+                  Put (", ");
                   Disp_Address (E.Line);
                   --  Put (", line:");
                   --  Put (Natural'Image (E.Line.Line_Number));
                end if;
                New_Line;
+
                For_Each_Insn (Sec.Section_Content (E.First .. E.Last),
                               Covered,
                               Textio_Disassemble_Cb'Access,
@@ -388,6 +406,7 @@ package body Traces_History is
                   when Br_None =>
                      null;
                end case;
+
                if E.Branch /= Br_None then
                   if E.Flag_Cond then
                      Put (" +conditional");
@@ -441,4 +460,5 @@ package body Traces_History is
 
       end loop;
    end Generate_Graph;
+
 end Traces_History;

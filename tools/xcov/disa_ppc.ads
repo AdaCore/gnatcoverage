@@ -19,25 +19,23 @@
 
 --  PowerPC disassembler
 
-with System;
-with Interfaces;
-
 with Disa_Symbolize; use Disa_Symbolize;
 with Disassemblers;  use Disassemblers;
 with Traces;         use Traces;
+with Traces_Elf;     use Traces_Elf;
 
 package Disa_Ppc is
 
    type PPC_Disassembler is new Disassembler with private;
 
    overriding function Get_Insn_Length
-     (Self : PPC_Disassembler;
-      Addr : System.Address) return Positive;
-   --  Return the length of the instruction at Addr
+     (Self     : PPC_Disassembler;
+      Insn_Bin : Binary_Content) return Positive;
+   --  Return the length of the instruction at the beginning of Insn_Bin
 
    overriding procedure Disassemble_Insn
      (Self     : PPC_Disassembler;
-      Addr     : System.Address;
+      Insn_Bin : Binary_Content;
       Pc       : Pc_Type;
       Line     : out String;
       Line_Pos : out Natural;
@@ -47,15 +45,18 @@ package Disa_Ppc is
    --  LINE_POS is the index of the next character to be written (ie line
    --  length if Line'First = 1).
 
-   procedure Get_Insn_Properties
-     (Insn       : Interfaces.Unsigned_32;
+   overriding procedure Get_Insn_Properties
+     (Self       : PPC_Disassembler;
+      Insn_Bin   : Binary_Content;
       Pc         : Pc_Type;
       Branch     : out Branch_Kind;
       Flag_Indir : out Boolean;
       Flag_Cond  : out Boolean;
       Dest       : out Pc_Type);
-   --  Comment needed???
-   --  Move to abstract Disassemblers package???
+   --  Determine whether the given instruction, located at PC, is a branch
+   --  instruction of some kind (indicated by Branch).
+   --  For a branch, indicate whether it is indirect (Flag_Indir) and whether
+   --  it is conditional (Flag_Cond), and determine its destination (Dest).
 
 private
    type PPC_Disassembler is new Disassembler with null record;

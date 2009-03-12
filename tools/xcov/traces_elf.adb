@@ -30,8 +30,9 @@ with Traces_Sources;
 with Traces_Names;
 with Traces_Disa;
 with Ppc_Descs;
-with Sparc_Descs;
 with Coverage; use Coverage;
+
+with Disa_Common; use Disa_Common;
 
 package body Traces_Elf is
 
@@ -1694,7 +1695,8 @@ package body Traces_Elf is
                   if Trace_Len < 4 then
                      raise Program_Error;
                   end if;
-                  Insn := Get_Insn (Section (Trace.Last - 3)'Address);
+                  Insn := To_Big_Endian_U32 (Section (Trace.Last - 3
+                                                   .. Trace.Last));
 
                   if Is_Conditional_Branch (Insn) then
                      case Op is
@@ -1722,11 +1724,9 @@ package body Traces_Elf is
 
             when EM_SPARC =>
                declare
-                  use Sparc_Descs;
                   Op : constant Unsigned_8 := Trace.Op and 3;
                   Pc1 : Pc_Type;
                   Trace_Len : constant Pc_Type := Trace.Last - Trace.First + 1;
-                  Insn1, Insn2 : Unsigned_32;
                   Nstate : Trace_State;
 
                   type Br_Kind is (Br_None,
@@ -1791,14 +1791,16 @@ package body Traces_Elf is
                   --  Extract last two instructions
 
                   if Trace_Len > 7 then
-                     Insn1 := Get_Insn (Section (Trace.Last - 7)'Address);
-                     Br1 := Get_Br (Insn1);
+                     Br1 := Get_Br
+                              (To_Big_Endian_U32 (Section (Trace.Last - 7
+                                                        .. Trace.Last - 4)));
                   else
                      Br1 := Br_None;
                   end if;
 
-                  Insn2 := Get_Insn (Section (Trace.Last - 3)'Address);
-                  Br2 := Get_Br (Insn2);
+                  Br2 := Get_Br
+                           (To_Big_Endian_U32 (Section (Trace.Last - 3
+                                                     .. Trace.Last)));
 
                   --  Code until the first branch is covered
 

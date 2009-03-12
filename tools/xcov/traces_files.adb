@@ -28,29 +28,12 @@ with Traces; use Traces;
 with System;
 
 package body Traces_Files is
-   function Is_Big_Endian return Boolean;
    procedure Dump_Infos (Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Info (Fd : File_Descriptor;
                                     Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Traces (Fd : File_Descriptor;
                                       Trace_File : Trace_File_Type;
                                       Base : Traces_Base);
-
-   --  Test if the host is big endian.
-   function Is_Big_Endian return Boolean
-   is
-      V32 : constant Unsigned_32 := 16#11_22_33_44#;
-      type Four_Bytes is array (0 .. 3) of Unsigned_8;
-
-      function To_Four_Bytes is new Ada.Unchecked_Conversion
-        (Source => Unsigned_32, Target => Four_Bytes);
-
-      Res : constant Four_Bytes := To_Four_Bytes (V32);
-   begin
-      return Res = (16#11#, 16#22#, 16#33#, 16#44#);
-   end Is_Big_Endian;
-
-   My_Big_Endian : constant Boolean := Is_Big_Endian;
 
    type Trace_File_Descriptor is record
       Fd : File_Descriptor;
@@ -140,7 +123,7 @@ package body Traces_Files is
             raise Bad_File_Format with "cannot read info header";
          end if;
 
-         if Desc.Big_Endian /= My_Big_Endian then
+         if Desc.Big_Endian /= Big_Endian_Host then
             Swaps.Swap_32 (Ihdr.Info_Kind);
             Swaps.Swap_32 (Ihdr.Info_Length);
          end if;
@@ -259,7 +242,7 @@ package body Traces_Files is
             raise Bad_File_Format with "only 4 bytes pc are handled";
          end if;
 
-         if Desc.Big_Endian /= My_Big_Endian then
+         if Desc.Big_Endian /= Big_Endian_Host then
             Swaps.Swap_32 (E32.Pc);
             Swaps.Swap_16 (E32.Size);
          end if;
@@ -385,7 +368,7 @@ package body Traces_Files is
               Version => Qemu_Trace_Version,
               Kind => Qemu_Trace_Kind_Info,
               Sizeof_Target_Pc => 0,
-              Big_Endian => Boolean'Pos (Is_Big_Endian),
+              Big_Endian => Boolean'Pos (Big_Endian_Host),
               Machine_Hi => 0,
               Machine_Lo => 0,
               Padding => 0);
@@ -458,7 +441,7 @@ package body Traces_Files is
               Version => Qemu_Trace_Version,
               Kind => Qemu_Trace_Kind_Raw,
               Sizeof_Target_Pc => Pc_Type_Size,
-              Big_Endian => Boolean'Pos (Is_Big_Endian),
+              Big_Endian => Boolean'Pos (Big_Endian_Host),
               Machine_Hi => Unsigned_8 (Shift_Right (Machine, 8)),
               Machine_Lo => Unsigned_8 (Machine and 16#Ff#),
              Padding => 0);
@@ -632,7 +615,7 @@ package body Traces_Files is
    begin
       Trace_File := Trace_File_Type'(Kind => Qemu_Trace_Kind_Info,
                                      Sizeof_Target_Pc => 0,
-                                     Big_Endian => Is_Big_Endian,
+                                     Big_Endian => Big_Endian_Host,
                                      Machine => 0,
                                      First_Infos => null,
                                      Last_Infos => null);

@@ -18,9 +18,9 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with System;      use System;
 with Interfaces;  use Interfaces;
 
+with Disa_Common; use Disa_Common;
 with Hex_Images;  use Hex_Images;
 with Sparc_Descs; use Sparc_Descs;
 
@@ -162,11 +162,11 @@ package body Disa_Sparc is
    ---------------------
 
    function Get_Insn_Length
-     (Self : SPARC_Disassembler;
-      Addr : System.Address) return Positive
+     (Self     : SPARC_Disassembler;
+      Insn_Bin : Binary_Content) return Positive
    is
       pragma Unreferenced (Self);
-      pragma Unreferenced (Addr);
+      pragma Unreferenced (Insn_Bin);
    begin
       return 4;
    end Get_Insn_Length;
@@ -177,7 +177,7 @@ package body Disa_Sparc is
 
    procedure Disassemble_Insn
      (Self     : SPARC_Disassembler;
-      Addr     : System.Address;
+      Insn_Bin : Binary_Content;
       Pc       : Traces.Pc_Type;
       Line     : out String;
       Line_Pos : out Natural;
@@ -186,7 +186,8 @@ package body Disa_Sparc is
    is
       pragma Unreferenced (Self);
       pragma Unreferenced (Sym);
-      W : Unsigned_32;
+
+      W : constant Unsigned_32 := To_Big_Endian_U32 (Insn_Bin);
 
       procedure Add (C : Character);
       pragma Inline (Add);
@@ -446,7 +447,6 @@ package body Disa_Sparc is
    --  Start of processing for Disassemble_Insn
 
    begin
-      W := Get_Insn (Addr);
       Insn_Len := 4;
       Line_Pos := Line'First;
 
@@ -564,5 +564,22 @@ package body Disa_Sparc is
             raise Program_Error;
       end case;
    end Disassemble_Insn;
+
+   -------------------------
+   -- Get_Insn_Properties --
+   -------------------------
+
+   procedure Get_Insn_Properties
+     (Self       : SPARC_Disassembler;
+      Insn_Bin   : Binary_Content;
+      Pc         : Pc_Type;
+      Branch     : out Branch_Kind;
+      Flag_Indir : out Boolean;
+      Flag_Cond  : out Boolean;
+      Dest       : out Pc_Type)
+   is
+   begin
+      raise Program_Error with "not implemented";
+   end Get_Insn_Properties;
 
 end Disa_Sparc;
