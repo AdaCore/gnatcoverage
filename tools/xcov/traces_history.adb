@@ -193,7 +193,7 @@ package body Traces_History is
             Put (" " & Dest_Char & ":");
             Put (Hex_Images.Hex_Image (Dest.First));
             if Dest.Stmt = Node.Stmt then
-               Put ("(in)");
+               Put (" (in)");
             end if;
          end Print_Dest;
 
