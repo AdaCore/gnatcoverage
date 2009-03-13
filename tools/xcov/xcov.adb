@@ -250,50 +250,56 @@ begin
             Traces_History.Dump_Traces_With_Asm (Exec, Argument (I));
          end loop;
          return;
+
       elsif Cmd = "--dump-sections" then
          for I in Arg_Index + 1 .. Arg_Count loop
             Open_File (Exec, Argument (I), 0);
             Build_Sections (Exec);
-            Disp_Sections_Addresses (Exec);
+            Disp_Addresses (Exec, Section_Addresses);
             Close_File (Exec);
          end loop;
          return;
+
       elsif Cmd = "--dump-symbols" then
          for I in Arg_Index + 1 .. Arg_Count loop
             Open_File (Exec, Argument (I), 0);
             Build_Sections (Exec);
             Build_Symbols (Exec);
-            Disp_Symbols_Addresses (Exec);
+            Disp_Addresses (Exec, Symbol_Addresses);
             Close_File (Exec);
          end loop;
          return;
+
       elsif Cmd = "--dump-compile-units" then
          for I in Arg_Index + 1 .. Arg_Count loop
             Open_File (Exec, Argument (I), 0);
             Build_Sections (Exec);
             Build_Debug_Compile_Units (Exec);
-            Disp_Compile_Units_Addresses (Exec);
+            Disp_Addresses (Exec, Compile_Unit_Addresses);
             Close_File (Exec);
          end loop;
          return;
+
       elsif Cmd = "--dump-subprograms" then
          for I in Arg_Index + 1 .. Arg_Count loop
             Open_File (Exec, Argument (I), 0);
             Build_Sections (Exec);
             Build_Debug_Compile_Units (Exec);
-            Disp_Subprograms_Addresses (Exec);
+            Disp_Addresses (Exec, Subprogram_Addresses);
             Close_File (Exec);
          end loop;
          return;
+
       elsif Cmd = "--dump-lines" then
          for I in Arg_Index + 1 .. Arg_Count loop
             Open_File (Exec, Argument (I), 0);
             Build_Sections (Exec);
             Build_Debug_Lines (Exec);
-            Disp_Lines_Addresses (Exec);
+            Disp_Addresses (Exec, Line_Addresses);
             Close_File (Exec);
          end loop;
          return;
+
       elsif Cmd = "--show-graph" then
          Arg_Index := Arg_Index + 1;
          if Arg_Index + 1 < Arg_Count then

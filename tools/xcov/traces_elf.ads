@@ -73,7 +73,7 @@ package Traces_Elf is
    function Get_Machine (Exec : Exe_File_Type) return Interfaces.Unsigned_16;
 
    type Addresses_Info;
-   type Addresses_Info_Acc is access Addresses_Info;
+   type Addresses_Info_Acc is access all Addresses_Info;
 
    --  Build sections map for the current ELF file.
    procedure Build_Sections (Exec : in out Exe_File_Type);
@@ -102,37 +102,38 @@ package Traces_Elf is
    --  Read dwarfs info to build lines list.
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type);
 
-   --  Build source lines for a section of an exec and only
-   --  for this section.
+   --  Build source lines for a section of an exec and only for this section
+   --  How are traces relevant (Base)???
    procedure Build_Source_Lines (Exec : Exe_File_Acc;
                                  Base : Traces_Base_Acc;
                                  Section : Binary_Content);
 
    procedure Build_Routines_Name (Exec : Exe_File_Type);
 
-   --  Display lists.
-   procedure Disp_Sections_Addresses (Exe : Exe_File_Type);
-   procedure Disp_Compile_Units_Addresses (Exe : Exe_File_Type);
-   procedure Disp_Subprograms_Addresses (Exe : Exe_File_Type);
-   procedure Disp_Symbols_Addresses (Exe : Exe_File_Type);
-   procedure Disp_Lines_Addresses (Exe : Exe_File_Type);
-
    --  Display El.
    --  Mostly a debug procedure.
    procedure Disp_Address (El : Addresses_Info_Acc);
 
-   --  Get symbol (if any) containing PC.
-   function Get_Symbol (Exec : Exe_File_Type; Pc : Pc_Type)
-                       return Addresses_Info_Acc;
-
    type Addresses_Kind is
-     (
-      Section_Addresses,
+     (Section_Addresses,
       Compile_Unit_Addresses,
       Subprogram_Addresses,
       Symbol_Addresses,
-      Line_Addresses
-      );
+      Line_Addresses);
+
+   procedure Disp_Addresses (Exe : Exe_File_Type; Kind : Addresses_Kind);
+   --  Display the list of addresses for items of the indicated Kind in Exe
+
+   function Get_Address_Info
+     (Exec : Exe_File_Type;
+      Kind : Addresses_Kind;
+      PC   : PC_Type) return Addresses_Info_Acc;
+   --  Retrieve the descriptor of the given Kind whose range contains address
+   --  PC in Exec.
+
+   function Get_Symbol (Exec : Exe_File_Type; Pc : Pc_Type)
+                       return Addresses_Info_Acc;
+   --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
    --  Canonical use of iterators:
    --
@@ -144,9 +145,11 @@ package Traces_Elf is
    --  end loop;
 
    type Addresses_Iterator is limited private;
+
    procedure Init_Iterator (Exe : Exe_File_Type;
                             Kind : Addresses_Kind;
                             It : out Addresses_Iterator);
+
    procedure Next_Iterator (It : in out Addresses_Iterator;
                             Addr : out Addresses_Info_Acc);
 
@@ -171,13 +174,17 @@ package Traces_Elf is
             Section_Name : String_Acc;
             Section_Index : Elf_Common.Elf_Half;
             Section_Content : Binary_Content_Acc;
+
          when Compile_Unit_Addresses =>
             Compile_Unit_Filename : String_Acc;
             Stmt_List : Interfaces.Unsigned_32;
+
          when Subprogram_Addresses =>
             Subprogram_Name : String_Acc;
+
          when Symbol_Addresses =>
             Symbol_Name : String_Acc;
+
          when Line_Addresses =>
             Line_Filename : String_Acc;
             Line_Number : Natural;
@@ -200,6 +207,9 @@ package Traces_Elf is
    --  database has been populated with its traces.
 
 private
+
+   type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
+
    type Exe_File_Type is limited new Symbolizer with record
       --  Sections index.
       Sec_Debug_Abbrev   : Elf_Half := 0;
@@ -225,11 +235,8 @@ private
       Lines_Len : Elf_Size := 0;
       Lines : Binary_Content_Acc := null;
 
-      Sections_Set : Addresses_Containers.Set;
-      Compile_Units_Set : Addresses_Containers.Set;
-      Subprograms_Set : Addresses_Containers.Set;
-      Symbols_Set : Addresses_Containers.Set;
-      Lines_Set : Addresses_Containers.Set;
+      Desc_Sets : Desc_Sets_Type;
+      --  Address descriptor sets
    end record;
 
    type Addresses_Iterator is limited record
