@@ -117,7 +117,6 @@ package Traces_Sources is
    procedure Dump_Uncovered_Routines (Report : File_Access);
    --  Go through the routine database and dump the list of uncovered
    --  routines into Report.
-   --  Should expose an iterator on routines and move this to Traces_xxx???
 
 private
    type Line_Chain;
