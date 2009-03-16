@@ -24,7 +24,8 @@ with Interfaces; use Interfaces;
 
 with Elf32;
 with Elf_Disassemblers; use Elf_Disassemblers;
-with Hex_Images; use Hex_Images;
+with Execs_Dbase;       use Execs_Dbase;
+with Hex_Images;        use Hex_Images;
 with Dwarf;
 with Dwarf_Handling;  use Dwarf_Handling;
 with System.Storage_Elements; use System.Storage_Elements;
@@ -88,32 +89,55 @@ package body Traces_Elf is
 
    Empty_String_Acc : constant String_Acc := new String'("");
 
+   ---------
+   -- "<" --
+   ---------
+
    function "<" (L, R : Addresses_Info_Acc) return Boolean is
    begin
       return L.Last < R.First;
    end "<";
 
-   procedure Disp_Address (El : Addresses_Info_Acc) is
+   -----------
+   -- Image --
+   -----------
+
+   function Image (El : Addresses_Info_Acc) return String is
+      Range_Img : constant String :=
+                    Hex_Image (El.First) & '-' & Hex_Image (El.Last);
    begin
-      Put (Hex_Image (El.First) & '-' & Hex_Image (El.Last));
       case El.Kind is
          when Section_Addresses =>
-            Put_Line (" section " & El.Section_Name.all);
+            return Range_Img & " section " & El.Section_Name.all;
+
          when Compile_Unit_Addresses =>
-            Put_Line (" compile unit from " & El.Compile_Unit_Filename.all);
+            return Range_Img & " compile unit from "
+              & El.Compile_Unit_Filename.all;
+
          when Subprogram_Addresses =>
-            Put_Line (" subprogram " & El.Subprogram_Name.all);
+            return Range_Img & " subprogram " & El.Subprogram_Name.all;
+
          when Symbol_Addresses =>
-            Put_Line (" symbol for " & El.Symbol_Name.all);
-         when Line_Addresses =>
-            Put_Line (" line " & El.Line_Filename.all & ':'
-                      & Natural'Image (El.Line_Number));
+            return Range_Img & " symbol for " & El.Symbol_Name.all;
+
+      when Line_Addresses =>
+            return Range_Img & " line " & El.Line_Filename.all & ':'
+              & Natural'Image (El.Line_Number);
       end case;
-      if False and El.Parent /= null then
-         Put (" parent: ");
-         Disp_Address (El.Parent);
-      end if;
+   end Image;
+
+   ------------------
+   -- Disp_Address --
+   ------------------
+
+   procedure Disp_Address (El : Addresses_Info_Acc) is
+   begin
+      Put_Line (Image (El));
    end Disp_Address;
+
+   --------------------
+   -- Disp_Addresses --
+   --------------------
 
    procedure Disp_Addresses (Exe : Exe_File_Type; Kind : Addresses_Kind) is
       use Addresses_Containers;
@@ -1023,13 +1047,13 @@ package body Traces_Elf is
       Line : Addresses_Info_Acc;
       N_Line : Addresses_Info_Acc;
 
-      procedure Read_CU_Debug_Lines (Cur_CU : Cursor);
+      procedure Read_CU_Lines (Cur_CU : Cursor);
       --  Read debug lines for the given compilation unit
 
-      procedure Read_CU_Debug_Lines (Cur_CU : Cursor) is
+      procedure Read_CU_Lines (Cur_CU : Cursor) is
       begin
          Read_Debug_Line (Exec, Element (Cur_CU).Stmt_List);
-      end Read_CU_Debug_Lines;
+      end Read_CU_Lines;
 
    begin
       --  Return now if already loaded
@@ -1044,8 +1068,7 @@ package body Traces_Elf is
 
       --  Read all .debug_line
 
-      Exec.Desc_Sets (Compile_Unit_Addresses).
-        Iterate (Read_CU_Debug_Lines'Access);
+      Exec.Desc_Sets (Compile_Unit_Addresses).Iterate (Read_CU_Lines'Access);
 
       --  Set .Last and parent.
 
@@ -1800,7 +1823,7 @@ package body Traces_Elf is
    -- Build_Symbols --
    -------------------
 
-   procedure Build_Symbols (Exec : in out Exe_File_Type) is
+   procedure Build_Symbols (Exec : Exe_File_Acc) is
       use Addresses_Containers;
 
       type Addr_Info_Acc_Arr is array (0 .. Get_Shdr_Num (Exec.Exe_File))
@@ -1816,11 +1839,15 @@ package body Traces_Elf is
       Strtab_Idx : Elf_Half;
       Strtab_Len : Elf_Size;
       Strtabs : Binary_Content_Acc;
-      Sym : Elf_Sym;
+      ESym : Elf_Sym;
 
       Sym_Type : Unsigned_8;
+      Sym      : Addresses_Info_Acc;
+
       Cur : Cursor;
       Ok : Boolean;
+
+   --  Start of processing for Build_Symbols
 
    begin
       --  Build_Sections must be called before
@@ -1863,27 +1890,29 @@ package body Traces_Elf is
       Load_Section (Exec.Exe_File, Strtab_Idx, Strtabs (0)'Address);
 
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
-         Sym := Get_Sym
+         ESym := Get_Sym
            (Exec.Exe_File,
             Symtabs (0)'Address + Storage_Offset ((I - 1) * Elf_Sym_Size));
-         Sym_Type := Elf_St_Type (Sym.St_Info);
+         Sym_Type := Elf_St_Type (ESym.St_Info);
 
-         if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
-           and then Sym.St_Shndx in Sections_Info'Range
-           and then Sections_Info (Sym.St_Shndx) /= null
-           and then Sym.St_Size > 0
+         if  (Sym_Type = STT_FUNC or else Sym_Type = STT_NOTYPE)
+           and then ESym.St_Shndx in Sections_Info'Range
+           and then Sections_Info (ESym.St_Shndx) /= null
+           and then ESym.St_Size > 0
          then
+            Sym := new Addresses_Info'
+              (Kind        => Symbol_Addresses,
+               First       => Exec.Exe_Text_Start + Pc_Type (ESym.St_Value),
+               Last        =>
+                 Exec.Exe_Text_Start + Pc_Type (ESym.St_Value
+                                                         + ESym.St_Size - 1),
+               Parent      => Sections_Info (ESym.St_Shndx),
+               Symbol_Name => new String'
+                                (Read_String
+                                   (Strtabs (ESym.St_Name)'Address)));
+
             Addresses_Containers.Insert
-              (Exec.Desc_Sets (Symbol_Addresses),
-               new Addresses_Info'
-               (Kind => Symbol_Addresses,
-                First => Exec.Exe_Text_Start + Pc_Type (Sym.St_Value),
-                Last => Exec.Exe_Text_Start + Pc_Type (Sym.St_Value
-                                                         + Sym.St_Size - 1),
-                Parent => Sections_Info (Sym.St_Shndx),
-                Symbol_Name => new String'
-                (Read_String (Strtabs (Sym.St_Name)'Address))),
-               Cur, Ok);
+              (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
          end if;
       end loop;
 
@@ -1984,22 +2013,6 @@ package body Traces_Elf is
       Add ('>');
    end Symbolize;
 
-   -------------------------
-   -- Build_Routines_Name --
-   -------------------------
-
-   procedure Build_Routines_Name (Exec : Exe_File_Type) is
-      It : Addresses_Iterator;
-      Sym : Addresses_Info_Acc;
-   begin
-      Init_Iterator (Exec, Symbol_Addresses, It);
-      loop
-         Next_Iterator (It, Sym);
-         exit when Sym = null;
-         Traces_Names.Add_Routine_Name (Sym.Symbol_Name);
-      end loop;
-   end Build_Routines_Name;
-
    -------------------
    -- Init_Iterator --
    -------------------
@@ -2035,212 +2048,52 @@ package body Traces_Elf is
    -- Read_Routines_Name --
    ------------------------
 
-   procedure Read_Routines_Name (Efile : Elf_File; Exclude : Boolean)
-   is
+   procedure Read_Routines_Name (Exec : Exe_File_Acc; Exclude : Boolean) is
       use Addresses_Containers;
       use Traces_Names;
 
-      Nbr_Shdr : constant Elf_Half := Get_Shdr_Num (Efile);
-      type Set_Acc is access Addresses_Containers.Set;
-      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Addresses_Containers.Set, Set_Acc);
-      type Set_Acc_Array is array (0 .. Nbr_Shdr) of Set_Acc;
-      Shdr_Sets : Set_Acc_Array := (others => null);
+      procedure Process_Symbol (Cur_Sym : Addresses_Containers.Cursor);
+      procedure Process_Symbol (Cur_Sym : Addresses_Containers.Cursor) is
+         Sym : Addresses_Info_Acc renames Element (Cur_Sym);
+      begin
+         if not Exclude then
+            Add_Routine_Name
+              (Name => Sym.Symbol_Name, Exec => Exec, Sym => Sym);
+         else
+            Remove_Routine_Name (Sym.Symbol_Name);
+         end if;
+      end Process_Symbol;
 
-      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Addresses_Info, Addresses_Info_Acc);
+   --  Start of processing for Read_Routines_Name
 
-      Shdr : Elf_Shdr_Acc;
-      Last : Pc_Type;
-      Addr : Pc_Type;
-
-      Sym : Addresses_Info_Acc;
-      Cur_Sym : Addresses_Containers.Cursor;
-
-      Symtab_Idx : Elf_Half;
-      Symtab_Shdr : Elf_Shdr_Acc;
-      Symtab_Len : Elf_Size;
-      Symtabs : Binary_Content_Acc;
-
-      Strtab_Idx : Elf_Half;
-      Strtab_Len : Elf_Size;
-      Strtabs : Binary_Content_Acc;
-
-      A_Sym : Elf_Sym;
-      Sym_Name : String_Acc;
-
-      Sym_Type : Unsigned_8;
-      Cur : Addresses_Containers.Cursor;
-      Ok : Boolean;
    begin
-      --  Search symtab and strtab.
-      --  Exit in case of failure.
-      Symtab_Idx := Get_Shdr_By_Name (Efile, ".symtab");
-      if Symtab_Idx = SHN_UNDEF then
-         Put_Line ("# No symbol table - file stripped ?");
-         return;
-      end if;
-      Symtab_Shdr := Get_Shdr (Efile, Symtab_Idx);
-      if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
-        or else Symtab_Shdr.Sh_Link = 0
-        or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
-      then
-         Put_Line ("# no strtab for .symtab - ill formed ELF file ?");
-         return;
-      end if;
-      Strtab_Idx := Elf_Half (Symtab_Shdr.Sh_Link);
-
-      --  Build sets for A+X sections.
-      for Idx in 0 .. Nbr_Shdr - 1 loop
-         Shdr := Get_Shdr (Efile, Idx);
-
-         --  Only A+X sections are interesting.
-         if (Shdr.Sh_Flags and (SHF_ALLOC or SHF_EXECINSTR))
-           = (SHF_ALLOC or SHF_EXECINSTR)
-           and then (Shdr.Sh_Type = SHT_PROGBITS)
-         then
-            Shdr_Sets (Idx) := new Addresses_Containers.Set;
-         end if;
-      end loop;
-
-      --  Load symtab and strtab.
-      Symtab_Len := Get_Section_Length (Efile, Symtab_Idx);
-      Symtabs := new Binary_Content (0 .. Symtab_Len - 1);
-      Load_Section (Efile, Symtab_Idx, Symtabs (0)'Address);
-
-      Strtab_Len := Get_Section_Length (Efile, Strtab_Idx);
-      Strtabs := new Binary_Content (0 .. Strtab_Len - 1);
-      Load_Section (Efile, Strtab_Idx, Strtabs (0)'Address);
-
-      --  Walk the symtab and put interesting symbols into the containers.
-      for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
-         A_Sym := Get_Sym
-           (Efile,
-            Symtabs (0)'Address + Storage_Offset ((I - 1) * Elf_Sym_Size));
-         Sym_Type := Elf_St_Type (A_Sym.St_Info);
-         if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
-           and then A_Sym.St_Shndx in Shdr_Sets'Range
-           and then Shdr_Sets (A_Sym.St_Shndx) /= null
-         then
-            Sym_Name := new String'
-              (Read_String (Strtabs (A_Sym.St_Name)'Address));
-
-            Addresses_Containers.Insert
-              (Shdr_Sets (A_Sym.St_Shndx).all,
-               new Addresses_Info'
-               (Kind => Symbol_Addresses,
-                First => Pc_Type (A_Sym.St_Value),
-                Last => Pc_Type (A_Sym.St_Value + A_Sym.St_Size - 1),
-                Parent => null,
-                Symbol_Name => Sym_Name),
-               Cur, Ok);
-            if not Ok then
-               Put_Line (Standard_Error,
-                         "symbol " & Sym_Name.all
-                           & " is an alias at " & Hex_Image (A_Sym.St_Value));
-            end if;
-         end if;
-      end loop;
-      Unchecked_Deallocation (Strtabs);
-      Unchecked_Deallocation (Symtabs);
-
-      --  Walk the sections and put the routines into the base.
-      for I in Shdr_Sets'Range loop
-         if Shdr_Sets (I) /= null then
-            Shdr := Get_Shdr (Efile, I);
-
-            Addr := Pc_Type (Shdr.Sh_Addr);
-            Last := Pc_Type (Shdr.Sh_Addr + Shdr.Sh_Size - 1);
-
-            --  Put_Line ("# " & Hex_Image (Addr) & "-" & Hex_Image (Last)
-            --            & ": " & Get_Shdr_Name (Efile, I));
-
-            Cur_Sym := First (Shdr_Sets (I).all);
-            if Has_Element (Cur_Sym) then
-               Sym := Element (Cur_Sym);
-            else
-               Sym := null;
-            end if;
-
-            --  Get the first symbol in the section.
-            while Sym /= null and then Sym.First < Addr loop
-               Unchecked_Deallocation (Sym.Symbol_Name);
-               Unchecked_Deallocation (Sym);
-               Next (Cur_Sym);
-               if not Has_Element (Cur_Sym) then
-                  Sym := null;
-                  exit;
-               end if;
-               Sym := Element (Cur_Sym);
-            end loop;
-
-            while Sym /= null and then Sym.Last <= Last loop
-               if Sym.First > Sym.Last then
-                  if Sym.First <= Last then
-                     Put_Line
-                       (Standard_Error, "empty symbol " & Sym.Symbol_Name.all
-                          & " at " & Hex_Image (Sym.First));
-                  end if;
-               else
-                  if Sym.First > Addr then
-                     Put_Line
-                       (Standard_Error, "no symbols for "
-                        & Hex_Image (Addr) & "-" & Hex_Image (Sym.First - 1));
-                  end if;
-
-                  if not Exclude then
-                     begin
-                        Add_Routine_Name (Sym.Symbol_Name);
-                        Sym.Symbol_Name := null;
-                     exception
-                        when Constraint_Error =>
-                           Put_Line (Standard_Error,
-                                     "symbol " & Sym.Symbol_Name.all
-                                       & " is defined twice in " &
-                                       Get_Filename (Efile));
-                     end;
-
-                  else
-                     Remove_Routine_Name (Sym.Symbol_Name);
-                  end if;
-
-                  Addr := Sym.Last;
-                  exit when Addr = Pc_Type'Last;
-                  Addr := Addr + 1;
-               end if;
-
-               Unchecked_Deallocation (Sym.Symbol_Name);
-               Unchecked_Deallocation (Sym);
-               Next (Cur_Sym);
-               if not Has_Element (Cur_Sym) then
-                  Sym := null;
-                  exit;
-               end if;
-               Sym := Element (Cur_Sym);
-            end loop;
-
-            if Addr < Last then
-               Put_Line
-                 (Standard_Error, "no symbols for "
-                    & Hex_Image (Addr) & "-" & Hex_Image (Last));
-            end if;
-            Unchecked_Deallocation (Shdr_Sets (I));
-         end if;
-      end loop;
+      Build_Sections (Exec.all);
+      Build_Symbols (Exec);
+      Exec.Desc_Sets (Symbol_Addresses).Iterate (Process_Symbol'Access);
    end Read_Routines_Name;
 
    ------------------------
    -- Read_Routines_Name --
    ------------------------
 
-   procedure Read_Routines_Name (Filename : String; Exclude : Boolean)
+   procedure Read_Routines_Name
+     (Filename  : String;
+      Exclude   : Boolean;
+      Keep_Open : Boolean)
    is
-      Efile : Elf_File;
+      Exec : Exe_File_Acc;
    begin
-      Open_File (Efile, Filename);
-      Load_Shdr (Efile);
-      Read_Routines_Name (Efile, Exclude);
-      Close_File (Efile);
+      Open_Exec (Get_Exec_Base, Filename, Exec);
+
+      declare
+         Efile : Elf_File renames Exec.Exe_File;
+      begin
+         Load_Shdr (Efile);
+         Read_Routines_Name (Exec, Exclude => Exclude);
+         if not Keep_Open then
+            Close_File (Efile);
+         end if;
+      end;
    exception
       when Elf_Files.Error =>
          Put_Line (Standard_Output, "cannot open: " & Filename);

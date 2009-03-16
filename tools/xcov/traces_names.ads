@@ -25,7 +25,10 @@ with Strings; use Strings;
 
 package Traces_Names is
 
-   procedure Add_Routine_Name (Name : String_Acc);
+   procedure Add_Routine_Name
+     (Name : String_Acc;
+      Exec : Exe_File_Acc := null;
+      Sym  : Addresses_Info_Acc := null);
    --  Add a routine name to the database, and allocate an associated
    --  Subprogram_Info record (see below). Constraint_Error is propagated if
    --  the name already exists.
@@ -36,6 +39,9 @@ package Traces_Names is
       Exec  : Exe_File_Acc;
       --  Pointer to the Exec file where this subprogram has first been
       --  found.
+
+      Sym : Addresses_Info_Acc;
+      --  Address descriptor for instance of routine in Exec
 
       Insns : Binary_Content_Acc;
       --  Subprogram binary content.

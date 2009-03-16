@@ -171,7 +171,7 @@ procedure Xcov is
    Trace_File : Trace_File_Element_Acc;
    Base : Traces_Base;
 
-   Exec : Exe_File_Type;
+   Exec : aliased Exe_File_Type;
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -199,7 +199,10 @@ begin
                elsif Arg = "--include" then
                   Mode_Exclude := False;
                else
-                  Traces_Elf.Read_Routines_Name (Arg, Mode_Exclude);
+                  Traces_Elf.Read_Routines_Name
+                    (Arg,
+                     Exclude   => Mode_Exclude,
+                     Keep_Open => False);
                end if;
             end;
          end loop;
@@ -220,7 +223,13 @@ begin
                elsif Arg = "--include" then
                   Mode_Exclude := False;
                else
-                  Traces_Elf.Read_Routines_Name (Arg, Mode_Exclude);
+                  --  For included symbols, keep ELF file open so that we can
+                  --  load the symbol text later on.
+
+                  Traces_Elf.Read_Routines_Name
+                    (Arg,
+                     Exclude   => Mode_Exclude,
+                     Keep_Open => not Mode_Exclude);
                end if;
             end;
          end loop;
@@ -245,7 +254,7 @@ begin
          end if;
          Open_File (Exec, Argument (Arg_Index), Text_Start);
          Build_Sections (Exec);
-         Build_Symbols (Exec);
+         Build_Symbols (Exec'Unchecked_Access);
          for I in Arg_Index + 1 .. Arg_Count loop
             Traces_History.Dump_Traces_With_Asm (Exec, Argument (I));
          end loop;
@@ -264,7 +273,7 @@ begin
          for I in Arg_Index + 1 .. Arg_Count loop
             Open_File (Exec, Argument (I), 0);
             Build_Sections (Exec);
-            Build_Symbols (Exec);
+            Build_Symbols (Exec'Unchecked_Access);
             Disp_Addresses (Exec, Symbol_Addresses);
             Close_File (Exec);
          end loop;
@@ -308,7 +317,7 @@ begin
          end if;
          Open_File (Exec, Argument (Arg_Index), Text_Start);
          Build_Sections (Exec);
-         Build_Symbols (Exec);
+         Build_Symbols (Exec'Unchecked_Access);
          Build_Debug_Lines (Exec);
          Traces_History.Generate_Graph (Exec);
          return;
@@ -495,7 +504,7 @@ begin
          --  If there is not routine list, create it from the first executable.
          --  A test above allows this only if there is one trace file.
          if Routine_List_Filename = null then
-            Build_Routines_Name (Exe_File.all);
+            Read_Routines_Name (Exe_File, Exclude => False);
          end if;
 
          Add_Subprograms_Traces (Exe_File, Base);

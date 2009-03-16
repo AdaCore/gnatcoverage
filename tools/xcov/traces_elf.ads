@@ -44,7 +44,7 @@ package Traces_Elf is
    --  Extracted information are stored into such object.
    type Exe_File_Type is limited new Symbolizer with private;
 
-   type Exe_File_Acc is access Exe_File_Type;
+   type Exe_File_Acc is access all Exe_File_Type;
 
    --  Makes symbolize non-abstract.
    procedure Symbolize (Sym : Exe_File_Type;
@@ -96,8 +96,8 @@ package Traces_Elf is
    --  Read dwarfs info to build compile_units/subprograms lists.
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type);
 
+   procedure Build_Symbols (Exec : Exe_File_Acc);
    --  Read ELF symbol table.
-   procedure Build_Symbols (Exec : in out Exe_File_Type);
 
    --  Read dwarfs info to build lines list.
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type);
@@ -108,11 +108,9 @@ package Traces_Elf is
                                  Base : Traces_Base_Acc;
                                  Section : Binary_Content);
 
-   procedure Build_Routines_Name (Exec : Exe_File_Type);
-
-   --  Display El.
-   --  Mostly a debug procedure.
    procedure Disp_Address (El : Addresses_Info_Acc);
+   function Image (El : Addresses_Info_Acc) return String;
+   --  Display or return information about El (for debugging purposes)
 
    type Addresses_Kind is
      (Section_Addresses,
@@ -191,10 +189,12 @@ package Traces_Elf is
       end case;
    end record;
 
-   procedure Read_Routines_Name (Filename : String; Exclude : Boolean);
-   procedure Read_Routines_Name (Efile : Elf_File; Exclude : Boolean);
+   procedure Read_Routines_Name
+     (Filename : String; Exclude : Boolean; Keep_Open : Boolean);
+   procedure Read_Routines_Name (Exec : Exe_File_Acc; Exclude : Boolean);
    --  Add (or remove if EXCLUDE is true) routines read from an ELF image
-   --  to the routines database.
+   --  to the routines database. If Keep_Open is True, leave the ELF image
+   --  open after loading.
    --  Display errors on standard error.
 
    procedure Build_Source_Lines;

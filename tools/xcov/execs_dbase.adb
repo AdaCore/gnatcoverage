@@ -59,7 +59,7 @@ package body Execs_Dbase is
                     Text_Start);
          Insert (Execs.all, Exec_File_Name, Base_Entry);
          Build_Sections (Exec.all);
-         Build_Symbols (Exec.all);
+         Build_Symbols (Exec);
       end if;
    end Open_Exec;
 
@@ -85,12 +85,12 @@ package body Execs_Dbase is
       end if;
 
       declare
-         First      : constant Execs_Maps.Cursor
-           := Execs_Maps.First (Execs.all);
-         First_Exec : constant Exe_File_Acc
-           := Execs_Maps.Element (First).Exec;
+         First      : constant Execs_Maps.Cursor :=
+                        Execs_Maps.First (Execs.all);
+         First_Exec : constant Exe_File_Acc :=
+                        Execs_Maps.Element (First).Exec;
       begin
-         Build_Routines_Name (First_Exec.all);
+         Read_Routines_Name (First_Exec, Exclude => False);
       end;
    end Build_Routines_Names;
 

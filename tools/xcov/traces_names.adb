@@ -45,12 +45,16 @@ package body Traces_Names is
    --  Needs comments???
    --  Needs to be available to clients of this unit???
 
-   procedure Add_Routine_Name (Name : String_Acc) is
+   procedure Add_Routine_Name
+     (Name : String_Acc;
+      Exec : Exe_File_Acc := null;
+      Sym  : Addresses_Info_Acc := null) is
    begin
       Names.Insert (Name,
-                    Subprogram_Info'(Exec => null,
-                                     Insns => null,
-                                     Traces => null));
+        Subprogram_Info'(Exec   => Exec,
+                         Sym    => Sym,
+                         Insns  => null,
+                         Traces => null));
    end Add_Routine_Name;
 
    procedure Remove_Routine_Name (Name : String_Acc) is
@@ -122,6 +126,10 @@ package body Traces_Names is
       end loop;
    end Disp_All_Routines;
 
+   ----------------
+   -- Add_Traces --
+   ----------------
+
    procedure Add_Traces
      (Routine_Name : String_Acc;
       Exec         : Exe_File_Acc;
@@ -176,9 +184,9 @@ package body Traces_Names is
             Subp_Info.Traces := new Traces_Base;
          end if;
 
-         --  Now, update the subprogram traces with the trace base
-         --  given in parameter. Rebase the traces' addresses to
-         --  to subpgrogram address range (i.e. Subp_Info.Insns'Range).
+         --  Now, update the subprogram traces with the trace base given in
+         --  parameter. Rebase the traces' addresses to to subpgrogram address
+         --  range (i.e. Subp_Info.Insns'Range).
 
          Init (Base, Trace_Cursor, Content'First);
          Get_Next_Trace (Trace, Trace_Cursor);

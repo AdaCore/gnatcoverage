@@ -30,7 +30,7 @@ with Traces_Elf; use Traces_Elf;
 
 package Execs_Dbase is
 
-   type Exec_Base_Type is private;
+   type Exec_Base_Type is limited private;
    --  type for handles on Exec databases.
 
    function Get_Exec_Base return Exec_Base_Type;
