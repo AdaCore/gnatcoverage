@@ -105,6 +105,30 @@ package body Traces_Elf is
    function Image (El : Addresses_Info_Acc) return String is
       Range_Img : constant String :=
                     Hex_Image (El.First) & '-' & Hex_Image (El.Last);
+
+      function Sloc_Image (Line, Column : Natural) return String;
+      --  Return the image of the given sloc. Column info is included only
+      --  if Column > 0.
+
+      ----------------
+      -- Sloc_Image --
+      ----------------
+
+      function Sloc_Image (Line, Column : Natural) return String is
+         Line_Img   : constant String := Line'Img;
+         Column_Img : constant String := Column'Img;
+      begin
+         if Column = 0 then
+            return Line_Img (Line_Img'First + 1 .. Line_Img'Last);
+         else
+            return Line_Img (Line_Img'First + 1 .. Line_Img'Last)
+              & ':'
+              & Column_Img (Column_Img'First + 1 .. Column_Img'Last);
+         end if;
+      end Sloc_Image;
+
+   --  Start of processing for Image
+
    begin
       case El.Kind is
          when Section_Addresses =>
@@ -120,9 +144,10 @@ package body Traces_Elf is
          when Symbol_Addresses =>
             return Range_Img & " symbol for " & El.Symbol_Name.all;
 
-      when Line_Addresses =>
+         when Line_Addresses =>
             return Range_Img & " line " & El.Line_Filename.all & ':'
-              & Natural'Image (El.Line_Number);
+              & Sloc_Image
+                  (Line => El.Line_Number, Column => El.Column_Number);
       end case;
    end Image;
 
@@ -833,7 +858,7 @@ package body Traces_Elf is
       Last : Storage_Offset;
 
       Pc : Unsigned_64;
-      Line : Unsigned_32;
+      Line, Column : Unsigned_32;
       File : Natural;
       Line_Base2 : Unsigned_32;
 
@@ -862,7 +887,8 @@ package body Traces_Elf is
                   Last => Exec.Exe_Text_Start + Pc_Type (Pc),
                   Parent => null,
                   Line_Filename => Filenames_Vectors.Element (Filenames, File),
-                  Line_Number => Natural (Line)),
+                  Line_Number   => Natural (Line),
+                  Column_Number => Natural (Column)),
                  Pos, Inserted);
          --  Ok, this may fail (if there are two lines number for the same pc).
 
@@ -912,6 +938,7 @@ package body Traces_Elf is
       Pc := 0;
       Line := 1;
       File := 1;
+      Column := 0;
 
       Line_Base2 := Unsigned_32 (Line_Base);
       if (Line_Base and 16#80#) /= 0 then
@@ -1007,8 +1034,10 @@ package body Traces_Elf is
                --  Why aren't these three cases covered by the "when others"
                --  clause???
 
+               when DW_LNS_Set_Column =>
+                  Read_ULEB128 (Base, Old_Off, Column);
+
                when
-                 DW_LNS_Set_Column      |
                  DW_LNS_Negate_Stmt     |
                  DW_LNS_Set_Basic_Block =>
                   null;

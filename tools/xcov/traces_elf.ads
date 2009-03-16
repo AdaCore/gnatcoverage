@@ -185,7 +185,8 @@ package Traces_Elf is
 
          when Line_Addresses =>
             Line_Filename : String_Acc;
-            Line_Number : Natural;
+            Line_Number   : Natural;
+            Column_Number : Natural;
       end case;
    end record;
 
