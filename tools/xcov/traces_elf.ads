@@ -175,7 +175,8 @@ package Traces_Elf is
 
          when Compile_Unit_Addresses =>
             Compile_Unit_Filename : String_Acc;
-            Stmt_List : Interfaces.Unsigned_32;
+            Compilation_Directory : String_Acc;
+            Stmt_List             : Interfaces.Unsigned_32;
 
          when Subprogram_Addresses =>
             Subprogram_Name : String_Acc;

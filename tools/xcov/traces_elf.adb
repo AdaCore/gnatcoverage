@@ -21,6 +21,8 @@ with Ada.Unchecked_Conversion;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Vectors;
 with Interfaces; use Interfaces;
+with GNAT.Directory_Operations; use GNAT.Directory_Operations;
+with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Elf32;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -84,8 +86,16 @@ package body Traces_Elf is
    procedure Apply_Relocations (Exec : Exe_File_Type;
                                 Sec_Rel : Elf_Half;
                                 Data : in out Binary_Content);
-   procedure Read_Debug_Line (Exec : in out Exe_File_Type;
-                              CU_Offset : Unsigned_32);
+
+   procedure Read_Debug_Lines
+     (Exec                  : in out Exe_File_Type;
+      Stmt_List_Offset      : Unsigned_32;
+      Compilation_Directory : String_Acc);
+   --  Read the debug lines of a compilation unit.
+   --  Stmt_List_Offset is the offset of a stmt list from the
+   --  beginning of the .debug_line section of Exec; Compilation_Directory
+   --  is the value of DW_AT_comp_dir for the compilation unit, or is null
+   --  if this attribute is not specified.
 
    Empty_String_Acc : constant String_Acc := new String'("");
 
@@ -624,18 +634,20 @@ package body Traces_Elf is
 
       Level : Unsigned_8;
 
-      At_Sib : Unsigned_64 := 0;
+      At_Sib       : Unsigned_64 := 0;
       At_Stmt_List : Unsigned_64 := Bad_Stmt_List;
-      At_Low_Pc : Unsigned_64;
-      At_High_Pc : Unsigned_64;
-      At_Lang : Unsigned_64 := 0;
-      At_Name : Address := Null_Address;
-      Cu_Base_Pc : Unsigned_64;
+      At_Low_Pc    : Unsigned_64;
+      At_High_Pc   : Unsigned_64;
+      At_Lang      : Unsigned_64 := 0;
+      At_Name      : Address := Null_Address;
+      At_Comp_Dir  : Address := Null_Address;
+      Cu_Base_Pc   : Unsigned_64;
 
-      Current_Cu : Addresses_Info_Acc;
-      Current_Subprg : Addresses_Info_Acc;
-      Sec : Addresses_Info_Acc;
-      Addr : Pc_Type;
+      Current_Cu      : Addresses_Info_Acc;
+      Current_Subprg  : Addresses_Info_Acc;
+      Sec             : Addresses_Info_Acc;
+      Addr            : Pc_Type;
+      Compilation_Dir : String_Acc;
    begin
       --  Return now if already loaded.
       if not Exec.Desc_Sets (Compile_Unit_Addresses).Is_Empty then
@@ -726,6 +738,9 @@ package body Traces_Elf is
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Sib);
                   when DW_AT_Name =>
                      Read_Dwarf_Form_String (Exec, Base, Off, Form, At_Name);
+                  when DW_AT_Comp_Dir =>
+                     Read_Dwarf_Form_String (Exec, Base, Off, Form,
+                                             At_Comp_Dir);
                   when DW_AT_Stmt_List =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Stmt_List);
                   when DW_AT_Low_Pc =>
@@ -765,6 +780,12 @@ package body Traces_Elf is
                      Sec := Get_Address_Info (Exec, Section_Addresses, Addr);
                   end if;
 
+                  if At_Comp_Dir /= Null_Address then
+                     Compilation_Dir := new String'(Read_String (At_Comp_Dir));
+                  else
+                     Compilation_Dir := null;
+                  end if;
+
                   Current_Cu := new Addresses_Info'
                     (Kind                  => Compile_Unit_Addresses,
                      First                 => Addr,
@@ -773,6 +794,7 @@ package body Traces_Elf is
                      Parent                => Sec,
                      Compile_Unit_Filename =>
                        new String'(Read_String (At_Name)),
+                     Compilation_Directory => Compilation_Dir,
                      Stmt_List             => Unsigned_32 (At_Stmt_List));
 
                   if At_High_Pc > At_Low_Pc then
@@ -808,6 +830,7 @@ package body Traces_Elf is
             At_High_Pc := 0;
 
             At_Name := Null_Address;
+            At_Comp_Dir := Null_Address;
          end loop;
          Unchecked_Deallocation (Map);
       end loop;
@@ -821,12 +844,18 @@ package body Traces_Elf is
       Element_Type => String_Acc,
       "=" => "=");
 
-   procedure Read_Debug_Line
-     (Exec : in out Exe_File_Type; CU_Offset : Unsigned_32)
+   ----------------------
+   -- Read_Debug_Lines --
+   ----------------------
+
+   procedure Read_Debug_Lines
+     (Exec                  : in out Exe_File_Type;
+      Stmt_List_Offset      : Unsigned_32;
+      Compilation_Directory : String_Acc)
    is
       use Dwarf;
       Base : Address;
-      Off : Storage_Offset;
+      Off  : Storage_Offset;
 
       type Opc_Length_Type is array (Unsigned_8 range <>) of Unsigned_8;
       type Opc_Length_Acc is access Opc_Length_Type;
@@ -835,38 +864,38 @@ package body Traces_Elf is
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
         (Opc_Length_Type, Opc_Length_Acc);
 
-      Total_Len : Unsigned_32;
-      Version : Unsigned_16;
-      Prolog_Len : Unsigned_32;
+      Total_Len    : Unsigned_32;
+      Version      : Unsigned_16;
+      Prolog_Len   : Unsigned_32;
       Min_Insn_Len : Unsigned_8;
       Dflt_Is_Stmt : Unsigned_8;
-      Line_Base : Unsigned_8;
-      Line_Range : Unsigned_8;
-      Opc_Base : Unsigned_8;
+      Line_Base    : Unsigned_8;
+      Line_Range   : Unsigned_8;
+      Opc_Base     : Unsigned_8;
 
-      B : Unsigned_8;
+      B   : Unsigned_8;
       Arg : Unsigned_32;
 
-      Old_Off : Storage_Offset;
-      File_Dir : Unsigned_32;
+      Old_Off   : Storage_Offset;
+      File_Dir  : Unsigned_32;
       File_Time : Unsigned_32;
-      File_Len : Unsigned_32;
+      File_Len  : Unsigned_32;
 
       Ext_Len : Unsigned_32;
       Ext_Opc : Unsigned_8;
 
       Last : Storage_Offset;
 
-      Pc : Unsigned_64;
+      Pc           : Unsigned_64;
       Line, Column : Unsigned_32;
-      File : Natural;
-      Line_Base2 : Unsigned_32;
+      File         : Natural;
+      Line_Base2   : Unsigned_32;
 
-      Nbr_Dirnames : Unsigned_32;
+      Nbr_Dirnames  : Unsigned_32;
       Nbr_Filenames : Unsigned_32;
-      Dirnames : Filenames_Vectors.Vector;
-      Filenames : Filenames_Vectors.Vector;
-      Dir : String_Acc;
+      Dirnames      : Filenames_Vectors.Vector;
+      Filenames     : Filenames_Vectors.Vector;
+      Dir           : String_Acc;
 
       procedure New_Source_Line;
 
@@ -898,7 +927,7 @@ package body Traces_Elf is
          --        & ", line: " & Unsigned_32'Image (Line));
       end New_Source_Line;
 
-   --  Start of processing for Read_Debug_Line
+   --  Start of processing for Read_Debug_Lines
 
    begin
       --  Load .debug_line
@@ -916,7 +945,7 @@ package body Traces_Elf is
 
       Base := Exec.Lines (0)'Address;
 
-      Off := Storage_Offset (CU_Offset);
+      Off := Storage_Offset (Stmt_List_Offset);
       if Off >= Storage_Offset (Get_Section_Length (Exec.Exe_File,
                                                     Exec.Sec_Debug_Line))
       then
@@ -957,7 +986,7 @@ package body Traces_Elf is
          B := Read_Byte (Base + Off);
          exit when B = 0;
          Filenames_Vectors.Append
-           (Dirnames, new String'(Read_String (Base + Off) & '/'));
+           (Dirnames, new String'(Read_String (Base + Off)));
          Read_String (Base, Off);
          Nbr_Dirnames := Nbr_Dirnames + 1;
       end loop;
@@ -973,13 +1002,24 @@ package body Traces_Elf is
          Old_Off := Off;
          Read_String (Base, Off);
          Read_ULEB128 (Base, Off, File_Dir);
-         if File_Dir = 0 or else File_Dir > Nbr_Dirnames then
-            Dir := Empty_String_Acc;
-         else
-            Dir := Filenames_Vectors.Element (Dirnames, Integer (File_Dir));
-         end if;
-         Filenames_Vectors.Append
-           (Filenames, new String'(Dir.all & Read_String (Base + Old_Off)));
+
+         declare
+            Filename : constant String := Read_String (Base + Old_Off);
+         begin
+            if File_Dir /= 0
+              and then File_Dir <= Nbr_Dirnames then
+               Dir := Filenames_Vectors.Element (Dirnames, Integer (File_Dir));
+            elsif Compilation_Directory /= null
+              and then not Is_Absolute_Path (Filename) then
+               Dir := Compilation_Directory;
+            else
+               Dir := Empty_String_Acc;
+            end if;
+
+            Filenames_Vectors.Append
+              (Filenames, new String'(Dir.all & Dir_Separator & Filename));
+         end;
+
          Read_ULEB128 (Base, Off, File_Time);
          Read_ULEB128 (Base, Off, File_Len);
          Nbr_Filenames := Nbr_Filenames + 1;
@@ -1060,7 +1100,7 @@ package body Traces_Elf is
          end if;
       end loop;
       Unchecked_Deallocation (Opc_Length);
-   end Read_Debug_Line;
+   end Read_Debug_Lines;
 
    -----------------------
    -- Build_Debug_Lines --
@@ -1080,8 +1120,9 @@ package body Traces_Elf is
       --  Read debug lines for the given compilation unit
 
       procedure Read_CU_Lines (Cur_CU : Cursor) is
+         CU : constant Addresses_Info_Acc := Element (Cur_CU);
       begin
-         Read_Debug_Line (Exec, Element (Cur_CU).Stmt_List);
+         Read_Debug_Lines (Exec, CU.Stmt_List, CU.Compilation_Directory);
       end Read_CU_Lines;
 
    begin
