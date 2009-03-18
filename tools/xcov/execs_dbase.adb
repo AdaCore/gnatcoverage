@@ -25,53 +25,18 @@ package body Execs_Dbase is
    Exec_Base        : aliased Execs_Maps.Map;
    Exec_Base_Handle : constant Exec_Base_Type := Exec_Base'Access;
 
-   function Get_Exec_Base return Exec_Base_Type  is
-   begin
-      return Exec_Base_Handle;
-   end Get_Exec_Base;
+   ---------
+   -- "=" --
+   ---------
 
-   function Equal (L, R : Exec_Base_Entry) return Boolean is
+   function "=" (L, R : Exec_Base_Entry) return Boolean is
    begin
-      return L.Elf_File_Name = R.Elf_File_Name;
-   end Equal;
+      return L.Exec_File_Name = R.Exec_File_Name;
+   end "=";
 
-   procedure Open_Exec
-     (Execs     : Exec_Base_Type;
-      File_Name : String;
-      Exec      : out Exe_File_Acc)
-   is
-      use Execs_Maps;
-      Text_Start     : constant Pc_Type := 0;
-      Exec_File_Name : String_Acc := new String'(File_Name);
-      Base_Entry     : Exec_Base_Entry;
-      Position       : constant Cursor := Find (Execs.all,
-                                                Exec_File_Name);
-   begin
-      if Position /= No_Element then
-         Exec := Element (Position).Exec;
-         Unchecked_Deallocation (Exec_File_Name);
-      else
-         Exec := new Exe_File_Type;
-         Base_Entry.Elf_File_Name := Exec_File_Name;
-         Base_Entry.Exec := Exec;
-         Open_File (Exec.all,
-                    Exec_File_Name.all,
-                    Text_Start);
-         Insert (Execs.all, Exec_File_Name, Base_Entry);
-         Build_Sections (Exec.all);
-         Build_Symbols (Exec);
-      end if;
-   end Open_Exec;
-
-   procedure Insert_Exec
-     (Execs     : Exec_Base_Type;
-      File_Name : String)
-   is
-      Ignored_Exec : Exe_File_Acc;
-      pragma Unreferenced (Ignored_Exec);
-   begin
-      Open_Exec (Execs, File_Name, Ignored_Exec);
-   end Insert_Exec;
+   --------------------------
+   -- Build_Routines_Names --
+   --------------------------
 
    procedure Build_Routines_Names (Execs : Exec_Base_Type) is
    begin
@@ -93,5 +58,60 @@ package body Execs_Dbase is
          Read_Routines_Name (First_Exec, Exclude => False);
       end;
    end Build_Routines_Names;
+
+   -------------------
+   -- Get_Exec_Base --
+   -------------------
+
+   function Get_Exec_Base return Exec_Base_Type  is
+   begin
+      return Exec_Base_Handle;
+   end Get_Exec_Base;
+
+   -----------------
+   -- Insert_Exec --
+   -----------------
+
+   procedure Insert_Exec
+     (Execs     : Exec_Base_Type;
+      File_Name : String)
+   is
+      Ignored_Exec : Exe_File_Acc;
+      pragma Unreferenced (Ignored_Exec);
+   begin
+      Open_Exec (Execs, File_Name, Ignored_Exec);
+   end Insert_Exec;
+
+   ---------------
+   -- Open_Exec --
+   ---------------
+
+   procedure Open_Exec
+     (Execs     : Exec_Base_Type;
+      File_Name : String;
+      Exec      : out Exe_File_Acc)
+   is
+      use Execs_Maps;
+      Text_Start     : constant Pc_Type := 0;
+      Exec_File_Name : String_Acc := new String'(File_Name);
+      Base_Entry     : Exec_Base_Entry;
+      Position       : constant Cursor := Find (Execs.all,
+                                                Exec_File_Name);
+   begin
+      if Position /= No_Element then
+         Exec := Element (Position).Exec;
+         Unchecked_Deallocation (Exec_File_Name);
+      else
+         Exec := new Exe_File_Type;
+         Base_Entry.Exec_File_Name := Exec_File_Name;
+         Base_Entry.Exec := Exec;
+         Open_File (Exec.all,
+                    Exec_File_Name.all,
+                    Text_Start);
+         Insert (Execs.all, Exec_File_Name, Base_Entry);
+         Build_Sections (Exec.all);
+         Build_Symbols (Exec);
+      end if;
+   end Open_Exec;
 
 end Execs_Dbase;

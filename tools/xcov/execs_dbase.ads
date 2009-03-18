@@ -66,16 +66,16 @@ private
    type Exec_Base_Entry is record
       --  Entry in the Exec base type.
 
-      Elf_File_Name : File_Name;
+      Exec_File_Name : File_Name;
       --  Name of the file associated to this entry. This should be
       --  a full path to an target executable on the host file system.
 
-      Exec          : Exe_File_Acc;
+      Exec           : Exe_File_Acc;
       --  Access to the exe file information of the file whose name
       --  is Elf_File_Name.
    end record;
 
-   function Equal (L, R : Exec_Base_Entry) return Boolean;
+   function "=" (L, R : Exec_Base_Entry) return Boolean;
    --  Return True if L and R represent the same executable.
 
    package Execs_Maps is new Ada.Containers.Hashed_Maps
@@ -83,7 +83,7 @@ private
       Element_Type => Exec_Base_Entry,
       Hash => Hash,
       Equivalent_Keys => Equal,
-      "=" => Equal);
+      "=" => "=");
 
    type Exec_Base_Type is access all Execs_Maps.Map;
 
