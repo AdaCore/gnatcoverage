@@ -384,56 +384,56 @@ package body Traces_Elf is
       use Dwarf;
    begin
       case Form is
-         when DW_FORM_Addr =>
+         when DW_FORM_addr =>
             Read_Address (Exec, Base, Off, Exec.Addr_Size, Res);
-         when DW_FORM_Flag =>
+         when DW_FORM_flag =>
             declare
                V : Unsigned_8;
             begin
                Read_Byte (Base, Off, V);
                Res := Unsigned_64 (V);
             end;
-         when DW_FORM_Data1 =>
+         when DW_FORM_data1 =>
             declare
                V : Unsigned_8;
             begin
                Read_Byte (Base, Off, V);
                Res := Unsigned_64 (V);
             end;
-         when DW_FORM_Data2 =>
+         when DW_FORM_data2 =>
             declare
                V : Unsigned_16;
             begin
                Read_Word2 (Exec, Base, Off, V);
                Res := Unsigned_64 (V);
             end;
-         when DW_FORM_Data4
-            | DW_FORM_Ref4 =>
+         when DW_FORM_data4
+            | DW_FORM_ref4 =>
             declare
                V : Unsigned_32;
             begin
                Read_Word4 (Exec, Base, Off, V);
                Res := Unsigned_64 (V);
             end;
-         when DW_FORM_Data8 =>
+         when DW_FORM_data8 =>
             Read_Word8 (Exec, Base, Off, Res);
-         when DW_FORM_Sdata =>
+         when DW_FORM_sdata =>
             declare
                V : Unsigned_32;
             begin
                Read_SLEB128 (Base, Off, V);
                Res := Unsigned_64 (V);
             end;
-         when DW_FORM_Udata =>
+         when DW_FORM_udata =>
             declare
                V : Unsigned_32;
             begin
                Read_ULEB128 (Base, Off, V);
                Res := Unsigned_64 (V);
             end;
-         when DW_FORM_Strp
-           | DW_FORM_String
-           | DW_FORM_Block1 =>
+         when DW_FORM_strp
+           | DW_FORM_string
+           | DW_FORM_block1 =>
             raise Program_Error;
          when others =>
             raise Program_Error;
@@ -449,7 +449,7 @@ package body Traces_Elf is
       use Dwarf;
    begin
       case Form is
-         when DW_FORM_Strp =>
+         when DW_FORM_strp =>
             declare
                V : Unsigned_32;
             begin
@@ -469,7 +469,7 @@ package body Traces_Elf is
                end if;
                Res := Exec.Debug_Str_Base + Storage_Offset (V);
             end;
-         when DW_FORM_String =>
+         when DW_FORM_string =>
             Res := Base + Off;
             declare
                C : Unsigned_8;
@@ -493,39 +493,39 @@ package body Traces_Elf is
       use Dwarf;
    begin
       case Form is
-         when DW_FORM_Addr =>
+         when DW_FORM_addr =>
             Off := Off + Storage_Offset (Exec.Addr_Size);
-         when DW_FORM_Block1 =>
+         when DW_FORM_block1 =>
             declare
                V : Unsigned_8;
             begin
                Read_Byte (Base, Off, V);
                Off := Off + Storage_Offset (V);
             end;
-         when DW_FORM_Flag
-           | DW_FORM_Data1 =>
+         when DW_FORM_flag
+           | DW_FORM_data1 =>
             Off := Off + 1;
-         when DW_FORM_Data2 =>
+         when DW_FORM_data2 =>
             Off := Off + 2;
-         when DW_FORM_Data4
-           | DW_FORM_Ref4
-           | DW_FORM_Strp =>
+         when DW_FORM_data4
+           | DW_FORM_ref4
+           | DW_FORM_strp =>
             Off := Off + 4;
-         when DW_FORM_Data8 =>
+         when DW_FORM_data8 =>
             Off := Off + 8;
-         when DW_FORM_Sdata =>
+         when DW_FORM_sdata =>
             declare
                V : Unsigned_32;
             begin
                Read_SLEB128 (Base, Off, V);
             end;
-         when DW_FORM_Udata =>
+         when DW_FORM_udata =>
             declare
                V : Unsigned_32;
             begin
                Read_ULEB128 (Base, Off, V);
             end;
-         when DW_FORM_String =>
+         when DW_FORM_string =>
             declare
                C : Unsigned_8;
             begin
@@ -734,26 +734,26 @@ package body Traces_Elf is
                exit when Name = 0 and Form = 0;
 
                case Name is
-                  when DW_AT_Sibling =>
+                  when DW_AT_sibling =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Sib);
-                  when DW_AT_Name =>
+                  when DW_AT_name =>
                      Read_Dwarf_Form_String (Exec, Base, Off, Form, At_Name);
-                  when DW_AT_Comp_Dir =>
+                  when DW_AT_comp_dir =>
                      Read_Dwarf_Form_String (Exec, Base, Off, Form,
                                              At_Comp_Dir);
-                  when DW_AT_Stmt_List =>
+                  when DW_AT_stmt_list =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Stmt_List);
-                  when DW_AT_Low_Pc =>
+                  when DW_AT_low_pc =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Low_Pc);
-                     if Form /= DW_FORM_Addr then
+                     if Form /= DW_FORM_addr then
                         At_Low_Pc := At_Low_Pc + Cu_Base_Pc;
                      end if;
-                  when DW_AT_High_Pc =>
+                  when DW_AT_high_pc =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_High_Pc);
-                     if Form /= DW_FORM_Addr then
+                     if Form /= DW_FORM_addr then
                         At_High_Pc := At_High_Pc + Cu_Base_Pc;
                      end if;
-                  when DW_AT_Language =>
+                  when DW_AT_language =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Lang);
                   when others =>
                      Skip_Dwarf_Form (Exec, Base, Off, Form);
@@ -761,7 +761,7 @@ package body Traces_Elf is
             end loop;
 
             case Tag is
-               when DW_TAG_Compile_Unit =>
+               when DW_TAG_compile_unit =>
                   if At_Low_Pc = 0 and At_High_Pc = 0 then
                      --  This field are not required.
                      At_Low_Pc := 1;
@@ -808,7 +808,7 @@ package body Traces_Elf is
                   At_Lang := 0;
                   At_Stmt_List := Bad_Stmt_List;
 
-               when DW_TAG_Subprogram =>
+               when DW_TAG_subprogram =>
                   if At_High_Pc > At_Low_Pc then
                      Current_Subprg :=
                        new Addresses_Info'
@@ -1040,7 +1040,7 @@ package body Traces_Elf is
                   Old_Off := Off;
                   Read_Byte (Base, Off, Ext_Opc);
                   case Ext_Opc is
-                     when DW_LNE_Set_Address =>
+                     when DW_LNE_set_address =>
                         Read_Address
                           (Exec, Base, Off, Elf_Arch.Elf_Addr'Size / 8, Pc);
                      when others =>
@@ -1056,33 +1056,33 @@ package body Traces_Elf is
             end case;
 
             case B is
-               when DW_LNS_Copy =>
+               when DW_LNS_copy =>
                   New_Source_Line;
 
-               when DW_LNS_Advance_Pc =>
+               when DW_LNS_advance_pc =>
                   Read_ULEB128 (Base, Old_Off, Arg);
                   Pc := Pc + Unsigned_64 (Arg * Unsigned_32 (Min_Insn_Len));
 
-               when DW_LNS_Advance_Line =>
+               when DW_LNS_advance_line =>
                   Read_SLEB128 (Base, Old_Off, Arg);
                   Line := Line + Arg;
 
-               when DW_LNS_Set_File =>
+               when DW_LNS_set_file =>
                   Read_SLEB128 (Base, Old_Off, Arg);
                   File := Natural (Arg);
 
                --  Why aren't these three cases covered by the "when others"
                --  clause???
 
-               when DW_LNS_Set_Column =>
+               when DW_LNS_set_column =>
                   Read_ULEB128 (Base, Old_Off, Column);
 
                when
-                 DW_LNS_Negate_Stmt     |
-                 DW_LNS_Set_Basic_Block =>
+                 DW_LNS_negate_stmt     |
+                 DW_LNS_set_basic_block =>
                   null;
 
-               when DW_LNS_Const_Add_Pc =>
+               when DW_LNS_const_add_pc =>
                   Pc := Pc + Unsigned_64
                     (Unsigned_32 ((255 - Opc_Base) / Line_Range)
                      * Unsigned_32 (Min_Insn_Len));
