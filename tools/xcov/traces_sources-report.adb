@@ -71,7 +71,7 @@ package body Traces_Sources.Report is
       Skip : out Boolean)
    is
       pragma Unreferenced (Pp);
-      P      : constant Pourcentage := Get_Pourcentage (Stats);
+      P      : constant Counters := Get_Counters (Stats);
       Output : constant File_Access := Get_Output;
    begin
       Skip := True;

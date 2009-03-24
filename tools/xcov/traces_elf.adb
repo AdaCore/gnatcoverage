@@ -31,6 +31,7 @@ with Hex_Images;        use Hex_Images;
 with Dwarf;
 with Dwarf_Handling;  use Dwarf_Handling;
 with System.Storage_Elements; use System.Storage_Elements;
+with Sources; use Sources;
 with Traces_Sources;
 with Traces_Names;
 with Traces_Disa;
@@ -1512,7 +1513,7 @@ package body Traces_Elf is
       use Traces_Sources;
       Cur : Cursor;
       Line : Addresses_Info_Acc;
-      Prev_File : Source_File;
+      Prev_File : Source_File_Index;
       Prev_Filename : String_Acc := null;
 
       It : Entry_Iterator;

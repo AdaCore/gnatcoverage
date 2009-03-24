@@ -45,7 +45,7 @@ package body Traces_Sources.Html is
       Html_File : Ada.Text_IO.File_Type;
       Index_File : Ada.Text_IO.File_Type;
       Has_Insn_Table : Boolean;
-      Global_Pourcentage : Pourcentage;
+      Global_Counters : Counters;
    end record;
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer);
@@ -194,7 +194,7 @@ package body Traces_Sources.Html is
             raise;
       end;
 
-      Pp.Global_Pourcentage := (0, 0, 0);
+      Pp.Global_Counters := (0, 0, 0);
 
       Generate_Css_File;
 
@@ -295,7 +295,7 @@ package body Traces_Sources.Html is
    procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array)
    is
       use Ada.Integer_Text_IO;
-      P : constant Pourcentage := Get_Pourcentage (Stats);
+      P : constant Counters := Get_Counters (Stats);
       Fully, Partial, Uncover : Natural;
    begin
       --  Second column: bar

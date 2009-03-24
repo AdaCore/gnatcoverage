@@ -24,7 +24,30 @@ with Hex_Images;
 with Traces_Disa;
 with Traces_Names; use Traces_Names;
 
+with GNAT.Dynamic_Tables;
+
 package body Traces_Sources is
+
+   --  Describe a source file - one element per line.
+
+   package Source_Line_Tables is new GNAT.Dynamic_Tables
+     (Table_Component_Type => Line_Info,
+      Table_Index_Type     => Natural,
+      Table_Low_Bound      => 1,
+      Table_Initial        => 16,
+      Table_Increment      => 100);
+
+   subtype Source_Lines is Source_Line_Tables.Instance;
+
+   package File_Tables is new GNAT.Dynamic_Tables
+     (Table_Component_Type => Source_Lines,
+      Table_Index_Type     => Any_Source_File_Index,
+      Table_Low_Bound      => First_Source_File,
+      Table_Initial        => 16,
+      Table_Increment      => 100);
+
+   File_Table : File_Tables.Instance;
+
    procedure Append (Info : in out Line_Info;
                      Line : Addresses_Info_Acc;
                      Base : Traces_Base_Acc;
@@ -40,31 +63,17 @@ package body Traces_Sources is
                                    Filename : String;
                                    File : Source_Lines);
 
-   function Equal (L, R : Source_Lines) return Boolean is
-      pragma Unreferenced (L, R);
+   function Find_File (Filename : String_Acc) return Source_File_Index is
+      Res : Source_File_Index;
    begin
-      return False;
-   end Equal;
+      Res := Get_Index (Filename.all);
 
-   --  Contains all the files.
-   Filenames : Filenames_Maps.Map;
-
-   function Find_File (Filename : String_Acc) return Source_File
-   is
-      use Filenames_Maps;
-      Res : Cursor;
-      T : Source_Lines;
-      Ok : Boolean;
-   begin
-      Res := Find (Filenames, Filename);
-      if Res = No_Element then
-         Source_Lines_Vectors.Init (T);
-         Insert (Filenames, Filename, T, Res, Ok);
-         if Ok = False then
-            raise Program_Error;
-         end if;
+      if Res > File_Tables.Last (File_Table) then
+         File_Tables.Set_Last (File_Table, Res);
+         Source_Line_Tables.Init (File_Table.Table (Res));
       end if;
-      return Source_File'(Cur => Res);
+
+      return Res;
    end Find_File;
 
    procedure Append (Info : in out Line_Info;
@@ -85,62 +94,51 @@ package body Traces_Sources is
       Info.Last_Line := El;
    end Append;
 
-   procedure Add_Line_State (File : Source_File;
+   procedure Add_Line_State (File : Source_File_Index;
                              Line : Natural;
                              State : Traces.Trace_State)
    is
-      procedure Process (Key : String_Acc; Element : in out Source_Lines);
-
-      procedure Process (Key : String_Acc; Element : in out Source_Lines)
-      is
-         pragma Unreferenced (Key);
-         use Source_Lines_Vectors;
-         L : constant Natural := Last (Element);
-         Ls : Line_State;
-      begin
-         if L < Line then
-            --  Expand lines table.
-            Set_Last (Element, Line);
-            for I in L + 1 .. Line loop
-               Element.Table (I) := (State => No_Code, others => <>);
-            end loop;
-         end if;
-         if State = Unknown then
-            raise Program_Error;
-         end if;
-         Ls := Element.Table (Line).State;
-         Ls := Update_Table (Ls, State);
-         Element.Table (Line).State := Ls;
-      end Process;
+      Element : Source_Lines renames File_Table.Table (File);
+      use Source_Line_Tables;
+      L : constant Natural := Last (Element);
+      Ls : Line_State;
    begin
-      Filenames_Maps.Update_Element (Filenames, File.Cur, Process'Access);
+      if L < Line then
+         --  Expand lines table
+
+         Set_Last (Element, Line);
+         for J in L + 1 .. Line loop
+            Element.Table (J) := (State => No_Code, others => <>);
+         end loop;
+      end if;
+
+      if State = Unknown then
+         raise Program_Error;
+      end if;
+      Ls := Element.Table (Line).State;
+      Ls := Update_Table (Ls, State);
+      Element.Table (Line).State := Ls;
    end Add_Line_State;
 
-   procedure Add_Line (File : Source_File;
+   procedure Add_Line (File : Source_File_Index;
                        Line : Natural;
                        Info : Addresses_Info_Acc;
                        Base : Traces_Base_Acc;
                        Exec : Exe_File_Acc)
    is
-      procedure Process (Key : String_Acc; Element : in out Source_Lines);
-
-      procedure Process (Key : String_Acc; Element : in out Source_Lines)
-      is
-         pragma Unreferenced (Key);
-         use Source_Lines_Vectors;
-         L : constant Natural := Last (Element);
-      begin
-         if L < Line then
-            --  Expand the tables.  The lines added are marked as no_code.
-            Set_Last (Element, Line);
-            for I in L + 1 .. Line loop
-               Element.Table (I) := (State => No_Code, others => <>);
-            end loop;
-         end if;
-         Append (Element.Table (Line), Info, Base, Exec);
-      end Process;
+      Element : Source_Lines renames File_Table.Table (File);
+      use Source_Line_Tables;
+      L : constant Natural := Last (Element);
    begin
-      Filenames_Maps.Update_Element (Filenames, File.Cur, Process'Access);
+      if L < Line then
+         --  Expand the tables.  The lines added are marked as No_Code
+
+         Set_Last (Element, Line);
+         for J in L + 1 .. Line loop
+            Element.Table (J) := (State => No_Code, others => <>);
+         end loop;
+      end if;
+      Append (Element.Table (Line), Info, Base, Exec);
    end Add_Line;
 
    function Get_Stat_String (Stats : Stat_Array) return String
@@ -165,7 +163,7 @@ package body Traces_Sources is
       end if;
    end Get_Stat_String;
 
-   function Get_Pourcentage (Stats : Stat_Array) return Pourcentage
+   function Get_Counters (Stats : Stat_Array) return Counters
    is
       Total : Natural := 0;
    begin
@@ -174,11 +172,11 @@ package body Traces_Sources is
       end loop;
       Total := Total - Stats (No_Code);
 
-      return (Fully => Stats (Covered_No_Branch) + Stats (Branch_Covered),
+      return (Fully   => Stats (Covered_No_Branch) + Stats (Branch_Covered),
               Partial => Stats (Partially_Covered) + Stats (Covered)
-                + Stats (Branch_Taken) + Stats (Branch_Fallthrough),
-              Total => Total);
-   end Get_Pourcentage;
+                           + Stats (Branch_Taken) + Stats (Branch_Fallthrough),
+              Total   => Total);
+   end Get_Counters;
 
    type Source_Rebase_Entry;
    type Source_Rebase_Entry_Acc is access Source_Rebase_Entry;
@@ -235,7 +233,7 @@ package body Traces_Sources is
                                    Filename : String;
                                    File : Source_Lines)
    is
-      use Source_Lines_Vectors;
+      use Source_Line_Tables;
       use Traces_Disa;
 
       procedure Disassemble_Cb (Addr : Pc_Type;
@@ -392,30 +390,23 @@ package body Traces_Sources is
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
 
-   procedure Disp_Line_State (Pp      : in out Pretty_Printer'Class;
-                             Show_Asm : Boolean)
+   procedure Disp_Line_State
+     (Pp       : in out Pretty_Printer'Class;
+      Show_Asm : Boolean)
    is
-      use Filenames_Maps;
       use Ada.Directories;
-
-      procedure Process (Key : String_Acc; Element : Source_Lines);
-
-      procedure Process (Key : String_Acc; Element : Source_Lines) is
-      begin
-         Disp_File_Line_State (Pp, Key.all, Element);
-      end Process;
-      Cur : Cursor;
    begin
       Pp.Global_Stats := (others => 0);
       Pp.Show_Asm := Show_Asm;
 
       Pretty_Print_Start (Pp);
 
-      --  Iterates on all files.
-      Cur := First (Filenames);
-      while Cur /= No_Element loop
-         Query_Element (Cur, Process'Access);
-         Next (Cur);
+      --  Iterates on all files
+
+      for J in File_Tables.First
+        .. File_Tables.Last (File_Table)
+      loop
+         Disp_File_Line_State (Pp, Sources.Get_Name (J), File_Table.Table (J));
       end loop;
 
       Pretty_Print_Finish (Pp);
@@ -425,11 +416,15 @@ package body Traces_Sources is
    is
       use Ada.Directories;
 
-      procedure Process (Key : String_Acc; File : Source_Lines);
+      procedure Disp_One_File (Name : String; File : Source_Lines);
+      --  Display summary for the given file
 
-      procedure Process (Key : String_Acc; File : Source_Lines)
-      is
-         use Source_Lines_Vectors;
+      -------------------
+      -- Disp_One_File --
+      -------------------
+
+      procedure Disp_One_File (Name : String; File : Source_Lines) is
+         use Source_Line_Tables;
 
          Stats : Stat_Array := (others => 0);
          State : Line_State;
@@ -440,19 +435,19 @@ package body Traces_Sources is
             Stats (State) := Stats (State) + 1;
          end loop;
 
-         Put (Simple_Name (Key.all));
+         Put (Simple_Name (Name));
          Put (": ");
          Put (Get_Stat_String (Stats));
          New_Line;
-      end Process;
+      end Disp_One_File;
 
-      use Filenames_Maps;
-      Cur : Cursor;
+   --  Start of processing for Disp_File_Summary
+
    begin
-      Cur := First (Filenames);
-      while Cur /= No_Element loop
-         Query_Element (Cur, Process'Access);
-         Next (Cur);
+      for J in File_Tables.First
+        .. File_Tables.Last (File_Table)
+      loop
+         Disp_One_File (Sources.Get_Name (J), File_Table.Table (J));
       end loop;
    end Disp_File_Summary;
 
@@ -571,4 +566,7 @@ package body Traces_Sources is
       Iterate (Process_One'Access);
       New_Line (Report.all);
    end Dump_Uncovered_Routines;
+
+begin
+   File_Tables.Init (File_Table);
 end Traces_Sources;
