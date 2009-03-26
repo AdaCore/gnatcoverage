@@ -1,70 +1,46 @@
-
 ======================================================================
 == This is an introductory HOWTO for the current Couverture toolset == 
 ======================================================================
 
----------------------
--- General process --
----------------------
+We now have binary packages built nightly for x86-linux and windows hosts,
+available from EU AdaCore machines as 
 
-The general process is as follows:
+  ~gnatmail/gcc-43/binaries/<date>/x86-windows|linux/couverture-...
 
-* build your executable with the powerpc-elf GNAT toolchain, with special
-  glue to let the program run into qemu,
+each package contains a toplevel README with everything needed to proceed
+further.
 
-* run through our instrumented qemu to generate an execution trace,
+The source repo URL is svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture
 
-* use our "xcov" coverage analyzer to generate user level relevant info, eg
-  annotated sources, from one or more traces.
-
-As of today, both the traces and the xcov outputs are generated in the
-the current directory of the user running the command.
-
-A couple of examples are available from tools/xcov/examples in the
-"couverture" repository (svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture),
-with a Makefile exposing the details of the different steps.
-
-The Makefile exploits only part of the current xcov possibilities (eg defaults
-to the xcov output format and is able to produce html or gcov like outputs).
-"xcov -h" will list the various options with a short descriptive text.
-
-There's a start of a user documentation in tools/xcov/doc.
-
-----------------------------
--- Getting the Components --
-----------------------------
-
-* Compilation toolchain:
-
-The latest powerpc-elf GNATPro release we have is 6.1.2, available for
-x86-windows and sparc-solaris hosts.
+To run examples, the latest powerpc-elf GNATPro release we have is 6.2.1,
+available for x86-windows and sparc-solaris hosts.
 
 For partners without access to AdaCore machines, these are available from
 GNATtracker (http://www.gnattracker.com). Log in using the email address &
 password which were transmitted to you by Zepur on May 5 and go to the
 Download pane.
 
-Otherwise, we also have a 20080427-41 x86-linux wavefront installed in
-chinon:/usr/local, and a binary package in ~gnatmail/gcc-43/binaries:
+Otherwise, we have a nightly 20080427-41 x86-linux wavefront installed in
+chinon:/usr/local, and binary packages in ~gnatmail/gcc-43/binaries, for
+instance
 
   20081027/ppc-elf-linux/gnatpro-6.2.0w-20081027-43-powerpc-elf-chinon.tar.gz
 
+-----------------------------------
+-- Build components from sources --
+-----------------------------------
+
 * Qemu:
 
-A binary version is built nightly on two AdaCore machines: chinon (x86-linux)
-and tallinn (x86-windows), avail in ~gnatmail/gcc-41/install-<machine>/bin/.
+For sparc support and ability to compile with gcc 4, we switched to a
+development version. Our source base is maintained in the qemu-r6588
+subdir of the couverture repository.
 
-Sources to build elsewhere if need be are available from
-svn+ssh://svn.eu.adacore.com/Dev/trunk/qemu.
-
-The base "configure" options to use are:
+First step is to "configure", with
   --target-list=ppc-softmmu
   --disable-kqemu --disable-sdl --disable-gfx-check --disable-vnc-tls
 
-Be sure to use a 3.x GCC to build from sources. There are known problems
-with the 4.x series.
-
-And if you are using a 32bit compiler on a 64bit host on linux, prefix
+If you are using a 32bit compiler on a 64bit host on linux, prefix
 your "configure" call by "linux32", like so:
 
   qemu/qemu-0.9.1 $ linux32 ./configure [...]
@@ -74,75 +50,10 @@ binary you need.
 
 * xcov
 
-A binary version is built on AdaCore machines together with Qemu.
+Sources are available from
+svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture/tools/xcov.
 
-Sources to build elsewhere if need be are available from
-svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture/tools/xcov (make).
+No need to configure, just run make.
 
 This requires an Ada2005 capable compiler.
 
---------------------------------------------------------
--- Sample toolset build session on cardhu (x86-linux) --
---------------------------------------------------------
-
-##### SETUP WORKING DIRECTORY
-
-$ mkdir coverage
-$ cd coverage
-
-coverage $ mkdir -p local/bin  # where the tools will be installed
-
-##### BUILD & INSTALL QEMU
-# get access to a gcc 3.4 native compiler,
-# retrieve the sources, build & install
-
-coverage $ PATH=/usr/local/gnat-5.04a1/bin/:$PATH
-         $ svn checkout svn+ssh://svn.eu.adacore.com/Dev/trunk/qemu
-         $ cd qemu/qemu-0.9.1
-
-qemu-0.9.1 $ ./configure --target-list=ppc-softmmu --target-list=ppc-softmmu \
-             --disable-kqemu --disable-sdl --disable-gfx-check \
-             --disable-vnc-tls
-           $ make
-           $ cp ppc-softmmu/qemu-system-ppc ../../local/bin
-           $ cd ../..
-
-coverage $
-
-# BUILD & INSTALL XCOV
-# get access to an Ada 2005 capable native compiler,
-# retrieve the sources, build & install
-
-coverage $ PATH=/usr/local/gnatpro/6.2.1/bin:$PATH
-         $ svn checkout \
-           svn+ssh://svn.eu.adacore.com/Dev/trunk/couverture/tools/xcov
-         $ cd xcov
-
-xcov $ make
-     $ cp xcov ../local/bin
-     $ cd ..
-
-coverage $
-
-# INSTALL CROSS COMPILER (for experiments)
-
-coverage $ tar xzf ~gnatmail/gcc-43/binaries/20081027/ppc-elf-linux/
-           gnatpro-6.2.0w-20081027-43-powerpc-elf-chinon.tar.gz
-         $ cd gnat-6.2.0w-powerpc-elf-bin
-
-gnat-6.2.0w-powerpc-elf-bin $ ./doinstall (in /.../coverage/local)
-                            $ cd ..
-coverage $
-
-# EXPERIMENT on example
-
-coverage $ PATH=$PWD/local/bin:$PATH
-         $ cd xcov/examples/hello
-
-hello $ make
-powerpc-elf-gnatmake [...]
-qemu-system-ppc [...] hello.bin -trace hello.trace
-Hello qemu world
-xcov -r hello.trace -e hello [...]
-
-      $ mozilla file:$PWD/index-hello.html
