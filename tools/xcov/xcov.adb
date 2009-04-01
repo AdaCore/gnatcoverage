@@ -23,6 +23,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Coverage; use Coverage;
 with Decision_Map;
 with Execs_Dbase; use Execs_Dbase;
+with Elf_Files;
 with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
@@ -499,7 +500,14 @@ begin
                      & Argument (Arg_Index));
             return;
          end if;
-         Open_Exec (Get_Exec_Base, Exe_Name, Exe_File);
+         begin
+            Open_Exec (Get_Exec_Base, Exe_Name, Exe_File);
+         exception
+            when Elf_Files.Error =>
+               Error ("cannot open ELF file " & Exe_Name & " for trace file "
+                        & Argument (Arg_Index));
+               return;
+         end;
 
          --  If there is not routine list, create it from the first executable.
          --  A test above allows this only if there is one trace file.
