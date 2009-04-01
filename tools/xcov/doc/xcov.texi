@@ -669,7 +669,6 @@ toolchain to build from sources and the @option{--target} execution
 engine selector:
 
 @smallexample
-
 powerpc-elf-gcc -c ... test_engines.adb
 ...
 xcov --run --target=powerpc-elf test_engines
@@ -696,8 +695,8 @@ users see fit for custom trace management purposes.
 
 @section Object Coverage Analysis
 
-@option{--coverage} allows the selection of object instruction or branch
-coverage reports:
+Over raw execution traces, object coverage analysis may be performed
+with variants of @code{xcov --coverage} invocations:
 
 @multitable @columnfractions .15 .8
 @item @command{=insn}
@@ -748,46 +747,57 @@ For object coverage analysis purposes, @option{--annotate=asm} produces
 annotated assembly code for all the program routines on standard output.
 @c
 The annotations are visible as a special character at the beginning of
-each machine code line, with variants for instruction or branch coverage
-modes, as described by the following tables.
+each machine code line to convey information about the corresponding
+instruction, with variants for instruction or branch coverage modes.
+@c
+We call @dfn{simple} those machine instructions which are not
+@dfn{conditional branch} instructions.
 
-@*@noindent
-For @dfn{Object Instruction Coverage}:
+@*
+@noindent
+For @dfn{Object Instruction Coverage}, with @option{--coverage=insn}, we
+define:
 
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
 @item '-'
-@tab Instruction was never executed
+@tab instruction was never executed
 @item '+'
-@tab Instruction was executed
+@tab instruction was executed
 @end multitable
 
-@*@noindent
-For @dfn{Object Branch coverage}, the `+' case is refined for
-conditional branch instructions:
+@*@noindent For @dfn{Object Branch coverage}, with
+@option{--coverage=branch}, the `+' case is refined for conditional
+branch instructions:
 
 @multitable @columnfractions .1 .7
 @item @h{Note} @tab @h{Means ...}
+@item '-'
+@tab instruction never was executed
+@item '+'
+@tab simple instruction was executed, or conditional branch was
+     executed, taken both ways
 @item '>'
-@tab Conditional branch was executed, always taken
+@tab conditional branch was executed, always taken
 @item 'v'
-@tab Conditional branch was executed, never taken
-@item '*'
-@tab Conditional branch was executed, taken and not taken
+@tab conditional branch was executed, never taken
 @end multitable
 
-@noindent
-We qualify instructions marked with @option{+} or @option{*} as
-@dfn{fully covered}, those marked with @option{-} as @dfn{uncovered} and
-the others as @dfn{partially covered}.
+@*@noindent
+We qualify instructions marked with @option{+} as @dfn{fully covered},
+those marked with @option{-} as @dfn{uncovered} and the others as
+@dfn{partially covered}.
 
-To illustrate the output format, we will consider the Branch Coverage
-outcome for a piece of the Explore example, produced out of a couple of
-runs within Qemu for the PowerPC architecture.
+To illustrate, we will consider the Branch Coverage outcome for a piece
+of the Explore example, produced out of a couple of runs within Qemu for
+the PowerPC architecture.
 @c
 The original source of interest is the @code{if} statement which
 controls the Station processing termination, upon a Quit request
-from the user:
+from the user.
+@c
+The control is performed by a single decision, composed by two connected
+conditions to expose a case insensitive interface:
 
 @smallexample
 
@@ -802,6 +812,7 @@ from the user:
          return;
       else
       ...
+
 @end smallexample
 
 We first run a sample session to exercise Probe, then Quit with 'Q',
@@ -813,6 +824,7 @@ and request branch coverage data in assembly format:
 [Explore runs in Qemu - type 'p', then 'Q']
 
 ... $ xcov --coverage=branch --annotate=asm explore.trace      
+
 @end smallexample
 
 For the code associated with the source bits of interest, this yields
@@ -824,7 +836,7 @@ the following assembly coverage report excerpt:
 ...
 fffc1c0c +:     4b ff e6 7d   bl     0xfffc0288 <text_io__get>
 fffc1c10 +:     2f 83 00 51   cmpiw  cr7,r3,0x0051
-fffc1c14 *:     41 9e 00 0c   @b{beq-}   cr7,0xfffc1c20 <stations__run+00000078>
+fffc1c14 +:     41 9e 00 0c   @b{beq-}   cr7,0xfffc1c20 <stations__run+00000078>
 fffc1c18 +:     2f 83 00 71   cmpiw  cr7,r3,0x0071
 fffc1c1c >:     40 9e 00 10   @b{bne-}   cr7,0xfffc1c2c <stations__run+00000084>
 fffc1c20 +:     7f e3 fb 78   or     r3,r31,r31
@@ -835,7 +847,7 @@ fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
 The @code{beq} and @code{bne} instructions are two conditional branches
 corresponding to the two conditions.
 @c
-In addition to straightforward coverage of the rest of the code, the '*'
+In addition to straightforward coverage of the rest of the code, the '+'
 for the first branch indicates that it is fully covered and the '>' for
 the second branch indicates partial coverage only.
 @c
@@ -879,44 +891,33 @@ Eventhough the annotations are rendered on source lines in this case,
 they are really meant to convey object code properties, hence are of a
 different nature than what the DO-178B structural coverage criteria
 refer to.
-@c
-We defined a different synthesis of source line from object code
-annotations for instruction or branch coverage.
 
-@*@noindent
-For instruction coverage:
+We defined a uniform synthesis of source line from object code
+annotations for both instruction and branch coverage:
 
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
+@item '.'
+@tab no associated machine code for this line
 @item '-'
-@tab None of the line instructions were executed
-@item '!'
-@tab At least one of the line instructions was not executed
+@tab all the instructions associated with the line are '-' (uncovered)
 @item '+'
-@tab All the line instructions were executed
+@tab all the instructions associated with the line are '+' (fully covered)
+@item '!'
+@tab otherwise
 @end multitable
 
-@noindent
-For branch coverage, the @code{'+'} case is refined into:
-
-@multitable @columnfractions .1 .8
-@item @h{Note} @tab @h{Means ...}
-@item '>'
-@tab Object code features 1 conditional branch, always taken
-@item 'v'
-@tab Object code features 1 conditional branch, never taken
-@item '*'
-@tab Object code features >= 1 conditional branches, all fully covered
-@item '?'
-@tab Object code features > 1 conditional branches, some partially covered
-@end multitable
+To lines with associated object code we apply qualifiers similar to
+those for individual instructions: '-', '+' and '!' denote
+@dfn{uncovered}, @dfn{fully covered} or @dfn{partially covered} lines
+respectively.
 
 At this stage, @xcov{} relies on dwarf debug information to associate
 machine instructions with their corresponding source lines, so these
 annotations are only possible when this is available.
 @c
 In GCC parlance, this requires compilation with the @option{-g} command
-line switch, with no influence on the generated code by design.
+line switch, designed never to influence the generated code.
 
 @subsection @code{--annotate=html[+asm]}
 @noindent
@@ -925,26 +926,15 @@ one @code{.html} browsable annotated source file per original
 compilation unit in the current directory, with annotations identical to
 the @option{=xcov} ones.
 @c
-With the @code{+asm} extension, the annotated machine code for each line
-may be expanded below it by a mouse click on the source annotation
-character.
+Each source line is colorized to reflect its associated object code
+coverage completeness, with green, orange and red for full, partial or
+null coverage respectively.
 
-This option also colorizes the source lines to reflect their object code
-coverage completeness and generates an @code{index.html} page to
-summarize the coverage results and provide links to the annotated
-sources.
+An @code{index.html} page summarizes the coverage results and provide
+links to the annotated sources.
 @c
-The color codes are as follows:
-
-@multitable @columnfractions .1 .25 .4
-@item @h{Color} @tab @h{Means ...} @tab @h{Corresponds to ...}
-@item green
-@tab Full coverage    @tab '+' or '*' lines
-@item orange
-@tab Partial coverage @tab '!', '<' or `>' lines
-@item red
-@tab Null coverage    @tab '-' lines
-@end multitable
+With the @code{+asm} extension, the annotated machine code for each line
+may be expanded below it by a mouse click on the line.
 
 @subsection @code{--annotate=report}
 @noindent
