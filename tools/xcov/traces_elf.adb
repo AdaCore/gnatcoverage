@@ -637,8 +637,8 @@ package body Traces_Elf is
 
       At_Sib       : Unsigned_64 := 0;
       At_Stmt_List : Unsigned_64 := Bad_Stmt_List;
-      At_Low_Pc    : Unsigned_64;
-      At_High_Pc   : Unsigned_64;
+      At_Low_Pc    : Unsigned_64 := 0;
+      At_High_Pc   : Unsigned_64 := 0;
       At_Lang      : Unsigned_64 := 0;
       At_Name      : Address := Null_Address;
       At_Comp_Dir  : Address := Null_Address;
