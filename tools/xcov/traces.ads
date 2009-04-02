@@ -89,9 +89,14 @@ package Traces is
    --  accepted.
    procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural);
 
-   --  One character representation of a state.
    type Trace_State_Map is array (Trace_State) of Character;
    Trace_State_Char : constant Trace_State_Map;
+   --  One character representation of a state.
+   --  Several states can be represented by the same character, if the
+   --  difference is not meaningful to the user of xcov. Typically, Covered
+   --  and Both_Taken: internally, it conveys the information that the
+   --  corresponding instruction is a branch (or not); the user of xcov
+   --  has no interest in this distinction.
 
 private
    Trace_State_Char : constant Trace_State_Map :=
@@ -100,6 +105,6 @@ private
       Covered => '+',
       Branch_Taken => '>',
       Fallthrough_Taken => 'v',
-      Both_Taken => '*');
+      Both_Taken => '+');
 
 end Traces;

@@ -116,7 +116,7 @@ package body Traces_Sources is
          raise Program_Error;
       end if;
       Ls := Element.Table (Line).State;
-      Ls := Update_Table (Ls, State);
+      Update_Line_State (Ls, State);
       Element.Table (Line).State := Ls;
    end Add_Line_State;
 
@@ -242,7 +242,6 @@ package body Traces_Sources is
       --  Compute the summary.
       for I in Integer range First .. Last (File) loop
          Ls := File.Table (I).State;
-         Ls := State_Map (DO178B_Level, Ls);
          Stats (Ls) := Stats (Ls) + 1;
       end loop;
 
@@ -308,7 +307,6 @@ package body Traces_Sources is
       --  Iterate over each lines of the file.
       for I in Integer range First .. Last (File) loop
          Ls := File.Table (I).State;
-         Ls := State_Map (DO178B_Level, Ls);
          if Has_Source then
             Pretty_Print_Line (Pp, I, Ls, Get_Line (F));
          else
@@ -394,7 +392,6 @@ package body Traces_Sources is
       begin
          for I in Integer range First .. Last (File) loop
             State := File.Table (I).State;
-            State := State_Map (DO178B_Level, State);
             Stats (State) := Stats (State) + 1;
          end loop;
 
@@ -429,19 +426,19 @@ package body Traces_Sources is
          Get_Next_Trace (T, It);
          exit when T = Bad_Trace;
          if T.First > Addr then
-            State := Update_Table (State, Not_Covered);
+            Update_Line_State (State, Not_Covered);
             exit;
          end if;
-         State := Update_Table (State, T.State);
+         Update_Line_State (State, T.State);
          Addr := T.Last + 1;
       end loop;
       if Addr < Insns'Last then
-         State := Update_Table (State, Not_Covered);
+         Update_Line_State (State, Not_Covered);
       end if;
       if State = No_Code then
          return Not_Covered;
       else
-         return State_Map (DO178B_Level, State);
+         return State;
       end if;
    end Compute_Routine_State;
 
@@ -512,7 +509,6 @@ package body Traces_Sources is
                            Compute_Routine_State (Info.Insns, Info.Traces);
       begin
          if Routine_State /= Covered
-           and then Routine_State /= Branch_Covered
            and then Routine_State /= No_Code
          then
             Put (Report.all, Name.all & " not fully covered : ");

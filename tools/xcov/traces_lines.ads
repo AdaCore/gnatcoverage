@@ -28,29 +28,16 @@ package Traces_Lines is
    --  Control the output line state.
    --  Level_Raw gives the most detailed state.
 
-   DO178B_Level : DO178B_Level_Type := Level_Raw;
-   --  DO178B level for output state
-
    --  Coverage state of a source line of code.
    type Line_State is
      (Not_Covered,
       --  No instructions executed
 
       Partially_Covered,
-      --  Some instructions not covered in the line
+      --  The coverage criteria is partially satisfied on this line
 
-      Covered, -- Branch_Partially_Covered
-      --  Covered at instruction level but some branches partially covered
-
-      Branch_Taken,
-      Branch_Fallthrough,
-      --  All instructions executed, only one side of branch taken
-
-      Branch_Covered,
-      --  Covered at branch level
-
-      Covered_No_Branch,
-      --  Same as covered but no branches
+      Covered,
+      --  The coverage criteria is satisfied
 
       No_Code
       --  Initial state: no code for this line
@@ -61,97 +48,26 @@ package Traces_Lines is
    type State_Update_Table_Type is array (Line_State, Known_Trace_State)
      of Line_State;
 
-   Update_Table : constant State_Update_Table_Type;
-   --  Table to merge trace_states.
-   --  The initial Line_State must be No_Code.
-   --  Update the line_state using:
-   --    New_State := Update_Table (Old_State, Trace_State);
-
-   type State_Map_Array is array (DO178B_Level_Type, Line_State) of Line_State;
-   State_Map : constant State_Map_Array;
-   --  Degradation of a state according to the level.
+   procedure Update_Line_State (L : in out Line_State;
+                                I : Known_Trace_State);
+   --  Update a line state with the object coverage status of one
+   --  of its instructions.
+   --  This is typically meant to be used to compute the state of a source
+   --  line by iterating on its instructions and, for each of them, calling
+   --  Update_Line_State on its state.
+   --  ??? This works for both instruction coverage and branch coverage...
+   --  Source coverage would require a different procedure (Taking, say, a
+   --  decision state instead of a instruction trace state).
 
    type State_Char_Array is array (Line_State) of Character;
    State_Char : constant State_Char_Array;
    --  Characters identifying a Line_State.
 
 private
-   --  Tables below need comments???
-
-   Update_Table : constant State_Update_Table_Type :=
-     (
-      No_Code =>
-        (Not_Covered => Not_Covered,
-         Covered => Covered_No_Branch,
-         Branch_Taken => Branch_Taken,
-         Fallthrough_Taken => Branch_Fallthrough,
-         Both_Taken => Branch_Covered),
-      Not_Covered =>
-        (Not_Covered => Not_Covered,
-         others => Partially_Covered),
-      Partially_Covered =>
-        (others => Partially_Covered),
-      Covered =>
-        (Not_Covered => Partially_Covered,
-         others => Covered),
-      Covered_No_Branch =>
-        (Not_Covered => Partially_Covered,
-         Covered => Covered_No_Branch,
-         Branch_Taken => Branch_Taken,
-         Fallthrough_Taken => Branch_Fallthrough,
-         Both_Taken => Branch_Covered),
-      Branch_Taken =>
-        (Not_Covered => Partially_Covered,
-         Covered => Branch_Taken,
-         Branch_Taken => Covered,
-         Fallthrough_Taken => Covered,
-         Both_Taken => Covered),
-      Branch_Fallthrough =>
-        (Not_Covered => Partially_Covered,
-         Covered => Branch_Fallthrough,
-         Branch_Taken => Covered,
-         Fallthrough_Taken => Covered,
-         Both_Taken => Covered),
-      Branch_Covered =>
-        (Not_Covered => Partially_Covered,
-         Branch_Taken | Fallthrough_Taken => Covered,
-         Covered | Both_Taken => Branch_Covered)
-      );
-
    State_Char : constant State_Char_Array :=
      (No_Code => '.',
       Not_Covered => '-',
       Partially_Covered => '!',
-      Covered => '?',
-      Covered_No_Branch => '+',
-      Branch_Taken => '>',
-      Branch_Fallthrough => 'v',
-      Branch_Covered => '*');
-
-   State_Map : constant State_Map_Array :=
-     (Level_Raw => (No_Code => No_Code,
-                    Not_Covered => Not_Covered,
-                    Partially_Covered => Partially_Covered,
-                    Covered => Covered,
-                    Covered_No_Branch => Covered_No_Branch,
-                    Branch_Taken => Branch_Taken,
-                    Branch_Fallthrough => Branch_Fallthrough,
-                    Branch_Covered => Branch_Covered),
-      Level_A   => (No_Code => No_Code,
-                    Not_Covered => Not_Covered,
-                    Partially_Covered => Partially_Covered,
-                    Covered => Partially_Covered,
-                    Covered_No_Branch => Covered_No_Branch,
-                    Branch_Taken => Partially_Covered,
-                    Branch_Fallthrough => Partially_Covered,
-                    Branch_Covered => Covered_No_Branch),
-      Level_C   => (No_Code => No_Code,
-                    Not_Covered => Not_Covered,
-                    Partially_Covered => Covered_No_Branch,
-                    Covered => Covered_No_Branch,
-                    Covered_No_Branch => Covered_No_Branch,
-                    Branch_Taken => Covered_No_Branch,
-                    Branch_Fallthrough => Covered_No_Branch,
-                    Branch_Covered => Covered_No_Branch));
+      Covered => '+');
 
 end Traces_Lines;

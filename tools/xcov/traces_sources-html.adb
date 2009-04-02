@@ -484,13 +484,9 @@ package body Traces_Sources.Html is
       case State is
          when Not_Covered =>
             Wrh (Pp, """not_covered""");
-         when Partially_Covered
-           | Branch_Taken
-           | Branch_Fallthrough
-           | Covered =>
+         when Partially_Covered =>
             Wrh (Pp, """partially_covered""");
-         when Branch_Covered
-           | Covered_No_Branch =>
+         when Covered =>
             Wrh (Pp, """covered""");
          when No_Code =>
             if Line_Num mod 2 = 1 then
@@ -506,12 +502,7 @@ package body Traces_Sources.Html is
             Wrh (Pp, "code not covered");
          when Partially_Covered =>
             Wrh (Pp, "code partially covered");
-         when Branch_Taken
-           | Branch_Fallthrough
-           | Covered =>
-            Wrh (Pp, "code partially covered at decision level");
-         when Branch_Covered
-           | Covered_No_Branch =>
+         when Covered =>
             Wrh (Pp, "code covered");
          when No_Code =>
             Wrh (Pp, "no code generated for this line");

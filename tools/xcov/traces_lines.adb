@@ -17,50 +17,49 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-package body Traces_Stats is
+with Coverage; use Coverage;
 
-   ------------------
-   -- Get_Counters --
-   ------------------
+package body Traces_Lines is
 
-   function Get_Counters (Stats : Stat_Array) return Counters
-   is
-      Total : Natural := 0;
+   -----------------------
+   -- Update_Line_State --
+   -----------------------
+
+   procedure Update_Line_State (L : in out Line_State;
+                                I : Known_Trace_State) is
    begin
-      for J in Stats'Range loop
-         Total := Total + Stats (J);
-      end loop;
-      Total := Total - Stats (No_Code);
+      pragma Assert (Get_Action = Insn_Coverage
+                       or else Get_Action = Branch_Coverage);
+      --  This assertion is justified in Update_Line_State's specification
 
-      return (Fully   => Stats (Covered),
-              Partial => Stats (Partially_Covered),
-              Total   => Total);
-   end Get_Counters;
+      case L is
+         when Not_Covered =>
+            if I = Not_Covered then
+               L := Not_Covered;
+            else
+               L := Partially_Covered;
+            end if;
 
-   ---------------------
-   -- Get_Stat_String --
-   ---------------------
+         when Partially_Covered =>
+            null;
 
-   function Get_Stat_String (Stats : Stat_Array) return String
-   is
-      Total : Natural := 0;
-   begin
-      for J in Stats'Range loop
-         Total := Total + Stats (J);
-      end loop;
-      Total := Total - Stats (No_Code);
+         when Covered =>
+            if I = Covered or else I = Both_Taken then
+               L := Covered;
+            else
+               L := Partially_Covered;
+            end if;
 
-      if Total = 0 then
-         return "no code";
-      else
-         declare
-            Res : constant String :=
-              Natural'Image (Stats (Covered) * 100 / Total)
-              & "% of" & Natural'Image (Total) & " lines covered";
-         begin
-            return Res (Res'First + 1 .. Res'Last);
-         end;
-      end if;
-   end Get_Stat_String;
+         when No_Code =>
+            if I = Covered or else I = Both_Taken then
+               L := Covered;
+            elsif I = Not_Covered then
+               L := Not_Covered;
+            else
+               L := Partially_Covered;
+            end if;
 
-end Traces_Stats;
+      end case;
+   end Update_Line_State;
+
+end Traces_Lines;

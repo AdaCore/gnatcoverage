@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -40,14 +40,7 @@ package body Traces is
 
    procedure Disp_State_Char (State : Trace_State) is
    begin
-      case State is
-         when Unknown => Put ('?');
-         when Not_Covered => Put ('-');
-         when Covered => Put ('+');
-         when Branch_Taken => Put ('>');
-         when Fallthrough_Taken => Put ('v');
-         when Both_Taken => Put ('*');
-      end case;
+      Put (Trace_State_Char (State));
    end Disp_State_Char;
 
    procedure Dump_Entry (E : Trace_Entry) is

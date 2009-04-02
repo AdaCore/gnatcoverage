@@ -102,8 +102,6 @@ package body Traces_Sources.Report is
       Output : constant File_Access := Get_Output;
    begin
       if State /= Covered
-        and then State /= Covered_No_Branch
-        and then State /= Branch_Covered
         and then State /= No_Code
       then
          New_Line (Output.all);
