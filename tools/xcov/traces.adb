@@ -21,27 +21,19 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 
 package body Traces is
-   procedure Dump_Op (Op : Unsigned_8) is
-   begin
-      for I in reverse 0 .. 3 loop
-         if (Shift_Right (Op, I) and 1) /= 0 then
-            Put ('t');
-         else
-            Put ('-');
-         end if;
-      end loop;
-      if (Op and Trace_Op_Block) /= 0 then
-         Put (" block");
-      end if;
-      if (Op and Trace_Op_Fault) /= 0 then
-         Put (" fault");
-      end if;
-   end Dump_Op;
+
+   ---------------------
+   -- Disp_State_Char --
+   ---------------------
 
    procedure Disp_State_Char (State : Trace_State) is
    begin
       Put (Trace_State_Char (State));
    end Disp_State_Char;
+
+   ----------------
+   -- Dump_Entry --
+   ----------------
 
    procedure Dump_Entry (E : Trace_Entry) is
    begin
@@ -57,6 +49,33 @@ package body Traces is
       New_Line;
    end Dump_Entry;
 
+   -------------
+   -- Dump_Op --
+   -------------
+
+   procedure Dump_Op (Op : Unsigned_8) is
+   begin
+      for I in reverse 0 .. 3 loop
+         if (Shift_Right (Op, I) and 1) /= 0 then
+            Put ('t');
+         else
+            Put ('-');
+         end if;
+      end loop;
+
+      if (Op and Trace_Op_Block) /= 0 then
+         Put (" block");
+      end if;
+
+      if (Op and Trace_Op_Fault) /= 0 then
+         Put (" fault");
+      end if;
+   end Dump_Op;
+
+   ------------
+   -- Get_Pc --
+   ------------
+
    procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural)
    is
       Digit : Pc_Type;
@@ -65,6 +84,7 @@ package body Traces is
       Res := 0;
       while Pos <= Line'Last loop
          C := Line (Pos);
+
          case C is
          when '0' .. '9' =>
             Digit := Character'Pos (C) - Character'Pos ('0');
@@ -75,6 +95,7 @@ package body Traces is
          when others =>
             return;
          end case;
+
          Res := Shift_Left (Res, 4) or Digit;
          Pos := Pos + 1;
       end loop;

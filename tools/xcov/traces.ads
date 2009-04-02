@@ -17,6 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+--  Package to handle traces at object/exec level
+
 with Interfaces; use Interfaces;
 with System;     use System;
 
@@ -25,69 +27,85 @@ package Traces is
    Big_Endian_Host : constant Boolean := Default_Bit_Order = High_Order_First;
    --  Host order is determined by System.Default_Bit_Order
 
-   --  Define the size of the PC.
    subtype Pc_Type is Unsigned_32;
    Pc_Type_Size : constant Unsigned_8 := Pc_Type'Size / System.Storage_Unit;
+   --  Define the size of the PC.
 
-   --  Type of a branch instruction.
    type Branch_Kind is (Br_None, Br_Call, Br_Ret, Br_Jmp);
+   --  Type of a branch instruction.
 
+   Machine : Unsigned_16 := 0;
    --  Target machine.  The value is the EM field defined by ELF.
    --  Set to 0 when unknown.
-   Machine : Unsigned_16 := 0;
 
-   --  High level state of a trace entry.
    type Trace_State is
      (
-      --  Not yet filled.
+      --  High level state of a trace entry
+
       Unknown,
+      --  Not yet filled.
 
-      --  The code is not covered.  No instruction was executed.
       Not_Covered,
+      --  The code is not covered.  No instruction was executed.
 
-      --  The code is fully covered (and there is no conditionnal branches).
       Covered,
+      --  The code is fully covered (and there is no conditionnal branches).
 
+      Branch_Taken,
       --  The code is covered, the last instruction is a branch but the
       --  branch was always taken.
-      Branch_Taken,
 
+      Fallthrough_Taken,
       --  The code is covered, the last instruction is a branch but the
       --  branch was never taken.
-      Fallthrough_Taken,
 
+      Both_Taken
       --  The code is covered, the last instruction is a branch and the
       --  branch was both taken and not taken.
-      Both_Taken
       );
 
-   --  Trace entry as put in the traces tree.
    type Trace_Entry is record
+      --  Trace entry as recorded in the traces tree
+
       First : Pc_Type;
+      --  Address of the first instruction of the trace entry
+
       Last : Pc_Type;
+      --  Last address of the instruction set that corresponds to this
+      --  trace entry. Included.
+      --  Typically, if the instruction set of the trace entry contains
+      --  one instruction of 4 bytes, then we'll have Last - First = 3
+
       Op : Unsigned_8;
+      --  Op code that QEMU sets to give information about
+      --  how this entry's section of object code has been left
+      --  during execution (e.g. branch taken, branch fallthrough).
+      --  ??? Document which value it can take and the meaning of each of
+      --  these values.
+
       State : Trace_State;
+      --  This trace entry's states
    end record;
 
-   --  An invalid trace.
    Bad_Trace : constant Trace_Entry := (First => 1,
                                         Last => 0,
                                         Op => 0,
                                         State => Unknown);
+   --  Constant value for invalid traces
 
-   --  Display a string for OP.
    procedure Dump_Op (Op : Unsigned_8);
+   --  Display a string for OP.
 
-   --  Dump (on standard output) a trace entry.
    procedure Dump_Entry (E : Trace_Entry);
+   --  Dump (on standard output) a trace entry.
 
-   --  Display a character representing the state.
    procedure Disp_State_Char (State : Trace_State);
+   --  Display a character representing the state.
 
+   procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural);
    --  Convert hexa-decimal string contained in Line (Pos ..) to a Pc_Type.
    --  Put the result to RES, POS contains the index past the last character
    --  accepted.
-   procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural);
 
    type Trace_State_Map is array (Trace_State) of Character;
    Trace_State_Char : constant Trace_State_Map;
