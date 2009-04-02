@@ -141,43 +141,6 @@ package body Traces_Sources is
       Append (Element.Table (Line), Info, Base, Exec);
    end Add_Line;
 
-   function Get_Stat_String (Stats : Stat_Array) return String
-   is
-      Total : Natural := 0;
-   begin
-      for J in Stats'Range loop
-         Total := Total + Stats (J);
-      end loop;
-      Total := Total - Stats (No_Code);
-
-      if Total = 0 then
-         return "no code";
-      else
-         declare
-            Res : constant String :=
-              Natural'Image (Stats (Covered_No_Branch) * 100 / Total)
-              & "% of" & Natural'Image (Total) & " lines covered";
-         begin
-            return Res (Res'First + 1 .. Res'Last);
-         end;
-      end if;
-   end Get_Stat_String;
-
-   function Get_Counters (Stats : Stat_Array) return Counters
-   is
-      Total : Natural := 0;
-   begin
-      for J in Stats'Range loop
-         Total := Total + Stats (J);
-      end loop;
-      Total := Total - Stats (No_Code);
-
-      return (Fully   => Stats (Covered_No_Branch) + Stats (Branch_Covered),
-              Partial => Stats (Partially_Covered) + Stats (Covered)
-                           + Stats (Branch_Taken) + Stats (Branch_Fallthrough),
-              Total   => Total);
-   end Get_Counters;
-
    type Source_Rebase_Entry;
    type Source_Rebase_Entry_Acc is access Source_Rebase_Entry;
    type Source_Rebase_Entry is record
