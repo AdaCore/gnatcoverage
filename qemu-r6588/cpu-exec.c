@@ -1592,7 +1592,8 @@ static void trace_at_fault(CPUState *e)
 #ifdef DEBUG_TRACE
     printf("... fault at " TARGET_FMT_lx "\n", pc);
 #endif
-    if (pc >= trace_current_tb->pc
+    if (trace_current_tb
+	&& pc >= trace_current_tb->pc
 	&& pc < trace_current_tb->pc + trace_current_tb->size) {
 	if (!tracefile_history && trace_current_tb->tflags & TRACE_OP_BLOCK)
 	    return;
