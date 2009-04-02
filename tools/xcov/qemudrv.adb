@@ -143,6 +143,9 @@ package body Qemudrv is
       --  Run.
       Spawn (Prg.all, Args, Success);
       if not Success then
+         if Verbose then
+            Error (Progname.all & " failed");
+         end if;
          raise Exec_Error;
       end if;
    end Run_Command;
@@ -290,6 +293,9 @@ package body Qemudrv is
          Opts (L + 1) := new String'("-trace");
          Opts (L + 2) := Output;
          Run_Command (Driver.Run_Command, Opts);
+         if Verbose then
+            Put (Driver.Run_Command.all & " finished");
+         end if;
       end;
 
    exception
