@@ -237,7 +237,7 @@ package body Traces_Sources.Html is
       Pi ("  <table cellspacing=""1"" class=""TotalTable"">");
       Pi ("    <tr>");
       Pi ("      <td title=""Total"" class=""SumTotal"">Total</td>");
-      Print_Coverage_Stats (Pp.Index_File, Pp.Global_Stats);
+      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
       Pi ("    </tr>");
       Pi ("  </table>");
 

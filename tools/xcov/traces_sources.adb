@@ -39,8 +39,23 @@ package body Traces_Sources is
 
    subtype Source_Lines is Source_Line_Tables.Instance;
 
+   type File_Info is record
+      Lines : Source_Lines;
+      Stats : Stat_Array := (others => 0);
+   end record;
+
+   procedure Expand_Line_Table (File : in out File_Info;
+                                Line : Natural);
+   --  If Line is not in File's line table, expand this table and
+   --  mark the new line as No_Code.
+
+   procedure Update_File_Info (File  : in out File_Info;
+                               Line  : Natural;
+                               State : Traces.Trace_State);
+   --  Update the state of Line in File's line table
+
    package File_Tables is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Source_Lines,
+     (Table_Component_Type => File_Info,
       Table_Index_Type     => Any_Source_File_Index,
       Table_Low_Bound      => First_Source_File,
       Table_Initial        => 16,
@@ -61,7 +76,7 @@ package body Traces_Sources is
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
                                    Filename : String;
-                                   File : Source_Lines);
+                                   File : File_Info);
 
    function Find_File (Filename : String_Acc) return Source_File_Index is
       Res : Source_File_Index;
@@ -70,7 +85,7 @@ package body Traces_Sources is
 
       if Res > File_Tables.Last (File_Table) then
          File_Tables.Set_Last (File_Table, Res);
-         Source_Line_Tables.Init (File_Table.Table (Res));
+         Source_Line_Tables.Init (File_Table.Table (Res).Lines);
       end if;
 
       return Res;
@@ -94,30 +109,51 @@ package body Traces_Sources is
       Info.Last_Line := El;
    end Append;
 
+   procedure Expand_Line_Table (File : in out File_Info;
+                                Line : Natural)
+   is
+      use Source_Line_Tables;
+      Current_Last : constant Natural := Last (File.Lines);
+   begin
+      if Current_Last < Line then
+         Set_Last (File.Lines, Line);
+
+         for J in Current_Last + 1 .. Line loop
+            File.Lines.Table (J) := (State => No_Code, others => <>);
+            File.Stats (No_Code) := File.Stats (No_Code) + 1;
+            Global_Stats (No_Code) := Global_Stats (No_Code) + 1;
+         end loop;
+      end if;
+   end Expand_Line_Table;
+
+   procedure Update_File_Info (File  : in out File_Info;
+                               Line  : Natural;
+                               State : Traces.Trace_State)
+   is
+      Ls : Line_State;
+   begin
+      Ls := File.Lines.Table (Line).State;
+      File.Stats (Ls) := File.Stats (Ls) - 1;
+      Global_Stats (Ls) := Global_Stats (Ls) - 1;
+      Update_Line_State (Ls, State);
+      File.Lines.Table (Line).State := Ls;
+      File.Stats (Ls) := File.Stats (Ls) + 1;
+      Global_Stats (Ls) := Global_Stats (Ls) + 1;
+   end Update_File_Info;
+
    procedure Add_Line_State (File : Source_File_Index;
                              Line : Natural;
                              State : Traces.Trace_State)
    is
-      Element : Source_Lines renames File_Table.Table (File);
-      use Source_Line_Tables;
-      L : constant Natural := Last (Element);
-      Ls : Line_State;
+      Element : File_Info renames File_Table.Table (File);
    begin
-      if L < Line then
-         --  Expand lines table
-
-         Set_Last (Element, Line);
-         for J in L + 1 .. Line loop
-            Element.Table (J) := (State => No_Code, others => <>);
-         end loop;
-      end if;
+      Expand_Line_Table (Element, Line);
 
       if State = Unknown then
          raise Program_Error;
       end if;
-      Ls := Element.Table (Line).State;
-      Update_Line_State (Ls, State);
-      Element.Table (Line).State := Ls;
+
+      Update_File_Info (Element, Line, State);
    end Add_Line_State;
 
    procedure Add_Line (File : Source_File_Index;
@@ -126,19 +162,10 @@ package body Traces_Sources is
                        Base : Traces_Base_Acc;
                        Exec : Exe_File_Acc)
    is
-      Element : Source_Lines renames File_Table.Table (File);
-      use Source_Line_Tables;
-      L : constant Natural := Last (Element);
+      Element : File_Info renames File_Table.Table (File);
    begin
-      if L < Line then
-         --  Expand the tables.  The lines added are marked as No_Code
-
-         Set_Last (Element, Line);
-         for J in L + 1 .. Line loop
-            Element.Table (J) := (State => No_Code, others => <>);
-         end loop;
-      end if;
-      Append (Element.Table (Line), Info, Base, Exec);
+      Expand_Line_Table (Element, Line);
+      Append (Element.Lines.Table (Line), Info, Base, Exec);
    end Add_Line;
 
    type Source_Rebase_Entry;
@@ -194,7 +221,7 @@ package body Traces_Sources is
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
                                    Filename : String;
-                                   File : Source_Lines)
+                                   File : File_Info)
    is
       use Source_Line_Tables;
       use Traces_Disa;
@@ -236,20 +263,8 @@ package body Traces_Sources is
       Sec_Info : Addresses_Info_Acc;
       Ls : Line_State;
 
-      Stats : Stat_Array := (others => 0);
       Skip : Boolean;
    begin
-      --  Compute the summary.
-      for I in Integer range First .. Last (File) loop
-         Ls := File.Table (I).State;
-         Stats (Ls) := Stats (Ls) + 1;
-      end loop;
-
-      --  Compute the global summary.
-      for I in Stats'Range loop
-         Pp.Global_Stats (I) := Pp.Global_Stats (I) + Stats (I);
-      end loop;
-
       --  Try original path.
       Try_Open (F, Filename, Ok);
 
@@ -296,7 +311,7 @@ package body Traces_Sources is
          Has_Source := True;
       end if;
 
-      Pretty_Print_File (Pp, Filename, Stats, Has_Source, Skip);
+      Pretty_Print_File (Pp, Filename, File.Stats, Has_Source, Skip);
       if Skip then
          if Has_Source then
             Close (F);
@@ -305,8 +320,8 @@ package body Traces_Sources is
       end if;
 
       --  Iterate over each lines of the file.
-      for I in Integer range First .. Last (File) loop
-         Ls := File.Table (I).State;
+      for I in Integer range First .. Last (File.Lines) loop
+         Ls := File.Lines.Table (I).State;
          if Has_Source then
             Pretty_Print_Line (Pp, I, Ls, Get_Line (F));
          else
@@ -315,7 +330,7 @@ package body Traces_Sources is
 
          if Pp.Show_Asm then
             --  Iterate over each insns block for the source line.
-            Info := File.Table (I).First_Line;
+            Info := File.Lines.Table (I).First_Line;
             while Info /= null loop
                Line_Info := Info.Line;
                declare
@@ -340,7 +355,7 @@ package body Traces_Sources is
          end if;
       end loop;
       if Has_Source then
-         Line := Last (File) + 1;
+         Line := Last (File.Lines) + 1;
          while not End_Of_File (F) loop
             Pretty_Print_Line (Pp, Line, No_Code, Get_Line (F));
             Line := Line + 1;
@@ -357,7 +372,6 @@ package body Traces_Sources is
    is
       use Ada.Directories;
    begin
-      Pp.Global_Stats := (others => 0);
       Pp.Show_Asm := Show_Asm;
 
       Pretty_Print_Start (Pp);
@@ -377,27 +391,19 @@ package body Traces_Sources is
    is
       use Ada.Directories;
 
-      procedure Disp_One_File (Name : String; File : Source_Lines);
+      procedure Disp_One_File (Name : String; File : File_Info);
       --  Display summary for the given file
 
       -------------------
       -- Disp_One_File --
       -------------------
 
-      procedure Disp_One_File (Name : String; File : Source_Lines) is
+      procedure Disp_One_File (Name : String; File : File_Info) is
          use Source_Line_Tables;
-
-         Stats : Stat_Array := (others => 0);
-         State : Line_State;
       begin
-         for I in Integer range First .. Last (File) loop
-            State := File.Table (I).State;
-            Stats (State) := Stats (State) + 1;
-         end loop;
-
          Put (Simple_Name (Name));
          Put (": ");
-         Put (Get_Stat_String (Stats));
+         Put (Get_Stat_String (File.Stats));
          New_Line;
       end Disp_One_File;
 

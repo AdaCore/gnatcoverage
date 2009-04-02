@@ -92,9 +92,13 @@ private
       --  does it have a first line and a last line???
    end record;
 
+   Global_Stats : Stat_Array := (others => 0);
+   --  Stats associated to the whole set of source files that this package
+   --  considers (i.e. total numbers of lines, of partially covered /
+   --  not covered / fully covered lines...)
+
    type Pretty_Printer is abstract tagged limited record
       Need_Sources : Boolean;
-      Global_Stats : Stat_Array;
       Show_Asm     : Boolean;
    end record;
 
