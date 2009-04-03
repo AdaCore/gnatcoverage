@@ -178,6 +178,12 @@ package body Traces_Sources.Html is
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer)
    is
+      use Traces_Files;
+      use Traces_Files_List;
+      use Traces_Files_Lists;
+      Cur : Traces_Files_Lists.Cursor;
+      El  : Trace_File_Element_Acc;
+
       procedure P (S : String);
 
       procedure P (S : String) is
@@ -207,6 +213,64 @@ package body Traces_Sources.Html is
       P ("<h1 align=""center"">XCOV coverage report</h1>");
       P ("<h2 align=""center""> Coverage level: "
          & To_Coverage_Option (Get_Action) & "</h2>");
+
+      --  Total stats.
+      P ("  <hr/>");
+      P ("  <table cellspacing=""1"" class=""TotalTable"">");
+      P ("    <tr>");
+      P ("      <td title=""Total"" class=""SumTotal"">Total</td>");
+      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
+      P ("    </tr>");
+      P ("  </table>");
+
+      --  Caption
+      P ("  <hr/>");
+      P ("  <table cellspacing=""1"" class=""LegendTable"">");
+      P ("    <tr>");
+      P ("      <td class=""SumBarCover"" witdh=""33%"">"
+            & "Fully covered</td>");
+      P ("      <td class=""SumBarPartial"">"
+            & "Partially covered</td>");
+      P ("      <td class=""SumBarNoCover"" witdh=""13%"">"
+            & "not covered</td>");
+      P ("     </tr>");
+      P ("   </table>");
+
+      --  List of traces.
+      P ("  <hr/>");
+      P ("  <table cellspacing=""1"" class=""TracesFiles"">");
+      P ("    <tr class=""Head"">");
+      P ("      <td>Trace Filename</td>");
+      P ("      <td>Program</td>");
+      P ("      <td>Date</td>");
+      P ("      <td>Tag</td>");
+      P ("    </tr>");
+
+      Cur := Files.First;
+      while Has_Element (Cur) loop
+         El := Element (Cur);
+         P ("    <tr>");
+         P ("      <td>");
+         P (El.Filename.all);
+         P ("      </td>");
+         P ("      <td>");
+         P (Get_Info (El.Trace, Qemu_Traces.Info_Kind_Exec_Filename));
+         P ("      </td>");
+         P ("      <td>");
+         P (Format_Date_Info (Get_Info (El.Trace,
+                                         Qemu_Traces.Info_Kind_Date)));
+         P ("      </td>");
+         P ("      <td>");
+         P (Get_Info (El.Trace, Qemu_Traces.Info_Kind_User_Tag));
+         P ("      </td>");
+         P ("    </tr>");
+         Next (Cur);
+      end loop;
+
+      P ("  </table>");
+
+      --  Open table for results file per file
+      P ("  <hr/>");
       P ("  <table cellspacing=""1"" class=""SumTable"">");
       P ("    <tr>");
       P ("      <td class=""SumHead"" width=""60%"">Filename</td>");
@@ -216,12 +280,6 @@ package body Traces_Sources.Html is
 
    procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer)
    is
-      use Traces_Files;
-      use Traces_Files_List;
-      use Traces_Files_Lists;
-      Cur : Traces_Files_Lists.Cursor;
-      El : Trace_File_Element_Acc;
-
       procedure Pi (S : String);
 
       procedure Pi (S : String) is
@@ -231,62 +289,6 @@ package body Traces_Sources.Html is
 
    begin
       Pi ("  </table>");
-
-      --  Total stats.
-      Pi ("  <hr/>");
-      Pi ("  <table cellspacing=""1"" class=""TotalTable"">");
-      Pi ("    <tr>");
-      Pi ("      <td title=""Total"" class=""SumTotal"">Total</td>");
-      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
-      Pi ("    </tr>");
-      Pi ("  </table>");
-
-      --  Caption
-      Pi ("  <hr/>");
-      Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
-      Pi ("    <tr>");
-      Pi ("      <td class=""SumBarCover"" witdh=""33%"">"
-            & "Fully covered</td>");
-      Pi ("      <td class=""SumBarPartial"">"
-            & "Partially covered</td>");
-      Pi ("      <td class=""SumBarNoCover"" witdh=""13%"">"
-            & "not covered</td>");
-      Pi ("     </tr>");
-      Pi ("   </table>");
-
-      --  List of traces.
-      Pi ("  <hr/>");
-      Pi ("  <table cellspacing=""1"" class=""TracesFiles"">");
-      Pi ("    <tr class=""Head"">");
-      Pi ("      <td>Trace Filename</td>");
-      Pi ("      <td>Program</td>");
-      Pi ("      <td>Date</td>");
-      Pi ("      <td>Tag</td>");
-      Pi ("    </tr>");
-
-      Cur := Files.First;
-      while Has_Element (Cur) loop
-         El := Element (Cur);
-         Pi ("    <tr>");
-         Pi ("      <td>");
-         Pi (El.Filename.all);
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Get_Info (El.Trace, Qemu_Traces.Info_Kind_Exec_Filename));
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Format_Date_Info (Get_Info (El.Trace,
-                                         Qemu_Traces.Info_Kind_Date)));
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Get_Info (El.Trace, Qemu_Traces.Info_Kind_User_Tag));
-         Pi ("      </td>");
-         Pi ("    </tr>");
-         Next (Cur);
-      end loop;
-
-      Pi ("  </table>");
-
       Pi ("</body>");
       Pi ("</html>");
       Close (Pp.Index_File);
