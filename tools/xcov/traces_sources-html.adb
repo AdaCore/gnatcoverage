@@ -439,6 +439,7 @@ package body Traces_Sources.Html is
       end if;
       Plh (Pp, "</head>");
       Plh (Pp, "<body>");
+      Plh (Pp, "<h4 align=""right""><a href=""index.html""> index </a></h4>");
       Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
       Plh (Pp, "<h2 align=""center""> Coverage level: "
            & To_Coverage_Option (Get_Action) & "</h2>");
