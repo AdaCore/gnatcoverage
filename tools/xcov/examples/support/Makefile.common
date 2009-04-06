@@ -3,10 +3,6 @@
 QEMU=qemu-system-ppc
 XCOV=xcov
 
-# Set of main target programs for which we want to produce coverage info,
-# to be defined from the command line or by includers:
-# TESTS=
-
 # Both a target specific support subdir and a target toolchain prefix:
 TARGET = powerpc-elf
 

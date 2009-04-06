@@ -8,7 +8,7 @@ project Harness is
    for Main use ("test_explore.adb");
    for Source_Dirs use ("harness/fixture", "harness/tests");
    for Exec_Dir use ".";
-   for Object_Dir use "obj/" & Support.Target;
+   for Object_Dir use "obj/" & Support.Target & "/harness";
 
    package Linker renames Support.Linker;
 
