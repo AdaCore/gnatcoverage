@@ -86,7 +86,7 @@ package body Qemudrv is
       else
          Put (Indent & "--run");
       end if;
-      Put (" [OPTIONS] FILE");
+      Put (" [OPTIONS] FILE [-eargs EARGS...]");
       New_Line;
       P ("  Options are:");
       P ("  -t TARGET  --target=TARGET   Set the target");
@@ -99,6 +99,7 @@ package body Qemudrv is
       P ("  -v --verbose                 Be verbose");
       P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
       P ("  -o FILE  --output=FILE       Write traces to FILE");
+      P ("  -eargs EARGS                 Pass EARGS to the simulator");
    end Help;
 
    procedure Run_Command (Command : String_Access;
@@ -154,9 +155,11 @@ package body Qemudrv is
    is
       Arg_Count : constant Natural := Argument_Count;
 
+      subtype Opt_Index is Natural range 1 .. Arg_Count - First_Option + 1;
       Parser : Opt_Parser;
-      Args : constant String_List_Access :=
-        new String_List (1 .. Arg_Count - First_Option + 1);
+      Args : constant String_List_Access := new String_List (Opt_Index);
+      Eargs : constant String_List_Access := new String_List (Opt_Index);
+      Nbr_Eargs : Natural := 0;
 
       Driver_Index : Integer;
       S : Character;
@@ -174,7 +177,7 @@ package body Qemudrv is
       end loop;
 
       --  And decode it.
-      Initialize_Option_Scan (Parser, Args);
+      Initialize_Option_Scan (Parser, Args, Section_Delimiters => "eargs");
       loop
          S := Getopt (Getopt_Switches, False, Parser);
          exit when S = ASCII.NUL;
@@ -225,6 +228,13 @@ package body Qemudrv is
             return;
          end if;
       end;
+
+      --  Simulator arguments.
+      Goto_Section ("eargs", Parser);
+      while Getopt ("*", False, Parser) /= ASCII.NUL loop
+         Nbr_Eargs := Nbr_Eargs + 1;
+         Eargs (Nbr_Eargs) := new String'(Full_Switch (Parser));
+      end loop;
 
       Free (Parser);
 
@@ -287,11 +297,12 @@ package body Qemudrv is
       declare
          Driver : Driver_Target renames Drivers (Driver_Index);
          L : constant Natural := Driver.Run_Options'Length;
-         Opts : String_List (1 .. L + 2);
+         Opts : String_List (1 .. L + 2 + Nbr_Eargs);
       begin
          Opts (1 .. L) := Driver.Run_Options.all;
          Opts (L + 1) := new String'("-trace");
          Opts (L + 2) := Output;
+         Opts (L + 3 .. L + 2 + Nbr_Eargs) := Eargs (1 .. Nbr_Eargs);
          Run_Command (Driver.Run_Command, Opts);
          if Verbose then
             Put (Driver.Run_Command.all & " finished");
