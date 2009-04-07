@@ -36,11 +36,11 @@ package body Traces_Sources.Html is
    --  F being a handle to an opened file, append the content of Strings to
    --  it, printing one element per line.
    --  ??? This is only used to generate xcov.css' content. In other places,
-   --  list of Put/Put_Line are used instead. Not sure I understand what is
+   --  lists of Put/Put_Line are used instead. Not sure I understand what is
    --  the benefit of the Strings_Arr approach, but I feel that we are using
-   --  two different ways to do the same thing; if we have no good reason to
-   --  do so, we should remove one of them. If we should to keep the
-   --  Strings_Arr approach, we should move it out of this package, as it
+   --  two different ways of doing the same thing; if we have no good reason to
+   --  do so, we should remove one of them. If there's a good reason to keep
+   --  the Strings_Arr approach, we should move this out of this package, as it
    --  is quite independant from generating HTML annotations.
 
    type Html_Pretty_Printer is new Pretty_Printer with record
