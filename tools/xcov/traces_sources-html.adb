@@ -35,7 +35,7 @@ package body Traces_Sources.Html is
    procedure Put (F : File_Type; Strings : Strings_Arr);
    --  F being a handle to an opened file, append the content of Strings to
    --  it, printing one element per line.
-   --  ??? This is only used to generate xcov.css' content. In order places,
+   --  ??? This is only used to generate xcov.css' content. In other places,
    --  list of Put/Put_Line are used instead. Not sure I understand what is
    --  the benefit of the Strings_Arr approach, but I feel that we are using
    --  two different ways to do the same thing; if we have no good reason to
