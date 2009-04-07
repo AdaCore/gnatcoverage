@@ -207,7 +207,7 @@ sort of @dfn{instrumentation} to have the execution produce information
 it normally wouldn't produce.
 @c
 This may be achieved in several possible manners:
-@itemize
+@itemize @bullet
 @item @dfn{Source Instrumentation}:
 The coverage analysis toolset adds explicit statements and data
 structures to the program source to maintain the coverage state.
@@ -351,7 +351,7 @@ regarding the instrumentation mode.
 Object Coverage Analysis focuses on machine object code coverage,
 with two essential quantifiers:
 
-@itemize
+@itemize @bullet
 @item @dfn{Object Instruction Coverage (OIC)} ;
 which/how-much of the program machine instructions were exercised by a
 set of program executions.
@@ -379,7 +379,7 @@ abstracts the machine code away.
 The DO-178B structural coverage criteria operate at this level, with
 quantifiers defined over three core elements:
 
-@itemize
+@itemize @bullet
 @item @dfn{Source statement},
 in the usual programming language sense.
 
@@ -394,7 +394,7 @@ occurrence is a distinct condition.''.
 @end itemize
 
 @noindent The quantifiers are as follows:
-@itemize
+@itemize @bullet
 @item @dfn{Source Statement Coverage (SSC)} ;
 which/how-much of the source statements were exercised by a set of
 program executions.
@@ -564,7 +564,7 @@ executed, and the instruction/line correspondance is extracted from
 standard DWARF debug information or alike.
 
 @section Source Coverage Analysis
-@noindent
+noindent
 Xcov is also designed to allow Source Coverage Analysis, with central
 focus on user source code and support for the three DO-178B criteria:
 Statement, Decision and Modified Condition/Decision Coverage.
@@ -629,7 +629,7 @@ As suggested by the previous introduction, Xcov offers a front-end to
 various coverage analysis related functionalities, each activated by a
 toplevel of command line option:
 
-@itemize
+@itemize @bullet
 @item @option{--run} ;
 run code within an instrumented environment to produce raw execution
 traces.
@@ -706,6 +706,7 @@ every instruction of whether it has been executed or not.
 @item @command{=branch}
 @tab requests @dfn{Object Branch Coverage} data, with extra details about
 the directions taken by conditional branch instructions.
+
 @end multitable
 
 @noindent
@@ -953,7 +954,7 @@ Focus on source, object code abstracted away.
 Despite object code abstracted away, still relies on object code
 execution traces and requires a couple of assumptions to hold:
 
-@itemize
+@itemize @bullet
 @item
 binary boolean operators are restricted to short-circuit forms, and
 @item
