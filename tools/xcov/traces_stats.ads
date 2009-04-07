@@ -36,13 +36,16 @@ package Traces_Stats is
       --  have a given "state" (fully covered/partially covered) so that
       --  statistics can be built from these indications.
 
-      Fully   : Natural;
-      --  Number of lines fully covered according the coverage criteria
+      Fully       : Natural;
+      --  Number of lines fully covered according to the coverage criteria
 
-      Partial : Natural;
-      --  Number of lines partially covered according the coverage criteria
+      Partial     : Natural;
+      --  Number of lines partially covered according to the coverage criteria
 
-      Total   : Natural;
+      Not_Covered : Natural;
+      --  Number of lines not covered according to the coverage criteria
+
+      Total       : Natural;
       --  Total number of lines
    end record;
 
@@ -50,5 +53,10 @@ package Traces_Stats is
    --  From the number of occurences of each state in a set of line
    --  (in Stats), compute the number of lines fully covered, partially
    --  covered, and the total number of lines. Return the result.
+
+   function Ratio (Part : Natural; Total : Natural) return Natural;
+   --  Total and Part being a number of lines, compute the ratio of the
+   --  these two quantities (Part / Total) and return this value
+   --  as a percentage.
 
 end Traces_Stats;

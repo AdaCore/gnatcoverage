@@ -34,6 +34,7 @@ package body Traces_Stats is
 
       return (Fully   => Stats (Covered),
               Partial => Stats (Partially_Covered),
+              Not_Covered => Stats (Not_Covered),
               Total   => Total);
    end Get_Counters;
 
@@ -54,13 +55,23 @@ package body Traces_Stats is
          return "no code";
       else
          declare
-            Res : constant String :=
-              Natural'Image (Stats (Covered) * 100 / Total)
+            Res : constant String := Natural'Image (Ratio (Stats (Covered),
+                                                           Total))
               & "% of" & Natural'Image (Total) & " lines covered";
          begin
             return Res (Res'First + 1 .. Res'Last);
          end;
       end if;
    end Get_Stat_String;
+
+   -----------
+   -- Ratio --
+   -----------
+
+   function Ratio (Part : Natural; Total : Natural) return Natural is
+   begin
+      return Natural (Float'Rounding (Float (Part) * 100.0
+                                      / Float (Total)));
+   end Ratio;
 
 end Traces_Stats;

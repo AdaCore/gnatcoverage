@@ -79,6 +79,16 @@ package body Traces_Sources.Html is
    function To_Xml_String (S : String) return String;
 
    procedure Generate_Css_File;
+
+   procedure Print_Coverage_Header
+     (F             : in out File_Type;
+      Key_Name      : String;
+      Display_Keys  : Boolean);
+   --  Print the first line of a HTML table that lists some coverage stats;
+   --  that is to say, a table line with a short description of each field.
+   --  Key_Name is the name of the keys of this table (e.g. file names).
+   --  If Display_Keys, Index_Name will be displayed in the first column.
+
    procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array);
    procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
    procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
@@ -200,7 +210,7 @@ package body Traces_Sources.Html is
             raise;
       end;
 
-      Pp.Global_Counters := (0, 0, 0);
+      Pp.Global_Counters := (0, 0, 0, 0);
 
       Generate_Css_File;
 
@@ -210,31 +220,12 @@ package body Traces_Sources.Html is
       P ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
       P ("</head>");
       P ("<body>");
+      P ("<div id=""top"">");
+      P ("<h4 align=""right""><a href=""#help""> help </a></h4>");
       P ("<h1 align=""center"">XCOV coverage report</h1>");
       P ("<h2 align=""center""> Coverage level: "
          & To_Coverage_Option (Get_Action) & "</h2>");
-
-      --  Total stats.
-      P ("  <hr/>");
-      P ("  <table cellspacing=""1"" class=""TotalTable"">");
-      P ("    <tr>");
-      P ("      <td title=""Total"" class=""SumTotal"">Total</td>");
-      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
-      P ("    </tr>");
-      P ("  </table>");
-
-      --  Caption
-      P ("  <hr/>");
-      P ("  <table cellspacing=""1"" class=""LegendTable"">");
-      P ("    <tr>");
-      P ("      <td class=""SumBarCover"" witdh=""33%"">"
-            & "Fully covered</td>");
-      P ("      <td class=""SumBarPartial"">"
-            & "Partially covered</td>");
-      P ("      <td class=""SumBarNoCover"" witdh=""13%"">"
-            & "not covered</td>");
-      P ("     </tr>");
-      P ("   </table>");
+      P ("</div>");
 
       --  List of traces.
       P ("  <hr/>");
@@ -269,13 +260,20 @@ package body Traces_Sources.Html is
 
       P ("  </table>");
 
+      --  Total stats.
+      P ("  <hr/>");
+      P ("  <table cellspacing=""1"" class=""TotalTable"">");
+      Print_Coverage_Header (Pp.Index_File, "", True);
+      P ("    <tr>");
+      P ("      <td title=""Total"" class=""SumTotal"">Total</td>");
+      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
+      P ("    </tr>");
+      P ("  </table>");
+
       --  Open table for results file per file
       P ("  <hr/>");
       P ("  <table cellspacing=""1"" class=""SumTable"">");
-      P ("    <tr>");
-      P ("      <td class=""SumHead"" width=""60%"">Filename</td>");
-      P ("      <td class=""SumHead"" colspan=""3"">Coverage</td>");
-      P ("    </tr>");
+      Print_Coverage_Header (Pp.Index_File, "Filename", True);
    end Pretty_Print_Start;
 
    procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer)
@@ -289,18 +287,128 @@ package body Traces_Sources.Html is
 
    begin
       Pi ("  </table>");
+
+      Pi ("<div id=help>");
+      Pi ("<hr/>");
+      Pi ("<h4 align=""right""><a href=""#top""> top </a></h4>");
+
+      Pi ("This report presents a global view of the coverage");
+      Pi ("results for the given coverage level. It sums up:");
+      Pi ("<ul>");
+      Pi ("<li> the list of trace files processed by xcov;");
+      Pi ("<li> the global results;");
+      Pi ("<li> the coverage result per source files.");
+      Pi ("</ul>");
+      Pi ("<br/>");
+
+      Pi ("For each trace files, the following information is given:");
+      Pi ("<ul>");
+      Pi ("<li> the name of the trace file;");
+      Pi ("<li> the name of the executable that has been used to");
+      Pi ("    generate it;");
+      Pi ("<li> when it has been generated;");
+      Pi ("<li> the tag that has been associated to this run, if any.");
+      Pi ("</ul>");
+      Pi ("<br/>");
+
+      Pi ("The results (total and per file) contain:");
+      Pi ("<ul>");
+      Pi ("<li> the total number of lines for the corresponding unit;");
+      Pi ("""lines"" should here be understood as ""source line of code that");
+      Pi ("generates object code"" (in that respect, comments are not");
+      Pi ("considered as ""lines"");");
+      Pi ("<li> the number of lines (as defined previously) that are");
+      Pi ("considered as covered, in accordance with the chosen coverage");
+      Pi ("criteria;");
+      Pi ("<li> the number of lines partially covered according to this");
+      Pi ("criteria;");
+      Pi ("<li> the number of lines that are not covered at all according");
+      Pi ("to this criteria;");
+      Pi ("<li> A visual summary of these coverage datas.");
+      Pi ("</ul>");
+      Pi ("<br/>");
+
+      Pi ("In the visual summary, the colors have the following meaning:");
+      Pi ("<br/>");
+
+      Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
+      Pi ("    <tr>");
+      Pi ("      <td class=""SumBarCover"" witdh=""33%"">"
+            & "Fully covered</td>");
+      Pi ("      <td class=""SumBarPartial"">"
+            & "Partially covered</td>");
+      Pi ("      <td class=""SumBarNoCover"" witdh=""13%"">"
+            & "not covered</td>");
+      Pi ("     </tr>");
+      Pi ("   </table>");
+
+      Pi ("</div>");
       Pi ("</body>");
       Pi ("</html>");
       Close (Pp.Index_File);
    end Pretty_Print_Finish;
+
+   procedure Print_Coverage_Header
+     (F             : in out File_Type;
+      Key_Name      : String;
+      Display_Keys  : Boolean) is
+   begin
+      Put (F, "    <tr>");
+
+      if Display_Keys then
+         Put (F, "      <td class=""SumHead"" width=""50%"">"
+              & Key_Name & "</td>");
+      end if;
+
+      Put (F, "      <td class=""SumHead""> total nb of lines </td");
+      Put (F, "      <td class=""SumHead""> fully covered </td");
+      Put (F, "      <td class=""SumHead""> partially covered </td");
+      Put (F, "      <td class=""SumHead""> not covered </td");
+      Put (F, "      <td class=""SumHead""> visual summary </td");
+      Put (F, "    </tr>");
+   end Print_Coverage_Header;
 
    procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array)
    is
       use Ada.Integer_Text_IO;
       P : constant Counters := Get_Counters (Stats);
       Fully, Partial, Uncover : Natural;
+
+      procedure Print_Ratio (Part : Natural; Total : Natural);
+      --  Total and Part being a number of lines, print the ratio of the
+      --  these two quantities (Part / Total) into a cell.
+
+      procedure Print_Ratio (Part : Natural; Total : Natural) is
+      begin
+         Put (F, "      <td class=""SumPourcent"" width=""10%"">");
+         if Total = 0 then
+            Put (F, "no code");
+         else
+            Put (F, Part, 0);
+            Put (F, " lines (");
+            Put (F, Ratio (Part, Total), 0);
+            Put (F, " %)");
+         end if;
+         Put_Line (F, "</td>");
+      end Print_Ratio;
+
    begin
-      --  Second column: bar
+      --  First column: total nb of lines
+      Put (F, "      <td class=""SumPourcent"" width=""10%"">");
+      Put (F, P.Total, 0);
+      Put (F, " lines");
+      Put_Line (F, "</td>");
+
+      --  Second column: fully covered
+      Print_Ratio (P.Fully, P.Total);
+
+      --  Third column: partially covered
+      Print_Ratio (P.Partial, P.Total);
+
+      --  Fourth column: not covered
+      Print_Ratio (P.Not_Covered, P.Total);
+
+      --  Fifth column: visual summary
       Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
       New_Line (F);
       Put (F, "        <table border=""0"" cellspacing=""0"" "
@@ -310,7 +418,7 @@ package body Traces_Sources.Html is
          Put (F, "<td class=""SumBarCover"" width=""100"""
                 & " title=""100% fully covered""></td>");
       else
-         Fully := P.Fully * 100 / P.Total;
+         Fully := Ratio (P.Fully, P.Total);
          if Fully /= 0 then
             Put (F, "<td class=""SumBarCover"" width=""");
             Put (F, Fully, 0);
@@ -318,7 +426,7 @@ package body Traces_Sources.Html is
             Put (F, Fully, 0);
             Put (F, "% fully covered""></td>");
          end if;
-         Partial := P.Partial * 100 / P.Total;
+         Partial :=  Ratio (P.Partial, P.Total);
          if Partial /= 0 then
             Put (F, "<td class=""SumBarPartial"" width=""");
             Put (F, Partial, 0);
@@ -326,7 +434,7 @@ package body Traces_Sources.Html is
             Put (F, Partial, 0);
             Put (F, "% partially covered""></td>");
          end if;
-         Uncover := 100 - (Fully + Partial);
+         Uncover := Ratio (P.Not_Covered, P.Total);
          if Uncover /= 0 then
             Put (F, "<td class=""SumBarNoCover"" width=""");
             Put (F, Uncover, 0);
@@ -337,23 +445,6 @@ package body Traces_Sources.Html is
       end if;
       Put_Line (F, "</tr></table>");
       Put_Line (F, "      </td>");
-
-      --  Third column: pourcentage
-      Put (F, "      <td class=""SumPourcent"" width=""10%"">");
-      if P.Total = 0 then
-         Put (F, "no code");
-      else
-         Put (F, P.Fully * 100 / P.Total, 0);
-         Put (F, " %");
-      end if;
-      Put_Line (F, "</td>");
-
-      --  Fourth column: lines figure
-      Put (F, "      <td class=""SumLineCov"" width=""15%"">");
-      Put (F, P.Fully, 0);
-      Put (F, " / ");
-      Put (F, P.Total, 0);
-      Put_Line (F, " lines</td>");
    end Print_Coverage_Stats;
 
    procedure Pretty_Print_File (Pp : in out Html_Pretty_Printer;
@@ -444,6 +535,7 @@ package body Traces_Sources.Html is
       Plh (Pp, "<h2 align=""center""> Coverage level: "
            & To_Coverage_Option (Get_Action) & "</h2>");
       Plh (Pp, "<table class=""SumTable""><tr>");
+      Print_Coverage_Header (Pp.Html_File, "", False);
       Print_Coverage_Stats (Pp.Html_File, Stats);
       Plh (Pp, "</tr></table>");
 
