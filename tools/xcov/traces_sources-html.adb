@@ -33,52 +33,101 @@ package body Traces_Sources.Html is
    type Strings_Arr is array (Natural range <>) of String_Cst_Acc;
 
    procedure Put (F : File_Type; Strings : Strings_Arr);
-
-   procedure Put (F : File_Type; Strings : Strings_Arr) is
-   begin
-      for I in Strings'Range loop
-         Put_Line (F, Strings (I).all);
-      end loop;
-   end Put;
+   --  F being a handle to an opened file, append the content of Strings to
+   --  it, printing one element per line.
+   --  ??? This is only used to generate xcov.css' content. In order places,
+   --  list of Put/Put_Line are used instead. Not sure I understand what is
+   --  the benefit of the Strings_Arr approach, but I feel that we are using
+   --  two different ways to do the same thing; if we have no good reason to
+   --  do so, we should remove one of them. If we should to keep the
+   --  Strings_Arr approach, we should move it out of this package, as it
+   --  is quite independant from generating HTML annotations.
 
    type Html_Pretty_Printer is new Pretty_Printer with record
-      Html_File : Ada.Text_IO.File_Type;
-      Index_File : Ada.Text_IO.File_Type;
-      Has_Insn_Table : Boolean;
-      Global_Counters : Counters;
+      --  Pretty printer type for the HTML annotation format
+
+      Html_File       : Ada.Text_IO.File_Type;
+      --  When going through the source file list, handle to the html file
+      --  that corresponds to the source file being processed.
+      --  e.g. hello.adb.html for hello.adb.
+
+      Index_File      : Ada.Text_IO.File_Type;
+      --  Handle to the HTML index
+
+      Has_Insn_Table  : Boolean;
+      --  Record whether the instruction table has been opened during the
+      --  the generation of a source-file specific html report; this state
+      --  is used to make sure that it is opened only once.
    end record;
 
+   ------------------------------------------------
+   -- Html_Pretty_Printer's primitive operations --
+   --    (inherited from Pretty_Printer)         --
+   ------------------------------------------------
+
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer);
+
    procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer);
 
-   procedure Pretty_Print_File (Pp : in out Html_Pretty_Printer;
-                                Source_Filename : String;
-                                Stats : Stat_Array;
-                                Has_Source : Boolean;
-                                Skip : out Boolean);
+   procedure Pretty_Print_File
+     (Pp              : in out Html_Pretty_Printer;
+      Source_Filename : String;
+      Stats           : Stat_Array;
+      Has_Source      : Boolean;
+      Skip            : out Boolean);
 
-   procedure Pretty_Print_Line (Pp : in out Html_Pretty_Printer;
-                                Line_Num : Natural;
-                                State : Line_State;
-                                Line : String);
+   procedure Pretty_Print_Line
+     (Pp       : in out Html_Pretty_Printer;
+      Line_Num : Natural;
+      State    : Line_State;
+      Line     : String);
 
-   procedure Pretty_Print_Label (Pp : in out Html_Pretty_Printer;
-                                 Label : String);
-   procedure Pretty_Print_Insn (Pp : in out Html_Pretty_Printer;
-                                Pc : Pc_Type;
-                                State : Trace_State;
-                                Insn : Binary_Content;
-                                Sym : Symbolizer'Class);
+   procedure Pretty_Print_Label
+     (Pp    : in out Html_Pretty_Printer;
+      Label : String);
+
+   procedure Pretty_Print_Insn
+     (Pp    : in out Html_Pretty_Printer;
+      Pc    : Pc_Type;
+      State : Trace_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class);
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer);
 
-   procedure Plh (Pp : in out Html_Pretty_Printer'Class; Str : String);
-   procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String);
+   ------------------------------------
+   -- Other pretty printer utilities --
+   ------------------------------------
 
-   --  Return the string S with '>', '<' and '&' replaced by XML entities.
+   procedure Plh (Pp : in out Html_Pretty_Printer'Class; Str : String);
+   --  Print Str in Pp's current html file; new line at the end
+
+   procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String);
+   --  Put Str in Pp's current html file; no new line at the end
+
+   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
+   --  If the insn table has not been opened yet, open it (that is to say,
+   --  emit the corresponding "<table>" statement in Pp's html output for
+   --  the current source file); otherwise, no action.
+
+   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
+   --  If the insn table has been opened during the generation of the html
+   --  output for the current source file, close it; i.e. emit the
+   --  corresponding "</table>" statement. Otherwise, do nothing.
+
+   ---------------------------
+   -- General HTML handling --
+   ---------------------------
+
    function To_Xml_String (S : String) return String;
+   --  Return the string S with '>', '<' and '&' replaced by XML entities
 
    procedure Generate_Css_File;
+   --  Generate the style sheet for the HTML reports
+
+   -------------------------------
+   -- Coverage's result display --
+   -------------------------------
 
    procedure Print_Coverage_Header
      (F             : in out File_Type;
@@ -90,92 +139,54 @@ package body Traces_Sources.Html is
    --  If Display_Keys, Index_Name will be displayed in the first column.
 
    procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array);
-   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
-   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
+   --  Put the datas of Stats as HTML table cells ("<td>") in F.
 
-   procedure Plh (Pp : in out Html_Pretty_Printer'Class; Str : String) is
+   ----------------------
+   -- Close_Insn_Table --
+   ----------------------
+
+   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class) is
    begin
-      Put_Line (Pp.Html_File, Str);
-   end Plh;
+      if not Pp.Has_Insn_Table then
+         return;
+      end if;
 
-   procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String) is
-   begin
-      Put (Pp.Html_File, Str);
-   end Wrh;
+      Plh (Pp, "    </table></td>");
+      Plh (Pp, "  </tr>");
+      Pp.Has_Insn_Table := False;
+   end Close_Insn_Table;
 
-   function To_Xml_String (S : String) return String
-   is
-      function Xml_Length (S : String) return Natural;
+   -----------------------
+   -- Generate_Css_File --
+   -----------------------
 
-      function Xml_Length (S : String) return Natural
-      is
-         Add : Natural := 0;
-      begin
-         for I in S'Range loop
-            case S (I) is
-               when '>' | '<' =>
-                  Add := Add + 3;
-               when '&' =>
-                  Add := Add + 4;
-               when others =>
-                  null;
-            end case;
-         end loop;
-         return S'Length + Add;
-      end Xml_Length;
+   procedure Generate_Css_File is
+      F   : File_Type;
+      CSS : constant Strings_Arr :=
+        (
+         new S'("table.SumTable, table.TotalTable, table.TracesFiles "
+                & "{ margin-left:10%; width:80%; }"),
+         new S'("tr.covered { background-color: #80ff80; }"),
+         new S'("tr.not_covered { background-color: red; }"),
+         new S'("tr.partially_covered { background-color: orange; }"),
+         new S'("tr.no_code_odd { }"),
+         new S'("tr.no_code_even { background-color: #f0f0f0; }"),
+         new S'("td.SumBarCover { background-color: green; }"),
+         new S'("td.SumBarPartial { background-color: orange; }"),
+         new S'("td.SumBarNoCover { background-color: red; }"),
+         new S'("td.SumHead, td.SumFile, td.SumNoFile, td.SumBar, "
+                & "td.SumPourcent, td.SumLineCov, td.SumTotal, "
+                & "table.TracesFiles td"
+                & "{ background-color: #B0C4DE; }"),
+         new S'("td.SumHead, tr.Head td { color: white; }"),
+         new S'("td.SumFile { color: green; }"),
+         new S'("td.SumNoFile { color: grey; }"),
+         new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
+         new S'("table.LegendTable "
+                & "{ margin-left:25%; width:50%; text-align: center; }"),
+         new S'("table.SourceFile td pre { margin: 0; }")
+         );
 
-      Res : String (1 .. Xml_Length (S));
-      Idx : Natural;
-   begin
-      Idx := Res'First;
-      for I in S'Range loop
-         case S (I) is
-            when '>' =>
-               Res (Idx .. Idx + 3) := "&gt;";
-               Idx := Idx + 4;
-            when '<' =>
-               Res (Idx .. Idx + 3) := "&lt;";
-               Idx := Idx + 4;
-            when '&' =>
-               Res (Idx .. Idx + 4) := "&amp;";
-               Idx := Idx + 5;
-            when others =>
-               Res (Idx) := S (I);
-               Idx := Idx + 1;
-         end case;
-      end loop;
-      pragma Assert (Idx = Res'Last + 1);
-      return Res;
-   end To_Xml_String;
-
-   CSS : constant Strings_Arr :=
-     (
-      new S'("table.SumTable, table.TotalTable, table.TracesFiles "
-               & "{ margin-left:10%; width:80%; }"),
-      new S'("tr.covered { background-color: #80ff80; }"),
-      new S'("tr.not_covered { background-color: red; }"),
-      new S'("tr.partially_covered { background-color: orange; }"),
-      new S'("tr.no_code_odd { }"),
-      new S'("tr.no_code_even { background-color: #f0f0f0; }"),
-      new S'("td.SumBarCover { background-color: green; }"),
-      new S'("td.SumBarPartial { background-color: orange; }"),
-      new S'("td.SumBarNoCover { background-color: red; }"),
-      new S'("td.SumHead, td.SumFile, td.SumNoFile, td.SumBar, "
-               & "td.SumPourcent, td.SumLineCov, td.SumTotal, "
-               & "table.TracesFiles td"
-               & "{ background-color: #B0C4DE; }"),
-      new S'("td.SumHead, tr.Head td { color: white; }"),
-      new S'("td.SumFile { color: green; }"),
-      new S'("td.SumNoFile { color: grey; }"),
-      new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
-      new S'("table.LegendTable "
-               & "{ margin-left:25%; width:50%; text-align: center; }"),
-      new S'("table.SourceFile td pre { margin: 0; }")
-     );
-
-   procedure Generate_Css_File
-   is
-      F : File_Type;
    begin
       Create (F, Out_File, "xcov.css");
       Put (F, CSS);
@@ -186,104 +197,193 @@ package body Traces_Sources.Html is
          return;
    end Generate_Css_File;
 
-   procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer)
-   is
-      use Traces_Files;
-      use Traces_Files_List;
-      use Traces_Files_Lists;
-      Cur : Traces_Files_Lists.Cursor;
-      El  : Trace_File_Element_Acc;
+   ---------------------
+   -- Generate_Report --
+   ---------------------
 
-      procedure P (S : String);
-
-      procedure P (S : String) is
-      begin
-         Put_Line (Pp.Index_File, S);
-      end P;
+   procedure Generate_Report (Show_Asm : Boolean) is
+      Html : Html_Pretty_Printer;
    begin
+      Html.Show_Asm := Show_Asm;
+      Traces_Sources.Disp_Line_State (Html, Show_Asm);
+   end Generate_Report;
+
+   ---------------------
+   -- Open_Insn_Table --
+   ---------------------
+
+   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class) is
+   begin
+      if Pp.Has_Insn_Table then
+         return;
+      end if;
+
+      Plh (Pp, "  <tr style=""display: none""><td></td><td></td>");
+      Plh (Pp, "    <td><table width=""100%"">");
+      Pp.Has_Insn_Table := True;
+   end Open_Insn_Table;
+
+   ---------
+   -- Plh --
+   ---------
+
+   procedure Plh (Pp : in out Html_Pretty_Printer'Class; Str : String) is
+   begin
+      Put_Line (Pp.Html_File, Str);
+   end Plh;
+
+   ---------------------------
+   -- Pretty_Print_End_File --
+   ---------------------------
+
+   procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer) is
+   begin
+      Close_Insn_Table (Pp);
+      Plh (Pp, "</table>");
+      Plh (Pp, "</body>");
+      Plh (Pp, "</html>");
+      Close (Pp.Html_File);
+   end Pretty_Print_End_File;
+
+   -----------------------
+   -- Pretty_Print_File --
+   -----------------------
+
+   procedure Pretty_Print_File
+     (Pp              : in out Html_Pretty_Printer;
+      Source_Filename : String;
+      Stats           : Stat_Array;
+      Has_Source      : Boolean;
+      Skip            : out Boolean)
+   is
+      use Ada.Integer_Text_IO;
+      use Ada.Directories;
+
+      procedure Ni;
+      --  New line to Pp's index file
+
+      procedure Pi (S : String);
+      --  Print S to Pp's index file; new line at the end
+
+      --------
+      -- Ni --
+      --------
+
+      procedure Ni is
       begin
-         Create (Pp.Index_File, Out_File, "index.html");
+         New_Line (Pp.Index_File);
+      end Ni;
+
+      --------
+      -- Pi --
+      --------
+
+      procedure Pi (S : String) is
+      begin
+         Put (Pp.Index_File, S);
+      end Pi;
+
+      --  Local variables
+
+      Simple_Source_Filename : constant String :=
+        Simple_Name (Source_Filename);
+
+      Output_Filename : constant String := Simple_Source_Filename & ".html";
+
+      --  Start of processing for Pretty_Print_File
+
+   begin
+      Skip := True;
+
+      --  Add a line in index
+      Pi ("    <tr>"); Ni;
+
+      --  First column: file name
+      Pi ("      <td title=""" & Source_Filename & '"');
+
+      if Has_Source or Flag_Show_Missing then
+         Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"
+               & Simple_Source_Filename & "</a>");
+      else
+         Pi (" class=""SumNoFile"">" & Simple_Source_Filename);
+      end if;
+      Pi ("</td>"); Ni;
+
+      --  Rest of line: coverage stats
+      Print_Coverage_Stats (Pp.Index_File, Stats);
+      Pi ("    </tr>"); Ni;
+
+      --  Do not try to process files whose source is not available.
+      if not (Has_Source or Flag_Show_Missing) then
+         return;
+      end if;
+
+      begin
+         Create (Pp.Html_File, Out_File, Output_Filename);
       exception
          when Ada.Text_IO.Name_Error =>
             Put_Line (Standard_Error,
-                      "cannot open index.html");
-            raise;
+                      "cannot open " & Output_Filename);
+            return;
       end;
 
-      Pp.Global_Counters := (0, 0, 0, 0);
+      Skip := False;
 
-      Generate_Css_File;
+      Plh (Pp, "<html lang=""en"">");
+      Plh (Pp, "<head>");
+      Plh (Pp, "  <title>Coverage of "
+                & To_Xml_String (Simple_Source_Filename) & "</title>");
+      Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
+             & "href=""xcov.css"">");
 
-      P ("<html lang=""en"">");
-      P ("<head>");
-      P ("  <title>Coverage results</title>");
-      P ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
-      P ("</head>");
-      P ("<body>");
-      P ("<div id=""top"">");
-      P ("<h4 align=""right""><a href=""#help""> help </a></h4>");
-      P ("<h1 align=""center"">XCOV coverage report</h1>");
-      P ("<h2 align=""center""> Coverage level: "
-         & To_Coverage_Option (Get_Action) & "</h2>");
-      P ("</div>");
+      if Pp.Show_Asm then
+         Plh (Pp, "  <script language=""JavaScript"" "
+                & "type=""text/javascript"">");
+         Plh (Pp, "    function flip(atr) {");
+         Plh (Pp, "      var asm = atr.nextSibling.nextSibling;");
+         Plh (Pp, "      if (asm.style.display == ""none"")");
+         Plh (Pp, "        asm.style.display = """";");
+         Plh (Pp, "      else");
+         Plh (Pp, "        asm.style.display = ""none"";");
+         Plh (Pp, "    }");
+         Plh (Pp, "  </script>");
+      end if;
 
-      --  List of traces.
-      P ("  <hr/>");
-      P ("  <table cellspacing=""1"" class=""TracesFiles"">");
-      P ("    <tr class=""Head"">");
-      P ("      <td>Trace Filename</td>");
-      P ("      <td>Program</td>");
-      P ("      <td>Date</td>");
-      P ("      <td>Tag</td>");
-      P ("    </tr>");
+      Plh (Pp, "</head>");
+      Plh (Pp, "<body>");
+      Plh (Pp, "<h4 align=""right""><a href=""index.html""> index </a></h4>");
+      Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
+      Plh (Pp, "<h2 align=""center""> Coverage level: "
+           & To_Coverage_Option (Get_Action) & "</h2>");
+      Plh (Pp, "<table class=""SumTable""><tr>");
+      Print_Coverage_Header (Pp.Html_File, "", False);
+      Print_Coverage_Stats (Pp.Html_File, Stats);
+      Plh (Pp, "</tr></table>");
 
-      Cur := Files.First;
-      while Has_Element (Cur) loop
-         El := Element (Cur);
-         P ("    <tr>");
-         P ("      <td>");
-         P (El.Filename.all);
-         P ("      </td>");
-         P ("      <td>");
-         P (Get_Info (El.Trace, Qemu_Traces.Info_Kind_Exec_Filename));
-         P ("      </td>");
-         P ("      <td>");
-         P (Format_Date_Info (Get_Info (El.Trace,
-                                         Qemu_Traces.Info_Kind_Date)));
-         P ("      </td>");
-         P ("      <td>");
-         P (Get_Info (El.Trace, Qemu_Traces.Info_Kind_User_Tag));
-         P ("      </td>");
-         P ("    </tr>");
-         Next (Cur);
-      end loop;
+      Plh (Pp, "<table width=""100%"" cellpadding=""0"" "
+           & "class=""SourceFile"">");
+      Pp.Has_Insn_Table := False;
+   end Pretty_Print_File;
 
-      P ("  </table>");
+   -------------------------
+   -- Pretty_Print_Finish --
+   -------------------------
 
-      --  Total stats.
-      P ("  <hr/>");
-      P ("  <table cellspacing=""1"" class=""TotalTable"">");
-      Print_Coverage_Header (Pp.Index_File, "", True);
-      P ("    <tr>");
-      P ("      <td title=""Total"" class=""SumTotal"">Total</td>");
-      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
-      P ("    </tr>");
-      P ("  </table>");
+   procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer) is
 
-      --  Open table for results file per file
-      P ("  <hr/>");
-      P ("  <table cellspacing=""1"" class=""SumTable"">");
-      Print_Coverage_Header (Pp.Index_File, "Filename", True);
-   end Pretty_Print_Start;
-
-   procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer)
-   is
       procedure Pi (S : String);
+      --  Print S to Pp's index file; new line at the end
+
+      --------
+      -- Pi --
+      --------
 
       procedure Pi (S : String) is
       begin
          Put_Line (Pp.Index_File, S);
       end Pi;
+
+      --  Start of processing for Pretty_Print_Finish
 
    begin
       Pi ("  </table>");
@@ -348,228 +448,70 @@ package body Traces_Sources.Html is
       Close (Pp.Index_File);
    end Pretty_Print_Finish;
 
-   procedure Print_Coverage_Header
-     (F             : in out File_Type;
-      Key_Name      : String;
-      Display_Keys  : Boolean) is
+   -----------------------
+   -- Pretty_Print_Insn --
+   -----------------------
+
+   procedure Pretty_Print_Insn
+     (Pp    : in out Html_Pretty_Printer;
+      Pc    : Pc_Type;
+      State : Trace_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class) is
    begin
-      Put (F, "    <tr>");
+      Open_Insn_Table (Pp);
+      Wrh (Pp, "      <tr class=""");
+      case State is
+         when Unknown =>
+            raise Program_Error;
+         when Not_Covered =>
+            Wrh (Pp, "not_covered");
+         when Covered | Both_Taken =>
+            Wrh (Pp, "covered");
+         when Branch_Taken
+           | Fallthrough_Taken =>
+            Wrh (Pp, "partially_covered");
+      end case;
+      Plh (Pp, """>");
+      Wrh (Pp, "        <td><pre>");
+      Wrh (Pp, Hex_Image (Pc));
+      Wrh (Pp, ' ' & Trace_State_Char (State) & ':');
+      Wrh (Pp, "  ");
+      for I in Insn'Range loop
+         Wrh (Pp, Hex_Image (Insn (I)));
+         Wrh (Pp, " ");
+      end loop;
+      Wrh (Pp, "  ");
+      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc, Sym)));
+      Plh (Pp, "</pre></td>");
+      Plh (Pp, "      </tr>");
+   end Pretty_Print_Insn;
 
-      if Display_Keys then
-         Put (F, "      <td class=""SumHead"" width=""50%"">"
-              & Key_Name & "</td>");
-      end if;
+   ------------------------
+   -- Pretty_Print_Label --
+   ------------------------
 
-      Put (F, "      <td class=""SumHead""> total nb of lines </td");
-      Put (F, "      <td class=""SumHead""> fully covered </td");
-      Put (F, "      <td class=""SumHead""> partially covered </td");
-      Put (F, "      <td class=""SumHead""> not covered </td");
-      Put (F, "      <td class=""SumHead""> visual summary </td");
-      Put (F, "    </tr>");
-   end Print_Coverage_Header;
-
-   procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array)
-   is
-      use Ada.Integer_Text_IO;
-      P : constant Counters := Get_Counters (Stats);
-      Fully, Partial, Uncover : Natural;
-
-      procedure Print_Ratio (Part : Natural; Total : Natural);
-      --  Total and Part being a number of lines, print the ratio of the
-      --  these two quantities (Part / Total) into a cell.
-
-      procedure Print_Ratio (Part : Natural; Total : Natural) is
-      begin
-         Put (F, "      <td class=""SumPourcent"" width=""10%"">");
-         if Total = 0 then
-            Put (F, "no code");
-         else
-            Put (F, Part, 0);
-            Put (F, " lines (");
-            Put (F, Ratio (Part, Total), 0);
-            Put (F, " %)");
-         end if;
-         Put_Line (F, "</td>");
-      end Print_Ratio;
-
+   procedure Pretty_Print_Label
+     (Pp : in out Html_Pretty_Printer;
+      Label : String) is
    begin
-      --  First column: total nb of lines
-      Put (F, "      <td class=""SumPourcent"" width=""10%"">");
-      Put (F, P.Total, 0);
-      Put (F, " lines");
-      Put_Line (F, "</td>");
+      Open_Insn_Table (Pp);
+      Plh (Pp, "      <tr>");
+      Wrh (Pp, "        <td><pre>");
+      Wrh (Pp, To_Xml_String (Label));
+      Plh (Pp, "</pre></td>");
+      Plh (Pp, "      </tr>");
+   end Pretty_Print_Label;
 
-      --  Second column: fully covered
-      Print_Ratio (P.Fully, P.Total);
+   -----------------------
+   -- Pretty_Print_Line --
+   -----------------------
 
-      --  Third column: partially covered
-      Print_Ratio (P.Partial, P.Total);
-
-      --  Fourth column: not covered
-      Print_Ratio (P.Not_Covered, P.Total);
-
-      --  Fifth column: visual summary
-      Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
-      New_Line (F);
-      Put (F, "        <table border=""0"" cellspacing=""0"" "
-             & "class=""BarGraph""><tr height=""10"">");
-      if P.Fully = P.Total then
-         --  Also includes P.Total = 0.
-         Put (F, "<td class=""SumBarCover"" width=""100"""
-                & " title=""100% fully covered""></td>");
-      else
-         Fully := Ratio (P.Fully, P.Total);
-         if Fully /= 0 then
-            Put (F, "<td class=""SumBarCover"" width=""");
-            Put (F, Fully, 0);
-            Put (F, """ title=""");
-            Put (F, Fully, 0);
-            Put (F, "% fully covered""></td>");
-         end if;
-         Partial :=  Ratio (P.Partial, P.Total);
-         if Partial /= 0 then
-            Put (F, "<td class=""SumBarPartial"" width=""");
-            Put (F, Partial, 0);
-            Put (F, """ title=""");
-            Put (F, Partial, 0);
-            Put (F, "% partially covered""></td>");
-         end if;
-         Uncover := Ratio (P.Not_Covered, P.Total);
-         if Uncover /= 0 then
-            Put (F, "<td class=""SumBarNoCover"" width=""");
-            Put (F, Uncover, 0);
-            Put (F, """ title=""");
-            Put (F, Uncover, 0);
-            Put (F, "% not covered""></td>");
-         end if;
-      end if;
-      Put_Line (F, "</tr></table>");
-      Put_Line (F, "      </td>");
-   end Print_Coverage_Stats;
-
-   procedure Pretty_Print_File (Pp : in out Html_Pretty_Printer;
-                                Source_Filename : String;
-                                Stats : Stat_Array;
-                                Has_Source : Boolean;
-                                Skip : out Boolean)
-   is
-      use Ada.Integer_Text_IO;
-      use Ada.Directories;
-
-      procedure Pi (S : String);
-      procedure Ni;
-
-      Simple_Source_Filename : constant String :=
-        Simple_Name (Source_Filename);
-
-      Output_Filename : constant String := Simple_Source_Filename & ".html";
-
-      procedure Pi (S : String) is
-      begin
-         Put (Pp.Index_File, S);
-      end Pi;
-
-      procedure Ni is
-      begin
-         New_Line (Pp.Index_File);
-      end Ni;
-   begin
-      Skip := True;
-
-      --  Add a line in index.
-
-      Pi ("    <tr>"); Ni;
-
-      --  First column: file name
-      Pi ("      <td title=""" & Source_Filename & '"');
-      if Has_Source or Flag_Show_Missing then
-         Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"
-               & Simple_Source_Filename & "</a>");
-      else
-         Pi (" class=""SumNoFile"">" & Simple_Source_Filename);
-      end if;
-      Pi ("</td>"); Ni;
-
-      Print_Coverage_Stats (Pp.Index_File, Stats);
-
-      Pi ("    </tr>"); Ni;
-
-      --  Do not try to process files whose source is not available.
-      if not (Has_Source or Flag_Show_Missing) then
-         return;
-      end if;
-
-      begin
-         Create (Pp.Html_File, Out_File, Output_Filename);
-      exception
-         when Ada.Text_IO.Name_Error =>
-            Put_Line (Standard_Error,
-                      "cannot open " & Output_Filename);
-            return;
-      end;
-
-      Skip := False;
-
-      Plh (Pp, "<html lang=""en"">");
-      Plh (Pp, "<head>");
-      Plh (Pp, "  <title>Coverage of "
-                & To_Xml_String (Simple_Source_Filename) & "</title>");
-      Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
-             & "href=""xcov.css"">");
-      if Pp.Show_Asm then
-         Plh (Pp, "  <script language=""JavaScript"" "
-                & "type=""text/javascript"">");
-         Plh (Pp, "    function flip(atr) {");
-         Plh (Pp, "      var asm = atr.nextSibling.nextSibling;");
-         Plh (Pp, "      if (asm.style.display == ""none"")");
-         Plh (Pp, "        asm.style.display = """";");
-         Plh (Pp, "      else");
-         Plh (Pp, "        asm.style.display = ""none"";");
-         Plh (Pp, "    }");
-         Plh (Pp, "  </script>");
-      end if;
-      Plh (Pp, "</head>");
-      Plh (Pp, "<body>");
-      Plh (Pp, "<h4 align=""right""><a href=""index.html""> index </a></h4>");
-      Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
-      Plh (Pp, "<h2 align=""center""> Coverage level: "
-           & To_Coverage_Option (Get_Action) & "</h2>");
-      Plh (Pp, "<table class=""SumTable""><tr>");
-      Print_Coverage_Header (Pp.Html_File, "", False);
-      Print_Coverage_Stats (Pp.Html_File, Stats);
-      Plh (Pp, "</tr></table>");
-
-      Plh (Pp, "<table width=""100%"" cellpadding=""0"" "
-           & "class=""SourceFile"">");
-      Pp.Has_Insn_Table := False;
-   end Pretty_Print_File;
-
-   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class)
-   is
-   begin
-      if Pp.Has_Insn_Table then
-         return;
-      end if;
-      Plh (Pp, "  <tr style=""display: none""><td></td><td></td>");
-      Plh (Pp, "    <td><table width=""100%"">");
-      Pp.Has_Insn_Table := True;
-   end Open_Insn_Table;
-
-   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class)
-   is
-   begin
-      if not Pp.Has_Insn_Table then
-         return;
-      end if;
-      Plh (Pp, "    </table></td>");
-      Plh (Pp, "  </tr>");
-      Pp.Has_Insn_Table := False;
-   end Close_Insn_Table;
-
-   procedure Pretty_Print_Line (Pp : in out Html_Pretty_Printer;
-                                Line_Num : Natural;
-                                State : Line_State;
-                                Line : String)
+   procedure Pretty_Print_Line
+     (Pp       : in out Html_Pretty_Printer;
+      Line_Num : Natural;
+      State    : Line_State;
+      Line     : String)
    is
       use Ada.Integer_Text_IO;
    begin
@@ -602,14 +544,17 @@ package body Traces_Sources.Html is
          when No_Code =>
             Wrh (Pp, "no code generated for this line");
       end case;
+
       if Pp.Show_Asm and then State /= No_Code then
          Wrh (Pp, " (click to display/mask assembly code)");
       end if;
+
       Wrh (Pp, """");
 
       if Pp.Show_Asm and then State /= No_Code then
          Wrh (Pp, " onclick=""flip(this)""");
       end if;
+
       Plh (Pp, ">");
 
       Wrh (Pp, "    <td><pre>");
@@ -624,66 +569,311 @@ package body Traces_Sources.Html is
       Plh (Pp, "  </tr>");
    end Pretty_Print_Line;
 
-   procedure Pretty_Print_Label (Pp : in out Html_Pretty_Printer;
-                                 Label : String) is
-   begin
-      Open_Insn_Table (Pp);
-      Plh (Pp, "      <tr>");
-      Wrh (Pp, "        <td><pre>");
-      Wrh (Pp, To_Xml_String (Label));
-      Plh (Pp, "</pre></td>");
-      Plh (Pp, "      </tr>");
-   end Pretty_Print_Label;
+   ------------------------
+   -- Pretty_Print_Start --
+   ------------------------
 
-   procedure Pretty_Print_Insn (Pp : in out Html_Pretty_Printer;
-                                Pc : Pc_Type;
-                                State : Trace_State;
-                                Insn : Binary_Content;
-                                Sym : Symbolizer'Class)
-   is
+   procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer) is
+      use Traces_Files;
+      use Traces_Files_List;
+      use Traces_Files_Lists;
+
+      procedure Pi (S : String);
+      --  Print S to Pp's index file; new line at the end
+
+      --------
+      -- Pi --
+      --------
+
+      procedure Pi (S : String) is
+      begin
+         Put_Line (Pp.Index_File, S);
+      end Pi;
+
+      --  Local variables
+
+      Cur : Traces_Files_Lists.Cursor;
+      El  : Trace_File_Element_Acc;
+
+      --  Start of processing for Pretty_Print_Start
+
    begin
-      Open_Insn_Table (Pp);
-      Wrh (Pp, "      <tr class=""");
-      case State is
-         when Unknown =>
-            raise Program_Error;
-         when Not_Covered =>
-            Wrh (Pp, "not_covered");
-         when Covered | Both_Taken =>
-            Wrh (Pp, "covered");
-         when Branch_Taken
-           | Fallthrough_Taken =>
-            Wrh (Pp, "partially_covered");
-      end case;
-      Plh (Pp, """>");
-      Wrh (Pp, "        <td><pre>");
-      Wrh (Pp, Hex_Image (Pc));
-      Wrh (Pp, ' ' & Trace_State_Char (State) & ':');
-      Wrh (Pp, "  ");
-      for I in Insn'Range loop
-         Wrh (Pp, Hex_Image (Insn (I)));
-         Wrh (Pp, " ");
+      begin
+         Create (Pp.Index_File, Out_File, "index.html");
+      exception
+         when Ada.Text_IO.Name_Error =>
+            Put_Line (Standard_Error,
+                      "cannot open index.html");
+            raise;
+      end;
+
+      Generate_Css_File;
+
+      Pi ("<html lang=""en"">");
+      Pi ("<head>");
+      Pi ("  <title>Coverage results</title>");
+      Pi ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
+      Pi ("</head>");
+      Pi ("<body>");
+      Pi ("<div id=""top"">");
+      Pi ("<h4 align=""right""><a href=""#help""> help </a></h4>");
+      Pi ("<h1 align=""center"">XCOV coverage report</h1>");
+      Pi ("<h2 align=""center""> Coverage level: "
+         & To_Coverage_Option (Get_Action) & "</h2>");
+      Pi ("</div>");
+
+      --  List of traces.
+      Pi ("  <hr/>");
+      Pi ("  <table cellspacing=""1"" class=""TracesFiles"">");
+      Pi ("    <tr class=""Head"">");
+      Pi ("      <td>Trace Filename</td>");
+      Pi ("      <td>Program</td>");
+      Pi ("      <td>Date</td>");
+      Pi ("      <td>Tag</td>");
+      Pi ("    </tr>");
+
+      Cur := Files.First;
+      while Has_Element (Cur) loop
+         El := Element (Cur);
+         Pi ("    <tr>");
+         Pi ("      <td>");
+         Pi (El.Filename.all);
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Get_Info (El.Trace, Qemu_Traces.Info_Kind_Exec_Filename));
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Format_Date_Info (Get_Info (El.Trace,
+                                         Qemu_Traces.Info_Kind_Date)));
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Get_Info (El.Trace, Qemu_Traces.Info_Kind_User_Tag));
+         Pi ("      </td>");
+         Pi ("    </tr>");
+         Next (Cur);
       end loop;
-      Wrh (Pp, "  ");
-      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc, Sym)));
-      Plh (Pp, "</pre></td>");
-      Plh (Pp, "      </tr>");
-   end Pretty_Print_Insn;
 
-   procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer) is
-   begin
-      Close_Insn_Table (Pp);
-      Plh (Pp, "</table>");
-      Plh (Pp, "</body>");
-      Plh (Pp, "</html>");
-      Close (Pp.Html_File);
-   end Pretty_Print_End_File;
+      Pi ("  </table>");
 
-   procedure Generate_Report (Show_Asm : Boolean)
-   is
-      Html : Html_Pretty_Printer;
+      --  Total stats.
+      Pi ("  <hr/>");
+      Pi ("  <table cellspacing=""1"" class=""TotalTable"">");
+      Print_Coverage_Header (Pp.Index_File, "", True);
+      Pi ("    <tr>");
+      Pi ("      <td title=""Total"" class=""SumTotal"">Total</td>");
+      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
+      Pi ("    </tr>");
+      Pi ("  </table>");
+
+      --  Open table for results file per file
+      Pi ("  <hr/>");
+      Pi ("  <table cellspacing=""1"" class=""SumTable"">");
+      Print_Coverage_Header (Pp.Index_File, "Filename", True);
+   end Pretty_Print_Start;
+
+   ---------------------------
+   -- Print_Coverage_Header --
+   ---------------------------
+
+   procedure Print_Coverage_Header
+     (F             : in out File_Type;
+      Key_Name      : String;
+      Display_Keys  : Boolean) is
    begin
-      Html.Show_Asm := Show_Asm;
-      Traces_Sources.Disp_Line_State (Html, Show_Asm);
-   end Generate_Report;
+      Put (F, "    <tr>");
+
+      if Display_Keys then
+         Put (F, "      <td class=""SumHead"" width=""50%"">"
+              & Key_Name & "</td>");
+      end if;
+
+      Put (F, "      <td class=""SumHead""> total nb of lines </td");
+      Put (F, "      <td class=""SumHead""> fully covered </td");
+      Put (F, "      <td class=""SumHead""> partially covered </td");
+      Put (F, "      <td class=""SumHead""> not covered </td");
+      Put (F, "      <td class=""SumHead""> visual summary </td");
+      Put (F, "    </tr>");
+   end Print_Coverage_Header;
+
+   --------------------------
+   -- Print_Coverage_Stats --
+   --------------------------
+
+   procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array) is
+      use Ada.Integer_Text_IO;
+
+      procedure Print_Ratio (Part : Natural; Total : Natural);
+      --  Total and Part being a number of lines, print the ratio of the
+      --  these two quantities (Part / Total) into a cell.
+
+      -----------------
+      -- Print_Ratio --
+      -----------------
+
+      procedure Print_Ratio (Part : Natural; Total : Natural) is
+      begin
+         Put (F, "      <td class=""SumPourcent"" width=""10%"">");
+
+         if Total = 0 then
+            Put (F, "no code");
+         else
+            Put (F, Part, 0);
+            Put (F, " lines (");
+            Put (F, Ratio (Part, Total), 0);
+            Put (F, " %)");
+         end if;
+
+         Put_Line (F, "</td>");
+      end Print_Ratio;
+
+      --  Local variables
+
+      P       : constant Counters := Get_Counters (Stats);
+      Fully   : Natural;
+      Partial : Natural;
+      Uncover : Natural;
+
+      --  Start of processing for Print_Coverage_Stats
+
+   begin
+      --  First column: total nb of lines
+      Put (F, "      <td class=""SumPourcent"" width=""10%"">");
+      Put (F, P.Total, 0);
+      Put (F, " lines");
+      Put_Line (F, "</td>");
+
+      --  Second column: fully covered
+      Print_Ratio (P.Fully, P.Total);
+
+      --  Third column: partially covered
+      Print_Ratio (P.Partial, P.Total);
+
+      --  Fourth column: not covered
+      Print_Ratio (P.Not_Covered, P.Total);
+
+      --  Fifth column: visual summary
+      Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
+      New_Line (F);
+      Put (F, "        <table border=""0"" cellspacing=""0"" "
+             & "class=""BarGraph""><tr height=""10"">");
+
+      if P.Fully = P.Total then
+         --  Also includes P.Total = 0.
+         Put (F, "<td class=""SumBarCover"" width=""100"""
+                & " title=""100% fully covered""></td>");
+      else
+         Fully := Ratio (P.Fully, P.Total);
+
+         if Fully /= 0 then
+            Put (F, "<td class=""SumBarCover"" width=""");
+            Put (F, Fully, 0);
+            Put (F, """ title=""");
+            Put (F, Fully, 0);
+            Put (F, "% fully covered""></td>");
+         end if;
+
+         Partial :=  Ratio (P.Partial, P.Total);
+
+         if Partial /= 0 then
+            Put (F, "<td class=""SumBarPartial"" width=""");
+            Put (F, Partial, 0);
+            Put (F, """ title=""");
+            Put (F, Partial, 0);
+            Put (F, "% partially covered""></td>");
+         end if;
+
+         Uncover := Ratio (P.Not_Covered, P.Total);
+
+         if Uncover /= 0 then
+            Put (F, "<td class=""SumBarNoCover"" width=""");
+            Put (F, Uncover, 0);
+            Put (F, """ title=""");
+            Put (F, Uncover, 0);
+            Put (F, "% not covered""></td>");
+         end if;
+      end if;
+
+      Put_Line (F, "</tr></table>");
+      Put_Line (F, "      </td>");
+   end Print_Coverage_Stats;
+
+   -------------------
+   -- To_Xml_String --
+   -------------------
+
+   function To_Xml_String (S : String) return String is
+
+      function Xml_Length (S : String) return Natural;
+      --  Return the length of the string after conversion
+
+      ----------------
+      -- Xml_Length --
+      ----------------
+
+      function Xml_Length (S : String) return Natural
+      is
+         Add : Natural := 0;
+      begin
+         for I in S'Range loop
+            case S (I) is
+               when '>' | '<' =>
+                  Add := Add + 3;
+               when '&' =>
+                  Add := Add + 4;
+               when others =>
+                  null;
+            end case;
+         end loop;
+         return S'Length + Add;
+      end Xml_Length;
+
+      --  Local variables
+
+      Res : String (1 .. Xml_Length (S));
+      Idx : Natural;
+
+      --  Start of processing for To_Xml_String
+
+   begin
+      Idx := Res'First;
+      for I in S'Range loop
+         case S (I) is
+            when '>' =>
+               Res (Idx .. Idx + 3) := "&gt;";
+               Idx := Idx + 4;
+            when '<' =>
+               Res (Idx .. Idx + 3) := "&lt;";
+               Idx := Idx + 4;
+            when '&' =>
+               Res (Idx .. Idx + 4) := "&amp;";
+               Idx := Idx + 5;
+            when others =>
+               Res (Idx) := S (I);
+               Idx := Idx + 1;
+         end case;
+      end loop;
+      pragma Assert (Idx = Res'Last + 1);
+      return Res;
+   end To_Xml_String;
+
+   ---------
+   -- Put --
+   ---------
+
+   procedure Put (F : File_Type; Strings : Strings_Arr) is
+   begin
+      for I in Strings'Range loop
+         Put_Line (F, Strings (I).all);
+      end loop;
+   end Put;
+
+   ---------
+   -- Wrh --
+   ---------
+
+   procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String) is
+   begin
+      Put (Pp.Html_File, Str);
+   end Wrh;
+
 end Traces_Sources.Html;
