@@ -88,6 +88,7 @@ package body Traces_Sources is
          File_Tables.Set_Last (File_Table, Res);
          Source_Line_Tables.Init (Line_Table);
          File_Table.Table (Res).Lines := Line_Table;
+         File_Table.Table (Res).Stats := (others => 0);
       end if;
 
       return Res;
