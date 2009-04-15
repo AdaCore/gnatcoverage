@@ -2,6 +2,7 @@
  * QEMU System Emulator
  *
  * Copyright (c) 2003-2008 Fabrice Bellard
+ * Copyright (C) 2009, AdaCore
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -148,6 +149,7 @@
 #include "disas.h"
 
 #include "exec-all.h"
+#include "qemu-traces.h"
 
 //#define DEBUG_UNUSED_IOPORT
 //#define DEBUG_IOPORT
@@ -499,7 +501,7 @@ void hw_error(const char *fmt, ...)
     va_end(ap);
     abort();
 }
- 
+
 /***************/
 /* ballooning */
 
@@ -3129,7 +3131,7 @@ static int ram_save_live(QEMUFile *f, int stage, void *opaque)
             if (!cpu_physical_memory_get_dirty(addr, MIGRATION_DIRTY_FLAG))
                 cpu_physical_memory_set_dirty(addr);
         }
-        
+
         /* Enable dirty memory tracking */
         cpu_physical_memory_set_dirty_tracking(1);
 
@@ -3219,7 +3221,7 @@ static int ram_load(QEMUFile *f, void *opaque, int version_id)
             if (ram_load_dead(f, opaque) < 0)
                 return -EINVAL;
         }
-        
+
         if (flags & RAM_SAVE_FLAG_COMPRESS) {
             uint8_t ch = qemu_get_byte(f);
             memset(phys_ram_base + addr, ch, TARGET_PAGE_SIZE);
@@ -4820,7 +4822,7 @@ int main(int argc, char **argv, char **envp)
                 {
                     /* Could easily be extended to 64 devices if needed */
                     const char *p;
-                    
+
                     boot_devices_bitmap = 0;
                     for (p = boot_devices; *p != '\0'; p++) {
                         /* Allowed boot devices are:
@@ -5223,27 +5225,28 @@ int main(int argc, char **argv, char **envp)
                 break;
 	    case QEMU_OPTION_trace:
 	        {
-		    const char *mode = "ab";
-		    if (tracefile != NULL) {
+		    static int opt_trace_seen = 0;
+		    int noappend = 0;
+		    if (opt_trace_seen) {
 			fprintf(stderr, "option -trace already specified\n");
 			exit(1);
 		    }
+		    opt_trace_seen = 1;
 		    while (1) {
 			if (strstart(optarg, "nobuf,", &optarg))
 			    tracefile_nobuf = 1;
 			else if (strstart(optarg, "history,", &optarg))
 			    tracefile_history = 1;
 			else if (strstart(optarg, "noappend,", &optarg))
-			    mode = "wb";
+			    noappend = 1;
 			else
 			    break;
 		    }
-		    tracefile = fopen(optarg, mode);
-		    if (tracefile == NULL) {
+		    if (trace_init(optarg, noappend)) {
 			fprintf(stderr, "can't open file %s\n", optarg);
 			exit(1);
 		    }
-		    trace_init();
+
 		}
 		break;
             }
@@ -5594,7 +5597,7 @@ int main(int argc, char **argv, char **envp)
             fprintf(stderr, "fatal: -nographic can't be used with -curses\n");
             exit(1);
         }
-    } else { 
+    } else {
 #if defined(CONFIG_CURSES)
             if (curses) {
                 /* At the moment curses cannot be used with other displays */

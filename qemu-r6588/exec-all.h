@@ -2,6 +2,7 @@
  * internal execution defines for qemu
  *
  *  Copyright (c) 2003 Fabrice Bellard
+ *  Copyright (C) 2009, AdaCore
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -59,13 +60,6 @@ extern uint32_t gen_opc_hflags[OPC_BUF_SIZE];
 
 #include "qemu-log.h"
 
-extern FILE *tracefile;
-extern int tracefile_nobuf;
-extern int tracefile_history;
-extern struct trace_entry *trace_current;
-void trace_flush(void);
-void trace_init(void);
-
 void gen_intermediate_code(CPUState *env, struct TranslationBlock *tb);
 void gen_intermediate_code_pc(CPUState *env, struct TranslationBlock *tb);
 void gen_pc_load(CPUState *env, struct TranslationBlock *tb,
@@ -83,7 +77,7 @@ int cpu_restore_state_copy(struct TranslationBlock *tb,
                            void *puc);
 void cpu_resume_from_signal(CPUState *env1, void *puc);
 void cpu_io_recompile(CPUState *env, void *retaddr);
-TranslationBlock *tb_gen_code(CPUState *env, 
+TranslationBlock *tb_gen_code(CPUState *env,
                               target_ulong pc, target_ulong cs_base, int flags,
                               int cflags);
 void cpu_exec_init(CPUState *env);
@@ -368,7 +362,7 @@ void kqemu_flush_page(CPUState *env, target_ulong addr);
 void kqemu_flush(CPUState *env, int global);
 void kqemu_set_notdirty(CPUState *env, ram_addr_t ram_addr);
 void kqemu_modify_page(CPUState *env, ram_addr_t ram_addr);
-void kqemu_set_phys_mem(uint64_t start_addr, ram_addr_t size, 
+void kqemu_set_phys_mem(uint64_t start_addr, ram_addr_t size,
                         ram_addr_t phys_offset);
 void kqemu_cpu_interrupt(CPUState *env);
 void kqemu_record_dump(void);

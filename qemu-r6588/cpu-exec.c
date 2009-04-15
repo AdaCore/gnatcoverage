@@ -2,6 +2,7 @@
  *  i386 emulator main execution loop
  *
  *  Copyright (c) 2003-2005 Fabrice Bellard
+ *  Copyright (C) 2009, AdaCore
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -49,17 +50,13 @@
 #endif
 
 #include "qemu-traces.h"
+#include "qemu-decision_map.h"
 
 static void trace_before_exec(TranslationBlock *);
 static void trace_after_exec(TranslationBlock *, unsigned long);
 static void trace_at_fault(CPUState *e);
 
 int tb_invalidated_flag;
-
-/* trace  */
-FILE *tracefile;
-int tracefile_nobuf;
-int tracefile_history;
 
 #define DEBUG_EXEC
 //#define DEBUG_SIGNAL
@@ -394,10 +391,10 @@ int cpu_exec(CPUState *env1)
                             do_interrupt(EXCP02_NMI, 0, 0, 0, 1);
                             next_tb = 0;
                         } else if ((interrupt_request & CPU_INTERRUPT_HARD) &&
-                                   (((env->hflags2 & HF2_VINTR_MASK) && 
+                                   (((env->hflags2 & HF2_VINTR_MASK) &&
                                      (env->hflags2 & HF2_HIF_MASK)) ||
-                                    (!(env->hflags2 & HF2_VINTR_MASK) && 
-                                     (env->eflags & IF_MASK && 
+                                    (!(env->hflags2 & HF2_VINTR_MASK) &&
+                                     (env->eflags & IF_MASK &&
                                       !(env->hflags & HF_INHIBIT_IRQ_MASK))))) {
                             int intno;
                             svm_check_intercept(SVM_EXIT_INTR);
@@ -410,7 +407,7 @@ int cpu_exec(CPUState *env1)
                             next_tb = 0;
 #if !defined(CONFIG_USER_ONLY)
                         } else if ((interrupt_request & CPU_INTERRUPT_VIRQ) &&
-                                   (env->eflags & IF_MASK) && 
+                                   (env->eflags & IF_MASK) &&
                                    !(env->hflags & HF_INHIBIT_IRQ_MASK)) {
                             int intno;
                             /* FIXME: this should respect TPR */
@@ -595,7 +592,7 @@ int cpu_exec(CPUState *env1)
                    spans two pages, we cannot safely do a direct
                    jump. */
 		if (next_tb != 0 &&
-		        !tracefile_history &&
+		        !tracefile_history_for_tb (tb) &&
 #ifdef USE_KQEMU
                         (env->kqemu_enabled != 2) &&
 #endif
@@ -613,7 +610,7 @@ int cpu_exec(CPUState *env1)
                     env->current_tb = NULL;
 
                 while (env->current_tb) {
-		  if (tracefile)
+		  if (tracefile_enabled)
 		    trace_before_exec(tb);
 
                     tc_ptr = tb->tc_ptr;
@@ -625,8 +622,8 @@ int cpu_exec(CPUState *env1)
 #endif
                     next_tb = tcg_qemu_tb_exec(tc_ptr);
                     env->current_tb = NULL;
-		    
-		    if (tracefile)
+		
+		    if (tracefile_enabled)
 		      trace_after_exec (tb, next_tb);
 
                     if ((next_tb & 3) == 2) {
@@ -668,7 +665,7 @@ int cpu_exec(CPUState *env1)
 #endif
             } /* for(;;) */
         } else {
-	    if (tracefile)
+	    if (tracefile_enabled)
 		trace_at_fault (env);
             env_to_regs();
         }
@@ -1502,7 +1499,7 @@ int cpu_signal_handler(int host_signum, void *pinfo,
     pc = uc->uc_mcontext.sc_iaoq[0];
     /* FIXME: compute is_write */
     is_write = 0;
-    return handle_cpu_signal(pc, (unsigned long)info->si_addr, 
+    return handle_cpu_signal(pc, (unsigned long)info->si_addr,
                              is_write,
                              &uc->uc_sigmask, puc);
 }
@@ -1515,15 +1512,11 @@ int cpu_signal_handler(int host_signum, void *pinfo,
 
 #endif /* !defined(CONFIG_SOFTMMU) */
 
-
-#define MAX_TRACE_ENTRIES 1024
-struct trace_entry trace_entries[MAX_TRACE_ENTRIES];
-struct trace_entry *trace_current = trace_entries;
 static TranslationBlock *trace_current_tb;
 
 static void trace_before_exec(TranslationBlock *tb)
 {
-#ifdef DEBUG_TRACE 
+#ifdef DEBUG_TRACE
     printf("From " TARGET_FMT_lx " - "
 	   TARGET_FMT_lx "\n", tb->pc, tb->pc + tb->size - 1);
 #endif
@@ -1562,24 +1555,21 @@ static void trace_after_exec(TranslationBlock *tb, unsigned long next_tb)
 	}
 
 	if ((last_tb->tflags & trace_current->op) == trace_current->op) {
-	    if (!tracefile_history)
+	    if (!tracefile_history_for_tb (last_tb))
 		return;
 	}
 	last_tb->tflags |= trace_current->op;
     }
     else {
 	/* Non-static branch.  */
-	if (!tracefile_history && tb->tflags & TRACE_OP_BLOCK)
+	if (!tracefile_history_for_tb (tb) && tb->tflags & TRACE_OP_BLOCK)
 	    return;
 	trace_current->pc = tb->pc;
 	trace_current->size = tb->size;
 	trace_current->op = TRACE_OP_BLOCK;
 	tb->tflags |= TRACE_OP_BLOCK;
     }
-
-    if (++trace_current == trace_entries + MAX_TRACE_ENTRIES
-	|| tracefile_nobuf)
-	trace_flush();
+    trace_push_entry ();
 }
 
 static void trace_at_fault(CPUState *e)
@@ -1595,7 +1585,8 @@ static void trace_at_fault(CPUState *e)
     if (trace_current_tb
 	&& pc >= trace_current_tb->pc
 	&& pc < trace_current_tb->pc + trace_current_tb->size) {
-	if (!tracefile_history && trace_current_tb->tflags & TRACE_OP_BLOCK)
+	if (!tracefile_history_for_tb (trace_current_tb)
+            && trace_current_tb->tflags & TRACE_OP_BLOCK)
 	    return;
 	trace_current->pc = trace_current_tb->pc;
 	trace_current->op = TRACE_OP_FAULT;
@@ -1604,7 +1595,7 @@ static void trace_at_fault(CPUState *e)
 	    trace_current->op = TRACE_OP_FAULT | TRACE_OP_BLOCK;
     }
     else {
-	if (!tracefile_history) {
+	if (!tracefile_history_for_tb (trace_current_tb)) {
 	    /* Discard single fault.  */
 	    return;
 	}
@@ -1613,7 +1604,5 @@ static void trace_at_fault(CPUState *e)
 	trace_current->op = TRACE_OP_FAULT;
     }
 
-    if (++trace_current == trace_entries + MAX_TRACE_ENTRIES
-	|| tracefile_nobuf)
-	trace_flush();
+    trace_push_entry ();
 }
