@@ -24,53 +24,9 @@ with Interfaces;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;
 with Traces; use Traces;
-with Traces_Files;
 with Traces_Disa;
 
 package body Traces_History is
-   procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
-                                   Trace_Filename : String)
-   is
-      use Traces_Files;
-      Addr : Addresses_Info_Acc := null;
-
-      procedure Disp_Entry (E : Trace_Entry);
-
-      procedure Disp_Entry (E : Trace_Entry)
-      is
-         use Traces_Disa;
-         Sec : Addresses_Info_Acc;
-         Line : String (1 .. 128);
-         Line_Pos : Natural := Line'First;
-      begin
-         Dump_Entry (E);
-         if Addr = null
-           or else E.First not in Addr.First .. Addr.Last
-         then
-            Addr := Get_Symbol (Exe, E.First);
-         end if;
-         if Addr = null then
-            Put_Line ("(not in the executable)");
-         else
-            Symbolize (Exe, E.First, Line, Line_Pos);
-            Line (Natural'Min (Line'Last, Line_Pos)) := ':';
-            Put_Line (Line (Line'First + 1 .. Line_Pos));
-            Sec := Addr.Parent;
-            while Sec.Kind /= Section_Addresses loop
-               Sec := Sec.Parent;
-            end loop;
-            Load_Section_Content (Exe, Sec);
-            For_Each_Insn (Sec.Section_Content (E.First .. E.Last), Covered,
-                           Textio_Disassemble_Cb'Access, Exe);
-         end if;
-      end Disp_Entry;
-
-      File : Trace_File_Type;
-   begin
-      Read_Trace_File (Trace_Filename, File, null, Disp_Entry'Access);
-      Free (File);
-   end Dump_Traces_With_Asm;
-
    type Graph_Node;
    type Graph_Node_Acc is access Graph_Node;
 

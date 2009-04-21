@@ -19,8 +19,5 @@
 with Traces_Elf; use Traces_Elf;
 
 package Traces_History is
-   procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
-                                   Trace_Filename : String);
-
    procedure Generate_Graph (Exe : Exe_File_Type);
 end Traces_History;

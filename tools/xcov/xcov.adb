@@ -257,7 +257,7 @@ begin
          Build_Sections (Exec);
          Build_Symbols (Exec'Unchecked_Access);
          for I in Arg_Index + 1 .. Arg_Count loop
-            Traces_History.Dump_Traces_With_Asm (Exec, Argument (I));
+            Traces_Disa.Dump_Traces_With_Asm (Exec, Argument (I));
          end loop;
          return;
 

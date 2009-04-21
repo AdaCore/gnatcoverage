@@ -65,4 +65,8 @@ package Traces_Disa is
                                     State : Trace_State;
                                     Insn : Binary_Content;
                                     Sym : Symbolizer'Class);
+
+   --  Debug procedure: dump a trace file and the disassembly for each entry.
+   procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
+                                   Trace_Filename : String);
 end Traces_Disa;
