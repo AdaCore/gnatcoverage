@@ -26,7 +26,7 @@ package body Disa_X86 is
    type Bf_3 is mod 2 ** 3;
    type Bf_6 is mod 2 ** 6;
 
-   type Width_Type is (W_None, W_8, W_16, W_32, W_Data);
+   type Width_Type is (W_None, W_8, W_16, W_32);
    subtype String8 is String (1 .. 8);
 
    type Code_Type is
@@ -738,16 +738,10 @@ package body Disa_X86 is
    --  Standard widths of operations.
    type Width_Array_Type is array (Width_Type) of Character;
    Width_Char : constant Width_Array_Type :=
-     (W_None => '-', W_8 => 'b', W_16 => 'w', W_32 => 'l', W_Data => '?');
+     (W_None => '-', W_8 => 'b', W_16 => 'w', W_32 => 'l');
    type Width_Len_Type is array (Width_Type) of Pc_Type;
    Width_Len : constant Width_Len_Type :=
-     (W_None => 0, W_8 => 1, W_16 => 2, W_32 => 4, W_Data => 0);
-
-   --  Registers.
---    type Reg_Type is (Reg_Ax, Reg_Bx, Reg_Cx, Reg_Dx,
---                      Reg_Bp, Reg_Sp, Reg_Si, Reg_Di,
---                      Reg_Al, Reg_Ah, Reg_Bl, Reg_Bh,
---                      Reg_Cl, Reg_Ch, Reg_Dl, Reg_Dh);
+     (W_None => 0, W_8 => 1, W_16 => 2, W_32 => 4);
 
    --  Bits extraction from byte functions.
    --  For a byte, MSB (most significant bit) is bit 7 while
@@ -824,8 +818,8 @@ package body Disa_X86 is
 
       procedure Add_Comma;
       procedure Name_Align (Orig : Natural);
-      procedure Decode_Reg_Field (F : Bf_3; W : Width_Type);
-      procedure Decode_Reg_St (F : Bf_3);
+      procedure Add_Reg (F : Bf_3; W : Width_Type);
+      procedure Add_Reg_St (F : Bf_3);
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type);
       function Decode_Val (Off : Pc_Type; Width : Width_Type)
                           return Unsigned_32;
@@ -843,6 +837,9 @@ package body Disa_X86 is
                              Off_Modrm : Pc_Type;
                              Off_Imm : in out Pc_Type;
                              W : Width_Type);
+      procedure Update_Length (C : Code_Type;
+                               Off_Imm : in out Pc_Type;
+                               W : Width_Type);
       procedure Add_Opcode (Name : String8; Width : Width_Type);
 
       pragma Unreferenced (Add_Opcode);
@@ -902,14 +899,14 @@ package body Disa_X86 is
          Name_Align (L);
       end Add_Opcode;
 
-      procedure Decode_Reg_St (F : Bf_3) is
+      procedure Add_Reg_St (F : Bf_3) is
       begin
          Add_String ("%st(");
          Add_Char (Hex_Digit (Natural (F)));
          Add_Char (')');
-      end Decode_Reg_St;
+      end Add_Reg_St;
 
-      procedure Decode_Reg_Field (F : Bf_3; W : Width_Type) is
+      procedure Add_Reg (F : Bf_3; W : Width_Type) is
          type Reg_Name2_Array is array (Bf_3) of String (1 .. 2);
          type Reg_Name3_Array is array (Bf_3) of String (1 .. 3);
          Regs_8 : constant Reg_Name2_Array :=
@@ -927,11 +924,10 @@ package body Disa_X86 is
                Add_String (Regs_16 (F));
             when W_32 =>
                Add_String (Regs_32 (F));
-            when W_None
-              | W_Data =>
+            when W_None =>
                raise Program_Error;
          end case;
-      end Decode_Reg_Field;
+      end Add_Reg;
 
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type)
       is
@@ -947,8 +943,7 @@ package body Disa_X86 is
                Add_Byte (Mem (Off + 2));
                Add_Byte (Mem (Off + 1));
                Add_Byte (Mem (Off + 0));
-            when W_None
-              | W_Data =>
+            when W_None =>
                raise Program_Error;
          end case;
       end Decode_Val;
@@ -974,8 +969,7 @@ package body Disa_X86 is
                  or Shift_Left (Unsigned_32 (Mem (Off + 2)), 16)
                  or Shift_Left (Unsigned_32 (Mem (Off + 1)), 8)
                  or Shift_Left (Unsigned_32 (Mem (Off + 0)), 0);
-            when W_None
-              | W_Data =>
+            when W_None =>
                raise Program_Error;
          end case;
       end Decode_Val;
@@ -1026,7 +1020,7 @@ package body Disa_X86 is
 
       procedure Decode_Modrm_Reg (B : Byte; Width : Width_Type) is
       begin
-         Decode_Reg_Field (Ext_Modrm_Reg (B), Width);
+         Add_Reg (Ext_Modrm_Reg (B), Width);
       end Decode_Modrm_Reg;
 
       procedure Decode_Sib (Sib : Byte; B_Mod : Bf_2)
@@ -1041,14 +1035,14 @@ package body Disa_X86 is
          Add_Char ('(');
          if not (B = 2#101# and then B_Mod = 0) then
             --  Base
-            Decode_Reg_Field (B, W_32);
+            Add_Reg (B, W_32);
             if I /= 2#100# then
                Add_Char (',');
             end if;
          end if;
          if I /= 2#100# then
             --  Index
-            Decode_Reg_Field (I, W_32);
+            Add_Reg (I, W_32);
             --  Scale
             case S is
                when 2#00# =>
@@ -1075,7 +1069,7 @@ package body Disa_X86 is
          B_Rm := Ext_Modrm_Rm (B);
          case B_Mod is
             when 2#11# =>
-               Decode_Reg_Field (B_Rm, Width);
+               Add_Reg (B_Rm, Width);
             when 2#10# =>
                if B_Rm = 2#100# then
                   Decode_Disp (Off + 2, W_32);
@@ -1083,7 +1077,7 @@ package body Disa_X86 is
                else
                   Decode_Disp (Off + 1, W_32);
                   Add_Char ('(');
-                  Decode_Reg_Field (B_Rm, W_32);
+                  Add_Reg (B_Rm, W_32);
                   Add_Char (')');
                end if;
             when 2#01# =>
@@ -1093,7 +1087,7 @@ package body Disa_X86 is
                else
                   Decode_Disp (Off + 1, W_8);
                   Add_Char ('(');
-                  Decode_Reg_Field (B_Rm, W_32);
+                  Add_Reg (B_Rm, W_32);
                   Add_Char (')');
                end if;
             when 2#00# =>
@@ -1107,7 +1101,7 @@ package body Disa_X86 is
                   Decode_Disp (Off + 1, W_32);
                else
                   Add_Char ('(');
-                  Decode_Reg_Field (B_Rm, W_32);
+                  Add_Reg (B_Rm, W_32);
                   Add_Char (')');
                end if;
          end case;
@@ -1229,18 +1223,18 @@ package body Disa_X86 is
                Add_String ("%es:(%edi)");
             when C_Yv =>
                Add_String ("%es:(");
-               Decode_Reg_Field (7, W);
+               Add_Reg (7, W);
                Add_Char (')');
             when C_Xv =>
                Add_String ("%ds:(");
-               Decode_Reg_Field (6, W);
+               Add_Reg (6, W);
                Add_Char (')');
             when C_Xb =>
                Add_String ("%ds:(%esi)");
             when C_H =>
-               Decode_Reg_St (Ext_Modrm_Rm (Mem (Off_Modrm)));
+               Add_Reg_St (Ext_Modrm_Rm (Mem (Off_Modrm)));
             when C_H0 =>
-               Decode_Reg_St (0);
+               Add_Reg_St (0);
             when C_Cst_1 =>
                Add_String ("1");
             when others =>
@@ -1248,6 +1242,46 @@ package body Disa_X86 is
                  "unhandled x86 code_type " & Code_Type'Image (C);
          end case;
       end Add_Operand;
+
+      procedure Update_Length (C : Code_Type;
+                               Off_Imm : in out Pc_Type;
+                               W : Width_Type) is
+      begin
+         case C is
+            when C_Reg_Bp
+              | C_Reg_Ax
+              | C_Reg_Dx
+              | C_Reg_Cx
+              | C_Reg_Bx
+              | C_Reg_Si
+              | C_Reg_Di
+              | C_Reg_Sp
+              | C_Reg_Al
+              | C_Reg_Cl
+              | C_Reg_Bl
+              | C_Reg_Ah =>
+               return;
+            when C_Gv | C_Gb =>
+               return;
+            when C_Gv_Ib | C_Ev_Ib | C_Ib | C_Jb =>
+               Off_Imm := Off_Imm + 1;
+            when C_Ev | C_Ew | C_Eb =>
+               return;
+            when C_Iz | C_Ev_Iz | C_Jz =>
+               Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq =>
+               return;
+            when C_Iv =>
+               Off_Imm := Off_Imm + Width_Len (W);
+            when C_Ov | C_Ob =>
+               Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
+            when C_Yb | C_Yv | C_Xv | C_Xb | C_H | C_H0 | C_Cst_1 =>
+               return;
+            when others =>
+               raise Program_Error with
+                 "unhandled x86 code_type " & Code_Type'Image (C);
+         end case;
+      end Update_Length;
 
       Off : Pc_Type;
       Off_Modrm : Pc_Type;
@@ -1377,15 +1411,24 @@ package body Disa_X86 is
          end if;
       end if;
 
-      Add_Name (Name);
-      Name_Align (Line'First);
+      if Line'Length > 0 then
+         Add_Name (Name);
+         Name_Align (Line'First);
 
-      if Src /= C_None then
-         Add_Operand (Src, Off_Modrm, Off_Imm, W);
-         Add_Comma;
-      end if;
-      if Dst /= C_None then
-         Add_Operand (Dst, Off_Modrm, Off_Imm, W);
+         if Src /= C_None then
+            Add_Operand (Src, Off_Modrm, Off_Imm, W);
+            Add_Comma;
+         end if;
+         if Dst /= C_None then
+            Add_Operand (Dst, Off_Modrm, Off_Imm, W);
+         end if;
+      else
+         if Src /= C_None then
+            Update_Length (Src, Off_Imm, W);
+         end if;
+         if Dst /= C_None then
+            Update_Length (Dst, Off_Imm, W);
+         end if;
       end if;
 
       Line_Pos := Lo;
@@ -1394,10 +1437,15 @@ package body Disa_X86 is
 
    function Get_Insn_Length
      (Self     : X86_Disassembler;
-      Insn_Bin : Binary_Content) return Positive is
+      Insn_Bin : Binary_Content) return Positive
+   is
+      Line : String (1 .. 0);
+      Line_Pos : Natural;
+      Res : Natural;
    begin
-      raise Program_Error with "not implemented";
-      return 1;
+      Disassemble_Insn (Self, Insn_Bin, Insn_Bin'First,
+                        Line, Line_Pos, Res, Nul_Symbolizer);
+      return Res;
    end Get_Insn_Length;
 
    procedure Get_Insn_Properties

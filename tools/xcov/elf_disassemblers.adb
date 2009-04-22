@@ -20,11 +20,13 @@
 
 with Disa_Ppc;
 with Disa_Sparc;
+with Disa_X86;
 
 package body Elf_Disassemblers is
 
    Disa_For_Ppc   : aliased Disa_Ppc.PPC_Disassembler;
    Disa_For_Sparc : aliased Disa_Sparc.SPARC_Disassembler;
+   Disa_For_X86   : aliased Disa_X86.X86_Disassembler;
 
    ----------------------
    -- Disa_For_Machine --
@@ -39,6 +41,8 @@ package body Elf_Disassemblers is
             return Disa_For_Ppc'Access;
          when EM_SPARC =>
             return Disa_For_Sparc'Access;
+         when EM_386 =>
+            return Disa_For_X86'Access;
          when others =>
             return null;
       end case;
