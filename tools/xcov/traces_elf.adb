@@ -1664,6 +1664,58 @@ package body Traces_Elf is
          exit when Trace.First > Section'Last;
 
          case Machine is
+            when EM_386 =>
+               declare
+                  Last_Pc : Pc_Type;
+                  Next_Pc : Pc_Type;
+                  Len : Natural;
+
+                  New_State : Trace_State;
+               begin
+
+                  --  First search the last instruction.
+
+                  Last_Pc := Trace.First;
+                  loop
+                     Len := Disa_For_Machine (Machine).Get_Insn_Length
+                       (Section (Last_Pc .. Trace.Last));
+                     Next_Pc := Last_Pc + Pc_Type (Len);
+                     exit when Next_Pc = Trace.Last + 1;
+
+                     --  Crash if something got wrong...
+                     if Next_Pc > Trace.Last then
+                        raise Program_Error;
+                     end if;
+
+                     Last_Pc := Next_Pc;
+                  end loop;
+
+                  if Section (Last_Pc) in 16#70# .. 16#7F#
+                    or else (Section (Last_Pc) = 16#0F#
+                             and then
+                             Section (Last_Pc + 1) in 16#80# .. 16#8F#)
+                  then
+                     --  Jcc
+                     if Last_Pc > Trace.First then
+                        Split_Trace (Base, It, Last_Pc - 1,
+                                     Coverage_State (Covered));
+                     end if;
+                     case Trace.Op and 3 is
+                        when 1 =>
+                           New_State := Branch_Taken;
+                        when 2 =>
+                           New_State := Fallthrough_Taken;
+                        when 3 =>
+                           New_State := Both_Taken;
+                        when others =>
+                           raise Program_Error;
+                     end case;
+                  else
+                     New_State := Covered;
+                  end if;
+                  Update_State (Base, It, Coverage_State (New_State));
+               end;
+
             when EM_PPC =>
                declare
                   procedure Update_Or_Split (Next_State : Trace_State);
