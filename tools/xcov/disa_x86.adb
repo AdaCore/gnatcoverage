@@ -743,6 +743,10 @@ package body Disa_X86 is
    Width_Len : constant Width_Len_Type :=
      (W_None => 0, W_8 => 1, W_16 => 2, W_32 => 4);
 
+   type To_Z_Type is array (Width_Type) of Width_Type;
+   To_Z : constant To_Z_Type :=
+     (W_None => W_None, W_8 => W_None, W_16 => W_16, W_32 => W_32);
+
    --  Bits extraction from byte functions.
    --  For a byte, MSB (most significant bit) is bit 7 while
    --  LSB (least significant bit) is bit 0.
@@ -856,8 +860,14 @@ package body Disa_X86 is
       --  Add STR to the line.
       procedure Add_String (Str : String) is
       begin
-         Line (Lo .. Lo + Str'Length - 1) := Str;
-         Lo := Lo + Str'Length;
+         if Lo + Str'Length <= Line'Last then
+            Line (Lo .. Lo + Str'Length - 1) := Str;
+            Lo := Lo + Str'Length;
+         else
+            for I in Str'Range loop
+               Add_Char (Str (I));
+            end loop;
+         end if;
       end Add_String;
 
       --  Add BYTE to the line.
@@ -1200,7 +1210,7 @@ package body Disa_X86 is
                Add_Comma;
                Decode_Modrm_Mem (Off_Modrm, W);
             when C_Ev_Iz =>
-               Decode_Imm (Off_Imm, W_32); -- FIXME: oper16
+               Decode_Imm (Off_Imm, To_Z (W));
                Add_Comma;
                Decode_Modrm_Mem (Off_Modrm, W);
             when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq =>
@@ -1211,10 +1221,12 @@ package body Disa_X86 is
                Decode_Imm (Off_Imm, W_8);
             when C_Iv =>
                Decode_Imm (Off_Imm, W);
+            when C_Iw =>
+               Decode_Imm (Off_Imm, W_16);
             when C_Iz =>
-               Decode_Imm (Off_Imm, W_32); -- FIXME: oper16
+               Decode_Imm (Off_Imm, To_Z (W));
             when C_Jz =>
-               Decode_Disp_Rel (Off_Imm, W_32);  --  FIXME: oper16
+               Decode_Disp_Rel (Off_Imm, To_Z (W));
             when C_Jb =>
                Decode_Disp_Rel (Off_Imm, W_8);
             when C_Ov | C_Ob =>
@@ -1265,16 +1277,18 @@ package body Disa_X86 is
                return;
             when C_Gv_Ib | C_Ev_Ib | C_Ib | C_Jb =>
                Off_Imm := Off_Imm + 1;
-            when C_Ev | C_Ew | C_Eb =>
-               return;
+            when C_Iw =>
+               Off_Imm := Off_Imm + 2;
             when C_Iz | C_Ev_Iz | C_Jz =>
-               Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq =>
-               return;
+               Off_Imm := Off_Imm + Width_Len (To_Z (W));
             when C_Iv =>
                Off_Imm := Off_Imm + Width_Len (W);
             when C_Ov | C_Ob =>
                Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq =>
+               return;
+            when C_Ev | C_Ew | C_Eb =>
+               return;
             when C_Yb | C_Yv | C_Xv | C_Xb | C_H | C_H0 | C_Cst_1 =>
                return;
             when others =>
@@ -1455,9 +1469,92 @@ package body Disa_X86 is
       Branch     : out Branch_Kind;
       Flag_Indir : out Boolean;
       Flag_Cond  : out Boolean;
-      Dest       : out Pc_Type) is
+      Dest       : out Pc_Type)
+   is
+      pragma Unreferenced (Self);
+      pragma Unreferenced (Pc);
+      pragma Unreferenced (Dest);
+      B, B1 : Byte;
    begin
-      raise Program_Error with "not implemented";
+      B := Insn_Bin (Insn_Bin'First);
+
+      case B is
+         when 16#70# .. 16#7F#
+           | 16#E0# .. 16#E2#
+           | 16#E3# =>
+            --  Jcc Jb / Loop Jb / jrcxz
+            Branch := Br_Jmp;
+            Flag_Cond := True;
+            Flag_Indir := False;
+            --  FIXME: Dest
+            return;
+
+         when 16#0F# =>
+            B := Insn_Bin (Insn_Bin'First + 1);
+            if B in 16#80# .. 16#8F# then
+               --  Jcc Jz
+               Branch := Br_Jmp;
+               Flag_Cond := True;
+               Flag_Indir := False;
+               --  FIXME: Dest
+            else
+               Branch := Br_None;
+            end if;
+            return;
+
+         when 16#C2# --  ret
+           | 16#C3#
+           | 16#CA#  --  retf
+           | 16#CB#
+           | 16#CF# =>  -- iret
+            Branch := Br_Ret;
+            Flag_Cond := False;
+            Flag_Indir := True;
+            return;
+
+         when 16#E8#
+           | 16#9A# =>
+            --  Call / callf
+            Branch := Br_Call;
+            Flag_Cond := False;
+            Flag_Indir := False;
+            --  FIXME: dest
+            return;
+
+         when 16#E9#
+           | 16#EA#
+           | 16#EB# =>
+            --  jmp
+            Branch := Br_Jmp;
+            Flag_Cond := False;
+            Flag_Indir := False;
+            --  FIXME: dest
+            return;
+
+         when 16#FF# =>
+            B1 := Insn_Bin (Insn_Bin'First + 1);
+            case Ext_543 (B1) is
+               when 2#010# | 2#011# =>
+                  --  call / callf
+                  Branch := Br_Call;
+                  Flag_Cond := False;
+                  Flag_Indir := True;
+                  return;
+               when 2#100# | 2#101# =>
+                  --  jmp / jmpf
+                  Branch := Br_Jmp;
+                  Flag_Cond := False;
+                  Flag_Indir := True;
+                  return;
+               when others =>
+                  null;
+            end case;
+
+         when others =>
+            null;
+      end case;
+
+      Branch := Br_None;
    end Get_Insn_Properties;
 
 end Disa_X86;
