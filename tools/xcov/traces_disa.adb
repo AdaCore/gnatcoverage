@@ -73,11 +73,13 @@ package body Traces_Disa is
       Put (Hex_Image (Addr));
       Put (' ');
       Disp_State_Char (State);
-      Put (":");
-      Put (ASCII.HT);
+      Put (":  ");
       for I in Insn'Range loop
          Put (Hex_Image (Insn (I)));
          Put (' ');
+      end loop;
+      for I in Insn'Length .. 4 loop
+         Put ("   ");
       end loop;
       Put ("  ");
       Put (Disassemble (Insn, Addr, Sym));
