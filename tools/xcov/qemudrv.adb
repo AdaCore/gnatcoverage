@@ -128,6 +128,8 @@ package body Qemudrv is
             Args (J) := new String'(Containing_Directory (Exe_File.all));
          elsif Args (J).all = "$base_bin" then
             Args (J) := new String'(Simple_Name (Exe_File.all) & ".bin");
+         elsif Args (J).all = "$trace" then
+            Args (J) := Output;
          end if;
       end loop;
 
@@ -239,7 +241,7 @@ package body Qemudrv is
       Free (Parser);
 
       if Output = null then
-         Output := new String'(Exe_File.all & ".trace");
+         Output := new String'(Simple_Name (Exe_File.all & ".trace"));
       end if;
 
       --  Create the trace file.
@@ -297,12 +299,10 @@ package body Qemudrv is
       declare
          Driver : Driver_Target renames Drivers (Driver_Index);
          L : constant Natural := Driver.Run_Options'Length;
-         Opts : String_List (1 .. L + 2 + Nbr_Eargs);
+         Opts : String_List (1 .. L + Nbr_Eargs);
       begin
          Opts (1 .. L) := Driver.Run_Options.all;
-         Opts (L + 1) := new String'("-trace");
-         Opts (L + 2) := Output;
-         Opts (L + 3 .. L + 2 + Nbr_Eargs) := Eargs (1 .. Nbr_Eargs);
+         Opts (L + 1 .. L + Nbr_Eargs) := Eargs (1 .. Nbr_Eargs);
          Run_Command (Driver.Run_Command, Opts);
          if Verbose then
             Put (Driver.Run_Command.all & " finished");

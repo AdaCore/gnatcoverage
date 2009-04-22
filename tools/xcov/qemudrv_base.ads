@@ -53,7 +53,9 @@ package Qemudrv_Base is
                                        new String'("-L"),
                                        new String'("$dir_exe"),
                                        new String'("-bios"),
-                                       new String'("$base_bin"))
+                                       new String'("$base_bin"),
+                                       new String'("-trace"),
+                                       new String'("$trace"))
       ),
       (Target => new String'("leon-elf"),
        Build_Command => null,
@@ -63,6 +65,17 @@ package Qemudrv_Base is
                                        new String'("-M"),
                                        new String'("at697"),
                                        new String'("-kernel"),
+                                       new String'("$exe"),
+                                       new String'("-trace"),
+                                       new String'("$trace"))
+
+      ),
+      (Target => new String'("i386-linux"),
+       Build_Command => null,
+       Build_Options => null,
+       Run_Command => new String'("qemu-i386"),
+       Run_Options => new String_List'(new String'("-trace"),
+                                       new String'("$trace"),
                                        new String'("$exe"))
       )
      );
