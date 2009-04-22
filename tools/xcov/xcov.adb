@@ -310,6 +310,14 @@ begin
          end loop;
          return;
 
+      elsif Cmd = "--disassemble" then
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Open_File (Exec, Argument (I), 0);
+            Disassemble_File (Exec);
+            Close_File (Exec);
+         end loop;
+         return;
+
       elsif Cmd = "--show-graph" then
          Arg_Index := Arg_Index + 1;
          if Arg_Index + 1 < Arg_Count then

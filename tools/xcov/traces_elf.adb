@@ -2223,4 +2223,49 @@ package body Traces_Elf is
       Iterate (Process_One'Access);
    end Build_Routines_Trace_State;
 
+   procedure Disassemble_File (File : in out Exe_File_Type) is
+      use Addresses_Containers;
+
+      procedure Local_Disassembler (Cur : Cursor);
+
+      procedure Local_Disassembler (Cur : Cursor) is
+         Pc       : Pc_Type;
+         Insn_Len : Natural := 0;
+         Sec      : constant Addresses_Info_Acc := Element (Cur);
+         Insns    : Binary_Content_Acc;
+         Line_Pos : Natural;
+         Line     : String (1 .. 128);
+      begin
+         Load_Section_Content (File, Sec);
+         Put_Line ("section " & Sec.Section_Name.all);
+         Insns := Sec.Section_Content;
+         Pc := Insns'First;
+         while Pc <= Insns'Last loop
+            Put (Hex_Image (Pc));
+            Put (":");
+            Put (ASCII.HT);
+
+            Disa_For_Machine (Machine).
+              Disassemble_Insn (Insns (Pc .. Insns'Last), Pc,
+                                Line, Line_Pos, Insn_Len, File);
+            for I in Pc .. Pc + Pc_Type (Insn_Len - 1) loop
+               Put (Hex_Image (Insns (I)));
+               Put (' ');
+            end loop;
+            for I in Insn_Len .. 3 loop
+               Put ("   ");
+            end loop;
+            Put ("  ");
+            Put (Line (Line'First .. Line_Pos - 1));
+            New_Line;
+
+            Pc := Pc + Pc_Type (Insn_Len);
+            exit when Pc = 0;
+         end loop;
+      end Local_Disassembler;
+   begin
+      Build_Sections (File);
+      Build_Symbols (File'Unchecked_Access);
+      File.Desc_Sets (Section_Addresses).Iterate (Local_Disassembler'Access);
+   end Disassemble_File;
 end Traces_Elf;

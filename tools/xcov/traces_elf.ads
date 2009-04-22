@@ -208,6 +208,9 @@ package Traces_Elf is
    --  state of its trace. This should be used only when the subroutine
    --  database has been populated with its traces.
 
+   procedure Disassemble_File (File : in out Exe_File_Type);
+   --  Simply disassemble the file.  Debug subprogram.
+
 private
 
    type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
