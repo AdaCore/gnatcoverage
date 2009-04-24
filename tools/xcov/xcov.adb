@@ -142,7 +142,7 @@ procedure Xcov is
                               Annotate_Report, Annotate_Unknown);
    function To_Annotation_Format (Option : String) return Annotation_Format;
 
-   Annotations           : Annotation_Format;
+   Annotations           : Annotation_Format := Annotate_Unknown;
    Annotate_Option       : constant String := "--annotate=";
    Annotate_Option_Short : constant String := "-a";
 
