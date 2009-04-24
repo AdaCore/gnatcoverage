@@ -2242,8 +2242,10 @@ package body Traces_Elf is
       is
          pragma Unreferenced (Name);
       begin
-         Build_Debug_Lines (Info.Exec.all);
-         Build_Source_Lines (Info.Exec, Info.Traces, Info.Insns.all);
+         if Info.Exec /= null and then Info.Insns /= null then
+            Build_Debug_Lines (Info.Exec.all);
+            Build_Source_Lines (Info.Exec, Info.Traces, Info.Insns.all);
+         end if;
       end Build_Source_Lines_For_Routine;
    begin
       Iterate (Build_Source_Lines_For_Routine'Access);

@@ -426,28 +426,37 @@ package body Traces_Sources is
    is
       use type Interfaces.Unsigned_32;
       State : Line_State := No_Code;
-      Addr : Pc_Type := Insns'First;
+      Addr : Pc_Type;
       It : Entry_Iterator;
       T : Trace_Entry;
    begin
-      Init (Traces.all, It, 0);
-      loop
-         Get_Next_Trace (T, It);
-         exit when T = Bad_Trace;
-         if T.First > Addr then
-            Update_Line_State (State, Not_Covered);
-            exit;
-         end if;
-         Update_Line_State (State, T.State);
-         Addr := T.Last + 1;
-      end loop;
-      if Addr < Insns'Last then
-         Update_Line_State (State, Not_Covered);
-      end if;
-      if State = No_Code then
+      if Insns = null then
+         --  The routine was not found in the executable
          return Not_Covered;
+
       else
-         return State;
+         Init (Traces.all, It, 0);
+
+         Addr := Insns'First;
+
+         loop
+            Get_Next_Trace (T, It);
+            exit when T = Bad_Trace;
+            if T.First > Addr then
+               Update_Line_State (State, Not_Covered);
+               exit;
+            end if;
+            Update_Line_State (State, T.State);
+            Addr := T.Last + 1;
+         end loop;
+         if Addr < Insns'Last then
+            Update_Line_State (State, Not_Covered);
+         end if;
+         if State = No_Code then
+            return Not_Covered;
+         else
+            return State;
+         end if;
       end if;
    end Compute_Routine_State;
 
@@ -517,7 +526,10 @@ package body Traces_Sources is
          Routine_State : constant Line_State :=
                            Compute_Routine_State (Info.Insns, Info.Traces);
       begin
-         if Routine_State /= Covered
+         if Info.Insns = null then
+            Put_Line (Report.all, Name.all & " not found in executable(s)");
+
+         elsif Routine_State /= Covered
            and then Routine_State /= No_Code
          then
             Put (Report.all, Name.all & " not fully covered : ");
