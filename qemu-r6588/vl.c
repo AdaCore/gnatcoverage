@@ -5224,30 +5224,7 @@ int main(int argc, char **argv, char **envp)
                 incoming = optarg;
                 break;
 	    case QEMU_OPTION_trace:
-	        {
-		    static int opt_trace_seen = 0;
-		    int noappend = 0;
-		    if (opt_trace_seen) {
-			fprintf(stderr, "option -trace already specified\n");
-			exit(1);
-		    }
-		    opt_trace_seen = 1;
-		    while (1) {
-			if (strstart(optarg, "nobuf,", &optarg))
-			    tracefile_nobuf = 1;
-			else if (strstart(optarg, "history,", &optarg))
-			    tracefile_history = 1;
-			else if (strstart(optarg, "noappend,", &optarg))
-			    noappend = 1;
-			else
-			    break;
-		    }
-		    if (trace_init(optarg, noappend)) {
-			fprintf(stderr, "can't open file %s\n", optarg);
-			exit(1);
-		    }
-
-		}
+		trace_init(optarg);
 		break;
             }
         }

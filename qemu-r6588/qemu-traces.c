@@ -39,14 +39,13 @@ int tracefile_enabled = 0;
 int tracefile_nobuf = 0;
 int tracefile_history = 0;
 
-static void
-trace_flush(void)
+static void trace_flush(void)
 {
     size_t len = (trace_current - trace_entries) * sizeof (trace_entries[0]);
     fwrite(trace_entries, len, 1, tracefile);
     trace_current = trace_entries;
     if (tracefile_nobuf)
-      fflush(tracefile);
+	fflush(tracefile);
 }
 
 static void trace_cleanup (void)
@@ -55,15 +54,36 @@ static void trace_cleanup (void)
     fclose(tracefile);
 }
 
-int
-trace_init (const char *tracefile_name, int noappend)
+void
+trace_init (const char *optarg)
 {
     static struct trace_header hdr = { QEMU_TRACE_MAGIC };
-    const char *mode = noappend ? "wb" : "ab";
+    static int opt_trace_seen = 0;
+    int noappend = 0;
 
-    tracefile = fopen(tracefile_name, mode);
-    if (tracefile == NULL)
-	return -1;
+    if (opt_trace_seen) {
+	fprintf(stderr, "option -trace already specified\n");
+	exit(1);
+    }
+    opt_trace_seen = 1;
+
+    while (1) {
+      if (strstart(optarg, "nobuf,", &optarg))
+	tracefile_nobuf = 1;
+      else if (strstart(optarg, "history,", &optarg))
+	  tracefile_history = 1;
+      else if (strstart(optarg, "noappend,", &optarg))
+	  noappend = 1;
+      else
+	  break;
+    }
+
+    tracefile = fopen(optarg, noappend ? "wb" : "ab");
+
+    if (tracefile == NULL) {
+	fprintf(stderr, "can't open file %s\n", optarg);
+	exit(1);
+    }
 
     hdr.version = QEMU_TRACE_VERSION;
     hdr.sizeof_target_pc = sizeof(target_ulong);
@@ -80,11 +100,10 @@ trace_init (const char *tracefile_name, int noappend)
 
     atexit (trace_cleanup);
     tracefile_enabled = 1;
-    return 0;
 }
 
-void
-trace_push_entry () {
+void trace_push_entry (void)
+{
     if (++trace_current == trace_entries + MAX_TRACE_ENTRIES
         || tracefile_nobuf)
         trace_flush();

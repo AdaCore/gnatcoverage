@@ -106,7 +106,7 @@ extern int tracefile_enabled;
 extern int tracefile_nobuf;
 extern int tracefile_history;
 
-int trace_init (const char *tracefile_name, int noappend);
+void trace_init (const char *optarg);
 void trace_push_entry (void);
 
 #endif /* QEMU_TRACE_H */
