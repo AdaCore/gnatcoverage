@@ -35,10 +35,11 @@ package body Disa_Sparc is
    type Hex_Map_Type is array (Unsigned_32 range 0 .. 15) of Character;
    Hex_Digit : constant Hex_Map_Type := "0123456789abcdef";
 
-   type Cstring_Acc is access constant String;
    subtype String3 is String (1 .. 3);
+   subtype String7 is String (1 .. 7);
+
    type Cond_Map_Type is array (Unsigned_32 range 0 .. 15) of String3;
-   subtype S is String;
+
    Bicc_Map : constant Cond_Map_Type :=
      (0  => "n  ",
       1  => "e  ",
@@ -79,7 +80,7 @@ package body Disa_Sparc is
 
    type Format_Type is
       (Format_Bad,
-       Format_Regimm, --  format 3, rd, rs1, rs2 or imm13
+       Format_Rs1_Regimm_Rd, --  format 3, rd, rs1, rs2 or imm13
        Format_Fp_Mem,
        Format_Mem_Fp,
        Format_Mem_Rd,
@@ -95,117 +96,137 @@ package body Disa_Sparc is
        Format_Asi);     --  format 3, rd, rs1, asi and rs2.
 
    type Insn_Desc_Type is record
-      Name   : Cstring_Acc;
+      Name   : String7;
       Format : Format_Type;
    end record;
 
    type Insn_Desc_Array is array (Unsigned_32 range <>) of Insn_Desc_Type;
    subtype Insn_Desc_Array_6 is Insn_Desc_Array (0 .. 63);
    Insn_Desc_10 : constant Insn_Desc_Array_6 :=
-     (16#00# => (new S'("add"),     Format_Regimm),
-      16#01# => (new S'("and"),     Format_Regimm),
-      16#02# => (new S'("or"),      Format_Regimm),
-      16#03# => (new S'("xor"),     Format_Regimm),
-      16#04# => (new S'("sub"),     Format_Regimm),
-      16#05# => (new S'("andn"),    Format_Regimm),
-      16#06# => (new S'("orn"),     Format_Regimm),
-      16#07# => (new S'("xnor"),    Format_Regimm),
-      16#08# => (new S'("addx"),    Format_Regimm),
-      16#0A# => (new S'("umul"),    Format_Regimm),
-      16#0B# => (new S'("smul"),    Format_Regimm),
-      16#0C# => (new S'("subx"),    Format_Regimm),
-      16#0E# => (new S'("udiv"),    Format_Regimm),
-      16#0F# => (new S'("sdiv"),    Format_Regimm),
+     (16#00# => ("add    ", Format_Rs1_Regimm_Rd),
+      16#01# => ("and    ", Format_Rs1_Regimm_Rd),
+      16#02# => ("or     ", Format_Rs1_Regimm_Rd),
+      16#03# => ("xor    ", Format_Rs1_Regimm_Rd),
+      16#04# => ("sub    ", Format_Rs1_Regimm_Rd),
+      16#05# => ("andn   ", Format_Rs1_Regimm_Rd),
+      16#06# => ("orn    ", Format_Rs1_Regimm_Rd),
+      16#07# => ("xnor   ", Format_Rs1_Regimm_Rd),
+      16#08# => ("addx   ", Format_Rs1_Regimm_Rd),
+      16#0A# => ("umul   ", Format_Rs1_Regimm_Rd),
+      16#0B# => ("smul   ", Format_Rs1_Regimm_Rd),
+      16#0C# => ("subx   ", Format_Rs1_Regimm_Rd),
+      16#0E# => ("udiv   ", Format_Rs1_Regimm_Rd),
+      16#0F# => ("sdiv   ", Format_Rs1_Regimm_Rd),
 
-      16#10# => (new S'("addcc"),   Format_Regimm),
-      16#11# => (new S'("andcc"),   Format_Regimm),
-      16#12# => (new S'("orcc"),    Format_Regimm),
-      16#13# => (new S'("xorcc"),   Format_Regimm),
-      16#14# => (new S'("subcc"),   Format_Regimm),
-      16#15# => (new S'("andncc"),  Format_Regimm),
-      16#16# => (new S'("orncc"),   Format_Regimm),
-      16#17# => (new S'("xnorcc"),  Format_Regimm),
-      16#18# => (new S'("addxcc"),  Format_Regimm),
-      16#1A# => (new S'("umulcc"),  Format_Regimm),
-      16#1B# => (new S'("smulcc"),  Format_Regimm),
-      16#1C# => (new S'("subxcc"),  Format_Regimm),
-      16#1E# => (new S'("udivcc"),  Format_Regimm),
-      16#1F# => (new S'("sdivcc"),  Format_Regimm),
+      16#10# => ("addcc  ", Format_Rs1_Regimm_Rd),
+      16#11# => ("andcc  ", Format_Rs1_Regimm_Rd),
+      16#12# => ("orcc   ", Format_Rs1_Regimm_Rd),
+      16#13# => ("xorcc  ", Format_Rs1_Regimm_Rd),
+      16#14# => ("subcc  ", Format_Rs1_Regimm_Rd),
+      16#15# => ("andncc ", Format_Rs1_Regimm_Rd),
+      16#16# => ("orncc  ", Format_Rs1_Regimm_Rd),
+      16#17# => ("xnorcc ", Format_Rs1_Regimm_Rd),
+      16#18# => ("addxcc ", Format_Rs1_Regimm_Rd),
+      16#1A# => ("umulcc ", Format_Rs1_Regimm_Rd),
+      16#1B# => ("smulcc ", Format_Rs1_Regimm_Rd),
+      16#1C# => ("subxcc ", Format_Rs1_Regimm_Rd),
+      16#1E# => ("udivcc ", Format_Rs1_Regimm_Rd),
+      16#1F# => ("sdivcc ", Format_Rs1_Regimm_Rd),
 
-      16#25# => (new S'("sll"),     Format_Regimm),
-      16#26# => (new S'("srl"),     Format_Regimm),
-      16#27# => (new S'("sra"),     Format_Regimm),
-      16#29# => (new S'("rdpsr"),   Format_Regimm),
-      16#2A# => (new S'("rdwim"),   Format_Regimm),
+      16#24# => ("mulscc ", Format_Rs1_Regimm_Rd),
+      16#25# => ("sll    ", Format_Rs1_Regimm_Rd),
+      16#26# => ("srl    ", Format_Rs1_Regimm_Rd),
+      16#27# => ("sra    ", Format_Rs1_Regimm_Rd),
+      16#29# => ("rdpsr  ", Format_Rs1_Regimm_Rd),
+      16#2A# => ("rdwim  ", Format_Rs1_Regimm_Rd),
 
-      16#31# => (new S'("wrpsr"),   Format_Regimm),
-      16#32# => (new S'("wrwim"),   Format_Regimm),
-      16#33# => (new S'("wrtbr"),   Format_Regimm),
+      16#31# => ("wrpsr  ", Format_Rs1_Regimm_Rd),
+      16#32# => ("wrwim  ", Format_Rs1_Regimm_Rd),
+      16#33# => ("wrtbr  ", Format_Rs1_Regimm_Rd),
 
-      16#34# => (null,              Format_Bad),   -- Fp
-      16#35# => (null,              Format_Bad),   -- Fp
+      16#34# => (" fp    ", Format_Bad),   -- Fp
+      16#35# => (" fp    ", Format_Bad),   -- Fp
 
-      16#38# => (new S'("jmpl"),    Format_Regimm),
-      16#39# => (new S'("rett"),    Format_Regimm),
-      16#3A# => (new S'("t"),       Format_Ticc),
-      16#3C# => (new S'("save"),    Format_Regimm),
-      16#3D# => (new S'("restore"), Format_Regimm),
+      16#38# => ("jmpl   ", Format_Rs1_Regimm_Rd),
+      16#39# => ("rett   ", Format_Rs1_Regimm_Rd),
+      16#3A# => ("t      ", Format_Ticc),
+      --  16#3B# => ("iflush ",  Format_Mem),
+      16#3C# => ("save   ", Format_Rs1_Regimm_Rd),
+      16#3D# => ("restore", Format_Rs1_Regimm_Rd),
 
-      others => (null,              Format_Bad)
+      others => ("       ", Format_Bad)
       );
 
    Insn_Desc_11 : constant Insn_Desc_Array_6 :=
-     (16#00# => (new S'("ld"),    Format_Mem_Rd),
-      16#01# => (new S'("ldub"),  Format_Mem_Rd),
-      16#02# => (new S'("lduh"),  Format_Mem_Rd),
-      16#03# => (new S'("ldd"),   Format_Mem_Rd),
-      16#04# => (new S'("st"),    Format_Rd_Mem),
-      16#05# => (new S'("stb"),   Format_Rd_Mem),
-      16#07# => (new S'("std"),   Format_Rd_Mem),
+     (16#00# => ("ld     ", Format_Mem_Rd),
+      16#01# => ("ldub   ", Format_Mem_Rd),
+      16#02# => ("lduh   ", Format_Mem_Rd),
+      16#03# => ("ldd    ", Format_Mem_Rd),
+      16#04# => ("st     ", Format_Rd_Mem),
+      16#05# => ("stb    ", Format_Rd_Mem),
+      16#07# => ("std    ", Format_Rd_Mem),
+      16#09# => ("ldsb   ", Format_Mem_Rd),
+      16#0A# => ("ldsh   ", Format_Mem_Rd),
 
-      16#10# => (new S'("lda"),   Format_Asi),
-      16#13# => (new S'("ldda"),  Format_Asi),
+      16#10# => ("lda    ", Format_Asi),
+      16#13# => ("ldda   ", Format_Asi),
 
-      16#20# => (new S'("ldf"),   Format_Mem_Fp),
-      16#23# => (new S'("lddf"),  Format_Mem_Fp),
-      16#24# => (new S'("stf"),   Format_Fp_Mem),
-      16#27# => (new S'("stff"),  Format_Fp_Mem),
+      16#20# => ("ldf    ", Format_Mem_Fp),
+      16#23# => ("lddf   ", Format_Mem_Fp),
+      16#24# => ("stf    ", Format_Fp_Mem),
+      16#27# => ("stff   ", Format_Fp_Mem),
 
-      16#30# => (new S'("ldc"),   Format_Mem_Creg),
-      16#31# => (new S'("ldcsr"), Format_Mem),
+      16#30# => ("ldc    ", Format_Mem_Creg),
+      16#31# => ("ldcsr  ", Format_Mem),
 
-      others => (null, Format_Bad)
+      others => ("       ", Format_Bad)
       );
 
    subtype Insn_Desc_Array_9 is Insn_Desc_Array (0 .. 511);
    Insn_Desc_Fp34 : constant Insn_Desc_Array_9 :=
      (
-      2#000000001# => (new S'("fmovs"),     Format_Fregrs2_Fregrd),
-      2#000000101# => (new S'("fnegs"),     Format_Fregrs2_Fregrd),
-      2#000001001# => (new S'("fabss"),     Format_Fregrs2_Fregrd),
-      2#001000001# => (new S'("fadds"),     Format_Fregrs2_Fregrd),
-      2#001000010# => (new S'("faddd"),     Format_Fregrs2_Fregrd),
-      2#001000011# => (new S'("faddx"),     Format_Fregrs2_Fregrd),
-      2#001000101# => (new S'("fsubs"),     Format_Fregrs1_Fregrs2_Fregrd),
-      2#001000110# => (new S'("fsubd"),     Format_Fregrs1_Fregrs2_Fregrd),
-      2#001000111# => (new S'("fsubx"),     Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001001# => (new S'("fmuls"),     Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001010# => (new S'("fmuld"),     Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001011# => (new S'("fmulx"),     Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001110# => (new S'("fdivd"),     Format_Fregrs1_Fregrs2_Fregrd),
-      2#011000110# => (new S'("fdtos"),     Format_Fregrs2_Fregrd),
-      others => (null, Format_Bad)
+      2#000000001# => ("fmovs  ", Format_Fregrs2_Fregrd),
+      2#000000101# => ("fnegs  ", Format_Fregrs2_Fregrd),
+      2#000001001# => ("fabss  ", Format_Fregrs2_Fregrd),
+      2#000101001# => ("fsqrts ", Format_Fregrs2_Fregrd),
+      2#000101010# => ("fsqrtd ", Format_Fregrs2_Fregrd),
+      2#000101011# => ("fsqrtx ", Format_Fregrs2_Fregrd),
+      2#001000001# => ("fadds  ", Format_Fregrs2_Fregrd),
+      2#001000010# => ("faddd  ", Format_Fregrs2_Fregrd),
+      2#001000011# => ("faddx  ", Format_Fregrs2_Fregrd),
+      2#001000101# => ("fsubs  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#001000110# => ("fsubd  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#001000111# => ("fsubx  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001001# => ("fmuls  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001010# => ("fmuld  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001011# => ("fmulx  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001101# => ("fdivs  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001110# => ("fdivd  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001111# => ("fdivx  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#011000010# => ("fdtoi  ", Format_Fregrs2_Fregrd),
+      2#011000100# => ("fitos  ", Format_Fregrs2_Fregrd),
+      2#011000110# => ("fdtos  ", Format_Fregrs2_Fregrd),
+      2#011000111# => ("fxtos  ", Format_Fregrs2_Fregrd),
+      2#011001000# => ("fitod  ", Format_Fregrs2_Fregrd),
+      2#011001001# => ("fstod  ", Format_Fregrs2_Fregrd),
+      2#011001011# => ("fxtod  ", Format_Fregrs2_Fregrd),
+      2#011001100# => ("fitox  ", Format_Fregrs2_Fregrd),
+      2#011001101# => ("fstox  ", Format_Fregrs2_Fregrd),
+      2#011001110# => ("fdtox  ", Format_Fregrs2_Fregrd),
+      2#011010001# => ("fstoi  ", Format_Fregrs2_Fregrd),
+      2#011010011# => ("fxtoi  ", Format_Fregrs2_Fregrd),
+      others       => ("       ", Format_Bad)
      );
 
    Insn_Desc_Fp35 : constant Insn_Desc_Array_9 :=
      (
-      2#001010001# => (new S'("fcmps"),      Format_Fregrs1_Fregrs2),
-      2#001010010# => (new S'("fcmpd"),      Format_Fregrs1_Fregrs2),
-      2#001010011# => (new S'("fcmpx"),      Format_Fregrs1_Fregrs2),
-      2#001010101# => (new S'("fcmpes"),     Format_Fregrs1_Fregrs2),
-      2#001010110# => (new S'("fcmped"),     Format_Fregrs1_Fregrs2),
-      2#001010111# => (new S'("fcmpex"),     Format_Fregrs1_Fregrs2),
-      others => (null, Format_Bad)
+      2#001010001# => ("fcmps  ", Format_Fregrs1_Fregrs2),
+      2#001010010# => ("fcmpd  ", Format_Fregrs1_Fregrs2),
+      2#001010011# => ("fcmpx  ", Format_Fregrs1_Fregrs2),
+      2#001010101# => ("fcmpes ", Format_Fregrs1_Fregrs2),
+      2#001010110# => ("fcmped ", Format_Fregrs1_Fregrs2),
+      2#001010111# => ("fcmpex ", Format_Fregrs1_Fregrs2),
+      others       => ("       ", Format_Bad)
      );
 
    ---------------
@@ -267,7 +288,7 @@ package body Disa_Sparc is
       procedure Add_D2 (N : Unsigned_32);
       procedure Add_Freg (R : Reg_Type);
       procedure Disp_Mem;
-      procedure Disp_Reg_Imm;
+      procedure Disp_Rs2_Imm;
       procedure Disp_Format (Desc : Insn_Desc_Type);
       --  Need comments???
 
@@ -314,19 +335,10 @@ package body Disa_Sparc is
       procedure Add_HT is
       begin
          Add (' ');
-         while Line_Pos - Line'First < 7 loop
+         while Line_Pos - Line'First < 8 loop
             Add (' ');
          end loop;
       end Add_HT;
-
-      --  Add BYTE to the line.
---       procedure Add_Byte (V : Byte) is
---          type My_Str is array (Natural range 0 .. 15) of Character;
---          Hex_Digit : constant My_Str := "0123456789abcdef";
---       begin
---          Add (Hex_Digit (Natural (Shift_Right (V, 4) and 16#0f#)));
---          Add (Hex_Digit (Natural (Shift_Right (V, 0) and 16#0f#)));
---       end Add_Byte;
 
       --------------
       -- Disp_Hex --
@@ -448,10 +460,10 @@ package body Disa_Sparc is
       end Disp_Mem;
 
       ------------------
-      -- Disp_Reg_Imm --
+      -- Disp_Rs2_Imm --
       ------------------
 
-      procedure Disp_Reg_Imm is
+      procedure Disp_Rs2_Imm is
       begin
          if Get_Field (F_I, W) /= 0 then
             Add ("0x");
@@ -459,7 +471,7 @@ package body Disa_Sparc is
          else
             Add_Ireg (Get_Field (F_Rs2, W));
          end if;
-      end Disp_Reg_Imm;
+      end Disp_Rs2_Imm;
 
       -----------------
       -- Disp_Format --
@@ -468,7 +480,7 @@ package body Disa_Sparc is
       procedure Disp_Format (Desc : Insn_Desc_Type) is
          Rd  : constant Unsigned_32 := Get_Field (F_Rd, W);
       begin
-         if Desc.Name = null then
+         if Desc.Name (1) = ' ' then
             Add ("unknown op=");
             Add (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
             Add (", op3=");
@@ -476,15 +488,15 @@ package body Disa_Sparc is
             return;
          end if;
 
-         Add (Desc.Name.all);
+         Add_Sp (Desc.Name);
          case Desc.Format is
-            when Format_Regimm =>
+            when Format_Rs1_Regimm_Rd =>
                Add_HT;
                Add_Ireg (Rd);
                Add (',');
-               Add_Ireg (Shift_Right (W, 14) and 31);
+               Add_Ireg (Get_Field (F_Rs1, W));
                Add (',');
-               Disp_Reg_Imm;
+               Disp_Rs2_Imm;
 
             when Format_Fp_Mem =>
                Add_HT;
@@ -513,7 +525,7 @@ package body Disa_Sparc is
             when Format_Ticc =>
                Add_Sp (Bicc_Map (Get_Field (F_Cond, W)));
                Add_HT;
-               Disp_Reg_Imm;
+               Disp_Rs2_Imm;
 
             when Format_Fregrs1_Fregrs2 =>
                Add_HT;
@@ -609,7 +621,7 @@ package body Disa_Sparc is
                      if Get_Field (F_Rs1, W) = 0 then
                         Add ("mov");
                         Add_HT;
-                        Disp_Reg_Imm;
+                        Disp_Rs2_Imm;
                         Add (',');
                         Add_Ireg (Get_Field (F_Rd, W));
                         return;
@@ -621,7 +633,7 @@ package body Disa_Sparc is
                      Add_HT;
                      Add_Ireg (Get_Field (F_Rs1, W));
                      Add (',');
-                     Disp_Reg_Imm;
+                     Disp_Rs2_Imm;
                      Add (',');
                      if Rd = 0 then
                         Add ("%y");
