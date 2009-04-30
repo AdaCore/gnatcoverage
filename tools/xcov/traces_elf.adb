@@ -244,7 +244,7 @@ package body Traces_Elf is
       end loop;
    end Open_File;
 
-   procedure Close_File (Exec : in out Exe_File_Type) is
+   procedure Close_Exe_File (Exec : in out Exe_File_Type) is
    begin
       Close_File (Exec.Exe_File);
 
@@ -261,15 +261,17 @@ package body Traces_Elf is
       Exec.Sec_Debug_Line     := 0;
       Exec.Sec_Debug_Line_Rel := 0;
       Exec.Sec_Debug_Str      := 0;
-   end Close_File;
+   end Close_Exe_File;
 
-   procedure Clear_File (Exec : in out Exe_File_Type) is
+   procedure Close_File (Exec : in out Exe_File_Type) is
    begin
+      Close_Exe_File (Exec);
+
       --  FIXME: free content.
       for J in Exec.Desc_Sets'Range loop
          Exec.Desc_Sets (J).Clear;
       end loop;
-   end Clear_File;
+   end Close_File;
 
    function Get_Filename (Exec : Exe_File_Type) return String is
    begin

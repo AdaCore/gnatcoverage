@@ -61,10 +61,10 @@ package Traces_Elf is
    --  Close the ELF file.
    --  The resources are still present but nothing anymore can be read from
    --  the file.
-   procedure Close_File (Exec : in out Exe_File_Type);
+   procedure Close_Exe_File (Exec : in out Exe_File_Type);
 
-   --  Free built informations.
-   procedure Clear_File (Exec : in out Exe_File_Type);
+   --  Close file and free built informations.
+   procedure Close_File (Exec : in out Exe_File_Type);
 
    --  Get the filename of Exec.
    function Get_Filename (Exec : Exe_File_Type) return String;
