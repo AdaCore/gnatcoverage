@@ -36,35 +36,60 @@ package body Disa_Sparc is
    Hex_Digit : constant Hex_Map_Type := "0123456789abcdef";
 
    type Cstring_Acc is access constant String;
-   type Cond_Map_Type is array (Unsigned_32 range 0 .. 15) of Cstring_Acc;
+   subtype String3 is String (1 .. 3);
+   type Cond_Map_Type is array (Unsigned_32 range 0 .. 15) of String3;
    subtype S is String;
    Bicc_Map : constant Cond_Map_Type :=
-     (0  => new S'("n"),
-      1  => new S'("e"),
-      2  => new S'("le"),
-      3  => new S'("l"),
-      4  => new S'("leu"),
-      5  => new S'("cs"),
-      6  => new S'("neg"),
-      7  => new S'("vs"),
-      8  => new S'("a"),
-      9  => new S'("ne"),
-      10 => new S'("g"),
-      11 => new S'("ge"),
-      12 => new S'("gu"),
-      13 => new S'("cc"),
-      14 => new S'("pos"),
-      15 => new S'("vc"));
+     (0  => "n  ",
+      1  => "e  ",
+      2  => "le ",
+      3  => "l  ",
+      4  => "leu",
+      5  => "cs ",
+      6  => "neg",
+      7  => "vs ",
+      8  => "a  ",
+      9  => "ne ",
+      10 => "g  ",
+      11 => "ge ",
+      12 => "gu ",
+      13 => "cc ",
+      14 => "pos",
+      15 => "vc "
+     );
+
+   Fbfcc_Map : constant Cond_Map_Type :=
+     (0  => "n  ",
+      1  => "ne ",
+      2  => "lg ",
+      3  => "ul ",
+      4  => "l  ",
+      5  => "ug ",
+      6  => "g  ",
+      7  => "u  ",
+      8  => "a  ",
+      9  => "e  ",
+      10 => "ue ",
+      11 => "ge ",
+      12 => "uge",
+      13 => "le ",
+      14 => "ule",
+      15 => "o  "
+     );
 
    type Format_Type is
       (Format_Bad,
        Format_Regimm, --  format 3, rd, rs1, rs2 or imm13
        Format_Fp_Mem,
-       Format_Mem_Reg,
-       Format_Reg_Mem,
+       Format_Mem_Fp,
+       Format_Mem_Rd,
+       Format_Rd_Mem,
        Format_Mem_Creg,
        Format_Mem,
        Format_Ticc,
+       Format_Fregrs1_Fregrs2,
+       Format_Fregrs1_Fregrs2_Fregrd,
+       Format_Fregrs2_Fregrd,
 --       Format_Rd,     --  format 3, rd only.
 --       Format_Copro,  --  format 3, fpu or coprocessor
        Format_Asi);     --  format 3, rd, rs1, asi and rs2.
@@ -74,8 +99,9 @@ package body Disa_Sparc is
       Format : Format_Type;
    end record;
 
-   type Insn_Desc_Array is array (Unsigned_32 range 0 .. 63) of Insn_Desc_Type;
-   Insn_Desc_10 : constant Insn_Desc_Array :=
+   type Insn_Desc_Array is array (Unsigned_32 range <>) of Insn_Desc_Type;
+   subtype Insn_Desc_Array_6 is Insn_Desc_Array (0 .. 63);
+   Insn_Desc_10 : constant Insn_Desc_Array_6 :=
      (16#00# => (new S'("add"),     Format_Regimm),
       16#01# => (new S'("and"),     Format_Regimm),
       16#02# => (new S'("or"),      Format_Regimm),
@@ -115,6 +141,10 @@ package body Disa_Sparc is
       16#31# => (new S'("wrpsr"),   Format_Regimm),
       16#32# => (new S'("wrwim"),   Format_Regimm),
       16#33# => (new S'("wrtbr"),   Format_Regimm),
+
+      16#34# => (null,              Format_Bad),   -- Fp
+      16#35# => (null,              Format_Bad),   -- Fp
+
       16#38# => (new S'("jmpl"),    Format_Regimm),
       16#39# => (new S'("rett"),    Format_Regimm),
       16#3A# => (new S'("t"),       Format_Ticc),
@@ -124,25 +154,59 @@ package body Disa_Sparc is
       others => (null,              Format_Bad)
       );
 
-   Insn_Desc_11 : constant Insn_Desc_Array :=
-     (16#00# => (new S'("ld"),    Format_Mem_Reg),
-      16#01# => (new S'("ldub"),  Format_Mem_Reg),
-      16#02# => (new S'("lduh"),  Format_Mem_Reg),
-      16#03# => (new S'("ldd"),   Format_Mem_Reg),
-      16#04# => (new S'("st"),    Format_Reg_Mem),
-      16#05# => (new S'("stb"),   Format_Reg_Mem),
-      16#07# => (new S'("std"),   Format_Reg_Mem),
+   Insn_Desc_11 : constant Insn_Desc_Array_6 :=
+     (16#00# => (new S'("ld"),    Format_Mem_Rd),
+      16#01# => (new S'("ldub"),  Format_Mem_Rd),
+      16#02# => (new S'("lduh"),  Format_Mem_Rd),
+      16#03# => (new S'("ldd"),   Format_Mem_Rd),
+      16#04# => (new S'("st"),    Format_Rd_Mem),
+      16#05# => (new S'("stb"),   Format_Rd_Mem),
+      16#07# => (new S'("std"),   Format_Rd_Mem),
 
       16#10# => (new S'("lda"),   Format_Asi),
       16#13# => (new S'("ldda"),  Format_Asi),
 
-      16#23# => (new S'("ldd"),   Format_Fp_Mem),
+      16#20# => (new S'("ldf"),   Format_Mem_Fp),
+      16#23# => (new S'("lddf"),  Format_Mem_Fp),
+      16#24# => (new S'("stf"),   Format_Fp_Mem),
+      16#27# => (new S'("stff"),  Format_Fp_Mem),
 
       16#30# => (new S'("ldc"),   Format_Mem_Creg),
       16#31# => (new S'("ldcsr"), Format_Mem),
 
       others => (null, Format_Bad)
       );
+
+   subtype Insn_Desc_Array_9 is Insn_Desc_Array (0 .. 511);
+   Insn_Desc_Fp34 : constant Insn_Desc_Array_9 :=
+     (
+      2#000000001# => (new S'("fmovs"),     Format_Fregrs2_Fregrd),
+      2#000000101# => (new S'("fnegs"),     Format_Fregrs2_Fregrd),
+      2#000001001# => (new S'("fabss"),     Format_Fregrs2_Fregrd),
+      2#001000001# => (new S'("fadds"),     Format_Fregrs2_Fregrd),
+      2#001000010# => (new S'("faddd"),     Format_Fregrs2_Fregrd),
+      2#001000011# => (new S'("faddx"),     Format_Fregrs2_Fregrd),
+      2#001000101# => (new S'("fsubs"),     Format_Fregrs1_Fregrs2_Fregrd),
+      2#001000110# => (new S'("fsubd"),     Format_Fregrs1_Fregrs2_Fregrd),
+      2#001000111# => (new S'("fsubx"),     Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001001# => (new S'("fmuls"),     Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001010# => (new S'("fmuld"),     Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001011# => (new S'("fmulx"),     Format_Fregrs1_Fregrs2_Fregrd),
+      2#001001110# => (new S'("fdivd"),     Format_Fregrs1_Fregrs2_Fregrd),
+      2#011000110# => (new S'("fdtos"),     Format_Fregrs2_Fregrd),
+      others => (null, Format_Bad)
+     );
+
+   Insn_Desc_Fp35 : constant Insn_Desc_Array_9 :=
+     (
+      2#001010001# => (new S'("fcmps"),      Format_Fregrs1_Fregrs2),
+      2#001010010# => (new S'("fcmpd"),      Format_Fregrs1_Fregrs2),
+      2#001010011# => (new S'("fcmpx"),      Format_Fregrs1_Fregrs2),
+      2#001010101# => (new S'("fcmpes"),     Format_Fregrs1_Fregrs2),
+      2#001010110# => (new S'("fcmped"),     Format_Fregrs1_Fregrs2),
+      2#001010111# => (new S'("fcmpex"),     Format_Fregrs1_Fregrs2),
+      others => (null, Format_Bad)
+     );
 
    ---------------
    -- Get_Field --
@@ -187,22 +251,24 @@ package body Disa_Sparc is
       pragma Unreferenced (Self);
       pragma Unreferenced (Sym);
 
-      W : constant Unsigned_32 := To_Big_Endian_U32 (Insn_Bin);
+      W : constant Unsigned_32 :=
+        To_Big_Endian_U32 (Insn_Bin (Insn_Bin'First .. Insn_Bin'First + 3));
 
       procedure Add (C : Character);
       pragma Inline (Add);
       --  Add CHAR to the line
 
       procedure Add (Str : String);
+      procedure Add_Sp (Str : String);
       procedure Add_HT;
       procedure Disp_Hex (V : Unsigned_32);
-      procedure Add_Cond (Str : String);
+      procedure Add_Cond (Str : String; Map : Cond_Map_Type);
       procedure Add_Ireg (R : Reg_Type);
       procedure Add_D2 (N : Unsigned_32);
       procedure Add_Freg (R : Reg_Type);
       procedure Disp_Mem;
       procedure Disp_Reg_Imm;
-      procedure Disp_Format3 (Map : Insn_Desc_Array);
+      procedure Disp_Format (Desc : Insn_Desc_Type);
       --  Need comments???
 
       ---------
@@ -220,6 +286,14 @@ package body Disa_Sparc is
       ---------
       -- Add --
       ---------
+
+      procedure Add_Sp (Str : String) is
+      begin
+         for I in Str'Range loop
+            exit when Str (I) = ' ';
+            Add (Str (I));
+         end loop;
+      end Add_Sp;
 
       procedure Add (Str : String) is
       begin
@@ -268,11 +342,11 @@ package body Disa_Sparc is
       -- Add_Cond --
       --------------
 
-      procedure Add_Cond (Str : String) is
+      procedure Add_Cond (Str : String; Map : Cond_Map_Type) is
          V : Unsigned_32;
       begin
          Add (Str);
-         Add (Bicc_Map (Shift_Right (W, 25) and 2#1111#).all);
+         Add_Sp (Map (Shift_Right (W, 25) and 2#1111#));
          if (W and 16#2000_0000#) /= 0 then
             Add (",a");
          end if;
@@ -387,24 +461,23 @@ package body Disa_Sparc is
          end if;
       end Disp_Reg_Imm;
 
-      ------------------
-      -- Disp_Format3 --
-      ------------------
+      -----------------
+      -- Disp_Format --
+      -----------------
 
-      procedure Disp_Format3 (Map : Insn_Desc_Array) is
-         Op3 : constant Unsigned_32 range 0 .. 63 := Get_Field (F_Op3, W);
+      procedure Disp_Format (Desc : Insn_Desc_Type) is
          Rd  : constant Unsigned_32 := Get_Field (F_Rd, W);
       begin
-         if Map (Op3).Name = null then
+         if Desc.Name = null then
             Add ("unknown op=");
             Add (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
             Add (", op3=");
-            Add (Hex_Image (Unsigned_8 (Op3)));
+            Add (Hex_Image (Unsigned_8 (Get_Field (F_Op3, W))));
             return;
          end if;
 
-         Add (Map (Op3).Name.all);
-         case Map (Op3).Format is
+         Add (Desc.Name.all);
+         case Desc.Format is
             when Format_Regimm =>
                Add_HT;
                Add_Ireg (Rd);
@@ -415,34 +488,60 @@ package body Disa_Sparc is
 
             when Format_Fp_Mem =>
                Add_HT;
+               Add_Freg (Rd);
+               Add (',');
+               Disp_Mem;
+
+            when Format_Mem_Fp =>
+               Add_HT;
                Disp_Mem;
                Add (',');
                Add_Freg (Rd);
 
-            when Format_Mem_Reg =>
+            when Format_Mem_Rd =>
                Add_HT;
                Disp_Mem;
                Add (',');
                Add_Ireg (Rd);
 
-            when Format_Reg_Mem =>
+            when Format_Rd_Mem =>
                Add_HT;
                Add_Ireg (Rd);
                Add (',');
                Disp_Mem;
 
             when Format_Ticc =>
-               Add (Bicc_Map (Get_Field (F_Cond, W)).all);
+               Add_Sp (Bicc_Map (Get_Field (F_Cond, W)));
                Add_HT;
                Disp_Reg_Imm;
+
+            when Format_Fregrs1_Fregrs2 =>
+               Add_HT;
+               Add_Freg (Get_Field (F_Rs1, W));
+               Add (',');
+               Add_Freg (Get_Field (F_Rs2, W));
+
+            when Format_Fregrs2_Fregrd =>
+               Add_HT;
+               Add_Freg (Get_Field (F_Rs2, W));
+               Add (',');
+               Add_Freg (Rd);
+
+            when Format_Fregrs1_Fregrs2_Fregrd =>
+               Add_HT;
+               Add_Freg (Get_Field (F_Rs1, W));
+               Add (',');
+               Add_Freg (Get_Field (F_Rs2, W));
+               Add (',');
+               Add_Freg (Rd);
 
             when others =>
                Add ("unhandled format op=");
                Add (Hex_Image (Unsigned_8 (Get_Field (F_Op, W))));
                Add (", op3=");
-               Add (Hex_Image (Unsigned_8 (Op3)));
+               Add (Hex_Image (Unsigned_8 (Get_Field (F_Op3, W))));
          end case;
-      end Disp_Format3;
+      end Disp_Format;
 
    --  Start of processing for Disassemble_Insn
 
@@ -462,7 +561,10 @@ package body Disa_Sparc is
                   Disp_Hex (Get_Field (F_Disp22, W));
 
                when 2#010# =>
-                  Add_Cond ("b");
+                  Add_Cond ("b", Bicc_Map);
+
+               when 2#110# =>
+                  Add_Cond ("fb", Fbfcc_Map);
 
                when 2#100# =>
                   declare
@@ -474,14 +576,14 @@ package body Disa_Sparc is
                      else
                         Add ("sethi");
                         Add_HT;
-                        Add_Ireg (Rd);
-                        Add (',');
                         Disp_Hex (Shift_Left (Imm22, 10));
+                        Add (',');
+                        Add_Ireg (Rd);
                      end if;
                   end;
 
                when others =>
-                  Add ("unknown op2=");
+                  Add ("unknown op=0 op2=");
                   Add (Hex_Image (Get_Field (F_Op2, W)));
             end case;
 
@@ -529,6 +631,14 @@ package body Disa_Sparc is
                      end if;
                      return;
 
+                  when 16#34# =>
+                     Disp_Format (Insn_Desc_Fp34 (Get_Field (F_Opf, W)));
+                     return;
+
+                  when 16#35# =>
+                     Disp_Format (Insn_Desc_Fp35 (Get_Field (F_Opf, W)));
+                     return;
+
                   when 16#38# =>
                      if Get_Field (F_Rd, W) = 0
                        and then Get_Field (F_I, W) = 1
@@ -551,11 +661,11 @@ package body Disa_Sparc is
                   when others =>
                      null;
                end case;
-               Disp_Format3 (Insn_Desc_10);
+               Disp_Format (Insn_Desc_10 (Get_Field (F_Op3, W)));
             end;
 
          when 2#11# =>
-            Disp_Format3 (Insn_Desc_11);
+            Disp_Format (Insn_Desc_11 (Get_Field (F_Op3, W)));
 
          when others =>
 
