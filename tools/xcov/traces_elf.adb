@@ -1245,6 +1245,7 @@ package body Traces_Elf is
          if (Shdr.Sh_Flags and (SHF_ALLOC or SHF_EXECINSTR))
            = (SHF_ALLOC or SHF_EXECINSTR)
            and then (Shdr.Sh_Type = SHT_PROGBITS)
+           and then Shdr.Sh_Size > 0
          then
             Addr := Pc_Type (Shdr.Sh_Addr + Exec.Exe_Text_Start);
             Last := Pc_Type (Shdr.Sh_Addr + Exec.Exe_Text_Start
@@ -1976,7 +1977,7 @@ package body Traces_Elf is
       --  Build_Sections must be called before
 
       if Exec.Desc_Sets (Section_Addresses).Is_Empty then
-         raise Program_Error;
+         return;
       end if;
 
       if not Exec.Desc_Sets (Symbol_Addresses).Is_Empty then
