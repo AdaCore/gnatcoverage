@@ -272,6 +272,9 @@ cscope:
 %.dvi: %.texi
 	texi2dvi $<
 
+%.pdf: %.texi
+	texi2pdf $<
+
 qemu.1: qemu-doc.texi
 	$(SRC_PATH)/texi2pod.pl $< qemu.pod
 	pod2man --section=1 --center=" " --release=" " qemu.pod > $@
@@ -287,6 +290,8 @@ qemu-nbd.8: qemu-nbd.texi
 info: qemu-doc.info qemu-tech.info
 
 dvi: qemu-doc.dvi qemu-tech.dvi
+
+pdf: qemu-doc.pdf qemu-tech.pdf
 
 html: qemu-doc.html qemu-tech.html
 
