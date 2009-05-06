@@ -6,7 +6,8 @@ project Support is
    type Yes_No_Type is ("yes", "no");
    Use_AUnit    : Yes_No_Type := external ("UNITTEST", "no");
    Do_Build     : Yes_No_Type := external ("BUILD", "no");
-   Style_Checks : Yes_No_Type := external ("STYLE_CHECKS", "no");
+
+   Style_Checks := external ("STYLE_CHECKS", "");
 
    case Target is
       when "native" =>
@@ -65,14 +66,9 @@ project Support is
 
    package Compiler is
       for Default_Switches ("C") use ("-g", "-O1", "-fpreserve-control-flow");
-      for Default_Switches ("Ada") use
-        Compiler'Default_Switches("C") & ("-gnatp", "-gnatw.Xe");
-      case Style_Checks is
-        when "no" =>
-        when "yes" =>
-	   for Default_Switches ("Ada") use
-             Compiler'Default_Switches("Ada") & ("-gnaty");
-      end case;
+      for Default_Switches ("ada") use
+        Compiler'Default_Switches("C")
+	 & ("-gnatp", "-gnatw.Xe", Style_Checks);
    end Compiler;
 
    package IDE is
