@@ -79,21 +79,22 @@ package body Disa_Sparc is
      );
 
    type Format_Type is
-      (Format_Bad,
-       Format_Rs1_Regimm_Rd, --  format 3, rd, rs1, rs2 or imm13
-       Format_Fp_Mem,
-       Format_Mem_Fp,
-       Format_Mem_Rd,
-       Format_Rd_Mem,
-       Format_Mem_Creg,
-       Format_Mem,
-       Format_Ticc,
-       Format_Fregrs1_Fregrs2,
-       Format_Fregrs1_Fregrs2_Fregrd,
-       Format_Fregrs2_Fregrd,
---       Format_Rd,     --  format 3, rd only.
---       Format_Copro,  --  format 3, fpu or coprocessor
-       Format_Asi);     --  format 3, rd, rs1, asi and rs2.
+     (
+      Format_Bad,
+      Format_Rd,
+      Format_Rs1_Regimm,
+      Format_Rs1_Regimm_Rd, --  format 3, rd, rs1, rs2 or imm13
+      Format_Fp_Mem,
+      Format_Mem_Fp,
+      Format_Mem_Rd,
+      Format_Rd_Mem,
+      Format_Mem_Creg,
+      Format_Mem,
+      Format_Ticc,
+      Format_Fregrs1_Fregrs2,
+      Format_Fregrs1_Fregrs2_Fregrd,
+      Format_Fregrs2_Fregrd,
+      Format_Asi);     --  format 3, rd, rs1, asi and rs2.
 
    type Insn_Desc_Type is record
       Name   : String7;
@@ -133,16 +134,23 @@ package body Disa_Sparc is
       16#1E# => ("udivcc ", Format_Rs1_Regimm_Rd),
       16#1F# => ("sdivcc ", Format_Rs1_Regimm_Rd),
 
+      16#20# => ("taddcc ", Format_Rs1_Regimm_Rd),
+      16#21# => ("tsubcc ", Format_Rs1_Regimm_Rd),
+      16#22# => ("taddcct", Format_Rs1_Regimm_Rd),
+      16#23# => ("tsubcct", Format_Rs1_Regimm_Rd),
       16#24# => ("mulscc ", Format_Rs1_Regimm_Rd),
       16#25# => ("sll    ", Format_Rs1_Regimm_Rd),
       16#26# => ("srl    ", Format_Rs1_Regimm_Rd),
       16#27# => ("sra    ", Format_Rs1_Regimm_Rd),
-      16#29# => ("rdpsr  ", Format_Rs1_Regimm_Rd),
-      16#2A# => ("rdwim  ", Format_Rs1_Regimm_Rd),
+      16#28# => ("rdy    ", Format_Rd),
+      16#29# => ("rdpsr  ", Format_Rd),
+      16#2A# => ("rdwim  ", Format_Rd),
+      16#2B# => ("rdtbr  ", Format_Rd),
 
-      16#31# => ("wrpsr  ", Format_Rs1_Regimm_Rd),
-      16#32# => ("wrwim  ", Format_Rs1_Regimm_Rd),
-      16#33# => ("wrtbr  ", Format_Rs1_Regimm_Rd),
+      16#30# => ("wry    ", Format_Rs1_Regimm),
+      16#31# => ("wrpsr  ", Format_Rs1_Regimm),
+      16#32# => ("wrwim  ", Format_Rs1_Regimm),
+      16#33# => ("wrtbr  ", Format_Rs1_Regimm),
 
       16#34# => (" fp    ", Format_Bad),   -- Fp
       16#35# => (" fp    ", Format_Bad),   -- Fp
@@ -150,7 +158,7 @@ package body Disa_Sparc is
       16#38# => ("jmpl   ", Format_Rs1_Regimm_Rd),
       16#39# => ("rett   ", Format_Rs1_Regimm_Rd),
       16#3A# => ("t      ", Format_Ticc),
-      --  16#3B# => ("iflush ",  Format_Mem),
+      16#3B# => ("iflush ", Format_Mem),
       16#3C# => ("save   ", Format_Rs1_Regimm_Rd),
       16#3D# => ("restore", Format_Rs1_Regimm_Rd),
 
@@ -164,6 +172,7 @@ package body Disa_Sparc is
       16#03# => ("ldd    ", Format_Mem_Rd),
       16#04# => ("st     ", Format_Rd_Mem),
       16#05# => ("stb    ", Format_Rd_Mem),
+      16#06# => ("sth    ", Format_Rd_Mem),
       16#07# => ("std    ", Format_Rd_Mem),
       16#09# => ("ldsb   ", Format_Mem_Rd),
       16#0A# => ("ldsh   ", Format_Mem_Rd),
@@ -172,8 +181,11 @@ package body Disa_Sparc is
       16#13# => ("ldda   ", Format_Asi),
 
       16#20# => ("ldf    ", Format_Mem_Fp),
+      16#21# => ("ldfsr  ", Format_Mem),
       16#23# => ("lddf   ", Format_Mem_Fp),
       16#24# => ("stf    ", Format_Fp_Mem),
+      16#25# => ("stfsr  ", Format_Mem),
+      16#26# => ("stdfq  ", Format_Mem),
       16#27# => ("stff   ", Format_Fp_Mem),
 
       16#30# => ("ldc    ", Format_Mem_Creg),
@@ -185,47 +197,47 @@ package body Disa_Sparc is
    subtype Insn_Desc_Array_9 is Insn_Desc_Array (0 .. 511);
    Insn_Desc_Fp34 : constant Insn_Desc_Array_9 :=
      (
-      2#000000001# => ("fmovs  ", Format_Fregrs2_Fregrd),
-      2#000000101# => ("fnegs  ", Format_Fregrs2_Fregrd),
-      2#000001001# => ("fabss  ", Format_Fregrs2_Fregrd),
-      2#000101001# => ("fsqrts ", Format_Fregrs2_Fregrd),
-      2#000101010# => ("fsqrtd ", Format_Fregrs2_Fregrd),
-      2#000101011# => ("fsqrtx ", Format_Fregrs2_Fregrd),
-      2#001000001# => ("fadds  ", Format_Fregrs2_Fregrd),
-      2#001000010# => ("faddd  ", Format_Fregrs2_Fregrd),
-      2#001000011# => ("faddx  ", Format_Fregrs2_Fregrd),
-      2#001000101# => ("fsubs  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#001000110# => ("fsubd  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#001000111# => ("fsubx  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001001# => ("fmuls  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001010# => ("fmuld  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001011# => ("fmulx  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001101# => ("fdivs  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001110# => ("fdivd  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#001001111# => ("fdivx  ", Format_Fregrs1_Fregrs2_Fregrd),
-      2#011000010# => ("fdtoi  ", Format_Fregrs2_Fregrd),
-      2#011000100# => ("fitos  ", Format_Fregrs2_Fregrd),
-      2#011000110# => ("fdtos  ", Format_Fregrs2_Fregrd),
-      2#011000111# => ("fxtos  ", Format_Fregrs2_Fregrd),
-      2#011001000# => ("fitod  ", Format_Fregrs2_Fregrd),
-      2#011001001# => ("fstod  ", Format_Fregrs2_Fregrd),
-      2#011001011# => ("fxtod  ", Format_Fregrs2_Fregrd),
-      2#011001100# => ("fitox  ", Format_Fregrs2_Fregrd),
-      2#011001101# => ("fstox  ", Format_Fregrs2_Fregrd),
-      2#011001110# => ("fdtox  ", Format_Fregrs2_Fregrd),
-      2#011010001# => ("fstoi  ", Format_Fregrs2_Fregrd),
-      2#011010011# => ("fxtoi  ", Format_Fregrs2_Fregrd),
+      2#00000_0001# => ("fmovs  ", Format_Fregrs2_Fregrd),
+      2#00000_0101# => ("fnegs  ", Format_Fregrs2_Fregrd),
+      2#00000_1001# => ("fabss  ", Format_Fregrs2_Fregrd),
+      2#00010_1001# => ("fsqrts ", Format_Fregrs2_Fregrd),
+      2#00010_1010# => ("fsqrtd ", Format_Fregrs2_Fregrd),
+      2#00010_1011# => ("fsqrtx ", Format_Fregrs2_Fregrd),
+      2#00100_0001# => ("fadds  ", Format_Fregrs2_Fregrd),
+      2#00100_0010# => ("faddd  ", Format_Fregrs2_Fregrd),
+      2#00100_0011# => ("faddx  ", Format_Fregrs2_Fregrd),
+      2#00100_0101# => ("fsubs  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#00100_0110# => ("fsubd  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#00100_0111# => ("fsubx  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#00100_1001# => ("fmuls  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#00100_1010# => ("fmuld  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#00100_1011# => ("fmulx  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#00100_1101# => ("fdivs  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#00100_1110# => ("fdivd  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#00100_1111# => ("fdivx  ", Format_Fregrs1_Fregrs2_Fregrd),
+      2#01100_0100# => ("fitos  ", Format_Fregrs2_Fregrd),
+      2#01100_0110# => ("fdtos  ", Format_Fregrs2_Fregrd),
+      2#01100_0111# => ("fxtos  ", Format_Fregrs2_Fregrd),
+      2#01100_1000# => ("fitod  ", Format_Fregrs2_Fregrd),
+      2#01100_1001# => ("fstod  ", Format_Fregrs2_Fregrd),
+      2#01100_1011# => ("fxtod  ", Format_Fregrs2_Fregrd),
+      2#01100_1100# => ("fitox  ", Format_Fregrs2_Fregrd),
+      2#01100_1101# => ("fstox  ", Format_Fregrs2_Fregrd),
+      2#01100_1110# => ("fdtox  ", Format_Fregrs2_Fregrd),
+      2#01101_0001# => ("fstoi  ", Format_Fregrs2_Fregrd),
+      2#01101_0010# => ("fdtoi  ", Format_Fregrs2_Fregrd),
+      2#01101_0011# => ("fxtoi  ", Format_Fregrs2_Fregrd),
       others       => ("       ", Format_Bad)
      );
 
    Insn_Desc_Fp35 : constant Insn_Desc_Array_9 :=
      (
-      2#001010001# => ("fcmps  ", Format_Fregrs1_Fregrs2),
-      2#001010010# => ("fcmpd  ", Format_Fregrs1_Fregrs2),
-      2#001010011# => ("fcmpx  ", Format_Fregrs1_Fregrs2),
-      2#001010101# => ("fcmpes ", Format_Fregrs1_Fregrs2),
-      2#001010110# => ("fcmped ", Format_Fregrs1_Fregrs2),
-      2#001010111# => ("fcmpex ", Format_Fregrs1_Fregrs2),
+      2#00101_0001# => ("fcmps  ", Format_Fregrs1_Fregrs2),
+      2#00101_0010# => ("fcmpd  ", Format_Fregrs1_Fregrs2),
+      2#00101_0011# => ("fcmpx  ", Format_Fregrs1_Fregrs2),
+      2#00101_0101# => ("fcmpes ", Format_Fregrs1_Fregrs2),
+      2#00101_0110# => ("fcmped ", Format_Fregrs1_Fregrs2),
+      2#00101_0111# => ("fcmpex ", Format_Fregrs1_Fregrs2),
       others       => ("       ", Format_Bad)
      );
 
@@ -498,6 +510,16 @@ package body Disa_Sparc is
                Add (',');
                Disp_Rs2_Imm;
 
+            when Format_Rs1_Regimm =>
+               Add_HT;
+               Add_Ireg (Get_Field (F_Rs1, W));
+               Add (',');
+               Disp_Rs2_Imm;
+
+            when Format_Rd =>
+               Add_HT;
+               Add_Ireg (Rd);
+
             when Format_Fp_Mem =>
                Add_HT;
                Add_Freg (Rd);
@@ -644,12 +666,30 @@ package body Disa_Sparc is
                      return;
 
                   when 16#34# =>
-                     Disp_Format (Insn_Desc_Fp34 (Get_Field (F_Opf, W)));
-                     return;
+                     declare
+                        Opf : constant Unsigned_32 := Get_Field (F_Opf, W);
+                     begin
+                        if Insn_Desc_Fp34 (Opf).Format = Format_Bad then
+                           Add ("unknown op=2 op3=34 opf=");
+                           Add (Hex_Image (Unsigned_16 (Opf)));
+                        else
+                           Disp_Format (Insn_Desc_Fp34 (Opf));
+                        end if;
+                        return;
+                     end;
 
                   when 16#35# =>
-                     Disp_Format (Insn_Desc_Fp35 (Get_Field (F_Opf, W)));
-                     return;
+                     declare
+                        Opf : constant Unsigned_32 := Get_Field (F_Opf, W);
+                     begin
+                        if Insn_Desc_Fp35 (Opf).Format = Format_Bad then
+                           Add ("unknown op=2 op3=35 opf=");
+                           Add (Hex_Image (Unsigned_16 (Opf)));
+                        else
+                           Disp_Format (Insn_Desc_Fp35 (Opf));
+                        end if;
+                        return;
+                     end;
 
                   when 16#38# =>
                      if Get_Field (F_Rd, W) = 0
