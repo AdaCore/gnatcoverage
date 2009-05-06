@@ -58,7 +58,7 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 # on the same line, cumbersome.
 	@echo xcov --run --target=$(TARGET) $<
 	@$(STTY_ADJUST)
-	@xcov --run --target=$(TARGET) $<
+	-@xcov --run --target=$(TARGET) $<
 	@$(STTY_RESTORE)
 
 # -----------------------------------------------------------------------
