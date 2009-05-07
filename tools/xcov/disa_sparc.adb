@@ -282,7 +282,6 @@ package body Disa_Sparc is
       Sym      : Symbolizer'Class)
    is
       pragma Unreferenced (Self);
-      pragma Unreferenced (Sym);
 
       W : constant Unsigned_32 :=
         To_Big_Endian_U32 (Insn_Bin (Insn_Bin'First .. Insn_Bin'First + 3));
@@ -381,6 +380,7 @@ package body Disa_Sparc is
             V := V or 16#Ff00_0000#;
          end if;
          Add (Hex_Image (Pc + V));
+         Sym.Symbolize (Pc + V, Line, Line_Pos);
       end Add_Cond;
 
       --------------
@@ -625,10 +625,15 @@ package body Disa_Sparc is
 
             --  Call
 
-            Add ("call");
-            Add_HT;
-            Add ("Ox");
-            Add (Hex_Image (Pc + Shift_Left (W, 2)));
+            declare
+               Val : constant Unsigned_32 := Pc + Shift_Left (W, 2);
+            begin
+               Add ("call");
+               Add_HT;
+               Add ("0x");
+               Add (Hex_Image (Val));
+               Sym.Symbolize (Val, Line, Line_Pos);
+            end;
 
          when 2#10# =>
             declare
