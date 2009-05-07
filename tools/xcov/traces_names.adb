@@ -93,7 +93,7 @@ package body Traces_Names is
             Name : String_Acc;
             Cur : Names_Maps.Cursor;
          begin
-            if L (L'First) = '#' then
+            if L = "" or else L (L'First) = '#' then
                null;
             else
                Name := new String'(L);
