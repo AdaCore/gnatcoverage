@@ -1002,21 +1002,31 @@ package body Traces_Elf is
 
       procedure New_Source_Line is
          use Addresses_Containers;
-         Pos : Cursor;
-         Inserted : Boolean;
+         Pos        : Cursor;
+         Inserted   : Boolean;
+         New_Line   : Addresses_Info_Acc;
+         Empty_Line : Addresses_Info_Acc;
       begin
          --  Note: Last and Parent are set by Build_Debug_Lines.
-         Exec.Desc_Sets (Line_Addresses).Insert
-           (new Addresses_Info'
-                 (Kind => Line_Addresses,
-                  First => Exec.Exe_Text_Start + Pc_Type (Pc),
-                  Last => Exec.Exe_Text_Start + Pc_Type (Pc),
-                  Parent => null,
-                  Line_Filename => Filenames_Vectors.Element (Filenames, File),
-                  Line_Number   => Natural (Line),
-                  Column_Number => Natural (Column)),
-                 Pos, Inserted);
-         --  Ok, this may fail (if there are two lines number for the same pc).
+         New_Line :=
+           new Addresses_Info'
+           (Kind => Line_Addresses,
+            First => Exec.Exe_Text_Start + Pc_Type (Pc),
+            Last => Exec.Exe_Text_Start + Pc_Type (Pc),
+            Parent => null,
+            Line_Filename => Filenames_Vectors.Element (Filenames, File),
+            Line_Number   => Natural (Line),
+            Column_Number => Natural (Column));
+
+         Exec.Desc_Sets (Line_Addresses).Insert (New_Line, Pos, Inserted);
+
+         if not Inserted then
+            --  The line previously inserted is an empty range. Drop it.
+            --  Replace it by the new line.
+            Empty_Line := Element (Pos);
+            Exec.Desc_Sets (Line_Addresses).Replace_Element (Pos, New_Line);
+            Unchecked_Deallocation (Empty_Line);
+         end if;
 
          if False then
             Put_Line
