@@ -41,6 +41,12 @@ with Disa_Common; use Disa_Common;
 
 package body Traces_Elf is
 
+   No_Stmt_List : constant Unsigned_32 := Unsigned_32'Last;
+   --  Value indicating there is no AT_stmt_list.
+
+   No_Ranges    : constant Unsigned_32 := Unsigned_32'Last;
+   --  Value indicating there is no AT_ranges.
+
    procedure Read_Word8 (Exec : Exe_File_Type;
                          Base : Address;
                          Off : in out Storage_Offset;
@@ -75,6 +81,11 @@ package body Traces_Elf is
                                   Off : in out Storage_Offset;
                                   Form : Unsigned_32;
                                   Res : out Unsigned_64);
+   procedure Read_Dwarf_Form_U32 (Exec : Exe_File_Type;
+                                  Base : Address;
+                                  Off : in out Storage_Offset;
+                                  Form : Unsigned_32;
+                                  Res : out Unsigned_32);
    procedure Read_Dwarf_Form_String (Exec : in out Exe_File_Type;
                                      Base : Address;
                                      Off : in out Storage_Offset;
@@ -208,8 +219,6 @@ package body Traces_Elf is
    procedure Insert (Set : in out Addresses_Containers.Set;
                      El : Addresses_Info_Acc)
      renames Addresses_Containers.Insert;
-
-   Bad_Stmt_List : constant Unsigned_64 := Unsigned_64'Last;
 
    procedure Open_File
      (Exec : out Exe_File_Type; Filename : String; Text_Start : Pc_Type)
@@ -455,6 +464,17 @@ package body Traces_Elf is
       end case;
    end Read_Dwarf_Form_U64;
 
+   procedure Read_Dwarf_Form_U32 (Exec : Exe_File_Type;
+                                  Base : Address;
+                                  Off : in out Storage_Offset;
+                                  Form : Unsigned_32;
+                                  Res : out Unsigned_32) is
+      R : Unsigned_64;
+   begin
+      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, R);
+      Res := Unsigned_32 (R);
+   end Read_Dwarf_Form_U32;
+
    procedure Read_Dwarf_Form_String (Exec : in out Exe_File_Type;
                                      Base : Address;
                                      Off : in out Storage_Offset;
@@ -632,6 +652,9 @@ package body Traces_Elf is
    is
       use Dwarf;
 
+      procedure New_Compilation_Unit (Lo_Pc, Hi_Pc : Unsigned_64);
+      --  Add a compilation_unit (chunk).
+
       Abbrev_Len : Elf_Size;
       Abbrevs : Binary_Content_Acc;
       Abbrev_Base : Address;
@@ -647,6 +670,7 @@ package body Traces_Elf is
       Ranges_Len : Elf_Size;
       Ranges : Binary_Content_Acc;
       Ranges_Base : Address;
+      Ranges_Off : Storage_Offset;
 
       Len : Unsigned_32;
       Ver : Unsigned_16;
@@ -662,7 +686,8 @@ package body Traces_Elf is
       Level : Unsigned_8;
 
       At_Sib       : Unsigned_64 := 0;
-      At_Stmt_List : Unsigned_64 := Bad_Stmt_List;
+      At_Stmt_List : Unsigned_32 := No_Stmt_List;
+      At_Ranges    : Unsigned_32 := No_Ranges;
       At_Low_Pc    : Unsigned_64 := 0;
       At_High_Pc   : Unsigned_64 := 0;
       At_Lang      : Unsigned_64 := 0;
@@ -673,8 +698,38 @@ package body Traces_Elf is
       Current_Cu      : Addresses_Info_Acc;
       Current_Subprg  : Addresses_Info_Acc;
       Sec             : Addresses_Info_Acc;
-      Addr            : Pc_Type;
       Compilation_Dir : String_Acc;
+      Unit_Filename   : String_Acc;
+
+      procedure New_Compilation_Unit (Lo_Pc, Hi_Pc : Unsigned_64) is
+         Addr            : Pc_Type;
+      begin
+         Addr := Exec.Exe_Text_Start + Pc_Type (Lo_Pc);
+
+         --  Find section of this symbol
+
+         if Sec = null
+           or else (Addr not in Sec.First .. Sec.Last)
+         then
+            Sec := Get_Address_Info (Exec, Section_Addresses, Addr);
+         end if;
+
+         Current_Cu := new Addresses_Info'
+           (Kind                  => Compile_Unit_Addresses,
+            First                 => Addr,
+            Last                  => Exec.Exe_Text_Start + Pc_Type (Hi_Pc - 1),
+            Parent                => Sec,
+            Compile_Unit_Filename => Unit_Filename,
+            Compilation_Directory => Compilation_Dir,
+            Stmt_List             => At_Stmt_List);
+
+         if Hi_Pc > Lo_Pc then
+            --  Do not insert empty units
+
+            Exec.Desc_Sets (Compile_Unit_Addresses).
+              Insert (Current_Cu);
+         end if;
+      end New_Compilation_Unit;
    begin
       --  Return now if already loaded.
       if not Exec.Desc_Sets (Compile_Unit_Addresses).Is_Empty then
@@ -767,7 +822,9 @@ package body Traces_Elf is
                      Read_Dwarf_Form_String (Exec, Base, Off, Form,
                                              At_Comp_Dir);
                   when DW_AT_stmt_list =>
-                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Stmt_List);
+                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form, At_Stmt_List);
+                  when DW_AT_ranges =>
+                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form, At_Ranges);
                   when DW_AT_low_pc =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Low_Pc);
                      if Form /= DW_FORM_addr then
@@ -787,51 +844,50 @@ package body Traces_Elf is
 
             case Tag is
                when DW_TAG_compile_unit =>
-                  if At_Low_Pc = 0 and At_High_Pc = 0 then
-                     --  This field are not required.
-                     At_Low_Pc := 1;
-                     At_High_Pc := 1;
-                  else
-                     Cu_Base_Pc := At_Low_Pc;
-                  end if;
-
-                  Addr := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
-
-                  --  Find section of this symbol
-
-                  if Sec = null
-                    or else (Addr not in Sec.First .. Sec.Last)
-                  then
-                     Sec := Get_Address_Info (Exec, Section_Addresses, Addr);
-                  end if;
-
                   if At_Comp_Dir /= Null_Address then
                      Compilation_Dir := new String'(Read_String (At_Comp_Dir));
                   else
                      Compilation_Dir := null;
                   end if;
 
-                  Current_Cu := new Addresses_Info'
-                    (Kind                  => Compile_Unit_Addresses,
-                     First                 => Addr,
-                     Last                  =>
-                       Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
-                     Parent                => Sec,
-                     Compile_Unit_Filename =>
-                       new String'(Read_String (At_Name)),
-                     Compilation_Directory => Compilation_Dir,
-                     Stmt_List             => Unsigned_32 (At_Stmt_List));
+                  Unit_Filename := new String'(Read_String (At_Name));
 
-                  if At_High_Pc > At_Low_Pc then
-                     --  Do not insert empty units
+                  if At_Ranges /= No_Ranges then
+                     Ranges_Off := Storage_Offset (At_Ranges);
 
-                     Exec.Desc_Sets (Compile_Unit_Addresses).
-                       Insert (Current_Cu);
+                     --  Guard for unhandled case.
+                     if At_Low_Pc /= 0 then
+                        raise Program_Error with "at_ranges with low_pc /= 0";
+                     end if;
+
+                     loop
+                        Read_Address (Exec, Ranges_Base, Ranges_Off,
+                                      Exec.Addr_Size, At_Low_Pc);
+                        Read_Address (Exec, Ranges_Base, Ranges_Off,
+                                      Exec.Addr_Size, At_High_Pc);
+                        if At_Low_Pc = Unsigned_64'Last then
+                           raise Program_Error with "base address in ranges";
+                        end if;
+                        exit when At_Low_Pc = 0 and At_High_Pc = 0;
+                        New_Compilation_Unit (At_Low_Pc, At_High_Pc);
+                        if At_High_Pc > At_Low_Pc then
+                           At_Stmt_List := No_Stmt_List;
+                        end if;
+                     end loop;
+                     Cu_Base_Pc := 0;
+                  elsif At_Low_Pc = 0 and At_High_Pc = 0 then
+                     --  This field are not required.
+                     Cu_Base_Pc := 0;
+                     New_Compilation_Unit (1, 1);
+                  else
+                     New_Compilation_Unit (At_Low_Pc, At_High_Pc);
+                     Cu_Base_Pc := At_Low_Pc;
                   end if;
 
                   --  Ctxt.Lang := At_Lang;
                   At_Lang := 0;
-                  At_Stmt_List := Bad_Stmt_List;
+                  At_Stmt_List := No_Stmt_List;
+                  At_Ranges := No_Ranges;
 
                when DW_TAG_subprogram =>
                   if At_High_Pc > At_Low_Pc then
@@ -961,25 +1017,19 @@ package body Traces_Elf is
    begin
       --  Load .debug_line
       if Exec.Lines = null then
-         Exec.Lines_Len := Get_Section_Length (Exec.Exe_File,
-                                               Exec.Sec_Debug_Line);
-         Exec.Lines := new Binary_Content (0 .. Exec.Lines_Len - 1);
-         Load_Section (Exec.Exe_File,
-                       Exec.Sec_Debug_Line, Exec.Lines (0)'Address);
-
+         Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
+                                 Exec.Lines_Len, Exec.Lines, Base);
          if Exec.Sec_Debug_Line_Rel /= 0 then
             Apply_Relocations (Exec, Exec.Sec_Debug_Line_Rel, Exec.Lines.all);
          end if;
       end if;
 
-      Base := Exec.Lines (0)'Address;
-
       Off := Storage_Offset (Stmt_List_Offset);
-      if Off >= Storage_Offset (Get_Section_Length (Exec.Exe_File,
-                                                    Exec.Sec_Debug_Line))
-      then
+      if Off >= Storage_Offset (Exec.Lines_Len) then
          return;
       end if;
+
+      Base := Exec.Lines (0)'Address;
 
       --  Read header
 
