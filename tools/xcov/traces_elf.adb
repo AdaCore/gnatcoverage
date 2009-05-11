@@ -98,6 +98,15 @@ package body Traces_Elf is
    --  is the value of DW_AT_comp_dir for the compilation unit, or is null
    --  if this attribute is not specified.
 
+   procedure Alloc_And_Load_Section (Exec    : Exe_File_Type;
+                                     Sec     : Elf_Half;
+                                     Len     : out Elf_Size;
+                                     Content : out Binary_Content_Acc;
+                                     Base    : out Address);
+   --  Allocate memory for section SEC of EXEC and read it.
+   --  LEN is the length of the section, CONTENT is its binary content and
+   --  BASE the address of the first byte.
+
    Empty_String_Acc : constant String_Acc := new String'("");
 
    ---------
@@ -239,6 +248,8 @@ package body Traces_Elf is
                Exec.Sec_Debug_Line_Rel := I;
             elsif Name = ".debug_str" then
                Exec.Sec_Debug_Str := I;
+            elsif Name = ".debug_ranges" then
+               Exec.Sec_Debug_Ranges := I;
             end if;
          end;
       end loop;
@@ -261,6 +272,7 @@ package body Traces_Elf is
       Exec.Sec_Debug_Line     := 0;
       Exec.Sec_Debug_Line_Rel := 0;
       Exec.Sec_Debug_Str      := 0;
+      Exec.Sec_Debug_Ranges   := 0;
    end Close_Exe_File;
 
    procedure Close_File (Exec : in out Exe_File_Type) is
@@ -458,15 +470,11 @@ package body Traces_Elf is
             begin
                Read_Word4 (Exec, Base, Off, V);
                if Exec.Debug_Str_Base = Null_Address then
-                  if Exec.Sec_Debug_Str /= 0 then
-                     Exec.Debug_Str_Len := Get_Section_Length
-                       (Exec.Exe_File, Exec.Sec_Debug_Str);
-                     Exec.Debug_Strs :=
-                       new Binary_Content (0 .. Exec.Debug_Str_Len - 1);
-                     Exec.Debug_Str_Base := Exec.Debug_Strs (0)'Address;
-                     Load_Section (Exec.Exe_File,
-                                   Exec.Sec_Debug_Str, Exec.Debug_Str_Base);
-                  else
+                  Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Str,
+                                          Exec.Debug_Str_Len,
+                                          Exec.Debug_Strs,
+                                          Exec.Debug_Str_Base);
+                  if Exec.Sec_Debug_Str = 0 then
                      return;
                   end if;
                end if;
@@ -564,10 +572,8 @@ package body Traces_Elf is
       if Natural (Shdr.Sh_Entsize) /= Elf_Rela_Size then
          raise Program_Error;
       end if;
-      Relocs_Len := Get_Section_Length (Exec.Exe_File, Sec_Rel);
-      Relocs := new Binary_Content (0 .. Relocs_Len - 1);
-      Load_Section (Exec.Exe_File, Sec_Rel, Relocs (0)'Address);
-      Relocs_Base := Relocs (0)'Address;
+      Alloc_And_Load_Section (Exec, Sec_Rel,
+                              Relocs_Len, Relocs, Relocs_Base);
 
       Off := 0;
       while Off < Storage_Offset (Relocs_Len) loop
@@ -606,6 +612,21 @@ package body Traces_Elf is
       Unchecked_Deallocation (Relocs);
    end Apply_Relocations;
 
+   procedure Alloc_And_Load_Section (Exec : Exe_File_Type;
+                                     Sec : Elf_Half;
+                                     Len : out Elf_Size;
+                                     Content : out Binary_Content_Acc;
+                                     Base : out Address) is
+   begin
+      if Sec /= 0 then
+         Len := Get_Section_Length (Exec.Exe_File, Sec);
+         pragma Assert (Len > 0);
+         Content := new Binary_Content (0 .. Len - 1);
+         Base := Content (0)'Address;
+         Load_Section (Exec.Exe_File, Sec, Base);
+      end if;
+   end Alloc_And_Load_Section;
+
    --  Extract lang, subprogram name and stmt_list (offset in .debug_line).
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type)
    is
@@ -617,12 +638,15 @@ package body Traces_Elf is
       Map : Abbrev_Map_Acc;
       Abbrev : Address;
 
-      Shdr : Elf_Shdr_Acc;
       Info_Len : Elf_Size;
       Infos : Binary_Content_Acc;
       Base : Address;
       Off : Storage_Offset;
       Aoff : Storage_Offset;
+
+      Ranges_Len : Elf_Size;
+      Ranges : Binary_Content_Acc;
+      Ranges_Base : Address;
 
       Len : Unsigned_32;
       Ver : Unsigned_16;
@@ -662,27 +686,25 @@ package body Traces_Elf is
       end if;
 
       --  Load .debug_abbrev
-      Abbrev_Len := Get_Section_Length (Exec.Exe_File, Exec.Sec_Debug_Abbrev);
-      Abbrevs := new Binary_Content (0 .. Abbrev_Len - 1);
-      Abbrev_Base := Abbrevs (0)'Address;
-      Load_Section (Exec.Exe_File, Exec.Sec_Debug_Abbrev, Abbrev_Base);
+      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Abbrev,
+                              Abbrev_Len, Abbrevs, Abbrev_Base);
 
       Map := null;
 
       --  Load .debug_info
-      Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Debug_Info);
-      Info_Len := Get_Section_Length (Exec.Exe_File, Exec.Sec_Debug_Info);
-      Infos := new Binary_Content (0 .. Info_Len - 1);
-      Base := Infos (0)'Address;
-      Load_Section (Exec.Exe_File, Exec.Sec_Debug_Info, Base);
+      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info,
+                              Info_Len, Infos, Base);
 
       if Exec.Sec_Debug_Info_Rel /= 0 then
          Apply_Relocations (Exec, Exec.Sec_Debug_Info_Rel, Infos.all);
       end if;
 
-      Off := 0;
+      --  Load .debug_ranges
+      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Ranges,
+                              Ranges_Len, Ranges, Ranges_Base);
 
-      while Off < Storage_Offset (Shdr.Sh_Size) loop
+      Off := 0;
+      while Off < Storage_Offset (Info_Len) loop
          --  Read .debug_info header:
          --    Length, version, offset in .debug_abbrev, pointer size.
          Read_Word4 (Exec, Base, Off, Len);
@@ -840,6 +862,7 @@ package body Traces_Elf is
 
       Unchecked_Deallocation (Infos);
       Unchecked_Deallocation (Abbrevs);
+      Unchecked_Deallocation (Ranges);
    end Build_Debug_Compile_Units;
 
    package Filenames_Vectors is new Ada.Containers.Vectors
@@ -924,10 +947,13 @@ package body Traces_Elf is
                  Pos, Inserted);
          --  Ok, this may fail (if there are two lines number for the same pc).
 
-         --  Put_Line ("pc: " & Hex_Image (Pc)
-         --        & " file (" & Natural'Image (File) & "): "
-         --        & Read_String (Filenames_Vectors.Element (Filenames, File))
-         --        & ", line: " & Unsigned_32'Image (Line));
+         if False then
+            Put_Line
+              ("pc: " & Hex_Image (Pc)
+                 & " file (" & Natural'Image (File) & "): "
+                 & Filenames_Vectors.Element (Filenames, File).all
+                 & ", line: " & Unsigned_32'Image (Line));
+         end if;
       end New_Source_Line;
 
    --  Start of processing for Read_Debug_Lines

@@ -223,6 +223,7 @@ private
       Sec_Debug_Line     : Elf_Half := 0;
       Sec_Debug_Line_Rel : Elf_Half := 0;
       Sec_Debug_Str      : Elf_Half := 0;
+      Sec_Debug_Ranges   : Elf_Half := 0;
 
       Exe_File : Elf_Files.Elf_File;
       Exe_Text_Start : Elf_Addr;
