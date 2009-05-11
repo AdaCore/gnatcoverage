@@ -3,8 +3,10 @@
 include Makefile.common
 
 ifneq ($(TARGET),)
+  ifneq ($(TARGET),leon-elf)
   START=$(TARGET_SUPPORT_LIB)/start.o
   LDSCRIPT=$(TARGET_SUPPORT_LIB)/gnu.ld
+  endif
   GPRCONFIGARGS=--target=$(TARGET)
 endif
 

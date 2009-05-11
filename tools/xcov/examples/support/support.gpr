@@ -1,6 +1,6 @@
 project Support is
 
-   type Target_Type is ("native", "powerpc-elf");
+   type Target_Type is ("native", "powerpc-elf", "leon-elf");
    Target : Target_Type := external ("TARGET", "powerpc-elf");
 
    type Yes_No_Type is ("yes", "no");
@@ -38,6 +38,7 @@ project Support is
 
    case Target is
       when "native" =>
+      when "leon-elf" =>	
       when others =>
          for Library_Options use
            (Project'Library_Dir & "/start.o",
@@ -85,6 +86,12 @@ project Support is
             for Gnatlist use "gnatls";
             for Gnat use "gnat";
             for Debugger_Command use "gdb";
+         when "leon-elf" =>
+            for Compiler_Command ("Ada") use "leon-elf-gnatmake";
+            for Compiler_Command ("C") use "leon-elf-gcc";
+            for Gnatlist use "leon-elf-gnatls";
+            for Gnat use "leon-elf-gnat";
+            for Debugger_Command use "leon-elf-gdb";
       end case;
    end IDE;
 
