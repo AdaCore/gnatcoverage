@@ -700,10 +700,16 @@ package body Traces_Elf is
       Sec             : Addresses_Info_Acc;
       Compilation_Dir : String_Acc;
       Unit_Filename   : String_Acc;
+      Subprg_Low      : Pc_Type;
 
       procedure New_Compilation_Unit (Lo_Pc, Hi_Pc : Unsigned_64) is
          Addr            : Pc_Type;
       begin
+         if Hi_Pc <= Lo_Pc then
+            --  Discard empty units.
+            return;
+         end if;
+
          Addr := Exec.Exe_Text_Start + Pc_Type (Lo_Pc);
 
          --  Find section of this symbol
@@ -723,12 +729,7 @@ package body Traces_Elf is
             Compilation_Directory => Compilation_Dir,
             Stmt_List             => At_Stmt_List);
 
-         if Hi_Pc > Lo_Pc then
-            --  Do not insert empty units
-
-            Exec.Desc_Sets (Compile_Unit_Addresses).
-              Insert (Current_Cu);
-         end if;
+         Exec.Desc_Sets (Compile_Unit_Addresses).Insert (Current_Cu);
       end New_Compilation_Unit;
    begin
       --  Return now if already loaded.
@@ -869,8 +870,8 @@ package body Traces_Elf is
                            raise Program_Error with "base address in ranges";
                         end if;
                         exit when At_Low_Pc = 0 and At_High_Pc = 0;
-                        New_Compilation_Unit (At_Low_Pc, At_High_Pc);
                         if At_High_Pc > At_Low_Pc then
+                           New_Compilation_Unit (At_Low_Pc, At_High_Pc);
                            At_Stmt_List := No_Stmt_List;
                         end if;
                      end loop;
@@ -878,7 +879,6 @@ package body Traces_Elf is
                   elsif At_Low_Pc = 0 and At_High_Pc = 0 then
                      --  This field are not required.
                      Cu_Base_Pc := 0;
-                     New_Compilation_Unit (1, 1);
                   else
                      New_Compilation_Unit (At_Low_Pc, At_High_Pc);
                      Cu_Base_Pc := At_Low_Pc;
@@ -891,11 +891,26 @@ package body Traces_Elf is
 
                when DW_TAG_subprogram =>
                   if At_High_Pc > At_Low_Pc then
+                     --  Don't care about missing subprograms.
+
+                     Subprg_Low := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
+                     if Current_Cu = null
+                       or else
+                       Subprg_Low not in Current_Cu.First .. Current_Cu.Last
+                     then
+                        Current_Cu := Get_Address_Info
+                          (Exec, Compile_Unit_Addresses, Subprg_Low);
+                     end if;
+
+                     if Current_Cu = null then
+                        --  Can this happen ?
+                        raise Program_Error with "no CU for subprogram";
+                     end if;
+
                      Current_Subprg :=
                        new Addresses_Info'
                        (Kind            => Subprogram_Addresses,
-                        First           =>
-                          Exec.Exe_Text_Start + Pc_Type (At_Low_Pc),
+                        First           => Subprg_Low,
                         Last            =>
                           Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
                         Parent          => Current_Cu,
