@@ -295,6 +295,11 @@ package body Qemudrv is
                       Drivers (Driver_Index).Build_Options.all);
       end if;
 
+      --  The 'prepare' target do not launch qemu.
+      if Drivers (Driver_Index).Run_Command = null then
+         return;
+      end if;
+
       --  Run qemu.
       declare
          Driver : Driver_Target renames Drivers (Driver_Index);

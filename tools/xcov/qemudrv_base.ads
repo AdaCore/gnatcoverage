@@ -77,6 +77,12 @@ package Qemudrv_Base is
        Run_Options => new String_List'(new String'("-trace"),
                                        new String'("$trace"),
                                        new String'("$exe"))
+      ),
+      (Target => new String'("prepare"),
+       Build_Command => null,
+       Build_Options => null,
+       Run_Command => null,
+       Run_Options => null
       )
      );
 end Qemudrv_Base;
