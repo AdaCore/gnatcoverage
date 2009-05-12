@@ -829,11 +829,13 @@ package body Disa_X86 is
       pragma Unreferenced (Self);
       pragma Unreferenced (Pc);
 
+      Bad_Memory : exception;
+
       --  Index in LINE of the next character to be written.
       Lo : Natural;
 
       --  The instruction memory, 0 based.
-      Mem : Binary_Content renames Insn_Bin;
+      function Mem (Off : Pc_Type) return Byte;
 
       --  Add NAME to the line.
       procedure Add_Name (Name : String8);
@@ -990,6 +992,14 @@ package body Disa_X86 is
                raise Program_Error;
          end case;
       end Add_Reg;
+
+      function Mem (Off : Pc_Type) return Byte is
+      begin
+         if Off not in Insn_Bin'Range then
+            raise Bad_Memory;
+         end if;
+         return Insn_Bin (Off);
+      end Mem;
 
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type)
       is
@@ -1536,7 +1546,12 @@ package body Disa_X86 is
       end if;
 
       Line_Pos := Lo;
-      Insn_Len := Natural (Off_Imm - Mem'First);
+      Insn_Len := Natural (Off_Imm - Insn_Bin'First);
+   exception
+      when Bad_Memory =>
+         Add_String ("[truncated]");
+         Line_Pos := Lo;
+         Insn_Len := Insn_Bin'Length;
    end Disassemble_Insn;
 
    function Get_Insn_Length
