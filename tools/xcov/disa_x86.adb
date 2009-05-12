@@ -48,10 +48,14 @@ package body Disa_X86 is
       C_Mfd,
       C_Mfe,
       C_Md,
+      C_Mb,
       C_Mw,
       C_Mq,
+      C_Ms,
       C_M,
       --  End of modrm.
+
+      C_Rv_Mw, --  FIXME
 
       C_Gw,
       C_Gz,
@@ -524,6 +528,11 @@ package body Disa_X86 is
       2#111# => ("idiv    ", C_Reg_Al, C_Reg_Ax),
       others => ("        ", C_None, C_None));
 
+   Insn_Desc_G4 : constant Group_Desc_Array_Type :=
+     (2#000# => ("inc     ", C_Eb, C_None),
+      2#001# => ("dec     ", C_Eb, C_None),
+      others => ("        ", C_None, C_None));
+
    Insn_Desc_G5 : constant Group_Desc_Array_Type :=
      (2#000# => ("inc     ", C_Ev, C_None),
       2#001# => ("dec     ", C_Ev, C_None),
@@ -533,6 +542,26 @@ package body Disa_X86 is
       2#101# => ("jmpf    ", C_Ep, C_None),
       2#110# => ("push    ", C_Ev, C_None),
       2#111# => ("        ", C_None, C_None));
+
+   Insn_Desc_G6 : constant Group_Desc_Array_Type :=
+     (2#000# => ("sldt    ", C_Rv_Mw, C_None),
+      2#001# => ("str     ", C_Rv_Mw, C_None),
+      2#010# => ("lldt    ", C_Ew, C_None),
+      2#011# => ("ltr     ", C_Ew, C_None),
+      2#100# => ("verr    ", C_Ew, C_None),
+      2#101# => ("verw    ", C_Ew, C_None),
+      2#110# => ("        ", C_None, C_None),
+      2#111# => ("        ", C_None, C_None));
+
+   Insn_Desc_G7 : constant Group_Desc_Array_Type :=
+     (2#000# => ("sgdt    ", C_Ms, C_None),
+      2#001# => ("sidt    ", C_Ms, C_None),
+      2#010# => ("lgdt    ", C_Ms, C_None),
+      2#011# => ("lidt    ", C_Ms, C_None),
+      2#100# => ("smsw    ", C_Rv_Mw, C_None),
+      2#101# => ("        ", C_None, C_None),
+      2#110# => ("lmsw    ", C_Ew, C_None),
+      2#111# => ("invlpg  ", C_Mb, C_None));
 
    type Esc_Desc_Array_Type is array (Bf_3, Bf_3) of Insn_Desc_Type;
    Insn_Desc_Esc : constant Esc_Desc_Array_Type :=
@@ -824,6 +853,7 @@ package body Disa_X86 is
       procedure Name_Align (Orig : Natural);
       procedure Add_Reg (F : Bf_3; W : Width_Type);
       procedure Add_Reg_St (F : Bf_3);
+      procedure Add_Reg_Seg (F : Bf_3);
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type);
       function Decode_Val (Off : Pc_Type; Width : Width_Type)
                           return Unsigned_32;
@@ -915,6 +945,28 @@ package body Disa_X86 is
          Add_Char (Hex_Digit (Natural (F)));
          Add_Char (')');
       end Add_Reg_St;
+
+      procedure Add_Reg_Seg (F : Bf_3) is
+      begin
+         case F is
+            when 2#000# =>
+               Add_String ("%es");
+            when 2#001# =>
+               Add_String ("%cs");
+            when 2#010# =>
+               Add_String ("%ss");
+            when 2#011# =>
+               Add_String ("%ds");
+            when 2#100# =>
+               Add_String ("%fs");
+            when 2#101# =>
+               Add_String ("%gs");
+            when 2#110# =>
+               Add_String ("%??");
+            when 2#111# =>
+               Add_String ("%??");
+         end case;
+      end Add_Reg_Seg;
 
       procedure Add_Reg (F : Bf_3; W : Width_Type) is
          type Reg_Name2_Array is array (Bf_3) of String (1 .. 2);
@@ -1166,7 +1218,9 @@ package body Disa_X86 is
       procedure Add_Operand (C : Code_Type;
                              Off_Modrm : Pc_Type;
                              Off_Imm : in out Pc_Type;
-                             W : Width_Type) is
+                             W : Width_Type)
+      is
+         Off2 : Pc_Type;
       begin
          case C is
             when C_Reg_Bp =>
@@ -1193,6 +1247,20 @@ package body Disa_X86 is
                Add_String ("%bl");
             when C_Reg_Ah =>
                Add_String ("%ah");
+            when C_Reg_Cs =>
+               Add_String ("%cs");
+            when C_Reg_Ds =>
+               Add_String ("%ds");
+            when C_Reg_Es =>
+               Add_String ("%es");
+            when C_Reg_Ss =>
+               Add_String ("%ss");
+            when C_Ap =>
+               Off2 := Off_Imm;
+               Off_Imm := Off_Imm + 4;  -- FIXME
+               Decode_Imm (Off_Imm, W_16);
+               Add_Comma;
+               Decode_Imm (Off2, W_32);  -- FIXME
             when C_Gv =>
                Decode_Modrm_Reg (Mem (Off_Modrm), W);
             when C_Gv_Ib =>
@@ -1213,9 +1281,9 @@ package body Disa_X86 is
                Decode_Imm (Off_Imm, To_Z (W));
                Add_Comma;
                Decode_Modrm_Mem (Off_Modrm, W);
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq =>
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq | C_Ms =>
                Decode_Modrm_Mem (Off_Modrm, W_None);
-            when C_Eb =>
+            when C_Eb | C_Mb =>
                Decode_Modrm_Mem (Off_Modrm, W_8);
             when C_Ib =>
                Decode_Imm (Off_Imm, W_8);
@@ -1249,6 +1317,10 @@ package body Disa_X86 is
                Add_Reg_St (0);
             when C_Cst_1 =>
                Add_String ("1");
+            when C_Sw =>
+               Add_Reg_Seg (Ext_Modrm_Reg (Mem (Off_Modrm)));
+            when C_Fv =>
+               null;
             when others =>
                raise Program_Error with
                  "unhandled x86 code_type " & Code_Type'Image (C);
@@ -1370,9 +1442,27 @@ package body Disa_X86 is
             else
                Src := Desc.Src;
             end if;
+         when '4' =>
+            B1 := Mem (Off);
+            Desc := Insn_Desc_G4 (Ext_543 (B1));
+            Name := Desc.Name;
+            Src := Desc.Src;
+            Dst := Desc.Dst;
          when '5' =>
             B1 := Mem (Off);
             Desc := Insn_Desc_G5 (Ext_543 (B1));
+            Name := Desc.Name;
+            Src := Desc.Src;
+            Dst := Desc.Dst;
+         when '6' =>
+            B1 := Mem (Off);
+            Desc := Insn_Desc_G6 (Ext_543 (B1));
+            Name := Desc.Name;
+            Src := Desc.Src;
+            Dst := Desc.Dst;
+         when '7' =>
+            B1 := Mem (Off);
+            Desc := Insn_Desc_G7 (Ext_543 (B1));
             Name := Desc.Name;
             Src := Desc.Src;
             Dst := Desc.Dst;
