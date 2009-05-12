@@ -887,7 +887,6 @@ package body Traces_Elf is
                   --  Ctxt.Lang := At_Lang;
                   At_Lang := 0;
                   At_Stmt_List := No_Stmt_List;
-                  At_Ranges := No_Ranges;
 
                when DW_TAG_subprogram =>
                   if At_High_Pc > At_Low_Pc then
@@ -924,6 +923,7 @@ package body Traces_Elf is
             end case;
             At_Low_Pc := 0;
             At_High_Pc := 0;
+            At_Ranges := No_Ranges;
 
             At_Name := Null_Address;
             At_Comp_Dir := Null_Address;
