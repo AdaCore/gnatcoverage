@@ -191,6 +191,9 @@ package Traces_Elf is
       end case;
    end record;
 
+   procedure Unchecked_Deallocation is
+      new Ada.Unchecked_Deallocation (Addresses_Info, Addresses_Info_Acc);
+
    procedure Read_Routines_Name
      (Filename : String; Exclude : Boolean; Keep_Open : Boolean);
    procedure Read_Routines_Name (Exec : Exe_File_Acc; Exclude : Boolean);
