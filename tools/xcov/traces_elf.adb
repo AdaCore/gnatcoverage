@@ -47,6 +47,10 @@ package body Traces_Elf is
    No_Ranges    : constant Unsigned_32 := Unsigned_32'Last;
    --  Value indicating there is no AT_ranges.
 
+   function Get_Strtab_Idx (Exec : Exe_File_Type) return Elf_Half;
+   --  Get the section index of the symtab string table.
+   --  Return SHN_UNDEF if not found (or in case of error).
+
    procedure Read_Word8 (Exec : Exe_File_Type;
                          Base : Address;
                          Off : in out Storage_Offset;
@@ -305,6 +309,23 @@ package body Traces_Elf is
    begin
       return Exec.Exe_Machine;
    end Get_Machine;
+
+   function Get_Strtab_Idx (Exec : Exe_File_Type) return Elf_Half is
+      Symtab_Shdr : Elf_Shdr_Acc;
+   begin
+      if Exec.Sec_Symtab = SHN_UNDEF then
+         return SHN_UNDEF;
+      end if;
+      Symtab_Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Symtab);
+      if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
+        or else Symtab_Shdr.Sh_Link = 0
+        or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
+      then
+         return SHN_UNDEF;
+      else
+         return Elf_Half (Symtab_Shdr.Sh_Link);
+      end if;
+   end Get_Strtab_Idx;
 
    procedure Read_Word8 (Exec : Exe_File_Type;
                          Base : Address;
@@ -1887,7 +1908,6 @@ package body Traces_Elf is
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
       Sec : Addresses_Info_Acc;
 
-      Symtab_Shdr : Elf_Shdr_Acc;
       Symtab_Len : Elf_Size;
       Symtabs : Binary_Content_Acc;
 
@@ -1926,14 +1946,10 @@ package body Traces_Elf is
          return;
       end if;
 
-      Symtab_Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Symtab);
-      if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
-        or else Symtab_Shdr.Sh_Link = 0
-        or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
-      then
+      Strtab_Idx := Get_Strtab_Idx (Exec.all);
+      if Strtab_Idx = SHN_UNDEF then
          return;
       end if;
-      Strtab_Idx := Elf_Half (Symtab_Shdr.Sh_Link);
 
       Alloc_And_Load_Section (Exec.all, Exec.Sec_Symtab, Symtab_Len, Symtabs);
       Alloc_And_Load_Section (Exec.all, Strtab_Idx, Strtab_Len, Strtabs);
@@ -2393,7 +2409,6 @@ package body Traces_Elf is
       Sym : Addresses_Info_Acc;
       Cur_Sym : Addresses_Containers.Cursor;
 
-      Symtab_Shdr : Elf_Shdr_Acc;
       Symtab_Len : Elf_Size;
       Symtabs : Binary_Content_Acc;
       Symtab_Base : Address;
@@ -2417,15 +2432,11 @@ package body Traces_Elf is
          Put_Line ("# No symbol table - file stripped ?");
          return;
       end if;
-      Symtab_Shdr := Get_Shdr (Efile, File.Sec_Symtab);
-      if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
-        or else Symtab_Shdr.Sh_Link = 0
-        or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
-      then
+      Strtab_Idx := Get_Strtab_Idx (File.all);
+      if Strtab_Idx = SHN_UNDEF then
          Put_Line ("# no strtab for .symtab - ill formed ELF file ?");
          return;
       end if;
-      Strtab_Idx := Elf_Half (Symtab_Shdr.Sh_Link);
 
       --  Build sets for A+X sections.
       for Idx in 0 .. Nbr_Shdr - 1 loop
