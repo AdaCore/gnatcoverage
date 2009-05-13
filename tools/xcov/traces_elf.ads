@@ -211,8 +211,11 @@ package Traces_Elf is
    --  state of its trace. This should be used only when the subroutine
    --  database has been populated with its traces.
 
-   procedure Disassemble_File (File : in out Exe_File_Type);
+   procedure Disassemble_File_Raw (File : in out Exe_File_Type);
    --  Simply disassemble the file.  Debug subprogram.
+
+   procedure Disassemble_File (File : in out Exe_File_Type);
+   --  Disassemble file with labels.  Debug subprogram.
 
 private
 

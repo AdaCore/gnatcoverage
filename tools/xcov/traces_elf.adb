@@ -2381,7 +2381,7 @@ package body Traces_Elf is
       Iterate (Process_One'Access);
    end Build_Routines_Trace_State;
 
-   procedure Disassemble_File (File : in out Exe_File_Type) is
+   procedure Disassemble_File_Raw (File : in out Exe_File_Type) is
       use Addresses_Containers;
 
       procedure Local_Disassembler (Cur : Cursor);
@@ -2425,5 +2425,149 @@ package body Traces_Elf is
       Build_Sections (File);
       Build_Symbols (File'Unchecked_Access);
       File.Desc_Sets (Section_Addresses).Iterate (Local_Disassembler'Access);
+   end Disassemble_File_Raw;
+
+   procedure Disassemble_File (File : in out Exe_File_Type) is
+      use Addresses_Containers;
+      Cur : Cursor;
+      Sec : Addresses_Info_Acc;
+      Addr : Pc_Type;
+
+      Cur_Subprg : Cursor;
+      Subprg : Addresses_Info_Acc;
+
+      Cur_Symbol : Cursor;
+      Symbol : Addresses_Info_Acc;
+
+      Last_Addr : Pc_Type;
+   begin
+      Cur := First (File.Desc_Sets (Section_Addresses));
+
+      if not Is_Empty (File.Desc_Sets (Subprogram_Addresses)) then
+         Cur_Subprg := First (File.Desc_Sets (Subprogram_Addresses));
+         Subprg := Element (Cur_Subprg);
+      else
+         Subprg := null;
+      end if;
+
+      if not Is_Empty (File.Desc_Sets (Symbol_Addresses)) then
+         Cur_Symbol := First (File.Desc_Sets (Symbol_Addresses));
+         Symbol := Element (Cur_Symbol);
+      else
+         Symbol := null;
+      end if;
+
+      while Cur /= No_Element loop
+         Sec := Element (Cur);
+         Load_Section_Content (File, Sec);
+
+         --  Display section name
+
+         Put ("Section ");
+         Put (Sec.Section_Name.all);
+         Put (':');
+
+         if Sec.Section_Name'Length < 16 then
+            Put ((1 .. 16 - Sec.Section_Name'Length => ' '));
+         end if;
+
+         Put (' ');
+         Put (Hex_Image (Sec.First));
+         Put ('-');
+         Put (Hex_Image (Sec.Last));
+         New_Line;
+
+         Addr := Sec.First;
+         Last_Addr := Sec.Last;
+
+         --  Search next matching symbol
+
+         while Symbol /= null and then Addr > Symbol.First loop
+            Next (Cur_Symbol);
+            if Cur_Symbol = No_Element then
+               Symbol := null;
+               exit;
+            end if;
+            Symbol := Element (Cur_Symbol);
+         end loop;
+
+         --  Iterate on addresses range for this section
+
+         while Addr <= Sec.Last loop
+            Last_Addr := Sec.Last;
+
+            --  Look for the next subprogram
+
+            while Subprg /= null and then Addr > Subprg.Last loop
+               Next (Cur_Subprg);
+               if Cur_Subprg = No_Element then
+                  Subprg := null;
+                  exit;
+               end if;
+               Subprg := Element (Cur_Subprg);
+            end loop;
+
+            --  Display subprogram name
+
+            if Subprg /= null then
+               if Addr = Subprg.First then
+                  New_Line;
+                  Put ('<');
+                  Put (Subprg.Subprogram_Name.all);
+                  Put ('>');
+               end if;
+
+               if Last_Addr > Subprg.Last then
+                  Last_Addr := Subprg.Last;
+               end if;
+            end if;
+
+            --  Display Symbol
+
+            if Symbol /= null then
+               if Addr = Symbol.First
+                    and then
+                  (Subprg = null or else (Subprg.Subprogram_Name.all
+                                            /= Symbol.Symbol_Name.all))
+               then
+                  Put ('<');
+                  Put (Symbol.Symbol_Name.all);
+                  Put ('>');
+                  if Subprg = null or else Subprg.First /= Addr then
+                     Put (':');
+                     New_Line;
+                  end if;
+               end if;
+
+               while Symbol /= null and then Addr >= Symbol.First loop
+                  Next (Cur_Symbol);
+                  if Cur_Symbol = No_Element then
+                     Symbol := null;
+                     exit;
+                  end if;
+                  Symbol := Element (Cur_Symbol);
+               end loop;
+
+               if Symbol /= null and then Symbol.First < Last_Addr then
+                  Last_Addr := Symbol.First - 1;
+               end if;
+            end if;
+
+            if Subprg /= null and then Addr = Subprg.First then
+               Put (':');
+               New_Line;
+            end if;
+
+            Traces_Disa.For_Each_Insn
+              (Sec.Section_Content (Addr .. Last_Addr),
+               Not_Covered, Traces_Disa.Textio_Disassemble_Cb'Access, File);
+
+            Addr := Last_Addr;
+            exit when Addr = Pc_Type'Last;
+            Addr := Addr + 1;
+         end loop;
+
+         Next (Cur);
+      end loop;
    end Disassemble_File;
 end Traces_Elf;
