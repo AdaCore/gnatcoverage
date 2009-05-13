@@ -1333,7 +1333,7 @@ package body Disa_X86 is
                null;
             when others =>
                raise Program_Error with
-                 "unhandled x86 code_type " & Code_Type'Image (C);
+                 "operand: unhandled x86 code_type " & Code_Type'Image (C);
          end case;
       end Add_Operand;
 
@@ -1355,6 +1355,11 @@ package body Disa_X86 is
               | C_Reg_Bl
               | C_Reg_Ah =>
                return;
+            when C_Reg_Es
+              | C_Reg_Ds
+              | C_Reg_Ss
+              | C_Reg_Cs =>
+               return;
             when C_Gv | C_Gb =>
                return;
             when C_Gv_Ib | C_Ev_Ib | C_Ib | C_Jb =>
@@ -1367,15 +1372,21 @@ package body Disa_X86 is
                Off_Imm := Off_Imm + Width_Len (W);
             when C_Ov | C_Ob =>
                Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq =>
+            when C_Ap =>
+               Off_Imm := Off_Imm + 4 + 2; -- FIXME: oper16
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq | C_Ms =>
                return;
             when C_Ev | C_Ew | C_Eb =>
                return;
             when C_Yb | C_Yv | C_Xv | C_Xb | C_H | C_H0 | C_Cst_1 =>
                return;
+            when C_Sw =>
+               return;
+            when C_Fv =>
+               return;
             when others =>
                raise Program_Error with
-                 "unhandled x86 code_type " & Code_Type'Image (C);
+                 "length: unhandled x86 code_type " & Code_Type'Image (C);
          end case;
       end Update_Length;
 
