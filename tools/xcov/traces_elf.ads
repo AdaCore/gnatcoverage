@@ -82,9 +82,6 @@ package Traces_Elf is
    procedure Load_Section_Content (Exec : Exe_File_Type;
                                    Sec : Addresses_Info_Acc);
 
-   --  Show coverage of sections.
-   procedure Disp_Sections_Coverage (Exec : Exe_File_Type; Base : Traces_Base);
-
    --  Fill Traces_Names with traces from BASE.
    procedure Add_Subprograms_Traces (Exec : Exe_File_Acc; Base : Traces_Base);
 
