@@ -112,11 +112,10 @@ package body Traces_Elf is
    procedure Alloc_And_Load_Section (Exec    : Exe_File_Type;
                                      Sec     : Elf_Half;
                                      Len     : out Elf_Size;
-                                     Content : out Binary_Content_Acc;
-                                     Base    : out Address);
+                                     Content : out Binary_Content_Acc);
    --  Allocate memory for section SEC of EXEC and read it.
-   --  LEN is the length of the section, CONTENT is its binary content and
-   --  BASE the address of the first byte.
+   --  LEN is the length of the section, CONTENT is its binary content.
+   --  The low bound of CONTENT is 0.
 
    Empty_String_Acc : constant String_Acc := new String'("");
 
@@ -492,11 +491,11 @@ package body Traces_Elf is
                if Exec.Debug_Str_Base = Null_Address then
                   Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Str,
                                           Exec.Debug_Str_Len,
-                                          Exec.Debug_Strs,
-                                          Exec.Debug_Str_Base);
+                                          Exec.Debug_Strs);
                   if Exec.Sec_Debug_Str = 0 then
                      return;
                   end if;
+                  Exec.Debug_Str_Base := Exec.Debug_Strs (0)'Address;
                end if;
                Res := Exec.Debug_Str_Base + Storage_Offset (V);
             end;
@@ -592,8 +591,8 @@ package body Traces_Elf is
       if Natural (Shdr.Sh_Entsize) /= Elf_Rela_Size then
          raise Program_Error;
       end if;
-      Alloc_And_Load_Section (Exec, Sec_Rel,
-                              Relocs_Len, Relocs, Relocs_Base);
+      Alloc_And_Load_Section (Exec, Sec_Rel, Relocs_Len, Relocs);
+      Relocs_Base := Relocs (0)'Address;
 
       Off := 0;
       while Off < Storage_Offset (Relocs_Len) loop
@@ -635,15 +634,13 @@ package body Traces_Elf is
    procedure Alloc_And_Load_Section (Exec : Exe_File_Type;
                                      Sec : Elf_Half;
                                      Len : out Elf_Size;
-                                     Content : out Binary_Content_Acc;
-                                     Base : out Address) is
+                                     Content : out Binary_Content_Acc) is
    begin
       if Sec /= 0 then
          Len := Get_Section_Length (Exec.Exe_File, Sec);
          pragma Assert (Len > 0);
          Content := new Binary_Content (0 .. Len - 1);
-         Base := Content (0)'Address;
-         Load_Section (Exec.Exe_File, Sec, Base);
+         Load_Section (Exec.Exe_File, Sec, Content (0)'Address);
       end if;
    end Alloc_And_Load_Section;
 
@@ -743,21 +740,22 @@ package body Traces_Elf is
 
       --  Load .debug_abbrev
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Abbrev,
-                              Abbrev_Len, Abbrevs, Abbrev_Base);
+                              Abbrev_Len, Abbrevs);
+      Abbrev_Base := Abbrevs (0)'Address;
 
       Map := null;
 
       --  Load .debug_info
-      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info,
-                              Info_Len, Infos, Base);
+      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info, Info_Len, Infos);
+      Base := Infos (0)'Address;
 
       if Exec.Sec_Debug_Info_Rel /= 0 then
          Apply_Relocations (Exec, Exec.Sec_Debug_Info_Rel, Infos.all);
       end if;
 
       --  Load .debug_ranges
-      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Ranges,
-                              Ranges_Len, Ranges, Ranges_Base);
+      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Ranges, Ranges_Len, Ranges);
+      Ranges_Base := Ranges (0)'Address;
 
       Off := 0;
       while Off < Storage_Offset (Info_Len) loop
@@ -1043,7 +1041,8 @@ package body Traces_Elf is
       --  Load .debug_line
       if Exec.Lines = null then
          Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
-                                 Exec.Lines_Len, Exec.Lines, Base);
+                                 Exec.Lines_Len, Exec.Lines);
+         Base := Exec.Lines (0)'Address;
          if Exec.Sec_Debug_Line_Rel /= 0 then
             Apply_Relocations (Exec, Exec.Sec_Debug_Line_Rel, Exec.Lines.all);
          end if;
@@ -1935,13 +1934,8 @@ package body Traces_Elf is
       end if;
       Strtab_Idx := Elf_Half (Symtab_Shdr.Sh_Link);
 
-      Symtab_Len := Get_Section_Length (Exec.Exe_File, Symtab_Idx);
-      Symtabs := new Binary_Content (0 .. Symtab_Len - 1);
-      Load_Section (Exec.Exe_File, Symtab_Idx, Symtabs (0)'Address);
-
-      Strtab_Len := Get_Section_Length (Exec.Exe_File, Strtab_Idx);
-      Strtabs := new Binary_Content (0 .. Strtab_Len - 1);
-      Load_Section (Exec.Exe_File, Strtab_Idx, Strtabs (0)'Address);
+      Alloc_And_Load_Section (Exec.all, Symtab_Idx, Symtab_Len, Symtabs);
+      Alloc_And_Load_Section (Exec.all, Strtab_Idx, Strtab_Len, Strtabs);
 
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
          ESym := Get_Sym
@@ -2449,14 +2443,9 @@ package body Traces_Elf is
       end loop;
 
       --  Load symtab and strtab.
-      Symtab_Len := Get_Section_Length (Efile, Symtab_Idx);
-      Symtabs := new Binary_Content (0 .. Symtab_Len - 1);
+      Alloc_And_Load_Section (File.all, Symtab_Idx, Symtab_Len, Symtabs);
+      Alloc_And_Load_Section (File.all, Strtab_Idx, Strtab_Len, Strtabs);
       Symtab_Base := Symtabs (0)'Address;
-      Load_Section (Efile, Symtab_Idx, Symtab_Base);
-
-      Strtab_Len := Get_Section_Length (Efile, Strtab_Idx);
-      Strtabs := new Binary_Content (0 .. Strtab_Len - 1);
-      Load_Section (Efile, Strtab_Idx, Strtabs (0)'Address);
 
       --  Walk the symtab and put interesting symbols into the containers.
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
