@@ -200,10 +200,10 @@ begin
                elsif Arg = "--include" then
                   Mode_Exclude := False;
                else
-                  Traces_Elf.Read_Routines_Name
-                    (Arg,
-                     Exclude   => Mode_Exclude,
-                     Keep_Open => False);
+                  Open_File (Exec, Arg, 0);
+                  Traces_Elf.Read_Routines_Name (Exec'Unchecked_Access,
+                                                 Mode_Exclude);
+                  Close_File (Exec);
                end if;
             end;
          end loop;

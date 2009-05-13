@@ -193,7 +193,7 @@ package Traces_Elf is
 
    procedure Read_Routines_Name
      (Filename : String; Exclude : Boolean; Keep_Open : Boolean);
-   procedure Read_Routines_Name (Exec : Exe_File_Acc; Exclude : Boolean);
+   procedure Read_Routines_Name (File : Exe_File_Acc; Exclude : Boolean);
    --  Add (or remove if EXCLUDE is true) routines read from an ELF image
    --  to the routines database. If Keep_Open is True, leave the ELF image
    --  open after loading.
