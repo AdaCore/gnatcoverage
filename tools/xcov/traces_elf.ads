@@ -220,13 +220,14 @@ private
 
    type Exe_File_Type is limited new Symbolizer with record
       --  Sections index.
-      Sec_Debug_Abbrev   : Elf_Half := 0;
-      Sec_Debug_Info     : Elf_Half := 0;
-      Sec_Debug_Info_Rel : Elf_Half := 0;
-      Sec_Debug_Line     : Elf_Half := 0;
-      Sec_Debug_Line_Rel : Elf_Half := 0;
-      Sec_Debug_Str      : Elf_Half := 0;
-      Sec_Debug_Ranges   : Elf_Half := 0;
+      Sec_Symtab         : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Abbrev   : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Info     : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Info_Rel : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Line     : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Line_Rel : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Str      : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Ranges   : Elf_Half := SHN_UNDEF;
 
       Exe_File : Elf_Files.Elf_File;
       Exe_Text_Start : Elf_Addr;

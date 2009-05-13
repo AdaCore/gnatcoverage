@@ -244,7 +244,9 @@ package body Traces_Elf is
          declare
             Name : constant String := Get_Shdr_Name (Exec.Exe_File, I);
          begin
-            if Name = ".debug_abbrev" then
+            if Name = ".symtab" then
+               Exec.Sec_Symtab := I;
+            elsif Name = ".debug_abbrev" then
                Exec.Sec_Debug_Abbrev := I;
             elsif Name = ".debug_info" then
                Exec.Sec_Debug_Info := I;
@@ -274,13 +276,14 @@ package body Traces_Elf is
       Exec.Debug_Str_Base := Null_Address;
       Exec.Debug_Str_Len := 0;
 
-      Exec.Sec_Debug_Abbrev   := 0;
-      Exec.Sec_Debug_Info     := 0;
-      Exec.Sec_Debug_Info_Rel := 0;
-      Exec.Sec_Debug_Line     := 0;
-      Exec.Sec_Debug_Line_Rel := 0;
-      Exec.Sec_Debug_Str      := 0;
-      Exec.Sec_Debug_Ranges   := 0;
+      Exec.Sec_Symtab         := SHN_UNDEF;
+      Exec.Sec_Debug_Abbrev   := SHN_UNDEF;
+      Exec.Sec_Debug_Info     := SHN_UNDEF;
+      Exec.Sec_Debug_Info_Rel := SHN_UNDEF;
+      Exec.Sec_Debug_Line     := SHN_UNDEF;
+      Exec.Sec_Debug_Line_Rel := SHN_UNDEF;
+      Exec.Sec_Debug_Str      := SHN_UNDEF;
+      Exec.Sec_Debug_Ranges   := SHN_UNDEF;
    end Close_Exe_File;
 
    procedure Close_File (Exec : in out Exe_File_Type) is
@@ -492,7 +495,7 @@ package body Traces_Elf is
                   Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Str,
                                           Exec.Debug_Str_Len,
                                           Exec.Debug_Strs);
-                  if Exec.Sec_Debug_Str = 0 then
+                  if Exec.Sec_Debug_Str = SHN_UNDEF then
                      return;
                   end if;
                   Exec.Debug_Str_Base := Exec.Debug_Strs (0)'Address;
@@ -749,7 +752,7 @@ package body Traces_Elf is
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info, Info_Len, Infos);
       Base := Infos (0)'Address;
 
-      if Exec.Sec_Debug_Info_Rel /= 0 then
+      if Exec.Sec_Debug_Info_Rel /= SHN_UNDEF then
          Apply_Relocations (Exec, Exec.Sec_Debug_Info_Rel, Infos.all);
       end if;
 
@@ -1043,7 +1046,7 @@ package body Traces_Elf is
          Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
                                  Exec.Lines_Len, Exec.Lines);
          Base := Exec.Lines (0)'Address;
-         if Exec.Sec_Debug_Line_Rel /= 0 then
+         if Exec.Sec_Debug_Line_Rel /= SHN_UNDEF then
             Apply_Relocations (Exec, Exec.Sec_Debug_Line_Rel, Exec.Lines.all);
          end if;
       end if;
@@ -1884,7 +1887,6 @@ package body Traces_Elf is
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
       Sec : Addresses_Info_Acc;
 
-      Symtab_Idx : Elf_Half;
       Symtab_Shdr : Elf_Shdr_Acc;
       Symtab_Len : Elf_Size;
       Symtabs : Binary_Content_Acc;
@@ -1920,12 +1922,11 @@ package body Traces_Elf is
          Next (Cur);
       end loop;
 
-      Symtab_Idx := Get_Shdr_By_Name (Exec.Exe_File, ".symtab");
-      if Symtab_Idx = SHN_UNDEF then
+      if Exec.Sec_Symtab = SHN_UNDEF then
          return;
       end if;
 
-      Symtab_Shdr := Get_Shdr (Exec.Exe_File, Symtab_Idx);
+      Symtab_Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Symtab);
       if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
         or else Symtab_Shdr.Sh_Link = 0
         or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
@@ -1934,7 +1935,7 @@ package body Traces_Elf is
       end if;
       Strtab_Idx := Elf_Half (Symtab_Shdr.Sh_Link);
 
-      Alloc_And_Load_Section (Exec.all, Symtab_Idx, Symtab_Len, Symtabs);
+      Alloc_And_Load_Section (Exec.all, Exec.Sec_Symtab, Symtab_Len, Symtabs);
       Alloc_And_Load_Section (Exec.all, Strtab_Idx, Strtab_Len, Strtabs);
 
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
@@ -2392,7 +2393,6 @@ package body Traces_Elf is
       Sym : Addresses_Info_Acc;
       Cur_Sym : Addresses_Containers.Cursor;
 
-      Symtab_Idx : Elf_Half;
       Symtab_Shdr : Elf_Shdr_Acc;
       Symtab_Len : Elf_Size;
       Symtabs : Binary_Content_Acc;
@@ -2413,12 +2413,11 @@ package body Traces_Elf is
    begin
       --  Search symtab and strtab.
       --  Exit in case of failure.
-      Symtab_Idx := Get_Shdr_By_Name (Efile, ".symtab");
-      if Symtab_Idx = SHN_UNDEF then
+      if File.Sec_Symtab = SHN_UNDEF then
          Put_Line ("# No symbol table - file stripped ?");
          return;
       end if;
-      Symtab_Shdr := Get_Shdr (Efile, Symtab_Idx);
+      Symtab_Shdr := Get_Shdr (Efile, File.Sec_Symtab);
       if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
         or else Symtab_Shdr.Sh_Link = 0
         or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
@@ -2443,7 +2442,7 @@ package body Traces_Elf is
       end loop;
 
       --  Load symtab and strtab.
-      Alloc_And_Load_Section (File.all, Symtab_Idx, Symtab_Len, Symtabs);
+      Alloc_And_Load_Section (File.all, File.Sec_Symtab, Symtab_Len, Symtabs);
       Alloc_And_Load_Section (File.all, Strtab_Idx, Strtab_Len, Strtabs);
       Symtab_Base := Symtabs (0)'Address;
 
