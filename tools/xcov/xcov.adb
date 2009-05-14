@@ -285,7 +285,7 @@ begin
             Open_File (Exec, Argument (I), 0);
             Build_Sections (Exec);
             Build_Debug_Compile_Units (Exec);
-            Disp_Addresses (Exec, Compile_Unit_Addresses);
+            Disp_Compilation_Units (Exec);
             Close_File (Exec);
          end loop;
          return;

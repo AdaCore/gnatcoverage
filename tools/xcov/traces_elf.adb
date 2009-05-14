@@ -173,10 +173,6 @@ package body Traces_Elf is
          when Section_Addresses =>
             return Range_Img & " section " & El.Section_Name.all;
 
-         when Compile_Unit_Addresses =>
-            return Range_Img & " compile unit from "
-              & El.Compile_Unit_Filename.all;
-
          when Subprogram_Addresses =>
             return Range_Img & " subprogram " & El.Subprogram_Name.all;
 
@@ -223,6 +219,19 @@ package body Traces_Elf is
    begin
       Exe.Desc_Sets (Kind).Iterate (Disp_Address'Access);
    end Disp_Addresses;
+
+   procedure Disp_Compilation_Units (Exec : Exe_File_Type) is
+      use Compile_Unit_Lists;
+      Cu : Compile_Unit_Desc;
+      Cur : Cursor;
+   begin
+      Cur := Exec.Compile_Units.First;
+      while Has_Element (Cur) loop
+         Cu := Element (Cur);
+         Put_Line (Cu.Compile_Unit_Filename.all);
+         Next (Cur);
+      end loop;
+   end Disp_Compilation_Units;
 
    procedure Insert (Set : in out Addresses_Containers.Set;
                      El : Addresses_Info_Acc)
@@ -692,9 +701,6 @@ package body Traces_Elf is
    is
       use Dwarf;
 
-      procedure New_Compilation_Unit (Lo_Pc, Hi_Pc : Unsigned_64);
-      --  Add a compilation_unit (chunk).
-
       Abbrev_Len : Elf_Size;
       Abbrevs : Binary_Content_Acc;
       Abbrev_Base : Address;
@@ -706,11 +712,6 @@ package body Traces_Elf is
       Base : Address;
       Off : Storage_Offset;
       Aoff : Storage_Offset;
-
-      Ranges_Len : Elf_Size;
-      Ranges : Binary_Content_Acc;
-      Ranges_Base : Address;
-      Ranges_Off : Storage_Offset;
 
       Len : Unsigned_32;
       Ver : Unsigned_16;
@@ -737,43 +738,13 @@ package body Traces_Elf is
 
       Current_Cu      : Addresses_Info_Acc;
       Current_Subprg  : Addresses_Info_Acc;
-      Sec             : Addresses_Info_Acc;
       Compilation_Dir : String_Acc;
       Unit_Filename   : String_Acc;
       Subprg_Low      : Pc_Type;
 
-      procedure New_Compilation_Unit (Lo_Pc, Hi_Pc : Unsigned_64) is
-         Addr            : Pc_Type;
-      begin
-         if Hi_Pc <= Lo_Pc then
-            --  Discard empty units.
-            return;
-         end if;
-
-         Addr := Exec.Exe_Text_Start + Pc_Type (Lo_Pc);
-
-         --  Find section of this symbol
-
-         if Sec = null
-           or else (Addr not in Sec.First .. Sec.Last)
-         then
-            Sec := Get_Address_Info (Exec, Section_Addresses, Addr);
-         end if;
-
-         Current_Cu := new Addresses_Info'
-           (Kind                  => Compile_Unit_Addresses,
-            First                 => Addr,
-            Last                  => Exec.Exe_Text_Start + Pc_Type (Hi_Pc - 1),
-            Parent                => Sec,
-            Compile_Unit_Filename => Unit_Filename,
-            Compilation_Directory => Compilation_Dir,
-            Stmt_List             => At_Stmt_List);
-
-         Exec.Desc_Sets (Compile_Unit_Addresses).Insert (Current_Cu);
-      end New_Compilation_Unit;
    begin
       --  Return now if already loaded.
-      if not Exec.Desc_Sets (Compile_Unit_Addresses).Is_Empty then
+      if not Exec.Compile_Units.Is_Empty then
          return;
       end if;
 
@@ -794,10 +765,6 @@ package body Traces_Elf is
       if Exec.Sec_Debug_Info_Rel /= SHN_UNDEF then
          Apply_Relocations (Exec, Exec.Sec_Debug_Info_Rel, Infos.all);
       end if;
-
-      --  Load .debug_ranges
-      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Ranges, Ranges_Len,
-                              Ranges, Ranges_Base);
 
       Off := 0;
       while Off < Storage_Offset (Info_Len) loop
@@ -892,35 +859,17 @@ package body Traces_Elf is
                   end if;
 
                   Unit_Filename := new String'(Read_String (At_Name));
+                  Exec.Compile_Units.Append
+                    (Compile_Unit_Desc'(Unit_Filename,
+                                        Compilation_Dir,
+                                        At_Stmt_List));
 
                   if At_Ranges /= No_Ranges then
-                     Ranges_Off := Storage_Offset (At_Ranges);
-
-                     --  Guard for unhandled case.
-                     if At_Low_Pc /= 0 then
-                        raise Program_Error with "at_ranges with low_pc /= 0";
-                     end if;
-
-                     loop
-                        Read_Address (Exec, Ranges_Base, Ranges_Off,
-                                      Exec.Addr_Size, At_Low_Pc);
-                        Read_Address (Exec, Ranges_Base, Ranges_Off,
-                                      Exec.Addr_Size, At_High_Pc);
-                        if At_Low_Pc = Unsigned_64'Last then
-                           raise Program_Error with "base address in ranges";
-                        end if;
-                        exit when At_Low_Pc = 0 and At_High_Pc = 0;
-                        if At_High_Pc > At_Low_Pc then
-                           New_Compilation_Unit (At_Low_Pc, At_High_Pc);
-                           At_Stmt_List := No_Stmt_List;
-                        end if;
-                     end loop;
                      Cu_Base_Pc := 0;
                   elsif At_Low_Pc = 0 and At_High_Pc = 0 then
                      --  This field are not required.
                      Cu_Base_Pc := 0;
                   else
-                     New_Compilation_Unit (At_Low_Pc, At_High_Pc);
                      Cu_Base_Pc := At_Low_Pc;
                   end if;
 
@@ -938,7 +887,7 @@ package body Traces_Elf is
                        Subprg_Low not in Current_Cu.First .. Current_Cu.Last
                      then
                         Current_Cu := Get_Address_Info
-                          (Exec, Compile_Unit_Addresses, Subprg_Low);
+                          (Exec, Section_Addresses, Subprg_Low);
                      end if;
 
                      if Current_Cu = null then
@@ -973,7 +922,6 @@ package body Traces_Elf is
 
       Unchecked_Deallocation (Infos);
       Unchecked_Deallocation (Abbrevs);
-      Unchecked_Deallocation (Ranges);
    end Build_Debug_Compile_Units;
 
    package Filenames_Vectors is new Ada.Containers.Vectors
@@ -1252,23 +1200,15 @@ package body Traces_Elf is
 
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type) is
       use Addresses_Containers;
-      Cur_Cu : Cursor;
+      Cur_Cu : Compile_Unit_Lists.Cursor;
       Cur_Subprg : Cursor;
+      Cur_Sec : Cursor;
       Cur_Line, N_Cur_Line : Cursor;
-      Cu : Addresses_Info_Acc;
+      Cu : Compile_Unit_Desc;
       Subprg : Addresses_Info_Acc;
+      Sec : Addresses_Info_Acc;
       Line : Addresses_Info_Acc;
       N_Line : Addresses_Info_Acc;
-
-      procedure Read_CU_Lines (Cur_CU : Cursor);
-      --  Read debug lines for the given compilation unit
-
-      procedure Read_CU_Lines (Cur_CU : Cursor) is
-         CU : constant Addresses_Info_Acc := Element (Cur_CU);
-      begin
-         Read_Debug_Lines (Exec, CU.Stmt_List, CU.Compilation_Directory);
-      end Read_CU_Lines;
-
    begin
       --  Return now if already loaded
 
@@ -1282,7 +1222,12 @@ package body Traces_Elf is
 
       --  Read all .debug_line
 
-      Exec.Desc_Sets (Compile_Unit_Addresses).Iterate (Read_CU_Lines'Access);
+      Cur_Cu := Exec.Compile_Units.First;
+      while Compile_Unit_Lists.Has_Element (Cur_Cu) loop
+         Cu := Compile_Unit_Lists.Element (Cur_Cu);
+         Read_Debug_Lines (Exec, Cu.Stmt_List, Cu.Compilation_Directory);
+         Compile_Unit_Lists.Next (Cur_Cu);
+      end loop;
 
       --  Set .Last and parent.
 
@@ -1295,11 +1240,11 @@ package body Traces_Elf is
          Subprg := null;
       end if;
 
-      Cur_Cu := First (Exec.Desc_Sets (Compile_Unit_Addresses));
-      if Cur_Cu /= No_Element then
-         Cu := Element (Cur_Cu);
+      Cur_Sec := First (Exec.Desc_Sets (Section_Addresses));
+      if Cur_Sec /= No_Element then
+         Sec := Element (Cur_Sec);
       else
-         Cu := null;
+         Sec := null;
       end if;
 
       while Cur_Line /= No_Element loop
@@ -1322,12 +1267,12 @@ package body Traces_Elf is
             end if;
          end loop;
 
-         while Cu /= null and then Cu.Last < Line.First loop
-            Next (Cur_Cu);
-            if Cur_Cu /= No_Element then
-               Cu := Element (Cur_Cu);
+         while Sec /= null and then Sec.Last < Line.First loop
+            Next (Cur_Sec);
+            if Cur_Sec /= No_Element then
+               Sec := Element (Cur_Sec);
             else
-               Cu := null;
+               Sec := null;
             end if;
          end loop;
 
@@ -1350,13 +1295,13 @@ package body Traces_Elf is
             Line.Parent := Subprg;
          end if;
 
-         if Cu /= null
-           and then (Line.Last > Cu.Last or Line.Last = Line.First)
+         if Sec /= null
+           and then (Line.Last > Sec.Last or Line.Last = Line.First)
          then
-            --  Truncate current line to the CU
+            --  Truncate current line to the section
 
-            Line.Last := Cu.Last;
-            Line.Parent := Cu;
+            Line.Last := Sec.Last;
+            Line.Parent := Sec;
          end if;
 
          Cur_Line := N_Cur_Line;

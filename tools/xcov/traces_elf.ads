@@ -27,6 +27,7 @@ with Strings;      use Strings;
 
 with Interfaces;
 with Ada.Containers.Ordered_Sets;
+with Ada.Containers.Doubly_Linked_Lists;
 with System; use System;
 with Disa_Symbolize; use Disa_Symbolize;
 
@@ -111,13 +112,15 @@ package Traces_Elf is
 
    type Addresses_Kind is
      (Section_Addresses,
-      Compile_Unit_Addresses,
       Subprogram_Addresses,
       Symbol_Addresses,
       Line_Addresses);
 
    procedure Disp_Addresses (Exe : Exe_File_Type; Kind : Addresses_Kind);
    --  Display the list of addresses for items of the indicated Kind in Exe
+
+   procedure Disp_Compilation_Units (Exec : Exe_File_Type);
+   --  Display compilation units filename of Exec
 
    function Get_Address_Info
      (Exec : Exe_File_Type;
@@ -170,11 +173,6 @@ package Traces_Elf is
             Section_Index : Elf_Common.Elf_Half;
             Section_Content : Binary_Content_Acc;
 
-         when Compile_Unit_Addresses =>
-            Compile_Unit_Filename : String_Acc;
-            Compilation_Directory : String_Acc;
-            Stmt_List             : Interfaces.Unsigned_32;
-
          when Subprogram_Addresses =>
             Subprogram_Name : String_Acc;
 
@@ -216,6 +214,15 @@ package Traces_Elf is
 
 private
 
+   type Compile_Unit_Desc is record
+      Compile_Unit_Filename : String_Acc;
+      Compilation_Directory : String_Acc;
+      Stmt_List             : Interfaces.Unsigned_32;
+   end record;
+
+   package Compile_Unit_Lists is new Ada.Containers.Doubly_Linked_Lists
+     (Element_Type => Compile_Unit_Desc);
+
    type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
 
    type Exe_File_Type is limited new Symbolizer with record
@@ -244,6 +251,8 @@ private
       --  .debug_lines content.
       Lines_Len : Elf_Size := 0;
       Lines : Binary_Content_Acc := null;
+
+      Compile_Units : Compile_Unit_Lists.List;
 
       Desc_Sets : Desc_Sets_Type;
       --  Address descriptor sets
