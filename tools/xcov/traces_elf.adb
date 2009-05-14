@@ -736,7 +736,7 @@ package body Traces_Elf is
       At_Comp_Dir  : Address := Null_Address;
       Cu_Base_Pc   : Unsigned_64;
 
-      Current_Cu      : Addresses_Info_Acc;
+      Current_Sec     : Addresses_Info_Acc;
       Current_Subprg  : Addresses_Info_Acc;
       Compilation_Dir : String_Acc;
       Unit_Filename   : String_Acc;
@@ -882,17 +882,17 @@ package body Traces_Elf is
                      --  Don't care about missing subprograms.
 
                      Subprg_Low := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
-                     if Current_Cu = null
+                     if Current_Sec = null
                        or else
-                       Subprg_Low not in Current_Cu.First .. Current_Cu.Last
+                       Subprg_Low not in Current_Sec.First .. Current_Sec.Last
                      then
-                        Current_Cu := Get_Address_Info
+                        Current_Sec := Get_Address_Info
                           (Exec, Section_Addresses, Subprg_Low);
                      end if;
 
-                     if Current_Cu = null then
+                     if Current_Sec = null then
                         --  Can this happen ?
-                        raise Program_Error with "no CU for subprogram";
+                        raise Program_Error with "no section for subprogram";
                      end if;
 
                      Current_Subprg :=
@@ -901,7 +901,7 @@ package body Traces_Elf is
                         First           => Subprg_Low,
                         Last            =>
                           Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
-                        Parent          => Current_Cu,
+                        Parent          => Current_Sec,
                         Subprogram_Name => new String'(Read_String (At_Name)));
                      Exec.Desc_Sets (Subprogram_Addresses).
                        Insert (Current_Subprg);
