@@ -117,6 +117,11 @@ package body Traces_Elf is
                                      Sec     : Elf_Half;
                                      Len     : out Elf_Size;
                                      Content : out Binary_Content_Acc);
+   procedure Alloc_And_Load_Section (Exec    : Exe_File_Type;
+                                     Sec     : Elf_Half;
+                                     Len     : out Elf_Size;
+                                     Content : out Binary_Content_Acc;
+                                     Base    : out Address);
    --  Allocate memory for section SEC of EXEC and read it.
    --  LEN is the length of the section, CONTENT is its binary content.
    --  The low bound of CONTENT is 0.
@@ -615,8 +620,7 @@ package body Traces_Elf is
       if Natural (Shdr.Sh_Entsize) /= Elf_Rela_Size then
          raise Program_Error;
       end if;
-      Alloc_And_Load_Section (Exec, Sec_Rel, Relocs_Len, Relocs);
-      Relocs_Base := Relocs (0)'Address;
+      Alloc_And_Load_Section (Exec, Sec_Rel, Relocs_Len, Relocs, Relocs_Base);
 
       Off := 0;
       while Off < Storage_Offset (Relocs_Len) loop
@@ -665,6 +669,21 @@ package body Traces_Elf is
          pragma Assert (Len > 0);
          Content := new Binary_Content (0 .. Len - 1);
          Load_Section (Exec.Exe_File, Sec, Content (0)'Address);
+      end if;
+   end Alloc_And_Load_Section;
+
+   procedure Alloc_And_Load_Section (Exec    : Exe_File_Type;
+                                     Sec     : Elf_Half;
+                                     Len     : out Elf_Size;
+                                     Content : out Binary_Content_Acc;
+                                     Base    : out Address) is
+   begin
+      if Sec /= 0 then
+         Alloc_And_Load_Section (Exec, Sec, Len, Content);
+         Base := Content (0)'Address;
+      else
+         Content := null;
+         Base := Null_Address;
       end if;
    end Alloc_And_Load_Section;
 
@@ -764,22 +783,21 @@ package body Traces_Elf is
 
       --  Load .debug_abbrev
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Abbrev,
-                              Abbrev_Len, Abbrevs);
-      Abbrev_Base := Abbrevs (0)'Address;
+                              Abbrev_Len, Abbrevs, Abbrev_Base);
 
       Map := null;
 
       --  Load .debug_info
-      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info, Info_Len, Infos);
-      Base := Infos (0)'Address;
+      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info, Info_Len,
+                              Infos, Base);
 
       if Exec.Sec_Debug_Info_Rel /= SHN_UNDEF then
          Apply_Relocations (Exec, Exec.Sec_Debug_Info_Rel, Infos.all);
       end if;
 
       --  Load .debug_ranges
-      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Ranges, Ranges_Len, Ranges);
-      Ranges_Base := Ranges (0)'Address;
+      Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Ranges, Ranges_Len,
+                              Ranges, Ranges_Base);
 
       Off := 0;
       while Off < Storage_Offset (Info_Len) loop
@@ -1065,8 +1083,7 @@ package body Traces_Elf is
       --  Load .debug_line
       if Exec.Lines = null then
          Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
-                                 Exec.Lines_Len, Exec.Lines);
-         Base := Exec.Lines (0)'Address;
+                                 Exec.Lines_Len, Exec.Lines, Base);
          if Exec.Sec_Debug_Line_Rel /= SHN_UNDEF then
             Apply_Relocations (Exec, Exec.Sec_Debug_Line_Rel, Exec.Lines.all);
          end if;
@@ -2453,9 +2470,9 @@ package body Traces_Elf is
       end loop;
 
       --  Load symtab and strtab.
-      Alloc_And_Load_Section (File.all, File.Sec_Symtab, Symtab_Len, Symtabs);
+      Alloc_And_Load_Section (File.all, File.Sec_Symtab, Symtab_Len,
+                              Symtabs, Symtab_Base);
       Alloc_And_Load_Section (File.all, Strtab_Idx, Strtab_Len, Strtabs);
-      Symtab_Base := Symtabs (0)'Address;
 
       --  Walk the symtab and put interesting symbols into the containers.
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
