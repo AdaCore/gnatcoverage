@@ -1056,6 +1056,7 @@ package body Traces_Elf is
       Read_Byte (Base, Off, Line_Range);
       Read_Byte (Base, Off, Opc_Base);
 
+      --  Initial state registers.
       Pc := 0;
       Line := 1;
       File := 1;
@@ -1125,65 +1126,85 @@ package body Traces_Elf is
          Read_Byte (Base, Off, B);
          Old_Off := Off;
 
-         if B < Opc_Base then
-            case B is
-               when 0 =>
-                  Read_ULEB128 (Base, Off, Ext_Len);
-                  Old_Off := Off;
-                  Read_Byte (Base, Off, Ext_Opc);
-                  case Ext_Opc is
-                     when DW_LNE_set_address =>
-                        Read_Address
-                          (Exec, Base, Off, Elf_Arch.Elf_Addr'Size / 8, Pc);
-                     when others =>
-                        null;
-                  end case;
-                  Off := Old_Off + Storage_Offset (Ext_Len);
-                  --  raise Program_Error; ???
+         if B = 0 then
+
+            --  Extended opcode.
+
+            Read_ULEB128 (Base, Off, Ext_Len);
+            Old_Off := Off;
+            Read_Byte (Base, Off, Ext_Opc);
+            case Ext_Opc is
+               when DW_LNE_end_sequence =>
+                  New_Source_Line;
+                  --  Initial state.
+                  Pc := 0;
+                  Line := 1;
+                  File := 1;
+                  Column := 0;
+
+               when DW_LNE_set_address =>
+                  Read_Address
+                    (Exec, Base, Off, Elf_Arch.Elf_Addr'Size / 8, Pc);
+
+               when DW_LNE_define_file =>
+                  raise Program_Error with "DW_LNE_define_file unhandled";
 
                when others =>
-                  for J in 1 .. Opc_Length (B) loop
-                     Read_ULEB128 (Base, Off, Arg);
-                  end loop;
+                  raise Program_Error with "unhandled DW_LNE";
             end case;
+            Off := Old_Off + Storage_Offset (Ext_Len);
+
+         elsif B < Opc_Base then
+
+            --  Standard opcode.
 
             case B is
                when DW_LNS_copy =>
                   New_Source_Line;
 
                when DW_LNS_advance_pc =>
-                  Read_ULEB128 (Base, Old_Off, Arg);
+                  Read_ULEB128 (Base, Off, Arg);
                   Pc := Pc + Unsigned_64 (Arg * Unsigned_32 (Min_Insn_Len));
 
                when DW_LNS_advance_line =>
-                  Read_SLEB128 (Base, Old_Off, Arg);
+                  Read_SLEB128 (Base, Off, Arg);
                   Line := Line + Arg;
 
                when DW_LNS_set_file =>
-                  Read_SLEB128 (Base, Old_Off, Arg);
+                  Read_SLEB128 (Base, Off, Arg);
                   File := Natural (Arg);
 
-               --  Why aren't these three cases covered by the "when others"
-               --  clause???
-
                when DW_LNS_set_column =>
-                  Read_ULEB128 (Base, Old_Off, Column);
+                  Read_ULEB128 (Base, Off, Column);
 
-               when
-                 DW_LNS_negate_stmt     |
+               when DW_LNS_negate_stmt     |
                  DW_LNS_set_basic_block =>
                   null;
 
                when DW_LNS_const_add_pc =>
                   Pc := Pc + Unsigned_64
                     (Unsigned_32 ((255 - Opc_Base) / Line_Range)
-                     * Unsigned_32 (Min_Insn_Len));
+                       * Unsigned_32 (Min_Insn_Len));
+
+               when DW_LNS_fixed_advance_pc =>
+                  raise Program_Error with "DW_LNS_fixed_advance_pc unhandled";
+
+               when DW_LNS_set_prologue_end
+                 | DW_LNS_set_epilogue_begin
+                 | DW_LNS_set_isa =>
+                  null;
 
                when others =>
-                  null;
+                  --  Instruction length.
+                  for J in 1 .. Opc_Length (B) loop
+                     Read_ULEB128 (Base, Off, Arg);
+                  end loop;
             end case;
 
          else
+
+            --  Special opcode.
+
             B := B - Opc_Base;
             Pc := Pc + Unsigned_64 (Unsigned_32 (B / Line_Range)
                                     * Unsigned_32 (Min_Insn_Len));
