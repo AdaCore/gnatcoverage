@@ -43,6 +43,7 @@ with Traces_Files_List; use Traces_Files_List;
 
 procedure Xcov is
    procedure Usage;
+   procedure Usage_Long;
    procedure Error (Msg : String);
    function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
 
@@ -60,22 +61,33 @@ procedure Xcov is
       New_Line;
       Qemudrv.Help (" ");
       New_Line;
+      P (" --disp-routines {[--exclude|--include] FILES}");
+      P ("    Build a list of routines from object files");
+      New_Line;
       P (" --coverage=[insn|branch] OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
       New_Line;
-      P (" --disp-routines {[--exclude|--include] FILES}");
-      P ("    Build a list of routines from object files");
+   end Usage;
+
+   procedure Usage_Long is
+      procedure P (S : String) renames Put_Line;
+   begin
+      Usage;
+      P ("Debugging commands:");
       New_Line;
       P (" --dump-trace FILES");
       P ("   Raw display of trace files");
       New_Line;
+      P (" --dump-trace-base FILES");
+      P ("   Raw display of merged trace files");
+      New_Line;
       P (" --dump-trace-asm EXE TRACE_FILES");
       P ("   Raw display of trace files with assembly code for each trace");
       New_Line;
-   end Usage;
+   end Usage_Long;
 
    procedure Error (Msg : String) is
    begin
@@ -247,6 +259,19 @@ begin
             Dump_Trace_File (Argument (I));
          end loop;
          return;
+
+      elsif Cmd = "--dump-trace-base" then
+         if Arg_Index = Arg_Count then
+            Put_Line ("missing FILENAME to --dump-trace-base");
+            return;
+         end if;
+         for I in Arg_Index + 1 .. Arg_Count loop
+            Trace_File := new Trace_File_Element;
+            Read_Trace_File (Argument (I), Trace_File.Trace, Base);
+            Dump_Traces (Base);
+         end loop;
+         return;
+
       elsif Cmd = "--dump-trace-asm" then
          Arg_Index := Arg_Index + 1;
          if Arg_Index + 1 < Arg_Count then
@@ -345,6 +370,9 @@ begin
          return;
       elsif Cmd = "-h" or else Cmd = "--help" then
          Usage;
+         return;
+      elsif Cmd = "--help-long" then
+         Usage_Long;
          return;
       elsif Cmd = "--version" then
          Put_Line ("XCOV Pro " & Version.Xcov_Version);
