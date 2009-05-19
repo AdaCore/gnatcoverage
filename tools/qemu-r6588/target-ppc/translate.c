@@ -3625,8 +3625,6 @@ static always_inline void gen_bcond (DisasContext *ctx, int type)
         } else {
             gen_goto_tb(ctx, 0, li);
         }
-        gen_set_label(l1);
-        gen_goto_tb(ctx, 1, ctx->nip);
     } else {
 #if defined(TARGET_PPC64)
         if (!(ctx->sf_mode))
@@ -3635,15 +3633,9 @@ static always_inline void gen_bcond (DisasContext *ctx, int type)
 #endif
             tcg_gen_andi_tl(cpu_nip, target, ~3);
         tcg_gen_exit_tb(0);
-        gen_set_label(l1);
-#if defined(TARGET_PPC64)
-        if (!(ctx->sf_mode))
-            tcg_gen_movi_tl(cpu_nip, (uint32_t)ctx->nip);
-        else
-#endif
-            tcg_gen_movi_tl(cpu_nip, ctx->nip);
-        tcg_gen_exit_tb(0);
     }
+    gen_set_label(l1);
+    gen_goto_tb(ctx, 1, ctx->nip);
 }
 
 GEN_HANDLER(bc, 0x10, 0xFF, 0xFF, 0x00000000, PPC_FLOW)
