@@ -76,7 +76,7 @@ SECTIONS
   . = 0xfffffffc;
   .reset : AT (0xfffffffc)
   {
-   *(.reset)
+   KEEP(*(.reset))
   }
 
   /* DWARF 1.1 and DWARF 2 */
