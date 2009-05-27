@@ -20,6 +20,8 @@ with Qemu_Traces; use Qemu_Traces;
 
 package body Traces_Dbase is
 
+   Trace_Op_Any_Br   : constant Unsigned_8 := Trace_Op_Br0 or Trace_Op_Br1;
+
    function "=" (L, R : Trace_Entry) return Boolean is
    begin
       --  Overlap.
@@ -51,6 +53,7 @@ package body Traces_Dbase is
                         First : Pc_Type; Last : Pc_Type; Op : Unsigned_8)
    is
       Cur : Cursor;
+      Merged_Op : Unsigned_8;
       Status : Boolean;
    begin
       --  Discard fault.
@@ -67,17 +70,32 @@ package body Traces_Dbase is
          return;
       end if;
 
+      --  Handle conflicts.
       declare
          N_First, N_Last : Pc_Type;
          E : constant Trace_Entry := Element (Cur);
       begin
+         --  Prepare merge:
+         --   Handle conditionnal dynamic branches.
+         --   They are a bit special as only the fallback has a Trace_Op_Br bit
+         --   (and this is supposed to be Trace_Op_Br1).  Standard merging will
+         --   discard the taken branch.
+         --  When we merge an op that has a Br bit with one that has no Br bit,
+         --  we assume that both ways were taken.
+         Merged_Op := Op or E.Op;
+         if (E.Op and Trace_Op_Any_Br) = 0
+           xor (Op and Trace_Op_Any_Br) = 0
+         then
+            Merged_Op := Merged_Op or Trace_Op_Br0 or Trace_Op_Br1;
+         end if;
+
          if (Op and Trace_Op_Block) = 0 then
             --  Just merge flags.
             if First /= Last then
                raise Program_Error;
             end if;
             Replace_Element (Base, Cur, Trace_Entry'(E.First, E.Last,
-                                                     Op or E.Op, E.State));
+                                                     Merged_Op, E.State));
          else
             --  Merge
             --  First add entries for before and after E.
@@ -96,12 +114,13 @@ package body Traces_Dbase is
             end if;
 
             --  Then merge with E.
+
             if E.First < N_First then
                --  Split.
                Replace_Element (Base, Cur, Trace_Entry'(E.First, N_First - 1,
                                                         E.Op, E.State));
                Insert (Base,
-                       Trace_Entry'(N_First, N_Last, E.Op or Op, E.State));
+                       Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
                if E.Last > N_Last then
                   Insert (Base,
                           Trace_Entry'(N_Last + 1, E.Last, E.Op, E.State));
@@ -109,14 +128,14 @@ package body Traces_Dbase is
             elsif E.Last > N_Last then
                pragma Assert (E.First = N_First);
                Replace_Element (Base, Cur, Trace_Entry'(N_First, N_Last,
-                                                        Op or E.Op, E.State));
+                                                        Merged_Op, E.State));
                Insert (Base,
                        Trace_Entry'(N_Last + 1, E.Last, E.Op, E.State));
             else
                pragma Assert (N_First = E.First);
                pragma Assert (N_Last = E.Last);
                Replace_Element (Base, Cur, Trace_Entry'(N_First, N_Last,
-                                                        Op or E.Op, E.State));
+                                                        Merged_Op, E.State));
             end if;
          end if;
       end;
