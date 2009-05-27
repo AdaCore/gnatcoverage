@@ -110,7 +110,7 @@ package body Traces_Names is
       Close (F);
    exception
       when Name_Error | Status_Error =>
-         Put_Line (Standard_Output, "cannot open: " & Filename);
+         Put_Line (Standard_Error, "cannot open: " & Filename);
          raise;
    end Read_Routines_Name_From_Text;
 

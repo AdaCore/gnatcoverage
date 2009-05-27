@@ -2116,7 +2116,7 @@ package body Traces_Elf is
       end;
    exception
       when Elf_Files.Error =>
-         Put_Line (Standard_Output, "cannot open: " & Filename);
+         Put_Line (Standard_Error, "cannot open: " & Filename);
          raise;
    end Read_Routines_Name;
 
