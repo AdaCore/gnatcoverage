@@ -17,12 +17,11 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO;  use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;
 
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;        use Hex_Images;
-with Strings;           use Strings;
 with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
 with Traces_Names;      use Traces_Names;
@@ -40,12 +39,16 @@ package body Decision_Map is
    --  Process one conditional branch instruction: identify relevant source
    --  coverable construct, and record association in the decision map.
 
+   procedure Load_SCOs (ALI_List_Filename : String_Acc);
+   --  Load all source coverage obligations for application
+
    -------------
    -- Analyze --
    -------------
 
-   procedure Analyze is
+   procedure Analyze (ALI_List_Filename : String_Acc) is
    begin
+      Load_SCOs (ALI_List_Filename);
       Traces_Names.Iterate (Analyze_Routine'Access);
    end Analyze;
 
@@ -172,5 +175,27 @@ package body Decision_Map is
    begin
       Put_Line ("Dump_Map: Not implemented");
    end Dump_Map;
+
+   ---------------
+   -- Load_SCOs --
+   ---------------
+
+   procedure Load_SCOs (ALI_List_Filename : String_Acc) is
+      ALI_List : File_Type;
+   begin
+      if ALI_List_Filename = null then
+         return;
+      end if;
+      Open (ALI_List, In_File, ALI_List_Filename.all);
+      while not End_Of_File (ALI_List) loop
+         declare
+            Line : String (1 .. 1024);
+            Last : Natural;
+         begin
+            Get_Line (ALI_List, Line, Last);
+            --  Load_SCOs_From_ALI (Line (1 .. Last));
+         end;
+      end loop;
+   end Load_SCOs;
 
 end Decision_Map;

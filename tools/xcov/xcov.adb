@@ -147,6 +147,9 @@ procedure Xcov is
    Routine_List_Option       : constant String := "--routine-list=";
    Routine_List_Option_Short : constant String := "-l";
 
+   ALI_List_Filename         : String_Acc := null;
+   ALI_List_Option           : constant String := "--ali-list=";
+
    Action                    : Coverage_Action;
 
    type Annotation_Format is (Annotate_Asm, Annotate_Xcov, Annotate_Html,
@@ -227,6 +230,7 @@ begin
             Error ("missing FILEs to --analyze-routines");
             return;
          end if;
+
          for I in Arg_Index + 1 .. Arg_Count loop
             declare
                Arg : constant String := Argument (I);
@@ -246,7 +250,7 @@ begin
                end if;
             end;
          end loop;
-         Decision_Map.Analyze;
+         Decision_Map.Analyze (ALI_List_Filename);
          Decision_Map.Dump_Map;
          return;
 
@@ -386,11 +390,11 @@ begin
          Arg : constant String := Argument (Arg_Index);
       begin
          Arg_Index := Arg_Index + 1;
+
          if Arg = "--missing-files" then
             Flag_Show_Missing := True;
-         elsif Arg'Length > 13
-           and then Arg (Arg'First .. Arg'First + 12) = "--text-start="
-         then
+
+         elsif Begins_With (Arg, "--text-start=") then
             --  FIXME: not yet supported.
             begin
                Text_Start := Parse_Hex
@@ -399,9 +403,8 @@ begin
                when Constraint_Error =>
                   return;
             end;
-         elsif Arg'Length > 16
-           and then Arg (Arg'First .. Arg'First + 15) = "--source-rebase="
-         then
+
+         elsif Begins_With (Arg, "--source-rebase=") then
             declare
                Pos : Natural := 0;
             begin
@@ -418,10 +421,10 @@ begin
                Add_Source_Rebase (Arg (Arg'First + 16 .. Pos - 1),
                                   Arg (Pos + 1 .. Arg'Last));
             end;
-         elsif Arg'Length > 16
-           and then Arg (Arg'First .. Arg'First + 15) = "--source-search="
-         then
+
+         elsif Begins_With (Arg, "--source-search=") then
             Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
+
          elsif Arg = Routine_List_Option_Short then
             if Arg_Index > Arg_Count then
                Put_Line ("Missing function list parameter to "
@@ -430,8 +433,13 @@ begin
             end if;
             Routine_List_Filename := new String'(Argument (Arg_Index));
             Arg_Index := Arg_Index + 1;
+
          elsif Begins_With (Arg, Routine_List_Option) then
             Routine_List_Filename := new String'(Option_Parameter (Arg));
+
+         elsif Begins_With (Arg, ALI_List_Option) then
+            ALI_List_Filename := new String'(Option_Parameter (Arg));
+
          elsif Arg = Annotate_Option_Short then
             if Arg_Index > Arg_Count then
                Put_Line ("Missing annotation format to"
@@ -444,12 +452,14 @@ begin
                return;
             end if;
             Arg_Index := Arg_Index + 1;
+
          elsif Begins_With (Arg, Annotate_Option) then
             Annotations := To_Annotation_Format (Option_Parameter (Arg));
             if Annotations = Annotate_Unknown then
                Error ("bad parameter for " & Annotate_Option);
                return;
             end if;
+
          elsif Arg = Coverage_Option_Short then
             if Arg_Index > Arg_Count then
                Put_Line ("Missing coverage action to "
@@ -463,6 +473,7 @@ begin
             end if;
             Set_Action (Action);
             Arg_Index := Arg_Index + 1;
+
          elsif Begins_With (Arg, Coverage_Option) then
             Action := To_Coverage_Action (Option_Parameter (Arg));
             if Action = Unknown_Coverage then
@@ -470,6 +481,7 @@ begin
                return;
             end if;
             Set_Action (Action);
+
          elsif Arg = Final_Report_Option_Short then
             if Arg_Index > Arg_Count then
                Put_Line ("Missing final report name to "
@@ -478,13 +490,17 @@ begin
             end if;
             Traces_Sources.Report.Open_Report_File (Argument (Arg_Index));
             Arg_Index := Arg_Index + 1;
+
          elsif Begins_With (Arg, Final_Report_Option) then
             Traces_Sources.Report.Open_Report_File (Option_Parameter (Arg));
+
          elsif Arg (1) = '-' then
             Error ("unknown option: " & Arg);
             return;
+
          else
-            --  Not an option.
+            --  Not an option
+
             Arg_Index := Arg_Index - 1;
             exit;
          end if;
@@ -557,6 +573,7 @@ begin
 
          --  If there is not routine list, create it from the first executable.
          --  A test above allows this only if there is one trace file.
+
          if Routine_List_Filename = null then
             Read_Routines_Name (Exe_File, Exclude => False);
          end if;
@@ -581,19 +598,25 @@ begin
          Traces_Disa.Flag_Show_Asm := True;
          Coverage.Dump_Coverage_Option (Standard_Output);
          Traces_Sources.Dump_Routines_Traces;
+
       when Annotate_Xcov =>
          Traces_Sources.Xcov.Generate_Report (False);
+
       when Annotate_Html =>
          Traces_Sources.Html.Generate_Report (False);
+
       when Annotate_Xcov_Asm =>
          Traces_Sources.Xcov.Generate_Report (True);
+
       when Annotate_Html_Asm =>
          Traces_Sources.Html.Generate_Report (True);
+
       when Annotate_Report =>
          Coverage.Dump_Coverage_Option (Traces_Sources.Report.Get_Output);
          Traces_Sources.Dump_Uncovered_Routines
            (Traces_Sources.Report.Get_Output);
          Traces_Sources.Report.Finalize_Report;
+
       when Annotate_Unknown =>
          Put_Line ("Please specify an annotation format.");
          return;
