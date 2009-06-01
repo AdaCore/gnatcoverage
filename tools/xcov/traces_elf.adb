@@ -1362,13 +1362,13 @@ package body Traces_Elf is
 
             Insert (Exec.Desc_Sets (Section_Addresses),
                     new Addresses_Info'
-                    (Kind => Section_Addresses,
-                     First => Addr,
-                     Last => Last,
-                     Parent => null,
-                     Section_Name =>
-                       new String'(Get_Shdr_Name (Exec.Exe_File, Idx)),
-                     Section_Index => Idx,
+                    (Kind            => Section_Addresses,
+                     First           => Addr,
+                     Last            => Last,
+                     Parent          => null,
+                     Section_Name    => new String'(
+                                          Get_Shdr_Name (Exec.Exe_File, Idx)),
+                     Section_Index   => Idx,
                      Section_Content => null));
          end if;
       end loop;
