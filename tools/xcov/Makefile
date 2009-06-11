@@ -3,6 +3,7 @@ ADAFLAGS=-gnat05 -gnatwae -gnata -g -gnatyg
 PREFIX=install
 RM=rm -f
 CP=cp -p
+LN=ln -s
 MKDIR=mkdir -p
 MAKEINFO=makeinfo
 
@@ -16,6 +17,17 @@ ppc_genopc:
 
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@
+
+GNAT_SOURCE_DIR=../gnat_src
+ADA_GEN_SUBDIR=gnat
+MOVE_IF_CHANGE=mv -f
+-include gnat/Make-generated.in
+
+copy_gnat_src: force
+	-cd $(ADA_GEN_SUBDIR); \
+	$(foreach f,$(shell cat $(ADA_GEN_SUBDIR)/MANIFEST.XCOV), \
+	$(LN) $(GNAT_SOURCE_DIR)/$(f) . ;\
+	)
 
 #################
 # Documentation #

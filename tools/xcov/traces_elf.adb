@@ -31,7 +31,6 @@ with Hex_Images;        use Hex_Images;
 with Dwarf;
 with Dwarf_Handling;  use Dwarf_Handling;
 with System.Storage_Elements; use System.Storage_Elements;
-with Sources; use Sources;
 with Traces_Sources;
 with Traces_Names;
 with Traces_Disa;
@@ -180,9 +179,9 @@ package body Traces_Elf is
             return Range_Img & " symbol for " & El.Symbol_Name.all;
 
          when Line_Addresses =>
-            return Range_Img & " line " & El.Line_Filename.all & ':'
+            return Range_Img & " line " & Get_Name (El.Sloc.Source_File) & ':'
               & Sloc_Image
-                  (Line => El.Line_Number, Column => El.Column_Number);
+                  (Line => El.Sloc.Line, Column => El.Sloc.Column);
       end case;
    end Image;
 
@@ -1002,9 +1001,11 @@ package body Traces_Elf is
             First => Exec.Exe_Text_Start + Pc_Type (Pc),
             Last => Exec.Exe_Text_Start + Pc_Type (Pc),
             Parent => null,
-            Line_Filename => Filenames_Vectors.Element (Filenames, File),
-            Line_Number   => Natural (Line),
-            Column_Number => Natural (Column));
+            Sloc =>
+              (Source_File  =>
+                 Get_Index (Filenames_Vectors.Element (Filenames, File).all),
+               Line         => Natural (Line),
+               Column       => Natural (Column)));
 
          Exec.Desc_Sets (Line_Addresses).Insert (New_Line, Pos, Inserted);
 
@@ -1451,7 +1452,7 @@ package body Traces_Elf is
       Cur : Cursor;
       Line : Addresses_Info_Acc;
       Prev_File : Source_File_Index;
-      Prev_Filename : String_Acc := null;
+      Prev_Filename : Any_Source_File_Index := No_Source_File;
 
       It : Entry_Iterator;
       E : Trace_Entry;
@@ -1484,12 +1485,12 @@ package body Traces_Elf is
 
             --  Get corresponding file (check previous file for speed-up)
 
-            if Line.Line_Filename /= Prev_Filename then
-               Prev_File := Find_File (Line.Line_Filename);
-               Prev_Filename := Line.Line_Filename;
+            if Line.Sloc.Source_File /= Prev_Filename then
+               Prev_File := Find_File (Get_Name (Line.Sloc.Source_File));
+               Prev_Filename := Line.Sloc.Source_File;
             end if;
 
-            Add_Line (Prev_File, Line.Line_Number, Line, Base, Exec);
+            Add_Line (Prev_File, Line.Sloc.Line, Line, Base, Exec);
 
             --  Skip not-matching traces
 
@@ -1513,7 +1514,7 @@ package body Traces_Elf is
                   if Debug then
                      Put_Line ("no trace for pc=" & Hex_Image (Pc));
                   end if;
-                  Add_Line_State (Prev_File, Line.Line_Number, Not_Covered);
+                  Add_Line_State (Prev_File, Line.Sloc.Line, Not_Covered);
                end if;
 
                exit when No_Traces or else E.First > Line.Last;
@@ -1525,7 +1526,7 @@ package body Traces_Elf is
 
                --  From E.First to min (E.Last, line.last)
 
-               Add_Line_State (Prev_File, Line.Line_Number, E.State);
+               Add_Line_State (Prev_File, Line.Sloc.Line, E.State);
 
                exit when E.Last >= Line.Last;
                Pc := E.Last + 1;

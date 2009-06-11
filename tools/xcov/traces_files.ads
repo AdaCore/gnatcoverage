@@ -17,6 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 with Interfaces; use Interfaces;
+
+with Qemu_Traces;  use Qemu_Traces;
 with Traces_Dbase; use Traces_Dbase;
 with Traces;
 
@@ -27,13 +29,13 @@ package Traces_Files is
    --  Add an info to trace file.
    --  We use a string type even if any byte stream is allowed.
    procedure Append_Info (File : in out Trace_File_Type;
-                          Kind : Unsigned_32;
+                          Kind : Info_Kind_Type;
                           Data : String);
 
    --  Get an info from trace file.
    --  Return an empty string if the info is not found.
-   function Get_Info (File : Trace_File_Type; Kind : Unsigned_32)
-                     return String;
+   function Get_Info
+     (File : Trace_File_Type; Kind : Info_Kind_Type) return String;
    function Format_Date_Info (Raw_String : String) return String;
 
    --  Deallocate all dynamic data.
@@ -82,23 +84,21 @@ private
    type Trace_File_Info_Acc is access Trace_File_Info;
 
    type Trace_File_Info (Raw_Length : Natural) is record
-      --  Simply linked list of infos.
       Next : Trace_File_Info_Acc;
-
-      --  Info Kind (see qemu_traces.ads for details).
-      Kind : Unsigned_32;
+      Kind : Info_Kind_Type;
 
       --  Data for the infos.
       --  String type is used for simplicity - although it might be binary.
+      --  Should be a Storage_Array???
       Data : String (1 .. Raw_Length);
    end record;
 
    type Trace_File_Type is record
       --  Parameter from header.
-      Kind : Unsigned_8;
+      Kind             : Trace_Kind;
       Sizeof_Target_Pc : Unsigned_8;
-      Big_Endian : Boolean;
-      Machine : Unsigned_16;
+      Big_Endian       : Boolean;
+      Machine          : Unsigned_16;
 
       --  Infos.
       --  Simply linked list.

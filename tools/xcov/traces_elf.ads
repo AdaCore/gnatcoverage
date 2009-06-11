@@ -23,6 +23,7 @@ with Traces_Dbase; use Traces_Dbase;
 with Elf_Arch;     use Elf_Arch;
 with Elf_Common;   use Elf_Common;
 with Elf_Files;    use Elf_Files;
+with Sources;      use Sources;
 with Strings;      use Strings;
 
 with Interfaces;
@@ -180,9 +181,7 @@ package Traces_Elf is
             Symbol_Name : String_Acc;
 
          when Line_Addresses =>
-            Line_Filename : String_Acc;
-            Line_Number   : Natural;
-            Column_Number : Natural;
+            Sloc : Source_Location;
       end case;
    end record;
 

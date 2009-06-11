@@ -21,6 +21,7 @@ with Ada.Directories;
 with Interfaces;
 
 with Hex_Images;
+with Strings; use Strings;
 with Traces_Disa;
 with Traces_Names; use Traces_Names;
 
@@ -78,11 +79,11 @@ package body Traces_Sources is
                                    Filename : String;
                                    File : File_Info);
 
-   function Find_File (Filename : String_Acc) return Source_File_Index is
+   function Find_File (Filename : String) return Source_File_Index is
       Res        : Source_File_Index;
       Line_Table : Source_Lines;
    begin
-      Res := Get_Index (Filename.all);
+      Res := Get_Index (Filename);
 
       if Res > File_Tables.Last (File_Table) then
          File_Tables.Set_Last (File_Table, Res);

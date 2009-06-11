@@ -18,7 +18,9 @@
 ------------------------------------------------------------------------------
 
 with Ada.Integer_Text_IO;
-with Hex_Images; use Hex_Images;
+
+with Hex_Images;  use Hex_Images;
+with Strings;     use Strings;
 with Traces_Disa; use Traces_Disa;
 
 package body Traces_Sources.Report is

@@ -57,6 +57,15 @@ package body Sources is
       return L.Column < R.Column;
    end "<";
 
+   ----------
+   -- "<=" --
+   ----------
+
+   function "<=" (L, R : Source_Location) return Boolean is
+   begin
+      return L < R or else L = R;
+   end "<=";
+
    ---------------
    -- Get_Index --
    ---------------

@@ -22,7 +22,6 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Sources; use Sources;
 with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
-with Strings; use Strings;
 with Traces_Dbase; use Traces_Dbase;
 with Disa_Symbolize; use Disa_Symbolize;
 with Traces_Stats; use Traces_Stats;
@@ -30,7 +29,7 @@ with Traces_Lines; use Traces_Lines;
 
 package Traces_Sources is
 
-   function Find_File (Filename : String_Acc) return Source_File_Index;
+   function Find_File (Filename : String) return Source_File_Index;
    --  Find or create a new source file.
 
    procedure Add_Line (File : Source_File_Index;

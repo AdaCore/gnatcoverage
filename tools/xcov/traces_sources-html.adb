@@ -574,6 +574,7 @@ package body Traces_Sources.Html is
    ------------------------
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer) is
+      use Qemu_Traces;
       use Traces_Files;
       use Traces_Files_List;
       use Traces_Files_Lists;
@@ -640,14 +641,13 @@ package body Traces_Sources.Html is
          Pi (El.Filename.all);
          Pi ("      </td>");
          Pi ("      <td>");
-         Pi (Get_Info (El.Trace, Qemu_Traces.Info_Kind_Exec_Filename));
+         Pi (Get_Info (El.Trace, Exec_File_Name));
          Pi ("      </td>");
          Pi ("      <td>");
-         Pi (Format_Date_Info (Get_Info (El.Trace,
-                                         Qemu_Traces.Info_Kind_Date)));
+         Pi (Format_Date_Info (Get_Info (El.Trace, Date_Time)));
          Pi ("      </td>");
          Pi ("      <td>");
-         Pi (Get_Info (El.Trace, Qemu_Traces.Info_Kind_User_Tag));
+         Pi (Get_Info (El.Trace, User_Data));
          Pi ("      </td>");
          Pi ("    </tr>");
          Next (Cur);

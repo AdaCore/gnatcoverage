@@ -17,11 +17,14 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Ordered_Maps;
 with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;
 
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;        use Hex_Images;
+with SC_Obligations;    use SC_Obligations;
+with Sources;           use Sources;
 with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
 with Traces_Names;      use Traces_Names;
@@ -41,6 +44,19 @@ package body Decision_Map is
 
    procedure Load_SCOs (ALI_List_Filename : String_Acc);
    --  Load all source coverage obligations for application
+
+   procedure Load_SCOs_From_ALI (ALI_Filename : String);
+   --  Load SCOs from the named ALI file, populating a map of slocs to SCOs
+
+   package Sloc_To_SCO_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Source_Location,
+      Element_Type => SCO_Id);
+
+   Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
+
+   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
+   --  Return the SCO whose range contains Sloc, if Any
+   --  Assumes that no more than one SCO can encompass a given sloc???
 
    -------------
    -- Analyze --
@@ -63,6 +79,8 @@ package body Decision_Map is
       Sloc : constant Addresses_Info_Acc :=
                Get_Address_Info (Exe.all, Line_Addresses, Insn'First);
       --  Source location of Insn
+
+      SCO : SCO_Id;
    begin
       if Sloc = null then
          --  No associated source, so no further processing required for source
@@ -71,8 +89,24 @@ package body Decision_Map is
          return;
       end if;
 
-      Put_Line ("conditional branch at " & Hex_Image (Insn'First)
-                & " for sloc " & Image (Sloc));
+      SCO := Sloc_To_SCO (Sloc.Sloc);
+
+      Put ("conditional branch at " & Hex_Image (Insn'First)
+           & " for sloc " & Image (Sloc) & ":");
+
+      if SCO = No_SCO_Id then
+         Put_Line ("no SCO");
+         return;
+      end if;
+
+      Put ("SCO #" & Image (SCO) & ": ");
+      case Kind (SCO) is
+         when Statement =>
+            Put_Line ("statement");
+
+         when Decision =>
+            Put_Line ("decision");
+      end case;
    end Analyze_Conditional_Branch;
 
    ---------------------
@@ -193,9 +227,39 @@ package body Decision_Map is
             Last : Natural;
          begin
             Get_Line (ALI_List, Line, Last);
-            --  Load_SCOs_From_ALI (Line (1 .. Last));
+            Load_SCOs_From_ALI (Line (1 .. Last));
          end;
       end loop;
    end Load_SCOs;
+
+   ------------------------
+   -- Load_SCOs_From_ALI --
+   ------------------------
+
+   procedure Load_SCOs_From_ALI (ALI_Filename : String) is
+   begin
+      --  To be implemented???
+      null;
+   end Load_SCOs_From_ALI;
+
+   -----------------
+   -- Sloc_To_SCO --
+   -----------------
+
+   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id is
+      use Sloc_To_SCO_Maps;
+      Cur : constant Cursor := Sloc_To_SCO_Map.Floor (Sloc);
+   begin
+      if Cur /= No_Element then
+         declare
+            SCO : constant SCO_Id := Element (Cur);
+         begin
+            if Sloc <= Last_Sloc (SCO) then
+               return SCO;
+            end if;
+         end;
+      end if;
+      return No_SCO_Id;
+   end Sloc_To_SCO;
 
 end Decision_Map;

@@ -42,9 +42,11 @@ struct trace_header
 
     /* File kind.  */
     uint8_t kind;
-#define QEMU_TRACE_KIND_RAW 0
-#define QEMU_TRACE_KIND_HISTORY 1
-#define QEMU_TRACE_KIND_DECISION_MAP 2
+#define QEMU_TRACE_KIND_RAW            0
+#define QEMU_TRACE_KIND_HISTORY        1
+#define QEMU_TRACE_KIND_INFO           2
+#define QEMU_TRACE_KIND_DECISION_MAP   3
+#define QEMU_TRACE_KIND_CONSOLIDATED 248
 
     /* Sizeof (target_pc).  Indicates struct trace_entry length.  */
     uint8_t sizeof_target_pc;

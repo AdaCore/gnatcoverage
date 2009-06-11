@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                       Copyright (C) 2009, AdaCore                        --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,44 +17,21 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Source locations
+--  Source Coverage Obligations
 
-private with Ada.Containers.Vectors;
-private with Strings;
+with Sources; use Sources;
 
-package Sources is
+package SC_Obligations is
 
-   --  Global directory of all source files
+   type SCO_Id is new Natural;
+   No_SCO_Id : constant SCO_Id := 0;
 
-   type Any_Source_File_Index is new Natural;
-   No_Source_File    : constant Any_Source_File_Index := 0;
-   First_Source_File : constant Any_Source_File_Index := 1;
+   type SCO_Kind is (Statement, Decision);
 
-   subtype Source_File_Index is Any_Source_File_Index
-     range First_Source_File .. Any_Source_File_Index'Last;
+   function First_Sloc (SCO : SCO_Id) return Source_Location;
+   function Last_Sloc (SCO : SCO_Id) return Source_Location;
+   function Kind (SCO : SCO_Id) return SCO_Kind;
 
-   function Get_Index (Name : String) return Source_File_Index;
-   function Get_Name (Index : Source_File_Index) return String;
+   function Image (SCO : SCO_Id) return String;
 
-   --  A source location within the application
-
-   type Source_Location is record
-      Source_File : Source_File_Index;
-      Line        : Natural;
-      Column      : Natural;
-   end record;
-
-   function "<" (L, R : Source_Location) return Boolean;
-   function "<=" (L, R : Source_Location) return Boolean;
-   --  Order function used to build ordered maps keyed by source locations
-
-private
-
-   use Strings;
-
-   package Filename_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Source_File_Index,
-      Element_Type => String_Acc,
-      "="          => Equal);
-
-end Sources;
+end SC_Obligations;

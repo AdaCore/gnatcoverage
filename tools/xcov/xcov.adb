@@ -554,7 +554,7 @@ begin
       Traces_Files_List.Files.Append (Trace_File);
       declare
          Exe_Name : constant String :=
-           Get_Info (Trace_File.Trace, Qemu_Traces.Info_Kind_Exec_Filename);
+           Get_Info (Trace_File.Trace, Qemu_Traces.Exec_File_Name);
          Exe_File : Exe_File_Acc;
       begin
          if Exe_Name = "" then

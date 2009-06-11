@@ -263,12 +263,10 @@ package body Qemudrv is
                                        Min => Unsigned_8 (GM_Minute (Date)),
                                        Sec => Unsigned_8 (GM_Second (Date)),
                                        Pad => 0);
-         Append_Info (Trace_File,
-                      Info_Kind_Date, Date_Info_To_Str (Date_Info));
-
-         Append_Info (Trace_File, Info_Kind_Exec_Filename, Exe_File.all);
+         Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
+         Append_Info (Trace_File, Exec_File_Name, Exe_File.all);
          if Tag /= null then
-            Append_Info (Trace_File, Info_Kind_User_Tag, Tag.all);
+            Append_Info (Trace_File, User_Data, Tag.all);
          end if;
          Write_Trace_File (Output.all, Trace_File);
          Free (Trace_File);

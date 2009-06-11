@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                       Copyright (C) 2009, AdaCore                        --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,44 +17,55 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Source locations
+--  Source Coverage Obligations
 
-private with Ada.Containers.Vectors;
-private with Strings;
+with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 
-package Sources is
+package body SC_Obligations is
 
-   --  Global directory of all source files
+   ----------------
+   -- First_Sloc --
+   ----------------
 
-   type Any_Source_File_Index is new Natural;
-   No_Source_File    : constant Any_Source_File_Index := 0;
-   First_Source_File : constant Any_Source_File_Index := 1;
+   function First_Sloc (SCO : SCO_Id) return Source_Location is
+      pragma Unreferenced (SCO);
+   begin
+      --  Not implemented yet???
 
-   subtype Source_File_Index is Any_Source_File_Index
-     range First_Source_File .. Any_Source_File_Index'Last;
+      return (First_Source_File, 0, 0);
+   end First_Sloc;
 
-   function Get_Index (Name : String) return Source_File_Index;
-   function Get_Name (Index : Source_File_Index) return String;
+   -----------
+   -- Image --
+   -----------
 
-   --  A source location within the application
+   function Image (SCO : SCO_Id) return String is
+   begin
+      return Trim (SCO'Img, Side => Ada.Strings.Both);
+   end Image;
 
-   type Source_Location is record
-      Source_File : Source_File_Index;
-      Line        : Natural;
-      Column      : Natural;
-   end record;
+   ----------
+   -- Kind --
+   ----------
 
-   function "<" (L, R : Source_Location) return Boolean;
-   function "<=" (L, R : Source_Location) return Boolean;
-   --  Order function used to build ordered maps keyed by source locations
+   function Kind (SCO : SCO_Id) return SCO_Kind is
+      pragma Unreferenced (SCO);
+   begin
+      --  Not implemented yet???
 
-private
+      return SCO_Kind'First;
+   end Kind;
 
-   use Strings;
+   ---------------
+   -- Last_Sloc --
+   ---------------
 
-   package Filename_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Source_File_Index,
-      Element_Type => String_Acc,
-      "="          => Equal);
+   function Last_Sloc (SCO : SCO_Id) return Source_Location is
+      pragma Unreferenced (SCO);
+   begin
+      --  Not implemented yet???
 
-end Sources;
+      return (First_Source_File, 0, 0);
+   end Last_Sloc;
+
+end SC_Obligations;
