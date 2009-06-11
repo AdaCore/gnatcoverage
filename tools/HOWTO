@@ -37,7 +37,7 @@ development version. Our source base is maintained in the qemu-r6588
 subdir of the couverture repository.
 
 First step is to "configure", with
-  --target-list=ppc-softmmu
+  --target-list=ppc-softmmu \
   --disable-kqemu --disable-sdl --disable-gfx-check --disable-vnc-tls
 
 If you are using a 32bit compiler on a 64bit host on linux, prefix
