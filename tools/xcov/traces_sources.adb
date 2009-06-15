@@ -81,15 +81,22 @@ package body Traces_Sources is
 
    function Find_File (Filename : String) return Source_File_Index is
       Res        : Source_File_Index;
-      Line_Table : Source_Lines;
+      Last       : Any_Source_File_Index;
    begin
       Res := Get_Index (Filename);
 
-      if Res > File_Tables.Last (File_Table) then
+      Last := File_Tables.Last (File_Table);
+      if Res > Last then
          File_Tables.Set_Last (File_Table, Res);
-         Source_Line_Tables.Init (Line_Table);
-         File_Table.Table (Res).Lines := Line_Table;
-         File_Table.Table (Res).Stats := (others => 0);
+         for Index in Last + 1 .. Res loop
+            declare
+               Line_Table : Source_Lines;
+            begin
+               Source_Line_Tables.Init (Line_Table);
+               File_Table.Table (Index).Lines := Line_Table;
+               File_Table.Table (Index).Stats := (others => 0);
+            end;
+         end loop;
       end if;
 
       return Res;
