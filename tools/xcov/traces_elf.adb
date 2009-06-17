@@ -78,7 +78,7 @@ package body Traces_Elf is
                            Base : Address;
                            Off : in out Storage_Offset;
                            Sz : Natural;
-                           Res : out Unsigned_64);
+                           Res : out Pc_Type);
    procedure Read_Dwarf_Form_U64 (Exec : Exe_File_Type;
                                   Base : Address;
                                   Off : in out Storage_Offset;
@@ -418,20 +418,28 @@ package body Traces_Elf is
                            Base : Address;
                            Off : in out Storage_Offset;
                            Sz : Natural;
-                           Res : out Unsigned_64)
+                           Res : out Pc_Type)
    is
    begin
+      if Sz /= Natural (Pc_Type_Size) then
+         raise Program_Error with "address size mismatch";
+      end if;
       if Sz = 4 then
          declare
             V : Unsigned_32;
          begin
             Read_Word4 (Exec, Base, Off, V);
-            Res := Unsigned_64 (V);
+            Res := Pc_Type (V);
          end;
       elsif Sz = 8 then
-         Read_Word8 (Exec, Base, Off, Res);
+         declare
+            V : Unsigned_64;
+         begin
+            Read_Word8 (Exec, Base, Off, V);
+            Res := Pc_Type (V);
+         end;
       else
-         raise Program_Error;
+         raise Program_Error with "unhandled address length";
       end if;
    end Read_Address;
 
@@ -445,7 +453,12 @@ package body Traces_Elf is
    begin
       case Form is
          when DW_FORM_addr =>
-            Read_Address (Exec, Base, Off, Exec.Addr_Size, Res);
+            declare
+               V : Pc_Type;
+            begin
+               Read_Address (Exec, Base, Off, Exec.Addr_Size, V);
+               Res := Unsigned_64 (V);
+            end;
          when DW_FORM_flag =>
             declare
                V : Unsigned_8;
@@ -970,7 +983,7 @@ package body Traces_Elf is
 
       Last : Storage_Offset;
 
-      Pc           : Unsigned_64;
+      Pc           : Pc_Type;
       Line, Column : Unsigned_32;
       File         : Natural;
       Line_Base2   : Unsigned_32;
@@ -998,8 +1011,8 @@ package body Traces_Elf is
          New_Line :=
            new Addresses_Info'
            (Kind => Line_Addresses,
-            First => Exec.Exe_Text_Start + Pc_Type (Pc),
-            Last => Exec.Exe_Text_Start + Pc_Type (Pc),
+            First => Exec.Exe_Text_Start + Pc,
+            Last => Exec.Exe_Text_Start + Pc,
             Parent => null,
             Sloc =>
               (Source_File  =>
@@ -1165,7 +1178,7 @@ package body Traces_Elf is
 
                when DW_LNS_advance_pc =>
                   Read_ULEB128 (Base, Off, Arg);
-                  Pc := Pc + Unsigned_64 (Arg * Unsigned_32 (Min_Insn_Len));
+                  Pc := Pc + Pc_Type (Arg * Unsigned_32 (Min_Insn_Len));
 
                when DW_LNS_advance_line =>
                   Read_SLEB128 (Base, Off, Arg);
@@ -1183,7 +1196,7 @@ package body Traces_Elf is
                   null;
 
                when DW_LNS_const_add_pc =>
-                  Pc := Pc + Unsigned_64
+                  Pc := Pc + Pc_Type
                     (Unsigned_32 ((255 - Opc_Base) / Line_Range)
                        * Unsigned_32 (Min_Insn_Len));
 
@@ -1207,8 +1220,8 @@ package body Traces_Elf is
             --  Special opcode.
 
             B := B - Opc_Base;
-            Pc := Pc + Unsigned_64 (Unsigned_32 (B / Line_Range)
-                                    * Unsigned_32 (Min_Insn_Len));
+            Pc := Pc + Pc_Type (Unsigned_32 (B / Line_Range)
+                                  * Unsigned_32 (Min_Insn_Len));
             Line := Line + Line_Base2 + Unsigned_32 (B mod Line_Range);
             New_Source_Line;
          end if;
