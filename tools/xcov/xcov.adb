@@ -43,7 +43,7 @@ with Traces_Files_List; use Traces_Files_List;
 
 procedure Xcov is
    procedure Usage;
-   procedure Usage_Long;
+   procedure Usage_Dump;
    procedure Error (Msg : String);
    function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
 
@@ -55,6 +55,9 @@ procedure Xcov is
       P ("Action is one of:");
       P (" --help  -h");
       P ("   Display this help");
+      New_Line;
+      P (" --help-dump");
+      P ("   Display extra help for dump commands (useful for maintainance)");
       New_Line;
       P (" --version");
       P ("   Display version");
@@ -72,10 +75,9 @@ procedure Xcov is
       New_Line;
    end Usage;
 
-   procedure Usage_Long is
+   procedure Usage_Dump is
       procedure P (S : String) renames Put_Line;
    begin
-      Usage;
       P ("Debugging commands:");
       New_Line;
       P (" --dump-trace FILES");
@@ -87,7 +89,18 @@ procedure Xcov is
       P (" --dump-trace-asm EXE TRACE_FILES");
       P ("   Raw display of trace files with assembly code for each trace");
       New_Line;
-   end Usage_Long;
+      P (" --dump-sections EXEs");
+      P (" --dump-symbols EXEs");
+      P (" --dump-compile-units EXEs");
+      P (" --dump-subprograms EXEs");
+      P (" --dump-lines EXEs");
+      P ("   Dump info from executable files");
+      New_Line;
+      P (" --disassemble EXEs");
+      P (" --disassemble-raw EXEs");
+      P ("   Disassemble executables");
+      New_Line;
+   end Usage_Dump;
 
    procedure Error (Msg : String) is
    begin
@@ -375,8 +388,8 @@ begin
       elsif Cmd = "-h" or else Cmd = "--help" then
          Usage;
          return;
-      elsif Cmd = "--help-long" then
-         Usage_Long;
+      elsif Cmd = "--help-dump" then
+         Usage_Dump;
          return;
       elsif Cmd = "--version" then
          Put_Line ("XCOV Pro " & Version.Xcov_Version);
