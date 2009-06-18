@@ -20,8 +20,8 @@
 with Ada.Unchecked_Conversion;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Vectors;
+with Ada.Characters.Handling;
 with Interfaces; use Interfaces;
-with GNAT.Directory_Operations; use GNAT.Directory_Operations;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Elf32;
@@ -124,6 +124,12 @@ package body Traces_Elf is
    --  Allocate memory for section SEC of EXEC and read it.
    --  LEN is the length of the section, CONTENT is its binary content.
    --  The low bound of CONTENT is 0.
+
+   function Build_Filename (Dir : String; Filename : String)
+                           return String_Acc;
+   --  Create a filename from a directory name and a filename.
+   --  The directory name is expected to be not empty.
+   --  If the filename looks like a Windows filename, it is canonicalized.
 
    Empty_String_Acc : constant String_Acc := new String'("");
 
@@ -941,6 +947,30 @@ package body Traces_Elf is
       Element_Type => String_Acc,
       "=" => "=");
 
+   function Build_Filename (Dir : String; Filename : String)
+                           return String_Acc
+   is
+      use Ada.Characters.Handling;
+      Res : String := Dir & '/' & Filename;
+   begin
+      if Res'Length > 2 and then Res (Res'First + 1) = ':' then
+         --  Looks like a Windows file.
+
+         --  Capitalize the driver letter.
+         Res (Res'First) := To_Upper (Res (Res'First));
+
+         --  Lower case letters, back-slashify.
+         for I in Res'First + 2 .. Res'Last loop
+            if Is_Upper (Res (I)) then
+               Res (I) := To_Lower (Res (I));
+            elsif Res (I) = '/' then
+               Res (I) := '\';
+            end if;
+         end loop;
+      end if;
+      return new String'(Res);
+   end Build_Filename;
+
    ----------------------
    -- Read_Debug_Lines --
    ----------------------
@@ -992,7 +1022,6 @@ package body Traces_Elf is
       Nbr_Filenames : Unsigned_32;
       Dirnames      : Filenames_Vectors.Vector;
       Filenames     : Filenames_Vectors.Vector;
-      Dir           : String_Acc;
 
       procedure New_Source_Line;
 
@@ -1112,6 +1141,7 @@ package body Traces_Elf is
 
          declare
             Filename : constant String := Read_String (Base + Old_Off);
+            Dir      : String_Acc;
          begin
             if File_Dir /= 0
               and then File_Dir <= Nbr_Dirnames then
@@ -1124,7 +1154,7 @@ package body Traces_Elf is
             end if;
 
             Filenames_Vectors.Append
-              (Filenames, new String'(Dir.all & Dir_Separator & Filename));
+              (Filenames, Build_Filename (Dir.all, Filename));
          end;
 
          Read_ULEB128 (Base, Off, File_Time);
