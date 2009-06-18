@@ -1023,7 +1023,20 @@ package body Traces_Elf is
       Dirnames      : Filenames_Vectors.Vector;
       Filenames     : Filenames_Vectors.Vector;
 
+      Last_Line     : Addresses_Info_Acc := null;
+
       procedure New_Source_Line;
+      procedure Close_Source_Line;
+
+      procedure Close_Source_Line is
+      begin
+         if Last_Line = null then
+            return;
+         end if;
+
+         Last_Line.Last := Exec.Exe_Text_Start + Pc - 1;
+         Last_Line := null;
+      end Close_Source_Line;
 
       ---------------------
       -- New_Source_Line --
@@ -1033,11 +1046,12 @@ package body Traces_Elf is
          use Addresses_Containers;
          Pos        : Cursor;
          Inserted   : Boolean;
-         New_Line   : Addresses_Info_Acc;
          Empty_Line : Addresses_Info_Acc;
       begin
+         Close_Source_Line;
+
          --  Note: Last and Parent are set by Build_Debug_Lines.
-         New_Line :=
+         Last_Line :=
            new Addresses_Info'
            (Kind => Line_Addresses,
             First => Exec.Exe_Text_Start + Pc,
@@ -1049,13 +1063,13 @@ package body Traces_Elf is
                Line         => Natural (Line),
                Column       => Natural (Column)));
 
-         Exec.Desc_Sets (Line_Addresses).Insert (New_Line, Pos, Inserted);
+         Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
 
          if not Inserted then
             --  The line previously inserted is an empty range. Drop it.
             --  Replace it by the new line.
             Empty_Line := Element (Pos);
-            Exec.Desc_Sets (Line_Addresses).Replace_Element (Pos, New_Line);
+            Exec.Desc_Sets (Line_Addresses).Replace_Element (Pos, Last_Line);
             Unchecked_Deallocation (Empty_Line);
          end if;
 
@@ -1179,7 +1193,7 @@ package body Traces_Elf is
             Read_Byte (Base, Off, Ext_Opc);
             case Ext_Opc is
                when DW_LNE_end_sequence =>
-                  New_Source_Line;
+                  Close_Source_Line;
                   --  Initial state.
                   Pc := 0;
                   Line := 1;
@@ -1256,6 +1270,11 @@ package body Traces_Elf is
             New_Source_Line;
          end if;
       end loop;
+
+      if Last_Line /= null then
+         raise Program_Error with "missing end_of_sequence";
+      end if;
+
       Unchecked_Deallocation (Opc_Length);
    end Read_Debug_Lines;
 
