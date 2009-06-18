@@ -17,14 +17,12 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Ordered_Maps;
 with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;
 
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;        use Hex_Images;
 with SC_Obligations;    use SC_Obligations;
-with Sources;           use Sources;
 with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
 with Traces_Names;      use Traces_Names;
@@ -41,22 +39,6 @@ package body Decision_Map is
       Insn : Binary_Content);
    --  Process one conditional branch instruction: identify relevant source
    --  coverable construct, and record association in the decision map.
-
-   procedure Load_SCOs (ALI_List_Filename : String_Acc);
-   --  Load all source coverage obligations for application
-
-   procedure Load_SCOs_From_ALI (ALI_Filename : String);
-   --  Load SCOs from the named ALI file, populating a map of slocs to SCOs
-
-   package Sloc_To_SCO_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Source_Location,
-      Element_Type => SCO_Id);
-
-   Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
-
-   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
-   --  Return the SCO whose range contains Sloc, if Any
-   --  Assumes that no more than one SCO can encompass a given sloc???
 
    -------------
    -- Analyze --
@@ -209,57 +191,5 @@ package body Decision_Map is
    begin
       Put_Line ("Dump_Map: Not implemented");
    end Dump_Map;
-
-   ---------------
-   -- Load_SCOs --
-   ---------------
-
-   procedure Load_SCOs (ALI_List_Filename : String_Acc) is
-      ALI_List : File_Type;
-   begin
-      if ALI_List_Filename = null then
-         return;
-      end if;
-      Open (ALI_List, In_File, ALI_List_Filename.all);
-      while not End_Of_File (ALI_List) loop
-         declare
-            Line : String (1 .. 1024);
-            Last : Natural;
-         begin
-            Get_Line (ALI_List, Line, Last);
-            Load_SCOs_From_ALI (Line (1 .. Last));
-         end;
-      end loop;
-   end Load_SCOs;
-
-   ------------------------
-   -- Load_SCOs_From_ALI --
-   ------------------------
-
-   procedure Load_SCOs_From_ALI (ALI_Filename : String) is
-   begin
-      --  To be implemented???
-      null;
-   end Load_SCOs_From_ALI;
-
-   -----------------
-   -- Sloc_To_SCO --
-   -----------------
-
-   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id is
-      use Sloc_To_SCO_Maps;
-      Cur : constant Cursor := Sloc_To_SCO_Map.Floor (Sloc);
-   begin
-      if Cur /= No_Element then
-         declare
-            SCO : constant SCO_Id := Element (Cur);
-         begin
-            if Sloc <= Last_Sloc (SCO) then
-               return SCO;
-            end if;
-         end;
-      end if;
-      return No_SCO_Id;
-   end Sloc_To_SCO;
 
 end Decision_Map;

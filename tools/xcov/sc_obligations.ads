@@ -20,6 +20,7 @@
 --  Source Coverage Obligations
 
 with Sources; use Sources;
+with Strings; use Strings;
 
 package SC_Obligations is
 
@@ -33,5 +34,12 @@ package SC_Obligations is
    function Kind (SCO : SCO_Id) return SCO_Kind;
 
    function Image (SCO : SCO_Id) return String;
+
+   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
+   --  Return the SCO whose range contains Sloc, if Any
+   --  Assumes that no more than one SCO can encompass a given sloc???
+
+   procedure Load_SCOs (ALI_List_Filename : String_Acc);
+   --  Load all source coverage obligations for application
 
 end SC_Obligations;
