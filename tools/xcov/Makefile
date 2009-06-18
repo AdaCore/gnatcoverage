@@ -1,9 +1,9 @@
 GNATMAKE=gnatmake
-ADAFLAGS=-gnat05 -gnatwae -gnata -g -gnatyg
+ADAFLAGS=-gnat05 -gnatwae -gnata -g -gnatyg -Ignat
 PREFIX=install
 RM=rm -f
 CP=cp -p
-LN=ln -s
+LN=ln -sf
 MKDIR=mkdir -p
 MAKEINFO=makeinfo
 
