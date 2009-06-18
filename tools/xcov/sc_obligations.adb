@@ -63,11 +63,8 @@ package body SC_Obligations is
    ----------------
 
    function First_Sloc (SCO : SCO_Id) return Source_Location is
-      pragma Unreferenced (SCO);
    begin
-      --  Not implemented yet???
-
-      return (First_Source_File, 0, 0);
+      return SCO_Vector.Element (SCO).First_Sloc;
    end First_Sloc;
 
    -----------
@@ -84,11 +81,8 @@ package body SC_Obligations is
    ----------
 
    function Kind (SCO : SCO_Id) return SCO_Kind is
-      pragma Unreferenced (SCO);
    begin
-      --  Not implemented yet???
-
-      return SCO_Kind'First;
+      return SCO_Vector.Element (SCO).Kind;
    end Kind;
 
    ---------------
@@ -96,11 +90,8 @@ package body SC_Obligations is
    ---------------
 
    function Last_Sloc (SCO : SCO_Id) return Source_Location is
-      pragma Unreferenced (SCO);
    begin
-      --  Not implemented yet???
-
-      return (First_Source_File, 0, 0);
+      return SCO_Vector.Element (SCO).Last_Sloc;
    end Last_Sloc;
 
    ---------------
