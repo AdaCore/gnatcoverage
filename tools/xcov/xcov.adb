@@ -422,13 +422,13 @@ begin
                Pos : Natural := 0;
             begin
                for I in Arg'First + 16 .. Arg'Last loop
-                  if Arg (I) = ':' then
+                  if Arg (I) = '=' then
                      Pos := I;
                      exit;
                   end if;
                end loop;
                if Pos = 0 then
-                  Error ("missing ':' in --source-rebase=");
+                  Error ("missing '=' in --source-rebase=");
                   return;
                end if;
                Add_Source_Rebase (Arg (Arg'First + 16 .. Pos - 1),
