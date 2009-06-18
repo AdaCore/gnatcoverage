@@ -104,7 +104,7 @@ procedure Xcov is
 
    procedure Error (Msg : String) is
    begin
-      Put_Line (Standard_Output, Msg);
+      Put_Line (Standard_Error, Command_Name & ": " & Msg);
       Set_Exit_Status (Failure);
    end Error;
 
@@ -233,6 +233,10 @@ begin
                                                  Mode_Exclude);
                   Close_File (Exec);
                end if;
+            exception
+               when Elf_Files.Error =>
+                  Error ("can't open: " & Arg);
+                  return;
             end;
          end loop;
          Traces_Names.Disp_All_Routines;
