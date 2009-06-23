@@ -121,8 +121,6 @@ package body SC_Obligations is
    ------------------------
 
    procedure Load_SCOs_From_ALI (ALI_Filename : String) is
-      Cur_SCO_Unit  : SCOs.Unit_Index;
-
       Cur_Source_File : Source_File_Index;
 
       ALI_File : File_Type;
@@ -136,6 +134,9 @@ package body SC_Obligations is
 
       function Nextc return Character;
       --  Peek at current character in Line
+
+      procedure Skipc;
+      --  Skip one character in Line
 
       ----------
       -- Getc --
@@ -164,7 +165,18 @@ package body SC_Obligations is
          return Line (Index);
       end Nextc;
 
-      function Get_SCOs_From_ALI is new Get_SCOs;
+      -----------
+      -- Skipc --
+      -----------
+
+      procedure Skipc is
+         C : Character;
+         pragma Unreferenced (C);
+      begin
+         C := Getc;
+      end Skipc;
+
+      procedure Get_SCOs_From_ALI is new Get_SCOs;
 
    begin
       Open (ALI_File, In_File, ALI_Filename);
@@ -200,12 +212,12 @@ package body SC_Obligations is
 
       Index := 1;
 
-      Cur_SCO_Unit := Get_SCOs_From_ALI;
+      Get_SCOs_From_ALI;
 
       --  Walk low-level SCO table for this unit and populate high-level tables
 
-      for Cur_SCO_Entry in SCOs.SCO_Unit_Table.Table (Cur_SCO_Unit).From
-                        .. SCOs.SCO_Unit_Table.Table (Cur_SCO_Unit).To
+      for Cur_SCO_Entry in
+        SCOs.SCO_Table.First .. SCOs.SCO_Table.Last
       loop
          Process_Entry : declare
             SCOE : SCOs.SCO_Table_Entry renames
