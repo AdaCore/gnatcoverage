@@ -20,6 +20,14 @@ I618-017 local object misalignment on ppc target
 
   Workaround: Arrange for the entry stack pointer to be properly aligned.
 
+I527-008 Error messages printed on stderr
+
+  Problem:    Some errors messages were not printed on stderr.
+
+  Status:     This was fixed on 2009-05-28
+
+  Workaround: Read messages from both stdout and stderr.
+
 I519-015 No full coverage of conditional dynamic branches
 
   Problem:    It is not possible to fully cover conditional dynamic branches.
