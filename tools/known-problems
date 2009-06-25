@@ -20,3 +20,10 @@ I618-017 local object misalignment on ppc target
 
   Workaround: Arrange for the entry stack pointer to be properly aligned.
 
+I519-015 No full coverage of conditional dynamic branches
+
+  Problem:    It is not possible to fully cover conditional dynamic branches.
+
+  Status:     This was fixed on 2009-05-28
+
+  Workaround: Avoid to use powerpc bcctr/bclr instructions.
