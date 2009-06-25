@@ -1,0 +1,22 @@
+========================================
+Known problems in the Couverture toolset
+========================================
+
+Copyright (c) 2009, AdaCore
+
+The following is a listing of known problems in the Couverture toolset
+components. Except where specifically noted, all these problems have been
+corrected in the development tree, hence in wavefronts issued subsequent
+to the date specified (in ISO format YYYY-MM-DD) in the status line.
+
+I618-017 local object misalignment on ppc target
+
+  Problem:    During program execution using the provided support facilities,
+              objects requested to be aligned > 4 bytes boundary sometimes
+              don't have their address so much aligned. This is caused by
+              a misalignment of the entry stack pointer wrt the ABI mandate.
+
+  Status:     This was fixed on 2009-04-02
+
+  Workaround: Arrange for the entry stack pointer to be properly aligned.
+
