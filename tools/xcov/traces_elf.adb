@@ -1284,15 +1284,28 @@ package body Traces_Elf is
 
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type) is
       use Addresses_Containers;
+
+      function Get_Element (Cur : Cursor) return Addresses_Info_Acc;
+      --  Return the element designated by Cur or null if cur doesn't
+      --  designate an element.
+
+      function Get_Element (Cur : Cursor) return Addresses_Info_Acc is
+      begin
+         if Cur /= No_Element then
+            return Element (Cur);
+         else
+            return null;
+         end if;
+      end Get_Element;
+
       Cur_Cu : Compile_Unit_Lists.Cursor;
       Cur_Subprg : Cursor;
       Cur_Sec : Cursor;
-      Cur_Line, N_Cur_Line : Cursor;
+      Cur_Line : Cursor;
       Cu : Compile_Unit_Desc;
       Subprg : Addresses_Info_Acc;
       Sec : Addresses_Info_Acc;
       Line : Addresses_Info_Acc;
-      N_Line : Addresses_Info_Acc;
    begin
       --  Return now if already loaded
 
@@ -1318,77 +1331,41 @@ package body Traces_Elf is
       Cur_Line := First (Exec.Desc_Sets (Line_Addresses));
 
       Cur_Subprg := First (Exec.Desc_Sets (Subprogram_Addresses));
-      if Cur_Subprg /= No_Element then
-         Subprg := Element (Cur_Subprg);
-      else
-         Subprg := null;
-      end if;
+      Subprg := Get_Element (Cur_Subprg);
 
       Cur_Sec := First (Exec.Desc_Sets (Section_Addresses));
-      if Cur_Sec /= No_Element then
-         Sec := Element (Cur_Sec);
-      else
-         Sec := null;
-      end if;
+      Sec := Get_Element (Cur_Sec);
 
       while Cur_Line /= No_Element loop
          Line := Element (Cur_Line);
-         N_Cur_Line := Next (Cur_Line);
-         if N_Cur_Line /= No_Element then
-            N_Line := Element (N_Cur_Line);
-         else
-            N_Line := null;
-         end if;
 
-         --  Be sure Subprg and Cu are correctly set
+         --  Be sure Subprg and Sec are correctly set
 
          while Subprg /= null and then Subprg.Last < Line.First loop
             Next (Cur_Subprg);
-            if Cur_Subprg /= No_Element then
-               Subprg := Element (Cur_Subprg);
-            else
-               Subprg := null;
-            end if;
+            Subprg := Get_Element (Cur_Subprg);
          end loop;
 
          while Sec /= null and then Sec.Last < Line.First loop
             Next (Cur_Sec);
-            if Cur_Sec /= No_Element then
-               Sec := Element (Cur_Sec);
-            else
-               Sec := null;
-            end if;
+            Sec := Get_Element (Cur_Sec);
          end loop;
 
-         if N_Line /= null then
-
-            --  Set Last
-
-            Line.Last := N_Line.First - 1;
-            if Subprg /= null then
-               Line.Parent := Subprg;
-            end if;
-         end if;
-
          if Subprg /= null
-           and then (Line.Last > Subprg.Last or Line.Last = Line.First)
+           and then Line.First >= Subprg.First
+           and then Line.Last <= Subprg.Last
          then
-            --  Truncate current line to this subprogram
-
-            Line.Last := Subprg.Last;
             Line.Parent := Subprg;
-         end if;
-
-         if Sec /= null
-           and then (Line.Last > Sec.Last or Line.Last = Line.First)
+         elsif Sec /= null
+           and then Line.First >= Sec.First and then Line.Last <= Sec.Last
          then
-            --  Truncate current line to the section
-
-            Line.Last := Sec.Last;
             Line.Parent := Sec;
+         else
+            --  Possible for discarded sections.
+            Line.Parent := null;
          end if;
 
-         Cur_Line := N_Cur_Line;
+         Next (Cur_Line);
       end loop;
    end Build_Debug_Lines;
 
