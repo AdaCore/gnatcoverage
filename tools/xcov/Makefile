@@ -25,7 +25,7 @@ MOVE_IF_CHANGE=mv -f
 
 copy_gnat_src: force
 	for f in `cat $(ADA_GEN_SUBDIR)/MANIFEST.XCOV`; do \
-	$(LN) ../$(GNAT_SOURCE_DIR)/$$f $(ADA_GEN_SUBDIR)/$$f; done
+	$(LN) $(GNAT_SOURCE_DIR)/$$f $(ADA_GEN_SUBDIR)/$$f; done
 
 #################
 # Documentation #
