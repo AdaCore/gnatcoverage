@@ -9,6 +9,16 @@ components. Except where specifically noted, all these problems have been
 corrected in the development tree, hence in wavefronts issued subsequent
 to the date specified (in ISO format YYYY-MM-DD) in the status line.
 
+I618-020 Unexpected file analyzed
+
+  Problem:    A file is analyzed even if there is no routine for it in
+              --routine-list file.  Xcov reports only one line with code
+              for such a file.
+
+  Status:     This was fixed on 2009-06-26
+
+  Workaround: Ignore this additional file.
+
 I617-022 File is anaylized twice
 
   Problem:    On Windows a source file is displayed twice in the html index
