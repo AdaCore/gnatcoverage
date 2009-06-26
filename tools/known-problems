@@ -9,7 +9,7 @@ components. Except where specifically noted, all these problems have been
 corrected in the development tree, hence in wavefronts issued subsequent
 to the date specified (in ISO format YYYY-MM-DD) in the status line.
 
-I402-007 local object misalignment on ppc target
+I402-007 Local object misalignment on ppc target
 
   Problem:    During program execution using the provided support facilities,
               objects requested to be aligned > 4 bytes boundary sometimes
@@ -19,6 +19,15 @@ I402-007 local object misalignment on ppc target
   Status:     This was fixed on 2009-04-02
 
   Workaround: Arrange for the entry stack pointer to be properly aligned.
+
+I617-016 Crash while reading debug info for very high addresses
+
+  Problem:    Xcov crashes while reading debug info for addresses near
+              16#ffff_fffc# (reset entry point).
+
+  Status:     This was fixed on 2009-06-18
+
+  Workaround: Do not generate debug info for the reset entry point.
 
 I527-008 Error messages printed on stderr
 
