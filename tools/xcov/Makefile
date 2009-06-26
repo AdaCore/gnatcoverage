@@ -21,7 +21,6 @@ ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 GNAT_SOURCE_DIR=../gnat_src
 ADA_GEN_SUBDIR=gnat
 MOVE_IF_CHANGE=mv -f
--include gnat/Make-generated.in
 
 copy_gnat_src: force
 	for f in `cat $(ADA_GEN_SUBDIR)/MANIFEST.XCOV`; do \
