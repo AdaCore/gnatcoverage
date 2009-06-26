@@ -24,10 +24,8 @@ MOVE_IF_CHANGE=mv -f
 -include gnat/Make-generated.in
 
 copy_gnat_src: force
-	-cd $(ADA_GEN_SUBDIR); \
-	$(foreach f,$(shell cat $(ADA_GEN_SUBDIR)/MANIFEST.XCOV), \
-	$(LN) $(GNAT_SOURCE_DIR)/$(f) . ;\
-	)
+	for f in `cat $(ADA_GEN_SUBDIR)/MANIFEST.XCOV`; do \
+	$(LN) ../$(GNAT_SOURCE_DIR)/$$f $(ADA_GEN_SUBDIR)/$$f; done
 
 #################
 # Documentation #
