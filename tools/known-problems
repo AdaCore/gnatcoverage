@@ -9,16 +9,14 @@ components. Except where specifically noted, all these problems have been
 corrected in the development tree, hence in wavefronts issued subsequent
 to the date specified (in ISO format YYYY-MM-DD) in the status line.
 
-I402-007 Local object misalignment on ppc target
+I617-022 File is anaylized twice
 
-  Problem:    During program execution using the provided support facilities,
-              objects requested to be aligned > 4 bytes boundary sometimes
-              don't have their address so much aligned. This is caused by
-              a misalignment of the entry stack pointer wrt the ABI mandate.
+  Problem:    On Windows a source file is displayed twice in the html index
+              with non-coherent results.
 
-  Status:     This was fixed on 2009-04-02
+  Status:     This was fixed on 2009-06-26
 
-  Workaround: Arrange for the entry stack pointer to be properly aligned.
+  Workaround: Do not use uppercase letters in the path
 
 I617-016 Crash while reading debug info for very high addresses
 
@@ -44,3 +42,14 @@ I519-015 No full coverage of conditional dynamic branches
   Status:     This was fixed on 2009-05-28
 
   Workaround: Avoid to use powerpc bcctr/bclr instructions.
+
+I402-007 Local object misalignment on ppc target
+
+  Problem:    During program execution using the provided support facilities,
+              objects requested to be aligned > 4 bytes boundary sometimes
+              don't have their address so much aligned. This is caused by
+              a misalignment of the entry stack pointer wrt the ABI mandate.
+
+  Status:     This was fixed on 2009-04-02
+
+  Workaround: Arrange for the entry stack pointer to be properly aligned.
