@@ -60,20 +60,24 @@ package Traces_Files is
       Info_Cb : access procedure (File : Trace_File_Type);
       Trace_Cb : access procedure (E : Traces.Trace_Entry));
 
-   --  Write traces to a file.
-   --  Always generate a consolidated file.
-   procedure Write_Trace_File (Filename : String;
-                               Trace_File : Trace_File_Type;
-                               Base : Traces_Base);
+   procedure Write_Trace_File
+     (Filename   : String;
+      Trace_File : Trace_File_Type;
+      Base       : Traces_Base);
+   --  Write traces to a file
 
-   procedure Write_Trace_File (Filename : String;
-                               Trace_File : Trace_File_Type);
+   procedure Write_Trace_File
+     (Filename   : String;
+      Trace_File : Trace_File_Type);
+   --  Write a trace file of kind Info (no traces needed)
 
    --  Raw dump of a trace file.
    procedure Dump_Trace_File (Filename : String);
 
-   --  Create (in memory) an empty trace_file.
-   procedure Create_Trace_File (Trace_File : out Trace_File_Type);
+   procedure Create_Trace_File
+     (Kind       : Trace_Kind;
+      Trace_File : out Trace_File_Type);
+   --  Create an empty Trace_File object of the given kind
 
    --  Add coverage annotations to the objdump disassembly output.
    --  Read objdump output from standard input.

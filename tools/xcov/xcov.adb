@@ -242,34 +242,39 @@ begin
          Traces_Names.Disp_All_Routines;
          return;
 
-      elsif Cmd = "--analyze-routines" then
-         if Arg_Index = Arg_Count then
-            Error ("missing FILEs to --analyze-routines");
+      elsif Begins_With (Cmd, "--map-routines=") then
+         declare
+            Decision_Map_Filename : constant String :=
+                                      Cmd (Cmd'First + 15 .. Cmd'Last);
+         begin
+            if Arg_Index = Arg_Count then
+               Error ("missing FILEs to --map-routines");
+               return;
+            end if;
+
+            for I in Arg_Index + 1 .. Arg_Count loop
+               declare
+                  Arg : constant String := Argument (I);
+               begin
+                  if Arg = "--exclude" then
+                     Mode_Exclude := True;
+                  elsif Arg = "--include" then
+                     Mode_Exclude := False;
+                  else
+                     --  For included symbols, keep ELF file open so that we
+                     --  can load the symbol text later on.
+
+                     Traces_Elf.Read_Routines_Name
+                       (Arg,
+                        Exclude   => Mode_Exclude,
+                        Keep_Open => not Mode_Exclude);
+                  end if;
+               end;
+            end loop;
+            Decision_Map.Analyze (ALI_List_Filename);
+            Decision_Map.Write_Map (Decision_Map_Filename);
             return;
-         end if;
-
-         for I in Arg_Index + 1 .. Arg_Count loop
-            declare
-               Arg : constant String := Argument (I);
-            begin
-               if Arg = "--exclude" then
-                  Mode_Exclude := True;
-               elsif Arg = "--include" then
-                  Mode_Exclude := False;
-               else
-                  --  For included symbols, keep ELF file open so that we can
-                  --  load the symbol text later on.
-
-                  Traces_Elf.Read_Routines_Name
-                    (Arg,
-                     Exclude   => Mode_Exclude,
-                     Keep_Open => not Mode_Exclude);
-               end if;
-            end;
-         end loop;
-         Decision_Map.Analyze (ALI_List_Filename);
-         Decision_Map.Dump_Map;
-         return;
+         end;
 
       elsif Cmd = "--dump-trace" then
          if Arg_Index = Arg_Count then

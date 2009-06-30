@@ -30,25 +30,27 @@ package body Traces_Files is
    procedure Dump_Infos (Trace_File : Trace_File_Type);
    procedure Write_Trace_File_Info (Fd : File_Descriptor;
                                     Trace_File : Trace_File_Type);
-   procedure Write_Trace_File_Traces (Fd : File_Descriptor;
-                                      Trace_File : Trace_File_Type;
-                                      Base : Traces_Base);
+   procedure Write_Trace_File_Traces
+     (Fd : File_Descriptor; Kind : Trace_Kind; Base : Traces_Base);
    --  Need comments???
+
+   function Make_Trace_Header (Kind : Trace_Kind) return Trace_Header;
+   --  Create a trace file header with the given kind
 
    type Trace_File_Descriptor is record
       Fd : File_Descriptor;
 
       --  Parameter from header
-      Kind : Trace_Kind;
+      Kind             : Trace_Kind;
       Sizeof_Target_Pc : Unsigned_8;
-      Big_Endian : Boolean;
+      Big_Endian       : Boolean;
    end record;
 
    Trace_Header_Size : constant Natural :=
-     Trace_Header'Size / System.Storage_Unit;
+                         Trace_Header'Size / System.Storage_Unit;
 
    Trace_Info_Header_Size : constant Natural :=
-     Trace_Info_Header'Size / System.Storage_Unit;
+                              Trace_Info_Header'Size / System.Storage_Unit;
 
    E32_Size : constant Natural := Trace_Entry32'Size / System.Storage_Unit;
    E64_Size : constant Natural := Trace_Entry64'Size / System.Storage_Unit;
@@ -383,6 +385,23 @@ package body Traces_Files is
       Free (Trace_File);
    end Dump_Trace_File;
 
+   -----------------------
+   -- Make_Trace_Header --
+   -----------------------
+
+   function Make_Trace_Header (Kind : Trace_Kind) return Trace_Header is
+   begin
+      return Trace_Header'
+        (Magic            => Qemu_Trace_Magic,
+         Version          => Qemu_Trace_Version,
+         Kind             => Kind,
+         Sizeof_Target_Pc => Pc_Type_Size,
+         Big_Endian       => Big_Endian_Host,
+         Machine_Hi       => Unsigned_8 (Shift_Right (Machine, 8)),
+         Machine_Lo       => Unsigned_8 (Machine and 16#Ff#),
+         Padding          => 0);
+   end Make_Trace_Header;
+
    ---------------------------
    -- Write_Trace_File_Info --
    ---------------------------
@@ -390,31 +409,20 @@ package body Traces_Files is
    procedure Write_Trace_File_Info (Fd : File_Descriptor;
                                     Trace_File : Trace_File_Type)
    is
-      Hdr : Trace_Header;
+      Hdr : constant Trace_Header := Make_Trace_Header (Info);
       Tr_Info : Trace_File_Info_Acc;
       Ihdr : Trace_Info_Header;
    begin
-      Hdr := (Magic => Qemu_Trace_Magic,
-              Version => Qemu_Trace_Version,
-              Kind => Info,
-              Sizeof_Target_Pc => 0,
-              Big_Endian => Big_Endian_Host,
-              Machine_Hi => 0,
-              Machine_Lo => 0,
-              Padding => 0);
-
-      if Write (Fd, Hdr'Address, Trace_Header_Size)
-        /= Trace_Header_Size
-      then
+      if Write (Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size then
          raise Write_Error with "failed to write first header";
       end if;
 
       Tr_Info := Trace_File.First_Infos;
       while Tr_Info /= null loop
          declare
-            Pad : constant String (1 .. Trace_Info_Alignment) :=
-              (others => Character'Val (0));
-            Pad_Len : Natural;
+            Pad : constant String :=
+                    (1 .. (-Tr_Info.Raw_Length) mod Trace_Info_Alignment =>
+                       ASCII.NUL);
          begin
             Ihdr.Info_Kind := Info_Kind_Type'Pos (Tr_Info.Kind);
             Ihdr.Info_Length := Unsigned_32 (Tr_Info.Raw_Length);
@@ -431,20 +439,19 @@ package body Traces_Files is
                raise Write_Error with "failed to write info data";
             end if;
 
-            Pad_Len := Tr_Info.Raw_Length mod Trace_Info_Alignment;
-            if Pad_Len /= 0 then
-               Pad_Len := Trace_Info_Alignment - Pad_Len;
-               if Write (Fd, Pad'Address, Pad_Len) /= Pad_Len then
-                  raise Write_Error with "failed to write info pad";
-               end if;
+            if Pad'Length /= 0
+              and then Write (Fd, Pad'Address, Pad'Length) /= Pad'Length
+            then
+               raise Write_Error with "failed to write info pad";
             end if;
          end;
 
          Tr_Info := Tr_Info.Next;
       end loop;
 
-      --  Write the terminator.
-      Ihdr.Info_Kind := Info_Kind_Type'Pos (Info_End);
+      --  Write the terminator
+
+      Ihdr.Info_Kind    := Info_Kind_Type'Pos (Info_End);
       Ihdr.Info_Length := 0;
       if Write (Fd, Ihdr'Address, Trace_Info_Header_Size)
         /= Trace_Info_Header_Size
@@ -457,12 +464,13 @@ package body Traces_Files is
    -- Write_Trace_File_Traces --
    -----------------------------
 
-   procedure Write_Trace_File_Traces (Fd : File_Descriptor;
-                                      Trace_File : Trace_File_Type;
-                                      Base : Traces_Base)
+   procedure Write_Trace_File_Traces
+     (Fd   : File_Descriptor;
+      Kind : Trace_Kind;
+      Base : Traces_Base)
    is
-      pragma Unreferenced (Trace_File);
-      Hdr : Trace_Header;
+      pragma Assert (Kind /= Info);
+      Hdr : constant Trace_Header := Make_Trace_Header (Kind);
 
       E : Trace_Entry;
       E32 : Trace_Entry32;
@@ -471,20 +479,12 @@ package body Traces_Files is
       Res_Size : Natural;
       Cur : Entry_Iterator;
    begin
-      Hdr := (Magic => Qemu_Trace_Magic,
-              Version => Qemu_Trace_Version,
-              Kind => Raw,
-              Sizeof_Target_Pc => Pc_Type_Size,
-              Big_Endian => Big_Endian_Host,
-              Machine_Hi => Unsigned_8 (Shift_Right (Machine, 8)),
-              Machine_Lo => Unsigned_8 (Machine and 16#Ff#),
-             Padding => 0);
-
       if Write (Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size then
          raise Write_Error with "failed to write header";
       end if;
 
       pragma Warnings (Off);
+      --  Needs comment???
       if Pc_Type_Size = 4 then
          Addr := E32'Address;
          Res_Size := E32_Size;
@@ -499,6 +499,7 @@ package body Traces_Files is
       while E /= Bad_Trace loop
 
          pragma Warnings (Off);
+         --  Needs comment???
          if Pc_Type_Size = 4 then
             E32 := (Pc => E.First,
                     Size => Unsigned_16 (E.Last - E.First + 1),
@@ -521,9 +522,10 @@ package body Traces_Files is
    -- Write_Trace_File --
    ----------------------
 
-   procedure Write_Trace_File (Filename : String;
-                               Trace_File : Trace_File_Type;
-                               Base : Traces_Base)
+   procedure Write_Trace_File
+     (Filename   : String;
+      Trace_File : Trace_File_Type;
+      Base       : Traces_Base)
    is
       Fd : File_Descriptor;
    begin
@@ -538,12 +540,13 @@ package body Traces_Files is
          Write_Trace_File_Info (Fd, Trace_File);
       end if;
 
-      --  Stop now if we only dump infos.
+      --  Stop now if we only dump infos
+
       if Trace_File.Kind = Info then
          return;
       end if;
 
-      Write_Trace_File_Traces (Fd, Trace_File, Base);
+      Write_Trace_File_Traces (Fd, Trace_File.Kind, Base);
 
       Close (Fd);
    exception
@@ -561,6 +564,7 @@ package body Traces_Files is
    is
       Fd : File_Descriptor;
    begin
+      pragma Assert (Trace_File.Kind = Info);
       Fd := Create_File (Filename, Binary);
       if Fd = Invalid_FD then
          raise Write_Error with "failed to create the file";
@@ -673,13 +677,15 @@ package body Traces_Files is
    -- Create_Trace_File --
    -----------------------
 
-   procedure Create_Trace_File (Trace_File : out Trace_File_Type) is
+   procedure Create_Trace_File
+     (Kind       : Trace_Kind;
+      Trace_File : out Trace_File_Type) is
    begin
-      Trace_File := Trace_File_Type'(Kind => Info,
-                                     Sizeof_Target_Pc => 0,
-                                     Big_Endian => Big_Endian_Host,
-                                     Machine => 0,
-                                     First_Infos => null,
-                                     Last_Infos => null);
+      Trace_File := Trace_File_Type'(Kind             => Kind,
+                                     Sizeof_Target_Pc => Pc_Type_Size,
+                                     Big_Endian       => Big_Endian_Host,
+                                     Machine          => 0,
+                                     First_Infos      => null,
+                                     Last_Infos       => null);
    end Create_Trace_File;
 end Traces_Files;

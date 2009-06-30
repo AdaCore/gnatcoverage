@@ -23,11 +23,18 @@ with Interfaces;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;        use Hex_Images;
 with SC_Obligations;    use SC_Obligations;
+with Qemu_Traces;
 with Traces;            use Traces;
+with Traces_Dbase;      use Traces_Dbase;
 with Traces_Elf;        use Traces_Elf;
+with Traces_Files;      use Traces_Files;
 with Traces_Names;      use Traces_Names;
 
 package body Decision_Map is
+
+   Decision_Map_Base : Traces_Base;
+   --  The decision map is a list of code addresses, so we manage it as a
+   --  trace database.
 
    procedure Analyze_Routine
      (Name : String_Acc;
@@ -47,6 +54,7 @@ package body Decision_Map is
    procedure Analyze (ALI_List_Filename : String_Acc) is
    begin
       Load_SCOs (ALI_List_Filename);
+      Init_Base (Decision_Map_Base);
       Traces_Names.Iterate (Analyze_Routine'Access);
    end Analyze;
 
@@ -88,6 +96,15 @@ package body Decision_Map is
 
          when Decision =>
             Put_Line ("decision");
+
+            --  For decisions, we need full (historical) traces in order to
+            --  provide MC/DC source coverage analysis.
+
+            Add_Entry
+              (Base  => Decision_Map_Base,
+               First => Insn'First,
+               Last  => Insn'Last,
+               Op    => 0);
       end case;
    end Analyze_Conditional_Branch;
 
@@ -183,13 +200,15 @@ package body Decision_Map is
       end loop;
    end Analyze_Routine;
 
-   --------------
-   -- Dump_Map --
-   --------------
+   ---------------
+   -- Write_Map --
+   ---------------
 
-   procedure Dump_Map is
+   procedure Write_Map (Filename : String) is
+      Trace_File : Trace_File_Type;
    begin
-      Put_Line ("Dump_Map: Not implemented");
-   end Dump_Map;
+      Create_Trace_File (Qemu_Traces.Decision_Map, Trace_File);
+      Write_Trace_File (Filename, Trace_File, Decision_Map_Base);
+   end Write_Map;
 
 end Decision_Map;

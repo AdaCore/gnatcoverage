@@ -32,7 +32,7 @@ package Decision_Map is
    --  Build the decision map from the executable, debug information and
    --  the Source Coverage Obligations.
 
-   procedure Dump_Map;
-   --  Dump the contents of the decision map
+   procedure Write_Map (Filename : String);
+   --  Write the contents of the decision map to the named file
 
 end Decision_Map;
