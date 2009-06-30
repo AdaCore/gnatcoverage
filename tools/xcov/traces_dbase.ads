@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -26,7 +26,7 @@ package Traces_Dbase is
    type Traces_Base_Acc is access Traces_Base;
 
    --  Clear BASE.
-   procedure Init_Base (Base : in out Traces_Base);
+   procedure Init_Base (Base : out Traces_Base);
 
    --  Add a trace entry in the ordered_Set.  May discard useless entries
    --  or merge entries.
@@ -51,14 +51,14 @@ package Traces_Dbase is
                           Prev_State : Trace_State);
 
 private
-   --  Operations for ordered_sets.
+
+   --  Operations for ordered_sets
+
    function "=" (L, R : Trace_Entry) return Boolean;
    function "<" (L, R : Trace_Entry) return Boolean;
 
    package Entry_Set is new Ada.Containers.Ordered_Sets
-     (Element_Type => Trace_Entry,
-      "<" => "<",
-      "=" => "=");
+     (Element_Type => Trace_Entry);
 
    type Traces_Base is new Entry_Set.Set with null record;
 

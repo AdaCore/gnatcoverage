@@ -42,7 +42,7 @@ package body Traces_Dbase is
    function Get_Trace_Cur (Base : Traces_Base;
                            Iterator : Entry_Iterator) return Cursor;
 
-   procedure Init_Base (Base : in out Traces_Base) is
+   procedure Init_Base (Base : out Traces_Base) is
    begin
       Base.Clear;
    end Init_Base;
