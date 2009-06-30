@@ -163,6 +163,9 @@ procedure Xcov is
    ALI_List_Filename         : String_Acc := null;
    ALI_List_Option           : constant String := "--ali-list=";
 
+   Decision_Map_Filename     : String_Acc := null;
+   Decision_Map_Option       : constant String := "--decision-map=";
+
    Action                    : Coverage_Action;
 
    type Annotation_Format is (Annotate_Asm, Annotate_Xcov, Annotate_Html,
@@ -242,39 +245,44 @@ begin
          Traces_Names.Disp_All_Routines;
          return;
 
-      elsif Begins_With (Cmd, "--map-routines=") then
-         declare
-            Decision_Map_Filename : constant String :=
-                                      Cmd (Cmd'First + 15 .. Cmd'Last);
-         begin
-            if Arg_Index = Arg_Count then
-               Error ("missing FILEs to --map-routines");
-               return;
-            end if;
-
-            for I in Arg_Index + 1 .. Arg_Count loop
-               declare
-                  Arg : constant String := Argument (I);
-               begin
-                  if Arg = "--exclude" then
-                     Mode_Exclude := True;
-                  elsif Arg = "--include" then
-                     Mode_Exclude := False;
-                  else
-                     --  For included symbols, keep ELF file open so that we
-                     --  can load the symbol text later on.
-
-                     Traces_Elf.Read_Routines_Name
-                       (Arg,
-                        Exclude   => Mode_Exclude,
-                        Keep_Open => not Mode_Exclude);
-                  end if;
-               end;
-            end loop;
-            Decision_Map.Analyze (ALI_List_Filename);
-            Decision_Map.Write_Map (Decision_Map_Filename);
+      elsif Cmd = "--map-routines" then
+         if Arg_Index = Arg_Count then
+            Error ("missing FILEs to --map-routines");
             return;
-         end;
+         end if;
+
+         for I in Arg_Index + 1 .. Arg_Count loop
+            declare
+               Arg : constant String := Argument (I);
+            begin
+
+               if Begins_With (Arg, ALI_List_Option) then
+                  ALI_List_Filename := new String'(Option_Parameter (Arg));
+
+               elsif Begins_With (Arg, Decision_Map_Option) then
+                  Decision_Map_Filename :=
+                    new String'(Option_Parameter (Arg));
+
+               elsif Arg = "--exclude" then
+                  Mode_Exclude := True;
+
+               elsif Arg = "--include" then
+                  Mode_Exclude := False;
+
+               else
+                  --  For included symbols, keep ELF file open so that we
+                  --  can load the symbol text later on.
+
+                  Traces_Elf.Read_Routines_Name
+                    (Arg,
+                     Exclude   => Mode_Exclude,
+                     Keep_Open => not Mode_Exclude);
+               end if;
+            end;
+         end loop;
+         Decision_Map.Analyze (ALI_List_Filename);
+         Decision_Map.Write_Map (Decision_Map_Filename.all);
+         return;
 
       elsif Cmd = "--dump-trace" then
          if Arg_Index = Arg_Count then
@@ -458,9 +466,6 @@ begin
 
          elsif Begins_With (Arg, Routine_List_Option) then
             Routine_List_Filename := new String'(Option_Parameter (Arg));
-
-         elsif Begins_With (Arg, ALI_List_Option) then
-            ALI_List_Filename := new String'(Option_Parameter (Arg));
 
          elsif Arg = Annotate_Option_Short then
             if Arg_Index > Arg_Count then
