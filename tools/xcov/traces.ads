@@ -118,11 +118,11 @@ package Traces is
 
 private
    Trace_State_Char : constant Trace_State_Map :=
-     (Unknown => '?',
-      Not_Covered => '-',
-      Covered => '+',
-      Branch_Taken => '>',
+     (Unknown           => '?',
+      Not_Covered       => '-',
+      Covered           => '+',
+      Branch_Taken      => '>',
       Fallthrough_Taken => 'v',
-      Both_Taken => '+');
+      Both_Taken        => '+');
 
 end Traces;
