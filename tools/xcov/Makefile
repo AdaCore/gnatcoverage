@@ -2,7 +2,7 @@ GNATMAKE=gnatmake
 ADAFLAGS=-gnat05 -gnatwae -gnata -g -gnatyg -Ignat
 PREFIX=install
 RM=rm -f
-CP=cp -p
+CP=cp -pf
 LN=ln -sf
 MKDIR=mkdir -p
 MAKEINFO=makeinfo
@@ -54,6 +54,7 @@ clean:
 # Installation/Packaging #
 ##########################
 
+.PHONY: install
 install:
 	$(MKDIR) $(PREFIX)/bin
 	$(MKDIR) $(PREFIX)/share/examples/xcov
