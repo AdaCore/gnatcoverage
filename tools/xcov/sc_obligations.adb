@@ -24,10 +24,14 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
-with SCOs;
+with SCOs;  use SCOs;
+with Types; use Types;
 with Get_SCOs;
 
 package body SC_Obligations is
+
+   subtype Source_Location is Sources.Source_Location;
+   --  (not SCOs.Source_Location)
 
    procedure Load_SCOs_From_ALI (ALI_Filename : String);
    --  Load SCOs from the named ALI file, populating a map of slocs to SCOs
@@ -121,7 +125,9 @@ package body SC_Obligations is
    ------------------------
 
    procedure Load_SCOs_From_ALI (ALI_Filename : String) is
-      Cur_Source_File : Source_File_Index;
+      Cur_Source_File : Source_File_Index := No_Source_File;
+      Cur_SCO_Unit : SCO_Unit_Index;
+      Last_Entry_In_Cur_Unit : Int;
 
       ALI_File : File_Type;
       Line : String (1 .. 1024);
@@ -176,31 +182,32 @@ package body SC_Obligations is
          C := Getc;
       end Skipc;
 
+      package Source_File_Vectors is new Ada.Containers.Vectors
+        (Index_Type => Nat, Element_Type => Source_File_Index);
+      Dependencies : Source_File_Vectors.Vector;
+      --  D lines in the ALI
+
       procedure Get_SCOs_From_ALI is new Get_SCOs;
 
    begin
       Open (ALI_File, In_File, ALI_Filename);
       Scan_ALI : loop
+         if End_Of_File (ALI_File) then
+            --  No SCOs in this ALI
+
+            Close (ALI_File);
+            return;
+         end if;
+
          Get_Line (ALI_File, Line, Last);
          case Line (1) is
-            when 'U' =>
-               --  Scan past unit name and whitespace
-
+            when 'D' =>
                Index := 3;
-               while Line (Index) /= ' ' loop
-                  Index := Index + 1;
-               end loop;
-
-               while Line (Index) = ' ' loop
-                  Index := Index + 1;
-               end loop;
-
-               Last := Index;
+               Last := 3;
                while Line (Last) /= ' ' loop
                   Last := Last + 1;
                end loop;
-
-               Cur_Source_File := Get_Index (Line (Index .. Last - 1));
+               Dependencies.Append (Get_Index (Line (Index .. Last - 1)));
 
             when 'C' =>
                exit Scan_ALI;
@@ -216,9 +223,28 @@ package body SC_Obligations is
 
       --  Walk low-level SCO table for this unit and populate high-level tables
 
+      Cur_SCO_Unit := SCO_Unit_Table.First - 1;
+      Last_Entry_In_Cur_Unit := SCOs.SCO_Table.First - 1;
+
       for Cur_SCO_Entry in
         SCOs.SCO_Table.First .. SCOs.SCO_Table.Last
       loop
+         if Cur_SCO_Entry > Last_Entry_In_Cur_Unit then
+            Cur_SCO_Unit := Cur_SCO_Unit + 1;
+            pragma Assert
+              (Cur_SCO_Unit in SCOs.SCO_Unit_Table.First
+                            .. SCOs.SCO_Unit_Table.Last);
+            declare
+               SCOUE : SCO_Unit_Table_Entry
+                         renames SCOs.SCO_Unit_Table.Table (Cur_SCO_Unit);
+            begin
+               pragma Assert (Cur_SCO_Entry in SCOUE.From .. SCOUE.To);
+               Last_Entry_In_Cur_Unit := SCOUE.To;
+               Cur_Source_File := Dependencies.Element (SCOUE.Dep_Num - 1);
+            end;
+         end if;
+
+         pragma Assert (Cur_Source_File /= No_Source_File);
          Process_Entry : declare
             SCOE : SCOs.SCO_Table_Entry renames
                                      SCOs.SCO_Table.Table (Cur_SCO_Entry);
@@ -264,6 +290,8 @@ package body SC_Obligations is
             null;
          end Process_Entry;
       end loop;
+
+      Close (ALI_File);
    end Load_SCOs_From_ALI;
 
    -----------------
