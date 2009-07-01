@@ -44,6 +44,9 @@ package body SC_Obligations is
       Kind       : SCO_Kind;
       First_Sloc : Source_Location;
       Last_Sloc  : Source_Location;
+
+      Parent : SCO_Id := No_SCO_Id;
+      --  For a nested decision, pointer to the enclosing SCO
    end record;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
@@ -76,8 +79,11 @@ package body SC_Obligations is
    -----------
 
    function Image (SCO : SCO_Id) return String is
+      SCOD : constant SCO_Descriptor  := SCO_Vector.Element (SCO);
    begin
-      return Trim (SCO'Img, Side => Ada.Strings.Both);
+      return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
+        & SCO_Kind'Image (SCOD.Kind)
+        & " at " & Image (SCOD.First_Sloc) & "-" & Image (SCOD.Last_Sloc);
    end Image;
 
    ----------
@@ -134,6 +140,10 @@ package body SC_Obligations is
       Last : Natural;
       Index : Natural;
 
+      Current_Complex_Decision : SCO_Id := No_SCO_Id;
+
+      Last_SCO_Upon_Entry : constant SCO_Id := SCO_Vector.Last_Index;
+
       function Getc return Character;
       --  Consume and return one character from Line.
       --  Load next line if at end of line. Return ^Z if at end of file.
@@ -152,7 +162,7 @@ package body SC_Obligations is
          Next_Char : constant Character := Nextc;
       begin
          Index := Index + 1;
-         if Index > Last then
+         if Index > Last + 1 then
             Get_Line (ALI_File, Line, Last);
             Index := 1;
          end if;
@@ -167,6 +177,9 @@ package body SC_Obligations is
       begin
          if End_Of_File (ALI_File) then
             return Character'Val (16#1a#);
+         end if;
+         if Index = Last + 1 then
+            return ASCII.LF;
          end if;
          return Line (Index);
       end Nextc;
@@ -204,7 +217,7 @@ package body SC_Obligations is
             when 'D' =>
                Index := 3;
                Last := 3;
-               while Line (Last) /= ' ' loop
+               while Line (Last) /= ASCII.HT loop
                   Last := Last + 1;
                end loop;
                Dependencies.Append (Get_Index (Line (Index .. Last - 1)));
@@ -223,8 +236,9 @@ package body SC_Obligations is
 
       --  Walk low-level SCO table for this unit and populate high-level tables
 
-      Cur_SCO_Unit := SCO_Unit_Table.First - 1;
+      Cur_SCO_Unit := SCO_Unit_Table.First;
       Last_Entry_In_Cur_Unit := SCOs.SCO_Table.First - 1;
+      --  Note, the first entry in the SCO_Unit_Table is unused
 
       for Cur_SCO_Entry in
         SCOs.SCO_Table.First .. SCOs.SCO_Table.Last
@@ -254,41 +268,96 @@ package body SC_Obligations is
             --  Build a Sources.Source_Location record from the low-level
             --  SCO Sloc info.
 
+            procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor);
+            --  Update the sloc in the current complex decision according
+            --  to the condition denoted by SCOE.
+
             ---------------
             -- Make_Sloc --
             ---------------
 
             function Make_Sloc
-              (SCO_Source_Loc : SCOs.Source_Location) return Source_Location is
+              (SCO_Source_Loc : SCOs.Source_Location) return Source_Location
+            is
             begin
+               if SCO_Source_Loc = SCOs.No_Source_Location then
+                  return Source_Location'
+                    (Source_File => No_Source_File, others => <>);
+               end if;
+
                return Source_Location'
                  (Source_File => Cur_Source_File,
                   Line        => Natural (SCO_Source_Loc.Line),
                   Column      => Natural (SCO_Source_Loc.Col));
             end Make_Sloc;
 
-            Kind : SCO_Kind;
+            --------------------------
+            -- Update_Decision_Sloc --
+            --------------------------
+
+            procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor) is
+            begin
+               if SCOD.First_Sloc.Source_File = No_Source_File then
+                  SCOD.First_Sloc := Make_Sloc (SCOE.From);
+               end if;
+
+               if SCOE.Last then
+                  SCOD.Last_Sloc := Make_Sloc (SCOE.To);
+               end if;
+            end Update_Decision_Sloc;
 
          begin
             case SCOE.C1 is
                when 'S' =>
-                  Kind := Statement;
+                  pragma Assert (Current_Complex_Decision = No_SCO_Id);
+                  SCO_Vector.Append
+                    (SCO_Descriptor'(Kind       => Statement,
+                                     First_Sloc => Make_Sloc (SCOE.From),
+                                     Last_Sloc  => Make_Sloc (SCOE.To),
+                                     others     => <>));
+
                when 'I' | 'E' | 'W' | 'X' =>
-                  Kind := Decision;
+                  pragma Assert (Current_Complex_Decision = No_SCO_Id);
+                  SCO_Vector.Append
+                    (SCO_Descriptor'(Kind       => Decision,
+                                     First_Sloc => Make_Sloc (SCOE.From),
+                                     Last_Sloc  => Make_Sloc (SCOE.To),
+                                     others     => <>));
+
+                  if not SCOE.Last then
+                     Current_Complex_Decision := SCO_Vector.Last_Index;
+                  end if;
+
+               when ' ' =>
+                  pragma Assert (Current_Complex_Decision /= No_SCO_Id);
+                  SCO_Vector.Update_Element
+                    (Current_Complex_Decision, Update_Decision_Sloc'Access);
+                  if SCOE.Last then
+                     Current_Complex_Decision := No_SCO_Id;
+                  end if;
                when others =>
-                  goto End_Process_Entry;
+                  null;
             end case;
 
-            SCO_Vector.Append
-              (SCO_Descriptor'(Kind       => Kind,
-                               First_Sloc => Make_Sloc (SCOE.From),
-                               Last_Sloc  => Make_Sloc (SCOE.To)));
-
-            Sloc_To_SCO_Map.Insert
-              (Make_Sloc (SCOE.From), SCO_Vector.Last_Index);
-         <<End_Process_Entry>>
-            null;
          end Process_Entry;
+      end loop;
+
+      --  Build Sloc -> SCO index and set up Parent links
+
+      for J in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
+         declare
+            procedure Process_Descriptor (SCOD : in out SCO_Descriptor);
+            --  Set up parent link for SCOD at index J, and insert Sloc -> SCO
+            --  map entry.
+
+            procedure Process_Descriptor (SCOD : in out SCO_Descriptor) is
+            begin
+               SCOD.Parent := Sloc_To_SCO (SCO_Vector.Element (J).First_Sloc);
+               Sloc_To_SCO_Map.Insert (SCO_Vector.Element (J).First_Sloc, J);
+            end Process_Descriptor;
+         begin
+            SCO_Vector.Update_Element (J, Process_Descriptor'Access);
+         end;
       end loop;
 
       Close (ALI_File);
@@ -301,17 +370,20 @@ package body SC_Obligations is
    function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id is
       use Sloc_To_SCO_Maps;
       Cur : constant Cursor := Sloc_To_SCO_Map.Floor (Sloc);
+      SCO : SCO_Id;
    begin
       if Cur /= No_Element then
-         declare
-            SCO : constant SCO_Id := Element (Cur);
-         begin
-            if Sloc <= Last_Sloc (SCO) then
-               return SCO;
-            end if;
-         end;
+         SCO := Element (Cur);
+      else
+         SCO := No_SCO_Id;
       end if;
-      return No_SCO_Id;
+
+      while SCO /= No_SCO_Id loop
+         exit when Sloc <= Last_Sloc (SCO);
+         SCO := SCO_Vector.Element (SCO).Parent;
+      end loop;
+
+      return SCO;
    end Sloc_To_SCO;
 
 end SC_Obligations;

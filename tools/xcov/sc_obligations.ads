@@ -36,8 +36,7 @@ package SC_Obligations is
    function Image (SCO : SCO_Id) return String;
 
    function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
-   --  Return the SCO whose range contains Sloc, if Any
-   --  Assumes that no more than one SCO can encompass a given sloc???
+   --  Return the innermost SCO whose range contains Sloc
 
    procedure Load_SCOs (ALI_List_Filename : String_Acc);
    --  Load all source coverage obligations for application
