@@ -20,6 +20,7 @@
 --  Source locations
 
 with Ada.Containers.Hashed_Maps;
+with Ada.Strings.Fixed;
 
 package body Sources is
 
@@ -97,5 +98,18 @@ package body Sources is
    begin
       return Filenames.Element (Index).all;
    end Get_Name;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (Sloc : Source_Location) return String is
+      use Ada.Strings;
+      use Ada.Strings.Fixed;
+   begin
+      return Get_Name (Sloc.Source_File)
+        & ":" & Trim (Sloc.Line'Img, Both)
+        & ":" & Trim (Sloc.Column'Img, Both);
+   end Image;
 
 end Sources;

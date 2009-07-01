@@ -46,6 +46,8 @@ package Sources is
    function "<=" (L, R : Source_Location) return Boolean;
    --  Order function used to build ordered maps keyed by source locations
 
+   function Image (Sloc : Source_Location) return String;
+
 private
 
    use Strings;
