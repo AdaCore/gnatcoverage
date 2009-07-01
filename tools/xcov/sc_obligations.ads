@@ -27,7 +27,7 @@ package SC_Obligations is
    type SCO_Id is new Natural;
    No_SCO_Id : constant SCO_Id := 0;
 
-   type SCO_Kind is (Statement, Decision);
+   type SCO_Kind is (Statement, Decision, Condition);
 
    function First_Sloc (SCO : SCO_Id) return Source_Location;
    function Last_Sloc (SCO : SCO_Id) return Source_Location;

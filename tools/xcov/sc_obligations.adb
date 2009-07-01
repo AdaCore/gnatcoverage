@@ -31,6 +31,7 @@ with Get_SCOs;
 package body SC_Obligations is
 
    subtype Source_Location is Sources.Source_Location;
+   No_Location : Source_Location renames Sources.No_Location;
    --  (not SCOs.Source_Location)
 
    procedure Load_SCOs_From_ALI (ALI_Filename : String);
@@ -42,11 +43,22 @@ package body SC_Obligations is
 
    type SCO_Descriptor is record
       Kind       : SCO_Kind;
+      --  SCO kind
+
+      Is_Complex_Decision : Boolean;
+      --  Unused if Kind is not Decision
+
       First_Sloc : Source_Location;
+      --  First sloc (for a complex decision, taken from first condition)
+
       Last_Sloc  : Source_Location;
+      --  Last sloc (unset for complex decisions)
 
       Parent : SCO_Id := No_SCO_Id;
-      --  For a nested decision, pointer to the enclosing SCO
+      --  For a decision, pointer to the enclosing statement (or condition in
+      --  the case of a nested decision), unset if decision is part of a
+      --  flow control structure.
+      --  For a condition, pointer to the enclosing decision.
    end record;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
@@ -79,7 +91,7 @@ package body SC_Obligations is
    -----------
 
    function Image (SCO : SCO_Id) return String is
-      SCOD : constant SCO_Descriptor  := SCO_Vector.Element (SCO);
+      SCOD : constant SCO_Descriptor := SCO_Vector.Element (SCO);
    begin
       return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
         & SCO_Kind'Image (SCOD.Kind)
@@ -269,8 +281,8 @@ package body SC_Obligations is
             --  SCO Sloc info.
 
             procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor);
-            --  Update the sloc in the current complex decision according
-            --  to the condition denoted by SCOE.
+            --  Update the first sloc of a complex decision SCOD from that
+            --  of its first condition (which is the current SCOE).
 
             ---------------
             -- Make_Sloc --
@@ -300,15 +312,13 @@ package body SC_Obligations is
                if SCOD.First_Sloc.Source_File = No_Source_File then
                   SCOD.First_Sloc := Make_Sloc (SCOE.From);
                end if;
-
-               if SCOE.Last then
-                  SCOD.Last_Sloc := Make_Sloc (SCOE.To);
-               end if;
             end Update_Decision_Sloc;
 
          begin
             case SCOE.C1 is
                when 'S' =>
+                  --  Statement
+
                   pragma Assert (Current_Complex_Decision = No_SCO_Id);
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Statement,
@@ -317,11 +327,15 @@ package body SC_Obligations is
                                      others     => <>));
 
                when 'I' | 'E' | 'W' | 'X' =>
+                  --  Decision
+
                   pragma Assert (Current_Complex_Decision = No_SCO_Id);
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Decision,
                                      First_Sloc => Make_Sloc (SCOE.From),
                                      Last_Sloc  => Make_Sloc (SCOE.To),
+                                     Is_Complex_Decision =>
+                                                   not SCOE.Last,
                                      others     => <>));
 
                   if not SCOE.Last then
@@ -329,14 +343,38 @@ package body SC_Obligations is
                   end if;
 
                when ' ' =>
+                  --  Condition
+
                   pragma Assert (Current_Complex_Decision /= No_SCO_Id);
+
                   SCO_Vector.Update_Element
-                    (Current_Complex_Decision, Update_Decision_Sloc'Access);
+                    (Index   => Current_Complex_Decision,
+                     Process => Update_Decision_Sloc'Access);
+
+                  SCO_Vector.Append
+                    (SCO_Descriptor'(Kind       => Decision,
+                                     First_Sloc => Make_Sloc (SCOE.From),
+                                     Last_Sloc  => Make_Sloc (SCOE.To),
+                                     Parent     => Current_Complex_Decision,
+                                     others     => <>));
+
                   if SCOE.Last then
                      Current_Complex_Decision := No_SCO_Id;
                   end if;
-               when others =>
+
+               when '!' | '^' | '&' | '|' =>
+                  --  Operator
+
                   null;
+
+               when 'T' =>
+                  --  Exit point
+
+                  null;
+
+               when others =>
+                  raise Program_Error
+                    with "unexpected SCO entry code: " & SCOE.C1;
             end case;
 
          end Process_Entry;
@@ -346,14 +384,49 @@ package body SC_Obligations is
 
       for J in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
          declare
+            First : Source_Location := SCO_Vector.Element (J).First_Sloc;
+
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor);
             --  Set up parent link for SCOD at index J, and insert Sloc -> SCO
             --  map entry.
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor) is
+               Enclosing_SCO : constant SCO_Id := Sloc_To_SCO (First);
             begin
-               SCOD.Parent := Sloc_To_SCO (SCO_Vector.Element (J).First_Sloc);
-               Sloc_To_SCO_Map.Insert (SCO_Vector.Element (J).First_Sloc, J);
+               case SCOD.Kind is
+
+                  when Decision =>
+                     --  A Decision SCO must have a statement or (in the case
+                     --  of a nested decision) a Condition SCO as its parent,
+                     --  or no parent at all.
+
+                     pragma Assert (Enclosing_SCO = No_SCO_Id
+                                      or else
+                                    Kind (Enclosing_SCO) /= Decision);
+                     SCOD.Parent := Enclosing_SCO;
+
+                     --  If this is a complex decision, it is not recorded in
+                     --  the Sloc to SCO map, instead each specific condition
+                     --  will be.
+
+                     if SCOD.Is_Complex_Decision then
+                        First := No_Location;
+                     end if;
+
+                  when Statement =>
+                     --  A SCO for a (simple) statement is never nested
+
+                     pragma Assert (Enclosing_SCO = No_SCO_Id);
+                     null;
+
+                  when Condition =>
+                     --  Parent is already set to the enclosing decision
+                     null;
+
+               end case;
+               if First /= No_Location then
+                  Sloc_To_SCO_Map.Insert (First, J);
+               end if;
             end Process_Descriptor;
          begin
             SCO_Vector.Update_Element (J, Process_Descriptor'Access);

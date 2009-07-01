@@ -104,7 +104,7 @@ package body Decision_Map is
 
       Put_Line (Image (SCO));
       case Kind (SCO) is
-         when Decision =>
+         when Condition | Decision =>
             --  For decisions, we need full (historical) traces in order to
             --  provide MC/DC source coverage analysis.
 
