@@ -42,6 +42,8 @@ package Sources is
       Column      : Natural;
    end record;
 
+   No_Location : constant Source_Location := (No_Source_File, 0, 0);
+
    function "<" (L, R : Source_Location) return Boolean;
    function "<=" (L, R : Source_Location) return Boolean;
    --  Order function used to build ordered maps keyed by source locations
