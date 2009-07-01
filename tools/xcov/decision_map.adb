@@ -17,13 +17,15 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Directories; use Ada.Directories;
+with Ada.Text_IO;     use Ada.Text_IO;
 with Interfaces;
 
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;        use Hex_Images;
 with SC_Obligations;    use SC_Obligations;
 with Qemu_Traces;
+with Sources;           use Sources;
 with Traces;            use Traces;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Elf;        use Traces_Elf;
@@ -66,37 +68,43 @@ package body Decision_Map is
      (Exe  : Exe_File_Acc;
       Insn : Binary_Content)
    is
-      Sloc : constant Addresses_Info_Acc :=
-               Get_Address_Info (Exe.all, Line_Addresses, Insn'First);
+      Line_Info : constant Addresses_Info_Acc :=
+                    Get_Address_Info (Exe.all, Line_Addresses, Insn'First);
       --  Source location of Insn
+
+      SCO_Sloc : Source_Location;
+      --  Sloc normalized for SCO lookup
 
       SCO : SCO_Id;
    begin
-      if Sloc = null then
+      if Line_Info = null then
          --  No associated source, so no further processing required for source
          --  coverage analysis.
 
          return;
       end if;
 
-      SCO := Sloc_To_SCO (Sloc.Sloc);
+      --  Normalize source file name
 
-      Put ("conditional branch at " & Hex_Image (Insn'First)
-           & " for sloc " & Image (Sloc) & ":");
+      SCO_Sloc := Line_Info.Sloc;
+      SCO_Sloc.Source_File :=
+        Get_Index (Simple_Name (Get_Name (SCO_Sloc.Source_File)));
+
+      --  Look up SCO
+
+      SCO := Sloc_To_SCO (SCO_Sloc);
+
+      Put ("cond branch at " & Hex_Image (Insn'First)
+           & " in " & Image (Line_Info) & ":");
 
       if SCO = No_SCO_Id then
          Put_Line ("no SCO");
          return;
       end if;
 
-      Put ("SCO #" & Image (SCO) & ": ");
+      Put_Line (Image (SCO));
       case Kind (SCO) is
-         when Statement =>
-            Put_Line ("statement");
-
          when Decision =>
-            Put_Line ("decision");
-
             --  For decisions, we need full (historical) traces in order to
             --  provide MC/DC source coverage analysis.
 
@@ -105,6 +113,9 @@ package body Decision_Map is
                First => Insn'First,
                Last  => Insn'Last,
                Op    => 0);
+
+         when others =>
+            null;
       end case;
    end Analyze_Conditional_Branch;
 
