@@ -21,6 +21,7 @@ with Ada.Directories;
 with Interfaces;
 
 with Hex_Images;
+with Sources; use Sources;
 with Strings; use Strings;
 with Traces_Disa;
 with Traces_Names; use Traces_Names;
@@ -57,7 +58,7 @@ package body Traces_Sources is
 
    package File_Tables is new GNAT.Dynamic_Tables
      (Table_Component_Type => File_Info,
-      Table_Index_Type     => Any_Source_File_Index,
+      Table_Index_Type     => Source_File_Index,
       Table_Low_Bound      => First_Source_File,
       Table_Initial        => 16,
       Table_Increment      => 100);
@@ -79,16 +80,17 @@ package body Traces_Sources is
                                    Filename : String;
                                    File : File_Info);
 
-   function Find_File (Filename : String) return Source_File_Index is
-      Res        : Source_File_Index;
-      Last       : Any_Source_File_Index;
-   begin
-      Res := Get_Index (Filename);
+   ---------------------
+   -- New_Source_File --
+   ---------------------
 
+   procedure New_Source_File (File : Source_File_Index) is
+      Last : Source_File_Index;
+   begin
       Last := File_Tables.Last (File_Table);
-      if Res > Last then
-         File_Tables.Set_Last (File_Table, Res);
-         for Index in Last + 1 .. Res loop
+      if File > Last then
+         File_Tables.Set_Last (File_Table, File);
+         for Index in Last + 1 .. File loop
             declare
                Line_Table : Source_Lines;
             begin
@@ -98,9 +100,11 @@ package body Traces_Sources is
             end;
          end loop;
       end if;
+   end New_Source_File;
 
-      return Res;
-   end Find_File;
+   ------------
+   -- Append --
+   ------------
 
    procedure Append (Info : in out Line_Info;
                      Line : Addresses_Info_Acc;

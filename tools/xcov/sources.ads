@@ -22,16 +22,14 @@
 private with Ada.Containers.Vectors;
 private with Strings;
 
+with Types; use Types;
+
 package Sources is
 
+   First_Source_File : constant Source_File_Index := 1;
+   --  0 is No_Source_File
+
    --  Global directory of all source files
-
-   type Any_Source_File_Index is new Natural;
-   No_Source_File    : constant Any_Source_File_Index := 0;
-   First_Source_File : constant Any_Source_File_Index := 1;
-
-   subtype Source_File_Index is Any_Source_File_Index
-     range First_Source_File .. Any_Source_File_Index'Last;
 
    function Get_Index (Name : String) return Source_File_Index;
    function Get_Name (Index : Source_File_Index) return String;
@@ -52,8 +50,10 @@ private
 
    use Strings;
 
+   subtype Valid_Source_File_Index is
+     Source_File_Index range First_Source_File .. Source_File_Index'Last;
    package Filename_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Source_File_Index,
+     (Index_Type   => Valid_Source_File_Index,
       Element_Type => String_Acc,
       "="          => Equal);
 

@@ -19,18 +19,18 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 
-with Sources; use Sources;
-with Traces; use Traces;
-with Traces_Elf; use Traces_Elf;
-with Traces_Dbase; use Traces_Dbase;
+with Traces;         use Traces;
+with Traces_Elf;     use Traces_Elf;
+with Traces_Dbase;   use Traces_Dbase;
 with Disa_Symbolize; use Disa_Symbolize;
-with Traces_Stats; use Traces_Stats;
-with Traces_Lines; use Traces_Lines;
+with Traces_Stats;   use Traces_Stats;
+with Traces_Lines;   use Traces_Lines;
+with Types;          use Types;
 
 package Traces_Sources is
 
-   function Find_File (Filename : String) return Source_File_Index;
-   --  Find or create a new source file.
+   procedure New_Source_File (File : Source_File_Index);
+   --  Initialize entry for File in source files table
 
    procedure Add_Line (File : Source_File_Index;
                        Line : Natural;

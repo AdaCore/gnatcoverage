@@ -24,6 +24,8 @@ with Ada.Characters.Handling;
 with Interfaces; use Interfaces;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
+with Coverage; use Coverage;
+with Disa_Common; use Disa_Common;
 with Elf32;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
@@ -34,9 +36,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 with Traces_Sources;
 with Traces_Names;
 with Traces_Disa;
-with Coverage; use Coverage;
-
-with Disa_Common; use Disa_Common;
+with Types; use Types;
 
 package body Traces_Elf is
 
@@ -1490,8 +1490,7 @@ package body Traces_Elf is
       use Traces_Sources;
       Cur : Cursor;
       Line : Addresses_Info_Acc;
-      Prev_File : Source_File_Index;
-      Prev_Filename : Any_Source_File_Index := No_Source_File;
+      Prev_File : Source_File_Index := No_Source_File;
 
       It : Entry_Iterator;
       E : Trace_Entry;
@@ -1524,9 +1523,9 @@ package body Traces_Elf is
 
             --  Get corresponding file (check previous file for speed-up)
 
-            if Line.Sloc.Source_File /= Prev_Filename then
-               Prev_File := Find_File (Get_Name (Line.Sloc.Source_File));
-               Prev_Filename := Line.Sloc.Source_File;
+            if Line.Sloc.Source_File /= Prev_File then
+               New_Source_File (Line.Sloc.Source_File);
+               Prev_File := Line.Sloc.Source_File;
             end if;
 
             Add_Line (Prev_File, Line.Sloc.Line, Line, Base, Exec);
