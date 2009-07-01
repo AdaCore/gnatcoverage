@@ -138,8 +138,37 @@ package body Traces_Elf is
    ---------
 
    function "<" (L, R : Addresses_Info_Acc) return Boolean is
+      pragma Assert (L.Kind = R.Kind);
    begin
-      return L.Last < R.First;
+      if L.First < R.First then
+         return True;
+      elsif R.First < L.First then
+         return False;
+      end if;
+
+      --  Here if L.First = R.First
+
+      if L.Last < R.Last then
+         return True;
+      elsif R.Last < L.Last then
+         return False;
+      end if;
+
+      --  Here if in addition L.Last = R.Last
+
+      case L.Kind is
+         when Section_Addresses =>
+            return L.Section_Name.all < R.Section_Name.all;
+
+         when Subprogram_Addresses =>
+            return L.Subprogram_Name.all < R.Subprogram_Name.all;
+
+         when Symbol_Addresses =>
+            return L.Symbol_Name.all < R.Subprogram_Name.all;
+
+         when Line_Addresses =>
+            return L.Sloc < R.Sloc;
+      end case;
    end "<";
 
    -----------
