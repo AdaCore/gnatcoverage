@@ -41,13 +41,7 @@ package body SC_Obligations is
    -- Main SCO descriptor table --
    -------------------------------
 
-   type SCO_Descriptor is record
-      Kind       : SCO_Kind;
-      --  SCO kind
-
-      Is_Complex_Decision : Boolean;
-      --  Unused if Kind is not Decision
-
+   type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
       First_Sloc : Source_Location;
       --  First sloc (for a complex decision, taken from first condition)
 
@@ -59,7 +53,18 @@ package body SC_Obligations is
       --  the case of a nested decision), unset if decision is part of a
       --  flow control structure.
       --  For a condition, pointer to the enclosing decision.
+
+      case Kind is
+         when Decision =>
+            Is_Complex_Decision : Boolean;
+            --  True for complex decisions.
+            --  Note that there is always a distinct Condition SCO descriptor,
+            --  even for simple decisions.
+         when others =>
+            null;
+      end case;
    end record;
+
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
    package SCO_Vectors is
@@ -91,11 +96,18 @@ package body SC_Obligations is
    -----------
 
    function Image (SCO : SCO_Id) return String is
-      SCOD : constant SCO_Descriptor := SCO_Vector.Element (SCO);
    begin
-      return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
-        & SCO_Kind'Image (SCOD.Kind)
-        & " at " & Image (SCOD.First_Sloc) & "-" & Image (SCOD.Last_Sloc);
+      if SCO = No_SCO_Id then
+         return "<no SCO>";
+      else
+         declare
+            SCOD : constant SCO_Descriptor := SCO_Vector.Element (SCO);
+         begin
+            return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
+              & SCO_Kind'Image (SCOD.Kind) & " at "
+              & Image (SCOD.First_Sloc) & "-" & Image (SCOD.Last_Sloc);
+         end;
+      end if;
    end Image;
 
    ----------
@@ -338,7 +350,20 @@ package body SC_Obligations is
                                                    not SCOE.Last,
                                      others     => <>));
 
-                  if not SCOE.Last then
+                  if SCOE.Last then
+                     --  Simple decision: no separate condition SCOE, create
+                     --  condition immediately.
+
+                     SCO_Vector.Append
+                       (SCO_Descriptor'(Kind       => Condition,
+                                        First_Sloc => Make_Sloc (SCOE.From),
+                                        Last_Sloc  => Make_Sloc (SCOE.To),
+                                        Parent     => SCO_Vector.Last_Index,
+                                        others     => <>));
+
+                  else
+                     --  Complex decision: conditions appear as distinct SCOEs
+
                      Current_Complex_Decision := SCO_Vector.Last_Index;
                   end if;
 
@@ -405,14 +430,10 @@ package body SC_Obligations is
                                     Kind (Enclosing_SCO) /= Decision);
                      SCOD.Parent := Enclosing_SCO;
 
-                     --  If this is a complex decision, it is not recorded in
-                     --  the Sloc to SCO map, instead each specific condition
-                     --  will be.
+                     --  Decisions are not included in the sloc map, instead
+                     --  their conditions are.
 
-                     if SCOD.Is_Complex_Decision then
-                        First := No_Location;
-                     end if;
-
+                     First := No_Location;
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
 
@@ -424,6 +445,7 @@ package body SC_Obligations is
                      null;
 
                end case;
+
                if First /= No_Location then
                   Sloc_To_SCO_Map.Insert (First, J);
                end if;

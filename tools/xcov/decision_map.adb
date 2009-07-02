@@ -26,6 +26,7 @@ with Hex_Images;        use Hex_Images;
 with SC_Obligations;    use SC_Obligations;
 with Qemu_Traces;
 with Sources;           use Sources;
+with Switches;          use Switches;
 with Traces;            use Traces;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Elf;        use Traces_Elf;
@@ -94,18 +95,15 @@ package body Decision_Map is
 
       SCO := Sloc_To_SCO (SCO_Sloc);
 
-      Put ("cond branch at " & Hex_Image (Insn'First)
-           & " in " & Image (Line_Info) & ":");
+      if Verbose then
+         Put ("cond branch at " & Hex_Image (Insn'First)
+              & " in " & Image (Line_Info) & ": " & Image (SCO));
 
-      if SCO = No_SCO_Id then
-         Put_Line ("no SCO");
-         return;
       end if;
 
-      Put_Line (Image (SCO));
       case Kind (SCO) is
-         when Condition | Decision =>
-            --  For decisions, we need full (historical) traces in order to
+         when Condition =>
+            --  For conditions, we need full (historical) traces in order to
             --  provide MC/DC source coverage analysis.
 
             Add_Entry
