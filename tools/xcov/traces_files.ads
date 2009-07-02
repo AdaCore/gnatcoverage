@@ -23,42 +23,47 @@ with Traces_Dbase; use Traces_Dbase;
 with Traces;
 
 package Traces_Files is
-   --  Trace file descriptor.
-   type Trace_File_Type is limited private;
 
+   type Trace_File_Type is limited private;
+   --  Trace file descriptor
+
+   procedure Append_Info
+     (File : in out Trace_File_Type;
+      Kind : Info_Kind_Type;
+      Data : String);
    --  Add an info to trace file.
    --  We use a string type even if any byte stream is allowed.
-   procedure Append_Info (File : in out Trace_File_Type;
-                          Kind : Info_Kind_Type;
-                          Data : String);
 
-   --  Get an info from trace file.
-   --  Return an empty string if the info is not found.
    function Get_Info
      (File : Trace_File_Type; Kind : Info_Kind_Type) return String;
+   --  Get an info from trace file.
+   --  Return an empty string if the info is not found.
+
    function Format_Date_Info (Raw_String : String) return String;
+   --  Needs comment???
 
-   --  Deallocate all dynamic data.
    procedure Free (Trace_File : in out Trace_File_Type);
+   --  Deallocate all dynamic data associated with Trace_File
 
-   --  This exception is raised if the trace file is invalid or corrupted.
    Bad_File_Format : exception;
+   --  Exception is raised if the trace file is invalid or corrupted
 
-   --  This exception is raised in case of OS error during write.
    Write_Error : exception;
+   --  Exception is raised in case of OS error during write
 
-   --  Load in memory (and possibly merge) a trace file.
-   procedure Read_Trace_File (Filename : String;
-                              Trace_File : out Trace_File_Type;
-                              Base : in out Traces_Base);
-
-   --  Read a trace file, call Info_Cb after reading infos (if not null)
-   --  call Trace_Cb for each entry.
    procedure Read_Trace_File
-     (Filename : String;
+     (Filename   : String;
       Trace_File : out Trace_File_Type;
-      Info_Cb : access procedure (File : Trace_File_Type);
-      Trace_Cb : access procedure (E : Traces.Trace_Entry));
+      Base       : in out Traces_Base);
+   --  Load in memory (and possibly merge) a trace file
+
+   procedure Read_Trace_File
+     (Filename   : String;
+      Trace_File : out Trace_File_Type;
+      Info_Cb    : access procedure (File : Trace_File_Type);
+      Trace_Cb   : access procedure (E : Traces.Trace_Entry));
+   --  Read a trace file, call Info_Cb after reading infos (if not null), and
+   --  call Trace_Cb for each entry.
 
    procedure Write_Trace_File
      (Filename   : String;
@@ -69,19 +74,15 @@ package Traces_Files is
    procedure Write_Trace_File
      (Filename   : String;
       Trace_File : Trace_File_Type);
-   --  Write a trace file of kind Info (no traces needed)
+   --  Write a trace file of kind Info (no traces base needed)
 
-   --  Raw dump of a trace file.
    procedure Dump_Trace_File (Filename : String);
+   --  Raw dump of a trace file
 
    procedure Create_Trace_File
      (Kind       : Trace_Kind;
       Trace_File : out Trace_File_Type);
    --  Create an empty Trace_File object of the given kind
-
-   --  Add coverage annotations to the objdump disassembly output.
-   --  Read objdump output from standard input.
-   --  procedure Annotate_Objdump;
 
 private
    type Trace_File_Info (Raw_Length : Natural);
@@ -91,21 +92,23 @@ private
       Next : Trace_File_Info_Acc;
       Kind : Info_Kind_Type;
 
-      --  Data for the infos.
+      --  Data for the infos
+
+      Data : String (1 .. Raw_Length);
       --  String type is used for simplicity - although it might be binary.
       --  Should be a Storage_Array???
-      Data : String (1 .. Raw_Length);
    end record;
 
    type Trace_File_Type is record
-      --  Parameter from header.
+      --  Parameters from header
+
       Kind             : Trace_Kind;
       Sizeof_Target_Pc : Unsigned_8;
       Big_Endian       : Boolean;
       Machine          : Unsigned_16;
 
-      --  Infos.
-      --  Simply linked list.
+      --  Linked list of infos
+
       First_Infos : Trace_File_Info_Acc;
       Last_Infos  : Trace_File_Info_Acc;
    end record;
