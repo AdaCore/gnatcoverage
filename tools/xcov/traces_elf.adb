@@ -139,6 +139,25 @@ package body Traces_Elf is
 
    function "<" (L, R : Addresses_Info_Acc) return Boolean is
       pragma Assert (L.Kind = R.Kind);
+
+      function Names_Lt (LN, RN : String_Acc) return Boolean;
+      --  Compare desginated strings, null is higher than any non-null string
+
+      --------------
+      -- Names_Lt --
+      --------------
+
+      function Names_Lt (LN, RN : String_Acc) return Boolean is
+      begin
+         if LN = null then
+            return False;
+         elsif RN = null then
+            return True;
+         else
+            return LN.all < RN.all;
+         end if;
+      end Names_Lt;
+
    begin
       if L.First < R.First then
          return True;
@@ -148,23 +167,15 @@ package body Traces_Elf is
 
       --  Here if L.First = R.First
 
-      if L.Last < R.Last then
-         return True;
-      elsif R.Last < L.Last then
-         return False;
-      end if;
-
-      --  Here if in addition L.Last = R.Last
-
       case L.Kind is
          when Section_Addresses =>
-            return L.Section_Name.all < R.Section_Name.all;
+            return Names_Lt (L.Section_Name, R.Section_Name);
 
          when Subprogram_Addresses =>
-            return L.Subprogram_Name.all < R.Subprogram_Name.all;
+            return Names_Lt (L.Subprogram_Name, R.Subprogram_Name);
 
          when Symbol_Addresses =>
-            return L.Symbol_Name.all < R.Subprogram_Name.all;
+            return Names_Lt (L.Symbol_Name, R.Subprogram_Name);
 
          when Line_Addresses =>
             return L.Sloc < R.Sloc;

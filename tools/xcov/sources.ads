@@ -46,7 +46,8 @@ package Sources is
 
    function "<" (L, R : Source_Location) return Boolean;
    function "<=" (L, R : Source_Location) return Boolean;
-   --  Order function used to build ordered maps keyed by source locations
+   --  Order function used to build ordered maps keyed by source locations.
+   --  No_Location sorts higher than any specific location.
 
    function Image (Sloc : Source_Location) return String;
 

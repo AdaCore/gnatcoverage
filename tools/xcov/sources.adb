@@ -41,6 +41,12 @@ package body Sources is
 
    function "<" (L, R : Source_Location) return Boolean is
    begin
+      if L = No_Location then
+         return False;
+      elsif R = No_Location then
+         return True;
+      end if;
+
       if L.Source_File < R.Source_File then
          return True;
 

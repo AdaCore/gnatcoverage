@@ -145,14 +145,20 @@ package Traces_Elf is
 
    type Addresses_Iterator is limited private;
 
-   procedure Init_Iterator (Exe : Exe_File_Type;
-                            Kind : Addresses_Kind;
-                            It : out Addresses_Iterator);
+   procedure Init_Iterator
+     (Exe  : Exe_File_Type;
+      Kind : Addresses_Kind;
+      It   : out Addresses_Iterator);
 
-   procedure Next_Iterator (It : in out Addresses_Iterator;
-                            Addr : out Addresses_Info_Acc);
+   procedure Next_Iterator
+     (It   : in out Addresses_Iterator;
+      Addr : out Addresses_Info_Acc);
 
    function "<" (L, R : Addresses_Info_Acc) return Boolean;
+   --  Compare L and R by start address order in designated Addresses_Info
+   --  record. For records with the same start address, compare names (for
+   --  sections, subprograms or symbols) or slocs (for sloc info), with unset
+   --  (null / No_Location) values sorting higher than any specific set value.
 
    package Addresses_Containers is new Ada.Containers.Ordered_Sets
      (Element_Type => Addresses_Info_Acc);
