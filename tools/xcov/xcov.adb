@@ -24,6 +24,7 @@ with Coverage; use Coverage;
 with Decision_Map;
 with Execs_Dbase; use Execs_Dbase;
 with Elf_Files;
+with Switches; use Switches;
 with Traces; use Traces;
 with Traces_Elf; use Traces_Elf;
 with Traces_Sources; use Traces_Sources;
@@ -51,7 +52,12 @@ procedure Xcov is
    is
       procedure P (S : String) renames Put_Line;
    begin
-      P ("usage: " & Command_Name & " ACTION");
+      P ("Usage: " & Command_Name & " [-v] ACTION");
+      New_Line;
+      P ("Global switches:");
+      P (" -v");
+      P ("   Verbose");
+      New_Line;
       P ("Action is one of:");
       P (" --help  -h");
       P ("   Display this help");
@@ -211,8 +217,24 @@ begin
       return;
    end if;
 
-   --  Decode commands.
+   --  Decode commands
+
+   --  General command line structure:
+
+   --  1. global switches
+   --  2. command
+   --  3. command-specific switches
+
    Arg_Index := 1;
+   while Arg_Index <= Arg_Count loop
+      if Argument (Arg_Index) = "-v" then
+         Verbose := True;
+      else
+         exit;
+      end if;
+      Arg_Index := Arg_Index + 1;
+   end loop;
+
    declare
       Cmd : constant String := Argument (Arg_Index);
       Mode_Exclude : Boolean := False;

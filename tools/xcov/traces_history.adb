@@ -23,6 +23,7 @@ with Interfaces;
 
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;
+with Switches; use Switches;
 with Traces; use Traces;
 with Traces_Disa;
 
@@ -219,7 +220,6 @@ package body Traces_History is
             Branch : Branch_Kind;
             Flag_Indir, Flag_Cond : Boolean;
             Dest : Pc_Type;
-            Verbose : constant Boolean := False;
             Node, Node_Ft, Node_Br : Graph_Node_Acc;
             Insn_Len : Pc_Type;
          begin
