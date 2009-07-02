@@ -107,9 +107,13 @@ package body Sources is
       use Ada.Strings;
       use Ada.Strings.Fixed;
    begin
-      return Get_Name (Sloc.Source_File)
-        & ":" & Trim (Sloc.Line'Img, Both)
-        & ":" & Trim (Sloc.Column'Img, Both);
+      if Sloc = No_Location then
+         return "<no loc>";
+      else
+         return Get_Name (Sloc.Source_File)
+           & ":" & Trim (Sloc.Line'Img, Both)
+           & ":" & Trim (Sloc.Column'Img, Both);
+      end if;
    end Image;
 
 end Sources;
