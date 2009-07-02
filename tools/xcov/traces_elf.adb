@@ -1470,12 +1470,13 @@ package body Traces_Elf is
       end if;
    end Load_Section_Content;
 
-   ----------------------------
-   -- Add_Subprograms_Traces --
-   ----------------------------
+   --------------------------
+   -- Load_Code_And_Traces --
+   --------------------------
 
-   procedure Add_Subprograms_Traces
-     (Exec : Exe_File_Acc; Base : Traces_Base)
+   procedure Load_Code_And_Traces
+     (Exec : Exe_File_Acc;
+      Base : access Traces_Base)
    is
       use Addresses_Containers;
       use Traces_Sources;
@@ -1500,10 +1501,11 @@ package body Traces_Elf is
          Sec := Sym.Parent;
          Load_Section_Content (Exec.all, Sec);
 
-         --  Add the code for the symbol
+         --  Add the code and trace information to the symbol's entry in the
+         --  routines database.
 
          begin
-            Traces_Names.Add_Traces
+            Traces_Names.Add_Code_And_Traces
               (Sym.Symbol_Name, Exec,
                Sec.Section_Content (Sym.First .. Sym.Last),
                Base);
@@ -1515,7 +1517,7 @@ package body Traces_Elf is
 
          Next (Cur);
       end loop;
-   end Add_Subprograms_Traces;
+   end Load_Code_And_Traces;
 
    ------------------------
    -- Build_Source_Lines --
@@ -2253,6 +2255,10 @@ package body Traces_Elf is
       Iterate (Process_One'Access);
    end Build_Routines_Trace_State;
 
+   --------------------------
+   -- Disassemble_File_Raw --
+   --------------------------
+
    procedure Disassemble_File_Raw (File : in out Exe_File_Type) is
       use Addresses_Containers;
 
@@ -2298,6 +2304,10 @@ package body Traces_Elf is
       Build_Symbols (File'Unchecked_Access);
       File.Desc_Sets (Section_Addresses).Iterate (Local_Disassembler'Access);
    end Disassemble_File_Raw;
+
+   ----------------------
+   -- Disassemble_File --
+   ----------------------
 
    procedure Disassemble_File (File : in out Exe_File_Type) is
       use Addresses_Containers;
@@ -2443,6 +2453,10 @@ package body Traces_Elf is
       end loop;
    end Disassemble_File;
 
+   ------------------------
+   -- Read_Routines_Name --
+   ------------------------
+
    procedure Read_Routines_Name (File : Exe_File_Acc; Exclude : Boolean)
    is
       use Addresses_Containers;
@@ -2534,11 +2548,11 @@ package body Traces_Elf is
             Addresses_Containers.Insert
               (Shdr_Sets (A_Sym.St_Shndx).all,
                new Addresses_Info'
-               (Kind => Symbol_Addresses,
-                First => Pc_Type (A_Sym.St_Value),
-                Last => Pc_Type (A_Sym.St_Value + A_Sym.St_Size - 1),
-                Parent => null,
-                Symbol_Name => Sym_Name),
+                 (Kind        => Symbol_Addresses,
+                  First       => Pc_Type (A_Sym.St_Value),
+                  Last        => Pc_Type (A_Sym.St_Value + A_Sym.St_Size - 1),
+                  Parent      => null,
+                  Symbol_Name => Sym_Name),
                Cur, Ok);
             if not Ok then
                Put_Line (Standard_Error,
@@ -2601,8 +2615,7 @@ package body Traces_Elf is
                   else
                      begin
                         Add_Routine_Name (Name => Sym.Symbol_Name,
-                                          Exec => File,
-                                          Sym => Sym);
+                                          Exec => File);
                         Sym.Symbol_Name := null;
                      exception
                         when Constraint_Error =>

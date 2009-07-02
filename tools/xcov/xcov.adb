@@ -52,12 +52,7 @@ procedure Xcov is
    is
       procedure P (S : String) renames Put_Line;
    begin
-      P ("Usage: " & Command_Name & " [-v] ACTION");
-      New_Line;
-      P ("Global switches:");
-      P (" -v");
-      P ("   Verbose");
-      New_Line;
+      P ("usage: " & Command_Name & " ACTION");
       P ("Action is one of:");
       P (" --help  -h");
       P ("   Display this help");
@@ -207,9 +202,10 @@ procedure Xcov is
 
    Text_Start : Pc_Type := 0;
    Trace_File : Trace_File_Element_Acc;
-   Base : Traces_Base;
 
+   Base : aliased Traces_Base;
    Exec : aliased Exe_File_Type;
+
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -253,10 +249,10 @@ begin
                elsif Arg = "--include" then
                   Mode_Exclude := False;
                else
-                  Open_File (Exec, Arg, 0);
-                  Traces_Elf.Read_Routines_Name (Exec'Unchecked_Access,
-                                                 Mode_Exclude);
-                  Close_File (Exec);
+                  Traces_Elf.Read_Routines_Name
+                    (Arg,
+                     Exclude   => Mode_Exclude,
+                     Keep_Open => False);
                end if;
             exception
                when Elf_Files.Error =>
@@ -292,16 +288,19 @@ begin
                   Mode_Exclude := False;
 
                else
-                  --  For included symbols, keep ELF file open so that we
-                  --  can load the symbol text later on.
-
                   Traces_Elf.Read_Routines_Name
                     (Arg,
                      Exclude   => Mode_Exclude,
-                     Keep_Open => not Mode_Exclude);
+                     Keep_Open => False);
+
+                  --  Should also support using a routine names list???
                end if;
             end;
          end loop;
+         Open_File (Exec, Argument (Arg_Count), Text_Start);
+         Build_Sections (Exec);
+         Build_Symbols (Exec'Unchecked_Access);
+         Load_Code_And_Traces (Exec'Unchecked_Access, Base => null);
          Decision_Map.Analyze (ALI_List_Filename);
          Decision_Map.Write_Map (Decision_Map_Filename.all);
          return;
@@ -436,7 +435,8 @@ begin
       end if;
    end;
 
-   --  Decode options for --coverage (not included).
+   --  Decode options for --coverage (not included)
+
    while Arg_Index <= Arg_Count loop
       declare
          Arg : constant String := Argument (Arg_Index);
@@ -593,7 +593,8 @@ begin
       end if;
    end if;
 
-   --  Read traces.
+   --  Read traces
+
    while Arg_Index <= Arg_Count loop
       Init_Base (Base);
       Trace_File := new Trace_File_Element;
@@ -627,7 +628,7 @@ begin
             Read_Routines_Name (Exe_File, Exclude => False);
          end if;
 
-         Add_Subprograms_Traces (Exe_File, Base);
+         Load_Code_And_Traces (Exe_File, Base'Access);
       end;
       Arg_Index := Arg_Index + 1;
    end loop;

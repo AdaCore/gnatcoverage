@@ -84,8 +84,11 @@ package Traces_Elf is
    procedure Load_Section_Content (Exec : Exe_File_Type;
                                    Sec : Addresses_Info_Acc);
 
-   --  Fill Traces_Names with traces from BASE.
-   procedure Add_Subprograms_Traces (Exec : Exe_File_Acc; Base : Traces_Base);
+   procedure Load_Code_And_Traces
+     (Exec : Exe_File_Acc;
+      Base : access Traces_Base);
+   --  Load code for all symbols in Exec. If Base is not null, also load the
+   --  traces into the routine database.
 
    --  Using the executable, correctly set the state of every traces.
    procedure Set_Trace_State (Exec : Exe_File_Type; Base : in out Traces_Base);

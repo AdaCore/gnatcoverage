@@ -96,25 +96,27 @@ package body Decision_Map is
       SCO := Sloc_To_SCO (SCO_Sloc);
 
       if Verbose then
-         Put ("cond branch at " & Hex_Image (Insn'First)
-              & " in " & Image (Line_Info) & ": " & Image (SCO));
+         Put_Line ("cond branch at " & Hex_Image (Insn'First)
+                   & " in " & Image (Line_Info) & ": " & Image (SCO));
 
       end if;
 
-      case Kind (SCO) is
-         when Condition =>
-            --  For conditions, we need full (historical) traces in order to
-            --  provide MC/DC source coverage analysis.
+      if SCO /= No_SCO_Id then
+         case Kind (SCO) is
+            when Condition =>
+               --  For conditions, we need full (historical) traces in order to
+               --  provide MC/DC source coverage analysis.
 
-            Add_Entry
-              (Base  => Decision_Map_Base,
-               First => Insn'First,
-               Last  => Insn'Last,
-               Op    => 0);
+               Add_Entry
+                 (Base  => Decision_Map_Base,
+                  First => Insn'First,
+                  Last  => Insn'Last,
+                  Op    => 0);
 
-         when others =>
-            null;
-      end case;
+            when others =>
+               null;
+         end case;
+      end if;
    end Analyze_Conditional_Branch;
 
    ---------------------
@@ -130,38 +132,10 @@ package body Decision_Map is
       PC       : Pc_Type;
       Insn_Len : Natural;
 
-      procedure Load_Symbol_Text
-        (Name : String_Acc;
-         Info : in out Subprogram_Info);
-      --  Load subprogram object code
-
-      ----------------------
-      -- Load_Symbol_Text --
-      ----------------------
-
-      procedure Load_Symbol_Text
-        (Name : String_Acc;
-         Info : in out Subprogram_Info)
-      is
-         Sym : Addresses_Info_Acc renames Info.Sym;
-      begin
-         if Info.Insns /= null then
-            raise Constraint_Error with
-              "text of " & Name.all & " already set";
-         end if;
-
-         Load_Section_Content (Info.Exec.all, Sym.Parent);
-         Info.Insns :=
-           new Binary_Content'
-             (Sym.Parent.Section_Content (Sym.First .. Sym.Last));
-      end Load_Symbol_Text;
-
    --  Start of processing for Analyze_Routine
 
    begin
       Put_Line ("Building decision map for " & Name.all);
-
-      Load_Symbol_Text (Name, Info);
       Build_Debug_Lines (Info.Exec.all);
 
       if Info.Insns = null then

@@ -47,12 +47,11 @@ package body Traces_Names is
 
    procedure Add_Routine_Name
      (Name : String_Acc;
-      Exec : Exe_File_Acc := null;
-      Sym  : Addresses_Info_Acc := null) is
+      Exec : Exe_File_Acc := null)
+   is
    begin
       Names.Insert (Name,
         Subprogram_Info'(Exec   => Exec,
-                         Sym    => Sym,
                          Insns  => null,
                          Traces => null));
    end Add_Routine_Name;
@@ -126,15 +125,15 @@ package body Traces_Names is
       end loop;
    end Disp_All_Routines;
 
-   ----------------
-   -- Add_Traces --
-   ----------------
+   -------------------------
+   -- Add_Code_And_Traces --
+   -------------------------
 
-   procedure Add_Traces
+   procedure Add_Code_And_Traces
      (Routine_Name : String_Acc;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
-      Base         : Traces_Base)
+      Base         : access Traces_Base)
    is
       use Names_Maps;
       use Traces;
@@ -154,7 +153,7 @@ package body Traces_Names is
          --  the one given in parameter; if not, initialize the info with
          --  an empty trace.
 
-         if Subp_Info.Insns = null and Content'Length > 0 then
+         if Subp_Info.Insns = null and then Content'Length > 0 then
             Subp_Info.Insns := new Binary_Content'(Content);
             Subp_Info.Exec := Exec;
          else
@@ -180,6 +179,10 @@ package body Traces_Names is
             end if;
          end if;
 
+         if Base = null then
+            return;
+         end if;
+
          if Subp_Info.Traces = null then
             Subp_Info.Traces := new Traces_Base;
          end if;
@@ -188,7 +191,7 @@ package body Traces_Names is
          --  parameter. Rebase the traces' addresses to to subpgrogram address
          --  range (i.e. Subp_Info.Insns'Range).
 
-         Init (Base, Trace_Cursor, Content'First);
+         Init (Base.all, Trace_Cursor, Content'First);
          Get_Next_Trace (Trace, Trace_Cursor);
          while Trace /= Bad_Trace loop
             exit when Trace.First > Content'Last;
@@ -220,6 +223,6 @@ package body Traces_Names is
       if Has_Element (Cur) then
          Names.Update_Element (Cur, Update'Access);
       end if;
-   end Add_Traces;
+   end Add_Code_And_Traces;
 
 end Traces_Names;
