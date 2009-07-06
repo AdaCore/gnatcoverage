@@ -23,8 +23,7 @@ ADA_GEN_SUBDIR=gnat
 MOVE_IF_CHANGE=mv -f
 
 copy_gnat_src: force
-	for f in `cat $(ADA_GEN_SUBDIR)/MANIFEST.XCOV`; do \
-	$(LN) $(GNAT_SOURCE_DIR)/$$f $(ADA_GEN_SUBDIR)/$$f; done
+	@echo "GNAT sources are now mirrored in the XCOV repository iteslf"
 
 #################
 # Documentation #
