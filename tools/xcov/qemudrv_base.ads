@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 
 with GNAT.Strings; use GNAT.Strings;
+with GNAT.OS_Lib;
 
 package Qemudrv_Base is
    type Driver_Target is record
@@ -69,6 +70,22 @@ package Qemudrv_Base is
                                        new String'("-trace"),
                                        new String'("$trace"))
 
+      ),
+      (Target => new String'("i386-pok"),
+       Build_Command => null,
+       Build_Options => null,
+       Run_Command => new String'("qemu"),
+       Run_Options => new String_List'(new String'("-fda"),
+                                       new String'(GNAT.OS_Lib.Getenv
+                                                     ("POK_PATH").all
+                                                     & "/misc"
+                                                     & "/grub-boot-only.img"),
+                                       new String'("-hda:."),
+                                       new String'("-boot"),
+                                       new String'("a"),
+                                       new String'("-nographic"),
+                                       new String'("-trace"),
+                                       new String'("$trace"))
       ),
       (Target => new String'("i386-linux"),
        Build_Command => null,
