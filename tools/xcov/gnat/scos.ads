@@ -253,15 +253,15 @@ package SCOs is
    --    Complex Decision
    --      C1   = 'I', 'E', 'W', 'X' (if/exit/while/expression)
    --      C2   = ' '
-   --      From = No_Location
-   --      To   = No_Location
+   --      From = No_Source_Location
+   --      To   = No_Source_Location
    --      Last = False
 
    --    Operator
    --      C1   = '!', '^', '&', '|'
    --      C2   = ' '
-   --      From = No_Location
-   --      To   = No_Location
+   --      From = No_Source_Location
+   --      To   = No_Source_Location
    --      Last = False
 
    --    Element
