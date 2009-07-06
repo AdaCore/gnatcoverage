@@ -219,11 +219,6 @@ package body SC_Obligations is
          C := Getc;
       end Skipc;
 
-      package Source_File_Vectors is new Ada.Containers.Vectors
-        (Index_Type => Nat, Element_Type => Source_File_Index);
-      Dependencies : Source_File_Vectors.Vector;
-      --  D lines in the ALI
-
       procedure Get_SCOs_From_ALI is new Get_SCOs;
 
    begin
@@ -238,14 +233,6 @@ package body SC_Obligations is
 
          Get_Line (ALI_File, Line, Last);
          case Line (1) is
-            when 'D' =>
-               Index := 3;
-               Last := 3;
-               while Line (Last) /= ASCII.HT loop
-                  Last := Last + 1;
-               end loop;
-               Dependencies.Append (Get_Index (Line (Index .. Last - 1)));
-
             when 'C' =>
                exit Scan_ALI;
 
@@ -278,7 +265,7 @@ package body SC_Obligations is
             begin
                pragma Assert (Cur_SCO_Entry in SCOUE.From .. SCOUE.To);
                Last_Entry_In_Cur_Unit := SCOUE.To;
-               Cur_Source_File := Dependencies.Element (SCOUE.Dep_Num - 1);
+               Cur_Source_File := Get_Index (SCOUE.File_Name.all);
             end;
          end if;
 
