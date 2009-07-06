@@ -80,7 +80,8 @@ package Qemudrv_Base is
                                                      ("POK_PATH").all
                                                      & "/misc"
                                                      & "/grub-boot-only.img"),
-                                       new String'("-hda:."),
+                                       new String'("-hda"),
+                                       new String'("fat:."),
                                        new String'("-boot"),
                                        new String'("a"),
                                        new String'("-nographic"),
