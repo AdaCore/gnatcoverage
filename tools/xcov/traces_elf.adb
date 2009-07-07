@@ -175,7 +175,7 @@ package body Traces_Elf is
             return Names_Lt (L.Subprogram_Name, R.Subprogram_Name);
 
          when Symbol_Addresses =>
-            return Names_Lt (L.Symbol_Name, R.Subprogram_Name);
+            return Names_Lt (L.Symbol_Name, R.Symbol_Name);
 
          when Line_Addresses =>
             return L.Sloc < R.Sloc;
