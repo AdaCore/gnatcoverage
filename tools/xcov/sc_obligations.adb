@@ -30,10 +30,6 @@ with Switches; use Switches;
 with Types;    use Types;
 with Get_SCOs;
 
---------------------
--- SC_Obligations --
---------------------
-
 package body SC_Obligations is
 
    subtype Source_Location is Sources.Source_Location;
