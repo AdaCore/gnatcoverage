@@ -1067,6 +1067,11 @@ package body Traces_Elf is
 
       procedure New_Source_Line;
       procedure Close_Source_Line;
+      --  Need comments???
+
+      -----------------------
+      -- Close_Source_Line --
+      -----------------------
 
       procedure Close_Source_Line is
       begin
@@ -1086,39 +1091,30 @@ package body Traces_Elf is
          use Addresses_Containers;
          Pos        : Cursor;
          Inserted   : Boolean;
-         Empty_Line : Addresses_Info_Acc;
       begin
          Close_Source_Line;
 
          --  Note: Last and Parent are set by Build_Debug_Lines.
          Last_Line :=
            new Addresses_Info'
-           (Kind => Line_Addresses,
-            First => Exec.Exe_Text_Start + Pc,
-            Last => Exec.Exe_Text_Start + Pc,
-            Parent => null,
-            Sloc =>
-              (Source_File  =>
-                 Get_Index (Filenames_Vectors.Element (Filenames, File).all),
-               Line         => Natural (Line),
-               Column       => Natural (Column)));
+             (Kind   => Line_Addresses,
+              First  => Exec.Exe_Text_Start + Pc,
+              Last   => Exec.Exe_Text_Start + Pc,
+              Parent => null,
+              Sloc   =>
+                (Source_File  =>
+                   Get_Index (Filenames_Vectors.Element (Filenames, File).all),
+                 Line         => Natural (Line),
+                 Column       => Natural (Column)));
 
          Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
 
          if not Inserted then
             --  The line previously inserted is an empty range. Drop it.
-            --  Replace it by the new line.
-            Empty_Line := Element (Pos);
-            Exec.Desc_Sets (Line_Addresses).Replace_Element (Pos, Last_Line);
-            Unchecked_Deallocation (Empty_Line);
-         end if;
+            --  Replace its information.
 
-         if False then
-            Put_Line
-              ("pc: " & Hex_Image (Pc)
-                 & " file (" & Natural'Image (File) & "): "
-                 & Filenames_Vectors.Element (Filenames, File).all
-                 & ", line: " & Unsigned_32'Image (Line));
+            Element (Pos).Sloc := Last_Line.Sloc;
+            Unchecked_Deallocation (Last_Line);
          end if;
       end New_Source_Line;
 
@@ -1153,7 +1149,8 @@ package body Traces_Elf is
       Read_Byte (Base, Off, Line_Range);
       Read_Byte (Base, Off, Opc_Base);
 
-      --  Initial state registers.
+      --  Initial state registers
+
       Pc := 0;
       Line := 1;
       File := 1;
@@ -1254,7 +1251,7 @@ package body Traces_Elf is
 
          elsif B < Opc_Base then
 
-            --  Standard opcode.
+            --  Standard opcode
 
             case B is
                when DW_LNS_copy =>
@@ -1301,7 +1298,7 @@ package body Traces_Elf is
 
          else
 
-            --  Special opcode.
+            --  Special opcode
 
             B := B - Opc_Base;
             Pc := Pc + Pc_Type (Unsigned_32 (B / Line_Range)
@@ -1396,14 +1393,21 @@ package body Traces_Elf is
            and then Line.Last <= Subprg.Last
          then
             Line.Parent := Subprg;
+
          elsif Sec /= null
-           and then Line.First >= Sec.First and then Line.Last <= Sec.Last
+           and then Line.First >= Sec.First
+           and then Line.Last <= Sec.Last
          then
             Line.Parent := Sec;
+
          else
             --  Possible for discarded sections.
             Line.Parent := null;
          end if;
+
+         --  Insert into Sloc -> Line info
+
+         Exec.Known_Slocs.Include (Line.Sloc);
 
          Next (Cur_Line);
       end loop;
@@ -1453,6 +1457,51 @@ package body Traces_Elf is
          end if;
       end loop;
    end Build_Sections;
+
+   --------------------
+   -- Get_Sloc_Range --
+   --------------------
+
+   procedure Get_Sloc_Range
+     (Exec  : Exe_File_Type;
+      PC    : Pc_Type;
+      First : out Source_Location;
+      Last  : out Source_Location)
+   is
+      use Sloc_Sets;
+
+      Line_Info_Before : constant Addresses_Info_Acc :=
+                           Get_Address_Info (Exec, Line_Addresses, PC);
+      Cur : Cursor;
+   begin
+      if Line_Info_Before = null then
+         First := Sources.No_Location;
+         Last  := Sources.No_Location;
+         return;
+      end if;
+
+      First := Line_Info_Before.Sloc;
+      Last := First;
+
+      Cur := Exec.Known_Slocs.Find (First);
+      pragma Assert (Cur /= No_Element);
+      Next (Cur);
+
+      if Cur /= No_Element then
+         declare
+            Sloc_After      : constant Source_Location := Element (Cur);
+         begin
+            if Sloc_After.Source_File = First.Source_File
+              and then Sloc_After.Line = First.Line
+            then
+               pragma Assert (Sloc_After.Column > First.Column);
+               Last.Column := Sloc_After.Column - 1;
+               return;
+            end if;
+         end;
+      end if;
+      Last.Column := Integer'Last;
+   end Get_Sloc_Range;
 
    --------------------------
    -- Load_Section_Content --

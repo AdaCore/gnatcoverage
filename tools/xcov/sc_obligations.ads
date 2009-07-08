@@ -21,6 +21,7 @@
 
 with Sources; use Sources;
 with Strings; use Strings;
+with Traces;  use Traces;
 
 package SC_Obligations is
 
@@ -33,12 +34,20 @@ package SC_Obligations is
    function Last_Sloc (SCO : SCO_Id) return Source_Location;
    function Kind (SCO : SCO_Id) return SCO_Kind;
 
+   procedure Add_Address (SCO : SCO_Id; Address : Pc_Type);
+   --  Record Address in SCO's address list
+
    function Image (SCO : SCO_Id) return String;
 
-   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
-   --  Return the innermost SCO whose range contains Sloc
+   function Slocs_To_SCO
+     (First_Sloc, Last_Sloc : Source_Location) return SCO_Id;
+   --  Return the innermost SCO whose range overlaps the given range.
+   --  It is an error if multiple such SCOs exist and aren't nested.
 
    procedure Load_SCOs (ALI_List_Filename : String_Acc);
    --  Load all source coverage obligations for application
+
+   procedure Report_SCOs_Without_Code;
+   --  Output a list of conditions without associated conditional branches
 
 end SC_Obligations;

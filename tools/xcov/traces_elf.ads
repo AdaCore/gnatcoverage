@@ -18,6 +18,8 @@
 ------------------------------------------------------------------------------
 
 with Ada.Unchecked_Deallocation;
+with Ada.Containers.Ordered_Sets;
+
 with Traces; use Traces;
 with Traces_Dbase; use Traces_Dbase;
 with Elf_Arch;     use Elf_Arch;
@@ -27,7 +29,7 @@ with Sources;      use Sources;
 with Strings;      use Strings;
 
 with Interfaces;
-with Ada.Containers.Ordered_Sets;
+
 with Ada.Containers.Doubly_Linked_Lists;
 with System; use System;
 with Disa_Symbolize; use Disa_Symbolize;
@@ -137,6 +139,14 @@ package Traces_Elf is
                        return Addresses_Info_Acc;
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
+   procedure Get_Sloc_Range
+     (Exec  : Exe_File_Type;
+      PC    : PC_Type;
+      First : out Source_Location;
+      Last  : out Source_Location);
+   --  Use Exec's debug_lines information to determine the sloc range for
+   --  the instruction at PC.
+
    --  Canonical use of iterators:
    --
    --  Init_Iterator (Exe, Section_Addresses, It);
@@ -233,6 +243,9 @@ private
 
    type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
 
+   package Sloc_Sets is new Ada.Containers.Ordered_Sets (Source_Location);
+   subtype Sloc_Set is Sloc_Sets.Set;
+
    type Exe_File_Type is limited new Symbolizer with record
       --  Sections index.
       Sec_Symtab         : Elf_Half := SHN_UNDEF;
@@ -264,6 +277,9 @@ private
 
       Desc_Sets : Desc_Sets_Type;
       --  Address descriptor sets
+
+      Known_Slocs : Sloc_Set;
+      --  Slocs for which there is .debug_lines info
    end record;
 
    type Addresses_Iterator is limited record

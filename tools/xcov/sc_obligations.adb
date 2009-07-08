@@ -20,13 +20,19 @@
 --  Source Coverage Obligations
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
-with SCOs;  use SCOs;
-with Types; use Types;
+with SCOs;     use SCOs;
+with Switches; use Switches;
+with Types;    use Types;
 with Get_SCOs;
+
+--------------------
+-- SC_Obligations --
+--------------------
 
 package body SC_Obligations is
 
@@ -40,6 +46,9 @@ package body SC_Obligations is
    -------------------------------
    -- Main SCO descriptor table --
    -------------------------------
+
+   use type Pc_Type;
+   package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
       First_Sloc : Source_Location;
@@ -55,6 +64,10 @@ package body SC_Obligations is
       --  For a condition, pointer to the enclosing decision.
 
       case Kind is
+         when Condition =>
+            PC_Set : PC_Sets.Set;
+            --  Addresses of conditional branches testing this condition
+
          when Decision =>
             Is_Complex_Decision : Boolean;
             --  True for complex decisions.
@@ -81,6 +94,26 @@ package body SC_Obligations is
      (Key_Type     => Source_Location,
       Element_Type => SCO_Id);
    Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
+
+   -----------------
+   -- Add_Address --
+   -----------------
+
+   procedure Add_Address (SCO : SCO_Id; Address : Pc_Type) is
+      procedure Update (SCOD : in out SCO_Descriptor);
+      --  Add Address to SCOD's PC_Set
+
+      ------------
+      -- Update --
+      ------------
+
+      procedure Update (SCOD : in out SCO_Descriptor) is
+      begin
+         SCOD.PC_Set.Include (Address);
+      end Update;
+   begin
+      SCO_Vector.Update_Element (SCO, Update'Access);
+   end Add_Address;
 
    ----------------
    -- First_Sloc --
@@ -220,6 +253,8 @@ package body SC_Obligations is
       end Skipc;
 
       procedure Get_SCOs_From_ALI is new Get_SCOs;
+
+   --  Start of processing for Load_SCOs_From_ALI
 
    begin
       Open (ALI_File, In_File, ALI_Filename);
@@ -364,7 +399,7 @@ package body SC_Obligations is
                      Process => Update_Decision_Sloc'Access);
 
                   SCO_Vector.Append
-                    (SCO_Descriptor'(Kind       => Decision,
+                    (SCO_Descriptor'(Kind       => Condition,
                                      First_Sloc => Make_Sloc (SCOE.From),
                                      Last_Sloc  => Make_Sloc (SCOE.To),
                                      Parent     => Current_Complex_Decision,
@@ -403,8 +438,19 @@ package body SC_Obligations is
             --  map entry.
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor) is
-               Enclosing_SCO : constant SCO_Id := Sloc_To_SCO (First);
+               Enclosing_SCO : constant SCO_Id := Slocs_To_SCO (First, First);
             begin
+               if Verbose then
+                  Put ("Processing: " & Image (J));
+                  if SCOD.Kind = Decision then
+                     if SCOD.Is_Complex_Decision  then
+                        Put (" (complex)");
+                     else
+                        Put (" (simple)");
+                     end if;
+                  end if;
+                  New_Line;
+               end if;
                case SCOD.Kind is
 
                   when Decision =>
@@ -445,14 +491,65 @@ package body SC_Obligations is
       Close (ALI_File);
    end Load_SCOs_From_ALI;
 
-   -----------------
-   -- Sloc_To_SCO --
-   -----------------
+   ------------------------------
+   -- Report_SCOs_Without_Code --
+   ------------------------------
 
-   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id is
+   procedure Report_SCOs_Without_Code is
+      use SCO_Vectors;
+
+      procedure Check_Condition (Cur : Cursor);
+      --  Check whether this condition has an associated conditional branch
+      ---------------------
+      -- Check_Condition --
+      ---------------------
+
+      procedure Check_Condition (Cur : Cursor) is
+         use Ada.Containers;
+
+         SCOD : SCO_Descriptor renames Element (Cur);
+      begin
+         if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
+            Put_Line ("No conditional branch for " & Image (To_Index (Cur)));
+         end if;
+      end Check_Condition;
+   begin
+      SCO_Vector.Iterate (Check_Condition'Access);
+   end Report_SCOs_Without_Code;
+
+   ------------------
+   -- Slocs_To_SCO --
+   ------------------
+
+   function Slocs_To_SCO
+     (First_Sloc, Last_Sloc : Source_Location) return SCO_Id
+   is
       use Sloc_To_SCO_Maps;
-      Cur : constant Cursor := Sloc_To_SCO_Map.Floor (Sloc);
+      Cur : constant Cursor := Sloc_To_SCO_Map.Floor (Last_Sloc);
       SCO : SCO_Id;
+
+      function Range_Intersects
+        (Range_First_Sloc, Range_Last_Sloc : Source_Location) return Boolean;
+      --  True when First_Sloc .. Last_Sloc
+      --  and Range_First_Sloc .. Range_Last_Sloc intersect.
+
+      ----------------------
+      -- Range_Intersects --
+      ----------------------
+
+      function Range_Intersects
+        (Range_First_Sloc, Range_Last_Sloc : Source_Location) return Boolean
+      is
+      begin
+         --  A range involving a No_Location bound is empty
+
+         return Range_First_Sloc <= Last_Sloc
+                  and then
+                    First_Sloc <= Range_Last_Sloc
+                  and then
+                    Range_Last_Sloc /= No_Location;
+      end Range_Intersects;
+
    begin
       if Cur /= No_Element then
          SCO := Element (Cur);
@@ -460,12 +557,18 @@ package body SC_Obligations is
          SCO := No_SCO_Id;
       end if;
 
+      --  Cur is highest SCO range start before last
+
       while SCO /= No_SCO_Id loop
-         exit when Sloc <= Last_Sloc (SCO);
+         declare
+            SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+         begin
+            exit when Range_Intersects (SCOD.First_Sloc, SCOD.Last_Sloc);
+         end;
          SCO := SCO_Vector.Element (SCO).Parent;
       end loop;
 
       return SCO;
-   end Sloc_To_SCO;
+   end Slocs_To_SCO;
 
 end SC_Obligations;

@@ -32,6 +32,7 @@ with Traces_Dbase;      use Traces_Dbase;
 with Traces_Elf;        use Traces_Elf;
 with Traces_Files;      use Traces_Files;
 with Traces_Names;      use Traces_Names;
+with Types;
 
 package body Decision_Map is
 
@@ -59,6 +60,10 @@ package body Decision_Map is
       Load_SCOs (ALI_List_Filename);
       Init_Base (Decision_Map_Base);
       Traces_Names.Iterate (Analyze_Routine'Access);
+
+      if Verbose then
+         Report_SCOs_Without_Code;
+      end if;
    end Analyze;
 
    --------------------------------
@@ -69,16 +74,16 @@ package body Decision_Map is
      (Exe  : Exe_File_Acc;
       Insn : Binary_Content)
    is
-      Line_Info : constant Addresses_Info_Acc :=
-                    Get_Address_Info (Exe.all, Line_Addresses, Insn'First);
-      --  Source location of Insn
+      use Types;
 
-      SCO_Sloc : Source_Location;
-      --  Sloc normalized for SCO lookup
+      First_Sloc, Last_Sloc : Source_Location;
+      --  Source location range of Insn
 
       SCO : SCO_Id;
    begin
-      if Line_Info = null then
+      Get_Sloc_Range (Exe.all, Insn'First, First_Sloc, Last_Sloc);
+
+      if First_Sloc = Sources.No_Location then
          --  No associated source, so no further processing required for source
          --  coverage analysis.
 
@@ -87,17 +92,20 @@ package body Decision_Map is
 
       --  Normalize source file name
 
-      SCO_Sloc := Line_Info.Sloc;
-      SCO_Sloc.Source_File :=
-        Get_Index (Simple_Name (Get_Name (SCO_Sloc.Source_File)));
+      pragma Assert (First_Sloc.Source_File = Last_Sloc.Source_File);
+
+      First_Sloc.Source_File :=
+        Get_Index (Simple_Name (Get_Name (First_Sloc.Source_File)));
+      Last_Sloc.Source_File := First_Sloc.Source_File;
 
       --  Look up SCO
 
-      SCO := Sloc_To_SCO (SCO_Sloc);
+      SCO := Slocs_To_SCO (First_Sloc, Last_Sloc);
 
       if Verbose then
          Put_Line ("cond branch at " & Hex_Image (Insn'First)
-                   & " in " & Image (Line_Info) & ": " & Image (SCO));
+                   & " " & Image (First_Sloc) & "-" & Image (Last_Sloc)
+                   & ": " & Image (SCO));
 
       end if;
 
@@ -113,6 +121,7 @@ package body Decision_Map is
                   Last  => Insn'Last,
                   Op    => 0);
 
+               Add_Address (SCO, Insn'First);
             when others =>
                null;
          end case;
