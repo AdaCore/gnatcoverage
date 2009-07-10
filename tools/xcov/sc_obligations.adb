@@ -176,7 +176,62 @@ package body SC_Obligations is
          Node_Id : out BDD_Node_Id);
       --  Allocate a node within the given BDD with the given properties
 
-      --  Arcs descriptor used while building a BDD
+      ------------------------------------
+      -- Building the BDD of a decision --
+      ------------------------------------
+
+      --  The BDD is built while scanning the various items (conditions and
+      --  operators) that make up a decision. The BDD is rooted at the first
+      --  condition; each node is either the evaluation of a condition
+      --  (with two outgoing arcs pointing to the continuation of the
+      --  evaluation, depending on the condition's value), or a leaf indicating
+      --  that the outcome of the decision has been fully determined. During
+      --  BDD construction, a third type of node can appear, which is a Jump
+      --  to another node (i.e. a node that has just one outgoing arc).
+
+      --  The BDD is build by maintaining a stack of triples of BDD node ids.
+      --  The node at the top of the stack designates the destinations that
+      --  shall be assigned to the True and False outcomes of the subtree
+      --  that is about to be scanned. The third node id, if not null, is
+      --  the id of a Jump node that shall be connected to the root of the
+      --  subtree about to be read.
+
+      --  Initially, the destinations are the decision outcome leaves, and
+      --  the origin is No_BDD_Node_Id.
+
+      --  When a NOT operator is read, the True and False destinations of the
+      --  top stack item are swapped.
+
+      --  When an AND THEN operator is read, the top item is popped, and two
+      --  items are pushed (corresponding to the two subtrees for the two
+      --  operands). A new Jump node is allocated. The arcs for the right
+      --  operand are:
+      --
+      --    Dest_True => Popped_Dest_True
+      --      (if right op is True then overall subtree is True)
+      --    Dest_False => Popped_Dest_False
+      --      (if right op is True then overall subtree is False)
+      --    Origin => Jump_Node
+      --      (evaluation of right operand is attached as a destination
+      --       of the left operand test)
+      --
+      --   and those for the left operand are:
+      --    Dest_True => Jump_Node
+      --      (if left op is True then evaluate right op)
+      --    Dest_False => Popped_Dest_False
+      --      (if right op is False then overall subtree is False)
+      --    Origin => Popped_Origin
+      --
+      --  When an OR ELSE operator is read, a similar processing occurs.
+      --
+      --  When a condition is read, the top item is popped and a new Condition
+      --  node is allocated. Its destinations are set from the popped item,
+      --  and if an origin Jump node is present, then its destination is set
+      --  to the id of the newly-allocated condition.
+      --
+      --  At the end of the processing for a decision, the stack is empty,
+      --  and the BDD is simplified by replacing all references to jump nodes
+      --  with direct references to their destinations.
 
       type Arcs is record
          Dests  : Destinations;
@@ -374,7 +429,7 @@ package body SC_Obligations is
                   New_Line;
             end case;
 
-            Put_Dest ("true", Node.Dests.Dest_True);
+            Put_Dest ("true ", Node.Dests.Dest_True);
             Put_Dest ("false", Node.Dests.Dest_False);
 
             if Next_Condition <= BDD.V.Last_Index then
@@ -386,10 +441,9 @@ package body SC_Obligations is
       --  Start of processing for Dump_BDD
 
       begin
-         New_Line;
          Put_Line ("----- BDD for decision " & Image (BDD.Decision));
-
          Dump_Condition (BDD.Root_Condition);
+         New_Line;
       end Dump_BDD;
 
       ------------
