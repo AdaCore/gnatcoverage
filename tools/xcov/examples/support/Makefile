@@ -14,7 +14,7 @@ all: $(TARGETCONFIG) $(START) $(LDSCRIPT) $(TARGET_SUPPORT_LIB)/libsupport.a
 
 $(TARGETCONFIG):
 	@$(MKDIR) $(TARGET_SUPPORT_LIB)
-	gprconfig $(GPRCONFIGARGS) --config=Ada,,zfp --config=C --batch -o $@
+	gprconfig $(GPRCONFIGARGS) --config=Ada,,zfp --config=C --config=Asm --batch -o $@
 
 $(TARGET_SUPPORT_LIB)/start.o: src/$(TARGETNAME)/start.s
 	$(CROSSPREFIX)gcc -c -o $@ $<
