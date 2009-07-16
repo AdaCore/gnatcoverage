@@ -60,6 +60,7 @@ int tb_invalidated_flag;
 
 #define DEBUG_EXEC
 //#define DEBUG_SIGNAL
+//#define DEBUG_TRACE
 
 void cpu_loop_exit(void)
 {
@@ -1535,10 +1536,10 @@ static void trace_after_exec(TranslationBlock *tb, unsigned long next_tb)
     if (last_tb)
 	printf(" (last_ip=" TARGET_FMT_lx ", targ=%d)",
 		last_tb ? last_tb->pc + last_tb->size - 1 : 0, br);
-    printf("[tb->tflags=%04x, op=%04x\n", tb->tflags, trace_current->op);
+    printf("[tb->tflags=%04x, op=%04x]\n", tb->tflags, trace_current->op);
 #endif
 
-    /* note: if last_tb is not set, we don't know if we exited from tb or not.
+    /* Note: if last_tb is not set, we don't know if we exited from tb or not.
      */
     if (last_tb) {
 	if (last_tb == tb) {
@@ -1548,7 +1549,7 @@ static void trace_after_exec(TranslationBlock *tb, unsigned long next_tb)
 	    trace_current->op = TRACE_OP_BLOCK + (1 << br);
 	}
 	else {
-	    /* Threaded execution.  */
+	    /* Threaded execution.  The block has already be executed.  */
 	    trace_current->pc = last_tb->pc + last_tb->size - 1;
 	    trace_current->size = 1;
 	    trace_current->op = (1 << br);
@@ -1562,12 +1563,12 @@ static void trace_after_exec(TranslationBlock *tb, unsigned long next_tb)
     }
     else {
 	/* Non-static branch.  */
-	if (!tracefile_history_for_tb (tb) && tb->tflags & TRACE_OP_BLOCK)
+	if (!tracefile_history_for_tb (tb) && (tb->tflags & TRACE_OP_DYN))
 	    return;
 	trace_current->pc = tb->pc;
 	trace_current->size = tb->size;
 	trace_current->op = TRACE_OP_BLOCK;
-	tb->tflags |= TRACE_OP_BLOCK;
+	tb->tflags |= TRACE_OP_DYN | TRACE_OP_BLOCK;
     }
     trace_push_entry ();
 }
