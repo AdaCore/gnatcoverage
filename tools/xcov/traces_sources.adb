@@ -42,8 +42,25 @@ package body Traces_Sources is
    subtype Source_Lines is Source_Line_Tables.Instance;
 
    type File_Info is record
-      Lines : Source_Lines;
-      Stats : Stat_Array := (others => 0);
+      --  Source file information.
+
+      Lines      : Source_Lines;
+      --  Source file to display in the reports.
+
+      Stats      : Stat_Array := (others => 0);
+      --  Counters associated to the file (e.g total number of lines, number
+      --  of lines that are covered).
+
+      To_Display : Boolean := False;
+      --  If True, this file should be displayed in the reports. If False,
+      --  it should be skipped.
+      --  The global source table in sources.adb and the table of sources
+      --  that are concerned by the current coverage operation
+      --  (Source_Line_Tables) share the sames indices. However, the
+      --  latter is a subset of the former. A non-contiguous subset, in the
+      --  general case. So, To_Display is used to discriminate files that are
+      --  really concerned by the coverage from files that just happens to
+      --  have an index between two "real" elements.
    end record;
 
    procedure Expand_Line_Table (File : in out File_Info;
@@ -97,9 +114,11 @@ package body Traces_Sources is
                Source_Line_Tables.Init (Line_Table);
                File_Table.Table (Index).Lines := Line_Table;
                File_Table.Table (Index).Stats := (others => 0);
+               File_Table.Table (Index).To_Display := False;
             end;
          end loop;
       end if;
+      File_Table.Table (File).To_Display := True;
    end New_Source_File;
 
    ------------
@@ -396,7 +415,10 @@ package body Traces_Sources is
       for J in File_Tables.First
         .. File_Tables.Last (File_Table)
       loop
-         Disp_File_Line_State (Pp, Sources.Get_Name (J), File_Table.Table (J));
+         if File_Table.Table (J).To_Display then
+            Disp_File_Line_State (Pp, Sources.Get_Name (J),
+                                  File_Table.Table (J));
+         end if;
       end loop;
 
       Pretty_Print_Finish (Pp);
@@ -428,7 +450,9 @@ package body Traces_Sources is
       for J in File_Tables.First
         .. File_Tables.Last (File_Table)
       loop
-         Disp_One_File (Sources.Get_Name (J), File_Table.Table (J));
+         if File_Table.Table (J).To_Display then
+            Disp_One_File (Sources.Get_Name (J), File_Table.Table (J));
+         end if;
       end loop;
    end Disp_File_Summary;
 
