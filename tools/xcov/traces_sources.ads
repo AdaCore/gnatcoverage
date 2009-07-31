@@ -32,17 +32,19 @@ package Traces_Sources is
    procedure New_Source_File (File : Source_File_Index);
    --  Initialize entry for File in source files table
 
-   procedure Add_Line (File : Source_File_Index;
-                       Line : Natural;
-                       Info : Addresses_Info_Acc;
-                       Base : Traces_Base_Acc;
-                       Exec : Exe_File_Acc);
+   procedure Add_Line
+     (File : Source_File_Index;
+      Line : Natural;
+      Info : Addresses_Info_Acc;
+      Base : Traces_Base_Acc;
+      Exec : Exe_File_Acc);
    --  Lets know File that Line exists and add the addresses range for Info.
    --  (This knowledge comes from debugging informations).
 
-   procedure Add_Line_State (File : Source_File_Index;
-                             Line : Natural;
-                             State : Traces.Trace_State);
+   procedure Add_Line_State
+     (File  : Source_File_Index;
+      Line  : Natural;
+      State : Traces.Trace_State);
    --  Same as Add_Line but with a State.
    --  (The knowledge comes from execution traces).
 
@@ -53,8 +55,7 @@ package Traces_Sources is
    procedure Disp_File_Summary;
    --  Display per-file summary
 
-   procedure Add_Source_Rebase (Old_Prefix : String;
-                                New_Prefix : String);
+   procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String);
    --  Needs comment???
 
    procedure Add_Source_Search (Prefix : String);
@@ -101,38 +102,45 @@ private
       Show_Asm     : Boolean;
    end record;
 
-   procedure Pretty_Print_Start (Pp : in out Pretty_Printer) is null;
-   --  Called once at the beginning of the process.
+   procedure Pretty_Print_Start
+     (Pp : in out Pretty_Printer) is null;
+   --  Called once at the beginning of the process
 
-   procedure Pretty_Print_Finish (Pp : in out Pretty_Printer) is null;
-   --  Called once at the end of the process.
+   procedure Pretty_Print_Finish
+     (Pp : in out Pretty_Printer) is null;
+   --  Called once at the end of the process
 
-   procedure Pretty_Print_File (Pp : in out Pretty_Printer;
-                                Source_Filename : String;
-                                Stats : Stat_Array;
-                                Has_Source : Boolean;
-                                Skip : out Boolean) is abstract;
-   --  Called at the beginning of a source file display.
+   procedure Pretty_Print_File
+     (Pp              : in out Pretty_Printer;
+      Source_Filename : String;
+      Stats           : Stat_Array;
+      Has_Source      : Boolean;
+      Skip            : out Boolean) is abstract;
+   --  Called at the beginning of a source file display
 
    --  Subprograms below need comments???
 
-   procedure Pretty_Print_Line (Pp : in out Pretty_Printer;
-                                Line_Num : Natural;
-                                State : Line_State;
-                                Line : String) is abstract;
+   procedure Pretty_Print_Line
+     (Pp       : in out Pretty_Printer;
+      Line_Num : Natural;
+      State    : Line_State;
+      Line     : String) is abstract;
 
-   procedure Pretty_Print_Label (Pp : in out Pretty_Printer;
-                                 Label : String) is null;
+   procedure Pretty_Print_Label
+     (Pp    : in out Pretty_Printer;
+      Label : String) is null;
 
-   procedure Pretty_Print_Insn (Pp : in out Pretty_Printer;
-                                Pc : Pc_Type;
-                                State : Trace_State;
-                                Insn : Binary_Content;
-                                Sym : Symbolizer'Class) is null;
+   procedure Pretty_Print_Insn
+     (Pp    : in out Pretty_Printer;
+      Pc    : Pc_Type;
+      State : Trace_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class) is null;
 
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
 
-   procedure Disp_Line_State (Pp       : in out Pretty_Printer'Class;
-                              Show_Asm : Boolean);
+   procedure Disp_Line_State
+     (Pp       : in out Pretty_Printer'Class;
+      Show_Asm : Boolean);
 
 end Traces_Sources;

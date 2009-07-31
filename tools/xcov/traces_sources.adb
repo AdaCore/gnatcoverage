@@ -63,14 +63,16 @@ package body Traces_Sources is
       --  have an index between two "real" elements.
    end record;
 
-   procedure Expand_Line_Table (File : in out File_Info;
-                                Line : Natural);
-   --  If Line is not in File's line table, expand this table and
-   --  mark the new line as No_Code.
+   procedure Expand_Line_Table
+     (File : in out File_Info;
+      Line : Natural);
+   --  If Line is not in File's line table, expand this table and mark the new
+   --  line as No_Code.
 
-   procedure Update_File_Info (File  : in out File_Info;
-                               Line  : Natural;
-                               State : Traces.Trace_State);
+   procedure Update_File_Info
+     (File  : in out File_Info;
+      Line  : Natural;
+      State : Traces.Trace_State);
    --  Update the state of Line in File's line table
 
    package File_Tables is new GNAT.Dynamic_Tables
@@ -82,10 +84,12 @@ package body Traces_Sources is
 
    File_Table : File_Tables.Instance;
 
-   procedure Append (Info : in out Line_Info;
-                     Line : Addresses_Info_Acc;
-                     Base : Traces_Base_Acc;
-                     Exec : Exe_File_Acc);
+   procedure Append
+     (Info : in out Line_Info;
+      Line : Addresses_Info_Acc;
+      Base : Traces_Base_Acc;
+      Exec : Exe_File_Acc);
+   --  Comment needed???
 
    function Compute_Routine_State
      (Insns  : Binary_Content_Acc;
@@ -93,91 +97,52 @@ package body Traces_Sources is
    --  Compute coverage information for the routine whose code is Insns, with
    --  the given traces.
 
-   procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
-                                   Filename : String;
-                                   File : File_Info);
+   procedure Disp_File_Line_State
+     (Pp       : in out Pretty_Printer'Class;
+      Filename : String;
+      File     : File_Info);
+   --  Comment needed???
 
-   ---------------------
-   -- New_Source_File --
-   ---------------------
+   type Source_Search_Entry;
+   type Source_Search_Entry_Acc is access Source_Search_Entry;
+   type Source_Search_Entry is record
+      Prefix : String_Acc;
+      Next : Source_Search_Entry_Acc;
+   end record;
 
-   procedure New_Source_File (File : Source_File_Index) is
-      Last : Source_File_Index;
-   begin
-      Last := File_Tables.Last (File_Table);
-      if File > Last then
-         File_Tables.Set_Last (File_Table, File);
-         for Index in Last + 1 .. File loop
-            declare
-               Line_Table : Source_Lines;
-            begin
-               Source_Line_Tables.Init (Line_Table);
-               File_Table.Table (Index).Lines := Line_Table;
-               File_Table.Table (Index).Stats := (others => 0);
-               File_Table.Table (Index).To_Display := False;
-            end;
-         end loop;
-      end if;
-      File_Table.Table (File).To_Display := True;
-   end New_Source_File;
+   type Source_Rebase_Entry;
+   type Source_Rebase_Entry_Acc is access Source_Rebase_Entry;
+   type Source_Rebase_Entry is record
+      Old_Prefix : String_Acc;
+      New_Prefix : String_Acc;
+      Next : Source_Rebase_Entry_Acc;
+   end record;
 
-   ------------
-   -- Append --
-   ------------
+   --------------
+   -- Add_Line --
+   --------------
 
-   procedure Append (Info : in out Line_Info;
-                     Line : Addresses_Info_Acc;
-                     Base : Traces_Base_Acc;
-                     Exec : Exe_File_Acc)
+   procedure Add_Line
+     (File : Source_File_Index;
+      Line : Natural;
+      Info : Addresses_Info_Acc;
+      Base : Traces_Base_Acc;
+      Exec : Exe_File_Acc)
    is
-      El : constant Line_Chain_Acc := new Line_Chain'(Line => Line,
-                                                      Base => Base,
-                                                      Exec => Exec,
-                                                      Link => null);
+      Element : File_Info renames File_Table.Table (File);
    begin
-      if Info.First_Line = null then
-         Info.First_Line := El;
-      else
-         Info.Last_Line.Link := El;
-      end if;
-      Info.Last_Line := El;
-   end Append;
+      Expand_Line_Table (Element, Line);
+      Append (Element.Lines.Table (Line), Info, Base, Exec);
+   end Add_Line;
 
-   procedure Expand_Line_Table (File : in out File_Info;
-                                Line : Natural)
-   is
-      use Source_Line_Tables;
-      Current_Last : constant Natural := Last (File.Lines);
-   begin
-      if Current_Last < Line then
-         Set_Last (File.Lines, Line);
+   --------------------
+   -- Add_Line_State --
+   --------------------
 
-         for J in Current_Last + 1 .. Line loop
-            File.Lines.Table (J) := (State => No_Code, others => <>);
-            File.Stats (No_Code) := File.Stats (No_Code) + 1;
-            Global_Stats (No_Code) := Global_Stats (No_Code) + 1;
-         end loop;
-      end if;
-   end Expand_Line_Table;
-
-   procedure Update_File_Info (File  : in out File_Info;
-                               Line  : Natural;
-                               State : Traces.Trace_State)
-   is
-      Ls : Line_State;
-   begin
-      Ls := File.Lines.Table (Line).State;
-      File.Stats (Ls) := File.Stats (Ls) - 1;
-      Global_Stats (Ls) := Global_Stats (Ls) - 1;
-      Update_Line_State (Ls, State);
-      File.Lines.Table (Line).State := Ls;
-      File.Stats (Ls) := File.Stats (Ls) + 1;
-      Global_Stats (Ls) := Global_Stats (Ls) + 1;
-   end Update_File_Info;
-
-   procedure Add_Line_State (File : Source_File_Index;
-                             Line : Natural;
-                             State : Traces.Trace_State)
+   procedure Add_Line_State
+     (File  : Source_File_Index;
+      Line  : Natural;
+      State : Traces.Trace_State)
    is
       Element : File_Info renames File_Table.Table (File);
    begin
@@ -190,54 +155,12 @@ package body Traces_Sources is
       Update_File_Info (Element, Line, State);
    end Add_Line_State;
 
-   procedure Add_Line (File : Source_File_Index;
-                       Line : Natural;
-                       Info : Addresses_Info_Acc;
-                       Base : Traces_Base_Acc;
-                       Exec : Exe_File_Acc)
-   is
-      Element : File_Info renames File_Table.Table (File);
-   begin
-      Expand_Line_Table (Element, Line);
-      Append (Element.Lines.Table (Line), Info, Base, Exec);
-   end Add_Line;
-
-   type Source_Rebase_Entry;
-   type Source_Rebase_Entry_Acc is access Source_Rebase_Entry;
-   type Source_Rebase_Entry is record
-      Old_Prefix : String_Acc;
-      New_Prefix : String_Acc;
-      Next : Source_Rebase_Entry_Acc;
-   end record;
-
-   First_Source_Rebase_Entry : Source_Rebase_Entry_Acc := null;
-   Last_Source_Rebase_Entry : Source_Rebase_Entry_Acc := null;
-
-   procedure Add_Source_Rebase (Old_Prefix : String;
-                                New_Prefix : String)
-   is
-      E : Source_Rebase_Entry_Acc;
-   begin
-      E := new Source_Rebase_Entry'(Old_Prefix => new String'(Old_Prefix),
-                                    New_Prefix => new String'(New_Prefix),
-                                    Next => null);
-      if First_Source_Rebase_Entry = null then
-         First_Source_Rebase_Entry := E;
-      else
-         Last_Source_Rebase_Entry.Next := E;
-      end if;
-      Last_Source_Rebase_Entry := E;
-   end Add_Source_Rebase;
-
-   type Source_Search_Entry;
-   type Source_Search_Entry_Acc is access Source_Search_Entry;
-   type Source_Search_Entry is record
-      Prefix : String_Acc;
-      Next : Source_Search_Entry_Acc;
-   end record;
-
    First_Source_Search_Entry : Source_Search_Entry_Acc := null;
-   Last_Source_Search_Entry : Source_Search_Entry_Acc := null;
+   Last_Source_Search_Entry  : Source_Search_Entry_Acc := null;
+
+   -----------------------
+   -- Add_Source_Search --
+   -----------------------
 
    procedure Add_Source_Search (Prefix : String)
    is
@@ -253,32 +176,142 @@ package body Traces_Sources is
       Last_Source_Search_Entry := E;
    end Add_Source_Search;
 
-   procedure Disp_File_Line_State (Pp : in out Pretty_Printer'class;
+   First_Source_Rebase_Entry : Source_Rebase_Entry_Acc := null;
+   Last_Source_Rebase_Entry  : Source_Rebase_Entry_Acc := null;
+
+   -----------------------
+   -- Add_Source_Rebase --
+   -----------------------
+
+   procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String) is
+      E : Source_Rebase_Entry_Acc;
+   begin
+      E := new Source_Rebase_Entry'(Old_Prefix => new String'(Old_Prefix),
+                                    New_Prefix => new String'(New_Prefix),
+                                    Next => null);
+      if First_Source_Rebase_Entry = null then
+         First_Source_Rebase_Entry := E;
+      else
+         Last_Source_Rebase_Entry.Next := E;
+      end if;
+      Last_Source_Rebase_Entry := E;
+   end Add_Source_Rebase;
+
+   ------------
+   -- Append --
+   ------------
+
+   procedure Append
+     (Info : in out Line_Info;
+      Line : Addresses_Info_Acc;
+      Base : Traces_Base_Acc;
+      Exec : Exe_File_Acc)
+   is
+      El : constant Line_Chain_Acc := new Line_Chain'(Line => Line,
+                                                      Base => Base,
+                                                      Exec => Exec,
+                                                      Link => null);
+   begin
+      if Info.First_Line = null then
+         Info.First_Line := El;
+      else
+         Info.Last_Line.Link := El;
+      end if;
+      Info.Last_Line := El;
+   end Append;
+
+   ---------------------------
+   -- Compute_Routine_State --
+   ---------------------------
+
+   function Compute_Routine_State
+     (Insns  : Binary_Content_Acc;
+      Traces : Traces_Base_Acc) return Line_State
+   is
+      use type Interfaces.Unsigned_32;
+      State : Line_State := No_Code;
+      Addr : Pc_Type;
+      It : Entry_Iterator;
+      T : Trace_Entry;
+   begin
+      if Insns = null then
+         --  The routine was not found in the executable
+
+         return Not_Covered;
+
+      else
+         Init (Traces.all, It, 0);
+
+         Addr := Insns'First;
+
+         loop
+            Get_Next_Trace (T, It);
+            exit when T = Bad_Trace;
+            if T.First > Addr then
+               Update_Line_State (State, Not_Covered);
+               exit;
+            end if;
+            Update_Line_State (State, T.State);
+            Addr := T.Last + 1;
+         end loop;
+
+         if Addr < Insns'Last then
+            Update_Line_State (State, Not_Covered);
+         end if;
+
+         if State = No_Code then
+            return Not_Covered;
+         else
+            return State;
+         end if;
+      end if;
+   end Compute_Routine_State;
+
+   --------------------------
+   -- Disp_File_Line_State --
+   --------------------------
+
+   procedure Disp_File_Line_State (Pp : in out Pretty_Printer'Class;
                                    Filename : String;
                                    File : File_Info)
    is
       use Source_Line_Tables;
       use Traces_Disa;
 
-      procedure Disassemble_Cb (Addr : Pc_Type;
-                                State : Trace_State;
-                                Insn : Binary_Content;
-                                Sym : Symbolizer'Class);
-      procedure Try_Open (F : in out File_Type;
-                          Name : String;
-                          Success : out Boolean);
+      procedure Disassemble_Cb
+        (Addr  : Pc_Type;
+         State : Trace_State;
+         Insn  : Binary_Content;
+         Sym   : Symbolizer'Class);
+      --  Comment needed???
 
-      procedure Disassemble_Cb (Addr : Pc_Type;
-                                State : Trace_State;
-                                Insn : Binary_Content;
-                                Sym : Symbolizer'Class) is
+      procedure Try_Open
+        (F       : in out File_Type;
+         Name    : String;
+         Success : out Boolean);
+      --  Comment needed???
+
+      --------------------
+      -- Disassemble_Cb --
+      --------------------
+
+      procedure Disassemble_Cb
+        (Addr  : Pc_Type;
+         State : Trace_State;
+         Insn  : Binary_Content;
+         Sym   : Symbolizer'Class) is
       begin
          Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
       end Disassemble_Cb;
 
-      procedure Try_Open (F : in out File_Type;
-                          Name : String;
-                          Success : out Boolean) is
+      --------------
+      -- Try_Open --
+      --------------
+
+      procedure Try_Open
+        (F       : in out File_Type;
+         Name    : String;
+         Success : out Boolean) is
       begin
          Open (F, In_File, Name);
          Success := True;
@@ -298,11 +331,16 @@ package body Traces_Sources is
       Ls : Line_State;
 
       Skip : Boolean;
+
+   --  Start of processing for Disp_File_Line_State
+
    begin
-      --  Try original path.
+      --  Try original path
+
       Try_Open (F, Filename, Ok);
 
-      --  Try to rebase.
+      --  Try to rebase
+
       if not Ok then
          declare
             E : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
@@ -325,7 +363,8 @@ package body Traces_Sources is
          end;
       end if;
 
-      --  Try source path.
+      --  Try source path
+
       if not Ok then
          declare
             E : Source_Search_Entry_Acc := First_Source_Search_Entry;
@@ -353,7 +392,8 @@ package body Traces_Sources is
          return;
       end if;
 
-      --  Iterate over each lines of the file.
+      --  Iterate over each lines of the file
+
       for I in Integer range First .. Last (File.Lines) loop
          Ls := File.Lines.Table (I).State;
          if Has_Source then
@@ -363,7 +403,9 @@ package body Traces_Sources is
          end if;
 
          if Pp.Show_Asm then
-            --  Iterate over each insns block for the source line.
+
+            --  Iterate over each insn block for the source line
+
             Info := File.Lines.Table (I).First_Line;
             while Info /= null loop
                Line_Info := Info.Line;
@@ -375,7 +417,9 @@ package body Traces_Sources is
                      Pretty_Print_Label (Pp, Label);
                   end if;
                end;
+
                Sec_Info := Line_Info.Parent;
+
                while Sec_Info /= null
                  and then Sec_Info.Kind /= Section_Addresses
                loop
@@ -388,41 +432,23 @@ package body Traces_Sources is
             end loop;
          end if;
       end loop;
+
       if Has_Source then
          Line := Last (File.Lines) + 1;
          while not End_Of_File (F) loop
             Pretty_Print_Line (Pp, Line, No_Code, Get_Line (F));
             Line := Line + 1;
          end loop;
+
          Close (F);
       end if;
 
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
 
-   procedure Disp_Line_State
-     (Pp       : in out Pretty_Printer'Class;
-      Show_Asm : Boolean)
-   is
-      use Ada.Directories;
-   begin
-      Pp.Show_Asm := Show_Asm;
-
-      Pretty_Print_Start (Pp);
-
-      --  Iterates on all files
-
-      for J in File_Tables.First
-        .. File_Tables.Last (File_Table)
-      loop
-         if File_Table.Table (J).To_Display then
-            Disp_File_Line_State (Pp, Sources.Get_Name (J),
-                                  File_Table.Table (J));
-         end if;
-      end loop;
-
-      Pretty_Print_Finish (Pp);
-   end Disp_Line_State;
+   -----------------------
+   -- Disp_File_Summary --
+   -----------------------
 
    procedure Disp_File_Summary
    is
@@ -456,45 +482,37 @@ package body Traces_Sources is
       end loop;
    end Disp_File_Summary;
 
-   function Compute_Routine_State
-     (Insns  : Binary_Content_Acc;
-      Traces : Traces_Base_Acc) return Line_State
+   ---------------------
+   -- Disp_Line_State --
+   ---------------------
+
+   procedure Disp_Line_State
+     (Pp       : in out Pretty_Printer'Class;
+      Show_Asm : Boolean)
    is
-      use type Interfaces.Unsigned_32;
-      State : Line_State := No_Code;
-      Addr : Pc_Type;
-      It : Entry_Iterator;
-      T : Trace_Entry;
+      use Ada.Directories;
    begin
-      if Insns = null then
-         --  The routine was not found in the executable
-         return Not_Covered;
+      Pp.Show_Asm := Show_Asm;
 
-      else
-         Init (Traces.all, It, 0);
+      Pretty_Print_Start (Pp);
 
-         Addr := Insns'First;
+      --  Iterates on all files
 
-         loop
-            Get_Next_Trace (T, It);
-            exit when T = Bad_Trace;
-            if T.First > Addr then
-               Update_Line_State (State, Not_Covered);
-               exit;
-            end if;
-            Update_Line_State (State, T.State);
-            Addr := T.Last + 1;
-         end loop;
-         if Addr < Insns'Last then
-            Update_Line_State (State, Not_Covered);
+      for J in File_Tables.First
+        .. File_Tables.Last (File_Table)
+      loop
+         if File_Table.Table (J).To_Display then
+            Disp_File_Line_State (Pp, Sources.Get_Name (J),
+                                  File_Table.Table (J));
          end if;
-         if State = No_Code then
-            return Not_Covered;
-         else
-            return State;
-         end if;
-      end if;
-   end Compute_Routine_State;
+      end loop;
+
+      Pretty_Print_Finish (Pp);
+   end Disp_Line_State;
+
+   --------------------------
+   -- Dump_Routines_Traces --
+   --------------------------
 
    procedure Dump_Routines_Traces
    is
@@ -547,6 +565,10 @@ package body Traces_Sources is
       Iterate (Process_One'Access);
    end Dump_Routines_Traces;
 
+   -----------------------------
+   -- Dump_Uncovered_Routines --
+   -----------------------------
+
    procedure Dump_Uncovered_Routines (Report : File_Access) is
       use Traces_Disa;
 
@@ -582,6 +604,69 @@ package body Traces_Sources is
       Iterate (Process_One'Access);
       New_Line (Report.all);
    end Dump_Uncovered_Routines;
+
+   -----------------------
+   -- Expand_Line_Table --
+   -----------------------
+
+   procedure Expand_Line_Table (File : in out File_Info; Line : Natural) is
+      use Source_Line_Tables;
+      Current_Last : constant Natural := Last (File.Lines);
+   begin
+      if Current_Last < Line then
+         Set_Last (File.Lines, Line);
+
+         for J in Current_Last + 1 .. Line loop
+            File.Lines.Table (J) := (State => No_Code, others => <>);
+            File.Stats (No_Code) := File.Stats (No_Code) + 1;
+            Global_Stats (No_Code) := Global_Stats (No_Code) + 1;
+         end loop;
+      end if;
+   end Expand_Line_Table;
+
+   ---------------------
+   -- New_Source_File --
+   ---------------------
+
+   procedure New_Source_File (File : Source_File_Index) is
+      Last : Source_File_Index;
+   begin
+      Last := File_Tables.Last (File_Table);
+      if File > Last then
+         File_Tables.Set_Last (File_Table, File);
+         for Index in Last + 1 .. File loop
+            declare
+               Line_Table : Source_Lines;
+            begin
+               Source_Line_Tables.Init (Line_Table);
+               File_Table.Table (Index).Lines := Line_Table;
+               File_Table.Table (Index).Stats := (others => 0);
+               File_Table.Table (Index).To_Display := False;
+            end;
+         end loop;
+      end if;
+      File_Table.Table (File).To_Display := True;
+   end New_Source_File;
+
+   ----------------------
+   -- Update_File_Info --
+   ----------------------
+
+   procedure Update_File_Info
+     (File  : in out File_Info;
+      Line  : Natural;
+      State : Traces.Trace_State)
+   is
+      Ls : Line_State;
+   begin
+      Ls := File.Lines.Table (Line).State;
+      File.Stats (Ls) := File.Stats (Ls) - 1;
+      Global_Stats (Ls) := Global_Stats (Ls) - 1;
+      Update_Line_State (Ls, State);
+      File.Lines.Table (Line).State := Ls;
+      File.Stats (Ls) := File.Stats (Ls) + 1;
+      Global_Stats (Ls) := Global_Stats (Ls) + 1;
+   end Update_File_Info;
 
 begin
    File_Tables.Init (File_Table);
