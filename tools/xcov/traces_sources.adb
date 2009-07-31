@@ -230,9 +230,9 @@ package body Traces_Sources is
    is
       use type Interfaces.Unsigned_32;
       State : Line_State := No_Code;
-      Addr : Pc_Type;
-      It : Entry_Iterator;
-      T : Trace_Entry;
+      Addr  : Pc_Type;
+      It    : Entry_Iterator;
+      T     : Trace_Entry;
    begin
       if Insns = null then
          --  The routine was not found in the executable
@@ -498,12 +498,10 @@ package body Traces_Sources is
 
       --  Iterates on all files
 
-      for J in File_Tables.First
-        .. File_Tables.Last (File_Table)
-      loop
+      for J in File_Tables.First .. File_Tables.Last (File_Table) loop
          if File_Table.Table (J).To_Display then
-            Disp_File_Line_State (Pp, Sources.Get_Name (J),
-                                  File_Table.Table (J));
+            Disp_File_Line_State
+              (Pp, Sources.Get_Name (J), File_Table.Table (J));
          end if;
       end loop;
 
@@ -546,12 +544,15 @@ package body Traces_Sources is
             if Flag_Show_Asm then
                if Info.Exec = null then
                   Disp_Assembly_Lines
-                    (Info.Insns.all, Info.Traces.all,
+                    (Info.Insns.all,
+                     Info.Traces.all,
                      Textio_Disassemble_Cb'Access,
                      Disa_Symbolize.Nul_Symbolizer);
+
                else
                   Disp_Assembly_Lines
-                    (Info.Insns.all, Info.Traces.all,
+                    (Info.Insns.all,
+                     Info.Traces.all,
                      Textio_Disassemble_Cb'Access,
                      Info.Exec.all);
                end if;
