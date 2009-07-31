@@ -39,80 +39,9 @@ package body SC_Obligations is
    procedure Load_SCOs_From_ALI (ALI_Filename : String);
    --  Load SCOs from the named ALI file, populating a map of slocs to SCOs
 
-   -------------------------------
-   -- Main SCO descriptor table --
-   -------------------------------
-
-   use type Pc_Type;
-   package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
-
-   --  Types used to include BDD information in SCO descriptors for decisions
-
-   type Tristate is (False, True, Unknown);
-
-   type Condition_Outcome is record
-      Decision_Outcome : Tristate := Unknown;
-      --  For a condition outcome that determines the final decision outcome,
-      --  indicates of the corresponding decision outcome value: False or True.
-      --  For a condition outcome that chains to a subsequent condition,
-      --  Unknown.
-
-      Next_SCO : SCO_Id := No_SCO_Id;
-      --  Reference to the Decision if Decision_Outcome is False or True.
-      --  Reference to the next condition to be tested if Unknown.
-   end record;
-
-   type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
-      First_Sloc : Source_Location;
-      --  First sloc (for a complex decision, taken from first condition)
-
-      Last_Sloc  : Source_Location;
-      --  Last sloc (unset for complex decisions)
-
-      Parent : SCO_Id := No_SCO_Id;
-      --  For a decision, pointer to the enclosing statement (or condition in
-      --  the case of a nested decision), unset if decision is part of a
-      --  flow control structure.
-      --  For a condition, pointer to the enclosing decision.
-
-      case Kind is
-         when Condition =>
-            Value : Tristate;
-            --  Indicates whether this condition is always true, always false,
-            --  or tested at run time (Unknown).
-
-            PC_Set : PC_Sets.Set;
-            --  Addresses of conditional branches testing this condition
-            --  (if Value = Unknown).
-
-            False_Outcome, True_Outcome : Condition_Outcome;
-            --  Condition outcomes (i.e. outgoing arcs from this condition in
-            --  the BDD) for the False and True cases.
-
-         when Decision =>
-            Is_Complex_Decision : Boolean;
-            --  True for complex decisions.
-            --  Note that there is always a distinct Condition SCO descriptor,
-            --  even for simple decisions.
-
-            First_Condition : SCO_Id := No_SCO_Id;
-            --  Leftmost condition in decision. Note that the first tested
-            --  decision is the first *non-constant* (Value = Unknown)
-            --  condition in the decision.
-         when others =>
-            null;
-      end case;
-   end record;
-
-   subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
-
-   package SCO_Vectors is
-     new Ada.Containers.Vectors
-       (Index_Type   => Valid_SCO_Id,
-        Element_Type => SCO_Descriptor);
-   SCO_Vector : SCO_Vectors.Vector;
-
-   --  Supporting functionality to build binary decision diagrams
+   --------------------------------------------
+   -- Management of binary decision diagrams --
+   --------------------------------------------
 
    package BDD is
       --  Outgoing arcs from a BDD node
@@ -268,6 +197,62 @@ package body SC_Obligations is
 
    end BDD;
 
+   -------------------------------
+   -- Main SCO descriptor table --
+   -------------------------------
+
+   use type Pc_Type;
+   package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
+
+   type Tristate is (False, True, Unknown);
+
+   type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
+      First_Sloc : Source_Location;
+      --  First sloc (for a complex decision, taken from first condition)
+
+      Last_Sloc  : Source_Location;
+      --  Last sloc (unset for complex decisions)
+
+      Parent : SCO_Id := No_SCO_Id;
+      --  For a decision, pointer to the enclosing statement (or condition in
+      --  the case of a nested decision), unset if decision is part of a
+      --  flow control structure.
+      --  For a condition, pointer to the enclosing decision.
+
+      case Kind is
+         when Condition =>
+            Value : Tristate;
+            --  Indicates whether this condition is always true, always false,
+            --  or tested at run time (Unknown).
+
+            PC_Set : PC_Sets.Set;
+            --  Addresses of conditional branches testing this condition
+            --  (if Value = Unknown).
+
+            BDD_Node : BDD.BDD_Node_Id;
+            --  Associated node in the decision's BDD
+
+         when Decision =>
+            Is_Complex_Decision : Boolean;
+            --  True for complex decisions.
+            --  Note that there is always a distinct Condition SCO descriptor,
+            --  even for simple decisions.
+
+            Decision_BDD : BDD.BDD_Type;
+            --  BDD of the decision
+         when others =>
+            null;
+      end case;
+   end record;
+
+   subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
+
+   package SCO_Vectors is
+     new Ada.Containers.Vectors
+       (Index_Type   => Valid_SCO_Id,
+        Element_Type => SCO_Descriptor);
+   SCO_Vector : SCO_Vectors.Vector;
+
    package body BDD is
       package Arcs_Stacks is
         new Ada.Containers.Vectors
@@ -414,8 +399,9 @@ package body SC_Obligations is
             end loop;
 
             Put ("@" & Trim (N'Img, Side => Both)
-                 & ": test " & Image (Node.C_Sco));
-            case SCO_Vector.Element (Node.C_Sco).Value is
+                 & ": test " & Image (Node.C_SCO));
+
+            case SCO_Vector.Element (Node.C_SCO).Value is
                when False =>
                   --  Static known False
                   Put_Line (" (always False)");
@@ -830,6 +816,9 @@ package body SC_Obligations is
             --  Build a Sources.Source_Location record from the low-level
             --  SCO Sloc info.
 
+            procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor);
+            --  Set BDD of decision to Current_BDD
+
             procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor);
             --  Update the first sloc of a complex decision SCOD from that
             --  of its first condition (which is the current SCOE).
@@ -868,6 +857,15 @@ package body SC_Obligations is
                   Line        => Natural (SCO_Source_Loc.Line),
                   Column      => Natural (SCO_Source_Loc.Col));
             end Make_Sloc;
+
+            -------------------------
+            -- Update_Decision_BDD --
+            -------------------------
+
+            procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor) is
+            begin
+               SCOD.Decision_BDD := Current_BDD;
+            end Update_Decision_BDD;
 
             --------------------------
             -- Update_Decision_Sloc --
@@ -918,9 +916,10 @@ package body SC_Obligations is
                                         others     => <>));
                      BDD.Process_Condition
                        (Current_BDD, SCO_Vector.Last_Index);
-                     BDD.Completed (Current_BDD);
 
-                     --  Reflect BDD info in SCO descriptors???
+                     BDD.Completed (Current_BDD);
+                     SCO_Vector.Update_Element
+                       (Current_BDD.Decision, Update_Decision_BDD'Access);
 
                   else
                      --  Complex decision: conditions appear as distinct SCOEs
@@ -948,8 +947,8 @@ package body SC_Obligations is
 
                   if SCOE.Last then
                      BDD.Completed (Current_BDD);
-
-                     --  Reflect BDD info in SCO descriptors???
+                     SCO_Vector.Update_Element
+                       (Current_BDD.Decision, Update_Decision_BDD'Access);
 
                      Current_Complex_Decision := No_SCO_Id;
                   end if;
@@ -1004,8 +1003,8 @@ package body SC_Obligations is
                   end if;
                   New_Line;
                end if;
-               case SCOD.Kind is
 
+               case SCOD.Kind is
                   when Decision =>
                      --  A Decision SCO must have a statement or (in the case
                      --  of a nested decision) a Condition SCO as its parent,
