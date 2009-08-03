@@ -1687,7 +1687,7 @@ package body Traces_Elf is
 
       function Coverage_State (State : Trace_State) return Trace_State is
       begin
-         if Get_Action = Insn_Coverage then
+         if Get_Coverage_Level = Insn then
             --  Instruction coverage; no need to trace which ways a branch
             --  has been covered.
 

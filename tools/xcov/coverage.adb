@@ -17,57 +17,91 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Strings; use Strings;
-
 package body Coverage is
 
-   Current_Action : Coverage_Action := Unknown_Coverage;
-   --  Global variable that records the coverage operation
-   --  that has been asked to xcov. This should be modified only
-   --  one time by Set_Action.
+   Current_Level : Coverage_Level := Unknown;
+   --  Global variable that records the coverage operation that has been asked
+   --  to xcov. This should be modified only one time by Set_Coverage_Level.
 
-   type Coverage_Option_Name_Array is
-     array (Coverage_Action) of String_Acc;
-   --  Table that maps a coverage action to its option strings.
+   -------------------------------
+   -- All_Known_Coverage_Levels --
+   -------------------------------
 
-   Coverage_Option_Names : constant Coverage_Option_Name_Array :=
-     (Insn_Coverage     => new String'("insn"),
-      Branch_Coverage   => new String'("branch"),
-      Stmt_Coverage     => new String'("stmt"),
-      Decision_Coverage => new String'("decision"),
-      MCDC_Coverage     => new String'("mcdc"),
-      Unknown_Coverage  => new String'("unknown"));
+   function All_Known_Coverage_Levels return String is
 
-   function To_Coverage_Action (Option : String) return Coverage_Action is
-   begin
-      for Action in Known_Coverage_Action loop
-         if Option = Coverage_Option_Names (Action).all then
-            return Action;
+      function List_Levels
+        (Head : String; Tail : Coverage_Level) return String;
+      --  Tail-recursive function to compute list
+
+      -----------------
+      -- List_Levels --
+      -----------------
+
+      function List_Levels
+        (Head : String; Tail : Coverage_Level) return String
+      is
+         S : constant String := Head & Tail'Img;
+      begin
+         if Tail = Known_Coverage_Level'Last then
+            return S;
          end if;
-      end loop;
-      return Unknown_Coverage;
-   end To_Coverage_Action;
+         return List_Levels (S & "|", Known_Coverage_Level'Succ (Tail));
+      end List_Levels;
 
-   function To_Coverage_Option (Action : Coverage_Action) return String is
-   begin
-      return Coverage_Option_Names (Action).all;
-   end To_Coverage_Option;
+   --  Start of processing for All_Knwon_Coverage_Levels
 
-   procedure Set_Action (Action : Coverage_Action) is
    begin
-      pragma Assert (Current_Action = Unknown_Coverage);
-      Current_Action := Action;
-   end Set_Action;
+      return List_Levels ("", Known_Coverage_Level'First);
+   end All_Known_Coverage_Levels;
 
-   function Get_Action return Coverage_Action is
-   begin
-      return Current_Action;
-   end Get_Action;
+   --------------------------
+   -- Dump_Coverage_Option --
+   --------------------------
 
    procedure Dump_Coverage_Option (Report : File_Access) is
    begin
       Put_Line (Report.all,
-                "Coverage level: " & To_Coverage_Option (Current_Action));
+                "Coverage level: " & To_Coverage_Option (Current_Level));
    end Dump_Coverage_Option;
+
+   ------------------------
+   -- Get_Coverage_Level --
+   ------------------------
+
+   function Get_Coverage_Level return Coverage_Level is
+   begin
+      return Current_Level;
+   end Get_Coverage_Level;
+
+   ------------------------
+   -- Set_Coverage_Level --
+   ------------------------
+
+   procedure Set_Coverage_Level (Level : Coverage_Level) is
+   begin
+      pragma Assert (Current_Level = Unknown);
+      Current_Level := Level;
+   end Set_Coverage_Level;
+
+   -----------------------
+   -- To_Coverage_Level --
+   -----------------------
+
+   function To_Coverage_Level (Option : String) return Coverage_Level is
+   begin
+      return Coverage_Level'Value (Option);
+   exception
+      when Constraint_Error =>
+         return Unknown;
+   end To_Coverage_Level;
+
+   ------------------------
+   -- To_Coverage_Option --
+   ------------------------
+
+   function To_Coverage_Option (Level : Coverage_Level) return String is
+   begin
+      return Level'Img;
+   end To_Coverage_Option;
 
 end Coverage;

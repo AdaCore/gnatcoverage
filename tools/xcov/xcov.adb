@@ -68,7 +68,8 @@ procedure Xcov is
       P (" --disp-routines {[--exclude|--include] FILES}");
       P ("    Build a list of routines from object files");
       New_Line;
-      P (" --coverage=[insn|branch] OPTIONS TRACE_FILES");
+      P (" --coverage=["
+         & All_Known_Coverage_Levels & "] OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
@@ -167,7 +168,7 @@ procedure Xcov is
    Decision_Map_Filename     : String_Acc := null;
    Decision_Map_Option       : constant String := "--decision-map=";
 
-   Action                    : Coverage_Action;
+   Level                     : Coverage_Level;
 
    type Annotation_Format is (Annotate_Asm, Annotate_Xcov, Annotate_Html,
                               Annotate_Xcov_Asm, Annotate_Html_Asm,
@@ -225,6 +226,29 @@ begin
    while Arg_Index <= Arg_Count loop
       if Argument (Arg_Index) = "-v" then
          Verbose := True;
+
+      elsif Argument (Arg_Index) = Coverage_Option_Short then
+         if Arg_Index > Arg_Count then
+            Put_Line ("Missing coverage level argument for "
+                      & Coverage_Option_Short);
+            return;
+         end if;
+         Level := To_Coverage_Level (Argument (Arg_Index));
+         if Level = Unknown then
+            Error ("bad parameter for " & Coverage_Option_Short);
+            return;
+         end if;
+         Set_Coverage_Level (Level);
+         Arg_Index := Arg_Index + 1;
+
+      elsif Begins_With (Argument (Arg_Index), Coverage_Option) then
+         Level := To_Coverage_Level (Option_Parameter (Argument (Arg_Index)));
+         if Level = Unknown then
+            Error ("bad parameter for " & Coverage_Option);
+            return;
+         end if;
+         Set_Coverage_Level (Level);
+
       else
          exit;
       end if;
@@ -435,7 +459,8 @@ begin
       end if;
    end;
 
-   --  Decode options for --coverage (not included)
+   --  Here if no command is provided, just a coverage level: decode further
+   --  options specific to the coverage analysis pass.
 
    while Arg_Index <= Arg_Count loop
       declare
@@ -509,28 +534,6 @@ begin
                return;
             end if;
 
-         elsif Arg = Coverage_Option_Short then
-            if Arg_Index > Arg_Count then
-               Put_Line ("Missing coverage action to "
-                         & Coverage_Option_Short);
-               return;
-            end if;
-            Action := To_Coverage_Action (Argument (Arg_Index));
-            if Action = Unknown_Coverage then
-               Error ("bad parameter for " & Coverage_Option_Short);
-               return;
-            end if;
-            Set_Action (Action);
-            Arg_Index := Arg_Index + 1;
-
-         elsif Begins_With (Arg, Coverage_Option) then
-            Action := To_Coverage_Action (Option_Parameter (Arg));
-            if Action = Unknown_Coverage then
-               Error ("bad parameter for " & Coverage_Option);
-               return;
-            end if;
-            Set_Action (Action);
-
          elsif Arg = Final_Report_Option_Short then
             if Arg_Index > Arg_Count then
                Put_Line ("Missing final report name to "
@@ -561,27 +564,33 @@ begin
       return;
    end if;
 
-   case Get_Action is
-      when Insn_Coverage =>
-         --  Nothing left to be done after having called Set_Action;
+   case Get_Coverage_Level is
+      when Insn =>
+         --  Nothing left to be done after having called Set_Coverage_Level;
          --  Set_Trace_State will use Coverage's global variable
          --  to determine what kind of object coverage should be performed.
          null;
-      when Branch_Coverage =>
+
+      when Branch =>
          --  Ditto.
          null;
-      when Stmt_Coverage =>
+
+      when Stmt =>
          Put_Line ("Stmt coverage has not been implemented yet.");
          return;
-      when Decision_Coverage =>
+
+      when Decision =>
          Put_Line ("Decision coverage has not been implemented yet.");
          return;
-      when MCDC_Coverage =>
+
+      when MCDC =>
          Put_Line ("MCDC coverage has not been implemented yet.");
          return;
-      when Unknown_Coverage =>
-         Error ("Please specify a coverage operation.");
+
+      when Unknown =>
+         Error ("Please specify a coverage level.");
          return;
+
    end case;
 
    if Routine_List_Filename /= null then
@@ -641,7 +650,7 @@ begin
 
    case Annotations is
       when Annotate_Asm =>
-         if Get_Action in Source_Coverage_Action then
+         if Get_Coverage_Level in Source_Coverage_Level then
             Error ("Asm format not supported for source coverage.");
             return;
          end if;

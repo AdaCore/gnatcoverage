@@ -28,8 +28,8 @@ package body Traces_Lines is
    procedure Update_Line_State (L : in out Line_State;
                                 I : Known_Trace_State) is
    begin
-      pragma Assert (Get_Action = Insn_Coverage
-                       or else Get_Action = Branch_Coverage);
+      pragma Assert (Get_Coverage_Level = Insn
+                       or else Get_Coverage_Level = Branch);
       --  This assertion is justified in Update_Line_State's specification
 
       case L is

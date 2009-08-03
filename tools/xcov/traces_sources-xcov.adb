@@ -81,7 +81,7 @@ package body Traces_Sources.Xcov is
       Put_Line (Pp.Xcov_File, Source_Filename & ':');
       Put_Line (Pp.Xcov_File, Get_Stat_String (Stats));
       Put_Line (Pp.Xcov_File, "Coverage level: "
-                & To_Coverage_Option (Get_Action));
+                & To_Coverage_Option (Get_Coverage_Level));
    end Pretty_Print_File;
 
    procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;

@@ -354,7 +354,7 @@ package body Traces_Sources.Html is
       Plh (Pp, "<h4 align=""right""><a href=""index.html""> index </a></h4>");
       Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
       Plh (Pp, "<h2 align=""center""> Coverage level: "
-           & To_Coverage_Option (Get_Action) & "</h2>");
+           & To_Coverage_Option (Get_Coverage_Level) & "</h2>");
       Plh (Pp, "<table class=""SumTable""><tr>");
       Print_Coverage_Header (Pp.Html_File, "", False);
       Print_Coverage_Stats (Pp.Html_File, Stats);
@@ -620,7 +620,7 @@ package body Traces_Sources.Html is
       Pi ("<h4 align=""right""><a href=""#help""> help </a></h4>");
       Pi ("<h1 align=""center"">XCOV coverage report</h1>");
       Pi ("<h2 align=""center""> Coverage level: "
-         & To_Coverage_Option (Get_Action) & "</h2>");
+         & To_Coverage_Option (Get_Coverage_Level) & "</h2>");
       Pi ("</div>");
 
       --  List of traces.
