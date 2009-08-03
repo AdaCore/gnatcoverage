@@ -24,11 +24,8 @@ with Traces; use Traces;
 
 package Traces_Lines is
 
-   type DO178B_Level_Type is (Level_Raw, Level_A, Level_C);
-   --  Control the output line state.
-   --  Level_Raw gives the most detailed state.
+   --  Coverage state of a source line of code
 
-   --  Coverage state of a source line of code.
    type Line_State is
      (Not_Covered,
       --  No instructions executed
