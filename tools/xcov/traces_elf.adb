@@ -2314,6 +2314,11 @@ package body Traces_Elf is
       use Addresses_Containers;
 
       procedure Local_Disassembler (Cur : Cursor);
+      --  Comment needed???
+
+      ------------------------
+      -- Local_Disassembler --
+      ------------------------
 
       procedure Local_Disassembler (Cur : Cursor) is
          Pc       : Pc_Type;
@@ -2327,6 +2332,7 @@ package body Traces_Elf is
          Put_Line ("section " & Sec.Section_Name.all);
          Insns := Sec.Section_Content;
          Pc := Insns'First;
+
          while Pc <= Insns'Last loop
             Put (Hex_Image (Pc));
             Put (":");
@@ -2335,13 +2341,16 @@ package body Traces_Elf is
             Disa_For_Machine (Machine).
               Disassemble_Insn (Insns (Pc .. Insns'Last), Pc,
                                 Line, Line_Pos, Insn_Len, File);
+
             for I in Pc .. Pc + Pc_Type (Insn_Len - 1) loop
                Put (Hex_Image (Insns (I)));
                Put (' ');
             end loop;
+
             for I in Insn_Len .. 3 loop
                Put ("   ");
             end loop;
+
             Put ("  ");
             Put (Line (Line'First .. Line_Pos - 1));
             New_Line;
@@ -2350,6 +2359,9 @@ package body Traces_Elf is
             exit when Pc = 0;
          end loop;
       end Local_Disassembler;
+
+   --  Start of processing for Disassemble_File_Raw
+
    begin
       Build_Sections (File);
       Build_Symbols (File'Unchecked_Access);
@@ -2553,8 +2565,8 @@ package body Traces_Elf is
 
       Verbose : constant Boolean := False;
    begin
-      --  Search symtab and strtab.
-      --  Exit in case of failure.
+      --  Search symtab and strtab, exit in case of failure
+
       if File.Sec_Symtab = SHN_UNDEF then
          Put_Line ("# No symbol table - file stripped ?");
          return;
@@ -2565,11 +2577,13 @@ package body Traces_Elf is
          return;
       end if;
 
-      --  Build sets for A+X sections.
+      --  Build sets for A+X sections
+
       for Idx in 0 .. Nbr_Shdr - 1 loop
          Shdr := Get_Shdr (Efile, Idx);
 
-         --  Only A+X sections are interesting.
+         --  Only A+X sections are interesting
+
          if (Shdr.Sh_Flags and (SHF_ALLOC or SHF_EXECINSTR))
            = (SHF_ALLOC or SHF_EXECINSTR)
            and then (Shdr.Sh_Type = SHT_PROGBITS)
@@ -2579,16 +2593,19 @@ package body Traces_Elf is
          end if;
       end loop;
 
-      --  Load symtab and strtab.
+      --  Load symtab and strtab
+
       Alloc_And_Load_Section (File.all, File.Sec_Symtab, Symtab_Len,
                               Symtabs, Symtab_Base);
       Alloc_And_Load_Section (File.all, Strtab_Idx, Strtab_Len, Strtabs);
 
-      --  Walk the symtab and put interesting symbols into the containers.
+      --  Walk the symtab and put interesting symbols into the containers
+
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
          A_Sym := Get_Sym
            (Efile, Symtab_Base + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (A_Sym.St_Info);
+
          if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
            and then A_Sym.St_Shndx in Shdr_Sets'Range
            and then Shdr_Sets (A_Sym.St_Shndx) /= null
@@ -2605,6 +2622,7 @@ package body Traces_Elf is
                   Parent      => null,
                   Symbol_Name => Sym_Name),
                Cur, Ok);
+
             if not Ok then
                Put_Line (Standard_Error,
                          "symbol " & Sym_Name.all
@@ -2612,10 +2630,12 @@ package body Traces_Elf is
             end if;
          end if;
       end loop;
+
       Unchecked_Deallocation (Strtabs);
       Unchecked_Deallocation (Symtabs);
 
-      --  Walk the sections and put the routines into the base.
+      --  Walk the sections and put routines into the database
+
       for I in Shdr_Sets'Range loop
          if Shdr_Sets (I) /= null then
             Shdr := Get_Shdr (Efile, I);
@@ -2635,7 +2655,8 @@ package body Traces_Elf is
                Sym := null;
             end if;
 
-            --  Get the first symbol in the section.
+            --  Get the first symbol in the section
+
             while Sym /= null and then Sym.First < Addr loop
                Unchecked_Deallocation (Sym.Symbol_Name);
                Unchecked_Deallocation (Sym);
@@ -2654,6 +2675,7 @@ package body Traces_Elf is
                        (Standard_Error, "empty symbol " & Sym.Symbol_Name.all
                           & " at " & Hex_Image (Sym.First));
                   end if;
+
                else
                   if Sym.First > Addr then
                      Put_Line
@@ -2670,14 +2692,14 @@ package body Traces_Elf is
                         Sym.Symbol_Name := null;
                      exception
                         when Constraint_Error =>
-                           --  TODO: improve error message.
+                           --  TODO: improve error message???
                            Put_Line (Standard_Error,
                                      "symbol " & Sym.Symbol_Name.all
                                        & " is defined twice in " &
                                        Get_Filename (Efile));
                      end;
                   end if;
-                  --  Put_Line (Sym.Symbol_Name.all);
+
                   Addr := Sym.Last;
                   exit when Addr = Pc_Type'Last;
                   Addr := Addr + 1;
