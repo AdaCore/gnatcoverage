@@ -45,86 +45,6 @@ package body Traces_Names is
    --  Needs comments???
    --  Needs to be available to clients of this unit???
 
-   procedure Add_Routine_Name
-     (Name : String_Acc;
-      Exec : Exe_File_Acc := null)
-   is
-   begin
-      Names.Insert (Name,
-        Subprogram_Info'(Exec   => Exec,
-                         Insns  => null,
-                         Traces => null));
-   end Add_Routine_Name;
-
-   procedure Remove_Routine_Name (Name : String_Acc) is
-   begin
-      Names.Exclude (Name);
-   end Remove_Routine_Name;
-
-   procedure Iterate
-     (Proc : access procedure (Subp_Name : String_Acc;
-                               Subp_Info : in out Subprogram_Info))
-   is
-      use Names_Maps;
-
-      procedure Process_One (Cur : Cursor);
-      --  Call Proc for the element at Cur
-
-      procedure Process_One (Cur : Cursor) is
-      begin
-         Names.Update_Element (Cur, Proc);
-      end Process_One;
-
-   --  Start of processing for Iterate
-
-   begin
-      Names.Iterate (Process_One'Access);
-   end Iterate;
-
-   procedure Read_Routines_Name_From_Text (Filename : String)
-   is
-      F : File_Type;
-   begin
-      Open (F, In_File, Filename);
-      while not End_Of_File (F) loop
-         declare
-            L : constant String := Get_Line (F);
-            Name : String_Acc;
-            Cur : Names_Maps.Cursor;
-         begin
-            if L = "" or else L (L'First) = '#' then
-               null;
-            else
-               Name := new String'(L);
-               Cur := Names.Find (Name);
-               if Names_Maps.Has_Element (Cur) then
-                  Put_Line (Standard_Error,
-                            "symbol " & Name.all & " is already defined");
-               else
-                  Add_Routine_Name (Name);
-               end if;
-            end if;
-         end;
-      end loop;
-      Close (F);
-   exception
-      when Name_Error | Status_Error =>
-         Put_Line (Standard_Error, "cannot open: " & Filename);
-         raise;
-   end Read_Routines_Name_From_Text;
-
-   procedure Disp_All_Routines
-   is
-      use Names_Maps;
-      Cur : Cursor;
-   begin
-      Cur := Names.First;
-      while Has_Element (Cur) loop
-         Put_Line (Key (Cur).all);
-         Next (Cur);
-      end loop;
-   end Disp_All_Routines;
-
    -------------------------
    -- Add_Code_And_Traces --
    -------------------------
@@ -224,5 +144,105 @@ package body Traces_Names is
          Names.Update_Element (Cur, Update'Access);
       end if;
    end Add_Code_And_Traces;
+
+   ----------------------
+   -- Add_Routine_Name --
+   ----------------------
+
+   procedure Add_Routine_Name
+     (Name : String_Acc;
+      Exec : Exe_File_Acc := null)
+   is
+   begin
+      Names.Insert (Name,
+        Subprogram_Info'(Exec   => Exec,
+                         Insns  => null,
+                         Traces => null));
+   end Add_Routine_Name;
+
+   -----------------------
+   -- Disp_All_Routines --
+   -----------------------
+
+   procedure Disp_All_Routines
+   is
+      use Names_Maps;
+      Cur : Cursor;
+   begin
+      Cur := Names.First;
+      while Has_Element (Cur) loop
+         Put_Line (Key (Cur).all);
+         Next (Cur);
+      end loop;
+   end Disp_All_Routines;
+
+   -------------
+   -- Iterate --
+   -------------
+
+   procedure Iterate
+     (Proc : access procedure (Subp_Name : String_Acc;
+                               Subp_Info : in out Subprogram_Info))
+   is
+      use Names_Maps;
+
+      procedure Process_One (Cur : Cursor);
+      --  Call Proc for the element at Cur
+
+      procedure Process_One (Cur : Cursor) is
+      begin
+         Names.Update_Element (Cur, Proc);
+      end Process_One;
+
+   --  Start of processing for Iterate
+
+   begin
+      Names.Iterate (Process_One'Access);
+   end Iterate;
+
+   ----------------------------------
+   -- Read_Routines_Name_From_Text --
+   ----------------------------------
+
+   procedure Read_Routines_Name_From_Text (Filename : String)
+   is
+      F : File_Type;
+   begin
+      Open (F, In_File, Filename);
+      while not End_Of_File (F) loop
+         declare
+            L : constant String := Get_Line (F);
+            Name : String_Acc;
+            Cur : Names_Maps.Cursor;
+         begin
+            if L = "" or else L (L'First) = '#' then
+               null;
+            else
+               Name := new String'(L);
+               Cur := Names.Find (Name);
+               if Names_Maps.Has_Element (Cur) then
+                  Put_Line (Standard_Error,
+                            "symbol " & Name.all & " is already defined");
+               else
+                  Add_Routine_Name (Name);
+               end if;
+            end if;
+         end;
+      end loop;
+      Close (F);
+   exception
+      when Name_Error | Status_Error =>
+         Put_Line (Standard_Error, "cannot open: " & Filename);
+         raise;
+   end Read_Routines_Name_From_Text;
+
+   -------------------------
+   -- Remove_Routine_Name --
+   -------------------------
+
+   procedure Remove_Routine_Name (Name : String_Acc) is
+   begin
+      Names.Exclude (Name);
+   end Remove_Routine_Name;
 
 end Traces_Names;

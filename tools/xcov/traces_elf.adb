@@ -1705,6 +1705,7 @@ package body Traces_Elf is
             --  In any other case (source coverage), the actual state will be
             --  computed later, based on the branch coverage results and
             --  the source coverage obligations.
+            --  Later = where???
             return State;
          end if;
       end Coverage_State;
@@ -1750,6 +1751,7 @@ package body Traces_Elf is
                      exit when Next_Pc = Trace.Last + 1;
 
                      --  Crash if something got wrong...
+
                      if Next_Pc > Trace.Last then
                         raise Program_Error;
                      end if;
