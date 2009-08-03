@@ -50,57 +50,69 @@ package body Traces_Elf is
    --  Get the section index of the symtab string table.
    --  Return SHN_UNDEF if not found (or in case of error).
 
-   procedure Read_Word8 (Exec : Exe_File_Type;
-                         Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Unsigned_64);
-   procedure Read_Word4 (Exec : Exe_File_Type;
-                         Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Unsigned_32);
-   procedure Read_Word4 (Exec : Exe_File_Type;
-                         Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Integer_32);
-   procedure Read_Word2 (Exec : Exe_File_Type;
-                         Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Unsigned_16);
-   procedure Write_Word4 (Exec : Exe_File_Type;
-                          Base : Address;
-                          Off : in out Storage_Offset;
-                          Val : Unsigned_32);
-   procedure Write_Word4 (Exec : Exe_File_Type;
-                          Base : Address;
-                          Off : in out Storage_Offset;
-                          Val : Integer_32);
-   procedure Read_Address (Exec : Exe_File_Type;
-                           Base : Address;
-                           Off : in out Storage_Offset;
-                           Sz : Natural;
-                           Res : out Pc_Type);
-   procedure Read_Dwarf_Form_U64 (Exec : Exe_File_Type;
-                                  Base : Address;
-                                  Off : in out Storage_Offset;
-                                  Form : Unsigned_32;
-                                  Res : out Unsigned_64);
-   procedure Read_Dwarf_Form_U32 (Exec : Exe_File_Type;
-                                  Base : Address;
-                                  Off : in out Storage_Offset;
-                                  Form : Unsigned_32;
-                                  Res : out Unsigned_32);
-   procedure Read_Dwarf_Form_String (Exec : in out Exe_File_Type;
-                                     Base : Address;
-                                     Off : in out Storage_Offset;
-                                     Form : Unsigned_32;
-                                     Res : out Address);
-   procedure Skip_Dwarf_Form (Exec : Exe_File_Type;
-                              Base : Address;
-                              Off : in out Storage_Offset;
-                              Form : Unsigned_32);
-   procedure Apply_Relocations (Exec : Exe_File_Type;
-                                Sec_Rel : Elf_Half;
-                                Data : in out Binary_Content);
+   procedure Read_Word8
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Res  : out Unsigned_64);
+   procedure Read_Word4
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Res  : out Unsigned_32);
+   procedure Read_Word4
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Res  : out Integer_32);
+   procedure Read_Word2
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Res  : out Unsigned_16);
+   procedure Write_Word4
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Val  : Unsigned_32);
+   procedure Write_Word4
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Val  : Integer_32);
+   procedure Read_Address
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Sz   : Natural;
+      Res  : out Pc_Type);
+   procedure Read_Dwarf_Form_U64
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Form : Unsigned_32;
+      Res  : out Unsigned_64);
+   procedure Read_Dwarf_Form_U32
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Form : Unsigned_32;
+      Res  : out Unsigned_32);
+   procedure Read_Dwarf_Form_String
+     (Exec : in out Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Form : Unsigned_32;
+      Res  : out Address);
+   procedure Skip_Dwarf_Form
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Form : Unsigned_32);
+   procedure Apply_Relocations
+     (Exec    : Exe_File_Type;
+      Sec_Rel : Elf_Half;
+      Data    : in out Binary_Content);
 
    procedure Read_Debug_Lines
      (Exec                  : in out Exe_File_Type;
@@ -112,15 +124,17 @@ package body Traces_Elf is
    --  is the value of DW_AT_comp_dir for the compilation unit, or is null
    --  if this attribute is not specified.
 
-   procedure Alloc_And_Load_Section (Exec    : Exe_File_Type;
-                                     Sec     : Elf_Half;
-                                     Len     : out Elf_Size;
-                                     Content : out Binary_Content_Acc);
-   procedure Alloc_And_Load_Section (Exec    : Exe_File_Type;
-                                     Sec     : Elf_Half;
-                                     Len     : out Elf_Size;
-                                     Content : out Binary_Content_Acc;
-                                     Base    : out Address);
+   procedure Alloc_And_Load_Section
+     (Exec    : Exe_File_Type;
+      Sec     : Elf_Half;
+      Len     : out Elf_Size;
+      Content : out Binary_Content_Acc);
+   procedure Alloc_And_Load_Section
+     (Exec    : Exe_File_Type;
+      Sec     : Elf_Half;
+      Len     : out Elf_Size;
+      Content : out Binary_Content_Acc;
+      Base    : out Address);
    --  Allocate memory for section SEC of EXEC and read it.
    --  LEN is the length of the section, CONTENT is its binary content.
    --  The low bound of CONTENT is 0.
@@ -265,12 +279,17 @@ package body Traces_Elf is
       Exe.Desc_Sets (Kind).Iterate (Disp_Address'Access);
    end Disp_Addresses;
 
+   ----------------------------
+   -- Disp_Compilation_Units --
+   ----------------------------
+
    procedure Disp_Compilation_Units (Exec : Exe_File_Type) is
       use Compile_Unit_Lists;
       Cu : Compile_Unit_Desc;
       Cur : Cursor;
    begin
       Cur := Exec.Compile_Units.First;
+
       while Has_Element (Cur) loop
          Cu := Element (Cur);
          Put_Line (Cu.Compile_Unit_Filename.all);
@@ -278,12 +297,19 @@ package body Traces_Elf is
       end loop;
    end Disp_Compilation_Units;
 
-   procedure Insert (Set : in out Addresses_Containers.Set;
-                     El : Addresses_Info_Acc)
-     renames Addresses_Containers.Insert;
+   procedure Insert
+     (Set : in out Addresses_Containers.Set;
+      El  : Addresses_Info_Acc)
+      renames Addresses_Containers.Insert;
+
+   ---------------
+   -- Open_File --
+   ---------------
 
    procedure Open_File
-     (Exec : out Exe_File_Type; Filename : String; Text_Start : Pc_Type)
+     (Exec       : out Exe_File_Type;
+      Filename   : String;
+      Text_Start : Pc_Type)
    is
       Ehdr : Elf_Ehdr;
    begin
@@ -328,6 +354,10 @@ package body Traces_Elf is
       end loop;
    end Open_File;
 
+   --------------------
+   -- Close_Exe_File --
+   --------------------
+
    procedure Close_Exe_File (Exec : in out Exe_File_Type) is
    begin
       Close_File (Exec.Exe_File);
@@ -349,25 +379,42 @@ package body Traces_Elf is
       Exec.Sec_Debug_Ranges   := SHN_UNDEF;
    end Close_Exe_File;
 
+   ----------------
+   -- Close_File --
+   ----------------
+
    procedure Close_File (Exec : in out Exe_File_Type) is
    begin
       Close_Exe_File (Exec);
 
-      --  FIXME: free content.
+      --  FIXME: free contents
+
       for J in Exec.Desc_Sets'Range loop
          Exec.Desc_Sets (J).Clear;
       end loop;
    end Close_File;
+
+   ------------------
+   -- Get_Filename --
+   ------------------
 
    function Get_Filename (Exec : Exe_File_Type) return String is
    begin
       return Get_Filename (Exec.Exe_File);
    end Get_Filename;
 
+   -----------------
+   -- Get_Machine --
+   -----------------
+
    function Get_Machine (Exec : Exe_File_Type) return Unsigned_16 is
    begin
       return Exec.Exe_Machine;
    end Get_Machine;
+
+   --------------------
+   -- Get_Strtab_Idx --
+   --------------------
 
    function Get_Strtab_Idx (Exec : Exe_File_Type) return Elf_Half is
       Symtab_Shdr : Elf_Shdr_Acc;
@@ -375,21 +422,30 @@ package body Traces_Elf is
       if Exec.Sec_Symtab = SHN_UNDEF then
          return SHN_UNDEF;
       end if;
+
       Symtab_Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Symtab);
+
       if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
         or else Symtab_Shdr.Sh_Link = 0
         or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
       then
          return SHN_UNDEF;
+
       else
          return Elf_Half (Symtab_Shdr.Sh_Link);
       end if;
    end Get_Strtab_Idx;
 
-   procedure Read_Word8 (Exec : Exe_File_Type;
-                         Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Unsigned_64) is
+   ----------------
+   -- Read_Word8 --
+   ----------------
+
+   procedure Read_Word8
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Res  : out Unsigned_64)
+   is
    begin
       if Exec.Is_Big_Endian then
          Read_Word8_Be (Base, Off, Res);
@@ -398,10 +454,16 @@ package body Traces_Elf is
       end if;
    end Read_Word8;
 
-   procedure Read_Word4 (Exec : Exe_File_Type;
-                         Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Unsigned_32) is
+   ----------------
+   -- Read_Word4 --
+   ----------------
+
+   procedure Read_Word4
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Res  : out Unsigned_32)
+   is
    begin
       if Exec.Is_Big_Endian then
          Read_Word4_Be (Base, Off, Res);
@@ -410,23 +472,33 @@ package body Traces_Elf is
       end if;
    end Read_Word4;
 
+   ----------------
+   -- Read_Word4 --
+   ----------------
+
    procedure Read_Word4 (Exec : Exe_File_Type;
                          Base : Address;
                          Off : in out Storage_Offset;
                          Res : out Integer_32)
    is
-      function To_Integer_32 is new Ada.Unchecked_Conversion
-        (Unsigned_32, Integer_32);
+      function To_Integer_32 is
+        new Ada.Unchecked_Conversion (Unsigned_32, Integer_32);
       R : Unsigned_32;
    begin
       Read_Word4 (Exec, Base, Off, R);
       Res := To_Integer_32 (R);
    end Read_Word4;
 
-   procedure Read_Word2 (Exec : Exe_File_Type;
-                         Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Unsigned_16) is
+   ----------------
+   -- Read_Word2 --
+   ----------------
+
+   procedure Read_Word2
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Res  : out Unsigned_16)
+   is
    begin
       if Exec.Is_Big_Endian then
          Read_Word2_Be (Base, Off, Res);
@@ -435,10 +507,16 @@ package body Traces_Elf is
       end if;
    end Read_Word2;
 
-   procedure Write_Word4 (Exec : Exe_File_Type;
-                          Base : Address;
-                          Off : in out Storage_Offset;
-                          Val : Unsigned_32) is
+   -----------------
+   -- Write_Word4 --
+   -----------------
+
+   procedure Write_Word4
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Val  : Unsigned_32)
+   is
    begin
       if Exec.Is_Big_Endian then
          Write_Word4_Be (Base, Off, Val);
@@ -447,29 +525,38 @@ package body Traces_Elf is
       end if;
    end Write_Word4;
 
-   procedure Write_Word4 (Exec : Exe_File_Type;
-                          Base : Address;
-                          Off : in out Storage_Offset;
-                          Val : Integer_32)
+   -----------------
+   -- Write_Word4 --
+   -----------------
+
+   procedure Write_Word4
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Val  : Integer_32)
    is
-      function To_Unsigned_32 is new Ada.Unchecked_Conversion
-        (Integer_32, Unsigned_32);
-      R : Unsigned_32;
+      function To_Unsigned_32 is
+        new Ada.Unchecked_Conversion (Integer_32, Unsigned_32);
    begin
-      R := To_Unsigned_32 (Val);
-      Write_Word4 (Exec, Base, Off, R);
+      Write_Word4 (Exec, Base, Off, To_Unsigned_32 (Val));
    end Write_Word4;
 
-   procedure Read_Address (Exec : Exe_File_Type;
-                           Base : Address;
-                           Off : in out Storage_Offset;
-                           Sz : Natural;
-                           Res : out Pc_Type)
+   ------------------
+   -- Read_Address --
+   ------------------
+
+   procedure Read_Address
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Sz   : Natural;
+      Res  : out Pc_Type)
    is
    begin
       if Sz /= Natural (Pc_Type_Size) then
          raise Program_Error with "address size mismatch";
       end if;
+
       if Sz = 4 then
          declare
             V : Unsigned_32;
@@ -477,6 +564,7 @@ package body Traces_Elf is
             Read_Word4 (Exec, Base, Off, V);
             Res := Pc_Type (V);
          end;
+
       elsif Sz = 8 then
          declare
             V : Unsigned_64;
@@ -484,16 +572,22 @@ package body Traces_Elf is
             Read_Word8 (Exec, Base, Off, V);
             Res := Pc_Type (V);
          end;
+
       else
          raise Program_Error with "unhandled address length";
       end if;
    end Read_Address;
 
-   procedure Read_Dwarf_Form_U64 (Exec : Exe_File_Type;
-                                  Base : Address;
-                                  Off : in out Storage_Offset;
-                                  Form : Unsigned_32;
-                                  Res : out Unsigned_64)
+   -------------------------
+   -- Read_Dwarf_Form_U64 --
+   -------------------------
+
+   procedure Read_Dwarf_Form_U64
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Form : Unsigned_32;
+      Res  : out Unsigned_64)
    is
       use Dwarf;
    begin
@@ -505,6 +599,7 @@ package body Traces_Elf is
                Read_Address (Exec, Base, Off, Exec.Addr_Size, V);
                Res := Unsigned_64 (V);
             end;
+
          when DW_FORM_flag =>
             declare
                V : Unsigned_8;
@@ -512,6 +607,7 @@ package body Traces_Elf is
                Read_Byte (Base, Off, V);
                Res := Unsigned_64 (V);
             end;
+
          when DW_FORM_data1 =>
             declare
                V : Unsigned_8;
@@ -519,6 +615,7 @@ package body Traces_Elf is
                Read_Byte (Base, Off, V);
                Res := Unsigned_64 (V);
             end;
+
          when DW_FORM_data2 =>
             declare
                V : Unsigned_16;
@@ -526,6 +623,7 @@ package body Traces_Elf is
                Read_Word2 (Exec, Base, Off, V);
                Res := Unsigned_64 (V);
             end;
+
          when DW_FORM_data4
             | DW_FORM_ref4 =>
             declare
@@ -534,8 +632,10 @@ package body Traces_Elf is
                Read_Word4 (Exec, Base, Off, V);
                Res := Unsigned_64 (V);
             end;
+
          when DW_FORM_data8 =>
             Read_Word8 (Exec, Base, Off, Res);
+
          when DW_FORM_sdata =>
             declare
                V : Unsigned_32;
@@ -543,6 +643,7 @@ package body Traces_Elf is
                Read_SLEB128 (Base, Off, V);
                Res := Unsigned_64 (V);
             end;
+
          when DW_FORM_udata =>
             declare
                V : Unsigned_32;
@@ -550,31 +651,44 @@ package body Traces_Elf is
                Read_ULEB128 (Base, Off, V);
                Res := Unsigned_64 (V);
             end;
+
          when DW_FORM_strp
            | DW_FORM_string
            | DW_FORM_block1 =>
             raise Program_Error;
+
          when others =>
             raise Program_Error;
       end case;
    end Read_Dwarf_Form_U64;
 
-   procedure Read_Dwarf_Form_U32 (Exec : Exe_File_Type;
-                                  Base : Address;
-                                  Off : in out Storage_Offset;
-                                  Form : Unsigned_32;
-                                  Res : out Unsigned_32) is
+   -------------------------
+   -- Read_Dwarf_Form_U32 --
+   -------------------------
+
+   procedure Read_Dwarf_Form_U32
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Form : Unsigned_32;
+      Res  : out Unsigned_32)
+   is
       R : Unsigned_64;
    begin
       Read_Dwarf_Form_U64 (Exec, Base, Off, Form, R);
       Res := Unsigned_32 (R);
    end Read_Dwarf_Form_U32;
 
-   procedure Read_Dwarf_Form_String (Exec : in out Exe_File_Type;
-                                     Base : Address;
-                                     Off : in out Storage_Offset;
-                                     Form : Unsigned_32;
-                                     Res : out Address)
+   ----------------------------
+   -- Read_Dwarf_Form_String --
+   ----------------------------
+
+   procedure Read_Dwarf_Form_String
+     (Exec : in out Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Form : Unsigned_32;
+      Res  : out Address)
    is
       use Dwarf;
    begin
@@ -595,6 +709,7 @@ package body Traces_Elf is
                end if;
                Res := Exec.Debug_Str_Base + Storage_Offset (V);
             end;
+
          when DW_FORM_string =>
             Res := Base + Off;
             declare
@@ -605,22 +720,29 @@ package body Traces_Elf is
                   exit when C = 0;
                end loop;
             end;
+
          when others =>
             Put ("???");
             raise Program_Error;
       end case;
    end Read_Dwarf_Form_String;
 
-   procedure Skip_Dwarf_Form (Exec : Exe_File_Type;
-                              Base : Address;
-                              Off : in out Storage_Offset;
-                              Form : Unsigned_32)
+   ---------------------
+   -- Skip_Dwarf_Form --
+   ---------------------
+
+   procedure Skip_Dwarf_Form
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Form : Unsigned_32)
    is
       use Dwarf;
    begin
       case Form is
          when DW_FORM_addr =>
             Off := Off + Storage_Offset (Exec.Addr_Size);
+
          when DW_FORM_block1 =>
             declare
                V : Unsigned_8;
@@ -628,29 +750,36 @@ package body Traces_Elf is
                Read_Byte (Base, Off, V);
                Off := Off + Storage_Offset (V);
             end;
+
          when DW_FORM_flag
            | DW_FORM_data1 =>
             Off := Off + 1;
+
          when DW_FORM_data2 =>
             Off := Off + 2;
+
          when DW_FORM_data4
            | DW_FORM_ref4
            | DW_FORM_strp =>
             Off := Off + 4;
+
          when DW_FORM_data8 =>
             Off := Off + 8;
+
          when DW_FORM_sdata =>
             declare
                V : Unsigned_32;
             begin
                Read_SLEB128 (Base, Off, V);
             end;
+
          when DW_FORM_udata =>
             declare
                V : Unsigned_32;
             begin
                Read_ULEB128 (Base, Off, V);
             end;
+
          when DW_FORM_string =>
             declare
                C : Unsigned_8;
@@ -660,15 +789,21 @@ package body Traces_Elf is
                   exit when C = 0;
                end loop;
             end;
+
          when others =>
             Put ("???");
             raise Program_Error;
       end case;
    end Skip_Dwarf_Form;
 
-   procedure Apply_Relocations (Exec : Exe_File_Type;
-                                Sec_Rel : Elf_Half;
-                                Data : in out Binary_Content)
+   -----------------------
+   -- Apply_Relocations --
+   -----------------------
+
+   procedure Apply_Relocations
+     (Exec    : Exe_File_Type;
+      Sec_Rel : Elf_Half;
+      Data    : in out Binary_Content)
    is
       use Elf32;
       Relocs_Len : Elf_Size;
@@ -694,11 +829,13 @@ package body Traces_Elf is
          if
            Off + Storage_Offset (Elf_Rela_Size) > Storage_Offset (Relocs_Len)
          then
-            --  Truncated.
+            --  Truncated
+
             raise Program_Error;
          end if;
 
-         --  Read relocation entry.
+         --  Read relocation entry
+
          Read_Word4 (Exec, Relocs_Base, Off, R.R_Offset);
          Read_Word4 (Exec, Relocs_Base, Off, R.R_Info);
          Read_Word4 (Exec, Relocs_Base, Off, R.R_Addend);
@@ -726,10 +863,16 @@ package body Traces_Elf is
       Unchecked_Deallocation (Relocs);
    end Apply_Relocations;
 
-   procedure Alloc_And_Load_Section (Exec : Exe_File_Type;
-                                     Sec : Elf_Half;
-                                     Len : out Elf_Size;
-                                     Content : out Binary_Content_Acc) is
+   ----------------------------
+   -- Alloc_And_Load_Section --
+   ----------------------------
+
+   procedure Alloc_And_Load_Section
+     (Exec    : Exe_File_Type;
+      Sec     : Elf_Half;
+      Len     : out Elf_Size;
+      Content : out Binary_Content_Acc)
+   is
    begin
       if Sec /= 0 then
          Len := Get_Section_Length (Exec.Exe_File, Sec);
@@ -739,11 +882,17 @@ package body Traces_Elf is
       end if;
    end Alloc_And_Load_Section;
 
-   procedure Alloc_And_Load_Section (Exec    : Exe_File_Type;
-                                     Sec     : Elf_Half;
-                                     Len     : out Elf_Size;
-                                     Content : out Binary_Content_Acc;
-                                     Base    : out Address) is
+   ----------------------------
+   -- Alloc_And_Load_Section --
+   ----------------------------
+
+   procedure Alloc_And_Load_Section
+     (Exec    : Exe_File_Type;
+      Sec     : Elf_Half;
+      Len     : out Elf_Size;
+      Content : out Binary_Content_Acc;
+      Base    : out Address)
+   is
    begin
       if Sec /= 0 then
          Alloc_And_Load_Section (Exec, Sec, Len, Content);
@@ -755,8 +904,13 @@ package body Traces_Elf is
    end Alloc_And_Load_Section;
 
    --  Extract lang, subprogram name and stmt_list (offset in .debug_line).
-   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type)
-   is
+   --  What does this comment apply to???
+
+   -------------------------------
+   -- Build_Debug_Compile_Units --
+   -------------------------------
+
+   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type) is
       use Dwarf;
 
       Abbrev_Len : Elf_Size;
@@ -801,7 +955,8 @@ package body Traces_Elf is
       Subprg_Low      : Pc_Type;
 
    begin
-      --  Return now if already loaded.
+      --  Return now if already loaded
+
       if not Exec.Compile_Units.Is_Empty then
          return;
       end if;
@@ -811,12 +966,14 @@ package body Traces_Elf is
       end if;
 
       --  Load .debug_abbrev
+
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Abbrev,
                               Abbrev_Len, Abbrevs, Abbrev_Base);
 
       Map := null;
 
       --  Load .debug_info
+
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info, Info_Len,
                               Infos, Base);
 
@@ -828,6 +985,7 @@ package body Traces_Elf is
       while Off < Storage_Offset (Info_Len) loop
          --  Read .debug_info header:
          --    Length, version, offset in .debug_abbrev, pointer size.
+
          Read_Word4 (Exec, Base, Off, Len);
          Last := Off + Storage_Offset (Len);
          Read_Word2 (Exec, Base, Off, Ver);
@@ -843,7 +1001,8 @@ package body Traces_Elf is
 
          Build_Abbrev_Map (Abbrev_Base + Storage_Offset (Abbrev_Off), Map);
 
-         --  Read DIEs.
+         --  Read DIEs
+
          loop
             << Again >> null;
             exit when Off >= Last;
@@ -864,16 +1023,20 @@ package body Traces_Elf is
             end if;
 
             --  Read tag
+
             Aoff := 0;
             Read_ULEB128 (Abbrev, Aoff, Tag);
 
             if Read_Byte (Abbrev + Aoff) /= 0 then
                Level := Level + 1;
             end if;
-            --  skip child.
+
+            --  Skip child
+
             Aoff := Aoff + 1;
 
-            --  Read attributes.
+            --  Read attributes
+
             loop
                Read_ULEB128 (Abbrev, Aoff, Name);
                Read_ULEB128 (Abbrev, Aoff, Form);
@@ -924,20 +1087,21 @@ package body Traces_Elf is
 
                   if At_Ranges /= No_Ranges then
                      Cu_Base_Pc := 0;
+
                   elsif At_Low_Pc = 0 and At_High_Pc = 0 then
-                     --  This field are not required.
+                     --  This field are not required
                      Cu_Base_Pc := 0;
+
                   else
                      Cu_Base_Pc := At_Low_Pc;
                   end if;
 
-                  --  Ctxt.Lang := At_Lang;
                   At_Lang := 0;
                   At_Stmt_List := No_Stmt_List;
 
                when DW_TAG_subprogram =>
                   if At_High_Pc > At_Low_Pc then
-                     --  Don't care about missing subprograms.
+                     --  Don't care about missing subprograms
 
                      Subprg_Low := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
                      if Current_Sec = null
@@ -949,7 +1113,8 @@ package body Traces_Elf is
                      end if;
 
                      if Current_Sec = null then
-                        --  Can this happen ?
+                        --  Can this happen???
+
                         raise Program_Error with "no section for subprogram";
                      end if;
 
@@ -987,19 +1152,21 @@ package body Traces_Elf is
       Element_Type => String_Acc,
       "=" => "=");
 
-   function Build_Filename (Dir : String; Filename : String)
-                           return String_Acc
+   function Build_Filename
+     (Dir : String; Filename : String) return String_Acc
    is
       use Ada.Characters.Handling;
       Res : String := Dir & '/' & Filename;
    begin
       if Res'Length > 2 and then Res (Res'First + 1) = ':' then
-         --  Looks like a Windows file.
+         --  Looks like a Windows file name
 
-         --  Capitalize the driver letter.
+         --  Capitalize the driver letter
+
          Res (Res'First) := To_Upper (Res (Res'First));
 
-         --  Lower case letters, back-slashify.
+         --  Lower case letters, back-slashify
+
          for I in Res'First + 2 .. Res'Last loop
             if Is_Upper (Res (I)) then
                Res (I) := To_Lower (Res (I));
@@ -1122,6 +1289,7 @@ package body Traces_Elf is
 
    begin
       --  Load .debug_line
+
       if Exec.Lines = null then
          Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Line,
                                  Exec.Lines_Len, Exec.Lines, Base);
@@ -2001,11 +2169,8 @@ package body Traces_Elf is
       Cur := First (Exec.Desc_Sets (Section_Addresses));
       while Cur /= No_Element loop
          Sec := Element (Cur);
-
          Load_Section_Content (Exec, Sec);
-
          Set_Trace_State (Base, Sec.Section_Content.all);
-         --  Unchecked_Deallocation (Section);
 
          Next (Cur);
       end loop;
@@ -2526,7 +2691,7 @@ package body Traces_Elf is
       use Traces_Names;
 
       Efile : Elf_File renames File.Exe_File;
-      --  Corresponding Elf_File - as we do low level accesses.
+      --  Corresponding Elf_File - as we do low level accesses
 
       Nbr_Shdr : constant Elf_Half := Get_Shdr_Num (Efile);
 
@@ -2536,7 +2701,7 @@ package body Traces_Elf is
       type Set_Acc_Array is array (0 .. Nbr_Shdr) of Set_Acc;
 
       Shdr_Sets : Set_Acc_Array := (others => null);
-      --  Addresses container for each relevant sections.
+      --  Addresses container for each relevant sections
 
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
         (Addresses_Info, Addresses_Info_Acc);
