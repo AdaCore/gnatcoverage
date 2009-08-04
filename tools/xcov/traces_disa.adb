@@ -155,12 +155,14 @@ package body Traces_Disa is
          Next_Addr := Insns'Last;
 
          --  Find matching trace
+         --  This should be base on accumulated object coverage data, not on
+         --  raw traces???
 
          while E /= Bad_Trace and then Addr > E.Last loop
             Get_Next_Trace (E, It);
          end loop;
 
-         if E /= Bad_Trace and then (Addr >= E.First and Addr <= E.Last) then
+         if E /= Bad_Trace and then Addr in E.First .. E.Last then
             State := E.State;
             if E.Last < Next_Addr then
                Next_Addr := E.Last;
@@ -172,6 +174,7 @@ package body Traces_Disa is
                Next_Addr := E.First - 1;
             end if;
          end if;
+
          For_Each_Insn (Insns (Addr .. Next_Addr), State, Cb, Sym);
          exit when Next_Addr >= Insns'Last;
          Addr := Next_Addr + 1;
