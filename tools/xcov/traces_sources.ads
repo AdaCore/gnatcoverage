@@ -38,17 +38,16 @@ package Traces_Sources is
       Info : Addresses_Info_Acc;
       Base : Traces_Base_Acc;
       Exec : Exe_File_Acc);
-   --  Lets know File that Line exists and add the addresses range for Info.
-   --  (This knowledge comes from debugging informations).
+   --  Add File:Line to set of known source lines, with the given associated
+   --  information.
 
-   procedure Add_Line_State
+   procedure Set_Line_State
      (File  : Source_File_Index;
       Line  : Natural;
       State : Traces.Insn_State);
-   --  Same as Add_Line but with a State.
-   --  (The knowledge comes from execution traces).
-   --  If "same as Add_Line", where are Info, Base and Exec???
+   --  Set coverage state of File:Line to State
    --  Uses Update_File_Info, relevant only for object coverage???
+   --  State should be a Line_State not an Insn_State???
 
    Flag_Show_Missing : Boolean := False;
    --  If True, Disp_Line_State displays info for files that are not found

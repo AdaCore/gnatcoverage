@@ -1736,11 +1736,11 @@ package body Traces_Elf is
       end loop;
    end Load_Code_And_Traces;
 
-   ------------------------
-   -- Build_Source_Lines --
-   ------------------------
+   ------------------------------------
+   -- Build_Source_Lines_For_Section --
+   ------------------------------------
 
-   procedure Build_Source_Lines
+   procedure Build_Source_Lines_For_Section
      (Exec    : Exe_File_Acc;
       Base    : Traces_Base_Acc;
       Section : Binary_Content)
@@ -1789,6 +1789,11 @@ package body Traces_Elf is
 
             Add_Line (Prev_File, Line.Sloc.Line, Line, Base, Exec);
 
+            if Debug then
+               New_Line;
+               Disp_Address (Line);
+            end if;
+
             --  Skip not-matching traces
 
             while not No_Traces and then E.Last < Line.First loop
@@ -1798,11 +1803,6 @@ package body Traces_Elf is
                No_Traces := E = Bad_Trace;
             end loop;
 
-            if Debug then
-               New_Line;
-               Disp_Address (Line);
-            end if;
-
             Pc := Line.First;
             loop
                --  From PC to E.First
@@ -1811,7 +1811,7 @@ package body Traces_Elf is
                   if Debug then
                      Put_Line ("no trace for pc=" & Hex_Image (Pc));
                   end if;
-                  Add_Line_State (Prev_File, Line.Sloc.Line, Not_Covered);
+                  Set_Line_State (Prev_File, Line.Sloc.Line, Not_Covered);
                end if;
 
                exit when No_Traces or else E.First > Line.Last;
@@ -1823,7 +1823,7 @@ package body Traces_Elf is
 
                --  From E.First to min (E.Last, line.last)
 
-               Add_Line_State (Prev_File, Line.Sloc.Line, E.State);
+               Set_Line_State (Prev_File, Line.Sloc.Line, E.State);
 
                exit when E.Last >= Line.Last;
                Pc := E.Last + 1;
@@ -1834,7 +1834,7 @@ package body Traces_Elf is
 
          Next (Cur);
       end loop;
-   end Build_Source_Lines;
+   end Build_Source_Lines_For_Section;
 
    --------------------
    -- Set_Insn_State --
@@ -2410,6 +2410,10 @@ package body Traces_Elf is
       --  Build source line information from debug information for the given
       --  routine.
 
+      ------------------------------------
+      -- Build_Source_Lines_For_Routine --
+      ------------------------------------
+
       procedure Build_Source_Lines_For_Routine
         (Name : String_Acc;
          Info : in out Subprogram_Info)
@@ -2418,9 +2422,13 @@ package body Traces_Elf is
       begin
          if Info.Exec /= null and then Info.Insns /= null then
             Build_Debug_Lines (Info.Exec.all);
-            Build_Source_Lines (Info.Exec, Info.Traces, Info.Insns.all);
+            Build_Source_Lines_For_Section
+              (Info.Exec, Info.Traces, Info.Insns.all);
          end if;
       end Build_Source_Lines_For_Routine;
+
+   --  Start of processing for Build_Source_Lines
+
    begin
       Iterate (Build_Source_Lines_For_Routine'Access);
    end Build_Source_Lines;
@@ -2432,12 +2440,16 @@ package body Traces_Elf is
    procedure Build_Routines_Insn_State is
       use Traces_Names;
 
-      procedure Process_One
+      procedure Build_Routine_Insn_State
         (Name : String_Acc;
          Info : in out Subprogram_Info);
       --  Set trace state for the given routine
 
-      procedure Process_One
+      ------------------------------
+      -- Build_Routine_Insn_State --
+      ------------------------------
+
+      procedure Build_Routine_Insn_State
         (Name : String_Acc;
          Info : in out Subprogram_Info)
       is
@@ -2446,9 +2458,12 @@ package body Traces_Elf is
          if Info.Insns /= null then
             Set_Insn_State (Info.Traces.all, Info.Insns.all);
          end if;
-      end Process_One;
+      end Build_Routine_Insn_State;
+
+   --  Start of processing for Build_Routines_Insn_State
+
    begin
-      Iterate (Process_One'Access);
+      Iterate (Build_Routine_Insn_State'Access);
    end Build_Routines_Insn_State;
 
    --------------------------

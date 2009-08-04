@@ -105,7 +105,7 @@ package Traces_Elf is
    --  Read dwarfs info to build lines list.
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type);
 
-   procedure Build_Source_Lines
+   procedure Build_Source_Lines_For_Section
      (Exec    : Exe_File_Acc;
       Base    : Traces_Base_Acc;
       Section : Binary_Content);

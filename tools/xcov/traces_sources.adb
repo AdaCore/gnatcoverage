@@ -138,24 +138,22 @@ package body Traces_Sources is
    end Add_Line;
 
    --------------------
-   -- Add_Line_State --
+   -- Set_Line_State --
    --------------------
 
-   procedure Add_Line_State
+   procedure Set_Line_State
      (File  : Source_File_Index;
       Line  : Natural;
       State : Traces.Insn_State)
    is
       Element : File_Info renames File_Table.Table (File);
    begin
-      Expand_Line_Table (Element, Line);
-
       if State = Unknown then
          raise Program_Error;
       end if;
 
       Update_File_Info (Element, Line, State);
-   end Add_Line_State;
+   end Set_Line_State;
 
    First_Source_Search_Entry : Source_Search_Entry_Acc := null;
    Last_Source_Search_Entry  : Source_Search_Entry_Acc := null;

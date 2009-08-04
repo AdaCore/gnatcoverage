@@ -34,8 +34,12 @@ package Traces_Dbase is
       First : Pc_Type;
       Last  : Pc_Type;
       Op    : Unsigned_8);
-   --  Add a trace entry in the ordered_Set.  May discard useless entries
+   --  Add a trace entry in the ordered_Set. May discard useless entries
    --  or merge entries.
+   --  Needs further description of conditions causing entries to be discarded
+   --  or merged???
+   --  Doesn't support more than one trace entry with the same First and Last
+   --  PC, which means this works only for stateless (object) coverage???
 
    procedure Dump_Traces (Base : Traces_Base);
    --  Dump (on standard output) the content of Base

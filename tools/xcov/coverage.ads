@@ -26,6 +26,9 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 
+with Traces_Dbase; use Traces_Dbase;
+with Traces_Elf;   use Traces_Elf;
+
 package Coverage is
 
    type Coverage_Level is (Insn, Branch, Stmt, Decision, MCDC, Unknown);
@@ -75,5 +78,16 @@ package Coverage is
    function All_Known_Coverage_Levels return String;
    --  Return |-separated list of all values in Known_Coverage_Level (for
    --  help message).
+
+private
+
+   type Coverage_Analyzer is abstract tagged limited null record;
+   type Coverage_Analyzer_Acc is access all Coverage_Analyzer'Class;
+   --  Coverage analysis engine for a given coverage objective
+
+   procedure Register_Coverage_Analyzer
+     (Level  : Known_Coverage_Level;
+      Engine : Coverage_Analyzer_Acc);
+   --  Set Engine as the analyzer for Level
 
 end Coverage;

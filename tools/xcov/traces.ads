@@ -56,11 +56,11 @@ package Traces is
       --  The code is fully covered (and there is no conditionnal branches).
 
       Branch_Taken,
-      --  The code is covered, the last instruction is a branch but the
+      --  The code is covered, the last instruction is a branch and the
       --  branch was always taken.
 
       Fallthrough_Taken,
-      --  The code is covered, the last instruction is a branch but the
+      --  The code is covered, the last instruction is a branch and the
       --  branch was never taken.
 
       Both_Taken
@@ -88,12 +88,20 @@ package Traces is
       --  these values.
 
       State : Insn_State;
-      --  This trace entry's states
+      --  This trace entry's state
+
+      --  ??? This is improper, State really denotes an object coverage state,
+      --  and represents an accumulation over a set of trace entries for the
+      --  same instruction, this should be moved to a data structure that is
+      --  specific of object coverage, and the only relevant information here
+      --  is a tri-state (Not_A_Branch, Branch_Taken, Fallthrough_Taken).
+      --  Right now there is serious confusion between trace data and
+      --  accumulated object coverage data???
    end record;
 
    Bad_Trace : constant Trace_Entry := (First => 1,
-                                        Last => 0,
-                                        Op => 0,
+                                        Last  => 0,
+                                        Op    => 0,
                                         State => Unknown);
    --  Constant value for invalid traces
 

@@ -23,6 +23,8 @@ package body Coverage is
    --  Global variable that records the coverage operation that has been asked
    --  to xcov. This should be modified only one time by Set_Coverage_Level.
 
+   Coverage_Analyzers : array (Known_Coverage_Level) of Coverage_Analyzer_Acc;
+
    -------------------------------
    -- All_Known_Coverage_Levels --
    -------------------------------
@@ -72,6 +74,20 @@ package body Coverage is
    begin
       return Current_Level;
    end Get_Coverage_Level;
+
+   --------------------------------
+   -- Register_Coverage_Analyzer --
+   --------------------------------
+
+   procedure Register_Coverage_Analyzer
+     (Level  : Known_Coverage_Level;
+      Engine : Coverage_Analyzer_Acc)
+   is
+   begin
+      pragma Assert (Coverage_Analyzers (Level) = null);
+      pragma Assert (Engine /= null);
+      Coverage_Analyzers (Level) := Engine;
+   end Register_Coverage_Analyzer;
 
    ------------------------
    -- Set_Coverage_Level --
