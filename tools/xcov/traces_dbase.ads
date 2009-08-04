@@ -16,39 +16,54 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Containers.Ordered_Sets;
 with Interfaces; use Interfaces;
-with Traces; use Traces;
+with Traces;     use Traces;
 
 package Traces_Dbase is
-   type Traces_Base is limited private;
 
+   type Traces_Base is limited private;
    type Traces_Base_Acc is access Traces_Base;
 
-   --  Clear BASE.
    procedure Init_Base (Base : out Traces_Base);
+   --  Clear Base
 
+   procedure Add_Entry
+     (Base  : in out Traces_Base;
+      First : Pc_Type;
+      Last  : Pc_Type;
+      Op    : Unsigned_8);
    --  Add a trace entry in the ordered_Set.  May discard useless entries
    --  or merge entries.
-   procedure Add_Entry (Base : in out Traces_Base;
-                        First : Pc_Type; Last : Pc_Type; Op : Unsigned_8);
 
-   --  Dump (on standard output) the content of traces.
    procedure Dump_Traces (Base : Traces_Base);
+   --  Dump (on standard output) the content of Base
 
    --  Return a trace that contains or follows ADDR.
-   type Entry_Iterator is limited private;
-   procedure Init (Base : Traces_Base;
-                   Iterator : out Entry_Iterator; Pc : Pc_Type);
-   procedure Get_Next_Trace (Trace : out Trace_Entry;
-                             Iterator : in out Entry_Iterator);
+   --  What does this comment apply to? There is no mention of "ADDR" anywhere
+   --  in sight??
 
-   procedure Update_State (Base : in out Traces_Base;
-                           Iterator : Entry_Iterator; State : Insn_State);
-   procedure Split_Trace (Base : in out Traces_Base;
-                          Iterator : in out Entry_Iterator;
-                          Pc : Pc_Type;
-                          Prev_State : Insn_State);
+   type Entry_Iterator is limited private;
+
+   procedure Init
+     (Base     : Traces_Base;
+      Iterator : out Entry_Iterator;
+      Pc       : Pc_Type);
+   procedure Get_Next_Trace
+     (Trace    : out Trace_Entry;
+      Iterator : in out Entry_Iterator);
+
+   procedure Update_State
+     (Base     : in out Traces_Base;
+      Iterator : Entry_Iterator;
+      State    : Insn_State);
+   procedure Split_Trace
+     (Base       : in out Traces_Base;
+      Iterator   : in out Entry_Iterator;
+      Pc         : Pc_Type;
+      Prev_State : Insn_State);
+   --  Comments needed???
 
 private
 
@@ -57,12 +72,13 @@ private
    function "=" (L, R : Trace_Entry) return Boolean;
    function "<" (L, R : Trace_Entry) return Boolean;
 
-   package Entry_Set is new Ada.Containers.Ordered_Sets
-     (Element_Type => Trace_Entry);
+   package Entry_Set is
+     new Ada.Containers.Ordered_Sets (Element_Type => Trace_Entry);
 
    type Traces_Base is new Entry_Set.Set with null record;
 
    type Entry_Iterator is record
       Cur : Entry_Set.Cursor;
    end record;
+
 end Traces_Dbase;

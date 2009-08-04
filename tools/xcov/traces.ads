@@ -38,6 +38,10 @@ package Traces is
    --  Target machine.  The value is the EM field defined by ELF.
    --  Set to 0 when unknown.
 
+   --  Insn_State denotes the coverage of a range of machine instructions, i.e.
+   --  coverage state for object-level coverage objectives: instruction
+   --  coverage and object branch coverage.
+
    type Insn_State is
      (
       --  High level state of a trace entry
