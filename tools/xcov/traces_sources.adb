@@ -73,7 +73,8 @@ package body Traces_Sources is
      (File  : in out File_Info;
       Line  : Natural;
       State : Traces.Insn_State);
-   --  Update the state of Line in File's line table
+   --  Update the state of Line in File's line table.
+   --  Uses Update_Line_State, so relevant only for object coverage???
 
    package File_Tables is new GNAT.Dynamic_Tables
      (Table_Component_Type => File_Info,
@@ -95,7 +96,8 @@ package body Traces_Sources is
      (Insns  : Binary_Content_Acc;
       Traces : Traces_Base_Acc) return Line_State;
    --  Compute coverage information for the routine whose code is Insns, with
-   --  the given traces.
+   --  the given traces. Uses Update_Line_State, relevant only for object
+   --  coverage???
 
    procedure Disp_File_Line_State
      (Pp       : in out Pretty_Printer'Class;
@@ -658,13 +660,13 @@ package body Traces_Sources is
       Line  : Natural;
       State : Traces.Insn_State)
    is
-      Ls : Line_State;
+      Ls : Line_State renames File.Lines.Table (Line).State;
    begin
-      Ls := File.Lines.Table (Line).State;
       File.Stats (Ls) := File.Stats (Ls) - 1;
       Global_Stats (Ls) := Global_Stats (Ls) - 1;
+
       Update_Line_State (Ls, State);
-      File.Lines.Table (Line).State := Ls;
+
       File.Stats (Ls) := File.Stats (Ls) + 1;
       Global_Stats (Ls) := Global_Stats (Ls) + 1;
    end Update_File_Info;

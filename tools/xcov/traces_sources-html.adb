@@ -461,17 +461,22 @@ package body Traces_Sources.Html is
    begin
       Open_Insn_Table (Pp);
       Wrh (Pp, "      <tr class=""");
+
       case State is
          when Unknown =>
             raise Program_Error;
+
          when Not_Covered =>
             Wrh (Pp, "not_covered");
+
          when Covered | Both_Taken =>
             Wrh (Pp, "covered");
+
          when Branch_Taken
            | Fallthrough_Taken =>
             Wrh (Pp, "partially_covered");
       end case;
+
       Plh (Pp, """>");
       Wrh (Pp, "        <td><pre>");
       Wrh (Pp, Hex_Image (Pc));

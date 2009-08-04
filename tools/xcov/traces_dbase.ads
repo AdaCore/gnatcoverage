@@ -53,17 +53,20 @@ package Traces_Dbase is
    procedure Get_Next_Trace
      (Trace    : out Trace_Entry;
       Iterator : in out Entry_Iterator);
-
    procedure Update_State
      (Base     : in out Traces_Base;
       Iterator : Entry_Iterator;
       State    : Insn_State);
+   --  Comments needed???
+
    procedure Split_Trace
      (Base       : in out Traces_Base;
       Iterator   : in out Entry_Iterator;
       Pc         : Pc_Type;
-      Prev_State : Insn_State);
-   --  Comments needed???
+      Head_State : Insn_State);
+   --  Split current trace in two parts:
+   --    Head part from original trace start to Pc with state Head_State
+   --    Tail part from Pc+1 to original trace end with unchanged state
 
 private
 

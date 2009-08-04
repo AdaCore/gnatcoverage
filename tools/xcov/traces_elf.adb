@@ -1982,7 +1982,8 @@ package body Traces_Elf is
                   end Update_Or_Split;
 
                begin
-                  --  Instructions length is 4.
+                  --  Instructions length is 4
+
                   if Trace_Len < 4 then
                      raise Program_Error;
                   end if;

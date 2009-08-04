@@ -47,6 +47,8 @@ package Traces_Sources is
       State : Traces.Insn_State);
    --  Same as Add_Line but with a State.
    --  (The knowledge comes from execution traces).
+   --  If "same as Add_Line", where are Info, Base and Exec???
+   --  Uses Update_File_Info, relevant only for object coverage???
 
    Flag_Show_Missing : Boolean := False;
    --  If True, Disp_Line_State displays info for files that are not found
@@ -67,6 +69,7 @@ package Traces_Sources is
    procedure Dump_Uncovered_Routines (Report : File_Access);
    --  Go through the routine database and dump the list of uncovered
    --  routines into Report.
+   --  Uses Compute_Routine_State, relevant only for object coverage???
 
 private
    type Line_Chain;

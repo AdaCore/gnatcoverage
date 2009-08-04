@@ -106,11 +106,13 @@ package Traces_Elf is
    --  Read dwarfs info to build lines list.
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type);
 
-   --  Build source lines for a section of an exec and only for this section
+   procedure Build_Source_Lines
+     (Exec    : Exe_File_Acc;
+      Base    : Traces_Base_Acc;
+      Section : Binary_Content);
+   --  Build source lines for a specific section of Exec
    --  How are traces relevant (Base)???
-   procedure Build_Source_Lines (Exec : Exe_File_Acc;
-                                 Base : Traces_Base_Acc;
-                                 Section : Binary_Content);
+   --  Uses Add_Line_State, relevant only for object coverage???
 
    procedure Disp_Address (El : Addresses_Info_Acc);
    function Image (El : Addresses_Info_Acc) return String;

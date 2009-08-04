@@ -16,6 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Qemu_Traces; use Qemu_Traces;
 
 package body Traces_Dbase is
@@ -211,22 +212,22 @@ package body Traces_Dbase is
       Base.Iterate (Dump_Entry'Access);
    end Dump_Traces;
 
-   ----------
-   -- Init --
-   ----------
+   --------------------
+   -- Get_Next_Trace --
+   --------------------
 
-   procedure Init
-     (Base     : Traces_Base;
-      Iterator : out Entry_Iterator;
-      Pc       : Pc_Type)
+   procedure Get_Next_Trace
+     (Trace    : out Trace_Entry;
+      Iterator : in out Entry_Iterator)
    is
-      Key : constant Trace_Entry := (Pc, Pc, 0, Unknown);
    begin
-      Iterator := (Cur => Floor (Base, Key));
       if Iterator.Cur = No_Element then
-         Iterator.Cur := First (Base);
+         Trace := Bad_Trace;
+      else
+         Trace := Element (Iterator.Cur);
+         Next (Iterator.Cur);
       end if;
-   end Init;
+   end Get_Next_Trace;
 
    -------------------
    -- Get_Trace_Cur --
@@ -244,22 +245,51 @@ package body Traces_Dbase is
       end if;
    end Get_Trace_Cur;
 
-   --------------------
-   -- Get_Next_Trace --
-   --------------------
+   ----------
+   -- Init --
+   ----------
 
-   procedure Get_Next_Trace
-     (Trace    : out Trace_Entry;
-      Iterator : in out Entry_Iterator)
+   procedure Init
+     (Base     : Traces_Base;
+      Iterator : out Entry_Iterator;
+      Pc       : Pc_Type)
    is
+      Key : constant Trace_Entry := (Pc, Pc, 0, Unknown);
    begin
+      Iterator := (Cur => Floor (Base, Key));
       if Iterator.Cur = No_Element then
-         Trace := Bad_Trace;
-      else
-         Trace := Element (Iterator.Cur);
-         Next (Iterator.Cur);
+         Iterator.Cur := First (Base);
       end if;
-   end Get_Next_Trace;
+   end Init;
+
+   -----------------
+   -- Split_Trace --
+   -----------------
+
+   procedure Split_Trace
+     (Base       : in out Traces_Base;
+      Iterator   : in out Entry_Iterator;
+      Pc         : Pc_Type;
+      Head_State : Insn_State)
+   is
+      Cur : Cursor;
+      Head_Trace, Tail_Trace : Trace_Entry;
+   begin
+      Cur := Get_Trace_Cur (Base, Iterator);
+      Tail_Trace := Element (Cur);
+      Head_Trace := Tail_Trace;
+
+      --  Replace current trace with tail
+
+      Tail_Trace.First := Pc + 1;
+      Replace_Element (Base, Cur, Tail_Trace);
+
+      --  Now insert new trace for head with the given state
+
+      Head_Trace.Tail := Pc;
+      Head_Trace.State := Head_State;
+      Insert (Base, Prev_Trace);
+   end Split_Trace;
 
    ------------------
    -- Update_State --
@@ -278,33 +308,5 @@ package body Traces_Dbase is
       Trace.State := State;
       Replace_Element (Base, Cur, Trace);
    end Update_State;
-
-   -----------------
-   -- Split_Trace --
-   -----------------
-
-   procedure Split_Trace
-     (Base       : in out Traces_Base;
-      Iterator   : in out Entry_Iterator;
-      Pc         : Pc_Type;
-      Prev_State : Insn_State)
-   is
-      Cur : Cursor;
-      Trace, Prev_Trace : Trace_Entry;
-   begin
-      Cur := Get_Trace_Cur (Base, Iterator);
-      Trace := Element (Cur);
-      Prev_Trace := Trace;
-
-      --  First modify the element so that Prev_Trace can be inserted without
-      --  violating the no-duplicate elements rule.
-
-      Trace.First := Pc + 1;
-      Replace_Element (Base, Cur, Trace);
-
-      Prev_Trace.State := Prev_State;
-      Prev_Trace.Last := Pc;
-      Insert (Base, Prev_Trace);
-   end Split_Trace;
 
 end Traces_Dbase;
