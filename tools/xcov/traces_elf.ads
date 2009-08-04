@@ -92,10 +92,9 @@ package Traces_Elf is
    --  Load code for all symbols in Exec. If Base is not null, also load the
    --  traces into the routine database.
 
-   --  Using the executable, correctly set the state of every traces.
-   procedure Set_Insn_State (Exec : Exe_File_Type; Base : in out Traces_Base);
    procedure Set_Insn_State
      (Base : in out Traces_Base; Section : Binary_Content);
+   --  Comment needed???
 
    --  Read dwarfs info to build compile_units/subprograms lists.
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type);

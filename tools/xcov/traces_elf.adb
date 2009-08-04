@@ -2156,27 +2156,6 @@ package body Traces_Elf is
       end loop;
    end Set_Insn_State;
 
-   --------------------
-   -- Set_Insn_State --
-   --------------------
-
-   procedure Set_Insn_State
-     (Exec : Exe_File_Type; Base : in out Traces_Base)
-   is
-      use Addresses_Containers;
-      Cur : Cursor;
-      Sec : Addresses_Info_Acc;
-   begin
-      Cur := First (Exec.Desc_Sets (Section_Addresses));
-      while Cur /= No_Element loop
-         Sec := Element (Cur);
-         Load_Section_Content (Exec, Sec);
-         Set_Insn_State (Base, Sec.Section_Content.all);
-
-         Next (Cur);
-      end loop;
-   end Set_Insn_State;
-
    -------------------
    -- Build_Symbols --
    -------------------
