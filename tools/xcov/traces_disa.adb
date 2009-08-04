@@ -65,7 +65,7 @@ package body Traces_Disa is
    end Disassemble;
 
    procedure Textio_Disassemble_Cb (Addr : Pc_Type;
-                                    State : Trace_State;
+                                    State : Insn_State;
                                     Insn : Binary_Content;
                                     Sym : Symbolizer'Class)
    is
@@ -87,7 +87,7 @@ package body Traces_Disa is
    end Textio_Disassemble_Cb;
 
    procedure For_Each_Insn (Insns : Binary_Content;
-                            State : Trace_State;
+                            State : Insn_State;
                             Cb : Disassemble_Cb;
                             Sym : Symbolizer'Class)
    is
@@ -111,7 +111,7 @@ package body Traces_Disa is
      (Insns : Binary_Content;
       Base : Traces_Base;
       Cb : access procedure (Addr : Pc_Type;
-                             State : Trace_State;
+                             State : Insn_State;
                              Insn : Binary_Content;
                              Sym : Symbolizer'Class);
       Sym : Symbolizer'Class)
@@ -120,7 +120,7 @@ package body Traces_Disa is
       E : Trace_Entry;
       Addr : Pc_Type;
       Next_Addr : Pc_Type;
-      State : Trace_State;
+      State : Insn_State;
    begin
       --  Disp_Address (Info);
       Init (Base, It, Insns'First);

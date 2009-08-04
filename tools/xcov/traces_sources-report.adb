@@ -56,7 +56,7 @@ package body Traces_Sources.Report is
    procedure Pretty_Print_Insn
      (Pp : in out Report_Pretty_Printer;
       Pc : Pc_Type;
-      State : Trace_State;
+      State : Insn_State;
       Insn : Binary_Content;
       Sym : Symbolizer'Class);
 
@@ -133,7 +133,7 @@ package body Traces_Sources.Report is
    procedure Pretty_Print_Insn
      (Pp : in out Report_Pretty_Printer;
       Pc : Pc_Type;
-      State : Trace_State;
+      State : Insn_State;
       Insn : Binary_Content;
       Sym : Symbolizer'Class)
    is
@@ -141,7 +141,7 @@ package body Traces_Sources.Report is
    begin
       if Pp.Print_Current_Line then
          Put (Output.all, Hex_Image (Pc));
-         Put (Output.all, ' ' & Trace_State_Char (State) & ":  ");
+         Put (Output.all, ' ' & Insn_State_Char (State) & ":  ");
          for I in Insn'Range loop
             Put (Output.all, Hex_Image (Insn (I)));
             Put (Output.all, " ");

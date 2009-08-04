@@ -31,14 +31,14 @@ package Traces_Disa is
                       return String;
 
    type Disassemble_Cb is access procedure (Addr : Pc_Type;
-                                            State : Trace_State;
+                                            State : Insn_State;
                                             Insn : Binary_Content;
                                             Sym : Symbolizer'Class);
 
    --  Call CB for each instruction of INSNS.
    --  (State and Sym are parameters of CB).
    procedure For_Each_Insn (Insns : Binary_Content;
-                            State : Trace_State;
+                            State : Insn_State;
                             Cb : Disassemble_Cb;
                             Sym : Symbolizer'Class);
 
@@ -55,14 +55,14 @@ package Traces_Disa is
      (Insns : Binary_Content;
       Base : Traces_Base;
       Cb : access procedure (Addr : Pc_Type;
-                             State : Trace_State;
+                             State : Insn_State;
                              Insn : Binary_Content;
                              Sym : Symbolizer'Class);
       Sym : Symbolizer'Class);
 
    --  Simple callback from the previous subprogram.
    procedure Textio_Disassemble_Cb (Addr : Pc_Type;
-                                    State : Trace_State;
+                                    State : Insn_State;
                                     Insn : Binary_Content;
                                     Sym : Symbolizer'Class);
 

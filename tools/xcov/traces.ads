@@ -38,7 +38,7 @@ package Traces is
    --  Target machine.  The value is the EM field defined by ELF.
    --  Set to 0 when unknown.
 
-   type Trace_State is
+   type Insn_State is
      (
       --  High level state of a trace entry
 
@@ -83,7 +83,7 @@ package Traces is
       --  ??? Document which value it can take and the meaning of each of
       --  these values.
 
-      State : Trace_State;
+      State : Insn_State;
       --  This trace entry's states
    end record;
 
@@ -99,7 +99,7 @@ package Traces is
    procedure Dump_Entry (E : Trace_Entry);
    --  Dump (on standard output) a trace entry.
 
-   procedure Disp_State_Char (State : Trace_State);
+   procedure Disp_State_Char (State : Insn_State);
    --  Display a character representing the state.
 
    procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural);
@@ -107,8 +107,8 @@ package Traces is
    --  Put the result to RES, POS contains the index past the last character
    --  accepted.
 
-   type Trace_State_Map is array (Trace_State) of Character;
-   Trace_State_Char : constant Trace_State_Map;
+   type Insn_State_Map is array (Insn_State) of Character;
+   Insn_State_Char : constant Insn_State_Map;
    --  One character representation of a state.
    --  Several states can be represented by the same character, if the
    --  difference is not meaningful to the user of xcov. Typically, Covered
@@ -117,7 +117,7 @@ package Traces is
    --  has no interest in this distinction.
 
 private
-   Trace_State_Char : constant Trace_State_Map :=
+   Insn_State_Char : constant Insn_State_Map :=
      (Unknown           => '?',
       Not_Covered       => '-',
       Covered           => '+',

@@ -43,7 +43,7 @@ package body Traces_Sources.Xcov is
                                  Label : String);
    procedure Pretty_Print_Insn (Pp : in out Xcov_Pretty_Printer;
                                 Pc : Pc_Type;
-                                State : Trace_State;
+                                State : Insn_State;
                                 Insn : Binary_Content;
                                 Sym : Symbolizer'Class);
 
@@ -107,13 +107,13 @@ package body Traces_Sources.Xcov is
 
    procedure Pretty_Print_Insn (Pp : in out Xcov_Pretty_Printer;
                                 Pc : Pc_Type;
-                                State : Trace_State;
+                                State : Insn_State;
                                 Insn : Binary_Content;
                                 Sym : Symbolizer'Class)
    is
    begin
       Put (Pp.Xcov_File, Hex_Image (Pc));
-      Put (Pp.Xcov_File, ' ' & Trace_State_Char (State) & ":  ");
+      Put (Pp.Xcov_File, ' ' & Insn_State_Char (State) & ":  ");
       for I in Insn'Range loop
          Put (Pp.Xcov_File, Hex_Image (Insn (I)));
          Put (Pp.Xcov_File, " ");

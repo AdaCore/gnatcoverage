@@ -93,8 +93,8 @@ package Traces_Elf is
    --  traces into the routine database.
 
    --  Using the executable, correctly set the state of every traces.
-   procedure Set_Trace_State (Exec : Exe_File_Type; Base : in out Traces_Base);
-   procedure Set_Trace_State
+   procedure Set_Insn_State (Exec : Exe_File_Type; Base : in out Traces_Base);
+   procedure Set_Insn_State
      (Base : in out Traces_Base; Section : Binary_Content);
 
    --  Read dwarfs info to build compile_units/subprograms lists.
@@ -219,7 +219,7 @@ package Traces_Elf is
    --  Go through the routine database and, for each routine, populate the
    --  source database with the routine's source information.
 
-   procedure Build_Routines_Trace_State;
+   procedure Build_Routines_Insn_State;
    --  Go through the routine database and, for each routine, compute the
    --  state of its trace. This should be used only when the subroutine
    --  database has been populated with its traces.

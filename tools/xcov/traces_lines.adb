@@ -26,7 +26,7 @@ package body Traces_Lines is
    -----------------------
 
    procedure Update_Line_State (L : in out Line_State;
-                                I : Known_Trace_State) is
+                                I : Known_Insn_State) is
    begin
       pragma Assert (Get_Coverage_Level = Insn
                        or else Get_Coverage_Level = Branch);

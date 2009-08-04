@@ -26,9 +26,9 @@ package body Traces is
    -- Disp_State_Char --
    ---------------------
 
-   procedure Disp_State_Char (State : Trace_State) is
+   procedure Disp_State_Char (State : Insn_State) is
    begin
-      Put (Trace_State_Char (State));
+      Put (Insn_State_Char (State));
    end Disp_State_Char;
 
    ----------------

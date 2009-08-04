@@ -44,7 +44,7 @@ package Traces_Sources is
    procedure Add_Line_State
      (File  : Source_File_Index;
       Line  : Natural;
-      State : Traces.Trace_State);
+      State : Traces.Insn_State);
    --  Same as Add_Line but with a State.
    --  (The knowledge comes from execution traces).
 
@@ -133,7 +133,7 @@ private
    procedure Pretty_Print_Insn
      (Pp    : in out Pretty_Printer;
       Pc    : Pc_Type;
-      State : Trace_State;
+      State : Insn_State;
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class) is null;
 

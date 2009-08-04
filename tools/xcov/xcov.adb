@@ -567,8 +567,8 @@ begin
    case Get_Coverage_Level is
       when Insn =>
          --  Nothing left to be done after having called Set_Coverage_Level;
-         --  Set_Trace_State will use Coverage's global variable
-         --  to determine what kind of object coverage should be performed.
+         --  Set_Insn_State will call Get_Coverage_Level again to determine
+         --  what object coverage objective should be used.
          null;
 
       when Branch =>
@@ -642,7 +642,7 @@ begin
       Arg_Index := Arg_Index + 1;
    end loop;
 
-   Traces_Elf.Build_Routines_Trace_State;
+   Traces_Elf.Build_Routines_Insn_State;
 
    if Annotations /= Annotate_Asm then
       Traces_Elf.Build_Source_Lines;

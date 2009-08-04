@@ -40,13 +40,13 @@ package Traces_Lines is
       --  Initial state: no code for this line
      );
 
-   subtype Known_Trace_State is
-     Trace_State range Not_Covered .. Trace_State'Last;
-   type State_Update_Table_Type is array (Line_State, Known_Trace_State)
+   subtype Known_Insn_State is
+     Insn_State range Not_Covered .. Insn_State'Last;
+   type State_Update_Table_Type is array (Line_State, Known_Insn_State)
      of Line_State;
 
    procedure Update_Line_State (L : in out Line_State;
-                                I : Known_Trace_State);
+                                I : Known_Insn_State);
    --  Update a line state with the object coverage status of one
    --  of its instructions.
    --  This is typically meant to be used to compute the state of a source

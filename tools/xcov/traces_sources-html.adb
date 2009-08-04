@@ -89,7 +89,7 @@ package body Traces_Sources.Html is
    procedure Pretty_Print_Insn
      (Pp    : in out Html_Pretty_Printer;
       Pc    : Pc_Type;
-      State : Trace_State;
+      State : Insn_State;
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class);
 
@@ -455,7 +455,7 @@ package body Traces_Sources.Html is
    procedure Pretty_Print_Insn
      (Pp    : in out Html_Pretty_Printer;
       Pc    : Pc_Type;
-      State : Trace_State;
+      State : Insn_State;
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class) is
    begin
@@ -475,7 +475,7 @@ package body Traces_Sources.Html is
       Plh (Pp, """>");
       Wrh (Pp, "        <td><pre>");
       Wrh (Pp, Hex_Image (Pc));
-      Wrh (Pp, ' ' & Trace_State_Char (State) & ':');
+      Wrh (Pp, ' ' & Insn_State_Char (State) & ':');
       Wrh (Pp, "  ");
       for I in Insn'Range loop
          Wrh (Pp, Hex_Image (Insn (I)));

@@ -1836,16 +1836,16 @@ package body Traces_Elf is
       end loop;
    end Build_Source_Lines;
 
-   ---------------------
-   -- Set_Trace_State --
-   ---------------------
+   --------------------
+   -- Set_Insn_State --
+   --------------------
 
-   procedure Set_Trace_State
+   procedure Set_Insn_State
      (Base : in out Traces_Base; Section : Binary_Content)
    is
       use Addresses_Containers;
 
-      function Coverage_State (State : Trace_State) return Trace_State;
+      function Coverage_State (State : Insn_State) return Insn_State;
       --  Given the branch coverage state of an instruction, return the state
       --  that corresponds to the actual coverage action xcov is performing.
 
@@ -1853,7 +1853,7 @@ package body Traces_Elf is
       -- Coverage_State --
       --------------------
 
-      function Coverage_State (State : Trace_State) return Trace_State is
+      function Coverage_State (State : Insn_State) return Insn_State is
       begin
          if Get_Coverage_Level = Insn then
             --  Instruction coverage; no need to trace which ways a branch
@@ -1882,7 +1882,7 @@ package body Traces_Elf is
       Trace : Trace_Entry;
       Addr : Pc_Type;
 
-   --  Start of processing for Set_Trace_State
+   --  Start of processing for Set_Insn_State
 
    begin
       Addr := Section'First;
@@ -1906,7 +1906,7 @@ package body Traces_Elf is
                   Next_Pc : Pc_Type;
                   Len : Natural;
 
-                  New_State : Trace_State;
+                  New_State : Insn_State;
                begin
 
                   --  First search the last instruction.
@@ -1955,7 +1955,7 @@ package body Traces_Elf is
 
             when EM_PPC =>
                declare
-                  procedure Update_Or_Split (Next_State : Trace_State);
+                  procedure Update_Or_Split (Next_State : Insn_State);
 
                   Insn_Bin : Binary_Content renames Section (Trace.Last - 3
                                                           .. Trace.Last);
@@ -1972,7 +1972,7 @@ package body Traces_Elf is
                   -- Update_Or_Split --
                   ---------------------
 
-                  procedure Update_Or_Split (Next_State : Trace_State) is
+                  procedure Update_Or_Split (Next_State : Insn_State) is
                   begin
                      if Trace_Len > 4 then
                         Split_Trace (Base, It, Trace.Last - 4,
@@ -2025,7 +2025,7 @@ package body Traces_Elf is
                   Op : constant Unsigned_8 := Trace.Op and 3;
                   Pc1 : Pc_Type;
                   Trace_Len : constant Pc_Type := Trace.Last - Trace.First + 1;
-                  Nstate : Trace_State;
+                  Nstate : Insn_State;
 
                   type Br_Kind is (Br_None,
                                    Br_Cond, Br_Cond_A,
@@ -2153,13 +2153,13 @@ package body Traces_Elf is
          Addr := Addr + 1;
          Get_Next_Trace (Trace, It);
       end loop;
-   end Set_Trace_State;
+   end Set_Insn_State;
 
-   ---------------------
-   -- Set_Trace_State --
-   ---------------------
+   --------------------
+   -- Set_Insn_State --
+   --------------------
 
-   procedure Set_Trace_State
+   procedure Set_Insn_State
      (Exec : Exe_File_Type; Base : in out Traces_Base)
    is
       use Addresses_Containers;
@@ -2170,11 +2170,11 @@ package body Traces_Elf is
       while Cur /= No_Element loop
          Sec := Element (Cur);
          Load_Section_Content (Exec, Sec);
-         Set_Trace_State (Base, Sec.Section_Content.all);
+         Set_Insn_State (Base, Sec.Section_Content.all);
 
          Next (Cur);
       end loop;
-   end Set_Trace_State;
+   end Set_Insn_State;
 
    -------------------
    -- Build_Symbols --
@@ -2445,11 +2445,11 @@ package body Traces_Elf is
       Iterate (Build_Source_Lines_For_Routine'Access);
    end Build_Source_Lines;
 
-   --------------------------------
-   -- Build_Routines_Trace_State --
-   --------------------------------
+   -------------------------------
+   -- Build_Routines_Insn_State --
+   -------------------------------
 
-   procedure Build_Routines_Trace_State is
+   procedure Build_Routines_Insn_State is
       use Traces_Names;
 
       procedure Process_One
@@ -2464,12 +2464,12 @@ package body Traces_Elf is
          pragma Unreferenced (Name);
       begin
          if Info.Insns /= null then
-            Set_Trace_State (Info.Traces.all, Info.Insns.all);
+            Set_Insn_State (Info.Traces.all, Info.Insns.all);
          end if;
       end Process_One;
    begin
       Iterate (Process_One'Access);
-   end Build_Routines_Trace_State;
+   end Build_Routines_Insn_State;
 
    --------------------------
    -- Disassemble_File_Raw --

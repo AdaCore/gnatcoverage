@@ -44,11 +44,11 @@ package Traces_Dbase is
                              Iterator : in out Entry_Iterator);
 
    procedure Update_State (Base : in out Traces_Base;
-                           Iterator : Entry_Iterator; State : Trace_State);
+                           Iterator : Entry_Iterator; State : Insn_State);
    procedure Split_Trace (Base : in out Traces_Base;
                           Iterator : in out Entry_Iterator;
                           Pc : Pc_Type;
-                          Prev_State : Trace_State);
+                          Prev_State : Insn_State);
 
 private
 

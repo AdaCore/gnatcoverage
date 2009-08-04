@@ -72,7 +72,7 @@ package body Traces_Sources is
    procedure Update_File_Info
      (File  : in out File_Info;
       Line  : Natural;
-      State : Traces.Trace_State);
+      State : Traces.Insn_State);
    --  Update the state of Line in File's line table
 
    package File_Tables is new GNAT.Dynamic_Tables
@@ -142,7 +142,7 @@ package body Traces_Sources is
    procedure Add_Line_State
      (File  : Source_File_Index;
       Line  : Natural;
-      State : Traces.Trace_State)
+      State : Traces.Insn_State)
    is
       Element : File_Info renames File_Table.Table (File);
    begin
@@ -280,7 +280,7 @@ package body Traces_Sources is
 
       procedure Disassemble_Cb
         (Addr  : Pc_Type;
-         State : Trace_State;
+         State : Insn_State;
          Insn  : Binary_Content;
          Sym   : Symbolizer'Class);
       --  Comment needed???
@@ -297,7 +297,7 @@ package body Traces_Sources is
 
       procedure Disassemble_Cb
         (Addr  : Pc_Type;
-         State : Trace_State;
+         State : Insn_State;
          Insn  : Binary_Content;
          Sym   : Symbolizer'Class) is
       begin
@@ -656,7 +656,7 @@ package body Traces_Sources is
    procedure Update_File_Info
      (File  : in out File_Info;
       Line  : Natural;
-      State : Traces.Trace_State)
+      State : Traces.Insn_State)
    is
       Ls : Line_State;
    begin
