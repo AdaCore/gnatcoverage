@@ -24,28 +24,39 @@ with Elf_Disassemblers; use Elf_Disassemblers;
 with Traces_Files;
 
 package body Traces_Disa is
-   function Get_Label (Sym : Symbolizer'Class; Info : Addresses_Info_Acc)
-                      return String
+
+   ---------------
+   -- Get_Label --
+   ---------------
+
+   function Get_Label
+     (Sym : Symbolizer'Class; Info : Addresses_Info_Acc) return String
    is
       Line : String (1 .. 64);
       Line_Pos : Natural;
    begin
-      --  Display address.
+      --  Display address
+
       Line_Pos := Line'First;
       Symbolize (Sym, Info.First, Line, Line_Pos);
+
       if Line_Pos > Line'First then
          if Line_Pos > Line'Last then
             Line_Pos := Line'Last;
          end if;
+
          Line (Line_Pos) := ':';
          return Line (Line'First + 1 .. Line_Pos);
+
       else
          return "";
       end if;
    end Get_Label;
 
-   --  INSN is exactly one instruction.
-   --  Generate the disassembly for INSN.
+   -----------------
+   -- Disassemble --
+   -----------------
+
    function Disassemble
      (Insn : Binary_Content;
       Pc   : Pc_Type;
@@ -64,10 +75,15 @@ package body Traces_Disa is
       return Line (1 .. Line_Pos - 1);
    end Disassemble;
 
-   procedure Textio_Disassemble_Cb (Addr : Pc_Type;
-                                    State : Insn_State;
-                                    Insn : Binary_Content;
-                                    Sym : Symbolizer'Class)
+   ---------------------------
+   -- Textio_Disassemble_Cb --
+   ---------------------------
+
+   procedure Textio_Disassemble_Cb
+     (Addr  : Pc_Type;
+      State : Insn_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class)
    is
    begin
       Put (Hex_Image (Addr));
@@ -86,10 +102,15 @@ package body Traces_Disa is
       New_Line;
    end Textio_Disassemble_Cb;
 
-   procedure For_Each_Insn (Insns : Binary_Content;
-                            State : Insn_State;
-                            Cb : Disassemble_Cb;
-                            Sym : Symbolizer'Class)
+   -------------------
+   -- For_Each_Insn --
+   -------------------
+
+   procedure For_Each_Insn
+     (Insns : Binary_Content;
+      State : Insn_State;
+      Cb    : Disassemble_Cb;
+      Sym  : Symbolizer'Class)
    is
       Pc : Pc_Type;
       Insn_Len : Natural := 0;
@@ -107,14 +128,18 @@ package body Traces_Disa is
       end loop;
    end For_Each_Insn;
 
+   -------------------------
+   -- Disp_Assembly_Lines --
+   -------------------------
+
    procedure Disp_Assembly_Lines
      (Insns : Binary_Content;
-      Base : Traces_Base;
-      Cb : access procedure (Addr : Pc_Type;
-                             State : Insn_State;
-                             Insn : Binary_Content;
-                             Sym : Symbolizer'Class);
-      Sym : Symbolizer'Class)
+      Base  : Traces_Base;
+      Cb    : access procedure (Addr  : Pc_Type;
+                                State : Insn_State;
+                                Insn  : Binary_Content;
+                                Sym   : Symbolizer'Class);
+      Sym   : Symbolizer'Class)
    is
       It : Entry_Iterator;
       E : Trace_Entry;
@@ -122,7 +147,6 @@ package body Traces_Disa is
       Next_Addr : Pc_Type;
       State : Insn_State;
    begin
-      --  Disp_Address (Info);
       Init (Base, It, Insns'First);
       Get_Next_Trace (E, It);
       Addr := Insns'First;
@@ -130,16 +154,18 @@ package body Traces_Disa is
       loop
          Next_Addr := Insns'Last;
 
-         --  Find matching trace.
+         --  Find matching trace
+
          while E /= Bad_Trace and then Addr > E.Last loop
             Get_Next_Trace (E, It);
          end loop;
-         --  Dump_Entry (E);
+
          if E /= Bad_Trace and then (Addr >= E.First and Addr <= E.Last) then
             State := E.State;
             if E.Last < Next_Addr then
                Next_Addr := E.Last;
             end if;
+
          else
             State := Not_Covered;
             if E /= Bad_Trace and then E.First < Next_Addr then
@@ -152,16 +178,24 @@ package body Traces_Disa is
       end loop;
    end Disp_Assembly_Lines;
 
-   procedure Dump_Traces_With_Asm (Exe : Exe_File_Type;
-                                   Trace_Filename : String)
+   --------------------------
+   -- Dump_Traces_With_Asm --
+   --------------------------
+
+   procedure Dump_Traces_With_Asm
+    (Exe : Exe_File_Type; Trace_Filename : String)
    is
       use Traces_Files;
       Addr : Addresses_Info_Acc := null;
 
       procedure Disp_Entry (E : Trace_Entry);
+      --  Comment needed???
 
-      procedure Disp_Entry (E : Trace_Entry)
-      is
+      ----------------
+      -- Disp_Entry --
+      ----------------
+
+      procedure Disp_Entry (E : Trace_Entry) is
          use Traces_Disa;
          Sec : Addresses_Info_Acc;
          Line : String (1 .. 128);
@@ -173,16 +207,20 @@ package body Traces_Disa is
          then
             Addr := Get_Symbol (Exe, E.First);
          end if;
+
          if Addr = null then
             Put_Line ("(not in the executable)");
+
          else
             Symbolize (Exe, E.First, Line, Line_Pos);
             Line (Natural'Min (Line'Last, Line_Pos)) := ':';
             Put_Line (Line (Line'First + 1 .. Line_Pos));
+
             Sec := Addr.Parent;
             while Sec.Kind /= Section_Addresses loop
                Sec := Sec.Parent;
             end loop;
+
             Load_Section_Content (Exe, Sec);
             For_Each_Insn (Sec.Section_Content (E.First .. E.Last), Covered,
                            Textio_Disassemble_Cb'Access, Exe);
@@ -190,8 +228,12 @@ package body Traces_Disa is
       end Disp_Entry;
 
       File : Trace_File_Type;
+
+   --  Start of processing for Dump_Traces_Wth_Asm
+
    begin
       Read_Trace_File (Trace_Filename, File, null, Disp_Entry'Access);
       Free (File);
    end Dump_Traces_With_Asm;
+
 end Traces_Disa;
