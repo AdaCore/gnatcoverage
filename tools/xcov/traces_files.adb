@@ -291,21 +291,27 @@ package body Traces_Files is
    -- Read_Trace_File --
    ---------------------
 
-   procedure Read_Trace_File (Filename : String;
-                              Trace_File : out Trace_File_Type;
-                              Base : in out Traces_Base)
+   procedure Read_Trace_File
+     (Filename   : String;
+      Trace_File : out Trace_File_Type;
+      Base       : in out Traces_Base)
    is
-      procedure Cb (E : Trace_Entry);
+      procedure Read_Trace_Entry (E : Trace_Entry);
+      --  Comment needed???
 
-      procedure Cb (E : Trace_Entry) is
+      ----------------------
+      -- Read_Trace_Entry --
+      ----------------------
+
+      procedure Read_Trace_Entry (E : Trace_Entry) is
       begin
          Add_Entry (Base,
                     First => E.First,
-                    Last => E.Last,
-                    Op => E.Op);
-      end Cb;
+                    Last  => E.Last,
+                    Op    => E.Op);
+      end Read_Trace_Entry;
    begin
-      Read_Trace_File (Filename, Trace_File, null, Cb'Access);
+      Read_Trace_File (Filename, Trace_File, null, Read_Trace_Entry'Access);
    end Read_Trace_File;
 
    ----------------
