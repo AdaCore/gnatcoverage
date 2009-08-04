@@ -286,9 +286,9 @@ package body Traces_Dbase is
 
       --  Now insert new trace for head with the given state
 
-      Head_Trace.Tail := Pc;
+      Head_Trace.Last := Pc;
       Head_Trace.State := Head_State;
-      Insert (Base, Prev_Trace);
+      Insert (Base, Head_Trace);
    end Split_Trace;
 
    ------------------
