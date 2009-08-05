@@ -32,7 +32,7 @@ package MC_DC is
    pragma Pack (Condition_Vector_Type);
    --  A set of assignments of values to conditions within a decision
 
-   --  Type Evaluation denotes one evaluation of a decision.
+   --  Type Evaluation denotes one evaluation of a decision
 
    type Evaluation is record
       Values    : Condition_Vector_Type;
