@@ -39,10 +39,10 @@ package Traces_Dbase is
    --  Needs further description of conditions causing entries to be discarded
    --  or merged???
    --  Doesn't support more than one trace entry with the same First and Last
-   --  PC, which means this works only for stateless (object) coverage???
+   --  PC, which means this works only for stateless coverage (not MC/DC)???
 
    procedure Dump_Traces (Base : Traces_Base);
-   --  Dump (on standard output) the content of Base
+   --  Dump (on standard output) the contents of Base
 
    --  Return a trace that contains or follows ADDR.
    --  What does this comment apply to? There is no mention of "ADDR" anywhere

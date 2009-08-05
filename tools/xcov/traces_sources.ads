@@ -72,6 +72,7 @@ package Traces_Sources is
    --  Go through the routine database and dump the list of uncovered
    --  routines into Report.
    --  Uses Compute_Routine_State, relevant only for object coverage???
+   --  Not relevant to Traces_Sources???
 
 private
    type Line_Chain;

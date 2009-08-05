@@ -28,6 +28,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Coverage;          use Coverage;
+with Coverage.Object;   use Coverage.Object;
 with Disa_Common;       use Disa_Common;
 with Dwarf;
 with Dwarf_Handling;    use Dwarf_Handling;

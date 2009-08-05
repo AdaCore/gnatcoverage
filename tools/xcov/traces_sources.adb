@@ -25,6 +25,7 @@ with Sources; use Sources;
 with Strings; use Strings;
 with Traces_Disa;
 with Traces_Names; use Traces_Names;
+with Coverage.Object; use Coverage.Object;
 
 with GNAT.Dynamic_Tables;
 
@@ -88,9 +89,7 @@ package body Traces_Sources is
    function Compute_Routine_State
      (Insns  : Binary_Content_Acc;
       Traces : Traces_Base_Acc) return Line_State;
-   --  Compute coverage information for the routine whose code is Insns, with
-   --  the given traces. Uses Update_Line_State, relevant only for object
-   --  coverage???
+   --  Annotate sources with object coverage information provided by Traces
 
    procedure Disp_File_Line_State
      (Pp       : in out Pretty_Printer'Class;
