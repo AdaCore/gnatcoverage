@@ -29,7 +29,7 @@ package body Traces_Lines is
                                 I : Known_Insn_State) is
    begin
       pragma Assert (Get_Coverage_Level = Insn
-                       or else Get_Coverage_Level = Branch);
+                     or else Get_Coverage_Level = Branch);
       --  This assertion is justified in Update_Line_State's specification
 
       case L is

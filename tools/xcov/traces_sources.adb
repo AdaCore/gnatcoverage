@@ -69,13 +69,6 @@ package body Traces_Sources is
    --  If Line is not in File's line table, expand this table and mark the new
    --  line as No_Code.
 
-   procedure Update_File_Info
-     (File  : in out File_Info;
-      Line  : Natural;
-      State : Traces.Insn_State);
-   --  Update the state of Line in File's line table.
-   --  Uses Update_Line_State, so relevant only for object coverage???
-
    package File_Tables is new GNAT.Dynamic_Tables
      (Table_Component_Type => File_Info,
       Table_Index_Type     => Source_File_Index,
@@ -138,21 +131,34 @@ package body Traces_Sources is
    end Add_Line;
 
    --------------------
+   -- Get_Line_State --
+   --------------------
+
+   function Get_Line_State
+     (File : Source_File_Index;
+      Line : Natural) return Line_State
+   is
+   begin
+      return File_Table.Table (File).Lines.Table (Line).State;
+   end Get_Line_State;
+
+   --------------------
    -- Set_Line_State --
    --------------------
 
    procedure Set_Line_State
      (File  : Source_File_Index;
       Line  : Natural;
-      State : Traces.Insn_State)
+      State : Line_State)
    is
       Element : File_Info renames File_Table.Table (File);
+      Ls : Line_State renames Element.Lines.Table (Line).State;
    begin
-      if State = Unknown then
-         raise Program_Error;
-      end if;
-
-      Update_File_Info (Element, Line, State);
+      Element.Stats (Ls) := Element.Stats (Ls) - 1;
+      Global_Stats (Ls) := Global_Stats (Ls) - 1;
+      Ls := State;
+      Element.Stats (Ls) := Element.Stats (Ls) + 1;
+      Global_Stats (Ls) := Global_Stats (Ls) + 1;
    end Set_Line_State;
 
    First_Source_Search_Entry : Source_Search_Entry_Acc := null;
@@ -648,26 +654,6 @@ package body Traces_Sources is
       end if;
       File_Table.Table (File).To_Display := True;
    end New_Source_File;
-
-   ----------------------
-   -- Update_File_Info --
-   ----------------------
-
-   procedure Update_File_Info
-     (File  : in out File_Info;
-      Line  : Natural;
-      State : Traces.Insn_State)
-   is
-      Ls : Line_State renames File.Lines.Table (Line).State;
-   begin
-      File.Stats (Ls) := File.Stats (Ls) - 1;
-      Global_Stats (Ls) := Global_Stats (Ls) - 1;
-
-      Update_Line_State (Ls, State);
-
-      File.Stats (Ls) := File.Stats (Ls) + 1;
-      Global_Stats (Ls) := Global_Stats (Ls) + 1;
-   end Update_File_Info;
 
 begin
    File_Tables.Init (File_Table);

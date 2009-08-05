@@ -44,10 +44,13 @@ package Traces_Sources is
    procedure Set_Line_State
      (File  : Source_File_Index;
       Line  : Natural;
-      State : Traces.Insn_State);
+      State : Line_State);
    --  Set coverage state of File:Line to State
-   --  Uses Update_File_Info, relevant only for object coverage???
-   --  State should be a Line_State not an Insn_State???
+
+   function Get_Line_State
+     (File : Source_File_Index;
+      Line : Natural) return Line_State;
+   --  Return the current coverage state of File:Line
 
    Flag_Show_Missing : Boolean := False;
    --  If True, Disp_Line_State displays info for files that are not found

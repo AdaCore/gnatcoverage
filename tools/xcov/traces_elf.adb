@@ -22,21 +22,24 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
 with Interfaces; use Interfaces;
+
+with System.Storage_Elements; use System.Storage_Elements;
+
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
-with Coverage; use Coverage;
-with Disa_Common; use Disa_Common;
+with Coverage;          use Coverage;
+with Disa_Common;       use Disa_Common;
+with Dwarf;
+with Dwarf_Handling;    use Dwarf_Handling;
 with Elf32;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
 with Hex_Images;        use Hex_Images;
-with Dwarf;
-with Dwarf_Handling;  use Dwarf_Handling;
-with System.Storage_Elements; use System.Storage_Elements;
-with Traces_Sources;
-with Traces_Names;
 with Traces_Disa;
-with Types; use Types;
+with Traces_Lines;      use Traces_Lines;
+with Traces_Names;
+with Traces_Sources;
+with Types;             use Types;
 
 package body Traces_Elf is
 
@@ -1749,7 +1752,8 @@ package body Traces_Elf is
       use Traces_Sources;
       Cur : Cursor;
       Line : Addresses_Info_Acc;
-      Prev_File : Source_File_Index := No_Source_File;
+      Current_Line_State : Line_State;
+      Source_File : Source_File_Index := No_Source_File;
 
       It : Entry_Iterator;
       E : Trace_Entry;
@@ -1782,12 +1786,12 @@ package body Traces_Elf is
 
             --  Get corresponding file (check previous file for speed-up)
 
-            if Line.Sloc.Source_File /= Prev_File then
+            if Line.Sloc.Source_File /= Source_File then
                New_Source_File (Line.Sloc.Source_File);
-               Prev_File := Line.Sloc.Source_File;
+               Source_File := Line.Sloc.Source_File;
             end if;
 
-            Add_Line (Prev_File, Line.Sloc.Line, Line, Base, Exec);
+            Add_Line (Source_File, Line.Sloc.Line, Line, Base, Exec);
 
             if Debug then
                New_Line;
@@ -1805,13 +1809,18 @@ package body Traces_Elf is
 
             Pc := Line.First;
             loop
+               Current_Line_State :=
+                 Get_Line_State (Source_File, Line.Sloc.Line);
+
                --  From PC to E.First
 
                if No_Traces or else Pc < E.First then
                   if Debug then
                      Put_Line ("no trace for pc=" & Hex_Image (Pc));
                   end if;
-                  Set_Line_State (Prev_File, Line.Sloc.Line, Not_Covered);
+                  Update_Line_State (Current_Line_State, Not_Covered);
+                  Set_Line_State
+                    (Source_File, Line.Sloc.Line, Current_Line_State);
                end if;
 
                exit when No_Traces or else E.First > Line.Last;
@@ -1823,7 +1832,9 @@ package body Traces_Elf is
 
                --  From E.First to min (E.Last, line.last)
 
-               Set_Line_State (Prev_File, Line.Sloc.Line, E.State);
+               Update_Line_State (Current_Line_State, E.State);
+               Set_Line_State
+                 (Source_File, Line.Sloc.Line, Current_Line_State);
 
                exit when E.Last >= Line.Last;
                Pc := E.Last + 1;
