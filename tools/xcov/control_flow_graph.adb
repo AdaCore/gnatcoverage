@@ -27,7 +27,7 @@ with Switches; use Switches;
 with Traces; use Traces;
 with Traces_Disa;
 
-package body Traces_History is
+package body Control_Flow_Graph is
    type Graph_Node;
    type Graph_Node_Acc is access Graph_Node;
 
@@ -465,4 +465,4 @@ package body Traces_History is
       end loop;
    end Generate_Graph;
 
-end Traces_History;
+end Control_Flow_Graph;

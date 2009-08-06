@@ -18,6 +18,6 @@
 ------------------------------------------------------------------------------
 with Traces_Elf; use Traces_Elf;
 
-package Traces_History is
+package Control_Flow_Graph is
    procedure Generate_Graph (Exe : Exe_File_Type);
-end Traces_History;
+end Control_Flow_Graph;

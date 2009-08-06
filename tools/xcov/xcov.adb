@@ -35,7 +35,7 @@ with Traces_Names;
 with Traces_Files; use Traces_Files;
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Disa;
-with Traces_History;
+with Control_Flow_Graph;
 with Version;
 with Qemudrv;
 with Qemu_Traces;
@@ -442,7 +442,7 @@ begin
          Build_Sections (Exec);
          Build_Symbols (Exec'Unchecked_Access);
          Build_Debug_Lines (Exec);
-         Traces_History.Generate_Graph (Exec);
+         Control_Flow_Graph.Generate_Graph (Exec);
          return;
       elsif Cmd = "--run" then
          Qemudrv.Driver (Arg_Index + 1);
