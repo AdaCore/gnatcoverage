@@ -155,8 +155,7 @@ package body Traces_Disa is
          Next_Addr := Insns'Last;
 
          --  Find matching trace
-         --  This should be base on accumulated object coverage data, not on
-         --  raw traces???
+         --  Note: object coverage data is piggy-backed in the traces database
 
          while E /= Bad_Trace and then Addr > E.Last loop
             Get_Next_Trace (E, It);
