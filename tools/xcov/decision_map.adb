@@ -26,6 +26,7 @@ with Hex_Images;        use Hex_Images;
 with SC_Obligations;    use SC_Obligations;
 with Qemu_Traces;
 with Sources;           use Sources;
+with Strings;           use Strings;
 with Switches;          use Switches;
 with Traces;            use Traces;
 with Traces_Dbase;      use Traces_Dbase;
@@ -39,6 +40,10 @@ package body Decision_Map is
    Decision_Map_Base : Traces_Base;
    --  The decision map is a list of code addresses, so we manage it as a
    --  trace database.
+
+   procedure Analyze (ALI_List_Filename : String);
+   --  Build the decision map from the executable, debug information and
+   --  the Source Coverage Obligations.
 
    procedure Analyze_Routine
      (Name : String_Acc;
@@ -55,10 +60,10 @@ package body Decision_Map is
    -- Analyze --
    -------------
 
-   procedure Analyze (ALI_List_Filename : String_Acc) is
+   procedure Analyze (ALI_List_Filename : String) is
    begin
       Load_SCOs (ALI_List_Filename);
-      Init_Base (Decision_Map_Base);
+      Init_Base (Decision_Map_Base, Full_History => False);
       Traces_Names.Iterate (Analyze_Routine'Access);
 
       if Verbose then
@@ -191,6 +196,47 @@ package body Decision_Map is
          exit when PC = 0;
       end loop;
    end Analyze_Routine;
+
+   ------------------------
+   -- Build_Decision_Map --
+   ------------------------
+
+   procedure Build_Decision_Map (Exec_Name : String)
+   is
+      Exec : aliased Exe_File_Type;
+
+      Text_Start : constant Pc_Type := 0;
+      --  Should be a global option???
+
+      Decision_Map_Filename     : String_Acc := null;
+      Decision_Map_Suffix       : constant String := ".dmap";
+      --  Decision map filename is constructed by appending the suffix to the
+      --  executable image name.
+   begin
+      if ALI_List_Filename = null then
+         return;
+      end if;
+
+      if Routine_List_Filename /= null then
+         Traces_Names.Read_Routines_Name_From_Text
+           (Routine_List_Filename.all);
+      else
+         Traces_Elf.Read_Routines_Name
+           (Exec_Name,
+            Exclude   => False,
+            Keep_Open => False);
+      end if;
+
+      Decision_Map_Filename :=
+        new String'(Exec_Name & Decision_Map_Suffix);
+      Open_File (Exec, Exec_Name, Text_Start);
+      Build_Sections (Exec);
+      Build_Symbols (Exec'Unchecked_Access);
+      Load_Code_And_Traces (Exec'Unchecked_Access, Base => null);
+      Decision_Map.Analyze (ALI_List_Filename.all);
+      Decision_Map.Write_Map (Decision_Map_Filename.all);
+      Close_File (Exec);
+   end Build_Decision_Map;
 
    ---------------
    -- Write_Map --

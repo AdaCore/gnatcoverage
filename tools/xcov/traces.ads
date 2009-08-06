@@ -69,16 +69,15 @@ package Traces is
       );
 
    type Trace_Entry is record
-      --  Trace entry as recorded in the traces tree
+      --  Trace entry as recorded in the traces database
 
-      First : Pc_Type;
-      --  Address of the first instruction of the trace entry
+      First, Last : Pc_Type;
+      --  Code region for the trace
 
-      Last : Pc_Type;
-      --  Last address of the instruction set that corresponds to this
-      --  trace entry. Included.
-      --  Typically, if the instruction set of the trace entry contains
-      --  one instruction of 4 bytes, then we'll have Last - First = 3
+      Serial : Integer := -1;
+      --  For flat traces, always -1.
+      --  For historic (stateful) traces, this is incremented sequentially
+      --  so that multiple traces for the same code region can be processed.
 
       Op : Unsigned_8;
       --  Op code that QEMU sets to give information about
@@ -88,21 +87,16 @@ package Traces is
       --  these values.
 
       State : Insn_State;
-      --  This trace entry's state
+      --  Object coverage information for this code region (piggy-backed
+      --  directly in the trace structure for optimization).
 
-      --  ??? This is improper, State really denotes an object coverage state,
-      --  and represents an accumulation over a set of trace entries for the
-      --  same instruction, this should be moved to a data structure that is
-      --  specific of object coverage, and the only relevant information here
-      --  is a tri-state (Not_A_Branch, Branch_Taken, Fallthrough_Taken).
-      --  Right now there is serious confusion between trace data and
-      --  accumulated object coverage data???
    end record;
 
-   Bad_Trace : constant Trace_Entry := (First => 1,
-                                        Last  => 0,
-                                        Op    => 0,
-                                        State => Unknown);
+   Bad_Trace : constant Trace_Entry := (First  => 1,
+                                        Last   => 0,
+                                        Serial => -1,
+                                        Op     => 0,
+                                        State  => Unknown);
    --  Constant value for invalid traces
 
    procedure Dump_Op (Op : Unsigned_8);

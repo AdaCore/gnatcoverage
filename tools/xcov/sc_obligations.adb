@@ -661,13 +661,10 @@ package body SC_Obligations is
    -- Load_SCOs --
    ---------------
 
-   procedure Load_SCOs (ALI_List_Filename : String_Acc) is
+   procedure Load_SCOs (ALI_List_Filename : String) is
       ALI_List : File_Type;
    begin
-      if ALI_List_Filename = null then
-         return;
-      end if;
-      Open (ALI_List, In_File, ALI_List_Filename.all);
+      Open (ALI_List, In_File, ALI_List_Filename);
       while not End_Of_File (ALI_List) loop
          declare
             Line : String (1 .. 1024);
@@ -677,6 +674,7 @@ package body SC_Obligations is
             Load_SCOs_From_ALI (Line (1 .. Last));
          end;
       end loop;
+      Close (ALI_List);
    end Load_SCOs;
 
    ------------------------

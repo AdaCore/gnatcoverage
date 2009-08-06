@@ -263,7 +263,8 @@ package body Traces_Files is
             Swaps.Swap_16 (E32.Size);
          end if;
 
-         --  Disp the entry.
+         --  Display entry
+
          if False then
             if Desc.Sizeof_Target_Pc = 4 then
                Put (Hex_Image (E32.Pc));
@@ -277,11 +278,13 @@ package body Traces_Files is
             end if;
          end if;
 
-         --  Add the entry in the AVL.
-         Trace_Cb.all (Trace_Entry'(First => E32.Pc,
-                                    Last => E32.Pc + Pc_Type (E32.Size) - 1,
-                                    Op => E32.Op,
-                                    State => Unknown));
+         --  Supply entry to caller
+
+         Trace_Cb.all (Trace_Entry'(First  => E32.Pc,
+                                    Last   => E32.Pc + Pc_Type (E32.Size) - 1,
+                                    Serial => -1,
+                                    Op     => E32.Op,
+                                    State  => Unknown));
       end loop;
 
       Close (Desc.Fd);

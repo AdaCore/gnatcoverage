@@ -23,8 +23,10 @@ with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Directories; use Ada.Directories;
 with Interfaces;
 with GNAT.Command_Line; use GNAT.Command_Line;
---  with GNAT.Strings; use GNAT.Strings;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
+
+with Coverage;     use Coverage;
+with Decision_Map; use Decision_Map;
 with Traces_Files; use Traces_Files;
 with Qemu_Traces;
 with Qemudrv_Base; use Qemudrv_Base;
@@ -166,19 +168,22 @@ package body Qemudrv is
       Driver_Index : Integer;
       S : Character;
    begin
-      --  Set progname.
+      --  Set progname
+
       if Is_Xcov then
          Progname := new String'(Command_Name & " --run");
       else
          Progname := new String'(Command_Name);
       end if;
 
-      --  Build the command line.
+      --  Build the command line
+
       for I in First_Option .. Arg_Count loop
          Args (1 + I - First_Option) := new String'(Argument (I));
       end loop;
 
-      --  And decode it.
+      --  And decode it
+
       Initialize_Option_Scan (Parser, Args, Section_Delimiters => "eargs");
       loop
          S := Getopt (Getopt_Switches, False, Parser);
@@ -210,7 +215,8 @@ package body Qemudrv is
          end if;
       end loop;
 
-      --  Exe file.
+      --  Exe file
+
       declare
          S : constant String := Get_Argument (False, Parser);
       begin
@@ -221,7 +227,12 @@ package body Qemudrv is
          Exe_File := new String'(S);
       end;
 
-      --  Check for no extra arguments.
+      if Get_Coverage_Level = MCDC then
+         Build_Decision_Map (Exe_File.all);
+      end if;
+
+      --  Check for no extra arguments
+
       declare
          S : constant String := Get_Argument (False, Parser);
       begin

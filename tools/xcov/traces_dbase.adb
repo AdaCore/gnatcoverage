@@ -36,11 +36,13 @@ package body Traces_Dbase is
 
    function "=" (L, R : Trace_Entry) return Boolean is
    begin
-      --  Overlap
+      --  Overlap and same serial
 
       --  This relocation is reflexive and symmetric
 
-      return L.First <= R.Last and L.Last >= R.First;
+      return L.Serial = R.Serial
+        and then L.First <= R.Last
+        and then L.Last >= R.First;
    end "=";
 
    ---------
@@ -49,23 +51,34 @@ package body Traces_Dbase is
 
    function "<" (L, R : Trace_Entry) return Boolean is
    begin
-      --  Disjoint and inferior
+      if L.Serial < R.Serial then
+         return True;
 
-      --  This relation is irreflexive, asymmetric and transitive
-      --   (provided A.First < A.Last).
+      elsif L.Serial > R.Serial then
+         return False;
 
-      --  Should be antisymmetric, not just asymmetric???
+      else
+         --  Disjoint and inferior
 
-      return L.Last < R.First;
+         return L.Last < R.First;
+      end if;
    end "<";
 
    ---------------
    -- Init_Base --
    ---------------
 
-   procedure Init_Base (Base : out Traces_Base) is
+   procedure Init_Base
+     (Base     : out Traces_Base;
+      Full_History : Boolean)
+   is
    begin
-      Base.Clear;
+      Base.Entries.Clear;
+      if Full_History then
+         Base.Next_Serial := 0;
+      else
+         Base.Next_Serial := -1;
+      end if;
    end Init_Base;
 
    ---------------
@@ -80,8 +93,13 @@ package body Traces_Dbase is
    is
       Cur : Cursor;
       Merged_Op : Unsigned_8;
-      Status : Boolean;
-
+      Success : Boolean;
+      New_Entry : constant Trace_Entry :=
+                    (First  => First,
+                     Last   => Last,
+                     Serial => Base.Next_Serial,
+                     Op     => Op,
+                     State  => Unknown);
    begin
       --  Discard fault
 
@@ -89,17 +107,20 @@ package body Traces_Dbase is
          return;
       end if;
 
+      --  Increment trace serial number if full history is kept
+
+      if Base.Next_Serial /= -1 then
+         Base.Next_Serial := Base.Next_Serial + 1;
+      end if;
+
       --  Try to insert
 
-      Insert (Base,
-              Trace_Entry'(First, Last, Op, Unknown),
-              Cur, Status);
-
-      if Status then
+      Base.Entries.Insert (New_Entry, Cur, Success);
+      if Success then
          return;
       end if;
 
-      --  Handle conflicts
+      --  Handle conflicts (case of flat traces only)
 
       declare
          N_First, N_Last : Pc_Type;
@@ -129,8 +150,9 @@ package body Traces_Dbase is
             if First /= Last then
                raise Program_Error;
             end if;
-            Replace_Element
-              (Base, Cur, Trace_Entry'(E.First, E.Last, Merged_Op, E.State));
+            Base.Entries.Replace_Element
+              (Cur,
+               Trace_Entry'(E.First, E.Last, E.Serial, Merged_Op, E.State));
 
          else
             --  Merge
@@ -159,33 +181,37 @@ package body Traces_Dbase is
 
                --  Split
 
-               Replace_Element
-                 (Base, Cur,
-                  Trace_Entry'(E.First, N_First - 1, E.Op, E.State));
-               Insert
-                 (Base, Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
+               Base.Entries.Replace_Element
+                 (Cur,
+                  Trace_Entry'(E.First, N_First - 1, E.Serial, E.Op, E.State));
+               Base.Entries.Insert
+                 (Trace_Entry'(N_First, N_Last, E.Serial, Merged_Op, E.State));
 
                if E.Last > N_Last then
-                  Insert
-                    (Base, Trace_Entry'(N_Last + 1, E.Last, E.Op, E.State));
+                  Base.Entries.Insert
+                    (Trace_Entry'(First  => N_Last + 1,
+                                  Last   => E.Last,
+                                  Serial => E.Serial,
+                                  Op     => E.Op,
+                                  State  => E.State));
                end if;
 
             elsif E.Last > N_Last then
                pragma Assert (E.First = N_First);
 
-               Replace_Element
-                 (Base, Cur,
-                  Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
+               Base.Entries.Replace_Element
+                 (Cur,
+                  Trace_Entry'(N_First, N_Last, E.Serial, Merged_Op, E.State));
 
-               Insert
-                 (Base, Trace_Entry'(N_Last + 1, E.Last, E.Op, E.State));
+               Base.Entries.Insert
+                 (Trace_Entry'(N_Last + 1, E.Last, E.Serial, E.Op, E.State));
             else
                pragma Assert (N_First = E.First);
                pragma Assert (N_Last = E.Last);
 
-               Replace_Element
-                 (Base, Cur,
-                  Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
+               Base.Entries.Replace_Element
+                 (Cur,
+                  Trace_Entry'(N_First, N_Last, E.Serial, Merged_Op, E.State));
             end if;
          end if;
       end;
@@ -211,7 +237,7 @@ package body Traces_Dbase is
    --  Start of processing for Dump_Traces
 
    begin
-      Base.Iterate (Dump_Entry'Access);
+      Base.Entries.Iterate (Dump_Entry'Access);
    end Dump_Traces;
 
    --------------------
@@ -241,7 +267,7 @@ package body Traces_Dbase is
    is
    begin
       if Iterator.Cur = No_Element then
-         return Last (Base);
+         return Base.Entries.Last;
       else
          return Previous (Iterator.Cur);
       end if;
@@ -256,11 +282,16 @@ package body Traces_Dbase is
       Iterator : out Entry_Iterator;
       Pc       : Pc_Type)
    is
-      Key : constant Trace_Entry := (Pc, Pc, 0, Unknown);
+      Key : constant Trace_Entry :=
+              (First  => Pc,
+               Last   => Pc,
+               Serial => -1,
+               Op     => 0,
+               State  => Unknown);
    begin
-      Iterator := (Cur => Floor (Base, Key));
+      Iterator := (Cur => Base.Entries.Floor (Key));
       if Iterator.Cur = No_Element then
-         Iterator.Cur := First (Base);
+         Iterator.Cur := Base.Entries.First;
       end if;
    end Init;
 
@@ -284,13 +315,13 @@ package body Traces_Dbase is
       --  Replace current trace with tail
 
       Tail_Trace.First := Pc + 1;
-      Replace_Element (Base, Cur, Tail_Trace);
+      Base.Entries.Replace_Element (Cur, Tail_Trace);
 
       --  Now insert new trace for head with the given state
 
       Head_Trace.Last := Pc;
       Head_Trace.State := Head_State;
-      Insert (Base, Head_Trace);
+      Base.Entries.Insert (Head_Trace);
    end Split_Trace;
 
    ------------------
@@ -308,7 +339,7 @@ package body Traces_Dbase is
       Cur := Get_Trace_Cur (Base, Iterator);
       Trace := Element (Cur);
       Trace.State := State;
-      Replace_Element (Base, Cur, Trace);
+      Base.Entries.Replace_Element (Cur, Trace);
    end Update_State;
 
 end Traces_Dbase;

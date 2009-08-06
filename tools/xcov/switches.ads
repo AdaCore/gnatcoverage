@@ -17,7 +17,16 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Strings; use Strings;
+
 package Switches is
    Verbose : Boolean := False;
    --  Verbose informational output
+
+   ALI_List_Filename : String_Acc := null;
+   --  List of ALI files to load SCOs from
+
+   Routine_List_Filename     : String_Acc := null;
+   --  Comment needed???
+
 end Switches;

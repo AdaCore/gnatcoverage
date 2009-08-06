@@ -21,7 +21,7 @@ with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with Coverage; use Coverage;
-with Decision_Map;
+with Decision_Map; use Decision_Map;
 with Execs_Dbase; use Execs_Dbase;
 with Elf_Files;
 with Switches; use Switches;
@@ -158,21 +158,31 @@ procedure Xcov is
       return S;
    end Option_Parameter;
 
-   Routine_List_Filename     : String_Acc := null;
    Routine_List_Option       : constant String := "--routine-list=";
    Routine_List_Option_Short : constant String := "-l";
 
-   ALI_List_Filename         : String_Acc := null;
    ALI_List_Option           : constant String := "--ali-list=";
-
-   Decision_Map_Filename     : String_Acc := null;
-   Decision_Map_Option       : constant String := "--decision-map=";
 
    Level                     : Coverage_Level;
 
-   type Annotation_Format is (Annotate_Asm, Annotate_Xcov, Annotate_Html,
-                              Annotate_Xcov_Asm, Annotate_Html_Asm,
-                              Annotate_Report, Annotate_Unknown);
+   Final_Report_Option       : constant String := "--report=";
+   Final_Report_Option_Short : constant String := "-o";
+
+   Text_Start : Pc_Type := 0;
+   Trace_File : Trace_File_Element_Acc;
+
+   Base : aliased Traces_Base;
+   Exec : aliased Exe_File_Type;
+
+   type Annotation_Format is
+     (Annotate_Asm,
+      Annotate_Xcov,
+      Annotate_Html,
+      Annotate_Xcov_Asm,
+      Annotate_Html_Asm,
+      Annotate_Report,
+      Annotate_Unknown);
+
    function To_Annotation_Format (Option : String) return Annotation_Format;
 
    Annotations           : Annotation_Format := Annotate_Unknown;
@@ -198,15 +208,6 @@ procedure Xcov is
       end if;
    end To_Annotation_Format;
 
-   Final_Report_Option       : constant String := "--report=";
-   Final_Report_Option_Short : constant String := "-o";
-
-   Text_Start : Pc_Type := 0;
-   Trace_File : Trace_File_Element_Acc;
-
-   Base : aliased Traces_Base;
-   Exec : aliased Exe_File_Type;
-
 begin
    --  Require at least one argument.
    if Arg_Count = 0 then
@@ -224,34 +225,54 @@ begin
 
    Arg_Index := 1;
    while Arg_Index <= Arg_Count loop
-      if Argument (Arg_Index) = "-v" then
-         Verbose := True;
+      declare
+         Arg : String renames Argument (Arg_Index);
+      begin
+         if Arg = "-v" then
+            Verbose := True;
 
-      elsif Argument (Arg_Index) = Coverage_Option_Short then
-         if Arg_Index > Arg_Count then
-            Put_Line ("Missing coverage level argument for "
-                      & Coverage_Option_Short);
-            return;
-         end if;
-         Level := To_Coverage_Level (Argument (Arg_Index));
-         if Level = Unknown then
-            Error ("bad parameter for " & Coverage_Option_Short);
-            return;
-         end if;
-         Set_Coverage_Level (Level);
-         Arg_Index := Arg_Index + 1;
+         elsif Arg = Coverage_Option_Short then
+            if Arg_Index > Arg_Count then
+               Put_Line ("Missing coverage level argument for "
+                         & Coverage_Option_Short);
+               return;
+            end if;
+            Level := To_Coverage_Level (Arg);
+            if Level = Unknown then
+               Error ("bad parameter for " & Coverage_Option_Short);
+               return;
+            end if;
+            Set_Coverage_Level (Level);
+            Arg_Index := Arg_Index + 1;
 
-      elsif Begins_With (Argument (Arg_Index), Coverage_Option) then
-         Level := To_Coverage_Level (Option_Parameter (Argument (Arg_Index)));
-         if Level = Unknown then
-            Error ("bad parameter for " & Coverage_Option);
-            return;
-         end if;
-         Set_Coverage_Level (Level);
+         elsif Begins_With (Arg, Coverage_Option) then
+            Level := To_Coverage_Level (Option_Parameter (Arg));
+            if Level = Unknown then
+               Error ("bad parameter for " & Coverage_Option);
+               return;
+            end if;
+            Set_Coverage_Level (Level);
 
-      else
-         exit;
-      end if;
+         elsif Begins_With (Arg, ALI_List_Option) then
+            ALI_List_Filename :=
+              new String'(Option_Parameter (Arg));
+
+         elsif Arg = Routine_List_Option_Short then
+            if Arg_Index > Arg_Count then
+               Put_Line ("Missing function list parameter to "
+                         & Routine_List_Option_Short);
+               return;
+            end if;
+            Routine_List_Filename := new String'(Arg);
+            Arg_Index := Arg_Index + 1;
+
+         elsif Begins_With (Arg, Routine_List_Option) then
+            Routine_List_Filename := new String'(Option_Parameter (Arg));
+
+         else
+            exit;
+         end if;
+      end;
       Arg_Index := Arg_Index + 1;
    end loop;
 
@@ -293,40 +314,7 @@ begin
             return;
          end if;
 
-         for I in Arg_Index + 1 .. Arg_Count loop
-            declare
-               Arg : constant String := Argument (I);
-            begin
-
-               if Begins_With (Arg, ALI_List_Option) then
-                  ALI_List_Filename := new String'(Option_Parameter (Arg));
-
-               elsif Begins_With (Arg, Decision_Map_Option) then
-                  Decision_Map_Filename :=
-                    new String'(Option_Parameter (Arg));
-
-               elsif Arg = "--exclude" then
-                  Mode_Exclude := True;
-
-               elsif Arg = "--include" then
-                  Mode_Exclude := False;
-
-               else
-                  Traces_Elf.Read_Routines_Name
-                    (Arg,
-                     Exclude   => Mode_Exclude,
-                     Keep_Open => False);
-
-                  --  Should also support using a routine names list???
-               end if;
-            end;
-         end loop;
-         Open_File (Exec, Argument (Arg_Count), Text_Start);
-         Build_Sections (Exec);
-         Build_Symbols (Exec'Unchecked_Access);
-         Load_Code_And_Traces (Exec'Unchecked_Access, Base => null);
-         Decision_Map.Analyze (ALI_List_Filename);
-         Decision_Map.Write_Map (Decision_Map_Filename.all);
+         Build_Decision_Map (Argument (Arg_Index + 1));
          return;
 
       elsif Cmd = "--dump-trace" then
@@ -472,7 +460,10 @@ begin
             Flag_Show_Missing := True;
 
          elsif Begins_With (Arg, "--text-start=") then
-            --  FIXME: not yet supported.
+            --  FIXME: not yet supported???
+            --  Should be a global option (used when building decision map
+            --  for --run)???
+
             begin
                Text_Start := Parse_Hex
                  (Arg (Arg'First + 13 .. Arg'Last), "--text-start");
@@ -501,18 +492,6 @@ begin
 
          elsif Begins_With (Arg, "--source-search=") then
             Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
-
-         elsif Arg = Routine_List_Option_Short then
-            if Arg_Index > Arg_Count then
-               Put_Line ("Missing function list parameter to "
-                         & Routine_List_Option_Short);
-               return;
-            end if;
-            Routine_List_Filename := new String'(Argument (Arg_Index));
-            Arg_Index := Arg_Index + 1;
-
-         elsif Begins_With (Arg, Routine_List_Option) then
-            Routine_List_Filename := new String'(Option_Parameter (Arg));
 
          elsif Arg = Annotate_Option_Short then
             if Arg_Index > Arg_Count then
@@ -605,7 +584,7 @@ begin
    --  Read traces
 
    while Arg_Index <= Arg_Count loop
-      Init_Base (Base);
+      Init_Base (Base, Full_History => Get_Coverage_Level = MCDC);
       Trace_File := new Trace_File_Element;
       Trace_File.Filename := new String'(Argument (Arg_Index));
       Read_Trace_File (Trace_File.Filename.all,

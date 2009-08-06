@@ -20,7 +20,6 @@
 --  Source Coverage Obligations
 
 with Sources; use Sources;
-with Strings; use Strings;
 with Traces;  use Traces;
 
 package SC_Obligations is
@@ -44,7 +43,7 @@ package SC_Obligations is
    --  Return the innermost SCO whose range overlaps the given range.
    --  It is an error if multiple such SCOs exist and aren't nested.
 
-   procedure Load_SCOs (ALI_List_Filename : String_Acc);
+   procedure Load_SCOs (ALI_List_Filename : String);
    --  Load all source coverage obligations for application
 
    procedure Report_SCOs_Without_Code;

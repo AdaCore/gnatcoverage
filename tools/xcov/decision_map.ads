@@ -24,13 +24,11 @@
 --  decision coverage (DC) and modified condition/decision coverage (MC/DC)
 --  coverage properties.
 
-with Strings; use Strings;
-
 package Decision_Map is
 
-   procedure Analyze (ALI_List_Filename : String_Acc);
-   --  Build the decision map from the executable, debug information and
-   --  the Source Coverage Obligations.
+   procedure Build_Decision_Map (Exec_Name : String);
+   --  Analyze the named executable using the provided ALI list to generate
+   --  the decision map file for stateful (historical) traces collection.
 
    procedure Write_Map (Filename : String);
    --  Write the contents of the decision map to the named file
