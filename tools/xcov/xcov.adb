@@ -17,42 +17,168 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line; use Ada.Command_Line;
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Command_Line;        use Ada.Command_Line;
+with Ada.Text_IO;             use Ada.Text_IO;
 
-with Coverage; use Coverage;
-with Decision_Map; use Decision_Map;
-with Execs_Dbase; use Execs_Dbase;
+with Coverage;          use Coverage;
+with Decision_Map;      use Decision_Map;
+with Execs_Dbase;       use Execs_Dbase;
 with Elf_Files;
-with Switches; use Switches;
-with Traces; use Traces;
-with Traces_Elf; use Traces_Elf;
-with Traces_Sources; use Traces_Sources;
+with Switches;          use Switches;
+with Traces;            use Traces;
+with Traces_Elf;        use Traces_Elf;
+with Traces_Sources;    use Traces_Sources;
 with Traces_Sources.Html;
 with Traces_Sources.Xcov;
 with Traces_Sources.Report;
 with Traces_Names;
-with Traces_Files; use Traces_Files;
-with Traces_Dbase; use Traces_Dbase;
+with Traces_Files;      use Traces_Files;
+with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
 with Control_Flow_Graph;
 with Version;
 with Qemudrv;
 with Qemu_Traces;
-with Strings; use Strings;
+with Strings;           use Strings;
 with Traces_Files_List; use Traces_Files_List;
 
 procedure Xcov is
-   procedure Usage;
-   procedure Usage_Dump;
-   procedure Error (Msg : String);
-   function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
+   Fatal_Error : exception;
+   --  Cause Xcov to terminate. An error message must have been displayed
+   --  before raising this exception.
 
-   procedure Usage
+   procedure Usage;
+   --  Display usage information for documented commands
+
+   procedure Usage_Dump;
+   --  Display usage information for internal debugging commands
+
+   procedure Error (Msg : String);
+   --  Display Msg on stderr and set exit status to failure
+
+   function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
+   --  Comment needed???
+
+   type Command_Type is
+     (No_Command,
+      Disp_Routines,
+      Map_Routines,
+      Dump_Trace,
+      Dump_Trace_Base,
+      Dump_Trace_Asm,
+      Dump_Sections,
+      Dump_Symbols,
+      Dump_Compile_Units,
+      Dump_Subprograms,
+      Dump_Lines,
+      Disassemble_Raw,
+      Disassemble,
+      Show_Graph,
+      Run,
+      Help,
+      Help_Dump,
+      Version);
+
+   function To_Command (Opt_String : String) return Command_Type;
+   --  Convert a string of the form "--com-mand" to the corresponding
+   --  Command literal Com_Mand. No_Command is returned when no matching
+   --  literal exists.
+
+   function To_Switch (Command : Command_Type) return String;
+   --  Return the command-line switch form of Command
+
+   Arg_Index : Natural;
+   Arg_Count : constant Natural := Argument_Count;
+
+   ---------------
+   -- To_Switch --
+   ---------------
+
+   function To_Switch (Command : Command_Type) return String is
+      Result : String := "--" & To_Lower (Command'Img);
+   begin
+      for J in Result'Range loop
+         if Result (J) = '_' then
+            Result (J) := '-';
+         end if;
+      end loop;
+      return Result;
+   end To_Switch;
+
+   procedure Check_Argument_Available
+     (What    : String;
+      Command : Command_Type := No_Command);
+   --  Check that Arg_Index is not greater than Arg_Count. If not, display
+   --  an error message and raise Fatal_Error.
+
+   ------------------------------
+   -- Check_Argument_Available --
+   ------------------------------
+
+   procedure Check_Argument_Available
+     (What    : String;
+      Command : Command_Type := No_Command)
    is
+      function For_Command_Switch return String;
+      --  Generate command indication if Command is not No_Command
+
+      ------------------------
+      -- For_Command_Switch --
+      ------------------------
+
+      function For_Command_Switch return String is
+      begin
+         if Command = No_Command then
+            return "";
+         else
+            return "for " & To_Switch (Command);
+         end if;
+      end For_Command_Switch;
+
+   --  Start of processing for Check_Argument_Available
+
+   begin
+      if Arg_Index > Arg_Count then
+         Error ("missing " & What & " argument" & For_Command_Switch);
+         raise Fatal_Error;
+      end if;
+   end Check_Argument_Available;
+
+   ------------------------
+   -- To_Command_Literal --
+   ------------------------
+
+   function To_Command (Opt_String : String) return Command_Type is
+      Literal : String (Opt_String'First + 2 .. Opt_String'Last) :=
+                  Opt_String (Opt_String'First + 2 .. Opt_String'Last);
+   begin
+      if Opt_String (Opt_String'First .. Opt_String'First + 1) /= "--" then
+         return No_Command;
+      end if;
+
+      for J in Literal'Range loop
+         if Literal (J) = '-' then
+            Literal (J) := '_';
+         end if;
+      end loop;
+
+      begin
+         return Command_Type'Value (Literal);
+      exception
+         when Constraint_Error =>
+            return No_Command;
+      end;
+   end To_Command;
+
+   -----------
+   -- Usage --
+   -----------
+
+   procedure Usage is
       procedure P (S : String) renames Put_Line;
    begin
-      P ("usage: " & Command_Name & " ACTION");
+      P ("Usage: " & Command_Name & " ACTION");
       P ("Action is one of:");
       P (" --help  -h");
       P ("   Display this help");
@@ -76,6 +202,10 @@ procedure Xcov is
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
       New_Line;
    end Usage;
+
+   ----------------
+   -- Usage_Dump --
+   ----------------
 
    procedure Usage_Dump is
       procedure P (S : String) renames Put_Line;
@@ -104,14 +234,19 @@ procedure Xcov is
       New_Line;
    end Usage_Dump;
 
+   -----------
+   -- Error --
+   -----------
+
    procedure Error (Msg : String) is
    begin
       Put_Line (Standard_Error, Command_Name & ": " & Msg);
       Set_Exit_Status (Failure);
    end Error;
 
-   Arg_Index : Natural;
-   Arg_Count : constant Natural := Argument_Count;
+   ---------------
+   -- Parse_Hex --
+   ---------------
 
    function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
    is
@@ -141,12 +276,20 @@ procedure Xcov is
    --  If the beginning of S is equal to Beginnning, return True;
    --  otherwise, return False.
 
+   -----------------
+   -- Begins_With --
+   -----------------
+
    function Begins_With (S : String; Beginning : String) return Boolean is
       Length : constant Integer := Beginning'Length;
    begin
       return S'Length > Length
         and then S (S'First .. S'First + Length - 1) = Beginning;
    end Begins_With;
+
+   ----------------------
+   -- Option_Parameter --
+   ----------------------
 
    function Option_Parameter (S : String) return String is
    begin
@@ -189,6 +332,10 @@ procedure Xcov is
    Annotate_Option       : constant String := "--annotate=";
    Annotate_Option_Short : constant String := "-a";
 
+   --------------------------
+   -- To_Annotation_Format --
+   --------------------------
+
    function To_Annotation_Format (Option : String) return Annotation_Format is
    begin
       if Option = "asm" then
@@ -208,42 +355,72 @@ procedure Xcov is
       end if;
    end To_Annotation_Format;
 
+   Command : Command_Type := No_Command;
+
 begin
-   --  Require at least one argument.
+   --  Require at least one argument
+
    if Arg_Count = 0 then
       Usage;
       return;
    end if;
 
-   --  Decode commands
-
-   --  General command line structure:
-
-   --  1. global switches
-   --  2. command
-   --  3. command-specific switches
+   --  Decode command line up to first non-option argument
 
    Arg_Index := 1;
    while Arg_Index <= Arg_Count loop
       declare
          Arg : String renames Argument (Arg_Index);
+         Arg_Command : Command_Type := To_Command (Arg);
+
+         function Next_Arg (What : String) return String;
+         --  Increment Arg_Index then return Argument (Arg_Index). If
+         --  end of command line is reached, display an error message and
+         --  raise Constraint_Error.
+
+         --------------
+         -- Next_Arg --
+         --------------
+
+         function Next_Arg (What : String) return String is
+         begin
+            Arg_Index := Arg_Index + 1;
+            Check_Argument_Available (What);
+            return Argument (Arg_Index);
+         end Next_Arg;
+
       begin
-         if Arg = "-v" then
+         --  Special case: command aliases
+
+         if Arg = "-h" then
+            Arg_Command := Help;
+         end if;
+
+         if Arg_Command /= No_Command then
+            if Command /= No_Command then
+               Error ("only one command may be specified");
+               return;
+            end if;
+            Command := Arg_Command;
+
+            --  Special case for Disp_Routines: --exclude and --include are
+            --  processed as non-option arguments.
+
+            if Command = Disp_Routines then
+               Arg_Index := Arg_Index + 1;
+               exit;
+            end if;
+
+         elsif Arg = "-v" then
             Verbose := True;
 
          elsif Arg = Coverage_Option_Short then
-            if Arg_Index > Arg_Count then
-               Put_Line ("Missing coverage level argument for "
-                         & Coverage_Option_Short);
-               return;
-            end if;
-            Level := To_Coverage_Level (Arg);
+            Level := To_Coverage_Level (Next_Arg ("coverage level"));
             if Level = Unknown then
                Error ("bad parameter for " & Coverage_Option_Short);
                return;
             end if;
             Set_Coverage_Level (Level);
-            Arg_Index := Arg_Index + 1;
 
          elsif Begins_With (Arg, Coverage_Option) then
             Level := To_Coverage_Level (Option_Parameter (Arg));
@@ -258,205 +435,12 @@ begin
               new String'(Option_Parameter (Arg));
 
          elsif Arg = Routine_List_Option_Short then
-            if Arg_Index > Arg_Count then
-               Put_Line ("Missing function list parameter to "
-                         & Routine_List_Option_Short);
-               return;
-            end if;
-            Routine_List_Filename := new String'(Arg);
-            Arg_Index := Arg_Index + 1;
+            Routine_List_Filename := new String'(Next_Arg ("function list"));
 
          elsif Begins_With (Arg, Routine_List_Option) then
             Routine_List_Filename := new String'(Option_Parameter (Arg));
 
-         else
-            exit;
-         end if;
-      end;
-      Arg_Index := Arg_Index + 1;
-   end loop;
-
-   declare
-      Cmd : constant String := Argument (Arg_Index);
-      Mode_Exclude : Boolean := False;
-   begin
-      if Cmd = "--disp-routines" then
-         if Arg_Index = Arg_Count then
-            Error ("missing FILEs to --disp-routines");
-            return;
-         end if;
-         for I in Arg_Index + 1 .. Arg_Count loop
-            declare
-               Arg : constant String := Argument (I);
-            begin
-               if Arg = "--exclude" then
-                  Mode_Exclude := True;
-               elsif Arg = "--include" then
-                  Mode_Exclude := False;
-               else
-                  Traces_Elf.Read_Routines_Name
-                    (Arg,
-                     Exclude   => Mode_Exclude,
-                     Keep_Open => False);
-               end if;
-            exception
-               when Elf_Files.Error =>
-                  Error ("can't open: " & Arg);
-                  return;
-            end;
-         end loop;
-         Traces_Names.Disp_All_Routines;
-         return;
-
-      elsif Cmd = "--map-routines" then
-         if Arg_Index = Arg_Count then
-            Error ("missing FILEs to --map-routines");
-            return;
-         end if;
-
-         Build_Decision_Map (Argument (Arg_Index + 1));
-         return;
-
-      elsif Cmd = "--dump-trace" then
-         if Arg_Index = Arg_Count then
-            Put_Line ("missing FILENAME to --dump-trace");
-            return;
-         end if;
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Dump_Trace_File (Argument (I));
-         end loop;
-         return;
-
-      elsif Cmd = "--dump-trace-base" then
-         if Arg_Index = Arg_Count then
-            Put_Line ("missing FILENAME to --dump-trace-base");
-            return;
-         end if;
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Trace_File := new Trace_File_Element;
-            Read_Trace_File (Argument (I), Trace_File.Trace, Base);
-            Dump_Traces (Base);
-         end loop;
-         return;
-
-      elsif Cmd = "--dump-trace-asm" then
-         Arg_Index := Arg_Index + 1;
-         if Arg_Index + 1 < Arg_Count then
-            Put_Line ("missing FILENAME to --dump-trace-asm");
-            return;
-         end if;
-         Open_File (Exec, Argument (Arg_Index), Text_Start);
-         Build_Sections (Exec);
-         Build_Symbols (Exec'Unchecked_Access);
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Traces_Disa.Dump_Traces_With_Asm (Exec, Argument (I));
-         end loop;
-         return;
-
-      elsif Cmd = "--dump-sections" then
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Open_File (Exec, Argument (I), 0);
-            Build_Sections (Exec);
-            Disp_Addresses (Exec, Section_Addresses);
-            Close_File (Exec);
-         end loop;
-         return;
-
-      elsif Cmd = "--dump-symbols" then
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Open_File (Exec, Argument (I), 0);
-            Build_Sections (Exec);
-            Build_Symbols (Exec'Unchecked_Access);
-            Disp_Addresses (Exec, Symbol_Addresses);
-            Close_File (Exec);
-         end loop;
-         return;
-
-      elsif Cmd = "--dump-compile-units" then
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Open_File (Exec, Argument (I), 0);
-            Build_Sections (Exec);
-            Build_Debug_Compile_Units (Exec);
-            Disp_Compilation_Units (Exec);
-            Close_File (Exec);
-         end loop;
-         return;
-
-      elsif Cmd = "--dump-subprograms" then
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Open_File (Exec, Argument (I), 0);
-            Build_Sections (Exec);
-            Build_Debug_Compile_Units (Exec);
-            Disp_Addresses (Exec, Subprogram_Addresses);
-            Close_File (Exec);
-         end loop;
-         return;
-
-      elsif Cmd = "--dump-lines" then
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Open_File (Exec, Argument (I), 0);
-            Build_Sections (Exec);
-            Build_Debug_Lines (Exec);
-            Disp_Addresses (Exec, Line_Addresses);
-            Close_File (Exec);
-         end loop;
-         return;
-
-      elsif Cmd = "--disassemble-raw" then
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Open_File (Exec, Argument (I), 0);
-            Disassemble_File_Raw (Exec);
-            Close_File (Exec);
-         end loop;
-         return;
-
-      elsif Cmd = "--disassemble" then
-         for I in Arg_Index + 1 .. Arg_Count loop
-            Open_File (Exec, Argument (I), 0);
-            Build_Sections (Exec);
-            Build_Symbols (Exec'Unchecked_Access);
-            Disassemble_File (Exec);
-            Close_File (Exec);
-         end loop;
-         return;
-
-      elsif Cmd = "--show-graph" then
-         Arg_Index := Arg_Index + 1;
-         if Arg_Index + 1 < Arg_Count then
-            Put_Line ("missing EXE to --show-graph");
-            return;
-         end if;
-         Open_File (Exec, Argument (Arg_Index), Text_Start);
-         Build_Sections (Exec);
-         Build_Symbols (Exec'Unchecked_Access);
-         Build_Debug_Lines (Exec);
-         Control_Flow_Graph.Generate_Graph (Exec);
-         return;
-      elsif Cmd = "--run" then
-         Qemudrv.Driver (Arg_Index + 1);
-         return;
-      elsif Cmd = "-h" or else Cmd = "--help" then
-         Usage;
-         return;
-      elsif Cmd = "--help-dump" then
-         Usage_Dump;
-         return;
-      elsif Cmd = "--version" then
-         Put_Line ("XCOV Pro " & Version.Xcov_Version);
-         return;
-      end if;
-   end;
-
-   --  Here if no command is provided, just a coverage level: decode further
-   --  options specific to the coverage analysis pass.
-
-   while Arg_Index <= Arg_Count loop
-      declare
-         Arg : constant String := Argument (Arg_Index);
-      begin
-         Arg_Index := Arg_Index + 1;
-
-         if Arg = "--missing-files" then
+         elsif Arg = "--missing-files" then
             Flag_Show_Missing := True;
 
          elsif Begins_With (Arg, "--text-start=") then
@@ -494,17 +478,12 @@ begin
             Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
 
          elsif Arg = Annotate_Option_Short then
-            if Arg_Index > Arg_Count then
-               Put_Line ("Missing annotation format to"
-                         & Annotate_Option_Short);
-               return;
-            end if;
-            Annotations := To_Annotation_Format (Argument (Arg_Index));
+            Annotations :=
+              To_Annotation_Format (Next_Arg ("annotation format"));
             if Annotations = Annotate_Unknown then
                Error ("bad parameter for " & Annotate_Option_Short);
                return;
             end if;
-            Arg_Index := Arg_Index + 1;
 
          elsif Begins_With (Arg, Annotate_Option) then
             Annotations := To_Annotation_Format (Option_Parameter (Arg));
@@ -514,13 +493,8 @@ begin
             end if;
 
          elsif Arg = Final_Report_Option_Short then
-            if Arg_Index > Arg_Count then
-               Put_Line ("Missing final report name to "
-                         & Final_Report_Option_Short);
-               return;
-            end if;
-            Traces_Sources.Report.Open_Report_File (Argument (Arg_Index));
-            Arg_Index := Arg_Index + 1;
+            Traces_Sources.Report.Open_Report_File
+              (Next_Arg ("final report name"));
 
          elsif Begins_With (Arg, Final_Report_Option) then
             Traces_Sources.Report.Open_Report_File (Option_Parameter (Arg));
@@ -530,18 +504,184 @@ begin
             return;
 
          else
-            --  Not an option
-
-            Arg_Index := Arg_Index - 1;
             exit;
          end if;
       end;
+      Arg_Index := Arg_Index + 1;
    end loop;
 
-   if Arg_Index > Arg_Count then
-      Error ("missing trace files(s)");
-      return;
-   end if;
+   --  Now execute the specified command
+
+   case Command is
+      when Disp_Routines =>
+         for J in Arg_Index + 1 .. Arg_Count loop
+            declare
+               Arg : constant String := Argument (J);
+               Mode_Exclude : Boolean := False;
+            begin
+               if Arg = "--exclude" then
+                  Mode_Exclude := True;
+               elsif Arg = "--include" then
+                  Mode_Exclude := False;
+               else
+                  Traces_Elf.Read_Routines_Name
+                    (Arg,
+                     Exclude   => Mode_Exclude,
+                     Keep_Open => False);
+               end if;
+            exception
+               when Elf_Files.Error =>
+                  Error ("can't open: " & Arg);
+                  return;
+            end;
+         end loop;
+         Traces_Names.Disp_All_Routines;
+         return;
+
+      when Map_Routines =>
+         Check_Argument_Available ("EXEC", Command);
+
+         Build_Decision_Map (Argument (Arg_Index));
+         return;
+
+      when Dump_Trace =>
+         Check_Argument_Available ("TRACEFILEs", Command);
+
+         for J in Arg_Index .. Arg_Count loop
+            Dump_Trace_File (Argument (J));
+         end loop;
+         return;
+
+      when Dump_Trace_Base =>
+         Check_Argument_Available ("TRACEFILEs", Command);
+
+         for J in Arg_Index .. Arg_Count loop
+            Trace_File := new Trace_File_Element;
+            Read_Trace_File (Argument (J), Trace_File.Trace, Base);
+            Dump_Traces (Base);
+         end loop;
+         return;
+
+      when Dump_Trace_Asm =>
+         Check_Argument_Available ("EXEC", Command);
+
+         Open_File (Exec, Argument (Arg_Index), Text_Start);
+         Build_Sections (Exec);
+         Build_Symbols (Exec'Unchecked_Access);
+
+         Arg_Index := Arg_Index + 1;
+         Check_Argument_Available ("TRACEFILEs", Command);
+
+         for J in Arg_Index .. Arg_Count loop
+            Traces_Disa.Dump_Traces_With_Asm (Exec, Argument (J));
+         end loop;
+         return;
+
+      when Dump_Sections | Dump_Symbols | Dump_Subprograms | Dump_Lines =>
+         Check_Argument_Available ("EXECs", Command);
+
+         declare
+            To_Display : Addresses_Kind;
+         begin
+            for J in Arg_Index .. Arg_Count loop
+               Open_File (Exec, Argument (J), 0);
+               Build_Sections (Exec);
+
+               case Command is
+                  when Dump_Sections =>
+                     To_Display := Section_Addresses;
+
+                  when Dump_Symbols =>
+                     Build_Symbols (Exec'Unchecked_Access);
+                     To_Display := Symbol_Addresses;
+
+                  when Dump_Subprograms =>
+                     Build_Debug_Compile_Units (Exec);
+                     To_Display := Subprogram_Addresses;
+
+                  when Dump_Lines =>
+                     Build_Debug_Lines (Exec);
+                     To_Display := Line_Addresses;
+
+                  when others =>
+                     --  Never happens
+
+                     raise Program_Error;
+               end case;
+
+               Disp_Addresses (Exec, To_Display);
+               Close_File (Exec);
+            end loop;
+         end;
+         return;
+
+      when Dump_Compile_Units =>
+         Check_Argument_Available ("EXECs", Command);
+
+         for J in Arg_Index  .. Arg_Count loop
+            Open_File (Exec, Argument (J), 0);
+            Build_Sections (Exec);
+            Build_Debug_Compile_Units (Exec);
+            Disp_Compilation_Units (Exec);
+            Close_File (Exec);
+         end loop;
+         return;
+
+      when Disassemble_Raw =>
+         Check_Argument_Available ("EXECs", Command);
+
+         for J in Arg_Index .. Arg_Count loop
+            Open_File (Exec, Argument (J), 0);
+            Disassemble_File_Raw (Exec);
+            Close_File (Exec);
+         end loop;
+         return;
+
+      when Disassemble =>
+         Check_Argument_Available ("EXECs", Command);
+
+         for J in Arg_Index .. Arg_Count loop
+            Open_File (Exec, Argument (J), 0);
+            Build_Sections (Exec);
+            Build_Symbols (Exec'Unchecked_Access);
+            Disassemble_File (Exec);
+            Close_File (Exec);
+         end loop;
+         return;
+
+      when Show_Graph =>
+         Check_Argument_Available ("EXEC", Command);
+
+         Open_File (Exec, Argument (Arg_Index), Text_Start);
+         Build_Sections (Exec);
+         Build_Symbols (Exec'Unchecked_Access);
+         Build_Debug_Lines (Exec);
+         Control_Flow_Graph.Generate_Graph (Exec);
+         return;
+
+      when Run =>
+         Qemudrv.Driver (Arg_Index + 1);
+         return;
+
+      when Version =>
+         Put_Line ("XCOV Pro " & Standard.Version.Xcov_Version);
+         return;
+
+      when Help =>
+         Usage;
+         return;
+
+      when Help_Dump =>
+         Usage_Dump;
+         return;
+
+      when No_Command =>
+         null;
+   end case;
+
+   --  Here if no command is provided: perform coverage analysis
+
+   Check_Argument_Available ("TRACEFILEs");
 
    case Get_Coverage_Level is
       when Insn =>
@@ -575,8 +715,8 @@ begin
    if Routine_List_Filename /= null then
       Traces_Names.Read_Routines_Name_From_Text (Routine_List_Filename.all);
    else
-      if Arg_Index /= Arg_Count then
-         Error ("routine list required when multiple trace files");
+      if Arg_Index < Arg_Count then
+         Error ("routine list required when reading multiple trace files");
          return;
       end if;
    end if;
@@ -660,4 +800,9 @@ begin
          return;
    end case;
 
+exception
+   when Fatal_Error =>
+      --  An error message has already been displayed
+
+      null;
 end Xcov;
