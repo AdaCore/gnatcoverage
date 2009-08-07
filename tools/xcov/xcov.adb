@@ -88,29 +88,45 @@ procedure Xcov is
    function To_Switch (Command : Command_Type) return String;
    --  Return the command-line switch form of Command
 
+   type Annotation_Format is
+     (Annotate_Asm,
+      Annotate_Xcov,
+      Annotate_Html,
+      Annotate_Xcov_Asm,
+      Annotate_Html_Asm,
+      Annotate_Report,
+      Annotate_Unknown);
+
+   function To_Annotation_Format (Option : String) return Annotation_Format;
+   --  Convert annotation format option to Annotation_Format value
+
    Arg_Index : Natural;
    Arg_Count : constant Natural := Argument_Count;
-
-   ---------------
-   -- To_Switch --
-   ---------------
-
-   function To_Switch (Command : Command_Type) return String is
-      Result : String := "--" & To_Lower (Command'Img);
-   begin
-      for J in Result'Range loop
-         if Result (J) = '_' then
-            Result (J) := '-';
-         end if;
-      end loop;
-      return Result;
-   end To_Switch;
 
    procedure Check_Argument_Available
      (What    : String;
       Command : Command_Type := No_Command);
    --  Check that Arg_Index is not greater than Arg_Count. If not, display
    --  an error message and raise Fatal_Error.
+
+   function Option_Parameter (S : String) return String;
+   --  Assuming that S is of the form "<part1>=<part2>",
+   --  return "<part2>".
+
+   function Begins_With (S : String; Beginning : String) return Boolean;
+   --  If the beginning of S is equal to Beginnning, return True;
+   --  otherwise, return False.
+
+   -----------------
+   -- Begins_With --
+   -----------------
+
+   function Begins_With (S : String; Beginning : String) return Boolean is
+      Length : constant Integer := Beginning'Length;
+   begin
+      return S'Length > Length
+        and then S (S'First .. S'First + Length - 1) = Beginning;
+   end Begins_With;
 
    ------------------------------
    -- Check_Argument_Available --
@@ -145,9 +161,80 @@ procedure Xcov is
       end if;
    end Check_Argument_Available;
 
-   ------------------------
-   -- To_Command_Literal --
-   ------------------------
+   -----------
+   -- Error --
+   -----------
+
+   procedure Error (Msg : String) is
+   begin
+      Put_Line (Standard_Error, Command_Name & ": " & Msg);
+      Set_Exit_Status (Failure);
+   end Error;
+
+   ----------------------
+   -- Option_Parameter --
+   ----------------------
+
+   function Option_Parameter (S : String) return String is
+   begin
+      for J in S'Range loop
+         if S (J) = '=' then
+            return S (J + 1 .. S'Last);
+         end if;
+      end loop;
+      return S;
+   end Option_Parameter;
+
+   ---------------
+   -- Parse_Hex --
+   ---------------
+
+   function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
+   is
+      Res : Pc_Type;
+      Pos : Natural;
+   begin
+      if S'Length < 3
+        or else S (S'First) /= '0'
+        or else (S (S'First + 1) /= 'x' and then S (S'First + 1) /= 'X')
+      then
+         Error ("missing '0x' prefix for " & Flag_Name);
+         raise Constraint_Error;
+      end if;
+      Pos := S'First + 2;
+      Get_Pc (Res, S, Pos);
+      if Pos <= S'Last then
+         Error ("bad hexadecimal number for " & Flag_Name);
+      end if;
+      return Res;
+   end Parse_Hex;
+
+   --------------------------
+   -- To_Annotation_Format --
+   --------------------------
+
+   function To_Annotation_Format (Option : String) return Annotation_Format is
+   begin
+      if Option = "asm" then
+         return Annotate_Asm;
+      elsif Option = "xcov" then
+         return Annotate_Xcov;
+      elsif Option = "html" then
+         return Annotate_Html;
+      elsif Option = "xcov+asm" then
+         return Annotate_Xcov_Asm;
+      elsif Option = "html+asm" then
+         return Annotate_Html_Asm;
+      elsif Option = "report" then
+         return Annotate_Report;
+      else
+         return Annotate_Unknown;
+      end if;
+   end To_Annotation_Format;
+
+   ----------------
+   -- To_Command --
+   ----------------
 
    function To_Command (Opt_String : String) return Command_Type is
       Literal : String (Opt_String'First + 2 .. Opt_String'Last) :=
@@ -170,6 +257,21 @@ procedure Xcov is
             return No_Command;
       end;
    end To_Command;
+
+   ---------------
+   -- To_Switch --
+   ---------------
+
+   function To_Switch (Command : Command_Type) return String is
+      Result : String := "--" & To_Lower (Command'Img);
+   begin
+      for J in Result'Range loop
+         if Result (J) = '_' then
+            Result (J) := '-';
+         end if;
+      end loop;
+      return Result;
+   end To_Switch;
 
    -----------
    -- Usage --
@@ -234,72 +336,13 @@ procedure Xcov is
       New_Line;
    end Usage_Dump;
 
-   -----------
-   -- Error --
-   -----------
+   Command : Command_Type := No_Command;
+   Base : aliased Traces_Base;
+   Exec : aliased Exe_File_Type;
 
-   procedure Error (Msg : String) is
-   begin
-      Put_Line (Standard_Error, Command_Name & ": " & Msg);
-      Set_Exit_Status (Failure);
-   end Error;
-
-   ---------------
-   -- Parse_Hex --
-   ---------------
-
-   function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
-   is
-      Res : Pc_Type;
-      Pos : Natural;
-   begin
-      if S'Length < 3
-        or else S (S'First) /= '0'
-        or else (S (S'First + 1) /= 'x' and then S (S'First + 1) /= 'X')
-      then
-         Error ("missing '0x' prefix for " & Flag_Name);
-         raise Constraint_Error;
-      end if;
-      Pos := S'First + 2;
-      Get_Pc (Res, S, Pos);
-      if Pos <= S'Last then
-         Error ("bad hexadecimal number for " & Flag_Name);
-      end if;
-      return Res;
-   end Parse_Hex;
-
-   function Option_Parameter (S : String) return String;
-   --  Assuming that S is of the form "<part1>=<part2>",
-   --  return "<part2>".
-
-   function Begins_With (S : String; Beginning : String) return Boolean;
-   --  If the beginning of S is equal to Beginnning, return True;
-   --  otherwise, return False.
-
-   -----------------
-   -- Begins_With --
-   -----------------
-
-   function Begins_With (S : String; Beginning : String) return Boolean is
-      Length : constant Integer := Beginning'Length;
-   begin
-      return S'Length > Length
-        and then S (S'First .. S'First + Length - 1) = Beginning;
-   end Begins_With;
-
-   ----------------------
-   -- Option_Parameter --
-   ----------------------
-
-   function Option_Parameter (S : String) return String is
-   begin
-      for J in S'Range loop
-         if S (J) = '=' then
-            return S (J + 1 .. S'Last);
-         end if;
-      end loop;
-      return S;
-   end Option_Parameter;
+   Annotations           : Annotation_Format := Annotate_Unknown;
+   Annotate_Option       : constant String := "--annotate=";
+   Annotate_Option_Short : constant String := "-a";
 
    Routine_List_Option       : constant String := "--routine-list=";
    Routine_List_Option_Short : constant String := "-l";
@@ -313,49 +356,6 @@ procedure Xcov is
 
    Text_Start : Pc_Type := 0;
    Trace_File : Trace_File_Element_Acc;
-
-   Base : aliased Traces_Base;
-   Exec : aliased Exe_File_Type;
-
-   type Annotation_Format is
-     (Annotate_Asm,
-      Annotate_Xcov,
-      Annotate_Html,
-      Annotate_Xcov_Asm,
-      Annotate_Html_Asm,
-      Annotate_Report,
-      Annotate_Unknown);
-
-   function To_Annotation_Format (Option : String) return Annotation_Format;
-
-   Annotations           : Annotation_Format := Annotate_Unknown;
-   Annotate_Option       : constant String := "--annotate=";
-   Annotate_Option_Short : constant String := "-a";
-
-   --------------------------
-   -- To_Annotation_Format --
-   --------------------------
-
-   function To_Annotation_Format (Option : String) return Annotation_Format is
-   begin
-      if Option = "asm" then
-         return Annotate_Asm;
-      elsif Option = "xcov" then
-         return Annotate_Xcov;
-      elsif Option = "html" then
-         return Annotate_Html;
-      elsif Option = "xcov+asm" then
-         return Annotate_Xcov_Asm;
-      elsif Option = "html+asm" then
-         return Annotate_Html_Asm;
-      elsif Option = "report" then
-         return Annotate_Report;
-      else
-         return Annotate_Unknown;
-      end if;
-   end To_Annotation_Format;
-
-   Command : Command_Type := No_Command;
 
 begin
    --  Require at least one argument
