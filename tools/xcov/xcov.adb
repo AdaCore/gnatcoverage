@@ -403,10 +403,10 @@ begin
             end if;
             Command := Arg_Command;
 
-            --  Special case for Disp_Routines: --exclude and --include are
-            --  processed as non-option arguments.
+            --  Special case for Disp_Routines and Run: further command
+            --  line switches are processed outside of this loop.
 
-            if Command = Disp_Routines then
+            if Command = Disp_Routines or else Command = Run then
                Arg_Index := Arg_Index + 1;
                exit;
             end if;
