@@ -660,7 +660,9 @@ begin
          return;
 
       when Run =>
-         Qemudrv.Driver (Arg_Index + 1);
+         --  Arg_Index is designating the argument immediately following --run
+
+         Qemudrv.Driver (Arg_Index);
          return;
 
       when Version =>
