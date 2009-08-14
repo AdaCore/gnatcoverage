@@ -82,16 +82,17 @@ package body Control_Flow_Graph is
       if Cur /= No_Element then
          Res := Element (Cur);
          Res.Flag_Entry := True;
+
       else
-         Res := new Graph_Node'(Stmt => 0,
-                                Line => null,
-                                First => Pc,
-                                Last => Pc,
-                                Branch => Br_None,
+         Res := new Graph_Node'(Stmt       => 0,
+                                Line       => null,
+                                First      => Pc,
+                                Last       => Pc,
+                                Branch     => Br_None,
                                 Flag_Indir => False,
-                                Flag_Cond => False,
+                                Flag_Cond  => False,
                                 Flag_Entry => False,
-                                others => null);
+                                others     => null);
          Nodes.Insert (Pc, Res);
       end if;
    end Get_Entry;
@@ -240,9 +241,13 @@ package body Control_Flow_Graph is
             Flag_Indir, Flag_Cond : Boolean;
             Dest : Pc_Type;
             Node, Node_Ft, Node_Br : Graph_Node_Acc;
+            --  Comments needed???
+
             Insn_Len : Pc_Type;
          begin
             Get_Entry (Nodes, Pc, Node_Br);
+            --  Node_Br value obtained here is never used???
+
             while Pc < Sym.Last loop
                Insn_Len :=
                  Pc_Type (Disa_For_Machine (Machine).
@@ -280,27 +285,31 @@ package body Control_Flow_Graph is
                if Branch /= Br_None then
                   if Flag_Indir then
                      Node_Br := null;
+
                   elsif Dest not in Sym.First .. Sym.Last then
                      Node_Br := null;
+
                   else
                      Get_Entry (Nodes, Dest, Node_Br);
                   end if;
+
                   if Flag_Cond then
                      Get_Entry (Nodes, Pc + Insn_Len, Node_Ft);
+
                   else
                      Node_Ft := null;
                   end if;
 
                   if not Nodes.Contains (Pc) then
-                     Node := new Graph_Node'(Stmt => 0,
-                                             Line => null,
-                                             First => Pc,
-                                             Last => Pc + Insn_Len - 1,
-                                             Branch => Branch,
+                     Node := new Graph_Node'(Stmt       => 0,
+                                             Line       => null,
+                                             First      => Pc,
+                                             Last       => Pc + Insn_Len - 1,
+                                             Branch     => Branch,
                                              Flag_Indir => Flag_Indir,
-                                             Flag_Cond => Flag_Cond,
+                                             Flag_Cond  => Flag_Cond,
                                              Flag_Entry => False,
-                                             others => null);
+                                             others     => null);
                      Nodes.Insert (Pc, Node);
                   else
                      Node := Nodes.Element (Pc);
@@ -359,12 +368,14 @@ package body Control_Flow_Graph is
                end if;
 
                --  Skip lines starting before the current block.
+
                while Line /= null and then Line.First < C.First loop
                   Next_Iterator (Line_It, Line);
                end loop;
 
                --  If the current block starts at a new line, increase the
                --  stmt counter.
+
                if Line /= null and then C.First = Line.First then
                   C.Line := Line;
                   Stmt := Stmt + 1;
