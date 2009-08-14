@@ -28,39 +28,52 @@ with Traces; use Traces;
 with Traces_Disa;
 
 package body Control_Flow_Graph is
+
    type Graph_Node;
    type Graph_Node_Acc is access Graph_Node;
 
    type Graph_Node is record
-      --  Corresponding statement.
       Stmt : Natural;
+      --  Corresponding statement
+      --  What is this referring to???
+
       Line : Addresses_Info_Acc;
       First, Last : Pc_Type;
+      --  Comments needed???
 
       Branch : Branch_Kind;
       Flag_Indir, Flag_Cond : Boolean;
       Flag_Entry : Boolean;
+      --  Comments needed???
 
       Prev : Graph_Node_Acc;
       Next_Ft, Next_Br : Graph_Node_Acc;
       Link_Ft, Link_Br : Graph_Node_Acc;
+      --  Comments needed???
    end record;
 
    type Graph_Node_Vector is array (Natural range <>) of Graph_Node_Acc;
    type Graph_Node_Vec_Acc is access Graph_Node_Vector;
 
    package Node_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type => Pc_Type,
+     (Key_Type     => Pc_Type,
       Element_Type => Graph_Node_Acc,
-      "<" => Interfaces."<");
+      "<"          => Interfaces."<");
 
-   procedure Get_Entry (Nodes : in out Node_Maps.Map;
-                        Pc : Pc_Type;
-                        Res : out Graph_Node_Acc);
+   procedure Get_Entry
+     (Nodes : in out Node_Maps.Map;
+      Pc    : Pc_Type;
+      Res   : out Graph_Node_Acc);
+   --  Needs comments???
 
-   procedure Get_Entry (Nodes : in out Node_Maps.Map;
-                        Pc : Pc_Type;
-                        Res : out Graph_Node_Acc)
+   ---------------
+   -- Get_Entry --
+   ---------------
+
+   procedure Get_Entry
+     (Nodes : in out Node_Maps.Map;
+      Pc    : Pc_Type;
+      Res   : out Graph_Node_Acc)
    is
       use Node_Maps;
       Cur : Cursor;
@@ -83,16 +96,21 @@ package body Control_Flow_Graph is
       end if;
    end Get_Entry;
 
-   procedure Generate_Graph (Exe : Exe_File_Type)
-   is
+   --------------------
+   -- Generate_Graph --
+   --------------------
+
+   procedure Generate_Graph (Exe : Exe_File_Type) is
       use Interfaces;
 
-      It : Addresses_Iterator;
-      Sym_It : Addresses_Iterator;
+      It      : Addresses_Iterator;
+      Sym_It  : Addresses_Iterator;
       Line_It : Addresses_Iterator;
-      Sym : Addresses_Info_Acc;
-      Sec : Addresses_Info_Acc;
-      Line : Addresses_Info_Acc;
+
+      Sym     : Addresses_Info_Acc;
+      Sec     : Addresses_Info_Acc;
+      Line    : Addresses_Info_Acc;
+
       Pc, Npc : Pc_Type;
       Machine : constant Unsigned_16 := Get_Machine (Exe);
       Nodes : Node_Maps.Map;
@@ -102,8 +120,8 @@ package body Control_Flow_Graph is
          Flag_Cond  : Boolean;
          Flag_Indir : Boolean;
          Node       : Graph_Node_Acc);
-      --  Display branching instruction information for the given
-      --  control flow graph node.
+      --  Display branching instruction information for the given control flow
+      --  graph node.
 
       ------------------
       -- Print_Branch --
@@ -192,7 +210,8 @@ package body Control_Flow_Graph is
    --  Start of processing for Generate_Graph
 
    begin
-      --  Load sections.
+      --  Load sections
+
       Init_Iterator (Exe, Section_Addresses, It);
       loop
          Next_Iterator (It, Sec);
@@ -201,7 +220,7 @@ package body Control_Flow_Graph is
       end loop;
 
       Init_Iterator (Exe, Symbol_Addresses, Sym_It);
-      Init_Iterator (Exe, Line_Addresses, Line_It);
+      Init_Iterator (Exe, Line_Addresses,   Line_It);
       Next_Iterator (Line_It, Line);
       loop
          Next_Iterator (Sym_It, Sym);
@@ -301,13 +320,15 @@ package body Control_Flow_Graph is
             end loop;
          end;
 
-         --  Second pass: extend the graph blocks.
+         --  Second pass: extend the graph blocks
+
          if Nodes.Is_Empty then
-            --  There should be at least the entry point.
+            --  There should be at least the entry point
+
             raise Program_Error;
          end if;
 
-         --  Find the line for the PC.
+         --  Find the line for the PC
          --  Inefficient, should have an index of lines sorted by PC range???
 
          Pc := Sym.First;
@@ -422,8 +443,6 @@ package body Control_Flow_Graph is
                if E.Line /= null then
                   Put (", ");
                   Disp_Address (E.Line);
-                  --  Put (", line:");
-                  --  Put (Natural'Image (E.Line.Line_Number));
                end if;
                New_Line;
 
