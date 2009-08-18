@@ -222,7 +222,7 @@ static void spr_read_ibat (void *opaque, int gprn, int sprn)
 
 static void spr_read_ibat_h (void *opaque, int gprn, int sprn)
 {
-    tcg_gen_ld_tl(cpu_gpr[gprn], cpu_env, offsetof(CPUState, IBAT[sprn & 1][(sprn - SPR_IBAT4U) / 2]));
+    tcg_gen_ld_tl(cpu_gpr[gprn], cpu_env, offsetof(CPUState, IBAT[sprn & 1][4 + (sprn - SPR_IBAT4U) / 2]));
 }
 
 static void spr_write_ibatu (void *opaque, int sprn, int gprn)
@@ -234,7 +234,7 @@ static void spr_write_ibatu (void *opaque, int sprn, int gprn)
 
 static void spr_write_ibatu_h (void *opaque, int sprn, int gprn)
 {
-    TCGv_i32 t0 = tcg_const_i32((sprn - SPR_IBAT4U) / 2);
+    TCGv_i32 t0 = tcg_const_i32(4 + (sprn - SPR_IBAT4U) / 2);
     gen_helper_store_ibatu(t0, cpu_gpr[gprn]);
     tcg_temp_free_i32(t0);
 }
@@ -248,7 +248,7 @@ static void spr_write_ibatl (void *opaque, int sprn, int gprn)
 
 static void spr_write_ibatl_h (void *opaque, int sprn, int gprn)
 {
-    TCGv_i32 t0 = tcg_const_i32((sprn - SPR_IBAT4L) / 2);
+    TCGv_i32 t0 = tcg_const_i32(4 + (sprn - SPR_IBAT4L) / 2);
     gen_helper_store_ibatl(t0, cpu_gpr[gprn]);
     tcg_temp_free_i32(t0);
 }
@@ -5053,6 +5053,11 @@ static void init_proc_750gx (CPUPPCState *env)
     spr_register(env, SPR_750FX_HID2, "HID2",
                  SPR_NOACCESS, SPR_NOACCESS,
                  &spr_read_generic, &spr_write_generic,
+                 0x00000000);
+    /* Processor identification */
+    spr_register(env, SPR_PIR, "PIR",
+                 SPR_NOACCESS, SPR_NOACCESS,
+                 &spr_read_generic, &spr_write_pir,
                  0x00000000);
     /* Memory management */
     gen_low_BATs(env);
