@@ -109,9 +109,9 @@ package Traces_Elf is
      (Exec    : Exe_File_Acc;
       Base    : Traces_Base_Acc;
       Section : Binary_Content);
-   --  Build source lines for a specific section of Exec
-   --  How are traces relevant (Base)???
-   --  Uses Add_Line_State, relevant only for object coverage???
+   --  Build source lines for a specific section of Exec Sets line state
+   --  according to object coverage as determined from Base, can't be used for
+   --  source coverage???
 
    procedure Disp_Address (El : Addresses_Info_Acc);
    function Image (El : Addresses_Info_Acc) return String;
