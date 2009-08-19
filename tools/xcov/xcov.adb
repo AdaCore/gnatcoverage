@@ -22,8 +22,10 @@ with Ada.Command_Line;        use Ada.Command_Line;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with Coverage;          use Coverage;
+with Coverage.Source;   use Coverage.Source;
 with Decision_Map;      use Decision_Map;
 with Execs_Dbase;       use Execs_Dbase;
+with SC_Obligations;    use SC_Obligations;
 with Elf_Files;
 with Switches;          use Switches;
 with Traces;            use Traces;
@@ -541,6 +543,7 @@ begin
       when Map_Routines =>
          Check_Argument_Available ("EXEC", Command);
 
+         Load_SCOs (ALI_List_Filename.all);
          Build_Decision_Map (Argument (Arg_Index));
          return;
 
@@ -685,34 +688,10 @@ begin
 
    Check_Argument_Available ("TRACEFILEs");
 
-   case Get_Coverage_Level is
-      when Insn =>
-         --  Nothing left to be done after having called Set_Coverage_Level;
-         --  Set_Insn_State will call Get_Coverage_Level again to determine
-         --  what object coverage objective should be used.
-         null;
-
-      when Branch =>
-         --  Ditto.
-         null;
-
-      when Stmt =>
-         Put_Line ("Stmt coverage has not been implemented yet.");
-         return;
-
-      when Decision =>
-         Put_Line ("Decision coverage has not been implemented yet.");
-         return;
-
-      when MCDC =>
-         Put_Line ("MCDC coverage has not been implemented yet.");
-         return;
-
-      when Unknown =>
-         Error ("Please specify a coverage level.");
-         return;
-
-   end case;
+   if Get_Coverage_Level = Unknown then
+      Error ("Please specify a coverage level");
+      return;
+   end if;
 
    if Routine_List_Filename /= null then
       Traces_Names.Read_Routines_Name_From_Text (Routine_List_Filename.all);
@@ -763,13 +742,25 @@ begin
       Arg_Index := Arg_Index + 1;
    end loop;
 
-   Traces_Elf.Build_Routines_Insn_State;
+   --  Now determine coverage according to the requested metric
 
-   if Annotations /= Annotate_Asm then
-      Traces_Elf.Build_Source_Lines;
-      --  This annotates sources with object coverage information, so
-      --  definitely wrong in the case of source coverage???
-   end if;
+   case Get_Coverage_Level is
+      when Object_Coverage_Level =>
+         Traces_Elf.Build_Routines_Insn_State;
+
+         if Annotations /= Annotate_Asm then
+            Traces_Elf.Build_Source_Lines;
+         end if;
+
+      when Source_Coverage_Level =>
+         Load_SCOs (ALI_List_Filename.all);
+         Coverage.Source.Process_Traces (Base);
+
+         Error ("Source coverage is not implemented yet");
+
+      when Unknown =>
+         raise Program_Error;
+   end case;
 
    case Annotations is
       when Annotate_Asm =>

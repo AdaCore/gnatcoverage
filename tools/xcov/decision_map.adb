@@ -41,9 +41,9 @@ package body Decision_Map is
    --  The decision map is a list of code addresses, so we manage it as a
    --  trace database.
 
-   procedure Analyze (ALI_List_Filename : String);
+   procedure Analyze;
    --  Build the decision map from the executable, debug information and
-   --  the Source Coverage Obligations.
+   --  the Source Coverage Obligations (which must have been loaded already).
 
    procedure Analyze_Routine
      (Name : String_Acc;
@@ -60,9 +60,8 @@ package body Decision_Map is
    -- Analyze --
    -------------
 
-   procedure Analyze (ALI_List_Filename : String) is
+   procedure Analyze is
    begin
-      Load_SCOs (ALI_List_Filename);
       Init_Base (Decision_Map_Base, Full_History => False);
       Traces_Names.Iterate (Analyze_Routine'Access);
 
@@ -213,10 +212,6 @@ package body Decision_Map is
       --  Decision map filename is constructed by appending the suffix to the
       --  executable image name.
    begin
-      if ALI_List_Filename = null then
-         return;
-      end if;
-
       if Routine_List_Filename /= null then
          Traces_Names.Read_Routines_Name_From_Text
            (Routine_List_Filename.all);
@@ -233,7 +228,7 @@ package body Decision_Map is
       Build_Sections (Exec);
       Build_Symbols (Exec'Unchecked_Access);
       Load_Code_And_Traces (Exec'Unchecked_Access, Base => null);
-      Decision_Map.Analyze (ALI_List_Filename.all);
+      Decision_Map.Analyze;
       Decision_Map.Write_Map (Decision_Map_Filename.all);
       Close_File (Exec);
    end Build_Decision_Map;

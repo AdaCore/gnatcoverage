@@ -245,8 +245,6 @@ package body SC_Obligations is
       end case;
    end record;
 
-   subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
-
    package SCO_Vectors is
      new Ada.Containers.Vectors
        (Index_Type   => Valid_SCO_Id,

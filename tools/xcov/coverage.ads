@@ -79,15 +79,4 @@ package Coverage is
    --  Return |-separated list of all values in Known_Coverage_Level (for
    --  help message).
 
-private
-
-   type Coverage_Analyzer is abstract tagged limited null record;
-   type Coverage_Analyzer_Acc is access all Coverage_Analyzer'Class;
-   --  Coverage analysis engine for a given coverage objective
-
-   procedure Register_Coverage_Analyzer
-     (Level  : Known_Coverage_Level;
-      Engine : Coverage_Analyzer_Acc);
-   --  Set Engine as the analyzer for Level
-
 end Coverage;

@@ -17,37 +17,46 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Source Coverage Obligations
+with Ada.Containers.Vectors;
 
-with Sources; use Sources;
-with Traces;  use Traces;
+with SC_Obligations; use SC_Obligations;
 
-package SC_Obligations is
+package body Coverage.Source is
 
-   type SCO_Id is new Natural;
-   No_SCO_Id : constant SCO_Id := 0;
-   subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
+   --  For each source coverage obligation, we maintain a corresponding
+   --  source coverage information record, which denotes the coverage state of
+   --  the SCO.
 
-   type SCO_Kind is (Statement, Decision, Condition);
+   type Source_Coverage_Info
+     (Level : Source_Coverage_Level := Stmt;
+      Kind  : SCO_Kind := Statement)
+   is record
+      case Level is
+         when Stmt =>
+            Executed : Boolean;
 
-   function First_Sloc (SCO : SCO_Id) return Source_Location;
-   function Last_Sloc (SCO : SCO_Id) return Source_Location;
-   function Kind (SCO : SCO_Id) return SCO_Kind;
+         when Decision =>
+            Outcome_True, Outcome_False : Boolean;
 
-   procedure Add_Address (SCO : SCO_Id; Address : Pc_Type);
-   --  Record Address in SCO's address list
+         when MCDC =>
+            --  For decisions, the history of evaluations is recorded here
+            null;
+      end case;
+   end record;
 
-   function Image (SCO : SCO_Id) return String;
+   package SCI_Vectors is new Ada.Containers.Vectors
+       (Index_Type   => Valid_SCO_Id,
+        Element_Type => Source_Coverage_Info);
+   SCI_Vector : SCI_Vectors.Vector;
+   pragma Unreferenced (SCI_Vector);
 
-   function Slocs_To_SCO
-     (First_Sloc, Last_Sloc : Source_Location) return SCO_Id;
-   --  Return the innermost SCO whose range overlaps the given range.
-   --  It is an error if multiple such SCOs exist and aren't nested.
+   --------------------
+   -- Process_Traces --
+   --------------------
 
-   procedure Load_SCOs (ALI_List_Filename : String);
-   --  Load all source coverage obligations for application
+   procedure Process_Traces (Base : Traces_Base) is
+   begin
+      raise Program_Error with "not implemented yet";
+   end Process_Traces;
 
-   procedure Report_SCOs_Without_Code;
-   --  Output a list of conditions without associated conditional branches
-
-end SC_Obligations;
+end Coverage.Source;

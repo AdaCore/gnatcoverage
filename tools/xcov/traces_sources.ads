@@ -38,8 +38,9 @@ package Traces_Sources is
       Info : Addresses_Info_Acc;
       Base : Traces_Base_Acc;
       Exec : Exe_File_Acc);
-   --  Add File:Line to set of known source lines, with the given associated
-   --  information.
+   --  Add File:Line to set of known source lines, if it doesn't exist already.
+   --  Record the association of File:File with the given associated object
+   --  code.
 
    procedure Set_Line_State
      (File  : Source_File_Index;

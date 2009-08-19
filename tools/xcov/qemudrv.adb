@@ -25,11 +25,13 @@ with Interfaces;
 with GNAT.Command_Line; use GNAT.Command_Line;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
-with Coverage;     use Coverage;
-with Decision_Map; use Decision_Map;
-with Traces_Files; use Traces_Files;
+with Coverage;       use Coverage;
+with Decision_Map;   use Decision_Map;
+with SC_Obligations; use SC_Obligations;
+with Switches;       use Switches;
+with Traces_Files;   use Traces_Files;
 with Qemu_Traces;
-with Qemudrv_Base; use Qemudrv_Base;
+with Qemudrv_Base;   use Qemudrv_Base;
 
 package body Qemudrv is
 
@@ -228,6 +230,7 @@ package body Qemudrv is
       end;
 
       if Get_Coverage_Level = MCDC then
+         Load_SCOs (ALI_List_Filename.all);
          Build_Decision_Map (Exe_File.all);
       end if;
 
