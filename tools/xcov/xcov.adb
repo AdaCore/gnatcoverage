@@ -786,9 +786,11 @@ begin
          Traces_Sources.Html.Generate_Report (False);
 
       when Annotate_Xcov_Asm =>
+         --  Case of source coverage???
          Traces_Sources.Xcov.Generate_Report (True);
 
       when Annotate_Html_Asm =>
+         --  Case of source coverage???
          Traces_Sources.Html.Generate_Report (True);
 
       when Annotate_Report =>
