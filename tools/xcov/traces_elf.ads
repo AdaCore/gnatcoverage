@@ -44,47 +44,48 @@ package Traces_Elf is
    procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
      (Binary_Content, Binary_Content_Acc);
 
+   type Exe_File_Type is limited new Symbolizer with private;
+   type Exe_File_Acc is access all Exe_File_Type;
    --  Executable file type.
    --  Extracted information are stored into such object.
-   type Exe_File_Type is limited new Symbolizer with private;
 
-   type Exe_File_Acc is access all Exe_File_Type;
-
+   procedure Symbolize
+     (Sym      : Exe_File_Type;
+      Pc       : Traces.Pc_Type;
+      Line     : in out String;
+      Line_Pos : in out Natural);
    --  Makes symbolize non-abstract.
-   procedure Symbolize (Sym : Exe_File_Type;
-                        Pc : Traces.Pc_Type;
-                        Line : in out String;
-                        Line_Pos : in out Natural);
 
+   procedure Open_File
+     (Exec : out Exe_File_Type; Filename : String; Text_Start : Pc_Type);
    --  Open an ELF file.
    --  TEXT_START is the offset of .text section.
    --  Exception Elf_Files.Error is raised in case of error.
-   procedure Open_File
-     (Exec : out Exe_File_Type; Filename : String; Text_Start : Pc_Type);
 
+   procedure Close_Exe_File (Exec : in out Exe_File_Type);
    --  Close the ELF file.
    --  The resources are still present but nothing anymore can be read from
    --  the file.
-   procedure Close_Exe_File (Exec : in out Exe_File_Type);
 
-   --  Close file and free built informations.
    procedure Close_File (Exec : in out Exe_File_Type);
+   --  Close file and free built informations
 
-   --  Get the filename of Exec.
    function Get_Filename (Exec : Exe_File_Type) return String;
+   --  Get the filename of Exec
 
-   --  Get the machine type (ELF machine id).
    function Get_Machine (Exec : Exe_File_Type) return Interfaces.Unsigned_16;
+   --  Get the machine type (ELF machine id)
 
    type Addresses_Info;
    type Addresses_Info_Acc is access all Addresses_Info;
 
-   --  Build sections map for the current ELF file.
    procedure Build_Sections (Exec : in out Exe_File_Type);
+   --  Build sections map for the current ELF file
 
-   --  Load the content of a section.
-   procedure Load_Section_Content (Exec : Exe_File_Type;
-                                   Sec : Addresses_Info_Acc);
+   procedure Load_Section_Content
+     (Exec : Exe_File_Type;
+      Sec  : Addresses_Info_Acc);
+   --  Load the content of a section
 
    procedure Load_Code_And_Traces
      (Exec : Exe_File_Acc;
@@ -102,8 +103,8 @@ package Traces_Elf is
    procedure Build_Symbols (Exec : Exe_File_Acc);
    --  Read ELF symbol table.
 
-   --  Read dwarfs info to build lines list.
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type);
+   --  Read dwarfs info to build lines list
 
    procedure Build_Source_Lines_For_Section
      (Exec    : Exe_File_Acc;
@@ -178,15 +179,16 @@ package Traces_Elf is
      (Element_Type => Addresses_Info_Acc);
 
    type Addresses_Info (Kind : Addresses_Kind := Section_Addresses) is record
-      --  Range of the info.
+      --  Range of the info
+
       First, Last : Traces.Pc_Type;
 
+      Parent : Addresses_Info_Acc;
       --  Sections have no parent.
       --  Parent of a symbol is a section.
       --  Parent of a CU is a section.
       --  Parent of a subprogram is a CU.
       --  Parent of a line is a subprogram or a CU.
-      Parent : Addresses_Info_Acc;
 
       case Kind is
          when Section_Addresses =>
@@ -250,7 +252,8 @@ private
    subtype Sloc_Set is Sloc_Sets.Set;
 
    type Exe_File_Type is limited new Symbolizer with record
-      --  Sections index.
+      --  Sections index
+
       Sec_Symtab         : Elf_Half := SHN_UNDEF;
       Sec_Debug_Abbrev   : Elf_Half := SHN_UNDEF;
       Sec_Debug_Info     : Elf_Half := SHN_UNDEF;
@@ -265,14 +268,16 @@ private
       Exe_Machine : Elf_Half;
       Is_Big_Endian : Boolean;
 
-      --  FIXME.
+      --  FIXME
+      --  What is there to fix???
       Addr_Size : Natural := 0;
 
       Debug_Str_Base : Address := Null_Address;
       Debug_Str_Len : Elf_Size;
       Debug_Strs : Binary_Content_Acc;
 
-      --  .debug_lines content.
+      --  .debug_lines contents
+
       Lines_Len : Elf_Size := 0;
       Lines : Binary_Content_Acc := null;
 
