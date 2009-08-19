@@ -767,6 +767,8 @@ begin
 
    if Annotations /= Annotate_Asm then
       Traces_Elf.Build_Source_Lines;
+      --  This annotates sources with object coverage information, so
+      --  definitely wrong in the case of source coverage???
    end if;
 
    case Annotations is
