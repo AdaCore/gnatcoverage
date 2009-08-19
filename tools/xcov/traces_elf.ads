@@ -222,14 +222,16 @@ package Traces_Elf is
 
    procedure Build_Routines_Insn_State;
    --  Go through the routine database and, for each routine, compute the
-   --  state of its trace. This should be used only when the subroutine
+   --  state of its trace.
+   --  What is "the trace of a routine"???
+   --  This should be used only when the subroutine
    --  database has been populated with its traces.
 
    procedure Disassemble_File_Raw (File : in out Exe_File_Type);
-   --  Simply disassemble the file.  Debug subprogram.
+   --  Disassemble the file (for debugging purposes)
 
    procedure Disassemble_File (File : in out Exe_File_Type);
-   --  Disassemble file with labels.  Debug subprogram.
+   --  Disassemble file with labels (for debugging purposes)
 
 private
 
