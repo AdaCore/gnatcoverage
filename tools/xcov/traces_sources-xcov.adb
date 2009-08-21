@@ -22,6 +22,7 @@ with Ada.Directories;
 with Hex_Images; use Hex_Images;
 with Traces_Disa; use Traces_Disa;
 with Coverage; use Coverage;
+with Outputs; use Outputs;
 
 package body Traces_Sources.Xcov is
    type Xcov_Pretty_Printer is new Pretty_Printer with record
@@ -68,7 +69,7 @@ package body Traces_Sources.Xcov is
          Output_Filename : constant String :=
            Simple_Name (Source_Filename) & ".xcov";
       begin
-         Create (Pp.Xcov_File, Out_File, Output_Filename);
+         Create_Output_File (Pp.Xcov_File, Output_Filename);
       exception
          when Ada.Text_IO.Name_Error =>
             Put_Line (Standard_Error,

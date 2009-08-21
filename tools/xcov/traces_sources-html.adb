@@ -25,6 +25,7 @@ with Traces_Files;
 with Traces_Files_List;
 with Qemu_Traces;
 with Coverage; use Coverage;
+with Outputs; use Outputs;
 
 package body Traces_Sources.Html is
    type String_Cst_Acc is access constant String;
@@ -188,7 +189,7 @@ package body Traces_Sources.Html is
          );
 
    begin
-      Create (F, Out_File, "xcov.css");
+      Create_Output_File (F, "xcov.css");
       Put (F, CSS);
       Close (F);
    exception
@@ -319,7 +320,7 @@ package body Traces_Sources.Html is
       end if;
 
       begin
-         Create (Pp.Html_File, Out_File, Output_Filename);
+         Create_Output_File (Pp.Html_File, Output_Filename);
       exception
          when Ada.Text_IO.Name_Error =>
             Put_Line (Standard_Error,
@@ -605,7 +606,7 @@ package body Traces_Sources.Html is
 
    begin
       begin
-         Create (Pp.Index_File, Out_File, "index.html");
+         Create_Output_File (Pp.Index_File, "index.html");
       exception
          when Ada.Text_IO.Name_Error =>
             Put_Line (Standard_Error,

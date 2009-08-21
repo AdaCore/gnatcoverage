@@ -22,6 +22,7 @@ with Ada.Command_Line;        use Ada.Command_Line;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with Coverage;          use Coverage;
+with Outputs;           use Outputs;
 with Coverage.Source;   use Coverage.Source;
 with Decision_Map;      use Decision_Map;
 with Execs_Dbase;       use Execs_Dbase;
@@ -46,18 +47,12 @@ with Strings;           use Strings;
 with Traces_Files_List; use Traces_Files_List;
 
 procedure Xcov is
-   Fatal_Error : exception;
-   --  Cause Xcov to terminate. An error message must have been displayed
-   --  before raising this exception.
 
    procedure Usage;
    --  Display usage information for documented commands
 
    procedure Usage_Dump;
    --  Display usage information for internal debugging commands
-
-   procedure Error (Msg : String);
-   --  Display Msg on stderr and set exit status to failure
 
    function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
    --  Comment needed???
@@ -158,20 +153,9 @@ procedure Xcov is
 
    begin
       if Arg_Index > Arg_Count then
-         Error ("missing " & What & " argument" & For_Command_Switch);
-         raise Fatal_Error;
+         Fatal_Error ("missing " & What & " argument" & For_Command_Switch);
       end if;
    end Check_Argument_Available;
-
-   -----------
-   -- Error --
-   -----------
-
-   procedure Error (Msg : String) is
-   begin
-      Put_Line (Standard_Error, Command_Name & ": " & Msg);
-      Set_Exit_Status (Failure);
-   end Error;
 
    ----------------------
    -- Option_Parameter --
@@ -200,13 +184,12 @@ procedure Xcov is
         or else S (S'First) /= '0'
         or else (S (S'First + 1) /= 'x' and then S (S'First + 1) /= 'X')
       then
-         Error ("missing '0x' prefix for " & Flag_Name);
-         raise Constraint_Error;
+         Fatal_Error ("missing '0x' prefix for " & Flag_Name);
       end if;
       Pos := S'First + 2;
       Get_Pc (Res, S, Pos);
       if Pos <= S'Last then
-         Error ("bad hexadecimal number for " & Flag_Name);
+         Fatal_Error ("bad hexadecimal number for " & Flag_Name);
       end if;
       return Res;
    end Parse_Hex;
@@ -304,6 +287,7 @@ procedure Xcov is
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
+      P ("   --output-dir=DIR              Generate reports in DIR");
       New_Line;
    end Usage;
 
@@ -356,6 +340,8 @@ procedure Xcov is
    Final_Report_Option       : constant String := "--report=";
    Final_Report_Option_Short : constant String := "-o";
 
+   Output_Dir_Option       : constant String := "--output-dir=";
+
    Text_Start : Pc_Type := 0;
    Trace_File : Trace_File_Element_Acc;
 
@@ -400,8 +386,7 @@ begin
 
          if Arg_Command /= No_Command then
             if Command /= No_Command then
-               Error ("only one command may be specified");
-               return;
+               Fatal_Error ("only one command may be specified");
             end if;
             Command := Arg_Command;
 
@@ -419,16 +404,14 @@ begin
          elsif Arg = Coverage_Option_Short then
             Level := To_Coverage_Level (Next_Arg ("coverage level"));
             if Level = Unknown then
-               Error ("bad parameter for " & Coverage_Option_Short);
-               return;
+               Fatal_Error ("bad parameter for " & Coverage_Option_Short);
             end if;
             Set_Coverage_Level (Level);
 
          elsif Begins_With (Arg, Coverage_Option) then
             Level := To_Coverage_Level (Option_Parameter (Arg));
             if Level = Unknown then
-               Error ("bad parameter for " & Coverage_Option);
-               return;
+               Fatal_Error ("bad parameter for " & Coverage_Option);
             end if;
             Set_Coverage_Level (Level);
 
@@ -469,8 +452,9 @@ begin
                   end if;
                end loop;
                if Pos = 0 then
-                  Error ("missing '=' in --source-rebase=");
-                  return;
+                  Fatal_Error ("missing '=' in --source-rebase=");
+                  --  ??? Shouldn't this be:
+                  --  "missing arg in --source-rebase"
                end if;
                Add_Source_Rebase (Arg (Arg'First + 16 .. Pos - 1),
                                   Arg (Pos + 1 .. Arg'Last));
@@ -483,15 +467,13 @@ begin
             Annotations :=
               To_Annotation_Format (Next_Arg ("annotation format"));
             if Annotations = Annotate_Unknown then
-               Error ("bad parameter for " & Annotate_Option_Short);
-               return;
+               Fatal_Error ("bad parameter for " & Annotate_Option_Short);
             end if;
 
          elsif Begins_With (Arg, Annotate_Option) then
             Annotations := To_Annotation_Format (Option_Parameter (Arg));
             if Annotations = Annotate_Unknown then
-               Error ("bad parameter for " & Annotate_Option);
-               return;
+               Fatal_Error ("bad parameter for " & Annotate_Option);
             end if;
 
          elsif Arg = Final_Report_Option_Short then
@@ -501,9 +483,11 @@ begin
          elsif Begins_With (Arg, Final_Report_Option) then
             Traces_Sources.Report.Open_Report_File (Option_Parameter (Arg));
 
+         elsif Begins_With (Arg, Output_Dir_Option) then
+            Outputs.Set_Output_Dir (Option_Parameter (Arg));
+
          elsif Arg (1) = '-' then
-            Error ("unknown option: " & Arg);
-            return;
+            Fatal_Error ("unknown option: " & Arg);
 
          else
             exit;
@@ -798,7 +782,7 @@ begin
    end case;
 
 exception
-   when Fatal_Error =>
+   when Fatal_Error_Exc =>
       --  An error message has already been displayed
 
       null;
