@@ -35,6 +35,29 @@ package body Sources is
 
    Filename_Map : Filename_Maps.Map;
 
+   --  Source rebase/search types
+
+   type Source_Search_Entry;
+   type Source_Search_Entry_Acc is access Source_Search_Entry;
+   type Source_Search_Entry is record
+      Prefix : String_Acc;
+      Next : Source_Search_Entry_Acc;
+   end record;
+
+   type Source_Rebase_Entry;
+   type Source_Rebase_Entry_Acc is access Source_Rebase_Entry;
+   type Source_Rebase_Entry is record
+      Old_Prefix : String_Acc;
+      New_Prefix : String_Acc;
+      Next : Source_Rebase_Entry_Acc;
+   end record;
+
+   First_Source_Rebase_Entry : Source_Rebase_Entry_Acc := null;
+   Last_Source_Rebase_Entry  : Source_Rebase_Entry_Acc := null;
+
+   First_Source_Search_Entry : Source_Search_Entry_Acc := null;
+   Last_Source_Search_Entry  : Source_Search_Entry_Acc := null;
+
    ---------
    -- "<" --
    ---------
@@ -72,6 +95,42 @@ package body Sources is
    begin
       return L < R or else L = R;
    end "<=";
+
+   -----------------------
+   -- Add_Source_Search --
+   -----------------------
+
+   procedure Add_Source_Search (Prefix : String)
+   is
+      E : Source_Search_Entry_Acc;
+   begin
+      E := new Source_Search_Entry'(Prefix => new String'(Prefix),
+                                    Next => null);
+      if First_Source_Search_Entry = null then
+         First_Source_Search_Entry := E;
+      else
+         Last_Source_Search_Entry.Next := E;
+      end if;
+      Last_Source_Search_Entry := E;
+   end Add_Source_Search;
+
+   -----------------------
+   -- Add_Source_Rebase --
+   -----------------------
+
+   procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String) is
+      E : Source_Rebase_Entry_Acc;
+   begin
+      E := new Source_Rebase_Entry'(Old_Prefix => new String'(Old_Prefix),
+                                    New_Prefix => new String'(New_Prefix),
+                                    Next => null);
+      if First_Source_Rebase_Entry = null then
+         First_Source_Rebase_Entry := E;
+      else
+         Last_Source_Rebase_Entry.Next := E;
+      end if;
+      Last_Source_Rebase_Entry := E;
+   end Add_Source_Rebase;
 
    ---------------
    -- Get_Index --
@@ -121,5 +180,83 @@ package body Sources is
            & ":" & Trim (Sloc.Column'Img, Both);
       end if;
    end Image;
+
+   ----------
+   -- Open --
+   ----------
+
+   procedure Open
+     (File    : in out File_Type;
+      Index   : Source_File_Index;
+      Success : out Boolean)
+   is
+
+      procedure Try_Open
+        (File    : in out File_Type;
+         Name    : String;
+         Success : out Boolean);
+      --  Try to open Name, with no rebase/search information. In case of
+      --  a success,
+
+      --------------
+      -- Try_Open --
+      --------------
+
+      procedure Try_Open
+        (File    : in out File_Type;
+         Name    : String;
+         Success : out Boolean) is
+      begin
+         Open (File, In_File, Name);
+         Success := True;
+      exception
+         when Name_Error =>
+            Success := False;
+      end Try_Open;
+
+      Name : constant String := Get_Name (Index);
+   begin
+      --  Try original path
+
+      Try_Open (File, Name, Success);
+
+      --  Try to rebase
+
+      if not Success then
+         declare
+            E : Source_Rebase_Entry_Acc := First_Source_Rebase_Entry;
+            First : constant Positive := Name'First;
+         begin
+            while E /= null loop
+               if Name'Length > E.Old_Prefix'Length
+                 and then (Name (First .. First + E.Old_Prefix'Length - 1)
+                           = E.Old_Prefix.all)
+               then
+                  Try_Open (File,
+                            E.New_Prefix.all
+                            & Name (First + E.Old_Prefix'Length
+                                    .. Name'Last),
+                            Success);
+                  exit when Success;
+               end if;
+               E := E.Next;
+            end loop;
+         end;
+      end if;
+
+      --  Try source path
+
+      if not Success then
+         declare
+            E : Source_Search_Entry_Acc := First_Source_Search_Entry;
+         begin
+            while E /= null loop
+               Try_Open (File, E.Prefix.all & '/' & Name, Success);
+               exit when Success;
+               E := E.Next;
+            end loop;
+         end;
+      end if;
+   end Open;
 
 end Sources;

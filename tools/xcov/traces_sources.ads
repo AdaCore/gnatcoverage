@@ -17,30 +17,19 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
-
-with Traces;         use Traces;
 with Traces_Elf;     use Traces_Elf;
 with Traces_Dbase;   use Traces_Dbase;
-with Disa_Symbolize; use Disa_Symbolize;
-with Traces_Stats;   use Traces_Stats;
 with Traces_Lines;   use Traces_Lines;
+with Traces_Stats;   use Traces_Stats;
 with Types;          use Types;
 
 package Traces_Sources is
 
-   procedure New_Source_File (File : Source_File_Index);
-   --  Initialize entry for File in source files table
-
-   procedure Add_Line
-     (File : Source_File_Index;
-      Line : Natural;
-      Info : Addresses_Info_Acc;
-      Base : Traces_Base_Acc;
-      Exec : Exe_File_Acc);
-   --  Add File:Line to set of known source lines, if it doesn't exist already.
-   --  Record the association of File:File with the given associated object
-   --  code.
+   procedure New_Line
+     (File  : Source_File_Index;
+      Line  : Natural);
+   --  Add File:Line to the subset of lines considered by the coverage
+   --  operation. Initialize it to a no-code line.
 
    procedure Set_Line_State
      (File  : Source_File_Index;
@@ -53,101 +42,11 @@ package Traces_Sources is
       Line : Natural) return Line_State;
    --  Return the current coverage state of File:Line
 
-   Flag_Show_Missing : Boolean := False;
-   --  If True, Disp_Line_State displays info for files that are not found
-   --  Why isn't this a parameter of Disp_Line_State???
-
-   procedure Disp_File_Summary;
-   --  Display per-file summary
-
-   procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String);
-   --  Needs comment???
-
-   procedure Add_Source_Search (Prefix : String);
-   --  Needs comment???
-
-   procedure Dump_Routines_Traces;
-   --  Needs comment???
-
-   procedure Dump_Uncovered_Routines (Report : File_Access);
-   --  Go through the routine database and dump the list of uncovered
-   --  routines into Report.
-   --  Uses Compute_Routine_State, relevant only for object coverage???
-   --  Not relevant to Traces_Sources???
-
 private
-   type Line_Chain;
-   type Line_Chain_Acc is access Line_Chain;
-
-   type Line_Chain is record
-      Line : Addresses_Info_Acc;
-      Base : Traces_Base_Acc;
-      Exec : Exe_File_Acc;
-      Link : Line_Chain_Acc;
-   end record;
-
-   --  Data associated with a SLOC
-   --  To a Sloc or to a line???
-
-   type Line_Info is record
-      State : Line_State;
-      --  Coverage state
-
-      First_Line, Last_Line : Line_Chain_Acc;
-      --  Object code for this line.
-      --  Confusing names, this record is related to a single line so why
-      --  does it have a first line and a last line???
-   end record;
 
    Global_Stats : Stat_Array := (others => 0);
-   --  Stats associated to the whole set of source files that this package
+   --  Stats associated with the whole set of source files that this package
    --  considers (i.e. total numbers of lines, of partially covered /
    --  not covered / fully covered lines...)
-
-   type Pretty_Printer is abstract tagged limited record
-      Need_Sources : Boolean;
-      Show_Asm     : Boolean;
-   end record;
-
-   procedure Pretty_Print_Start
-     (Pp : in out Pretty_Printer) is null;
-   --  Called once at the beginning of the process
-
-   procedure Pretty_Print_Finish
-     (Pp : in out Pretty_Printer) is null;
-   --  Called once at the end of the process
-
-   procedure Pretty_Print_File
-     (Pp              : in out Pretty_Printer;
-      Source_Filename : String;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean) is abstract;
-   --  Called at the beginning of a source file display
-
-   --  Subprograms below need comments???
-
-   procedure Pretty_Print_Line
-     (Pp       : in out Pretty_Printer;
-      Line_Num : Natural;
-      State    : Line_State;
-      Line     : String) is abstract;
-
-   procedure Pretty_Print_Label
-     (Pp    : in out Pretty_Printer;
-      Label : String) is null;
-
-   procedure Pretty_Print_Insn
-     (Pp    : in out Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class) is null;
-
-   procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
-
-   procedure Disp_Line_State
-     (Pp       : in out Pretty_Printer'Class;
-      Show_Asm : Boolean);
 
 end Traces_Sources;

@@ -23,7 +23,7 @@ with Hex_Images;  use Hex_Images;
 with Strings;     use Strings;
 with Traces_Disa; use Traces_Disa;
 
-package body Traces_Sources.Report is
+package body Traces_Sources.Annotations.Report is
 
    type Final_Report_Type is limited record
       Name   : String_Acc := null;
@@ -166,7 +166,7 @@ package body Traces_Sources.Report is
       Put_Line (Output.all, "ERRORS BY SOURCE LINE:");
       New_Line (Output.all);
 
-      Traces_Sources.Disp_Line_State (Report_PP, False);
+      Traces_Sources.Annotations.Disp_Line_State (Report_PP, False);
       Close_Report_File;
    end Finalize_Report;
 
@@ -197,4 +197,4 @@ package body Traces_Sources.Report is
       end if;
    end Get_Output;
 
-end Traces_Sources.Report;
+end Traces_Sources.Annotations.Report;

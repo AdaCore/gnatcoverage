@@ -19,6 +19,7 @@
 
 with Ada.Integer_Text_IO;
 with Ada.Directories;
+with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Traces_Disa; use Traces_Disa;
 with Traces_Files;
@@ -27,7 +28,7 @@ with Qemu_Traces;
 with Coverage; use Coverage;
 with Outputs; use Outputs;
 
-package body Traces_Sources.Html is
+package body Traces_Sources.Annotations.Html is
    type String_Cst_Acc is access constant String;
    subtype S is String;
 
@@ -206,7 +207,7 @@ package body Traces_Sources.Html is
       Html : Html_Pretty_Printer;
    begin
       Html.Show_Asm := Show_Asm;
-      Traces_Sources.Disp_Line_State (Html, Show_Asm);
+      Traces_Sources.Annotations.Disp_Line_State (Html, Show_Asm);
    end Generate_Report;
 
    ---------------------
@@ -408,7 +409,7 @@ package body Traces_Sources.Html is
       Pi ("<li> the name of the executable that has been used to");
       Pi ("    generate it;");
       Pi ("<li> when it has been generated;");
-      Pi ("<li> the tag that has been associated to this run, if any.");
+      Pi ("<li> the tag that has been associated with this run, if any.");
       Pi ("</ul>");
       Pi ("<br/>");
 
@@ -882,4 +883,4 @@ package body Traces_Sources.Html is
       Put (Pp.Html_File, Str);
    end Wrh;
 
-end Traces_Sources.Html;
+end Traces_Sources.Annotations.Html;

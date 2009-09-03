@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                      Copyright (C) 2008-2009, AdaCore                    --
+--                     Copyright (C) 2008-2009, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,35 +16,47 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO;
 with Ada.Directories;
+with Hex_Images; use Hex_Images;
+with Traces_Disa; use Traces_Disa;
+with Coverage; use Coverage;
+with Outputs; use Outputs;
 
-package body Traces_Sources.Gcov is
-   type Gcov_Pretty_Printer is new Pretty_Printer with record
-      Gcov_File : Ada.Text_IO.File_Type;
+package body Traces_Sources.Annotations.Xcov is
+   type Xcov_Pretty_Printer is new Pretty_Printer with record
+      Xcov_File : Ada.Text_IO.File_Type;
    end record;
 
-   procedure Pretty_Print_File (Pp : in out Gcov_Pretty_Printer;
+   procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
                                 Has_Source : Boolean;
                                 Skip : out Boolean);
 
-   procedure Pretty_Print_Line (Pp : in out Gcov_Pretty_Printer;
+   procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;
                                 Line_Num : Natural;
                                 State : Line_State;
                                 Line : String);
 
-   procedure Pretty_Print_End_File (Pp : in out Gcov_Pretty_Printer);
+   procedure Pretty_Print_Label (Pp : in out Xcov_Pretty_Printer;
+                                 Label : String);
+   procedure Pretty_Print_Insn (Pp : in out Xcov_Pretty_Printer;
+                                Pc : Pc_Type;
+                                State : Insn_State;
+                                Insn : Binary_Content;
+                                Sym : Symbolizer'Class);
 
-   procedure Pretty_Print_File (Pp : in out Gcov_Pretty_Printer;
+   procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer);
+
+   procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
                                 Source_Filename : String;
                                 Stats : Stat_Array;
                                 Has_Source : Boolean;
                                 Skip : out Boolean)
    is
-      pragma Unreferenced (Stats);
       use Ada.Directories;
    begin
       Skip := True;
@@ -56,9 +68,9 @@ package body Traces_Sources.Gcov is
 
       declare
          Output_Filename : constant String :=
-           Simple_Name (Source_Filename) & ".gcov";
+           Simple_Name (Source_Filename) & ".xcov";
       begin
-         Create (Pp.Gcov_File, Out_File, Output_Filename);
+         Create_Output_File (Pp.Xcov_File, Output_Filename);
       exception
          when Ada.Text_IO.Name_Error =>
             Put_Line (Standard_Error,
@@ -68,46 +80,60 @@ package body Traces_Sources.Gcov is
 
       Skip := False;
 
-      Put_Line (Pp.Gcov_File, "        -:    0:Source:" & Source_Filename);
+      Put_Line (Pp.Xcov_File, Source_Filename & ':');
+      Put_Line (Pp.Xcov_File, Get_Stat_String (Stats));
+      Put_Line (Pp.Xcov_File, "Coverage level: "
+                & To_Coverage_Option (Get_Coverage_Level));
    end Pretty_Print_File;
 
-   procedure Pretty_Print_Line (Pp : in out Gcov_Pretty_Printer;
+   procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;
                                 Line_Num : Natural;
                                 State : Line_State;
                                 Line : String)
    is
       use Ada.Integer_Text_IO;
    begin
-      case State is
-         when No_Code =>
-            Put (Pp.Gcov_File, "        -");
-         when Partially_Covered
-           | Covered
-           | Branch_Covered
-           | Branch_Taken
-           | Branch_Fallthrough
-           | Covered_No_Branch =>
-            Put (Pp.Gcov_File, "        1");
-         when Not_Covered =>
-            Put (Pp.Gcov_File, "    #####");
-      end case;
-      Put (Pp.Gcov_File, ':');
-      Put (Pp.Gcov_File, Line_Num, 5);
-      Put (Pp.Gcov_File, ":");
-      Put (Pp.Gcov_File, Line);
-      New_Line (Pp.Gcov_File);
+      Put (Pp.Xcov_File, Line_Num, 4);
+      Put (Pp.Xcov_File, ' ');
+      Put (Pp.Xcov_File, State_Char (State));
+      Put (Pp.Xcov_File, ": ");
+      Put (Pp.Xcov_File, Line);
+      New_Line (Pp.Xcov_File);
    end Pretty_Print_Line;
 
-   procedure Pretty_Print_End_File (Pp : in out Gcov_Pretty_Printer) is
+   procedure Pretty_Print_Label (Pp : in out Xcov_Pretty_Printer;
+                                 Label : String) is
    begin
-      Close (Pp.Gcov_File);
+      Put_Line (Pp.Xcov_File, Label);
+   end Pretty_Print_Label;
+
+   procedure Pretty_Print_Insn (Pp : in out Xcov_Pretty_Printer;
+                                Pc : Pc_Type;
+                                State : Insn_State;
+                                Insn : Binary_Content;
+                                Sym : Symbolizer'Class)
+   is
+   begin
+      Put (Pp.Xcov_File, Hex_Image (Pc));
+      Put (Pp.Xcov_File, ' ' & Insn_State_Char (State) & ":  ");
+      for I in Insn'Range loop
+         Put (Pp.Xcov_File, Hex_Image (Insn (I)));
+         Put (Pp.Xcov_File, " ");
+      end loop;
+      Put (Pp.Xcov_File, " ");
+      Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Sym));
+   end Pretty_Print_Insn;
+
+   procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer) is
+   begin
+      Close (Pp.Xcov_File);
    end Pretty_Print_End_File;
 
-   procedure Generate_Report
+   procedure Generate_Report (Show_Asm : Boolean)
    is
-      Gcov : Gcov_Pretty_Printer;
+      Xcov : Xcov_Pretty_Printer;
    begin
-      Traces_Sources.Disp_Line_State (Gcov);
+      Traces_Sources.Annotations.Disp_Line_State (Xcov, Show_Asm);
    end Generate_Report;
 
-end Traces_Sources.Gcov;
+end Traces_Sources.Annotations.Xcov;

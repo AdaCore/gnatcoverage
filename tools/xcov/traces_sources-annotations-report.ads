@@ -17,7 +17,9 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-package Traces_Sources.Report is
+with Ada.Text_IO; use Ada.Text_IO;
+
+package Traces_Sources.Annotations.Report is
    --  Generate the final report, source-wise.
 
    procedure Open_Report_File (Final_Report_Name : String);
@@ -26,4 +28,4 @@ package Traces_Sources.Report is
 
    procedure Finalize_Report;
 
-end Traces_Sources.Report;
+end Traces_Sources.Annotations.Report;

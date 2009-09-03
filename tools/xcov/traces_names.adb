@@ -19,6 +19,7 @@
 
 with Ada.Containers.Ordered_Maps;
 with Ada.Text_IO; use Ada.Text_IO;
+with Coverage.Object; use Coverage.Object;
 with Interfaces;
 
 with Traces;
@@ -159,6 +160,55 @@ package body Traces_Names is
                          Insns  => null,
                          Traces => null));
    end Add_Routine_Name;
+
+   ---------------------------
+   -- Compute_Routine_State --
+   ---------------------------
+
+   use Traces;
+
+   function Compute_Routine_State
+     (Insns  : Binary_Content_Acc;
+      Traces : Traces_Base_Acc) return Line_State
+   is
+      use type Interfaces.Unsigned_32;
+      State : Line_State := No_Code;
+      Addr  : Pc_Type;
+      It    : Entry_Iterator;
+      T     : Trace_Entry;
+   begin
+      if Insns = null then
+         --  The routine was not found in the executable
+
+         return Not_Covered;
+
+      else
+         Init (Traces.all, It, 0);
+
+         Addr := Insns'First;
+
+         loop
+            Get_Next_Trace (T, It);
+            exit when T = Bad_Trace;
+            if T.First > Addr then
+               Update_Line_State (State, Not_Covered);
+               exit;
+            end if;
+            Update_Line_State (State, T.State);
+            Addr := T.Last + 1;
+         end loop;
+
+         if Addr < Insns'Last then
+            Update_Line_State (State, Not_Covered);
+         end if;
+
+         if State = No_Code then
+            return Not_Covered;
+         else
+            return State;
+         end if;
+      end if;
+   end Compute_Routine_State;
 
    -----------------------
    -- Disp_All_Routines --

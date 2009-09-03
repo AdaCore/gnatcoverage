@@ -22,7 +22,8 @@
 private with Ada.Containers.Vectors;
 private with Strings;
 
-with Types; use Types;
+with Ada.Text_IO; use Ada.Text_IO;
+with Types;       use Types;
 
 package Sources is
 
@@ -33,6 +34,30 @@ package Sources is
 
    function Get_Index (Name : String) return Source_File_Index;
    function Get_Name (Index : Source_File_Index) return String;
+
+   --  Utilities to open files from the source file table. Source
+   --  files will be searched on the local filesystem, in the following
+   --  order:
+   --  (1) from xcov's execution directory;
+   --  (2) after rebasing them using the rebase list;
+   --  (3) from the source search path.
+
+   procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String);
+   --  Add a new entry to the rebase list.  This entry says that a file
+   --  whose name is Old_Prefix & "something" should be found in
+   --  New_Prefix & "something".
+
+   procedure Add_Source_Search (Prefix : String);
+   --  Add Prefix to the source search path. A file named "something" would
+   --  be looked for in Prefix & "something".
+
+   procedure Open
+     (File    : in out File_Type;
+      Index   : Source_File_Index;
+      Success : out Boolean);
+   --  Try to open the file from the source file table whose index is Index,
+   --  using the rebase/search information. If one found, Success is True;
+   --  False otherwise.
 
    --  A source location within the application
 
@@ -61,5 +86,4 @@ private
      (Index_Type   => Valid_Source_File_Index,
       Element_Type => String_Acc,
       "="          => Equal);
-
 end Sources;

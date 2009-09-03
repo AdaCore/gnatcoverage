@@ -17,7 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-package Traces_Sources.Html is
-   --  Display source lines with status.
+package Traces_Sources.Annotations.Xcov is
+   --  Generate the report in xcov format.
    procedure Generate_Report (Show_Asm : Boolean);
-end Traces_Sources.Html;
+end Traces_Sources.Annotations.Xcov;

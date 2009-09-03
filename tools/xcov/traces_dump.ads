@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                      Copyright (C) 2008-2009, AdaCore                    --
+--                       Copyright (C) 2009, AdaCore                        --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,7 +17,16 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-package Traces_Sources.Gcov is
-   --  Generate the report in gcov format.
-   procedure Generate_Report;
-end Traces_Sources.Gcov;
+with Ada.Text_IO; use Ada.Text_IO;
+
+package Traces_Dump is
+
+   procedure Dump_Routines_Traces;
+   --  Go through the routine database and display their object coverage
+   --  information along with an assembly dump.
+
+   procedure Dump_Uncovered_Routines (Report : File_Access);
+   --  Go through the routine database and dump the list of uncovered
+   --  routines into Report.
+
+end Traces_Dump;

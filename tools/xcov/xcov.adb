@@ -31,11 +31,13 @@ with Elf_Files;
 with Switches;          use Switches;
 with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
-with Traces_Sources;    use Traces_Sources;
-with Traces_Sources.Html;
-with Traces_Sources.Xcov;
-with Traces_Sources.Report;
+with Sources;           use Sources;
+with Traces_Sources.Annotations; use Traces_Sources.Annotations;
+with Traces_Sources.Annotations.Html;
+with Traces_Sources.Annotations.Xcov;
+with Traces_Sources.Annotations.Report;
 with Traces_Names;
+with Traces_Dump;
 with Traces_Files;      use Traces_Files;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
@@ -477,11 +479,12 @@ begin
             end if;
 
          elsif Arg = Final_Report_Option_Short then
-            Traces_Sources.Report.Open_Report_File
+            Traces_Sources.Annotations.Report.Open_Report_File
               (Next_Arg ("final report name"));
 
          elsif Begins_With (Arg, Final_Report_Option) then
-            Traces_Sources.Report.Open_Report_File (Option_Parameter (Arg));
+            Traces_Sources.Annotations.Report.Open_Report_File
+              (Option_Parameter (Arg));
 
          elsif Begins_With (Arg, Output_Dir_Option) then
             Outputs.Set_Output_Dir (Option_Parameter (Arg));
@@ -754,27 +757,28 @@ begin
          end if;
          Traces_Disa.Flag_Show_Asm := True;
          Coverage.Dump_Coverage_Option (Standard_Output);
-         Traces_Sources.Dump_Routines_Traces;
+         Traces_Dump.Dump_Routines_Traces;
 
       when Annotate_Xcov =>
-         Traces_Sources.Xcov.Generate_Report (False);
+         Traces_Sources.Annotations.Xcov.Generate_Report (False);
 
       when Annotate_Html =>
-         Traces_Sources.Html.Generate_Report (False);
+         Traces_Sources.Annotations.Html.Generate_Report (False);
 
       when Annotate_Xcov_Asm =>
          --  Case of source coverage???
-         Traces_Sources.Xcov.Generate_Report (True);
+         Traces_Sources.Annotations.Xcov.Generate_Report (True);
 
       when Annotate_Html_Asm =>
          --  Case of source coverage???
-         Traces_Sources.Html.Generate_Report (True);
+         Traces_Sources.Annotations.Html.Generate_Report (True);
 
       when Annotate_Report =>
-         Coverage.Dump_Coverage_Option (Traces_Sources.Report.Get_Output);
-         Traces_Sources.Dump_Uncovered_Routines
-           (Traces_Sources.Report.Get_Output);
-         Traces_Sources.Report.Finalize_Report;
+         Coverage.Dump_Coverage_Option
+           (Traces_Sources.Annotations.Report.Get_Output);
+         Traces_Dump.Dump_Uncovered_Routines
+           (Traces_Sources.Annotations.Report.Get_Output);
+         Traces_Sources.Annotations.Report.Finalize_Report;
 
       when Annotate_Unknown =>
          Put_Line ("Please specify an annotation format.");

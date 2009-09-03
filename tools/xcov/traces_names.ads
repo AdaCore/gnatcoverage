@@ -20,6 +20,7 @@
 --  Management of the routines database
 
 with Traces_Dbase; use Traces_Dbase;
+with Traces_Lines; use Traces_Lines;
 with Traces_Elf; use Traces_Elf;
 with Strings; use Strings;
 
@@ -101,6 +102,12 @@ package Traces_Names is
    --
    --  (Subp_Info being the corresponding subprogram info in the routine
    --  database).
+
+   function Compute_Routine_State
+     (Insns  : Binary_Content_Acc;
+      Traces : Traces_Base_Acc) return Line_State;
+   --  Compute routine state from its object coverage information and
+   --  from its content.
 
    Consolidation_Error : exception;
    --  Raised if consolidation is not possible (eg different code for a
