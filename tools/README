@@ -1,0 +1,39 @@
+This is the root of the Couverture project source tree. This hosts
+essentially two components:
+
+     * A modified version of Qemu, instrumented to produce execution
+       traces of the programs it simulates.
+
+     * xcov, an experimental tool to produce coverage reports in various
+       forms out of the execution traces.
+
+Some documentation is available in the xcov directory: A toplevel README with
+information on the binary toolset organization and a getting started guide,
+and some extra documentation in the "doc" subdirectory.
+
+-----------------------------------
+-- Build components from sources --
+-----------------------------------
+
+* Qemu:
+
+Our source base is svn revision r6588, maintained in the qemu-r6588 subdir.
+
+First step is to "configure", with
+  --target-list=ppc-softmmu \
+  --disable-kqemu --disable-sdl --disable-gfx-check --disable-vnc-tls
+
+If you are using a 32bit compiler on a 64bit linux host, prefix
+your "configure" call by "linux32", like so:
+
+  qemu/qemu-r6588 $ linux32 ./configure [...]
+
+then, run "make" and this produces the "ppc-softmmu/qemu-system-ppc"
+binary you need.
+
+* xcov:
+
+No need to configure, just run make.
+
+This requires an Ada2005 capable compiler.
+
