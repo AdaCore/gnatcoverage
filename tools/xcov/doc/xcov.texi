@@ -27,6 +27,14 @@
 [@cite{\entry\}]
 @end macro
 
+@macro gcc
+@sc{gcc}
+@end macro
+
+@macro gcov
+@sc{gcov}
+@end macro
+
 @c Directory where the Explore guide example is stored
 @set explore_dir examples/explore
 
@@ -48,13 +56,10 @@ This document introduces the fundamentals of Xcov, a non intrusive
 structural coverage analysis framework, together with a toolset user's
 guide.
 
-@ref{explore} presents a simple application example, support to
-illustrate various points in the subsequent chapters.
-
 @ref{scov-basics} introduces the contextual elements of the Xcov's
-development: a general definition and rationale for ``Structural
-Coverage Analysis'', the process model we consider, and then an
-identification of different possible kinds of analysis activities.
+development. This includes a general definition and rationale for
+``Structural Coverage Analysis'', the process model we consider and a
+description of different possible kinds of analysis activities.
 
 @ref{xcov-grounds} describes the Xcov framework core operation mode and
 capabilities.
@@ -63,11 +68,18 @@ capabilities.
 command lines, use examples for various situations and outputs
 interpretation guidelines.
 
+Various concepts are illustrated with examples throughout.
+@
+Most of the program sources for these examples are taken from toy
+``explorer robot'' application, developped just for this illustrative
+purpose and introduced in @ref{explore}.
+
+
 @menu
-* explore::      The Explore Guide Example
 * scov-basics::  Structural Coverage Basics
 * xcov-grounds:: Xcov Fundamentals
 * xcov-guide::   Xcov User's Guide
+* explore::      The Explore Guide Example
 @end menu
 
 
@@ -75,29 +87,14 @@ interpretation guidelines.
 @c *                      COVERAGE ANALYSIS BASICS                   *
 @c *******************************************************************
 
-@node explore,scov-basics,Top,Top
-@chapter The ``Explore'' Guide Example
-@noindent
-The Explore example is a toy Ada application we use throughout the Xcov
-documentation to introduce and illustrate a number of concepts.
-@c
-Below is a short functional and organisational description, verbatim from
-the sources:
-
-@smallexample
-
-@verbatiminclude examples/explore/src/overview.ads
-@end smallexample
-
-@node scov-basics,xcov-grounds,explore,Top
+@node scov-basics,xcov-grounds,Top,Top
 @chapter Structural Coverage Analysis Basics
 
 @section General Definition & Rationale
 @noindent
-To a first approximation, structural coverage analysis may be viewed as
-a software development activity aimed at analysing which pieces of an
-application source and/or machine code are exercised by executions of
-the application software.
+Structural coverage analysis may be viewed as a software development
+activity aimed at analysing which pieces of an application source and/or
+machine code are exercised by executions of the application software.
 @c
 There may be several reasons why such an activity is performed and extra
 details about what exactly is to be evaluated.
@@ -120,7 +117,7 @@ document.
 
 @section Process Model
 
-@subsection Primary Process Abstractions
+@subsection Process Abstractions
 @noindent
 A typical coverage analysis elementary process comprises three principal
 steps:
@@ -139,16 +136,17 @@ The raw coverage data is interpreted or @dfn{mapped} into some user
 readable representation.
 @end enumerate
 
-As an illustrative example, consider the common GCC/GCOV process, exactly
-along those lines: the program is compiled and linked by GCC @bibref{gcc} 
-with special command-line options, execution produces a binary data file
-and the GCOV tool can then be used to generate annotated sources from
-the original files, the executable and the execution data.
+As an illustrative example, the common @gcc{}/@gcov{} process is exactly
+along those lines: the program is compiled and linked by @gcc{}
+@bibref{gcc} with special command-line options, execution produces a
+binary data file and @gcov{} is then used to generate annotated sources
+from the original files, the executable and the execution data.
 @c
-Below is an example to illustrate for a simple test of the Explore queues
+Below is an example with a simple test of the Explore queues
 abstraction, compiled with the GNAT toolchain for Ada:
 
 @smallexample
+
 # Build with gcov related options - produces executable program
 
     $ gnatmake test_queues.adb -fprofile-arcs -ftest-coverage
@@ -160,6 +158,7 @@ abstraction, compiled with the GNAT toolchain for Ada:
 # Map to user representation - produces annotated sources (queues.adb.gcov, ...)
  
     $ gcov test_queues
+
 @end smallexample
   
 The annotations are in the first column for each source line: @code{'-'}
@@ -218,7 +217,7 @@ This is what many commercial products do.
 The development toolchain inserts extra machine state and instructions
 in the program executable object code.
 @c
-This is the GCC/GCOV approach.
+This is the @gcc{}/@gcov{} approach.
 
 @item @dfn{Environment Instrumentation}:
 The execution environment is setup to produce a trace of the program paths
@@ -235,14 +234,15 @@ of advantages and drawbacks compared to others.
 While the base process applies to many situations, refinements are
 useful in some cases, as outlined in the following sections.
 
-@subsection Coverage Data Capitalization
+@subsection Data Capitalization & Consolidation
 @noindent
 Proper coverage of applicative code often requires several test
 executions on possibly disjoint pieces of the final system, with each
 test providing its own partial coverage outcome.
 @c
-@dfn{Capitalization} denotes the storage of the partial results and the
-analysis framework capabilities to process the capitalized data.
+@dfn{Capitalization} denotes the storage of the partial results and
+@dfn{Consolidation} denotes the construction of a unified view out of
+partial results gathered together.
 
 Different tests could for instance be several executions of the same
 program with behavior differences caused by external input variations.
@@ -251,7 +251,7 @@ They could also be executions of different programs exercizing different
 units of the applicative code or common applicative code with different
 parameters.
 
-Consider for instance a common data structure implementation such as
+To illustrate, consider a common data structure implementation such as
 the bounded @code{Queues} Ada package in the Explore example.
 @c
 To honor a common requirement, it contains simple error handling code so
@@ -275,7 +275,7 @@ impossible with only regular Explore executions.
 System integration is most often a delicate process, not possible before
 late stages of the project, and it is often useful or simply unavoidable
 to perform coverage analysis on segregated pieces first.
-@c
+
 Besides, even if full coverage a some applicative components could
 theortically be achieved from a single execution, it is often just more
 convenient or sensible to be able to reach the goal in an incremental
@@ -288,33 +288,22 @@ philosophy.
 @c
 One instead typically runs different sessions to verify different
 specific application requirements, each session produces it's own
-coverage data, capitalized, and a capitalization-aware coverage analysis
-toolset unifies these partial coverage results into a single view.
+coverage data.
 
-@subsection Coverage Data Consolidation
-@noindent
-@dfn{Consolidation} denotes the process of gathering the coverage
-information for the various pieces of a system into a unified view, with
-explicit input on what pieces are expected to have been covered.
+@dfn{Consolidation} denotes the process of gathering the capitalized
+coverage information for the various pieces of a system into a unified
+view, with explicit input on what pieces are expected to have been
+covered.
 @c
 Pieces for which coverage data is expected but not available are
 identified and data for pieces of no interest (e.g. unit test harness)
 may be abstracted away.
-@v
-Technically, consolidation can be viewed as a set of means to use a
-generalized capitalization capability for all the pieces of a system.
-
+@c
 The need for coverage data consolidation often correlates with testing
 strategies: whether coverage data is obtained from unit testing of
 individual components, from integration testing of the system as a whole,
 from some intermediate organisation, or possibly from a mix of all these.
-@c
-Any of these could apply to the Explore example case.
-@c
-For instance, ``statement coverage of all the subprograms in an Explore
-executable'' could typically be analyzed from a mix of coverage data out
-of regular Explore execution sessions and of specific unit testing
-results.
+
 
 @subsection Process Integration
 @noindent
@@ -333,18 +322,24 @@ project organizations in the field.
 
 @section Coverage Analysis Classification
 @noindent
-We distinguish two broad classes of analysis activities: @dfn{source}
-and @dfn{object} coverage analysis.
+Coverage analysis always involves the evaluation of various
+@dfn{coverage quantifiers} or @dfn{metrics} such as ``what percentage of
+my program source statements or of the corresponding machine code was
+exercised (covered) by this set of executions ?''.
 @c
-The process always consists in the evaluation of various possible
-@dfn{coverage quantifiers} or @dfn{metrics} such as ``which program
-statements were covered/not-covered by this set of executions ?'' or
-``What percentage of the total source code do these values represent
-?'', most often driven by specific objectives.
-
+In practice, this is most often refined down at the module or subprogram
+level and comes together with detailed reports about the bits which were
+exercised and those that were not.
+@c
+The process is typically driven by specific objectives like ``tests
+should result in coverage of 100% of the application program source
+statements''.
+@c
 Every toolset offers its own spectrum of analysis possibilities, with
-variations in the implementation schemes behind the scene, in particular
-regarding the instrumentation mode.
+variations in the implementation schemes.
+@c
+We distinguish two broad classes of activities: @dfn{source} and
+@dfn{object} coverage analysis.
 
 @subsection Object Coverage Analysis
 @noindent
@@ -361,13 +356,14 @@ OIC + indications on the machine decisions taken at each machine
 conditional branch instruction.
 @end itemize
 
-In both cases, results can be rendered on a representation of the
-machine code or on a representation of the program sources, e.g. by way
-of an annotated assembly language output or of annotated sources with a
-note for each line to synthesize information about all the machine code
-generated for that line.
-
-The focus is always on machine code coverage, however, and source
+Results can be rendered on a representation of the machine code, for
+example as an annotated assembly output.
+@c
+They can also be rendered on a representation of the program sources,
+for example by way of annotations for each source line to synthesize
+information about all the machine code generated for that line.
+@c
+The focus is always on machine code coverage, in any case, and source
 annotations in this context are just a means to organize and hilight
 machine code properties of interest for the end user.
 
@@ -411,13 +407,13 @@ of a set of program executions.
 
 The quantifier names are often used standalone to denote coverage
 objectives, for instance ``achieving Source Statement Coverage'' denotes
-covering 100% of the program source statements, and the ``source'' part
-is often omitted and implicitly assumed.
-@c
-DO-178B attaches specific structural coverage objectives to different
-certification levels this way, with @dfn{Statement Coverage} at level C,
-@dfn{Decision Coverage} at level B and @dfn{Modified
-Condition/Decision Coverage} at level A.
+covering 100% of the program source statements.
+@c      
+The ``source'' part is often omitted and implicitly assumed, and DO-178B
+attaches specific structural coverage objectives to different
+certification levels this way: full @dfn{Statement Coverage} at level C,
+@dfn{Decision Coverage} at level B and @dfn{Modified Condition/Decision
+Coverage} at level A.
 
 Below is an illustration of the principal differences between the
 criteria over a simple example function out of an early version of the
@@ -481,26 +477,63 @@ shown.
 
 @subsection Source vs Object Quantifiers
 @noindent
-Object and Source quantifiers have both pros and cons, some very
-dependent on the evaluation context and purpose.
+Object and Source coverage quantifiers are of very different natures.
+@c
+Both have both pros and cons, some very dependent on the evaluation
+context and purpose.
 
-An interesting and difficult question is that of the possible
-equivalence of one criterion to another one, for some definition of
-``equivalence'' to start with.
+An interesting study that of the implication relationships between
+criteria, to determine if satisfying one criteria may be used as a means
+to claim another.
 @c
-For instance, it is established that OBC does not always imply MCDC in
-the general case @bibref{AR07/20}.
+These correlations are not at all trivial in the general case.
 @c
-It only does when a number of conditions hold together, such as: 1/
-the only boolean binary operators in use are those with short-circuit
-semantics (@code{and then} and @code{or else} in Ada), 2/ Different
-binary boolean operators are never mixed in the same expression, and
+Below are a few points to illustrate.
+
+As a starter example, we may consider that Object Branch or even
+Instruction Coverage implies Statement Coverage while the opposite is
+not true.
+@c
+To illustrate the basic idea, take the case of a modulo computation: it
+is expressed with a single statement in C or Ada, and the machine code
+typically features different paths to honor variations conditioned on
+the sign of the operands.
+@c
+A single pass trough this code will cover the source statement and not
+the full instruction set.
+@c
+Conversely, covering the full set of machine instructions necessitates
+several passes through the code, hence coverage of the source statement.
+@c
+For the general case, statements for which no machine code is produced
+need care but don't introduce fundamental difficulties.
+
+Along similar lines, we may consider that full Object Branch Coverage
+implies Decision Coverage while the opposite is not true.
+@c
+We also observe that Object Instruction Coverage does not imply Decision
+Coverage.
+
+Finally, it is established that Object Branch Coverage does not always
+imply MC/DC in the general case @bibref{AR07/20}.
+@c
+It only does when a number of conditions hold together, such as:
+@c
+1/ the only boolean binary operators in use are those with short-circuit
+semantics (@code{and then} and @code{or else} in Ada),
+@c
+2/ Different binary boolean operators are never mixed in the same
+expression, and
+@c
 3/ the machine code features one conditional branch instruction per
 condition.
 
-Wrt SDC, OIC is too weak and OBC too strong.
-
-[TO BE REFINED]
+In any case, assumptions validity need to be complemented with practical
+consequences in industrial applications.
+@c
+In particular, using one criteria as a means to achieve another when an
+implication holds (e.g. seeking OBC to achieve DC) might call for
+unrequired significant additional testing efforts.
 
 @c *******************************************************************
 @c *                        XCOV FUNDAMENTALS                        *
@@ -570,18 +603,16 @@ focus on user source code and support for the three DO-178B criteria:
 Statement, Decision and Modified Condition/Decision Coverage.
 @c
 For MCDC, the framework sets up the necessary elements to be able to
-reconstruct the exercised run-time condition/decision vectors, without
-ever modifying the program as other instrumentation techniques would do.
-
-An important element for source coverage analysis with Xcov is the
-introduction of @dfn{Source Coverage Obligations} (SCOs), compact tables
-generated to indicate the source elements of relevance to coverage
-analysis activities.
+reconstruct the exercised run-time condition/decision vectors.
+@c
+An important part is the introduction of @dfn{Source Coverage
+Obligations} (SCOs), compact tables generated to indicate the source
+elements of relevance to coverage analysis activities.
 @c
 SCOs are designed to be independant from the target certification level,
 which only influences the way a given trace is determined to meet.
 
-For Qemu targets and the GCC compilation toochain, the toolset uses SCOs
+For Qemu targets and the @gcc{} compilation toochain, the toolset uses SCOs
 and precise debug information to associate conditional branches with
 conditions, then traces are extended to track the history of run-time
 behavior at those branch points.
@@ -589,23 +620,14 @@ behavior at those branch points.
 Indeed, the object coverage flat execution traces aren't precise enough
 in this case unless very strong constraints are met by the source
 constructs.
-
-On the code generation front, using extended traces or flat ones with
-source constraints, the MCDC capabilities of Xcov rely on the presence
-of a conditional branch instruction for each non-constant condition.
 @c
-We provide a set of compilation options suitable for both this
+Using extended traces or flat ones with source constraints, the MCDC
+capabilities of Xcov rely on the presence of a conditional branch
+instruction for each non-constant condition.
+@c
+We provide sets of compilation options suitable for both this
 particular purpose and for the Source Coverage analysis activity in
 general.
-@c
-This set of options is designed to remain reasonable for production use,
-so that source coverage analysis may be performed on the final code, as
-embedded eventually.
-@c
-If the production code absolutely requires options incompatible with the
-source coverage analysis process, the latter remains doable with its own
-set of options and Xcov allows object coverage analysis on the final
-bits in any case.
 
 @c *******************************************************************
 @c *                          USER'S GUIDE                           *
@@ -664,7 +686,7 @@ The interface synopsis out of @command{xcov --help} is as follows:
 The @code{FILE} argument is the executable program file name.
 @c
 The Quick Start example in the distribution @code{README} illustrates a
-simple use for a @code{powerpc-elf} target, using the dedicated GCC
+simple use for a @code{powerpc-elf} target, using the dedicated @gcc{}
 toolchain to build from sources and the @option{--target} execution
 engine selector:
 
@@ -917,8 +939,8 @@ At this stage, @xcov{} relies on dwarf debug information to associate
 machine instructions with their corresponding source lines, so these
 annotations are only possible when this is available.
 @c
-In GCC parlance, this requires compilation with the @option{-g} command
-line switch, designed never to influence the generated code.
+In @gcc{} parlance, this requires compilation with the @option{-g}
+command line switch, designed never to influence the generated code.
 
 @subsection @code{--annotate=html[+asm]}
 @noindent
@@ -1075,8 +1097,24 @@ Expansions, precise debug info ...
 
 @chapter Appendices
 
+@node explore,,Top,Top
+@section The ``Explore'' Guide Example
+@noindent
+The Explore example is a toy Ada application we use throughout the Xcov
+documentation to introduce and illustrate a number of concepts.
+@c
+Below is a short functional and organisational description, verbatim from
+the sources:
+
+@smallexample
+
+@verbatiminclude examples/explore/src/overview.ads
+@end smallexample
+
+@page
 @section Trace Format Definition
 
+@page
 @section Source Coverage Obligations Definition
 
 @c *******************************************************************
