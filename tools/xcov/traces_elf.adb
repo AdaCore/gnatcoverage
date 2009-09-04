@@ -1264,29 +1264,40 @@ package body Traces_Elf is
          Pos        : Cursor;
          Inserted   : Boolean;
       begin
-         Close_Source_Line;
+         if Last_Line /= null
+           and then Last_Line.First = Exec.Exe_Text_Start + Pc then
+            --  If the previous line was empty (i.e. last PC = new PC),
+            --  drop it; it is useless in the context of xcov.
+            --  Use its slot in the line table to record the new line.
 
-         --  Note: Last and Parent are set by Build_Debug_Lines.
-         Last_Line :=
-           new Addresses_Info'
-             (Kind   => Line_Addresses,
-              First  => Exec.Exe_Text_Start + Pc,
-              Last   => Exec.Exe_Text_Start + Pc,
-              Parent => null,
-              Sloc   =>
-                (Source_File  =>
-                   Get_Index (Filenames_Vectors.Element (Filenames, File).all),
-                 Line         => Natural (Line),
-                 Column       => Natural (Column)));
+            Last_Line.Sloc :=
+              (Source_File  =>
+                 Get_Index (Filenames_Vectors.Element (Filenames,
+                                                       File).all),
+               Line         => Natural (Line),
+               Column       => Natural (Column));
 
-         Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
+         else
+            --  If the previous line was not empty, finalize it and create a
+            --  new one.
 
-         if not Inserted then
-            --  The line previously inserted is an empty range. Drop it.
-            --  Replace its information.
+            Close_Source_Line;
 
-            Element (Pos).Sloc := Last_Line.Sloc;
-            Unchecked_Deallocation (Last_Line);
+            --  Note: Last and Parent are set by Build_Debug_Lines.
+            Last_Line :=
+              new Addresses_Info'
+              (Kind   => Line_Addresses,
+               First  => Exec.Exe_Text_Start + Pc,
+               Last   => Exec.Exe_Text_Start + Pc,
+               Parent => null,
+               Sloc   =>
+                 (Source_File  =>
+                    Get_Index (Filenames_Vectors.Element (Filenames,
+                                                          File).all),
+                  Line         => Natural (Line),
+                  Column       => Natural (Column)));
+
+            Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
          end if;
       end New_Source_Line;
 
