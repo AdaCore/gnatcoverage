@@ -1114,6 +1114,15 @@ the sources:
 @page
 @section Trace Format Definition
 
+This information is best located and maintained in the source comments,
+where it naturally gets updated as the project evolves.
+@c
+Below is a verbatim inclusion of the relevant Ada specification:
+
+@smallexample
+@verbatiminclude qemu_traces.ads
+@end smallexample
+
 @page
 @section Source Coverage Obligations Definition
 
