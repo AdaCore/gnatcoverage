@@ -98,7 +98,7 @@ package Traces_Names is
    --  is raised). The trace may also be rebased and split before being added
    --  to the routine traces, to verify:
    --
-   --     E.First in Subp_Info.Insns'Range and E'Last in Subp_Info'Range
+   --     E.First in Subp_Info.Insns'Range and E.Last in Subp_Info.Insns'Range
    --
    --  (Subp_Info being the corresponding subprogram info in the routine
    --  database).
