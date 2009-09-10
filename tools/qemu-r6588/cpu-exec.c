@@ -1591,7 +1591,7 @@ static void trace_at_fault(CPUState *e)
 	    return;
 	trace_current->pc = trace_current_tb->pc;
 	trace_current->op = TRACE_OP_FAULT;
-	trace_current->size = pc - trace_current->pc + 1;
+	trace_current->size = pc - trace_current->pc;
 	if (trace_current->size == trace_current_tb->size)
 	    trace_current->op = TRACE_OP_FAULT | TRACE_OP_BLOCK;
     }
