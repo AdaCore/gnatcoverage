@@ -11,17 +11,18 @@ project Support is
 
    case Target is
       when "native" =>
-         for Languages use ("Ada");
-         for Source_Dirs use ("src");
+         --  The native target does not need the support library
       when others =>
          for Languages use ("Ada", "C");
          for Source_Dirs use ("src", "src/" & Target);
-   end case;
 
-   case Use_AUnit is
-      when "no" =>
-         for Source_Dirs use Project'Source_Dirs & ("src/last_chance");
-      when "yes" =>
+         case Use_AUnit is
+            when "no" =>
+               for Source_Dirs use Project'Source_Dirs & ("src/last_chance");
+               for Library_name use "support";
+            when "yes" =>
+               for Library_Name use "supportaunit";
+         end case;
    end case;
 
    for Object_Dir use "obj/" & Target;
@@ -29,16 +30,9 @@ project Support is
    for Library_Auto_Init use "False";
    for Library_Dir use "lib/" & Target;
 
-   case Use_AUnit is
-      when "yes" =>
-         for Library_Name use "supportaunit";
-      when "no" =>
-         for Library_name use "support";
-   end case;
-
    case Target is
       when "native" =>
-      when "leon-elf" =>	
+      when "leon-elf" =>
       when others =>
          for Library_Options use
            (Project'Library_Dir & "/start.o",
@@ -69,7 +63,7 @@ project Support is
       for Default_Switches ("C") use ("-g", "-O1", "-fpreserve-control-flow");
       for Default_Switches ("ada") use
         Compiler'Default_Switches("C")
-	 & ("-gnatp", "-gnatw.Xe", "-gnateS", Style_Checks);
+        & ("-gnatp", "-gnatw.Xe", "-gnateS", Style_Checks);
    end Compiler;
 
    package IDE is
