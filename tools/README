@@ -19,17 +19,23 @@ and some extra documentation in the "doc" subdirectory.
 
 Our source base is svn revision r6588, maintained in the qemu-r6588 subdir.
 
-First step is to "configure", with
-  --target-list=ppc-softmmu \
+First step is to "configure". In this phase we chose the set of emulators
+we want to build using the "--target-list" option. We can target bare board
+PowerPC, bare board LEON2, and 32 bits linux with the following command:
+
+  $ configure --target-list=ppc-softmmu,sparc-softmmu,i386-linux-user \
   --disable-kqemu --disable-sdl --disable-gfx-check --disable-vnc-tls
 
-If you are using a 32bit compiler on a 64bit linux host, prefix
+If you are using a 32 bits compiler on a 64 bits linux host, prefix
 your "configure" call by "linux32", like so:
 
   qemu/qemu-r6588 $ linux32 ./configure [...]
 
-then, run "make" and this produces the "ppc-softmmu/qemu-system-ppc"
-binary you need.
+then, run "make" and this produces the binaries you need:
+
+ - "ppc-softmmu/qemu-system-ppc" for PowerPC
+ - "sparc-softmmu/qemu-system-sparc" for LEON2
+ - "i386-linux-user/qemu-i386" for 32 bits linux
 
 * xcov:
 

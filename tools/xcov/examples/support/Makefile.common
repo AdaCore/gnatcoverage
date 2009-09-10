@@ -11,7 +11,7 @@ BASE_SUPPORT_DIR = ../support
 
 # CROSS toolchain : produce executable program from sources + target bsp
 
-ifneq ($(TARGET),)
+ifneq ($(TARGET),i386-linux)
   CROSSPREFIX = $(TARGET)-
   TARGETNAME = $(TARGET)
 else

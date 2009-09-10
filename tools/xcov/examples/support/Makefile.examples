@@ -38,7 +38,7 @@ index-%.html: %.trace
 	# our applicative objects so query for the specific list of relevant
 	# symbols, which implicitly excludes (hence doesn't list) results
 	# for the test-harness code.
-	$(XCOV) --disp-routines $(wildcard obj/$(TARGET)/*.o) > $<.list
+	$(XCOV) --disp-routines $(wildcard obj/$(TARGETNAME)/*.o) > $<.list
 	$(XCOV) --routine-list=$<.list \
 	 --coverage=branch --annotate=html+asm $<
 	cp index.html $@

@@ -89,3 +89,8 @@ int getchar (void)
 {
   return 0;
 }
+
+void abort (void)
+{
+  asm ("mov 0, %g1; ta 0");
+}
