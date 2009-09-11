@@ -101,12 +101,6 @@ package body Traces_Dbase is
                      Op     => Op,
                      State  => Unknown);
    begin
-      --  Discard fault
-
-      if (Op and Trace_Op_Fault) /= 0 then
-         return;
-      end if;
-
       --  Increment trace serial number if full history is kept
 
       if Base.Next_Serial /= -1 then
