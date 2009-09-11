@@ -41,5 +41,4 @@ then, run "make" and this produces the binaries you need:
 
 No need to configure, just run make.
 
-This requires an Ada2005 capable compiler.
-
+This requires an Ada 2005 capable compiler.
