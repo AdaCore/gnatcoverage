@@ -24,7 +24,7 @@ we want to build using the "--target-list" option. We can target bare board
 PowerPC, bare board LEON2, and 32 bits linux with the following command:
 
   $ configure --target-list=ppc-softmmu,sparc-softmmu,i386-linux-user \
-  --disable-kqemu --disable-sdl --disable-gfx-check --disable-vnc-tls
+      --disable-kqemu --disable-sdl --disable-gfx-check --disable-vnc-tls
 
 If you are using a 32 bits compiler on a 64 bits linux host, prefix
 your "configure" call by "linux32", like so:
