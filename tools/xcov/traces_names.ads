@@ -30,7 +30,7 @@ package Traces_Names is
      (Name : String_Acc;
       Exec : Exe_File_Acc := null);
    --  Add a routine name to the database, and allocate an associated
-   --  Subprogram_Info record (see below). Constraint_Error is propagated if
+   --  Subprogram_Info record (see below). Constraint_Error is raised if
    --  the name already exists.
 
    --  Information recorded about each subprogram in the routines database
