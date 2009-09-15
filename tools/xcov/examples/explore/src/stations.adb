@@ -102,12 +102,14 @@ package body Stations is
       Process_Pending_Inputs (Sta);
 
       --  Get the next command from the terminal line and map it to an
-      --  internal control code.
+      --  internal control code. Fake echo-on.
 
       Put_Line ("'C'autious mode, 'D'umb mode");
       Put ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
       Flush;
+
       Get (C);
+      Put (C);  New_Line;
 
       if C = 'Q' or else C = 'q' then
          Kill (Sta.all);

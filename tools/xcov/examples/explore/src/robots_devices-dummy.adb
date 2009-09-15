@@ -152,8 +152,8 @@ package body Robots_Devices.Dummy is
    procedure Fake_Map (Map : in out Geomap) is
 
       procedure Block_Borders_On (Map : in out Geomap);
-      procedure Clear_Playzone_On (Map : in out Geomap);
-      procedure Setup_Blocks_On (Map : in out Geomap);
+      procedure All_Ground_On (Map : in out Geomap);
+      procedure Setup_Water_On (Map : in out Geomap);
 
       procedure Block_Borders_On (Map : in out Geomap) is
          X, Y : Natural;
@@ -164,7 +164,7 @@ package body Robots_Devices.Dummy is
          end loop;
          X := Map'Last (Sqx);
          for Y in Map'Range (Sqy) loop
-            Map (X, Y) := Water;
+            Map (X, Y) := Block;
          end loop;
 
          Y := Map'First (Sqy);
@@ -177,43 +177,32 @@ package body Robots_Devices.Dummy is
          end loop;
       end Block_Borders_On;
 
-      procedure Clear_Playzone_On (Map : in out Geomap) is
+      procedure All_Ground_On (Map : in out Geomap) is
       begin
-         for X in Map'First (Sqx) + 1 .. Map'Last (Sqx) - 1 loop
-            for Y in Map'First (Sqy) + 1 .. Map'Last (Sqy) - 1 loop
+         for X in Map'Range (Sqx) loop
+            for Y in Map'Range (Sqy) loop
                Map (X, Y) := Ground;
             end loop;
          end loop;
-      end Clear_Playzone_On;
+      end All_Ground_On;
 
-      procedure Setup_Blocks_On (Map : in out Geomap) is
-         X, Y : Natural;
+      procedure Setup_Water_On (Map : in out Geomap) is
 
-         --  Setup ~ 1 block per five squares in both directions
+         --  Setup 1 pit ~ centered
 
          Wx : Natural := Map'Length (Sqx);
          Wy : Natural := Map'Length (Sqy);
-         Nx : Natural := Wx / 5;
-         Ny : Natural := Wy / 5;
+         Nx : Natural := Wx / 2 + 1;
+         Ny : Natural := Wy / 2 + 1;
 
-         Stepx : Natural := Wx / (Nx + 1);
-         Stepy : Natural := Wy / (Ny + 1);
       begin
-         Y := Map'First (Sqy) + Stepy;
-         while Y <= Map'Last (Sqy) loop
-            X := Map'First (Sqx) + Stepx;
-            while X <= Map'Last (Sqx) loop
-               Map (X, Y) := Block;
-               X := X + Stepx;
-            end loop;
-            Y := Y + Stepy;
-         end loop;
-      end Setup_Blocks_On;
+         Map (Nx, Ny) := Water;
+      end Setup_Water_On;
 
    begin
+      All_Ground_On (Map);
       Block_Borders_On (Map);
-      Clear_Playzone_On (Map);
-      Setup_Blocks_On (Map);
+      Setup_Water_On (Map);
    end Fake_Map;
 
 end Robots_Devices.Dummy;

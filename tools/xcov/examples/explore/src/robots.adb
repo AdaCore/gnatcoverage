@@ -41,12 +41,6 @@ package body Robots is
 
    use Robot_Control_Links;
 
-   function Unsafe (Cmd : Robot_Command; Sqa : Square) return Boolean;
-   --  Whether execution of CMD is unsafe with the SQA square ahead
-
-   pragma Export (Ada, Unsafe, "robots__unsafe");
-   --  ??? prevent inlining
-
    procedure Process_Next_Control (Port : Robot_Control_Links.IOport_Access);
    --  Process the next control command available from PORT
 
@@ -56,9 +50,10 @@ package body Robots is
 
    function Unsafe (Cmd : Robot_Command; Sqa : Square) return Boolean is
    begin
-      --  Stepping forward into a rock block or a water pit is Unsafe
+      --  Stepping forward with a rock block or a water pit ahead is Unsafe
 
-      return Cmd = Step_Forward
+      return
+        Cmd = Step_Forward
         and then (Sqa = Block or else Sqa = Water);
    end Unsafe;
 

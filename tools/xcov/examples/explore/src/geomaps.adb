@@ -25,7 +25,7 @@ package body Geomaps is
    --  and to represent an actor heading to a specific direction.
 
    Square_Image : array (Square) of Character
-     := (Ground => ' ', Block => '#', Water => '~', Unknown => '?');
+     := (Ground => ' ', Block => '#', Water => '~', Unknown => '.');
 
    Situ_Image : array (Direction) of Character
      := (North => '^', West => '<', East => '>', South => 'v');

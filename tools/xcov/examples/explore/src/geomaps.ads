@@ -34,7 +34,7 @@ package Geomaps is
 
    type Direction is (West, North, East, South);
 
-   subtype XYrange is Integer range 1 .. 5;
+   subtype XYrange is Integer range 1 .. 9;
    type Position is record
       X, Y : XYrange;
    end record;

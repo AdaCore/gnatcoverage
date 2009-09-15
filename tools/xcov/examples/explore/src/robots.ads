@@ -59,4 +59,7 @@ private
       Mode                 : Robot_Opmode := Cautious;
    end record;
 
+   function Unsafe (Cmd : Robot_Command; Sqa : Square) return Boolean;
+   --  Whether execution of CMD is unsafe with the SQA square ahead
+
 end Robots;
