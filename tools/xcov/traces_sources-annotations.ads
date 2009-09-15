@@ -22,6 +22,18 @@ with Traces; use Traces;
 
 package Traces_Sources.Annotations is
 
+   type Annotation_Format is
+     (Annotate_Asm,
+      Annotate_Xcov,
+      Annotate_Html,
+      Annotate_Xcov_Asm,
+      Annotate_Html_Asm,
+      Annotate_Report,
+      Annotate_Unknown);
+
+   function To_Annotation_Format (Option : String) return Annotation_Format;
+   --  Convert annotation format option to Annotation_Format value
+
    Flag_Show_Missing : Boolean := False;
    --  If True, Disp_Line_State displays info for files that are not found
    --  Why isn't this a parameter of Disp_Line_State???

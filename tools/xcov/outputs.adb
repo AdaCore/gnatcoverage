@@ -64,7 +64,7 @@ package body Outputs is
    procedure Fatal_Error (Msg : String) is
    begin
       Error (Msg);
-      raise Fatal_Error_Exc;
+      raise Xcov_Exit_Exc;
    end Fatal_Error;
 
    ---------------------
@@ -79,6 +79,16 @@ package body Outputs is
 
       return Report_Output_Dir.all;
    end Get_Output_Dir;
+
+   -----------------
+   -- Normal_Exit --
+   -----------------
+
+   procedure Normal_Exit is
+   begin
+      Set_Exit_Status (Success);
+      raise Xcov_Exit_Exc;
+   end Normal_Exit;
 
    ---------------------
    --  Set_Output_Dir --

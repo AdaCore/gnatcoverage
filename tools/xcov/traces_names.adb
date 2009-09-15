@@ -20,6 +20,8 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Text_IO; use Ada.Text_IO;
 with Coverage.Object; use Coverage.Object;
+with Inputs; use Inputs;
+with Outputs; use Outputs;
 with Interfaces;
 
 with Traces;
@@ -254,36 +256,33 @@ package body Traces_Names is
    -- Read_Routines_Name_From_Text --
    ----------------------------------
 
-   procedure Read_Routines_Name_From_Text (Filename : String)
-   is
-      F : File_Type;
+   procedure Read_Routines_Name_From_Text (Filename : String) is
+
+      procedure Add_Routine_Name (Input : String);
+      --  Add Input to the Name map.
+
+      ----------------------
+      -- Add_Routine_Name --
+      ----------------------
+
+      procedure Add_Routine_Name (Input : String) is
+         Name : constant String_Acc := new String'(Input);
+         Cur  : constant Names_Maps.Cursor := Names.Find (Name);
+      begin
+         if Names_Maps.Has_Element (Cur) then
+            Error ("symbol " & Name.all & " is already defined");
+         else
+            Add_Routine_Name (Name);
+         end if;
+      end Add_Routine_Name;
+
+      --  Start of processing for Read_Routines_Name_From_Text
+
    begin
-      Open (F, In_File, Filename);
-      while not End_Of_File (F) loop
-         declare
-            L : constant String := Get_Line (F);
-            Name : String_Acc;
-            Cur : Names_Maps.Cursor;
-         begin
-            if L = "" or else L (L'First) = '#' then
-               null;
-            else
-               Name := new String'(L);
-               Cur := Names.Find (Name);
-               if Names_Maps.Has_Element (Cur) then
-                  Put_Line (Standard_Error,
-                            "symbol " & Name.all & " is already defined");
-               else
-                  Add_Routine_Name (Name);
-               end if;
-            end if;
-         end;
-      end loop;
-      Close (F);
+      Read_List_From_File (Filename, Add_Routine_Name'Access);
    exception
       when Name_Error | Status_Error =>
-         Put_Line (Standard_Error, "cannot open: " & Filename);
-         raise;
+         Fatal_Error ("cannot open routine list: " & Filename);
    end Read_Routines_Name_From_Text;
 
    -------------------------

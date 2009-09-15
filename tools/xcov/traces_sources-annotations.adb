@@ -224,4 +224,27 @@ package body Traces_Sources.Annotations is
       Pretty_Print_Finish (Pp);
    end Disp_Line_State;
 
+   --------------------------
+   -- To_Annotation_Format --
+   --------------------------
+
+   function To_Annotation_Format (Option : String) return Annotation_Format is
+   begin
+      if Option = "asm" then
+         return Annotate_Asm;
+      elsif Option = "xcov" then
+         return Annotate_Xcov;
+      elsif Option = "html" then
+         return Annotate_Html;
+      elsif Option = "xcov+asm" then
+         return Annotate_Xcov_Asm;
+      elsif Option = "html+asm" then
+         return Annotate_Html_Asm;
+      elsif Option = "report" then
+         return Annotate_Report;
+      else
+         return Annotate_Unknown;
+      end if;
+   end To_Annotation_Format;
+
 end Traces_Sources.Annotations;

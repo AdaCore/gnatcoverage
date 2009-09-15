@@ -38,9 +38,9 @@ index-%.html: %.trace
 	# our applicative objects so query for the specific list of relevant
 	# symbols, which implicitly excludes (hence doesn't list) results
 	# for the test-harness code.
-	$(XCOV) --disp-routines $(wildcard obj/$(TARGETNAME)/*.o) > $<.list
-	$(XCOV) --routine-list=$<.list \
-	 --coverage=branch --annotate=html+asm $<
+	$(XCOV) disp-routines $(wildcard obj/$(TARGETNAME)/*.o) > $<.list
+	$(XCOV) coverage --routine-list=$<.list \
+	 --level=branch --annotate=html+asm $<
 	cp index.html $@
 
 # -----------------------------------------------------------------------
@@ -56,9 +56,9 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 # required stty adjustments. Switching to e.g raw would
 # have the command output start right after the command echo
 # on the same line, cumbersome.
-	@echo xcov --run --target=$(TARGET) $<
+	@echo xcov run --target=$(TARGET) $<
 	@$(STTY_ADJUST)
-	-@xcov --run --target=$(TARGET) $<
+	-@xcov run --target=$(TARGET) $<
 	@$(STTY_RESTORE)
 
 # -----------------------------------------------------------------------

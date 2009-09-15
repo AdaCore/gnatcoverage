@@ -50,12 +50,6 @@ package Coverage is
    subtype Object_Coverage_Level is Coverage_Level range Insn .. Branch;
    subtype Source_Coverage_Level is Coverage_Level range Stmt .. MCDC;
 
-   Coverage_Option       : constant String := "--coverage=";
-   Coverage_Option_Short : constant String := "-c";
-   --  xcov's command line options for coverage. The parameter of this option
-   --  is valid iff To_Coverage_Level can convert it to a
-   --  Known_Coverage_Level.
-
    function To_Coverage_Level (Option : String) return Coverage_Level;
    --  Option being the name of a coverage Level (i.e. "insn", "branch",
    --  "stmt", "decision", "mcdc"), return the corresponding

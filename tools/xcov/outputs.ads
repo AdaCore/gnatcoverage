@@ -27,15 +27,18 @@ package Outputs is
    -- Errors --
    ------------
 
-   Fatal_Error_Exc : exception;
+   Xcov_Exit_Exc : exception;
    --  Cause Xcov to terminate. Do not use in an explicit raise; call
-   --  Fatal_Error instead.
+   --  Fatal_Error or Normal_Exit instead.
 
    procedure Error (Msg : String);
    --  Display Msg on stderr and set exit status to failure
 
    procedure Fatal_Error (Msg : String);
    --  Same as Error, and cause Xcov to terminate by raising Fatal_Error_Exc.
+
+   procedure Normal_Exit;
+   --  Cause Xcov to terminate. exit status OK.
 
    -----------------------
    -- Annotated sources --
