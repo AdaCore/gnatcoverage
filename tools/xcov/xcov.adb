@@ -115,6 +115,7 @@ procedure Xcov is
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
       P ("   --output-dir=DIR              Generate reports in DIR");
+      P ("   -T FILE --trace FILE          Add a trace file to the list");
       New_Line;
    end Usage;
 
@@ -159,6 +160,7 @@ procedure Xcov is
    Final_Report_Option       : constant String := "--report=";
    Final_Report_Option_Short : constant String := "-o";
    Output_Dir_Option         : constant String := "--output-dir=";
+   Trace_Option_Short        : constant String := "-T";
    Trace_Option              : constant String := "--trace=";
 
    Command                   : Command_Type := No_Command;
@@ -439,6 +441,13 @@ procedure Xcov is
             elsif Begins_With (Arg, Output_Dir_Option) then
                Check_Option (Arg, Command, (1 => Commands.Coverage));
                Outputs.Set_Output_Dir (Option_Parameter (Arg));
+
+            elsif Arg = Trace_Option_Short then
+               Check_Option (Arg, Command, (1 => Commands.Coverage,
+                                            2 => Dump_Trace,
+                                            3 => Dump_Trace_Base,
+                                            4 => Dump_Trace_Asm));
+               Inputs.Add_Input (Trace_Inputs, Next_Arg ("trace file"));
 
             elsif Begins_With (Arg, Trace_Option) then
                Check_Option (Arg, Command, (1 => Commands.Coverage,
