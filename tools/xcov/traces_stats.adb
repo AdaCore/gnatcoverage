@@ -28,9 +28,10 @@ package body Traces_Stats is
       Total : Natural := 0;
    begin
       for J in Stats'Range loop
-         Total := Total + Stats (J);
+         if J /= No_Code then
+            Total := Total + Stats (J);
+         end if;
       end loop;
-      Total := Total - Stats (No_Code);
 
       return (Fully   => Stats (Covered),
               Partial => Stats (Partially_Covered),
@@ -47,9 +48,10 @@ package body Traces_Stats is
       Total : Natural := 0;
    begin
       for J in Stats'Range loop
-         Total := Total + Stats (J);
+         if J /= No_Code then
+            Total := Total + Stats (J);
+         end if;
       end loop;
-      Total := Total - Stats (No_Code);
 
       if Total = 0 then
          return "no code";
