@@ -79,7 +79,7 @@ procedure Xcov is
       Command : Command_Type := No_Command) is
    begin
       if Inputs.Length (Args) = 0 then
-         Fatal_Error ("missing " & What & " argument"
+         Fatal_Error ("missing " & What & " argument "
                       & For_Command_Switch (Command));
       end if;
    end Check_Argument_Available;
@@ -228,7 +228,7 @@ procedure Xcov is
          Command : Command_Type := No_Command) is
       begin
          if Arg_Index > Arg_Count then
-            Fatal_Error ("missing " & What & " argument"
+            Fatal_Error ("missing " & What & " argument "
                          & For_Command_Switch (Command));
          end if;
       end Check_Argument_Available;
