@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 
 with Qemu_Traces; use Qemu_Traces;
+with Outputs;      use Outputs;
 
 package body Traces_Dbase is
 
@@ -101,6 +102,14 @@ package body Traces_Dbase is
                      Op     => Op,
                      State  => Unknown);
    begin
+      --  Discard empty traces with a warning
+
+      if Last < First then
+         Error ("empty trace entry discarded:");
+         Dump_Entry (New_Entry);
+         return;
+      end if;
+
       --  Increment trace serial number if full history is kept
 
       if Base.Next_Serial /= -1 then
