@@ -153,7 +153,8 @@ package body Traces_Dbase is
             Merged_Op := Merged_Op or Trace_Op_Br0 or Trace_Op_Br1;
          end if;
 
-         if (Op and Trace_Op_Block) = 0 then
+         if (Op and Trace_Op_Block) = 0
+           and then (Op and Trace_Op_Fault) = 0 then
             --  Just merge flags
 
             if First /= Last then
