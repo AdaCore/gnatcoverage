@@ -102,11 +102,17 @@ package body Traces_Dbase is
                      Op     => Op,
                      State  => Unknown);
    begin
-      --  Discard empty traces with a warning
+      --  Discard empty traces with a warning. Empty traces may be
+      --  generated for fault (when a fault happens on a block that has
+      --  already been covered). On other cases, empty traces should be
+      --  considered as bogus and a warning should be displayed.
 
       if Last < First then
-         Error ("empty trace entry discarded:");
-         Dump_Entry (New_Entry);
+         if Op /= Trace_Op_Fault then
+            Error ("empty trace entry discarded:");
+            Dump_Entry (New_Entry);
+         end if;
+
          return;
       end if;
 
