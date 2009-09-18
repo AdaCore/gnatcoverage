@@ -20,7 +20,7 @@ with Interfaces; use Interfaces;
 
 package Qemu_Traces is
 
-   --  Execution of a program with 'xcov --run' produces an "Execution Trace"
+   --  Execution of a program with 'xcov run' produces an "Execution Trace"
    --  file, possibly controlled by an internal "Trace Control" file for the
    --  simulation engine to help the support of mcdc like coverage criteria.
 
@@ -35,7 +35,7 @@ package Qemu_Traces is
 
    --  Here is a quick sketch of the information flow:
 
-   --                           XCOV --run                 Execution Trace
+   --                           XCOV run                   Execution Trace
    --                 o--------------------------------o   --------------
    --                 |    gen info section -----------|-->|Info section|
    --                 |                                |   |------------|

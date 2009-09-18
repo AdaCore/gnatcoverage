@@ -88,7 +88,7 @@ package body Qemudrv is
       if not Is_Xcov then
          Put ("Usage: " & Progname.all);
       else
-         Put (Indent & "--run");
+         Put (Indent & "run");
       end if;
       Put (" [OPTIONS] FILE [-eargs EARGS...]");
       New_Line;
@@ -173,7 +173,7 @@ package body Qemudrv is
       --  Set progname
 
       if Is_Xcov then
-         Progname := new String'(Command_Name & " --run");
+         Progname := new String'(Command_Name & " run");
       else
          Progname := new String'(Command_Name);
       end if;
