@@ -1046,6 +1046,7 @@ package body SC_Obligations is
 
       procedure Check_Condition (Cur : Cursor);
       --  Check whether this condition has an associated conditional branch
+
       ---------------------
       -- Check_Condition --
       ---------------------

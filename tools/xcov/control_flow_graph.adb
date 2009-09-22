@@ -317,11 +317,11 @@ package body Control_Flow_Graph is
                         raise Program_Error;
                      end if;
                   end if;
-                  Node.Branch := Branch;
+                  Node.Branch     := Branch;
                   Node.Flag_Indir := Flag_Indir;
-                  Node.Flag_Cond := Flag_Cond;
-                  Node.Next_Br := Node_Br;
-                  Node.Next_Ft := Node_Ft;
+                  Node.Flag_Cond  := Flag_Cond;
+                  Node.Next_Br    := Node_Br;
+                  Node.Next_Ft    := Node_Ft;
                end if;
                Npc := Pc + Insn_Len;
                exit when Npc < Pc;
@@ -367,7 +367,7 @@ package body Control_Flow_Graph is
                   end;
                end if;
 
-               --  Skip lines starting before the current block.
+               --  Skip lines starting before the current block
 
                while Line /= null and then Line.First < C.First loop
                   Next_Iterator (Line_It, Line);
@@ -395,15 +395,15 @@ package body Control_Flow_Graph is
                   end if;
                   Stmt := Stmt + 1;
                   Nodes.Insert (Line.First,
-                                new Graph_Node'(Stmt => Stmt,
-                                                Line => Line,
-                                                First => Line.First,
-                                                Last => N.First - 1,
-                                                Branch => Br_None,
-                                                Flag_Indir => False,
-                                                Flag_Cond => False,
-                                                Flag_Entry => False,
-                                                others => null));
+                    new Graph_Node'(Stmt       => Stmt,
+                                    Line       => Line,
+                                    First      => Line.First,
+                                    Last       => N.First - 1,
+                                    Branch     => Br_None,
+                                    Flag_Indir => False,
+                                    Flag_Cond  => False,
+                                    Flag_Entry => False,
+                                    others     => null));
                else
                   C.Last := N.First - 1;
                end if;
@@ -414,7 +414,8 @@ package body Control_Flow_Graph is
             C.Last := Sym.Last;
          end;
 
-         --  Third pass: build the vector.
+         --  Third pass: build the vector
+
          declare
             use Node_Maps;
             use Hex_Images;
