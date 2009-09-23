@@ -26,36 +26,120 @@ with Coverage; use Coverage;
 with Outputs; use Outputs;
 
 package body Traces_Sources.Annotations.Xcov is
+
    type Xcov_Pretty_Printer is new Pretty_Printer with record
+      --  Pretty printer type for the XCOV annotation format
+
       Xcov_File : Ada.Text_IO.File_Type;
+      --  When going through the source file list, handle to the xcov file
+      --  that corresponds to the source file being processed.
+      --  e.g. hello.adb.xcov for hello.adb.
    end record;
 
-   procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
-                                Source_Filename : String;
-                                Stats : Stat_Array;
-                                Has_Source : Boolean;
-                                Skip : out Boolean);
+   ------------------------------------------------
+   -- Xcov_Pretty_Printer's primitive operations --
+   --    (inherited from Pretty_Printer)         --
+   ------------------------------------------------
 
-   procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;
-                                Line_Num : Natural;
-                                State : Line_State;
-                                Line : String);
+   procedure Pretty_Print_Start_File
+     (Pp              : in out Xcov_Pretty_Printer;
+      Source_Filename : String;
+      Stats           : Stat_Array;
+      Has_Source      : Boolean;
+      Skip            : out Boolean);
 
-   procedure Pretty_Print_Label (Pp : in out Xcov_Pretty_Printer;
-                                 Label : String);
-   procedure Pretty_Print_Insn (Pp : in out Xcov_Pretty_Printer;
-                                Pc : Pc_Type;
-                                State : Insn_State;
-                                Insn : Binary_Content;
-                                Sym : Symbolizer'Class);
+   procedure Pretty_Print_Start_Line
+     (Pp       : in out Xcov_Pretty_Printer;
+      Line_Num : Natural;
+      State    : Line_State;
+      Line     : String);
+
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Xcov_Pretty_Printer;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State);
+
+   procedure Pretty_Print_Insn
+     (Pp    : in out Xcov_Pretty_Printer;
+      Pc    : Pc_Type;
+      State : Insn_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class);
 
    procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer);
 
-   procedure Pretty_Print_File (Pp : in out Xcov_Pretty_Printer;
-                                Source_Filename : String;
-                                Stats : Stat_Array;
-                                Has_Source : Boolean;
-                                Skip : out Boolean)
+   ---------------------
+   -- Generate_Report --
+   ---------------------
+
+   procedure Generate_Report (Show_Asm : Boolean)
+   is
+      Xcov : Xcov_Pretty_Printer;
+   begin
+      Traces_Sources.Annotations.Disp_Line_State (Xcov, Show_Asm);
+   end Generate_Report;
+
+   ---------------------------
+   -- Pretty_Print_End_File --
+   ---------------------------
+
+   procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer) is
+   begin
+      Close (Pp.Xcov_File);
+   end Pretty_Print_End_File;
+
+   -----------------------
+   -- Pretty_Print_Insn --
+   -----------------------
+
+   procedure Pretty_Print_Insn
+     (Pp    : in out Xcov_Pretty_Printer;
+      Pc    : Pc_Type;
+      State : Insn_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class) is
+   begin
+      Put (Pp.Xcov_File, Hex_Image (Pc));
+      Put (Pp.Xcov_File, ' ' & Insn_State_Char (State) & ":  ");
+      for I in Insn'Range loop
+         Put (Pp.Xcov_File, Hex_Image (Insn (I)));
+         Put (Pp.Xcov_File, " ");
+      end loop;
+      Put (Pp.Xcov_File, " ");
+      Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Sym));
+   end Pretty_Print_Insn;
+
+   -----------------------------
+   -- Pretty_Print_Start_Line --
+   -----------------------------
+
+   procedure Pretty_Print_Start_Line
+     (Pp       : in out Xcov_Pretty_Printer;
+      Line_Num : Natural;
+      State    : Line_State;
+      Line     : String)
+   is
+      use Ada.Integer_Text_IO;
+   begin
+      Put (Pp.Xcov_File, Line_Num, 4);
+      Put (Pp.Xcov_File, ' ');
+      Put (Pp.Xcov_File, State_Char (State));
+      Put (Pp.Xcov_File, ": ");
+      Put (Pp.Xcov_File, Line);
+      New_Line (Pp.Xcov_File);
+   end Pretty_Print_Start_Line;
+
+   -----------------------------
+   -- Pretty_Print_Start_File --
+   -----------------------------
+
+   procedure Pretty_Print_Start_File
+     (Pp              : in out Xcov_Pretty_Printer;
+      Source_Filename : String;
+      Stats           : Stat_Array;
+      Has_Source      : Boolean;
+      Skip            : out Boolean)
    is
       use Ada.Directories;
    begin
@@ -84,56 +168,22 @@ package body Traces_Sources.Annotations.Xcov is
       Put_Line (Pp.Xcov_File, Get_Stat_String (Stats));
       Put_Line (Pp.Xcov_File, "Coverage level: "
                 & To_Coverage_Option (Get_Coverage_Level));
-   end Pretty_Print_File;
+   end Pretty_Print_Start_File;
 
-   procedure Pretty_Print_Line (Pp : in out Xcov_Pretty_Printer;
-                                Line_Num : Natural;
-                                State : Line_State;
-                                Line : String)
+   -------------------------------
+   -- Pretty_Print_Start_Symbol --
+   -------------------------------
+
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Xcov_Pretty_Printer;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State)
    is
-      use Ada.Integer_Text_IO;
-   begin
-      Put (Pp.Xcov_File, Line_Num, 4);
-      Put (Pp.Xcov_File, ' ');
-      Put (Pp.Xcov_File, State_Char (State));
-      Put (Pp.Xcov_File, ": ");
-      Put (Pp.Xcov_File, Line);
-      New_Line (Pp.Xcov_File);
-   end Pretty_Print_Line;
-
-   procedure Pretty_Print_Label (Pp : in out Xcov_Pretty_Printer;
-                                 Label : String) is
+      pragma Unreferenced (State);
+      Label  : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
    begin
       Put_Line (Pp.Xcov_File, Label);
-   end Pretty_Print_Label;
-
-   procedure Pretty_Print_Insn (Pp : in out Xcov_Pretty_Printer;
-                                Pc : Pc_Type;
-                                State : Insn_State;
-                                Insn : Binary_Content;
-                                Sym : Symbolizer'Class)
-   is
-   begin
-      Put (Pp.Xcov_File, Hex_Image (Pc));
-      Put (Pp.Xcov_File, ' ' & Insn_State_Char (State) & ":  ");
-      for I in Insn'Range loop
-         Put (Pp.Xcov_File, Hex_Image (Insn (I)));
-         Put (Pp.Xcov_File, " ");
-      end loop;
-      Put (Pp.Xcov_File, " ");
-      Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Sym));
-   end Pretty_Print_Insn;
-
-   procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer) is
-   begin
-      Close (Pp.Xcov_File);
-   end Pretty_Print_End_File;
-
-   procedure Generate_Report (Show_Asm : Boolean)
-   is
-      Xcov : Xcov_Pretty_Printer;
-   begin
-      Traces_Sources.Annotations.Disp_Line_State (Xcov, Show_Asm);
-   end Generate_Report;
+   end Pretty_Print_Start_Symbol;
 
 end Traces_Sources.Annotations.Xcov;

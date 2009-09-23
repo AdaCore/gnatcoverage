@@ -28,6 +28,7 @@ package Traces_Sources.Annotations is
       Annotate_Html,
       Annotate_Xcov_Asm,
       Annotate_Html_Asm,
+      Annotate_Xml,
       Annotate_Report,
       Annotate_Unknown);
 
@@ -52,11 +53,11 @@ private
      (Pp : in out Pretty_Printer) is null;
    --  Called once at the beginning of the process
 
-   procedure Pretty_Print_Finish
+   procedure Pretty_Print_End
      (Pp : in out Pretty_Printer) is null;
    --  Called once at the end of the process
 
-   procedure Pretty_Print_File
+   procedure Pretty_Print_Start_File
      (Pp              : in out Pretty_Printer;
       Source_Filename : String;
       Stats           : Stat_Array;
@@ -64,17 +65,32 @@ private
       Skip            : out Boolean) is abstract;
    --  Called at the beginning of a source file display
 
+   procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
+
    --  Subprograms below need comments???
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Pretty_Printer;
       Line_Num : Natural;
       State    : Line_State;
       Line     : String) is abstract;
 
-   procedure Pretty_Print_Label
+   procedure Pretty_Print_End_Line (Pp : in out Pretty_Printer) is null;
+
+   procedure Pretty_Print_Start_Instruction_Set
      (Pp    : in out Pretty_Printer;
-      Label : String) is null;
+      State : Line_State) is null;
+
+   procedure Pretty_Print_End_Instruction_Set
+     (Pp : in out Pretty_Printer) is null;
+
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Pretty_Printer;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State) is null;
+
+   procedure Pretty_Print_End_Symbol (Pp : in out Pretty_Printer) is null;
 
    procedure Pretty_Print_Insn
      (Pp    : in out Pretty_Printer;
@@ -82,8 +98,6 @@ private
       State : Insn_State;
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class) is null;
-
-   procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
 
    procedure Disp_Line_State
      (Pp       : in out Pretty_Printer'Class;

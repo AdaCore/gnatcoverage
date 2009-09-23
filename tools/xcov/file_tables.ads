@@ -38,11 +38,12 @@ package File_Tables is
    --  stuff to Traces_Sources.
 
    procedure Add_Line
-     (File : Source_File_Index;
-      Line : Natural;
-      Info : Addresses_Info_Acc;
-      Base : Traces_Base_Acc;
-      Exec : Exe_File_Acc);
+     (File  : Source_File_Index;
+      State : Line_State;
+      Line  : Natural;
+      Info  : Addresses_Info_Acc;
+      Base  : Traces_Base_Acc;
+      Exec  : Exe_File_Acc);
    --  Add File:Line to set of known source lines, if it doesn't exist already.
    --  Record the association of File:File with the given associated object
    --  code.
@@ -61,6 +62,9 @@ package File_Tables is
       --  this mapping can be built from a Traces_Base (that maps addresses to
       --  coverage information) and an Exe_File (that maps addresses
       --  to instructions).
+
+      State : Line_State;
+      --  Coverage of this instruction set
 
       Instruction_Set : Addresses_Info_Acc;
       --  Range of instruction handled by this record

@@ -78,26 +78,43 @@ package body Traces_Sources.Annotations is
          LI               : constant Line_Info_Access := Element (File.Lines,
                                                                   Index);
          Ls               : constant Line_State := LI.State;
+         In_Symbol        : Boolean;
+         In_Insn_Set      : Boolean;
       begin
          if Has_Source then
-            Pretty_Print_Line (Pp, Index, Ls, Get_Line (F));
+            Pretty_Print_Start_Line (Pp, Index, Ls, Get_Line (F));
          else
-            Pretty_Print_Line (Pp, Index, Ls, "");
+            Pretty_Print_Start_Line (Pp, Index, Ls, "");
          end if;
 
          if Pp.Show_Asm then
+            Info := LI.First_Line;
+
+            if Info /= null then
+               Pretty_Print_Start_Instruction_Set (Pp, Ls);
+               In_Insn_Set := True;
+            else
+               In_Insn_Set := False;
+            end if;
 
             --  Iterate over each insn block for the source line
 
-            Info := LI.First_Line;
             while Info /= null loop
                Instruction_Set := Info.OCI.Instruction_Set;
                declare
                   Label : constant String :=
                     Get_Label (Info.OCI.Exec.all, Instruction_Set);
+                  Symbol : constant Addresses_Info_Acc :=
+                    Get_Symbol (Info.OCI.Exec.all, Instruction_Set.First);
                begin
-                  if Label'Length > 0 then
-                     Pretty_Print_Label (Pp, Label);
+                  if Label'Length > 0 and Symbol /= null then
+                     In_Symbol := True;
+                     Pretty_Print_Start_Symbol (Pp,
+                                                Symbol.Symbol_Name.all,
+                                                Symbol.First,
+                                                Info.OCI.State);
+                  else
+                     In_Symbol := False;
                   end if;
                end;
 
@@ -112,10 +129,20 @@ package body Traces_Sources.Annotations is
                  (Sec_Info.Section_Content
                     (Instruction_Set.First .. Instruction_Set.Last),
                   Info.OCI.Base.all, Disassemble_Cb'Access, Info.OCI.Exec.all);
+
+               if In_Symbol then
+                  Pretty_Print_End_Symbol (Pp);
+               end if;
+
                Info := Info.Next;
             end loop;
+
+            if In_Insn_Set then
+               Pretty_Print_End_Instruction_Set (Pp);
+            end if;
          end if;
 
+         Pretty_Print_End_Line (Pp);
          Last := Index;
       end Process_One_Line;
 
@@ -132,7 +159,7 @@ package body Traces_Sources.Annotations is
          Put_Line (Standard_Error, "warning: can't open " & Filename);
       end if;
 
-      Pretty_Print_File (Pp, Filename, File.Stats, Has_Source, Skip);
+      Pretty_Print_Start_File (Pp, Filename, File.Stats, Has_Source, Skip);
       if Skip then
          if Has_Source then
             Close (F);
@@ -145,7 +172,7 @@ package body Traces_Sources.Annotations is
       if Has_Source then
          Line := Last + 1;
          while not End_Of_File (F) loop
-            Pretty_Print_Line (Pp, Line, No_Code, Get_Line (F));
+            Pretty_Print_Start_Line (Pp, Line, No_Code, Get_Line (F));
             Line := Line + 1;
          end loop;
 
@@ -221,7 +248,7 @@ package body Traces_Sources.Annotations is
       Pp.Show_Asm := Show_Asm;
       Pretty_Print_Start (Pp);
       File_Table_Iterate (Process_One_File'Access);
-      Pretty_Print_Finish (Pp);
+      Pretty_Print_End (Pp);
    end Disp_Line_State;
 
    --------------------------
@@ -236,6 +263,8 @@ package body Traces_Sources.Annotations is
          return Annotate_Xcov;
       elsif Option = "html" then
          return Annotate_Html;
+      elsif Option = "xml" then
+         return Annotate_Xml;
       elsif Option = "xcov+asm" then
          return Annotate_Xcov_Asm;
       elsif Option = "html+asm" then

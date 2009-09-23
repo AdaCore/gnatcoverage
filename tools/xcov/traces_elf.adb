@@ -1804,7 +1804,9 @@ package body Traces_Elf is
                Source_File := Line.Sloc.Source_File;
             end if;
 
-            Add_Line (Source_File, Line.Sloc.Line, Line, Base, Exec);
+            Add_Line (Source_File,
+                      Get_Line_State (Base.all, Line.First, Line.Last),
+                      Line.Sloc.Line, Line, Base, Exec);
 
             if Debug then
                New_Line;

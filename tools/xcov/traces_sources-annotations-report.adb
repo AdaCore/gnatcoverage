@@ -26,109 +26,131 @@ with Traces_Disa; use Traces_Disa;
 package body Traces_Sources.Annotations.Report is
 
    type Final_Report_Type is limited record
+      --  Final report information
+
       Name   : String_Acc := null;
+      --  Final report's file name
+
       File   : aliased File_Type;
+      --  Handle to the final report
    end record;
 
    Final_Report : aliased Final_Report_Type;
 
+   procedure Close_Report_File;
+   --  Close the handle to the final report
+
    type Report_Pretty_Printer is new Pretty_Printer with record
+      --  Pretty printer type for the final report
+
       Print_Current_Line : Boolean := False;
+      --  When going through the source file list, this marks
+      --  whether or not the current line's coverage information is relevant
+      --  in the final report.
    end record;
 
-   procedure Pretty_Print_File
-     (Pp : in out Report_Pretty_Printer;
-      Source_Filename : String;
-      Stats : Stat_Array;
-      Has_Source : Boolean;
-      Skip : out Boolean);
+   --------------------------------------------------
+   -- Report_Pretty_Printer's primitive operations --
+   --      (inherited from Pretty_Printer)         --
+   --------------------------------------------------
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_File
+     (Pp              : in out Report_Pretty_Printer;
+      Source_Filename : String;
+      Stats           : Stat_Array;
+      Has_Source      : Boolean;
+      Skip            : out Boolean);
+
+   procedure Pretty_Print_Start_Line
      (Pp : in out Report_Pretty_Printer;
       Line_Num : Natural;
       State : Line_State;
       Line : String);
 
-   procedure Pretty_Print_Label
-     (Pp : in out Report_Pretty_Printer;
-      Label : String);
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Report_Pretty_Printer;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State);
 
    procedure Pretty_Print_Insn
-     (Pp : in out Report_Pretty_Printer;
-      Pc : Pc_Type;
+     (Pp    : in out Report_Pretty_Printer;
+      Pc    : Pc_Type;
       State : Insn_State;
-      Insn : Binary_Content;
-      Sym : Symbolizer'Class);
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class);
 
    procedure Pretty_Print_End_File
      (Pp : in out Report_Pretty_Printer);
 
-   procedure Close_Report_File;
+   -----------------------
+   -- Close_Report_File --
+   -----------------------
 
-   procedure Pretty_Print_File
-     (Pp : in out Report_Pretty_Printer;
-      Source_Filename : String;
-      Stats : Stat_Array;
-      Has_Source : Boolean;
-      Skip : out Boolean)
-   is
-      pragma Unreferenced (Pp);
-      P      : constant Counters := Get_Counters (Stats);
-      Output : constant File_Access := Get_Output;
+   procedure Close_Report_File is
    begin
-      Skip := True;
-
-      if not Flag_Show_Missing and then not Has_Source then
-         return;
+      if Final_Report.Name /= null then
+         Close (Final_Report.File);
+         Unchecked_Deallocation (Final_Report.Name);
       end if;
+   end Close_Report_File;
 
-      if P.Fully = 0 then
-         Put (Output.all, Source_Filename & ':');
-         Put_Line (Output.all, " not covered");
-         New_Line (Output.all);
-         Skip := True;
-      elsif P.Fully /= P.Total then
-         Put (Output.all, Source_Filename & ':');
-         Put_Line (Output.all, " not fully covered");
-         Skip := False;
-      end if;
-   end Pretty_Print_File;
+   ----------------
+   -- Get_Output --
+   ----------------
 
-   procedure Pretty_Print_Line
-     (Pp : in out Report_Pretty_Printer;
-      Line_Num : Natural;
-      State : Line_State;
-      Line : String)
-   is
-      use Ada.Integer_Text_IO;
-      Output : constant File_Access := Get_Output;
+   function Get_Output return File_Access is
    begin
-      if State /= Covered
-        and then State /= No_Code
-      then
-         New_Line (Output.all);
-         Put (Output.all, Line_Num, 4);
-         Put (Output.all, ' ');
-         Put (Output.all, State_Char (State));
-         Put (Output.all, ": ");
-         Put (Output.all, Line);
-         New_Line (Output.all);
-         Pp.Print_Current_Line := State /= Not_Covered;
+      if Final_Report.Name /= null then
+         return Final_Report.File'Access;
       else
-         Pp.Print_Current_Line := False;
+         return Standard_Output;
       end if;
-   end Pretty_Print_Line;
+   end Get_Output;
 
-   procedure Pretty_Print_Label
-     (Pp : in out Report_Pretty_Printer;
-      Label : String)
+   ---------------------
+   -- Finalize_Report --
+   ---------------------
+
+   procedure Finalize_Report
    is
-      Output : constant File_Access := Get_Output;
+      Report_PP : Report_Pretty_Printer;
+      Output    : constant File_Access := Get_Output;
    begin
-      if Pp.Print_Current_Line then
-         Put_Line (Output.all, Label);
+      Put_Line (Output.all, "ERRORS BY SOURCE LINE:");
+      New_Line (Output.all);
+
+      Traces_Sources.Annotations.Disp_Line_State (Report_PP, False);
+      Close_Report_File;
+   end Finalize_Report;
+
+   ----------------------
+   -- Open_Report_File --
+   ----------------------
+
+   procedure Open_Report_File (Final_Report_Name : String) is
+   begin
+      Final_Report.Name := new String'(Final_Report_Name);
+
+      if Final_Report.Name /= null then
+         Create (Final_Report.File, Out_File, Final_Report.Name.all);
       end if;
-   end Pretty_Print_Label;
+   end Open_Report_File;
+
+   ---------------------------
+   -- Pretty_Print_End_File --
+   ---------------------------
+
+   procedure Pretty_Print_End_File
+     (Pp : in out Report_Pretty_Printer)
+   is
+   begin
+      null;
+   end Pretty_Print_End_File;
+
+   -----------------------
+   -- Pretty_Print_Insn --
+   -----------------------
 
    procedure Pretty_Print_Insn
      (Pp : in out Report_Pretty_Printer;
@@ -151,50 +173,86 @@ package body Traces_Sources.Annotations.Report is
       end if;
    end Pretty_Print_Insn;
 
-   procedure Pretty_Print_End_File
-     (Pp : in out Report_Pretty_Printer)
-   is
-   begin
-      null;
-   end Pretty_Print_End_File;
+   -----------------------------
+   -- Pretty_Print_Start_File --
+   -----------------------------
 
-   procedure Finalize_Report
+   procedure Pretty_Print_Start_File
+     (Pp              : in out Report_Pretty_Printer;
+      Source_Filename : String;
+      Stats           : Stat_Array;
+      Has_Source      : Boolean;
+      Skip            : out Boolean)
    is
-      Report_PP : Report_Pretty_Printer;
-      Output    : constant File_Access := Get_Output;
+      pragma Unreferenced (Pp);
+      P      : constant Counters := Get_Counters (Stats);
+      Output : constant File_Access := Get_Output;
    begin
-      Put_Line (Output.all, "ERRORS BY SOURCE LINE:");
-      New_Line (Output.all);
+      Skip := True;
 
-      Traces_Sources.Annotations.Disp_Line_State (Report_PP, False);
-      Close_Report_File;
-   end Finalize_Report;
-
-   procedure Open_Report_File
-     (Final_Report_Name : String)
-   is
-   begin
-      Final_Report.Name := new String'(Final_Report_Name);
-      if Final_Report.Name /= null then
-         Create (Final_Report.File, Out_File, Final_Report.Name.all);
+      if not Flag_Show_Missing and then not Has_Source then
+         return;
       end if;
-   end Open_Report_File;
 
-   procedure Close_Report_File is
-   begin
-      if Final_Report.Name /= null then
-         Close (Final_Report.File);
-         Unchecked_Deallocation (Final_Report.Name);
+      if P.Fully = 0 then
+         Put (Output.all, Source_Filename & ':');
+         Put_Line (Output.all, " not covered");
+         New_Line (Output.all);
+         Skip := True;
+      elsif P.Fully /= P.Total then
+         Put (Output.all, Source_Filename & ':');
+         Put_Line (Output.all, " not fully covered");
+         Skip := False;
       end if;
-   end Close_Report_File;
+   end Pretty_Print_Start_File;
 
-   function Get_Output return File_Access is
+   -----------------------------
+   -- Pretty_Print_Start_Line --
+   -----------------------------
+
+   procedure Pretty_Print_Start_Line
+     (Pp       : in out Report_Pretty_Printer;
+      Line_Num : Natural;
+      State    : Line_State;
+      Line     : String)
+   is
+      use Ada.Integer_Text_IO;
+
+      Output : constant File_Access := Get_Output;
    begin
-      if Final_Report.Name /= null then
-         return Final_Report.File'Access;
+      if State /= Covered
+        and then State /= No_Code
+      then
+         New_Line (Output.all);
+         Put (Output.all, Line_Num, 4);
+         Put (Output.all, ' ');
+         Put (Output.all, State_Char (State));
+         Put (Output.all, ": ");
+         Put (Output.all, Line);
+         New_Line (Output.all);
+         Pp.Print_Current_Line := State /= Not_Covered;
       else
-         return Standard_Output;
+         Pp.Print_Current_Line := False;
       end if;
-   end Get_Output;
+   end Pretty_Print_Start_Line;
+
+   -------------------------------
+   -- Pretty_Print_Start_Symbol --
+   -------------------------------
+
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Report_Pretty_Printer;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State)
+   is
+      pragma Unreferenced (State);
+      Output : constant File_Access := Get_Output;
+      Label  : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
+   begin
+      if Pp.Print_Current_Line then
+         Put_Line (Output.all, Label);
+      end if;
+   end Pretty_Print_Start_Symbol;
 
 end Traces_Sources.Annotations.Report;

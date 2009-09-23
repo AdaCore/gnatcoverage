@@ -42,6 +42,7 @@ with Sources;           use Sources;
 with Traces_Sources.Annotations; use Traces_Sources.Annotations;
 with Traces_Sources.Annotations.Html;
 with Traces_Sources.Annotations.Xcov;
+with Traces_Sources.Annotations.Xml;
 with Traces_Sources.Annotations.Report;
 with Traces_Names;
 with Traces_Dump;
@@ -918,6 +919,9 @@ begin
 
                when Annotate_Html =>
                   Traces_Sources.Annotations.Html.Generate_Report (False);
+
+               when Annotate_Xml =>
+                  Traces_Sources.Annotations.Xml.Generate_Report;
 
                when Annotate_Xcov_Asm =>
                   --  Case of source coverage???

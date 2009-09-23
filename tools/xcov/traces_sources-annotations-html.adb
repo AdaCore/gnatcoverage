@@ -60,6 +60,9 @@ package body Traces_Sources.Annotations.Html is
       --  Record whether the instruction table has been opened during the
       --  the generation of a source-file specific html report; this state
       --  is used to make sure that it is opened only once.
+      --  ??? We should be able to remove this field by overring
+      --  Pretty_Printer_Start_Instruction_Set and
+      --  Pretty_Printer_End_Instruction_Set.
    end record;
 
    ------------------------------------------------
@@ -69,24 +72,26 @@ package body Traces_Sources.Annotations.Html is
 
    procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer);
 
-   procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer);
+   procedure Pretty_Print_End (Pp : in out Html_Pretty_Printer);
 
-   procedure Pretty_Print_File
+   procedure Pretty_Print_Start_File
      (Pp              : in out Html_Pretty_Printer;
       Source_Filename : String;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean);
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Html_Pretty_Printer;
       Line_Num : Natural;
       State    : Line_State;
       Line     : String);
 
-   procedure Pretty_Print_Label
-     (Pp    : in out Html_Pretty_Printer;
-      Label : String);
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Html_Pretty_Printer;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State);
 
    procedure Pretty_Print_Insn
      (Pp    : in out Html_Pretty_Printer;
@@ -234,6 +239,89 @@ package body Traces_Sources.Annotations.Html is
       Put_Line (Pp.Html_File, Str);
    end Plh;
 
+   ----------------------
+   -- Pretty_Print_End --
+   ----------------------
+
+   procedure Pretty_Print_End (Pp : in out Html_Pretty_Printer) is
+
+      procedure Pi (S : String);
+      --  Print S to Pp's index file; new line at the end
+
+      --------
+      -- Pi --
+      --------
+
+      procedure Pi (S : String) is
+      begin
+         Put_Line (Pp.Index_File, S);
+      end Pi;
+
+      --  Start of processing for Pretty_Print_Finish
+
+   begin
+      Pi ("  </table>");
+
+      Pi ("<div id=help>");
+      Pi ("<hr/>");
+      Pi ("<h4 align=""right""><a href=""#top""> top </a></h4>");
+
+      Pi ("This report presents a global view of the coverage");
+      Pi ("results for the given coverage level. It sums up:");
+      Pi ("<ul>");
+      Pi ("<li> the list of trace files processed by xcov;");
+      Pi ("<li> the global results;");
+      Pi ("<li> the coverage result per source files.");
+      Pi ("</ul>");
+      Pi ("<br/>");
+
+      Pi ("For each trace files, the following information is given:");
+      Pi ("<ul>");
+      Pi ("<li> the name of the trace file;");
+      Pi ("<li> the name of the executable that has been used to");
+      Pi ("    generate it;");
+      Pi ("<li> when it has been generated;");
+      Pi ("<li> the tag that has been associated with this run, if any.");
+      Pi ("</ul>");
+      Pi ("<br/>");
+
+      Pi ("The results (total and per file) contain:");
+      Pi ("<ul>");
+      Pi ("<li> the total number of lines for the corresponding unit;");
+      Pi ("""lines"" should here be understood as ""source line of code that");
+      Pi ("generates object code"" (in that respect, comments are not");
+      Pi ("considered as ""lines"");");
+      Pi ("<li> the number of lines (as defined previously) that are");
+      Pi ("considered as covered, in accordance with the chosen coverage");
+      Pi ("criteria;");
+      Pi ("<li> the number of lines partially covered according to this");
+      Pi ("criteria;");
+      Pi ("<li> the number of lines that are not covered at all according");
+      Pi ("to this criteria;");
+      Pi ("<li> A visual summary of these coverage datas.");
+      Pi ("</ul>");
+      Pi ("<br/>");
+
+      Pi ("In the visual summary, the colors have the following meaning:");
+      Pi ("<br/>");
+
+      Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
+      Pi ("    <tr>");
+      Pi ("      <td class=""SumBarCover"" witdh=""33%"">"
+            & "Fully covered</td>");
+      Pi ("      <td class=""SumBarPartial"">"
+            & "Partially covered</td>");
+      Pi ("      <td class=""SumBarNoCover"" witdh=""13%"">"
+            & "not covered</td>");
+      Pi ("     </tr>");
+      Pi ("   </table>");
+
+      Pi ("</div>");
+      Pi ("</body>");
+      Pi ("</html>");
+      Close (Pp.Index_File);
+   end Pretty_Print_End;
+
    ---------------------------
    -- Pretty_Print_End_File --
    ---------------------------
@@ -248,10 +336,156 @@ package body Traces_Sources.Annotations.Html is
    end Pretty_Print_End_File;
 
    -----------------------
-   -- Pretty_Print_File --
+   -- Pretty_Print_Insn --
    -----------------------
 
-   procedure Pretty_Print_File
+   procedure Pretty_Print_Insn
+     (Pp    : in out Html_Pretty_Printer;
+      Pc    : Pc_Type;
+      State : Insn_State;
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class) is
+   begin
+      Open_Insn_Table (Pp);
+      Wrh (Pp, "      <tr class=""");
+
+      case State is
+         when Unknown =>
+            raise Program_Error;
+
+         when Not_Covered =>
+            Wrh (Pp, "not_covered");
+
+         when Covered | Both_Taken =>
+            Wrh (Pp, "covered");
+
+         when Branch_Taken
+           | Fallthrough_Taken =>
+            Wrh (Pp, "partially_covered");
+      end case;
+
+      Plh (Pp, """>");
+      Wrh (Pp, "        <td><pre>");
+      Wrh (Pp, Hex_Image (Pc));
+      Wrh (Pp, ' ' & Insn_State_Char (State) & ':');
+      Wrh (Pp, "  ");
+      for I in Insn'Range loop
+         Wrh (Pp, Hex_Image (Insn (I)));
+         Wrh (Pp, " ");
+      end loop;
+      Wrh (Pp, "  ");
+      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc, Sym)));
+      Plh (Pp, "</pre></td>");
+      Plh (Pp, "      </tr>");
+   end Pretty_Print_Insn;
+
+   ------------------------
+   -- Pretty_Print_Start --
+   ------------------------
+
+   procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer) is
+      use Qemu_Traces;
+      use Traces_Files;
+      use Traces_Files_List;
+      use Traces_Files_Lists;
+
+      procedure Pi (S : String);
+      --  Print S to Pp's index file; new line at the end
+
+      --------
+      -- Pi --
+      --------
+
+      procedure Pi (S : String) is
+      begin
+         Put_Line (Pp.Index_File, S);
+      end Pi;
+
+      --  Local variables
+
+      Cur : Traces_Files_Lists.Cursor;
+      El  : Trace_File_Element_Acc;
+
+      --  Start of processing for Pretty_Print_Start
+
+   begin
+      begin
+         Create_Output_File (Pp.Index_File, "index.html");
+      exception
+         when Ada.Text_IO.Name_Error =>
+            Put_Line (Standard_Error,
+                      "cannot open index.html");
+            raise;
+      end;
+
+      Generate_Css_File;
+
+      Pi ("<html lang=""en"">");
+      Pi ("<head>");
+      Pi ("  <title>Coverage results</title>");
+      Pi ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
+      Pi ("</head>");
+      Pi ("<body>");
+      Pi ("<div id=""top"">");
+      Pi ("<h4 align=""right""><a href=""#help""> help </a></h4>");
+      Pi ("<h1 align=""center"">XCOV coverage report</h1>");
+      Pi ("<h2 align=""center""> Coverage level: "
+         & To_Coverage_Option (Get_Coverage_Level) & "</h2>");
+      Pi ("</div>");
+
+      --  List of traces.
+      Pi ("  <hr/>");
+      Pi ("  <table cellspacing=""1"" class=""TracesFiles"">");
+      Pi ("    <tr class=""Head"">");
+      Pi ("      <td>Trace Filename</td>");
+      Pi ("      <td>Program</td>");
+      Pi ("      <td>Date</td>");
+      Pi ("      <td>Tag</td>");
+      Pi ("    </tr>");
+
+      Cur := Files.First;
+      while Has_Element (Cur) loop
+         El := Element (Cur);
+         Pi ("    <tr>");
+         Pi ("      <td>");
+         Pi (El.Filename.all);
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Get_Info (El.Trace, Exec_File_Name));
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Format_Date_Info (Get_Info (El.Trace, Date_Time)));
+         Pi ("      </td>");
+         Pi ("      <td>");
+         Pi (Get_Info (El.Trace, User_Data));
+         Pi ("      </td>");
+         Pi ("    </tr>");
+         Next (Cur);
+      end loop;
+
+      Pi ("  </table>");
+
+      --  Total stats.
+      Pi ("  <hr/>");
+      Pi ("  <table cellspacing=""1"" class=""TotalTable"">");
+      Print_Coverage_Header (Pp.Index_File, "", True);
+      Pi ("    <tr>");
+      Pi ("      <td title=""Total"" class=""SumTotal"">Total</td>");
+      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
+      Pi ("    </tr>");
+      Pi ("  </table>");
+
+      --  Open table for results file per file
+      Pi ("  <hr/>");
+      Pi ("  <table cellspacing=""1"" class=""SumTable"">");
+      Print_Coverage_Header (Pp.Index_File, "Filename", True);
+   end Pretty_Print_Start;
+
+   -----------------------------
+   -- Pretty_Print_Start_File --
+   -----------------------------
+
+   procedure Pretty_Print_Start_File
      (Pp              : in out Html_Pretty_Printer;
       Source_Filename : String;
       Stats           : Stat_Array;
@@ -365,156 +599,13 @@ package body Traces_Sources.Annotations.Html is
       Plh (Pp, "<table width=""100%"" cellpadding=""0"" "
            & "class=""SourceFile"">");
       Pp.Has_Insn_Table := False;
-   end Pretty_Print_File;
+   end Pretty_Print_Start_File;
 
-   -------------------------
-   -- Pretty_Print_Finish --
-   -------------------------
+   -----------------------------
+   -- Pretty_Print_Start_Line --
+   -----------------------------
 
-   procedure Pretty_Print_Finish (Pp : in out Html_Pretty_Printer) is
-
-      procedure Pi (S : String);
-      --  Print S to Pp's index file; new line at the end
-
-      --------
-      -- Pi --
-      --------
-
-      procedure Pi (S : String) is
-      begin
-         Put_Line (Pp.Index_File, S);
-      end Pi;
-
-      --  Start of processing for Pretty_Print_Finish
-
-   begin
-      Pi ("  </table>");
-
-      Pi ("<div id=help>");
-      Pi ("<hr/>");
-      Pi ("<h4 align=""right""><a href=""#top""> top </a></h4>");
-
-      Pi ("This report presents a global view of the coverage");
-      Pi ("results for the given coverage level. It sums up:");
-      Pi ("<ul>");
-      Pi ("<li> the list of trace files processed by xcov;");
-      Pi ("<li> the global results;");
-      Pi ("<li> the coverage result per source files.");
-      Pi ("</ul>");
-      Pi ("<br/>");
-
-      Pi ("For each trace files, the following information is given:");
-      Pi ("<ul>");
-      Pi ("<li> the name of the trace file;");
-      Pi ("<li> the name of the executable that has been used to");
-      Pi ("    generate it;");
-      Pi ("<li> when it has been generated;");
-      Pi ("<li> the tag that has been associated with this run, if any.");
-      Pi ("</ul>");
-      Pi ("<br/>");
-
-      Pi ("The results (total and per file) contain:");
-      Pi ("<ul>");
-      Pi ("<li> the total number of lines for the corresponding unit;");
-      Pi ("""lines"" should here be understood as ""source line of code that");
-      Pi ("generates object code"" (in that respect, comments are not");
-      Pi ("considered as ""lines"");");
-      Pi ("<li> the number of lines (as defined previously) that are");
-      Pi ("considered as covered, in accordance with the chosen coverage");
-      Pi ("criteria;");
-      Pi ("<li> the number of lines partially covered according to this");
-      Pi ("criteria;");
-      Pi ("<li> the number of lines that are not covered at all according");
-      Pi ("to this criteria;");
-      Pi ("<li> A visual summary of these coverage datas.");
-      Pi ("</ul>");
-      Pi ("<br/>");
-
-      Pi ("In the visual summary, the colors have the following meaning:");
-      Pi ("<br/>");
-
-      Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
-      Pi ("    <tr>");
-      Pi ("      <td class=""SumBarCover"" witdh=""33%"">"
-            & "Fully covered</td>");
-      Pi ("      <td class=""SumBarPartial"">"
-            & "Partially covered</td>");
-      Pi ("      <td class=""SumBarNoCover"" witdh=""13%"">"
-            & "not covered</td>");
-      Pi ("     </tr>");
-      Pi ("   </table>");
-
-      Pi ("</div>");
-      Pi ("</body>");
-      Pi ("</html>");
-      Close (Pp.Index_File);
-   end Pretty_Print_Finish;
-
-   -----------------------
-   -- Pretty_Print_Insn --
-   -----------------------
-
-   procedure Pretty_Print_Insn
-     (Pp    : in out Html_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class) is
-   begin
-      Open_Insn_Table (Pp);
-      Wrh (Pp, "      <tr class=""");
-
-      case State is
-         when Unknown =>
-            raise Program_Error;
-
-         when Not_Covered =>
-            Wrh (Pp, "not_covered");
-
-         when Covered | Both_Taken =>
-            Wrh (Pp, "covered");
-
-         when Branch_Taken
-           | Fallthrough_Taken =>
-            Wrh (Pp, "partially_covered");
-      end case;
-
-      Plh (Pp, """>");
-      Wrh (Pp, "        <td><pre>");
-      Wrh (Pp, Hex_Image (Pc));
-      Wrh (Pp, ' ' & Insn_State_Char (State) & ':');
-      Wrh (Pp, "  ");
-      for I in Insn'Range loop
-         Wrh (Pp, Hex_Image (Insn (I)));
-         Wrh (Pp, " ");
-      end loop;
-      Wrh (Pp, "  ");
-      Wrh (Pp, To_Xml_String (Disassemble (Insn, Pc, Sym)));
-      Plh (Pp, "</pre></td>");
-      Plh (Pp, "      </tr>");
-   end Pretty_Print_Insn;
-
-   ------------------------
-   -- Pretty_Print_Label --
-   ------------------------
-
-   procedure Pretty_Print_Label
-     (Pp : in out Html_Pretty_Printer;
-      Label : String) is
-   begin
-      Open_Insn_Table (Pp);
-      Plh (Pp, "      <tr>");
-      Wrh (Pp, "        <td><pre>");
-      Wrh (Pp, To_Xml_String (Label));
-      Plh (Pp, "</pre></td>");
-      Plh (Pp, "      </tr>");
-   end Pretty_Print_Label;
-
-   -----------------------
-   -- Pretty_Print_Line --
-   -----------------------
-
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Html_Pretty_Printer;
       Line_Num : Natural;
       State    : Line_State;
@@ -574,109 +665,28 @@ package body Traces_Sources.Annotations.Html is
       Wrh (Pp, To_Xml_String (Line));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "  </tr>");
-   end Pretty_Print_Line;
+   end Pretty_Print_Start_Line;
 
-   ------------------------
-   -- Pretty_Print_Start --
-   ------------------------
+   -------------------------------
+   -- Pretty_Print_Start_Symbol --
+   -------------------------------
 
-   procedure Pretty_Print_Start (Pp : in out Html_Pretty_Printer) is
-      use Qemu_Traces;
-      use Traces_Files;
-      use Traces_Files_List;
-      use Traces_Files_Lists;
-
-      procedure Pi (S : String);
-      --  Print S to Pp's index file; new line at the end
-
-      --------
-      -- Pi --
-      --------
-
-      procedure Pi (S : String) is
-      begin
-         Put_Line (Pp.Index_File, S);
-      end Pi;
-
-      --  Local variables
-
-      Cur : Traces_Files_Lists.Cursor;
-      El  : Trace_File_Element_Acc;
-
-      --  Start of processing for Pretty_Print_Start
-
+   procedure Pretty_Print_Start_Symbol
+     (Pp     : in out Html_Pretty_Printer;
+      Name   : String;
+      Offset : Pc_Type;
+      State  : Line_State)
+   is
+      pragma Unreferenced (State);
+      Label  : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
    begin
-      begin
-         Create_Output_File (Pp.Index_File, "index.html");
-      exception
-         when Ada.Text_IO.Name_Error =>
-            Put_Line (Standard_Error,
-                      "cannot open index.html");
-            raise;
-      end;
-
-      Generate_Css_File;
-
-      Pi ("<html lang=""en"">");
-      Pi ("<head>");
-      Pi ("  <title>Coverage results</title>");
-      Pi ("  <link rel=""stylesheet"" type=""text/css"" href=""xcov.css"">");
-      Pi ("</head>");
-      Pi ("<body>");
-      Pi ("<div id=""top"">");
-      Pi ("<h4 align=""right""><a href=""#help""> help </a></h4>");
-      Pi ("<h1 align=""center"">XCOV coverage report</h1>");
-      Pi ("<h2 align=""center""> Coverage level: "
-         & To_Coverage_Option (Get_Coverage_Level) & "</h2>");
-      Pi ("</div>");
-
-      --  List of traces.
-      Pi ("  <hr/>");
-      Pi ("  <table cellspacing=""1"" class=""TracesFiles"">");
-      Pi ("    <tr class=""Head"">");
-      Pi ("      <td>Trace Filename</td>");
-      Pi ("      <td>Program</td>");
-      Pi ("      <td>Date</td>");
-      Pi ("      <td>Tag</td>");
-      Pi ("    </tr>");
-
-      Cur := Files.First;
-      while Has_Element (Cur) loop
-         El := Element (Cur);
-         Pi ("    <tr>");
-         Pi ("      <td>");
-         Pi (El.Filename.all);
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Get_Info (El.Trace, Exec_File_Name));
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Format_Date_Info (Get_Info (El.Trace, Date_Time)));
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Get_Info (El.Trace, User_Data));
-         Pi ("      </td>");
-         Pi ("    </tr>");
-         Next (Cur);
-      end loop;
-
-      Pi ("  </table>");
-
-      --  Total stats.
-      Pi ("  <hr/>");
-      Pi ("  <table cellspacing=""1"" class=""TotalTable"">");
-      Print_Coverage_Header (Pp.Index_File, "", True);
-      Pi ("    <tr>");
-      Pi ("      <td title=""Total"" class=""SumTotal"">Total</td>");
-      Print_Coverage_Stats (Pp.Index_File, Global_Stats);
-      Pi ("    </tr>");
-      Pi ("  </table>");
-
-      --  Open table for results file per file
-      Pi ("  <hr/>");
-      Pi ("  <table cellspacing=""1"" class=""SumTable"">");
-      Print_Coverage_Header (Pp.Index_File, "Filename", True);
-   end Pretty_Print_Start;
+      Open_Insn_Table (Pp);
+      Plh (Pp, "      <tr>");
+      Wrh (Pp, "        <td><pre>");
+      Wrh (Pp, To_Xml_String (Label));
+      Plh (Pp, "</pre></td>");
+      Plh (Pp, "      </tr>");
+   end Pretty_Print_Start_Symbol;
 
    ---------------------------
    -- Print_Coverage_Header --

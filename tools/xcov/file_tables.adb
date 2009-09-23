@@ -36,6 +36,7 @@ package body File_Tables is
 
    procedure Append
      (Info            : Line_Info_Access;
+      State           : Line_State;
       Instruction_Set : Addresses_Info_Acc;
       Base            : Traces_Base_Acc;
       Exec            : Exe_File_Acc);
@@ -46,16 +47,17 @@ package body File_Tables is
    --------------
 
    procedure Add_Line
-     (File : Source_File_Index;
-      Line : Natural;
-      Info : Addresses_Info_Acc;
-      Base : Traces_Base_Acc;
-      Exec : Exe_File_Acc)
+     (File  : Source_File_Index;
+      State : Line_State;
+      Line  : Natural;
+      Info  : Addresses_Info_Acc;
+      Base  : Traces_Base_Acc;
+      Exec  : Exe_File_Acc)
    is
       Element : File_Info_Access renames File_Table.Table (File);
    begin
       Expand_Line_Table (File, Line);
-      Append (Element.Lines.Table (Line), Info, Base, Exec);
+      Append (Element.Lines.Table (Line), State, Info, Base, Exec);
    end Add_Line;
 
    ------------
@@ -64,12 +66,14 @@ package body File_Tables is
 
    procedure Append
      (Info            : Line_Info_Access;
+      State           : Line_State;
       Instruction_Set : Addresses_Info_Acc;
       Base            : Traces_Base_Acc;
       Exec            : Exe_File_Acc)
    is
       El : constant Line_Chain_Acc :=
-        new Line_Chain'(OCI => (Instruction_Set => Instruction_Set,
+        new Line_Chain'(OCI => (State => State,
+                                Instruction_Set => Instruction_Set,
                                 Base => Base,
                                 Exec => Exec),
                         Next => null);

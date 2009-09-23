@@ -17,7 +17,41 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Interfaces;
+
 package body Coverage.Object is
+
+   --------------------
+   -- Get_Line_State --
+   --------------------
+
+   function Get_Line_State
+     (Base  : Traces_Base;
+      First : Pc_Type;
+      Last  : Pc_Type) return Line_State
+   is
+      use Interfaces;
+
+      Result : Line_State := No_Code;
+      It     : Entry_Iterator;
+      T      : Trace_Entry;
+   begin
+      Init (Base, It, First);
+      loop
+         Get_Next_Trace (T, It);
+         exit when T = Bad_Trace or else T.First > Last;
+         Update_Line_State (Result, T.State);
+      end loop;
+
+      if Result = No_Code then
+         --  No trace for this instruction range. This means that can only
+         --  mean that it is not covered.
+
+         Result := Not_Covered;
+      end if;
+
+      return Result;
+   end Get_Line_State;
 
    -----------------------
    -- Update_Line_State --

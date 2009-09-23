@@ -17,25 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Traces;       use Traces;
-with Traces_Lines; use Traces_Lines;
+package Traces_Sources.Annotations.Xml is
 
-package Coverage.Object is
+   procedure Generate_Report;
 
-   subtype Known_Insn_State is
-     Insn_State range Not_Covered .. Insn_State'Last;
-
-   procedure Update_Line_State
-     (L : in out Line_State;
-      I : Known_Insn_State);
-   --  Update a source line state with the object coverage status of one of its
-   --  instructions (for reporting of object coverage as source annotations).
-
-   function Get_Line_State
-     (Base  : Traces_Base;
-      First : Pc_Type;
-      Last  : Pc_Type) return Line_State;
-   --  Extract (from Base) the object coverage of the instruction set in
-   --  range First .. Last.
-
-end Coverage.Object;
+end Traces_Sources.Annotations.Xml;
