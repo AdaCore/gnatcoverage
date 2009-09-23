@@ -204,8 +204,6 @@ package body SC_Obligations is
    use type Pc_Type;
    package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
-   type Tristate is (False, True, Unknown);
-
    type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
       First_Sloc : Source_Location;
       --  First sloc (for a complex decision, taken from first condition)

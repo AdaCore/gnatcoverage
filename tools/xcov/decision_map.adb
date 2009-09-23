@@ -17,6 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Ordered_Maps;
+
 with Ada.Directories; use Ada.Directories;
 with Ada.Text_IO;     use Ada.Text_IO;
 with Interfaces;
@@ -40,6 +42,73 @@ package body Decision_Map is
    Decision_Map_Base : Traces_Base;
    --  The decision map is a list of code addresses, so we manage it as a
    --  trace database.
+
+   ---------------------------------
+   -- Control flow graph analysis --
+   ---------------------------------
+
+   --  Conditional branch instructions that correspond to conditions in the
+   --  sources are annotated with information relating the corresponding
+   --  edges of the control flow graph with the logical structure of the
+   --  decision.
+
+   type Edge_Dest_Kind is (Unknown, Condition, Outcome);
+   pragma Unreferenced (Condition, Outcome);
+   --  Destination of an edge in the control flow graph within an occurrence
+   --  of a decision: not determined yet, test another condition, final
+   --  decision outcome reached.
+
+   --  Cond_Edge_Info is the information associated with each edge of the
+   --  control flow graph.
+
+   type Cond_Edge_Info is record
+      Origin      : Tristate := Unknown;
+      --  If not Unknown, indicate which value of the tested condition causes
+      --  this edge to be taken.
+
+      Destination : Pc_Type;
+      --  Edge destination
+
+      Dest_Kind   : Edge_Dest_Kind := Unknown;
+      --  Edge destination classification, if known
+
+      Outcome     : Tristate       := Unknown;
+      --  For the case where Dest_Kind is Outcome, corresponding valuation of
+      --  the decision, if known.
+   end record;
+
+   --  Cond_Branch_Info is the information associated with each conditional
+   --  branch instruction.
+
+   type Cond_Branch_Info is record
+      Condition        : SCO_Id;
+      --  Condition being tested by the conditional branch instruction
+
+      Branch_Edge,
+      Fallthrough_Edge : Cond_Edge_Info;
+      --  Edge information for the branch case and fallthrough case
+   end record;
+
+   package Cond_Branch_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Pc_Type,
+      Element_Type => Cond_Branch_Info,
+      "<"          => Interfaces."<");
+
+   Cond_Branch_Map : Cond_Branch_Maps.Map;
+   pragma Unreferenced (Cond_Branch_Map);
+
+   type Condition_Occurrence_Array is array (Positive range <>) of Pc_Type;
+   --  In a decision occurrence, each tested condition is represented by
+   --  a conditional branch instruction.
+
+   type Decision_Occurrence (Cond_Count : Positive) is record
+      Decision              : SCO_Id;
+      --  The decision being evaluated
+
+      Condition_Occurrences : Condition_Occurrence_Array (1 .. Cond_Count);
+      --  The corresponding evaluations of the conditions in the decision
+   end record;
+   pragma Unreferenced (Decision_Occurrence);
 
    procedure Analyze;
    --  Build the decision map from the executable, debug information and

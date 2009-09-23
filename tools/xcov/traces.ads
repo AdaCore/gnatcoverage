@@ -28,6 +28,8 @@ package Traces is
    --  Host order is determined by System.Default_Bit_Order
 
    subtype Pc_Type is Unsigned_32;
+   No_PC : constant Pc_Type := 0;
+
    Pc_Type_Size : constant Unsigned_8 := Pc_Type'Size / System.Storage_Unit;
    --  Define the size of the PC.
 

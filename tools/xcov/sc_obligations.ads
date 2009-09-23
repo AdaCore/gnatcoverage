@@ -50,4 +50,7 @@ package SC_Obligations is
    procedure Report_SCOs_Without_Code;
    --  Output a list of conditions without associated conditional branches
 
+   type Tristate is (False, True, Unknown);
+   --  State of a condition, if known
+
 end SC_Obligations;
