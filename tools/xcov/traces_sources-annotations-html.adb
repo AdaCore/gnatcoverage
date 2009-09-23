@@ -55,14 +55,6 @@ package body Traces_Sources.Annotations.Html is
 
       Index_File      : Ada.Text_IO.File_Type;
       --  Handle to the HTML index
-
-      Has_Insn_Table  : Boolean;
-      --  Record whether the instruction table has been opened during the
-      --  the generation of a source-file specific html report; this state
-      --  is used to make sure that it is opened only once.
-      --  ??? We should be able to remove this field by overring
-      --  Pretty_Printer_Start_Instruction_Set and
-      --  Pretty_Printer_End_Instruction_Set.
    end record;
 
    ------------------------------------------------
@@ -93,6 +85,13 @@ package body Traces_Sources.Annotations.Html is
       Offset : Pc_Type;
       State  : Line_State);
 
+   procedure Pretty_Print_Start_Instruction_Set
+     (Pp    : in out Html_Pretty_Printer;
+      State : Line_State);
+
+   procedure Pretty_Print_End_Instruction_Set
+     (Pp : in out Html_Pretty_Printer);
+
    procedure Pretty_Print_Insn
      (Pp    : in out Html_Pretty_Printer;
       Pc    : Pc_Type;
@@ -111,16 +110,6 @@ package body Traces_Sources.Annotations.Html is
 
    procedure Wrh (Pp : in out Html_Pretty_Printer'Class; Str : String);
    --  Put Str in Pp's current html file; no new line at the end
-
-   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
-   --  If the insn table has not been opened yet, open it (that is to say,
-   --  emit the corresponding "<table>" statement in Pp's html output for
-   --  the current source file); otherwise, no action.
-
-   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class);
-   --  If the insn table has been opened during the generation of the html
-   --  output for the current source file, close it; i.e. emit the
-   --  corresponding "</table>" statement. Otherwise, do nothing.
 
    ---------------------------
    -- General HTML handling --
@@ -147,21 +136,6 @@ package body Traces_Sources.Annotations.Html is
 
    procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array);
    --  Put the datas of Stats as HTML table cells ("<td>") in F.
-
-   ----------------------
-   -- Close_Insn_Table --
-   ----------------------
-
-   procedure Close_Insn_Table (Pp : in out Html_Pretty_Printer'Class) is
-   begin
-      if not Pp.Has_Insn_Table then
-         return;
-      end if;
-
-      Plh (Pp, "    </table></td>");
-      Plh (Pp, "  </tr>");
-      Pp.Has_Insn_Table := False;
-   end Close_Insn_Table;
 
    -----------------------
    -- Generate_Css_File --
@@ -214,21 +188,6 @@ package body Traces_Sources.Annotations.Html is
       Html.Show_Asm := Show_Asm;
       Traces_Sources.Annotations.Disp_Line_State (Html, Show_Asm);
    end Generate_Report;
-
-   ---------------------
-   -- Open_Insn_Table --
-   ---------------------
-
-   procedure Open_Insn_Table (Pp : in out Html_Pretty_Printer'Class) is
-   begin
-      if Pp.Has_Insn_Table then
-         return;
-      end if;
-
-      Plh (Pp, "  <tr style=""display: none""><td></td><td></td>");
-      Plh (Pp, "    <td><table width=""100%"">");
-      Pp.Has_Insn_Table := True;
-   end Open_Insn_Table;
 
    ---------
    -- Plh --
@@ -328,7 +287,6 @@ package body Traces_Sources.Annotations.Html is
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer) is
    begin
-      Close_Insn_Table (Pp);
       Plh (Pp, "</table>");
       Plh (Pp, "</body>");
       Plh (Pp, "</html>");
@@ -346,7 +304,6 @@ package body Traces_Sources.Annotations.Html is
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class) is
    begin
-      Open_Insn_Table (Pp);
       Wrh (Pp, "      <tr class=""");
 
       case State is
@@ -378,6 +335,18 @@ package body Traces_Sources.Annotations.Html is
       Plh (Pp, "</pre></td>");
       Plh (Pp, "      </tr>");
    end Pretty_Print_Insn;
+
+   --------------------------------------
+   -- Pretty_Print_End_Instruction_Set --
+   --------------------------------------
+
+   procedure Pretty_Print_End_Instruction_Set
+     (Pp : in out Html_Pretty_Printer)
+   is
+   begin
+      Plh (Pp, "    </table></td>");
+      Plh (Pp, "  </tr>");
+   end Pretty_Print_End_Instruction_Set;
 
    ------------------------
    -- Pretty_Print_Start --
@@ -598,8 +567,21 @@ package body Traces_Sources.Annotations.Html is
 
       Plh (Pp, "<table width=""100%"" cellpadding=""0"" "
            & "class=""SourceFile"">");
-      Pp.Has_Insn_Table := False;
    end Pretty_Print_Start_File;
+
+   ----------------------------------------
+   -- Pretty_Print_Start_Instruction_Set --
+   ----------------------------------------
+
+   procedure Pretty_Print_Start_Instruction_Set
+     (Pp    : in out Html_Pretty_Printer;
+      State : Line_State)
+   is
+      pragma Unreferenced (State);
+   begin
+      Plh (Pp, "  <tr style=""display: none""><td></td><td></td>");
+      Plh (Pp, "    <td><table width=""100%"">");
+   end Pretty_Print_Start_Instruction_Set;
 
    -----------------------------
    -- Pretty_Print_Start_Line --
@@ -613,8 +595,6 @@ package body Traces_Sources.Annotations.Html is
    is
       use Ada.Integer_Text_IO;
    begin
-      Close_Insn_Table (Pp);
-
       Wrh (Pp, "  <tr class=");
       case State is
          when Not_Covered =>
@@ -680,7 +660,6 @@ package body Traces_Sources.Annotations.Html is
       pragma Unreferenced (State);
       Label  : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
    begin
-      Open_Insn_Table (Pp);
       Plh (Pp, "      <tr>");
       Wrh (Pp, "        <td><pre>");
       Wrh (Pp, To_Xml_String (Label));
