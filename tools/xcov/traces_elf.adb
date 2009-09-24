@@ -42,6 +42,7 @@ with Traces_Names;
 with Traces_Sources;
 with Types;             use Types;
 with File_Tables;       use File_Tables;
+with Outputs;
 
 package body Traces_Elf is
 
@@ -1971,7 +1972,18 @@ package body Traces_Elf is
                         when 3 =>
                            New_State := Both_Taken;
                         when others =>
-                           raise Program_Error;
+                           --  The last instruction is a branch; the trace
+                           --  should say if it has been taken or not.
+                           --  So Trace.Op shall not be null.
+                           --  If the case of instruction coverage, we may
+                           --  however ignore this error.
+                           if Get_Coverage_Level = Insn then
+                              New_State := Covered;
+                           else
+                              Outputs.Fatal_Error
+                                ("trace at PC=" & Hex_Image (Last_Pc)
+                                 & ": incomplete branch coverage information");
+                           end if;
                      end case;
                   else
                      New_State := Covered;
