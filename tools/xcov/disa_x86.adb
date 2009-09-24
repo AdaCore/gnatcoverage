@@ -36,7 +36,11 @@ package body Disa_X86 is
    type Code_Type is
      (C_None,
       C_Prefix,
+      C_Prefix_Seg,
       C_Prefix_Rep,
+      C_Prefix_Oper,
+      C_0F,
+      C_Lock,
 
       --  Start of Modrm.
       C_Eb,
@@ -152,7 +156,7 @@ package body Disa_X86 is
       2#00_001_101# => ("or      ", C_Reg_Ax, C_Iz),
 
       2#00_001_110# => ("push    ", C_Reg_Cs, C_None),
-      2#00_001_111# => ("-       ", C_None, C_None),
+      2#00_001_111# => ("-       ", C_0F, C_None),
 
       --  10-17
       2#00_010_000# => ("adc     ", C_Eb, C_Gb),
@@ -184,7 +188,7 @@ package body Disa_X86 is
       2#00_100_100# => ("and     ", C_Reg_Al, C_Ib),
       2#00_100_101# => ("and     ", C_Reg_Ax, C_Iz),
 
-      2#00_100_110# => ("es      ", C_Prefix, C_None),
+      2#00_100_110# => ("es      ", C_Prefix_Seg, C_None),
       2#00_100_111# => ("daa     ", C_None, C_None),
 
       --  28-2F
@@ -195,7 +199,7 @@ package body Disa_X86 is
       2#00_101_100# => ("sub     ", C_Reg_Al, C_Ib),
       2#00_101_101# => ("sub     ", C_Reg_Ax, C_Iz),
 
-      2#00_101_110# => ("cs      ", C_Prefix, C_None),
+      2#00_101_110# => ("cs      ", C_Prefix_Seg, C_None),
       2#00_101_111# => ("das     ", C_None, C_None),
 
       --  30-37
@@ -206,7 +210,7 @@ package body Disa_X86 is
       2#00_110_100# => ("xor     ", C_Reg_Al, C_Ib),
       2#00_110_101# => ("xor     ", C_Reg_Ax, C_Iz),
 
-      2#00_110_110# => ("ss      ", C_Prefix, C_None),
+      2#00_110_110# => ("ss      ", C_Prefix_Seg, C_None),
       2#00_110_111# => ("aaa     ", C_None, C_None),
 
       --  28-2F
@@ -217,7 +221,7 @@ package body Disa_X86 is
       2#00_111_100# => ("cmp     ", C_Reg_Al, C_Ib),
       2#00_111_101# => ("cmp     ", C_Reg_Ax, C_Iz),
 
-      2#00_111_110# => ("ds      ", C_Prefix, C_None),
+      2#00_111_110# => ("ds      ", C_Prefix_Seg, C_None),
       2#00_111_111# => ("aas     ", C_None, C_None),
 
       --  40-4F
@@ -263,9 +267,9 @@ package body Disa_X86 is
       16#61#        => ("popa    ", C_None, C_None),
       16#62#        => ("bound   ", C_Gv, C_Ma),
       16#63#        => ("arpl    ", C_Ew, C_Gw),
-      16#64#        => ("fs      ", C_Prefix, C_None),
-      16#65#        => ("gs      ", C_Prefix, C_None),
-      16#66#        => ("oper    ", C_Prefix, C_None),
+      16#64#        => ("fs      ", C_Prefix_Seg, C_None),
+      16#65#        => ("gs      ", C_Prefix_Seg, C_None),
+      16#66#        => ("oper    ", C_Prefix_Oper, C_None),
       16#67#        => ("addr    ", C_Prefix, C_None),
 
       16#68#        => ("push    ", C_Iz, C_None),
@@ -430,7 +434,7 @@ package body Disa_X86 is
       16#Ef#        => ("out     ", C_Reg_Dx, C_Reg_Ax),
 
       --  F0-FF
-      16#F0#        => ("lock    ", C_Prefix, C_None),
+      16#F0#        => ("lock    ", C_Lock, C_None),
       16#F1#        => ("        ", C_None, C_None),
       16#F2#        => ("repne   ", C_Prefix_Rep, C_None),
       16#F3#        => ("rep     ", C_Prefix_Rep, C_None),
@@ -1407,38 +1411,40 @@ package body Disa_X86 is
       Off := Insn_Bin'First;
       Lo := Line'First;
 
-      B := Mem (Off);
-      if B = 16#66# then
-         Off := Off + 1;
+      --  Read the first instruction byte and handle prefixes.
+      loop
          B := Mem (Off);
-         W := W_16;
-      end if;
-
-      if B = 16#0F# then
-         B := Mem (Off + 1);
-         Off := Off + 2;
-         Desc := Insn_Desc_0F (B);
-      else
-         Off := Off + 1;
          Desc := Insn_Desc (B);
+         Off := Off + 1;
+
          case Desc.Dst is
             when C_Prefix_Rep =>
                B1 := Mem (Off);
+               Off := Off + 1;
                if B1 = 16#0F# then
                   raise Program_Error with "disa_x86: mmx/xmm unhandled";
                end if;
-               Add_String (Desc.Name);
-               Off := Off + 1;
+               Add_Name (Desc.Name);
+               Add_Char (' ');
                Desc := Insn_Desc (B1);
+               exit;
+            when C_Lock =>
+               Add_Name (Desc.Name);
+               Add_Char (' ');
+            when C_Prefix_Oper =>
+               W := W_16;
+            when C_0F =>
+               B := Mem (Off);
+               Off := Off + 1;
+               Desc := Insn_Desc_0F (B);
+               exit;
+            when C_Prefix =>
+               --  TODO.
+               raise Program_Error;
             when others =>
-               null;
+               exit;
          end case;
-      end if;
-
-      --  TODO.
-      if Desc.Src = C_Prefix then
-         raise Program_Error;
-      end if;
+      end loop;
 
       case Desc.Name (1) is
          when ' ' =>
