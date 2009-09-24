@@ -30,10 +30,6 @@ package SC_Obligations is
 
    type SCO_Kind is (Statement, Decision, Condition);
 
-   function First_Sloc (SCO : SCO_Id) return Source_Location;
-   function Last_Sloc (SCO : SCO_Id) return Source_Location;
-   function Kind (SCO : SCO_Id) return SCO_Kind;
-
    procedure Add_Address (SCO : SCO_Id; Address : Pc_Type);
    --  Record Address in SCO's address list
 
@@ -52,5 +48,24 @@ package SC_Obligations is
 
    type Tristate is (False, True, Unknown);
    --  State of a condition, if known
+
+   ----------------------------
+   -- Accessors for SCO info --
+   ----------------------------
+
+   --  All SCOs
+
+   function Kind       (SCO : SCO_Id) return SCO_Kind;
+   function First_Sloc (SCO : SCO_Id) return Source_Location;
+   function Last_Sloc  (SCO : SCO_Id) return Source_Location;
+   function Parent     (SCO : SCO_Id) return SCO_Id;
+
+   --  Condition SCOs
+
+   function Index (SCO : SCO_Id) return Natural;
+
+   --  Decision SCOs
+
+   function Last_Cond_Index (SCO : SCO_Id) return Natural;
 
 end SC_Obligations;

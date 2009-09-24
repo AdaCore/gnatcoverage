@@ -230,11 +230,18 @@ package body SC_Obligations is
             BDD_Node : BDD.BDD_Node_Id;
             --  Associated node in the decision's BDD
 
+            Index : Natural;
+            --  Index of this condition in the decision
+
          when Decision =>
             Is_Complex_Decision : Boolean;
             --  True for complex decisions.
             --  Note that there is always a distinct Condition SCO descriptor,
             --  even for simple decisions.
+
+            Last_Cond_Index : Natural;
+            --  Index of last condition in decision (should be > 0 for complex
+            --  decisions, = 0 otherwise).
 
             Decision_BDD : BDD.BDD_Type;
             --  BDD of the decision
@@ -635,6 +642,16 @@ package body SC_Obligations is
       end if;
    end Image;
 
+   -----------
+   -- Index --
+   -----------
+
+   function Index (SCO : SCO_Id) return Natural is
+   begin
+      pragma Assert (Kind (SCO) = Condition);
+      return SCO_Vector.Element (SCO).Index;
+   end Index;
+
    ----------
    -- Kind --
    ----------
@@ -643,6 +660,16 @@ package body SC_Obligations is
    begin
       return SCO_Vector.Element (SCO).Kind;
    end Kind;
+
+   ---------------------
+   -- Last_Cond_Index --
+   ---------------------
+
+   function Last_Cond_Index (SCO : SCO_Id) return Natural is
+   begin
+      pragma Assert (Kind (SCO) = Decision);
+      return SCO_Vector.Element (SCO).Last_Cond_Index;
+   end Last_Cond_Index;
 
    ---------------
    -- Last_Sloc --
@@ -688,6 +715,8 @@ package body SC_Obligations is
       Index : Natural;
 
       Current_Complex_Decision : SCO_Id := No_SCO_Id;
+      Current_Condition_Index  : Integer;
+
       Current_BDD : BDD.BDD_Type;
       --  BDD of current decision
 
@@ -858,7 +887,8 @@ package body SC_Obligations is
 
             procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor) is
             begin
-               SCOD.Decision_BDD := Current_BDD;
+               SCOD.Decision_BDD    := Current_BDD;
+               SCOD.Last_Cond_Index := Current_Condition_Index;
             end Update_Decision_BDD;
 
             --------------------------
@@ -889,12 +919,13 @@ package body SC_Obligations is
 
                   pragma Assert (Current_Complex_Decision = No_SCO_Id);
                   SCO_Vector.Append
-                    (SCO_Descriptor'(Kind       => Decision,
-                                     First_Sloc => Make_Sloc (SCOE.From),
-                                     Last_Sloc  => Make_Sloc (SCOE.To),
+                    (SCO_Descriptor'(Kind            => Decision,
+                                     First_Sloc      => Make_Sloc (SCOE.From),
+                                     Last_Sloc       => Make_Sloc (SCOE.To),
                                      Is_Complex_Decision =>
                                                    not SCOE.Last,
-                                     others     => <>));
+                                     Last_Cond_Index => 0,
+                                     others          => <>));
                   Current_BDD := BDD.Create (SCO_Vector.Last_Index);
 
                   if SCOE.Last then
@@ -907,6 +938,7 @@ package body SC_Obligations is
                                         Last_Sloc  => Make_Sloc (SCOE.To),
                                         Parent     => SCO_Vector.Last_Index,
                                         Value      => Make_Condition_Value,
+                                        Index      => 0,
                                         others     => <>));
                      BDD.Process_Condition
                        (Current_BDD, SCO_Vector.Last_Index);
@@ -919,6 +951,7 @@ package body SC_Obligations is
                      --  Complex decision: conditions appear as distinct SCOEs
 
                      Current_Complex_Decision := SCO_Vector.Last_Index;
+                     Current_Condition_Index  := -1;
                   end if;
 
                when ' ' =>
@@ -930,12 +963,14 @@ package body SC_Obligations is
                     (Index   => Current_Complex_Decision,
                      Process => Update_Decision_Sloc'Access);
 
+                  Current_Condition_Index := Current_Condition_Index + 1;
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Condition,
                                      First_Sloc => Make_Sloc (SCOE.From),
                                      Last_Sloc  => Make_Sloc (SCOE.To),
                                      Parent     => Current_Complex_Decision,
                                      Value      => Make_Condition_Value,
+                                     Index      => Current_Condition_Index,
                                      others     => <>));
                   BDD.Process_Condition (Current_BDD, SCO_Vector.Last_Index);
 
@@ -1034,6 +1069,15 @@ package body SC_Obligations is
          end;
       end loop;
    end Load_SCOs_From_ALI;
+
+   ------------
+   -- Parent --
+   ------------
+
+   function Parent (SCO : SCO_Id) return SCO_Id is
+   begin
+      return SCO_Vector.Element (SCO).Parent;
+   end Parent;
 
    ------------------------------
    -- Report_SCOs_Without_Code --
