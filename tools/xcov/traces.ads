@@ -85,8 +85,8 @@ package Traces is
       --  Op code that QEMU sets to give information about
       --  how this entry's section of object code has been left
       --  during execution (e.g. branch taken, branch fallthrough).
-      --  ??? Document which value it can take and the meaning of each of
-      --  these values.
+      --  The different values that this Op code may take are documented in
+      --  qemu_traces.ads (e.g. Trace_Op_Block).
 
       State : Insn_State;
       --  Object coverage information for this code region (piggy-backed
