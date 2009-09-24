@@ -17,6 +17,10 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+--  This package uses the same naming convention as the Annex A ("Opcode Map")
+--  in Intel's software developper's manual volume 2B, as well as the section
+--  A.1 and chapter 2 ("Instruction format") in volume 2A.
+--  These manuals can be found at http://www.intel.com/product/manuals/
 
 with Interfaces; use Interfaces;
 
