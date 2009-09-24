@@ -44,8 +44,8 @@ package body Coverage.Object is
       end loop;
 
       if Result = No_Code then
-         --  No trace for this instruction range. This means that can only
-         --  mean that it is not covered.
+         --  No trace for this instruction range. This can only mean that
+         --  it is not covered.
 
          Result := Not_Covered;
       end if;
