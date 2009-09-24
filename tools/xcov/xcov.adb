@@ -172,7 +172,6 @@ procedure Xcov is
    Excluded_Obj_Inputs       : Inputs.Inputs_Type;
    Included_Obj_Inputs       : Inputs.Inputs_Type;
    Text_Start                : Pc_Type := 0;
-   Mode_Exclude              : Boolean := False;
 
    procedure Command_Line_Handling;
    --  Parse the command line and return the result in the local
@@ -281,6 +280,10 @@ procedure Xcov is
          end if;
          return Res;
       end Parse_Hex;
+
+      --  Local variables
+
+      Mode_Exclude : Boolean := False;
 
       --  Start of processing for Command_Line_Handling
 
@@ -554,7 +557,7 @@ begin
             begin
                Traces_Elf.Read_Routines_Name
                  (Obj_File_Name,
-                  Exclude   => Mode_Exclude,
+                  Exclude   => True,
                   Keep_Open => False);
             exception
                when Elf_Files.Error =>
@@ -569,7 +572,7 @@ begin
             begin
                Traces_Elf.Read_Routines_Name
                  (Obj_File_Name,
-                  Exclude   => Mode_Exclude,
+                  Exclude   => False,
                   Keep_Open => False);
             exception
                when Elf_Files.Error =>
