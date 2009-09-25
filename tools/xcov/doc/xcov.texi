@@ -16,7 +16,7 @@
 @end macro
 
 @macro xrun
-@command{xcov --run}
+@command{xcov run}
 @end macro
 
 @macro h {text}  @c style for headers in descriptive tables
@@ -597,7 +597,7 @@ executed, and the instruction/line correspondance is extracted from
 standard DWARF debug information or alike.
 
 @section Source Coverage Analysis
-noindent
+@noindent
 Xcov is also designed to allow Source Coverage Analysis, with central
 focus on user source code and support for the three DO-178B criteria:
 Statement, Decision and Modified Condition/Decision Coverage.
@@ -652,10 +652,10 @@ various coverage analysis related functionalities, each activated by a
 toplevel of command line option:
 
 @itemize @bullet
-@item @option{--run} ;
+@item @option{run} ;
 run code within an instrumented environment to produce raw execution
 traces.
-@item @option{--coverage} ;
+@item @option{coverage} ;
 process raw execution traces to produce user-level results.
 @end itemize
 
@@ -673,13 +673,15 @@ environment, producing raw execution traces.
 The interface synopsis out of @command{xcov --help} is as follows:
 
 @smallexample
- xcov ...
- --run [OPTIONS] FILE
+
+ run [OPTIONS] FILE [-eargs EARGS...]
    Options are:
    -t TARGET  --target=TARGET   Set the target
+     targets: powerpc-elf leon-elf i386-pok i386-linux prepare
    -v --verbose                 Be verbose
    -T TAG  --tag=TAG            Put TAG in tracefile
    -o FILE  --output=FILE       Write traces to FILE
+   -eargs EARGS                 Pass EARGS to the simulator
 
 @end smallexample
 
@@ -688,23 +690,15 @@ The @code{FILE} argument is the executable program file name.
 The Quick Start example in the distribution @code{README} illustrates a
 simple use for a @code{powerpc-elf} target, using the dedicated @gcc{}
 toolchain to build from sources and the @option{--target} execution
-engine selector:
-
-@smallexample
-powerpc-elf-gcc -c ... test_engines.adb
-...
-xcov --run --target=powerpc-elf test_engines
-@end smallexample
-
-@noindent
-An extra @option{-v} requests verbose output, in particular the commands
-to run the program within the underlying instrumented environment.
+engine selector.
 
 By default, @xrun{} produces the execution trace output in a file named
-after the executable input, with a @code{.trace} suffix -
-@code{test_engines.trace} in the example above.
+after the executable input, with a @code{.trace} suffix.
 @c
 @option{--output} allows the selection of an alternate output file name.
+@c
+An extra @option{-v} requests verbose output, in particular the commands
+to run the program within the underlying instrumented environment.
 
 The @option{--tag} option expects a string argument and stores it
 verbatim as an attribute in the output trace header.
@@ -717,10 +711,13 @@ users see fit for custom trace management purposes.
 
 @section Object Coverage Analysis
 
-Over raw execution traces, object coverage analysis may be performed
-with variants of @code{xcov --coverage} invocations:
+Over raw execution traces, various levels of object coverage analysis
+may be performed variants of @code{xcov coverage} invocations.
+@c
+The level selection is achieved with variants of the @option{--level}
+option:
 
-@multitable @columnfractions .15 .8
+@multitable @columnfractions .20 .8
 @item @command{=insn}
 @tab requests @dfn{Object Instruction Coverage} data, with an indication for
 every instruction of whether it has been executed or not.
@@ -778,7 +775,7 @@ We call @dfn{simple} those machine instructions which are not
 
 @*
 @noindent
-For @dfn{Object Instruction Coverage}, with @option{--coverage=insn}, we
+For @dfn{Object Instruction Coverage}, with @option{--level=insn}, we
 define:
 
 @multitable @columnfractions .1 .8
@@ -790,7 +787,7 @@ define:
 @end multitable
 
 @*@noindent For @dfn{Object Branch coverage}, with
-@option{--coverage=branch}, the `+' case is refined for conditional
+@option{--level=branch}, the `+' case is refined for conditional
 branch instructions:
 
 @multitable @columnfractions .1 .7
@@ -843,10 +840,10 @@ and request branch coverage data in assembly format:
 
 @smallexample
 
-... $ xcov --run --target=powerpc-elf explore
+... $ xcov run --target=powerpc-elf explore
 [Explore runs in Qemu - type 'p', then 'Q']
 
-... $ xcov --coverage=branch --annotate=asm explore.trace      
+... $ xcov coverage --level=branch --annotate=asm explore.trace      
 
 @end smallexample
 
@@ -1017,10 +1014,10 @@ only partially and look at the results:
 $ cat unsafe.list
  robots__unsafe
 
-$ xcov --run --target=powerpc-elf --tag 'Safe explore session' explore
+$ xcov run --target=powerpc-elf --tag 'Safe explore session' explore
 [... Probe, Step on clear square, Quit ...]
 
-$ xcov --coverage=branch --annotate=xcov+asm --routine-list=unsafe.list
+$ xcov coverage --level=branch --annotate=xcov+asm --routine-list=unsafe.list
   explore.trace  
    
   robots.adb.xcov
@@ -1033,7 +1030,7 @@ $ xcov --coverage=branch --annotate=xcov+asm --routine-list=unsafe.list
   62 !:       and then (Sqa = Block or else Sqa = Water);
 <robots__unsafe>:
 fffc13a4 +:  2f 83 00 02  cmpiw  cr7,r3,0x0002
-fffc13a8 *:  40 be 00 1c  bne+   cr7,0xfffc13c4 <robots__unsafe+00000020>
+fffc13a8 +:  40 be 00 1c  bne+   cr7,0xfffc13c4 <robots__unsafe+00000020>
 fffc13ac +:  2f 84 00 01  cmpiw  cr7,r4,0x0001
 fffc13b0 v:  41 9e 00 0c  beq-   cr7,0xfffc13bc <robots__unsafe+00000018>
 fffc13b4 +:  2f 84 00 02  cmpiw  cr7,r4,0x0002
@@ -1058,9 +1055,9 @@ and observe full object branch coverage:
 @smallexample
 $ make UNIT_TESTS=test_explore
 [...]
-xcov --run --target=powerpc-elf test_explore
+xcov run --target=powerpc-elf test_explore
 
-$ xcov --coverage=branch --annotate=xcov+asm --routine-list=unsafe.list
+$ xcov coverage --level=branch --annotate=xcov+asm --routine-list=unsafe.list
   test_explore.trace explore.trace
 
   robots.adb.xcov
@@ -1070,14 +1067,14 @@ $ xcov --coverage=branch --annotate=xcov+asm --routine-list=unsafe.list
   59 .:       --  Stepping forward into a rock block or a water pit is Unsafe
   60 .:
   61 .:       return Cmd = Step_Forward
-  62 *:         and then (Sqa = Block or else Sqa = Water);
+  62 +:         and then (Sqa = Block or else Sqa = Water);
 <robots__unsafe>:
 fffc3b00 +:  2f 83 00 02  cmpiw  cr7,r3,0x0002
-fffc3b04 *:  40 be 00 1c  bne+   cr7,0xfffc3b20 <robots__unsafe+00000020>
+fffc3b04 +:  40 be 00 1c  bne+   cr7,0xfffc3b20 <robots__unsafe+00000020>
 fffc3b08 +:  2f 84 00 01  cmpiw  cr7,r4,0x0001
-fffc3b0c *:  41 9e 00 0c  beq-   cr7,0xfffc3b18 <robots__unsafe+00000018>
+fffc3b0c +:  41 9e 00 0c  beq-   cr7,0xfffc3b18 <robots__unsafe+00000018>
 fffc3b10 +:  2f 84 00 02  cmpiw  cr7,r4,0x0002
-fffc3b14 *:  40 be 00 0c  bne+   cr7,0xfffc3b20 <robots__unsafe+00000020>
+fffc3b14 +:  40 be 00 0c  bne+   cr7,0xfffc3b20 <robots__unsafe+00000020>
 fffc3b18 +:  38 60 00 01  li     r3,0x0001
 fffc3b1c +:  4e 80 00 20  blr
 fffc3b20 +:  38 60 00 00  li     r3,0x0000

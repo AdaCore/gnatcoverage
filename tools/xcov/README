@@ -3,15 +3,15 @@ analysis facility.
 
 PACKAGE CONTENTS
 ================
-This package provides two core command line components:
+The package provides two core command line components:
 
 * An instrumented version of Qemu, an open source processor emulator we
   use as a program execution environment able to generate execution traces
   of the machine code it executes, and
 
 * The xcov front-end, used both as a wrapper of the instrumented execution
-  environment (xcov --run) and as a trace analyzer able to render coverage
-  results in various user readable formats (xcov --coverage).
+  environment (xcov run) and as a trace analyzer able to render coverage
+  results in various user readable formats (xcov coverage).
 
 As part of the examples subdirectory, the package also includes:
 
@@ -77,12 +77,12 @@ powerpc-elf-gcc -c -g -O1 -fpreserve-control-flow test_engines.adb
 # Step 2:  Run the executable program within the instrumented Qemu
 # -------  to get an execution '.trace' file:
 
-xcov --run test_engines --target=powerpc-elf
+xcov run --target=powerpc-elf test_engines
 
 # Step 3:  Ask xcov to analyze the trace and produce an html version of
 # -------  the results, with object coverage branch info rendered on source:
 
-xcov --coverage=branch --annotate=html+asm test_engines.trace
+xcov coverage --level=branch --annotate=html+asm test_engines.trace
 mv index.html index-test_engines.html
 
 The local Makefile actually just includes a generic Makefile common to all the
