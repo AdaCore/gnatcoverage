@@ -17,6 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Text_IO;
+
 package body Simple_Last_Chance_Handler is
 
    -------------------------
@@ -30,6 +32,11 @@ package body Simple_Last_Chance_Handler is
       pragma Import (C, C_Abort, "abort");
       pragma No_Return (C_Abort);
    begin
+      Text_IO.New_Line;
+      Text_IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
+      Text_IO.Put_Line ("!!! EXCEPTION RAISED !!!");
+      Text_IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
+
       --  No return procedure.
       C_Abort;
    end Last_Chance_Handler;
