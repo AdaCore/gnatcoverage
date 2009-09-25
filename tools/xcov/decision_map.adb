@@ -275,7 +275,7 @@ package body Decision_Map is
                  (Hex_Image (Insn'First)
                   & ": evaluation of unexpected condition" & CI'Img
                   & " (expected" & Expected_CI'Img & ")"
-                  & " in decision SCO#" & Image (DS_Top.Decision));
+                  & " in decision " & Image (DS_Top.Decision));
             end if;
          end Check_Condition_Index;
 
@@ -298,8 +298,8 @@ package body Decision_Map is
                   Report
                     (Hex_Image (Insn'First)
                      & ": evaluation of unexpected"
-                     & " nested decision SCO#" & Image (D_SCO)
-                     & " within SCO#" & Image (DS_Top.Decision));
+                     & " nested decision " & Image (D_SCO)
+                     & " within " & Image (DS_Top.Decision));
 
                   --  If D_SCO is a decision higher on the stack, pop (and
                   --  discard) all pending evaluations.
@@ -352,7 +352,7 @@ package body Decision_Map is
             Report (Hex_Image (Insn'First)
                     & ": duplicate evaluation of condition"
                     & Cond_Index'Img
-                    & " in decision SCO#" & Image (DS_Top.Decision));
+                    & " in decision " & Image (DS_Top.Decision));
          else
             --  Record condition occurrence
 
@@ -492,8 +492,8 @@ package body Decision_Map is
          --  not the final condition of the decision.
 
          Report (Hex_Image (Last_Seen_Condition_PC)
-                 & ": last seen condition for decision"
-                 & " SCO#" & Image (D_Occ.Decision) & " is not final one");
+                 & ": last seen condition for decision "
+                 & Image (D_Occ.Decision) & " is not final one");
          return;
       end if;
 
