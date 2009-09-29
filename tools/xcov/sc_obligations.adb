@@ -92,11 +92,13 @@ package body SC_Obligations is
         new Ada.Containers.Vectors
           (Index_Type   => Valid_BDD_Node_Id,
            Element_Type => BDD_Node);
+      BDD_Vector : BDD_Vectors.Vector;
 
       type BDD_Type is record
          Decision       : SCO_Id;
          Root_Condition : BDD_Node_Id := No_BDD_Node_Id;
-         V              : BDD_Vectors.Vector;
+         First_Node     : BDD_Node_Id := No_BDD_Node_Id;
+         Last_Node      : BDD_Node_Id := No_BDD_Node_Id;
       end record;
 
       procedure Allocate
@@ -189,7 +191,7 @@ package body SC_Obligations is
          Condition_Id : SCO_Id);
       --  Process condition
 
-      procedure Completed (BDD : in out BDD_Type);
+      procedure Completed (BDD : BDD_Type);
       --  Called when all items in decision have been processed
 
       procedure Dump_BDD (BDD : BDD_Type);
@@ -274,15 +276,25 @@ package body SC_Obligations is
          Node_Id : out BDD_Node_Id)
       is
       begin
-         BDD.V.Append (Node);
-         Node_Id := BDD.V.Last_Index;
+         BDD_Vector.Append (Node);
+         Node_Id := BDD_Vector.Last_Index;
+
+         pragma Assert ((BDD.First_Node = No_BDD_Node_Id)
+                           = (BDD.Last_Node = No_BDD_Node_Id));
+         if BDD.First_Node = No_BDD_Node_Id then
+            BDD.First_Node := Node_Id;
+            BDD.Last_Node  := Node_Id;
+         else
+            pragma Assert (Node_Id = BDD.Last_Node + 1);
+            BDD.Last_Node := Node_Id;
+         end if;
       end Allocate;
 
       ---------------
       -- Completed --
       ---------------
 
-      procedure Completed (BDD : in out BDD_Type) is
+      procedure Completed (BDD : BDD_Type) is
          use BDD_Vectors;
 
          procedure Patch_Jumps (Node : in out BDD_Node);
@@ -302,12 +314,12 @@ package body SC_Obligations is
             ----------------
 
             procedure Patch_Jump (Dest : in out BDD_Node_Id) is
-               Dest_Node : constant BDD_Node := BDD.V.Element (Dest);
+               Dest_Node : constant BDD_Node := BDD_Vector.Element (Dest);
             begin
                if Dest_Node.Kind = Jump then
                   Dest := Dest_Node.Dest;
                end if;
-               pragma Assert (BDD.V.Element (Dest).Kind /= Jump);
+               pragma Assert (BDD_Vector.Element (Dest).Kind /= Jump);
             end Patch_Jump;
 
          begin
@@ -340,8 +352,8 @@ package body SC_Obligations is
          --  Iterate backwards on BDD nodes, replacing references to jump nodes
          --  with references to their destination.
 
-         for J in reverse BDD.V.First_Index .. BDD.V.Last_Index loop
-            BDD.V.Update_Element (J, Patch_Jumps'Access);
+         for J in reverse BDD.First_Node .. BDD.Last_Node loop
+            BDD_Vector.Update_Element (J, Patch_Jumps'Access);
          end loop;
 
          if Verbose then
@@ -360,7 +372,7 @@ package body SC_Obligations is
          procedure Dump_Condition (N : BDD_Node_Id) is
             use Ada.Strings;
 
-            Node : BDD_Node renames BDD.V.Element (N);
+            Node : BDD_Node renames BDD_Vector.Element (N);
             Next_Condition : BDD_Node_Id := N + 1;
 
             procedure Put_Dest (Name : String; Dest : BDD_Node_Id);
@@ -371,7 +383,7 @@ package body SC_Obligations is
             --------------
 
             procedure Put_Dest (Name : String; Dest : BDD_Node_Id) is
-               Dest_Node : BDD_Node renames BDD.V.Element (Dest);
+               Dest_Node : BDD_Node renames BDD_Vector.Element (Dest);
             begin
                Put ("    if " & Name & " then ");
                case Dest_Node.Kind is
@@ -395,8 +407,8 @@ package body SC_Obligations is
          begin
             pragma Assert (Node.Kind = Condition);
 
-            while Next_Condition <= BDD.V.Last_Index
-              and then BDD.V.Element (Next_Condition).Kind /= Condition
+            while Next_Condition <= BDD_Vector.Last_Index
+              and then BDD_Vector.Element (Next_Condition).Kind /= Condition
             loop
                Next_Condition := Next_Condition + 1;
             end loop;
@@ -421,7 +433,7 @@ package body SC_Obligations is
             Put_Dest ("true ", Node.Dests.Dest_True);
             Put_Dest ("false", Node.Dests.Dest_False);
 
-            if Next_Condition <= BDD.V.Last_Index then
+            if Next_Condition <= BDD.Last_Node then
                New_Line;
                Dump_Condition (Next_Condition);
             end if;
@@ -430,7 +442,8 @@ package body SC_Obligations is
       --  Start of processing for Dump_BDD
 
       begin
-         Put_Line ("----- BDD for decision " & Image (BDD.Decision));
+         Put_Line ("----- BDD for decision " & Image (BDD.Decision)
+                   & " - root condition:" & BDD.Root_Condition'Img);
          Dump_Condition (BDD.Root_Condition);
          New_Line;
       end Dump_BDD;
@@ -554,7 +567,7 @@ package body SC_Obligations is
                   Origin_Node.Dest := N;
                end Set_Dest;
             begin
-               BDD.V.Update_Element (A.Origin, Set_Dest'Access);
+               BDD_Vector.Update_Element (A.Origin, Set_Dest'Access);
             end;
 
          else
