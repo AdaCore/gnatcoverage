@@ -46,23 +46,18 @@ package body SC_Obligations is
    package BDD is
       --  Outgoing arcs from a BDD node
 
-      type BDD_Node_Id is new Nat;
+      type BDD_Node_Id is new Natural;
       No_BDD_Node_Id : constant BDD_Node_Id := 0;
       subtype Valid_BDD_Node_Id is BDD_Node_Id
-      range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
+        range No_BDD_Node_Id + 1 .. BDD_Node_Id'Last;
 
-      type Destinations is record
-         Dest_False, Dest_True : BDD_Node_Id;
-      end record;
+      type Destinations is array (Boolean) of BDD_Node_Id;
 
       --  BDD node kinds
 
       type BDD_Node_Kind is
-        (Exit_False,
-         --  Leaf (decision outcome is False)
-
-         Exit_True,
-         --  Leaf (decision outcome is True),
+        (Outcome,
+         --  Leaf (decision outcome is determined)
 
          Condition,
          --  Evaluate condition
@@ -70,10 +65,11 @@ package body SC_Obligations is
          Jump);
          --  Indirect reference to another BDD node
 
-      type BDD_Node (Kind : BDD_Node_Kind := Exit_False) is record
+      type BDD_Node (Kind : BDD_Node_Kind := Outcome) is record
          case Kind is
-            when Exit_False | Exit_True =>
-               null;
+            when Outcome =>
+               Decision_Outcome : Boolean := False;
+               --  Value of the decision when this node is reached
 
             when Condition =>
                C_SCO : SCO_Id;
@@ -247,6 +243,7 @@ package body SC_Obligations is
 
             Decision_BDD : BDD.BDD_Type;
             --  BDD of the decision
+
          when others =>
             null;
       end case;
@@ -257,6 +254,16 @@ package body SC_Obligations is
        (Index_Type   => Valid_SCO_Id,
         Element_Type => SCO_Descriptor);
    SCO_Vector : SCO_Vectors.Vector;
+
+   function Next_BDD_Node
+     (SCO   : SCO_Id;
+      Value : Boolean) return BDD.BDD_Node_Id;
+   --  Given a Condition SCO and the value of the condition, return the
+   --  corresponding target node in the decision's BDD.
+
+   ---------
+   -- BDD --
+   ---------
 
    package body BDD is
       package Arcs_Stacks is
@@ -328,8 +335,8 @@ package body SC_Obligations is
                   Patch_Jump (Node.Dest);
 
                when Condition =>
-                  Patch_Jump (Node.Dests.Dest_False);
-                  Patch_Jump (Node.Dests.Dest_True);
+                  Patch_Jump (Node.Dests (False));
+                  Patch_Jump (Node.Dests (True));
 
                when others =>
                   null;
@@ -387,10 +394,8 @@ package body SC_Obligations is
             begin
                Put ("    if " & Name & " then ");
                case Dest_Node.Kind is
-                  when Exit_False =>
-                     Put_Line ("return False");
-                  when Exit_True =>
-                     Put_Line ("return True");
+                  when Outcome =>
+                     Put_Line ("return " & Dest_Node.Decision_Outcome'Img);
                   when Condition =>
                      if Dest = Next_Condition then
                         Put_Line ("fallthrough");
@@ -430,8 +435,8 @@ package body SC_Obligations is
                   New_Line;
             end case;
 
-            Put_Dest ("true ", Node.Dests.Dest_True);
-            Put_Dest ("false", Node.Dests.Dest_False);
+            Put_Dest ("true ", Node.Dests (True));
+            Put_Dest ("false", Node.Dests (False));
 
             if Next_Condition <= BDD.Last_Node then
                New_Line;
@@ -459,13 +464,15 @@ package body SC_Obligations is
             BDD.Decision := Decision;
 
             Allocate (BDD,
-              BDD_Node'(Kind => Exit_False), Exit_False_Id);
+              BDD_Node'(Kind => Outcome, Decision_Outcome => False),
+              Exit_False_Id);
             Allocate (BDD,
-              BDD_Node'(Kind => Exit_True),  Exit_True_Id);
+              BDD_Node'(Kind => Outcome, Decision_Outcome => True),
+              Exit_True_Id);
 
             Push
-              (((Dest_False => Exit_False_Id,
-                 Dest_True  => Exit_True_Id),
+              (((False => Exit_False_Id,
+                 True  => Exit_True_Id),
                 Origin => No_BDD_Node_Id));
          end return;
       end Create;
@@ -484,15 +491,15 @@ package body SC_Obligations is
          --  left operand is True.
 
          Push
-           (((Dest_False => A.Dests.Dest_False,
-              Dest_True  => A.Dests.Dest_True),
+           (((False => A.Dests (False),
+              True  => A.Dests (True)),
              Origin => L));
 
          --  Arcs for left operand
 
          Push
-           (((Dest_False => A.Dests.Dest_False,
-              Dest_True  => L),
+           (((False => A.Dests (False),
+              True  => L),
              Origin => A.Origin));
       end Process_And_Then;
 
@@ -508,8 +515,8 @@ package body SC_Obligations is
          --  Swap destinations of top arcs
 
          Push
-           (((Dest_False => A.Dests.Dest_True,
-              Dest_True  => A.Dests.Dest_False),
+           (((False => A.Dests (True),
+              True  => A.Dests (False)),
              Origin => A.Origin));
       end Process_Not;
 
@@ -527,15 +534,15 @@ package body SC_Obligations is
          --  left operand is False.
 
          Push
-           (((Dest_False => A.Dests.Dest_False,
-              Dest_True  => A.Dests.Dest_True),
+           (((False => A.Dests (False),
+              True  => A.Dests (True)),
              Origin => L));
 
          --  Arcs for left operand
 
          Push
-           (((Dest_False => L,
-              Dest_True  => A.Dests.Dest_True),
+           (((False => L,
+              True  => A.Dests (True)),
              Origin => A.Origin));
       end Process_Or_Else;
 
@@ -549,23 +556,37 @@ package body SC_Obligations is
       is
          A : constant Arcs := Pop;
          N : BDD_Node_Id;
+
+         procedure Set_Dest (Origin_Node : in out BDD_Node);
+         --  Set destination of Origin_Node to N
+
+         procedure Set_BDD_Node (SCOD : in out SCO_Descriptor);
+         --  Set associated node of (Condition) SCOD to N
+
+         --------------
+         -- Set_Dest --
+         --------------
+
+         procedure Set_Dest (Origin_Node : in out BDD_Node) is
+         begin
+            Origin_Node.Dest := N;
+         end Set_Dest;
+
+         ------------------
+         -- Set_BDD_Node --
+         ------------------
+
+         procedure Set_BDD_Node (SCOD : in out SCO_Descriptor) is
+         begin
+            SCOD.BDD_Node := N;
+         end Set_BDD_Node;
+
       begin
          Allocate (BDD,
            (Kind => Condition, C_SCO => Condition_Id, Dests => A.Dests), N);
 
          if A.Origin /= No_BDD_Node_Id then
             declare
-               procedure Set_Dest (Origin_Node : in out BDD_Node);
-               --  Set destination of Origin_Node to N
-
-               --------------
-               -- Set_Dest --
-               --------------
-
-               procedure Set_Dest (Origin_Node : in out BDD_Node) is
-               begin
-                  Origin_Node.Dest := N;
-               end Set_Dest;
             begin
                BDD_Vector.Update_Element (A.Origin, Set_Dest'Access);
             end;
@@ -574,6 +595,8 @@ package body SC_Obligations is
             pragma Assert (BDD.Root_Condition = No_BDD_Node_Id);
             BDD.Root_Condition := N;
          end if;
+
+         SCO_Vector.Update_Element (Condition_Id, Set_BDD_Node'Access);
       end Process_Condition;
 
       ---------
@@ -1096,6 +1119,59 @@ package body SC_Obligations is
          end;
       end loop;
    end Load_SCOs_From_ALI;
+
+   -------------------
+   -- Next_BDD_Node --
+   -------------------
+
+   function Next_BDD_Node
+     (SCO   : SCO_Id;
+      Value : Boolean) return BDD.BDD_Node_Id
+   is
+      use BDD;
+
+      BDDN_Id   : constant BDD_Node_Id := SCO_Vector.Element (SCO).BDD_Node;
+      BDDN      : constant BDD_Node := BDD_Vector.Element (BDDN_Id);
+   begin
+      return BDDN.Dests (Value);
+   end Next_BDD_Node;
+
+   --------------------
+   -- Next_Condition --
+   --------------------
+
+   function Next_Condition (SCO : SCO_Id; Value : Boolean) return SCO_Id is
+      use BDD;
+      BDDN : constant BDD_Node :=
+               BDD_Vector.Element (Next_BDD_Node (SCO, Value));
+   begin
+      if BDDN.Kind = Condition then
+         return BDDN.C_SCO;
+      else
+         return No_SCO_Id;
+      end if;
+   end Next_Condition;
+
+   -------------
+   -- Outcome --
+   -------------
+
+   function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate is
+      use BDD;
+      BDDN : constant BDD_Node :=
+               BDD_Vector.Element (Next_BDD_Node (SCO, Value));
+   begin
+      case BDDN.Kind is
+         when Outcome =>
+            return To_Tristate (BDDN.Decision_Outcome);
+
+         when Condition =>
+            return Unknown;
+
+         when others =>
+            raise Program_Error;
+      end case;
+   end Outcome;
 
    ------------
    -- Parent --

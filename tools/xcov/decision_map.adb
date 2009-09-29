@@ -86,6 +86,9 @@ package body Decision_Map is
    --  Cond_Branch_Info is the information associated with each conditional
    --  branch instruction.
 
+   type Edge_Kind is (Branch, Fallthrough);
+   type Edges_Type is array (Edge_Kind) of Cond_Edge_Info;
+
    type Cond_Branch_Info is record
       Condition         : SCO_Id;
       --  Condition being tested by the conditional branch instruction
@@ -93,8 +96,7 @@ package body Decision_Map is
       Basic_Block_Start : Pc_Type;
       --  First PC of the basic block containing conditional branch instruction
 
-      Branch_Edge,
-      Fallthrough_Edge  : Cond_Edge_Info;
+      Edges : Edges_Type;
       --  Edge information for the branch case and fallthrough case
    end record;
 
@@ -165,10 +167,17 @@ package body Decision_Map is
      (D_Occ : Decision_Occurrence_Access);
    --  Perform logical structure analysis of the given decision occurrence
 
-   procedure Report (Msg : String; Error : Boolean := True);
-   --  Output diagnostic message during control flow analysis. If Error is set
-   --  True, message is always displayed, else it is displayed only if global
-   --  flag Verbose is set.
+   type Report_Kind is (Notice, Warning, Error);
+   procedure Report
+     (PC   : Pc_Type;
+      Msg  : String;
+      Kind : Report_Kind := Error);
+   --  Output diagnostic message during control flow analysis. Messages with
+   --  Notice kind are omitted unless global flag Verbose is set. A prefix is
+   --  prepended depending On message kind:
+   --     *** notice
+   --     ??? warning
+   --     !!! error
 
    -------------
    -- Analyze --
@@ -220,6 +229,7 @@ package body Decision_Map is
 
       if Verbose then
          Put_Line ("cond branch at " & Hex_Image (Insn'First)
+                   & " (from " & Hex_Image (Basic_Block_Start) & ")"
                    & " " & Image (Sloc)
                    & ": " & Image (SCO));
 
@@ -268,8 +278,8 @@ package body Decision_Map is
          begin
             if Expected_CI /= CI then
                Report
-                 (Hex_Image (Insn'First)
-                  & ": evaluation of unexpected condition" & CI'Img
+                 (Insn'First,
+                  "evaluation of unexpected condition" & CI'Img
                   & " (expected" & Expected_CI'Img & ")"
                   & " in decision " & Image (DS_Top.Decision));
             end if;
@@ -292,8 +302,8 @@ package body Decision_Map is
                  or else Parent (Parent_SCO) /= DS_Top.Decision
                then
                   Report
-                    (Hex_Image (Insn'First)
-                     & ": evaluation of unexpected"
+                    (Insn'First,
+                     "evaluation of unexpected"
                      & " nested decision " & Image (D_SCO)
                      & " within " & Image (DS_Top.Decision));
 
@@ -355,8 +365,8 @@ package body Decision_Map is
          Check_Condition_Index (Cond_Index);
 
          if DS_Top.Condition_Occurrences (Cond_Index) /= No_PC then
-            Report (Hex_Image (Insn'First)
-                    & ": duplicate evaluation of condition"
+            Report (Insn'First,
+                    "duplicate evaluation of condition"
                     & Cond_Index'Img
                     & " in decision " & Image (DS_Top.Decision));
          else
@@ -371,12 +381,13 @@ package body Decision_Map is
                Cond_Branch_Info'
                  (Condition         => SCO,
                   Basic_Block_Start => Basic_Block_Start,
-                  Branch_Edge       =>
-                    (Destination => Branch_Dest,
-                     others      => <>),
-                  Fallthrough_Edge  =>
-                    (Destination => Fallthrough_Dest,
-                     others      => <>)));
+                  Edges             =>
+                    (Branch =>
+                       (Destination => Branch_Dest,
+                        others      => <>),
+                     Fallthrough =>
+                       (Destination => Fallthrough_Dest,
+                        others      => <>))));
          end if;
 
          if Cond_Index = Last_Cond_Index (D_SCO) then
@@ -410,8 +421,8 @@ package body Decision_Map is
 
       procedure Label_Destination
         (Cond_Branch_PC : Pc_Type;
-         Edge_Name      : String;
-         Edge           : in out Cond_Edge_Info);
+         CBI            : in out Cond_Branch_Info;
+         Edge           : Edge_Kind);
       --  Test if Edge's destination matches either of Last_CBI's edges'
       --  destination, and if so mark it as an outcome destination.
 
@@ -450,20 +461,26 @@ package body Decision_Map is
 
       procedure Label_Destination
         (Cond_Branch_PC : Pc_Type;
-         Edge_Name      : String;
-         Edge           : in out Cond_Edge_Info)
+         CBI            : in out Cond_Branch_Info;
+         Edge           : Edge_Kind)
       is
+         Edge_Name         : constant String := Edge'Img;
+         Edge_Info         : Cond_Edge_Info renames CBI.Edges (Edge);
          Destination_Index : constant Integer :=
-                               Find_Condition_Basic_Block (Edge.Destination);
+                               Find_Condition_Basic_Block
+                                 (Edge_Info.Destination);
+
       begin
-         pragma Assert (Edge.Dest_Kind = Unknown);
+         pragma Assert (Edge_Info.Dest_Kind = Unknown);
 
          --  Check for outcome destination
 
-         if Edge.Destination = Last_CBI.Branch_Edge.Destination
-           or else Edge.Destination = Last_CBI.Fallthrough_Edge.Destination
+         if Edge_Info.Destination
+              = Last_CBI.Edges (Branch).Destination
+           or else Edge_Info.Destination
+                     = Last_CBI.Edges (Fallthrough).Destination
          then
-            Edge.Dest_Kind := Outcome;
+            Edge_Info.Dest_Kind := Outcome;
          end if;
 
          --  Check for internal destination
@@ -472,13 +489,55 @@ package body Decision_Map is
             --  Destination is a basic block that tests a condition within this
             --  decision occurrence.
 
-            if Edge.Dest_Kind /= Unknown then
-               Report (Hex_Image (Cond_Branch_PC) & ": " & Edge_Name
-                       & " destination is both final and intermediate");
+            if Edge_Info.Dest_Kind /= Unknown then
+               Report
+                 (Cond_Branch_PC,
+                  Edge_Name & " destination is both final and intermediate");
             else
-               Edge.Dest_Kind := Condition;
-               Edge.Next_Condition := Destination_Index;
+               Edge_Info.Dest_Kind := Condition;
+               Edge_Info.Next_Condition := Destination_Index;
+
+               --  Check that the next condition is a possible successor, and
+               --  label edge origin (that is, the valuation of the tested
+               --  condition that causes the successor in question to be
+               --  evaluated next).
+
+               for J in Boolean'Range loop
+                  declare
+                     Next_C : constant SCO_Id :=
+                                Next_Condition (CBI.Condition, J);
+                  begin
+                     if Next_C /= No_SCO_Id
+                       and then Index (Next_C) = Destination_Index
+                     then
+                        pragma Assert (Next_C =
+                                         Cond_Branch_Map.Element
+                                           (D_Occ.Condition_Occurrences
+                                             (Destination_Index)).Condition);
+                        Edge_Info.Origin := To_Tristate (J);
+                        exit;
+                     end if;
+                  end;
+               end loop;
+
+               if Edge_Info.Origin = Unknown then
+                  Report
+                    (Cond_Branch_PC,
+                     Edge_Name
+                     & " does not branch to a possible successor"
+                     & " condition");
+               end if;
             end if;
+         end if;
+
+         --  Report destinations we can't label (warning only, maybe we can
+         --  infer branch kind later).
+
+         if Edge_Info.Dest_Kind = Unknown then
+            Report (Cond_Branch_PC,
+                    "unable to label " & Edge_Name
+                    & " destination " & Hex_Image (Edge_Info.Destination),
+                    Kind => Warning);
          end if;
       end Label_Destination;
 
@@ -490,11 +549,33 @@ package body Decision_Map is
         (Cond_Branch_PC : Pc_Type;
          CBI            : in out Cond_Branch_Info)
       is
+         function Dest_Image (Edge : Edge_Kind) return String;
+         --  Return string representation of the given edge of CBI
+
+         ----------------
+         -- Dest_Image --
+         ----------------
+
+         function Dest_Image (Edge : Edge_Kind) return String is
+            Edge_Info : Cond_Edge_Info renames CBI.Edges (Edge);
+         begin
+            return Edge'Img
+              & " = " & Hex_Image (Edge_Info.Destination)
+              & " " & Edge_Info.Dest_Kind'Img;
+         end Dest_Image;
+
       begin
-         Label_Destination
-           (Cond_Branch_PC, "branch", CBI.Branch_Edge);
-         Label_Destination
-           (Cond_Branch_PC, "fallthrough", CBI.Fallthrough_Edge);
+         --  Label each destination
+
+         Label_Destination (Cond_Branch_PC, CBI, Branch);
+         Label_Destination (Cond_Branch_PC, CBI, Fallthrough);
+
+         Report
+           (Cond_Branch_PC,
+            "destination kinds: " & Dest_Image (Branch)
+            & " / " & Dest_Image (Fallthrough),
+            Kind => Notice);
+
       end Label_Destinations;
 
    begin
@@ -502,8 +583,8 @@ package body Decision_Map is
          --  Report PC of last seen condition in decision occurrence, if it is
          --  not the final condition of the decision.
 
-         Report (Hex_Image (Last_Seen_Condition_PC)
-                 & ": last seen condition for decision "
+         Report (Last_Seen_Condition_PC,
+                 "last seen condition for decision "
                  & Image (D_Occ.Decision) & " is not final one");
          return;
       end if;
@@ -540,7 +621,9 @@ package body Decision_Map is
    --  Start of processing for Analyze_Routine
 
    begin
-      Put_Line ("Building decision map for " & Name.all);
+      if Verbose then
+         Put_Line ("Building decision map for " & Name.all);
+      end if;
       Build_Debug_Lines (Info.Exec.all);
 
       if Info.Insns = null then
@@ -640,10 +723,19 @@ package body Decision_Map is
    -- Report --
    ------------
 
-   procedure Report (Msg : String; Error : Boolean := True) is
+   procedure Report
+     (PC   : Pc_Type;
+      Msg  : String;
+      Kind : Report_Kind := Error)
+   is
+      subtype Prefix_Str is String (1 .. 3);
+      Prefix : constant array (Report_Kind) of Prefix_Str :=
+                 (Notice  => "***",
+                  Warning => "???",
+                  Error   => "!!!");
    begin
-      if Verbose or else Error then
-         Put_Line (Msg);
+      if Verbose or else Kind > Notice then
+         Put_Line (Prefix (Kind) & " " & Hex_Image (PC) & ": " & Msg);
       end if;
    end Report;
 

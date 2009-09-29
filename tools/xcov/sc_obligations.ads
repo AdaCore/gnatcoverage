@@ -46,7 +46,14 @@ package SC_Obligations is
    --  Output a list of conditions without associated conditional branches
 
    type Tristate is (False, True, Unknown);
+   subtype Known_Tristate is Tristate range False .. True;
    --  State of a condition, if known
+
+   To_Tristate : constant array (Boolean) of Known_Tristate :=
+                   (False => False, True => True);
+
+   To_Boolean : constant array (Known_Tristate) of Boolean :=
+                   (False => False, True => True);
 
    ----------------------------
    -- Accessors for SCO info --
@@ -62,6 +69,14 @@ package SC_Obligations is
    --  Condition SCOs
 
    function Index (SCO : SCO_Id) return Natural;
+
+   function Next_Condition (SCO : SCO_Id; Value : Boolean) return SCO_Id;
+   --  Next condition to be tested, depending of value of this condition,
+   --  or No_SCO_Id if the value determines the decision outcome.
+
+   function Outcome (SCO : SCO_Id; Value : Boolean) return Tristate;
+   --  Outcome of decision if this condition has the given value, or Unknown
+   --  if the value does not determine the decision outcome.
 
    --  Decision SCOs
 
