@@ -1284,7 +1284,8 @@ package body Traces_Elf is
 
             Close_Source_Line;
 
-            --  Note: Last and Parent are set by Build_Debug_Lines.
+            --  Note: Last and Parent are set by Build_Debug_Lines
+
             Last_Line :=
               new Addresses_Info'
               (Kind   => Line_Addresses,
@@ -1548,7 +1549,7 @@ package body Traces_Elf is
          Compile_Unit_Lists.Next (Cur_Cu);
       end loop;
 
-      --  Set .Last and parent.
+      --  Set Last and Parent
 
       Cur_Line := First (Exec.Desc_Sets (Line_Addresses));
 
@@ -2274,6 +2275,11 @@ package body Traces_Elf is
    begin
       PC_Addr.First := PC;
       PC_Addr.Last  := PC;
+
+      --  Note: we assume that type Addresses_Info provides adequate default
+      --  initialization so that setting First and Last only yields an element
+      --  that is smaller than any element with the same PC and non-default
+      --  values for other fields (use of Floor below).
 
       Cur := Exec.Desc_Sets (Kind).Floor (PC_Addr'Unchecked_Access);
       if Cur = No_Element or else Element (Cur).Last < PC then
