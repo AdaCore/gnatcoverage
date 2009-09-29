@@ -75,6 +75,7 @@ package Sources is
    --  No_Location sorts higher than any specific location.
 
    function Image (Sloc : Source_Location) return String;
+   function Image (First_Sloc, Last_Sloc : Source_Location) return String;
 
 private
 
