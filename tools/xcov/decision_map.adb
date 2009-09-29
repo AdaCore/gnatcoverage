@@ -105,7 +105,7 @@ package body Decision_Map is
 
    Cond_Branch_Map : Cond_Branch_Maps.Map;
 
-   type Condition_Occurrence_Array is array (Positive range <>) of Pc_Type;
+   type Condition_Occurrence_Array is array (Natural range <>) of Pc_Type;
    --  In a decision occurrence, each tested condition is represented by
    --  a conditional branch instruction.
 
@@ -114,7 +114,7 @@ package body Decision_Map is
       --  The decision being evaluated
 
       Condition_Occurrences : Condition_Occurrence_Array
-                                (0 .. Last_Cond_Index);
+                                (0 .. Last_Cond_Index) := (others => No_PC);
       --  The corresponding evaluations of the conditions in the decision
 
       Seen_Condition : Integer := -1;
@@ -165,9 +165,10 @@ package body Decision_Map is
      (D_Occ : Decision_Occurrence_Access);
    --  Perform logical structure analysis of the given decision occurrence
 
-   procedure Report (Msg : String) renames Put_Line;
-   --  Output diagnostic message when an anomaly in the control flow graph
-   --  is encountered.
+   procedure Report (Msg : String; Error : Boolean := True);
+   --  Output diagnostic message during control flow analysis. If Error is set
+   --  True, message is always displayed, else it is displayed only if global
+   --  flag Verbose is set.
 
    -------------
    -- Analyze --
@@ -336,11 +337,21 @@ package body Decision_Map is
                   Check_Condition_Index (Index (Parent_SCO));
                end if;
 
-               --  Push new context for this decision occurrence
+               --  The following causes a new context to be pushed for this
+               --  decision occurrence.
 
-               DS_Top := new Decision_Occurrence (Last_Cond_Index (D_SCO));
-               Ctx.Decision_Stack.Append (DS_Top);
+               DS_Top := null;
             end if;
+         end if;
+
+         if DS_Top = null then
+            --  Push new context
+
+            DS_Top := new Decision_Occurrence'
+                            (Last_Cond_Index => Last_Cond_Index (D_SCO),
+                             Decision        => D_SCO,
+                             others          => <>);
+            Ctx.Decision_Stack.Append (DS_Top);
          end if;
 
          --  Here after pushing context for current decision, if needed
@@ -356,6 +367,9 @@ package body Decision_Map is
          else
             --  Record condition occurrence
 
+            if Cond_Index > DS_Top.Seen_Condition then
+               DS_Top.Seen_Condition := Cond_Index;
+            end if;
             DS_Top.Condition_Occurrences (Cond_Index) := Insn'First;
             Cond_Branch_Map.Insert
               (Insn'First,
@@ -422,7 +436,9 @@ package body Decision_Map is
                Cond_Branch_PC : Pc_Type renames
                                   D_Occ.Condition_Occurrences (J);
             begin
-               if PC in Cond_Branch_Map.Element (Cond_Branch_PC).
+               if Cond_Branch_PC /= No_PC
+                    and then
+                  PC in Cond_Branch_Map.Element (Cond_Branch_PC).
                           Basic_Block_Start .. Cond_Branch_PC
                then
                   return J;
@@ -500,9 +516,15 @@ package body Decision_Map is
       --  Label edge destinations
 
       for J in D_Occ.Condition_Occurrences'Range loop
-         Cond_Branch_Map.Update_Element
-           (Cond_Branch_Map.Find (D_Occ.Condition_Occurrences (J)),
-            Label_Destinations'Access);
+         declare
+            use Cond_Branch_Maps;
+            Cur : constant Cond_Branch_Maps.Cursor :=
+                    Cond_Branch_Map.Find (D_Occ.Condition_Occurrences (J));
+         begin
+            if D_Occ.Condition_Occurrences (J) /= No_PC then
+               Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
+            end if;
+         end;
       end loop;
    end Analyze_Decision_Occurrence;
 
@@ -618,6 +640,17 @@ package body Decision_Map is
       Decision_Map.Write_Map (Decision_Map_Filename.all);
       Close_File (Exec);
    end Build_Decision_Map;
+
+   ------------
+   -- Report --
+   ------------
+
+   procedure Report (Msg : String; Error : Boolean := True) is
+   begin
+      if Verbose or else Error then
+         Put_Line (Msg);
+      end if;
+   end Report;
 
    ---------------
    -- Write_Map --
