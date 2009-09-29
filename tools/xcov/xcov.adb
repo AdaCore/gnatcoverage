@@ -335,7 +335,6 @@ procedure Xcov is
                Normal_Exit;
 
             elsif Arg = "-v" then
-               Check_Option (Arg, Command, (1 => Run));
                Verbose := True;
 
             elsif Arg = Coverage_Option_Short then
