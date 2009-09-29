@@ -110,9 +110,9 @@ package Traces_Elf is
      (Exec    : Exe_File_Acc;
       Base    : Traces_Base_Acc;
       Section : Binary_Content);
-   --  Build source lines for a specific section of Exec Sets line state
-   --  according to object coverage as determined from Base, can't be used for
-   --  source coverage???
+   --  Build source lines for a specific section of Exec
+   --  Sets line state according to object coverage as determined from Base,
+   --  can't be used for source coverage???
 
    procedure Disp_Address (El : Addresses_Info_Acc);
    function Image (El : Addresses_Info_Acc) return String;
@@ -201,7 +201,7 @@ package Traces_Elf is
             Symbol_Name : String_Acc;
 
          when Line_Addresses =>
-            Sloc : Source_Location;
+            Sloc : Source_Location := No_Location;
       end case;
    end record;
 
