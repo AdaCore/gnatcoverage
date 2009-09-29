@@ -1643,50 +1643,25 @@ package body Traces_Elf is
       end loop;
    end Build_Sections;
 
-   --------------------
-   -- Get_Sloc_Range --
-   --------------------
+   --------------
+   -- Get_Sloc --
+   --------------
 
-   procedure Get_Sloc_Range
-     (Exec  : Exe_File_Type;
-      PC    : Pc_Type;
-      First : out Source_Location;
-      Last  : out Source_Location)
+   function Get_Sloc
+     (Exec : Exe_File_Type;
+      PC   : Pc_Type) return Source_Location
    is
       use Sloc_Sets;
 
       Line_Info_Before : constant Addresses_Info_Acc :=
                            Get_Address_Info (Exec, Line_Addresses, PC);
-      Cur : Cursor;
    begin
       if Line_Info_Before = null then
-         First := Sources.No_Location;
-         Last  := Sources.No_Location;
-         return;
+         return Sources.No_Location;
+      else
+         return Line_Info_Before.Sloc;
       end if;
-
-      First := Line_Info_Before.Sloc;
-      Last := First;
-
-      Cur := Exec.Known_Slocs.Find (First);
-      pragma Assert (Cur /= No_Element);
-      Next (Cur);
-
-      if Cur /= No_Element then
-         declare
-            Sloc_After      : constant Source_Location := Element (Cur);
-         begin
-            if Sloc_After.Source_File = First.Source_File
-              and then Sloc_After.Line = First.Line
-            then
-               pragma Assert (Sloc_After.Column > First.Column);
-               Last.Column := Sloc_After.Column - 1;
-               return;
-            end if;
-         end;
-      end if;
-      Last.Column := Integer'Last;
-   end Get_Sloc_Range;
+   end Get_Sloc;
 
    --------------------------
    -- Load_Section_Content --

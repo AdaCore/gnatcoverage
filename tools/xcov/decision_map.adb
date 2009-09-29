@@ -196,15 +196,13 @@ package body Decision_Map is
       Basic_Block_Start : Pc_Type;
       Ctx               : in out Cond_Branch_Context)
    is
-      First_Sloc, Last_Sloc : Source_Location;
-      --  Source location range of Insn
+      Sloc : Source_Location := Get_Sloc (Exe.all, Insn'First);
+      --  Source location of Insn
 
       SCO : SCO_Id;
 
    begin
-      Get_Sloc_Range (Exe.all, Insn'First, First_Sloc, Last_Sloc);
-
-      if First_Sloc = Sources.No_Location then
+      if Sloc = Sources.No_Location then
          --  No associated source, so no further processing required for source
          --  coverage analysis.
 
@@ -213,19 +211,16 @@ package body Decision_Map is
 
       --  Normalize source file name
 
-      pragma Assert (First_Sloc.Source_File = Last_Sloc.Source_File);
-
-      First_Sloc.Source_File :=
-        Get_Index (Simple_Name (Get_Name (First_Sloc.Source_File)));
-      Last_Sloc.Source_File := First_Sloc.Source_File;
+      Sloc.Source_File :=
+        Get_Index (Simple_Name (Get_Name (Sloc.Source_File)));
 
       --  Look up SCO
 
-      SCO := Slocs_To_SCO (First_Sloc, Last_Sloc);
+      SCO := Sloc_To_SCO (Sloc);
 
       if Verbose then
          Put_Line ("cond branch at " & Hex_Image (Insn'First)
-                   & " " & Image (First_Sloc) & "-" & Image (Last_Sloc)
+                   & " " & Image (Sloc)
                    & ": " & Image (SCO));
 
       end if;

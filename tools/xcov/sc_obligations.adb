@@ -211,7 +211,7 @@ package body SC_Obligations is
       --  First sloc (for a complex decision, taken from first condition)
 
       Last_Sloc  : Source_Location;
-      --  Last sloc (unset for complex decisions)
+      --  Last sloc (for a decision, highest last sloc of contained conditions)
 
       Parent : SCO_Id := No_SCO_Id;
       --  For a decision, pointer to the enclosing statement (or condition in
@@ -650,7 +650,7 @@ package body SC_Obligations is
          begin
             return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
               & SCO_Kind'Image (SCOD.Kind) & " at "
-              & Image (SCOD.First_Sloc) & "-" & Image (SCOD.Last_Sloc);
+              & Image (SCOD.First_Sloc, SCOD.Last_Sloc);
          end;
       end if;
    end Image;
@@ -856,8 +856,8 @@ package body SC_Obligations is
             --  Set BDD of decision to Current_BDD
 
             procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor);
-            --  Update the first sloc of a complex decision SCOD from that
-            --  of its first condition (which is the current SCOE).
+            --  Update the slocs of a complex decision SCOD from those of the
+            --  condition in the current SCOE.
 
             --------------------------
             -- Make_Condition_Value --
@@ -909,9 +909,18 @@ package body SC_Obligations is
             --------------------------
 
             procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor) is
+               From_Sloc : constant Source_Location := Make_Sloc (SCOE.From);
+               To_Sloc   : constant Source_Location := Make_Sloc (SCOE.To);
+
             begin
-               if SCOD.First_Sloc.Source_File = No_Source_File then
-                  SCOD.First_Sloc := Make_Sloc (SCOE.From);
+               if SCOD.First_Sloc = No_Location then
+                  SCOD.First_Sloc := From_Sloc;
+               end if;
+
+               if SCOD.Last_Sloc = No_Location
+                 or else SCOD.Last_Sloc < To_Sloc
+               then
+                  SCOD.Last_Sloc := To_Sloc;
                end if;
             end Update_Decision_Sloc;
 
@@ -1032,7 +1041,7 @@ package body SC_Obligations is
             --  map entry.
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor) is
-               Enclosing_SCO : constant SCO_Id := Slocs_To_SCO (First, First);
+               Enclosing_SCO : constant SCO_Id := Sloc_To_SCO (First);
             begin
                if Verbose then
                   Put ("Processing: " & Image (J));
@@ -1061,9 +1070,14 @@ package body SC_Obligations is
                      --  their conditions are.
 
                      First := No_Location;
+
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
 
+                     if Enclosing_SCO /= No_SCO_Id then
+                        Put_Line ("--> statement nested in "
+                                  & Image (Enclosing_SCO));
+                     end if;
                      pragma Assert (Enclosing_SCO = No_SCO_Id);
                      null;
 
@@ -1123,34 +1137,11 @@ package body SC_Obligations is
    -- Slocs_To_SCO --
    ------------------
 
-   function Slocs_To_SCO
-     (First_Sloc, Last_Sloc : Source_Location) return SCO_Id
+   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id
    is
       use Sloc_To_SCO_Maps;
-      Cur : constant Cursor := Sloc_To_SCO_Map.Floor (Last_Sloc);
+      Cur : constant Cursor := Sloc_To_SCO_Map.Floor (Sloc);
       SCO : SCO_Id;
-
-      function Range_Intersects
-        (Range_First_Sloc, Range_Last_Sloc : Source_Location) return Boolean;
-      --  True when First_Sloc .. Last_Sloc
-      --  and Range_First_Sloc .. Range_Last_Sloc intersect.
-
-      ----------------------
-      -- Range_Intersects --
-      ----------------------
-
-      function Range_Intersects
-        (Range_First_Sloc, Range_Last_Sloc : Source_Location) return Boolean
-      is
-      begin
-         --  A range involving a No_Location bound is empty
-
-         return Range_First_Sloc <= Last_Sloc
-                  and then
-                    First_Sloc <= Range_Last_Sloc
-                  and then
-                    Range_Last_Sloc /= No_Location;
-      end Range_Intersects;
 
    begin
       if Cur /= No_Element then
@@ -1165,12 +1156,12 @@ package body SC_Obligations is
          declare
             SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
          begin
-            exit when Range_Intersects (SCOD.First_Sloc, SCOD.Last_Sloc);
+            exit when SCOD.First_Sloc <= Sloc and then Sloc <= SCOD.Last_Sloc;
          end;
          SCO := SCO_Vector.Element (SCO).Parent;
       end loop;
 
       return SCO;
-   end Slocs_To_SCO;
+   end Sloc_To_SCO;
 
 end SC_Obligations;

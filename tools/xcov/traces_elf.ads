@@ -141,13 +141,11 @@ package Traces_Elf is
                        return Addresses_Info_Acc;
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
-   procedure Get_Sloc_Range
-     (Exec  : Exe_File_Type;
-      PC    : PC_Type;
-      First : out Source_Location;
-      Last  : out Source_Location);
-   --  Use Exec's debug_lines information to determine the sloc range for
-   --  the instruction at PC.
+   function Get_Sloc
+     (Exec : Exe_File_Type;
+      PC   : Pc_Type) return Source_Location;
+   --  Use Exec's debug_lines information to determine the sloc for the
+   --  instruction at PC.
 
    --  Canonical use of iterators:
    --

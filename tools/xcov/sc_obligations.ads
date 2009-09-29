@@ -35,9 +35,8 @@ package SC_Obligations is
 
    function Image (SCO : SCO_Id) return String;
 
-   function Slocs_To_SCO
-     (First_Sloc, Last_Sloc : Source_Location) return SCO_Id;
-   --  Return the innermost SCO whose range overlaps the given range.
+   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
+   --  Return the innermost SCO whose range contains the given sloc.
    --  It is an error if multiple such SCOs exist and aren't nested.
 
    procedure Load_SCOs (ALI_List_Filename : String);
