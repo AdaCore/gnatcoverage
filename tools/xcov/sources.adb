@@ -21,10 +21,16 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Strings.Fixed;
+with Ada.Strings.Unbounded;
 
 package body Sources is
 
    Filenames : Filename_Vectors.Vector;
+
+   function Abridged_Image
+     (Sloc : Source_Location;
+      Ref  : Source_Location) return String;
+   --  Return the image of Sloc, omitting elements that are common with Ref
 
    package Filename_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => String_Acc,
@@ -95,6 +101,45 @@ package body Sources is
    begin
       return L < R or else L = R;
    end "<=";
+
+   --------------------
+   -- Abridged_Image --
+   --------------------
+
+   function Abridged_Image
+     (Sloc : Source_Location;
+      Ref  : Source_Location) return String
+   is
+      use Ada.Strings;
+      use Ada.Strings.Fixed;
+      use Ada.Strings.Unbounded;
+
+      Result : Unbounded_String;
+      Show_Line, Show_Column : Boolean;
+   begin
+      if Sloc = No_Location then
+         return "<no loc>";
+      end if;
+
+      if Sloc.Source_File /= Ref.Source_File then
+         Result := To_Unbounded_String (Get_Name (Sloc.Source_File) & ":");
+         Show_Line   := True;
+         Show_Column := True;
+      else
+         Show_Line   := Sloc.Line /= Ref.Line;
+         Show_Column := Show_Line or else Sloc.Column /= Ref.Column;
+      end if;
+
+      if Show_Line then
+         Result := Result & Trim (Sloc.Line'Img, Both) & ":";
+      end if;
+
+      if Show_Column then
+         Result := Result & Trim (Sloc.Column'Img, Both);
+      end if;
+
+      return To_String (Result);
+   end Abridged_Image;
 
    -----------------------
    -- Add_Source_Search --
@@ -169,15 +214,21 @@ package body Sources is
    -----------
 
    function Image (Sloc : Source_Location) return String is
-      use Ada.Strings;
-      use Ada.Strings.Fixed;
    begin
-      if Sloc = No_Location then
-         return "<no loc>";
+      return Abridged_Image (Sloc, Ref => No_Location);
+   end Image;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (First_Sloc, Last_Sloc : Source_Location) return String is
+   begin
+      if First_Sloc = Last_Sloc then
+         return Abridged_Image (First_Sloc, Ref => No_Location);
       else
-         return Get_Name (Sloc.Source_File)
-           & ":" & Trim (Sloc.Line'Img, Both)
-           & ":" & Trim (Sloc.Column'Img, Both);
+         return Abridged_Image (First_Sloc, Ref => No_Location)
+           & "-" & Abridged_Image (Last_Sloc, Ref => First_Sloc);
       end if;
    end Image;
 
