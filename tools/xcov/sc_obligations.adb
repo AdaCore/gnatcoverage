@@ -382,17 +382,22 @@ package body SC_Obligations is
             Node : BDD_Node renames BDD_Vector.Element (N);
             Next_Condition : BDD_Node_Id := N + 1;
 
-            procedure Put_Dest (Name : String; Dest : BDD_Node_Id);
+            procedure Put_Dest (Origin : Boolean; Dest : BDD_Node_Id);
             --  Dump one destination
 
             --------------
             -- Put_Dest --
             --------------
 
-            procedure Put_Dest (Name : String; Dest : BDD_Node_Id) is
+            procedure Put_Dest (Origin : Boolean; Dest : BDD_Node_Id) is
                Dest_Node : BDD_Node renames BDD_Vector.Element (Dest);
             begin
-               Put ("    if " & Name & " then ");
+               if Origin then
+                  Put ("    if TRUE then ");
+               else
+                  Put ("            else ");
+               end if;
+
                case Dest_Node.Kind is
                   when Outcome =>
                      Put_Line ("return " & Dest_Node.Decision_Outcome'Img);
@@ -435,8 +440,8 @@ package body SC_Obligations is
                   New_Line;
             end case;
 
-            Put_Dest ("true ", Node.Dests (True));
-            Put_Dest ("false", Node.Dests (False));
+            Put_Dest (True,  Node.Dests (True));
+            Put_Dest (False, Node.Dests (False));
 
             if Next_Condition <= BDD.Last_Node then
                New_Line;
