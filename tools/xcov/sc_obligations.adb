@@ -28,6 +28,7 @@ with Ada.Text_IO;       use Ada.Text_IO;
 with SCOs;     use SCOs;
 with Switches; use Switches;
 with Types;    use Types;
+with File_Tables; use File_Tables;
 with Get_SCOs;
 
 package body SC_Obligations is

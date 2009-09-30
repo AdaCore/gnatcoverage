@@ -153,7 +153,7 @@ package body Traces_Sources.Annotations is
       --  Start of processing for Disp_File_Line_State
 
    begin
-      Sources.Open (F, File_Index, Has_Source);
+      File_Tables.Open (F, File_Index, Has_Source);
 
       if not Has_Source then
          Put_Line (Standard_Error, "warning: can't open " & Filename);
@@ -215,7 +215,7 @@ package body Traces_Sources.Annotations is
          FI : constant File_Info_Access := File_Table_Element (Index);
       begin
          if FI.To_Display then
-            Disp_One_File (Sources.Get_Name (Index), FI.all);
+            Disp_One_File (File_Tables.Get_Name (Index), FI.all);
          end if;
       end Process_One_File;
 
@@ -240,7 +240,7 @@ package body Traces_Sources.Annotations is
          FI : constant File_Info_Access := File_Table_Element (Index);
       begin
          if FI.To_Display then
-            Disp_File_Line_State (Pp, Sources.Get_Name (Index), FI.all);
+            Disp_File_Line_State (Pp, File_Tables.Get_Name (Index), FI.all);
          end if;
       end Process_One_File;
 

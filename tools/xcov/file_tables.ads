@@ -17,6 +17,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+private with Ada.Containers.Vectors;
+private with Strings;
+
+with Ada.Text_IO; use Ada.Text_IO;
 with Traces_Elf;   use Traces_Elf;
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Stats;   use Traces_Stats;
@@ -36,6 +40,35 @@ package File_Tables is
    --  ??? This package should disappear at some point. The handling of
    --  the file table should be moved to Sources. And the coverage-specific
    --  stuff to Traces_Sources.
+
+   --  Global directory of all source files
+
+   function Get_Index (Name : String) return Source_File_Index;
+   function Get_Name (Index : Source_File_Index) return String;
+
+   --  Utilities to open files from the source file table. Source
+   --  files will be searched on the local filesystem, in the following
+   --  order:
+   --  (1) from xcov's execution directory;
+   --  (2) after rebasing them using the rebase list;
+   --  (3) from the source search path.
+
+   procedure Add_Source_Rebase (Old_Prefix : String; New_Prefix : String);
+   --  Add a new entry to the rebase list.  This entry says that a file
+   --  whose name is Old_Prefix & "something" should be found in
+   --  New_Prefix & "something".
+
+   procedure Add_Source_Search (Prefix : String);
+   --  Add Prefix to the source search path. A file named "something" would
+   --  be looked for in Prefix & "something".
+
+   procedure Open
+     (File    : in out File_Type;
+      Index   : Source_File_Index;
+      Success : out Boolean);
+   --  Try to open the file from the source file table whose index is Index,
+   --  using the rebase/search information. If one found, Success is True;
+   --  False otherwise.
 
    procedure Add_Line
      (File  : Source_File_Index;
@@ -153,5 +186,14 @@ private
       Table_Increment      => 100);
 
    type Source_Lines is new Source_Line_Tables.Instance;
+
+   use Strings;
+
+   subtype Valid_Source_File_Index is
+     Source_File_Index range First_Source_File .. Source_File_Index'Last;
+   package Filename_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Valid_Source_File_Index,
+      Element_Type => String_Acc,
+      "="          => Equal);
 
 end File_Tables;
