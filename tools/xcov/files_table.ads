@@ -32,7 +32,7 @@ with GNAT.Dynamic_Tables;
 --  ??? This should be replaced by a dependancy on Ada.Containers.Vectors
 --  when moved to sources.adb
 
-package File_Tables is
+package Files_Table is
    --  This package manages a source file table and, for each file,
    --  a table of its source lines. Coverage information can be
    --  associated with each file/line. Only object coverage is supported.
@@ -196,4 +196,4 @@ private
       Element_Type => String_Acc,
       "="          => Equal);
 
-end File_Tables;
+end Files_Table;

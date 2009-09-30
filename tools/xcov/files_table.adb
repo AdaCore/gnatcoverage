@@ -20,7 +20,7 @@
 with Ada.Containers.Hashed_Maps;
 with Traces_Sources;
 
-package body File_Tables is
+package body Files_Table is
 
    package File_Dynamic_Tables is new GNAT.Dynamic_Tables
      (Table_Component_Type => File_Info_Access,
@@ -368,4 +368,4 @@ package body File_Tables is
 
 begin
    File_Dynamic_Tables.Init (File_Table);
-end File_Tables;
+end Files_Table;

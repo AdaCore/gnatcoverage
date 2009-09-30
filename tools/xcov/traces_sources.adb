@@ -17,7 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with File_Tables; use File_Tables;
+with Files_Table; use Files_Table;
 
 package body Traces_Sources is
 

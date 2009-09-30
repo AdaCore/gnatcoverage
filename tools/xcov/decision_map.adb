@@ -29,7 +29,7 @@ with Hex_Images;        use Hex_Images;
 with SC_Obligations;    use SC_Obligations;
 with Qemu_Traces;
 with Sources;           use Sources;
-with File_Tables;       use File_Tables;
+with Files_Table;       use Files_Table;
 with Strings;           use Strings;
 with Switches;          use Switches;
 with Traces;            use Traces;

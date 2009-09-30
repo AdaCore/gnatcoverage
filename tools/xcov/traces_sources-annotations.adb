@@ -22,14 +22,14 @@ with Ada.Directories;
 with Traces_Disa;
 with Sources; use Sources;
 
-with File_Tables;
+with Files_Table;
 
 package body Traces_Sources.Annotations is
 
    procedure Disp_File_Line_State
      (Pp       : in out Pretty_Printer'Class;
       Filename : String;
-      File     : File_Tables.File_Info);
+      File     : Files_Table.File_Info);
    --  Comment needed???
 
    --------------------------
@@ -38,7 +38,7 @@ package body Traces_Sources.Annotations is
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'Class;
                                    Filename : String;
-                                   File : File_Tables.File_Info)
+                                   File : Files_Table.File_Info)
    is
       use Traces_Disa;
 
@@ -62,7 +62,7 @@ package body Traces_Sources.Annotations is
          Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
       end Disassemble_Cb;
 
-      use File_Tables;
+      use Files_Table;
 
       F                : File_Type;
       Last             : Natural := 1;
@@ -73,7 +73,7 @@ package body Traces_Sources.Annotations is
       procedure Process_One_Line (Index : Natural)
       is
          Instruction_Set  : Addresses_Info_Acc;
-         Info             : File_Tables.Line_Chain_Acc;
+         Info             : Files_Table.Line_Chain_Acc;
          Sec_Info         : Addresses_Info_Acc;
          LI               : constant Line_Info_Access := Element (File.Lines,
                                                                   Index);
@@ -153,7 +153,7 @@ package body Traces_Sources.Annotations is
       --  Start of processing for Disp_File_Line_State
 
    begin
-      File_Tables.Open (F, File_Index, Has_Source);
+      Files_Table.Open (F, File_Index, Has_Source);
 
       if not Has_Source then
          Put_Line (Standard_Error, "warning: can't open " & Filename);
@@ -190,14 +190,14 @@ package body Traces_Sources.Annotations is
    is
       use Ada.Directories;
 
-      procedure Disp_One_File (Name : String; File : File_Tables.File_Info);
+      procedure Disp_One_File (Name : String; File : Files_Table.File_Info);
       --  Display summary for the given file
 
       -------------------
       -- Disp_One_File --
       -------------------
 
-      procedure Disp_One_File (Name : String; File : File_Tables.File_Info) is
+      procedure Disp_One_File (Name : String; File : Files_Table.File_Info) is
       begin
          Put (Simple_Name (Name));
          Put (": ");
@@ -207,7 +207,7 @@ package body Traces_Sources.Annotations is
 
    --  Start of processing for Disp_File_Summary
 
-      use File_Tables;
+      use Files_Table;
 
       procedure Process_One_File (Index : Source_File_Index);
 
@@ -215,7 +215,7 @@ package body Traces_Sources.Annotations is
          FI : constant File_Info_Access := File_Table_Element (Index);
       begin
          if FI.To_Display then
-            Disp_One_File (File_Tables.Get_Name (Index), FI.all);
+            Disp_One_File (Files_Table.Get_Name (Index), FI.all);
          end if;
       end Process_One_File;
 
@@ -232,7 +232,7 @@ package body Traces_Sources.Annotations is
       Show_Asm : Boolean)
    is
       use Ada.Directories;
-      use File_Tables;
+      use Files_Table;
 
       procedure Process_One_File (Index : Source_File_Index);
 
@@ -240,7 +240,7 @@ package body Traces_Sources.Annotations is
          FI : constant File_Info_Access := File_Table_Element (Index);
       begin
          if FI.To_Display then
-            Disp_File_Line_State (Pp, File_Tables.Get_Name (Index), FI.all);
+            Disp_File_Line_State (Pp, Files_Table.Get_Name (Index), FI.all);
          end if;
       end Process_One_File;
 

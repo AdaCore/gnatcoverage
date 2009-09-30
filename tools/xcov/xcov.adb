@@ -39,7 +39,7 @@ with Switches;          use Switches;
 with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
 with Sources;           use Sources;
-with File_Tables;       use File_Tables;
+with Files_Table;       use Files_Table;
 with Traces_Sources.Annotations; use Traces_Sources.Annotations;
 with Traces_Sources.Annotations.Html;
 with Traces_Sources.Annotations.Xcov;

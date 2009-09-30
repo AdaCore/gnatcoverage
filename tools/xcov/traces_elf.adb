@@ -41,7 +41,7 @@ with Traces_Lines;      use Traces_Lines;
 with Traces_Names;
 with Traces_Sources;
 with Types;             use Types;
-with File_Tables;       use File_Tables;
+with Files_Table;       use Files_Table;
 with Outputs;
 
 package body Traces_Elf is
