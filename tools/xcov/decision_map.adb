@@ -411,6 +411,9 @@ package body Decision_Map is
                                    (D_Occ.Seen_Condition);
       pragma Assert (Last_Seen_Condition_PC /= No_PC);
 
+      --  Note: all the analysis is done under control of an initial check that
+      --    D_Occ.Seen_Condition = D_Occ.Last_Condition_Index
+
       Last_CBI : constant Cond_Branch_Info :=
                    Cond_Branch_Map.Element (Last_Seen_Condition_PC);
 
@@ -475,12 +478,56 @@ package body Decision_Map is
 
          --  Check for outcome destination
 
+         --  HYP: a branch destination is an outcome when it is equal to one
+         --  of the branch destinations of the last conditional branch in
+         --  the decision. Note: some outcome destinations do not satisfy
+         --  this property (but there is no indication that any non-outcome
+         --  destination does satisfy it).
+
+         --  HYP: a branch destination is an outcome when it branches past
+         --  the conditional branch instruction for the last condition.
+
          if Edge_Info.Destination
               = Last_CBI.Edges (Branch).Destination
            or else Edge_Info.Destination
                      = Last_CBI.Edges (Fallthrough).Destination
+           or else Edge_Info.Destination > Last_Seen_Condition_PC
          then
             Edge_Info.Dest_Kind := Outcome;
+
+            --  Check that there is a possible outcome from this condition
+
+            declare
+               Outcome_Seen   : Boolean;
+               Outcome_Origin : Tristate := Unknown;
+            begin
+               for J in Boolean'Range loop
+                  if Outcome (CBI.Condition, J) /= Unknown then
+                     Outcome_Seen := True;
+                     if Outcome_Origin = Unknown then
+                        Outcome_Origin := To_Tristate (J);
+                     else
+                        Outcome_Origin := Unknown;
+                     end if;
+                  end if;
+               end loop;
+
+               if not Outcome_Seen then
+                  Report
+                    (Cond_Branch_PC,
+                     Edge_Name & " destination unexpectedly out of condition");
+
+               elsif Outcome_Origin /= Unknown then
+                  --  If there is only one outcome edge (and the other is a
+                  --  condition), then Outcome_Origin is the valuation of the
+                  --  condition that causes it to be taken.
+
+                  Edge_Info.Origin := Outcome_Origin;
+                  Edge_Info.Outcome :=
+                    Outcome (CBI.Condition, To_Boolean (Outcome_Origin));
+                  pragma Assert (Edge_Info.Outcome /= Unknown);
+               end if;
+            end;
          end if;
 
          --  Check for internal destination
@@ -493,6 +540,7 @@ package body Decision_Map is
                Report
                  (Cond_Branch_PC,
                   Edge_Name & " destination is both final and intermediate");
+
             else
                Edge_Info.Dest_Kind := Condition;
                Edge_Info.Next_Condition := Destination_Index;
