@@ -2012,7 +2012,7 @@ package body Traces_Elf is
 
                   if Flag_Cond then
                      case Op is
-                        when 0 | 1 =>
+                        when 1 =>
                            Update_Or_Split (Branch_Taken);
                         when 2 =>
                            Update_Or_Split (Fallthrough_Taken);

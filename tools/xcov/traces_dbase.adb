@@ -22,8 +22,6 @@ with Outputs;      use Outputs;
 
 package body Traces_Dbase is
 
-   Trace_Op_Any_Br   : constant Unsigned_8 := Trace_Op_Br0 or Trace_Op_Br1;
-
    use Entry_Set;
 
    function Get_Trace_Cur
@@ -135,26 +133,11 @@ package body Traces_Dbase is
          N_First, N_Last : Pc_Type;
          E : constant Trace_Entry := Element (Cur);
       begin
-         --  Prepare merge:
-         --   Handle conditionnal dynamic branches.
-         --   They are a bit special as only the fallback has a Trace_Op_Br bit
-         --   (and this is supposed to be Trace_Op_Br1).  Standard merging will
-         --   discard the taken branch.
-
-         --  When we merge an op that has a Br bit with one that has no Br bit,
-         --  we assume that both ways were taken.
-
          Merged_Op := Op or E.Op;
 
-         if (E.Op and Trace_Op_Any_Br) = 0
-              xor
-            (Op and Trace_Op_Any_Br) = 0
-         then
-            Merged_Op := Merged_Op or Trace_Op_Br0 or Trace_Op_Br1;
-         end if;
-
          if (Op and Trace_Op_Block) = 0
-           and then (Op and Trace_Op_Fault) = 0 then
+           and then (Op and Trace_Op_Fault) = 0
+         then
             --  Just merge flags
 
             if First /= Last then
