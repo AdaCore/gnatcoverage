@@ -30,7 +30,7 @@ package body Traces_Sources is
       Line  : Natural)
    is
       FI : constant File_Info_Access := Files_Table_Element (File);
-      LI : constant Line_Info_Access := Element (FI, Line);
+      LI : constant Line_Info_Access := Get_Line_Info (FI, Line);
    begin
       LI.State := No_Code;
       FI.Stats (No_Code) := FI.Stats (No_Code) + 1;
@@ -46,7 +46,7 @@ package body Traces_Sources is
       Line : Natural) return Line_State
    is
       FI : constant File_Info_Access := Files_Table_Element (File);
-      LI : constant Line_Info_Access := Element (FI, Line);
+      LI : constant Line_Info_Access := Get_Line_Info (FI, Line);
    begin
       return LI.State;
    end Get_Line_State;
@@ -61,7 +61,7 @@ package body Traces_Sources is
       State : Line_State)
    is
       FI : constant File_Info_Access := Files_Table_Element (File);
-      LI : constant Line_Info_Access := Element (FI, Line);
+      LI : constant Line_Info_Access := Get_Line_Info (FI, Line);
    begin
       pragma Assert (State /= No_Code);
       FI.Stats (LI.State) := FI.Stats (LI.State) - 1;

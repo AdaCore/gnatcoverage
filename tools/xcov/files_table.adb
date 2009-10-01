@@ -34,13 +34,13 @@ package body Files_Table is
    --  If Line is not in File's line table, expand this table and mark the new
    --  line as No_Code.
 
-   procedure Append
+   procedure Append_Object_Coverage
      (Info            : Line_Info_Access;
       State           : Line_State;
       Instruction_Set : Addresses_Info_Acc;
       Base            : Traces_Base_Acc;
       Exec            : Exe_File_Acc);
-   --  Comment needed???
+   --  Append object coverage information to a source line.
 
    package Filename_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => String_Acc,
@@ -241,46 +241,47 @@ package body Files_Table is
       Element : File_Info_Access renames Files_Table.Element (File);
    begin
       Expand_Line_Table (File, Line);
-      Append (Element.Lines.Element (Line), State, Info, Base, Exec);
+      Append_Object_Coverage (Element.Lines.Element (Line),
+                              State, Info, Base, Exec);
    end Add_Line;
 
-   ------------
-   -- Append --
-   ------------
+   ----------------------------
+   -- Append_Object_Coverage --
+   ----------------------------
 
-   procedure Append
+   procedure Append_Object_Coverage
      (Info            : Line_Info_Access;
       State           : Line_State;
       Instruction_Set : Addresses_Info_Acc;
       Base            : Traces_Base_Acc;
       Exec            : Exe_File_Acc)
    is
-      El : constant Line_Chain_Acc :=
-        new Line_Chain'(OCI => (State => State,
-                                Instruction_Set => Instruction_Set,
-                                Base => Base,
-                                Exec => Exec),
-                        Next => null);
+      El : constant Object_Coverage_Info_Acc :=
+        new Object_Coverage_Info'(State => State,
+                                  Instruction_Set => Instruction_Set,
+                                  Base => Base,
+                                  Exec => Exec,
+                                  Next => null);
    begin
-      if Info.First_Line = null then
-         Info.First_Line := El;
+      if Info.Obj_First = null then
+         Info.Obj_First := El;
       else
-         Info.Last_Line.Next := El;
+         Info.Obj_Last.Next := El;
       end if;
-      Info.Last_Line := El;
-   end Append;
+      Info.Obj_Last := El;
+   end Append_Object_Coverage;
 
-   -------------
-   -- Element --
-   -------------
+   -------------------
+   -- Get_Line_Info --
+   -------------------
 
-   function Element
+   function Get_Line_Info
      (File  : File_Info_Access;
       Index : Positive)
      return Line_Info_Access is
    begin
       return File.Lines.Element (Index);
-   end Element;
+   end Get_Line_Info;
 
    -----------------------
    -- Expand_Line_Table --

@@ -73,9 +73,10 @@ package body Traces_Sources.Annotations is
       procedure Process_One_Line (Index : Positive)
       is
          Instruction_Set  : Addresses_Info_Acc;
-         Info             : Files_Table.Line_Chain_Acc;
+         Info             : Files_Table.Object_Coverage_Info_Acc;
          Sec_Info         : Addresses_Info_Acc;
-         LI               : constant Line_Info_Access := Element (File, Index);
+         LI               : constant Line_Info_Access :=
+           Get_Line_Info (File, Index);
          Ls               : constant Line_State := LI.State;
          In_Symbol        : Boolean;
          In_Insn_Set      : Boolean;
@@ -87,7 +88,7 @@ package body Traces_Sources.Annotations is
          end if;
 
          if Pp.Show_Asm then
-            Info := LI.First_Line;
+            Info := LI.Obj_First;
 
             if Info /= null then
                Pretty_Print_Start_Instruction_Set (Pp, Ls);
@@ -99,19 +100,19 @@ package body Traces_Sources.Annotations is
             --  Iterate over each insn block for the source line
 
             while Info /= null loop
-               Instruction_Set := Info.OCI.Instruction_Set;
+               Instruction_Set := Info.Instruction_Set;
                declare
                   Label : constant String :=
-                    Get_Label (Info.OCI.Exec.all, Instruction_Set);
+                    Get_Label (Info.Exec.all, Instruction_Set);
                   Symbol : constant Addresses_Info_Acc :=
-                    Get_Symbol (Info.OCI.Exec.all, Instruction_Set.First);
+                    Get_Symbol (Info.Exec.all, Instruction_Set.First);
                begin
                   if Label'Length > 0 and Symbol /= null then
                      In_Symbol := True;
                      Pretty_Print_Start_Symbol (Pp,
                                                 Symbol.Symbol_Name.all,
                                                 Symbol.First,
-                                                Info.OCI.State);
+                                                Info.State);
                   else
                      In_Symbol := False;
                   end if;
@@ -127,7 +128,7 @@ package body Traces_Sources.Annotations is
                Disp_Assembly_Lines
                  (Sec_Info.Section_Content
                     (Instruction_Set.First .. Instruction_Set.Last),
-                  Info.OCI.Base.all, Disassemble_Cb'Access, Info.OCI.Exec.all);
+                  Info.Base.all, Disassemble_Cb'Access, Info.Exec.all);
 
                if In_Symbol then
                   Pretty_Print_End_Symbol (Pp);

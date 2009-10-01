@@ -78,8 +78,8 @@ package Files_Table is
    procedure New_Source_File (File : Source_File_Index);
    --  Initialize entry for File in source files table
 
-   type Line_Chain;
-   type Line_Chain_Acc is access Line_Chain;
+   type Object_Coverage_Info;
+   type Object_Coverage_Info_Acc is access Object_Coverage_Info;
 
    type Object_Coverage_Info is record
       --  This records maps an instruction set to its coverage information.
@@ -99,15 +99,9 @@ package Files_Table is
 
       Exec : Exe_File_Acc;
       --  Exec from where the address range has been extracted
-   end record;
 
-   type Line_Chain is record
-      OCI  : Object_Coverage_Info;
-      --  Object coverage information associated with an instruction set
-      --  for this source line
-
-      Next : Line_Chain_Acc;
-      --  Next element in Line_Chain
+      Next : Object_Coverage_Info_Acc;
+      --  Next element in the chain.
    end record;
 
    type Line_Info is record
@@ -116,8 +110,8 @@ package Files_Table is
       State : Line_State;
       --  Coverage state
 
-      First_Line, Last_Line : Line_Chain_Acc;
-      --  Detailled coverage information for this line
+      Obj_First, Obj_Last : Object_Coverage_Info_Acc;
+      --  Detailled object coverage information for this line
    end record;
 
    type Line_Info_Access is access Line_Info;
@@ -166,7 +160,7 @@ package Files_Table is
      (File    : File_Info_Access;
       Process : not null access procedure (Index : Positive));
 
-   function Element
+   function Get_Line_Info
      (File  : File_Info_Access;
       Index : Positive)
      return Line_Info_Access;
