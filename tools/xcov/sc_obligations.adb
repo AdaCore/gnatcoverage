@@ -93,9 +93,17 @@ package body SC_Obligations is
 
       type BDD_Type is record
          Decision       : SCO_Id;
+
          Root_Condition : BDD_Node_Id := No_BDD_Node_Id;
+         --  First tested condition
+
          First_Node     : BDD_Node_Id := No_BDD_Node_Id;
          Last_Node      : BDD_Node_Id := No_BDD_Node_Id;
+         --  Index range of BDD nodes of this BDD
+
+         Diamond_Base   : BDD_Node_Id := No_BDD_Node_Id;
+         --  If set, designates a node that is reachable through multiple paths
+         --  (see Check_Diamonds).
       end record;
 
       procedure Allocate
@@ -188,7 +196,7 @@ package body SC_Obligations is
          Condition_Id : SCO_Id);
       --  Process condition
 
-      procedure Completed (BDD : BDD_Type);
+      procedure Completed (BDD : in out BDD_Type);
       --  Called when all items in decision have been processed
 
       procedure Dump_BDD (BDD : BDD_Type);
@@ -267,12 +275,18 @@ package body SC_Obligations is
    ---------
 
    package body BDD is
+
       package Arcs_Stacks is
         new Ada.Containers.Vectors
           (Index_Type   => Natural,
            Element_Type => Arcs);
 
       Arcs_Stack : Arcs_Stacks.Vector;
+
+      procedure Check_Diamonds (BDD : in out BDD_Type);
+      --  Look for diamonds in BDD (conditions that can be reached through more
+      --  than one path from the root condition). MC/DC coverage is equivalent
+      --  to object branch coverage if, and only if, there is no diamond.
 
       --------------
       -- Allocate --
@@ -298,11 +312,45 @@ package body SC_Obligations is
          end if;
       end Allocate;
 
+      procedure Check_Diamonds (BDD : in out BDD_Type) is
+         Visited : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
+                     of Boolean := (others => False);
+
+         procedure Visit (Node_Id : BDD_Node_Id);
+         --  Visit one node. If it was already visited, report diamond
+
+         procedure Visit (Node_Id : BDD_Node_Id) is
+            Node : BDD_Node renames BDD_Vector.Element (Node_Id);
+         begin
+            --  Nothing to do if a diamond has already been identified
+
+            if BDD.Diamond_Base /= No_BDD_Node_Id then
+               return;
+            end if;
+
+            if Visited (Node_Id) then
+               BDD.Diamond_Base := Node_Id;
+               return;
+            end if;
+
+            Visited (Node_Id) := True;
+
+            for J in Boolean'Range loop
+               if BDD_Vector.Element (Node.Dests (J)).Kind = Condition then
+                  Visit (Node.Dests (J));
+               end if;
+            end loop;
+         end Visit;
+
+      begin
+         Visit (BDD.Root_Condition);
+      end Check_Diamonds;
+
       ---------------
       -- Completed --
       ---------------
 
-      procedure Completed (BDD : BDD_Type) is
+      procedure Completed (BDD : in out BDD_Type) is
          use BDD_Vectors;
 
          procedure Patch_Jumps (Node : in out BDD_Node);
@@ -363,6 +411,10 @@ package body SC_Obligations is
          for J in reverse BDD.First_Node .. BDD.Last_Node loop
             BDD_Vector.Update_Element (J, Patch_Jumps'Access);
          end loop;
+
+         --  Look for diamonds in BDD
+
+         Check_Diamonds (BDD);
 
          if Verbose then
             Dump_BDD (BDD);
@@ -453,8 +505,14 @@ package body SC_Obligations is
       --  Start of processing for Dump_BDD
 
       begin
-         Put_Line ("----- BDD for decision " & Image (BDD.Decision)
-                   & " - root condition:" & BDD.Root_Condition'Img);
+         Put_Line ("----- BDD for decision " & Image (BDD.Decision));
+         Put_Line ("*** Root condition:" & BDD.Root_Condition'Img);
+         if BDD.Diamond_Base /= No_BDD_Node_Id then
+            Put_Line
+              ("!!! BDD node" & BDD.Diamond_Base'Img
+               & " reachable through multiple paths");
+            Put_Line ("!!! OBC does not imply MC/DC coverage");
+         end if;
          Dump_Condition (BDD.Root_Condition);
          New_Line;
       end Dump_BDD;
