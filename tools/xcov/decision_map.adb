@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 
 with Ada.Directories;   use Ada.Directories;
@@ -37,7 +38,6 @@ with Traces_Dbase;      use Traces_Dbase;
 with Traces_Elf;        use Traces_Elf;
 with Traces_Files;      use Traces_Files;
 with Traces_Names;      use Traces_Names;
-with Types;             use Types;
 
 package body Decision_Map is
 
@@ -90,14 +90,17 @@ package body Decision_Map is
    type Edge_Kind is (Branch, Fallthrough);
    type Edges_Type is array (Edge_Kind) of Cond_Edge_Info;
 
+   type Decision_Occurrence;
+   type Decision_Occurrence_Access is access all Decision_Occurrence;
+
    type Cond_Branch_Info is record
-      Condition         : SCO_Id;
+      Decision_Occurrence : Decision_Occurrence_Access;
+      --  The decision occurrence containing this conditional branch
+
+      Condition           : SCO_Id;
       --  Condition being tested by the conditional branch instruction
 
-      Basic_Block_Start : Pc_Type;
-      --  First PC of the basic block containing conditional branch instruction
-
-      Edges : Edges_Type;
+      Edges               : Edges_Type;
       --  Edge information for the branch case and fallthrough case
    end record;
 
@@ -120,12 +123,13 @@ package body Decision_Map is
                                 (0 .. Last_Cond_Index) := (others => No_PC);
       --  The corresponding evaluations of the conditions in the decision
 
-      Seen_Condition : Integer := -1;
+      Seen_Condition        : Integer := -1;
+      --  Index of the last seen condition (i.e. highest value such that
+      --  Condition_Occurrences (Seen_Condition) /= No_PC).
    end record;
-   type Decision_Occurrence_Access is access all Decision_Occurrence;
 
    package Decision_Occurrence_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Nat,
+     (Index_Type   => Natural,
       Element_Type => Decision_Occurrence_Access);
    use type Decision_Occurrence_Vectors.Vector;
    --  A list of decision occurrences, used for Decision_Occurrence_Maps below,
@@ -136,13 +140,34 @@ package body Decision_Map is
      (Key_Type     => SCO_Id,
       Element_Type => Decision_Occurrence_Vectors.Vector);
    Decision_Occurrence_Map : Decision_Occurrence_Maps.Map;
-   pragma Unreferenced (Decision_Occurrence_Map);
    --  The decision occurrence map lists all object code occurrences of each
    --  source decision (identified by its SCO_Id).
+
+   type Basic_Block is record
+      From, To : Pc_Type := No_PC;
+      Dest     : Pc_Type := No_PC;
+      Branch   : Branch_Kind := Br_None;
+      Cond     : Boolean;
+   end record;
+
+   No_Basic_Block : constant Basic_Block := (others => <>);
+
+   function "<" (L, R : Basic_Block) return Boolean;
+   --  Order by From
+
+   package Basic_Block_Sets is new Ada.Containers.Ordered_Sets (Basic_Block);
+
+   function Find_Basic_Block
+     (Basic_Blocks : Basic_Block_Sets.Set;
+      PC           : Pc_Type) return Basic_Block;
+   --  Return the basic block containing PC from the given set, or
+   --  No_Basic_Block if none.
 
    type Cond_Branch_Context is limited record
       Decision_Stack : Decision_Occurrence_Vectors.Vector;
       --  The stack of open decision occurrences
+
+      Basic_Blocks   : Basic_Block_Sets.Set;
    end record;
 
    procedure Analyze;
@@ -159,14 +184,21 @@ package body Decision_Map is
       Insn              : Binary_Content;
       Branch_Dest       : Pc_Type;
       Fallthrough_Dest  : Pc_Type;
-      Basic_Block_Start : Pc_Type;
       Ctx               : in out Cond_Branch_Context);
    --  Process one conditional branch instruction: identify relevant source
    --  coverable construct, and record association in the decision map.
 
    procedure Analyze_Decision_Occurrence
-     (D_Occ : Decision_Occurrence_Access);
+     (Ctx   : Cond_Branch_Context;
+      D_Occ : Decision_Occurrence_Access);
    --  Perform logical structure analysis of the given decision occurrence
+
+   procedure Append_Decision_Occurrence (D_Occ : Decision_Occurrence_Access);
+   --  Record association of D_Occ with its decision
+
+   function Image (BB : Basic_Block) return String;
+   pragma Unreferenced (Image);
+   --  For debugging purposes
 
    type Report_Kind is (Notice, Warning, Error);
    procedure Report
@@ -179,6 +211,15 @@ package body Decision_Map is
    --     *** notice
    --     ??? warning
    --     !!! error
+
+   ---------
+   -- "<" --
+   ---------
+
+   function "<" (L, R : Basic_Block) return Boolean is
+   begin
+      return L.From < R.From;
+   end "<";
 
    -------------
    -- Analyze --
@@ -203,7 +244,6 @@ package body Decision_Map is
       Insn              : Binary_Content;
       Branch_Dest       : Pc_Type;
       Fallthrough_Dest  : Pc_Type;
-      Basic_Block_Start : Pc_Type;
       Ctx               : in out Cond_Branch_Context)
    is
       Sloc : Source_Location := Get_Sloc (Exe.all, Insn'First);
@@ -230,7 +270,6 @@ package body Decision_Map is
 
       if Verbose then
          Put_Line ("cond branch at " & Hex_Image (Insn'First)
-                   & " (from " & Hex_Image (Basic_Block_Start) & ")"
                    & " " & Image (Sloc)
                    & ": " & Image (SCO));
 
@@ -380,9 +419,9 @@ package body Decision_Map is
             Cond_Branch_Map.Insert
               (Insn'First,
                Cond_Branch_Info'
-                 (Condition         => SCO,
-                  Basic_Block_Start => Basic_Block_Start,
-                  Edges             =>
+                 (Decision_Occurrence => DS_Top,
+                  Condition           => SCO,
+                  Edges               =>
                     (Branch =>
                        (Destination => Branch_Dest,
                         others      => <>),
@@ -394,7 +433,7 @@ package body Decision_Map is
          if Cond_Index = Last_Cond_Index (D_SCO) then
             --  Evaluated last condition: analyze & pop top decision
 
-            Analyze_Decision_Occurrence (Ctx.Decision_Stack.Last_Element);
+            Analyze_Decision_Occurrence (Ctx, DS_Top);
             Ctx.Decision_Stack.Delete_Last;
          end if;
       end Process_Condition;
@@ -405,7 +444,8 @@ package body Decision_Map is
    ---------------------------------
 
    procedure Analyze_Decision_Occurrence
-     (D_Occ : Decision_Occurrence_Access)
+     (Ctx   : Cond_Branch_Context;
+      D_Occ : Decision_Occurrence_Access)
    is
       Last_Seen_Condition_PC : constant Pc_Type :=
                                  D_Occ.Condition_Occurrences
@@ -418,7 +458,7 @@ package body Decision_Map is
       Last_CBI : constant Cond_Branch_Info :=
                    Cond_Branch_Map.Element (Last_Seen_Condition_PC);
 
-      function Find_Condition_Basic_Block (PC : Pc_Type) return Integer;
+      function Find_Condition (PC : Pc_Type) return Integer;
       --  Return the index of the condition occurrence within D_Occ whose
       --  enclosing basic block contains PC, if any, or -1 if there is no such
       --  condition occurrence.
@@ -435,29 +475,40 @@ package body Decision_Map is
          CBI            : in out Cond_Branch_Info);
       --  Identify destination kind of each edge of CBI
 
-      --------------------------------
-      -- Find_Condition_Basic_Block --
-      --------------------------------
+      --------------------
+      -- Find_Condition --
+      --------------------
 
-      function Find_Condition_Basic_Block (PC : Pc_Type) return Integer is
+      function Find_Condition (PC : Pc_Type) return Integer is
+         Next_PC : Pc_Type := PC;
+         BB : Basic_Block;
       begin
-         for J in D_Occ.Condition_Occurrences'Range loop
-            declare
-               Cond_Branch_PC : Pc_Type renames
-                                  D_Occ.Condition_Occurrences (J);
-            begin
-               if Cond_Branch_PC /= No_PC
-                    and then
-                  PC in Cond_Branch_Map.Element (Cond_Branch_PC).
-                          Basic_Block_Start .. Cond_Branch_PC
-               then
-                  return J;
-               end if;
-            end;
-         end loop;
+         <<Follow_Jump>>
+
+         BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
+
+         if BB.Branch = Br_Jmp then
+
+            if BB.Cond then
+               --  Conditional branch
+
+               for J in D_Occ.Condition_Occurrences'Range loop
+                  if D_Occ.Condition_Occurrences (J) = BB.To then
+                     return J;
+                  end if;
+               end loop;
+
+            elsif BB.Dest > Next_PC then
+               --  Unconditional branch forward (we never follow backward
+               --  branches to avoid loops).
+
+               Next_PC := BB.Dest;
+               goto Follow_Jump;
+            end if;
+         end if;
 
          return -1;
-      end Find_Condition_Basic_Block;
+      end Find_Condition;
 
       -----------------------
       -- Label_Destination --
@@ -471,8 +522,7 @@ package body Decision_Map is
          Edge_Name         : constant String := Edge'Img;
          Edge_Info         : Cond_Edge_Info renames CBI.Edges (Edge);
          Destination_Index : constant Integer :=
-                               Find_Condition_Basic_Block
-                                 (Edge_Info.Destination);
+                               Find_Condition (Edge_Info.Destination);
 
       begin
          pragma Assert (Edge_Info.Dest_Kind = Unknown);
@@ -651,6 +701,10 @@ package body Decision_Map is
             end if;
          end;
       end loop;
+
+      --  Record decision occurrence
+
+      Append_Decision_Occurrence (D_Occ);
    end Analyze_Decision_Occurrence;
 
    ---------------------
@@ -708,13 +762,21 @@ package body Decision_Map is
                Flag_Cond  => Flag_Cond,
                Dest       => Dest);
 
+            if Branch /= Br_None then
+               Context.Basic_Blocks.Insert
+                 ((From   => Current_Basic_Block_Start,
+                   To     => PC,
+                   Dest   => Dest,
+                   Branch => Branch,
+                   Cond   => Flag_Cond));
+            end if;
+
             if Branch = Br_Jmp and then Flag_Cond then
                Analyze_Conditional_Branch
                  (Info.Exec,
                   Insn              => Insn,
                   Branch_Dest       => Dest,
                   Fallthrough_Dest  => Insn'Last + 1,
-                  Basic_Block_Start => Current_Basic_Block_Start,
                   Ctx               => Context);
             end if;
 
@@ -730,6 +792,37 @@ package body Decision_Map is
          end;
       end loop;
    end Analyze_Routine;
+
+   --------------------------------
+   -- Append_Decision_Occurrence --
+   --------------------------------
+
+   procedure Append_Decision_Occurrence (D_Occ : Decision_Occurrence_Access) is
+      procedure Update_Element
+        (SCO : SCO_Id;
+         V   : in out Decision_Occurrence_Vectors.Vector);
+      --  Append D_Occ to V
+
+      procedure Update_Element
+        (SCO : SCO_Id;
+         V   : in out Decision_Occurrence_Vectors.Vector)
+      is
+         pragma Unreferenced (SCO);
+      begin
+         V.Append (D_Occ);
+      end Update_Element;
+
+      use Decision_Occurrence_Maps;
+      Cur : constant Cursor := Decision_Occurrence_Map.Find (D_Occ.Decision);
+   begin
+      if Cur = Decision_Occurrence_Maps.No_Element then
+         Decision_Occurrence_Map.Insert
+           (Key      => D_Occ.Decision,
+            New_Item => Decision_Occurrence_Vectors.To_Vector (D_Occ, 1));
+      else
+         Decision_Occurrence_Map.Update_Element (Cur, Update_Element'Access);
+      end if;
+   end Append_Decision_Occurrence;
 
    ------------------------
    -- Build_Decision_Map --
@@ -767,6 +860,38 @@ package body Decision_Map is
       Decision_Map.Write_Map (Decision_Map_Filename.all);
       Close_File (Exec);
    end Build_Decision_Map;
+
+   ----------------------
+   -- Find_Basic_Block --
+   ----------------------
+
+   function Find_Basic_Block
+     (Basic_Blocks : Basic_Block_Sets.Set;
+      PC           : Pc_Type) return Basic_Block
+   is
+      use Basic_Block_Sets;
+      PC_Block : constant Basic_Block := (From => PC, others => <>);
+      Cur : constant Cursor := Basic_Blocks.Floor (PC_Block);
+   begin
+      if Cur /= No_Element and then PC <= Element (Cur).To then
+         return Element (Cur);
+      else
+         return No_Basic_Block;
+      end if;
+   end Find_Basic_Block;
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (BB : Basic_Block) return String is
+      Cond_Char : constant array (Boolean) of Character :=
+                    (False => ' ', True => '?');
+   begin
+      return Hex_Image (BB.From) & "-" & Hex_Image (BB.To)
+               & " " & BB.Branch'Img & Cond_Char (BB.Cond) & " "
+               & Hex_Image (BB.Dest);
+   end Image;
 
    ------------
    -- Report --
