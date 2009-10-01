@@ -868,6 +868,9 @@ begin
                   end if;
 
                when Coverage.Source_Coverage_Level =>
+                  if ALI_List_Filename = null then
+                     Error ("List of ALI required for source level coverage");
+                  end if;
                   Load_SCOs (ALI_List_Filename.all);
                   Coverage.Source.Process_Traces (Base);
 
