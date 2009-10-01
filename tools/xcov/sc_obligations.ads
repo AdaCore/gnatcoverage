@@ -19,7 +19,7 @@
 
 --  Source Coverage Obligations
 
-with Sources; use Sources;
+with Slocs;   use Slocs;
 with Traces;  use Traces;
 
 package SC_Obligations is

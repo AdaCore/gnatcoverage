@@ -29,7 +29,7 @@ with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;        use Hex_Images;
 with SC_Obligations;    use SC_Obligations;
 with Qemu_Traces;
-with Sources;           use Sources;
+with Slocs;             use Slocs;
 with Files_Table;       use Files_Table;
 with Strings;           use Strings;
 with Switches;          use Switches;
@@ -252,7 +252,7 @@ package body Decision_Map is
       SCO : SCO_Id;
 
    begin
-      if Sloc = Sources.No_Location then
+      if Sloc = Slocs.No_Location then
          --  No associated source, so no further processing required for source
          --  coverage analysis.
 

@@ -1656,7 +1656,7 @@ package body Traces_Elf is
                            Get_Address_Info (Exec, Line_Addresses, PC);
    begin
       if Line_Info_Before = null then
-         return Sources.No_Location;
+         return Slocs.No_Location;
       else
          return Line_Info_Before.Sloc;
       end if;

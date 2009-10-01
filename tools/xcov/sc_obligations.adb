@@ -33,8 +33,8 @@ with Get_SCOs;
 
 package body SC_Obligations is
 
-   subtype Source_Location is Sources.Source_Location;
-   No_Location : Source_Location renames Sources.No_Location;
+   subtype Source_Location is Slocs.Source_Location;
+   No_Location : Source_Location renames Slocs.No_Location;
    --  (not SCOs.Source_Location)
 
    procedure Load_SCOs_From_ALI (ALI_Filename : String);
@@ -938,7 +938,7 @@ package body SC_Obligations is
 
             function Make_Sloc
               (SCO_Source_Loc : SCOs.Source_Location) return Source_Location;
-            --  Build a Sources.Source_Location record from the low-level
+            --  Build a Slocs.Source_Location record from the low-level
             --  SCO Sloc info.
 
             procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor);

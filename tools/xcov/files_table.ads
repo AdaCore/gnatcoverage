@@ -23,10 +23,10 @@ with Strings; use Strings;
 with Ada.Text_IO; use Ada.Text_IO;
 with Traces_Elf;   use Traces_Elf;
 with Traces_Dbase; use Traces_Dbase;
-with Traces_Stats;   use Traces_Stats;
-with Traces_Lines;   use Traces_Lines;
-with Sources; use Sources;
-with Types;   use Types;
+with Traces_Stats; use Traces_Stats;
+with Traces_Lines; use Traces_Lines;
+with Slocs;        use Slocs;
+with Types;        use Types;
 with SC_Obligations; use SC_Obligations;
 
 package Files_Table is

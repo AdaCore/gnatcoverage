@@ -21,7 +21,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Directories;
 with Types; use Types;
 with Traces_Disa;
-with Sources; use Sources;
+with Slocs; use Slocs;
 with Coverage;
 with Coverage.Object;
 

@@ -20,12 +20,12 @@
 with Ada.Unchecked_Deallocation;
 with Ada.Containers.Ordered_Sets;
 
-with Traces; use Traces;
+with Traces;       use Traces;
 with Traces_Dbase; use Traces_Dbase;
 with Elf_Arch;     use Elf_Arch;
 with Elf_Common;   use Elf_Common;
 with Elf_Files;    use Elf_Files;
-with Sources;      use Sources;
+with Slocs;        use Slocs;
 with Strings;      use Strings;
 
 with Interfaces;

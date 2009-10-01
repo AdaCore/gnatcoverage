@@ -38,7 +38,7 @@ with Elf_Files;
 with Switches;          use Switches;
 with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
-with Sources;           use Sources;
+with Slocs;             use Slocs;
 with Files_Table;       use Files_Table;
 with Traces_Sources.Annotations; use Traces_Sources.Annotations;
 with Traces_Sources.Annotations.Html;

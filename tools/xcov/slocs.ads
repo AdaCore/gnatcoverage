@@ -20,7 +20,7 @@
 --  Source locations
 with Types;       use Types;
 
-package Sources is
+package Slocs is
 
    First_Source_File : constant Source_File_Index := 1;
    --  0 is No_Source_File
@@ -42,4 +42,4 @@ package Sources is
 
    function Image (Sloc : Source_Location) return String;
    function Image (First_Sloc, Last_Sloc : Source_Location) return String;
-end Sources;
+end Slocs;

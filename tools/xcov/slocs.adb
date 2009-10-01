@@ -23,7 +23,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Files_Table; use Files_Table;
 
-package body Sources is
+package body Slocs is
 
    function Abridged_Image
      (Sloc : Source_Location;
@@ -129,5 +129,4 @@ package body Sources is
            & "-" & Abridged_Image (Last_Sloc, Ref => First_Sloc);
       end if;
    end Image;
-
-end Sources;
+end Slocs;
