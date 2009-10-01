@@ -18,8 +18,8 @@
 ------------------------------------------------------------------------------
 
 private with Ada.Containers.Vectors;
-private with Strings;
 
+with Strings; use Strings;
 with Ada.Text_IO; use Ada.Text_IO;
 with Traces_Elf;   use Traces_Elf;
 with Traces_Dbase; use Traces_Dbase;
@@ -28,18 +28,10 @@ with Traces_Lines;   use Traces_Lines;
 with Sources; use Sources;
 with Types;   use Types;
 
-with GNAT.Dynamic_Tables;
---  ??? This should be replaced by a dependancy on Ada.Containers.Vectors
---  when moved to sources.adb
-
 package Files_Table is
    --  This package manages a source file table and, for each file,
    --  a table of its source lines. Coverage information can be
    --  associated with each file/line. Only object coverage is supported.
-
-   --  ??? This package should disappear at some point. The handling of
-   --  the file table should be moved to Sources. And the coverage-specific
-   --  stuff to Traces_Sources.
 
    --  Global directory of all source files
 
@@ -73,7 +65,7 @@ package Files_Table is
    procedure Add_Line
      (File  : Source_File_Index;
       State : Line_State;
-      Line  : Natural;
+      Line  : Positive;
       Info  : Addresses_Info_Acc;
       Base  : Traces_Base_Acc;
       Exec  : Exe_File_Acc);
@@ -132,17 +124,12 @@ package Files_Table is
 
    type Source_Lines is private;
 
-   procedure Iterate
-     (Lines   : Source_Lines;
-      Process : not null access procedure (Index : Natural));
-
-   function Element
-     (Lines : Source_Lines;
-      Index : Natural)
-     return Line_Info_Access;
-
    type File_Info is record
       --  Source file information.
+
+      File_Name  : String_Acc;
+      --  Name of the source file.
+      --  Might be a full path name or not...
 
       Lines      : Source_Lines;
       --  Source file to display in the reports.
@@ -168,32 +155,28 @@ package Files_Table is
 
    type File_Info_Access is access File_Info;
 
-   procedure File_Table_Iterate
+   procedure Files_Table_Iterate
      (Process : not null access procedure (Index : Source_File_Index));
 
-   function File_Table_Element
+   function Files_Table_Element
      (Index : Source_File_Index)
      return File_Info_Access;
+
+   procedure Iterate_On_Lines
+     (File    : File_Info_Access;
+      Process : not null access procedure (Index : Positive));
+
+   function Element
+     (File  : File_Info_Access;
+      Index : Positive)
+     return Line_Info_Access;
 
 private
    --  Describe a source file - one element per line.
 
-   package Source_Line_Tables is new GNAT.Dynamic_Tables
-     (Table_Component_Type => Line_Info_Access,
-      Table_Index_Type     => Natural,
-      Table_Low_Bound      => 1,
-      Table_Initial        => 16,
-      Table_Increment      => 100);
+   package Source_Line_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Line_Info_Access);
 
-   type Source_Lines is new Source_Line_Tables.Instance;
-
-   use Strings;
-
-   subtype Valid_Source_File_Index is
-     Source_File_Index range First_Source_File .. Source_File_Index'Last;
-   package Filename_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Valid_Source_File_Index,
-      Element_Type => String_Acc,
-      "="          => Equal);
-
+   type Source_Lines is new Source_Line_Vectors.Vector with null record;
 end Files_Table;

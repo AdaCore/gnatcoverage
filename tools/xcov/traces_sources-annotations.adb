@@ -29,7 +29,7 @@ package body Traces_Sources.Annotations is
    procedure Disp_File_Line_State
      (Pp       : in out Pretty_Printer'Class;
       Filename : String;
-      File     : Files_Table.File_Info);
+      File     : Files_Table.File_Info_Access);
    --  Comment needed???
 
    --------------------------
@@ -38,7 +38,7 @@ package body Traces_Sources.Annotations is
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'Class;
                                    Filename : String;
-                                   File : Files_Table.File_Info)
+                                   File : Files_Table.File_Info_Access)
    is
       use Traces_Disa;
 
@@ -68,15 +68,14 @@ package body Traces_Sources.Annotations is
       Last             : Natural := 1;
       Has_Source       : Boolean;
 
-      procedure Process_One_Line (Index : Natural);
+      procedure Process_One_Line (Index : Positive);
 
-      procedure Process_One_Line (Index : Natural)
+      procedure Process_One_Line (Index : Positive)
       is
          Instruction_Set  : Addresses_Info_Acc;
          Info             : Files_Table.Line_Chain_Acc;
          Sec_Info         : Addresses_Info_Acc;
-         LI               : constant Line_Info_Access := Element (File.Lines,
-                                                                  Index);
+         LI               : constant Line_Info_Access := Element (File, Index);
          Ls               : constant Line_State := LI.State;
          In_Symbol        : Boolean;
          In_Insn_Set      : Boolean;
@@ -167,7 +166,7 @@ package body Traces_Sources.Annotations is
          return;
       end if;
 
-      Iterate (File.Lines, Process_One_Line'Access);
+      Iterate_On_Lines (File, Process_One_Line'Access);
 
       if Has_Source then
          Line := Last + 1;
@@ -212,7 +211,7 @@ package body Traces_Sources.Annotations is
       procedure Process_One_File (Index : Source_File_Index);
 
       procedure Process_One_File (Index : Source_File_Index) is
-         FI : constant File_Info_Access := File_Table_Element (Index);
+         FI : constant File_Info_Access := Files_Table_Element (Index);
       begin
          if FI.To_Display then
             Disp_One_File (Files_Table.Get_Name (Index), FI.all);
@@ -220,7 +219,7 @@ package body Traces_Sources.Annotations is
       end Process_One_File;
 
    begin
-      File_Table_Iterate (Process_One_File'Access);
+      Files_Table_Iterate (Process_One_File'Access);
    end Disp_File_Summary;
 
    ---------------------
@@ -237,17 +236,17 @@ package body Traces_Sources.Annotations is
       procedure Process_One_File (Index : Source_File_Index);
 
       procedure Process_One_File (Index : Source_File_Index) is
-         FI : constant File_Info_Access := File_Table_Element (Index);
+         FI : constant File_Info_Access := Files_Table_Element (Index);
       begin
          if FI.To_Display then
-            Disp_File_Line_State (Pp, Files_Table.Get_Name (Index), FI.all);
+            Disp_File_Line_State (Pp, Files_Table.Get_Name (Index), FI);
          end if;
       end Process_One_File;
 
    begin
       Pp.Show_Asm := Show_Asm;
       Pretty_Print_Start (Pp);
-      File_Table_Iterate (Process_One_File'Access);
+      Files_Table_Iterate (Process_One_File'Access);
       Pretty_Print_End (Pp);
    end Disp_Line_State;
 

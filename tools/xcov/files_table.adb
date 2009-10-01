@@ -22,16 +22,15 @@ with Traces_Sources;
 
 package body Files_Table is
 
-   package File_Dynamic_Tables is new GNAT.Dynamic_Tables
-     (Table_Component_Type => File_Info_Access,
-      Table_Index_Type     => Source_File_Index,
-      Table_Low_Bound      => First_Source_File,
-      Table_Initial        => 16,
-      Table_Increment      => 100);
+   subtype Valid_Source_File_Index is
+     Source_File_Index range First_Source_File .. Source_File_Index'Last;
+   package File_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Valid_Source_File_Index,
+      Element_Type => File_Info_Access);
 
-   File_Table : File_Dynamic_Tables.Instance;
+   Files_Table : File_Vectors.Vector;
 
-   procedure Expand_Line_Table (File : Source_File_Index; Line : Natural);
+   procedure Expand_Line_Table (File : Source_File_Index; Line : Positive);
    --  If Line is not in File's line table, expand this table and mark the new
    --  line as No_Code.
 
@@ -43,7 +42,6 @@ package body Files_Table is
       Exec            : Exe_File_Acc);
    --  Comment needed???
 
-   Filenames : Filename_Vectors.Vector;
    package Filename_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => String_Acc,
       Element_Type    => Source_File_Index,
@@ -127,10 +125,16 @@ package body Files_Table is
       else
          declare
             New_Name : constant String_Acc := new String'(Name);
+            Info : constant File_Info_Access :=
+              new File_Info'(File_Name => New_Name,
+                             Lines => (Source_Line_Vectors.Empty_Vector
+                                         with null record),
+                             Stats => (others => 0),
+                             To_Display => False);
          begin
-            Filenames.Append (New_Name);
-            Filename_Map.Insert (New_Name, Filenames.Last_Index);
-            return Filenames.Last_Index;
+            Files_Table.Append (Info);
+            Filename_Map.Insert (New_Name, Files_Table.Last_Index);
+            return Files_Table.Last_Index;
          end;
       end if;
    end Get_Index;
@@ -141,7 +145,7 @@ package body Files_Table is
 
    function Get_Name (Index : Source_File_Index) return String is
    begin
-      return Filenames.Element (Index).all;
+      return Files_Table.Element (Index).File_Name.all;
    end Get_Name;
 
    ----------
@@ -229,15 +233,15 @@ package body Files_Table is
    procedure Add_Line
      (File  : Source_File_Index;
       State : Line_State;
-      Line  : Natural;
+      Line  : Positive;
       Info  : Addresses_Info_Acc;
       Base  : Traces_Base_Acc;
       Exec  : Exe_File_Acc)
    is
-      Element : File_Info_Access renames File_Table.Table (File);
+      Element : File_Info_Access renames Files_Table.Element (File);
    begin
       Expand_Line_Table (File, Line);
-      Append (Element.Lines.Table (Line), State, Info, Base, Exec);
+      Append (Element.Lines.Element (Line), State, Info, Base, Exec);
    end Add_Line;
 
    ------------
@@ -271,101 +275,68 @@ package body Files_Table is
    -------------
 
    function Element
-     (Lines : Source_Lines;
-      Index : Natural)
+     (File  : File_Info_Access;
+      Index : Positive)
      return Line_Info_Access is
    begin
-      return Lines.Table (Index);
+      return File.Lines.Element (Index);
    end Element;
 
    -----------------------
    -- Expand_Line_Table --
    -----------------------
 
-   procedure Expand_Line_Table (File : Source_File_Index; Line : Natural) is
-      use Source_Line_Tables;
-      FI           : File_Info_Access renames File_Table.Table (File);
-      Current_Last : constant Natural := Last (FI.Lines);
+   procedure Expand_Line_Table (File : Source_File_Index; Line : Positive) is
+      FI           : File_Info_Access renames Files_Table.Element (File);
    begin
-      if Current_Last < Line then
-         Set_Last (FI.Lines, Line);
-
-         for J in Current_Last + 1 .. Line loop
-            --  ??? This can certainly be improved; Traces_Sources.New_Line
-            --  should be able to create new line infos.
-            FI.Lines.Table (J) :=
-              new Line_Info'(State => No_Code, others => <>);
-            Traces_Sources.New_Line (File, J);
-         end loop;
-      end if;
+      while FI.Lines.Last_Index < Line loop
+         FI.Lines.Append (new Line_Info'(State => No_Code, others => <>));
+         Traces_Sources.New_Line (File, FI.Lines.Last_Index);
+      end loop;
    end Expand_Line_Table;
 
    -------------------------
-   --  File_Table_Iterate --
+   --  Files_Table_Iterate --
    -------------------------
 
-   procedure File_Table_Iterate
+   procedure Files_Table_Iterate
      (Process : not null access procedure (Index : Source_File_Index)) is
    begin
-      for Index in File_Dynamic_Tables.First
-        .. File_Dynamic_Tables.Last (File_Table)
-      loop
+      for Index in Files_Table.First_Index .. Files_Table.Last_Index loop
          Process (Index);
       end loop;
-   end File_Table_Iterate;
+   end Files_Table_Iterate;
 
    ------------------------
-   -- File_Table_Element --
+   -- Files_Table_Element --
    ------------------------
 
-   function File_Table_Element
+   function Files_Table_Element
      (Index : Source_File_Index)
      return File_Info_Access is
    begin
-      return File_Table.Table (Index);
-   end File_Table_Element;
+      return Files_Table.Element (Index);
+   end Files_Table_Element;
 
    -------------
    -- Iterate --
    -------------
 
-   procedure Iterate
-     (Lines   : Source_Lines;
-      Process : not null access procedure (Index : Natural)) is
+   procedure Iterate_On_Lines
+     (File   : File_Info_Access;
+      Process : not null access procedure (Index : Positive)) is
    begin
-      for Index in Source_Line_Tables.First
-        .. Source_Line_Tables.Last (Source_Line_Tables.Instance (Lines))
-      loop
+      for Index in File.Lines.First_Index .. File.Lines.Last_Index loop
          Process (Index);
       end loop;
-   end Iterate;
+   end Iterate_On_Lines;
 
    ---------------------
    -- New_Source_File --
    ---------------------
 
    procedure New_Source_File (File : Source_File_Index) is
-      Last : Source_File_Index;
    begin
-      Last := File_Dynamic_Tables.Last (File_Table);
-      if File > Last then
-         File_Dynamic_Tables.Set_Last (File_Table, File);
-         for Index in Last + 1 .. File loop
-            declare
-               Line_Table : Source_Lines;
-            begin
-               Source_Line_Tables.Init
-                 (Source_Line_Tables.Instance (Line_Table));
-               File_Table.Table (Index) := new File_Info;
-               File_Table.Table (Index).Lines := Line_Table;
-               File_Table.Table (Index).Stats := (others => 0);
-               File_Table.Table (Index).To_Display := False;
-            end;
-         end loop;
-      end if;
-      File_Table.Table (File).To_Display := True;
+      Files_Table.Element (File).all.To_Display := True;
    end New_Source_File;
-
-begin
-   File_Dynamic_Tables.Init (File_Table);
 end Files_Table;
