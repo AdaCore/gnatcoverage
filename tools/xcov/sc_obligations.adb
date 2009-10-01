@@ -454,12 +454,14 @@ package body SC_Obligations is
                case Dest_Node.Kind is
                   when Outcome =>
                      Put_Line ("return " & Dest_Node.Decision_Outcome'Img);
+
                   when Condition =>
                      if Dest = Next_Condition then
                         Put_Line ("fallthrough");
                      else
-                        Put_Line ("goto " & Dest'Img);
+                        Put_Line ("goto" & Dest'Img);
                      end if;
+
                   when others =>
                      raise Program_Error with "malformed BDD";
                end case;
