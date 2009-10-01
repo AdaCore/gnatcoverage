@@ -102,7 +102,7 @@ package body Coverage.Object is
    begin
       El := Line.Obj_First;
       while El /= null loop
-         State := Line_State'Min (State, El.State);
+         Update_Line_State (State, El.State);
          El := El.Next;
       end loop;
       Line.State := State;

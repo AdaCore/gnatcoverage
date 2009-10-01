@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                        Copyright (C) 2009, AdaCore                       --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,39 +17,23 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Support for computing lines states from the branch coverage of
---  its instructions and from the coverage level.
+package body Traces_Lines is
 
-package Traces_Lines is
-
-   --  Coverage state of a source line of code
-
-   type Line_State is
-     (Not_Covered,
-      --  No instructions executed
-
-      Partially_Covered,
-      --  The coverage criteria is partially satisfied on this line
-
-      Covered,
-      --  The coverage criteria is satisfied
-
-      No_Code
-      --  Initial state: no code for this line
-     );
-
-   type State_Char_Array is array (Line_State) of Character;
-   State_Char : constant State_Char_Array;
-   --  Characters identifying a Line_State
-
-   procedure Update_Line_State (State : in out Line_State; El : Line_State);
-   --  Modify State as if EL was appended.
-
-private
-   State_Char : constant State_Char_Array :=
-     (No_Code => '.',
-      Not_Covered => '-',
-      Partially_Covered => '!',
-      Covered => '+');
-
+   procedure Update_Line_State (State : in out Line_State; El : Line_State) is
+   begin
+      case State is
+         when No_Code =>
+            State := El;
+         when Not_Covered =>
+            if El = Partially_Covered or else El = Covered then
+               State := Partially_Covered;
+            end if;
+         when Partially_Covered =>
+            null;
+         when Covered =>
+            if El = Not_Covered or else El = Partially_Covered then
+               State := Partially_Covered;
+            end if;
+      end case;
+   end Update_Line_State;
 end Traces_Lines;

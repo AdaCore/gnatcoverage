@@ -193,7 +193,7 @@ package body Traces_Names is
             Get_Next_Trace (T, It);
             exit when T = Bad_Trace;
             if T.First > Addr then
-               Update_Line_State (State, Not_Covered);
+               Update_Line_State (State, Insn_State'(Not_Covered));
                exit;
             end if;
             Update_Line_State (State, T.State);
@@ -201,7 +201,7 @@ package body Traces_Names is
          end loop;
 
          if Addr < Insns'Last then
-            Update_Line_State (State, Not_Covered);
+            Update_Line_State (State, Insn_State'(Not_Covered));
          end if;
 
          if State = No_Code then

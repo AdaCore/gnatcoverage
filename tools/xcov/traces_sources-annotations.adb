@@ -19,8 +19,11 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Directories;
+with Types; use Types;
 with Traces_Disa;
 with Sources; use Sources;
+with Coverage;
+with Coverage.Object;
 
 with Files_Table;
 
@@ -234,7 +237,42 @@ package body Traces_Sources.Annotations is
       use Ada.Directories;
       use Files_Table;
 
+      procedure Compute_File_State (Index : Source_File_Index);
+
       procedure Process_One_File (Index : Source_File_Index);
+
+      procedure Compute_File_State (Index : Source_File_Index) is
+         procedure Compute_Line_State (L : Positive);
+
+         FI : constant File_Info_Access := Files_Table_Element (Index);
+
+         procedure Compute_Line_State (L : Positive) is
+            use Coverage;
+            LI : constant Line_Info_Access := Get_Line_Info (FI, L);
+            S : Line_State;
+         begin
+            case Get_Coverage_Level is
+               when Insn
+                 | Branch =>
+                  Coverage.Object.Compute_Line_State (LI);
+               when Stmt
+                 | Decision
+                 | MCDC =>
+                  raise Program_Error
+                    with "source coverage not yet implemented";
+               when Unknown =>
+                  raise Program_Error;
+            end case;
+            S := LI.State;
+            FI.Stats (S) := FI.Stats (S) + 1;
+         end Compute_Line_State;
+      begin
+         FI.Stats := (others => 0);
+         Iterate_On_Lines (FI, Compute_Line_State'Access);
+         for I in Line_State'Range loop
+            Global_Stats (I) := Global_Stats (I) + FI.Stats (I);
+         end loop;
+      end Compute_File_State;
 
       procedure Process_One_File (Index : Source_File_Index) is
          FI : constant File_Info_Access := Files_Table_Element (Index);
@@ -246,6 +284,12 @@ package body Traces_Sources.Annotations is
 
    begin
       Pp.Show_Asm := Show_Asm;
+
+      --  Compute lines state, files and global statistics.
+      Global_Stats := (others => 0);
+      Files_Table_Iterate (Compute_File_State'Access);
+
+      --  Print.
       Pretty_Print_Start (Pp);
       Files_Table_Iterate (Process_One_File'Access);
       Pretty_Print_End (Pp);

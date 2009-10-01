@@ -37,9 +37,7 @@ with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
 with Hex_Images;        use Hex_Images;
 with Traces_Disa;
-with Traces_Lines;      use Traces_Lines;
 with Traces_Names;
-with Traces_Sources;
 with Types;             use Types;
 with Files_Table;       use Files_Table;
 with Outputs;
@@ -1689,7 +1687,6 @@ package body Traces_Elf is
       Base : access Traces_Base)
    is
       use Addresses_Containers;
-      use Traces_Sources;
 
       Cur : Cursor;
       Sym : Addresses_Info_Acc;
@@ -1739,23 +1736,19 @@ package body Traces_Elf is
       Section : Binary_Content)
    is
       use Addresses_Containers;
-      use Traces_Sources;
       Cur : Cursor;
       Line : Addresses_Info_Acc;
-      Current_Line_State : Line_State;
       Source_File : Source_File_Index := No_Source_File;
 
       It : Entry_Iterator;
       E : Trace_Entry;
       Pc : Pc_Type;
-      No_Traces : Boolean;
 
       Debug : constant Boolean := False;
    begin
       Pc := Section'First;
       Init (Base.all, It, Pc);
       Get_Next_Trace (E, It);
-      No_Traces := E = Bad_Trace;
 
       --  Skip traces that are before the section
 
@@ -1789,50 +1782,6 @@ package body Traces_Elf is
                New_Line;
                Disp_Address (Line);
             end if;
-
-            --  Skip not-matching traces
-
-            while not No_Traces and then E.Last < Line.First loop
-               --  There is no source line for this entry
-
-               Get_Next_Trace (E, It);
-               No_Traces := E = Bad_Trace;
-            end loop;
-
-            Pc := Line.First;
-            loop
-               Current_Line_State :=
-                 Get_Line_State (Source_File, Line.Sloc.Line);
-
-               --  From PC to E.First
-
-               if No_Traces or else Pc < E.First then
-                  if Debug then
-                     Put_Line ("no trace for pc=" & Hex_Image (Pc));
-                  end if;
-                  Update_Line_State (Current_Line_State, Not_Covered);
-                  Set_Line_State
-                    (Source_File, Line.Sloc.Line, Current_Line_State);
-               end if;
-
-               exit when No_Traces or else E.First > Line.Last;
-
-               if Debug then
-                  Put_Line ("merge with:");
-                  Dump_Entry (E);
-               end if;
-
-               --  From E.First to min (E.Last, line.last)
-
-               Update_Line_State (Current_Line_State, E.State);
-               Set_Line_State
-                 (Source_File, Line.Sloc.Line, Current_Line_State);
-
-               exit when E.Last >= Line.Last;
-               Pc := E.Last + 1;
-               Get_Next_Trace (E, It);
-               No_Traces := E = Bad_Trace;
-            end loop;
          end if;
 
          Next (Cur);

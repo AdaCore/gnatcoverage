@@ -19,6 +19,8 @@
 
 with Disa_Symbolize; use Disa_Symbolize;
 with Traces; use Traces;
+with Traces_Lines;   use Traces_Lines;
+with Traces_Stats;   use Traces_Stats;
 
 package Traces_Sources.Annotations is
 
@@ -43,6 +45,10 @@ package Traces_Sources.Annotations is
    --  Display per-file summary
 
 private
+   Global_Stats : Stat_Array := (others => 0);
+   --  Stats associated with the whole set of source files that this package
+   --  considers (i.e. total numbers of lines, of partially covered /
+   --  not covered / fully covered lines...)
 
    type Pretty_Printer is abstract tagged limited record
       Need_Sources : Boolean;

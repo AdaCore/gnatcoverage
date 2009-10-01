@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Hashed_Maps;
-with Traces_Sources;
 
 package body Files_Table is
 
@@ -292,7 +291,6 @@ package body Files_Table is
    begin
       while FI.Lines.Last_Index < Line loop
          FI.Lines.Append (new Line_Info'(State => No_Code, others => <>));
-         Traces_Sources.New_Line (File, FI.Lines.Last_Index);
       end loop;
    end Expand_Line_Table;
 

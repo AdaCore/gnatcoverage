@@ -180,10 +180,11 @@ package body Traces_Sources.Annotations.Xcov is
       Offset : Pc_Type;
       State  : Line_State)
    is
-      pragma Unreferenced (State);
       Label  : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
    begin
-      Put_Line (Pp.Xcov_File, Label);
+      Put (Pp.Xcov_File, Label);
+      Put (Pp.Xcov_File, State_Char (State));
+      New_Line (Pp.Xcov_File);
    end Pretty_Print_Start_Symbol;
 
 end Traces_Sources.Annotations.Xcov;
