@@ -208,8 +208,8 @@ package body Decision_Map is
    --  Output diagnostic message during control flow analysis. Messages with
    --  Notice kind are omitted unless global flag Verbose is set. A prefix is
    --  prepended depending On message kind:
-   --     *** notice
-   --     ??? warning
+   --     --- notice
+   --     *** warning
    --     !!! error
 
    ---------
@@ -904,8 +904,8 @@ package body Decision_Map is
    is
       subtype Prefix_Str is String (1 .. 3);
       Prefix : constant array (Report_Kind) of Prefix_Str :=
-                 (Notice  => "***",
-                  Warning => "???",
+                 (Notice  => "---",
+                  Warning => "***",
                   Error   => "!!!");
    begin
       if Verbose or else Kind > Notice then
