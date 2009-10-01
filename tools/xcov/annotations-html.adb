@@ -28,7 +28,7 @@ with Qemu_Traces;
 with Coverage; use Coverage;
 with Outputs; use Outputs;
 
-package body Traces_Sources.Annotations.Html is
+package body Annotations.Html is
    type String_Cst_Acc is access constant String;
    subtype S is String;
 
@@ -186,7 +186,7 @@ package body Traces_Sources.Annotations.Html is
       Html : Html_Pretty_Printer;
    begin
       Html.Show_Asm := Show_Asm;
-      Traces_Sources.Annotations.Generate_Report (Html, Show_Asm);
+      Annotations.Generate_Report (Html, Show_Asm);
    end Generate_Report;
 
    ---------
@@ -872,4 +872,4 @@ package body Traces_Sources.Annotations.Html is
       Put (Pp.Html_File, Str);
    end Wrh;
 
-end Traces_Sources.Annotations.Html;
+end Annotations.Html;

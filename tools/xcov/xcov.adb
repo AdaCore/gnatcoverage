@@ -40,11 +40,11 @@ with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
 with Slocs;             use Slocs;
 with Files_Table;       use Files_Table;
-with Traces_Sources.Annotations; use Traces_Sources.Annotations;
-with Traces_Sources.Annotations.Html;
-with Traces_Sources.Annotations.Xcov;
-with Traces_Sources.Annotations.Xml;
-with Traces_Sources.Annotations.Report;
+with Annotations; use Annotations;
+with Annotations.Html;
+with Annotations.Xcov;
+with Annotations.Xml;
+with Annotations.Report;
 with Traces_Names;
 with Traces_Dump;
 with Traces_Files;      use Traces_Files;
@@ -165,7 +165,7 @@ procedure Xcov is
    Trace_Option              : constant String := "--trace=";
 
    Command                   : Command_Type := No_Command;
-   Annotations               : Annotation_Format := Annotate_Unknown;
+   Annotation                : Annotation_Format := Annotate_Unknown;
    Level                     : Coverage.Coverage_Level;
    Trace_Inputs              : Inputs.Inputs_Type;
    Exe_Inputs                : Inputs.Inputs_Type;
@@ -416,28 +416,28 @@ procedure Xcov is
 
             elsif Arg = Annotate_Option_Short then
                Check_Option (Arg, Command, (1 => Commands.Coverage));
-               Annotations :=
+               Annotation :=
                  To_Annotation_Format (Next_Arg ("annotation format"));
-               if Annotations = Annotate_Unknown then
+               if Annotation = Annotate_Unknown then
                   Fatal_Error ("bad parameter for " & Annotate_Option_Short);
                end if;
 
             elsif Begins_With (Arg, Annotate_Option) then
                Check_Option (Arg, Command, (1 => Commands.Coverage));
-               Annotations := To_Annotation_Format (Option_Parameter (Arg));
-               if Annotations = Annotate_Unknown then
+               Annotation := To_Annotation_Format (Option_Parameter (Arg));
+               if Annotation = Annotate_Unknown then
                   Fatal_Error ("bad parameter for " & Annotate_Option);
                end if;
 
             elsif Arg = Final_Report_Option_Short then
                Check_Option (Arg, Command, (1 => Commands.Coverage,
                                             2 => Run));
-               Traces_Sources.Annotations.Report.Open_Report_File
+               Annotations.Report.Open_Report_File
                  (Next_Arg ("final report name"));
 
             elsif Begins_With (Arg, Final_Report_Option) then
                Check_Option (Arg, Command, (1 => Commands.Coverage));
-               Traces_Sources.Annotations.Report.Open_Report_File
+               Annotations.Report.Open_Report_File
                  (Option_Parameter (Arg));
 
             elsif Begins_With (Arg, Output_Dir_Option) then
@@ -863,7 +863,7 @@ begin
                when Coverage.Object_Coverage_Level =>
                   Traces_Elf.Build_Routines_Insn_State;
 
-                  if Annotations /= Annotate_Asm then
+                  if Annotation /= Annotate_Asm then
                      Traces_Elf.Build_Source_Lines;
                   end if;
 
@@ -880,7 +880,7 @@ begin
                   return;
             end case;
 
-            case Annotations is
+            case Annotation is
                when Annotate_Asm =>
                   if Coverage.Get_Coverage_Level
                     in Coverage.Source_Coverage_Level then
@@ -892,28 +892,28 @@ begin
                   Traces_Dump.Dump_Routines_Traces;
 
                when Annotate_Xcov =>
-                  Traces_Sources.Annotations.Xcov.Generate_Report (False);
+                  Annotations.Xcov.Generate_Report (False);
 
                when Annotate_Html =>
-                  Traces_Sources.Annotations.Html.Generate_Report (False);
+                  Annotations.Html.Generate_Report (False);
 
                when Annotate_Xml =>
-                  Traces_Sources.Annotations.Xml.Generate_Report;
+                  Annotations.Xml.Generate_Report;
 
                when Annotate_Xcov_Asm =>
                   --  Case of source coverage???
-                  Traces_Sources.Annotations.Xcov.Generate_Report (True);
+                  Annotations.Xcov.Generate_Report (True);
 
                when Annotate_Html_Asm =>
                   --  Case of source coverage???
-                  Traces_Sources.Annotations.Html.Generate_Report (True);
+                  Annotations.Html.Generate_Report (True);
 
                when Annotate_Report =>
                   Coverage.Dump_Coverage_Option
-                    (Traces_Sources.Annotations.Report.Get_Output);
+                    (Annotations.Report.Get_Output);
                   Traces_Dump.Dump_Uncovered_Routines
-                    (Traces_Sources.Annotations.Report.Get_Output);
-                  Traces_Sources.Annotations.Report.Finalize_Report;
+                    (Annotations.Report.Get_Output);
+                  Annotations.Report.Finalize_Report;
 
                when Annotate_Unknown =>
                   Fatal_Error ("Please specify an annotation format.");

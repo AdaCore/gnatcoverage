@@ -24,7 +24,7 @@ with Outputs;         use Outputs;
 with Hex_Images;      use Hex_Images;
 with Traces_Disa;     use Traces_Disa;
 
-package body Traces_Sources.Annotations.Xml is
+package body Annotations.Xml is
 
    type Xml_Pretty_Printer is new Pretty_Printer with record
       --  Pretty printer type for the XML annotation format
@@ -203,7 +203,7 @@ package body Traces_Sources.Annotations.Xml is
    procedure Generate_Report is
       Pp : Xml_Pretty_Printer;
    begin
-      Traces_Sources.Annotations.Generate_Report (Pp, True);
+      Annotations.Generate_Report (Pp, True);
    end Generate_Report;
 
    -------
@@ -427,4 +427,4 @@ package body Traces_Sources.Annotations.Xml is
       return "<" & Name & ">";
    end ST;
 
-end Traces_Sources.Annotations.Xml;
+end Annotations.Xml;

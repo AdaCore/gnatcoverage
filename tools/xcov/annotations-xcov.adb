@@ -25,7 +25,7 @@ with Traces_Disa; use Traces_Disa;
 with Coverage; use Coverage;
 with Outputs; use Outputs;
 
-package body Traces_Sources.Annotations.Xcov is
+package body Annotations.Xcov is
 
    type Xcov_Pretty_Printer is new Pretty_Printer with record
       --  Pretty printer type for the XCOV annotation format
@@ -77,7 +77,7 @@ package body Traces_Sources.Annotations.Xcov is
    is
       Xcov : Xcov_Pretty_Printer;
    begin
-      Traces_Sources.Annotations.Generate_Report (Xcov, Show_Asm);
+      Annotations.Generate_Report (Xcov, Show_Asm);
    end Generate_Report;
 
    ---------------------------
@@ -187,4 +187,4 @@ package body Traces_Sources.Annotations.Xcov is
       New_Line (Pp.Xcov_File);
    end Pretty_Print_Start_Symbol;
 
-end Traces_Sources.Annotations.Xcov;
+end Annotations.Xcov;

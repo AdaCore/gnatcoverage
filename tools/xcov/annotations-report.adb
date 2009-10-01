@@ -23,7 +23,7 @@ with Hex_Images;  use Hex_Images;
 with Strings;     use Strings;
 with Traces_Disa; use Traces_Disa;
 
-package body Traces_Sources.Annotations.Report is
+package body Annotations.Report is
 
    type Final_Report_Type is limited record
       --  Final report information
@@ -120,7 +120,7 @@ package body Traces_Sources.Annotations.Report is
       Put_Line (Output.all, "ERRORS BY SOURCE LINE:");
       New_Line (Output.all);
 
-      Traces_Sources.Annotations.Generate_Report (Report_PP, False);
+      Annotations.Generate_Report (Report_PP, False);
       Close_Report_File;
    end Finalize_Report;
 
@@ -255,4 +255,4 @@ package body Traces_Sources.Annotations.Report is
       end if;
    end Pretty_Print_Start_Symbol;
 
-end Traces_Sources.Annotations.Report;
+end Annotations.Report;

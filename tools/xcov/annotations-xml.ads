@@ -17,8 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-package Traces_Sources.Annotations.Xml is
+package Annotations.Xml is
 
    procedure Generate_Report;
 
-end Traces_Sources.Annotations.Xml;
+end Annotations.Xml;

@@ -27,7 +27,7 @@ with Coverage.Object;
 
 with Files_Table;
 
-package body Traces_Sources.Annotations is
+package body Annotations is
 
    procedure Disp_File_Line_State
      (Pp       : in out Pretty_Printer'Class;
@@ -320,4 +320,4 @@ package body Traces_Sources.Annotations is
       end if;
    end To_Annotation_Format;
 
-end Traces_Sources.Annotations;
+end Annotations;

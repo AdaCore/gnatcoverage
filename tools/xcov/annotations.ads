@@ -21,8 +21,10 @@ with Disa_Symbolize; use Disa_Symbolize;
 with Traces; use Traces;
 with Traces_Lines;   use Traces_Lines;
 with Traces_Stats;   use Traces_Stats;
+with Traces_Elf;    use Traces_Elf;
+with Traces_Dbase; use Traces_Dbase;
 
-package Traces_Sources.Annotations is
+package Annotations is
 
    type Annotation_Format is
      (Annotate_Asm,
@@ -109,4 +111,4 @@ private
      (Pp       : in out Pretty_Printer'Class;
       Show_Asm : Boolean);
 
-end Traces_Sources.Annotations;
+end Annotations;

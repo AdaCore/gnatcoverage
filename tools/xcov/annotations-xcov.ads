@@ -17,15 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
-
-package Traces_Sources.Annotations.Report is
-   --  Generate the final report, source-wise.
-
-   procedure Open_Report_File (Final_Report_Name : String);
-
-   function Get_Output return File_Access;
-
-   procedure Finalize_Report;
-
-end Traces_Sources.Annotations.Report;
+package Annotations.Xcov is
+   --  Generate the report in xcov format.
+   procedure Generate_Report (Show_Asm : Boolean);
+end Annotations.Xcov;

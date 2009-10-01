@@ -17,7 +17,15 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-package Traces_Sources.Annotations.Html is
-   --  Display source lines with status.
-   procedure Generate_Report (Show_Asm : Boolean);
-end Traces_Sources.Annotations.Html;
+with Ada.Text_IO; use Ada.Text_IO;
+
+package Annotations.Report is
+   --  Generate the final report, source-wise.
+
+   procedure Open_Report_File (Final_Report_Name : String);
+
+   function Get_Output return File_Access;
+
+   procedure Finalize_Report;
+
+end Annotations.Report;
