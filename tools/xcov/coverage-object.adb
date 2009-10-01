@@ -96,4 +96,16 @@ package body Coverage.Object is
       end case;
    end Update_Line_State;
 
+   procedure Compute_Line_State (Line : Line_Info_Access) is
+      El : Object_Coverage_Info_Acc;
+      State : Line_State := No_Code;
+   begin
+      El := Line.Obj_First;
+      while El /= null loop
+         State := Line_State'Min (State, El.State);
+         El := El.Next;
+      end loop;
+      Line.State := State;
+   end Compute_Line_State;
+
 end Coverage.Object;

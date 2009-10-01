@@ -27,6 +27,7 @@ with Traces_Stats;   use Traces_Stats;
 with Traces_Lines;   use Traces_Lines;
 with Sources; use Sources;
 with Types;   use Types;
+with SC_Obligations; use SC_Obligations;
 
 package Files_Table is
    --  This package manages a source file table and, for each file,
@@ -62,7 +63,7 @@ package Files_Table is
    --  using the rebase/search information. If one found, Success is True;
    --  False otherwise.
 
-   procedure Add_Line
+   procedure Add_Line_For_Object_Coverage
      (File  : Source_File_Index;
       State : Line_State;
       Line  : Positive;
@@ -72,8 +73,6 @@ package Files_Table is
    --  Add File:Line to set of known source lines, if it doesn't exist already.
    --  Record the association of File:File with the given associated object
    --  code.
-   --  ??? Find a way to make this independant from the attached coverage
-   --  information.
 
    procedure New_Source_File (File : Source_File_Index);
    --  Initialize entry for File in source files table
@@ -104,6 +103,19 @@ package Files_Table is
       --  Next element in the chain.
    end record;
 
+   type Source_Coverage_Info;
+   type Source_Coverage_Info_Acc is access Source_Coverage_Info;
+
+   type Source_Coverage_Info is record
+      State : Line_State;
+
+      SCO : SCO_Id;
+      --  SCO that generated this info.
+
+      Next : Source_Coverage_Info_Acc;
+      --  Next element in the chain.
+   end record;
+
    type Line_Info is record
       --  Coverage information associated with a source line
 
@@ -112,6 +124,9 @@ package Files_Table is
 
       Obj_First, Obj_Last : Object_Coverage_Info_Acc;
       --  Detailled object coverage information for this line
+
+      Src_First, Src_Last : Source_Coverage_Info_Acc;
+      --  Detailled source coverage information for this line.
    end record;
 
    type Line_Info_Access is access Line_Info;

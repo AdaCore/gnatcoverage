@@ -230,7 +230,7 @@ package body Files_Table is
    -- Add_Line --
    --------------
 
-   procedure Add_Line
+   procedure Add_Line_For_Object_Coverage
      (File  : Source_File_Index;
       State : Line_State;
       Line  : Positive;
@@ -243,7 +243,7 @@ package body Files_Table is
       Expand_Line_Table (File, Line);
       Append_Object_Coverage (Element.Lines.Element (Line),
                               State, Info, Base, Exec);
-   end Add_Line;
+   end Add_Line_For_Object_Coverage;
 
    ----------------------------
    -- Append_Object_Coverage --

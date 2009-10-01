@@ -19,6 +19,7 @@
 
 with Traces;       use Traces;
 with Traces_Lines; use Traces_Lines;
+with Files_Table;  use Files_Table;
 
 package Coverage.Object is
 
@@ -38,4 +39,6 @@ package Coverage.Object is
    --  Extract (from Base) the object coverage of the instruction set in
    --  range First .. Last.
 
+   procedure Compute_Line_State (Line : Line_Info_Access);
+   --  Set Line.State
 end Coverage.Object;
