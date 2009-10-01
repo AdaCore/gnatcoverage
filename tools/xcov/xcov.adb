@@ -68,7 +68,7 @@ procedure Xcov is
      (Args    : Inputs.Inputs_Type;
       What    : String;
       Command : Command_Type := No_Command);
-   --  Check that Args is non null. If not, fatal error.
+   --  Report a fatal error if Args is empty
 
    ------------------------------
    -- Check_Argument_Available --
@@ -497,14 +497,15 @@ procedure Xcov is
                     | Disassemble =>
                      Inputs.Add_Input (Exe_Inputs, Arg);
 
-                  when Map_Routines
-                    | Run =>
+                  when Map_Routines =>
+                     Inputs.Add_Input (Exe_Inputs, Arg);
+
+                  when Run =>
                      if Inputs.Length (Exe_Inputs) > 1 then
                         Fatal_Error ("Only one EXEC parameter is allowed with "
                                      & To_Switch (Command));
-                     else
-                        Inputs.Add_Input (Exe_Inputs, Arg);
                      end if;
+                     Inputs.Add_Input (Exe_Inputs, Arg);
 
                   when Dump_Trace_Asm =>
                      if Inputs.Length (Exe_Inputs) < 1 then
@@ -585,7 +586,6 @@ begin
          end;
 
       when Map_Routines =>
-         Check_Argument_Available (Exe_Inputs, "EXEC", Command);
          if ALI_List_Filename = null then
             Fatal_Error ("Please give a ALI list using " & ALI_List_Option);
          end if;
@@ -697,6 +697,7 @@ begin
 
                   when others =>
                      --  Never happens
+
                      pragma Assert (False);
                      return;
                end case;
@@ -713,7 +714,6 @@ begin
 
       when Dump_Compile_Units =>
          declare
-
             procedure Dump_Compilation_Units (Exec_File_Name : String);
             --  Dump Exec_File_Name's compilation units
 
@@ -787,8 +787,7 @@ begin
       when Commands.Coverage =>
          declare
             procedure Process_Trace (Trace_File_Name : String);
-            --  Open Trace_File_Name and merge it into the trace
-            --  database.
+            --  Open Trace_File_Name and merge it into the trace database
 
             -------------------
             -- Process_Trace --
@@ -797,8 +796,8 @@ begin
             procedure Process_Trace (Trace_File_Name : String) is
                use Coverage;
 
-               Trace_File : constant Trace_File_Element_Acc
-                 := new Trace_File_Element;
+               Trace_File : constant Trace_File_Element_Acc :=
+                              new Trace_File_Element;
             begin
                Init_Base (Base, Full_History => Get_Coverage_Level = MCDC);
                Trace_File.Filename := new String'(Trace_File_Name);
@@ -824,9 +823,9 @@ begin
                                      & Trace_File_Name);
                   end;
 
-                  --  If there is not routine list, create it from the
-                  --  first executable.  A test above allows this only
-                  --  if there is one trace file.
+                  --  If there is not routine list, create it from the first
+                  --  executable. A test above allows this only if there is one
+                  --  trace file.
 
                   if Routine_List_Filename = null then
                      Read_Routines_Name (Exe_File, Exclude => False);
@@ -855,6 +854,7 @@ begin
             end if;
 
             --  Read traces
+
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
 
             --  Now determine coverage according to the requested metric
@@ -874,7 +874,8 @@ begin
                   Error ("Source coverage is not implemented yet");
 
                when Coverage.Unknown =>
-                  --  A fatal error should have been raised earlier.
+                  --  A fatal error should have been diagnosed earlier
+
                   pragma Assert (False);
                   return;
             end case;
