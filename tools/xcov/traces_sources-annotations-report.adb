@@ -120,7 +120,7 @@ package body Traces_Sources.Annotations.Report is
       Put_Line (Output.all, "ERRORS BY SOURCE LINE:");
       New_Line (Output.all);
 
-      Traces_Sources.Annotations.Disp_Line_State (Report_PP, False);
+      Traces_Sources.Annotations.Generate_Report (Report_PP, False);
       Close_Report_File;
    end Finalize_Report;
 

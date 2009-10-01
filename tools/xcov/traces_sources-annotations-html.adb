@@ -186,7 +186,7 @@ package body Traces_Sources.Annotations.Html is
       Html : Html_Pretty_Printer;
    begin
       Html.Show_Asm := Show_Asm;
-      Traces_Sources.Annotations.Disp_Line_State (Html, Show_Asm);
+      Traces_Sources.Annotations.Generate_Report (Html, Show_Asm);
    end Generate_Report;
 
    ---------

@@ -99,7 +99,7 @@ private
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class) is null;
 
-   procedure Disp_Line_State
+   procedure Generate_Report
      (Pp       : in out Pretty_Printer'Class;
       Show_Asm : Boolean);
 

@@ -224,10 +224,10 @@ package body Traces_Sources.Annotations is
    end Disp_File_Summary;
 
    ---------------------
-   -- Disp_Line_State --
+   -- Generate_Report --
    ---------------------
 
-   procedure Disp_Line_State
+   procedure Generate_Report
      (Pp       : in out Pretty_Printer'Class;
       Show_Asm : Boolean)
    is
@@ -249,7 +249,7 @@ package body Traces_Sources.Annotations is
       Pretty_Print_Start (Pp);
       Files_Table_Iterate (Process_One_File'Access);
       Pretty_Print_End (Pp);
-   end Disp_Line_State;
+   end Generate_Report;
 
    --------------------------
    -- To_Annotation_Format --

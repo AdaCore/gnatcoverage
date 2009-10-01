@@ -77,7 +77,7 @@ package body Traces_Sources.Annotations.Xcov is
    is
       Xcov : Xcov_Pretty_Printer;
    begin
-      Traces_Sources.Annotations.Disp_Line_State (Xcov, Show_Asm);
+      Traces_Sources.Annotations.Generate_Report (Xcov, Show_Asm);
    end Generate_Report;
 
    ---------------------------

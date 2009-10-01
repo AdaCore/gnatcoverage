@@ -203,7 +203,7 @@ package body Traces_Sources.Annotations.Xml is
    procedure Generate_Report is
       Pp : Xml_Pretty_Printer;
    begin
-      Traces_Sources.Annotations.Disp_Line_State (Pp, True);
+      Traces_Sources.Annotations.Generate_Report (Pp, True);
    end Generate_Report;
 
    -------
