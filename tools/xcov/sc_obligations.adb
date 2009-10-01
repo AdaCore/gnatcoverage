@@ -191,6 +191,11 @@ package body SC_Obligations is
       procedure Process_Or_Else  (BDD : in out BDD_Type);
       --  Process NOT, AND THEN, OR ELSE operators
 
+      procedure Process_Xor      (BDD : in out BDD_Type);
+      --  Process XOR operator (push dummy arcs so that the remainder of the
+      --  conditions can be processed, noting that in the end no valid BDD
+      --  can be constructed).
+
       procedure Process_Condition
         (BDD          : in out BDD_Type;
          Condition_Id : SCO_Id);
@@ -403,7 +408,13 @@ package body SC_Obligations is
 
          --  Check that the root condition has been set
 
-         pragma Assert (BDD.Root_Condition /= No_BDD_Node_Id);
+         if BDD.Root_Condition = No_BDD_Node_Id then
+            --  Decision cannot be mapped to a BDD (presence of a non-shortcut
+            --  boolean operator).
+
+            Put_Line ("!!! no BDD for decision " & Image (BDD.Decision));
+            return;
+         end if;
 
          --  Iterate backwards on BDD nodes, replacing references to jump nodes
          --  with references to their destination.
@@ -508,7 +519,7 @@ package body SC_Obligations is
 
       begin
          Put_Line ("----- BDD for decision " & Image (BDD.Decision));
-         Put_Line ("*** Root condition:" & BDD.Root_Condition'Img);
+         Put_Line ("--- Root condition:" & BDD.Root_Condition'Img);
          if BDD.Diamond_Base /= No_BDD_Node_Id then
             Put_Line
               ("!!! BDD node" & BDD.Diamond_Base'Img
@@ -612,6 +623,38 @@ package body SC_Obligations is
              Origin => A.Origin));
       end Process_Or_Else;
 
+      -----------------
+      -- Process_Xor --
+      -----------------
+
+      procedure Process_Xor (BDD : in out BDD_Type) is
+         A : constant Arcs := Pop;
+         pragma Unreferenced (A);
+
+         L : BDD_Node_Id;
+      begin
+         --  Mark the BDD invalid by clearing the root condition
+
+         BDD.Root_Condition := No_BDD_Node_Id;
+
+         --  Allocate a dummy node to serve as origin for the subtrees of
+         --  the XOR.
+
+         Allocate (BDD, BDD_Node'(Kind => Jump, Dest => No_BDD_Node_Id), L);
+
+         --  Dummy arcs for left operand
+
+         Push (((False => No_BDD_Node_Id,
+                 True  => No_BDD_Node_Id),
+           Origin => L));
+
+         --  Dummy arcs for right operand
+
+         Push (((False => No_BDD_Node_Id,
+                 True  => No_BDD_Node_Id),
+           Origin => L));
+      end Process_Xor;
+
       -----------------------
       -- Process_Condition --
       -----------------------
@@ -652,10 +695,7 @@ package body SC_Obligations is
            (Kind => Condition, C_SCO => Condition_Id, Dests => A.Dests), N);
 
          if A.Origin /= No_BDD_Node_Id then
-            declare
-            begin
-               BDD_Vector.Update_Element (A.Origin, Set_Dest'Access);
-            end;
+            BDD_Vector.Update_Element (A.Origin, Set_Dest'Access);
 
          else
             pragma Assert (BDD.Root_Condition = No_BDD_Node_Id);
@@ -730,6 +770,27 @@ package body SC_Obligations is
    -----------
 
    function Image (SCO : SCO_Id) return String is
+      function Sloc_Image
+        (First_Sloc : Source_Location;
+         Last_Sloc  : Source_Location) return String;
+      --  Return sloc information suffix, or empty string if no sloc known
+
+      ----------------
+      -- Sloc_Image --
+      ----------------
+
+      function Sloc_Image
+        (First_Sloc : Source_Location;
+         Last_Sloc  : Source_Location) return String
+      is
+      begin
+         if First_Sloc = No_Location then
+            return "";
+         else
+            return " at " & Image (First_Sloc, Last_Sloc);
+         end if;
+      end Sloc_Image;
+
    begin
       if SCO = No_SCO_Id then
          return "<no SCO>";
@@ -738,8 +799,8 @@ package body SC_Obligations is
             SCOD : constant SCO_Descriptor := SCO_Vector.Element (SCO);
          begin
             return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
-              & SCO_Kind'Image (SCOD.Kind) & " at "
-              & Image (SCOD.First_Sloc, SCOD.Last_Sloc);
+              & SCO_Kind'Image (SCOD.Kind)
+              & Sloc_Image (SCOD.First_Sloc, SCOD.Last_Sloc);
          end;
       end if;
    end Image;
@@ -880,6 +941,10 @@ package body SC_Obligations is
    --  Start of processing for Load_SCOs_From_ALI
 
    begin
+      if Verbose then
+         Put_Line ("Loading SCOs from " & ALI_Filename);
+      end if;
+
       Open (ALI_File, In_File, ALI_Filename);
       Scan_ALI : loop
          if End_Of_File (ALI_File) then
@@ -1103,9 +1168,10 @@ package body SC_Obligations is
                   BDD.Process_Or_Else (Current_BDD);
 
                when '^' =>
-                  raise Program_Error with
-                    "forbidden usage of XOR operator in decision: "
-                      & Image (Current_Complex_Decision);
+                  Put_Line
+                    ("!!! forbidden usage of XOR operator in decision "
+                     & Image (Current_Complex_Decision));
+                  BDD.Process_Xor (Current_BDD);
 
                when 'T' =>
                   --  Exit point
@@ -1163,12 +1229,15 @@ package body SC_Obligations is
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
 
+                     --  pragma Assert (Enclosing_SCO = No_SCO_Id);
+
+                     --  Assertion disabled pending fix for GNAT bug???
+
                      if Enclosing_SCO /= No_SCO_Id then
-                        Put_Line ("--> statement nested in "
-                                  & Image (Enclosing_SCO));
+                        Put_Line
+                          ("??? statement nested in "
+                           & Image (Enclosing_SCO));
                      end if;
-                     pragma Assert (Enclosing_SCO = No_SCO_Id);
-                     null;
 
                   when Condition =>
                      --  Parent is already set to the enclosing decision
@@ -1177,9 +1246,23 @@ package body SC_Obligations is
                end case;
 
                if First /= No_Location then
-                  Sloc_To_SCO_Map.Insert (First, J);
+                  begin
+                     Sloc_To_SCO_Map.Insert (First, J);
+                  exception
+                     when Constraint_Error =>
+                        --  Handle the case of junk nested conditions (happens
+                        --  with junk SCOs generated for modular integer
+                        --  expressions)???
+
+                        Put_Line
+                          ("??? "
+                           & Image (J) & " has the same sloc as "
+                           & Image (Sloc_To_SCO_Map.Element (First))
+                           & ", ignored");
+                  end;
                end if;
             end Process_Descriptor;
+
          begin
             SCO_Vector.Update_Element (J, Process_Descriptor'Access);
          end;
