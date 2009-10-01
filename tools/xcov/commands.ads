@@ -35,7 +35,6 @@ package Commands is
       Dump_Lines,
       Disassemble_Raw,
       Disassemble,
-      Show_Graph,
       Run);
 
    function To_Command (Opt_String : String) return Command_Type;

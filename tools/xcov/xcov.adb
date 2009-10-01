@@ -50,7 +50,6 @@ with Traces_Dump;
 with Traces_Files;      use Traces_Files;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
-with Control_Flow_Graph;
 with Version;
 with Qemudrv;
 with Qemu_Traces;
@@ -174,15 +173,14 @@ procedure Xcov is
    Included_Obj_Inputs       : Inputs.Inputs_Type;
    Text_Start                : Pc_Type := 0;
 
-   procedure Command_Line_Handling;
-   --  Parse the command line and return the result in the local
-   --  variables declared above (e.g Command, Annotations...)
+   procedure Parse_Command_Line;
+   --  Parse the command line and set the above local variables
 
-   ---------------------------
-   -- Command_Line_Handling --
-   ---------------------------
+   ------------------------
+   -- Parse_Command_Line --
+   ------------------------
 
-   procedure Command_Line_Handling is
+   procedure Parse_Command_Line is
       Arg_Index : Natural;
       Arg_Count : constant Natural := Argument_Count;
 
@@ -499,8 +497,7 @@ procedure Xcov is
                     | Disassemble =>
                      Inputs.Add_Input (Exe_Inputs, Arg);
 
-                  when Show_Graph
-                    | Map_Routines
+                  when Map_Routines
                     | Run =>
                      if Inputs.Length (Exe_Inputs) > 1 then
                         Fatal_Error ("Only one EXEC parameter is allowed with "
@@ -521,7 +518,7 @@ procedure Xcov is
 
          Arg_Index := Arg_Index + 1;
       end loop;
-   end Command_Line_Handling;
+   end Parse_Command_Line;
 
    Base : aliased Traces_Base;
    Exec : aliased Exe_File_Type;
@@ -529,7 +526,7 @@ procedure Xcov is
    --  Start of processing for Xcov
 
 begin
-   Command_Line_Handling;
+   Parse_Command_Line;
 
    --  Now execute the specified command
 
@@ -784,30 +781,6 @@ begin
          begin
             Check_Argument_Available (Exe_Inputs, "EXECs", Command);
             Inputs.Iterate (Exe_Inputs, Disassemble'Access);
-         end;
-         return;
-
-      when Show_Graph =>
-         declare
-            procedure Show_Graph (Exec_File_Name : String);
-            --  Show graph for Exec_File_Name
-
-            ----------------
-            -- Show_Graph --
-            ----------------
-
-            procedure Show_Graph (Exec_File_Name : String) is
-            begin
-               Open_File (Exec, Exec_File_Name, Text_Start);
-               Build_Sections (Exec);
-               Build_Symbols (Exec'Unchecked_Access);
-               Build_Debug_Lines (Exec);
-               Control_Flow_Graph.Generate_Graph (Exec);
-            end Show_Graph;
-
-         begin
-            Check_Argument_Available (Exe_Inputs, "EXEC", Command);
-            Inputs.Iterate (Exe_Inputs, Show_Graph'Access);
          end;
          return;
 
