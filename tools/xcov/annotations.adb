@@ -24,8 +24,7 @@ with Traces_Disa;
 with Slocs; use Slocs;
 with Coverage;
 with Coverage.Object;
-
-with Files_Table;
+with Coverage.Source;
 
 package body Annotations is
 
@@ -65,8 +64,6 @@ package body Annotations is
          Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
       end Disassemble_Cb;
 
-      use Files_Table;
-
       F                : File_Type;
       Last             : Natural := 1;
       Has_Source       : Boolean;
@@ -85,9 +82,9 @@ package body Annotations is
          In_Insn_Set      : Boolean;
       begin
          if Has_Source then
-            Pretty_Print_Start_Line (Pp, Index, Ls, Get_Line (F));
+            Pretty_Print_Line (Pp, Index, LI, Get_Line (F));
          else
-            Pretty_Print_Start_Line (Pp, Index, Ls, "");
+            Pretty_Print_Line (Pp, Index, LI, "");
          end if;
 
          if Pp.Show_Asm then
@@ -175,7 +172,7 @@ package body Annotations is
       if Has_Source then
          Line := Last + 1;
          while not End_Of_File (F) loop
-            Pretty_Print_Start_Line (Pp, Line, No_Code, Get_Line (F));
+            Pretty_Print_Line (Pp, Line, Empty_Line_Info, Get_Line (F));
             Line := Line + 1;
          end loop;
 
@@ -210,8 +207,6 @@ package body Annotations is
 
    --  Start of processing for Disp_File_Summary
 
-      use Files_Table;
-
       procedure Process_One_File (Index : Source_File_Index);
 
       procedure Process_One_File (Index : Source_File_Index) is
@@ -235,7 +230,6 @@ package body Annotations is
       Show_Asm : Boolean)
    is
       use Ada.Directories;
-      use Files_Table;
 
       procedure Compute_File_State (Index : Source_File_Index);
 
@@ -255,8 +249,9 @@ package body Annotations is
                when Insn
                  | Branch =>
                   Coverage.Object.Compute_Line_State (LI);
-               when Stmt
-                 | Decision
+               when Stmt =>
+                  Coverage.Source.Compute_Line_State (LI);
+               when Decision
                  | MCDC =>
                   raise Program_Error
                     with "source coverage not yet implemented";

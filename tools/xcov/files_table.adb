@@ -33,13 +33,9 @@ package body Files_Table is
    --  If Line is not in File's line table, expand this table and mark the new
    --  line as No_Code.
 
-   procedure Append_Object_Coverage
-     (Info            : Line_Info_Access;
-      State           : Line_State;
-      Instruction_Set : Addresses_Info_Acc;
-      Base            : Traces_Base_Acc;
-      Exec            : Exe_File_Acc);
-   --  Append object coverage information to a source line.
+   function Get_File_Name (Path : String) return String;
+   --  Extract the file name from a full path (ie stip the path part).
+   --  Must works with both windows and unix pathes.
 
    package Filename_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => String_Acc,
@@ -109,33 +105,61 @@ package body Files_Table is
       Last_Source_Rebase_Entry := E;
    end Add_Source_Rebase;
 
+   function Get_File_Name (Path : String) return String is
+   begin
+      for I in reverse Path'Range loop
+         if Path (I) = '/' or else Path (I) = '\' then
+            return Path (I + 1 .. Path'Last);
+         end if;
+      end loop;
+      return Path;
+   end Get_File_Name;
+
    ---------------
    -- Get_Index --
    ---------------
 
    function Get_Index (Name : String) return Source_File_Index is
       use Filename_Maps;
-      Nam : aliased String := Name;
-      Cur : constant Cursor := Filename_Map.Find (Nam'Unrestricted_Access);
+      File_Name : aliased constant String := Get_File_Name (Name);
+      Cur : constant Cursor :=
+        Filename_Map.Find (File_Name'Unrestricted_Access);
+      Res : Source_File_Index;
+      Info : File_Info_Access;
    begin
       if Cur /= No_Element then
-         return Element (Cur);
+         Res := Element (Cur);
+         Info := Files_Table.Element (Res);
+         if Info.File_Name.all /= Name then
+            if Info.Full_Name = null then
+               Info.Full_Name := new String'(Name);
+            else
+               if Info.Full_Name.all /= Name then
+                  Put_Line ("Warning: same base name for files: ");
+                  Put_Line ("  " & Name);
+                  Put_Line ("  " & Info.Full_Name.all);
+               end if;
+            end if;
+         end if;
+         return Res;
+      end if;
 
-      else
-         declare
-            New_Name : constant String_Acc := new String'(Name);
-            Info : constant File_Info_Access :=
-              new File_Info'(File_Name => New_Name,
+      Info := new File_Info'(File_Name => new String'(File_Name),
+                             Full_Name => null,
                              Lines => (Source_Line_Vectors.Empty_Vector
                                          with null record),
                              Stats => (others => 0),
                              To_Display => False);
-         begin
-            Files_Table.Append (Info);
-            Filename_Map.Insert (New_Name, Files_Table.Last_Index);
-            return Files_Table.Last_Index;
-         end;
+      if False then
+         Put_Line ("New file: " & Name);
       end if;
+      if Name /= File_Name then
+         Info.Full_Name := new String'(Name);
+      end if;
+      Files_Table.Append (Info);
+      Res := Files_Table.Last_Index;
+      Filename_Map.Insert (Info.File_Name, Res);
+      return Res;
    end Get_Index;
 
    --------------
@@ -143,8 +167,13 @@ package body Files_Table is
    --------------
 
    function Get_Name (Index : Source_File_Index) return String is
+      Full_Name : constant String_Acc := Files_Table.Element (Index).Full_Name;
    begin
-      return Files_Table.Element (Index).File_Name.all;
+      if Full_Name /= null then
+         return Full_Name.all;
+      else
+         return Files_Table.Element (Index).File_Name.all;
+      end if;
    end Get_Name;
 
    ----------
@@ -180,11 +209,16 @@ package body Files_Table is
             Success := False;
       end Try_Open;
 
-      Name : constant String := Get_Name (Index);
+      Name : String_Acc;
    begin
+      Name := Files_Table.Element (Index).Full_Name;
+      if Name = null then
+         Name := Files_Table.Element (Index).File_Name;
+      end if;
+
       --  Try original path
 
-      Try_Open (File, Name, Success);
+      Try_Open (File, Name.all, Success);
 
       --  Try to rebase
 
@@ -217,7 +251,7 @@ package body Files_Table is
             E : Source_Search_Entry_Acc := First_Source_Search_Entry;
          begin
             while E /= null loop
-               Try_Open (File, E.Prefix.all & '/' & Name, Success);
+               Try_Open (File, E.Prefix.all & '/' & Name.all, Success);
                exit when Success;
                E := E.Next;
             end loop;
@@ -233,42 +267,51 @@ package body Files_Table is
      (File  : Source_File_Index;
       State : Line_State;
       Line  : Positive;
-      Info  : Addresses_Info_Acc;
+      Addrs : Addresses_Info_Acc;
       Base  : Traces_Base_Acc;
       Exec  : Exe_File_Acc)
    is
-      Element : File_Info_Access renames Files_Table.Element (File);
-   begin
-      Expand_Line_Table (File, Line);
-      Append_Object_Coverage (Element.Lines.Element (Line),
-                              State, Info, Base, Exec);
-   end Add_Line_For_Object_Coverage;
-
-   ----------------------------
-   -- Append_Object_Coverage --
-   ----------------------------
-
-   procedure Append_Object_Coverage
-     (Info            : Line_Info_Access;
-      State           : Line_State;
-      Instruction_Set : Addresses_Info_Acc;
-      Base            : Traces_Base_Acc;
-      Exec            : Exe_File_Acc)
-   is
-      El : constant Object_Coverage_Info_Acc :=
+      FI : constant File_Info_Access := Files_Table.Element (File);
+      LI : Line_Info_Access;
+      Info : constant Object_Coverage_Info_Acc :=
         new Object_Coverage_Info'(State => State,
-                                  Instruction_Set => Instruction_Set,
+                                  Instruction_Set => Addrs,
                                   Base => Base,
                                   Exec => Exec,
                                   Next => null);
+
    begin
-      if Info.Obj_First = null then
-         Info.Obj_First := El;
+      Expand_Line_Table (File, Line);
+      LI := FI.Lines.Element (Line);
+      if LI.Obj_First = null then
+         LI.Obj_First := Info;
       else
-         Info.Obj_Last.Next := El;
+         LI.Obj_Last.Next := Info;
       end if;
-      Info.Obj_Last := El;
-   end Append_Object_Coverage;
+      LI.Obj_Last := Info;
+   end Add_Line_For_Object_Coverage;
+
+   procedure Add_Line_For_Source_Coverage
+     (File : Source_File_Index;
+      Line : Positive;
+      SCO  : SCO_Id)
+   is
+      FI : constant File_Info_Access := Files_Table.Element (File);
+      LI : Line_Info_Access;
+      Info : constant Source_Coverage_Info_Acc :=
+        new Source_Coverage_Info'(State => No_Code,
+                                  SCO => SCO,
+                                  Next => null);
+   begin
+      Expand_Line_Table (File, Line);
+      LI := FI.Lines.Element (Line);
+      if LI.Src_First = null then
+         LI.Src_First := Info;
+      else
+         LI.Src_Last.Next := Info;
+      end if;
+      LI.Src_Last := Info;
+   end Add_Line_For_Source_Coverage;
 
    -------------------
    -- Get_Line_Info --

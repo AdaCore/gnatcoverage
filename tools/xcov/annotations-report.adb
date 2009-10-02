@@ -61,10 +61,10 @@ package body Annotations.Report is
       Has_Source      : Boolean;
       Skip            : out Boolean);
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp : in out Report_Pretty_Printer;
       Line_Num : Natural;
-      State : Line_State;
+      Info     : Line_Info_Access;
       Line : String);
 
    procedure Pretty_Print_Start_Symbol
@@ -210,15 +210,16 @@ package body Annotations.Report is
    -- Pretty_Print_Start_Line --
    -----------------------------
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp       : in out Report_Pretty_Printer;
       Line_Num : Natural;
-      State    : Line_State;
+      Info     : Line_Info_Access;
       Line     : String)
    is
       use Ada.Integer_Text_IO;
 
       Output : constant File_Access := Get_Output;
+      State  : constant Line_State := Info.State;
    begin
       if State /= Covered
         and then State /= No_Code
@@ -234,7 +235,7 @@ package body Annotations.Report is
       else
          Pp.Print_Current_Line := False;
       end if;
-   end Pretty_Print_Start_Line;
+   end Pretty_Print_Line;
 
    -------------------------------
    -- Pretty_Print_Start_Symbol --

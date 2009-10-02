@@ -101,10 +101,10 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_File (Pp : in out Xml_Pretty_Printer);
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp       : in out Xml_Pretty_Printer;
       Line_Num : Natural;
-      State    : Line_State;
+      Info     : Line_Info_Access;
       Line     : String);
 
    procedure Pretty_Print_End_Line (Pp : in out Xml_Pretty_Printer);
@@ -358,17 +358,17 @@ package body Annotations.Xml is
       Pp.P (ST ("instruction_set", A ("coverage", Coverage_State)));
    end Pretty_Print_Start_Instruction_Set;
 
-   -----------------------------
-   -- Pretty_Print_Start_Line --
-   -----------------------------
+   -----------------------
+   -- Pretty_Print_Line --
+   -----------------------
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp       : in out Xml_Pretty_Printer;
       Line_Num : Natural;
-      State    : Line_State;
+      Info     : Line_Info_Access;
       Line     : String)
    is
-      Coverage_State : constant String := State_Char (State) & "";
+      Coverage_State : constant String := (1 => State_Char (Info.State));
    begin
       Pp.P (ST ("sloc", A ("coverage", Coverage_State)));
       Pp.P (ST ("src"));
@@ -376,7 +376,7 @@ package body Annotations.Xml is
                A ("num", Line_Num'Img)
                & A ("src", Line)));
       Pp.P (ET ("src"));
-   end Pretty_Print_Start_Line;
+   end Pretty_Print_Line;
 
    -------------------------------
    -- Pretty_Print_Start_Symbol --

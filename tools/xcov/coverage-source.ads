@@ -17,8 +17,12 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Files_Table;  use Files_Table;
+
 package Coverage.Source is
 
    procedure Process_Traces (Base : Traces_Base);
 
+   procedure Compute_Line_State (Line : Line_Info_Access);
+   --  Set Line.State
 end Coverage.Source;

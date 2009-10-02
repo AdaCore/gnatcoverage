@@ -67,12 +67,18 @@ package Files_Table is
      (File  : Source_File_Index;
       State : Line_State;
       Line  : Positive;
-      Info  : Addresses_Info_Acc;
+      Addrs : Addresses_Info_Acc;
       Base  : Traces_Base_Acc;
       Exec  : Exe_File_Acc);
    --  Add File:Line to set of known source lines, if it doesn't exist already.
    --  Record the association of File:File with the given associated object
    --  code.
+
+   procedure Add_Line_For_Source_Coverage
+     (File : Source_File_Index;
+      Line : Positive;
+      SCO  : SCO_Id);
+   --  Associate SCO with File:Line.
 
    procedure New_Source_File (File : Source_File_Index);
    --  Initialize entry for File in source files table
@@ -131,14 +137,18 @@ package Files_Table is
 
    type Line_Info_Access is access Line_Info;
 
+   Empty_Line_Info : constant Line_Info_Access;
+
    type Source_Lines is private;
 
    type File_Info is record
       --  Source file information.
 
       File_Name  : String_Acc;
-      --  Name of the source file.
-      --  Might be a full path name or not...
+      --  File name of the source file, with the path.
+
+      Full_Name : String_Acc;
+      --  Full path name.
 
       Lines      : Source_Lines;
       --  Source file to display in the reports.
@@ -188,4 +198,9 @@ private
       Element_Type => Line_Info_Access);
 
    type Source_Lines is new Source_Line_Vectors.Vector with null record;
+
+   Empty_Line_Info : constant Line_Info_Access :=
+     new Line_Info'(State => No_Code,
+                    Src_First | Src_Last => null,
+                    Obj_First | Obj_Last => null);
 end Files_Table;

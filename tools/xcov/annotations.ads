@@ -23,6 +23,7 @@ with Traces_Lines;   use Traces_Lines;
 with Traces_Stats;   use Traces_Stats;
 with Traces_Elf;    use Traces_Elf;
 with Traces_Dbase; use Traces_Dbase;
+with Files_Table; use Files_Table;
 
 package Annotations is
 
@@ -77,10 +78,10 @@ private
 
    --  Subprograms below need comments???
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp       : in out Pretty_Printer;
       Line_Num : Natural;
-      State    : Line_State;
+      Info     : Line_Info_Access;
       Line     : String) is abstract;
 
    procedure Pretty_Print_End_Line (Pp : in out Pretty_Printer) is null;

@@ -78,10 +78,6 @@ package body Coverage.Object is
       I : Known_Insn_State)
    is
    begin
-      pragma Assert (Get_Coverage_Level = Insn
-                     or else Get_Coverage_Level = Branch);
-      --  This assertion is justified in Update_Line_State's specification
-
       case L is
          when Not_Covered =>
             if I = Not_Covered then

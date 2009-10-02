@@ -48,10 +48,10 @@ package body Annotations.Xcov is
       Has_Source      : Boolean;
       Skip            : out Boolean);
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp       : in out Xcov_Pretty_Printer;
       Line_Num : Natural;
-      State    : Line_State;
+      Info     : Line_Info_Access;
       Line     : String);
 
    procedure Pretty_Print_Start_Symbol
@@ -110,25 +110,37 @@ package body Annotations.Xcov is
       Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Sym));
    end Pretty_Print_Insn;
 
-   -----------------------------
-   -- Pretty_Print_Start_Line --
-   -----------------------------
+   -----------------------
+   -- Pretty_Print_Line --
+   -----------------------
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp       : in out Xcov_Pretty_Printer;
       Line_Num : Natural;
-      State    : Line_State;
+      Info     : Line_Info_Access;
       Line     : String)
    is
       use Ada.Integer_Text_IO;
    begin
       Put (Pp.Xcov_File, Line_Num, 4);
       Put (Pp.Xcov_File, ' ');
-      Put (Pp.Xcov_File, State_Char (State));
+      Put (Pp.Xcov_File, State_Char (Info.State));
+      if False then
+         if Info.Src_First /= null then
+            Put (Pp.Xcov_File, 'S');
+         else
+            Put (Pp.Xcov_File, ' ');
+         end if;
+         if Info.Obj_First /= null then
+            Put (Pp.Xcov_File, 'O');
+         else
+            Put (Pp.Xcov_File, ' ');
+         end if;
+      end if;
       Put (Pp.Xcov_File, ": ");
       Put (Pp.Xcov_File, Line);
       New_Line (Pp.Xcov_File);
-   end Pretty_Print_Start_Line;
+   end Pretty_Print_Line;
 
    -----------------------------
    -- Pretty_Print_Start_File --

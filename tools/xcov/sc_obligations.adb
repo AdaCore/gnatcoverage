@@ -1226,6 +1226,10 @@ package body SC_Obligations is
 
                      First := No_Location;
 
+                     Add_Line_For_Source_Coverage
+                       (SCOD.First_Sloc.Source_File, SCOD.First_Sloc.Line,
+                        No_SCO_Id);
+
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
 
@@ -1238,6 +1242,11 @@ package body SC_Obligations is
                           ("??? statement nested in "
                            & Image (Enclosing_SCO));
                      end if;
+
+                     for I in SCOD.First_Sloc.Line .. SCOD.Last_Sloc.Line loop
+                        Add_Line_For_Source_Coverage
+                          (SCOD.First_Sloc.Source_File, I, No_SCO_Id);
+                     end loop;
 
                   when Condition =>
                      --  Parent is already set to the enclosing decision

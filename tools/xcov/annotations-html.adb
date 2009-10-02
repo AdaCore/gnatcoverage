@@ -73,10 +73,10 @@ package body Annotations.Html is
       Has_Source      : Boolean;
       Skip            : out Boolean);
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp       : in out Html_Pretty_Printer;
       Line_Num : Natural;
-      State    : Line_State;
+      Info     : Line_Info_Access;
       Line     : String);
 
    procedure Pretty_Print_Start_Symbol
@@ -583,17 +583,18 @@ package body Annotations.Html is
       Plh (Pp, "    <td><table width=""100%"">");
    end Pretty_Print_Start_Instruction_Set;
 
-   -----------------------------
-   -- Pretty_Print_Start_Line --
-   -----------------------------
+   -----------------------
+   -- Pretty_Print_Line --
+   -----------------------
 
-   procedure Pretty_Print_Start_Line
+   procedure Pretty_Print_Line
      (Pp       : in out Html_Pretty_Printer;
       Line_Num : Natural;
-      State    : Line_State;
+      Info     : Line_Info_Access;
       Line     : String)
    is
       use Ada.Integer_Text_IO;
+      State : constant Line_State := Info.State;
    begin
       Wrh (Pp, "  <tr class=");
       case State is
@@ -645,7 +646,7 @@ package body Annotations.Html is
       Wrh (Pp, To_Xml_String (Line));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "  </tr>");
-   end Pretty_Print_Start_Line;
+   end Pretty_Print_Line;
 
    -------------------------------
    -- Pretty_Print_Start_Symbol --

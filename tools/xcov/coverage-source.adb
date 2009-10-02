@@ -20,6 +20,7 @@
 with Ada.Containers.Vectors;
 
 with SC_Obligations; use SC_Obligations;
+with Traces_Lines; use Traces_Lines;
 
 package body Coverage.Source is
 
@@ -58,5 +59,28 @@ package body Coverage.Source is
    begin
       raise Program_Error with "not implemented yet";
    end Process_Traces;
+
+   procedure Compute_Line_State (Line : Line_Info_Access) is
+      Obj_Info : Object_Coverage_Info_Acc;
+   begin
+      if Line.Src_First = null then
+         --  No slocs associated with this source line.
+
+         --  ??? Have a debug mode to warn if there is object code with
+         --  this line ?
+         Line.State := No_Code;
+         return;
+      end if;
+
+      Obj_Info := Line.Obj_First;
+      while Obj_Info /= null loop
+         if Obj_Info.State = Partially_Covered or Obj_Info.State = Covered then
+            Line.State := Covered;
+            return;
+         end if;
+         Obj_Info := Obj_Info.Next;
+      end loop;
+      Line.State := Not_Covered;
+   end Compute_Line_State;
 
 end Coverage.Source;
