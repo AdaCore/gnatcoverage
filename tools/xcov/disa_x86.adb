@@ -1259,10 +1259,12 @@ package body Disa_X86 is
                Add_String ("%esp");
             when C_Reg_Al =>
                Add_String ("%al");
-            when C_Reg_Cl =>
-               Add_String ("%cl");
             when C_Reg_Bl =>
                Add_String ("%bl");
+            when C_Reg_Cl =>
+               Add_String ("%cl");
+            when C_Reg_Dl =>
+               Add_String ("%dl");
             when C_Reg_Ah =>
                Add_String ("%ah");
             when C_Reg_Cs =>
@@ -1359,9 +1361,13 @@ package body Disa_X86 is
               | C_Reg_Di
               | C_Reg_Sp
               | C_Reg_Al
-              | C_Reg_Cl
               | C_Reg_Bl
-              | C_Reg_Ah =>
+              | C_Reg_Cl
+              | C_Reg_Dl
+              | C_Reg_Ah
+              | C_Reg_Bh
+              | C_Reg_Ch
+              | C_Reg_Dh =>
                return;
             when C_Reg_Es
               | C_Reg_Ds
