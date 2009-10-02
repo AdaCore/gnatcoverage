@@ -101,7 +101,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_File (Pp : in out Xml_Pretty_Printer);
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Xml_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -358,11 +358,11 @@ package body Annotations.Xml is
       Pp.P (ST ("instruction_set", A ("coverage", Coverage_State)));
    end Pretty_Print_Start_Instruction_Set;
 
-   -----------------------
-   -- Pretty_Print_Line --
-   -----------------------
+   -----------------------------
+   -- Pretty_Print_Start_Line --
+   -----------------------------
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Xml_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -376,7 +376,7 @@ package body Annotations.Xml is
                A ("num", Line_Num'Img)
                & A ("src", Line)));
       Pp.P (ET ("src"));
-   end Pretty_Print_Line;
+   end Pretty_Print_Start_Line;
 
    -------------------------------
    -- Pretty_Print_Start_Symbol --

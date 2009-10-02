@@ -73,7 +73,7 @@ package body Annotations.Html is
       Has_Source      : Boolean;
       Skip            : out Boolean);
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Html_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -583,11 +583,11 @@ package body Annotations.Html is
       Plh (Pp, "    <td><table width=""100%"">");
    end Pretty_Print_Start_Instruction_Set;
 
-   -----------------------
-   -- Pretty_Print_Line --
-   -----------------------
+   -----------------------------
+   -- Pretty_Print_Start_Line --
+   -----------------------------
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Html_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -646,7 +646,7 @@ package body Annotations.Html is
       Wrh (Pp, To_Xml_String (Line));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "  </tr>");
-   end Pretty_Print_Line;
+   end Pretty_Print_Start_Line;
 
    -------------------------------
    -- Pretty_Print_Start_Symbol --

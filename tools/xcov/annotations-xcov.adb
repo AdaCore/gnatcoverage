@@ -48,7 +48,7 @@ package body Annotations.Xcov is
       Has_Source      : Boolean;
       Skip            : out Boolean);
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Xcov_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -110,11 +110,11 @@ package body Annotations.Xcov is
       Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Sym));
    end Pretty_Print_Insn;
 
-   -----------------------
-   -- Pretty_Print_Line --
-   -----------------------
+   -----------------------------
+   -- Pretty_Print_Start_Line --
+   -----------------------------
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Xcov_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -140,7 +140,7 @@ package body Annotations.Xcov is
       Put (Pp.Xcov_File, ": ");
       Put (Pp.Xcov_File, Line);
       New_Line (Pp.Xcov_File);
-   end Pretty_Print_Line;
+   end Pretty_Print_Start_Line;
 
    -----------------------------
    -- Pretty_Print_Start_File --

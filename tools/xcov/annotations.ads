@@ -78,7 +78,7 @@ private
 
    --  Subprograms below need comments???
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;

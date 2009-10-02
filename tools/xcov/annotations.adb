@@ -82,9 +82,9 @@ package body Annotations is
          In_Insn_Set      : Boolean;
       begin
          if Has_Source then
-            Pretty_Print_Line (Pp, Index, LI, Get_Line (F));
+            Pretty_Print_Start_Line (Pp, Index, LI, Get_Line (F));
          else
-            Pretty_Print_Line (Pp, Index, LI, "");
+            Pretty_Print_Start_Line (Pp, Index, LI, "");
          end if;
 
          if Pp.Show_Asm then
@@ -172,7 +172,7 @@ package body Annotations is
       if Has_Source then
          Line := Last + 1;
          while not End_Of_File (F) loop
-            Pretty_Print_Line (Pp, Line, Empty_Line_Info, Get_Line (F));
+            Pretty_Print_Start_Line (Pp, Line, Empty_Line_Info, Get_Line (F));
             Line := Line + 1;
          end loop;
 

@@ -61,7 +61,7 @@ package body Annotations.Report is
       Has_Source      : Boolean;
       Skip            : out Boolean);
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp : in out Report_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -210,7 +210,7 @@ package body Annotations.Report is
    -- Pretty_Print_Start_Line --
    -----------------------------
 
-   procedure Pretty_Print_Line
+   procedure Pretty_Print_Start_Line
      (Pp       : in out Report_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
@@ -235,7 +235,7 @@ package body Annotations.Report is
       else
          Pp.Print_Current_Line := False;
       end if;
-   end Pretty_Print_Line;
+   end Pretty_Print_Start_Line;
 
    -------------------------------
    -- Pretty_Print_Start_Symbol --
