@@ -17,6 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+
 package body Coverage is
 
    Current_Level : Coverage_Level := Unknown;
@@ -40,7 +42,7 @@ package body Coverage is
       function List_Levels
         (Head : String; Tail : Coverage_Level) return String
       is
-         S : constant String := Head & Tail'Img;
+         S : constant String := Head & To_Lower (Tail'Img);
       begin
          if Tail = Known_Coverage_Level'Last then
             return S;

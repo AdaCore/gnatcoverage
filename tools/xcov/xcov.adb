@@ -105,7 +105,7 @@ procedure Xcov is
       New_Line;
       P (" coverage OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
-      P ("   -c LEVEL --level LEVEL        Specify coverage level");
+      P ("   -c LEVEL --level=LEVEL        Specify coverage level");
       P ("      LEVEL is one of " & All_Known_Coverage_Levels);
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
