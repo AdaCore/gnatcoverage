@@ -21,12 +21,7 @@ with Ada.Command_Line;        use Ada.Command_Line;
 with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Containers;          use Ada.Containers;
 
-with Coverage;
---  No use clause for this package, to avoid a conflict with Commands.Coverage.
---  ??? We cannot change the command identifier (Commands.Coverage) without
---  changing the command name (and, therefore, xcov's interface). We may want
---  to rename the Coverage package to resolve this conflict.
-
+with Coverage;          use Coverage;
 with Outputs;           use Outputs;
 with Inputs;            use Inputs;
 with Commands;          use Commands;
@@ -111,7 +106,7 @@ procedure Xcov is
       P (" coverage OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
       P ("   -c LEVEL --level LEVEL        Specify coverage level");
-      P ("      LEVEL is one of " & Coverage.All_Known_Coverage_Levels);
+      P ("      LEVEL is one of " & All_Known_Coverage_Levels);
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
@@ -166,7 +161,7 @@ procedure Xcov is
 
    Command                   : Command_Type := No_Command;
    Annotation                : Annotation_Format := Annotate_Unknown;
-   Level                     : Coverage.Coverage_Level;
+   Level                     : Coverage_Level;
    Trace_Inputs              : Inputs.Inputs_Type;
    Exe_Inputs                : Inputs.Inputs_Type;
    Excluded_Obj_Inputs       : Inputs.Inputs_Type;
@@ -307,7 +302,7 @@ procedure Xcov is
       --  ??? This special case shall be removed at some point. The command
       --  line parsing should be done in xcov.adb, and Qemudrv.Driver should
       --  not depend on Ada.Command_Line.
-      if Command = Run then
+      if Command = Cmd_Run then
          Qemudrv.Driver (Arg_Index);
          Normal_Exit;
       end if;
@@ -337,44 +332,44 @@ procedure Xcov is
                Verbose := True;
 
             elsif Arg = Coverage_Option_Short then
-               Check_Option (Arg, Command, (1 => Commands.Coverage,
-                                            2 => Run));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                            2 => Cmd_Run));
                Level :=
-                 Coverage.To_Coverage_Level (Next_Arg ("coverage level"));
-               if Coverage."=" (Level, Coverage.Unknown) then
+                 To_Coverage_Level (Next_Arg ("coverage level"));
+               if Level = Unknown then
                   Fatal_Error ("bad parameter for " & Coverage_Option_Short);
                end if;
-               Coverage.Set_Coverage_Level (Level);
+               Set_Coverage_Level (Level);
 
             elsif Begins_With (Arg, Coverage_Option) then
-               Check_Option (Arg, Command, (1 => Commands.Coverage,
-                                            2 => Run));
-               Level := Coverage.To_Coverage_Level (Option_Parameter (Arg));
-               if Coverage."=" (Level, Coverage.Unknown) then
+               Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                            2 => Cmd_Run));
+               Level := To_Coverage_Level (Option_Parameter (Arg));
+               if Level = Unknown then
                   Fatal_Error ("bad parameter for " & Coverage_Option);
                end if;
-               Coverage.Set_Coverage_Level (Level);
+               Set_Coverage_Level (Level);
 
             elsif Begins_With (Arg, ALI_List_Option) then
-               Check_Option (Arg, Command, (1 => Map_Routines,
-                                            2 => Commands.Coverage,
-                                            3 => Run));
+               Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
+                                            2 => Cmd_Coverage,
+                                            3 => Cmd_Run));
                ALI_List_Filename :=
                  new String'(Option_Parameter (Arg));
 
             elsif Arg = Routine_List_Option_Short then
-               Check_Option (Arg, Command, (1 => Commands.Coverage,
-                                            2 => Run));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                            2 => Cmd_Run));
                Routine_List_Filename :=
                  new String'(Next_Arg ("function list"));
 
             elsif Begins_With (Arg, Routine_List_Option) then
-               Check_Option (Arg, Command, (1 => Commands.Coverage,
-                                            2 => Run));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                            2 => Cmd_Run));
                Routine_List_Filename := new String'(Option_Parameter (Arg));
 
             elsif Arg = "--missing-files" then
-               Check_Option (Arg, Command, (1 => Commands.Coverage));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Flag_Show_Missing := True;
 
             elsif Begins_With (Arg, "--text-start=") then
@@ -391,7 +386,7 @@ procedure Xcov is
                end;
 
             elsif Begins_With (Arg, "--source-rebase=") then
-               Check_Option (Arg, Command, (1 => Commands.Coverage));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage));
                declare
                   Pos : Natural := 0;
                begin
@@ -411,11 +406,11 @@ procedure Xcov is
                end;
 
             elsif Begins_With (Arg, "--source-search=") then
-               Check_Option (Arg, Command, (1 => Commands.Coverage));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
 
             elsif Arg = Annotate_Option_Short then
-               Check_Option (Arg, Command, (1 => Commands.Coverage));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Annotation :=
                  To_Annotation_Format (Next_Arg ("annotation format"));
                if Annotation = Annotate_Unknown then
@@ -423,47 +418,47 @@ procedure Xcov is
                end if;
 
             elsif Begins_With (Arg, Annotate_Option) then
-               Check_Option (Arg, Command, (1 => Commands.Coverage));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Annotation := To_Annotation_Format (Option_Parameter (Arg));
                if Annotation = Annotate_Unknown then
                   Fatal_Error ("bad parameter for " & Annotate_Option);
                end if;
 
             elsif Arg = Final_Report_Option_Short then
-               Check_Option (Arg, Command, (1 => Commands.Coverage,
-                                            2 => Run));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                            2 => Cmd_Run));
                Annotations.Report.Open_Report_File
                  (Next_Arg ("final report name"));
 
             elsif Begins_With (Arg, Final_Report_Option) then
-               Check_Option (Arg, Command, (1 => Commands.Coverage));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Annotations.Report.Open_Report_File
                  (Option_Parameter (Arg));
 
             elsif Begins_With (Arg, Output_Dir_Option) then
-               Check_Option (Arg, Command, (1 => Commands.Coverage));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Outputs.Set_Output_Dir (Option_Parameter (Arg));
 
             elsif Arg = Trace_Option_Short then
-               Check_Option (Arg, Command, (1 => Commands.Coverage,
-                                            2 => Dump_Trace,
-                                            3 => Dump_Trace_Base,
-                                            4 => Dump_Trace_Asm));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                            2 => Cmd_Dump_Trace,
+                                            3 => Cmd_Dump_Trace_Base,
+                                            4 => Cmd_Dump_Trace_Asm));
                Inputs.Add_Input (Trace_Inputs, Next_Arg ("trace file"));
 
             elsif Begins_With (Arg, Trace_Option) then
-               Check_Option (Arg, Command, (1 => Commands.Coverage,
-                                            2 => Dump_Trace,
-                                            3 => Dump_Trace_Base,
-                                            4 => Dump_Trace_Asm));
+               Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                            2 => Cmd_Dump_Trace,
+                                            3 => Cmd_Dump_Trace_Base,
+                                            4 => Cmd_Dump_Trace_Asm));
                Inputs.Add_Input (Trace_Inputs, Option_Parameter (Arg));
 
             elsif Arg = "--exclude" then
-               Check_Option (Arg, Command, (1 => Disp_Routines));
+               Check_Option (Arg, Command, (1 => Cmd_Disp_Routines));
                Mode_Exclude := True;
 
             elsif Arg = "--include" then
-               Check_Option (Arg, Command, (1 => Disp_Routines));
+               Check_Option (Arg, Command, (1 => Cmd_Disp_Routines));
                Mode_Exclude := False;
 
             elsif Arg (1) = '-' then
@@ -476,38 +471,38 @@ procedure Xcov is
                   when No_Command =>
                      Fatal_Error ("No command specified");
 
-                  when Commands.Coverage
-                    | Dump_Trace
-                    | Dump_Trace_Base =>
+                  when Cmd_Coverage
+                    | Cmd_Dump_Trace
+                    | Cmd_Dump_Trace_Base =>
                      Inputs.Add_Input (Trace_Inputs, Arg);
 
-                  when Disp_Routines =>
+                  when Cmd_Disp_Routines =>
                      if Mode_Exclude then
                         Inputs.Add_Input (Excluded_Obj_Inputs, Arg);
                      else
                         Inputs.Add_Input (Included_Obj_Inputs, Arg);
                      end if;
 
-                  when Dump_Sections
-                    | Dump_Symbols
-                    | Dump_Compile_Units
-                    | Dump_Subprograms
-                    | Dump_Lines
-                    | Disassemble_Raw
-                    | Disassemble =>
+                  when Cmd_Dump_Sections
+                    | Cmd_Dump_Symbols
+                    | Cmd_Dump_Compile_Units
+                    | Cmd_Dump_Subprograms
+                    | Cmd_Dump_Lines
+                    | Cmd_Disassemble_Raw
+                    | Cmd_Disassemble =>
                      Inputs.Add_Input (Exe_Inputs, Arg);
 
-                  when Map_Routines =>
+                  when Cmd_Map_Routines =>
                      Inputs.Add_Input (Exe_Inputs, Arg);
 
-                  when Run =>
+                  when Cmd_Run =>
                      if Inputs.Length (Exe_Inputs) > 1 then
                         Fatal_Error ("Only one EXEC parameter is allowed with "
                                      & To_Switch (Command));
                      end if;
                      Inputs.Add_Input (Exe_Inputs, Arg);
 
-                  when Dump_Trace_Asm =>
+                  when Cmd_Dump_Trace_Asm =>
                      if Inputs.Length (Exe_Inputs) < 1 then
                         Inputs.Add_Input (Exe_Inputs, Arg);
                      else
@@ -536,7 +531,7 @@ begin
          Usage;
          return;
 
-      when Disp_Routines =>
+      when Cmd_Disp_Routines =>
          declare
 
             procedure Include_Routine (Obj_File_Name : String);
@@ -585,7 +580,7 @@ begin
             return;
          end;
 
-      when Map_Routines =>
+      when Cmd_Map_Routines =>
          if ALI_List_Filename = null then
             Fatal_Error ("Please give a ALI list using " & ALI_List_Option);
          end if;
@@ -593,12 +588,12 @@ begin
          Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
          return;
 
-      when Dump_Trace =>
+      when Cmd_Dump_Trace =>
          Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
          Inputs.Iterate (Trace_Inputs, Dump_Trace_File'Access);
          return;
 
-      when Dump_Trace_Base =>
+      when Cmd_Dump_Trace_Base =>
          declare
             procedure Dump_Trace_Base (Trace_File_Name : String);
             --  Raw display of merged trace files
@@ -621,7 +616,7 @@ begin
          end;
          return;
 
-      when Dump_Trace_Asm =>
+      when Cmd_Dump_Trace_Asm =>
          declare
 
             procedure Open_Exec (Exec_File_Name : String);
@@ -659,10 +654,10 @@ begin
          end;
          return;
 
-      when Dump_Sections
-        | Dump_Symbols
-        | Dump_Subprograms
-        | Dump_Lines =>
+      when Cmd_Dump_Sections
+        | Cmd_Dump_Symbols
+        | Cmd_Dump_Subprograms
+        | Cmd_Dump_Lines =>
          declare
 
             procedure Dump_Exec (Exec_File_Name : String);
@@ -680,18 +675,18 @@ begin
                Build_Sections (Exec);
 
                case Command is
-                  when Dump_Sections =>
+                  when Cmd_Dump_Sections =>
                      To_Display := Section_Addresses;
 
-                  when Dump_Symbols =>
+                  when Cmd_Dump_Symbols =>
                      Build_Symbols (Exec'Unchecked_Access);
                      To_Display := Symbol_Addresses;
 
-                  when Dump_Subprograms =>
+                  when Cmd_Dump_Subprograms =>
                      Build_Debug_Compile_Units (Exec);
                      To_Display := Subprogram_Addresses;
 
-                  when Dump_Lines =>
+                  when Cmd_Dump_Lines =>
                      Build_Debug_Lines (Exec);
                      To_Display := Line_Addresses;
 
@@ -712,7 +707,7 @@ begin
          end;
          return;
 
-      when Dump_Compile_Units =>
+      when Cmd_Dump_Compile_Units =>
          declare
             procedure Dump_Compilation_Units (Exec_File_Name : String);
             --  Dump Exec_File_Name's compilation units
@@ -736,7 +731,7 @@ begin
          end;
          return;
 
-      when Disassemble_Raw =>
+      when Cmd_Disassemble_Raw =>
          declare
 
             procedure Disassemble (Exec_File_Name : String);
@@ -759,7 +754,7 @@ begin
          end;
          return;
 
-      when Disassemble =>
+      when Cmd_Disassemble =>
          declare
 
             procedure Disassemble (Exec_File_Name : String);
@@ -784,7 +779,7 @@ begin
          end;
          return;
 
-      when Commands.Coverage =>
+      when Cmd_Coverage =>
          declare
             procedure Process_Trace (Trace_File_Name : String);
             --  Open Trace_File_Name and merge it into the trace database
@@ -794,8 +789,6 @@ begin
             -------------------
 
             procedure Process_Trace (Trace_File_Name : String) is
-               use Coverage;
-
                Trace_File : constant Trace_File_Element_Acc :=
                               new Trace_File_Element;
             begin
@@ -838,8 +831,7 @@ begin
          begin
             Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
 
-            if Coverage."=" (Coverage.Get_Coverage_Level,
-                             Coverage.Unknown) then
+            if Get_Coverage_Level = Unknown then
                Fatal_Error ("Please specify a coverage level");
             end if;
 
@@ -859,24 +851,33 @@ begin
 
             --  Now determine coverage according to the requested metric
 
-            case Coverage.Get_Coverage_Level is
-               when Coverage.Object_Coverage_Level =>
+            case Get_Coverage_Level is
+               when Object_Coverage_Level =>
+                  if ALI_List_Filename /= null then
+                     Error ("List of ALI not allowed for object coverage");
+                  end if;
+
                   Traces_Elf.Build_Routines_Insn_State;
 
                   if Annotation /= Annotate_Asm then
                      Traces_Elf.Build_Source_Lines;
                   end if;
 
-               when Coverage.Source_Coverage_Level =>
+               when Source_Coverage_Level =>
                   if ALI_List_Filename = null then
-                     Error ("List of ALI required for source level coverage");
+                     Error ("List of ALI required for source coverage");
                   end if;
+
                   Load_SCOs (ALI_List_Filename.all);
-                  Coverage.Source.Process_Traces (Base);
 
-                  Error ("Source coverage is not implemented yet");
+                  if Get_Coverage_Level = Stmt then
+                     Traces_Elf.Build_Routines_Insn_State;
+                     Traces_Elf.Build_Source_Lines;
+                  else
+                     Source.Process_Traces (Base);
+                  end if;
 
-               when Coverage.Unknown =>
+               when Unknown =>
                   --  A fatal error should have been diagnosed earlier
 
                   pragma Assert (False);
@@ -885,13 +886,12 @@ begin
 
             case Annotation is
                when Annotate_Asm =>
-                  if Coverage.Get_Coverage_Level
-                    in Coverage.Source_Coverage_Level then
+                  if Get_Coverage_Level in Source_Coverage_Level then
                      Error ("Asm format not supported for source coverage.");
                      return;
                   end if;
                   Traces_Disa.Flag_Show_Asm := True;
-                  Coverage.Dump_Coverage_Option (Standard_Output);
+                  Dump_Coverage_Option (Standard_Output);
                   Traces_Dump.Dump_Routines_Traces;
 
                when Annotate_Xcov =>
@@ -912,8 +912,7 @@ begin
                   Annotations.Html.Generate_Report (True);
 
                when Annotate_Report =>
-                  Coverage.Dump_Coverage_Option
-                    (Annotations.Report.Get_Output);
+                  Dump_Coverage_Option (Annotations.Report.Get_Output);
                   Traces_Dump.Dump_Uncovered_Routines
                     (Annotations.Report.Get_Output);
                   Annotations.Report.Finalize_Report;
@@ -923,7 +922,7 @@ begin
             end case;
          end;
 
-      when Run =>
+      when Cmd_Run =>
          --  We should never end up here. Run has been dealt with
          --  earlier.
          pragma Assert (False);

@@ -68,7 +68,7 @@ package body Commands is
       end loop;
 
       begin
-         return Command_Type'Value (Literal);
+         return Command_Type'Value ("cmd_" & Literal);
       exception
          when Constraint_Error =>
             return No_Command;
@@ -87,7 +87,8 @@ package body Commands is
             Result (J) := '-';
          end if;
       end loop;
-      return Result;
+      --  Skip 'cmd_'.
+      return Result (Result'First + 4 .. Result'Last);
    end To_Switch;
 
 end Commands;

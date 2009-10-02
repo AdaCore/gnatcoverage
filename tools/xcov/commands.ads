@@ -22,20 +22,20 @@ package Commands is
 
    type Command_Type is
      (No_Command,
-      Coverage,
-      Disp_Routines,
-      Map_Routines,
-      Dump_Trace,
-      Dump_Trace_Base,
-      Dump_Trace_Asm,
-      Dump_Sections,
-      Dump_Symbols,
-      Dump_Compile_Units,
-      Dump_Subprograms,
-      Dump_Lines,
-      Disassemble_Raw,
-      Disassemble,
-      Run);
+      Cmd_Coverage,
+      Cmd_Disp_Routines,
+      Cmd_Map_Routines,
+      Cmd_Dump_Trace,
+      Cmd_Dump_Trace_Base,
+      Cmd_Dump_Trace_Asm,
+      Cmd_Dump_Sections,
+      Cmd_Dump_Symbols,
+      Cmd_Dump_Compile_Units,
+      Cmd_Dump_Subprograms,
+      Cmd_Dump_Lines,
+      Cmd_Disassemble_Raw,
+      Cmd_Disassemble,
+      Cmd_Run);
 
    function To_Command (Opt_String : String) return Command_Type;
    --  Convert a string of the form "com-mand" to the corresponding
