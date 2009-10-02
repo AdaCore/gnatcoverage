@@ -904,6 +904,9 @@ package body SC_Obligations is
       begin
          Index := Index + 1;
          if Index > Last + 1 then
+            if End_Of_File (ALI_File) then
+               return Character'Val (16#1a#);
+            end if;
             Get_Line (ALI_File, Line, Last);
             Index := 1;
          end if;
@@ -916,9 +919,6 @@ package body SC_Obligations is
 
       function Nextc return Character is
       begin
-         if End_Of_File (ALI_File) then
-            return Character'Val (16#1a#);
-         end if;
          if Index = Last + 1 then
             return ASCII.LF;
          end if;
