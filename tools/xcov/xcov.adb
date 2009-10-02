@@ -101,17 +101,18 @@ procedure Xcov is
       Qemudrv.Help (" ");
       New_Line;
       P (" disp-routines {[--exclude|--include] FILES}");
-      P ("    Build a list of routines from object files");
+      P ("   Build a list of routines from object files");
       New_Line;
       P (" coverage OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
       P ("   -c LEVEL --level=LEVEL        Specify coverage level");
       P ("      LEVEL is one of " & All_Known_Coverage_Levels);
-      P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
+      P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
+      P ("   --ali-list=FILE               Read list of ALI files from FILE");
       P ("   --output-dir=DIR              Generate reports in DIR");
-      P ("   -T FILE --trace FILE          Add a trace file to the list");
+      P ("   -T FILE --trace=FILE          Add a trace file to the list");
       New_Line;
    end Usage;
 
