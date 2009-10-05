@@ -25,4 +25,6 @@ package Coverage.Source is
 
    procedure Compute_Line_State (Line : Line_Info_Access);
    --  Set Line.State
+   --  Based on what???
+
 end Coverage.Source;

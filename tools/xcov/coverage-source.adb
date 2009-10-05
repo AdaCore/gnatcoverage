@@ -20,7 +20,7 @@
 with Ada.Containers.Vectors;
 
 with SC_Obligations; use SC_Obligations;
-with Traces_Lines; use Traces_Lines;
+with Traces_Lines;   use Traces_Lines;
 
 package body Coverage.Source is
 
@@ -51,14 +51,9 @@ package body Coverage.Source is
    SCI_Vector : SCI_Vectors.Vector;
    pragma Unreferenced (SCI_Vector);
 
-   --------------------
-   -- Process_Traces --
-   --------------------
-
-   procedure Process_Traces (Base : Traces_Base) is
-   begin
-      raise Program_Error with "not implemented yet";
-   end Process_Traces;
+   ------------------------
+   -- Compute_Line_State --
+   ------------------------
 
    procedure Compute_Line_State (Line : Line_Info_Access) is
       Obj_Info : Object_Coverage_Info_Acc;
@@ -74,7 +69,9 @@ package body Coverage.Source is
 
       Obj_Info := Line.Obj_First;
       while Obj_Info /= null loop
-         if Obj_Info.State = Partially_Covered or Obj_Info.State = Covered then
+         if Obj_Info.State = Partially_Covered
+           or else Obj_Info.State = Covered
+         then
             Line.State := Covered;
             return;
          end if;
@@ -82,5 +79,14 @@ package body Coverage.Source is
       end loop;
       Line.State := Not_Covered;
    end Compute_Line_State;
+
+   --------------------
+   -- Process_Traces --
+   --------------------
+
+   procedure Process_Traces (Base : Traces_Base) is
+   begin
+      raise Program_Error with "not implemented yet";
+   end Process_Traces;
 
 end Coverage.Source;

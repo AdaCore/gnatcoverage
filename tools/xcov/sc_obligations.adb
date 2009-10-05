@@ -1229,6 +1229,7 @@ package body SC_Obligations is
                      Add_Line_For_Source_Coverage
                        (SCOD.First_Sloc.Source_File, SCOD.First_Sloc.Line,
                         No_SCO_Id);
+                     --  No_SCO_Id should be J???
 
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
@@ -1243,9 +1244,11 @@ package body SC_Obligations is
                            & Image (Enclosing_SCO));
                      end if;
 
-                     for I in SCOD.First_Sloc.Line .. SCOD.Last_Sloc.Line loop
+                     for L in SCOD.First_Sloc.Line .. SCOD.Last_Sloc.Line loop
                         Add_Line_For_Source_Coverage
-                          (SCOD.First_Sloc.Source_File, I, No_SCO_Id);
+                          (SCOD.First_Sloc.Source_File, L, No_SCO_Id);
+                        --  No_SCO_Id should be J???
+
                      end loop;
 
                   when Condition =>

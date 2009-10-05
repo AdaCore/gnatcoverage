@@ -18,12 +18,12 @@
 ------------------------------------------------------------------------------
 
 with Disa_Symbolize; use Disa_Symbolize;
-with Traces; use Traces;
+with Files_Table;    use Files_Table;
+with Traces;         use Traces;
+with Traces_Dbase;   use Traces_Dbase;
+with Traces_Elf;     use Traces_Elf;
 with Traces_Lines;   use Traces_Lines;
 with Traces_Stats;   use Traces_Stats;
-with Traces_Elf;    use Traces_Elf;
-with Traces_Dbase; use Traces_Dbase;
-with Files_Table; use Files_Table;
 
 package Annotations is
 

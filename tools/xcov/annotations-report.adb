@@ -112,8 +112,7 @@ package body Annotations.Report is
    -- Finalize_Report --
    ---------------------
 
-   procedure Finalize_Report
-   is
+   procedure Finalize_Report is
       Report_PP : Report_Pretty_Printer;
       Output    : constant File_Access := Get_Output;
    begin
@@ -141,9 +140,7 @@ package body Annotations.Report is
    -- Pretty_Print_End_File --
    ---------------------------
 
-   procedure Pretty_Print_End_File
-     (Pp : in out Report_Pretty_Printer)
-   is
+   procedure Pretty_Print_End_File (Pp : in out Report_Pretty_Printer) is
    begin
       null;
    end Pretty_Print_End_File;
@@ -153,11 +150,11 @@ package body Annotations.Report is
    -----------------------
 
    procedure Pretty_Print_Insn
-     (Pp : in out Report_Pretty_Printer;
-      Pc : Pc_Type;
+     (Pp    : in out Report_Pretty_Printer;
+      Pc    : Pc_Type;
       State : Insn_State;
-      Insn : Binary_Content;
-      Sym : Symbolizer'Class)
+      Insn  : Binary_Content;
+      Sym   : Symbolizer'Class)
    is
       Output : constant File_Access := Get_Output;
    begin

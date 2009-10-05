@@ -39,9 +39,8 @@ package Files_Table is
    function Get_Index (Name : String) return Source_File_Index;
    function Get_Name (Index : Source_File_Index) return String;
 
-   --  Utilities to open files from the source file table. Source
-   --  files will be searched on the local filesystem, in the following
-   --  order:
+   --  Utilities to open files from the source file table. Source files will be
+   --  searched on the local filesystem, in the following order:
    --  (1) from xcov's execution directory;
    --  (2) after rebasing them using the rebase list;
    --  (3) from the source search path.
@@ -78,7 +77,7 @@ package Files_Table is
      (File : Source_File_Index;
       Line : Positive;
       SCO  : SCO_Id);
-   --  Associate SCO with File:Line.
+   --  Associate SCO with File:Line
 
    procedure New_Source_File (File : Source_File_Index);
    --  Initialize entry for File in source files table
@@ -106,7 +105,7 @@ package Files_Table is
       --  Exec from where the address range has been extracted
 
       Next : Object_Coverage_Info_Acc;
-      --  Next element in the chain.
+      --  Next element in the chain
    end record;
 
    type Source_Coverage_Info;
@@ -116,10 +115,10 @@ package Files_Table is
       State : Line_State;
 
       SCO : SCO_Id;
-      --  SCO that generated this info.
+      --  SCO that generated this info
 
       Next : Source_Coverage_Info_Acc;
-      --  Next element in the chain.
+      --  Next element in the chain
    end record;
 
    type Line_Info is record
@@ -132,7 +131,7 @@ package Files_Table is
       --  Detailled object coverage information for this line
 
       Src_First, Src_Last : Source_Coverage_Info_Acc;
-      --  Detailled source coverage information for this line.
+      --  Detailled source coverage information for this line
    end record;
 
    type Line_Info_Access is access Line_Info;
@@ -145,13 +144,14 @@ package Files_Table is
       --  Source file information.
 
       File_Name  : String_Acc;
-      --  File name of the source file, with the path.
+      --  File name of the source file, with the path
 
       Full_Name : String_Acc;
-      --  Full path name.
+      --  Full path name
+      --  How is this different from File_Name above???
 
       Lines      : Source_Lines;
-      --  Source file to display in the reports.
+      --  Source file to display in the reports
 
       Stats      : Stat_Array := (others => 0);
       --  Counters associated with the file (e.g total number of lines, number
@@ -191,7 +191,7 @@ package Files_Table is
      return Line_Info_Access;
 
 private
-   --  Describe a source file - one element per line.
+   --  Describe a source file - one element per line
 
    package Source_Line_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
