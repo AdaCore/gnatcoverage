@@ -37,9 +37,6 @@ package body SC_Obligations is
    No_Location : Source_Location renames Slocs.No_Location;
    --  (not SCOs.Source_Location)
 
-   procedure Load_SCOs_From_ALI (ALI_Filename : String);
-   --  Load SCOs from the named ALI file, populating a map of slocs to SCOs
-
    --------------------------------------------
    -- Management of binary decision diagrams --
    --------------------------------------------
@@ -847,27 +844,7 @@ package body SC_Obligations is
    -- Load_SCOs --
    ---------------
 
-   procedure Load_SCOs (ALI_List_Filename : String) is
-      ALI_List : File_Type;
-   begin
-      Open (ALI_List, In_File, ALI_List_Filename);
-      while not End_Of_File (ALI_List) loop
-         declare
-            Line : String (1 .. 1024);
-            Last : Natural;
-         begin
-            Get_Line (ALI_List, Line, Last);
-            Load_SCOs_From_ALI (Line (1 .. Last));
-         end;
-      end loop;
-      Close (ALI_List);
-   end Load_SCOs;
-
-   ------------------------
-   -- Load_SCOs_From_ALI --
-   ------------------------
-
-   procedure Load_SCOs_From_ALI (ALI_Filename : String) is
+   procedure Load_SCOs (ALI_Filename : String) is
       Cur_Source_File : Source_File_Index := No_Source_File;
       Cur_SCO_Unit : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
@@ -1279,7 +1256,7 @@ package body SC_Obligations is
             SCO_Vector.Update_Element (J, Process_Descriptor'Access);
          end;
       end loop;
-   end Load_SCOs_From_ALI;
+   end Load_SCOs;
 
    -------------------
    -- Next_BDD_Node --

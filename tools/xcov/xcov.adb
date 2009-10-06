@@ -110,7 +110,7 @@ procedure Xcov is
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
       P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
-      P ("   --ali-list=FILE               Read list of ALI files from FILE");
+      P ("   --ali=FILE                    Add FILE to the list of ALI files");
       P ("   --output-dir=DIR              Generate reports in DIR");
       P ("   -T FILE --trace=FILE          Add a trace file to the list");
       New_Line;
@@ -153,7 +153,7 @@ procedure Xcov is
    Annotate_Option_Short     : constant String := "-a";
    Routine_List_Option       : constant String := "--routine-list=";
    Routine_List_Option_Short : constant String := "-l";
-   ALI_List_Option           : constant String := "--ali-list=";
+   ALI_Option                : constant String := "--ali=";
    Final_Report_Option       : constant String := "--report=";
    Final_Report_Option_Short : constant String := "-o";
    Output_Dir_Option         : constant String := "--output-dir=";
@@ -167,6 +167,7 @@ procedure Xcov is
    Exe_Inputs                : Inputs.Inputs_Type;
    Excluded_Obj_Inputs       : Inputs.Inputs_Type;
    Included_Obj_Inputs       : Inputs.Inputs_Type;
+   ALI_Inputs                : Inputs.Inputs_Type;
    Text_Start                : Pc_Type := 0;
 
    procedure Parse_Command_Line;
@@ -351,12 +352,11 @@ procedure Xcov is
                end if;
                Set_Coverage_Level (Level);
 
-            elsif Begins_With (Arg, ALI_List_Option) then
+            elsif Begins_With (Arg, ALI_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
                                             2 => Cmd_Coverage,
                                             3 => Cmd_Run));
-               ALI_List_Filename :=
-                 new String'(Option_Parameter (Arg));
+               Inputs.Add_Input (ALI_Inputs, Option_Parameter (Arg));
 
             elsif Arg = Routine_List_Option_Short then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
@@ -582,10 +582,8 @@ begin
          end;
 
       when Cmd_Map_Routines =>
-         if ALI_List_Filename = null then
-            Fatal_Error ("Please give a ALI list using " & ALI_List_Option);
-         end if;
-         Load_SCOs (ALI_List_Filename.all);
+         Check_Argument_Available (ALI_Inputs, "ALI FILEs", Command);
+         Inputs.Iterate (ALI_Inputs, Load_SCOs'Access);
          Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
          return;
 
@@ -854,7 +852,7 @@ begin
 
             case Get_Coverage_Level is
                when Object_Coverage_Level =>
-                  if ALI_List_Filename /= null then
+                  if Inputs.Length (ALI_Inputs) /= 0 then
                      Error ("List of ALI not allowed for object coverage");
                   end if;
 
@@ -865,11 +863,8 @@ begin
                   end if;
 
                when Source_Coverage_Level =>
-                  if ALI_List_Filename = null then
-                     Error ("List of ALI required for source coverage");
-                  end if;
-
-                  Load_SCOs (ALI_List_Filename.all);
+                  Check_Argument_Available (ALI_Inputs, "ALI FILEs", Command);
+                  Inputs.Iterate (ALI_Inputs, Load_SCOs'Access);
 
                   if Get_Coverage_Level = Stmt then
                      Traces_Elf.Build_Routines_Insn_State;

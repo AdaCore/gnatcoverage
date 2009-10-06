@@ -39,8 +39,8 @@ package SC_Obligations is
    --  Return the innermost SCO whose range contains the given sloc.
    --  It is an error if multiple such SCOs exist and aren't nested.
 
-   procedure Load_SCOs (ALI_List_Filename : String);
-   --  Load all source coverage obligations for application
+   procedure Load_SCOs (ALI_Filename : String);
+   --  Load source coverage obligations from ALI_Filename
 
    procedure Report_SCOs_Without_Code;
    --  Output a list of conditions without associated conditional branches
