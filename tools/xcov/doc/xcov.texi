@@ -31,6 +31,14 @@
 @sc{gcc}
 @end macro
 
+@macro gnat
+@sc{gnat}
+@end macro
+
+@macro qemu
+@sc{qemu}
+@end macro
+
 @macro gcov
 @sc{gcov}
 @end macro
@@ -552,7 +560,7 @@ The environment typically is a representative emulator of a real
 target microprocessor, possibly augmented with extensions to let it
 communicate with external devices.
 @c
-For common architectures, we leverage Qemu @bibref{qemu} for this
+For common architectures, we leverage @qemu{} @bibref{qemu} for this
 purpose, as a reliable and efficient free-software emulator we can
 instrument to generate the traces.
 
@@ -612,7 +620,7 @@ elements of relevance to coverage analysis activities.
 SCOs are designed to be independant from the target certification level,
 which only influences the way a given trace is determined to meet.
 
-For Qemu targets and the @gcc{} compilation toochain, the toolset uses SCOs
+For @qemu{} targets and the @gcc{} compilation toochain, the toolset uses SCOs
 and precise debug information to associate conditional branches with
 conditions, then traces are extended to track the history of run-time
 behavior at those branch points.
@@ -628,6 +636,14 @@ instruction for each non-constant condition.
 We provide sets of compilation options suitable for both this
 particular purpose and for the Source Coverage analysis activity in
 general.
+
+@section Modularity and Flexibility
+@noindent
+Different teams have different organizations and software development
+infrastructures.
+@c
+Xcov is designed as a modular set of light tools, intended to be
+adaptable to various operational contexts.
 
 @c *******************************************************************
 @c *                          USER'S GUIDE                           *
@@ -653,10 +669,9 @@ toplevel of command line option:
 
 @itemize @bullet
 @item @option{run} ;
-run code within an instrumented environment to produce raw execution
-traces.
+run code within an instrumented environment to produce execution traces.
 @item @option{coverage} ;
-process raw execution traces to produce user-level results.
+process execution traces to produce user-level results.
 @end itemize
 
 The following sections provide further details on the various modes of
@@ -664,13 +679,21 @@ operation, first for simple cases where a single trace is to be produced
 and analyzed, then for more sophisticated needs requiring coverage data
 capitalization and consolidation.
 
+@page
 @section Instrumented Execution
+@pindex xcov run
+@noindent
+@xrun{} offers a unified interface to launch programs for a specific
+target machine within the appropriate instrumented execution environment
+to produce execution traces.
 
-@xrun{} exposes a unified interface to launch programs for a specific
-target machine within the appropriate instrumented execution
-environment, producing raw execution traces.
+The Quick Start example in the distribution @code{README} illustrates a
+simple use for a @code{powerpc-elf} target, using the dedicated @gcc{}
+toolchain to build from sources and the @option{--target} execution
+engine selector.
 @c
-The interface synopsis out of @command{xcov --help} is as follows:
+The general interface synopsis is available from @command{xcov --help},
+as follows:
 
 @smallexample
 
@@ -685,23 +708,24 @@ The interface synopsis out of @command{xcov --help} is as follows:
 
 @end smallexample
 
+@option{-v} requests verbose output, in particular the commands to run
+the program within the underlying instrumented environment.
+
 The @code{FILE} argument is the executable program file name.
 @c
-The Quick Start example in the distribution @code{README} illustrates a
-simple use for a @code{powerpc-elf} target, using the dedicated @gcc{}
-toolchain to build from sources and the @option{--target} execution
-engine selector.
+This name is stored as-provided in the output trace header, where it is
+retrieved later for analysis purposes.
 
-By default, @xrun{} produces the execution trace output in a file named
-after the executable input, with a @code{.trace} suffix.
+By default, @xrun{} writes the execution trace in the current directory,
+in a file named like the executable input with a @code{.trace} suffix.
+@c
+For example @xrun{} @code{/path/to/myexecfile} produces a
+@code{myexecfile.trace} file in the current directory.
 @c
 @option{--output} allows the selection of an alternate output file name.
-@c
-An extra @option{-v} requests verbose output, in particular the commands
-to run the program within the underlying instrumented environment.
 
 The @option{--tag} option expects a string argument and stores it
-verbatim as an attribute in the output trace header.
+verbatim as a trace tag attribute in the output trace header.
 @c
 The tag so associated with a trace can be retrieved from trace dumps
 and is output as part of some analysis reports.
@@ -709,15 +733,17 @@ and is output as part of some analysis reports.
 It is useful as a flexible trace identification facility, structured as
 users see fit for custom trace management purposes.
 
+@page
 @section Object Coverage Analysis
-
-Over raw execution traces, various levels of object coverage analysis
-may be performed variants of @code{xcov coverage} invocations.
+@pindex @code{xcov coverage}, for object coverage analysis
+@noindent
+Over execution traces, various levels of object coverage analysis may be
+performed with @code{xcov coverage} invocations.
 @c
-The level selection is achieved with variants of the @option{--level}
+An analysis variant first needs to be selected with the @option{--level}
 option:
 
-@multitable @columnfractions .20 .8
+@multitable @columnfractions .15 .8
 @item @command{=insn}
 @tab requests @dfn{Object Instruction Coverage} data, with an indication for
 every instruction of whether it has been executed or not.
@@ -761,7 +787,7 @@ Besides, if source coverage analysis is to be performed as well, the
 whole process is simpler if the same compilation options are used, and
 these have to be strictly controlled for source coverage.
 
-@subsection @code{--annotate=asm}
+@subsection Machine level reports, @code{--annotate=asm}
 @noindent
 For object coverage analysis purposes, @option{--annotate=asm} produces
 annotated assembly code for all the program routines on standard output.
@@ -786,17 +812,17 @@ define:
 @tab instruction was executed
 @end multitable
 
-@*@noindent For @dfn{Object Branch coverage}, with
-@option{--level=branch}, the `+' case is refined for conditional
-branch instructions:
+@*@noindent For @dfn{Object Branch coverage} (@option{--level=branch}),
+the `+' case is refined for conditional branch instructions and two
+additional notes are possible:
 
-@multitable @columnfractions .1 .7
+@multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
 @item '-'
 @tab instruction never was executed
 @item '+'
-@tab simple instruction was executed, or conditional branch was
-     executed, taken both ways
+@tab instruction was executed, taken both ways for a conditional
+     branch
 @item '>'
 @tab conditional branch was executed, always taken
 @item 'v'
@@ -809,7 +835,7 @@ those marked with @option{-} as @dfn{uncovered} and the others as
 @dfn{partially covered}.
 
 To illustrate, we will consider the Branch Coverage outcome for a piece
-of the Explore example, produced out of a couple of runs within Qemu for
+of the Explore example, produced out of a couple of runs within @qemu{} for
 the PowerPC architecture.
 @c
 The original source of interest is the @code{if} statement which
@@ -841,7 +867,7 @@ and request branch coverage data in assembly format:
 @smallexample
 
 ... $ xcov run --target=powerpc-elf explore
-[Explore runs in Qemu - type 'p', then 'Q']
+[Explore runs in @qemu{} - type 'p', then 'Q']
 
 ... $ xcov coverage --level=branch --annotate=asm explore.trace      
 
@@ -894,7 +920,7 @@ fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
 ...
 @end smallexample
 
-@subsection @code{--annotate=xcov[+asm]}
+@subsection In-Source text reports, @code{--annotate=xcov[+asm]}
 @noindent
 For object coverage analysis purposes, @option{--annotate=xcov} produces
 annotated source files with the @code{.xcov} extension in the current
@@ -939,7 +965,7 @@ annotations are only possible when this is available.
 In @gcc{} parlance, this requires compilation with the @option{-g}
 command line switch, designed never to influence the generated code.
 
-@subsection @code{--annotate=html[+asm]}
+@subsection In-Source html reports, @code{--annotate=html[+asm]}
 @noindent
 For object coverage analysis purposes, @option{--annotate=html} produces
 one @code{.html} browsable annotated source file per original
@@ -956,13 +982,89 @@ links to the annotated sources.
 With the @code{+asm} extension, the annotated machine code for each line
 may be expanded below it by a mouse click on the line.
 
-@subsection @code{--annotate=report}
+@subsection Synthetic reports, @code{--annotate=report}
 @noindent
 For object coverage analysis purposes, @option{--annotate=report}
 produces a synthetic summary of per function coverage results, with a
 single annotation assigned to each function in the same way it is to
 each source line in the @option{=xcov} or @option{'=html'} cases.
 
+@subsection Inlined and Generic entities
+@noindent
+Inlined calls or generic instanciations implicitely associate with two
+source locations, and choices were made for In-Source reports.
+@c
+Behind the scenes, xcov uses standard debug information to establish the
+links between object code and original source, so the choice stems from
+this information essentially.
+@c
+The next paragraphs are specific to the @gnat{}/@gcc{} chains in this
+respect.
+
+For inlined calls, the @gcc{} debug information associates code with the
+inlined source positions, so the related object coverage information is
+reported there.
+@c
+Consider for example the following excerpt of branch coverage report
+in-source for the Station control code in Explore.
+@c
+A call to an @code{Update} subprogram is inlined in
+@code{Process_Pending_Inputs}.
+@c
+We observe that the code reported in the @code{Update} sources is coming
+from the @code{process_pending_inputs} symbol, where it was inlined, and
+that absence of code is reported at the call site, since indeed all the
+code for this call is attached to the inlined entity.
+
+@smallexample
+
+  53 .:       procedure Update (Map : in out Geomap; Situ : Situation) is
+  54 +:          Posa : constant Position := Pos_Ahead_Of (Situ);
+<stations__run__process_pending_inputs.1939+fffc1bb4>:+
+fffc1c04 +:  4b ff ed c1  bl     0xfffc09c4 <geomaps__pos_ahead_of>
+fffc1c08 +:  90 61 00 30  stw    r3,0x0030(r1)
+  [...]
+  63 +:       procedure Process_Pending_Inputs (Sta : Station_Access) is
+  [...]
+  68 .:             Update (Sta.Map, Situ);
+
+@end smallexample
+
+Nice properties of this scheme are to allow use of the full inlined
+subprogram source structure to organize the results, and to have all the
+instances reported at a centralized location.
+
+Similar principles apply to template instanciations such as those of Ada
+generic entities, and the centralized view property is well illustrated
+this way.
+@c
+The excerpt below provides an example with the @code{Queues} abstraction
+in Explore.
+@c
+This generic unit is instanciated in several places and the
+corresponding code sequences are all attached to original unit source,
+with an indication of their location via the enclosing symbol names:
+
+@smallexample
+
+  39 +:    function Empty (Q : Queue) return Boolean is
+<robot_control_links__data_queue_p__empty+fffc02fc>:+
+fffc02fc +:  94 21 ff f0  stwu   r1,-0x0010(r1)
+ [...]
+<geomaps__situation_links__data_queue_p__empty+fffc0878>:+
+fffc0878 +:  94 21 ff f0  stwu   r1,-0x0010(r1)
+ [...]
+
+@end smallexample
+
+
+@subsection Filtering subprograms of interest
+
+introduce disp-routines, --routine-list, --exclude, --include
+
+beware effects of inlinin
+
+@page
 @section Source Coverage Analysis
 
 Focus on source, object code abstracted away.
@@ -984,7 +1086,10 @@ Requires extended traces for MCDC.
 
 Relies on a the notion of @dfn{Source Coverage Obligation}.
 
-@section Coverage Data Capitalization & Consolidation
+@page
+@section Use cases and Additional features
+
+@subsection Coverage Data Capitalization & Consolidation
 @c
 The @xcov{} philosophy with respect to coverage data capitalization is
 to provide flexible means to allow custom structured trace management
@@ -1123,6 +1228,12 @@ Below is a verbatim inclusion of the relevant Ada specification:
 @page
 @section Source Coverage Obligations Definition
 
+Below is a verbatim inclusion of the relevant Ada specification:
+
+@smallexample
+@verbatiminclude gnat/scos.ads
+@end smallexample
+
 @c *******************************************************************
 @c *                          BIBLIOGRAPHY                           *
 @c *******************************************************************
@@ -1166,5 +1277,9 @@ Track'', pp 41-46.
 http://bellard.org/qemu/
 
 @end multitable
+
+@chapter Index
+
+@printindex pg
 
 @bye
