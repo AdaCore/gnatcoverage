@@ -1106,8 +1106,10 @@ of symbol lists.
 The general synopsis is as follows:
 
 @smallexample
+@verbatim
  disp-routines {[--exclude|--include] FILES}
    Build a list of routines from object files
+@end verbatim
 @end smallexample
 
 @code{xcov disp-routines} outputs the list of symbols in a set built
@@ -1167,7 +1169,7 @@ When the code for a symbol A in unit Ua embeds code inlined from unit
 Ub, an in-source report for routine A only will typically produce two
 output files, one for Ua where the source of some of the symbol code
 reside, and one for Ub, for lines referenced by the machine code inlined
-in A.
+in A.   
 
 @page
 @section Source Coverage Analysis
