@@ -143,11 +143,22 @@ package body Decision_Map is
    --  The decision occurrence map lists all object code occurrences of each
    --  source decision (identified by its SCO_Id).
 
+   --  A basic block in object code
+
    type Basic_Block is record
       From, To : Pc_Type := No_PC;
+      --  Start and end PCs
+
+      --  Properties of the branch instruction at the end of the basic block:
+
       Dest     : Pc_Type := No_PC;
+      --  Destination
+
       Branch   : Branch_Kind := Br_None;
+      --  Branch kind
+
       Cond     : Boolean;
+      --  True if conditional branch
    end record;
 
    No_Basic_Block : constant Basic_Block := (others => <>);
@@ -663,6 +674,8 @@ package body Decision_Map is
               & " " & Edge_Info.Dest_Kind'Img;
          end Dest_Image;
 
+      --  Start of processing for Label_Destinations
+
       begin
          --  Label each destination
 
@@ -676,6 +689,8 @@ package body Decision_Map is
             Kind => Notice);
 
       end Label_Destinations;
+
+   --  Start of processing for Analyze_Decision_Occurrence
 
    begin
       if D_Occ.Last_Cond_Index /= D_Occ.Seen_Condition then
@@ -798,10 +813,15 @@ package body Decision_Map is
    --------------------------------
 
    procedure Append_Decision_Occurrence (D_Occ : Decision_Occurrence_Access) is
+
       procedure Update_Element
         (SCO : SCO_Id;
          V   : in out Decision_Occurrence_Vectors.Vector);
       --  Append D_Occ to V
+
+      --------------------
+      -- Update_Element --
+      --------------------
 
       procedure Update_Element
         (SCO : SCO_Id;
@@ -814,6 +834,9 @@ package body Decision_Map is
 
       use Decision_Occurrence_Maps;
       Cur : constant Cursor := Decision_Occurrence_Map.Find (D_Occ.Decision);
+
+   --  Start of processing for Append_Decision_Occurrence
+
    begin
       if Cur = Decision_Occurrence_Maps.No_Element then
          Decision_Occurrence_Map.Insert
