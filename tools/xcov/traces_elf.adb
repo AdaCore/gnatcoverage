@@ -1747,14 +1747,8 @@ package body Traces_Elf is
       Debug : constant Boolean := False;
    begin
       Pc := Section'First;
-      Init (Base.all, It, Pc);
+      Init_Post (Base.all, It, Pc);
       Get_Next_Trace (E, It);
-
-      --  Skip traces that are before the section
-
-      while E /= Bad_Trace and then E.Last < Section'First loop
-         Get_Next_Trace (E, It);
-      end loop;
 
       --  Iterate on lines
 
@@ -1838,14 +1832,8 @@ package body Traces_Elf is
 
    begin
       Addr := Section'First;
-      Init (Base, It, Addr);
+      Init_Post (Base, It, Addr);
       Get_Next_Trace (Trace, It);
-
-      --  Skip traces that are before the section
-
-      while Trace /= Bad_Trace and then Trace.Last < Section'First loop
-         Get_Next_Trace (Trace, It);
-      end loop;
 
       while Trace /= Bad_Trace loop
          exit when Addr > Section'Last;

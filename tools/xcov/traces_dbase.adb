@@ -288,6 +288,35 @@ package body Traces_Dbase is
       end if;
    end Init;
 
+   ---------------
+   -- Init_Post --
+   ---------------
+
+   procedure Init_Post
+     (Base     : Traces_Base;
+      Iterator : out Entry_Iterator;
+      Pc       : Pc_Type)
+   is
+      Trace : Trace_Entry;
+   begin
+      Init (Base, Iterator, Pc);
+
+      if Iterator.Cur = No_Element then
+         return;
+      end if;
+
+      Trace := Element (Iterator.Cur);
+      while Trace /= Bad_Trace and then Trace.Last < Pc loop
+         Next (Iterator.Cur);
+
+         if Iterator.Cur = No_Element then
+            return;
+         end if;
+
+         Trace := Element (Iterator.Cur);
+      end loop;
+   end Init_Post;
+
    -----------------
    -- Split_Trace --
    -----------------

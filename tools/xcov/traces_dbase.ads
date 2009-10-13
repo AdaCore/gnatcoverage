@@ -57,6 +57,16 @@ package Traces_Dbase is
      (Base     : Traces_Base;
       Iterator : out Entry_Iterator;
       Pc       : Pc_Type);
+   --  Return an iterator that points to the first element before Pc
+
+   procedure Init_Post
+     (Base     : Traces_Base;
+      Iterator : out Entry_Iterator;
+      Pc       : Pc_Type);
+   --  Return an iterator that points to the first element which contains Pc
+   --  in its range, or (if there is no such element in Base) to the first
+   --  element after Pc.
+
    procedure Get_Next_Trace
      (Trace    : out Trace_Entry;
       Iterator : in out Entry_Iterator);

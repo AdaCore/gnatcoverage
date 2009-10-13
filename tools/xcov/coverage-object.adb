@@ -52,7 +52,7 @@ package body Coverage.Object is
       It     : Entry_Iterator;
       T      : Trace_Entry;
    begin
-      Init (Base, It, First);
+      Init_Post (Base, It, First);
       loop
          Get_Next_Trace (T, It);
          exit when T = Bad_Trace or else T.First > Last;
