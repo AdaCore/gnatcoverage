@@ -147,6 +147,8 @@ procedure Xcov is
       New_Line;
    end Usage_Dump;
 
+   --  General options
+
    Coverage_Option           : constant String := "--level=";
    Coverage_Option_Short     : constant String := "-c";
    Annotate_Option           : constant String := "--annotate=";
@@ -160,6 +162,14 @@ procedure Xcov is
    Trace_Option_Short        : constant String := "-T";
    Trace_Option              : constant String := "--trace=";
 
+   --  Undocumented (maintenance only) options
+
+   Exec_Option               : constant String := "--exec=";
+   --  --exec=E tells xcov to use E as the base executable for all the traces
+   --  passed for analysis on the xcov command line.
+
+   --  Results of the command line parsing
+
    Command                   : Command_Type := No_Command;
    Annotation                : Annotation_Format := Annotate_Unknown;
    Level                     : Coverage_Level;
@@ -169,6 +179,10 @@ procedure Xcov is
    Included_Obj_Inputs       : Inputs.Inputs_Type;
    ALI_Inputs                : Inputs.Inputs_Type;
    Text_Start                : Pc_Type := 0;
+
+   Opt_Exe_Name : String_Acc := null;
+   --  Path to executable from the command line; it overrides the default one
+   --  from trace files.
 
    procedure Parse_Command_Line;
    --  Parse the command line and set the above local variables
@@ -368,6 +382,10 @@ procedure Xcov is
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
                Routine_List_Filename := new String'(Option_Parameter (Arg));
+
+            elsif Begins_With (Arg, Exec_Option) then
+               Check_Option (Arg, Command, (1 => Cmd_Coverage));
+               Opt_Exe_Name := new String'(Option_Parameter (Arg));
 
             elsif Arg = "--missing-files" then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
@@ -797,14 +815,30 @@ begin
                                 Trace_File.Trace, Base);
                Traces_Files_List.Files.Append (Trace_File);
                declare
+                  function Override_Exec_Name (S : String) return String;
+                  --  If an exec file name as been passed from the
+                  --  command line, it overrides the one in the trace
+                  --  file.
+
+                  function Override_Exec_Name (S : String) return String is
+                  begin
+                     if Opt_Exe_Name /= null then
+                        return Opt_Exe_Name.all;
+                     else
+                        return S;
+                     end if;
+                  end Override_Exec_Name;
+
                   Exe_Name : constant String :=
-                    Get_Info (Trace_File.Trace, Qemu_Traces.Exec_File_Name);
+                    Override_Exec_Name (Get_Info (Trace_File.Trace,
+                                                  Qemu_Traces.Exec_File_Name));
                   Exe_File : Exe_File_Acc;
                begin
                   if Exe_Name = "" then
                      Fatal_Error ("cannot find exec filename in trace file "
                                   & Trace_File_Name);
                   end if;
+
                   begin
                      Open_Exec (Get_Exec_Base, Exe_Name, Exe_File);
                   exception
