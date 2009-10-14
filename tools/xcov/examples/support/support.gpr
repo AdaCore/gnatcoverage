@@ -6,8 +6,8 @@ project Support is
    type Yes_No_Type is ("yes", "no");
    Use_AUnit    : Yes_No_Type := external ("UNITTEST", "no");
    Do_Build     : Yes_No_Type := external ("BUILD", "no");
-
-   Style_Checks := external ("STYLE_CHECKS", "");
+   Do_Style_Checks: Yes_No_Type := external ("DO_STYLE_CHECKS", "no");
+   Style_Checks := external ("STYLE_CHECKS", "-gnaty");
 
    case Target is
       when "native" =>
@@ -52,6 +52,7 @@ project Support is
          when "yes" =>
             for Global_Configuration_Pragmas use "zfp.adc";
          when "no" =>
+            null;
       end case;
    end Builder;
 
@@ -62,8 +63,13 @@ project Support is
    package Compiler is
       for Default_Switches ("C") use ("-g", "-O1", "-fpreserve-control-flow");
       for Default_Switches ("ada") use
-        Compiler'Default_Switches("C")
-        & ("-gnatp", "-gnatw.Xe", "-gnateS", Style_Checks);
+        Compiler'Default_Switches("C") & ("-gnatp", "-gnatw.Xe", "-gnateS");
+      case Do_Style_Checks is
+         when "no" => null;
+         when "yes" =>
+           for Default_Switches ("ada") use
+             Compiler'Default_Switches("ada") & Style_Checks;
+      end case;
    end Compiler;
 
    package IDE is
@@ -90,4 +96,3 @@ project Support is
    end IDE;
 
 end Support;
-
