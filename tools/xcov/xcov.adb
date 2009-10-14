@@ -820,6 +820,10 @@ begin
                   --  command line, it overrides the one in the trace
                   --  file.
 
+                  ------------------------
+                  -- Override_Exec_Name --
+                  ------------------------
+
                   function Override_Exec_Name (S : String) return String is
                   begin
                      if Opt_Exe_Name /= null then
@@ -833,6 +837,9 @@ begin
                     Override_Exec_Name (Get_Info (Trace_File.Trace,
                                                   Qemu_Traces.Exec_File_Name));
                   Exe_File : Exe_File_Acc;
+
+                  --  Start of processing for Process_Trace
+
                begin
                   if Exe_Name = "" then
                      Fatal_Error ("cannot find exec filename in trace file "
