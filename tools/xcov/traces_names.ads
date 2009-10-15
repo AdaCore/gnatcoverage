@@ -33,6 +33,11 @@ package Traces_Names is
    --  Subprogram_Info record (see below). Constraint_Error is raised if
    --  the name already exists.
 
+   procedure Add_Routine_Name (Name : String);
+   --  Same as Add_Routine_Name, but to be used when adding a routine name
+   --  from a file list and not from an exec file. An error is printed if
+   --  the name already exists.
+
    --  Information recorded about each subprogram in the routines database
 
    type Subprogram_Info is record

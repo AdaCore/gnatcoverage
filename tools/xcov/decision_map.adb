@@ -863,9 +863,9 @@ package body Decision_Map is
       --  Decision map filename is constructed by appending the suffix to the
       --  executable image name.
    begin
-      if Routine_List_Filename /= null then
+      if Deprecated_Routine_List_Filename /= null then
          Traces_Names.Read_Routines_Name_From_Text
-           (Routine_List_Filename.all);
+           (Deprecated_Routine_List_Filename.all);
       else
          Traces_Elf.Read_Routines_Name
            (Exec_Name,

@@ -163,6 +163,17 @@ package body Traces_Names is
                          Traces => null));
    end Add_Routine_Name;
 
+   procedure Add_Routine_Name (Name : String) is
+      Element : constant String_Acc := new String'(Name);
+      Cur     : constant Names_Maps.Cursor := Names.Find (Element);
+   begin
+      if Names_Maps.Has_Element (Cur) then
+         Error ("symbol " & Name & " is already defined");
+      else
+         Add_Routine_Name (Element, null);
+      end if;
+   end Add_Routine_Name;
+
    ---------------------------
    -- Compute_Routine_State --
    ---------------------------
@@ -257,27 +268,6 @@ package body Traces_Names is
    ----------------------------------
 
    procedure Read_Routines_Name_From_Text (Filename : String) is
-
-      procedure Add_Routine_Name (Input : String);
-      --  Add Input to the Name map.
-
-      ----------------------
-      -- Add_Routine_Name --
-      ----------------------
-
-      procedure Add_Routine_Name (Input : String) is
-         Name : constant String_Acc := new String'(Input);
-         Cur  : constant Names_Maps.Cursor := Names.Find (Name);
-      begin
-         if Names_Maps.Has_Element (Cur) then
-            Error ("symbol " & Name.all & " is already defined");
-         else
-            Add_Routine_Name (Name);
-         end if;
-      end Add_Routine_Name;
-
-      --  Start of processing for Read_Routines_Name_From_Text
-
    begin
       Read_List_From_File (Filename, Add_Routine_Name'Access);
    exception

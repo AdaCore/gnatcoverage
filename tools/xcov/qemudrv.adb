@@ -167,7 +167,7 @@ package body Qemudrv is
       Eargs : constant String_List_Access := new String_List (Opt_Index);
       Nbr_Eargs : Natural := 0;
 
-      ALI_Inputs   : Inputs.Inputs_Type;
+      SCOs_Inputs  : Inputs.Inputs_Type;
       Driver_Index : Integer;
       S : Character;
    begin
@@ -213,8 +213,8 @@ package body Qemudrv is
          then
             Help;
             return;
-         elsif S = '-' and then Full_Switch (Parser) = "-ali" then
-            Inputs.Add_Input (ALI_Inputs, Parameter (Parser));
+         elsif S = '-' and then Full_Switch (Parser) = "-scos" then
+            Inputs.Add_Input (SCOs_Inputs, Parameter (Parser));
          else
             raise Program_Error;
          end if;
@@ -233,7 +233,7 @@ package body Qemudrv is
       end;
 
       if Get_Coverage_Level = MCDC then
-         Inputs.Iterate (ALI_Inputs, Load_SCOs'Access);
+         Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
          Build_Decision_Map (Exe_File.all);
       end if;
 

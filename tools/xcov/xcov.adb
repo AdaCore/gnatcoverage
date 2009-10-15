@@ -109,8 +109,12 @@ procedure Xcov is
       P ("      LEVEL is one of " & All_Known_Coverage_Levels);
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
-      P ("   -l FILE  --routine-list=FILE  Get routine names from LIST");
-      P ("   --ali=FILE                    Add FILE to the list of ALI files");
+      P ("   --routines=<FILE|@LISTFILE> Add ROUTINE, or all routine listed");
+      P ("                               in LISTFILE to the list of routines");
+      P ("   --scos=<FILE|@LISTFILE>     Add FILE being an ALI file,");
+      P ("                               consider all its scos for this");
+      P ("                               operation; or, do that for each ALI");
+      P ("                               file listed in LISTFILE");
       P ("   --output-dir=DIR              Generate reports in DIR");
       P ("   -T FILE --trace=FILE          Add a trace file to the list");
       New_Line;
@@ -153,9 +157,8 @@ procedure Xcov is
    Coverage_Option_Short     : constant String := "-c";
    Annotate_Option           : constant String := "--annotate=";
    Annotate_Option_Short     : constant String := "-a";
-   Routine_List_Option       : constant String := "--routine-list=";
-   Routine_List_Option_Short : constant String := "-l";
-   ALI_Option                : constant String := "--ali=";
+   Routines_Option           : constant String := "--routines=";
+   SCOs_Option               : constant String := "--scos=";
    Final_Report_Option       : constant String := "--report=";
    Final_Report_Option_Short : constant String := "-o";
    Output_Dir_Option         : constant String := "--output-dir=";
@@ -168,6 +171,12 @@ procedure Xcov is
    --  --exec=E tells xcov to use E as the base executable for all the traces
    --  passed for analysis on the xcov command line.
 
+   Deprecated_Routine_List_Option       : constant String := "--routine-list=";
+   Deprecated_Routine_List_Option_Short : constant String := "-l";
+   --  "--routine-list=@LISTFILE" adds all routines listed in LISTFILE to the
+   --  list of routines. Same thing for  "-l ".
+   --  This option is now deprecated; use --routines=@LISTFILE instead.
+
    --  Results of the command line parsing
 
    Command                   : Command_Type := No_Command;
@@ -177,7 +186,8 @@ procedure Xcov is
    Exe_Inputs                : Inputs.Inputs_Type;
    Excluded_Obj_Inputs       : Inputs.Inputs_Type;
    Included_Obj_Inputs       : Inputs.Inputs_Type;
-   ALI_Inputs                : Inputs.Inputs_Type;
+   SCOs_Inputs               : Inputs.Inputs_Type;
+   Routines_Inputs           : Inputs.Inputs_Type;
    Text_Start                : Pc_Type := 0;
 
    Opt_Exe_Name : String_Acc := null;
@@ -366,22 +376,33 @@ procedure Xcov is
                end if;
                Set_Coverage_Level (Level);
 
-            elsif Begins_With (Arg, ALI_Option) then
+            elsif Begins_With (Arg, SCOs_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
                                             2 => Cmd_Coverage,
                                             3 => Cmd_Run));
-               Inputs.Add_Input (ALI_Inputs, Option_Parameter (Arg));
+               Inputs.Add_Input (SCOs_Inputs, Option_Parameter (Arg));
 
-            elsif Arg = Routine_List_Option_Short then
+            elsif Begins_With (Arg, Routines_Option) then
+               Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
+                                            2 => Cmd_Coverage,
+                                            3 => Cmd_Run));
+               Inputs.Add_Input (Routines_Inputs, Option_Parameter (Arg));
+
+            elsif Arg = Deprecated_Routine_List_Option_Short then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
-               Routine_List_Filename :=
+               Deprecated_Routine_List_Filename :=
                  new String'(Next_Arg ("function list"));
+               Inputs.Add_Input (Routines_Inputs,
+                                 "@" & Deprecated_Routine_List_Filename.all);
 
-            elsif Begins_With (Arg, Routine_List_Option) then
+            elsif Begins_With (Arg, Deprecated_Routine_List_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
-               Routine_List_Filename := new String'(Option_Parameter (Arg));
+               Deprecated_Routine_List_Filename :=
+                 new String'(Option_Parameter (Arg));
+               Inputs.Add_Input (Routines_Inputs,
+                                 "@" & Deprecated_Routine_List_Filename.all);
 
             elsif Begins_With (Arg, Exec_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
@@ -600,8 +621,8 @@ begin
          end;
 
       when Cmd_Map_Routines =>
-         Check_Argument_Available (ALI_Inputs, "ALI FILEs", Command);
-         Inputs.Iterate (ALI_Inputs, Load_SCOs'Access);
+         Check_Argument_Available (SCOs_Inputs, "SCOs FILEs", Command);
+         Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
          Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
          return;
 
@@ -856,11 +877,11 @@ begin
                                      & Trace_File_Name);
                   end;
 
-                  --  If there is not routine list, create it from the first
-                  --  executable. A test above allows this only if there is one
-                  --  trace file.
+                  --  If there is no routine in list, get routine names from
+                  --  the first executable. A test earlier allows this only if
+                  --  there is one trace file.
 
-                  if Routine_List_Filename = null then
+                  if Inputs.Length (Routines_Inputs) = 0 then
                      Read_Routines_Name (Exe_File, Exclude => False);
                   end if;
 
@@ -875,9 +896,9 @@ begin
                Fatal_Error ("Please specify a coverage level");
             end if;
 
-            if Routine_List_Filename /= null then
-               Traces_Names.Read_Routines_Name_From_Text
-                 (Routine_List_Filename.all);
+            if Inputs.Length (Routines_Inputs) /= 0 then
+               Inputs.Iterate (Routines_Inputs,
+                               Traces_Names.Add_Routine_Name'Access);
             else
                if Inputs.Length (Trace_Inputs) > 1 then
                   Fatal_Error ("routine list required"
@@ -893,8 +914,8 @@ begin
 
             case Get_Coverage_Level is
                when Object_Coverage_Level =>
-                  if Inputs.Length (ALI_Inputs) /= 0 then
-                     Error ("List of ALI not allowed for object coverage");
+                  if Inputs.Length (SCOs_Inputs) /= 0 then
+                     Error ("List of SCOs not allowed for object coverage");
                   end if;
 
                   Traces_Elf.Build_Routines_Insn_State;
@@ -904,8 +925,9 @@ begin
                   end if;
 
                when Source_Coverage_Level =>
-                  Check_Argument_Available (ALI_Inputs, "ALI FILEs", Command);
-                  Inputs.Iterate (ALI_Inputs, Load_SCOs'Access);
+                  Check_Argument_Available (SCOs_Inputs, "SCOs FILEs",
+                                            Command);
+                  Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
 
                   if Get_Coverage_Level = Stmt then
                      Traces_Elf.Build_Routines_Insn_State;
