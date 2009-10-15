@@ -17,13 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Strings; use Strings;
-
 package Switches is
    Verbose : Boolean := False;
    --  Verbose informational output
-
-   Deprecated_Routine_List_Filename     : String_Acc := null;
-   --  Comment needed???
 
 end Switches;

@@ -17,14 +17,21 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.Strings; use GNAT.Strings;
+
 package Qemudrv is
-   --  If set to true, it is part of xcov.
-   Is_Xcov : Boolean := True;
 
-   --  Do the real work: decode command line (starting from First_Option)
-   --  and run qemu.
-   procedure Driver (First_Option : Natural := 1);
+   procedure Driver
+     (Exe_File : String;
+      Target   : String_Access;
+      Tag      : String_Access;
+      Output   : String_Access;
+      Eargs    : String_List_Access);
+   --  Run Exe_File on QEMU for Target (e.g. "powerpc-elf") with Output
+   --  for trace output file; if Tag is not null, append it to the trace
+   --  header. Add Eargs to QEMU's options.
 
-   --  Display the help.
    procedure Help (Indent : String := "");
+   --  Display the help for command run.
+
 end Qemudrv;

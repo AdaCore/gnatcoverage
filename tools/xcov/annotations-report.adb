@@ -18,9 +18,9 @@
 ------------------------------------------------------------------------------
 
 with Ada.Integer_Text_IO;
+with GNAT.Strings; use GNAT.Strings;
 
 with Hex_Images;  use Hex_Images;
-with Strings;     use Strings;
 with Traces_Disa; use Traces_Disa;
 
 package body Annotations.Report is
@@ -28,7 +28,7 @@ package body Annotations.Report is
    type Final_Report_Type is limited record
       --  Final report information
 
-      Name   : String_Acc := null;
+      Name   : String_Access := null;
       --  Final report's file name
 
       File   : aliased File_Type;
@@ -91,7 +91,7 @@ package body Annotations.Report is
    begin
       if Final_Report.Name /= null then
          Close (Final_Report.File);
-         Unchecked_Deallocation (Final_Report.Name);
+         Free (Final_Report.Name);
       end if;
    end Close_Report_File;
 

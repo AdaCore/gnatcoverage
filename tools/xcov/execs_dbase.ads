@@ -24,6 +24,8 @@
 --  found for a file, the entry is created and the newly created entry
 --  is returned (cf Open_Entry).
 
+with GNAT.Strings; use GNAT.Strings;
+
 with Strings; use Strings;
 with Ada.Containers.Hashed_Maps;
 with Traces_Elf; use Traces_Elf;
@@ -79,7 +81,7 @@ private
    --  Return True if L and R represent the same executable.
 
    package Execs_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type => String_Acc,
+     (Key_Type => String_Access,
       Element_Type => Exec_Base_Entry,
       Hash => Hash,
       Equivalent_Keys => Equal,

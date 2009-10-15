@@ -57,7 +57,7 @@ package Inputs is
    --  Go through the input list and call Process on each entry
 
    function Length (Inputs : Inputs_Type) return Ada.Containers.Count_Type;
-   --  Return the number of elements in Inputs.
+   --  Return the number of elements in Inputs
 
 private
    package Input_Lists is new Ada.Containers.Doubly_Linked_Lists

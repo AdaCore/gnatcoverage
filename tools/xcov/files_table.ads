@@ -19,7 +19,7 @@
 
 private with Ada.Containers.Vectors;
 
-with Strings; use Strings;
+with GNAT.Strings; use GNAT.Strings;
 with Ada.Text_IO; use Ada.Text_IO;
 with Traces_Elf;   use Traces_Elf;
 with Traces_Dbase; use Traces_Dbase;
@@ -143,10 +143,10 @@ package Files_Table is
    type File_Info is record
       --  Source file information.
 
-      File_Name  : String_Acc;
+      File_Name  : String_Access;
       --  File name of the source file, with the path
 
-      Full_Name : String_Acc;
+      Full_Name : String_Access;
       --  Full path name
       --  How is this different from File_Name above???
 

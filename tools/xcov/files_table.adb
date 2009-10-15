@@ -19,6 +19,7 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Directories;
+with Strings; use Strings;
 
 package body Files_Table is
 
@@ -35,7 +36,7 @@ package body Files_Table is
    --  line as No_Code.
 
    package Filename_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => String_Acc,
+     (Key_Type        => String_Access,
       Element_Type    => Source_File_Index,
       Hash            => Hash,
       Equivalent_Keys => Equal,
@@ -48,15 +49,15 @@ package body Files_Table is
    type Source_Search_Entry;
    type Source_Search_Entry_Acc is access Source_Search_Entry;
    type Source_Search_Entry is record
-      Prefix : String_Acc;
+      Prefix : String_Access;
       Next : Source_Search_Entry_Acc;
    end record;
 
    type Source_Rebase_Entry;
    type Source_Rebase_Entry_Acc is access Source_Rebase_Entry;
    type Source_Rebase_Entry is record
-      Old_Prefix : String_Acc;
-      New_Prefix : String_Acc;
+      Old_Prefix : String_Access;
+      New_Prefix : String_Access;
       Next : Source_Rebase_Entry_Acc;
    end record;
 
@@ -162,7 +163,8 @@ package body Files_Table is
    --------------
 
    function Get_Name (Index : Source_File_Index) return String is
-      Full_Name : constant String_Acc := Files_Table.Element (Index).Full_Name;
+      Full_Name : constant String_Access :=
+        Files_Table.Element (Index).Full_Name;
    begin
       if Full_Name /= null then
          return Full_Name.all;
@@ -205,7 +207,7 @@ package body Files_Table is
             Success := False;
       end Try_Open;
 
-      Name : String_Acc;
+      Name : String_Access;
    begin
       Name := Files_Table.Element (Index).Full_Name;
       if Name = null then

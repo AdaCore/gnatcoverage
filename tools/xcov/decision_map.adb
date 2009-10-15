@@ -863,16 +863,6 @@ package body Decision_Map is
       --  Decision map filename is constructed by appending the suffix to the
       --  executable image name.
    begin
-      if Deprecated_Routine_List_Filename /= null then
-         Traces_Names.Read_Routines_Name_From_Text
-           (Deprecated_Routine_List_Filename.all);
-      else
-         Traces_Elf.Read_Routines_Name
-           (Exec_Name,
-            Exclude   => False,
-            Keep_Open => False);
-      end if;
-
       Decision_Map_Filename :=
         new String'(Exec_Name & Decision_Map_Suffix);
       Open_File (Exec, Exec_Name, Text_Start);

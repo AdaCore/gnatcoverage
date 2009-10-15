@@ -48,8 +48,8 @@ with Traces_Disa;
 with Version;
 with Qemudrv;
 with Qemu_Traces;
-with Strings;           use Strings;
 with Traces_Files_List; use Traces_Files_List;
+with GNAT.Strings;      use GNAT.Strings;
 
 procedure Xcov is
 
@@ -160,10 +160,17 @@ procedure Xcov is
    Routines_Option           : constant String := "--routines=";
    SCOs_Option               : constant String := "--scos=";
    Final_Report_Option       : constant String := "--report=";
-   Final_Report_Option_Short : constant String := "-o";
    Output_Dir_Option         : constant String := "--output-dir=";
-   Trace_Option_Short        : constant String := "-T";
    Trace_Option              : constant String := "--trace=";
+   Trace_Option_Short        : constant String := "-T";
+   Target_Option             : constant String := "--target=";
+   Target_Option_Short       : constant String := "-t";
+   Output_Option             : constant String := "--output=";
+   Output_Option_Short       : constant String := "-o";
+   Tag_Option                : constant String := "--tag=";
+   Verbose_Option            : constant String := "--verbose";
+   Verbose_Option_Short      : constant String := "-v";
+   Eargs_Option              : constant String := "-eargs";
 
    --  Undocumented (maintenance only) options
 
@@ -179,18 +186,22 @@ procedure Xcov is
 
    --  Results of the command line parsing
 
-   Command                   : Command_Type := No_Command;
-   Annotation                : Annotation_Format := Annotate_Unknown;
-   Level                     : Coverage_Level;
-   Trace_Inputs              : Inputs.Inputs_Type;
-   Exe_Inputs                : Inputs.Inputs_Type;
-   Excluded_Obj_Inputs       : Inputs.Inputs_Type;
-   Included_Obj_Inputs       : Inputs.Inputs_Type;
-   SCOs_Inputs               : Inputs.Inputs_Type;
-   Routines_Inputs           : Inputs.Inputs_Type;
-   Text_Start                : Pc_Type := 0;
+   Command             : Command_Type := No_Command;
+   Annotation          : Annotation_Format := Annotate_Unknown;
+   Level               : Coverage_Level;
+   Trace_Inputs        : Inputs.Inputs_Type;
+   Exe_Inputs          : Inputs.Inputs_Type;
+   Excluded_Obj_Inputs : Inputs.Inputs_Type;
+   Included_Obj_Inputs : Inputs.Inputs_Type;
+   SCOs_Inputs         : Inputs.Inputs_Type;
+   Routines_Inputs     : Inputs.Inputs_Type;
+   Text_Start          : Pc_Type := 0;
+   Target              : String_Access := null;
+   Output              : String_Access := null;
+   Tag                 : String_Access := null;
+   Eargs               : String_List_Access := null;
 
-   Opt_Exe_Name : String_Acc := null;
+   Opt_Exe_Name : String_Access := null;
    --  Path to executable from the command line; it overrides the default one
    --  from trace files.
 
@@ -227,6 +238,9 @@ procedure Xcov is
          Command : Command_Type := No_Command);
       --  Check that Arg_Index is not greater than Arg_Count. If not, display
       --  an error message and raise Fatal_Error.
+
+      function Rest_Of_Command_Line return String_List_Access;
+      --  Return the rest of the command line in a string list
 
       -----------------
       -- Begins_With --
@@ -301,6 +315,22 @@ procedure Xcov is
          return Res;
       end Parse_Hex;
 
+      --------------------------
+      -- Rest_Of_Command_Line --
+      --------------------------
+
+      function Rest_Of_Command_Line return String_List_Access is
+         Result : constant String_List_Access :=
+           new String_List (1 .. Arg_Count - Arg_Index);
+         I : Natural := 1;
+      begin
+         while Arg_Index < Arg_Count loop
+            Result (I) := new String'(Next_Arg ("eargs"));
+            I := I + 1;
+         end loop;
+         return Result;
+      end Rest_Of_Command_Line;
+
       --  Local variables
 
       Mode_Exclude : Boolean := False;
@@ -321,16 +351,6 @@ procedure Xcov is
       Command := To_Command (Argument (Arg_Index));
       if Command /= No_Command then
          Arg_Index := Arg_Index + 1;
-      end if;
-
-      --  Special case for command "run". The command line is decoded in
-      --  qemudrv.adb.
-      --  ??? This special case shall be removed at some point. The command
-      --  line parsing should be done in xcov.adb, and Qemudrv.Driver should
-      --  not depend on Ada.Command_Line.
-      if Command = Cmd_Run then
-         Qemudrv.Driver (Arg_Index);
-         Normal_Exit;
       end if;
 
       --  Decode options
@@ -354,8 +374,38 @@ procedure Xcov is
                Put_Line ("XCOV Pro " & Standard.Version.Xcov_Version);
                Normal_Exit;
 
-            elsif Arg = "-v" then
+            elsif Arg = Verbose_Option
+              or else Arg = Verbose_Option_Short
+            then
                Verbose := True;
+
+            elsif Arg = Eargs_Option then
+               Check_Option (Arg, Command, (1 => Cmd_Run));
+               Eargs := Rest_Of_Command_Line;
+               return;
+
+            elsif Arg = Target_Option_Short then
+               Check_Option (Arg, Command, (1 => Cmd_Run));
+               Target := new String'(Next_Arg ("target"));
+
+            elsif Begins_With (Arg, Target_Option) then
+               Check_Option (Arg, Command, (1 => Cmd_Run));
+               Target := new String'(Option_Parameter (Arg));
+
+            elsif Arg = Output_Option_Short then
+               Check_Option (Arg, Command, (1 => Cmd_Run,
+                                            2 => Cmd_Coverage));
+               Output := new String'(Next_Arg ("output"));
+
+            elsif Begins_With (Arg, Output_Option) then
+               Check_Option (Arg, Command, (1 => Cmd_Run,
+                                            2 => Cmd_Coverage));
+               Output := new String'(Option_Parameter (Arg));
+
+            elsif Begins_With (Arg, Tag_Option) then
+               --  ??? Tag_Option_Short conflicts with Trace_Option_Short...
+               Check_Option (Arg, Command, (1 => Cmd_Run));
+               Tag := new String'(Option_Parameter (Arg));
 
             elsif Arg = Coverage_Option_Short then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
@@ -391,18 +441,14 @@ procedure Xcov is
             elsif Arg = Deprecated_Routine_List_Option_Short then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
-               Deprecated_Routine_List_Filename :=
-                 new String'(Next_Arg ("function list"));
                Inputs.Add_Input (Routines_Inputs,
-                                 "@" & Deprecated_Routine_List_Filename.all);
+                                 "@" & Next_Arg ("function list"));
 
             elsif Begins_With (Arg, Deprecated_Routine_List_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
-               Deprecated_Routine_List_Filename :=
-                 new String'(Option_Parameter (Arg));
                Inputs.Add_Input (Routines_Inputs,
-                                 "@" & Deprecated_Routine_List_Filename.all);
+                                 "@" & Option_Parameter (Arg));
 
             elsif Begins_With (Arg, Exec_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
@@ -463,12 +509,6 @@ procedure Xcov is
                if Annotation = Annotate_Unknown then
                   Fatal_Error ("bad parameter for " & Annotate_Option);
                end if;
-
-            elsif Arg = Final_Report_Option_Short then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                            2 => Cmd_Run));
-               Annotations.Report.Open_Report_File
-                 (Next_Arg ("final report name"));
 
             elsif Begins_With (Arg, Final_Report_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
@@ -982,11 +1022,34 @@ begin
          end;
 
       when Cmd_Run =>
-         --  We should never end up here. Run has been dealt with
-         --  earlier.
-         pragma Assert (False);
-         return;
+         declare
+            procedure Run (Exe_File : String);
+            --  Run Exe_File in QEMU
 
+            ---------
+            -- Run --
+            ---------
+
+            procedure Run (Exe_File : String) is
+            begin
+               if Get_Coverage_Level = MCDC then
+                  if Inputs.Length (Routines_Inputs) > 0 then
+                     Inputs.Iterate (Routines_Inputs,
+                                     Traces_Names.Add_Routine_Name'Access);
+                  else
+                     Read_Routines_Name (Exe_File, Exclude => False,
+                                         Keep_Open => False);
+                  end if;
+
+                  Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+                  Build_Decision_Map (Exe_File);
+               end if;
+
+               Qemudrv.Driver (Exe_File, Target, Tag, Output, Eargs);
+            end Run;
+         begin
+            Inputs.Iterate (Exe_Inputs, Run'Access);
+         end;
    end case;
 
 exception

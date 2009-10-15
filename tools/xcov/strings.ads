@@ -19,10 +19,11 @@
 
 with Ada.Containers;
 with Ada.Unchecked_Deallocation;
+with GNAT.Strings; use GNAT.Strings;
 
 package Strings is
 
-   type String_Acc is access String;
+   subtype String_Acc is String_Access;
 
    subtype File_Name is String_Acc;
 

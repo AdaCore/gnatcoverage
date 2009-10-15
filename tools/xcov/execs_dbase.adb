@@ -93,7 +93,7 @@ package body Execs_Dbase is
    is
       use Execs_Maps;
       Text_Start     : constant Pc_Type := 0;
-      Exec_File_Name : String_Acc := new String'(File_Name);
+      Exec_File_Name : String_Access := new String'(File_Name);
       Base_Entry     : Exec_Base_Entry;
       Position       : constant Cursor := Find (Execs.all,
                                                 Exec_File_Name);
