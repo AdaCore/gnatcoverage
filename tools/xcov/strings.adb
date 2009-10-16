@@ -41,6 +41,16 @@ package body Strings is
    end Equal;
 
    ---------
+   -- Img --
+   ---------
+
+   function Img (I : Integer) return String is
+      Result : constant String := Integer'Image (I);
+   begin
+      return Result (Result'First + 1 .. Result'Last);
+   end Img;
+
+   ---------
    -- "<" --
    ---------
 

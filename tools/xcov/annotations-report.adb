@@ -17,11 +17,10 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Integer_Text_IO;
+with Ada.Directories;
 with GNAT.Strings; use GNAT.Strings;
-
-with Hex_Images;  use Hex_Images;
-with Traces_Disa; use Traces_Disa;
+with Strings; use Strings;
+with Coverage; use Coverage;
 
 package body Annotations.Report is
 
@@ -43,10 +42,9 @@ package body Annotations.Report is
    type Report_Pretty_Printer is new Pretty_Printer with record
       --  Pretty printer type for the final report
 
-      Print_Current_Line : Boolean := False;
-      --  When going through the source file list, this marks
-      --  whether or not the current line's coverage information is relevant
-      --  in the final report.
+      Current_Filename : String_Access := null;
+      --  When going through the lines of a source file,
+      --  This is set to the current source file name.
    end record;
 
    --------------------------------------------------
@@ -66,19 +64,6 @@ package body Annotations.Report is
       Line_Num : Natural;
       Info     : Line_Info_Access;
       Line : String);
-
-   procedure Pretty_Print_Start_Symbol
-     (Pp     : in out Report_Pretty_Printer;
-      Name   : String;
-      Offset : Pc_Type;
-      State  : Line_State);
-
-   procedure Pretty_Print_Insn
-     (Pp    : in out Report_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class);
 
    procedure Pretty_Print_End_File
      (Pp : in out Report_Pretty_Printer);
@@ -114,11 +99,7 @@ package body Annotations.Report is
 
    procedure Finalize_Report is
       Report_PP : Report_Pretty_Printer;
-      Output    : constant File_Access := Get_Output;
    begin
-      Put_Line (Output.all, "ERRORS BY SOURCE LINE:");
-      New_Line (Output.all);
-
       Annotations.Generate_Report (Report_PP, False);
       Close_Report_File;
    end Finalize_Report;
@@ -145,31 +126,6 @@ package body Annotations.Report is
       null;
    end Pretty_Print_End_File;
 
-   -----------------------
-   -- Pretty_Print_Insn --
-   -----------------------
-
-   procedure Pretty_Print_Insn
-     (Pp    : in out Report_Pretty_Printer;
-      Pc    : Pc_Type;
-      State : Insn_State;
-      Insn  : Binary_Content;
-      Sym   : Symbolizer'Class)
-   is
-      Output : constant File_Access := Get_Output;
-   begin
-      if Pp.Print_Current_Line then
-         Put (Output.all, Hex_Image (Pc));
-         Put (Output.all, ' ' & Insn_State_Char (State) & ":  ");
-         for I in Insn'Range loop
-            Put (Output.all, Hex_Image (Insn (I)));
-            Put (Output.all, " ");
-         end loop;
-         Put (Output.all, " ");
-         Put_Line (Output.all, Disassemble (Insn, Pc, Sym));
-      end if;
-   end Pretty_Print_Insn;
-
    -----------------------------
    -- Pretty_Print_Start_File --
    -----------------------------
@@ -181,25 +137,18 @@ package body Annotations.Report is
       Has_Source      : Boolean;
       Skip            : out Boolean)
    is
-      pragma Unreferenced (Pp);
-      P      : constant Counters := Get_Counters (Stats);
-      Output : constant File_Access := Get_Output;
+      pragma Unreferenced (Has_Source);
+      P : constant Counters := Get_Counters (Stats);
    begin
-      Skip := True;
+      if P.Fully /= P.Total then
+         if Pp.Current_Filename /= null then
+            Free (Pp.Current_Filename);
+         end if;
 
-      if not Flag_Show_Missing and then not Has_Source then
-         return;
-      end if;
-
-      if P.Fully = 0 then
-         Put (Output.all, Source_Filename & ':');
-         Put_Line (Output.all, " not covered");
-         New_Line (Output.all);
-         Skip := True;
-      elsif P.Fully /= P.Total then
-         Put (Output.all, Source_Filename & ':');
-         Put_Line (Output.all, " not fully covered");
+         Pp.Current_Filename := new String'(Source_Filename);
          Skip := False;
+      else
+         Skip := True;
       end if;
    end Pretty_Print_Start_File;
 
@@ -213,44 +162,24 @@ package body Annotations.Report is
       Info     : Line_Info_Access;
       Line     : String)
    is
-      use Ada.Integer_Text_IO;
+      use Ada.Directories;
 
+      pragma Unreferenced (Line);
       Output : constant File_Access := Get_Output;
       State  : constant Line_State := Info.State;
    begin
       if State /= Covered
         and then State /= No_Code
       then
-         New_Line (Output.all);
-         Put (Output.all, Line_Num, 4);
-         Put (Output.all, ' ');
-         Put (Output.all, State_Char (State));
+         Put (Output.all, Simple_Name (Pp.Current_Filename.all));
+         Put (":");
+         Put (Output.all, Img (Line_Num));
          Put (Output.all, ": ");
-         Put (Output.all, Line);
+         Put (Output.all, "line not covered for ");
+         Put (Output.all, To_Coverage_Option (Get_Coverage_Level));
+         Put (Output.all, " coverage");
          New_Line (Output.all);
-         Pp.Print_Current_Line := State /= Not_Covered;
-      else
-         Pp.Print_Current_Line := False;
       end if;
    end Pretty_Print_Start_Line;
-
-   -------------------------------
-   -- Pretty_Print_Start_Symbol --
-   -------------------------------
-
-   procedure Pretty_Print_Start_Symbol
-     (Pp     : in out Report_Pretty_Printer;
-      Name   : String;
-      Offset : Pc_Type;
-      State  : Line_State)
-   is
-      pragma Unreferenced (State);
-      Output : constant File_Access := Get_Output;
-      Label  : constant String := "<" & Name & "+" & Hex_Image (Offset) & ">:";
-   begin
-      if Pp.Print_Current_Line then
-         Put_Line (Output.all, Label);
-      end if;
-   end Pretty_Print_Start_Symbol;
 
 end Annotations.Report;

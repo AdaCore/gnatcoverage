@@ -36,6 +36,9 @@ package Strings is
    function "<" (L, R : String_Access) return Boolean;
    --  Assuming that L and R are not null, return true iff L.all < R.all
 
+   function Img (I : Integer) return String;
+   --  Same as Integer'Image without the starting space character
+
 private
    pragma Inline (Hash);
    pragma Inline (Equal);
