@@ -403,7 +403,6 @@ procedure Xcov is
                Output := new String'(Option_Parameter (Arg));
 
             elsif Begins_With (Arg, Tag_Option) then
-               --  ??? Tag_Option_Short conflicts with Trace_Option_Short...
                Check_Option (Arg, Command, (1 => Cmd_Run));
                Tag := new String'(Option_Parameter (Arg));
 
@@ -523,8 +522,15 @@ procedure Xcov is
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Dump_Trace,
                                             3 => Cmd_Dump_Trace_Base,
-                                            4 => Cmd_Dump_Trace_Asm));
-               Inputs.Add_Input (Trace_Inputs, Next_Arg ("trace file"));
+                                            4 => Cmd_Dump_Trace_Asm,
+                                            5 => Cmd_Run));
+
+               --  Tag_Option_Short conflicts with Trace_Option_Short...
+               if Command = Cmd_Run then
+                  Tag := new String'(Next_Arg (Arg));
+               else
+                  Inputs.Add_Input (Trace_Inputs, Next_Arg ("trace file"));
+               end if;
 
             elsif Begins_With (Arg, Trace_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
