@@ -18,13 +18,13 @@
 ------------------------------------------------------------------------------
 with Traces_Files; use Traces_Files;
 with Ada.Containers.Doubly_Linked_Lists;
-with Strings; use Strings;
+with GNAT.Strings; use GNAT.Strings;
 
 --  This package is just a place-holder to contain all traces files.
 package Traces_Files_List is
    type Trace_File_Element is record
       Trace : Trace_File_Type;
-      Filename : String_Acc;
+      Filename : String_Access;
    end record;
 
    type Trace_File_Element_Acc is access Trace_File_Element;

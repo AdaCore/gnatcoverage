@@ -24,6 +24,7 @@ with Ada.Containers.Vectors;
 with Ada.Directories;   use Ada.Directories;
 with Ada.Text_IO;       use Ada.Text_IO;
 with Interfaces;        use Interfaces;
+with GNAT.Strings;      use GNAT.Strings;
 
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;        use Hex_Images;
@@ -31,7 +32,6 @@ with SC_Obligations;    use SC_Obligations;
 with Qemu_Traces;
 with Slocs;             use Slocs;
 with Files_Table;       use Files_Table;
-with Strings;           use Strings;
 with Switches;          use Switches;
 with Traces;            use Traces;
 with Traces_Dbase;      use Traces_Dbase;
@@ -186,7 +186,7 @@ package body Decision_Map is
    --  the Source Coverage Obligations (which must have been loaded already).
 
    procedure Analyze_Routine
-     (Name : String_Acc;
+     (Name : String_Access;
       Info : in out Subprogram_Info);
    --  Build decision map for the given subprogram
 
@@ -727,7 +727,7 @@ package body Decision_Map is
    ---------------------
 
    procedure Analyze_Routine
-     (Name : String_Acc;
+     (Name : String_Access;
       Info : in out Subprogram_Info)
    is
       PC       : Pc_Type;
@@ -858,7 +858,7 @@ package body Decision_Map is
       Text_Start : constant Pc_Type := 0;
       --  Should be a global option???
 
-      Decision_Map_Filename     : String_Acc := null;
+      Decision_Map_Filename     : String_Access := null;
       Decision_Map_Suffix       : constant String := ".dmap";
       --  Decision map filename is constructed by appending the suffix to the
       --  executable image name.

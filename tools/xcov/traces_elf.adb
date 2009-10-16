@@ -25,7 +25,7 @@ with Interfaces; use Interfaces;
 
 with System.Storage_Elements; use System.Storage_Elements;
 
-with GNAT.OS_Lib; use GNAT.OS_Lib;
+with GNAT.OS_Lib;
 
 with Coverage;          use Coverage;
 with Coverage.Object;   use Coverage.Object;
@@ -121,7 +121,7 @@ package body Traces_Elf is
    procedure Read_Debug_Lines
      (Exec                  : in out Exe_File_Type;
       Stmt_List_Offset      : Unsigned_32;
-      Compilation_Directory : String_Acc);
+      Compilation_Directory : String_Access);
    --  Read the debug lines of a compilation unit.
    --  Stmt_List_Offset is the offset of a stmt list from the
    --  beginning of the .debug_line section of Exec; Compilation_Directory
@@ -144,12 +144,12 @@ package body Traces_Elf is
    --  The low bound of CONTENT is 0.
 
    function Build_Filename (Dir : String; Filename : String)
-                           return String_Acc;
+                           return String_Access;
    --  Create a filename from a directory name and a filename.
    --  The directory name is expected to be not empty.
    --  If the filename looks like a Windows filename, it is canonicalized.
 
-   Empty_String_Acc : constant String_Acc := new String'("");
+   Empty_String_Acc : constant String_Access := new String'("");
 
    ---------
    -- "<" --
@@ -158,14 +158,14 @@ package body Traces_Elf is
    function "<" (L, R : Addresses_Info_Acc) return Boolean is
       pragma Assert (L.Kind = R.Kind);
 
-      function Names_Lt (LN, RN : String_Acc) return Boolean;
+      function Names_Lt (LN, RN : String_Access) return Boolean;
       --  Compare desginated strings, null is higher than any non-null string
 
       --------------
       -- Names_Lt --
       --------------
 
-      function Names_Lt (LN, RN : String_Acc) return Boolean is
+      function Names_Lt (LN, RN : String_Access) return Boolean is
       begin
          if LN = null then
             return False;
@@ -954,8 +954,8 @@ package body Traces_Elf is
 
       Current_Sec     : Addresses_Info_Acc;
       Current_Subprg  : Addresses_Info_Acc;
-      Compilation_Dir : String_Acc;
-      Unit_Filename   : String_Acc;
+      Compilation_Dir : String_Access;
+      Unit_Filename   : String_Access;
       Subprg_Low      : Pc_Type;
 
    begin
@@ -1153,11 +1153,11 @@ package body Traces_Elf is
 
    package Filenames_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive,
-      Element_Type => String_Acc,
+      Element_Type => String_Access,
       "=" => "=");
 
    function Build_Filename
-     (Dir : String; Filename : String) return String_Acc
+     (Dir : String; Filename : String) return String_Access
    is
       use Ada.Characters.Handling;
       Res : String := Dir & '/' & Filename;
@@ -1189,7 +1189,7 @@ package body Traces_Elf is
    procedure Read_Debug_Lines
      (Exec                  : in out Exe_File_Type;
       Stmt_List_Offset      : Unsigned_32;
-      Compilation_Directory : String_Acc)
+      Compilation_Directory : String_Access)
    is
       use Dwarf;
       Base : Address;
@@ -1376,13 +1376,13 @@ package body Traces_Elf is
 
          declare
             Filename : constant String := Read_String (Base + Old_Off);
-            Dir      : String_Acc;
+            Dir      : String_Access;
          begin
             if File_Dir /= 0
               and then File_Dir <= Nbr_Dirnames then
                Dir := Filenames_Vectors.Element (Dirnames, Integer (File_Dir));
             elsif Compilation_Directory /= null
-              and then not Is_Absolute_Path (Filename) then
+              and then not GNAT.OS_Lib.Is_Absolute_Path (Filename) then
                Dir := Compilation_Directory;
             else
                Dir := Empty_String_Acc;
@@ -2361,7 +2361,7 @@ package body Traces_Elf is
       use Traces_Names;
 
       procedure Build_Source_Lines_For_Routine
-        (Name : String_Acc;
+        (Name : String_Access;
          Info : in out Subprogram_Info);
       --  Build source line information from debug information for the given
       --  routine.
@@ -2371,7 +2371,7 @@ package body Traces_Elf is
       ------------------------------------
 
       procedure Build_Source_Lines_For_Routine
-        (Name : String_Acc;
+        (Name : String_Access;
          Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Name);
@@ -2397,7 +2397,7 @@ package body Traces_Elf is
       use Traces_Names;
 
       procedure Build_Routine_Insn_State
-        (Name : String_Acc;
+        (Name : String_Access;
          Info : in out Subprogram_Info);
       --  Set trace state for the given routine
 
@@ -2406,7 +2406,7 @@ package body Traces_Elf is
       ------------------------------
 
       procedure Build_Routine_Insn_State
-        (Name : String_Acc;
+        (Name : String_Access;
          Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Name);
@@ -2673,7 +2673,7 @@ package body Traces_Elf is
       Strtabs : Binary_Content_Acc;
 
       A_Sym : Elf_Sym;
-      Sym_Name : String_Acc;
+      Sym_Name : String_Access;
 
       Sym_Type : Unsigned_8;
       Cur : Addresses_Containers.Cursor;
@@ -2774,7 +2774,7 @@ package body Traces_Elf is
             --  Get the first symbol in the section
 
             while Sym /= null and then Sym.First < Addr loop
-               Unchecked_Deallocation (Sym.Symbol_Name);
+               Free (Sym.Symbol_Name);
                Unchecked_Deallocation (Sym);
                Next (Cur_Sym);
                if not Has_Element (Cur_Sym) then
@@ -2821,7 +2821,7 @@ package body Traces_Elf is
                   Addr := Addr + 1;
                end if;
 
-               Unchecked_Deallocation (Sym.Symbol_Name);
+               Free (Sym.Symbol_Name);
                Unchecked_Deallocation (Sym);
                Next (Cur_Sym);
                if not Has_Element (Cur_Sym) then

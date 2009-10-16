@@ -100,7 +100,7 @@ package body Execs_Dbase is
    begin
       if Position /= No_Element then
          Exec := Element (Position).Exec;
-         Unchecked_Deallocation (Exec_File_Name);
+         Free (Exec_File_Name);
       else
          Exec := new Exe_File_Type;
          Base_Entry.Exec_File_Name := Exec_File_Name;

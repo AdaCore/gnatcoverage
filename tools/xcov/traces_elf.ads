@@ -17,6 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.Strings; use GNAT.Strings;
 with Ada.Unchecked_Deallocation;
 with Ada.Containers.Ordered_Sets;
 
@@ -26,7 +27,6 @@ with Elf_Arch;     use Elf_Arch;
 with Elf_Common;   use Elf_Common;
 with Elf_Files;    use Elf_Files;
 with Slocs;        use Slocs;
-with Strings;      use Strings;
 
 with Interfaces;
 
@@ -190,15 +190,15 @@ package Traces_Elf is
 
       case Kind is
          when Section_Addresses =>
-            Section_Name : String_Acc;
+            Section_Name : String_Access;
             Section_Index : Elf_Common.Elf_Half;
             Section_Content : Binary_Content_Acc;
 
          when Subprogram_Addresses =>
-            Subprogram_Name : String_Acc;
+            Subprogram_Name : String_Access;
 
          when Symbol_Addresses =>
-            Symbol_Name : String_Acc;
+            Symbol_Name : String_Access;
 
          when Line_Addresses =>
             Sloc : Source_Location := No_Location;
@@ -236,8 +236,8 @@ package Traces_Elf is
 private
 
    type Compile_Unit_Desc is record
-      Compile_Unit_Filename : String_Acc;
-      Compilation_Directory : String_Acc;
+      Compile_Unit_Filename : String_Access;
+      Compilation_Directory : String_Access;
       Stmt_List             : Interfaces.Unsigned_32;
    end record;
 

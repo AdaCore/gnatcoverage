@@ -19,11 +19,10 @@
 
 with GNAT.OS_Lib;      use GNAT.OS_Lib;
 with Ada.Command_Line; use Ada.Command_Line;
-with Strings;          use Strings;
 
 package body Outputs is
 
-   Report_Output_Dir : String_Acc := null;
+   Report_Output_Dir : String_Access := null;
    --  Name of the output directory. The reports will be generated
    --  in this directory.
 

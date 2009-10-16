@@ -17,10 +17,11 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.Strings; use GNAT.Strings;
+
 with Traces_Disa;
 with Hex_Images;
 with Traces_Names; use Traces_Names;
-with Strings; use Strings;
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Lines; use Traces_Lines;
 with Traces_Elf; use Traces_Elf;
@@ -37,12 +38,12 @@ package body Traces_Dump is
       use Traces_Disa;
 
       procedure Process_One
-        (Name : String_Acc;
+        (Name : String_Access;
          Info : in out Subprogram_Info);
       --  Display traces for one routine
 
       procedure Process_One
-        (Name : String_Acc;
+        (Name : String_Access;
          Info : in out Subprogram_Info)
       is
          use Hex_Images;
@@ -94,12 +95,12 @@ package body Traces_Dump is
       use Traces_Disa;
 
       procedure Process_One
-        (Name : String_Acc;
+        (Name : String_Access;
          Info : in out Subprogram_Info);
       --  Report information for the given routine
 
       procedure Process_One
-        (Name : String_Acc;
+        (Name : String_Access;
          Info : in out Subprogram_Info)
       is
          Routine_State : constant Line_State :=

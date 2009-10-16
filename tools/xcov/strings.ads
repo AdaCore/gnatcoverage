@@ -18,31 +18,26 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers;
-with Ada.Unchecked_Deallocation;
 with GNAT.Strings; use GNAT.Strings;
 
 package Strings is
 
-   subtype String_Acc is String_Access;
+   subtype File_Name is String_Access;
 
-   subtype File_Name is String_Acc;
-
-   procedure Unchecked_Deallocation is
-     new Ada.Unchecked_Deallocation (String, String_Acc);
-
-   function Hash (El : String_Acc) return Ada.Containers.Hash_Type;
+   function Hash (El : String_Access) return Ada.Containers.Hash_Type;
    --  Compute a hash from El.all
 
-   function Equal (L, R : String_Acc) return Boolean;
-   --  Return true iff L and R designate identical strings
-   --  Why not redefine operator "="???
+   function Equal (L, R : String_Access) return Boolean;
+   --  Assuming that L and R are not null, return true iff L and R designate
+   --  identical strings.
+   --  We do not redefine "=" here, so that a String_Access can be compared to
+   --  null.
 
-   function Less_Than (L, R : String_Acc) return Boolean;
-   --  Return true iff L.all < R.all
-   --  Why not redefine operator "<"???
+   function "<" (L, R : String_Access) return Boolean;
+   --  Assuming that L and R are not null, return true iff L.all < R.all
 
 private
    pragma Inline (Hash);
    pragma Inline (Equal);
-   pragma Inline (Less_Than);
+   pragma Inline ("<");
 end Strings;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2008, AdaCore                       --
+--                        Copyright (C) 2009, AdaCore                       --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -105,7 +105,7 @@ private
    function To_Strtab_Fat_Acc is new Ada.Unchecked_Conversion
      (Address, Strtab_Fat_Acc);
 
-   type String_Acc is access String;
+   type String_Access is access String;
 
    function To_Elf_Ehdr_Acc is new Ada.Unchecked_Conversion
      (Address, Elf_Ehdr_Acc);
@@ -123,7 +123,7 @@ private
 
    type Elf_File is record
       --  Name of the file.
-      Filename : String_Acc;
+      Filename : String_Access;
 
       Fd : GNAT.OS_Lib.File_Descriptor;
 

@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Doubly_Linked_Lists;
+with GNAT.Strings; use GNAT.Strings;
 with Strings; use Strings;
 
 package Inputs is
@@ -61,7 +62,7 @@ package Inputs is
 
 private
    package Input_Lists is new Ada.Containers.Doubly_Linked_Lists
-     (Element_Type => String_Acc,
+     (Element_Type => String_Access,
       "="          => Equal);
 
    type Inputs_Type is new Input_Lists.List with null record;

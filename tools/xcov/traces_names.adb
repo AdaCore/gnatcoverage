@@ -22,6 +22,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Coverage.Object; use Coverage.Object;
 with Inputs; use Inputs;
 with Outputs; use Outputs;
+with Strings; use Strings;
 with Interfaces;
 
 with Traces;
@@ -39,9 +40,9 @@ package body Traces_Names is
    end Equal;
 
    package Names_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type => String_Acc,
+     (Key_Type => String_Access,
       Element_Type => Subprogram_Info,
-      "<" => Less_Than,
+      "<" => "<",
       "=" => Equal);
 
    Names : Names_Maps.Map;
@@ -53,7 +54,7 @@ package body Traces_Names is
    -------------------------
 
    procedure Add_Code_And_Traces
-     (Routine_Name : String_Acc;
+     (Routine_Name : String_Access;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
       Base         : access Traces_Base)
@@ -62,9 +63,19 @@ package body Traces_Names is
       use Traces;
       use Interfaces;
 
-      procedure Update (Key : String_Acc; Subp_Info : in out Subprogram_Info);
+      procedure Update
+        (Key : String_Access;
+         Subp_Info : in out Subprogram_Info);
+      --  Update the subprogram info of the routine whose name is Key
+      --  in the name table
 
-      procedure Update (Key : String_Acc; Subp_Info : in out Subprogram_Info)
+      ------------
+      -- Update --
+      ------------
+
+      procedure Update
+        (Key : String_Access;
+         Subp_Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Key);
          Trace_Cursor : Entry_Iterator;
@@ -153,7 +164,7 @@ package body Traces_Names is
    ----------------------
 
    procedure Add_Routine_Name
-     (Name : String_Acc;
+     (Name : String_Access;
       Exec : Exe_File_Acc := null)
    is
    begin
@@ -164,7 +175,7 @@ package body Traces_Names is
    end Add_Routine_Name;
 
    procedure Add_Routine_Name (Name : String) is
-      Element : constant String_Acc := new String'(Name);
+      Element : constant String_Access := new String'(Name);
       Cur     : constant Names_Maps.Cursor := Names.Find (Element);
    begin
       if Names_Maps.Has_Element (Cur) then
@@ -244,7 +255,7 @@ package body Traces_Names is
    -------------
 
    procedure Iterate
-     (Proc : access procedure (Subp_Name : String_Acc;
+     (Proc : access procedure (Subp_Name : String_Access;
                                Subp_Info : in out Subprogram_Info))
    is
       use Names_Maps;
@@ -279,7 +290,7 @@ package body Traces_Names is
    -- Remove_Routine_Name --
    -------------------------
 
-   procedure Remove_Routine_Name (Name : String_Acc) is
+   procedure Remove_Routine_Name (Name : String_Access) is
    begin
       Names.Exclude (Name);
    end Remove_Routine_Name;

@@ -22,12 +22,12 @@
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Lines; use Traces_Lines;
 with Traces_Elf; use Traces_Elf;
-with Strings; use Strings;
+with GNAT.Strings; use GNAT.Strings;
 
 package Traces_Names is
 
    procedure Add_Routine_Name
-     (Name : String_Acc;
+     (Name : String_Access;
       Exec : Exe_File_Acc := null);
    --  Add a routine name to the database, and allocate an associated
    --  Subprogram_Info record (see below). Constraint_Error is raised if
@@ -52,11 +52,11 @@ package Traces_Names is
       --  Traces for the subprogram.
    end record;
 
-   procedure Remove_Routine_Name (Name : String_Acc);
+   procedure Remove_Routine_Name (Name : String_Access);
    --  Remove a routine from the database
 
    procedure Iterate
-     (Proc : access procedure (Subp_Name : String_Acc;
+     (Proc : access procedure (Subp_Name : String_Access;
                                Subp_Info : in out Subprogram_Info));
    --  Execute Proc for each routine in the database
 
@@ -70,7 +70,7 @@ package Traces_Names is
    --  Display the list of routines (on standard output).
 
    procedure Add_Code_And_Traces
-     (Routine_Name : String_Acc;
+     (Routine_Name : String_Access;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
       Base         : access Traces_Base);

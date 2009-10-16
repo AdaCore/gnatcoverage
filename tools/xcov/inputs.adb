@@ -90,7 +90,7 @@ package body Inputs is
       -------------------------
 
       procedure Input_Lists_Process (Position : Cursor) is
-         Input : constant String_Acc := Element (Position);
+         Input : constant String_Access := Element (Position);
       begin
          Process (Input.all);
       end Input_Lists_Process;

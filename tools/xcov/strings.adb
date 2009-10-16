@@ -25,7 +25,7 @@ package body Strings is
    -- Hash --
    ----------
 
-   function Hash (El : String_Acc) return Ada.Containers.Hash_Type is
+   function Hash (El : String_Access) return Ada.Containers.Hash_Type is
    begin
       return Ada.Strings.Hash (El.all);
    end Hash;
@@ -34,17 +34,20 @@ package body Strings is
    -- Equal --
    -----------
 
-   function Equal (L, R : String_Acc) return Boolean is
+   function Equal (L, R : String_Access) return Boolean is
    begin
+      pragma Assert (L /= null and then R /= null);
       return L.all = R.all;
    end Equal;
 
-   ---------------
-   -- Less_Than --
-   ---------------
+   ---------
+   -- "<" --
+   ---------
 
-   function Less_Than (L, R : String_Acc) return Boolean is
+   function "<" (L, R : String_Access) return Boolean is
    begin
+      pragma Assert (L /= null and then R /= null);
       return L.all < R.all;
-   end Less_Than;
+   end "<";
+
 end Strings;

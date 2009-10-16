@@ -101,7 +101,7 @@ package body Elf_Files is
    is
       use GNAT.OS_Lib;
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (String, String_Acc);
+        (String, String_Access);
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
         (Elf_Shdr_Arr, Elf_Shdr_Arr_Acc);
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
