@@ -1018,8 +1018,6 @@ begin
 
                when Annotate_Report =>
                   Dump_Coverage_Option (Annotations.Report.Get_Output);
-                  Traces_Dump.Dump_Uncovered_Routines
-                    (Annotations.Report.Get_Output);
                   Annotations.Report.Finalize_Report;
 
                when Annotate_Unknown =>
