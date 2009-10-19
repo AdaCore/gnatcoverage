@@ -191,8 +191,7 @@ procedure Xcov is
    Level               : Coverage_Level;
    Trace_Inputs        : Inputs.Inputs_Type;
    Exe_Inputs          : Inputs.Inputs_Type;
-   Excluded_Obj_Inputs : Inputs.Inputs_Type;
-   Included_Obj_Inputs : Inputs.Inputs_Type;
+   Obj_Inputs          : Inputs.Inputs_Type;
    SCOs_Inputs         : Inputs.Inputs_Type;
    Routines_Inputs     : Inputs.Inputs_Type;
    Text_Start          : Pc_Type := 0;
@@ -330,10 +329,6 @@ procedure Xcov is
          end loop;
          return Result;
       end Rest_Of_Command_Line;
-
-      --  Local variables
-
-      Mode_Exclude : Boolean := False;
 
       --  Start of processing for Command_Line_Handling
 
@@ -540,12 +535,10 @@ procedure Xcov is
                Inputs.Add_Input (Trace_Inputs, Option_Parameter (Arg));
 
             elsif Arg = "--exclude" then
-               Check_Option (Arg, Command, (1 => Cmd_Disp_Routines));
-               Mode_Exclude := True;
+               Inputs.Add_Input (Obj_Inputs, Arg);
 
             elsif Arg = "--include" then
-               Check_Option (Arg, Command, (1 => Cmd_Disp_Routines));
-               Mode_Exclude := False;
+               Inputs.Add_Input (Obj_Inputs, Arg);
 
             elsif Arg (1) = '-' then
                Fatal_Error ("unknown option: " & Arg);
@@ -563,11 +556,7 @@ procedure Xcov is
                      Inputs.Add_Input (Trace_Inputs, Arg);
 
                   when Cmd_Disp_Routines =>
-                     if Mode_Exclude then
-                        Inputs.Add_Input (Excluded_Obj_Inputs, Arg);
-                     else
-                        Inputs.Add_Input (Included_Obj_Inputs, Arg);
-                     end if;
+                     Inputs.Add_Input (Obj_Inputs, Arg);
 
                   when Cmd_Dump_Sections
                     | Cmd_Dump_Symbols
@@ -619,49 +608,36 @@ begin
 
       when Cmd_Disp_Routines =>
          declare
+            Mode_Exclude : Boolean := False;
 
-            procedure Include_Routine (Obj_File_Name : String);
-            --  Include routines of Obj_File_Name in the routine
-            --  database.
+            procedure Read_Routine_Name (Disp_Routine_Arg : String);
+            --  Process Disp_Routine_Arg:
+            --  * if it equals "--exclude", switch mode to exclude;
+            --  * if it equals "--include", switch mode to include;
+            --  * otherwise, consider Disp_Routine_Arg as a object file name
+            --    and exclude or include it according to the current mode.
 
-            procedure Exclude_Routine (Obj_File_Name : String);
-            --  Exclude routines of Obj_File_Name from the routine
-            --  database.
+            -----------------------
+            -- Read_Routine_Name --
+            -----------------------
 
-            ---------------------
-            -- Exclude_Routine --
-            ---------------------
-
-            procedure Exclude_Routine (Obj_File_Name : String) is
+            procedure Read_Routine_Name (Disp_Routine_Arg : String) is
             begin
-               Traces_Elf.Read_Routines_Name
-                 (Obj_File_Name,
-                  Exclude   => True,
-                  Keep_Open => False);
-            exception
-               when Elf_Files.Error =>
-                  Fatal_Error ("can't open: " & Obj_File_Name);
-            end Exclude_Routine;
-
-            ---------------------
-            -- Include_Routine --
-            ---------------------
-
-            procedure Include_Routine (Obj_File_Name : String) is
-            begin
-               Traces_Elf.Read_Routines_Name
-                 (Obj_File_Name,
-                  Exclude   => False,
-                  Keep_Open => False);
-            exception
-               when Elf_Files.Error =>
-                  Fatal_Error ("can't open: " & Obj_File_Name);
-            end Include_Routine;
+               if Disp_Routine_Arg = "--exclude" then
+                  Mode_Exclude := True;
+               elsif Disp_Routine_Arg = "--include" then
+                  Mode_Exclude := False;
+               else
+                  Traces_Elf.Read_Routines_Name
+                    (Disp_Routine_Arg,
+                     Exclude   => Mode_Exclude,
+                     Keep_Open => False);
+               end if;
+            end Read_Routine_Name;
 
          begin
-            Check_Argument_Available (Included_Obj_Inputs, "EXEC", Command);
-            Inputs.Iterate (Included_Obj_Inputs, Include_Routine'Access);
-            Inputs.Iterate (Excluded_Obj_Inputs, Exclude_Routine'Access);
+            Check_Argument_Available (Obj_Inputs, "EXEC", Command);
+            Inputs.Iterate (Obj_Inputs, Read_Routine_Name'Access);
             Traces_Names.Disp_All_Routines;
             return;
          end;
