@@ -29,9 +29,9 @@ with Coverage.Source;
 package body Annotations is
 
    procedure Disp_File_Line_State
-     (Pp       : in out Pretty_Printer'Class;
-      Filename : String;
-      File     : Files_Table.File_Info_Access);
+     (Pp         : in out Pretty_Printer'Class;
+      File_Index : Source_File_Index;
+      File       : Files_Table.File_Info_Access);
    --  Comment needed???
 
    --------------------------
@@ -39,7 +39,7 @@ package body Annotations is
    --------------------------
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'Class;
-                                   Filename : String;
+                                   File_Index : Source_File_Index;
                                    File : Files_Table.File_Info_Access)
    is
       use Traces_Disa;
@@ -148,7 +148,6 @@ package body Annotations is
 
       Line       : Natural;
       Skip       : Boolean;
-      File_Index : constant Source_File_Index := Get_Index (Filename);
 
       --  Start of processing for Disp_File_Line_State
 
@@ -156,10 +155,12 @@ package body Annotations is
       Files_Table.Open (F, File_Index, Has_Source);
 
       if not Has_Source then
-         Put_Line (Standard_Error, "warning: can't open " & Filename);
+         Put_Line (Standard_Error, "warning: can't open "
+                     & Get_Name (File_Index));
       end if;
 
-      Pretty_Print_Start_File (Pp, Filename, File.Stats, Has_Source, Skip);
+      Pretty_Print_Start_File
+        (Pp, Get_Name (File_Index), File.Stats, Has_Source, Skip);
       if Skip then
          if Has_Source then
             Close (F);
@@ -273,7 +274,7 @@ package body Annotations is
          FI : constant File_Info_Access := Files_Table_Element (Index);
       begin
          if FI.To_Display then
-            Disp_File_Line_State (Pp, Files_Table.Get_Name (Index), FI);
+            Disp_File_Line_State (Pp, Index, FI);
          end if;
       end Process_One_File;
 
