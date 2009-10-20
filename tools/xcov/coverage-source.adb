@@ -59,10 +59,16 @@ package body Coverage.Source is
       Obj_Info : Object_Coverage_Info_Acc;
    begin
       if Line.Src_First = null then
-         --  No slocs associated with this source line.
+         --  No scos associated with this source line.
 
          --  ??? Have a debug mode to warn if there is object code with
          --  this line ?
+         Line.State := No_Code;
+         return;
+      end if;
+
+      if Line.Obj_First = null then
+         --  No object code associated with this source line.
          Line.State := No_Code;
          return;
       end if;
