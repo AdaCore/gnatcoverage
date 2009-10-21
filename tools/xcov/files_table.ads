@@ -54,14 +54,6 @@ package Files_Table is
    --  Add Prefix to the source search path. A file named "something" would
    --  be looked for in Prefix & "something".
 
-   procedure Open
-     (File    : in out File_Type;
-      Index   : Source_File_Index;
-      Success : out Boolean);
-   --  Try to open the file from the source file table whose index is Index,
-   --  using the rebase/search information. If one found, Success is True;
-   --  False otherwise.
-
    procedure Add_Line_For_Object_Coverage
      (File  : Source_File_Index;
       State : Line_State;
@@ -143,12 +135,11 @@ package Files_Table is
    type File_Info is record
       --  Source file information.
 
-      File_Name  : String_Access;
-      --  File name of the source file, with the path
+      Simple_Name  : String_Access;
+      --  File name of the source file, without the path
 
       Full_Name : String_Access;
       --  Full path name
-      --  How is this different from File_Name above???
 
       Lines      : Source_Lines;
       --  Source file to display in the reports
@@ -175,7 +166,7 @@ package Files_Table is
    type File_Info_Access is access File_Info;
 
    procedure Files_Table_Iterate
-     (Process : not null access procedure (Index : Source_File_Index));
+     (Process : not null access procedure (FI : File_Info_Access));
 
    function Files_Table_Element
      (Index : Source_File_Index)
@@ -190,6 +181,13 @@ package Files_Table is
       Index : Positive)
      return Line_Info_Access;
 
+   procedure Open
+     (File    : in out File_Type;
+      FI      : File_Info_Access;
+      Success : out Boolean);
+   --  Try to open the file from the source file table whose index is Index,
+   --  using the rebase/search information. If one found, Success is True;
+   --  False otherwise.
 private
    --  Describe a source file - one element per line
 

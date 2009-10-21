@@ -110,10 +110,10 @@ package body Files_Table is
    function Get_Index (Name : String) return Source_File_Index is
       use Filename_Maps;
 
-      File_Name : aliased constant String :=
-                    Ada.Directories.Simple_Name (Name);
+      Simple_Name : aliased constant String :=
+        Ada.Directories.Simple_Name (Name);
       Cur       : constant Cursor :=
-                    Filename_Map.Find (File_Name'Unrestricted_Access);
+                    Filename_Map.Find (Simple_Name'Unrestricted_Access);
       Res       : Source_File_Index;
       Info      : File_Info_Access;
    begin
@@ -121,7 +121,7 @@ package body Files_Table is
          Res := Element (Cur);
          Info := Files_Table.Element (Res);
 
-         if Info.File_Name.all /= Name then
+         if Info.Simple_Name.all /= Name then
             if Info.Full_Name = null then
                Info.Full_Name := new String'(Name);
 
@@ -136,7 +136,7 @@ package body Files_Table is
          return Res;
       end if;
 
-      Info := new File_Info'(File_Name  => new String'(File_Name),
+      Info := new File_Info'(Simple_Name  => new String'(Simple_Name),
                              Full_Name  => null,
                              Lines      => (Source_Line_Vectors.Empty_Vector
                                               with null record),
@@ -148,12 +148,12 @@ package body Files_Table is
          Put_Line ("New file: " & Name);
       end if;
 
-      if Name /= File_Name then
+      if Name /= Simple_Name then
          Info.Full_Name := new String'(Name);
       end if;
       Files_Table.Append (Info);
       Res := Files_Table.Last_Index;
-      Filename_Map.Insert (Info.File_Name, Res);
+      Filename_Map.Insert (Info.Simple_Name, Res);
 
       return Res;
    end Get_Index;
@@ -169,7 +169,7 @@ package body Files_Table is
       if Full_Name /= null then
          return Full_Name.all;
       else
-         return Files_Table.Element (Index).File_Name.all;
+         return Files_Table.Element (Index).Simple_Name.all;
       end if;
    end Get_Name;
 
@@ -179,7 +179,7 @@ package body Files_Table is
 
    procedure Open
      (File    : in out File_Type;
-      Index   : Source_File_Index;
+      FI      : File_Info_Access;
       Success : out Boolean)
    is
 
@@ -209,9 +209,9 @@ package body Files_Table is
 
       Name : String_Access;
    begin
-      Name := Files_Table.Element (Index).Full_Name;
+      Name := FI.Full_Name;
       if Name = null then
-         Name := Files_Table.Element (Index).File_Name;
+         Name := FI.Simple_Name;
       end if;
 
       --  Try original path
@@ -346,10 +346,10 @@ package body Files_Table is
    -------------------------
 
    procedure Files_Table_Iterate
-     (Process : not null access procedure (Index : Source_File_Index)) is
+     (Process : not null access procedure (FI : File_Info_Access)) is
    begin
       for Index in Files_Table.First_Index .. Files_Table.Last_Index loop
-         Process (Index);
+         Process (Files_Table.Element (Index));
       end loop;
    end Files_Table_Iterate;
 

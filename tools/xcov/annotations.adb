@@ -18,8 +18,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Text_IO; use Ada.Text_IO;
-with Ada.Directories;
-with Types; use Types;
 with Traces_Disa;
 with Slocs; use Slocs;
 with Coverage;
@@ -30,7 +28,6 @@ package body Annotations is
 
    procedure Disp_File_Line_State
      (Pp         : in out Pretty_Printer'Class;
-      File_Index : Source_File_Index;
       File       : Files_Table.File_Info_Access);
    --  Comment needed???
 
@@ -39,8 +36,7 @@ package body Annotations is
    --------------------------
 
    procedure Disp_File_Line_State (Pp : in out Pretty_Printer'Class;
-                                   File_Index : Source_File_Index;
-                                   File : Files_Table.File_Info_Access)
+                                   File : File_Info_Access)
    is
       use Traces_Disa;
 
@@ -152,15 +148,15 @@ package body Annotations is
       --  Start of processing for Disp_File_Line_State
 
    begin
-      Files_Table.Open (F, File_Index, Has_Source);
+      Files_Table.Open (F, File, Has_Source);
 
       if not Has_Source then
-         Put_Line (Standard_Error, "warning: can't open "
-                     & Get_Name (File_Index));
+         Put_Line (Standard_Error,
+                   "warning: can't open " & File.Full_Name.all);
       end if;
 
       Pretty_Print_Start_File
-        (Pp, Get_Name (File_Index), File.Stats, Has_Source, Skip);
+        (Pp, File.Full_Name.all, File.Stats, Has_Source, Skip);
       if Skip then
          if Has_Source then
             Close (F);
@@ -189,18 +185,16 @@ package body Annotations is
 
    procedure Disp_File_Summary
    is
-      use Ada.Directories;
-
-      procedure Disp_One_File (Name : String; File : Files_Table.File_Info);
+      procedure Disp_One_File (File : Files_Table.File_Info);
       --  Display summary for the given file
 
       -------------------
       -- Disp_One_File --
       -------------------
 
-      procedure Disp_One_File (Name : String; File : Files_Table.File_Info) is
+      procedure Disp_One_File (File : Files_Table.File_Info) is
       begin
-         Put (Simple_Name (Name));
+         Put (File.Simple_Name.all);
          Put (": ");
          Put (Get_Stat_String (File.Stats));
          New_Line;
@@ -208,13 +202,12 @@ package body Annotations is
 
    --  Start of processing for Disp_File_Summary
 
-      procedure Process_One_File (Index : Source_File_Index);
+      procedure Process_One_File (FI : File_Info_Access);
 
-      procedure Process_One_File (Index : Source_File_Index) is
-         FI : constant File_Info_Access := Files_Table_Element (Index);
+      procedure Process_One_File (FI : File_Info_Access) is
       begin
          if FI.To_Display then
-            Disp_One_File (Files_Table.Get_Name (Index), FI.all);
+            Disp_One_File (FI.all);
          end if;
       end Process_One_File;
 
@@ -230,16 +223,12 @@ package body Annotations is
      (Pp       : in out Pretty_Printer'Class;
       Show_Asm : Boolean)
    is
-      use Ada.Directories;
+      procedure Compute_File_State (FI : File_Info_Access);
 
-      procedure Compute_File_State (Index : Source_File_Index);
+      procedure Process_One_File (FI : File_Info_Access);
 
-      procedure Process_One_File (Index : Source_File_Index);
-
-      procedure Compute_File_State (Index : Source_File_Index) is
+      procedure Compute_File_State (FI : File_Info_Access) is
          procedure Compute_Line_State (L : Positive);
-
-         FI : constant File_Info_Access := Files_Table_Element (Index);
 
          procedure Compute_Line_State (L : Positive) is
             use Coverage;
@@ -270,11 +259,10 @@ package body Annotations is
          end loop;
       end Compute_File_State;
 
-      procedure Process_One_File (Index : Source_File_Index) is
-         FI : constant File_Info_Access := Files_Table_Element (Index);
+      procedure Process_One_File (FI : File_Info_Access) is
       begin
          if FI.To_Display then
-            Disp_File_Line_State (Pp, Index, FI);
+            Disp_File_Line_State (Pp, FI);
          end if;
       end Process_One_File;
 
