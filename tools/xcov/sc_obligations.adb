@@ -863,11 +863,11 @@ package body SC_Obligations is
       Last_SCO_Upon_Entry : constant SCO_Id := SCO_Vector.Last_Index;
 
       function Getc return Character;
-      --  Consume and return one character from Line.
+      --  Consume and return next character from Line.
       --  Load next line if at end of line. Return ^Z if at end of file.
 
       function Nextc return Character;
-      --  Peek at current character in Line
+      --  Peek at next character in Line. Return ^Z if at end of file.
 
       procedure Skipc;
       --  Skip one character in Line
@@ -880,10 +880,7 @@ package body SC_Obligations is
          Next_Char : constant Character := Nextc;
       begin
          Index := Index + 1;
-         if Index > Last + 1 then
-            if End_Of_File (ALI_File) then
-               return Character'Val (16#1a#);
-            end if;
+         if Index > Last + 1 and then not End_Of_File (ALI_File) then
             Get_Line (ALI_File, Line, Last);
             Index := 1;
          end if;
@@ -898,8 +895,13 @@ package body SC_Obligations is
       begin
          if Index = Last + 1 then
             return ASCII.LF;
+
+         elsif Index in Line'First .. Last then
+            return Line (Index);
+
+         else
+            return Character'Val (16#1a#);
          end if;
-         return Line (Index);
       end Nextc;
 
       -----------
