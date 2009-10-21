@@ -88,7 +88,8 @@ package body Slocs is
       end if;
 
       if Sloc.Source_File /= Ref.Source_File then
-         Result := To_Unbounded_String (Get_Name (Sloc.Source_File) & ":");
+         Result := To_Unbounded_String
+           (Get_Simple_Name (Sloc.Source_File) & ":");
          Show_Line   := True;
          Show_Column := True;
       else

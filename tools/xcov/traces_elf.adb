@@ -243,9 +243,9 @@ package body Traces_Elf is
             return Range_Img & " symbol for " & El.Symbol_Name.all;
 
          when Line_Addresses =>
-            return Range_Img & " line " & Get_Name (El.Sloc.Source_File) & ':'
-              & Sloc_Image
-                  (Line => El.Sloc.Line, Column => El.Sloc.Column);
+            return Range_Img & " line "
+              & Get_Full_Name (El.Sloc.Source_File) & ':'
+              & Sloc_Image (Line => El.Sloc.Line, Column => El.Sloc.Column);
       end case;
    end Image;
 

@@ -21,7 +21,6 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 
-with Ada.Directories;   use Ada.Directories;
 with Ada.Text_IO;       use Ada.Text_IO;
 with Interfaces;        use Interfaces;
 with GNAT.Strings;      use GNAT.Strings;
@@ -31,7 +30,6 @@ with Hex_Images;        use Hex_Images;
 with SC_Obligations;    use SC_Obligations;
 with Qemu_Traces;
 with Slocs;             use Slocs;
-with Files_Table;       use Files_Table;
 with Switches;          use Switches;
 with Traces;            use Traces;
 with Traces_Dbase;      use Traces_Dbase;
@@ -257,7 +255,7 @@ package body Decision_Map is
       Fallthrough_Dest  : Pc_Type;
       Ctx               : in out Cond_Branch_Context)
    is
-      Sloc : Source_Location := Get_Sloc (Exe.all, Insn'First);
+      Sloc : constant Source_Location := Get_Sloc (Exe.all, Insn'First);
       --  Source location of Insn
 
       SCO : SCO_Id;
@@ -269,11 +267,6 @@ package body Decision_Map is
 
          return;
       end if;
-
-      --  Normalize source file name
-
-      Sloc.Source_File :=
-        Get_Index (Simple_Name (Get_Name (Sloc.Source_File)));
 
       --  Look up SCO
 

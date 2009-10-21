@@ -42,7 +42,7 @@ package body Files_Table is
       Equivalent_Keys => Equal,
       "="             => "=");
 
-   Filename_Map : Filename_Maps.Map;
+   Simple_Name_Map : Filename_Maps.Map;
 
    --  Source rebase/search types
 
@@ -113,7 +113,7 @@ package body Files_Table is
       Simple_Name : aliased constant String :=
         Ada.Directories.Simple_Name (Name);
       Cur       : constant Cursor :=
-                    Filename_Map.Find (Simple_Name'Unrestricted_Access);
+                    Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
       Res       : Source_File_Index;
       Info      : File_Info_Access;
    begin
@@ -153,25 +153,35 @@ package body Files_Table is
       end if;
       Files_Table.Append (Info);
       Res := Files_Table.Last_Index;
-      Filename_Map.Insert (Info.Simple_Name, Res);
+      Simple_Name_Map.Insert (Info.Simple_Name, Res);
 
       return Res;
    end Get_Index;
 
-   --------------
-   -- Get_Name --
-   --------------
+   -------------------
+   -- Get_Full_Name --
+   -------------------
 
-   function Get_Name (Index : Source_File_Index) return String is
+   function Get_Full_Name (Index : Source_File_Index) return String is
       Full_Name : constant String_Access :=
         Files_Table.Element (Index).Full_Name;
    begin
       if Full_Name /= null then
          return Full_Name.all;
       else
-         return Files_Table.Element (Index).Simple_Name.all;
+         --  Any better idea ?
+         raise Constraint_Error;
       end if;
-   end Get_Name;
+   end Get_Full_Name;
+
+   ---------------------
+   -- Get_Simple_Name --
+   ---------------------
+
+   function Get_Simple_Name (Index : Source_File_Index) return String is
+   begin
+      return Files_Table.Element (Index).Simple_Name.all;
+   end Get_Simple_Name;
 
    ----------
    -- Open --

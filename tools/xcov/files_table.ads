@@ -37,7 +37,8 @@ package Files_Table is
    --  Global directory of all source files
 
    function Get_Index (Name : String) return Source_File_Index;
-   function Get_Name (Index : Source_File_Index) return String;
+   function Get_Full_Name (Index : Source_File_Index) return String;
+   function Get_Simple_Name (Index : Source_File_Index) return String;
 
    --  Utilities to open files from the source file table. Source files will be
    --  searched on the local filesystem, in the following order:
