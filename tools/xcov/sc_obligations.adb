@@ -1057,6 +1057,8 @@ package body SC_Obligations is
                end if;
             end Update_Decision_Sloc;
 
+         --  Start of processing for Process_Entry
+
          begin
             case SCOE.C1 is
                when 'S' =>
@@ -1099,6 +1101,7 @@ package body SC_Obligations is
                        (Current_BDD, SCO_Vector.Last_Index);
 
                      BDD.Completed (Current_BDD);
+                     Current_Condition_Index := 0;
                      SCO_Vector.Update_Element
                        (Current_BDD.Decision, Update_Decision_BDD'Access);
 
