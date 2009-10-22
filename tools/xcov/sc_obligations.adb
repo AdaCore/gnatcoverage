@@ -1062,8 +1062,10 @@ package body SC_Obligations is
 
          begin
             case SCOE.C1 is
-               when 'S' =>
+               when 'S' | 'T' =>
                   --  Statement
+                  --  Also Exit point, treated as a statement, to be removed
+                  --  later on???
 
                   pragma Assert (Current_Complex_Decision = No_SCO_Id);
                   SCO_Vector.Append
@@ -1156,11 +1158,6 @@ package body SC_Obligations is
                      & Image (Current_Complex_Decision));
                   BDD.Process_Xor (Current_BDD);
 
-               when 'T' =>
-                  --  Exit point
-
-                  null;
-
                when others =>
                   raise Program_Error
                     with "unexpected SCO entry code: " & SCOE.C1;
@@ -1170,19 +1167,23 @@ package body SC_Obligations is
 
       --  Build Sloc -> SCO index and set up Parent links
 
-      for J in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
+      for SCO in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
          declare
-            First : Source_Location := SCO_Vector.Element (J).First_Sloc;
+            First : Source_Location := SCO_Vector.Element (SCO).First_Sloc;
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor);
-            --  Set up parent link for SCOD at index J, and insert Sloc -> SCO
-            --  map entry.
+            --  Set up parent link for SCOD at index SCO, and insert
+            --  Sloc -  > SCO map entry.
+
+            ------------------------
+            -- Process_Descriptor --
+            ------------------------
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor) is
                Enclosing_SCO : constant SCO_Id := Sloc_To_SCO (First);
             begin
                if Verbose then
-                  Put ("Processing: " & Image (J));
+                  Put ("Processing: " & Image (SCO));
                   if SCOD.Kind = Decision then
                      if SCOD.Is_Complex_Decision  then
                         Put (" (complex)");
@@ -1210,7 +1211,9 @@ package body SC_Obligations is
                      First := No_Location;
 
                      Add_Line_For_Source_Coverage
-                       (SCOD.First_Sloc.Source_File, SCOD.First_Sloc.Line, J);
+                       (SCOD.First_Sloc.Source_File,
+                        SCOD.First_Sloc.Line,
+                        SCO);
 
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
@@ -1227,7 +1230,7 @@ package body SC_Obligations is
 
                      for L in SCOD.First_Sloc.Line .. SCOD.Last_Sloc.Line loop
                         Add_Line_For_Source_Coverage
-                          (SCOD.First_Sloc.Source_File, L, J);
+                          (SCOD.First_Sloc.Source_File, L, SCO);
                      end loop;
 
                   when Condition =>
@@ -1238,7 +1241,7 @@ package body SC_Obligations is
 
                if First /= No_Location then
                   begin
-                     Sloc_To_SCO_Map.Insert (First, J);
+                     Sloc_To_SCO_Map.Insert (First, SCO);
                   exception
                      when Constraint_Error =>
                         --  Handle the case of junk nested conditions (happens
@@ -1247,7 +1250,7 @@ package body SC_Obligations is
 
                         Put_Line
                           ("??? "
-                           & Image (J) & " has the same sloc as "
+                           & Image (SCO) & " has the same sloc as "
                            & Image (Sloc_To_SCO_Map.Element (First))
                            & ", ignored");
                   end;
@@ -1255,7 +1258,7 @@ package body SC_Obligations is
             end Process_Descriptor;
 
          begin
-            SCO_Vector.Update_Element (J, Process_Descriptor'Access);
+            SCO_Vector.Update_Element (SCO, Process_Descriptor'Access);
          end;
       end loop;
    end Load_SCOs;
