@@ -416,18 +416,11 @@ package body Annotations.Html is
       while Has_Element (Cur) loop
          El := Element (Cur);
          Pi ("    <tr>");
-         Pi ("      <td>");
-         Pi (El.Filename.all);
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Get_Info (El.Trace, Exec_File_Name));
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Format_Date_Info (Get_Info (El.Trace, Date_Time)));
-         Pi ("      </td>");
-         Pi ("      <td>");
-         Pi (Get_Info (El.Trace, User_Data));
-         Pi ("      </td>");
+         Pi ("      <td>" & El.Filename.all & "</td>");
+         Pi ("      <td>" & Get_Info (El.Trace, Exec_File_Name) & "</td>");
+         Pi ("      <td>" & Format_Date_Info (Get_Info (El.Trace, Date_Time))
+               & "</td>");
+         Pi ("      <td>" & Get_Info (El.Trace, User_Data) & "</td>");
          Pi ("    </tr>");
          Next (Cur);
       end loop;
@@ -677,19 +670,19 @@ package body Annotations.Html is
       Key_Name      : String;
       Display_Keys  : Boolean) is
    begin
-      Put (F, "    <tr>");
+      Put_Line (F, "    <tr>");
 
       if Display_Keys then
-         Put (F, "      <td class=""SumHead"" width=""50%"">"
+         Put_Line (F, "      <td class=""SumHead"" width=""50%"">"
               & Key_Name & "</td>");
       end if;
 
-      Put (F, "      <td class=""SumHead""> total nb of lines </td");
-      Put (F, "      <td class=""SumHead""> fully covered </td");
-      Put (F, "      <td class=""SumHead""> partially covered </td");
-      Put (F, "      <td class=""SumHead""> not covered </td");
-      Put (F, "      <td class=""SumHead""> visual summary </td");
-      Put (F, "    </tr>");
+      Put_Line (F, "      <td class=""SumHead""> total nb of lines </td");
+      Put_Line (F, "      <td class=""SumHead""> fully covered </td");
+      Put_Line (F, "      <td class=""SumHead""> partially covered </td");
+      Put_Line (F, "      <td class=""SumHead""> not covered </td");
+      Put_Line (F, "      <td class=""SumHead""> visual summary </td");
+      Put_Line (F, "    </tr>");
    end Print_Coverage_Header;
 
    --------------------------
