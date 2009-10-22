@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Integer_Text_IO;
-with Ada.Directories;
 with Ada.Text_IO; use Ada.Text_IO;
 with Hex_Images; use Hex_Images;
 with Traces_Disa; use Traces_Disa;
@@ -68,7 +67,7 @@ package body Annotations.Html is
 
    procedure Pretty_Print_Start_File
      (Pp              : in out Html_Pretty_Printer;
-      Source_Filename : String;
+      Source          : File_Info_Access;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean);
@@ -449,19 +448,21 @@ package body Annotations.Html is
 
    procedure Pretty_Print_Start_File
      (Pp              : in out Html_Pretty_Printer;
-      Source_Filename : String;
+      Source          : File_Info_Access;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean)
    is
       use Ada.Integer_Text_IO;
-      use Ada.Directories;
 
       procedure Ni;
       --  New line to Pp's index file
 
       procedure Pi (S : String);
       --  Print S to Pp's index file; new line at the end
+
+      function Create_Output_Filename return String;
+      --  Create the name of the html file.
 
       --------
       -- Ni --
@@ -481,12 +482,26 @@ package body Annotations.Html is
          Put (Pp.Index_File, S);
       end Pi;
 
+      function Create_Output_Filename return String is
+         Img : String (1 .. 2) := "00";
+      begin
+         if Source.Alias_Num = 0 then
+            return Source.Simple_Name.all & ".html";
+         else
+            pragma Assert (Source.Alias_Num < 100);
+            Img (2) := Character'Val (Character'Pos ('0') +
+                                        Source.Alias_Num mod 10);
+            Img (1) := Character'Val (Character'Pos ('0') +
+                                        Source.Alias_Num / 10);
+            return Source.Simple_Name.all & '.' & Img & ".html";
+         end if;
+      end Create_Output_Filename;
+
       --  Local variables
 
-      Simple_Source_Filename : constant String :=
-        Simple_Name (Source_Filename);
+      Simple_Source_Filename : String renames Source.Simple_Name.all;
 
-      Output_Filename : constant String := Simple_Source_Filename & ".html";
+      Output_Filename : constant String := Create_Output_Filename;
 
       --  Start of processing for Pretty_Print_File
 
@@ -497,7 +512,7 @@ package body Annotations.Html is
       Pi ("    <tr>"); Ni;
 
       --  First column: file name
-      Pi ("      <td title=""" & Source_Filename & '"');
+      Pi ("      <td title=""" & Source.Full_Name.all & '"');
 
       if Has_Source or Flag_Show_Missing then
          Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"

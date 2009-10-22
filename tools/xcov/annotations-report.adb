@@ -54,7 +54,7 @@ package body Annotations.Report is
 
    procedure Pretty_Print_Start_File
      (Pp              : in out Report_Pretty_Printer;
-      Source_Filename : String;
+      Source          : File_Info_Access;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean);
@@ -132,7 +132,7 @@ package body Annotations.Report is
 
    procedure Pretty_Print_Start_File
      (Pp              : in out Report_Pretty_Printer;
-      Source_Filename : String;
+      Source          : File_Info_Access;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean)
@@ -145,7 +145,7 @@ package body Annotations.Report is
             Free (Pp.Current_Filename);
          end if;
 
-         Pp.Current_Filename := new String'(Source_Filename);
+         Pp.Current_Filename := new String'(Source.Full_Name.all);
          Skip := False;
       else
          Skip := True;

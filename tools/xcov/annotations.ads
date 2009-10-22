@@ -67,11 +67,11 @@ private
    --  Called once at the end of the process
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Pretty_Printer;
-      Source_Filename : String;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean) is abstract;
+     (Pp         : in out Pretty_Printer;
+      Source     : File_Info_Access;
+      Stats      : Stat_Array;
+      Has_Source : Boolean;
+      Skip       : out Boolean) is abstract;
    --  Called at the beginning of a source file display
 
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;

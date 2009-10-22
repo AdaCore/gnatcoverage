@@ -23,6 +23,8 @@ with Strings; use Strings;
 
 package body Files_Table is
 
+   Debug_New_File : constant Boolean := False;
+
    subtype Valid_Source_File_Index is
      Source_File_Index range First_Source_File .. Source_File_Index'Last;
    package File_Vectors is new Ada.Containers.Vectors
@@ -123,13 +125,13 @@ package body Files_Table is
 
       Info := new File_Info'(Simple_Name  => new String'(Simple_Name),
                              Full_Name  => null,
+                             Alias_Num  => 0,
                              Lines      => (Source_Line_Vectors.Empty_Vector
                                               with null record),
                              Stats      => (others => 0),
                              To_Display => False);
 
-      if False then
-         --  Dead code???
+      if Debug_New_File then
          Put_Line ("New file: " & Simple_Name);
       end if;
 
@@ -151,6 +153,7 @@ package body Files_Table is
       Cur  : Cursor;
       Res  : Source_File_Index;
       Info : File_Info_Access;
+      Info_Simple : File_Info_Access;
    begin
       Cur := Full_Name_Map.Find (Full_Name'Unrestricted_Access);
       if Cur /= No_Element then
@@ -165,32 +168,50 @@ package body Files_Table is
          Cur := Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
          if Cur /= No_Element then
             Res := Element (Cur);
-            Info := Files_Table.Element (Res);
+            Info_Simple := Files_Table.Element (Res);
 
-            if Info.Full_Name = null then
-               Info.Full_Name := new String'(Full_Name);
+            if Info_Simple.Full_Name = null then
+               Info_Simple.Full_Name := new String'(Full_Name);
+               Full_Name_Map.Insert (Info_Simple.Full_Name, Res);
+               return Res;
             else
-               if Info.Full_Name.all /= Full_Name then
+               if Info_Simple.Full_Name.all /= Full_Name then
                   Put_Line ("Warning: same base name for files:");
                   Put_Line ("  " & Full_Name);
-                  Put_Line ("  " & Info.Full_Name.all);
+                  Put_Line ("  " & Info_Simple.Full_Name.all);
                end if;
             end if;
-
-            return Res;
+         else
+            Info_Simple := null;
          end if;
 
          Info := new File_Info'
-           (Simple_Name  => new String'(Simple_Name),
-            Full_Name    => new String'(Full_Name),
+           (Full_Name    => new String'(Full_Name),
+            Simple_Name  => new String'(Simple_Name),
+            Alias_Num    => 0,
             Lines        => (Source_Line_Vectors.Empty_Vector
                                with null record),
             Stats        => (others => 0),
             To_Display   => False);
 
+         if Debug_New_File then
+            Put_Line ("New file: " & Full_Name);
+         end if;
+
          Files_Table.Append (Info);
          Res := Files_Table.Last_Index;
-         Simple_Name_Map.Insert (Info.Simple_Name, Res);
+         if Info_Simple = null then
+            Simple_Name_Map.Insert (Info.Simple_Name, Res);
+         else
+            --  Set Alias_Num.
+            --  The entry in Simple_Name_Map has always the highest index.
+            if Info_Simple.Alias_Num = 0 then
+               Info.Alias_Num := 1;
+            else
+               Info.Alias_Num := Info_Simple.Alias_Num;
+            end if;
+            Info_Simple.Alias_Num := Info.Alias_Num + 1;
+         end if;
          Full_Name_Map.Insert (Info.Full_Name, Res);
 
          return Res;

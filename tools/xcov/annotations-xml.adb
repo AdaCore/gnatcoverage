@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Text_IO;     use Ada.Text_IO;
-with Ada.Directories; use Ada.Directories;
 with Coverage;        use Coverage;
 with Outputs;         use Outputs;
 with Hex_Images;      use Hex_Images;
@@ -94,7 +93,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_Start_File
      (Pp              : in out Xml_Pretty_Printer;
-      Source_Filename : String;
+      Source          : File_Info_Access;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean);
@@ -317,7 +316,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_Start_File
      (Pp              : in out Xml_Pretty_Printer;
-      Source_Filename : String;
+      Source          : File_Info_Access;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean)
@@ -330,8 +329,7 @@ package body Annotations.Xml is
 
       Level                  : constant String :=
         To_Coverage_Option (Get_Coverage_Level);
-      Simple_Source_Filename : constant String :=
-        Simple_Name (Source_Filename);
+      Simple_Source_Filename : constant String := Source.Simple_Name.all;
       Xml_File_Name          : constant String :=
         Simple_Source_Filename & ".xml";
    begin

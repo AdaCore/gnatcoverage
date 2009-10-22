@@ -139,11 +139,15 @@ package Files_Table is
    type File_Info is record
       --  Source file information.
 
+      Full_Name : String_Access;
+      --  Full path name
+
       Simple_Name  : String_Access;
       --  File name of the source file, without the path
 
-      Full_Name : String_Access;
-      --  Full path name
+      Alias_Num : Natural;
+      --  0 if no other source file has the same basename, otherwise a uniq
+      --  index.
 
       Lines      : Source_Lines;
       --  Source file to display in the reports

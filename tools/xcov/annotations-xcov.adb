@@ -19,7 +19,6 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO;
-with Ada.Directories;
 with Hex_Images; use Hex_Images;
 with Traces_Disa; use Traces_Disa;
 with Coverage; use Coverage;
@@ -43,7 +42,7 @@ package body Annotations.Xcov is
 
    procedure Pretty_Print_Start_File
      (Pp              : in out Xcov_Pretty_Printer;
-      Source_Filename : String;
+      Source          : File_Info_Access;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean);
@@ -148,12 +147,11 @@ package body Annotations.Xcov is
 
    procedure Pretty_Print_Start_File
      (Pp              : in out Xcov_Pretty_Printer;
-      Source_Filename : String;
+      Source          : File_Info_Access;
       Stats           : Stat_Array;
       Has_Source      : Boolean;
       Skip            : out Boolean)
    is
-      use Ada.Directories;
    begin
       Skip := True;
 
@@ -163,8 +161,7 @@ package body Annotations.Xcov is
       end if;
 
       declare
-         Output_Filename : constant String :=
-           Simple_Name (Source_Filename) & ".xcov";
+         Output_Filename : constant String := Source.Simple_Name.all & ".xcov";
       begin
          Create_Output_File (Pp.Xcov_File, Output_Filename);
       exception
@@ -176,7 +173,7 @@ package body Annotations.Xcov is
 
       Skip := False;
 
-      Put_Line (Pp.Xcov_File, Source_Filename & ':');
+      Put_Line (Pp.Xcov_File, Source.Full_Name.all & ':');
       Put_Line (Pp.Xcov_File, Get_Stat_String (Stats));
       Put_Line (Pp.Xcov_File, "Coverage level: "
                 & To_Coverage_Option (Get_Coverage_Level));

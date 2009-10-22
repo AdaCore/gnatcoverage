@@ -155,8 +155,7 @@ package body Annotations is
                    "warning: can't open " & File.Full_Name.all);
       end if;
 
-      Pretty_Print_Start_File
-        (Pp, File.Full_Name.all, File.Stats, Has_Source, Skip);
+      Pretty_Print_Start_File (Pp, File, File.Stats, Has_Source, Skip);
       if Skip then
          if Has_Source then
             Close (F);
