@@ -968,7 +968,8 @@ package body SC_Obligations is
             begin
                pragma Assert (Cur_SCO_Entry in SCOUE.From .. SCOUE.To);
                Last_Entry_In_Cur_Unit := SCOUE.To;
-               Cur_Source_File := Get_Index (SCOUE.File_Name.all);
+               Cur_Source_File := Get_Index_From_Simple_Name
+                 (SCOUE.File_Name.all);
             end;
          end if;
 

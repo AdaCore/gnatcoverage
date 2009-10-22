@@ -36,7 +36,10 @@ package Files_Table is
 
    --  Global directory of all source files
 
-   function Get_Index (Name : String) return Source_File_Index;
+   function Get_Index_From_Full_Name (Full_Name : String)
+                                     return Source_File_Index;
+   function Get_Index_From_Simple_Name (Simple_Name : String)
+                                       return Source_File_Index;
    function Get_Full_Name (Index : Source_File_Index) return String;
    function Get_Simple_Name (Index : Source_File_Index) return String;
 

@@ -43,6 +43,7 @@ package body Files_Table is
       "="             => "=");
 
    Simple_Name_Map : Filename_Maps.Map;
+   Full_Name_Map : Filename_Maps.Map;
 
    --  Source rebase/search types
 
@@ -107,33 +108,17 @@ package body Files_Table is
    -- Get_Index --
    ---------------
 
-   function Get_Index (Name : String) return Source_File_Index is
+   function Get_Index_From_Simple_Name (Simple_Name : String)
+                                       return Source_File_Index is
       use Filename_Maps;
 
-      Simple_Name : aliased constant String :=
-        Ada.Directories.Simple_Name (Name);
-      Cur       : constant Cursor :=
-                    Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
-      Res       : Source_File_Index;
-      Info      : File_Info_Access;
+      Cur  : constant Cursor :=
+        Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
+      Res  : Source_File_Index;
+      Info : File_Info_Access;
    begin
       if Cur /= No_Element then
-         Res := Element (Cur);
-         Info := Files_Table.Element (Res);
-
-         if Info.Simple_Name.all /= Name then
-            if Info.Full_Name = null then
-               Info.Full_Name := new String'(Name);
-
-            else
-               if Info.Full_Name.all /= Name then
-                  Put_Line ("Warning: same base name for files:");
-                  Put_Line ("  " & Name);
-                  Put_Line ("  " & Info.Full_Name.all);
-               end if;
-            end if;
-         end if;
-         return Res;
+         return Element (Cur);
       end if;
 
       Info := new File_Info'(Simple_Name  => new String'(Simple_Name),
@@ -145,18 +130,72 @@ package body Files_Table is
 
       if False then
          --  Dead code???
-         Put_Line ("New file: " & Name);
+         Put_Line ("New file: " & Simple_Name);
       end if;
 
-      if Name /= Simple_Name then
-         Info.Full_Name := new String'(Name);
-      end if;
       Files_Table.Append (Info);
       Res := Files_Table.Last_Index;
       Simple_Name_Map.Insert (Info.Simple_Name, Res);
 
       return Res;
-   end Get_Index;
+   end Get_Index_From_Simple_Name;
+
+   ---------------
+   -- Get_Index --
+   ---------------
+
+   function Get_Index_From_Full_Name (Full_Name : String)
+                                     return Source_File_Index is
+      use Filename_Maps;
+
+      Cur  : Cursor;
+      Res  : Source_File_Index;
+      Info : File_Info_Access;
+   begin
+      Cur := Full_Name_Map.Find (Full_Name'Unrestricted_Access);
+      if Cur /= No_Element then
+         Res := Element (Cur);
+         return Res;
+      end if;
+
+      declare
+         Simple_Name : constant String :=
+           Ada.Directories.Simple_Name (Full_Name);
+      begin
+         Cur := Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
+         if Cur /= No_Element then
+            Res := Element (Cur);
+            Info := Files_Table.Element (Res);
+
+            if Info.Full_Name = null then
+               Info.Full_Name := new String'(Full_Name);
+            else
+               if Info.Full_Name.all /= Full_Name then
+                  Put_Line ("Warning: same base name for files:");
+                  Put_Line ("  " & Full_Name);
+                  Put_Line ("  " & Info.Full_Name.all);
+               end if;
+            end if;
+
+            return Res;
+         end if;
+
+         Info := new File_Info'
+           (Simple_Name  => new String'(Simple_Name),
+            Full_Name    => new String'(Full_Name),
+            Lines        => (Source_Line_Vectors.Empty_Vector
+                               with null record),
+            Stats        => (others => 0),
+            To_Display   => False);
+
+         Files_Table.Append (Info);
+         Res := Files_Table.Last_Index;
+         Simple_Name_Map.Insert (Info.Simple_Name, Res);
+         Full_Name_Map.Insert (Info.Full_Name, Res);
+
+         return Res;
+      end;
+   end Get_Index_From_Full_Name;
 
    -------------------
    -- Get_Full_Name --

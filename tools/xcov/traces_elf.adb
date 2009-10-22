@@ -1270,9 +1270,8 @@ package body Traces_Elf is
             --  Use its slot in the line table to record the new line.
 
             Last_Line.Sloc :=
-              (Source_File  =>
-                 Get_Index (Filenames_Vectors.Element (Filenames,
-                                                       File).all),
+              (Source_File  => Get_Index_From_Full_Name
+                 (Filenames_Vectors.Element (Filenames, File).all),
                Line         => Natural (Line),
                Column       => Natural (Column));
 
@@ -1291,9 +1290,8 @@ package body Traces_Elf is
                Last   => Exec.Exe_Text_Start + Pc,
                Parent => null,
                Sloc   =>
-                 (Source_File  =>
-                    Get_Index (Filenames_Vectors.Element (Filenames,
-                                                          File).all),
+                 (Source_File  => Get_Index_From_Full_Name
+                    (Filenames_Vectors.Element (Filenames, File).all),
                   Line         => Natural (Line),
                   Column       => Natural (Column)));
 
