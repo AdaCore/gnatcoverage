@@ -947,16 +947,16 @@ begin
                   end if;
 
                when Source_Coverage_Level =>
+                  Check_Argument_Available
+                    (SCOs_Inputs, "SCOs FILEs", Command);
+                  Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+
                   if Get_Coverage_Level = Stmt then
                      Traces_Elf.Build_Routines_Insn_State;
                      Traces_Elf.Build_Source_Lines;
                   else
-                     Check_Argument_Available
-                       (SCOs_Inputs, "SCOs FILEs", Command);
+                     --  Build decision map
 
-                     --  Load SCOs and build decision map
-
-                     Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
                      Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
 
                      --  Process traces for each routine
