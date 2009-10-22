@@ -35,7 +35,7 @@ with Traces;            use Traces;
 with Traces_Elf;        use Traces_Elf;
 with Slocs;             use Slocs;
 with Files_Table;       use Files_Table;
-with Annotations; use Annotations;
+with Annotations;       use Annotations;
 with Annotations.Html;
 with Annotations.Xcov;
 with Annotations.Xml;
@@ -857,11 +857,11 @@ begin
                Read_Trace_File (Trace_File.Filename.all,
                                 Trace_File.Trace, Base);
                Traces_Files_List.Files.Append (Trace_File);
+
                declare
                   function Override_Exec_Name (S : String) return String;
-                  --  If an exec file name as been passed from the
-                  --  command line, it overrides the one in the trace
-                  --  file.
+                  --  If an exec file name as been passed from the command
+                  --  line, it overrides the one in the trace file.
 
                   ------------------------
                   -- Override_Exec_Name --
@@ -881,7 +881,7 @@ begin
                                                   Qemu_Traces.Exec_File_Name));
                   Exe_File : Exe_File_Acc;
 
-                  --  Start of processing for Process_Trace
+               --  Start of processing for Process_Trace
 
                begin
                   if Exe_Name = "" then
@@ -947,15 +947,22 @@ begin
                   end if;
 
                when Source_Coverage_Level =>
-                  Check_Argument_Available (SCOs_Inputs, "SCOs FILEs",
-                                            Command);
-                  Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
-
                   if Get_Coverage_Level = Stmt then
                      Traces_Elf.Build_Routines_Insn_State;
                      Traces_Elf.Build_Source_Lines;
                   else
-                     Source.Process_Traces (Base);
+                     Check_Argument_Available
+                       (SCOs_Inputs, "SCOs FILEs", Command);
+
+                     --  Load SCOs and build decision map
+
+                     Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+                     Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
+
+                     --  Process traces for each routine
+
+                     Traces_Names.Iterate
+                       (Source.Compute_Source_Coverage'Access);
                   end if;
 
                when Unknown =>

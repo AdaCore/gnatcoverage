@@ -17,11 +17,17 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.Strings; use GNAT.Strings;
+
 with Files_Table;  use Files_Table;
+with Traces_Names; use Traces_Names;
 
 package Coverage.Source is
 
-   procedure Process_Traces (Base : Traces_Base);
+   procedure Compute_Source_Coverage
+     (Subp_Name : String_Access;
+      Subp_Info : in out Subprogram_Info);
+   --  Analyze traces for the given subprogram to determine source coverage
 
    procedure Compute_Line_State (Line : Line_Info_Access);
    --  Set Line.State
