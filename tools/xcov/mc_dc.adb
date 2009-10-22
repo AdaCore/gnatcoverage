@@ -22,6 +22,7 @@ package body MC_DC is
    function Find_True
      (Conditions_Count : Condition_Index;
       CV : Condition_Vector_Type) return Any_Condition_Index;
+   pragma Unreferenced (Find_True);
    --  Return the lowest index in CV (1 .. Conditions_Count) for which
    --  CV (Index) is True.
    --  Return No_Condition if none such index exists.
@@ -54,7 +55,7 @@ package body MC_DC is
       Evaluated_Both : constant Condition_Vector_Type :=
                          Eval_1.Evaluated and Eval_2.Evaluated;
       Evaluated_Different : Condition_Vector_Type :=
-                              (Eval_1.Evaluated and Eval_2.Evaluated)
+                              Evaluated_Both
                                  and
                               (Eval_1.Values xor Eval_2.Values);
       First_Different : Any_Condition_Index;

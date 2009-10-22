@@ -1711,7 +1711,8 @@ package body Traces_Elf is
 
          begin
             Traces_Names.Add_Code_And_Traces
-              (Sym.Symbol_Name, Exec,
+              (Sym.Symbol_Name,
+               Exec,
                Sec.Section_Content (Sym.First .. Sym.Last),
                Base);
          exception

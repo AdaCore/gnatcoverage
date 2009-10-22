@@ -16,14 +16,19 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
-with Traces_Files; use Traces_Files;
+
 with Ada.Containers.Doubly_Linked_Lists;
+
 with GNAT.Strings; use GNAT.Strings;
 
---  This package is just a place-holder to contain all traces files.
+with Traces_Files; use Traces_Files;
+
+--  The list of all processed trace files
+
 package Traces_Files_List is
+
    type Trace_File_Element is record
-      Trace : Trace_File_Type;
+      Trace    : Trace_File_Type;
       Filename : String_Access;
    end record;
 
@@ -33,4 +38,5 @@ package Traces_Files_List is
       new Ada.Containers.Doubly_Linked_Lists (Trace_File_Element_Acc);
 
    Files : Traces_Files_Lists.List;
+
 end Traces_Files_List;

@@ -74,7 +74,7 @@ package body Traces_Names is
       ------------
 
       procedure Update
-        (Key : String_Access;
+        (Key       : String_Access;
          Subp_Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Key);
@@ -83,19 +83,18 @@ package body Traces_Names is
          First, Last  : Pc_Type;
       begin
          --  First, check if a trace base has already been added to the
-         --  subprogram info; if so, check that it does not conflict with
-         --  the one given in parameter; if not, initialize the info with
-         --  an empty trace.
+         --  subprogram info; if so, check that it does not conflict with the
+         --  one given in parameter; if not, initialize the info with an empty
+         --  trace.
 
          if Subp_Info.Insns = null and then Content'Length > 0 then
             Subp_Info.Insns := new Binary_Content'(Content);
             Subp_Info.Exec := Exec;
          else
-            --  Check that the Content passed in parameter is the same
-            --  as the one we already registered; if the two contents
-            --  were different (e.g. came from two executables compiled
-            --  with different compilation options), the consolidation would
-            --  not make sense.
+            --  Check that the Content passed in parameter is the same as the
+            --  one we already registered; if the two contents were different
+            --  (e.g. came from two executables compiled with different
+            --  compilation options), the consolidation would not make sense.
             --  ??? Checking the actual content is actually quite complicated;
             --  we cannot just compare the binary content, as between two
             --  different executables the same symbol may be located in a
@@ -151,6 +150,9 @@ package body Traces_Names is
       end Update;
 
       Cur : Cursor;
+
+   --  Start of processing for Add_Code_And_Traces
+
    begin
       Cur := Names.Find (Routine_Name);
 

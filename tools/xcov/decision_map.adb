@@ -488,7 +488,6 @@ package body Decision_Map is
          BB : Basic_Block;
       begin
          <<Follow_Jump>>
-
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
 
          if BB.Branch = Br_Jmp then

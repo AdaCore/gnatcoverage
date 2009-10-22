@@ -27,7 +27,7 @@ package Traces_Dbase is
    type Traces_Base_Acc is access Traces_Base;
 
    procedure Init_Base
-     (Base     : out Traces_Base;
+     (Base         : out Traces_Base;
       Full_History : Boolean);
    --  Initialize Base. If Full_History then traces will be kept with full
    --  history, else they will be flattened.
@@ -70,6 +70,8 @@ package Traces_Dbase is
    procedure Get_Next_Trace
      (Trace    : out Trace_Entry;
       Iterator : in out Entry_Iterator);
+   --  Return the next entry from Iterator, or Bad_Trace if none is left
+
    procedure Update_State
      (Base     : in out Traces_Base;
       Iterator : Entry_Iterator;
@@ -87,7 +89,7 @@ package Traces_Dbase is
 
 private
 
-   --  Operations for ordered_sets
+   --  Operations for Ordered_Sets
 
    function "=" (L, R : Trace_Entry) return Boolean;
    function "<" (L, R : Trace_Entry) return Boolean;

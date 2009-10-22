@@ -111,8 +111,8 @@ package Traces is
    --  Display a character representing the state.
 
    procedure Get_Pc (Res : out Pc_Type; Line : String; Pos : in out Natural);
-   --  Convert hexa-decimal string contained in Line (Pos ..) to a Pc_Type.
-   --  Put the result to RES, POS contains the index past the last character
+   --  Convert hexadecimal string contained in Line (Pos .. ???) to a Pc_Type.
+   --  Store the result into RES, POS is the index past the last character
    --  accepted.
 
    type Insn_State_Map is array (Insn_State) of Character;
