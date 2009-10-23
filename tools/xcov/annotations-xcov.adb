@@ -17,12 +17,14 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Containers; use Ada.Containers;
 with Ada.Integer_Text_IO;
-with Hex_Images; use Hex_Images;
+with Ada.Text_IO;    use Ada.Text_IO;
+
+with Coverage;    use Coverage;
+with Hex_Images;  use Hex_Images;
+with Outputs;     use Outputs;
 with Traces_Disa; use Traces_Disa;
-with Coverage; use Coverage;
-with Outputs; use Outputs;
 
 package body Annotations.Xcov is
 
@@ -125,7 +127,7 @@ package body Annotations.Xcov is
       Put (Pp.Xcov_File, ' ');
       Put (Pp.Xcov_File, State_Char (Info.State));
       if False then
-         if Info.Src_First /= null then
+         if Info.SCOs.Length > 0 then
             Put (Pp.Xcov_File, 'S');
          else
             Put (Pp.Xcov_File, ' ');

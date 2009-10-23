@@ -17,7 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-private with Ada.Containers.Vectors;
+with Ada.Containers.Vectors;
 
 with GNAT.Strings; use GNAT.Strings;
 with Ada.Text_IO; use Ada.Text_IO;
@@ -117,17 +117,20 @@ package Files_Table is
       --  Next element in the chain
    end record;
 
+   package SCO_Id_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Natural, Element_Type => SCO_Id);
+
    type Line_Info is record
       --  Coverage information associated with a source line
 
-      State : Line_State;
+      State : Line_State := No_Code;
       --  Coverage state
 
       Obj_First, Obj_Last : Object_Coverage_Info_Acc;
-      --  Detailled object coverage information for this line
+      --  Detailed object coverage information for this line
 
-      Src_First, Src_Last : Source_Coverage_Info_Acc;
-      --  Detailled source coverage information for this line
+      SCOs : SCO_Id_Vectors.Vector;
+      --  SCOs for this source line
    end record;
 
    type Line_Info_Access is access Line_Info;
@@ -205,8 +208,5 @@ private
 
    type Source_Lines is new Source_Line_Vectors.Vector with null record;
 
-   Empty_Line_Info : constant Line_Info_Access :=
-     new Line_Info'(State => No_Code,
-                    Src_First | Src_Last => null,
-                    Obj_First | Obj_Last => null);
+   Empty_Line_Info : constant Line_Info_Access := new Line_Info;
 end Files_Table;

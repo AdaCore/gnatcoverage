@@ -908,6 +908,12 @@ begin
                   end if;
 
                   Load_Code_And_Traces (Exe_File, Base'Access);
+
+                  --  If performing source coverage, load sloc information
+
+                  if Get_Coverage_Level in Source_Coverage_Level then
+                     Build_Debug_Lines (Exe_File.all);
+                  end if;
                end;
             end Process_Trace;
 
@@ -951,19 +957,23 @@ begin
                     (SCOs_Inputs, "SCOs FILEs", Command);
                   Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
 
-                  if Get_Coverage_Level = Stmt then
-                     Traces_Elf.Build_Routines_Insn_State;
-                     Traces_Elf.Build_Source_Lines;
-                  else
+                  if Get_Coverage_Level > Stmt then
                      --  Build decision map
 
                      Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
-
-                     --  Process traces for each routine
-
-                     Traces_Names.Iterate
-                       (Source.Compute_Source_Coverage'Access);
                   end if;
+
+                  --  Process traces for each routine
+
+                  Traces_Names.Iterate
+                    (Source.Compute_Source_Coverage'Access);
+
+                  --  Build source information
+
+                  Traces_Elf.Build_Routines_Insn_State;
+                  --  Is this still necessary???
+
+                  Traces_Elf.Build_Source_Lines;
 
                when Unknown =>
                   --  A fatal error should have been diagnosed earlier

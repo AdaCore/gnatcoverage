@@ -370,21 +370,9 @@ package body Files_Table is
       SCO  : SCO_Id)
    is
       FI   : constant File_Info_Access := Files_Table.Element (File);
-      LI   : Line_Info_Access;
-      Info : constant Source_Coverage_Info_Acc :=
-               new Source_Coverage_Info'(State => No_Code,
-                                         SCO   => SCO,
-                                         Next  => null);
    begin
       Expand_Line_Table (File, Line);
-      LI := FI.Lines.Element (Line);
-
-      if LI.Src_First = null then
-         LI.Src_First := Info;
-      else
-         LI.Src_Last.Next := Info;
-      end if;
-      LI.Src_Last := Info;
+      FI.Lines.Element (Line).all.SCOs.Append (SCO);
    end Add_Line_For_Source_Coverage;
 
    -------------------

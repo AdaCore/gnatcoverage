@@ -1359,27 +1359,42 @@ package body SC_Obligations is
    function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id
    is
       use Sloc_To_SCO_Maps;
-      Cur : constant Cursor := Sloc_To_SCO_Map.Floor (Sloc);
-      SCO : SCO_Id;
+      L_Sloc : Source_Location := Sloc;
+      Cur    : Cursor;
+      SCO    : SCO_Id := No_SCO_Id;
 
    begin
-      if Cur /= No_Element then
-         SCO := Element (Cur);
-      else
-         SCO := No_SCO_Id;
+      if L_Sloc.Column = 0 then
+         --  For the case of a lookup with a column of 0, we want a SCO
+         --  starting before the end of the given line.
+
+         L_Sloc.Column := Natural'Last;
       end if;
 
-      --  Cur is highest SCO range start before last
+      Cur := Sloc_To_SCO_Map.Floor (L_Sloc);
+
+      if Cur = No_Element then
+         return No_SCO_Id;
+      end if;
+
+      SCO := Element (Cur);
 
       while SCO /= No_SCO_Id loop
          declare
             SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
          begin
-            exit when SCOD.First_Sloc <= Sloc and then Sloc <= SCOD.Last_Sloc;
+            if Sloc.Column = 0 then
+               exit when
+                 Sloc.Source_File = SCOD.First_Sloc.Source_File
+                 and then Sloc.Line in SCOD.First_Sloc.Line
+                                    .. SCOD.Last_Sloc.Line;
+            else
+               exit when
+                 SCOD.First_Sloc <= Sloc and then Sloc <= SCOD.Last_Sloc;
+            end if;
          end;
          SCO := SCO_Vector.Element (SCO).Parent;
       end loop;
-
       return SCO;
    end Sloc_To_SCO;
 

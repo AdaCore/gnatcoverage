@@ -38,6 +38,9 @@ package SC_Obligations is
    function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
    --  Return the innermost SCO whose range contains the given sloc.
    --  It is an error if multiple such SCOs exist and aren't nested.
+   --  Note: if Sloc has a null column number, returns an unspecified SCO
+   --  among those covering that line.
+   --  For No_Location, return No_SCO_Id.
 
    procedure Load_SCOs (ALI_Filename : String);
    --  Load source coverage obligations from ALI_Filename
