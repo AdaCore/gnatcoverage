@@ -229,11 +229,8 @@ package body SC_Obligations is
    package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
-      First_Sloc : Source_Location;
-      --  First sloc (for a complex decision, taken from first condition)
-
-      Last_Sloc  : Source_Location;
-      --  Last sloc (for a decision, highest last sloc of contained conditions)
+      Sloc_Range : Source_Location_Range;
+      --  For a decision, cumulative range from all conditions
 
       Parent : SCO_Id := No_SCO_Id;
       --  For a decision, pointer to the enclosing statement (or condition in
@@ -713,7 +710,7 @@ package body SC_Obligations is
    --------------------------
 
    package Sloc_To_SCO_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Source_Location,
+     (Key_Type     => Source_Location_Range,
       Element_Type => SCO_Id);
    Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
 
@@ -743,7 +740,7 @@ package body SC_Obligations is
 
    function First_Sloc (SCO : SCO_Id) return Source_Location is
    begin
-      return SCO_Vector.Element (SCO).First_Sloc;
+      return SCO_Vector.Element (SCO).Sloc_Range.First_Sloc;
    end First_Sloc;
 
    -------------
@@ -792,24 +789,19 @@ package body SC_Obligations is
    -----------
 
    function Image (SCO : SCO_Id) return String is
-      function Sloc_Image
-        (First_Sloc : Source_Location;
-         Last_Sloc  : Source_Location) return String;
+      function Sloc_Image (Sloc_Range : Source_Location_Range) return String;
       --  Return sloc information suffix, or empty string if no sloc known
 
       ----------------
       -- Sloc_Image --
       ----------------
 
-      function Sloc_Image
-        (First_Sloc : Source_Location;
-         Last_Sloc  : Source_Location) return String
-      is
+      function Sloc_Image (Sloc_Range : Source_Location_Range) return String is
       begin
-         if First_Sloc = No_Location then
+         if Sloc_Range.First_Sloc = No_Location then
             return "";
          else
-            return " at " & Image (First_Sloc, Last_Sloc);
+            return " at " & Image (Sloc_Range);
          end if;
       end Sloc_Image;
 
@@ -822,7 +814,7 @@ package body SC_Obligations is
          begin
             return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
               & SCO_Kind'Image (SCOD.Kind)
-              & Sloc_Image (SCOD.First_Sloc, SCOD.Last_Sloc);
+              & Sloc_Image (SCOD.Sloc_Range);
          end;
       end if;
    end Image;
@@ -862,7 +854,7 @@ package body SC_Obligations is
 
    function Last_Sloc (SCO : SCO_Id) return Source_Location is
    begin
-      return SCO_Vector.Element (SCO).Last_Sloc;
+      return SCO_Vector.Element (SCO).Sloc_Range.Last_Sloc;
    end Last_Sloc;
 
    ---------------
@@ -1080,14 +1072,14 @@ package body SC_Obligations is
                To_Sloc   : constant Source_Location := Make_Sloc (SCOE.To);
 
             begin
-               if SCOD.First_Sloc = No_Location then
-                  SCOD.First_Sloc := From_Sloc;
+               if SCOD.Sloc_Range.First_Sloc = No_Location then
+                  SCOD.Sloc_Range.First_Sloc := From_Sloc;
                end if;
 
-               if SCOD.Last_Sloc = No_Location
-                 or else SCOD.Last_Sloc < To_Sloc
+               if SCOD.Sloc_Range.Last_Sloc = No_Location
+                 or else SCOD.Sloc_Range.Last_Sloc < To_Sloc
                then
-                  SCOD.Last_Sloc := To_Sloc;
+                  SCOD.Sloc_Range.Last_Sloc := To_Sloc;
                end if;
             end Update_Decision_Sloc;
 
@@ -1105,8 +1097,9 @@ package body SC_Obligations is
 
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Statement,
-                                     First_Sloc => Make_Sloc (SCOE.From),
-                                     Last_Sloc  => Make_Sloc (SCOE.To),
+                                     Sloc_Range =>
+                                       (First_Sloc => Make_Sloc (SCOE.From),
+                                        Last_Sloc  => Make_Sloc (SCOE.To)),
                                      S_Kind     => To_Statement_Kind (SCOE.C2),
                                      Previous   => Previous_Statement,
                                      others     => <>));
@@ -1117,13 +1110,14 @@ package body SC_Obligations is
 
                   pragma Assert (Current_Complex_Decision = No_SCO_Id);
                   SCO_Vector.Append
-                    (SCO_Descriptor'(Kind            => Decision,
-                                     First_Sloc      => Make_Sloc (SCOE.From),
-                                     Last_Sloc       => Make_Sloc (SCOE.To),
+                    (SCO_Descriptor'(Kind                => Decision,
+                                     Sloc_Range          =>
+                                       (First_Sloc => Make_Sloc (SCOE.From),
+                                        Last_Sloc  => Make_Sloc (SCOE.To)),
                                      Is_Complex_Decision =>
                                                    not SCOE.Last,
-                                     Last_Cond_Index => 0,
-                                     others          => <>));
+                                     Last_Cond_Index     => 0,
+                                     others              => <>));
                   Current_BDD := BDD.Create (SCO_Vector.Last_Index);
 
                   if SCOE.Last then
@@ -1132,8 +1126,9 @@ package body SC_Obligations is
 
                      SCO_Vector.Append
                        (SCO_Descriptor'(Kind       => Condition,
-                                        First_Sloc => Make_Sloc (SCOE.From),
-                                        Last_Sloc  => Make_Sloc (SCOE.To),
+                                        Sloc_Range =>
+                                          (First_Sloc => Make_Sloc (SCOE.From),
+                                           Last_Sloc  => Make_Sloc (SCOE.To)),
                                         Parent     => SCO_Vector.Last_Index,
                                         Value      => Make_Condition_Value,
                                         Index      => 0,
@@ -1165,8 +1160,9 @@ package body SC_Obligations is
                   Current_Condition_Index := Current_Condition_Index + 1;
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Condition,
-                                     First_Sloc => Make_Sloc (SCOE.From),
-                                     Last_Sloc  => Make_Sloc (SCOE.To),
+                                     Sloc_Range =>
+                                     (First_Sloc => Make_Sloc (SCOE.From),
+                                      Last_Sloc  => Make_Sloc (SCOE.To)),
                                      Parent     => Current_Complex_Decision,
                                      Value      => Make_Condition_Value,
                                      Index      => Current_Condition_Index,
@@ -1201,7 +1197,8 @@ package body SC_Obligations is
 
       for SCO in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
          declare
-            First : Source_Location := SCO_Vector.Element (SCO).First_Sloc;
+            First : Source_Location :=
+                      SCO_Vector.Element (SCO).Sloc_Range.First_Sloc;
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor);
             --  Set up parent link for SCOD at index SCO, and insert
@@ -1243,26 +1240,23 @@ package body SC_Obligations is
                      First := No_Location;
 
                      Add_Line_For_Source_Coverage
-                       (SCOD.First_Sloc.Source_File,
-                        SCOD.First_Sloc.Line,
+                       (SCOD.Sloc_Range.First_Sloc.Source_File,
+                        SCOD.Sloc_Range.First_Sloc.Line,
                         SCO);
 
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
 
-                     --  pragma Assert (Enclosing_SCO = No_SCO_Id);
+                     pragma Assert (Enclosing_SCO = No_SCO_Id);
 
-                     --  Assertion disabled pending fix for GNAT bug???
+                     pragma Assert (SCOD.Sloc_Range.First_Sloc.Source_File
+                                  = SCOD.Sloc_Range.Last_Sloc.Source_File);
 
-                     if Enclosing_SCO /= No_SCO_Id then
-                        Put_Line
-                          ("??? statement nested in "
-                           & Image (Enclosing_SCO));
-                     end if;
-
-                     for L in SCOD.First_Sloc.Line .. SCOD.Last_Sloc.Line loop
+                     for L in SCOD.Sloc_Range.First_Sloc.Line
+                           .. SCOD.Sloc_Range.Last_Sloc.Line
+                     loop
                         Add_Line_For_Source_Coverage
-                          (SCOD.First_Sloc.Source_File, L, SCO);
+                          (SCOD.Sloc_Range.First_Sloc.Source_File, L, SCO);
                      end loop;
 
                   when Condition =>
@@ -1273,7 +1267,7 @@ package body SC_Obligations is
 
                if First /= No_Location then
                   begin
-                     Sloc_To_SCO_Map.Insert (First, SCO);
+                     Sloc_To_SCO_Map.Insert (SCOD.Sloc_Range, SCO);
                   exception
                      when Constraint_Error =>
                         --  Handle the case of junk nested conditions (happens
@@ -1282,8 +1276,8 @@ package body SC_Obligations is
 
                         Put_Line
                           ("??? "
-                           & Image (SCO) & " has the same sloc as "
-                           & Image (Sloc_To_SCO_Map.Element (First))
+                           & Image (SCO) & " has the same sloc range as "
+                           & Image (Sloc_To_SCO_Map.Element (SCOD.Sloc_Range))
                            & ", ignored");
                   end;
                end if;
@@ -1412,7 +1406,8 @@ package body SC_Obligations is
          L_Sloc.Column := Natural'Last;
       end if;
 
-      Cur := Sloc_To_SCO_Map.Floor (L_Sloc);
+      Cur := Sloc_To_SCO_Map.Floor
+               ((First_Sloc => L_Sloc, Last_Sloc => No_Location));
 
       if Cur = No_Element then
          return No_SCO_Id;
@@ -1426,12 +1421,13 @@ package body SC_Obligations is
          begin
             if Sloc.Column = 0 then
                exit when
-                 Sloc.Source_File = SCOD.First_Sloc.Source_File
-                 and then Sloc.Line in SCOD.First_Sloc.Line
-                                    .. SCOD.Last_Sloc.Line;
+                 Sloc.Source_File = SCOD.Sloc_Range.First_Sloc.Source_File
+                 and then Sloc.Line in SCOD.Sloc_Range.First_Sloc.Line
+                                    .. SCOD.Sloc_Range.Last_Sloc.Line;
             else
                exit when
-                 SCOD.First_Sloc <= Sloc and then Sloc <= SCOD.Last_Sloc;
+                 SCOD.Sloc_Range.First_Sloc <= Sloc
+                   and then Sloc <= SCOD.Sloc_Range.Last_Sloc;
             end if;
          end;
          SCO := SCO_Vector.Element (SCO).Parent;

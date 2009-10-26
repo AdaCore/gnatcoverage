@@ -59,6 +59,13 @@ package body Slocs is
       return L.Column < R.Column;
    end "<";
 
+   function "<" (L, R : Source_Location_Range) return Boolean is
+   begin
+      return L.First_Sloc < R.First_Sloc
+               or else
+             (L.First_Sloc = R.First_Sloc and then L.Last_Sloc < R.Last_Sloc);
+   end "<";
+
    ----------
    -- "<=" --
    ----------
@@ -117,17 +124,16 @@ package body Slocs is
       return Abridged_Image (Sloc, Ref => No_Location);
    end Image;
 
-   -----------
-   -- Image --
-   -----------
-
-   function Image (First_Sloc, Last_Sloc : Source_Location) return String is
+   function Image (Sloc_Range : Source_Location_Range) return String is
    begin
-      if First_Sloc = Last_Sloc then
-         return Abridged_Image (First_Sloc, Ref => No_Location);
+      if Sloc_Range.First_Sloc = Sloc_Range.Last_Sloc then
+         return Abridged_Image (Sloc_Range.First_Sloc, Ref => No_Location);
       else
-         return Abridged_Image (First_Sloc, Ref => No_Location)
-           & "-" & Abridged_Image (Last_Sloc, Ref => First_Sloc);
+         return Abridged_Image
+           (Sloc_Range.First_Sloc, Ref => No_Location)
+           & "-" & Abridged_Image
+                     (Sloc_Range.Last_Sloc, Ref => Sloc_Range.First_Sloc);
       end if;
    end Image;
+
 end Slocs;

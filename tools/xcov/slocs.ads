@@ -41,5 +41,13 @@ package Slocs is
    --  No_Location sorts higher than any specific location.
 
    function Image (Sloc : Source_Location) return String;
-   function Image (First_Sloc, Last_Sloc : Source_Location) return String;
+
+   type Source_Location_Range is record
+      First_Sloc, Last_Sloc : Source_Location;
+   end record;
+   function "<" (L, R : Source_Location_Range) return Boolean;
+   --  Lexicographic order
+
+   function Image (Sloc_Range : Source_Location_Range) return String;
+
 end Slocs;
