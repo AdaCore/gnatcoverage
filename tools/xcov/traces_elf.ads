@@ -216,6 +216,15 @@ package Traces_Elf is
    --  open after loading.
    --  Display errors on standard error.
 
+   procedure Routine_Names_From_Lines
+     (Exec     : Exe_File_Acc;
+      Selected : not null access
+                   function (Sloc_Begin : Source_Location;
+                             Sloc_End   : Source_Location) return Boolean);
+   --  Add routines read from an ELF image to the routines database. A
+   --  routine is added iff at least one source line in the routine is
+   --  selected by the filter (i.e. if Selected returns True for this line).
+
    procedure Build_Source_Lines;
    --  Go through the routine database and, for each routine, populate the
    --  source database with the routine's source information.

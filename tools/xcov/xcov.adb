@@ -840,6 +840,16 @@ begin
          return;
 
       when Cmd_Coverage =>
+
+         case Get_Coverage_Level is
+            when Source_Coverage_Level =>
+               Check_Argument_Available
+                 (SCOs_Inputs, "SCOs FILEs", Command);
+               Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+            when others =>
+               null;
+         end case;
+
          declare
             procedure Process_Trace (Trace_File_Name : String);
             --  Open Trace_File_Name and merge it into the trace database
@@ -899,13 +909,45 @@ begin
                                      & Trace_File_Name);
                   end;
 
-                  --  If there is no routine in list, get routine names from
-                  --  the first executable. A test earlier allows this only if
-                  --  there is one trace file.
+                  case Get_Coverage_Level is
+                     when Object_Coverage_Level =>
+                        --  If there is no routine in list, get
+                        --  routine names from the first executable. A
+                        --  test earlier allows this only if there is
+                        --  one trace file.
 
-                  if Inputs.Length (Routines_Inputs) = 0 then
-                     Read_Routines_Name (Exe_File, Exclude => False);
-                  end if;
+                        if Inputs.Length (Routines_Inputs) = 0 then
+                           Read_Routines_Name (Exe_File, Exclude => False);
+                        end if;
+
+                     when Source_Coverage_Level =>
+                        --  If there is no routine in list, get
+                        --  routine names from SCOs.
+
+                        --  ??? Ultimately, routine names should
+                        --  always been extracted from SCOs.  But, for
+                        --  now, this method gives less precise
+                        --  results than --routines. More precisely,
+                        --  it may include more source files than
+                        --  would actually be needed in xcov's
+                        --  reports: with inlining, most source files
+                        --  may be included in the reports as their
+                        --  elaboration code may be inlined in the
+                        --  "_ada_" procedure; this procedure glues
+                        --  everything together. We need to filter out
+                        --  source files that do not appear in the
+                        --  SCOs to fix this issue.
+
+                        if Inputs.Length (Routines_Inputs) = 0 then
+                           Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
+                        end if;
+
+                     when Unknown =>
+                        --  A fatal error should have been diagnosed earlier
+
+                        pragma Assert (False);
+                        return;
+                  end case;
 
                   Load_Code_And_Traces (Exe_File, Base'Access);
 
@@ -928,10 +970,15 @@ begin
                Inputs.Iterate (Routines_Inputs,
                                Traces_Names.Add_Routine_Name'Access);
             else
-               if Inputs.Length (Trace_Inputs) > 1 then
-                  Fatal_Error ("routine list required"
-                               & " when reading multiple trace files");
-               end if;
+               case Get_Coverage_Level is
+                  when Object_Coverage_Level =>
+                     if Inputs.Length (Trace_Inputs) > 1 then
+                        Fatal_Error ("routine list required"
+                                     & " when reading multiple trace files");
+                     end if;
+                  when others =>
+                     null;
+               end case;
             end if;
 
             --  Read traces
@@ -953,10 +1000,6 @@ begin
                   end if;
 
                when Source_Coverage_Level =>
-                  Check_Argument_Available
-                    (SCOs_Inputs, "SCOs FILEs", Command);
-                  Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
-
                   if Get_Coverage_Level > Stmt then
                      --  Build decision map
 

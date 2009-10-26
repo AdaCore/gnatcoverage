@@ -746,6 +746,47 @@ package body SC_Obligations is
       return SCO_Vector.Element (SCO).First_Sloc;
    end First_Sloc;
 
+   -------------
+   -- Has_SCO --
+   -------------
+
+   function Has_SCO (Sloc_Begin : Source_Location;
+                     Sloc_End   : Source_Location)
+                    return Boolean
+   is
+      use Sloc_To_SCO_Maps;
+
+      Position : Cursor := Sloc_To_SCO_Map.Floor (Sloc_End);
+      SCO      : SCO_Id;
+      SCOD     : SCO_Descriptor;
+   begin
+      while Position /= No_Element loop
+         SCO := Element (Position);
+         SCOD := SCO_Vector.Element (SCO);
+
+         if Sloc_End < SCOD.First_Sloc then
+            --  Negative match, and no chance to have a positive match
+            --  in the next SCOs: they all have a higher First_Sloc.
+            return False;
+
+         elsif SCOD.Last_Sloc < Sloc_Begin then
+            --  Negative match, but we may reach a positive match in the
+            --  next SCOs. Continue.
+            null;
+
+         else
+            --  The two possible negative matches have been dealt with earlier.
+            --  We have a positive match.
+            return True;
+
+         end if;
+
+         Next (Position);
+      end loop;
+
+      return False;
+   end Has_SCO;
+
    -----------
    -- Image --
    -----------

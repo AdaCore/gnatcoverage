@@ -252,6 +252,16 @@ package body Traces_Names is
       end loop;
    end Disp_All_Routines;
 
+   -----------
+   -- Is_In --
+   -----------
+
+   function Is_In (Name : String_Access) return Boolean is
+      use Names_Maps;
+   begin
+      return Names.Find (Name) /= No_Element;
+   end Is_In;
+
    -------------
    -- Iterate --
    -------------

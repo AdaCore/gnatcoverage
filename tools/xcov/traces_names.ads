@@ -55,6 +55,9 @@ package Traces_Names is
    procedure Remove_Routine_Name (Name : String_Access);
    --  Remove a routine from the database
 
+   function Is_In (Name : String_Access) return Boolean;
+   --  Return True iff Name has been included into the routine database
+
    procedure Iterate
      (Proc : access procedure (Subp_Name : String_Access;
                                Subp_Info : in out Subprogram_Info));
