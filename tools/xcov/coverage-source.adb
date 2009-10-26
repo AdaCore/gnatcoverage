@@ -130,11 +130,11 @@ package body Coverage.Source is
       pragma Unreferenced (Subp_Name);
       use type Interfaces.Unsigned_32;
 
-      PC         : Pc_Type;
-      It         : Entry_Iterator;
-      T          : Trace_Entry;
-      Insn_Len   : Natural;
-      SCO, S_SCO : SCO_Id;
+      PC                : Pc_Type;
+      It                : Entry_Iterator;
+      T                 : Trace_Entry;
+      Insn_Len          : Natural;
+      SCO, S_SCO, P_SCO : SCO_Id;
    begin
       --  Iterate over traces for this routine
 
@@ -175,7 +175,22 @@ package body Coverage.Source is
 
             S_SCO := SCO;
             loop
+               --  Mark S_SCO as executed
+
                SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
+
+               --  For statements, propagate back to beginning of basic block
+
+               if Kind (S_SCO) = Statement then
+                  P_SCO := S_SCO;
+                  loop
+                     P_SCO := Previous (P_SCO);
+                     exit when P_SCO = No_SCO_Id
+                                 or else SCI_Vector.Element (P_SCO).Executed;
+                     SCI_Vector.Update_Element (P_SCO, Set_Executed'Access);
+                  end loop;
+               end if;
+
                S_SCO := Parent (S_SCO);
                exit when S_SCO = No_SCO_Id;
             end loop;
