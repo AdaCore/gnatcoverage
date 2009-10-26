@@ -188,11 +188,6 @@ package body SC_Obligations is
       procedure Process_Or_Else  (BDD : in out BDD_Type);
       --  Process NOT, AND THEN, OR ELSE operators
 
-      procedure Process_Xor      (BDD : in out BDD_Type);
-      --  Process XOR operator (push dummy arcs so that the remainder of the
-      --  conditions can be processed, noting that in the end no valid BDD
-      --  can be constructed).
-
       procedure Process_Condition
         (BDD          : in out BDD_Type;
          Condition_Id : SCO_Id);
@@ -209,6 +204,26 @@ package body SC_Obligations is
    -------------------------------
    -- Main SCO descriptor table --
    -------------------------------
+
+   --  Statement_Kind denotes the various statement kinds identified in SCOs
+
+   type Statement_Kind is
+     (Type_Declaration,
+      Subtype_Declaration,
+      Object_Declaration,
+      Renaming_Declaration,
+      Generic_Instantiation,
+      Case_Statement,
+      Exit_Statement,
+      For_Loop_Statement,
+      If_Statement,
+      Pragma_Statement,
+      Extended_Return_Statement,
+      While_Loop_Statement,
+      Other_Statement);
+
+   function To_Statement_Kind (C : Character) return Statement_Kind;
+   --  Convert character code for statement kind to corresponding enum value
 
    use type Pc_Type;
    package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
@@ -227,6 +242,15 @@ package body SC_Obligations is
       --  For a condition, pointer to the enclosing decision.
 
       case Kind is
+         when Statement =>
+            S_Kind   : Statement_Kind;
+            --  Statement kind indication
+
+            Previous : SCO_Id;
+            --  Previous statement in sequence. If this one has been executed
+            --  then we can safely infer that the previous one has been as
+            --  well (recursively).
+
          when Condition =>
             Value : Tristate;
             --  Indicates whether this condition is always true, always false,
@@ -255,8 +279,6 @@ package body SC_Obligations is
             Decision_BDD : BDD.BDD_Type;
             --  BDD of the decision
 
-         when others =>
-            null;
       end case;
    end record;
 
@@ -405,13 +427,7 @@ package body SC_Obligations is
 
          --  Check that the root condition has been set
 
-         if BDD.Root_Condition = No_BDD_Node_Id then
-            --  Decision cannot be mapped to a BDD (presence of a non-shortcut
-            --  boolean operator).
-
-            Put_Line ("!!! no BDD for decision " & Image (BDD.Decision));
-            return;
-         end if;
+         pragma Assert (BDD.Root_Condition /= No_BDD_Node_Id);
 
          --  Iterate backwards on BDD nodes, replacing references to jump nodes
          --  with references to their destination.
@@ -620,38 +636,6 @@ package body SC_Obligations is
              Origin => A.Origin));
       end Process_Or_Else;
 
-      -----------------
-      -- Process_Xor --
-      -----------------
-
-      procedure Process_Xor (BDD : in out BDD_Type) is
-         A : constant Arcs := Pop;
-         pragma Unreferenced (A);
-
-         L : BDD_Node_Id;
-      begin
-         --  Mark the BDD invalid by clearing the root condition
-
-         BDD.Root_Condition := No_BDD_Node_Id;
-
-         --  Allocate a dummy node to serve as origin for the subtrees of
-         --  the XOR.
-
-         Allocate (BDD, BDD_Node'(Kind => Jump, Dest => No_BDD_Node_Id), L);
-
-         --  Dummy arcs for left operand
-
-         Push (((False => No_BDD_Node_Id,
-                 True  => No_BDD_Node_Id),
-           Origin => L));
-
-         --  Dummy arcs for right operand
-
-         Push (((False => No_BDD_Node_Id,
-                 True  => No_BDD_Node_Id),
-           Origin => L));
-      end Process_Xor;
-
       -----------------------
       -- Process_Condition --
       -----------------------
@@ -854,8 +838,16 @@ package body SC_Obligations is
       Last : Natural;
       Index : Natural;
 
+      Previous_Statement       : SCO_Id := No_SCO_Id;
+      --  Previous statement in the same CS line, used for chaining of basic
+      --  blocks.
+
       Current_Complex_Decision : SCO_Id := No_SCO_Id;
+      --  Complex decision whose conditions are being processed
+
       Current_Condition_Index  : Integer;
+      --  Index of current condition within the current decision (0-based, set
+      --  to -1 before the first condition of the decision is seen).
 
       Current_BDD : BDD.BDD_Type;
       --  BDD of current decision
@@ -1062,17 +1054,22 @@ package body SC_Obligations is
 
          begin
             case SCOE.C1 is
-               when 'S' | 'T' =>
+               when 'S' | 's' =>
                   --  Statement
-                  --  Also Exit point, treated as a statement, to be removed
-                  --  later on???
 
                   pragma Assert (Current_Complex_Decision = No_SCO_Id);
+                  if SCOE.C1 = 'S' then
+                     Previous_Statement := No_SCO_Id;
+                  end if;
+
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Statement,
                                      First_Sloc => Make_Sloc (SCOE.From),
                                      Last_Sloc  => Make_Sloc (SCOE.To),
+                                     S_Kind     => To_Statement_Kind (SCOE.C2),
+                                     Previous   => Previous_Statement,
                                      others     => <>));
+                  Previous_Statement := SCO_Vector.Last_Index;
 
                when 'I' | 'E' | 'W' | 'X' =>
                   --  Decision
@@ -1151,12 +1148,6 @@ package body SC_Obligations is
 
                when '|' =>
                   BDD.Process_Or_Else (Current_BDD);
-
-               when '^' =>
-                  Put_Line
-                    ("!!! forbidden usage of XOR operator in decision "
-                     & Image (Current_Complex_Decision));
-                  BDD.Process_Xor (Current_BDD);
 
                when others =>
                   raise Program_Error
@@ -1325,6 +1316,15 @@ package body SC_Obligations is
       return SCO_Vector.Element (SCO).Parent;
    end Parent;
 
+   --------------
+   -- Previous --
+   --------------
+
+   function Previous (SCO : SCO_Id) return SCO_Id is
+   begin
+      return SCO_Vector.Element (SCO).Previous;
+   end Previous;
+
    ------------------------------
    -- Report_SCOs_Without_Code --
    ------------------------------
@@ -1397,5 +1397,29 @@ package body SC_Obligations is
       end loop;
       return SCO;
    end Sloc_To_SCO;
+
+   -----------------------
+   -- To_Statement_Kind --
+   -----------------------
+
+   function To_Statement_Kind (C : Character) return Statement_Kind is
+   begin
+      case C is
+         when 't'    => return Type_Declaration;
+         when 's'    => return Subtype_Declaration;
+         when 'o'    => return Object_Declaration;
+         when 'r'    => return Renaming_Declaration;
+         when 'i'    => return Generic_Instantiation;
+         when 'C'    => return Case_Statement;
+         when 'E'    => return Exit_Statement;
+         when 'F'    => return For_Loop_Statement;
+         when 'I'    => return If_Statement;
+         when 'P'    => return Pragma_Statement;
+         when 'R'    => return Extended_Return_Statement;
+         when 'W'    => return While_Loop_Statement;
+         when ' '    => return Other_Statement;
+         when others => raise Constraint_Error;
+      end case;
+   end To_Statement_Kind;
 
 end SC_Obligations;

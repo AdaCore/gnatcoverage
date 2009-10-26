@@ -69,6 +69,10 @@ package SC_Obligations is
    function Last_Sloc  (SCO : SCO_Id) return Source_Location;
    function Parent     (SCO : SCO_Id) return SCO_Id;
 
+   --  Statement SCOs
+
+   function Previous   (SCO : SCO_Id) return SCO_Id;
+
    --  Condition SCOs
 
    function Index (SCO : SCO_Id) return Natural;
