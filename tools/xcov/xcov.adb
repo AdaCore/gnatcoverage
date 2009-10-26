@@ -921,22 +921,20 @@ begin
                         end if;
 
                      when Source_Coverage_Level =>
-                        --  If there is no routine in list, get
-                        --  routine names from SCOs.
+                        --  If there is no routine in list, get routine names
+                        --  from SCOs.
 
-                        --  ??? Ultimately, routine names should
-                        --  always been extracted from SCOs.  But, for
-                        --  now, this method gives less precise
-                        --  results than --routines. More precisely,
-                        --  it may include more source files than
-                        --  would actually be needed in xcov's
-                        --  reports: with inlining, most source files
-                        --  may be included in the reports as their
-                        --  elaboration code may be inlined in the
-                        --  "_ada_" procedure; this procedure glues
-                        --  everything together. We need to filter out
-                        --  source files that do not appear in the
-                        --  SCOs to fix this issue.
+                        --  ??? Ultimately, routine names should always been
+                        --  extracted from SCOs, but for now this method gives
+                        --  less precise results than --routines. More
+                        --  precisely, it may include more source files than
+                        --  would actually be needed in xcov's reports: with
+                        --  inlining, most source files may be included in the
+                        --  reports as their elaboration code may be inlined in
+                        --  the "_ada_" procedure; this procedure glues
+                        --  everything together. We need to filter out source
+                        --  files that do not appear in the SCOs to fix this
+                        --  issue.
 
                         if Inputs.Length (Routines_Inputs) = 0 then
                            Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
