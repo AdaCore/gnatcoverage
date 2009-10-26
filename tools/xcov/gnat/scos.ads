@@ -147,7 +147,7 @@ package SCOs is
    --      r  renaming declaration
    --      i  generic instantiation
    --      C  CASE statement (includes only the expression)
-   --      F  FOR/While loop statement (includes only the iteration scheme)
+   --      F  FOR/WHILE loop statement (includes only the iteration scheme)
    --      I  IF statement (includes only the condition)
    --      P  PRAGMA
    --      R  extended RETURN statement
@@ -278,7 +278,7 @@ package SCOs is
    --      C1   = 'S' for entry point, 's' otherwise
    --      C2   = 't', 's', 'o', 'r', 'i', 'C', 'F', 'I', 'P', 'R', ' '
    --             (type/subtype/object/renaming/instantiation/
-   --              CASE/FOR/PRAGMA/RETURN/other)
+   --              CASE/FOR or WHILE/IF/PRAGMA/RETURN/other)
    --      From = starting source location
    --      To   = ending source location
    --      Last = False for all but the last entry, True for last entry
@@ -313,7 +313,7 @@ package SCOs is
 
    --    Note: the sequence starting with a decision, and continuing with
    --    operators and elements up to and including the first one labeled with
-   --    Last=True, indicate the sequence to be output for a complex decision
+   --    Last = True, indicate the sequence to be output for a complex decision
    --    on a single CD decision line.
 
    ----------------
