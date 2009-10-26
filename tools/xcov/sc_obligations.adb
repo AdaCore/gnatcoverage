@@ -747,13 +747,16 @@ package body SC_Obligations is
    -- Has_SCO --
    -------------
 
-   function Has_SCO (Sloc_Begin : Source_Location;
-                     Sloc_End   : Source_Location)
-                    return Boolean
+   function Has_SCO
+     (Sloc_Begin : Source_Location;
+      Sloc_End   : Source_Location) return Boolean
    is
       use Sloc_To_SCO_Maps;
 
-      Position : Cursor := Sloc_To_SCO_Map.Floor (Sloc_End);
+      Position : Cursor :=
+                   Sloc_To_SCO_Map.Floor
+                     (Source_Location_Range'(First_Sloc => Sloc_End,
+                                             Last_Sloc  => No_Location));
       SCO      : SCO_Id;
       SCOD     : SCO_Descriptor;
    begin
@@ -761,14 +764,14 @@ package body SC_Obligations is
          SCO := Element (Position);
          SCOD := SCO_Vector.Element (SCO);
 
-         if Sloc_End < SCOD.First_Sloc then
-            --  Negative match, and no chance to have a positive match
-            --  in the next SCOs: they all have a higher First_Sloc.
+         if Sloc_End < SCOD.Sloc_Range.First_Sloc then
+            --  Negative match, and no chance to have a positive match in the
+            --  next SCOs: they all have a higher First_Sloc.
             return False;
 
-         elsif SCOD.Last_Sloc < Sloc_Begin then
-            --  Negative match, but we may reach a positive match in the
-            --  next SCOs. Continue.
+         elsif SCOD.Sloc_Range.Last_Sloc < Sloc_Begin then
+            --  Negative match, but we may reach a positive match in the next
+            --  SCO. Continue.
             null;
 
          else

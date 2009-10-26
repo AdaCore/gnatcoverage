@@ -42,10 +42,11 @@ package SC_Obligations is
    --  among those covering that line.
    --  For No_Location, return No_SCO_Id.
 
-   function Has_SCO (Sloc_Begin : Source_Location;
-                     Sloc_End   : Source_Location) return Boolean;
-   --  Return True if there is at least one SCO whose range has a
-   --  non-null intersection with Sloc_Begin .. Sloc_End.
+   function Has_SCO
+     (Sloc_Begin : Source_Location;
+      Sloc_End   : Source_Location) return Boolean;
+   --  Return True if there is at least one SCO whose range has a non-null
+   --  intersection with Sloc_Begin .. Sloc_End.
 
    procedure Load_SCOs (ALI_Filename : String);
    --  Load source coverage obligations from ALI_Filename
