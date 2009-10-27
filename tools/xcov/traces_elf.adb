@@ -1763,7 +1763,6 @@ package body Traces_Elf is
             --  Get corresponding file (check previous file for speed-up)
 
             if Line.Sloc.Source_File /= Source_File then
-               New_Source_File (Line.Sloc.Source_File);
                Source_File := Line.Sloc.Source_File;
             end if;
 

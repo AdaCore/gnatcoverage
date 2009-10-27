@@ -78,9 +78,6 @@ package Files_Table is
       SCO  : SCO_Id);
    --  Associate SCO with File:Line
 
-   procedure New_Source_File (File : Source_File_Index);
-   --  Initialize entry for File in source files table
-
    type Object_Coverage_Info;
    type Object_Coverage_Info_Acc is access Object_Coverage_Info;
 
@@ -145,36 +142,30 @@ package Files_Table is
    type File_Info is record
       --  Source file information.
 
-      Full_Name : String_Access;
+      Full_Name                : String_Access;
       --  Full path name
 
-      Simple_Name  : String_Access;
+      Simple_Name              : String_Access;
       --  File name of the source file, without the path
 
-      Alias_Num : Natural;
+      Alias_Num                : Natural;
       --  0 if no other source file has the same basename, otherwise a uniq
       --  index.
 
-      Lines      : Source_Lines;
+      Lines                    : Source_Lines;
       --  Source file to display in the reports
 
-      Stats      : Stat_Array := (others => 0);
+      Stats                    : Stat_Array := (others => 0);
       --  Counters associated with the file (e.g total number of lines, number
       --  of lines that are covered).
 
-      To_Display : Boolean := False;
-      --  If True, this file should be displayed in the reports. If False,
-      --  it should be skipped.
-      --  The global source table in sources.adb and the table of sources
-      --  that are concerned by the current coverage operation
-      --  (Source_Line_Tables) share the sames indices. However, the
-      --  latter is a subset of the former. A non-contiguous subset, in the
-      --  general case. So, To_Display is used to discriminate files that are
-      --  really concerned by the coverage from files that just happens to
-      --  have an index between two "real" elements.
-      --
-      --  ??? This should be removable at some point. Either we have
-      --  some coverage information for this file, or we don't...
+      Has_Source_Coverage_Info : Boolean := False;
+      --  True if source coverage information has been registered for this
+      --  source file.
+
+      Has_Object_Coverage_Info : Boolean := False;
+      --  True if object coverage information has been registered for this
+      --  source file.
    end record;
 
    type File_Info_Access is access File_Info;
@@ -202,6 +193,11 @@ package Files_Table is
    --  Try to open the file from the source file table whose index is Index,
    --  using the rebase/search information. If one found, Success is True;
    --  False otherwise.
+
+   function To_Display (File : File_Info_Access) return Boolean;
+   --  Return True if there is some relevant coverage information to display
+   --  for this file and for the current coverage criteria.
+
 private
    --  Describe a source file - one element per line
 

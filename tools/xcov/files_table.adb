@@ -20,6 +20,7 @@
 with Ada.Containers.Hashed_Maps;
 with Ada.Directories;
 with Strings; use Strings;
+with Coverage; use Coverage;
 
 package body Files_Table is
 
@@ -166,7 +167,8 @@ package body Files_Table is
             Lines        => (Source_Line_Vectors.Empty_Vector
                                with null record),
             Stats        => (others => 0),
-            To_Display   => False);
+            Has_Source_Coverage_Info => False,
+            Has_Object_Coverage_Info => False);
 
          if Debug_New_File then
             Put_Line ("New file: " & Full_Name);
@@ -224,7 +226,8 @@ package body Files_Table is
                              Lines      => (Source_Line_Vectors.Empty_Vector
                                               with null record),
                              Stats      => (others => 0),
-                             To_Display => False);
+                             Has_Source_Coverage_Info => False,
+                             Has_Object_Coverage_Info => False);
 
       if Debug_New_File then
          Put_Line ("New file: " & Simple_Name);
@@ -368,6 +371,7 @@ package body Files_Table is
                                          Next            => null);
 
    begin
+      FI.Has_Object_Coverage_Info := True;
       Expand_Line_Table (File, Line);
       LI := FI.Lines.Element (Line);
 
@@ -390,6 +394,7 @@ package body Files_Table is
    is
       FI   : constant File_Info_Access := Files_Table.Element (File);
    begin
+      FI.Has_Source_Coverage_Info := True;
       Expand_Line_Table (File, Line);
       FI.Lines.Element (Line).all.SCOs.Append (SCO);
    end Add_Line_For_Source_Coverage;
@@ -454,13 +459,23 @@ package body Files_Table is
       end loop;
    end Iterate_On_Lines;
 
-   ---------------------
-   -- New_Source_File --
-   ---------------------
+   ----------------
+   -- To_Display --
+   ----------------
 
-   procedure New_Source_File (File : Source_File_Index) is
+   function To_Display (File : File_Info_Access) return Boolean is
    begin
-      Files_Table.Element (File).all.To_Display := True;
-   end New_Source_File;
+      case Get_Coverage_Level is
+         when Source_Coverage_Level =>
+            return File.Has_Source_Coverage_Info;
+         when Object_Coverage_Level =>
+            return File.Has_Object_Coverage_Info;
+         when Unknown =>
+            --  A fatal error should have been raised earlier
+            pragma Assert (False);
+            null;
+      end case;
+      return False;
+   end To_Display;
 
 end Files_Table;
