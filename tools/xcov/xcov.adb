@@ -841,14 +841,50 @@ begin
 
       when Cmd_Coverage =>
 
+         if Get_Coverage_Level = Unknown then
+            Fatal_Error ("Please specify a coverage level");
+         end if;
+
+         --  Load SCOs
+
          case Get_Coverage_Level is
             when Source_Coverage_Level =>
                Check_Argument_Available
                  (SCOs_Inputs, "SCOs FILEs", Command);
                Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
-            when others =>
+
+            when Object_Coverage_Level =>
+               if Inputs.Length (SCOs_Inputs) /= 0 then
+                  Error ("List of SCOs not allowed for object coverage");
+               end if;
+
+            when Unknown =>
                null;
          end case;
+
+         --  Load routines from command line
+
+         case Get_Coverage_Level is
+            when Object_Coverage_Level =>
+               if Inputs.Length (Routines_Inputs) /= 0 then
+                  Inputs.Iterate (Routines_Inputs,
+                                  Traces_Names.Add_Routine_Name'Access);
+               elsif Inputs.Length (Trace_Inputs) > 1 then
+                  Fatal_Error ("routine list required"
+                               & " when reading multiple trace files");
+               end if;
+
+            when Source_Coverage_Level =>
+               if Inputs.Length (Routines_Inputs) /= 0 then
+                  Fatal_Error ("routine list not allowed"
+                               & " for source coverage");
+               end if;
+
+            when Unknown =>
+               null;
+         end case;
+
+         --  Read and process traces
 
          declare
             procedure Process_Trace (Trace_File_Name : String);
@@ -921,24 +957,9 @@ begin
                         end if;
 
                      when Source_Coverage_Level =>
-                        --  If there is no routine in list, get routine names
-                        --  from SCOs.
+                        --  Get routine names from SCOs
 
-                        --  ??? Ultimately, routine names should always been
-                        --  extracted from SCOs, but for now this method gives
-                        --  less precise results than --routines. More
-                        --  precisely, it may include more source files than
-                        --  would actually be needed in xcov's reports: with
-                        --  inlining, most source files may be included in the
-                        --  reports as their elaboration code may be inlined in
-                        --  the "_ada_" procedure; this procedure glues
-                        --  everything together. We need to filter out source
-                        --  files that do not appear in the SCOs to fix this
-                        --  issue.
-
-                        if Inputs.Length (Routines_Inputs) = 0 then
-                           Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
-                        end if;
+                        Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
 
                      when Unknown =>
                         --  A fatal error should have been diagnosed earlier
@@ -959,105 +980,81 @@ begin
 
          begin
             Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
-
-            if Get_Coverage_Level = Unknown then
-               Fatal_Error ("Please specify a coverage level");
-            end if;
-
-            if Inputs.Length (Routines_Inputs) /= 0 then
-               Inputs.Iterate (Routines_Inputs,
-                               Traces_Names.Add_Routine_Name'Access);
-            else
-               case Get_Coverage_Level is
-                  when Object_Coverage_Level =>
-                     if Inputs.Length (Trace_Inputs) > 1 then
-                        Fatal_Error ("routine list required"
-                                     & " when reading multiple trace files");
-                     end if;
-                  when others =>
-                     null;
-               end case;
-            end if;
-
-            --  Read traces
-
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
-
-            --  Now determine coverage according to the requested metric
-
-            case Get_Coverage_Level is
-               when Object_Coverage_Level =>
-                  if Inputs.Length (SCOs_Inputs) /= 0 then
-                     Error ("List of SCOs not allowed for object coverage");
-                  end if;
-
-                  Traces_Elf.Build_Routines_Insn_State;
-
-                  if Annotation /= Annotate_Asm then
-                     Traces_Elf.Build_Source_Lines;
-                  end if;
-
-               when Source_Coverage_Level =>
-                  if Get_Coverage_Level > Stmt then
-                     --  Build decision map
-
-                     Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
-                  end if;
-
-                  --  Process traces for each routine
-
-                  Traces_Names.Iterate
-                    (Source.Compute_Source_Coverage'Access);
-
-                  --  Build source information
-
-                  Traces_Elf.Build_Routines_Insn_State;
-                  --  Is this still necessary???
-
-                  Traces_Elf.Build_Source_Lines;
-
-               when Unknown =>
-                  --  A fatal error should have been diagnosed earlier
-
-                  pragma Assert (False);
-                  return;
-            end case;
-
-            case Annotation is
-               when Annotate_Asm =>
-                  if Get_Coverage_Level in Source_Coverage_Level then
-                     Error ("Asm format not supported for source coverage.");
-                     return;
-                  end if;
-                  Traces_Disa.Flag_Show_Asm := True;
-                  Dump_Coverage_Option (Standard_Output);
-                  Traces_Dump.Dump_Routines_Traces;
-
-               when Annotate_Xcov =>
-                  Annotations.Xcov.Generate_Report (False);
-
-               when Annotate_Html =>
-                  Annotations.Html.Generate_Report (False);
-
-               when Annotate_Xml =>
-                  Annotations.Xml.Generate_Report;
-
-               when Annotate_Xcov_Asm =>
-                  --  Case of source coverage???
-                  Annotations.Xcov.Generate_Report (True);
-
-               when Annotate_Html_Asm =>
-                  --  Case of source coverage???
-                  Annotations.Html.Generate_Report (True);
-
-               when Annotate_Report =>
-                  Dump_Coverage_Option (Annotations.Report.Get_Output);
-                  Annotations.Report.Finalize_Report;
-
-               when Annotate_Unknown =>
-                  Fatal_Error ("Please specify an annotation format.");
-            end case;
          end;
+
+         --  Now determine coverage according to the requested metric
+
+         case Get_Coverage_Level is
+            when Object_Coverage_Level =>
+               Traces_Elf.Build_Routines_Insn_State;
+
+               if Annotation /= Annotate_Asm then
+                  Traces_Elf.Build_Source_Lines;
+               end if;
+
+            when Source_Coverage_Level =>
+               if Get_Coverage_Level > Stmt then
+                  --  Build decision map
+
+                  Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
+               end if;
+
+               --  Process traces for each routine
+
+               Traces_Names.Iterate
+                 (Source.Compute_Source_Coverage'Access);
+
+               --  Build source information
+
+               Traces_Elf.Build_Routines_Insn_State;
+               --  Is this still necessary???
+
+               Traces_Elf.Build_Source_Lines;
+
+            when Unknown =>
+               --  A fatal error should have been diagnosed earlier
+
+               pragma Assert (False);
+               return;
+         end case;
+
+         --  Generate annotated reports
+
+         case Annotation is
+            when Annotate_Asm =>
+               if Get_Coverage_Level in Source_Coverage_Level then
+                  Fatal_Error ("Asm format not supported"
+                               & " for source coverage.");
+               end if;
+               Traces_Disa.Flag_Show_Asm := True;
+               Dump_Coverage_Option (Standard_Output);
+               Traces_Dump.Dump_Routines_Traces;
+
+            when Annotate_Xcov =>
+               Annotations.Xcov.Generate_Report (False);
+
+            when Annotate_Html =>
+               Annotations.Html.Generate_Report (False);
+
+            when Annotate_Xml =>
+               Annotations.Xml.Generate_Report;
+
+            when Annotate_Xcov_Asm =>
+               --  Case of source coverage???
+               Annotations.Xcov.Generate_Report (True);
+
+            when Annotate_Html_Asm =>
+               --  Case of source coverage???
+               Annotations.Html.Generate_Report (True);
+
+            when Annotate_Report =>
+               Dump_Coverage_Option (Annotations.Report.Get_Output);
+               Annotations.Report.Finalize_Report;
+
+            when Annotate_Unknown =>
+               Fatal_Error ("Please specify an annotation format.");
+         end case;
 
       when Cmd_Run =>
          declare
