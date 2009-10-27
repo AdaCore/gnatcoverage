@@ -194,6 +194,9 @@ package Files_Table is
    --  using the rebase/search information. If one found, Success is True;
    --  False otherwise.
 
+   procedure Warn_File_Missing (File : File_Info);
+   --  Report that File cannot be found in source path
+
    function To_Display (File : File_Info_Access) return Boolean;
    --  Return True if there is some relevant coverage information to display
    --  for this file and for the current coverage criteria.

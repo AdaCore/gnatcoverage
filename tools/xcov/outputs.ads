@@ -31,6 +31,9 @@ package Outputs is
    --  Cause Xcov to terminate. Do not use in an explicit raise; call
    --  Fatal_Error or Normal_Exit instead.
 
+   procedure Warn (Msg : String);
+   --  Display Msg on stderr
+
    procedure Error (Msg : String);
    --  Display Msg on stderr and set exit status to failure
 

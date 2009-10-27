@@ -528,6 +528,7 @@ package body Annotations.Html is
 
       --  Do not try to process files whose source is not available.
       if not (Has_Source or Flag_Show_Missing) then
+         Warn_File_Missing (Source.all);
          return;
       end if;
 

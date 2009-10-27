@@ -21,6 +21,7 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Directories;
 with Strings; use Strings;
 with Coverage; use Coverage;
+with Outputs;
 
 package body Files_Table is
 
@@ -477,5 +478,19 @@ package body Files_Table is
       end case;
       return False;
    end To_Display;
+
+   -----------------------
+   -- Warn_File_Missing --
+   -----------------------
+
+   procedure Warn_File_Missing (File : File_Info) is
+   begin
+      if File.Full_Name /= null then
+         Outputs.Warn ("can't open " & File.Full_Name.all);
+      else
+         Outputs.Warn ("can't find " & File.Simple_Name.all
+                       & " in source path");
+      end if;
+   end Warn_File_Missing;
 
 end Files_Table;

@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Text_IO; use Ada.Text_IO;
-with GNAT.Strings;
 with Traces_Disa;
 with Slocs; use Slocs;
 with Coverage;
@@ -40,7 +39,6 @@ package body Annotations is
                                    File : File_Info_Access)
    is
       use Traces_Disa;
-      use GNAT.Strings;
 
       procedure Disassemble_Cb
         (Addr  : Pc_Type;
@@ -151,17 +149,6 @@ package body Annotations is
 
    begin
       Files_Table.Open (F, File, Has_Source);
-
-      if not Has_Source then
-         if File.Full_Name /= null then
-            Put_Line (Standard_Error,
-                      "warning: can't open " & File.Full_Name.all);
-         else
-            Put_Line (Standard_Error,
-                      "warning: can't find " & File.Simple_Name.all
-                      & " in source path");
-         end if;
-      end if;
 
       Pretty_Print_Start_File (Pp, File, File.Stats, Has_Source, Skip);
       if Skip then

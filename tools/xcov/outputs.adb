@@ -105,4 +105,13 @@ package body Outputs is
       Report_Output_Dir := new String'(Output_Dir);
    end Set_Output_Dir;
 
+   ----------
+   -- Warn --
+   ----------
+
+   procedure Warn (Msg : String) is
+   begin
+      Put_Line (Standard_Error, "warning: " & Msg);
+   end Warn;
+
 end Outputs;
