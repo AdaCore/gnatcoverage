@@ -106,48 +106,14 @@ package body Files_Table is
       Last_Source_Rebase_Entry := E;
    end Add_Source_Rebase;
 
-   ---------------
-   -- Get_Index --
-   ---------------
+   ------------------------------
+   -- Get_Index_From_Full_Name --
+   ------------------------------
 
-   function Get_Index_From_Simple_Name (Simple_Name : String)
-                                       return Source_File_Index is
-      use Filename_Maps;
-
-      Cur  : constant Cursor :=
-        Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
-      Res  : Source_File_Index;
-      Info : File_Info_Access;
-   begin
-      if Cur /= No_Element then
-         return Element (Cur);
-      end if;
-
-      Info := new File_Info'(Simple_Name  => new String'(Simple_Name),
-                             Full_Name  => null,
-                             Alias_Num  => 0,
-                             Lines      => (Source_Line_Vectors.Empty_Vector
-                                              with null record),
-                             Stats      => (others => 0),
-                             To_Display => False);
-
-      if Debug_New_File then
-         Put_Line ("New file: " & Simple_Name);
-      end if;
-
-      Files_Table.Append (Info);
-      Res := Files_Table.Last_Index;
-      Simple_Name_Map.Insert (Info.Simple_Name, Res);
-
-      return Res;
-   end Get_Index_From_Simple_Name;
-
-   ---------------
-   -- Get_Index --
-   ---------------
-
-   function Get_Index_From_Full_Name (Full_Name : String)
-                                     return Source_File_Index is
+   function Get_Index_From_Full_Name
+     (Full_Name : String;
+      Insert    : Boolean := True) return Source_File_Index
+   is
       use Filename_Maps;
 
       Cur  : Cursor;
@@ -161,9 +127,11 @@ package body Files_Table is
          return Res;
       end if;
 
+      --  Here if full name not found, try again with simple name
+
       declare
          Simple_Name : constant String :=
-           Ada.Directories.Simple_Name (Full_Name);
+                         Ada.Directories.Simple_Name (Full_Name);
       begin
          Cur := Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
          if Cur /= No_Element then
@@ -181,6 +149,12 @@ package body Files_Table is
                   Put_Line ("  " & Info_Simple.Full_Name.all);
                end if;
             end if;
+
+         --  Here if not found by simple name, either
+
+         elsif not Insert then
+            return No_Source_File;
+
          else
             Info_Simple := null;
          end if;
@@ -200,11 +174,13 @@ package body Files_Table is
 
          Files_Table.Append (Info);
          Res := Files_Table.Last_Index;
+
          if Info_Simple = null then
             Simple_Name_Map.Insert (Info.Simple_Name, Res);
          else
             --  Set Alias_Num.
             --  The entry in Simple_Name_Map has always the highest index.
+
             if Info_Simple.Alias_Num = 0 then
                Info.Alias_Num := 1;
             else
@@ -212,11 +188,54 @@ package body Files_Table is
             end if;
             Info_Simple.Alias_Num := Info.Alias_Num + 1;
          end if;
+
          Full_Name_Map.Insert (Info.Full_Name, Res);
 
          return Res;
       end;
    end Get_Index_From_Full_Name;
+
+   --------------------------------
+   -- Get_Index_From_Simple_Name --
+   --------------------------------
+
+   function Get_Index_From_Simple_Name
+     (Simple_Name : String;
+      Insert      : Boolean := True) return Source_File_Index
+   is
+      use Filename_Maps;
+
+      Cur  : constant Cursor :=
+               Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
+      Res  : Source_File_Index;
+      Info : File_Info_Access;
+   begin
+      if Cur /= No_Element then
+         return Element (Cur);
+      end if;
+
+      if not Insert then
+         return No_Source_File;
+      end if;
+
+      Info := new File_Info'(Simple_Name => new String'(Simple_Name),
+                             Full_Name  => null,
+                             Alias_Num  => 0,
+                             Lines      => (Source_Line_Vectors.Empty_Vector
+                                              with null record),
+                             Stats      => (others => 0),
+                             To_Display => False);
+
+      if Debug_New_File then
+         Put_Line ("New file: " & Simple_Name);
+      end if;
+
+      Files_Table.Append (Info);
+      Res := Files_Table.Last_Index;
+      Simple_Name_Map.Insert (Info.Simple_Name, Res);
+
+      return Res;
+   end Get_Index_From_Simple_Name;
 
    -------------------
    -- Get_Full_Name --

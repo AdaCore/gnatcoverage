@@ -30,18 +30,21 @@ with Types;        use Types;
 with SC_Obligations; use SC_Obligations;
 
 package Files_Table is
-   --  This package manages a source file table and, for each file,
-   --  a table of its source lines. Coverage information can be
-   --  associated with each file/line. Only object coverage is supported.
+   --  This package manages a source file table and, for each file, a table of
+   --  its source lines. Coverage information can be associated with each
+   --  file/line. Only object coverage is supported.
 
    --  Global directory of all source files
 
-   function Get_Index_From_Full_Name (Full_Name : String)
-                                     return Source_File_Index;
-   function Get_Index_From_Simple_Name (Simple_Name : String)
-                                       return Source_File_Index;
+   function Get_Index_From_Full_Name
+     (Full_Name : String;
+      Insert    : Boolean := True) return Source_File_Index;
+   function Get_Index_From_Simple_Name
+     (Simple_Name : String;
+      Insert      : Boolean := True) return Source_File_Index;
    function Get_Full_Name (Index : Source_File_Index) return String;
    function Get_Simple_Name (Index : Source_File_Index) return String;
+   --  Comments needed???
 
    --  Utilities to open files from the source file table. Source files will be
    --  searched on the local filesystem, in the following order:

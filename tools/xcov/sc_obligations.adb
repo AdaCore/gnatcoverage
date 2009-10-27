@@ -229,6 +229,9 @@ package body SC_Obligations is
    package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
+      Origin : Source_File_Index;
+      --  ALI file containing this SCO
+
       Sloc_Range : Source_Location_Range;
       --  For a decision, cumulative range from all conditions
 
@@ -869,10 +872,12 @@ package body SC_Obligations is
       Cur_SCO_Unit : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
 
+      ALI_Index : Source_File_Index;
+
       ALI_File : File_Type;
-      Line : String (1 .. 1024);
-      Last : Natural;
-      Index : Natural;
+      Line     : String (1 .. 1024);
+      Last     : Natural;
+      Index    : Natural;
 
       Previous_Statement       : SCO_Id := No_SCO_Id;
       --  Previous statement in the same CS line, used for chaining of basic
@@ -948,11 +953,24 @@ package body SC_Obligations is
    --  Start of processing for Load_SCOs_From_ALI
 
    begin
+      --  First check whether this ALI has been already loaded. We identify
+      --  this by the fact that it already has an assigned Source_File_Index.
+
+      ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => False);
+      if ALI_Index /= No_Source_File then
+         Put_Line ("Ignoring duplicate ALI file " & ALI_Filename);
+         return;
+      end if;
+
+      ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => True);
+      Open (ALI_File, In_File, ALI_Filename);
+
+      --  Here once the ALI file has been succesfully opened
+
       if Verbose then
          Put_Line ("Loading SCOs from " & ALI_Filename);
       end if;
 
-      Open (ALI_File, In_File, ALI_Filename);
       Scan_ALI : loop
          if End_Of_File (ALI_File) then
             --  No SCOs in this ALI
@@ -1100,6 +1118,7 @@ package body SC_Obligations is
 
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Statement,
+                                     Origin     => ALI_Index,
                                      Sloc_Range =>
                                        (First_Sloc => Make_Sloc (SCOE.From),
                                         Last_Sloc  => Make_Sloc (SCOE.To)),
@@ -1114,6 +1133,7 @@ package body SC_Obligations is
                   pragma Assert (Current_Complex_Decision = No_SCO_Id);
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind                => Decision,
+                                     Origin              => ALI_Index,
                                      Sloc_Range          =>
                                        (First_Sloc => Make_Sloc (SCOE.From),
                                         Last_Sloc  => Make_Sloc (SCOE.To)),
@@ -1129,6 +1149,7 @@ package body SC_Obligations is
 
                      SCO_Vector.Append
                        (SCO_Descriptor'(Kind       => Condition,
+                                        Origin     => ALI_Index,
                                         Sloc_Range =>
                                           (First_Sloc => Make_Sloc (SCOE.From),
                                            Last_Sloc  => Make_Sloc (SCOE.To)),
@@ -1163,6 +1184,7 @@ package body SC_Obligations is
                   Current_Condition_Index := Current_Condition_Index + 1;
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Condition,
+                                     Origin     => ALI_Index,
                                      Sloc_Range =>
                                      (First_Sloc => Make_Sloc (SCOE.From),
                                       Last_Sloc  => Make_Sloc (SCOE.To)),
