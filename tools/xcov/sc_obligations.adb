@@ -1108,7 +1108,7 @@ package body SC_Obligations is
                                      others     => <>));
                   Previous_Statement := SCO_Vector.Last_Index;
 
-               when 'I' | 'E' | 'W' | 'X' =>
+               when 'I' | 'E' | 'P' | 'W' | 'X' =>
                   --  Decision
 
                   pragma Assert (Current_Complex_Decision = No_SCO_Id);
@@ -1250,7 +1250,16 @@ package body SC_Obligations is
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
 
-                     pragma Assert (Enclosing_SCO = No_SCO_Id);
+                     --  pragma Assert (Enclosing_SCO = No_SCO_Id);
+                     --  For now generate explicit diagnostic, ignore nested
+                     --  SCO and proceed???
+
+                     if Enclosing_SCO /= No_SCO_Id then
+                        Put_Line
+                          ("!!! unexpected SCO nesting in "
+                           & Image (Enclosing_SCO));
+                        return;
+                     end if;
 
                      pragma Assert (SCOD.Sloc_Range.First_Sloc.Source_File
                                   = SCOD.Sloc_Range.Last_Sloc.Source_File);
