@@ -994,12 +994,6 @@ begin
                end if;
 
             when Source_Coverage_Level =>
-               if Get_Coverage_Level > Stmt then
-                  --  Build decision map
-
-                  Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
-               end if;
-
                --  Process traces for each routine
 
                Traces_Names.Iterate

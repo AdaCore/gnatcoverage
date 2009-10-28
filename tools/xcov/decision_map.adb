@@ -22,7 +22,6 @@ with Ada.Containers.Vectors;
 
 with Ada.Text_IO;       use Ada.Text_IO;
 with Interfaces;        use Interfaces;
-with GNAT.Strings;      use GNAT.Strings;
 
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Hex_Images;        use Hex_Images;
@@ -32,7 +31,6 @@ with Switches;          use Switches;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Elf;        use Traces_Elf;
 with Traces_Files;      use Traces_Files;
-with Traces_Names;      use Traces_Names;
 
 package body Decision_Map is
 
@@ -98,11 +96,6 @@ package body Decision_Map is
    procedure Analyze;
    --  Build the decision map from the executable, debug information and
    --  the Source Coverage Obligations (which must have been loaded already).
-
-   procedure Analyze_Routine
-     (Name : String_Access;
-      Info : in out Subprogram_Info);
-   --  Build decision map for the given subprogram
 
    procedure Analyze_Conditional_Branch
      (Exe               : Exe_File_Acc;

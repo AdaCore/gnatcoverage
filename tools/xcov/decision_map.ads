@@ -28,10 +28,18 @@ with Ada.Containers.Ordered_Maps;
 
 with Interfaces;
 
+with GNAT.Strings;      use GNAT.Strings;
+
 with SC_Obligations; use SC_Obligations;
 with Traces;         use Traces;
+with Traces_Names;   use Traces_Names;
 
 package Decision_Map is
+
+   procedure Analyze_Routine
+     (Name : String_Access;
+      Info : in out Subprogram_Info);
+   --  Build decision map for the given subprogram
 
    procedure Build_Decision_Map (Exec_Name : String);
    --  Analyze the named executable using the provided ALI list to generate

@@ -233,12 +233,11 @@ package body Annotations is
                when Insn
                  | Branch =>
                   Coverage.Object.Compute_Line_State (LI);
-               when Stmt =>
+               when Stmt | Decision =>
                   Coverage.Source.Compute_Line_State (LI, FI, L);
-               when Decision
-                 | MCDC =>
+               when MCDC =>
                   raise Program_Error
-                    with "source coverage not yet implemented";
+                    with "MC/DC not yet implemented";
                when Unknown =>
                   raise Program_Error;
             end case;

@@ -45,7 +45,7 @@ package body Coverage.Source is
    type Outcome_Taken_Type is array (Boolean) of Boolean;
 
    type Source_Coverage_Info
-     (Level : Source_Coverage_Level := Stmt;
+     (Level : Source_Coverage_Level := Get_Coverage_Level;
       Kind  : SCO_Kind := Statement)
    is record
          case Kind is
@@ -62,7 +62,7 @@ package body Coverage.Source is
                      null;
 
                   when Decision =>
-                     Outcome_Taken : Outcome_Taken_Type;
+                     Outcome_Taken : Outcome_Taken_Type := (others => False);
                      --  Each of these components is set True when the
                      --  corresponding outcome has been exercised.
 
@@ -90,6 +90,8 @@ package body Coverage.Source is
       File        : File_Info_Access;
       Line_Number : Positive)
    is
+      use Ada.Strings, Ada.Strings.Fixed;
+
       Multiple_Statements_Reported : Boolean := False;
       --  Set True when a diagnosis has been emitted for multiple statements
 
@@ -118,6 +120,9 @@ package body Coverage.Source is
          end case;
       end Update_Line_State;
 
+      Loc_Info : constant String :=
+                   File.Simple_Name.all & ":" & Trim (Line_Number'Img, Left);
+
    --  Start of processing for Compute_Line_State
 
    begin
@@ -132,25 +137,24 @@ package body Coverage.Source is
          return;
       end if;
 
-      if Line.Obj_First = null then
-         --  No object code associated with this source line
-
-         return;
-      end if;
-
       --  Examine each SCO associated with line
 
       for J in Line.SCOs.First_Index .. Line.SCOs.Last_Index loop
          declare
-            use Ada.Strings, Ada.Strings.Fixed;
+            SCO         : constant SCO_Id := Line.SCOs.Element (J);
+            SCI         : Source_Coverage_Info;
+            Default_SCI : Source_Coverage_Info
+                            (Level => Get_Coverage_Level, Kind => Kind (SCO));
+            pragma Warnings (Off, Default_SCI);
+            --  Used for default initialization value
 
-            SCO       : constant SCO_Id := Line.SCOs.Element (J);
-            SCI       : Source_Coverage_Info;
-            SCO_State : Line_State := No_Code;
+            SCO_State   : Line_State := No_Code;
 
          begin
             if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
                SCI := SCI_Vector.Element (SCO);
+            else
+               SCI := Default_SCI;
             end if;
 
             case Get_Coverage_Level is
@@ -176,8 +180,7 @@ package body Coverage.Source is
                            if not Multiple_Statements_Reported then
                               Multiple_Statements_Reported := True;
                               Put_Line ("??? multiple statement SCOs on "
-                                        & File.Simple_Name.all
-                                        & ":" & Trim (Line_Number'Img, Left)
+                                        & Loc_Info
                                         & ", unable to establish "
                                         & "full statement coverage");
                            end if;
@@ -195,7 +198,6 @@ package body Coverage.Source is
                   --  covered, marked no code if no decision.
 
                   if Kind (SCO) = Decision then
-
                      --  Compute coverage state for this decision
 
                      if SCI.Outcome_Taken (False)
@@ -239,7 +241,6 @@ package body Coverage.Source is
      (Subp_Name : String_Access;
       Subp_Info : in out Subprogram_Info)
    is
-      pragma Unreferenced (Subp_Name);
       use type Interfaces.Unsigned_32;
 
       PC         : Pc_Type;
@@ -248,6 +249,10 @@ package body Coverage.Source is
       Insn_Len   : Natural;
       SCO, S_SCO : SCO_Id;
    begin
+      --  Analyze routine control flow
+
+      Analyze_Routine (Subp_Name, Subp_Info);
+
       --  Iterate over traces for this routine
 
       Init (Subp_Info.Traces.all, It, 0);
@@ -269,21 +274,20 @@ package body Coverage.Source is
                goto Continue_Trace_Insns;
             end if;
 
-            --  Ensure there is a coverage entry for this SCO
+            --  Ensure there is a coverage information entry for this SCO
 
-            if SCO > SCI_Vector.Last_Index then
-               SCI_Vector.Set_Length
-                 (Count_Type (SCO - SCI_Vector.First_Index + 1));
+            while SCI_Vector.Last_Index < SCO loop
                declare
-                  New_SCI : Source_Coverage_Info
-                              (Kind  => Kind (SCO),
-                               Level => Get_Coverage_Level);
+                  New_Index : constant SCO_Id := SCI_Vector.Last_Index + 1;
+                  New_SCI   : Source_Coverage_Info
+                                (Kind  => Kind (New_Index),
+                                 Level => Get_Coverage_Level);
                   pragma Warnings (Off, New_SCI);
                   --  Used for default initialization value only
                begin
-                  SCI_Vector.Replace_Element (SCO, New_SCI);
+                  SCI_Vector.Append (New_SCI);
                end;
-            end if;
+            end loop;
 
             --  Find enclosing statement SCO and mark it as executed
 
@@ -375,6 +379,8 @@ package body Coverage.Source is
             --  Start of processing for Process_Conditional_Branch
 
             begin
+               Put_Line ("processing cond branch trace @"
+                         & Hex_Image (PC) & ": " & T.State'Img);
                case T.State is
                   when Branch_Taken =>
                      Edge_Taken (Branch);
@@ -396,7 +402,7 @@ package body Coverage.Source is
                      end if;
 
                   when others =>
-                     Put_Line ("??? unexpected trace " & T.State'Img
+                     Put_Line ("??? unexpected trace state " & T.State'Img
                                & " for conditional branch @" & Hex_Image (PC));
                end case;
             end Process_Conditional_Branch;
