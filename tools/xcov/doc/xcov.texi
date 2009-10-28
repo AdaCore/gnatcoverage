@@ -1422,7 +1422,7 @@ The example provided here focuses on object coverage analysis for
 illustrative puroposes.
 @c
 Xcov's consolidation capabilities apply identically to the source
-coverage analysis case, with mutliple execution traces on input and
+coverage analysis case, with multiple execution traces on input and
 @code{--scos} to specify the sources subset of interest.
 
 
