@@ -137,6 +137,12 @@ package body Coverage.Source is
          return;
       end if;
 
+      if Line.Obj_First = null then
+         --  No object code associated with this source line
+
+         return;
+      end if;
+
       --  Examine each SCO associated with line
 
       for J in Line.SCOs.First_Index .. Line.SCOs.Last_Index loop
