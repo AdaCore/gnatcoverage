@@ -253,6 +253,10 @@ package body Coverage.Source is
 
       Analyze_Routine (Subp_Name, Subp_Info);
 
+      --  Determine trace states
+
+      Set_Insn_State (Subp_Info.Traces.all, Subp_Info.Insns.all);
+
       --  Iterate over traces for this routine
 
       Init (Subp_Info.Traces.all, It, 0);
