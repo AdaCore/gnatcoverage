@@ -167,6 +167,7 @@ package body Annotations.Report is
       pragma Unreferenced (Line);
       Output : constant File_Access := Get_Output;
       State  : constant Line_State := Info.State;
+
    begin
       if State /= Covered
         and then State /= No_Code
@@ -175,7 +176,7 @@ package body Annotations.Report is
          Put (":");
          Put (Output.all, Img (Line_Num));
          Put (Output.all, ": ");
-         Put (Output.all, "line not covered for ");
+         Put (Output.all, "line " & State'Img & " for ");
          Put (Output.all, To_Coverage_Option (Get_Coverage_Level));
          Put (Output.all, " coverage");
          New_Line (Output.all);
