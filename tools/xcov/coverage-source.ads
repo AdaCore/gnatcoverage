@@ -27,10 +27,14 @@ package Coverage.Source is
    procedure Compute_Source_Coverage
      (Subp_Name : String_Access;
       Subp_Info : in out Subprogram_Info);
-   --  Analyze traces for the given subprogram to determine source coverage
+   --  Analyze traces for the given subprogram to determine the coverage state
+   --  of each SCO.
 
-   procedure Compute_Line_State (Line : Line_Info_Access);
-   --  Set Line.State
-   --  Based on what???
+   procedure Compute_Line_State
+     (Line        : Line_Info_Access;
+      File        : File_Info_Access;
+      Line_Number : Positive);
+   --  Set Line.State based on coverage information accumulated on all SCOs
+   --  that cover the given line.
 
 end Coverage.Source;

@@ -234,7 +234,7 @@ package body Annotations is
                  | Branch =>
                   Coverage.Object.Compute_Line_State (LI);
                when Stmt =>
-                  Coverage.Source.Compute_Line_State (LI);
+                  Coverage.Source.Compute_Line_State (LI, FI, L);
                when Decision
                  | MCDC =>
                   raise Program_Error
