@@ -569,10 +569,29 @@ package body Decision_Map is
 
          function Dest_Image (Edge : Edge_Kind) return String is
             Edge_Info : Cond_Edge_Info renames CBI.Edges (Edge);
+
+            function Outcome_Value_Image return String;
+            --  Edge_Info.Outcome'Img if Dest_Kind is Outcome, else null string
+
+            -------------------------
+            -- Outcome_Value_Image --
+            -------------------------
+
+            function Outcome_Value_Image return String is
+            begin
+               if Edge_Info.Dest_Kind = Outcome then
+                  return " (" & Edge_Info.Outcome'Img & ")";
+               else
+                  return "";
+               end if;
+            end Outcome_Value_Image;
+
+         --  Start of processing for Dest_Image
+
          begin
             return Edge'Img
               & " = " & Hex_Image (Edge_Info.Destination)
-              & " " & Edge_Info.Dest_Kind'Img;
+              & " " & Edge_Info.Dest_Kind'Img & Outcome_Value_Image;
          end Dest_Image;
 
       --  Start of processing for Label_Destinations
@@ -585,10 +604,9 @@ package body Decision_Map is
 
          Report
            (Cond_Branch_PC,
-            "destination kinds: " & Dest_Image (Branch)
+            "destinations: " & Dest_Image (Branch)
             & " / " & Dest_Image (Fallthrough),
             Kind => Notice);
-
       end Label_Destinations;
 
    --  Start of processing for Analyze_Decision_Occurrence
