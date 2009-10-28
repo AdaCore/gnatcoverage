@@ -351,7 +351,14 @@ package body Coverage.Source is
                     (SCI : in out Source_Coverage_Info)
                   is
                   begin
-                     if Get_Coverage_Level = Decision then
+                     --  Note: if for some reason we failed to identify which
+                     --  value of the outcome this edge represents, then we
+                     --  silently ignore it, and do not mark any outcome of
+                     --  the decision as known to have been taken.
+
+                     if Get_Coverage_Level = Decision
+                       and then CBE.Outcome /= Unknown
+                     then
                         SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
                      else
                         --  MC/DC not implemented yet
