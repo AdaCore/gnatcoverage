@@ -159,6 +159,11 @@ package SCOs is
 
    --    and is omitted for all other cases.
 
+   --  Note: up to 6 entries can appear on a single CS line. If more than
+   --  6 entries appear in one logical statement sequence, continuation
+   --  lines are marked by Cs and appear immediately after the CS line
+   --  they continue.
+
    --  Decisions
 
    --    Note: in the following description, logical operator includes only the

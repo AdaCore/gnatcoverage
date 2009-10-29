@@ -250,14 +250,31 @@ begin
 
          --  Statement entry
 
-         when 'S' =>
+         when 'S' | 's' =>
             declare
                Typ : Character;
                Key : Character;
 
             begin
+               --  If continuation, reset Last indication in last entry
+               --  stored for previous CS or cs line, and start with key
+               --  set to s for continuations.
+
+               if C = 's' then
+                  SCO_Table.Table (SCO_Table.Last).Last := False;
+                  Key := 's';
+
+               --  CS case (first line, so start with key set to S)
+
+               else
+                  Key := 'S';
+               end if;
+
+               --  Initialize to scan items on one line
+
                Skip_Spaces;
-               Key := 'S';
+
+               --  Loop through items on one line
 
                loop
                   Typ := Nextc;
