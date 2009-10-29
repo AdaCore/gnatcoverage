@@ -256,6 +256,10 @@ package SCOs is
    --    In the context of Couverture, the No_Direct_Boolean_Opeartors
    --    restriction is assumed, and no other operator can appear.
 
+   --    The SCO line for a decision always occur after the CS line for the
+   --    enclosing statement. The SCO line for a nested decision always occurs
+   --    after the line for the enclosing decision.
+
    ---------------------------------------------------------------------
    -- Internal table used to store Source Coverage Obligations (SCOs) --
    ---------------------------------------------------------------------
