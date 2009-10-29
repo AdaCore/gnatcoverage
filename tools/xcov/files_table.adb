@@ -343,7 +343,12 @@ package body Files_Table is
          begin
             while E /= null loop
                Try_Open (File, E.Prefix.all & '/' & Name.all, Success);
-               exit when Success;
+
+               if Success then
+                  FI.Full_Name := new String'(E.Prefix.all & '/' & Name.all);
+                  exit;
+               end if;
+
                E := E.Next;
             end loop;
          end;
