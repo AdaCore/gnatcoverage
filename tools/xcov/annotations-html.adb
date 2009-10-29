@@ -19,6 +19,7 @@
 
 with Ada.Integer_Text_IO;
 with Ada.Text_IO; use Ada.Text_IO;
+with GNAT.Strings; use GNAT.Strings;
 with Hex_Images; use Hex_Images;
 with Traces_Disa; use Traces_Disa;
 with Traces_Files;
@@ -512,7 +513,11 @@ package body Annotations.Html is
       Pi ("    <tr>"); Ni;
 
       --  First column: file name
-      Pi ("      <td title=""" & Source.Full_Name.all & '"');
+      if Source.Full_Name /= null then
+         Pi ("      <td title=""" & Source.Full_Name.all & '"');
+      else
+         Pi ("      <td title=""" & Simple_Source_Filename & '"');
+      end if;
 
       if Has_Source or Flag_Show_Missing then
          Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"
