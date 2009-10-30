@@ -18,16 +18,19 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
+with Ada.Text_IO;  use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
-with Ada.Text_IO; use Ada.Text_IO;
-with Traces_Elf;   use Traces_Elf;
-with Traces_Dbase; use Traces_Dbase;
-with Traces_Stats; use Traces_Stats;
-with Traces_Lines; use Traces_Lines;
-with Slocs;        use Slocs;
-with Types;        use Types;
+
+with Diagnostics;    use Diagnostics;
+pragma Unreferenced (Diagnostics);
 with SC_Obligations; use SC_Obligations;
+with Slocs;          use Slocs;
+with Traces_Elf;     use Traces_Elf;
+with Traces_Dbase;   use Traces_Dbase;
+with Traces_Stats;   use Traces_Stats;
+with Traces_Lines;   use Traces_Lines;
+with Types;          use Types;
 
 package Files_Table is
    --  This package manages a source file table and, for each file, a table of
@@ -131,6 +134,9 @@ package Files_Table is
 
       SCOs : SCO_Id_Vectors.Vector;
       --  SCOs for this source line
+
+      Messages : Message_Vectors.Vector;
+      --  Various diagnostic messages attached to this line
    end record;
 
    type Line_Info_Access is access Line_Info;
@@ -173,18 +179,18 @@ package Files_Table is
    procedure Files_Table_Iterate
      (Process : not null access procedure (FI : File_Info_Access));
 
-   function Files_Table_Element
-     (Index : Source_File_Index)
-     return File_Info_Access;
+   function Get_File
+     (Index : Source_File_Index) return File_Info_Access;
 
    procedure Iterate_On_Lines
      (File    : File_Info_Access;
       Process : not null access procedure (Index : Positive));
 
-   function Get_Line_Info
+   function Get_Line
      (File  : File_Info_Access;
-      Index : Positive)
-     return Line_Info_Access;
+      Index : Positive) return Line_Info_Access;
+
+   function Get_Line (Sloc : Source_Location) return Line_Info_Access;
 
    procedure Open
      (File    : in out File_Type;

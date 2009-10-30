@@ -18,13 +18,12 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
-with Ada.Strings.Fixed;
 
 with Interfaces;
 
 with Decision_Map;      use Decision_Map;
+with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
-with Hex_Images;        use Hex_Images;
 with MC_DC;             use MC_DC;
 with SC_Obligations;    use SC_Obligations;
 with Traces;            use Traces;
@@ -85,13 +84,7 @@ package body Coverage.Source is
    -- Compute_Line_State --
    ------------------------
 
-   procedure Compute_Line_State
-     (Line        : Line_Info_Access;
-      File        : File_Info_Access;
-      Line_Number : Positive)
-   is
-      use Ada.Strings, Ada.Strings.Fixed;
-
+   procedure Compute_Line_State (Line : Line_Info_Access) is
       Multiple_Statements_Reported : Boolean := False;
       --  Set True when a diagnosis has been emitted for multiple statements
 
@@ -119,9 +112,6 @@ package body Coverage.Source is
                Line.State := Line_State'Max (SCO_State, Partially_Covered);
          end case;
       end Update_Line_State;
-
-      Loc_Info : constant String :=
-                   File.Simple_Name.all & ":" & Trim (Line_Number'Img, Left);
 
    --  Start of processing for Compute_Line_State
 
@@ -185,10 +175,11 @@ package body Coverage.Source is
 
                            if not Multiple_Statements_Reported then
                               Multiple_Statements_Reported := True;
-                              Put_Line ("??? multiple statement SCOs on "
-                                        & Loc_Info
-                                        & ", unable to establish "
-                                        & "full statement coverage");
+                              Report
+                                (First_Sloc (SCO),
+                                 "multiple statement SCOs on line, unable to "
+                                 & "establish full statement coverage",
+                                 Kind => Warning);
                            end if;
                            SCO_State := Partially_Covered;
                         end if;
@@ -249,6 +240,7 @@ package body Coverage.Source is
    is
       use type Interfaces.Unsigned_32;
 
+      Exe        : Exe_File_Acc renames Subp_Info.Exec;
       PC         : Pc_Type;
       It         : Entry_Iterator;
       T          : Trace_Entry;
@@ -377,9 +369,10 @@ package body Coverage.Source is
                begin
                   case CBE.Dest_Kind is
                      when Unknown =>
-                        Put_Line ("!!! unqualified edge " & E'Img & " taken"
-                                  & " for conditional branch @"
-                                  & Hex_Image (PC));
+                        Report
+                          (Exe, PC,
+                           "unlabeled edge " & E'Img & " taken",
+                           Kind => Error);
 
                      when Outcome =>
                         SCI_Vector.Update_Element
@@ -396,8 +389,10 @@ package body Coverage.Source is
             --  Start of processing for Process_Conditional_Branch
 
             begin
-               Put_Line ("processing cond branch trace @"
-                         & Hex_Image (PC) & ": " & T.State'Img);
+               Report
+                 (Exe, PC,
+                  "processing cond branch trace " & T.State'Img,
+                  Kind => Notice);
                case T.State is
                   when Branch_Taken =>
                      Edge_Taken (Branch);
@@ -410,17 +405,21 @@ package body Coverage.Source is
                         --  For MC/DC we need full historical traces, not just
                         --  accumulated traces.
 
-                        Put_Line
-                          ("!!! missing full traces for conditional branch @"
-                           & Hex_Image (PC));
+                        Report
+                          (Exe, PC,
+                           "missing full traces of conditional branch "
+                           & "for MC/DC");
                      else
                         Edge_Taken (Branch);
                         Edge_Taken (Fallthrough);
                      end if;
 
                   when others =>
-                     Put_Line ("??? unexpected trace state " & T.State'Img
-                               & " for conditional branch @" & Hex_Image (PC));
+                     Report
+                       (Exe, PC,
+                        "unexpected cond branch trace state " & T.State'Img,
+                        Kind => Warning);
+
                end case;
             end Process_Conditional_Branch;
 

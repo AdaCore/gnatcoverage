@@ -405,17 +405,25 @@ package body Files_Table is
       FI.Lines.Element (Line).all.SCOs.Append (SCO);
    end Add_Line_For_Source_Coverage;
 
-   -------------------
-   -- Get_Line_Info --
-   -------------------
+   --------------
+   -- Get_Line --
+   --------------
 
-   function Get_Line_Info
+   function Get_Line (Sloc : Source_Location) return Line_Info_Access is
+   begin
+      if Sloc = Slocs.No_Location then
+         return null;
+      end if;
+      return Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
+   end Get_Line;
+
+   function Get_Line
      (File  : File_Info_Access;
-      Index : Positive)
-     return Line_Info_Access is
+      Index : Positive) return Line_Info_Access
+   is
    begin
       return File.Lines.Element (Index);
-   end Get_Line_Info;
+   end Get_Line;
 
    -----------------------
    -- Expand_Line_Table --
@@ -441,16 +449,14 @@ package body Files_Table is
       end loop;
    end Files_Table_Iterate;
 
-   ------------------------
-   -- Files_Table_Element --
-   ------------------------
+   --------------
+   -- Get_File --
+   --------------
 
-   function Files_Table_Element
-     (Index : Source_File_Index)
-     return File_Info_Access is
+   function Get_File (Index : Source_File_Index) return File_Info_Access is
    begin
       return Files_Table.Element (Index);
-   end Files_Table_Element;
+   end Get_File;
 
    -------------
    -- Iterate --

@@ -25,9 +25,10 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
-with SCOs;     use SCOs;
-with Switches; use Switches;
-with Types;    use Types;
+with Diagnostics; use Diagnostics;
+with SCOs;        use SCOs;
+with Switches;    use Switches;
+with Types;       use Types;
 with Files_Table; use Files_Table;
 with Get_SCOs;
 
@@ -341,7 +342,7 @@ package body SC_Obligations is
                      of Boolean := (others => False);
 
          procedure Visit (Node_Id : BDD_Node_Id);
-         --  Visit one node. If it was already visited, report diamond
+         --  Visit one node. If it was already seen, note presence of a diamond
 
          procedure Visit (Node_Id : BDD_Node_Id) is
             Node : BDD_Node renames BDD_Vector.Element (Node_Id);
@@ -534,10 +535,12 @@ package body SC_Obligations is
          Put_Line ("----- BDD for decision " & Image (BDD.Decision));
          Put_Line ("--- Root condition:" & BDD.Root_Condition'Img);
          if BDD.Diamond_Base /= No_BDD_Node_Id then
-            Put_Line
-              ("!!! BDD node" & BDD.Diamond_Base'Img
-               & " reachable through multiple paths");
-            Put_Line ("!!! OBC does not imply MC/DC coverage");
+            Report
+              (BDD.Decision,
+               "BDD node" & BDD.Diamond_Base'Img
+               & " reachable through multiple paths",
+               Kind => Warning);
+            Report ("OBC does not imply MC/DC coverage", Kind => Warning);
          end if;
          Dump_Condition (BDD.Root_Condition);
          New_Line;
@@ -958,7 +961,8 @@ package body SC_Obligations is
 
       ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => False);
       if ALI_Index /= No_Source_File then
-         Put_Line ("Ignoring duplicate ALI file " & ALI_Filename);
+         Report
+           ("ignoring duplicate ALI file " & ALI_Filename, Kind => Warning);
          return;
       end if;
 
@@ -1277,9 +1281,11 @@ package body SC_Obligations is
                      --  SCO and proceed???
 
                      if Enclosing_SCO /= No_SCO_Id then
-                        Put_Line
-                          ("!!! unexpected SCO nesting in "
-                           & Image (Enclosing_SCO));
+                        Report
+                          (First,
+                           "unexpected SCO nesting in "
+                           & Image (Enclosing_SCO)
+                           & ", discarding nested SCO");
                         return;
                      end if;
 
@@ -1308,11 +1314,12 @@ package body SC_Obligations is
                         --  with junk SCOs generated for modular integer
                         --  expressions)???
 
-                        Put_Line
-                          ("??? "
-                           & Image (SCO) & " has the same sloc range as "
+                        Report
+                          (SCO,
+                           "same sloc range as "
                            & Image (Sloc_To_SCO_Map.Element (SCOD.Sloc_Range))
-                           & ", ignored");
+                           & ", ignored",
+                           Kind => Warning);
                   end;
                end if;
             end Process_Descriptor;
@@ -1414,7 +1421,10 @@ package body SC_Obligations is
          SCOD : SCO_Descriptor renames Element (Cur);
       begin
          if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
-            Put_Line ("No conditional branch for " & Image (To_Index (Cur)));
+            Report
+              (SCOD.Sloc_Range.First_Sloc,
+               "no conditional branch for " & Image (To_Index (Cur)),
+               Kind => Warning);
          end if;
       end Check_Condition;
    begin

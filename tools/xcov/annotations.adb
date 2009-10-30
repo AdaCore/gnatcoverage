@@ -72,7 +72,7 @@ package body Annotations is
          Info             : Files_Table.Object_Coverage_Info_Acc;
          Sec_Info         : Addresses_Info_Acc;
          LI               : constant Line_Info_Access :=
-           Get_Line_Info (File, Index);
+           Get_Line (File, Index);
          Ls               : constant Line_State := LI.State;
          In_Symbol        : Boolean;
          In_Insn_Set      : Boolean;
@@ -226,7 +226,7 @@ package body Annotations is
 
          procedure Compute_Line_State (L : Positive) is
             use Coverage;
-            LI : constant Line_Info_Access := Get_Line_Info (FI, L);
+            LI : constant Line_Info_Access := Get_Line (FI, L);
             S : Line_State;
          begin
             case Get_Coverage_Level is
@@ -234,7 +234,7 @@ package body Annotations is
                  | Branch =>
                   Coverage.Object.Compute_Line_State (LI);
                when Stmt | Decision =>
-                  Coverage.Source.Compute_Line_State (LI, FI, L);
+                  Coverage.Source.Compute_Line_State (LI);
                when MCDC =>
                   raise Program_Error
                     with "MC/DC not yet implemented";
