@@ -97,30 +97,35 @@ package body Coverage.Source is
       Multiple_Statements_Reported : Boolean := False;
       --  Set True when a diagnosis has been emitted for multiple statements
 
-      procedure Update_Line_State (SCO_State : Line_State);
-      --  Merge SCO_State into Line_State
+      procedure Update_State
+        (Prev_State : in out Line_State;
+         State      : Line_State);
+      --  Merge State into Prev_State
 
-      -----------------------
-      -- Update_Line_State --
-      -----------------------
+      ------------------
+      -- Update_State --
+      ------------------
 
-      procedure Update_Line_State (SCO_State : Line_State) is
-         pragma Assert (SCO_State /= No_Code);
+      procedure Update_State
+        (Prev_State : in out Line_State;
+         State      : Line_State)
+      is
+         pragma Assert (State /= No_Code);
       begin
-         case Line.State is
+         case Prev_State is
             when No_Code =>
-               Line.State := SCO_State;
+               Prev_State := State;
 
             when Not_Covered =>
-               Line.State := Line_State'Min (SCO_State, Partially_Covered);
+               Prev_State := Line_State'Min (State, Partially_Covered);
 
             when Partially_Covered =>
                null;
 
             when Covered =>
-               Line.State := Line_State'Max (SCO_State, Partially_Covered);
+               Prev_State := Line_State'Max (State, Partially_Covered);
          end case;
-      end Update_Line_State;
+      end Update_State;
 
    --  Start of processing for Compute_Line_State
 
@@ -199,12 +204,9 @@ package body Coverage.Source is
                   end if;
 
                when Decision =>
-                  --  Decision coverage: line is covered if all decisions are
-                  --  covered, partially covered if any decision is partially
-                  --  covered, marked no code if no decision.
 
                   if Kind (SCO) = Decision then
-                     --  Compute coverage state for this decision
+                     --  Compute decision coverage state for this decision
 
                      if SCI.Outcome_Taken (False)
                        and then SCI.Outcome_Taken (True)
@@ -221,6 +223,48 @@ package body Coverage.Source is
                      end if;
                   end if;
 
+               when MCDC =>
+                  if Kind (SCO) = Decision then
+                     --  Compute MC/DC state for this decision
+
+                     declare
+                        Independent_Influence :
+                          array (No_Condition_Index .. Last_Cond_Index (SCO))
+                            of Boolean;
+                        --  Indicates whether independent influence of each
+                        --  condition has been shown (first element at index
+                        --  No_Condition_Index is set for evaluation pairs that
+                        --  do not show independent influence of any
+                        --  condition).
+
+                     begin
+                        for E1 in SCI.Evaluations.First_Index
+                               .. SCI.Evaluations.Last_Index - 1
+                        loop
+                           for E2 in E1 + 1 .. SCI.Evaluations.Last_Index loop
+                              Independent_Influence
+                                (Is_MC_DC_Pair
+                                   (SCI.Evaluations.Element (E1),
+                                    SCI.Evaluations.Element (E2))) := True;
+                           end loop;
+                        end loop;
+
+                        --  Iterate over conditions and report
+
+                        for J in 0 .. Independent_Influence'Last loop
+                           if not Independent_Influence (J) then
+                              Update_State (SCO_State, Not_Covered);
+                              Report
+                                (Condition (SCO, J),
+                                 "failed to establish independent influence",
+                                 Kind => Warning);
+                           else
+                              Update_State (SCO_State, Covered);
+                           end if;
+                        end loop;
+                     end;
+                  end if;
+
                when Object_Coverage_Level =>
                   --  Should never happen
 
@@ -233,7 +277,7 @@ package body Coverage.Source is
             end case;
 
             if SCO_State /= No_Code then
-               Update_Line_State (SCO_State);
+               Update_State (Line.State, SCO_State);
             end if;
          end;
       end loop;
@@ -360,33 +404,28 @@ package body Coverage.Source is
                   is
                      ES_Top : Evaluation;
                   begin
-                     --  Mark outcome taken
-
-                     SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
-                     return;
-
-                     --  The following is for MC/DC, not yet implemented???
-
-                     pragma Warnings (Off);
-                     ES_Top := Evaluation_Stack.Last_Element;
-                     pragma Warnings (On);
-                     Evaluation_Stack.Delete_Last;
-
-                     --  Note: if for some reason we failed to identify which
-                     --  value of the outcome this edge represents, then we
-                     --  silently ignore it, and do not mark any outcome of
-                     --  the decision as known to have been taken.
+                     --  If for some reason we failed to identify which value
+                     --  of the outcome this edge represents, then we silently
+                     --  ignore it, and do not mark any outcome of the decision
+                     --  as known to have been taken.
 
                      if CBE.Outcome = Unknown then
                         return;
                      end if;
 
-                     --  Record evaluation vector
+                     --  Mark outcome taken
 
-                     if Get_Coverage_Level = MCDC then
-                        ES_Top.Outcome := CBE.Outcome;
-                        SCI.Evaluations.Append (ES_Top);
-                     end if;
+                     SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
+
+                     --  Pop evaluation from stack
+
+                     ES_Top := Evaluation_Stack.Last_Element;
+                     Evaluation_Stack.Delete_Last;
+
+                     pragma Assert
+                       (ES_Top.Next_Condition = No_Condition_Index);
+                     ES_Top.Outcome := CBE.Outcome;
+                     SCI.Evaluations.Append (ES_Top);
                   end Set_Outcome_Taken;
 
                --  Start of processing for Edge_Taken
@@ -473,8 +512,74 @@ package body Coverage.Source is
    -------------------------
 
    procedure Condition_Evaluated (C_SCO : SCO_Id; C_Value : Boolean) is
+
+      function In_Current_Evaluation return Boolean;
+      --  True when this evaluation is the expected next condition in the
+      --  evaluation at the top of the evaluation stack.
+
+      procedure Update_Current_Evaluation (ES_Top : in out Evaluation);
+      --  Record the value of condition C_SCO in the current evaluation, and
+      --  set the next expected condition.
+
+      ---------------------------
+      -- In_Current_Evaluation --
+      ---------------------------
+
+      function In_Current_Evaluation return Boolean is
+      begin
+         if Evaluation_Stack.Length = 0 then
+            return False;
+         end if;
+
+         declare
+            ES_Top : Evaluation renames Evaluation_Stack.Last_Element;
+         begin
+            return ES_Top.Decision = Parent (C_SCO)
+              and then ES_Top.Next_Condition = Index (C_SCO);
+         end;
+      end In_Current_Evaluation;
+
+      -------------------------------
+      -- Update_Current_Evaluation --
+      -------------------------------
+
+      procedure Update_Current_Evaluation (ES_Top : in out Evaluation) is
+         Next_C_SCO : SCO_Id;
+      begin
+         --  Add Unknown markers for masked conditions
+
+         while ES_Top.Values.Last_Index < Index (C_SCO) - 1 loop
+            ES_Top.Values.Append (Unknown);
+         end loop;
+
+         --  Record value for this condition
+
+         ES_Top.Values.Append (To_Tristate (C_Value));
+
+         --  Set index of next expected condition
+
+         Next_C_SCO := Next_Condition (C_SCO, C_Value);
+         if Next_C_SCO /= No_SCO_Id then
+            ES_Top.Next_Condition := Index (Next_C_SCO);
+         else
+            ES_Top.Next_Condition := No_Condition_Index;
+         end if;
+      end Update_Current_Evaluation;
+
+   --  Start of processing for Condition_Evaluated
+
    begin
-      null;
+      if not In_Current_Evaluation then
+         Evaluation_Stack.Append
+           (Evaluation'(Decision       => Parent (C_SCO),
+                        Next_Condition => 0,
+                        Outcome        => Unknown,
+                        others         => <>));
+      end if;
+      pragma Assert (In_Current_Evaluation);
+      Evaluation_Stack.Update_Element
+        (Evaluation_Stack.Last_Index,
+         Update_Current_Evaluation'Access);
    end Condition_Evaluated;
 
    ------------------

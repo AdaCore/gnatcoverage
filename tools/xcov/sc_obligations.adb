@@ -740,6 +740,37 @@ package body SC_Obligations is
       SCO_Vector.Update_Element (SCO, Update'Access);
    end Add_Address;
 
+   ---------------
+   -- Condition --
+   ---------------
+
+   function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id is
+      use BDD;
+
+      SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+      Current_Condition_Index : Any_Condition_Index := No_Condition_Index;
+   begin
+      --  Find J'th (0-based) condition in decision by scanning the BDD vector
+
+      for J in SCOD.Decision_BDD.First_Node
+            .. SCOD.Decision_BDD.Last_Node
+      loop
+         if BDD_Vector.Element (J).Kind = Condition then
+            Current_Condition_Index := Current_Condition_Index + 1;
+            if Current_Condition_Index = Index then
+               return C_SCO : constant SCO_Id :=
+                                BDD_Vector.Element (J).C_SCO
+               do
+                  pragma Assert (Parent (C_SCO) = SCO);
+                  pragma Assert (SC_Obligations.Index (C_SCO) = Index);
+                  null;
+               end return;
+            end if;
+         end if;
+      end loop;
+      raise Constraint_Error with "condition index out of range";
+   end Condition;
+
    ----------------
    -- First_Sloc --
    ----------------

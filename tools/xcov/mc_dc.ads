@@ -32,15 +32,21 @@ package MC_DC is
    --  Type Evaluation denotes one evaluation of a decision
 
    type Evaluation is record
-      Decision  : SCO_Id;
+      Decision       : SCO_Id;
       --  The decision being evaluated
 
-      Values    : Condition_Evaluation_Vectors.Vector;
+      Values         : Condition_Evaluation_Vectors.Vector;
       --  Values of the conditions (True or False if condition has been
       --  evaluated, Unknown if it is masked or not evaluated yet).
 
-      Outcome           : Tristate;
-      --  Outcome of the decision with the given set of conditions values
+      Outcome        : Tristate;
+      --  Outcome of the decision with the given set of conditions values,
+      --  Unknown as long as the evaluation is not completed).
+
+      Next_Condition : Any_Condition_Index;
+      --  Next condition expected to be evaluated. Initially 0 before first
+      --  condition is evaluated, No_Condition_Index once an outcome has been
+      --  reached.
    end record;
 
    function Is_MC_DC_Pair

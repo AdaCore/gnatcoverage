@@ -98,6 +98,7 @@ package SC_Obligations is
 
    --  Decision SCOs
 
+   function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id;
    function Last_Cond_Index (SCO : SCO_Id) return Condition_Index;
 
 end SC_Obligations;
