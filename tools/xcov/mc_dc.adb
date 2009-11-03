@@ -19,84 +19,76 @@
 
 package body MC_DC is
 
-   function Find_True
-     (Conditions_Count : Condition_Index;
-      CV : Condition_Vector_Type) return Any_Condition_Index;
-   pragma Unreferenced (Find_True);
-   --  Return the lowest index in CV (1 .. Conditions_Count) for which
-   --  CV (Index) is True.
-   --  Return No_Condition if none such index exists.
-
-   ---------------
-   -- Find_True --
-   ---------------
-
-   function Find_True
-     (Conditions_Count : Condition_Index;
-      CV : Condition_Vector_Type) return Any_Condition_Index
-   is
-   begin
-      for J in 1 .. Conditions_Count loop
-         if CV (J) then
-            return J;
-         end if;
-      end loop;
-      return No_Condition;
-   end Find_True;
-
    -------------------
    -- Is_MC_DC_Pair --
    -------------------
 
    function Is_MC_DC_Pair
-     (Conditions_Count : Condition_Index;
-      Eval_1, Eval_2   : Evaluation) return Any_Condition_Index
+     (Eval_1, Eval_2 : Evaluation) return Any_Condition_Index
    is
-      Evaluated_Both : constant Condition_Vector_Type :=
-                         Eval_1.Evaluated and Eval_2.Evaluated;
-      Evaluated_Different : Condition_Vector_Type :=
-                              Evaluated_Both
-                                 and
-                              (Eval_1.Values xor Eval_2.Values);
-      First_Different : Any_Condition_Index;
+      First_Different : Any_Condition_Index := No_Condition_Index;
    begin
-      --  Not an MC/DC pair if same outcome in both cases, or if no condition
-      --  was evaluated in both cases and with different values.
+      pragma Assert (Eval_1.Decision = Eval_2.Decision);
+      pragma Assert (Eval_1.Outcome /= Unknown
+                       and then
+                     Eval_2.Outcome /= Unknown);
 
-      if (Eval_1.Outcome = Eval_2.Outcome)
-           or else
-         Evaluated_Different = Condition_Vector_Type'(others => False)
-      then
-         return No_Condition;
+      --  Not an MC/DC pair if both evaluations produced the same outcome
+
+      if Eval_1.Outcome = Eval_2.Outcome then
+         return No_Condition_Index;
       end if;
 
-      --  Find first condition that has different non-masked values in
-      --  both evaluations.
+      --  Look for first condition evaluated in both evaluations and with
+      --  different value in both, and check whether it is the only one.
 
-      First_Different := No_Condition;
-      for J in 1 .. Conditions_Count loop
-         if Evaluated_Different (J) then
-            First_Different := J;
-            exit;
-         end if;
+      for J in 0 .. Condition_Index'Max
+        (Eval_1.Values.Last_Index, Eval_2.Values.Last_Index)
+      loop
+         Check_Condition : declare
+            function Cond_J
+              (V : Condition_Evaluation_Vectors.Vector) return Tristate;
+            --  Return the value of condition J in V, or Unknown if not
+            --  evaluated.
+
+            ------------
+            -- Cond_J --
+            ------------
+
+            function Cond_J
+              (V : Condition_Evaluation_Vectors.Vector) return Tristate
+            is
+            begin
+               if J in V.First_Index .. V.Last_Index then
+                  return V.Element (J);
+               else
+                  return Unknown;
+               end if;
+            end Cond_J;
+
+            Val_1 : constant Tristate := Cond_J (Eval_1.Values);
+            Val_2 : constant Tristate := Cond_J (Eval_2.Values);
+
+         --  Start of processing for Check_Condition
+
+         begin
+            if Val_1 /= Unknown and then Val_2 /= Unknown
+              and then Val_1 /= Val_2
+            then
+               if First_Different = No_Condition_Index then
+                  First_Different := J;
+
+               else
+                  --  More than one condition had different values in both
+                  --  evaluations: not an MC/DC pair.
+
+                  return No_Condition_Index;
+               end if;
+            end if;
+         end Check_Condition;
       end loop;
-      pragma Assert (First_Different /= No_Condition);
 
-      --  Mask out first condition with different values in either evaluation
-
-      Evaluated_Different (First_Different) := False;
-
-      if Evaluated_Different = Condition_Vector_Type'(others => False) then
-         --  No other condition differs: this is a pair showing independent
-         --  influence of the first different condition.
-
-         return First_Different;
-
-      else
-         --  Other conditions differ: no independent influence
-
-         return No_Condition;
-      end if;
+      return First_Different;
    end Is_MC_DC_Pair;
 
 end MC_DC;

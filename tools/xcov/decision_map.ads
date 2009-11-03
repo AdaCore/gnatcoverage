@@ -77,7 +77,7 @@ package Decision_Map is
       Dest_Kind      : Edge_Dest_Kind := Unknown;
       --  Edge destination classification, if known
 
-      Next_Condition : Integer := -1;
+      Next_Condition : Any_Condition_Index := No_Condition_Index;
       --  For the case where Dest_Kind is Condition, index within decision of
       --  the next tested condition.
 
@@ -106,12 +106,15 @@ package Decision_Map is
       --  Edge information for the branch case and fallthrough case
    end record;
 
-   type Condition_Occurrence_Array is array (Natural range <>) of Pc_Type;
+   type Condition_Occurrence_Array is
+     array (Condition_Index range <>) of Pc_Type;
 
    --  In a decision occurrence, each tested condition is represented by
    --  a conditional branch instruction.
 
-   type Decision_Occurrence (Last_Cond_Index : Natural) is limited record
+   type Decision_Occurrence
+     (Last_Cond_Index : Condition_Index)
+   is limited record
       Decision              : SCO_Id;
       --  The decision being evaluated
 
@@ -119,7 +122,7 @@ package Decision_Map is
                                 (0 .. Last_Cond_Index) := (others => No_PC);
       --  The corresponding evaluations of the conditions in the decision
 
-      Seen_Condition        : Integer := -1;
+      Seen_Condition        : Any_Condition_Index := No_Condition_Index;
       --  Index of the last seen condition (i.e. highest value such that
       --  Condition_Occurrences (Seen_Condition) /= No_PC).
    end record;

@@ -39,7 +39,8 @@ package body Coverage.Source is
    --  state.
 
    package Evaluation_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Natural, Element_Type => MC_DC.Evaluation);
+     (Index_Type   => Natural,
+      Element_Type => MC_DC.Evaluation);
 
    type Outcome_Taken_Type is array (Boolean) of Boolean;
 
@@ -79,6 +80,14 @@ package body Coverage.Source is
        (Index_Type   => Valid_SCO_Id,
         Element_Type => Source_Coverage_Info);
    SCI_Vector : SCI_Vectors.Vector;
+
+   --  MC/DC evaluation stack
+
+   Evaluation_Stack : Evaluation_Vectors.Vector;
+
+   procedure Condition_Evaluated (C_SCO : SCO_Id; C_Value : Boolean);
+   --  Record evaluation of condition C_SCO with the given C_Value in the
+   --  current decision evaluation.
 
    ------------------------
    -- Compute_Line_State --
@@ -246,6 +255,7 @@ package body Coverage.Source is
       T          : Trace_Entry;
       Insn_Len   : Natural;
       SCO, S_SCO : SCO_Id;
+
    begin
       --  Analyze routine control flow
 
@@ -348,42 +358,66 @@ package body Coverage.Source is
                   procedure Set_Outcome_Taken
                     (SCI : in out Source_Coverage_Info)
                   is
+                     ES_Top : Evaluation;
                   begin
+                     --  Mark outcome taken
+
+                     SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
+                     return;
+
+                     --  The following is for MC/DC, not yet implemented???
+
+                     pragma Warnings (Off);
+                     ES_Top := Evaluation_Stack.Last_Element;
+                     pragma Warnings (On);
+                     Evaluation_Stack.Delete_Last;
+
                      --  Note: if for some reason we failed to identify which
                      --  value of the outcome this edge represents, then we
                      --  silently ignore it, and do not mark any outcome of
                      --  the decision as known to have been taken.
 
-                     if Get_Coverage_Level = Decision
-                       and then CBE.Outcome /= Unknown
-                     then
-                        SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
-                     else
-                        --  MC/DC not implemented yet
-                        null;
+                     if CBE.Outcome = Unknown then
+                        return;
+                     end if;
+
+                     --  Record evaluation vector
+
+                     if Get_Coverage_Level = MCDC then
+                        ES_Top.Outcome := CBE.Outcome;
+                        SCI.Evaluations.Append (ES_Top);
                      end if;
                   end Set_Outcome_Taken;
 
                --  Start of processing for Edge_Taken
 
                begin
-                  case CBE.Dest_Kind is
-                     when Unknown =>
+                  if CBE.Dest_Kind = Unknown then
+                     Report
+                       (Exe, PC,
+                        "unlabeled edge " & E'Img & " taken",
+                        Kind => Error);
+
+                  else
+                     --  Record value of condition for this evaluation
+
+                     if CBE.Origin = Unknown then
                         Report
                           (Exe, PC,
-                           "unlabeled edge " & E'Img & " taken",
+                           "edge " & E'Img & " with unlabeled origin taken",
                            Kind => Error);
+                     else
+                        Condition_Evaluated (SCO, To_Boolean (CBE.Origin));
+                     end if;
 
-                     when Outcome =>
+                     --  If the destination is an outcome, process completed
+                     --  evaluation.
+
+                     if CBE.Dest_Kind = Outcome then
                         SCI_Vector.Update_Element
                           (Parent (SCO), Set_Outcome_Taken'Access);
-
-                     when Condition =>
-                        --  For decision coverage, we do not care about
-                        --  intermediate branches.
-
-                        null;
-                  end case;
+                     end if;
+                  end if;
                end Edge_Taken;
 
             --  Start of processing for Process_Conditional_Branch
@@ -433,6 +467,15 @@ package body Coverage.Source is
       end loop;
 
    end Compute_Source_Coverage;
+
+   -------------------------
+   -- Condition_Evaluated --
+   -------------------------
+
+   procedure Condition_Evaluated (C_SCO : SCO_Id; C_Value : Boolean) is
+   begin
+      null;
+   end Condition_Evaluated;
 
    ------------------
    -- Set_Executed --

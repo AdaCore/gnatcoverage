@@ -264,7 +264,7 @@ package body SC_Obligations is
             BDD_Node : BDD.BDD_Node_Id;
             --  Associated node in the decision's BDD
 
-            Index : Natural;
+            Index : Condition_Index;
             --  Index of this condition in the decision
 
          when Decision =>
@@ -273,7 +273,7 @@ package body SC_Obligations is
             --  Note that there is always a distinct Condition SCO descriptor,
             --  even for simple decisions.
 
-            Last_Cond_Index : Natural;
+            Last_Cond_Index : Any_Condition_Index;
             --  Index of last condition in decision (should be > 0 for complex
             --  decisions, = 0 otherwise).
 
@@ -832,7 +832,7 @@ package body SC_Obligations is
    -- Index --
    -----------
 
-   function Index (SCO : SCO_Id) return Natural is
+   function Index (SCO : SCO_Id) return Condition_Index is
    begin
       pragma Assert (Kind (SCO) = Condition);
       return SCO_Vector.Element (SCO).Index;
@@ -851,7 +851,7 @@ package body SC_Obligations is
    -- Last_Cond_Index --
    ---------------------
 
-   function Last_Cond_Index (SCO : SCO_Id) return Natural is
+   function Last_Cond_Index (SCO : SCO_Id) return Condition_Index is
    begin
       pragma Assert (Kind (SCO) = Decision);
       return SCO_Vector.Element (SCO).Last_Cond_Index;
@@ -889,9 +889,10 @@ package body SC_Obligations is
       Current_Complex_Decision : SCO_Id := No_SCO_Id;
       --  Complex decision whose conditions are being processed
 
-      Current_Condition_Index  : Integer;
+      Current_Condition_Index  : Any_Condition_Index;
       --  Index of current condition within the current decision (0-based, set
-      --  to -1 before the first condition of the decision is seen).
+      --  to No_Condition_Index, i.e. -1, before the first condition of the
+      --  decision is seen).
 
       Current_BDD : BDD.BDD_Type;
       --  BDD of current decision
@@ -1173,7 +1174,7 @@ package body SC_Obligations is
                      --  Complex decision: conditions appear as distinct SCOEs
 
                      Current_Complex_Decision := SCO_Vector.Last_Index;
-                     Current_Condition_Index  := -1;
+                     Current_Condition_Index  := No_Condition_Index;
                   end if;
 
                when ' ' =>

@@ -64,6 +64,11 @@ package SC_Obligations is
    To_Boolean : constant array (Known_Tristate) of Boolean :=
                    (False => False, True => True);
 
+   type Any_Condition_Index is new Integer range -1 .. Integer'Last;
+   No_Condition_Index : constant Any_Condition_Index := -1;
+   subtype Condition_Index is
+     Any_Condition_Index range 0 .. Any_Condition_Index'Last;
+
    ----------------------------
    -- Accessors for SCO info --
    ----------------------------
@@ -81,7 +86,7 @@ package SC_Obligations is
 
    --  Condition SCOs
 
-   function Index (SCO : SCO_Id) return Natural;
+   function Index (SCO : SCO_Id) return Condition_Index;
 
    function Next_Condition (SCO : SCO_Id; Value : Boolean) return SCO_Id;
    --  Next condition to be tested, depending of value of this condition,
@@ -93,6 +98,6 @@ package SC_Obligations is
 
    --  Decision SCOs
 
-   function Last_Cond_Index (SCO : SCO_Id) return Natural;
+   function Last_Cond_Index (SCO : SCO_Id) return Condition_Index;
 
 end SC_Obligations;
