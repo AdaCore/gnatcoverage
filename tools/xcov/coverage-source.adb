@@ -57,18 +57,17 @@ package body Coverage.Source is
                null;
 
             when Decision =>
+               Outcome_Taken : Outcome_Taken_Type := (others => False);
+               --  Each of these components is set True when the
+               --  corresponding outcome has been exercised.
+
                case Level is
-                  when Stmt =>
-                     null;
-
-                  when Decision =>
-                     Outcome_Taken : Outcome_Taken_Type := (others => False);
-                     --  Each of these components is set True when the
-                     --  corresponding outcome has been exercised.
-
                   when MCDC =>
                      Evaluations : Evaluation_Vectors.Vector;
                      --  History of all evaluations of this decision
+
+                  when others =>
+                     null;
                end case;
          end case;
    end record;
@@ -417,6 +416,14 @@ package body Coverage.Source is
 
                      SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
 
+                     --  Processing full evaluation history is costly, and
+                     --  requires full traces of conditional branches, so we
+                     --  do it only when actually required.
+
+                     if Get_Coverage_Level < MCDC then
+                        return;
+                     end if;
+
                      --  Pop evaluation from stack
 
                      ES_Top := Evaluation_Stack.Last_Element;
@@ -569,6 +576,12 @@ package body Coverage.Source is
    --  Start of processing for Condition_Evaluated
 
    begin
+      --  No-op unless doing MC/DC analysis
+
+      if Get_Coverage_Level < MCDC then
+         return;
+      end if;
+
       if not In_Current_Evaluation then
          Evaluation_Stack.Append
            (Evaluation'(Decision       => Parent (C_SCO),
