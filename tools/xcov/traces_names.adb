@@ -64,7 +64,7 @@ package body Traces_Names is
       use Interfaces;
 
       procedure Update
-        (Key : String_Access;
+        (Subp_Name : String_Access;
          Subp_Info : in out Subprogram_Info);
       --  Update the subprogram info of the routine whose name is Key
       --  in the name table
@@ -74,10 +74,10 @@ package body Traces_Names is
       ------------
 
       procedure Update
-        (Key       : String_Access;
+        (Subp_Name : String_Access;
          Subp_Info : in out Subprogram_Info)
       is
-         pragma Unreferenced (Key);
+         pragma Unreferenced (Subp_Name);
          Trace_Cursor : Entry_Iterator;
          Trace        : Trace_Entry;
          First, Last  : Pc_Type;
@@ -90,6 +90,7 @@ package body Traces_Names is
          if Subp_Info.Insns = null and then Content'Length > 0 then
             Subp_Info.Insns := new Binary_Content'(Content);
             Subp_Info.Exec := Exec;
+
          else
             --  Check that the Content passed in parameter is the same as the
             --  one we already registered; if the two contents were different
@@ -121,13 +122,18 @@ package body Traces_Names is
          end if;
 
          --  Now, update the subprogram traces with the trace base given in
-         --  parameter. Rebase the traces' addresses to to subpgrogram address
+         --  parameter. Rebase the traces' addresses to the subprogram address
          --  range (i.e. Subp_Info.Insns'Range).
 
          Init (Base.all, Trace_Cursor, Content'First);
          Get_Next_Trace (Trace, Trace_Cursor);
+
          while Trace /= Bad_Trace loop
-            exit when Trace.First > Content'Last;
+            --  For consolidated traces, we know that we see traces in PC
+            --  order, so we can exit as soon as we see one trace outside of
+            --  Content'Range.
+
+            exit when Trace.Serial = -1 and then Trace.First > Content'Last;
 
             if Trace.Last >= Content'First then
                if Trace.First >= Content'First then
