@@ -84,7 +84,11 @@ package body Coverage.Source is
 
    Evaluation_Stack : Evaluation_Vectors.Vector;
 
-   procedure Condition_Evaluated (C_SCO : SCO_Id; C_Value : Boolean);
+   procedure Condition_Evaluated
+     (Exe     : Exe_File_Acc;
+      PC      : Pc_Type;
+      C_SCO   : SCO_Id;
+      C_Value : Boolean);
    --  Record evaluation of condition C_SCO with the given C_Value in the
    --  current decision evaluation.
 
@@ -264,15 +268,11 @@ package body Coverage.Source is
                      end;
                   end if;
 
-               when Object_Coverage_Level =>
+               when Object_Coverage_Level | Unknown =>
                   --  Should never happen
 
                   raise Program_Error;
 
-               when others =>
-                  --  MC/DC not implemented
-
-                  null;
             end case;
 
             if SCO_State /= No_Code then
@@ -316,6 +316,7 @@ package body Coverage.Source is
          exit when T = Bad_Trace;
 
          PC := T.First;
+
          Trace_Insns :
          while PC <= T.Last loop
             Insn_Len :=
@@ -453,7 +454,8 @@ package body Coverage.Source is
                            "edge " & E'Img & " with unlabeled origin taken",
                            Kind => Error);
                      else
-                        Condition_Evaluated (SCO, To_Boolean (CBE.Origin));
+                        Condition_Evaluated
+                          (Exe, PC, SCO, To_Boolean (CBE.Origin));
                      end if;
 
                      --  If the destination is an outcome, process completed
@@ -518,7 +520,12 @@ package body Coverage.Source is
    -- Condition_Evaluated --
    -------------------------
 
-   procedure Condition_Evaluated (C_SCO : SCO_Id; C_Value : Boolean) is
+   procedure Condition_Evaluated
+     (Exe     : Exe_File_Acc;
+      PC      : Pc_Type;
+      C_SCO   : SCO_Id;
+      C_Value : Boolean)
+   is
 
       function In_Current_Evaluation return Boolean;
       --  True when this evaluation is the expected next condition in the
@@ -589,7 +596,16 @@ package body Coverage.Source is
                         Outcome        => Unknown,
                         others         => <>));
       end if;
-      pragma Assert (In_Current_Evaluation);
+
+      if not In_Current_Evaluation then
+         Report
+           (Exe, PC,
+            "expected condition index"
+            & Evaluation_Stack.Last_Element.Next_Condition'Img
+            & ", got " & Index (C_SCO)'Img,
+            Kind => Warning);
+      end if;
+
       Evaluation_Stack.Update_Element
         (Evaluation_Stack.Last_Index,
          Update_Current_Evaluation'Access);

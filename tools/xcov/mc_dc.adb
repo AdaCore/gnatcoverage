@@ -17,7 +17,34 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with Diagnostics; use Diagnostics;
+
 package body MC_DC is
+
+   function Image (E : Evaluation) return String;
+   --  Image of E, for debugging purposes
+
+   -----------
+   -- Image --
+   -----------
+
+   function Image (E : Evaluation) return String is
+      Cond_Vector : String (1 .. Integer (Last_Cond_Index (E.Decision)) + 1);
+   begin
+      for J in 0 .. Last_Cond_Index (E.Decision) loop
+         if J in E.Values.First_Index .. E.Values.Last_Index then
+            case E.Values.Element (J) is
+               when False   => Cond_Vector (1 + Integer (J)) := 'F';
+               when True    => Cond_Vector (1 + Integer (J)) := 'T';
+               when Unknown => Cond_Vector (1 + Integer (J)) := '-';
+            end case;
+         else
+            Cond_Vector (1 + Integer (J)) := '-';
+         end if;
+      end loop;
+
+      return Cond_Vector & " -> " & E.Outcome'Img;
+   end Image;
 
    -------------------
    -- Is_MC_DC_Pair --
@@ -32,6 +59,11 @@ package body MC_DC is
       pragma Assert (Eval_1.Outcome /= Unknown
                        and then
                      Eval_2.Outcome /= Unknown);
+
+      Report
+        (Eval_1.Decision, "testing candidate MC/DC pair:", Kind => Notice);
+      Report (Image (Eval_1), Kind => Notice);
+      Report (Image (Eval_2), Kind => Notice);
 
       --  Not an MC/DC pair if both evaluations produced the same outcome
 
