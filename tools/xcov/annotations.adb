@@ -35,8 +35,9 @@ package body Annotations is
    -- Disp_File_Line_State --
    --------------------------
 
-   procedure Disp_File_Line_State (Pp : in out Pretty_Printer'Class;
-                                   File : File_Info_Access)
+   procedure Disp_File_Line_State
+     (Pp   : in out Pretty_Printer'Class;
+      File : File_Info_Access)
    is
       use Traces_Disa;
 
@@ -65,14 +66,18 @@ package body Annotations is
       Has_Source       : Boolean;
 
       procedure Process_One_Line (Index : Positive);
+      --  Needs comment???
 
-      procedure Process_One_Line (Index : Positive)
-      is
+      ----------------------
+      -- Process_One_Line --
+      ----------------------
+
+      procedure Process_One_Line (Index : Positive) is
          Instruction_Set  : Addresses_Info_Acc;
          Info             : Files_Table.Object_Coverage_Info_Acc;
          Sec_Info         : Addresses_Info_Acc;
          LI               : constant Line_Info_Access :=
-           Get_Line (File, Index);
+                              Get_Line (File, Index);
          Ls               : constant Line_State := LI.State;
          In_Symbol        : Boolean;
          In_Insn_Set      : Boolean;
@@ -99,9 +104,9 @@ package body Annotations is
                Instruction_Set := Info.Instruction_Set;
                declare
                   Label : constant String :=
-                    Get_Label (Info.Exec.all, Instruction_Set);
+                            Get_Label (Info.Exec.all, Instruction_Set);
                   Symbol : constant Addresses_Info_Acc :=
-                    Get_Symbol (Info.Exec.all, Instruction_Set.First);
+                             Get_Symbol (Info.Exec.all, Instruction_Set.First);
                begin
                   if Label'Length > 0 and Symbol /= null then
                      In_Symbol := True;
@@ -121,6 +126,7 @@ package body Annotations is
                loop
                   Sec_Info := Sec_Info.Parent;
                end loop;
+
                Disp_Assembly_Lines
                  (Sec_Info.Section_Content
                     (Instruction_Set.First .. Instruction_Set.Last),
@@ -145,7 +151,7 @@ package body Annotations is
       Line       : Natural;
       Skip       : Boolean;
 
-      --  Start of processing for Disp_File_Line_State
+   --  Start of processing for Disp_File_Line_State
 
    begin
       Files_Table.Open (F, File, Has_Source);
@@ -218,11 +224,23 @@ package body Annotations is
       Show_Asm : Boolean)
    is
       procedure Compute_File_State (FI : File_Info_Access);
+      --  Needs comment???
 
       procedure Process_One_File (FI : File_Info_Access);
+      --  Needs comment???
+
+      ------------------------
+      -- Compute_File_State --
+      ------------------------
 
       procedure Compute_File_State (FI : File_Info_Access) is
+
          procedure Compute_Line_State (L : Positive);
+         --  Needs comment???
+
+         ------------------------
+         -- Compute_Line_State --
+         ------------------------
 
          procedure Compute_Line_State (L : Positive) is
             use Coverage;
@@ -230,20 +248,21 @@ package body Annotations is
             S : Line_State;
          begin
             case Get_Coverage_Level is
-               when Insn
-                 | Branch =>
+               when Insn | Branch =>
                   Coverage.Object.Compute_Line_State (LI);
-               when Stmt | Decision =>
+
+               when Stmt | Decision | MCDC =>
                   Coverage.Source.Compute_Line_State (LI);
-               when MCDC =>
-                  raise Program_Error
-                    with "MC/DC not yet implemented";
+
                when Unknown =>
                   raise Program_Error;
             end case;
             S := LI.State;
             FI.Stats (S) := FI.Stats (S) + 1;
          end Compute_Line_State;
+
+      --  Start of processing for Compute_File_State
+
       begin
          FI.Stats := (others => 0);
          Iterate_On_Lines (FI, Compute_Line_State'Access);
@@ -252,6 +271,10 @@ package body Annotations is
          end loop;
       end Compute_File_State;
 
+      ----------------------
+      -- Process_One_File --
+      ----------------------
+
       procedure Process_One_File (FI : File_Info_Access) is
       begin
          if To_Display (FI) then
@@ -259,14 +282,18 @@ package body Annotations is
          end if;
       end Process_One_File;
 
+   --  Start of processing for Generate_Report
+
    begin
       Pp.Show_Asm := Show_Asm;
 
-      --  Compute lines state, files and global statistics.
+      --  Compute lines state, files and global statistics
+
       Global_Stats := (others => 0);
       Files_Table_Iterate (Compute_File_State'Access);
 
-      --  Print.
+      --  Print
+
       Pretty_Print_Start (Pp);
       Files_Table_Iterate (Process_One_File'Access);
       Pretty_Print_End (Pp);
@@ -280,18 +307,25 @@ package body Annotations is
    begin
       if Option = "asm" then
          return Annotate_Asm;
+
       elsif Option = "xcov" then
          return Annotate_Xcov;
+
       elsif Option = "html" then
          return Annotate_Html;
+
       elsif Option = "xml" then
          return Annotate_Xml;
+
       elsif Option = "xcov+asm" then
          return Annotate_Xcov_Asm;
+
       elsif Option = "html+asm" then
          return Annotate_Html_Asm;
+
       elsif Option = "report" then
          return Annotate_Report;
+
       else
          return Annotate_Unknown;
       end if;
