@@ -48,8 +48,7 @@ package body Qemudrv is
    procedure Error (Msg : String);
    --  Display the message on the error output and set exit status.
 
-   procedure Run_Command (Command : String_Access;
-                          Options : String_List);
+   procedure Run_Command (Command : String_Access; Options : String_List);
    --  Spawn command with options.
 
    ------------
@@ -83,7 +82,8 @@ package body Qemudrv is
          Nbr_Eargs := Eargs'Length;
       end if;
 
-      --  Create the trace file.
+      --  Create the trace file
+
       declare
          use GNAT.OS_Lib;
          use Qemu_Traces;
@@ -96,13 +96,13 @@ package body Qemudrv is
            (Trace_Info_Date, String_8);
       begin
          Create_Trace_File (Info, Trace_File);
-         Date_Info := Trace_Info_Date'(Year => Unsigned_16 (GM_Year (Date)),
+         Date_Info := Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
                                        Month => Unsigned_8 (GM_Month (Date)),
-                                       Day => Unsigned_8 (GM_Day (Date)),
-                                       Hour => Unsigned_8 (GM_Hour (Date)),
-                                       Min => Unsigned_8 (GM_Minute (Date)),
-                                       Sec => Unsigned_8 (GM_Second (Date)),
-                                       Pad => 0);
+                                       Day   => Unsigned_8 (GM_Day (Date)),
+                                       Hour  => Unsigned_8 (GM_Hour (Date)),
+                                       Min   => Unsigned_8 (GM_Minute (Date)),
+                                       Sec   => Unsigned_8 (GM_Second (Date)),
+                                       Pad   => 0);
          Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
          Append_Info (Trace_File, Exec_File_Name, Exe_File);
 
@@ -114,7 +114,8 @@ package body Qemudrv is
          Free (Trace_File);
       end;
 
-      --  Search for the driver.
+      --  Search for the driver
+
       Driver_Index := -1;
       for I in Drivers'Range loop
          if Drivers (I).Target.all = Real_Target.all then
@@ -130,18 +131,21 @@ package body Qemudrv is
          return;
       end if;
 
-      --  Build the executable (if necessary).
+      --  Build the executable (if necessary)
+
       if Drivers (Driver_Index).Build_Command /= null then
          Run_Command (Drivers (Driver_Index).Build_Command,
                       Drivers (Driver_Index).Build_Options.all);
       end if;
 
-      --  The 'prepare' target do not launch qemu.
+      --  The 'prepare' target do not launch qemu
+
       if Drivers (Driver_Index).Run_Command = null then
          return;
       end if;
 
-      --  Run qemu.
+      --  Run qemu
+
       declare
          Driver : Driver_Target renames Drivers (Driver_Index);
          L : constant Natural := Driver.Run_Options'Length;
@@ -192,6 +196,7 @@ package body Qemudrv is
       begin
          Put_Line (Indent & Str);
       end P;
+
    begin
       Put ("Usage: xcov run");
       Put (" [OPTIONS] FILE [-eargs EARGS...]");
@@ -214,14 +219,13 @@ package body Qemudrv is
    -- Run_Command --
    -----------------
 
-   procedure Run_Command (Command : String_Access;
-                          Options : String_List)
-   is
-      Args : String_List (1 .. Options'Length) := Options;
+   procedure Run_Command (Command : String_Access; Options : String_List) is
+      Args    : String_List (1 .. Options'Length) := Options;
       Success : Boolean;
-      Prg : String_Access;
+      Prg     : String_Access;
    begin
-      --  Find executable.
+      --  Find executable
+
       Prg := GNAT.OS_Lib.Locate_Exec_On_Path (Command.all);
       if Prg = null then
          Error ("xcov run: cannot find "
@@ -230,16 +234,21 @@ package body Qemudrv is
          raise Exec_Error;
       end if;
 
-      --  Copy arguments and replace meta-one.
+      --  Copy arguments and expand argument macros
+
       for J in Args'Range loop
          if Args (J).all = "$exe" then
             Args (J) := Executable;
+
          elsif Args (J).all = "$bin" then
             Args (J) := new String'(Executable.all & ".bin");
+
          elsif Args (J).all = "$dir_exe" then
             Args (J) := new String'(Containing_Directory (Executable.all));
+
          elsif Args (J).all = "$base_bin" then
             Args (J) := new String'(Simple_Name (Executable.all) & ".bin");
+
          elsif Args (J).all = "$trace" then
             Args (J) := Trace_Output;
          end if;
@@ -255,7 +264,8 @@ package body Qemudrv is
          New_Line;
       end if;
 
-      --  Run.
+      --  Run
+
       GNAT.OS_Lib.Spawn (Prg.all, Args, Success);
       if not Success then
          if Verbose then
