@@ -68,7 +68,7 @@ package body Traces_Dbase is
    ---------------
 
    procedure Init_Base
-     (Base     : out Traces_Base;
+     (Base         : out Traces_Base;
       Full_History : Boolean)
    is
    begin
@@ -100,10 +100,10 @@ package body Traces_Dbase is
                      Op     => Op,
                      State  => Unknown);
    begin
-      --  Discard empty traces with a warning. Empty traces may be
-      --  generated for fault (when a fault happens on a block that has
-      --  already been covered). On other cases, empty traces should be
-      --  considered as bogus and a warning should be displayed.
+      --  Discard empty traces with a warning. Empty traces may be generated
+      --  for fault (when a fault happens on a block that has already been
+      --  covered). On other cases, empty traces should be considered as bogus
+      --  and a warning should be displayed.
 
       if Last < First then
          if Op /= Trace_Op_Fault then
