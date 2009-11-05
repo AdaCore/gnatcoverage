@@ -1824,17 +1824,14 @@ package body Traces_Elf is
 
       It : Entry_Iterator;
       Trace : Trace_Entry;
-      Addr : Pc_Type;
 
    --  Start of processing for Set_Insn_State
 
    begin
-      Addr := Section'First;
-      Init_Post (Base, It, Addr);
+      Init_Post (Base, It, Section'First);
       Get_Next_Trace (Trace, It);
 
       while Trace /= Bad_Trace loop
-         exit when Addr > Section'Last;
          exit when Trace.First > Section'Last;
 
          case Machine is
@@ -2098,9 +2095,6 @@ package body Traces_Elf is
                exit;
          end case;
 
-         Addr := Trace.Last;
-         exit when Addr = Pc_Type'Last;
-         Addr := Addr + 1;
          Get_Next_Trace (Trace, It);
       end loop;
    end Set_Insn_State;

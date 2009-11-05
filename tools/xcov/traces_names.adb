@@ -19,12 +19,14 @@
 
 with Ada.Containers.Ordered_Maps;
 with Ada.Text_IO; use Ada.Text_IO;
-with Coverage.Object; use Coverage.Object;
-with Inputs; use Inputs;
-with Outputs; use Outputs;
-with Strings; use Strings;
+
 with Interfaces;
 
+with Coverage;        use Coverage;
+with Coverage.Object; use Coverage.Object;
+with Inputs;          use Inputs;
+with Outputs;         use Outputs;
+with Strings;         use Strings;
 with Traces;
 
 package body Traces_Names is
@@ -119,6 +121,8 @@ package body Traces_Names is
 
          if Subp_Info.Traces = null then
             Subp_Info.Traces := new Traces_Base;
+            Init_Base (Subp_Info.Traces.all,
+              Full_History => Get_Coverage_Level = MCDC);
          end if;
 
          --  Now, update the subprogram traces with the trace base given in
@@ -135,7 +139,7 @@ package body Traces_Names is
 
             exit when Trace.Serial = -1 and then Trace.First > Content'Last;
 
-            if Trace.Last >= Content'First then
+            if Trace.Last in Content'Range then
                if Trace.First >= Content'First then
                   First := Trace.First - Content'First + Subp_Info.Insns'First;
                else
