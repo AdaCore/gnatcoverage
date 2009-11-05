@@ -1456,7 +1456,7 @@ package body SC_Obligations is
          if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
             Report
               (To_Index (Cur), "no conditional branch",
-               Kind => Warning);
+               Kind => Error);
          end if;
       end Check_Condition;
    begin
