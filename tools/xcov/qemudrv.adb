@@ -45,8 +45,8 @@ package body Qemudrv is
    --  Executable to run
 
    Exec_Error : exception;
-   --  Raised when subprogram execution failed.  The error message shall be
-   --  generated before raising the exception
+   --  Raised when subprogram execution failed. The error message shall be
+   --  generated before raising the exception.
 
    procedure Error (Msg : String);
    --  Display the message on the error output and set exit status
