@@ -16,15 +16,19 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
 with Ada.Characters.Handling;
 with Ada.Text_IO; use Ada.Text_IO;
+
+with System;
+
 with GNAT.OS_Lib; use GNAT.OS_Lib;
+
 with Hex_Images; use Hex_Images;
 with Swaps;
 with Traces; use Traces;
-with System;
 
 package body Traces_Files is
    procedure Dump_Infos (Trace_File : Trace_File_Type);
