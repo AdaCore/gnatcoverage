@@ -21,15 +21,19 @@ with GNAT.Strings; use GNAT.Strings;
 with GNAT.OS_Lib;
 
 package Qemudrv_Base is
+
    type Driver_Target is record
-      --  Name of the target (triplet).
+      --  Name of the target (triplet)
+
       Target        : String_Access;
 
-      --  Post-build command and option list (may be null).
+      --  Post-build command and option list (may be null)
+
       Build_Command : String_Access;
       Build_Options : String_List_Access;
 
-      --  Run command and option list.
+      --  Run command and option list
+
       Run_Command   : String_Access;
       Run_Options   : String_List_Access;
    end record;
@@ -37,8 +41,7 @@ package Qemudrv_Base is
    type Driver_Target_Array is array (Natural range <>) of Driver_Target;
 
    Drivers : constant Driver_Target_Array :=
-     (
-      (Target => new String'("powerpc-elf"),
+     ((Target => new String'("powerpc-elf"),
        Build_Command => new String'("powerpc-elf-objcopy"),
        Build_Options => new String_List'(new String'("-O"),
                                          new String'("binary"),
