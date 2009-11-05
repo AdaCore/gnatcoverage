@@ -33,7 +33,7 @@ package SC_Obligations is
    procedure Add_Address (SCO : SCO_Id; Address : Pc_Type);
    --  Record Address in SCO's address list
 
-   function Image (SCO : SCO_Id) return String;
+   function Image (SCO : SCO_Id; With_Sloc : Boolean := True) return String;
 
    function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
    --  Return the innermost SCO whose range contains the given sloc.

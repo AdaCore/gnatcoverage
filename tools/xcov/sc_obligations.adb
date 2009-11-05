@@ -828,9 +828,10 @@ package body SC_Obligations is
    -- Image --
    -----------
 
-   function Image (SCO : SCO_Id) return String is
+   function Image (SCO : SCO_Id; With_Sloc : Boolean := True) return String is
       function Sloc_Image (Sloc_Range : Source_Location_Range) return String;
-      --  Return sloc information suffix, or empty string if no sloc known
+      --  Return sloc information suffix, or empty string if no sloc known,
+      --  or if no sloc information is desired.
 
       ----------------
       -- Sloc_Image --
@@ -838,7 +839,7 @@ package body SC_Obligations is
 
       function Sloc_Image (Sloc_Range : Source_Location_Range) return String is
       begin
-         if Sloc_Range.First_Sloc = No_Location then
+         if Sloc_Range.First_Sloc = No_Location or else not With_Sloc then
             return "";
          else
             return " at " & Image (Sloc_Range);
@@ -1454,8 +1455,7 @@ package body SC_Obligations is
       begin
          if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
             Report
-              (SCOD.Sloc_Range.First_Sloc,
-               "no conditional branch for " & Image (To_Index (Cur)),
+              (To_Index (Cur), "no conditional branch",
                Kind => Warning);
          end if;
       end Check_Condition;

@@ -82,19 +82,6 @@ package body Diagnostics is
          end if;
       end PC_Image;
 
-      ---------------
-      -- SCO_Image --
-      ---------------
-
-      function SCO_Image return String is
-      begin
-         if M.SCO /= No_SCO_Id then
-            return " " & Image (M.SCO) & ": ";
-         else
-            return "";
-         end if;
-      end SCO_Image;
-
       ----------------
       -- Sloc_Image --
       ----------------
@@ -102,11 +89,24 @@ package body Diagnostics is
       function Sloc_Image return String is
       begin
          if M.Sloc /= No_Location then
-            return " " & Image (M.Sloc);
+            return " " & Image (M.Sloc) & ":";
          else
             return "";
          end if;
       end Sloc_Image;
+
+      ---------------
+      -- SCO_Image --
+      ---------------
+
+      function SCO_Image return String is
+      begin
+         if M.SCO /= No_SCO_Id then
+            return Image (M.SCO, With_Sloc => False) & ": ";
+         else
+            return "";
+         end if;
+      end SCO_Image;
 
    --  Start of processing for Image
 
@@ -114,7 +114,8 @@ package body Diagnostics is
       return
         Prefix (M.Kind)   &
         PC_Image          &
-        Sloc_Image & ": " &
+        Sloc_Image        &
+        " "               &
         Kind_Image        &
         SCO_Image & M.Msg.all;
    end Image;
