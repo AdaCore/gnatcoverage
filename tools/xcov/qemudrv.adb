@@ -18,16 +18,19 @@
 ------------------------------------------------------------------------------
 
 with Ada.Unchecked_Conversion;
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
-with Ada.Directories; use Ada.Directories;
-with GNAT.OS_Lib;
+with Ada.Directories;  use Ada.Directories;
+
 with Interfaces;
 
-with Traces_Files;   use Traces_Files;
+with GNAT.OS_Lib;
+
+with Coverage;     use Coverage;
 with Qemu_Traces;
-with Qemudrv_Base;   use Qemudrv_Base;
-with Switches;       use Switches;
+with Qemudrv_Base; use Qemudrv_Base;
+with Switches;     use Switches;
+with Traces_Files; use Traces_Files;
 
 package body Qemudrv is
 
@@ -36,20 +39,20 @@ package body Qemudrv is
    --  Variables set by the command line.
 
    Trace_Output : String_Access;
-   --  Trace output filename.
+   --  Trace output filename
 
    Executable : String_Access;
-   --  Executable to run.
+   --  Executable to run
 
    Exec_Error : exception;
    --  Raised when subprogram execution failed.  The error message shall be
-   --  generated before raising the exception.
+   --  generated before raising the exception
 
    procedure Error (Msg : String);
-   --  Display the message on the error output and set exit status.
+   --  Display the message on the error output and set exit status
 
    procedure Run_Command (Command : String_Access; Options : String_List);
-   --  Spawn command with options.
+   --  Spawn command with options
 
    ------------
    -- Driver --
@@ -250,7 +253,11 @@ package body Qemudrv is
             Args (J) := new String'(Simple_Name (Executable.all) & ".bin");
 
          elsif Args (J).all = "$trace" then
-            Args (J) := Trace_Output;
+            if Get_Coverage_Level = MCDC then
+               Args (J) := new String'("history," & Trace_Output.all);
+            else
+               Args (J) := Trace_Output;
+            end if;
          end if;
       end loop;
 
