@@ -258,9 +258,7 @@ package body Annotations.Xml is
       Sym   : Symbolizer'Class) is
    begin
       Pp.P (T ("instruction",
-               A ("offset", Hex_Image (Pc))
-               --  ??? offset's value is not compliant with spec:
-               --  it is an address instead of an offset from symbol.
+               A ("address", Hex_Image (Pc))
                & A ("coverage", Insn_State_Char (State) & "")
                & A ("assembly", Disassemble (Insn, Pc, Sym))));
    end Pretty_Print_Insn;
@@ -390,7 +388,7 @@ package body Annotations.Xml is
    begin
       Pp.P (ST ("symbol",
                 A ("name", Name)
-                & A ("address", Hex_Image (Offset))
+                & A ("offset", Hex_Image (Offset))
                 & A ("coverage", Coverage_State)));
    end Pretty_Print_Start_Symbol;
 

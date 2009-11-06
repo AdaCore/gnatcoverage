@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Text_IO; use Ada.Text_IO;
+with Interfaces;
 with Traces_Disa;
 with Slocs; use Slocs;
 with Coverage;
@@ -103,6 +104,8 @@ package body Annotations is
             while Info /= null loop
                Instruction_Set := Info.Instruction_Set;
                declare
+                  use Interfaces;
+
                   Label : constant String :=
                             Get_Label (Info.Exec.all, Instruction_Set);
                   Symbol : constant Addresses_Info_Acc :=
@@ -110,10 +113,11 @@ package body Annotations is
                begin
                   if Label'Length > 0 and Symbol /= null then
                      In_Symbol := True;
-                     Pretty_Print_Start_Symbol (Pp,
-                                                Symbol.Symbol_Name.all,
-                                                Symbol.First,
-                                                Info.State);
+                     Pretty_Print_Start_Symbol
+                       (Pp,
+                        Symbol.Symbol_Name.all,
+                        Instruction_Set.First - Symbol.First,
+                        Info.State);
                   else
                      In_Symbol := False;
                   end if;
