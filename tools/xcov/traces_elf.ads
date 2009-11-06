@@ -111,8 +111,8 @@ package Traces_Elf is
       Base    : Traces_Base_Acc;
       Section : Binary_Content);
    --  Build source lines for a specific section of Exec
-   --  Sets line state according to object coverage as determined from Base,
-   --  can't be used for source coverage???
+   --  If Base is not null, line state is initialized with object coverage
+   --  status for each line.
 
    procedure Disp_Address (El : Addresses_Info_Acc);
    function Image (El : Addresses_Info_Acc) return String;

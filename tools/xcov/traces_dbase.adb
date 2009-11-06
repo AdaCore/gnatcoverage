@@ -35,12 +35,11 @@ package body Traces_Dbase is
 
    function "=" (L, R : Trace_Entry) return Boolean is
    begin
-      --  Overlap and same serial
+      --  Overlap
 
-      --  This relocation is reflexive and symmetric
+      --  This relation is reflexive and symmetric
 
-      return L.Serial = R.Serial
-        and then L.First <= R.Last
+      return L.First <= R.Last
         and then L.Last >= R.First;
    end "=";
 
@@ -50,34 +49,18 @@ package body Traces_Dbase is
 
    function "<" (L, R : Trace_Entry) return Boolean is
    begin
-      if L.Serial < R.Serial then
-         return True;
+      --  Disjoint and inferior
 
-      elsif L.Serial > R.Serial then
-         return False;
-
-      else
-         --  Disjoint and inferior
-
-         return L.Last < R.First;
-      end if;
+      return L.Last < R.First;
    end "<";
 
    ---------------
    -- Init_Base --
    ---------------
 
-   procedure Init_Base
-     (Base         : out Traces_Base;
-      Full_History : Boolean)
-   is
+   procedure Init_Base (Base : out Traces_Base) is
    begin
       Base.Entries.Clear;
-      if Full_History then
-         Base.Next_Serial := 0;
-      else
-         Base.Next_Serial := -1;
-      end if;
    end Init_Base;
 
    ---------------
@@ -96,7 +79,6 @@ package body Traces_Dbase is
       New_Entry : constant Trace_Entry :=
                     (First  => First,
                      Last   => Last,
-                     Serial => Base.Next_Serial,
                      Op     => Op,
                      State  => Unknown);
    begin
@@ -114,12 +96,6 @@ package body Traces_Dbase is
          return;
       end if;
 
-      --  Increment trace serial number if full history is kept
-
-      if Base.Next_Serial /= -1 then
-         Base.Next_Serial := Base.Next_Serial + 1;
-      end if;
-
       --  Try to insert
 
       Base.Entries.Insert (New_Entry, Cur, Success);
@@ -127,7 +103,7 @@ package body Traces_Dbase is
          return;
       end if;
 
-      --  Handle conflicts (case of flat traces only)
+      --  Handle conflicts
 
       declare
          N_First, N_Last : Pc_Type;
@@ -145,7 +121,7 @@ package body Traces_Dbase is
             end if;
             Base.Entries.Replace_Element
               (Cur,
-               Trace_Entry'(E.First, E.Last, E.Serial, Merged_Op, E.State));
+               Trace_Entry'(E.First, E.Last, Merged_Op, E.State));
 
          else
             --  Merge
@@ -176,15 +152,14 @@ package body Traces_Dbase is
 
                Base.Entries.Replace_Element
                  (Cur,
-                  Trace_Entry'(E.First, N_First - 1, E.Serial, E.Op, E.State));
+                  Trace_Entry'(E.First, N_First - 1, E.Op, E.State));
                Base.Entries.Insert
-                 (Trace_Entry'(N_First, N_Last, E.Serial, Merged_Op, E.State));
+                 (Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
 
                if E.Last > N_Last then
                   Base.Entries.Insert
                     (Trace_Entry'(First  => N_Last + 1,
                                   Last   => E.Last,
-                                  Serial => E.Serial,
                                   Op     => E.Op,
                                   State  => E.State));
                end if;
@@ -194,17 +169,17 @@ package body Traces_Dbase is
 
                Base.Entries.Replace_Element
                  (Cur,
-                  Trace_Entry'(N_First, N_Last, E.Serial, Merged_Op, E.State));
+                  Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
 
                Base.Entries.Insert
-                 (Trace_Entry'(N_Last + 1, E.Last, E.Serial, E.Op, E.State));
+                 (Trace_Entry'(N_Last + 1, E.Last, E.Op, E.State));
             else
                pragma Assert (N_First = E.First);
                pragma Assert (N_Last = E.Last);
 
                Base.Entries.Replace_Element
                  (Cur,
-                  Trace_Entry'(N_First, N_Last, E.Serial, Merged_Op, E.State));
+                  Trace_Entry'(N_First, N_Last, Merged_Op, E.State));
             end if;
          end if;
       end;
@@ -278,7 +253,6 @@ package body Traces_Dbase is
       Key : constant Trace_Entry :=
               (First  => Pc,
                Last   => Pc,
-               Serial => -1,
                Op     => 0,
                State  => Unknown);
    begin

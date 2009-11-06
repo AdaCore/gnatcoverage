@@ -17,9 +17,9 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Command_Line;        use Ada.Command_Line;
-with Ada.Text_IO;             use Ada.Text_IO;
-with Ada.Containers;          use Ada.Containers;
+with Ada.Command_Line;  use Ada.Command_Line;
+with Ada.Text_IO;       use Ada.Text_IO;
+with Ada.Containers;    use Ada.Containers;
 
 with Coverage;          use Coverage;
 with Outputs;           use Outputs;
@@ -40,7 +40,7 @@ with Annotations.Html;
 with Annotations.Xcov;
 with Annotations.Xml;
 with Annotations.Report;
-with Traces_Names;
+with Traces_Names;      use Traces_Names;
 with Traces_Dump;
 with Traces_Files;      use Traces_Files;
 with Traces_Dbase;      use Traces_Dbase;
@@ -646,6 +646,9 @@ begin
          Check_Argument_Available (SCOs_Inputs, "SCOs FILEs", Command);
          Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
          Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
+         if Verbose then
+            SC_Obligations.Report_SCOs_Without_Code;
+         end if;
          return;
 
       when Cmd_Dump_Trace =>
@@ -678,7 +681,6 @@ begin
 
       when Cmd_Dump_Trace_Asm =>
          declare
-
             procedure Open_Exec (Exec_File_Name : String);
             --  Open Exec_File_Name and build its sections and symbol
             --  information.
@@ -719,7 +721,6 @@ begin
         | Cmd_Dump_Subprograms
         | Cmd_Dump_Lines =>
          declare
-
             procedure Dump_Exec (Exec_File_Name : String);
             --  Dump Exec_File_Name's sections|symbols|subprograms|lines,
             --  depending on the current command.
@@ -793,7 +794,6 @@ begin
 
       when Cmd_Disassemble_Raw =>
          declare
-
             procedure Disassemble (Exec_File_Name : String);
             --  Disassemble Exec_File_Name and display the raw result
 
@@ -816,7 +816,6 @@ begin
 
       when Cmd_Disassemble =>
          declare
-
             procedure Disassemble (Exec_File_Name : String);
             --  Disassemble Exec_File_Name and display the raw result
 
@@ -888,7 +887,55 @@ begin
 
          declare
             procedure Process_Trace (Trace_File_Name : String);
-            --  Open Trace_File_Name and merge it into the trace database
+            --  Common dispatching point for object and source coverage
+
+            procedure Process_Trace_For_Obj_Coverage
+              (Trace_File : Trace_File_Element_Acc);
+            --  Open Trace_File and merge it into the trace database
+
+            procedure Process_Trace_For_Src_Coverage
+              (Trace_File : Trace_File_Element_Acc);
+            --  Process Trace_File for source coverage. No trace database is
+            --  used.
+
+            function Open_Exec
+              (Trace_File_Name : String;
+               Trace_File      : Trace_File_Type) return Exe_File_Acc;
+            --  Open the executable for TF, taking into account a possible
+            --  command line override of the executable file name.
+
+            ---------------
+            -- Open_Exec --
+            ---------------
+
+            function Open_Exec
+              (Trace_File_Name : String;
+               Trace_File      : Trace_File_Type) return Exe_File_Acc
+            is
+               use Qemu_Traces;
+               Exe_Name : String_Access;
+            begin
+               if Opt_Exe_Name /= null then
+                  Exe_Name := Opt_Exe_Name;
+               else
+                  Exe_Name :=
+                    new String'(Get_Info (Trace_File, Exec_File_Name));
+                  if Exe_Name.all = "" then
+                     Fatal_Error ("cannot find exec filename in trace file "
+                                  & Trace_File_Name);
+                  end if;
+               end if;
+               return Exe_File : Exe_File_Acc do
+                  Open_Exec (Get_Exec_Base, Exe_Name.all, Exe_File);
+               end return;
+            exception
+               when Elf_Files.Error =>
+                  Fatal_Error ("cannot open ELF file "
+                               & Exe_Name.all
+                               & " for trace file "
+                               & Trace_File_Name);
+                  raise;
+            end Open_Exec;
 
             -------------------
             -- Process_Trace --
@@ -896,87 +943,155 @@ begin
 
             procedure Process_Trace (Trace_File_Name : String) is
                Trace_File : constant Trace_File_Element_Acc :=
-                              new Trace_File_Element;
+                              new Trace_File_Element'
+                                (Filename => new String'(Trace_File_Name),
+                                 others   => <>);
             begin
-               Init_Base (Base, Full_History => Get_Coverage_Level = MCDC);
-               Trace_File.Filename := new String'(Trace_File_Name);
-               Read_Trace_File (Trace_File.Filename.all,
-                                Trace_File.Trace, Base);
                Traces_Files_List.Files.Append (Trace_File);
-
-               declare
-                  function Override_Exec_Name (S : String) return String;
-                  --  If an exec file name as been passed from the command
-                  --  line, it overrides the one in the trace file.
-
-                  ------------------------
-                  -- Override_Exec_Name --
-                  ------------------------
-
-                  function Override_Exec_Name (S : String) return String is
-                  begin
-                     if Opt_Exe_Name /= null then
-                        return Opt_Exe_Name.all;
-                     else
-                        return S;
-                     end if;
-                  end Override_Exec_Name;
-
-                  Exe_Name : constant String :=
-                    Override_Exec_Name (Get_Info (Trace_File.Trace,
-                                                  Qemu_Traces.Exec_File_Name));
-                  Exe_File : Exe_File_Acc;
-
-               --  Start of processing for Process_Trace
-
-               begin
-                  if Exe_Name = "" then
-                     Fatal_Error ("cannot find exec filename in trace file "
-                                  & Trace_File_Name);
-                  end if;
-
-                  begin
-                     Open_Exec (Get_Exec_Base, Exe_Name, Exe_File);
-                  exception
-                     when Elf_Files.Error =>
-                        Fatal_Error ("cannot open ELF file "
-                                     & Exe_Name
-                                     & " for trace file "
-                                     & Trace_File_Name);
-                  end;
-
-                  case Get_Coverage_Level is
-                     when Object_Coverage_Level =>
-                        --  If there is no routine in list, get
-                        --  routine names from the first executable. A
-                        --  test earlier allows this only if there is
-                        --  one trace file.
-
-                        if Inputs.Length (Routines_Inputs) = 0 then
-                           Read_Routines_Name (Exe_File, Exclude => False);
-                        end if;
-
-                     when Source_Coverage_Level =>
-                        --  Get routine names from SCOs
-
-                        Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
-
-                     when Unknown =>
-                        --  A fatal error should have been diagnosed earlier
-
-                        pragma Assert (False);
-                        return;
-                  end case;
-
-                  Load_Code_And_Traces (Exe_File, Base'Access);
-
-                  --  If performing source coverage, load sloc information
-
-                  if Get_Coverage_Level in Source_Coverage_Level then
-                     Build_Debug_Lines (Exe_File.all);
-                  end if;
-               end;
+               if Get_Coverage_Level in Object_Coverage_Level then
+                  Process_Trace_For_Obj_Coverage (Trace_File);
+               else
+                  Process_Trace_For_Src_Coverage (Trace_File);
+               end if;
             end Process_Trace;
+
+            ------------------------------------
+            -- Process_Trace_For_Obj_Coverage --
+            ------------------------------------
+
+            procedure Process_Trace_For_Obj_Coverage
+              (Trace_File : Trace_File_Element_Acc)
+            is
+               Exe_File : Exe_File_Acc;
+            begin
+               Init_Base (Base);
+               Read_Trace_File
+                 (Trace_File.Filename.all, Trace_File.Trace, Base);
+
+               Exe_File :=
+                 Open_Exec (Trace_File.Filename.all, Trace_File.Trace);
+
+               --  If there is no routine in list, get routine names from the
+               --  first executable. A test earlier allows this only if there
+               --  is one trace file.
+
+               if Inputs.Length (Routines_Inputs) = 0 then
+                  Read_Routines_Name (Exe_File, Exclude => False);
+               end if;
+
+               Load_Code_And_Traces (Exe_File, Base'Access);
+            end Process_Trace_For_Obj_Coverage;
+
+            ------------------------------------
+            -- Process_Trace_For_Src_Coverage --
+            ------------------------------------
+
+            procedure Process_Trace_For_Src_Coverage
+              (Trace_File : Trace_File_Element_Acc)
+            is
+               Exe_File : Exe_File_Acc;
+
+               procedure Process_Info (File : Trace_File_Type);
+               --  Process infos from trace file
+
+               procedure Process_Trace (E : Trace_Entry);
+               --  Process one trace for trace file
+
+               Current_Sym             : Addresses_Info_Acc;
+               Current_Subp_Info       : Subprogram_Info;
+               Current_Subp_Info_Valid : Boolean;
+
+               ------------------
+               -- Process_Info --
+               ------------------
+
+               procedure Process_Info (File : Trace_File_Type) is
+                  Sym_It : Addresses_Iterator;
+                  Sym    : Addresses_Info_Acc;
+                  Sec    : Addresses_Info_Acc;
+
+                  First_Symbol_Occurrence : Boolean;
+               begin
+                  Exe_File := Open_Exec (Trace_File.Filename.all, File);
+
+                  --  Get routine names from SCOs and sloc information
+
+                  Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
+
+                  --  Load symbols from executable (sets the rebase offset for
+                  --  each symbol).
+
+                  Init_Iterator (Exe_File.all, Symbol_Addresses, Sym_It);
+                  loop
+                     Next_Iterator (Sym_It, Sym);
+                     exit when Sym = null;
+
+                     Sec := Sym.Parent;
+                     Load_Section_Content (Exe_File.all, Sec);
+
+                     Add_Code
+                       (Sym.Symbol_Name,
+                        Exe_File,
+                        Sec.Section_Content (Sym.First .. Sym.Last),
+                        First_Symbol_Occurrence);
+
+                     --  Build decision map for routine based on referenced
+                     --  instance.
+
+                     if First_Symbol_Occurrence then
+                        Analyze_Routine
+                          (Sym.Symbol_Name,
+                           Exe_File,
+                           Sec.Section_Content (Sym.First .. Sym.Last));
+
+                        --  Load sloc information
+
+                        Build_Debug_Lines (Exe_File.all);
+                        Build_Source_Lines_For_Section
+                          (Exe_File,
+                           null,
+                           Sec.Section_Content (Sym.First .. Sym.Last));
+                     end if;
+                  end loop;
+               end Process_Info;
+
+               -------------------
+               -- Process_Trace --
+               -------------------
+
+               procedure Process_Trace (E : Trace_Entry) is
+               begin
+                  if Current_Sym = null
+                       or else
+                     E.First not in Current_Sym.First .. Current_Sym.Last
+                  then
+                     Current_Sym :=
+                       Get_Address_Info
+                         (Exe_File.all, Symbol_Addresses, E.First);
+                     Current_Subp_Info_Valid :=
+                       Current_Sym /= null and then
+                         Is_In (Current_Sym.Symbol_Name);
+                     if Current_Subp_Info_Valid then
+                        Current_Subp_Info :=
+                          Get_Subp_Info (Current_Sym.Symbol_Name);
+                     end if;
+                  end if;
+
+                  if Current_Subp_Info_Valid then
+                     Compute_Source_Coverage
+                       (Current_Sym.Symbol_Name, Current_Subp_Info, E);
+                  end if;
+               end Process_Trace;
+
+            --  Start of processing for Process_Trace_For_Src_Coverage
+
+            begin
+               Read_Trace_File
+                 (Trace_File.Filename.all,
+                  Trace_File.Trace,
+                  Process_Info'Access,
+                  Process_Trace'Access);
+            end Process_Trace_For_Src_Coverage;
 
          begin
             Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
@@ -994,17 +1109,9 @@ begin
                end if;
 
             when Source_Coverage_Level =>
-               --  Process traces for each routine
+               --  Source coverage has been determined during trace load
 
-               Traces_Names.Iterate
-                 (Source.Compute_Source_Coverage'Access);
-
-               --  Build source information
-
-               Traces_Elf.Build_Routines_Insn_State;
-               --  Is this still necessary???
-
-               Traces_Elf.Build_Source_Lines;
+               null;
 
             when Unknown =>
                --  A fatal error should have been diagnosed earlier

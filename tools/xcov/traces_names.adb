@@ -27,7 +27,6 @@ with Coverage.Object; use Coverage.Object;
 with Inputs;          use Inputs;
 with Outputs;         use Outputs;
 with Strings;         use Strings;
-with Traces;
 
 package body Traces_Names is
 
@@ -42,27 +41,26 @@ package body Traces_Names is
    end Equal;
 
    package Names_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type => String_Access,
+     (Key_Type     => String_Access,
       Element_Type => Subprogram_Info,
-      "<" => "<",
-      "=" => Equal);
+      "<"          => "<",
+      "="          => Equal);
 
    Names : Names_Maps.Map;
    --  Needs comments???
    --  Needs to be available to clients of this unit???
 
-   -------------------------
-   -- Add_Code_And_Traces --
-   -------------------------
+   --------------
+   -- Add_Code --
+   --------------
 
-   procedure Add_Code_And_Traces
+   procedure Add_Code
      (Routine_Name : String_Access;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
-      Base         : access Traces_Base)
+      First_Code   : out Boolean)
    is
       use Names_Maps;
-      use Traces;
       use Interfaces;
 
       procedure Update
@@ -80,18 +78,16 @@ package body Traces_Names is
          Subp_Info : in out Subprogram_Info)
       is
          pragma Unreferenced (Subp_Name);
-         Trace_Cursor : Entry_Iterator;
-         Trace        : Trace_Entry;
-         First, Last  : Pc_Type;
       begin
          --  First, check if a trace base has already been added to the
          --  subprogram info; if so, check that it does not conflict with the
-         --  one given in parameter; if not, initialize the info with an empty
-         --  trace.
+         --  one given in parameter.
 
          if Subp_Info.Insns = null and then Content'Length > 0 then
             Subp_Info.Insns := new Binary_Content'(Content);
             Subp_Info.Exec := Exec;
+            Subp_Info.Offset := 0;
+            First_Code := True;
 
          else
             --  Check that the Content passed in parameter is the same as the
@@ -113,16 +109,61 @@ package body Traces_Names is
                            & ", file is " & Get_Filename (Exec.all) & ")");
                raise Consolidation_Error;
             end if;
-         end if;
 
-         if Base = null then
-            return;
+            Subp_Info.Offset := Subp_Info.Insns'First - Content'First;
          end if;
+      end Update;
+
+      Cur : constant Cursor := Names.Find (Routine_Name);
+
+   --  Start of processing for Add_Code
+
+   begin
+      First_Code := False;
+      if Has_Element (Cur) then
+         Names.Update_Element (Cur, Update'Access);
+      end if;
+   end Add_Code;
+
+   -------------------------
+   -- Add_Code_And_Traces --
+   -------------------------
+
+   procedure Add_Code_And_Traces
+     (Routine_Name : String_Access;
+      Exec         : Exe_File_Acc;
+      Content      : Binary_Content;
+      Base         : access Traces_Base)
+   is
+      use Names_Maps;
+      use Interfaces;
+
+      procedure Update
+        (Subp_Name : String_Access;
+         Subp_Info : in out Subprogram_Info);
+      --  Update the subprogram info of the routine whose name is Key
+      --  in the name table
+
+      ------------
+      -- Update --
+      ------------
+
+      procedure Update
+        (Subp_Name : String_Access;
+         Subp_Info : in out Subprogram_Info)
+      is
+         pragma Unreferenced (Subp_Name);
+         Trace_Cursor : Entry_Iterator;
+         Trace        : Trace_Entry;
+
+         First, Last : Pc_Type;
+      begin
+         --  If these are the first traces we are loading, initialize the
+         --  routine trace base.
 
          if Subp_Info.Traces = null then
             Subp_Info.Traces := new Traces_Base;
-            Init_Base (Subp_Info.Traces.all,
-              Full_History => Get_Coverage_Level = MCDC);
+            Init_Base (Subp_Info.Traces.all);
          end if;
 
          --  Now, update the subprogram traces with the trace base given in
@@ -133,39 +174,37 @@ package body Traces_Names is
          Get_Next_Trace (Trace, Trace_Cursor);
 
          while Trace /= Bad_Trace loop
-            --  For consolidated traces, we know that we see traces in PC
-            --  order, so we can exit as soon as we see one trace outside of
-            --  Content'Range.
-
-            exit when Trace.Serial = -1 and then Trace.First > Content'Last;
+            exit when Trace.First > Content'Last;
 
             if Trace.Last in Content'Range then
                if Trace.First >= Content'First then
-                  First := Trace.First - Content'First + Subp_Info.Insns'First;
+                  First := Trace.First + Subp_Info.Offset;
                else
                   First := Subp_Info.Insns'First;
                end if;
 
                if Trace.Last <= Content'Last then
-                  Last := Trace.Last - Content'First + Subp_Info.Insns'First;
+                  Last := Trace.Last + Subp_Info.Offset;
                else
                   Last := Subp_Info.Insns'Last;
                end if;
 
                Add_Entry (Subp_Info.Traces.all, First, Last, Trace.Op);
             end if;
-
             Get_Next_Trace (Trace, Trace_Cursor);
          end loop;
       end Update;
 
       Cur : Cursor;
 
+      First_Code : Boolean;
+      pragma Unreferenced (First_Code);
+
    --  Start of processing for Add_Code_And_Traces
 
    begin
+      Add_Code (Routine_Name, Exec, Content, First_Code);
       Cur := Names.Find (Routine_Name);
-
       if Has_Element (Cur) then
          Names.Update_Element (Cur, Update'Access);
       end if;
@@ -183,7 +222,8 @@ package body Traces_Names is
       Names.Insert (Name,
         Subprogram_Info'(Exec   => Exec,
                          Insns  => null,
-                         Traces => null));
+                         Traces => null,
+                         Offset => 0));
    end Add_Routine_Name;
 
    procedure Add_Routine_Name (Name : String) is
@@ -200,8 +240,6 @@ package body Traces_Names is
    ---------------------------
    -- Compute_Routine_State --
    ---------------------------
-
-   use Traces;
 
    function Compute_Routine_State
      (Insns  : Binary_Content_Acc;
@@ -261,6 +299,15 @@ package body Traces_Names is
          Next (Cur);
       end loop;
    end Disp_All_Routines;
+
+   -------------------
+   -- Get_Subp_Info --
+   -------------------
+
+   function Get_Subp_Info (Name : String_Access) return Subprogram_Info is
+   begin
+      return Names_Maps.Element (Names.Find (Name));
+   end Get_Subp_Info;
 
    -----------
    -- Is_In --

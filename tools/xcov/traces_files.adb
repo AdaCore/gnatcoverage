@@ -182,10 +182,10 @@ package body Traces_Files is
    ---------------------
 
    procedure Read_Trace_File
-     (Filename : String;
+     (Filename   : String;
       Trace_File : out Trace_File_Type;
-      Info_Cb : access procedure (File : Trace_File_Type);
-      Trace_Cb : access procedure (E : Trace_Entry))
+      Info_Cb    : access procedure (File : Trace_File_Type);
+      Trace_Cb   : access procedure (E : Trace_Entry))
    is
       Desc : Trace_File_Descriptor;
       E32 : Trace_Entry32;
@@ -194,7 +194,8 @@ package body Traces_Files is
       Res : Integer;
       Res_Size : Integer;
    begin
-      --  Open file.
+      --  Open file
+
       Desc.Fd := Open_Read (Filename, Binary);
       if Desc.Fd = Invalid_FD then
          raise Bad_File_Format with "cannot open file " & Filename;
@@ -203,7 +204,8 @@ package body Traces_Files is
       declare
          Hdr : Trace_Header;
       begin
-         --  Read header.
+         --  Read header
+
          if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
            /= Trace_Header_Size
          then
@@ -213,7 +215,9 @@ package body Traces_Files is
 
          if Hdr.Kind = Info then
             Read_Trace_File_Infos (Trace_File, Desc);
-            --  Read header.
+
+            --  Read header
+
             Res := Read (Desc.Fd, Hdr'Address, Trace_Header_Size);
             if Res = 0 then
                if Info_Cb /= null then
@@ -247,17 +251,20 @@ package body Traces_Files is
       end if;
 
       loop
-         --  Read an entry.
+         --  Read an entry
+
          Res := Read (Desc.Fd, Addr, Res_Size);
 
-         --  Check result.
+         --  Check result
+
          exit when Res = 0;
          if Res /= Res_Size then
             Close (Desc.Fd);
             raise Bad_File_Format with "file truncated";
          end if;
 
-         --  Basic checks.
+         --  Basic checks
+
          if Desc.Sizeof_Target_Pc /= 4 then
             raise Bad_File_Format with "only 4 bytes pc are handled";
          end if;
@@ -286,7 +293,6 @@ package body Traces_Files is
 
          Trace_Cb.all (Trace_Entry'(First  => E32.Pc,
                                     Last   => E32.Pc + Pc_Type (E32.Size) - 1,
-                                    Serial => -1,
                                     Op     => E32.Op,
                                     State  => Unknown));
       end loop;

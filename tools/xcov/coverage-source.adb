@@ -26,7 +26,6 @@ with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with MC_DC;             use MC_DC;
 with SC_Obligations;    use SC_Obligations;
-with Traces;            use Traces;
 with Traces_Lines;      use Traces_Lines;
 
 package body Coverage.Source is
@@ -288,232 +287,220 @@ package body Coverage.Source is
 
    procedure Compute_Source_Coverage
      (Subp_Name : String_Access;
-      Subp_Info : in out Subprogram_Info)
+      Subp_Info : Subprogram_Info;
+      T         : Trace_Entry)
    is
+      pragma Unreferenced (Subp_Name);
+
       use type Interfaces.Unsigned_32;
 
       Exe        : Exe_File_Acc renames Subp_Info.Exec;
       PC         : Pc_Type;
-      It         : Entry_Iterator;
-      T          : Trace_Entry;
       Insn_Len   : Natural;
       SCO, S_SCO : SCO_Id;
 
    begin
-      --  Analyze routine control flow
+      --  Iterate over trace for this routine
 
-      Analyze_Routine (Subp_Name, Subp_Info);
+      PC := T.First + Subp_Info.Offset;
 
-      --  Determine trace states
+      Trace_Insns :
+      while PC <= T.Last + Subp_Info.Offset loop
+         Insn_Len :=
+           Disa_For_Machine (Machine).
+           Get_Insn_Length (Subp_Info.Insns (PC .. Subp_Info.Insns'Last));
 
-      Set_Insn_State (Subp_Info.Traces.all, Subp_Info.Insns.all);
+         --  Find SCO for this instruction
 
-      --  Iterate over traces for this routine
+         SCO := Sloc_To_SCO (Get_Sloc (Subp_Info.Exec.all, PC));
+         if SCO = No_SCO_Id then
+            goto Continue_Trace_Insns;
+         end if;
 
-      Init (Subp_Info.Traces.all, It, 0);
-      loop
-         Get_Next_Trace (T, It);
-         exit when T = Bad_Trace;
+         --  Ensure there is a coverage information entry for this SCO
 
-         PC := T.First;
+         while SCI_Vector.Last_Index < SCO loop
+            declare
+               New_Index : constant SCO_Id := SCI_Vector.Last_Index + 1;
+               New_SCI   : Source_Coverage_Info
+                 (Kind  => Kind (New_Index),
+                  Level => Get_Coverage_Level);
+               pragma Warnings (Off, New_SCI);
+               --  Used for default initialization value only
+            begin
+               SCI_Vector.Append (New_SCI);
+            end;
+         end loop;
 
-         Trace_Insns :
-         while PC <= T.Last loop
-            Insn_Len :=
-              Disa_For_Machine (Machine).
-                Get_Insn_Length (Subp_Info.Insns (PC .. Subp_Info.Insns'Last));
+         --  Find enclosing statement SCO and mark it as executed
 
-            --  Find SCO for this instruction
+         S_SCO := SCO;
+         while Kind (S_SCO) /= Statement loop
+            S_SCO := Parent (S_SCO);
+            pragma Assert (S_SCO /= No_SCO_Id);
+         end loop;
 
-            SCO := Sloc_To_SCO (Get_Sloc (Subp_Info.Exec.all, PC));
-            if SCO = No_SCO_Id then
-               goto Continue_Trace_Insns;
-            end if;
+         loop
+            --  Mark S_SCO as executed
 
-            --  Ensure there is a coverage information entry for this SCO
+            SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
 
-            while SCI_Vector.Last_Index < SCO loop
-               declare
-                  New_Index : constant SCO_Id := SCI_Vector.Last_Index + 1;
-                  New_SCI   : Source_Coverage_Info
-                                (Kind  => Kind (New_Index),
-                                 Level => Get_Coverage_Level);
-                  pragma Warnings (Off, New_SCI);
-                  --  Used for default initialization value only
+            --  Propagate back to beginning of basic block
+
+            S_SCO := Previous (S_SCO);
+            exit when S_SCO = No_SCO_Id
+              or else SCI_Vector.Element (S_SCO).Executed;
+            SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
+         end loop;
+
+         if Get_Coverage_Level = Stmt
+           or else Kind (SCO) /= Condition
+           or else not Cond_Branch_Map.Contains (PC)
+         then
+            goto Continue_Trace_Insns;
+         end if;
+
+         --  Here we have a condition SCO, and the PC for a conditional
+         --  branch instruction.
+
+         Process_Conditional_Branch : declare
+            CBI : constant Cond_Branch_Info := Cond_Branch_Map.Element (PC);
+            pragma Assert (CBI.Condition = SCO);
+
+            procedure Edge_Taken (E : Edge_Kind);
+            --  Record that edge E for the conditional branch at PC has been
+            --  taken.
+
+            ----------------
+            -- Edge_Taken --
+            ----------------
+
+            procedure Edge_Taken (E : Edge_Kind) is
+               CBE : constant Cond_Edge_Info := CBI.Edges (E);
+
+               procedure Set_Outcome_Taken
+                 (SCI : in out Source_Coverage_Info);
+               --  Mark as taken the decision outcome corresponding to CBE
+
+               -----------------------
+               -- Set_Outcome_Taken --
+               -----------------------
+
+               procedure Set_Outcome_Taken
+                 (SCI : in out Source_Coverage_Info)
+               is
+                  ES_Top : Evaluation;
                begin
-                  SCI_Vector.Append (New_SCI);
-               end;
-            end loop;
+                  --  If for some reason we failed to identify which value
+                  --  of the outcome this edge represents, then we silently
+                  --  ignore it, and do not mark any outcome of the decision
+                  --  as known to have been taken.
 
-            --  Find enclosing statement SCO and mark it as executed
+                  if CBE.Outcome = Unknown then
+                     return;
+                  end if;
 
-            S_SCO := SCO;
-            while Kind (S_SCO) /= Statement loop
-               S_SCO := Parent (S_SCO);
-               pragma Assert (S_SCO /= No_SCO_Id);
-            end loop;
+                  --  Mark outcome taken
 
-            loop
-               --  Mark S_SCO as executed
+                  SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
 
-               SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
+                  --  Processing full evaluation history is costly, and
+                  --  requires full traces of conditional branches, so we
+                  --  do it only when actually required.
 
-               --  Propagate back to beginning of basic block
+                  if Get_Coverage_Level < MCDC then
+                     return;
+                  end if;
 
-               S_SCO := Previous (S_SCO);
-               exit when S_SCO = No_SCO_Id
-                           or else SCI_Vector.Element (S_SCO).Executed;
-               SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
-            end loop;
+                  --  Pop evaluation from stack
 
-            if Get_Coverage_Level = Stmt
-              or else Kind (SCO) /= Condition
-              or else not Cond_Branch_Map.Contains (PC)
-            then
-               goto Continue_Trace_Insns;
-            end if;
+                  ES_Top := Evaluation_Stack.Last_Element;
+                  Evaluation_Stack.Delete_Last;
 
-            --  Here we have a condition SCO, and the PC for a conditional
-            --  branch instruction.
-
-            Process_Conditional_Branch : declare
-               CBI : constant Cond_Branch_Info := Cond_Branch_Map.Element (PC);
-               pragma Assert (CBI.Condition = SCO);
-
-               procedure Edge_Taken (E : Edge_Kind);
-               --  Record that edge E for the conditional branch at PC has been
-               --  taken.
-
-               ----------------
-               -- Edge_Taken --
-               ----------------
-
-               procedure Edge_Taken (E : Edge_Kind) is
-                  CBE : constant Cond_Edge_Info := CBI.Edges (E);
-
-                  procedure Set_Outcome_Taken
-                    (SCI : in out Source_Coverage_Info);
-                  --  Mark as taken the decision outcome corresponding to CBE
-
-                  -----------------------
-                  -- Set_Outcome_Taken --
-                  -----------------------
-
-                  procedure Set_Outcome_Taken
-                    (SCI : in out Source_Coverage_Info)
-                  is
-                     ES_Top : Evaluation;
-                  begin
-                     --  If for some reason we failed to identify which value
-                     --  of the outcome this edge represents, then we silently
-                     --  ignore it, and do not mark any outcome of the decision
-                     --  as known to have been taken.
-
-                     if CBE.Outcome = Unknown then
-                        return;
-                     end if;
-
-                     --  Mark outcome taken
-
-                     SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
-
-                     --  Processing full evaluation history is costly, and
-                     --  requires full traces of conditional branches, so we
-                     --  do it only when actually required.
-
-                     if Get_Coverage_Level < MCDC then
-                        return;
-                     end if;
-
-                     --  Pop evaluation from stack
-
-                     ES_Top := Evaluation_Stack.Last_Element;
-                     Evaluation_Stack.Delete_Last;
-
-                     pragma Assert
-                       (ES_Top.Next_Condition = No_Condition_Index);
-                     ES_Top.Outcome := CBE.Outcome;
-                     SCI.Evaluations.Append (ES_Top);
-                  end Set_Outcome_Taken;
+                  pragma Assert
+                    (ES_Top.Next_Condition = No_Condition_Index);
+                  ES_Top.Outcome := CBE.Outcome;
+                  SCI.Evaluations.Append (ES_Top);
+               end Set_Outcome_Taken;
 
                --  Start of processing for Edge_Taken
 
-               begin
-                  if CBE.Dest_Kind = Unknown then
-                     Report
-                       (Exe, PC,
-                        "unlabeled edge " & E'Img & " taken",
-                        Kind => Error);
-
-                  else
-                     --  Record value of condition for this evaluation
-
-                     if CBE.Origin = Unknown then
-                        Report
-                          (Exe, PC,
-                           "edge " & E'Img & " with unlabeled origin taken",
-                           Kind => Error);
-                     else
-                        Condition_Evaluated
-                          (Exe, PC, SCO, To_Boolean (CBE.Origin));
-                     end if;
-
-                     --  If the destination is an outcome, process completed
-                     --  evaluation.
-
-                     if CBE.Dest_Kind = Outcome then
-                        SCI_Vector.Update_Element
-                          (Parent (SCO), Set_Outcome_Taken'Access);
-                     end if;
-                  end if;
-               end Edge_Taken;
-
-            --  Start of processing for Process_Conditional_Branch
-
             begin
-               Report
-                 (Exe, PC,
-                  "processing cond branch trace " & T.State'Img,
-                  Kind => Notice);
-               case T.State is
-                  when Branch_Taken =>
-                     Edge_Taken (Branch);
+               if CBE.Dest_Kind = Unknown then
+                  Report
+                    (Exe, PC,
+                     "unlabeled edge " & E'Img & " taken",
+                     Kind => Error);
 
-                  when Fallthrough_Taken =>
-                     Edge_Taken (Fallthrough);
+               else
+                  --  Record value of condition for this evaluation
 
-                  when Both_Taken =>
-                     if Get_Coverage_Level = MCDC then
-                        --  For MC/DC we need full historical traces, not just
-                        --  accumulated traces.
-
-                        Report
-                          (Exe, PC,
-                           "missing full traces of conditional branch "
-                           & "for MC/DC");
-                     else
-                        Edge_Taken (Branch);
-                        Edge_Taken (Fallthrough);
-                     end if;
-
-                  when others =>
+                  if CBE.Origin = Unknown then
                      Report
                        (Exe, PC,
-                        "unexpected cond branch trace state " & T.State'Img,
-                        Kind => Warning);
+                        "edge " & E'Img & " with unlabeled origin taken",
+                        Kind => Error);
+                  else
+                     Condition_Evaluated
+                       (Exe, PC, SCO, To_Boolean (CBE.Origin));
+                  end if;
 
-               end case;
-            end Process_Conditional_Branch;
+                  --  If the destination is an outcome, process completed
+                  --  evaluation.
 
-            <<Continue_Trace_Insns>>
-            PC := PC + Pc_Type (Insn_Len);
+                  if CBE.Dest_Kind = Outcome then
+                     SCI_Vector.Update_Element
+                       (Parent (SCO), Set_Outcome_Taken'Access);
+                  end if;
+               end if;
+            end Edge_Taken;
 
-            --  Handle case where PC wraps
+            use type Interfaces.Unsigned_8;
 
-            exit Trace_Insns when PC = 0;
-         end loop Trace_Insns;
-      end loop;
+         --  Start of processing for Process_Conditional_Branch
 
+         begin
+            Report
+              (Exe, PC,
+               "processing cond branch trace op" & T.Op'Img,
+               Kind => Notice);
+            case T.Op and 3 is
+               when 1 =>
+                  Edge_Taken (Branch);
+
+               when 2 =>
+                  Edge_Taken (Fallthrough);
+
+               when 3 =>
+                  if Get_Coverage_Level = MCDC then
+                     --  For MC/DC we need full historical traces, not just
+                     --  accumulated traces.
+
+                     Report
+                       (Exe, PC,
+                        "missing full traces of conditional branch "
+                        & "for MC/DC");
+                  else
+                     Edge_Taken (Branch);
+                     Edge_Taken (Fallthrough);
+                  end if;
+
+               when others =>
+                  Report
+                    (Exe, PC,
+                     "unexpected cond branch trace state " & T.State'Img,
+                     Kind => Warning);
+
+            end case;
+         end Process_Conditional_Branch;
+
+         <<Continue_Trace_Insns>>
+         PC := PC + Pc_Type (Insn_Len);
+
+         --  Handle case where PC wraps
+
+         exit Trace_Insns when PC = 0;
+      end loop Trace_Insns;
    end Compute_Source_Coverage;
 
    -------------------------

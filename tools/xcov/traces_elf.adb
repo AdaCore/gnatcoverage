@@ -37,6 +37,7 @@ with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
 with Hex_Images;        use Hex_Images;
 with Traces_Disa;
+with Traces_Lines;      use Traces_Lines;
 with Traces_Names;
 with Types;             use Types;
 with Files_Table;       use Files_Table;
@@ -1583,7 +1584,8 @@ package body Traces_Elf is
             Line.Parent := Sec;
 
          else
-            --  Possible for discarded sections.
+            --  Possible for discarded sections
+
             Line.Parent := null;
          end if;
 
@@ -1735,20 +1737,15 @@ package body Traces_Elf is
       Section : Binary_Content)
    is
       use Addresses_Containers;
+
       Cur : Cursor;
       Line : Addresses_Info_Acc;
       Source_File : Source_File_Index := No_Source_File;
 
-      It : Entry_Iterator;
-      E : Trace_Entry;
-      Pc : Pc_Type;
-
       Debug : constant Boolean := False;
-   begin
-      Pc := Section'First;
-      Init_Post (Base.all, It, Pc);
-      Get_Next_Trace (E, It);
+      Init_Line_State : Line_State;
 
+   begin
       --  Iterate on lines
 
       Cur := First (Exec.Desc_Sets (Line_Addresses));
@@ -1766,8 +1763,15 @@ package body Traces_Elf is
                Source_File := Line.Sloc.Source_File;
             end if;
 
+            if Base = null then
+               Init_Line_State := No_Code;
+            else
+               Init_Line_State :=
+                 Get_Line_State (Base.all, Line.First, Line.Last);
+            end if;
+
             Add_Line_For_Object_Coverage
-              (Source_File, Get_Line_State (Base.all, Line.First, Line.Last),
+              (Source_File, Init_Line_State,
                Line.Sloc.Line, Line, Base, Exec);
 
             if Debug then
@@ -2871,6 +2875,8 @@ package body Traces_Elf is
          Unchecked_Deallocation (Line_Addr);
       end Skip_Symbol;
 
+   --  Start of processing for Routine_Names_From_Lines
+
    begin
       Build_Debug_Lines (Exec.all);
 
@@ -2937,7 +2943,7 @@ package body Traces_Elf is
                begin
                   Sloc_End.Column := Natural'Last;
                   Select_Symbol :=
-                    Select_Symbol or Selected (Sloc_Begin, Sloc_End);
+                    Select_Symbol or else Selected (Sloc_Begin, Sloc_End);
                end;
             end if;
 

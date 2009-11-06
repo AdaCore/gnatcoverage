@@ -71,15 +71,10 @@ package Traces is
       );
 
    type Trace_Entry is record
-      --  Trace entry as recorded in the traces database
+      --  Trace entry as recorded in the trace database
 
       First, Last : Pc_Type;
       --  Code region for the trace
-
-      Serial : Integer := -1;
-      --  For flat traces, always -1.
-      --  For historic (stateful) traces, this is incremented sequentially
-      --  so that multiple traces for the same code region can be processed.
 
       Op : Unsigned_8;
       --  Op code that QEMU sets to give information about
@@ -96,7 +91,6 @@ package Traces is
 
    Bad_Trace : constant Trace_Entry := (First  => 1,
                                         Last   => 0,
-                                        Serial => -1,
                                         Op     => 0,
                                         State  => Unknown);
    --  Constant value for invalid traces

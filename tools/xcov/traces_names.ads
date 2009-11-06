@@ -19,9 +19,10 @@
 
 --  Management of the routines database
 
+with Traces;       use Traces;
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Lines; use Traces_Lines;
-with Traces_Elf; use Traces_Elf;
+with Traces_Elf;   use Traces_Elf;
 with GNAT.Strings; use GNAT.Strings;
 
 package Traces_Names is
@@ -42,14 +43,18 @@ package Traces_Names is
 
    type Subprogram_Info is record
       Exec  : Exe_File_Acc;
-      --  Pointer to the Exec file where this subprogram has first been
-      --  found.
+      --  Pointer to the Exec file where this subprogram has first been found
 
       Insns : Binary_Content_Acc;
-      --  Subprogram binary content.
+      --  Subprogram binary content
 
       Traces : Traces_Base_Acc;
-      --  Traces for the subprogram.
+      --  Traces for the subprogram
+
+      Offset : Pc_Type;
+      --  Offset to be added to trace PCs to rebase them for the reference
+      --  code in Insns. Updated each time Add_Code is used to register a new
+      --  instance of the code for this routine.
    end record;
 
    procedure Remove_Routine_Name (Name : String_Access);
@@ -57,6 +62,9 @@ package Traces_Names is
 
    function Is_In (Name : String_Access) return Boolean;
    --  Return True iff Name has been included into the routine database
+
+   function Get_Subp_Info (Name : String_Access) return Subprogram_Info;
+   --  Return subprogram info for Name
 
    procedure Iterate
      (Proc : access procedure (Subp_Name : String_Access;
@@ -71,6 +79,17 @@ package Traces_Names is
 
    procedure Disp_All_Routines;
    --  Display the list of routines (on standard output).
+
+   procedure Add_Code
+     (Routine_Name : String_Access;
+      Exec         : Exe_File_Acc;
+      Content      : Binary_Content;
+      First_Code   : out Boolean);
+   --  Add code for Routine_Name from Exec with the given contents. Updates the
+   --  offset to be added to traces relative to Exec for this routine to rebase
+   --  them for the recorded code chunk stored in the routines database.
+   --  If this was the first time code was seen for this routine, First_Code
+   --  is set true.
 
    procedure Add_Code_And_Traces
      (Routine_Name : String_Access;

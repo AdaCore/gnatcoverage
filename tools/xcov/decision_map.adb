@@ -30,8 +30,8 @@ with Qemu_Traces;
 with Slocs;             use Slocs;
 with Switches;          use Switches;
 with Traces_Dbase;      use Traces_Dbase;
-with Traces_Elf;        use Traces_Elf;
 with Traces_Files;      use Traces_Files;
+with Traces_Names;      use Traces_Names;
 
 package body Decision_Map is
 
@@ -94,10 +94,6 @@ package body Decision_Map is
       Basic_Blocks   : Basic_Block_Sets.Set;
    end record;
 
-   procedure Analyze;
-   --  Build the decision map from the executable, debug information and
-   --  the Source Coverage Obligations (which must have been loaded already).
-
    procedure Analyze_Conditional_Branch
      (Exe               : Exe_File_Acc;
       Insn              : Binary_Content;
@@ -128,20 +124,6 @@ package body Decision_Map is
    begin
       return L.From < R.From;
    end "<";
-
-   -------------
-   -- Analyze --
-   -------------
-
-   procedure Analyze is
-   begin
-      Init_Base (Decision_Map_Base, Full_History => False);
-      Traces_Names.Iterate (Analyze_Routine'Access);
-
-      if Verbose then
-         Report_SCOs_Without_Code;
-      end if;
-   end Analyze;
 
    --------------------------------
    -- Analyze_Conditional_Branch --
@@ -725,8 +707,9 @@ package body Decision_Map is
    ---------------------
 
    procedure Analyze_Routine
-     (Name : String_Access;
-      Info : in out Subprogram_Info)
+     (Name  : String_Access;
+      Exec  : Exe_File_Acc;
+      Insns : Binary_Content)
    is
       PC       : Pc_Type;
       Insn_Len : Natural;
@@ -740,25 +723,19 @@ package body Decision_Map is
       if Verbose then
          Put_Line ("Building decision map for " & Name.all);
       end if;
-      Build_Debug_Lines (Info.Exec.all);
-
-      if Info.Insns = null then
-         Put_Line ("No instructions for " & Name.all);
-         return;
-      end if;
 
       --  Iterate over instructions, looking for conditional branches
 
-      PC := Info.Insns'First;
+      PC := Insns'First;
       Current_Basic_Block_Start := PC;
-      while PC < Info.Insns'Last loop
+      while PC < Insns'Last loop
          Insn_Len :=
            Disa_For_Machine (Machine).
-             Get_Insn_Length (Info.Insns (PC .. Info.Insns'Last));
+             Get_Insn_Length (Insns (PC .. Insns'Last));
 
          declare
             Insn : Binary_Content renames
-                     Info.Insns (PC .. PC + Pc_Type (Insn_Len) - 1);
+                     Insns (PC .. PC + Pc_Type (Insn_Len) - 1);
 
             Branch     : Branch_Kind;
             Flag_Indir : Boolean;
@@ -786,7 +763,7 @@ package body Decision_Map is
 
             if Branch = Br_Jmp and then Flag_Cond then
                Analyze_Conditional_Branch
-                 (Info.Exec,
+                 (Exec,
                   Insn              => Insn,
                   Branch_Dest       => Dest,
                   Fallthrough_Dest  => Insn'Last + 1,
@@ -860,6 +837,29 @@ package body Decision_Map is
       Decision_Map_Suffix       : constant String := ".dmap";
       --  Decision map filename is constructed by appending the suffix to the
       --  executable image name.
+
+      procedure Analyze_Routine
+        (Name : String_Access;
+         Info : in out Subprogram_Info);
+      --  Build decision map for the given routine if its reference occurrence
+      --  is the one from Exec.
+
+      ---------------------
+      -- Analyze_Routine --
+      ---------------------
+
+      procedure Analyze_Routine
+        (Name : String_Access;
+         Info : in out Subprogram_Info)
+      is
+      begin
+         if Info.Exec = Exec'Unchecked_Access then
+            Analyze_Routine (Name, Info.Exec, Info.Insns.all);
+         end if;
+      end Analyze_Routine;
+
+   --  Start of processing for Build_Decision_Map
+
    begin
       Decision_Map_Filename :=
         new String'(Exec_Name & Decision_Map_Suffix);
@@ -867,8 +867,11 @@ package body Decision_Map is
       Build_Sections (Exec);
       Build_Symbols (Exec'Unchecked_Access);
       Load_Code_And_Traces (Exec'Unchecked_Access, Base => null);
-      Decision_Map.Analyze;
+
+      Init_Base (Decision_Map_Base);
+      Traces_Names.Iterate (Analyze_Routine'Access);
       Decision_Map.Write_Map (Decision_Map_Filename.all);
+
       Close_File (Exec);
    end Build_Decision_Map;
 

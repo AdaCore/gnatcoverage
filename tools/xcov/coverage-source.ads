@@ -20,13 +20,15 @@
 with GNAT.Strings; use GNAT.Strings;
 
 with Files_Table;  use Files_Table;
+with Traces;       use Traces;
 with Traces_Names; use Traces_Names;
 
 package Coverage.Source is
 
    procedure Compute_Source_Coverage
      (Subp_Name : String_Access;
-      Subp_Info : in out Subprogram_Info);
+      Subp_Info : Subprogram_Info;
+      T         : Trace_Entry);
    --  Analyze traces for the given subprogram to determine the coverage state
    --  of each SCO.
 

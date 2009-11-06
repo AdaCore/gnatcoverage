@@ -32,13 +32,14 @@ with GNAT.Strings;      use GNAT.Strings;
 
 with SC_Obligations; use SC_Obligations;
 with Traces;         use Traces;
-with Traces_Names;   use Traces_Names;
+with Traces_Elf;     use Traces_Elf;
 
 package Decision_Map is
 
    procedure Analyze_Routine
-     (Name : String_Access;
-      Info : in out Subprogram_Info);
+     (Name  : String_Access;
+      Exec  : Exe_File_Acc;
+      Insns : Binary_Content);
    --  Build decision map for the given subprogram
 
    procedure Build_Decision_Map (Exec_Name : String);

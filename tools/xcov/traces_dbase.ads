@@ -21,16 +21,15 @@ with Ada.Containers.Ordered_Sets;
 with Interfaces; use Interfaces;
 with Traces;     use Traces;
 
+--  This unit manage flat traces for object coverage only
+
 package Traces_Dbase is
 
    type Traces_Base is limited private;
    type Traces_Base_Acc is access Traces_Base;
 
-   procedure Init_Base
-     (Base         : out Traces_Base;
-      Full_History : Boolean);
-   --  Initialize Base. If Full_History then traces will be kept with full
-   --  history, else they will be flattened.
+   procedure Init_Base (Base : out Traces_Base);
+   --  Initialize Base
 
    procedure Add_Entry
      (Base  : in out Traces_Base;
@@ -100,10 +99,6 @@ private
    type Traces_Base is record
       Entries : Entry_Set.Set;
       --  Contents of the traces database
-
-      Next_Serial : Integer := -1;
-      --  Serial number for next entry, if complete history is kept, or -1 for
-      --  flat traces.
    end record;
 
    type Entry_Iterator is record
