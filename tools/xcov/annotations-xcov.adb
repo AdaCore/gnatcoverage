@@ -157,7 +157,8 @@ package body Annotations.Xcov is
    begin
       Skip := True;
 
-      --  Do not try to process files whose source is not available.
+      --  Do not try to process files whose source is not available
+
       if not Flag_Show_Missing and then not Has_Source then
          Warn_File_Missing (Source.all);
          return;
