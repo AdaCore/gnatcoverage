@@ -19,9 +19,10 @@
 
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
-
 with Ada.Text_IO;       use Ada.Text_IO;
 with Interfaces;        use Interfaces;
+
+with GNAT.Strings;      use GNAT.Strings;
 
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -94,6 +95,12 @@ package body Decision_Map is
       Basic_Blocks   : Basic_Block_Sets.Set;
    end record;
 
+   procedure Analyze_Routine
+     (Name  : String_Access;
+      Exec  : Exe_File_Acc;
+      Insns : Binary_Content);
+   --  Build decision map for the given subprogram
+
    procedure Analyze_Conditional_Branch
      (Exe               : Exe_File_Acc;
       Insn              : Binary_Content;
@@ -124,6 +131,50 @@ package body Decision_Map is
    begin
       return L.From < R.From;
    end "<";
+
+   -------------
+   -- Analyze --
+   -------------
+
+   procedure Analyze (Exe_File : Exe_File_Acc) is
+      Sym_It : Addresses_Iterator;
+      Sym    : Addresses_Info_Acc;
+      Sec    : Addresses_Info_Acc;
+
+      First_Symbol_Occurrence : Boolean;
+   begin
+      Init_Iterator (Exe_File.all, Symbol_Addresses, Sym_It);
+      loop
+         Next_Iterator (Sym_It, Sym);
+         exit when Sym = null;
+
+         Sec := Sym.Parent;
+         Load_Section_Content (Exe_File.all, Sec);
+
+         Add_Code
+           (Sym.Symbol_Name,
+            Exe_File,
+            Sec.Section_Content (Sym.First .. Sym.Last),
+            First_Symbol_Occurrence);
+
+         --  Build decision map for routine based on referenced instance
+
+         if First_Symbol_Occurrence then
+            Analyze_Routine
+              (Sym.Symbol_Name,
+               Exe_File,
+               Sec.Section_Content (Sym.First .. Sym.Last));
+
+            --  Load sloc information
+
+            Build_Debug_Lines (Exe_File.all);
+            Build_Source_Lines_For_Section
+              (Exe_File,
+               null,
+               Sec.Section_Content (Sym.First .. Sym.Last));
+         end if;
+      end loop;
+   end Analyze;
 
    --------------------------------
    -- Analyze_Conditional_Branch --
@@ -838,26 +889,6 @@ package body Decision_Map is
       --  Decision map filename is constructed by appending the suffix to the
       --  executable image name.
 
-      procedure Analyze_Routine
-        (Name : String_Access;
-         Info : in out Subprogram_Info);
-      --  Build decision map for the given routine if its reference occurrence
-      --  is the one from Exec.
-
-      ---------------------
-      -- Analyze_Routine --
-      ---------------------
-
-      procedure Analyze_Routine
-        (Name : String_Access;
-         Info : in out Subprogram_Info)
-      is
-      begin
-         if Info.Exec = Exec'Unchecked_Access then
-            Analyze_Routine (Name, Info.Exec, Info.Insns.all);
-         end if;
-      end Analyze_Routine;
-
    --  Start of processing for Build_Decision_Map
 
    begin
@@ -866,10 +897,9 @@ package body Decision_Map is
       Open_File (Exec, Exec_Name, Text_Start);
       Build_Sections (Exec);
       Build_Symbols (Exec'Unchecked_Access);
-      Load_Code_And_Traces (Exec'Unchecked_Access, Base => null);
 
       Init_Base (Decision_Map_Base);
-      Traces_Names.Iterate (Analyze_Routine'Access);
+      Analyze (Exec'Unchecked_Access);
       Decision_Map.Write_Map (Decision_Map_Filename.all);
 
       Close_File (Exec);

@@ -1006,11 +1006,6 @@ begin
                ------------------
 
                procedure Process_Info (File : Trace_File_Type) is
-                  Sym_It : Addresses_Iterator;
-                  Sym    : Addresses_Info_Acc;
-                  Sec    : Addresses_Info_Acc;
-
-                  First_Symbol_Occurrence : Boolean;
                begin
                   Exe_File := Open_Exec (Trace_File.Filename.all, File);
 
@@ -1019,40 +1014,9 @@ begin
                   Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
 
                   --  Load symbols from executable (sets the rebase offset for
-                  --  each symbol).
+                  --  each symbol) and perform static analysis.
 
-                  Init_Iterator (Exe_File.all, Symbol_Addresses, Sym_It);
-                  loop
-                     Next_Iterator (Sym_It, Sym);
-                     exit when Sym = null;
-
-                     Sec := Sym.Parent;
-                     Load_Section_Content (Exe_File.all, Sec);
-
-                     Add_Code
-                       (Sym.Symbol_Name,
-                        Exe_File,
-                        Sec.Section_Content (Sym.First .. Sym.Last),
-                        First_Symbol_Occurrence);
-
-                     --  Build decision map for routine based on referenced
-                     --  instance.
-
-                     if First_Symbol_Occurrence then
-                        Analyze_Routine
-                          (Sym.Symbol_Name,
-                           Exe_File,
-                           Sec.Section_Content (Sym.First .. Sym.Last));
-
-                        --  Load sloc information
-
-                        Build_Debug_Lines (Exe_File.all);
-                        Build_Source_Lines_For_Section
-                          (Exe_File,
-                           null,
-                           Sec.Section_Content (Sym.First .. Sym.Last));
-                     end if;
-                  end loop;
+                  Decision_Map.Analyze (Exe_File);
                end Process_Info;
 
                -------------------
