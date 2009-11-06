@@ -342,10 +342,12 @@ package body Files_Table is
             E : Source_Search_Entry_Acc := First_Source_Search_Entry;
          begin
             while E /= null loop
-               Try_Open (File, E.Prefix.all & '/' & Name.all, Success);
+               Try_Open (File, E.Prefix.all & '/' & FI.Simple_Name.all,
+                         Success);
 
                if Success then
-                  FI.Full_Name := new String'(E.Prefix.all & '/' & Name.all);
+                  FI.Full_Name :=
+                    new String'(E.Prefix.all & '/' & FI.Simple_Name.all);
                   exit;
                end if;
 
