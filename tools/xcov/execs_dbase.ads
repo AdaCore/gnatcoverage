@@ -81,11 +81,11 @@ private
    --  Return True if L and R represent the same executable.
 
    package Execs_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type => String_Access,
-      Element_Type => Exec_Base_Entry,
-      Hash => Hash,
+     (Key_Type        => String_Access,
+      Element_Type    => Exec_Base_Entry,
+      Hash            => Hash,
       Equivalent_Keys => Equal,
-      "=" => "=");
+      "="             => "=");
 
    type Exec_Base_Type is access all Execs_Maps.Map;
 
