@@ -854,7 +854,7 @@ begin
 
             when Object_Coverage_Level =>
                if Inputs.Length (SCOs_Inputs) /= 0 then
-                  Error ("List of SCOs not allowed for object coverage");
+                  Error ("list of SCOs not allowed for object coverage");
                end if;
 
             when Unknown =>
@@ -1008,10 +1008,6 @@ begin
                procedure Process_Info (File : Trace_File_Type) is
                begin
                   Exe_File := Open_Exec (Trace_File.Filename.all, File);
-
-                  --  Get routine names from SCOs and sloc information
-
-                  Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
 
                   --  Load symbols from executable (sets the rebase offset for
                   --  each symbol) and perform static analysis.

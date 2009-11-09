@@ -143,35 +143,43 @@ package body Decision_Map is
 
       First_Symbol_Occurrence : Boolean;
    begin
+      --  Add routine names of interest to routines database
+
+      Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
+
+      --  Analyze control flow graph
+
       Init_Iterator (Exe_File.all, Symbol_Addresses, Sym_It);
       loop
          Next_Iterator (Sym_It, Sym);
          exit when Sym = null;
 
-         Sec := Sym.Parent;
-         Load_Section_Content (Exe_File.all, Sec);
+         if Is_In (Sym.Symbol_Name) then
+            Sec := Sym.Parent;
+            Load_Section_Content (Exe_File.all, Sec);
 
-         Add_Code
-           (Sym.Symbol_Name,
-            Exe_File,
-            Sec.Section_Content (Sym.First .. Sym.Last),
-            First_Symbol_Occurrence);
-
-         --  Build decision map for routine based on referenced instance
-
-         if First_Symbol_Occurrence then
-            Analyze_Routine
+            Add_Code
               (Sym.Symbol_Name,
                Exe_File,
-               Sec.Section_Content (Sym.First .. Sym.Last));
+               Sec.Section_Content (Sym.First .. Sym.Last),
+               First_Symbol_Occurrence);
 
-            --  Load sloc information
+            --  Build decision map for routine based on referenced instance
 
-            Build_Debug_Lines (Exe_File.all);
-            Build_Source_Lines_For_Section
-              (Exe_File,
-               null,
-               Sec.Section_Content (Sym.First .. Sym.Last));
+            if First_Symbol_Occurrence then
+               Analyze_Routine
+                 (Sym.Symbol_Name,
+                  Exe_File,
+                  Sec.Section_Content (Sym.First .. Sym.Last));
+
+               --  Load sloc information
+
+               Build_Debug_Lines (Exe_File.all);
+               Build_Source_Lines_For_Section
+                 (Exe_File,
+                  null,
+                  Sec.Section_Content (Sym.First .. Sym.Last));
+            end if;
          end if;
       end loop;
    end Analyze;
@@ -212,8 +220,7 @@ package body Decision_Map is
 
       Report
         (Exe, Insn'First,
-         "cond branch for " & Image (SCO),
-         Kind => Notice);
+         "cond branch for " & Image (SCO), Kind => Notice);
 
       --  Mark instruction address for full (historical) traces collection
       --  (for MC/DC source coverage analysis).
