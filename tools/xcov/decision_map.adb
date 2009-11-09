@@ -143,6 +143,8 @@ package body Decision_Map is
 
       First_Symbol_Occurrence : Boolean;
    begin
+      Build_Debug_Lines (Exe_File.all);
+
       --  Add routine names of interest to routines database
 
       Routine_Names_From_Lines (Exe_File, Has_SCO'Access);
@@ -174,7 +176,6 @@ package body Decision_Map is
 
                --  Load sloc information
 
-               Build_Debug_Lines (Exe_File.all);
                Build_Source_Lines_For_Section
                  (Exe_File,
                   null,

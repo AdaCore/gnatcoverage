@@ -2878,8 +2878,6 @@ package body Traces_Elf is
    --  Start of processing for Routine_Names_From_Lines
 
    begin
-      Build_Debug_Lines (Exec.all);
-
       Line_Cursor := First (Line_Table);
       while Has_Element (Line_Cursor) loop
          declare
