@@ -26,8 +26,6 @@
 
 with Ada.Containers.Ordered_Maps;
 
-with Interfaces;
-
 with SC_Obligations; use SC_Obligations;
 with Traces;         use Traces;
 with Traces_Elf;     use Traces_Elf;
@@ -35,7 +33,9 @@ with Traces_Elf;     use Traces_Elf;
 package Decision_Map is
 
    procedure Analyze (Exe_File : Exe_File_Acc);
-   --  Build decision map for symbols Exec
+   --  Build decision map for symbols Exec. Note that the decision map will
+   --  contain references to the designated Exe_File: the pointer must remain
+   --  valid throughout execution.
 
    procedure Build_Decision_Map (Exec_Name : String);
    --  Analyze the named executable using the provided ALI list to generate
@@ -123,10 +123,27 @@ package Decision_Map is
       --  Condition_Occurrences (Seen_Condition) /= No_PC).
    end record;
 
+   --  The cond branch map contains information describing each conditional
+   --  branch instruction. For each routine of interest, we keep only one
+   --  reference instance; when processing multiple executables, traces from
+   --  successive instances are rebased to the PC range of the original one
+   --  (see Traces_Names.Add_Code). The Cond_Branch_Map is keyed by an
+   --  (Exe, Reference_PC) pair where Exe is the executable from which the
+   --  reference version of the enclosing routine is taken, and PC is relative
+   --  to Exe. It can thus accomodate the case of two distinct branches
+   --  (in different routines) that happen to have the same reference PC
+   --  (in different executables).
+
+   type Cond_Branch_Loc is record
+      Exe : Exe_File_Acc;
+      PC  : Pc_Type;
+   end record;
+
+   function "<" (L, R : Cond_Branch_Loc) return Boolean;
+
    package Cond_Branch_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Pc_Type,
-      Element_Type => Cond_Branch_Info,
-      "<"          => Interfaces."<");
+     (Key_Type     => Cond_Branch_Loc,
+      Element_Type => Cond_Branch_Info);
 
    Cond_Branch_Map : Cond_Branch_Maps.Map;
 

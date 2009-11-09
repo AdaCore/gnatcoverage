@@ -355,7 +355,7 @@ package body Coverage.Source is
 
          if Get_Coverage_Level = Stmt
            or else Kind (SCO) /= Condition
-           or else not Cond_Branch_Map.Contains (PC)
+           or else not Cond_Branch_Map.Contains ((Subp_Info.Exec, PC))
          then
             goto Continue_Trace_Insns;
          end if;
@@ -364,7 +364,8 @@ package body Coverage.Source is
          --  branch instruction.
 
          Process_Conditional_Branch : declare
-            CBI : constant Cond_Branch_Info := Cond_Branch_Map.Element (PC);
+            CBI : constant Cond_Branch_Info :=
+                    Cond_Branch_Map.Element ((Subp_Info.Exec, PC));
             pragma Assert (CBI.Condition = SCO);
 
             procedure Edge_Taken (E : Edge_Kind);

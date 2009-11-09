@@ -902,7 +902,8 @@ begin
               (Trace_File_Name : String;
                Trace_File      : Trace_File_Type) return Exe_File_Acc;
             --  Open the executable for TF, taking into account a possible
-            --  command line override of the executable file name.
+            --  command line override of the executable file name. The opened
+            --  exec file is entered in the global execs list.
 
             ---------------
             -- Open_Exec --

@@ -21,11 +21,13 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Text_IO;       use Ada.Text_IO;
 with Interfaces;        use Interfaces;
+with System.Storage_Elements;
 
 with GNAT.Strings;      use GNAT.Strings;
 
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
+with Execs_Dbase;       use Execs_Dbase;
 with Hex_Images;        use Hex_Images;
 with Qemu_Traces;
 with Slocs;             use Slocs;
@@ -130,6 +132,13 @@ package body Decision_Map is
    function "<" (L, R : Basic_Block) return Boolean is
    begin
       return L.From < R.From;
+   end "<";
+
+   function "<" (L, R : Cond_Branch_Loc) return Boolean is
+      use System.Storage_Elements;
+   begin
+      return To_Integer (L.Exe.all'Address) < To_Integer (R.Exe.all'Address)
+        or else (L.Exe = R.Exe and then L.PC < R.PC);
    end "<";
 
    -------------
@@ -359,7 +368,7 @@ package body Decision_Map is
             end if;
             DS_Top.Condition_Occurrences (Cond_Index) := Insn'First;
             Cond_Branch_Map.Insert
-              (Insn'First,
+              ((Exe, Insn'First),
                Cond_Branch_Info'
                  (Decision_Occurrence => DS_Top,
                   Condition           => SCO,
@@ -399,7 +408,7 @@ package body Decision_Map is
       --    D_Occ.Seen_Condition = D_Occ.Last_Condition_Index
 
       Last_CBI : constant Cond_Branch_Info :=
-                   Cond_Branch_Map.Element (Last_Seen_Condition_PC);
+                   Cond_Branch_Map.Element ((Exe, Last_Seen_Condition_PC));
 
       Known_Outcome : array (Boolean) of Pc_Type := (others => No_PC);
       --  When set, each element of this array is the destination of the first
@@ -427,8 +436,8 @@ package body Decision_Map is
       --  from that information.
 
       procedure Label_Destinations
-        (Cond_Branch_PC : Pc_Type;
-         CBI            : in out Cond_Branch_Info);
+        (CB_Loc : Cond_Branch_Loc;
+         CBI    : in out Cond_Branch_Info);
       --  Identify destination kind of each edge of CBI
 
       --------------------
@@ -610,8 +619,8 @@ package body Decision_Map is
                      then
                         pragma Assert (Next_C =
                                          Cond_Branch_Map.Element
-                                           (D_Occ.Condition_Occurrences
-                                             (Destination_Index)).Condition);
+                                           ((Exe, D_Occ.Condition_Occurrences
+                                             (Destination_Index))).Condition);
                         Edge_Info.Origin := To_Tristate (J);
                         exit;
                      end if;
@@ -671,9 +680,11 @@ package body Decision_Map is
       ------------------------
 
       procedure Label_Destinations
-        (Cond_Branch_PC : Pc_Type;
-         CBI            : in out Cond_Branch_Info)
+        (CB_Loc : Cond_Branch_Loc;
+         CBI    : in out Cond_Branch_Info)
       is
+         Cond_Branch_PC : Pc_Type renames CB_Loc.PC;
+
          function Dest_Image (Edge : Edge_Kind) return String;
          --  Return string representation of the given edge of CBI
 
@@ -748,7 +759,8 @@ package body Decision_Map is
          declare
             use Cond_Branch_Maps;
             Cur : constant Cond_Branch_Maps.Cursor :=
-                    Cond_Branch_Map.Find (D_Occ.Condition_Occurrences (J));
+                    Cond_Branch_Map.Find
+                      ((Exe, D_Occ.Condition_Occurrences (J)));
          begin
             if D_Occ.Condition_Occurrences (J) /= No_PC then
                Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
@@ -887,10 +899,7 @@ package body Decision_Map is
 
    procedure Build_Decision_Map (Exec_Name : String)
    is
-      Exec : aliased Exe_File_Type;
-
-      Text_Start : constant Pc_Type := 0;
-      --  Should be a global option???
+      Exec : Exe_File_Acc;
 
       Decision_Map_Filename     : String_Access := null;
       Decision_Map_Suffix       : constant String := ".dmap";
@@ -902,15 +911,13 @@ package body Decision_Map is
    begin
       Decision_Map_Filename :=
         new String'(Exec_Name & Decision_Map_Suffix);
-      Open_File (Exec, Exec_Name, Text_Start);
-      Build_Sections (Exec);
-      Build_Symbols (Exec'Unchecked_Access);
+      Open_Exec (Get_Exec_Base, Exec_Name, Exec);
 
       Init_Base (Decision_Map_Base);
-      Analyze (Exec'Unchecked_Access);
+      Analyze (Exec);
       Decision_Map.Write_Map (Decision_Map_Filename.all);
 
-      Close_File (Exec);
+      Close_File (Exec.all);
    end Build_Decision_Map;
 
    ----------------------
