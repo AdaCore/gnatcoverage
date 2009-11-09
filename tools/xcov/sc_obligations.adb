@@ -226,6 +226,18 @@ package body SC_Obligations is
    function To_Statement_Kind (C : Character) return Statement_Kind;
    --  Convert character code for statement kind to corresponding enum value
 
+   --  Decision_Kind denotes the various decision kinds identified in SCOs
+
+   type Decision_Kind is
+     (If_Statement,
+      Exit_Statement,
+      Pragma_Assert_Check_PPC,
+      While_Loop,
+      Expression);
+
+   function To_Decision_Kind (C : Character) return Decision_Kind;
+   --  Convert character code for decision kind to corresponding enum value
+
    use type Pc_Type;
    package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
@@ -268,6 +280,9 @@ package body SC_Obligations is
             --  Index of this condition in the decision
 
          when Decision =>
+            D_Kind : Decision_Kind;
+            --  Decision kind indication
+
             Is_Complex_Decision : Boolean;
             --  True for complex decisions.
             --  Note that there is always a distinct Condition SCO descriptor,
@@ -1174,6 +1189,8 @@ package body SC_Obligations is
                                      Sloc_Range          =>
                                        (First_Sloc => Make_Sloc (SCOE.From),
                                         Last_Sloc  => Make_Sloc (SCOE.To)),
+                                     D_Kind              =>
+                                       To_Decision_Kind (SCOE.C1),
                                      Is_Complex_Decision =>
                                                    not SCOE.Last,
                                      Last_Cond_Index     => 0,
@@ -1455,7 +1472,9 @@ package body SC_Obligations is
       begin
          if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
             Report
-              (To_Index (Cur), "no conditional branch",
+              (To_Index (Cur), "no conditional branch (in "
+               & Decision_Kind'Image (SCO_Vector.Element (SCOD.Parent).D_Kind)
+               & ")",
                Kind => Diagnostics.Error);
          end if;
       end Check_Condition;
@@ -1510,6 +1529,22 @@ package body SC_Obligations is
       end loop;
       return SCO;
    end Sloc_To_SCO;
+
+   ----------------------
+   -- To_Decision_Kind --
+   ----------------------
+
+   function To_Decision_Kind (C : Character) return Decision_Kind is
+   begin
+      case C is
+         when 'I' => return If_Statement;
+         when 'E' => return Exit_Statement;
+         when 'P' => return Pragma_Assert_Check_PPC;
+         when 'W' => return While_Loop;
+         when 'X' => return Expression;
+         when others => raise Constraint_Error;
+      end case;
+   end To_Decision_Kind;
 
    -----------------------
    -- To_Statement_Kind --
