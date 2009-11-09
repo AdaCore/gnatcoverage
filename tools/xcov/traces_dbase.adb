@@ -116,9 +116,6 @@ package body Traces_Dbase is
          then
             --  Just merge flags
 
-            if First /= Last then
-               raise Program_Error;
-            end if;
             Base.Entries.Replace_Element
               (Cur,
                Trace_Entry'(E.First, E.Last, Merged_Op, E.State));
