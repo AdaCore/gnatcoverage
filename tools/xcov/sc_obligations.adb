@@ -71,6 +71,11 @@ package body SC_Obligations is
                --  Value of the decision when this node is reached
 
             when Condition =>
+               Parent : BDD_Node_Id := No_BDD_Node_Id;
+               --  Previous BDD node, if known and unique. Set to
+               --  No_BDD_Node_Id for the root node and for any node reachable
+               --  through multiple paths.
+
                C_SCO : SCO_Id;
                --  Condition SCO
 
@@ -356,11 +361,28 @@ package body SC_Obligations is
          Visited : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
                      of Boolean := (others => False);
 
-         procedure Visit (Node_Id : BDD_Node_Id);
+         procedure Visit (Node_Id, Origin_Id : BDD_Node_Id);
          --  Visit one node. If it was already seen, note presence of a diamond
 
-         procedure Visit (Node_Id : BDD_Node_Id) is
+         procedure Visit (Node_Id, Origin_Id : BDD_Node_Id) is
+            Parent_Id : BDD_Node_Id := Origin_Id;
+
+            procedure Set_Parent (Node : in out BDD_Node);
+            --  Set Node's parent to Parent_Id
+
+            ----------------
+            -- Set_Parent --
+            ----------------
+
+            procedure Set_Parent (Node : in out BDD_Node) is
+            begin
+               Node.Parent := Parent_Id;
+            end Set_Parent;
+
             Node : BDD_Node renames BDD_Vector.Element (Node_Id);
+
+         --  Start of processing for Visit
+
          begin
             --  Nothing to do if a diamond has already been identified
 
@@ -370,20 +392,23 @@ package body SC_Obligations is
 
             if Visited (Node_Id) then
                BDD.Diamond_Base := Node_Id;
+               Parent_Id := No_BDD_Node_Id;
+               BDD_Vector.Update_Element (Node_Id, Set_Parent'Access);
                return;
             end if;
 
             Visited (Node_Id) := True;
+            BDD_Vector.Update_Element (Node_Id, Set_Parent'Access);
 
             for J in Boolean'Range loop
                if BDD_Vector.Element (Node.Dests (J)).Kind = Condition then
-                  Visit (Node.Dests (J));
+                  Visit (Node.Dests (J), Origin_Id => Node_Id);
                end if;
             end loop;
          end Visit;
 
       begin
-         Visit (BDD.Root_Condition);
+         Visit (BDD.Root_Condition, Origin_Id => No_BDD_Node_Id);
       end Check_Diamonds;
 
       ---------------
@@ -554,8 +579,8 @@ package body SC_Obligations is
               (BDD.Decision,
                "BDD node" & BDD.Diamond_Base'Img
                & " reachable through multiple paths",
-               Kind => Warning);
-            Report ("OBC does not imply MC/DC coverage", Kind => Warning);
+               Kind => Notice);
+            Report ("OBC does not imply MC/DC coverage", Kind => Notice);
          end if;
          Dump_Condition (BDD.Root_Condition);
          New_Line;
@@ -571,12 +596,12 @@ package body SC_Obligations is
          return BDD : BDD_Type do
             BDD.Decision := Decision;
 
-            Allocate (BDD,
-              BDD_Node'(Kind => Outcome, Decision_Outcome => False),
-              Exit_False_Id);
-            Allocate (BDD,
-              BDD_Node'(Kind => Outcome, Decision_Outcome => True),
-              Exit_True_Id);
+            Allocate
+              (BDD, BDD_Node'(Kind => Outcome, Decision_Outcome => False),
+               Exit_False_Id);
+            Allocate
+              (BDD, BDD_Node'(Kind => Outcome, Decision_Outcome => True),
+               Exit_True_Id);
 
             Push
               (((False => Exit_False_Id,
@@ -593,7 +618,8 @@ package body SC_Obligations is
          A : constant Arcs := Pop;
          L : BDD_Node_Id;
       begin
-         Allocate (BDD, BDD_Node'(Kind => Jump, Dest => No_BDD_Node_Id), L);
+         Allocate (BDD, BDD_Node'(Kind => Jump,
+                                  Dest => No_BDD_Node_Id), L);
 
          --  Arcs for right operand: subtree is reached through label L if
          --  left operand is True.
@@ -690,8 +716,11 @@ package body SC_Obligations is
          end Set_BDD_Node;
 
       begin
-         Allocate (BDD,
-           (Kind => Condition, C_SCO => Condition_Id, Dests => A.Dests), N);
+         Allocate
+           (BDD, (Kind   => Condition,
+                  C_SCO  => Condition_Id,
+                  Dests  => A.Dests,
+                  Parent => No_BDD_Node_Id), N);
 
          if A.Origin /= No_BDD_Node_Id then
             BDD_Vector.Update_Element (A.Origin, Set_Dest'Access);
