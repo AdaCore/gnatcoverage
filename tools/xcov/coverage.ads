@@ -24,14 +24,12 @@
 --  for one run; this Level will be unique and will not change after
 --  it has been initialized.
 
-with Ada.Text_IO; use Ada.Text_IO;
-
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Elf;   use Traces_Elf;
 
 package Coverage is
 
-   type Coverage_Level is (Insn, Branch, Stmt, Decision, MCDC, Unknown);
+   type Coverage_Level is (Insn, Branch, Stmt, Decision, MCDC);
    --  Coverage objectives supported by xcov, plus "unknown" (to be used when
    --  no coverage objective has been specified). The following values are
    --  supported:
@@ -50,27 +48,22 @@ package Coverage is
    subtype Object_Coverage_Level is Coverage_Level range Insn .. Branch;
    subtype Source_Coverage_Level is Coverage_Level range Stmt .. MCDC;
 
-   function To_Coverage_Level (Option : String) return Coverage_Level;
-   --  Option being the name of a coverage Level (i.e. "insn", "branch",
-   --  "stmt", "decision", "mcdc"), return the corresponding
-   --  Known_Coverage_Level, or Unknown if none of them matches.
+   procedure Set_Coverage_Levels (Opt : String);
+   --  Set the coverage levels to be assessed by xcov
 
-   function To_Coverage_Option (Level : Coverage_Level) return String;
-   --  Return the name of the coverage Level given in parameter
+   function Valid_Coverage_Options return String;
+   --  Return |-separated list of acceptable values for Set_Coverage_Levels
 
-   procedure Set_Coverage_Level (Level : Coverage_Level);
-   --  Set the coverage Level to be perform by xcov. As xcov only support
-   --  one coverage Level per run, this shall only be called once.
+   function Enabled (Level : Coverage_Level) return Boolean;
+   --  True when Level is enabled
 
-   function Get_Coverage_Level return Coverage_Level;
-   pragma Inline (Get_Coverage_Level);
-   --  Return the current coverage Level
+   function Object_Coverage_Enabled return Boolean;
+   --  True when any Object_Coverage_Level is enabled
 
-   procedure Dump_Coverage_Option (Report : File_Access);
-   --  Dump the coverage option information to Report
+   function Source_Coverage_Enabled return Boolean;
+   --  True if any Source_Coverage_Level is enabled
 
-   function All_Known_Coverage_Levels return String;
-   --  Return |-separated list of all values in Known_Coverage_Level (for
-   --  help message).
+   function Coverage_Option_Value return String;
+   --  Return the coverage option value for the currently enabled levels
 
 end Coverage;

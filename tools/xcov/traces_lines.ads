@@ -42,8 +42,8 @@ package Traces_Lines is
    State_Char : constant State_Char_Array;
    --  Characters identifying a Line_State
 
-   procedure Update_Line_State (State : in out Line_State; El : Line_State);
-   --  Modify State as if EL was appended.
+   function "*" (L, R : Line_State) return Line_State;
+   --  Combine the given individual states to determine a cumulative state
 
 private
    State_Char : constant State_Char_Array :=

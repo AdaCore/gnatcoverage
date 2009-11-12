@@ -32,36 +32,24 @@ with Traces_Elf; use Traces_Elf;
 
 package Execs_Dbase is
 
-   type Exec_Base_Type is limited private;
-   --  type for handles on Exec databases.
-
-   function Get_Exec_Base return Exec_Base_Type;
-   pragma Inline (Get_Exec_Base);
-   --  Return a handle on the current exec database.
-
-   procedure Open_Exec
-     (Execs     : Exec_Base_Type;
-      File_Name : String;
-      Exec      : out Exe_File_Acc);
-   --  Search for a file named File_Name in the Exec database. If one
-   --  found, return it; otherwise, open File_Name and add it to the
-   --  database, then return it in Exec.
+   procedure Open_Exec (File_Name : String; Exec : out Exe_File_Acc);
+   --  Search for a file named File_Name in the Exec database. If one found,
+   --  return it; otherwise, open File_Name and add it to the database, then
+   --  return it in Exec.
    --
    --  Sections and symbols are read.
    --  In case of error, exception is propagated (see trace_elf.ads)
 
-   procedure Insert_Exec
-     (Execs     : Exec_Base_Type;
-      File_Name : String);
+   procedure Insert_Exec (File_Name : String);
    --  Similar to Open_Exec, but does not return the result; just insert
    --  it in the Exec database if it does not already exists.
 
    Routine_Name_Ambiguity : exception;
 
-   procedure Build_Routines_Names (Execs : Exec_Base_Type);
-   --  Build the routine list from the Execs database. If there is
-   --  more than one exec in Execs, this may not be possible; if it
-   --  cannot be done, raise Routine_Name_Ambiguity.
+   procedure Build_Routines_Names;
+   --  Build the routine list from the Execs database. If there is more than
+   --  one exec in Execs, this may not be possible; if it cannot be done, raise
+   --  Routine_Name_Ambiguity.
 
 private
 

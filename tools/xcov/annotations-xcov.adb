@@ -125,7 +125,7 @@ package body Annotations.Xcov is
    begin
       Put (Pp.Xcov_File, Line_Num, 4);
       Put (Pp.Xcov_File, ' ');
-      Put (Pp.Xcov_File, State_Char (Info.State));
+      Put (Pp.Xcov_File, State_Char (Aggregated_State (Info.State)));
       if False then
          if Info.SCOs.Length > 0 then
             Put (Pp.Xcov_File, 'S');
@@ -179,8 +179,7 @@ package body Annotations.Xcov is
 
       Put_Line (Pp.Xcov_File, Source.Full_Name.all & ':');
       Put_Line (Pp.Xcov_File, Get_Stat_String (Stats));
-      Put_Line (Pp.Xcov_File, "Coverage level: "
-                & To_Coverage_Option (Get_Coverage_Level));
+      Put_Line (Pp.Xcov_File, "Coverage level: " & Coverage_Option_Value);
    end Pretty_Print_Start_File;
 
    -------------------------------

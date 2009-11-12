@@ -32,6 +32,20 @@ package body Annotations is
       File       : Files_Table.File_Info_Access);
    --  Comment needed???
 
+   ----------------------
+   -- Aggregated_State --
+   ----------------------
+
+   function Aggregated_State (S : Line_States) return Line_State is
+      use Coverage.Source;
+      Result : Line_State := No_Code;
+   begin
+      for J in S'Range loop
+         Result := Result * S (J);
+      end loop;
+      return Result;
+   end Aggregated_State;
+
    --------------------------
    -- Disp_File_Line_State --
    --------------------------
@@ -79,7 +93,7 @@ package body Annotations is
          Sec_Info         : Addresses_Info_Acc;
          LI               : constant Line_Info_Access :=
                               Get_Line (File, Index);
-         Ls               : constant Line_State := LI.State;
+         Ls               : constant Line_State := Aggregated_State (LI.State);
          In_Symbol        : Boolean;
          In_Insn_Set      : Boolean;
       begin
@@ -251,17 +265,12 @@ package body Annotations is
             LI : constant Line_Info_Access := Get_Line (FI, L);
             S : Line_State;
          begin
-            case Get_Coverage_Level is
-               when Insn | Branch =>
-                  Coverage.Object.Compute_Line_State (LI);
-
-               when Stmt | Decision | MCDC =>
-                  Coverage.Source.Compute_Line_State (LI);
-
-               when Unknown =>
-                  raise Program_Error;
-            end case;
-            S := LI.State;
+            if Object_Coverage_Enabled then
+               Coverage.Object.Compute_Line_State (LI);
+            else
+               Coverage.Source.Compute_Line_State (LI);
+            end if;
+            S := Aggregated_State (LI.State);
             FI.Stats (S) := FI.Stats (S) + 1;
          end Compute_Line_State;
 

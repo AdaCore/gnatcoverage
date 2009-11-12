@@ -166,21 +166,22 @@ package body Annotations.Report is
 
       pragma Unreferenced (Line);
       Output : constant File_Access := Get_Output;
-      State  : constant Line_State := Info.State;
-
    begin
-      if State /= Covered
-        and then State /= No_Code
-      then
-         Put (Output.all, Simple_Name (Pp.Current_Filename.all));
-         Put (":");
-         Put (Output.all, Img (Line_Num));
-         Put (Output.all, ": ");
-         Put (Output.all, "line " & State'Img & " for ");
-         Put (Output.all, To_Coverage_Option (Get_Coverage_Level));
-         Put (Output.all, " coverage");
-         New_Line (Output.all);
-      end if;
+      for Level in Coverage_Level loop
+         if Info.State (Level) /= Covered
+           and then Info.State (Level) /= No_Code
+         then
+            Put (Output.all, Simple_Name (Pp.Current_Filename.all));
+            Put (":");
+            Put (Output.all, Img (Line_Num));
+            Put (Output.all, ": ");
+            Put (Output.all, "line " & Info.State (Level)'Img & " for ");
+            Put (Output.all, Level'Img);
+            Put (Output.all, " coverage");
+            New_Line (Output.all);
+            exit;
+         end if;
+      end loop;
    end Pretty_Print_Start_Line;
 
 end Annotations.Report;

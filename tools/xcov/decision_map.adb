@@ -911,7 +911,7 @@ package body Decision_Map is
    begin
       Decision_Map_Filename :=
         new String'(Exec_Name & Decision_Map_Suffix);
-      Open_Exec (Get_Exec_Base, Exec_Name, Exec);
+      Open_Exec (Exec_Name, Exec);
 
       Init_Base (Decision_Map_Base);
       Analyze (Exec);

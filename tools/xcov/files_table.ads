@@ -22,8 +22,8 @@ with Ada.Text_IO;  use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Coverage;       use Coverage;
 with Diagnostics;    use Diagnostics;
-pragma Unreferenced (Diagnostics);
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
 with Traces_Elf;     use Traces_Elf;
@@ -123,11 +123,13 @@ package Files_Table is
    package SCO_Id_Vectors is new Ada.Containers.Vectors
      (Index_Type => Natural, Element_Type => SCO_Id);
 
+   type Line_States is array (Coverage_Level) of Line_State;
+
    type Line_Info is record
       --  Coverage information associated with a source line
 
-      State : Line_State := No_Code;
-      --  Coverage state
+      State : Line_States := (others => No_Code);
+      --  Coverage state for each coverage level
 
       Obj_First, Obj_Last : Object_Coverage_Info_Acc;
       --  Detailed object coverage information for this line

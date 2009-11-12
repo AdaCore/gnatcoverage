@@ -331,7 +331,8 @@ package body Traces_Elf is
          raise Program_Error;
       end if;
 
-      --  Be sure the section headers are loaded.
+      --  Be sure the section headers are loaded
+
       Load_Shdr (Exec.Exe_File);
 
       for I in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
@@ -1803,7 +1804,7 @@ package body Traces_Elf is
 
       function Coverage_State (State : Insn_State) return Insn_State is
       begin
-         if Get_Coverage_Level = Insn then
+         if Enabled (Insn) then
             --  Instruction coverage; no need to trace which ways a branch
             --  has been covered.
 
@@ -1889,7 +1890,7 @@ package body Traces_Elf is
                            --  So Trace.Op shall not be null.
                            --  If the case of instruction coverage, we may
                            --  however ignore this error.
-                           if Get_Coverage_Level = Insn then
+                           if Enabled (Insn) then
                               New_State := Covered;
                            else
                               Outputs.Fatal_Error
@@ -2332,7 +2333,7 @@ package body Traces_Elf is
    is
       Exec : Exe_File_Acc;
    begin
-      Open_Exec (Get_Exec_Base, Filename, Exec);
+      Open_Exec (Filename, Exec);
 
       declare
          Efile : Elf_File renames Exec.Exe_File;

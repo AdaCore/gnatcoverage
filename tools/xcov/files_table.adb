@@ -20,7 +20,6 @@
 with Ada.Containers.Hashed_Maps;
 with Ada.Directories;
 with Strings; use Strings;
-with Coverage; use Coverage;
 with Outputs;
 
 package body Files_Table is
@@ -444,7 +443,8 @@ package body Files_Table is
       FI           : File_Info_Access renames Files_Table.Element (File);
    begin
       while FI.Lines.Last_Index < Line loop
-         FI.Lines.Append (new Line_Info'(State => No_Code, others => <>));
+         FI.Lines.Append
+           (new Line_Info'(State => (others => No_Code), others => <>));
       end loop;
    end Expand_Line_Table;
 
@@ -488,17 +488,11 @@ package body Files_Table is
 
    function To_Display (File : File_Info_Access) return Boolean is
    begin
-      case Get_Coverage_Level is
-         when Source_Coverage_Level =>
-            return File.Has_Source_Coverage_Info;
-         when Object_Coverage_Level =>
-            return File.Has_Object_Coverage_Info;
-         when Unknown =>
-            --  A fatal error should have been raised earlier
-            pragma Assert (False);
-            null;
-      end case;
-      return False;
+      if Object_Coverage_Enabled then
+         return File.Has_Object_Coverage_Info;
+      else
+         return File.Has_Source_Coverage_Info;
+      end if;
    end To_Display;
 
    -----------------------

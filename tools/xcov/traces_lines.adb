@@ -19,21 +19,29 @@
 
 package body Traces_Lines is
 
-   procedure Update_Line_State (State : in out Line_State; El : Line_State) is
+   ---------
+   -- "*" --
+   ---------
+
+   function "*" (L, R : Line_State) return Line_State is
    begin
-      case State is
-         when No_Code =>
-            State := El;
-         when Not_Covered =>
-            if El = Partially_Covered or else El = Covered then
-               State := Partially_Covered;
-            end if;
-         when Partially_Covered =>
-            null;
-         when Covered =>
-            if El = Not_Covered or else El = Partially_Covered then
-               State := Partially_Covered;
-            end if;
-      end case;
-   end Update_Line_State;
+      if R = No_Code then
+         return L;
+      else
+         case L is
+            when No_Code =>
+               return R;
+
+            when Not_Covered =>
+               return Line_State'Min (R, Partially_Covered);
+
+            when Partially_Covered =>
+               return L;
+
+            when Covered =>
+               return Line_State'Max (R, Partially_Covered);
+         end case;
+      end if;
+   end "*";
+
 end Traces_Lines;

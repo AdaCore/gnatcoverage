@@ -31,10 +31,14 @@ package body Coverage.Object is
    begin
       El := Line.Obj_First;
       while El /= null loop
-         Update_Line_State (State, El.State);
+         State := State * El.State;
          El := El.Next;
       end loop;
-      Line.State := State;
+      if Enabled (Branch) then
+         Line.State (Branch) := State;
+      else
+         Line.State (Insn) := State;
+      end if;
    end Compute_Line_State;
 
    --------------------

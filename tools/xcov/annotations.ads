@@ -112,4 +112,7 @@ private
      (Pp       : in out Pretty_Printer'Class;
       Show_Asm : Boolean);
 
+   function Aggregated_State (S : Line_States) return Line_State;
+   --  Return synthetic indication of coverage state for all computed criteria
+
 end Annotations;

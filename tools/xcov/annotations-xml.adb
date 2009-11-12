@@ -295,16 +295,13 @@ package body Annotations.Xml is
    -- Pretty_Print_Start --
    ------------------------
 
-   procedure Pretty_Print_Start
-     (Pp : in out Xml_Pretty_Printer)
-   is
-      Level : constant String :=
-        To_Coverage_Option (Get_Coverage_Level);
+   procedure Pretty_Print_Start (Pp : in out Xml_Pretty_Printer) is
    begin
       Create_Output_File (Pp.Index_File, "index.xml");
 
       Pp.Pi (Xml_Header);
-      Pp.Pi (ST ("coverage_report", A ("coverage_level", Level)));
+      Pp.Pi (ST ("coverage_report",
+        A ("coverage_level", Coverage_Option_Value)));
       Pp.Pi (ST ("sources"));
    end Pretty_Print_Start;
 
@@ -325,8 +322,6 @@ package body Annotations.Xml is
 
       pragma Unreferenced (Has_Source);
 
-      Level                  : constant String :=
-        To_Coverage_Option (Get_Coverage_Level);
       Simple_Source_Filename : constant String := Source.Simple_Name.all;
       Xml_File_Name          : constant String :=
         Simple_Source_Filename & ".xml";
@@ -336,7 +331,7 @@ package body Annotations.Xml is
       Pp.P (Xml_Header);
       Pp.P (ST ("source",
              A ("file", Simple_Source_Filename)
-             & A ("Coverage_Level", Level)));
+             & A ("Coverage_Level", Coverage_Option_Value)));
 
       Pp.Pi (T ("xi:include", A ("parse", "xml") & A ("href", Xml_File_Name)));
    end Pretty_Print_Start_File;
@@ -364,7 +359,8 @@ package body Annotations.Xml is
       Info     : Line_Info_Access;
       Line     : String)
    is
-      Coverage_State : constant String := (1 => State_Char (Info.State));
+      Coverage_State : constant String :=
+                         (1 => State_Char (Aggregated_State (Info.State)));
    begin
       Pp.P (ST ("sloc", A ("coverage", Coverage_State)));
       Pp.P (ST ("src"));

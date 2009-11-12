@@ -105,8 +105,8 @@ procedure Xcov is
       New_Line;
       P (" coverage OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
-      P ("   -c LEVEL --level=LEVEL        Specify coverage level");
-      P ("      LEVEL is one of " & All_Known_Coverage_Levels);
+      P ("   -c LEVEL --level=LEVEL        Specify coverage levels");
+      P ("      LEVEL is one of " & Valid_Coverage_Options);
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
       P ("   --routines=<FILE|@LISTFILE> Add ROUTINE, or all routine listed");
@@ -188,7 +188,6 @@ procedure Xcov is
 
    Command             : Command_Type := No_Command;
    Annotation          : Annotation_Format := Annotate_Unknown;
-   Level               : Coverage_Level;
    Trace_Inputs        : Inputs.Inputs_Type;
    Exe_Inputs          : Inputs.Inputs_Type;
    Obj_Inputs          : Inputs.Inputs_Type;
@@ -404,21 +403,23 @@ procedure Xcov is
             elsif Arg = Coverage_Option_Short then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
-               Level :=
-                 To_Coverage_Level (Next_Arg ("coverage level"));
-               if Level = Unknown then
-                  Fatal_Error ("bad parameter for " & Coverage_Option_Short);
-               end if;
-               Set_Coverage_Level (Level);
+               begin
+                  Set_Coverage_Levels (Next_Arg ("coverage level"));
+               exception
+                  when Constraint_Error =>
+                     Fatal_Error
+                       ("bad parameter for " & Coverage_Option_Short);
+               end;
 
             elsif Begins_With (Arg, Coverage_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
-               Level := To_Coverage_Level (Option_Parameter (Arg));
-               if Level = Unknown then
-                  Fatal_Error ("bad parameter for " & Coverage_Option);
-               end if;
-               Set_Coverage_Level (Level);
+               begin
+                  Set_Coverage_Levels (Option_Parameter (Arg));
+               exception
+                  when Constraint_Error =>
+                     Fatal_Error ("bad parameter for " & Coverage_Option);
+               end;
 
             elsif Begins_With (Arg, SCOs_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
@@ -840,48 +841,39 @@ begin
 
       when Cmd_Coverage =>
 
-         if Get_Coverage_Level = Unknown then
+         --  Load SCOs
+
+         if Source_Coverage_Enabled then
+            Check_Argument_Available
+              (SCOs_Inputs, "SCOs FILEs", Command);
+            Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+
+         elsif Object_Coverage_Enabled then
+            if Inputs.Length (SCOs_Inputs) /= 0 then
+               Error ("list of SCOs not allowed for object coverage");
+            end if;
+
+         else
             Fatal_Error ("Please specify a coverage level");
          end if;
 
-         --  Load SCOs
-
-         case Get_Coverage_Level is
-            when Source_Coverage_Level =>
-               Check_Argument_Available
-                 (SCOs_Inputs, "SCOs FILEs", Command);
-               Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
-
-            when Object_Coverage_Level =>
-               if Inputs.Length (SCOs_Inputs) /= 0 then
-                  Error ("list of SCOs not allowed for object coverage");
-               end if;
-
-            when Unknown =>
-               null;
-         end case;
-
          --  Load routines from command line
 
-         case Get_Coverage_Level is
-            when Object_Coverage_Level =>
-               if Inputs.Length (Routines_Inputs) /= 0 then
-                  Inputs.Iterate (Routines_Inputs,
-                                  Traces_Names.Add_Routine_Name'Access);
-               elsif Inputs.Length (Trace_Inputs) > 1 then
-                  Fatal_Error ("routine list required"
-                               & " when reading multiple trace files");
-               end if;
+         if Object_Coverage_Enabled then
+            if Inputs.Length (Routines_Inputs) /= 0 then
+               Inputs.Iterate (Routines_Inputs,
+                               Traces_Names.Add_Routine_Name'Access);
+            elsif Inputs.Length (Trace_Inputs) > 1 then
+               Fatal_Error ("routine list required"
+                            & " when reading multiple trace files");
+            end if;
 
-            when Source_Coverage_Level =>
-               if Inputs.Length (Routines_Inputs) /= 0 then
-                  Fatal_Error ("routine list not allowed"
-                               & " for source coverage");
-               end if;
-
-            when Unknown =>
-               null;
-         end case;
+         else
+            if Inputs.Length (Routines_Inputs) /= 0 then
+               Fatal_Error ("routine list not allowed"
+                            & " for source coverage");
+            end if;
+         end if;
 
          --  Read and process traces
 
@@ -927,7 +919,7 @@ begin
                   end if;
                end if;
                return Exe_File : Exe_File_Acc do
-                  Open_Exec (Get_Exec_Base, Exe_Name.all, Exe_File);
+                  Open_Exec (Exe_Name.all, Exe_File);
                end return;
             exception
                when Elf_Files.Error =>
@@ -949,7 +941,7 @@ begin
                                  others   => <>);
             begin
                Traces_Files_List.Files.Append (Trace_File);
-               if Get_Coverage_Level in Object_Coverage_Level then
+               if Object_Coverage_Enabled then
                   Process_Trace_For_Obj_Coverage (Trace_File);
                else
                   Process_Trace_For_Src_Coverage (Trace_File);
@@ -1059,38 +1051,28 @@ begin
             Inputs.Iterate (Trace_Inputs, Process_Trace'Access);
          end;
 
-         --  Now determine coverage according to the requested metric
+         --  Now determine coverage according to the requested metric (for
+         --  source coverage, complete coverage information has been determined
+         --  when loading traces above).
 
-         case Get_Coverage_Level is
-            when Object_Coverage_Level =>
-               Traces_Elf.Build_Routines_Insn_State;
+         if Object_Coverage_Enabled then
+            Traces_Elf.Build_Routines_Insn_State;
 
-               if Annotation /= Annotate_Asm then
-                  Traces_Elf.Build_Source_Lines;
-               end if;
-
-            when Source_Coverage_Level =>
-               --  Source coverage has been determined during trace load
-
-               null;
-
-            when Unknown =>
-               --  A fatal error should have been diagnosed earlier
-
-               pragma Assert (False);
-               return;
-         end case;
+            if Annotation /= Annotate_Asm then
+               Traces_Elf.Build_Source_Lines;
+            end if;
+         end if;
 
          --  Generate annotated reports
 
          case Annotation is
             when Annotate_Asm =>
-               if Get_Coverage_Level in Source_Coverage_Level then
+               if Source_Coverage_Enabled then
                   Fatal_Error ("Asm format not supported"
                                & " for source coverage.");
                end if;
                Traces_Disa.Flag_Show_Asm := True;
-               Dump_Coverage_Option (Standard_Output);
+               Put_Line ("Coverage level: " & Coverage_Option_Value);
                Traces_Dump.Dump_Routines_Traces;
 
             when Annotate_Xcov =>
@@ -1111,7 +1093,9 @@ begin
                Annotations.Html.Generate_Report (True);
 
             when Annotate_Report =>
-               Dump_Coverage_Option (Annotations.Report.Get_Output);
+               Put_Line
+                 (Annotations.Report.Get_Output.all,
+                  "Coverage level: " & Coverage_Option_Value);
                Annotations.Report.Finalize_Report;
 
             when Annotate_Unknown =>
@@ -1129,15 +1113,7 @@ begin
 
             procedure Run (Exe_File : String) is
             begin
-               if Get_Coverage_Level = MCDC then
-                  if Inputs.Length (Routines_Inputs) > 0 then
-                     Inputs.Iterate (Routines_Inputs,
-                                     Traces_Names.Add_Routine_Name'Access);
-                  else
-                     Read_Routines_Name (Exe_File, Exclude => False,
-                                         Keep_Open => False);
-                  end if;
-
+               if Enabled (MCDC) then
                   Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
                   Build_Decision_Map (Exe_File);
                end if;

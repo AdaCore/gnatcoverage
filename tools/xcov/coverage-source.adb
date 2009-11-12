@@ -43,32 +43,24 @@ package body Coverage.Source is
 
    type Outcome_Taken_Type is array (Boolean) of Boolean;
 
-   type Source_Coverage_Info
-     (Level : Source_Coverage_Level := Get_Coverage_Level;
-      Kind  : SCO_Kind := Statement)
-   is record
-         case Kind is
-            when Statement =>
-               Executed : Boolean := False;
-               --  Set True when the statement has been executed
+   type Source_Coverage_Info (Kind  : SCO_Kind := Statement) is record
+      case Kind is
+         when Statement =>
+            Executed : Boolean := False;
+            --  Set True when the statement has been executed
 
-            when Condition =>
-               null;
+         when Condition =>
+            null;
 
-            when Decision =>
-               Outcome_Taken : Outcome_Taken_Type := (others => False);
-               --  Each of these components is set True when the
-               --  corresponding outcome has been exercised.
+         when Decision =>
+            Outcome_Taken : Outcome_Taken_Type := (others => False);
+            --  Each of these components is set True when the corresponding
+            --  outcome has been exercised.
 
-               case Level is
-                  when MCDC =>
-                     Evaluations : Evaluation_Vectors.Vector;
-                     --  History of all evaluations of this decision
-
-                  when others =>
-                     null;
-               end case;
-         end case;
+            Evaluations : Evaluation_Vectors.Vector;
+            --  History of all evaluations of this decision (computed for
+            --  MC/DC) only.
+      end case;
    end record;
 
    procedure Set_Executed (SCI : in out Source_Coverage_Info);
@@ -112,28 +104,13 @@ package body Coverage.Source is
         (Prev_State : in out Line_State;
          State      : Line_State)
       is
-         pragma Assert (State /= No_Code);
       begin
-         case Prev_State is
-            when No_Code =>
-               Prev_State := State;
-
-            when Not_Covered =>
-               Prev_State := Line_State'Min (State, Partially_Covered);
-
-            when Partially_Covered =>
-               null;
-
-            when Covered =>
-               Prev_State := Line_State'Max (State, Partially_Covered);
-         end case;
+         Prev_State := Prev_State * State;
       end Update_State;
 
    --  Start of processing for Compute_Line_State
 
    begin
-      Line.State := No_Code;
-
       if Line.SCOs.Length = 0 then
          --  No SCOs associated with this source line.
 
@@ -155,8 +132,7 @@ package body Coverage.Source is
          declare
             SCO         : constant SCO_Id := Line.SCOs.Element (J);
             SCI         : Source_Coverage_Info;
-            Default_SCI : Source_Coverage_Info
-                            (Level => Get_Coverage_Level, Kind => Kind (SCO));
+            Default_SCI : Source_Coverage_Info (Kind => Kind (SCO));
             pragma Warnings (Off, Default_SCI);
             --  Used for default initialization value
 
@@ -169,70 +145,83 @@ package body Coverage.Source is
                SCI := Default_SCI;
             end if;
 
-            case Get_Coverage_Level is
-               when Stmt =>
-                  --  Statement coverage: line is covered if any associated
-                  --  statement is executed.
+            if Kind (SCO) = Statement then
+               --  Statement coverage: line is covered if any associated
+               --  statement is executed.
 
-                  if Kind (SCO) = Statement then
-                     if SCI.Executed then
-                        if Line.State = No_Code then
-                           --  This is the first statement SCO for this line
+               if SCI.Executed then
+                  if Line.State (Stmt) = No_Code then
+                     --  This is the first statement SCO for this line
 
-                           SCO_State := Covered;
-                        else
-                           --  A previous statement SCO has been seen for this
-                           --  line. Statements do not have full column numbers
-                           --  in debug information, which prevents
-                           --  discriminating between multiple statement SCOs
-                           --  on the same line. We therefore conservatively
-                           --  mark this SCO (and hence the complete line) as
-                           --  partially, rather than fully, covered.
+                     SCO_State := Covered;
+                  else
+                     --  A previous statement SCO has been seen for this line.
+                     --  Statements do not have full column numbers in debug
+                     --  information, which prevents discriminating between
+                     --  multiple statement SCOs on the same line. We therefore
+                     --  conservatively mark this SCO (and hence the complete
+                     --  line) as partially, rather than fully, covered.
 
-                           if not Multiple_Statements_Reported then
-                              Multiple_Statements_Reported := True;
-                              Report
-                                (First_Sloc (SCO),
-                                 "multiple statement SCOs on line, unable to "
-                                 & "establish full statement coverage",
-                                 Kind => Warning);
-                           end if;
-                           SCO_State := Partially_Covered;
-                        end if;
-
-                     else
-                        SCO_State := Not_Covered;
+                     if not Multiple_Statements_Reported then
+                        Multiple_Statements_Reported := True;
+                        Report
+                          (First_Sloc (SCO),
+                           "multiple statement SCOs on line, unable to "
+                           & "establish full statement coverage",
+                           Kind => Warning);
                      end if;
+                     SCO_State := Partially_Covered;
                   end if;
 
-               when Decision =>
+               else
+                  SCO_State := Not_Covered;
+               end if;
 
-                  if Kind (SCO) = Decision then
-                     --  Compute decision coverage state for this decision
+               Update_State (Line.State (Stmt), SCO_State);
 
-                     if SCI.Outcome_Taken (False)
-                       and then SCI.Outcome_Taken (True)
-                     then
-                        SCO_State := Covered;
+            elsif Kind (SCO) = Decision
+              and then (Enabled (Decision) or else Enabled (MCDC))
+            then
+               --  Compute decision coverage state for this decision. Note that
+               --  the decision coverage information is also included in MC/DC
+               --  coverage.
 
-                     elsif SCI.Outcome_Taken (False)
-                       or else SCI.Outcome_Taken (True)
-                     then
-                        SCO_State := Partially_Covered;
+               if SCI.Outcome_Taken (False)
+                 and then SCI.Outcome_Taken (True)
+               then
+                  SCO_State := Covered;
 
-                     else
-                        SCO_State := Not_Covered;
-                     end if;
-                  end if;
+               elsif SCI.Outcome_Taken (False)
+                 or else SCI.Outcome_Taken (True)
+               then
+                  SCO_State := Partially_Covered;
 
-               when MCDC =>
-                  if Kind (SCO) = Decision then
-                     --  Compute MC/DC state for this decision
+                  --  Indicate which outcome has never been taken: if FALSE
+                  --  has been taken then this is outcome TRUE, else FALSE.
+
+                  --  Message must be made less specific if arbitrary
+                  --  valuations have been assigned to outcome values???
+
+                  Report
+                    (SCO,
+                     "outcome "
+                     & SCI.Outcome_Taken (False)'Img
+                     & " never exercised");
+               else
+                  SCO_State := Not_Covered;
+               end if;
+
+               Update_State (Line.State (Decision), SCO_State);
+
+               if Enabled (MCDC) then
+                  if SCO_State = Covered then
+                     --  Complete computation of MC/DC coverage state if SCO is
+                     --  covered for decision coverage.
 
                      declare
                         Independent_Influence :
                           array (No_Condition_Index .. Last_Cond_Index (SCO))
-                            of Boolean;
+                        of Boolean;
                         --  Indicates whether independent influence of each
                         --  condition has been shown (first element at index
                         --  No_Condition_Index is set for evaluation pairs that
@@ -241,7 +230,7 @@ package body Coverage.Source is
 
                      begin
                         for E1 in SCI.Evaluations.First_Index
-                               .. SCI.Evaluations.Last_Index - 1
+                          .. SCI.Evaluations.Last_Index - 1
                         loop
                            for E2 in E1 + 1 .. SCI.Evaluations.Last_Index loop
                               Independent_Influence
@@ -253,6 +242,7 @@ package body Coverage.Source is
 
                         --  Iterate over conditions and report
 
+                        SCO_State := No_Code;
                         for J in 0 .. Independent_Influence'Last loop
                            if not Independent_Influence (J) then
                               Update_State (SCO_State, Not_Covered);
@@ -264,18 +254,17 @@ package body Coverage.Source is
                               Update_State (SCO_State, Covered);
                            end if;
                         end loop;
+                        Update_State (Line.State (MCDC), SCO_State);
                      end;
+
+                  else
+                     --  Case of MC/DC enabled but at least one outcome never
+                     --  taken: do not report details regarding MC/DC coverage,
+                     --  just record that MC/DC is not achieved.
+
+                     Update_State (Line.State (MCDC), Not_Covered);
                   end if;
-
-               when Object_Coverage_Level | Unknown =>
-                  --  Should never happen
-
-                  raise Program_Error;
-
-            end case;
-
-            if SCO_State /= No_Code then
-               Update_State (Line.State, SCO_State);
+               end if;
             end if;
          end;
       end loop;
@@ -323,8 +312,7 @@ package body Coverage.Source is
             declare
                New_Index : constant SCO_Id := SCI_Vector.Last_Index + 1;
                New_SCI   : Source_Coverage_Info
-                 (Kind  => Kind (New_Index),
-                  Level => Get_Coverage_Level);
+                 (Kind  => Kind (New_Index));
                pragma Warnings (Off, New_SCI);
                --  Used for default initialization value only
             begin
@@ -353,7 +341,7 @@ package body Coverage.Source is
             SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
          end loop;
 
-         if Get_Coverage_Level = Stmt
+         if not (Enabled (Decision) or else Enabled (MCDC))
            or else Kind (SCO) /= Condition
            or else not Cond_Branch_Map.Contains ((Subp_Info.Exec, PC))
          then
@@ -409,7 +397,7 @@ package body Coverage.Source is
                   --  requires full traces of conditional branches, so we
                   --  do it only when actually required.
 
-                  if Get_Coverage_Level < MCDC then
+                  if not Enabled (MCDC) then
                      return;
                   end if;
 
@@ -473,14 +461,13 @@ package body Coverage.Source is
                   Edge_Taken (Fallthrough);
 
                when 3 =>
-                  if Get_Coverage_Level = MCDC then
+                  if Enabled (MCDC) then
                      --  For MC/DC we need full historical traces, not just
                      --  accumulated traces.
 
                      Report
                        (Exe, PC,
-                        "missing full traces of conditional branch "
-                        & "for MC/DC");
+                        "missing full traces of conditional branch for MC/DC");
                   else
                      Edge_Taken (Branch);
                      Edge_Taken (Fallthrough);
@@ -573,7 +560,7 @@ package body Coverage.Source is
    begin
       --  No-op unless doing MC/DC analysis
 
-      if Get_Coverage_Level < MCDC then
+      if not Enabled (MCDC) then
          return;
       end if;
 

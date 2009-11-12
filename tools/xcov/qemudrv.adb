@@ -253,7 +253,7 @@ package body Qemudrv is
             Args (J) := new String'(Simple_Name (Executable.all) & ".bin");
 
          elsif Args (J).all = "$trace" then
-            if Get_Coverage_Level = MCDC then
+            if Enabled (MCDC) then
                Args (J) := new String'("history," & Trace_Output.all);
             else
                Args (J) := Trace_Output;

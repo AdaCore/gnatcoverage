@@ -18,92 +18,165 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Containers.Ordered_Maps;
+with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+
+with GNAT.Strings; use GNAT.Strings;
 
 package body Coverage is
 
-   Current_Level : Coverage_Level := Unknown;
+   type Levels_Type is array (Known_Coverage_Level) of Boolean;
+
+   function To_Option (L : Levels_Type) return String;
+   --  Option string for the combination of levels L
+
+   function "<" (L, R : GNAT.Strings.String_Access) return Boolean;
+   --  For Ordered_Maps instantiation
+
+   package Coverage_Option_Maps is
+     new Ada.Containers.Ordered_Maps
+       (Key_Type     => GNAT.Strings.String_Access,
+        Element_Type => Levels_Type);
+   Coverage_Option_Map : Coverage_Option_Maps.Map;
+
+   Levels : Levels_Type := (others => False);
+   Levels_Set : Boolean := False;
    --  Global variable that records the coverage operation that has been asked
-   --  to xcov. This should be modified only one time by Set_Coverage_Level.
+   --  to xcov. This should be modified only one time by Set_Coverage_Levels.
 
-   -------------------------------
-   -- All_Known_Coverage_Levels --
-   -------------------------------
+   procedure Add_Coverage_Option (L : Levels_Type);
+   --  Register L as a valid combination of coverage levels
 
-   function All_Known_Coverage_Levels return String is
+   ---------
+   -- "<" --
+   ---------
 
-      function List_Levels
-        (Head : String; Tail : Coverage_Level) return String;
-      --  Tail-recursive function to compute list
+   function "<" (L, R : GNAT.Strings.String_Access) return Boolean is
+   begin
+      return L.all < R.all;
+   end "<";
 
-      -----------------
-      -- List_Levels --
-      -----------------
+   -------------------------
+   -- Add_Coverage_Option --
+   -------------------------
 
-      function List_Levels
-        (Head : String; Tail : Coverage_Level) return String
-      is
-         S : constant String := Head & To_Lower (Tail'Img);
-      begin
-         if Tail = Known_Coverage_Level'Last then
-            return S;
+   procedure Add_Coverage_Option (L : Levels_Type) is
+   begin
+      Coverage_Option_Map.Insert (new String'(To_Option (L)), L);
+   end Add_Coverage_Option;
+
+   ---------------------------
+   -- Coverage_Option_Value --
+   ---------------------------
+
+   function Coverage_Option_Value return String is
+   begin
+      return To_Option (Levels);
+   end Coverage_Option_Value;
+
+   -------------
+   -- Enabled --
+   -------------
+
+   function Enabled (Level : Coverage_Level) return Boolean is
+   begin
+      return Levels (Level);
+   end Enabled;
+
+   -----------------------------
+   -- Object_Coverage_Enabled --
+   -----------------------------
+
+   function Object_Coverage_Enabled return Boolean is
+   begin
+      for J in Object_Coverage_Level loop
+         if Levels (J) then
+            return True;
          end if;
-         return List_Levels (S & "|", Known_Coverage_Level'Succ (Tail));
-      end List_Levels;
+      end loop;
+      return False;
+   end Object_Coverage_Enabled;
 
-   --  Start of processing for All_Knwon_Coverage_Levels
+   -------------------------
+   -- Set_Coverage_Levels --
+   -------------------------
+
+   procedure Set_Coverage_Levels (Opt : String) is
+   begin
+      pragma Assert (not Levels_Set);
+      Levels := Coverage_Option_Map.Element (Opt'Unrestricted_Access);
+      Levels_Set := True;
+   end Set_Coverage_Levels;
+
+   -----------------------------
+   -- Source_Coverage_Enabled --
+   -----------------------------
+
+   function Source_Coverage_Enabled return Boolean is
+   begin
+      for J in Source_Coverage_Level loop
+         if Levels (J) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Source_Coverage_Enabled;
+
+   ---------------
+   -- To_Option --
+   ---------------
+
+   function To_Option (L : Levels_Type) return String is
+      Option : Unbounded_String;
+   begin
+      for J in L'Range loop
+         if L (J) then
+            if Length (Option) /= 0 then
+               Append (Option, '+');
+            end if;
+            Append (Option, To_Lower (J'Img));
+         end if;
+      end loop;
+      return To_String (Option);
+   end To_Option;
+
+   ----------------------------
+   -- Valid_Coverage_Options --
+   ----------------------------
+
+   function Valid_Coverage_Options return String is
+      Options : Unbounded_String;
+
+      use Coverage_Option_Maps;
+
+      procedure Put_Option (Cur : Cursor);
+      --  Add description of option to Options
+
+      ----------------
+      -- Put_Option --
+      ----------------
+
+      procedure Put_Option (Cur : Cursor) is
+      begin
+         if Length (Options) /= 0 then
+            Append (Options, '|');
+         end if;
+         Append (Options, Key (Cur).all);
+      end Put_Option;
+
+   --  Start of processing for Valid_Coverage_Options
 
    begin
-      return List_Levels ("", Known_Coverage_Level'First);
-   end All_Known_Coverage_Levels;
+      Coverage_Option_Map.Iterate (Put_Option'Access);
+      return To_String (Options);
+   end Valid_Coverage_Options;
 
-   --------------------------
-   -- Dump_Coverage_Option --
-   --------------------------
+begin
+   --  Register command line options for valid combinations of coverage levels
 
-   procedure Dump_Coverage_Option (Report : File_Access) is
-   begin
-      Put_Line (Report.all,
-                "Coverage level: " & To_Coverage_Option (Current_Level));
-   end Dump_Coverage_Option;
-
-   ------------------------
-   -- Get_Coverage_Level --
-   ------------------------
-
-   function Get_Coverage_Level return Coverage_Level is
-   begin
-      return Current_Level;
-   end Get_Coverage_Level;
-
-   ------------------------
-   -- Set_Coverage_Level --
-   ------------------------
-
-   procedure Set_Coverage_Level (Level : Coverage_Level) is
-   begin
-      pragma Assert (Current_Level = Unknown);
-      Current_Level := Level;
-   end Set_Coverage_Level;
-
-   -----------------------
-   -- To_Coverage_Level --
-   -----------------------
-
-   function To_Coverage_Level (Option : String) return Coverage_Level is
-   begin
-      return Coverage_Level'Value (Option);
-   exception
-      when Constraint_Error =>
-         return Unknown;
-   end To_Coverage_Level;
-
-   ------------------------
-   -- To_Coverage_Option --
-   ------------------------
-
-   function To_Coverage_Option (Level : Coverage_Level) return String is
-   begin
-      return Level'Img;
-   end To_Coverage_Option;
-
+   Add_Coverage_Option ((Insn   => True,                   others => False));
+   Add_Coverage_Option ((Branch => True,                   others => False));
+   Add_Coverage_Option ((Stmt   => True,                   others => False));
+   Add_Coverage_Option ((Stmt   => True, Decision => True, others => False));
+   Add_Coverage_Option ((Stmt   => True, MCDC     => True, others => False));
 end Coverage;
