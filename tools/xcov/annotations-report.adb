@@ -18,9 +18,12 @@
 ------------------------------------------------------------------------------
 
 with Ada.Directories;
+
 with GNAT.Strings; use GNAT.Strings;
-with Strings; use Strings;
-with Coverage; use Coverage;
+
+with Coverage;    use Coverage;
+with Diagnostics; use Diagnostics;
+with Strings;     use Strings;
 
 package body Annotations.Report is
 
@@ -162,23 +165,46 @@ package body Annotations.Report is
       Info     : Line_Info_Access;
       Line     : String)
    is
-      use Ada.Directories;
-
       pragma Unreferenced (Line);
+
+      use Ada.Directories;
+      use Message_Vectors;
+
       Output : constant File_Access := Get_Output;
+      Prefix : constant String := Simple_Name (Pp.Current_Filename.all) & ":"
+                                    & Img (Line_Num) & ": ";
+
+      procedure Put_Message (C : Cursor);
+      --  Display message associated to Info
+
+      -----------------
+      -- Put_Message --
+      -----------------
+
+      procedure Put_Message (C : Cursor) is
+         M : Message renames Element (C);
+      begin
+         if M.Kind /= Notice then
+            Put (Output.all, Prefix);
+            Put (Output.all, M.Msg.all);
+            New_Line (Output.all);
+         end if;
+      end Put_Message;
+
+   --  Start of processing for Pretty_Print_Start_Line
+
    begin
       for Level in Coverage_Level loop
          if Info.State (Level) /= Covered
            and then Info.State (Level) /= No_Code
          then
-            Put (Output.all, Simple_Name (Pp.Current_Filename.all));
-            Put (":");
-            Put (Output.all, Img (Line_Num));
-            Put (Output.all, ": ");
+            Put (Output.all, Prefix);
             Put (Output.all, "line " & Info.State (Level)'Img & " for ");
             Put (Output.all, Level'Img);
             Put (Output.all, " coverage");
             New_Line (Output.all);
+
+            Info.Messages.Iterate (Put_Message'Access);
             exit;
          end if;
       end loop;
