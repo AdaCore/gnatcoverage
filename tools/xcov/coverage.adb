@@ -23,6 +23,8 @@ with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Strings; use Strings;
+
 package body Coverage is
 
    type Levels_Type is array (Known_Coverage_Level) of Boolean;
@@ -30,13 +32,11 @@ package body Coverage is
    function To_Option (L : Levels_Type) return String;
    --  Option string for the combination of levels L
 
-   function "<" (L, R : GNAT.Strings.String_Access) return Boolean;
-   --  For Ordered_Maps instantiation
-
    package Coverage_Option_Maps is
      new Ada.Containers.Ordered_Maps
        (Key_Type     => GNAT.Strings.String_Access,
-        Element_Type => Levels_Type);
+        Element_Type => Levels_Type,
+        "<"          => Strings."<");
    Coverage_Option_Map : Coverage_Option_Maps.Map;
 
    Levels : Levels_Type := (others => False);
@@ -46,15 +46,6 @@ package body Coverage is
 
    procedure Add_Coverage_Option (L : Levels_Type);
    --  Register L as a valid combination of coverage levels
-
-   ---------
-   -- "<" --
-   ---------
-
-   function "<" (L, R : GNAT.Strings.String_Access) return Boolean is
-   begin
-      return L.all < R.all;
-   end "<";
 
    -------------------------
    -- Add_Coverage_Option --
