@@ -176,18 +176,22 @@ package SCOs is
    --    we are generating SCO's only for simple coverage, then we are not
    --    interested in decisions in any case.
 
-   --    Decisions are either simple or complex. A simple decision is a boolean
-   --    expresssion that occurs in the context of a control structure in the
-   --    source program, including WHILE, IF, EXIT WHEN, or in an Assert,
-   --    Check, Pre_Condition or Post_Condition pragma. For pragmas, decision
-   --    SCOs are generated only if the corresponding pragma is enabled. Note
-   --    that a boolean expression in any other context, for example as right
-   --    hand side of an assignment, is not considered to be a simple decision.
+   --    A top level boolean expression is a boolean expression that is not an
+   --    operand of a logical operator.
 
-   --    A complex decision is an occurrence of a logical operator which is not
-   --    itself an operand of some other logical operator. If any operand of
-   --    the logical operator is itself a logical operator, this is not a
-   --    separate decision, it is part of the same decision.
+   --    Decisions are either simple or complex. A simple decision is a top
+   --    level boolean expresssion that has only one condition and that occurs
+   --    in the context of a control structure in the source program, including
+   --    WHILE, IF, EXIT WHEN, or in an Assert, Check, Pre_Condition or
+   --    Post_Condition pragma. For pragmas, decision SCOs are generated only
+   --    if the corresponding pragma is enabled. Note that a top level boolean
+   --    expression with only one condition that occurs in any other context,
+   --    for example as right hand side of an assignment, is not considered to
+   --    be a (simple) decision.
+
+   --    A complex decision is a top level boolean expression that has more
+   --    than one condition. A complex decision may occur in any boolean
+   --    expression context.
 
    --    So for example, if we have
 
