@@ -1093,6 +1093,10 @@ begin
                Annotations.Html.Generate_Report (True);
 
             when Annotate_Report =>
+               if Output /= null then
+                  Annotations.Report.Open_Report_File (Output.all);
+               end if;
+
                Put_Line
                  (Annotations.Report.Get_Output.all,
                   "Coverage level: " & Coverage_Option_Value);
