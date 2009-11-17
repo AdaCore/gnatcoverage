@@ -30,7 +30,8 @@ package body Annotations is
    procedure Disp_File_Line_State
      (Pp         : in out Pretty_Printer'Class;
       File       : Files_Table.File_Info_Access);
-   --  Comment needed???
+   --  Go through file and and let Pp annotate its lines with coverage
+   --  information
 
    ----------------------
    -- Aggregated_State --
@@ -56,32 +57,38 @@ package body Annotations is
    is
       use Traces_Disa;
 
-      procedure Disassemble_Cb
+      F          : File_Type;
+      Last       : Natural := 1;
+      Has_Source : Boolean;
+
+      procedure Process_One_Line (Index : Positive);
+      --  Let Pp annotate the line at Index in File, including all the
+      --  information attached to this line in the file table, if relevant
+      --  (e.g. annotate the assembly code attached to this line in object
+      --  coverage; or report the lack of evidence of the independant
+      --  influence of a condition located on this line, in MCDC).
+
+      procedure Pretty_Print_Insn
         (Addr  : Pc_Type;
          State : Insn_State;
          Insn  : Binary_Content;
          Sym   : Symbolizer'Class);
-      --  Comment needed???
+      --  Call Pp.Pretty_Print_Insn with the corresponding parameters; this
+      --  procedure is meant to be used as a callback in an iterator over
+      --  assembly lines (Traces_Disa.Disp_Assembly_Lines).
 
-      --------------------
-      -- Disassemble_Cb --
-      --------------------
+      -----------------------
+      -- Pretty_Print_Insn --
+      -----------------------
 
-      procedure Disassemble_Cb
+      procedure Pretty_Print_Insn
         (Addr  : Pc_Type;
          State : Insn_State;
          Insn  : Binary_Content;
          Sym   : Symbolizer'Class) is
       begin
          Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
-      end Disassemble_Cb;
-
-      F                : File_Type;
-      Last             : Natural := 1;
-      Has_Source       : Boolean;
-
-      procedure Process_One_Line (Index : Positive);
-      --  Needs comment???
+      end Pretty_Print_Insn;
 
       ----------------------
       -- Process_One_Line --
@@ -148,7 +155,7 @@ package body Annotations is
                Disp_Assembly_Lines
                  (Sec_Info.Section_Content
                     (Instruction_Set.First .. Instruction_Set.Last),
-                  Info.Base.all, Disassemble_Cb'Access, Info.Exec.all);
+                  Info.Base.all, Pretty_Print_Insn'Access, Info.Exec.all);
 
                if In_Symbol then
                   Pretty_Print_End_Symbol (Pp);
@@ -201,10 +208,14 @@ package body Annotations is
    -- Disp_File_Summary --
    -----------------------
 
-   procedure Disp_File_Summary
-   is
+   procedure Disp_File_Summary is
+
       procedure Disp_One_File (File : Files_Table.File_Info);
       --  Display summary for the given file
+
+      procedure Process_One_File (FI : File_Info_Access);
+      --  Process FI and display its summary if it has some coverage info
+      --  to display.
 
       -------------------
       -- Disp_One_File --
@@ -218,9 +229,9 @@ package body Annotations is
          New_Line;
       end Disp_One_File;
 
-   --  Start of processing for Disp_File_Summary
-
-      procedure Process_One_File (FI : File_Info_Access);
+      ----------------------
+      -- Process_One_File --
+      ----------------------
 
       procedure Process_One_File (FI : File_Info_Access) is
       begin
@@ -228,6 +239,8 @@ package body Annotations is
             Disp_One_File (FI.all);
          end if;
       end Process_One_File;
+
+   --  Start of processing for Disp_File_Summary
 
    begin
       Files_Table_Iterate (Process_One_File'Access);
@@ -242,10 +255,13 @@ package body Annotations is
       Show_Asm : Boolean)
    is
       procedure Compute_File_State (FI : File_Info_Access);
-      --  Needs comment???
+      --  For all lines in FI, compute the line state and update
+      --  the file table accordingly. Compute FI's coverage stats in the
+      --  process and update the global stats with FI's information.
 
       procedure Process_One_File (FI : File_Info_Access);
-      --  Needs comment???
+      --  Process FI and let Pp annotate it if it has some coverage info
+      --  to display. Update FI's coverage stats with this line information.
 
       ------------------------
       -- Compute_File_State --
@@ -254,7 +270,8 @@ package body Annotations is
       procedure Compute_File_State (FI : File_Info_Access) is
 
          procedure Compute_Line_State (L : Positive);
-         --  Needs comment???
+         --  Given a source line located in FI's source file, at line L,
+         --  compute its line state and record it into the file table.
 
          ------------------------
          -- Compute_Line_State --
@@ -263,13 +280,14 @@ package body Annotations is
          procedure Compute_Line_State (L : Positive) is
             use Coverage;
             LI : constant Line_Info_Access := Get_Line (FI, L);
-            S : Line_State;
+            S  : Line_State;
          begin
             if Object_Coverage_Enabled then
                Coverage.Object.Compute_Line_State (LI);
             else
                Coverage.Source.Compute_Line_State (LI);
             end if;
+
             S := Aggregated_State (LI.State);
             FI.Stats (S) := FI.Stats (S) + 1;
          end Compute_Line_State;
