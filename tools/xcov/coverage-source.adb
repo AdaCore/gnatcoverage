@@ -26,6 +26,7 @@ with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with MC_DC;             use MC_DC;
 with SC_Obligations;    use SC_Obligations;
+with Switches;          use Switches;
 with Traces_Lines;      use Traces_Lines;
 
 package body Coverage.Source is
@@ -352,6 +353,9 @@ package body Coverage.Source is
          --  branch instruction.
 
          Process_Conditional_Branch : declare
+            D_SCO : constant SCO_Id := Parent (SCO);
+            --  Enclosing decision
+
             CBI : constant Cond_Branch_Info :=
                     Cond_Branch_Map.Element ((Subp_Info.Exec, PC));
             pragma Assert (CBI.Condition = SCO);
@@ -378,7 +382,32 @@ package body Coverage.Source is
                procedure Set_Outcome_Taken
                  (SCI : in out Source_Coverage_Info)
                is
-                  ES_Top : Evaluation;
+                  use Condition_Evaluation_Vectors;
+
+                  Eval : Evaluation;
+
+                  Inferred_Values : Vector;
+                  --  Inferred condition values, for the case of a D_SCO with
+                  --  no diamond.
+
+                  function Pop_Eval return Evaluation;
+                  --  Pop the top element from the evaluation stack
+
+                  --------------
+                  -- Pop_Eval --
+                  --------------
+
+                  function Pop_Eval return Evaluation is
+                  begin
+                     return ES_Top : constant Evaluation :=
+                                       Evaluation_Stack.Last_Element
+                     do
+                        Evaluation_Stack.Delete_Last;
+                     end return;
+                  end Pop_Eval;
+
+               --  Start of processing for Set_Outcome_Taken
+
                begin
                   --  If for some reason we failed to identify which value
                   --  of the outcome this edge represents, then we silently
@@ -401,15 +430,49 @@ package body Coverage.Source is
                      return;
                   end if;
 
-                  --  Pop evaluation from stack
+                  if Has_Diamond (D_SCO) then
+                     Eval := Pop_Eval;
 
-                  ES_Top := Evaluation_Stack.Last_Element;
-                  Evaluation_Stack.Delete_Last;
+                  else
+                     --  Decision has no diamond: each condition is reachable
+                     --  through only one path, and we can infer the complete
+                     --  condition vector from just the last condition being
+                     --  tested.
+
+                     Inferred_Values := Infer_Values (SCO);
+                     Inferred_Values.Append (CBE.Origin);
+
+                     if Debug_Full_History then
+                        --  In full history debugging mode, we record the
+                        --  evaluation history and check it against the
+                        --  inferred vector.
+
+                        Eval := Pop_Eval;
+
+                        if Eval.Values /= Inferred_Values then
+                           Report
+                             (D_SCO,
+                              "inferred values mismatch: expected "
+                              & Image (Inferred_Values)
+                              & ", got " & Image (Eval.Values),
+                              Kind => Error);
+                        end if;
+
+                     else
+                        --  Reconstruct complete evaluation information from
+                        --  just the outcome.
+
+                        Eval.Decision       := D_SCO;
+                        Eval.Values         := Inferred_Values;
+                        Eval.Next_Condition := No_Condition_Index;
+                     end if;
+                  end if;
 
                   pragma Assert
-                    (ES_Top.Next_Condition = No_Condition_Index);
-                  ES_Top.Outcome := CBE.Outcome;
-                  SCI.Evaluations.Append (ES_Top);
+                    (Eval.Next_Condition = No_Condition_Index);
+
+                  Eval.Outcome := CBE.Outcome;
+                  SCI.Evaluations.Append (Eval);
                end Set_Outcome_Taken;
 
                --  Start of processing for Edge_Taken
@@ -439,7 +502,7 @@ package body Coverage.Source is
 
                   if CBE.Dest_Kind = Outcome then
                      SCI_Vector.Update_Element
-                       (Parent (SCO), Set_Outcome_Taken'Access);
+                       (D_SCO, Set_Outcome_Taken'Access);
                   end if;
                end if;
             end Edge_Taken;
@@ -461,7 +524,9 @@ package body Coverage.Source is
                   Edge_Taken (Fallthrough);
 
                when 3 =>
-                  if Enabled (MCDC) then
+                  if Enabled (MCDC)
+                       and then (Has_Diamond (SCO) or else Debug_Full_History)
+                  then
                      --  For MC/DC we need full historical traces, not just
                      --  accumulated traces.
 
@@ -501,6 +566,7 @@ package body Coverage.Source is
       C_SCO   : SCO_Id;
       C_Value : Boolean)
    is
+      D_SCO : constant SCO_Id := Parent (C_SCO);
 
       function In_Current_Evaluation return Boolean;
       --  True when this evaluation is the expected next condition in the
@@ -523,7 +589,7 @@ package body Coverage.Source is
          declare
             ES_Top : Evaluation renames Evaluation_Stack.Last_Element;
          begin
-            return ES_Top.Decision = Parent (C_SCO)
+            return ES_Top.Decision = D_SCO
               and then ES_Top.Next_Condition = Index (C_SCO);
          end;
       end In_Current_Evaluation;
@@ -564,9 +630,15 @@ package body Coverage.Source is
          return;
       end if;
 
+      --  No-op if decision has no diamond and not debugging
+
+      if not (Has_Diamond (D_SCO) or else Debug_Full_History) then
+         return;
+      end if;
+
       if not In_Current_Evaluation then
          Evaluation_Stack.Append
-           (Evaluation'(Decision       => Parent (C_SCO),
+           (Evaluation'(Decision       => D_SCO,
                         Next_Condition => 0,
                         Outcome        => Unknown,
                         others         => <>));

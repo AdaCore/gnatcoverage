@@ -41,9 +41,6 @@ package Decision_Map is
    --  Analyze the named executable using the provided ALI list to generate
    --  the decision map file for stateful (historical) traces collection.
 
-   procedure Write_Map (Filename : String);
-   --  Write the contents of the decision map to the named file
-
    ---------------------------------
    -- Control flow graph analysis --
    ---------------------------------

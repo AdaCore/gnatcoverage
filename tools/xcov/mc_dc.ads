@@ -58,4 +58,16 @@ package MC_DC is
    --  than one condition). No_Condition_Index is returned if this is not an
    --  MC/DC pair for any condition.
 
+   function Infer_Values
+     (Condition : SCO_Id) return Condition_Evaluation_Vectors.Vector;
+   --  Deduce the values of conditions preceding the given one in the decision,
+   --  in the case where that last condition is reachable through only one
+   --  path.
+
+   function Image (E : Evaluation) return String;
+   --  Image of E, for reporting purposes
+
+   function Image (EV : Condition_Evaluation_Vectors.Vector) return String;
+   --  Image of EV, for reporting purposes
+
 end MC_DC;

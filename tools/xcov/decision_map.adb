@@ -125,6 +125,9 @@ package body Decision_Map is
    pragma Unreferenced (Image);
    --  For debugging purposes
 
+   procedure Write_Map (Filename : String);
+   --  Write the contents of the decision map to the named file
+
    ---------
    -- "<" --
    ---------
@@ -233,13 +236,17 @@ package body Decision_Map is
          "cond branch for " & Image (SCO), Kind => Notice);
 
       --  Mark instruction address for full (historical) traces collection
-      --  (for MC/DC source coverage analysis).
+      --  (for MC/DC source coverage analysis) if required by decision
+      --  structure (presence of multiple paths) or if Debug_Full_History is
+      --  set.
 
-      Add_Entry
-        (Base  => Decision_Map_Base,
-         First => Insn'First,
-         Last  => Insn'Last,
-         Op    => 0);
+      if Has_Diamond (Parent (SCO)) or else Debug_Full_History then
+         Add_Entry
+           (Base  => Decision_Map_Base,
+            First => Insn'First,
+            Last  => Insn'Last,
+            Op    => 0);
+      end if;
 
       --  Record address in SCO descriptor
 

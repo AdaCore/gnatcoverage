@@ -76,6 +76,10 @@ package body SC_Obligations is
                --  No_BDD_Node_Id for the root node and for any node reachable
                --  through multiple paths.
 
+               Parent_Value : Boolean := False;
+               --  When Parent /= No_BDD_Node_Id, value of Parent for which
+               --  this node is the successor.
+
                C_SCO : SCO_Id;
                --  Condition SCO
 
@@ -356,10 +360,17 @@ package body SC_Obligations is
          Visited : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
                      of Boolean := (others => False);
 
-         procedure Visit (Node_Id, Origin_Id : BDD_Node_Id);
+         procedure Visit
+           (Node_Id      : BDD_Node_Id;
+            Origin_Id    : BDD_Node_Id;
+            Origin_Value : Boolean);
          --  Visit one node. If it was already seen, note presence of a diamond
 
-         procedure Visit (Node_Id, Origin_Id : BDD_Node_Id) is
+         procedure Visit
+           (Node_Id      : BDD_Node_Id;
+            Origin_Id    : BDD_Node_Id;
+            Origin_Value : Boolean)
+         is
             Parent_Id : BDD_Node_Id := Origin_Id;
 
             procedure Set_Parent (Node : in out BDD_Node);
@@ -371,7 +382,8 @@ package body SC_Obligations is
 
             procedure Set_Parent (Node : in out BDD_Node) is
             begin
-               Node.Parent := Parent_Id;
+               Node.Parent       := Parent_Id;
+               Node.Parent_Value := Origin_Value;
             end Set_Parent;
 
             Node : BDD_Node renames BDD_Vector.Element (Node_Id);
@@ -397,13 +409,19 @@ package body SC_Obligations is
 
             for J in Boolean'Range loop
                if BDD_Vector.Element (Node.Dests (J)).Kind = Condition then
-                  Visit (Node.Dests (J), Origin_Id => Node_Id);
+                  Visit
+                    (Node.Dests (J),
+                     Origin_Id    => Node_Id,
+                     Origin_Value => J);
                end if;
             end loop;
          end Visit;
 
       begin
-         Visit (BDD.Root_Condition, Origin_Id => No_BDD_Node_Id);
+         Visit
+           (BDD.Root_Condition,
+            Origin_Id    => No_BDD_Node_Id,
+            Origin_Value => False);
       end Check_Diamonds;
 
       ---------------
@@ -712,10 +730,11 @@ package body SC_Obligations is
 
       begin
          Allocate
-           (BDD, (Kind   => Condition,
-                  C_SCO  => Condition_Id,
-                  Dests  => A.Dests,
-                  Parent => No_BDD_Node_Id), N);
+           (BDD, (Kind         => Condition,
+                  C_SCO        => Condition_Id,
+                  Dests        => A.Dests,
+                  Parent       => No_BDD_Node_Id,
+                  Parent_Value => False), N);
 
          if A.Origin /= No_BDD_Node_Id then
             BDD_Vector.Update_Element (A.Origin, Set_Dest'Access);
@@ -818,6 +837,39 @@ package body SC_Obligations is
    begin
       return SCO_Vector.Element (SCO).Sloc_Range.First_Sloc;
    end First_Sloc;
+
+   ----------------
+   -- Get_Origin --
+   ----------------
+
+   procedure Get_Origin
+     (SCO        : SCO_Id;
+      Prev_SCO   : out SCO_Id;
+      Prev_Value : out Boolean)
+   is
+      use BDD;
+
+      SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+      BDDN : BDD_Node renames BDD_Vector.Element (SCOD.BDD_Node);
+   begin
+      if BDDN.Parent = No_BDD_Node_Id then
+         Prev_SCO := No_SCO_Id;
+      else
+         Prev_SCO   := BDD_Vector.Element (BDDN.Parent).C_SCO;
+         Prev_Value := BDDN.Parent_Value;
+      end if;
+   end Get_Origin;
+
+   -----------------
+   -- Has_Diamond --
+   -----------------
+
+   function Has_Diamond (SCO : SCO_Id) return Boolean is
+      use BDD;
+   begin
+      return SCO_Vector.Element (SCO).Decision_BDD.Diamond_Base
+               /= No_BDD_Node_Id;
+   end Has_Diamond;
 
    -------------
    -- Has_SCO --
@@ -1474,6 +1526,18 @@ package body SC_Obligations is
                & Decision_Kind'Image (SCO_Vector.Element (SCOD.Parent).D_Kind)
                & ")",
                Kind => Diagnostics.Error);
+
+            --  Report a static analysis error if one condition has no
+            --  associated conditional branch.
+
+            --  Interesting property: we can never do without a condition using
+            --  inference of condition values from BDD position, because that
+            --  would require that both outgoing edges from the condition also
+            --  are conditions (not outcomes), and that can't happen in a short
+            --  circuit expression without a diamond (this would require a BDD
+            --  involving the Sel ternary operator:
+            --    Sel (A, B, C) = (A and then B) or else (not A and then C)
+
          end if;
       end Check_Condition;
    begin

@@ -18,7 +18,17 @@
 ------------------------------------------------------------------------------
 
 package Switches is
+
    Verbose : Boolean := False;
    --  Verbose informational output
+
+   ------------------------------
+   -- Debugging switches (-d?) --
+   ------------------------------
+
+   Debug_Full_History : Boolean := False;
+   --  -dh
+   --  Keep full historical traces for MC/DC even for decisions that do not
+   --  require it (decisions without diamond paths).
 
 end Switches;

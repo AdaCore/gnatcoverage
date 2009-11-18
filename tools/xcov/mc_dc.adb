@@ -21,30 +21,64 @@ with Diagnostics; use Diagnostics;
 
 package body MC_DC is
 
-   function Image (E : Evaluation) return String;
-   --  Image of E, for debugging purposes
-
    -----------
    -- Image --
    -----------
 
    function Image (E : Evaluation) return String is
-      Cond_Vector : String (1 .. Integer (Last_Cond_Index (E.Decision)) + 1);
    begin
-      for J in 0 .. Last_Cond_Index (E.Decision) loop
-         if J in E.Values.First_Index .. E.Values.Last_Index then
-            case E.Values.Element (J) is
-               when False   => Cond_Vector (1 + Integer (J)) := 'F';
-               when True    => Cond_Vector (1 + Integer (J)) := 'T';
-               when Unknown => Cond_Vector (1 + Integer (J)) := '-';
-            end case;
-         else
-            Cond_Vector (1 + Integer (J)) := '-';
-         end if;
-      end loop;
-
-      return Cond_Vector & " -> " & E.Outcome'Img;
+      return Image (E.Values) & " -> " & E.Outcome'Img;
    end Image;
+
+   function Image (EV : Condition_Evaluation_Vectors.Vector) return String is
+      Cond_Vector : String (1 .. Integer (EV.Length));
+   begin
+      for J in EV.First_Index .. EV.Last_Index loop
+         case EV.Element (J) is
+            when False   =>
+               Cond_Vector (1 + Integer (J - EV.First_Index)) := 'F';
+            when True    =>
+               Cond_Vector (1 + Integer (J - EV.First_Index)) := 'T';
+            when Unknown =>
+               Cond_Vector (1 + Integer (J - EV.First_Index)) := '-';
+         end case;
+      end loop;
+      return Cond_Vector;
+   end Image;
+
+   ------------------
+   -- Infer_Values --
+   ------------------
+
+   function Infer_Values
+     (Condition : SCO_Id) return Condition_Evaluation_Vectors.Vector
+   is
+      use Ada.Containers;
+      use Condition_Evaluation_Vectors;
+
+      D_SCO : constant SCO_Id := Parent (Condition);
+      pragma Assert (not Has_Diamond (D_SCO));
+
+      Values : Vector;
+
+      C_SCO        : SCO_Id;
+      Prev_C_SCO   : SCO_Id;
+      Prev_C_Value : Boolean;
+
+   begin
+      Values := To_Vector (Unknown, Length => Count_Type (Index (Condition)));
+
+      C_SCO := Condition;
+      loop
+         Get_Origin (C_SCO, Prev_C_SCO, Prev_C_Value);
+         exit when Prev_C_SCO = No_SCO_Id;
+
+         Values.Replace_Element
+           (Index (Prev_C_SCO), To_Tristate (Prev_C_Value));
+         C_SCO := Prev_C_SCO;
+      end loop;
+      return Values;
+   end Infer_Values;
 
    -------------------
    -- Is_MC_DC_Pair --

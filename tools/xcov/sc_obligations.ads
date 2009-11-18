@@ -96,9 +96,21 @@ package SC_Obligations is
    --  Outcome of decision if this condition has the given value, or Unknown
    --  if the value does not determine the decision outcome.
 
+   procedure Get_Origin
+     (SCO        : SCO_Id;
+      Prev_SCO   : out SCO_Id;
+      Prev_Value : out Boolean);
+   --  For a condition SCO that is part of a decision with no diamond, return
+   --  the previous tested condition and the value of that condition causing
+   --  the condition denoted by SCO to be evaluated.
+
    --  Decision SCOs
 
    function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id;
    function Last_Cond_Index (SCO : SCO_Id) return Condition_Index;
+
+   function Has_Diamond (SCO : SCO_Id) return Boolean;
+   --  True if decison's BDD has a diamond, i.e. a node reachable through more
+   --  than one path.
 
 end SC_Obligations;

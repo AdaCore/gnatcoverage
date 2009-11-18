@@ -368,6 +368,27 @@ procedure Xcov is
                Put_Line ("XCOV Pro " & Standard.Version.Xcov_Version);
                Normal_Exit;
 
+            elsif Begins_With (Arg, "-d") then
+               --  Debugging options
+
+               declare
+                  Pos : Positive := Arg'First + 2;
+               begin
+                  if Pos > Arg'Last then
+                     Fatal_Error ("parameter required for -d");
+                  end if;
+
+                  while Pos < Arg'Last loop
+                     case Arg (Pos) is
+                        when 'h' =>
+                           Switches.Debug_Full_History := True;
+                        when others =>
+                           Fatal_Error ("bad parameter -d" & Arg (Pos));
+                     end case;
+                     Pos := Pos + 1;
+                  end loop;
+               end;
+
             elsif Arg = Verbose_Option
               or else Arg = Verbose_Option_Short
             then
