@@ -288,11 +288,6 @@ package body SC_Obligations is
             D_Kind : Decision_Kind;
             --  Decision kind indication
 
-            Is_Complex_Decision : Boolean;
-            --  True for complex decisions.
-            --  Note that there is always a distinct Condition SCO descriptor,
-            --  even for simple decisions.
-
             Last_Cond_Index : Any_Condition_Index;
             --  Index of last condition in decision (should be > 0 for complex
             --  decisions, = 0 otherwise).
@@ -1196,8 +1191,6 @@ package body SC_Obligations is
                                         Last_Sloc  => Make_Sloc (SCOE.To)),
                                      D_Kind              =>
                                        To_Decision_Kind (SCOE.C1),
-                                     Is_Complex_Decision =>
-                                                   not SCOE.Last,
                                      Last_Cond_Index     => 0,
                                      others              => <>));
                   Current_BDD := BDD.Create (SCO_Vector.Last_Index);
@@ -1253,24 +1246,52 @@ package body SC_Obligations is
 
       for SCO in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
          declare
-            First : Source_Location :=
-                      SCO_Vector.Element (SCO).Sloc_Range.First_Sloc;
+            First : Source_Location;
+            --  First sloc of SCO, after fixup
+
+            Enclosing_SCO : SCO_Id;
+            --  SCO containing First
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor);
             --  Set up parent link for SCOD at index SCO, and insert
-            --  Sloc -  > SCO map entry.
+            --  Sloc -> SCO map entry.
 
             ------------------------
             -- Process_Descriptor --
             ------------------------
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor) is
-               Enclosing_SCO : constant SCO_Id := Sloc_To_SCO (First);
             begin
+               if SCOD.Kind = Decision then
+                  --  Perform sloc fixup for decision SCOs early, before
+                  --  emitting the "Processing" message.
+                  --
+                  --   Expression decisions have no sloc. Decisions for flow
+                  --  control structures have just a First_Sloc, which is that
+                  --  of the control structure token.
+
+                  if SCOD.D_Kind = Expression then
+                     --  For the case of an expression, set first sloc from
+                     --  first condition.
+
+                     SCOD.Sloc_Range.First_Sloc :=
+                       First_Sloc (Condition (SCO, 0));
+                     First := SCOD.Sloc_Range.First_Sloc;
+                  end if;
+
+                  --  In all cases, set last sloc from last condition
+
+                  SCOD.Sloc_Range.Last_Sloc :=
+                    Last_Sloc (Condition (SCO, Last_Cond_Index (SCO)));
+               end if;
+
+               First := SCO_Vector.Element (SCO).Sloc_Range.First_Sloc;
+               Enclosing_SCO := Sloc_To_SCO (First);
+
                if Verbose then
                   Put ("Processing: " & Image (SCO));
                   if SCOD.Kind = Decision then
-                     if SCOD.Is_Complex_Decision  then
+                     if SCOD.Last_Cond_Index > 0 then
                         Put (" (complex)");
                      else
                         Put (" (simple)");
@@ -1514,11 +1535,11 @@ package body SC_Obligations is
    function To_Decision_Kind (C : Character) return Decision_Kind is
    begin
       case C is
-         when 'I' => return If_Statement;
-         when 'E' => return Exit_Statement;
-         when 'P' => return Pragma_Assert_Check_PPC;
-         when 'W' => return While_Loop;
-         when 'X' => return Expression;
+         when 'I'    => return If_Statement;
+         when 'E'    => return Exit_Statement;
+         when 'P'    => return Pragma_Assert_Check_PPC;
+         when 'W'    => return While_Loop;
+         when 'X'    => return Expression;
          when others => raise Constraint_Error;
       end case;
    end To_Decision_Kind;
