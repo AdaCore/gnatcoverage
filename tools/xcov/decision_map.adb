@@ -572,7 +572,7 @@ package body Decision_Map is
             for J in Boolean'Range loop
                declare
                   Next_C : constant SCO_Id :=
-                    Next_Condition (CBI.Condition, J);
+                             Next_Condition (CBI.Condition, J);
                begin
                   if Next_C /= No_SCO_Id
                     and then Index (Next_C) = Edge_Info.Next_Condition
