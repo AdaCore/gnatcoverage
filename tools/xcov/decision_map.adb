@@ -371,7 +371,8 @@ package body Decision_Map is
 
          Report
            (Exec, Insn'First,
-            "cond branch for " & Image (SCO) & Trim (Index (SCO)'Img, Left),
+            "cond branch for " & Image (SCO)
+            & " (" & Trim (Index (SCO)'Img, Left) & ")",
             Kind => Notice);
          BB.Condition := SCO;
 
