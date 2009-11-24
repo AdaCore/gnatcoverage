@@ -52,10 +52,10 @@ package Decision_Map is
    --  This information is made visible here for the benefit of the trace
    --  analysis circuitry in Coverage.Sources.
 
-   type Edge_Dest_Kind is (Unknown, Condition, Outcome);
+   type Edge_Dest_Kind is (Unknown, Condition, Outcome, Raise_Exception);
    --  Destination of an edge in the control flow graph within an occurrence of
    --  a decision: not determined yet, test another condition, final decision
-   --  outcome reached.
+   --  outcome reached, or raising an exception.
 
    --  Cond_Edge_Info is the information associated with each edge of the
    --  control flow graph.

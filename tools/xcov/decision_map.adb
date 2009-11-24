@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 with Interfaces;        use Interfaces;
 with System.Storage_Elements;
@@ -31,6 +30,7 @@ with Execs_Dbase;       use Execs_Dbase;
 with Hex_Images;        use Hex_Images;
 with Qemu_Traces;
 with Slocs;             use Slocs;
+with Strings;           use Strings;
 with Switches;          use Switches;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Files;      use Traces_Files;
@@ -39,8 +39,6 @@ with Traces_Names;      use Traces_Names;
 package body Decision_Map is
 
    use Ada.Containers;
-   use Ada.Strings;
-   use Ada.Strings.Fixed;
 
    Decision_Map_Base : Traces_Base;
    --  The decision map is a list of code addresses, so we manage it as a
@@ -372,7 +370,7 @@ package body Decision_Map is
          Report
            (Exec, Insn'First,
             "cond branch for " & Image (SCO)
-            & " (" & Trim (Index (SCO)'Img, Left) & ")",
+            & " (" & Img (Integer (Index (SCO))) & ")",
             Kind => Notice);
          BB.Condition := SCO;
 
@@ -419,10 +417,11 @@ package body Decision_Map is
       --  When set, each element of this array is the destination of the first
       --  edge corresponding to each outcome of the decision.
 
-      function Find_Condition (PC : Pc_Type) return Any_Condition_Index;
-      --  Return the index of the condition occurrence within D_Occ whose
-      --  enclosing basic block contains PC, if any, or No_Condition_Index if
-      --  there is no such condition occurrence.
+      procedure Trace_Destination (Edge : in out Cond_Edge_Info);
+      --  Inspect the basic block containing Edge's destination, and if
+      --  necessary any basic block we unconditionally branch to from there,
+      --  until we find a conditional branch or a call to an exception-raising
+      --  routine.
 
       procedure Label_Destination
         (Cond_Branch_PC : Pc_Type;
@@ -445,38 +444,6 @@ package body Decision_Map is
          CBI    : in out Cond_Branch_Info);
       --  Identify destination kind of each edge of CBI
 
-      --------------------
-      -- Find_Condition --
-      --------------------
-
-      function Find_Condition (PC : Pc_Type) return Any_Condition_Index is
-         Next_PC : Pc_Type := PC;
-         BB : Basic_Block;
-      begin
-         <<Follow_Jump>>
-         BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
-
-         if BB.Branch = Br_Jmp then
-
-            if BB.Cond then
-               if BB.Condition /= No_SCO_Id
-                 and then Parent (BB.Condition) = D_Occ.Decision
-               then
-                  return Index (BB.Condition);
-               end if;
-
-            elsif BB.Dest > Next_PC then
-               --  Unconditional branch forward (we never follow backward
-               --  branches to avoid loops).
-
-               Next_PC := BB.Dest;
-               goto Follow_Jump;
-            end if;
-         end if;
-
-         return No_Condition_Index;
-      end Find_Condition;
-
       -----------------------
       -- Label_Destination --
       -----------------------
@@ -488,11 +455,11 @@ package body Decision_Map is
       is
          Edge_Name         : constant String := Edge'Img;
          Edge_Info         : Cond_Edge_Info renames CBI.Edges (Edge);
-         Destination_Index : constant Any_Condition_Index :=
-                               Find_Condition (Edge_Info.Destination);
 
       begin
          pragma Assert (Edge_Info.Dest_Kind = Unknown);
+
+         Trace_Destination (Edge_Info);
 
          --  Check for outcome destination
 
@@ -505,11 +472,13 @@ package body Decision_Map is
          --  HYP: a branch destination is an outcome when it branches past
          --  the conditional branch instruction for the last condition.
 
-         if Edge_Info.Destination
-              = Last_CBI.Edges (Branch).Destination
-           or else Edge_Info.Destination
-                     = Last_CBI.Edges (Fallthrough).Destination
-           or else Edge_Info.Destination > Last_Seen_Condition_PC
+         if Edge_Info.Dest_Kind = Unknown
+           and then
+             (Edge_Info.Destination
+                = Last_CBI.Edges (Branch).Destination
+              or else Edge_Info.Destination
+                        = Last_CBI.Edges (Fallthrough).Destination
+              or else Edge_Info.Destination > Last_Seen_Condition_PC)
          then
             Edge_Info.Dest_Kind := Outcome;
 
@@ -590,54 +559,41 @@ package body Decision_Map is
                   end loop;
                end if;
             end;
-         end if;
 
          --  Check for internal destination
 
-         if Destination_Index in 0 .. D_Occ.Last_Cond_Index then
-            --  Destination is a basic block that tests a condition within this
-            --  decision occurrence.
+         elsif Edge_Info.Dest_Kind = Condition then
 
-            if Edge_Info.Dest_Kind /= Unknown then
+            --  Check that the next condition is a possible successor, and
+            --  label edge origin (that is, the valuation of the tested
+            --  condition that causes the successor in question to be evaluated
+            --  next).
+
+            for J in Boolean'Range loop
+               declare
+                  Next_C : constant SCO_Id :=
+                    Next_Condition (CBI.Condition, J);
+               begin
+                  if Next_C /= No_SCO_Id
+                    and then Index (Next_C) = Edge_Info.Next_Condition
+                  then
+                     Edge_Info.Origin := To_Tristate (J);
+                     exit;
+                  end if;
+               end;
+            end loop;
+
+            --  Report failure to identify successor if neither going to a
+            --  possible successor nor remaining in the same condition.
+
+            if Edge_Info.Origin = Unknown
+              and then Edge_Info.Next_Condition /= Index (CBI.Condition)
+            then
                Report
                  (Exe, Cond_Branch_PC,
-                  Edge_Name & " destination is both final and intermediate");
-
-            else
-               Edge_Info.Dest_Kind := Condition;
-               Edge_Info.Next_Condition := Destination_Index;
-
-               --  Check that the next condition is a possible successor, and
-               --  label edge origin (that is, the valuation of the tested
-               --  condition that causes the successor in question to be
-               --  evaluated next).
-
-               for J in Boolean'Range loop
-                  declare
-                     Next_C : constant SCO_Id :=
-                                Next_Condition (CBI.Condition, J);
-                  begin
-                     if Next_C /= No_SCO_Id
-                       and then Index (Next_C) = Destination_Index
-                     then
-                        Edge_Info.Origin := To_Tristate (J);
-                        exit;
-                     end if;
-                  end;
-               end loop;
-
-               --  Report failure to identify successor if neither going to a
-               --  possible successor nor remaining in the same condition.
-
-               if Edge_Info.Origin = Unknown
-                 and then Destination_Index /= Index (CBI.Condition)
-               then
-                  Report
-                    (Exe, Cond_Branch_PC,
-                     Edge_Name
-                     & " does not branch to a possible successor"
-                     & " condition");
-               end if;
+                  Edge_Name
+                  & " does not branch to a possible successor"
+                  & " condition");
             end if;
          end if;
 
@@ -713,7 +669,7 @@ package body Decision_Map is
                case Edge_Info.Dest_Kind is
                   when Condition =>
                      return " ("
-                       & Trim (Edge_Info.Next_Condition'Img, Left)
+                       & Img (Integer (Edge_Info.Next_Condition))
                        & ")";
 
                   when Outcome =>
@@ -752,6 +708,57 @@ package body Decision_Map is
             Dest_Image (Branch) & " / " & Dest_Image (Fallthrough),
             Kind => Notice);
       end Label_Destinations;
+
+      -----------------------
+      -- Trace_Destination --
+      -----------------------
+
+      procedure Trace_Destination (Edge : in out Cond_Edge_Info)
+      is
+         Next_PC : Pc_Type := Edge.Destination;
+         BB      : Basic_Block;
+      begin
+         <<Follow_Jump>>
+         BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
+
+         case BB.Branch is
+            when Br_Jmp =>
+               if BB.Cond then
+                  if BB.Condition /= No_SCO_Id
+                    and then Parent (BB.Condition) = D_Occ.Decision
+                  then
+                     --  Edge evaluates a condition in the current decision
+
+                     Edge.Dest_Kind := Condition;
+                     Edge.Next_Condition := Index (BB.Condition);
+                  end if;
+
+               elsif BB.Dest > Next_PC then
+                  --  Unconditional branch forward (we never follow backward
+                  --  branches to avoid loops).
+
+                  Next_PC := BB.Dest;
+                  goto Follow_Jump;
+               end if;
+
+            when Br_Call =>
+               declare
+                  Sym : constant Addresses_Info_Acc :=
+                          Get_Symbol (Exe.all, BB.Dest);
+                  Sym_Name : String renames Sym.Symbol_Name.all;
+               begin
+                  if Sym_Name = "__gnat_last_chance_handler"
+                       or else
+                     Has_Prefix (Sym_Name, Prefix => "__gnat_rcheck_")
+                  then
+                     Edge.Dest_Kind := Raise_Exception;
+                  end if;
+               end;
+
+            when others =>
+               null;
+         end case;
+      end Trace_Destination;
 
    --  Start of processing for Analyze_Decision_Occurrence
 
