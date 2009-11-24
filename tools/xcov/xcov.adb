@@ -21,35 +21,37 @@ with Ada.Command_Line;  use Ada.Command_Line;
 with Ada.Text_IO;       use Ada.Text_IO;
 with Ada.Containers;    use Ada.Containers;
 
-with Coverage;          use Coverage;
-with Outputs;           use Outputs;
-with Inputs;            use Inputs;
-with Commands;          use Commands;
-with Coverage.Source;   use Coverage.Source;
-with Decision_Map;      use Decision_Map;
-with Execs_Dbase;       use Execs_Dbase;
-with SC_Obligations;    use SC_Obligations;
-with Elf_Files;
-with Switches;          use Switches;
-with Traces;            use Traces;
-with Traces_Elf;        use Traces_Elf;
-with Slocs;             use Slocs;
-with Files_Table;       use Files_Table;
+with GNAT.Strings;      use GNAT.Strings;
+
 with Annotations;       use Annotations;
 with Annotations.Html;
 with Annotations.Xcov;
 with Annotations.Xml;
 with Annotations.Report;
+with Commands;          use Commands;
+with Coverage;          use Coverage;
+with Coverage.Source;   use Coverage.Source;
+with Decision_Map;      use Decision_Map;
+with Elf_Files;
+with Execs_Dbase;       use Execs_Dbase;
+with Files_Table;       use Files_Table;
+with Inputs;            use Inputs;
+with Outputs;           use Outputs;
+with Qemu_Traces;
+with Qemudrv;
+with SC_Obligations;    use SC_Obligations;
+with Slocs;             use Slocs;
+with Strings;           use Strings;
+with Switches;          use Switches;
+with Traces;            use Traces;
+with Traces_Elf;        use Traces_Elf;
+with Traces_Files_List; use Traces_Files_List;
 with Traces_Names;      use Traces_Names;
 with Traces_Dump;
 with Traces_Files;      use Traces_Files;
 with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
 with Version;
-with Qemudrv;
-with Qemu_Traces;
-with Traces_Files_List; use Traces_Files_List;
-with GNAT.Strings;      use GNAT.Strings;
 
 procedure Xcov is
 
@@ -222,10 +224,6 @@ procedure Xcov is
       --  Assuming that S is of the form "<part1>=<part2>",
       --  return "<part2>".
 
-      function Begins_With (S : String; Beginning : String) return Boolean;
-      --  If the beginning of S is equal to Beginnning, return True;
-      --  otherwise, return False.
-
       function Next_Arg (What : String) return String;
       --  Increment Arg_Index then return Argument (Arg_Index). If
       --  end of command line is reached, display an error message and
@@ -239,17 +237,6 @@ procedure Xcov is
 
       function Rest_Of_Command_Line return String_List_Access;
       --  Return the rest of the command line in a string list
-
-      -----------------
-      -- Begins_With --
-      -----------------
-
-      function Begins_With (S : String; Beginning : String) return Boolean is
-         Length : constant Integer := Beginning'Length;
-      begin
-         return S'Length > Length
-           and then S (S'First .. S'First + Length - 1) = Beginning;
-      end Begins_With;
 
       ------------------------------
       -- Check_Argument_Available --
@@ -368,7 +355,7 @@ procedure Xcov is
                Put_Line ("XCOV Pro " & Standard.Version.Xcov_Version);
                Normal_Exit;
 
-            elsif Begins_With (Arg, "-d") then
+            elsif Has_Prefix (Arg, "-d") then
                --  Debugging options
 
                declare
@@ -403,7 +390,7 @@ procedure Xcov is
                Check_Option (Arg, Command, (1 => Cmd_Run));
                Target := new String'(Next_Arg ("target"));
 
-            elsif Begins_With (Arg, Target_Option) then
+            elsif Has_Prefix (Arg, Target_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Run));
                Target := new String'(Option_Parameter (Arg));
 
@@ -412,12 +399,12 @@ procedure Xcov is
                                             2 => Cmd_Coverage));
                Output := new String'(Next_Arg ("output"));
 
-            elsif Begins_With (Arg, Output_Option) then
+            elsif Has_Prefix (Arg, Output_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Run,
                                             2 => Cmd_Coverage));
                Output := new String'(Option_Parameter (Arg));
 
-            elsif Begins_With (Arg, Tag_Option) then
+            elsif Has_Prefix (Arg, Tag_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Run));
                Tag := new String'(Option_Parameter (Arg));
 
@@ -432,7 +419,7 @@ procedure Xcov is
                        ("bad parameter for " & Coverage_Option_Short);
                end;
 
-            elsif Begins_With (Arg, Coverage_Option) then
+            elsif Has_Prefix (Arg, Coverage_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
                begin
@@ -442,13 +429,13 @@ procedure Xcov is
                      Fatal_Error ("bad parameter for " & Coverage_Option);
                end;
 
-            elsif Begins_With (Arg, SCOs_Option) then
+            elsif Has_Prefix (Arg, SCOs_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
                                             2 => Cmd_Coverage,
                                             3 => Cmd_Run));
                Inputs.Add_Input (SCOs_Inputs, Option_Parameter (Arg));
 
-            elsif Begins_With (Arg, Routines_Option) then
+            elsif Has_Prefix (Arg, Routines_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
                                             2 => Cmd_Coverage,
                                             3 => Cmd_Run));
@@ -460,13 +447,13 @@ procedure Xcov is
                Inputs.Add_Input (Routines_Inputs,
                                  "@" & Next_Arg ("function list"));
 
-            elsif Begins_With (Arg, Deprecated_Routine_List_Option) then
+            elsif Has_Prefix (Arg, Deprecated_Routine_List_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Run));
                Inputs.Add_Input (Routines_Inputs,
                                  "@" & Option_Parameter (Arg));
 
-            elsif Begins_With (Arg, Exec_Option) then
+            elsif Has_Prefix (Arg, Exec_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Opt_Exe_Name := new String'(Option_Parameter (Arg));
 
@@ -474,7 +461,7 @@ procedure Xcov is
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Flag_Show_Missing := True;
 
-            elsif Begins_With (Arg, "--text-start=") then
+            elsif Has_Prefix (Arg, "--text-start=") then
                --  FIXME: not yet supported???
                --  Should be a global option (used when building decision map
                --  for --run)???
@@ -487,7 +474,7 @@ procedure Xcov is
                      Fatal_Error ("Failure to parse --text-start");
                end;
 
-            elsif Begins_With (Arg, "--source-rebase=") then
+            elsif Has_Prefix (Arg, "--source-rebase=") then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                declare
                   Pos : Natural := 0;
@@ -507,7 +494,7 @@ procedure Xcov is
                                      Arg (Pos + 1 .. Arg'Last));
                end;
 
-            elsif Begins_With (Arg, "--source-search=") then
+            elsif Has_Prefix (Arg, "--source-search=") then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
 
@@ -519,19 +506,19 @@ procedure Xcov is
                   Fatal_Error ("bad parameter for " & Annotate_Option_Short);
                end if;
 
-            elsif Begins_With (Arg, Annotate_Option) then
+            elsif Has_Prefix (Arg, Annotate_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Annotation := To_Annotation_Format (Option_Parameter (Arg));
                if Annotation = Annotate_Unknown then
                   Fatal_Error ("bad parameter for " & Annotate_Option);
                end if;
 
-            elsif Begins_With (Arg, Final_Report_Option) then
+            elsif Has_Prefix (Arg, Final_Report_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Annotations.Report.Open_Report_File
                  (Option_Parameter (Arg));
 
-            elsif Begins_With (Arg, Output_Dir_Option) then
+            elsif Has_Prefix (Arg, Output_Dir_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Outputs.Set_Output_Dir (Option_Parameter (Arg));
 
@@ -549,7 +536,7 @@ procedure Xcov is
                   Inputs.Add_Input (Trace_Inputs, Next_Arg ("trace file"));
                end if;
 
-            elsif Begins_With (Arg, Trace_Option) then
+            elsif Has_Prefix (Arg, Trace_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                             2 => Cmd_Dump_Trace,
                                             3 => Cmd_Dump_Trace_Base,

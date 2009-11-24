@@ -39,6 +39,9 @@ package Strings is
    function Img (I : Integer) return String;
    --  Same as Integer'Image without the starting space character
 
+   function Has_Prefix (S : String; Prefix : String) return Boolean;
+   --  True if S starts with Prefix
+
 private
    pragma Inline (Hash);
    pragma Inline (Equal);

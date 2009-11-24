@@ -46,8 +46,14 @@ package body Strings is
 
    function Img (I : Integer) return String is
       Result : constant String := Integer'Image (I);
+      First  : Positive;
    begin
-      return Result (Result'First + 1 .. Result'Last);
+      if I >= 0 then
+         First := Result'First + 1;
+      else
+         First := Result'First;
+      end if;
+      return Result (First .. Result'Last);
    end Img;
 
    ---------
@@ -59,5 +65,16 @@ package body Strings is
       pragma Assert (L /= null and then R /= null);
       return L.all < R.all;
    end "<";
+
+   ----------------
+   -- Has_Prefix --
+   -----------------
+
+   function Has_Prefix (S : String; Prefix : String) return Boolean is
+      Length : constant Integer := Prefix'Length;
+   begin
+      return S'Length > Length
+        and then S (S'First .. S'First + Length - 1) = Prefix;
+   end Has_Prefix;
 
 end Strings;
