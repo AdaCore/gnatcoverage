@@ -25,6 +25,7 @@
 --  coverage properties.
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
 
 with SC_Obligations; use SC_Obligations;
 with Traces;         use Traces;
@@ -74,7 +75,7 @@ package Decision_Map is
       --  For the case where Dest_Kind is Condition, index within decision of
       --  the next tested condition.
 
-      Outcome        : Tristate       := Unknown;
+      Outcome        : Tristate := Unknown;
       --  For the case where Dest_Kind is Outcome, corresponding valuation of
       --  the decision, if known.
    end record;
@@ -99,25 +100,26 @@ package Decision_Map is
       --  Edge information for the branch case and fallthrough case
    end record;
 
-   type Condition_Occurrence_Array is
-     array (Condition_Index range <>) of Pc_Type;
-
    --  In a decision occurrence, each tested condition is represented by
-   --  a conditional branch instruction.
+   --  one or more conditional branch instruction.
+
+   use type Pc_Type;
+   package PC_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Pc_Type);
 
    type Decision_Occurrence
      (Last_Cond_Index : Condition_Index)
    is limited record
-      Decision              : SCO_Id;
+      Decision             : SCO_Id;
       --  The decision being evaluated
 
-      Condition_Occurrences : Condition_Occurrence_Array
-                                (0 .. Last_Cond_Index) := (others => No_PC);
-      --  The corresponding evaluations of the conditions in the decision
+      Conditional_Branches : PC_Vectors.Vector;
+      --  All conditional branch instructions testing this decision's condition
 
-      Seen_Condition        : Any_Condition_Index := No_Condition_Index;
-      --  Index of the last seen condition (i.e. highest value such that
-      --  Condition_Occurrences (Seen_Condition) /= No_PC).
+      Seen_Condition       : Any_Condition_Index := No_Condition_Index;
+      --  Index of the last seen condition (i.e. condition index of the last
+      --  test in Conditional_Branches).
    end record;
 
    --  The cond branch map contains information describing each conditional

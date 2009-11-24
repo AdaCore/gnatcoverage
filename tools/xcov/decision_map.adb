@@ -18,7 +18,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Ordered_Sets;
-with Ada.Containers.Vectors;
+with Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 with Interfaces;        use Interfaces;
 with System.Storage_Elements;
@@ -39,6 +39,8 @@ with Traces_Names;      use Traces_Names;
 package body Decision_Map is
 
    use Ada.Containers;
+   use Ada.Strings;
+   use Ada.Strings.Fixed;
 
    Decision_Map_Base : Traces_Base;
    --  The decision map is a list of code addresses, so we manage it as a
@@ -62,19 +64,22 @@ package body Decision_Map is
    --  A basic block in object code
 
    type Basic_Block is record
-      From, To : Pc_Type := No_PC;
+      From, To  : Pc_Type := No_PC;
       --  Start and end PCs
 
       --  Properties of the branch instruction at the end of the basic block:
 
-      Dest     : Pc_Type := No_PC;
+      Dest      : Pc_Type := No_PC;
       --  Destination
 
-      Branch   : Branch_Kind := Br_None;
+      Branch    : Branch_Kind := Br_None;
       --  Branch kind
 
-      Cond     : Boolean;
+      Cond      : Boolean;
       --  True if conditional branch
+
+      Condition : SCO_Id := No_SCO_Id;
+      --  If this is a conditional branch testing a condition, identifies it
    end record;
 
    No_Basic_Block : constant Basic_Block := (others => <>);
@@ -104,13 +109,15 @@ package body Decision_Map is
    --  Build decision map for the given subprogram
 
    procedure Analyze_Conditional_Branch
-     (Exe               : Exe_File_Acc;
+     (Exec              : Exe_File_Acc;
       Insn              : Binary_Content;
       Branch_Dest       : Pc_Type;
       Fallthrough_Dest  : Pc_Type;
-      Ctx               : in out Cond_Branch_Context);
+      Ctx               : in out Cond_Branch_Context;
+      BB                : in out Basic_Block);
    --  Process one conditional branch instruction: identify relevant source
-   --  coverable construct, and record association in the decision map.
+   --  coverable construct, and record association in the decision map. Sets
+   --  BB.Condition if applicable.
 
    procedure Analyze_Decision_Occurrence
      (Exe   : Exe_File_Acc;
@@ -202,13 +209,14 @@ package body Decision_Map is
    --------------------------------
 
    procedure Analyze_Conditional_Branch
-     (Exe               : Exe_File_Acc;
+     (Exec              : Exe_File_Acc;
       Insn              : Binary_Content;
       Branch_Dest       : Pc_Type;
       Fallthrough_Dest  : Pc_Type;
-      Ctx               : in out Cond_Branch_Context)
+      Ctx               : in out Cond_Branch_Context;
+      BB                : in out Basic_Block)
    is
-      Sloc : constant Source_Location := Get_Sloc (Exe.all, Insn'First);
+      Sloc : constant Source_Location := Get_Sloc (Exec.all, Insn'First);
       --  Source location of Insn
 
       SCO : SCO_Id;
@@ -230,10 +238,6 @@ package body Decision_Map is
       end if;
 
       --  Here for conditional branches that have an associated Condition SCO
-
-      Report
-        (Exe, Insn'First,
-         "cond branch for " & Image (SCO), Kind => Notice);
 
       --  Mark instruction address for full (historical) traces collection
       --  (for MC/DC source coverage analysis) if required by decision
@@ -262,90 +266,91 @@ package body Decision_Map is
          Parent_SCO : SCO_Id;
          --  Parent SCO of D_SCO, if appropriate
 
+         Enclosing_D_SCO : SCO_Id;
+         --  For a nested decision, the enclosing decision
+
          DS_Top : Decision_Occurrence_Access;
          --  Innermost currently open decision
 
          Cond_Index : constant Condition_Index := Index (SCO);
          --  Index of SCO in D_SCO
 
-         procedure Check_Condition_Index (CI : Condition_Index);
-         --  Check whether we expect to evaluate CI
+         function Is_Expected_Condition
+           (CI                   : Condition_Index;
+            Report_If_Unexpected : Boolean := False) return Boolean;
+         --  Check whether we expect to evaluate CI: either we remain in the
+         --  current condition (case of a condition that requires multiple
+         --  branches), or we move to the next one.
 
-         procedure Check_Condition_Index (CI : Condition_Index) is
-            Expected_CI : constant Condition_Index :=
-                            DS_Top.Seen_Condition + 1;
+         procedure Check_Condition_Index (CI : Condition_Index);
+         --  Check whether CI is an expected condition, and if not, report an
+         --  error.
+
+         ---------------------------
+         -- Is_Expected_Condition --
+         ---------------------------
+
+         function Is_Expected_Condition
+           (CI                   : Condition_Index;
+            Report_If_Unexpected : Boolean := False) return Boolean
+         is
+            Current_CI : Condition_Index renames DS_Top.Seen_Condition;
          begin
-            if Expected_CI /= CI then
+            if CI in Current_CI .. Current_CI + 1 then
+               return True;
+            end if;
+
+            if Report_If_Unexpected then
                Report
-                 (Exe, Insn'First,
+                 (Exec, Insn'First,
                   "evaluation of unexpected condition" & CI'Img
-                  & " (expected" & Expected_CI'Img & ")"
+                  & " (expected"
+                  & Condition_Index'Image (Current_CI)
+                  & " or"
+                  & Condition_Index'Image (Current_CI + 1) & ")"
                   & " in decision " & Image (DS_Top.Decision));
             end if;
+            return False;
+         end Is_Expected_Condition;
+
+         ---------------------------
+         -- Check_Condition_Index --
+         ---------------------------
+
+         procedure Check_Condition_Index (CI : Condition_Index) is
+            Dummy : Boolean;
+            pragma Unreferenced (Dummy);
+         begin
+            Dummy := Is_Expected_Condition (CI, Report_If_Unexpected => True);
          end Check_Condition_Index;
 
       --  Start of processing for Process_Condition
 
       begin
-         if Ctx.Decision_Stack.Length > 0 then
-            DS_Top := Ctx.Decision_Stack.Element
-                        (Ctx.Decision_Stack.Last_Index);
-
-            if DS_Top.Decision /= D_SCO then
-               --  Check that the condition containing the nested decision is
-               --  the expected one.
-
-               Parent_SCO := Parent (D_SCO);
-
-               if Kind (Parent_SCO) /= Condition
-                 or else Parent (Parent_SCO) /= DS_Top.Decision
-               then
-                  Report
-                    (Exe, Insn'First,
-                     "evaluation of unexpected"
-                     & " nested decision " & Image (D_SCO)
-                     & " within " & Image (DS_Top.Decision));
-
-                  --  If D_SCO is a decision higher on the stack, pop (and
-                  --  discard) all pending evaluations.
-
-                  Unwind_Loop :
-                  for J in reverse Ctx.Decision_Stack.First_Index
-                    .. Ctx.Decision_Stack.Last_Index - 1
-                  loop
-                     if Ctx.Decision_Stack.Element (J).Decision
-                       = D_SCO
-                     then
-                        DS_Top := Ctx.Decision_Stack.Element (J);
-                        declare
-                           Next : Decision_Occurrence_Vectors.Cursor
-                             := Ctx.Decision_Stack.To_Cursor
-                               (J + 1);
-                        begin
-                           Ctx.Decision_Stack.Delete
-                             (Position => Next,
-                              Count    =>
-                                Count_Type
-                                  (Ctx.Decision_Stack.Last_Index - J));
-                        end;
-                        exit Unwind_Loop;
-                     end if;
-                  end loop Unwind_Loop;
-
-               else
-                  --  OK, we are in the correct enclosing decision, now check
-                  --  the enclosing condition of the nested decision is the one
-                  --  being evaluated.
-
-                  Check_Condition_Index (Index (Parent_SCO));
-               end if;
-
-               --  The following causes a new context to be pushed for this
-               --  decision occurrence.
-
-               DS_Top := null;
-            end if;
+         Parent_SCO := Parent (D_SCO);
+         if Kind (Parent_SCO) = Condition then
+            Enclosing_D_SCO := Parent (Parent_SCO);
+         else
+            Enclosing_D_SCO := No_SCO_Id;
          end if;
+
+         --  Flush completed decisions from the Decision_Stack
+
+         while Ctx.Decision_Stack.Length > 0 loop
+            DS_Top := Ctx.Decision_Stack.Last_Element;
+            exit when DS_Top.Decision = D_SCO
+              and then Is_Expected_Condition (Cond_Index);
+
+            if DS_Top.Decision = Enclosing_D_SCO then
+               Check_Condition_Index (Index (Parent_SCO));
+               DS_Top :=  null;
+               exit;
+            end if;
+
+            Analyze_Decision_Occurrence (Exec, Ctx, DS_Top);
+            Ctx.Decision_Stack.Delete_Last;
+            DS_Top := null;
+         end loop;
 
          if DS_Top = null then
             --  Push new context
@@ -362,38 +367,32 @@ package body Decision_Map is
          pragma Assert (DS_Top.Decision = D_SCO);
          Check_Condition_Index (Cond_Index);
 
-         if DS_Top.Condition_Occurrences (Cond_Index) /= No_PC then
-            Report (Exe, Insn'First,
-                    "duplicate evaluation of condition"
-                    & Cond_Index'Img
-                    & " in decision " & Image (DS_Top.Decision));
-         else
-            --  Record condition occurrence
+         --  Record condition occurrence
 
-            if Cond_Index > DS_Top.Seen_Condition then
-               DS_Top.Seen_Condition := Cond_Index;
-            end if;
-            DS_Top.Condition_Occurrences (Cond_Index) := Insn'First;
-            Cond_Branch_Map.Insert
-              ((Exe, Insn'First),
-               Cond_Branch_Info'
-                 (Decision_Occurrence => DS_Top,
-                  Condition           => SCO,
-                  Edges               =>
-                    (Branch =>
-                       (Destination => Branch_Dest,
-                        others      => <>),
-                     Fallthrough =>
-                       (Destination => Fallthrough_Dest,
-                        others      => <>))));
+         Report
+           (Exec, Insn'First,
+            "cond branch for " & Image (SCO) & Trim (Index (SCO)'Img, Left),
+            Kind => Notice);
+         BB.Condition := SCO;
+
+         if Cond_Index > DS_Top.Seen_Condition then
+            DS_Top.Seen_Condition := Cond_Index;
          end if;
 
-         if Cond_Index = Last_Cond_Index (D_SCO) then
-            --  Evaluated last condition: analyze & pop top decision
+         DS_Top.Conditional_Branches.Append (Insn'First);
 
-            Analyze_Decision_Occurrence (Exe, Ctx, DS_Top);
-            Ctx.Decision_Stack.Delete_Last;
-         end if;
+         Cond_Branch_Map.Insert
+           ((Exec, Insn'First),
+            Cond_Branch_Info'
+              (Decision_Occurrence => DS_Top,
+               Condition           => SCO,
+               Edges               =>
+                 (Branch      =>
+                    (Destination => Branch_Dest,
+                     others      => <>),
+                  Fallthrough =>
+                    (Destination => Fallthrough_Dest,
+                     others      => <>))));
       end Process_Condition;
    end Analyze_Conditional_Branch;
 
@@ -407,9 +406,7 @@ package body Decision_Map is
       D_Occ : Decision_Occurrence_Access)
    is
       Last_Seen_Condition_PC : constant Pc_Type :=
-                                 D_Occ.Condition_Occurrences
-                                   (D_Occ.Seen_Condition);
-      pragma Assert (Last_Seen_Condition_PC /= No_PC);
+                                 D_Occ.Conditional_Branches.Last_Element;
 
       --  Note: all the analysis is done under control of an initial check that
       --    D_Occ.Seen_Condition = D_Occ.Last_Condition_Index
@@ -461,13 +458,11 @@ package body Decision_Map is
          if BB.Branch = Br_Jmp then
 
             if BB.Cond then
-               --  Conditional branch
-
-               for J in D_Occ.Condition_Occurrences'Range loop
-                  if D_Occ.Condition_Occurrences (J) = BB.To then
-                     return J;
-                  end if;
-               end loop;
+               if BB.Condition /= No_SCO_Id
+                 and then Parent (BB.Condition) = D_Occ.Decision
+               then
+                  return Index (BB.Condition);
+               end if;
 
             elsif BB.Dest > Next_PC then
                --  Unconditional branch forward (we never follow backward
@@ -624,17 +619,18 @@ package body Decision_Map is
                      if Next_C /= No_SCO_Id
                        and then Index (Next_C) = Destination_Index
                      then
-                        pragma Assert (Next_C =
-                                         Cond_Branch_Map.Element
-                                           ((Exe, D_Occ.Condition_Occurrences
-                                             (Destination_Index))).Condition);
                         Edge_Info.Origin := To_Tristate (J);
                         exit;
                      end if;
                   end;
                end loop;
 
-               if Edge_Info.Origin = Unknown then
+               --  Report failure to identify successor if neither going to a
+               --  possible successor nor remaining in the same condition.
+
+               if Edge_Info.Origin = Unknown
+                 and then Destination_Index /= Index (CBI.Condition)
+               then
                   Report
                     (Exe, Cond_Branch_PC,
                      Edge_Name
@@ -702,28 +698,37 @@ package body Decision_Map is
          function Dest_Image (Edge : Edge_Kind) return String is
             Edge_Info : Cond_Edge_Info renames CBI.Edges (Edge);
 
-            function Outcome_Value_Image return String;
-            --  Edge_Info.Outcome'Img if Dest_Kind is Outcome, else null string
+            function Additional_Info_Image return String;
+            --  Edge_Info.Next_Condition if Dest_Kind is Condition,
+            --  Edge_Info.Outcome image if Dest_Kind is Outcome,
+            --  else an empty string.
 
-            -------------------------
-            -- Outcome_Value_Image --
-            -------------------------
+            ---------------------------
+            -- Additional_Info_Image --
+            ---------------------------
 
-            function Outcome_Value_Image return String is
+            function Additional_Info_Image return String is
             begin
-               if Edge_Info.Dest_Kind = Outcome then
-                  return " (" & Edge_Info.Outcome'Img & ")";
-               else
-                  return "";
-               end if;
-            end Outcome_Value_Image;
+               case Edge_Info.Dest_Kind is
+                  when Condition =>
+                     return " ("
+                       & Trim (Edge_Info.Next_Condition'Img, Left)
+                       & ")";
+
+                  when Outcome =>
+                     return " (" & Edge_Info.Outcome'Img & ")";
+
+                  when others =>
+                     return "";
+               end case;
+            end Additional_Info_Image;
 
          --  Start of processing for Dest_Image
 
          begin
             return Edge_Info.Origin'Img & "->" & Edge'Img
               & " = " & Hex_Image (Edge_Info.Destination)
-              & " " & Edge_Info.Dest_Kind'Img & Outcome_Value_Image;
+              & " " & Edge_Info.Dest_Kind'Img & Additional_Info_Image;
          end Dest_Image;
 
       --  Start of processing for Label_Destinations
@@ -752,26 +757,26 @@ package body Decision_Map is
    begin
       if D_Occ.Last_Cond_Index /= D_Occ.Seen_Condition then
          --  Report PC of last seen condition in decision occurrence, if it is
-         --  not the final condition of the decision.
+         --  not the final condition of the decision (indicates a decision
+         --  occurrence being flushed before it was completely seen).
 
          Report (Exe, Last_Seen_Condition_PC,
-                 "last seen condition for decision "
-                 & Image (D_Occ.Decision) & " is not final one");
+                 "incomplete occurrence of " & Image (D_Occ.Decision));
          return;
       end if;
 
       --  Label edge destinations
 
-      for J in D_Occ.Condition_Occurrences'Range loop
+      for J in D_Occ.Conditional_Branches.First_Index
+            .. D_Occ.Conditional_Branches.Last_Index
+      loop
          declare
             use Cond_Branch_Maps;
             Cur : constant Cond_Branch_Maps.Cursor :=
                     Cond_Branch_Map.Find
-                      ((Exe, D_Occ.Condition_Occurrences (J)));
+                      ((Exe, D_Occ.Conditional_Branches.Element (J)));
          begin
-            if D_Occ.Condition_Occurrences (J) /= No_PC then
-               Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
-            end if;
+            Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
          end;
       end loop;
 
@@ -831,21 +836,26 @@ package body Decision_Map is
                Dest       => Dest);
 
             if Branch /= Br_None then
-               Context.Basic_Blocks.Insert
-                 ((From   => Current_Basic_Block_Start,
-                   To     => PC,
-                   Dest   => Dest,
-                   Branch => Branch,
-                   Cond   => Flag_Cond));
-            end if;
-
-            if Branch = Br_Jmp and then Flag_Cond then
-               Analyze_Conditional_Branch
-                 (Exec,
-                  Insn              => Insn,
-                  Branch_Dest       => Dest,
-                  Fallthrough_Dest  => Insn'Last + 1,
-                  Ctx               => Context);
+               declare
+                  BB : Basic_Block :=
+                         (From      => Current_Basic_Block_Start,
+                          To        => PC,
+                          Dest      => Dest,
+                          Branch    => Branch,
+                          Cond      => Flag_Cond,
+                          Condition => No_SCO_Id);
+               begin
+                  if Branch = Br_Jmp and then Flag_Cond then
+                     Analyze_Conditional_Branch
+                       (Exec,
+                        Insn             => Insn,
+                        Branch_Dest      => Dest,
+                        Fallthrough_Dest => Insn'Last + 1,
+                        Ctx              => Context,
+                        BB               => BB);
+                  end if;
+                  Context.Basic_Blocks.Insert (BB);
+               end;
             end if;
 
             PC := PC + Pc_Type (Insn_Len);
@@ -859,6 +869,16 @@ package body Decision_Map is
             end if;
          end;
       end loop;
+
+      --  Flush pending decisions
+
+      for J in reverse Context.Decision_Stack.First_Index
+                    .. Context.Decision_Stack.Last_Index
+      loop
+         Analyze_Decision_Occurrence
+           (Exec, Context, Context.Decision_Stack.Element (J));
+      end loop;
+
    end Analyze_Routine;
 
    --------------------------------

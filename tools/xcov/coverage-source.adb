@@ -475,7 +475,7 @@ package body Coverage.Source is
                   SCI.Evaluations.Append (Eval);
                end Set_Outcome_Taken;
 
-               --  Start of processing for Edge_Taken
+            --  Start of processing for Edge_Taken
 
             begin
                if CBE.Dest_Kind = Unknown then
@@ -488,10 +488,21 @@ package body Coverage.Source is
                   --  Record value of condition for this evaluation
 
                   if CBE.Origin = Unknown then
-                     Report
-                       (Exe, PC,
-                        "edge " & E'Img & " with unlabeled origin taken",
-                        Kind => Error);
+                     if CBE.Dest_Kind = Condition
+                       and then SCO = Condition (D_SCO, CBE.Next_Condition)
+                     then
+                        --  This is an intermediate branch that remains within
+                        --  the currently tested condition.
+
+                        null;
+
+                     else
+                        Report
+                          (Exe, PC,
+                           "edge " & E'Img & " with unlabeled origin taken",
+                           Kind => Error);
+                     end if;
+
                   else
                      Condition_Evaluated
                        (Exe, PC, SCO, To_Boolean (CBE.Origin));
