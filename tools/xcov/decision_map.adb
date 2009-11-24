@@ -711,8 +711,7 @@ package body Decision_Map is
          Label_From_Opposite (Cond_Branch_PC, CBI, Fallthrough);
 
          for J in CBI.Edges'Range loop
-            --  Report destinations we can't label (warning only, maybe we can
-            --  infer branch kind later).
+            --  Report destinations we can't label
 
             if CBI.Edges (J).Dest_Kind = Unknown then
                Report (Exe, Cond_Branch_PC,
