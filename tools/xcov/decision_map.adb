@@ -745,11 +745,17 @@ package body Decision_Map is
                declare
                   Sym : constant Addresses_Info_Acc :=
                           Get_Symbol (Exe.all, BB.Dest);
-                  Sym_Name : String renames Sym.Symbol_Name.all;
+                  Sym_Name : String_Access;
                begin
-                  if Sym_Name = "__gnat_last_chance_handler"
-                       or else
-                     Has_Prefix (Sym_Name, Prefix => "__gnat_rcheck_")
+                  if Sym /= null then
+                     Sym_Name := Sym.Symbol_Name;
+                  end if;
+
+                  if Sym_Name /= null
+                       and then
+                     (Sym_Name.all = "__gnat_last_chance_handler"
+                        or else
+                      Has_Prefix (Sym_Name.all, Prefix => "__gnat_rcheck_"))
                   then
                      Edge.Dest_Kind := Raise_Exception;
                   end if;
