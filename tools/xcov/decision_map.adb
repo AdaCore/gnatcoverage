@@ -597,15 +597,10 @@ package body Decision_Map is
             end if;
          end if;
 
-         --  Report destinations we can't label (warning only, maybe we can
-         --  infer branch kind later).
+         --  Destination may still be unlabeled at this point, which is not
+         --  a problem if we can label it later on by inference from the
+         --  opposite edge.
 
-         if Edge_Info.Dest_Kind = Unknown then
-            Report (Exe, Cond_Branch_PC,
-                    "unable to label " & Edge_Name
-                    & " destination " & Hex_Image (Edge_Info.Destination),
-                    Kind => Warning);
-         end if;
       end Label_Destination;
 
       -------------------------
@@ -622,6 +617,8 @@ package body Decision_Map is
          Opposite_CBE : Cond_Edge_Info renames
                           CBI.Edges (Edge_Kind'Val (1 - Edge_Kind'Pos (Edge)));
          O : Boolean;
+
+         Next_C_SCO : SCO_Id;
       begin
          if This_CBE.Origin /= Unknown
               or else
@@ -631,8 +628,18 @@ package body Decision_Map is
          end if;
 
          O := not To_Boolean (Opposite_CBE.Origin);
-         This_CBE.Origin := To_Tristate (O);
+         This_CBE.Origin  := To_Tristate (O);
          This_CBE.Outcome := Outcome (CBI.Condition, O);
+
+         if This_CBE.Outcome /= Unknown then
+            This_CBE.Dest_Kind := Outcome;
+         else
+            Next_C_SCO := Next_Condition (CBI.Condition, O);
+            if Next_C_SCO /= No_SCO_Id then
+               This_CBE.Dest_Kind := Condition;
+               This_CBE.Next_Condition := Index (Next_C_SCO);
+            end if;
+         end if;
       end Label_From_Opposite;
 
       ------------------------
@@ -702,6 +709,19 @@ package body Decision_Map is
 
          Label_From_Opposite (Cond_Branch_PC, CBI, Branch);
          Label_From_Opposite (Cond_Branch_PC, CBI, Fallthrough);
+
+         for J in CBI.Edges'Range loop
+            --  Report destinations we can't label (warning only, maybe we can
+            --  infer branch kind later).
+
+            if CBI.Edges (J).Dest_Kind = Unknown then
+               Report (Exe, Cond_Branch_PC,
+                       "unable to label " & J'Img
+                       & " destination "
+                       & Hex_Image (CBI.Edges (J).Destination),
+                       Kind => Warning);
+            end if;
+         end loop;
 
          Report
            (Exe, Cond_Branch_PC,
