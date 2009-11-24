@@ -137,8 +137,9 @@ package Traces_Elf is
    --  Retrieve the descriptor of the given Kind whose range contains address
    --  PC in Exec.
 
-   function Get_Symbol (Exec : Exe_File_Type; Pc : Pc_Type)
-                       return Addresses_Info_Acc;
+   function Get_Symbol
+     (Exec : Exe_File_Type;
+      PC   : Pc_Type) return Addresses_Info_Acc;
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
    function Get_Sloc

@@ -2228,10 +2228,11 @@ package body Traces_Elf is
    ----------------
 
    function Get_Symbol
-     (Exec : Exe_File_Type; Pc : Pc_Type) return Addresses_Info_Acc
+     (Exec : Exe_File_Type;
+      PC   : Pc_Type) return Addresses_Info_Acc
    is
    begin
-      return Get_Address_Info (Exec, Symbol_Addresses, Pc);
+      return Get_Address_Info (Exec, Symbol_Addresses, PC);
    end Get_Symbol;
 
    ---------------
