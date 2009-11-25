@@ -330,6 +330,7 @@ package body Annotations is
 
       procedure Disp_Conditions (SCO : SCO_Id);
       --  Let Pp display the condition SCOs in decision SCO
+      --  Why is it necessary to have a distinct subprogram???
 
       ---------------------
       -- Disp_Conditions --
@@ -337,12 +338,8 @@ package body Annotations is
 
       procedure Disp_Conditions (SCO : SCO_Id) is
       begin
-         for Index in Condition_Index'First .. Last_Cond_Index (SCO) loop
-            declare
-               Cond : constant SCO_Id := Condition (SCO, Index);
-            begin
-               Pretty_Print_Condition (Pp, Cond);
-            end;
+         for J in Condition_Index'First .. Last_Cond_Index (SCO) loop
+            Pretty_Print_Condition (Pp, Condition (SCO, J));
          end loop;
       end Disp_Conditions;
 
@@ -363,14 +360,18 @@ package body Annotations is
             case Kind (SCO) is
                when Statement =>
                   Pretty_Print_Statement (Pp, SCO, Has_Been_Executed (SCO));
+
                when Decision =>
                   Pretty_Print_Start_Decision (Pp, SCO);
                   Disp_Conditions (SCO);
                   Pretty_Print_End_Decision (Pp);
+
                when Condition =>
-                  --  Condition without a father decision. This should
-                  --  never happen; fatal error.
+                  --  Condition without a father decision. This should never
+                  --  happen; fatal error.
+
                   Fatal_Error ("no decision attached to " & Image (SCO));
+
             end case;
          end if;
       end Process_One_SCO;
@@ -390,13 +391,13 @@ package body Annotations is
       Show_Asm : Boolean)
    is
       procedure Compute_File_State (FI : File_Info_Access);
-      --  For all lines in FI, compute the line state and update
-      --  the file table accordingly. Compute FI's coverage stats in the
-      --  process and update the global stats with FI's information.
+      --  For all lines in FI, compute line state and update file table
+      --  accordingly. Compute FI's coverage stats in the process and update
+      --  the global stats with FI's information.
 
       procedure Process_One_File (FI : File_Info_Access);
-      --  Process FI and let Pp annotate it if it has some coverage info
-      --  to display. Update FI's coverage stats with this line information.
+      --  Process FI and let Pp annotate it if it has some coverage info to
+      --  display. Update FI's coverage stats with this line information.
 
       ------------------------
       -- Compute_File_State --
