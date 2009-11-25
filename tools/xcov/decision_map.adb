@@ -63,7 +63,9 @@ package body Decision_Map is
 
    type Basic_Block is record
       From, To  : Pc_Type := No_PC;
-      --  Start and end PCs
+      --  Start and end addresses (note: To is not necessarily a valid PC value
+      --  but instead the address of the last byte in the last instruction of
+      --  the BB).
 
       --  Properties of the branch instruction at the end of the basic block:
 
@@ -788,6 +790,9 @@ package body Decision_Map is
                       Has_Prefix (Sym_Name.all, Prefix => "__gnat_rcheck_"))
                   then
                      Edge.Dest_Kind := Raise_Exception;
+                  else
+                     Next_PC := BB.To + 1;
+                     goto Follow_Jump;
                   end if;
                end;
 
@@ -884,7 +889,7 @@ package body Decision_Map is
                declare
                   BB : Basic_Block :=
                          (From      => Current_Basic_Block_Start,
-                          To        => PC,
+                          To        => Insn'Last,
                           Dest      => Dest,
                           Branch    => Branch,
                           Cond      => Flag_Cond,
