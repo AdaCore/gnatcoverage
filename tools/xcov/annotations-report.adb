@@ -19,13 +19,10 @@
 
 with Ada.Directories;
 
-with GNAT.Strings;   use GNAT.Strings;
+with GNAT.Strings; use GNAT.Strings;
 
-with Coverage;       use Coverage;
-with Diagnostics;    use Diagnostics;
-with Strings;        use Strings;
-with Slocs;          use Slocs;
-with SC_Obligations; use SC_Obligations;
+with Coverage;     use Coverage;
+with Strings;      use Strings;
 
 package body Annotations.Report is
 

@@ -17,13 +17,19 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO;     use Ada.Text_IO;
-with Coverage;        use Coverage;
-with Outputs;         use Outputs;
-with Hex_Images;      use Hex_Images;
-with Traces_Disa;     use Traces_Disa;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Strings.Unbounded;
+with Interfaces;
+
+with Coverage;    use Coverage;
+with Outputs;     use Outputs;
+with Hex_Images;  use Hex_Images;
+with Traces_Disa; use Traces_Disa;
 
 package body Annotations.Xml is
+
+   package ASU renames Ada.Strings.Unbounded;
 
    type Xml_Pretty_Printer is new Pretty_Printer with record
       --  Pretty printer type for the XML annotation format
@@ -37,6 +43,9 @@ package body Annotations.Xml is
       --  e.g. hello.adb.xml for hello.adb.
 
    end record;
+
+   function Trim_Img (N : Integer) return String;
+   --  Return a trimmed version of N'Img (first space character removed)
 
    --------------------
    -- XML generation --
@@ -129,6 +138,25 @@ package body Annotations.Xml is
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class);
 
+   procedure Pretty_Print_Message
+     (Pp : in out Xml_Pretty_Printer;
+      M  : Message);
+
+   procedure Pretty_Print_Statement
+     (Pp       : in out Xml_Pretty_Printer;
+      SCO      : SCO_Id;
+      Executed : Boolean);
+
+   procedure Pretty_Print_Start_Decision
+     (Pp  : in out Xml_Pretty_Printer;
+      SCO : SCO_Id);
+
+   procedure Pretty_Print_End_Decision (Pp : in out Xml_Pretty_Printer);
+
+   procedure Pretty_Print_Condition
+     (Pp  : in out Xml_Pretty_Printer;
+      SCO : SCO_Id);
+
    -----------------------------
    -- Shortcut for Put_Line's --
    -----------------------------
@@ -138,6 +166,12 @@ package body Annotations.Xml is
 
    procedure Pi (Pp : in out Xml_Pretty_Printer'Class; S : String);
    --  Put_Line S in Pp's index.xml
+
+   procedure Src_Block
+     (Pp         : in out Xml_Pretty_Printer'Class;
+      Sloc_Start : Source_Location;
+      Sloc_End   : Source_Location);
+   --  Emit a <src>...</src> block for the range Sloc_Start .. Sloc_End
 
    -------
    -- A --
@@ -223,6 +257,23 @@ package body Annotations.Xml is
       Put_Line (Pp.Index_File, S);
    end Pi;
 
+   ----------------------------
+   -- Pretty_Print_Condition --
+   ----------------------------
+
+   procedure Pretty_Print_Condition
+     (Pp  : in out Xml_Pretty_Printer;
+      SCO : SCO_Id)
+   is
+      Sloc_Start : constant Source_Location := First_Sloc (SCO);
+      Sloc_End   : constant Source_Location := Last_Sloc (SCO);
+   begin
+      Pp.P (ST ("condition",
+                A ("Id", Trim_Img (Integer (SCO)))));
+      Pp.Src_Block (Sloc_Start, Sloc_End);
+      Pp.P (ET ("condition"));
+   end Pretty_Print_Condition;
+
    ----------------------
    -- Pretty_Print_End --
    ----------------------
@@ -235,6 +286,16 @@ package body Annotations.Xml is
       Pp.Pi (ET ("coverage_report"));
       Close (Pp.Index_File);
    end Pretty_Print_End;
+
+   -------------------------------
+   -- Pretty_Print_End_Decision --
+   -------------------------------
+
+   procedure Pretty_Print_End_Decision
+     (Pp : in out Xml_Pretty_Printer) is
+   begin
+      Pp.P (ET ("decision"));
+   end Pretty_Print_End_Decision;
 
    ---------------------------
    -- Pretty_Print_End_File --
@@ -291,6 +352,33 @@ package body Annotations.Xml is
       Pp.P (ET ("symbol"));
    end Pretty_Print_End_Symbol;
 
+   --------------------------
+   -- Pretty_Print_Message --
+   --------------------------
+
+   procedure Pretty_Print_Message
+     (Pp : in out Xml_Pretty_Printer;
+      M  : Message)
+   is
+      use Interfaces;
+      use Ada.Strings.Unbounded;
+
+      Attributes : Unbounded_String :=
+        ASU.To_Unbounded_String (A ("kind", To_Lower (M.Kind'Img)));
+   begin
+      if M.PC /= 0 then
+         Attributes := Attributes & A ("address", Hex_Image (M.PC));
+      end if;
+
+      if M.SCO /= No_SCO_Id then
+         Attributes := Attributes
+           & A ("SCO", Image (M.SCO, With_Sloc => False));
+      end if;
+
+      Attributes := Attributes & A ("message", M.Msg.all);
+      Pp.P (T ("message", To_String (Attributes)));
+   end Pretty_Print_Message;
+
    ------------------------
    -- Pretty_Print_Start --
    ------------------------
@@ -304,6 +392,22 @@ package body Annotations.Xml is
         A ("coverage_level", Coverage_Option_Value)));
       Pp.Pi (ST ("sources"));
    end Pretty_Print_Start;
+
+   ---------------------------------
+   -- Pretty_Print_Start_Decision --
+   ---------------------------------
+
+   procedure Pretty_Print_Start_Decision
+     (Pp  : in out Xml_Pretty_Printer;
+      SCO : SCO_Id)
+   is
+      Sloc_Start : constant Source_Location := First_Sloc (SCO);
+      Sloc_End   : constant Source_Location := Last_Sloc (SCO);
+   begin
+      Pp.P (ST ("decision",
+                A ("Id", Trim_Img (Integer (SCO)))));
+      Pp.Src_Block (Sloc_Start, Sloc_End);
+   end Pretty_Print_Start_Decision;
 
    -----------------------------
    -- Pretty_Print_Start_File --
@@ -365,7 +469,7 @@ package body Annotations.Xml is
       Pp.P (ST ("sloc", A ("coverage", Coverage_State)));
       Pp.P (ST ("src"));
       Pp.P (T ("line",
-               A ("num", Line_Num'Img)
+               A ("num", Trim_Img (Line_Num))
                & A ("src", Line)));
       Pp.P (ET ("src"));
    end Pretty_Print_Start_Line;
@@ -388,17 +492,65 @@ package body Annotations.Xml is
                 & A ("coverage", Coverage_State)));
    end Pretty_Print_Start_Symbol;
 
-   -------
-   -- T --
-   -------
+   ----------------------------
+   -- Pretty_Print_Statement --
+   ----------------------------
 
-   function T
-     (Name       : String;
-      Attributes : String)
-     return String is
+   procedure Pretty_Print_Statement
+     (Pp       : in out Xml_Pretty_Printer;
+      SCO      : SCO_Id;
+      Executed : Boolean)
+   is
+      type To_State_Char_Type is array (Boolean) of Character;
+
+      To_State_Char : constant To_State_Char_Type :=
+        (False => '-', True => '+');
+
+      Coverage_State : constant Character := To_State_Char (Executed);
+      Sloc_Start     : constant Source_Location := First_Sloc (SCO);
+      Sloc_End       : constant Source_Location := Last_Sloc (SCO);
    begin
-      return "<" & Name & Attributes & "/>";
-   end T;
+      Pp.P (ST ("statement",
+                A ("Id", Trim_Img (Integer (SCO)))
+                & A ("coverage", Coverage_State & "")));
+      Pp.Src_Block (Sloc_Start, Sloc_End);
+      Pp.P (ET ("statement"));
+   end Pretty_Print_Statement;
+
+   ---------------
+   -- Src_Block --
+   ---------------
+
+   procedure Src_Block
+     (Pp         : in out Xml_Pretty_Printer'Class;
+      Sloc_Start : Source_Location;
+      Sloc_End   : Source_Location)
+   is
+      use Ada.Strings.Unbounded;
+   begin
+      Pp.P (ST ("src"));
+      for Line_Num in Sloc_Start.Line .. Sloc_End.Line loop
+         declare
+            Attributes : Unbounded_String :=
+              To_Unbounded_String (A ("num", Trim_Img (Line_Num)));
+         begin
+            if Sloc_Start /= Sloc_End then
+               if Line_Num = Sloc_Start.Line and Sloc_Start.Column > 1 then
+                  Attributes := Attributes
+                    & A ("column_begin", Trim_Img (Sloc_Start.Column));
+               end if;
+
+               if Line_Num = Sloc_End.Line and Sloc_End.Column /= 0 then
+                  Attributes := Attributes
+                    & A ("column_end", Trim_Img (Sloc_Start.Column));
+               end if;
+            end if;
+
+            Pp.P (T ("line", To_String (Attributes)));
+         end;
+      end loop;
+      Pp.P (ET ("src"));
+   end Src_Block;
 
    --------
    -- ST --
@@ -418,5 +570,27 @@ package body Annotations.Xml is
    begin
       return "<" & Name & ">";
    end ST;
+
+   -------
+   -- T --
+   -------
+
+   function T
+     (Name       : String;
+      Attributes : String)
+     return String is
+   begin
+      return "<" & Name & Attributes & "/>";
+   end T;
+
+   --------------
+   -- Trim_Img --
+   --------------
+
+   function Trim_Img (N : Integer) return String is
+      Image : constant String := N'Img;
+   begin
+      return Image (2 .. Image'Last);
+   end Trim_Img;
 
 end Annotations.Xml;

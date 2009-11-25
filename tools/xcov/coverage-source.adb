@@ -25,7 +25,6 @@ with Decision_Map;      use Decision_Map;
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with MC_DC;             use MC_DC;
-with SC_Obligations;    use SC_Obligations;
 with Strings;           use Strings;
 with Switches;          use Switches;
 with Traces_Lines;      use Traces_Lines;
@@ -686,6 +685,21 @@ package body Coverage.Source is
         (Evaluation_Stack.Last_Index,
          Update_Current_Evaluation'Access);
    end Condition_Evaluated;
+
+   -----------------------
+   -- Has_Been_Executed --
+   -----------------------
+
+   function Has_Been_Executed (SCO : SCO_Id) return Boolean is
+   begin
+      pragma Assert (Kind (SCO) = Statement);
+
+      if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
+         return SCI_Vector.Element (SCO).Executed;
+      else
+         return False;
+      end if;
+   end Has_Been_Executed;
 
    ------------------
    -- Set_Executed --

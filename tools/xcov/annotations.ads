@@ -24,6 +24,9 @@ with Traces_Dbase;   use Traces_Dbase;
 with Traces_Elf;     use Traces_Elf;
 with Traces_Lines;   use Traces_Lines;
 with Traces_Stats;   use Traces_Stats;
+with Diagnostics;    use Diagnostics;
+with Slocs;          use Slocs;
+with SC_Obligations; use SC_Obligations;
 
 package Annotations is
 
@@ -107,6 +110,30 @@ private
       State : Insn_State;
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class) is null;
+
+   procedure Pretty_Print_Message
+     (Pp : in out Pretty_Printer;
+      M  : Message) is null;
+   --  Let Pp print the message M, attached to the current file:line
+
+   procedure Pretty_Print_Statement
+     (Pp       : in out Pretty_Printer;
+      SCO      : SCO_Id;
+      Executed : Boolean) is null;
+   --  Let Pp print the statement whose id is SCO
+
+   procedure Pretty_Print_Start_Decision
+     (Pp  : in out Pretty_Printer;
+      SCO : SCO_Id) is null;
+   --  Let Pp start the display of the decision whose id is SCO
+
+   procedure Pretty_Print_End_Decision (Pp : in out Pretty_Printer) is null;
+   --  Let Pp close the display of the current decision
+
+   procedure Pretty_Print_Condition
+     (Pp  : in out Pretty_Printer;
+      SCO : SCO_Id) is null;
+   --  Let Pp print the condition whose id is SCO
 
    procedure Generate_Report
      (Pp       : in out Pretty_Printer'Class;

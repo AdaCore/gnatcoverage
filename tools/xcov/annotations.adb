@@ -19,8 +19,9 @@
 
 with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;
+
+with Outputs; use Outputs;
 with Traces_Disa;
-with Slocs; use Slocs;
 with Coverage;
 with Coverage.Object;
 with Coverage.Source;
@@ -28,10 +29,28 @@ with Coverage.Source;
 package body Annotations is
 
    procedure Disp_File_Line_State
-     (Pp         : in out Pretty_Printer'Class;
-      File       : Files_Table.File_Info_Access);
+     (Pp   : in out Pretty_Printer'Class;
+      File : File_Info_Access);
    --  Go through file and and let Pp annotate its lines with coverage
    --  information
+
+   procedure Disp_Messages
+     (Pp : in out Pretty_Printer'Class;
+      LI : Line_Info);
+   --  Go through LI's messages and let Pp display them
+
+   procedure Disp_Instruction_Sets
+     (Pp : in out Pretty_Printer'Class;
+      LI : Line_Info);
+   --  In object coverage, go through instructions at line LI
+   --  and let Pp display them
+
+   procedure Disp_SCOs
+     (Pp   : in out Pretty_Printer'Class;
+      Line : Natural;
+      LI   : Line_Info);
+   --  In source coverage, go through source coverage information at line LI
+   --  and let Pp display them
 
    ----------------------
    -- Aggregated_State --
@@ -55,8 +74,6 @@ package body Annotations is
      (Pp   : in out Pretty_Printer'Class;
       File : File_Info_Access)
    is
-      use Traces_Disa;
-
       F          : File_Type;
       Last       : Natural := 1;
       Has_Source : Boolean;
@@ -68,41 +85,12 @@ package body Annotations is
       --  coverage; or report the lack of evidence of the independant
       --  influence of a condition located on this line, in MCDC).
 
-      procedure Pretty_Print_Insn
-        (Addr  : Pc_Type;
-         State : Insn_State;
-         Insn  : Binary_Content;
-         Sym   : Symbolizer'Class);
-      --  Call Pp.Pretty_Print_Insn with the corresponding parameters; this
-      --  procedure is meant to be used as a callback in an iterator over
-      --  assembly lines (Traces_Disa.Disp_Assembly_Lines).
-
-      -----------------------
-      -- Pretty_Print_Insn --
-      -----------------------
-
-      procedure Pretty_Print_Insn
-        (Addr  : Pc_Type;
-         State : Insn_State;
-         Insn  : Binary_Content;
-         Sym   : Symbolizer'Class) is
-      begin
-         Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
-      end Pretty_Print_Insn;
-
       ----------------------
       -- Process_One_Line --
       ----------------------
 
       procedure Process_One_Line (Index : Positive) is
-         Instruction_Set  : Addresses_Info_Acc;
-         Info             : Files_Table.Object_Coverage_Info_Acc;
-         Sec_Info         : Addresses_Info_Acc;
-         LI               : constant Line_Info_Access :=
-                              Get_Line (File, Index);
-         Ls               : constant Line_State := Aggregated_State (LI.State);
-         In_Symbol        : Boolean;
-         In_Insn_Set      : Boolean;
+         LI : constant Line_Info_Access := Get_Line (File, Index);
       begin
          if Has_Source then
             Pretty_Print_Start_Line (Pp, Index, LI, Get_Line (F));
@@ -110,65 +98,9 @@ package body Annotations is
             Pretty_Print_Start_Line (Pp, Index, LI, "");
          end if;
 
-         if Pp.Show_Asm then
-            Info := LI.Obj_First;
-
-            if Info /= null then
-               Pretty_Print_Start_Instruction_Set (Pp, Ls);
-               In_Insn_Set := True;
-            else
-               In_Insn_Set := False;
-            end if;
-
-            --  Iterate over each insn block for the source line
-
-            while Info /= null loop
-               Instruction_Set := Info.Instruction_Set;
-               declare
-                  use Interfaces;
-
-                  Label : constant String :=
-                            Get_Label (Info.Exec.all, Instruction_Set);
-                  Symbol : constant Addresses_Info_Acc :=
-                             Get_Symbol (Info.Exec.all, Instruction_Set.First);
-               begin
-                  if Label'Length > 0 and Symbol /= null then
-                     In_Symbol := True;
-                     Pretty_Print_Start_Symbol
-                       (Pp,
-                        Symbol.Symbol_Name.all,
-                        Instruction_Set.First - Symbol.First,
-                        Info.State);
-                  else
-                     In_Symbol := False;
-                  end if;
-               end;
-
-               Sec_Info := Instruction_Set.Parent;
-
-               while Sec_Info /= null
-                 and then Sec_Info.Kind /= Section_Addresses
-               loop
-                  Sec_Info := Sec_Info.Parent;
-               end loop;
-
-               Disp_Assembly_Lines
-                 (Sec_Info.Section_Content
-                    (Instruction_Set.First .. Instruction_Set.Last),
-                  Info.Base.all, Pretty_Print_Insn'Access, Info.Exec.all);
-
-               if In_Symbol then
-                  Pretty_Print_End_Symbol (Pp);
-               end if;
-
-               Info := Info.Next;
-            end loop;
-
-            if In_Insn_Set then
-               Pretty_Print_End_Instruction_Set (Pp);
-            end if;
-         end if;
-
+         Disp_Instruction_Sets (Pp, LI.all);
+         Disp_SCOs (Pp, Index, LI.all);
+         Disp_Messages (Pp, LI.all);
          Pretty_Print_End_Line (Pp);
          Last := Index;
       end Process_One_Line;
@@ -204,13 +136,149 @@ package body Annotations is
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
 
+   ---------------------------
+   -- Disp_Instruction_Sets --
+   ---------------------------
+
+   procedure Disp_Instruction_Sets
+     (Pp   : in out Pretty_Printer'Class;
+      LI   : Line_Info)
+   is
+      use Traces_Disa;
+
+      procedure Pretty_Print_Insn
+        (Addr  : Pc_Type;
+         State : Insn_State;
+         Insn  : Binary_Content;
+         Sym   : Symbolizer'Class);
+      --  Call Pp.Pretty_Print_Insn with the corresponding parameters; this
+      --  procedure is meant to be used as a callback in an iterator over
+      --  assembly lines (Traces_Disa.Disp_Assembly_Lines).
+
+      -----------------------
+      -- Pretty_Print_Insn --
+      -----------------------
+
+      procedure Pretty_Print_Insn
+        (Addr  : Pc_Type;
+         State : Insn_State;
+         Insn  : Binary_Content;
+         Sym   : Symbolizer'Class) is
+      begin
+         Pretty_Print_Insn (Pp, Addr, State, Insn, Sym);
+      end Pretty_Print_Insn;
+
+      --  Local variables
+
+      Instruction_Set : Addresses_Info_Acc;
+      Info            : Files_Table.Object_Coverage_Info_Acc;
+      Sec_Info        : Addresses_Info_Acc;
+      Ls              : constant Line_State := Aggregated_State (LI.State);
+      In_Symbol       : Boolean;
+      In_Insn_Set     : Boolean;
+
+      --  Start of processing for Disp_Instruction_Sets
+
+   begin
+      if Pp.Show_Asm and Coverage.Object_Coverage_Enabled then
+         Info := LI.Obj_First;
+
+         if Info /= null then
+            Pretty_Print_Start_Instruction_Set (Pp, Ls);
+            In_Insn_Set := True;
+         else
+            In_Insn_Set := False;
+         end if;
+
+         --  Iterate over each insn block for the source line
+
+         while Info /= null loop
+            Instruction_Set := Info.Instruction_Set;
+            declare
+               use Interfaces;
+
+               Label : constant String :=
+                 Get_Label (Info.Exec.all, Instruction_Set);
+               Symbol : constant Addresses_Info_Acc :=
+                 Get_Symbol (Info.Exec.all, Instruction_Set.First);
+            begin
+               if Label'Length > 0 and Symbol /= null then
+                  In_Symbol := True;
+                  Pretty_Print_Start_Symbol
+                    (Pp,
+                     Symbol.Symbol_Name.all,
+                     Instruction_Set.First - Symbol.First,
+                     Info.State);
+               else
+                  In_Symbol := False;
+               end if;
+            end;
+
+            Sec_Info := Instruction_Set.Parent;
+
+            while Sec_Info /= null
+              and then Sec_Info.Kind /= Section_Addresses
+            loop
+               Sec_Info := Sec_Info.Parent;
+            end loop;
+
+            Disp_Assembly_Lines
+              (Sec_Info.Section_Content
+               (Instruction_Set.First .. Instruction_Set.Last),
+               Info.Base.all, Pretty_Print_Insn'Access, Info.Exec.all);
+
+            if In_Symbol then
+               Pretty_Print_End_Symbol (Pp);
+            end if;
+
+            Info := Info.Next;
+         end loop;
+
+         if In_Insn_Set then
+            Pretty_Print_End_Instruction_Set (Pp);
+         end if;
+      end if;
+   end Disp_Instruction_Sets;
+
+   -------------------
+   -- Disp_Messages --
+   -------------------
+
+   procedure Disp_Messages
+     (Pp : in out Pretty_Printer'Class;
+      LI : Line_Info)
+   is
+      use Message_Vectors;
+
+      procedure Pretty_Print_Message (Position : Cursor);
+      --  Let Pp print the message in the line's message vector at Position
+      --  if this message is an error or a warning
+
+      --------------------------
+      -- Pretty_Print_Message --
+      --------------------------
+
+      procedure Pretty_Print_Message (Position : Cursor) is
+         M : Message renames Element (Position);
+      begin
+         if M.Kind /= Notice then
+            Pretty_Print_Message (Pp, M);
+         end if;
+      end Pretty_Print_Message;
+
+      --  Start of processing for Disp_Messages
+
+   begin
+      LI.Messages.Iterate (Pretty_Print_Message'Access);
+   end Disp_Messages;
+
    -----------------------
    -- Disp_File_Summary --
    -----------------------
 
    procedure Disp_File_Summary is
 
-      procedure Disp_One_File (File : Files_Table.File_Info);
+      procedure Disp_One_File (File : File_Info_Access);
       --  Display summary for the given file
 
       procedure Process_One_File (FI : File_Info_Access);
@@ -221,7 +289,7 @@ package body Annotations is
       -- Disp_One_File --
       -------------------
 
-      procedure Disp_One_File (File : Files_Table.File_Info) is
+      procedure Disp_One_File (File : File_Info_Access) is
       begin
          Put (File.Simple_Name.all);
          Put (": ");
@@ -236,7 +304,7 @@ package body Annotations is
       procedure Process_One_File (FI : File_Info_Access) is
       begin
          if To_Display (FI) then
-            Disp_One_File (FI.all);
+            Disp_One_File (FI);
          end if;
       end Process_One_File;
 
@@ -245,6 +313,73 @@ package body Annotations is
    begin
       Files_Table_Iterate (Process_One_File'Access);
    end Disp_File_Summary;
+
+   ---------------
+   -- Disp_SCOs --
+   ---------------
+
+   procedure Disp_SCOs
+     (Pp   : in out Pretty_Printer'Class;
+      Line : Natural;
+      LI   : Line_Info)
+   is
+      use SCO_Id_Vectors;
+
+      procedure Process_One_SCO (Position : Cursor);
+      --  Let Pp display the SCO at Position (and this SCO's children)
+
+      procedure Disp_Conditions (SCO : SCO_Id);
+      --  Let Pp display the condition SCOs in decision SCO
+
+      ---------------------
+      -- Disp_Conditions --
+      ---------------------
+
+      procedure Disp_Conditions (SCO : SCO_Id) is
+      begin
+         for Index in Condition_Index'First .. Last_Cond_Index (SCO) loop
+            declare
+               Cond : constant SCO_Id := Condition (SCO, Index);
+            begin
+               Pretty_Print_Condition (Pp, Cond);
+            end;
+         end loop;
+      end Disp_Conditions;
+
+      ---------------------
+      -- Process_One_SCO --
+      ---------------------
+
+      procedure Process_One_SCO (Position : Cursor) is
+         use Coverage.Source;
+
+         SCO : constant SCO_Id := Element (Position);
+      begin
+         --  Process a given SCO exactly once; to do so, only process a
+         --  SCO when its first sloc is at the current line. Otherwise, it
+         --  should have been processed earlier.
+
+         if First_Sloc (SCO).Line = Line then
+            case Kind (SCO) is
+               when Statement =>
+                  Pretty_Print_Statement (Pp, SCO, Has_Been_Executed (SCO));
+               when Decision =>
+                  Pretty_Print_Start_Decision (Pp, SCO);
+                  Disp_Conditions (SCO);
+                  Pretty_Print_End_Decision (Pp);
+               when Condition =>
+                  --  Condition without a father decision. This should
+                  --  never happen; fatal error.
+                  Fatal_Error ("no decision attached to " & Image (SCO));
+            end case;
+         end if;
+      end Process_One_SCO;
+
+      --  Start of processing for Disp_SCOs
+
+   begin
+      LI.SCOs.Iterate (Process_One_SCO'Access);
+   end Disp_SCOs;
 
    ---------------------
    -- Generate_Report --
