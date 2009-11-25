@@ -254,7 +254,7 @@ package body SC_Obligations is
       Origin : Source_File_Index;
       --  ALI file containing this SCO
 
-      Sloc_Range : Source_Location_Range;
+      Sloc_Range : Source_Location_Range := (others => No_Location);
       --  For a decision, cumulative range from all conditions
 
       Parent : SCO_Id := No_SCO_Id;
@@ -291,6 +291,10 @@ package body SC_Obligations is
          when Decision =>
             D_Kind : Decision_Kind;
             --  Decision kind indication
+
+            Control_Location : Source_Location := No_Location;
+            --  For a decision other than an Expression, sloc of the execution
+            --  flow control construct.
 
             Last_Cond_Index : Any_Condition_Index;
             --  Index of last condition in decision (should be > 0 for complex
@@ -1163,6 +1167,10 @@ package body SC_Obligations is
             procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor);
             --  Set BDD of decision to Current_BDD
 
+            procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor);
+            --  Update the slocs of a decision SCOD from those of the condition
+            --  in the current SCOE.
+
             --------------------------
             -- Make_Condition_Value --
             --------------------------
@@ -1208,6 +1216,26 @@ package body SC_Obligations is
                SCOD.Last_Cond_Index := Current_Condition_Index;
             end Update_Decision_BDD;
 
+            --------------------------
+            -- Update_Decision_Sloc --
+            --------------------------
+
+            procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor) is
+               From_Sloc : constant Source_Location := Make_Sloc (SCOE.From);
+               To_Sloc   : constant Source_Location := Make_Sloc (SCOE.To);
+
+            begin
+               if SCOD.Sloc_Range.First_Sloc = No_Location then
+                  SCOD.Sloc_Range.First_Sloc := From_Sloc;
+               end if;
+
+               if SCOD.Sloc_Range.Last_Sloc = No_Location
+                 or else SCOD.Sloc_Range.Last_Sloc < To_Sloc
+               then
+                  SCOD.Sloc_Range.Last_Sloc := To_Sloc;
+               end if;
+            end Update_Decision_Sloc;
+
          --  Start of processing for Process_Entry
 
          begin
@@ -1238,9 +1266,8 @@ package body SC_Obligations is
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind                => Decision,
                                      Origin              => ALI_Index,
-                                     Sloc_Range          =>
-                                       (First_Sloc => Make_Sloc (SCOE.From),
-                                        Last_Sloc  => Make_Sloc (SCOE.To)),
+                                     Control_Location    =>
+                                       Make_Sloc (SCOE.From),
                                      D_Kind              =>
                                        To_Decision_Kind (SCOE.C1),
                                      Last_Cond_Index     => 0,
@@ -1257,7 +1284,12 @@ package body SC_Obligations is
 
                   pragma Assert (Current_Decision /= No_SCO_Id);
 
+                  SCO_Vector.Update_Element
+                    (Index   => Current_Decision,
+                     Process => Update_Decision_Sloc'Access);
+
                   Current_Condition_Index := Current_Condition_Index + 1;
+
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind       => Condition,
                                      Origin     => ALI_Index,
@@ -1299,7 +1331,7 @@ package body SC_Obligations is
       for SCO in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
          declare
             First : Source_Location;
-            --  First sloc of SCO, after fixup
+            --  First sloc of SCO
 
             Enclosing_SCO : SCO_Id;
             --  SCO containing First
@@ -1314,29 +1346,6 @@ package body SC_Obligations is
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor) is
             begin
-               if SCOD.Kind = Decision then
-                  --  Perform sloc fixup for decision SCOs early, before
-                  --  emitting the "Processing" message.
-                  --
-                  --   Expression decisions have no sloc. Decisions for flow
-                  --  control structures have just a First_Sloc, which is that
-                  --  of the control structure token.
-
-                  if SCOD.D_Kind = Expression then
-                     --  For the case of an expression, set first sloc from
-                     --  first condition.
-
-                     SCOD.Sloc_Range.First_Sloc :=
-                       First_Sloc (Condition (SCO, 0));
-                     First := SCOD.Sloc_Range.First_Sloc;
-                  end if;
-
-                  --  In all cases, set last sloc from last condition
-
-                  SCOD.Sloc_Range.Last_Sloc :=
-                    Last_Sloc (Condition (SCO, Last_Cond_Index (SCO)));
-               end if;
-
                First := SCO_Vector.Element (SCO).Sloc_Range.First_Sloc;
                Enclosing_SCO := Sloc_To_SCO (First);
 
