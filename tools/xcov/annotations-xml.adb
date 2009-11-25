@@ -32,17 +32,34 @@ package body Annotations.Xml is
 
    package ASU renames Ada.Strings.Unbounded;
 
+   type Printing_Destination is
+     --  Classes of possible output destinations for an XML pretty printer
+
+     (Dest_Index,
+      --  refers to the XML index
+
+      Dest_Compilation_Unit
+      --  When going through the source file list, refers to the xml file
+      --  that corresponds to the source file being processed.
+      --  e.g. hello.adb.xml for hello.adb.
+      );
+
+   type File_Array is array (Printing_Destination) of File_Type;
+   --  Array of handle for each destination of an XML pretty printer
+
+   type Indentation_Array is array (Printing_Destination) of Natural;
+   --  Array to record the number of spaces to indent before the next
+   --  lines in the corresponding destination
+
    type Xml_Pretty_Printer is new Pretty_Printer with record
       --  Pretty printer type for the XML annotation format
 
-      Index_File            : File_Type;
-      --  Handle to the XML index
+      Files        : File_Array;
+      --  Handle to destination files
 
-      Compilation_Unit_File : File_Type;
-      --  When going through the source file list, handle to the xml file
-      --  that corresponds to the source file being processed.
-      --  e.g. hello.adb.xml for hello.adb.
-
+      Indentations : Indentation_Array := (others => 0);
+      --  Number of space characters to indent for each destination file,
+      --  for the forthcoming lines
    end record;
 
    --------------------
@@ -59,31 +76,35 @@ package body Annotations.Xml is
    --  and value are given in parameter. id est
    --   Name = "Value"
 
-   function T
-     (Name       : String;
-      Attributes : String)
-     return String;
-   --  Return a string representing an empty tag whose name and
+   procedure T
+     (Pp         : in out Xml_Pretty_Printer'Class;
+      Name       : String;
+      Attributes : String;
+      Dest       : Printing_Destination := Dest_Compilation_Unit);
+   --  Print a string representing an empty tag whose name and
    --  attributes are given in parameter. id est
    --  <Name Attributes/>
 
-   function ST
-     (Name       : String;
-      Attributes : String)
-     return String;
-   --  Return a string representing a start tag whose name and attributes
+   procedure ST
+     (Pp         : in out Xml_Pretty_Printer'Class;
+      Name       : String;
+      Attributes : String;
+      Dest       : Printing_Destination := Dest_Compilation_Unit);
+   --  Print a string representing a start tag whose name and attributes
    --  are given in parameter. id est
    --  <Name Attributes>
 
-   function ST
-     (Name       : String)
-     return String;
+   procedure ST
+     (Pp   : in out Xml_Pretty_Printer'Class;
+      Name : String;
+      Dest : Printing_Destination := Dest_Compilation_Unit);
    --  Same as ST, with no attributes.
 
-   function ET
-     (Name      : String)
-     return String;
-   --  Return a string representing an end tag whose name is given
+   procedure ET
+     (Pp   : in out Xml_Pretty_Printer'Class;
+      Name : String;
+      Dest : Printing_Destination := Dest_Compilation_Unit);
+   --  Print a string representing an end tag whose name is given
    --  in parameter. id est
    --  </Name>
 
@@ -159,11 +180,11 @@ package body Annotations.Xml is
    -- Shortcut for Put_Line's --
    -----------------------------
 
-   procedure P (Pp : in out Xml_Pretty_Printer'Class; S : String);
-   --  Put_Line S in Pp's current annotated source file
-
-   procedure Pi (Pp : in out Xml_Pretty_Printer'Class; S : String);
-   --  Put_Line S in Pp's index.xml
+   procedure P
+     (Pp   : Xml_Pretty_Printer'Class;
+      S    : String;
+      Dest : Printing_Destination := Dest_Compilation_Unit);
+   --  Put_Line S in the destination file
 
    procedure Src_Block
      (Pp         : in out Xml_Pretty_Printer'Class;
@@ -184,11 +205,13 @@ package body Annotations.Xml is
    -- ET --
    --------
 
-   function ET
-     (Name      : String)
-     return String is
+   procedure ET
+     (Pp   : in out Xml_Pretty_Printer'Class;
+      Name : String;
+      Dest : Printing_Destination := Dest_Compilation_Unit) is
    begin
-      return "</" & Name & ">";
+      Pp.Indentations (Dest) := Pp.Indentations (Dest) - 1;
+      Pp.P ("</" & Name & ">", Dest);
    end ET;
 
    -------------------
@@ -241,19 +264,16 @@ package body Annotations.Xml is
    -- P --
    -------
 
-   procedure P (Pp : in out Xml_Pretty_Printer'Class; S : String) is
+   procedure P
+     (Pp   : Xml_Pretty_Printer'Class;
+      S    : String;
+      Dest : Printing_Destination := Dest_Compilation_Unit)
+   is
+      Spaces : constant String (1 .. Pp.Indentations (Dest)) :=
+                 (others => ' ');
    begin
-      Put_Line (Pp.Compilation_Unit_File, S);
+      Put_Line (Pp.Files (Dest), Spaces & S);
    end P;
-
-   --------
-   -- Pi --
-   --------
-
-   procedure Pi (Pp : in out Xml_Pretty_Printer'Class; S : String) is
-   begin
-      Put_Line (Pp.Index_File, S);
-   end Pi;
 
    ----------------------------
    -- Pretty_Print_Condition --
@@ -266,10 +286,10 @@ package body Annotations.Xml is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location := Last_Sloc (SCO);
    begin
-      Pp.P (ST ("condition",
-                A ("Id", Img (Integer (SCO)))));
+      Pp.ST ("condition",
+             A ("Id", Img (Integer (SCO))));
       Pp.Src_Block (Sloc_Start, Sloc_End);
-      Pp.P (ET ("condition"));
+      Pp.ET ("condition");
    end Pretty_Print_Condition;
 
    ----------------------
@@ -280,9 +300,9 @@ package body Annotations.Xml is
      (Pp : in out Xml_Pretty_Printer)
    is
    begin
-      Pp.Pi (ET ("sources"));
-      Pp.Pi (ET ("coverage_report"));
-      Close (Pp.Index_File);
+      Pp.ET ("sources", Dest_Index);
+      Pp.ET ("coverage_report", Dest_Index);
+      Close (Pp.Files (Dest_Index));
    end Pretty_Print_End;
 
    -------------------------------
@@ -292,7 +312,7 @@ package body Annotations.Xml is
    procedure Pretty_Print_End_Decision
      (Pp : in out Xml_Pretty_Printer) is
    begin
-      Pp.P (ET ("decision"));
+      Pp.ET ("decision");
    end Pretty_Print_End_Decision;
 
    ---------------------------
@@ -301,8 +321,8 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_File (Pp : in out Xml_Pretty_Printer) is
    begin
-      Pp.P (ET ("source"));
-      Close (Pp.Compilation_Unit_File);
+      Pp.ET ("source");
+      Close (Pp.Files (Dest_Compilation_Unit));
    end Pretty_Print_End_File;
 
    -----------------------
@@ -316,10 +336,10 @@ package body Annotations.Xml is
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class) is
    begin
-      Pp.P (T ("instruction",
-               A ("address", Hex_Image (Pc))
-               & A ("coverage", Insn_State_Char (State) & "")
-               & A ("assembly", Disassemble (Insn, Pc, Sym))));
+      Pp.T ("instruction",
+            A ("address", Hex_Image (Pc))
+            & A ("coverage", Insn_State_Char (State) & "")
+            & A ("assembly", Disassemble (Insn, Pc, Sym)));
    end Pretty_Print_Insn;
 
    --------------------------------------
@@ -329,7 +349,7 @@ package body Annotations.Xml is
    procedure Pretty_Print_End_Instruction_Set
      (Pp : in out Xml_Pretty_Printer) is
    begin
-      Pp.P (ET ("instruction_set"));
+      Pp.ET ("instruction_set");
    end Pretty_Print_End_Instruction_Set;
 
    ---------------------------
@@ -338,7 +358,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_Line (Pp : in out Xml_Pretty_Printer) is
    begin
-      Pp.P (ET ("sloc"));
+      Pp.ET ("sloc");
    end Pretty_Print_End_Line;
 
    -----------------------------
@@ -347,7 +367,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_Symbol (Pp : in out Xml_Pretty_Printer) is
    begin
-      Pp.P (ET ("symbol"));
+      Pp.ET ("symbol");
    end Pretty_Print_End_Symbol;
 
    --------------------------
@@ -374,7 +394,7 @@ package body Annotations.Xml is
       end if;
 
       Attributes := Attributes & A ("message", M.Msg.all);
-      Pp.P (T ("message", To_String (Attributes)));
+      Pp.T ("message", To_String (Attributes));
    end Pretty_Print_Message;
 
    ------------------------
@@ -383,12 +403,12 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_Start (Pp : in out Xml_Pretty_Printer) is
    begin
-      Create_Output_File (Pp.Index_File, "index.xml");
+      Create_Output_File (Pp.Files (Dest_Index), "index.xml");
 
-      Pp.Pi (Xml_Header);
-      Pp.Pi (ST ("coverage_report",
-        A ("coverage_level", Coverage_Option_Value)));
-      Pp.Pi (ST ("sources"));
+      Pp.P (Xml_Header, Dest_Index);
+      Pp.ST ("coverage_report",
+             A ("coverage_level", Coverage_Option_Value), Dest_Index);
+      Pp.ST ("sources", Dest_Index);
    end Pretty_Print_Start;
 
    ---------------------------------
@@ -402,8 +422,8 @@ package body Annotations.Xml is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location := Last_Sloc (SCO);
    begin
-      Pp.P (ST ("decision",
-                A ("Id", Img (Integer (SCO)))));
+      Pp.ST ("decision",
+             A ("Id", Img (Integer (SCO))));
       Pp.Src_Block (Sloc_Start, Sloc_End);
    end Pretty_Print_Start_Decision;
 
@@ -429,13 +449,14 @@ package body Annotations.Xml is
         Simple_Source_Filename & ".xml";
    begin
       Skip := False;
-      Create_Output_File (Pp.Compilation_Unit_File, Xml_File_Name);
+      Create_Output_File (Pp.Files (Dest_Compilation_Unit), Xml_File_Name);
       Pp.P (Xml_Header);
-      Pp.P (ST ("source",
+      Pp.ST ("source",
              A ("file", Simple_Source_Filename)
-             & A ("Coverage_Level", Coverage_Option_Value)));
+             & A ("Coverage_Level", Coverage_Option_Value));
 
-      Pp.Pi (T ("xi:include", A ("parse", "xml") & A ("href", Xml_File_Name)));
+      Pp.T ("xi:include", A ("parse", "xml") & A ("href", Xml_File_Name),
+            Dest_Index);
    end Pretty_Print_Start_File;
 
    ----------------------------------------
@@ -448,7 +469,7 @@ package body Annotations.Xml is
    is
       Coverage_State : constant String := State_Char (State) & "";
    begin
-      Pp.P (ST ("instruction_set", A ("coverage", Coverage_State)));
+      Pp.ST ("instruction_set", A ("coverage", Coverage_State));
    end Pretty_Print_Start_Instruction_Set;
 
    -----------------------------
@@ -464,12 +485,12 @@ package body Annotations.Xml is
       Coverage_State : constant String :=
                          (1 => State_Char (Aggregated_State (Info.State)));
    begin
-      Pp.P (ST ("sloc", A ("coverage", Coverage_State)));
-      Pp.P (ST ("src"));
-      Pp.P (T ("line",
-               A ("num", Img (Line_Num))
-               & A ("src", Line)));
-      Pp.P (ET ("src"));
+      Pp.ST ("sloc", A ("coverage", Coverage_State));
+      Pp.ST ("src");
+      Pp.T ("line",
+            A ("num", Img (Line_Num))
+            & A ("src", Line));
+      Pp.ET ("src");
    end Pretty_Print_Start_Line;
 
    -------------------------------
@@ -484,10 +505,10 @@ package body Annotations.Xml is
    is
       Coverage_State : constant String := State_Char (State) & "";
    begin
-      Pp.P (ST ("symbol",
-                A ("name", Name)
-                & A ("offset", Hex_Image (Offset))
-                & A ("coverage", Coverage_State)));
+      Pp.ST ("symbol",
+             A ("name", Name)
+             & A ("offset", Hex_Image (Offset))
+             & A ("coverage", Coverage_State));
    end Pretty_Print_Start_Symbol;
 
    ----------------------------
@@ -508,11 +529,11 @@ package body Annotations.Xml is
       Sloc_Start     : constant Source_Location := First_Sloc (SCO);
       Sloc_End       : constant Source_Location := Last_Sloc (SCO);
    begin
-      Pp.P (ST ("statement",
-                A ("Id", Img (Integer (SCO)))
-                & A ("coverage", Coverage_State & "")));
+      Pp.ST ("statement",
+             A ("Id", Img (Integer (SCO)))
+             & A ("coverage", Coverage_State & ""));
       Pp.Src_Block (Sloc_Start, Sloc_End);
-      Pp.P (ET ("statement"));
+      Pp.ET ("statement");
    end Pretty_Print_Statement;
 
    ---------------
@@ -526,7 +547,7 @@ package body Annotations.Xml is
    is
       use Ada.Strings.Unbounded;
    begin
-      Pp.P (ST ("src"));
+      Pp.ST ("src");
       for Line_Num in Sloc_Start.Line .. Sloc_End.Line loop
          declare
             Attributes : Unbounded_String :=
@@ -544,41 +565,46 @@ package body Annotations.Xml is
                end if;
             end if;
 
-            Pp.P (T ("line", To_String (Attributes)));
+            Pp.T ("line", To_String (Attributes));
          end;
       end loop;
-      Pp.P (ET ("src"));
+      Pp.ET ("src");
    end Src_Block;
 
    --------
    -- ST --
    --------
 
-   function ST
-     (Name       : String;
-      Attributes : String)
-     return String is
+   procedure ST
+     (Pp         : in out Xml_Pretty_Printer'Class;
+      Name       : String;
+      Attributes : String;
+      Dest       : Printing_Destination := Dest_Compilation_Unit) is
    begin
-      return "<" & Name & Attributes & ">";
+      Pp.P ("<" & Name & Attributes & ">", Dest);
+      Pp.Indentations (Dest) := Pp.Indentations (Dest) + 1;
    end ST;
 
-   function ST
-     (Name       : String)
-     return String is
+   procedure ST
+     (Pp   : in out Xml_Pretty_Printer'Class;
+      Name : String;
+      Dest : Printing_Destination := Dest_Compilation_Unit) is
    begin
-      return "<" & Name & ">";
+      Pp.P ("<" & Name & ">", Dest);
+      Pp.Indentations (Dest) := Pp.Indentations (Dest) + 1;
    end ST;
 
    -------
    -- T --
    -------
 
-   function T
-     (Name       : String;
-      Attributes : String)
-     return String is
+   procedure T
+     (Pp         : in out Xml_Pretty_Printer'Class;
+      Name       : String;
+      Attributes : String;
+      Dest       : Printing_Destination := Dest_Compilation_Unit) is
    begin
-      return "<" & Name & Attributes & "/>";
+      Pp.P ("<" & Name & Attributes & "/>", Dest);
    end T;
 
 end Annotations.Xml;
