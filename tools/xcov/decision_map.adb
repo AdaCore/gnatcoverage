@@ -837,7 +837,8 @@ package body Decision_Map is
 
    begin
       if Verbose then
-         Put_Line ("Building decision map for " & Name.all);
+         Put_Line ("Building decision map for "
+                   & Get_Filename (Exec.all) & ":" & Name.all);
       end if;
 
       --  Iterate over instructions, looking for conditional branches
