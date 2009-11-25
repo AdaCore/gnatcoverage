@@ -17,8 +17,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Diagnostics; use Diagnostics;
-
 package body MC_DC is
 
    -----------
@@ -93,11 +91,6 @@ package body MC_DC is
       pragma Assert (Eval_1.Outcome /= Unknown
                        and then
                      Eval_2.Outcome /= Unknown);
-
-      Report
-        (Eval_1.Decision, "testing candidate MC/DC pair:", Kind => Notice);
-      Report (Image (Eval_1), Kind => Notice);
-      Report (Image (Eval_2), Kind => Notice);
 
       --  Not an MC/DC pair if both evaluations produced the same outcome
 

@@ -26,6 +26,7 @@ with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with MC_DC;             use MC_DC;
 with SC_Obligations;    use SC_Obligations;
+with Strings;           use Strings;
 with Switches;          use Switches;
 with Traces_Lines;      use Traces_Lines;
 
@@ -84,6 +85,14 @@ package body Coverage.Source is
    --  Record evaluation of condition C_SCO with the given C_Value in the
    --  current decision evaluation.
 
+   function Compute_MCDC_State (SCO : SCO_Id) return Line_State;
+   --  Compute the MC/DC state of SCO, which is already covered for DC
+
+   procedure Update_State
+     (Prev_State : in out Line_State;
+      State      : Line_State);
+   --  Merge State into Prev_State
+
    ------------------------
    -- Compute_Line_State --
    ------------------------
@@ -91,25 +100,6 @@ package body Coverage.Source is
    procedure Compute_Line_State (Line : Line_Info_Access) is
       Multiple_Statements_Reported : Boolean := False;
       --  Set True when a diagnosis has been emitted for multiple statements
-
-      procedure Update_State
-        (Prev_State : in out Line_State;
-         State      : Line_State);
-      --  Merge State into Prev_State
-
-      ------------------
-      -- Update_State --
-      ------------------
-
-      procedure Update_State
-        (Prev_State : in out Line_State;
-         State      : Line_State)
-      is
-      begin
-         Prev_State := Prev_State * State;
-      end Update_State;
-
-   --  Start of processing for Compute_Line_State
 
    begin
       if Line.SCOs.Length = 0 then
@@ -219,44 +209,8 @@ package body Coverage.Source is
                      --  Complete computation of MC/DC coverage state if SCO is
                      --  covered for decision coverage.
 
-                     declare
-                        Independent_Influence :
-                          array (No_Condition_Index .. Last_Cond_Index (SCO))
-                        of Boolean;
-                        --  Indicates whether independent influence of each
-                        --  condition has been shown (first element at index
-                        --  No_Condition_Index is set for evaluation pairs that
-                        --  do not show independent influence of any
-                        --  condition).
-
-                     begin
-                        for E1 in SCI.Evaluations.First_Index
-                          .. SCI.Evaluations.Last_Index - 1
-                        loop
-                           for E2 in E1 + 1 .. SCI.Evaluations.Last_Index loop
-                              Independent_Influence
-                                (Is_MC_DC_Pair
-                                   (SCI.Evaluations.Element (E1),
-                                    SCI.Evaluations.Element (E2))) := True;
-                           end loop;
-                        end loop;
-
-                        --  Iterate over conditions and report
-
-                        SCO_State := No_Code;
-                        for J in 0 .. Independent_Influence'Last loop
-                           if not Independent_Influence (J) then
-                              Update_State (SCO_State, Not_Covered);
-                              Report
-                                (Condition (SCO, J),
-                                 "failed to establish independent influence",
-                                 Kind => Warning);
-                           else
-                              Update_State (SCO_State, Covered);
-                           end if;
-                        end loop;
-                        Update_State (Line.State (MCDC), SCO_State);
-                     end;
+                     Update_State
+                       (Line.State (MCDC), Compute_MCDC_State (SCO));
 
                   else
                      --  Case of MC/DC enabled but at least one outcome never
@@ -270,6 +224,70 @@ package body Coverage.Source is
          end;
       end loop;
    end Compute_Line_State;
+
+   ------------------------
+   -- Compute_MCDC_State --
+   ------------------------
+
+   function Compute_MCDC_State (SCO : SCO_Id) return Line_State is
+      SCI : Source_Coverage_Info renames SCI_Vector.Element (SCO);
+
+      Indep : array (0 .. Last_Cond_Index (SCO)) of Boolean :=
+                (others => False);
+      --  Indicates whether independent influence of each condition has been
+      --  shown.
+
+      Influent_Condition : Any_Condition_Index;
+      --  Condition whose independent influence is shown by the vector pair
+      --  being considered.
+
+      SCO_State : Line_State := No_Code;
+
+   begin
+      for E1 in SCI.Evaluations.First_Index
+             .. SCI.Evaluations.Last_Index - 1
+      loop
+         for E2 in E1 + 1 .. SCI.Evaluations.Last_Index loop
+            Influent_Condition := Is_MC_DC_Pair
+                 (SCI.Evaluations.Element (E1),
+                  SCI.Evaluations.Element (E2));
+
+            --  Record and report the first eval pair that shows independent
+            --  influence of Influent_Condition.
+
+            if Influent_Condition /= No_Condition_Index
+                 and then
+               not Indep (Influent_Condition)
+            then
+
+               Indep (Influent_Condition) := True;
+               Report
+                 (Condition (SCO, Influent_Condition),
+                  "c" & Img (Integer (Influent_Condition))
+                  & " independent influence shown by eval pair: "
+                  & Image (SCI.Evaluations.Element (E1))
+                  & " / "
+                  & Image (SCI.Evaluations.Element (E2)),
+                  Kind => Notice);
+            end if;
+         end loop;
+      end loop;
+
+      --  Iterate over conditions and report
+
+      for J in 0 .. Indep'Last loop
+         if not Indep (J) then
+            Update_State (SCO_State, Not_Covered);
+            Report
+              (Condition (SCO, J),
+               "failed to establish independent influence",
+               Kind => Warning);
+         else
+            Update_State (SCO_State, Covered);
+         end if;
+      end loop;
+      return SCO_State;
+   end Compute_MCDC_State;
 
    -----------------------------
    -- Compute_Source_Coverage --
@@ -677,5 +695,17 @@ package body Coverage.Source is
    begin
       SCI.Executed := True;
    end Set_Executed;
+
+   ------------------
+   -- Update_State --
+   ------------------
+
+   procedure Update_State
+     (Prev_State : in out Line_State;
+      State      : Line_State)
+   is
+   begin
+      Prev_State := Prev_State * State;
+   end Update_State;
 
 end Coverage.Source;
