@@ -23,8 +23,9 @@ with Ada.Strings.Unbounded;
 with Interfaces;
 
 with Coverage;    use Coverage;
-with Outputs;     use Outputs;
 with Hex_Images;  use Hex_Images;
+with Outputs;     use Outputs;
+with Strings;     use Strings;
 with Traces_Disa; use Traces_Disa;
 
 package body Annotations.Xml is
@@ -43,9 +44,6 @@ package body Annotations.Xml is
       --  e.g. hello.adb.xml for hello.adb.
 
    end record;
-
-   function Trim_Img (N : Integer) return String;
-   --  Return a trimmed version of N'Img (first space character removed)
 
    --------------------
    -- XML generation --
@@ -269,7 +267,7 @@ package body Annotations.Xml is
       Sloc_End   : constant Source_Location := Last_Sloc (SCO);
    begin
       Pp.P (ST ("condition",
-                A ("Id", Trim_Img (Integer (SCO)))));
+                A ("Id", Img (Integer (SCO)))));
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.P (ET ("condition"));
    end Pretty_Print_Condition;
@@ -405,7 +403,7 @@ package body Annotations.Xml is
       Sloc_End   : constant Source_Location := Last_Sloc (SCO);
    begin
       Pp.P (ST ("decision",
-                A ("Id", Trim_Img (Integer (SCO)))));
+                A ("Id", Img (Integer (SCO)))));
       Pp.Src_Block (Sloc_Start, Sloc_End);
    end Pretty_Print_Start_Decision;
 
@@ -469,7 +467,7 @@ package body Annotations.Xml is
       Pp.P (ST ("sloc", A ("coverage", Coverage_State)));
       Pp.P (ST ("src"));
       Pp.P (T ("line",
-               A ("num", Trim_Img (Line_Num))
+               A ("num", Img (Line_Num))
                & A ("src", Line)));
       Pp.P (ET ("src"));
    end Pretty_Print_Start_Line;
@@ -511,7 +509,7 @@ package body Annotations.Xml is
       Sloc_End       : constant Source_Location := Last_Sloc (SCO);
    begin
       Pp.P (ST ("statement",
-                A ("Id", Trim_Img (Integer (SCO)))
+                A ("Id", Img (Integer (SCO)))
                 & A ("coverage", Coverage_State & "")));
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.P (ET ("statement"));
@@ -532,17 +530,17 @@ package body Annotations.Xml is
       for Line_Num in Sloc_Start.Line .. Sloc_End.Line loop
          declare
             Attributes : Unbounded_String :=
-              To_Unbounded_String (A ("num", Trim_Img (Line_Num)));
+              To_Unbounded_String (A ("num", Img (Line_Num)));
          begin
             if Sloc_Start /= Sloc_End then
                if Line_Num = Sloc_Start.Line and Sloc_Start.Column > 1 then
                   Attributes := Attributes
-                    & A ("column_begin", Trim_Img (Sloc_Start.Column));
+                    & A ("column_begin", Img (Sloc_Start.Column));
                end if;
 
                if Line_Num = Sloc_End.Line and Sloc_End.Column /= 0 then
                   Attributes := Attributes
-                    & A ("column_end", Trim_Img (Sloc_Start.Column));
+                    & A ("column_end", Img (Sloc_Start.Column));
                end if;
             end if;
 
@@ -582,15 +580,5 @@ package body Annotations.Xml is
    begin
       return "<" & Name & Attributes & "/>";
    end T;
-
-   --------------
-   -- Trim_Img --
-   --------------
-
-   function Trim_Img (N : Integer) return String is
-      Image : constant String := N'Img;
-   begin
-      return Image (2 .. Image'Last);
-   end Trim_Img;
 
 end Annotations.Xml;
