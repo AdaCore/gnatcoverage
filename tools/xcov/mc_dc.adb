@@ -24,8 +24,14 @@ package body MC_DC is
    -----------
 
    function Image (E : Evaluation) return String is
+      Masked_Len : constant Integer :=
+                     Integer (Last_Cond_Index (E.Decision)
+                                - E.Values.Last_Index);
+      --  Count of masked conditions after the last non-masked one.
+
+      Masked_Values : constant String (1 .. Masked_Len) := (others => '-');
    begin
-      return Image (E.Values) & " -> " & E.Outcome'Img;
+      return Image (E.Values) & Masked_Values & " -> " & E.Outcome'Img;
    end Image;
 
    function Image (EV : Condition_Evaluation_Vectors.Vector) return String is
@@ -41,6 +47,7 @@ package body MC_DC is
                Cond_Vector (1 + Integer (J - EV.First_Index)) := '-';
          end case;
       end loop;
+
       return Cond_Vector;
    end Image;
 
