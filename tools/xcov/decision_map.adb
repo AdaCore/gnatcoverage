@@ -446,6 +446,12 @@ package body Decision_Map is
          CBI    : in out Cond_Branch_Info);
       --  Identify destination kind of each edge of CBI
 
+      Has_Valuation : array (Condition_Index'First .. D_Occ.Last_Cond_Index,
+                             Boolean range False .. True) of Boolean :=
+        (others => (others => False));
+      --  For each valuation of each condition, indicates whether there is
+      --  one edge corresponding to each possible valuation of the condition.
+
       -----------------------
       -- Label_Destination --
       -----------------------
@@ -733,6 +739,14 @@ package body Decision_Map is
                        & Hex_Image (CBI.Edges (J).Destination),
                        Kind => Warning);
             end if;
+
+            --  Record known valuations
+
+            if CBI.Edges (J).Origin /= Unknown then
+               Has_Valuation
+                 (Index (CBI.Condition), To_Boolean (CBI.Edges (J).Origin)) :=
+                 True;
+            end if;
          end loop;
 
          Report
@@ -828,6 +842,22 @@ package body Decision_Map is
             Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
          end;
       end loop;
+
+      --  Report conditions for which no edge provides a valuation
+      --  Suppressed for decisions with only one condition, because in that
+      --  case we can assign arbitrary valuations without changing the coverage
+      --  assessment.
+
+      if D_Occ.Last_Cond_Index > Condition_Index'First then
+         for J in Condition_Index'First .. D_Occ.Last_Cond_Index loop
+            for Val in Boolean'Range loop
+               if not Has_Valuation (J, Val) then
+                  Report (Condition (D_Occ.Decision, J),
+                          "no edge for " & Val'Img);
+               end if;
+            end loop;
+         end loop;
+      end if;
 
       --  Record decision occurrence
 
