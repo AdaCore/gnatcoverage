@@ -328,21 +328,6 @@ package body Annotations is
       procedure Process_One_SCO (Position : Cursor);
       --  Let Pp display the SCO at Position (and this SCO's children)
 
-      procedure Disp_Conditions (SCO : SCO_Id);
-      --  Let Pp display the condition SCOs in decision SCO
-      --  Why is it necessary to have a distinct subprogram???
-
-      ---------------------
-      -- Disp_Conditions --
-      ---------------------
-
-      procedure Disp_Conditions (SCO : SCO_Id) is
-      begin
-         for J in Condition_Index'First .. Last_Cond_Index (SCO) loop
-            Pretty_Print_Condition (Pp, Condition (SCO, J));
-         end loop;
-      end Disp_Conditions;
-
       ---------------------
       -- Process_One_SCO --
       ---------------------
@@ -363,7 +348,9 @@ package body Annotations is
 
                when Decision =>
                   Pretty_Print_Start_Decision (Pp, SCO);
-                  Disp_Conditions (SCO);
+                  for J in Condition_Index'First .. Last_Cond_Index (SCO) loop
+                     Pretty_Print_Condition (Pp, Condition (SCO, J));
+                  end loop;
                   Pretty_Print_End_Decision (Pp);
 
                when Condition =>
