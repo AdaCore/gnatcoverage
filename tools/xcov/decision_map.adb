@@ -620,24 +620,35 @@ package body Decision_Map is
 
          Next_C_SCO : SCO_Id;
       begin
-         if This_CBE.Origin /= Unknown
-              or else
-            Opposite_CBE.Origin = Unknown
-         then
+         if This_CBE.Origin /= Unknown then
+            --  This_CBE is already labeled: nothing to
+
             return;
          end if;
 
-         O := not To_Boolean (Opposite_CBE.Origin);
-         This_CBE.Origin  := To_Tristate (O);
-         This_CBE.Outcome := Outcome (CBI.Condition, O);
+         if Opposite_CBE.Dest_Kind = Raise_Exception then
+            --  Opposite branch is for a compiler-generated check, so this one
+            --  remains in the current condition.
 
-         if This_CBE.Outcome /= Unknown then
-            This_CBE.Dest_Kind := Outcome;
-         else
-            Next_C_SCO := Next_Condition (CBI.Condition, O);
-            if Next_C_SCO /= No_SCO_Id then
-               This_CBE.Dest_Kind := Condition;
-               This_CBE.Next_Condition := Index (Next_C_SCO);
+            This_CBE.Dest_Kind := Condition;
+            This_CBE.Next_Condition := Index (CBI.Condition);
+
+         elsif Opposite_CBE.Origin /= Unknown then
+            --  Opposite branch is associated with a known valuation of the
+            --  condition.
+
+            O := not To_Boolean (Opposite_CBE.Origin);
+            This_CBE.Origin  := To_Tristate (O);
+            This_CBE.Outcome := Outcome (CBI.Condition, O);
+
+            if This_CBE.Outcome /= Unknown then
+               This_CBE.Dest_Kind := Outcome;
+            else
+               Next_C_SCO := Next_Condition (CBI.Condition, O);
+               if Next_C_SCO /= No_SCO_Id then
+                  This_CBE.Dest_Kind := Condition;
+                  This_CBE.Next_Condition := Index (Next_C_SCO);
+               end if;
             end if;
          end if;
       end Label_From_Opposite;
