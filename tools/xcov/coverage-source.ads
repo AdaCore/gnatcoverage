@@ -22,6 +22,7 @@ with GNAT.Strings; use GNAT.Strings;
 with Files_Table;    use Files_Table;
 with Traces;         use Traces;
 with Traces_Names;   use Traces_Names;
+with Traces_Lines;   use Traces_Lines;
 with SC_Obligations; use SC_Obligations;
 
 package Coverage.Source is
@@ -40,5 +41,10 @@ package Coverage.Source is
    function Has_Been_Executed (SCO : SCO_Id) return Boolean;
    --  Assuming that SCO's kind is Statement, return True if it has been
    --  executed, False otherwise.
+
+   function Get_Line_State
+     (SCO   : SCO_Id;
+      Level : Coverage_Level)
+     return Line_State;
 
 end Coverage.Source;

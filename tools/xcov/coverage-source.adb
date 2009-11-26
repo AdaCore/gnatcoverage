@@ -27,7 +27,6 @@ with Elf_Disassemblers; use Elf_Disassemblers;
 with MC_DC;             use MC_DC;
 with Strings;           use Strings;
 with Switches;          use Switches;
-with Traces_Lines;      use Traces_Lines;
 
 package body Coverage.Source is
 
@@ -44,7 +43,14 @@ package body Coverage.Source is
 
    type Outcome_Taken_Type is array (Boolean) of Boolean;
 
+   type Line_States is array (Coverage_Level) of Line_State;
+
    type Source_Coverage_Info (Kind  : SCO_Kind := Statement) is record
+      State : Line_States := (others => No_Code);
+      --  Line state for this SCO. The following invariant should hold:
+      --  At the same coverage level, a merge of all SCO's states for a given
+      --  line should be equal to this line's cumulative state.
+
       case Kind is
          when Statement =>
             Executed : Boolean := False;
@@ -89,8 +95,19 @@ package body Coverage.Source is
 
    procedure Update_State
      (Prev_State : in out Line_State;
+      SCO        : SCO_Id;
+      Level      : Coverage_Level;
       State      : Line_State);
-   --  Merge State into Prev_State
+   --  Merge State into Prev_State and record State as the coverage state
+   --  of SCO for Level.
+
+   procedure Update_Line_State
+     (Line  : Line_Info_Access;
+      SCO   : SCO_Id;
+      Level : Coverage_Level;
+      State : Line_State);
+   --  Merge State into Line's state for Level, and update SCO's state for
+   --  the same level so that Source_Coverage_Info.State's invariant holds.
 
    ------------------------
    -- Compute_Line_State --
@@ -167,7 +184,7 @@ package body Coverage.Source is
                   SCO_State := Not_Covered;
                end if;
 
-               Update_State (Line.State (Stmt), SCO_State);
+               Update_Line_State (Line, SCO, Stmt, SCO_State);
 
             elsif Kind (SCO) = Decision
               and then (Enabled (Decision) or else Enabled (MCDC))
@@ -201,22 +218,22 @@ package body Coverage.Source is
                   SCO_State := Not_Covered;
                end if;
 
-               Update_State (Line.State (Decision), SCO_State);
+               Update_Line_State (Line, SCO, Decision, SCO_State);
 
                if Enabled (MCDC) then
                   if SCO_State = Covered then
                      --  Complete computation of MC/DC coverage state if SCO is
                      --  covered for decision coverage.
 
-                     Update_State
-                       (Line.State (MCDC), Compute_MCDC_State (SCO));
+                     Update_Line_State (Line, SCO, MCDC,
+                                        Compute_MCDC_State (SCO));
 
                   else
                      --  Case of MC/DC enabled but at least one outcome never
                      --  taken: do not report details regarding MC/DC coverage,
                      --  just record that MC/DC is not achieved.
 
-                     Update_State (Line.State (MCDC), Not_Covered);
+                     Update_Line_State (Line, SCO, MCDC, Not_Covered);
                   end if;
                end if;
             end if;
@@ -276,13 +293,13 @@ package body Coverage.Source is
 
       for J in 0 .. Indep'Last loop
          if not Indep (J) then
-            Update_State (SCO_State, Not_Covered);
+            Update_State (SCO_State, Condition (SCO, J), MCDC, Not_Covered);
             Report
               (Condition (SCO, J),
                "failed to show independent influence, MC/DC not achieved",
                Kind => Warning);
          else
-            Update_State (SCO_State, Covered);
+            Update_State (SCO_State, Condition (SCO, J), MCDC, Covered);
          end if;
       end loop;
       return SCO_State;
@@ -686,6 +703,22 @@ package body Coverage.Source is
          Update_Current_Evaluation'Access);
    end Condition_Evaluated;
 
+   --------------------
+   -- Get_Line_State --
+   --------------------
+
+   function Get_Line_State
+     (SCO   : SCO_Id;
+      Level : Coverage_Level)
+     return Line_State is
+   begin
+      if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
+         return SCI_Vector.Element (SCO).State (Level);
+      else
+         return No_Code;
+      end if;
+   end Get_Line_State;
+
    -----------------------
    -- Has_Been_Executed --
    -----------------------
@@ -710,15 +743,47 @@ package body Coverage.Source is
       SCI.Executed := True;
    end Set_Executed;
 
+   -----------------------
+   -- Update_Line_State --
+   -----------------------
+
+   procedure Update_Line_State
+     (Line  : Line_Info_Access;
+      SCO   : SCO_Id;
+      Level : Coverage_Level;
+      State : Line_State)
+   is
+   begin
+      Update_State (Line.State (Level), SCO, Level, State);
+   end Update_Line_State;
+
    ------------------
    -- Update_State --
    ------------------
 
    procedure Update_State
      (Prev_State : in out Line_State;
+      SCO        : SCO_Id;
+      Level      : Coverage_Level;
       State      : Line_State)
    is
+      procedure Update_SCO_Line_State (SCI : in out Source_Coverage_Info);
+      --  Set SCI's coverage state for Level to State
+
+      ---------------------------
+      -- Update_SCO_Line_State --
+      ---------------------------
+
+      procedure Update_SCO_Line_State (SCI : in out Source_Coverage_Info) is
+      begin
+         SCI.State (Level) := State;
+      end Update_SCO_Line_State;
+
    begin
+      if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
+         SCI_Vector.Update_Element (SCO, Update_SCO_Line_State'Access);
+      end if;
+
       Prev_State := Prev_State * State;
    end Update_State;
 

@@ -71,6 +71,8 @@ package body Annotations.Xml is
    function Escape_Quotes (S : String) return String;
    --  Remplace '"' by '\"' in S and return the result.
 
+   function A (Name : String; Value : Character) return String;
+
    function A (Name : String; Value : String) return String;
    --  Return a string representing an xml attribute whose name
    --  and value are given in parameter. id est
@@ -162,19 +164,21 @@ package body Annotations.Xml is
       M  : Message);
 
    procedure Pretty_Print_Statement
-     (Pp       : in out Xml_Pretty_Printer;
-      SCO      : SCO_Id;
-      Executed : Boolean);
+     (Pp    : in out Xml_Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State);
 
    procedure Pretty_Print_Start_Decision
-     (Pp  : in out Xml_Pretty_Printer;
-      SCO : SCO_Id);
+     (Pp    : in out Xml_Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State);
 
    procedure Pretty_Print_End_Decision (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Condition
-     (Pp  : in out Xml_Pretty_Printer;
-      SCO : SCO_Id);
+     (Pp    : in out Xml_Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State);
 
    -----------------------------
    -- Shortcut for Put_Line's --
@@ -199,6 +203,12 @@ package body Annotations.Xml is
    function A (Name : String; Value : String) return String is
    begin
       return " " & Name & "=" & '"' & Escape_Quotes (Value) & '"';
+   end A;
+
+   function A (Name : String; Value : Character) return String is
+      Value_String : constant String := Value & "";
+   begin
+      return A (Name, Value_String);
    end A;
 
    --------
@@ -280,14 +290,16 @@ package body Annotations.Xml is
    ----------------------------
 
    procedure Pretty_Print_Condition
-     (Pp  : in out Xml_Pretty_Printer;
-      SCO : SCO_Id)
+     (Pp    : in out Xml_Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State)
    is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location := Last_Sloc (SCO);
    begin
       Pp.ST ("condition",
-             A ("Id", Img (Integer (SCO))));
+             A ("Id", Img (Integer (SCO)))
+             & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("condition");
    end Pretty_Print_Condition;
@@ -416,14 +428,16 @@ package body Annotations.Xml is
    ---------------------------------
 
    procedure Pretty_Print_Start_Decision
-     (Pp  : in out Xml_Pretty_Printer;
-      SCO : SCO_Id)
+     (Pp    : in out Xml_Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State)
    is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
       Sloc_End   : constant Source_Location := Last_Sloc (SCO);
    begin
       Pp.ST ("decision",
-             A ("Id", Img (Integer (SCO))));
+             A ("Id", Img (Integer (SCO)))
+             & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
    end Pretty_Print_Start_Decision;
 
@@ -465,11 +479,9 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_Start_Instruction_Set
      (Pp    : in out Xml_Pretty_Printer;
-      State : Line_State)
-   is
-      Coverage_State : constant String := State_Char (State) & "";
+      State : Line_State) is
    begin
-      Pp.ST ("instruction_set", A ("coverage", Coverage_State));
+      Pp.ST ("instruction_set", A ("coverage", State_Char (State)));
    end Pretty_Print_Start_Instruction_Set;
 
    -----------------------------
@@ -516,22 +528,16 @@ package body Annotations.Xml is
    ----------------------------
 
    procedure Pretty_Print_Statement
-     (Pp       : in out Xml_Pretty_Printer;
-      SCO      : SCO_Id;
-      Executed : Boolean)
+     (Pp    : in out Xml_Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State)
    is
-      type To_State_Char_Type is array (Boolean) of Character;
-
-      To_State_Char : constant To_State_Char_Type :=
-        (False => '-', True => '+');
-
-      Coverage_State : constant Character := To_State_Char (Executed);
       Sloc_Start     : constant Source_Location := First_Sloc (SCO);
       Sloc_End       : constant Source_Location := Last_Sloc (SCO);
    begin
       Pp.ST ("statement",
              A ("Id", Img (Integer (SCO)))
-             & A ("coverage", Coverage_State & ""));
+             & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("statement");
    end Pretty_Print_Statement;

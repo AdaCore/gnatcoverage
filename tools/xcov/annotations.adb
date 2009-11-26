@@ -335,7 +335,8 @@ package body Annotations is
       procedure Process_One_SCO (Position : Cursor) is
          use Coverage.Source;
 
-         SCO : constant SCO_Id := Element (Position);
+         SCO       : constant SCO_Id := Element (Position);
+         SCO_State : Line_State;
       begin
          --  Process a given SCO exactly once; to do so, only process a
          --  SCO when its first sloc is at the current line. Otherwise, it
@@ -344,14 +345,36 @@ package body Annotations is
          if First_Sloc (SCO).Line = Line then
             case Kind (SCO) is
                when Statement =>
-                  Pretty_Print_Statement (Pp, SCO, Has_Been_Executed (SCO));
+                  if Coverage.Enabled (Coverage.Stmt) then
+                     SCO_State := Get_Line_State (SCO, Coverage.Stmt);
+                     Pretty_Print_Statement (Pp, SCO, SCO_State);
+                  end if;
 
                when Decision =>
-                  Pretty_Print_Start_Decision (Pp, SCO);
-                  for J in Condition_Index'First .. Last_Cond_Index (SCO) loop
-                     Pretty_Print_Condition (Pp, Condition (SCO, J));
-                  end loop;
-                  Pretty_Print_End_Decision (Pp);
+                  if Coverage.Enabled (Coverage.Decision)
+                    or else Coverage.Enabled (Coverage.MCDC)
+                  then
+                     if Coverage.Enabled (Coverage.MCDC) then
+                        SCO_State := Get_Line_State (SCO, Coverage.MCDC);
+                     elsif Coverage.Enabled (Coverage.Decision) then
+                        SCO_State := Get_Line_State (SCO, Coverage.Decision);
+                     end if;
+
+                     Pretty_Print_Start_Decision (Pp, SCO, SCO_State);
+
+                     if Coverage.Enabled (Coverage.MCDC) then
+                        for J in Condition_Index'First .. Last_Cond_Index (SCO)
+                        loop
+                           Pretty_Print_Condition
+                             (Pp,
+                              Condition (SCO, J),
+                              Get_Line_State (Condition (SCO, J),
+                                              Coverage.MCDC));
+                        end loop;
+                     end if;
+
+                     Pretty_Print_End_Decision (Pp);
+                  end if;
 
                when Condition =>
                   --  Condition without a father decision. This should never

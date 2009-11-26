@@ -117,22 +117,24 @@ private
    --  Let Pp print the message M, attached to the current file:line
 
    procedure Pretty_Print_Statement
-     (Pp       : in out Pretty_Printer;
-      SCO      : SCO_Id;
-      Executed : Boolean) is null;
+     (Pp    : in out Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State) is null;
    --  Let Pp print the statement whose id is SCO
 
    procedure Pretty_Print_Start_Decision
-     (Pp  : in out Pretty_Printer;
-      SCO : SCO_Id) is null;
+     (Pp    : in out Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State) is null;
    --  Let Pp start the display of the decision whose id is SCO
 
    procedure Pretty_Print_End_Decision (Pp : in out Pretty_Printer) is null;
    --  Let Pp close the display of the current decision
 
    procedure Pretty_Print_Condition
-     (Pp  : in out Pretty_Printer;
-      SCO : SCO_Id) is null;
+     (Pp    : in out Pretty_Printer;
+      SCO   : SCO_Id;
+      State : Line_State) is null;
    --  Let Pp print the condition whose id is SCO
 
    procedure Generate_Report
