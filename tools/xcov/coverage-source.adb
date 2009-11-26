@@ -279,7 +279,7 @@ package body Coverage.Source is
             Update_State (SCO_State, Not_Covered);
             Report
               (Condition (SCO, J),
-               "failed to establish independent influence",
+               "failed to show independent influence, MC/DC not achieved",
                Kind => Warning);
          else
             Update_State (SCO_State, Covered);
