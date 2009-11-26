@@ -71,23 +71,56 @@ package body Files_Table is
    First_Source_Search_Entry : Source_Search_Entry_Acc := null;
    Last_Source_Search_Entry  : Source_Search_Entry_Acc := null;
 
-   -----------------------
-   -- Add_Source_Search --
-   -----------------------
+   ----------------------------------
+   -- Add_Line_For_Object_Coverage --
+   ----------------------------------
 
-   procedure Add_Source_Search (Prefix : String)
+   procedure Add_Line_For_Object_Coverage
+     (File  : Source_File_Index;
+      State : Line_State;
+      Line  : Positive;
+      Addrs : Addresses_Info_Acc;
+      Base  : Traces_Base_Acc;
+      Exec  : Exe_File_Acc)
    is
-      E : Source_Search_Entry_Acc;
+      FI   : constant File_Info_Access := Files_Table.Element (File);
+      LI   : Line_Info_Access;
+      Info : constant Object_Coverage_Info_Acc :=
+               new Object_Coverage_Info'(State           => State,
+                                         Instruction_Set => Addrs,
+                                         Base            => Base,
+                                         Exec            => Exec,
+                                         Next            => null);
+
    begin
-      E := new Source_Search_Entry'(Prefix => new String'(Prefix),
-                                    Next => null);
-      if First_Source_Search_Entry = null then
-         First_Source_Search_Entry := E;
+      FI.Has_Object_Coverage_Info := True;
+      Expand_Line_Table (File, Line);
+      LI := FI.Lines.Element (Line);
+
+      if LI.Obj_First = null then
+         LI.Obj_First := Info;
       else
-         Last_Source_Search_Entry.Next := E;
+         LI.Obj_Last.Next := Info;
       end if;
-      Last_Source_Search_Entry := E;
-   end Add_Source_Search;
+
+      LI.Obj_Last := Info;
+   end Add_Line_For_Object_Coverage;
+
+   ----------------------------------
+   -- Add_Line_For_Source_Coverage --
+   ----------------------------------
+
+   procedure Add_Line_For_Source_Coverage
+     (File : Source_File_Index;
+      Line : Positive;
+      SCO  : SCO_Id)
+   is
+      FI : constant File_Info_Access := Files_Table.Element (File);
+   begin
+      FI.Has_Source_Coverage_Info := True;
+      Expand_Line_Table (File, Line);
+      FI.Lines.Element (Line).all.SCOs.Append (SCO);
+   end Add_Line_For_Source_Coverage;
 
    -----------------------
    -- Add_Source_Rebase --
@@ -99,13 +132,86 @@ package body Files_Table is
       E := new Source_Rebase_Entry'(Old_Prefix => new String'(Old_Prefix),
                                     New_Prefix => new String'(New_Prefix),
                                     Next => null);
+
       if First_Source_Rebase_Entry = null then
          First_Source_Rebase_Entry := E;
       else
          Last_Source_Rebase_Entry.Next := E;
       end if;
+
       Last_Source_Rebase_Entry := E;
    end Add_Source_Rebase;
+
+   -----------------------
+   -- Add_Source_Search --
+   -----------------------
+
+   procedure Add_Source_Search (Prefix : String)
+   is
+      E : Source_Search_Entry_Acc;
+   begin
+      E := new Source_Search_Entry'(Prefix => new String'(Prefix),
+                                    Next => null);
+
+      if First_Source_Search_Entry = null then
+         First_Source_Search_Entry := E;
+      else
+         Last_Source_Search_Entry.Next := E;
+      end if;
+
+      Last_Source_Search_Entry := E;
+   end Add_Source_Search;
+
+   -----------------------
+   -- Expand_Line_Table --
+   -----------------------
+
+   procedure Expand_Line_Table (File : Source_File_Index; Line : Positive) is
+      FI : File_Info_Access renames Files_Table.Element (File);
+   begin
+      while FI.Lines.Last_Index < Line loop
+         FI.Lines.Append
+           (new Line_Info'(State => (others => No_Code), others => <>));
+      end loop;
+   end Expand_Line_Table;
+
+   -------------------------
+   --  Files_Table_Iterate --
+   -------------------------
+
+   procedure Files_Table_Iterate
+     (Process : not null access procedure (FI : File_Info_Access)) is
+   begin
+      for Index in Files_Table.First_Index .. Files_Table.Last_Index loop
+         Process (Files_Table.Element (Index));
+      end loop;
+   end Files_Table_Iterate;
+
+   --------------
+   -- Get_File --
+   --------------
+
+   function Get_File (Index : Source_File_Index) return File_Info_Access is
+   begin
+      return Files_Table.Element (Index);
+   end Get_File;
+
+   -------------------
+   -- Get_Full_Name --
+   -------------------
+
+   function Get_Full_Name (Index : Source_File_Index) return String is
+      Full_Name : constant String_Access :=
+        Files_Table.Element (Index).Full_Name;
+   begin
+      if Full_Name /= null then
+         return Full_Name.all;
+      else
+         Outputs.Fatal_Error ("No full path name for "
+                              & Files_Table.Element (Index).Simple_Name.all);
+         return "";
+      end if;
+   end Get_Full_Name;
 
    ------------------------------
    -- Get_Index_From_Full_Name --
@@ -123,6 +229,7 @@ package body Files_Table is
       Info_Simple : File_Info_Access;
    begin
       Cur := Full_Name_Map.Find (Full_Name'Unrestricted_Access);
+
       if Cur /= No_Element then
          Res := Element (Cur);
          return Res;
@@ -135,6 +242,7 @@ package body Files_Table is
                          Ada.Directories.Simple_Name (Full_Name);
       begin
          Cur := Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
+
          if Cur /= No_Element then
             Res := Element (Cur);
             Info_Simple := Files_Table.Element (Res);
@@ -188,6 +296,7 @@ package body Files_Table is
             else
                Info.Alias_Num := Info_Simple.Alias_Num;
             end if;
+
             Info_Simple.Alias_Num := Info.Alias_Num + 1;
          end if;
 
@@ -240,21 +349,35 @@ package body Files_Table is
       return Res;
    end Get_Index_From_Simple_Name;
 
-   -------------------
-   -- Get_Full_Name --
-   -------------------
+   --------------
+   -- Get_Line --
+   --------------
 
-   function Get_Full_Name (Index : Source_File_Index) return String is
-      Full_Name : constant String_Access :=
-        Files_Table.Element (Index).Full_Name;
+   function Get_Line (Sloc : Source_Location) return Line_Info_Access is
    begin
-      if Full_Name /= null then
-         return Full_Name.all;
-      else
-         --  Any better idea ?
-         raise Constraint_Error;
+      if Sloc = Slocs.No_Location then
+         return null;
       end if;
-   end Get_Full_Name;
+
+      return Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
+   end Get_Line;
+
+   function Get_Line
+     (File  : File_Info_Access;
+      Index : Positive) return Line_Info_Access
+   is
+   begin
+      if Index in File.Lines.First_Index .. File.Lines.Last_Index then
+         return File.Lines.Element (Index);
+      else
+         --  Get_Line may be called with no source information loaded, for
+         --  example when emitting a diagnostic with sloc information based on
+         --  SCOs only. In that case return a null pointer, since we do not
+         --  have any available Line_Info structure.
+
+         return null;
+      end if;
+   end Get_Line;
 
    ---------------------
    -- Get_Simple_Name --
@@ -264,6 +387,19 @@ package body Files_Table is
    begin
       return Files_Table.Element (Index).Simple_Name.all;
    end Get_Simple_Name;
+
+   ----------------------
+   -- Iterate_On_Lines --
+   ----------------------
+
+   procedure Iterate_On_Lines
+     (File    : File_Info_Access;
+      Process : not null access procedure (Index : Positive)) is
+   begin
+      for Index in File.Lines.First_Index .. File.Lines.Last_Index loop
+         Process (Index);
+      end loop;
+   end Iterate_On_Lines;
 
    ----------
    -- Open --
@@ -279,9 +415,9 @@ package body Files_Table is
         (File    : in out File_Type;
          Name    : String;
          Success : out Boolean);
-      --  Try to open Name, with no rebase/search information. In case of
-      --  a success,
-      --  Truncated comment above???
+      --  Try to open Name, with no rebase/search information. If it fails,
+      --  set Success to False; otherwise, set it to True and return the
+      --  handle in File.
 
       --------------
       -- Try_Open --
@@ -299,9 +435,15 @@ package body Files_Table is
             Success := False;
       end Try_Open;
 
+      --  Local variables
+
       Name : String_Access;
+
+      --  Start of processing for Open
+
    begin
       Name := FI.Full_Name;
+
       if Name = null then
          Name := FI.Simple_Name;
       end if;
@@ -329,6 +471,7 @@ package body Files_Table is
                             Success);
                   exit when Success;
                end if;
+
                E := E.Next;
             end loop;
          end;
@@ -355,132 +498,6 @@ package body Files_Table is
          end;
       end if;
    end Open;
-
-   ----------------------------------
-   -- Add_Line_For_Object_Coverage --
-   ----------------------------------
-
-   procedure Add_Line_For_Object_Coverage
-     (File  : Source_File_Index;
-      State : Line_State;
-      Line  : Positive;
-      Addrs : Addresses_Info_Acc;
-      Base  : Traces_Base_Acc;
-      Exec  : Exe_File_Acc)
-   is
-      FI : constant File_Info_Access := Files_Table.Element (File);
-      LI : Line_Info_Access;
-      Info : constant Object_Coverage_Info_Acc :=
-               new Object_Coverage_Info'(State           => State,
-                                         Instruction_Set => Addrs,
-                                         Base            => Base,
-                                         Exec            => Exec,
-                                         Next            => null);
-
-   begin
-      FI.Has_Object_Coverage_Info := True;
-      Expand_Line_Table (File, Line);
-      LI := FI.Lines.Element (Line);
-
-      if LI.Obj_First = null then
-         LI.Obj_First := Info;
-      else
-         LI.Obj_Last.Next := Info;
-      end if;
-      LI.Obj_Last := Info;
-   end Add_Line_For_Object_Coverage;
-
-   ----------------------------------
-   -- Add_Line_For_Source_Coverage --
-   ----------------------------------
-
-   procedure Add_Line_For_Source_Coverage
-     (File : Source_File_Index;
-      Line : Positive;
-      SCO  : SCO_Id)
-   is
-      FI   : constant File_Info_Access := Files_Table.Element (File);
-   begin
-      FI.Has_Source_Coverage_Info := True;
-      Expand_Line_Table (File, Line);
-      FI.Lines.Element (Line).all.SCOs.Append (SCO);
-   end Add_Line_For_Source_Coverage;
-
-   --------------
-   -- Get_Line --
-   --------------
-
-   function Get_Line (Sloc : Source_Location) return Line_Info_Access is
-   begin
-      if Sloc = Slocs.No_Location then
-         return null;
-      end if;
-      return Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
-   end Get_Line;
-
-   function Get_Line
-     (File  : File_Info_Access;
-      Index : Positive) return Line_Info_Access
-   is
-   begin
-      if Index in File.Lines.First_Index .. File.Lines.Last_Index then
-         return File.Lines.Element (Index);
-      else
-         --  Get_Line may be called with no source information loaded, for
-         --  example when emitting a diagnostic with sloc information based on
-         --  SCOs only. In that case return a null pointer, since we do not
-         --  have any available Line_Info structure.
-
-         return null;
-      end if;
-   end Get_Line;
-
-   -----------------------
-   -- Expand_Line_Table --
-   -----------------------
-
-   procedure Expand_Line_Table (File : Source_File_Index; Line : Positive) is
-      FI           : File_Info_Access renames Files_Table.Element (File);
-   begin
-      while FI.Lines.Last_Index < Line loop
-         FI.Lines.Append
-           (new Line_Info'(State => (others => No_Code), others => <>));
-      end loop;
-   end Expand_Line_Table;
-
-   -------------------------
-   --  Files_Table_Iterate --
-   -------------------------
-
-   procedure Files_Table_Iterate
-     (Process : not null access procedure (FI : File_Info_Access)) is
-   begin
-      for Index in Files_Table.First_Index .. Files_Table.Last_Index loop
-         Process (Files_Table.Element (Index));
-      end loop;
-   end Files_Table_Iterate;
-
-   --------------
-   -- Get_File --
-   --------------
-
-   function Get_File (Index : Source_File_Index) return File_Info_Access is
-   begin
-      return Files_Table.Element (Index);
-   end Get_File;
-
-   -------------
-   -- Iterate --
-   -------------
-
-   procedure Iterate_On_Lines
-     (File   : File_Info_Access;
-      Process : not null access procedure (Index : Positive)) is
-   begin
-      for Index in File.Lines.First_Index .. File.Lines.Last_Index loop
-         Process (Index);
-      end loop;
-   end Iterate_On_Lines;
 
    ----------------
    -- To_Display --
