@@ -43,11 +43,11 @@ package body Annotations.Xcov is
    ------------------------------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Xcov_Pretty_Printer;
-      Source          : File_Info_Access;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean);
+     (Pp         : in out Xcov_Pretty_Printer;
+      Source     : File_Info_Access;
+      Stats      : Stat_Array;
+      Has_Source : Boolean;
+      Skip       : out Boolean);
 
    procedure Pretty_Print_Start_Line
      (Pp       : in out Xcov_Pretty_Printer;
@@ -148,11 +148,11 @@ package body Annotations.Xcov is
    -----------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Xcov_Pretty_Printer;
-      Source          : File_Info_Access;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean)
+     (Pp         : in out Xcov_Pretty_Printer;
+      Source     : File_Info_Access;
+      Stats      : Stat_Array;
+      Has_Source : Boolean;
+      Skip       : out Boolean)
    is
    begin
       Skip := True;

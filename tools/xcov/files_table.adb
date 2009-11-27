@@ -18,7 +18,9 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Hashed_Maps;
+with Ada.Characters.Handling;
 with Ada.Directories;
+
 with Strings; use Strings;
 with Outputs;
 
@@ -34,6 +36,7 @@ package body Files_Table is
 
    Files_Table : File_Vectors.Vector;
 
+   procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive);
    procedure Expand_Line_Table (File : Source_File_Index; Line : Positive);
    --  If Line is not in File's line table, expand this table and mark the new
    --  line as No_Code.
@@ -47,6 +50,12 @@ package body Files_Table is
 
    Simple_Name_Map : Filename_Maps.Map;
    Full_Name_Map : Filename_Maps.Map;
+
+   Current_File_Line_Cache : File_Info_Access := null;
+   --  Current file whose lines are cached in the file table. There is
+   --  only one entry in the cache for now, which is reasonable for the
+   --  use that we make: the line content is mostly needed by package
+   --  Annotations, which only manipulates one source file at a time.
 
    --  Source rebase/search types
 
@@ -162,17 +171,101 @@ package body Files_Table is
       Last_Source_Search_Entry := E;
    end Add_Source_Search;
 
+   ---------------------
+   -- End_Lex_Element --
+   ---------------------
+
+   function End_Lex_Element (Sloc : Source_Location) return Source_Location
+   is
+      use Ada.Characters.Handling;
+
+      type Lex_Type is (String_Literal, Numeric_Literal, Other);
+
+      Lex    : Lex_Type;
+      Line   : constant String := Get_Line (Sloc);
+      Column : Natural := Sloc.Column;
+      Result : Source_Location := Sloc;
+   begin
+
+      --  If the column is out of range, the source files and the sloc
+      --  information are probably not synchronized. So just return Sloc
+      --  unchanged.
+
+      if Column > Line'Last then
+         return Sloc;
+      end if;
+
+      if Column + 1 <= Line'Last
+        and then Line (Column) = '-'
+        and then Line (Column + 1) = '-'
+      then
+         --  Comment; return the whole line
+         Result.Column := Line'Last;
+         return Result;
+
+      elsif Column + 2 <= Line'Last
+        and then Line (Column) = '''
+        and then Line (Column + 2) = '''
+      then
+         --  Character literal; skip two character and return
+         Result.Column := Column + 2;
+         return Result;
+
+      elsif Line (Column) = '"' then
+         --  String literal
+         Lex := String_Literal;
+
+      elsif Is_Decimal_Digit (Line (Column))
+        or else Line (Column) = '-'
+      then
+         --  Numeric literal
+         Lex := Numeric_Literal;
+
+      else
+         --  Other: identifier, pragma, reserved word
+         Lex := Other;
+      end if;
+
+      for J in Sloc.Column + 1 .. Line'Last loop
+         case Lex is
+            when String_Literal =>
+               exit when Line (J) = '"';
+
+            when Numeric_Literal =>
+               exit when not Is_Decimal_Digit (Line (J))
+                 and then Line (J) /= '#'
+                 and then Line (J) /= 'E'
+                 and then Line (J) /= '.'
+                 and then Line (J) /= '_';
+
+            when Other =>
+               exit when not Is_Alphanumeric (Line (J))
+                 and then Line (J) /= '_';
+
+         end case;
+         Column := J;
+      end loop;
+
+      Result.Column := Natural'Min (Column, Line'Last);
+      return Result;
+   end End_Lex_Element;
+
    -----------------------
    -- Expand_Line_Table --
    -----------------------
 
-   procedure Expand_Line_Table (File : Source_File_Index; Line : Positive) is
-      FI : File_Info_Access renames Files_Table.Element (File);
+   procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive) is
    begin
       while FI.Lines.Last_Index < Line loop
          FI.Lines.Append
            (new Line_Info'(State => (others => No_Code), others => <>));
       end loop;
+   end Expand_Line_Table;
+
+   procedure Expand_Line_Table (File : Source_File_Index; Line : Positive) is
+      FI : File_Info_Access renames Files_Table.Element (File);
+   begin
+      Expand_Line_Table (FI, Line);
    end Expand_Line_Table;
 
    -------------------------
@@ -186,6 +279,48 @@ package body Files_Table is
          Process (Files_Table.Element (Index));
       end loop;
    end Files_Table_Iterate;
+
+   ---------------------
+   -- Fill_Line_Cache --
+   ---------------------
+
+   procedure Fill_Line_Cache (FI : File_Info_Access) is
+
+      F          : File_Type;
+      Has_Source : Boolean;
+      Line       : Natural := 1;
+      LI         : Line_Info_Access;
+
+      --  Start of processing for Cache_Lines
+
+   begin
+      if FI = Current_File_Line_Cache then
+         return;
+      end if;
+
+      Open (F, FI, Has_Source);
+
+      if Has_Source then
+         if Current_File_Line_Cache /= null then
+            Invalidate_Line_Cache (Current_File_Line_Cache);
+         end if;
+
+         while not End_Of_File (F) loop
+            Expand_Line_Table (FI, Line);
+            LI := FI.Lines.Element (Line);
+
+            if LI.Line_Cache /= null then
+               Free (LI.Line_Cache);
+            end if;
+
+            LI.Line_Cache := new String'(Get_Line (F));
+            Line := Line + 1;
+         end loop;
+
+         Current_File_Line_Cache := FI;
+         Close (F);
+      end if;
+   end Fill_Line_Cache;
 
    --------------
    -- Get_File --
@@ -269,12 +404,13 @@ package body Files_Table is
          end if;
 
          Info := new File_Info'
-           (Full_Name    => new String'(Full_Name),
-            Simple_Name  => new String'(Simple_Name),
-            Alias_Num    => 0,
-            Lines        => (Source_Line_Vectors.Empty_Vector
-                               with null record),
-            Stats        => (others => 0),
+           (Full_Name                => new String'(Full_Name),
+            Simple_Name              => new String'(Simple_Name),
+            Has_Source               => True,
+            Alias_Num                => 0,
+            Lines                    => (Source_Line_Vectors.Empty_Vector
+                                           with null record),
+            Stats                    => (others => 0),
             Has_Source_Coverage_Info => False,
             Has_Object_Coverage_Info => False);
 
@@ -331,6 +467,7 @@ package body Files_Table is
 
       Info := new File_Info'(Simple_Name => new String'(Simple_Name),
                              Full_Name  => null,
+                             Has_Source => True,
                              Alias_Num  => 0,
                              Lines      => (Source_Line_Vectors.Empty_Vector
                                               with null record),
@@ -379,6 +516,41 @@ package body Files_Table is
       end if;
    end Get_Line;
 
+   function Get_Line (Sloc : Source_Location) return String is
+   begin
+      if Sloc = Slocs.No_Location then
+         return "";
+      end if;
+
+      return Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
+   end Get_Line;
+
+   function Get_Line
+     (File  : File_Info_Access;
+      Index : Positive) return String
+   is
+      Line : String_Access;
+   begin
+      if not File.Has_Source then
+         return "";
+      end if;
+
+      Fill_Line_Cache (File);
+
+      if Index in File.Lines.First_Index .. File.Lines.Last_Index then
+         Line := File.Lines.Element (Index).Line_Cache;
+
+         if Line /= null then
+            return Line.all;
+         else
+            return "";
+         end if;
+
+      else
+         return "";
+      end if;
+   end Get_Line;
+
    ---------------------
    -- Get_Simple_Name --
    ---------------------
@@ -387,6 +559,37 @@ package body Files_Table is
    begin
       return Files_Table.Element (Index).Simple_Name.all;
    end Get_Simple_Name;
+
+   ---------------------------
+   -- Invalidate_Line_Cache --
+   ---------------------------
+
+   procedure Invalidate_Line_Cache (FI : File_Info_Access) is
+
+      procedure Free_Line_Cache (Index : Positive);
+      --  Free cached line in FI at Index
+
+      ----------------------
+      -- Free_Cached_Line --
+      ----------------------
+
+      procedure Free_Line_Cache (Index : Positive) is
+         LI : constant Line_Info_Access := Get_Line (FI, Index);
+      begin
+         if LI = null then
+            return;
+         end if;
+
+         if LI.Line_Cache /= null then
+            Free (LI.Line_Cache);
+         end if;
+      end Free_Line_Cache;
+
+      --  Start of processing for Free_Line_Cache
+
+   begin
+      Iterate_On_Lines (FI, Free_Line_Cache'Access);
+   end Invalidate_Line_Cache;
 
    ----------------------
    -- Iterate_On_Lines --
@@ -442,6 +645,11 @@ package body Files_Table is
       --  Start of processing for Open
 
    begin
+      if not FI.Has_Source then
+         Success := False;
+         return;
+      end if;
+
       Name := FI.Full_Name;
 
       if Name = null then
@@ -497,6 +705,8 @@ package body Files_Table is
             end loop;
          end;
       end if;
+
+      FI.Has_Source := Success;
    end Open;
 
    ----------------

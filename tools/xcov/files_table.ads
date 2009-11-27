@@ -139,6 +139,9 @@ package Files_Table is
 
       Messages : Message_Vectors.Vector;
       --  Various diagnostic messages attached to this line
+
+      Line_Cache : String_Access := null;
+      --  Cached source line content
    end record;
 
    type Line_Info_Access is access Line_Info;
@@ -150,20 +153,23 @@ package Files_Table is
    type File_Info is record
       --  Source file information.
 
-      Full_Name                : String_Access;
+      Full_Name : String_Access;
       --  Full path name
 
-      Simple_Name              : String_Access;
+      Simple_Name : String_Access;
       --  File name of the source file, without the path
 
-      Alias_Num                : Natural;
+      Has_Source : Boolean := True;
+      --  False if no source file is found that corresponds to this file name
+
+      Alias_Num : Natural;
       --  0 if no other source file has the same basename, otherwise a uniq
       --  index.
 
-      Lines                    : Source_Lines;
+      Lines : Source_Lines;
       --  Source file to display in the reports
 
-      Stats                    : Stat_Array := (others => 0);
+      Stats : Stat_Array := (others => 0);
       --  Counters associated with the file (e.g total number of lines, number
       --  of lines that are covered).
 
@@ -194,6 +200,22 @@ package Files_Table is
 
    function Get_Line (Sloc : Source_Location) return Line_Info_Access;
 
+   function Get_Line
+     (File  : File_Info_Access;
+      Index : Positive) return String;
+
+   function Get_Line (Sloc : Source_Location) return String;
+
+   --  Get line info (or text) at File:Index (or at Sloc)
+
+   function End_Lex_Element (Sloc : Source_Location) return Source_Location;
+   --  Assuming that Sloc points to the beginning of an Ada lexical element,
+   --  return an approximative source location for the end of this element.
+   --
+   --  This function is used as a simple heuristic to "complete" the source
+   --  text of conditions, decisions and statements. Do not expect to get
+   --  a precise Ada parsing from it.
+
    procedure Open
      (File    : in out File_Type;
       FI      : File_Info_Access;
@@ -201,6 +223,12 @@ package Files_Table is
    --  Try to open the file from the source file table whose index is Index,
    --  using the rebase/search information. If one found, Success is True;
    --  False otherwise.
+
+   procedure Fill_Line_Cache (FI : File_Info_Access);
+   --  Try to open FI and populate its line cache
+
+   procedure Invalidate_Line_Cache (FI : File_Info_Access);
+   --  Free FI's line cache
 
    procedure Warn_File_Missing (File : File_Info);
    --  Report that File cannot be found in source path

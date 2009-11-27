@@ -122,11 +122,11 @@ package body Annotations.Xml is
      (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Xml_Pretty_Printer;
-      Source          : File_Info_Access;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean);
+     (Pp         : in out Xml_Pretty_Printer;
+      Source     : File_Info_Access;
+      Stats      : Stat_Array;
+      Has_Source : Boolean;
+      Skip       : out Boolean);
 
    procedure Pretty_Print_End_File (Pp : in out Xml_Pretty_Printer);
 
@@ -222,6 +222,7 @@ package body Annotations.Xml is
    begin
       Pp.Indentations (Dest) := Pp.Indentations (Dest) - 1;
       Pp.P ("</" & Name & ">", Dest);
+      New_Line (Pp.Files (Dest));
    end ET;
 
    -------------------
@@ -295,10 +296,12 @@ package body Annotations.Xml is
       State : Line_State)
    is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
-      Sloc_End   : constant Source_Location := Last_Sloc (SCO);
+      Sloc_End   : constant Source_Location :=
+                     End_Lex_Element (Last_Sloc (SCO));
    begin
       Pp.ST ("condition",
              A ("Id", Img (Integer (SCO)))
+             & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("condition");
@@ -433,10 +436,12 @@ package body Annotations.Xml is
       State : Line_State)
    is
       Sloc_Start : constant Source_Location := First_Sloc (SCO);
-      Sloc_End   : constant Source_Location := Last_Sloc (SCO);
+      Sloc_End   : constant Source_Location :=
+                     End_Lex_Element (Last_Sloc (SCO));
    begin
       Pp.ST ("decision",
              A ("Id", Img (Integer (SCO)))
+             & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
    end Pretty_Print_Start_Decision;
@@ -446,11 +451,11 @@ package body Annotations.Xml is
    -----------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Xml_Pretty_Printer;
-      Source          : File_Info_Access;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean)
+     (Pp         : in out Xml_Pretty_Printer;
+      Source     : File_Info_Access;
+      Stats      : Stat_Array;
+      Has_Source : Boolean;
+      Skip       : out Boolean)
    is
       pragma Unreferenced (Stats);
       --  No stats are emitted in the XML output; the user is supposed
@@ -533,10 +538,12 @@ package body Annotations.Xml is
       State : Line_State)
    is
       Sloc_Start     : constant Source_Location := First_Sloc (SCO);
-      Sloc_End       : constant Source_Location := Last_Sloc (SCO);
+      Sloc_End       : constant Source_Location :=
+                         End_Lex_Element (Last_Sloc (SCO));
    begin
       Pp.ST ("statement",
              A ("Id", Img (Integer (SCO)))
+             & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("statement");
@@ -552,22 +559,48 @@ package body Annotations.Xml is
       Sloc_End   : Source_Location)
    is
       use Ada.Strings.Unbounded;
+
+      Current_Line_Sloc : Source_Location := Sloc_Start;
    begin
       Pp.ST ("src");
+      Current_Line_Sloc.Column := 0;
+
       for Line_Num in Sloc_Start.Line .. Sloc_End.Line loop
+         Current_Line_Sloc.Line := Line_Num;
+
          declare
             Attributes : Unbounded_String :=
               To_Unbounded_String (A ("num", Img (Line_Num)));
+            Line       : constant String := Get_Line (Current_Line_Sloc);
+            Src_Start  : Natural := Line'First;
+            Src_End    : Natural := Line'Last;
          begin
             if Sloc_Start /= Sloc_End then
                if Line_Num = Sloc_Start.Line and Sloc_Start.Column > 1 then
+                  Src_Start := Natural'Min (Src_End, Sloc_Start.Column);
                   Attributes := Attributes
                     & A ("column_begin", Img (Sloc_Start.Column));
                end if;
 
                if Line_Num = Sloc_End.Line and Sloc_End.Column /= 0 then
+                  Src_End := Natural'Min (Src_End, Sloc_End.Column);
                   Attributes := Attributes
                     & A ("column_end", Img (Sloc_Start.Column));
+               end if;
+
+               if Line'Length /= 0 then
+                  if Src_Start > 1 then
+                     declare
+                        Spaces : constant String (1 .. Src_Start - 1) :=
+                                   (others => ' ');
+                     begin
+                        Attributes := Attributes
+                          & A ("src", Spaces & Line (Src_Start .. Src_End));
+                     end;
+                  else
+                     Attributes := Attributes
+                       & A ("src", Line (Src_Start .. Src_End));
+                  end if;
                end if;
             end if;
 

@@ -76,10 +76,6 @@ package body Annotations is
      (Pp   : in out Pretty_Printer'Class;
       File : File_Info_Access)
    is
-      F          : File_Type;
-      Last       : Natural := 1;
-      Has_Source : Boolean;
-
       procedure Process_One_Line (Index : Positive);
       --  Let Pp annotate the line at Index in File, including all the
       --  information attached to this line in the file table, if relevant
@@ -94,47 +90,26 @@ package body Annotations is
       procedure Process_One_Line (Index : Positive) is
          LI : constant Line_Info_Access := Get_Line (File, Index);
       begin
-         if Has_Source then
-            Pretty_Print_Start_Line (Pp, Index, LI, Get_Line (F));
-         else
-            Pretty_Print_Start_Line (Pp, Index, LI, "");
-         end if;
-
+         Pretty_Print_Start_Line (Pp, Index, LI, Get_Line (File, Index));
          Disp_Instruction_Sets (Pp, LI.all);
          Disp_SCOs (Pp, Index, LI.all);
          Disp_Messages (Pp, LI.all);
          Pretty_Print_End_Line (Pp);
-         Last := Index;
       end Process_One_Line;
 
-      Line       : Natural;
-      Skip       : Boolean;
+      Skip : Boolean;
 
    --  Start of processing for Disp_File_Line_State
 
    begin
-      Files_Table.Open (F, File, Has_Source);
+      Files_Table.Fill_Line_Cache (File);
+      Pretty_Print_Start_File (Pp, File, File.Stats, File.Has_Source, Skip);
 
-      Pretty_Print_Start_File (Pp, File, File.Stats, Has_Source, Skip);
       if Skip then
-         if Has_Source then
-            Close (F);
-         end if;
          return;
       end if;
 
       Iterate_On_Lines (File, Process_One_Line'Access);
-
-      if Has_Source then
-         Line := Last + 1;
-         while not End_Of_File (F) loop
-            Pretty_Print_Start_Line (Pp, Line, Empty_Line_Info, Get_Line (F));
-            Line := Line + 1;
-         end loop;
-
-         Close (F);
-      end if;
-
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
 
