@@ -17,6 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.Strings; use GNAT.Strings;
+
 with Disa_Symbolize; use Disa_Symbolize;
 with Files_Table;    use Files_Table;
 with Traces;         use Traces;
@@ -51,6 +53,7 @@ package Annotations is
    --  Display per-file summary
 
 private
+
    Global_Stats : Stat_Array := (others => 0);
    --  Stats associated with the whole set of source files that this package
    --  considers (i.e. total numbers of lines, of partially covered /
@@ -143,5 +146,10 @@ private
 
    function Aggregated_State (S : Line_States) return Line_State;
    --  Return synthetic indication of coverage state for all computed criteria
+
+   function Get_Exemption (Sloc : Source_Location) return String_Access;
+   --  If the given sloc is covered by an exemption, returns a pointer to a
+   --  descriptive mesasge justifying the exemption, else return a null
+   --  pointer.
 
 end Annotations;

@@ -20,8 +20,10 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;
 
-with Outputs; use Outputs;
+with ALI_Files;   use ALI_Files;
+with Outputs;     use Outputs;
 with Traces_Disa;
+with Types;       use Types;
 with Coverage;
 with Coverage.Object;
 with Coverage.Source;
@@ -475,6 +477,30 @@ package body Annotations is
       Files_Table_Iterate (Process_One_File'Access);
       Pretty_Print_End (Pp);
    end Generate_Report;
+
+   -------------------
+   -- Get_Exemption --
+   -------------------
+
+   function Get_Exemption (Sloc : Source_Location) return String_Access is
+      use ALI_Annotation_Maps;
+
+      Cur : constant Cursor := ALI_Annotations.Floor (Sloc);
+   begin
+      if Cur /= No_Element
+        and then Key (Cur).Source_File = Sloc.Source_File
+      then
+         declare
+            A : constant ALI_Annotation := Element (Cur);
+         begin
+            if A.Kind = Exempt_On then
+               return A.Message;
+            end if;
+         end;
+      end if;
+
+      return null;
+   end Get_Exemption;
 
    --------------------------
    -- To_Annotation_Format --

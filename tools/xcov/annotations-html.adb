@@ -19,14 +19,14 @@
 
 with Ada.Integer_Text_IO;
 with Ada.Text_IO; use Ada.Text_IO;
-with GNAT.Strings; use GNAT.Strings;
-with Hex_Images; use Hex_Images;
+
+with Hex_Images;  use Hex_Images;
 with Traces_Disa; use Traces_Disa;
 with Traces_Files;
 with Traces_Files_List;
 with Qemu_Traces;
-with Coverage; use Coverage;
-with Outputs; use Outputs;
+with Coverage;    use Coverage;
+with Outputs;     use Outputs;
 
 package body Annotations.Html is
    type String_Cst_Acc is access constant String;

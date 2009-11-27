@@ -25,12 +25,12 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
+with ALI_Files;   use ALI_Files;
 with Diagnostics; use Diagnostics;
-with SCOs;        use SCOs;
+with SCOs;
 with Switches;    use Switches;
 with Types;       use Types;
 with Files_Table; use Files_Table;
-with Get_SCOs;
 
 package body SC_Obligations is
 
@@ -998,16 +998,11 @@ package body SC_Obligations is
    ---------------
 
    procedure Load_SCOs (ALI_Filename : String) is
+      use SCOs;
+
       Cur_Source_File : Source_File_Index := No_Source_File;
       Cur_SCO_Unit : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
-
-      ALI_Index : Source_File_Index;
-
-      ALI_File : File_Type;
-      Line     : String (1 .. 1024);
-      Last     : Natural;
-      Index    : Natural;
 
       Previous_Statement : SCO_Id := No_SCO_Id;
       --  Previous statement in the same CS line, used for chaining of basic
@@ -1026,105 +1021,11 @@ package body SC_Obligations is
 
       Last_SCO_Upon_Entry : constant SCO_Id := SCO_Vector.Last_Index;
 
-      function Getc return Character;
-      --  Consume and return next character from Line.
-      --  Load next line if at end of line. Return ^Z if at end of file.
-
-      function Nextc return Character;
-      --  Peek at next character in Line. Return ^Z if at end of file.
-
-      procedure Skipc;
-      --  Skip one character in Line
-
-      ----------
-      -- Getc --
-      ----------
-
-      function Getc return Character is
-         Next_Char : constant Character := Nextc;
-      begin
-         Index := Index + 1;
-         if Index > Last + 1 and then not End_Of_File (ALI_File) then
-            Get_Line (ALI_File, Line, Last);
-            Index := 1;
-         end if;
-         return Next_Char;
-      end Getc;
-
-      -----------
-      -- Nextc --
-      -----------
-
-      function Nextc return Character is
-      begin
-         if Index = Last + 1 then
-            return ASCII.LF;
-
-         elsif Index in Line'First .. Last then
-            return Line (Index);
-
-         else
-            return Character'Val (16#1a#);
-         end if;
-      end Nextc;
-
-      -----------
-      -- Skipc --
-      -----------
-
-      procedure Skipc is
-         C : Character;
-         pragma Unreferenced (C);
-      begin
-         C := Getc;
-      end Skipc;
-
-      procedure Get_SCOs_From_ALI is new Get_SCOs;
-
-   --  Start of processing for Load_SCOs_From_ALI
-
+      ALI_Index : constant Source_File_Index := Load_ALI (ALI_Filename);
    begin
-      --  First check whether this ALI has been already loaded. We identify
-      --  this by the fact that it already has an assigned Source_File_Index.
-
-      ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => False);
-      if ALI_Index /= No_Source_File then
-         Report
-           ("ignoring duplicate ALI file " & ALI_Filename, Kind => Warning);
+      if ALI_Index = No_Source_File then
          return;
       end if;
-
-      ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => True);
-      Open (ALI_File, In_File, ALI_Filename);
-
-      --  Here once the ALI file has been succesfully opened
-
-      if Verbose then
-         Put_Line ("Loading SCOs from " & ALI_Filename);
-      end if;
-
-      Scan_ALI : loop
-         if End_Of_File (ALI_File) then
-            --  No SCOs in this ALI
-
-            Close (ALI_File);
-            return;
-         end if;
-
-         Get_Line (ALI_File, Line, Last);
-         case Line (1) is
-            when 'C' =>
-               exit Scan_ALI;
-
-            when others =>
-               null;
-         end case;
-      end loop Scan_ALI;
-
-      Index := 1;
-
-      Get_SCOs_From_ALI;
-      Close (ALI_File);
 
       --  Walk low-level SCO table for this unit and populate high-level tables
 

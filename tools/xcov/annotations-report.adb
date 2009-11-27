@@ -19,8 +19,6 @@
 
 with Ada.Directories;
 
-with GNAT.Strings; use GNAT.Strings;
-
 with Coverage;     use Coverage;
 with Strings;      use Strings;
 
