@@ -724,6 +724,7 @@ For example @xrun{} @code{/path/to/myexecfile} produces a
 @c
 @option{--output} allows the selection of an alternate output file name.
 
+@pindex @code{Trace tags}
 The @option{--tag} option expects a string argument and stores it
 verbatim as a trace tag attribute in the output trace header.
 @c
@@ -1137,6 +1138,7 @@ set they build.
 @c
 
 @smallexample
+
 $ xcov disp-routines explore
   # (symbols defined in the 'explore' executable)
 
@@ -1173,6 +1175,7 @@ in A.
 
 @page
 @section Source Coverage Analysis
+@pindex @code{xcov coverage}, for source coverage analysis
 
 Source coverage analysis focuses on source elements such as
 ``statements'' or ``decisions''.
@@ -1197,8 +1200,8 @@ the one for object coverage: @xrun{} produces execution traces, and
 @code{xcov coverage} generates reports out of them. 
 @c
 Source coverage analysis is requested thanks to variants of the
-@code{--level} option: @code{=stmt}, @code{=decision} or @code{=mcdc}
-for statement, decision and mcdc coverage respectively.
+@code{--level} option, which should be passed to both @xrun{} and
+@code{xcov coverage}.
 
 The set of SCOs for which coverage is to be assessed is provided by
 way of a @option{--scos} command line option, which accepts either a
@@ -1206,7 +1209,7 @@ single @code{.ali} filename argument, or an @code{@@} prefixed
 filename containing a list of @code{ali} files.
 @c
 @code{--scos} is the source oriented version of what @code{--routines}
-offers in the object coverge case.
+offers in the object coverage case.
 @c
 They may not be used together.
 @c
@@ -1227,11 +1230,11 @@ line, @code{html} features line colorization and an index page, and
 @code{report} outputs the sequence of incomplete coverage diagnostics
 out of the analysis performed.
 
-@subsection Statement Coverage
+@subsection Statement Coverage (SC)
+@pindex @code{Statement Coverage}
 
-Statement coverage is achieved with @code{--level=stmt} on @code{xcov
-coverage} invocations, together with @code{--scos} to provide the set
-of SCOs of interest via ALI files.
+Statement coverage is achieved with @code{--level=stmt}, together with
+@code{--scos} to provide the set of SCOs of interest via ALI files.
 @c
 The @code{xcov} and @code{html} annotation formats both generate a
 representation of the sources with annotations on each relevant line,
@@ -1247,13 +1250,19 @@ according to the following table:
 @tab statement covered (executed) on this line
 @end multitable
 
-For the Explore example, here is for example how we could infer
-statement coverage results for the @code{robots} unit after an
-execution session leaving a trace in @code{explore.trace}:
+Below is a sample session to illustrate on the Explore example, for
+statement coverage results for the @code{robots} unit after
+recompilation with @option{-gnateS -O0}.
+@c
+Note the @option{--level} option passed to both @code{run} and
+@code{overage} invocations:
 
 @smallexample
 
-$ xcov coverage --scos=obj/robots.ali --level=stmt --annotate=xcov explore.trace
+$ xcov run --level=stmt explore
+... run session, trace goes to explore.trace by default ...
+
+$ xcov coverage --level=stmt --scos=obj/robots.ali --annotate=xcov explore.trace
 @end smallexample
 
 To analyze a full set of units at once, just fetch the list of ALI files in
@@ -1304,25 +1313,38 @@ For the example excerpt above, this would be like:
 
 Coverage level: STMT
 [...]
-stations.adb:87: line not covered for STMT coverage
-stations.adb:89: line not covered for STMT coverage
+stations.adb:87: statement not covered
+stations.adb:89: statement not covered
 [...]
 
 @end smallexample
 
-@subsection Decision and MC/DC Coverage
-
+@subsection Decision Coverage (DC)
 @noindent
-[CAPABILITIES AND DOCUMENTATION TO BE DEVELOPPED]
-Despite object code abstracted away, still relies on object code
-execution traces and requires a couple of assumptions to hold:
+In addition to its Statement Coverage support, @xcov{} features Decision
+Coverage assessment capabilities, requested with
+@option{--level=stmt+decision}.
+@c
+The use process is identical to the one for statement coverage, except
+that it yields coverage results of a different nature.
 
-@itemize @bullet
-@item
-binary boolean operators are restricted to short-circuit forms, and
-@item
-every condition is expected to materialize into a conditional branch.
-@end itemize
+All the uncovered statements remain reported as such, without further
+details even if there are decisions therein.
+@c
+Decision Coverage specific information 
+
+
+@subsection Modified Condition/Decision Coverage (MCDC)
+@noindent
+In a similar fashion to Decisio Coverage, Xcov features Modified
+Condition/Decision Coverage assessment capabilities, requested
+@option{--level=stmt+mcdc}.
+
+Xcov implements Masking MCDC.
+
+New --annotate=report notes. Line synthesis notes adjusted
+accordingly. Details with xcov+ and html+
+
 
 @page
 @section Use cases and Additional features
