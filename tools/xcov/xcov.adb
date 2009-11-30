@@ -529,8 +529,7 @@ procedure Xcov is
 
             elsif Has_Prefix (Arg, Final_Report_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               Annotations.Report.Open_Report_File
-                 (Option_Parameter (Arg));
+               Output := new String'(Option_Parameter (Arg));
 
             elsif Has_Prefix (Arg, Output_Dir_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
@@ -1129,14 +1128,7 @@ begin
                Annotations.Html.Generate_Report (True);
 
             when Annotate_Report =>
-               if Output /= null then
-                  Annotations.Report.Open_Report_File (Output.all);
-               end if;
-
-               Put_Line
-                 (Annotations.Report.Get_Output.all,
-                  "Coverage level: " & Coverage_Option_Value);
-               Annotations.Report.Finalize_Report;
+               Annotations.Report.Generate_Report (Output);
 
             when Annotate_Unknown =>
                Fatal_Error ("Please specify an annotation format.");
