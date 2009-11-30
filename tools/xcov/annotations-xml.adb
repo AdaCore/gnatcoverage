@@ -317,6 +317,7 @@ package body Annotations.Xml is
    begin
       Pp.ET ("sources", Dest_Index);
       Pp.ET ("coverage_report", Dest_Index);
+      Pp.ET ("document", Dest_Index);
       Close (Pp.Files (Dest_Index));
    end Pretty_Print_End;
 
@@ -421,6 +422,9 @@ package body Annotations.Xml is
       Create_Output_File (Pp.Files (Dest_Index), "index.xml");
 
       Pp.P (Xml_Header, Dest_Index);
+      Pp.ST ("document",
+             A ("xmlns:xi", "http://www.w3.org/2001/XInclude"),
+             Dest_Index);
       Pp.ST ("coverage_report",
              A ("coverage_level", Coverage_Option_Value), Dest_Index);
       Pp.ST ("sources", Dest_Index);
@@ -461,12 +465,16 @@ package body Annotations.Xml is
       --  No stats are emitted in the XML output; the user is supposed
       --  to compute them by himself by post-processing the output.
 
-      pragma Unreferenced (Has_Source);
-
       Simple_Source_Filename : constant String := Source.Simple_Name.all;
       Xml_File_Name          : constant String :=
         Simple_Source_Filename & ".xml";
    begin
+      if not (Has_Source or Flag_Show_Missing) then
+         Warn_File_Missing (Source.all);
+         Skip := True;
+         return;
+      end if;
+
       Skip := False;
       Create_Output_File (Pp.Files (Dest_Compilation_Unit), Xml_File_Name);
       Pp.P (Xml_Header);
