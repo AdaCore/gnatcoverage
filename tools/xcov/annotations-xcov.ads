@@ -18,6 +18,9 @@
 ------------------------------------------------------------------------------
 
 package Annotations.Xcov is
-   --  Generate the report in xcov format.
-   procedure Generate_Report (Show_Asm : Boolean);
+
+   procedure Generate_Report (Show_Details : Boolean);
+   --  Annotate the source file in XCOV format with line states, embedding
+   --  justifications on each non-fully-covered line if Show_Details is True.
+
 end Annotations.Xcov;

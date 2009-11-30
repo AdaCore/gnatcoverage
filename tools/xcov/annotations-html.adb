@@ -27,6 +27,7 @@ with Traces_Files_List;
 with Qemu_Traces;
 with Coverage;    use Coverage;
 with Outputs;     use Outputs;
+with Strings;     use Strings;
 
 package body Annotations.Html is
    type String_Cst_Acc is access constant String;
@@ -48,13 +49,18 @@ package body Annotations.Html is
    type Html_Pretty_Printer is new Pretty_Printer with record
       --  Pretty printer type for the HTML annotation format
 
-      Html_File       : Ada.Text_IO.File_Type;
+      Html_File : Ada.Text_IO.File_Type;
       --  When going through the source file list, handle to the html file
       --  that corresponds to the source file being processed.
       --  e.g. hello.adb.html for hello.adb.
 
-      Index_File      : Ada.Text_IO.File_Type;
+      Index_File : Ada.Text_IO.File_Type;
       --  Handle to the HTML index
+
+      Show_Line_Details : Boolean := False;
+      --  When going through the line table of a source file, this
+      --  records whether justifications of the current line state
+      --  should be shown
    end record;
 
    ------------------------------------------------
@@ -79,18 +85,14 @@ package body Annotations.Html is
       Info     : Line_Info_Access;
       Line     : String);
 
+   procedure Pretty_Print_End_Line
+     (Pp : in out Html_Pretty_Printer);
+
    procedure Pretty_Print_Start_Symbol
      (Pp     : in out Html_Pretty_Printer;
       Name   : String;
       Offset : Pc_Type;
       State  : Line_State);
-
-   procedure Pretty_Print_Start_Instruction_Set
-     (Pp    : in out Html_Pretty_Printer;
-      State : Line_State);
-
-   procedure Pretty_Print_End_Instruction_Set
-     (Pp : in out Html_Pretty_Printer);
 
    procedure Pretty_Print_Insn
      (Pp    : in out Html_Pretty_Printer;
@@ -98,6 +100,10 @@ package body Annotations.Html is
       State : Insn_State;
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class);
+
+   procedure Pretty_Print_Message
+     (Pp    : in out Html_Pretty_Printer;
+      M     : Message);
 
    procedure Pretty_Print_End_File (Pp : in out Html_Pretty_Printer);
 
@@ -150,6 +156,9 @@ package body Annotations.Html is
          new S'("tr.covered { background-color: #80ff80; }"),
          new S'("tr.not_covered { background-color: red; }"),
          new S'("tr.partially_covered { background-color: orange; }"),
+         new S'("tr.notice { background-color: #80ff80; }"),
+         new S'("tr.error { background-color: red; }"),
+         new S'("tr.warning { background-color: orange; }"),
          new S'("tr.no_code_odd { }"),
          new S'("tr.no_code_even { background-color: #f0f0f0; }"),
          new S'("td.SumBarCover { background-color: green; }"),
@@ -182,11 +191,11 @@ package body Annotations.Html is
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report (Show_Asm : Boolean) is
+   procedure Generate_Report (Show_Details : Boolean) is
       Html : Html_Pretty_Printer;
    begin
-      Html.Show_Asm := Show_Asm;
-      Annotations.Generate_Report (Html, Show_Asm);
+      Html.Show_Details := Show_Details;
+      Annotations.Generate_Report (Html, Show_Details);
    end Generate_Report;
 
    ---------
@@ -293,6 +302,20 @@ package body Annotations.Html is
       Close (Pp.Html_File);
    end Pretty_Print_End_File;
 
+   ---------------------------
+   -- Pretty_Print_End_Line --
+   ---------------------------
+
+   procedure Pretty_Print_End_Line
+     (Pp : in out Html_Pretty_Printer)
+   is
+   begin
+      if Pp.Show_Line_Details then
+         Plh (Pp, "    </table></td>");
+         Plh (Pp, "  </tr>");
+      end if;
+   end Pretty_Print_End_Line;
+
    -----------------------
    -- Pretty_Print_Insn --
    -----------------------
@@ -336,17 +359,44 @@ package body Annotations.Html is
       Plh (Pp, "      </tr>");
    end Pretty_Print_Insn;
 
-   --------------------------------------
-   -- Pretty_Print_End_Instruction_Set --
-   --------------------------------------
+   --------------------------
+   -- Pretty_Print_Message --
+   --------------------------
 
-   procedure Pretty_Print_End_Instruction_Set
-     (Pp : in out Html_Pretty_Printer)
-   is
+   procedure Pretty_Print_Message
+     (Pp    : in out Html_Pretty_Printer;
+      M     : Message) is
    begin
-      Plh (Pp, "    </table></td>");
-      Plh (Pp, "  </tr>");
-   end Pretty_Print_End_Instruction_Set;
+      Wrh (Pp, "      <tr class=""");
+
+      case M.Kind is
+         when Error =>
+            Wrh (Pp, "error");
+
+         when Warning =>
+            Wrh (Pp, "warning");
+
+         when Notice =>
+            Wrh (Pp, "notice");
+      end case;
+
+      Plh (Pp, """>");
+      Wrh (Pp, "        <td><pre>");
+
+      if M.SCO /= No_SCO_Id then
+         Wrh (Pp, SCO_Kind'Image (Kind (M.SCO))
+              & " """ & To_Xml_String (SCO_Text (M.SCO)) & '"'
+              & "at " & Img (M.Sloc.Line) & ":" & Img (M.Sloc.Column)
+              & ": ");
+      else
+         Wrh (Pp, Image (M.Sloc));
+         Wrh (Pp, ": ");
+      end if;
+
+      Wrh (Pp, To_Xml_String (M.Msg.all));
+      Plh (Pp, "</pre></td>");
+      Plh (Pp, "      </tr>");
+   end Pretty_Print_Message;
 
    ------------------------
    -- Pretty_Print_Start --
@@ -555,15 +605,15 @@ package body Annotations.Html is
       Plh (Pp, "  <link rel=""stylesheet"" type=""text/css"" "
              & "href=""xcov.css"">");
 
-      if Pp.Show_Asm then
+      if Pp.Show_Details then
          Plh (Pp, "  <script language=""JavaScript"" "
                 & "type=""text/javascript"">");
          Plh (Pp, "    function flip(atr) {");
-         Plh (Pp, "      var asm = atr.nextSibling.nextSibling;");
-         Plh (Pp, "      if (asm.style.display == ""none"")");
-         Plh (Pp, "        asm.style.display = """";");
+         Plh (Pp, "      var details = atr.nextSibling.nextSibling;");
+         Plh (Pp, "      if (details.style.display == ""none"")");
+         Plh (Pp, "        details.style.display = """";");
          Plh (Pp, "      else");
-         Plh (Pp, "        asm.style.display = ""none"";");
+         Plh (Pp, "        details.style.display = ""none"";");
          Plh (Pp, "    }");
          Plh (Pp, "  </script>");
       end if;
@@ -583,20 +633,6 @@ package body Annotations.Html is
            & "class=""SourceFile"">");
    end Pretty_Print_Start_File;
 
-   ----------------------------------------
-   -- Pretty_Print_Start_Instruction_Set --
-   ----------------------------------------
-
-   procedure Pretty_Print_Start_Instruction_Set
-     (Pp    : in out Html_Pretty_Printer;
-      State : Line_State)
-   is
-      pragma Unreferenced (State);
-   begin
-      Plh (Pp, "  <tr style=""display: none""><td></td><td></td>");
-      Plh (Pp, "    <td><table width=""100%"">");
-   end Pretty_Print_Start_Instruction_Set;
-
    -----------------------------
    -- Pretty_Print_Start_Line --
    -----------------------------
@@ -608,9 +644,12 @@ package body Annotations.Html is
       Line     : String)
    is
       use Ada.Integer_Text_IO;
-      State : constant Line_State := Aggregated_State (Info.State);
+
+      State        : constant Line_State := Aggregated_State (Info.State);
    begin
+      Pp.Show_Line_Details := Pp.Show_Details and then State /= No_Code;
       Wrh (Pp, "  <tr class=");
+
       case State is
          when Not_Covered =>
             Wrh (Pp, """not_covered""");
@@ -638,13 +677,13 @@ package body Annotations.Html is
             Wrh (Pp, "no code generated for this line");
       end case;
 
-      if Pp.Show_Asm and then State /= No_Code then
-         Wrh (Pp, " (click to display/mask assembly code)");
+      if Pp.Show_Line_Details then
+         Wrh (Pp, " (click to display/mask details)");
       end if;
 
       Wrh (Pp, """");
 
-      if Pp.Show_Asm and then State /= No_Code then
+      if Pp.Show_Line_Details then
          Wrh (Pp, " onclick=""flip(this)""");
       end if;
 
@@ -660,6 +699,11 @@ package body Annotations.Html is
       Wrh (Pp, To_Xml_String (Line));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "  </tr>");
+
+      if Pp.Show_Line_Details then
+         Plh (Pp, "  <tr style=""display: none""><td></td><td></td>");
+         Plh (Pp, "    <td><table width=""100%"">");
+      end if;
    end Pretty_Print_Start_Line;
 
    -------------------------------

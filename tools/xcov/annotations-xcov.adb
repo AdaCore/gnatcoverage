@@ -25,6 +25,7 @@ with Coverage;    use Coverage;
 with Hex_Images;  use Hex_Images;
 with Outputs;     use Outputs;
 with Traces_Disa; use Traces_Disa;
+with Strings;     use Strings;
 
 package body Annotations.Xcov is
 
@@ -68,17 +69,21 @@ package body Annotations.Xcov is
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class);
 
+   procedure Pretty_Print_Message
+     (Pp : in out Xcov_Pretty_Printer;
+      M  : Message);
+
    procedure Pretty_Print_End_File (Pp : in out Xcov_Pretty_Printer);
 
    ---------------------
    -- Generate_Report --
    ---------------------
 
-   procedure Generate_Report (Show_Asm : Boolean)
+   procedure Generate_Report (Show_Details : Boolean)
    is
       Xcov : Xcov_Pretty_Printer;
    begin
-      Annotations.Generate_Report (Xcov, Show_Asm);
+      Annotations.Generate_Report (Xcov, Show_Details);
    end Generate_Report;
 
    ---------------------------
@@ -110,6 +115,28 @@ package body Annotations.Xcov is
       Put (Pp.Xcov_File, " ");
       Put_Line (Pp.Xcov_File, Disassemble (Insn, Pc, Sym));
    end Pretty_Print_Insn;
+
+   --------------------------
+   -- Pretty_Print_Message --
+   --------------------------
+
+   procedure Pretty_Print_Message
+     (Pp : in out Xcov_Pretty_Printer;
+      M  : Message) is
+   begin
+      if M.SCO /= No_SCO_Id then
+         Put (Pp.Xcov_File, SCO_Kind'Image (Kind (M.SCO))
+              & " """ & SCO_Text (M.SCO) & '"'
+              & "at " & Img (M.Sloc.Line) & ":" & Img (M.Sloc.Column)
+              & ": ");
+      else
+         Put (Pp.Xcov_File, Image (M.Sloc));
+         Put (Pp.Xcov_File, ": ");
+      end if;
+
+      Put (Pp.Xcov_File, M.Msg.all);
+      New_Line (Pp.Xcov_File);
+   end Pretty_Print_Message;
 
    -----------------------------
    -- Pretty_Print_Start_Line --

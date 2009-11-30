@@ -20,12 +20,14 @@
 with Ada.Text_IO; use Ada.Text_IO;
 
 package Annotations.Report is
-   --  Generate the final report, source-wise.
 
    procedure Open_Report_File (Final_Report_Name : String);
+   --  Open Final_Report_Name and use it as the report file
 
    function Get_Output return File_Access;
+   --  Return a handle to the current report file
 
    procedure Finalize_Report;
+   --  Generate the final report, source-wise
 
 end Annotations.Report;

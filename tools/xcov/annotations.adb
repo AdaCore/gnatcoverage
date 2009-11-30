@@ -91,9 +91,13 @@ package body Annotations is
          LI : constant Line_Info_Access := Get_Line (File, Index);
       begin
          Pretty_Print_Start_Line (Pp, Index, LI, Get_Line (File, Index));
-         Disp_Instruction_Sets (Pp, LI.all);
-         Disp_SCOs (Pp, Index, LI.all);
-         Disp_Messages (Pp, LI.all);
+
+         if Pp.Show_Details then
+            Disp_Instruction_Sets (Pp, LI.all);
+            Disp_SCOs (Pp, Index, LI.all);
+            Disp_Messages (Pp, LI.all);
+         end if;
+
          Pretty_Print_End_Line (Pp);
       end Process_One_Line;
 
@@ -157,7 +161,7 @@ package body Annotations is
       --  Start of processing for Disp_Instruction_Sets
 
    begin
-      if Pp.Show_Asm and Coverage.Object_Coverage_Enabled then
+      if Coverage.Object_Coverage_Enabled then
          Info := LI.Obj_First;
 
          if Info /= null then
@@ -366,7 +370,9 @@ package body Annotations is
       --  Start of processing for Disp_SCOs
 
    begin
-      LI.SCOs.Iterate (Process_One_SCO'Access);
+      if Coverage.Source_Coverage_Enabled then
+         LI.SCOs.Iterate (Process_One_SCO'Access);
+      end if;
    end Disp_SCOs;
 
    ---------------------
@@ -374,8 +380,8 @@ package body Annotations is
    ---------------------
 
    procedure Generate_Report
-     (Pp       : in out Pretty_Printer'Class;
-      Show_Asm : Boolean)
+     (Pp           : in out Pretty_Printer'Class;
+      Show_Details : Boolean)
    is
       procedure Compute_File_State (FI : File_Info_Access);
       --  For all lines in FI, compute line state and update file table
@@ -439,7 +445,7 @@ package body Annotations is
    --  Start of processing for Generate_Report
 
    begin
-      Pp.Show_Asm := Show_Asm;
+      Pp.Show_Details := Show_Details;
 
       --  Compute lines state, files and global statistics
 
@@ -500,6 +506,12 @@ package body Annotations is
 
       elsif Option = "html+asm" then
          return Annotate_Html_Asm;
+
+      elsif Option = "xcov+" then
+         return Annotate_Xcov_Plus;
+
+      elsif Option = "html+" then
+         return Annotate_Html_Plus;
 
       elsif Option = "report" then
          return Annotate_Report;

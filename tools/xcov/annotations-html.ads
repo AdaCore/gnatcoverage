@@ -18,6 +18,9 @@
 ------------------------------------------------------------------------------
 
 package Annotations.Html is
-   --  Display source lines with status.
-   procedure Generate_Report (Show_Asm : Boolean);
+
+   procedure Generate_Report (Show_Details : Boolean);
+   --  Annotate the source file in HTML with line states, embedding
+   --  justifications on each non-fully-covered line if Show_Details is True.
+
 end Annotations.Html;

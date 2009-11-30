@@ -36,6 +36,8 @@ package Annotations is
      (Annotate_Asm,
       Annotate_Xcov,
       Annotate_Html,
+      Annotate_Xcov_Plus,
+      Annotate_Html_Plus,
       Annotate_Xcov_Asm,
       Annotate_Html_Asm,
       Annotate_Xml,
@@ -61,7 +63,7 @@ private
 
    type Pretty_Printer is abstract tagged limited record
       Need_Sources : Boolean;
-      Show_Asm     : Boolean;
+      Show_Details : Boolean;
    end record;
 
    procedure Pretty_Print_Start
@@ -141,14 +143,17 @@ private
    --  Let Pp print the condition whose id is SCO
 
    procedure Generate_Report
-     (Pp       : in out Pretty_Printer'Class;
-      Show_Asm : Boolean);
+     (Pp           : in out Pretty_Printer'Class;
+      Show_Details : Boolean);
+   --  Let Pp generate the annotated sources. If Show_Details is False, only
+   --  a line state will be displayed. If Show_Details is True, a justification
+   --  is associated to this line state.
 
    function Aggregated_State (S : Line_States) return Line_State;
    --  Return synthetic indication of coverage state for all computed criteria
 
    function Get_Exemption (Sloc : Source_Location) return String_Access;
-   --  If the given sloc is covered by an exemption, returns a pointer to a
+   --  If the given sloc is covered by an exemption, return a pointer to a
    --  descriptive mesasge justifying the exemption, else return a null
    --  pointer.
 

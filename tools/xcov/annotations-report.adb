@@ -100,7 +100,7 @@ package body Annotations.Report is
    procedure Finalize_Report is
       Report_PP : Report_Pretty_Printer;
    begin
-      Annotations.Generate_Report (Report_PP, False);
+      Annotations.Generate_Report (Report_PP, True);
       Close_Report_File;
    end Finalize_Report;
 

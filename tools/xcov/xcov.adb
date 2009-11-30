@@ -110,7 +110,7 @@ procedure Xcov is
       P ("   -c LEVEL --level=LEVEL        Specify coverage levels");
       P ("      LEVEL is one of " & Valid_Coverage_Options);
       P ("   -a FORM  --annotate=FORM      Generate a FORM report");
-      P ("      FORM is one of asm,xcov,html,xcov+asm,html+asm,report");
+      P ("      FORM is one of asm,xcov,html,xcov+,html+,report");
       P ("   --routines=<FILE|@LISTFILE> Add ROUTINE, or all routine listed");
       P ("                               in LISTFILE to the list of routines");
       P ("   --scos=<FILE|@LISTFILE>     Add FILE being an ALI file,");
@@ -235,6 +235,9 @@ procedure Xcov is
       --  Check that Arg_Index is not greater than Arg_Count. If not, display
       --  an error message and raise Fatal_Error.
 
+      procedure Check_Annotation_Format (Annotation : Annotation_Format);
+      --  Warn if Annotation is unknown or deprecated
+
       function Rest_Of_Command_Line return String_List_Access;
       --  Return the rest of the command line in a string list
 
@@ -251,6 +254,21 @@ procedure Xcov is
                          & For_Command_Switch (Command));
          end if;
       end Check_Argument_Available;
+
+      ------------------------------
+      -- Check_Argument_Available --
+      ------------------------------
+
+      procedure Check_Annotation_Format (Annotation : Annotation_Format) is
+      begin
+         if Annotation = Annotate_Unknown then
+            Fatal_Error ("bad parameter for " & Annotate_Option_Short);
+         elsif Annotation = Annotate_Html_Asm then
+            Warn ("html+asm is deprecated; use html+ instead");
+         elsif Annotation = Annotate_Xcov_Asm then
+            Warn ("xcov+asm is deprecated; use xcov+ instead");
+         end if;
+      end Check_Annotation_Format;
 
       --------------
       -- Next_Arg --
@@ -502,16 +520,12 @@ procedure Xcov is
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Annotation :=
                  To_Annotation_Format (Next_Arg ("annotation format"));
-               if Annotation = Annotate_Unknown then
-                  Fatal_Error ("bad parameter for " & Annotate_Option_Short);
-               end if;
+               Check_Annotation_Format (Annotation);
 
             elsif Has_Prefix (Arg, Annotate_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Annotation := To_Annotation_Format (Option_Parameter (Arg));
-               if Annotation = Annotate_Unknown then
-                  Fatal_Error ("bad parameter for " & Annotate_Option);
-               end if;
+               Check_Annotation_Format (Annotation);
 
             elsif Has_Prefix (Arg, Final_Report_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
@@ -1093,11 +1107,25 @@ begin
                Annotations.Xml.Generate_Report;
 
             when Annotate_Xcov_Asm =>
-               --  Case of source coverage???
-               Annotations.Xcov.Generate_Report (True);
+               if Source_Coverage_Enabled then
+                  Fatal_Error ("xcov+asm format not supported"
+                               & "for source coverage");
+               else
+                  Annotations.Xcov.Generate_Report (True);
+               end if;
 
             when Annotate_Html_Asm =>
-               --  Case of source coverage???
+               if Source_Coverage_Enabled then
+                  Fatal_Error ("xcov+asm format not supported"
+                               & "for source coverage");
+               else
+                  Annotations.Html.Generate_Report (True);
+               end if;
+
+            when Annotate_Xcov_Plus =>
+               Annotations.Xcov.Generate_Report (True);
+
+            when Annotate_Html_Plus =>
                Annotations.Html.Generate_Report (True);
 
             when Annotate_Report =>
