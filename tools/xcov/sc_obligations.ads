@@ -35,11 +35,6 @@ package SC_Obligations is
 
    function Image (SCO : SCO_Id; With_Sloc : Boolean := True) return String;
 
-   function SCO_Text (SCO : SCO_Id; Length : Natural := 8) return String;
-   --  Extract the text of SCO from source file, truncating it to the
-   --  first source line and the first Length characters. If it has been
-   --  truncated, the returned value will end with "...".
-
    function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
    --  Return the innermost SCO whose range contains the given sloc.
    --  It is an error if multiple such SCOs exist and aren't nested.

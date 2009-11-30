@@ -483,6 +483,35 @@ package body Annotations is
       return null;
    end Get_Exemption;
 
+   --------------
+   -- SCO_Text --
+   --------------
+
+   function SCO_Text (SCO : SCO_Id; Length : Natural := 8) return String is
+      Sloc_Start : constant Source_Location := First_Sloc (SCO);
+      Sloc_End   : constant Source_Location :=
+                     End_Lex_Element (Last_Sloc (SCO));
+      Sloc_Bound : Source_Location;
+      Line       : constant String := Get_Line (Sloc_Start);
+      Col_Start  : constant Natural := Sloc_Start.Column;
+      Col_End    : Natural;
+   begin
+      if Line'Last < Sloc_Start.Column then
+         return "";
+      end if;
+
+      Sloc_Bound := Sloc_Start;
+      Sloc_Bound.Column := Sloc_Start.Column + Length;
+
+      if Sloc_Bound < Sloc_End then
+         Col_End := Natural'Min (Line'Last, Sloc_Bound.Column);
+         return Line (Col_Start .. Col_End) & "...";
+      else
+         Col_End := Natural'Min (Line'Last, Sloc_End.Column);
+         return Line (Col_Start .. Col_End);
+      end if;
+   end SCO_Text;
+
    --------------------------
    -- To_Annotation_Format --
    --------------------------
