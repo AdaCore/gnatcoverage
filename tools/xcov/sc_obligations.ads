@@ -108,9 +108,12 @@ package SC_Obligations is
 
    function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id;
    function Last_Cond_Index (SCO : SCO_Id) return Condition_Index;
+   function Degraded_Origins (SCO : SCO_Id) return Boolean;
 
    function Has_Diamond (SCO : SCO_Id) return Boolean;
    --  True if decison's BDD has a diamond, i.e. a node reachable through more
    --  than one path.
+
+   procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
 
 end SC_Obligations;

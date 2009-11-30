@@ -303,6 +303,11 @@ package body SC_Obligations is
             Decision_BDD : BDD.BDD_Type;
             --  BDD of the decision
 
+            Degraded_Origins : Boolean := False;
+            --  Set True for the case of a single-condition decision, whose
+            --  conditional branch instructions have origins (i.e. condition
+            --  value labels) set modulo an arbitrary negation.
+
       end case;
    end record;
 
@@ -833,6 +838,15 @@ package body SC_Obligations is
       raise Constraint_Error with "condition index out of range";
    end Condition;
 
+   ----------------------
+   -- Degraded_Origins --
+   ----------------------
+
+   function Degraded_Origins (SCO : SCO_Id) return Boolean is
+   begin
+      return SCO_Vector.Element (SCO).Degraded_Origins;
+   end Degraded_Origins;
+
    ----------------
    -- First_Sloc --
    ----------------
@@ -899,16 +913,19 @@ package body SC_Obligations is
          if Sloc_End < SCOD.Sloc_Range.First_Sloc then
             --  Negative match, and no chance to have a positive match in the
             --  next SCOs: they all have a higher First_Sloc.
+
             return False;
 
          elsif SCOD.Sloc_Range.Last_Sloc < Sloc_Begin then
             --  Negative match, but we may reach a positive match in the next
             --  SCO. Continue.
+
             null;
 
          else
             --  The two possible negative matches have been dealt with earlier.
             --  We have a positive match.
+
             return True;
 
          end if;
@@ -1453,6 +1470,30 @@ package body SC_Obligations is
    begin
       SCO_Vector.Iterate (Check_Condition'Access);
    end Report_SCOs_Without_Code;
+
+   --------------------------
+   -- Set_Degraded_Origins --
+   --------------------------
+
+   procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True) is
+
+      procedure Set_SCOD_Degraded_Origins (SCOD : in out SCO_Descriptor);
+      --  Set SCOD.Degraded_Origins to Val
+
+      -------------------------------
+      -- Set_SCOD_Degraded_Origins --
+      -------------------------------
+
+      procedure Set_SCOD_Degraded_Origins (SCOD : in out SCO_Descriptor) is
+      begin
+         SCOD.Degraded_Origins := Val;
+      end Set_SCOD_Degraded_Origins;
+
+   --  Start of processing for Set_Degraded_Origins
+
+   begin
+      SCO_Vector.Update_Element (SCO, Set_SCOD_Degraded_Origins'Access);
+   end Set_Degraded_Origins;
 
    ------------------
    -- Slocs_To_SCO --

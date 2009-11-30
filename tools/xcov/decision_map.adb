@@ -448,7 +448,7 @@ package body Decision_Map is
 
       Has_Valuation : array (Condition_Index'First .. D_Occ.Last_Cond_Index,
                              Boolean range False .. True) of Boolean :=
-        (others => (others => False));
+                               (others => (others => False));
       --  For each valuation of each condition, indicates whether there is
       --  one edge corresponding to each possible valuation of the condition.
 
@@ -550,6 +550,25 @@ package body Decision_Map is
                   end;
 
                else
+                  --  In the case of a decision with only one condition (but
+                  --  possibly multiple branches for each condition), assign
+                  --  an arbitrary origin to each outcome destination.
+
+                  if D_Occ.Last_Cond_Index = Condition_Index'First
+                    and then Edge_Info.Dest_Kind = Outcome
+                  then
+                     for J in Boolean'Range loop
+                        if Known_Outcome (J) = Edge_Info.Destination then
+                           exit;
+
+                        elsif Known_Outcome (J) = No_PC then
+                           Set_Degraded_Origins (D_Occ.Decision);
+                           Known_Outcome (J) := Edge_Info.Destination;
+                           exit;
+                        end if;
+                     end loop;
+                  end if;
+
                   --  Case of the last condition in the decision: both values
                   --  of the condition determine the outcome, so try to label
                   --  the outcome, and its origin, using Known_Outcomes.
@@ -565,6 +584,7 @@ package body Decision_Map is
                         end if;
                      end;
                   end loop;
+
                end if;
             end;
 
@@ -628,8 +648,11 @@ package body Decision_Map is
 
          Next_C_SCO : SCO_Id;
       begin
-         if This_CBE.Origin /= Unknown then
-            --  This_CBE is already labeled: nothing to
+         if This_CBE.Origin /= Unknown
+           or else This_CBE.Dest_Kind = Condition
+         then
+            --  This_CBE is already labeled (either known origin, or unknown
+            --  origin but known to remain in the same condition).
 
             return;
          end if;

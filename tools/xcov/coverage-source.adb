@@ -206,14 +206,16 @@ package body Coverage.Source is
                   --  Indicate which outcome has never been taken: if FALSE
                   --  has been taken then this is outcome TRUE, else FALSE.
 
-                  --  Message must be made less specific if arbitrary
-                  --  valuations have been assigned to outcome values???
+                  if Degraded_Origins (SCO) then
+                     Report (SCO, "one outcome never exercised");
+                  else
+                     Report
+                       (SCO,
+                        "outcome "
+                        & SCI.Outcome_Taken (False)'Img
+                        & " never exercised");
+                  end if;
 
-                  Report
-                    (SCO,
-                     "outcome "
-                     & SCI.Outcome_Taken (False)'Img
-                     & " never exercised");
                else
                   SCO_State := Not_Covered;
                end if;
@@ -302,6 +304,12 @@ package body Coverage.Source is
             Update_State (SCO_State, Condition (SCO, J), MCDC, Covered);
          end if;
       end loop;
+
+      --  If we have degraded origins for SCO but we computed MC/DC coverage
+      --  state then this means that DC is achieved, and so MC/DC must be
+      --  achieved as well (because this is a single condition decision).
+
+      pragma Assert (SCO_State = Covered or else not Degraded_Origins (SCO));
       return SCO_State;
    end Compute_MCDC_State;
 
