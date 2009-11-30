@@ -25,7 +25,6 @@ with Coverage;    use Coverage;
 with Hex_Images;  use Hex_Images;
 with Outputs;     use Outputs;
 with Traces_Disa; use Traces_Disa;
-with Strings;     use Strings;
 
 package body Annotations.Xcov is
 
@@ -124,17 +123,7 @@ package body Annotations.Xcov is
      (Pp : in out Xcov_Pretty_Printer;
       M  : Message) is
    begin
-      if M.SCO /= No_SCO_Id then
-         Put (Pp.Xcov_File, SCO_Kind'Image (Kind (M.SCO))
-              & " """ & SCO_Text (M.SCO) & '"'
-              & "at " & Img (M.Sloc.Line) & ":" & Img (M.Sloc.Column)
-              & ": ");
-      else
-         Put (Pp.Xcov_File, Image (M.Sloc));
-         Put (Pp.Xcov_File, ": ");
-      end if;
-
-      Put (Pp.Xcov_File, M.Msg.all);
+      Put (Pp.Xcov_File, Message_Annotation (M));
       New_Line (Pp.Xcov_File);
    end Pretty_Print_Message;
 

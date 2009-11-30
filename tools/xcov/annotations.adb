@@ -22,8 +22,9 @@ with Interfaces;
 
 with ALI_Files;   use ALI_Files;
 with Outputs;     use Outputs;
-with Traces_Disa;
+with Strings;     use Strings;
 with Types;       use Types;
+with Traces_Disa;
 with Coverage;
 with Coverage.Object;
 with Coverage.Source;
@@ -482,6 +483,22 @@ package body Annotations is
 
       return null;
    end Get_Exemption;
+
+   ------------------------
+   -- Message_Annotation --
+   ------------------------
+
+   function Message_Annotation (M : Message) return String is
+   begin
+      if M.SCO /= No_SCO_Id then
+         return SCO_Kind'Image (Kind (M.SCO))
+           & " """ & SCO_Text (M.SCO) & '"'
+           & " at " & Img (M.Sloc.Line) & ":" & Img (M.Sloc.Column)
+           & ": " & M.Msg.all;
+      else
+         return Image (M.Sloc) & ": " & M.Msg.all;
+      end if;
+   end Message_Annotation;
 
    --------------
    -- SCO_Text --

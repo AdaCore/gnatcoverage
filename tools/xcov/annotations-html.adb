@@ -27,7 +27,6 @@ with Traces_Files_List;
 with Qemu_Traces;
 with Coverage;    use Coverage;
 with Outputs;     use Outputs;
-with Strings;     use Strings;
 
 package body Annotations.Html is
    type String_Cst_Acc is access constant String;
@@ -382,18 +381,7 @@ package body Annotations.Html is
 
       Plh (Pp, """>");
       Wrh (Pp, "        <td><pre>");
-
-      if M.SCO /= No_SCO_Id then
-         Wrh (Pp, SCO_Kind'Image (Kind (M.SCO))
-              & " """ & To_Xml_String (SCO_Text (M.SCO)) & '"'
-              & "at " & Img (M.Sloc.Line) & ":" & Img (M.Sloc.Column)
-              & ": ");
-      else
-         Wrh (Pp, Image (M.Sloc));
-         Wrh (Pp, ": ");
-      end if;
-
-      Wrh (Pp, To_Xml_String (M.Msg.all));
+      Wrh (Pp, To_Xml_String (Message_Annotation (M)));
       Plh (Pp, "</pre></td>");
       Plh (Pp, "      </tr>");
    end Pretty_Print_Message;

@@ -61,6 +61,9 @@ private
    --  first source line and the first Length characters. If it has been
    --  truncated, the returned value will end with "...".
 
+   function Message_Annotation (M : Message) return String;
+   --  Return a representation of M to be associated with an annotated line
+
    Global_Stats : Stat_Array := (others => 0);
    --  Stats associated with the whole set of source files that this package
    --  considers (i.e. total numbers of lines, of partially covered /
