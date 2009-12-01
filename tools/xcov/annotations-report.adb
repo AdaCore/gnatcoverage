@@ -332,9 +332,12 @@ package body Annotations.Report is
       pragma Unreferenced (Line);
 
       use Ada.Directories;
-      use Message_Vectors;
 
       Output : constant File_Access := Get_Output;
+
+      function Already_Reported (Level : Coverage_Level) return Boolean;
+      --  Return True if all errors for Level on this line have already
+      --  been reported on previous lines
 
       function Default_Message
         (Level : Coverage_Level;
@@ -343,9 +346,44 @@ package body Annotations.Report is
       --  Return the default error message for the given coverage level
       --  and the given line state
 
-      function Has_Messages (MV : Vector) return Boolean;
+      function Has_Messages (MV : Message_Vectors.Vector) return Boolean;
       --  Return True iff MV contains messages that are serious enough to
       --  be included into the report
+
+      ----------------------
+      -- Already_Reported --
+      ----------------------
+
+      function Already_Reported (Level : Coverage_Level) return Boolean is
+         use SCO_Id_Vectors;
+
+         Position : Cursor;
+         SCO      : SCO_Id;
+      begin
+         case Level is
+            when Insn | Branch | Stmt =>
+               return False;
+
+            when Decision | MCDC =>
+               --  False if there is a decision whose first sloc is the current
+               --  line
+
+               Position := Info.SCOs.First;
+               while Position /= No_Element loop
+                  SCO := Element (Position);
+
+                  if Kind (SCO) = Decision
+                    and then First_Sloc (SCO).Line = Line_Num
+                  then
+                     return False;
+                  end if;
+
+                  Next (Position);
+               end loop;
+               return True;
+
+         end case;
+      end Already_Reported;
 
       ---------------------
       -- Default_Message --
@@ -371,7 +409,9 @@ package body Annotations.Report is
       -- Has_Messages --
       ------------------
 
-      function Has_Messages (MV : Vector) return Boolean is
+      function Has_Messages (MV : Message_Vectors.Vector) return Boolean is
+         use Message_Vectors;
+
          Position : Cursor := First (MV);
          M        : Message;
       begin
@@ -405,7 +445,9 @@ package body Annotations.Report is
          if Info.State (Level) /= Covered
            and then Info.State (Level) /= No_Code
          then
-            if not Has_Messages (Info.Messages) then
+            if not Has_Messages (Info.Messages)
+              and then not Already_Reported (Level)
+            then
                Put_Line (Output.all,
                          Default_Message (Level, Info.State (Level)));
                Pp.Error_Count := Pp.Error_Count + 1;
