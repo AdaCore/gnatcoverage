@@ -415,7 +415,7 @@ package body Annotations is
             if Object_Coverage_Enabled then
                Coverage.Object.Compute_Line_State (LI);
             else
-               Coverage.Source.Compute_Line_State (LI);
+               Coverage.Source.Compute_Line_State (L, LI);
             end if;
 
             S := Aggregated_State (LI.State);

@@ -113,12 +113,15 @@ package body Coverage.Source is
    -- Compute_Line_State --
    ------------------------
 
-   procedure Compute_Line_State (Line : Line_Info_Access) is
+   procedure Compute_Line_State
+     (Line_Num  : Positive;
+      Line_Info : Line_Info_Access)
+   is
       Multiple_Statements_Reported : Boolean := False;
       --  Set True when a diagnosis has been emitted for multiple statements
 
    begin
-      if Line.SCOs.Length = 0 then
+      if Line_Info.SCOs.Length = 0 then
          --  No SCOs associated with this source line.
 
          --  ??? Have a debug mode to warn if there is object code with
@@ -127,7 +130,7 @@ package body Coverage.Source is
          return;
       end if;
 
-      if Line.Obj_First = null then
+      if Line_Info.Obj_First = null then
          --  No object code associated with this source line
 
          return;
@@ -135,9 +138,9 @@ package body Coverage.Source is
 
       --  Examine each SCO associated with line
 
-      for J in Line.SCOs.First_Index .. Line.SCOs.Last_Index loop
+      for J in Line_Info.SCOs.First_Index .. Line_Info.SCOs.Last_Index loop
          declare
-            SCO         : constant SCO_Id := Line.SCOs.Element (J);
+            SCO         : constant SCO_Id := Line_Info.SCOs.Element (J);
             SCI         : Source_Coverage_Info;
             Default_SCI : Source_Coverage_Info (Kind => Kind (SCO));
             pragma Warnings (Off, Default_SCI);
@@ -157,7 +160,7 @@ package body Coverage.Source is
                --  statement is executed.
 
                if SCI.Executed then
-                  if Line.State (Stmt) = No_Code then
+                  if Line_Info.State (Stmt) = No_Code then
                      --  This is the first statement SCO for this line
 
                      SCO_State := Covered;
@@ -184,11 +187,28 @@ package body Coverage.Source is
                   SCO_State := Not_Covered;
                end if;
 
-               Update_Line_State (Line, SCO, Stmt, SCO_State);
+               Update_Line_State (Line_Info, SCO, Stmt, SCO_State);
+
+            elsif Kind (SCO) = Decision
+              and then First_Sloc (SCO).Line /= Line_Num
+            then
+               --  Decision on multiple lines; in such a case, the line state
+               --  is computed only at the first line. So, at this point, it
+               --  should already be in its SCI.
+               if Enabled (Decision) then
+                  SCO_State := SCI.State (Decision);
+                  Update_Line_State (Line_Info, SCO, Decision, SCO_State);
+               end if;
+
+               if Enabled (MCDC) then
+                  SCO_State := SCI.State (MCDC);
+                  Update_Line_State (Line_Info, SCO, MCDC, SCO_State);
+               end if;
 
             elsif Kind (SCO) = Decision
               and then (Enabled (Decision) or else Enabled (MCDC))
             then
+
                --  Compute decision coverage state for this decision. Note that
                --  the decision coverage information is also included in MC/DC
                --  coverage.
@@ -220,14 +240,14 @@ package body Coverage.Source is
                   SCO_State := Not_Covered;
                end if;
 
-               Update_Line_State (Line, SCO, Decision, SCO_State);
+               Update_Line_State (Line_Info, SCO, Decision, SCO_State);
 
                if Enabled (MCDC) then
                   if SCO_State = Covered then
                      --  Complete computation of MC/DC coverage state if SCO is
                      --  covered for decision coverage.
 
-                     Update_Line_State (Line, SCO, MCDC,
+                     Update_Line_State (Line_Info, SCO, MCDC,
                                         Compute_MCDC_State (SCO));
 
                   else
@@ -235,7 +255,7 @@ package body Coverage.Source is
                      --  taken: do not report details regarding MC/DC coverage,
                      --  just record that MC/DC is not achieved.
 
-                     Update_Line_State (Line, SCO, MCDC, Not_Covered);
+                     Update_Line_State (Line_Info, SCO, MCDC, Not_Covered);
                   end if;
                end if;
             end if;

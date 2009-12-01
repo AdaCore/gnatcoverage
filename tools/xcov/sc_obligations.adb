@@ -1295,10 +1295,12 @@ package body SC_Obligations is
 
                      First := No_Location;
 
-                     Add_Line_For_Source_Coverage
-                       (SCOD.Sloc_Range.First_Sloc.Source_File,
-                        SCOD.Sloc_Range.First_Sloc.Line,
-                        SCO);
+                     for L in SCOD.Sloc_Range.First_Sloc.Line
+                           .. SCOD.Sloc_Range.Last_Sloc.Line
+                     loop
+                        Add_Line_For_Source_Coverage
+                          (SCOD.Sloc_Range.First_Sloc.Source_File, L, SCO);
+                     end loop;
 
                   when Statement =>
                      --  A SCO for a (simple) statement is never nested
