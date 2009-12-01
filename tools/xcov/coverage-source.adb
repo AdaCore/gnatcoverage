@@ -32,10 +32,9 @@ package body Coverage.Source is
 
    use Ada.Containers;
 
-   --  For each source coverage obligation, we maintain a corresponding
-   --  source coverage information record, which denotes the coverage state of
-   --  the SCO. The default initialization must denote a completely uncovered
-   --  state.
+   --  For each source coverage obligation, we maintain a corresponding source
+   --  coverage information record, which denotes the coverage state of the
+   --  SCO. Default initialization denotes a completely uncovered state.
 
    package Evaluation_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Natural,
@@ -65,8 +64,8 @@ package body Coverage.Source is
             --  outcome has been exercised.
 
             Evaluations : Evaluation_Vectors.Vector;
-            --  History of all evaluations of this decision (computed for
-            --  MC/DC) only.
+            --  History of all evaluations of this decision (computed for MC/DC
+            --  only).
       end case;
    end record;
 
@@ -98,8 +97,8 @@ package body Coverage.Source is
       SCO        : SCO_Id;
       Level      : Coverage_Level;
       State      : Line_State);
-   --  Merge State into Prev_State and record State as the coverage state
-   --  of SCO for Level.
+   --  Merge State into Prev_State and record State as the coverage state of
+   --  SCO for Level.
 
    procedure Update_Line_State
      (Line  : Line_Info_Access;
@@ -122,7 +121,7 @@ package body Coverage.Source is
 
    begin
       if Line_Info.SCOs.Length = 0 then
-         --  No SCOs associated with this source line.
+         --  No SCOs associated with this source line
 
          --  ??? Have a debug mode to warn if there is object code with
          --  this line ?
@@ -192,9 +191,11 @@ package body Coverage.Source is
             elsif Kind (SCO) = Decision
               and then First_Sloc (SCO).Line /= Line_Num
             then
-               --  Decision on multiple lines; in such a case, the line state
-               --  is computed only at the first line. So, at this point, it
-               --  should already be in its SCI.
+
+               --  For a decision that spans multiple lines, line state is
+               --  computed for the first line, and then cached in the SCI and
+               --  reused for subsequent lines.
+
                if Enabled (Decision) then
                   SCO_State := SCI.State (Decision);
                   Update_Line_State (Line_Info, SCO, Decision, SCO_State);
@@ -223,8 +224,8 @@ package body Coverage.Source is
                then
                   SCO_State := Partially_Covered;
 
-                  --  Indicate which outcome has never been taken: if FALSE
-                  --  has been taken then this is outcome TRUE, else FALSE.
+                  --  Indicate which outcome has never been taken: if FALSE has
+                  --  been taken then this is outcome TRUE, else FALSE.
 
                   if Degraded_Origins (SCO) then
                      Report (SCO, "one outcome never exercised");
@@ -411,8 +412,8 @@ package body Coverage.Source is
             goto Continue_Trace_Insns;
          end if;
 
-         --  Here we have a condition SCO, and the PC for a conditional
-         --  branch instruction.
+         --  Here we have a condition SCO and the PC for a conditional branch
+         --  instruction.
 
          Process_Conditional_Branch : declare
             D_SCO : constant SCO_Id := Parent (SCO);
@@ -589,6 +590,7 @@ package body Coverage.Source is
               (Exe, PC,
                "processing cond branch trace op" & T.Op'Img,
                Kind => Notice);
+
             case T.Op and 3 is
                when 1 =>
                   Edge_Taken (Branch);
@@ -727,8 +729,7 @@ package body Coverage.Source is
       end if;
 
       Evaluation_Stack.Update_Element
-        (Evaluation_Stack.Last_Index,
-         Update_Current_Evaluation'Access);
+        (Evaluation_Stack.Last_Index, Update_Current_Evaluation'Access);
    end Condition_Evaluated;
 
    --------------------
@@ -737,8 +738,7 @@ package body Coverage.Source is
 
    function Get_Line_State
      (SCO   : SCO_Id;
-      Level : Coverage_Level)
-     return Line_State is
+      Level : Coverage_Level) return Line_State is
    begin
       if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
          return SCI_Vector.Element (SCO).State (Level);
@@ -806,6 +806,8 @@ package body Coverage.Source is
       begin
          SCI.State (Level) := State;
       end Update_SCO_Line_State;
+
+   --  Start of processing for Update_State
 
    begin
       if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
