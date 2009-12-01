@@ -151,7 +151,7 @@ package body ALI_Files is
          case Line (1) is
             when 'U' =>
                declare
-                  U_Regexp  : constant String := "[^ ]* * ([^ ]*) ";
+                  U_Regexp  : constant String := "[^\t]*\t+([^\t]*)\t";
                   U_Matcher : constant Pattern_Matcher := Compile (U_Regexp);
                begin
                   Match (U_Matcher, Line (3 .. Last), Matches);
