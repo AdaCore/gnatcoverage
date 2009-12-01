@@ -762,13 +762,13 @@ An additional @option{--annotate} option selects the output format:
 @item @command{=asm}
 @tab annotated assembly code on standard output.
 
-@item @command{=xcov[+asm]}
+@item @command{=xcov[+]}
 @tab annotated source files, with the object code for each source
-line interspersed if the @code{+asm} variant is selected.
+line interspersed if the @code{+} variant is selected.
 
-@item @command{=html[+asm]}
+@item @command{=html[+]}
 @tab html index of per source file coverage summary, with links to
-annotated sources [@code{+asm} code expandable from each source line].
+annotated sources [@code{+} code expandable from each source line].
 
 @item @command{=report}
 @tab synthetic report of per subprogram coverage results.
@@ -921,7 +921,7 @@ fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
 ...
 @end smallexample
 
-@subsection In-Source text reports, @code{--annotate=xcov[+asm]}
+@subsection In-Source text reports, @code{--annotate=xcov[+]}
 @noindent
 For object coverage analysis purposes, @option{--annotate=xcov} produces
 annotated source files with the @code{.xcov} extension in the current
@@ -932,7 +932,7 @@ every source line, which synthesizes the coverage status of all the
 machine instructions generated for this line.
 @c
 The machine instructions are printed next to their associated source
-line when the @option{+asm} option extension is used.
+line when the @option{+} option extension is used.
 
 Eventhough the annotations are rendered on source lines in this case,
 they are really meant to convey object code properties, hence are of a
@@ -966,7 +966,7 @@ annotations are only possible when this is available.
 In @gcc{} parlance, this requires compilation with the @option{-g}
 command line switch, designed never to influence the generated code.
 
-@subsection In-Source html reports, @code{--annotate=html[+asm]}
+@subsection In-Source html reports, @code{--annotate=html[+]}
 @noindent
 For object coverage analysis purposes, @option{--annotate=html} produces
 one @code{.html} browsable annotated source file per original
@@ -980,7 +980,7 @@ null coverage respectively.
 An @code{index.html} page summarizes the coverage results and provide
 links to the annotated sources.
 @c
-With the @code{+asm} extension, the annotated machine code for each line
+With the @code{+} extension, the annotated machine code for each line
 may be expanded below it by a mouse click on the line.
 
 @subsection Synthetic reports, @code{--annotate=report}
@@ -1243,7 +1243,7 @@ according to the following table:
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
 @item '.'
-@tab no SCO or anything executable for this line
+@tab no SCO or no executable code for this line
 @item '-'
 @tab statement uncovered (not executed) on this line
 @item '+'
@@ -1251,8 +1251,7 @@ according to the following table:
 @end multitable
 
 Below is a sample session to illustrate on the Explore example, for
-statement coverage results for the @code{robots} unit after
-recompilation with @option{-gnateS -O0}.
+the @code{robots} unit after recompilation with @option{-gnateS -O0}.
 @c
 Note the @option{--level} option passed to both @code{run} and
 @code{overage} invocations:
@@ -1263,6 +1262,7 @@ $ xcov run --level=stmt explore
 ... run session, trace goes to explore.trace by default ...
 
 $ xcov coverage --level=stmt --scos=obj/robots.ali --annotate=xcov explore.trace
+
 @end smallexample
 
 To analyze a full set of units at once, just fetch the list of ALI files in
@@ -1281,9 +1281,8 @@ In both cases, we get a @code{stations.adb.xcov} output for the
 ``stations'' unit, like:
 
 @smallexample
-/home/hainque/couverture/tools/xcov/examples/explore/src/stations.adb:
-87% of 38 lines covered
-Coverage level: STMT
+.../couverture/tools/xcov/examples/explore/src/stations.adb:
+Coverage level: STMT  87% of 38 lines covered
 [...]
   74 .:       function Control_For (C : Character) return Robot_Control;
   75 .:       --  Map user input character C to Robot_Control command, Nop if
@@ -1316,29 +1315,89 @@ Coverage level: STMT
 stations.adb:87: statement not covered
 stations.adb:89: statement not covered
 [...]
-
 @end smallexample
 
 @subsection Decision Coverage (DC)
 @noindent
-In addition to its Statement Coverage support, @xcov{} features Decision
-Coverage assessment capabilities, requested with
+@xcov{} offers Decision Coverage assessment capabilities with
 @option{--level=stmt+decision}.
 @c
 The use process is identical to the one for statement coverage, except
 that it yields coverage results of a different nature.
-
-All the uncovered statements remain reported as such, without further
-details even if there are decisions therein.
 @c
-Decision Coverage specific information 
+We refer to @dfn{decisions} as all the boolean expressions used to
+influence the control flow via explicit constructs in the source
+program (such as @code{if} statements or @code{while} loops), plus all
+the boolean expressions that feature a short circuit operator in other
+contexts (e.g. on the right hand side of an assignment).
 
+Uncovered statements remain reported as such, without further details
+even if there are decisions therein.
+@c
+The @code{xcov} and @code{html} annotation formats both generate a
+representation of the sources with annotations on each relevant line,
+according to the following table:
+
+@multitable @columnfractions .1 .8
+@item @h{Note} @tab @h{Means ...}
+@item '.'
+@tab no SCO or no executable code for this line
+@item '-'
+@tab statement uncovered on this line
+@item '!'
+@tab decision partially covered on this line (only one of the two
+possible boolean outcomes was exercized)
+@item '+'
+@tab all the decisions on this line are fully covered
+@end multitable
+
+As for object coverage, additional information is available on request
+with an extra @code{+} suffix on the annotation format, that is, with
+@code{--annotate=xcov+} or @code{html+}.
+@c
+Extra details are typically provided for decisions partially covered,
+with information about which outcome was not exercized.
+
+The @code{--annotate=report} output lists information about uncovered
+statements and partial decision coverage.
+@c
+For example, after exercizing Explore to have the robot execute safe
+commands in both Cautious and Dumb modes, we get the expected results
+below on a sample of the @code{robots} control code:
+
+@smallexample
+
+  $ xcov coverage --level=stmt+decision --annotate=report
+    --scos=obj/powerpc-elf/robots.ali explore.trace
+  ...
+  robots.adb:56:9: DECISION: outcome TRUE never exercised
+  robots.adb:75:10: DECISION: outcome TRUE never exercised
+  robots.adb:78: statement not covered
+
+@end smallexample
+
+The report diagnostic source location features both a line and a
+column number to designate the first token of the decision
+unambiguously.
+
+This is @code{.annotate=xcov+} output excerpt:
+
+@smallexample
+
+
+@end smallexample
 
 @subsection Modified Condition/Decision Coverage (MCDC)
 @noindent
-In a similar fashion to Decisio Coverage, Xcov features Modified
-Condition/Decision Coverage assessment capabilities, requested
+In a similar fashion to statement or decision coverage, @xcov{} offers
+Modified Condition/Decision Coverage assessment capabilities with
 @option{--level=stmt+mcdc}.
+
+Compared to Decision Coverage, MCDC processing incurs extra
+verifications on the demonstration by the tests of the independant
+influence of @dfn{conditions} (boolean atoms) in decisions, with
+associated @code{--annotate=report} diagnostics
+
 
 Xcov implements Masking MCDC.
 
@@ -1347,7 +1406,7 @@ accordingly. Details with xcov+ and html+
 
 
 @page
-@section Use cases and Additional features
+@section Advanced features
 
 @subsection Coverage Data Capitalization & Consolidation
 @c
@@ -1375,7 +1434,7 @@ only partially and look at the results:
 $ xcov run --target=powerpc-elf --tag 'Safe explore session' explore
 [... Probe, Step on clear square, Quit ...]
 
-$ xcov coverage --level=branch --annotate=xcov+asm --routines=robots__unsafe
+$ xcov coverage --level=branch --annotate=xcov+ --routines=robots__unsafe
   explore.trace  
    
   robots.adb.xcov
@@ -1415,7 +1474,7 @@ $ make UNIT_TESTS=test_explore
 [...]
 xcov run --target=powerpc-elf test_explore
 
-$ xcov coverage --level=branch --annotate=xcov+asm --routines=robots__unsafe
+$ xcov coverage --level=branch --annotate=xcov+ --routines=robots__unsafe
   test_explore.trace explore.trace
 
 
@@ -1447,6 +1506,21 @@ Xcov's consolidation capabilities apply identically to the source
 coverage analysis case, with multiple execution traces on input and
 @code{--scos} to specify the sources subset of interest.
 
+@subsection XML outputs for automated processing
+@pindex @code{XML outputs}
+In addition to the @code{report}, @code{xcov[+]} and @code{html[+]}
+output formats, @xcov{} offers XML outputs for all the supported
+criteria.
+@c
+These outputs are obtained with @option{--annotate=xml} on the command
+line, which generates an XML file for each source file of interest,
+plus an @code{index.xml} which includes all the others.
+
+XML outputs are intended for automated processing by other tools, and
+provide a representation of @xcov{} internal computations with full
+details for maximum flexibility.
+@c
+Their specification is provided as an appendix of this document.
 
 @chapter Appendices
 
@@ -1484,6 +1558,10 @@ Below is a verbatim inclusion of the relevant Ada specification:
 @smallexample
 @verbatiminclude gnat/scos.ads
 @end smallexample
+
+@page
+@section XML output specifications
+
 
 @c *******************************************************************
 @c *                          BIBLIOGRAPHY                           *
