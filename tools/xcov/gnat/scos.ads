@@ -148,21 +148,22 @@ package SCOs is
    --      o  object declaration
    --      r  renaming declaration
    --      i  generic instantiation
-   --      C  CASE statement (includes only the expression)
+   --      C  CASE statement (from CASE through end of expression)
    --      E  EXIT statement
-   --      F  FOR loop statement (includes only the iteration scheme)
-   --      I  IF statement (includes only the condition [in the RM sense, which
-   --         is a decision in the SCO sense])
+   --      F  FOR loop statement (from FOR through end of iteration scheme)
+   --      I  IF statement (from IF through end of condition)
    --      P  PRAGMA
    --      R  extended RETURN statement
-   --      W  WHILE loop statement (includes only the condition)
+   --      W  WHILE loop statement (from WHILE through end of condition)
+
+   --      Note: for I and W, condition above is in the RM syntax sense (this
+   --      condition is a decision in SCO terminology).
 
    --    and is omitted for all other cases.
 
-   --  Note: up to 6 entries can appear on a single CS line. If more than
-   --  6 entries appear in one logical statement sequence, continuation
-   --  lines are marked by Cs and appear immediately after the CS line
-   --  they continue.
+   --  Note: up to 6 entries can appear on a single CS line. If more than 6
+   --  entries appear in one logical statement sequence, continuation lines are
+   --  marked by Cs and appear immediately after the CS line they continue.
 
    --  Decisions
 
@@ -262,8 +263,10 @@ package SCOs is
 
    --    ! indicates NOT applied to the expression.
 
-   --    In the context of Couverture, the No_Direct_Boolean_Operators
-   --    restriction is assumed, and no other operator can appear.
+   --    Note that complex decisions do NOT include non-short-circuited logical
+   --    operators (AND/XOR/OR). In the context of existing coverage tools the
+   --    No_Direct_Boolean_Operators restriction is assumed, so these operators
+   --    cannot appear in the source in any case.
 
    --    The SCO line for a decision always occurs after the CS line for the
    --    enclosing statement. The SCO line for a nested decision always occurs
@@ -283,6 +286,7 @@ package SCOs is
    type SCO_Table_Entry is record
       From : Source_Location;
       To   : Source_Location;
+      Node : Node_Id;
       C1   : Character;
       C2   : Character;
       Last : Boolean;
@@ -302,20 +306,46 @@ package SCOs is
    --      C2   = statement type code to appear on CS line (or ' ' if none)
    --      From = starting source location
    --      To   = ending source location
+   --      Node = Empty
    --      Last = False for all but the last entry, True for last entry
 
    --    Note: successive statements (possibly interspersed with entries of
    --    other kinds, that are ignored for this purpose), starting with one
    --    labeled with C1 = 'S', up to and including the first one labeled with
    --    Last=True, indicate the sequence to be output for a sequence of
-   --    statements on a single CS line.
+   --    statements on a single CS line (possily followed by cs continuations)
 
-   --    Decision
-   --      C1   = decision type code
+   --    Decision (IF/EXIT/WHILE)
+   --      C1   = 'I'/'E'/'W' (for IF/EXIT/WHILE)
    --      C2   = ' '
-   --      From = location of IF/EXIT/PRAGMA/WHILE token,
-   --             No_Source_Location for X
+   --      From = IF/EXIT/WHILE token
    --      To   = No_Source_Location
+   --      Node = Empty
+   --      Last = unused
+
+   --    Decision (PRAGMA)
+   --      C1   = 'P'
+   --      C2   = ' '
+   --      From = PRAGMA token
+   --      To   = No_Source_Location
+   --      Node = N_Pragma node or Empty when reading SCO data (see below)
+   --      Last = unused
+
+   --      Note: when the parse tree is first scanned, we unconditionally build
+   --      a pragma decision entry for any complex decision in a pragma (here
+   --      as always in SCO contexts, the only relevant pragmas are Assert,
+   --      Check, Precondition, and Postcondition). Then when we output the
+   --      SCO information to the ALI file, we use the Node field to check the
+   --      Pragma_Enabled flag, and if it is False, we suppress output of the
+   --      pragma decision line. On reading back SCO data from an ALI file, the
+   --      Node field is always set to Empty.
+
+   --    Decision (Expression)
+   --      C1   = 'X'
+   --      C2   = ' '
+   --      From = No_Source_Location
+   --      To   = No_Source_Location
+   --      Node = Empty
    --      Last = unused
 
    --    Operator
@@ -323,6 +353,7 @@ package SCOs is
    --      C2   = ' '
    --      From = location of NOT/AND/OR token
    --      To   = No_Source_Location
+   --      Node = Empty
    --      Last = False
 
    --    Element (condition)
@@ -330,6 +361,7 @@ package SCOs is
    --      C2   = 'c', 't', or 'f' (condition/true/false)
    --      From = starting source location
    --      To   = ending source location
+   --      Node = Empty
    --      Last = False for all but the last entry, True for last entry
 
    --    Note: the sequence starting with a decision, and continuing with
@@ -382,6 +414,7 @@ package SCOs is
       To   : Source_Location := No_Source_Location;
       C1   : Character       := ' ';
       C2   : Character       := ' ';
+      Node : Node_Id         := Empty;
       Last : Boolean         := False);
    --  Adds one entry to SCO table with given field values
 
