@@ -62,10 +62,10 @@ package body Decision_Map is
    --  A basic block in object code
 
    type Basic_Block is record
-      From, To  : Pc_Type := No_PC;
+      From, To_PC, To  : Pc_Type := No_PC;
       --  Start and end addresses (note: To is not necessarily a valid PC value
       --  but instead the address of the last byte in the last instruction of
-      --  the BB).
+      --  the BB, whose first byte is at To_PC).
 
       --  Properties of the branch instruction at the end of the basic block:
 
@@ -796,10 +796,24 @@ package body Decision_Map is
                   if BB.Condition /= No_SCO_Id
                     and then Parent (BB.Condition) = D_Occ.Decision
                   then
-                     --  Edge evaluates a condition in the current decision
+                     --  Edge proceeds to evaluate a condition in the current
+                     --  decision.
 
                      Edge.Dest_Kind := Condition;
                      Edge.Next_Condition := Index (BB.Condition);
+
+                  elsif Pc_Type'Max (BB.To + 1, BB.Dest)
+                          > Last_Seen_Condition_PC
+                  then
+                     --  Edge ends on a conditional branch instruction that
+                     --  does not test a condition, but may exit the decision:
+                     --  suspicious (we are missing an outcome).
+
+                     Report
+                       (Exe, BB.To_PC,
+                        "conditional branch exits decision "
+                        & "without testing a condition",
+                        Kind => Warning);
                   end if;
 
                elsif BB.Dest > Next_PC then
@@ -942,6 +956,7 @@ package body Decision_Map is
                declare
                   BB : Basic_Block :=
                          (From      => Current_Basic_Block_Start,
+                          To_PC     => Insn'First,
                           To        => Insn'Last,
                           Dest      => Dest,
                           Branch    => Branch,
