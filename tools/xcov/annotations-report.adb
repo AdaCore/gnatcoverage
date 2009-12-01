@@ -80,6 +80,9 @@ package body Annotations.Report is
       Title : String);
    --  Open a new section in final report
 
+   function Should_Be_Displayed (M : Message) return Boolean;
+   --  Return True is M is serious enough to be included into the report
+
    --------------------------------------------------
    -- Report_Pretty_Printer's primitive operations --
    --      (inherited from Pretty_Printer)         --
@@ -104,6 +107,10 @@ package body Annotations.Report is
 
    procedure Pretty_Print_End_File
      (Pp : in out Report_Pretty_Printer);
+
+   procedure Pretty_Print_Message
+     (Pp : in out Report_Pretty_Printer;
+      M  : Message);
 
    -------------
    -- Chapter --
@@ -197,6 +204,30 @@ package body Annotations.Report is
    begin
       null;
    end Pretty_Print_End_File;
+
+   --------------------------
+   -- Pretty_Print_Message --
+   --------------------------
+
+   procedure Pretty_Print_Message
+     (Pp : in out Report_Pretty_Printer;
+      M  : Message)
+   is
+      Output : constant File_Access := Get_Output;
+   begin
+      if Should_Be_Displayed (M) then
+         Put (Output.all, Image (M.Sloc));
+         Put (Output.all, ": ");
+
+         if M.SCO /= No_SCO_Id then
+            Put (Output.all, SCO_Kind'Image (Kind (M.SCO)) & ": ");
+         end if;
+
+         Put (Output.all, M.Msg.all);
+         Pp.Error_Count := Pp.Error_Count + 1;
+         New_Line (Output.all);
+      end if;
+   end Pretty_Print_Message;
 
    ------------------------
    -- Pretty_Print_Start --
@@ -305,9 +336,6 @@ package body Annotations.Report is
 
       Output : constant File_Access := Get_Output;
 
-      procedure Put_Message (C : Cursor);
-      --  Display message associated to Info
-
       function Default_Message
         (Level : Coverage_Level;
          State : Line_State)
@@ -318,9 +346,6 @@ package body Annotations.Report is
       function Has_Messages (MV : Vector) return Boolean;
       --  Return True iff MV contains messages that are serious enough to
       --  be included into the report
-
-      function Should_Be_Displayed (M : Message) return Boolean;
-      --  Return True is M is serious enough to be included into the report
 
       ---------------------
       -- Default_Message --
@@ -363,36 +388,6 @@ package body Annotations.Report is
          return False;
       end Has_Messages;
 
-      -----------------
-      -- Put_Message --
-      -----------------
-
-      procedure Put_Message (C : Cursor) is
-         M : Message renames Element (C);
-      begin
-         if Should_Be_Displayed (M) then
-            Put (Output.all, Image (M.Sloc));
-            Put (Output.all, ": ");
-
-            if M.SCO /= No_SCO_Id then
-               Put (Output.all, SCO_Kind'Image (Kind (M.SCO)) & ": ");
-            end if;
-
-            Put (Output.all, M.Msg.all);
-            Pp.Error_Count := Pp.Error_Count + 1;
-            New_Line (Output.all);
-         end if;
-      end Put_Message;
-
-      -------------------------
-      -- Should_Be_Displayed --
-      -------------------------
-
-      function Should_Be_Displayed (M : Message) return Boolean is
-      begin
-         return M.Kind /= Notice;
-      end Should_Be_Displayed;
-
    --  Start of processing for Pretty_Print_Start_Line
 
    begin
@@ -402,16 +397,15 @@ package body Annotations.Report is
       --  for decision coverage or MCDC; but report only the stmt coverage
       --  error.
 
-      --  If error/warning messages have been attached to the line, print them
-      --  in the report; otherwise, fall back to a general error message.
+      --  If error/warning messages have been attached to the line, they
+      --  will be printed in the report; otherwise, fall back to a
+      --  general error message.
 
       for Level in Coverage_Level loop
          if Info.State (Level) /= Covered
            and then Info.State (Level) /= No_Code
          then
-            if Has_Messages (Info.Messages) then
-               Info.Messages.Iterate (Put_Message'Access);
-            else
+            if not Has_Messages (Info.Messages) then
                Put_Line (Output.all,
                          Default_Message (Level, Info.State (Level)));
                Pp.Error_Count := Pp.Error_Count + 1;
@@ -439,5 +433,14 @@ package body Annotations.Report is
                 & Title);
       New_Line (Output.all);
    end Section;
+
+   -------------------------
+   -- Should_Be_Displayed --
+   -------------------------
+
+   function Should_Be_Displayed (M : Message) return Boolean is
+   begin
+      return M.Kind /= Notice;
+   end Should_Be_Displayed;
 
 end Annotations.Report;
