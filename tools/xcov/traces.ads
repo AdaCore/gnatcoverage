@@ -19,6 +19,7 @@
 
 --  Package to handle traces at object/exec level
 
+with Ada.Containers.Ordered_Sets;
 with Interfaces; use Interfaces;
 with System;     use System;
 
@@ -29,6 +30,8 @@ package Traces is
 
    subtype Pc_Type is Unsigned_32;
    No_PC : constant Pc_Type := 0;
+
+   package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    Pc_Type_Size : constant Unsigned_8 := Pc_Type'Size / System.Storage_Unit;
    --  Define the size of the PC.

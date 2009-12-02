@@ -417,9 +417,9 @@ package body Decision_Map is
       Last_CBI : constant Cond_Branch_Info :=
                    Cond_Branch_Map.Element ((Exe, Last_Seen_Condition_PC));
 
-      Known_Outcome : array (Boolean) of Pc_Type := (others => No_PC);
-      --  When set, each element of this array is the destination of the first
-      --  edge corresponding to each outcome of the decision.
+      Known_Outcome : array (Boolean) of PC_Sets.Set;
+      --  When set, each element of this array is a set of edge destinations
+      --  known to correspond to the respective outcome of the decision.
 
       procedure Trace_Destination (Edge : in out Cond_Edge_Info);
       --  Inspect the basic block containing Edge's destination, and if
@@ -539,17 +539,10 @@ package body Decision_Map is
                     Outcome (CBI.Condition, To_Boolean (Outcome_Origin));
                   pragma Assert (Edge_Info.Outcome /= Unknown);
 
-                  --  If this was the first destination identified to represent
-                  --  this value of the decision outcome, record it.
+                  --  Record destination as one of the known outcomes
 
-                  declare
-                     Known_Outcome_Dest : Pc_Type
-                       renames Known_Outcome (To_Boolean (Edge_Info.Outcome));
-                  begin
-                     if Known_Outcome_Dest = No_PC then
-                        Known_Outcome_Dest := Edge_Info.Destination;
-                     end if;
-                  end;
+                  Known_Outcome (To_Boolean (Edge_Info.Outcome)).Include
+                    (Edge_Info.Destination);
 
                else
                   --  In the case of a decision with only one condition (but
@@ -560,12 +553,14 @@ package body Decision_Map is
                     and then Edge_Info.Dest_Kind = Outcome
                   then
                      for J in Boolean'Range loop
-                        if Known_Outcome (J) = Edge_Info.Destination then
+                        if Known_Outcome (J).Contains
+                             (Edge_Info.Destination)
+                        then
                            exit;
 
-                        elsif Known_Outcome (J) = No_PC then
+                        elsif Known_Outcome (J).Is_Empty then
                            Set_Degraded_Origins (D_Occ.Decision);
-                           Known_Outcome (J) := Edge_Info.Destination;
+                           Known_Outcome (J).Include (Edge_Info.Destination);
                            exit;
                         end if;
                      end loop;
@@ -580,7 +575,9 @@ package body Decision_Map is
                         O : constant Boolean :=
                               To_Boolean (Outcome (CBI.Condition, J));
                      begin
-                        if Edge_Info.Destination = Known_Outcome (O) then
+                        if Known_Outcome (O).Contains
+                             (Edge_Info.Destination)
+                        then
                            Edge_Info.Origin  := To_Tristate (J);
                            Edge_Info.Outcome := To_Tristate (O);
                         end if;

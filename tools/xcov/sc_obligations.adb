@@ -20,7 +20,6 @@
 --  Source Coverage Obligations
 
 with Ada.Containers.Ordered_Maps;
-with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
@@ -246,9 +245,6 @@ package body SC_Obligations is
 
    function To_Decision_Kind (C : Character) return Decision_Kind;
    --  Convert character code for decision kind to corresponding enum value
-
-   use type Pc_Type;
-   package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
       Origin : Source_File_Index;
