@@ -301,12 +301,13 @@ package body Coverage.Source is
 
                Indep (Influent_Condition) := True;
                Report
-                 (Condition (SCO, Influent_Condition),
-                  "c" & Img (Integer (Influent_Condition))
+                 ("c" & Img (Integer (Influent_Condition))
                   & " independent influence shown by eval pair: "
                   & Image (SCI.Evaluations.Element (E1))
                   & " / "
                   & Image (SCI.Evaluations.Element (E2)),
+                  Sloc => First_Sloc (SCO),
+                  SCO  => Condition (SCO, Influent_Condition),
                   Kind => Notice);
             end if;
          end loop;
@@ -318,8 +319,9 @@ package body Coverage.Source is
          if not Indep (J) then
             Update_State (SCO_State, Condition (SCO, J), MCDC, Not_Covered);
             Report
-              (Condition (SCO, J),
-               "failed to show independent influence, MC/DC not achieved",
+              ("failed to show independent influence, MC/DC not achieved",
+               Sloc => First_Sloc (SCO),
+               SCO  => Condition (SCO, J),
                Kind => Warning);
          else
             Update_State (SCO_State, Condition (SCO, J), MCDC, Covered);

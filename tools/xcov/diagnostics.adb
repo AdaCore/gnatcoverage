@@ -102,7 +102,8 @@ package body Diagnostics is
       function SCO_Image return String is
       begin
          if M.SCO /= No_SCO_Id then
-            return Image (M.SCO, With_Sloc => False) & ": ";
+            return Image (M.SCO, With_Sloc => First_Sloc (M.SCO) /= M.Sloc)
+              & ": ";
          else
             return "";
          end if;

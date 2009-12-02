@@ -216,11 +216,14 @@ package body Annotations.Report is
       Output : constant File_Access := Get_Output;
    begin
       if Should_Be_Displayed (M) then
-         Put (Output.all, Image (M.Sloc));
-         Put (Output.all, ": ");
 
          if M.SCO /= No_SCO_Id then
+            Put (Output.all, Image (First_Sloc (M.SCO)));
+            Put (Output.all, ": ");
             Put (Output.all, SCO_Kind'Image (Kind (M.SCO)) & ": ");
+         else
+            Put (Output.all, Image (M.Sloc));
+            Put (Output.all, ": ");
          end if;
 
          Put (Output.all, M.Msg.all);
