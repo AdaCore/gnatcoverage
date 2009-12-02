@@ -23,7 +23,6 @@ with Interfaces;
 with ALI_Files;   use ALI_Files;
 with Outputs;     use Outputs;
 with Strings;     use Strings;
-with Types;       use Types;
 with Traces_Disa;
 with Coverage;
 with Coverage.Object;
@@ -32,8 +31,9 @@ with Coverage.Source;
 package body Annotations is
 
    procedure Disp_File_Line_State
-     (Pp   : in out Pretty_Printer'Class;
-      File : File_Info_Access);
+     (Pp         : in out Pretty_Printer'Class;
+      File_Index : Source_File_Index;
+      FI         : File_Info_Access);
    --  Go through file and and let Pp annotate its lines with coverage
    --  information
 
@@ -74,8 +74,9 @@ package body Annotations is
    --------------------------
 
    procedure Disp_File_Line_State
-     (Pp   : in out Pretty_Printer'Class;
-      File : File_Info_Access)
+     (Pp         : in out Pretty_Printer'Class;
+      File_Index : Source_File_Index;
+      FI         : File_Info_Access)
    is
       procedure Process_One_Line (Index : Positive);
       --  Let Pp annotate the line at Index in File, including all the
@@ -89,9 +90,9 @@ package body Annotations is
       ----------------------
 
       procedure Process_One_Line (Index : Positive) is
-         LI : constant Line_Info_Access := Get_Line (File, Index);
+         LI : constant Line_Info_Access := Get_Line (FI, Index);
       begin
-         Pretty_Print_Start_Line (Pp, Index, LI, Get_Line (File, Index));
+         Pretty_Print_Start_Line (Pp, Index, LI, Get_Line (FI, Index));
 
          if Pp.Show_Details then
             Disp_Instruction_Sets (Pp, LI.all);
@@ -107,14 +108,14 @@ package body Annotations is
    --  Start of processing for Disp_File_Line_State
 
    begin
-      Files_Table.Fill_Line_Cache (File);
-      Pretty_Print_Start_File (Pp, File, File.Stats, File.Has_Source, Skip);
+      Files_Table.Fill_Line_Cache (FI);
+      Pretty_Print_Start_File (Pp, File_Index, Skip);
 
       if Skip then
          return;
       end if;
 
-      Iterate_On_Lines (File, Process_One_Line'Access);
+      Iterate_On_Lines (FI, Process_One_Line'Access);
       Pretty_Print_End_File (Pp);
    end Disp_File_Line_State;
 
@@ -449,7 +450,7 @@ package body Annotations is
          FI : constant File_Info_Access := Get_File (File_Index);
       begin
          if To_Display (FI) then
-            Disp_File_Line_State (Pp, FI);
+            Disp_File_Line_State (Pp, File_Index, FI);
          end if;
       end Process_One_File;
 

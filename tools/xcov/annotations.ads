@@ -29,6 +29,7 @@ with Traces_Stats;   use Traces_Stats;
 with Diagnostics;    use Diagnostics;
 with Slocs;          use Slocs;
 with SC_Obligations; use SC_Obligations;
+with Types;          use Types;
 
 package Annotations is
 
@@ -83,31 +84,33 @@ private
    --  Called once at the end of the process
 
    procedure Pretty_Print_Start_File
-     (Pp         : in out Pretty_Printer;
-      Source     : File_Info_Access;
-      Stats      : Stat_Array;
-      Has_Source : Boolean;
-      Skip       : out Boolean) is abstract;
+     (Pp   : in out Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean) is abstract;
    --  Called at the beginning of a source file display
 
    procedure Pretty_Print_End_File (Pp : in out Pretty_Printer) is abstract;
-
-   --  Subprograms below need comments???
+   --  Called at the end of a source file display
 
    procedure Pretty_Print_Start_Line
      (Pp       : in out Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
       Line     : String) is abstract;
+   --  Let Pp start the pretty printing of line at Line_Num in current file
 
    procedure Pretty_Print_End_Line (Pp : in out Pretty_Printer) is null;
+   --  Let Pp end the pretty printing of the current line
 
    procedure Pretty_Print_Start_Instruction_Set
      (Pp    : in out Pretty_Printer;
       State : Line_State) is null;
+   --  Let Pp start the pretty printing of a set of instructions, State
+   --  being the merged state of all its instructions.
 
    procedure Pretty_Print_End_Instruction_Set
      (Pp : in out Pretty_Printer) is null;
+   --  Let Pp end the pretty printing of a set of instructions
 
    procedure Pretty_Print_Start_Symbol
      (Pp     : in out Pretty_Printer;
@@ -123,6 +126,9 @@ private
       State : Insn_State;
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class) is null;
+   --  Let Pp print the instruction at Pc using Sym as a symbolizer. State
+   --  should be the coverage state of this instruction and Insn its binary
+   --  content.
 
    procedure Pretty_Print_Message
      (Pp : in out Pretty_Printer;

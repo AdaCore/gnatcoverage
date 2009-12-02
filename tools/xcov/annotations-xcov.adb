@@ -43,11 +43,9 @@ package body Annotations.Xcov is
    ------------------------------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp         : in out Xcov_Pretty_Printer;
-      Source     : File_Info_Access;
-      Stats      : Stat_Array;
-      Has_Source : Boolean;
-      Skip       : out Boolean);
+     (Pp   : in out Xcov_Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean);
 
    procedure Pretty_Print_Start_Line
      (Pp       : in out Xcov_Pretty_Printer;
@@ -164,24 +162,23 @@ package body Annotations.Xcov is
    -----------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp         : in out Xcov_Pretty_Printer;
-      Source     : File_Info_Access;
-      Stats      : Stat_Array;
-      Has_Source : Boolean;
-      Skip       : out Boolean)
+     (Pp   : in out Xcov_Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean)
    is
+      Info : constant File_Info_Access := Get_File (File);
    begin
       Skip := True;
 
       --  Do not try to process files whose source is not available
 
-      if not Flag_Show_Missing and then not Has_Source then
-         Warn_File_Missing (Source.all);
+      if not Flag_Show_Missing and then not Info.Has_Source then
+         Warn_File_Missing (Info.all);
          return;
       end if;
 
       declare
-         Output_Filename : constant String := Source.Simple_Name.all & ".xcov";
+         Output_Filename : constant String := Info.Simple_Name.all & ".xcov";
       begin
          Create_Output_File (Pp.Xcov_File, Output_Filename);
       exception
@@ -193,8 +190,8 @@ package body Annotations.Xcov is
 
       Skip := False;
 
-      Put_Line (Pp.Xcov_File, Source.Full_Name.all & ':');
-      Put_Line (Pp.Xcov_File, Get_Stat_String (Stats));
+      Put_Line (Pp.Xcov_File, Info.Full_Name.all & ':');
+      Put_Line (Pp.Xcov_File, Get_Stat_String (Info.Stats));
       Put_Line (Pp.Xcov_File, "Coverage level: " & Coverage_Option_Value);
    end Pretty_Print_Start_File;
 

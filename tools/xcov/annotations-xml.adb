@@ -122,11 +122,9 @@ package body Annotations.Xml is
      (Pp : in out Xml_Pretty_Printer);
 
    procedure Pretty_Print_Start_File
-     (Pp         : in out Xml_Pretty_Printer;
-      Source     : File_Info_Access;
-      Stats      : Stat_Array;
-      Has_Source : Boolean;
-      Skip       : out Boolean);
+     (Pp   : in out Xml_Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean);
 
    procedure Pretty_Print_End_File (Pp : in out Xml_Pretty_Printer);
 
@@ -455,22 +453,20 @@ package body Annotations.Xml is
    -----------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp         : in out Xml_Pretty_Printer;
-      Source     : File_Info_Access;
-      Stats      : Stat_Array;
-      Has_Source : Boolean;
-      Skip       : out Boolean)
+     (Pp   : in out Xml_Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean)
    is
-      pragma Unreferenced (Stats);
+      Info : constant File_Info_Access := Get_File (File);
       --  No stats are emitted in the XML output; the user is supposed
       --  to compute them by himself by post-processing the output.
 
-      Simple_Source_Filename : constant String := Source.Simple_Name.all;
+      Simple_Source_Filename : constant String := Info.Simple_Name.all;
       Xml_File_Name          : constant String :=
         Simple_Source_Filename & ".xml";
    begin
-      if not (Has_Source or Flag_Show_Missing) then
-         Warn_File_Missing (Source.all);
+      if not (Info.Has_Source or Flag_Show_Missing) then
+         Warn_File_Missing (Info.all);
          Skip := True;
          return;
       end if;

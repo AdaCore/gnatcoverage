@@ -72,11 +72,9 @@ package body Annotations.Html is
    procedure Pretty_Print_End (Pp : in out Html_Pretty_Printer);
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Html_Pretty_Printer;
-      Source          : File_Info_Access;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean);
+     (Pp   : in out Html_Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean);
 
    procedure Pretty_Print_Start_Line
      (Pp       : in out Html_Pretty_Printer;
@@ -373,13 +371,13 @@ package body Annotations.Html is
       Wrh (Pp, "      <tr class=""");
 
       case M.Kind is
-         when Error =>
+         when Diagnostics.Error =>
             Wrh (Pp, "error");
 
-         when Warning =>
+         when Diagnostics.Warning =>
             Wrh (Pp, "warning");
 
-         when Notice =>
+         when Diagnostics.Notice =>
             Wrh (Pp, "notice");
       end case;
 
@@ -490,13 +488,13 @@ package body Annotations.Html is
    -----------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Html_Pretty_Printer;
-      Source          : File_Info_Access;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean)
+     (Pp   : in out Html_Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean)
    is
       use Ada.Integer_Text_IO;
+
+      Info : constant File_Info_Access := Get_File (File);
 
       procedure Ni;
       --  New line to Pp's index file
@@ -528,25 +526,24 @@ package body Annotations.Html is
       function Create_Output_Filename return String is
          Img : String (1 .. 2) := "00";
       begin
-         if Source.Alias_Num = 0 then
-            return Source.Simple_Name.all & ".html";
+         if Info.Alias_Num = 0 then
+            return Info.Simple_Name.all & ".html";
          else
-            pragma Assert (Source.Alias_Num < 100);
+            pragma Assert (Info.Alias_Num < 100);
             Img (2) := Character'Val (Character'Pos ('0') +
-                                        Source.Alias_Num mod 10);
+                                        Info.Alias_Num mod 10);
             Img (1) := Character'Val (Character'Pos ('0') +
-                                        Source.Alias_Num / 10);
-            return Source.Simple_Name.all & '.' & Img & ".html";
+                                        Info.Alias_Num / 10);
+            return Info.Simple_Name.all & '.' & Img & ".html";
          end if;
       end Create_Output_Filename;
 
       --  Local variables
 
-      Simple_Source_Filename : String renames Source.Simple_Name.all;
+      Simple_Source_Filename : String renames Info.Simple_Name.all;
+      Output_Filename        : constant String := Create_Output_Filename;
 
-      Output_Filename : constant String := Create_Output_Filename;
-
-      --  Start of processing for Pretty_Print_File
+   --  Start of processing for Pretty_Print_File
 
    begin
       Skip := True;
@@ -555,13 +552,13 @@ package body Annotations.Html is
       Pi ("    <tr>"); Ni;
 
       --  First column: file name
-      if Source.Full_Name /= null then
-         Pi ("      <td title=""" & Source.Full_Name.all & '"');
+      if Info.Full_Name /= null then
+         Pi ("      <td title=""" & Info.Full_Name.all & '"');
       else
          Pi ("      <td title=""" & Simple_Source_Filename & '"');
       end if;
 
-      if Has_Source or Flag_Show_Missing then
+      if Info.Has_Source or Flag_Show_Missing then
          Pi (" class=""SumFile""><a href=""" & Output_Filename & """ >"
                & Simple_Source_Filename & "</a>");
       else
@@ -570,12 +567,12 @@ package body Annotations.Html is
       Pi ("</td>"); Ni;
 
       --  Rest of line: coverage stats
-      Print_Coverage_Stats (Pp.Index_File, Stats);
+      Print_Coverage_Stats (Pp.Index_File, Info.Stats);
       Pi ("    </tr>"); Ni;
 
       --  Do not try to process files whose source is not available.
-      if not (Has_Source or Flag_Show_Missing) then
-         Warn_File_Missing (Source.all);
+      if not (Info.Has_Source or Flag_Show_Missing) then
+         Warn_File_Missing (Info.all);
          return;
       end if;
 
@@ -618,7 +615,7 @@ package body Annotations.Html is
            & Coverage_Option_Value & "</h2>");
       Plh (Pp, "<table class=""SumTable""><tr>");
       Print_Coverage_Header (Pp.Html_File, "", False);
-      Print_Coverage_Stats (Pp.Html_File, Stats);
+      Print_Coverage_Stats (Pp.Html_File, Info.Stats);
       Plh (Pp, "</tr></table>");
 
       Plh (Pp, "<table width=""100%"" cellpadding=""0"" "

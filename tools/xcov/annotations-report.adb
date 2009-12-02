@@ -17,7 +17,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Directories;
 with GNAT.Time_Stamp;
 with Ada.Command_Line;
 with Ada.Text_IO;  use Ada.Text_IO;
@@ -56,18 +55,24 @@ package body Annotations.Report is
    type Report_Pretty_Printer is new Pretty_Printer with record
       --  Pretty printer type for the final report
 
-      Current_Filename : String_Access := null;
+      Current_File_Index : Source_File_Index;
       --  When going through the lines of a source file,
-      --  This is set to the current source file name.
+      --  This is set to the current source file index.
 
       Error_Count : Natural := 0;
-      --  Total number of errors in report
+      --  Total number of errors in current section
 
       Current_Chapter : Natural := 0;
       --  Current chapter in final report
 
       Current_Section : Natural := 0;
       --  Current section in final report
+
+      Exempted_Messages : Message_Vectors.Vector;
+      --  Messages that have been covered by an exemption
+
+      Exempted : Boolean := False;
+      --  True if the current line is covered by an exemption
    end record;
 
    procedure Chapter
@@ -80,8 +85,19 @@ package body Annotations.Report is
       Title : String);
    --  Open a new section in final report
 
+   procedure End_Section (Pp : in out Report_Pretty_Printer'Class);
+   --  Close the current section
+
    function Should_Be_Displayed (M : Message) return Boolean;
    --  Return True is M is serious enough to be included into the report
+
+   procedure Put_Message
+     (Pp : in out Report_Pretty_Printer'Class;
+      M  : Message);
+   --  Print M in the final report and update error count. The difference
+   --  with Pretty_Print_Message is that Put_Message does not tries to
+   --  know if the message should be exempted or not, and do not modify
+   --  the Exempted_Messages buffer.
 
    --------------------------------------------------
    -- Report_Pretty_Printer's primitive operations --
@@ -93,11 +109,9 @@ package body Annotations.Report is
    procedure Pretty_Print_End (Pp : in out Report_Pretty_Printer);
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Report_Pretty_Printer;
-      Source          : File_Info_Access;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean);
+     (Pp   : in out Report_Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean);
 
    procedure Pretty_Print_Start_Line
      (Pp : in out Report_Pretty_Printer;
@@ -138,6 +152,25 @@ package body Annotations.Report is
          Free (Final_Report.Name);
       end if;
    end Close_Report_File;
+
+   -----------------
+   -- End_Section --
+   -----------------
+
+   procedure End_Section (Pp : in out Report_Pretty_Printer'Class) is
+      Output : constant File_Access := Get_Output;
+   begin
+      if Pp.Error_Count = 0 then
+         Put_Line (Output.all, "no error.");
+      elsif Pp.Error_Count = 1 then
+         Put_Line (Output.all, "1 error.");
+      else
+         Put_Line (Output.all, Img (Pp.Error_Count) & " errors");
+      end if;
+
+      New_Line (Output.all);
+      Pp.Error_Count := 0;
+   end End_Section;
 
    ---------------------
    -- Generate_Report --
@@ -182,17 +215,30 @@ package body Annotations.Report is
    ----------------------
 
    procedure Pretty_Print_End (Pp : in out Report_Pretty_Printer) is
-      Output : constant File_Access := Get_Output;
-   begin
-      if Pp.Error_Count = 0 then
-         Put_Line (Output.all, "no error.");
-      elsif Pp.Error_Count = 1 then
-         Put_Line (Output.all, "1 error.");
-      else
-         Put_Line (Output.all, Img (Pp.Error_Count) & " errors");
-      end if;
+      use Diagnostics.Message_Vectors;
 
-      New_Line (Output.all);
+      Output : constant File_Access := Get_Output;
+
+      procedure Process_One_Message (Position : Cursor);
+      --  Let Pp print message at Position
+
+      -------------------------
+      -- Process_One_Message --
+      -------------------------
+
+      procedure Process_One_Message (Position : Cursor) is
+         M : constant Message := Element (Position);
+      begin
+         Put_Message (Pp, M);
+      end Process_One_Message;
+
+   begin
+      Pp.End_Section;
+
+      Pp.Section ("EXEMPTED VIOLATIONS");
+      Pp.Exempted_Messages.Iterate (Process_One_Message'Access);
+      Pp.End_Section;
+
       Put_Line (Output.all, "END OF REPORT");
    end Pretty_Print_End;
 
@@ -205,30 +251,44 @@ package body Annotations.Report is
       null;
    end Pretty_Print_End_File;
 
+   -----------------
+   -- Put_Message --
+   -----------------
+
+   procedure Put_Message
+     (Pp : in out Report_Pretty_Printer'Class;
+      M  : Message)
+   is
+      Output : constant File_Access := Get_Output;
+   begin
+      if M.SCO /= No_SCO_Id then
+         Put (Output.all, Image (First_Sloc (M.SCO)));
+         Put (Output.all, ": ");
+         Put (Output.all, SCO_Kind'Image (Kind (M.SCO)) & ": ");
+      else
+         Put (Output.all, Image (M.Sloc));
+         Put (Output.all, ": ");
+      end if;
+
+      Put (Output.all, M.Msg.all);
+      Pp.Error_Count := Pp.Error_Count + 1;
+      New_Line (Output.all);
+   end Put_Message;
+
    --------------------------
    -- Pretty_Print_Message --
    --------------------------
 
    procedure Pretty_Print_Message
      (Pp : in out Report_Pretty_Printer;
-      M  : Message)
-   is
-      Output : constant File_Access := Get_Output;
+      M  : Message) is
    begin
       if Should_Be_Displayed (M) then
-
-         if M.SCO /= No_SCO_Id then
-            Put (Output.all, Image (First_Sloc (M.SCO)));
-            Put (Output.all, ": ");
-            Put (Output.all, SCO_Kind'Image (Kind (M.SCO)) & ": ");
+         if Pp.Exempted then
+            Pp.Exempted_Messages.Append (M);
          else
-            Put (Output.all, Image (M.Sloc));
-            Put (Output.all, ": ");
+            Pp.Put_Message (M);
          end if;
-
-         Put (Output.all, M.Msg.all);
-         Pp.Error_Count := Pp.Error_Count + 1;
-         New_Line (Output.all);
       end if;
    end Pretty_Print_Message;
 
@@ -301,21 +361,15 @@ package body Annotations.Report is
    -----------------------------
 
    procedure Pretty_Print_Start_File
-     (Pp              : in out Report_Pretty_Printer;
-      Source          : File_Info_Access;
-      Stats           : Stat_Array;
-      Has_Source      : Boolean;
-      Skip            : out Boolean)
+     (Pp   : in out Report_Pretty_Printer;
+      File : Source_File_Index;
+      Skip : out Boolean)
    is
-      pragma Unreferenced (Has_Source);
-      P : constant Counters := Get_Counters (Stats);
+      Info : constant File_Info_Access := Get_File (File);
+      P    : constant Counters := Get_Counters (Info.Stats);
    begin
       if P.Fully /= P.Total then
-         if Pp.Current_Filename /= null then
-            Free (Pp.Current_Filename);
-         end if;
-
-         Pp.Current_Filename := new String'(Source.Full_Name.all);
+         Pp.Current_File_Index := File;
          Skip := False;
       else
          Skip := True;
@@ -334,10 +388,6 @@ package body Annotations.Report is
    is
       pragma Unreferenced (Line);
 
-      use Ada.Directories;
-
-      Output : constant File_Access := Get_Output;
-
       function Already_Reported (Level : Coverage_Level) return Boolean;
       --  Return True if all errors for Level on this line have already
       --  been reported on previous lines
@@ -345,7 +395,7 @@ package body Annotations.Report is
       function Default_Message
         (Level : Coverage_Level;
          State : Line_State)
-        return String;
+        return Message;
       --  Return the default error message for the given coverage level
       --  and the given line state
 
@@ -393,17 +443,24 @@ package body Annotations.Report is
       function Default_Message
         (Level : Coverage_Level;
          State : Line_State)
-        return String is
-         Prefix : constant String :=
-           Simple_Name (Pp.Current_Filename.all) & ":"
-           & Img (Line_Num) & ": ";
+        return Message
+      is
+         Sloc   : constant Source_Location := (Pp.Current_File_Index,
+                                               Line_Num, 0);
+         Msg    : String_Access;
       begin
          if Level = Stmt then
-            return Prefix & "statement not covered";
+            Msg := new String'("statement not covered");
          else
-            return Prefix & "line " & State'Img
-              & " for " & Level'Img & " coverage";
+            Msg := new String'("line " & State'Img
+                               & " for " & Level'Img & " coverage");
          end if;
+
+         return Message'(Kind => Diagnostics.Error,
+                         PC   => No_PC,
+                         Sloc => Sloc,
+                         SCO  => No_SCO_Id,
+                         Msg  => Msg);
       end Default_Message;
 
       ------------------
@@ -429,9 +486,15 @@ package body Annotations.Report is
          return False;
       end Has_Messages;
 
+      --  Local variables
+
+      M      : Message;
+
    --  Start of processing for Pretty_Print_Start_Line
 
    begin
+      Pp.Exempted := Info.Exempted;
+
       --  When two coverage criteria are not met on the same line, only
       --  report errors for the "lowest" one. For example, if a decision is
       --  not covered for stmt coverage, it will certainly not be covered
@@ -449,9 +512,13 @@ package body Annotations.Report is
             if not Has_Messages (Info.Messages)
               and then not Already_Reported (Level)
             then
-               Put_Line (Output.all,
-                         Default_Message (Level, Info.State (Level)));
-               Pp.Error_Count := Pp.Error_Count + 1;
+               M := Default_Message (Level, Info.State (Level));
+
+               if not Info.Exempted then
+                  Pp.Put_Message (M);
+               else
+                  Pp.Exempted_Messages.Append (M);
+               end if;
             end if;
 
             exit;
