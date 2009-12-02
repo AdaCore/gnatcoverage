@@ -361,20 +361,18 @@ package body Annotations.Report is
          SCO      : SCO_Id;
       begin
          case Level is
-            when Insn | Branch | Stmt =>
+            when Insn | Branch =>
                return False;
 
-            when Decision | MCDC =>
-               --  False if there is a decision whose first sloc is the current
-               --  line
+            when Stmt | Decision | MCDC =>
+               --  False if there is a statement or a decision whose first
+               --  sloc is the current line
 
                Position := Info.SCOs.First;
                while Position /= No_Element loop
                   SCO := Element (Position);
 
-                  if Kind (SCO) = Decision
-                    and then First_Sloc (SCO).Line = Line_Num
-                  then
+                  if First_Sloc (SCO).Line = Line_Num then
                      return False;
                   end if;
 
