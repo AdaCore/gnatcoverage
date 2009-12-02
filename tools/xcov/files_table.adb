@@ -268,15 +268,15 @@ package body Files_Table is
       Expand_Line_Table (FI, Line);
    end Expand_Line_Table;
 
-   -------------------------
+   --------------------------
    --  Files_Table_Iterate --
-   -------------------------
+   --------------------------
 
    procedure Files_Table_Iterate
-     (Process : not null access procedure (FI : File_Info_Access)) is
+     (Process : not null access procedure (Index : Source_File_Index)) is
    begin
       for Index in Files_Table.First_Index .. Files_Table.Last_Index loop
-         Process (Files_Table.Element (Index));
+         Process (Index);
       end loop;
    end Files_Table_Iterate;
 

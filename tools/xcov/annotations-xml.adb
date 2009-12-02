@@ -514,6 +514,7 @@ package body Annotations.Xml is
       Pp.ST ("src");
       Pp.T ("line",
             A ("num", Img (Line_Num))
+            & A ("exempted", Info.Exempted'Img)
             & A ("src", Line));
       Pp.ET ("src");
    end Pretty_Print_Start_Line;

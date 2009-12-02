@@ -263,9 +263,9 @@ package body Annotations is
       procedure Disp_One_File (File : File_Info_Access);
       --  Display summary for the given file
 
-      procedure Process_One_File (FI : File_Info_Access);
-      --  Process FI and display its summary if it has some coverage info
-      --  to display.
+      procedure Process_One_File (File_Index : Source_File_Index);
+      --  Process file at Index and display its summary if it has some
+      --  coverage info to display.
 
       -------------------
       -- Disp_One_File --
@@ -283,7 +283,8 @@ package body Annotations is
       -- Process_One_File --
       ----------------------
 
-      procedure Process_One_File (FI : File_Info_Access) is
+      procedure Process_One_File (File_Index : Source_File_Index) is
+         FI : constant File_Info_Access := Get_File (File_Index);
       begin
          if To_Display (FI) then
             Disp_One_File (FI);
@@ -384,20 +385,24 @@ package body Annotations is
      (Pp           : in out Pretty_Printer'Class;
       Show_Details : Boolean)
    is
-      procedure Compute_File_State (FI : File_Info_Access);
-      --  For all lines in FI, compute line state and update file table
-      --  accordingly. Compute FI's coverage stats in the process and update
-      --  the global stats with FI's information.
+      procedure Compute_File_State (File_Index : Source_File_Index);
+      --  For all lines in file at Index, compute line state and
+      --  update file table accordingly. Compute FI's coverage stats
+      --  in the process and update the global stats with FI's
+      --  information.
 
-      procedure Process_One_File (FI : File_Info_Access);
-      --  Process FI and let Pp annotate it if it has some coverage info to
-      --  display. Update FI's coverage stats with this line information.
+      procedure Process_One_File (File_Index : Source_File_Index);
+      --  Process file at index and let Pp annotate it if it has some
+      --  coverage info to display. Update FI's coverage stats with
+      --  this line information.
 
       ------------------------
       -- Compute_File_State --
       ------------------------
 
-      procedure Compute_File_State (FI : File_Info_Access) is
+      procedure Compute_File_State (File_Index : Source_File_Index) is
+
+         FI : constant File_Info_Access := Get_File (File_Index);
 
          procedure Compute_Line_State (L : Positive);
          --  Given a source line located in FI's source file, at line L,
@@ -409,8 +414,11 @@ package body Annotations is
 
          procedure Compute_Line_State (L : Positive) is
             use Coverage;
-            LI : constant Line_Info_Access := Get_Line (FI, L);
-            S  : Line_State;
+
+            LI        : constant Line_Info_Access := Get_Line (FI, L);
+            S         : Line_State;
+            Sloc      : constant Source_Location := (File_Index, L, 0);
+            Exemption : constant String_Access := Get_Exemption (Sloc);
          begin
             if Object_Coverage_Enabled then
                Coverage.Object.Compute_Line_State (LI);
@@ -418,6 +426,7 @@ package body Annotations is
                Coverage.Source.Compute_Line_State (L, LI);
             end if;
 
+            LI.Exempted := Exemption /= null;
             S := Aggregated_State (LI.State);
             FI.Stats (S) := FI.Stats (S) + 1;
          end Compute_Line_State;
@@ -436,7 +445,8 @@ package body Annotations is
       -- Process_One_File --
       ----------------------
 
-      procedure Process_One_File (FI : File_Info_Access) is
+      procedure Process_One_File (File_Index : Source_File_Index) is
+         FI : constant File_Info_Access := Get_File (File_Index);
       begin
          if To_Display (FI) then
             Disp_File_Line_State (Pp, FI);

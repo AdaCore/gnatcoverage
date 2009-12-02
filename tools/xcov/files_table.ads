@@ -142,6 +142,9 @@ package Files_Table is
 
       Line_Cache : String_Access := null;
       --  Cached source line content
+
+      Exempted : Boolean := False;
+      --  True if this line is covered by an exemption
    end record;
 
    type Line_Info_Access is access Line_Info;
@@ -185,7 +188,7 @@ package Files_Table is
    type File_Info_Access is access File_Info;
 
    procedure Files_Table_Iterate
-     (Process : not null access procedure (FI : File_Info_Access));
+     (Process : not null access procedure (Index : Source_File_Index));
 
    function Get_File
      (Index : Source_File_Index) return File_Info_Access;

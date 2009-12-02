@@ -155,6 +155,7 @@ package body Annotations.Html is
          new S'("tr.covered { background-color: #80ff80; }"),
          new S'("tr.not_covered { background-color: red; }"),
          new S'("tr.partially_covered { background-color: orange; }"),
+         new S'("tr.exempted { background-color: #5CB3FF; }"),
          new S'("tr.notice { background-color: #80ff80; }"),
          new S'("tr.error { background-color: red; }"),
          new S'("tr.warning { background-color: orange; }"),
@@ -163,6 +164,7 @@ package body Annotations.Html is
          new S'("td.SumBarCover { background-color: green; }"),
          new S'("td.SumBarPartial { background-color: orange; }"),
          new S'("td.SumBarNoCover { background-color: red; }"),
+         new S'("td.SumBarExempted { background-color: #5CB3FF; }"),
          new S'("td.SumHead, td.SumFile, td.SumNoFile, td.SumBar, "
                 & "td.SumPourcent, td.SumLineCov, td.SumTotal, "
                 & "table.TracesFiles td"
@@ -172,7 +174,7 @@ package body Annotations.Html is
          new S'("td.SumNoFile { color: grey; }"),
          new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
          new S'("table.LegendTable "
-                & "{ margin-left:25%; width:50%; text-align: center; }"),
+                & "{ margin-left:10%; width:80%; text-align: center; }"),
          new S'("table.SourceFile td pre { margin: 0; }")
          );
 
@@ -274,12 +276,14 @@ package body Annotations.Html is
 
       Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
       Pi ("    <tr>");
-      Pi ("      <td class=""SumBarCover"" witdh=""33%"">"
+      Pi ("      <td class=""SumBarCover"" width=""25%"">"
             & "Fully covered</td>");
-      Pi ("      <td class=""SumBarPartial"">"
+      Pi ("      <td class=""SumBarPartial"" width=""25%"">"
             & "Partially covered</td>");
-      Pi ("      <td class=""SumBarNoCover"" witdh=""13%"">"
+      Pi ("      <td class=""SumBarNoCover"" width=""25%"">"
             & "not covered</td>");
+      Pi ("      <td class=""SumBarExempted"" width=""25%"">"
+            & "exempted</td>");
       Pi ("     </tr>");
       Pi ("   </table>");
 
@@ -638,20 +642,24 @@ package body Annotations.Html is
       Pp.Show_Line_Details := Pp.Show_Details and then State /= No_Code;
       Wrh (Pp, "  <tr class=");
 
-      case State is
-         when Not_Covered =>
-            Wrh (Pp, """not_covered""");
-         when Partially_Covered =>
-            Wrh (Pp, """partially_covered""");
-         when Covered =>
-            Wrh (Pp, """covered""");
-         when No_Code =>
-            if Line_Num mod 2 = 1 then
-               Wrh (Pp, """no_code_odd""");
-            else
-               Wrh (Pp, """no_code_even""");
-            end if;
-      end case;
+      if Info.Exempted then
+         Wrh (Pp, """exempted""");
+      else
+         case State is
+            when Not_Covered =>
+               Wrh (Pp, """not_covered""");
+            when Partially_Covered =>
+               Wrh (Pp, """partially_covered""");
+            when Covered =>
+               Wrh (Pp, """covered""");
+            when No_Code =>
+               if Line_Num mod 2 = 1 then
+                  Wrh (Pp, """no_code_odd""");
+               else
+                  Wrh (Pp, """no_code_even""");
+               end if;
+         end case;
+      end if;
 
       Wrh (Pp, " title=""");
       case State is

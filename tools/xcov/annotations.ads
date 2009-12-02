@@ -162,7 +162,7 @@ private
 
    function Get_Exemption (Sloc : Source_Location) return String_Access;
    --  If the given sloc is covered by an exemption, return a pointer to a
-   --  descriptive mesasge justifying the exemption, else return a null
+   --  descriptive message justifying the exemption, else return a null
    --  pointer.
 
 end Annotations;
