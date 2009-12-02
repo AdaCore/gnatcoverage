@@ -406,6 +406,8 @@ package body Decision_Map is
       Ctx   : Cond_Branch_Context;
       D_Occ : Decision_Occurrence_Access)
    is
+      First_Seen_Condition_PC : constant Pc_Type :=
+                                  D_Occ.Conditional_Branches.First_Element;
       Last_Seen_Condition_PC : constant Pc_Type :=
                                  D_Occ.Conditional_Branches.Last_Element;
 
@@ -802,11 +804,19 @@ package body Decision_Map is
                      Edge.Dest_Kind := Condition;
                      Edge.Next_Condition := Index (BB.Condition);
 
-                  elsif Pc_Type'Max (BB.To + 1, BB.Dest)
-                          > Last_Seen_Condition_PC
+                  elsif BB.To_PC in
+                          First_Seen_Condition_PC .. Last_Seen_Condition_PC
+                    and then
+                        ((Pc_Type'Max (BB.To + 1, BB.Dest)
+                            > Last_Seen_Condition_PC)
+                         or else
+                         (Pc_Type'Min (BB.To + 1, BB.Dest)
+                            < First_Seen_Condition_PC))
+
                   then
-                     --  Edge ends on a conditional branch instruction that
-                     --  does not test a condition, but may exit the decision:
+                     --  Edge ends on a conditional branch instruction that is
+                     --  within the decision's PC range, does not test a
+                     --  condition, but may nonetheless exit the decision:
                      --  suspicious (we are missing an outcome).
 
                      Report
