@@ -1157,9 +1157,13 @@ begin
                Histmap : String_Access := null;
             begin
                if Enabled (MCDC) then
-                  Histmap := new String'(Exe_File & ".dmap");
-                  Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
-                  Build_Decision_Map (Exe_File, Histmap.all);
+                  if Length (SCOs_Inputs) /= 0 then
+                     Warn ("No SCOs specified for MC/DC level");
+                  else
+                     Histmap := new String'(Exe_File & ".dmap");
+                     Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+                     Build_Decision_Map (Exe_File, Histmap.all);
+                  end if;
                end if;
 
                Qemudrv.Driver (Exe_File, Target, Tag, Output, Histmap, Eargs);
