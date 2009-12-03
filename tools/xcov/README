@@ -11,7 +11,7 @@ The package provides two core command line components:
 
 * The xcov front-end, used both as a wrapper of the instrumented execution
   environment (xcov run) and as a trace analyzer able to render coverage
-  results in various user readable formats (xcov coverage).
+  results in various output formats (xcov coverage).
 
 As part of the examples subdirectory, the package also includes:
 
@@ -43,8 +43,8 @@ If this is more convenient for you, you may transfer the contents of the "bin"
 and "share" subdirectories into their corresponding entries within a
 pre-existing installation tree, where a GNAT toolset is located for instance.
 
-QUICK START
-===========
+QUICK START - OBJECT COVERAGE
+=============================
 A quick starter is the "engines" basic example, assuming you have both your
 target compilation toolchain and this package installed.
 
@@ -77,19 +77,36 @@ powerpc-elf-gcc -c -g -O1 -fpreserve-control-flow test_engines.adb
 # Step 2:  Run the executable program within the instrumented Qemu
 # -------  to get an execution '.trace' file:
 
-xcov run --target=powerpc-elf test_engines
+xcov run --target=powerpc-elf --level=branch test_engines
 
 # Step 3:  Ask xcov to analyze the trace and produce an html version of
 # -------  the results, with object coverage branch info rendered on source:
 
-xcov coverage --level=branch --annotate=html+asm test_engines.trace
+xcov coverage --level=branch --annotate=html+ test_engines.trace
 mv index.html index-test_engines.html
 
-The local Makefile actually just includes a generic Makefile common to all the
-examples, which you may reuse and adapt to your specific needs.
+The local Makefile actually just includes a generic Makefile, common to all
+the examples and which you may reuse and adapt to your specific needs.
 
-DOCUMENTATION
-=============
+QUICK START - SOURCE COVERAGE
+=============================
+Source coverage analysis involves a similar process, with few differences:
+
+* It is requested by specific values of the --level argument: stmt,
+  stmt+decision or stmt+mcdc ;
+
+* Sources should be compiled with -g -fpreserve-control-flow -gnateS,
+  and currently with -O0. We don't support optimized code yet ;
+
+* The list of units for which analysis is desired needs to be passed as
+  a list of ALIs with the '--scos' option to both xcov run and xcov coverage,
+  for instance via a response file (--scos=@file_with_list_of_ALIs)
+
+This can be exercised for our examples by passing an extra XCOVLEVEL
+argument to 'make' invocations, for example 'make XCOVLEVEL=stmt'.
+
+FURTHER DOCUMENTATION
+=====================
 Further documentation is available from the "Xcov Fundamentals & Users Guide"
 in the <unpack/installation-root>/share/doc/xcov directory of this package.
 
