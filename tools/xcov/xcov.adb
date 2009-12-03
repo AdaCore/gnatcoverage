@@ -1157,7 +1157,7 @@ begin
                Histmap : String_Access := null;
             begin
                if Enabled (MCDC) then
-                  if Length (SCOs_Inputs) /= 0 then
+                  if Length (SCOs_Inputs) = 0 then
                      Warn ("No SCOs specified for MC/DC level");
                   else
                      Histmap := new String'(Exe_File & ".dmap");
