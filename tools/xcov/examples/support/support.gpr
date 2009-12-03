@@ -63,7 +63,7 @@ project Support is
    package Compiler is
       for Default_Switches ("C") use ("-g", "-O1", "-fpreserve-control-flow");
       for Default_Switches ("ada") use
-        Compiler'Default_Switches("C") & ("-gnatp", "-gnatw.Xe");
+        Compiler'Default_Switches("C") & ("-gnatp", "-gnatw.Xe", "-gnateS");
       case Do_Style_Checks is
          when "no" => null;
          when "yes" =>

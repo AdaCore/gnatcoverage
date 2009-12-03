@@ -20,7 +20,7 @@
 # each, but final results for one are likely to be intermixed or partially
 # clobbered by those for another.
 
-# Extra arguments to pass to gprbuild
+# User arguments to pass to the builder
 BUILDFLAGS=
 
 # Kind of coverage analysis to be performed (--level argument)
@@ -32,25 +32,29 @@ XCOVLEVEL=branch
 
 OBJECT_LEVELS=branch insn
 ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
-  # Object coverage: use --routines to filter
+  # Object coverage: use --routines to filter. No extra build option.
 
+  INTERNALBUILDFLAGS = -O0 -gnateS
   GENXCOVLIST=\
     $(XCOV) disp-routines $(wildcard obj/$(TARGETNAME)/*.o) > $*.routines
   XCOVFILTER=--routines=@$*.routines
-  XCOVRUN=\
-    xcov run --target=$(TARGET) --level=$(XCOVLEVEL) $<
+  XCOVRUN=xcov run \
+    --target=$(TARGET) --level=$(XCOVLEVEL) $<
 else
   # Source coverage: force recompilation with -O0 -gnateS, use --scos to
   # filter and pass the filter to xcov run so that it has visibility on
   # decision locations
 
-  BUILDFLAGS+=-O0 -gnateS
+  INTERNALBUILDFLAGS = -O0 -gnateS
   GENXCOVLIST=\
     ls $(wildcard obj/$(TARGETNAME)/*.ali) > $*.alis
   XCOVFILTER=--scos=@$*.alis
-  XCOVRUN=\
-    xcov run --target=$(TARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $<
+  XCOVRUN=xcov run \
+    --target=$(TARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $<
 endif
+
+# Argument we will pass to the builder eventually, with 
+BUILDERFLAGS=$(INTERNALBUILDFLAGS) $(BUILDFLAGS)
 
 .PRECIOUS: %.trace
 
@@ -71,7 +75,7 @@ index-%.html: %.trace
 # symbols, which implicitly excludes (hence doesn't list) results
 # for the test-harness code.
 	$(XCOV) coverage $(XCOVFILTER) \
-	 --level=$(XCOVLEVEL) --annotate=html+ $<
+	 --level=$(XCOVLEVEL) --annotate=html+ $< 
 	cp index.html $@
 
 # -----------------------------------------------------------------------
@@ -106,11 +110,11 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 build: $(TESTS) $(UNIT_TESTS)
 
 $(TESTS): support force
-	$(BUILDER) $(BUILDFLAGS) -f -p -P$@
+	$(BUILDER) -f -p -P$@ $(BUILDERFLAGS)
 
 $(UNIT_TESTS): support force
-	$(BUILDER) $(BUILDFLAGS) -f -p -Pharness \
-	-XPLATFORM=$(TARGETNAME) -XRUNTIME=zfp -XUNITTEST=yes
+	$(BUILDER) -f -p -Pharness \
+	-XPLATFORM=$(TARGETNAME) -XRUNTIME=zfp -XUNITTEST=yes $(BUILDERFLAGS)
 
 support:
 	$(MAKE) -C ../support
