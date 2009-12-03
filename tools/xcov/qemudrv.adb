@@ -41,6 +41,9 @@ package body Qemudrv is
    Trace_Output : String_Access;
    --  Trace output filename
 
+   Histmap_Filename : String_Access;
+   --  File name of history map or null if none.
+
    Executable : String_Access;
    --  Executable to run
 
@@ -63,6 +66,7 @@ package body Qemudrv is
       Target   : String_Access;
       Tag      : String_Access;
       Output   : String_Access;
+      Histmap  : String_Access;
       Eargs    : String_List_Access)
    is
       Driver_Index : Integer;
@@ -78,6 +82,8 @@ package body Qemudrv is
       else
          Trace_Output := new String'(Simple_Name (Exe_File & ".trace"));
       end if;
+
+      Histmap_Filename := Histmap;
 
       Executable := new String'(Exe_File);
 
@@ -253,7 +259,10 @@ package body Qemudrv is
             Args (J) := new String'(Simple_Name (Executable.all) & ".bin");
 
          elsif Args (J).all = "$trace" then
-            if Enabled (MCDC) then
+            if Histmap_Filename /= null then
+               Args (J) := new String'("histmap=" & Histmap_Filename.all & ','
+                                         & Trace_Output.all);
+            elsif Enabled (MCDC) then
                Args (J) := new String'("history," & Trace_Output.all);
             else
                Args (J) := Trace_Output;

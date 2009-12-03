@@ -38,9 +38,10 @@ package Decision_Map is
    --  contain references to the designated Exe_File: the pointer must remain
    --  valid throughout execution.
 
-   procedure Build_Decision_Map (Exec_Name : String);
-   --  Analyze the named executable using the provided ALI list to generate
-   --  the decision map file for stateful (historical) traces collection.
+   procedure Build_Decision_Map (Exec_Name : String; Map_Filename : String);
+   --  Analyze the named executable using the provided ALI list to
+   --  generate the decision map file to Map_Filename for stateful
+   --  (historical) traces collection.
 
    ---------------------------------
    -- Control flow graph analysis --

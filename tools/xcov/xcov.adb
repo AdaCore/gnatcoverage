@@ -665,13 +665,23 @@ begin
          end;
 
       when Cmd_Map_Routines =>
-         Check_Argument_Available (SCOs_Inputs, "SCOs FILEs", Command);
-         Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
-         Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
-         if Verbose then
-            SC_Obligations.Report_SCOs_Without_Code;
-         end if;
-         return;
+         declare
+            procedure Build_Decision_Map (Exec_Name : String);
+
+            procedure Build_Decision_Map (Exec_Name : String) is
+            begin
+               --  Just set the filename.
+               Build_Decision_Map (Exec_Name, Exec_Name & ".dmap");
+            end Build_Decision_Map;
+         begin
+            Check_Argument_Available (SCOs_Inputs, "SCOs FILEs", Command);
+            Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+            Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
+            if Verbose then
+               SC_Obligations.Report_SCOs_Without_Code;
+            end if;
+            return;
+         end;
 
       when Cmd_Dump_Trace =>
          Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
@@ -1144,13 +1154,15 @@ begin
             ---------
 
             procedure Run (Exe_File : String) is
+               Histmap : String_Access := null;
             begin
                if Enabled (MCDC) then
+                  Histmap := new String'(Exe_File & ".dmap");
                   Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
-                  Build_Decision_Map (Exe_File);
+                  Build_Decision_Map (Exe_File, Histmap.all);
                end if;
 
-               Qemudrv.Driver (Exe_File, Target, Tag, Output, Eargs);
+               Qemudrv.Driver (Exe_File, Target, Tag, Output, Histmap, Eargs);
             end Run;
          begin
             Inputs.Iterate (Exe_Inputs, Run'Access);

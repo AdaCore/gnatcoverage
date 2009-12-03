@@ -1054,25 +1054,18 @@ package body Decision_Map is
    -- Build_Decision_Map --
    ------------------------
 
-   procedure Build_Decision_Map (Exec_Name : String)
+   procedure Build_Decision_Map (Exec_Name : String; Map_Filename : String)
    is
       Exec : Exe_File_Acc;
-
-      Decision_Map_Filename     : String_Access := null;
-      Decision_Map_Suffix       : constant String := ".dmap";
-      --  Decision map filename is constructed by appending the suffix to the
-      --  executable image name.
 
    --  Start of processing for Build_Decision_Map
 
    begin
-      Decision_Map_Filename :=
-        new String'(Exec_Name & Decision_Map_Suffix);
       Open_Exec (Exec_Name, Exec);
 
       Init_Base (Decision_Map_Base);
       Analyze (Exec);
-      Decision_Map.Write_Map (Decision_Map_Filename.all);
+      Decision_Map.Write_Map (Map_Filename);
 
       Close_File (Exec.all);
    end Build_Decision_Map;
