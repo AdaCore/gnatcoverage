@@ -6,7 +6,7 @@ XCOV=xcov
 # Both a target specific support subdir and a target toolchain prefix:
 TARGET = powerpc-elf
 
-# Base dir for the support library:
+# Base dir for the support library, relative to an example subdir:
 BASE_SUPPORT_DIR = ../support
 
 # CROSS toolchain : produce executable program from sources + target bsp

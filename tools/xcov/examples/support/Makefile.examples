@@ -7,7 +7,7 @@
 # starting from sources.
 
 # The basic idea is
-#  1/ Build the program executable from the sources
+#  1/ Build the program binary executable from the sources
 #  2/ Run it through qemu to get execution traces
 #  3/ Use xcov to produce user level coverage data from the traces
 
@@ -19,6 +19,38 @@
 # Everything is done to have the correct sequence of operations for
 # each, but final results for one are likely to be intermixed or partially
 # clobbered by those for another.
+
+# Extra arguments to pass to gprbuild
+BUILDFLAGS=
+
+# Kind of coverage analysis to be performed (--level argument)
+XCOVLEVEL=branch
+
+# Define object vs source coverage action variants for common rules.
+# Beware that they are involved in different rules, so automatic variables
+# like $< don't expand the same across actions.
+
+OBJECT_LEVELS=branch insn
+ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
+  # Object coverage: use --routines to filter
+
+  GENXCOVLIST=\
+    $(XCOV) disp-routines $(wildcard obj/$(TARGETNAME)/*.o) > $*.routines
+  XCOVFILTER=--routines=@$*.routines
+  XCOVRUN=\
+    xcov run --target=$(TARGET) --level=$(XCOVLEVEL) $<
+else
+  # Source coverage: force recompilation with -O0 -gnateS, use --scos to
+  # filter and pass the filter to xcov run so that it has visibility on
+  # decision locations
+
+  BUILDFLAGS+=-O0 -gnateS
+  GENXCOVLIST=\
+    ls $(wildcard obj/$(TARGETNAME)/*.ali) > $*.alis
+  XCOVFILTER=--scos=@$*.alis
+  XCOVRUN=\
+    xcov run --target=$(TARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $<
+endif
 
 .PRECIOUS: %.trace
 
@@ -34,13 +66,12 @@ all: build trace analyze
 analyze: $(TESTS:%=index-%.html) $(UNIT_TESTS:%=index-%.html)
 
 index-%.html: %.trace
-	# In e.g. the Aunit case, we're only interested in results for
-	# our applicative objects so query for the specific list of relevant
-	# symbols, which implicitly excludes (hence doesn't list) results
-	# for the test-harness code.
-	$(XCOV) disp-routines $(wildcard obj/$(TARGETNAME)/*.o) > $<.list
-	$(XCOV) coverage --routine-list=$<.list \
-	 --level=branch --annotate=html+asm $<
+# In e.g. the Aunit case, we're only interested in results for
+# our applicative objects so query for the specific list of relevant
+# symbols, which implicitly excludes (hence doesn't list) results
+# for the test-harness code.
+	$(XCOV) coverage $(XCOVFILTER) \
+	 --level=$(XCOVLEVEL) --annotate=html+ $<
 	cp index.html $@
 
 # -----------------------------------------------------------------------
@@ -51,14 +82,21 @@ index-%.html: %.trace
 trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 
 %.trace: % force
-# echo the command we're planning to run while our term
-# is functional, then run silently in between the possibly
-# required stty adjustments. Switching to e.g raw would
-# have the command output start right after the command echo
+	@clear
+# Generate the filtering list here, as we might need to pass it to
+# xcov run and always need to pass it to xcov coverage.
+
+	$(GENXCOVLIST)
+
+# Then echo the command we're planning to run while our term is functional,
+# and run silently in between the possibly required stty adjustments.
+# Switching to e.g raw to run is necessary in some environments, and echoing
+# the command there would have the output start right after the command echo
 # on the same line, cumbersome.
-	@echo xcov run --target=$(TARGET) $<
+
+	@echo $(XCOVRUN)
 	@$(STTY_ADJUST)
-	-@xcov run --target=$(TARGET) $<
+	@$(XCOVRUN)
 	@$(STTY_RESTORE)
 
 # -----------------------------------------------------------------------
@@ -68,11 +106,11 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 build: $(TESTS) $(UNIT_TESTS)
 
 $(TESTS): support force
-	$(BUILDER) -p -P$@
+	$(BUILDER) $(BUILDFLAGS) -f -p -P$@
 
 $(UNIT_TESTS): support force
-	$(BUILDER) -XPLATFORM=$(TARGETNAME) -XRUNTIME=zfp \
-	 -XUNITTEST=yes -p -Pharness
+	$(BUILDER) $(BUILDFLAGS) -f -p -Pharness \
+	-XPLATFORM=$(TARGETNAME) -XRUNTIME=zfp -XUNITTEST=yes
 
 support:
 	$(MAKE) -C ../support
@@ -82,6 +120,6 @@ support:
 clean:
 	$(MAKE) -C ../support clean
 	$(RM) -rf obj lib
-	$(RM) -f *.bin *.trace.list *.trace *~ *.xcov *.html *.css $(TESTS)
+	$(RM) -f *.bin *.trace.* *.trace *~ *.xcov *.html *.css $(TESTS)
 
 .PHONY: force clean
