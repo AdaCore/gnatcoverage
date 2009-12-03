@@ -62,11 +62,23 @@ package body Stations is
       procedure Process_Pending_Inputs (Sta : Station_Access) is
          Situ : Situation;
       begin
+         --  Fetch robot situation inputs and update our local map
+         --  accordingly.
+
          while not Empty (Robot_Situation_Inport (Sta.all)) loop
             Pop (Situ, Robot_Situation_Inport (Sta.all));
             Update (Sta.Map, Situ);
+
+            --  Assume the robot was on solid ground unless we already
+            --  knew otherwise.
+
+            if Sta.Map (Situ.Pos.X, Situ.Pos.Y) = Unknown then
+               Sta.Map (Situ.Pos.X, Situ.Pos.Y) := Ground;
+            end if;
+
             Dump (Sta.Map, Situ);
          end loop;
+
       end Process_Pending_Inputs;
 
       C : Character;  -- User input - next op to perform
@@ -108,8 +120,7 @@ package body Stations is
       Put ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
       Flush;
 
-      Get (C);
-      Put (C);  New_Line;
+      Get (C); Put (C); New_Line;
 
       if C = 'Q' or else C = 'q' then
          Kill (Sta.all);
