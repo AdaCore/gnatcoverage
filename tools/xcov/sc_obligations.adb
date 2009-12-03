@@ -313,6 +313,9 @@ package body SC_Obligations is
         Element_Type => SCO_Descriptor);
    SCO_Vector : SCO_Vectors.Vector;
 
+   Operator_Slocs : Sloc_Sets.Set;
+   --  All slocs associated with an operator mentioned in a SCO
+
    function Next_BDD_Node
      (SCO   : SCO_Id;
       Value : Boolean) return BDD.BDD_Node_Id;
@@ -978,6 +981,15 @@ package body SC_Obligations is
       return SCO_Vector.Element (SCO).Index;
    end Index;
 
+   ----------------------
+   -- Is_Operator_Sloc --
+   ----------------------
+
+   function Is_Operator_Sloc (Sloc : Source_Location) return Boolean is
+   begin
+      return Operator_Slocs.Contains (Sloc);
+   end Is_Operator_Sloc;
+
    ----------
    -- Kind --
    ----------
@@ -1225,12 +1237,15 @@ package body SC_Obligations is
                   end if;
 
                when '!' =>
+                  Operator_Slocs.Insert (Make_Sloc (SCOE.From));
                   BDD.Process_Not (Current_BDD);
 
                when '&' =>
+                  Operator_Slocs.Insert (Make_Sloc (SCOE.From));
                   BDD.Process_And_Then (Current_BDD);
 
                when '|' =>
+                  Operator_Slocs.Insert (Make_Sloc (SCOE.From));
                   BDD.Process_Or_Else (Current_BDD);
 
                when others =>

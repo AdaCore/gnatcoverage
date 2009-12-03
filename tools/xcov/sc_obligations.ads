@@ -42,6 +42,10 @@ package SC_Obligations is
    --  among those covering that line.
    --  For No_Location, return No_SCO_Id.
 
+   function Is_Operator_Sloc (Sloc : Source_Location) return Boolean;
+   --  True if this is the sloc of a boolean operator mentioned in a decision
+   --  SCO.
+
    function Has_SCO
      (Sloc_Begin : Source_Location;
       Sloc_End   : Source_Location) return Boolean;

@@ -256,7 +256,6 @@ private
 
    type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
 
-   package Sloc_Sets is new Ada.Containers.Ordered_Sets (Source_Location);
    subtype Sloc_Set is Sloc_Sets.Set;
 
    type Exe_File_Type is limited new Symbolizer with record

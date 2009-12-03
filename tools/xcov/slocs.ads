@@ -18,7 +18,10 @@
 ------------------------------------------------------------------------------
 
 --  Source locations
-with Types;       use Types;
+
+with Ada.Containers.Ordered_Sets;
+
+with Types; use Types;
 
 package Slocs is
 
@@ -49,5 +52,7 @@ package Slocs is
    --  Lexicographic order
 
    function Image (Sloc_Range : Source_Location_Range) return String;
+
+   package Sloc_Sets is new Ada.Containers.Ordered_Sets (Source_Location);
 
 end Slocs;

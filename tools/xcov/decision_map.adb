@@ -234,6 +234,11 @@ package body Decision_Map is
       SCO := Sloc_To_SCO (Sloc);
 
       if SCO = No_SCO_Id or else Kind (SCO) /= Condition then
+         if Is_Operator_Sloc (Sloc) then
+            Report
+              (Exec, Insn'First, "conditional branch has operator sloc",
+               Kind => Warning);
+         end if;
          return;
       end if;
 
