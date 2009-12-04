@@ -1216,7 +1216,8 @@ They may not be used together.
 @code{--scos} conveys both SCO information to the analysis engine and
 the selection of units for which result reports are to be produced.
 @c
-It may be repeated on the command line, with cumulative effects.
+The option may be repeated on the command line, with cumulative
+effects.
 
 Source coverage results may be produced in several output formats,
 selected with the @option{--annotate} command line option.
@@ -1254,7 +1255,7 @@ Below is a sample session to illustrate on the Explore example, for
 the @code{robots} unit after recompilation with @option{-gnateS -O0}.
 @c
 Note the @option{--level} option passed to both @code{run} and
-@code{overage} invocations:
+@code{coverage} invocations:
 
 @smallexample
 
@@ -1277,10 +1278,12 @@ $ xcov coverage --scos=@@alis --level=stmt --annotate=xcov explore.trace
 
 @end smallexample
 
-In both cases, we get a @code{stations.adb.xcov} output for the
-``stations'' unit, like:
+@noindent
+For the @code{Stations} unit, this produces a @code{stations.adb.xcov}
+output like:
 
 @smallexample
+
 .../couverture/tools/xcov/examples/explore/src/stations.adb:
 Coverage level: STMT  87% of 38 lines covered
 [...]
@@ -1303,14 +1306,12 @@ Coverage level: STMT  87% of 38 lines covered
 [...]
 @end smallexample
 
+@noindent
 The @code{report} format simply diagnoses the set of source lines with
-uncovered statements.
-@c
-For the example excerpt above, this would be like:
+uncovered statements:
 
 @smallexample
 
-Coverage level: STMT
 [...]
 stations.adb:87: statement not covered
 stations.adb:89: statement not covered
@@ -1376,14 +1377,35 @@ below on a sample of the @code{robots} control code:
 
 @end smallexample
 
-The report diagnostic source location features both a line and a
-column number to designate the first token of the decision
+For decision related diagnostics, the source location features both a
+line and a column number to designate the first token of the decision
 unambiguously.
-
-This is @code{.annotate=xcov+} output excerpt:
+@c
+Below is the corresponding @code{--annotate=xcov+} output excerpt.
+@c
+Decision diagnostics are always expanded on the first line of the
+decision:
 
 @smallexample
 
+  51 .:    function Unsafe (Cmd : Robot_Command; Sqa : Square) ...
+  52 .:    begin
+  53 .:       --  Stepping forward with a block or a water pit ahead is Unsafe
+  54 .:
+  55 +:       return
+  56 !:         Cmd = Step_Forward
+DECISION "Cmd = Ste..." at 56:9: outcome TRUE never exercised
+  57 !:         and then (Sqa = Block or else Sqa = Water);
+  58 .:    end Unsafe;
+
+  73 .:       --  Cautious, the robot refuses to process unsafe controls
+  74 .:
+  75 !:       if Robot.Mode = Cautious
+DECISION "Robot.Mod..." at 75:10: outcome TRUE never exercised
+  76 !:         and then Unsafe (Ctrl.Code, Probe_Ahead (Robot.Hw.Rad))
+  77 .:       then
+  78 -:          return;
+  79 .:       end if;
 
 @end smallexample
 
@@ -1396,14 +1418,9 @@ Modified Condition/Decision Coverage assessment capabilities with
 Compared to Decision Coverage, MCDC processing incurs extra
 verifications on the demonstration by the tests of the independant
 influence of @dfn{conditions} (boolean atoms) in decisions, with
-associated @code{--annotate=report} diagnostics
-
-
+associated @code{--annotate=report} diagnostics.
+@c
 Xcov implements Masking MCDC.
-
-New --annotate=report notes. Line synthesis notes adjusted
-accordingly. Details with xcov+ and html+
-
 
 @page
 @section Advanced features
