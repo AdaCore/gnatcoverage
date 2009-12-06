@@ -490,7 +490,7 @@ Object and Source coverage quantifiers are of very different natures.
 Both have both pros and cons, some very dependent on the evaluation
 context and purpose.
 
-An interesting study that of the implication relationships between
+An interesting study is that of the implication relationships between
 criteria, to determine if satisfying one criteria may be used as a means
 to claim another.
 @c
@@ -739,7 +739,7 @@ users see fit for custom trace management purposes.
 @pindex @code{xcov coverage}, for object coverage analysis
 @noindent
 Over execution traces, various levels of object coverage analysis may be
-performed with @code{xcov coverage} invocations.
+performed with @code{xcov coverage}.
 @c
 An analysis variant first needs to be selected with the @option{--level}
 option:
@@ -1285,7 +1285,10 @@ output like:
 @smallexample
 
 .../couverture/tools/xcov/examples/explore/src/stations.adb:
-Coverage level: STMT  87% of 38 lines covered
+
+Coverage level: STMT
+87% of 38 lines covered
+
 [...]
   74 .:       function Control_For (C : Character) return Robot_Control;
   75 .:       --  Map user input character C to Robot_Control command, Nop if
@@ -1304,10 +1307,11 @@ Coverage level: STMT  87% of 38 lines covered
   88 .:             when 'r' | 'R' =>
   89 -:                return (Code => Rotate_Right, Value => 0);
 [...]
+
 @end smallexample
 
 @noindent
-The @code{report} format simply diagnoses the set of source lines with
+@code{--annotate=report} simply diagnoses the set of source lines with
 uncovered statements:
 
 @smallexample
@@ -1316,6 +1320,7 @@ uncovered statements:
 stations.adb:87: statement not covered
 stations.adb:89: statement not covered
 [...]
+
 @end smallexample
 
 @subsection Decision Coverage (DC)
@@ -1332,12 +1337,23 @@ program (such as @code{if} statements or @code{while} loops), plus all
 the boolean expressions that feature a short circuit operator in other
 contexts (e.g. on the right hand side of an assignment).
 
+A decision is said fully covered when tests were made so that the
+decision has evaluated to both True and False.
+@c
+If only one of these two possible outcomes was exercized, the decision
+is said partially covered.
+@c
+The case where none of the possible decision outcomes was exercized
+corresponds to situations where the enclosing statement was not
+exercized at all.
+@c
 Uncovered statements remain reported as such, without further details
 even if there are decisions therein.
-@c
+
+@noindent
 The @code{xcov} and @code{html} annotation formats both generate a
-representation of the sources with annotations on each relevant line,
-according to the following table:
+representation of the sources with annotations at the beginning of
+each relevant line, according to the following table:
 
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
@@ -1346,8 +1362,7 @@ according to the following table:
 @item '-'
 @tab statement uncovered on this line
 @item '!'
-@tab decision partially covered on this line (only one of the two
-possible boolean outcomes was exercized)
+@tab decision partially covered on this line
 @item '+'
 @tab all the decisions on this line are fully covered
 @end multitable
@@ -1364,7 +1379,7 @@ statements and partial decision coverage.
 @c
 For example, after exercizing Explore to have the robot execute safe
 commands in both Cautious and Dumb modes, we get the expected results
-below on a sample of the @code{robots} control code:
+below on a sample of the @code{Robots} control code:
 
 @smallexample
 
@@ -1388,6 +1403,7 @@ decision:
 
 @smallexample
 
+  [...]
   51 .:    function Unsafe (Cmd : Robot_Command; Sqa : Square) ...
   52 .:    begin
   53 .:       --  Stepping forward with a block or a water pit ahead is Unsafe
@@ -1397,7 +1413,11 @@ decision:
 DECISION "Cmd = Ste..." at 56:9: outcome TRUE never exercised
   57 !:         and then (Sqa = Block or else Sqa = Water);
   58 .:    end Unsafe;
-
+  [...]
+  64 .:    procedure Process_Next_Control
+  65 .:      (Port : Robot_Control_Links.IOport_Access)
+  66 .:    is
+  [...]
   73 .:       --  Cautious, the robot refuses to process unsafe controls
   74 .:
   75 !:       if Robot.Mode = Cautious
@@ -1406,6 +1426,7 @@ DECISION "Robot.Mod..." at 75:10: outcome TRUE never exercised
   77 .:       then
   78 -:          return;
   79 .:       end if;
+  [...]
 
 @end smallexample
 
@@ -1417,10 +1438,88 @@ Modified Condition/Decision Coverage assessment capabilities with
 
 Compared to Decision Coverage, MCDC processing incurs extra
 verifications on the demonstration by the tests of the independant
-influence of @dfn{conditions} (boolean atoms) in decisions, with
-associated @code{--annotate=report} diagnostics.
+influence of boolean atoms in decisions, called @dfn{conditions} in
+the DO-178 literature.
 @c
-Xcov implements Masking MCDC.
+Several variants of the criterion apply in the field, with a common
+idea: for each condition in a decision, the tests are required to
+expose a pair of valuations where both the condition and the decision
+value change while some extra property on the other conditions holds.
+
+The point is basically to demonstrate that every condition is
+significant in the decision and that sufficient tests were performed
+to exercize representative combinations of the possible behaviors.
+@c
+An important aspect is to keep the number of required tests linear
+with the number of conditions in a decision.
+@c
+All the variants of MCDC are expected to be satisfiable with
+Nconditions+1 @dfn{vectors} of condition/decision values in regular
+situations.
+
+@dfn{Unique Cause MCDC} is a common variant where the extra property is
+stated as ``all of the other conditions in the decision keep the same
+value''.
+@c
+To illustrate, let us consider the case of @code{A and then B}, as a
+single decision with two conditions @code{A} and @code{B}.
+@c
+The table below expands the 4 possible condition/decision vectors,
+with T/F to represent the True/False boolean values and indications
+about pairs demonstrating Unique Cause independant effect of each
+condition (vectors #1 and #3 for @code{A}, #1 and #2 for @code{B}):
+
+@multitable @columnfractions .05 .05 .05 .1 .05 .05
+@item # @tab @code{A} @tab @code{B} @tab @code{A && B} @tab @tab
+@item 1 @tab T @tab T @tab T @tab @code{A} @tab @code{B}
+@item 2 @tab T @tab F @tab F @tab          @tab @code{B}
+@item 3 @tab F @tab T @tab F @tab @code{A} @tab
+@item 4 @tab F @tab F @tab F @tab   @tab
+@end multitable
+
+Xcov actually implements another common variant: @dfn{Masking MCDC},
+with particular semantics for short-circuit operators.
+@c
+The idea is to accept variations of some of the extra conditions in an
+independance pair as long as these conditions are not evaluated
+(masked) due to short-circuit semantics.
+@c
+This variant provides additional felixibility on the set of tests
+required to satisfy the criterion without reducing the minimal size of
+this set.
+@c
+In the @code{and then} case, the effect is the possibility to use the
+#4 + #1 pair as well to demonstrate the independant influence of
+@code{A} on the decision.
+@c
+Indeed, @code{B} is not evaluated at all when @code{A} is False in
+this expression, so changes on the value of @code{B} are irrelevant.
+
+Output-wise, MCDC results materalize with as
+@code{--annotate=report} diagnostics on conditions, identified with
+their precise file:line:column source location.
+@c
+Using the same decision as in the previous example to illustrate, we
+run the Explore robot in Cautious mode only, try both safe and unsafe
+actions and get:
+
+@smallexample
+
+robots.adb:75:10: CONDITION: failed to show independent influence, MC/DC not achieved
+
+@end smallexample
+
+@noindent
+Such condition related messages are only emitted when no more general
+diagnostic applies on the associated decision or statement.
+@c
+In our familiar example, attempting only safe actions in Cautious mode
+yields a ``outcome TRUE never exercised'' diagnostic, not a couple of
+condition related messages.
+@c
+The in-source notes for the @code{xcov} or @code{html} formats are the
+same as for decision coverage reports, with condition specific cases
+marked with '!' as well.
 
 @page
 @section Advanced features
