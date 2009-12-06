@@ -409,7 +409,7 @@ which entry/exit points were exercised.
 
 @item @dfn{Source Modified Condition/Decision Coverage (SMCDC)} ;
 SDC + indications on which conditions took their two possible outcome
-and which were shown to have independant effect on their decisions out
+and which were shown to have independent effect on their decisions out
 of a set of program executions.
 @end itemize
 
@@ -473,14 +473,14 @@ without further impact of note on the simple example at hand.
 
 Modified Condition/Decision Coverage requires additional variations over
 the conditions, and combinations to show that each condition can affect
-the decision outcome in an independant manner.
+the decision outcome in an independent manner.
 @c
 This is expected to be possible with Nconditions+1 evaluations, so
 enforces a more precise testing of the expressions structure while
 keeping the test base complexity linear with the number of conditions.
 @c
 While this general principe always holds, there exist several variants
-of the MCDC criteria, with differences in the way independance may be
+of the MCDC criteria, with differences in the way independence may be
 shown.
 
 @subsection Source vs Object Quantifiers
@@ -617,7 +617,7 @@ An important part is the introduction of @dfn{Source Coverage
 Obligations}, or SCOs, compact tables generated to indicate the source
 elements of relevance to coverage analysis activities.
 @c
-SCOs are designed to be independant from the target certification level,
+SCOs are designed to be independent from the target certification level,
 which only influences the way a given trace is determined to meet.
 
 For @qemu{} targets and the @gcc{} compilation toochain, the toolset uses SCOs
@@ -778,7 +778,7 @@ annotated sources [@code{+} code expandable from each source line].
 The following sections provides extra details and examples for each
 situation.
 @c
-In principle, this is all pretty independant of the program
+In principle, this is all pretty independent of the program
 compilation options.
 @c
 Aggressive optimizations very often make source to object code
@@ -1437,7 +1437,7 @@ Modified Condition/Decision Coverage assessment capabilities with
 @option{--level=stmt+mcdc}.
 
 Compared to Decision Coverage, MCDC processing incurs extra
-verifications on the demonstration by the tests of the independant
+verifications on the demonstration by the tests of the independent
 influence of boolean atoms in decisions, called @dfn{conditions} in
 the DO-178 literature.
 @c
@@ -1466,7 +1466,7 @@ single decision with two conditions @code{A} and @code{B}.
 @c
 The table below expands the 4 possible condition/decision vectors,
 with T/F to represent the True/False boolean values and indications
-about pairs demonstrating Unique Cause independant effect of each
+about pairs demonstrating Unique Cause independent effect of each
 condition (vectors #1 and #3 for @code{A}, #1 and #2 for @code{B}):
 
 @multitable @columnfractions .05 .05 .05 .1 .05 .05
@@ -1481,21 +1481,21 @@ Xcov actually implements another common variant: @dfn{Masking MCDC},
 with particular semantics for short-circuit operators.
 @c
 The idea is to accept variations of some of the extra conditions in an
-independance pair as long as these conditions are not evaluated
+independence pair as long as these conditions are not evaluated
 (masked) due to short-circuit semantics.
 @c
-This variant provides additional felixibility on the set of tests
+This variant provides additional flexibility on the set of tests
 required to satisfy the criterion without reducing the minimal size of
 this set.
 @c
 In the @code{and then} case, the effect is the possibility to use the
-#4 + #1 pair as well to demonstrate the independant influence of
+#4 + #1 pair as well to demonstrate the independent influence of
 @code{A} on the decision.
 @c
 Indeed, @code{B} is not evaluated at all when @code{A} is False in
 this expression, so changes on the value of @code{B} are irrelevant.
 
-Output-wise, MCDC results materalize with as
+Output-wise, MCDC results materialize with as
 @code{--annotate=report} diagnostics on conditions, identified with
 their precise file:line:column source location.
 @c
