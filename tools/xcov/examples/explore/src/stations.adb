@@ -116,6 +116,7 @@ package body Stations is
       --  Get the next command from the terminal line and map it to an
       --  internal control code. Fake echo-on.
 
+      New_Line;
       Put_Line ("'C'autious mode, 'D'umb mode");
       Put ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
       Flush;

@@ -28,6 +28,18 @@ package body Robots_Devices.Dummy is
    --  Build a fake field MAP to perform pretended probes from, with
    --  block borders and a few blocks within.
 
+   procedure Fail (Device : access Dummy_Engine);
+   --  Register DEVICE failure
+
+   ----------
+   -- Fail --
+   ----------
+
+   procedure Fail (Device : access Dummy_Engine) is
+   begin
+      raise Program_Error;
+   end Fail;
+
    ------------------
    -- Step_Forward --
    ------------------
@@ -40,7 +52,7 @@ package body Robots_Devices.Dummy is
 
       --  If we steped on Water or into a block, we're destroyed ...
       if Sq = Water or else Sq = Block then
-         raise Program_Error;
+         Fail (Device);
       end if;
 
       Update_Square_Ahead (Device);
