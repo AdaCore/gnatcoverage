@@ -1710,13 +1710,6 @@ FAA, Federal Aviation Administration
 @end macro
 
 @multitable @columnfractions .1 .8
-@item @bibdef{ar07/20}
-@tab Object-Oriented Technology Verification Phase 3 Report:
-Structural Coverage at the source code and object code levels.
-@c
-@CHILENSKI{} and @KURTZ{}.
-@c
-DOT/FAA/AR-07/20.
 
 @item @bibdef{gcc}
 @tab GCC: The GNU Compiler Collection.
@@ -1774,7 +1767,7 @@ Condition/Decision Coverage (MCDC) Criterion.
 @tab Object Oriented Technology Verification Phase 3 Report -
 Structural Coverage at the Source Code and Object Code Levels.
 @c
-@FAA{}. DOT/FAA/AR-07/20, June 2007.
+@CHILENSKI{} and @KURTZ{}. DOT/FAA/AR-07/20, June 2007.
 
 @item @bibdef {rcdc}
 @tab From MC/DC to RC/DC: Formalization and Analysis of
