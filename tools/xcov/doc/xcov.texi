@@ -1232,8 +1232,8 @@ line, @code{html} features line colorization and an index page, and
 out of the analysis performed.
 
 @subsection Statement Coverage (SC)
-@pindex @code{Statement Coverage}
-
+@pindex Statement Coverage with Xcov
+@noindent
 Statement coverage is achieved with @code{--level=stmt}, together with
 @code{--scos} to provide the set of SCOs of interest via ALI files.
 @c
@@ -1324,6 +1324,7 @@ stations.adb:89: statement not covered
 @end smallexample
 
 @subsection Decision Coverage (DC)
+@pindex Decision Coverage with Xcov
 @noindent
 @xcov{} offers Decision Coverage assessment capabilities with
 @option{--level=stmt+decision}.
@@ -1431,6 +1432,7 @@ DECISION "Robot.Mod..." at 75:10: outcome TRUE never exercised
 @end smallexample
 
 @subsection Modified Condition/Decision Coverage (MCDC)
+@pindex MCDC Coverage with Xcov
 @noindent
 In a similar fashion to statement or decision coverage, @xcov{} offers
 Modified Condition/Decision Coverage assessment capabilities with
