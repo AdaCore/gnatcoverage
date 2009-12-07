@@ -26,11 +26,20 @@ BUILDFLAGS=
 # Kind of coverage analysis to be performed (--level argument)
 XCOVLEVEL=branch
 
-# Define object vs source coverage action variants for common rules.
-# Beware that they are involved in different rules, so automatic variables
-# like $< don't expand the same across actions.
+# ----------------------------------------------------------------------------
+# Object vs source coverage action variants for common rules
+# ----------------------------------------------------------------------------
+
+# In e.g. the Aunit case, we're only interested in results for our applicative
+# objects so query for the specific list of relevant symbols, which implicitly
+# excludes (hence doesn't list) results for the test-harness code.
+
+# Beware that these actions may be involved in different rules, so some
+# automatic variables like $< don't expand the same across actions.
 
 OBJECT_LEVELS=branch insn
+SOURCE_LEVELS=stmt stmt+decision stmt+mcdc
+
 ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
   # Object coverage: use --routines to filter. No extra build option.
 
@@ -40,7 +49,7 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
   XCOVFILTER=--routines=@$*.routines
   XCOVRUN=xcov run \
     --target=$(TARGET) --level=$(XCOVLEVEL) $<
-else
+else ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
   # Source coverage: force recompilation with -O0 -gnateS, use --scos to
   # filter and pass the filter to xcov run so that it has visibility on
   # decision locations
@@ -70,13 +79,14 @@ all: build trace analyze
 analyze: $(TESTS:%=index-%.html) $(UNIT_TESTS:%=index-%.html)
 
 index-%.html: %.trace
-# In e.g. the Aunit case, we're only interested in results for
-# our applicative objects so query for the specific list of relevant
-# symbols, which implicitly excludes (hence doesn't list) results
-# for the test-harness code.
 	$(XCOV) coverage $(XCOVFILTER) \
 	 --level=$(XCOVLEVEL) --annotate=html+ $< 
 	cp index.html $@
+
+index-%.xml: %.trace
+	$(XCOV) coverage $(XCOVFILTER) \
+	 --level=$(XCOVLEVEL) --annotate=xml $< 
+	cp index.xml $@
 
 # -----------------------------------------------------------------------
 # trace: produce execution trace from executable program execution
