@@ -68,9 +68,6 @@ package body Annotations.Xml is
 
    Xml_Header : constant String := "<?xml version=""1.0"" ?>";
 
-   function Escape_Quotes (S : String) return String;
-   --  Remplace '"' by '\"' in S and return the result.
-
    function A (Name : String; Value : Character) return String;
 
    function A (Name : String; Value : String) return String;
@@ -200,7 +197,7 @@ package body Annotations.Xml is
 
    function A (Name : String; Value : String) return String is
    begin
-      return " " & Name & "=" & '"' & Escape_Quotes (Value) & '"';
+      return " " & Name & "=" & '"' & To_Xml_String (Value) & '"';
    end A;
 
    function A (Name : String; Value : Character) return String is
@@ -222,42 +219,6 @@ package body Annotations.Xml is
       Pp.P ("</" & Name & ">", Dest);
       New_Line (Pp.Files (Dest));
    end ET;
-
-   -------------------
-   -- Escape_Quotes --
-   -------------------
-
-   function Escape_Quotes (S : String) return String is
-      Count_Quotes : Natural := 0;
-   begin
-      for J in S'Range loop
-         if S (J) = '"' then
-            Count_Quotes := Count_Quotes + 1;
-         end if;
-      end loop;
-
-      declare
-         Result       : String (1 .. S'Length + Count_Quotes);
-         Current      : Character;
-         Result_Index : Natural := Result'First;
-         S_Index      : Natural := S'First;
-      begin
-         while Result_Index <= Result'Last loop
-            Current := S (S_Index);
-            S_Index := S_Index + 1;
-
-            if Current /= '"' then
-               Result (Result_Index) := Current;
-               Result_Index := Result_Index + 1;
-            else
-               Result (Result_Index) := '\';
-               Result (Result_Index + 1) := Current;
-               Result_Index := Result_Index + 2;
-            end if;
-         end loop;
-         return Result;
-      end;
-   end Escape_Quotes;
 
    ---------------------
    -- Generate_Report --
@@ -650,5 +611,79 @@ package body Annotations.Xml is
    begin
       Pp.P ("<" & Name & Attributes & "/>", Dest);
    end T;
+
+   -------------------
+   -- To_Xml_String --
+   -------------------
+
+   function To_Xml_String (S : String) return String is
+
+      type Xml_Special_Character is record
+         Char : Character;
+         --  Special character
+
+         Xml_Representation : String_Access;
+         --  Xml Representation of Char
+      end record;
+
+      type Xml_Special_Character_Mapping is
+        array (Natural range <>) of Xml_Special_Character;
+
+      Char_Map : constant Xml_Special_Character_Mapping :=
+        (('"', new String'("&quot;")),
+         (''', new String'("&apos;")),
+         ('>', new String'("&gt;")),
+         ('<', new String'("&lt;")),
+         ('&', new String'("&amp;")));
+
+      function Xml_Length (S : String) return Natural;
+      --  Return the length of the string after conversion
+
+      ----------------
+      -- Xml_Length --
+      ----------------
+
+      function Xml_Length (S : String) return Natural is
+         Add : Natural := 0;
+      begin
+         for J in S'Range loop
+            for K in Char_Map'Range loop
+               if S (J) = Char_Map (K).Char then
+                  Add := Add + Char_Map (K).Xml_Representation.all'Length - 1;
+               end if;
+            end loop;
+         end loop;
+
+         return S'Length + Add;
+      end Xml_Length;
+
+      --  Local variables
+
+      Res       : String (1 .. Xml_Length (S));
+      Idx       : Natural;
+      Increment : Natural;
+
+   --  Start of processing for To_Xml_String
+
+   begin
+      Idx := Res'First;
+      for J in S'Range loop
+         Increment := 1;
+         Res (Idx) := S (J);
+
+         for K in Char_Map'Range loop
+            if S (J) = Char_Map (K).Char then
+               Increment := Char_Map (K).Xml_Representation'Length;
+               Res (Idx .. Idx + Increment - 1) :=
+                 Char_Map (K).Xml_Representation.all;
+            end if;
+         end loop;
+
+         Idx := Idx + Increment;
+      end loop;
+
+      pragma Assert (Idx = Res'Last + 1);
+      return Res;
+   end To_Xml_String;
 
 end Annotations.Xml;

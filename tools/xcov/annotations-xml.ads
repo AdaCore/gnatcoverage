@@ -19,6 +19,9 @@
 
 package Annotations.Xml is
 
+   function To_Xml_String (S : String) return String;
+   --  Return the string S with '>', '<' and '&' replaced by XML entities
+
    procedure Generate_Report;
 
 end Annotations.Xml;

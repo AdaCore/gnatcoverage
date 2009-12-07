@@ -27,6 +27,7 @@ with Traces_Files_List;
 with Qemu_Traces;
 with Coverage;    use Coverage;
 with Outputs;     use Outputs;
+with Annotations.Xml; use Annotations.Xml;
 
 package body Annotations.Html is
    type String_Cst_Acc is access constant String;
@@ -117,9 +118,6 @@ package body Annotations.Html is
    ---------------------------
    -- General HTML handling --
    ---------------------------
-
-   function To_Xml_String (S : String) return String;
-   --  Return the string S with '>', '<' and '&' replaced by XML entities
 
    procedure Generate_Css_File;
    --  Generate the style sheet for the HTML reports
@@ -844,65 +842,6 @@ package body Annotations.Html is
       Put_Line (F, "</tr></table>");
       Put_Line (F, "      </td>");
    end Print_Coverage_Stats;
-
-   -------------------
-   -- To_Xml_String --
-   -------------------
-
-   function To_Xml_String (S : String) return String is
-
-      function Xml_Length (S : String) return Natural;
-      --  Return the length of the string after conversion
-
-      ----------------
-      -- Xml_Length --
-      ----------------
-
-      function Xml_Length (S : String) return Natural
-      is
-         Add : Natural := 0;
-      begin
-         for I in S'Range loop
-            case S (I) is
-               when '>' | '<' =>
-                  Add := Add + 3;
-               when '&' =>
-                  Add := Add + 4;
-               when others =>
-                  null;
-            end case;
-         end loop;
-         return S'Length + Add;
-      end Xml_Length;
-
-      --  Local variables
-
-      Res : String (1 .. Xml_Length (S));
-      Idx : Natural;
-
-      --  Start of processing for To_Xml_String
-
-   begin
-      Idx := Res'First;
-      for I in S'Range loop
-         case S (I) is
-            when '>' =>
-               Res (Idx .. Idx + 3) := "&gt;";
-               Idx := Idx + 4;
-            when '<' =>
-               Res (Idx .. Idx + 3) := "&lt;";
-               Idx := Idx + 4;
-            when '&' =>
-               Res (Idx .. Idx + 4) := "&amp;";
-               Idx := Idx + 5;
-            when others =>
-               Res (Idx) := S (I);
-               Idx := Idx + 1;
-         end case;
-      end loop;
-      pragma Assert (Idx = Res'Last + 1);
-      return Res;
-   end To_Xml_String;
 
    ---------
    -- Put --
