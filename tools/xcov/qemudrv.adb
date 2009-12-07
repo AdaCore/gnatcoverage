@@ -175,7 +175,7 @@ package body Qemudrv is
 
    exception
       when Exec_Error =>
-         return;
+         Set_Exit_Status (Failure);
    end Driver;
 
    -----------
