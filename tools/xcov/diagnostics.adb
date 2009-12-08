@@ -177,7 +177,7 @@ package body Diagnostics is
 
    procedure Output_Message (M : Message) is
    begin
-      if Verbose or else M.Kind > Notice then
+      if Verbose or else M.Kind > Warning then
          Put_Line (Image (M));
       end if;
    end Output_Message;
