@@ -437,7 +437,7 @@ package body Annotations.Xml is
       Pp.P (Xml_Header);
       Pp.ST ("source",
              A ("file", Simple_Source_Filename)
-             & A ("Coverage_Level", Coverage_Option_Value));
+             & A ("coverage_level", Coverage_Option_Value));
 
       Pp.T ("xi:include", A ("parse", "xml") & A ("href", Xml_File_Name),
             Dest_Index);
