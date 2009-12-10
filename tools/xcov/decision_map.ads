@@ -53,7 +53,8 @@ package Decision_Map is
    --  This information is made visible here for the benefit of the trace
    --  analysis circuitry in Coverage.Sources.
 
-   type Edge_Dest_Kind is (Unknown, Condition, Outcome, Raise_Exception);
+   type Edge_Dest_Kind is
+     (Unknown, Condition, Outcome, Operator_Shortcut, Raise_Exception);
    --  Destination of an edge in the control flow graph within an occurrence of
    --  a decision: not determined yet, test another condition, final decision
    --  outcome reached, or raising an exception.
@@ -71,6 +72,10 @@ package Decision_Map is
 
       Dest_Kind      : Edge_Dest_Kind := Unknown;
       --  Edge destination classification, if known
+
+      Op_SCO         : SCO_Id := No_SCO_Id;
+      --  For an edge that corresponds to the shortcut case of an operator,
+      --  reference to the operator SCO.
 
       Next_Condition : Any_Condition_Index := No_Condition_Index;
       --  For the case where Dest_Kind is Condition, index within decision of

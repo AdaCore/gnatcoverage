@@ -28,7 +28,7 @@ package SC_Obligations is
    No_SCO_Id : constant SCO_Id := 0;
    subtype Valid_SCO_Id is SCO_Id range No_SCO_Id + 1 .. SCO_Id'Last;
 
-   type SCO_Kind is (Statement, Decision, Condition);
+   type SCO_Kind is (Statement, Decision, Condition, Operator);
 
    procedure Add_Address (SCO : SCO_Id; Address : Pc_Type);
    --  Record Address in SCO's address list
@@ -42,9 +42,8 @@ package SC_Obligations is
    --  among those covering that line.
    --  For No_Location, return No_SCO_Id.
 
-   function Is_Operator_Sloc (Sloc : Source_Location) return Boolean;
-   --  True if this is the sloc of a boolean operator mentioned in a decision
-   --  SCO.
+   type Operator_Kind is (Op_Not, Op_And_Then, Op_Or_Else);
+   function Operator (Sloc : Source_Location) return SCO_Id;
 
    function Has_SCO
      (Sloc_Begin : Source_Location;
@@ -73,6 +72,8 @@ package SC_Obligations is
    subtype Condition_Index is
      Any_Condition_Index range 0 .. Any_Condition_Index'Last;
 
+   type Operand_Position is (Left, Right);
+
    ----------------------------
    -- Accessors for SCO info --
    ----------------------------
@@ -100,6 +101,10 @@ package SC_Obligations is
    --  Outcome of decision if this condition has the given value, or Unknown
    --  if the value does not determine the decision outcome.
 
+   function Enclosing_Decision (SCO : SCO_Id) return SCO_Id;
+   --  Enclosing decision (climbing up the expression tree through operator
+   --  SCOs).
+
    procedure Get_Origin
      (SCO        : SCO_Id;
       Prev_SCO   : out SCO_Id;
@@ -107,6 +112,11 @@ package SC_Obligations is
    --  For a condition SCO that is part of a decision with no diamond, return
    --  the previous tested condition and the value of that condition causing
    --  the condition denoted by SCO to be evaluated.
+
+   --  Operator SCOs
+
+   function Op_Kind (SCO : SCO_Id) return Operator_Kind;
+   function Operand (SCO : SCO_Id; Position : Operand_Position) return SCO_Id;
 
    --  Decision SCOs
 

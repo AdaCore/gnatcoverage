@@ -61,7 +61,7 @@ package body MC_DC is
       use Ada.Containers;
       use Condition_Evaluation_Vectors;
 
-      D_SCO : constant SCO_Id := Parent (Condition);
+      D_SCO : constant SCO_Id := Enclosing_Decision (Condition);
       pragma Assert (not Has_Diamond (D_SCO));
 
       Values : Vector;

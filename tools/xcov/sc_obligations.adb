@@ -27,6 +27,7 @@ with Ada.Text_IO;       use Ada.Text_IO;
 with ALI_Files;   use ALI_Files;
 with Diagnostics; use Diagnostics;
 with SCOs;
+with Strings;     use Strings;
 with Switches;    use Switches;
 with Types;       use Types;
 with Files_Table; use Files_Table;
@@ -181,6 +182,10 @@ package body SC_Obligations is
 
          Origin : BDD_Node_Id := No_BDD_Node_Id;
          --  Jump node referencing next condition
+
+         O_SCO : SCO_Id;
+         O_Pos : Operand_Position;
+         --  Reference to parent operator and position (Left or Right) in it
       end record;
 
       procedure Push (A : Arcs);
@@ -192,9 +197,9 @@ package body SC_Obligations is
       function Create (Decision : SCO_Id) return BDD_Type;
       --  Start construction of a new BDD for the given decision
 
-      procedure Process_Not      (BDD : BDD_Type);
-      procedure Process_And_Then (BDD : in out BDD_Type);
-      procedure Process_Or_Else  (BDD : in out BDD_Type);
+      procedure Process_Not      (O_SCO : SCO_Id; BDD : BDD_Type);
+      procedure Process_And_Then (O_SCO : SCO_Id; BDD : in out BDD_Type);
+      procedure Process_Or_Else  (O_SCO : SCO_Id; BDD : in out BDD_Type);
       --  Process NOT, AND THEN, OR ELSE operators
 
       procedure Process_Condition
@@ -246,6 +251,8 @@ package body SC_Obligations is
    function To_Decision_Kind (C : Character) return Decision_Kind;
    --  Convert character code for decision kind to corresponding enum value
 
+   type Operand_Pair is array (Operand_Position) of SCO_Id;
+
    type SCO_Descriptor (Kind : SCO_Kind := SCO_Kind'First) is record
       Origin : Source_File_Index;
       --  ALI file containing this SCO
@@ -257,7 +264,8 @@ package body SC_Obligations is
       --  For a decision, pointer to the enclosing statement (or condition in
       --  the case of a nested decision), unset if decision is part of a
       --  flow control structure.
-      --  For a condition, pointer to the enclosing decision.
+      --  For a condition or operator, pointer to the enclosing operator, or to
+      --  enclosing decision if at top level.
 
       case Kind is
          when Statement =>
@@ -284,26 +292,38 @@ package body SC_Obligations is
             Index : Condition_Index;
             --  Index of this condition in the decision
 
-         when Decision =>
-            D_Kind : Decision_Kind;
-            --  Decision kind indication
+         when Decision | Operator =>
+            Operands : Operand_Pair := (others => No_SCO_Id);
+            --  Operands of this operator (for a decision, only the right
+            --  operand is set, and it points to the top expression node.
 
-            Control_Location : Source_Location := No_Location;
-            --  For a decision other than an Expression, sloc of the execution
-            --  flow control construct.
+            case Kind is
+               when Decision =>
+                  D_Kind : Decision_Kind;
+                  --  Decision kind indication
 
-            Last_Cond_Index : Any_Condition_Index;
-            --  Index of last condition in decision (should be > 0 for complex
-            --  decisions, = 0 otherwise).
+                  Control_Location : Source_Location := No_Location;
+                  --  For a decision other than an Expression, sloc of the
+                  --  execution flow control construct.
 
-            Decision_BDD : BDD.BDD_Type;
-            --  BDD of the decision
+                  Last_Cond_Index : Any_Condition_Index;
+                  --  Index of last condition in decision (should be > 0 for
+                  --  complex decisions, = 0 otherwise).
 
-            Degraded_Origins : Boolean := False;
-            --  Set True for the case of a single-condition decision, whose
-            --  conditional branch instructions have origins (i.e. condition
-            --  value labels) set modulo an arbitrary negation.
+                  Decision_BDD : BDD.BDD_Type;
+                  --  BDD of the decision
 
+                  Degraded_Origins : Boolean := False;
+                  --  Set True for the case of a single-condition decision,
+                  --  whose conditional branch instructions have origins (i.e.
+                  --  condition value labels) set modulo an arbitrary negation.
+
+               when Operator =>
+                  Op_Kind : Operator_Kind;
+
+               when others =>
+                  null;
+            end case;
       end case;
    end record;
 
@@ -313,14 +333,15 @@ package body SC_Obligations is
         Element_Type => SCO_Descriptor);
    SCO_Vector : SCO_Vectors.Vector;
 
-   Operator_Slocs : Sloc_Sets.Set;
-   --  All slocs associated with an operator mentioned in a SCO
-
    function Next_BDD_Node
      (SCO   : SCO_Id;
       Value : Boolean) return BDD.BDD_Node_Id;
    --  Given a Condition SCO and the value of the condition, return the
    --  corresponding target node in the decision's BDD.
+
+   procedure Dump_Decision (SCO : SCO_Id);
+   --  Display image of decision in reconstructed expression form (for
+   --  debugging purposes).
 
    ---------
    -- BDD --
@@ -339,6 +360,12 @@ package body SC_Obligations is
       --  Look for diamonds in BDD (conditions that can be reached through more
       --  than one path from the root condition). MC/DC coverage is equivalent
       --  to object branch coverage if, and only if, there is no diamond.
+
+      procedure Set_Operand
+        (Operator : SCO_Id;
+         Position : Operand_Position;
+         Operand  : SCO_Id);
+      --  Set the operand slot indicated by Position in Operator to Operand
 
       --------------
       -- Allocate --
@@ -627,7 +654,9 @@ package body SC_Obligations is
             Push
               (((False => Exit_False_Id,
                  True  => Exit_True_Id),
-                Origin => No_BDD_Node_Id));
+               Origin => No_BDD_Node_Id,
+               O_SCO  => Decision,
+               O_Pos  => Right));
          end return;
       end Create;
 
@@ -635,10 +664,15 @@ package body SC_Obligations is
       -- Process_And_Then --
       ----------------------
 
-      procedure Process_And_Then (BDD : in out BDD_Type) is
+      procedure Process_And_Then (O_SCO : SCO_Id; BDD : in out BDD_Type) is
          A : constant Arcs := Pop;
          L : BDD_Node_Id;
       begin
+         Set_Operand
+           (Operator => A.O_SCO,
+            Position => A.O_Pos,
+            Operand  => O_SCO);
+
          Allocate (BDD, BDD_Node'(Kind => Jump,
                                   Dest => No_BDD_Node_Id), L);
 
@@ -648,41 +682,56 @@ package body SC_Obligations is
          Push
            (((False => A.Dests (False),
               True  => A.Dests (True)),
-             Origin => L));
+            Origin => L,
+            O_SCO  => O_SCO,
+            O_Pos  => Right));
 
          --  Arcs for left operand
 
          Push
            (((False => A.Dests (False),
               True  => L),
-             Origin => A.Origin));
+            Origin => A.Origin,
+            O_SCO  => O_SCO,
+            O_Pos  => Left));
       end Process_And_Then;
 
       -----------------
       -- Process_Not --
       -----------------
 
-      procedure Process_Not (BDD : BDD_Type) is
+      procedure Process_Not (O_SCO : SCO_Id; BDD : BDD_Type) is
          pragma Unreferenced (BDD);
 
          A : constant Arcs := Pop;
       begin
+         Set_Operand
+           (Operator => A.O_SCO,
+            Position => A.O_Pos,
+            Operand  => O_SCO);
+
          --  Swap destinations of top arcs
 
          Push
            (((False => A.Dests (True),
               True  => A.Dests (False)),
-             Origin => A.Origin));
+            Origin => A.Origin,
+            O_SCO  => O_SCO,
+            O_Pos  => Right));
       end Process_Not;
 
       ---------------------
       -- Process_Or_Else --
       ---------------------
 
-      procedure Process_Or_Else (BDD : in out BDD_Type) is
+      procedure Process_Or_Else (O_SCO : SCO_Id; BDD : in out BDD_Type) is
          A : constant Arcs := Pop;
          L : BDD_Node_Id;
       begin
+         Set_Operand
+           (Operator => A.O_SCO,
+            Position => A.O_Pos,
+            Operand  => O_SCO);
          Allocate (BDD, BDD_Node'(Kind => Jump, Dest => No_BDD_Node_Id), L);
 
          --  Arcs for right operand: subtree is reached through label L if
@@ -691,14 +740,18 @@ package body SC_Obligations is
          Push
            (((False => A.Dests (False),
               True  => A.Dests (True)),
-             Origin => L));
+            Origin => L,
+            O_SCO  => O_SCO,
+            O_Pos  => Right));
 
          --  Arcs for left operand
 
          Push
            (((False => L,
               True  => A.Dests (True)),
-             Origin => A.Origin));
+            Origin => A.Origin,
+            O_SCO  => O_SCO,
+            O_Pos  => Left));
       end Process_Or_Else;
 
       -----------------------
@@ -712,11 +765,11 @@ package body SC_Obligations is
          A : constant Arcs := Pop;
          N : BDD_Node_Id;
 
+         procedure Update_Condition (SCOD : in out SCO_Descriptor);
+         --  Set associated node of (Condition) SCOD to N
+
          procedure Set_Dest (Origin_Node : in out BDD_Node);
          --  Set destination of Origin_Node to N
-
-         procedure Set_BDD_Node (SCOD : in out SCO_Descriptor);
-         --  Set associated node of (Condition) SCOD to N
 
          --------------
          -- Set_Dest --
@@ -727,14 +780,20 @@ package body SC_Obligations is
             Origin_Node.Dest := N;
          end Set_Dest;
 
-         ------------------
-         -- Set_BDD_Node --
-         ------------------
+         ----------------------
+         -- Update_Condition --
+         ----------------------
 
-         procedure Set_BDD_Node (SCOD : in out SCO_Descriptor) is
+         procedure Update_Condition (SCOD : in out SCO_Descriptor) is
          begin
             SCOD.BDD_Node := N;
-         end Set_BDD_Node;
+            Set_Operand
+              (Operator => A.O_SCO,
+               Position => A.O_Pos,
+               Operand  => Condition_Id);
+         end Update_Condition;
+
+      --  Start of processing for Process_Condition
 
       begin
          Allocate
@@ -752,7 +811,7 @@ package body SC_Obligations is
             BDD.Root_Condition := N;
          end if;
 
-         SCO_Vector.Update_Element (Condition_Id, Set_BDD_Node'Access);
+         SCO_Vector.Update_Element (Condition_Id, Update_Condition'Access);
       end Process_Condition;
 
       ---------
@@ -775,6 +834,46 @@ package body SC_Obligations is
          Arcs_Stack.Append (A);
       end Push;
 
+      -----------------
+      -- Set_Operand --
+      -----------------
+
+      procedure Set_Operand
+        (Operator : SCO_Id;
+         Position : Operand_Position;
+         Operand  : SCO_Id)
+      is
+         procedure Set_Operand (SCOD : in out SCO_Descriptor);
+         --  Set operand in parent (operator/decision) SCOD
+
+         procedure Set_Parent (SCOD : in out SCO_Descriptor);
+         --  Set parent in child (operator/condition) SCOD
+
+         -----------------
+         -- Set_Operand --
+         -----------------
+
+         procedure Set_Operand (SCOD : in out SCO_Descriptor) is
+         begin
+            SCOD.Operands (Position) := Operand;
+         end Set_Operand;
+
+         ----------------
+         -- Set_Parent --
+         ----------------
+
+         procedure Set_Parent (SCOD : in out SCO_Descriptor) is
+         begin
+            SCOD.Parent := Operator;
+         end Set_Parent;
+
+      --  Start of processing for Set_Operand
+
+      begin
+         SCO_Vector.Update_Element (Operator, Set_Operand'Access);
+         SCO_Vector.Update_Element (Operand,  Set_Parent'Access);
+      end Set_Operand;
+
    end BDD;
 
    --------------------------
@@ -784,7 +883,12 @@ package body SC_Obligations is
    package Sloc_To_SCO_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Source_Location_Range,
       Element_Type => SCO_Id);
+
    Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
+   --  Map of statement, decision and condition SCOs
+
+   Operator_Map : Sloc_To_SCO_Maps.Map;
+   --  Map of operator SCOs
 
    -----------------
    -- Add_Address --
@@ -827,7 +931,7 @@ package body SC_Obligations is
                return C_SCO : constant SCO_Id :=
                                 BDD_Vector.Element (J).C_SCO
                do
-                  pragma Assert (Parent (C_SCO) = SCO);
+                  pragma Assert (Enclosing_Decision (C_SCO) = SCO);
                   pragma Assert (SC_Obligations.Index (C_SCO) = Index);
                   null;
                end return;
@@ -845,6 +949,89 @@ package body SC_Obligations is
    begin
       return SCO_Vector.Element (SCO).Degraded_Origins;
    end Degraded_Origins;
+
+   -------------------
+   -- Dump_Decision --
+   -------------------
+
+   procedure Dump_Decision (SCO : SCO_Id) is
+
+      procedure Visit (Op_SCO : SCO_Id);
+      --  Recursively visit Op_SCO and display expression
+
+      -----------
+      -- Visit --
+      -----------
+
+      procedure Visit (Op_SCO : SCO_Id) is
+         Binary : Boolean;
+      begin
+         case Kind (Op_SCO) is
+            when Condition =>
+               Put ('C' & Img (Integer (Index (Op_SCO))));
+
+            when Decision | Operator =>
+               if Kind (Op_SCO) = Operator then
+                  Put ('(');
+               end if;
+
+               Binary := Kind (Op_SCO) = Operator
+                           and then Op_Kind (Op_SCO) /= Op_Not;
+
+               for J in Operand_Position'Range loop
+                  declare
+                     Opnd_SCO : constant SCO_Id := Operand (Op_SCO, J);
+                  begin
+                     if Kind (Op_SCO) = Operator and then J = Right then
+                        case Op_Kind (Op_SCO) is
+                           when Op_Not      => Put ("not ");
+                           when Op_And_Then => Put (" and then ");
+                           when Op_Or_Else  => Put (" or else ");
+                        end case;
+                     end if;
+
+                     if Opnd_SCO = No_SCO_Id then
+                        pragma Assert (J = Left and then not Binary);
+                        null;
+                     else
+                        pragma Assert (J = Right or else Binary);
+                        Visit (Opnd_SCO);
+                     end if;
+                  end;
+               end loop;
+
+               if Kind (Op_SCO) = Operator then
+                  Put (')');
+               end if;
+
+            when others =>
+               raise Program_Error;
+         end case;
+      end Visit;
+
+   --  Start of processing for Dump_Decision
+
+   begin
+      Put_Line ("Reconstructed expression for " & Image (SCO));
+      Visit (SCO);
+      New_Line;
+   end Dump_Decision;
+
+   ------------------------
+   -- Enclosing_Decision --
+   ------------------------
+
+   function Enclosing_Decision (SCO : SCO_Id) return SCO_Id is
+      pragma Assert (Kind (SCO) = Condition);
+      P_SCO : SCO_Id := SCO;
+   begin
+      loop
+         P_SCO := Parent (P_SCO);
+         exit when Kind (P_SCO) /= Operator;
+      end loop;
+      pragma Assert (Kind (P_SCO) = Decision);
+      return P_SCO;
+   end Enclosing_Decision;
 
    ----------------
    -- First_Sloc --
@@ -940,9 +1127,26 @@ package body SC_Obligations is
    -----------
 
    function Image (SCO : SCO_Id; With_Sloc : Boolean := True) return String is
+
+      function Op_Kind_Image return String;
+      --  For an operator SCO, image of the operator kind
+
       function Sloc_Image (Sloc_Range : Source_Location_Range) return String;
       --  Return sloc information suffix, or empty string if no sloc known,
       --  or if no sloc information is desired.
+
+      -------------------
+      -- Op_Kind_Image --
+      -------------------
+
+      function Op_Kind_Image return String is
+      begin
+         if Kind (SCO) = Operator then
+            return ' ' & Operator_Kind'Image (Op_Kind (SCO));
+         else
+            return "";
+         end if;
+      end Op_Kind_Image;
 
       ----------------
       -- Sloc_Image --
@@ -957,6 +1161,8 @@ package body SC_Obligations is
          end if;
       end Sloc_Image;
 
+   --  Start of processing for Image
+
    begin
       if SCO = No_SCO_Id then
          return "<no SCO>";
@@ -966,6 +1172,7 @@ package body SC_Obligations is
          begin
             return "SCO #" & Trim (SCO'Img, Side => Ada.Strings.Both) & ": "
               & SCO_Kind'Image (SCOD.Kind)
+              & Op_Kind_Image
               & Sloc_Image (SCOD.Sloc_Range);
          end;
       end if;
@@ -980,15 +1187,6 @@ package body SC_Obligations is
       pragma Assert (Kind (SCO) = Condition);
       return SCO_Vector.Element (SCO).Index;
    end Index;
-
-   ----------------------
-   -- Is_Operator_Sloc --
-   ----------------------
-
-   function Is_Operator_Sloc (Sloc : Source_Location) return Boolean is
-   begin
-      return Operator_Slocs.Contains (Sloc);
-   end Is_Operator_Sloc;
 
    ----------
    -- Kind --
@@ -1090,6 +1288,9 @@ package body SC_Obligations is
             --  Build a Slocs.Source_Location record from the low-level
             --  SCO Sloc info.
 
+            function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id;
+            --  Allocate a new SCO for an operator
+
             procedure Update_Decision_BDD (SCOD : in out SCO_Descriptor);
             --  Set BDD of decision to Current_BDD
 
@@ -1131,6 +1332,25 @@ package body SC_Obligations is
                   Line        => Natural (SCO_Source_Loc.Line),
                   Column      => Natural (SCO_Source_Loc.Col));
             end Make_Sloc;
+
+            ----------------------
+            -- New_Operator_SCO --
+            ----------------------
+
+            function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id is
+            begin
+               pragma Assert (Current_Decision /= No_SCO_Id);
+               SCO_Vector.Append
+                 (SCO_Descriptor'(Kind       => Operator,
+                                  Origin     => ALI_Index,
+                                  Sloc_Range =>
+                                    (First_Sloc => Make_Sloc (SCOE.From),
+                                     Last_Sloc  => Make_Sloc (SCOE.To)),
+                                  Op_Kind    => Kind,
+                                  others     => <>));
+
+               return SCO_Vector.Last_Index;
+            end New_Operator_SCO;
 
             -------------------------
             -- Update_Decision_BDD --
@@ -1222,7 +1442,6 @@ package body SC_Obligations is
                                      Sloc_Range =>
                                      (First_Sloc => Make_Sloc (SCOE.From),
                                       Last_Sloc  => Make_Sloc (SCOE.To)),
-                                     Parent     => Current_Decision,
                                      Value      => Make_Condition_Value,
                                      Index      => Current_Condition_Index,
                                      others     => <>));
@@ -1233,20 +1452,23 @@ package body SC_Obligations is
                      SCO_Vector.Update_Element
                        (Current_BDD.Decision, Update_Decision_BDD'Access);
 
+                     if Verbose then
+                        Dump_Decision (Current_Decision);
+                     end if;
                      Current_Decision := No_SCO_Id;
                   end if;
 
                when '!' =>
-                  Operator_Slocs.Insert (Make_Sloc (SCOE.From));
-                  BDD.Process_Not (Current_BDD);
+                  BDD.Process_Not
+                    (New_Operator_SCO (Op_Not), Current_BDD);
 
                when '&' =>
-                  Operator_Slocs.Insert (Make_Sloc (SCOE.From));
-                  BDD.Process_And_Then (Current_BDD);
+                  BDD.Process_And_Then
+                    (New_Operator_SCO (Op_And_Then), Current_BDD);
 
                when '|' =>
-                  Operator_Slocs.Insert (Make_Sloc (SCOE.From));
-                  BDD.Process_Or_Else (Current_BDD);
+                  BDD.Process_Or_Else
+                    (New_Operator_SCO (Op_Or_Else), Current_BDD);
 
                when others =>
                   raise Program_Error
@@ -1340,8 +1562,17 @@ package body SC_Obligations is
                      end loop;
 
                   when Condition =>
-                     --  Parent is already set to the enclosing decision
+                     --  Parent is already set to the enclosing decision or
+                     --  operator.
+
                      null;
+
+                  when Operator =>
+                     --  Parent is already set to the enclosing decision or
+                     --  opeartor, and sloc is recorded in the operator map,
+                     --  not in the general SCO map.
+
+                     First := No_Location;
 
                end case;
 
@@ -1401,6 +1632,42 @@ package body SC_Obligations is
          return No_SCO_Id;
       end if;
    end Next_Condition;
+
+   -------------
+   -- Op_Kind --
+   -------------
+
+   function Op_Kind (SCO : SCO_Id) return Operator_Kind is
+   begin
+      return SCO_Vector.Element (SCO).Op_Kind;
+   end Op_Kind;
+
+   -------------
+   -- Operand --
+   -------------
+
+   function Operand
+     (SCO      : SCO_Id;
+      Position : Operand_Position) return SCO_Id
+   is
+   begin
+      return SCO_Vector.Element (SCO).Operands (Position);
+   end Operand;
+
+   --------------
+   -- Operator --
+   --------------
+
+   function Operator (Sloc : Source_Location) return SCO_Id is
+      use Sloc_To_SCO_Maps;
+      Cur : constant Cursor := Operator_Map.Find ((Sloc, Sloc));
+   begin
+      if Cur = No_Element then
+         return No_SCO_Id;
+      else
+         return Element (Cur);
+      end if;
+   end Operator;
 
    -------------
    -- Outcome --
@@ -1551,7 +1818,11 @@ package body SC_Obligations is
                    and then Sloc <= SCOD.Sloc_Range.Last_Sloc;
             end if;
          end;
-         SCO := SCO_Vector.Element (SCO).Parent;
+
+         SCO := Parent (SCO);
+         while SCO /= No_SCO_Id and then Kind (SCO) = Operator loop
+            SCO := Parent (SCO);
+         end loop;
       end loop;
       return SCO;
    end Sloc_To_SCO;

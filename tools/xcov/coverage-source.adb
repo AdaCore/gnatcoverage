@@ -55,9 +55,6 @@ package body Coverage.Source is
             Executed : Boolean := False;
             --  Set True when the statement has been executed
 
-         when Condition =>
-            null;
-
          when Decision =>
             Outcome_Taken : Outcome_Taken_Type := (others => False);
             --  Each of these components is set True when the corresponding
@@ -66,6 +63,9 @@ package body Coverage.Source is
             Evaluations : Evaluation_Vectors.Vector;
             --  History of all evaluations of this decision (computed for MC/DC
             --  only).
+
+         when others =>
+            null;
       end case;
    end record;
 
@@ -418,7 +418,7 @@ package body Coverage.Source is
          --  instruction.
 
          Process_Conditional_Branch : declare
-            D_SCO : constant SCO_Id := Parent (SCO);
+            D_SCO : constant SCO_Id := Enclosing_Decision (SCO);
             --  Enclosing decision
 
             CBI : constant Cond_Branch_Info :=
@@ -643,7 +643,7 @@ package body Coverage.Source is
       C_SCO   : SCO_Id;
       C_Value : Boolean)
    is
-      D_SCO : constant SCO_Id := Parent (C_SCO);
+      D_SCO : constant SCO_Id := Enclosing_Decision (C_SCO);
 
       function In_Current_Evaluation return Boolean;
       --  True when this evaluation is the expected next condition in the

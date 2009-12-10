@@ -366,6 +366,9 @@ package body Annotations is
 
                   Fatal_Error ("no decision attached to " & Image (SCO));
 
+               when Operator =>
+                  null;
+
             end case;
          end if;
       end Process_One_SCO;

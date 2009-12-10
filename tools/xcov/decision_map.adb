@@ -234,11 +234,6 @@ package body Decision_Map is
       SCO := Sloc_To_SCO (Sloc);
 
       if SCO = No_SCO_Id or else Kind (SCO) /= Condition then
-         if Is_Operator_Sloc (Sloc) then
-            Report
-              (Exec, Insn'First, "conditional branch has operator sloc",
-               Kind => Warning);
-         end if;
          return;
       end if;
 
@@ -249,7 +244,7 @@ package body Decision_Map is
       --  structure (presence of multiple paths) or if Debug_Full_History is
       --  set.
 
-      if Has_Diamond (Parent (SCO)) or else Debug_Full_History then
+      if Has_Diamond (Enclosing_Decision (SCO)) or else Debug_Full_History then
          Add_Entry
            (Base  => Decision_Map_Base,
             First => Insn'First,
@@ -265,7 +260,7 @@ package body Decision_Map is
 
       Process_Condition :
       declare
-         D_SCO : constant SCO_Id := Parent (SCO);
+         D_SCO : constant SCO_Id := Enclosing_Decision (SCO);
          --  Corresponding decision
 
          Parent_SCO : SCO_Id;
@@ -334,7 +329,7 @@ package body Decision_Map is
       begin
          Parent_SCO := Parent (D_SCO);
          if Kind (Parent_SCO) = Condition then
-            Enclosing_D_SCO := Parent (Parent_SCO);
+            Enclosing_D_SCO := Enclosing_Decision (Parent_SCO);
          else
             Enclosing_D_SCO := No_SCO_Id;
          end if;
@@ -411,8 +406,6 @@ package body Decision_Map is
       Ctx   : Cond_Branch_Context;
       D_Occ : Decision_Occurrence_Access)
    is
-      First_Seen_Condition_PC : constant Pc_Type :=
-                                  D_Occ.Conditional_Branches.First_Element;
       Last_Seen_Condition_PC : constant Pc_Type :=
                                  D_Occ.Conditional_Branches.Last_Element;
 
@@ -426,7 +419,10 @@ package body Decision_Map is
       --  When set, each element of this array is a set of edge destinations
       --  known to correspond to the respective outcome of the decision.
 
-      procedure Trace_Destination (Edge : in out Cond_Edge_Info);
+      procedure Trace_Destination
+        (CBI       : Cond_Branch_Info;
+         Edge      : Edge_Kind;
+         Edge_Info : in out Cond_Edge_Info);
       --  Inspect the basic block containing Edge's destination, and if
       --  necessary any basic block we unconditionally branch to from there,
       --  until we find a conditional branch or a call to an exception-raising
@@ -474,7 +470,7 @@ package body Decision_Map is
       begin
          pragma Assert (Edge_Info.Dest_Kind = Unknown);
 
-         Trace_Destination (Edge_Info);
+         Trace_Destination (CBI, Edge, Edge_Info);
 
          --  Check for outcome destination
 
@@ -786,10 +782,17 @@ package body Decision_Map is
       -- Trace_Destination --
       -----------------------
 
-      procedure Trace_Destination (Edge : in out Cond_Edge_Info)
+      procedure Trace_Destination
+        (CBI       : Cond_Branch_Info;
+         Edge      : Edge_Kind;
+         Edge_Info : in out Cond_Edge_Info)
       is
-         Next_PC : Pc_Type := Edge.Destination;
-         BB      : Basic_Block;
+         pragma Unreferenced (Edge);
+         Unconditional_Branch : Pc_Type := No_PC;
+         --  First unconditional branch traced, used to avoid infinite loops
+
+         Next_PC              : Pc_Type := Edge_Info.Destination;
+         BB                   : Basic_Block;
       begin
          <<Follow_Jump>>
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
@@ -798,39 +801,22 @@ package body Decision_Map is
             when Br_Jmp =>
                if BB.Cond then
                   if BB.Condition /= No_SCO_Id
-                    and then Parent (BB.Condition) = D_Occ.Decision
+                    and then Enclosing_Decision (BB.Condition) = D_Occ.Decision
                   then
                      --  Edge proceeds to evaluate a condition in the current
                      --  decision.
 
-                     Edge.Dest_Kind := Condition;
-                     Edge.Next_Condition := Index (BB.Condition);
-
-                  elsif BB.To_PC in
-                          First_Seen_Condition_PC .. Last_Seen_Condition_PC
-                    and then
-                        ((Pc_Type'Max (BB.To + 1, BB.Dest)
-                            > Last_Seen_Condition_PC)
-                         or else
-                         (Pc_Type'Min (BB.To + 1, BB.Dest)
-                            < First_Seen_Condition_PC))
-
-                  then
-                     --  Edge ends on a conditional branch instruction that is
-                     --  within the decision's PC range, does not test a
-                     --  condition, but may nonetheless exit the decision:
-                     --  suspicious (we are missing an outcome).
-
-                     Report
-                       (Exe, BB.To_PC,
-                        "conditional branch exits decision "
-                        & "without testing a condition",
-                        Kind => Warning);
+                     Edge_Info.Dest_Kind := Condition;
+                     Edge_Info.Next_Condition := Index (BB.Condition);
                   end if;
 
-               elsif BB.Dest > Next_PC then
-                  --  Unconditional branch forward (we never follow backward
-                  --  branches to avoid loops).
+               elsif BB.To_PC /= Unconditional_Branch then
+                  --  Make sure we won't follow the same unconditional branch
+                  --  twice.
+
+                  if Unconditional_Branch = No_PC then
+                     Unconditional_Branch := BB.To_PC;
+                  end if;
 
                   Next_PC := BB.Dest;
                   goto Follow_Jump;
@@ -846,14 +832,22 @@ package body Decision_Map is
                      Sym_Name := Sym.Symbol_Name;
                   end if;
 
-                  if Sym_Name /= null
+                  --  If the call's sloc is within the condition, and it is
+                  --  a call to a runtime routine raising an exception, then
+                  --  assume it is a check.
+
+                  if Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC)) = CBI.Condition
+                       and then
+                     Sym_Name /= null
                        and then
                      (Sym_Name.all = "__gnat_last_chance_handler"
                         or else
                       Has_Prefix (Sym_Name.all, Prefix => "__gnat_rcheck_"))
                   then
-                     Edge.Dest_Kind := Raise_Exception;
+                     Edge_Info.Dest_Kind := Raise_Exception;
                   else
+                     --  Assume call returns, continue tracing at next PC
+
                      Next_PC := BB.To + 1;
                      goto Follow_Jump;
                   end if;
