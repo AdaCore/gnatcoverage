@@ -415,6 +415,32 @@ package body Decision_Map is
       Last_CBI : constant Cond_Branch_Info :=
                    Cond_Branch_Map.Element ((Exe, Last_Seen_Condition_PC));
 
+      --  For destinations for which we have identified origin information,
+      --  reference to the conditional branch and edge having that destination,
+      --  which carries the known information. This information can be used to
+      --  copy edge information for edges that share the same destination.
+      --  Note that this assumes that control flow changes fully capture the
+      --  values of short-circuit operators. This still holds in cases where
+      --  such a value is captured in a temporary variable, because:
+      --    - for the case of branches corresponding to non-short-circuit value
+      --      this is trivial (the destination corresponds to the single point
+      --      in code where the value is assigned True).
+      --    - if two instructions branch to the same destination past the
+      --      assignment, then both must bypass it (there can't be one
+      --      bypassing it and one occurring after the assignment has been
+      --      actually evaluated).
+
+      type Known_Destination is record
+         Cond_Branch_PC : Pc_Type;
+         Edge           : Edge_Kind;
+      end record;
+
+      package Known_Destination_Maps is new Ada.Containers.Ordered_Maps
+        (Key_Type     => Pc_Type,
+         Element_Type => Known_Destination);
+
+      Known_Destinations : Known_Destination_Maps.Map;
+
       Known_Outcome : array (Boolean) of PC_Sets.Set;
       --  When set, each element of this array is a set of edge destinations
       --  known to correspond to the respective outcome of the decision.
@@ -444,10 +470,40 @@ package body Decision_Map is
       --  but the opposite destination of CBI is, deduce qualification for Edge
       --  from that information.
 
+      procedure Label_From_Other
+        (Cond_Branch_PC : Pc_Type;
+         CBI            : in out Cond_Branch_Info;
+         Edge           : Edge_Kind);
+      --  Third pass of control flow analysis: if Edge is not qualified yet,
+      --  but the another edge with the same destination is, copy its
+      --  information.
+
+      procedure Set_Known_Origin
+        (Cond_Branch_PC : Pc_Type;
+         CBI            : in out Cond_Branch_Info;
+         Edge           : Edge_Kind;
+         Origin         : Boolean);
+      --  Qualify CBE as corresponding to valuation Origin of the condition
+      --  tested by the conditional branch at Cond_Branch_PC, described by CBI.
+
+      procedure Record_Known_Destination
+        (Cond_Branch_PC : Pc_Type;
+         CBI            : Cond_Branch_Info;
+         Edge           : Edge_Kind);
+      --  Once this destination has been fully qualified, remember it so
+      --  that further tests with the same destination can reuse the
+      --  information.
+
       procedure Label_Destinations
         (CB_Loc : Cond_Branch_Loc;
          CBI    : in out Cond_Branch_Info);
-      --  Identify destination kind of each edge of CBI
+      --  Identify destination kind of each edge of CBI using information local
+      --  to CBI.
+
+      procedure Report_Unlabeled_Destinations
+        (CB_Loc : Cond_Branch_Loc;
+         CBI    : in out Cond_Branch_Info);
+      --  Report remaining unqualified edges
 
       Has_Valuation : array (Condition_Index'First .. D_Occ.Last_Cond_Index,
                              Boolean range False .. True) of Boolean :=
@@ -467,8 +523,46 @@ package body Decision_Map is
          Edge_Name         : constant String := Edge'Img;
          Edge_Info         : Cond_Edge_Info renames CBI.Edges (Edge);
 
+         function Check_Possible_Successor
+           (Next_Condition : Condition_Index) return Tristate;
+         --  Determine whether Next_Condition is a valid successor for the
+         --  currently tested condition (CBI.Condition), and if so, return
+         --  the associated origin.
+
+         ------------------------------
+         -- Check_Possible_Successor --
+         ------------------------------
+
+         function Check_Possible_Successor
+           (Next_Condition : Condition_Index) return Tristate
+         is
+         begin
+            for J in Boolean'Range loop
+               declare
+                  Next_C : constant SCO_Id :=
+                             SC_Obligations.Next_Condition (CBI.Condition, J);
+               begin
+                  if Next_C /= No_SCO_Id
+                    and then Index (Next_C) = Next_Condition
+                  then
+                     return To_Tristate (J);
+                  end if;
+               end;
+            end loop;
+            return Unknown;
+         end Check_Possible_Successor;
+
+      --  Start of processing for Label_Destination
+
       begin
-         pragma Assert (Edge_Info.Dest_Kind = Unknown);
+         --  Check for known edge with this destination
+
+         Label_From_Other (Cond_Branch_PC, CBI, Edge);
+         if Edge_Info.Dest_Kind /= Unknown then
+            return;
+         end if;
+
+         --  Here for the first occurrence of a destination
 
          Trace_Destination (CBI, Edge, Edge_Info);
 
@@ -535,15 +629,9 @@ package body Decision_Map is
                   --  condition), then Outcome_Origin is the valuation of the
                   --  condition that causes it to be taken.
 
-                  Edge_Info.Origin := Outcome_Origin;
-                  Edge_Info.Outcome :=
-                    Outcome (CBI.Condition, To_Boolean (Outcome_Origin));
-                  pragma Assert (Edge_Info.Outcome /= Unknown);
-
-                  --  Record destination as one of the known outcomes
-
-                  Known_Outcome (To_Boolean (Edge_Info.Outcome)).Include
-                    (Edge_Info.Destination);
+                  Set_Known_Origin
+                    (Cond_Branch_PC, CBI, Edge,
+                     To_Boolean (Outcome_Origin));
 
                else
                   --  In the case of a decision with only one condition (but
@@ -562,29 +650,22 @@ package body Decision_Map is
                         elsif Known_Outcome (J).Is_Empty then
                            Set_Degraded_Origins (D_Occ.Decision);
                            Known_Outcome (J).Include (Edge_Info.Destination);
+
+                           --  We know that both edges from this CB are
+                           --  (distinct) outcomes, and we arbitrarily decide
+                           --  that this one is the one for outcome J.
+                           --  If the outcome for origin True is also J,
+                           --  then the origin for this edge is True, else it
+                           --  is False.
+
+                           Set_Known_Origin
+                             (Cond_Branch_PC, CBI, Edge,
+                              Outcome (CBI.Condition, True)
+                                = To_Tristate (J));
                            exit;
                         end if;
                      end loop;
                   end if;
-
-                  --  Case of the last condition in the decision: both values
-                  --  of the condition determine the outcome, so try to label
-                  --  the outcome, and its origin, using Known_Outcomes.
-
-                  for J in Boolean'Range loop
-                     declare
-                        O : constant Boolean :=
-                              To_Boolean (Outcome (CBI.Condition, J));
-                     begin
-                        if Known_Outcome (O).Contains
-                             (Edge_Info.Destination)
-                        then
-                           Edge_Info.Origin  := To_Tristate (J);
-                           Edge_Info.Outcome := To_Tristate (O);
-                        end if;
-                     end;
-                  end loop;
-
                end if;
             end;
 
@@ -597,32 +678,36 @@ package body Decision_Map is
             --  condition that causes the successor in question to be evaluated
             --  next).
 
-            for J in Boolean'Range loop
-               declare
-                  Next_C : constant SCO_Id :=
-                             Next_Condition (CBI.Condition, J);
-               begin
-                  if Next_C /= No_SCO_Id
-                    and then Index (Next_C) = Edge_Info.Next_Condition
-                  then
-                     Edge_Info.Origin := To_Tristate (J);
-                     exit;
-                  end if;
-               end;
-            end loop;
+            declare
+               Condition_Origin : constant Tristate :=
+                                    Check_Possible_Successor
+                                      (Edge_Info.Next_Condition);
+            begin
+               if Condition_Origin /= Unknown then
+                  Set_Known_Origin
+                    (Cond_Branch_PC, CBI, Edge, To_Boolean (Condition_Origin));
 
-            --  Report failure to identify successor if neither going to a
-            --  possible successor nor remaining in the same condition.
+               elsif Edge_Info.Next_Condition /= Index (CBI.Condition) then
+                  --  Report failure to identify successor if neither going to
+                  --  a possible successor nor remaining in the same condition.
 
-            if Edge_Info.Origin = Unknown
-              and then Edge_Info.Next_Condition /= Index (CBI.Condition)
-            then
-               Report
-                 (Exe, Cond_Branch_PC,
-                  Edge_Name
-                  & " does not branch to a possible successor"
-                  & " condition");
-            end if;
+                  Report
+                    (Exe, Cond_Branch_PC,
+                     Edge_Name
+                     & " does not branch to a possible successor condition");
+               end if;
+            end;
+
+         elsif Edge_Info.Dest_Kind = Operator_Shortcut then
+            --  No specific heuristic yet for this case
+
+            null;
+         end if;
+
+         --  Look for a previous edge with the same destination
+
+         if Edge_Info.Dest_Kind = Unknown then
+            Label_From_Other (Cond_Branch_PC, CBI, Edge);
          end if;
 
          --  Destination may still be unlabeled at this point, which is not
@@ -630,6 +715,38 @@ package body Decision_Map is
          --  opposite edge.
 
       end Label_Destination;
+
+      ------------------------
+      -- Label_Destinations --
+      ------------------------
+
+      procedure Label_Destinations
+        (CB_Loc : Cond_Branch_Loc;
+         CBI    : in out Cond_Branch_Info)
+      is
+         Cond_Branch_PC : Pc_Type renames CB_Loc.PC;
+      begin
+         --  Label each destination
+
+         for Edge in Edge_Kind loop
+            Label_Destination (Cond_Branch_PC, CBI, Edge);
+         end loop;
+
+         --  So far we have looked at each destination in isolation. Now try
+         --  to further qualify each destination by deducing its properties
+         --  from those known on the other, and record known valuations.
+
+         for Edge in Edge_Kind loop
+            Label_From_Opposite (Cond_Branch_PC, CBI, Edge);
+
+            if CBI.Edges (Edge).Origin /= Unknown then
+               Has_Valuation
+                 (Index (CBI.Condition), To_Boolean (CBI.Edges (Edge).Origin))
+                   := True;
+            end if;
+         end loop;
+
+      end Label_Destinations;
 
       -------------------------
       -- Label_From_Opposite --
@@ -640,13 +757,9 @@ package body Decision_Map is
          CBI            : in out Cond_Branch_Info;
          Edge           : Edge_Kind)
       is
-         pragma Unreferenced (Cond_Branch_PC);
          This_CBE     : Cond_Edge_Info renames CBI.Edges (Edge);
          Opposite_CBE : Cond_Edge_Info renames
                           CBI.Edges (Edge_Kind'Val (1 - Edge_Kind'Pos (Edge)));
-         O : Boolean;
-
-         Next_C_SCO : SCO_Id;
       begin
          if This_CBE.Origin /= Unknown
            or else This_CBE.Dest_Kind = Condition
@@ -668,42 +781,90 @@ package body Decision_Map is
             --  Opposite branch is associated with a known valuation of the
             --  condition.
 
-            O := not To_Boolean (Opposite_CBE.Origin);
-            This_CBE.Origin  := To_Tristate (O);
-            This_CBE.Outcome := Outcome (CBI.Condition, O);
-
-            if This_CBE.Outcome /= Unknown then
-               This_CBE.Dest_Kind := Outcome;
-            else
-               Next_C_SCO := Next_Condition (CBI.Condition, O);
-               if Next_C_SCO /= No_SCO_Id then
-                  This_CBE.Dest_Kind := Condition;
-                  This_CBE.Next_Condition := Index (Next_C_SCO);
-               end if;
-            end if;
+            Set_Known_Origin
+              (Cond_Branch_PC,
+               CBI,
+               Edge,
+               not To_Boolean (Opposite_CBE.Origin));
          end if;
       end Label_From_Opposite;
 
-      ------------------------
-      -- Label_Destinations --
-      ------------------------
+      ----------------------
+      -- Label_From_Other --
+      ----------------------
 
-      procedure Label_Destinations
+      procedure Label_From_Other
+        (Cond_Branch_PC : Pc_Type;
+         CBI            : in out Cond_Branch_Info;
+         Edge           : Edge_Kind)
+      is
+         pragma Unreferenced (Cond_Branch_PC);
+
+         use Known_Destination_Maps;
+         CBE : Cond_Edge_Info renames CBI.Edges (Edge);
+         Cur : constant Cursor :=
+                 Known_Destinations.Find (CBE.Destination);
+         KD  : Known_Destination;
+      begin
+         if CBE.Origin = Unknown and then Cur /= No_Element then
+            KD := Element (Cur);
+            declare
+               Other_CBE : Cond_Edge_Info renames
+                             Cond_Branch_Map.Element
+                               ((Exe, KD.Cond_Branch_PC)).Edges (KD.Edge);
+            begin
+               --  Assert consistency of dest kind, if known
+
+               if CBE.Dest_Kind /= Unknown then
+                  pragma Assert (CBE.Dest_Kind = Other_CBE.Dest_Kind);
+                  null;
+               end if;
+
+               --  Copy edge information
+
+               CBE := Other_CBE;
+            end;
+         end if;
+      end Label_From_Other;
+
+      ------------------------------
+      -- Record_Known_Destination --
+      ------------------------------
+
+      procedure Record_Known_Destination
+        (Cond_Branch_PC : Pc_Type;
+         CBI            : Cond_Branch_Info;
+         Edge           : Edge_Kind)
+      is
+         Edge_Info : Cond_Edge_Info renames CBI.Edges (Edge);
+      begin
+         if not Known_Destinations.Contains (Edge_Info.Destination) then
+            Known_Destinations.Insert
+              (Edge_Info.Destination, (Cond_Branch_PC, Edge));
+         end if;
+      end Record_Known_Destination;
+
+      -----------------------------------
+      -- Report_Unlabeled_Destinations --
+      -----------------------------------
+
+      procedure Report_Unlabeled_Destinations
         (CB_Loc : Cond_Branch_Loc;
          CBI    : in out Cond_Branch_Info)
       is
-         Cond_Branch_PC : Pc_Type renames CB_Loc.PC;
-
-         function Dest_Image (Edge : Edge_Kind) return String;
+         function Dest_Image
+           (Edge      : Edge_Kind;
+            Edge_Info : Cond_Edge_Info) return String;
          --  Return string representation of the given edge of CBI
 
          ----------------
          -- Dest_Image --
          ----------------
 
-         function Dest_Image (Edge : Edge_Kind) return String is
-            Edge_Info : Cond_Edge_Info renames CBI.Edges (Edge);
-
+         function Dest_Image
+           (Edge      : Edge_Kind;
+            Edge_Info : Cond_Edge_Info) return String
+         is
             function Additional_Info_Image return String;
             --  Edge_Info.Next_Condition if Dest_Kind is Condition,
             --  Edge_Info.Outcome image if Dest_Kind is Outcome,
@@ -724,6 +885,10 @@ package body Decision_Map is
                   when Outcome =>
                      return " (" & Edge_Info.Outcome'Img & ")";
 
+                  when Operator_Shortcut =>
+                     return
+                       " (" & Image (Edge_Info.Op_SCO) & ")";
+
                   when others =>
                      return "";
                end case;
@@ -737,46 +902,58 @@ package body Decision_Map is
               & " " & Edge_Info.Dest_Kind'Img & Additional_Info_Image;
          end Dest_Image;
 
-      --  Start of processing for Label_Destinations
+      --  Start of processing for Report_Unlabeled_Destinations
 
       begin
-         --  Label each destination
+         for Edge in Edge_Kind loop
+            --  Finally report destinations we still can't label
 
-         Label_Destination (Cond_Branch_PC, CBI, Branch);
-         Label_Destination (Cond_Branch_PC, CBI, Fallthrough);
-
-         --  So far we have looked at each destination in isolation. Now try
-         --  to further qualify each destination by deducing its properties
-         --  from those known on the other.
-
-         Label_From_Opposite (Cond_Branch_PC, CBI, Branch);
-         Label_From_Opposite (Cond_Branch_PC, CBI, Fallthrough);
-
-         for J in CBI.Edges'Range loop
-            --  Report destinations we can't label
-
-            if CBI.Edges (J).Dest_Kind = Unknown then
-               Report (Exe, Cond_Branch_PC,
-                       "unable to label " & J'Img
+            if CBI.Edges (Edge).Dest_Kind = Unknown then
+               Report (Exe, CB_Loc.PC,
+                       "unable to label " & Edge'Img
                        & " destination "
-                       & Hex_Image (CBI.Edges (J).Destination),
+                       & Hex_Image (CBI.Edges (Edge).Destination),
                        Kind => Warning);
-            end if;
-
-            --  Record known valuations
-
-            if CBI.Edges (J).Origin /= Unknown then
-               Has_Valuation
-                 (Index (CBI.Condition), To_Boolean (CBI.Edges (J).Origin)) :=
-                 True;
             end if;
          end loop;
 
          Report
-           (Exe, Cond_Branch_PC,
-            Dest_Image (Branch) & " / " & Dest_Image (Fallthrough),
+           (Exe, CB_Loc.PC,
+            Dest_Image (Branch, CBI.Edges (Branch))
+            & " / "
+            & Dest_Image (Fallthrough, CBI.Edges (Fallthrough)),
             Kind => Notice);
-      end Label_Destinations;
+      end Report_Unlabeled_Destinations;
+
+      ----------------------
+      -- Set_Known_Origin --
+      ----------------------
+
+      procedure Set_Known_Origin
+        (Cond_Branch_PC : Pc_Type;
+         CBI            : in out Cond_Branch_Info;
+         Edge           : Edge_Kind;
+         Origin         : Boolean)
+      is
+         CBE         : Cond_Edge_Info renames CBI.Edges (Edge);
+         Next_C_SCO : SCO_Id;
+      begin
+         CBE.Origin  := To_Tristate (Origin);
+         CBE.Outcome := Outcome (CBI.Condition, Origin);
+
+         if CBE.Outcome /= Unknown then
+            CBE.Dest_Kind := Outcome;
+            Known_Outcome (To_Boolean (CBE.Outcome)).Include (CBE.Destination);
+
+         else
+            Next_C_SCO := Next_Condition (CBI.Condition, Origin);
+            if Next_C_SCO /= No_SCO_Id then
+               CBE.Dest_Kind := Condition;
+               CBE.Next_Condition := Index (Next_C_SCO);
+            end if;
+         end if;
+         Record_Known_Destination (Cond_Branch_PC, CBI, Edge);
+      end Set_Known_Origin;
 
       -----------------------
       -- Trace_Destination --
@@ -871,7 +1048,25 @@ package body Decision_Map is
          return;
       end if;
 
-      --  Label edge destinations
+      --  Label edge destinations. Perform two passes so that the second can
+      --  reuse known destinations identified by the first.
+
+      for Pass in 1 .. 2 loop
+         for J in D_Occ.Conditional_Branches.First_Index
+               .. D_Occ.Conditional_Branches.Last_Index
+         loop
+            declare
+               use Cond_Branch_Maps;
+               Cur : constant Cond_Branch_Maps.Cursor :=
+                 Cond_Branch_Map.Find
+                   ((Exe, D_Occ.Conditional_Branches.Element (J)));
+            begin
+               Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
+            end;
+         end loop;
+      end loop;
+
+      --  Report remaining unlabeled destinations
 
       for J in D_Occ.Conditional_Branches.First_Index
             .. D_Occ.Conditional_Branches.Last_Index
@@ -882,7 +1077,8 @@ package body Decision_Map is
                     Cond_Branch_Map.Find
                       ((Exe, D_Occ.Conditional_Branches.Element (J)));
          begin
-            Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
+            Cond_Branch_Map.Update_Element
+              (Cur, Report_Unlabeled_Destinations'Access);
          end;
       end loop;
 
