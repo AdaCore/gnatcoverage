@@ -1730,7 +1730,9 @@ package body SC_Obligations is
          if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
             Report
               (To_Index (Cur), "no conditional branch (in "
-               & Decision_Kind'Image (SCO_Vector.Element (SCOD.Parent).D_Kind)
+               & Decision_Kind'Image
+                   (SCO_Vector.Element
+                     (Enclosing_Decision (To_Index (Cur))).D_Kind)
                & ")",
                Kind => Diagnostics.Error);
 
