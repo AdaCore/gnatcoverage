@@ -1,0 +1,43 @@
+This directory features a number of facilities to help automated build,
+execution and cov analysis of simple examples for several possible qemu
+targets. Examples rely on a minimal library to setup the base execution
+envionment in qemu and offer very basic IO capabilities.
+
+The facilities in this directory include a number of GNAT project files
+and Makefiles:
+
+  * common.gpr: project file with common definitions for ...
+
+  * libsupport.gpr: project file for both build and use of the support
+                    library itself.
+
+  and
+
+  * base.gpr: project file to be extended by each example project file,
+              to inherit a number of common attributes.
+
+The general GPR hierarchy is as follows:
+
+            :   common.gpr
+            :      w  w
+            :      |  |
+  support/  :      | libsupport.gpr (With common)
+            :      |  w
+            :      |  |
+            :    base.gpr (with common, libsupport)
+                   x
+                   |
+ <example>/ :   example.gpr (eXtends base)
+
+This is ~ mirrored in the Makefile organization, with 'i' to denote
+inclusions:
+
+            :    Makefile.common
+            :      i         i
+  support/  :      |         |
+            :  .examples   .libsupport
+                  i
+                  |
+ <example>/ :  Makefile
+               
+

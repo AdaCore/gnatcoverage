@@ -1,46 +1,60 @@
+
 # This file contains the common definitions used by all other Makefiles.
 
-QEMU=qemu-system-ppc
-XCOV=xcov
+# ==========================================================
+# Target specific subdir name and a target toolchain prefix,
+# unless "native":
+# ==========================================================
 
-# Both a target specific support subdir and a target toolchain prefix:
 TARGET = powerpc-elf
 
-# Base dir for the support library, relative to an example subdir:
-BASE_SUPPORT_DIR = ../support
+# ============================================================
+# Examples support directory, relative to example subdir, and
+# support library specific location:
+# ============================================================
 
-# CROSS toolchain : produce executable program from sources + target bsp
+SUPPORT_DIR = ../support
+LIBSUPPORT_DIR = $(SUPPORT_DIR)/lib/$(TARGET)
 
-ifneq ($(TARGET),i386-linux)
-  CROSSPREFIX = $(TARGET)-
-  TARGETNAME = $(TARGET)
-else
+# =======================================================
+# CROSS toolchain prefix, qemu target, and target related
+# arguments to gprbuild:
+# =======================================================
+
+GPRBUILD_TARGETARGS=-XTARGET=$(TARGET)
+ifeq ($(TARGET),native)
   CROSSPREFIX =
-  TARGETNAME = native
+  QEMUTARGET  = i386-linux
+  GPRBUILD_TARGETARGS += --RTS:Ada=zfp
+else
+  CROSSPREFIX = $(TARGET)-
+  QEMUTARGET  = $(TARGET)
+  GPRBUILD_TARGETARGS += --target=$(TARGET)
 endif
 
-# Determine tty adjustments commands around xcov --run,
-# default to NOPs.
+# ===========================================
+# tty adjustments commands around xcov --run:
+# ===========================================
+
+# Default to NOPs, force "stty raw" on Unix terminals, except
+# for Aunit tests which have their own setup.
+
 STTY_ADJUST=
 STTY_RESTORE=
 
 ifneq ($(TERM),)
-# - in case of regular tests, forces "stty raw"
-# - in case of unit tests, do not do this (wrong output with AUnit)
 ifeq ($(UNIT_TESTS),)
   STTY_ADJUST = stty raw
   STTY_RESTORE = stty $(shell stty -g)
 endif
 endif
 
-# Access to common support files like this Makefile and to target specific
-# sources such as the qemu bsp:
-TARGET_SUPPORT_LIB = $(BASE_SUPPORT_DIR)/lib/$(TARGETNAME)
-TARGETCONFIG=$(TARGET_SUPPORT_LIB)/$(TARGETNAME).cgpr
+# =========
+# Commands:
+# =========
 
-BUILDER=gprbuild  --config=$(TARGETCONFIG) \
-		  -XSTYLE_CHECKS="-gnaty" -XTARGET=$(TARGETNAME)
-
+XCOV=xcov
+BUILDER=GPR_PROJECT_PATH=../support gprbuild $(GPRBUILD_TARGETARGS)
 MKDIR=mkdir -p
 RM=rm
 CP=cp

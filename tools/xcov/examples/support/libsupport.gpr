@@ -1,0 +1,90 @@
+-- =================================================================
+-- == GPR file to build and use the support library for examples, ==
+-- == with startup/init and minimum IO services                   ==
+-- =================================================================
+
+with "common";
+
+library project Libsupport is
+
+   Do_Build  : Common.Yes_No_Type := external ("BUILD", "no");
+   --  Whether we're using this file to build the library or to link
+   --  with it.
+
+   Use_AUnit : Common.Yes_No_Type := external ("UNITTEST", "no");
+   --  Whether we are building/using for an Aunit context or not, with
+   --  influence on the last_chance handler inclusion.
+
+   --  Common library attributes:
+   --  ==========================
+
+   for Library_Kind use "static";
+   for Library_Auto_Init use "False";
+
+   for Source_Dirs use ("src");
+
+   for Library_Dir use "lib/" & Common.Target;
+   for Object_Dir use "obj/" & Common.Target;
+
+   case Do_Build is
+      when "no"  => for Externally_Built use "true";
+      when "yes" => for Externally_Built use "false";
+   end case;
+
+   --  Source set, library name, build process items:
+   --  ==============================================
+
+   --  Aunit has its own last chance handler that we must not override,
+   --  and we need to include our own otherwise:
+
+   case Use_AUnit is
+      when "yes" =>
+	 for Library_Name use "supportaunit";
+      when "no" =>
+	 for Source_Dirs use Project'Source_Dirs & ("src/last_chance");
+	 for Library_name use "support";
+   end case;
+
+   --  Conceptually, the lib has two parts:
+   --   * Bare minimum Ada units for IO services, which rely on "standard"
+   --     C routines,
+   --   * BSP+implementation of the C IO routines on targets that don't
+   --     feature a C library.
+
+   case Common.Target is
+      when "native" =>
+         for Languages use ("Ada");
+
+      when others =>
+         for Languages use ("Ada", "C");
+         for Source_Dirs use Project'Source_Dirs & ("src/" & Common.Target);
+   end case;
+
+   package Builder is
+      case Do_Build is
+         when "yes" => for Global_Configuration_Pragmas use "zfp.adc";
+         when "no"  => null;
+      end case;
+   end Builder;
+
+   package Compiler is
+      for Default_Switches ("C") use ("-O1");
+      for Default_Switches ("ada") use Compiler'Default_Switches("C");
+   end Compiler;
+
+   --  How should clients link with the library:
+   --  =========================================
+
+   case Common.Target is
+      when "powerpc-elf" =>
+	 for Library_Options use
+	    ("-nostdlib", Libsupport'Library_Dir & "/start.o",
+	     "-T", Libsupport'Library_Dir & "/gnu.ld");
+      when others => null;
+   end case;
+
+   package Linker is
+      for Linker_Options use Project'Library_Options;
+   end Linker;
+
+end Libsupport;

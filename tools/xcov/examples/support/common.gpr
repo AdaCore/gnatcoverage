@@ -1,0 +1,15 @@
+-- ========================================================
+-- == Common definitions for libsupport and example GPRs ==
+-- ========================================================
+
+abstract project Common is
+
+   type Target_Type is ("native", "powerpc-elf", "leon-elf");
+   Target : Target_Type := external ("TARGET", "powerpc-elf");
+
+   type Yes_No_Type is ("yes", "no");
+
+   for Languages use ();
+
+end Common;
+

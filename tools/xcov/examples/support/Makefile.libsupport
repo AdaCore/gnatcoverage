@@ -1,0 +1,29 @@
+# Simple makefile for building the zfp support library.
+
+include Makefile.common
+
+ifeq ($(TARGET),powerpc-elf)
+  START=$(LIBSUPPORT_DIR)/start.o
+  LDSCRIPT=$(LIBSUPPORT_DIR)/gnu.ld
+endif
+
+all: $(LIBSUPPORT_DIR) $(START) $(LDSCRIPT) \
+     $(LIBSUPPORT_DIR)/libsupport.a
+
+$(LIBSUPPORT_DIR):
+	mkdir -p $@
+
+$(LIBSUPPORT_DIR)/start.o: src/$(TARGET)/start.s
+	$(CROSSPREFIX)gcc -c -o $@ $<
+
+$(LIBSUPPORT_DIR)/gnu.ld: src/$(TARGET)/gnu.ld
+	$(CP) $< $@
+
+$(LIBSUPPORT_DIR)/libsupport.a: force
+	$(BUILDER) -XBUILD=yes -p -Plibsupport
+	$(BUILDER) -XBUILD=yes -p -Plibsupport -XUNITTEST=yes
+
+clean:
+	$(RM) -rf lib obj
+
+.PHONY: force clean

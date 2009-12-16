@@ -1,15 +1,9 @@
-with "../support/support";
+with "common";
 
-project Explore is
-
+project Test_Engines extends "base" is
    for Source_Dirs use ("src");
-   for Object_Dir use "obj/" & Support.Target;
-   for Exec_Dir use ".";
+   for Object_Dir use "obj/" & Common.Target;
 
    for Main use ("explore.adb");
+end Test_Engines;
 
-   package Builder renames Support.Builder;
-   package Compiler renames Support.Compiler;
-   package IDE renames Support.IDE;
-
-end Explore;

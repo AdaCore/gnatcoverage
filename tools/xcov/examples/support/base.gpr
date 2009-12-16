@@ -1,0 +1,54 @@
+-- ==================================================
+-- == Base GPR file to be extended by example GPRs ==
+-- ==================================================
+
+with "common", "libsupport";
+
+abstract project Base is
+
+   --  Style checks options to compile Ada sources. To prevent possible
+   --  gprbuild errors on empty option, we use a toggle to make sure we add
+   --  nothing to the options instead of an empty string when no style checks
+   --  are required.
+
+   Do_Style_Checks : Common.Yes_No_Type := external ("DO_STYLE_CHECKS", "no");
+   Style_Checks := external ("STYLE_CHECKS", "-gnaty");
+
+   for Languages use ("Ada");
+   for Source_Files use ();
+
+   package Compiler is
+
+      for Default_Switches ("C") use ("-g", "-O0", "-fpreserve-control-flow");
+      --  Default to O0 until we support O1 for source coverage critieria
+
+      for Default_Switches ("ada") use
+        Compiler'Default_Switches("C") & ("-gnatp", "-gnatw.Xe", "-gnateS");
+
+      case Do_Style_Checks is
+         when "no" => null;
+         when "yes" =>
+           for Default_Switches ("ada") use
+             Compiler'Default_Switches("ada") & Style_Checks;
+      end case;
+   end Compiler;
+
+   package IDE is
+      case Common.Target is
+         when "native" =>
+            for Compiler_Command ("Ada") use "gnatmake";
+            for Compiler_Command ("C") use "gcc";
+            for Gnatlist use "gnatls";
+            for Gnat use "gnat";
+            for Debugger_Command use "gdb";
+         when others =>
+            for Compiler_Command ("Ada") use Common.Target & "-gnatmake";
+            for Compiler_Command ("C") use Common.Target & "-gcc";
+            for Gnatlist use Common.Target & "-gnatls";
+            for Gnat use Common.Target & "-gnat";
+            for Debugger_Command use Common.Target & "-gdb";
+      end case;
+   end IDE;
+
+end Base;
+

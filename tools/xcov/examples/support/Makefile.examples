@@ -43,23 +43,23 @@ SOURCE_LEVELS=stmt stmt+decision stmt+mcdc
 ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
   # Object coverage: use --routines to filter. No extra build option.
 
-  INTERNALBUILDFLAGS = -O0 -gnateS
+  INTERNALBUILDFLAGS =
   GENXCOVLIST=\
-    $(XCOV) disp-routines $(wildcard obj/$(TARGETNAME)/*.o) > $*.routines
+    $(XCOV) disp-routines $(wildcard obj/$(TARGET)/*.o) > $*.routines
   XCOVFILTER=--routines=@$*.routines
   XCOVRUN=xcov run \
-    --target=$(TARGET) --level=$(XCOVLEVEL) $<
+    --target=$(QEMUTARGET) --level=$(XCOVLEVEL) obj/$(TARGET)/$<
+
 else ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
-  # Source coverage: force recompilation with -O0 -gnateS, use --scos to
-  # filter and pass the filter to xcov run so that it has visibility on
-  # decision locations
+  # Source coverage: force -O0 -gnateS, use --scos to filter and pass the
+  # filter to xcov run so that it has visibility on decision locations
 
   INTERNALBUILDFLAGS = -O0 -gnateS
   GENXCOVLIST=\
-    ls $(wildcard obj/$(TARGETNAME)/*.ali) > $*.alis
+    ls $(wildcard obj/$(TARGET)/*.ali) > $*.alis
   XCOVFILTER=--scos=@$*.alis
   XCOVRUN=xcov run \
-    --target=$(TARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) $<
+    --target=$(QEMUTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) obj/$(TARGET)/$<
 endif
 
 # Argument we will pass to the builder eventually, with 
@@ -96,22 +96,18 @@ index-%.xml: %.trace
 trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 
 %.trace: % force
-	@clear
 # Generate the filtering list here, as we might need to pass it to
 # xcov run and always need to pass it to xcov coverage.
 
 	$(GENXCOVLIST)
 
 # Then echo the command we're planning to run while our term is functional,
-# and run silently in between the possibly required stty adjustments.
-# Switching to e.g raw to run is necessary in some environments, and echoing
-# the command there would have the output start right after the command echo
-# on the same line, cumbersome.
+# and run silently in between the possibly required stty adjustments. Make
+# sure the latter executes in sequence entirely so that tty gets restored
+# even if XCOVRUN fails for whatever reason.
 
 	@echo $(XCOVRUN)
-	@$(STTY_ADJUST)
-	@$(XCOVRUN)
-	@$(STTY_RESTORE)
+	@$(STTY_ADJUST);$(XCOVRUN);$(STTY_RESTORE);echo
 
 # -----------------------------------------------------------------------
 # build: produce executable program from sources + target bsp
@@ -119,21 +115,26 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 
 build: $(TESTS) $(UNIT_TESTS)
 
-$(TESTS): support force
+$(TESTS): libsupport force
 	$(BUILDER) -f -p -P$@ $(BUILDERFLAGS)
 
-$(UNIT_TESTS): support force
-	$(BUILDER) -f -p -Pharness \
-	-XPLATFORM=$(TARGETNAME) -XRUNTIME=zfp -XUNITTEST=yes $(BUILDERFLAGS)
+$(UNIT_TESTS): libsupport force
+	$(BUILDER) -f -p -Pharness $(BUILDERFLAGS)\
+	-XRUNTIME=zfp -XUNITTEST=yes
 
-support:
-	$(MAKE) -C ../support
+MKSUPPORT=$(MAKE) -C ../support -f Makefile.libsupport
 
+libsupport:
+	$(MKSUPPORT) all
+
+# -----------------------------------------------------------------------
 # Housekeeping
+# -----------------------------------------------------------------------
 
 clean:
-	$(MAKE) -C ../support clean
+	$(MKSUPPORT) clean
 	$(RM) -rf obj lib
-	$(RM) -f *.bin *.trace.* *.trace *~ *.xcov *.html *.css $(TESTS)
+	$(RM) -f *.bin *.dmap *.cgpr *.trace.* *.trace *~ \
+                 *.xcov *.html *.css *.xml $(TESTS) *.alis *.routines
 
 .PHONY: force clean
