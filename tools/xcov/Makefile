@@ -6,6 +6,7 @@ CP=cp -pf
 LN=ln -sf
 MKDIR=mkdir -p
 MAKEINFO=makeinfo
+exeext=
 
 all: xcov
 
@@ -63,7 +64,7 @@ install:
 	$(MKDIR) $(PREFIX)/share/doc/xcov/info
 	$(MKDIR) $(PREFIX)/share/doc/xcov/txt
 	$(CP) README $(PREFIX)
-	$(CP) xcov $(PREFIX)/bin
+	$(CP) xcov$(exeext) $(PREFIX)/bin
 	$(CP) -r examples/* $(PREFIX)/share/examples/xcov
 	$(CP) -r doc/*.html $(PREFIX)/share/doc/xcov/html
 	$(CP) -r doc/*.pdf  $(PREFIX)/share/doc/xcov/pdf
