@@ -351,7 +351,8 @@ procedure Xcov is
       if Command /= No_Command then
          Arg_Index := Arg_Index + 1;
       else
-         Fatal_Error ("no command.  Try option --help");
+         Fatal_Error ("bad command " & Argument (Arg_Index)
+                      & ".  Try option --help");
       end if;
 
       --  Decode options
