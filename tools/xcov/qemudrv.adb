@@ -207,10 +207,7 @@ package body Qemudrv is
       end P;
 
    begin
-      Put ("Usage: xcov run");
-      Put (" [OPTIONS] FILE [-eargs EARGS...]");
-      New_Line;
-      P ("  Options are:");
+      P ("run [OPTIONS] FILE [-eargs EARGS...]");
       P ("  -t TARGET  --target=TARGET   Set the target");
       Put (Indent & "    targets:");
       for I in Drivers'Range loop
