@@ -22,6 +22,9 @@ package Commands is
 
    type Command_Type is
      (No_Command,
+      Cmd_Help,
+      Cmd_Help_Dump,
+      Cmd_Version,
       Cmd_Coverage,
       Cmd_Disp_Routines,
       Cmd_Map_Routines,

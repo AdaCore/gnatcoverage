@@ -59,7 +59,7 @@ package body Commands is
    ----------------
 
    function To_Command (Opt_String : String) return Command_Type is
-      Literal : String := Opt_String;
+      Literal : String (1 .. Opt_String'Length) := Opt_String;
    begin
       for J in Literal'Range loop
          if Literal (J) = '-' then
@@ -68,7 +68,11 @@ package body Commands is
       end loop;
 
       begin
-         return Command_Type'Value ("cmd_" & Literal);
+         if Literal (1 .. 2) = "__" then
+            return Command_Type'Value ("cmd_" & Literal (3 .. Literal'Last));
+         else
+            return Command_Type'Value ("cmd_" & Literal);
+         end if;
       exception
          when Constraint_Error =>
             return No_Command;

@@ -89,9 +89,9 @@ procedure Xcov is
    procedure Usage is
       procedure P (S : String) renames Put_Line;
    begin
-      P ("Usage: " & Command_Name & " ACTION");
+      P ("Usage: " & Command_Name & " ACTION [OPTIONS...]");
       P ("Action is one of:");
-      P (" --help  -h");
+      P (" --help");
       P ("   Display this help");
       New_Line;
       P (" --help-dump");
@@ -361,22 +361,7 @@ procedure Xcov is
          declare
             Arg : String renames Argument (Arg_Index);
          begin
-            if Arg = "-h" or Arg = "--help" then
-               Check_Option (Arg, Command, (1 => No_Command));
-               Usage;
-               Normal_Exit;
-
-            elsif Arg = "--help-dump" then
-               Check_Option (Arg, Command, (1 => No_Command));
-               Usage_Dump;
-               Normal_Exit;
-
-            elsif Arg = "--version" then
-               Check_Option (Arg, Command, (1 => No_Command));
-               Put_Line ("XCOV Pro " & Standard.Version.Xcov_Version);
-               Normal_Exit;
-
-            elsif Has_Prefix (Arg, "-d") then
+            if Has_Prefix (Arg, "-d") then
                --  Debugging options
 
                declare
@@ -575,6 +560,13 @@ procedure Xcov is
                   when No_Command =>
                      Fatal_Error ("No command specified");
 
+                  when Cmd_Help
+                    | Cmd_Help_Dump =>
+                     Fatal_Error ("no parameter allowed");
+
+                  when Cmd_Version =>
+                     null;
+
                   when Cmd_Coverage
                     | Cmd_Dump_Trace
                     | Cmd_Dump_Trace_Base =>
@@ -629,6 +621,18 @@ begin
    case Command is
       when No_Command =>
          Usage;
+         return;
+
+      when Cmd_Help =>
+         Usage;
+         return;
+
+      when Cmd_Help_Dump =>
+         Usage_Dump;
+         return;
+
+      when Cmd_Version =>
+         Put_Line ("XCOV Pro " & Standard.Version.Xcov_Version);
          return;
 
       when Cmd_Disp_Routines =>
