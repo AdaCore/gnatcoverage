@@ -176,8 +176,12 @@ package body Traces_Names is
          while Trace /= Bad_Trace loop
             exit when Trace.First > Content'Last;
 
+            --  Note, trace may span several routines
+
             if Trace.Last >= Content'First then
+
                --  Ceil
+
                if Trace.First >= Content'First then
                   First := Trace.First + Subp_Info.Offset;
                else
@@ -185,13 +189,16 @@ package body Traces_Names is
                end if;
 
                --  Floor
+
                if Trace.Last <= Content'Last then
                   Last := Trace.Last + Subp_Info.Offset;
                else
                   Last := Subp_Info.Insns'Last;
                end if;
 
-               --  Consistency check.
+               --  Consistency check
+               --  Shouldn't that be an Assert???
+
                if First > Last then
                   raise Program_Error;
                end if;
