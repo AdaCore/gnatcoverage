@@ -21,11 +21,11 @@ LIBSUPPORT_DIR = $(SUPPORT_DIR)/lib/$(TARGET)
 # arguments to gprbuild:
 # =======================================================
 
-GPRBUILD_TARGETARGS=-XTARGET=$(TARGET)
+GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) --RTS:Ada=zfp
+
 ifeq ($(TARGET),native)
   CROSSPREFIX =
   QEMUTARGET  = i386-linux
-  GPRBUILD_TARGETARGS += --RTS:Ada=zfp
 else
   CROSSPREFIX = $(TARGET)-
   QEMUTARGET  = $(TARGET)
