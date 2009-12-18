@@ -104,11 +104,25 @@ package body Annotations is
       end Process_One_Line;
 
       Skip : Boolean;
+      C    : constant Counters := Get_Counters (FI.Stats);
 
    --  Start of processing for Disp_File_Line_State
 
    begin
       Files_Table.Fill_Line_Cache (FI);
+
+      --  If there is no coverage information to display in the
+      --  annotated source (i.e. if the total number of line with a
+      --  Line_State is null), then there is no useful information to add
+      --  in this annotated source. So, if this file's content cannot
+      --  be read, we can ignore it without any warning. This actually
+      --  happens when SCOs are emitted for units for which no code is
+      --  generated; in such a case, a warning would just be noise.
+
+      if C.Total = 0 and not FI.Has_Source then
+         return;
+      end if;
+
       Pretty_Print_Start_File (Pp, File_Index, Skip);
 
       if Skip then
