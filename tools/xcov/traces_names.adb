@@ -176,21 +176,29 @@ package body Traces_Names is
          while Trace /= Bad_Trace loop
             exit when Trace.First > Content'Last;
 
-            if Trace.Last in Content'Range then
+            if Trace.Last >= Content'First then
+               --  Ceil
                if Trace.First >= Content'First then
                   First := Trace.First + Subp_Info.Offset;
                else
                   First := Subp_Info.Insns'First;
                end if;
 
+               --  Floor
                if Trace.Last <= Content'Last then
                   Last := Trace.Last + Subp_Info.Offset;
                else
                   Last := Subp_Info.Insns'Last;
                end if;
 
+               --  Consistency check.
+               if First > Last then
+                  raise Program_Error;
+               end if;
+
                Add_Entry (Subp_Info.Traces.all, First, Last, Trace.Op);
             end if;
+
             Get_Next_Trace (Trace, Trace_Cursor);
          end loop;
       end Update;
