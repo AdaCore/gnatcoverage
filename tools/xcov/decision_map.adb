@@ -970,6 +970,22 @@ package body Decision_Map is
 
          Next_PC              : Pc_Type := Edge_Info.Destination;
          BB                   : Basic_Block;
+
+         function SCO_For_Jump return SCO_Id;
+         --  Return the SCO_Id (if any) of the jump instruction at the end of
+         --  BB.
+
+         ------------------
+         -- SCO_For_Jump --
+         ------------------
+
+         function SCO_For_Jump return SCO_Id is
+         begin
+            return Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC));
+         end SCO_For_Jump;
+
+      --  Start of processing for Trace_Destination
+
       begin
          <<Follow_Jump>>
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
@@ -987,9 +1003,13 @@ package body Decision_Map is
                      Edge_Info.Next_Condition := Index (BB.Condition);
                   end if;
 
-               elsif BB.To_PC /= Unconditional_Branch then
+               elsif BB.To_PC /= Unconditional_Branch
+                       and then SCO_For_Jump = CBI.Condition
+               then
+
                   --  Make sure we won't follow the same unconditional branch
-                  --  twice.
+                  --  twice. Note that we follow unconditional jumps only when
+                  --  they remain within the current condition.
 
                   if Unconditional_Branch = No_PC then
                      Unconditional_Branch := BB.To_PC;
@@ -1013,7 +1033,7 @@ package body Decision_Map is
                   --  a call to a runtime routine raising an exception, then
                   --  assume it is a check.
 
-                  if Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC)) = CBI.Condition
+                  if SCO_For_Jump = CBI.Condition
                        and then
                      Sym_Name /= null
                        and then
@@ -1083,20 +1103,16 @@ package body Decision_Map is
       end loop;
 
       --  Report conditions for which no edge provides a valuation
-      --  Suppressed for decisions with only one condition, because in that
-      --  case we can assign arbitrary valuations without changing the coverage
-      --  assessment.
 
-      if D_Occ.Last_Cond_Index > Condition_Index'First then
-         for J in Condition_Index'First .. D_Occ.Last_Cond_Index loop
-            for Val in Boolean'Range loop
-               if not Has_Valuation (J, Val) then
-                  Report (Condition (D_Occ.Decision, J),
-                          "no edge for " & Val'Img);
-               end if;
-            end loop;
+      for J in Condition_Index'First .. D_Occ.Last_Cond_Index loop
+         for Val in Boolean'Range loop
+            if not Has_Valuation (J, Val) then
+               Report (Condition (D_Occ.Decision, J),
+                       "no edge for " & Val'Img,
+                      Kind => Warning);
+            end if;
          end loop;
-      end if;
+      end loop;
 
       --  Record decision occurrence
 
