@@ -1,0 +1,27 @@
+# This is a simple Makefile helper to build dvi and pdf documents out of
+# LaTeX sources for Couverture reports.
+
+PDF=$(REPORT:%=%.pdf)
+all: check clean $(PDF)
+
+check:
+	@if [ "$(PDF)" = "" ]; then \
+	  echo "no REPORT to make" && exit 1; \
+	fi
+
+clean:
+	rm -f *.bbl *.aux *.log *.dvi *.blg *.toc *.pdf *~ *.html *.info
+
+.PHONY: force
+force:
+
+LATEX=\
+TEXINPUTS=.:../tools/xcov/doc:../documents:$${TEXINPUTS} latex
+BIBTEX=\
+BIBINPUTS=.:../tools/xcov/doc:../documents:../publications:$${BIBINPUTS} bibtex
+
+%.pdf: force
+	$(LATEX) $*
+	- $(BIBTEX) $* && $(LATEX) $*
+	$(LATEX) $*
+	dvipdf $*

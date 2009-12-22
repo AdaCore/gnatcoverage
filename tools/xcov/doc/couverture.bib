@@ -1,0 +1,342 @@
+
+@string {SPRINGER = "Springer Verlag"}
+@string {LNCS = "Lecture Notes in Computer Science"}
+
+@string {IEEEP = "IEEE Computer Society Press"}
+@string {ACMP  = "ACM Press"}
+
+@string {COMAR        = "{Comar}, Cyrille"}
+@string {HAINQUE      = "{Hainque}, Olivier"}
+@string {RUIZ         = "{Ruiz}, Jose"}
+@string {BORDIN       = "{Bordin}, Matteo"}
+@string {GINGOLD      = "{Gingold}, Tristan"}
+@string {BOTCAZOU     = "{Botcazou}, Eric"}
+
+@string {DUPUY        = "{Dupuy}, Arnaud"}
+@string {LEVESON      = "{Leveson}, Nancy"}
+
+@string {BELLARD     = "{Bellard}, Fabrice"}
+@string {CHILENSKI   = "{Chilenski}, John J."}
+@string {MILLER      = "{Miller}, Steven P."}
+@string {HAYHURST    = "{Hayhurst}, Kelly J."}
+@string {VEERHUSEN   = "{Veerhusen}, Dan S."}
+@string {RIERSON     = "{Rierson}, Leanna K."}
+@string {VILKOMIR    = "{Vilkomir}, Sergiy A."}
+@string {BOWEN       = "{Bowen}, Jonathan P."}
+@string {NEWCOMB     = "{Newcomb}, Philip H."}
+@string {RAJAN       = "{Rajan}, Ajitha"}
+@string {WHALEN      = "{Whalen}, Michael W."}
+@string {HEIMDAHL    = "{Heimdahl}, Mats P.E."}
+@string {DEVARAJ     = "{Devaraj}, George"}
+@string {LIANG       = "{Liang}, Donglin"}
+@string {KIRNER      = "{Kirner}, Raimund"}
+
+@string {KODAKARA    = "{Kodakara}, Sreekumar V."}
+@string {MATHAIKUTTY = "{Mathaikutty}, Deepak A."}
+@string {DINGANKAR   = "{Dingankar}, Ajit"}
+@string {SHUKLA      = "{Shukla}, Eep"}
+@string {LILJA       = "{Lilja}, David"}
+
+@string {FAA     = "{FAA, Federal Aviation Administration}"}
+@string {CAST    = "{CAST, Certification Authorities Software Team}"}
+@string {CASTURL = "http://www.faa.gov/aircraft/air_cert/design_approvals#
+                    /air_software/cast/cast_papers"}
+@string {FAARURL = "http://www.faa.gov/aircraft/air_cert/design_approvals#
+                    /air_software/research"}
+
+@string {TECHMEMO   = "{Technical Memorandum}"}
+@string {TECHREPORT = "{Technical Report}"}
+@string {POSPAPER   = "{Position Paper}"}
+
+@string {AND = " and "}
+
+==============================================================================
+
+@misc {qemu-home,
+title     = "{The Qemu open source processor emulator}",
+author    = BELLARD,
+url = "http://bellard.org/qemu/"
+}
+
+@manual {xcov-doc,
+title   = "{Xcov Fundamentals and Users Guide}",
+year    = 2009
+}
+
+==============================================================================
+==                                MCDC literature                           ==
+==============================================================================
+
+@inproceedings {hete2,
+title     = "{An Empirical Evaluation of the MC/DC Coverage Criterion
+              on the HETE-2 Satellite Software}",
+author    = DUPUY # AND # LEVESON,
+booktitle = "DASC (Digital Aviation Systems Conference)",
+  mon = oct,
+  year = "2000",
+}
+
+@techreport {mcdc-tutorial,
+title     = "{A Practical Tutorial on Modified Condition/Decision Coverage}",
+author    = HAYHURST # AND # VEERHUSEN # AND # CHILENSKI # AND # RIERSON,
+month     = may,
+year      = 2001,
+institution = "NASA",
+type = TECHMEMO,
+number = "NASA/TM-2001-210876",
+url = "http://techreports.larc.nasa.gov/ltrs/PDF/2001/tm/NASA-2001-tm210876.pdf"
+}
+
+@techreport {cast17,
+title     = "{Structural Coverage of Object Code}",
+author    = CAST,
+month     = jun,
+year      = 2003,
+type      = POSPAPER,
+number    = "17",
+url       = CASTURL
+}
+
+@techreport {cast10,
+title     = "{What is a Decision in Application of Modified
+              Condition/Decision Coverage (MC/DC) and
+              Decision Coverage (DC)?}",
+author    = CAST,
+month     = jun,
+year      = 2002,
+type      = POSPAPER,
+number    = "10",
+url       = CASTURL
+}
+
+@techreport {cast6,
+title     = "{Rationale for accepting Masking MCDC in certification projects}",
+author    = CAST,
+month     = aug,
+year      = 2001,
+type      = POSPAPER,
+number    = "6",
+url       = CASTURL
+}
+
+@techreport {ar0118,
+title     = "{An Investigation of Three Forms of the Modified
+              Condition/Decision Coverage (MCDC) Criterion}",
+author    = CHILENSKI,
+month     = apr,
+year      = 2001,
+type      = TECHREPORT,
+number    = "DOT/FAA/AR-01/18",
+url       = FAARURL
+}
+
+@techreport {ar0654,
+title     = "{Software Verification Tools Assessment Study}",
+author    = FAA,
+month     = jun,
+year      = 2007,
+number    = "DOT/FAA/AR-06/54",
+url       = FAARURL
+}
+
+@techreport {ar0717,
+title     = "{Object Oriented Technology Verification Phase 3 Handbook - 
+              Structural Coverage at the Source Code and Object Code Levels}",
+author    = FAA,
+month     = jun,
+year      = 2007,
+number    = "DOT/FAA/AR-07/17",
+url       = FAARURL
+}
+
+@techreport {ar0720,
+title     = "{Object Oriented Technology Verification Phase 3 Report - 
+              Structural Coverage at the Source Code and Object Code Levels}",
+author    = FAA,
+month     = jun,
+year      = 2007,
+number    = "DOT/FAA/AR-07/20",
+url       = FAARURL
+}
+
+@inproceedings {rcdc-new,
+  author = VILKOMIR # AND # BOWEN,
+  title = "{Reinforced Condition/Decision Coverage (RC/DC):
+            A New Criterion for Software Testing}",
+  booktitle = "ZB2002: Formal Specification and Development in Z and B",
+  editor = "Didier Bert and Jonathan P. Bowen and Martin Henson
+            and Ken Robinson", 
+  publisher = SPRINGER,
+  series = LNCS,
+  volume = "2272",
+  pages = "295-313",
+  year = "2002",
+  url = "http://www.jpbowen.com/pub/zb2002.pdf"
+}
+
+@techreport {rcdc-from,
+  author = VILKOMIR # AND # BOWEN,
+  title = "{From MC/DC to RC/DC: Formalization and Analysis of Control-Flow
+            Testing Criteria}",
+  institution = "South Bank University, CISM",
+  address = "London, UK",
+  number = "SBU-CISM-02-17",
+  year = "2002",
+  url = "http://www.jpbowen.com/pub/sbu-cism-02-17.pdf"
+}
+
+@inproceedings {mcdc-app,
+  author = CHILENSKI # AND # MILLER,
+  title = "{Applicability of modified condition/decision coverage to
+            software testing}",
+  series = "Software Engineering Journal",
+  publisher = IEEE,
+  volume = "9, issue 5",
+  pages = "193-200",
+  month = sep,
+  year = "2004",
+  url = "http://ieeexplore.ieee.org/iel1/2225/7783/00329068.pdf"
+}
+
+@inproceedings {cov-formal,
+  author = CHILENSKI # AND # NEWCOMB,
+  title = "{Formal Specification Tools for Test Coverage Analysis}",
+  series = "Software Engineering Journal",
+  publisher = IEEE,
+  pages = "59-68",
+  year = "1994",
+  url = "http://ieeexplore.ieee.org/"
+}
+
+
+@paper {mcdc-struct-effect,
+  author = RAJAN # AND # WHALEN # AND # HEIMDAHL,
+  title = "{The Effect of Program and Model Structure on MC/DC Test
+            Adequacy Coverage}",
+  url = ""
+}
+
+@paper {to-use-or-not,
+  author = DEVARAJ # AND # HEIMDAHL # AND # LIANG,
+  title = "{Condition based coverage criteria: To use or not to use,
+            that is the question}",
+  url = "http://www-users.cs.umn.edu/~devaraj/paper.pdf"
+}
+
+@inproceedings {sccp-x,
+  author = KIRNER,
+  title = "{SCCP/x - A Compilation Profile to Support Testing and
+            Verification of Optimized Code}",
+  month = oct,
+  year = 2007,
+  url = ""
+}
+
+@paper {fault-proba,
+  author = KODAKARA # AND # MATHAIKUTTY # AND # DINGANKAR
+           # AND # SHUKLA # AND # LILJA,
+  title = "{A Probabilistic Analysis For Fault Detectability of Code
+            Coverage Metrics}",
+  url = ""
+}
+
+
+
+@TECHREPORT{Leroy-ZINC,
+  AUTHOR = {Xavier Leroy},
+  TITLE = {The {ZINC} experiment: an economical
+                         implementation of the {ML} language},
+  INSTITUTION = {INRIA},
+  TYPE = {Technical report},
+  NUMBER = {117},
+  YEAR = {1990},
+  URLLOCAL = {http://gallium.inria.fr/~xleroy/publi/ZINC.pdf},
+  ABSTRACT = {This report details the design and implementation of the ZINC
+system.  This is an experimental implementation of the ML
+language, which has later evolved in the Caml Light system.
+This system is strongly oriented toward separate compilation
+and the production of small, standalone programs; type safety
+is ensured by a Modula-2-like module system.  ZINC uses
+simple, portable techniques, such as bytecode interpretation;
+a sophisticated execution model helps counterbalance the
+interpretation overhead.},
+  XTOPIC = {caml}
+}
+
+%% hal-00396371, version 1
+%% http://hal.archives-ouvertes.fr/hal-00396371/en/
+@inproceedings{ICFP09,
+title={{E}xperience {R}eport: {U}sing {O}bjective {C}aml to develop safety-critical embedded tool in a certificaiton framework},
+author={{P}agano, {B}runo and {A}ndrieu, {O}livier and {M}oniot, {T}homas and {C}anou, {B}enjamin and {C}hailloux, {E}mmanuel and {W}ang, {P}hilippe and {M}anoury, {P}ascal and {C}ola{\c{c}}o, {J}ean-{L}ouis},
+language={{A}nglais},
+affiliation={{L}aboratoire d'{I}nformatique de {P}aris 6 - {LIP}6 - {CNRS} : {UMR}7606 - {U}niversit{\'e} {P}ierre et {M}arie {C}urie - {P}aris {VI} - {P}reuves, {P}rogrammes et {S}yst{\`e}mes - {PPS} - {CNRS} : {UMR}7126 - {U}niversit{\'e} {D}enis {D}iderot - {P}aris {VII} },
+booktitle={{I}nternational {C}onference of {F}unctional {P}rogramming {ICFP} 09 },
+address={{R}oyaume-{U}ni },
+audience={internationale },
+month={09},
+year={2009},
+URL={http://hal.archives-ouvertes.fr/hal-00396371/en/},
+}
+
+%% hal-00319700, version 1
+%% http://hal.archives-ouvertes.fr/hal-00319700/en/
+@inproceedings{PADL08,
+title={{C}ertified development tools implementation in objective caml.},
+author={{P}agano, {B}runo and {A}ndrieu, {O}livier and {C}anou, {B}enjamin and {C}hailloux, {E}mmanuel and {C}ola{\c{c}}o, {J}ean-{L}ouis and {M}oniot, {T}homas and {W}ang, {P}hilippe},
+language={{A}nglais},
+affiliation={{L}aboratoire d'{I}nformatique de {P}aris 6 - {LIP}6 - {CNRS} : {UMR}7606 - {U}niversit{\'e} {P}ierre et {M}arie {C}urie - {P}aris {VI} - {P}reuves, {P}rogrammes et {S}yst{\`e}mes - {PPS} - {CNRS} : {UMR}7126 - {U}niversit{\'e} {D}enis {D}iderot - {P}aris {VII} },
+booktitle={{I}nternational {S}ymposium on {P}ractical {A}spects of {D}eclarative {L}anguages {PADL} 08 {I}nternational {S}ymposium on {P}ractical {A}spects of {D}eclarative {L}anguages {PADL} 08 },
+pages={1--15 },
+address={{S}an {F}rancisco {\'E}tats-{U}nis d'{A}m{\'e}rique },
+editor={{S}pringer-{V}erlag},
+series={{L}ecture {N}otes in {C}omputer {S}cience },
+audience={internationale },
+day={10},
+month={01},
+year={2008},
+URL={http://hal.archives-ouvertes.fr/hal-00319700/en/},
+}
+
+%% hal-00154883, version 1
+%% http://hal.archives-ouvertes.fr/hal-00154883/en/
+@inproceedings{JFLA07,
+title={{C}ouverture de code {C}aml pour la r{\'e}alisation d'outils de d{\'e}veloppement certifi{\'e}s},
+author={{P}agano, {B}runo and {C}anou, {B}enjamin and {C}hailloux, {E}mmanuel and {C}ola{\c{c}}o, {J}ean-{L}ouis and {W}ang, {P}hilippe},
+language={{F}ran{\c{c}}ais},
+affiliation={{L}aboratoire d'{I}nformatique de {P}aris 6 - {LIP}6 - {CNRS} : {UMR}7606 - {U}niversit{\'e} {P}ierre et {M}arie {C}urie - {P}aris {VI} },
+booktitle={{J}ourn{\'e}es {F}rancophones des {L}angages {A}pplicatifs },
+address={{F}rance },
+month={01},
+year={2007},
+URL={http://hal.archives-ouvertes.fr/hal-00154883/en/},
+}
+
+%% hal-00327504, version 1
+%% http://hal.archives-ouvertes.fr/hal-00327504/en/
+@inproceedings{MLWS08,
+title={{O}'{B}rowser : {O}bjective {C}aml on browsers},
+author={{C}anou, {B}enjamin and {B}alat, {V}incent and {C}hailloux, {E}mmanuel},
+abstract={{W}e present a way to run {O}bjective {C}aml programs on a standard, unmodified web browser, with a compatible data representation and execution model, including concurrency. {T}o achieve this, we designed a bytecode interpreter in {J}ava{S}cript, as well as an implementation of the runtime library. {S}ince the web browser does not provide the same interaction mechanisms as a typical {O}bjective {C}aml environment, we provide an add-on to the standard library, enabling interaction with the web page. {A}s a result, one can now build the client side of a web application with the standard {O}bjective {C}aml compiler and run it on any modern web browser.},
+keywords={{V}irtual {M}achine;{W}eb {B}rowsers;{O}bjective {C}aml;{D}ocument {O}bject {M}odel;{J}ava{S}cript},
+language={{A}nglais},
+affiliation={{P}reuves, {P}rogrammes et {S}yst{\`e}mes - {PPS} - {CNRS} : {UMR}7126 - {U}niversit{\'e} {D}enis {D}iderot - {P}aris {VII} - {L}aboratoire d'{I}nformatique de {P}aris 6 - {LIP}6 - {CNRS} : {UMR}7606 - {U}niversit{\'e} {P}ierre et {M}arie {C}urie - {P}aris {VI} },
+booktitle={{P}roceedings of the 2008 {ACM} {SIGPLAN} {W}orkshop on {ML} {T}he 2008 {ACM} {SIGPLAN} {W}orkshop on {ML} },
+pages={69-78 },
+address={{V}ictoria {BC} {C}anada },
+note={{D}.3.3 {D}.3.4 {H}.5.3 },
+audience={internationale },
+collaboration={{LIP}6, {PPS} },
+day={21},
+month={09},
+year={2008},
+URL={http://hal.archives-ouvertes.fr/hal-00327504/en/},
+}
+
+@TechReport{OCAML,
+   author = {Xavier Leroy},
+   title = {The Objective Caml system release 3.11 : Documentation and user's manual},
+   year = {2009},
+   institution = {Inria},
+   note = {on-line version : {\url{http://caml.inria.fr}}}
+}
+

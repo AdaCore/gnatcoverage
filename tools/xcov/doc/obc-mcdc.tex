@@ -1,0 +1,60 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                      Couverture report LaTeX template                 %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[a4paper,12pt,twoside]{article}
+\usepackage{couverture}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{url}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\pagestyle{empty}
+
+\vfill
+
+\begin{center}%
+{\Large \textbf{Couverture Project}}
+
+{\Large \textbf{Technical Report on OBC/MCDC properties}}
+
+\vfill
+
+{\large \textbf{Abstract}}
+\end{center}
+
+This document gathers results established or formalized by the Couverture
+project team about relationships between specific coverage criteria.
+%
+We focus in particular on how \E{Object Branch Coverage} (OBC) relates to the
+\E{Modified Condition/Decision Coverage} (MCDC) criterion.
+
+We provide two broad categories of results: formal proofs of important
+properties over a model of the two criteria, and a machine-automated
+verification of some of these properties for concrete subsets of the model
+expressed in Alloy.
+%
+These results constitute the grounds on which our project coverage analysis
+framework operates to infer source coverage results from object coverage
+information out of an instrumented execution environment.
+
+\vfill
+
+\newpage
+\pagestyle{plain}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Common definitions}
+
+\section{Formal properties}
+
+\section{Automated verifications}
+
+\newpage
+\bibliographystyle{alpha}
+\bibliography{couverture}
+
+\end{document}

@@ -1,0 +1,8 @@
+This directory contains
+
+  * xcov.texi, source of the xcov user's guide built by ../Makefile
+
+  * LaTeX sources of various technical reports, to be built with the local
+    'Makefile.reports', by "make -fMakefile.reports REPORT=<report basename>"
+
+
