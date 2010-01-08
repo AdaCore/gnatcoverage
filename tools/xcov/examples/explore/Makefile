@@ -9,11 +9,6 @@
 
 # make TARGET=i386-linux ...  runs on linux
 # make TARGET=powerpc-elf ... runs on bare board PowerPC
-# make TARGET=leon-elf ...    not supported (no text input)
+# make TARGET=leon-elf ...    runs on bare board Leon.
 
-ifeq ($(TARGET),leon-elf)
-all:
-	@echo Example not supported: LEON target does not provide text input
-else
 include ../support/Makefile.examples
-endif
