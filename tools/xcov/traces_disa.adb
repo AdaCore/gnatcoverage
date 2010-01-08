@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                      Copyright (C) 2008-2009, AdaCore                    --
+--                      Copyright (C) 2008-2010, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -116,15 +116,15 @@ package body Traces_Disa is
       Insn_Len : Natural := 0;
    begin
       Pc := Insns'First;
-      while Pc < Insns'Last loop
+      while Pc <= Insns'Last loop
          Insn_Len :=
            Disa_For_Machine (Machine).Get_Insn_Length
                                         (Insns (Pc .. Insns'Last));
          Cb.all (Pc, State, Insns (Pc .. Pc + Pc_Type (Insn_Len - 1)), Sym);
          Pc := Pc + Pc_Type (Insn_Len);
 
+         --  Handle wrap around.
          exit when Pc = 0;
-         --  When is this supposed to happen???
       end loop;
    end For_Each_Insn;
 
