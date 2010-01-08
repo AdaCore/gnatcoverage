@@ -3,15 +3,15 @@ analysis facility.
 
 PACKAGE CONTENTS
 ================
-The package provides two core command line components:
 
-* An instrumented version of Qemu, an open source processor emulator we
-  use as a program execution environment able to generate execution traces
-  of the machine code it executes, and
+The package provides the xcov front-end, used both as a wrapper of the
+instrumented execution environment (xcov run) and as a trace analyzer
+able to render coverage results in various output formats (xcov
+coverage).
 
-* The xcov front-end, used both as a wrapper of the instrumented execution
-  environment (xcov run) and as a trace analyzer able to render coverage
-  results in various output formats (xcov coverage).
+The instrumented version of Qemu, an open source processor emulator we
+use as a program execution environment able to generate execution traces
+of the machine code it executes is available in a separate package.
 
 As part of the examples subdirectory, the package also includes:
 
@@ -57,7 +57,11 @@ bash like shell:
 Then switch to the Xcov "engines" example directory and exercise the
 "test_engines" test there for your target, thanks to the local Makefile:
 
-  engines $ make TESTS=test_engines TARGET=powerpc-elf
+  engines $ make TARGET=powerpc-elf
+
+Or if you want to test on a Leon board (sparc based):
+
+  engines $ make TARGET=leon-elf
 
 This performs a build/run/analyze sequence out of which object coverage
 results rendered in sources are produced in html format, browsable from
