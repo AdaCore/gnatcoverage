@@ -687,10 +687,10 @@ capitalization and consolidation.
 target machine within the appropriate instrumented execution environment
 to produce execution traces.
 
-The Quick Start example in the distribution @code{README} illustrates a
-simple use for a @code{powerpc-elf} target, using the dedicated @gcc{}
-toolchain to build from sources and the @option{--target} execution
-engine selector.
+The Quick Start example in the distribution @code{README} illustrates
+a simple use for a @code{powerpc-elf} or a @code{leon-elf} target,
+using the dedicated @gcc{} toolchain to build from sources and the
+@option{--target} execution engine selector.
 @c
 The general interface synopsis is available from @command{xcov --help},
 as follows:
