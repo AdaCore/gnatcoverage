@@ -50,7 +50,8 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
   XCOVRUN=xcov run \
     --target=$(QEMUTARGET) --level=$(XCOVLEVEL) obj/$(TARGET)/$<
 
-else ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
+else
+ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
   # Source coverage: force -O0 -gnateS, use --scos to filter and pass the
   # filter to xcov run so that it has visibility on decision locations
 
@@ -60,6 +61,7 @@ else ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
   XCOVFILTER=--scos=@$*.alis
   XCOVRUN=xcov run \
     --target=$(QEMUTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) obj/$(TARGET)/$<
+endif
 endif
 
 # Argument we will pass to the builder eventually, with 
