@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -678,7 +678,7 @@ begin
             procedure Build_Decision_Map (Exec_Name : String) is
             begin
                --  Just set the filename.
-               Build_Decision_Map (Exec_Name, Exec_Name & ".dmap");
+               Build_Decision_Map (Exec_Name, Text_Start, Exec_Name & ".dmap");
             end Build_Decision_Map;
          begin
             Check_Argument_Available (SCOs_Inputs, "SCOs FILEs", Command);
@@ -771,7 +771,7 @@ begin
             procedure Dump_Exec (Exec_File_Name : String) is
                To_Display : Addresses_Kind;
             begin
-               Open_File (Exec, Exec_File_Name, 0);
+               Open_File (Exec, Exec_File_Name, Text_Start);
                Build_Sections (Exec);
 
                case Command is
@@ -957,7 +957,7 @@ begin
                   end if;
                end if;
                return Exe_File : Exe_File_Acc do
-                  Open_Exec (Exe_Name.all, Exe_File);
+                  Open_Exec (Exe_Name.all, Text_Start, Exe_File);
                end return;
             exception
                when Elf_Files.Error =>
@@ -1169,7 +1169,7 @@ begin
                   else
                      Histmap := new String'(Exe_File & ".dmap");
                      Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
-                     Build_Decision_Map (Exe_File, Histmap.all);
+                     Build_Decision_Map (Exe_File, Text_Start, Histmap.all);
                   end if;
                end if;
 

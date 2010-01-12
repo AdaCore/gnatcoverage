@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2009, AdaCore                       --
+--                      Copyright (C) 2009-2010, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -29,20 +29,18 @@ with GNAT.Strings; use GNAT.Strings;
 with Strings; use Strings;
 with Ada.Containers.Hashed_Maps;
 with Traces_Elf; use Traces_Elf;
+with Traces; use Traces;
 
 package Execs_Dbase is
 
-   procedure Open_Exec (File_Name : String; Exec : out Exe_File_Acc);
+   procedure Open_Exec
+     (File_Name : String; Text_Start : Pc_Type; Exec : out Exe_File_Acc);
    --  Search for a file named File_Name in the Exec database. If one found,
    --  return it; otherwise, open File_Name and add it to the database, then
    --  return it in Exec.
    --
    --  Sections and symbols are read.
    --  In case of error, exception is propagated (see trace_elf.ads)
-
-   procedure Insert_Exec (File_Name : String);
-   --  Similar to Open_Exec, but does not return the result; just insert
-   --  it in the Exec database if it does not already exists.
 
    Routine_Name_Ambiguity : exception;
 

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2009, AdaCore                       --
+--                     Copyright (C) 2009-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,7 +17,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Traces; use Traces;
 with Ada.Containers; use Ada.Containers;
 
 package body Execs_Dbase is
@@ -52,27 +51,16 @@ package body Execs_Dbase is
         (Execs_Maps.Element (Exec_Base.First).Exec, Exclude => False);
    end Build_Routines_Names;
 
-   -----------------
-   -- Insert_Exec --
-   -----------------
-
-   procedure Insert_Exec (File_Name : String) is
-      Ignored_Exec : Exe_File_Acc;
-      pragma Unreferenced (Ignored_Exec);
-   begin
-      Open_Exec (File_Name, Ignored_Exec);
-   end Insert_Exec;
-
    ---------------
    -- Open_Exec --
    ---------------
 
    procedure Open_Exec
-     (File_Name : String;
-      Exec      : out Exe_File_Acc)
+     (File_Name  : String;
+      Text_Start : Pc_Type;
+      Exec       : out Exe_File_Acc)
    is
       use Execs_Maps;
-      Text_Start     : constant Pc_Type := 0;
       Exec_File_Name : String_Access := new String'(File_Name);
       Base_Entry     : Exec_Base_Entry;
       Position       : constant Cursor := Exec_Base.Find (Exec_File_Name);

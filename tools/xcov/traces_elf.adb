@@ -2335,7 +2335,8 @@ package body Traces_Elf is
    is
       Exec : Exe_File_Acc;
    begin
-      Open_Exec (Filename, Exec);
+      --  ??? Text_Start
+      Open_Exec (Filename, 0, Exec);
 
       declare
          Efile : Elf_File renames Exec.Exe_File;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -38,7 +38,8 @@ package Decision_Map is
    --  contain references to the designated Exe_File: the pointer must remain
    --  valid throughout execution.
 
-   procedure Build_Decision_Map (Exec_Name : String; Map_Filename : String);
+   procedure Build_Decision_Map
+     (Exec_Name : String; Text_Start : Pc_Type; Map_Filename : String);
    --  Analyze the named executable using the provided ALI list to
    --  generate the decision map file to Map_Filename for stateful
    --  (historical) traces collection.

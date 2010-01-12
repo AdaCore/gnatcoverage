@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -1260,14 +1260,16 @@ package body Decision_Map is
    -- Build_Decision_Map --
    ------------------------
 
-   procedure Build_Decision_Map (Exec_Name : String; Map_Filename : String)
+   procedure Build_Decision_Map (Exec_Name    : String;
+                                 Text_Start   : Pc_Type;
+                                 Map_Filename : String)
    is
       Exec : Exe_File_Acc;
 
    --  Start of processing for Build_Decision_Map
 
    begin
-      Open_Exec (Exec_Name, Exec);
+      Open_Exec (Exec_Name, Text_Start, Exec);
 
       Init_Base (Decision_Map_Base);
       Analyze (Exec);
