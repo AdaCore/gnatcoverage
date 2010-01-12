@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -880,7 +880,7 @@ package body Traces_Elf is
       Content : out Binary_Content_Acc)
    is
    begin
-      if Sec /= 0 then
+      if Sec /= SHN_UNDEF then
          Len := Get_Section_Length (Exec.Exe_File, Sec);
          pragma Assert (Len > 0);
          Content := new Binary_Content (0 .. Len - 1);
@@ -900,12 +900,13 @@ package body Traces_Elf is
       Base    : out Address)
    is
    begin
-      if Sec /= 0 then
+      if Sec /= SHN_UNDEF then
          Alloc_And_Load_Section (Exec, Sec, Len, Content);
          Base := Content (0)'Address;
       else
          Content := null;
          Base := Null_Address;
+         Len := 0;
       end if;
    end Alloc_And_Load_Section;
 
