@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2008-2009, AdaCore                      --
+--                    Copyright (C) 2008-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -337,10 +337,7 @@ package body Traces_Files is
       Is_Print : Boolean;
    begin
       Info := Trace_File.First_Infos;
-      if Info = null then
-         return;
-      end if;
-      loop
+      while Info /= null loop
          Put ("Tag  : " & Info.Kind'Img);
          case Info.Kind is
             when User_Data =>
@@ -384,11 +381,12 @@ package body Traces_Files is
             when others =>
                null;
          end case;
+         New_Line;
 
          Info := Info.Next;
          exit when Info = null;
-         New_Line;
       end loop;
+      Put_Line ("Traces:");
    end Dump_Infos;
 
    ---------------------
