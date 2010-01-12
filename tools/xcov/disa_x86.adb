@@ -3,7 +3,7 @@
 --                              Couverture                                  --
 --                                                                          --
 --                    Copyright (C) 2006 Tristan Gingold                    --
---                        Copyright (C) 2009, AdaCore                       --
+--                     Copyright (C) 2009-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -1301,7 +1301,7 @@ package body Disa_X86 is
                Decode_Imm (Off_Imm, To_Z (W));
                Add_Comma;
                Decode_Modrm_Mem (Off_Modrm, W);
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq | C_Ms =>
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mq | C_Ms =>
                Decode_Modrm_Mem (Off_Modrm, W_None);
             when C_Eb | C_Mb =>
                Decode_Modrm_Mem (Off_Modrm, W_8);
@@ -1388,7 +1388,7 @@ package body Disa_X86 is
                Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
             when C_Ap =>
                Off_Imm := Off_Imm + 4 + 2; -- FIXME: oper16
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Mq | C_Ms =>
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mq | C_Ms =>
                return;
             when C_Ev | C_Ew | C_Eb =>
                return;
