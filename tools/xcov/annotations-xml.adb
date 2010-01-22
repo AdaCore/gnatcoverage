@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -260,7 +260,7 @@ package body Annotations.Xml is
    begin
       Pp.ST ("condition",
              A ("Id", Img (Integer (SCO)))
-             & A ("text", SCO_Text (SCO))
+             & A ("text", To_Xml_String (SCO_Text (SCO)))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("condition");
@@ -368,7 +368,7 @@ package body Annotations.Xml is
            & A ("SCO", Image (M.SCO, With_Sloc => False));
       end if;
 
-      Attributes := Attributes & A ("message", M.Msg.all);
+      Attributes := Attributes & A ("message", To_Xml_String (M.Msg.all));
       Pp.T ("message", To_String (Attributes));
    end Pretty_Print_Message;
 
@@ -404,7 +404,7 @@ package body Annotations.Xml is
    begin
       Pp.ST ("decision",
              A ("Id", Img (Integer (SCO)))
-             & A ("text", SCO_Text (SCO))
+             & A ("text", To_Xml_String (SCO_Text (SCO)))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
    end Pretty_Print_Start_Decision;
@@ -509,7 +509,7 @@ package body Annotations.Xml is
    begin
       Pp.ST ("statement",
              A ("Id", Img (Integer (SCO)))
-             & A ("text", SCO_Text (SCO))
+             & A ("text", To_Xml_String (SCO_Text (SCO)))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("statement");
