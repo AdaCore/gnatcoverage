@@ -1,0 +1,113 @@
+<!--          -->
+<!-- Xinclude -->
+<!--          -->
+
+
+<!ELEMENT xi:include ANY>
+<!ATTLIST xi:include
+        xmlns:xi CDATA   #FIXED "http://www.w3.org/2001/XInclude"
+        parse    CDATA   #FIXED "xml"
+        href     CDATA   #REQUIRED>
+
+
+<!--                     -->
+<!-- General definitions -->
+<!--                     -->
+
+<!ENTITY % coverage_kind "CDATA">
+<!ENTITY % coverage      "CDATA">
+<!ENTITY % obj_coverage  "CDATA">
+<!ENTITY % address       "CDATA">
+<!ENTITY % num           "CDATA">
+<!ENTITY % boolean       "(TRUE|FALSE)">
+
+
+<!--       -->
+<!-- Index -->
+<!--       -->
+
+
+<!ELEMENT document (coverage_report)>
+<!ATTLIST document
+        xmlns:xi CDATA #IMPLIED>
+<!ELEMENT coverage_report (sources?)>
+<!ATTLIST coverage_report
+        coverage_level %coverage_kind; #REQUIRED>
+<!ELEMENT sources (source*, xi:include*)>
+
+
+<!--                            -->
+<!-- Annotated compilation unit -->
+<!--                            -->
+
+
+<!ELEMENT source (src_mapping*)>
+<!ATTLIST source
+        file           CDATA           #REQUIRED
+        coverage_level %coverage_kind; #REQUIRED>
+
+<!ELEMENT src_mapping (src, instruction_set*, statement*, decision*, message*)>
+<!ATTLIST src_mapping
+        coverage %coverage; #REQUIRED>
+
+
+<!-- Source lines -->
+
+<!ELEMENT src (line+)>
+
+<!ELEMENT line EMPTY>
+<!ATTLIST line
+        num          %num;     #REQUIRED
+        src          CDATA     #IMPLIED
+        column_begin %num;     #IMPLIED
+        column_end   %num;     #IMPLIED
+        exempted     %boolean; #IMPLIED>
+
+
+<!-- Errors and warnings -->
+
+<!ELEMENT message EMPTY>
+<!ATTLIST message
+        kind    (warning|error) #REQUIRED
+        SCO     CDATA           #IMPLIED
+        message CDATA           #REQUIRED>
+
+
+<!-- Obj entities -->
+
+<!ELEMENT instruction_set (instruction_block+)>
+<!ATTLIST instruction_set
+        coverage %coverage; #REQUIRED>
+
+<!ELEMENT instruction_block (instruction)>
+<!ATTLIST instruction_block
+        name     CDATA      #REQUIRED
+        offset   %address;  #REQUIRED
+        coverage %coverage; #REQUIRED>
+
+<!ELEMENT instruction EMPTY>
+<!ATTLIST instruction
+        address  %address;      #REQUIRED
+        coverage %obj_coverage; #REQUIRED
+        assembly CDATA          #REQUIRED>
+
+
+<!-- Src entities -->
+
+<!ELEMENT statement (src?)>
+<!ATTLIST statement
+        coverage %coverage; #REQUIRED
+        id       %num;      #REQUIRED
+        text     CDATA      #IMPLIED>
+
+<!ELEMENT decision (src?, condition+)>
+<!ATTLIST decision
+        coverage %coverage; #REQUIRED
+        id       %num;      #REQUIRED
+        text     CDATA      #IMPLIED>
+
+<!ELEMENT condition (src?)>
+<!ATTLIST condition
+        coverage %coverage; #REQUIRED
+        id       %num;      #REQUIRED
+        text     CDATA      #IMPLIED>

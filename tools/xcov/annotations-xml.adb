@@ -66,7 +66,11 @@ package body Annotations.Xml is
    -- XML generation --
    --------------------
 
-   Xml_Header : constant String := "<?xml version=""1.0"" ?>";
+   Xml_Header            : constant String := "<?xml version=""1.0"" ?>";
+   Doctype_Index_Header  : constant String :=
+     "<!DOCTYPE document SYSTEM ""annotations-xml.dtd"">";
+   Doctype_Source_Header : constant String :=
+     "<!DOCTYPE source SYSTEM ""annotations-xml.dtd"">";
 
    function A (Name : String; Value : Character) return String;
 
@@ -259,7 +263,7 @@ package body Annotations.Xml is
                      End_Lex_Element (Last_Sloc (SCO));
    begin
       Pp.ST ("condition",
-             A ("Id", Img (Integer (SCO)))
+             A ("id", Img (Integer (SCO)))
              & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
@@ -333,7 +337,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_Line (Pp : in out Xml_Pretty_Printer) is
    begin
-      Pp.ET ("sloc");
+      Pp.ET ("src_mapping");
    end Pretty_Print_End_Line;
 
    -----------------------------
@@ -342,7 +346,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_End_Symbol (Pp : in out Xml_Pretty_Printer) is
    begin
-      Pp.ET ("symbol");
+      Pp.ET ("instruction_block");
    end Pretty_Print_End_Symbol;
 
    --------------------------
@@ -381,6 +385,7 @@ package body Annotations.Xml is
       Create_Output_File (Pp.Files (Dest_Index), "index.xml");
 
       Pp.P (Xml_Header, Dest_Index);
+      Pp.P (Doctype_Index_Header, Dest_Index);
       Pp.ST ("document",
              A ("xmlns:xi", "http://www.w3.org/2001/XInclude"),
              Dest_Index);
@@ -403,7 +408,7 @@ package body Annotations.Xml is
                      End_Lex_Element (Last_Sloc (SCO));
    begin
       Pp.ST ("decision",
-             A ("Id", Img (Integer (SCO)))
+             A ("id", Img (Integer (SCO)))
              & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);
@@ -435,6 +440,7 @@ package body Annotations.Xml is
       Skip := False;
       Create_Output_File (Pp.Files (Dest_Compilation_Unit), Xml_File_Name);
       Pp.P (Xml_Header);
+      Pp.P (Doctype_Source_Header);
       Pp.ST ("source",
              A ("file", Simple_Source_Filename)
              & A ("coverage_level", Coverage_Option_Value));
@@ -467,7 +473,7 @@ package body Annotations.Xml is
       Coverage_State : constant String :=
                          (1 => State_Char (Aggregated_State (Info.State)));
    begin
-      Pp.ST ("sloc", A ("coverage", Coverage_State));
+      Pp.ST ("src_mapping", A ("coverage", Coverage_State));
       Pp.ST ("src");
       Pp.T ("line",
             A ("num", Img (Line_Num))
@@ -508,7 +514,7 @@ package body Annotations.Xml is
                          End_Lex_Element (Last_Sloc (SCO));
    begin
       Pp.ST ("statement",
-             A ("Id", Img (Integer (SCO)))
+             A ("id", Img (Integer (SCO)))
              & A ("text", SCO_Text (SCO))
              & A ("coverage", State_Char (State)));
       Pp.Src_Block (Sloc_Start, Sloc_End);

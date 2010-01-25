@@ -37,7 +37,7 @@ package Annotations.Xml is
    --             'stmt+decision', 'stmt+mcdc'.
    --  * COVERAGE: can be either '+' (total coverage for the chosen coverage
    --              criteria), '-' (null coverage), '!' (partial coverage).
-   --  * INSN_COVERAGE: can be either '+' (covered), '>' (branch taken),
+   --  * OBJ_COVERAGE: can be either '+' (covered), '>' (branch taken),
    --              'V' (branch fallthrough) and '-' (not covered).
    --  * TEXT: any text into quotes. Mostly used for source lines.
    --  * ADDRESS: an hexademical number, C convention. e.g. 0xdeadbeef.
@@ -129,26 +129,25 @@ package Annotations.Xml is
    --  we will have:
    --
    --  [...]
-   --  <sloc>
+   --  <src_mapping>
    --    <src>
    --      <line num="1" src="      A := 1;"/>
    --    </src>
    --
    --    <statement coverage="+"/>
-   --  </sloc>
+   --  </src_mapping>
    --  [...]
    --
-   --  What we call here a "sloc" (the name can certainly be improved) is the
-   --  relation between a set of line in the source code and a tree of coverage
-   --  items.
+   --  What we call here a "src mapping" is the relation between a set of
+   --  line in the source code and a tree of coverage items.
    --
    --  One property that we would then be able to inforce is: monotonic
-   --  variation of src lines. More clearly: if a sloc has a child element
-   --  src that contains line 12 and 13, the sloc before it will contain line
-   --  11, the sloc after it will contain line 14. This will ease the
-   --  generation of a human-readable (say, HTML) report based on source
-   --  lines; remember, that was one of the good properties of the line-based
-   --  approach.
+   --  variation of src lines. More clearly: if a src mapping has a child
+   --  element src that contains line 12 and 13, the src mapping before it
+   --  will contain line 11, the src mapping after it will contain line 14.
+   --  This will ease the  generation of a human-readable (say, HTML) report
+   --  based on source lines; remember, that was one of the good properties
+   --  of the line-based approach.
    --
    --  Now, let us have a look to the details...
    --
@@ -165,8 +164,8 @@ package Annotations.Xml is
    --
    --  It may contain a list of the followind child elements:
    --
-   --     <sloc>: node that associate a fraction of source code to a coverage
-   --     item. It may have the following attribute:
+   --     <src_mapping>: node that associate a fraction of source code to
+   --        coverage item. It may have the following attribute:
    --
    --        coverage: aggregated coverage information for this fraction of
    --                  source code.
@@ -186,8 +185,8 @@ package Annotations.Xml is
    --
    --
    --
-   --       ...and <sloc> may also contain a list of child elements that
-   --       represents coverage items. These coverage items can be
+   --       ...and <src_mapping> may also contain a list of child elements
+   --       that represents coverage items. These coverage items can be
    --       instruction sets, statements or decision. Here are the
    --       corresponding child elements:
    --
@@ -199,7 +198,7 @@ package Annotations.Xml is
    --           message : actual content of the message
    --
    --        <instruction_set>: node that represents a set of instructions.
-   --           It should contain the following attribute:
+   --        It should contain the following attribute:
    --
    --           coverage : COVERAGE; coverage information associated to this
    --           instruction set.
@@ -207,17 +206,16 @@ package Annotations.Xml is
    --           The element <instruction_set> may also contain a list of the
    --           following child elements:
    --
-   --              <symbol>: coverage information associated to the
-   --                 instructions of this instruction set that are inside
-   --                 a given function. It has the following attributes:
+   --              <instruction_block>: coverage information associated to
+   --                 contiguous instructions. It has the following attributes:
    --
    --                 name     : TEXT; name of the symbol. e.g. "main",
    --                            "_ada_p".
    --                 offset   : ADDRESS; offset from the symbol.
-   --                 coverage : COVERAGE; how the instruction set that is
-   --                            associated to this symbol is covered.
+   --                 coverage : COVERAGE; how this instruction block
+   --                            is covered.
    --
-   --                 The element <symbol> may contain a list of the
+   --                 The element <instruction_block> may contain a list of the
    --                 following child elements:
    --
    --                    <instruction/>: coverage information associated to
@@ -225,7 +223,7 @@ package Annotations.Xml is
    --                       attributes:
    --
    --                       address  : ADDRESS;
-   --                       coverage : INSN_COVERAGE; how this instruction has
+   --                       coverage : OBJ_COVERAGE; how this instruction has
    --                          been covered.
    --                       assembly : TEXT; assembly code for this
    --                          instruction.
@@ -236,7 +234,7 @@ package Annotations.Xml is
    --
    --           coverage : COVERAGE; coverage information associated to a
    --              statement.
-   --           Id : NUM; identifier of the associated source coverage
+   --           id : NUM; identifier of the associated source coverage
    --              obligation
    --           text : TEXT; short extract of code used that can be used to
    --              identify the corresponding source entity.
@@ -269,7 +267,7 @@ package Annotations.Xml is
    --
    --           coverage : COVERAGE; coverage information associated to a
    --              statement.
-   --           Id : NUM; identifier of the associated source coverage
+   --           id : NUM; identifier of the associated source coverage
    --              obligation
    --           text : TEXT; short extract of code used that can be used to
    --              identify the corresponding source entity.
@@ -284,7 +282,7 @@ package Annotations.Xml is
    --
    --                 coverage : COVERAGE; coverage information associated to a
    --                    statement.
-   --                 Id : NUM; identifier of the associated source coverage
+   --                 id : NUM; identifier of the associated source coverage
    --                    obligation
    --                 text : TEXT; short extract of code used that can be
    --                    used to identify the corresponding source entity.
@@ -323,7 +321,7 @@ package Annotations.Xml is
    --
    --  <?xml version="1.0" ?>
    --  <source file="test.adb" coverage_level="stmt+mcdc">
-   --     <sloc coverage=".">
+   --     <src_mapping coverage=".">
    --        <src>
    --           <line num="1" src="--  file test.adb"/>
    --           <line num="2" src=""/>
@@ -336,19 +334,19 @@ package Annotations.Xml is
    --           <line num="9" src="   D : Boolean) return Integer is"/>
    --           <line num="10" src="begin"/>
    --        </src>
-   --     <sloc>
+   --     <src_mapping>
    --
-   --     <sloc coverage="!">
+   --     <src_mapping coverage="!">
    --        <src>
    --           <line num="11" src="   if A and then (B or else F (C"/>
-   --           # This sloc could also contain the line that follows; after
-   --           # all, the two decisions that it contains end on line 12. It
-   --           # does not matter much at this point. The important property
-   --           # is that every coverage entity that starts on line 11 is
-   --           # defined in this sloc.
+   --           # This src_mapping could also contain the line that follows;
+   --           # after all, the two decisions that it contains end on line
+   --           # 12. It does not matter much at this point. The important
+   --           # property is that every coverage entity that starts on line
+   --           # 11 is defined in this src_mapping.
    --        </src>
    --
-   --        <decision Id="1" text="A and th..." coverage="!">
+   --        <decision id="1" text="A and th..." coverage="!">
    --           <src>
    --             <line num="11" src="   if A and then (B or else F (C"/>
    --             <line num="12"
@@ -356,7 +354,7 @@ package Annotations.Xml is
    --           </src>
    --
    --
-   --           <condition Id="2" text="A" coverage="+">
+   --           <condition id="2" text="A" coverage="+">
    --              <src>
    --                 <line num="11"
    --                       column_begin="6"
@@ -365,7 +363,7 @@ package Annotations.Xml is
    --              </src>
    --           </condition>
    --
-   --           <condition Id="3" text="B" coverage="-">
+   --           <condition id="3" text="B" coverage="-">
    --              <src>
    --                 <line num="11"
    --                       column_begin="18"
@@ -375,7 +373,7 @@ package Annotations.Xml is
    --
    --           </condition>
    --
-   --           <condition Id="4" text="F (C..." coverage="-">
+   --           <condition id="4" text="F (C..." coverage="-">
    --              <src>
    --                 <line num="11"
    --                       column_begin="28"
@@ -388,7 +386,7 @@ package Annotations.Xml is
    --        </decision>
    --
    --
-   --        <decision Id="5" text="C..." coverage="-">
+   --        <decision id="5" text="C..." coverage="-">
    --           <src>
    --              <line num="11"
    --                    column_begin="31"
@@ -398,7 +396,7 @@ package Annotations.Xml is
    --                    src="                            and then D"/>
    --           </src>
    --
-   --           <condition Id="6" text="C" coverage="-">
+   --           <condition id="6" text="C" coverage="-">
    --              <src>
    --                 <line num="11"
    --                       column_begin="31"
@@ -408,7 +406,7 @@ package Annotations.Xml is
    --
    --           </condition>
    --
-   --           <condition Id="7" text="D" coverage="-">
+   --           <condition id="7" text="D" coverage="-">
    --              <src>
    --                 <line num="12"
    --                       column_begin="40"
@@ -428,37 +426,37 @@ package Annotations.Xml is
    --                 SCO="SCO #5: DECISION"
    --                 message="statement not covered"/>
    --
-   --     </sloc>
+   --     </src_mapping>
    --
-   --     <sloc coverage=".">
+   --     <src_mapping coverage=".">
    --        # As said previously, this line could have been included in the
-   --        # previous sloc.
+   --        # previous src_mapping.
    --        <src>
    --           <line num="12"
    --                 src="                               and then D))"/>
    --        </src>
-   --     </sloc>
+   --     </src_mapping>
    --
-   --     <sloc coverage="+">
+   --     <src_mapping coverage="+">
    --        <src>
    --           <line num="13" src="      return 12;"/>
    --        </src>
    --
-   --        <statement Id="8" text="return 1..." coverage="+"/>
-   --     </sloc>
+   --        <statement id="8" text="return 1..." coverage="+"/>
+   --     </src_mapping>
    --
-   --     <sloc>
+   --     <src_mapping>
    --        <src>
    --           <line num="13" src="   end if;"/>
    --        </src>
-   --     </sloc>
+   --     </src_mapping>
    --
-   --     <sloc coverage="+">
+   --     <src_mapping coverage="+">
    --        <src>
    --           <line num="14" src="   Pack.Func; return 13;"/>
    --        </src>
    --
-   --        <statement Id="9" text="Pack.Fun..." coverage="+">
+   --        <statement id="9" text="Pack.Fun..." coverage="+">
    --           <src>
    --              <line num="14"
    --                    column_begin="3"
@@ -467,7 +465,7 @@ package Annotations.Xml is
    --           </src>
    --        </statement>
    --
-   --        <statement Id="9" text="return 1..." coverage="+">
+   --        <statement id="9" text="return 1..." coverage="+">
    --           <src>
    --              <line num="14"
    --                    column_begin="14"
@@ -475,7 +473,7 @@ package Annotations.Xml is
    --                    src="return 13;"/>
    --           </src>
    --        </statement>
-   --     </sloc>
+   --     </src_mapping>
    --
    --  </source>
 
