@@ -27,6 +27,9 @@ with Hex_Images;  use Hex_Images;
 with Outputs;     use Outputs;
 with Strings;     use Strings;
 with Traces_Disa; use Traces_Disa;
+with Traces_Files;
+with Traces_Files_List;
+with Qemu_Traces;
 
 package body Annotations.Xml is
 
@@ -37,6 +40,9 @@ package body Annotations.Xml is
 
      (Dest_Index,
       --  refers to the XML index
+
+      Dest_Trace_Info,
+      --  refers to trace info (trace.xml)
 
       Dest_Compilation_Unit
       --  When going through the source file list, refers to the xml file
@@ -71,6 +77,11 @@ package body Annotations.Xml is
      "<!DOCTYPE document SYSTEM ""annotations-xml.dtd"">";
    Doctype_Source_Header : constant String :=
      "<!DOCTYPE source SYSTEM ""annotations-xml.dtd"">";
+   Doctype_Trace_Header  : constant String :=
+     "<!DOCTYPE traces SYSTEM ""annotations-xml.dtd"">";
+
+   Index_File_Name : constant String := "index.xml";
+   Trace_File_Name : constant String := "trace.xml";
 
    function A (Name : String; Value : Character) return String;
 
@@ -194,6 +205,9 @@ package body Annotations.Xml is
       Sloc_Start : Source_Location;
       Sloc_End   : Source_Location);
    --  Emit a <src>...</src> block for the range Sloc_Start .. Sloc_End
+
+   procedure Print_Trace_Info (Pp : in out Xml_Pretty_Printer'Class);
+   --  Generate trace info file (trace.xml)
 
    -------
    -- A --
@@ -382,7 +396,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_Start (Pp : in out Xml_Pretty_Printer) is
    begin
-      Create_Output_File (Pp.Files (Dest_Index), "index.xml");
+      Create_Output_File (Pp.Files (Dest_Index), Index_File_Name);
 
       Pp.P (Xml_Header, Dest_Index);
       Pp.P (Doctype_Index_Header, Dest_Index);
@@ -391,6 +405,13 @@ package body Annotations.Xml is
              Dest_Index);
       Pp.ST ("coverage_report",
              A ("coverage_level", Coverage_Option_Value), Dest_Index);
+
+      Pp.ST ("coverage_info", Dest_Index);
+      Print_Trace_Info (Pp);
+      Pp.T ("xi:include", A ("parse", "xml") & A ("href", Trace_File_Name),
+            Dest_Index);
+      Pp.ET ("coverage_info", Dest_Index);
+
       Pp.ST ("sources", Dest_Index);
    end Pretty_Print_Start;
 
@@ -520,6 +541,46 @@ package body Annotations.Xml is
       Pp.Src_Block (Sloc_Start, Sloc_End);
       Pp.ET ("statement");
    end Pretty_Print_Statement;
+
+   ----------------------
+   -- Print_Trace_Info --
+   ----------------------
+
+   procedure Print_Trace_Info (Pp : in out Xml_Pretty_Printer'Class) is
+      use Qemu_Traces;
+      use Traces_Files;
+      use Traces_Files_List;
+      use Traces_Files_Lists;
+
+      procedure Process_One_Trace (Position : Cursor);
+      --  Print the data attached to the trace file at Position to trace.xml
+
+      -----------------------
+      -- Process_One_Trace --
+      -----------------------
+
+      procedure Process_One_Trace (Position : Cursor) is
+         TF : constant Trace_File_Element_Acc := Element (Position);
+      begin
+         Pp.T ("trace",
+               A ("filename", TF.Filename.all)
+               & A ("program", Get_Info (TF.Trace, Exec_File_Name))
+               & A ("date", Format_Date_Info (Get_Info (TF.Trace, Date_Time)))
+               & A ("tag", Get_Info (TF.Trace, User_Data)),
+               Dest_Trace_Info);
+      end Process_One_Trace;
+
+   --  Start of processing for Print_Trace_Info
+
+   begin
+      Create_Output_File (Pp.Files (Dest_Trace_Info), Trace_File_Name);
+      Pp.P (Xml_Header, Dest_Trace_Info);
+      Pp.P (Doctype_Trace_Header, Dest_Trace_Info);
+      Pp.ST ("traces", Dest_Trace_Info);
+      Files.Iterate (Process_One_Trace'Access);
+      Pp.ET ("traces", Dest_Trace_Info);
+      Close (Pp.Files (Dest_Trace_Info));
+   end Print_Trace_Info;
 
    ---------------
    -- Src_Block --

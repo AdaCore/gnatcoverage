@@ -43,6 +43,7 @@ package Annotations.Xml is
    --  * ADDRESS: an hexademical number, C convention. e.g. 0xdeadbeef.
    --  * NUM: a decimal number.
    --
+   --
    --  Index :
    --  -------
    --
@@ -58,6 +59,14 @@ package Annotations.Xml is
    --                    been recorded in this report.
    --
    --  <coverage_report> has the following child elements:
+   --
+   --    <coverage_info>: information related to the coverage operation
+   --       (e.g. list of trace files).
+   --       This should contain a list of child elements <xi:include>
+   --       with the following attributes:
+   --
+   --       parse : set to "xml"
+   --       href  : path to the file that contains a trace info file.
    --
    --
    --    <sources>: List of annotated source files. This should contain a list
@@ -79,6 +88,11 @@ package Annotations.Xml is
    --  <?xml version="1.0" ?>
    --  <document xmlns:xi="http://www.w3.org/2001/XInclude">
    --   <coverage_report coverage_level="stmt">
+   --
+   --    <coverage_info>
+   --      <xi:include parse="xml" href="trace.xml"/>
+   --    </coverage_info>
+   --
    --    <sources>
    --      <xi:include parse="xml" href="hello.adb.xml"/>
    --      <xi:include parse="xml" href="pack.adb.xml"/>
@@ -87,7 +101,45 @@ package Annotations.Xml is
    --   </coverage_report>
    --
    --  </document>
-
+   --
+   --
+   --  Trace info :
+   --  ------------
+   --
+   --
+   --  Description:
+   --  ............
+   --
+   --  The trace info contains one root element:
+   --
+   --  <traces>: it represents the list of trace files given to the coverage
+   --     tool. It should contain a list of the following child elements:
+   --
+   --     <trace>: represents a given trace file. It shall have the following
+   --        attributes:
+   --
+   --        filename : name of the trace file on the host file system.
+   --        program  : name of the executable program on the host file system.
+   --        date     : date of the run that generated the trace file.
+   --        tag      : trace file tag.
+   --
+   --  Example:
+   --  ........
+   --
+   --  <?xml version="1.0" ?>
+   --  <traces>
+   --    <trace filename="explore1.trace"
+   --           program="explore"
+   --           date="2009-06-18 18:19:17"
+   --           tag="first run"/>
+   --
+   --    <trace filename="explore2.trace"
+   --           program="explore"
+   --           date="2009-06-18 18:22:32"
+   --           tag="second run"/>
+   --  </traces>
+   --
+   --
    --  Annotated compilation unit :
    --  ----------------------------
    --

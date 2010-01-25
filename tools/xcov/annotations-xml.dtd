@@ -30,10 +30,29 @@
 <!ELEMENT document (coverage_report)>
 <!ATTLIST document
         xmlns:xi CDATA #IMPLIED>
-<!ELEMENT coverage_report (sources?)>
+
+<!ELEMENT coverage_report (coverage_info?, sources?)>
 <!ATTLIST coverage_report
         coverage_level %coverage_kind; #REQUIRED>
+
+<!ELEMENT coverage_info (traces?, xi:include*)>
+
 <!ELEMENT sources (source*, xi:include*)>
+
+
+<!--            -->
+<!-- Trace info -->
+<!--            -->
+
+
+<!ELEMENT traces (trace*)>
+
+<!ELEMENT trace EMPTY>
+<!ATTLIST trace
+        filename CDATA #REQUIRED
+        program  CDATA #REQUIRED
+        date     CDATA #REQUIRED
+        tag      CDATA #IMPLIED>
 
 
 <!--                            -->
