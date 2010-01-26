@@ -49,7 +49,217 @@ information out of an instrumented execution environment.
 
 \section{Common definitions}
 
-\section{Formal properties}
+\subsection{Decisions, conditions}
+
+We are considering decisions that are short circuit boolean expressions,
+i.e. expressions consisting in elementary boolean conditions combined
+together using only the AND THEN, OR ELSE and NOT operators.
+
+For each decision we construct the associated ROBDD (Reduced Ordered
+Binary Decision Diagram), whose nodes are conditions. (RO)BDDs have an
+entry point, and two or more exit edges labeled TRUE and FALSE.
+
+\subsection{Binary decision diagrams}
+
+In the remainder of this document, unless otherwise indicated, all
+references to BDDs denote reduced ordered BDDs.
+
+\subsection{Coverage metrics}
+
+% define MC/DC, OBC, BDDBC, traces, test cases
+
+This document deals with properties of object code insofar as such
+generated code implements the decision process captured in a BDD,
+and the coverage metrics that can be measured on it. Specifically,
+when discussing object branch coverage of the object code, we will
+actually reason, unless indicated explicitly, on (RO)BDD branch coverage
+of the corresponding BDD.
+
+\section{Characterization of cases of BDDBC --- MC/DC equivalence}
+
+This section discusses the distinction between expressions for which
+BDDBC of the associated ROBDD implies MC/DC, and expressions for which
+no such implication holds.
+
+\subsection{Construction of the ROBDD}
+
+The BDD we associate with a decision is constructed using the following
+recursive procedure:
+
+\begin{description}
+\item[Build\_BDD.Condition]
+  The BDD for a decision consisting in a single condition C has the node
+  "test C" as its entry point, the label TRUE is assigned to the branch
+  corresponding to "C is TRUE", and the label FALSE is assigned to the
+  branch corresponding to "C is FALSE".
+
+\item[Build\_BDD.NOT]
+  The BDD for "not (D)" is the BDD for D where the labels of the exit
+  edges have been swapped.
+
+\item[Build\_BDD.Short\_Circuit\_Operator]
+  This rule defines how the BDD for "(D1) op (D2)" is constructed for
+  any short-circuit operator "op".
+
+  If OP is AND THEN, let SC be FALSE
+  If OP is OR ELSE, let SC be TRUE
+
+  Let B1 be the BDD for D1, and B2 the BDD for D2.
+
+  Then B, the BDD for D is obtained by combining B1 and B2 as follows:
+  \begin{itemize}
+    \item the entry point is that of B1
+    \item the exit edge labeled SC of B1 is an exit edge labeled SC of B
+    \item the other exit edge of B1 connects to the entry point of B2
+    \item the exit edges of B2 are exit edges of B with the same labels
+  \end{itemize}
+\end{description}
+
+The following invariants of ROBDDs follow from the construction process:
+\begin{itemize}
+  \item There is exactly one BDD node for each condition.
+  \item All condition nodes are reachable (i.e. there is a path from
+        the entry point to any node in the BDD).
+  \item There are no cycles in the BDD.
+  \item Both outcomes are reachable (i.e. there is a path from the entry point
+        to an exit edge labeled TRUE and to an exit edge labeled FALSE).
+\end{itemize}
+
+\subsection{Evaluation of a decision}
+
+Given the transformation of a decision into its ROBDD, evaluating the
+decision consists in computing its value using the following BDD traversal
+procedure:
+
+\begin{description}
+\item[Eval.Condition]
+  The value of a decision that consists in a lone condition is the
+  value of the condition.
+
+\item[Eval.Not]
+  To evaluate "not (D)", evaluate D and take the opposite value
+
+\item[Eval.Short\_Circuit\_Operator]
+  To evaluate "(D1) op (D2)", evaluate D1. If D1 = SC then the
+  value is SC, else evaluate D2, and the value is that of D2.
+\end{description}
+
+The following property holds:
+
+\begin{description}
+\item[Evals\_Are\_Paths]
+  Evaluating a decision is equivalent to traversing the BDD, evaluating
+  each condition as BDD nodes are traversed, and using the label of the
+  exit edge as the value of the decision.
+\end{description}
+
+This property, and most other properties that we'll discuss here,
+is proved by recurrence on the number of binary operators involved in
+the expression. We'll assume that it holds for all $n <= N$, and then
+consider an expression with $N+1$ binary operators, and prove that
+the BDD construction step Build\_BDD.Short\_Circuit\_Operator preserves
+the property from the two subdecision BDDs to the overall BDD.
+
+Note that the practical implementation of coverage analysis systems based
+on control flow traces relies on the assumption that the code generator
+used to produce executable code from expressions actually implements this
+evaluation strategy.
+
+\subsection{Outcome reachability}
+
+XXX well-known property of ROBDDs, could be included in list
+of invariants trivially following the construction process???
+
+\subsection{Equivalence case}
+
+We now consider the case of an expression whose BDD has no diamond path,
+i.e. for each BDD node there is exactly one path from the entry point to
+that node. The following property holds:
+
+\begin{description}
+\item[BDDBC\_No\_Diamond\_Indep\_Implies\_MCDC]
+  For a BDD with no diamond, if conditions are independent, then
+  BDD branch coverage implies masking MC/DC coverage.
+\end{description}
+
+Let's consider a condition C. Since we have BDD branch coverage,
+all possible paths starting at C have been taken (by recurrence on path
+length, taking advantage of no cycles and no diamonds).
+
+From the independenant outcome reachability property, we have two paths
+starting at C, beginning each with one edge from C, and ending on the
+two outcomes of the decision. Let's call them PCT and PCF.
+
+These paths are disjoint: any condition appearing in one is masked
+in the other (because of no-diamond).
+
+These two paths are parts of paths PT and PF from the BDD entry point to
+either outcome, and they cannot differ on the part of the path from the
+entry point to C.
+
+So, PT and PF differ in C, in no other condition before C, and in no
+other non-masked condition after C, so they prove independant influence
+of C over the decision.
+
+This holds for each condition in the decision, so MC/DC is proved.
+
+\subsection{Non-equivalence case}
+
+Proved by constructing a set of paths that give BDD branch coverage but
+not MC/DC coverage, taking advantage of the fact that we can reach the
+same node C through two different paths.
+
+\subsection{Conclusion}
+
+We have proved the following property: for a decision D, BDDBC implies
+MC/DC if, and only if, there are no diamonds in the associated ROBDD (i.e.
+no node of the ROBDD is reachable through more that one path from the root).
+
+\section{A second characterization of the equivalence case}
+
+In this section we provide an alternative (equivalent) property
+that characterizes cases where BDDBC implies MC/DC:
+NNF-has-no-bar-in-LHS-of-foo.
+
+\section{Examples}
+
+This section discusses in detail some expressions that exemplify the properties
+studied above.
+
+\subsection{The elementary non-equivalence case}
+
+$(A \land B) \lor C$
+
+... insert BDD ...
+... insert BDDBC test set (3 vectors, can't show MC/DC) ..
+
+Intuitively, BDDBC is a local property of BDD traversals (i.e. of evaluations
+of the decision): it is evaluated individually for each BDD node, without
+respect to how the BDD node was reached. In contrast, MC/DC is a non-local
+property, since it involves the complete path through the BDD. To establish
+independant influence of condition C, it is necessary to study what happens
+for two values of C leading to different outcomes, \emph{with all other
+conditions fixed}, i.e. considering a single way of \emph{arriving to C}.
+
+\subsection{Mixed operators cases}
+
+For a decision involving a single operator kind and no negations, it is
+immediate that OBC and MC/DC are equivalent. Now there are cases when
+operators can be mixed without introducing non-equivalence, and cases
+(involving negations) where there is no equivalence even though a single
+kind of binary operator is used.
+
+\subsection{A pathological example}
+
+This section discusses a class of expressions that can have an arbitrary
+high number $n$ of conditions (and require a minimum of $n+1$ tests to
+establish MC/DC), and yet are fully covered with respect to BDDBC in
+just three tests.
+
+\section{General stateless MC/DC assessment}
+
+This section discusses a code transformation after which stateless BDDBC
+traces carry sufficient information to assess MC/DC coverage.
 
 \section{Automated verifications}
 
