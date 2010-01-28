@@ -66,14 +66,80 @@ references to BDDs denote reduced ordered BDDs.
 
 \subsection{Coverage metrics}
 
-% define MC/DC, OBC, BDDBC, traces, test cases
+\subsubsection{Definitions}
 
-This document deals with properties of object code insofar as such
-generated code implements the decision process captured in a BDD,
-and the coverage metrics that can be measured on it. Specifically,
-when discussing object branch coverage of the object code, we will
-actually reason, unless indicated explicitly, on (RO)BDD branch coverage
+% define MC/DC, OBC, BDDBC
+
+This document deals with properties of tests exercising object code under
+the assumption that the code generation chain accurately preserves the
+decision process captured in the ROBDD. We specifically assume when
+discussing object branch coverage of the object code, that we can instead
+reason, unless indicated explicitly, on (RO)BDD branch coverage
 of the corresponding BDD.
+
+\subsection{Minimal test sets}
+
+Coverage assessment is accomplished by exercising some piece of object
+code in a variety of test cases, recording data along the way, and
+then determining whether the successive executions of the object code
+satisfy a given criterion of exhaustiveness. The minimum number of distinct
+executions required to achieve a specific criterion is an important
+aspect in the evaluation of any coverage assessment methodology. Here
+we establish some properties that give a hard limit on test set size
+for various coverage metries.
+
+\subsubsection{OBC}
+
+\subsubsection{MC/DC}
+
+\begin{theorem}
+MC/DC on a decision with $n$ independent conditions is achieved with
+a test set of exactly $n+1$ tests, and cannot be achieved in fewer tests.
+\end{theorem}
+
+The existence of the test set is proved by induction. For one condition,
+MC/DC is achieved with two tests, one setting it true and the other false.
+
+Now assume that the property holds for all $n<N$, and consider a decision
+with $N+1$ conditions. It is of the form $D = D_l \mathrm{op} D_r$ where
+$\mathrm{op}$ is either AND THEN or OR ELSE. There is also possibly a negation,
+which is omitted here since it has no impact on MC/DC. For the remaining
+of this proof we assume the operator is AND THEN; the same reasoning applies
+similarly for the case of OR ELSE.
+
+$D_l$ and $D_r$ are decisions with respectively $n_l$ and $n_r$ conditions
+(both at most $N$), and $n_l + n_r = N+1$. From the induction hypothesis
+we have two test vector sets $T_l = { v_l (0) .. v_l (n_l) }$ and
+$T_r = { v_r (0) .. v_r (n_r) }$ that satisfy MC/DC for $D_l$ and $D_r$
+respectively, and we can arbitrarily choose the indices so that
+$D_l$ is true for $v_l(0)$ and $D_r$ is true for $v_r (0)$.
+
+We can now create a combined test set for the complete decision as follows.
+$$(\forall j \in \[0, n_l]) v (j) = (v_l (j) . v_r (0))$$
+$$(\forall j \in \[1, n_r]) v (n_l + j) = (v_l (0) . v_r (j))$$
+
+We have thus created a set $T = { v(0) .. v(n_l + n_r) }$ of $N+2$ tests.
+It is immediate that the elements with indices 0 to $n_l$ give for D
+the same outcome as the corresponding elements of $T_l$ for $D_l$,
+and they all have identical values for the conditions coming from $D_r$,
+so they show independent influence of all conditions coming from $D_l$.
+Similarly the vector set ${v(0), v(n_l+1) .. v(n_l + n_r)}$ shows
+independent influence of those conditions coming from $D_r$, so the new
+test set $T$ satisfies MC/DC for $D$ and thus the induction property holds at
+$N+1$ as well, since $T$ has $n_l + n_r + 1 = N+2$ elements.
+
+Now let's show that this is the minimal number of vectors in a test set
+satisfying MC/DC. We consider again a decision $D$ with $n$ conditions,
+and a test set $T = { v(0) .. v(N-1) }$.
+
+Let $R_v$ be the transitive closure of the binary relation on T defined
+by $v(i) R_v v(j)$ if $v(i)$ and $v(j)$ show the independent influence
+of some condition in $D$. This is an equivalence relation.
+
+XXX prove that $N>= n+1$ ???
+
+\subsection{Coverage assessment through analysis of execution traces}
+
 
 \section{Characterization of cases of BDDBC --- MC/DC equivalence}
 
