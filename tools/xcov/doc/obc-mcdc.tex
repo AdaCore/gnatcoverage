@@ -103,7 +103,7 @@ a test set of exactly $n+1$ tests, and cannot be achieved in fewer tests.
 The existence of the test set is proved by induction. For one condition,
 MC/DC is achieved with two tests, one setting it true and the other false.
 
-Now assume that the property holds for all $n<N$, and consider a decision
+Now assume that the property holds for all $n<=N$, and consider a decision
 with $N+1$ conditions. It is of the form $D = D_l \star D_r$ where
 $\star$ is either AND THEN or OR ELSE. There is also possibly a negation,
 which is omitted here since it has no impact on MC/DC. For the remainder
@@ -121,7 +121,7 @@ We can now create a combined test set for the complete decision as follows.
 $$(\forall j \in [0, n_l])\, v (j) = (v_l (j) \cdot v_r (0))$$
 $$(\forall j \in [1, n_r])\, v (n_l + j) = (v_l (0) \cdot v_r (j))$$
 
-We have thus created a set $T = { v(0) .. v(n_l + n_r) }$ of $N+2$ tests.
+We have thus created a set $T = \{ v(0) .. v(n_l + n_r) \}$ of $N+2$ tests.
 It is immediate that the elements with indices 0 to $n_l$ give for D
 the same outcome as the corresponding elements of $T_l$ for $D_l$,
 and they all have identical values for the conditions coming from $D_r$,
@@ -247,7 +247,7 @@ Let's consider a condition C. Since we have BDD branch coverage,
 all possible paths starting at C have been taken (by recurrence on path
 length, taking advantage of no cycles and no diamonds).
 
-From the independenant outcome reachability property, we have two paths
+From the independent outcome reachability property, we have two paths
 starting at C, beginning each with one edge from C, and ending on the
 two outcomes of the decision. Let's call them PCT and PCF.
 
@@ -259,7 +259,7 @@ either outcome, and they cannot differ on the part of the path from the
 entry point to C.
 
 So, PT and PF differ in C, in no other condition before C, and in no
-other non-masked condition after C, so they prove independant influence
+other non-masked condition after C, so they prove independent influence
 of C over the decision.
 
 This holds for each condition in the decision, so MC/DC is proved.
@@ -269,6 +269,9 @@ This holds for each condition in the decision, so MC/DC is proved.
 Proved by constructing a set of paths that give BDD branch coverage but
 not MC/DC coverage, taking advantage of the fact that we can reach the
 same node C through two different paths.
+
+% A candidate proof has been given here:
+% http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-January/000073.html
 
 \subsection{Conclusion}
 
@@ -281,6 +284,9 @@ no node of the ROBDD is reachable through more that one path from the root).
 In this section we provide an alternative (equivalent) property
 that characterizes cases where BDDBC implies MC/DC:
 NNF-has-no-bar-in-LHS-of-foo.
+
+% A proof here:
+% http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-January/000069.html
 
 \section{Examples}
 
@@ -298,7 +304,7 @@ Intuitively, BDDBC is a local property of BDD traversals (i.e. of evaluations
 of the decision): it is evaluated individually for each BDD node, without
 respect to how the BDD node was reached. In contrast, MC/DC is a non-local
 property, since it involves the complete path through the BDD. To establish
-independant influence of condition C, it is necessary to study what happens
+independent influence of condition C, it is necessary to study what happens
 for two values of C leading to different outcomes, \emph{with all other
 conditions fixed}, i.e. considering a single way of \emph{arriving to C}.
 
@@ -316,6 +322,9 @@ This section discusses a class of expressions that can have an arbitrary
 high number $n$ of conditions (and require a minimum of $n+1$ tests to
 establish MC/DC), and yet are fully covered with respect to BDDBC in
 just three tests.
+
+% A proof here:
+% http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-January/000066.html
 
 \section{General stateless MC/DC assessment}
 
