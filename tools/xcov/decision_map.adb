@@ -555,16 +555,20 @@ package body Decision_Map is
       --  Start of processing for Label_Destination
 
       begin
-         --  Check for known edge with this destination
+         --  Check for known edge with this destination. Destination info will
+         --  be set upon return if destination is known.
 
          Label_From_Other (Cond_Branch_PC, CBI, Edge);
-         if Edge_Info.Dest_Kind /= Unknown then
-            return;
+
+         if Edge_Info.Dest_Kind = Unknown then
+            --  Here for the first occurrence of a destination
+
+            Trace_Destination (CBI, Edge, Edge_Info);
          end if;
 
-         --  Here for the first occurrence of a destination
-
-         Trace_Destination (CBI, Edge, Edge_Info);
+         --  Here the destination kind has been identified, now compute the
+         --  corresponding origin, i.e. the value of the condition being tested
+         --  that causes this destination to be reached.
 
          --  Check for outcome destination
 
@@ -577,13 +581,15 @@ package body Decision_Map is
          --  HYP: a branch destination is an outcome when it branches past
          --  the conditional branch instruction for the last condition.
 
-         if Edge_Info.Dest_Kind = Unknown
-           and then
+         if (Edge_Info.Dest_Kind = Outcome and then Edge_Info.Origin = Unknown)
+              or else
+            (Edge_Info.Dest_Kind = Unknown
+               and then
              (Edge_Info.Destination
                 = Last_CBI.Edges (Branch).Destination
-              or else Edge_Info.Destination
-                        = Last_CBI.Edges (Fallthrough).Destination
-              or else Edge_Info.Destination > Last_Seen_Condition_PC)
+                or else Edge_Info.Destination
+                          = Last_CBI.Edges (Fallthrough).Destination
+                or else Edge_Info.Destination > Last_Seen_Condition_PC))
          then
             Edge_Info.Dest_Kind := Outcome;
 
@@ -605,14 +611,44 @@ package body Decision_Map is
                --  determines the decision outcome.
 
                for J in Boolean'Range loop
-                  if Outcome (CBI.Condition, J) /= Unknown then
-                     Outcome_Seen := True;
-                     if Outcome_Origin = Unknown then
-                        Outcome_Origin := To_Tristate (J);
-                     else
-                        Outcome_Origin := Unknown;
+                  declare
+                     Candidate_Outcome : constant Tristate :=
+                                           Outcome (CBI.Condition, J);
+                  begin
+                     if Candidate_Outcome /= Unknown then
+                        Outcome_Seen := True;
+
+                        if Edge_Info.Outcome /= Unknown then
+                           --  Case where we know what outcome is reached
+                           --  by this edge.
+
+                           if Candidate_Outcome = Edge_Info.Outcome then
+                              Outcome_Origin := To_Tristate (J);
+                              exit;
+                           end if;
+
+                        else
+                           --  Case where we do not know what outcome is
+                           --  reached: if there is only one reachable outcome,
+                           --  then we found it.
+
+                           if Outcome_Origin = Unknown then
+                              --  J becomes candidate origin
+
+                              Outcome_Origin := To_Tristate (J);
+
+                           else
+                              --  This is the second iteration, and we have
+                              --  another candidate origin: this means that
+                              --  the current condition gives an outcome either
+                              --  way, so we can't determine the proper origin
+                              --  at this point.
+
+                              Outcome_Origin := Unknown;
+                           end if;
+                        end if;
                      end if;
-                  end if;
+                  end;
                end loop;
 
                if not Outcome_Seen then
@@ -630,8 +666,7 @@ package body Decision_Map is
                   --  condition that causes it to be taken.
 
                   Set_Known_Origin
-                    (Cond_Branch_PC, CBI, Edge,
-                     To_Boolean (Outcome_Origin));
+                    (Cond_Branch_PC, CBI, Edge, To_Boolean (Outcome_Origin));
 
                else
                   --  In the case of a decision with only one condition (but
@@ -660,8 +695,7 @@ package body Decision_Map is
 
                            Set_Known_Origin
                              (Cond_Branch_PC, CBI, Edge,
-                              Outcome (CBI.Condition, True)
-                                = To_Tristate (J));
+                              Outcome (CBI.Condition, True) = To_Tristate (J));
                            exit;
                         end if;
                      end loop;
@@ -820,9 +854,12 @@ package body Decision_Map is
                   null;
                end if;
 
-               --  Copy edge information
+               --  Copy edge destination information (but not edge origin,
+               --  as Other_CBE may be testing another condition).
 
-               CBE := Other_CBE;
+               CBE.Dest_Kind      := Other_CBE.Dest_Kind;
+               CBE.Outcome        := Other_CBE.Outcome;
+               CBE.Next_Condition := Other_CBE.Next_Condition;
             end;
          end if;
       end Label_From_Other;
