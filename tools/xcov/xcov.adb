@@ -107,12 +107,12 @@ procedure Xcov is
       New_Line;
       P (" coverage OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
-      P ("   -c LEVEL --level=LEVEL        Specify coverage levels");
+      P ("   -c LEVEL --level=LEVEL     Specify coverage levels");
       P ("      LEVEL is one of " & Valid_Coverage_Options);
-      P ("   -a FORM  --annotate=FORM      Generate a FORM report");
+      P ("   -a FORM  --annotate=FORM   Generate a FORM report");
       P ("      FORM is one of asm,xcov,html,xcov+,html+,report");
       P ("   --routines=<ROUTINE|@FILE> Add ROUTINE, or all routine listed");
-      P ("                              in LISTFILE to the list of routines");
+      P ("                              in FILE to the list of routines");
       P ("   --scos=<FILE|@LISTFILE>    Add FILE being an ALI file,");
       P ("                              consider all its scos for this");
       P ("                              operation; or, do that for each ALI");
