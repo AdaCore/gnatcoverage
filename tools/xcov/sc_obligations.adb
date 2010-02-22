@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -132,7 +132,7 @@ package body SC_Obligations is
       --  BDD construction, a third type of node can appear, which is a Jump
       --  to another node (i.e. a node that has just one outgoing arc).
 
-      --  The BDD is build by maintaining a stack of triples of BDD node ids.
+      --  The BDD is built by maintaining a stack of triples of BDD node ids.
       --  The node at the top of the stack designates the destinations that
       --  shall be assigned to the True and False outcomes of the subtree
       --  that is about to be scanned. The third node id, if not null, is
@@ -391,6 +391,10 @@ package body SC_Obligations is
          end if;
       end Allocate;
 
+      --------------------
+      -- Check_Diamonds --
+      --------------------
+
       procedure Check_Diamonds (BDD : in out BDD_Type) is
          Visited : array (BDD_Node_Id range BDD.First_Node .. BDD.Last_Node)
                      of Boolean := (others => False);
@@ -400,6 +404,10 @@ package body SC_Obligations is
             Origin_Id    : BDD_Node_Id;
             Origin_Value : Boolean);
          --  Visit one node. If it was already seen, note presence of a diamond
+
+         -----------
+         -- Visit --
+         -----------
 
          procedure Visit
            (Node_Id      : BDD_Node_Id;
@@ -541,6 +549,10 @@ package body SC_Obligations is
       procedure Dump_BDD (BDD : BDD_Type) is
          procedure Dump_Condition (N : BDD_Node_Id);
          --  Display one condition
+
+         --------------------
+         -- Dump_Condition --
+         --------------------
 
          procedure Dump_Condition (N : BDD_Node_Id) is
             use Ada.Strings;
