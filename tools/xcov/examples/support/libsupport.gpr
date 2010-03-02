@@ -56,7 +56,7 @@ library project Libsupport is
          for Languages use ("Ada");
 
       when others =>
-         for Languages use ("Ada", "C");
+         for Languages use ("Ada", "C", "Asm");
          for Source_Dirs use Project'Source_Dirs & ("src/" & Common.Target);
    end case;
 
@@ -79,9 +79,6 @@ library project Libsupport is
       when "powerpc-elf" =>
 	 for Library_Options use
 	    ("-nostdlib",
-	     Libsupport'Object_Dir & "/board-io.o",
-	     Libsupport'Library_Dir & "/start.o",
-	     Libsupport'Object_Dir & "/c-start.o",
 	     "-T", Libsupport'Library_Dir & "/gnu.ld");
       when others => null;
    end case;
