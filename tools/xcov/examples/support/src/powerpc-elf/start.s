@@ -6,7 +6,7 @@ _start:
         ori   %r1,%r1,_stack@l
         li     %r3,8192
         mtmsr   %r3
-        bl      cmain
+        bl      startc
 	.size _start, . - _start
 	
 	.global __eabi
