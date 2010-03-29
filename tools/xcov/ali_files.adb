@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -36,8 +36,7 @@ package body ALI_Files is
       ALI_File : File_Type;
       ALI_Index : Source_File_Index;
 
-      Line     : String (1 .. 1024);
-      Last     : Natural;
+      Line     : String_Access;
       Index    : Natural;
 
       --  For regex matching
@@ -65,8 +64,9 @@ package body ALI_Files is
          Next_Char : constant Character := Nextc;
       begin
          Index := Index + 1;
-         if Index > Last + 1 and then not End_Of_File (ALI_File) then
-            Get_Line (ALI_File, Line, Last);
+         if Index > Line'Last + 1 and then not End_Of_File (ALI_File) then
+            Free (Line);
+            Line := new String'(Get_Line (ALI_File));
             Index := 1;
          end if;
          return Next_Char;
@@ -91,10 +91,10 @@ package body ALI_Files is
 
       function Nextc return Character is
       begin
-         if Index = Last + 1 then
+         if Index = Line'Last + 1 then
             return ASCII.LF;
 
-         elsif Index in Line'First .. Last then
+         elsif Index in Line'Range then
             return Line (Index);
 
          else
@@ -147,14 +147,19 @@ package body ALI_Files is
             return No_Source_File;
          end if;
 
-         Get_Line (ALI_File, Line, Last);
+         loop
+            Free (Line);
+            Line := new String'(Get_Line (ALI_File));
+            exit when Line'Length > 0;
+         end loop;
+
          case Line (1) is
             when 'U' =>
                declare
                   U_Regexp  : constant String := "[^\t]*\t+([^\t]*)\t";
                   U_Matcher : constant Pattern_Matcher := Compile (U_Regexp);
                begin
-                  Match (U_Matcher, Line (3 .. Last), Matches);
+                  Match (U_Matcher, Line (3 .. Line'Last), Matches);
                   if Matches (0) /= No_Match then
                      Current_Unit :=  Get_Index_From_Simple_Name (Match (1));
                   end if;
@@ -166,7 +171,7 @@ package body ALI_Files is
                                   & "([^ ]*)( ""(.*)"")?";
                   N_Matcher : constant Pattern_Matcher := Compile (N_Regexp);
                begin
-                  Match (N_Matcher, Line (3 .. Last), Matches);
+                  Match (N_Matcher, Line (3 .. Line'Last), Matches);
                   if Matches (0) /= No_Match then
                      begin
                         ALI_Annotations.Insert
