@@ -278,7 +278,8 @@ package body SC_Obligations is
             --  well (recursively).
 
             Basic_Block_Has_Code : Boolean;
-            --  Set True when code is present for any SCO in basic block
+            --  Set True when code is present for this or any following SCO in
+            --  basic block.
 
          when Condition =>
             Value : Tristate;
