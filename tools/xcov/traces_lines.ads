@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -47,9 +47,9 @@ package Traces_Lines is
 
 private
    State_Char : constant State_Char_Array :=
-     (No_Code => '.',
-      Not_Covered => '-',
+     (No_Code           => '.',
+      Not_Covered       => '-',
       Partially_Covered => '!',
-      Covered => '+');
+      Covered           => '+');
 
 end Traces_Lines;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -104,19 +104,6 @@ package Files_Table is
       --  Exec from where the address range has been extracted
 
       Next : Object_Coverage_Info_Acc;
-      --  Next element in the chain
-   end record;
-
-   type Source_Coverage_Info;
-   type Source_Coverage_Info_Acc is access Source_Coverage_Info;
-
-   type Source_Coverage_Info is record
-      State : Line_State;
-
-      SCO : SCO_Id;
-      --  SCO that generated this info
-
-      Next : Source_Coverage_Info_Acc;
       --  Next element in the chain
    end record;
 

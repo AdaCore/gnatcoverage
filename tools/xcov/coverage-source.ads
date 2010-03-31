@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -46,7 +46,6 @@ package Coverage.Source is
 
    function Get_Line_State
      (SCO   : SCO_Id;
-      Level : Coverage_Level)
-     return Line_State;
+      Level : Coverage_Level) return Line_State;
 
 end Coverage.Source;
