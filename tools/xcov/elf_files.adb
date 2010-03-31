@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,6 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 with Interfaces; use Interfaces;
 with Ada.Unchecked_Deallocation;
 
@@ -101,17 +102,17 @@ package body Elf_Files is
    is
       use GNAT.OS_Lib;
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (String, String_Access);
-      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
         (Elf_Shdr_Arr, Elf_Shdr_Arr_Acc);
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
         (Elf_Strtab, Elf_Strtab_Acc);
    begin
       Close (File.Fd);
       File.Fd := Invalid_FD;
-      Unchecked_Deallocation (File.Filename);
       Unchecked_Deallocation (File.Shdr);
       Unchecked_Deallocation (File.Sh_Strtab);
+
+      --  Note: File.Filename may be referenced later on to produce error
+      --  messages, so we don't deallocate it.
    end Close_File;
 
    function Get_Status (File : Elf_File) return Elf_File_Status is
