@@ -35,13 +35,14 @@ with Dwarf_Handling;    use Dwarf_Handling;
 with Elf32;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
+with Files_Table;       use Files_Table;
 with Hex_Images;        use Hex_Images;
+with Outputs;
+with SC_Obligations;    use SC_Obligations;
 with Traces_Disa;
 with Traces_Lines;      use Traces_Lines;
 with Traces_Names;
 with Types;             use Types;
-with Files_Table;       use Files_Table;
-with Outputs;
 
 package body Traces_Elf is
 
@@ -1740,8 +1741,8 @@ package body Traces_Elf is
    is
       use Addresses_Containers;
 
-      Cur : Cursor;
-      Line : Addresses_Info_Acc;
+      Cur         : Cursor;
+      Line        : Addresses_Info_Acc;
       Source_File : Source_File_Index := No_Source_File;
 
       Debug : constant Boolean := False;
@@ -1773,8 +1774,31 @@ package body Traces_Elf is
             end if;
 
             Add_Line_For_Object_Coverage
-              (Source_File, Init_Line_State,
-               Line.Sloc.Line, Line, Base, Exec);
+              (Source_File, Init_Line_State, Line.Sloc.Line, Line, Base, Exec);
+
+            declare
+               Info : Line_Info renames Get_Line (Line.Sloc).all;
+
+               use SCO_Id_Vectors;
+
+               procedure Set_BB_Has_Code (C : SCO_Id_Vectors.Cursor);
+               --  Set Basic_Block_Has_Code for SCO at C
+
+               ---------------------
+               -- Set_BB_Has_Code --
+               ---------------------
+
+               procedure Set_BB_Has_Code (C : SCO_Id_Vectors.Cursor) is
+                  SCO : constant SCO_Id := SCO_Id_Vectors.Element (C);
+               begin
+                  if Kind (SCO) = Statement then
+                     Set_Basic_Block_Has_Code (SCO);
+                  end if;
+               end Set_BB_Has_Code;
+
+            begin
+               Info.SCOs.Iterate (Set_BB_Has_Code'Access);
+            end;
 
             if Debug then
                New_Line;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -88,6 +88,14 @@ package SC_Obligations is
    --  Statement SCOs
 
    function Previous   (SCO : SCO_Id) return SCO_Id;
+   --  Previous statement in basic block
+
+   function Basic_Block_Has_Code (SCO : SCO_Id) return Boolean;
+   --  True if any SCO in basic block has associated object code
+
+   procedure Set_Basic_Block_Has_Code (SCO : SCO_Id);
+   --  Set Basic_Block_Has_Code for SCO as well as all previous SCOs in its
+   --  basic block.
 
    --  Condition SCOs
 

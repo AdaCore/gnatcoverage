@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -129,12 +129,6 @@ package body Coverage.Source is
          return;
       end if;
 
-      if Line_Info.Obj_First = null then
-         --  No object code associated with this source line
-
-         return;
-      end if;
-
       --  Examine each SCO associated with line
 
       for J in Line_Info.SCOs.First_Index .. Line_Info.SCOs.Last_Index loop
@@ -163,6 +157,7 @@ package body Coverage.Source is
                      --  This is the first statement SCO for this line
 
                      SCO_State := Covered;
+
                   else
                      --  A previous statement SCO has been seen for this line.
                      --  Statements do not have full column numbers in debug
@@ -182,7 +177,14 @@ package body Coverage.Source is
                      SCO_State := Partially_Covered;
                   end if;
 
-               else
+               elsif Basic_Block_Has_Code (SCO) then
+
+                  --  For statement coverage, we mark a SCO as not covered if
+                  --  there is code for it, or for a subsequent SCO in the same
+                  --  basic block, else we leave it as No_Code, so that a line
+                  --  ends up marked as No_Code only if no code execution can
+                  --  possibly cause it to be marked as covered.
+
                   SCO_State := Not_Covered;
                end if;
 

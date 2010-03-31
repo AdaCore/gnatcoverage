@@ -277,6 +277,9 @@ package body SC_Obligations is
             --  then we can safely infer that the previous one has been as
             --  well (recursively).
 
+            Basic_Block_Has_Code : Boolean;
+            --  Set True when code is present for any SCO in basic block
+
          when Condition =>
             Value : Tristate;
             --  Indicates whether this condition is always true, always false,
@@ -922,6 +925,16 @@ package body SC_Obligations is
       SCO_Vector.Update_Element (SCO, Update'Access);
    end Add_Address;
 
+   --------------------------
+   -- Basic_Block_Has_Code --
+   --------------------------
+
+   function Basic_Block_Has_Code (SCO : SCO_Id) return Boolean is
+      SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+   begin
+      return SCOD.Basic_Block_Has_Code;
+   end Basic_Block_Has_Code;
+
    ---------------
    -- Condition --
    ---------------
@@ -1407,14 +1420,17 @@ package body SC_Obligations is
                   end if;
 
                   SCO_Vector.Append
-                    (SCO_Descriptor'(Kind       => Statement,
-                                     Origin     => ALI_Index,
-                                     Sloc_Range =>
+                    (SCO_Descriptor'(Kind                  => Statement,
+                                     Origin               => ALI_Index,
+                                     Sloc_Range           =>
                                        (First_Sloc => Make_Sloc (SCOE.From),
                                         Last_Sloc  => Make_Sloc (SCOE.To)),
-                                     S_Kind     => To_Statement_Kind (SCOE.C2),
-                                     Previous   => Previous_Statement,
-                                     others     => <>));
+                                     S_Kind                =>
+                                       To_Statement_Kind (SCOE.C2),
+                                     Previous              =>
+                                       Previous_Statement,
+                                     Basic_Block_Has_Code => False,
+                                     others               => <>));
                   Previous_Statement := SCO_Vector.Last_Index;
 
                when 'I' | 'E' | 'P' | 'W' | 'X' =>
@@ -1764,6 +1780,36 @@ package body SC_Obligations is
    begin
       SCO_Vector.Iterate (Check_Condition'Access);
    end Report_SCOs_Without_Code;
+
+   ------------------------------
+   -- Set_Basic_Block_Has_Code --
+   ------------------------------
+
+   procedure Set_Basic_Block_Has_Code (SCO : SCO_Id) is
+
+      procedure Set_SCOD_BB_Has_Code (SCOD : in out SCO_Descriptor);
+      --  Set SCOD.Basic_Block_Has_Code
+
+      --------------------------
+      -- Set_SCOD_BB_Has_Code --
+      --------------------------
+
+      procedure Set_SCOD_BB_Has_Code (SCOD : in out SCO_Descriptor) is
+      begin
+         SCOD.Basic_Block_Has_Code := True;
+      end Set_SCOD_BB_Has_Code;
+
+      S_SCO : SCO_Id := SCO;
+
+   --  Start of processing for Set_Basic_Block_Has_Code
+
+   begin
+      loop
+         SCO_Vector.Update_Element (S_SCO, Set_SCOD_BB_Has_Code'Access);
+         S_SCO := Previous (SCO);
+         exit when S_SCO = No_SCO_Id or else Basic_Block_Has_Code (S_SCO);
+      end loop;
+   end Set_Basic_Block_Has_Code;
 
    --------------------------
    -- Set_Degraded_Origins --
