@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -394,8 +394,7 @@ package body Annotations.Report is
 
       function Default_Message
         (Level : Coverage_Level;
-         State : Line_State)
-        return Message;
+         State : Line_State) return Message;
       --  Return the default error message for the given coverage level
       --  and the given line state
 
@@ -442,8 +441,7 @@ package body Annotations.Report is
 
       function Default_Message
         (Level : Coverage_Level;
-         State : Line_State)
-        return Message
+         State : Line_State) return Message
       is
          Sloc   : constant Source_Location := (Pp.Current_File_Index,
                                                Line_Num, 0);

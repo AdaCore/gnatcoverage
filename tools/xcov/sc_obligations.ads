@@ -136,6 +136,10 @@ package SC_Obligations is
    --  True if decison's BDD has a diamond, i.e. a node reachable through more
    --  than one path.
 
+   function Enclosing_Statement (SCO : SCO_Id) return SCO_Id;
+   --  Enclosing statement (climbing up the tree through any enclosing
+   --  conditions).
+
    procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
 
 end SC_Obligations;

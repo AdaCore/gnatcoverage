@@ -239,7 +239,12 @@ package body Coverage.Source is
                         & " never exercised");
                   end if;
 
-               else
+               elsif Basic_Block_Has_Code (Enclosing_Statement (SCO)) then
+
+                  --  Similar to the above for statement coverage: a decision
+                  --  that cannot ever be executed is reported as No_Code, not
+                  --  Not_Covered.
+
                   SCO_State := Not_Covered;
                end if;
 
@@ -253,7 +258,7 @@ package body Coverage.Source is
                      Update_Line_State (Line_Info, SCO, MCDC,
                                         Compute_MCDC_State (SCO));
 
-                  else
+                  elsif SCO_State /= No_Code then
                      --  Case of MC/DC enabled but at least one outcome never
                      --  taken: do not report details regarding MC/DC coverage,
                      --  just record that MC/DC is not achieved.

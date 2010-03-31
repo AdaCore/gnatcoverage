@@ -347,6 +347,9 @@ package body SC_Obligations is
    --  Display image of decision in reconstructed expression form (for
    --  debugging purposes).
 
+   function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id;
+   --  Return the innermost enclosing SCO with the given Kind
+
    ---------
    -- BDD --
    ---------
@@ -1043,21 +1046,39 @@ package body SC_Obligations is
       New_Line;
    end Dump_Decision;
 
+   ---------------
+   -- Enclosing --
+   ---------------
+
+   function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id is
+      P_SCO : SCO_Id := SCO;
+   begin
+      loop
+         P_SCO := Parent (P_SCO);
+         exit when Kind (P_SCO) = What;
+      end loop;
+      return P_SCO;
+   end Enclosing;
+
    ------------------------
    -- Enclosing_Decision --
    ------------------------
 
    function Enclosing_Decision (SCO : SCO_Id) return SCO_Id is
       pragma Assert (Kind (SCO) = Condition);
-      P_SCO : SCO_Id := SCO;
    begin
-      loop
-         P_SCO := Parent (P_SCO);
-         exit when Kind (P_SCO) /= Operator;
-      end loop;
-      pragma Assert (Kind (P_SCO) = Decision);
-      return P_SCO;
+      return Enclosing (Decision, SCO);
    end Enclosing_Decision;
+
+   -------------------------
+   -- Enclosing_Statement --
+   -------------------------
+
+   function Enclosing_Statement (SCO : SCO_Id) return SCO_Id is
+      pragma Assert (Kind (SCO) = Decision);
+   begin
+      return Enclosing (Statement, SCO);
+   end Enclosing_Statement;
 
    ----------------
    -- First_Sloc --
