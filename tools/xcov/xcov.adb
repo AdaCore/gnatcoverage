@@ -677,11 +677,13 @@ begin
 
             procedure Build_Decision_Map (Exec_Name : String) is
             begin
-               --  Just set the filename.
+               --  Just set the filename
+
                Build_Decision_Map (Exec_Name, Text_Start, Exec_Name & ".dmap");
             end Build_Decision_Map;
          begin
             Check_Argument_Available (SCOs_Inputs, "SCOs FILEs", Command);
+
             Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
             Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
             if Verbose then
