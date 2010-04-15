@@ -17,10 +17,11 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Unchecked_Conversion;
-with Ada.Text_IO; use Ada.Text_IO;
-with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
+with Ada.Containers.Vectors;
+with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Unchecked_Conversion;
+
 with Interfaces; use Interfaces;
 
 with System.Storage_Elements; use System.Storage_Elements;
@@ -47,10 +48,10 @@ with Types;             use Types;
 package body Traces_Elf is
 
    No_Stmt_List : constant Unsigned_32 := Unsigned_32'Last;
-   --  Value indicating there is no AT_stmt_list.
+   --  Value indicating there is no AT_stmt_list
 
    No_Ranges    : constant Unsigned_32 := Unsigned_32'Last;
-   --  Value indicating there is no AT_ranges.
+   --  Value indicating there is no AT_ranges
 
    function Get_Strtab_Idx (Exec : Exe_File_Type) return Elf_Half;
    --  Get the section index of the symtab string table.
@@ -125,10 +126,10 @@ package body Traces_Elf is
       Stmt_List_Offset      : Unsigned_32;
       Compilation_Directory : String_Access);
    --  Read the debug lines of a compilation unit.
-   --  Stmt_List_Offset is the offset of a stmt list from the
-   --  beginning of the .debug_line section of Exec; Compilation_Directory
-   --  is the value of DW_AT_comp_dir for the compilation unit, or is null
-   --  if this attribute is not specified.
+   --  Stmt_List_Offset is the offset of a stmt list from the beginning of the
+   --  .debug_line section of Exec; Compilation_Directory is the value of
+   --  DW_AT_comp_dir for the compilation unit, or null if this attribute is
+   --  not specified.
 
    procedure Alloc_And_Load_Section
      (Exec    : Exe_File_Type;
@@ -327,8 +328,10 @@ package body Traces_Elf is
 
       if Machine = 0 then
          Machine := Ehdr.E_Machine;
+
       elsif Machine /= Ehdr.E_Machine then
-         --  Mixing different architectures.
+         --  Mixing different architectures is not supported
+
          raise Program_Error;
       end if;
 
@@ -342,18 +345,25 @@ package body Traces_Elf is
          begin
             if Name = ".symtab" then
                Exec.Sec_Symtab := I;
+
             elsif Name = ".debug_abbrev" then
                Exec.Sec_Debug_Abbrev := I;
+
             elsif Name = ".debug_info" then
                Exec.Sec_Debug_Info := I;
+
             elsif Name = ".rela.debug_info" then
                Exec.Sec_Debug_Info_Rel := I;
+
             elsif Name = ".debug_line" then
                Exec.Sec_Debug_Line := I;
+
             elsif Name = ".rela.debug_line" then
                Exec.Sec_Debug_Line_Rel := I;
+
             elsif Name = ".debug_str" then
                Exec.Sec_Debug_Str := I;
+
             elsif Name = ".debug_ranges" then
                Exec.Sec_Debug_Ranges := I;
             end if;
