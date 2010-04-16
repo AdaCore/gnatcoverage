@@ -2922,16 +2922,29 @@ package body Traces_Elf is
             Line_Addr        : constant Addresses_Info_Acc :=
                                   Element (Line_Cursor);
             Sloc_Begin       : constant Source_Location := Line_Addr.Sloc;
+            Sloc_End         : Source_Location;
             Next_Line_Cursor : Cursor;
             Next_Line_Addr   : Addresses_Info_Acc;
-            Sloc_End         : Source_Location;
             Symbol           : Addresses_Info_Acc;
             Select_Symbol    : Boolean;
          begin
+            Symbol := Get_Address_Info (Exec.all,
+                                        Symbol_Addresses,
+                                        Line_Addr.First);
+
             Next_Line_Cursor := Next (Line_Cursor);
             if Has_Element (Next_Line_Cursor) then
+               --  Consider line range up to next line info if remaining within
+               --  the same symbol.
+
                Next_Line_Addr := Element (Next_Line_Cursor);
-               Sloc_End := Next_Line_Addr.Sloc;
+               if Get_Address_Info
+                    (Exec.all, Symbol_Addresses, Next_Line_Addr.First) = Symbol
+               then
+                  Sloc_End := Next_Line_Addr.Sloc;
+               else
+                  Sloc_End := Sloc_Begin;
+               end if;
             else
                Sloc_End := Sloc_Begin;
             end if;
@@ -2987,10 +3000,6 @@ package body Traces_Elf is
             --  is selected and not already included:
 
             if Select_Symbol then
-               Symbol := Get_Address_Info (Exec.all,
-                                           Symbol_Addresses,
-                                           Line_Addr.First);
-
                if not Is_In (Symbol.Symbol_Name) then
                   Add_Routine_Name (Symbol.Symbol_Name, Exec);
                end if;
