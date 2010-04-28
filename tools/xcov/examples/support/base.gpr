@@ -34,20 +34,11 @@ abstract project Base is
    end Compiler;
 
    package IDE is
-      case Common.Target is
-         when "native" =>
-            for Compiler_Command ("Ada") use "gnatmake";
-            for Compiler_Command ("C") use "gcc";
-            for Gnatlist use "gnatls";
-            for Gnat use "gnat";
-            for Debugger_Command use "gdb";
-         when others =>
-            for Compiler_Command ("Ada") use Common.Target & "-gnatmake";
-            for Compiler_Command ("C") use Common.Target & "-gcc";
-            for Gnatlist use Common.Target & "-gnatls";
-            for Gnat use Common.Target & "-gnat";
-            for Debugger_Command use Common.Target & "-gdb";
-      end case;
+     for Compiler_Command ("Ada") use Common.Toolchain_Prefix & "gnatmake";
+     for Compiler_Command ("C") use Common.Toolchain_Prefix & "gcc";
+     for Gnatlist use Common.Toolchain_Prefix & "gnatls";
+     for Gnat use Common.Toolchain_Prefix & "-gnat";
+     for Debugger_Command use Common.Toolchain_Prefix & "gdb";
    end IDE;
 
 end Base;

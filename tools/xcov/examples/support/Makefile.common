@@ -23,12 +23,12 @@ LIBSUPPORT_DIR = $(SUPPORT_DIR)/lib/$(TARGET)
 
 GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) --RTS:Ada=zfp
 
-ifeq ($(TARGET),native)
+# We consider i386-linux as a 'native' environment toolchain-wise
+QEMUTARGET  = $(TARGET)
+ifeq ($(TARGET),i386-linux)
   CROSSPREFIX =
-  QEMUTARGET  = i386-linux
 else
   CROSSPREFIX = $(TARGET)-
-  QEMUTARGET  = $(TARGET)
   GPRBUILD_TARGETARGS += --target=$(TARGET)
 endif
 

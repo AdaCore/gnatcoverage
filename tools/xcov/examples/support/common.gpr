@@ -4,12 +4,23 @@
 
 abstract project Common is
 
-   type Target_Type is ("native", "powerpc-elf", "leon-elf");
-   Target : Target_Type := external ("TARGET", "powerpc-elf");
-
    type Yes_No_Type is ("yes", "no");
 
    for Languages use ();
+
+   type Target_Type is ("i386-linux", "powerpc-elf", "leon-elf");
+   Target : Target_Type := external ("TARGET", "powerpc-elf");
+
+   --  Some "targets" actually designate native toolchain environments.
+   --  Translate:
+
+   Toolchain_Prefix := "";
+   case Target is
+     when "i386-linux" =>
+       Toolchain_Prefix := "";
+     when others =>
+       Toolchain_Prefix := Target & "-";
+   end case;
 
 end Common;
 

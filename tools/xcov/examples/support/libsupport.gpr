@@ -52,7 +52,7 @@ library project Libsupport is
    --     feature a C library.
 
    case Common.Target is
-      when "native" =>
+      when "i386-linux" =>
          for Languages use ("Ada");
 
       when others =>
