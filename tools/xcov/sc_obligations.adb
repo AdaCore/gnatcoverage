@@ -1531,6 +1531,11 @@ package body SC_Obligations is
                   BDD.Process_Or_Else
                     (New_Operator_SCO (Op_Or_Else), Current_BDD);
 
+               when 'H' =>
+                  --  Chaining indicator: not used yet
+
+                  null;
+
                when others =>
                   raise Program_Error
                     with "unexpected SCO entry code: " & SCOE.C1;
