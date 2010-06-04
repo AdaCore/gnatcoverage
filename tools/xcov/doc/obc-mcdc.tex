@@ -10,6 +10,10 @@
 \usepackage{url}
 \usepackage{amssymb}
 \usepackage{amsmath}
+\usepackage{subfigure}
+
+\usepackage{tikz}
+\usetikzlibrary{arrows,positioning}
 
 \newcommand{\couv}{{\sc Couverture}}
 \renewcommand{\le}{\leqslant}
@@ -155,6 +159,200 @@ The proof that this is the minimal test set size is given in~\cite{ar0118}.
 This section discusses the distinction between expressions for which
 BDDBC of the associated ROBDD implies MC/DC, and expressions for which
 no such implication holds.
+
+\subsection{Some cases of non equivalence between OBC and MC/DC}
+
+First let us have a look at how MC/DC and object coverage relate to each
+other on some simple cases. Cases of non-equivalence for decisions with up to
+5 conditions have been studied in \cite{ar0720}: non-equivalence cases
+have been shown to occur in decisions with three or more conditions,
+and an illustration is provided with (A \andthen{} B) \orelse{} C,
+where A, B and C are three independent conditions.
+%
+A representation of this decision's BDD is depicted on
+figure~\ref{subfig:D1}:
+
+\begin{figure}[h]
+\centering
+
+\begin{tabular}{cc}
+
+\subfigure[]{
+  \label{subfig:D1}
+  \begin{tikzpicture}[scale=0.8]
+
+    \draw (0,0) rectangle node {A} (3,-0.5);
+    \node at (0,-0.5) (if_a_true) {};
+    \node at (3,-0.5) (if_a_false) {};
+
+    \draw (0,-1) rectangle node {B} (1.5,-1.5);
+    \node at (0,-1)   (b_left) {};
+    \node at (1.5,-1)   (b_right) {};
+    \node at (0,-1.5) (if_b_true) {};
+    \node at (1.5,-1.5) (if_b_false) {};
+
+    \draw (1.5,-2) rectangle node {C} (3,-2.5);
+    \node at (1.5,-2)   (c_left) {};
+    \node at (3,-2)   (c_right) {};
+    \node at (1.5,-2.5) (if_c_true) {};
+    \node at (3,-2.5) (if_c_false) {};
+
+    \node at (0, -3) (outcome_true1) {};
+    \node at (1.5, -3) (outcome_true2) {};
+    \node at (3, -3) (outcome_false) {};
+
+    \node at (0, -3.1) (outcome_true1_label) {T};
+    \node at (1.5, -3.1) (outcome_true2_label) {T};
+    \node at (3, -3.1) (outcome_false_label) {F};
+
+    \draw [->] (if_a_true)  -- node[left] {T} (b_left);
+    \draw [->] (if_a_false) -- node[right] {F} (c_right);
+
+    \draw [->] (if_b_true)  -- node[left] {T} (outcome_true1);
+    \draw [->] (if_b_false) -- node[right] {F} (c_left);
+
+    \draw [->] (if_c_true)  -- node[left] {T} (outcome_true2);
+    \draw [->] (if_c_false) -- node[right] {F} (outcome_false);
+
+  \end{tikzpicture}
+} & \subfigure[]{
+  \label{subfig:D2}
+  \begin{tikzpicture}[scale=0.8]
+
+    \draw (0,0) rectangle node {$C_{0}$} (3,-0.5);
+    \node at (0,-0.5) (if_c0_true) {};
+    \node at (3,-0.5) (if_c0_false) {};
+
+    \draw (0,-1) rectangle node {$C'_{1}$} (1.5,-1.5);
+    \node at (0,-1)   (c1a_left) {};
+    \node at (1.5,-1)   (c1a_right) {};
+    \node at (0,-1.5) (if_c1a_true) {};
+    \node at (1.5,-1.5) (if_c1a_false) {};
+
+    \draw (1.5,-2) rectangle node {$C''_{1}$} (3,-2.5);
+    \node at (1.5,-2)   (c1b_left) {};
+    \node at (3,-2)   (c1b_right) {};
+    \node at (1.5,-2.5) (if_c1b_true) {};
+    \node at (3,-2.5) (if_c1b_false) {};
+
+    \draw (0,-3) rectangle node {$C'_{2}$} (1.5,-3.5);
+    \node at (0,-3)   (c2a_left) {};
+    \node at (1.5,-3)   (c2a_right) {};
+    \node at (0,-3.5) (if_c2a_true) {};
+    \node at (1.5,-3.5) (if_c2a_false) {};
+
+    \draw (1.5,-4) rectangle node {$C''_{2}$} (3,-4.5);
+    \node at (1.5,-4)   (c2b_left) {};
+    \node at (3,-4)   (c2b_right) {};
+    \node at (1.5,-4.5) (if_c2b_true) {};
+    \node at (3,-4.5) (if_c2b_false) {};
+
+    \node at (0, -5) (outcome_true1) {};
+    \node at (1.5, -5) (outcome_true2) {};
+    \node at (3, -5) (outcome_false) {};
+
+    \node at (0, -5.1) (outcome_true1_label) {T};
+    \node at (1.5, -5.1) (outcome_true2_label) {T};
+    \node at (3, -5.1) (outcome_false_label) {F};
+
+    \draw [->] (if_c0_true)  -- node[left] {T} (c1a_left);
+    \draw [->] (if_c0_false) -- node[right] {F} (c1b_right);
+
+    \draw [->] (if_c1a_true)  -- node[left] {T} (c2a_left);
+    \draw [->] (if_c1a_false) -- node[right] {F} (c1b_left);
+
+    \draw [->] (if_c1b_true)  -- node[left] {T} (c2a_right);
+    \draw [->] (if_c1b_false) -- node[right] {F} (c2b_right);
+
+    \draw [->] (if_c2a_true)  -- node[left] {T} (outcome_true1);
+    \draw [->] (if_c2a_false) -- node[right] {F} (c2b_left);
+
+    \draw [->] (if_c2b_true)  -- node[left] {T} (outcome_true2);
+    \draw [->] (if_c2b_false) -- node[right] {F} (outcome_false);
+
+  \end{tikzpicture}
+}\\
+\end{tabular}
+
+\caption{Example decision BDDs}
+\label{fig:examples}
+\end{figure}
+
+From this representation, we can see that a set of three evaluations can
+achieve branch coverage of the whole BDD, corresponding to the three vertical
+paths in figure~\ref{subfig:D1}.
+%
+These evaluations are:
+
+\begin{center}
+\begin{tabular}{|c|c|c||c|}
+\hline
+A & B & C & (A \andthen{} B) \orelse{} C \\ \hline
+T & T & x & T \\ \hline
+T & F & T & T \\ \hline
+F & x & F & F \\ \hline
+\end{tabular}
+\end{center}
+
+where ``x'' means not evaluated and thus can be indifferently True or False.
+%
+Now, indeed, even though all the BDD edges are covered, MC/DC is not met. In
+particular, the independent effect of conditions B and C on the decision is
+not shown.  Since $n+1$ tests are needed to cover a decision with $n$
+condition with respect to MC/DC, 3 evaluations cannot cover a three-condition
+decision.
+
+It turns out that this particular case can be generalized in a
+quite spectacular counterexample: there exists classes of decisions
+with an arbitrary high number of conditions that can be branch covered
+by just three evaluations; the previous example was one element of this
+class with 3 conditions.
+
+Consider the following set $\{D_{n}\}_{n \in \N}$  of decisions:
+
+\begin{itemize}
+\item let $D_{0}$ be a simple condition decision; by convention,
+      we will call $C_{0}$ its condition;
+\item let us define $D_{n}$, for any $n>0$, as follows:\\
+      $D_{n} = (D_{n-1} \ \andthen{} \ C'_{n}) \ \orelse{} \ C''_{n}$\\
+      $C'_{n}$ and $C''_{n}$ being independent from each other and from
+      any condition in $D_{n-1}$.
+\end{itemize}
+
+In other words:
+\begin{itemize}
+\item $D_{0} = C_{0}$
+\item $D_{1} = (C_{0} \ \andthen{} \ C'_{1}) \ \orelse{} \ C''_{1}$
+\item $D_{2} = (((C_{0} \ \andthen{} \ C'_{1}) \ \orelse{} \ C''_{1})\\
+                 \andthen{} \ C'_{2}) \ \orelse{} \ C''_{2}$
+\item $D_{3} = (((((C_{0} \ \andthen{} \ C'_{1}) \ \orelse{} \ C''_{1})\\
+                 \andthen{} \ C'_{2}) \ \orelse{} \ C''_{2})\\
+                   \andthen{} \ C'_{3}) \ \orelse{} \ C''_{3}$
+\item ...
+\end{itemize}
+
+Figure~\ref{subfig:D2} shows the BDD for $D_{2}$, where it is visible
+that all the edges can be covered by three evaluation paths which only
+demonstrate the independent effect of $C_{0}$:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c||c|}
+\hline
+$C_{0}$   & $C'_{1}$   & $C''_{1}$   & $C'_{2}$   & $C''_{2}$   & $D_{2}$ \\ \hline
+T      & T       & x        & T       & x        & T     \\ \hline
+T      & F       & T        & F       & T        & T     \\ \hline
+F      & x       & F        & x       & F        & F     \\ \hline
+\end{tabular}
+\end{center}
+
+We can thus build a decision $D_{n}$ with an arbitrary number of conditions,
+that can be BDD branch covered by just three evaluation paths. As MC/DC can
+only be achieved with a minimal number of $n+1$ evaluations, this is a
+striking case where BDD branch coverage (and consequently OBC) is far from
+being equivalent to MC/DC.
+
+We can now adopt a more general perspective and characterize more
+precisely the difference between these two criteria.
 
 \subsection{Construction of the ROBDD}
 
@@ -302,43 +500,6 @@ NNF-has-no-bar-in-LHS-of-foo.
 % A proof here:
 % http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-January/000069.html
 
-\section{Examples}
-
-This section discusses in detail some expressions that exemplify the properties
-studied above.
-
-\subsection{The elementary non-equivalence case}
-
-$(A \ \andthen{} \ B) \ \orelse{} \ C$
-
-... insert BDD ...
-... insert BDDBC test set (3 vectors, can't show MC/DC) ..
-
-Intuitively, BDDBC is a local property of BDD traversals (i.e. of evaluations
-of the decision): it is evaluated individually for each BDD node, without
-respect to how the BDD node was reached. In contrast, MC/DC is a non-local
-property, since it involves the complete path through the BDD. To establish
-independent influence of condition C, it is necessary to study what happens
-for two values of C leading to different outcomes, \emph{with all other
-conditions fixed}, i.e. considering a single way of \emph{arriving to C}.
-
-\subsection{Mixed operators cases}
-
-For a decision involving a single operator kind and no negations, it is
-immediate that OBC and MC/DC are equivalent. Now there are cases when
-operators can be mixed without introducing non-equivalence, and cases
-(involving negations) where there is no equivalence even though a single
-kind of binary operator is used.
-
-\subsection{A pathological example}
-
-This section discusses a class of expressions that can have an arbitrary
-high number $n$ of conditions (and require a minimum of $n+1$ tests to
-establish MC/DC), and yet are fully covered with respect to BDDBC in
-just three tests.
-
-% A proof here:
-% http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-January/000066.html
 
 \section{General stateless MC/DC assessment}
 
