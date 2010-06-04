@@ -27,6 +27,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \newtheorem{theorem}{\textsc{Theorem}}
+\newtheorem{lemma}{Lemma}[subsection]
 
 \def\@begintheorem#1#2{\trivlist
    \item[\hskip \labelsep{#1\ #2}]\itshape}
@@ -487,19 +488,205 @@ same node C through two different paths.
 
 \subsection{Conclusion}
 
-We have proved the following property: for a decision D, BDDBC implies
-MC/DC if, and only if, there are no diamonds in the associated ROBDD (i.e.
-no node of the ROBDD is reachable through more that one path from the root).
+We have therefore proved the following property:
+
+\begin{theorem}
+  \label{thm:no-diamond}
+  Given a decision D, branch coverage of the BDD implies MC/DC if,
+  and only if, there is no diamond in the BDD (i.e.  no node of the
+  BDD is reachable through more that one path from the root).
+\end{theorem}
+
+Intuitively, BDDBC is a local property of BDD traversals (i.e. of evaluations
+of the decision): it is evaluated individually for each BDD node, without
+respect to how the BDD node was reached. In contrast, MC/DC is a non-local
+property, since it involves the complete path through the BDD. To establish
+independent influence of condition C, it is necessary to study what happens
+for two values of C leading to different outcomes, \emph{with all other
+conditions fixed}, i.e. considering a single way of \emph{arriving to C}.
 
 \section{A second characterization of the equivalence case}
 
 In this section we provide an alternative (equivalent) property
-that characterizes cases where BDDBC implies MC/DC:
-NNF-has-no-bar-in-LHS-of-foo.
+that characterizes cases where BDD branch coverage implies MC/DC:
 
-% A proof here:
-% http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-January/000069.html
+\begin{theorem}
+  \label{thm:lhs-same-operator}
+  Given a decision D, BDD branch coverage implies MC/DC if, and only if, when
+  considering the negation normal form D' of D, for every sub-decision E of D',
+  all binary operators in the left-hand-side operand of E, if any, are of the
+  same kind as E's operator.
+\end{theorem}
 
+The negative normal form is obtained by rewriting the expression using
+De Morgan's laws so that negations apply only to atomic conditions (and not
+to more complex subexpressions).
+
+We prove this theorem by showing that this alternative characterization is
+equivalent to having no diamond in the associated BDD.
+Theorem~\ref{thm:lhs-same-operator} follows by application of
+Theorem~\ref{thm:no-diamond}.
+
+Let's consider a decision D and its BDD. For the order of atoms in the
+BDD, we take the order in which they appear in a depth-first traversal
+of the decision (represented as a tree).
+
+% ??? Add results about ordering...
+
+\begin{figure}
+\centering
+
+\subfigure[$DL \ \orelse{} \ DR$]{
+\label{subfig:DL-or-DR}
+\begin{tikzpicture}[scale=0.8]
+  \node (DL) {DL}
+    child[->] {
+      node (DR) {DR}
+        child[->] {node (DRF) {F} edge from parent node[left] {F}}
+        child[->] {node (DRT) {T} edge from parent node[right] {T}}
+      edge from parent node[left] {F}
+    }
+    child[->] {node (DLT) {T} edge from parent node[right] {T}};
+\end{tikzpicture}
+
+%           DL
+%        F / \ T
+%         /   \
+%        DR    T
+%     F / \ T
+%      /   \
+%     F     T
+
+}
+\subfigure[$DL \ \andthen{} \ DR$]{
+\label{subfig:DL-and-DR}
+\begin{tikzpicture}[scale=0.8]
+  \node (DL) {DL}
+    child[->] {node (DLF) {F} edge from parent node[left] {F}}
+    child[->] {
+      node (DR) {DR}
+        child[->] {node (DRF) {F} edge from parent node[left] {F}}
+        child[->] {node (DRT) {T} edge from parent node[right] {T}}
+      edge from parent node[right] {T}
+    };
+\end{tikzpicture}
+
+%           DL
+%        F / \ T
+%         /   \
+%        F     DR
+%           F / \ T
+%            /   \
+%           F     T
+
+}
+\caption{case 2 and 3}
+\end{figure}
+
+There is a diamond in a BDD if and only if there is at least one node
+such that the number of paths to reach it from root is strictly
+greater than 1; we will use this caracterization to prove our
+property.
+
+\emph{Proof of the simplified case:}
+
+Consider first the case where decision D does not contain any negation.
+Each non-terminal node in the BDD corresponds to a sub-decision D' in D
+(i.e. the root of each sub-decision is a non-terminal node in D's BDD).
+
+\emph{Proof of reverse implication (simplified case):}
+
+Let's call NF(D) the number of paths from the root of decision D to False (F)
+and NT(D) the number of paths from the root of decision D to True (T).
+
+\emph{case 1:} D = A (atom)\\
+$NF(D) = NT(D) = 1$
+
+\emph{case 2:} D = $DL \ \orelse{} \ DR$\\
+The BDD for D can be constructed from the BDDs for DL and DR. It is shown 
+in Figure~\ref{subfig:DL-or-DR}.
+
+
+$NF(D) = NF(DL) * NF(DR)$\\
+$NT(D) = NT(DL) + NF(DL) * NT(DR)$
+
+\emph{case 3:} D = $DL \ \andthen{} \ DR$\\
+The BDD for D can be constructed from the BDDs for DL and DR. It is shown 
+in Figure~\ref{subfig:A-and-B}.
+
+$NF(D) = NF(DL) + NT(DL) * NF(DR)$\\
+$NT(D) = NT(DL) * NT(DR)$
+
+\begin{lemma}
+\label{lemma:NF-NT-bound}
+For every E, $NF(D) \ge 1$ and $NT(D) \ge 1$.
+If D is of the form \orelse{} then $NT(D) \ge 2$.
+If D is of the form \andthen{} then $NF(D) \ge 2$.
+\end{lemma}
+
+\begin{lemma}
+\label{lemma:NF-NT-monotonic}
+NF and NT are monotonic functions, i.e. if D' is a sub-decision of D,
+then we have
+        $NF(D') \le NF(D)$
+and        
+        $NT(D') \le NT(D)$.
+\end{lemma}
+
+Proofs of Lemmas~\ref{lemma:NF-NT-bound} and~\ref{lemma:NF-NT-monotonic} are on
+structural induction on the form of decisions, based on the three cases
+distinguished above.
+
+Then, suppose a decision D of the form \andthen{} contains a
+sub-decision D' of the form \orelse{} on the left-hand side, of the form
+\orelse{}. If DL, DR are the two sub-decisions such that
+$D = DL \andthen{} DR$, then D' is also a sub-decision of DL.
+
+By Lemma~\ref{lemma:NF-NT-bound}, we know that $NT(D') \ge 2$. By
+Lemma~\ref{lemma:NF-NT-monotonic}, we know that $NT(DL) \ge NT(D')$.
+
+Then, in D's BDD, the paths reaching the DR's root node are exactly
+those paths in DL's BDD reaching True, by construction; the number of
+these paths is NT(DL).
+
+Thus, DR's root node in the D's BDD is reachable by more than one
+path. As a consequence, there is a diamond in this BDD.
+
+Similarly, if a decision D of the form \orelse{} contains a
+sub-decision D' of the form \andthen{} on the left-hand side, we can
+exhibit a non-terminal node in the BDD for D that is reachable by more
+than one path.
+
+By contraposition, if there are no diamonds in the BDD associated to a
+decision D, then D has no \orelse{} sub-decision on the left of its
+\andthen{} sub-decisions, and no \andthen{} sub-decision to the left of
+its \orelse{} sub-decision.
+
+\emph{Proof of implication (simplified case):}
+
+Now suppose that for every sub-decision in decision D, the left
+operand of an \andthen{} sub-decision contains only \andthen{}
+sub-decisions and the left operand of an \orelse{} sub-decision
+contains only \orelse{} sub-decisions.
+
+\begin{lemma}
+\label{lemma:NF-NT-only-one-oper}
+If E contains only \orelse{} sub-decisions then $NF(E) = 1$.
+If E contains only \andthen{} sub-decisions then $NT(E) = 1$.
+\end{lemma}
+
+Proof of Lemma~\ref{lemma:NF-NT-only-one-oper} is on structural induction on
+the form of decisions, based on the 3 cases distinguished above.
+
+By structural induction on the depth of the BDD, we can show that there cannot
+be any diamond in the BDD associated to D, which proves that the desired
+implication holds.
+
+\emph{Proof of the general case:}
+
+In the general case, decision D may contain \adanot sub-decisions. Then,
+consider D' the negation normal form of D. Since D and D' are represented
+by the same BDD, Theorem~\ref{thm:lhs-same-operator} follows.
 
 \section{General stateless MC/DC assessment}
 
