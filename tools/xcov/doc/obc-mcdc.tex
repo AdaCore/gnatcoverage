@@ -8,10 +8,24 @@
 %% \usepackage[french]{babel}
 \usepackage[latin1]{inputenc}
 \usepackage{url}
+\usepackage{amssymb}
+\usepackage{amsmath}
+
+\newcommand{\couv}{{\sc Couverture}}
+\renewcommand{\le}{\leqslant}
+\renewcommand{\ge}{\geqslant}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\anysc}{\star}
+\newcommand{\andthen}{\texttt{and then}}
+\newcommand{\orelse}{\texttt{or else}}
+\newcommand{\adanot}{\texttt{not}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \newtheorem{theorem}{\textsc{Theorem}}
+
+\def\@begintheorem#1#2{\trivlist
+   \item[\hskip \labelsep{#1\ #2}]\itshape}
 
 \begin{document}
 \pagestyle{empty}
@@ -19,7 +33,7 @@
 \vfill
 
 \begin{center}%
-{\Large \textbf{Couverture Project}}
+{\Large \textbf{\couv{}}}
 
 {\Large \textbf{Technical Report on OBC/MCDC properties}}
 
@@ -28,7 +42,7 @@
 {\large \textbf{Abstract}}
 \end{center}
 
-This document gathers results established or formalized by the Couverture
+This document gathers results established or formalized by the \couv{}
 project team about relationships between specific coverage criteria.
 %
 We focus in particular on how \E{Object Branch Coverage} (OBC) relates to the
@@ -56,11 +70,11 @@ information out of an instrumented execution environment.
 
 We are considering decisions that are short circuit boolean expressions,
 i.e. expressions consisting in elementary boolean conditions combined
-together using only the AND THEN, OR ELSE and NOT operators.
+together using only the \andthen{}, \orelse{} and \adanot{} operators.
 
 For each decision we construct the associated ROBDD (Reduced Ordered
 Binary Decision Diagram), whose nodes are conditions. (RO)BDDs have an
-entry point, and two or more exit edges labeled TRUE and FALSE.
+entry point, and two or more exit edges labeled True and False.
 
 \subsection{Binary decision diagrams}
 
@@ -101,21 +115,21 @@ a test set of exactly $n+1$ tests, and cannot be achieved in fewer tests.
 \end{theorem}
 
 The existence of the test set is proved by induction. For one condition,
-MC/DC is achieved with two tests, one setting it true and the other false.
+MC/DC is achieved with two tests, one setting it True and the other False.
 
-Now assume that the property holds for all $n<=N$, and consider a decision
-with $N+1$ conditions. It is of the form $D = D_l \star D_r$ where
-$\star$ is either AND THEN or OR ELSE. There is also possibly a negation,
-which is omitted here since it has no impact on MC/DC. For the remainder
-of this proof we assume the operator is AND THEN; the same reasoning applies
-similarly for the case of OR ELSE.
+Now assume that the property holds for all $n \le{} N$, and consider a decision
+with $N+1$ conditions. It is of the form $D = D_l \anysc{} D_r$ where
+$\anysc{}$ is either \andthen{} or \orelse{}. There is also possibly a
+negation, which is omitted here since it has no impact on MC/DC. For the
+remainder of this proof we assume the operator is \andthen{}; the same
+reasoning applies similarly for the case of \orelse{}.
 
 $D_l$ and $D_r$ are decisions with respectively $n_l$ and $n_r$ conditions
 (both at most $N$), and $n_l + n_r = N+1$. From the induction hypothesis
 we have two test vector sets $T_l = \{ v_l (0) .. v_l (n_l) \}$ and
 $T_r = \{ v_r (0) .. v_r (n_r) \}$ that satisfy MC/DC for $D_l$ and $D_r$
 respectively, and we can arbitrarily choose the indices so that
-$D_l$ is true for $v_l(0)$ and $D_r$ is true for $v_r (0)$.
+$D_l$ is True for $v_l(0)$ and $D_r$ is True for $v_r (0)$.
 
 We can now create a combined test set for the complete decision as follows.
 $$(\forall j \in [0, n_l])\, v (j) = (v_l (j) \cdot v_r (0))$$
@@ -150,20 +164,20 @@ recursive procedure:
 \begin{description}
 \item[Build\_BDD.Condition]
   The BDD for a decision consisting in a single condition C has the node
-  "test C" as its entry point, the label TRUE is assigned to the branch
-  corresponding to "C is TRUE", and the label FALSE is assigned to the
-  branch corresponding to "C is FALSE".
+  "test C" as its entry point, the label True is assigned to the branch
+  corresponding to "C is True", and the label False is assigned to the
+  branch corresponding to "C is False".
 
 \item[Build\_BDD.NOT]
-  The BDD for "not (D)" is the BDD for D where the labels of the exit
+  The BDD for $\adanot{} (D)$ is the BDD for D where the labels of the exit
   edges have been swapped.
 
 \item[Build\_BDD.Short\_Circuit\_Operator]
-  This rule defines how the BDD for "(D1) op (D2)" is constructed for
-  any short-circuit operator "op".
+  This rule defines how the BDD for $(D1) \anysc{} (D2)$ is constructed for
+  any short-circuit operator $\anysc{}$.
 
-  If OP is AND THEN, let SC be FALSE
-  If OP is OR ELSE, let SC be TRUE
+  If $\anysc{}$ is \andthen{}, let SC be False
+  If $\anysc{}$ is \orelse{}, let SC be True
 
   Let B1 be the BDD for D1, and B2 the BDD for D2.
 
@@ -183,7 +197,7 @@ The following invariants of ROBDDs follow from the construction process:
         the entry point to any node in the BDD).
   \item There are no cycles in the BDD.
   \item Both outcomes are reachable (i.e. there is a path from the entry point
-        to an exit edge labeled TRUE and to an exit edge labeled FALSE).
+        to an exit edge labeled True and to an exit edge labeled False).
 \end{itemize}
 
 \subsection{Evaluation of a decision}
@@ -198,10 +212,10 @@ procedure:
   value of the condition.
 
 \item[Eval.Not]
-  To evaluate "not (D)", evaluate D and take the opposite value
+  To evaluate $\adanot{} (D)$, evaluate D and take the opposite value
 
 \item[Eval.Short\_Circuit\_Operator]
-  To evaluate "(D1) op (D2)", evaluate D1. If D1 = SC then the
+  To evaluate $(D1) \anysc{} (D2)$, evaluate D1. If $D1 = SC$ then the
   value is SC, else evaluate D2, and the value is that of D2.
 \end{description}
 
@@ -216,7 +230,7 @@ The following property holds:
 
 This property, and most other properties that we'll discuss here,
 is proved by recurrence on the number of binary operators involved in
-the expression. We'll assume that it holds for all $n <= N$, and then
+the expression. We'll assume that it holds for all $n \le{} N$, and then
 consider an expression with $N+1$ binary operators, and prove that
 the BDD construction step Build\_BDD.Short\_Circuit\_Operator preserves
 the property from the two subdecision BDDs to the overall BDD.
@@ -295,7 +309,7 @@ studied above.
 
 \subsection{The elementary non-equivalence case}
 
-$(A \land B) \lor C$
+$(A \ \andthen{} \ B) \ \orelse{} \ C$
 
 ... insert BDD ...
 ... insert BDDBC test set (3 vectors, can't show MC/DC) ..
