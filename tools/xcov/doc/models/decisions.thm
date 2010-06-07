@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<projection> <type name="Decision"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="And_Then"/>
+   <type name="Binary_Operator"/>
+   <type name="Condition"/>
+   <type name="Decision"/>
+   <type name="Int"/>
+   <type name="Not"/>
+   <type name="Or_Else"/>
+   <type name="String"/>
+   <type name="Unary_Operator"/>
+   <type name="univ"/>
+   <type name="B/BDD_Node"/>
+   <type name="B/BDD_Term"/>
+   <type name="B/O_False"/>
+   <type name="B/O_True"/>
+   <type name="seq/Int"/>
+   <set name="$show_decisions_d1" type="Decision"/>
+   <set name="$show_decisions_d2" type="Decision"/>
+   <set name="$show_decisions_d3" type="Decision"/>
+   <set name="nodes" type="Decision_Element"/>
+</node>
+
+<node color="Green">
+   <type name="Decision_Element"/>
+</node>
+
+<node visible="no">
+   <type name="B/BDD"/>
+   <type name="B/BDD_Element"/>
+</node>
+
+</view>
+
+</alloy>

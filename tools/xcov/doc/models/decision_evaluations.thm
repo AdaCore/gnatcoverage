@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<projection> <type name="decisions/Decision"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Int"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="decision_types/And_Then"/>
+   <type name="decision_types/Binary_Operator"/>
+   <type name="decision_types/Condition"/>
+   <type name="decision_types/Decision_Element"/>
+   <type name="decision_types/Decision_Item"/>
+   <type name="decision_types/Not"/>
+   <type name="decision_types/Or_Else"/>
+   <type name="decision_types/Outcome_False"/>
+   <type name="decision_types/Outcome_True"/>
+   <type name="decision_types/Unary_Operator"/>
+   <type name="decisions/Decision"/>
+   <type name="evaluations/T_False"/>
+   <type name="evaluations/T_True"/>
+   <type name="evaluations/T_Unknown"/>
+   <type name="evaluations/Tristate"/>
+   <type name="seq/Int"/>
+   <set name="$show_or_else_eval_d" type="decisions/Decision"/>
+   <set name="bin_ops" type="decision_types/Binary_Operator"/>
+   <set name="conditions" type="decision_types/Condition"/>
+   <set name="un_ops" type="decision_types/Unary_Operator"/>
+</node>
+
+<node visible="no">
+   <type name="decision_types/Decision_Outcome"/>
+</node>
+
+<edge visible="no" attribute="yes">
+   <relation name="$show_or_else_eval_cond_values"> <type name="decision_types/Condition"/> <type name="evaluations/Tristate"/> </relation>
+   <relation name="$show_or_else_eval_result"> <type name="decision_types/Decision_Element"/> <type name="evaluations/Tristate"/> </relation>
+</edge>
+
+</view>
+
+</alloy>

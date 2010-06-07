@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<projection> <type name="BDD"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="BDD"/>
+   <type name="Decision_Types/Condition"/>
+   <type name="Decision_Types/Decision_Outcome"/>
+   <type name="Int"/>
+   <type name="O_False"/>
+   <type name="O_True"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="seq/Int"/>
+   <set name="$show_bdd_bdd" type="Condition"/>
+   <set name="nodes" type="Condition"/>
+</node>
+
+<node color="Blue">
+   <type name="Decision_Types/Condition"/>
+   <type name="Decision_Types/Decision_Outcome"/>
+</node>
+
+</view>
+
+</alloy>

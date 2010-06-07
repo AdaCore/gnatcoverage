@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<projection> <type name="Execution"/> <type name="Int"/> <type name="bdds/BDD"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Execution"/>
+   <type name="Int"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="bdds/BDD"/>
+   <type name="decision_types/And_Then"/>
+   <type name="decision_types/Binary_Operator"/>
+   <type name="decision_types/Condition"/>
+   <type name="decision_types/Decision_Element"/>
+   <type name="decision_types/Decision_Item"/>
+   <type name="decision_types/Decision_Outcome"/>
+   <type name="decision_types/Not"/>
+   <type name="decision_types/Or_Else"/>
+   <type name="decision_types/Outcome_False"/>
+   <type name="decision_types/Outcome_True"/>
+   <type name="decision_types/Unary_Operator"/>
+   <type name="evaluations/T_False"/>
+   <type name="evaluations/T_True"/>
+   <type name="evaluations/T_Unknown"/>
+   <type name="evaluations/Tristate"/>
+   <type name="seq/Int"/>
+   <set name="$cond_independent_effect_ex" type="Execution"/>
+   <set name="$cond_independent_effect_f" type="Int"/>
+   <set name="$cond_independent_effect_n" type="decision_types/Condition"/>
+   <set name="$cond_independent_effect_t" type="Int"/>
+   <set name="nodes" type="decision_types/Condition"/>
+   <set name="outcome" type="decision_types/Decision_Outcome"/>
+</node>
+
+<node visible="no">
+   <type name="evaluations/Tristate_Conversions"/>
+</node>
+
+<edge visible="no">
+   <relation name="to_outcome_mapping"> <type name="evaluations/Tristate_Conversions"/> <type name="evaluations/Tristate"/> <type name="decision_types/Decision_Outcome"/> </relation>
+</edge>
+
+<edge visible="no" attribute="yes">
+   <relation name="evaluation_vectors"> <type name="decision_types/Condition"/> <type name="evaluations/Tristate"/> </relation>
+</edge>
+
+</view>
+
+</alloy>

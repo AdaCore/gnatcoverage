@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<projection> <type name="Dec_BDD"/> <type name="bdds/BDD"/> <type name="decisions/Decision"/> </projection>
+
+<defaultnode/>
+
+<defaultedge/>
+
+<node>
+   <type name="Dec_BDD"/>
+   <type name="Int"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="bdds/BDD"/>
+   <type name="decision_types/And_Then"/>
+   <type name="decision_types/Binary_Operator"/>
+   <type name="decision_types/Decision_Item"/>
+   <type name="decision_types/Decision_Outcome"/>
+   <type name="decision_types/Not"/>
+   <type name="decision_types/Or_Else"/>
+   <type name="decision_types/Outcome_False"/>
+   <type name="decision_types/Outcome_True"/>
+   <type name="decision_types/Unary_Operator"/>
+   <type name="decisions/Decision"/>
+   <type name="seq/Int"/>
+   <set name="$has_diamond_n" type="decision_types/Condition"/>
+   <set name="$show_diamond_decision_db" type="Dec_BDD"/>
+   <set name="bin_ops" type="decision_types/Binary_Operator"/>
+   <set name="conditions" type="decision_types/Condition"/>
+   <set name="nodes" type="decision_types/Condition"/>
+   <set name="un_ops" type="decision_types/Unary_Operator"/>
+</node>
+
+<node color="Blue">
+   <type name="decision_types/Condition"/>
+</node>
+
+<node color="Green">
+   <type name="decision_types/Decision_Element"/>
+</node>
+
+<edge visible="no" attribute="yes">
+   <relation name="construction_branch_false"> <type name="decision_types/Decision_Element"/> <type name="decision_types/Condition"/> <type name="decision_types/Condition"/> </relation>
+   <relation name="construction_branch_false"> <type name="decision_types/Decision_Element"/> <type name="decision_types/Condition"/> <type name="decision_types/Decision_Outcome"/> </relation>
+   <relation name="construction_branch_true"> <type name="decision_types/Decision_Element"/> <type name="decision_types/Condition"/> <type name="decision_types/Condition"/> </relation>
+   <relation name="construction_branch_true"> <type name="decision_types/Decision_Element"/> <type name="decision_types/Condition"/> <type name="decision_types/Decision_Outcome"/> </relation>
+</edge>
+
+</view>
+
+</alloy>
