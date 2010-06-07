@@ -3,7 +3,7 @@
 --                              Couverture                                  --
 --                                                                          --
 --                    Copyright (C) 2006 Tristan Gingold                    --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -28,7 +28,9 @@ package body Disa_Sparc is
 
    function Get_Field
      (Field : Sparc_Fields; V : Unsigned_32) return Unsigned_32;
-   --  Needs comment???
+   function Get_Field_Sext
+     (Field : Sparc_Fields; V : Unsigned_32) return Unsigned_32;
+   --  Extract a field from an instruction.
 
    subtype Reg_Type is Unsigned_32 range 0 .. 31;
 
@@ -254,6 +256,19 @@ package body Disa_Sparc is
       return Shift_Right (Shift_Left (V, 31 - F.First), 32 - Len);
    end Get_Field;
 
+   --------------------
+   -- Get_Field_Sext --
+   --------------------
+
+   function Get_Field_Sext
+     (Field : Sparc_Fields; V : Unsigned_32) return Unsigned_32
+   is
+      F : constant Field_Type := Fields_Mask (Field);
+      Len : constant Natural := F.First - F.Last + 1;
+   begin
+      return Shift_Right_Arithmetic (Shift_Left (V, 31 - F.First), 32 - Len);
+   end Get_Field_Sext;
+
    ---------------------
    -- Get_Insn_Length --
    ---------------------
@@ -369,18 +384,15 @@ package body Disa_Sparc is
          V : Unsigned_32;
       begin
          Add (Str);
-         Add_Sp (Map (Shift_Right (W, 25) and 2#1111#));
+         Add_Sp (Map (Get_Field (F_Cond, W)));
          if (W and 16#2000_0000#) /= 0 then
             Add (",a");
          end if;
          Add_HT;
          Add ("0x");
-         V := (W and 16#3f_Ffff#) * 4;
-         if (V and 16#80_0000#) /= 0 then
-            V := V or 16#Ff00_0000#;
-         end if;
-         Add (Hex_Image (Pc + V));
-         Sym.Symbolize (Pc + V, Line, Line_Pos);
+         V := Pc + Get_Field_Sext (F_Disp22, W) * 4;
+         Add (Hex_Image (V));
+         Sym.Symbolize (V, Line, Line_Pos);
       end Add_Cond;
 
       --------------
@@ -697,6 +709,7 @@ package body Disa_Sparc is
                      end;
 
                   when 16#38# =>
+                     --  jmpl
                      if Get_Field (F_Rd, W) = 0
                        and then Get_Field (F_I, W) = 1
                        and then Get_Field (F_Simm13, W) = 8
@@ -745,8 +758,70 @@ package body Disa_Sparc is
       Flag_Cond  : out Boolean;
       Dest       : out Pc_Type)
    is
+      pragma Unreferenced (Self);
+
+      W : Unsigned_32;
+      R : Unsigned_32;
    begin
-      raise Program_Error with "not implemented";
+      if Insn_Bin'Length < 4 then
+         raise Program_Error;
+      end if;
+
+      W := To_Big_Endian_U32 (Insn_Bin (Insn_Bin'First .. Insn_Bin'First + 3));
+
+      Flag_Cond := False;
+      Flag_Indir := False;
+
+      case Get_Field (F_Op, W) is
+         when 2#00# =>
+            case Get_Field (F_Op2, W) is
+               when 2#010# | 2#110# =>
+                  if (Get_Field (F_Cond, W) and 2#0111#) = 0 then
+                     Flag_Cond := True;
+                  end if;
+                  Dest := Pc + Get_Field_Sext (F_Disp22, W) * 4;
+                  Branch := Br_Jmp;
+                  return;
+
+               when others =>
+                  null;
+            end case;
+
+         when 2#01# =>
+            Dest := Pc + Get_Field_Sext (F_Disp30, W) * 4;
+            Branch := Br_Call;
+            return;
+
+         when 2#10# =>
+            if Get_Field (F_Op3, W) = 16#38# then
+               --  jmpl.
+               Flag_Indir := True;
+               R := Get_Field (F_Rd, W);
+               if R = 15 then
+                  --  Register indirect call.
+                  Branch := Br_Call;
+                  return;
+               elsif R = 0
+                 and then Get_Field (F_I, W) = 1
+                 and then Get_Field (F_Simm13, W) = 8
+               then
+                  --  Ret or retl.
+                  R := Get_Field (F_Rs1, W);
+                  if R = 15 or else R = 31 then
+                     Branch := Br_Ret;
+                     return;
+                  end if;
+               end if;
+               --  Unknown.
+               Branch := Br_Jmp;
+               return;
+            end if;
+
+         when others =>
+            null;
+      end case;
+
+      Branch := Br_None;
    end Get_Insn_Properties;
 
 end Disa_Sparc;

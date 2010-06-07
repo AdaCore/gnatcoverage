@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                      Copyright (C) 2008-2009, AdaCore                    --
+--                      Copyright (C) 2008-2010, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -22,6 +22,7 @@ package Sparc_Descs is
    --  Extracted from V8.pdf p44.
    type Sparc_Fields is
      (
+      --  The format
       F_Op,
 
       --  Format 1 (op = 1)
