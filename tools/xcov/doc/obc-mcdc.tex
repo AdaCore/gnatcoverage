@@ -679,12 +679,397 @@ This holds for each condition in the decision, so MC/DC is proved.
 
 \subsection{Non-equivalence case}
 
-Proved by constructing a set of paths that give BDD branch coverage but
-not MC/DC coverage, taking advantage of the fact that we can reach the
-same node C through two different paths.
+The general idea of this proof is to show that, for any BDD with a
+diamond, we can build a set of evaluations that covers the BDD
+branches in such a way that there is at least one condition for which
+MC/DC is not met.
 
-% A candidate proof has been given here:
-% http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-May/000091.html
+If we want to have a proof that will work for any definition of MC/DC,
+we cannot rely on a failure of the independence criteria; \textit{to
+independently affect} means something different in unique cause MC/DC
+or in masking MC/DC. So we should rather rely, if it is possible, on
+the set of properties that these criteria have in common; a sort of
+\textit{greatest common divisor} of the two criteria. Let us define
+this weak MC/DC criteria as follow:
+
+\begin{itemize}
+\item every possible outcome of the decision have been tried;
+\item each condition in the decision has taken on every possible outcome;
+\item each condition in the decision is shown to affect the outcome of the
+      decision.
+\end{itemize}
+
+The only difference with MC/DC here is that weak MC/DC does not care
+if the condition \textit{independently} affects the outcome of the decision;
+whatever \textit{independently} means. Weak MC/DC is weaker than any other
+MC/DC criteria. So, if a set of evaluations does not satisfy weak MC/DC,
+it won't satisfy unique cause MC/DC or masking MC/DC.
+
+The formal definition would be:
+
+\begin{definition}
+  \label{def:weak-mcdc}
+  Given a decision D, a pair of truth vectors satisfies weak MC/DC for
+  a condition c if and only if, in their influence tree, the node c
+  and the root node are both colored in True.
+
+  This decision D satisfies weak MC/DC if and only if, for each
+  condition in cond(D), there exists a pair of tests that satisfies
+  weak MC/DC.
+\end{definition}
+
+It turns out that we can build a set of evaluations such that BBDBC is
+reached, but not MC/DC, when the BDD has a diamond.  Let's take the
+canonical example: $(A \ \andthen{} \ B) \orelse{} \ C$, and these
+evaluations:
+
+\begin{center}
+\begin{tabular}{|c|c|c||c|}
+\hline
+A & B & C & (A \andthen{} B) \orelse{} C \\ \hline
+T & T & x & T \\ \hline
+T & F & T & T \\ \hline
+F & x & F & F \\ \hline
+\end{tabular}
+\end{center}
+
+This set covers this decision for BDDBC. However, this does not meet
+weak MC/DC; whenever B is evaluated, the decision outcome is True. So
+this cannot show that B affects the outcome of the decision.
+
+Let us give a general idea of how we would prove that in the general
+case. First, remember that we are dealing with reduced ordered BDDs;
+so each node can be ordered. This property allows us to have a
+proper concept of ``last diamond node'' and its ``last parent''. In our
+example, the last diamond node would be C, its last parent B.
+
+Now, we would show that the last parent of the last diamond node has
+an interesting property: one of its exit edge is always connected
+directly to an outcome (for B, it is outcome True). Its other exit
+edge being connected to the last diamond node (obviously), it is
+possible to cover this edge in such a way that the outcome of the
+corresponding evaluation is the same as the ``direct outcome'';
+e.g. when evaluating B to False, we would evaluate C to True and exit
+on True. We know that this is possible using the property that, from
+each node of the BDD (and, in this case, the diamond C), there exists
+at least one evaluation that reaches outcome True and at least one that
+reach outcome False.
+
+This means that we can cover all exit and incoming edges of the last
+parent of the last diamond in such a way that the evaluations \textit{always}
+exit on the same outcome; and, from the property of its exit edges, we
+can see that this set of evaluations can be completed to reach BDDBC
+\textit{without evaluating this node anymore}. This builds a BDD coverage
+that does not satisfy weak MC/DC for this node.
+
+The following sections will detail this proof.
+
+\subsubsection{Last diamond}
+
+We have previously built a function index(D,C) that defines a full
+order over the nodes of a (RO)BDD. Based on this function, we can
+define the following entities:
+\begin{itemize}
+\item in a BDD, let the last node be the node with the greatest index;
+\item let a diamond node be a node with more than one parent;
+\item let the last diamond node of a decision be the diamond with the
+      greatest index;
+\item let the last parent of a node be the parent with the greatest index.
+\end{itemize}
+
+Some examples from our canonical case
+$D ::= (A \ \andthen{} \ B) \orelse{} \ C$:
+\begin{itemize}
+\item index(D,A) = 1, index(D,B) = 2, index(D,C) = 3;
+\item the last diamond node is C; it is also the last node;
+\item the last parent of C is B.
+\end{itemize}
+
+We have the following properties:
+
+\begin{lemma}
+  \label{lemma:last-node}
+  The two exit edges of the last node are connected to both outcomes.
+\end{lemma}
+
+\begin{lemma}
+  \label{lemma:last-parent-of-the-last-diamond}
+   If a BDD contains diamonds, then the last parent of the last diamond
+   has an exit edge that is directly connected to an outcome.
+\end{lemma}
+
+This can be seen in our example:
+\begin{itemize}
+\item the last node being C, its exit edges are connected directly to True and
+      False;
+\item the last parent of the last diamond being B; when it is True, the outcome
+      True is reached.
+\end{itemize}
+
+The two properties can be proven by structural induction on the BDD.
+The first is the easiest one and we will let it as an exercice for the
+reader. Here is a proof of the second one:
+
+\begin{itemize}
+\item if $D ::= C$ (simple condition decision):\\
+  the BDD does not contain any diamond, so the property is trivially true
+  in this case.
+
+\item if $D ::=\ \adanot{} \ D1$:\\
+  if D1 does not contains diamond, D does not either, the propery is trivial
+  as well. If it does contain diamond, well, only outcome labels are different
+  between BDD(D) and BDD(D1), so the property holds for D if it holds for D1.
+
+\item if $D ::= DL \ \anysc{} \ DR$, supposing that the property holds
+  for DL and DR; four cases then:
+
+  \begin{itemize}
+  \item If no diamonds were in BDD(DL) and BDD(DR), and none were introduced
+    by building BDD(D) from them: then BDD(D) contains no diamonds, the
+    property is trivial.
+
+  \item If DR contains a diamond: then the last diamond node of D is
+    the last diamond node in DR. By construction, BDD(DR) is a
+    sub-tree of BDD(D), the exit edges of the last diamond node are
+    the same in BDD(DR) and in BDD(D). So if the property holds for
+    DR, it holds for D.
+
+  \item If DR contains no diamonds, and if building BDD(D) from
+    BDD(DR) and BDD(DL) introduces a new diamond: this new diamond
+    node has to be root(DR), as only this node has gained new incoming
+    edges: in Build\_BDD, the exit edges of BDD(DR) labeled ``not SC''
+    are connected to BDD(DL)'s root. Therefore, its parent nodes are
+    all in cond(DL). And the last node of BDD(DL) is one of these
+    parent nodes; by property~\ref{lemma:last-node}, it has an exit
+    edge to ``not SC'' in BDD(DL). Its other exit edge will remain
+    unchanged in BDD(D) and will be connected to an outcome
+    (``SC''). This last node of BDD(DL) is also the last parent of
+    this diamond node, as no other nodes in cond(DL) have an greater
+    index. And (finally), this introduced diamond node is D's last
+    diamond node, as DR contains no diamonds (initial hypothesis). So
+    we have identified the last parent of the last diamond and showed
+    that one of exit edge is connected to an outcome in BDD(D); that's
+    the property that we were trying to prove.
+
+  \item If DR contains no diamonds, and if no diamonds were introduced
+    when building BDD(D), but if DL contains a diamond: the last
+    diamond node in D is the same node as the last diamond node in DL.
+    The last parent of the last diamond in DL has an exit edge that
+    connects to SC; otherwise, it would be connected to BDD(DR)'s root
+    when building BDD(D), and as the last node would also be connected
+    to this root node (it also has an exit edge to SC in DR, as a
+    consequence of property~\ref{lemma:last-node}), BDD(DR)'s root
+    would have at least two fathers in D, which contradicts the
+    hypothesis that no diamonds were introduced. So this exit edges of
+    the last parent of the last diamond in DL (and D) will still be
+    connected to an outcome after building D. So the property is true
+    in this case as well.
+  \end{itemize}
+\end{itemize}
+
+The property~\ref{lemma:last-parent-of-the-last-diamond} has now been
+established in all possible cases. This proof will actually be quite
+useful as its structure will be used to build a coverage that satisfies
+BBDBC but not Weak MC/DC.
+
+\subsubsection{Path though BDDs - Conventions}
+
+Some conventions first to help us manipulate paths through BDD:
+
+\begin{itemize}
+\item For two paths pl, pr into two different BDDs,
+  concat(pl, pr) is the concatenation of these two paths obtained by replacing
+  the outcome of pl by the first node in pr.
+
+\item For two set of paths PL, PR through two different BDDs, merge(PL, PR)
+  is the set built by doing an arbitrary mapping of each element
+  of PL to each element of PR, and concatenating each pair; as these
+  two sets may not have the same number of elements, all the remaining
+  elements of the greatest set will be mapped to one arbitrary element
+  of the smallest set.
+
+\item For any set of paths PS through a BDD (each going from the root node to
+  an outcome), let us call path\_to(True, PS) the subset of paths reaching
+  outcome True, and path\_to(False, PS) the subset reaching False. We have
+  the obvious property:
+
+  $PS = path\_to(True, PS) + path\_to(False, PS)$
+\end{itemize}
+
+\subsubsection{Building a BDD branch coverage that does not verify Weak MC/DC}
+
+For a given decision D, our coverage will be ensured by the union of
+three sets of paths Short\_Circuit\_LPLD(D), Long\_Circuit\_LPLD(D) and
+LPLD\_Not\_Evaluated(D), which verifies the following set-specific
+invariants:
+
+\begin{description}
+\item[Short\_Circuit\_LPLD\_Invariant]
+  If BDD(D) is diamondless, Short\_Circuit\_LPLD(D) is empty;
+  otherwise, it contains a non-empty set of paths, each reaching the
+  last parent of the last diamond node and then exiting on its direct
+  outcome.
+
+\item[Long\_Circuit\_LPLD\_Invariant]
+  If BDD(D) is diamondless, Long\_Circuit\_LPLD(D) is empty;
+  otherwise, it contains a non-empty set of paths, each reaching the last
+  parent of the last diamond node, then going to the last diamond node, and
+  then reaching the same outcome as Short\_Circuit\_LPLD(D).
+
+\item[LPLD\_Not\_Evaluated\_Invariant]
+  No path in LPLD\_Not\_Evaluated(D) evaluates the last parent of the last
+  diamond node.
+\end{description}
+
+...plus one other ``global'' invariants:
+
+\begin{description}
+\item[BDDBC\_Coverage\_Invariant]
+ The union of these three sets covers each edges of the considered
+ BDD.
+\end{description}
+
+As a consequence of this last invariant, we will now call
+BDDBC\_Coverage the union of these three sets:
+
+  $BDDBC\_Coverage(D) = Short\_Circuit\_LPLD(D)\\
+                         + Long\_Circuit\_LPLD(D) + LPLD\_Not\_Evaluated(D)$
+
+Note also that an other property falls naturally from
+LPLD\_Not\_Evaluated\_Invariant and BDDBC\_Coverage\_Invariant:
+
+\begin{description}
+\item[Incoming\_Edges]
+  The union of Long\_Circuit\_LPLD and Short\_Circuit\_LPLD covers all incoming
+  edges of the last parent of the last diamond node.
+\end{description}
+
+Anyway, here is the definition, case by case, of a recursive build
+procedure that builds such sets from a decision D. It assumes that all
+its sub-decisions have such sets verifying these invariants (not
+considering D as a sub-decision of D, obviously; ``strict'' sub-decisions):
+
+\begin{description}
+\item[Build\_BDD\_Cov.Condition]
+  The sub-decision is a single condition decision, it is of the form:\\
+  $D ::= C$
+
+  In this case:
+  \begin{itemize}
+  \item $Short\_Circuit\_LPLD(D) = Long\_Circuit\_LPLD(D) = \{\}$
+  \item $LPLD\_Not\_Evaluated(D) = \{C -> True, C -> False\}$
+  \end{itemize}
+
+
+\item[Build\_BDD\_Cov.NOT]
+  The sub-decision is of the form:\\
+  $D ::=\ \adanot{} \ D1$
+
+  Then Short\_Circuit\_LPLD(D) is built by switching the outcome of each
+  path contained in Short\_Circuit\_LPLD(D1). Same operations for
+  Long\_Circuit\_LPLD(D) and No\_LPLD(D).
+
+
+\item[Build\_BDD\_Cov.Short\_Circuit\_Operator]
+  The sub-decision is of the form:\\
+  $D ::= DL \anysc{} DR$
+
+  Four sub-cases:
+
+  \begin{itemize}
+  \item No diamonds:\\
+    No diamonds in BDD(DL) and BDD(DR), and none were introduced
+    by building BDD(D) from them. Then:\\
+    \begin{itemize}
+    \item $Short\_Circuit\_LPLD(D) = \{\}$
+    \item $Long\_Circuit\_LPLD (D) = \{\}$
+    \item $LPLD\_Not\_Evaluated(D) = path\_to(SC, BDDBC\_Coverage(DL))\\
+      + merge(path\_to(not SC, BDDBC\_Coverage (DL)),\\
+      BDDBC\_Coverage(DR))$
+    \end{itemize}
+
+  \item Diamond in DR:\\
+    i.e. Short\_Circuit\_LPLD(DR) and Long\_Circuit\_LPLD(DR) contain at least
+    one element each.
+    Let p\_dl be an arbitrary path to ``not SC'' in BDD(DL), taken from
+    BDDBC\_Coverage(DL). In BDD(D), it corresponds to a path to root(DR).
+    Then:
+    \begin{itemize}
+    \item $Short\_Circuit\_LPLD(D) = merge({p\_dl},\\
+                                     Short\_Circuit\_LPLD(DR))$
+    \item $Long\_Circuit\_LPLD(D)  = merge({p\_dl},\\
+                                        Long\_Circuit\_LPLD(DR))$
+    \item $LPLD\_Not\_Evaluated(D) = path\_to(SC, BDDBC\_Coverage(DL))\\
+                            + merge(path\_to(not SC, BDDBC\_Coverage(DL)),\\
+                            LPLD\_Not\_Evaluated(DR))$
+    \end{itemize}
+  
+  \item Last diamond introduced:\\
+    i.e. no diamonds in BDD(DR) and a diamond has been created when building
+    BDD(D). In this case:
+    \begin{itemize}
+    \item $Short\_Circuit\_LPLD(DR) = Long\_Circuit\_LPLD(DR) = \{\}$
+    \item the last diamond node in D is root(DR).
+    \end{itemize}
+
+    Let SC\_DL be the subset of paths in path\_to(SC,
+    BDDBC\_Coverage(DL)) that evaluates the last node in BDD(DL).
+    Similarly, let LC\_DL be the subset of paths in path\_to(not SC,
+    BDDBC\_Coverage(DL) that evaluates the last node in BDD(DL); in
+    BDD(D), this one corresponds to a path to root(DR).  Let $REST\_DL
+    = BDDBC\_Coverage(DL) - (SC\_DL + LC\_DL)$ be the subset of paths
+    in BDDBC\_Coverage(DL) that do not evaluates this last node.  Let
+    sc\_dr be an arbitrary path in DR exiting on SC.
+
+    Then the coverage for BDD(D) is built as follows:
+    \begin{itemize}
+    \item $Short\_Circuit\_LPLD(D) = SC\_DL$
+    \item $Long\_Circuit\_LPLD(D)  = merge(LC\_DL, {sc\_dr})$
+    \item $LPLD\_Not\_Evaluated(D) = path\_to(SC, REST\_DL)\\
+                            + merge(path\_to(not SC), REST\_DL),\\
+                            BDDBC\_Coverage(DR))$
+    \end{itemize}
+    (Note that we are allowed to merge path\_to(not SC, REST\_DL) because
+    it is non-empty; there is at least one other node that has an exit
+    edge directly connected to ``not SC'' in BDD(DL), otherwise no
+    diamond would have been created; so it must have at least one path
+    that does not evaluate the last node in BDD(DL); that property
+    gives us the right to use the merge operation. Same thing for LC\_DL
+    and SC\_DL that are both non-empty thanks to Last\_Node property).
+
+  \item Diamond in DL only:\\
+    i.e. no diamonds in BDD(DR), no new diamonds introduced when
+    building BDD(D), but at least one diamond in BDD(DL).  The last
+    parent of the last diamond in DL has its ``direct'' exit edge
+    that connects to SC; otherwise, it would have been connected to
+    BDD(DR)'s root when building BDD(D), and as the last node would
+    also be connected to this root node (it also has an exit edge to
+    SC in DR, as a consequence of property Last\_Node), BDD(DR)'s
+    root would have at least two fathers in D, which contradicts the
+    hypothesis that no diamonds were introduced.  Let sc\_dr be an
+    arbitrary path in DR exiting on SC.  Then the coverage for BDD(D)
+    is built as follows:
+    \begin{itemize}
+    \item $Short\_Circuit\_LPLD(D) = Short\_Circuit\_LPLD(DL)$
+    \item $Long\_Circuit\_LPLD(D)  = merge(Long\_Circuit\_LPLD, {sc\_dr})$
+    \item $LPLD\_Not\_Evaluated(D) = path\_to(SC, LPLD\_Not\_Evaluated(DL))\\
+                           + merge(path\_to(not SC, LPLD\_Not\_Evaluated(DL),\\
+                           BDDBC\_Coverage(DR))$
+    \end{itemize}
+  \end{itemize}
+\end{description}
+
+It is quite easy to check that Short\_Circuit\_LPLD\_Invariant,
+Long\_Circuit\_LPLD\_Invariant, LPLD\_Not\_Evaluated\_Invariant and
+BDDBC\_Coverage\_Invariant are enforced by this build procedure; each
+one falls so obviously from the construction (in every case) that
+it will be quite painful to elaborate.
+
+So we can build a BDD coverage in such a way that, if there is a
+diamond in the BDD, then the decision will have the same outcome for
+any evaluation where the last parent of the last diamond is
+evaluated. This means that this BDD coverage does not imply weak
+MC/DC; that which was to be demonstrated.
 
 \subsection{Conclusion}
 
