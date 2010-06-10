@@ -27,6 +27,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \newtheorem{theorem}{\textsc{Theorem}}
+\newtheorem{definition}{\textsc{Definition}}
 \newtheorem{lemma}{Lemma}[subsection]
 
 \def\@begintheorem#1#2{\trivlist
@@ -81,10 +82,20 @@ For each decision we construct the associated ROBDD (Reduced Ordered
 Binary Decision Diagram), whose nodes are conditions. (RO)BDDs have an
 entry point, and two or more exit edges labeled True and False.
 
-\subsection{Binary decision diagrams}
-
 In the remainder of this document, unless otherwise indicated, all
-references to BDDs denote reduced ordered BDDs.
+references to BDDs denote reduced ordered BDDs. For a set S, \#S will
+refer to this set's cardinal. The following convention will also be
+used:
+
+\begin{definition}
+  \label{def:general-defs}
+
+  Given a decision D:
+  \begin{itemize}
+  \item cond(D) will be the set of its conditions;
+  \item BDD(D) will be its BDD.
+  \end{itemize}
+\end{definition}
 
 \subsection{Coverage metrics}
 
@@ -113,6 +124,165 @@ for various coverage metries.
 \subsubsection{OBC}
 
 \subsubsection{MC/DC}
+
+\paragraph{Formal definition:}
+
+The formal definition of MC/DC that it used here is the one given
+in~\cite{ar0118}, using a graph-coloring algorithm to determine
+whether two given evaluations show the independent influence of a
+condition. Amongst the various formal definitions that you may find in
+the litterature, this one has the advantage to apply also to
+short-circuit operators, which is mandatory in the context of \couv{}.
+
+The following will not re-define what has already detailed in~\cite{ar0118};
+we will just give an example on how it works and will refer the interested
+reader to the original document.
+
+This formal definition of MC/DC uses a simple graph-coloring algorithm
+to determine whether two given evaluations show the independent
+influence of a condition. it first colors each node of the decision
+syntax tree with both evaluations; for example, for a decision
+$(A \ \andthen{} \ B) \ \orelse{} \ C'$, the syntax tree can be seen
+on figure~\ref{subfig:color-graph-expr}.
+
+\begin{figure}[h]
+  \centering
+
+    \subfigure[$(A \ \andthen{} \ B) \ \orelse{} \ C$]{
+      \label{subfig:color-graph-expr}
+
+      %        or else
+      %       /       \
+      %   and then     C
+      %  /        \
+      % A          B
+
+      \begin{tikzpicture}[scale=1.4]
+	\node (or_else) {OR ELSE}
+	child[->] {
+	  node (and_then) {AND THEN}
+          child[->] {node (and_then_a) {A} edge from parent node[left] {}}
+          child[->] {node (and_then_b) {B} edge from parent node[right] {}}
+	  edge from parent node[left] {}
+	}
+	child[->] {node (or_else_c) {C} edge from parent node[right] {}};
+      \end{tikzpicture}
+    }
+\end{figure}
+
+For the evaluation $e1 = (A = True, B = True, C = X)$, we have the
+coloring given on figure~\ref{subfig:color-graph-e1}; and for $e2 = (A
+= False, B = X, C = False)$, we have the coloring given on
+figure~\ref{subfig:color-graph-e2}.
+
+\begin{figure}[h]
+  \centering
+    \subfigure[e1]{
+      \label{subfig:color-graph-e1}
+
+      %        or else T
+      %       /       \
+      %   and then T   C X
+      %  /        \
+      % A T        B T
+
+      \begin{tikzpicture}[scale=1.4]
+	\node (or_else) {OR ELSE=T}
+	child[->] {
+	  node (and_then) {AND THEN=T}
+          child[->] {node (and_then_a) {A=T} edge from parent node[left] {}}
+          child[->] {node (and_then_b) {B=T} edge from parent node[right] {}}
+	  edge from parent node[left] {}
+	}
+	child[->] {node (or_else_c) {C=X} edge from parent node[right] {}};
+      \end{tikzpicture}
+    } \\
+    \subfigure[e2]{
+      \label{subfig:color-graph-e2}
+
+      %        or else F
+      %       /       \
+      %   and then F   C F
+      %  /        \
+      % A F        B X
+
+      \begin{tikzpicture}[scale=1.4]
+	\node (or_else) {OR ELSE=F}
+	child[->] {
+	  node (and_then) {AND THEN=F}
+          child[->] {node (and_then_a) {A=F} edge from parent node[left] {}}
+          child[->] {node (and_then_b) {B=X} edge from parent node[right] {}}
+	  edge from parent node[left] {}
+	}
+	child[->] {node (or_else_c) {C=F} edge from parent node[right] {}};
+      \end{tikzpicture}
+    }
+\end{figure}
+
+Both graphs are then combined into an influence tree by xor'ing each
+node. An extension of xor to three-value boolean algebra is used:
+anything xor Not\_Evaluated gives False. In our case, the result is
+showed on figure~\ref{subfig:color-graph-influence-tree}.
+
+\begin{figure}[h]
+  \centering
+    \subfigure[Influence tree]{
+      \label{subfig:color-graph-influence-tree}
+
+      %        or else T
+      %       /       \
+      %   and then T   C F
+      %  /        \
+      % A T        B F
+
+      \begin{tikzpicture}[scale=1.4]
+	\node (or_else) {OR ELSE=T}
+	child[->] {
+	  node (and_then) {AND THEN=T}
+          child[->] {node (and_then_a) {A=T} edge from parent node[left] {}}
+          child[->] {node (and_then_b) {B=F} edge from parent node[right] {}}
+	  edge from parent node[left] {}
+	}
+	child[->] {node (or_else_c) {C=F} edge from parent node[right] {}};
+      \end{tikzpicture}
+    }
+\end{figure}
+
+The influence set of these two evaluations for the given decision is
+the set of conditions that have a path of ``True nodes'' to the root.
+So here, it is the singleton \{A\}.
+
+The two classical variants of MC/DC are then defined as follow:
+
+\begin{definition}
+  \label{def:masking-mcdc}
+  Given a decision D, a pair of truth vectors satisfies Masking MC/DC
+  for a condition c in cond(D) if and only if its influence set is the
+  singleton {c}.
+
+  This decision D satisfies Masking MC/DC if and only if, for each
+  condition in cond(D), there exists a pair of tests that satisfies
+  Masking MC/DC.
+\end{definition}
+
+\begin{definition}
+  \label{def:unique-cause}
+  Given a decision D, a pair of truth vectors satisfies Unique Cause MC/DC
+  for a condition c in cond(D) if and only if its influence set is the
+  singleton {c} and if c is the only condition that is colored with True
+  in the influence tree.
+
+  This decision D satisfies Unique Cause MC/DC if and only if, for each
+  condition in cond(D), there exists a pair of tests that satisfies
+  Unique Cause MC/DC.
+\end{definition}
+
+In our example, our pair of truth vectors satisfies both Unique Cause and
+Masking MC/DC for condition A.
+
+\paragraph{Properties:}
+
+For Unique Cause, the following property holds:
 
 \begin{theorem}
 MC/DC on a decision with $n$ independent conditions is achieved with
@@ -297,11 +467,13 @@ F & x & F & F \\ \hline
 
 where ``x'' means not evaluated and thus can be indifferently True or False.
 %
-Now, indeed, even though all the BDD edges are covered, MC/DC is not met. In
-particular, the independent effect of conditions B and C on the decision is
-not shown.  Since $n+1$ tests are needed to cover a decision with $n$
-condition with respect to MC/DC, 3 evaluations cannot cover a three-condition
-decision.
+Now, indeed, even though all the BDD edges are covered, MC/DC is not
+met. In particular, the independent effect of conditions B on the
+decision is not shown in the case of Masking MC/DC, and the
+independent effect of both B and C are not shown in the case of Unique
+Cause.  Since $n+1$ tests are needed to cover a decision with $n$
+condition with respect to MC/DC, 3 evaluations cannot cover a
+three-condition decision.
 
 It turns out that this particular case can be generalized in a
 quite spectacular counterexample: there exists classes of decisions
