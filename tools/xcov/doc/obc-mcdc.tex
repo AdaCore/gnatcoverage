@@ -571,6 +571,39 @@ The following invariants of ROBDDs follow from the construction process:
         to an exit edge labeled True and to an exit edge labeled False).
 \end{itemize}
 
+\subsection{Node ordering}
+
+For a decision D and a condition C in D, let us call index(D,C) the
+positive number built by the following recursive procedure:
+
+\begin{description}
+\item[Build\_BDD\_Order.Condition]
+  The sub-decision is a single condition decision, it is of the form:\\
+  $D ::= C$\\
+  then index(D,C) = 1\\
+
+\item[Build\_BDD\_Order.NOT]
+  The sub-decision is of the form:\\
+  $D ::= \adanot{} \ D1$\\
+  then for each condition C in D, index(D,C) = index(D1,C)\\
+
+\item[Build\_BDD\_Order.Short\_Circuit\_Operator]
+  The sub-decision is of the form:\\
+  $D ::= DL \ \anysc{}\ DR$\\
+  then, for each condition C in D:\\
+  \begin{itemize}
+    \item if C is in DL, $index(D,C) = index(DL,C)$
+    \item if C is in DR, $index(D,C) = index(DR,C) + \#cond(DL)$
+  \end{itemize}
+\end{description}
+
+This builds a total order over the conditions of a decision; it is a
+general result for reduced order BDD that the reflexive transitive
+closure defines a total order over its nodes; this order is the same
+as the one we just defined. It can also be demonstrated easily, by
+structural induction, that this order is the order of conditions in
+the decision's expression.
+
 \subsection{Evaluation of a decision}
 
 Given the transformation of a decision into its ROBDD, evaluating the
