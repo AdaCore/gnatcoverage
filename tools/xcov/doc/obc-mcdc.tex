@@ -52,7 +52,7 @@ This document gathers results established or formalized by the \couv{}
 project team about relationships between specific coverage criteria.
 %
 We focus in particular on how \E{Object Branch Coverage} (OBC) relates to the
-\E{Modified Condition/Decision Coverage} (MCDC) criterion.
+\E{Modified Condition/Decision Coverage} (MC/DC) criterion.
 
 We provide two broad categories of results: formal proofs of important
 properties over a model of the two criteria, and a machine-automated
@@ -84,18 +84,8 @@ entry point, and two or more exit edges labeled True and False.
 
 In the remainder of this document, unless otherwise indicated, all
 references to BDDs denote reduced ordered BDDs. For a set S, \#S will
-refer to this set's cardinal. The following convention will also be
-used:
-
-\begin{definition}
-  \label{def:general-defs}
-
-  Given a decision D:
-  \begin{itemize}
-  \item cond(D) will be the set of its conditions;
-  \item BDD(D) will be its BDD.
-  \end{itemize}
-\end{definition}
+refer to this set's cardinal. For a decision D, cond(D) will be the
+set of its conditions.
 
 \subsection{Coverage metrics}
 
@@ -123,6 +113,8 @@ for various coverage metries.
 
 \subsubsection{OBC}
 
+% XXX Get definition for ERTSS paper???
+
 \subsubsection{MC/DC}
 
 \paragraph{Formal definition:}
@@ -140,9 +132,9 @@ reader to the original document.
 
 This formal definition of MC/DC uses a simple graph-coloring algorithm
 to determine whether two given evaluations show the independent
-influence of a condition. it first colors each node of the decision
+influence of a condition. It first colors each node of the decision
 syntax tree with both evaluations; for example, for a decision
-$(A \ \andthen{} \ B) \ \orelse{} \ C'$, the syntax tree can be seen
+$(A \ \andthen{} \ B) \ \orelse{} \ C$, the syntax tree can be seen
 on figure~\ref{subfig:color-graph-expr}.
 
 \begin{figure}[h]
@@ -170,10 +162,13 @@ on figure~\ref{subfig:color-graph-expr}.
     }
 \end{figure}
 
-For the evaluation $e1 = (A = True, B = True, C = X)$, we have the
-coloring given on figure~\ref{subfig:color-graph-e1}; and for $e2 = (A
-= False, B = X, C = False)$, we have the coloring given on
-figure~\ref{subfig:color-graph-e2}.
+For each evaluation, each node of the tree (atomic condition or root
+of sub-decision) is colored with the value that it takes in this
+evaluation: True (T), False (F), Not\_Evaluated (X).  For the
+evaluation $e1 = (A = True, B = True, C = Not\_Evaluated)$, we have
+the coloring given on figure~\ref{subfig:color-graph-e1}; and for $e2
+= (A = False, B = X, C = Not\_Evaluated)$, we have the coloring given
+on figure~\ref{subfig:color-graph-e2}.
 
 \begin{figure}[h]
   \centering
@@ -260,9 +255,9 @@ The two classical variants of MC/DC are then defined as follow:
   for a condition c in cond(D) if and only if its influence set is the
   singleton {c}.
 
-  This decision D satisfies Masking MC/DC if and only if, for each
-  condition in cond(D), there exists a pair of tests that satisfies
-  Masking MC/DC.
+  A test set satisfies Masking MC/DC for a decision D if, and only if,
+  for each condition in cond(D), there exists a pair of tests in the
+  test set that satisfies Masking MC/DC.
 \end{definition}
 
 \begin{definition}
@@ -272,9 +267,9 @@ The two classical variants of MC/DC are then defined as follow:
   singleton {c} and if c is the only condition that is colored with True
   in the influence tree.
 
-  This decision D satisfies Unique Cause MC/DC if and only if, for each
-  condition in cond(D), there exists a pair of tests that satisfies
-  Unique Cause MC/DC.
+  A test set satisfies Unique Cause MC/DC for a decision D if, and only if,
+  for each condition in cond(D), there exists a pair of tests in the
+  test set that satisfies Unique Cause MC/DC.
 \end{definition}
 
 In our example, our pair of truth vectors satisfies both Unique Cause and
@@ -285,7 +280,7 @@ Masking MC/DC for condition A.
 For Unique Cause, the following property holds:
 
 \begin{theorem}
-MC/DC on a decision with $n$ independent conditions is achieved with
+Unique MC/DC on a decision with $n$ independent conditions is achieved with
 a test set of exactly $n+1$ tests, and cannot be achieved in fewer tests.
 \end{theorem}
 
@@ -321,9 +316,19 @@ test set $T$ satisfies MC/DC for $D$ and thus the induction property holds at
 $N+1$ as well, since $T$ has $n_l + n_r + 1 = N+2$ elements.
 
 The proof that this is the minimal test set size is given in~\cite{ar0118}.
+As for Masking MC/DC, we have the following property:
+
+\begin{theorem}
+Masking MC/DC on a decision with $n$ independent conditions requires a
+minimum of $RUTW(2*SQRT(n))$ tests, where RUTW stands for round up to
+whole.
+\end{theorem}
+
+The proof of this property is given in~\cite{ar0118} as well.
 
 \subsection{Coverage assessment through analysis of execution traces}
 
+% XXX Import this section from ERTSS paper???
 
 \section{Characterization of cases of BDDBC --- MC/DC equivalence}
 
@@ -472,8 +477,9 @@ met. In particular, the independent effect of conditions B on the
 decision is not shown in the case of Masking MC/DC, and the
 independent effect of both B and C are not shown in the case of Unique
 Cause.  Since $n+1$ tests are needed to cover a decision with $n$
-condition with respect to MC/DC, 3 evaluations cannot cover a
-three-condition decision.
+condition with respect to Unique Cause MC/DC, 3 evaluations cannot cover a
+three-condition decision. Masking MC/DC requires a minimum of 4 evaluations
+as well in this particular case.
 
 It turns out that this particular case can be generalized in a
 quite spectacular counterexample: there exists classes of decisions
@@ -518,11 +524,12 @@ F      & x       & F        & x       & F        & F     \\ \hline
 \end{tabular}
 \end{center}
 
-We can thus build a decision $D_{n}$ with an arbitrary number of conditions,
-that can be BDD branch covered by just three evaluation paths. As MC/DC can
-only be achieved with a minimal number of $n+1$ evaluations, this is a
-striking case where BDD branch coverage (and consequently OBC) is far from
-being equivalent to MC/DC.
+We can thus build a decision $D_{n}$ with an arbitrary number of
+conditions, that can be BDD branch covered by just three evaluation
+paths. As Unique Cause MC/DC can only be achieved with a minimal
+number of $n+1$ evaluations, and Masking MC/DC with a minimal number
+of $RUTW(2*SQRT(N))$ tests, this is a striking case where BDD branch
+coverage (and consequently OBC) is far from being equivalent to MC/DC.
 
 We can now adopt a more general perspective and characterize more
 precisely the difference between these two criteria.
@@ -544,20 +551,20 @@ recursive procedure:
   edges have been swapped.
 
 \item[Build\_BDD.Short\_Circuit\_Operator]
-  This rule defines how the BDD for $(D1) \anysc{} (D2)$ is constructed for
+  This rule defines how the BDD for $(DL) \anysc{} (DR)$ is constructed for
   any short-circuit operator $\anysc{}$.
 
-  If $\anysc{}$ is \andthen{}, let SC be False
-  If $\anysc{}$ is \orelse{}, let SC be True
+  If $\anysc{}$ is \andthen{}, let SC be False;\\
+  if $\anysc{}$ is \orelse{}, let SC be True.
 
-  Let B1 be the BDD for D1, and B2 the BDD for D2.
+  Let BL be the BDD for DL, and BR the BDD for DR.
 
-  Then B, the BDD for D is obtained by combining B1 and B2 as follows:
+  Then B, the BDD for D is obtained by combining BL and BR as follows:
   \begin{itemize}
-    \item the entry point is that of B1
-    \item the exit edge labeled SC of B1 is an exit edge labeled SC of B
-    \item the other exit edge of B1 connects to the entry point of B2
-    \item the exit edges of B2 are exit edges of B with the same labels
+    \item the entry point is that of BL
+    \item the exit edge labeled SC of BL is an exit edge labeled SC of B
+    \item the other exit edge of BL connects to the entry point of BR
+    \item the exit edges of BR are exit edges of B with the same labels
   \end{itemize}
 \end{description}
 
@@ -570,6 +577,9 @@ The following invariants of ROBDDs follow from the construction process:
   \item Both outcomes are reachable (i.e. there is a path from the entry point
         to an exit edge labeled True and to an exit edge labeled False).
 \end{itemize}
+
+Given a decision D, we will now call BDD(D) its (RO)BDD as built by this
+recursive procedure.
 
 \subsection{Node ordering}
 
@@ -604,6 +614,9 @@ as the one we just defined. It can also be demonstrated easily, by
 structural induction, that this order is the order of conditions in
 the decision's expression.
 
+For a BDD B, we will call root(BDD(D)) the unique node with index 1.
+This node is indeed the root node of the BDD.
+
 \subsection{Evaluation of a decision}
 
 Given the transformation of a decision into its ROBDD, evaluating the
@@ -632,12 +645,12 @@ The following property holds:
   exit edge as the value of the decision.
 \end{description}
 
-This property, and most other properties that we'll discuss here,
-is proved by recurrence on the number of binary operators involved in
-the expression. We'll assume that it holds for all $n \le{} N$, and then
-consider an expression with $N+1$ binary operators, and prove that
-the BDD construction step Build\_BDD.Short\_Circuit\_Operator preserves
-the property from the two subdecision BDDs to the overall BDD.
+This property, and most properties that we'll discuss here, is proved
+by induction on the structure of the decision.  For each case of the
+BDD\_Build procedure (Build\_BDD.Condition, Build\_BDD.Not,
+Build\_BDD.Short\_Circuit\_Operator), we will assume that the the
+property holds for the parameters and prove that the build step
+preserves the property.
 
 Note that the practical implementation of coverage analysis systems based
 on control flow traces relies on the assumption that the code generator
@@ -653,7 +666,7 @@ that node. The following property holds:
 \begin{description}
 \item[BDDBC\_No\_Diamond\_Indep\_Implies\_MCDC]
   For a BDD with no diamond, if conditions are independent, then
-  BDD branch coverage implies masking MC/DC coverage.
+  BDD branch coverage implies Unique Cause MC/DC and Masking MC/DC.
 \end{description}
 
 Let's consider a condition C. Since we have BDD branch coverage,
@@ -664,7 +677,7 @@ From the independent outcome reachability property, we have two paths
 starting at C, beginning each with one edge from C, and ending on the
 two outcomes of the decision. Let's call them PCT and PCF.
 
-These paths are disjoint: any condition appearing in one is masked
+These paths are disjoint: any condition appearing in one is not evaluated
 in the other (because of no-diamond).
 
 These two paths are parts of paths PT and PF from the BDD entry point to
@@ -675,7 +688,9 @@ So, PT and PF differ in C, in no other condition before C, and in no
 other non-masked condition after C, so they prove independent influence
 of C over the decision.
 
-This holds for each condition in the decision, so MC/DC is proved.
+This holds for each condition in the decision, so Unique Cause MC/DC
+is proved; and since Unique Cause is stronger than Masking MC/DC,
+Masking MC/DC is proved as well.
 
 \subsection{Non-equivalence case}
 
@@ -686,11 +701,11 @@ MC/DC is not met.
 
 If we want to have a proof that will work for any definition of MC/DC,
 we cannot rely on a failure of the independence criteria; \textit{to
-independently affect} means something different in unique cause MC/DC
-or in masking MC/DC. So we should rather rely, if it is possible, on
+independently affect} means something different in Unique Cause MC/DC
+or in Masking MC/DC. So we should rather rely, if it is possible, on
 the set of properties that these criteria have in common; a sort of
 \textit{greatest common divisor} of the two criteria. Let us define
-this weak MC/DC criteria as follow:
+this Weak MC/DC criteria as follow:
 
 \begin{itemize}
 \item every possible outcome of the decision have been tried;
@@ -699,29 +714,30 @@ this weak MC/DC criteria as follow:
       decision.
 \end{itemize}
 
-The only difference with MC/DC here is that weak MC/DC does not care
+The only difference with MC/DC here is that Weak MC/DC does not care
 if the condition \textit{independently} affects the outcome of the decision;
 whatever \textit{independently} means. Weak MC/DC is weaker than any other
-MC/DC criteria. So, if a set of evaluations does not satisfy weak MC/DC,
-it won't satisfy unique cause MC/DC or masking MC/DC.
+MC/DC criteria. So, if a set of evaluations does not satisfy Weak MC/DC,
+it won't satisfy Unique Cause MC/DC or Masking MC/DC.
 
 The formal definition would be:
 
 \begin{definition}
   \label{def:weak-mcdc}
-  Given a decision D, a pair of truth vectors satisfies weak MC/DC for
+  Given a decision D, a pair of truth vectors satisfies Weak MC/DC for
   a condition c if and only if, in their influence tree, the node c
   and the root node are both colored in True.
 
-  This decision D satisfies weak MC/DC if and only if, for each
-  condition in cond(D), there exists a pair of tests that satisfies
-  weak MC/DC.
+  A test set satisfies Weak MC/DC for a decision D if, and only if,
+  for each condition in cond(D), there exists a pair of tests in the
+  test set that satisfies Weak MC/DC.
 \end{definition}
 
 It turns out that we can build a set of evaluations such that BBDBC is
 reached, but not MC/DC, when the BDD has a diamond.  Let's take the
-canonical example: $(A \ \andthen{} \ B) \orelse{} \ C$, and these
-evaluations:
+canonical example:\\
+$(A \ \andthen{} \ B) \orelse{} \ C$\\
+and these evaluations:
 
 \begin{center}
 \begin{tabular}{|c|c|c||c|}
@@ -734,7 +750,7 @@ F & x & F & F \\ \hline
 \end{center}
 
 This set covers this decision for BDDBC. However, this does not meet
-weak MC/DC; whenever B is evaluated, the decision outcome is True. So
+Weak MC/DC; whenever B is evaluated, the decision outcome is True. So
 this cannot show that B affects the outcome of the decision.
 
 Let us give a general idea of how we would prove that in the general
@@ -760,7 +776,7 @@ parent of the last diamond in such a way that the evaluations \textit{always}
 exit on the same outcome; and, from the property of its exit edges, we
 can see that this set of evaluations can be completed to reach BDDBC
 \textit{without evaluating this node anymore}. This builds a BDD coverage
-that does not satisfy weak MC/DC for this node.
+that does not satisfy Weak MC/DC for this node.
 
 The following sections will detail this proof.
 
@@ -796,6 +812,10 @@ We have the following properties:
   \label{lemma:last-parent-of-the-last-diamond}
    If a BDD contains diamonds, then the last parent of the last diamond
    has an exit edge that is directly connected to an outcome.
+
+   This outcome will be called the direct outcome (of the last of parent of
+   the last diamond). The edge connected to the the direct outcome will be
+   called the direct exit edge.
 \end{lemma}
 
 This can be seen in our example:
@@ -806,7 +826,7 @@ This can be seen in our example:
       True is reached.
 \end{itemize}
 
-The two properties can be proven by structural induction on the BDD.
+The two properties can be proved by structural induction on the BDD.
 The first is the easiest one and we will let it as an exercice for the
 reader. Here is a proof of the second one:
 
@@ -816,7 +836,7 @@ reader. Here is a proof of the second one:
   in this case.
 
 \item if $D ::=\ \adanot{} \ D1$:\\
-  if D1 does not contains diamond, D does not either, the propery is trivial
+  if D1 does not contain diamond, D does not either, the propery is trivial
   as well. If it does contain diamond, well, only outcome labels are different
   between BDD(D) and BDD(D1), so the property holds for D if it holds for D1.
 
@@ -932,8 +952,11 @@ invariants:
 As a consequence of this last invariant, we will now call
 BDDBC\_Coverage the union of these three sets:
 
-  $BDDBC\_Coverage(D) = Short\_Circuit\_LPLD(D)\\
-                         + Long\_Circuit\_LPLD(D) + LPLD\_Not\_Evaluated(D)$
+\begin{align*}
+  BDDBC\_Coverage(D) & = Short\_Circuit\_LPLD(D)\\
+                     & + Long\_Circuit\_LPLD(D)\\
+                     & + LPLD\_Not\_Evaluated(D)
+\end{align*}
 
 Note also that an other property falls naturally from
 LPLD\_Not\_Evaluated\_Invariant and BDDBC\_Coverage\_Invariant:
@@ -945,20 +968,20 @@ LPLD\_Not\_Evaluated\_Invariant and BDDBC\_Coverage\_Invariant:
 \end{description}
 
 Anyway, here is the definition, case by case, of a recursive build
-procedure that builds such sets from a decision D. It assumes that all
-its sub-decisions have such sets verifying these invariants (not
-considering D as a sub-decision of D, obviously; ``strict'' sub-decisions):
+procedure that builds such sets from a decision D. As always when
+doing a structural induction, it assumes that all its sub-decisions
+have such sets verifying these invariants (not considering D as a
+sub-decision of D, obviously; ``strict'' sub-decisions):
 
 \begin{description}
 \item[Build\_BDD\_Cov.Condition]
   The sub-decision is a single condition decision, it is of the form:\\
-  $D ::= C$
-
+  $D ::= C$\\
   In this case:
-  \begin{itemize}
-  \item $Short\_Circuit\_LPLD(D) = Long\_Circuit\_LPLD(D) = \{\}$
-  \item $LPLD\_Not\_Evaluated(D) = \{C -> True, C -> False\}$
-  \end{itemize}
+  \begin{align*}
+    Short\_Circuit\_LPLD(D) & = Long\_Circuit\_LPLD(D) = \{\}\\
+    LPLD\_Not\_Evaluated(D) & = \{C -> True, C -> False\}\\
+  \end{align*}
 
 
 \item[Build\_BDD\_Cov.NOT]
@@ -980,13 +1003,13 @@ considering D as a sub-decision of D, obviously; ``strict'' sub-decisions):
   \item No diamonds:\\
     No diamonds in BDD(DL) and BDD(DR), and none were introduced
     by building BDD(D) from them. Then:\\
-    \begin{itemize}
-    \item $Short\_Circuit\_LPLD(D) = \{\}$
-    \item $Long\_Circuit\_LPLD (D) = \{\}$
-    \item $LPLD\_Not\_Evaluated(D) = path\_to(SC, BDDBC\_Coverage(DL))\\
-      + merge(path\_to(not SC, BDDBC\_Coverage (DL)),\\
-      BDDBC\_Coverage(DR))$
-    \end{itemize}
+    \begin{align*}
+      Short\_Circuit\_LPLD(D) & = \{\}\\
+      Long\_Circuit\_LPLD (D) & = \{\}\\
+      LPLD\_Not\_Evaluated(D) & = path\_to(SC, BDDBC\_Coverage(DL))\\
+                            & + merge(path\_to(not SC, BDDBC\_Coverage (DL)),\\
+                            & \quad BDDBC\_Coverage(DR))
+    \end{align*}
 
   \item Diamond in DR:\\
     i.e. Short\_Circuit\_LPLD(DR) and Long\_Circuit\_LPLD(DR) contain at least
@@ -994,15 +1017,13 @@ considering D as a sub-decision of D, obviously; ``strict'' sub-decisions):
     Let p\_dl be an arbitrary path to ``not SC'' in BDD(DL), taken from
     BDDBC\_Coverage(DL). In BDD(D), it corresponds to a path to root(DR).
     Then:
-    \begin{itemize}
-    \item $Short\_Circuit\_LPLD(D) = merge({p\_dl},\\
-                                     Short\_Circuit\_LPLD(DR))$
-    \item $Long\_Circuit\_LPLD(D)  = merge({p\_dl},\\
-                                        Long\_Circuit\_LPLD(DR))$
-    \item $LPLD\_Not\_Evaluated(D) = path\_to(SC, BDDBC\_Coverage(DL))\\
-                            + merge(path\_to(not SC, BDDBC\_Coverage(DL)),\\
-                            LPLD\_Not\_Evaluated(DR))$
-    \end{itemize}
+    \begin{align*}
+    Short\_Circuit\_LPLD(D) & = merge({p\_dl}, Short\_Circuit\_LPLD(DR))\\
+    Long\_Circuit\_LPLD(D)  & = merge({p\_dl}, Long\_Circuit\_LPLD(DR))\\
+    LPLD\_Not\_Evaluated(D) & = path\_to(SC, BDDBC\_Coverage(DL))\\
+                          & + merge(path\_to(not SC, BDDBC\_Coverage(DL)),\\
+                          & \quad  LPLD\_Not\_Evaluated(DR))
+    \end{align*}
   
   \item Last diamond introduced:\\
     i.e. no diamonds in BDD(DR) and a diamond has been created when building
@@ -1022,20 +1043,21 @@ considering D as a sub-decision of D, obviously; ``strict'' sub-decisions):
     sc\_dr be an arbitrary path in DR exiting on SC.
 
     Then the coverage for BDD(D) is built as follows:
-    \begin{itemize}
-    \item $Short\_Circuit\_LPLD(D) = SC\_DL$
-    \item $Long\_Circuit\_LPLD(D)  = merge(LC\_DL, {sc\_dr})$
-    \item $LPLD\_Not\_Evaluated(D) = path\_to(SC, REST\_DL)\\
-                            + merge(path\_to(not SC), REST\_DL),\\
-                            BDDBC\_Coverage(DR))$
-    \end{itemize}
+    \begin{align*}
+    Short\_Circuit\_LPLD(D) & = SC\_DL\\
+    Long\_Circuit\_LPLD(D)  & = merge(LC\_DL, {sc\_dr})\\
+    LPLD\_Not\_Evaluated(D) & = path\_to(SC, REST\_DL)\\
+                            & + merge(path\_to(not SC), REST\_DL),\\
+                            & \quad BDDBC\_Coverage(DR))
+    \end{align*}
     (Note that we are allowed to merge path\_to(not SC, REST\_DL) because
     it is non-empty; there is at least one other node that has an exit
     edge directly connected to ``not SC'' in BDD(DL), otherwise no
     diamond would have been created; so it must have at least one path
     that does not evaluate the last node in BDD(DL); that property
     gives us the right to use the merge operation. Same thing for LC\_DL
-    and SC\_DL that are both non-empty thanks to Last\_Node property).
+    and SC\_DL that are both non-empty thanks to
+    property~\ref{lemma:last-node}).
 
   \item Diamond in DL only:\\
     i.e. no diamonds in BDD(DR), no new diamonds introduced when
@@ -1044,31 +1066,32 @@ considering D as a sub-decision of D, obviously; ``strict'' sub-decisions):
     that connects to SC; otherwise, it would have been connected to
     BDD(DR)'s root when building BDD(D), and as the last node would
     also be connected to this root node (it also has an exit edge to
-    SC in DR, as a consequence of property Last\_Node), BDD(DR)'s
+    SC in DR, as a consequence of property~\ref{lemma:last-node}), BDD(DR)'s
     root would have at least two fathers in D, which contradicts the
     hypothesis that no diamonds were introduced.  Let sc\_dr be an
     arbitrary path in DR exiting on SC.  Then the coverage for BDD(D)
     is built as follows:
-    \begin{itemize}
-    \item $Short\_Circuit\_LPLD(D) = Short\_Circuit\_LPLD(DL)$
-    \item $Long\_Circuit\_LPLD(D)  = merge(Long\_Circuit\_LPLD, {sc\_dr})$
-    \item $LPLD\_Not\_Evaluated(D) = path\_to(SC, LPLD\_Not\_Evaluated(DL))\\
-                           + merge(path\_to(not SC, LPLD\_Not\_Evaluated(DL),\\
-                           BDDBC\_Coverage(DR))$
-    \end{itemize}
+    \begin{align*}
+    Short\_Circuit\_LPLD(D) & = Short\_Circuit\_LPLD(DL)\\
+    Long\_Circuit\_LPLD(D)  & = merge(Long\_Circuit\_LPLD, {sc\_dr})\\
+    LPLD\_Not\_Evaluated(D) & = path\_to(SC, LPLD\_Not\_Evaluated(DL))\\
+                         & + merge(path\_to(not SC, LPLD\_Not\_Evaluated(DL),\\
+                         & BDDBC\_Coverage(DR))
+    \end{align*}
   \end{itemize}
 \end{description}
 
-It is quite easy to check that Short\_Circuit\_LPLD\_Invariant,
+Our sets are now defined in all possible cases. It is quite easy to
+check that Short\_Circuit\_LPLD\_Invariant,
 Long\_Circuit\_LPLD\_Invariant, LPLD\_Not\_Evaluated\_Invariant and
 BDDBC\_Coverage\_Invariant are enforced by this build procedure; each
-one falls so obviously from the construction (in every case) that
-it will be quite painful to elaborate.
+one falls so obviously from the construction (in every case) that it
+will be quite painful to elaborate.
 
 So we can build a BDD coverage in such a way that, if there is a
 diamond in the BDD, then the decision will have the same outcome for
 any evaluation where the last parent of the last diamond is
-evaluated. This means that this BDD coverage does not imply weak
+evaluated. This means that this BDD coverage does not imply Weak
 MC/DC; that which was to be demonstrated.
 
 \subsection{Conclusion}
@@ -1082,13 +1105,14 @@ We have therefore proved the following property:
   BDD is reachable through more that one path from the root).
 \end{theorem}
 
-Intuitively, BDDBC is a local property of BDD traversals (i.e. of evaluations
-of the decision): it is evaluated individually for each BDD node, without
-respect to how the BDD node was reached. In contrast, MC/DC is a non-local
-property, since it involves the complete path through the BDD. To establish
-independent influence of condition C, it is necessary to study what happens
-for two values of C leading to different outcomes, \emph{with all other
-conditions fixed}, i.e. considering a single way of \emph{arriving to C}.
+Intuitively, BDDBC is a local property of BDD traversals (i.e. of
+evaluations of the decision): it is evaluated individually for each
+BDD node, without respect to how the BDD node was reached. In
+contrast, MC/DC is a non-local property, since it involves the
+complete path through the BDD. To establish independent influence of
+condition C, it is necessary to study what happens for two values of C
+leading to different outcomes, \emph{with all other conditions fixed
+or masked}.
 
 \section{A second characterization of the equivalence case}
 
@@ -1107,16 +1131,15 @@ The negative normal form is obtained by rewriting the expression using
 De Morgan's laws so that negations apply only to atomic conditions (and not
 to more complex subexpressions).
 
+% XXX Integrate proof that this transformation does not change the BDD???
+% http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-February/000075.html
+
 We prove this theorem by showing that this alternative characterization is
 equivalent to having no diamond in the associated BDD.
 Theorem~\ref{thm:lhs-same-operator} follows by application of
 Theorem~\ref{thm:no-diamond}.
 
-Let's consider a decision D and its BDD. For the order of atoms in the
-BDD, we take the order in which they appear in a depth-first traversal
-of the decision (represented as a tree).
-
-% ??? Add results about ordering...
+Let's consider a decision D and its BDD.
 
 \begin{figure}
 \centering
@@ -1176,36 +1199,34 @@ property.
 \emph{Proof of the simplified case:}
 
 Consider first the case where decision D does not contain any negation.
-Each non-terminal node in the BDD corresponds to a sub-decision D' in D
-(i.e. the root of each sub-decision is a non-terminal node in D's BDD).
+Each node in the BDD corresponds to a sub-decision D' in D
+(i.e. the root of each sub-decision is a node in D's BDD).
 
 \emph{Proof of reverse implication (simplified case):}
 
 Let's call NF(D) the number of paths from the root of decision D to False (F)
-and NT(D) the number of paths from the root of decision D to True (T).
+and NT(D) the number of paths from the root of decision D to True (T). We
+then have three cases:
 
 \emph{case 1:} D = A (atom)\\
 $NF(D) = NT(D) = 1$
 
 \emph{case 2:} D = $DL \ \orelse{} \ DR$\\
-The BDD for D can be constructed from the BDDs for DL and DR. It is shown 
-in Figure~\ref{subfig:DL-or-DR}.
-
-
+BDD(D) is constructed from BDD(DL) and BDD(DR). It is shown 
+in Figure~\ref{subfig:DL-or-DR}. Then:\\
 $NF(D) = NF(DL) * NF(DR)$\\
 $NT(D) = NT(DL) + NF(DL) * NT(DR)$
 
 \emph{case 3:} D = $DL \ \andthen{} \ DR$\\
-The BDD for D can be constructed from the BDDs for DL and DR. It is shown 
-in Figure~\ref{subfig:DL-and-DR}.
-
+BDD(D) is constructed from BDD(DL) and BDD(DR). It is shown 
+in Figure~\ref{subfig:DL-and-DR}. Then:\\
 $NF(D) = NF(DL) + NT(DL) * NF(DR)$\\
 $NT(D) = NT(DL) * NT(DR)$
 
 \begin{lemma}
 \label{lemma:NF-NT-bound}
-For every E, $NF(D) \ge 1$ and $NT(D) \ge 1$.
-If D is of the form \orelse{} then $NT(D) \ge 2$.
+For every decision D, $NF(D) \ge 1$ and $NT(D) \ge 1$.\\
+If D is of the form \orelse{} then $NT(D) \ge 2$.\\
 If D is of the form \andthen{} then $NF(D) \ge 2$.
 \end{lemma}
 
@@ -1222,24 +1243,24 @@ Proofs of Lemmas~\ref{lemma:NF-NT-bound} and~\ref{lemma:NF-NT-monotonic} are on
 structural induction on the form of decisions, based on the three cases
 distinguished above.
 
-Then, suppose a decision D of the form \andthen{} contains a
-sub-decision D' of the form \orelse{} on the left-hand side, of the form
-\orelse{}. If DL, DR are the two sub-decisions such that
-$D = DL \andthen{} DR$, then D' is also a sub-decision of DL.
+Then, suppose that a decision D of the form \andthen{} contains a
+sub-decision D' of the form \orelse{} on the left-hand side. If DL, DR
+are the two sub-decisions such that $D = DL \ \andthen{} \ DR$, then D' is
+also a sub-decision of DL.
 
 By Lemma~\ref{lemma:NF-NT-bound}, we know that $NT(D') \ge 2$. By
 Lemma~\ref{lemma:NF-NT-monotonic}, we know that $NT(DL) \ge NT(D')$.
 
-Then, in D's BDD, the paths reaching the DR's root node are exactly
-those paths in DL's BDD reaching True, by construction; the number of
+Then, in BDD(D), the paths reaching the DR's root node are exactly
+those paths in BDD(DL) reaching True, by construction; the number of
 these paths is NT(DL).
 
-Thus, DR's root node in the D's BDD is reachable by more than one
+Thus, DR's root node in the BDD(DL) is reachable by more than one
 path. As a consequence, there is a diamond in this BDD.
 
 Similarly, if a decision D of the form \orelse{} contains a
 sub-decision D' of the form \andthen{} on the left-hand side, we can
-exhibit a non-terminal node in the BDD for D that is reachable by more
+exhibit a node in the BDD(D) that is reachable by more
 than one path.
 
 By contraposition, if there are no diamonds in the BDD associated to a
