@@ -1,4 +1,4 @@
-module xcov/models/decision_evalutions
+module xcov/models/decision_evaluations
 
 --  This module provides a model for the evaluation of a decision using the
 --  following recursive procedure:
