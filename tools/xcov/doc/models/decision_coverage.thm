@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<alloy>
+
+<view>
+
+<projection> <type name="Int"/> <type name="decisions/Decision"/> </projection>
+
+<defaultnode/>
+
+<defaultedge visible="no" attribute="yes"/>
+
+<node>
+   <type name="Int"/>
+   <type name="String"/>
+   <type name="univ"/>
+   <type name="decision_types/And_Then"/>
+   <type name="decision_types/Binary_Operator"/>
+   <type name="decision_types/Condition"/>
+   <type name="decision_types/Decision_Element"/>
+   <type name="decision_types/Not"/>
+   <type name="decision_types/Or_Else"/>
+   <type name="decision_types/Outcome_False"/>
+   <type name="decision_types/Outcome_True"/>
+   <type name="decision_types/Unary_Operator"/>
+   <type name="decisions/Decision"/>
+   <type name="evaluations/T_False"/>
+   <type name="evaluations/T_True"/>
+   <type name="evaluations/T_Unknown"/>
+   <type name="seq/Int"/>
+   <set name="$cond_independent_effect_masking_e1" type="decision_types/Condition"/>
+   <set name="$cond_independent_effect_masking_e2" type="decision_types/Condition"/>
+   <set name="$show_masking_mcdc_d" type="decisions/Decision"/>
+   <set name="$show_masking_mcdc_outcome" type="decision_types/Decision_Outcome"/>
+   <set name="$unique_cause_c" type="decision_types/Condition"/>
+   <set name="bin_ops" type="decision_types/Binary_Operator"/>
+   <set name="conditions" type="decision_types/Condition"/>
+   <set name="un_ops" type="decision_types/Unary_Operator"/>
+</node>
+
+<node hideunconnected="yes">
+   <type name="evaluations/Tristate"/>
+</node>
+
+<node visible="no">
+   <type name="decision_types/Decision_Outcome"/>
+   <type name="evaluations/Tristate_Conversions"/>
+</node>
+
+<edge visible="no" attribute="no">
+   <relation name="to_outcome_mapping"> <type name="evaluations/Tristate_Conversions"/> <type name="evaluations/Tristate"/> <type name="decision_types/Decision_Outcome"/> </relation>
+</edge>
+
+<edge visible="yes" attribute="no">
+   <relation name="$show_complex_influence_graph_i_graph"> <type name="decision_types/Decision_Element"/> <type name="decision_types/Decision_Element"/> </relation>
+   <relation name="child_bin_left"> <type name="decision_types/Binary_Operator"/> <type name="decision_types/Decision_Element"/> </relation>
+   <relation name="child_bin_right"> <type name="decision_types/Binary_Operator"/> <type name="decision_types/Decision_Element"/> </relation>
+   <relation name="child_un"> <type name="decision_types/Unary_Operator"/> <type name="decision_types/Decision_Element"/> </relation>
+</edge>
+
+</view>
+
+</alloy>

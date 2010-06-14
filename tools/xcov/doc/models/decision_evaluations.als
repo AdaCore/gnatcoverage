@@ -179,6 +179,23 @@ result       : Tristate]
    result = T_Unknown
 }
 
+----------------
+-- evaluation --
+----------------
+
+pred evaluation
+[d : Decision,
+e  : Decision_Element -> Tristate]
+{
+   --  True if e is a consistent evaluation of d, i.e. if it
+   --  relates each decision element to the value of its sub-decision
+   --  for a valid set of condition values.
+
+   let values = e & (conditions[d] -> Tristate) {
+      eval_decision [d, values, e]
+   }
+}
+
 -------------------
 -- eval_decision --
 -------------------
