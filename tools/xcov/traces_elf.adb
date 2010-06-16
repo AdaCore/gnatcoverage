@@ -330,9 +330,9 @@ package body Traces_Elf is
          Machine := Ehdr.E_Machine;
 
       elsif Machine /= Ehdr.E_Machine then
-         --  Mixing different architectures is not supported
+         --  Mixing different architectures.
 
-         raise Program_Error;
+         Outputs.Fatal_Error ("unexpected architecture for " & Filename);
       end if;
 
       --  Be sure the section headers are loaded
@@ -869,7 +869,17 @@ package body Traces_Elf is
                   when others =>
                      raise Program_Error;
                end case;
+            when EM_SPARC =>
+               case Elf_R_Type (R.R_Info) is
+                  when R_SPARC_UA32 =>
+                     null;
+                  when others =>
+                     raise Program_Error;
+               end case;
             when others =>
+               Outputs.Fatal_Error
+                 ("Relocs unhandled for this machine, reloc is"
+                  & Elf_Word'Image (Elf_R_Type (R.R_Info)));
                raise Program_Error;
          end case;
 
