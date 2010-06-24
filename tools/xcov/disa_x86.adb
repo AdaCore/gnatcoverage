@@ -1281,6 +1281,10 @@ package body Disa_X86 is
                Decode_Imm (Off_Imm, W_16);
                Add_Comma;
                Decode_Imm (Off2, W_32);  -- FIXME
+            when C_Gv_Cl =>
+               Add_String ("%cl");
+               Add_Comma;
+               Decode_Modrm_Reg (Mem (Off_Modrm), W);
             when C_Gv =>
                Decode_Modrm_Reg (Mem (Off_Modrm), W);
             when C_Gv_Ib =>
@@ -1374,7 +1378,7 @@ package body Disa_X86 is
               | C_Reg_Ss
               | C_Reg_Cs =>
                return;
-            when C_Gv | C_Gb =>
+            when C_Gv | C_Gv_Cl | C_Gb =>
                return;
             when C_Gv_Ib | C_Ev_Ib | C_Ib | C_Jb =>
                Off_Imm := Off_Imm + 1;
