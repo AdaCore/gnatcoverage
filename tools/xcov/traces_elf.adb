@@ -2026,6 +2026,8 @@ package body Traces_Elf is
 
                   type Br_Kind is (Br_None,
                                    Br_Cond, Br_Cond_A,
+                                   Br_Always, Br_Always_A,
+                                   Br_Never, Br_Never_A,
                                    Br_Trap, Br_Call, Br_Jmpl, Br_Rett);
 
                   function Get_Br (Insn : Unsigned_32) return Br_Kind;
@@ -2039,15 +2041,31 @@ package body Traces_Elf is
 
                   function Get_Br (Insn : Unsigned_32) return Br_Kind is
                   begin
+                     --  Extract OP.
                      case Shift_Right (Insn, 30) is
+
                         when 0 =>
+                           --  Format 2.  Extract OP2.
                            case Shift_Right (Insn, 22) and 7 is
+                              --  BIcc, FBfcc or CBcc
                               when 2#010# | 2#110# | 2#111# =>
-                                 if (Shift_Right (Insn, 29) and 1) = 0 then
-                                    return Br_Cond;
-                                 else
-                                    return Br_Cond_A;
-                                 end if;
+                                 --  Extract a & cond.
+                                 case Shift_Right (Insn, 25) and 31 is
+                                    when 0 =>
+                                       return Br_Never;
+                                    when 16 =>
+                                       return Br_Never_A;
+                                    when 8 =>
+                                       return Br_Always;
+                                    when 24 =>
+                                       return Br_Always_A;
+                                    when 1 .. 7 | 9 .. 15 =>
+                                       return Br_Cond;
+                                    when 17 .. 23 | 25 .. 31 =>
+                                       return Br_Cond_A;
+                                    when others =>
+                                       raise Program_Error;
+                                 end case;
 
                               when others =>
                                  return Br_None;
@@ -2057,6 +2075,7 @@ package body Traces_Elf is
                            return Br_Call;
 
                         when 2 =>
+                           --  Extract OP3.
                            case Shift_Right (Insn, 19) and 2#111_111# is
                               when 2#111000# =>
                                  return Br_Jmpl;
@@ -2111,6 +2130,8 @@ package body Traces_Elf is
                      Split_Trace (Base, It, Pc1, Coverage_State (Covered));
                   end if;
 
+                  --  Compute the state of the last and previous insn
+
                   case Br is
                      when Br_Cond | Br_Cond_A =>
                         case Op is
@@ -2123,6 +2144,9 @@ package body Traces_Elf is
                               raise Program_Error;
 
                         end case;
+
+                     when Br_Always | Br_Always_A | Br_Never | Br_Never_A =>
+                        Nstate := Covered;
 
                      when Br_None | Br_Call | Br_Trap | Br_Jmpl | Br_Rett =>
                         Nstate := Covered;
