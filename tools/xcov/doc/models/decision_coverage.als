@@ -30,7 +30,7 @@ fun xor_tristate [s1, s2 : Tristate] : Tristate
 {
    --  Extension of xor to three-state boolean algebra as defined in
    --  DOT/FAA/AR-01/18: anything xor T_Unknown = False.
-   
+
    ((s1 + s2) =  (T_True + T_False)) => T_True else T_False
 }
 
@@ -43,9 +43,9 @@ pred is_evaluation_pair
 eval1, eval2 : Decision_Element -> Tristate]
 {
    --  True if eval1 and eval2 are two valid evaluations for d.
-   
+
    evaluation [d, eval1]
-   evaluation [d, eval2]   
+   evaluation [d, eval2]
 }
 
 ----------------------
@@ -60,7 +60,7 @@ fun elements_changed
    --  in both eval1 and eval2 and whose values are different between
    --  these two evaluations. In other words, it keeps all conditions c
    --  such that xor_tristate [c.eval1, c.eval2] = T_True.
-   
+
    (eval1.T_True & eval2.T_False) + (eval1.T_False & eval2.T_True)
 }
 -----------------------
@@ -106,7 +106,7 @@ eval1, eval2 : Decision_Element -> Tristate]
    --------------------
    -- postconditions --
    --------------------
-   
+
    all e : elements [d] |
       result [e] = xor_tristate [eval1 [e], eval2 [e]]
 }
@@ -160,7 +160,7 @@ eval1, eval2 : Decision_Element -> Tristate]
 -- influence_set --
 -------------------
 
-fun influence_set 
+fun influence_set
 [d      : Decision,
 i_graph : Decision_Element -> Decision_Element] : set Condition
 {
@@ -200,7 +200,7 @@ evals   : Int -> (Decision_Element -> Tristate)]
 {
    --  True if in evals there is an evaluation pair that allows to reach
    --  Masking MC/DC for condition c in decision d.
-   
+
    -------------------
    -- preconditions --
    -------------------
@@ -211,7 +211,7 @@ evals   : Int -> (Decision_Element -> Tristate)]
    --------------------
    -- postconditions --
    --------------------
-   
+
    some e1, e2 : inds [outcome] |
       let g = influence_graph [d, evals [e1], evals [e2]] |
 	 influence_set [d, g] = c
@@ -229,7 +229,7 @@ evals   : Int -> (Decision_Element -> Tristate)]
 {
    --  True if in evals there is an evaluation pair that allows to reach
    --  Unique Cause MC/DC for condition c in decision d.
-   
+
    -------------------
    -- preconditions --
    -------------------
@@ -240,7 +240,7 @@ evals   : Int -> (Decision_Element -> Tristate)]
    --------------------
    -- postconditions --
    --------------------
-   
+
    some e1, e2 : inds [outcome] |
       let g = influence_graph [d, evals [e1], evals [e2]] {
 	 influence_set [d, g] = c
@@ -286,7 +286,7 @@ assert influence_graphs_equivalence {
    --  or from the influence tree will give the same result.
 
    all d : Decision |
-      all eval1, eval2 : elements[d] -> Tristate | 
+      all eval1, eval2 : elements[d] -> Tristate |
 	 all i_tree : elements[d] -> Tristate {
 	    (influence_tree [d, i_tree, eval1, eval2]
 	     implies (influence_graph [d, eval1, eval2]
@@ -298,7 +298,7 @@ check influence_graphs_equivalence for 5 but 1 Decision, 8 Decision_Element
 
 assert unique_cause_stronger_than_masking {
    --  Check that Unique Cause MC/DC implies Masking MC/DC.
-   
+
    all d : Decision |
       all outcome : seq Decision_Outcome |
 	 all evals : Int -> (Decision_Element -> Tristate) |
