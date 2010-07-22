@@ -1,17 +1,14 @@
-This is the README file for the binary distribution of the Xcov coverage
-analysis facility.
-
 PACKAGE CONTENTS
 ================
 
-The package provides the xcov front-end, used both as a wrapper of the
-instrumented execution environment (xcov run) and as a trace analyzer
-able to render coverage results in various output formats (xcov
-coverage).
+This package provides the xcov front-end to coverage analysis activities.  It
+may be used both as a wrapper to an instrumented execution environment able to
+produce machine-level execution traces (xcov run) and as a trace analyzer able
+to render coverage results in various output formats (xcov coverage).
 
-The instrumented version of Qemu, an open source processor emulator we
-use as a program execution environment able to generate execution traces
-of the machine code it executes is available in a separate package.
+Instrumented execution environments are provided as separate packages. As of
+today, we leverage instrumented versions of Qemu, an open source processor
+emulator.
 
 As part of the examples subdirectory, the package also includes:
 
@@ -31,26 +28,53 @@ based tests for some of the program units.
 The "Engines" example is used to provide a quick first contact with the
 tools, through the QUICK START section below.
 
-INSTALL
-=======
-This distribution can be used standalone, without any specific installation
-step after unpacking.  The <unpack-subdir>/bin directory contains the toolset
-programs, which you may access by simply adjusting your PATH environment
-variable. The <unpack-subdir>/share directory contains the documentation and
-examples.
+INSTALL - binary distribution
+=============================
 
-If this is more convenient for you, you may transfer the contents of the "bin"
-and "share" subdirectories into their corresponding entries within a
-pre-existing installation tree, where a GNAT toolset is located for instance.
+If you retrieved this README from a binary distribution (zip or tar.gz archive
+with -bin in the name), you have
+
+  * An <unpack-subdir>/share subdirectory with the doc and examples;
+
+  * An <unpack-subdir>/bin subdirectory with the "xcov" program.
+
+The xcov binary is standalone, so you may access it by simply adjusting your
+PATH environment variable. A prerequisite to using xcov run is to have the
+instrumented environment available already.
+
+If this is more convenient for you, you may transfer the contents of the
+"shared" and "bin" subdirectories into their corresponding entries within a
+pre-existing installation tree, where a compiler toolset is located for
+instance.
+
+INSTALL - source distribution
+=============================
+
+If you retrieved this README from a source distribution (repository, zip or
+tar.gz archive with -src in the name), you have
+
+  * Sources of the front-end straight at hand, together with this README
+    and a Makefile;
+
+  * Examples and the documentation in the "examples" and "doc" subdirectories
+    respectively.
+
+To build the xcov binary, just invoke "make". This requires an Ada 2005
+capable compiler and the Makefile resorts to GNAT for this purpose.
+
+To build pdf and other versions of the documentation, invoke "make doc".
 
 QUICK START - OBJECT COVERAGE
 =============================
-A quick starter is the "engines" basic example, assuming you have both your
-target compilation toolchain and this package installed.
+
+A quick starter is the "engines" basic example, assuming you have installed
+your target compilation toolchain, this package, and the instrumented qemu
+(qemu-system-ppc|sparc from binary distributions or built from the proper
+source tree).
 
 The first step is to setup the PATH environment variable to include locations
-for both the target compiler and the Xcov "bin" directory. For example with a
-bash like shell:
+for both the target compiler and the xcov/qemu "bin" directory. For example
+with a bash like shell:
 
   $ PATH=/usr/local/gnat/6.1.2/bin:/usr/local/xcov/bin:$PATH
 
@@ -94,6 +118,7 @@ the examples and which you may reuse and adapt to your specific needs.
 
 QUICK START - SOURCE COVERAGE
 =============================
+
 Source coverage analysis involves a similar process, with few differences:
 
 * It is requested by specific values of the --level argument: stmt,
@@ -111,6 +136,7 @@ argument to 'make' invocations, for example 'make XCOVLEVEL=stmt'.
 
 FURTHER DOCUMENTATION
 =====================
+
 Further documentation is available from the "Xcov Fundamentals & Users Guide"
 in the <unpack/installation-root>/share/doc/xcov directory of this package.
 
