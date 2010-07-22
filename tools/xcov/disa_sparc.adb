@@ -776,7 +776,7 @@ package body Disa_Sparc is
          when 2#00# =>
             case Get_Field (F_Op2, W) is
                when 2#010# | 2#110# =>
-                  if (Get_Field (F_Cond, W) and 2#0111#) = 0 then
+                  if (Get_Field (F_Cond, W) and 2#0111#) /= 0 then
                      Flag_Cond := True;
                   end if;
                   Dest := Pc + Get_Field_Sext (F_Disp22, W) * 4;
