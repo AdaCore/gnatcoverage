@@ -29,7 +29,7 @@ sig Execution {
    --  of conditions that we can consider to show a given criteria.
    --
    --  To illustrate this limitation, let me take an example.
-   --  Suppose that you ask the analyzer to show you a MCDC
+   --  Suppose that you ask the analyzer to show you a MC/DC
    --  coverage of a BDD in a model with 7 atoms; then,
    --  the maximum number of evaluations that it can show is 7,
    --  and as a consequence the maximum number of conditions in the
@@ -99,13 +99,13 @@ pred cond_independent_effect [ex : Execution, n : Condition]
    }
 }
 
--------------------
--- mcdc_coverage --
--------------------
+------------------
+-- unique_cause --
+------------------
 
-pred mcdc_coverage [ex : Execution]
+pred unique_cause [ex : Execution]
 {
-   --  True if ex is a mcdc coverage of the bdd
+   --  True if ex is a Unique Cause MC/DC coverage of the bdd
 
    all n : ex.bdd.nodes | cond_independent_effect [ex, n]
 }
@@ -128,22 +128,22 @@ run cond_both_taken for 7 but 1 BDD, 1 Execution
 run cond_changed_outcome for 7 but 1 BDD, 1 Execution
 run cond_independent_effect for 7 but 1 BDD, 1 Execution
 
-private pred show_mcdc_coverage [ex : Execution]
+private pred show_unique_cause [ex : Execution]
 {
-   --  Show mcdc coverage on a "significantly complicated" bdd
+   --  Show Unique Cause MC/DC coverage on a "significantly complicated" bdd
    --  (more than 1 node...)
    --  This predicates also allows to check that a scope with 7 atoms
-   --  allows to show the MCDC coverage of a BDD with 6 nodes.
+   --  allows to show the MC/DC coverage of a BDD with 6 nodes.
 
    #ex.bdd.nodes = 6
-   mcdc_coverage [ex]
+   unique_cause [ex]
 }
 
-run show_mcdc_coverage for 7 but 1 BDD, 1 Execution
+run show_unique_cause for 7 but 1 BDD, 1 Execution
 
 private pred show_branch_coverage [ex : Execution]
 {
-   --  Show mcdc coverage on a "significantly complicated" bdd
+   --  Show branch coverage on a "significantly complicated" bdd
    --  (more than 1 node...)
    --  This predicates also allows to check that a scope with 7 atoms
    --  allows to show the branch coverage of a BDD with 6 nodes.
@@ -155,20 +155,20 @@ private pred show_branch_coverage [ex : Execution]
 run show_branch_coverage for 7 but 1 BDD, 1 Execution
 
 assert mcdc_implies_branch_coverage {
-   --  Assert that mcdc implies branch coverage
+   --  Assert that Unique Cause MC/DC implies branch coverage
 
    all ex : Execution |
-      mcdc_coverage [ex] implies branch_coverage [ex]
+      unique_cause [ex] implies branch_coverage [ex]
 }
 
 check mcdc_implies_branch_coverage for 7 but 1 BDD, 1 Execution
 
 assert path_coverage_implies_mcdc {
-   --  Assert that branch coverage + no diamond implies mcdc
+   --  Assert that branch coverage + no diamond implies MC/DC
 
    all ex : Execution {
       (not has_diamond [ex.bdd] and branch_coverage [ex])
-         implies mcdc_coverage [ex]
+         implies unique_cause [ex]
    }
 }
 
@@ -176,22 +176,22 @@ check path_coverage_implies_mcdc for 7 but 1 BDD, 1 Execution
 
 private pred branch_coverage_and_not_mcdc [ex : Execution]
 {
-   --  True if ex covers bdd's branches, but does not demonstrate mcdc
+   --  True if ex covers bdd's branches, but does not demonstrate MC/DC
 
    branch_coverage [ex]
-   not mcdc_coverage [ex]
+   not unique_cause [ex]
 }
 
 run branch_coverage_and_not_mcdc for 5 but 1 BDD, 1 Execution
 
 assert branch_coverage_and_not_mcdc_implies_diamond {
-   --  Assert that branch coverage + not mcdc implies that one
+   --  Assert that branch coverage + not MC/DC implies that one
    --  node of the bdd has two fathers. This proves that branch
-   --  coverage and mcdc coverage are not equivalent only when
+   --  coverage and MC/DC coverage are not equivalent only when
    --  the bdd has "diamonds".
 
    all ex : Execution {
-      branch_coverage [ex] and not mcdc_coverage [ex] implies
+      branch_coverage [ex] and not unique_cause [ex] implies
          has_diamond [ex.bdd]
    }
 }
