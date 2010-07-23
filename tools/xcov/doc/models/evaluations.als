@@ -88,7 +88,7 @@ pred cond_both_taken [n : Condition, evt, evf : Condition -> Tristate]
 }
 
 -----------------------------
--- cond_independent_effect --
+-- cond_independent_change --
 -----------------------------
 
 pred cond_independent_change [n : Condition, evt, evf : Condition -> Tristate]

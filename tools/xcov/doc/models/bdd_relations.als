@@ -206,6 +206,10 @@ pred is_sequence [next : BDD_Node -> (BDD_Node + BDD_Term)]
    no next or ((ran [next] - dom [next]) in BDD_Term)
 }
 
+-----------
+-- elems --
+-----------
+
 fun elems [next : BDD_Node -> (BDD_Node + BDD_Term)] : set BDD_Node
 {
    --  Return all nodes in a sequence
