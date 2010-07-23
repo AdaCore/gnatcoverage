@@ -182,6 +182,20 @@ fun terminal_edges
    (BDD_Node -> BDD_Term) & edges
 }
 
+---------------
+-- reachable --
+---------------
+
+pred reachable
+[graph : BDD_Node -> (BDD_Node + BDD_Term),
+from   : BDD_Node,
+to     : BDD_Node + BDD_Term]
+{
+   --  True if 'to' can be reached from 'from' in graph
+
+   to in from.*graph
+}
+
 -----------------
 -- is_sequence --
 -----------------
@@ -204,6 +218,34 @@ pred is_sequence [next : BDD_Node -> (BDD_Node + BDD_Term)]
 
    --  If the sequence is not empty, the terminal node is a BDD_Term
    no next or ((ran [next] - dom [next]) in BDD_Term)
+}
+
+----------------------
+-- sequence_outcome --
+----------------------
+
+fun sequence_outcome [next : BDD_Node -> (BDD_Node + BDD_Term)] : BDD_Term
+{
+   --  Assuming that next is a valid sequence, return its outcome;
+   --  or the empty set if the sequence is null
+
+   ran [next] - dom [next]
+}
+
+--------------------------
+-- sequence_switch_node --
+--------------------------
+
+fun sequence_switch_node
+[sequence : BDD_Node -> (BDD_Node + BDD_Term),
+switches  : BDD_Node -> (BDD_Node + BDD_Term),
+node      : BDD_Node]
+: BDD_Node -> (BDD_Node + BDD_Term)
+{
+   --  Switch the sequence at node, using the relation switches;
+   --  note that the returned value is not a sequence in the general case
+
+   sequence ++ node -> (node.switches)
 }
 
 -----------

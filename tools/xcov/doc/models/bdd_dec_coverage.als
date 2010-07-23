@@ -75,3 +75,25 @@ but exactly 3 Condition,
     exactly 1 Dec_BDD,
     exactly 1 BDD,
     exactly 1 Decision
+
+assert bdd_masking_mcdc_equals_decision_masking_mcdc {
+   --  Check that the two definition of Masking MC/DC given
+   --  in bdd_coverage and decision_coverage are equivalent
+
+   all ex : BDD_Dec_Execution {
+      B/masking_mcdc [ex] <=> D/masking_mcdc [ex.db.decision,
+                                              ex.outcome,
+                                              ex.full_evals]
+   }
+}
+
+check bdd_masking_mcdc_equals_decision_masking_mcdc for 5
+but 3 Condition, 1 BDD_Dec_Execution, 1 Dec_BDD, 1 BDD, 1 Decision
+
+check bdd_masking_mcdc_equals_decision_masking_mcdc for 7
+but exactly 3 Condition,
+    exactly 0 Not,
+    exactly 1 BDD_Dec_Execution,
+    exactly 1 Dec_BDD,
+    exactly 1 BDD,
+    exactly 1 Decision

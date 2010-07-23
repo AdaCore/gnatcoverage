@@ -99,6 +99,42 @@ pred cond_independent_effect [ex : Execution, n : Condition]
    }
 }
 
+-----------------------------
+-- cond_independent_effect --
+-----------------------------
+
+pred cond_independent_effect_masking [ex : Execution, n : Condition]
+{
+   --  True if there are two input vectors in the evaluation set so that
+   --  n and outcome have taken two different values and which demonstrate
+   --  masking independent effect of n on outcome
+
+   some t, f : inds [ex.outcome] {
+      --  The outcome changed
+      ex.outcome [t] + ex.outcome [f] = (Outcome_True + Outcome_False)
+
+      --  The condition changed
+      n.(ex.evaluation_vectors [t]) = T_True
+      n.(ex.evaluation_vectors [f]) = T_False
+
+      --  For each vector of the independent pair, changing the
+      --  condition value breaks the path to outcome
+
+      let t_switched = sequence_switch_node [ex.paths [t],
+                                             ex.bdd.if_false,
+                                             n]
+      {
+            not reachable [t_switched, n, ex.outcome [t]]
+      }
+      let f_switched = sequence_switch_node [ex.paths [f],
+                                             ex.bdd.if_true,
+                                             n]
+      {
+            not reachable [f_switched, n, ex.outcome [f]]
+      }
+   }
+}
+
 ------------------
 -- unique_cause --
 ------------------
@@ -108,6 +144,17 @@ pred unique_cause [ex : Execution]
    --  True if ex is a Unique Cause MC/DC coverage of the bdd
 
    all n : ex.bdd.nodes | cond_independent_effect [ex, n]
+}
+
+------------------
+-- masking_mcdc --
+------------------
+
+pred masking_mcdc [ex : Execution]
+{
+   --  True if ex is a Masking MC/DC coverage of the bdd
+
+   all n : ex.bdd.nodes | cond_independent_effect_masking [ex, n]
 }
 
 ---------------------
@@ -141,6 +188,17 @@ private pred show_unique_cause [ex : Execution]
 
 run show_unique_cause for 7 but 1 BDD, 1 Execution
 
+private pred show_masking_mcdc [ex : Execution]
+{
+   --  Show an execution that allows to reach Masking MC/DC
+   --  but not Unique Cause
+
+   masking_mcdc [ex]
+   not unique_cause [ex]
+}
+
+run show_masking_mcdc for 5 but 1 BDD, 1 Execution
+
 private pred show_branch_coverage [ex : Execution]
 {
    --  Show branch coverage on a "significantly complicated" bdd
@@ -154,17 +212,35 @@ private pred show_branch_coverage [ex : Execution]
 
 run show_branch_coverage for 7 but 1 BDD, 1 Execution
 
-assert mcdc_implies_branch_coverage {
+assert unique_cause_implies_branch_coverage {
    --  Assert that Unique Cause MC/DC implies branch coverage
 
    all ex : Execution |
       unique_cause [ex] implies branch_coverage [ex]
 }
 
-check mcdc_implies_branch_coverage for 7 but 1 BDD, 1 Execution
+check unique_cause_implies_branch_coverage for 7 but 1 BDD, 1 Execution
 
-assert path_coverage_implies_mcdc {
-   --  Assert that branch coverage + no diamond implies MC/DC
+assert unique_cause_implies_masking_mcdc {
+   --  Assert that Unique Cause MC/DC implies Masking MC/DC
+
+   all ex : Execution |
+      unique_cause [ex] implies masking_mcdc [ex]
+}
+
+check unique_cause_implies_masking_mcdc for 5 but 1 BDD, 1 Execution
+
+assert masking_mcdc_implies_branch_coverage {
+   --  Assert that Unique Cause MC/DC implies branch coverage
+
+   all ex : Execution |
+      masking_mcdc [ex] implies branch_coverage [ex]
+}
+
+check masking_mcdc_implies_branch_coverage for 7 but 1 BDD, 1 Execution
+
+assert path_coverage_implies_unique_cause {
+   --  Assert that branch coverage + no diamond implies Unique Cause
 
    all ex : Execution {
       (not has_diamond [ex.bdd] and branch_coverage [ex])
@@ -172,20 +248,20 @@ assert path_coverage_implies_mcdc {
    }
 }
 
-check path_coverage_implies_mcdc for 7 but 1 BDD, 1 Execution
+check path_coverage_implies_unique_cause for 7 but 1 BDD, 1 Execution
 
-private pred branch_coverage_and_not_mcdc [ex : Execution]
+private pred branch_coverage_and_not_unique_cause [ex : Execution]
 {
-   --  True if ex covers bdd's branches, but does not demonstrate MC/DC
+   --  True if ex covers bdd's branches, but does not demonstrate Unique Cause
 
    branch_coverage [ex]
    not unique_cause [ex]
 }
 
-run branch_coverage_and_not_mcdc for 5 but 1 BDD, 1 Execution
+run branch_coverage_and_not_unique_cause for 5 but 1 BDD, 1 Execution
 
-assert branch_coverage_and_not_mcdc_implies_diamond {
-   --  Assert that branch coverage + not MC/DC implies that one
+assert branch_coverage_and_not_unique_cause_implies_diamond {
+   --  Assert that branch coverage + not Unique Cause implies that one
    --  node of the bdd has two fathers. This proves that branch
    --  coverage and MC/DC coverage are not equivalent only when
    --  the bdd has "diamonds".
@@ -196,4 +272,41 @@ assert branch_coverage_and_not_mcdc_implies_diamond {
    }
 }
 
-check branch_coverage_and_not_mcdc_implies_diamond for 7 but 1 BDD, 1 Execution
+check branch_coverage_and_not_unique_cause_implies_diamond for 7
+but 1 BDD, 1 Execution
+
+assert path_coverage_implies_masking_mcdc {
+   --  Assert that branch coverage + no diamond implies Masking MC/DC
+
+   all ex : Execution {
+      (not has_diamond [ex.bdd] and branch_coverage [ex])
+         implies masking_mcdc [ex]
+   }
+}
+
+check path_coverage_implies_masking_mcdc for 6 but 1 BDD, 1 Execution
+
+private pred branch_coverage_and_not_masking_mcdc [ex : Execution]
+{
+   --  True if ex covers bdd's branches, but does not demonstrate Masking MC/DC
+
+   branch_coverage [ex]
+   not masking_mcdc [ex]
+}
+
+run branch_coverage_and_not_masking_mcdc for 6 but 1 BDD, 1 Execution
+
+assert branch_coverage_and_not_masking_mcdc_implies_diamond {
+   --  Assert that branch coverage + not Masking MC/DC implies that
+   --  one node of the bdd has two fathers. This proves that branch
+   --  coverage and MC/DC coverage are not equivalent only when
+   --  the bdd has "diamonds".
+
+   all ex : Execution {
+      branch_coverage [ex] and not masking_mcdc [ex] implies
+         has_diamond [ex.bdd]
+   }
+}
+
+check branch_coverage_and_not_masking_mcdc_implies_diamond for 6
+but 1 BDD, 1 Execution
