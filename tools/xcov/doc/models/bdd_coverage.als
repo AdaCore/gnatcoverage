@@ -157,6 +157,17 @@ pred masking_mcdc [ex : Execution]
    all n : ex.bdd.nodes | cond_independent_effect_masking [ex, n]
 }
 
+---------------
+-- weak_mcdc --
+---------------
+
+pred weak_mcdc [ex : Execution]
+{
+   --  True if ex is a Weak MC/DC coverage of the bdd
+
+   all n : ex.bdd.nodes | cond_changed_outcome [ex, n]
+}
+
 ---------------------
 -- branch_coverage --
 ---------------------
@@ -239,6 +250,24 @@ assert masking_mcdc_implies_branch_coverage {
 
 check masking_mcdc_implies_branch_coverage for 7 but 1 BDD, 1 Execution
 
+assert unique_cause_implies_weak_mcdc {
+   --  Assert that Unique Cause MC/DC implies Weak MC/DC
+
+   all ex : Execution |
+      unique_cause [ex] implies weak_mcdc [ex]
+}
+
+check unique_cause_implies_weak_mcdc for 9 but 1 BDD, 1 Execution
+
+assert masking_mcdc_implies_weak_mcdc {
+   --  Assert that Masking MC/DC implies Weak MC/DC
+
+   all ex : Execution |
+      masking_mcdc [ex] implies weak_mcdc [ex]
+}
+
+check masking_mcdc_implies_weak_mcdc for 9 but 1 BDD, 1 Execution
+
 assert path_coverage_implies_unique_cause {
    --  Assert that branch coverage + no diamond implies Unique Cause
 
@@ -309,4 +338,40 @@ assert branch_coverage_and_not_masking_mcdc_implies_diamond {
 }
 
 check branch_coverage_and_not_masking_mcdc_implies_diamond for 6
+but 1 BDD, 1 Execution
+
+assert path_coverage_implies_weak_mcdc {
+   --  Assert that branch coverage + no diamond implies Weak MC/DC
+
+   all ex : Execution {
+      (not has_diamond [ex.bdd] and branch_coverage [ex])
+         implies weak_mcdc [ex]
+   }
+}
+
+check path_coverage_implies_weak_mcdc for 6 but 1 BDD, 1 Execution
+
+private pred branch_coverage_and_not_weak_mcdc [ex : Execution]
+{
+   --  True if ex covers bdd's branches, but does not demonstrate Weak MC/DC
+
+   branch_coverage [ex]
+   not weak_mcdc [ex]
+}
+
+run branch_coverage_and_not_weak_mcdc for 6 but 1 BDD, 1 Execution
+
+assert branch_coverage_and_not_weak_mcdc_implies_diamond {
+   --  Assert that branch coverage + not Weak MC/DC implies that
+   --  one node of the bdd has two fathers. This proves that branch
+   --  coverage and MC/DC coverage are not equivalent only when
+   --  the bdd has "diamonds".
+
+   all ex : Execution {
+      branch_coverage [ex] and not weak_mcdc [ex] implies
+         has_diamond [ex.bdd]
+   }
+}
+
+check branch_coverage_and_not_weak_mcdc_implies_diamond for 6
 but 1 BDD, 1 Execution
