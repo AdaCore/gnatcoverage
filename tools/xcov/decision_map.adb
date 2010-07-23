@@ -1192,20 +1192,22 @@ package body Decision_Map is
             Insn : Binary_Content renames
                      Insns (PC .. PC + Pc_Type (Insn_Len) - 1);
 
-            Branch     : Branch_Kind;
-            Flag_Indir : Boolean;
-            Flag_Cond  : Boolean;
-            Dest       : Pc_Type;
+            Branch      : Branch_Kind;
+            Flag_Indir  : Boolean;
+            Flag_Cond   : Boolean;
+            Dest        : Pc_Type;
+            Fallthrough : Pc_Type;
             --  Properties of Insn
 
          begin
             Disa_For_Machine (Machine).Get_Insn_Properties
-              (Insn_Bin   => Insn,
-               Pc         => PC,
-               Branch     => Branch,
-               Flag_Indir => Flag_Indir,
-               Flag_Cond  => Flag_Cond,
-               Dest       => Dest);
+              (Insn_Bin    => Insn,
+               Pc          => PC,
+               Branch      => Branch,
+               Flag_Indir  => Flag_Indir,
+               Flag_Cond   => Flag_Cond,
+               Dest        => Dest,
+               Fallthrough => Fallthrough);
 
             if Branch /= Br_None then
                declare
@@ -1223,7 +1225,7 @@ package body Decision_Map is
                        (Exec,
                         Insn             => Insn,
                         Branch_Dest      => Dest,
-                        Fallthrough_Dest => Insn'Last + 1,
+                        Fallthrough_Dest => Fallthrough,
                         Ctx              => Context,
                         BB               => BB);
                   end if;

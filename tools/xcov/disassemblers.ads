@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -45,16 +45,19 @@ package Disassemblers is
    --  length if Line'First = 1).
 
    procedure Get_Insn_Properties
-     (Self       : Disassembler;
-      Insn_Bin   : Binary_Content;
-      Pc         : Pc_Type;
-      Branch     : out Branch_Kind;
-      Flag_Indir : out Boolean;
-      Flag_Cond  : out Boolean;
-      Dest       : out Pc_Type) is abstract;
+     (Self        : Disassembler;
+      Insn_Bin    : Binary_Content;
+      Pc          : Pc_Type;
+      Branch      : out Branch_Kind;
+      Flag_Indir  : out Boolean;
+      Flag_Cond   : out Boolean;
+      Dest        : out Pc_Type;
+      Fallthrough : out Pc_Type) is abstract;
    --  Determine whether the given instruction, located at PC, is a branch
    --  instruction of some kind (indicated by Branch).
    --  For a branch, indicate whether it is indirect (Flag_Indir) and whether
-   --  it is conditional (Flag_Cond), and determine its destination (Dest).
+   --  it is conditional (Flag_Cond), and determine its destination (Dest);
+   --  if it is conditional, determine the destination if the condition is
+   --  no verified (Fallthrough).
 
 end Disassemblers;

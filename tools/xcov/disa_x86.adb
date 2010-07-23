@@ -1599,17 +1599,19 @@ package body Disa_X86 is
    end Get_Insn_Length;
 
    procedure Get_Insn_Properties
-     (Self       : X86_Disassembler;
-      Insn_Bin   : Binary_Content;
-      Pc         : Pc_Type;
-      Branch     : out Branch_Kind;
-      Flag_Indir : out Boolean;
-      Flag_Cond  : out Boolean;
-      Dest       : out Pc_Type)
+     (Self        : X86_Disassembler;
+      Insn_Bin    : Binary_Content;
+      Pc          : Pc_Type;
+      Branch      : out Branch_Kind;
+      Flag_Indir  : out Boolean;
+      Flag_Cond   : out Boolean;
+      Dest        : out Pc_Type;
+      Fallthrough : out Pc_Type)
    is
       pragma Unreferenced (Self);
       pragma Unreferenced (Pc);
       pragma Unreferenced (Dest);
+      pragma Unreferenced (Fallthrough);
       B, B1 : Byte;
    begin
       B := Insn_Bin (Insn_Bin'First);
@@ -1622,7 +1624,7 @@ package body Disa_X86 is
             Branch := Br_Jmp;
             Flag_Cond := True;
             Flag_Indir := False;
-            --  FIXME: Dest
+            --  FIXME: Dest and Fallthrough
             return;
 
          when 16#0F# =>
@@ -1632,7 +1634,7 @@ package body Disa_X86 is
                Branch := Br_Jmp;
                Flag_Cond := True;
                Flag_Indir := False;
-               --  FIXME: Dest
+               --  FIXME: Dest and Fallthrough
             else
                Branch := Br_None;
             end if;
@@ -1654,7 +1656,7 @@ package body Disa_X86 is
             Branch := Br_Call;
             Flag_Cond := False;
             Flag_Indir := False;
-            --  FIXME: dest
+            --  FIXME: Dest and Fallthrough
             return;
 
          when 16#E9#
@@ -1664,7 +1666,7 @@ package body Disa_X86 is
             Branch := Br_Jmp;
             Flag_Cond := False;
             Flag_Indir := False;
-            --  FIXME: dest
+            --  FIXME: Dest and Fallthrough
             return;
 
          when 16#FF# =>

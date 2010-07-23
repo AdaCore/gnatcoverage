@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -46,13 +46,14 @@ package Disa_Ppc is
    --  length if Line'First = 1).
 
    overriding procedure Get_Insn_Properties
-     (Self       : PPC_Disassembler;
-      Insn_Bin   : Binary_Content;
-      Pc         : Pc_Type;
-      Branch     : out Branch_Kind;
-      Flag_Indir : out Boolean;
-      Flag_Cond  : out Boolean;
-      Dest       : out Pc_Type);
+     (Self        : PPC_Disassembler;
+      Insn_Bin    : Binary_Content;
+      Pc          : Pc_Type;
+      Branch      : out Branch_Kind;
+      Flag_Indir  : out Boolean;
+      Flag_Cond   : out Boolean;
+      Dest        : out Pc_Type;
+      Fallthrough : out Pc_Type);
    --  Determine whether the given instruction, located at PC, is a branch
    --  instruction of some kind (indicated by Branch).
    --  For a branch, indicate whether it is indirect (Flag_Indir) and whether

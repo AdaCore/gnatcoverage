@@ -750,16 +750,15 @@ package body Disa_Sparc is
    -------------------------
 
    procedure Get_Insn_Properties
-     (Self       : SPARC_Disassembler;
-      Insn_Bin   : Binary_Content;
-      Pc         : Pc_Type;
-      Branch     : out Branch_Kind;
-      Flag_Indir : out Boolean;
-      Flag_Cond  : out Boolean;
-      Dest       : out Pc_Type)
+     (Self        : SPARC_Disassembler;
+      Insn_Bin    : Binary_Content;
+      Pc          : Pc_Type;
+      Branch      : out Branch_Kind;
+      Flag_Indir  : out Boolean;
+      Flag_Cond   : out Boolean;
+      Dest        : out Pc_Type;
+      Fallthrough : out Pc_Type)
    is
-      pragma Unreferenced (Self);
-
       W : Unsigned_32;
       R : Unsigned_32;
    begin
@@ -780,6 +779,8 @@ package body Disa_Sparc is
                      Flag_Cond := True;
                   end if;
                   Dest := Pc + Get_Field_Sext (F_Disp22, W) * 4;
+                  Fallthrough :=
+                    Pc + Pc_Type (2 * Get_Insn_Length (Self, Insn_Bin));
                   Branch := Br_Jmp;
                   return;
 

@@ -1956,10 +1956,11 @@ package body Traces_Elf is
                   Insn_Bin : Binary_Content renames Section (Trace.Last - 3
                                                           .. Trace.Last);
 
-                  Branch     : Branch_Kind;
-                  Flag_Indir : Boolean;
-                  Flag_Cond  : Boolean;
-                  Dest       : Pc_Type;
+                  Branch      : Branch_Kind;
+                  Flag_Indir  : Boolean;
+                  Flag_Cond   : Boolean;
+                  Dest        : Pc_Type;
+                  Fallthrough : Pc_Type;
 
                   Op : constant Unsigned_8 := Trace.Op and 3;
                   Trace_Len : constant Pc_Type := Trace.Last - Trace.First + 1;
@@ -1985,12 +1986,13 @@ package body Traces_Elf is
                   end if;
 
                   Disa_For_Machine (Machine).Get_Insn_Properties
-                    (Insn_Bin   => Insn_Bin,
-                     Pc         => Insn_Bin'First, -- ???
-                     Branch     => Branch,
-                     Flag_Indir => Flag_Indir,
-                     Flag_Cond  => Flag_Cond,
-                     Dest       => Dest);
+                    (Insn_Bin    => Insn_Bin,
+                     Pc          => Insn_Bin'First, -- ???
+                     Branch      => Branch,
+                     Flag_Indir  => Flag_Indir,
+                     Flag_Cond   => Flag_Cond,
+                     Dest        => Dest,
+                     Fallthrough => Fallthrough);
 
                   if Flag_Cond then
                      case Op is

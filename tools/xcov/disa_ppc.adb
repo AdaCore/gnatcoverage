@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -369,16 +369,15 @@ package body Disa_Ppc is
    -------------------------
 
    procedure Get_Insn_Properties
-     (Self       : PPC_Disassembler;
-      Insn_Bin   : Binary_Content;
-      Pc         : Unsigned_32;
-      Branch     : out Branch_Kind;
-      Flag_Indir : out Boolean;
-      Flag_Cond  : out Boolean;
-      Dest       : out Unsigned_32)
+     (Self        : PPC_Disassembler;
+      Insn_Bin    : Binary_Content;
+      Pc          : Unsigned_32;
+      Branch      : out Branch_Kind;
+      Flag_Indir  : out Boolean;
+      Flag_Cond   : out Boolean;
+      Dest        : out Unsigned_32;
+      Fallthrough : out Unsigned_32)
    is
-      pragma Unreferenced (Self);
-
       Insn : constant Unsigned_32 := To_Insn (Insn_Bin);
 
       Opc, Xo, Bo : Unsigned_32;
@@ -444,6 +443,7 @@ package body Disa_Ppc is
 
       Bo := Get_Field (F_BO, Insn);
       Flag_Cond := not ((Bo and 2#10100#) = 2#10100#);
+      Fallthrough := PC + Pc_Type (Get_Insn_Length (Self, Insn_Bin));
    end Get_Insn_Properties;
 
 end Disa_Ppc;
