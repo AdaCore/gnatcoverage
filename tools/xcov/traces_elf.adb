@@ -990,7 +990,8 @@ package body Traces_Elf is
       end if;
 
       if Exec.Desc_Sets (Section_Addresses).Is_Empty then
-         raise Program_Error;
+         --  The file may have no code.
+         return;
       end if;
 
       --  Load .debug_abbrev
