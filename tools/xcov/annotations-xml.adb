@@ -515,7 +515,7 @@ package body Annotations.Xml is
    is
       Coverage_State : constant String := State_Char (State) & "";
    begin
-      Pp.ST ("symbol",
+      Pp.ST ("instruction_block",
              A ("name", Name)
              & A ("offset", Hex_Image (Offset))
              & A ("coverage", Coverage_State));
