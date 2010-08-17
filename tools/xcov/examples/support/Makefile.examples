@@ -90,6 +90,11 @@ index-%.xml: %.trace
 	 --level=$(XCOVLEVEL) --annotate=xml $< 
 	cp index.xml $@
 
+report-%.txt: %.trace
+	$(XCOV) coverage $(XCOVFILTER) \
+	 --level=$(XCOVLEVEL) --annotate=report $< \
+	 -o $@
+
 # -----------------------------------------------------------------------
 # trace: produce execution trace from executable program execution
 #        within instrumented target emulation environment
