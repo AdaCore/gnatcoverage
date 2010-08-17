@@ -22,6 +22,8 @@ with Text_IO;          use Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
 with GNAT.OS_Lib;      use GNAT.OS_Lib;
 with Interfaces;       use Interfaces;
+with Ada.Calendar;     use Ada.Calendar;
+with Ada.Unchecked_Deallocation;
 
 with Traces_Dbase; use Traces_Dbase;
 with Traces;       use Traces;
@@ -51,13 +53,76 @@ with Traces_Files; use Traces_Files;
 
 procedure Gdbtrace is
 
-   Usage : constant String
-     := "usage: gdbtrace remote-targ-name prog-name";
-   --  The first argument is the string that should complete
-   --  the "target remote" command to gdb. The second is the filename
-   --  of the target executable file.
+   Executable_Name_Ptr    : String_Access;
+   Remote_Target_Name_Ptr : String_Access;
+   Spawn_Timeout          : Duration;
+
+   procedure Process_Command_Line;
+   --  Process_Command_Line reads the gdbtrace command line and sets
+   --  the values of the variables above. It causes the program to
+   --  exit with an error code if the command line is invalid. For
+   --  the Usage string as well as default values of optional parameters
+   --  see the body of the procedure.
 
    Failure_Exit_Code : constant Integer := 1;
+
+   procedure Process_Command_Line is
+      Usage : constant String
+        := "usage: gdbtrace [--spawn-timeout=Secs] remote-targ-name prog-name";
+      --  The first required argument is the string that should complete
+      --  the "target remote" command to gdb. The second is the filename
+      --  of the target executable file.
+
+      Current_Arg : Positive;
+      S : String_Access;
+
+      function Prefix_Cmp
+        (Pref : String; S_Ptr : String_Access) return Boolean;
+      --  Returns True iff the String pointed to by Ptr is a prefix
+      --  of S.
+      function Prefix_Cmp
+        (Pref : String; S_Ptr : String_Access) return Boolean is
+      begin
+         if Pref'Length > S_Ptr'Length then
+            return False;
+         end if;
+         return Pref = S_Ptr (S_Ptr'First .. S_Ptr'First + Pref'Length - 1);
+      end Prefix_Cmp;
+
+   begin
+      Spawn_Timeout := 12.0;
+
+      if Argument_Count < 2 then
+         Put_Line (Standard_Error, "Too few arguments.");
+         Put_Line (Standard_Error, Usage);
+         OS_Exit (Failure_Exit_Code);
+      end if;
+
+      Current_Arg := 1;
+      loop
+         if Current_Arg + 1 > Argument_Count then
+            Put_Line (Standard_Error, "Too few arguments.");
+            Put_Line (Standard_Error, Usage);
+            OS_Exit (Failure_Exit_Code);
+         end if;
+         S := new String'(Argument (Current_Arg));
+         if Prefix_Cmp ("--", S) then
+            if Prefix_Cmp ("--spawn-timeout=", S) then
+               null;
+            else
+               Put_Line (Standard_Error, "Invalid argument: " & S.all);
+               Put_Line (Standard_Error, Usage);
+               OS_Exit (Failure_Exit_Code);
+            end if;
+         else
+            exit;
+         end if;
+         Free (S);
+         Current_Arg := Current_Arg + 1;
+      end loop;
+      Remote_Target_Name_Ptr := S;
+      Executable_Name_Ptr := new String'(Argument (Current_Arg + 1));
+   end Process_Command_Line;
 
    --  The Exec_Info package contains the data structures for representing
    --  blocks of code, and the procedure for extracting that information
@@ -144,9 +209,9 @@ procedure Gdbtrace is
    --  not being taken.
 
    Tbase : Traces_Base;
+   Trace_Filename_Ptr : String_Access;
    Pc_B, Pc_E : Pc_Type := 0;
    Tfile : Trace_File_Type;
-   Trace_Filename_Ptr : String_Access;
    At_Start : Boolean;
    Op : Unsigned_8;
 
@@ -233,6 +298,12 @@ procedure Gdbtrace is
    --  Handy interface for that functionality without all the
    --  stuff of Expect???
 
+   procedure Command_Gdb (Command : String; T : Duration; Err_Msg : String);
+   --  Send Command to gdb. Set the watchdog timer to timeout after T,
+   --  changing any previous deadline. If T is 0, then the watchdog timer
+   --  is turned off. The error message output by the watchdog timer is
+   --  given by Err_Msg.
+
    function Get_Hval (S  : String) return Unsigned_32;
    --  Used to read a hex value from gdb output.
 
@@ -300,32 +371,106 @@ procedure Gdbtrace is
 
    Stop_Addr : Unsigned_32;
 
+   task Timeout;
+   --  This is a simple watchdog timer. At regular intervals it checks
+   --  to see if it is supposed to be turned on. If so, it compares
+   --  Clock time to a timeout time, and if the timeout time has been
+   --  passed, it prints out an error message and force the program
+   --  to exit with an error code.
+
+   type Timeout_Err_Msg is access String;
+   type Wd_Info is record
+      T  : Time;
+      M  : Timeout_Err_Msg;
+      On : Boolean;
+   end record;
+   --  An object of this type contains the data used by Timeout task.
+   --  It is shared between Timeout and other tasks via the protected
+   --  type below.
+
+   protected Wd_Timer is
+      procedure Set_Timeout (D : Duration; E : String);
+      procedure Clear_Timeout;
+      function  Get_Timeout return Wd_Info;
+   private
+      Timer : Wd_Info := (Clock, null, False);
+   end Wd_Timer;
+   protected body Wd_Timer is
+      procedure Set_Timeout (D : Duration; E : String) is
+         procedure Free is new Ada.Unchecked_Deallocation
+           (String, Timeout_Err_Msg);
+      begin
+         if Timer.M = null then
+            if E'Length /= 0 then
+               Timer.M := new String'(E);
+            end if;
+         elsif Timer.M.all /= E then
+            Free (Timer.M);
+            if E'Length /= 0 then
+               Timer.M := new String'(E);
+            end if;
+         end if;
+
+         Timer.T := Clock + D;
+         Timer.On := True;
+      end Set_Timeout;
+
+      procedure Clear_Timeout is
+      begin
+         Timer.On := False;
+      end Clear_Timeout;
+
+      function  Get_Timeout return Wd_Info is
+      begin
+         return Timer;
+      end Get_Timeout;
+   end Wd_Timer;
+
+   task body Timeout is
+      T : Wd_Info;
+   begin
+      loop
+         delay 2.0;
+         T := Wd_Timer.Get_Timeout;
+         if T.On and then Clock > T.T then
+            Put_Line (T.M.all);
+            OS_Exit (1);
+         end if;
+      end loop;
+   end Timeout;
+
+   procedure Command_Gdb (Command : String; T : Duration; Err_Msg : String) is
+   begin
+      Put_Gdb_Line (Command);
+      if T = 0.0 then
+         Wd_Timer.Clear_Timeout;
+      else
+         Wd_Timer.Set_Timeout (T, Err_Msg);
+      end if;
+   end Command_Gdb;
+
 begin
 
-   if Argument_Count /= 2 then
-      Put_Line (Standard_Error, Usage);
-      OS_Exit (Failure_Exit_Code);
-   end if;
+   Process_Command_Line;
 
-   Trace_Filename_Ptr := new String'(Argument (2) & ".trace");
+   Trace_Filename_Ptr := new String'(Executable_Name_Ptr.all & ".trace");
    Init_Base (Tbase);
 
-   Process_Exec (Argument (2), CBA, Stop_Addr);
+   Process_Exec (Executable_Name_Ptr.all, CBA, Stop_Addr);
 
    Non_Blocking_Spawn
      (GDB_Process,
       "powerpc-elf-gdb",
       (1 => new String'("--quiet"),
        2 => new String'("--interpreter=mi"),
-       3 => new String'(Argument (2))));
+       3 => Executable_Name_Ptr));
 
    Initialize_MI (Get_Input_Fd  (GDB_Process),
                   Get_Output_Fd (GDB_Process),
                   True);
 
-   --  The big missing piece below is implementing a timer to prevent
-   --  infinite waits for the hoped-for gdb response.  This will deal
-   --  with most of the error situations. ???
+   Wd_Timer.Set_Timeout
+     (Spawn_Timeout, "Timeout waiting for gdb prompt following spawn.");
    loop
       MI_Output := Get_MI_Output_Record;
       exit when MI_Output.Record_Type /= Console_Stream_Output;
@@ -336,13 +481,15 @@ begin
       OS_Exit (Failure_Exit_Code);
    end if;
 
-   Put_Gdb_Line ("-target-select remote " & Argument (1));
+   Command_Gdb ("-target-select remote " & Remote_Target_Name_Ptr.all, 10.0,
+               "Timeout following ""-target-select remote""");
    loop
       MI_Output := Get_MI_Output_Record;
       exit when MI_Output.Record_Type = Prompt_Record;
    end loop;
 
-   Put_Gdb_Line ("-target-download");
+   Command_Gdb ("-target-download", 25.0,
+               "Timeout waiting for target download");
    loop
       MI_Output := Get_MI_Output_Record;
       exit when MI_Output.Record_Type = Result_Record and then
@@ -353,7 +500,8 @@ begin
       exit when MI_Output.Record_Type = Prompt_Record;
    end loop;
 
-   Put_Gdb_Line ("-var-create Program_Counter * $pc");
+   Command_Gdb ("-var-create Program_Counter * $pc", 8.0,
+               "Timeout creating Program_Counter variable.");
    loop
       MI_Output := Get_MI_Output_Record;
       exit when MI_Output.Record_Type = Result_Record and then
@@ -366,7 +514,8 @@ begin
 
    At_Start := True;
    loop
-      Put_Gdb_Line ("-var-evaluate-expression Program_Counter");
+      Command_Gdb ("-var-evaluate-expression Program_Counter", 8.0,
+                  "Timeout Evaluating Program_Counter");
       loop
          MI_Output := Get_MI_Output_Record;
          exit when MI_Output.Record_Type = Result_Record and then
@@ -411,7 +560,8 @@ begin
 
       if Last_Addr > PC_Val then
          Addr_Str_In_C (Last_Addr, C_Addr);
-         Put_Gdb_Line ("-break-insert -t -h *" & C_Addr);
+         Command_Gdb ("-break-insert -t -h *" & C_Addr, 8.0,
+                     "Timeout inserting breakpoint.");
          loop
             MI_Output := Get_MI_Output_Record;
             exit when MI_Output.Record_Type = Result_Record and then
@@ -421,7 +571,8 @@ begin
             MI_Output := Get_MI_Output_Record;
             exit when MI_Output.Record_Type = Prompt_Record;
          end loop;
-         Put_Gdb_Line ("-exec-continue");
+         Command_Gdb ("-exec-continue", 30.0,
+                     "Timeout after continue.");
          loop
             MI_Output := Get_MI_Output_Record;
             exit when MI_Output.Record_Type = Result_Record and then
@@ -442,7 +593,8 @@ begin
          end loop;
       end if;
 
-      Put_Gdb_Line ("-exec-step-instruction");
+      Command_Gdb ("-exec-step-instruction", 10.0,
+                  "Timeout following Step Instruction.");
       loop
          MI_Output := Get_MI_Output_Record;
          exit when MI_Output.Record_Type = Result_Record and then
@@ -457,17 +609,19 @@ begin
          MI_Output := Get_MI_Output_Record;
          exit when MI_Output.Record_Type = Prompt_Record;
       end loop;
-      Put_Gdb_Line ("-var-update Program_Counter");
+      Command_Gdb ("-var-update Program_Counter", 10.0,
+                  "Timeout updating Program_Counter");
       loop
          MI_Output := Get_MI_Output_Record;
          exit when MI_Output.Record_Type = Prompt_Record;
       end loop;
    end loop;
+   Wd_Timer.Clear_Timeout;
 
    Put_Gdb_Line ("-gdb-exit");
    Traces.Machine := 20;
-   Create_Trace_File (Raw, Tfile);
-   Append_Info (Tfile, Exec_File_Name, Argument (2));
+   Create_Trace_File (Flat, Tfile);
+   Append_Info (Tfile, Exec_File_Name, Executable_Name_Ptr.all);
 
    Write_Trace_File (Trace_Filename_Ptr.all, Tfile, Tbase);
 
