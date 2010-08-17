@@ -36,7 +36,8 @@ package Annotations.Xml is
    --  * COVERAGE_KIND: can be either 'insn', 'branch', 'stmt',
    --             'stmt+decision', 'stmt+mcdc'.
    --  * COVERAGE: can be either '+' (total coverage for the chosen coverage
-   --              criteria), '-' (null coverage), '!' (partial coverage).
+   --              criteria), '-' (null coverage), '!' (partial coverage) or
+   --              '.' (no code for this line).
    --  * OBJ_COVERAGE: can be either '+' (covered), '>' (branch taken),
    --              'V' (branch fallthrough) and '-' (not covered).
    --  * TEXT: any text into quotes. Mostly used for source lines.
