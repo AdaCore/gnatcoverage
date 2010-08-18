@@ -1,0 +1,2 @@
+Statement coverage assessment remains correct in presence of programming
+style variations.

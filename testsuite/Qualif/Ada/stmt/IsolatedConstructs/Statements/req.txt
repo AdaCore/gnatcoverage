@@ -1,0 +1,32 @@
+Statement coverage should be assessed correctly for all the basic Ada
+statement constructs. Basic Ada constructs are constructs described in Chapter
+5 "Statements" of the Ada Reference Manual
+
+Testing strategy notes:
+----------------------
+- this tool operation requirement is split into subordinate requirements
+  according to the sections of Chapter 5 of ARM:
+     5.1 Simple and Compound Statements - Sequences of Statements
+         (Actually, the only thing to check here if the coverage of null
+         statement)
+     5.2 Assignment Statements
+     5.3 If Statements
+     5.4 Case Statements
+     5.5 Loop Statements
+     5.6 Block Statements
+     5.7 Exit Statements
+     5.8 Goto Statements
+
+- the goal of this part of the test suite is to check that a given statement
+  and its components are correctly reported as covered (or non-covered) by
+  the coverage tool, but not to check any combinations of statements or any
+  interrelation between statements. See Basic Block part for statement
+  sequences and transfer control issues.
+
+- there is no need in complex test cases here or in various test case for a
+  specifies statement king, except for control statements (IF, CASE and LOOP).
+  For simple (non-control) statement we check only coverage, for control
+  statements we have to check that the right part of statement is reported as
+  covered or non-covered. All that should be done is to check that for
+  a given statement kind coverage is correctly accessed for a typical usage of
+  the statement in typical contexts.

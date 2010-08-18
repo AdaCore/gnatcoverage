@@ -1,0 +1,28 @@
+An Object declaration that includes explicit or implicit initializers should
+be treated as statement for coverage analysis purposes if it has any
+executable code associated with it.
+
+Testing strategy notes:
+
+- the following cases should be checked:
+        1. Variable object declaration with explicit initialization
+           expression;
+        2. Constant object declaration with explicit initialization expression;
+        3. Objects of scalar, array, record and access types;
+        4. Objects of private types;
+        5. Implicit initialization of record objects
+        6. Implicit initialization of access objects (by null value);
+        7. Objects of derived record types with implicit initialization.
+  One test case may cover more then one of the positions in the list above.
+
+- depending on a context, the same declaration may or may not generate an
+  executable code; so the tests use weak coverage expectations
+
+Questions:
+1. Some declarations are considered as generating code, some other - are not.
+   Should this be addressed? And how could this be addressed?  Is the current
+   wording about weak coverage expectations enough?
+
+2. Do we have any definition of weak coverage expectations somewhere in
+   qualification materials?
+

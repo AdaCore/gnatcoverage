@@ -1,0 +1,35 @@
+Statement coverage shell be assessed correctly for an EXIT statement. EXIT
+statement is a control statement, so coverage should be accessed for the EXIT
+statement itself and for the LOOP statements whose execution depends on the
+EXIT statement:
+
+- an EXIT statement should not be reported as covered if its enclosing LOOP
+  statement is not executed, or, in case of conditional LOOP statements, if
+  the loop is executed, but the loop condition prevents the first loop
+  iteration;
+
+- if an EXIT statement causes the loop exit at the first loop iteration, all
+  the loop statements that follow this EXIT statement should be reported as
+  uncovered;
+
+Testing strategy notes:
+----------------------
+Both syntax forms of EXIT statement (with and without condition) shell be
+checked.
+
+The case of nested loop statements and EXIT statement in inner loop that
+transfers the control out of outer loop shell be checked.
+
+The case of more then one EXIT statement in the same LOOP statement shell be
+checked (when the first one transfers the control out of the loop, all the
+rest shell be reported as non covered).
+
+Various forms of the LOOP statements (unconditional loop, FOR loop, WHILE
+loop) shell be tried out as enclosing loop for EXIT statement in question
+
+For enclosing contexts only typical situations shell be considered:
+  - procedure body;
+  - function body;
+  - generic unit;
+
+One test case may combine more then one cases from above.

@@ -1,0 +1,4 @@
+This test case checks that object declarations containing subtype indications
+with range and index constraints are treated as statement for coverage analysis
+purposes. Object declarations do not contain explicit initialization, and
+object types does not define any default initialization.

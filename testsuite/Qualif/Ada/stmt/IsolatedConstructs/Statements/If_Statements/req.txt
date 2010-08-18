@@ -1,0 +1,21 @@
+Statement coverage should be assessed correctly for an IF statement
+
+Testing strategy notes:
+----------------------
+When checking coverage for an IF statement, the tests should check that the
+statement as a whole is covered as well as statements in the path chosen
+depending on computing the conditions in IF and ELSIF paths.
+
+Different syntax forms of IF statement should be checked:
+   - simplest form - no ELSE path, no ELSIF path;
+   - multiple ELSIF paths;
+   - ELSE path with and without ELSIF path;
+   - ELSIF paths with and without ELSE path;
+
+For enclosing contexts only typical situations should be considered:
+  - procedure body;
+  - function body;
+  - generic unit;
+  - package body;
+
+One test case may combine more then one cases from above.

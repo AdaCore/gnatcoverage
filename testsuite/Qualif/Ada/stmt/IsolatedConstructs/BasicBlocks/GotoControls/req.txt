@@ -1,0 +1,4 @@
+Statement coverage is properly assessed in the presence of multiple basic
+blocks resulting from the use of goto statements. Sequences that do not
+complete execution because of a goto statement are handled correctly.
+

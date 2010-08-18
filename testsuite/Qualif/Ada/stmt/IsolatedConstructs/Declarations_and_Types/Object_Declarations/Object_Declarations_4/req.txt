@@ -1,0 +1,3 @@
+This test case checks that a declaration of an object of a private type that
+has an explicit or implicit initialization is treated as statement for
+coverage analysis purposes.

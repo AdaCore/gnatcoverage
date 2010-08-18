@@ -1,0 +1,14 @@
+--  Template GPR file for tests requiring executables to be built.
+
+--  This is read by the gprfor() helper routine, which substitutes
+--  the python string template fields with proper values.
+
+project %(prjname)s extends "%(support_dir)s/base" is
+
+   for Source_Dirs use ("..", "../..", "../../..", %(srcdirs)s);
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+
+   for Main use (%(gprmains)s);
+
+end %(prjname)s;

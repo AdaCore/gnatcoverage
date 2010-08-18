@@ -1,0 +1,3 @@
+Statement coverage is properly assessed for straight sequences of statements,
+with possible local declaration blocks on the way, in all the contexts where
+such sequences may occur. Long sequences are supported.

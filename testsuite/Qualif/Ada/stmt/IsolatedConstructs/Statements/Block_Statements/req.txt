@@ -1,0 +1,23 @@
+Statement coverage shell be assessed correctly for a block statement. A block
+statement is not a control statement, so proper coverage in case of a block
+statement means that  if a block statement is a part of straight-line
+statement sequence  and the secuence is not entered, block statement and
+components thereof shell not be reported as covered.
+
+Testing strategy notes:
+----------------------
+Block statement with and without declarative part, with and without exception
+handlers should be checked.
+
+Tests for a block statement shell not check the case of transferring the
+control from outside the statement sequence of the block statement, this shell
+be checked for control statements and exception raising. Coverage of
+statements in exception handler also is not checked, it shell be checked for
+exceptions.
+
+For enclosing contexts only typical situations shell be considered:
+  - procedure body;
+  - function body;
+  - generic subprogram;
+
+One test case may combine more then one cases from above.

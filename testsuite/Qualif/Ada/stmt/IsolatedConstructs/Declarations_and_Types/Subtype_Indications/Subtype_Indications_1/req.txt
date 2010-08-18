@@ -1,0 +1,3 @@
+This test case checks that subtype declarations with range, index and
+discriminat constraints are treated as statement for coverage analysis
+purposes.

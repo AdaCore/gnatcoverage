@@ -1,0 +1,2 @@
+Statement coverage of standalone null statements is properly assessed
+in all the contexts where they might appear.

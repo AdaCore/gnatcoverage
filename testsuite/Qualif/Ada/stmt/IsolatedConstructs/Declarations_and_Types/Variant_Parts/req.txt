@@ -1,0 +1,25 @@
+Statement coverage should be assessed correctly for the situation when
+an object for a record type with variant part is created.
+
+Testing strategy notes:
+
+1. Choosing a specific variant for a given dicriminant value is similar to
+   choosing an alternative in a case statement, the difference is that in case
+   of a record variant we have component declarations, but not statements.
+   Component declarations may contain initialization expressions that are of
+   real interest for coverage analysis.
+
+2. The goal is to check that if there is an initialization expression in the
+   variant chosen in a given object declaration and this expression contains a
+   function call, then the code of the called function is covered.
+
+3. A non-trivial case when initialization expression causes some generic code
+   from another compilation unit to be instantiated and then executed should
+   be checked. (Note that this models the situation when declaration and
+   elaboration code is not executed in some straightline sequences, but may be
+   executed or not depending on discriminant value.
+
+4. There is no need in more then one test case here if all the things above
+   are covered by a single test case, because all the things related to
+   constraints and object declarations are covered in Subtype_Indications and
+   Object_Declarations parts.

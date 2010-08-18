@@ -1,0 +1,14 @@
+Statement coverage should be assessed correctly for an assignment statement
+
+Testing strategy notes:
+----------------------
+An assignment statement is the most common statement in the program code, so
+it is checked in many places and contexts. Here we check only very basic usage
+of assignment statement to have this language feature systematical covered
+by the test suite.
+
+Test cases should include only basic real-life usage of an assignment
+statement, such as:
+  - procedure body;
+  - function body;
+  - package body;

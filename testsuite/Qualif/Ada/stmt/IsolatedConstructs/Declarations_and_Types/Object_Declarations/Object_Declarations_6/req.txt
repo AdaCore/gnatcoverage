@@ -1,0 +1,3 @@
+This test case checks that a declaration of an object of an access type that
+has explicit initialization is treated as statement for coverage analysis
+purposes.

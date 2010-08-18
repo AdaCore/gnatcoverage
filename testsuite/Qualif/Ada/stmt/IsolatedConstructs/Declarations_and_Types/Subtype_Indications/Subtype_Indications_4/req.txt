@@ -1,0 +1,4 @@
+This test case checks that array type declaration with a component
+definition that contains a constraint is treated as statement for coverage
+analysis purposes. It also includes a case of an object declaration of
+anonymous array type with component definition having explicit constraint

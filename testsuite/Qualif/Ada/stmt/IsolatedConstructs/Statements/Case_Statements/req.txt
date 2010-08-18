@@ -1,0 +1,20 @@
+Statement coverage should be assessed correctly for a CASE statement
+
+Testing strategy notes:
+----------------------
+When checking coverage for a CASE statement, the tests should check that the
+statement as a whole is covered as well as statements in the path chosen
+depending on case expression.
+
+Different syntax forms of IF statement should be checked:
+   - with and without OTHERS choice;
+   - choices defined by an expression and by a range;
+   - choices containing one value and multiple values;
+
+For enclosing contexts only typical situations should be considered:
+  - procedure body;
+  - function body;
+  - generic unit;
+  - package body;
+
+One test case may combine more then one cases from above.

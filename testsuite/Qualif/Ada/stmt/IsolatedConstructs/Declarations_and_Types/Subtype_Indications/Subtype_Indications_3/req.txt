@@ -1,0 +1,7 @@
+This test case checks that object declaration containing subtype indication
+with discriminant constraint and having a component depending on discriminant
+is treated as statement for coverage analysis purposes. Object declaration
+do not contain explicit initialization, and object types does not define any
+default initialization (except for discriminant component, but this default
+initialization does not have any effect because of explicit discriminant
+constraint).

@@ -1,0 +1,5 @@
+This test case checks that array object declaration with constrained array
+definition with a discrete subtype definition that contains a constraint is
+treated as statement for coverage analysis purposes. (Array object declaration
+does not contain explicit initialization, and component type does not define
+any implicit initialization)

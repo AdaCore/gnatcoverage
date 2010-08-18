@@ -1,0 +1,5 @@
+Exercize a straight "Andthen" boolean function with all the possible input
+combinations, one at a time, and verify that the single "return A and then B"
+statement is never reported uncovered despite evaluation shortcircuits. Also
+verify that the statement is reported uncovered in absence of a call.
+

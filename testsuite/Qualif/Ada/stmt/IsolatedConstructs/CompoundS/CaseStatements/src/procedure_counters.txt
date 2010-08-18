@@ -1,0 +1,2 @@
+Exercize in various ways a function featuring a "case" statement, and verify
+that all and only those statements expected uncovered are reported as such.

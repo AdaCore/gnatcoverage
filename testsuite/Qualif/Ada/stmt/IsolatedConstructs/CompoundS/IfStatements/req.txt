@@ -1,0 +1,2 @@
+"if" statements are correctly handled for statement coverage purposes.
+

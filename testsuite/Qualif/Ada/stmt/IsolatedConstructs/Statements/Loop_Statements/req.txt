@@ -1,0 +1,40 @@
+Statement coverage shell be assessed correctly for a LOOP statement:
+- if a LOOP statement is a part of straight-line statement block, and the
+  block is not entered, loop statement and components thereof shell not be
+  reported as covered;
+- for a conditional loop, if when entering the loop, the condition indicates
+  that no loop iteration should be performed, then the loop itself shell be
+  reported as covered, but nothing from the statements inside the loop shell
+  be reported as covered;
+- if the loop contains a control statement that transfers the control outside
+  the loop (EXIT or GOTO statement), then in case if this statement is
+  executed and performs transfer control during the first loop iteration, the
+  loop operators following this control transfers statement shell not be
+  reported as covered.
+
+Testing strategy notes:
+----------------------
+Different syntax forms of LOOP statement shell be checked:
+   - FOR loop;
+   - reverse FOR loop;
+   - WHILE loop;
+   - unconditional loop;
+
+The tests should not concentrate on different ways of transferring control
+out of the LOOP statements (such as EXIT statements and GOTO statements),
+because these control statement are tested separately. Only some basic usage
+of EXIT statement shell be checked.
+
+The following situations shell be checked for loops:
+   - loop is not executed because the loop condition prevents even the first
+     execution (cannot be applied to unconditional loops);
+   - for a loop containing an EXIT statement, this EXIT statement transfers
+     the control out of the loop at the first loop iteration.
+
+For enclosing contexts only typical situations shell be considered:
+  - procedure body;
+  - function body;
+  - generic unit;
+  - package body;
+
+One test case may combine more then one cases from above.

@@ -1,0 +1,75 @@
+--------------
+-- Contents --
+--------------
+
+This is a python driven testsuite for the Couverture project.
+
+Most tests use gprbuild to build programs for run/anlysis by xcov/qemu.
+Programs are most often Ada + c/asm low-level support bits to provide
+the bare qemu board init sequence & minimal IO support.
+
+The testsuite driver is <topdir>/testsuite.py.
+It scans the subdirectories for "test.py" instances and runs every one
+it finds after switching to where it was found.
+
+A bunch of common facilities for all the tests is provided in
+<topdir>/test_utils.py.
+
+After test runs, each test directory contains:
+
+  test.py.log, a list of all the commands executed by the test.
+  test.py.out, all the produced outputs.
+  test.py.err, all the produced outputs.
+
+The toplevel directory contains res_couverture and rep_couverture
+synthesis files in addition.
+
+As of today we maintain essentially one subtree:
+
+* Down the "Qualif" subdirectory reside our current set of do178
+  "qualification" tests. See the "content.txt" file there for more info
+  on the organization of this part.
+
+This is all still "under construction" so subject to change.
+
+-------------------
+-- Prerequisites --
+-------------------
+
+ * At the testsuite dir level, a "support" subdirectory corresponding
+   to the one in ../xcov/examples
+
+ * a target compiler supporting -fpreserve-control-flow (e.g GNAT Pro 6.3.2)
+
+ * gprbuild >= 1.3.0
+
+ * gnatpython 
+
+ * rlimit
+
+ * The xcov & qemu binaries you wish to exercise
+
+-----------------------
+-- Running the tests --
+-----------------------
+
+For a powerpc-elf target, run:
+  ./testsuite.py --diffs --target=ppc-elf
+
+To run a specific set of tests, append a regexp of test directory names to
+this command line.
+
+---------------------
+-- Common failures --
+---------------------
+
+* "gprbuild: configuration and target switches cannot be used together"
+
+  Typical cause : Too old version of gprbuild (< 1.3.0) on PATH.
+  Way around    : Arrange to get a more recent one.
+
+* "gprbuild: no target specified in configuration file"
+
+  Typical cause : The .cgpr file in 'support/lib/<target>/<target>.cgpr' was
+                  produced with too old a version of gprbuild.
+  Way around    : Remove it.

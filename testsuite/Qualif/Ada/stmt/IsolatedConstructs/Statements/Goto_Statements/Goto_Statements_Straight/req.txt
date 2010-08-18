@@ -1,0 +1,13 @@
+Statement coverage shell be assessed correctly for a GOTO statement that is a
+part of a straight-line statement block:
+
+- a GOTO statement shell not be reported as covered if a straight-line
+  statement block containing this GOTO statement is not entered;
+
+- if execution of a GOTO statement causes skipping of some statements the
+  statements being skipped shell not be reported as covered.
+
+Testing strategy notes:
+----------------------
+Test cases shell cause execution of each goto statement in functional source
+that is under the control of a test driver.

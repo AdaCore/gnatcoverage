@@ -1,0 +1,6 @@
+package Test_Bb_Null is
+   --P Exercize a package that exposes a noop subprogram with a null
+   --P statement body and features a null statement elaboration sequence.
+end;
+
+

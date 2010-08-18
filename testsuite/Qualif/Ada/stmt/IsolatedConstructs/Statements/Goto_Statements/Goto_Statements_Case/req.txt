@@ -1,0 +1,18 @@
+Statement coverage shell be assessed correctly for a GOTO statement that is a
+part of the statement sequence in a CASE statement path:
+
+- a GOTO statement shell not be reported as covered if the enclosing path of
+  the CASE statement is not entered;
+
+- if execution of a GOTO statement transfers the control out of the CASE
+  statement path, the statements that follow this GOTO statement in the CASE
+  statement path shell be reported as not covered
+
+Testing strategy notes:
+----------------------
+Test cases shell include CASE statement path with explicit list of choices
+and with OTHERS choice. The case with more then one GOTO statement inside a
+path should be checked, test case shell cause execution of different GOTO
+statements inside the path.
+
+Tests do not have to concentrate on GOTO statements outside CASE statements.

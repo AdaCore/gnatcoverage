@@ -1,0 +1,2 @@
+"with" a package known to feature elaboration code only and verify that
+nothing is reported uncovered.

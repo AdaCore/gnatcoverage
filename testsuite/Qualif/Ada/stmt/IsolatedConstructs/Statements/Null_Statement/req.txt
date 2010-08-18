@@ -1,0 +1,9 @@
+Statement coverage should be assessed correctly for a null statement
+
+Testing strategy notes:
+----------------------
+Test cases should include only real-life usage of a null statement, such as:
+  - case statement alternative;
+  - null procedure;
+  - last statement in a statement sequence that has a label attached to it and
+    is used in control transfer to skip the preceding sequence of statements.

@@ -1,0 +1,48 @@
+Statement coverage should be assessed correctly for all the executable
+language constructs and language features supported by the compiler version in
+question.
+
+Testing strategy notes:
+----------------------
+- this tool operation requirement is split into subordinate requirements
+  according to the language description in the Ada Reference Manual (ARM). The
+  Top level of subordinate requirements corresponds to the Chapters of ARM from
+  2 to 13:
+
+    Pragmas (the only executable constructs described in Chapter 2 "Lexical
+             Elements")
+    Declarations_And_Types
+    Statements
+    Subprograms
+    Packages
+    Visibility_Rules
+    Program_Structure_And_Compilation_Issues
+    Exceptions
+    Generic_Units
+    Representation_Issues
+
+  This list does not contain an element corresponding to Chapter 4
+  ("Expressions") because from the statement coverage point of view every
+  expression is a part of statement or declaration construct that is subjected
+  to statement coverage.
+
+  This list also does not contain an element corresponding to Chapter 9 "Tasks
+  and Synchronization" because the corresponding constructs are not supported
+  for  ZFP run-time.
+
+- each language feature is checked separately, the only combinations of
+  language features used in the tests are those that are needed to create the
+  test case for a target construct;
+
+Ongoing development notes:
+-------------------------
+- At some point subdirectories of LanguageFeatures directory should be moved
+  one level up to make up the subhierarchy described above, and
+  LanguageFeatures itself should disappear;
+
+- The content of CompoundS and GenericS subdirectories also most probably
+  should be merged into the hierarchy described above, and these
+  subdirectories should also go away;
+
+- BasicBlocks subdirectory most probably should be kept as is to follow
+  guidelines from Software Verification Tools Assessment Study document.

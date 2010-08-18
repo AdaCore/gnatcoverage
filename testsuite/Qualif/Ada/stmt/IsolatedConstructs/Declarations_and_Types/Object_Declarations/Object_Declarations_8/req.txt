@@ -1,0 +1,4 @@
+This test case checks that a declaration of an object of a type derived
+from a record type with initialization expressions provided for components is
+treated as statement for coverage analysis purposes. The object declaration
+itself does not have an explicit initialization.
