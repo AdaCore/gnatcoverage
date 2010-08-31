@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,7 +17,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers; use Ada.Containers;
 with Ada.Integer_Text_IO;
 with Ada.Text_IO;    use Ada.Text_IO;
 
@@ -140,18 +139,6 @@ package body Annotations.Xcov is
       Put (Pp.Xcov_File, Line_Num, 4);
       Put (Pp.Xcov_File, ' ');
       Put (Pp.Xcov_File, State_Char (Aggregated_State (Info.State)));
-      if False then
-         if Info.SCOs.Length > 0 then
-            Put (Pp.Xcov_File, 'S');
-         else
-            Put (Pp.Xcov_File, ' ');
-         end if;
-         if Info.Obj_First /= null then
-            Put (Pp.Xcov_File, 'O');
-         else
-            Put (Pp.Xcov_File, ' ');
-         end if;
-      end if;
       Put (Pp.Xcov_File, ": ");
       Put (Pp.Xcov_File, Line);
       New_Line (Pp.Xcov_File);

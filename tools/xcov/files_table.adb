@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -25,8 +25,6 @@ with Strings; use Strings;
 with Outputs;
 
 package body Files_Table is
-
-   Debug_New_File : constant Boolean := False;
 
    subtype Valid_Source_File_Index is
      Source_File_Index range First_Source_File .. Source_File_Index'Last;
@@ -414,10 +412,6 @@ package body Files_Table is
             Has_Source_Coverage_Info => False,
             Has_Object_Coverage_Info => False);
 
-         if Debug_New_File then
-            Put_Line ("New file: " & Full_Name);
-         end if;
-
          Files_Table.Append (Info);
          Res := Files_Table.Last_Index;
 
@@ -474,10 +468,6 @@ package body Files_Table is
                              Stats      => (others => 0),
                              Has_Source_Coverage_Info => False,
                              Has_Object_Coverage_Info => False);
-
-      if Debug_New_File then
-         Put_Line ("New file: " & Simple_Name);
-      end if;
 
       Files_Table.Append (Info);
       Res := Files_Table.Last_Index;

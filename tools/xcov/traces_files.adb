@@ -274,21 +274,6 @@ package body Traces_Files is
             Swaps.Swap_16 (E32.Size);
          end if;
 
-         --  Display entry
-
-         if False then
-            if Desc.Sizeof_Target_Pc = 4 then
-               Put (Hex_Image (E32.Pc));
-               Put ('-');
-               Put (Hex_Image (E32.Pc + Unsigned_32 (E32.Size) - 1));
-               Put (": ");
-               Put (Hex_Image (E32.Op));
-               Put (' ');
-               Dump_Op (E32.Op);
-               New_Line;
-            end if;
-         end if;
-
          --  Supply entry to caller
 
          Trace_Cb.all (Trace_Entry'(First  => E32.Pc,

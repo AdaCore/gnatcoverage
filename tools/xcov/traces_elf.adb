@@ -1766,7 +1766,6 @@ package body Traces_Elf is
       Line        : Addresses_Info_Acc;
       Source_File : Source_File_Index := No_Source_File;
 
-      Debug : constant Boolean := False;
       Init_Line_State : Line_State;
 
    begin
@@ -1820,11 +1819,6 @@ package body Traces_Elf is
             begin
                Info.SCOs.Iterate (Set_BB_Has_Code'Access);
             end;
-
-            if Debug then
-               New_Line;
-               Disp_Address (Line);
-            end if;
          end if;
 
          Next (Cur);
@@ -2749,8 +2743,6 @@ package body Traces_Elf is
       Sym_Type : Unsigned_8;
       Cur : Addresses_Containers.Cursor;
       Ok : Boolean;
-
-      Verbose : constant Boolean := False;
    begin
       --  Search symtab and strtab, exit in case of failure
 
@@ -2829,11 +2821,6 @@ package body Traces_Elf is
 
             Addr := Pc_Type (Shdr.Sh_Addr);
             Last := Pc_Type (Shdr.Sh_Addr + Shdr.Sh_Size - 1);
-
-            if Verbose then
-               Put_Line ("# " & Hex_Image (Addr) & "-" & Hex_Image (Last)
-                           & ": " & Get_Shdr_Name (Efile, I));
-            end if;
 
             Cur_Sym := First (Shdr_Sets (I).all);
             if Has_Element (Cur_Sym) then
