@@ -79,7 +79,12 @@ library project Libsupport is
       when "powerpc-elf" =>
 	 for Library_Options use
 	    ("-nostdlib",
-	     "-T", Libsupport'Library_Dir & "/gnu.ld");
+	     "-T", Libsupport'Library_Dir & "/gnu.ld",
+
+	     -- force inclusion of symbols possibly referenced by s-secsta
+	     -- in libgnat.a, always last on the command line.
+	     "-Wl,-u__gnat_get_secondary_stack",
+	     "-Wl,-u__gnat_last_chance_handler");
       when others => null;
    end case;
 
