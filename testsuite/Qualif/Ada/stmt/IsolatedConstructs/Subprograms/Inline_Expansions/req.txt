@@ -1,0 +1,7 @@
+The fact that a given subprogram is inlined shall not affect computing the
+coverage information - (parts of) subprogram body shall be reported as covered
+only if the subprogram is actually called.
+
+Testing strategy notes:
+----------------------
+Both procedures and functions shall be checked.

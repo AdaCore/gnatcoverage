@@ -1,0 +1,20 @@
+In case of implicit inherited subprograms, the code of the explicit subprogram
+it is inherited from is not reported as covered if neither the explicit
+subprogram nor any of implicit subprogram inherited from it is called. In case
+of the call to overriding subprogram, the code of the overridden subprogram
+shall not be reported as covered if this overridden subprogram is not covered
+by itself.
+
+Testing strategy notes:
+----------------------
+More then one level of inheritance shall be checked.
+
+Dispatching calls shall be checked.
+
+Different ways of subprogram calls shall be checked:
+  - ordinary calls by means of a call statement/function call expression;
+  - dynamic calls through access-to-subprogram value;
+  - implicit calls as the result of evaluation of default initialization
+    expressions;
+
+One test case may combine more then one cases from above.

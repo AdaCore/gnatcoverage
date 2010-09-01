@@ -1,0 +1,28 @@
+Statement coverage shall be assessed correctly for Ada subprogram constructs
+according to the semantics of these constructs as described in Chapter 6
+"Subprograms" of the Ada Reference Manual.
+
+Testing strategy notes:
+----------------------
+- this tool operation requirement is split into subordinate requirements:
+  - Subprogram Declarations (and subprogram body declarations): the goal is to
+    check that the code from these constructs is reported as covered only when
+    a subprogram is called
+  - Return Statements: the goal is to check that the return statement is
+    reported as covered only if it is actually executed, and that the
+    statements that are skipped as the result of execution of the return
+    statement are not reported as covered;
+  - Derived Subprograms: the goal is to check that in case of the calls to
+    implicit inherited subprograms the coverage information is assessed
+    correctly for an explicit subprogram this implicit subprogram is inherited
+    from;
+  - Inline Expansion of subprograms: the goal is to verify that inline
+    expansion does not result of any problem in computation coverage
+    information for the language constructs and aspects mentioned above;
+
+- the tests from this part of the test suite are not supposed to check any
+  deeply nested subprogram structures;
+
+- the tests from this part of the test suite are not supposed to check
+  coverage for any statements (except the RETURN statement) and/or other
+  constructs enclosed by subprogram bodies;
