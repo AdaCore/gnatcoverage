@@ -1,0 +1,8 @@
+Code of the package including statements in the package body shall be reported
+as covered only when the package is elaborated.
+
+Testing strategy notes:
+----------------------
+Library packages and local packages shall be checked. The only situation when
+code from a package body shall be reported as uncovered is when a local
+package is declared in a subprogram body.
