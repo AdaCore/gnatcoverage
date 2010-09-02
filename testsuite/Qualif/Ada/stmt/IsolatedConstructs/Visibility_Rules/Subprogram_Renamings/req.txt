@@ -1,0 +1,11 @@
+Subprogram renaming shall not cause by itself reporting the code of the
+renamed subprogram as being covered. If a renamed subprogram is called using
+its new name, its code shall be reported as covered.
+
+Testing strategy notes:
+----------------------
+Procedure and function renamings shall be checked.
+
+Library-level and local renamings shall be checked.
+
+One test case may combine more then one cases from above.
