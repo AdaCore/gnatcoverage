@@ -1,0 +1,12 @@
+Statement coverage shall be correctly assessed for the code from subunits.
+
+Testing strategy notes:
+----------------------
+The only thing from Chapter 10 ("Program Structure and Compilation Issues")
+from the Ada Language Reference Manual that needs a special attention is
+subunits. All the other aspects described in this Chapter are addressed by all
+the tests from Isolated_Constructs part.
+
+Both subprogram and package subunits shall be checked.
+
+More then one level of subunits shall be checked.
