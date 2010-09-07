@@ -1680,6 +1680,12 @@ Below is a verbatim inclusion of the relevant Ada specification:
 @page
 @section XML output specifications
 
+Below is a verbatim inclusion of the relevant Ada specification:
+
+@smallexample
+@verbatiminclude annotations-xml.ads
+@end smallexample
+
 
 @c *******************************************************************
 @c *                          BIBLIOGRAPHY                           *
