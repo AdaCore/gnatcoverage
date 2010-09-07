@@ -1,0 +1,14 @@
+The code of a generic unit is reported as covered only if the generic is
+instantiated, and the instantiation is either called (in case of a subprogram
+instantiation or a subprogram declared in generic package) or elaborated (in
+case of a declaration or elaboration code in a generic package).
+
+Testing strategy notes:
+----------------------
+Generic packages and generic subprograms shall be checked.
+
+Library-level generics and locally declared generics shall be checked.
+
+Library-level instantiations and local instantiations shall be checked.
+
+One test case may combine more then one cases from above.
