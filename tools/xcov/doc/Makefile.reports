@@ -2,7 +2,8 @@
 # LaTeX sources for Couverture reports.
 
 PDF=$(REPORT:%=%.pdf)
-XCOVDIR=../xcov
+BASEDIR=${HOME}/couverture
+XCOVDIR=$(BASEDIR)/xcov
 all: check clean $(PDF)
 
 check:
@@ -17,9 +18,9 @@ clean:
 force:
 
 LATEX=\
-TEXINPUTS=.:$(XCOVDIR)/doc:../documents:$${TEXINPUTS} latex
+TEXINPUTS=.:$(XCOVDIR)/doc:$(BASEDIR)/publications:$${TEXINPUTS} latex
 BIBTEX=\
-BIBINPUTS=.:$(XCOVDIR)/doc:../documents:../publications:$${BIBINPUTS} bibtex
+BIBINPUTS=.:$(XCOVDIR)/doc:$(BASEDIR)/publications:$(BASEDIR)/references:$${BIBINPUTS} bibtex
 
 %.pdf: force
 	$(LATEX) $*
