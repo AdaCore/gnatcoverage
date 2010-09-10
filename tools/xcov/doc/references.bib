@@ -50,17 +50,77 @@
 
 @string {AND = " and "}
 
-==============================================================================
+===========================================================================
+==                                 STANDARDS                             ==
+===========================================================================
 
-@misc {qemu-home,
-title     = "{The Qemu open source processor emulator}",
-author    = BELLARD,
-url = "http://bellard.org/qemu/"
+@TechReport{do178b,
+  author = {RTCA},
+  title = {Software Considerations in Airborne Systems and Equipment Certification},
+  type = {Document RTCA},
+  number = {DO-178B},
+  year = {1992}
 }
 
-@manual {xcov-doc,
-title   = "{Xcov Fundamentals and Users Guide}",
-year    = 2009
+@TechReport{do248b,
+  author = {RTCA},
+  title = {Final Annual Report For Clarification Of DO-178B "Software Considerations In Airborne Systems And Equipment Certification"},
+  type = {Document RTCA},
+  number = {DO-248B},
+  year = {2001}
+}
+
+@TechReport{do278,
+  author = {RTCA},
+  title = {Guidelines for Communications, Navigation, Surveillance, and Air Traffic Management (CNS/ATM) Systems Software Integrity Assurance},
+  type = {Document RTCA},
+  number = {DO-278},
+  year = {2002}
+}
+
+@techreport{ecss-e-40,
+    institution = {ESA-ESTEC, Requirements \& Standards Division},
+    keywords = {ecss},
+    title = {Software},
+    type = {ECSS standard},
+    number = {ECSS-E-ST-40 C},
+    year = {2003}
+}
+
+@techreport{ecss-e-st-40c,
+    author = {European Cooperation for Space Standardization (ECSS)},
+    institution = {ESA-ESTEC, Requirements \& Standards Division},
+    keywords = {ecss},
+    title = {Space Engineering --- Software},
+    type = {ECSS standard},
+    number = {ECSS-E-ST-40C},
+    month = {Mar},
+    year = {2009}
+}
+
+@TechReport{iec60880,
+  title = "{Nuclear power plants ---
+           Instrumentation and control systems important to safety ---
+           Software aspects for computer-based systems performing category A
+           functions}",
+  publisher = {IEC (International Electrotechnical Commission},
+  year = {1986},
+  author = {{IEC}},
+  type = {IEC standard},
+  number = {60880:2006 (2nd edition)},
+  address = {Geneva, Switzerland},
+  month = {May}
+}
+
+@TechReport{en50128,
+  title = "{Railway applications - Communication, signalling and processing systems - Software for railway control and protection systems}",
+  publisher = {CENELEC ( European Committee for Electrotechnical Standardization)},
+  year = {2001},
+  author = {{CENELEC}},
+  type = {European standard},
+  number = {EN 50128:2001},
+  address = {Brussels, Belgium},
+  month = {Mar}
 }
 
 ==============================================================================
@@ -106,6 +166,17 @@ month     = jun,
 year      = 2002,
 type      = POSPAPER,
 number    = "10",
+url       = CASTURL
+}
+
+@techreport {cast12,
+title     = "{Guidelines for Approving Source Code to
+              Object Code Traceability}",
+author    = CAST,
+month     = dec,
+year      = 2002,
+type      = POSPAPER,
+number    = "12",
 url       = CASTURL
 }
 
@@ -208,7 +279,6 @@ url       = FAARURL
   url = "http://ieeexplore.ieee.org/"
 }
 
-
 @paper {mcdc-struct-effect,
   author = RAJAN # AND # WHALEN # AND # HEIMDAHL,
   title = "{The Effect of Program and Model Structure on MC/DC Test
@@ -240,7 +310,9 @@ url       = FAARURL
   url = ""
 }
 
-
+===========================================================================
+==                                 CAML                                  ==
+===========================================================================
 
 @TECHREPORT{Leroy-ZINC,
   AUTHOR = {Xavier Leroy},
@@ -338,5 +410,48 @@ URL={http://hal.archives-ouvertes.fr/hal-00327504/en/},
    year = {2009},
    institution = {Inria},
    note = {on-line version : {\url{http://caml.inria.fr}}}
+}
+
+===========================================================================
+==                                   MISC                                ==
+===========================================================================
+
+@article{ntafos1988:comparison,
+ author = {Ntafos, S. C.},
+ title = {A Comparison of Some Structural Testing Strategies},
+ journal = {IEEE Trans. Softw. Eng.},
+ volume = {14},
+ number = {6},
+ year = {1988},
+ issn = {0098-5589},
+ pages = {868--874},
+ doi = {http://dx.doi.org/10.1109/32.6165},
+ publisher = {IEEE Press},
+ address = {Piscataway, NJ, USA},
+}
+
+@ARTICLE{bryant86:graphs,
+    author = {Randal E. Bryant},
+    title = "{Graph-Based Algorithms for Boolean Function Manipulation}",
+    journal = {IEEE Transactions on Computers},
+    year = {1986},
+    volume = {35},
+    pages = {677--691}
+}
+
+@misc{qemu,
+  title = "{QEMU, a generic and open source machine emulator and virtualizer}",
+  url = "\url{http://www.qemu.org/}"
+}
+
+@misc {qemu-home,
+title     = "{The Qemu open source processor emulator}",
+author    = BELLARD,
+url = "http://bellard.org/qemu/"
+}
+
+@manual {xcov-doc,
+title   = "{Xcov Fundamentals and Users Guide}",
+year    = 2009
 }
 
