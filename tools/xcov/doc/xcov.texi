@@ -193,8 +193,8 @@ indicates object code never executed:
 
 @end smallexample
 
-In this excerpt, the never executed code is expected to show up this way,
-as it is intended to trigger only when the test didn't behave as it should.
+In this excerpt, the never executed code is expected, as it is
+intended to trigger only when the test didn't behave as it should.
 @c
 This points at an important distinction to make: the @code{Test_Queues}
 procedure in this example is @dfn{testing code} written to exercise
@@ -248,9 +248,9 @@ Proper coverage of applicative code often requires several test
 executions on possibly disjoint pieces of the final system, with each
 test providing its own partial coverage outcome.
 @c
-@dfn{Capitalization} denotes the storage of the partial results and
-@dfn{Consolidation} denotes the construction of a unified view out of
-partial results gathered together.
+@dfn{Capitalization} denotes the capability to store and manage the
+partial results, and @dfn{Consolidation} denotes the construction of a
+unified view from partial results gathered together.
 
 Different tests could for instance be several executions of the same
 program with behavior differences caused by external input variations.
@@ -284,7 +284,7 @@ System integration is most often a delicate process, not possible before
 late stages of the project, and it is often useful or simply unavoidable
 to perform coverage analysis on segregated pieces first.
 
-Besides, even if full coverage a some applicative components could
+Besides, even if full coverage of some applicative components could
 theortically be achieved from a single execution, it is often just more
 convenient or sensible to be able to reach the goal in an incremental
 fashion.
