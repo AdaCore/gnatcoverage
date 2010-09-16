@@ -1,17 +1,24 @@
 package body Decls_Pack is
 
-   procedure Local_1 (Res : in out Boolean) is
-      Access_Integer_Var : Access_Integer;      -- # decl1
+   procedure Local_Swap (V1, V2 : in out Access_Integer) is
+      Tmp : Access_Integer;  -- # local_swap
    begin
-      Access_Integer_Var := new Integer'(1);    -- # code1
-      Res := not Res;                           -- # code1
-   end Local_1;
+      if V1 /= V2 then       -- # local_swap
+         Tmp := V1;          -- # if_local_swap
+         V1  := V2;          -- # if_local_swap
+         V2  := Tmp;         -- # if_local_swap
+      end if;
+   end Local_Swap;
 
-   function Local_2 (Arg : Boolean) return Boolean is
-      Access_Const_Integer_Var : Access_Const_Integer; -- # decl2
+   function Local_Fun (I : Integer) return Access_Const_Integer is
+      Result : Access_Const_Integer;  -- # decl
    begin
-      Access_Const_Integer_Var :=  new Integer'(1);    -- # code2
-      return not Arg;                                  -- # code2
-   end Local_2;
+
+      if I > 0 then                   -- # stmt
+        Result := new Integer'(I);    -- # in_if
+      end if;
+
+      return Result;                  -- # stmt
+   end Local_Fun;
 
 end Decls_Pack;

@@ -1,0 +1,34 @@
+--  Test driver for object declarations. It calls everything from the
+--  functional code, so everything is expected to be reported as covered.
+
+with Swap;
+with Decls_Pack;    use Decls_Pack;
+with Decls_Support; use Decls_Support;
+with Support;       use Support;
+
+procedure Test_Decls_Part_Full is
+   Matr1 : Matrix := (1 => (1 => 1));
+   Matr2 : Matrix := (1 => (1 => 2));
+begin
+   Swap (Matr1, Matr2);
+   Assert (Matr1 (1, 1) = 2 and then Matr2 (1, 1) = 1);
+
+   Local_Swap (Matr1, Matr2);
+   Assert (Matr2 (1, 1) = 2 and then Matr1 (1, 1) = 1);
+
+   Assert (Matrix_C (2, 2) = 4);
+
+   Assert (Local_Fun (Matr1) (1, 1) = -1);
+end Test_Decls_Part_Full;
+
+--# swap.adb
+--  /stmt/       l+ 0
+
+--# decls_pack.adb
+--  /local_swap/ l+ 0
+
+--  /decl/       l+ 0
+--  /stmt/       l+ 0
+
+--# decls_pack.ads
+--  /dcls/       l+ 0

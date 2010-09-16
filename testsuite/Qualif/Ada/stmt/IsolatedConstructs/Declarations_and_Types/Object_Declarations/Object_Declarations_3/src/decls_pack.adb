@@ -1,15 +1,20 @@
 package body Decls_Pack is
 
-   procedure Local_1 (Res : in out Boolean) is
-      Coordinate_V : Coordinate := Coordinate_Zero;  -- # decl1
+   procedure Local_Swap (C1, C2 : in out Coordinate) is
+      Tmp : Coordinate := C1;                                 -- # local_swap
    begin
-      Res := not Res;                                -- # code1
-   end Local_1;
+      C1 := C2;                                               -- # local_swap
+      C2 := Tmp;                                              -- # local_swap
+   end Local_Swap;
 
-   function Local_2 (Arg : Boolean) return Boolean is
-      My_String : Var_String := (Len => 3, Data => "Ada");    -- # decl2
+   function Local_Fun (Arg : Var_String) return Var_String is
+      Result : Var_String := Arg;                             -- # decl
    begin
-      return not Arg;                                         -- # code2
-   end Local_2;
+      for I in 1 .. Arg.Len loop                              -- # stmt
+         Result.Data (I) := Character'Succ (Result.Data (I)); -- # stmt
+      end loop;
+
+      return Result;                                          -- # stmt
+   end Local_Fun;
 
 end Decls_Pack;

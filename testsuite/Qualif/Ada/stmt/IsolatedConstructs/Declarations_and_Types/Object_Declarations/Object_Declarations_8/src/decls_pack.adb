@@ -1,15 +1,25 @@
 package body Decls_Pack is
 
-   procedure Local_1 (Res : in out Boolean) is
-      Derived_Discrete_Coordinate_V : Derived_Discrete_Coordinate; -- # decl1
+   procedure Local_Swap (V1, V2 : in out Derived_Coordinate) is
+      Tmp : Derived_Coordinate;                         -- # local_swap
    begin
-      Res := not Res;                                              -- # code1
-   end Local_1;
+      if V1 /= V2 then                                  -- # local_swap
+         Tmp := V1;                                     -- # if_local_swap
+         V1  := V2;                                     -- # if_local_swap
+         V2  := Tmp;                                    -- # if_local_swap
+      end if;
+   end Local_Swap;
 
-   function Local_2 (Arg : Boolean) return Boolean is
-      Derived_Coordinate_V : Derived_Coordinate;                   -- # decl2
+   function Local_Fun (C1, C2 : Float) return Derived_Coordinate is
+      Result : Derived_Coordinate;                      -- # decl
    begin
-      return not Arg;                                              -- # code2
-   end Local_2;
+
+      if C1 > 0.0 and then C2 > 0.0 then                -- # stmt
+        Result.X := C1;                                 -- # in_if
+        Result.Y := C2;
+      end if;
+
+      return Result;                                    -- # stmt
+   end Local_Fun;
 
 end Decls_Pack;

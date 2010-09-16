@@ -3,9 +3,10 @@
 
 with Decls_Support; use Decls_Support;
 with Support; use Support;
-procedure Decls (Res : in out Boolean) is
-   I : Integer := 1;     -- # dcls
+procedure Swap (I, J : in out Integer) is
+   Tmp : Integer := I; -- # stmt
 begin
-   Res   := not Res;     -- # stmt
-end Decls;
+   I := J;             -- # stmt
+   J := Tmp;           -- # stmt
+end Swap;
 

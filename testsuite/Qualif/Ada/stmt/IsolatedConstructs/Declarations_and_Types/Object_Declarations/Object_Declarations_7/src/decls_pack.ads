@@ -4,18 +4,17 @@
 --  covered only when subprograms are called
 
 with Decls_Support; use Decls_Support;
-with Support; use Support;
+with Support;       use Support;
 package Decls_Pack is
 
-   Access_All_Integer_Var : Access_All_Integer := Integer_Var'Access;-- # dcls
+   Access_All_Integer_Var : Access_All_Integer;  -- # dcls
 
-   procedure Local_1 (Res : in out Boolean);
-   --  Straightline subprogram with "# code1" marks on statements and "# decl1"
-   --  marks on object declarations. Changes its parameter to the opposite
-   --  value
+   I : Integer := Identity (1);                  -- # dcls
+   --  Needed to avoid creating a dummy xcov report
 
-   function Local_2 (Arg : Boolean) return Boolean;
-   --  Straightline subprogram with "# code2" marks on statements and "# decl2"
-   --  marks on object declarations. Returns the value opposite to its
-   --  parameter.
+   procedure Local_Swap (V1, V2 : in out Access_Integer);
+
+   function Local_Fun (I : Integer) return Access_Const_Integer;
+   --  If I > 0 returns access value pointing to the value of I, otherwise
+   --  returns null
 end Decls_Pack;

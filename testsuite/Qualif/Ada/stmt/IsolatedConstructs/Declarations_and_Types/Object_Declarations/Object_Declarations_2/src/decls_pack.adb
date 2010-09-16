@@ -1,15 +1,22 @@
 package body Decls_Pack is
 
-   procedure Local_1 (Res : in out Boolean) is
-      Matrix_C : constant Matrix (1 ..2 , 1 .. 2) := ((1, 2), (3, 4)); -- # decl1
+   procedure Local_Swap (M1, M2 : in out Matrix) is
+      Tmp : Matrix := M1;                   -- # local_swap
    begin
-      Res := not Res;                                         -- # code1
-   end Local_1;
+      M1 := M2;                             -- # local_swap
+      M2 := Tmp;                            -- # local_swap
+   end Local_Swap;
 
-   function Local_2 (Arg : Boolean) return Boolean is
-      Vector_C : constant Vector := (1 .. 3 => Identity (4)); -- # decl2
+   function Local_Fun (Arg : Matrix) return Matrix is
+      Result : Matrix := Arg;                -- # decl
    begin
-      return not Arg;                                                -- # code2
-   end Local_2;
+      for I in Result'Range (1) loop         -- # stmt
+         for J in Result'Range (2) loop      -- # stmt
+            Result (I, J) := -Result (I, J); -- # stmt
+         end loop;
+      end loop;
+
+      return Result;                         -- # stmt
+   end Local_Fun;
 
 end Decls_Pack;

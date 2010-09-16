@@ -1,7 +1,7 @@
---  This package contains library-level record object declaration with
+--  This package contains library-level record variable object declaration with
 --  explicit initialization expression and subprograms containing local
---  record object declarations with explicit initializations that are
---  expected to be covered only when subprograms are called
+--  record variable object declarations with explicit initialization that are
+--  expected to be covered only when subprograms are called.
 
 with Decls_Support; use Decls_Support;
 with Support; use Support;
@@ -9,13 +9,9 @@ package Decls_Pack is
 
    My_String : Var_String := (Len => 3, Data => "Ada");    -- # dcls
 
-   procedure Local_1 (Res : in out Boolean);
-   --  Straightline subprogram with "# code1" marks on statements and "# decl1"
-   --  marks on object declarations. Changes its parameter to the opposite
-   --  value
+   procedure Local_Swap (C1, C2 : in out Coordinate);
 
-   function Local_2 (Arg : Boolean) return Boolean;
-   --  Straightline subprogram with "# code2" marks on statements and "# decl2"
-   --  marks on object declarations. Returns the value opposite to its
-   --  parameter.
+   function Local_Fun (Arg : Var_String) return Var_String;
+   --  For the Data field of the argument, replace each character with the
+   --  next one.
 end Decls_Pack;

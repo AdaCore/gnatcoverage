@@ -1,15 +1,23 @@
 package body Decls_Pack is
 
-   procedure Local_1 (Res : in out Boolean) is
-      F : Float := 0.0;                    -- # decl1
+   procedure Local_Swap (I, J : in out Integer) is
+      Tmp : Integer := I;                  -- # local_swap
    begin
-      Res := not Res;                      -- # code1
-   end Local_1;
+      I := J;                              -- # local_swap
+      J := Tmp;                            -- # local_swap
+   end Local_Swap;
 
-   function Local_2 (Arg : Boolean) return Boolean is
-      Day : Week_Day := Sun;               -- # decl2
+   function Local_Fun (Arg : Week_Day) return Week_Day is
+      Day : Week_Day := Arg;               -- # decl
    begin
-      return not Arg;                      -- # code2
-   end Local_2;
+      case Arg is                          -- # stmt
+         when Mon .. Sat =>
+            Day := Week_Day'Succ (Day);    -- # case1
+         when Sun =>
+            Day := Mon;                    -- # case2
+      end case;
+
+      return Day;                          -- # stmt
+   end Local_Fun;
 
 end Decls_Pack;

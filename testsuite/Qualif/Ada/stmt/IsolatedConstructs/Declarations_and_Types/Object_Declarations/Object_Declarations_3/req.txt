@@ -1,3 +1,3 @@
 This test case checks that a declaration of a record object that has an
-explicit initialization is treated as statement for coverage analysis
-purposes.
+explicit initialization is reported as covered only if the declaration is
+elaborated
