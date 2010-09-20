@@ -1,4 +1,4 @@
-#!/usr/bin/env gnatpython
+#!/usr/bin/env python
 
 """./testsuite.py [OPTIONS] [TSET_PATH]
 
