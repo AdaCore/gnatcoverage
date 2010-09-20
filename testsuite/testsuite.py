@@ -13,14 +13,12 @@ See ./testsuite.py -h for more help
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
-from gnatpython.fileutils import mkdir, rm
+from gnatpython.fileutils import mkdir, rm, ln
 from gnatpython.main import Main
 from gnatpython.mainloop import MainLoop
 
 from gnatpython.optfileparser import OptFileParse
-
-# ??? use testdriver and gnatpython.reports.ReportDiff
-from gnatpython.internal.report import Report, GenerateRep
+from gnatpython.reports import ReportDiff
 
 from glob import glob
 
@@ -86,12 +84,12 @@ def main():
     # Main loop :
     #   - run all the tests
     #   - collect the test results
-    #   - generate the res file
-    report = Report('res_couverture')
+    #   - generate the report
 
     # First report all dead tests
-    for test in dead_list:
-        report.add(test.filename, 'DEAD')
+    with open(os.path.join('output', 'results'), 'w') as result_f:
+        for test in dead_list:
+            result_f.write('%s:DEAD:' % test.filename)
 
     # Compute targetprefix, prefix to designate target specific versions of
     # command line tools (a-la <prefix>-gnatmake) and expected as the --target
@@ -116,17 +114,11 @@ def main():
     # Then run all non dead tests
     MainLoop(non_dead_list,
              run_testcase,
-             gen_collect_result(report, options.diffs),
+             gen_collect_result(options.diffs),
              options.jobs)
-    report.write()
 
     # Human readable report (rep file)
-    rep = GenerateRep('res_couverture', options.old_res,
-                      targetname=env.target.platform)
-    report_file = open('rep_couverture', 'w')
-    report_file.write(rep.get_subject())
-    report_file.write(rep.get_report())
-    report_file.close()
+    ReportDiff('output', options.old_res).txt_image('rep_couverture')
 
 def filter_list(pattern, run_test=""):
     """Compute the list of test matching pattern
@@ -220,6 +212,24 @@ def olog_for(test):
     executed by the provided test object should go."""
     return os.path.join(os.getcwd(), test.filename + '.log')
 
+def rname_for(test):
+    """Returns an uniq name for each test"""
+    filename = test.filename.replace('test.py', '')
+    if filename.startswith('./'):
+        filename = filename[2:]
+    return filename.strip('/').replace('/', '-')
+
+def rdiff_for(test):
+    """Returns path to diff file in the output directory
+
+    This file is used to generate report and results files
+    """
+    filename = test.filename.replace('test.py', '')
+    if filename.startswith('./'):
+        filename = filename[2:]
+    filename = filename.strip('/').replace('/', '-')
+    return os.path.join('output', filename + '.out')
+
 test_index = 0
 
 def run_testcase(test, _job_info):
@@ -228,7 +238,6 @@ def run_testcase(test, _job_info):
     If limit is not set, run rlimit with DEFAULT_TIMEOUT
     """
     global test_index
-    
     logging.debug("Running " + test.testdir)
     timeout = test.getopt('limit')
     if timeout is None:
@@ -260,7 +269,7 @@ def run_testcase(test, _job_info):
     return Run(testcase_cmd, output=outdiff,
                bg=True, timeout=int(timeout) + DEFAULT_TIMEOUT)
 
-def gen_collect_result(report, show_diffs=False):
+def gen_collect_result(show_diffs=False):
     """Returns the collect_result function"""
     # success - xfail status dict
     status_dict = {True: {True: 'UOK', False: 'OK'},
@@ -291,6 +300,10 @@ def gen_collect_result(report, show_diffs=False):
         else:
             success = False
         if not success:
+            rdiff = rdiff_for(test)
+            if os.path.exists(rdiff):
+                rm(rdiff)
+            ln(odiff_for(test), rdiff)
             diff_fd = open(odiff_for(test))
             diff = diff_fd.read()
             diff_fd.close()
@@ -304,19 +317,21 @@ def gen_collect_result(report, show_diffs=False):
                          (test.filename, status, failed_comment))
         else:
             logging.info("%-60s %s" % (test.filename, status))
-        if not success:
-            if xfail_comment:
-                report.add(test.filename, status, diff=diff,
-                           comment=xfail_comment.strip('"'))
-            elif failed_comment:
-                report.add(test.filename, status, diff=diff,
-                           comment=failed_comment.strip('"'))
+
+        with open(os.path.join('output', 'results'), 'w') as result_f:
+            if not success:
+                if xfail_comment:
+                    result_f.write('%s:%s:%s' %
+                            (rname_for(test), status, xfail_comment.strip('"')))
+                elif failed_comment:
+                    result_f.write('%s:%s:%s' %
+                            (rname_for(test), status, failed_comment.strip('"')))
+                else:
+                    result_f.write('%s:%s:' % (rname_for(test), status))
+                if show_diffs and not xfail and not failed_comment:
+                    logging.info(diff)
             else:
-                report.add(test.filename, status, diff=diff)
-            if show_diffs and not xfail and not failed_comment:
-                logging.info(diff)
-        else:
-            report.add(test.filename, status)
+                result_f.write('%s:%s:' % (rname_for(test), status))
 
     return collect_result
 
