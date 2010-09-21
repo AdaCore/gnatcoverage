@@ -48,6 +48,23 @@ DO-178 requires to measure test coverage of software structure as part of the So
 
 \chapter{Qualification data}
 
+\section{Overview of qualification data}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Data} & \textbf{Provided by} & \textbf{File} \\ \hline
+Tool Qualification Plan & Qualification Team & tqp.pdf \\ \hline
+Software Configuration Management Plan & Qualification Team & scmp.pdf \\ \hline
+Software Quality Assurance Plan & Quality Assurance Team & sqap.pdf \\ \hline
+Tool Operational Requirements & Development Team & tor\_tc\_ts.pdf \\ \hline
+Test cases & Development Team & tor\_tc\_ts.pdf \\ \hline
+Tests & Development Team & tor\_tc\_ts.pdf \\ \hline
+Tests Results & Development Team & ts\_results.pdf \\ \hline
+Delivery file & Qualification Team & delivery.txt, see section \ref{sec:delivery} \\ \hline
+Verification results analysis & User & user-specific \\ \hline
+Specific constraints and open problems & Qualification Team & section \ref{sec:constr-problems} \\ \hline
+\xcov User Guide & Development Team & xcov\_ug.pdf \\ \hline
+\end{tabular}
+
 \section{Tool development and verification standards}
 \subsection{Tool Operational Requirements}
 A physical folder on the repository is associated to each TOR. The name of the folder is the id of the TOR. All qualification artifacts derived from a TOR are stored as either files or folders contained in the folder of the parent TOR. The TOR textual specification is contained in a file always named \texttt{req.txt}.
@@ -66,7 +83,9 @@ Source code for tests is contained in the \texttt{src} sub-folder; source files 
 \subsection{Tests}
 \subsection{Verification results analysis}
 \subsection{Specific constraints and open problems}
+\label{sec:constr-problems}
 \subsection{Delivery file}
+\label{sec:delivery}
 
 \chapter{User activities}
 \label{sec:user-act}
