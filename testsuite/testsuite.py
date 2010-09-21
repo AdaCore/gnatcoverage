@@ -89,7 +89,7 @@ def main():
     # First report all dead tests
     with open(os.path.join('output', 'results'), 'w') as result_f:
         for test in dead_list:
-            result_f.write('%s:DEAD:' % test.filename)
+            result_f.write('%s:DEAD:\n' % test.filename)
 
     # Compute targetprefix, prefix to designate target specific versions of
     # command line tools (a-la <prefix>-gnatmake) and expected as the --target
@@ -318,20 +318,20 @@ def gen_collect_result(show_diffs=False):
         else:
             logging.info("%-60s %s" % (test.filename, status))
 
-        with open(os.path.join('output', 'results'), 'w') as result_f:
+        with open(os.path.join('output', 'results'), 'a') as result_f:
             if not success:
                 if xfail_comment:
-                    result_f.write('%s:%s:%s' %
+                    result_f.write('%s:%s:%s\n' %
                             (rname_for(test), status, xfail_comment.strip('"')))
                 elif failed_comment:
-                    result_f.write('%s:%s:%s' %
+                    result_f.write('%s:%s:%s\n' %
                             (rname_for(test), status, failed_comment.strip('"')))
                 else:
-                    result_f.write('%s:%s:' % (rname_for(test), status))
+                    result_f.write('%s:%s:\n' % (rname_for(test), status))
                 if show_diffs and not xfail and not failed_comment:
                     logging.info(diff)
             else:
-                result_f.write('%s:%s:' % (rname_for(test), status))
+                result_f.write('%s:%s:\n' % (rname_for(test), status))
 
     return collect_result
 
