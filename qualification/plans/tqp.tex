@@ -46,12 +46,18 @@ DO-178 requires to measure test coverage of software structure as part of the So
 \section{Qualified interface}
 \label{sec:qual-interface}
 
-\chapter{Tool development and verification standards}
-\section{Tool Operational Requirements}
-\section{Test cases}
-\section{Tests}
-
 \chapter{Qualification data}
+
+\section{Tool development and verification standards}
+\subsection{Tool Operational Requirements}
+A physical folder on the repository is associated to each TOR. The name of the folder is the id of the TOR. All qualification artifacts derived from a TOR are stored as either files or folders contained in the folder of the parent TOR. The TOR textual specification is contained in a file always named \texttt{req.txt}.
+
+\subsection{Test cases}
+Explicit description of test cases (when necessary) is contained in the \texttt{req.txt} of the parent TOR under the section "Testing strategy". Source code for test cases is contained in the \texttt{src} sub-folder and source files do \emph{not} start with the \texttt{test\_} prefix. 
+
+\subsection{Tests source code}
+Source code for tests is contained in the \texttt{src} sub-folder; source files start with the \texttt{test\_} prefix. 
+
 \section{Production of qualification data}
 \subsection{Environment equivalence}
 \subsection{Tool Operational Requirements}
