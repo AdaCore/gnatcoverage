@@ -6,15 +6,15 @@
 \lstset{backgroundcolor=\color{light-gray}}
 
 \begin{document}
-\title{xCov\\Tool Qualification Plan\\Version 1.0}
+\title{\huge xCov\\Tool Qualification Plan\\ \ \\ \large \textbf{Document Version 1.0}}
 
 \maketitle
-
 \tableofcontents
 
 \chapter{Document introduction}
 
 \section{Document purpose}
+The purpose of this document is to describe the applicable processes to qualify \xcov in a DO-178B and DO-178C context.
 
 \section{Authors}
 \begin{tabular}{|c|c|c|}
@@ -37,7 +37,14 @@ The evolution of this document is automatically tracked by the configuration man
 
 \chapter{Tool overview}
 \section {Sought certification credit}
+DO-178 requires to measure test coverage of software structure as part of the Software Verification Process. Measure of test coverage is mandatory for level A, B, C. Level A requires to achieve at least \mcdc, \dc and \stc (table A7 objective 5-7); level B requires to achieve at least \dc and \stc (table A7 objective 6-7) and level C requires to achieve at least \stc (table A7 objective 7). In the case of level A software, and if the compilers generates un-traceable object code, additional verification may be required on object code. CAST Paper 17 suggests at least two possible activities to achieve this additional objective: to measure test coverage of object code and to develop a traceability study on a representative set of source code.
+
+\xcov aims at automating the measurement of activities above. In the case of level A software, \xcov also aims at automating the measurement of test coverage of object code if this strategy has been chosen to cope with un-traceable object code.
+
+\xcov is qualified as a \emph{verification tool} or, in DO-178C terms, with a Tool Qualification Level 3 (TQL3). As such, and as long as \xcov is used following its qualified interface (see section \ref{sec:qual-interface}), applicants may use \xcov output as certification evidence and certification authorities shall consider \xcov output \emph{as good as} the output of a manual activity.
+
 \section{Qualified interface}
+\label{sec:qual-interface}
 
 \chapter{Tool development and verification standards}
 \section{Tool Operational Requirements}
@@ -56,5 +63,6 @@ The evolution of this document is automatically tracked by the configuration man
 \subsection{Delivery file}
 
 \chapter{User activities}
+\label{sec:user-act}
 
 \end{document}
