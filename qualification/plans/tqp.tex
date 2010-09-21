@@ -62,7 +62,7 @@ Tests & Development Team & tor\_tc\_ts.pdf \\ \hline
 Tests Results & Development Team & ts\_results.pdf \\ \hline
 Delivery file & Qualification Team & delivery.txt, see section \ref{sec:delivery} \\ \hline
 Verification results analysis & User & user-specific \\ \hline
-Specific constraints and open problems & Qualification Team & section \ref{sec:constr-problems} \\ \hline
+Specific constraints and open problems & Qualification Team & constraints.txt, see section \ref{sec:constr-problems} \\ \hline
 \xcov User Guide & Development Team & xcov\_ug.pdf \\ \hline
 \end{tabular}
 
@@ -79,6 +79,7 @@ Source code for tests is contained in the \texttt{src} sub-folder; source files 
 \section{Production of qualification data}
 
 \subsection{Environment equivalence}
+\label{sec:equivalence}
 For the whole set of qualification material to be consistent, the qualification and user environments must be equivalent. Given our internal knowledge of \xcov, we deem the following data sufficient to establish equivalence of environments:
 \begin{enumerate}
 \item the name of the GNAT Pro executable;
@@ -93,12 +94,19 @@ The value for all the items above for the qualification environment are containe
 \subsection{Test cases}
 \subsection{Tests}
 \subsection{Verification results analysis}
+
 \subsection{Specific constraints and open problems}
 \label{sec:constr-problems}
+All known constraints and open problems are collected in the appropriate file as per section \ref{sec:qd-overview}.
+
 \subsection{Delivery file}
 \label{sec:delivery}
+The delivery file (as per section \ref{sec:qd-overview}) contains the description of the qualification environments following the data required by section \ref{sec:equivalence}.
 
 \chapter{User activities}
 \label{sec:user-act}
+\section{Reference \xcov in the PSAC}
+\section{Delivery acceptance}
+\section{Configuration management of qualification data}
 
 \end{document}
