@@ -49,6 +49,7 @@ DO-178 requires to measure test coverage of software structure as part of the So
 \chapter{Qualification data}
 
 \section{Overview of qualification data}
+\label{sec:qd-overview}
 \begin{tabular}{|c|c|c|}
 \hline
 \textbf{Data} & \textbf{Provided by} & \textbf{File} \\ \hline
@@ -76,7 +77,17 @@ Explicit description of test cases (when necessary) is contained in the \texttt{
 Source code for tests is contained in the \texttt{src} sub-folder; source files start with the \texttt{test\_} prefix. 
 
 \section{Production of qualification data}
+
 \subsection{Environment equivalence}
+For the whole set of qualification material to be consistent, the qualification and user environments must be equivalent. Given our internal knowledge of \xcov, we deem the following data sufficient to establish equivalence of environments:
+\begin{enumerate}
+\item the name of the GNAT Pro executable;
+\item the GNAT Pro version number;
+\item the \xcov version number;
+\item the host operating system and its version;
+\end{enumerate}
+The value for all the items above for the qualification environment are contained in the delivery file (section \ref{sec:delivery}). Test execution results are produced in an environment which is equivalent to the one described in the delivery file. 
+
 \subsection{Tool Operational Requirements}
 \subsection{Testing strategy}
 \subsection{Test cases}
