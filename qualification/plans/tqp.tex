@@ -105,6 +105,7 @@ The value for all the items above for the qualification environment are containe
 \subsection{Test cases}
 \subsection{Tests}
 \subsection{Verification results analysis}
+\label{sec:verif-res-analyis}
 
 \subsection{Specific constraints and open problems}
 \label{sec:constr-problems}
@@ -116,8 +117,30 @@ The delivery file (as per section \ref{sec:qd-overview}) contains the descriptio
 
 \chapter{User activities}
 \label{sec:user-act}
-\section{Reference \xcov in the PSAC}
-\section{Delivery acceptance}
-\section{Configuration management of qualification data}
+The user needs to perform a set of activities, either in the scope of \xcov qualification or \xcov usage.
+
+\section{\xcov qualification}
+To finalise the qualification of \xcov, the user needs to:
+\begin{enumerate}
+\item \textbf{Reference \xcov in the PSAC}, identifying \xcov as a verification tool requiring qualification because it contributes to take certification credit by automating some (otherwise manual) activities.
+\item \textbf{Perform delivery acceptance} by performing the verification results analysis (see section \ref{sec:verif-res-analyis}).
+\item \textbf{Put qualification data under configuration management}.
+\end{enumerate}
+
+\section{\xcov usage}
+The user needs to perform the following activities to assure \xcov exhibits a qualified behaviour:
+\begin{enumerate}
+\item \textbf{Install \xcov in the Operational Environment}.
+\item \textbf{Check \xcov is used following its qualified interface} (see section \ref{sec:qual-interface}) when the tool output is intended to be used to take certification credit.
+\item \textbf{Update the Environment Configuration Index} by including the delivery file and test results (see section \ref{sec:qd-overview} for the corresponding files).
+\item{Update the Software Accomplishment Summary} for:
+\begin{itemize}
+\item Objectives 5, 6 and 7 of table A7 for level A software.
+\item Objectives 6 and 7 of table A7 for level B software.
+\item Objective 7 of table A7 for level C software.
+\end{itemize}
+\item{Update the Software Accomplishment Summary} for the qualification status of \xcov, including the Verification Results Analysis (see section \ref{sec:verif-res-analyis})
+\end{enumerate}
+
 
 \end{document}
