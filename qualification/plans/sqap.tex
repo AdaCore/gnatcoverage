@@ -1,0 +1,101 @@
+\documentclass {report}
+\usepackage{couverture}
+\usepackage{color}
+\definecolor{light-gray}{gray}{0.85}
+\usepackage{listings}
+\lstset{backgroundcolor=\color{light-gray}}
+
+\begin{document}
+\title{\huge xCov\\Software Quality Assurance Plan\\ \ \\ \large \textbf{Document Version 1.0}}
+
+\maketitle
+\tableofcontents
+
+\chapter{Document introduction}
+
+\section{Document purpose}
+The intent of the Software Quality Assurance Plan is to describe the process to ascertain the correct application of the Tool Qualification Plan and of the Software Configuration Management Plans.
+
+\section{Authors}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Name} & \textbf{Company} & \textbf{Email} \\ \hline
+Matteo Bordin & AdaCore & bordin@adacore.com \\ \hline
+Olivier Hainque & AdaCore & hainque@adacore.com \\ \hline
+\end{tabular}
+
+\section{Major revision history}
+The evolution of this document is automatically tracked by the configuration management system. Here we just provide the major revision history.
+\ \\ \\
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Version} & \textbf{Date} & \textbf{Comment} \\ \hline
+ &  &  \\ \hline
+\end{tabular}
+
+\include{doc_introduction}
+
+\chapter{Quality assurance activities}
+This sections contains a description of the Quality Assurance activities in terms of objective and output.
+
+\section{Reading of \xcov qualification material: plans}
+\begin{itemize}
+\item \textbf{objectives:} to assess the compliance with qualification objectives;
+\item \textbf{output:} QA Reading report (qa/DDMMYYYY/qa\_plans.doc).
+\end{itemize}
+
+\section{Inspection of Tool Operational Requirements (by sampling)}
+\begin{itemize}
+\item \textbf{objectives:}
+\begin{itemize}
+\item check the accuracy and completeness with the targeted language feature and coverage metric;
+\item check the compliance with the development standard.
+\end{itemize}
+\item \textbf{output:} QA inspection report (qa/DDMMYYYY/qa\_tor.doc).
+\end{itemize}
+
+\section{Inspection of Test Cases (by sampling)}
+\begin{itemize}
+\item \textbf{objectives:}
+\begin{itemize}
+\item check the representativeness of used programming language constructs for each considered coverage metrics;
+\item check the compliance with the development standard.
+\end{itemize}
+\item \textbf{output:} QA inspection report (qa/DDMMYYYY/qa\_tor.doc, the same file used for the review of Tool Operational Requirements).
+\end{itemize}
+
+\section{Inspection of test execution results}
+\begin{itemize}
+\item \textbf{objectives:}
+\begin{itemize}
+\item Check the results of test execution
+\item In the case tests failed, it is necessary to investigate whether the source of error is:
+\begin{itemize}
+\item A misbehaviour of the infrastructure used to run tests and compare actual results to expected results: in this case, the Qualification Team is in charge
+of reporting and fixing the problem.
+\item A bug in the \xcov implementation: in this case, the Development
+Team is in charge of reporting and fixing the problem.
+\item A reasonable limitation of the tool: in this case, the Qualification
+Team is in charge of reporting and justifying the problem as part of \xcov known constraints and open problems.
+\end{itemize}
+\end{itemize}
+\item \textbf{output:} QA inspection report (qa/DDMMYYYY/qa\_test\_execution.doc).
+\end{itemize}
+
+\section{Tool conformity review}
+The conformity review takes in input a specific packaged and qualifiable release of \xcov.
+\begin{itemize}
+\item \textbf{objectives:}
+\begin{itemize}
+\item review the delivery file in the scope of the precise packaged and qualifiable release of \xcov
+\item consistency within the Qualification Material;
+\item finalize discussion on open problems (if any).
+\end{itemize}
+\item \textbf{output:} QA inspection report qa/<RELEASE>/DDMMYYYY/ qa\_conformity.doc).
+\end{itemize}
+
+
+\section{Responsibility}
+The responsibility for the Quality Assurance Process belongs to the Quality Assurance Team.
+
+\end{document}
