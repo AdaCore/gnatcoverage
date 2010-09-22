@@ -35,7 +35,18 @@ The evolution of this document is automatically tracked by the configuration man
 
 \include{doc_introduction}
 
-\chapter{Tool overview}
+\chapter{Tool and document overview}
+
+\section{Tool overview}
+\xcov is a tool conceived to measure test coverage of software structures at both source and object code level. Differently from most common coverage tools, \xcov operates without instrumenting the source code. It instead relies on:
+\begin{itemize}
+\item the list of object instructions evaluated within the execution of a (set of) test(s): such a list is collected by \xcov itself; 
+\item the ability of the compiler to produce a map between source code structures (statements, decisions, conditions) and the corresponding object code instructions.
+\end{itemize}
+By analysing the data above, \xcov is thus able to calculate which source and object code structures have been executed.
+
+Additional information on the high \xcov can be found in the \xcov UG and in \adaeurope and \erts.
+
 \section {Sought certification credit}
 DO-178 requires to measure test coverage of software structure as part of the Software Verification Process. Measure of test coverage is mandatory for level A, B, C. Level A requires to achieve at least \mcdc, \dc and \stc (table A7 objective 5-7); level B requires to achieve at least \dc and \stc (table A7 objective 6-7) and level C requires to achieve at least \stc (table A7 objective 7). In the case of level A software, and if the compilers generates un-traceable object code, additional verification may be required on object code. CAST Paper 17 suggests at least two possible activities to achieve this additional objective: to measure test coverage of object code and to develop a traceability study on a representative set of source code.
 
