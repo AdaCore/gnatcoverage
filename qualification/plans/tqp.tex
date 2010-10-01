@@ -54,6 +54,39 @@ DO-178 requires to measure test coverage of software structure as part of the So
 
 \section{Qualified interface}
 \label{sec:qual-interface}
+For \xcov to produce reports valid as certification material, the tool shall be used following these process:
+\begin{enumerate}
+\item Build the executable application using the GNAT Pro executable identified in the delivery file (see section \ref{sec:delivery}) and accordingly to the known constraints for compilation options (see section \ref{sec:constr-problems}).
+
+\item Execute on the command line the following command:\\
+
+\texttt{xcov run --target=<TARGET> --level=<LEVEL> <EXECUTABLE>} \\
+
+where:
+\begin{itemize}
+\item <TARGET> is the target platform (the same used in the GNAT Pro executable name, for example, powerpc-elf).
+\item <LEVEL> is the targeted DO-178 criticality level, univocally identifying which coverage metrics are activated.
+\item <EXECUTABLE> is the executable file produced at point 1.
+\end{itemize}
+
+This step produces two files:
+\begin{itemize}
+\item traces.list, a list of files containing the execution trace to examine
+\item alis.list, the list of files for which we want coverage results.
+\end{itemize}
+
+\item Execute on the command line the following command:\\
+
+\texttt{xcov coverage --scoc=@alis.list --level=<LEVEL> --anotate=report @traces.list -o <REPORT>} \\
+
+where:
+
+\begin{itemize}
+\item <LEVEL> is the targeted DO-178 criticality level as per point 2.
+\item <REPORT> is the file where the qualified coverage report is generated.
+\end{itemize}.
+
+\end{enumerate}
 
 \chapter{Qualification data}
 
@@ -122,7 +155,7 @@ Test cases reflect the different kinds of tool operational requirements.
 
 \subsection{Specific constraints and open problems}
 \label{sec:constr-problems}
-All known constraints and open problems are collected in the appropriate file as per section \ref{sec:qd-overview}.
+All known constraints and open problems are collected in the appropriate file as per section \ref{sec:qd-overview}. They include constraints on GNAT Pro compilation options and on coding standard accepted by \xcov.
 
 \subsection{Delivery file}
 \label{sec:delivery}
