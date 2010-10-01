@@ -266,6 +266,9 @@ def run_testcase(test, _job_info):
     if Env().main_options.qualif_level is not None:
         qualif_xcov_level=QUALIF_TO_XCOV_LEVEL[Env().main_options.qualif_level]
         testcase_cmd.append('--qualif-xcov-level=%s' % qualif_xcov_level)
+    if Env().main_options.board is not None:
+        testcase_cmd.append('--board=%s'
+                            % Env().main_options.board)
     return Run(testcase_cmd, output=outdiff,
                bg=True, timeout=int(timeout) + DEFAULT_TIMEOUT)
 
@@ -362,6 +365,8 @@ def __parse_options():
                  help='Use xcov to measure the coverage of its own testsuite.'
                       'Only supported on x86-linux.'
                       'Note that it disables the use of valgrind.')
+    m.add_option('--board', dest='board', metavar='BOARD',
+                 help='Specific target board to exercize.')
     m.parse_args()
     disable_valgrind = m.options.disable_valgrind or m.options.bootstrap
 

@@ -254,6 +254,8 @@ class Test (object):
                         help='For qualification tests, force the context '
                              'level to CONTEXT_LEVEL instead of deducing it '
                              'from the test category.')
+        main.add_option('--board', dest='board', metavar='BOARD',
+                        help='Specific target board to exercize')
         main.parse_args()
         if main.options.report_file is None:
             # This is a required "option" which is a bit self-contradictory,
@@ -356,6 +358,10 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
 
     all_gargs = ['-q', '-XSTYLE_CHECKS=', '-XTARGET=%s' % env.target.triplet,
                  '-p', '-P%s' % project]
+    
+    if thistest.options.board:
+        all_gargs += ['-XBOARD=%s' % thistest.options.board]
+
     all_gargs += thistest.gprtargetoptions
     all_gargs += to_list(gargs)
 
@@ -482,7 +488,17 @@ def xrun(args, out=None):
     # On leon-elf, qemu is stopped by generating a double-fault.  This
     # crashes the board and therefore qemu exits with an error message.
     # As this is expected, we don't stop the test because of exit status.
-    return xcov (['run', '--target=' + env.target.triplet] + to_list(args),
+
+    # Compute our --target argument to xcov run.  If we have a specific
+    # target board specified, use that.  Fallback on our general target
+    # triplet otherwise.
+
+    if thistest.options.board:
+        targetarg = thistest.options.board
+    else:
+        targetarg = env.target.triplet
+
+    return xcov (['run', '--target=' + targetarg] + to_list(args),
                  inp=nulinput, out=out, register_failure=False)
 # -----------
 # -- match --
