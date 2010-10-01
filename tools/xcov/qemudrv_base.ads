@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2009, AdaCore                       --
+--                     Copyright (C) 2009-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -41,7 +41,7 @@ package Qemudrv_Base is
    type Driver_Target_Array is array (Natural range <>) of Driver_Target;
 
    Drivers : constant Driver_Target_Array :=
-     ((Target => new String'("powerpc-elf"),
+     ((Target => new String'("qemu-prep"),
        Build_Command => new String'("powerpc-elf-objcopy"),
        Build_Options => new String_List'(new String'("-O"),
                                          new String'("binary"),
@@ -58,6 +58,19 @@ package Qemudrv_Base is
                                        new String'("$dir_exe"),
                                        new String'("-bios"),
                                        new String'("$base_bin"),
+                                       new String'("-trace"),
+                                       new String'("$trace"))
+      ),
+      (Target => new String'("qemu-sbc834x"),
+       Build_Command => null,
+       Build_Options => null,
+       Run_Command => new String'("qemu-system-ppc"),
+       Run_Options => new String_List'(new String'("-nographic"),
+                                       new String'("-M"),
+                                       new String'("SBC834x"),
+                                       new String'("-no-reboot"),
+                                       new String'("-kernel"),
+                                       new String'("$exe"),
                                        new String'("-trace"),
                                        new String'("$trace"))
       ),
@@ -106,4 +119,26 @@ package Qemudrv_Base is
        Run_Options => null
       )
      );
+
+   --  Target aliases: names users may feed to --target and that resolve
+   --  to one of the target definitions above
+
+   type Target_Alias is record
+
+      Alias  : String_Access;
+      --  The name users may feed to --target, as an alias to designate ...
+
+      Target : String_Access;
+      --  The name of a real target definition
+
+   end record;
+
+   type Target_Aliases_Array is array (Natural range <>) of Target_Alias;
+
+   Aliases : constant Target_Aliases_Array :=
+     (1 => (Alias => new String'("powerpc-elf"),
+            Target => new String'("qemu-prep")
+           )
+     );
+
 end Qemudrv_Base;

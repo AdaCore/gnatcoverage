@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2009, AdaCore                       --
+--                     Copyright (C) 2009-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -123,7 +123,13 @@ package body Qemudrv is
          Free (Trace_File);
       end;
 
-      --  Search for the driver
+      --  Resolve the possible target alias and search for the driver
+
+      for I in Aliases'Range loop
+         if Real_Target.all = Aliases (I).Alias.all then
+            Real_Target := Aliases (I).Target;
+         end if;
+      end loop;
 
       Driver_Index := -1;
       for I in Drivers'Range loop
