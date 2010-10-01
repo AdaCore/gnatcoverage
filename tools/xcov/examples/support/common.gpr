@@ -5,21 +5,43 @@
 abstract project Common is
 
    type Yes_No_Type is ("yes", "no");
-
    for Languages use ();
 
-   type Target_Type is ("i386-linux", "powerpc-elf", "leon-elf");
+   --  General target families, used as a toolchain selector
+   --  essentially
+
+   type Target_Type is ("native", "powerpc-elf", "leon-elf");
    Target : Target_Type := external ("TARGET", "powerpc-elf");
 
-   --  Some "targets" actually designate native toolchain environments.
-   --  Translate:
+   --  Specific target boards, for which we build/expose BSP variants
+   --  for a common target family
+
+   type Board_Type is
+    ("qemu-prep", "qemu-sbc834x", -- powerpc-elf target boards
+     "unspec");
+
+   Board : Board_Type := external ("BOARD", "unspec");
+
+   --  Pick a default board if we have a choice and none was specified
+
+   case Board is
+
+     when "unspec" =>
+        case Target is
+          when "powerpc-elf" => Board := "qemu-prep";
+          when others        => null; 
+        end case;
+
+     when others => null;
+
+   end case;
+  
+   --  Compute the Toolchain_Prefix to use
 
    Toolchain_Prefix := "";
    case Target is
-     when "i386-linux" =>
-       Toolchain_Prefix := "";
-     when others =>
-       Toolchain_Prefix := Target & "-";
+     when "native" => Toolchain_Prefix := "";
+     when others   => Toolchain_Prefix := Target & "-";
    end case;
 
 end Common;

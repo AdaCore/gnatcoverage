@@ -8,24 +8,50 @@
 
 TARGET = powerpc-elf
 
+# ====================================================================
+# BOARD specialization wrt TARGET. Used to control the compilation of
+# the support library, and passed to xcov run when specified. 
+# ===================================================================
+
+ifeq ($(TARGET), powerpc-elf)
+BOARD = qemu-prep
+else
+BOARD = unspec
+endif
+
+# ==========================================================
+# What we'll pass to xcov run
+# ==========================================================
+
+# If we have a particular BOARD specified, use that.
+# Fallback to the more general TARGET otherwise.
+
+ifneq ($(BOARD), unspec)
+XCOVTARGET = $(BOARD)
+else
+XCOVTARGET = $(TARGET)
+endif
+
 # ============================================================
 # Examples support directory, relative to example subdir, and
 # support library specific location:
 # ============================================================
 
 SUPPORT_DIR = ../support
-LIBSUPPORT_DIR = $(SUPPORT_DIR)/lib/$(TARGET)
+LIBSUPPORT_DIR = $(SUPPORT_DIR)/lib/$(BOARD)
+
+SUPPORT_SRC_DIR = $(SUPPORT_DIR)/src
+
+MAYBE_LDSCRIPT = $(wildcard $(SUPPORT_SRC_DIR)/$(TARGET)/$(BOARD).ld)
 
 # =======================================================
-# CROSS toolchain prefix, qemu target, and target related
-# arguments to gprbuild:
+# CROSS toolchain prefix and target related arguments to
+# gprbuild:
 # =======================================================
 
-GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) --RTS:Ada=zfp
+GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) -XBOARD=$(BOARD) --RTS:Ada=zfp
 
-# We consider i386-linux as a 'native' environment toolchain-wise
-QEMUTARGET  = $(TARGET)
-ifeq ($(TARGET),i386-linux)
+ifeq ($(TARGET),native)
   CROSSPREFIX =
 else
   CROSSPREFIX = $(TARGET)-
@@ -44,8 +70,8 @@ STTY_RESTORE=
 
 ifneq ($(TERM),)
 ifeq ($(UNIT_TESTS),)
-  STTY_ADJUST = stty raw
-  STTY_RESTORE = stty $(shell stty -g)
+  STTY_ADJUST = stty raw;
+  STTY_RESTORE = stty $(shell stty -g);
 endif
 endif
 

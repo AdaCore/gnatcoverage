@@ -17,6 +17,28 @@
  *                                                                          *
  ****************************************************************************/
 
+/* reset registers */
+
+#define RPR_OFFSET  0x918
+#define RPR_RSTE_VALUE 0x52535445
+#define RCR_OFFSET  0x91C
+#define RCR_SWSR_BITS 1
+
+#ifdef PPC_PREP
+#define RESET_ADDRESS 0x92
+#define RESET_VALUE 1
+#elif defined PPC_SBC834x
+#define RESET_ADDRESS RCR_OFFSET
+#define RESET_VALUE RCR_SWSR_BITS
+#endif
+
+static void reset () {
+#ifdef PPC_SBC834x
+  __outl (RPR_OFFSET, RPR_RSTE_VALUE);
+#endif
+  __outb (RESET_ADDRESS, RESET_VALUE);
+}
+
 static void
 __memcpy (unsigned char *d, unsigned char *s, int len)
 {
@@ -33,9 +55,14 @@ __bzero (unsigned char *d, int len)
 
 void abort (void)
 {
-  __outb (0x92, 0x01);
+  reset () ;
   while (1)
     ;
+}
+
+void exit (void)
+{
+  abort ();
 }
 
 extern char __sdata2_load[], __sdata2_start[], __sdata2_end[];

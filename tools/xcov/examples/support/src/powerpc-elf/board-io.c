@@ -19,15 +19,27 @@
 
 #include <board-io.h>
 
+#ifdef PPC_PREP
+#define BASE 0x80000000
+#elif defined PPC_SBC834x
+#define BASE 0xe0000000
+#endif
+
 void
 __outb(int port, unsigned char v)
 {
-  *((volatile unsigned char *)(0x80000000 + port)) = v;
+  *((volatile unsigned char *)(BASE + port)) = v;
+}
+
+void
+__outl(int port, unsigned long v)
+{
+  *((volatile unsigned long *)(BASE + port)) = v;
 }
 
 unsigned char
 __inb(int port)
 {
-  return *((volatile unsigned char *)(0x80000000 + port));
+  return *((volatile unsigned char *)(BASE + port));
 }
 

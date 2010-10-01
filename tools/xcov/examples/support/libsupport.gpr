@@ -23,8 +23,8 @@ library project Libsupport is
 
    for Source_Dirs use ("src");
 
-   for Library_Dir use "lib/" & Common.Target;
-   for Object_Dir use "obj/" & Common.Target;
+   for Library_Dir use "lib/" & Common.Board;
+   for Object_Dir use "obj/" & Common.Board;
 
    case Do_Build is
       when "no"  => for Externally_Built use "true";
@@ -52,7 +52,7 @@ library project Libsupport is
    --     feature a C library.
 
    case Common.Target is
-      when "i386-linux" =>
+      when "native" =>
          for Languages use ("Ada");
 
       when others =>
@@ -67,26 +67,42 @@ library project Libsupport is
       end case;
    end Builder;
 
+   --  The C BSP for a given target (e.g. powerpc-elf) might feature
+   --  variations for different boards, controlled by #ifdef blocks.
+   --  Translate board names to extra macro definitions here:
+   
+   Extra_C_Switches := ();
+   case Common.Board is
+      when "qemu-prep"    => Extra_C_Switches := ("-DPPC_PREP");
+      when "qemu-sbc834x" => Extra_C_Switches := ("-DPPC_SBC834x");
+      when "unspec"       => null;
+   end case;
+
    package Compiler is
-      for Default_Switches ("C") use ("-O1");
-      for Default_Switches ("ada") use Compiler'Default_Switches("C");
+      for Default_Switches ("C") use ("-O1") & Extra_C_Switches;
+      for Default_Switches ("Ada") use Compiler'Default_Switches("C");
    end Compiler;
 
    --  How should clients link with the library:
    --  =========================================
 
-   case Common.Target is
-      when "powerpc-elf" =>
-	 for Library_Options use
-	    ("-nostdlib",
-	     "-T", Libsupport'Library_Dir & "/gnu.ld",
+   --  If we have a board specified, assume we have a standalone BSP and
+   --  a linker script comes with it
 
-	     -- force inclusion of symbols possibly referenced by s-secsta
-	     -- in libgnat.a, always last on the command line.
-	     "-Wl,-u__gnat_get_secondary_stack",
-	     "-Wl,-u__gnat_last_chance_handler");
-      when others => null;
+   case Common.Board is
+      when "unspec" => null;
+      when others   =>
+         for Library_Options use
+           ("-nostdlib",
+            "-T", Libsupport'Library_Dir & "/" & Common.Board & ".ld");
    end case;
+
+   -- Force inclusion of symbols possibly referenced by s-secsta
+   -- in libgnat.a, always last on the command line.
+
+   for Library_Options use Project'Library_Options
+     & ("-Wl,-u__gnat_get_secondary_stack",
+        "-Wl,-u__gnat_last_chance_handler");
 
    package Linker is
       for Linker_Options use Project'Library_Options;

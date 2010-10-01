@@ -48,7 +48,7 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
     $(XCOV) disp-routines $(wildcard obj/$(TARGET)/*.o) > $*.routines
   XCOVFILTER=--routines=@$*.routines
   XCOVRUN=xcov run \
-    --target=$(QEMUTARGET) --level=$(XCOVLEVEL) obj/$(TARGET)/$<
+    --target=$(XCOVTARGET) --level=$(XCOVLEVEL) obj/$(TARGET)/$<
 
 else
 ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
@@ -60,7 +60,7 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
     ls $(wildcard obj/$(TARGET)/*.ali) > $*.alis
   XCOVFILTER=--scos=@$*.alis
   XCOVRUN=xcov run \
-    --target=$(QEMUTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) obj/$(TARGET)/$<
+    --target=$(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) obj/$(TARGET)/$<
 endif
 endif
 
@@ -114,7 +114,7 @@ trace: $(TESTS:%=%.trace) $(UNIT_TESTS:%=%.trace)
 # even if XCOVRUN fails for whatever reason.
 
 	@echo $(XCOVRUN)
-	@$(STTY_ADJUST);$(XCOVRUN);$(STTY_RESTORE);echo
+	@$(STTY_ADJUST) $(XCOVRUN); $(STTY_RESTORE) echo
 
 # -----------------------------------------------------------------------
 # build: produce executable program from sources + target bsp
@@ -127,9 +127,9 @@ $(TESTS): libsupport force
 
 $(UNIT_TESTS): libsupport force
 	$(BUILDER) -f -p -Pharness $(BUILDERFLAGS)\
-	-XRUNTIME=zfp -XUNITTEST=yes
+	-XRUNTIME=zfp -XUNITTEST=yes -XPLATFORM=$(TARGET)
 
-MKSUPPORT=$(MAKE) -C ../support -f Makefile.libsupport
+MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) -f Makefile.libsupport
 
 libsupport:
 	$(MKSUPPORT) all

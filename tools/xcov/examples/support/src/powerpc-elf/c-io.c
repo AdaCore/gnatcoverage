@@ -19,23 +19,41 @@
 
 #include <board-io.h>
 
+/* serial registers */
+
+#ifdef PPC_PREP
+#define SERIAL0 0x3f8
+#elif defined PPC_SBC834x
+#define SERIAL0 0x4500
+#endif
+
+#define RBR 0
+#define THR 0
+#define IER 1
+#define IIR 2
+#define LCR 3
+#define MCR 4
+#define LSR 5
+#define MSR 6
+#define SCR 7
+
 int putchar(int c)
 {
-  __outb (0x3f8 + 0x00, c);
+  __outb (SERIAL0 + THR, c);
   return c;
 }
 
 static int
 __checkkey (void)
 {
-  return __inb (0x3f8 + 0x05) & 0x01;
+  return __inb (SERIAL0 + LSR) & 0x01;
 }
 
 int getchar (void)
 {
   while (!__checkkey ())
     ;
-  return __inb(0x3f8 + 0x00);
+  return __inb(SERIAL0 + RBR);
 }
 
 int fsync (int fd)
