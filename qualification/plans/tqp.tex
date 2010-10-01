@@ -38,19 +38,17 @@ The evolution of this document is automatically tracked by the configuration man
 \chapter{Tool and document overview}
 
 \section{Tool overview}
-\xcov is a tool conceived to measure test coverage of software structures at both source and object code level. Differently from most common coverage tools, \xcov operates without instrumenting the source code. It instead relies on:
+\xcov is a tool conceived to measure test coverage of software structures at both source code level. Differently from most common coverage tools, \xcov operates without instrumenting the source code. It also allows using the same (cross) compiler used in the development environment to produce the final executable to be deployed on the target hardware. \xcov relies on:
 \begin{itemize}
 \item the list of object instructions evaluated within the execution of a (set of) test(s): such a list is collected by \xcov itself; 
 \item the ability of the compiler to produce a map between source code structures (statements, decisions, conditions) and the corresponding object code instructions.
 \end{itemize}
-By analysing the data above, \xcov is thus able to calculate which source and object code structures have been executed.
+By analysing the data above, \xcov is thus able to calculate which source code structures have been executed.
 
 Additional information on the high \xcov can be found in the \xcov UG and in \adaeurope and \erts.
 
 \section {Sought certification credit}
-DO-178 requires to measure test coverage of software structure as part of the Software Verification Process. Measure of test coverage is mandatory for level A, B, C. Level A requires to achieve at least \mcdc, \dc and \stc (table A7 objective 5-7); level B requires to achieve at least \dc and \stc (table A7 objective 6-7) and level C requires to achieve at least \stc (table A7 objective 7). In the case of level A software, and if the compilers generates un-traceable object code, additional verification may be required on object code. CAST Paper 17 suggests at least two possible activities to achieve this additional objective: to measure test coverage of object code and to develop a traceability study on a representative set of source code.
-
-\xcov aims at automating the measurement of activities above. In the case of level A software, \xcov also aims at automating the measurement of test coverage of object code if this strategy has been chosen to cope with un-traceable object code.
+DO-178 requires to measure test coverage of software structure as part of the Software Verification Process. Measure of test coverage is mandatory for level A, B, C. Level A requires to achieve at least \mcdc, \dc and \stc (table A7 objective 5-7); level B requires to achieve at least \dc and \stc (table A7 objective 6-7) and level C requires to achieve at least \stc (table A7 objective 7). \xcov aims at automating the measurement of activities above.
 
 \xcov is qualified as a \emph{verification tool} or, in DO-178C terms, with a Tool Qualification Level 5 (TQL5). As such, and as long as \xcov is used following its qualified interface (see section \ref{sec:qual-interface}), applicants may use \xcov output as certification evidence and certification authorities shall consider \xcov output \emph{as good as} the output of a manual activity.
 
@@ -101,9 +99,26 @@ For the whole set of qualification material to be consistent, the qualification 
 The value for all the items above for the qualification environment are contained in the delivery file (section \ref{sec:delivery}). Test execution results are produced in an environment which is equivalent to the one described in the delivery file. 
 
 \subsection{Tool Operational Requirements}
-\subsection{Testing strategy}
+We identify three different kinds of tool operational requirements, each of which focusing on a distinct aspect:
+\begin{enumerate}
+\item \textbf{Coverage of specific source code structures in isolation.} This category of TORs focuses on the users' expectations for the coverage of specific source code structures with respect to a specific coverage metric. We are interested in assessing that \xcov correctly acknowledges cases of absence of (or partial) coverage. In other terms, we focus on assessing \xcov is \emph{sound}. For this reason, requirements of this category shall target a specific element of a programming language (if statements, loop, blocks, etc.) and express under which conditions coverage is \emph{not} achieved. A simplified example is: \emph{"An if statement whose governing decision is evaluated to just True shall be reported as non covered for decision coverage."}. Each requirement shall target a single structure only. The use of programming language reference manuals provides a significant contribution in identifying the structure of interest.
+
+\item \textbf{Coverage of multiple source code structures.} This category of TORs is an extension of the one above and takes into consideration several different code structures at once. The goal is to assess that \xcov reports are sound also when the tool is used on complex programs. It is clearly not reasonable to take into account all possible combinations of all possible structures because this would lead to an exponential increase of the number of test cases. We thus use a reasonably complex embedded application and its associated test suite as a way to verify \xcov behaviour.
+
+\item \textbf{Representativeness of coverage results.} Since \xcov executes the application and its test suite on an execution platform other than the final operational hardware, we also consider specific TORs intended to provide evidence that the \xcov-driven execution of an application is equivalent to its execution on the final hardware. Such TORs focus on comparing the output of the same executable when executed via \xcov and on the final target processor.
+\end{enumerate}
+
 \subsection{Test cases}
-\subsection{Tests}
+Test cases reflect the different kinds of tool operational requirements.
+\begin{enumerate}
+
+\item \textbf{Coverage of specific source code structures in isolation.} Test cases for this kind of TORs exercise the same structure differently, for example by causing a boolean expression to be evaluated just to True or False.
+
+\item \textbf{Coverage of multiple source code structures.} Test cases for this kind of TORs are characterized by the execution of a selected subset of a test suite for an embedded application. 
+
+\item \textbf{Representativeness of coverage results.} These test cases consider all executables produced for the previous kind of test cases and compare their \xcov-driven execution with the execution on the target hardware. 
+
+\end{enumerate}
 
 \subsection{Specific constraints and open problems}
 \label{sec:constr-problems}
@@ -111,7 +126,11 @@ All known constraints and open problems are collected in the appropriate file as
 
 \subsection{Delivery file}
 \label{sec:delivery}
-The delivery file (as per section \ref{sec:qd-overview}) contains the description of the qualification environments following the data required by section \ref{sec:equivalence}.
+The delivery file (as per section \ref{sec:qd-overview}) contains:
+\begin{itemize} 
+\item the description of the qualification environments following the data required by section \ref{sec:equivalence}.
+\item the version of all the files listed in section \ref{sec:qd-overview} as part of the qualification data.
+\end{itemize}
 
 \chapter{User activities}
 \label{sec:user-act}
