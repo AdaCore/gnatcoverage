@@ -54,9 +54,9 @@ DO-178 requires to measure test coverage of software structure as part of the So
 
 \section{Qualified interface}
 \label{sec:qual-interface}
-For \xcov to produce reports valid as certification material, the tool shall be used following these process:
+For \xcov to produce reports valid as certification material, the tool shall be used following these steps:
 \begin{enumerate}
-\item Build the executable application using the GNAT Pro executable identified in the delivery file (see section \ref{sec:delivery}) and accordingly to the known constraints for compilation options (see section \ref{sec:constr-problems}).
+\item Build the executable application using the GNAT Pro executable identified in the delivery file (see section \ref{sec:delivery}) and accordingly to the known constraints for compilation options, coding standard and the like (see section \ref{sec:constr-problems}).
 
 \item Execute on the command line the following command:\\
 
@@ -88,6 +88,9 @@ where:
 
 \end{enumerate}
 
+\section{\xcov report structure}
+<TO BE FILLED>
+
 \chapter{Qualification data}
 
 \section{Overview of qualification data}
@@ -107,6 +110,10 @@ Verification results analysis & User & user-specific \\ \hline
 Specific constraints and open problems & Qualification Team & constraints.txt, see section \ref{sec:constr-problems} \\ \hline
 \xcov User Guide & Development Team & xcov\_ug.pdf \\ \hline
 \end{tabular}
+
+The Tool Qualification Plan, the Software Configuration Management Plan and the Software Quality Assurance Plan are generic qualification data \emph{not} specific to a given release of \xcov.
+
+The Tool Operational Requirements, the Test cases, the Tests, the Tests Results, the Delivery File and the Specific constraints and open problems are instead qualification data specific to a given \xcov release. 
 
 \section{Tool development and verification standards}
 \subsection{Tool Operational Requirements}
@@ -138,6 +145,8 @@ We identify three different kinds of tool operational requirements, each of whic
 
 \item \textbf{Coverage of multiple source code structures.} This category of TORs is an extension of the one above and takes into consideration several different code structures at once. The goal is to assess that \xcov reports are sound also when the tool is used on complex programs. It is clearly not reasonable to take into account all possible combinations of all possible structures because this would lead to an exponential increase of the number of test cases. We thus use a reasonably complex embedded application and its associated test suite as a way to verify \xcov behaviour.
 
+\item \textbf{Structure of the report file}. This category of TORs focuses on the report file produced by \xcov.
+
 \item \textbf{Representativeness of coverage results.} Since \xcov executes the application and its test suite on an execution platform other than the final operational hardware, we also consider specific TORs intended to provide evidence that the \xcov-driven execution of an application is equivalent to its execution on the final hardware. Such TORs focus on comparing the output of the same executable when executed via \xcov and on the final target processor.
 \end{enumerate}
 
@@ -148,6 +157,8 @@ Test cases reflect the different kinds of tool operational requirements.
 \item \textbf{Coverage of specific source code structures in isolation.} Test cases for this kind of TORs exercise the same structure differently, for example by causing a boolean expression to be evaluated just to True or False.
 
 \item \textbf{Coverage of multiple source code structures.} Test cases for this kind of TORs are characterized by the execution of a selected subset of a test suite for an embedded application. 
+
+\item \textbf{Structure of the report file}. Test cases for this kind of TORs check that the report file contains the right coverage information in the right section, including those related to coverage exception.
 
 \item \textbf{Representativeness of coverage results.} These test cases consider all executables produced for the previous kind of test cases and compare their \xcov-driven execution with the execution on the target hardware. 
 
