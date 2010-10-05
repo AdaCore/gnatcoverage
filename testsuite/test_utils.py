@@ -863,6 +863,7 @@ class Xnote (Cnote):
     def __init__(self, xnp, block):
         self.kind = xnp.kind
         self.weak = xnp.weak
+        self.exempt = xnp.exempt
         self.block = block
         self.nmatches = 0
 
@@ -887,11 +888,9 @@ class XnoteP:
               'c!': cPartCov, '0': None}
 
     def __init__(self, text, stext=None):
-        if text[0] == '~':
-            self.weak = True
-            text = text[1:]
-        else:
-            self.weak = False
+        self.weak = text[0] == '~'
+        self.exempt = text[0] == '%'
+        if self.weak or self.exempt: text = text[1:]
 
         self.kind = self.NK_for[text]
         self.stext = stext
@@ -924,10 +923,14 @@ class XnoteP:
 # Emitted note, as extracted from an xcov report:
 
 class Enote(Cnote):
-    def __init__(self, kind, segment):
-        self.kind = kind
-        self.segment = segment
-        self.discharges = None
+    def __init__(self, kind, segment, exempt):
+        self.kind = kind        # The kind of emitted note
+        self.segment = segment  # The line segment it designates
+
+        self.exempt = exempt    # Whether it was emitted in an "exempted
+                                # deviations" section
+
+        self.discharges = None  # The Xnote it discharges
 
 # ---------------------------
 # -- Dictionary facilities --
@@ -1031,7 +1034,9 @@ class LnotesExpander:
     def process_tline(self, tline):
         m = re.match('\s*([0-9]+) (.):', tline.text)
         if m: self.elnotes[self.source].register (
-            Enote (self.NK_for[m.group(2)], Line(int(m.group(1)))))
+            Enote (kind = self.NK_for[m.group(2)],
+                   segment = Line(int(m.group(1))),
+                   exempt = False))
 
     def listing_to_enotes(self, dotxcov):
         self.source = dotxcov.rsplit ('.', 1)[0]
@@ -1090,18 +1095,21 @@ class RnotesExpander:
 
         rline = tline.text
 
-        # Figure out which section we're [getting] in
+        # Figure out which section we're [getting] in.  Beware that
+        # the ordering of the regexp checks matters here.
 
-        if re.search ("EXEMPTED VIOLATIONS", rline):
-            self.section = rsExempted
-            return None
-        elif re.search ("NON-EXEMPTED VIOLATIONS", rline):
+        if re.search ("NON-EXEMPTED VIOLATIONS", rline):
             self.section = rsNotExempted
+            return None
+        elif re.search ("EXEMPTED VIOLATIONS", rline):
+            self.section = rsExempted
             return None
         elif re.match (".* error.", rline):
             self.section = rsNoInterest
 
         if self.section == rsNoInterest: return None
+
+        exempt = self.section == rsExempted;
 
         # In section of interest, match the emitted note text. We expect
         # something like "andthen.adb:10:33: statement not covered",
@@ -1135,22 +1143,22 @@ class RnotesExpander:
 
         elif nitems == 1:
             return self.register (
-                source, Enote (nkind,
-                               Line (int(slocitems[0]))))
+                source, Enote (kind = nkind, exempt = exempt,
+                               segment = Line (int(slocitems[0]))))
 
         elif nitems == 2:
             return self.register (
-                source, Enote (nkind,
-                               Point (int(slocitems[0]),
-                                      int(slocitems[1]))))
+                source, Enote (kind = nkind, exempt = exempt,
+                               segment = Point (int(slocitems[0]),
+                                                 int(slocitems[1]))))
 
         elif nitems == 3:
             return self.register (
-                source, Enote (nkind,
-                               Segment (int(slocitems[0]),
-                                        int(slocitems[1]),
-                                        int(slocitems[2]))))
-
+                source, Enote (kind = nkind, exempt = exempt,
+                               segment = Segment (int(slocitems[0]),
+                                                  int(slocitems[1]),
+                                                  int(slocitems[2]))))
+        
         thistest.stop (
             FatalError ("Unable to parse report line\n'%s'" % rline))
 
@@ -1439,9 +1447,9 @@ class XnotesExpander:
 # ---------------
 
 class UXchecker:
-    """Generic Coverage Marks Checker class (Internal). This is used by
-    SCOV_helper to compare sets of lines where coverage marks are expected
-    with sets of lines where actual coverage marks were found in a report.
+    """Internal coverage marks checker class. This is used by SCOV_helper to
+    compare sets of lines where coverage marks are expected with sets of lines
+    where actual coverage marks were found in a report.
 
     A checker is instantiated to work over a given report for a specific
     source.  Its job will be to compare a provided set of expected marks
@@ -1520,6 +1528,12 @@ class UXchecker:
                 "Unexpected %s mark at %s" %
                 (NK_image[en.kind], str(en.segment)))
          for en in enotes if not en.discharges]
+
+        [self.register_failure(
+                "Exemption mismatch for %s mark at %s (emitted %s)" %
+                (NK_image[en.kind], str(en.segment), str(en.exempt)))
+         for en in enotes
+         if en.discharges and en.exempt != en.discharges.exempt]
 
     def process_notes(self, relevant_note_kinds):
         thistest.log ("\n~~ processing " + self.report + " ~~\n")
