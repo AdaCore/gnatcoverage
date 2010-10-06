@@ -60,7 +60,7 @@ void abort (void)
     ;
 }
 
-void exit (void)
+void exit (int code)
 {
   abort ();
 }
