@@ -56,6 +56,22 @@ package body ALI_Files is
       procedure Skipc;
       --  Skip one character in Line
 
+      function Check_Message (M1, M2 : String_Access) return Boolean;
+      --  Return True if either M1 or M2 is null or designates an empty string,
+      --  else return True if M1 and M2 designate identical strings.
+
+      -------------------
+      -- Check_Message --
+      -------------------
+
+      function Check_Message (M1, M2 : String_Access) return Boolean is
+      begin
+         return False
+           or else M1 = null or else M1.all = ""
+           or else M2 = null or else M2.all = ""
+           or else M1.all = M2.all;
+      end Check_Message;
+
       ----------
       -- Getc --
       ----------
@@ -117,6 +133,13 @@ package body ALI_Files is
 
       procedure Get_SCOs_From_ALI is new Get_SCOs;
 
+      Expected_Annotation_Kind : ALI_Annotation_Kind;
+      Expected_Annotation_Msg  : String_Access;
+      --  Variables for checking of annotation validity: annotations must
+      --  come in (Exempt_On, Exempt_Off) pairs, nesting forbidden, and
+      --  the Exempt_Off message must be either empty or identical to the
+      --  Exempt_On one.
+
    --  Start of processing for Load_SCOs_From_ALI
 
    begin
@@ -138,6 +161,9 @@ package body ALI_Files is
       if Verbose then
          Put_Line ("Loading SCOs from " & ALI_Filename);
       end if;
+
+      Expected_Annotation_Kind := Exempt_On;
+      Expected_Annotation_Msg  := null;
 
       Scan_ALI : loop
          if End_Of_File (ALI_File) then
@@ -164,28 +190,70 @@ package body ALI_Files is
                      Current_Unit :=  Get_Index_From_Simple_Name (Match (1));
                   end if;
                end;
+
             when 'N' =>
                declare
                   N_Regexp  : constant String :=
                                 "A([0-9]*):([0-9]*) xcov "
                                   & "([^ ]*)( ""(.*)"")?";
                   N_Matcher : constant Pattern_Matcher := Compile (N_Regexp);
+                  Annotation : ALI_Annotation;
+                  Valid      : Boolean;
+                  Sloc       : Source_Location;
                begin
                   Match (N_Matcher, Line (3 .. Line'Last), Matches);
                   if Matches (0) /= No_Match then
+                     Sloc :=
+                       (Source_File => Current_Unit,
+                        Line        => Integer'Value (Match (1)),
+                        Column      => Integer'Value (Match (2)));
+
+                     Valid := True;
+
                      begin
-                        ALI_Annotations.Insert
-                          (Key =>
-                             (Source_File => Current_Unit,
-                              Line        => Integer'Value (Match (1)),
-                              Column      => Integer'Value (Match (2))),
-                           New_Item =>
-                             (Kind    => ALI_Annotation_Kind'Value (Match (3)),
-                              Message => new String'(Match (4))));
+                        Annotation :=
+                          (Kind    => ALI_Annotation_Kind'Value (Match (3)),
+                           Message => new String'(Match (5)));
                      exception
                         when Constraint_Error =>
-                           null;
+                           Report (Sloc, "bad annotation " & Match (3));
+                           Valid := False;
                      end;
+
+                     if Valid then
+                        if Annotation.Kind /= Expected_Annotation_Kind then
+                           Report (Sloc, "unexpected "
+                                   & Annotation.Kind'Img & " "
+                                   & Annotation.Message.all
+                                   & " (expected "
+                                   & Expected_Annotation_Kind'Img
+                                   & ")");
+                        elsif not Check_Message
+                                (Annotation.Message, Expected_Annotation_Msg)
+                        then
+                           Report (Sloc, "unexpected EXEMPT_OFF "
+                                   & Annotation.Message.all
+                                   & " (expected "
+                                   & Expected_Annotation_Msg.all
+                                   & ")");
+                        end if;
+
+                        if Annotation.Kind = Exempt_On then
+                           if Annotation.Message.all = "" then
+                              Report (Sloc, "empty message for EXEMPT_ON");
+                           end if;
+
+                           Expected_Annotation_Kind := Exempt_Off;
+                           Expected_Annotation_Msg  := Annotation.Message;
+
+                        else
+                           Expected_Annotation_Kind := Exempt_On;
+                           Expected_Annotation_Msg  := null;
+                        end if;
+
+                        ALI_Annotations.Insert
+                          (Key => Sloc, New_Item => Annotation);
+                     end if;
                   end if;
                end;
 
@@ -196,6 +264,20 @@ package body ALI_Files is
                null;
          end case;
       end loop Scan_ALI;
+
+      if Expected_Annotation_Kind = Exempt_Off then
+         declare
+            use ALI_Annotation_Maps;
+            Last_Ann_Cursor : constant Cursor := ALI_Annotations.Last;
+            Last_Ann_Sloc   : constant Source_Location :=
+                                Key (Last_Ann_Cursor);
+            Last_Ann        : constant ALI_Annotation :=
+                                Element (Last_Ann_Cursor);
+         begin
+            Report (Last_Ann_Sloc,
+              "missing Exempt_Off " & Last_Ann.Message.all);
+         end;
+      end if;
 
       Index := 1;
 
