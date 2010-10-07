@@ -1,0 +1,8 @@
+!!! hello.adb:4:4: unexpected EXEMPT_OFF BAD lone at start (expected EXEMPT_ON)
+!!! hello.adb:15:4: empty message for EXEMPT_ON
+!!! hello.adb:19:4: unexpected EXEMPT_OFF BAD1 mismatch (expected BAD1)
+!!! hello.adb:22:4: unexpected EXEMPT_ON BAD2 nested (expected EXEMPT_OFF)
+!!! hello.adb:24:4: unexpected EXEMPT_OFF BAD2 (expected EXEMPT_ON)
+!!! hello.adb:29:4: bad annotation exempt_bad1
+!!! hello.adb:30:4: bad annotation exempt_bad2
+!!! hello.adb:26:4: missing Exempt_Off BAD lone at end
