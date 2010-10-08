@@ -156,14 +156,17 @@ class Test (object):
     def __init__(self):
         """Initialize the instance: parse command line options, reset
         the failures counter and precompute gprbuild options we'll have
-        to pass on every call to convey our target triplet.
+        to pass on every call to convey configuration options.
         """
         self.options = self.cmdline_options()
         self.n_failed = 0
         self.report = ReportOutput(self.options.report_file)
         self.current_test_index = 0
 
-        self.gprtargetoptions = ['-v', '--config=%s' % ROOT_DIR+'/suite.cgpr']
+        self.gprconfoptions = ['-v', '--config=%s' % ROOT_DIR+'/suite.cgpr',
+                               '-XTARGET=%s' % env.target.triplet]
+        if self.options.board:
+            self.gprconfoptions.append ('-XBOARD=%s' % self.options.board)
 
     # -------------
     # -- cleanup --
@@ -172,7 +175,7 @@ class Test (object):
     def cleanup(self, project):
         """Cleanup possible remnants of previous builds."""
 
-        Run([GPRCLEAN, "-P%s" % project] + self.gprtargetoptions)
+        Run([GPRCLEAN, "-P%s" % project] + self.gprconfoptions)
         rm('*.xcov')
         rm('*.bin')
 
@@ -356,22 +359,16 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
     The *ARGS arguments may be either: None, a string containing
     a space-separated list of options, or a list of options."""
 
-    all_gargs = ['-q', '-XSTYLE_CHECKS=', '-XTARGET=%s' % env.target.triplet,
-                 '-p', '-P%s' % project]
+    all_gargs = ['-q', '-XSTYLE_CHECKS=', '-p', '-P%s' % project]
     
-    if thistest.options.board:
-        all_gargs += ['-XBOARD=%s' % thistest.options.board]
-
-    all_gargs += thistest.gprtargetoptions
+    all_gargs += thistest.gprconfoptions
     all_gargs += to_list(gargs)
 
-    all_cargs = []
-    all_cargs += to_list(cargs)
+    all_cargs = to_list(cargs)
     if all_cargs:
         all_cargs.insert(0, '-cargs')
 
-    all_largs = []
-    all_largs += to_list(largs)
+    all_largs = to_list(largs)
     if all_largs:
         all_largs.insert(0, '-largs')
 

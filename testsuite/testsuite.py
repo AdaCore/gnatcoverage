@@ -107,8 +107,10 @@ def main():
         output='output/gprconfig.out')
 
     # Build support library as needed
-    Run(['make', '-C', 'support', '-f', 'Makefile.libsupport',
-         'TARGET=%s' % targetprefix],
+    targetargs = ["TARGET=%s" % targetprefix]
+    if Env().main_options.board:
+        targetargs.append ("BOARD=%s" % Env().main_options.board)
+    Run(['make', '-C', 'support', '-f', 'Makefile.libsupport'] + targetargs,
         output='output/build_support.out')
 
     # Then run all non dead tests
