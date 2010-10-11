@@ -164,7 +164,7 @@ def process_latex(text):
 
 res += print_part ('Statement Coverage', TOR_DIR+'/stmt/IsolatedConstructs') + \
     '\n\n'
-#res += print_part ('MC/DC', TOR_DIR+'/mcdc') + '\n\n'
+res += print_part ('MC/DC', TOR_DIR+'/mcdc') + '\n\n'
 res = process_latex(res)
 out = open(OUTPUT, 'w')
 out.write(res)
