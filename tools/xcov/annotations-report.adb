@@ -232,6 +232,8 @@ package body Annotations.Report is
          Put_Message (Pp, M);
       end Process_One_Message;
 
+   --  Start of processing for Pretty_Print_End
+
    begin
       Pp.End_Section;
 
