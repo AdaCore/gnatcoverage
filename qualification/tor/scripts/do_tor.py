@@ -14,6 +14,7 @@ OUTPUT='../tor_impl.tex'
 REQ_FILE='req.txt'
 SRC_DIR='src'
 TC_PREFIX='test_'
+TEST_PY='test.py'
 TOR_DIR='../../../testsuite/Qualif/Ada'
 
 # the result to print
@@ -106,7 +107,7 @@ def print_part(part, root):
                 res += '\n'
             return res
         
-        #res += get_tor_text(from_path)
+        res += get_tor_text(from_path)
         res += get_testcase_list(from_path)
         return res + '\n'
     
@@ -142,14 +143,15 @@ def print_part(part, root):
     text+='\part{' + part +'}\n' 
     
     # Look for requirements and behaves appropriately. If a folder contains
-    # both 'req.txt' and a folder named 'src', then the requirement is
+    # 'test.py', 'req.txt' and a folder named 'src', then the requirement is
     # terminal and we need to look for testcases
     for dirpath, dirnames, filenames in os.walk(root, True):
         for f in filenames:
             if f == REQ_FILE:
+                testpy_path = os.path.join(dirpath, TEST_PY)                
                 src_path = os.path.join(dirpath, SRC_DIR)
                 text += produce_section(dirpath, f)
-                if os.path.exists(src_path):
+                if os.path.exists(src_path) and os.path.exists(testpy_path):
                     text += build_tor (dirpath)
                 else:
                     text += build_non_terminal_tor(dirpath)
@@ -160,7 +162,8 @@ def process_latex(text):
     text=text.replace('_', '\_')
     return text
 
-res += print_part ('Statement Coverage', TOR_DIR+'/stmt/IsolatedConstructs') + '\n\n'
+res += print_part ('Statement Coverage', TOR_DIR+'/stmt/IsolatedConstructs') + \
+    '\n\n'
 #res += print_part ('MC/DC', TOR_DIR+'/mcdc') + '\n\n'
 res = process_latex(res)
 out = open(OUTPUT, 'w')
