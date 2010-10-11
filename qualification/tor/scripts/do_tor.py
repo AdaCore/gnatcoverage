@@ -10,19 +10,36 @@ import os
 import glob
 
 # some constants
-TOR_DIR='../../../testsuite/Qualif/Ada'
+OUTPUT='../tor_impl.tex'
 REQ_FILE='req.txt'
 SRC_DIR='src'
 TC_PREFIX='test_'
+TOR_DIR='../../../testsuite/Qualif/Ada'
 
 # the result to print
 res=''
 
-def print_chapter(chapter, chapter_root):
+def print_part(part, root):
     
-    chapter_text=''
-    zero_nesting_levels = chapter_root.split('/')
+    text=''
+    zero_nesting_levels = root.split('/')
     zero_nesting = len(zero_nesting_levels) + 1
+    
+    # Return the part of a path before the last separator and 
+    # after the last-1 one
+    def get_name_before_last_sep(path):
+        path = path.replace('\\', '/')
+        section_pos_end = path.rfind('/')
+        section_pos_start = path.rfind('/', 0, section_pos_end-1)
+        section = path[section_pos_start+1:section_pos_end]
+        return section
+    
+    # Return the part of a path after the last separator
+    def get_name_after_last_sep(path):
+        path = path.replace('\\', '/')
+        section_pos_start = path.rfind('/')
+        section = path[section_pos_start+1:]
+        return section
     
     # Open the text file containing the requirement and
     # append its content on the result
@@ -83,12 +100,13 @@ def print_chapter(chapter, chapter_root):
                 res += '\paragraph*{Derived testcases}\n'
                 res += '\\begin{enumerate}\n'
                 for tc in testcases:
-                    res += '\item ' + tc + '\n'
+                    tc_file = get_name_after_last_sep(tc)
+                    res += '\item ' + tc_file + '\n'
                 res += '\end{enumerate}\n'
                 res += '\n'
             return res
         
-        res += get_tor_text(from_path)
+        #res += get_tor_text(from_path)
         res += get_testcase_list(from_path)
         return res + '\n'
     
@@ -100,9 +118,12 @@ def print_chapter(chapter, chapter_root):
     # Print latex for a (sub)*section
     def print_section(section, nesting):
         section_text = '\\'
-        for i in range(0,nesting):
-            section_text += 'sub'
-        section_text += 'section{' + section + '}\n'
+        if nesting == 0:
+            section_text += 'chapter{' + section + '}\n'
+        else:
+            for i in range(1,nesting):
+                section_text += 'sub'
+            section_text += 'section{' + section + '}\n'
         return section_text
     
     # Do some massaging on a path before producing the latex:
@@ -110,33 +131,39 @@ def print_chapter(chapter, chapter_root):
     # the last part of the dirname after the last separator
     def produce_section(dirpath, f):
         path = os.path.join(dirpath, f)
+        section = get_name_before_last_sep(path)
         # normalize
         path = path.replace('\\', '/')
-        section_pos_end = path.rfind('/')
-        section_pos_start = path.rfind('/', 0, section_pos_end-1)
-        section = path[section_pos_start+1:section_pos_end]
         # remove '_' and replace them with spaces
         section = section.replace('_', ' ')
         nesting_level = get_nesting_level (path)
         return print_section (section, nesting_level)
     
-    chapter_text+='\chapter{' + chapter +'}\n' 
+    text+='\part{' + part +'}\n' 
     
     # Look for requirements and behaves appropriately. If a folder contains
     # both 'req.txt' and a folder named 'src', then the requirement is
     # terminal and we need to look for testcases
-    for dirpath, dirnames, filenames in os.walk(chapter_root, True):
+    for dirpath, dirnames, filenames in os.walk(root, True):
         for f in filenames:
             if f == REQ_FILE:
                 src_path = os.path.join(dirpath, SRC_DIR)
-                chapter_text += produce_section(dirpath, f)
+                text += produce_section(dirpath, f)
                 if os.path.exists(src_path):
-                    chapter_text += build_tor (dirpath)
+                    text += build_tor (dirpath)
                 else:
-                    chapter_text += build_non_terminal_tor(dirpath)
+                    text += build_non_terminal_tor(dirpath)
                     
-    return chapter_text
-                        
-#res += print_chapter ('Statement Coverage', TOR_DIR+'/stmt/IsolatedConstructs') + '\n\n'
-res += print_chapter ('MC/DC', TOR_DIR+'/mcdc') + '\n\n'
+    return text
+
+def process_latex(text):
+    text=text.replace('_', '\_')
+    return text
+
+res += print_part ('Statement Coverage', TOR_DIR+'/stmt/IsolatedConstructs') + '\n\n'
+#res += print_part ('MC/DC', TOR_DIR+'/mcdc') + '\n\n'
+res = process_latex(res)
+out = open(OUTPUT, 'w')
+out.write(res)
+out.close()
 print res
