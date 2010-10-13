@@ -90,8 +90,8 @@ assert bdd_masking_mcdc_equals_decision_masking_mcdc {
 check bdd_masking_mcdc_equals_decision_masking_mcdc for 5
 but 3 Condition, 1 BDD_Dec_Execution, 1 Dec_BDD, 1 BDD, 1 Decision
 
-check bdd_masking_mcdc_equals_decision_masking_mcdc for 7
-but exactly 3 Condition,
+check bdd_masking_mcdc_equals_decision_masking_mcdc for 8
+but exactly 4 Condition,
     exactly 0 Not,
     exactly 1 BDD_Dec_Execution,
     exactly 1 Dec_BDD,

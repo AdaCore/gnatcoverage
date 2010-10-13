@@ -84,6 +84,20 @@ n                  : BDD_Node]
    n.*(if_true + if_false)
 }
 
+---------------------
+-- preceding_nodes --
+---------------------
+
+fun preceding_nodes
+[if_true, if_false : BDD_Node -> (BDD_Node + BDD_Term),
+ n                 : BDD_Node]
+: set BDD_Node
+{
+   --  Return the nodes of (if_true, if_false) from which one can reach n
+   --  (n excluded).
+
+   n.*(~if_true + ~if_false) - n
+}
 
 ----------
 -- root --

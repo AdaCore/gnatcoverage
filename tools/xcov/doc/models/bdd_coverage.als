@@ -99,15 +99,58 @@ pred cond_independent_effect [ex : Execution, n : Condition]
    }
 }
 
------------------------------
--- cond_independent_effect --
------------------------------
+--------------------------------
+-- strip_preceding_conditions --
+--------------------------------
+
+fun strip_preceding_conditions
+[bdd : BDD,
+ n   : Condition,
+ e   : Condition -> Tristate]
+: Condition -> Tristate
+{
+   --  Return a stripped version of the given evaluation vector;
+   --  all evaluations of conditions that precedes n are removed.
+   --  That is to say, return an evaluation that can be used to check
+   --  that Masking MC/DC is reached for n: ignoring all conditions that
+   --  are on the left of the considered condition.
+
+   e - (preceding_nodes [bdd.if_true, bdd.if_false, n] -> Tristate)
+}
+
+-------------------------------------
+-- cond_independent_effect_masking --
+-------------------------------------
 
 pred cond_independent_effect_masking [ex : Execution, n : Condition]
 {
    --  True if there are two input vectors in the evaluation set so that
    --  n and outcome have taken two different values and which demonstrate
-   --  masking independent effect of n on outcome
+   --  masking independent effect of n on outcome.
+
+   some t, f : inds [ex.outcome] {
+      let evt = strip_preceding_conditions [ex.bdd,
+                                            n,
+                                            ex.evaluation_vectors [t]] |
+      let evf = strip_preceding_conditions [ex.bdd,
+                                            n,
+                                            ex.evaluation_vectors [f]]
+       {
+          cond_independent_change [n, evt, evf]
+      	  ex.outcome [t] + ex.outcome [f] = (Outcome_True + Outcome_False)
+       }
+   }
+}
+
+-------------------------
+-- cond_breaking_paths --
+-------------------------
+
+pred cond_breaking_paths [ex : Execution, n : Condition]
+{
+   --  True if there are two input vectors in the evaluation set so that
+   --  n and outcome have taken two different values and for which changing
+   --  the condition value breaks the path to outcome.
 
    some t, f : inds [ex.outcome] {
       --  The outcome changed
@@ -155,6 +198,29 @@ pred masking_mcdc [ex : Execution]
    --  True if ex is a Masking MC/DC coverage of the bdd
 
    all n : ex.bdd.nodes | cond_independent_effect_masking [ex, n]
+}
+
+--------------------
+-- breaking_paths --
+--------------------
+
+pred breaking_paths [ex : Execution]
+{
+   --  True if ex is a breaking path coverage of the bdd. This
+   --  coverage criteria is defined as follow:
+   --
+   --  For each condition in decision, there exists a pair of
+   --  evaluation vectors that satisfies these properties:
+   --  * one evaluates the given condition to True, the second one to False;
+   --  * one evaluates the given decision to True, the second one to False;
+   --  * for each evaluation vector in the pair, changing the value of
+   --    the given condition breaks the path to outcome.
+   --
+   --  We define this criterion only to prove that it is distinct from
+   --  Masking MC/DC; a counter example for equivalence appears with
+   --  4 conditions (and 2 diamonds).
+
+   all n : ex.bdd.nodes | cond_breaking_paths [ex, n]
 }
 
 ---------------
@@ -375,3 +441,14 @@ assert branch_coverage_and_not_weak_mcdc_implies_diamond {
 
 check branch_coverage_and_not_weak_mcdc_implies_diamond for 6
 but 1 BDD, 1 Execution
+
+private pred breaking_paths_is_not_masking_mcdc [ex : Execution]
+{
+   --  True if ex covers BDD for breaking paths, but not for Masking MC/DC.
+   --  This shows that these two criteria are not equivalent.
+
+   breaking_paths [ex]
+   not masking_mcdc [ex]
+}
+
+run breaking_paths_is_not_masking_mcdc for 5 but 1 BDD, 1 Execution
