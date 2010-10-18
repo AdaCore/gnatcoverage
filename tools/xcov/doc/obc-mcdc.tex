@@ -78,9 +78,12 @@ We are considering decisions that are short circuit boolean expressions,
 i.e. expressions consisting in elementary boolean conditions combined
 together using only the \andthen{}, \orelse{} and \adanot{} operators.
 
-For each decision we construct the associated ROBDD (Reduced Ordered
-Binary Decision Diagram), whose nodes are conditions. (RO)BDDs have an
-entry point, and two or more exit edges labeled True and False.
+In order to compare \E{Object Branch Coverage} to \E{Modified
+Condition/Decision Coverage}, it will be shown that the appropriate
+abstractions are Reduced Ordered Binary Decision Diagram. For each
+decision (ROBDD), we will provide an algorithm that constructs the
+associated ROBDD, whose nodes are conditions. (RO)BDDs have an entry
+point, and two or more exit edges labeled True and False.
 
 In the remainder of this document, unless otherwise indicated, all
 references to BDDs denote reduced ordered BDDs. For a set S, \#S will
@@ -89,31 +92,16 @@ set of its conditions.
 
 \subsection{Coverage metrics}
 
-\subsubsection{Definitions}
-
-% define MC/DC, OBC, BDDBC
-
-This document deals with properties of tests exercising object code under
-the assumption that the code generation chain accurately preserves the
-decision process captured in the ROBDD. We specifically assume when
-discussing object branch coverage of the object code, that we can instead
-reason, unless indicated explicitly, on (RO)BDD branch coverage
-of the corresponding BDD.
-
-\subsection{Minimal test sets}
-
 Coverage assessment is accomplished by exercising some piece of object
 code in a variety of test cases, recording data along the way, and
 then determining whether the successive executions of the object code
-satisfy a given criterion of exhaustiveness. The minimum number of distinct
-executions required to achieve a specific criterion is an important
-aspect in the evaluation of any coverage assessment methodology. Here
-we establish some properties that give a hard limit on test set size
-for various coverage metries.
+satisfy a given criterion of exhaustiveness. This section will define
+the main coverage criterion that we will consider.
 
-\subsubsection{OBC}
-
-% XXX Get definition for ERTSS paper???
+The minimum number of distinct executions required to achieve a
+specific criterion is an important aspect in the evaluation of any
+coverage assessment methodology. Here we establish some properties
+that give a hard limit on test set size for various coverage metries.
 
 \subsubsection{MC/DC}
 
@@ -126,9 +114,11 @@ condition. Amongst the various formal definitions that you may find in
 the litterature, this one has the advantage to apply also to
 short-circuit operators, which is mandatory in the context of \couv{}.
 
-The following will not re-define what has already detailed in~\cite{ar0118};
-we will just give an example on how it works and will refer the interested
-reader to the original document.
+The following will not re-define what has already detailed
+in~\cite{ar0118}; we will just give an example on how it works and
+will invit the interested reader to consult the original document. A
+formal definition may also be found in the Alloy model, in file
+\verb|decision_coverage.als|.
 
 This formal definition of MC/DC uses a simple graph-coloring algorithm
 to determine whether two given evaluations show the independent
@@ -167,7 +157,7 @@ of sub-decision) is colored with the value that it takes in this
 evaluation: True (T), False (F), Not\_Evaluated (X).  For the
 evaluation $e1 = (A = True, B = True, C = Not\_Evaluated)$, we have
 the coloring given on figure~\ref{subfig:color-graph-e1}; and for $e2
-= (A = False, B = X, C = Not\_Evaluated)$, we have the coloring given
+= (A = False, B = Not\_Evaluated, C = False)$, we have the coloring given
 on figure~\ref{subfig:color-graph-e2}.
 
 \begin{figure}[h]
@@ -326,9 +316,118 @@ whole.
 
 The proof of this property is given in~\cite{ar0118} as well.
 
-\subsection{Coverage assessment through analysis of execution traces}
 
-% XXX Import this section from ERTSS paper???
+\subsubsection{OBC}
+
+Applicants for DO-178 certification have sometimes proposed the use of object
+code coverage instead of source code coverage as a metric to satisfy the
+objectives of DO-178. The proposed approach involves measuring either
+instruction coverage or branch coverage. Object instruction coverage
+(OIC) requires assessing whether all object instructions are executed
+at least once; object branch coverage (OBC) in addition requires that
+all conditional branches be exercised for both directions (branch and
+fall through). The use of object code coverage has also been proposed
+as a way to cope with untraceable object code. Section 6.4.4.2 of
+DO-178 indeed states: \emph{The structural coverage analysis may be
+performed on the Source Code, unless the software level is A and the
+compiler generates object code that is not directly traceable to Source
+Code statements. Then, additional verification should be performed on
+the object code to establish the correctness of such generated code
+sequences}.
+
+Untraceable object code is compiler generated machine code that impacts
+the execution control flow in a way not directly visible from source code. An
+example is the Ada \texttt{mod} operator, which requires an implicit
+conditional branch to distinguish between positive and negative
+moduli. Achieving a certain source coverage level is not indicative of
+coverage of untraceable code: even a comprehensive testing campaign (from a
+source coverage point of view) may not assure all object code is executed.
+%
+The untraceable object code is nevertheless present in the application
+and may lead to unintended behaviour not verified during the testing process.
+
+Measuring object code coverage may be a way to ensure even untraceable
+code is executed during the requirement-driven testing campaign. However, CAST
+paper~12~\cite{cast12} suggests the use of a \emph{traceability study} to
+satisfy the additional verification activities on untraceable object code for
+level~A software: a traceability study provides evidence that, in a given
+context (coding standard, compiler, compilation switches), the compiler either
+generates traceable code or the untraceable code is correct --- i.e. it
+correctly implements the requirements expressed by the specifications of the
+chosen programming language.
+
+The issue raised by section 6.4.4.2 of DO-178, and in general the
+equivalence of source and object coverage, is considered in both FAQ~42
+of DO-248B~\cite{do248b} (\emph{Can structural coverage be demonstrated
+by analyzing the object code instead of the source code?}) and CAST
+paper~17 (\emph{Structural Coverage of Object Code}) issued by the
+Federal Aviation Administration~\cite{cast17}.
+
+Both documents assert that object code coverage can substitute for
+source code coverage \emph{as long as analysis can be provided which
+demonstrates that the coverage analysis conducted at the object code
+will be equivalent to the same coverage analysis at the source code
+level}. In the following section, we provide a precise analysis of
+the conditions under which the OBC and MC/DC properties imply each
+other, for a given set of test cases. It should be noted that such an
+equivalence applies only in the context of a given code generator and
+coding guidelines: different code generation algorithms may produce
+object code whose OBC status is different for the same set of inputs
+achieving a given source coverage objective.
+
+
+\subsubsection{BDDBC}
+
+As stated earlier, Binary Decision Diagrams are good abstractions to
+compare the two criteria that we are considering; this section will
+justify this choice. It will also introduce a new structural coverage
+criterion, named \E{Binary Decision Diagram Branch Coverage}, that
+relates naturally to OBC.
+
+A Binary Decision Diagrams is a standard data structure that can be
+used to represent a decision; a formal definition, along with a set of
+associated algorithms and properties, can be found
+in~\cite{bryant86:graphs}.  In a nutshell, BDDs can be described as an
+directed acyclic graph; each node is mapped to one condition, and leaf
+nodes are outcome True or False; two edges labeled True and False link
+each condition to its children nodes ; those children nodes are either
+a decision outcome or the next condition to evaluate, and are executed
+if the father condition takes the value labeled on the corresponding
+edge. Let us illustrate that on our decision
+$(A \ \andthen{} \ B) \ \orelse{} \ C$; one of its BDD is shown on
+figure~\ref{subfig:D1}.
+
+One key property of BDDs is that they have a reduced form (no
+isomorphic subgraph, no trivial node), and that this reduced form is
+canonical (unique) for a particular decision. For instance,
+figure~\ref{subfig:D1} is a reduced ordered BDD.
+
+Now we can define BDDBC as follow:
+
+\begin{definition}
+  \label{def:bddbc}
+  Given a decision D, a set of truth vectors satisfies BDDBC
+  if the corresponding set of paths through its reduced ordered BDD
+  covers all edges of the BDD.
+\end{definition}
+
+One can now understand how this relates to OBC. For each pair of edges that
+exits from a condition node, the compiler will generate a branch that
+may or may not be taken, depending on the value of the corresponding
+condition; both possibilities (taking it, not taking it) maps to one
+edge of the pair. If OBC is reached, then both edges should be taken,
+and consequently all edges of the BDD. In other words: OBC implies
+BDDBC.
+
+This assumes that the compiler will generate one branch per condition
+for each decision. In the context of \couv{}, an compilation option
+-fpreserve-control-flow is provided that enforces this property; this
+allows a straight-forward comparizon between OBC and BDDBC. In the
+following, we specifically assume when discussing object branch
+coverage of the object code, that we can instead reason, unless
+indicated explicitly, on BDD branch coverage of the corresponding
+(RO)BDD.
+
 
 \section{Characterization of cases of BDDBC --- MC/DC equivalence}
 
@@ -346,7 +445,7 @@ and an illustration is provided with (A \andthen{} B) \orelse{} C,
 where A, B and C are three independent conditions.
 %
 A representation of this decision's BDD is depicted on
-figure~\ref{subfig:D1}:
+figure~\ref{subfig:D1}.
 
 \begin{figure}[h]
 \centering
@@ -477,7 +576,7 @@ met. In particular, the independent effect of conditions B on the
 decision is not shown in the case of Masking MC/DC, and the
 independent effect of both B and C are not shown in the case of Unique
 Cause.  Since $n+1$ tests are needed to cover a decision with $n$
-condition with respect to Unique Cause MC/DC, 3 evaluations cannot cover a
+conditions with respect to Unique Cause MC/DC, 3 evaluations cannot cover a
 three-condition decision. Masking MC/DC requires a minimum of 4 evaluations
 as well in this particular case.
 
@@ -578,6 +677,7 @@ The following invariants of ROBDDs follow from the construction process:
         to an exit edge labeled True and to an exit edge labeled False).
 \end{itemize}
 
+This algorithm is formally described in Alloy, in \verb|build_bdd.als|.
 Given a decision D, we will now call BDD(D) its (RO)BDD as built by this
 recursive procedure.
 
@@ -614,8 +714,8 @@ as the one we just defined. It can also be demonstrated easily, by
 structural induction, that this order is the order of conditions in
 the decision's expression.
 
-For a BDD B, we will call root(BDD(D)) the unique node with index 1.
-This node is indeed the root node of the BDD.
+For a decision D, we will call $root(D)$ and $root(BDD(D))$ the unique
+node with index 1.  This node is indeed the root node of the BDD.
 
 \subsection{Evaluation of a decision}
 
@@ -636,6 +736,7 @@ procedure:
   value is SC, else evaluate D2, and the value is that of D2.
 \end{description}
 
+This algorithm is modeled in \verb|decision_evaluations.als|
 The following property holds:
 
 \begin{description}
@@ -650,7 +751,8 @@ by induction on the structure of the decision.  For each case of the
 BDD\_Build procedure (Build\_BDD.Condition, Build\_BDD.Not,
 Build\_BDD.Short\_Circuit\_Operator), we will assume that the the
 property holds for the parameters and prove that the build step
-preserves the property.
+preserves the property. A formal model for this proof can be found
+in \verb|bdd_dec_evaluations.als|.
 
 Note that the practical implementation of coverage analysis systems based
 on control flow traces relies on the assumption that the code generator
@@ -691,6 +793,9 @@ of C over the decision.
 This holds for each condition in the decision, so Unique Cause MC/DC
 is proved; and since Unique Cause is stronger than Masking MC/DC,
 Masking MC/DC is proved as well.
+
+This property and the non-equivalence case that follows is modeled
+in \verb|bdd_coverage.als|.
 
 \subsection{Non-equivalence case}
 
@@ -827,7 +932,7 @@ This can be seen in our example:
 \end{itemize}
 
 The two properties can be proved by structural induction on the BDD.
-The first is the easiest one and we will let it as an exercice for the
+The first is the easiest one and we will let it as an exercise for the
 reader. Here is a proof of the second one:
 
 \begin{itemize}
@@ -1290,16 +1395,9 @@ implication holds.
 
 \emph{Proof of the general case:}
 
-In the general case, decision D may contain \adanot sub-decisions. Then,
+In the general case, decision D may contain \adanot{} sub-decisions. Then,
 consider D' the negation normal form of D. Since D and D' are represented
 by the same BDD, Theorem~\ref{thm:lhs-same-operator} follows.
-
-\section{General stateless MC/DC assessment}
-
-This section discusses a code transformation after which stateless BDDBC
-traces carry sufficient information to assess MC/DC coverage.
-
-\section{Automated verifications}
 
 \newpage
 \bibliographystyle{alpha}
