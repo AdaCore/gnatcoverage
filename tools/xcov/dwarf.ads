@@ -3,7 +3,7 @@
 --                              Couverture                                  --
 --                                                                          --
 --                     Copyright (C) 2006 Tristan Gingold                   --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -409,6 +409,7 @@ package Dwarf is
    DW_LNE_end_sequence       : constant Unsigned_8 := 1;
    DW_LNE_set_address        : constant Unsigned_8 := 2;
    DW_LNE_define_file        : constant Unsigned_8 := 3;
+   DW_LNE_set_discriminator  : constant Unsigned_8 := 4;
    DW_LNE_lo_user            : constant Unsigned_8 := 128;
    DW_LNE_HP_source_file_correlation : constant Unsigned_8 := 128;
    DW_LNE_HP_SFC_formfeed            : constant Unsigned_32 := 1;

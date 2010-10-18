@@ -1451,8 +1451,13 @@ package body Traces_Elf is
                when DW_LNE_define_file =>
                   raise Program_Error with "DW_LNE_define_file unhandled";
 
+               when DW_LNE_set_discriminator =>
+                  --  Ignored.
+                  null;
+
                when others =>
-                  raise Program_Error with "unhandled DW_LNE";
+                  raise Program_Error
+                    with "unhandled DW_LNE" & Unsigned_8'Image (Ext_Opc);
             end case;
             Off := Old_Off + Storage_Offset (Ext_Len);
 
