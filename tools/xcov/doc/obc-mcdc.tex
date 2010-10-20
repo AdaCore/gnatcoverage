@@ -22,7 +22,12 @@
 \newcommand{\anysc}{\star}
 \newcommand{\andthen}{\texttt{and then}}
 \newcommand{\orelse}{\texttt{or else}}
+\newcommand{\adaand}{\texttt{and}}
+\newcommand{\adaor}{\texttt{or}}
 \newcommand{\adanot}{\texttt{not}}
+\newcommand{\adaif}{\texttt{if}}
+\newcommand{\adathen}{\texttt{then}}
+\newcommand{\adaelse}{\texttt{else}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -243,7 +248,7 @@ The two classical variants of MC/DC are then defined as follow:
   \label{def:masking-mcdc}
   Given a decision D, a pair of truth vectors satisfies Masking MC/DC
   for a condition c in cond(D) if and only if its influence set is the
-  singleton {c}.
+  singleton \{c\}.
 
   A test set satisfies Masking MC/DC for a decision D if, and only if,
   for each condition in cond(D), there exists a pair of tests in the
@@ -254,7 +259,7 @@ The two classical variants of MC/DC are then defined as follow:
   \label{def:unique-cause}
   Given a decision D, a pair of truth vectors satisfies Unique Cause MC/DC
   for a condition c in cond(D) if and only if its influence set is the
-  singleton {c} and if c is the only condition that is colored with True
+  singleton \{c\} and if c is the only condition that is colored with True
   in the influence tree.
 
   A test set satisfies Unique Cause MC/DC for a decision D if, and only if,
@@ -838,7 +843,7 @@ The formal definition would be:
   test set that satisfies Weak MC/DC.
 \end{definition}
 
-It turns out that we can build a set of evaluations such that BBDBC is
+It turns out that we can build a set of evaluations such that BDDBC is
 reached, but not MC/DC, when the BDD has a diamond.  Let's take the
 canonical example:\\
 $(A \ \andthen{} \ B) \orelse{} \ C$\\
@@ -995,7 +1000,7 @@ reader. Here is a proof of the second one:
 The property~\ref{lemma:last-parent-of-the-last-diamond} has now been
 established in all possible cases. This proof will actually be quite
 useful as its structure will be used to build a coverage that satisfies
-BBDBC but not Weak MC/DC.
+BDDBC but not Weak MC/DC.
 
 \subsubsection{Path though BDDs - Conventions}
 
@@ -1398,6 +1403,370 @@ implication holds.
 In the general case, decision D may contain \adanot{} sub-decisions. Then,
 consider D' the negation normal form of D. Since D and D' are represented
 by the same BDD, Theorem~\ref{thm:lhs-same-operator} follows.
+
+
+\section{Coupled conditions}
+
+Handling of coupled conditions is a well-known problem that one has
+to face when considering MC/DC, and in particular Unique Cause. It may
+be stated as follow:
+
+\begin{definition}
+  \label{def:coupled-conditions}
+  Two or more conditions are said to be coupled if changing one condition
+  can cause the other condition(s) to change.
+
+  Conditions are said to be strongly coupled if changing one always
+  changes the others. At the contrary, they are said to be weakly
+  coupled if changing one sometimes (but not always) changes the others.
+\end{definition}
+
+In \cite{rcdc-from}, it is proven that strongly coupled conditions
+are pairs of conditions that are either equal, or complimentary.
+In other words, if A and B are strongly coupled, then either $A = B$
+or $A = \adanot{} \ B$
+
+Without short-circuit operators, decisions with coupling cannot be
+covered for Unique Cause MC/DC; Masking MC/DC has been defined to
+solve this problem.  When proving Masking MC/DC for a condition C, one
+may exhibit a pair of evaluation that have different values for other
+conditions, as long as it can be shown, by a structural analysis of
+the decision, that changing these other conditions had no influence
+on the result. Typically, for a decision $A \ \adaand{} \ SUBDEC$ ($SUBDEC$
+being a sub-decision, $A$ being a condition), any evaluation that sets
+$SUBDEC$ to True ensures that only the value of A impacts the value of the
+decision. e.g. if $SUBDEC=(B \ \adaor{} \ C)$, the following evaluation pairs
+proves Masking MC/DC, but not Unique Cause MC/DC:
+
+\begin{center}
+\begin{tabular}{|c|c|c||c||c|}
+\hline
+A & B & C & SUBDEC ::= B \adaor{} C & A \adaand{} SUBDEC \\ \hline
+T & F & T & T                       & T \\ \hline
+F & T & F & T                       & F \\ \hline
+\end{tabular}
+\end{center}
+
+B and C change, so Unique Cause MC/DC is not reached; but SUBDEC is kept
+to True, so Masking MC/DC is reached. So if C and A were strongly
+coupled ($A = C$), we would still be able to cover this decision for Masking
+MC/DC; but we would not be able to reach Unique Cause.
+
+When using only short-circuit operators, one may wonder if the problem
+still holds. It can be seen that the previous example is covered for Unique
+Cause MC/DC when the operators are short-circuit; in this case, the
+evaluations are:
+
+\begin{center}
+\begin{tabular}{|c|c|c||c||c|}
+\hline
+A & B & C & A \andthen{} (B \orelse{} C) \\ \hline
+T & F & T & T \\ \hline
+F & x & x & F \\ \hline
+\end{tabular}
+\end{center}
+
+So there are some cases of coupling that are not problematic in the case
+of short-circuit operator; short-circuits seem to offer some sort of masking
+by avoiding to evaluate some sub-decisions. The question would now be:
+can we show some cases of coupling for which Unique Cause may not be reached
+even with short-circuit operators? Would these cases show up in real life,
+or would they be dummy decisions that may be trivially simplified (e.g.
+$A \ \andthen{} \ A$)?
+
+The following sections sched some light on these problems. First,
+Masking MC/DC is characterized in terms of BDD, in order to make use
+of the results that have been demonstrated in the previous sections.
+This characterization would then allow to comment on coupling in the
+context of short-circuit operators.
+
+\subsection{MC/DC in terms of BDD}
+
+\subsubsection{Unique Cause MC/DC}
+
+\begin{theorem}
+  \label{thm:unique-cause-bdd}
+  Given a decision D, a pair of evaluations of D satisfies
+  Unique Cause MC/DC for a condition C if and only if:
+  \begin{itemize}
+  \item both reach C using the same path through BDD(D);
+  \item their paths from C exits on two different outcomes and do not cross
+  each other (C excluded).
+  \end{itemize}
+\end{theorem}
+
+Let us first prove that this characterization implies Unique Cause MC/DC
+as defined previously.
+
+Both evaluations reach C using the same path; this implies that all
+conditions that are before C are either not evaluated by any of the
+two evaluations, or that they have the same value.  In both cases,
+they are colored with False in the influence tree.
+
+After C, their paths through the BDD do not cross each other; this means
+that they evaluate C to both values, otherwise they would have at least one
+edge in common. C is evaluated to True and False, which means that it is
+colored with True in the influence tree.
+
+An other consequence of this hypothesis is that all conditions after C
+are not evaluated in at least one of the two paths; a condition that
+would be evaluated on both paths would be a meeting point of the two
+paths, which would contract the hypothesis. This means that any
+condition after C is colored with False as, by definition, anything
+xor Not\_Evaluated gives False.
+
+So, of all conditions, only C is colored with True. As the two
+paths exits on two different outcomes, the root node of the influence
+tree is colored with True as well. We now have these general properties
+of influence trees:
+
+\begin{lemma}
+  \label{lemma:influence-tree-props}
+  If the root node of an influence tree is colored with True, then
+  its influence set is not empty.
+
+  If the root node of an influence tree is colored with True, and
+  if only one condition c is colored with True, then the corresponding
+  influence set is \{c\}
+\end{lemma}
+
+This lemma can be proved by induction on the structure of a decision;
+the first property is easier to prove and comes in handy to prove the
+second property. We will not detail these proofs here as they offer no
+technical difficulty.
+
+Applying the second property to our case, we can now prove that the
+influence set of our decision is the singleton \{C\} ; so the two
+evaluations satisfy Masking MC/DC. As all other conditions are colored
+with False in the influence tree, Unique Cause MC/DC is satisfied.
+
+To demonstrate the other side of the equivalence, let us assume that
+one of the two properties on the BDD is violated and let us show
+Unique Cause MC/DC cannot be achieved.
+
+If the two paths are not identical before the considered condition:
+they start from the same node (the root of the BDD) and ends up on
+the same node (C), so it means that there exists at least one node
+from which those paths diverge (this is a general property of paths
+through graphs). This node takes therefore two different values
+in the two evaluations; so it is colored with True in the influence
+tree. It is the second condition colored with True in the influence
+tree (with C), so Unique Cause MC/DC cannot be achieved.
+
+If the paths from C cross each other, then there is at least one
+condition after C that is evaluated in both paths. Let us call lc the
+last condition where the two paths cross. By definition of lc, the two
+sub-paths that start from lc and go to outcomes do not cross each
+other. This means that they exit by two different edges from lc;
+otherwise, the node that they would reach would be a common node after lc,
+which would contradict the fact that lc is the last common node. So
+lc takes two different values, True and False, on these two paths.
+As a consequence, lc is colored with True in the Influence Tree, and
+therefore C is not the only one colored with True, so Unique Cause MC/DC
+cannot be achieved.
+
+The two sides of the equivalence in Theorem~\ref{thm:unique-cause-bdd}
+are now proved.
+
+\subsubsection{Masking MC/DC}
+
+\begin{theorem}
+  \label{thm:masking-bdd}
+  Given a decision D, a pair of evaluations of D satisfies
+  Masking MC/DC for a condition C if and only if:
+  \begin{itemize}
+  \item both reach C;
+  \item their paths from C exit on two different outcomes and do not cross
+  each other (C excluded).
+  \end{itemize}
+\end{theorem}
+
+The difference with Unique Cause is that the paths to reach C may be
+different. That is to say: only the sub-bdd of BDD(D) whose root is C
+is taken into account when proving Masking MC/DC; anything before C
+does not matter (as long as C is reached). An other way to see that:
+Masking MC/DC is achieved for C if Unique Cause MC/DC is achieved on
+the sub-bdd of BDD(D) whose root is C. Or: any condition on the left
+of C is not considered when trying to achieve Masking MC/DC for C.
+
+This may be justified as follow: we have seen that short-circuit operators
+do provide some sort of masking in our original example
+$A \ \andthen{} \ SUBDEC$. Now, consider $SUBDEC \ \andthen{} \ A$; in this
+case, SUBDEC will always be executed before A, so the short-circuit operator
+\andthen{} will not mask SUBDEC. Short-circuit operators are non-commutative,
+and introduce this asymetricity. Say, if $SUBDEC ::= B \ \orelse \ C$, then
+the following evaluations satisfy Masking MC/DC for C, but not Unique Cause:
+
+\begin{center}
+\begin{tabular}{|c|c|c||c||c|}
+\hline
+A & B & C & SUBDEC ::= B \orelse{} C & SUBDEC \andthen{} A \\ \hline
+T & F & T & T                        & T \\ \hline
+F & T & x & T                        & F \\ \hline
+\end{tabular}
+\end{center}
+
+For Masking MC/DC, we have to ignore the details of the evaluation of SUBDEC,
+as long as it ends up being evaluated to True. In terms of BDD, that means
+that we do not care about how we reached the considered condition, as long
+as we reached it.
+
+The proof of this theorem is still to be produced. We have however
+used the Alloy model \verb|bdd_dec_coverage.als| with up to 4
+conditions in decisions; which already gives a good hint of the
+validity of this conjecture.
+
+\subsection{Coupled conditions without diamonds}
+
+First, it can be seen that strong coupling only gives degredated case,
+where some branches of the BDD cannot possibly be covered; this is
+what the following theorem states:
+
+\begin{theorem}
+  \label{thm:strong-coupling-no-diamond}
+  A BDD with no diamond and with strongly coupled conditions cannot be
+  covered for BDD branch coverage, Masking MC/DC, Unique Cause MC/DC.
+\end{theorem}
+
+As Unique Cause MC/DC and Masking MC/DC are stronger than BDD branch
+coverage, we only need to prove this theorem for BDD branch coverage.
+
+In a BDD with no diamond, there is only one possible path to each
+node, traversing all the previous conditions in the BDD ordering. Take
+two strongly coupled conditions; let us call fc the first one in the
+BDD ordering, lc the second one. When lc is executed, fc has been
+evaluated to a given value, and this value is the same for any
+evaluation that reaches lc. Let us call this value $V$. Now, as lc and
+fc are strongly coupled, there are only two possibilities: either lc
+is always equal to fc, and evaluates to $V$, in which case the exit edge
+for $\adanot{} \ V$ is never executed; or it is always the
+complementary of c, and evaluates to $\adanot{} \ V$, in which case
+the other exit edge is never executed. In any case, BDD branch
+coverage cannot be achieved, as at least one edge is never taken.
+
+This means that there are no meaningful cases of strong coupling
+without diamonds. They could typically be optimizied out by the
+compiler.
+
+We can however exhibit some cases of weak coupling that makes sense.
+For instance:
+
+$Dec ::= t > T \ \orelse{} \ (t = T \ \andthen{} \ A)$
+
+Or a even more common pattern, that can often be found in C:
+
+\verb|name != NULL && strcmp (name, "something")|
+
+In these two examples, BDD branch coverage can be reached. For the first
+one, it can be checked that these evaluations cover the decision for
+BDD branch coverage, Masking MC/DC and Unique Cause MC/DC:
+
+\begin{center}
+\begin{tabular}{|c|c|c||c|}
+\hline
+t > T & t = T & A & Dec \\ \hline
+T     & x     & x & T \\ \hline
+F     & F     & x & F \\ \hline
+F     & T     & T & T \\ \hline
+F     & T     & F & F \\ \hline
+\end{tabular}
+\end{center}
+
+It can be seen that Unique Cause MC/DC and Masking
+MC/DC are equivalent in the case of no diamonds, as there is only one
+possible path to each node; this is a consequence of
+Theorem~\ref{thm:masking-bdd} and Theorem~\ref{thm:unique-cause-bdd}.
+So, with no diamonds, Masking MC/DC does not gain us anything, comparing
+to Unique Cause MC/DC (or BDD branch coverage):
+\begin{itemize}
+\item in the cases of strong coupling, none of these coverage criteria
+can be reached;
+\item in all other cases, all of them are equivalent anyway.
+\end{itemize}
+
+If Masking MC/DC is of some help to handle coupled conditions, it has to
+be when the decision's BDD contains diamonds. That is the second case that
+we will investigate.
+
+\subsection{Coupled conditions with diamonds}
+
+The Theorem~\ref{thm:strong-coupling-no-diamond} cannot be extended to the
+case of diamonds. Take for instance this decision:
+
+$Dec ::= (A \ \andthen{} \ B) \ \orelse{} \ (\adanot{} \ A \ \andthen{} \ C)$
+
+This decision is a common pattern, logically equivalent to
+$\adaif{} \ A \ \adathen{} \ B \ \adaelse \ C$. It cannot be covered for
+Unique Cause MC/DC, because the first and the third condition are strongly
+coupled; but it can be covered for Masking MC/DC, with the following
+evaluations:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c||c|}
+\hline
+A & B & \adanot{} A & C & Dec\\ \hline
+F & x & T           & T & T \\ \hline
+F & x & T           & F & F \\ \hline
+T & T & x           & x & T \\ \hline
+T & F & F           & x & F \\ \hline
+\end{tabular}
+\end{center}
+
+More precisely: the third condition cannot be covered for Unique Cause;
+but the first and the last evaluation cover it for Masking MC/DC.
+
+Another example with weak coupling:
+
+$Dec ::= (t < T \ \andthen{} \ A)
+  \ \orelse{} \ (t = T \andthen{} \ B)
+  \ \orelse{} \ (t > T \ \andthen{} \ C)$
+
+...which is another case where the logical space is partioned into three
+cases ($t < T$, $t = T$, $t > T$) using three conditions that are such
+that exactly one is True for each evaluation.
+
+From the truth table, the only condition for which we cannot reach
+Unique Cause is $t > T$:
+\begin{itemize}
+\item when it is True, both $t < T$ and $t = T$ have been evaluated to False;
+\item when it is False, either $t < T$ or $t = T$ has been evaluated to True;
+\end{itemize}
+so we cannot reach Unique Cause for this one. We can cover it for
+Masking MC/DC though, with any of the pairs (eT, eF1) and
+(eT, eF2), these three evaluations being:
+\begin{itemize}
+\item eT = \\
+($t < T$ = False, A = Not\_Evaluated,\\
+ $t = T$ = False, B = Not\_Evaluated,\\
+ $t > T$ = True,  C = True)
+
+\item eF1 = \\
+($t < T$ = True,  A = False,\\
+ $t = T$ = False, B = Not\_Evaluated,\\
+ $t > T$ = False, C = Not\_Evaluated)
+
+\item eF2 = \\
+($t < T$ = False, A = Not\_Evaluated,\\
+ $t = T$ = True,  B = False,\\
+ $t > T$ = False, C = Not\_Evaluated)
+\end{itemize}
+
+One could object that this decision may be rewritten as follow:
+
+$(A \ \andthen{} \ t < T)
+  \ \orelse{} \ (B \andthen{} \ t = T)
+  \ \orelse{} \ (C \ \andthen{} \ t > T)$
+
+...in which case Unique Cause MC/DC could be achieved. However, such a
+rewriting may not be possible; the execution of condition may have the
+precondition that $t < T$, in which case the rewriting would not be
+valid. So re-ordering the decision to allow Unique Cause MC/DC to be
+reached is not an appropriate general solution to the coupling
+problem.
+
+In other words, Masking MC/DC is still useful in the case of
+short-circuit operators; but only when there are diamonds in the
+decision's BDD.
 
 \newpage
 \bibliographystyle{alpha}
