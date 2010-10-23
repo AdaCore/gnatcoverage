@@ -106,7 +106,7 @@ the main coverage criterion that we will consider.
 The minimum number of distinct executions required to achieve a
 specific criterion is an important aspect in the evaluation of any
 coverage assessment methodology. Here we establish some properties
-that give a hard limit on test set size for various coverage metries.
+that give a hard limit on test set size for various coverage metrics.
 
 \subsubsection{MC/DC}
 
@@ -119,7 +119,7 @@ condition. Amongst the various formal definitions that you may find in
 the litterature, this one has the advantage to apply also to
 short-circuit operators, which is mandatory in the context of \couv{}.
 
-The following will not re-define what has already detailed
+The following will not re-define what has already been detailed
 in~\cite{ar0118}; we will just give an example on how it works and
 will invit the interested reader to consult the original document. A
 formal definition may also be found in the Alloy model, in file
@@ -392,7 +392,7 @@ relates naturally to OBC.
 A Binary Decision Diagrams is a standard data structure that can be
 used to represent a decision; a formal definition, along with a set of
 associated algorithms and properties, can be found
-in~\cite{bryant86:graphs}.  In a nutshell, BDDs can be described as an
+in~\cite{bryant86:graphs}.  In a nutshell, BDDs can be described as a
 directed acyclic graph; each node is mapped to one condition, and leaf
 nodes are outcome True or False; two edges labeled True and False link
 each condition to its children nodes ; those children nodes are either
@@ -713,7 +713,7 @@ positive number built by the following recursive procedure:
 \end{description}
 
 This builds a total order over the conditions of a decision; it is a
-general result for reduced order BDD that the reflexive transitive
+general result for such a reduced order BDD that the reflexive transitive
 closure defines a total order over its nodes; this order is the same
 as the one we just defined. It can also be demonstrated easily, by
 structural induction, that this order is the order of conditions in
@@ -766,13 +766,13 @@ evaluation strategy.
 
 \subsection{Equivalence case}
 
-We now consider the case of an expression whose BDD has no diamond path,
+We now consider the case of an expression whose BDD has no diamond paths,
 i.e. for each BDD node there is exactly one path from the entry point to
 that node. The following property holds:
 
 \begin{description}
 \item[BDDBC\_No\_Diamond\_Indep\_Implies\_MCDC]
-  For a BDD with no diamond, if conditions are independent, then
+  For a BDD with no diamonds, if conditions are independent, then
   BDD branch coverage implies Unique Cause MC/DC and Masking MC/DC.
 \end{description}
 
@@ -818,7 +818,7 @@ the set of properties that these criteria have in common; a sort of
 this Weak MC/DC criteria as follow:
 
 \begin{itemize}
-\item every possible outcome of the decision have been tried;
+\item every possible outcome of the decision has been tried;
 \item each condition in the decision has taken on every possible outcome;
 \item each condition in the decision is shown to affect the outcome of the
       decision.
@@ -937,12 +937,12 @@ This can be seen in our example:
 \end{itemize}
 
 The two properties can be proved by structural induction on the BDD.
-The first is the easiest one and we will let it as an exercise for the
+The first is the easiest one and we will keep it as an exercise for the
 reader. Here is a proof of the second one:
 
 \begin{itemize}
 \item if $D ::= C$ (simple condition decision):\\
-  the BDD does not contain any diamond, so the property is trivially true
+  the BDD does not contain any diamonds, so the property is trivially true
   in this case.
 
 \item if $D ::=\ \adanot{} \ D1$:\\
@@ -974,11 +974,11 @@ reader. Here is a proof of the second one:
     edge to ``not SC'' in BDD(DL). Its other exit edge will remain
     unchanged in BDD(D) and will be connected to an outcome
     (``SC''). This last node of BDD(DL) is also the last parent of
-    this diamond node, as no other nodes in cond(DL) have an greater
+    this diamond node, as no other nodes in cond(DL) have a greater
     index. And (finally), this introduced diamond node is D's last
     diamond node, as DR contains no diamonds (initial hypothesis). So
     we have identified the last parent of the last diamond and showed
-    that one of exit edge is connected to an outcome in BDD(D); that's
+    that one of its exit edges is connected to an outcome in BDD(D); that's
     the property that we were trying to prove.
 
   \item If DR contains no diamonds, and if no diamonds were introduced
@@ -1128,8 +1128,8 @@ sub-decision of D, obviously; ``strict'' sub-decisions):
     BDDBC\_Coverage(DL). In BDD(D), it corresponds to a path to root(DR).
     Then:
     \begin{align*}
-    Short\_Circuit\_LPLD(D) & = merge({p\_dl}, Short\_Circuit\_LPLD(DR))\\
-    Long\_Circuit\_LPLD(D)  & = merge({p\_dl}, Long\_Circuit\_LPLD(DR))\\
+    Short\_Circuit\_LPLD(D) & = merge(\{p\_dl\}, Short\_Circuit\_LPLD(DR))\\
+    Long\_Circuit\_LPLD(D)  & = merge(\{p\_dl\}, Long\_Circuit\_LPLD(DR))\\
     LPLD\_Not\_Evaluated(D) & = path\_to(SC, BDDBC\_Coverage(DL))\\
                           & + merge(path\_to(not SC, BDDBC\_Coverage(DL)),\\
                           & \quad  LPLD\_Not\_Evaluated(DR))
@@ -1155,7 +1155,7 @@ sub-decision of D, obviously; ``strict'' sub-decisions):
     Then the coverage for BDD(D) is built as follows:
     \begin{align*}
     Short\_Circuit\_LPLD(D) & = SC\_DL\\
-    Long\_Circuit\_LPLD(D)  & = merge(LC\_DL, {sc\_dr})\\
+    Long\_Circuit\_LPLD(D)  & = merge(LC\_DL, \{sc\_dr\})\\
     LPLD\_Not\_Evaluated(D) & = path\_to(SC, REST\_DL)\\
                             & + merge(path\_to(not SC), REST\_DL),\\
                             & \quad BDDBC\_Coverage(DR))
@@ -1183,7 +1183,7 @@ sub-decision of D, obviously; ``strict'' sub-decisions):
     is built as follows:
     \begin{align*}
     Short\_Circuit\_LPLD(D) & = Short\_Circuit\_LPLD(DL)\\
-    Long\_Circuit\_LPLD(D)  & = merge(Long\_Circuit\_LPLD, {sc\_dr})\\
+    Long\_Circuit\_LPLD(D)  & = merge(Long\_Circuit\_LPLD(DL), \{sc\_dr\})\\
     LPLD\_Not\_Evaluated(D) & = path\_to(SC, LPLD\_Not\_Evaluated(DL))\\
                          & + merge(path\_to(not SC, LPLD\_Not\_Evaluated(DL),\\
                          & BDDBC\_Coverage(DR))
@@ -1245,7 +1245,7 @@ to more complex subexpressions).
 % http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-February/000075.html
 
 We prove this theorem by showing that this alternative characterization is
-equivalent to having no diamond in the associated BDD.
+equivalent to having no diamonds in the associated BDD.
 Theorem~\ref{thm:lhs-same-operator} follows by application of
 Theorem~\ref{thm:no-diamond}.
 
@@ -1395,7 +1395,7 @@ Proof of Lemma~\ref{lemma:NF-NT-only-one-oper} is on structural induction on
 the form of decisions, based on the 3 cases distinguished above.
 
 By structural induction on the depth of the BDD, we can show that there cannot
-be any diamond in the BDD associated to D, which proves that the desired
+be any diamonds in the BDD associated to D, which proves that the desired
 implication holds.
 
 \emph{Proof of the general case:}
@@ -1421,7 +1421,7 @@ be stated as follow:
   coupled if changing one sometimes (but not always) changes the others.
 \end{definition}
 
-In \cite{rcdc-from}, it is proven that strongly coupled conditions
+In \cite{rcdc-from}, it is proved that strongly coupled conditions
 are pairs of conditions that are either equal, or complimentary.
 In other words, if A and B are strongly coupled, then either $A = B$
 or $A = \adanot{} \ B$
@@ -1435,8 +1435,8 @@ the decision, that changing these other conditions had no influence
 on the result. Typically, for a decision $A \ \adaand{} \ SUBDEC$ ($SUBDEC$
 being a sub-decision, $A$ being a condition), any evaluation that sets
 $SUBDEC$ to True ensures that only the value of A impacts the value of the
-decision. e.g. if $SUBDEC=(B \ \adaor{} \ C)$, the following evaluation pairs
-proves Masking MC/DC, but not Unique Cause MC/DC:
+decision. e.g. if $SUBDEC ::= (B \ \adaor{} \ C)$, the following evaluation
+pairs proves Masking MC/DC, but not Unique Cause MC/DC:
 
 \begin{center}
 \begin{tabular}{|c|c|c||c||c|}
@@ -1511,7 +1511,7 @@ colored with True in the influence tree.
 An other consequence of this hypothesis is that all conditions after C
 are not evaluated in at least one of the two paths; a condition that
 would be evaluated on both paths would be a meeting point of the two
-paths, which would contract the hypothesis. This means that any
+paths, which would contradict the hypothesis. This means that any
 condition after C is colored with False as, by definition, anything
 xor Not\_Evaluated gives False.
 
@@ -1541,7 +1541,7 @@ evaluations satisfy Masking MC/DC. As all other conditions are colored
 with False in the influence tree, Unique Cause MC/DC is satisfied.
 
 To demonstrate the other side of the equivalence, let us assume that
-one of the two properties on the BDD is violated and let us show
+one of the two properties on the BDD is violated and let us show that
 Unique Cause MC/DC cannot be achieved.
 
 If the two paths are not identical before the considered condition:
@@ -1612,26 +1612,26 @@ that we do not care about how we reached the considered condition, as long
 as we reached it.
 
 The proof of this theorem is still to be produced. We have however
-used the Alloy model \verb|bdd_dec_coverage.als| with up to 4
+used the Alloy model \verb|bdd_dec_coverage.als| to check it with up to 4
 conditions in decisions; which already gives a good hint of the
 validity of this conjecture.
 
 \subsection{Coupled conditions without diamonds}
 
-First, it can be seen that strong coupling only gives degredated case,
+First, it can be seen that strong coupling only gives degredated cases,
 where some branches of the BDD cannot possibly be covered; this is
 what the following theorem states:
 
 \begin{theorem}
   \label{thm:strong-coupling-no-diamond}
-  A BDD with no diamond and with strongly coupled conditions cannot be
+  A BDD with no diamonds and with strongly coupled conditions cannot be
   covered for BDD branch coverage, Masking MC/DC, Unique Cause MC/DC.
 \end{theorem}
 
 As Unique Cause MC/DC and Masking MC/DC are stronger than BDD branch
 coverage, we only need to prove this theorem for BDD branch coverage.
 
-In a BDD with no diamond, there is only one possible path to each
+In a BDD with no diamonds, there is only one possible path to each
 node, traversing all the previous conditions in the BDD ordering. Take
 two strongly coupled conditions; let us call fc the first one in the
 BDD ordering, lc the second one. When lc is executed, fc has been
@@ -1653,7 +1653,7 @@ For instance:
 
 $Dec ::= t > T \ \orelse{} \ (t = T \ \andthen{} \ A)$
 
-Or a even more common pattern, that can often be found in C:
+Or an even more common pattern, that can often be found in C:
 
 \verb|name != NULL && strcmp (name, "something")|
 
@@ -1721,8 +1721,8 @@ $Dec ::= (t < T \ \andthen{} \ A)
   \ \orelse{} \ (t = T \andthen{} \ B)
   \ \orelse{} \ (t > T \ \andthen{} \ C)$
 
-...which is another case where the logical space is partioned into three
-cases ($t < T$, $t = T$, $t > T$) using three conditions that are such
+...which is another case where the logical space is partioned (into three
+cases here: $t < T$, $t = T$, $t > T$) using conditions that are such
 that exactly one is True for each evaluation.
 
 From the truth table, the only condition for which we cannot reach
