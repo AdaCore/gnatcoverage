@@ -138,7 +138,14 @@ package body Annotations.Xcov is
    begin
       Put (Pp.Xcov_File, Line_Num, 4);
       Put (Pp.Xcov_File, ' ');
-      Put (Pp.Xcov_File, State_Char (Aggregated_State (Info.State)));
+
+      if Info.Exemption /= Slocs.No_Location then
+         Put (Pp.Xcov_File,
+           State_Char_Exempted (Get_Exemption_Count (Info.Exemption) > 0));
+      else
+         Put (Pp.Xcov_File, State_Char (Aggregated_State (Info.State)));
+      end if;
+
       Put (Pp.Xcov_File, ": ");
       Put (Pp.Xcov_File, Line);
       New_Line (Pp.Xcov_File);

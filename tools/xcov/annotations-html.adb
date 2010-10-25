@@ -151,7 +151,8 @@ package body Annotations.Html is
          new S'("tr.covered { background-color: #80ff80; }"),
          new S'("tr.not_covered { background-color: red; }"),
          new S'("tr.partially_covered { background-color: orange; }"),
-         new S'("tr.exempted { background-color: #5CB3FF; }"),
+         new S'("tr.exempted { background-color: #CCCCCC; }"),
+         new S'("tr.exempted_no_violation { background-color: #5CB3FF; }"),
          new S'("tr.notice { background-color: #80ff80; }"),
          new S'("tr.error { background-color: red; }"),
          new S'("tr.warning { background-color: orange; }"),
@@ -635,29 +636,33 @@ package body Annotations.Html is
       State : constant Line_State := Aggregated_State (Info.State);
    begin
       Pp.Show_Line_Details := Pp.Show_Details and then State /= No_Code;
-      Wrh (Pp, "  <tr class=");
+      Wrh (Pp, "  <tr class=""");
 
       if Info.Exemption /= Slocs.No_Location then
-         Wrh (Pp, """exempted""");
+         if Get_Exemption_Count (Info.Exemption) = 0 then
+            Wrh (Pp, "exempted_no_violation");
+         else
+            Wrh (Pp, "exempted");
+         end if;
 
       else
          case State is
             when Not_Covered =>
-               Wrh (Pp, """not_covered""");
+               Wrh (Pp, "not_covered");
             when Partially_Covered =>
-               Wrh (Pp, """partially_covered""");
+               Wrh (Pp, "partially_covered");
             when Covered =>
-               Wrh (Pp, """covered""");
+               Wrh (Pp, "covered");
             when No_Code =>
                if Line_Num mod 2 = 1 then
-                  Wrh (Pp, """no_code_odd""");
+                  Wrh (Pp, "no_code_odd");
                else
-                  Wrh (Pp, """no_code_even""");
+                  Wrh (Pp, "no_code_even");
                end if;
          end case;
       end if;
 
-      Wrh (Pp, " title=""");
+      Wrh (Pp, """ title=""");
       case State is
          when Not_Covered =>
             Wrh (Pp, "code not covered");
@@ -685,7 +690,14 @@ package body Annotations.Html is
       Put (Pp.Html_File, Line_Num, 0);
       Plh (Pp, "</pre></td>");
       Wrh (Pp, "    <td><pre>");
-      Put (Pp.Html_File, State_Char (State));
+
+      if Info.Exemption /= Slocs.No_Location then
+         Put (Pp.Html_File,
+           State_Char_Exempted (Get_Exemption_Count (Info.Exemption) > 0));
+      else
+         Put (Pp.Html_File, State_Char (State));
+      end if;
+
       Plh (Pp, "</pre></td>");
       Wrh (Pp, "    <td><pre>");
       Wrh (Pp, To_Xml_String (Line));

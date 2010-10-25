@@ -42,6 +42,11 @@ package Traces_Lines is
    State_Char : constant State_Char_Array;
    --  Characters identifying a Line_State
 
+   type State_Char_Exempted_Array is array (Boolean) of Character;
+   State_Char_Exempted : constant State_Char_Exempted_Array;
+   --  Characters marking an exempted Region that actually exempts some
+   --  violation (True) or not (False).
+
    function "*" (L, R : Line_State) return Line_State;
    --  Combine the given individual states to determine a cumulative state
 
@@ -51,5 +56,9 @@ private
       Not_Covered       => '-',
       Partially_Covered => '!',
       Covered           => '+');
+
+   State_Char_Exempted : constant State_Char_Exempted_Array :=
+     (False => '#',
+      True  => '*');
 
 end Traces_Lines;
