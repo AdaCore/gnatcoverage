@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -632,13 +632,14 @@ package body Annotations.Html is
    is
       use Ada.Integer_Text_IO;
 
-      State        : constant Line_State := Aggregated_State (Info.State);
+      State : constant Line_State := Aggregated_State (Info.State);
    begin
       Pp.Show_Line_Details := Pp.Show_Details and then State /= No_Code;
       Wrh (Pp, "  <tr class=");
 
-      if Info.Exempted then
+      if Info.Exemption /= Slocs.No_Location then
          Wrh (Pp, """exempted""");
+
       else
          case State is
             when Not_Covered =>

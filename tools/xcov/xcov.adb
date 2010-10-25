@@ -189,7 +189,7 @@ procedure Xcov is
    --  Results of the command line parsing
 
    Command             : Command_Type := No_Command;
-   Annotation          : Annotation_Format := Annotate_Unknown;
+   Annotation          : Annotation_Format renames Annotations.Annotation;
    Trace_Inputs        : Inputs.Inputs_Type;
    Exe_Inputs          : Inputs.Inputs_Type;
    Obj_Inputs          : Inputs.Inputs_Type;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -436,17 +436,36 @@ package body Annotations is
             LI        : constant Line_Info_Access := Get_Line (FI, L);
             S         : Line_State;
             Sloc      : constant Source_Location := (File_Index, L, 0);
-            Exemption : constant String_Access := Get_Exemption (Sloc);
+
          begin
+            --  Compute state for each coverage objective
+
             if Object_Coverage_Enabled then
                Coverage.Object.Compute_Line_State (LI);
             else
                Coverage.Source.Compute_Line_State (L, LI);
             end if;
 
-            LI.Exempted := Exemption /= null;
+            --  Compute aggregated line state
+
             S := Aggregated_State (LI.State);
+
+            --  Update counts
+
             FI.Stats (S) := FI.Stats (S) + 1;
+
+            --  Bump exemption hit counter if generating annotated sources
+            --  (or HTML). Note that for the Report case, we count violation
+            --  messages, not lines, and we manage the counter specifically in
+            --  Annotation.Report.
+
+            LI.Exemption := Get_Exemption (Sloc);
+            if LI.Exemption /= Slocs.No_Location
+              and then S in Not_Covered .. Partially_Covered
+              and then Annotation /= Annotate_Report
+            then
+               Inc_Exemption_Count (LI.Exemption);
+            end if;
          end Compute_Line_State;
 
       --  Start of processing for Compute_File_State
@@ -492,7 +511,7 @@ package body Annotations is
    -- Get_Exemption --
    -------------------
 
-   function Get_Exemption (Sloc : Source_Location) return String_Access is
+   function Get_Exemption (Sloc : Source_Location) return Source_Location is
       use ALI_Annotation_Maps;
 
       Cur : constant Cursor := ALI_Annotations.Floor (Sloc);
@@ -504,13 +523,61 @@ package body Annotations is
             A : constant ALI_Annotation := Element (Cur);
          begin
             if A.Kind = Exempt_On then
-               return A.Message;
+               return Key (Cur);
             end if;
          end;
       end if;
 
-      return null;
+      return Slocs.No_Location;
    end Get_Exemption;
+
+   -------------------------
+   -- Get_Exemption_Count --
+   -------------------------
+
+   function Get_Exemption_Count
+     (Sloc : Source_Location) return Natural
+   is
+   begin
+      return ALI_Annotations.Element (Sloc).Count;
+   end Get_Exemption_Count;
+
+   ---------------------------
+   -- Get_Exemption_Message --
+   ---------------------------
+
+   function Get_Exemption_Message
+     (Sloc : Source_Location) return String_Access
+   is
+   begin
+      return ALI_Annotations.Element (Sloc).Message;
+   end Get_Exemption_Message;
+
+   -------------------------
+   -- Inc_Exemption_Count --
+   -------------------------
+
+   procedure Inc_Exemption_Count (Sloc : Source_Location) is
+
+      procedure Inc_Count (K : Source_Location; E : in out ALI_Annotation);
+      --  Increment E.Count
+
+      ---------------
+      -- Inc_Count --
+      ---------------
+
+      procedure Inc_Count (K : Source_Location; E : in out ALI_Annotation) is
+         pragma Unreferenced (K);
+      begin
+         E.Count := E.Count + 1;
+      end Inc_Count;
+
+   --  Start of processing for Inc_Exemption_Count
+
+   begin
+      ALI_Annotations.Update_Element
+        (ALI_Annotations.Find (Sloc), Inc_Count'Access);
+   end Inc_Exemption_Count;
 
    ------------------------
    -- Message_Annotation --

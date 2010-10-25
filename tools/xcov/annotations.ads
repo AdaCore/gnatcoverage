@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -51,6 +51,9 @@ package Annotations is
    Flag_Show_Missing : Boolean := False;
    --  If True, Disp_Line_State displays info for files that are not found
    --  Why isn't this a parameter of Disp_Line_State???
+
+   Annotation : Annotation_Format := Annotate_Unknown;
+   --  The kind of output being generated
 
    procedure Disp_File_Summary;
    --  Display per-file summary
@@ -166,9 +169,20 @@ private
    function Aggregated_State (S : Line_States) return Line_State;
    --  Return synthetic indication of coverage state for all computed criteria
 
-   function Get_Exemption (Sloc : Source_Location) return String_Access;
-   --  If the given sloc is covered by an exemption, return a pointer to a
-   --  descriptive message justifying the exemption, else return a null
-   --  pointer.
+   function Get_Exemption (Sloc : Source_Location) return Source_Location;
+   --  If the given sloc is covered by an exemption, return the source location
+   --  of the corresponding exemption annotation, else return No_Location.
+
+   function Get_Exemption_Message
+     (Sloc : Source_Location) return String_Access;
+   --  For a sloc denoting an Exempt_On annotation, return the descriptive
+   --  message justifying the exemption.
+
+   function Get_Exemption_Count
+     (Sloc : Source_Location) return Natural;
+   --  Return the exempted line/message counter for exemption at sloc
+
+   procedure Inc_Exemption_Count (Sloc : Source_Location);
+   --  Increment the exempted line/message counter for exemption at sloc
 
 end Annotations;

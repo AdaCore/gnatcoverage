@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -38,7 +38,15 @@ package ALI_Files is
 
    type ALI_Annotation is record
       Kind    : ALI_Annotation_Kind;
+      --  On or Off
+
       Message : String_Access;
+      --  When Kind = Exempt_On, justification message for the exemption
+
+      Count   : Natural := 0;
+      --  When Kind = Exempt_On, this counts the "hits" on this exemption:
+      --  exempted messages if generating a report, exempted non/partially
+      --  covered lines otherwise.
    end record;
 
    package ALI_Annotation_Maps is

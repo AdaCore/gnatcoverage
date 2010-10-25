@@ -21,6 +21,7 @@ with GNAT.Time_Stamp;
 with Ada.Command_Line;
 with Ada.Text_IO;  use Ada.Text_IO;
 
+with ALI_Files;
 with Qemu_Traces;
 with Traces_Files;
 with Traces_Files_List;
@@ -114,10 +115,10 @@ package body Annotations.Report is
       Skip : out Boolean);
 
    procedure Pretty_Print_Start_Line
-     (Pp : in out Report_Pretty_Printer;
+     (Pp       : in out Report_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
-      Line : String);
+      Line     : String);
 
    procedure Pretty_Print_End_File
      (Pp : in out Report_Pretty_Printer);
@@ -215,22 +216,57 @@ package body Annotations.Report is
    ----------------------
 
    procedure Pretty_Print_End (Pp : in out Report_Pretty_Printer) is
-      use Diagnostics.Message_Vectors;
+      use ALI_Files;
+      use ALI_Files.ALI_Annotation_Maps;
 
       Output : constant File_Access := Get_Output;
 
-      procedure Process_One_Message (Position : Cursor);
-      --  Let Pp print message at Position
+      procedure Process_One_Exemption (C : Cursor);
+      --  Show summary information for exemption denoted by C
 
-      -------------------------
-      -- Process_One_Message --
-      -------------------------
+      ---------------------------
+      -- Process_One_Exemption --
+      ---------------------------
 
-      procedure Process_One_Message (Position : Cursor) is
-         M : constant Message := Element (Position);
+      procedure Process_One_Exemption (C : Cursor) is
+         E        : constant ALI_Annotation := Element (C);
+         Next_C   : constant Cursor := Next (C);
+         Sloc     : constant Source_Location := Key (C);
+         End_Sloc : Source_Location := Slocs.No_Location;
       begin
-         Put_Message (Pp, M);
-      end Process_One_Message;
+         if E.Kind /= Exempt_On then
+            return;
+         end if;
+
+         --  Determine end sloc of exempted region
+
+         if Next_C /= No_Element then
+            declare
+               Next_Sloc : constant Source_Location := Key (Next_C);
+               Next_E    : constant ALI_Annotation  := Element (Next_C);
+            begin
+               if Next_E.Kind = Exempt_Off
+                 and then Sloc.Source_File = Next_Sloc.Source_File
+               then
+                  End_Sloc := Next_Sloc;
+               end if;
+            end;
+         end if;
+
+         --  Output summary for this region: sloc range, exempted message count
+         --  and justification.
+
+         New_Line (Output.all);
+         Put (Output.all,
+           Image (Slocs.Source_Location_Range'
+                    (First_Sloc => Sloc, Last_Sloc => End_Sloc)));
+         if End_Sloc = Slocs.No_Location then
+            Put (Output.all, "-<eof>");
+         end if;
+
+         Put_Line (Output.all, ":" & E.Count'Img & " exempted messages:");
+         Put_Line (Output.all, E.Message.all);
+      end Process_One_Exemption;
 
    --  Start of processing for Pretty_Print_End
 
@@ -238,7 +274,7 @@ package body Annotations.Report is
       Pp.End_Section;
 
       Pp.Section ("EXEMPTED VIOLATIONS");
-      Pp.Exempted_Messages.Iterate (Process_One_Message'Access);
+      ALI_Annotations.Iterate (Process_One_Exemption'Access);
       Pp.End_Section;
 
       Put_Line (Output.all, "END OF REPORT");
@@ -493,7 +529,7 @@ package body Annotations.Report is
    --  Start of processing for Pretty_Print_Start_Line
 
    begin
-      Pp.Exempted := Info.Exempted;
+      Pp.Exempted := Info.Exemption /= Slocs.No_Location;
 
       --  When two coverage criteria are not met on the same line, only
       --  report errors for the "lowest" one. For example, if a decision is
@@ -514,10 +550,12 @@ package body Annotations.Report is
             then
                M := Default_Message (Level, Info.State (Level));
 
-               if not Info.Exempted then
+               if Info.Exemption = Slocs.No_Location then
                   Pp.Put_Message (M);
+
                else
                   Pp.Exempted_Messages.Append (M);
+                  Inc_Exemption_Count (Info.Exemption);
                end if;
             end if;
 

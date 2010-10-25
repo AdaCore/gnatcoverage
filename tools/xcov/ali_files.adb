@@ -213,7 +213,8 @@ package body ALI_Files is
                      begin
                         Annotation :=
                           (Kind    => ALI_Annotation_Kind'Value (Match (3)),
-                           Message => new String'(Match (5)));
+                           Message => new String'(Match (5)),
+                           others  => <>);
                      exception
                         when Constraint_Error =>
                            Report (Sloc, "bad annotation " & Match (3));

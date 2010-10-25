@@ -130,8 +130,9 @@ package Files_Table is
       Line_Cache : String_Access := null;
       --  Cached source line content
 
-      Exempted : Boolean := False;
-      --  True if this line is covered by an exemption
+      Exemption : Source_Location := Slocs.No_Location;
+      --  If this line is covered by an exemption, this is set to the sloc of
+      --  the Exempt_On annotation.
    end record;
 
    type Line_Info_Access is access Line_Info;
