@@ -28,6 +28,7 @@
 \newcommand{\adaif}{\texttt{if}}
 \newcommand{\adathen}{\texttt{then}}
 \newcommand{\adaelse}{\texttt{else}}
+\newcommand{\alloyspec}[1]{\texttt{#1}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -123,7 +124,7 @@ The following will not re-define what has already been detailed
 in~\cite{ar0118}; we will just give an example on how it works and
 will invit the interested reader to consult the original document. A
 formal definition may also be found in the Alloy model, in file
-\verb|decision_coverage.als|.
+\alloyspec{decision\_coverage.als}.
 
 This formal definition of MC/DC uses a simple graph-coloring algorithm
 to determine whether two given evaluations show the independent
@@ -682,7 +683,7 @@ The following invariants of ROBDDs follow from the construction process:
         to an exit edge labeled True and to an exit edge labeled False).
 \end{itemize}
 
-This algorithm is formally described in Alloy, in \verb|build_bdd.als|.
+This algorithm is formally described in Alloy, in \alloyspec{build\_bdd.als}.
 Given a decision D, we will now call BDD(D) its (RO)BDD as built by this
 recursive procedure.
 
@@ -741,7 +742,7 @@ procedure:
   value is SC, else evaluate D2, and the value is that of D2.
 \end{description}
 
-This algorithm is modeled in \verb|decision_evaluations.als|
+This algorithm is modeled in \alloyspec{decision\_evaluations.als}
 The following property holds:
 
 \begin{description}
@@ -757,7 +758,7 @@ BDD\_Build procedure (Build\_BDD.Condition, Build\_BDD.Not,
 Build\_BDD.Short\_Circuit\_Operator), we will assume that the the
 property holds for the parameters and prove that the build step
 preserves the property. A formal model for this proof can be found
-in \verb|bdd_dec_evaluations.als|.
+in \alloyspec{bdd\_dec\_evaluations.als}.
 
 Note that the practical implementation of coverage analysis systems based
 on control flow traces relies on the assumption that the code generator
@@ -800,7 +801,7 @@ is proved; and since Unique Cause is stronger than Masking MC/DC,
 Masking MC/DC is proved as well.
 
 This property and the non-equivalence case that follows is modeled
-in \verb|bdd_coverage.als|.
+in \alloyspec{bdd\_coverage.als}.
 
 \subsection{Non-equivalence case}
 
@@ -1612,8 +1613,8 @@ that we do not care about how we reached the considered condition, as long
 as we reached it.
 
 A formal model of this characterisation can be found in
-\verb|bdd_coverage.als|, and a proof of equivalence in a small scope
-(at most 4 conditions per decisions) in \verb|bdd_dec_coverage.als|.
+\alloyspec{bdd\_coverage.als}, and a proof of equivalence in a small scope
+(at most 4 conditions per decisions) in \alloyspec{bdd\_dec\_coverage.als}.
 
 Here is a proof in the general case. Yet another way to see
 Theorem~\ref{thm:masking-bdd} is: a pair of evaluations proves Masking
@@ -1850,7 +1851,7 @@ Masking MC/DC though, with any of the pairs (eT, eF1) and
 One could object that this decision may be rewritten as follow:
 
 $(A \ \andthen{} \ t < T)
-  \ \orelse{} \ (B \andthen{} \ t = T)
+  \ \orelse{} \ (B \ \andthen{} \ t = T)
   \ \orelse{} \ (C \ \andthen{} \ t > T)$
 
 ...in which case Unique Cause MC/DC could be achieved. However, such a
