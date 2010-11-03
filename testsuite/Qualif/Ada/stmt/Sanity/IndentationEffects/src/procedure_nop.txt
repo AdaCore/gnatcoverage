@@ -1,5 +1,0 @@
-Exercize a function featuring code guarded by impossibly-true expressions,
-indented in a way which could lead to believe that the code isn't conditioned
-at all.  Verify that this code is always reported uncovered.
-
-
