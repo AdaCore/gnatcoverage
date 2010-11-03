@@ -264,7 +264,12 @@ package body Annotations.Report is
             Put (Output.all, "-<eof>");
          end if;
 
-         Put_Line (Output.all, ":" & E.Count'Img & " exempted messages:");
+         Put (Output.all, ":" & E.Count'Img & " exempted message");
+         if E.Count > 1 then
+            Put (Output.all, "s");
+         end if;
+
+         Put_Line (Output.all, ", justification:");
          Put_Line (Output.all, E.Message.all);
       end Process_One_Exemption;
 
