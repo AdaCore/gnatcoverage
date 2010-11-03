@@ -60,7 +60,7 @@ package body Annotations.Report is
       --  When going through the lines of a source file,
       --  This is set to the current source file index.
 
-      Error_Count : Natural := 0;
+      Item_Count : Natural := 0;
       --  Total number of errors in current section
 
       Current_Chapter : Natural := 0;
@@ -86,7 +86,9 @@ package body Annotations.Report is
       Title : String);
    --  Open a new section in final report
 
-   procedure End_Section (Pp : in out Report_Pretty_Printer'Class);
+   procedure End_Section
+     (Pp   : in out Report_Pretty_Printer'Class;
+      Item : String);
    --  Close the current section
 
    function Should_Be_Displayed (M : Message) return Boolean;
@@ -95,10 +97,10 @@ package body Annotations.Report is
    procedure Put_Message
      (Pp : in out Report_Pretty_Printer'Class;
       M  : Message);
-   --  Print M in the final report and update error count. The difference
-   --  with Pretty_Print_Message is that Put_Message does not tries to
-   --  know if the message should be exempted or not, and do not modify
-   --  the Exempted_Messages buffer.
+   --  Print M in the final report and update item count. The difference with
+   --  Pretty_Print_Message is that Put_Message does not tries to know if the
+   --  message should be exempted or not, and do not modify the
+   --  Exempted_Messages buffer.
 
    --------------------------------------------------
    -- Report_Pretty_Printer's primitive operations --
@@ -158,19 +160,22 @@ package body Annotations.Report is
    -- End_Section --
    -----------------
 
-   procedure End_Section (Pp : in out Report_Pretty_Printer'Class) is
+   procedure End_Section
+     (Pp   : in out Report_Pretty_Printer'Class;
+      Item : String)
+   is
       Output : constant File_Access := Get_Output;
    begin
-      if Pp.Error_Count = 0 then
-         Put_Line (Output.all, "no error.");
-      elsif Pp.Error_Count = 1 then
-         Put_Line (Output.all, "1 error.");
+      if Pp.Item_Count = 0 then
+         Put_Line (Output.all, "No " & Item & ".");
+      elsif Pp.Item_Count = 1 then
+         Put_Line (Output.all, "1 " & Item & ".");
       else
-         Put_Line (Output.all, Img (Pp.Error_Count) & " errors");
+         Put_Line (Output.all, Img (Pp.Item_Count) & " " & Item & "s");
       end if;
 
       New_Line (Output.all);
-      Pp.Error_Count := 0;
+      Pp.Item_Count := 0;
    end End_Section;
 
    ---------------------
@@ -256,7 +261,6 @@ package body Annotations.Report is
          --  Output summary for this region: sloc range, exempted message count
          --  and justification.
 
-         New_Line (Output.all);
          Put (Output.all,
            Image (Slocs.Source_Location_Range'
                     (First_Sloc => Sloc, Last_Sloc => End_Sloc)));
@@ -264,23 +268,26 @@ package body Annotations.Report is
             Put (Output.all, "-<eof>");
          end if;
 
-         Put (Output.all, ":" & E.Count'Img & " exempted message");
+         Put (Output.all, ":" & E.Count'Img & " exempted violation");
          if E.Count > 1 then
             Put (Output.all, "s");
          end if;
 
          Put_Line (Output.all, ", justification:");
          Put_Line (Output.all, E.Message.all);
+         New_Line (Output.all);
+
+         Pp.Item_Count := Pp.Item_Count + 1;
       end Process_One_Exemption;
 
    --  Start of processing for Pretty_Print_End
 
    begin
-      Pp.End_Section;
+      Pp.End_Section (Item => "violation");
 
       Pp.Section ("EXEMPTED VIOLATIONS");
       ALI_Annotations.Iterate (Process_One_Exemption'Access);
-      Pp.End_Section;
+      Pp.End_Section (Item => "exempted region");
 
       Put_Line (Output.all, "END OF REPORT");
    end Pretty_Print_End;
@@ -314,7 +321,7 @@ package body Annotations.Report is
       end if;
 
       Put (Output.all, M.Msg.all);
-      Pp.Error_Count := Pp.Error_Count + 1;
+      Pp.Item_Count := Pp.Item_Count + 1;
       New_Line (Output.all);
    end Put_Message;
 
