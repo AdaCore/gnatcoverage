@@ -1,3 +1,0 @@
-Statement coverage assessment remains correct in presence of misleading
-indentations, which for example may lead to wrong evaluation of whether code
-is conditioned or not.
