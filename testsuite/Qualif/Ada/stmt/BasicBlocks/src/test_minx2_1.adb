@@ -1,6 +1,6 @@
 with Support, Minx2; use Support;
 
--- Verify that only the "min is 2" part is reported uncovered when
+-- Verify that only the xgt2 part is reported uncovered when
 -- calling once with X < 2.
 
 procedure Test_Minx2_1 is
@@ -9,5 +9,7 @@ begin
 end;
 
 --# minx2.adb
---  /(Call|MinIsX)/ l+ 0
---  /MinIs2/        l- s-
+--  /common/ l+ 0
+--  /xle2/   l+ 0
+--  /xgt0/   l+ 0
+--  /xgt2/   l- s-

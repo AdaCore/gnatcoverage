@@ -1,14 +1,14 @@
 function MinX2 (X : Natural) return Natural is
    M : Integer;
 begin
-   if X > 2 then    -- # Call
-      goto M_Is_2;  -- # MinIs2
+   if X > 2 then    -- # common
+      goto M_Is_2;  -- # xgt2
    end if;
 
-   M := X;     -- # MinIsX
-   return M;   -- # MinIsX
+   M := X;     -- # xle2
+   return M;   -- # xle2
 
 <<M_Is_2>>
-    M := 2;    -- # MinIs2
-    return M;  -- # MinIs2
+    M := 2;    -- # xgt2
+    return M;  -- # xgt2
 end;

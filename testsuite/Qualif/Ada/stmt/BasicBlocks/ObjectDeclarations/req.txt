@@ -1,2 +1,0 @@
-Object declarations with or without initializers are treated as statements
-for coverage analysis purposes.

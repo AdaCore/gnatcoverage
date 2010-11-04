@@ -1,14 +1,14 @@
 function MinX2 (X : Natural) return Natural is
    Min : Natural;
-   Min_Is_X : exception;
+   Xle2 : exception;
 
 begin
-   Min := 2;           -- # Call
-   if X < 2 then       -- # Call
-      raise Min_Is_X;  -- # MinIsX
+   Min := 2;           -- # common
+   if X <= 2 then      -- # common
+      raise Xle2;      -- # xle2
    end if;
-   return Min;         -- # MinIs2
+   return Min;         -- # xgt2
 exception
-   when Min_Is_X =>
-      return X;        -- # MinIsX
+   when Xle2 =>
+      return X;        -- # xle2
 end;

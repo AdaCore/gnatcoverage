@@ -4,10 +4,11 @@ with Support, Minx2; use Support;
 
 procedure Test_Minx2_0 is
 begin
-   Assert (True);
+   Assert (MinX2 (0) = 0);
 end;
 
 --# minx2.adb
---  /Call/   l- s-
---  /MinIsX/ l- s-
---  /MinIs2/ l- s-
+--  /common/ l+ 0
+--  /xle2/   l+ 0
+--  /xgt0/   l- s-
+--  /xgt2/   l- s-

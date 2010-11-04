@@ -1,4 +1,0 @@
-Exercize in various ways a package which exposes a subprogram with
-straightline code and object declarations with non-static initializers, as
-well as library level such declarations. Verify that all and only those
-statements expected to be uncovered are reported as such.

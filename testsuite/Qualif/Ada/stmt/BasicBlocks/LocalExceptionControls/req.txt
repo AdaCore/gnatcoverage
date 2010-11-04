@@ -1,3 +1,0 @@
-Statement coverage is properly assessed in the presence of multiple basic
-blocks resulting from the use of local exception processing. Sequences that do
-not complete execution because of a raise statement are handled correctly.
