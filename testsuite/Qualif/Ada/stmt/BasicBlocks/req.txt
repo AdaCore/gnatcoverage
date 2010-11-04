@@ -1,6 +1,6 @@
-Statement coverage is assessed correctly for straightline (basic block)
-sequences and combinations of such constructed with jump-like control flow
-statements (goto, return, raise, exit).
+Statement coverage is assessed correctly for straightline sequences (basic
+blocks) and combinations of such constructed with jump-like control flow
+transfers (goto, return, raise, exit).
 
 If execution reaches the top of a basic block, no statement in the block is
 reported uncovered. Conversely, if execution doesn't reach the top of a basic

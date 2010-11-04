@@ -1,4 +1,0 @@
-Verify that basic blocks in subprograms are correctly detected.
-
-|!-com.adacore.couverture.qualification.CouvertureFixture-!|
-|test.py|

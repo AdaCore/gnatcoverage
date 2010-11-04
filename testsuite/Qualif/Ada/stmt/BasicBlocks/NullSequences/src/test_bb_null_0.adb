@@ -1,7 +1,7 @@
 with BB_Null, Support; use BB_Null, Support;
 
--- Verify that when the noop subprogram is not called, only its nul+ 0
--- statement body is reported uncovered.
+--  When the noop subprogram is not called, its statement body only
+--  is expected uncovered.
 
 procedure Test_BB_Null_0 is
 begin
