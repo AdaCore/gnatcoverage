@@ -1,8 +1,7 @@
 with Support, Overloads; use Support, Overloads;
 
---  With two subprograms called Flip, arrange to call only the one operating
---  on Integer. Verify that statements in the body of the other one (and only
---  them) are reported uncovered.
+--  Arrange to call Flip (X) only.  Verify that the Flip (B) bits only are
+--  reported uncovered (call & body).
 
 procedure Test_Flip_X is
 begin

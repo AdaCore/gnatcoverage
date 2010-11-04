@@ -1,7 +1,7 @@
 with Support, Overloads; use Support, Overloads;
 
---  Dispatch to none of two subprograms called Flip. Verify that the statements
---  in both bodies are reported uncovered.
+--  Arrange to call neither Flip (X) nor Flip (B). Verify that the calls and
+--  body statements are reported uncovered for both.
 
 procedure Test_Flip_0 is
 begin
