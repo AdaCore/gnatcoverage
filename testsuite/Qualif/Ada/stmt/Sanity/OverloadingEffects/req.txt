@@ -1,0 +1,5 @@
+Statement coverage assessment remains correct in the presence of overloading
+which could lead to confusion between the coverage involving some entity with
+the coverage of another entity of the same name.
+
+

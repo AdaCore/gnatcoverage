@@ -1,0 +1,34 @@
+
+Several sets of requirements/testcases:
+
+IsolatedConstructs:
+-------------------
+
+Elaborated out of a systematic pass over the Ada Reference Manual, to make
+sure the suite is representative of all the language aspects we need to
+handle.
+
+BasicBlocks:
+------------
+
+Standlone section elaborated out of SVTAS proposals to demonstrate proper
+processing of statement sequences and various possible forms of control-flow
+transfers, fundamental mecanism for an imperative language.
+
+In addition to offer a useful set focused on control flow, tests in this
+section were written by a different team, which augments the robustness of the
+suite as a whole.
+
+Sanity:
+-------
+
+Elaborated out of SVTAS proposals to demonstrate that the toolset correctly
+handles potentially confusing constructs that would fool naive analyzers for
+various sorts of reasons.
+
+Also includes testcases to define and verify our toolset behavior in special
+cases such as multiple statements sharing a line or a single statement
+spanning multiple lines.
+
+
+

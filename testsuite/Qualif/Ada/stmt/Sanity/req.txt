@@ -1,0 +1,3 @@
+Statement coverage assessment remains well defined and correct in the presence
+of code constructs that could fool simple minded analysis engines.
+
