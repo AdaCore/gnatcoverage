@@ -1558,10 +1558,12 @@ class SCOV_helper:
         self.xcovlevel = xcovlevel
 
         # Internal attributes: Directory where the instantiation takes place
-        # and base prefix of Working Directory names.
+        # base prefix of Working Directory names, and original expectations
+        # file.
 
         self.homedir = os.getcwd()+"/"
         self.wdbase  = "tmp_"
+        self.xfile   = xfile
 
         # { sourcename -> KnoteDict } dictionaries of emitted/expected
         # line/report notes. We'll extract emitted notes from reports when we
@@ -1684,10 +1686,17 @@ class SCOV_helper:
 
     def rwdir(self):
         """Relative path to Working Directory for current instance."""
+        
+        # For a single test, discriminate with driver basename. For a
+        # consolidation test, discriminate with the expectation file basename.
+        # We need the latter to allow multiple consolidation scenarii for a
+        # testcase.
+        
         if self.singletest():
             return self.rwdir_for(self.drivers[0])
         else:
-            return self.wdbase + "/"
+            return self.rwdir_for(
+                os.path.basename(os.path.splitext(self.xfile)[0]))
 
     def awdir(self):
         """Absolute path to Working Directory for current instance."""
@@ -1888,6 +1897,21 @@ class ExerciseAll:
                 "Unable to determine test category from test dir: %s"
                 %TEST_DIR)
 
+    def drivers_from(self, cspec):
+        """Compute the set of drivers that need to be combined for
+        consolidation purposes, extracted from the consolidation spec in
+        CSPEC."""
+
+        # Extract the drivers regular expression to match from the
+        # consolidation spec file, ...
+
+        drv_expr = re.match ("drivers=(.*)", contents_of (cspec)).group(1)
+
+        # ... then construct and return the retricted list of drivers that
+        # match this expression
+
+        return [drv for drv in self.all_drivers if re.search (drv_expr, drv)]
+
     def __init__(self, extradrivers="", extracargs="", xcovlevel=None):
 
         # Step 1: Compute the list of drivers to exercise ...
@@ -1949,8 +1973,8 @@ class ExerciseAll:
                      xcovlevel=xcovlevel).run(testcargs)
          for driver in self.all_drivers]
 
-        # Next, run a consolidation test if applicable.
-        consolidation_file = ("src/test_all.txt")
-        if os.path.isfile(consolidation_file):
-            SCOV_helper(drivers=self.all_drivers, xfile=consolidation_file,
-                        category=category, xcovlevel=xcovlevel).run(testcargs)
+        # Next, run applicable consolidation tests.
+        consolidation_specs = ls ("src/cons_*.txt")
+        [SCOV_helper(drivers=self.drivers_from(cspec), xfile=cspec,
+                     category=category, xcovlevel=xcovlevel).run(testcargs)
+         for cspec in consolidation_specs]
