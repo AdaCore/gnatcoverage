@@ -1,0 +1,4 @@
+Exercize a subprogram featuring a three way if statement with three different
+drivers, each running into one of the three possible cases. Verify that each
+individual case reports the other branches uncovered and that the combination
+of all the cases reports nothing uncovered.

@@ -1,0 +1,3 @@
+When the coverage achieved by multiple execution traces is evaluated, a
+statement shall be reported uncovered only when it would have been reported
+as such for all the traces individually.

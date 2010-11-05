@@ -1,5 +1,9 @@
 with Support, Ranges; use Support, Ranges;
 
+--  Exercize the X > Max case. Verify that statements specific to X determined
+--  in range and to X determined < Min are reported uncovered, while both
+--  tests are evaluated.
+
 procedure Test_Ranges_Outmax is
    In_Range : Boolean;
 begin
