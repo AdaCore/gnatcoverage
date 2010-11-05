@@ -1,5 +1,5 @@
 Exercize a subprogram which features a single statement spanning multiple
 lines, with distinct line IDs for the first line and the other ones.
 
-Verify that the reported results match requirement expectations for a variety
-of actual execution scenarii, covering the statement or not.
+Verify that a single violation designating the first line is reported when the
+statement is not covered, typically when the subprogram is not called.
