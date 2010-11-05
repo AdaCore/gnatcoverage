@@ -1,14 +1,14 @@
-with Support, Ml_Stmts; use Support, Ml_Stmts;
+with Support, Andnot; use Support;
 
 --  Call and verify that nothing is reported uncovered.
 
-procedure Test_MlAndNot_TF is
+procedure Test_Andnot_TF is
    E : Boolean;
 begin
-   Eval_And_Not (True, False, E);
+   Andnot (True, False, E);
    Assert (E = True);
 end;
 
---# ml_stmts.adb
+--# andnot.adb
 --  /Statementmark/ l+ 0
 --  /Linemark/      l+ 0
