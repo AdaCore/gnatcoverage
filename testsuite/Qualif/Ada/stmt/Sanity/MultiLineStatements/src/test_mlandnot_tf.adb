@@ -1,5 +1,7 @@
 with Support, Ml_Stmts; use Support, Ml_Stmts;
 
+--  Call and verify that nothing is reported uncovered.
+
 procedure Test_MlAndNot_TF is
    E : Boolean;
 begin
@@ -8,4 +10,5 @@ begin
 end;
 
 --# ml_stmts.adb
---  /Xcovmark/ l+ 0
+--  /Statementmark/ l+ 0
+--  /Linemark/      l+ 0

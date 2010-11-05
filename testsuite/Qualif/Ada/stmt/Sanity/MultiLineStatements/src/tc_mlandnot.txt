@@ -1,0 +1,5 @@
+Exercize a subprogram which features a statement spanning multiple lines,
+with distinct line IDs for the first line and the other ones.
+
+Verify that the reported results match requirement expectations for a variety
+of actual execution scenarii, covering the statement or not.
