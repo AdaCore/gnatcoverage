@@ -1,0 +1,4 @@
+Exercize one subprogram which features multiple statements on a single line,
+none conditioned, so all the statements are reached as soon as the subprogram
+is called.
+
