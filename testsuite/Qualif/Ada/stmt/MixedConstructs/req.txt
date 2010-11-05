@@ -1,0 +1,5 @@
+All the of requirements expressed in sibling sections of this qualification
+suite are honored on programs mixing arbitrary Ada constructs together,
+various possible levels of syntactic nesting (such as loops within tests
+within subprograms etc).
+
