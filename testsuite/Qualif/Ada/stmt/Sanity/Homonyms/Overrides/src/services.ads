@@ -4,4 +4,5 @@ package Services is
    type Event (Cat : Category) is null record;
 
    function Services (E : Event; O : Object) return Boolean;
+   -- Whether object O is able to service event E
 end;
