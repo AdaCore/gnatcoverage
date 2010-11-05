@@ -1,4 +1,4 @@
-drivers=outmin|outmax|inrange
+drivers=.
 
 --# ranges.adb
 --  /checkOmin/ l+ 0
