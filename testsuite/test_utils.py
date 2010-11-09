@@ -360,7 +360,7 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
     a space-separated list of options, or a list of options."""
 
     all_gargs = ['-q', '-XSTYLE_CHECKS=', '-p', '-P%s' % project]
-    
+
     all_gargs += thistest.gprconfoptions
     all_gargs += to_list(gargs)
 
@@ -650,7 +650,7 @@ class MapCheck:
 #
 # We refer to them as the '=xcov' and the '=report' outputs respectively.
 
-# COVERAGE NOTES (or MARKS) and LINE SEGMENTS
+# COVERAGE NOTES (or MARKS) and SLOC SEGMENTS
 # -------------------------------------------
 
 # We work over abstractions of expected or emitted coverage indications, which
@@ -686,15 +686,18 @@ class MapCheck:
 # bind them with the source file from which they originate. Different possible
 # degrees of precision could be present in the source location designation:
 #
-#   * for a line as a whole, e.g. ":4" for "line #4",
-#   * for a specific point on a line, e.g. ":4:5" for "column 5 on line #4",
-#   * for a section of a line, e.g. ":4:7-9" for "columns 7 to 9 on line #4".
+#   * for a specific point in the source, e.g. "4:5" for "column 5 on line #4"
+#   * for a line as a whole, e.g. "4" or "4:0" for "line #4",
+#   * for a line segment, e.g. "4:7-9" for "columns 7 to 9 on line #4"
+#   * for a section of source spanning multiple lines,
+#     e.g. "3:4-9:7" for "column #4 on line #3 to column #7 on line #9",
 #
 # To let us evaluate if some reported coverage indication corresponds to an
-# expectation, we abstract all these with variations over line SEGMENTs which
+# expectation, we abstract all these with variations over sloc SECTIONS which
 # we can easily check for inclusion within each other. We manipulate general
-# line SEGMENTs, possibly specialized as full LINEs (segment from first to
-# last column) or POINTs (one column segments).
+# sloc SECTIONS, possibly specialized as line SEGMENTs (section with start and
+# end on the same line) or full LINEs (segment from first to last column) or
+# POINTs (one column segments).
 
 # Expected indications are expressed as comments in single test
 # drivers like:
@@ -734,7 +737,7 @@ class MapCheck:
 # things like:
 #
 #    t = SCOV_helper (
-#          drivers="test_blob1.adb", xfile="test_blob1.adb", 
+#          drivers="test_blob1.adb", xfile="test_blob1.adb",
 #          category="stmt", xcovlevel="stmt")
 #    t.run()
 
@@ -749,29 +752,81 @@ class MapCheck:
 # Symbolic values & names for kinds of coverage notes:
 # ----------------------------------------------------
 
-lNoCode, lFullCov, noteStrict, lNoCov, lPartCov,  \
-sNoCov, sPartCov, dtNoCov, dfNoCov, dPartCov, cPartCov = range(11)
+# no code for line (=xcov)
+# full coverage for line (=xcov)
+# line part of exempted block, 0 deviations (=xcov)
+# line part of exempted block, >0 deviations (=xcov)
+# line not covered (=xcov)
+# line partially covered (=xcov)
+# stmt not covered (=report)
+# unable to assess precise stmt coverage (=report)
+# decision outcome True not covered (=report)
+# decision outcome False not covered (=report)
+# one decision outcome not covered (=report)
+# independent effect of condition not demonstrated (=report)
+# exempted block, 0 deviations (=report)
+# exempted block, >0 deviations (=report)
+
+lNoCode, lFullCov, \
+strictNote, \
+lx0, lx1, \
+deviationNote, \
+lNoCov, lPartCov, \
+sNoCov, sPartCov, \
+dtNoCov, dfNoCov, dPartCov, cPartCov, \
+blockNote, \
+xBlock0, xBlock1 = range(17)
+
+# DEVIATION notes are those representing violations of a coverage mandate
+# associated with a general criterion (e.g. ).
+
+def deviation_p(nkind):
+    return nkind > deviationNote and nkind < blockNote
+
+# POSITIVE notes are those representing a positive statement about a
+# coverage mandate, only present in =xcov outputs.
+
+def positive_p(nkind):
+    return nkind == lFullCov
+
+# BLOCK notes are those emitted as a single note for a block of code in
+# =report outputs,
+
+def block_p(nkind):
+    return nkind > blockNote
+
+# STRICT notes are those for which an exact match between reports
+# and expectations is required: an expected note should be reported (or err,
+# unless the expectation is explicitely tagged weak), and a reported note
+# should be expected (or err).
+
+# !STRICT notes should also be reported when expected (or err unless weak
+# expectation), but trigger no err when reported eventhough not expected.
+
+def strict_p(nkind):
+    return nkind > strictNote
+
 
 NK_image  = {None: "None",
              lNoCode: "lNoCode", lFullCov: "lFullCov",
              lNoCov: "lNoCov", lPartCov: "lPartCov",
+             lx0: "lx0", lx1: "lx1",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
              dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dPartCov: "dPartCov",
+             xBlock0: "xBlock0", xBlock1: "xBlock1",
              cPartCov: "cPartCov"}
-
-def deviation_p(nkind):
-    return nkind > noteStrict
 
 # Useful sets of note kinds:
 # --------------------------
 
-lNoteKinds = (lNoCode, lNoCov, lPartCov, lFullCov)
+lNoteKinds = (lNoCode, lNoCov, lPartCov, lFullCov, lx0, lx1)
 
 sNoteKinds = (sNoCov, sPartCov)
 dNoteKinds = (dtNoCov, dfNoCov, dPartCov)
 cNoteKinds = (cPartCov,)
+xNoteKinds = (xBlock0, xBlock1)
 
-rNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds
+rNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds
 
 # Relevant/Possible Line and Report notes for CATEGORY/CONTEXT:
 # -------------------------------------------------------------
@@ -781,10 +836,14 @@ rp_lnotes_for = { "stmt":     lNoteKinds,
                   "mcdc":     lNoteKinds
                 }
 
-rp_rnotes_for = { "stmt":     sNoteKinds,
-                  "decision": sNoteKinds+dNoteKinds,
-                  "mcdc":     sNoteKinds+dNoteKinds+cNoteKinds
+rp_rnotes_for = { "stmt":     xNoteKinds+sNoteKinds,
+                  "decision": xNoteKinds+sNoteKinds+dNoteKinds,
+                  "mcdc":     xNoteKinds+sNoteKinds+dNoteKinds+cNoteKinds
                 }
+
+# Note that we do care about exemptions at every level and need to watch out
+# for subtle changes in the number of violations exempted when running a given
+# test in different contexts (for different target levels).
 
 # Default xcov --level value for every possible test category:
 # ------------------------------------------------------------
@@ -803,36 +862,141 @@ xcov_compatible_categories_for = { "stmt": ["stmt"],
                                    "stmt+mcdc": ["mcdc"]
                                    }
 
-# =============================
-# == Segment, Line and Point ==
-# =============================
+# ======================================
+# == Section, Segment, Line and Point ==
+# ======================================
 
-class Segment:
-    def __init__ (self, lno, clo, chi):
-        self.lno = lno  # Line number
-        self.clo = clo  # Lower column
-        self.chi = chi  # Higher column
+# Sloc first, an internal helper which materializes a line:col coordinate and
+# knows to determine if it is past or before another sloc for inclusion check
+# purposes.
+
+# The first logical column of a line is numbered 1. Column 0 is used in slocs
+# designating a line as a whole. Any specific point on a line is considered to
+# be within the line, so past-or-eq the beginning of it, or before-or-eq the
+# end of it.
+
+class Sloc:
+
+    def __init__ (self, line, col):
+        self.l = line
+        self.c = col
+
+    def pastoreq (self, other):
+        return (self.l > other.l
+                or (self.l == other.l
+                    and (self.c >= other.c or other.c == 0)))
+
+    def beforeq (self, other):
+        return (self.l < other.l
+                or (self.l == other.l
+                    and (self.c <= other.c or other.c == 0)))
+
+def Sloc_from(text):
+    items = text.split (':', 1)
+    return Sloc (
+        line = int(items[0]), col = int(items [1]))
+
+# A Section is the association of two slocs to materialize the start
+# and the end of a source section, and which knows to determine if it
+# is included within another section.
+
+class Section:
+    #        ...
+    #  l0 -> 3: if a and then b then
+    #           ^
+    #          c0
+    #        4:   val := klunk;
+    #        5: else
+    #        6:   val := junk;
+    #  l1 -> 7: end if;
+    #               ^
+    #               c1
+    #  3:1-7:6
+
+    def __init__ (self, l0, c0, l1, c1):
+        self.sloc0 = Sloc (line = l0, col = c0)
+        self.sloc1 = Sloc (line = l1, col = c1)
 
     def within(self, other):
-        return (self.lno == other.lno
-                and self.clo >= other.clo and self.chi <= other.chi)
+        return (self.sloc0.pastoreq (other.sloc0)
+                and self.sloc1.beforeq (other.sloc1))
 
     def __str__(self):
-        return "%d:%d-%d" % (self.lno, self.clo, self.chi)
+        return "%d:%d-%d:%d" % (
+            self.sloc0.l, self.sloc0.c, self.sloc1.l, self.sloc1.c)
+
+def Section_from(text):
+    topitems = text.split ('-', 1)
+    subitems0 = topitems[0].split (':', 1)
+    subitems1 = topitems[1].split (':', 1)
+    return Section (
+        l0 = int(subitems0[0]), c0 = int(subitems0[1]),
+        l1 = int(subitems1[0]), c1 = int(subitems1[1]))
+
+# A Segment is a Section for which the start and end are known to
+# be on the same line.
+
+class Segment (Section):
+    def __init__ (self, lno, clo, chi):
+        Section.__init__(self, l0 = lno, c0 = clo, l1 = lno, c1 = chi)
+
+    def __str__(self):
+        return "%d:%d-%d" % (self.sloc0.l, self.sloc0.c, self.sloc1.c)
+
+def Segment_from(text):
+    topitems = text.split (':', 1)
+    subitems = topitems[1].split ('-', 1)
+    return Segment (
+        lno = int(topitems[0]), clo = int(subitems[0]), chi = int(subitems[1]))
+
+# A Line is a Segment spanning for first to last column (arbitrary upper
+# bound hardcoded at this stage).
 
 class Line (Segment):
     def __init__ (self, lno):
-        Segment.__init__(self, lno, -1, 4*1024)
+        Segment.__init__(self, lno = lno, clo = 0, chi = 0)
 
     def __str__(self):
-        return "%d:" % self.lno
+        return "%d:" % self.sloc0.l
+
+def Line_from(text):
+    items = text.split (':', 1)
+    return Line (lno = int(items[0]))
+
+# A Point is a Segment for which the start and end columns are identical.
 
 class Point (Segment):
     def __init__ (self, lno, col):
-        Segment.__init__(self, lno, col, col)
+        Segment.__init__(self, lno = lno, clo = col, chi = col)
 
     def __str__(self):
-        return "%d:%d" % (self.lno, self.clo)
+        return "%d:%d" % (self.sloc0.l, self.sloc0.c)
+
+def Point_from(text):
+    items = text.split (':', 1)
+    return Point (lno = int(items[0]), col = int(items[1]))
+
+# Search and return a possible Section object with TEXT, specialized
+# in accordance with the possible section expression shapes.
+
+def Section_within(text):
+
+    # Search for each possible shape in turn. Beware that the search order is
+    # very relevant here.
+
+    m = re.search ("(\d+:\d+-\d+:\d+)", text)
+    if m: return Section_from (m.group(1))
+
+    m = re.search ("(\d+:\d+-\d+)", text)
+    if m: return Segment_from (m.group(1))
+
+    m = re.search ("(\d+:\d+)", text)
+    if m: return Point_from (m.group(1))
+
+    m = re.search ("(\d+:)", text)
+    if m: return Line_from (m.group(1))
+
+    return None
 
 # ====================
 # == Coverage Notes ==
@@ -858,9 +1022,9 @@ class Cnote:
 
 class Xnote (Cnote):
     def __init__(self, xnp, block):
-        self.kind = xnp.kind
+        Cnote.__init__ (self, xnp.kind)
         self.weak = xnp.weak
-        self.exempt = xnp.exempt
+        self.stext = xnp.stext
         self.block = block
         self.nmatches = 0
 
@@ -877,41 +1041,115 @@ class Xnote (Cnote):
 # of actual expected indications for precise segments when the line regular
 # expressions are matched.
 
+# Different kind of expectations instanciate differently on a given source
+# line. We introduce specialized note factories for this purpose:
+
+# Block notes are relevant for a general section. Eventhough the block is
+# matched line by line, we need to materialize a single note for the whole
+# block.
+
+class XnoteP_block:
+
+    def __init__(self, notep):
+        self.notep  = notep
+        self.lastni = None    # The last note instance we returned
+
+    def instanciate_over(self, tline, block):
+
+        # We create a single instance the first time around, then expand the
+        # section over subsequence matches.
+
+        if self.lastni:
+            thisni = None
+            self.lastni.segment.sloc1.l = tline.lno
+
+        else:
+            thisni = Xnote (xnp=self.notep, block=block)
+            thisni.register_match (Section(
+                    l0 = tline.lno, c0 = 0, l1 = tline.lno, c1 = 0))
+
+        if thisni: self.lastni = thisni
+        return thisni
+
+# !block notes without a specific segment text are relevant to entire lines
+
+class XnoteP_line:
+
+    def __init__(self, notep):
+        self.notep = notep
+
+    def instanciate_over(self, tline, block):
+
+        thisni = Xnote (xnp=self.notep, block=block)
+        thisni.register_match (Line(tline.lno))
+
+        return thisni
+
+# !block notes with a specific segment subtext are relevant to that segment:
+# we'll expect a reported note to designate a point within that subtext (most
+# often, the beginning of it)
+
+class XnoteP_segment:
+
+    def __init__(self, notep, stext):
+        self.notep = notep
+        self.stext = stext
+
+    def instanciate_over(self, tline, block):
+
+        thisni = Xnote (xnp=self.notep, block=block)
+
+        # Register matches for Segments corresponding to all the instances
+        # of the subtext we find, then error out if too few or too many.
+
+        [thisni.register_match (Segment (tline.lno, m.start()+1, m.end()))
+         for m in re.finditer (self.stext, tline.text)]
+
+        thistest.stop_if (
+            thisni.nmatches == 0, FatalError (
+                "couldn't find subtext '%s' in line '%s'"
+                % (self.stext, tline.text)))
+
+        thistest.stop_if (
+            thisni.nmatches > 1, FatalError (
+                "multiple matches of subtext '%s' in line '%s'"
+                % (self.stext, tline.text)))
+
+        return thisni
+
 class XnoteP:
 
     NK_for = {'l0': lNoCode, 'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
+              'l#': lx0, 'l*': lx1,
               's-': sNoCov, 's!': sPartCov,
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov,
-              'c!': cPartCov, '0': None}
+              'c!': cPartCov,
+              'x0': xBlock0, 'x+': xBlock1,
+              '0': None}
 
     def __init__(self, text, stext=None):
         self.weak = text[0] == '~'
-        self.exempt = text[0] == '%'
-        if self.weak or self.exempt: text = text[1:]
+        if self.weak: text = text[1:]
 
         self.kind = self.NK_for[text]
         self.stext = stext
 
-    def instanciate_over (self, tline, block):
-        xn = Xnote (xnp=self, block=block)
+        thistest.stop_if (
+            self.stext == None and self.kind in xNoteKinds,
+            FatalError ("expected justification text required for %s" % text))
 
-        if not self.stext:
-            xn.register_match (Line(tline.lno))
+        # Setup our instanciation factory now, which lets us perform the
+        # required test only once:
+
+        if block_p (self.kind):
+            self.factory = XnoteP_block (notep=self)
+        elif not self.stext:
+            self.factory = XnoteP_line (notep=self)
         else:
-            [xn.register_match (Segment (tline.lno, m.start()+1, m.end()))
-             for m in re.finditer (self.stext, tline.text)]
+            self.factory = XnoteP_segment (notep=self, stext=stext)
 
-            thistest.stop_if (
-                xn.nmatches == 0, FatalError (
-                    "couldn't find subtext '%s' in line '%s'"
-                    % (self.stext, tline.text)))
-
-            thistest.stop_if (
-                xn.nmatches > 1, FatalError (
-                    "multiple matches of subtext '%s' in line '%s'"
-                    % (self.stext, tline.text)))
-
-        return xn
+    def instanciate_over (self, tline, block):
+        return self.factory.instanciate_over (tline, block)
 
 # -----------
 # -- Enote --
@@ -920,12 +1158,9 @@ class XnoteP:
 # Emitted note, as extracted from an xcov report:
 
 class Enote(Cnote):
-    def __init__(self, kind, segment, exempt):
+    def __init__(self, kind, segment):
         self.kind = kind        # The kind of emitted note
         self.segment = segment  # The line segment it designates
-
-        self.exempt = exempt    # Whether it was emitted in an "exempted
-                                # deviations" section
 
         self.discharges = None  # The Xnote it discharges
 
@@ -1026,14 +1261,14 @@ class Tfile:
 
 class LnotesExpander:
 
-    NK_for = {'.': lNoCode, '+': lFullCov, '-': lNoCov, '!': lPartCov }
+    NK_for = {'.': lNoCode, '+': lFullCov, '-': lNoCov, '!': lPartCov,
+              '#': lx0, '*': lx1}
 
     def process_tline(self, tline):
         m = re.match('\s*([0-9]+) (.):', tline.text)
         if m: self.elnotes[self.source].register (
             Enote (kind = self.NK_for[m.group(2)],
-                   segment = Line(int(m.group(1))),
-                   exempt = False))
+                   segment = Line(int(m.group(1)))))
 
     def listing_to_enotes(self, dotxcov):
         self.source = dotxcov.rsplit ('.', 1)[0]
@@ -1068,9 +1303,19 @@ class RnotesExpander:
               "statement not covered": sNoCov}
 
     def nkind_for(self, ntext):
+
+        # Search for a possible straight correspondance first
+
         for key in self.NK_for:
             if ntext.find (key) != -1:
                 return self.NK_for [key]
+
+        # If we haven't found a match, check for exemption notes. The text
+        # will tell us if we have one, and we need to look at the number of
+        # exempted violations to finalize.
+
+        r = re.search (": (\d+) exempted violation", ntext)
+        if r: return xBlock0 if int(r.group(1)) == 0 else xBlock1
 
         return None
 
@@ -1101,21 +1346,19 @@ class RnotesExpander:
         elif re.search ("EXEMPTED VIOLATIONS", rline):
             self.section = rsExempted
             return None
-        elif re.match (".* error.", rline):
+        elif re.match (".* (violation|region)\.$", rline):
+            # Getting out of a section of interest ...
             self.section = rsNoInterest
 
         if self.section == rsNoInterest: return None
-
-        exempt = self.section == rsExempted;
 
         # In section of interest, match the emitted note text. We expect
         # something like "andthen.adb:10:33: statement not covered",
         #                 -----------:-----: ---------------------
         #                 source name:segmt: note text (-> note kind)
 
-        # First, try to figure out the source name. If no match at all, skip.
-        # Otherwise, scan for various possible sloc precisions and produce a
-        # Line/Point/Segment accordingly.
+        # First, try to figure out the source name, one of our main dictionary
+        # keys. If no match at all, skip.
 
         xsrc = '([^ ]*)\.(ads|adb):(.*)'
         p = re.match(xsrc, rline)
@@ -1123,41 +1366,26 @@ class RnotesExpander:
             return None
 
         source = "%s.%s" % (p.group(1), p.group(2))
+
+        # Then, work over the trailing part. Not stricly necessary, but
+        # shorter so slightly more efficient.
+
         tail = p.group(3)
 
-        # Separate the sloc part from the note text by splitting the
-        # post-source tail at the first blank. The sloc part should be
-        # something like "10:33:" -  extract ':' separated fields.
-
-        slocitems = tail.split (' ', 1)[0].split (':', 3)
-        nitems = len(slocitems) - 1
         nkind = self.nkind_for (tail)
-
         if nkind == None:
             thistest.failed (
                 "(%s) '%s' ?" % (self.report, rline.rstrip('\n')))
             return None
 
-        elif nitems == 1:
-            return self.register (
-                source, Enote (kind = nkind, exempt = exempt,
-                               segment = Line (int(slocitems[0]))))
+        section = Section_within (tail)
 
-        elif nitems == 2:
-            return self.register (
-                source, Enote (kind = nkind, exempt = exempt,
-                               segment = Point (int(slocitems[0]),
-                                                 int(slocitems[1]))))
-
-        elif nitems == 3:
-            return self.register (
-                source, Enote (kind = nkind, exempt = exempt,
-                               segment = Segment (int(slocitems[0]),
-                                                  int(slocitems[1]),
-                                                  int(slocitems[2]))))
-        
-        thistest.stop (
+        thistest.stop_if (
+            not section,
             FatalError ("Unable to parse report line\n'%s'" % rline))
+
+        return self.register (
+            source, Enote (kind = nkind, segment = section))
 
     def __init__(self, report):
 
@@ -1187,8 +1415,8 @@ class RnotesExpander:
 #     lx_list := lx <newline> [lx_list]
 #     lx := "-- " lx_lre lx_lnote [lx_rnote_list] <newline>
 #     lx_lre := "/" REGEXP "/"
-#     lx_lnote := <l-|l!|l+|l0>
-#     lx_rnote_list := <s-|s!|dT-|dF-|d!|c!>[:"TEXT"] [lx_rnote_list]
+#     lx_lnote := <l-|l!|l+|l*|l#|l0>
+#     lx_rnote_list := <s-|s!|dT-|dF-|d!|c!|x0|x+>[:"TEXT"] [lx_rnote_list]
 
 # The start of the SCOV data is identified as the first comment whose syntax
 # matches a "sources" line.  Any comment before then is assumed to be a normal
@@ -1258,14 +1486,14 @@ class UnitCX:
 
         raise FatalError ("Unable to locate source %s" % source)
 
-    # expected notes instancations
-    # ----------------------------
+    # expected notes instanciations
+    # -----------------------------
 
     def instanciate_notes_for(self, lx, tline, block):
         [self.xldict.register (ln)
          for ln in lx.instanciate_lnotes_over (tline, block)]
         [self.xrdict.register (rn)
-         for rn in lx.instanciate_rnotes_over (tline, block)]
+         for rn in lx.instanciate_rnotes_over (tline, block) if rn]
 
     # fuzz block processing
     # ---------------------
@@ -1278,7 +1506,7 @@ class UnitCX:
         return re.match ("^\s*begin\s*-- #", tline.text)
 
     def blclose_p (self, tline):
-        return re.match ("^\s*end.*;\s*-- #", tline.text)
+        return re.match ("^\s*end;\s*-- #", tline.text)
 
     def check_block_on (self, tline):
 
@@ -1465,9 +1693,11 @@ class UXchecker:
         thistest.failed("("+self.report+") " + comment)
 
     def try_sat_over(self, enotes, xn):
-        
+
         # See if expected note XN is satisfied by one of the emitted notes in
-        # ENOTES. Store to sat/unsat dictionary accordingly.
+        # ENOTES. Store to sat/unsat dictionary accordingly. Note that we only
+        # check for section inclusions here, so don't validate correctness of
+        # exemption justifications at this stage.
 
         for en in enotes:
             if en.segment.within (xn.segment):
@@ -1478,37 +1708,36 @@ class UXchecker:
         self.unsat[xn.block].append(xn)
 
     def process_unsat(self, block):
-        
+
         # Process unatisfied expected notes associated with BLOCK.
         # BLOCK is None for the set of expectations not part of a block.
 
-        # Fuzzy matching => only raise failure if none of the expected
-        # indications was satisfied (~OK if at least one was emitted).
-        # Make sure to distinguish positive expectations from expected
-        # deviations.
+        # Fuzzy matching: for deviations or positive notes, only raise failure
+        # if none of the expected indications was satisfied (~OK if at least
+        # one was emitted).
 
-        # Compute whether we have a positive expectation or an
-        # an expected deviation satisfied in BLOCK:
+        # For each category, compute whether we have one expectation satisfied
+        # in this fuzzy BLOCK:
 
         psat_p = False; dsat_p = False
-        if block != None:
+        if block:
             for n in self.sat[block]:
-                devp = deviation_p(n.kind)
-                dsat_p |= devp; psat_p |= not devp
+                dsat_p |= deviation_p(n.kind)
+                psat_p |= positive_p(n.kind)
 
-        # Complain about the unsatisfied ones as necesssary:
+        # Then complain about the unsatisfied stuff as necessary:
 
         for xn in self.unsat[block]:
-            devp = deviation_p(xn.kind)
-            if (not xn.weak
-                and ((devp and not dsat_p) or (not devp and not psat_p))):
-                self.register_failure(
-                    "Expected %s mark missing at %s"
-                    % (NK_image[xn.kind], str(xn.segment)))
-            else:
-                # would be nice to register inaccuracy here
-                pass
-            
+            dev_p = deviation_p(xn.kind)
+            pos_p = positive_p(xn.kind)
+            thistest.fail_if (
+                not xn.weak
+                and ((not dev_p and not pos_p)
+                     or (dev_p and not dsat_p)
+                     or (pos_p and not psat_p)),
+                "Expected %s mark missing at %s"
+                % (NK_image[xn.kind], str(xn.segment)))
+
     def compare(self, nkind):
         xnotes = self.xdict[nkind]
         enotes = self.edict[nkind]
@@ -1519,18 +1748,12 @@ class UXchecker:
         [self.try_sat_over(enotes, xn) for xn in xnotes]
         [self.process_unsat(block) for block in self.unsat]
 
-        if not deviation_p(nkind): return
+        if not strict_p(nkind): return
 
         [self.register_failure(
                 "Unexpected %s mark at %s" %
                 (NK_image[en.kind], str(en.segment)))
          for en in enotes if not en.discharges]
-
-        [self.register_failure(
-                "Exemption mismatch for %s mark at %s (emitted %s)" %
-                (NK_image[en.kind], str(en.segment), str(en.exempt)))
-         for en in enotes
-         if en.discharges and en.exempt != en.discharges.exempt]
 
     def process_notes(self, relevant_note_kinds):
         thistest.log ("\n~~ processing " + self.report + " ~~\n")
@@ -1557,7 +1780,7 @@ class SCOV_helper:
         self.category = category
         self.xcovlevel = xcovlevel
 
-        # Internal attributes: Directory where the instantiation takes place
+        # Internal attributes: Directory where the instantiation takes place,
         # base prefix of Working Directory names, and original expectations
         # file.
 
@@ -1686,12 +1909,12 @@ class SCOV_helper:
 
     def rwdir(self):
         """Relative path to Working Directory for current instance."""
-        
+
         # For a single test, discriminate with driver basename. For a
         # consolidation test, discriminate with the expectation file basename.
         # We need the latter to allow multiple consolidation scenarii for a
         # testcase.
-        
+
         if self.singletest():
             return self.rwdir_for(self.drivers[0])
         else:
