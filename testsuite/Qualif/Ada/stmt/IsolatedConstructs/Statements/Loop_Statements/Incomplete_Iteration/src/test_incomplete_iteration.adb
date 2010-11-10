@@ -6,7 +6,7 @@
 with LOOP_Statements;         use LOOP_Statements;
 with LOOP_Statements_Support; use LOOP_Statements_Support;
 with Support;                 use Support;
-procedure Test_LOOP_Statements_Exit is
+procedure Test_Incomplete_Iteration is
    function My_Factorial is new Factorial (Natural);
    procedure My_Sum_First_Under_Limit is new Sum_First_Under_Limit (10);
 
@@ -27,7 +27,7 @@ begin
    My_Sum_First_Under_Limit (Res, My_Big_Sample);
    Assert (Res = 0);
 
-end Test_LOOP_Statements_Exit;
+end Test_Incomplete_Iteration;
 
 --# loop_statements.adb
 -- /preLoop1/              l+ 0

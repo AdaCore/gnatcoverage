@@ -1,12 +1,8 @@
---  Test driver for LOOP statements. It executes all the functional code,
---  trying to execute all the statements, so everything is expected to be
---  reported  as covered.
-
 with LOOP_Statements;         use LOOP_Statements;
 with More_LOOP_Statements;    use More_LOOP_Statements;
 with LOOP_Statements_Support; use LOOP_Statements_Support;
 with Support;                 use Support;
-procedure Test_LOOP_Statements_Full is
+procedure Test_Full_Iteration is
    function My_Factorial is new Factorial (Natural);
    procedure My_Sum_First_Under_Limit is new Sum_First_Under_Limit (10);
 
@@ -40,7 +36,7 @@ begin
 
    Change_Char (My_String, 'a', 'b');
    Assert (My_String = "bbcd");
-end Test_LOOP_Statements_Full;
+end Test_Full_Iteration;
 
 --# loop_statements.adb
 -- /preLoop1/              l+ 0
@@ -65,12 +61,12 @@ end Test_LOOP_Statements_Full;
 -- /inloop4/               l+ 0
 
 --# more_loop_statements.adb
--- /preLoop1/    l+ 0
--- /Loop1/       l+ 0
--- /inLoop1/     l+ 0
--- /inIfinLoop1/ l+ 0
--- /postLoop1/   l+ 0
--- /Loop2/       l+ 0
--- /inLoop2/     l+ 0
--- /inIfinLoop2/ l+ 0
--- /elab/        l+ 0
+-- /preLoop1/              l+ 0
+-- /Loop1/                 l+ 0
+-- /inLoop1/               l+ 0
+-- /inIfinLoop1/           l+ 0
+-- /postLoop1/             l+ 0
+-- /Loop2/                 l+ 0
+-- /inLoop2/               l+ 0
+-- /inIfinLoop2/           l+ 0
+-- /elab/                  l+ 0

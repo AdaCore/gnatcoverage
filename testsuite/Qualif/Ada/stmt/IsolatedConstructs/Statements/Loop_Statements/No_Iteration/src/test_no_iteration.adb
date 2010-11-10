@@ -1,16 +1,8 @@
---  Test driver for LOOP statements. It executes only conditional loops from
---  the functional code, and the condition for each loop prevents loop
---  execution. So only loop statements but not statements from inside these
---  loops are expected to be reported as covered. This does not apply to the
---  loop statements from the package body (they are they are fully executed as
---  a part of package elaboration, so they are expected to be reported as
---  covered).
-
 with LOOP_Statements;         use LOOP_Statements;
 with More_LOOP_Statements;    use More_LOOP_Statements;
 with LOOP_Statements_Support; use LOOP_Statements_Support;
 with Support;                 use Support;
-procedure Test_LOOP_Statements_No_Iteration is
+procedure Test_No_Iteration is
    function My_Factorial is new Factorial (Natural);
    procedure My_Sum_First_Under_Limit is new Sum_First_Under_Limit (10);
 
@@ -37,7 +29,7 @@ begin
 
    Change_Char (Null_String, 'a', 'b');
    Assert (Null_String'Length = 0);
-end Test_LOOP_Statements_No_Iteration;
+end Test_No_Iteration;
 
 --# loop_statements.adb
 -- /preLoop1/              l+ 0
@@ -62,12 +54,12 @@ end Test_LOOP_Statements_No_Iteration;
 -- /inloop4/               ~l- ~s-
 
 --# more_loop_statements.adb
--- /preLoop1/    l+ 0
--- /Loop1/       l+ 0
--- /inLoop1/     l- s-
--- /inIfinLoop1/ l- s-
--- /postLoop1/   l+ 0
--- /Loop2/       l+ 0
--- /inLoop2/     l- s-
--- /inIfinLoop2/ l- s-
--- /elab/        l+ 0
+-- /preLoop1/              l+ 0
+-- /Loop1/                 l+ 0
+-- /inLoop1/               l- s-
+-- /inIfinLoop1/           l- s-
+-- /postLoop1/             l+ 0
+-- /Loop2/                 l+ 0
+-- /inLoop2/               l- s-
+-- /inIfinLoop2/           l- s-
+-- /elab/                  l+ 0
