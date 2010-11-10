@@ -1,4 +1,0 @@
-Statement coverage is properly assessed in the presence of evaluation
-shortcuts. In particular, a statement involving the evaluation of an
-expression with shortcut operators is reported covered as soon as it is
-reached, even if for partial evaluations only.
