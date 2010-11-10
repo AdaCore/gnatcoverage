@@ -211,7 +211,8 @@ def print_part(part, root):
 
     # Print latex for a (sub)*section
     def print_section(section, nesting, is_first_section):
-        print nesting
+        if nesting > 3:
+            print 'Problem with nasting at ' + section
         if is_first_section:
             return ''
         section_text = '\\'
