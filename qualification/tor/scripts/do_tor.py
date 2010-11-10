@@ -1,32 +1,45 @@
-"""./do_tor.py 
+"""./do_tor.py
 
 Generate the latex for the TOR document. The scripts looks
 for files named req.txt starting from ../../../testsuite/Qualif/Ada.
 
-""" 
+"""
 
 import sys
 import os
 import glob
 
 # some constants
+ADA_EXT_LEN = len('.ads')
+DRIVER_PREFIX = 'test_'
 OUTPUT='../tor_impl.tex'
 REQ_FILE='req.txt'
+TC_FILE='tc.txt'
 SRC_DIR='src'
-TC_PREFIX='test_'
 TEST_PY='test.py'
 TOR_DIR='../../../testsuite/Qualif/Ada'
 
+# some latex-related commands
+INDENT = '\\hspace{1cm} '
+INDENT_2 = '\\hspace{2cm} '
 # the result to print
 res=''
 
+def endsWith (s, postfix):
+    return s.rfind(postfix) == len(s) - len(postfix)
+
 def print_part(part, root):
-    
+
     text=''
     zero_nesting_levels = root.split('/')
     zero_nesting = len(zero_nesting_levels) + 1
-    
-    # Return the part of a path before the last separator and 
+
+    def get_path_before_last_sep(path):
+        path = path.replace('\\', '/')
+        pos = path.rfind('/')
+        return path[:pos]
+
+    # Return the part of a path before the last separator and
     # after the last-1 one
     def get_name_before_last_sep(path):
         path = path.replace('\\', '/')
@@ -34,88 +47,152 @@ def print_part(part, root):
         section_pos_start = path.rfind('/', 0, section_pos_end-1)
         section = path[section_pos_start+1:section_pos_end]
         return section
-    
+
     # Return the part of a path after the last separator
     def get_name_after_last_sep(path):
         path = path.replace('\\', '/')
         section_pos_start = path.rfind('/')
         section = path[section_pos_start+1:]
         return section
-    
+
     # Open the text file containing the requirement and
     # append its content on the result
-    def get_tor_text(from_path):
+    def get_text(from_path, kind):
         res = ''
-        t_path = os.path.join(from_path, REQ_FILE)
+        t_path = os.path.join(from_path, kind)
         if os.path.exists(t_path):
             t = open (t_path)
             for line in t:
                res += line
             t.close()
         return res + '\n'
-    
-    # Create a non-terminal TOR: simply add the corresponding
-    # text
-    def build_non_terminal_tor (from_path):
-        res = 'This is a non-terminal TOR\n\n'
-        res += get_tor_text (from_path)
-        return res
-    
+
+    def get_tc_text(from_path):
+        return get_text (from_path, TC_FILE)
+
+    def get_tor_text(from_path):
+        return '\\textbf{Requirement}: ' + \
+            get_text (from_path, REQ_FILE).replace('Testing strategy',\
+                                                   '\ \\ \\textbf{Testing strategy: }')
+
     # Terminal TORs are related to testcases: this is why we
     # need to treat them differently
     def build_tor (from_path):
-        
-        res = 'This is a terminal TOR\n\n'
-        
-        # Given a folder, try to find all related testcases, 
+
+        res = ''
+
+        # Given a folder, try to find all related testcases,
         # looking also on parent folders. This is useful for the
         # structure of the MC/DC testsuite.
         def get_testcase_list (from_path):
             testcase_num = 0
             testcases = []
             res = ''
-            
+
             # Given a folder, try to find all testcases it contains
-            # by looking for files named 'test_*' inside the 'src'
-            # subfolder. Returns a list of string containing the path
-            # to the testcases (.adb files)
+            # by looking for tc.txt files in children folders
             def look_for_testcases(from_path):
-                src_path = os.path.join(from_path, SRC_DIR)
                 testcases = []
-                if os.path.exists(src_path):
-                    for src_file in glob.glob(src_path + '/' + TC_PREFIX + '*'):
-                        the_path = src_file.replace('\\', '/')
-                        testcases.append(the_path)
+                #print from_path
+                for file in glob.glob(from_path + '/*/' + TC_FILE):
+                    testcases.append(file)
                 return testcases
-           
-            # look inside parent folders until we reach the root         
+
+            # a driver is appropriate if in the list of test cases there
+            # is one with a similar name
+            def is_driver_appropriate (driver, testcases):
+                pos_end = driver.rfind('_')
+                look_for = driver[len(DRIVER_PREFIX):pos_end]
+                for t in testcases:
+                    the_tc = t[:len(t)-ADA_EXT_LEN]
+                    if the_tc == look_for:
+                        return True
+                return False
+
+            def get_testcase_files(from_tc):
+                dir = get_path_before_last_sep(from_tc)
+                files = []
+                tc_files = []
+                drivers = []
+                abs_tor_dir = os.path.abspath(TOR_DIR)
+                curr_path = dir
+
+                while os.path.abspath(curr_path) != abs_tor_dir:
+                    files.extend(glob.glob(curr_path + '/src/*.ad*'))
+                    curr_path = os.path.join (curr_path, '..')
+
+                short_tcs = []
+
+                # create a list of all files which could be potential testcases
+                # (those not starting with DRIVER_PREFIX)
+                for f in files:
+                    short = get_name_after_last_sep (f)
+                    if short.find(DRIVER_PREFIX) == -1:
+                        short_tcs.append(short)
+
+                # eliminate the testcases for which only the spec has been found
+                for tc in short_tcs:
+                    # if this is a spec
+                    if endsWith (tc, '.ads'):
+                        # then the body should be
+                        tc_body = tc.replace ('.ads', '.adb')
+                        # look for the body
+                        if not (tc_body in short_tcs):
+                            short_tcs.remove(tc)
+
+                # divide all files for the appropriate type
+                for f in files:
+                    short = get_name_after_last_sep (f)
+                    # if it is a driver
+                    if short.find(DRIVER_PREFIX) == 0:
+                        if is_driver_appropriate (short, short_tcs):
+                            drivers.append(f)
+                    else:
+                        if short in short_tcs:
+                            tc_files.append(f)
+
+                return [tc_files, drivers]
+
+            # look inside parent folders until we reach the root
             curr_path = from_path
             abs_tor_dir = os.path.abspath(TOR_DIR)
-            while os.path.abspath(curr_path) != abs_tor_dir:
-                testcases.extend(look_for_testcases(curr_path))
-                curr_path = os.path.join (curr_path, '..')
-            
+            testcases = look_for_testcases(curr_path)
+
             # add the appropriate latex
             testcase_num = len(testcases)
-            if testcase_num > 0:
-                res += '\paragraph*{Derived testcases}\n'
-                res += '\\begin{enumerate}\n'
-                for tc in testcases:
-                    tc_file = get_name_after_last_sep(tc)
-                    res += '\item ' + tc_file + '\n'
-                res += '\end{enumerate}\n'
-                res += '\n'
+
+            pos = 0
+            for tc in testcases:
+                pos = pos + 1
+                tc_name = get_name_before_last_sep (tc)
+                res += '\paragraph{Test case n. ' + str (pos) + ': ' + tc_name + '}\n'
+                res += '\ \\\\'
+                res += get_tc_text (get_path_before_last_sep (tc))
+                [tc_files, drivers] = get_testcase_files (tc)
+                res += INDENT + '\\textbf{\emph{Test data:}}\n'
+                res += '\\begin{list}{\\labelitemi}{\\leftmargin=2cm}\n'
+                for f in tc_files:
+                    f_name = get_name_after_last_sep (f)
+                    res += '\item ' + f_name + '\n'
+                res += '\end{list}\n\n'
+                res += INDENT + '\\textbf{\emph{Test scenarios:}}\n'
+                res += '\\begin{list}{\\labelitemi}{\\leftmargin=2cm}\n'
+                for f in drivers:
+                    f_name = get_name_after_last_sep (f)
+                    res += '\item ' + f_name + '\n'
+                res += '\end{list}\n\n'
+
             return res
-        
+
         res += get_tor_text(from_path)
         res += get_testcase_list(from_path)
         return res + '\n'
-    
+
     # Return how deeply a folder is nested with respect to the root
     def get_nesting_level(path):
         levels = path.split('/')
         return len(levels) - zero_nesting
-    
+
     # Print latex for a (sub)*section
     def print_section(section, nesting):
         section_text = '\\'
@@ -126,7 +203,7 @@ def print_part(part, root):
                 section_text += 'sub'
             section_text += 'section{' + section + '}\n'
         return section_text
-    
+
     # Do some massaging on a path before producing the latex:
     # extract the name of the section from the path, considering
     # the last part of the dirname after the last separator
@@ -139,32 +216,31 @@ def print_part(part, root):
         section = section.replace('_', ' ')
         nesting_level = get_nesting_level (path)
         return print_section (section, nesting_level)
-    
-    text+='\part{' + part +'}\n' 
-    
+
+    text+='\part{' + part +'}\n'
+
     # Look for requirements and behaves appropriately. If a folder contains
     # 'test.py', 'req.txt' and a folder named 'src', then the requirement is
     # terminal and we need to look for testcases
     for dirpath, dirnames, filenames in os.walk(root, True):
         for f in filenames:
             if f == REQ_FILE:
-                testpy_path = os.path.join(dirpath, TEST_PY)                
-                src_path = os.path.join(dirpath, SRC_DIR)
-                text += produce_section(dirpath, f)
-                if os.path.exists(src_path) and os.path.exists(testpy_path):
+                req_path = os.path.join(dirpath, REQ_FILE)
+                if os.path.exists(req_path):
+                    text += produce_section (dirpath, f)
                     text += build_tor (dirpath)
-                else:
-                    text += build_non_terminal_tor(dirpath)
-                    
+
     return text
 
 def process_latex(text):
     text=text.replace('_', '\_')
+    #text=text.replace('\\', '\\backslash ')
+    #text=text.replace('/', '\\backslash ')
     return text
 
-res += print_part ('Statement Coverage', TOR_DIR+'/stmt/IsolatedConstructs') + \
+res += print_part ('Statement Coverage', TOR_DIR+'/stmt/BasicBlocks') + \
     '\n\n'
-res += print_part ('MC/DC', TOR_DIR+'/mcdc') + '\n\n'
+#res += print_part ('MC/DC', TOR_DIR+'/mcdc') + '\n\n'
 res = process_latex(res)
 out = open(OUTPUT, 'w')
 out.write(res)
