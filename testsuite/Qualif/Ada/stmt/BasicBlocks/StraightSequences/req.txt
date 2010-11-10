@@ -1,3 +1,13 @@
-Statement coverage is properly assessed for straight sequences of statements,
-with possible local declaration blocks on the way, in all the contexts where
-such sequences may occur. Long sequences are supported.
+
+Generic testcase which exercises a function returning the Min of an Integer
+argument X and 2, resorting to arbitrary control-flow transfers to do so.
+
+The testcase relies on the exposure of a consistent set of line designators by
+the different implementations:
+
+ /xle2/ for lines reached only when X <= 2
+ /xgt2/ for lines reached only when X > 2
+ /common/ for lines reached in both cases, as soon as the function is called
+
+Each test scenario calls the function for a well defined set of situations
+and verifies that results match the corresponding expectations.
