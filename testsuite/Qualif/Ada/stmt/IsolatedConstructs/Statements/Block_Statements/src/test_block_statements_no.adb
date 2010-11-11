@@ -1,6 +1,6 @@
 --  Test driver for block statements. It only "with"s the functional code,
---  but does not execute anything from it, so nothing is expected to be
---  reported as covered.
+--  but does not execute anything from it, so everything is expected to be
+--  reported as uncovered.
 
 with Block_Statements; use Block_Statements;
 with Support;          use Support;

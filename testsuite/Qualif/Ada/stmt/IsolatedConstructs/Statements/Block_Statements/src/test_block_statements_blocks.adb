@@ -1,7 +1,7 @@
 --  Test driver for block statements. It executes some parts of the functional
 --  code, trying to eneter any straight-line statement sequence that contains
---  block statement. So some part of functional code is is expected to
---  be reported as not covered, but all the block statements and component
+--  a block statement. So some part of functional code is is expected to
+--  be reported as uncovered, but all the block statements and component
 --  thereof are expected to be reported as covered.
 
 with Block_Statements; use Block_Statements;

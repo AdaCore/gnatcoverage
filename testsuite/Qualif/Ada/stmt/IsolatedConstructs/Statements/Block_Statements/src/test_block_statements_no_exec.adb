@@ -1,8 +1,8 @@
 --  Test driver for block statements. It executes some parts of the functional
 --  code, but avoids enetering any straight-line statement sequence that
---  contains block statement. So some part of functional code is is expected to
---  be reported as covered, but no block statement or component thereof is
---  expected to be reported as covered.
+--  containsa  block statement. So some part of functional code is is expected
+--  to be reported as covered, but all the block statement and components
+--  thereof are expected to be reported as uncovered.
 
 with Block_Statements; use Block_Statements;
 with Support;          use Support;
