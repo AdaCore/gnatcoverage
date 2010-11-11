@@ -1,48 +1,72 @@
-Statement coverage should be assessed correctly for all the executable
-language constructs and language features supported by the compiler version in
-question.
+A language construct shall be reported as uncovered if it is not executed or
+elaborated as a part of a program execution.
 
-Testing strategy notes:
-----------------------
-- this tool operation requirement is split into subordinate requirements
-  according to the language description in the Ada Reference Manual (ARM). The
-  Top level of subordinate requirements corresponds to the Chapters of ARM from
-  2 to 13:
+If execution or elaboration of a construct A causes explicit or implicit
+transfer of control to code fragment B, then the constructs from B shall be
+reported as covered only if A is executed (elaborated) and the effect of its
+execution (elaboration) causes the transfer of control in question, and it
+shall be reported as uncovered in all other cases.
 
-    Pragmas (the only executable constructs described in Chapter 2 "Lexical
-             Elements")
-    Declarations_And_Types
-    Statements
-    Subprograms
-    Packages
-    Visibility_Rules
-    Program_Structure_And_Compilation_Issues
-    Exceptions
-    Generic_Units
-    Representation_Issues
+Testing strategy:
 
-  This list does not contain an element corresponding to Chapter 4
-  ("Expressions") because from the statement coverage point of view every
-  expression is a part of statement or declaration construct that is subjected
-  to statement coverage.
+Constructs considered for coverage analysis purposes at the statement
+coverage level are declarations, statements and statement paths. A statement
+path is a part of a control statement corresponding to a separate branch in
+the control graph.
 
-  This list also does not contain an element corresponding to Chapter 9 "Tasks
-  and Synchronization" because the corresponding constructs are not supported
-  for  ZFP run-time.
+Expressions are not considered on their own because at the statement coverage
+level each expression is reported as covered or uncovered together with the
+declaration, statement or statement path it is component of.
 
-- each language feature is checked separately, the only combinations of
-  language features used in the tests are those that are needed to create the
-  test case for a target construct;
+As for declarations, only those of them that result in elaboration code are
+considered.
 
-Ongoing development notes:
--------------------------
-- At some point subdirectories of LanguageFeatures directory should be moved
-  one level up to make up the subhierarchy described above, and
-  LanguageFeatures itself should disappear;
+A set of language constructs considered for coverage analysis purposes
+corresponds to the execution profile being qualified. That is, if ZFP
+run-time profile is chosen, tasking constructs are not considered, if '-gnatp'
+is set as for compilation options then the effect of raising of predefined
+options as run-time checks is not considered and so on.
 
-- The content of CompoundS and GenericS subdirectories also most probably
-  should be merged into the hierarchy described above, and these
-  subdirectories should also go away;
+Each language construct in question is tested separately, the only
+combinations of language features used in the tests are those that are needed
+to create the test case for a target construct.
 
-- BasicBlocks subdirectory most probably should be kept as is to follow
-  guidelines from Software Verification Tools Assessment Study document.
+When testing a construct, some typical contexts shall be checked, there is no
+need to check all possible contexts where the construct can be used and
+combinations thereof.
+
+Tests are not supposed to check deep constructs and/or execution
+contexts nesting level and big code fragments (long construct sequences).
+
+The further decomposition of this general requirement is based on the
+structure of the Ada Reference Manual (ARM). The top-level subordinate
+requirements are organized in the following way (the corresponding ARM
+chapters are given in brackets):
+
+   Pragmas                (2 - Lexical Elements)
+   Declarations_and_Types (3 - Declarations and Types)
+   Statements             (5 - Statements)
+   Subprograms            (6 - Subprograms)
+   Packages               (7 - Packages)
+   Visibility_Rules       (8 - Visibility_Rules)
+   Program_Structure      (10 - Program Structure and Compilation Issues)
+   Exceptions             (11 - Exceptions)
+   Generic_Units          (12 - Generic Units)
+
+Other ARM chapters are not considered as the base for subordinate requirements
+because of the following reasons:
+
+   Chapter 1  - General: no language construct described
+
+   Chapter 4  - Names and Expressions: the described constructs are not
+                considered on their own for coverage analysis purposed, the
+                coverage information is computed for enclosing statement or
+                declaration constructs
+
+   Chapter 9  - Tasks and Synchronization - the execution profile being
+                qualified is based on Zero Foot Print run-time and it does not
+                support any construct described in this chapter
+
+   Chapter 13 - Representation Issues: constructs described in this chapter do
+                not result in executable code so they are of no interest for
+                coverage analysis.

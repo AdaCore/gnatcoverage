@@ -18,8 +18,8 @@ If a loop statement is executed and at least one complete loop iteration
 happens as a part of the execution, the loop statement and none of its
 component statements shall be reported as uncovered (Test case Full_Iteration)
 
-Testing strategy notes:
-----------------------
+Testing strategy:
+
 Different syntax forms of LOOP statement shall be checked:
    - FOR loop;
    - reverse FOR loop;
