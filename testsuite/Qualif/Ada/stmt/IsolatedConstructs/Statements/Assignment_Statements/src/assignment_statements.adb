@@ -12,7 +12,7 @@ package body Assignment_Statements is
    begin
       Result := I;       -- # max
 
-      if J > Result then    -- # max
+      if J > Result then -- # max
          Result := J;    -- # ifmax
       end if;
 

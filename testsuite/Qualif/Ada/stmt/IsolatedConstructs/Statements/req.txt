@@ -1,32 +1,37 @@
-Statement coverage should be assessed correctly for all the basic Ada
-statement constructs. Basic Ada constructs are constructs described in Chapter
-5 "Statements" of the Ada Reference Manual
+A statement shall be reported as uncovered if it is not executed.
 
-Testing strategy notes:
-----------------------
-- this tool operation requirement is split into subordinate requirements
-  according to the sections of Chapter 5 of ARM:
-     5.1 Simple and Compound Statements - Sequences of Statements
-         (Actually, the only thing to check here if the coverage of null
-         statement)
-     5.2 Assignment Statements
-     5.3 If Statements
-     5.4 Case Statements
-     5.5 Loop Statements
-     5.6 Block Statements
-     5.7 Exit Statements
-     5.8 Goto Statements
+Some statements are called simple statements, a simple statement is considered
+as an atomic construct for the coverage analysis purposes.
 
-- the goal of this part of the test suite is to check that a given statement
-  and its components are correctly reported as covered (or non-covered) by
-  the coverage tool, but not to check any combinations of statements or any
-  interrelation between statements. See Basic Block part for statement
-  sequences and transfer control issues.
+Some other statements are compound statements. A compound statement contains
+another (simple or compound) statements as components thereof. If a compound
+statement is not executed, the statement itself and all its component
+statements shall be reported as uncovered. If a compound statement is executed
+but a control transfer takes place as a part of its execution, and this
+control transfer goes outside the statement, then the component statements
+that have not been executed before this control transfer shall be reported as
+uncovered.
 
-- there is no need in complex test cases here or in various test case for a
-  specifies statement king, except for control statements (IF, CASE and LOOP).
-  For simple (non-control) statement we check only coverage, for control
-  statements we have to check that the right part of statement is reported as
-  covered or non-covered. All that should be done is to check that for
-  a given statement kind coverage is correctly accessed for a typical usage of
-  the statement in typical contexts.
+Some compound statements contain execution paths. An execution path is a part
+of the statement corresponding to a separate edge in the program control
+graph. If a statement path is not chosen when executing the statement, all the
+component statements belonging to this part shall be reported as uncovered. A
+statement path may contain a condition that defines if this path shall be
+chosen as a part of the statement execution. If this expression is not
+evaluated as a part of the statement execution, the corresponding part of the
+path shall be reported as noncovered.
+
+Testing strategy:
+
+This tool operation requirement is split into subordinate requirements
+according to the sections of Chapter 5 (Statements) of ARM:
+
+   Null_Statements       (5.1 Simple and Compound Statements - Sequences of
+                              Statements)
+   Assignment_Statements (5.2 Assignment Statements)
+   If_Statements         (5.3 If Statements)
+   Case_Statements       (5.4 Case Statements)
+   Loop_Statements       (5.5 Loop Statements)
+   Block_Statements      (5.6 Block Statements)
+   Exit_Statements       (5.7 Exit Statements)
+   Goto_Statements       (5.8 Goto Statements

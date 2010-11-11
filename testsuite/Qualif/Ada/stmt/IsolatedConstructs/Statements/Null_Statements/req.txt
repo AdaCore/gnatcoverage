@@ -1,8 +1,9 @@
-Statement coverage should be assessed correctly for a null statement
+A null statement is a simple statement. If a null statement is not executed
+then it shall be reported as uncovered.
 
-Testing strategy notes:
-----------------------
-Test cases should include only real-life usage of a null statement, such as:
+Testing strategy:
+
+Real-life usage of a null statement shall be checked, such as:
   - case statement alternative;
   - null procedure;
   - last statement in a statement sequence that has a label attached to it and

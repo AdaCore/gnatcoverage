@@ -1,0 +1,3 @@
+Exercise various code fragments that contain assignment statements. Verify
+that only those assignment statements that are not executed are reported as
+uncovered.
