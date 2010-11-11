@@ -1,6 +1,6 @@
 --  Test driver for EXIT statements. It only "with"s the functional code,
---  but does not execute anything from it, so no EXIT statement is expected to
---  be reported as covered.
+--  but does not execute anything from it, so all the EXIT statements are
+--  expected to be reported as uncovered.
 
 with EXIT_Statements;      use EXIT_Statements;
 with Support;              use Support;

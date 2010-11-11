@@ -1,7 +1,7 @@
 --  Test driver for EXIT statements. It executes parts of the functional code
 --  that contains conditional loop statements with at least one EXIT statement,
 --  and loop condition prevent loop even the first iteration for each of these
---  loops. So no EXIT statement is expected to be reported as covered.
+--  loops. So all the EXIT statements are expected to be reported as uncovered.
 
 with EXIT_Statements_Support; use EXIT_Statements_Support;
 with EXIT_Statements;         use EXIT_Statements;

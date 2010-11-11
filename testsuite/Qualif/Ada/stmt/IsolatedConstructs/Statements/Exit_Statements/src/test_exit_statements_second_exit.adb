@@ -5,7 +5,7 @@
 --  Therefore, all the statements in the loops down to this EXIT statements
 --  (including these exits) are expected to be reported as covered, and all the
 --  statements in these loops following these EXIT statements are expected to
---  be reported as non covered. Note, that first EXIT statements in loop bodies
+--  be reported as uncovered. Note, that first EXIT statements in loop bodies
 --  are expected to be reported as covered.
 
 with EXIT_Statements_Support; use EXIT_Statements_Support;

@@ -1,35 +1,22 @@
-Statement coverage shell be assessed correctly for an EXIT statement. EXIT
-statement is a control statement, so coverage should be accessed for the EXIT
-statement itself and for the LOOP statements whose execution depends on the
-EXIT statement:
+An exit statement is a simple statement. If an exit statement is not executed
+then it shall be reported as uncovered.
 
-- an EXIT statement should not be reported as covered if its enclosing LOOP
-  statement is not executed, or, in case of conditional LOOP statements, if
-  the loop is executed, but the loop condition prevents the first loop
-  iteration;
+An exit statement can be used only as a component of some loop statement. If
+the enclosing loop statement is not executed and if it does not go at least in
+its first iteration, all the enclosed exit statements shall be reported as
+uncovered.
 
-- if an EXIT statement causes the loop exit at the first loop iteration, all
-  the loop statements that follow this EXIT statement should be reported as
-  uncovered;
+Testing strategy:
 
-Testing strategy notes:
-----------------------
-Both syntax forms of EXIT statement (with and without condition) shell be
+Both syntax forms of exit statement (with and without condition) shall be
 checked.
 
 The case of nested loop statements and EXIT statement in inner loop that
-transfers the control out of outer loop shell be checked.
+transfers the control out of outer loop shall be checked.
 
-The case of more then one EXIT statement in the same LOOP statement shell be
-checked (when the first one transfers the control out of the loop, all the
-rest shell be reported as non covered).
+The case when a loop contains more then one exit statement shall be checked.
 
-Various forms of the LOOP statements (unconditional loop, FOR loop, WHILE
-loop) shell be tried out as enclosing loop for EXIT statement in question
-
-For enclosing contexts only typical situations shell be considered:
-  - procedure body;
-  - function body;
-  - generic unit;
-
-One test case may combine more then one cases from above.
+This requirement and the coresponding tests are about coverage of an exit
+statement itself, but not about coverage of the components of a loop statement
+that contains an exit statement. See Loop_Statements for loop statement
+coverage.

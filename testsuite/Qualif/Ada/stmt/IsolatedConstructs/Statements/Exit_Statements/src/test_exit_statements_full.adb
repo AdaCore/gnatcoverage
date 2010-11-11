@@ -1,5 +1,5 @@
---  Test driver for EXIT statements. It executes all the functional code such
---  as everything is expected to be reported as covered.
+--  Test driver for EXIT statements. It executes all the functional code in
+--  such a way that everything is expected to be reported as covered.
 
 with EXIT_Statements_Support; use EXIT_Statements_Support;
 with EXIT_Statements;      use EXIT_Statements;
