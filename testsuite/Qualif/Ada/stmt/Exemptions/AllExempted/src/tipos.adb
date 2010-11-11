@@ -1,10 +1,11 @@
 function Tipos (X : Integer) return Integer is
 begin
-   pragma Annotate (Xcov, Exempt_On, "test exempting all");
-   if X > 0 then    -- # test
-      return X * 2; -- # pos
-   else
-      return X;     -- # other
-   end if;
-   pragma Annotate (Xcov, Exempt_Off);
+   pragma Annotate (Xcov, Exempt_On,       -- # xblock
+                   "test exempting all");  -- # xblock
+   if X > 0 then                           -- # xblock
+      return X * 2;                        -- # xblock
+   else                                    -- # xblock
+      return X;                            -- # xblock
+   end if;                                 -- # xblock
+   pragma Annotate (Xcov, Exempt_Off);     -- # xblock
 end;

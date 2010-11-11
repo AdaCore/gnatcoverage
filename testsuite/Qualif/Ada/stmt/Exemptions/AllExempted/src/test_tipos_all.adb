@@ -7,6 +7,4 @@ begin
 end;
 
 --# tipos.adb
---  /test/  l+ 0
---  /pos/   l+ 0
---  /other/ l+ 0
+--  /xblock/  l# x0:"test exempting all"
