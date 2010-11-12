@@ -72,7 +72,7 @@ package body Annotations.Report is
       Exempted_Messages : Message_Vectors.Vector;
       --  Messages that have been covered by an exemption
 
-      Exemption : Slocs.Source_Location;
+      Exemption : Slocs.Source_Location := Slocs.No_Location;
       --  Exemption sloc applying to current line, if any
    end record;
 
@@ -120,7 +120,7 @@ package body Annotations.Report is
      (Pp       : in out Report_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
-      Line     : String) is null;
+      Line     : String);
 
    procedure Pretty_Print_End_File
      (Pp : in out Report_Pretty_Printer);
@@ -300,6 +300,21 @@ package body Annotations.Report is
    begin
       null;
    end Pretty_Print_End_File;
+
+   -----------------------------
+   -- Pretty_Print_Start_Line --
+   -----------------------------
+
+   procedure Pretty_Print_Start_Line
+     (Pp       : in out Report_Pretty_Printer;
+      Line_Num : Natural;
+      Info     : Line_Info_Access;
+      Line     : String)
+   is
+      pragma Unreferenced (Line_Num, Line);
+   begin
+      Pp.Exemption := Info.Exemption;
+   end Pretty_Print_Start_Line;
 
    -----------------
    -- Put_Message --
