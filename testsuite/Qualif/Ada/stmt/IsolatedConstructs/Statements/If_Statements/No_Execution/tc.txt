@@ -1,0 +1,9 @@
+Verify that if an IF statement is not executed, then all its paths and all its
+component statements are reported as uncovered. The test driver only "with"s
+the functional code, but it does not execute anything from it. All the IF
+statements from the functional code and components thereof are expected to be
+reported as uncovered. The exception is the IF statement from the elaboration
+code in the body of the More_IF_Statements package (its IF path is executed as
+a part of package elaboration, so this path and its component statements is
+expected to be reported as covered, and the rest of this IF statement - as
+uncovered)

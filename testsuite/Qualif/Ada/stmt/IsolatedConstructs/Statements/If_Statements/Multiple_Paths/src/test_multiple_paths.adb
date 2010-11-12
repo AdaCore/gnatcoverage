@@ -1,14 +1,11 @@
---  Test driver for IF statements. It instantiates all the generics from
---  functional code, and calls all the routines from it, having the goal to
---  exercise all the paths in all the IF statements. Therefore, all the code
---  (including all the paths in all the IF statements is expected to be covered
---  except the elaboration code in the package body that is not under the test
---  driver control.
+--  Test driver for IF statements. It calls all the subprograms from the
+--  functional code (more then once for some of these subprograms) to ensure
+--  that all the paths of all the IF statements are executed.
 
 with If_Statements;      use If_Statements;
 with More_IF_Statements; use More_IF_Statements;
 with Support;            use Support;
-procedure Test_IF_Statements_Full is
+procedure Test_Multiple_Paths is
    procedure My_Set_Max is new Set_Max (Integer);
    function My_Max_From_Two is new Max_From_Two (Integer);
 
@@ -55,7 +52,7 @@ begin
    Assert (My_Max_From_Two (1, 2) = 2);
 
    Assert (Global_Var = 11);
-end Test_IF_Statements_Full;
+end Test_Multiple_Paths;
 
 --# if_statements.adb
 -- /XcmpMin/    l+ 0
