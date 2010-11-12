@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -30,5 +30,9 @@ package Switches is
    --  -dh
    --  Keep full historical traces for MC/DC even for decisions that do not
    --  require it (decisions without diamond paths).
+
+   Debug_Ignore_Exemptions : Boolean := False;
+   --  -di
+   --  Exemption pragmas have no effect.
 
 end Switches;

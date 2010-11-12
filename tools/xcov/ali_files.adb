@@ -252,8 +252,10 @@ package body ALI_Files is
                            Expected_Annotation_Msg  := null;
                         end if;
 
-                        ALI_Annotations.Insert
-                          (Key => Sloc, New_Item => Annotation);
+                        if not Switches.Debug_Ignore_Exemptions then
+                           ALI_Annotations.Insert
+                             (Key => Sloc, New_Item => Annotation);
+                        end if;
                      end if;
                   end if;
                end;

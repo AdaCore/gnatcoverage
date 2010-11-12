@@ -334,7 +334,7 @@ procedure Xcov is
          return Result;
       end Rest_Of_Command_Line;
 
-      --  Start of processing for Command_Line_Handling
+   --  Start of processing for Parse_Command_Line
 
    begin
       --  Require at least one argument
@@ -371,10 +371,12 @@ procedure Xcov is
                      Fatal_Error ("parameter required for -d");
                   end if;
 
-                  while Pos < Arg'Last loop
+                  while Pos <= Arg'Last loop
                      case Arg (Pos) is
                         when 'h' =>
-                           Switches.Debug_Full_History := True;
+                           Switches.Debug_Full_History       := True;
+                        when 'i' =>
+                           Switches.Debug_Ignore_Exemptions  := True;
                         when others =>
                            Fatal_Error ("bad parameter -d" & Arg (Pos));
                      end case;
