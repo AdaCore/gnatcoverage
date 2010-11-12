@@ -1,5 +1,9 @@
 package MX is
 
+   type Xflags is record
+      X1, X2, X3, Xh : Boolean;
+   end record;
+
    procedure Trigger_0XR;
    --  Call into the functional code, arranging to get into none of the
    --  exempted regions
