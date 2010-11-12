@@ -1134,8 +1134,11 @@ class XnoteP:
         self.kind = self.NK_for[text]
         self.stext = stext
 
+        # We could require and use stext to store expected justification text
+        # for exemptions. We don't handle that as of today.
+
         thistest.stop_if (
-            self.stext == None and self.kind in xNoteKinds,
+            False and self.stext == None and self.kind in xNoteKinds,
             FatalError ("expected justification text required for %s" % text))
 
         # Setup our instanciation factory now, which lets us perform the
