@@ -1441,30 +1441,19 @@ package body SC_Obligations is
                      Previous_Statement := No_SCO_Id;
                   end if;
 
-                  if ALI_Files.ALI_Annotations.Contains
-                       (Make_Sloc (SCOE.From))
-                  then
-                     --  This is a pragma Annotate (Xcov, ...), we never want
-                     --  to report any coverage information about it, so we
-                     --  just don't create an internal SCO descriptor.
-
-                     null;
-
-                  else
-                     SCO_Vector.Append
-                       (SCO_Descriptor'(Kind                 => Statement,
-                                        Origin               => ALI_Index,
-                                        Sloc_Range           =>
-                                          (First_Sloc => Make_Sloc (SCOE.From),
-                                           Last_Sloc  => Make_Sloc (SCOE.To)),
-                                        S_Kind                =>
-                                          To_Statement_Kind (SCOE.C2),
-                                        Previous              =>
-                                          Previous_Statement,
-                                        Basic_Block_Has_Code => False,
-                                        others               => <>));
-                     Previous_Statement := SCO_Vector.Last_Index;
-                  end if;
+                  SCO_Vector.Append
+                    (SCO_Descriptor'(Kind                 => Statement,
+                                     Origin               => ALI_Index,
+                                     Sloc_Range           =>
+                                       (First_Sloc => Make_Sloc (SCOE.From),
+                                        Last_Sloc  => Make_Sloc (SCOE.To)),
+                                     S_Kind                =>
+                                       To_Statement_Kind (SCOE.C2),
+                                     Previous              =>
+                                       Previous_Statement,
+                                     Basic_Block_Has_Code => False,
+                                     others               => <>));
+                  Previous_Statement := SCO_Vector.Last_Index;
 
                when 'I' | 'E' | 'P' | 'W' | 'X' =>
                   --  Decision

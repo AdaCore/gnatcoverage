@@ -435,7 +435,7 @@ package body Annotations is
 
             LI        : constant Line_Info_Access := Get_Line (FI, L);
             S         : Line_State;
-            Sloc      : constant Source_Location := (File_Index, L, 0);
+            Sloc      : Source_Location;
 
          begin
             --  Compute state for each coverage objective
@@ -454,12 +454,42 @@ package body Annotations is
 
             FI.Stats (S) := FI.Stats (S) + 1;
 
-            --  Bump exemption hit counter if generating annotated sources
-            --  (or HTML). Note that for the Report case, we count violation
-            --  messages, not lines, and we manage the counter specifically in
-            --  Annotation.Report.
+            --  First check whether the beginning of the line is exempted. If
+            --  not, find the first statement SCO starting on the line, and
+            --  check for exemption at that point.
 
+            --  Note that the first statement SCO for the line may be a
+            --  multi-line statement starting on an earlier line).
+
+            Sloc := (File_Index, L, 0);
             LI.Exemption := Get_Exemption (Sloc);
+
+            if LI.Exemption = Slocs.No_Location then
+               declare
+                  C : SCO_Id_Vectors.Cursor := LI.SCOs.First;
+               begin
+                  Line_SCOs : while SCO_Id_Vectors.Has_Element (C) loop
+                     declare
+                        SCO : constant SCO_Id := SCO_Id_Vectors.Element (C);
+                     begin
+                        if Kind (SCO) = Statement
+                             and then Sloc < First_Sloc (SCO)
+                        then
+                           Sloc := First_Sloc (SCO);
+                           exit Line_SCOs;
+                        end if;
+                        SCO_Id_Vectors.Next (C);
+                     end;
+                  end loop Line_SCOs;
+               end;
+               LI.Exemption := Get_Exemption (Sloc);
+            end if;
+
+            --  If exempted, bump exemption hit counter if generating annotated
+            --  sources (or HTML). Note that for the Report case, we count
+            --  exempted messages, not lines, and we manage the counter
+            --  specifically in Annotation.Report.
+
             if LI.Exemption /= Slocs.No_Location
               and then S in Not_Covered .. Partially_Covered
               and then Annotation /= Annotate_Report
