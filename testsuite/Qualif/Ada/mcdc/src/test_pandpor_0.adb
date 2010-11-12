@@ -6,8 +6,9 @@ begin
 end;
 
 --# pandpor.adb
--- /evaluate/      l- s-
--- /decisionTrue/  l- s-
--- /decisionFalse/ l- s-
--- /returnValue/   l- s-
+-- /evalStmt/       l- s-
+-- /evalOther/      l- 0
+-- /decisionTrue/   l- s-
+-- /decisionFalse/  l- s-
+-- /returnValue/    l- s-
 

@@ -7,8 +7,8 @@ package body Andthen is
 
    function And_Then (A, B : Boolean) return Boolean is
    begin
-      return One_Of (A and then B,   -- # evaluate
-                     A and then B);  -- # evaluate
+      return One_Of (A and then B,   -- # evalStmt
+                     A and then B);  -- # evalOther
    end;
 
 end;

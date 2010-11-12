@@ -8,7 +8,7 @@ begin
 end;
 
 --# andthen.adb
---  /evaluate/  l+ 0
+--  /eval(Stmt|Other)/  l+ 0
 --  /decisionTrue/  l+ 0
 --  /decisionFalse/ l+ 0
 --  /returnValue/   l+ 0

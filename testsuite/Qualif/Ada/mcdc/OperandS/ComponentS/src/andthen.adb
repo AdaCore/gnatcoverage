@@ -4,7 +4,7 @@ package body Andthen is
 
    function And_Then (A, B : My_Bool) return Boolean is
    begin
-      return A.Value and then B.Value; -- # evaluate
+      return A.Value and then B.Value; -- # evalStmt
    end;
 
    function And_Then (A, B : Boolean) return Boolean is

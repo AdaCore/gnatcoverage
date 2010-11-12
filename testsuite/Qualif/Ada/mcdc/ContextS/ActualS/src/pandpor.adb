@@ -7,8 +7,8 @@ package body PandPor is
 
    function F (A, B, C : Boolean) return Boolean is
    begin
-      return One_Of ((A and then B) or else C,   -- # evaluate
-                     (A and then B) or else C);  -- # evaluate
+      return One_Of ((A and then B) or else C,   -- # evalStmt
+                     (A and then B) or else C);  -- # evalOther
    end;
 
 end;

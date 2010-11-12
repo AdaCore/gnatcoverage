@@ -7,10 +7,10 @@ package body PorPandPorP is
 
    function F (A, B, C, D : Boolean) return Boolean is
    begin
-      return One_Of ((A or else B) and then (C or else D),   -- # evaluate
-                     (A or else B) and then (C or else D),    -- # evaluate
-                     (A or else B) and then (C or else D),    -- # evaluate
-                     (A or else B) and then (C or else D));  -- # evaluate
+      return One_Of ((A or else B) and then (C or else D),   -- # evalStmt
+                     (A or else B) and then (C or else D),   -- # evalOther
+                     (A or else B) and then (C or else D),   -- # evalOther
+                     (A or else B) and then (C or else D));  -- # evalOther
    end;
 
 end;

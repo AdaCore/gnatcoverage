@@ -7,8 +7,8 @@ package body Orelse is
 
    function Or_Else (A, B : Boolean) return Boolean is
    begin
-      return One_Of (A or else B,   -- # evaluate
-                     A or else B);  -- # evaluate
+      return One_Of (A or else B,   -- # evalStmt
+                     A or else B);  -- # evalOther
    end;
 
 end;

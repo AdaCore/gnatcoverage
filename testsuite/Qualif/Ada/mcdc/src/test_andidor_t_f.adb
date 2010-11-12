@@ -6,7 +6,7 @@ begin
 end;
 
 --# andidor.adb
--- /evaluate/      l! dT-:"A",dT-:"B"
+-- /eval(Stmt|Other)/      l! dT-:"A",dT-:"B"
 -- /decisionTrue/  l- s-
 -- /decisionFalse/ l+ 0
 -- /returnValue/   l+ 0

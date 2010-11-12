@@ -17,7 +17,7 @@ begin
 end Test_PorPandPorP_D;
 
 --# porpandporp.adb
---  /evaluate/  l!  c!:"D"
+--  /eval(Stmt|Other)/  l!  c!:"D"
 --  /decisionTrue/  l+ 0
 --  /decisionFalse/ l+ 0
 --  /returnValue/ l+ 0

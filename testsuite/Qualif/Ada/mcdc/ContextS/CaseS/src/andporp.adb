@@ -2,7 +2,7 @@ package body AndPorP is
 
    function F (A, B, C : Boolean) return Boolean is
    begin
-      case A and then (B or else C) is -- # evaluate
+      case A and then (B or else C) is -- # evalStmt
          when True =>
             return True;               -- # decisionTrue
          when False =>

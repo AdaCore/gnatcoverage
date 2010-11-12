@@ -2,7 +2,7 @@ package body Orelse is
 
    function Or_Else (A, B : Boolean) return Boolean is
    begin
-      case A or else B is -- # evaluate
+      case A or else B is -- # evalStmt
          when True =>
             return True;    -- # decisionTrue
          when False =>

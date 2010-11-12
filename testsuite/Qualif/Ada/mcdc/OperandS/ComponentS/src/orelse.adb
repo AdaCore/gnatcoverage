@@ -4,7 +4,7 @@ package body Orelse is
 
    function Or_Else (A, B : My_Bool) return Boolean is
    begin
-      return A.Value or else B.Value; -- # evaluate
+      return A.Value or else B.Value; -- # evalStmt
    end;
 
    function Or_Else (A, B : Boolean) return Boolean is

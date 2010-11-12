@@ -2,7 +2,7 @@ package body PorPandPorP is
 
    procedure Eval_And_Then (A, B, C, D : Boolean; E : out Boolean) is
    begin
-      E := (A or else B) and then (C or else D); -- # evaluate
+      E := (A or else B) and then (C or else D); -- # evalStmt
    end;
 
    function F (A, B, C, D : Boolean) return Boolean is

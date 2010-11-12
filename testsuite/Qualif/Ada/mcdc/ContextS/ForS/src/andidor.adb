@@ -1,7 +1,7 @@
 package body AndIdOr is
    function F (A, B, C : Boolean) return Boolean is
    begin
-      for V in (A and then Identity (B or else C)) .. True loop -- # evaluate
+      for V in (A and then Identity (B or else C)) .. True loop -- # evalStmt
          return V;         -- # returnValue
       end loop;
       raise Program_Error; -- should never reach here

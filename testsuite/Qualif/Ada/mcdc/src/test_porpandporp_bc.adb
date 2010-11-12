@@ -14,8 +14,8 @@ begin
 end Test_PorPandPorP_BC;
 
 --# porpandporp.adb
---  /evaluate/  l!  c!:"B"
---  /evaluate/  l!  c!:"C"
+--  /eval(Stmt|Other)/  l!  c!:"B"
+--  /eval(Stmt|Other)/  l!  c!:"C"
 --  /decisionTrue/  l+ 0
 --  /decisionFalse/ l+ 0
 -- /returnValue/ l+ 0

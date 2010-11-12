@@ -6,7 +6,7 @@ package body PandPor is
 
    function F (A, B, C : My_Bool) return Boolean is
    begin
-      return (A.Value and then B.Value) or else C.Value; -- # evaluate
+      return (A.Value and then B.Value) or else C.Value; -- # evalStmt
    end;
 
    function F (A, B, C : Boolean) return Boolean is
