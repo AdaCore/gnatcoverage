@@ -1,6 +1,6 @@
 with Support, Andnot; use Support;
 
---  Call nothing. Verify that the statement lines are reported uncovered.
+--  Call nothing. Verify that all the statements are reported uncovered.
 
 procedure Test_AndNot_0 is
 begin
