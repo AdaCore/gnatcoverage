@@ -186,6 +186,12 @@ package body Coverage.Source is
                   --  possibly cause it to be marked as covered.
 
                   SCO_State := Not_Covered;
+
+                  --  Generate violation message on first line of SCO
+
+                  if Line_Num = First_Sloc (SCO).Line then
+                     Report (SCO, "not executed");
+                  end if;
                end if;
 
                Update_Line_State (Line_Info, SCO, Stmt, SCO_State);
