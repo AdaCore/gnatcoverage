@@ -10,4 +10,4 @@ end;
 
 --# halfadd.adb
 --  /sum/   l- s-
---  /carry/ l- s-
+--  /carry/ l- s-:"if A", s-:"Carry .= True", s-:"Carry .= False"
