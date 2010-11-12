@@ -21,12 +21,12 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;
 
 with ALI_Files;   use ALI_Files;
-with Outputs;     use Outputs;
-with Strings;     use Strings;
-with Traces_Disa;
 with Coverage;
 with Coverage.Object;
 with Coverage.Source;
+with Outputs;     use Outputs;
+with Strings;     use Strings;
+with Traces_Disa;
 
 package body Annotations is
 
