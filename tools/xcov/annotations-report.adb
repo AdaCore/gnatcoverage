@@ -72,8 +72,8 @@ package body Annotations.Report is
       Exempted_Messages : Message_Vectors.Vector;
       --  Messages that have been covered by an exemption
 
-      Exempted : Boolean := False;
-      --  True if the current line is covered by an exemption
+      Exemption : Slocs.Source_Location;
+      --  Exemption sloc applying to current line, if any
    end record;
 
    procedure Chapter
@@ -120,7 +120,7 @@ package body Annotations.Report is
      (Pp       : in out Report_Pretty_Printer;
       Line_Num : Natural;
       Info     : Line_Info_Access;
-      Line     : String);
+      Line     : String) is null;
 
    procedure Pretty_Print_End_File
      (Pp : in out Report_Pretty_Printer);
@@ -334,8 +334,9 @@ package body Annotations.Report is
       M  : Message) is
    begin
       if Should_Be_Displayed (M) then
-         if Pp.Exempted then
+         if Pp.Exemption /= Slocs.No_Location then
             Pp.Exempted_Messages.Append (M);
+            Inc_Exemption_Count (Pp.Exemption);
          else
             Pp.Put_Message (M);
          end if;
@@ -425,156 +426,6 @@ package body Annotations.Report is
          Skip := True;
       end if;
    end Pretty_Print_Start_File;
-
-   -----------------------------
-   -- Pretty_Print_Start_Line --
-   -----------------------------
-
-   procedure Pretty_Print_Start_Line
-     (Pp       : in out Report_Pretty_Printer;
-      Line_Num : Natural;
-      Info     : Line_Info_Access;
-      Line     : String)
-   is
-      pragma Unreferenced (Line);
-
-      function Already_Reported (Level : Coverage_Level) return Boolean;
-      --  Return True if all errors for Level on this line have already
-      --  been reported on previous lines
-
-      function Default_Message
-        (Level : Coverage_Level;
-         State : Line_State) return Message;
-      --  Return the default error message for the given coverage level
-      --  and the given line state
-
-      function Has_Messages (MV : Message_Vectors.Vector) return Boolean;
-      --  Return True iff MV contains messages that are serious enough to
-      --  be included into the report
-
-      ----------------------
-      -- Already_Reported --
-      ----------------------
-
-      function Already_Reported (Level : Coverage_Level) return Boolean is
-         use SCO_Id_Vectors;
-
-         Position : Cursor;
-         SCO      : SCO_Id;
-      begin
-         case Level is
-            when Insn | Branch =>
-               return False;
-
-            when Stmt | Decision | MCDC =>
-               --  False if there is a statement or a decision whose first
-               --  sloc is the current line
-
-               Position := Info.SCOs.First;
-               while Position /= No_Element loop
-                  SCO := Element (Position);
-
-                  if First_Sloc (SCO).Line = Line_Num then
-                     return False;
-                  end if;
-
-                  Next (Position);
-               end loop;
-               return True;
-
-         end case;
-      end Already_Reported;
-
-      ---------------------
-      -- Default_Message --
-      ---------------------
-
-      function Default_Message
-        (Level : Coverage_Level;
-         State : Line_State) return Message
-      is
-         Sloc   : constant Source_Location := (Pp.Current_File_Index,
-                                               Line_Num, 0);
-         Msg    : String_Access;
-      begin
-         if Level = Stmt then
-            Msg := new String'("statement not covered");
-         else
-            Msg := new String'("line " & State'Img
-                               & " for " & Level'Img & " coverage");
-         end if;
-
-         return Message'(Kind => Diagnostics.Error,
-                         PC   => No_PC,
-                         Sloc => Sloc,
-                         SCO  => No_SCO_Id,
-                         Msg  => Msg);
-      end Default_Message;
-
-      ------------------
-      -- Has_Messages --
-      ------------------
-
-      function Has_Messages (MV : Message_Vectors.Vector) return Boolean is
-         use Message_Vectors;
-
-         Position : Cursor := First (MV);
-         M        : Message;
-      begin
-         while Position /= No_Element loop
-            M := Element (Position);
-
-            if Should_Be_Displayed (M) then
-               return True;
-            end if;
-
-            Next (Position);
-         end loop;
-
-         return False;
-      end Has_Messages;
-
-      --  Local variables
-
-      M      : Message;
-
-   --  Start of processing for Pretty_Print_Start_Line
-
-   begin
-      Pp.Exempted := Info.Exemption /= Slocs.No_Location;
-
-      --  When two coverage criteria are not met on the same line, only
-      --  report errors for the "lowest" one. For example, if a decision is
-      --  not covered for stmt coverage, it will certainly not be covered
-      --  for decision coverage or MCDC; but report only the stmt coverage
-      --  error.
-
-      --  If error/warning messages have been attached to the line, they
-      --  will be printed in the report; otherwise, fall back to a
-      --  general error message.
-
-      for Level in Coverage_Level loop
-         if Info.State (Level) /= Covered
-           and then Info.State (Level) /= No_Code
-         then
-            if not Has_Messages (Info.Messages)
-              and then not Already_Reported (Level)
-            then
-               M := Default_Message (Level, Info.State (Level));
-
-               if Info.Exemption = Slocs.No_Location then
-                  Pp.Put_Message (M);
-
-               else
-                  Pp.Exempted_Messages.Append (M);
-                  Inc_Exemption_Count (Info.Exemption);
-               end if;
-            end if;
-
-            exit;
-         end if;
-      end loop;
-   end Pretty_Print_Start_Line;
 
    -------------
    -- Section --
