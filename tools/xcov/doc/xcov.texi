@@ -125,10 +125,9 @@ document.
 
 @section Process Model
 
-@subsection Process Abstractions
+@subsection Basic Process Abstractions
 @noindent
-A typical coverage analysis elementary process comprises three principal
-steps:
+A typical coverage analysis process comprises three principal steps:
 @enumerate
 @item
 A binary @dfn{executable program} is produced from a set of program
@@ -176,7 +175,6 @@ indicates object code never executed:
 
 @smallexample
 
-        [...]
         1:    9:procedure Test_Queues is
         -:   10:   package Integer_Queues is new Queues (Data_Type => Integer);
         -:   11:   use Integer_Queues;
@@ -193,8 +191,8 @@ indicates object code never executed:
 
 @end smallexample
 
-In this excerpt, the never executed code is expected, as it is
-intended to trigger only when the test didn't behave as it should.
+In this excerpt, the never executed code on line 19 is expected, as it
+is intended to trigger only when the test didn't behave as it should.
 @c
 This points at an important distinction to make: the @code{Test_Queues}
 procedure in this example is @dfn{testing code} written to exercise
@@ -238,9 +236,6 @@ virtual execution environments do.
 
 There are variants of each technique in the field, each with its own set
 of advantages and drawbacks compared to others.
-@c
-While the base process applies to many situations, refinements are
-useful in some cases, as outlined in the following sections.
 
 @subsection Data Capitalization & Consolidation
 @noindent
@@ -303,10 +298,9 @@ coverage information for the various pieces of a system into a unified
 view, with explicit input on what pieces are expected to have been
 covered.
 @c
-Pieces for which coverage data is expected but not available are
-identified and data for pieces of no interest (e.g. unit test harness)
-may be abstracted away.
-@c
+Pieces of no interest, or which might differ between the various
+testing scenarii (e.g. unit test harness) may be abstracted away.
+
 The need for coverage data consolidation often correlates with testing
 strategies: whether coverage data is obtained from unit testing of
 individual components, from integration testing of the system as a whole,
@@ -479,9 +473,8 @@ This is expected to be possible with Nconditions+1 evaluations, so
 enforces a more precise testing of the expressions structure while
 keeping the test base complexity linear with the number of conditions.
 @c
-While this general principe always holds, there exist several variants
-of the MCDC criteria, with differences in the way independence may be
-shown.
+There exist several variants of the MCDC criteria, with differences in
+the way independence may be shown - @bibref{ar0118}, @bibref{cast6}.
 
 @subsection Source vs Object Quantifiers
 @noindent
@@ -519,22 +512,13 @@ need care but don't introduce fundamental difficulties.
 Along similar lines, we may consider that full Object Branch Coverage
 implies Decision Coverage while the opposite is not true.
 @c
-We also observe that Object Instruction Coverage does not imply Decision
-Coverage.
-
-Finally, it is established that Object Branch Coverage does not always
-imply MC/DC in the general case @bibref{AR07/20}.
+We also observe that Object Instruction Coverage does not imply
+Decision Coverage, and that Obect Branch Coverage does not imply MC/DC
+in the general case - @bibref{AR07/20}, @bibref{couverture-obc-mcdc}.
 @c
-It only does when a number of conditions hold together, such as:
-@c
-1/ the only boolean binary operators in use are those with short-circuit
-semantics (@code{and then} and @code{or else} in Ada),
-@c
-2/ Different binary boolean operators are never mixed in the same
-expression, and
-@c
-3/ the machine code features one conditional branch instruction per
-condition.
+Besides, when it does imply MC/DC, Object Branch Coverage often
+requires more extensive testing so is not necessarily an interesting
+alternate.
 
 In any case, assumptions validity need to be complemented with practical
 consequences in industrial applications.
@@ -555,6 +539,8 @@ unrequired significant additional testing efforts.
 The core principle in the Xcov framework is to leverage the generation
 of raw coverage data by a virtual execution environment instrumented to
 produce machine level traces about the code it executes.
+@c 
+We typically refer to these as @dfn{execution traces}.
 
 The environment typically is a representative emulator of a real
 target microprocessor, possibly augmented with extensions to let it
@@ -1375,8 +1361,8 @@ with an extra @code{+} suffix on the annotation format, that is, with
 Extra details are typically provided for decisions partially covered,
 with information about which outcome was not exercized.
 
-The @code{--annotate=report} output lists information about uncovered
-statements and partial decision coverage.
+The @code{--annotate=report} synthetic output lists information about
+uncovered statements and partial decision coverage.
 @c
 For example, after exercizing Explore to have the robot execute safe
 commands in both Cautious and Dumb modes, we get the expected results
@@ -1479,12 +1465,12 @@ condition (vectors #1 and #3 for @code{A}, #1 and #2 for @code{B}):
 @item 4 @tab F @tab F @tab F @tab   @tab
 @end multitable
 
-Xcov actually implements another common variant: @dfn{Masking MCDC},
-with particular semantics for short-circuit operators.
+Xcov actually implements a common variant with particular semantics
+for short-circuit operators.
 @c
 The idea is to accept variations of some of the extra conditions in an
-independence pair as long as these conditions are not evaluated
-(masked) due to short-circuit semantics.
+independence pair as long as these conditions are not evaluated due to
+short-circuit semantics.
 @c
 This variant provides additional flexibility on the set of tests
 required to satisfy the criterion without reducing the minimal size of
@@ -1640,6 +1626,40 @@ details for maximum flexibility.
 @c
 Their specification is provided as an appendix of this document.
 
+@subsection Source Coverage Exemptions
+In some circumstances, there are good and well understood reasons why
+proper coverage of some source statement or decision is not
+achievable, and it is convenient to be able to abstract these coverage
+violations away from the genuine defects out of a testing sequence.
+@c
+The Xcov @dfn{exemptions} facility was designed for this purpose.
+
+For Ada with the GNAT compilers, coverage exemptions are requested for
+sections of source by the insertion of dedicated pragmas.
+@c
+@code{pragma Annotate (Xcov, Exempt_On, "justification text");} starts
+a section, providing some exemption justification text that will be
+recalled in coverage reports.
+@c
+@code{pragma Annotate (Xcov, Exempt_Off);} closes the current exemption
+section.
+@c
+There may be no overlap between exemption regions.
+
+Exempted regions are reported as blocks in both the annotated source
+and the synthetic text reports.
+@c
+In the former case, a '#' or '*' caracter annotates all the exempted
+lines, respectively depending on whether 0 or at least 1 violation was
+exempted over the whole section.
+@c
+In synthetic text reports, a single indication is emitted for each
+exempted region, and the indications for all the regions are grouped
+in a separate report section.
+@c
+More details on the format of these indications is provided in the
+appendix section dedicated to the synthetic text report format.
+
 @chapter Appendices
 
 @node explore,,Top,Top
@@ -1686,6 +1706,147 @@ Below is a verbatim inclusion of the relevant Ada specification:
 @verbatiminclude annotations-xml.ads
 @end smallexample
 
+@page
+@section Format of synthetic text report - Source Coverage
+
+This section describes the format of the text report produced by the
+--annotate=report mode of Xcov for source coverage criteria.
+@c
+We use a generated report as an example, filtering the elements
+relevant to the code excerpt below, extracted from a sample Queues data
+type abstraction.
+
+@smallexample
+ [...]
+ 59    procedure Notify_Error_On (Q : in Queue) is
+ 60    begin
+ 61       raise Program_Error;
+ 62    end Notify_Error_On;
+ 63 
+ 64    procedure Push (Item : Data_Type; Q : in out Queue) is
+ 65    begin
+ 66       pragma Annotate (Xcov, Exempt_On, "we never overflow a Queue");
+ 67       if Full (Q) then
+ 68          Notify_Error_On (Q);
+ 69       end if;
+ 70       pragma Annotate (Xcov, Exempt_Off);
+ [...]
+@end smallexample
+
+The example situation is that Queue overflows are expected never to
+happen, so an exemption section is in place for the code performing
+the corresponding check at the beginning of a Push operation.
+@c
+Below is a copy of the report produced for a sample run where the
+general @code{Notify_Error_On} subprogram is not called otherwise:
+
+@smallexample
+
+COVERAGE REPORT
+
+1. OVERVIEW
+
+Date and time of execution: 2010-11-10 18:16:59.00
+Tool version: XCOV 1.0.0w (20081119)
+Command line:
+xcov coverage --scos=queues.ali --level=stmt+decision --annotate=report xplr.trace
+
+Coverage level: stmt+decision
+
+trace files:
+
+ xplr.trace
+  program: obj/powerpc-elf/explore
+  date: 2010-11-10 17:16:47 
+  tag: some exemption test
+
+2. NON-EXEMPTED VIOLATIONS
+
+queues.adb:61:7: STATEMENT: not executed
+1 violation
+
+3. EXEMPTED VIOLATIONS
+
+queues.adb:66:7-70:7: 2 exempted violations, justification:
+we never overflow a Queue
+
+1 exempted region.
+
+END OF REPORT
+@end smallexample
+
+@noindent
+The start and end of report are explicit, and the report body features
+three sections: Overview, Non-exempted violations and Exempted violations.
+
+@noindent
+The @strong{Overview} section exposes elements about the report
+production context:
+
+@itemize -
+@item Date & time when the report was produced
+@item Command line and Version of Xcov that produced the report
+@item Coverage criterion assessed
+@item Details on the input trace files:
+path to binary program exercized (as provided on the command line),
+production time stamp, --tag argument to @code{xcov run} when the
+trace was produced
+@end itemize
+
+@noindent
+The @strong{Non-exempted violations} section lists and counts the
+coverage violations (with respect to the assessed criteria) that
+relate to source lines not part of an exemption region.
+@c
+All the non-exempted violations are reported using a consistent
+format, as illustrated on our example below:
+
+@smallexample
+  queues.adb:1641:17: STATEMENT: not executed
+  ----------:-------:----------:---------------
+    source  :  loc  : cfamily  :    details
+@end smallexample
+
+@noindent
+@emph{source} and @emph{loc} are the basename of the source file and
+the precise @code{line:column} location within that source where the
+violation was detected.
+@c
+@emph{vfamily} identifies the family of coverage objective entity
+violated by this reported instance, and @emph{details} provides
+additional information.
+@c
+Below is the list of family/detail items that might be emitted
+together with each possible value of the --level argument:
+
+@multitable @columnfractions .2 .15 .6
+@item
+ --level
+ @tab family
+ @tab detail
+@item
+ @code{=stmt}
+ @tab @code{STATEMENT:}
+ @tab @code{not executed}
+
+@item
+  @code{=stmt+decision}
+  @tab @code{DECISION:}
+  @tab @code{outcome TRUE not covered}
+@item
+  {}
+  @tab {}
+  @tab @code{outcome FALSE not covered}
+@item
+  {}
+  @tab {}
+  @tab @code{one outcome not covered}
+
+@item
+  @code{=stmt+mcdc}
+  @tab @code{CONDITION:}
+  @tab @code{failed to show independent influence}
+@end multitable
 
 @c *******************************************************************
 @c *                          BIBLIOGRAPHY                           *
@@ -1695,6 +1856,18 @@ Below is a verbatim inclusion of the relevant Ada specification:
 
 @macro CHILENSKI
 John J. Chilenski
+@end macro
+
+@macro GUITTON
+Jérôme Guitton
+@end macro
+
+@macro MOY
+Yannick Moy
+@end macro
+
+@macro QUINOT
+Thomas Quinot
 @end macro
 
 @macro KURTZ
@@ -1776,6 +1949,11 @@ Condition/Decision Coverage (MCDC) Criterion.
 Structural Coverage at the Source Code and Object Code Levels.
 @c
 @CHILENSKI{} and @KURTZ{}. DOT/FAA/AR-07/20, June 2007.
+
+@item @bibdef {couverture-obc-mcdc}
+@tab Technical Report on OBC/MCDC properties.
+@c
+@GUITTON{}, @MOY{} and @QUINOT{}. Couverture project, October 2010.
 
 @item @bibdef {rcdc}
 @tab From MC/DC to RC/DC: Formalization and Analysis of
