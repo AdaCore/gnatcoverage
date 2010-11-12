@@ -678,8 +678,8 @@ class MapCheck:
 # We call "Report", or "R" notes the indications emitted for slocs in the
 # =report outputs, for example:
 #
-#  in_range.adb:4:0: statement not covered
-#  in_range.adb:6:0: statement not covered
+#  in_range.adb:4:7: STATEMENT: not executed
+#  in_range.adb:6:7: STATEMENT: not executed
 #
 # As for Lnotes, Rnote objects convey the kind of indication emitted, the sloc
 # for which they were emitted, and are gathered in outer data structures to
@@ -1298,12 +1298,12 @@ rsNoInterest, rsNotExempted, rsExempted = range (3)
 class RnotesExpander:
     """Produce list of Enote instances found in a "report" output."""
 
-    NK_for = {"outcome FALSE never": dfNoCov,
-              "outcome TRUE never": dtNoCov,
-              "one outcome never": dPartCov,
+    NK_for = {"DECISION: outcome FALSE never": dfNoCov,
+              "DECISION: outcome TRUE never": dtNoCov,
+              "DECISION: one outcome never": dPartCov,
               "multiple statement SCOs": sPartCov,
-              "failed to show independent": cPartCov,
-              "statement not covered": sNoCov}
+              "CONDITION: failed to show independent": cPartCov,
+              "STATEMENT: not executed": sNoCov}
 
     def nkind_for(self, ntext):
 
