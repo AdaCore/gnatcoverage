@@ -1,14 +1,14 @@
---  Test driver for IF statements. It only "with"s the functional code,
---  but does not execute anything from it, so no IF statements are expected to
---  be reported as covered.
+--  Test driver for CASE statements. It only "with"s the functional code,
+--  but does not execute anything from it, so everything is expected to be
+--  reported as uncovered.
 
 with CASE_Statements; use CASE_Statements;
-with Support;       use Support;
-procedure Test_CASE_Statements_No is
+with Support;         use Support;
+procedure Test_No_Execution is
    procedure My_Adjust_Int is new Adjust_Int_P (Integer, 1, 2);
 begin
    Assert (True);
-end Test_CASE_Statements_No;
+end Test_No_Execution;
 
 --# case_statements.adb
 -- /colorcase/ l- s-

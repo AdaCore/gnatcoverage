@@ -1,15 +1,13 @@
---  Test driver for CASE statements. It instantiates all the generics from
---  functional code, and calls all the routines from it, having the goal to
---  exercise all the paths in all the CASE statements. Therefore, all the code
---  (including all the paths in all the CASE statements is expected to be
---  covered except the elaboration code in the package body that is not under
---  the test driver control.
+--  Test driver for CASE statements. It executes all the case statements in the
+--  elaboration code except the statements in the body of package
+--  More_CASE_Statements many times so all the case alternatives of these
+--  statements are finally executed.
 
 with CASE_Statements;         use CASE_Statements;
 with CASE_Statements_Support; use CASE_Statements_Support;
 with More_CASE_Statements;    use More_CASE_Statements;
 with Support;                 use Support;
-procedure Test_CASE_Statements_Full is
+procedure Test_Several_Alternatives_Full is
    procedure My_Adjust_Int is new Adjust_Int_P (Integer, 10, 20);
    function My_Adjust_Int is new Adjust_Int_F (100, 200);
 
@@ -90,23 +88,23 @@ begin
    --  Results of package body statements (elaboration sequence)
    Assert (Global_Int = 1);
    Assert (Global_Color = Red);
-end Test_CASE_Statements_Full;
+end Test_Several_Alternatives_Full;
 
 --# case_statements.adb
--- /colorcase/ l+ 0
--- /white/     l+ 0
--- /red/       l+ 0
--- /yellow/    l+ 0
--- /green/     l+ 0
--- /blue/      l+ 0
--- /brown/     l+ 0
--- /black/     l+ 0
--- /valcase/   l+ 0
--- /1case/     l+ 0
--- /2case/     l+ 0
--- /4case/     l+ 0
--- /7case/     l+ 0
--- /others/    l+ 0
+-- /colorcase/       l+ 0
+-- /white/           l+ 0
+-- /red/             l+ 0
+-- /yellow/          l+ 0
+-- /green/           l+ 0
+-- /blue/            l+ 0
+-- /brown/           l+ 0
+-- /black/           l+ 0
+-- /valcase/         l+ 0
+-- /1case/           l+ 0
+-- /2case/           l+ 0
+-- /4case/           l+ 0
+-- /7case/           l+ 0
+-- /others/          l+ 0
 
 --# more_case_statements.adb
 -- /caseprime/       l+ 0
