@@ -17,7 +17,7 @@ end;
 -- /2_if/              l+ 0
 -- /2_flag/            l- s-
 -- /2_exem/            l* x+
--- /3_if/              l0 0
+-- /3_if/              l+ 0
 -- /3_flag/            l+ 0
 -- /3_exem/            l# x0
 -- /h_flag/            l- s-
