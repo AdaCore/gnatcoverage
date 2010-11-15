@@ -2047,8 +2047,9 @@ class SCOV_helper:
     # -- log --
     # ---------
     def log(self):
-        frame ("%s\n%s coverage with --level=%s"
-               % (str(self.drivers), self.category, self.xcovlevel),
+        frame ("%s, %s\n%s coverage with --level=%s"
+               % (str(self.drivers), self.xfile,
+                  self.category, self.xcovlevel),
                char='*').display()
 
     # ----------------
