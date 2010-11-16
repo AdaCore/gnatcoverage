@@ -1,0 +1,4 @@
+Verify that an object declaration is reported as uncovered if it is not
+elaborated, and that it is not reported as uncovered if it is elaborated.
+Check local and global declarations, declarations located in functions and in
+subprograms. Check objects of different kinds.

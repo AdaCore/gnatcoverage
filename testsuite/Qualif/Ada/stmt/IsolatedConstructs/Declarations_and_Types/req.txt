@@ -1,41 +1,32 @@
-Statement coverage should be assessed correctly for declarations and
-definitions that result in executable code (that is, that have some
-non-trivial elaboration actions associated with them). This part of the
-qualification test suite deals with constructs described in Chapter 3 of the
-Ada LRM "Declarations and Types"
+If a declaration is not elaborated as a part of the program execution it shall
+be reported as uncovered.
 
-Testing strategy notes:
+Testing strategy:
 
-1. This requirement is further split into the subordinate requirements
-   corresponding to the following constructs:
+Not all the declarations result in elaboration code.Different declaration
+kinds resulted in elaboration code shall be checked.
 
-   - Object Declarations: they may have the executable code associated with
-     them in case if implicit or explicit initialization is provided for the
-     object;
+This requirement is further split into the subordinate requirements as
+follows. These subrequirements does not follow the structure of the Chapter 3
+of the Ada Reference Manual, instead they aggregate situations and declaration
+kinds that are of interest for coverage analysis.
 
-   - Subtype Indications: an elaboration of a subtype indication in some cases
-     needs executable code. Subtype indication should be checked in different
-     contexts (including type and subtype declarations, and object
-     declarations);
+- Object_Declarations: they may have the executable code associated with
+  them in case if implicit or explicit initialization is provided for the
+  object;
 
-   - Discrete Subtype Definitions: they are similar to range constraints, but
-     are used in constrained array type definitions.
+- Subtype_Indications: if a subtype indication contains a constraint, its
+  elaboration may need executable code. Subtype indication shall be checked in
+  different contexts (including type and subtype declarations, and object
+  declarations);
 
-   - Variant Parts: these constructs are of special interest for object
-     coverage because they are in some sense equivalent to case statements -
-     depending om discriminant values, different elaboration sequences can be
-     chosen;
+- Discrete_Subtype Definitions: they are similar to range constraints, but
+  are used in constrained array type definitions.
 
-2. There is no special testing for type declarations, because all the cases
-   that may be interesting for statement coverage correspond to subtype
-   indications.
+- Variant_Parts: these constructs are of special interest for object
+  coverage because they are in some sense equivalent to case statements -
+  depending om discriminant values, different elaboration sequences can be
+  chosen for the record definition containing a variant part;
 
-3. For each construct in question a separate functional test subprogram is
-   provided. The reason is that in a declaration sequence, if some declaration
-   is considered as being covered then all the declarations that precede this
-   declaration in this declaration sequence are also considered as covered. So
-   we have to avoid this kind of masking.
-
-   Question: is this kind of coverage information masking a problem to be
-   addressed somehow?
-
+- Declaration_Sequences: a declaration sequence is similar to a straitline
+  statement sequence for coverage analysis purposes.

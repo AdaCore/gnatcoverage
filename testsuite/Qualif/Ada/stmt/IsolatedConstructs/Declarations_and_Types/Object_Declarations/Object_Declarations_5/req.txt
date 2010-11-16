@@ -1,3 +1,0 @@
-This test case checks that a declaration of an object of a record type that
-has implicit initialization is reported as covered only if the declaration is
-elaborated. Object declaration itself does not have explicit initialization.

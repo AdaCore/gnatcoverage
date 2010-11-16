@@ -1,16 +1,16 @@
-An object declaration shall be reported as covered only if it is elaborated.
+If an object declaration is elaborated it shall be reported as uncovered. If
+an object declaration is elaborated it shall not be reported as uncovered.
 
-Testing strategy notes:
+Testing strategy:
 
-- Different kinds of object declarations may result in elaboration code
-  that can be subjected to coverage analysis. At least following cases shall
-  be checked:
-        1. Variable object declaration with explicit initialization
-           expression;
-        2. Constant object declaration with explicit initialization expression;
-        3. Objects of scalar, array, record and access types;
-        4. Objects of private types;
-        5. Implicit initialization of record objects
-        6. Implicit initialization of access objects (by null value);
-        7. Objects of derived record types with implicit initialization.
-  One test case may cover more then one of the positions in the list above.
+Not all the object declarations are reported as covered or uncovered. Tests
+shall check at least the following kinds of object declarations that for sure
+have elaboration code associated with them:
+
+- object declarations with explicit initialization expressions;
+- declarations of objects whose types define implicit initialization (this
+  includes record types and access types);
+
+A separate declaration sequence shall be used for each object declaration of
+interest, and the tested declaration shall be the first declaration in the
+sequence that has a coverage information associated with it.

@@ -34,6 +34,11 @@ package Decls_Support is
    type T_Private is private;
    T_Private_Zero : constant T_Private;
 
+   function Get_Private (I : Integer) return T_Private;
+   function Get_Integer (X : T_Private) return Integer;
+   --  Sets and gets the value of the integer component of the full type
+   --  declaration
+
    --  Access types
    type Access_Integer is access Integer;
    type Access_All_Integer is access all Integer;
