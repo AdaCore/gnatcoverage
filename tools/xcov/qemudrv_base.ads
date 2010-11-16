@@ -87,6 +87,19 @@ package Qemudrv_Base is
                                        new String'("$trace"))
 
       ),
+      (Target => new String'("erc32-elf"),
+       Build_Command => null,
+       Build_Options => null,
+       Run_Command => new String'("qemu-system-sparc"),
+       Run_Options => new String_List'(new String'("-nographic"),
+                                       new String'("-M"),
+                                       new String'("stc695"),
+                                       new String'("-kernel"),
+                                       new String'("$exe"),
+                                       new String'("-trace"),
+                                       new String'("$trace"))
+
+      ),
       (Target => new String'("i386-pok"),
        Build_Command => null,
        Build_Options => null,
