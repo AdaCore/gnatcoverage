@@ -93,7 +93,7 @@ package Qemudrv_Base is
        Run_Command => new String'("qemu-system-sparc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
-                                       new String'("stc695"),
+                                       new String'("tsc695"),
                                        new String'("-kernel"),
                                        new String'("$exe"),
                                        new String'("-trace"),
