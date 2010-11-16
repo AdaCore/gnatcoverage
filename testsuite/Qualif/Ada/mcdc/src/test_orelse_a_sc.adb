@@ -1,6 +1,6 @@
 with Support, Orelse; use Support, Orelse;
 
-procedure Test_OrElse_Amask is
+procedure Test_OrElse_A_SC is
 begin
    Assert (Or_Else (True, True) = True);
    Assert (Or_Else (False, False) = False);

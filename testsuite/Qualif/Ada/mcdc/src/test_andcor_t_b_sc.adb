@@ -1,6 +1,6 @@
 with Support, AndCor; use Support, AndCor;
 
-procedure Test_AndCor_T_Bmask is
+procedure Test_AndCor_T_B_SC is
 begin
    Assert (F (True, False, False) = False);
    Assert (F (True, True , True)  = True);

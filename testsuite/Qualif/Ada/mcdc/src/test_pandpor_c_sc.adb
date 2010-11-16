@@ -1,6 +1,6 @@
 with Support, PandPor; use Support, PandPor;
 
-procedure Test_PandPor_Cmask is
+procedure Test_PandPor_C_SC is
 begin
    Assert (F (False, False, True) = True);
    Assert (F (False, True, False) = False);

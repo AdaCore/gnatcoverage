@@ -28,7 +28,7 @@ begin
    --  F3 : A is coupled in
    --  A and then (A' or else B) and then C
    --  A : {2, 3}
-   --  C : {1, 2} with masking
+   --  C : {1, 2} with short-circuit masking
    Assert (F3 (True, False, False) = False); -- 1
    Assert (F3 (True, True, True) = True); -- 2
    Assert (F3 (False, True, True) = False); -- 3

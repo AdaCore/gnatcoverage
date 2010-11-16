@@ -1,6 +1,6 @@
 with Support, Andthen; use Support, Andthen;
 
-procedure Test_Andthen_Amask is
+procedure Test_Andthen_A_SC is
 begin
    Assert (And_Then (True, True) = True);
    Assert (And_Then (False, False) = False);

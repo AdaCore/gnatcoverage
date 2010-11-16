@@ -1,6 +1,6 @@
 with Support, Andidor; use Support, Andidor;
 
-procedure Test_Andidor_T_Bmask is
+procedure Test_Andidor_T_B_SC is
 begin
    Assert (F (True, False, False) = False); -- Id Bmask
    Assert (F (True, True , True)  = True);  -- Id Bmask
