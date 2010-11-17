@@ -1,0 +1,29 @@
+Exempted regions shall all be synthesized in a distinct section of the output
+report, with a single message per region. This report section shall not
+contain any other kind of message.
+
+Each exemption message exposes the range of source locations covered by the
+region decalaration, and indicates whether 0 or more coverage violations were
+actually exempted within this range.
+
+Exemption regions shall not influence the diagnostics emitted on constructs
+outside of them.
+
+Exemption regions may be declared to exempt various levels of syntactic
+constructs such as statements or subprograms, and groups of such in all the
+contexts where they may appear.
+
+Testing strategy:
+-----------------
+
+For every single stated expectation, the testsuite driver checks if it
+appears in the report section expected for it's kind (exempted region or
+non-exempted violation).
+
+Check that expected results are produced for exemption regions declared
+to encompass
+
+ * groups of statements within the handled_sequence of a subprogram body,
+ * groups of statements within a local exception handler,
+ * groups of entire subprograms
+
