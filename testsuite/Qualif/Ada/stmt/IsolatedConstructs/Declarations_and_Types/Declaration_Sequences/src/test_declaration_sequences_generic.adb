@@ -4,17 +4,19 @@
 --  covered.
 
 with Decls_Pack; use Decls_Pack;
-with Support; use Support;
+with Support;    use Support;
 
-procedure Test_DEclaration_Sequences_Generic is
+procedure Test_Declaration_Sequences_Generic is
    package Inner is new Inner_G (13);
 begin
    Assert (Inner.Int = 13);
-end Test_DEclaration_Sequences_Generic;
+end Test_Declaration_Sequences_Generic;
+
+--# decls_pack.ads
+--  /lib_level_dcl/ l+ 0
+--  /gen_dcl/       l+ 0
 
 --# decls_pack.adb
 
---  /lib_level_dcl/ l+ 0
---  /gen_dcl/       l+ 0
 --  /local_dcl/     l- s-
 --  /stmt/          l- s-

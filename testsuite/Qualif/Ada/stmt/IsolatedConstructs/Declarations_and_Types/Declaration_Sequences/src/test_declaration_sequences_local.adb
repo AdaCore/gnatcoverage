@@ -18,9 +18,11 @@ begin
        and then My_Sorted_Vector(3) = 1);
 end Test_Declaration_Sequences_Local;
 
+--# decls_pack.ads
+--  /lib_level_dcl/ l+ 0
+--  /gen_dcl/       ~l- ~s-
+
 --# decls_pack.adb
 
---  /lib_level_dcl/ l+ 0
---  /gen_dcl/       l- s-
 --  /local_dcl/     l+ 0
 --  /stmt/          l+ 0

@@ -11,7 +11,7 @@ package body Decls_Pack is
          Current_Max := J;                             -- # stmt
 
          for K in J .. Last loop                       -- # stmt
-            if Result (K) > Result (Current_Max) then            -- # stmt
+            if Result (K) > Result (Current_Max) then  -- # stmt
                Current_Max := K;                       -- # stmt
             end if;
          end loop;
