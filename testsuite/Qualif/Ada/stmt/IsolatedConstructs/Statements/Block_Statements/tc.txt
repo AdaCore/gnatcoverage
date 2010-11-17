@@ -1,4 +1,0 @@
-Exercise various code fragments that contain block statements. Verify
-that only for those block statements that are not executed their components
-are reported as uncovered. (Components of exception handlers shall always be
-reported as uncovered because the test does not check exception handling).

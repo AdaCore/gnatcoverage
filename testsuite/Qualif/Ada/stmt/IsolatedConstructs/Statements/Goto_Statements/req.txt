@@ -1,47 +1,22 @@
-Statement coverage shell be assessed correctly for a GOTO statement. GOTO
-statement is a control statement, so coverage should be accessed for the GOTO
-statement itself and for other statements whose execution depends on control
-transfer caused by GOTO statement:
+A GOTO statement shall not be reported as covered if it is a part of a
+straight-line statement block and the block is not entered; statements following a GOTO statement which is executed shall be reported as not covered.
 
-- a GOTO statement shell not be reported as covered if it is a part of a
-  straight-line statement block and the block is not entered;
+Testing strategy:
 
-- if execution of a GOTO statement causes skipping of some statements (in the
-  statement sequence that contains this GOTO statement or/and in enclosing
-  statement sequences), the statements being skipped shell not be reported as
-  covered.
-
-Testing strategy notes:
-----------------------
-
-- control transfer inside the same straight-line statement block should be
+\begin{itemize}
+\item control transfer inside the same straight-line statement block should be
   checked;
-
-- control transfer back and forward shell be checked;
-
-- control transfer out of immediately enclosing statement sequence shell be
+\item control transfer back and forward shell be checked;
+\item control transfer out of immediately enclosing statement sequence shell be
   checked (jumping out of a LOOP, CASE, IF, block statements);
-
-- jumping out of exception handler cannot be checked because the sources are
+\item jumping out of exception handler cannot be checked because the sources are
   compiled with -gnatp;
-
-- when used to transfer control out of a compound statement, GOTO usually
+\item when used to transfer control out of a compound statement, GOTO usually
   is enclosed by some conditional statement - otherwise we will get dead code
   that cannot be considered as a normal thing in a real code. When considering
   the case when a GOTO statement transfers control out of something, we
   implicitly assume that this GOTO is a part of some IF statement that
   defines the condition when the control should be transferred.
+\end{itemize}
+For enclosing contexts only typical situations shell be considered: procedure body, function body, generic unit. One test case may combine more then one cases from above.
 
-For enclosing contexts only typical situations shell be considered:
-  - procedure body;
-  - function body;
-  - generic unit;
-
-One test case may combine more then one cases from above.
-
-It is hard to provide reasonable-looking functional code with GOTO statements
-for all the cases mentioned above, so this general requirement for GOTO
-statement is split into subordinate requirement to simplify analyzing tests
-and their results by avoiding big collection of meaningless code. For
-subordinate requirements, test cases shell try to exercise each of GOTO
-statements contained in functional code.

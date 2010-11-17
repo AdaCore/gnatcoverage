@@ -1,4 +1,4 @@
-If a loop statement is not executed, then the loop statement itself and all of
+Check that, if a loop statement is not executed, then the loop statement itself and all of
 its components are reported as uncovered. The test driver only "with"s the
 functional code, but it does not execute anything from it. All the loop
 statements from the functional code and components thereof are expected to be

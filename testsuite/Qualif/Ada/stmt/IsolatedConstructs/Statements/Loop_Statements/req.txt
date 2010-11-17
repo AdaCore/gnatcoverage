@@ -1,7 +1,3 @@
-A loop statement is a compound statement. A loop statement contains other
-statement as its components. Some forms of a loop statement (called as
-conditional loop below) contain a condition controlling loop iterations.
-
 If a loop statement is not executed, the statement itself and all its
 components shall be reported as uncovered (Test case No_Execution).
 
@@ -21,10 +17,12 @@ component statements shall be reported as uncovered (Test case Full_Iteration)
 Testing strategy:
 
 Different syntax forms of LOOP statement shall be checked:
-   - FOR loop;
-   - reverse FOR loop;
-   - WHILE loop;
-   - unconditional loop;
+\begin{itemize}
+\item FOR loop;
+\item reverse FOR loop;
+\item WHILE loop;
+\item unconditional loop.
+\end{itemize}
 
 The tests should not concentrate on different ways of transferring control
 out of the LOOP statements (such as EXIT statements and GOTO statements),

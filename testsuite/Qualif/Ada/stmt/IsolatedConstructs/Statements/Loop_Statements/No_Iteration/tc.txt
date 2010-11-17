@@ -1,5 +1,5 @@
-If a conditional loop statement is executed, but the loop condition prevents
-even the first loop iteration then all the statement that are the components
+Check that, if a conditional loop statement is executed, but the loop condition prevents
+even the first loop iteration, then all the statement that are the components
 of this loop are reported as uncovered (whereas the loop itself is reported as
 covered). The test driver calls only those subprograms from the functional
 code that contain conditional loops. The statements that are components of

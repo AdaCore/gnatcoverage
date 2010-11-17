@@ -1,5 +1,4 @@
-If a loop statement is executed, but during its first iteration the control is
-transferred outside the loop, the rest of the loop component statements are
+Check that, if a loop statement is executed, but during its first iteration the control is transferred outside the loop, then the rest of the loop component statements are
 reported as uncovered. The test driver calls only those subprograms from the
 functional code that contain loops with EXIT statements. The statements that
 are components of these loop statements and that follow the EXIT statements

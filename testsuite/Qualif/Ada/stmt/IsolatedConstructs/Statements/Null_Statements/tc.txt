@@ -1,2 +1,0 @@
-Exercise various code fragments that contain null statements. Verify that only
-those null statements that are not executed are reported as uncovered.

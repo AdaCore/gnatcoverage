@@ -1,4 +1,4 @@
-Verify that if a CASE statement is executed  several times, then the statement
+Check that if a CASE statement is executed  several times, then the statement
 itself and all the component statements of only those alternatives that have
 been executed are reported as covered, and the component statements of all
 the other alternatives  are reported as uncovered. The test drivers execute

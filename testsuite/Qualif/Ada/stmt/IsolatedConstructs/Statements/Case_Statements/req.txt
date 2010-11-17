@@ -1,8 +1,4 @@
-A CASE statement is a compound control statement. It contains more then one
-execution path (referred as CASE alternatives or simply alternatives below),
-and the execution of a CASE statement executes exactly one alternative.
-
-Each CASE alternative contains other statements as its components.
+A CASE statement contains more then one execution path (referred as CASE alternatives or simply alternatives below), and the execution of a CASE statement executes exactly one alternative. Each CASE alternative contains other statements as its components.
 
 If a CASE statement is not executed, the statement itself and all the
 statements in all its alternatives shall be reported as uncovered (Test case
@@ -21,7 +17,9 @@ uncovered (Test case Several_Alternatives).
 
 Testing strategy:
 
-Different syntax forms of IF statement should be checked:
-   - with and without OTHERS choice;
-   - choices defined by an expression and by a range;
-   - choices containing one value and multiple values;
+Different syntax forms of CASE statement should be checked:
+\begin{itemize}
+\item with and without OTHERS choice;
+\item choices defined by an expression and by a range;
+\item choices containing one value and multiple values.
+\end{itemize}

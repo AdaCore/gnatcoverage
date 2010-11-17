@@ -1,4 +1,4 @@
-Verify that if an IF statement is not executed, then all its paths and all its
+Check that if an IF statement is not executed, then all its paths and all its
 component statements are reported as uncovered. The test driver only "with"s
 the functional code, but it does not execute anything from it. All the IF
 statements from the functional code and components thereof are expected to be

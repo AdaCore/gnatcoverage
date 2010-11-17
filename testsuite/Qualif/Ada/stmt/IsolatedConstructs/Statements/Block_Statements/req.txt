@@ -1,17 +1,1 @@
-A block statement is a compound statement. It contains others statements and
-(optionally) declarations and exception handlers as its components. A block
-statement itself is not a subject of coverage analysis (no coverage
-information is generated for the block statement itself, all the information
-is generated for its components). If executuon does not reach a block
-statement, all its components shall be reported as uncovered.
-
-Testing strategy:
-
-Block statement with and without declarative part, with and without exception
-handlers shall be checked.
-
-Tests for a block statement are not supposed to check the case of
-transferring the control from outside the statement sequence of the block
-statement, this shall be checked for control statements and exception raising.
-Coverage of statements in exception handler also is not checked, it shall be
-checked for exceptions.
+A block statement contains others statements and (optionally) declarations and exception handlers as its components. If the execution does not reach a block statement, all its components shall be reported as uncovered.

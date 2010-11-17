@@ -1,4 +1,4 @@
-Verify that if an IF statement is executed, and its ElSIF path is chosen, then
+Check that if an IF statement is executed, and its ElSIF path is chosen, then
 this path and all its component statements are reported as covered, the IF
 path and all the preceding ELSIF path (if any) are reported as covered, but
 their components are reported as uncovered, and all the paths that follows

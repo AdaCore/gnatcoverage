@@ -1,10 +1,2 @@
-A null statement is a simple statement. If a null statement is not executed
-then it shall be reported as uncovered.
+If a null statement is not executed then it shall be reported as uncovered.
 
-Testing strategy:
-
-Real-life usage of a null statement shall be checked, such as:
-  - case statement alternative;
-  - null procedure;
-  - last statement in a statement sequence that has a label attached to it and
-    is used in control transfer to skip the preceding sequence of statements.

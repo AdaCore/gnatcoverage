@@ -1,4 +1,4 @@
-Verify that if a CASE statement is not executed, then the statement itself and
+Check that if a CASE statement is not executed, then the statement itself and
 the component statements of all its alternatives are reported as uncovered.
 The test driver only "with"s the functional code, but it does not execute
 anything from it.

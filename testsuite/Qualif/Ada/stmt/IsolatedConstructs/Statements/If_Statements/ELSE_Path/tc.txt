@@ -1,4 +1,4 @@
-Verify that if an IF statement is executed, and its ElSE path is chosen, then
+Check that if an IF statement is executed, and its ElSE path is chosen, then
 all component statements of this ELSE path are reported as covered, and for all
 the preceding paths, the path itself is reported as covered, but its component
 statements are reported as uncovered. The test driver executes only those IF

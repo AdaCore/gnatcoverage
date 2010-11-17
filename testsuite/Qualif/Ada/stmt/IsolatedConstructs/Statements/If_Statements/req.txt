@@ -1,17 +1,4 @@
-An IF statement is a compound control statement. It contains more then one
-execution path (counting implicit empty path for an IF statement without ELSE
-and ELSIF paths), and an execution of an IF statement executes exactly one
-path.
-
-A IF statement path contains other statements as its components. There are
-three kinds of IF statement paths - IF path, ELSIF path and ELSE path. IF and
-ELSIF paths contain conditional boolean expression that defines if the path
-shall be chosen for execution. The conditional expression may be evaluated
-even if the path is not executed. Below the statement "a path is (not)
-executed/reported as (un)covered" means that the code of the path that
-contains conditional expression is (not) executed/reported as (un)covered.
-ELSE path does not contain a conditional expression, so it cannot be executed
-and reported as covered or uncovered.
+An IF statement contains more then one execution path (counting implicit empty path for an IF statement without ELSE and ELSIF paths), and an execution of an IF statement executes exactly one path.
 
 If an IF statement is not executed, the all its paths and all their component
 statements shall be reported as uncovered (Test case No_Execution).
@@ -20,12 +7,7 @@ If an IF statement is executed, and its IF path is chosen, then the IF path
 and all its components shall be reported as covered, and all the other paths
 and components thereof shall be reported as uncovered (Test case IF_Path).
 
-If an IF statement is executed, and its ElSIF path is chosen, then this ELSIF
-path and all its components shall be reported as covered. All the path and
-components thereof that follow this ELSIF path (if any) shall be reported as
-uncovered. The IF path and ELSIF paths (if any) that precede the ELSIF path
-being executed shall be reported as covered, but all the components thereof
-shall be reported as uncovered (Test case ELSIF_Path).
+If an IF statement is executed, and one of its ELSIF path is chosen, then such ELSIF path and all its components shall be reported as covered. Preceding ELSIF paths shall be reported as covered, but their components shall be reported as uncovered; the IF path, all other ELSEIF (if any) and the ELSEIF path (if any) shall be reported as uncovered.
 
 If an IF statement is executed, and its ElSE path is chosen, then the
 components of this ELSE path shall be reported as covered. The IF path and
@@ -33,14 +15,16 @@ ELSIF paths (if any) that precede the ELSE path shall be reported as covered,
 but all the components thereof shall be reported as uncovered (Test case
 ELSE_Path).
 
-if an IF statement is executed several times, and different paths of this
-statement are chosen by different executions, so all the executed paths and
+If an IF statement is executed several times, and different paths of this
+statement are chosen by different executions, then all the executed paths and
 components thereof shall be reported as covered (Test Case Multiple_Paths)
 
 Testing strategy:
 
 Different syntax forms of IF statement should be checked:
-   - simplest form - no ELSE path, no ELSIF path;
-   - multiple ELSIF paths;
-   - ELSE path with and without ELSIF path;
-   - ELSIF paths with and without ELSE path;
+\begin{itemize}
+\item simplest form - no ELSE path, no ELSIF path;
+\item multiple ELSIF paths;
+\item ELSE path with and without ELSIF path;
+\item ELSIF paths with and without ELSE path.
+\end{itemize}
