@@ -1823,7 +1823,19 @@ package body SC_Obligations is
 
       procedure Set_SCOD_BB_Has_Code (SCOD : in out SCO_Descriptor) is
       begin
-         SCOD.Basic_Block_Has_Code := True;
+         if SCOD.Kind = Statement
+              and then SCOD.S_Kind = Pragma_Statement
+              and then ALI_Annotations.Contains (SCOD.Sloc_Range.First_Sloc)
+         then
+            --  This is a statement SCO for a pragma Annotate (Xcov): do not
+            --  set Basic_Block_Has_Code, in order to avoid generating a bogus
+            --  violation for the pragma SCO.
+
+            null;
+
+         else
+            SCOD.Basic_Block_Has_Code := True;
+         end if;
       end Set_SCOD_BB_Has_Code;
 
       S_SCO : SCO_Id := SCO;

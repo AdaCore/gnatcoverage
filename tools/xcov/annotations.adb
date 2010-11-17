@@ -26,6 +26,7 @@ with Coverage.Object;
 with Coverage.Source;
 with Outputs;     use Outputs;
 with Strings;     use Strings;
+with Switches;    use Switches;
 with Traces_Disa;
 
 package body Annotations is
@@ -546,7 +547,8 @@ package body Annotations is
 
       Cur : constant Cursor := ALI_Annotations.Floor (Sloc);
    begin
-      if Cur /= No_Element
+      if not Debug_Ignore_Exemptions
+        and then Cur /= No_Element
         and then Key (Cur).Source_File = Sloc.Source_File
       then
          declare

@@ -152,7 +152,17 @@ package body Coverage.Source is
                --  Statement coverage: line is covered if any associated
                --  statement is executed.
 
-               if SCI.Executed then
+               if not Basic_Block_Has_Code (SCO) then
+
+                  --  A SCO is marked as covered or not covered if there is
+                  --  code for it, or for a subsequent SCO in the same basic
+                  --  block, else we leave it as No_Code, so that a line ends
+                  --  up marked as No_Code only if no code execution can ever
+                  --  cause it to be marked as covered.
+
+                  null;
+
+               elsif SCI.Executed then
                   if Line_Info.State (Stmt) = No_Code then
                      --  This is the first statement SCO for this line
 
@@ -177,14 +187,7 @@ package body Coverage.Source is
                      SCO_State := Partially_Covered;
                   end if;
 
-               elsif Basic_Block_Has_Code (SCO) then
-
-                  --  For statement coverage, we mark a SCO as not covered if
-                  --  there is code for it, or for a subsequent SCO in the same
-                  --  basic block, else we leave it as No_Code, so that a line
-                  --  ends up marked as No_Code only if no code execution can
-                  --  possibly cause it to be marked as covered.
-
+               else
                   SCO_State := Not_Covered;
 
                   --  Generate violation message on first line of SCO
