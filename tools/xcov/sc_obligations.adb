@@ -1833,7 +1833,7 @@ package body SC_Obligations is
    begin
       loop
          SCO_Vector.Update_Element (S_SCO, Set_SCOD_BB_Has_Code'Access);
-         S_SCO := Previous (SCO);
+         S_SCO := Previous (S_SCO);
          exit when S_SCO = No_SCO_Id or else Basic_Block_Has_Code (S_SCO);
       end loop;
    end Set_Basic_Block_Has_Code;
