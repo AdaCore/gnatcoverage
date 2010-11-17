@@ -4,7 +4,6 @@
 --  are elaborated
 
 with Exemptions;
-with Multiple_Exemptions;
 with Support;    use Support;
 
 procedure Test_Exemptions_No_Call is
@@ -16,16 +15,16 @@ end Test_Exemptions_No_Call;
 
 --# exemptions.ads
 -- /decl/              l+ 0
--- /ex_decl/           l+ 0
+-- /xdecl/             l# x0
 -- /negI/              l+ 0
 
 --# exemptions.adb
--- /swap_decl/         l- s-
+-- /xswap/             l* x+
 -- /swap_stmt/         l- s-
 
 -- /factorial/         l- s-
 -- /1_factorial/       l- s-
--- /ex_factorial/      l- s-
+-- /xfactorial/        l* x+
 -- /elsif_factorial/   l- s-
 -- /rec_factorial/     l- s-
 
@@ -36,17 +35,7 @@ end Test_Exemptions_No_Call;
 -- /in_if_a_f/         l- s-
 -- /handler_a_f/       l- s-
 
--- /1_elab/            l+ 0
+-- /xelab_1/           l# x0
 -- /elab/              l+ 0
--- /2_elab/            l+ 0
+-- /xelab_2/           l# x0
 
---# multiple_exemptions.adb
--- /dcl/               l- s-
--- /1_if/              l- s-
--- /1_exem/            l- s-
--- /stmt/              l- s-
--- /2_if/              l- s-
--- /2_exem/            l- s-
--- /3_if/              l- s-
--- /3_exem/            l- s-
--- /handler/           l- s-

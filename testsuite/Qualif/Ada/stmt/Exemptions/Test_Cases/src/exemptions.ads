@@ -15,9 +15,10 @@ package Exemptions is
 
    X : Integer := Identity (1);                           -- # decl
 
-   pragma Annotate (Xcov, Exempt_On, "exemption on global declaraions");
-   Y : Integer := Identity (2);                           -- # ex_decl
-   pragma Annotate (Xcov, Exempt_Off);
+   pragma Annotate                                         -- # xdecl
+     (Xcov, Exempt_On, "exemption on global declaration"); -- # xdecl
+   Y : Integer := Identity (2);                            -- # xdecl
+   pragma Annotate (Xcov, Exempt_Off);                     -- # xdecl
 
    Z : Integer := 1;
 end Exemptions;

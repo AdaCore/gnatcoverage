@@ -7,7 +7,6 @@
 --  This driver executes all the non-exempted code.
 
 with Exemptions;
-with Multiple_Exemptions;
 with Support;    use Support;
 
 procedure Test_Exemptions_All_Non_Exempted_Code_Call is
@@ -24,26 +23,20 @@ begin
    Assert (Exemptions.Another_Factorial (Positive'Last) = Positive'Last);
    --  No exempted code in this function
 
-   Multiple_Exemptions (i, J, K);
-   Assert (I = 1 and then J = 2 and then K = 1);
-
-   K := -1;
-   Multiple_Exemptions (I, J, K);
-   Assert (I = 0 and then J = 1 and then K = -1);
 end Test_Exemptions_All_Non_Exempted_Code_Call;
 
 --# exemptions.ads
 -- /decl/              l+ 0
--- /ex_decl/           l+ 0
+-- /xdecl/             l# x0
 -- /negI/              l+ 0
 
 --# exemptions.adb
--- /swap_decl/         l- s-
+-- /xswap/             l* x+
 -- /swap_stmt/         l- s-
 
 -- /factorial/         l+ 0
 -- /1_factorial/       l+ 0
--- /ex_factorial/      l- s-
+-- /xfactorial/        l* x+
 -- /elsif_factorial/   l+ 0
 -- /rec_factorial/     l+ 0
 
@@ -54,17 +47,6 @@ end Test_Exemptions_All_Non_Exempted_Code_Call;
 -- /in_if_a_f/         l+ 0
 -- /handler_a_f/       l+ 0
 
--- /1_elab/            l+ 0
+-- /xelab_1/           l# x0
 -- /elab/              l+ 0
--- /2_elab/            l+ 0
-
---# multiple_exemptions.adb
--- /dcl/               l+ 0
--- /1_if/              l+ 0
--- /1_exem/            l- s-
--- /stmt/              l+ 0
--- /2_if/              l+ 0
--- /2_exem/            l- s-
--- /3_if/              l+ 0
--- /3_exem/            l- s-
--- /handler/           l- s-
+-- /xelab_2/           l# x0
