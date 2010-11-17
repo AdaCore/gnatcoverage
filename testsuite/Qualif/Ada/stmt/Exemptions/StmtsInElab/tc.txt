@@ -1,0 +1,2 @@
+Exercize code featuring an exemption region for a conditioned sequence of
+statements within a package body elaboration.
