@@ -14,16 +14,22 @@ constructs such as statements or subprograms, and groups of such in all the
 contexts where they may appear.
 
 Testing strategy:
------------------
 
 For every single stated expectation, the testsuite driver checks if it
 appears in the report section expected for it's kind (exempted region or
 non-exempted violation).
 
 Check that expected results are produced for exemption regions declared
-to encompass
+to encompass 
 
- * groups of statements within the handled_sequence of a subprogram body,
- * groups of statements within a local exception handler,
- * groups of entire subprograms
+ * the whole of a procedure body,
+
+ * groups of statements within
+    the root sequence of a subprogram body,
+    a local exception handler,
+    a package body elaboration code, generic case included,
+
+ * a group of entire subprograms,
+
+ * a mix of statements and declarations in a package spec + body
 

@@ -1,5 +1,3 @@
-Exercize a subprogram featuring several disjoint exemption regions, each
-featuring a basic straight sequence of statements and into which we may get or
-not depending on the value of input parameters. The first region raises an
-exception, caught by a local handler where all the statements are exempted as
-well.
+Exercize a subprogram featuring several disjoint exemption regions, in 
+both the toplevel sequence of statements and a local exception handler.
+
