@@ -14,7 +14,7 @@
 \chapter{Document introduction}
 
 \section{Document purpose}
-The purpose of this document is to describe the applicable processes to qualify \xcov in a DO-178B and DO-178C context.
+The purpose of this document is to describe the applicable processes to qualify \xcov{} in a DO-178B and DO-178C context.
 
 \section{Authors}
 \begin{tabular}{|c|c|c|}
@@ -35,61 +35,76 @@ The evolution of this document is automatically tracked by the configuration man
 
 \include{doc_introduction}
 
-\chapter{Tool and document overview}
+\chapter{Tool Overview \& Qualified Interface}
 
 \section{Tool overview}
-\xcov is a tool conceived to measure test coverage of software structures at both source code level. Differently from most common coverage tools, \xcov operates without instrumenting the source code. It also allows using the same (cross) compiler used in the development environment to produce the final executable to be deployed on the target hardware. \xcov relies on:
+\xcov{} is a tool conceived to measure test coverage of software structures at both source code level. Differently from most common coverage tools, \xcov{} operates without instrumenting the source code. It also allows using the same (cross) compiler used in the development environment to produce the final executable to be deployed on the target hardware. \xcov{} relies on:
 \begin{itemize}
-\item the list of object instructions evaluated within the execution of a (set of) test(s): such a list is collected by \xcov itself; 
+\item the list of object instructions evaluated within the execution of a (set of) test(s): such a list is collected by \xcov{} itself; 
 \item the ability of the compiler to produce a map between source code structures (statements, decisions, conditions) and the corresponding object code instructions.
 \end{itemize}
-By analysing the data above, \xcov is thus able to calculate which source code structures have been executed.
+By analysing the data above, \xcov{} is thus able to calculate which source code structures have been executed.
 
-Additional information on the high \xcov can be found in the \xcov UG and in \adaeurope and \erts.
+Additional information on the high \xcov{} can be found in the \xcov{} UG and in \adaeurope and \erts.
 
 \section {Sought certification credit}
-DO-178 requires to measure test coverage of software structure as part of the Software Verification Process. Measure of test coverage is mandatory for level A, B, C. Level A requires to achieve at least \mcdc, \dc and \stc (table A7 objective 5-7); level B requires to achieve at least \dc and \stc (table A7 objective 6-7) and level C requires to achieve at least \stc (table A7 objective 7). \xcov aims at automating the measurement of activities above.
 
-\xcov is qualified as a \emph{verification tool} or, in DO-178C terms, with a Tool Qualification Level 5 (TQL5). As such, and as long as \xcov is used following its qualified interface (see section \ref{sec:qual-interface}), applicants may use \xcov output as certification evidence and certification authorities shall consider \xcov output \emph{as good as} the output of a manual activity.
+\xcov{} aims at automating the structural coverage assessment activities 
+required by DO-178 as part of the Software Verification Process.
+%
+This assessment is mandatory for levels A, B, and C, with more stringent
+requirements for the more critical levels (table A7): at least \mcdc{}, \dc{}
+and \stc{} for level A (objectives 5-7); at least \dc{} and \stc{} for level B
+(objectives 6-7) and least \stc{} for level C (objective 7).
+
+\xcov{} is qualified as a \emph{verification tool}, with a Tool Qualification
+Level 5 (TQL5) in DO-178C terms.
+%
+As such, as long as \xcov{} is used following its qualified interface (see
+section \ref{sec:qual-interface}), applicants may use \xcov{}'s output as
+certification evidence and certification authorities shall consider \xcov{}'s
+output \emph{as good as} the output of a manual activity.
 
 \section{Qualified interface}
 \label{sec:qual-interface}
-For \xcov to produce reports valid as certification material, the tool shall be used following these steps:
+
+To produce qualified reports, \xcov{} shall be used as follows:
+
 \begin{enumerate}
-\item Build the executable application using the GNAT Pro executable identified in the delivery file (see section \ref{sec:delivery}) and accordingly to the known constraints for compilation options, coding standard and the like (see section \ref{sec:constr-problems}).
+\item Build the executable application using the GNAT Pro toolchain
+  identified in the delivery file (see section \ref{sec:delivery}), and
+  obeying the documented constraints for compilation options, coding
+  standard and the like (see section \ref{sec:constr-problems}).
 
-\item Execute on the command line the following command:\\
+\item To produce an execution trace file \T{<TRACE>}, run the \T{<APP>}
+  executable program within the instrumented execution environment using the
+  following command line:\\
 
-\texttt{xcov run --target=<TARGET> --level=<LEVEL> <EXECUTABLE>} \\
+\T{xcov run --target=<TARGET> --level=<LEVEL> <APP> -o <TRACE>} \\
 
-where:
-\begin{itemize}
-\item <TARGET> is the target platform (the same used in the GNAT Pro executable name, for example, powerpc-elf).
-\item <LEVEL> is the targeted DO-178 criticality level, univocally identifying which coverage metrics are activated.
-\item <EXECUTABLE> is the executable file produced at point 1.
-\end{itemize}
+... where \T{<TARGET>} identifies the target platform (as in the GNAT Pro
+toolchain prefixes, e.g.  powerpc-elf), and \T{<LEVEL>} designates the
+coverage criteria to assess: \T{stmt}, \T{stmt+decision} or \T{stmt+mcdc};
 
-This step produces two files:
-\begin{itemize}
-\item traces.list, a list of files containing the execution trace to examine
-\item alis.list, the list of files for which we want coverage results.
-\end{itemize}
+\item To produce the assessment \T{<REPORT>} file, feed the execution traces
+  of interest to the coverage analyzer using the following command line:\\
 
-\item Execute on the command line the following command:\\
+\texttt{xcov coverage --annotate=report --level=<LEVEL> \\
+  --scos=@alis.list @traces.list -o <REPORT>} \\
 
-\texttt{xcov coverage --scoc=@alis.list --level=<LEVEL> --anotate=report @traces.list -o <REPORT>} \\
-
-where:
-
-\begin{itemize}
-\item <LEVEL> is the targeted DO-178 criticality level as per point 2.
-\item <REPORT> is the file where the qualified coverage report is generated.
-\end{itemize}.
+... where \T{<LEVEL>} is the same as for \T{xcov run}, \T{traces.list} is a
+file containing the list of execution traces to operate on, and \T{alis.list}
+is a file containing the list of GNAT Pro ALI file names corresponding to the
+source units for which coverage is to be assessed.
+%
+When the \T{traces.list} input lists multiple traces, \xcov{} consolidates the
+coverage achieved by all the corresponding executions as if they all happened
+in sequence as a single one.
 
 \end{enumerate}
 
-\section{\xcov report structure}
-<TO BE FILLED>
+The output report format is documented in an appendix of the \xcov{}
+Fundamentals and Users Guide.
 
 \chapter{Qualification data}
 
@@ -108,12 +123,12 @@ Tests Results & Development Team & ts\_results.pdf \\ \hline
 Delivery file & Qualification Team & delivery.txt, see section \ref{sec:delivery} \\ \hline
 Verification results analysis & User & user-specific \\ \hline
 Specific constraints and open problems & Qualification Team & constraints.txt, see section \ref{sec:constr-problems} \\ \hline
-\xcov User Guide & Development Team & xcov\_ug.pdf \\ \hline
+\xcov{} User Guide & Development Team & xcov\_ug.pdf \\ \hline
 \end{tabular}
 
-The Tool Qualification Plan, the Software Configuration Management Plan and the Software Quality Assurance Plan are generic qualification data \emph{not} specific to a given release of \xcov.
+The Tool Qualification Plan, the Software Configuration Management Plan and the Software Quality Assurance Plan are generic qualification data \emph{not} specific to a given release of \xcov{}.
 
-The Tool Operational Requirements, the Test cases, the Tests, the Tests Results, the Delivery File and the Specific constraints and open problems are instead qualification data specific to a given \xcov release. 
+The Tool Operational Requirements, the Test cases, the Tests, the Tests Results, the Delivery File and the Specific constraints and open problems are instead qualification data specific to a given \xcov{} release. 
 
 \section{Tool development and verification standards}
 \subsection{Tool Operational Requirements}
@@ -129,11 +144,11 @@ Source code for tests is contained in the \texttt{src} sub-folder; source files 
 
 \subsection{Environment equivalence}
 \label{sec:equivalence}
-For the whole set of qualification material to be consistent, the qualification and user environments must be equivalent. Given our internal knowledge of \xcov, we deem the following data sufficient to establish equivalence of environments:
+For the whole set of qualification material to be consistent, the qualification and user environments must be equivalent. Given our internal knowledge of \xcov{}, we deem the following data sufficient to establish equivalence of environments:
 \begin{enumerate}
 \item the name of the GNAT Pro executable;
 \item the GNAT Pro version number;
-\item the \xcov version number;
+\item the \xcov{} version number;
 \item the host operating system and its version;
 \end{enumerate}
 The value for all the items above for the qualification environment are contained in the delivery file (section \ref{sec:delivery}). Test execution results are produced in an environment which is equivalent to the one described in the delivery file. 
@@ -141,13 +156,13 @@ The value for all the items above for the qualification environment are containe
 \subsection{Tool Operational Requirements}
 We identify three different kinds of tool operational requirements, each of which focusing on a distinct aspect:
 \begin{enumerate}
-\item \textbf{Coverage of specific source code structures in isolation.} This category of TORs focuses on the users' expectations for the coverage of specific source code structures with respect to a specific coverage metric. We are interested in assessing that \xcov correctly acknowledges cases of absence of (or partial) coverage. In other terms, we focus on assessing \xcov is \emph{sound}. For this reason, requirements of this category shall target a specific element of a programming language (if statements, loop, blocks, etc.) and express under which conditions coverage is \emph{not} achieved. A simplified example is: \emph{"An if statement whose governing decision is evaluated to just True shall be reported as non covered for decision coverage."}. Each requirement shall target a single structure only. The use of programming language reference manuals provides a significant contribution in identifying the structure of interest.
+\item \textbf{Coverage of specific source code structures in isolation.} This category of TORs focuses on the users' expectations for the coverage of specific source code structures with respect to a specific coverage metric. We are interested in assessing that \xcov{} correctly acknowledges cases of absence of (or partial) coverage. In other terms, we focus on assessing \xcov{} is \emph{sound}. For this reason, requirements of this category shall target a specific element of a programming language (if statements, loop, blocks, etc.) and express under which conditions coverage is \emph{not} achieved. A simplified example is: \emph{"An if statement whose governing decision is evaluated to just True shall be reported as non covered for decision coverage."}. Each requirement shall target a single structure only. The use of programming language reference manuals provides a significant contribution in identifying the structure of interest.
 
-\item \textbf{Coverage of multiple source code structures.} This category of TORs is an extension of the one above and takes into consideration several different code structures at once. The goal is to assess that \xcov reports are sound also when the tool is used on complex programs. It is clearly not reasonable to take into account all possible combinations of all possible structures because this would lead to an exponential increase of the number of test cases. We thus use a reasonably complex embedded application and its associated test suite as a way to verify \xcov behaviour.
+\item \textbf{Coverage of multiple source code structures.} This category of TORs is an extension of the one above and takes into consideration several different code structures at once. The goal is to assess that \xcov{} reports are sound also when the tool is used on complex programs. It is clearly not reasonable to take into account all possible combinations of all possible structures because this would lead to an exponential increase of the number of test cases. We thus use a reasonably complex embedded application and its associated test suite as a way to verify \xcov{} behaviour.
 
-\item \textbf{Structure of the report file}. This category of TORs focuses on the report file produced by \xcov.
+\item \textbf{Structure of the report file}. This category of TORs focuses on the report file produced by \xcov{}.
 
-\item \textbf{Representativeness of coverage results.} Since \xcov executes the application and its test suite on an execution platform other than the final operational hardware, we also consider specific TORs intended to provide evidence that the \xcov-driven execution of an application is equivalent to its execution on the final hardware. Such TORs focus on comparing the output of the same executable when executed via \xcov and on the final target processor.
+\item \textbf{Representativeness of coverage results.} Since \xcov{} executes the application and its test suite on an execution platform other than the final operational hardware, we also consider specific TORs intended to provide evidence that the \xcov{}-driven execution of an application is equivalent to its execution on the final hardware. Such TORs focus on comparing the output of the same executable when executed via \xcov{} and on the final target processor.
 \end{enumerate}
 
 \subsection{Test cases}
@@ -160,13 +175,13 @@ Test cases reflect the different kinds of tool operational requirements.
 
 \item \textbf{Structure of the report file}. Test cases for this kind of TORs check that the report file contains the right coverage information in the right section, including those related to coverage exception.
 
-\item \textbf{Representativeness of coverage results.} These test cases consider all executables produced for the previous kind of test cases and compare their \xcov-driven execution with the execution on the target hardware. 
+\item \textbf{Representativeness of coverage results.} These test cases consider all executables produced for the previous kind of test cases and compare their \xcov{}-driven execution with the execution on the target hardware. 
 
 \end{enumerate}
 
 \subsection{Specific constraints and open problems}
 \label{sec:constr-problems}
-All known constraints and open problems are collected in the appropriate file as per section \ref{sec:qd-overview}. They include constraints on GNAT Pro compilation options and on coding standard accepted by \xcov.
+All known constraints and open problems are collected in the appropriate file as per section \ref{sec:qd-overview}. They include constraints on GNAT Pro compilation options and on coding standard accepted by \xcov{}.
 
 \subsection{Delivery file}
 \label{sec:delivery}
@@ -178,22 +193,22 @@ The delivery file (as per section \ref{sec:qd-overview}) contains:
 
 \chapter{User activities}
 \label{sec:user-act}
-The user needs to perform a set of activities, either in the scope of \xcov qualification or \xcov usage.
+The user needs to perform a set of activities, either in the scope of \xcov{} qualification or \xcov{} usage.
 
-\section{\xcov qualification}
-To finalise the qualification of \xcov, the user needs to:
+\section{\xcov{} qualification}
+To finalise the qualification of \xcov{}, the user needs to:
 \begin{enumerate}
-\item \textbf{Reference \xcov in the PSAC}, identifying \xcov as a verification tool requiring qualification because it contributes to take certification credit by automating some (otherwise manual) activities.
+\item \textbf{Reference \xcov{} in the PSAC}, identifying \xcov{} as a verification tool requiring qualification because it contributes to take certification credit by automating some (otherwise manual) activities.
 \item \textbf{Assess the equivalence between the qualification environment and the operational environment} (see section \ref{sec:equivalence}).
 \item \textbf{Put qualification data under configuration management}.
 \end{enumerate}
 
-\section{\xcov usage}
-The user needs to perform the following activities to assure \xcov exhibits a qualified behaviour:
+\section{\xcov{} usage}
+The user needs to perform the following activities to assure \xcov{} exhibits a qualified behaviour:
 \begin{enumerate}
-\item \textbf{Install \xcov in the Operational Environment}.
-\item \textbf{Check \xcov is used following its qualified interface} (see section \ref{sec:qual-interface}) when the tool output is intended to be used to take certification credit.
-\item \textbf{Check \xcov is used in a way compliant to its known constraints and open problems} (see section \ref{sec:constr-problems}) when the tool output is intended to be used to take certification credit.
+\item \textbf{Install \xcov{} in the Operational Environment}.
+\item \textbf{Check \xcov{} is used following its qualified interface} (see section \ref{sec:qual-interface}) when the tool output is intended to be used to take certification credit.
+\item \textbf{Check \xcov{} is used in a way compliant to its known constraints and open problems} (see section \ref{sec:constr-problems}) when the tool output is intended to be used to take certification credit.
 \item \textbf{Update the Environment Configuration Index} by including the delivery file and test results (see section \ref{sec:qd-overview} for the corresponding files).
 \item \textbf{Update the Software Accomplishment Summary} for:
 \begin{itemize}
@@ -201,7 +216,7 @@ The user needs to perform the following activities to assure \xcov exhibits a qu
 \item Objectives 6 and 7 of table A7 for level B software.
 \item Objective 7 of table A7 for level C software.
 \end{itemize}
-\item \textbf{Update the Software Accomplishment Summary} for the qualification status of \xcov.
+\item \textbf{Update the Software Accomplishment Summary} for the qualification status of \xcov{}.
 \end{enumerate}
 
 
