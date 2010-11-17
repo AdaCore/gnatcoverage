@@ -8,6 +8,7 @@ begin
 end;
 
 --# stacks.adb
+-- /op_case/    l- s-
 -- /op_push/    l- s-
 -- /op_pop/     l- s-
 -- /op_oflow/   l* x+

@@ -2,7 +2,7 @@ package body Stacks is
 
    procedure On (S : in out Stack; Op : Op_Kind; V : in out Integer) is
    begin
-      case Op is
+      case Op is -- # op_case
          when Push =>
             pragma Annotate                      -- # op_oflow
               (Xcov, Exempt_On, "no overflow");  -- # op_oflow
