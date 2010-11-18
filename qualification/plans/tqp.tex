@@ -106,10 +106,14 @@ in sequence as a single one.
 The output report format is documented in an appendix of the \xcov{}
 Fundamentals and Users Guide.
 
-\chapter{Qualification data}
+\chapter{Qualification Data}
 
-\section{Overview of qualification data}
+\section{Qualification Data Overview}
 \label{sec:qd-overview}
+
+Eventually, \xcov{}'s qualification data materializes as a set of files and
+documents, summarized in the table below:
+
 \begin{tabular}{|c|c|c|}
 \hline
 \textbf{Data} & \textbf{Provided by} & \textbf{File} \\ \hline
@@ -117,18 +121,21 @@ Tool Qualification Plan & Qualification Team & tqp.pdf \\ \hline
 Software Configuration Management Plan & Qualification Team & scmp.pdf \\ \hline
 Software Quality Assurance Plan & Quality Assurance Team & sqap.pdf \\ \hline
 Tool Operational Requirements & Development Team & tor\_tc\_ts.pdf \\ \hline
-Test cases & Development Team & tor\_tc\_ts.pdf \\ \hline
-Tests & Development Team & tor\_tc\_ts.pdf \\ \hline
+Test cases & " & " \\ \hline
+Tests & " & " \\ \hline
 Tests Results & Development Team & ts\_results.pdf \\ \hline
 Delivery file & Qualification Team & delivery.txt, see section \ref{sec:delivery} \\ \hline
 Verification results analysis & User & user-specific \\ \hline
-Specific constraints and open problems & Qualification Team & constraints.txt, see section \ref{sec:constr-problems} \\ \hline
+Constraints and open problems & Qualification Team & constraints.txt, see section \ref{sec:constr-problems} \\ \hline
 \xcov{} User Guide & Development Team & xcov\_ug.pdf \\ \hline
 \end{tabular}
 
-The Tool Qualification Plan, the Software Configuration Management Plan and the Software Quality Assurance Plan are generic qualification data \emph{not} specific to a given release of \xcov{}.
-
-The Tool Operational Requirements, the Test cases, the Tests, the Tests Results, the Delivery File and the Specific constraints and open problems are instead qualification data specific to a given \xcov{} release. 
+The Tool Qualification, Software Configuration Management and Software Quality
+Assurance Plans are generic qualification data, \emph{not} specific to a given
+release of \xcov{}.
+%
+All the other files and documents are specific to a given \xcov{}
+release.
 
 \section{Tool development and verification standards}
 \subsection{Tool Operational Requirements}
