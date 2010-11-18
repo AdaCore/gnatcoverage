@@ -1,0 +1,8 @@
+Check various code fragments that contain null statements such as:
+\begin{itemize}
+\item case statement alternative;
+\item null procedure;
+\item last statement in a statement sequence that has a label attached to it and
+    is used in control transfer to skip the preceding sequence of statements.
+\end{itemize}
+Check that only those null statements that are not executed are reported as uncovered.
