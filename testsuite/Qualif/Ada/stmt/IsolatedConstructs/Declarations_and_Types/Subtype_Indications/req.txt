@@ -1,35 +1,19 @@
-Any construct that contains a subtype indication that results in generating
-some executable code should be treated as statement for coverage analysis
-purposes if it has any executable code associated with it.
+A subtype indication that contains a range, index or discriminant constraint
+may generate a coverage information. If such subtype indication is not
+elaborated it shall be reported as uncovered. If it is elaborated it shall not
+be reported as uncovered.
 
-Testing strategy notes:
+Testing strategy:
 
-- only subtype indications with constraints are of interest;
-
-- only range, index and discriminant constraints are of interest (delta and
-  digits constraints are always static);
-
-- Subtype indication is always a part of some other declaration or statement
-  construct, here only those cases where a subtype indication is the only
-  reason to have generated code are checked;
-
-- Subtype indication should be checked at least in the following contexts:
-     1. Subtype declaration
-     2. Object declaration (without explicit or implicit initialization);
-     3. Declaration of an object of discriminanted record type with
-        discriminat constraint and component subtype indications that depend
-        on discriminants (the case of variant record is supposed to be checked
-        in Declarations_and_Types/Variant_Parts
-     4. Component definition in record and array type declaration ???
-
-- depending on a context, the same declaration may or may not generate an
-  executable code; so the tests use weak coverage expectations
-
-Questions (same as for object declarations):
-1. Some declarations are considered as generating code, some other - are not.
-   Should this be addressed? And how could this be addressed?  Is the current
-   wording about weak coverage expectations enough?
-
-2. Do we have any definition of weak coverage expectations somewhere in
-   qualification materials?
+Tests shall use subtype indications in such a way that the subtype indication
+shall be the only reason to generate coverage information to avoind masking of
+subtype indication coverage with coverage information generating for another
+construct. For example, if a subtype indication is a part of an object
+declaration, then this declaration shall not contain an initialization
+expression. Subtype indication shall be checked when used in:
+\begin{itemize}
+\item subtype declarations;
+\item object declarations;
+\item component declarations;
+\end{itemize}
 
