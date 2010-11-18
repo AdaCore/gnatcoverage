@@ -1,22 +1,11 @@
-An array type declaration that defines a constrained array type and contains
-an explicit constraint in one of discrete subtype definitions should be
-treated as statement for coverage analysis purposes if it has any executable
-code associated with it. The same should be true for an object declaration
-that contains a constrained array definition
+A discrete subtype definition that contains a range may generate a coverage
+information. If such discrete subtype definition is not elaborated it shall be
+reported as uncovered. If it is elaborated it shall not be reported as
+uncovered.
 
-Testing strategy notes:
+Testing strategy:
 
-- two test cases should be considered - one for array types, another for
-  array object or anonymous array type
-
-- depending on a context, the same declaration may or may not generate an
-  executable code; so the tests use weak coverage expectations
-
-Questions (same as for object declarations):
-1. Some declarations are considered as generating code, some other - are not.
-   Should this be addressed? And how could this be addressed?  Is the current
-   wording about weak coverage expectations enough?
-
-2. Do we have any definition of weak coverage expectations somewhere in
-   qualification materials?
-
+Tests shall use discrete subtype definition in such a way that this discrete
+subtype definition shall be the only reason to generate coverage information
+to avoid masking of subtype indication coverage with coverage information
+generating for another construct.

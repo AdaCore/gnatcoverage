@@ -1,3 +1,0 @@
-This test case checks that array type declaration with a discrete subtype
-definition that contains a constraint is treated as statement
-for coverage analysis purposes.
