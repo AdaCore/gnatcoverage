@@ -1,6 +1,6 @@
 --  Test driver for derived subprograms. It only "with's" the functional code,
---  but does not execute anything from it, so nothing is expected to be
---  reported as covered.
+--  but does not execute anything from it, so everything is expected to be
+--  reported as uncovered.
 
 with Derived_1;       use Derived_1;
 with Derived_2;       use Derived_2;

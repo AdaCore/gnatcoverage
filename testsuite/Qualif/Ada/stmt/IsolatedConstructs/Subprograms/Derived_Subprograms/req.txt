@@ -1,8 +1,8 @@
 In case of implicit inherited subprograms, the code of the explicit subprogram
-it is inherited from is not reported as covered if neither the explicit
+it is inherited from shall be reported as uncovered if neither the explicit
 subprogram nor any of implicit subprogram inherited from it is called. In case
 of the call to overriding subprogram, the code of the overridden subprogram
-shall not be reported as covered if this overridden subprogram is not covered
+shall be reported as uncovered if this overridden subprogram is not covered
 by itself.
 
 Testing strategy notes:
