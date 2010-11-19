@@ -1,6 +1,6 @@
 --  Test driver for subprogram renamings. It only "with's" the functional code
---  but does not execute anything from it. So nothing is expected to be
---  reported as covered.
+--  but does not execute anything from it. So everything is expected to be
+--  reported as uncovered.
 
 with Pack;          use Pack;
 with Renaming_Pack; use Renaming_Pack;

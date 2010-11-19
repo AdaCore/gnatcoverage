@@ -1,8 +1,0 @@
-An object renaming declaration shall be reported as covered only if it is
-elaborated. If evaluating of the object being renamed include a function call,
-the code of the called function shall be reported as covered only if the
-renaming declaration is elaborated.
-
-Testing strategy notes:
-----------------------
-Library-level and local object renaming declarations shall be checked.

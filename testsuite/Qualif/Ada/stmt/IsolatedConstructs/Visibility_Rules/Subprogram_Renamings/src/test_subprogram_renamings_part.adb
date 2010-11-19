@@ -1,6 +1,7 @@
 --  Test driver for subprogram renamings. It calls some subprograms from the
 --  functional code using names defined by subprogram renamings. Only the code
---  of these subprograms shall be reported as covered.
+--  of these subprograms shall be reported as covered, all the other code shall
+--  be reported as uncovered.
 
 with Pack;          use Pack;
 with Renaming_Pack; use Renaming_Pack;

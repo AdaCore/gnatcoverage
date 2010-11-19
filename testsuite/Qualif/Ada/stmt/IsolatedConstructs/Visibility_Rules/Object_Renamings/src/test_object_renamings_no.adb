@@ -1,6 +1,7 @@
 --  Test driver for object renamings. It only "with's" the part of the
 --  functional code that does not contain library-level renamings, but does not
---  execute anything from it. So nothing is expected to be reported as covered.
+--  execute anything from it. So everything is expected to be reported as
+--  uncovered.
 
 with Local_Renamings; use Local_Renamings;
 with Support;         use Support;
