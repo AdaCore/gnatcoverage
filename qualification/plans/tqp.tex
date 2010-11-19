@@ -8,7 +8,7 @@
 
 \begin{document}
 \title{\huge
-  xcov{}\\
+  \xcov{}\\
   Tool Qualification Plan\\ \ \\
   \large \textbf{Document Version 1.0}}
 
@@ -39,10 +39,29 @@ management system. Here we just provide the major revision history.  \ \\ \\
  &  &  \\ \hline
 \end{tabular}
 
-%**************************************************************************
+\section{Ongoing work}
+
+\begin{itemize}
+\item%
+  Need to integrate big blob on the tor/testbase orgnaisation.
+%
+\item%
+  Need to clarify the notion of qualified interface vs command line
+  options and coding standard
+%
+\item%
+  Need to fill missing briefs on the various ``Plan'' documents in
+  the Qualification Data chapter
+%
+\item%
+  Need to complete/clarify the Preparing for Qualified Use chapter,
+  in particular who does and produces what (e.g. who runs the tests etc).
+\end{itemize}
+
+% **************************************************************************
 \include{doc_introduction}
 
-%**************************************************************************
+% **************************************************************************
 \chapter{Tool Overview \& Qualified Interface}
 
 
@@ -132,13 +151,13 @@ Fundamentals and Users Guide.
 \end{enumerate}
 
 
-%**************************************************************************
-\chapter{Tool behavior verification standards}
+% **************************************************************************
+\chapter{Tool development and verification standards}
 
 \section{General directions}
 
-To assess that the tool produces reliable outputs, useable as certification
-evidence, we provide:
+To elaborate how the tool should behave and assess that it produces reliable
+outputs, useable as certification evidence, we provide:
 
 \begin{Itemize}
 \item%
@@ -150,10 +169,9 @@ evidence, we provide:
   corresponds to expectations.
 \end{Itemize}
 
-\subsection{Operational Requirement Categories}
-
-Multiple aspects of the tool behavior have to be validated, and we distinguish
-different categories of tool operational requirements for this purpose.
+Multiple aspects of the tool behavior have to be considered, and we
+distinguish different categories of tool operational requirements for this
+purpose.
 %
 To start with:
 
@@ -176,12 +194,12 @@ Individual requirements in this category target a single language construct.
 The use of programming language reference manuals provides a significant
 contribution in identifying the constructs of interest.
 
-Test cases for this kind of TORs typically exercise the same construct in
+Testcases for this kind of TORs typically exercise the same construct in
 various ways, for example by causing a boolean expression to be evaluated just
 to True or False, and verify that results are are expected in all the
 variations.
 
-\item \textbf{Orthogonal coverage assessement facilities.}
+\item \textbf{General coverage analysis facilities.}
 %
 This category focuses on general facilities offered by the tool, not at all
 tied to a particular language construct, such as the support for coverage
@@ -215,7 +233,9 @@ Beyond all that, we have identified two other requirement categories of use:
 The documented output report format is a part of the tool qualified interface.
 % 
 This category of requirements focuses on well identified aspects of that
-report format, with testcases verifying that all the mandatory pieces are
+report format.
+
+Dedicated testcases are designed to verify that all the mandatory pieces are
 there.
 %
 Part of these requirements are also implicitly validated by the execution of
@@ -245,6 +265,8 @@ assessment environment behavior deviates from the target model.
 
 \section{Operational organization}
 
+TBC
+
 \subsection{Tool Operational Requirements}
 A physical folder on the repository is associated to each TOR. The name of the folder is the id of the TOR. All qualification artifacts derived from a TOR are stored as either files or folders contained in the folder of the parent TOR. The TOR textual specification is contained in a file always named \texttt{req.txt}.
 
@@ -255,7 +277,7 @@ Explicit description of test cases (when necessary) is contained in the \texttt{
 Source code for tests is contained in the \texttt{src} sub-folder; source files start with the \texttt{test\_} prefix. 
 
 
-%**************************************************************************
+% **************************************************************************
 \chapter{Qualification Data}
 
 \section{Overview}
@@ -285,25 +307,23 @@ release of \xcov{}.
 All the other files and documents are specific to a given \xcov{}
 release.
 
-\section{Qualification Data Items}
-
-\subsection{Tool Qualification Plan}
+\section{Tool Qualification Plan}
 
 This document.
 
-\subsection{Software Configuration Management Plan}
+\section{Software Configuration Management Plan}
 
 TBC
 
-\subsection{Software Quality Assurance Plan}
+\section{Software Quality Assurance Plan}
 
 TBC
 
-\subsection{Operational Requirements and Test Cases}
+\section{Operational Requirements and Test Cases}
 
 TBC
 
-\subsection{Delivery file}
+\section{Delivery file}
 \label{sec:delivery}
 
 Each delivery qualified for use to produce certification evidence includes a
@@ -311,8 +331,8 @@ Each delivery qualified for use to produce certification evidence includes a
 
 \begin{Itemize} 
 \item%
-  The description of the qualification environment following the data
-  required by section \ref{sec:equivalence};
+  The description of the qualification environment, as defined by the section
+  \ref{sec:equivalence} to allow equivalence checks by users;
   %
 \item%
   The version of all the files listed in section \ref{sec:qd-overview}, as
@@ -326,15 +346,63 @@ Each delivery qualified for use to produce certification evidence includes a
   need to be obeyed, delivery specific part of the tool qualified interface.
 \end{Itemize}
 
-\section{Producing the Qualification Data}
+% **************************************************************************
+\chapter{Preparing for Qualified Use}
 
-\subsection{Environment equivalence}
+The user needs to perform a set of activities, either in the scope of \xcov{}
+qualification or \xcov{} usage.
+
+\section{\xcov{} qualification}
+
+To finalise the qualification of \xcov{}, the user needs to:
+
+\begin{enumerate}
+%
+\item \textbf{Reference \xcov{} in the PSAC}, identifying \xcov{} as a
+  verification tool requiring qualification because it contributes to take
+  certification credit by automating some (otherwise manual) activities.
+%
+\item \textbf{Assess the equivalence between the qualification environment and
+  the operational environment} (see section \ref{sec:equivalence}).
+%
+\item \textbf{Put qualification data under configuration management}.
+\end{enumerate}
+
+\section{\xcov{} usage}
+
+Users needs to perform the following activities to assure \xcov{} exhibits
+a qualified behaviour:
+
+\begin{enumerate}
+\item \textbf{Install \xcov{} in the Operational Environment};
+%
+\item \textbf{Check that \xcov{} is used following its qualified interface},
+    as described in section \ref{sec:qual-interface};
+%
+\item \textbf{Check that \xcov{} is used in a way compliant to its known
+  constraints and open problems}, as documented in the delivery file.
+%
+\item \textbf{Update the Environment Configuration Index} by including the delivery file and test results (see section \ref{sec:qd-overview} for the corresponding files).
+%
+\item \textbf{Update the Software Accomplishment Summary} for:
+\begin{itemize}
+\item Objectives 5, 6 and 7 of table A7 for level A software.
+\item Objectives 6 and 7 of table A7 for level B software.
+\item Objective 7 of table A7 for level C software.
+\end{itemize}
+%
+\item \textbf{Update the Software Accomplishment Summary} for the
+  qualification status of \xcov{}.
+\end{enumerate}
+
+\section{Environment equivalence}
 \label{sec:equivalence}
 
 For the whole set of qualification material to be consistent, the
-qualification and user environments must be equivalent. Given our internal
-knowledge of \xcov{}, we deem the following data sufficient to establish
-equivalence of environments:
+qualification and user environments must be equivalent.
+%
+Given our internal knowledge of \xcov{}, we deem the following data sufficient
+to establish equivalence of environments:
 
 \begin{enumerate}
 \item the name of the GNAT Pro executable;
@@ -347,34 +415,5 @@ The value for all the items above for the qualification environment are
 contained in the delivery file (section \ref{sec:delivery}). Test execution
 results are produced in an environment which is equivalent to the one
 described in the delivery file.
-
-\chapter{User activities}
-\label{sec:user-act}
-The user needs to perform a set of activities, either in the scope of \xcov{} qualification or \xcov{} usage.
-
-\section{\xcov{} qualification}
-To finalise the qualification of \xcov{}, the user needs to:
-\begin{enumerate}
-\item \textbf{Reference \xcov{} in the PSAC}, identifying \xcov{} as a verification tool requiring qualification because it contributes to take certification credit by automating some (otherwise manual) activities.
-\item \textbf{Assess the equivalence between the qualification environment and the operational environment} (see section \ref{sec:equivalence}).
-\item \textbf{Put qualification data under configuration management}.
-\end{enumerate}
-
-\section{\xcov{} usage}
-The user needs to perform the following activities to assure \xcov{} exhibits a qualified behaviour:
-\begin{enumerate}
-\item \textbf{Install \xcov{} in the Operational Environment}.
-\item \textbf{Check \xcov{} is used following its qualified interface} (see section \ref{sec:qual-interface}) when the tool output is intended to be used to take certification credit.
-\item \textbf{Check \xcov{} is used in a way compliant to its known constraints and open problems} (see section \ref{sec:constr-problems}) when the tool output is intended to be used to take certification credit.
-\item \textbf{Update the Environment Configuration Index} by including the delivery file and test results (see section \ref{sec:qd-overview} for the corresponding files).
-\item \textbf{Update the Software Accomplishment Summary} for:
-\begin{itemize}
-\item Objectives 5, 6 and 7 of table A7 for level A software.
-\item Objectives 6 and 7 of table A7 for level B software.
-\item Objective 7 of table A7 for level C software.
-\end{itemize}
-\item \textbf{Update the Software Accomplishment Summary} for the qualification status of \xcov{}.
-\end{enumerate}
-
 
 \end{document}
