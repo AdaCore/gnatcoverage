@@ -1,9 +1,9 @@
 The only element from Chapter 10 ("Program Structure and Compilation Issues")
-from the Ada Language Reference Manual that needs a special attention is
-subunits. All the other aspects described in this Chapter are addressed by all
-the tests from Isolated_Constructs part.
+from the Ada Language Reference Manual that needs a special attention for
+coverage analysis is subunits.
 
-The nesting level of subprograms and subunits shall not influence their coverage.
+Coverage shall be assessed correctly for the code in subunits. The nesting
+level of subprograms and subunits shall not influence their coverage.
 
 Testing strategy notes:
 ----------------------

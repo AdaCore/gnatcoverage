@@ -1,5 +1,6 @@
 --  Test driver for subprogram renamings. It executes a part of the functional
---  code.
+--  code. Some code from subunits is expected to be reported as uncovered, and
+--  the other code - as covered.
 
 with Pack; use Pack;
 with Support;         use Support;

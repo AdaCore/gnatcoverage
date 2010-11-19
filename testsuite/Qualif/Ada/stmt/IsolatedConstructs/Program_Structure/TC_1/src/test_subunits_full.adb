@@ -1,4 +1,5 @@
 --  Test driver for subprogram renamings. It executes all the functional code.
+--  Nothing is expected to be reported as uncovered.
 
 with Pack; use Pack;
 with Support;         use Support;

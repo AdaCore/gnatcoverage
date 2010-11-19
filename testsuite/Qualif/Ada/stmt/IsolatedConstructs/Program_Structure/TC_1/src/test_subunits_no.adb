@@ -1,6 +1,6 @@
 --  Test driver for subprogram renamings. It only "with's" the functional code
---  but does not execute anything from it. So nothing is expected to be
---  reported as covered except the package elaboration code.
+--  but does not execute anything from it. So everything except the package
+--  elaboration code is expected to be reported as uncovered
 
 with Pack; use Pack;
 with Support;         use Support;
