@@ -1,6 +1,6 @@
 --  Test driver for subprogram declarations and subprogram body declarations.
---  It only "with's" the functional code, but does not execute anything from
---  it, so nothing is expected to be reported as covered.
+--  It only "with's" a part of the functional code, but does not execute
+--  anything from it, so everything is expected to be reported as uncovered.
 
 with Library_Level_Fun;
 with Library_Level_Proc;

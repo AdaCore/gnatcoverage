@@ -1,0 +1,17 @@
+Check that the code from a subprogram body is reported as uncovered if a
+subprogram is never called. Check that (at least some part of) the code from a
+subprogram body is not reported as uncovered if the subprogram is called at
+least once.
+
+ The functional code contains:
+
+  * library-level subprograms;
+  * subprograms declared in library packages;
+  * and local subprograms;
+
+Test drivers use different ways of calling subprograms from the functional
+code:
+ * ordinary calls by means of a call statement/function call expression;
+ * dynamic calls through access-to-subprogram value;
+ * implicit calls as the result of evaluation of default initialization
+ expressions;

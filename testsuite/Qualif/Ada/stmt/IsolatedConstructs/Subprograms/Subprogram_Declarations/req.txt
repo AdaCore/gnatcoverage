@@ -1,16 +1,2 @@
-Subprogram declarations shall never be reported as covered because they do not
-contain executable code. No code from subprogram body shall be reported as
-covered if the subprogram is never called.
-
-Testing strategy notes:
-----------------------
-Library-level subprograms, subprograms declared in library packages and local
-subprograms shall be checked.
-
-Different ways of subprogram calls shall be checked:
-  - ordinary calls by means of a call statement/function call expression;
-  - dynamic calls through access-to-subprogram value;
-  - implicit calls as the result of evaluation of default initialization
-    expressions;
-
-One test case may combine more then one cases from above.
+If a subprogram is never called, all the code from the subprogram body shall
+be reported as uncovered.

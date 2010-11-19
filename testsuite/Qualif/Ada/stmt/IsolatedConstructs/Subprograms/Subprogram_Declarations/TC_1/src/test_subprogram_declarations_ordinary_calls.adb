@@ -1,16 +1,15 @@
 --  Test driver for subprogram declarations and subprogram body declarations.
---  It "with's" the functional code and  executes only a part of it. There is
---  no subprogram calls resulted from evaluating default initialization
---  expressions in this test. This test includes one indirect subprogram call
---  by means of access-to-procedure value.
+--  It executes a part of the functional code. It calls subprograms from the
+--  functional code using only normal explicit subprogram calls. So for some
+--  subprograms the code in their bodies is expected to be reported as covered,
+--  and for other subprograms - as uncovered.
 
 with Library_Level_Fun;
 with Library_Level_Proc;
 with Subprogram_Pack; use Subprogram_Pack;
 with Support;         use Support;
-procedure Test_Subprogram_Declarations_Part is
-   I           : Integer;
-   Ref_To_Proc : Access_To_Proc;
+procedure Test_Subprogram_Declarations_Ordinary_Calls is
+   I : Integer;
 begin
    I := 0;
    Library_Level_Proc (I);
@@ -22,11 +21,10 @@ begin
    Proc1 (I);
    Assert (I = 6);
 
-   Ref_To_Proc := Proc3'Access;
-   Ref_To_Proc (I);
-   Assert (I = 12);
+   Proc2 (I, 0);
+   Assert (I = 4);
 
-end Test_Subprogram_Declarations_Part;
+end Test_Subprogram_Declarations_Ordinary_Calls;
 
 --# library_level_fun.adb
 -- /fun/        l- s-
@@ -38,8 +36,8 @@ end Test_Subprogram_Declarations_Part;
 -- /fun1/       l+ 0
 -- /fun2/       l- s-
 -- /proc1/      l+ 0
--- /proc2/      l- s-
--- /proc3/      l+ 0
+-- /proc2/      l+ 0
+-- /proc3/      l- s-
 -- /proc4/      l- s-
--- /local_proc/ l- s-
+-- /local_proc/ l+ 0
 -- /local_fun/  l+ 0
