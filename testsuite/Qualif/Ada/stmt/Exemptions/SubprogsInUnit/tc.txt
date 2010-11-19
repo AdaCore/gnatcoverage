@@ -1,0 +1,2 @@
+Exercize code featuring an exemption region for a couple of
+subprograms in a package body.
