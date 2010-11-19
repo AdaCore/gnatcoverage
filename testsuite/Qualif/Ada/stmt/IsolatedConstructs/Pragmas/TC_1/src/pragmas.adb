@@ -1,16 +1,13 @@
 with Support_Pragmas;
-package body Constructs is
-
-   subtype Acceptable_Integer is Integer range -20_000 .. 20_000;
-   subtype Safe_Integer       is Integer range -10_000 .. 10_000;
+package body Pragmas is
 
    procedure Check_Val (I : in out Integer);
-   pragma Precondition  (I in Acceptable_Integer, "wrong value"); -- # morethenoneinrange
-   pragma Postcondition (I in Safe_Integer,       "failed to adjust value"); -- # morethenoneinrange
+   pragma Precondition  (I in Acceptable_Integer, "wrong value"); -- # pre_check_val
+   pragma Postcondition (I in Safe_Integer,       "failed to adjust value"); -- # post_check_val
 
    procedure Check_Val (I : in out Integer) is
    begin
-      if I not in Safe_Integer then                      -- # morethenoneinrange
+      if I not in Safe_Integer then                      -- # check_val
          I := I / 2;                                     -- # neverexecuted
       end if;
    end Check_Val;
@@ -23,33 +20,39 @@ package body Constructs is
 
       Result := True;                                    -- # mainstream
 
-      pragma Debug (L > R, Support_Pragmas.Debug_Proc1); -- # mainstream
+      pragma Debug (L > R, Support_Pragmas.Debug_Proc1); -- # 1debug
 
       if L > R then                                      -- # mainstream
-         pragma Assert (Arg not in L .. R);              -- # emptyrange
+         pragma Assert (Arg not in L .. R);              -- # 1assert
          return False;                                   -- # emptyrange
       end if;
 
 
       if L = R then                                      -- # nonemptyrange
-         pragma Debug (Support_Pragmas.Debug_Proc2);     -- # oneelement
+         pragma Debug (Support_Pragmas.Debug_Proc2);     -- # 2debug
          return Arg = L;                                 -- # oneelement
       end if;
 
       if Arg > R then                                    -- # morethenoneinrange
          Result := False;                                -- # XgtR
-         pragma Assert (L < R);                          -- # XgtR
+         pragma Assert (L < R);                          -- # 2assert
       end if;
 
       if Arg < L then                                    -- # morethenoneinrange
          Result := False;                                -- # XltL
-         pragma Assert (L < R);                          -- # XltL
+         pragma Assert (L < R);                          -- # 3assert
       end if;
 
-      Check_Val (Arg);                                  -- # morethenoneinrange
-
-      pragma Assert (Result = (Arg in L .. R));          -- # morethenoneinrange
+      pragma Assert (Result = (Arg in L .. R));          -- # 4assert
 
       return Result;                                     -- # morethenoneinrange
    end In_Range;
-end Constructs;
+
+   function Is_Safe (I : Integer) return Boolean is
+      Tmp : Integer := I;                                -- # is_safe
+   begin
+      Check_Val (Tmp);                                   -- # is_safe
+      return Tmp = I;                                    -- # is_safe
+   end Is_Safe;
+
+end Pragmas;

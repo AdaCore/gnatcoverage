@@ -1,6 +1,1 @@
-Statement coverage is assessed correctly for those pragmas that result in
-executable code.
-
-Testing strategy note: the only executable language-defined pragma is pragma
-Assert, the tests for the given requirement use the predefined Assert pragma
-and GNAT-specific pragmas Debug, Precondition and Postcondition.
+A pragma shall be reported as uncovered if in is not executed.

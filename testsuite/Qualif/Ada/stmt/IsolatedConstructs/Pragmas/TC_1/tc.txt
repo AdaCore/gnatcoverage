@@ -1,0 +1,9 @@
+Check that a pragma is reported as uncovered if in is not executed. Most of
+the language-defined and implementation-specific pragmas do not generate any
+executable code so they are not the subject of coverage analysis. The
+following pragmas shall be checked in the tests:
+
+ * Assert
+ * Debug
+ * Precondition
+ * Postcondition
