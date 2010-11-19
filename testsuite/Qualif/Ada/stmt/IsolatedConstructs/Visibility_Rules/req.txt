@@ -9,16 +9,3 @@ Testing strategy:
 Two kinds of renaming declarations are of interest for coverage analysis -
 object renamings and subprogram renamings. They shall be tested in separate
 test cases.
-
-- For object renaming declarations, it shall be checked that:
-  - a renaming declaration is reported as covered only if it is elaborated;
-  - if renamed object contains a function call as a part of its evaluation, the
-    code of the corresponding function is reported as covered only if the
-    renaming declaration is elaborated;
-
-- For a subprogram renaming, it shall be checked that:
-  - elaboration of subprogram renaming declaration does not result in
-    reporting the code of the subprogram as covered (if the subprogram is not
-    called);
-  - the code of the renamed subprogram is reported as covered if the subprogram
-    is called using the new name introduced by the renaming declaration;
