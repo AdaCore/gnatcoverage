@@ -1,13 +1,4 @@
-Return statement shall be reported as covered only when it is actually
-executed. If a return statement is executed, then all the statements in a
+RETURN statement shall be reported as covered only when it is actually
+executed. If a RETURN statement is executed, then all the statements in a
 subprogram body that have not been executed by this moment shall be reported
 as uncovered.
-
-Testing strategy notes:
-----------------------
-Return statements in procedure and in function bodies shall be checked.
-
-The case when a subprogram body contains more then one return statement shall
-be checked.
-
-One test case may combine more then one cases from above.

@@ -1,6 +1,6 @@
 --  Test driver for return statements. It executes a part of the functional
---  code, so some return statements are expected to be reported as covered and
---  some are not.
+--  code, so some return statements are expected to be reported as uncovered
+--  and some other as uncovered.
 
 with Return_Statements; use Return_Statements;
 with Support;           use Support;
