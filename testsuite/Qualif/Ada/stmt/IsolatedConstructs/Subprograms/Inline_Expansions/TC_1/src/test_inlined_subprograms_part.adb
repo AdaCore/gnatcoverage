@@ -1,6 +1,6 @@
 --  Test driver for inlined subprograms. It executes a part of the functional
 --  code, so some code from subprogram bodies is expected to be reported as
---  covered and some is not.
+--  uncovered and some - as covered.
 
 with Inlined_Subprograms; use Inlined_Subprograms;
 with Support;             use Support;
