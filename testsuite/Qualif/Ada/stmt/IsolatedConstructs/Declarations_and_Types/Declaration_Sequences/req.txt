@@ -1,14 +1,3 @@
 If a declaration sequence is elaborated, no declaration from this sequence
 shall be reported as uncovered. If a declaration sequence is not elaborated,
 no declaration from this sequence shall be reported as covered.
-
-Testing strategy:
-
-A declaration sequence is similar to a straitline statement sequence. No
-transfer control can happen when elaborating the declaration sequence (the
-qualificed profile allows only explicit exception raise, so no predefined
-exception can be raises as a part of elaboration), so the sequence is either
-elaborated or not elaborated.
-
-Different kinds of declarations shall be checked. Different contexts of
-declaration sequences shall be checked.

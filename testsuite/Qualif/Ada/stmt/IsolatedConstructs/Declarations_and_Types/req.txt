@@ -1,32 +1,26 @@
-If a declaration is not elaborated as a part of the program execution it shall
+If a declaration is not elaborated as a part of the program execution, then it shall
 be reported as uncovered.
-
-Testing strategy:
-
-Not all the declarations result in elaboration code.Different declaration
-kinds resulted in elaboration code shall be checked.
 
 This requirement is further split into the subordinate requirements as
 follows. These subrequirements does not follow the structure of the Chapter 3
 of the Ada Reference Manual, instead they aggregate situations and declaration
 kinds that are of interest for coverage analysis.
 
-- Object_Declarations: they may have the executable code associated with
-  them in case if implicit or explicit initialization is provided for the
+ * Object Declarations: they may have the executable code associated with them in case of implicit or explicit initialization is provided for the
   object;
 
-- Subtype_Indications: if a subtype indication contains a constraint, its
+ * Subtype Indications: if a subtype indication contains a constraint, its
   elaboration may need executable code. Subtype indication shall be checked in
   different contexts (including type and subtype declarations, and object
   declarations);
 
-- Discrete_Subtype Definitions: they are similar to range constraints, but
+ * Discrete Subtype Definitions: they are similar to range constraints, but
   are used in constrained array type definitions.
 
-- Variant_Parts: these constructs are of special interest for object
+ * Variant Parts: these constructs are of special interest for object
   coverage because they are in some sense equivalent to case statements -
   depending om discriminant values, different elaboration sequences can be
   chosen for the record definition containing a variant part;
 
-- Declaration_Sequences: a declaration sequence is similar to a straitline
+ * Declaration Sequences: a declaration sequence is similar to a straitline
   statement sequence for coverage analysis purposes.

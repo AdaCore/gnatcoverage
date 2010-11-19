@@ -3,17 +3,3 @@ may generate a coverage information. If such subtype indication is not
 elaborated it shall be reported as uncovered. If it is elaborated it shall not
 be reported as uncovered.
 
-Testing strategy:
-
-Tests shall use subtype indications in such a way that the subtype indication
-shall be the only reason to generate coverage information to avoind masking of
-subtype indication coverage with coverage information generating for another
-construct. For example, if a subtype indication is a part of an object
-declaration, then this declaration shall not contain an initialization
-expression. Subtype indication shall be checked when used in:
-\begin{itemize}
-\item subtype declarations;
-\item object declarations;
-\item component declarations;
-\end{itemize}
-

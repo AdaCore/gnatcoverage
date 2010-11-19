@@ -3,9 +3,3 @@ information. If such discrete subtype definition is not elaborated it shall be
 reported as uncovered. If it is elaborated it shall not be reported as
 uncovered.
 
-Testing strategy:
-
-Tests shall use discrete subtype definition in such a way that this discrete
-subtype definition shall be the only reason to generate coverage information
-to avoid masking of subtype indication coverage with coverage information
-generating for another construct.

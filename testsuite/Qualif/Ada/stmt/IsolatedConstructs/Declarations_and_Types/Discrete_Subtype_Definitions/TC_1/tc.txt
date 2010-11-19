@@ -1,4 +1,11 @@
 Check that a declaration that contains a discrete subtype definition is
 reported as uncovered if the declaration is not elaborated, and it does not
-reported as uncovered if the declaration is elaborated. Different test drivers
+reported as uncovered if the declaration is elaborated. 
+
+Tests use discrete subtype definition in such a way that this discrete
+subtype definition shall be the only reason to generate coverage information
+to avoid masking of subtype indication coverage with coverage information
+generating for another construct.
+
+Different test drivers
 choose different declarations of interest to elaborate.
