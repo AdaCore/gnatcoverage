@@ -5,6 +5,8 @@ for files named req.txt starting from ../../../testsuite/Qualif/Ada.
 
 """
 
+# import useful facilities
+
 import sys
 import os
 import glob
