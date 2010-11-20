@@ -1,23 +1,14 @@
-Statement coverage should be assessed correctly for exceptions:
-- a raise statement shall be reported as covered only when in is actually
-  executed;
-- if an exception is raised, all the statement of the given frame that have
-  not been executed yet, shall be reported as uncovered;
-- the code of an exceptions handler shall not be reported as covered if the
-  control has not be transferred into the handler as the result of exception
-  raise;
+Statement coverage is assessed correctly for exception mechanism. This means
+that:
 
-Testing strategy notes:
-----------------------
-Different contexts of exception raising shall be checked (procedure and
-function bodies, block statements);
+ * a RAISE statement shall be reported as uncovered if it is not executed. The
+   statements from exception handlers shall be reported as uncovered if no
+   exception is raised.
 
-Explicit raise of exception by RAISE statement shall be checked. Implicit
-raise of predefined exceptions shall be checked only if general operational
-requirements require the code to be compiled with checks for predefined
-exceptions ON.
+ * if a RAISE statement id executed, all the statements of the given frame that
+   have not been executed yet, shall be reported as uncovered.
 
-Handlers with explicit exception names and handlers with the OTHERS choice
-shall be checked.
-
-One test case may combine more then one cases from above.
+ * if an exception is raised and then handled, only the statements from the
+   handler corresponding to the exception shall be reported as covered,
+   statements from all the other exception handlers shall be reported as
+   uncovered.

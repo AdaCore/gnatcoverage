@@ -1,9 +1,9 @@
 --  Test driver for exceptions. It calls all the subprograms from the
 --  functional code, but does it in such a way that if a subprogram can raise
---  a predefined exception Constraint_Error, it raises this exception. So no
---  raise statement for user-defined exception My_Exception and no code in
---  exception handlers that may handle the My_Exception exceptions is expected
---  to be reported as covered.
+--  a predefined exception Constraint_Error, it raises this exception. So all
+--  the raise statement for user-defined exception My_Exception and all the
+--  code in exception handlers that may handle the My_Exception exceptions are
+--  expected to be reported as uncovered.
 
 with Pack;    use Pack;
 with Support; use Support;

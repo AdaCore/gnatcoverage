@@ -1,6 +1,6 @@
 --  Test driver for exceptions. It only "with's" the functional code, but does
---  not call anything from it, so nothing is expected to be reported as
---  covered.
+--  not call anything from it, so everything is expected to be reported as
+--  uncovered.
 
 with Pack;    use Pack;
 with Support; use Support;
