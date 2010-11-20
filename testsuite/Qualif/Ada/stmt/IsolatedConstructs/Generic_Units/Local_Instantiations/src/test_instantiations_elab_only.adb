@@ -1,6 +1,6 @@
---  Test driver for library-level generic instantiations. It only "with's" the
+--  Test driver for local generic instantiations. It only "with's" the
 --  functional code and code that instantiates generics of interest, but does
---  not use anything from it. So the only code that shall be reported as being
+--  not call anything from it. So the only code that shall be reported as being
 --  covered is the elaboration code corresponding to package instantiations.
 
 with Pack;

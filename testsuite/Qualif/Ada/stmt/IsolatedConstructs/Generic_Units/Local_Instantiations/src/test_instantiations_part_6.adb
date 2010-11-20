@@ -1,4 +1,4 @@
---  Test driver for library-level generic instantiations. It "with's" all the
+--  Test driver for local generic instantiations. It "with's" all the
 --  functional code, and it calls only function
 --  Local_Instantiations.Fun_With_Instantiations that instantiates generic
 --  procedure Update_G and calls instantiation. The code from all the other

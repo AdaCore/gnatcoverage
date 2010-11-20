@@ -1,4 +1,4 @@
---  Test driver for library-level generic instantiations. It "with's" all the
+--  Test driver for local generic instantiations. It "with's" all the
 --  functional code, and it calls only routine Swap from the local
 --  instantiation of the package Pack.Pack_G. The code from all the other
 --  generics shall be reported as uncovered.

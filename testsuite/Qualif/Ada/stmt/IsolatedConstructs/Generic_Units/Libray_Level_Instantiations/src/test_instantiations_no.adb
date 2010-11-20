@@ -1,7 +1,7 @@
 --  Test driver for library-level generic instantiations. It only "with's" the
 --  code with generic units, but does not with's any instantiation, and does
---  not instantiate anything itself. So no functional code shall be reported as
---  covered.
+--  not instantiate anything itself. So no code from generic units is expected
+--  to be reported as covered.
 
 with Pack;
 with Stacks_G;

@@ -1,4 +1,4 @@
---  Test driver for library-level generic instantiations. It "with's" all the
+--  Test driver for local generic instantiations. It "with's" all the
 --  functional code, and it calls only routine
 --  Local_Instantiations.Proc_With_Instantiations that instantiates generic
 --  packages Pack.Pack_G and Stacks_G and calls some routines from the

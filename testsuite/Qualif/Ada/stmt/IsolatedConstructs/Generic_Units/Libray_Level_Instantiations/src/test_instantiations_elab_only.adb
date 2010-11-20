@@ -1,7 +1,7 @@
 --  Test driver for library-level generic instantiations. It only "with's" the
---  functional code, but does not use anything from it. So the only code that
---  shall be reported as being covered is the elaboration code corresponding
---  to package instantiations.
+--  functional code, including instantiations, but does not call anything from
+--  it. So the only code that shall be reported as being covered is the
+--  elaboration code corresponding to package instantiations.
 
 with New_Value;
 with Pack_Instance_Lib_Level;
