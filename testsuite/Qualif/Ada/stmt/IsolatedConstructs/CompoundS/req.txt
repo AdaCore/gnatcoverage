@@ -1,2 +1,0 @@
-Statement coverage is correctly assessed for compound statements and the code
-they control.

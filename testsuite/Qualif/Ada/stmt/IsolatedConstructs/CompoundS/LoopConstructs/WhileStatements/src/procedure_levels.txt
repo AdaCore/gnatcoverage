@@ -1,8 +1,0 @@
-To verify coverage of loop/exit statements, we implement two functions
-featuring such constructs, exercize them in various ways and verify that all
-and only those statements expected uncovered are reported as such.
-
-The two functions implement very simple services over integer Levels and
-sample arrays of such. Both functions iterate over samples using a 'while'
-statement. The second one features an exit statement as well.
-

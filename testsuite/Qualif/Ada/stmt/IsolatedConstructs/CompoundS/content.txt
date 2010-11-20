@@ -1,2 +1,0 @@
-|!-com.adacore.couverture.qualification.CouvertureFixture-!|
-|test.py|

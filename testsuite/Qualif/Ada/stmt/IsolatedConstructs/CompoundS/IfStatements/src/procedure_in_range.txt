@@ -1,3 +1,0 @@
-Exercize in various ways a function featuring an "If" statement and verify
-that all and only those statements expected uncovered are reported as such.
-Check cases where it is known which of the If/elseif/else parts are taken.
