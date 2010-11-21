@@ -10,14 +10,14 @@
 %
 \usepackage[T1]{fontenc}
 \usepackage[latin1]{inputenc}
-\usepackage{pslatex}
+\usepackage{alltt}
 
 \newcommand{\Q}[1]{{``#1''}}
 \newcommand{\E}[1]{{\em #1}}
 \newcommand{\B}[1]{{\bf #1}}
 \newcommand{\K}[1]{{\sc #1}}
 \newcommand{\T}[1]{{\tt #1}}
-\newcommand{\V}[1]{{\verbç#1ç}}
+\newcommand{\V}[1]{\verbç#1ç}
 
 \newcommand{\blankpage}{\newpage\mbox{}\newpage}
 
@@ -47,11 +47,17 @@
 }
 {\end{itemize}}
 
+\newenvironment{Text}{
+\small
+\begin{alltt}
+}
+{\end{alltt}}
+
 \newcommand{\pname}{Couverture}
 \newcommand{\ptext}{Coverage Analysis Toolset}
 
-\newcommand{\gnatp}{\K{GNATPro}}
-\newcommand{\qemu}{\K{Qemu}}
+\newcommand{\gnatp}{\K{GNAT Pro}}
+\newcommand{\qemu}{\K{qemu}}
 \newcommand{\couv}{\K{Couverture}}
 \newcommand{\xcov}{\K{Xcov}}
 
