@@ -1,47 +1,48 @@
-\newcommand{\ug}{[xcov-ug]\space}
-\newcommand{\erts}{[ERTS2010]\space}
-\newcommand{\adaeurope}{[AE2009]\space}
-\newcommand{\castseventeen}{[CAST17]\space}
+\newcommand{\ug}{[xcov-ug]}
+\newcommand{\erts}{[ERTS2010]}
+\newcommand{\adae}{[AE2009]}
+\newcommand{\refdob}{[DO-178B]}
+\newcommand{\refdoc}{[DO-178C]}
 
 \section{Referenced documents}
-\paragraph*{\adaeurope} \ \\
+\paragraph*{\adae{}} \ \\
 Bordin et al.: Couverture: An Innovative Open Framework for Coverage Analysis
 of Safety Critical Applications - Ada User Journal, December 2009.
 %\paragraph*{\castseventeen} \ \\
 %Certification Authorities Paper 17: Structural coverage of object code
-\paragraph*{[DO-178B] and [ED-12B]} \ \\
+\paragraph*{\refdob{} and [ED-12B]} \ \\
 EUROCAE: Software Considerations in Airborne Systems and Equipment
 Certification.
-\paragraph*{[DO-178C] and [ED-12C]} \ \\
+\paragraph*{\refdoc{} and [ED-12C]} \ \\
 EUROCAE: Software Considerations in Airborne Systems and Equipment
 Certification.
-\paragraph*{\erts} \ \\
+\paragraph*{\erts{}} \ \\
 Bordin et al: Couverture: An Innovative and Open Coverage Analysis Framework
 for Safety-Critical Applications- ERTS2 2010
-\paragraph*{[xcov-ug]}
+\paragraph*{\ug{}}
 AdaCore: \xcov{} Fundamentals and Users Guide
 
-\section{Definitions list}
+\section{List of abbreviations}
 
-\paragraph*{Coverage exception} \ \\
+Below is a list of commonly used abbreviations, with references to documents
+where the definitions could be found:
 
-\paragraph*{Decision Coverage(\dc)} \ \\
-
-\paragraph*{Modified Decision Condition Coverage (\mcdc)} \ \\
-
-\paragraph*{Object Branch Coverage (\obc)} \ \\
-
-\paragraph*{Object Instruction Coverage (\oic)} \ \\
-
-\paragraph*{Statement Coverage (\stc)} \ \\
-
-\paragraph*{Tool Operational Requiremet (TOR)} \ \\
+\begin{tabular}{|lll|}
+\hline
+\B{Abbrev} & \B{Stands for ...} & \B{Definition in} \\ \hline
+\stc{} & Statement Coverage & \refdob{} \& \ug{}\\  \hline
+\dc{} & Decision Coverage & \refdob{} \& \ug{}\\  \hline
+\mcdc{} & Modified Condition/Decision Coverage & \refdob{} \& \ug{}\\  \hline
+\tqp{} & Tool Qualification Plan & \\\hline
+\tor{} & Tool Operational Requirement & \tqp{}, section \ref{sec:devstd-overview}\\\hline
+\tc{} & Test Case & \tqp{}, section \ref{sec:devstd-overview}\\\hline
+\end{tabular}
 
 \section{Organization and roles}
-
+%
 The development, verification and qualification processes for \xcov{} involve
 several teams and parties with established responsibilities:
-
+%
 \begin{itemize}
 \item%
   The \B{\xcov{} Development Team} contributes to the development of \xcov{},
