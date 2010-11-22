@@ -52,7 +52,6 @@ class DocGenerator(object):
 
             dest_filename = self.file2docfile(root)
             dest_fd = open(os.path.join(self.doc_dir, dest_filename), 'w')
-            print "+ Generating %s" % dest_filename
             name = os.path.basename(root)
 
             # Ignore some subdirectories
@@ -75,11 +74,13 @@ class DocGenerator(object):
                 # subdirs)
                 dirs_copy = [k for k in dirs]
                 test_id = 1
+                has_testcase = False
 
                 for d in dirs_copy:
                     if os.path.isfile(os.path.join(root, d, 'tc.txt')):
                         # There won't be any requirements in that directory
                         dirs.remove(d)
+                        has_testcase = True
 
                         dest_fd.write("\n\n" + \
                           rest.strong("Test Case %d: %s" % \
@@ -99,6 +100,14 @@ class DocGenerator(object):
                         self.resource_list += ada_files
                         dest_fd.write(rest.list([':ref:`%s`' % self.ref(d) \
                                                  for d in ada_files]))
+                if has_testcase and len(dirs) > 0:
+                    for d in dirs:
+                        print "warning: unexpected subreq or imcomplete " + \
+                              "testcase in %s" % os.path.join(root, d)
+                if not has_testcase and len(dirs) == 0:
+                    print "warning: no testcase in leaf requirement %s" % root
+            else:
+                print "warning: invalid directory %s" % root
 
             if len(dirs) > 0:
                 childs_list = [self.file2docfile(os.path.join(root, d)) \
