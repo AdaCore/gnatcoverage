@@ -262,7 +262,7 @@ def run_testcase(test, _job_info):
         test_trace_dir = os.path.join(test.trace_dir, str(test_index))
         mkdir(test_trace_dir)
         testcase_cmd.append('--trace_dir=%s' % test_trace_dir)
-    if Env().main_options.qualif_cargs is not None:
+    if Env().main_options.qualif_cargs:
         testcase_cmd.append('--qualif-cargs=%s'
                             % Env().main_options.qualif_cargs)
     if Env().main_options.qualif_level is not None:
