@@ -17,14 +17,14 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  Support for computing lines states from the branch coverage of
---  its instructions and from the coverage level.
+--  Support for computing lines states from the branch coverage of its
+--  instructions and from the coverage level.
 
 package Traces_Lines is
 
    --  Coverage state of a source line of code
 
-   type Line_State is
+   type Any_Line_State is
      (Not_Covered,
       --  No instructions executed
 
@@ -34,31 +34,33 @@ package Traces_Lines is
       Covered,
       --  The coverage criteria is satisfied
 
-      No_Code
+      No_Code,
       --  Initial state: no code for this line
+
+      Exempted_With_Violation,
+      --  Exempted line in an exemption block that has a violation
+
+      Exempted_No_Violation
+      --  Exempted line in an exemption block with no violation
      );
 
-   type State_Char_Array is array (Line_State) of Character;
+   subtype Line_State is Any_Line_State range Not_Covered .. No_Code;
+   --  Non-exempted line state
+
+   type State_Char_Array is array (Any_Line_State) of Character;
    State_Char : constant State_Char_Array;
    --  Characters identifying a Line_State
-
-   type State_Char_Exempted_Array is array (Boolean) of Character;
-   State_Char_Exempted : constant State_Char_Exempted_Array;
-   --  Characters marking an exempted Region that actually exempts some
-   --  violation (True) or not (False).
 
    function "*" (L, R : Line_State) return Line_State;
    --  Combine the given individual states to determine a cumulative state
 
 private
    State_Char : constant State_Char_Array :=
-     (No_Code           => '.',
-      Not_Covered       => '-',
-      Partially_Covered => '!',
-      Covered           => '+');
-
-   State_Char_Exempted : constant State_Char_Exempted_Array :=
-     (False => '#',
-      True  => '*');
+     (No_Code                 => '.',
+      Not_Covered             => '-',
+      Partially_Covered       => '!',
+      Covered                 => '+',
+      Exempted_With_Violation => '*',
+      Exempted_No_Violation   => '#');
 
 end Traces_Lines;

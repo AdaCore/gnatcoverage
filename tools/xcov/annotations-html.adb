@@ -144,32 +144,38 @@ package body Annotations.Html is
 
    procedure Generate_Css_File is
       F   : File_Type;
+
+      procedure Put_State_Color (S : Any_Line_State; Color : String);
+      --  Set line color for state S
+
+      ---------------------
+      -- Put_State_Color --
+      ---------------------
+
+      procedure Put_State_Color (S : Any_Line_State; Color : String) is
+      begin
+         Put_Line (F,
+           "tr." & S'Img & ", " &
+           "td.SumBar" & S'Img & " { background-color: " & Color & "; }");
+      end Put_State_Color;
+
       CSS : constant Strings_Arr :=
         (
          new S'("table.SumTable, table.TotalTable, table.TracesFiles "
                 & "{ margin-left:10%; width:80%; }"),
-         new S'("tr.covered { background-color: #80ff80; }"),
-         new S'("tr.not_covered { background-color: red; }"),
-         new S'("tr.partially_covered { background-color: orange; }"),
-         new S'("tr.exempted { background-color: #CCCCCC; }"),
-         new S'("tr.exempted_no_violation { background-color: #5CB3FF; }"),
          new S'("tr.notice { background-color: #80ff80; }"),
          new S'("tr.error { background-color: red; }"),
          new S'("tr.warning { background-color: orange; }"),
-         new S'("tr.no_code_odd { }"),
-         new S'("tr.no_code_even { background-color: #f0f0f0; }"),
-         new S'("td.SumBarCover { background-color: green; }"),
-         new S'("td.SumBarPartial { background-color: orange; }"),
-         new S'("td.SumBarNoCover { background-color: red; }"),
-         new S'("td.SumBarExempted { background-color: #5CB3FF; }"),
+         new S'("tr.NO_CODE_odd { }"),
+         new S'("tr.NO_CODE_even { background-color: #f0f0f0; }"),
          new S'("td.SumHead, td.SumFile, td.SumNoFile, td.SumBar, "
-                & "td.SumPourcent, td.SumLineCov, td.SumTotal, "
+                & "td.SumPercent, td.SumLineCov, td.SumTotal, "
                 & "table.TracesFiles td"
                 & "{ background-color: #B0C4DE; }"),
          new S'("td.SumHead, tr.Head td { color: white; }"),
          new S'("td.SumFile { color: green; }"),
          new S'("td.SumNoFile { color: grey; }"),
-         new S'("td.SumPourcent, td.SumLineCov { text-align: right; }"),
+         new S'("td.SumPercent, td.SumLineCov { text-align: right; }"),
          new S'("table.LegendTable "
                 & "{ margin-left:10%; width:80%; text-align: center; }"),
          new S'("table.SourceFile td pre { margin: 0; }")
@@ -178,6 +184,11 @@ package body Annotations.Html is
    begin
       Create_Output_File (F, "xcov.css");
       Put (F, CSS);
+      Put_State_Color (Covered,                 "#80FF80");
+      Put_State_Color (Partially_Covered,       "orange");
+      Put_State_Color (Not_Covered,             "red");
+      Put_State_Color (Exempted_With_Violation, "#CCCCCC");
+      Put_State_Color (Exempted_No_Violation,   "#5CB3FF");
       Close (F);
    exception
       when Name_Error =>
@@ -214,6 +225,9 @@ package body Annotations.Html is
       procedure Pi (S : String);
       --  Print S to Pp's index file; new line at the end
 
+      procedure Print_Bar_Legend (S : Any_Line_State);
+      --  Print legend for visual bar for state S
+
       --------
       -- Pi --
       --------
@@ -223,7 +237,17 @@ package body Annotations.Html is
          Put_Line (Pp.Index_File, S);
       end Pi;
 
-      --  Start of processing for Pretty_Print_Finish
+      ----------------------
+      -- Print_Bar_Legend --
+      ----------------------
+
+      procedure Print_Bar_Legend (S : Any_Line_State) is
+      begin
+         Pi ("      <td class=""SumBar" & S'Img & """ width=""25%"">"
+               & S'Img & "</td>");
+      end Print_Bar_Legend;
+
+   --  Start of processing for Pretty_Print_Finish
 
    begin
       Pi ("  </table>");
@@ -273,14 +297,12 @@ package body Annotations.Html is
 
       Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
       Pi ("    <tr>");
-      Pi ("      <td class=""SumBarCover"" width=""25%"">"
-            & "Fully covered</td>");
-      Pi ("      <td class=""SumBarPartial"" width=""25%"">"
-            & "Partially covered</td>");
-      Pi ("      <td class=""SumBarNoCover"" width=""25%"">"
-            & "not covered</td>");
-      Pi ("      <td class=""SumBarExempted"" width=""25%"">"
-            & "exempted</td>");
+      Print_Bar_Legend (Covered);
+      Print_Bar_Legend (Partially_Covered);
+      Print_Bar_Legend (Not_Covered);
+      Print_Bar_Legend (Exempted_No_Violation);
+      Print_Bar_Legend (Exempted_With_Violation);
+
       Pi ("     </tr>");
       Pi ("   </table>");
 
@@ -466,7 +488,8 @@ package body Annotations.Html is
 
       Pi ("  </table>");
 
-      --  Total stats.
+      --  Total stats
+
       Pi ("  <hr/>");
       Pi ("  <table cellspacing=""1"" class=""TotalTable"">");
       Print_Coverage_Header (Pp.Index_File, "", True);
@@ -633,33 +656,17 @@ package body Annotations.Html is
    is
       use Ada.Integer_Text_IO;
 
-      State : constant Line_State := Aggregated_State (Info.State);
+      State : constant Any_Line_State := Aggregated_State (Info.all);
    begin
       Pp.Show_Line_Details := Pp.Show_Details and then State /= No_Code;
-      Wrh (Pp, "  <tr class=""");
+      Wrh (Pp, "  <tr class=""" & State'Img);
 
-      if Info.Exemption /= Slocs.No_Location then
-         if Get_Exemption_Count (Info.Exemption) = 0 then
-            Wrh (Pp, "exempted_no_violation");
+      if State = No_Code then
+         if Line_Num mod 2 = 1 then
+            Wrh (Pp, "_odd");
          else
-            Wrh (Pp, "exempted");
+            Wrh (Pp, "_even");
          end if;
-
-      else
-         case State is
-            when Not_Covered =>
-               Wrh (Pp, "not_covered");
-            when Partially_Covered =>
-               Wrh (Pp, "partially_covered");
-            when Covered =>
-               Wrh (Pp, "covered");
-            when No_Code =>
-               if Line_Num mod 2 = 1 then
-                  Wrh (Pp, "no_code_odd");
-               else
-                  Wrh (Pp, "no_code_even");
-               end if;
-         end case;
       end if;
 
       Wrh (Pp, """ title=""");
@@ -672,6 +679,10 @@ package body Annotations.Html is
             Wrh (Pp, "code covered");
          when No_Code =>
             Wrh (Pp, "no code generated for this line");
+         when Exempted_With_Violation =>
+            Wrh (Pp, "exempted, violation present");
+         when Exempted_No_Violation =>
+            Wrh (Pp, "exempted, no violation");
       end case;
 
       if Pp.Show_Line_Details then
@@ -691,12 +702,7 @@ package body Annotations.Html is
       Plh (Pp, "</pre></td>");
       Wrh (Pp, "    <td><pre>");
 
-      if Info.Exemption /= Slocs.No_Location then
-         Put (Pp.Html_File,
-           State_Char_Exempted (Get_Exemption_Count (Info.Exemption) > 0));
-      else
-         Put (Pp.Html_File, State_Char (State));
-      end if;
+      Put (Pp.Html_File, State_Char (State));
 
       Plh (Pp, "</pre></td>");
       Wrh (Pp, "    <td><pre>");
@@ -746,11 +752,13 @@ package body Annotations.Html is
               & Key_Name & "</td>");
       end if;
 
-      Put_Line (F, "      <td class=""SumHead""> total nb of lines </td");
-      Put_Line (F, "      <td class=""SumHead""> fully covered </td");
-      Put_Line (F, "      <td class=""SumHead""> partially covered </td");
-      Put_Line (F, "      <td class=""SumHead""> not covered </td");
-      Put_Line (F, "      <td class=""SumHead""> visual summary </td");
+      Put_Line (F, "      <td class=""SumHead""> total lines with code</td>");
+      Put_Line (F, "      <td class=""SumHead""> fully covered</td>");
+      Put_Line (F, "      <td class=""SumHead""> partially covered</td>");
+      Put_Line (F, "      <td class=""SumHead""> not covered</td>");
+      Put_Line (F, "      <td class=""SumHead""> exempted, no violation</td>");
+      Put_Line (F, "      <td class=""SumHead""> exempted</td>");
+      Put_Line (F, "      <td class=""SumHead""> visual summary </td>");
       Put_Line (F, "    </tr>");
    end Print_Coverage_Header;
 
@@ -761,99 +769,94 @@ package body Annotations.Html is
    procedure Print_Coverage_Stats (F : in out File_Type; Stats : Stat_Array) is
       use Ada.Integer_Text_IO;
 
-      procedure Print_Ratio (Part : Natural; Total : Natural);
+      Total : constant Natural := Get_Total (Stats);
+      --  Total line count, excluding No_Code lines
+
+      procedure Print_Ratio (Part : Natural);
       --  Total and Part being a number of lines, print the ratio of the
       --  these two quantities (Part / Total) into a cell.
+
+      procedure Print_Bar (S : Any_Line_State);
+      --  Print visual bar for the given state
+
+      procedure Print_Bar (S : Any_Line_State) is
+         Size : constant Natural := Ratio (Stats (S), Total);
+      begin
+         if Size /= 0 then
+            Put (F, "<td class=""SumBar" & S'Img & """ width=""");
+            Put (F, Size, 0);
+            Put (F, """ title=""");
+            Put (F, Size, 0);
+            Put (F, "% " & S'Img & """></td>");
+         end if;
+
+      end Print_Bar;
 
       -----------------
       -- Print_Ratio --
       -----------------
 
-      procedure Print_Ratio (Part : Natural; Total : Natural) is
+      procedure Print_Ratio (Part : Natural) is
       begin
-         Put (F, "      <td class=""SumPourcent"" width=""10%"">");
+         Put (F, "      <td class=""SumPercent"" width=""10%"">");
 
          if Total = 0 then
             Put (F, "no code");
          else
             Put (F, Part, 0);
-            Put (F, " lines (");
+            Put (F, " line");
+
+            if Part /= 1 then
+               Put (F, "s");
+            end if;
+
+            Put (F, " (");
             Put (F, Ratio (Part, Total), 0);
             Put (F, " %)");
          end if;
 
-         Put_Line (F, "</td>");
+         Put (F, "</td>");
       end Print_Ratio;
 
-      --  Local variables
-
-      P       : constant Counters := Get_Counters (Stats);
-      Fully   : Natural;
-      Partial : Natural;
-      Uncover : Natural;
-
-      --  Start of processing for Print_Coverage_Stats
+   --  Start of processing for Print_Coverage_Stats
 
    begin
-      --  First column: total nb of lines
-      Put (F, "      <td class=""SumPourcent"" width=""10%"">");
-      Put (F, P.Total, 0);
+      --  Total lines
+
+      Put (F, "      <td class=""SumPercent"" width=""10%"">");
+      Put (F, Total, 0);
       Put (F, " lines");
       Put_Line (F, "</td>");
 
-      --  Second column: fully covered
-      Print_Ratio (P.Fully, P.Total);
+      --  Per-state breakdown
 
-      --  Third column: partially covered
-      Print_Ratio (P.Partial, P.Total);
+      Print_Ratio (Stats (Covered));
+      Print_Ratio (Stats (Partially_Covered));
+      Print_Ratio (Stats (Not_Covered));
+      Print_Ratio (Stats (Exempted_No_Violation));
+      Print_Ratio (Stats (Exempted_With_Violation));
 
-      --  Fourth column: not covered
-      Print_Ratio (P.Not_Covered, P.Total);
+      --  Visual summary
 
-      --  Fifth column: visual summary
       Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
-      New_Line (F);
+
       Put (F, "        <table border=""0"" cellspacing=""0"" "
              & "class=""BarGraph""><tr height=""10"">");
 
-      if P.Fully = P.Total then
-         --  Also includes P.Total = 0.
+      if Stats (Covered) = Total then
+         --  Also includes P.Total = 0
+
          Put (F, "<td class=""SumBarCover"" width=""100"""
                 & " title=""100% fully covered""></td>");
       else
-         Fully := Ratio (P.Fully, P.Total);
-
-         if Fully /= 0 then
-            Put (F, "<td class=""SumBarCover"" width=""");
-            Put (F, Fully, 0);
-            Put (F, """ title=""");
-            Put (F, Fully, 0);
-            Put (F, "% fully covered""></td>");
-         end if;
-
-         Partial :=  Ratio (P.Partial, P.Total);
-
-         if Partial /= 0 then
-            Put (F, "<td class=""SumBarPartial"" width=""");
-            Put (F, Partial, 0);
-            Put (F, """ title=""");
-            Put (F, Partial, 0);
-            Put (F, "% partially covered""></td>");
-         end if;
-
-         Uncover := Ratio (P.Not_Covered, P.Total);
-
-         if Uncover /= 0 then
-            Put (F, "<td class=""SumBarNoCover"" width=""");
-            Put (F, Uncover, 0);
-            Put (F, """ title=""");
-            Put (F, Uncover, 0);
-            Put (F, "% not covered""></td>");
-         end if;
+         Print_Bar (Covered);
+         Print_Bar (Partially_Covered);
+         Print_Bar (Not_Covered);
+         Print_Bar (Exempted_No_Violation);
+         Print_Bar (Exempted_With_Violation);
       end if;
 
-      Put_Line (F, "</tr></table>");
-      Put_Line (F, "      </td>");
+      Put_Line (F, "</tr></table></td>");
    end Print_Coverage_Stats;
 
    ---------

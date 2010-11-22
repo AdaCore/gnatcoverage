@@ -492,7 +492,7 @@ package body Annotations.Xml is
       Line     : String)
    is
       Coverage_State : constant String :=
-                         (1 => State_Char (Aggregated_State (Info.State)));
+                         (1 => State_Char (Aggregated_State (Info.all)));
       Exempted : constant Boolean := Info.Exemption /= Slocs.No_Location;
    begin
       Pp.ST ("src_mapping", A ("coverage", Coverage_State));

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -19,12 +19,11 @@
 
 package body Traces_Stats is
 
-   ------------------
-   -- Get_Counters --
-   ------------------
+   ---------------
+   -- Get_Total --
+   ---------------
 
-   function Get_Counters (Stats : Stat_Array) return Counters
-   is
+   function Get_Total (Stats : Stat_Array) return Natural is
       Total : Natural := 0;
    begin
       for J in Stats'Range loop
@@ -32,12 +31,8 @@ package body Traces_Stats is
             Total := Total + Stats (J);
          end if;
       end loop;
-
-      return (Fully   => Stats (Covered),
-              Partial => Stats (Partially_Covered),
-              Not_Covered => Stats (Not_Covered),
-              Total   => Total);
-   end Get_Counters;
+      return Total;
+   end Get_Total;
 
    ---------------------
    -- Get_Stat_String --
@@ -45,16 +40,11 @@ package body Traces_Stats is
 
    function Get_Stat_String (Stats : Stat_Array) return String
    is
-      Total : Natural := 0;
+      Total : constant Natural := Get_Total (Stats);
    begin
-      for J in Stats'Range loop
-         if J /= No_Code then
-            Total := Total + Stats (J);
-         end if;
-      end loop;
-
       if Total = 0 then
          return "no code";
+
       else
          declare
             Res : constant String := Natural'Image (Ratio (Stats (Covered),

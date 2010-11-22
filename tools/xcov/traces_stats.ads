@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2010, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -24,39 +24,18 @@ with Traces_Lines; use Traces_Lines;
 
 package Traces_Stats is
 
-   type Stat_Array is array (Line_State) of Natural;
+   type Stat_Array is array (Any_Line_State) of Natural;
    --  Array of stats indexed by the state of a line; it records
    --  the number of occurrences of each state in a set of lines.
 
    function Get_Stat_String (Stats : Stat_Array) return String;
    --  Return a String image of Stats
 
-   type Counters is record
-      --  For a set of lines, keep a record of the number of lines that
-      --  have a given "state" (fully covered/partially covered) so that
-      --  statistics can be built from these indications.
-
-      Fully       : Natural;
-      --  Number of lines fully covered according to the coverage criteria
-
-      Partial     : Natural;
-      --  Number of lines partially covered according to the coverage criteria
-
-      Not_Covered : Natural;
-      --  Number of lines not covered according to the coverage criteria
-
-      Total       : Natural;
-      --  Total number of lines
-   end record;
-
-   function Get_Counters (Stats : Stat_Array) return Counters;
-   --  From the number of occurences of each state in a set of line
-   --  (in Stats), compute the number of lines fully covered, partially
-   --  covered, and the total number of lines. Return the result.
+   function Get_Total (Stats : Stat_Array) return Natural;
+   --  Return total line count, excluding No_Code lines
 
    function Ratio (Part : Natural; Total : Natural) return Natural;
-   --  Total and Part being a number of lines, compute the ratio of the
-   --  these two quantities (Part / Total) and return this value
-   --  as a percentage.
+   --  Total and Part being a number of lines, compute the ratio of the two
+   --  quantities (Part / Total) and return this value as a percentage.
 
 end Traces_Stats;

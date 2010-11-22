@@ -432,12 +432,17 @@ package body Annotations.Report is
       Skip : out Boolean)
    is
       Info : constant File_Info_Access := Get_File (File);
-      P    : constant Counters := Get_Counters (Info.Stats);
    begin
-      if P.Fully /= P.Total then
+      if Info.Stats (Covered) /= Get_Total (Info.Stats) then
+
+         --  Some uncovered or partially covered lines are present
+
          Pp.Current_File_Index := File;
          Skip := False;
+
       else
+         --  Everything covered: nothing to report for this file
+
          Skip := True;
       end if;
    end Pretty_Print_Start_File;

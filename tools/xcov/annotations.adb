@@ -60,12 +60,24 @@ package body Annotations is
    -- Aggregated_State --
    ----------------------
 
-   function Aggregated_State (S : Line_States) return Line_State is
+   function Aggregated_State (Info : Line_Info) return Any_Line_State is
       use Coverage.Source;
       Result : Line_State := No_Code;
    begin
-      for J in S'Range loop
-         Result := Result * S (J);
+      --  Exempted case
+
+      if Info.Exemption /= Slocs.No_Location then
+         if Get_Exemption_Count (Info.Exemption) = 0 then
+            return Exempted_No_Violation;
+         else
+            return Exempted_With_Violation;
+         end if;
+      end if;
+
+      --  Non-exempted case
+
+      for J in Info.State'Range loop
+         Result := Result * Info.State (J);
       end loop;
       return Result;
    end Aggregated_State;
@@ -105,22 +117,19 @@ package body Annotations is
       end Process_One_Line;
 
       Skip : Boolean;
-      C    : constant Counters := Get_Counters (FI.Stats);
 
    --  Start of processing for Disp_File_Line_State
 
    begin
       Files_Table.Fill_Line_Cache (FI);
 
-      --  If there is no coverage information to display in the
-      --  annotated source (i.e. if the total number of line with a
-      --  Line_State is null), then there is no useful information to add
-      --  in this annotated source. So, if this file's content cannot
-      --  be read, we can ignore it without any warning. This actually
-      --  happens when SCOs are emitted for units for which no code is
-      --  generated; in such a case, a warning would just be noise.
+      --  If there is no coverage information to display in the annotated
+      --  sources (i.e. if the total number of line with a Line_State is null),
+      --  then there is no useful information to add (case in particular of
+      --  sources with SCOs but no associated code, e.g. generics that are
+      --  not instantiated).
 
-      if C.Total = 0 and not FI.Has_Source then
+      if Get_Total (FI.Stats) = 0 and then not FI.Has_Source then
          return;
       end if;
 
@@ -171,11 +180,11 @@ package body Annotations is
       Instruction_Set : Addresses_Info_Acc;
       Info            : Files_Table.Object_Coverage_Info_Acc;
       Sec_Info        : Addresses_Info_Acc;
-      Ls              : constant Line_State := Aggregated_State (LI.State);
+      Ls              : constant Any_Line_State := Aggregated_State (LI);
       In_Symbol       : Boolean;
       In_Insn_Set     : Boolean;
 
-      --  Start of processing for Disp_Instruction_Sets
+   --  Start of processing for Disp_Instruction_Sets
 
    begin
       if Coverage.Object_Coverage_Enabled then
@@ -420,6 +429,7 @@ package body Annotations is
       ------------------------
 
       procedure Compute_File_State (File_Index : Source_File_Index) is
+         use Coverage;
 
          FI : constant File_Info_Access := Get_File (File_Index);
 
@@ -427,13 +437,16 @@ package body Annotations is
          --  Given a source line located in FI's source file, at line L,
          --  compute its line state and record it into the file table.
 
+         procedure Compute_Stats (L : Positive);
+         --  Update file statistics for line L. Note that this can be done
+         --  only once Compute_Line_State for each line has been computed,
+         --  because this depends on violation count for each exampted region.
+
          ------------------------
          -- Compute_Line_State --
          ------------------------
 
          procedure Compute_Line_State (L : Positive) is
-            use Coverage;
-
             LI        : constant Line_Info_Access := Get_Line (FI, L);
             S         : Line_State;
             Sloc      : Source_Location;
@@ -442,18 +455,16 @@ package body Annotations is
             --  Compute state for each coverage objective
 
             if Object_Coverage_Enabled then
-               Coverage.Object.Compute_Line_State (LI);
+               Object.Compute_Line_State (LI);
             else
-               Coverage.Source.Compute_Line_State (L, LI);
+               Source.Compute_Line_State (L, LI);
             end if;
 
-            --  Compute aggregated line state
+            --  Compute aggregated line state before exemption
 
-            S := Aggregated_State (LI.State);
+            S := Aggregated_State (LI.all);
 
-            --  Update counts
-
-            FI.Stats (S) := FI.Stats (S) + 1;
+            --  Now determine whether this line is covered by an exemption.
 
             --  First check whether the beginning of the line is exempted. If
             --  not, find the first statement SCO starting on the line, and
@@ -499,13 +510,34 @@ package body Annotations is
             end if;
          end Compute_Line_State;
 
+         -------------------
+         -- Compute_Stats --
+         -------------------
+
+         procedure Compute_Stats (L : Positive) is
+            LI : constant Line_Info_Access := Get_Line (FI, L);
+            S  : constant Any_Line_State := Aggregated_State (LI.all);
+
+         begin
+            --  Update counts. Note that No_Code lines are always counted as
+            --  No_Code even if they are part of an exempted region.
+
+            if LI.State (Stmt) = No_Code then
+               FI.Stats (No_Code) := FI.Stats (No_Code) + 1;
+            else
+               FI.Stats (S) := FI.Stats (S) + 1;
+            end if;
+         end Compute_Stats;
+
       --  Start of processing for Compute_File_State
 
       begin
          FI.Stats := (others => 0);
          Iterate_On_Lines (FI, Compute_Line_State'Access);
-         for I in Line_State'Range loop
-            Global_Stats (I) := Global_Stats (I) + FI.Stats (I);
+         Iterate_On_Lines (FI, Compute_Stats'Access);
+
+         for J in Global_Stats'Range loop
+            Global_Stats (J) := Global_Stats (J) + FI.Stats (J);
          end loop;
       end Compute_File_State;
 

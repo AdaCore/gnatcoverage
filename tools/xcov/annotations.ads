@@ -166,7 +166,7 @@ private
    --  a line state will be displayed. If Show_Details is True, a justification
    --  is associated to this line state.
 
-   function Aggregated_State (S : Line_States) return Line_State;
+   function Aggregated_State (Info : Line_Info) return Any_Line_State;
    --  Return synthetic indication of coverage state for all computed criteria
 
    function Get_Exemption (Sloc : Source_Location) return Source_Location;
