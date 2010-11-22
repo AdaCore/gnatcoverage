@@ -26,7 +26,7 @@ class DocGenerator(object):
 
     def __init__(self, root_dir, doc_dir):
         self.root_dir = os.path.abspath(root_dir)
-        self.doc_dir  = os.path.abspath(doc_dir)
+        self.doc_dir = os.path.abspath(doc_dir)
         self.resource_list = []
 
     def file2docfile(self, filename):
@@ -56,10 +56,9 @@ class DocGenerator(object):
             name = os.path.basename(root)
 
             # Ignore some subdirectories
-            if '.svn' in dirs:
-                dirs.remove('.svn')
-            if 'src' in dirs:
-                dirs.remove('src')
+            for d in [k for k in dirs]:
+                if d in ('.svn', 'src') or d.startswith('tmp_'):
+                    dirs.remove(d)
 
             # Write the title of the section corresponding to the current dir
             dest_fd.write(rest.section(to_title(name)))
