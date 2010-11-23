@@ -1,0 +1,7 @@
+When multiple statements share the same line
+
+* Each of them shall be reported uncovered when none of them is executed,
+
+* A single partial coverage indication shall be emitted if at least
+  one of them is executed, even if all of them.
+
