@@ -3,6 +3,7 @@
 import os
 import rest
 import glob
+import re
 
 DOC_DIR = "source"
 ROOT_DIR = "../../../testsuite/Qualif/Ada"
@@ -27,7 +28,7 @@ class DocGenerator(object):
     def __init__(self, root_dir, doc_dir):
         self.root_dir = os.path.abspath(root_dir)
         self.doc_dir = os.path.abspath(doc_dir)
-        self.resource_list = []
+        self.resource_list = set([])
 
     def file2docfile(self, filename):
         """Return the associated filename for a given path"""
@@ -45,6 +46,103 @@ class DocGenerator(object):
         name"""
         result = os.path.relpath(name, self.root_dir)
         return result.replace('/', '_').replace('\\', '_').replace('.', '_')
+
+    def parent_globbing(self, dir, pattern, include_start_dir=False):
+        """Look for src/[pattern] files in dir and its parents directory
+        up to document root directory"""
+        head = os.path.relpath(dir, self.root_dir)
+        tail = ''
+        if not include_start_dir:
+            head, tail = os.path.split(head)
+        files = set([])
+        while len(head) > 0:
+            files |= set(glob.glob(os.path.join(self.root_dir, head, 'src',
+                                                pattern)))
+            head, tail = os.path.split(head)
+        return files
+
+    def find_with_clauses(self, dir, sourcefile):
+        content = get_content(sourcefile)
+        # Remove all comments
+        content = '\n'.join([k for k in content.splitlines() \
+                             if not re.match('\s*--', k)])
+
+        # Find all the with clauses
+        matches = re.findall(r'(?:\n|;|^)\s*with\s*([^;]+)\s*;', content, re.S)
+        matches = [k.replace(' ', '') for k in matches]
+        result = []
+        for m in matches:
+            result += m.lower().split(',')
+        result = set(result)
+
+        # Remove support package
+        result -= set(['support'])
+
+        file_list = set([])
+        for item in result:
+            spec = self.parent_globbing(dir, item + '.ads', True)
+            if len(spec) > 1:
+                print 'warning: find several spec for %s unit' % item
+            file_list |= spec
+            body = self.parent_globbing(dir, item + '.adb', True)
+            if len(body) > 1:
+                print 'warning: find several body for %s unit' % item
+            elif len(body) == 1:
+                file_list |= body
+            if len(body | spec) == 0:
+                print 'warning: no body or spec found for %s unit (%s)' % \
+                      (item, sourcefile)
+        return file_list
+
+    def find_closure(self, dir, sourcefile):
+        """Given an Ada source file find it's closure. Not that we ignore the
+        support package"""
+
+        result_set = self.find_with_clauses(dir, sourcefile)
+
+        current_size = len(result_set)
+        previous_size = 0
+        while current_size > previous_size:
+
+            previous_size = current_size
+            tmp = set([])
+            for item in result_set:
+                tmp |= self.find_with_clauses(dir, item)
+
+            result_set |= tmp
+            current_size = len(result_set)
+
+        return result_set
+
+    def process_testcase(self, dir):
+        # First find the Ada files in the current src subdirectory
+        ada_files = set(glob.glob(os.path.join(dir, 'src', '*.ad[sb]')))
+
+        # Find the first the tests procedures
+        test_procedure_files = set([k for k in ada_files \
+          if os.path.basename(k).startswith('test_')])
+
+        if len(test_procedure_files) == 0:
+            # We are in a case in which we don't have the procedure files in
+            # the current directory. So the found them in the parent
+            # directories using the names of the test data.
+            data_names = set([os.path.basename(k).split('.')[0] \
+                              for k in ada_files])
+            for name in data_names:
+                test_procedure_files |= \
+                  self.parent_globbing(dir, 'test_' + name + '*.ad[sb]')
+
+        # Find the closure of test procedures. This should give us the list of
+        # data files
+        test_data_files = set([])
+        for d in test_procedure_files:
+            test_data_files |= self.find_closure(dir, d)
+
+        if len(test_data_files) == 0:
+            print 'warning: no test data files'
+
+        self.resource_list |= test_procedure_files | test_data_files
+        return (test_procedure_files, test_data_files)
 
     def generate_doc(self, root_dir):
         """Generate documentation for root_dir and all its subdirectories"""
@@ -67,7 +165,7 @@ class DocGenerator(object):
 
             # Check if we have a requirement
             if 'req.txt' in files:
-                dest_fd.write("\n\n" + rest.strong("Requirements") + "\n\n")
+                dest_fd.write("\n\n" + rest.strong("Requirement") + "\n\n")
                 dest_fd.write(get_content(os.path.join(root, 'req.txt')))
 
                 # Check if the requirement has some tests (check for tc.txt in
@@ -90,16 +188,18 @@ class DocGenerator(object):
                                                                'tc.txt')))
                         test_id += 1
 
-                        # Get the test resources (only ada files in src
-                        # subdirectory ?)
-                        ada_files = glob.glob(os.path.join(root, d, 'src',
-                                                           '*.ad[sb]'))
+                        # Process the testcase
+                        refs = self.process_testcase(os.path.join(root, d))
 
-                        # Keep track of it (used later to write the resources
-                        # section)
-                        self.resource_list += ada_files
+                        dest_fd.write('\n\n' + \
+                                      rest.emphasis("Test Datas") + '\n\n')
                         dest_fd.write(rest.list([':ref:`%s`' % self.ref(d) \
-                                                 for d in ada_files]))
+                                                 for d in refs[1]]))
+                        dest_fd.write('\n\n' + \
+                                      rest.emphasis("Test Procedures") + \
+                                      '\n\n')
+                        dest_fd.write(rest.list([':ref:`%s`' % self.ref(d) \
+                                                 for d in refs[0]]))
                 if has_testcase and len(dirs) > 0:
                     for d in dirs:
                         print "warning: unexpected subreq or imcomplete " + \
