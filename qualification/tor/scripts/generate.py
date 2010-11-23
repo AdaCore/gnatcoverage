@@ -12,6 +12,9 @@ ROOT_DIR = "../../../testsuite/Qualif/Ada"
 def to_title(str):
         """Given an entity name return a suitable string to be insterted
         in the documentation"""
+        m = re.search(r'^[0-9]+_(.*)$', str)
+        if m is not None:
+            str = m.group(1)
         return str.replace('_', ' ')
 
 
@@ -231,6 +234,7 @@ class DocGenerator(object):
 
     def generate_all(self):
         self.generate_doc(os.path.join(self.root_dir, 'stmt'))
+        self.generate_doc(os.path.join(self.root_dir, 'decision'))
         self.generate_doc(os.path.join(self.root_dir, 'mcdc'))
         self.generate_resources()
         fd = open(os.path.join(self.doc_dir, 'index.rst'), 'w')
