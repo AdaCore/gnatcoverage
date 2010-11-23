@@ -6,6 +6,22 @@ If execution reaches the top of a basic block, no statement in the block is
 reported uncovered. Conversely, if execution doesn't reach the top of a basic
 block, all the statements in the block are reported uncovered.
 
+**Testing Strategy**
+
+Check that the tool recognizes sequences in either subprogram or package
+elaboration bodies, and properly handles
+
+* Very long sequences of statements,
+
+* Basic blocks of/with null statements,
+
+* Control flow transfers from goto, return, loop exit statements,
+  or local exception raises,
+
+* Statements that evaluate only partially, in particular with
+  expression shortcircuits.
+  
+  
 
 
 
