@@ -1,34 +1,55 @@
 
-Several sets of requirements/testcases:
+This section is split in several parts:
 
 IsolatedConstructs:
 -------------------
 
-Elaborated out of a systematic pass over the Ada Reference Manual, to make
-sure the suite is representative of all the language aspects we need to
-handle.
+Holds requirements and testcases to define and validate the expected
+processing of isolated Ada language constructs.
 
-BasicBlocks:
+The organization mirrors that of the Ada Reference Manual, making sure that
+the suite is representative of all the language aspects we need to handle.
+
+ControlFlow:
 ------------
 
-Standlone section elaborated out of SVTAS proposals to demonstrate proper
-processing of statement sequences and various possible forms of control-flow
-transfers, fundamental mecanism for an imperative language.
+Holds requirements and testcases inspired from the SVTAS (Software
+Verification Tool Assessment Study) proposals to demonstrate proper processing
+of statement sequences and various possible forms of control-flow transfers,
+fundamental mecanism for an imperative language.
 
-In addition to offer a useful set focused on control flow, tests in this
-section were written by a different team, which augments the robustness of the
+In addition to offer a useful set focused on control flow, testcases in this
+section were written by an independant team, augmenting the robustness of the
 suite as a whole.
 
 Sanity:
 -------
 
-Elaborated out of SVTAS proposals to demonstrate that the toolset correctly
-handles potentially confusing constructs that would fool naive analyzers for
-various sorts of reasons.
+Holds requirements and testcases inspired from the SVTAS proposals to
+demonstrate that the toolset correctly handles potentially confusing
+constructs that would fool naive analyzers for various sorts of reasons.
 
-Also includes testcases to define and verify our toolset behavior in special
-cases such as multiple statements sharing a line or a single statement
-spanning multiple lines.
+This includes cases such as multiple statements sharing a line or a single
+statement spanning multiple lines.
 
+Consolidation:
+--------------
 
+Holds requirements and testscases to define and validate the expected
+processing of multiple execution traces combined together.
+
+Exemptions:
+-----------
+
+Holds requirements and testscases to define and validate the expected
+processing of exemption regions.
+
+MixedConstructs:
+----------------
+
+Holds material aimed at verifying proper statement coverage assessement on
+programs where a variety of language constructs are mixed together (loops
+within if statements, ...).
+
+ 
 
