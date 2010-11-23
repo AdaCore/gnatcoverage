@@ -1,3 +1,13 @@
-Statement coverage assessment remains well defined and correct in the presence
-of code constructs that could fool simple minded analysis engines.
+Statement coverage assessment remains well defined in the presence of code
+constructs that could fool simple minded analysis engines.
 
+This general requirement is decomposed into lower level ones to address
+cases where
+
+* Code indentation could be misleading
+
+* The presence of homonym entities could be misleading
+
+* Multiple statements share the same line
+
+* A single statement spans multiple lines
