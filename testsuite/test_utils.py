@@ -1002,6 +1002,8 @@ def Section_within(text):
 # == Coverage Notes ==
 # ====================
 
+rsNoInterest, rsNotExempted, rsExempted = range (3)
+
 # -----------
 # -- Cnote --
 # -----------
@@ -1292,8 +1294,6 @@ class LnotesExpander:
 
 # Construct a { source -> KnoteDict } dictionary of emitted Line Notes
 # from =xcov outputs in files corresponding to a provided DOTXCOV_PATTERN
-
-rsNoInterest, rsNotExempted, rsExempted = range (3)
 
 class RnotesExpander:
     """Produce list of Enote instances found in a "report" output."""
@@ -1733,13 +1733,13 @@ class UXchecker:
         for xn in self.unsat[block]:
             dev_p = deviation_p(xn.kind)
             pos_p = positive_p(xn.kind)
-            thistest.fail_if (
-                not xn.weak
+            if (not xn.weak
                 and ((not dev_p and not pos_p)
                      or (dev_p and not dsat_p)
-                     or (pos_p and not psat_p)),
-                "Expected %s mark missing at %s"
-                % (NK_image[xn.kind], str(xn.segment)))
+                     or (pos_p and not psat_p))):
+                self.register_failure (
+                    "Expected %s mark missing at %s"
+                    % (NK_image[xn.kind], str(xn.segment)))
 
     def compare(self, nkind):
         xnotes = self.xdict[nkind]
@@ -2139,6 +2139,11 @@ class ExerciseAll:
 
         return [drv for drv in self.all_drivers if re.search (drv_expr, drv)]
 
+    def optrequest_in(self, options):
+        """Whether the OPTIONS string of compilation options features
+        a request for optimization."""
+        return options and re.search ("(^|\s)-O", options)
+
     def __init__(self, extradrivers="", extracargs="", xcovlevel=None):
 
         # Step 1: Compute the list of drivers to exercise ...
@@ -2187,9 +2192,19 @@ class ExerciseAll:
 
         # - compilation arguments:
 
+        # Account for provided compilation flags for qualif tests, then
+        # append test specific extra compilation flags. Skip !qualif tests
+        # forcing optimization in runs that would not run qualif ones with
+        # optimization as well.
+
         testcargs = []
         if qualification_test_p():
             testcargs = to_list(thistest.options.qualif_cargs)
+        elif (self.optrequest_in(extracargs)
+              and not self.optrequest_in(thistest.options.qualif_cargs)):
+            thistest.log ("skipping opt test in !opt qualif context")
+            return
+
         testcargs += to_list (extracargs)
 
         # Step 3: Run the tests ...
