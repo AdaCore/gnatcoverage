@@ -8,18 +8,32 @@ block, all the statements in the block are reported uncovered.
 
 **Testing Strategy**
 
-Check that the tool recognizes sequences in either subprogram or package
-elaboration bodies, and properly handles
+1. Check that basic blocks of statements are recognized in various
+   possible contexts:
 
-* Very long sequences of statements,
+   * Package elaboration body
 
-* Basic blocks of/with null statements,
+   * Subprogram bodies or local block declarations
 
-* Control flow transfers from goto, return, loop exit statements,
-  or local exception raises,
+2. Check that uncommon sequences are handled properly:
 
-* Statements that evaluate only partially, in particular with
-  expression shortcircuits.
+   * Very long sequences,
+
+   * Sequences of null or no-op statements (pragmas)
+
+3. Check that various forms of control-flow transfers are handled properly,
+   from
+
+   * goto statements, 
+
+   * return statements,
+   
+   * loop exits,
+
+   * local exception raises,
+
+4. Check correct handling of statements that evaluate only partially, in
+   particular with expression shortcircuits.
   
   
 
