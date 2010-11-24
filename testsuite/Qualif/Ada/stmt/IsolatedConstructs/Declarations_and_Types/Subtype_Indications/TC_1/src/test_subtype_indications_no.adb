@@ -18,7 +18,7 @@ end Test_Subtype_Indications_No;
 -- /1_stmt/      l- s-
 -- /2_local_dcl/ l- s-
 -- /2_stmt/      l- s-
--- /3_local_dcl/ l- s-
+-- /3_local_dcl/ l- ~s-
 -- /3_stmt/      l- s-
 
 
