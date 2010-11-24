@@ -13,7 +13,7 @@ procedure Test_Discrete_Subtype_Definitions_Part_2 is
 begin
    Assert (P2.Arr'Length = 20);
 
-   Assert (Some_Fun_2 (1, 2, 3, 100));
+   Assert (not Some_Fun_2 (1, 2, 3, 100));
 end Test_Discrete_Subtype_Definitions_Part_2;
 
 --# discrete_subtype_definitions.ads
