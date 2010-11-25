@@ -60,7 +60,7 @@ def main():
         trace_dir = None
 
     # Generate the discs list for test.opt parsing
-    common_discs = ['ALL'] + env.discriminants
+    common_discs = ['ALL'] + env.discriminants + qualif_cargs_discriminants()
 
     # Compute the test list. Use ./ in paths to maximize possible regexp
     # matches, in particular to allow use of command-line shell expansion
@@ -121,6 +121,23 @@ def main():
 
     # Human readable report (rep file)
     ReportDiff('output', options.old_res).txt_image('rep_couverture')
+
+def qualif_cargs_discriminants():
+    """Compute a list of discriminants (string) for each switch passed
+    in the --qualif-cargs command-line option.  The format of each
+    discriminant is a follow: QUALIF_CARGS_<X> where <X> is the switch
+    stripped of its leading dashes.  For instance, if this testsuite
+    is called with --qualif-cargs='-gnatp -O1', then this function should
+    return ['QUALIF_CARGS_gnatp', 'QUALIF_CARGS_O1'].
+
+    Return an empty list if --qualif-cargs was not used.
+    """
+    if not Env().main_options.qualif_cargs:
+        return []
+    discs = []
+    for arg in Env().main_options.qualif_cargs.split():
+        discs.append("QUALIF_CARGS_" + arg.lstrip('-'))
+    return discs
 
 def filter_list(pattern, run_test=""):
     """Compute the list of test matching pattern
