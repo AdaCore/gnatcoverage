@@ -60,7 +60,7 @@ def main():
         trace_dir = None
 
     # Generate the discs list for test.opt parsing
-    common_discs = ['ALL', env.target.platform]
+    common_discs = ['ALL'] + env.discriminants
 
     # Compute the test list. Use ./ in paths to maximize possible regexp
     # matches, in particular to allow use of command-line shell expansion
