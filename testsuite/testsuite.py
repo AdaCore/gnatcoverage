@@ -62,6 +62,18 @@ def main():
     # Generate the discs list for test.opt parsing
     common_discs = ['ALL'] + env.discriminants + qualif_cargs_discriminants()
 
+    # Dump the list of discriminants in a file.  We can then use that file
+    # to determine which discriminants were set during a particular run.
+    with open(os.path.join('output', 'discs'), 'w') as fd:
+        fd.write(" ".join(common_discs) + "\n")
+
+    # Dump useful information about this run in a file.  This file can be
+    # used as a testsuite report header, allowing a review to determine
+    # immediately how the testsuite was run to get those results.
+    # For now, we only provide the command-line switches.
+    with open(os.path.join('output', 'comment'), 'w') as fd:
+        fd.write("Options: " + " ".join(__quoted_argv()) + "\n")
+
     # Compute the test list. Use ./ in paths to maximize possible regexp
     # matches, in particular to allow use of command-line shell expansion
     # to elaborate the expression.
@@ -397,6 +409,25 @@ def __parse_options():
         m.options.run_test = ""
 
     return m.options
+
+def __quoted_argv():
+    """Return a list of command line options used to when invoking this
+    script.  The different with sys.argv is that the first entry (the
+    name of this script) is stripped, and that arguments that have a space
+    in them get quoted.  The goal is to be able to copy/past the quoted
+    argument in a shell and obtained the desired effect."""
+    quoted_args = []
+    for arg in sys.argv[1:]:
+        if ' ' in arg:
+           eq_idx = arg.find('=')
+           if eq_idx < 0:
+               quoted_arg = "'" + arg + "'"
+           else:
+               quoted_arg = arg[:eq_idx] + "='" + arg[eq_idx + 1:] + "'"
+        else:
+           quoted_arg = arg
+        quoted_args.append(quoted_arg)
+    return quoted_args
 
 if __name__ == "__main__":
     main()
