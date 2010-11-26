@@ -1,0 +1,2 @@
+Decision coverage assessment, as defined for IsolatedConstructs, remains
+correct in presence of constructs that could fool simple minded analyzers.
