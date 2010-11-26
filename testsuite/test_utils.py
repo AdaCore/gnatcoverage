@@ -2113,11 +2113,12 @@ class ExerciseAll:
     def __category(self):
         """Compute our test category from its directory location."""
         global TEST_DIR
-        if re.search ("Ada.stmt", TEST_DIR):
+        root_expr = "(Ada|SanityCheck)"
+        if re.search (root_expr + ".stmt", TEST_DIR):
             return "stmt"
-        elif re.search ("Ada.decision", TEST_DIR):
+        elif re.search (root_expr + ".decision", TEST_DIR):
             return "decision"
-        elif re.search ("Ada.mcdc", TEST_DIR):
+        elif re.search (root_expr + ".mcdc", TEST_DIR):
             return "mcdc"
         else:
             raise FatalError(
