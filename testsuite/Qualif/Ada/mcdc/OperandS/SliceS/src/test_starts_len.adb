@@ -8,4 +8,4 @@ end;
 
 --# starts.adb
 --  /startsLength/ l! 0
---  /startsKey/    l! c!:"S \("
+--  /startsKey/    l! m!:"S \("

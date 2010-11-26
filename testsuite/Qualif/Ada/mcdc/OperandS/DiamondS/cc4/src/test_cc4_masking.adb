@@ -10,6 +10,6 @@ begin
 end;
 
 --# cc4.adb
---  /eval/ l! c!:"not A"
+--  /eval/ l! u!:"not A"
 
 

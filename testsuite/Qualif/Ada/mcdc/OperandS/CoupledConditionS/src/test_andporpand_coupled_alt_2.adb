@@ -37,17 +37,17 @@ begin
 end Test_AndPorPand_Coupled_Alt_2;
 
 --# andporpand_coupled_alt.adb
--- /F1_evaluate/        l! c!:"B"
--- /coupF1_evaluate/    l! c!:"A"
+-- /F1_evaluate/        l! m!:"B"
+-- /coupF1_evaluate/    l! m!:"A"
 -- /F1_decisionTrue/    l+ 0
 -- /F1_decisionFalse/   l+ 0
--- /F2_evaluate/        l! c!:"B"
--- /coupF2_evaluate/    l! c!:"B"
+-- /F2_evaluate/        l! m!:"B"
+-- /coupF2_evaluate/    l! m!:"B"
 -- /F2_decisionTrue/    l+ 0
 -- /F2_decisionFalse/   l+ 0
 -- /F3_evaluate/        l! 0
--- /coupF3_evaluate/    l! c!:"A"
--- /coupF3_evaluate/    l! c!:"B"
+-- /coupF3_evaluate/    l! m!:"A"
+-- /coupF3_evaluate/    l! m!:"B"
 -- /F3_decisionTrue/    l+ 0
 -- /F3_decisionFalse/   l+ 0
 -- /decl/               ~l+ 0

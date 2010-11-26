@@ -9,5 +9,5 @@ begin
 end;
 
 --# starts.adb
--- /null/     l! c!:"S /= null"
--- /contents/ l! c!:"S.S'First."
+-- /null/     l! m!:"S /= null"
+-- /contents/ l! m!:"S.S'First."

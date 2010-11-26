@@ -1125,7 +1125,7 @@ class XnoteP:
               'l#': lx0, 'l*': lx1,
               's-': sNoCov, 's!': sPartCov,
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov,
-              'c!': cPartCov,
+              'm!': cPartCov, 'u!': cPartCov,
               'x0': xBlock0, 'x+': xBlock1,
               '0': None}
 

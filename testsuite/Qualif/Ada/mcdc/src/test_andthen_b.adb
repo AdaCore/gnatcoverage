@@ -7,7 +7,7 @@ begin
 end;
 
 --# andthen.adb
---  /eval(Stmt|Other)/  l! c!:"A"
+--  /eval(Stmt|Other)/  l! m!:"A"
 --  /decisionTrue/  l+ 0
 --  /decisionFalse/ l+ 0
 --  /returnValue/   l+ 0

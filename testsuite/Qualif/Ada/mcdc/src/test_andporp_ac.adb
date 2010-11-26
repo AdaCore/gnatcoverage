@@ -10,6 +10,6 @@ begin
 end;
 
 --# andporp.adb
---  /eval(Stmt|Other)/      l! c!:"B"
+--  /eval(Stmt|Other)/      l! m!:"B"
 --  /decisionTrue/  l+ 0
 --  /decisionFalse/ l+ 0

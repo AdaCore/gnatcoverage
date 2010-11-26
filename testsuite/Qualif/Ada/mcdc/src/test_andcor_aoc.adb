@@ -9,7 +9,7 @@ end;
 
 --# andcor.adb
 -- /andthen/     l+ 0
--- /orelse/      l! c!:"B"
+-- /orelse/      l! m!:"B"
 -- /returnOr/    l+ 0
 -- /orTrue/      l+ 0
 -- /orFalse/     l+ 0

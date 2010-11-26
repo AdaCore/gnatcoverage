@@ -9,4 +9,4 @@ end;
 
 --# starts.adb
 -- /null/     l! 0
--- /contents/ l! c!:"S'Length",c!:"S.S'First."
+-- /contents/ l! m!:"S'Length",m!:"S.S'First."
