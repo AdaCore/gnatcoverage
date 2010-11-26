@@ -1,0 +1,16 @@
+When a decision is never evaluated, it's enclosing statement or declaration
+shall be reported uncovered.
+
+When a decision is evaluated only True or only False, it shall be reported
+as only partially covered.
+
+When a decision is evaluated both True and False, no decision coverage
+violation shall be reported for it.
+
+**Testing Strategy**
+
+Check that all the aspects of this requirement are satisfied
+in a variety of situations:
+
+* With operands requiring internal computations with tests.
+
