@@ -1298,12 +1298,12 @@ class LnotesExpander:
 class RnotesExpander:
     """Produce list of Enote instances found in a "report" output."""
 
-    NK_for = {"DECISION: outcome FALSE never": dfNoCov,
-              "DECISION: outcome TRUE never": dtNoCov,
-              "DECISION: one outcome never": dPartCov,
+    NK_for = {"decision outcome FALSE never": dfNoCov,
+              "decision outcome TRUE never": dtNoCov,
+              "decision not exercised in both directions": dPartCov,
               "multiple statement SCOs": sPartCov,
-              "CONDITION: failed to show independent": cPartCov,
-              "STATEMENT: not executed": sNoCov}
+              "condition has no independent influence pair": cPartCov,
+              "statement not executed": sNoCov}
 
     def nkind_for(self, ntext):
 
