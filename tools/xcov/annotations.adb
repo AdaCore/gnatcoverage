@@ -522,7 +522,7 @@ package body Annotations is
             --  Update counts. Note that No_Code lines are always counted as
             --  No_Code even if they are part of an exempted region.
 
-            if LI.State (Stmt) = No_Code then
+            if LI.State = Line_States'(others => No_Code) then
                FI.Stats (No_Code) := FI.Stats (No_Code) + 1;
             else
                FI.Stats (S) := FI.Stats (S) + 1;
