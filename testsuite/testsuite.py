@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""./testsuite.py [OPTIONS] [TSET_PATH]
+"""./testsuite.py [OPTIONS] [TEST_PATH]
 
 Run the couverture testsuite
 

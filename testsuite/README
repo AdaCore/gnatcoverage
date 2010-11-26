@@ -37,7 +37,7 @@ This is all still "under construction" so subject to change.
 -------------------
 
  * At the testsuite dir level, a "support" subdirectory corresponding
-   to the one in ../xcov/examples
+   to the one in ../tools/xcov/examples
 
  * a target compiler supporting -fpreserve-control-flow (e.g GNAT Pro 6.3.2)
 
