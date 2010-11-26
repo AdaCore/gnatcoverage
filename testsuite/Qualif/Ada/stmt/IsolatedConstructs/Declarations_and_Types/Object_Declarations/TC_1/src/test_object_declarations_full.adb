@@ -176,7 +176,7 @@ end Test_Object_Declarations_Full;
 --# decls_pack_2.ads
 --  /dcls/    l+ 0
 --  /g1_dcls/ l+ 0
---  /g2_dcls/ l+ 0
+--  /g2_dcls/ ~l+ 0
 
 --# decls_pack_2.adb
 --  /local_swap/        l+ 0
