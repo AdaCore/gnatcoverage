@@ -535,6 +535,15 @@ def compile(source, options):
     command line."""
     do("%s-gcc -c %s %s"  % (env.target.triplet, options, source))
 
+# ------------
+# -- fb_get --
+# ------------
+
+def fb_get(dict, key):
+    """Get DICT[KEY], falling back to DICT['others'] if KEY is not a
+    a valid key in DICT"""
+    return dict.get(key, dict["others"])
+
 # -----------
 # -- frame --
 # -----------
@@ -774,8 +783,9 @@ deviationNote, \
 lNoCov, lPartCov, \
 sNoCov, sPartCov, \
 dtNoCov, dfNoCov, dPartCov, cPartCov, \
+uPartCov, mPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(17)
+xBlock0, xBlock1 = range(19)
 
 # DEVIATION notes are those representing violations of a coverage mandate
 # associated with a general criterion (e.g. ).
@@ -814,7 +824,7 @@ NK_image  = {None: "None",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
              dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dPartCov: "dPartCov",
              xBlock0: "xBlock0", xBlock1: "xBlock1",
-             cPartCov: "cPartCov"}
+             cPartCov: "cPartCov", mPartCov: "mPartCov", uPartCov: "uPartCov"}
 
 # Useful sets of note kinds:
 # --------------------------
@@ -826,7 +836,18 @@ dNoteKinds = (dtNoCov, dfNoCov, dPartCov)
 cNoteKinds = (cPartCov,)
 xNoteKinds = (xBlock0, xBlock1)
 
+# Note kinds that can be associated to one of xcov's message, independantly
+# of the context of invocation.
 rNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds
+
+# Note kinds that cannot be properly identified from xcov's output
+# only (i.e. that depends on the context of invocation of xcov). Which means
+# that the cannot be univocally associated to one of xcov's message;
+# they shall be converted to a more general kind first, using to_rnote.
+expNoteKinds = (uPartCov, mPartCov)
+
+to_rnote = {uPartCov : {"stmt+uc_mcdc" : cPartCov, "others" : None},
+            mPartCov : {"others" : cPartCov}}
 
 # Relevant/Possible Line and Report notes for CATEGORY/CONTEXT:
 # -------------------------------------------------------------
@@ -848,10 +869,10 @@ rp_rnotes_for = { "stmt":     xNoteKinds+sNoteKinds,
 # Default xcov --level value for every possible test category:
 # ------------------------------------------------------------
 
-default_xcovlevel_for = { "stmt":     "stmt",
-                          "decision": "stmt+decision",
-                          "mcdc":     "stmt+mcdc"
-                        }
+default_xcovlevels_for = { "stmt":     ["stmt"],
+                           "decision": ["stmt+decision"],
+                           "mcdc":     ["stmt+uc_mcdc", "stmt+mcdc"]
+                         }
 
 # For each xcovlevel, test categories for which checking the =xcov
 # outputs makes sense:
@@ -859,7 +880,8 @@ default_xcovlevel_for = { "stmt":     "stmt",
 
 xcov_compatible_categories_for = { "stmt": ["stmt"],
                                    "stmt+decision": ["decision"],
-                                   "stmt+mcdc": ["mcdc"]
+                                   "stmt+mcdc": ["mcdc"],
+                                   "stmt+uc_mcdc": ["mcdc"]
                                    }
 
 # ======================================
@@ -1125,7 +1147,7 @@ class XnoteP:
               'l#': lx0, 'l*': lx1,
               's-': sNoCov, 's!': sPartCov,
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov,
-              'm!': cPartCov, 'u!': cPartCov,
+              'm!': mPartCov, 'u!': uPartCov,
               'x0': xBlock0, 'x+': xBlock1,
               '0': None}
 
@@ -1419,7 +1441,7 @@ class RnotesExpander:
 #     lx := "-- " lx_lre lx_lnote [lx_rnote_list] <newline>
 #     lx_lre := "/" REGEXP "/"
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
-#     lx_rnote_list := <s-|s!|dT-|dF-|d!|c!|x0|x+>[:"TEXT"] [lx_rnote_list]
+#     lx_rnote_list := <s-|s!|dT-|dF-|d!|u!|m!|x0|x+>[:"TEXT"] [lx_rnote_list]
 
 # The start of the SCOV data is identified as the first comment whose syntax
 # matches a "sources" line.  Any comment before then is assumed to be a normal
@@ -1552,7 +1574,8 @@ class UnitCX:
 
 class XnotesExpander:
 
-    def __init__(self, xfile):
+    def __init__(self, xfile, xcov_level):
+        self.xcov_level = xcov_level
         self.xlnotes = {}
         self.xrnotes = {}
         [self.to_xnotes(ux) for ux in
@@ -1656,15 +1679,59 @@ class XnotesExpander:
                 + "Expected /LRE/ lnote [rnotes]")
 
         lx_lre    = m.group(1)
-        lx_lnote  = XnoteP (text=m.group(2), stext=None)
+        lx_explnote  = XnoteP (text=m.group(2), stext=None)
 
         thistest.stop_if (
             not m.group(3),
             FatalError ("Missing expected report notes in %s" % image))
 
-        lx_rnotes = self.__parse_expected_rnotes(m.group(3))
+        lx_exprnotes = self.__parse_expected_rnotes(m.group(3))
+
+        # resolve node kinds that are level-dependent:
+        lx_lnote=self.__resolve_lnote(lx_explnote, lx_exprnotes)
+        lx_rnotes=[self.__resolve_rnote_kinds(note) for note in lx_exprnotes]
 
         return LineCX("-- # (" + lx_lre + ")", lx_lnote, lx_rnotes)
+
+    def __resolve_rnote_kinds(self, note):
+        """If the report note NOTE has a context-dependent note kind,
+        resolve it using the invocation context; and return the updated
+        note."""
+        if note.kind in expNoteKinds:
+            note.kind = fb_get(to_rnote[note.kind], self.xcov_level)
+
+        return note
+
+    def __resolve_lnote(self, note, rnotes):
+        """Same as __resolve_rnote_kinds, but for line notes."""
+        # Special case for MC/DC: the line status may be partially
+        # covered for Unique Cause and fully covered for Masking. e.g.
+        #
+        #  /pattern/ l! u!:"C"
+        #
+        # The expectation language does not allow to discriminate
+        # between these two cases: so here is what we do. So if
+        # the only rnotes for a given line are Unique-Cause-specific
+        # and if we are in Masking MC/DC, we convert l! into l+.
+        #
+        # Technically, this is not the only ambiguous case; the same
+        # problem may occur for excempted lines (i.e. l* in Unique
+        # Cause and l# in Masking). But we will avoid that case in the
+        # testsuite.  The proper way to fix this would be to introduce
+        # some new expectation notes (lu!, lu#...) that would be
+        # interpreted differently depending on the MC/DC variant. But
+        # we may not complicate too much the language to handle these
+        # corners cases if the driver can properly resolve the
+        # ambiguity in a simple way (as it seems to be the case).
+        if self.xcov_level == "stmt+mcdc":
+            if note.kind == lPartCov:
+                for rnote in rnotes:
+                    if rnote.kind != uPartCov:
+                        return note
+
+                note.kind = lFullCov
+
+        return note
 
 # ======================================
 # == SCOV_helper and internal helpers ==
@@ -1799,7 +1866,7 @@ class SCOV_helper:
         self.elnotes = {}
         self.ernotes = {}
 
-        xnotes = XnotesExpander (xfile)
+        xnotes = XnotesExpander (xfile, xcovlevel)
         self.xlnotes = xnotes.xlnotes
         self.xrnotes = xnotes.xrnotes
 
@@ -2186,10 +2253,10 @@ class ExerciseAll:
                 FatalError("qualif tests may not force an explicit xcovlevel"))
 
             if thistest.options.qualif_xcov_level:
-                xcovlevel = thistest.options.qualif_xcov_level
+                xcovlevels = [thistest.options.qualif_xcov_level]
 
         if xcovlevel == None:
-            xcovlevel = default_xcovlevel_for [category]
+            xcovlevels = default_xcovlevels_for [category]
 
         # - compilation arguments:
 
@@ -2212,12 +2279,15 @@ class ExerciseAll:
         # -------------------------
 
         # First, run the test for each driver, individually.
-        [SCOV_helper(drivers=[driver], xfile=driver, category=category,
-                     xcovlevel=xcovlevel).run(testcargs)
+        # for covlevel in xcovlevels:
+        [[SCOV_helper(drivers=[driver], xfile=driver, category=category,
+                     xcovlevel=covlevel).run(testcargs)
          for driver in self.all_drivers]
+         for covlevel in xcovlevels]
 
         # Next, run applicable consolidation tests.
         consolidation_specs = ls ("src/cons_*.txt")
-        [SCOV_helper(drivers=self.drivers_from(cspec), xfile=cspec,
-                     category=category, xcovlevel=xcovlevel).run(testcargs)
-         for cspec in consolidation_specs]
+        for covlevel in xcovlevels:
+            [SCOV_helper(drivers=self.drivers_from(cspec), xfile=cspec,
+                         category=category, xcovlevel=covlevel).run(testcargs)
+             for cspec in consolidation_specs]
