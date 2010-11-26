@@ -1117,12 +1117,6 @@ begin
                Put_Line ("Coverage level: " & Coverage_Option_Value);
                Traces_Dump.Dump_Routines_Traces;
 
-            when Annotate_Xcov =>
-               Annotations.Xcov.Generate_Report (False);
-
-            when Annotate_Html =>
-               Annotations.Html.Generate_Report (False);
-
             when Annotate_Xml =>
                Annotations.Xml.Generate_Report;
 
@@ -1131,22 +1125,26 @@ begin
                   Fatal_Error ("xcov+asm format not supported"
                                & "for source coverage");
                else
-                  Annotations.Xcov.Generate_Report (True);
+                  Annotations.Xcov.Generate_Report (Show_Details => True);
                end if;
 
             when Annotate_Html_Asm =>
                if Source_Coverage_Enabled then
-                  Fatal_Error ("xcov+asm format not supported"
+                  Fatal_Error ("html+asm format not supported"
                                & "for source coverage");
                else
-                  Annotations.Html.Generate_Report (True);
+                  Annotations.Html.Generate_Report (Show_Details => True);
                end if;
 
-            when Annotate_Xcov_Plus =>
-               Annotations.Xcov.Generate_Report (True);
+            when Annotate_Xcov      |
+                 Annotate_Xcov_Plus =>
+               Annotations.Xcov.Generate_Report
+                 (Show_Details => Annotation = Annotate_Xcov_Plus);
 
-            when Annotate_Html_Plus =>
-               Annotations.Html.Generate_Report (True);
+            when Annotate_Html      |
+                 Annotate_Html_Plus =>
+               Annotations.Html.Generate_Report
+                 (Show_Details => Annotation = Annotate_Html_Plus);
 
             when Annotate_Report =>
                Annotations.Report.Generate_Report (Output);
