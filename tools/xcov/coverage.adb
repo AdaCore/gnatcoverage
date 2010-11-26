@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -27,7 +27,7 @@ with Strings; use Strings;
 
 package body Coverage is
 
-   type Levels_Type is array (Known_Coverage_Level) of Boolean;
+   type Levels_Type is array (Coverage_Level) of Boolean;
 
    function To_Option (L : Levels_Type) return String;
    --  Option string for the combination of levels L
@@ -46,6 +46,9 @@ package body Coverage is
 
    procedure Add_Coverage_Option (L : Levels_Type);
    --  Register L as a valid combination of coverage levels
+
+   function Any_Coverage_Enabled (L : Levels_Type) return Boolean;
+   --  True if any level marked True in L is enabled
 
    -------------------------
    -- Add_Coverage_Option --
@@ -74,19 +77,60 @@ package body Coverage is
       return Levels (Level);
    end Enabled;
 
+   --------------------------
+   -- Any_Coverage_Enabled --
+   --------------------------
+
+   function Any_Coverage_Enabled (L : Levels_Type) return Boolean is
+   begin
+      return (L and Levels) /= Levels_Type'(others => False);
+   end Any_Coverage_Enabled;
+
+   ---------------------------
+   -- MCDC_Coverage_Enabled --
+   ---------------------------
+
+   function MCDC_Coverage_Enabled return Boolean is
+   begin
+      return Any_Coverage_Enabled
+        ((MCDC_Coverage_Level => True, others => False));
+   end MCDC_Coverage_Enabled;
+
+   ----------------
+   -- MCDC_Level --
+   ----------------
+
+   function MCDC_Level return MCDC_Coverage_Level is
+   begin
+      pragma Assert (MCDC_Coverage_Enabled);
+      if Enabled (UC_MCDC) then
+         pragma Assert (not Enabled (MCDC));
+         return UC_MCDC;
+      else
+         pragma Assert (not Enabled (UC_MCDC));
+         return MCDC;
+      end if;
+   end MCDC_Level;
+
    -----------------------------
    -- Object_Coverage_Enabled --
    -----------------------------
 
    function Object_Coverage_Enabled return Boolean is
    begin
-      for J in Object_Coverage_Level loop
-         if Levels (J) then
-            return True;
-         end if;
-      end loop;
-      return False;
+      return Any_Coverage_Enabled
+        ((Object_Coverage_Level => True, others => False));
    end Object_Coverage_Enabled;
+
+   -----------------------------
+   -- Source_Coverage_Enabled --
+   -----------------------------
+
+   function Source_Coverage_Enabled return Boolean is
+   begin
+      return Any_Coverage_Enabled
+        ((Source_Coverage_Level => True, others => False));
+   end Source_Coverage_Enabled;
 
    -------------------------
    -- Set_Coverage_Levels --
@@ -98,20 +142,6 @@ package body Coverage is
       Levels := Coverage_Option_Map.Element (Opt'Unrestricted_Access);
       Levels_Set := True;
    end Set_Coverage_Levels;
-
-   -----------------------------
-   -- Source_Coverage_Enabled --
-   -----------------------------
-
-   function Source_Coverage_Enabled return Boolean is
-   begin
-      for J in Source_Coverage_Level loop
-         if Levels (J) then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Source_Coverage_Enabled;
 
    ---------------
    -- To_Option --
@@ -170,4 +200,5 @@ begin
    Add_Coverage_Option ((Stmt   => True,                   others => False));
    Add_Coverage_Option ((Stmt   => True, Decision => True, others => False));
    Add_Coverage_Option ((Stmt   => True, MCDC     => True, others => False));
+   Add_Coverage_Option ((Stmt   => True, UC_MCDC  => True, others => False));
 end Coverage;

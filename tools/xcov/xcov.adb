@@ -1167,7 +1167,7 @@ begin
             procedure Run (Exe_File : String) is
                Histmap : String_Access := null;
             begin
-               if Enabled (MCDC) then
+               if MCDC_Coverage_Enabled then
                   if Length (SCOs_Inputs) = 0 then
                      Warn ("No SCOs specified for MC/DC level");
                   else

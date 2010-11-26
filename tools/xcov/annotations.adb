@@ -360,24 +360,25 @@ package body Annotations is
 
                when Decision =>
                   if Coverage.Enabled (Coverage.Decision)
-                    or else Coverage.Enabled (Coverage.MCDC)
+                    or else Coverage.MCDC_Coverage_Enabled
                   then
-                     if Coverage.Enabled (Coverage.MCDC) then
-                        SCO_State := Get_Line_State (SCO, Coverage.MCDC);
+                     if Coverage.MCDC_Coverage_Enabled then
+                        SCO_State := Get_Line_State (SCO, Coverage.MCDC_Level);
+
                      elsif Coverage.Enabled (Coverage.Decision) then
                         SCO_State := Get_Line_State (SCO, Coverage.Decision);
                      end if;
 
                      Pretty_Print_Start_Decision (Pp, SCO, SCO_State);
 
-                     if Coverage.Enabled (Coverage.MCDC) then
+                     if Coverage.MCDC_Coverage_Enabled then
                         for J in Condition_Index'First .. Last_Cond_Index (SCO)
                         loop
                            Pretty_Print_Condition
                              (Pp,
                               Condition (SCO, J),
                               Get_Line_State (Condition (SCO, J),
-                                              Coverage.MCDC));
+                                              Coverage.MCDC_Level));
                         end loop;
                      end if;
 

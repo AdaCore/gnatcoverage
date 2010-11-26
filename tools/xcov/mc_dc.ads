@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                      Copyright (C) 2009, AdaCore                         --
+--                   Copyright (C) 2009-2010, AdaCore                       --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -50,13 +50,16 @@ package MC_DC is
    end record;
 
    function Is_MC_DC_Pair
-     (Eval_1, Eval_2 : Evaluation) return Any_Condition_Index;
+     (Eval_1, Eval_2 : Evaluation;
+      Unique_Cause   : Boolean) return Any_Condition_Index;
    --  For two evaluations Eval_1 and Eval_2 of a decision, determine whether
    --  the two evaluations demonstrate independent influence of a condition on
    --  the decision outcome, and if so, return the index of the condition (note
    --  that any two evaluations can't be an MC/DC independant pair for more
    --  than one condition). No_Condition_Index is returned if this is not an
    --  MC/DC pair for any condition.
+   --  If Unique_Cause is True, use Unique Cause MC/DC independance, else use
+   --  Masking MC/DC independence.
 
    function Infer_Values
      (Condition : SCO_Id) return Condition_Evaluation_Vectors.Vector;

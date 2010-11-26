@@ -212,13 +212,13 @@ package body Coverage.Source is
                   Update_Line_State (Line_Info, SCO, Decision, SCO_State);
                end if;
 
-               if Enabled (MCDC) then
-                  SCO_State := SCI.State (MCDC);
-                  Update_Line_State (Line_Info, SCO, MCDC, SCO_State);
+               if MCDC_Coverage_Enabled then
+                  SCO_State := SCI.State (MCDC_Level);
+                  Update_Line_State (Line_Info, SCO, MCDC_Level, SCO_State);
                end if;
 
             elsif Kind (SCO) = Decision
-              and then (Enabled (Decision) or else Enabled (MCDC))
+              and then (Enabled (Decision) or else MCDC_Coverage_Enabled)
             then
 
                --  Compute decision coverage state for this decision. Note that
@@ -259,20 +259,21 @@ package body Coverage.Source is
 
                Update_Line_State (Line_Info, SCO, Decision, SCO_State);
 
-               if Enabled (MCDC) then
+               if MCDC_Coverage_Enabled then
                   if SCO_State = Covered then
                      --  Complete computation of MC/DC coverage state if SCO is
                      --  covered for decision coverage.
 
-                     Update_Line_State (Line_Info, SCO, MCDC,
-                                        Compute_MCDC_State (SCO));
+                     Update_Line_State
+                       (Line_Info, SCO, MCDC_Level, Compute_MCDC_State (SCO));
 
                   elsif SCO_State /= No_Code then
                      --  Case of MC/DC enabled but at least one outcome never
                      --  taken: do not report details regarding MC/DC coverage,
                      --  just record that MC/DC is not achieved.
 
-                     Update_Line_State (Line_Info, SCO, MCDC, Not_Covered);
+                     Update_Line_State
+                       (Line_Info, SCO, MCDC_Level, Not_Covered);
                   end if;
                end if;
             end if;
@@ -305,7 +306,8 @@ package body Coverage.Source is
          for E2 in E1 + 1 .. SCI.Evaluations.Last_Index loop
             Influent_Condition := Is_MC_DC_Pair
                  (SCI.Evaluations.Element (E1),
-                  SCI.Evaluations.Element (E2));
+                  SCI.Evaluations.Element (E2),
+                  Unique_Cause => MCDC_Level = UC_MCDC);
 
             --  Record and report the first eval pair that shows independent
             --  influence of Influent_Condition.
@@ -333,14 +335,15 @@ package body Coverage.Source is
 
       for J in 0 .. Indep'Last loop
          if not Indep (J) then
-            Update_State (SCO_State, Condition (SCO, J), MCDC, Not_Covered);
+            Update_State
+              (SCO_State, Condition (SCO, J), MCDC_Level, Not_Covered);
             Report
               ("has no independent influence pair, MC/DC not achieved",
                Sloc => First_Sloc (SCO),
                SCO  => Condition (SCO, J),
                Kind => Warning);
          else
-            Update_State (SCO_State, Condition (SCO, J), MCDC, Covered);
+            Update_State (SCO_State, Condition (SCO, J), MCDC_Level, Covered);
          end if;
       end loop;
 
@@ -423,7 +426,7 @@ package body Coverage.Source is
             SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
          end loop;
 
-         if not (Enabled (Decision) or else Enabled (MCDC))
+         if not (Enabled (Decision) or else MCDC_Coverage_Enabled)
            or else Kind (SCO) /= Condition
            or else not Cond_Branch_Map.Contains ((Subp_Info.Exec, PC))
          then
@@ -507,7 +510,7 @@ package body Coverage.Source is
                   --  requires full traces of conditional branches, so we
                   --  do it only when actually required.
 
-                  if not Enabled (MCDC) then
+                  if not MCDC_Coverage_Enabled then
                      return;
                   end if;
 
@@ -617,7 +620,7 @@ package body Coverage.Source is
                   Edge_Taken (Fallthrough);
 
                when 3 =>
-                  if Enabled (MCDC)
+                  if MCDC_Coverage_Enabled
                        and then (Has_Diamond (SCO) or else Debug_Full_History)
                   then
                      --  For MC/DC we need full historical traces, not just
@@ -719,7 +722,7 @@ package body Coverage.Source is
    begin
       --  No-op unless doing MC/DC analysis
 
-      if not Enabled (MCDC) then
+      if not MCDC_Coverage_Enabled then
          return;
       end if;
 

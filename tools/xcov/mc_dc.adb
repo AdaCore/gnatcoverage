@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                      Copyright (C) 2009, AdaCore                         --
+--                   Copyright (C) 2009-2010, AdaCore                       --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -90,7 +90,8 @@ package body MC_DC is
    -------------------
 
    function Is_MC_DC_Pair
-     (Eval_1, Eval_2 : Evaluation) return Any_Condition_Index
+     (Eval_1, Eval_2 : Evaluation;
+      Unique_Cause   : Boolean) return Any_Condition_Index
    is
       First_Different : Any_Condition_Index := No_Condition_Index;
    begin
@@ -105,10 +106,11 @@ package body MC_DC is
          return No_Condition_Index;
       end if;
 
-      --  Look for first condition evaluated in both evaluations and with
-      --  different value in both, and check whether it is the only one.
+      --  Look for last condition evaluated in both evaluations and with
+      --  different value in both, and in the case of Unique Cause, check
+      --  whether it is the only one.
 
-      for J in 0 .. Condition_Index'Max
+      for J in reverse 0 .. Condition_Index'Max
         (Eval_1.Values.Last_Index, Eval_2.Values.Last_Index)
       loop
          Check_Condition : declare
@@ -141,7 +143,14 @@ package body MC_DC is
             if Val_1 /= Unknown and then Val_2 /= Unknown
               and then Val_1 /= Val_2
             then
-               if First_Different = No_Condition_Index then
+               if not Unique_Cause then
+                  --  Remarkable property of Masking MC/DC with short circuit:
+                  --  any evaluation pair with varied outcome is an independent
+                  --  influence pair for the rightmost varied condition.
+
+                  return J;
+
+               elsif First_Different = No_Condition_Index then
                   First_Different := J;
 
                else

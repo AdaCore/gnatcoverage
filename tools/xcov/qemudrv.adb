@@ -265,7 +265,7 @@ package body Qemudrv is
             if Histmap_Filename /= null then
                Args (J) := new String'("histmap=" & Histmap_Filename.all & ','
                                          & Trace_Output.all);
-            elsif Enabled (MCDC) then
+            elsif MCDC_Coverage_Enabled then
                Args (J) := new String'("history," & Trace_Output.all);
             else
                Args (J) := Trace_Output;

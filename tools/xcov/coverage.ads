@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2010, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -29,24 +29,24 @@ with Traces_Elf;   use Traces_Elf;
 
 package Coverage is
 
-   type Coverage_Level is (Insn, Branch, Stmt, Decision, MCDC);
-   --  Coverage objectives supported by xcov, plus "unknown" (to be used when
-   --  no coverage objective has been specified). The following values are
+   type Coverage_Level is (Insn, Branch, Stmt, Decision, MCDC, UC_MCDC);
+   --  Coverage objectives supported by xcov. The following values are
    --  supported:
 
-   --  * object coverage at instruction level (Insn);
-   --  * object coverage at branch level      (Branch);
-   --  * source coverage at statement level   (Stmt);
-   --  * source coverage at decision level    (Decision);
-   --  * source coverage at MCDC level        (MCDC).
+   --  * object coverage at instruction level        (Insn);
+   --  * object coverage at branch level             (Branch);
+   --  * source coverage at statement level          (Stmt);
+   --  * source coverage at decision level           (Decision);
+   --  * source coverage at masking MC/DC level      (MCDC);
+   --  * source coverage at unique cause MC/DC level (UC_MCDC).
 
    --  The terms "instruction", "branch", "statement", "decision" and "MCDC"
    --  should be undertstood here as they are defined in the DO-178B standard;
    --  their meaning is also documented in Couverture's documentation.
 
-   subtype Known_Coverage_Level  is Coverage_Level range Insn .. MCDC;
    subtype Object_Coverage_Level is Coverage_Level range Insn .. Branch;
-   subtype Source_Coverage_Level is Coverage_Level range Stmt .. MCDC;
+   subtype Source_Coverage_Level is Coverage_Level range Stmt .. UC_MCDC;
+   subtype MCDC_Coverage_Level   is Coverage_Level range MCDC .. UC_MCDC;
 
    procedure Set_Coverage_Levels (Opt : String);
    --  Set the coverage levels to be assessed by xcov
@@ -62,6 +62,13 @@ package Coverage is
 
    function Source_Coverage_Enabled return Boolean;
    --  True if any Source_Coverage_Level is enabled
+
+   function MCDC_Coverage_Enabled return Boolean;
+   --  True if any MCDC_Coverage_Level is enabled
+
+   function MCDC_Level return MCDC_Coverage_Level;
+   --  If MCDC_Coverage_Level_Enabled, return MCDC or UC_MCDC, depending on
+   --  which one is enabled (it is illegal to have both enabled).
 
    function Coverage_Option_Value return String;
    --  Return the coverage option value for the currently enabled levels
