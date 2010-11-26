@@ -17,9 +17,11 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Time_Stamp;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
-with Ada.Text_IO;  use Ada.Text_IO;
+with Ada.Text_IO; use Ada.Text_IO;
+
+with GNAT.Time_Stamp;
 
 with ALI_Files;
 with Qemu_Traces;
@@ -329,7 +331,7 @@ package body Annotations.Report is
       if M.SCO /= No_SCO_Id then
          Put (Output.all, Image (First_Sloc (M.SCO)));
          Put (Output.all, ": ");
-         Put (Output.all, SCO_Kind'Image (Kind (M.SCO)) & ": ");
+         Put (Output.all, To_Lower (SCO_Kind'Image (Kind (M.SCO))) & " ");
       else
          Put (Output.all, Image (M.Sloc));
          Put (Output.all, ": ");

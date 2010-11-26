@@ -239,7 +239,7 @@ package body Coverage.Source is
                   --  been taken then this is outcome TRUE, else FALSE.
 
                   if Degraded_Origins (SCO) then
-                     Report (SCO, "one outcome never exercised");
+                     Report (SCO, "not exercised in both directions");
                   else
                      Report
                        (SCO,
@@ -335,7 +335,7 @@ package body Coverage.Source is
          if not Indep (J) then
             Update_State (SCO_State, Condition (SCO, J), MCDC, Not_Covered);
             Report
-              ("failed to show independent influence, MC/DC not achieved",
+              ("has no independent influence pair, MC/DC not achieved",
                Sloc => First_Sloc (SCO),
                SCO  => Condition (SCO, J),
                Kind => Warning);
