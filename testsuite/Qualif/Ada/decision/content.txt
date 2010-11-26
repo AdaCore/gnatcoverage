@@ -1,6 +1,0 @@
-Qualifying Couverture for its use in a DO-178 level B context requires to address:
- * Statement Coverage; 
- * Decision Coverage;
-
-!see .FrontPage.ToolOperationalRequirements.SourceCoverage.CoverageMetrics.StatementCoverage
-!see .FrontPage.ToolOperationalRequirements.SourceCoverage.CoverageMetrics.DecisionCoverage
