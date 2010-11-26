@@ -1,8 +1,7 @@
 
 This section is split in several parts:
 
-IsolatedConstructs:
--------------------
+**IsolatedConstructs**
 
 Holds requirements and testcases to define and validate the expected
 processing of isolated Ada language constructs.
@@ -10,8 +9,7 @@ processing of isolated Ada language constructs.
 The organization mirrors that of the Ada Reference Manual, making sure that
 the suite is representative of all the language aspects we need to handle.
 
-ControlFlow:
-------------
+**ControlFlow**
 
 Holds requirements and testcases inspired from the SVTAS (Software
 Verification Tool Assessment Study) proposals to demonstrate proper processing
@@ -22,8 +20,7 @@ In addition to offer a useful set focused on control flow, testcases in this
 section were written by an independant team, augmenting the robustness of the
 suite as a whole.
 
-Sanity:
--------
+**Sanity**
 
 Holds requirements and testcases inspired from the SVTAS proposals to
 demonstrate that the toolset correctly handles potentially confusing
@@ -32,20 +29,17 @@ constructs that would fool naive analyzers for various sorts of reasons.
 This includes cases such as multiple statements sharing a line or a single
 statement spanning multiple lines.
 
-Consolidation:
---------------
+**Consolidation**
 
 Holds requirements and testscases to define and validate the expected
 processing of multiple execution traces combined together.
 
-Exemptions:
------------
+**Exemptions**
 
 Holds requirements and testscases to define and validate the expected
 processing of exemption regions.
 
-MixedConstructs:
-----------------
+**MixedConstructs**
 
 Holds material aimed at verifying proper statement coverage assessement on
 programs where a variety of language constructs are mixed together (loops
