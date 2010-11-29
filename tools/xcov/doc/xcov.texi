@@ -1802,7 +1802,7 @@ All the non-exempted violations are reported using a consistent
 format, as illustrated on our example below:
 
 @smallexample
-  queues.adb:1641:17: STATEMENT: not executed
+  queues.adb:1641:17: statement not executed
   ----------:-------:----------:---------------
     source  :  loc  : cfamily  :    details
 @end smallexample
@@ -1826,25 +1826,23 @@ together with each possible value of the --level argument:
  @tab detail
 @item
  @code{=stmt}
- @tab @code{STATEMENT:}
+ @tab @code{statement}
  @tab @code{not executed}
 
 @item
   @code{=stmt+decision}
-  @tab @code{DECISION:}
+  @tab @code{decision}
   @tab @code{outcome TRUE not covered}
 @item
-  {}
-  @tab {}
+  @tab
   @tab @code{outcome FALSE not covered}
 @item
-  {}
-  @tab {}
+  @tab
   @tab @code{one outcome not covered}
 
 @item
   @code{=stmt+mcdc}
-  @tab @code{CONDITION:}
+  @tab @code{condition}
   @tab @code{failed to show independent influence}
 @end multitable
 
