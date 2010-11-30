@@ -1,2 +1,2 @@
-If an object declaration is elaborated it shall be reported as uncovered. If
-an object declaration is elaborated it shall not be reported as uncovered.
+If an object declaration is not elaborated it shall be reported as uncovered.
+If an object declaration is elaborated it shall not be reported as uncovered.
