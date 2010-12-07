@@ -748,7 +748,7 @@ package body Annotations.Html is
       Put_Line (F, "    <tr>");
 
       if Display_Keys then
-         Put_Line (F, "      <td class=""SumHead"" width=""50%"">"
+         Put_Line (F, "      <td class=""SumHead"">"
               & Key_Name & "</td>");
       end if;
 
@@ -838,17 +838,12 @@ package body Annotations.Html is
 
       --  Visual summary
 
-      Put (F, "      <td class=""SumBar"" align=""center"" width=""15%"">");
+      Put (F, "      <td class=""SumBar"" align=""center"" width=""10%"">");
 
       Put (F, "        <table border=""0"" cellspacing=""0"" "
              & "class=""BarGraph""><tr height=""10"">");
 
-      if Stats (Covered) = Total then
-         --  Also includes P.Total = 0
-
-         Put (F, "<td class=""SumBarCover"" width=""100"""
-                & " title=""100% fully covered""></td>");
-      else
+      if Total /= 0 then
          Print_Bar (Covered);
          Print_Bar (Partially_Covered);
          Print_Bar (Not_Covered);
