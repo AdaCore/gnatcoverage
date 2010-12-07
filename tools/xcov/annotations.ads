@@ -39,8 +39,6 @@ package Annotations is
       Annotate_Html,
       Annotate_Xcov_Plus,
       Annotate_Html_Plus,
-      Annotate_Xcov_Asm,
-      Annotate_Html_Asm,
       Annotate_Xml,
       Annotate_Report,
       Annotate_Unknown);

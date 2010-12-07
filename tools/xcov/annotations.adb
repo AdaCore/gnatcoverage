@@ -707,12 +707,6 @@ package body Annotations is
       elsif Option = "xml" then
          return Annotate_Xml;
 
-      elsif Option = "xcov+asm" then
-         return Annotate_Xcov_Asm;
-
-      elsif Option = "html+asm" then
-         return Annotate_Html_Asm;
-
       elsif Option = "xcov+" then
          return Annotate_Xcov_Plus;
 

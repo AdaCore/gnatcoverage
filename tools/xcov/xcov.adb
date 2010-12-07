@@ -263,10 +263,6 @@ procedure Xcov is
       begin
          if Annotation = Annotate_Unknown then
             Fatal_Error ("bad parameter for " & Annotate_Option_Short);
-         elsif Annotation = Annotate_Html_Asm then
-            Warn ("html+asm is deprecated; use html+ instead");
-         elsif Annotation = Annotate_Xcov_Asm then
-            Warn ("xcov+asm is deprecated; use xcov+ instead");
          end if;
       end Check_Annotation_Format;
 
@@ -1110,8 +1106,8 @@ begin
          case Annotation is
             when Annotate_Asm =>
                if Source_Coverage_Enabled then
-                  Fatal_Error ("Asm format not supported"
-                               & " for source coverage.");
+                  Fatal_Error
+                    ("Asm output supported for object coverage only");
                end if;
                Traces_Disa.Flag_Show_Asm := True;
                Put_Line ("Coverage level: " & Coverage_Option_Value);
@@ -1119,22 +1115,6 @@ begin
 
             when Annotate_Xml =>
                Annotations.Xml.Generate_Report;
-
-            when Annotate_Xcov_Asm =>
-               if Source_Coverage_Enabled then
-                  Fatal_Error ("xcov+asm format not supported"
-                               & "for source coverage");
-               else
-                  Annotations.Xcov.Generate_Report (Show_Details => True);
-               end if;
-
-            when Annotate_Html_Asm =>
-               if Source_Coverage_Enabled then
-                  Fatal_Error ("html+asm format not supported"
-                               & "for source coverage");
-               else
-                  Annotations.Html.Generate_Report (Show_Details => True);
-               end if;
 
             when Annotate_Xcov      |
                  Annotate_Xcov_Plus =>
