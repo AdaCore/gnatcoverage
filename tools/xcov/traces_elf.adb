@@ -1478,7 +1478,7 @@ package body Traces_Elf is
                   Line := Line + Arg;
 
                when DW_LNS_set_file =>
-                  Read_SLEB128 (Base, Off, Arg);
+                  Read_ULEB128 (Base, Off, Arg);
                   File := Natural (Arg);
 
                when DW_LNS_set_column =>
