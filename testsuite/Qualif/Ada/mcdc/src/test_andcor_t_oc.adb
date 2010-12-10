@@ -15,3 +15,4 @@ end;
 -- /returnTrue/  l+ 0
 -- /returnFalse/ l+ 0
 -- /returnValue/ l+ 0
+-- /decl/ l+ 0

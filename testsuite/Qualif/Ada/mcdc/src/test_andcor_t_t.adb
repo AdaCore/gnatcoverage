@@ -16,3 +16,4 @@ end;
 -- /returnTrue/  l+ 0
 -- /returnFalse/ l- s-
 -- /returnValue/ l+ 0
+-- /decl/ l+ 0

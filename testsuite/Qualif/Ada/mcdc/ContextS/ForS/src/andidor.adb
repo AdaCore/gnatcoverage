@@ -1,9 +1,11 @@
 package body AndIdOr is
    function F (A, B, C : Boolean) return Boolean is
+      type Bmap is array (Boolean) of Boolean;  -- # decl
+      Touched : Bmap := (others => False);  -- # decl
    begin
-      for V in (A and then Identity (B or else C)) .. True loop -- # evalStmt
-         return V;         -- # returnValue
+      for V in False .. (A and then Identity (B or else C)) loop -- # evalStmt
+         Touched (V) := True;         -- # returnValue
       end loop;
-      raise Program_Error; -- should never reach here
+      return Touched (True);  -- # returnValue
    end;
 end;

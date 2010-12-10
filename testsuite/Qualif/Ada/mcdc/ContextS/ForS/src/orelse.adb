@@ -1,10 +1,12 @@
 package body Orelse is
 
    function Or_Else (A, B : Boolean) return Boolean is
+      type Bmap is array (Boolean) of Boolean;  -- # decl
+      Touched : Bmap := (others => False);  -- # decl
    begin
-      for Value in (A or else B) .. True loop -- # evalStmt
-         return Value;                        -- # returnValue
+      for Value in False .. (A or else B) loop -- # evalStmt
+         Touched (Value) := True;             -- # returnValue
       end loop;
-      raise Program_Error; -- should never reach here
+      return Touched (True);  -- # returnValue
    end;
 end;
