@@ -20,6 +20,6 @@ begin
 end;
 
 --# cc6.adb
---  /line1/ l! 0
---  /line2/ l! 0
---  /line3/ l! u!:"High"
+--  /line1/ ul!;l+ 0
+--  /line2/ ul!;l+ 0
+--  /line3/ ul!;l+ u!:"High"

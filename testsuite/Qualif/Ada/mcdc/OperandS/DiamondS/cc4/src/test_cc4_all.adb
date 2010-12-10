@@ -16,6 +16,6 @@ begin
 end;
 
 --# cc4.adb
---  /eval/ l! u!:"not A"
+--  /eval/ ul!;l+ u!:"not A"
 
 

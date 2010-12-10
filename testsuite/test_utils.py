@@ -540,9 +540,9 @@ def compile(source, options):
 # ------------
 
 def fb_get(dict, key):
-    """Get DICT[KEY], falling back to DICT['others'] if KEY is not a
+    """Get DICT[KEY], falling back to DICT[''] if KEY is not a
     a valid key in DICT"""
-    return dict.get(key, dict["others"])
+    return dict.get(key, dict[""])
 
 # -----------
 # -- frame --
@@ -846,8 +846,8 @@ rNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds
 # they shall be converted to a more general kind first, using to_rnote.
 expNoteKinds = (uPartCov, mPartCov)
 
-to_rnote = {uPartCov : {"stmt+uc_mcdc" : cPartCov, "others" : None},
-            mPartCov : {"others" : cPartCov}}
+to_rnote = {uPartCov : {"stmt+uc_mcdc" : cPartCov, "" : None},
+            mPartCov : {"" : cPartCov}}
 
 # Relevant/Possible Line and Report notes for CATEGORY/CONTEXT:
 # -------------------------------------------------------------
@@ -1438,8 +1438,12 @@ class RnotesExpander:
 #     sources := "--# " filename_list
 #     filename_list := FILENAME [filename_list]
 #     lx_list := lx <newline> [lx_list]
-#     lx := "-- " lx_lre lx_lnote [lx_rnote_list] <newline>
+#     lx := "-- " lx_lre lx_lnote_list [lx_rnote_list] <newline>
 #     lx_lre := "/" REGEXP "/"
+#     lx_lnote_list :=
+#       [cov_level_test] [weak_mark] lx_lnote [";" lx_lnote_list]
+#     weak_mark := ~
+#     cov_level_test := <s|d|m|u>
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
 #     lx_rnote_list := <s-|s!|dT-|dF-|d!|u!|m!|x0|x+>[:"TEXT"] [lx_rnote_list]
 
@@ -1679,7 +1683,8 @@ class XnotesExpander:
                 + "Expected /LRE/ lnote [rnotes]")
 
         lx_lre    = m.group(1)
-        lx_explnote  = XnoteP (text=m.group(2), stext=None)
+        lx_lnote = XnoteP (text=self.__select_lnote (m.group(2)),
+                           stext=None)
 
         thistest.stop_if (
             not m.group(3),
@@ -1688,10 +1693,33 @@ class XnotesExpander:
         lx_exprnotes = self.__parse_expected_rnotes(m.group(3))
 
         # resolve node kinds that are level-dependent:
-        lx_lnote=self.__resolve_lnote(lx_explnote, lx_exprnotes)
         lx_rnotes=[self.__resolve_rnote_kinds(note) for note in lx_exprnotes]
 
         return LineCX("-- # (" + lx_lre + ")", lx_lnote, lx_rnotes)
+
+    def __select_lnote(self, text):
+        """Decode text to return the line note for the current
+        coverage level."""
+        condition_for = {"stmt" : "s",
+                         "stmt+decision": "d",
+                         "stmt+mcdc": "m",
+                         "stmt+uc_mcdc": "u"}
+
+        lx_lnote_list = text.split(";")
+        level_table = {}
+        for conditional_note in lx_lnote_list:
+            weak = (conditional_note.find('~l') != -1)
+            if weak:
+                sep = '~l'
+            else:
+                sep = 'l'
+            [condition, note] = conditional_note.split(sep)
+            level_table[condition] = sep + note
+
+        if not level_table.has_key(''):
+            raise FatalError("No default case in line expectation: %s" % text)
+
+        return fb_get(level_table, condition_for[self.xcov_level])
 
     def __resolve_rnote_kinds(self, note):
         """If the report note NOTE has a context-dependent note kind,
@@ -1699,37 +1727,6 @@ class XnotesExpander:
         note."""
         if note.kind in expNoteKinds:
             note.kind = fb_get(to_rnote[note.kind], self.xcov_level)
-
-        return note
-
-    def __resolve_lnote(self, note, rnotes):
-        """Same as __resolve_rnote_kinds, but for line notes."""
-        # Special case for MC/DC: the line status may be partially
-        # covered for Unique Cause and fully covered for Masking. e.g.
-        #
-        #  /pattern/ l! u!:"C"
-        #
-        # The expectation language does not allow to discriminate
-        # between these two cases: so here is what we do. So if
-        # the only rnotes for a given line are Unique-Cause-specific
-        # and if we are in Masking MC/DC, we convert l! into l+.
-        #
-        # Technically, this is not the only ambiguous case; the same
-        # problem may occur for excempted lines (i.e. l* in Unique
-        # Cause and l# in Masking). But we will avoid that case in the
-        # testsuite.  The proper way to fix this would be to introduce
-        # some new expectation notes (lu!, lu#...) that would be
-        # interpreted differently depending on the MC/DC variant. But
-        # we may not complicate too much the language to handle these
-        # corners cases if the driver can properly resolve the
-        # ambiguity in a simple way (as it seems to be the case).
-        if self.xcov_level == "stmt+mcdc":
-            if note.kind == lPartCov:
-                for rnote in rnotes:
-                    if rnote.kind != uPartCov:
-                        return note
-
-                note.kind = lFullCov
 
         return note
 
