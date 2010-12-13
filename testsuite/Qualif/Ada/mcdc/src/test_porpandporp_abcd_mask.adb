@@ -17,7 +17,7 @@ begin
 end Test_PorPandPorP_ABCD_Mask;
 
 --# porpandporp.adb
---  /eval(Stmt|Other)/  u=>l!;l+  u!:"D"
+--  /eval(Stmt|Other)/  u=>l!;l+  u=>c!:"D"
 --  /decisionTrue/  l+ 0
 --  /decisionFalse/ l+ 0
 --  /returnValue/ l+ 0

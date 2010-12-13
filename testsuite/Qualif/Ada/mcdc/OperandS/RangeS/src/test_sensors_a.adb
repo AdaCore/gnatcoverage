@@ -7,5 +7,5 @@ begin
 end;
 
 --# sensors.adb
---  /evaluate/ l! m!:"B.V"
+--  /evaluate/ l! c!:"B.V"
 

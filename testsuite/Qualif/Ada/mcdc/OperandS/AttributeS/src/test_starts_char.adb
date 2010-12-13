@@ -8,5 +8,5 @@ begin
 end;
 
 --# starts.adb
--- /null/     l! m!:"S./=.null"
--- /contents/ l! m!:"S'Length"
+-- /null/     l! c!:"S./=.null"
+-- /contents/ l! c!:"S'Length"

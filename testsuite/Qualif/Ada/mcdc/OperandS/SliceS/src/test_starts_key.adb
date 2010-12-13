@@ -7,5 +7,5 @@ begin
 end;
 
 --# starts.adb
---  /startsLength/ l! m!:"Key.Length"
+--  /startsLength/ l! c!:"Key.Length"
 --  /startsKey/    l! 0

@@ -10,4 +10,4 @@ begin
 end;
 
 --# andthen_variants.adb
---  /evaluate/ l! m!:"B"
+--  /evaluate/ l! c!:"B"

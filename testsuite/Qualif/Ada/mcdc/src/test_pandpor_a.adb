@@ -7,7 +7,7 @@ begin
 end;
 
 --# pandpor.adb
--- /eval(Stmt|Other)/      l! m!:"B",m!:"C"
+-- /eval(Stmt|Other)/      l! c!:"B",c!:"C"
 -- /decisionTrue/  l+ 0
 -- /decisionFalse/ l+ 0
 -- /returnValue/   l+ 0

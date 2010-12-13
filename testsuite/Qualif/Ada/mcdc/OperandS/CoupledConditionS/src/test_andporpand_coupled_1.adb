@@ -37,16 +37,16 @@ begin
 end Test_AndPorPand_Coupled_1;
 
 --# andporpand_coupled.adb
--- /F1_evaluate/        l! m!:"A"
--- /F1_evaluate/        l! m!:"D"
+-- /F1_evaluate/        l! c!:"A"
+-- /F1_evaluate/        l! c!:"D"
 -- /F1_decisionTrue/    l+ 0
 -- /F1_decisionFalse/   l+ 0
--- /F2_evaluate/        l! m!:"A"
--- /F2_evaluate/        l! m!:"D"
+-- /F2_evaluate/        l! c!:"A"
+-- /F2_evaluate/        l! c!:"D"
 -- /F2_decisionTrue/    l+ 0
 -- /F2_decisionFalse/   l+ 0
--- /F3_evaluate/        l! m!:"B"
--- /F3_evaluate/        l! m!:"D"
+-- /F3_evaluate/        l! c!:"B"
+-- /F3_evaluate/        l! c!:"D"
 -- /F3_decisionTrue/    l+ 0
 -- /F3_decisionFalse/   l+ 0
 -- /decl/               ~l+ 0

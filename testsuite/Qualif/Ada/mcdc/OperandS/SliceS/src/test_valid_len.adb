@@ -9,4 +9,4 @@ end;
 --# validate.adb
 -- /retLen/    l+ 0
 -- /checkLen/  l! 0
--- /checkKey/  l! m!:"Sptr"
+-- /checkKey/  l! c!:"Sptr"

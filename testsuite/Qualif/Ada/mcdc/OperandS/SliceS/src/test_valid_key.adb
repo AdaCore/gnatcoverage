@@ -8,5 +8,5 @@ end;
 
 --# validate.adb
 -- /retLen/    l+ 0
--- /checkLen/  l! m!:"Length"
+-- /checkLen/  l! c!:"Length"
 -- /checkKey/  l! 0

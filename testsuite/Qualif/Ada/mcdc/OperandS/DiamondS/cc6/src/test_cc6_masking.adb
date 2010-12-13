@@ -14,4 +14,4 @@ end;
 --# cc6.adb
 --  /line1/ u=>l!;l+ 0
 --  /line2/ u=>l!;l+ 0
---  /line3/ u=>l!;l+ u!:"High"
+--  /line3/ u=>l!;l+ u=>c!:"High"

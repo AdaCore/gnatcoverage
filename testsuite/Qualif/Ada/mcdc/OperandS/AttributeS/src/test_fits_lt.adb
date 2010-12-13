@@ -11,7 +11,7 @@ end;
 
 --# fits.adb
 -- /single/      l+ 0
--- /orelse/      l! m!:"Key.Length = S.Length"
+-- /orelse/      l! c!:"Key.Length = S.Length"
 -- /returnTrue/  l+ 0
 -- /returnFalse/ l+ 0
 

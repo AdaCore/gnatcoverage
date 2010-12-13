@@ -783,9 +783,8 @@ deviationNote, \
 lNoCov, lPartCov, \
 sNoCov, sPartCov, \
 dtNoCov, dfNoCov, dPartCov, cPartCov, \
-uPartCov, mPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(19)
+xBlock0, xBlock1 = range(17)
 
 # DEVIATION notes are those representing violations of a coverage mandate
 # associated with a general criterion (e.g. ).
@@ -824,7 +823,7 @@ NK_image  = {None: "None",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
              dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dPartCov: "dPartCov",
              xBlock0: "xBlock0", xBlock1: "xBlock1",
-             cPartCov: "cPartCov", mPartCov: "mPartCov", uPartCov: "uPartCov"}
+             cPartCov: "cPartCov"}
 
 # Useful sets of note kinds:
 # --------------------------
@@ -839,15 +838,6 @@ xNoteKinds = (xBlock0, xBlock1)
 # Note kinds that can be associated to one of xcov's message, independantly
 # of the context of invocation.
 rNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds
-
-# Note kinds that cannot be properly identified from xcov's output
-# only (i.e. that depends on the context of invocation of xcov). Which means
-# that the cannot be univocally associated to one of xcov's message;
-# they shall be converted to a more general kind first, using to_rnote.
-expNoteKinds = (uPartCov, mPartCov)
-
-to_rnote = {uPartCov : {"stmt+uc_mcdc" : cPartCov, "" : None},
-            mPartCov : {"" : cPartCov}}
 
 # Relevant/Possible Line and Report notes for CATEGORY/CONTEXT:
 # -------------------------------------------------------------
@@ -1147,7 +1137,7 @@ class XnoteP:
               'l#': lx0, 'l*': lx1,
               's-': sNoCov, 's!': sPartCov,
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov,
-              'm!': mPartCov, 'u!': uPartCov,
+              'c!': cPartCov,
               'x0': xBlock0, 'x+': xBlock1,
               '0': None}
 
@@ -1440,12 +1430,14 @@ class RnotesExpander:
 #     lx_list := lx <newline> [lx_list]
 #     lx := "-- " lx_lre lx_lnote_list [lx_rnote_list] <newline>
 #     lx_lre := "/" REGEXP "/"
-#     lx_lnote_list := lx_note_choice [";" lx_lnote_list]
-#     lx_note_choice := [cov_level_test] [weak_mark] lx_lnote
 #     weak_mark := ~
 #     cov_level_test := <s|d|m|u> "=>"
+#     lx_lnote_list := lx_lnote_choice [";" lx_lnote_list]
+#     lx_lnote_choice := [cov_level_test] [weak_mark] lx_lnote
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
-#     lx_rnote_list := <s-|s!|dT-|dF-|d!|u!|m!|x0|x+>[:"TEXT"] [lx_rnote_list]
+#     lx_rnote_list := lx_rnote_choice [lx_rnote_list]
+#     lx_rnote_choice := [cov_level_test] [weak_mark] lx_rnote
+#     lx_rnote := <s-|s!|dT-|dF-|d!|u!|m!|x0|x+>[:"TEXT"]
 
 # The start of the SCOV data is identified as the first comment whose syntax
 # matches a "sources" line.  Any comment before then is assumed to be a normal
@@ -1660,7 +1652,7 @@ class XnotesExpander:
         else:
             (noteim, stext) = (image, None)
 
-        return XnoteP (text=noteim, stext=stext)
+        return XnoteP (text=self.__select_rnote(noteim), stext=stext)
 
     def __parse_expected_rnotes(self, image):
         if '#' in image:
@@ -1690,10 +1682,7 @@ class XnotesExpander:
             not m.group(3),
             FatalError ("Missing expected report notes in %s" % image))
 
-        lx_exprnotes = self.__parse_expected_rnotes(m.group(3))
-
-        # resolve node kinds that are level-dependent:
-        lx_rnotes=[self.__resolve_rnote_kinds(note) for note in lx_exprnotes]
+        lx_rnotes = self.__parse_expected_rnotes(m.group(3))
 
         return LineCX("-- # (" + lx_lre + ")", lx_lnote, lx_rnotes)
 
@@ -1743,14 +1732,11 @@ class XnotesExpander:
 
         return fb_get(level_table, self.xcov_level)
 
-    def __resolve_rnote_kinds(self, note):
-        """If the report note NOTE has a context-dependent note kind,
-        resolve it using the invocation context; and return the updated
-        note."""
-        if note.kind in expNoteKinds:
-            note.kind = fb_get(to_rnote[note.kind], self.xcov_level)
-
-        return note
+    def __select_rnote(self, text):
+        """Decode text to return the report note for the current
+        coverage level."""
+        level_table = dict([['', "0"], self.__decode_note_choice(text)])
+        return fb_get(level_table, self.xcov_level)
 
 # ======================================
 # == SCOV_helper and internal helpers ==
