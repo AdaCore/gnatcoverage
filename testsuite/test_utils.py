@@ -1440,10 +1440,10 @@ class RnotesExpander:
 #     lx_list := lx <newline> [lx_list]
 #     lx := "-- " lx_lre lx_lnote_list [lx_rnote_list] <newline>
 #     lx_lre := "/" REGEXP "/"
-#     lx_lnote_list :=
-#       [cov_level_test] [weak_mark] lx_lnote [";" lx_lnote_list]
+#     lx_lnote_list := lx_note_choice [";" lx_lnote_list]
+#     lx_note_choice := [cov_level_test] [weak_mark] lx_lnote
 #     weak_mark := ~
-#     cov_level_test := <s|d|m|u>
+#     cov_level_test := <s|d|m|u> "=>"
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
 #     lx_rnote_list := <s-|s!|dT-|dF-|d!|u!|m!|x0|x+>[:"TEXT"] [lx_rnote_list]
 
@@ -1697,29 +1697,51 @@ class XnotesExpander:
 
         return LineCX("-- # (" + lx_lre + ")", lx_lnote, lx_rnotes)
 
+    def __decode_note_choice(self, text):
+        """Given a note_choice that depends potentially on the coverage
+        level, return a list that represents this dependance,
+        whose first element is the coverage level that it depends on
+        (or an empty string if the note does not depend on the level)
+        and whose second element is the expectation note if the choice
+        is taken.
+
+        For instance, given:
+
+            'u => l!'
+
+        ...this function will return:
+
+            ['stmt+uc_mcdc', 'l!']
+
+        """
+        level_from_char = {"s" : "stmt",
+                           "d" : "stmt+decision",
+                           "m" : "stmt+mcdc",
+                           "u" : "stmt+uc_mcdc"}
+        sep = "=>"
+        result = text.split(sep)
+
+        if len(result) == 1:
+            # No choice
+            return ["", text]
+        elif len(result) > 2:
+            # Parse error
+            raise FatalError("Note choice %s contains more than one arrow"
+                             % text)
+        else:
+            return [level_from_char[result[0]], result[1]]
+
     def __select_lnote(self, text):
         """Decode text to return the line note for the current
         coverage level."""
-        condition_for = {"stmt" : "s",
-                         "stmt+decision": "d",
-                         "stmt+mcdc": "m",
-                         "stmt+uc_mcdc": "u"}
-
         lx_lnote_list = text.split(";")
-        level_table = {}
-        for conditional_note in lx_lnote_list:
-            weak = (conditional_note.find('~l') != -1)
-            if weak:
-                sep = '~l'
-            else:
-                sep = 'l'
-            [condition, note] = conditional_note.split(sep)
-            level_table[condition] = sep + note
+        level_table = dict([self.__decode_note_choice(conditional_note)
+                            for conditional_note in lx_lnote_list])
 
         if not level_table.has_key(''):
             raise FatalError("No default case in line expectation: %s" % text)
 
-        return fb_get(level_table, condition_for[self.xcov_level])
+        return fb_get(level_table, self.xcov_level)
 
     def __resolve_rnote_kinds(self, note):
         """If the report note NOTE has a context-dependent note kind,
