@@ -1603,6 +1603,37 @@ fffc3b20 +:  38 60 00 00  li     r3,0x0000
 
 @end smallexample
 
+In this example, the set of traces to consolidate was provided as a
+sequence of trace filenames on the command line.
+@c
+A text file containing a list of trace files, designated by an
+@code{@@} prefixed filename, may also be used for this purpose.
+@c
+In the example at hand, we could have, say, an
+@code{explore.tracelist} text file containing
+
+@smallexample
+ test_explore.trace
+ explore.trace
+@end smallexample
+
+@noindent
+and pass @code{@@explore.tracelist} to @code{xcov coverage} to
+consolidate.
+@c
+The trace order has no influence in either case.
+
+To help traceability, @xcov{} provides the full list of traces used to
+assess reported results, in two possible places: in the @code{html}
+indexes and in the preliminary information part of the
+@code{--annotate=report} output when such formats are requested.
+@c
+Each trace filename is listed together with information recorded in
+the trace by @code{xcov run}: the trace creation timestamp, the
+path-to-executable command line argument, and the provided
+@code{--tag} value.
+
+
 The example provided here focuses on object coverage analysis for
 illustrative puroposes.
 @c
