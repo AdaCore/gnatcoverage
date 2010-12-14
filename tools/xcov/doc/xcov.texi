@@ -700,7 +700,7 @@ the program within the underlying instrumented environment.
 The @code{FILE} argument is the executable program file name.
 @c
 This name is stored as-provided in the output trace header, where it is
-retrieved later for analysis purposes.
+retrieved later by @code{xcov coverage} for analysis purposes.
 
 By default, @xrun{} writes the execution trace in the current directory,
 in a file named like the executable input with a @code{.trace} suffix.
@@ -971,10 +971,10 @@ may be expanded below it by a mouse click on the line.
 
 @subsection Synthetic reports, @code{--annotate=report}
 @noindent
-For object coverage analysis purposes, @option{--annotate=report}
-produces a synthetic summary of per function coverage results, with a
-single annotation assigned to each function in the same way it is to
-each source line in the @option{=xcov} or @option{'=html'} cases.
+For object coverage analysis, @option{--annotate=report} produces a
+synthetic summary of per function coverage results, with a single
+annotation assigned to each function in the same way it is to each
+source line in the @option{=xcov} or @option{=html} cases.
 
 @subsection Inlined and Template/Generic entities
 @noindent
@@ -1266,15 +1266,12 @@ $ xcov coverage --scos=@@alis --level=stmt --annotate=xcov explore.trace
 
 @noindent
 For the @code{Stations} unit, this produces a @code{stations.adb.xcov}
-output like:
+output with:
 
 @smallexample
 
-.../couverture/tools/xcov/examples/explore/src/stations.adb:
-
 Coverage level: STMT
 87% of 38 lines covered
-
 [...]
   74 .:       function Control_For (C : Character) return Robot_Control;
   75 .:       --  Map user input character C to Robot_Control command, Nop if
@@ -1292,22 +1289,27 @@ Coverage level: STMT
   87 -:                return (Code => Rotate_Left, Value => 0);
   88 .:             when 'r' | 'R' =>
   89 -:                return (Code => Rotate_Right, Value => 0);
-[...]
 
 @end smallexample
 
 @noindent
-@code{--annotate=report} simply diagnoses the set of source lines with
-uncovered statements:
+@code{--annotate=report} instead simply diagnoses the set of source
+lines with uncovered statements, for example like:
 
 @smallexample
-
 [...]
-stations.adb:87: statement not covered
-stations.adb:89: statement not covered
-[...]
+stations.adb:87: statement not executed
+stations.adb:89: statement not executed
 
 @end smallexample
+
+More details on the report format are available in a dedicated
+appendix of this documentation.
+@c
+By default, the report goes to standard output.
+@c
+It may be directed to a file instead, with the addition of a
+@option{-o <filename>} option on the command line.
 
 @subsection Decision Coverage (DC)
 @pindex Decision Coverage with Xcov
@@ -1629,7 +1631,7 @@ indexes and in the preliminary information part of the
 @code{--annotate=report} output when such formats are requested.
 @c
 Each trace filename is listed together with information recorded in
-the trace by @code{xcov run}: the trace creation timestamp, the
+the trace by @xrun{}: the trace creation timestamp, the
 path-to-executable command line argument, and the provided
 @code{--tag} value.
 
@@ -1823,8 +1825,8 @@ production context:
 @item Coverage criterion assessed
 @item Details on the input trace files:
 path to binary program exercised (as provided on the command line),
-production time stamp, --tag argument to @code{xcov run} when the
-trace was produced
+production time stamp, --tag argument to @xrun{} when the trace was
+produced
 @end itemize
 
 @noindent
