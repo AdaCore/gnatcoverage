@@ -514,7 +514,7 @@ implies Decision Coverage while the opposite is not true.
 @c
 We also observe that Object Instruction Coverage does not imply
 Decision Coverage, and that Obect Branch Coverage does not imply MC/DC
-in the general case - @bibref{AR07/20}, @bibref{couverture-obc-mcdc}.
+in the general case - @bibref{AR07/20}, @bibref{obc-mcdc}.
 @c
 Besides, when it does imply MC/DC, Object Branch Coverage often
 requires more extensive testing so is not necessarily an interesting
@@ -793,9 +793,9 @@ define:
 
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
-@item '-'
+@item '@code{-}'
 @tab instruction was never executed
-@item '+'
+@item '@code{+}'
 @tab instruction was executed
 @end multitable
 
@@ -805,14 +805,14 @@ additional notes are possible:
 
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
-@item '-'
+@item '@code{-}'
 @tab instruction never was executed
-@item '+'
+@item '@code{+}'
 @tab instruction was executed, taken both ways for a conditional
      branch
-@item '>'
+@item '@code{>}'
 @tab conditional branch was executed, always taken
-@item 'v'
+@item '@code{v}'
 @tab conditional branch was executed, never taken
 @end multitable
 
@@ -909,17 +909,20 @@ fffc1c24 +:     4b ff e7 d1   bl     0xfffc03f4 <actors__kill>
 
 @subsection In-Source text reports, @code{--annotate=xcov[+]}
 @noindent
-For object coverage analysis purposes, @option{--annotate=xcov} produces
+For object coverage analysis, @option{--annotate=xcov} produces
 annotated source files with the @code{.xcov} extension in the current
 directory, one per original compilation unit.
 @c
+An alternate output directory may be selected by passing a
+@option{--output-dir=<directory name>} command line option as well.
+
 The annotations are visible as a special character at the beginning of
 every source line, which synthesizes the coverage status of all the
 machine instructions generated for this line.
 @c
 The machine instructions are printed next to their associated source
 line when the @option{+} option extension is used.
-
+@c
 Eventhough the annotations are rendered on source lines in this case,
 they are really meant to convey object code properties, hence are of a
 different nature than what the DO-178B structural coverage criteria
@@ -930,13 +933,13 @@ annotations for both instruction and branch coverage:
 
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
-@item '.'
+@item '@code{.}'
 @tab no associated machine code for this line
-@item '-'
+@item '@code{-}'
 @tab all the instructions associated with the line are '-' (uncovered)
-@item '+'
+@item '@code{+}'
 @tab all the instructions associated with the line are '+' (fully covered)
-@item '!'
+@item '@code{!}'
 @tab otherwise
 @end multitable
 
@@ -954,10 +957,12 @@ command line switch, designed never to influence the generated code.
 
 @subsection In-Source html reports, @code{--annotate=html[+]}
 @noindent
-For object coverage analysis purposes, @option{--annotate=html} produces
-one @code{.html} browsable annotated source file per original
-compilation unit in the current directory, with annotations identical to
-the @option{=xcov} ones.
+@option{--annotate=html} produces one @code{.html} browsable annotated
+source file per original compilation unit in the current directory.
+@c
+The annotations are identical to the @option{=xcov} ones, and an
+alternate output directory may be selected with @option{--output-dir}
+as well.
 @c
 Each source line is colorized to reflect its associated object code
 coverage completeness, with green, orange and red for full, partial or
@@ -1229,11 +1234,11 @@ according to the following table:
 
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
-@item '.'
+@item '@code{.}'
 @tab no SCO or no executable code for this line
-@item '-'
+@item '@code{-}'
 @tab statement uncovered (not executed) on this line
-@item '+'
+@item '@code{+}'
 @tab statement covered (executed) on this line
 @end multitable
 
@@ -1297,7 +1302,7 @@ Coverage level: STMT
 lines with uncovered statements, for example like:
 
 @smallexample
-[...]
+
 stations.adb:87: statement not executed
 stations.adb:89: statement not executed
 
@@ -1346,13 +1351,13 @@ each relevant line, according to the following table:
 
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
-@item '.'
+@item '@code{.}'
 @tab no SCO or no executable code for this line
-@item '-'
+@item '@code{-}'
 @tab statement uncovered on this line
-@item '!'
+@item '@code{!}'
 @tab decision partially covered on this line
-@item '+'
+@item '@code{+}'
 @tab all the decisions on this line are fully covered
 @end multitable
 
@@ -2009,7 +2014,7 @@ Structural Coverage at the Source Code and Object Code Levels.
 @c
 @CHILENSKI{} and @KURTZ{}. DOT/FAA/AR-07/20, June 2007.
 
-@item @bibdef {couverture-obc-mcdc}
+@item @bibdef {obc-mcdc}
 @tab Technical Report on OBC/MCDC properties.
 @c
 @GUITTON{}, @MOY{} and @QUINOT{}. Couverture project, October 2010.
