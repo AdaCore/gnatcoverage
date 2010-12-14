@@ -250,7 +250,7 @@ unified view from partial results gathered together.
 Different tests could for instance be several executions of the same
 program with behavior differences caused by external input variations.
 @c
-They could also be executions of different programs exercizing different
+They could also be executions of different programs exercising different
 units of the applicative code or common applicative code with different
 parameters.
 
@@ -1327,12 +1327,12 @@ contexts (e.g. on the right hand side of an assignment).
 A decision is said fully covered when tests were made so that the
 decision has evaluated to both True and False.
 @c
-If only one of these two possible outcomes was exercized, the decision
+If only one of these two possible outcomes was exercised, the decision
 is said partially covered.
 @c
-The case where none of the possible decision outcomes was exercized
+The case where none of the possible decision outcomes was exercised
 corresponds to situations where the enclosing statement was not
-exercized at all.
+exercised at all.
 @c
 Uncovered statements remain reported as such, without further details
 even if there are decisions therein.
@@ -1359,12 +1359,12 @@ with an extra @code{+} suffix on the annotation format, that is, with
 @code{--annotate=xcov+} or @code{html+}.
 @c
 Extra details are typically provided for decisions partially covered,
-with information about which outcome was not exercized.
+with information about which outcome was not exercised.
 
 The @code{--annotate=report} synthetic output lists information about
 uncovered statements and partial decision coverage.
 @c
-For example, after exercizing Explore to have the robot execute safe
+For example, after exercising Explore to have the robot execute safe
 commands in both Cautious and Dumb modes, we get the expected results
 below on a sample of the @code{Robots} control code:
 
@@ -1373,9 +1373,9 @@ below on a sample of the @code{Robots} control code:
   $ xcov coverage --level=stmt+decision --annotate=report
     --scos=obj/powerpc-elf/robots.ali explore.trace
   ...
-  robots.adb:56:9: DECISION: outcome TRUE never exercised
-  robots.adb:75:10: DECISION: outcome TRUE never exercised
-  robots.adb:78: statement not covered
+  robots.adb:56:9: decision outcome TRUE never exercised
+  robots.adb:75:10: decision outcome TRUE never exercised
+  robots.adb:78: statement not executed
 
 @end smallexample
 
@@ -1436,7 +1436,7 @@ value change while some extra property on the other conditions holds.
 
 The point is basically to demonstrate that every condition is
 significant in the decision and that sufficient tests were performed
-to exercize representative combinations of the possible behaviors.
+to exercise representative combinations of the possible behaviors.
 @c
 An important aspect is to keep the number of required tests linear
 with the number of conditions in a decision.
@@ -1493,7 +1493,7 @@ actions and get:
 
 @smallexample
 
-robots.adb:75:10: CONDITION: failed to show independent influence, MC/DC not achieved
+robots.adb:75:10: condition has no independent influence pair, MC/DC not achieved
 
 @end smallexample
 
@@ -1738,14 +1738,14 @@ Below is a verbatim inclusion of the relevant Ada specification:
 @end smallexample
 
 @page
-@section Format of synthetic text report - Source Coverage
+@section @code{--annotate=report} output format - source coverage
 
-This section describes the format of the text report produced by the
---annotate=report mode of Xcov for source coverage criteria.
+This section describes the format of the synthetic text report
+produced by the @code{--annotate=report} mode of Xcov for source
+coverage criteria.
 @c
 We use a generated report as an example, filtering the elements
-relevant to the code excerpt below, extracted from a sample Queues data
-type abstraction.
+relevant to the code excerpt below:
 
 @smallexample
  [...]
@@ -1764,9 +1764,12 @@ type abstraction.
  [...]
 @end smallexample
 
-The example situation is that Queue overflows are expected never to
-happen, so an exemption section is in place for the code performing
-the corresponding check at the beginning of a Push operation.
+This code excerpt is extracted from a sample Queues data type
+abstraction.
+@c
+Queue overflows are expected never to happen, so an exemption section
+is in place for the code performing the corresponding check at the
+beginning of a Push operation.
 @c
 Below is a copy of the report produced for a sample run where the
 general @code{Notify_Error_On} subprogram is not called otherwise:
@@ -1793,7 +1796,7 @@ trace files:
 
 2. NON-EXEMPTED VIOLATIONS
 
-queues.adb:61:7: STATEMENT: not executed
+queues.adb:61:7: statement not executed
 1 violation
 
 3. EXEMPTED VIOLATIONS
@@ -1819,10 +1822,16 @@ production context:
 @item Command line and Version of Xcov that produced the report
 @item Coverage criterion assessed
 @item Details on the input trace files:
-path to binary program exercized (as provided on the command line),
+path to binary program exercised (as provided on the command line),
 production time stamp, --tag argument to @code{xcov run} when the
 trace was produced
 @end itemize
+
+@noindent
+The @strong{Exempted violations} section lists and counts the exempted
+regions, displaying for each the source location span, the number of
+actually exempted violations in the region, and the exemption
+justification text.
 
 @noindent
 The @strong{Non-exempted violations} section lists and counts the
@@ -1830,12 +1839,13 @@ coverage violations (with respect to the assessed criteria) that
 relate to source lines not part of an exemption region.
 @c
 All the non-exempted violations are reported using a consistent
-format, as illustrated on our example below:
+format, as follows:
 
 @smallexample
+
   queues.adb:1641:17: statement not executed
-  ----------:-------:----------:---------------
-    source  :  loc  : cfamily  :    details
+   (source) : (loc) : (vfamily)  (details)
+
 @end smallexample
 
 @noindent
@@ -1843,18 +1853,19 @@ format, as illustrated on our example below:
 the precise @code{line:column} location within that source where the
 violation was detected.
 @c
-@emph{vfamily} identifies the family of coverage objective entity
-violated by this reported instance, and @emph{details} provides
-additional information.
+@emph{vfamily} identifies the family of coverage violation reported in
+this particular case, and @emph{details} provides additional
+information.
 @c
 Below is the list of family/detail items that might be emitted
-together with each possible value of the --level argument:
+together with the @code{--level} argument from which each may appear:
 
 @multitable @columnfractions .2 .15 .6
+
 @item
- --level
- @tab family
- @tab detail
+ @code{@strong{--level}}
+ @tab @strong{family}
+ @tab @strong{detail}
 @item
  @code{=stmt}
  @tab @code{statement}
@@ -1874,8 +1885,25 @@ together with each possible value of the --level argument:
 @item
   @code{=stmt+mcdc}
   @tab @code{condition}
-  @tab @code{failed to show independent influence}
+  @tab @code{has no independent influence pair}
+
 @end multitable
+
+Violations for one level may be issued while assessing stricter
+levels as well.
+@c
+For example, "@code{statement not executed}" or "@code{decision
+outcome TRUE not covered}" violations might be emitted in the course
+of a @code{stmt+mcdc} assessement.
+
+When multiple violations apply someplace, the largest grain
+diagnostic is emitted alone.
+@c
+For instance, if an Ada statement like "@code{X := A and then B;}" is
+not covered at all, a "@code{statement not executed}" violation is
+emitted alone, even if we're assessing for, say,
+@code{--level=stmt+decision} ; @xcov{} emits no decision oriented
+violation in this case.
 
 @c *******************************************************************
 @c *                          BIBLIOGRAPHY                           *
