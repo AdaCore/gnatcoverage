@@ -864,15 +864,17 @@ default_xcovlevels_for = { "stmt":     ["stmt"],
                            "mcdc":     ["stmt+uc_mcdc", "stmt+mcdc"]
                          }
 
-# For each xcovlevel, test categories for which checking the =xcov
-# outputs makes sense:
-# ----------------------------------------------------------------
+# Symbolic strength of each category and context level, to let us determine
+# when we're running some test of a given catgeory with a stricter --level
+# --------------------------------------------------------------------------
 
-xcov_compatible_categories_for = { "stmt": ["stmt"],
-                                   "stmt+decision": ["decision"],
-                                   "stmt+mcdc": ["mcdc"],
-                                   "stmt+uc_mcdc": ["mcdc"]
-                                   }
+strength = { "stmt": 1,          # category & context level
+             "decision" : 2,     # category
+             "mcdc" : 3,         # category
+             "stmt+decision": 2, # context
+             "stmt+mcdc": 3,     # context
+             "stmt+uc_mcdc": 3   # context
+             }
 
 # ======================================
 # == Section, Segment, Line and Point ==
@@ -1038,9 +1040,12 @@ class Xnote (Cnote):
     def __init__(self, xnp, block):
         Cnote.__init__ (self, xnp.kind)
         self.weak = xnp.weak
-        self.stext = xnp.stext
         self.block = block
+
+        self.stext = xnp.stext
         self.nmatches = 0
+
+        self.discharger = None  # The Enote that discharged this
 
     def register_match(self, segment):
         self.segment = segment
@@ -1767,20 +1772,19 @@ class UXchecker:
     def register_failure(self, comment):
         thistest.failed("("+self.report+") " + comment)
 
-    def try_sat_over(self, enotes, xn):
+    def try_sat_over(self, ekind, xn):
 
-        # See if expected note XN is satisfied by one of the emitted notes in
-        # ENOTES. Store to sat/unsat dictionary accordingly. Note that we only
-        # check for section inclusions here, so don't validate correctness of
-        # exemption justifications at this stage.
+        # See if expected note XN is satisfied by one of the emitted notes of
+        # kind EKIND. Store to sat dictionary accordingly. Note that we only
+        # check for section inclusions here, so don't validate the correctness
+        # of exemption justifications at this stage.
 
-        for en in enotes:
+        for en in self.edict [ekind]:
             if en.segment.within (xn.segment):
                 en.discharges = xn
+                xn.discharger = en
                 self.sat[xn.block].append(xn)
                 return
-
-        self.unsat[xn.block].append(xn)
 
     def process_unsat(self, block):
 
@@ -1813,26 +1817,65 @@ class UXchecker:
                     "Expected %s mark missing at %s"
                     % (NK_image[xn.kind], str(xn.segment)))
 
-    def compare(self, nkind):
-        xnotes = self.xdict[nkind]
-        enotes = self.edict[nkind]
+    def register_unsat(self, xn):
+        self.unsat[xn.block].append(xn)
+
+    def process_xkind (self, xkind, ekinds):
+
+        # Process expected notes of kind XKIND looking for candidate
+        # dischargers in emitted noted of kinds EKINDS.
+
+        xnotes = self.xdict[xkind]
 
         self.sat = ListDict()
-        self.unsat = ListDict()
+        [self.try_sat_over(ekind, xn)
+         for xn in xnotes for ekind in ekinds if not xn.discharger]
 
-        [self.try_sat_over(enotes, xn) for xn in xnotes]
+        self.unsat = ListDict()
+        [self.register_unsat(xn) for xn in xnotes if not xn.discharger]
+
         [self.process_unsat(block) for block in self.unsat]
 
-        if not strict_p(nkind): return
+    def process_ekind(self, ekind):
+
+        # Process emitted notes of kind EKIND, after we're done processing
+        # all the relevant expected notes.
+
+        if not strict_p(ekind): return
+
+        enotes = self.edict[ekind]
 
         [self.register_failure(
                 "Unexpected %s mark at %s" %
                 (NK_image[en.kind], str(en.segment)))
          for en in enotes if not en.discharges]
 
-    def process_notes(self, relevant_note_kinds):
+    def process_notes(self, relevant_note_kinds, discharge_kdict):
         thistest.log ("\n~~ processing " + self.report + " ~~\n")
-        [self.compare(nkind) for nkind in relevant_note_kinds]
+
+        # For each kind in RELEVANT_NOTE_KINDS, process discharges of
+        # expectations from emitted notes. DISCHARGE_KDICT provides a special
+        # set of of emitted note kinds that may discharge a given kind of
+        # expected note, when that set is wider than the target kind alone.
+
+        # We have to do this with two distinct loops because there is no
+        # guaranteed one to one correspondance between emitted vs expected
+        # kinds for discharges.
+
+        # Process expected notes first, complaining about those that are not
+        # discharged (expected bla missing).
+
+        [self.process_xkind(
+                xkind = xkind, ekinds = discharge_kdict.get (xkind, [xkind]))
+         for xkind in relevant_note_kinds]
+
+        # Then process emitted notes, complaining about those that don't
+        # discharge any expectation as required (unexpected blo).
+
+        [self.process_ekind(ekind) for ekind in relevant_note_kinds]
+
+        # Dump the report contents in case this check exposed a test failure:
+
         if  thistest.n_failed > self.n_failed_init:
             thistest.log("\nreport contents:\n")
             thistest.log(contents_of(self.report))
@@ -1888,9 +1931,6 @@ class SCOV_helper:
     def singletest(self):
         """Whether SELF instantiates a single test."""
         return len(self.drivers) == 1
-
-    def dotxcov_check(self):
-        return self.category in xcov_compatible_categories_for[self.xcovlevel]
 
     # ----------------
     # -- locate_ali --
@@ -2015,7 +2055,7 @@ class SCOV_helper:
                     ["../"*n + "src" for n in range (1, 6)]
                     + ["../"*n for n in range (1, 7)]),
             cargs = ["-g", "-gnateS", "-fpreserve-control-flow", "-gnatd.X",
-                     "-gnatp", "-gnata", "-gnat05"] + to_list(extracargs))
+                     "-gnata", "-gnat05"] + to_list(extracargs))
 
     # --------------
     # -- xcov_run --
@@ -2069,13 +2109,12 @@ class SCOV_helper:
             [self.awdir_for(main)+main+'.trace' for main in self.drivers],
             "traces.list")
 
-        if self.dotxcov_check():
-            self.gen_one_xcov_report(traces, format="xcov")
+        self.gen_one_xcov_report(traces, format="xcov")
 
-            # When nothing of possible interest shows up for a unit, xcov
-            # generates nothing at all. Create dummy reports here to prevent
-            # fatal exceptions trying to open them downstream.
-            [self.force_xcov_report(source+'.xcov') for source in self.xrnotes]
+        # When nothing of possible interest shows up for a unit, xcov
+        # generates nothing at all. Create dummy reports here to prevent
+        # fatal exceptions trying to open them downstream.
+        [self.force_xcov_report(source+'.xcov') for source in self.xrnotes]
 
         self.gen_one_xcov_report(
             traces, format="report", options="-o test.rep")
@@ -2088,9 +2127,7 @@ class SCOV_helper:
         # Expand the reports into source->emitted-notes dictionaries
         # and check against our per-source expectations.
 
-        if self.dotxcov_check():
-            self.elnotes = LnotesExpander("*.xcov").elnotes
-
+        self.elnotes = LnotesExpander("*.xcov").elnotes
         self.ernotes = RnotesExpander("test.rep").ernotes
 
         [self.check_expectations_over (source) for source in self.xrnotes]
@@ -2102,18 +2139,51 @@ class SCOV_helper:
 
         frame ("Processing UX for %s" % (source), post=0, char='~').display()
 
-        if self.dotxcov_check():
-            UXchecker (
-                source+'.xcov',
-                self.xlnotes.get(source),
-                self.elnotes.get(source, KnoteDict(lNoteKinds))
-                ).process_notes(rp_lnotes_for[self.category])
+        # When we're running for a level stricter than the test category
+        # (e.g. running a stmt test with --level=stmt+decision), we
+        #
+        # * Just ignore some emitted notes, simply irrelevant for the catgory
+        #   (e.g. dT-, which doesn't change the statement coverage status of
+        #   the outer statement). This is conveyed by the rp_?notes_for sets.
+        #
+        # * Accept that some emitted notes discharge expectations of some
+        #   other kind as well. This is conveyed by the discharge_kdict values
+        #   below.
+
+        stricter_level = strength [self.xcovlevel] > strength [self.category]
+
+        discharge_kdict = {
+            # In stricter_level mode, we let ...
+
+            # an emitted l! discharge an expected l+, when the l! is most
+            # likely caused by irrelevant violations for the category
+            lFullCov: [lFullCov, lPartCov],
+
+            # an emitted lx1 discharge an lx0 expectation, when the extra
+            # exempted violations are most likely caused by the level extra
+            # strictness, hence irrelevant for the category
+            lx0:      [lx0, lx1] } if stricter_level else {}
+
+        UXchecker (
+            source+'.xcov',
+            self.xlnotes.get(source),
+            self.elnotes.get(source, KnoteDict(lNoteKinds))
+            ).process_notes(rp_lnotes_for[self.category], discharge_kdict)
+
+
+        discharge_kdict = {
+            # In stricter_level mode, we let ...
+
+            # an emitted xBlock1 discharge an xBlock0 expectation, as the
+            # extra exempted violations are most likely irrelevant for the
+            # category
+            xBlock0: [xBlock0, xBlock1] } if stricter_level else {}
 
         UXchecker (
             'test.rep',
             self.xrnotes.get(source),
             self.ernotes.get(source, KnoteDict(rNoteKinds))
-            ).process_notes(rp_rnotes_for[self.category])
+            ).process_notes(rp_rnotes_for[self.category], discharge_kdict)
 
     # ---------
     # -- log --
@@ -2217,7 +2287,7 @@ class ExerciseAll:
         a request for optimization."""
         return options and re.search ("(^|\s)-O", options)
 
-    def __init__(self, extradrivers="", extracargs="", xcovlevel=None):
+    def __init__(self, extradrivers="", extracargs=""):
 
         # Step 1: Compute the list of drivers to exercise ...
         # ---------------------------------------------------
@@ -2244,23 +2314,14 @@ class ExerciseAll:
 
         category = self.__category()
 
-        # - xcovlevel to pass:
+        # - Set of xcovlevel values to exercise:
 
-        # If this is a qualification test, and the user explicitly requested
-        # that all tests be run under a specific context level, then use that
-        # context level.  Otherwise, use the provided value or pick a default
-        # from the test category.
+        # If we have a qualification test and a common context level, use
+        # that. Fallback to defaults otherwise.
 
-        if qualification_test_p():
-
-            thistest.stop_if (
-                xcovlevel,
-                FatalError("qualif tests may not force an explicit xcovlevel"))
-
-            if thistest.options.qualif_xcov_level:
-                xcovlevels = [thistest.options.qualif_xcov_level]
-
-        if xcovlevel == None:
+        if qualification_test_p() and thistest.options.qualif_xcov_level:
+            xcovlevels = [thistest.options.qualif_xcov_level]
+        else:
             xcovlevels = default_xcovlevels_for [category]
 
         # - compilation arguments:
