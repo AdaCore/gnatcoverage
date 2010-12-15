@@ -2327,17 +2327,11 @@ class ExerciseAll:
         # - compilation arguments:
 
         # Account for provided compilation flags for qualif tests, then
-        # append test specific extra compilation flags. Skip !qualif tests
-        # forcing optimization in runs that would not run qualif ones with
-        # optimization as well.
+        # append test specific extra compilation flags.
 
         testcargs = []
         if qualification_test_p():
             testcargs = to_list(thistest.options.qualif_cargs)
-        elif (self.optrequest_in(extracargs)
-              and not self.optrequest_in(thistest.options.qualif_cargs)):
-            thistest.log ("skipping opt test in !opt qualif context")
-            return
 
         testcargs += to_list (extracargs)
 
