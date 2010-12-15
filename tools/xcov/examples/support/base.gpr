@@ -23,7 +23,7 @@ abstract project Base is
       --  Default to O0 until we support O1 for source coverage critieria
 
       for Default_Switches ("ada") use
-        Compiler'Default_Switches("C") & ("-gnatp", "-gnatw.Xe", "-gnateS");
+        Compiler'Default_Switches("C") & ("-gnatw.Xe", "-gnateS");
 
       case Do_Style_Checks is
          when "no" => null;
