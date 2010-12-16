@@ -1,0 +1,2 @@
+Exercise preconditions involving a single condition, in package spec and
+subprogram declarative part.
