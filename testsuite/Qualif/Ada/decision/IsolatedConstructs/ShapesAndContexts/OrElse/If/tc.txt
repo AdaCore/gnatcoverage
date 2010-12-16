@@ -1,1 +1,1 @@
-Exercise "A or else B" controlling an If statement.
+Exercise "A or else B" used to control an If statement.

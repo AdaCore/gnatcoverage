@@ -1,1 +1,1 @@
-Exercise "A and then B" as a Return statement value.
+Exercise "A and then B" used as a Return statement value.

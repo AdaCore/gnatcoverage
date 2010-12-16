@@ -1,1 +1,1 @@
-Exercise "A and then B" controlling a Case statement.
+Exercise "A and then B" used to control a Case statement.
