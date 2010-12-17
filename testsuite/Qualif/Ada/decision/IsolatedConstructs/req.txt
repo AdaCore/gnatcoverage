@@ -1,5 +1,10 @@
-When a decision is never evaluated, it's enclosing statement or declaration
-shall be reported uncovered.
+When a decision is never evaluated and the enclosing statement or
+declaration has not been executed, that statement or declaration shall
+be reported as not covered.
+
+When a decision is never evaluated even though the enclosing statement
+or declaration has been executed, the decision shall be reported as
+not covered (never evaluated).
 
 When a decision is evaluated only True or only False, it shall be reported
 as only partially covered.
