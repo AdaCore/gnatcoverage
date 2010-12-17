@@ -11,5 +11,4 @@ package Points is
 
    function Y (P : Point) return Integer;
    pragma Precondition (P.Set); -- # preY
-
 end;

@@ -1,0 +1,1 @@
+Exercise a simple precondition both ways, forcing a precondition failure.
