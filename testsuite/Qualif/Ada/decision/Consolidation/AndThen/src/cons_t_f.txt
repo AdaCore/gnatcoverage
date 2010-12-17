@@ -1,4 +1,4 @@
-drivers=.
+drivers=_t|_f
 
 --# andthen.adb
 --  /eval/ l+ 0

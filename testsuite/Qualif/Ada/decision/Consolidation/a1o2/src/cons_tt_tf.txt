@@ -1,0 +1,5 @@
+drivers=_tt|_tf
+
+--# a1o2.adb
+--  /valueF/ l+ 0
+--  /evals/  l! dF-:"A and then B"

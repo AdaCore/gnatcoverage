@@ -1,0 +1,4 @@
+Check that full coverage of an "and then" decision is achieved by
+combining a trace that evaluates the decision only True with one that
+evaluates the decision only False.
+

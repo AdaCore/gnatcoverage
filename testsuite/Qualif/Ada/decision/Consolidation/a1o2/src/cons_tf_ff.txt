@@ -1,0 +1,5 @@
+drivers=_tf|_ff
+
+--# a1o2.adb
+--  /valueF/ l! dT-
+--  /evals/  l! dT-:"C or else D"

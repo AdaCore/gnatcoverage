@@ -1,0 +1,5 @@
+drivers=_ff|_tt
+
+--# a1o2.adb
+--  /valueF/ l+ 0
+--  /evals/  l+ 0
