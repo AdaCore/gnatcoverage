@@ -252,8 +252,13 @@ package body Coverage.Source is
 
                   --  Similar to the above for statement coverage: a decision
                   --  that cannot ever be executed is reported as No_Code, not
-                  --  Not_Covered.
+                  --  Not_Covered. Note: the enclosing statement may be covered
+                  --  even though the decision has never been evaluated (case
+                  --  e.g. of an exception being raised before any outcome is
+                  --  reached, or of a condition for which we fail to identify
+                  --  the corresponding conditional branch instruction).
 
+                  Report (SCO, "never evaluated");
                   SCO_State := Not_Covered;
                end if;
 
