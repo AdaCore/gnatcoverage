@@ -132,22 +132,31 @@ package body Coverage.Source is
       --  Examine each SCO associated with line
 
       for J in Line_Info.SCOs.First_Index .. Line_Info.SCOs.Last_Index loop
-         declare
+         SCOs_Of_Line : declare
             SCO         : constant SCO_Id := Line_Info.SCOs.Element (J);
-            SCI         : Source_Coverage_Info;
-            Default_SCI : Source_Coverage_Info (Kind => Kind (SCO));
-            pragma Warnings (Off, Default_SCI);
-            --  Used for default initialization value
-
             SCO_State   : Line_State := No_Code;
 
-         begin
-            if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
-               SCI := SCI_Vector.Element (SCO);
-            else
-               SCI := Default_SCI;
-            end if;
+            function SCI_Of_SCO (SCO : SCO_Id) return Source_Coverage_Info;
+            --  Return the SCI for SCO, or Default_SCI if not present
 
+            function SCI_Of_SCO (SCO : SCO_Id) return Source_Coverage_Info is
+               Default_SCI : Source_Coverage_Info (Kind => Kind (SCO));
+               pragma Warnings (Off, Default_SCI);
+               --  Used for default initialization value
+
+            begin
+               if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
+                  return SCI_Vector.Element (SCO);
+               else
+                  return Default_SCI;
+               end if;
+            end SCI_Of_SCO;
+
+            SCI : constant Source_Coverage_Info := SCI_Of_SCO (SCO);
+
+         --  Start of processing for SCOs_Of_Line
+
+         begin
             if Kind (SCO) = Statement then
                --  Statement coverage: line is covered if any associated
                --  statement is executed.
@@ -256,9 +265,14 @@ package body Coverage.Source is
                   --  even though the decision has never been evaluated (case
                   --  e.g. of an exception being raised before any outcome is
                   --  reached, or of a condition for which we fail to identify
-                  --  the corresponding conditional branch instruction).
+                  --  the corresponding conditional branch instruction). We
+                  --  report the coverage failure for the decision in that
+                  --  case only; if the statement was not executed, we report
+                  --  only the statement failure.
 
-                  Report (SCO, "never evaluated");
+                  if SCI_Of_SCO (Enclosing_Statement (SCO)).Executed then
+                     Report (SCO, "never evaluated");
+                  end if;
                   SCO_State := Not_Covered;
                end if;
 
@@ -282,7 +296,7 @@ package body Coverage.Source is
                   end if;
                end if;
             end if;
-         end;
+         end SCOs_Of_Line;
       end loop;
    end Compute_Line_State;
 
