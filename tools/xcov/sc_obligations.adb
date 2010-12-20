@@ -1624,9 +1624,10 @@ package body SC_Obligations is
 
                   when Operator =>
                      --  Parent is already set to the enclosing decision or
-                     --  opeartor, and sloc is recorded in the operator map,
+                     --  operator, and sloc is recorded in the operator map,
                      --  not in the general SCO map.
 
+                     Operator_Map.Insert (SCOD.Sloc_Range, SCO);
                      First := No_Location;
 
                end case;
@@ -1708,21 +1709,6 @@ package body SC_Obligations is
    begin
       return SCO_Vector.Element (SCO).Operands (Position);
    end Operand;
-
-   --------------
-   -- Operator --
-   --------------
-
-   function Operator (Sloc : Source_Location) return SCO_Id is
-      use Sloc_To_SCO_Maps;
-      Cur : constant Cursor := Operator_Map.Find ((Sloc, Sloc));
-   begin
-      if Cur = No_Element then
-         return No_SCO_Id;
-      else
-         return Element (Cur);
-      end if;
-   end Operator;
 
    -------------
    -- Outcome --
@@ -1883,9 +1869,25 @@ package body SC_Obligations is
       use Sloc_To_SCO_Maps;
       L_Sloc : Source_Location := Sloc;
       Cur    : Cursor;
-      SCO    : SCO_Id := No_SCO_Id;
+      SCO    : SCO_Id;
 
    begin
+      --  If looking up the sloc of a NOT operator, return SCO of innermost
+      --  operand, if it is a condition.
+
+      Cur := Operator_Map.Find ((Sloc, No_Location));
+      if Cur /= No_Element then
+         SCO := Element (Cur);
+         while Kind (SCO) = Operator and then Op_Kind (SCO) = Op_Not loop
+            SCO := Operand (SCO, Position => Right);
+         end loop;
+         if Kind (SCO) = Condition then
+            return SCO;
+         end if;
+      end if;
+
+      SCO := No_SCO_Id;
+
       if L_Sloc.Column = 0 then
          --  For the case of a lookup with a column of 0, we want a SCO
          --  starting before the end of the given line.

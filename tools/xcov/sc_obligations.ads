@@ -43,7 +43,6 @@ package SC_Obligations is
    --  For No_Location, return No_SCO_Id.
 
    type Operator_Kind is (Op_Not, Op_And_Then, Op_Or_Else);
-   function Operator (Sloc : Source_Location) return SCO_Id;
 
    function Has_SCO
      (Sloc_Begin : Source_Location;
