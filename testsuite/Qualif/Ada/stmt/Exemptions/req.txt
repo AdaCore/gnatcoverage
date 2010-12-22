@@ -13,7 +13,7 @@ Exemption regions may be declared to exempt various levels of syntactic
 constructs such as statements or subprograms, and groups of such in all the
 contexts where they may appear.
 
-Testing strategy:
+** Testing strategy: **
 
 For every single stated expectation, the testsuite driver checks if it
 appears in the report section expected for it's kind (exempted region or
