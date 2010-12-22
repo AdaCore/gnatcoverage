@@ -1,0 +1,1 @@
+Decisions spanning multiple lines are handled correctly.
