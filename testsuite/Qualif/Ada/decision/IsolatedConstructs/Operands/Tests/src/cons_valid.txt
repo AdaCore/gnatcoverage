@@ -1,0 +1,11 @@
+drivers=_overlap|_no_overlap
+
+--  Consolidate results for tests involving valid ranges only.
+--  Precondition evaluated True only. Overlapping decision covered both ways.
+
+--# ranges.adb
+--  /checkValid/    l! d!
+--  /assignValid/   l+ 0
+--  /assignInvalid/ l- s-
+--  /preValid/      l! d!
+--  /evalOverlap/   l+ 0
