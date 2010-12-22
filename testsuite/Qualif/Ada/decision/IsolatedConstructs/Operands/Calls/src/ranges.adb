@@ -1,6 +1,8 @@
-pragma Check_Policy (Precondition, On);
+with Support; use Support;
 
 package body Ranges is
+
+   pragma Check_Policy (Precondition, On);
 
    procedure Set (R : out XYrange; X, Y : Integer) is
    begin
@@ -12,7 +14,7 @@ package body Ranges is
    end;
 
    function Overlap (R1, R2 : XYrange) return Boolean is
-      pragma Precondition
+      pragma Precondition                          -- # preStmt
         (Identity (R1.Valid and then R2.Valid));   -- # preValid
    begin
       return Identity (R2.X <= R1.Y)      -- # retStmt

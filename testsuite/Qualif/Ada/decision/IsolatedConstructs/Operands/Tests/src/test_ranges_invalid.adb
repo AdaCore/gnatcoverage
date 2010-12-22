@@ -20,7 +20,7 @@ end;
 --  /checkValid/    l+ 0
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l+ 0
---  /preValid/      l! d!
+--  /preValid/      l! dT-
 --  /evalOverlap/   l- s-
 
 

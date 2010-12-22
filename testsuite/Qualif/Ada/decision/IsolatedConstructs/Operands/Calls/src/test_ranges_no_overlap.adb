@@ -23,7 +23,7 @@ end;
 --  /checkValid/    l! d!
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l- s-
---  /preValid/      l! d!
+--  /preValid/      l! d!:"Identity",dF-:"R1.Valid"
 --  /retStmt/       l! dT-
 --  /retLine/       l! 0
 

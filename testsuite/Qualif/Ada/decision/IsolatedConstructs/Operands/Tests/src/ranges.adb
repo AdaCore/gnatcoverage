@@ -14,7 +14,7 @@ package body Ranges is
    function Overlap (R1, R2 : XYrange) return Boolean is
       --  No test in condition here. Useful check to make
       --  sure the callers abide expectations
-      pragma Precondition (R1.Valid and then R2.Valid));  -- # preValid
+      pragma Precondition (R1.Valid and then R2.Valid);  -- # preValid
    begin
       --  Conditions with tests here:
       return R2.X <= R1.Y and then R2.Y >= R1.X; -- # evalOverlap

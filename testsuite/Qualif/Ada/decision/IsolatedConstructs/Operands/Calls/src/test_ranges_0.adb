@@ -2,7 +2,7 @@ with Ranges, Support; use Ranges, Support;
 
 -- Exercise nothing. Expect all statements reported uncovered.
 
-procedure Test_Ranges_0 is   
+procedure Test_Ranges_0 is
 begin
    Assert (True);
 end;
@@ -11,7 +11,8 @@ end;
 --  /checkValid/    l- s-
 --  /assignValid/   l- s-
 --  /assignInvalid/ l- s-
---  /preValid/      l- s-
+--  /preStmt/       l- s-
+--  /preValid/      l- 0
 --  /retStmt/       l- s-
 --  /retLine/       l- 0
 
