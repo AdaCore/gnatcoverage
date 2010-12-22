@@ -1,7 +1,7 @@
 
 This section is split in several parts:
 
-**IsolatedConstructs**
+**LoneConstructs**
 
 Holds requirements and testcases to define and validate the expected
 processing of isolated Ada language constructs.
