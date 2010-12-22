@@ -1,0 +1,26 @@
+
+This section on Decision Coverage is split in several parts:
+
+**LoneConstructs**
+
+Holds requirements and testcases to define and validate the expected
+processing of decisions within isolated Ada language constructs.
+
+**Sanity**
+
+Holds requirements and testcases to demonstrate that the toolset correctly
+handles potentially confusing constructs that would fool naive analyzers.
+
+This includes cases such as multiple decisions sharing a line or a single
+decision spanning multiple lines.
+
+**Consolidation**
+
+Holds requirements and testscases to define and validate the expected
+processing of multiple execution traces combined together.
+
+**Exemptions**
+
+Holds requirements and testscases to define and validate the expected
+processing of exemption regions.
+
