@@ -782,9 +782,9 @@ lx0, lx1, \
 deviationNote, \
 lNoCov, lPartCov, \
 sNoCov, sPartCov, \
-dtNoCov, dfNoCov, dPartCov, cPartCov, \
+dtNoCov, dfNoCov, dPartCov, dNoCov, cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(17)
+xBlock0, xBlock1 = range(18)
 
 # DEVIATION notes are those representing violations of a coverage mandate
 # associated with a general criterion (e.g. ).
@@ -821,7 +821,8 @@ NK_image  = {None: "None",
              lNoCov: "lNoCov", lPartCov: "lPartCov",
              lx0: "lx0", lx1: "lx1",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
-             dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dPartCov: "dPartCov",
+             dtNoCov: "dtNoCov", dfNoCov: "dfNoCov",
+             dPartCov: "dPartCov", dNoCov: "dNoCov",
              xBlock0: "xBlock0", xBlock1: "xBlock1",
              cPartCov: "cPartCov"}
 
@@ -831,7 +832,7 @@ NK_image  = {None: "None",
 lNoteKinds = (lNoCode, lNoCov, lPartCov, lFullCov, lx0, lx1)
 
 sNoteKinds = (sNoCov, sPartCov)
-dNoteKinds = (dtNoCov, dfNoCov, dPartCov)
+dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov)
 cNoteKinds = (cPartCov,)
 xNoteKinds = (xBlock0, xBlock1)
 
@@ -1141,7 +1142,7 @@ class XnoteP:
     NK_for = {'l0': lNoCode, 'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
               'l#': lx0, 'l*': lx1,
               's-': sNoCov, 's!': sPartCov,
-              'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov,
+              'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-':dNoCov,
               'c!': cPartCov,
               'x0': xBlock0, 'x+': xBlock1,
               '0': None}
@@ -1317,6 +1318,7 @@ class RnotesExpander:
 
     NK_for = {"decision outcome FALSE never": dfNoCov,
               "decision outcome TRUE never": dtNoCov,
+              "decision never evaluated": dNoCov,
               "decision not exercised in both directions": dPartCov,
               "multiple statement SCOs": sPartCov,
               "condition has no independent influence pair": cPartCov,
@@ -2152,6 +2154,8 @@ class SCOV_helper:
 
         stricter_level = strength [self.xcovlevel] > strength [self.category]
 
+        # Line notes checks
+
         discharge_kdict = {
             # In stricter_level mode, we let ...
 
@@ -2170,6 +2174,8 @@ class SCOV_helper:
             self.elnotes.get(source, KnoteDict(lNoteKinds))
             ).process_notes(rp_lnotes_for[self.category], discharge_kdict)
 
+
+        # Report notes checks
 
         discharge_kdict = {
             # In stricter_level mode, we let ...
