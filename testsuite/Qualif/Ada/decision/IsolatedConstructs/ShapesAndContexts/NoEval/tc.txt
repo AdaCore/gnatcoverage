@@ -1,0 +1,3 @@
+Check proper differentiation of a case involving a decision enclosed in an
+uncovered statement versus that of a decision never evaluated despite coverage
+of the enclosing statement.

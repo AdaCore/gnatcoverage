@@ -1,0 +1,8 @@
+drivers=andidor_t
+
+--  Consolidate all drivers running X => True.
+--  Expect inner decision fully covered and outer as well.
+
+--# andidor.adb
+--  /eval/ l+ 0
+
