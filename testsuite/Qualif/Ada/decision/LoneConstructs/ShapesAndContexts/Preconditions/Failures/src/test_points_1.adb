@@ -1,4 +1,4 @@
-with Support, Points, My_Last_Chance_Handler; use Support, Points;
+with Support, Points, Silent_Last_Chance; use Support, Points;
 
 procedure Test_Points_1 is
    P1 : Point;
