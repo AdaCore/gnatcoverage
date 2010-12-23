@@ -2,7 +2,7 @@
 --  the library level and as local declarations.
 
 with Support; use Support;
-package Discrete_Subtype_Definitions is
+package Discrete_Subtype_Defs is
 
    type Global_Arr is array (Integer range Identity (1) .. 10) of Float; -- # dcl
 
@@ -29,4 +29,4 @@ package Discrete_Subtype_Definitions is
    --  real-life-looking contest for a discrete subtype definition in the
    --  body.
 
-end Discrete_Subtype_Definitions;
+end Discrete_Subtype_Defs;

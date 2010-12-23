@@ -1,4 +1,4 @@
-package body Discrete_Subtype_Definitions is
+package body Discrete_Subtype_Defs is
 
    function Some_Fun_1
      (I, J, K, L: Integer)
@@ -47,4 +47,4 @@ package body Discrete_Subtype_Definitions is
       return Result;                                           -- # 2_stmt
    end Some_Fun_2;
 
-end Discrete_Subtype_Definitions;
+end Discrete_Subtype_Defs;

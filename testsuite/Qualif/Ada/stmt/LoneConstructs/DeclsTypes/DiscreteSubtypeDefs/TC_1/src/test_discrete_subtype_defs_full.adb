@@ -2,10 +2,10 @@
 --  genrics from the functional code and calls part all the subprograms from
 --  it. So all the declarations are expected to be reported as covered.
 
-with Discrete_Subtype_Definitions; use Discrete_Subtype_Definitions;
+with Discrete_Subtype_Defs; use Discrete_Subtype_Defs;
 with Support;                      use Support;
 
-procedure Test_Discrete_Subtype_Definitions_Full is
+procedure Test_Discrete_Subtype_Defs_Full is
    package P1 is new P1_G (10);
    package P2 is new P2_G (20);
 begin
@@ -14,14 +14,14 @@ begin
 
    Assert (Some_Fun_1 (1, 2, 3, -10));
    Assert (not Some_Fun_2 (1, 2, 3, 100));
-end Test_Discrete_Subtype_Definitions_Full;
+end Test_Discrete_Subtype_Defs_Full;
 
---# discrete_subtype_definitions.ads
+--# discrete_subtype_defs.ads
 -- /dcl/    l+ 0
 -- /g1_dcl/ l+ 0
 -- /g1_dcl/ l+ 0
 
---# discrete_subtype_definitions.adb
+--# discrete_subtype_defs.adb
 -- /1_local_dcl/ l+ 0
 -- /1_stmt/      l+ 0
 -- /1_1_loop/    l+ 0
