@@ -8,7 +8,7 @@ with Library_Level_Fun;
 with Library_Level_Proc;
 with Subprogram_Pack; use Subprogram_Pack;
 with Support;         use Support;
-procedure Test_Subprogram_Declarations_Ordinary_Calls is
+procedure Test_Subprogram_Decls_Ordinary_Calls is
    I : Integer;
 begin
    I := 0;
@@ -24,7 +24,7 @@ begin
    Proc2 (I, 0);
    Assert (I = 4);
 
-end Test_Subprogram_Declarations_Ordinary_Calls;
+end Test_Subprogram_Decls_Ordinary_Calls;
 
 --# library_level_fun.adb
 -- /fun/        l- s-

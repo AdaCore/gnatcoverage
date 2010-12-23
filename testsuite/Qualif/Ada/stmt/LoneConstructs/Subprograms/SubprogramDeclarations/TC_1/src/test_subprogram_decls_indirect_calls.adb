@@ -8,7 +8,7 @@ with Library_Level_Fun;
 with Library_Level_Proc;
 with Subprogram_Pack; use Subprogram_Pack;
 with Support;         use Support;
-procedure Test_Subprogram_Declarations_Indirect_Calls is
+procedure Test_Subprogram_Decls_Indirect_Calls is
    I           : Integer;
    Ref_To_Proc : Access_To_Proc;
 begin
@@ -30,7 +30,7 @@ begin
    Ref_To_Proc (I);
    Assert (I = 36);
 
-end Test_Subprogram_Declarations_Indirect_Calls;
+end Test_Subprogram_Decls_Indirect_Calls;
 
 --# library_level_fun.adb
 -- /fun/        l- s-

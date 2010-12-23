@@ -6,10 +6,10 @@ with Library_Level_Fun;
 with Library_Level_Proc;
 with Subprogram_Pack; use Subprogram_Pack;
 with Support;         use Support;
-procedure Test_Subprogram_Declarations_No is
+procedure Test_Subprogram_Decls_No is
 begin
    Assert (True);
-end Test_Subprogram_Declarations_No;
+end Test_Subprogram_Decls_No;
 
 --# library_level_fun.adb
 -- /fun/        l- s-
