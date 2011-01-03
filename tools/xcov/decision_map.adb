@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2010, AdaCore                     --
+--                     Copyright (C) 2008-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -1145,7 +1145,7 @@ package body Decision_Map is
          for Val in Boolean'Range loop
             if not Has_Valuation (J, Val) then
                Report (Condition (D_Occ.Decision, J),
-                       "no edge for " & Val'Img,
+                       "lacks edge for " & Val'Img,
                       Kind => Warning);
             end if;
          end loop;
