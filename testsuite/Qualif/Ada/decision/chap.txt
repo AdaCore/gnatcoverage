@@ -1,5 +1,7 @@
 
-This section on Decision Coverage is split in several parts:
+This section holds the tool operational requirements and associated testcases
+to validate the tool behavior with respect to Decision Coverage capabilities.
+This is split in several parts:
 
 **LoneConstructs**
 
