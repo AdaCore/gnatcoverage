@@ -8,59 +8,204 @@ import re
 DOC_DIR = "source"
 ROOT_DIR = "../../../testsuite/Qualif/Ada"
 
-
-def to_title(str):
-        """Given an entity name return a suitable string to be insterted
-        in the documentation"""
-        m = re.search(r'^[0-9]+_(.*)$', str)
-        if m is not None:
-            str = m.group(1)
-        return str.replace('_', ' ')
-
+# **********************
+# ** Helper functions **
+# **********************
 
 def get_content(filename):
-        """Return content of a file"""
-        fd = open(filename, 'r')
-        content = fd.read()
-        fd.close()
-        return content
+    """Return contents of a file"""
+    fd = open(filename, 'r')
+    content = fd.read()
+    fd.close()
+    return content
 
+def copy(l):
+    """Return a copy of list L"""
+    return [item for item in l]
 
-class DocGenerator(object):
+def to_title(str):
+    """Given an entity name return a suitable string to be insterted
+    in the documentation"""
+    m = re.search(r'^[0-9]+_(.*)$', str)
+    if m is not None:
+        str = m.group(1)
+    return str.replace('_', ' ')
 
-    def __init__(self, root_dir, doc_dir):
-        self.root_dir = os.path.abspath(root_dir)
-        self.doc_dir = os.path.abspath(doc_dir)
-        self.resource_list = set([])
+def header(str, pre_skip, post_skip):
+    """Return the string to be used as a section header for STR,
+    framed with PRE_SKIP new_lines before and POST_SKIP new_lines after"""
+    return '\n' * pre_skip + str + '\n' * post_skip
 
-    def file2docfile(self, filename):
-        """Return the associated filename for a given path"""
-        docfile = os.path.relpath(filename, self.root_dir)
-        # If we are at the root directory then return our documentation
-        # entry point.
-        if docfile == ".":
-            return "index.rst"
+def sec_header(str):
+    """Return a Section header text to be used for section title STR"""
+    return header(rest.strong(str), pre_skip=2, post_skip=2)
 
-        docfile = docfile.replace('/', '_').replace('\\', '_') + ".rst"
-        return docfile
+def subsec_header(str):
+    """Return a Subsection header text to be used for subsection title STR"""
+    return header(rest.emphasis(str), pre_skip=2, post_skip=2)
 
-    def ref(self, name):
-        """Transform a string into other string suitable to be used as index
-        name"""
-        result = os.path.relpath(name, self.root_dir)
-        return result.replace('/', '_').replace('\\', '_').replace('.', '_')
+# ***************************
+# ** Directory abstraction **
+# ***************************
+
+# DocGenerator helper to process one specific subdirectory of the TOR/TC
+# hierarchy
+
+class Dir:
+    def __init__(self, root, subdirs, files, dgen):
+
+        # Parent DocGenerator driver and os.walk values for this directory
+
+        self.dgen    = dgen
+        self.root    = root
+        self.subdirs = subdirs
+        self.files   = files
+
+        # Links to parent and children in the directory tree. These are
+        # set as dir objects get mapped within a DirTree instance. We expect
+        # these to be constructed in a top-down fashion, and the up link is
+        # assumed to be setup before other methods are called (so we know if
+        # this is a root section)
+
+        self.up = None
+        self.down = []
+
+    def has_reqtxt(self):
+        return "req.txt" in self.files
+
+    def has_chaptxt(self):
+        return "chap.txt" in self.files
+
+    def has_tctxt(self):
+        return "tc.txt" in self.files
+
+    # Generate various document sections needed for directory SELF
+
+    def maybe_chap_section(self):
+        """Generate the Chapter description section as needed"""
+
+        if not self.has_chaptxt(): return
+
+        self.ofd.write(get_content(os.path.join(self.root, 'chap.txt')))
+
+    def maybe_req_section(self):
+        """Generate the Requirement section as needed"""
+
+        if not self.has_reqtxt(): return
+
+        self.ofd.write(sec_header("Requirement"));
+        self.ofd.write(get_content(os.path.join(self.root, 'req.txt')))
+
+    def maybe_req_section(self):
+        """Generate the Requirement section as needed"""
+
+        if not self.has_reqtxt(): return
+
+        self.ofd.write(sec_header("Requirement"));
+        self.ofd.write(get_content(os.path.join(self.root, 'req.txt')))
+
+    def maybe_tc_section(self):
+        """Generate the TestCase section as needed"""
+
+        if not self.has_tctxt(): return
+
+        tco = TestCase (dir=self.root, dgen=self.dgen)
+
+        self.ofd.write(get_content(os.path.join(self.root, 'tc.txt')))
+
+        self.ofd.write(subsec_header("Test Data"))
+        self.ofd.write(rest.list(
+                [':ref:`%s`' % self.dgen.ref(d) for d in tco.fnsources]))
+
+        self.ofd.write(subsec_header("Test Procedures"))
+        self.ofd.write(rest.list(
+                    [':ref:`%s`' % self.dgen.ref(d) for d in tco.drsources]))
+
+        self.dgen.register_resources (tco.fnsources | tco.drsources)
+
+    def maybe_toc_section(self):
+        """Generate the Table Of Contents section as needed"""
+
+        tocentries = [self.dgen.file2docfile(os.path.join(self.root, sd))
+                      for sd in self.subdirs]
+
+        if tocentries:
+            self.ofd.write(sec_header("TOC"));
+            self.ofd.write(
+                rest.toctree(tocentries, depth = 1 if not self.up else 2))
+
+    def gen_doc_contents (self):
+        dest_filename = self.dgen.file2docfile(self.root)
+        self.ofd = open(os.path.join(self.dgen.doc_dir, dest_filename), 'w')
+
+        self.ofd.write(
+            rest.section(to_title(os.path.basename(self.root))))
+
+        self.maybe_chap_section()
+        self.maybe_req_section()
+        self.maybe_tc_section()
+        self.maybe_toc_section()
+
+        self.ofd.close()
+
+# *******************************
+# ** Directory map abstraction **
+# *******************************
+
+# Helper to manage dirname -> dirobject associations and establish
+# parent/children relationships over dir objects, assuming the tree
+# is walked top down.
+
+class DirTree:
+    def __init__(self):
+        self.dir = {}
+        self.roots = []
+
+    def map(self, dirname, diro):
+
+        self.dir[dirname] = diro
+
+        parentname = os.path.dirname(dirname)
+
+        # We assume the tree is walked top down, so normally always
+        # get parents before children ... except for roots.
+
+        if parentname in self.dir:
+            parento = self.dir[parentname]
+            diro.up = parento
+            parento.down.append(diro)
+        else:
+            self.roots.append(diro)
+
+# **************************
+# ** TestCase abstraction **
+# **************************
+
+# Helper for the Directory abstraction, to encapsulate research of driver
+# and functional source file sets
+
+class TestCase:
+    def __init__(self, dir, dgen):
+        self.dir  = dir
+        self.dgen = dgen
+
+        self.fnsources = None
+        self.drsources = None
+        self.find_sources()
 
     def parent_globbing(self, dir, pattern, include_start_dir=False):
         """Look for src/[pattern] files in dir and its parents directory
         up to document root directory"""
-        head = os.path.relpath(dir, self.root_dir)
+        head = os.path.relpath(dir, self.dgen.root_dir)
         tail = ''
         if not include_start_dir:
             head, tail = os.path.split(head)
         files = set([])
         while len(head) > 0:
-            files |= set(glob.glob(os.path.join(self.root_dir, head, 'src',
-                                                pattern)))
+            files |= set(
+                glob.glob(
+                    os.path.join(self.dgen.root_dir, head, 'src', pattern))
+                )
             head, tail = os.path.split(head)
         return files
 
@@ -117,113 +262,92 @@ class DocGenerator(object):
 
         return result_set
 
-    def process_testcase(self, dir):
-        # First find the Ada files in the current src subdirectory
-        ada_files = set(glob.glob(os.path.join(dir, 'src', '*.ad[sb]')))
+    def find_sources(self):
+        """Locate the functional and driver sources of testcase SELF"""
 
-        # Find the first the tests procedures
-        test_procedure_files = set([k for k in ada_files \
-          if os.path.basename(k).startswith('test_')])
+        # Seek the test drivers first, and infer closure from there
 
-        if len(test_procedure_files) == 0:
-            # We are in a case in which we don't have the procedure files in
-            # the current directory. So the found them in the parent
-            # directories using the names of the test data.
-            data_names = set([os.path.basename(k).split('.')[0] \
-                              for k in ada_files])
-            for name in data_names:
-                test_procedure_files |= \
-                  self.parent_globbing(dir, 'test_' + name + '*.ad[sb]')
+        # Test drivers: search the local "src" subdir first, walk uptree
+        # if no driver there.
 
-        # Find the closure of test procedures. This should give us the list of
-        # data files
-        test_data_files = set([])
-        for d in test_procedure_files:
-            test_data_files |= self.find_closure(dir, d)
+        local_files = set(glob.glob(os.path.join(self.dir, 'src', '*.ad[sb]')))
 
-        if len(test_data_files) == 0:
-            print 'warning: no test data files'
+        self.drsources = set(
+            [k for k in local_files if os.path.basename(k).startswith('test_')])
 
-        self.resource_list |= test_procedure_files | test_data_files
-        return (test_procedure_files, test_data_files)
+        if len(self.drsources) == 0:
+            data_names = set(
+                [os.path.basename(k).split('.')[0] for k in local_files])
+            [self.drsources.update(
+                    self.parent_globbing(self.dir, 'test_'+name+'*.ad[sb]'))
+             for name in data_names]
+
+        if len(self.drsources) == 0:
+            print 'warning: no driver source for testcase in %s' % self.dir
+
+        # Driver Closure:
+
+        self.fnsources = set([])
+        [self.fnsources.update(self.find_closure(self.dir, driver))
+         for driver in self.drsources]
+
+        if len(self.fnsources) == 0:
+            print 'warning: no functional source for testcase in %s' % self.dir
+
+# ************************
+# ** Document Generator **
+# ************************
+
+class DocGenerator(object):
+
+    def __init__(self, root_dir, doc_dir):
+        self.root_dir = os.path.abspath(root_dir)
+        self.doc_dir = os.path.abspath(doc_dir)
+        self.resource_list = set([])
+
+        # current output file descriptor, while walking the tor/tc tree
+        self.ofd = None
+
+    def register_resources(self, rset):
+        self.resource_list |= rset
+
+    def file2docfile(self, filename):
+        """Return the associated filename for a given path"""
+        docfile = os.path.relpath(filename, self.root_dir)
+        # If we are at the root directory then return our documentation
+        # entry point.
+        if docfile == ".":
+            return "index.rst"
+
+        docfile = docfile.replace('/', '_').replace('\\', '_') + ".rst"
+        return docfile
+
+    def ref(self, name):
+        """Transform string NAME into another string suitable to be used as
+        index name"""
+        result = os.path.relpath(name, self.root_dir)
+        return result.replace('/', '_').replace('\\', '_').replace('.', '_')
+
 
     def generate_doc(self, root_dir):
         """Generate documentation for root_dir and all its subdirectories"""
+
         for root, dirs, files in os.walk(os.path.abspath(root_dir)):
 
-            dest_filename = self.file2docfile(root)
-            dest_fd = open(os.path.join(self.doc_dir, dest_filename), 'w')
-            name = os.path.basename(root)
-
             # Ignore some subdirectories
-            for d in [k for k in dirs]:
-                if d in ('.svn', 'src') or d.startswith('tmp_'):
-                    dirs.remove(d)
+            [dirs.remove(d) for d in copy(dirs)
+	     if d in ('.svn', 'src') or d.startswith('tmp_')]
 
-            # Write the title of the section corresponding to the current dir
-            dest_fd.write(rest.section(to_title(name)))
+            diro = Dir (root=root, subdirs=dirs, files=files, dgen=self)
+            self.dirtree.map (dirname=root, diro=diro)
 
-            # Sort subdirectories by alphanumerical order
-            dirs.sort()
-
-            # Check if we have a requirement
-            if 'req.txt' in files:
-                dest_fd.write("\n\n" + rest.strong("Requirement") + "\n\n")
-                dest_fd.write(get_content(os.path.join(root, 'req.txt')))
-
-                # Check if the requirement has some tests (check for tc.txt in
-                # subdirs)
-                dirs_copy = [k for k in dirs]
-                test_id = 1
-                has_testcase = False
-
-                for d in dirs_copy:
-                    if os.path.isfile(os.path.join(root, d, 'tc.txt')):
-                        # There won't be any requirements in that directory
-                        dirs.remove(d)
-                        has_testcase = True
-
-                        dest_fd.write("\n\n" + \
-                          rest.strong("Test Case %d: %s" % \
-                          (test_id, to_title(d))) + "\n\n")
-
-                        dest_fd.write(get_content(os.path.join(root, d,
-                                                               'tc.txt')))
-                        test_id += 1
-
-                        # Process the testcase
-                        refs = self.process_testcase(os.path.join(root, d))
-
-                        dest_fd.write('\n\n' + \
-                                      rest.emphasis("Test Datas") + '\n\n')
-                        dest_fd.write(rest.list([':ref:`%s`' % self.ref(d) \
-                                                 for d in refs[1]]))
-                        dest_fd.write('\n\n' + \
-                                      rest.emphasis("Test Procedures") + \
-                                      '\n\n')
-                        dest_fd.write(rest.list([':ref:`%s`' % self.ref(d) \
-                                                 for d in refs[0]]))
-                if has_testcase and len(dirs) > 0:
-                    for d in dirs:
-                        print "warning: unexpected subreq or imcomplete " + \
-                              "testcase in %s" % os.path.join(root, d)
-                if not has_testcase and len(dirs) == 0:
-                    print "warning: no testcase in leaf requirement %s" % root
-            else:
-                print "warning: invalid directory %s" % root
-
-            if len(dirs) > 0:
-                childs_list = [self.file2docfile(os.path.join(root, d)) \
-                               for d in dirs]
-                dest_fd.write(rest.toctree(childs_list))
-
-            dest_fd.close()
+            diro.gen_doc_contents()
 
     def generate_resources(self):
         fd = open(os.path.join(self.doc_dir, 'resources.rst'), 'w')
         fd.write(rest.section('Resources'))
-        fd.write(rest.toctree([self.file2docfile(d) \
-                 for d in self.resource_list]))
+        fd.write(rest.toctree(
+                [self.file2docfile(d) for d in self.resource_list]))
         fd.close()
 
         for r in self.resource_list:
@@ -231,17 +355,25 @@ class DocGenerator(object):
             fd.write('\n.. _%s:\n\n' % self.ref(r))
             fd.write(rest.section(os.path.basename(r)))
             fd.write(rest.code_block(get_content(r), 'ada'))
+            fd.close()
 
     def generate_all(self):
-        self.generate_doc(os.path.join(self.root_dir, 'stmt'))
-        self.generate_doc(os.path.join(self.root_dir, 'decision'))
-        self.generate_doc(os.path.join(self.root_dir, 'mcdc'))
+
+        self.dirtree = DirTree()
+
+        chapdirs = ['decision']
+
+        [self.generate_doc(os.path.join(self.root_dir, d))
+         for d in chapdirs]
+
         self.generate_resources()
+
         fd = open(os.path.join(self.doc_dir, 'index.rst'), 'w')
         fd.write(rest.chapter('Couverture'))
-        chapter_files = [self.file2docfile(os.path.join(self.root_dir, d)) \
-                         for d in ['stmt', 'mcdc']]
-        fd.write(rest.toctree(chapter_files + ['resources.rst'], 8))
+
+        chapfiles = [self.file2docfile(os.path.join(self.root_dir, d))
+                     for d in chapdirs]
+        fd.write(rest.toctree(chapfiles + ['resources.rst'], 8))
         fd.close()
 
 
