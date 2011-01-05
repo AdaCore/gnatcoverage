@@ -126,8 +126,11 @@ class Dir:
         self.ofd.write(subsec_header("Test Procedures"))
         self.ofd.write(rest.list(
                     [':ref:`%s`' % self.dgen.ref(d) for d in tco.drsources]))
+        self.ofd.write(rest.list(
+                    [':ref:`%s`' % self.dgen.ref(d) for d in tco.conspecs]))
 
-        self.dgen.register_resources (tco.fnsources | tco.drsources)
+        self.dgen.register_resources (
+            tco.fnsources | tco.drsources | tco.conspecs)
 
     def maybe_toc_section(self):
         """Generate the Table Of Contents section as needed"""
@@ -369,19 +372,24 @@ class TestCase:
     def find_sources(self):
         """Locate the functional and driver sources of testcase SELF"""
 
-        # Seek the test drivers first, and infer closure from there
+        # Seek the test drivers first, and infer closure from there. Then
+        # append consolidation specs to the set of drivers. We will typically
+        # end up on common functional units from drivers, so use sets to
+        # prevent dupicates.
 
         # Test drivers: search the local "src" subdir first, walk uptree
         # if no driver there.
 
-        local_files = set(glob.glob(os.path.join(self.dir, 'src', '*.ad[sb]')))
+        local_sources = set(
+            glob.glob(os.path.join(self.dir, 'src', '*.ad[sb]')))
 
         self.drsources = set(
-            [k for k in local_files if os.path.basename(k).startswith('test_')])
+            [k for k in local_sources
+             if os.path.basename(k).startswith('test_')])
 
         if len(self.drsources) == 0:
             data_names = set(
-                [os.path.basename(k).split('.')[0] for k in local_files])
+                [os.path.basename(k).split('.')[0] for k in local_sources])
             [self.drsources.update(
                     self.parent_globbing(self.dir, 'test_'+name+'*.ad[sb]'))
              for name in data_names]
@@ -397,6 +405,12 @@ class TestCase:
 
         warn_if (len(self.fnsources) == 0,
             'no functional source for testcase in %s' % self.dir)
+
+        # Consolidation specs. These are always local.
+
+        self.conspecs = set([])
+        self.conspecs |= set(
+            glob.glob(os.path.join(self.dir, 'src', 'cons_*.txt')))
 
 # ************************
 # ** Document Generator **
@@ -453,16 +467,16 @@ class DocGenerator(object):
 
     def generate_index(self, chapdirs):
         fd = open(os.path.join(self.doc_dir, 'index.rst'), 'w')
-        fd.write(rest.chapter('Couverture'))
+        fd.write(rest.chapter('Couverture Requirements and TestCases'))
 
         chapfiles = [self.file2docfile(os.path.join(self.root_dir, d))
                      for d in chapdirs]
-        fd.write(rest.toctree(chapfiles + ['resources.rst'], 2))
+        fd.write(rest.toctree(chapfiles, 2))
         fd.close()
 
     def generate_resources(self):
         fd = open(os.path.join(self.doc_dir, 'resources.rst'), 'w')
-        fd.write(rest.section('Resources'))
+        fd.write(rest.chapter('Resources'))
         fd.write(rest.toctree(
                 [self.file2docfile(d) for d in self.resource_list]))
         fd.close()
