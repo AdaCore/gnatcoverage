@@ -44,6 +44,9 @@ def subsec_header(str):
     """Return a Subsection header text to be used for subsection title STR"""
     return header(rest.emphasis(str), pre_skip=2, post_skip=2)
 
+def warn_if(cond, text):
+    if cond: print "warning: %s" % text
+
 # ***************************
 # ** Directory abstraction **
 # ***************************
@@ -78,6 +81,9 @@ class Dir:
 
     def has_tctxt(self):
         return "tc.txt" in self.files
+
+    def has_testpy(self):
+        return "test.py" in self.files
 
     # Generate various document sections needed for directory SELF
 
@@ -148,8 +154,90 @@ class Dir:
 
         self.ofd.close()
 
+    # Consistency checks ...
+
+    def check_local_consistency (self):
+        """Perform checks on the files present in this subdir"""
+
+        this_req  = self.has_reqtxt()
+        this_test = self.has_testpy()
+        this_tc   = self.has_tctxt()
+        this_chap = self.has_chaptxt()
+
+        warn_if (this_req and len(self.files) > 1,
+            "req.txt not alone in %s" % self.root)
+        warn_if (this_chap and len(self.files) > 1,
+            "chap.txt not alone in %s" % self.root)
+        warn_if (this_tc and not this_test,
+            "tc without test.py in %s" % self.root)
+        warn_if (not this_tc and this_test,
+            "test.py without tc.txt in %s" % self.root)
+
+        warn_if(self.files and
+                not this_tc and not this_chap and not this_req,
+            "unexpected files in %s (%s)" % (self.root, str(self.files)))
+        warn_if(len(self.files) > 2,
+            "more than 2 files in %s" % self.root)
+
+    def check_subdirs_consistency (self):
+        """Perform checks on the relationships between this subdir and
+        its children"""
+
+        this_req   = self.has_reqtxt()
+        this_tc    = self.has_tctxt()
+        this_group = not self.files
+
+        warn_if ((this_req or this_group) and not self.down,
+            "missing subdirs for artifact at %s" % self.root)
+
+        if not self.down: return
+
+        # Compute predicates over our set of children
+
+        some_group    = False
+        some_notgroup = False
+        some_req      = False
+        some_notreq   = False
+        some_tc       = False
+        some_nottc    = False
+
+        for subdiro in self.down:
+            sub_req   = subdiro.has_reqtxt()
+            sub_tc    = subdiro.has_tctxt()
+            sub_group = not subdiro.files
+
+            some_req   |= sub_req
+            some_tc    |= sub_tc
+            some_group |= sub_group
+
+            some_notreq   |= not sub_req
+            some_nottc    |= not sub_tc
+            some_notgroup |= not sub_group
+
+        all_req   = not some_notreq
+        all_tc    = not some_nottc
+        all_group = not some_notgroup
+
+        # Warn on structural inconsistencies
+
+        warn_if (some_req and some_notreq,
+            "req and !req subdirs down %s" % self.root)
+
+        warn_if (this_group and not all_tc,
+            "!all_tc down group at %s" % self.root)
+
+        warn_if (this_req and not (all_req or all_tc or all_group),
+            "inconsistent subdirs down req.txt at %s" % self.root)
+
+        warn_if (this_req and not all_req and not (all_tc or all_group),
+            "missing testcases for leaf req in %s" % self.root)
+
+    def check_consistency (self):
+        self.check_local_consistency()
+        self.check_subdirs_consistency()
+
 # *******************************
-# ** Directory map abstraction **
+# ** Directory Tree abstraction **
 # *******************************
 
 # Helper to manage dirname -> dirobject associations and establish
@@ -177,6 +265,22 @@ class DirTree:
         else:
             self.roots.append(diro)
 
+    def walk(self,process):
+        q = copy (self.roots)
+        while q:
+            node = q.pop()
+            process (node)
+            q.extend (node.down)
+
+    # Check consistency, past doc generation for the full tree so with
+    # the up and down links all setup
+
+    def check_dir_consistency(self,diro):
+        diro.check_consistency ()
+
+    def check_consistency(self):
+        self.walk (self.check_dir_consistency)
+
 # **************************
 # ** TestCase abstraction **
 # **************************
@@ -193,7 +297,7 @@ class TestCase:
         self.drsources = None
         self.find_sources()
 
-    def parent_globbing(self, dir, pattern, include_start_dir=False):
+    def parent_globbing(self, dir, pattern, include_start_dir=True):
         """Look for src/[pattern] files in dir and its parents directory
         up to document root directory"""
         head = os.path.relpath(dir, self.dgen.root_dir)
@@ -228,18 +332,18 @@ class TestCase:
 
         file_list = set([])
         for item in result:
+
             spec = self.parent_globbing(dir, item + '.ads', True)
-            if len(spec) > 1:
-                print 'warning: find several spec for %s unit' % item
+            warn_if (len(spec) > 1, 'multiple specs for unit "%s"' % item)
             file_list |= spec
+
             body = self.parent_globbing(dir, item + '.adb', True)
-            if len(body) > 1:
-                print 'warning: find several body for %s unit' % item
-            elif len(body) == 1:
-                file_list |= body
-            if len(body | spec) == 0:
-                print 'warning: no body or spec found for %s unit (%s)' % \
-                      (item, sourcefile)
+            warn_if (len(body) > 1, 'multiple bodies for unit "%s"' % item)
+            file_list |= body
+
+            warn_if (len(body | spec) == 0,
+                'no body or spec unit "%s" (%s)' % (item, sourcefile))
+
         return file_list
 
     def find_closure(self, dir, sourcefile):
@@ -282,8 +386,8 @@ class TestCase:
                     self.parent_globbing(self.dir, 'test_'+name+'*.ad[sb]'))
              for name in data_names]
 
-        if len(self.drsources) == 0:
-            print 'warning: no driver source for testcase in %s' % self.dir
+        warn_if (len(self.drsources) == 0,
+            'no driver source for testcase in %s' % self.dir)
 
         # Driver Closure:
 
@@ -291,8 +395,8 @@ class TestCase:
         [self.fnsources.update(self.find_closure(self.dir, driver))
          for driver in self.drsources]
 
-        if len(self.fnsources) == 0:
-            print 'warning: no functional source for testcase in %s' % self.dir
+        warn_if (len(self.fnsources) == 0,
+            'no functional source for testcase in %s' % self.dir)
 
 # ************************
 # ** Document Generator **
@@ -329,8 +433,8 @@ class DocGenerator(object):
         return result.replace('/', '_').replace('\\', '_').replace('.', '_')
 
 
-    def generate_doc(self, root_dir):
-        """Generate documentation for root_dir and all its subdirectories"""
+    def generate_chapter(self, root_dir):
+        """Generate documentation for chapter at ROOT_DIR"""
 
         for root, dirs, files in os.walk(os.path.abspath(root_dir)):
 
@@ -342,6 +446,19 @@ class DocGenerator(object):
             self.dirtree.map (dirname=root, diro=diro)
 
             diro.gen_doc_contents()
+
+    def generate_doc(self, chapdirs):
+        [self.generate_chapter(os.path.join(self.root_dir, d))
+         for d in chapdirs]
+
+    def generate_index(self, chapdirs):
+        fd = open(os.path.join(self.doc_dir, 'index.rst'), 'w')
+        fd.write(rest.chapter('Couverture'))
+
+        chapfiles = [self.file2docfile(os.path.join(self.root_dir, d))
+                     for d in chapdirs]
+        fd.write(rest.toctree(chapfiles + ['resources.rst'], 2))
+        fd.close()
 
     def generate_resources(self):
         fd = open(os.path.join(self.doc_dir, 'resources.rst'), 'w')
@@ -362,22 +479,12 @@ class DocGenerator(object):
         self.dirtree = DirTree()
 
         chapdirs = ['decision']
-
-        [self.generate_doc(os.path.join(self.root_dir, d))
-         for d in chapdirs]
-
+        self.generate_doc(chapdirs)
+        self.generate_index(chapdirs)
         self.generate_resources()
-
-        fd = open(os.path.join(self.doc_dir, 'index.rst'), 'w')
-        fd.write(rest.chapter('Couverture'))
-
-        chapfiles = [self.file2docfile(os.path.join(self.root_dir, d))
-                     for d in chapdirs]
-        fd.write(rest.toctree(chapfiles + ['resources.rst'], 8))
-        fd.close()
-
 
 # The main of the script
 if __name__ == "__main__":
     mygen = DocGenerator(ROOT_DIR, DOC_DIR)
     mygen.generate_all()
+    mygen.dirtree.check_consistency()
