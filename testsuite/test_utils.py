@@ -771,6 +771,7 @@ class MapCheck:
 # unable to assess precise stmt coverage (=report)
 # decision outcome True not covered (=report)
 # decision outcome False not covered (=report)
+# decision never evaluated (=report)
 # one decision outcome not covered (=report)
 # independent effect of condition not demonstrated (=report)
 # exempted block, 0 deviations (=report)
@@ -2054,7 +2055,7 @@ class SCOV_helper:
 
         gprbuild(
             gprfor ([main+".adb"], "gen",
-                    ["../"*n + "src" for n in range (1, 6)]
+                    ["../"*n + "src" for n in range (1, 7)]
                     + ["../"*n for n in range (1, 7)]),
             cargs = ["-g", "-gnateS", "-fpreserve-control-flow", "-gnatd.X",
                      "-gnata", "-gnat05"] + to_list(extracargs))
