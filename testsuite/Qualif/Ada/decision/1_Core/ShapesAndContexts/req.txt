@@ -1,0 +1,14 @@
+Decision coverage assessments shall recognize arbitrary expression shapes
+placed in arbitrary contexts.
+
+**Testing Strategy**
+
+We exercise
+
+* A range of boolean expressions over boolean variables, each in a
+  representative set of regular program contexts where such expressions might
+  appear [AndThen, OrElse, Flip, Value]
+
+* Simple expressions in particular contexts [NoEval, Preconditions]
+
+

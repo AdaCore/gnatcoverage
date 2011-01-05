@@ -1,7 +1,7 @@
 Exemption regions operate over decision coverage violations as they do for
 statement coverage violations.
 
-** Testing Strategy **
+**Testing Strategy**
 
 Check proper behavior on a few cases involving decisions in a restricted set
 of possible contexts, to validate that the exemption facility works for
