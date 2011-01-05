@@ -1,12 +1,11 @@
 
 This section holds the tool operational requirements and associated testcases
-to validate the tool behavior with respect to Decision Coverage capabilities.
-This is split in several parts:
+related to Decision Coverage assessments.  This is split in several parts:
 
-**LoneConstructs**
+**Core**
 
-Holds requirements and testcases to define and validate the expected
-processing of decisions within isolated Ada language constructs.
+Holds requirements and testcases to define and validate the core expectations
+for Decision Coverage assessments.
 
 **Sanity**
 
