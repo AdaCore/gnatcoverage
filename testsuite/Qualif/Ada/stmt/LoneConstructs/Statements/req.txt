@@ -21,17 +21,16 @@ chosen as a part of the statement execution. If this expression is not
 evaluated as a part of the statement execution, the corresponding part of the
 path shall be reported as noncovered.
 
-Testing strategy:
+**Testing strategy**
 
 This tool operation requirement is split into subordinate requirements
 according to the sections of Chapter 5 (Statements) of ARM:
 
-   Null_Statements       (5.1 Simple and Compound Statements - Sequences of
-                              Statements)
-   Assignment_Statements (5.2 Assignment Statements)
-   If_Statements         (5.3 If Statements)
-   Case_Statements       (5.4 Case Statements)
-   Loop_Statements       (5.5 Loop Statements)
-   Block_Statements      (5.6 Block Statements)
-   Exit_Statements       (5.7 Exit Statements)
-   Goto_Statements       (5.8 Goto Statements
+* Null_Statements       (5.1 Simple and Compound Statements, Sequences of such)
+* Assignment_Statements (5.2 Assignment Statements)
+* If_Statements         (5.3 If Statements)
+* Case_Statements       (5.4 Case Statements)
+* Loop_Statements       (5.5 Loop Statements)
+* Block_Statements      (5.6 Block Statements)
+* Exit_Statements       (5.7 Exit Statements)
+* Goto_Statements       (5.8 Goto Statements)

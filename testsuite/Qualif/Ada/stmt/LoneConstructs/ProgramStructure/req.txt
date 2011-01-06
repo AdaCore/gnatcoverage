@@ -5,7 +5,7 @@ coverage analysis is subunits.
 Coverage shall be assessed correctly for the code in subunits. The nesting
 level of subprograms and subunits shall not influence their coverage.
 
-Testing strategy notes:
-----------------------
+**Testing strategy**
+
 Both subprogram and package subunits shall be checked.
 More then one level of subunits shall be checked.
