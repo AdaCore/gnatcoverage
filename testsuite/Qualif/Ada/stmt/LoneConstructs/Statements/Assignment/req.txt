@@ -1,2 +1,3 @@
-If an assignment statement is not executed then it shall be reported as uncovered.
+If an assignment statement is not executed then it shall be reported as
+uncovered.
 

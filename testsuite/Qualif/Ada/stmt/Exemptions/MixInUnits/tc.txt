@@ -1,0 +1,3 @@
+Exercize code with exemption regions covering a mix of statements and
+declarations in subprogram bodies, package specification and package
+elaboration code.
