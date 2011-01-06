@@ -1,0 +1,11 @@
+Check various code fragments that contain null statements such as:
+
+* case statement alternative;
+
+* null procedure;
+
+* last statement in a statement sequence that has a label attached to it and
+  is used in control transfer to skip the preceding sequence of statements.
+
+Check that only those null statements that are not executed are reported as
+uncovered.
