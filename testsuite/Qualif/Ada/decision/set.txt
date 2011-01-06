@@ -1,0 +1,27 @@
+
+This section holds the tool operational requirements and associated testcases
+related to Decision Coverage assessments.  This is split in several parts:
+
+**Core**
+
+Holds material to define and validate the core expectations
+for Decision Coverage assessments.
+
+**Sanity**
+
+Holds material to demonstrate that the toolset correctly handles potentially
+confusing constructs that would fool naive analyzers.
+
+This includes cases such as multiple decisions sharing a line or a single
+decision spanning multiple lines.
+
+**Consolidation**
+
+Holds material to define and validate the expected processing of multiple
+execution traces combined together.
+
+**Exemptions**
+
+Holds material to define and validate the expected processing of exemption
+regions.
+
