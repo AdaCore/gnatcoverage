@@ -1,0 +1,2 @@
+Check proper coverage assessment of elaboration statements in both local and
+library level packages.
