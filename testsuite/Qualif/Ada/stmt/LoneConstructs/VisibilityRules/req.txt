@@ -4,7 +4,7 @@ feature from Chapter 8 that may directly affect computing coverage information
 if renaming declaration. Coverage shall be assessed correctly for renaming
 declarations and for other constructs they can affect.
 
-Testing strategy:
+**Testing strategy**
 
 Two kinds of renaming declarations are of interest for coverage analysis -
 object renamings and subprogram renamings. They shall be tested in separate

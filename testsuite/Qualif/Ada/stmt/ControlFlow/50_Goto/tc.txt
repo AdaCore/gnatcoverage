@@ -1,3 +1,3 @@
-Exercize in various ways a function where flow control is achieved with goto
+Exercise in various ways a function where flow control is achieved with goto
 statements to interrupt sequences. Verify that all and only those statements
 expected not to be covered are reported as such.

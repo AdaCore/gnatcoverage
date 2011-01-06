@@ -13,7 +13,7 @@ Exemption regions may be declared to exempt various levels of syntactic
 constructs such as statements or subprograms, and groups of such in all the
 contexts where they may appear.
 
-** Testing strategy: **
+**Testing strategy**
 
 For every single stated expectation, the testsuite driver checks if it
 appears in the report section expected for it's kind (exempted region or
@@ -22,14 +22,16 @@ non-exempted violation).
 Check that expected results are produced for exemption regions declared
 to encompass 
 
- * the whole of a procedure body,
+* the whole of a procedure body [WholeBody],
 
- * groups of statements within
-    the root sequence of a subprogram body,
-    a local exception handler,
-    a package body elaboration code, generic case included,
+* groups of statements within
 
- * a group of entire subprograms,
+   * the root sequence of a subprogram body [StmtsInBody],
+   * a local exception handler [StmtsInHandler],
+   * a package body elaboration code, generic case included [StmtsInElab],
 
- * a mix of statements and declarations in a package spec + body
+* a group of entire subprograms [SubprogsInUnit],
+
+* a mix of statements and declarations in a package spec + body [MixInUnits,
+  StmtsInSubprog]
 

@@ -1,3 +1,3 @@
-Exercize two overloaded subprograms called Flip, each declared in its own
+Exercise two overloaded subprograms called Flip, each declared in its own
 subunit. Verify that calls to one of these subprograms does not influence
 coverage results for calls to the other.

@@ -25,7 +25,7 @@ If an IF statement is executed several times, and different paths of this
 statement are chosen by different executions, then all the executed paths and
 components thereof shall be reported as covered (Test Case Multiple_Paths)
 
-** Testing strategy **
+**Testing strategy**
 
 Different syntax forms of IF statement should be checked:
 

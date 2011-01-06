@@ -7,7 +7,7 @@ by itself.
 
 **Testing strategy**
 
-More then one level of inheritance shall be checked.
+More than one level of inheritance shall be checked.
 
 Dispatching calls shall be checked.
 

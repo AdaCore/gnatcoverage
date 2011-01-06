@@ -8,4 +8,4 @@ level of subprograms and subunits shall not influence their coverage.
 **Testing strategy**
 
 Both subprogram and package subunits shall be checked.
-More then one level of subunits shall be checked.
+More than one level of subunits shall be checked.

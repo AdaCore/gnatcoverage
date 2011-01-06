@@ -1,4 +1,4 @@
-Exercize one subprogram which features a line with a lone statement and a
+Exercise one subprogram which features a line with a lone statement and a
 line with multiple statements, some conditioned.
 
 

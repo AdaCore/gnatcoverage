@@ -14,15 +14,14 @@ If a loop statement is executed and at least one complete loop iteration
 happens as a part of the execution, the loop statement and none of its
 component statements shall be reported as uncovered (Test case Full_Iteration)
 
-Testing strategy:
+**Testing strategy**
 
 Different syntax forms of LOOP statement shall be checked:
-\begin{itemize}
-\item FOR loop;
-\item reverse FOR loop;
-\item WHILE loop;
-\item unconditional loop.
-\end{itemize}
+
+* FOR loop;
+* reverse FOR loop;
+* WHILE loop;
+* unconditional loop.
 
 The tests should not concentrate on different ways of transferring control
 out of the LOOP statements (such as EXIT statements and GOTO statements),
