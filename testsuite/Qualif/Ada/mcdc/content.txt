@@ -1,8 +1,0 @@
-Qualifying Couverture for its use in a DO-178 level A context requires to address:
- * Statement Coverage; 
- * Decision Coverage;
- * MC/DC
-
-!see .FrontPage.ToolOperationalRequirements.SourceCoverage.CoverageMetrics.StatementCoverage
-!see .FrontPage.ToolOperationalRequirements.SourceCoverage.CoverageMetrics.DecisionCoverage
-!see .FrontPage.ToolOperationalRequirements.SourceCoverage.CoverageMetrics.McDc
