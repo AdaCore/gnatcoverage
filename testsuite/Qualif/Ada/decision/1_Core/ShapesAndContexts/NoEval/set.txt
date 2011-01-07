@@ -1,0 +1,2 @@
+This section groups testcases exercising simple decisions never evaluated
+eventhough their enclosing statement is covered.
