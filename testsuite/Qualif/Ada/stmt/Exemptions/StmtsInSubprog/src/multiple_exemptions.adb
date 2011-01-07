@@ -3,9 +3,9 @@
 
 with MX; use MX;
 
---  I, J, and K are functional parameters. X1, X2, X3 tell if we went
---  into the exempted regions 1, 2, and 3 respectively. Xh tells if we
---  went into the exempted handler.
+--  I, J, and K are functional parameters. Xf.(X1, X2, X3) tell if we went
+--  into the exempted regions 1, 2, and 3 respectively. Xf.Xh tells if we went
+--  into the exempted handler.
 
 procedure Multiple_Exemptions
   (I, J, K : in out Integer; Xf : access Xflags)
@@ -17,6 +17,9 @@ begin
    Xf.X2 := False;  -- # stmt
    Xf.X3 := False;  -- # stmt
    Xf.Xh := False;  -- # stmt
+
+   --  A few exemption regions within conditionals in a sequence. Getting
+   --  into the first one raises an exception, caught by a local handler.
 
    if I = 0 and then J = 0 and then K = 0 then        -- # 1_if
       Xf.X1 := True;                                  -- # 1_flag
@@ -53,6 +56,9 @@ begin
 exception
    when Constraint_Error =>
       Xf.Xh := True;                                        -- # h_flag
+
+      --  Here, an exemption region within an exception handler
+
       pragma Annotate                                       -- # h_exem
         (Xcov, Exempt_On, "exemption section in handler");  -- # h_exem
       Tmp := I + J + K;                                     -- # h_exem

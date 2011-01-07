@@ -14,4 +14,7 @@ package MX is
    --  Call into the functional code, arranging to get into the exempted
    --  region 1, 2 or 3 only
 
+   --  This unit is a helper to trigger some pieces of the functional code by
+   --  calling into it with well chosen set of arguments. It is not subject to
+   --  coverage expectations.
 end;

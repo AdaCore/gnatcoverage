@@ -13,6 +13,8 @@ package Exemptions is
    function Another_Factorial (X : Natural) return Positive;
    --  No exemption section in the body
 
+   --  Mix of exempted and non-exempted declarations
+
    X : Integer := Identity (1);                           -- # decl
 
    pragma Annotate                                         -- # xdecl

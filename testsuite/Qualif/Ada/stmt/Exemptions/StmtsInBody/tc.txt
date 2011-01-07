@@ -1,3 +1,3 @@
-Exercise code featuring a couple of exemption regions for short sequences of
-statements within a subprogram body, all protected by a local exception
-handler.
+Exercise a package that features non-exempted code and a couple of exemption
+regions for short sequences of statements within a subprogram body, all
+protected by a local exception handler.

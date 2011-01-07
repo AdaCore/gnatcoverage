@@ -21,6 +21,9 @@ package body Stacks is
       end case;
    exception
       when Constraint_Error =>
+
+         --  Exemption region in local handler here
+
          pragma Annotate                           -- # op_handler
            (Xcov, Exempt_On, "exception handler"); -- # op_handler
          S.Ecount := S.Ecount + 1;                 -- # op_handler

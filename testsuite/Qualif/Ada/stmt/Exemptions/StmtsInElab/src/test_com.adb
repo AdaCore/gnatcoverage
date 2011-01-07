@@ -1,7 +1,8 @@
 with Support, Com; use Support, Com;
 
---  Functional package is withed - elab body is covered with auto_init
---  off, so call to init gets exempted
+--  The functional package is withed - it's elaboration body is covered with
+--  auto_init off, so the init body is not executed and the call to init gets
+--  exempted.
 
 procedure Test_Com is
 begin

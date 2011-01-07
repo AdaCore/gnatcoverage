@@ -1,6 +1,9 @@
 package body Exemptions is
 
    procedure Swap (I, J : in out Integer) is
+
+      --  Exemption for a local declaration
+
       pragma Annotate                                   -- # xswap
         (Xcov, Exempt_On, "exemption on declarations"); -- # xswap
       Tmp : Integer := J;                               -- # xswap
@@ -15,6 +18,9 @@ package body Exemptions is
       if X = 1 then                                        -- # factorial
          return 1;                                         -- # 1_factorial
       elsif X >= Positive'Last / 1000 then                 -- # elsif_factorial
+
+         --  Exemption for a conditioned set of statements
+
          pragma Annotate                                   -- # xfactorial
            (Xcov, Exempt_On,                               -- # xfactorial
               "exemption on statements in function");      -- # xfactorial
@@ -24,6 +30,8 @@ package body Exemptions is
          return X * Factorial (X - 1);                     -- # rec_factorial
       end if;
    end Factorial;
+
+   --  No exemption in the couple of subprograms below
 
    procedure Another_Swap (I, J : in out Integer) is
       Tmp : Integer := J;                                  -- # another_swap
@@ -51,6 +59,10 @@ package body Exemptions is
 
 
 begin
+
+   --  Mix of exempted and non-exempted statements in the package
+   --  elaboration sequence
+
    pragma Annotate                            -- # xelab_1
      (Xcov, Exempt_On,                        -- # xelab_1
         "exemption on elaboration code - 1"); -- # xelab_1

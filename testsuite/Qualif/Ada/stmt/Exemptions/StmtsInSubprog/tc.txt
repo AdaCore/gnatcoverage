@@ -1,3 +1,4 @@
-Exercise a subprogram featuring several disjoint exemption regions, in 
-both the toplevel sequence of statements and a local exception handler.
+Exercise a subprogram featuring non-exempted code and several disjoint
+exemption regions, in both the toplevel sequence of statements and a local
+exception handler.
 

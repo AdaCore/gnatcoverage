@@ -1,5 +1,7 @@
 package body Stacks is
 
+   -- Single exemption region for a couple of entire subprogram definitions
+
    pragma Annotate                                           -- # xregion
      (Xcov, Exempt_On, "we only care about push and pop");   -- # xregion
                                                              -- # xregion
@@ -35,6 +37,8 @@ package body Stacks is
    end;                                                      -- # xregion
                                                              -- # xregion
    pragma Annotate  (Xcov, Exempt_Off);                      -- # xregion
+
+   --  Then a couple of subprograms without any exemption
 
    procedure Push (S : in out Stack; Value : Integer) is
       V : Integer := Value;       -- # push_decl

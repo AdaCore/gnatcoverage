@@ -1,2 +1,5 @@
-Exercise code featuring an exemption region for a conditioned sequence of
-statements within a package body elaboration.
+Exercise a package which exposes a non-exempted subprogram and features an
+exemption region for a conditioned set of statements within the package
+elaboration sequence.
+
+Check both a regular and a generic package.
