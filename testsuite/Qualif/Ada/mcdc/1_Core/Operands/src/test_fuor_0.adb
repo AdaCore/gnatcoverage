@@ -1,11 +1,11 @@
-with Helper;
+with FUOR_Helper;
 
-procedure Test_Blocks_0 is
+procedure Test_FUOR_0 is
 begin
    null;
 end;
 
---# blocks.adb
+--# fuor.adb
 --  /evalA/   l- s-
 --  /evalB/   l- 0
 

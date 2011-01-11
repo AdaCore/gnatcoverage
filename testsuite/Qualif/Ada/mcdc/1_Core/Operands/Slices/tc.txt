@@ -1,0 +1,4 @@
+Exercise a simple decision over two operands featuring array slices
+
+
+
