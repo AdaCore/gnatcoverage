@@ -1,0 +1,3 @@
+This sections groups a set of testcases for decisions featuring a mix of
+operand kinds.
+
