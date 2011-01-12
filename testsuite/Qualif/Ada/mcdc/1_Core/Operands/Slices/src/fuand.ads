@@ -1,11 +1,8 @@
---  Provider of a functional AND decision featuring array slices in
+--  Provider of a functional and-then decision featuring array slices in
 --  conditions
 
+with Blocks; use Blocks;
+
 package FUAND is
-
-   subtype Block  is String (1 .. 10);
-   subtype Prefix is String (1 .. 3);
-   subtype Suffix is String (1 .. 3);
-
-   function Match (Op : Block; P : Prefix; S : Suffix) return Boolean;
+   function Match_P_And_S (Op : Block; P, S : Piece) return Boolean;
 end;
