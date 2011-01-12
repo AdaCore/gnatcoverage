@@ -1,0 +1,2 @@
+Exercise a decision with conditions coupled in a way that allow obvious
+simplification of the expression.
