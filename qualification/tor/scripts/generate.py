@@ -70,14 +70,14 @@ class Dir:
         # assumed to be setup before other methods are called (so we know if
         # this is a root section)
 
-        self.up = None
-        self.down = []
+        self.pdo = None
+        self.subdos = []
 
     def has_reqtxt(self):
         return "req.txt" in self.files
 
-    def has_chaptxt(self):
-        return "chap.txt" in self.files
+    def has_settxt(self):
+        return "set.txt" in self.files
 
     def has_tctxt(self):
         return "tc.txt" in self.files
@@ -87,20 +87,12 @@ class Dir:
 
     # Generate various document sections needed for directory SELF
 
-    def maybe_chap_section(self):
-        """Generate the Chapter description section as needed"""
+    def maybe_set_section(self):
+        """Generate the Set description section as needed"""
 
-        if not self.has_chaptxt(): return
+        if not self.has_settxt(): return
 
-        self.ofd.write(get_content(os.path.join(self.root, 'chap.txt')))
-
-    def maybe_req_section(self):
-        """Generate the Requirement section as needed"""
-
-        if not self.has_reqtxt(): return
-
-        self.ofd.write(sec_header("Requirement"));
-        self.ofd.write(get_content(os.path.join(self.root, 'req.txt')))
+        self.ofd.write(get_content(os.path.join(self.root, 'set.txt')))
 
     def maybe_req_section(self):
         """Generate the Requirement section as needed"""
@@ -113,11 +105,12 @@ class Dir:
     def maybe_tc_section(self):
         """Generate the TestCase section as needed"""
 
-        if not self.has_tctxt(): return
+        if not self.has_tctxt() and not self.has_testpy(): return
 
         tco = TestCase (dir=self.root, dgen=self.dgen)
 
-        self.ofd.write(get_content(os.path.join(self.root, 'tc.txt')))
+        if self.has_tctxt():
+            self.ofd.write(get_content(os.path.join(self.root, 'tc.txt')))
 
         self.ofd.write(subsec_header("Test Data"))
         self.ofd.write(rest.list(
@@ -141,7 +134,7 @@ class Dir:
         if tocentries:
             self.ofd.write(sec_header("TOC"));
             self.ofd.write(
-                rest.toctree(tocentries, depth = 1 if not self.up else 2))
+                rest.toctree(tocentries, depth = 1 if not self.pdo else 2))
 
     def gen_doc_contents (self):
         dest_filename = self.dgen.file2docfile(self.root)
@@ -150,94 +143,116 @@ class Dir:
         self.ofd.write(
             rest.section(to_title(os.path.basename(self.root))))
 
-        self.maybe_chap_section()
+        self.maybe_set_section()
         self.maybe_req_section()
         self.maybe_tc_section()
         self.maybe_toc_section()
 
         self.ofd.close()
 
-    # Consistency checks ...
+    def walk_botmup(self, process):
+        [subdo.walk_botmup(process) for subdo in self.subdos]
+        process(self)
+
+    def walk_topdown(self, process):
+        process(self)
+        [subdo.walk_topdown(process) for subdo in self.subdos]
+
+    # In-tree attributes and consistency checks, once the full set of
+    # of links has been established, for a bottom-up (depth first) walk
+
+    def botmup_compute_attributes (self):
+
+        # Properties from presence of local files, better cached to prevent
+        # repeated real file presence checks
+
+        self.req  = self.has_reqtxt()
+        self.test = self.has_testpy()
+        self.tc   = self.has_tctxt()
+        self.set  = self.has_settxt()
+
+        # Compute predicates over our set of children. We expect the children
+        # attributes to be available here.
+
+        some_tcorset    = False
+        some_nottcorset = False
+
+        some_reqorset    = False
+        some_notreqorset = False
+
+        some_req     = False
+        some_notreq  = False
+        some_tc      = False
+        some_nottc   = False
+
+        for subdo in self.subdos:
+            some_req    |= subdo.req
+            some_tc     |= subdo.tc
+
+            some_notreq    |= not subdo.req
+            some_nottc     |= not subdo.tc
+
+            some_tcorset  |= subdo.tc | subdo.tcset
+            some_reqorset |= subdo.req | subdo.reqset
+
+            some_nottcorset  |= not (subdo.tc | subdo.tcset)
+            some_notreqorset |= not (subdo.req | subdo.reqset)
+
+        all_tc = not some_nottc
+        all_req = not some_notreq
+
+        self.all_reqorset = not some_notreqorset
+        self.all_tcorset  = not some_nottcorset
+
+        self.tcset = self.set and all_tc
+        self.reqset = self.set and all_req
 
     def check_local_consistency (self):
         """Perform checks on the files present in this subdir"""
 
-        this_req  = self.has_reqtxt()
-        this_test = self.has_testpy()
-        this_tc   = self.has_tctxt()
-        this_chap = self.has_chaptxt()
-
-        warn_if (this_req and len(self.files) > 1,
+        warn_if (not (self.req or self.tc or self.set),
+            "missing description text at %s" % self.root)
+        warn_if (self.req and len(self.files) > 1,
             "req.txt not alone in %s" % self.root)
-        warn_if (this_chap and len(self.files) > 1,
-            "chap.txt not alone in %s" % self.root)
-        warn_if (this_tc and not this_test,
-            "tc without test.py in %s" % self.root)
-        warn_if (not this_tc and this_test,
+        warn_if (self.set and len(self.files) > 1,
+            "set.txt not alone in %s" % self.root)
+        warn_if (self.tc and not self.test,
+            "tc.txt without test.py in %s" % self.root)
+        warn_if (not self.tc and self.test,
             "test.py without tc.txt in %s" % self.root)
 
         warn_if(self.files and
-                not this_tc and not this_chap and not this_req,
+                not self.tc and not self.set and not self.req,
             "unexpected files in %s (%s)" % (self.root, str(self.files)))
-        warn_if(len(self.files) > 2,
-            "more than 2 files in %s" % self.root)
 
-    def check_subdirs_consistency (self):
+    def check_downtree_consistency (self):
         """Perform checks on the relationships between this subdir and
         its children"""
 
-        this_req   = self.has_reqtxt()
-        this_tc    = self.has_tctxt()
-        this_group = not self.files
-
-        warn_if ((this_req or this_group) and not self.down,
+        warn_if ((self.req or self.set) and not self.subdos,
             "missing subdirs for artifact at %s" % self.root)
 
-        if not self.down: return
-
-        # Compute predicates over our set of children
-
-        some_group    = False
-        some_notgroup = False
-        some_req      = False
-        some_notreq   = False
-        some_tc       = False
-        some_nottc    = False
-
-        for subdiro in self.down:
-            sub_req   = subdiro.has_reqtxt()
-            sub_tc    = subdiro.has_tctxt()
-            sub_group = not subdiro.files
-
-            some_req   |= sub_req
-            some_tc    |= sub_tc
-            some_group |= sub_group
-
-            some_notreq   |= not sub_req
-            some_nottc    |= not sub_tc
-            some_notgroup |= not sub_group
-
-        all_req   = not some_notreq
-        all_tc    = not some_nottc
-        all_group = not some_notgroup
+        if not self.subdos: return
 
         # Warn on structural inconsistencies
 
-        warn_if (some_req and some_notreq,
-            "req and !req subdirs down %s" % self.root)
+        warn_if (self.set and not (self.all_tcorset or self.all_reqorset),
+            "inconsistent subdirs for set.txt at %s" % self.root)
 
-        warn_if (this_group and not all_tc,
-            "!all_tc down group at %s" % self.root)
-
-        warn_if (this_req and not (all_req or all_tc or all_group),
+        warn_if (self.req and not (self.all_reqorset or self.all_tcorset),
             "inconsistent subdirs down req.txt at %s" % self.root)
 
-        warn_if (this_req and not all_req and not (all_tc or all_group),
+        warn_if (self.req and not self.all_reqorset and not self.all_tcorset,
             "missing testcases for leaf req in %s" % self.root)
 
-    def check_consistency (self):
+    def check_uptree_consistency (self):
+        pass;
+
+    def botmup_check_consistency (self):
+        self.botmup_compute_attributes ()
         self.check_local_consistency()
-        self.check_subdirs_consistency()
+        self.check_downtree_consistency()
+        self.check_uptree_consistency()
 
 # *******************************
 # ** Directory Tree abstraction **
@@ -249,40 +264,44 @@ class Dir:
 
 class DirTree:
     def __init__(self):
-        self.dir = {}
-        self.roots = []
+        self.dir = {}   # dir-name -> dir-object dictionary
+        self.roots = [] # set of orphan dir objects
+
+    # Hook for the DocGenerator abstraction, which it calls while walking the
+    # TOR/TC file tree top down, so parents are mapped first
 
     def map(self, dirname, diro):
 
+        # map this dir first ...
         self.dir[dirname] = diro
+
+        # and setup links with/in the parent directory, the tree is walked
+        # top down, so we're supposed to have seen it already when there is
+        # one
 
         parentname = os.path.dirname(dirname)
 
-        # We assume the tree is walked top down, so normally always
-        # get parents before children ... except for roots.
-
-        if parentname in self.dir:
-            parento = self.dir[parentname]
-            diro.up = parento
-            parento.down.append(diro)
-        else:
+        if parentname not in self.dir:
             self.roots.append(diro)
+        else:
+            parento = self.dir[parentname]
+            diro.pdo = parento
+            parento.subdos.append(diro)
 
-    def walk(self,process):
-        q = copy (self.roots)
-        while q:
-            node = q.pop()
-            process (node)
-            q.extend (node.down)
+    # Once we're past the first doc generation pass, all the parent
+    # children links are set
+
+    def walk_topdown(self,process):
+        [diro.walk_topdown(process) for diro in self.roots]
+
+    def walk_botmup(self,process):
+        [diro.walk_botmup(process) for diro in self.roots]
 
     # Check consistency, past doc generation for the full tree so with
     # the up and down links all setup
 
-    def check_dir_consistency(self,diro):
-        diro.check_consistency ()
-
     def check_consistency(self):
-        self.walk (self.check_dir_consistency)
+        self.walk_botmup (Dir.botmup_check_consistency)
 
 # **************************
 # ** TestCase abstraction **
@@ -492,7 +511,7 @@ class DocGenerator(object):
 
         self.dirtree = DirTree()
 
-        chapdirs = ['decision']
+        chapdirs = ['decision', 'mcdc']
         self.generate_doc(chapdirs)
         self.generate_index(chapdirs)
         self.generate_resources()
