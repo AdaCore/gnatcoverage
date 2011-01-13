@@ -1,14 +1,27 @@
-Decision coverage assessments shall recognize arbitrary expression shapes
-placed in arbitrary contexts.
+Decision coverage assessments shall be able to handle arbitrarily complex
+decisions, in any context where they are allowed by the source language.
+
+The tool shall recognize as decisions
+
+* Any expression that influences the behavior of language IF, WHILE, FOR
+  or EXIT-WHEN control constructs, as well as the implicit tests generated
+  for Assert or Pre/Postcondition pragmas;
+
+* Any expression that features at least two conditions combined with and-then
+  or or-else logical operators, not necessarily used within one of the
+  aforementioned control constructs (for example on the right-hand side of an
+  assignment).
+
+The [sub]types involved shall not necessarily be the standard Ada Boolean. The
+tool shall recognize expressions featuring Boolean subtypes or derived types.
 
 **Testing Strategy**
 
 We exercise
 
 * A range of boolean expressions over boolean variables, each in a
-  representative set of regular program contexts where such expressions might
-  appear [AndThen, OrElse, Flip, Value]
+  representative set of common program contexts where such expressions might
+  appear, and involving one condition [Flip, Value] or more [And, Or]
 
-* Simple expressions in particular contexts [NoEval, Preconditions]
-
+* Basic expressions in particular contexts [NoEval, Preconditions]
 
