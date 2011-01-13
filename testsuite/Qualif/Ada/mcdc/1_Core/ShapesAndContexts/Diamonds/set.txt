@@ -1,0 +1,3 @@
+This section groups testcases that exercise decisions with diamonds in
+the control-flow binary decision diagram, representative of situations
+where object branch coverage does not imply mcdc.
