@@ -1,0 +1,13 @@
+package body PandPor is
+
+   type Expr is record
+      Value : Boolean;
+   end record;
+
+   function F (A, B, C : Boolean) return Boolean is
+      E : Expr := (Value => ((A and then B) or else C)); -- # evalStmt
+   begin
+      return E.Value;  -- # returnValue
+   end;
+
+end;
