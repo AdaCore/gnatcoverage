@@ -1,2 +1,2 @@
-Exercise "A and then Orelse(B, C)" used as part of a record component aggregate
-initializer.
+Exercise "A and then Orelse(B, C)"
+used as part of a record component aggregate initializer.

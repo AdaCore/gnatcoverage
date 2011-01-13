@@ -1,1 +1,2 @@
-Exercise "A or else B" used as an exit-when expression.
+Exercise "A or else B"
+used as an exit-when expression.

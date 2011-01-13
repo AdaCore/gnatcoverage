@@ -1,1 +1,2 @@
-Exercise "A and then Orelse(B, C)" used as an exit-when expression.
+Exercise "A and then Orelse(B, C)"
+used as an exit-when expression.

@@ -1,1 +1,2 @@
-Exercise "A and then Orelse(B, C)" used as a For statement control.
+Exercise "A and then Orelse(B, C)"
+used as a For statement control.

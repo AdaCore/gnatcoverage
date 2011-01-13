@@ -1,1 +1,2 @@
-Exercise "A or else B" used as a Return statement value.
+Exercise "A or else B"
+used as a Return statement value.
