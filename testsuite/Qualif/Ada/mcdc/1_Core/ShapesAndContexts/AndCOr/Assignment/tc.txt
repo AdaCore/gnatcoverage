@@ -1,0 +1,1 @@
+Exercise "A and then Orelse(B, C)" on the RHS of an Assignment statement.
