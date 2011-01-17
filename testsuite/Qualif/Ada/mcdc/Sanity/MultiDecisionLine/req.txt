@@ -1,2 +1,2 @@
 When multiple decisions occur on the same source line, individual decisions
-are recognized and processed correctly.
+are properly recognized.
