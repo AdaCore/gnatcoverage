@@ -1,0 +1,9 @@
+Exercise a decision of the form "(A and then B) or else C", known to feature a
+BDD diamond, with all the meaningful combination of inputs.
+
+Check outcome expectations with
+
+* Every possible invocation vector alone (5 relevant, considering
+  shortcircuits),
+
+* All the possible combinations of 2, 3, 4 or 5 of these without repetitions.

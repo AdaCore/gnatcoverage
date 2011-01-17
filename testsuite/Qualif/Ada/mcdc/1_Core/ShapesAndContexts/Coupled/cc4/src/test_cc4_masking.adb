@@ -1,5 +1,8 @@
 with Support, CC4; use Support;
 
+--  Invoke the functional decision with a minimal combination of inputs that
+--  lead to satisfaction of masking mcdc. Verify UC mcdc (only) not satisfied.
+
 procedure Test_CC4_Masking is
    Any : constant Boolean := True;
 begin

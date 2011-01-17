@@ -1,5 +1,8 @@
 with Support, CC4; use Support;
 
+--  Invoke the functional decision with all the possible combinations
+--  of inputs in sequence. Verify UC mcdc (only) not satisfied.
+
 procedure Test_CC4_All is
 begin
    for A in False .. True loop

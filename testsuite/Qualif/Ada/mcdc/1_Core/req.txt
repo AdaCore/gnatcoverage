@@ -1,5 +1,7 @@
 1. For decisions evaluated both True and False, the tool shall report every
-   condition for which the independent effect was not demonstrated.
+   condition for which the independent effect was not demonstrated. Such
+   condition specific diagnotics shall designate the particular condition
+   source location.
 
 2. The tool shall be able to handle arbitrarily complex decisions in any
    context where such expressions might appear, as long as all the logical
