@@ -1,0 +1,3 @@
+Decisions spanning multiple lines are recognized and processed correctly.
+
+
