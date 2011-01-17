@@ -1,0 +1,4 @@
+drivers=test_andthen_v(0|2)
+
+--# andthen.adb
+-- /eval/  l! dT-

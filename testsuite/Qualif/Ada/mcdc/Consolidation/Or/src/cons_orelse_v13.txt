@@ -1,0 +1,4 @@
+drivers=test_orelse_v(1|3)
+
+--# orelse.adb
+-- /eval/  l! dF-

@@ -1,0 +1,4 @@
+drivers=test_andthen_v(1|3)
+
+--# andthen.adb
+-- /eval/  l! c!:"B"
