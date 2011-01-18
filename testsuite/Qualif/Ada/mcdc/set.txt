@@ -6,7 +6,7 @@ several parts:
 **Core**
 
 Holds material to define and validate the core expectations for MC/DC
-assessments.
+assessments. All the other sub-sections rely on this one.
 
 **Sanity**
 
