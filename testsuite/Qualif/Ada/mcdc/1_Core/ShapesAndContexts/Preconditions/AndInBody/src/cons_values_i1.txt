@@ -1,0 +1,7 @@
+drivers=test_values_(tt|ft)
+
+--# values.adb
+-- /pre/   l! c!:"V2.Set"
+-- /set/   l+ 0
+-- /same/  l+ 0
+-- /value/ l+ 0

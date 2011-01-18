@@ -1,0 +1,1 @@
+Exercise "A or else B" as a precondition stated with a subprogram spec.

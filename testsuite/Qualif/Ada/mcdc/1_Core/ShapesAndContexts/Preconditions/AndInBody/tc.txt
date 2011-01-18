@@ -1,0 +1,1 @@
+Exercise "A and then B" as a precondition stated in a subprogram body.
