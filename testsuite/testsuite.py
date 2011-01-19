@@ -86,6 +86,7 @@ def main():
         + filter_list(collDir+'*/*/test.py', options.run_test)
         + filter_list(collDir+'*/*/*/test.py', options.run_test)
         + filter_list(collDir+'*/*/*/*/test.py', options.run_test)
+        + filter_list(collDir+'*/*/*/*/*/test.py', options.run_test)
         + filter_list(scovDir+'*/test.py', options.run_test)
         + filter_list(scovDir+'*/*/test.py', options.run_test)
         + filter_list(scovDir+'*/*/*/test.py', options.run_test)

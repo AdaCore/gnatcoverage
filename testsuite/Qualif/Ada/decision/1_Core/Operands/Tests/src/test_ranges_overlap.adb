@@ -1,7 +1,9 @@
 with Ranges, Support; use Ranges, Support;
 
 -- Exercise various situations where two ranges overlap.
--- Exempted precondition evaluated True only.
+
+-- Precondition evaluated True only.
+-- Overlapping decision evaluated True only.
 
 procedure Test_Ranges_Overlap is
    Ra, Rb : XYrange;

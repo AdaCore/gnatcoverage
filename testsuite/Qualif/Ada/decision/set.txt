@@ -1,11 +1,11 @@
 
 This section holds the tool operational requirements and associated testcases
-related to Decision Coverage assessments.  This is split in several parts:
+related to Decision Coverage (DC) assessments.  This is split in several parts:
 
 **Core**
 
-Holds material to define and validate the core expectations
-for Decision Coverage assessments.
+Holds material to define and validate the core expectations for DC
+assessments.  All the other sub-sections rely on this one.
 
 **Sanity**
 

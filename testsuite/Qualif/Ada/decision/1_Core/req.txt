@@ -1,32 +1,33 @@
-When a decision is enclosed in a statement or declaration that has not been
-executed, that statement or declaration shall be reported as not covered and
-nothing shall be reported about the decision.
+1. When a decision is enclosed in a statement or declaration that has not been
+   executed, that statement or declaration shall be reported as not covered
+   and nothing shall be reported about the decision.
 
-When a decision is never evaluated even though the enclosing statement or
-declaration has been executed, the decision shall be reported as enever
-evaluated.
+2. When a decision is never evaluated even though the enclosing statement or
+   declaration has been executed, the decision shall be reported as never
+   evaluated.
 
-When a decision is evaluated only True or only False, it shall be reported
-as only partially covered.
+3. When a decision is evaluated only True or False, it shall be reported as
+   only partially covered. In this case as in the previous one, the tool shall
+   designate the decision with an unambiguous file-name:line#:col# reference.
 
-When a decision is evaluated both True and False, no decision coverage
-violation shall be reported for it.
+4. When a decision is evaluated both True and False, no decision coverage
+   violation shall be reported for it.
 
-The tool shall be able to handle arbitrarily complex decisions in any context
-where such expressions might appear, as long as all the logical connectors
-operate with short-circuit semantics.
+5. The tool shall be able to handle arbitrarily complex decisions in any
+   context where such expressions might appear, as long as all the logical
+   connectors operate with short-circuit semantics.
 
 **Testing Strategy**
 
 We check that all the aspects of this requirement are satisfied
 in a variety of situations:
 
+* With expressions involving different kinds of operands, not only
+  straight Boolean variables [Operands].
+
 * With expressions of different shapes placed in various contexts, to
   verify the tool's capability to handle arbitrary expressions everywhere
   they might appear [ShapesAndContexts];
-
-* With expressions involving different kinds of operands, not only straight
-  Boolean variables [Operands].
 
 We exercise each decision of interest in multiple manners, always including
 
@@ -38,9 +39,4 @@ We exercise each decision of interest in multiple manners, always including
 
 * a situation where the statements exposing the decision aren't
   executed at all.
-
-
-
-
-
 

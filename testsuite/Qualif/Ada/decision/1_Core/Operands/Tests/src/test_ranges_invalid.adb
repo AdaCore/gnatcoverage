@@ -1,7 +1,9 @@
 with Ranges, Support, Silent_Last_Chance; use Ranges, Support;
 
 -- Exercise a single overlap check, involving an invalid range.
--- Exempted precondition evaluated False only.
+
+-- Precondition evaluated False only.
+-- Statement evaluating the overlap never executed.
 
 procedure Test_Ranges_Invalid is
    Ra, Rb : XYrange;

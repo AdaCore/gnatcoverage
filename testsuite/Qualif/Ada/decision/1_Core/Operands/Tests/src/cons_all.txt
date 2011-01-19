@@ -2,7 +2,7 @@ drivers=_overlap|_no_overlap|invalid
 
 --  Consolidate results for tests involving valid and invalid ranges.
 
---  Precondition and Overlap decision both evaluated True and False.
+--  Precondition and Overlap decisions both evaluated True and False.
 
 --# ranges.adb
 --  /checkValid/    l+ 0
