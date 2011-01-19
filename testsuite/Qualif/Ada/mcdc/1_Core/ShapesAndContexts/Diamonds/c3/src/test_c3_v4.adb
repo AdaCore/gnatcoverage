@@ -2,8 +2,9 @@ with Support, C3; use Support;
 
 procedure Test_C3_V4 is
 begin
-   Assert (C3 (False, True, True) = True);
-   Assert (C3 (False, False, True) = True);
+   for B in False .. True loop
+      Assert (C3 (False, B, True) = True);
+   end loop;
 end;
 
 --# c3.adb
