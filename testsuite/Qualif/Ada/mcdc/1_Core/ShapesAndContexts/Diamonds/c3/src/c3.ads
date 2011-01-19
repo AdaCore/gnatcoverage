@@ -14,8 +14,9 @@ function C3 (A, B, C : Boolean) return Boolean;
 --   F  (X)  F    F      5
 
 
--- Independance pairs:
+-- Independance pairs (uc + masking):
 
 -- ip(A) = 1,5
 -- ip(B) = 1,3
--- ip(C) = 2,3 4,5
+-- ip(C) = 2,3 4,5 + 2,5 3,4
+

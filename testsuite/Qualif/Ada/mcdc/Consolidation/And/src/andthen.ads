@@ -1,6 +1,6 @@
 function Andthen (A, B : Boolean) return Boolean;
 
--- Vector # assignments, followin two-bit values:
+-- Vector # assignments, following two-bit values:
 
 --   A   B   And   Vec#
 --   -----------   ----
