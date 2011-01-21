@@ -1366,7 +1366,7 @@ class RnotesExpander:
         if re.search ("NON-EXEMPTED VIOLATIONS", rline):
             self.section = rsNotExempted
             return None
-        elif re.search ("EXEMPTED VIOLATIONS", rline):
+        elif re.search ("EXEMPTED REGIONS", rline):
             self.section = rsExempted
             return None
         elif re.match (".* (violation|region)\.$", rline):
@@ -2294,7 +2294,7 @@ class ExerciseAll:
         a request for optimization."""
         return options and re.search ("(^|\s)-O", options)
 
-    def __init__(self, extradrivers="", extracargs=""):
+    def __init__(self, extradrivers="", extracargs="", category=None):
 
         # Step 1: Compute the list of drivers to exercise ...
         # ---------------------------------------------------
@@ -2319,7 +2319,8 @@ class ExerciseAll:
 
         # - test category:
 
-        category = self.__category()
+        if category == None:
+            category = self.__category()
 
         # - Set of xcovlevel values to exercise:
 
@@ -2358,3 +2359,86 @@ class ExerciseAll:
             [SCOV_helper(drivers=self.drivers_from(cspec), xfile=cspec,
                          category=category, xcovlevel=covlevel).run(testcargs)
              for cspec in consolidation_specs]
+
+# ***************************************************************************
+#                              REPORT FORMAT CHECKER
+# ***************************************************************************
+
+# Dev in progress. Still pretty crude ...
+
+class Piece:
+    def __init__(self, pattern, pre, nexpected=1):
+        self.pattern = pattern
+        self.matches = []
+        self.pre = pre
+        self.nexpected = nexpected
+
+    def check_match(self,tline):
+        if re.search (self.pattern, tline.text, re.MULTILINE):
+            self.matches.append (tline)
+
+    def first_match(self):
+        return self.matches[0]
+
+    def last_match(self):
+        return self.matches[-1]
+
+    def check(self):
+
+        # Check for presence of expected pieces
+
+        thistest.fail_if (
+            len (self.matches) < self.nexpected,
+            'too few matches of pattern "%s"' % self.pattern)
+        thistest.fail_if (
+            len (self.matches) > self.nexpected,
+            'too many matches of pattern "%s"' % self.pattern)
+
+        # Check for expected ordering of pieces
+
+        thistest.fail_if (
+            self.pre and (self.pre.last_match().lno > self.first_match().lno),
+            'first match for "%s" too early wrt predecessor "%s"' %
+            (self.pattern, self.pre.pattern if self.pre else "err"))
+
+class CheckReport:
+
+    def process_line(self,tline):
+        [rpe.check_match (tline) for rpe in self.rpElements]
+
+    def setup_expectations(self, ntraces):
+
+        rpStart  = Piece (pattern="COVERAGE REPORT", pre=None)
+        ovHeader = Piece (pattern="ASSESSMENT CONTEXT", pre=rpStart)
+
+        runStamp = Piece (pattern="Date and time of execution:", pre=ovHeader)
+        verNumber =  Piece (pattern="Tool version:", pre=runStamp)
+
+        cmdLine1 = Piece (pattern="Command line:", pre=verNumber)
+        cmdLine2 = Piece (pattern="xcov coverage", pre=cmdLine1)
+
+        covLevel = Piece (pattern="Coverage level:", pre=cmdLine2)
+
+        trHeader = Piece (pattern="trace files:", pre=covLevel)
+
+        trFile = Piece (pattern="\.trace", pre=trHeader, nexpected=ntraces)
+        trPgm = Piece (pattern="program:", pre=None, nexpected=ntraces)
+        trDate = Piece (pattern="date:", pre=None, nexpected=ntraces)
+        trTag = Piece (pattern="tag:", pre=None, nexpected=ntraces)
+
+        vioHeader = Piece (pattern="NON-EXEMPTED VIOLATIONS", pre=trTag)
+        xmrHeader = Piece (pattern="EXEMPTED REGIONS", pre=vioHeader)
+        rpEnd    = Piece (pattern="END OF REPORT", pre=xmrHeader)
+
+        self.rpElements = [
+            rpStart, ovHeader,
+            runStamp, verNumber, cmdLine1, cmdLine2,
+            covLevel, trHeader, trFile, trPgm, trDate, trTag,
+            vioHeader, xmrHeader, rpEnd]
+
+    def __init__(self, subdir, ntraces):
+        self.setup_expectations(ntraces)
+        self.report = Tfile ("tmp_%s/test.rep" % subdir, self.process_line)
+
+        [rpe.check () for rpe in self.rpElements]
+
