@@ -13,7 +13,7 @@ See ./testsuite.py -h for more help
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
-from gnatpython.fileutils import mkdir, rm, ln
+from gnatpython.fileutils import mkdir, rm, ln, find
 from gnatpython.main import Main
 from gnatpython.mainloop import MainLoop
 
@@ -82,17 +82,8 @@ def main():
     collDir = "./tests/"
 
     non_dead_list, dead_list = generate_testcase_list(
-        filter_list(collDir+'*/test.py', options.run_test)
-        + filter_list(collDir+'*/*/test.py', options.run_test)
-        + filter_list(collDir+'*/*/*/test.py', options.run_test)
-        + filter_list(collDir+'*/*/*/*/test.py', options.run_test)
-        + filter_list(collDir+'*/*/*/*/*/test.py', options.run_test)
-        + filter_list(scovDir+'*/test.py', options.run_test)
-        + filter_list(scovDir+'*/*/test.py', options.run_test)
-        + filter_list(scovDir+'*/*/*/test.py', options.run_test)
-        + filter_list(scovDir+'*/*/*/*/test.py', options.run_test)
-        + filter_list(scovDir+'*/*/*/*/*/test.py', options.run_test)
-        , common_discs, trace_dir)
+        re_filter(find (root=".", pattern="test.py"), options.run_test),
+        common_discs, trace_dir)
 
     # Main loop :
     #   - run all the tests
@@ -152,16 +143,10 @@ def qualif_cargs_discriminants():
         discs.append("QUALIF_CARGS_" + arg.lstrip('-'))
     return discs
 
-def filter_list(pattern, run_test=""):
-    """Compute the list of test matching pattern
-
-    If run_test is not null, run only tests containing run_test
+def re_filter(l, pattern=""):
+    """Compute the list of entries in L that match the regexp PATTERN.
     """
-    test_list = glob(pattern)
-    if not run_test:
-        return test_list
-    else:
-        return [t for t in test_list if re.search(run_test,t)]
+    return [t for t in l if re.search(pattern,t)]
 
 def generate_testcase_list(test_list, discs, trace_dir):
     """Generate the testcase list
