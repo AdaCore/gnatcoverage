@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2010, AdaCore                     --
+--                     Copyright (C) 2008-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -287,7 +287,7 @@ package body Annotations.Report is
    begin
       Pp.End_Section (Item => "violation");
 
-      Pp.Section ("EXEMPTED VIOLATIONS");
+      Pp.Section ("EXEMPTED REGIONS");
       ALI_Annotations.Iterate (Process_One_Exemption'Access);
       Pp.End_Section (Item => "exempted region");
 
@@ -398,7 +398,7 @@ package body Annotations.Report is
       Put_Line (Output.all, "COVERAGE REPORT");
       New_Line (Output.all);
 
-      Pp.Chapter ("OVERVIEW");
+      Pp.Chapter ("ASSESSMENT CONTEXT");
 
       Put_Line (Output.all, "Date and time of execution: "
                 & GNAT.Time_Stamp.Current_Time);
@@ -420,7 +420,7 @@ package body Annotations.Report is
       New_Line (Output.all);
       Files.Iterate (Display_Trace_File_Info'Access);
 
-      Pp.Chapter ("DETECTED VIOLATIONS");
+      Pp.Chapter ("VIOLATIONS AND EXEMPTION REGIONS");
       Pp.Section ("NON-EXEMPTED VIOLATIONS");
    end Pretty_Print_Start;
 
