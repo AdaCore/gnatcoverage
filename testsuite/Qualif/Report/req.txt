@@ -1,0 +1,56 @@
+The xcov qualified interface is the synthetic output of the --annotate=report
+command line option. The output report shall:
+
+* Start with an explicit "COVERAGE REPORT" indication
+
+* End with an explicit "END OF REPORT" indication
+
+* Feature three sections in between: "Assessment Context",
+  "Non-exempted violations" and "Exempted Regions"
+
+* The "Assessment Context" section shall summarize all the elements
+  of relevance to characterize the reported assessment unambiguously:
+
+  * Tool version identifier
+
+  * Date and time of execution
+  
+  * Full command line issued to produce the report
+
+  * Target criterion
+
+  * Information about each of the input trace files:
+
+    * trace tag & file name,
+    * trace production date & time,
+    * program executable file name,
+
+* The "Non-exempted violations" section shall 
+
+  * List all the target criterion obligations unsatisfied (violated) by the
+    set of executions conveyed by the provided execution traces, and
+
+  * End with a count of those violations
+
+* The "Exempted Regions" section shall
+
+  * Summarize information about all the exemption regions in the scope of the
+    examined coverage obligations, and
+
+  * End with a count of those regions
+
+**Testing Strategy**
+
+Here we provide a few testcases to demonstrate that the reports produced by
+the tool satisfy the general structure requirements, with
+
+* Cases where violations get reported from a single execution trace or more,
+  validating proper counts of trace file info in their corresponding section
+  [SingleTrace, MultipleTraces]
+
+* A case where no violation or exempted region is expected, validating
+  the presence of the corresponding sections nevertheless [EmptySections]
+   
+The assessment correctness (reported violations vs expectations for particular
+programs), is defined and validated by sibling chapters of this qualification
+material.

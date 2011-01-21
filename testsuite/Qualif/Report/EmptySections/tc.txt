@@ -1,0 +1,1 @@
+Exercise a case where no violation or exempted region is expected.

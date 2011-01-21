@@ -1,0 +1,1 @@
+Exercise a case involving a single trace and expected violations.
