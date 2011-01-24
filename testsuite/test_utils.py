@@ -805,10 +805,10 @@ def positive_p(nkind):
 def block_p(nkind):
     return nkind > blockNote
 
-# STRICT notes are those for which an exact match between reports
-# and expectations is required: an expected note should be reported (or err,
-# unless the expectation is explicitely tagged weak), and a reported note
-# should be expected (or err).
+# STRICT notes are those for which an exact match between reports and
+# expectations is required: an expected note should be reported (errout
+# otherwise, unless the expectation is explicitely tagged weak), and a
+# reported note should be expected (errout otherwise).
 
 # !STRICT notes should also be reported when expected (or err unless weak
 # expectation), but trigger no err when reported eventhough not expected.
@@ -835,6 +835,7 @@ lNoteKinds = (lNoCode, lNoCov, lPartCov, lFullCov, lx0, lx1)
 sNoteKinds = (sNoCov, sPartCov)
 dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov)
 cNoteKinds = (cPartCov,)
+
 xNoteKinds = (xBlock0, xBlock1)
 
 # Note kinds that can be associated to one of xcov's message, independantly
@@ -1018,7 +1019,15 @@ def Section_within(text):
 # == Coverage Notes ==
 # ====================
 
+# Report section identifiers, to let us control when looking for indication
+# patterns and check that each appears in the section where we expect it.
+
 rsNoInterest, rsNotExempted, rsExempted = range (3)
+
+RS_image = {None: "None",
+            rsNoInterest: "rsNoInterest",
+            rsNotExempted: "rsNotExempted",
+            rsExempted: "rsExempted"}
 
 # -----------
 # -- Cnote --
@@ -1028,8 +1037,17 @@ rsNoInterest, rsNotExempted, rsExempted = range (3)
 
 class Cnote:
     def __init__(self, kind):
+
+        # Kind of note, line segment and report section id.
+
         self.kind = kind
         self.segment = None
+        self.rsid = None
+
+        # An expected note for one segment will be discharged by an emitted
+        # note of the same kind for a tighter segment, and the emitted note
+        # will have to be found in the expected report section. =xcov reports
+        # are considered section-less, and rsid remains None in this case.
 
 # -----------
 # -- Xnote --
@@ -1048,6 +1066,16 @@ class Xnote (Cnote):
         self.nmatches = 0
 
         self.discharger = None  # The Enote that discharged this
+
+        # Determine our expected segment id. Simple enough not to warrant
+        # a class specialization by itself.
+
+        if self.kind in lNoteKinds:
+            self.rsid = None
+        elif self.kind in xNoteKinds:
+            self.rsid = rsExempted
+        else:
+            self.rsid = rsNotExempted
 
     def register_match(self, segment):
         self.segment = segment
@@ -1182,11 +1210,12 @@ class XnoteP:
 # Emitted note, as extracted from an xcov report:
 
 class Enote(Cnote):
-    def __init__(self, kind, segment):
+    def __init__(self, kind, segment, rsid=None):
         self.kind = kind        # The kind of emitted note
         self.segment = segment  # The line segment it designates
 
         self.discharges = None  # The Xnote it discharges
+        self.rsid = rsid        # The report section where this was found
 
 # ---------------------------
 # -- Dictionary facilities --
@@ -1408,7 +1437,7 @@ class RnotesExpander:
             FatalError ("Unable to parse report line\n'%s'" % rline))
 
         return self.register (
-            source, Enote (kind = nkind, segment = section))
+            source, Enote (kind=nkind, segment=section, rsid=self.section))
 
     def __init__(self, report):
 
@@ -1783,10 +1812,16 @@ class UXchecker:
         # of exemption justifications at this stage.
 
         for en in self.edict [ekind]:
+
+            # Register a discharge and return as soon as segments match.
+            # Complain about report section mismatches, nevertheless.
+
             if en.segment.within (xn.segment):
                 en.discharges = xn
                 xn.discharger = en
                 self.sat[xn.block].append(xn)
+                thistest.fail_if (
+                    en.rsid != xn.rsid, "discharge section mismatch")
                 return
 
     def process_unsat(self, block):
@@ -2366,16 +2401,35 @@ class ExerciseAll:
 
 # Dev in progress. Still pretty crude ...
 
+# ===========================================================
+# == Single pattern of text expected somewhere in a report ==
+# ===========================================================
+
 class Piece:
     def __init__(self, pattern, pre, nexpected=1):
+
+        # regexp pattern to match over report lines
+
         self.pattern = pattern
-        self.matches = []
-        self.pre = pre
+
+        # How many times (lines) we expect to match and set of
+        # tline instances that did actually match
+
         self.nexpected = nexpected
+        self.matches = []
+
+        # Expected predecessor pattern. The last match of these
+        # will need to happen before the first match of self.
+
+        self.pre = pre
+
+    # Called for self on every report line
 
     def check_match(self,tline):
-        if re.search (self.pattern, tline.text, re.MULTILINE):
+        if re.search (self.pattern, tline.text):
             self.matches.append (tline)
+
+    # Check expectations once we're done going through all the report lines
 
     def first_match(self):
         return self.matches[0]
@@ -2387,6 +2441,9 @@ class Piece:
 
         # Check for presence of expected pieces
 
+        thistest.stop_if (
+            len (self.matches) == 0,
+            FatalError('no occurrence of pattern "%s"' % self.pattern))
         thistest.fail_if (
             len (self.matches) < self.nexpected,
             'too few matches of pattern "%s"' % self.pattern)
@@ -2401,6 +2458,10 @@ class Piece:
             'first match for "%s" too early wrt predecessor "%s"' %
             (self.pattern, self.pre.pattern if self.pre else "err"))
 
+# ==========================
+# == Whole report checker ==
+# ==========================
+
 class CheckReport:
 
     def process_line(self,tline):
@@ -2408,33 +2469,57 @@ class CheckReport:
 
     def setup_expectations(self, ntraces):
 
-        rpStart  = Piece (pattern="COVERAGE REPORT", pre=None)
-        ovHeader = Piece (pattern="ASSESSMENT CONTEXT", pre=rpStart)
+        rpStart  = Piece (
+            pattern="COVERAGE REPORT", pre=None)
 
-        runStamp = Piece (pattern="Date and time of execution:", pre=ovHeader)
-        verNumber =  Piece (pattern="Tool version:", pre=runStamp)
+        ctxHeader = Piece (
+            pattern="ASSESSMENT CONTEXT", pre=rpStart)
 
-        cmdLine1 = Piece (pattern="Command line:", pre=verNumber)
-        cmdLine2 = Piece (pattern="xcov coverage", pre=cmdLine1)
+        runStamp = Piece (
+            pattern="Date and time of execution:", pre=ctxHeader)
+        verNumber =  Piece (
+            pattern="Tool version:", pre=runStamp)
 
-        covLevel = Piece (pattern="Coverage level:", pre=cmdLine2)
+        cmdLine1 = Piece (
+            pattern="Command line:", pre=verNumber)
+        cmdLine2 = Piece (
+            pattern="xcov coverage", pre=cmdLine1)
 
-        trHeader = Piece (pattern="trace files:", pre=covLevel)
+        covLevel = Piece (
+            pattern="Coverage level: stmt(\+(decision|mcdc))?", pre=cmdLine2)
 
-        trFile = Piece (pattern="\.trace", pre=trHeader, nexpected=ntraces)
-        trPgm = Piece (pattern="program:", pre=None, nexpected=ntraces)
-        trDate = Piece (pattern="date:", pre=None, nexpected=ntraces)
-        trTag = Piece (pattern="tag:", pre=None, nexpected=ntraces)
+        trHeader = Piece (
+            pattern="trace files:", pre=covLevel)
 
-        vioHeader = Piece (pattern="NON-EXEMPTED VIOLATIONS", pre=trTag)
-        xmrHeader = Piece (pattern="EXEMPTED REGIONS", pre=vioHeader)
-        rpEnd    = Piece (pattern="END OF REPORT", pre=xmrHeader)
+        trFile = Piece (
+            pattern="\.trace", pre=trHeader, nexpected=ntraces)
+        trPgm = Piece (
+            pattern="program:", pre=None, nexpected=ntraces)
+        trDate = Piece (
+            pattern="date:", pre=None, nexpected=ntraces)
+        trTag = Piece (
+            pattern="tag:", pre=None, nexpected=ntraces)
+
+        vioHeader = Piece (
+            pattern="NON-EXEMPTED VIOLATIONS", pre=trTag)
+        vioCount = Piece (
+            pattern="([0-9]+|No) violation", pre=vioHeader)
+
+        xmrHeader = Piece (
+            pattern="EXEMPTED REGIONS", pre=vioCount)
+        xmrCount = Piece (
+            pattern="([0-9]+|No) exempted region", pre=xmrHeader)
+
+        rpEnd    = Piece (
+            pattern="END OF REPORT", pre=xmrCount)
 
         self.rpElements = [
-            rpStart, ovHeader,
-            runStamp, verNumber, cmdLine1, cmdLine2,
+            rpStart,
+            ctxHeader, runStamp, verNumber,
+            cmdLine1, cmdLine2,
             covLevel, trHeader, trFile, trPgm, trDate, trTag,
-            vioHeader, xmrHeader, rpEnd]
+            vioHeader, vioCount, xmrHeader, xmrCount,
+            rpEnd]
 
     def __init__(self, subdir, ntraces):
         self.setup_expectations(ntraces)
