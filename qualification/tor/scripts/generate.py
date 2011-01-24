@@ -6,7 +6,7 @@ import glob
 import re
 
 DOC_DIR = "source"
-ROOT_DIR = "../../../testsuite/Qualif/Ada"
+ROOT_DIR = "../../../testsuite/Qualif"
 
 # **********************
 # ** Helper functions **
@@ -46,6 +46,17 @@ def subsec_header(str):
 
 def warn_if(cond, text):
     if cond: print "warning: %s" % text
+
+# ***************************
+# ** Path Info abstraction **
+# ***************************
+
+# Holds info about the path to the current node when walking
+# a directory tree
+
+class PathInfo:
+    def __init__(self):
+        self.n_req = 0  # Number of requirement expressions so far
 
 # ***************************
 # ** Directory abstraction **
@@ -150,18 +161,36 @@ class Dir:
 
         self.ofd.close()
 
-    def walk_botmup(self, process):
-        [subdo.walk_botmup(process) for subdo in self.subdos]
-        process(self)
+    # Tree walking facilities.
 
-    def walk_topdown(self, process):
-        process(self)
-        [subdo.walk_topdown(process) for subdo in self.subdos]
+    # Entering/Exiting a node. Update path info. Beware that such walks are
+    # used to compute attributes, so these attributes can't be relied upon.
+
+    def enter(self, pathi):
+        if self.has_reqtxt(): pathi.n_req += 1
+
+    def exit(self, pathi):
+        if self.has_reqtxt(): pathi.n_req -= 1
+
+    def walk_botmup(self, process, pathi):
+        self.enter(pathi)
+        [subdo.walk_botmup(process, pathi) for subdo in self.subdos]
+        process(self, pathi)
+        self.exit(pathi)
+
+    def walk_topdown(self, process, pathi):
+        self.enter(pathi)
+        process(self, pathi)
+        [subdo.walk_topdown(process, pathi) for subdo in self.subdos]
+        self.exit(pathi)
 
     # In-tree attributes and consistency checks, once the full set of
-    # of links has been established, for a bottom-up (depth first) walk
+    # of links has been established.
 
-    def botmup_compute_attributes (self):
+    # First, compute a few attributes per node, along a bottom-up (depth
+    # first) walk
+
+    def botmup_compute_attributes (self, pathi):
 
         # Properties from presence of local files, better cached to prevent
         # repeated real file presence checks
@@ -207,7 +236,8 @@ class Dir:
         self.tcset = self.set and all_tc
         self.reqset = self.set and all_req
 
-    def check_local_consistency (self):
+    # Then perform consistency checks, along a top-down
+    def check_local_consistency (self, pathi):
         """Perform checks on the files present in this subdir"""
 
         warn_if (not (self.req or self.tc or self.set),
@@ -225,7 +255,10 @@ class Dir:
                 not self.tc and not self.set and not self.req,
             "unexpected files in %s (%s)" % (self.root, str(self.files)))
 
-    def check_downtree_consistency (self):
+        warn_if ((self.tc or self.tcset) and pathi.n_req < 1,
+            "tc or set without req uptree at %s" % self.root)
+
+    def check_downtree_consistency (self, pathi):
         """Perform checks on the relationships between this subdir and
         its children"""
 
@@ -245,14 +278,9 @@ class Dir:
         warn_if (self.req and not self.all_reqorset and not self.all_tcorset,
             "missing testcases for leaf req in %s" % self.root)
 
-    def check_uptree_consistency (self):
-        pass;
-
-    def botmup_check_consistency (self):
-        self.botmup_compute_attributes ()
-        self.check_local_consistency()
-        self.check_downtree_consistency()
-        self.check_uptree_consistency()
+    def topdown_check_consistency (self, pathi):
+        self.check_local_consistency(pathi)
+        self.check_downtree_consistency(pathi)
 
 # *******************************
 # ** Directory Tree abstraction **
@@ -292,16 +320,17 @@ class DirTree:
     # children links are set
 
     def walk_topdown(self,process):
-        [diro.walk_topdown(process) for diro in self.roots]
+        [diro.walk_topdown(process, PathInfo()) for diro in self.roots]
 
     def walk_botmup(self,process):
-        [diro.walk_botmup(process) for diro in self.roots]
+        [diro.walk_botmup(process, PathInfo()) for diro in self.roots]
 
     # Check consistency, past doc generation for the full tree so with
     # the up and down links all setup
 
     def check_consistency(self):
-        self.walk_botmup (Dir.botmup_check_consistency)
+        self.walk_botmup (Dir.botmup_compute_attributes)
+        self.walk_topdown (Dir.topdown_check_consistency)
 
 # **************************
 # ** TestCase abstraction **
@@ -511,7 +540,7 @@ class DocGenerator(object):
 
         self.dirtree = DirTree()
 
-        chapdirs = ['decision', 'mcdc']
+        chapdirs = ['Report']
         self.generate_doc(chapdirs)
         self.generate_index(chapdirs)
         self.generate_resources()
