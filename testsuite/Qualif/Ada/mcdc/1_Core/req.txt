@@ -1,11 +1,10 @@
-1. For decisions evaluated both True and False, the tool shall report every
+# For decisions evaluated both true and false, the tool shall report every
    condition for which the independent effect was not demonstrated. Such
    condition specific diagnotics shall designate the particular condition
    source location.
 
-2. The tool shall be able to handle arbitrarily complex decisions in any
-   context where such expressions might appear, as long as all the logical
-   connectors operate with short-circuit semantics.
+# The tool shall be able to handle arbitrarily complex decisions in any
+  context where such expressions might appear.
 
 **Testing Strategy**
 
@@ -13,7 +12,7 @@ We check that all the aspects of this requirement are satisfied in a variety
 of situations:
 
 * With expressions involving different kinds of operands, not only
-  straight Boolean variables [Operands].
+  straight boolean variables [Operands].
 
 * With expressions of different shapes placed in various contexts, to
   verify the tool's capability to handle arbitrary expressions everywhere
@@ -21,12 +20,16 @@ of situations:
 
 We exercise each decision of interest in multiple manners, always including
 
-* a set of vectors where the decision evaluates only True,
+* a set of vectors where the decision evaluates only true,
 
-* a set of vectors where the decision evaluates only False,
+* a set of vectors where the decision evaluates only false,
 
-* a set of vectors where the decision evaluates both True and False, some
-  demonstrating the independant effect of all the conditions and some not,
+* sets of vectors where the decision evaluates both true and false, with
+  at least
+
+  * one set not demonstrating the independent effect of any condition,
+  * one set demonstrating the independent effect of each condition alone,
+  * one set demonstrating the independent effect of all the conditions.
 
 * a situation where the statements exposing the decision aren't
   executed at all.

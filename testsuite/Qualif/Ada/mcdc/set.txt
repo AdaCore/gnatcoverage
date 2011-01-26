@@ -3,23 +3,23 @@ This section holds the tool operational requirements and associated testcases
 related to Modified Condition/Decision Coverage assessments.  This is split in
 several parts:
 
-**Core**
+=================  ===========================================================
+Part               ...
+=================  ===========================================================
+*Core*             Holds material to define and validate the core expectations
+                   for MC/DC assessments.  All the other sub-sections rely on
+                   this one.
 
-Holds material to define and validate the core expectations for MC/DC
-assessments. All the other sub-sections rely on this one.
+*Sanity*           Holds material to demonstrate that the toolset correctly
+                   handles potentially confusing constructs that would fool
+                   naive analyzers.
+                   This includes cases such as multiple decisions sharing a
+                   line or a single decision spanning multiple lines.
 
-**Sanity**
+*Consolidation*    Holds material to define and validate the expected
+                   processing of multiple execution traces combined together.
 
-Holds material to demonstrate that the toolset correctly handles potentially
-confusing constructs that would fool naive analyzers.
-
-**Consolidation**
-
-Holds material to define and validate the expected processing of multiple
-execution traces combined together.
-
-**Exemptions**
-
-Holds material to define and validate the expected processing of exemption
-regions.
+*Exemptions*       Holds material to define and validate the expected
+                   processing of exemption regions.
+=================  ===========================================================
 

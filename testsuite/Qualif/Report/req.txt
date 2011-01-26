@@ -41,7 +41,7 @@ command line option. The output report shall:
 
 **Testing Strategy**
 
-Here we provide a few testcases to demonstrate that the reports produced by
+We provide a few testcases to demonstrate that the reports produced by
 the tool satisfy the general structure requirements, with
 
 * Cases where violations get reported from a single execution trace or more,
