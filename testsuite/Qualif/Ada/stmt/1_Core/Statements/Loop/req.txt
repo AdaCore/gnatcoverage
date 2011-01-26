@@ -11,7 +11,7 @@ component statements shall be reported as uncovered. (Test case
 Incomplete_Iteration).
 
 If a loop statement is executed and at least one complete loop iteration
-happens as a part of the execution, neither the loop statement itself and nor
+happens as a part of the execution, neither the loop statement itself nor
 of its component statements shall be reported as uncovered (Test case
 Full_Iteration)
 
