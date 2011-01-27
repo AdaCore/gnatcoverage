@@ -274,17 +274,29 @@ class Dir:
         self.tcset = self.set and all_tc
         self.reqset = self.set and all_req
 
-    def maybe_gen_tc_entry(self, pathi, fd):
-        if not (self.tc or self.tcset): return
-        fd.write ('* ' + self.root + '\n')
+    def dfile(self):
+        return ('tc.txt' if self.tc else
+                'req.txt' if self.req else
+                'set.txt' if self.set else
+                None)
 
-# *******************************
+# ********************************
 # ** Directory Tree abstraction **
-# *******************************
+# ********************************
 
 # Helper to manage dirname -> dirobject associations and establish
 # parent/children relationships over dir objects, assuming the tree
 # is walked top down.
+
+# Values to denote possible ways to walk a tree and possible actions to take
+# at every directory node when walking the tree
+
+topdown, botmup = range (2)
+
+dirProcess, dirSkip, dirCut = range (3)
+# process this node and walk children
+# skip processing for this node, walk children nevertheless
+# skip processing for this node and don't walk children
 
 class DirTree:
     def __init__(self):
@@ -321,37 +333,49 @@ class DirTree:
     # -- generation pass, all the parent children links are set --
     # ------------------------------------------------------------
 
-    # Local facilities. Beware that walks are used to compute attributes,
-    # so these attributes can't be relied upon.
+    # Local facilities. Beware that walks are used to compute directory
+    # object attributes, so these can't be relied upon.
 
-    def enter(self, diro, pathi):
-        if diro.has_reqtxt(): pathi.n_req += 1
+    class WalkInfo:
+        def __init__(self, data, pathi, process, ctl, mode):
+            self.process = process
+            self.ctl = ctl
+            self.mode = mode
+            self.pathi = pathi
+            self.data = data
 
-    def exit(self, diro, pathi):
-        if diro.has_reqtxt(): pathi.n_req -= 1
+    def enter(self, diro, wi):
+        if diro.has_reqtxt(): wi.pathi.n_req += 1
+        return wi.ctl (diro)
 
-    def visit_botmup(self, diro, process, pathi, data):
-        self.enter(diro, pathi)
-        [self.visit_botmup(subdo, process, pathi, data)
-         for subdo in diro.subdos]
-        process(diro, pathi, data)
-        self.exit(diro, pathi)
+    def exit(self, diro, wi):
+        if diro.has_reqtxt(): wi.pathi.n_req -= 1
 
-    def visit_topdown(self, diro, process, pathi, data):
-        self.enter(diro, pathi)
-        process(diro, pathi, data)
-        [self.visit_topdown(subdo, process, pathi, data)
-         for subdo in diro.subdos]
-        self.exit(diro, pathi)
+    def visit (self, diro, wi):
+        ctl = self.enter(diro, wi)
+
+        if ctl == dirProcess and wi.mode == topdown:
+            wi.process(diro, wi.pathi, wi.data)
+
+        if ctl != dirCut:
+            [self.visit(subdo, wi) for subdo in diro.subdos]
+
+        if ctl == dirProcess and wi.mode == botmup:
+            wi.process(diro, wi.pathi, wi.data)
+
+        self.exit(diro, wi)
+
+    def default_ctl(self, diro):
+        return dirProcess
 
     # Exposed facilities.
 
-    def walk_topdown(self, process, data=None):
-        [self.visit_topdown(diro, process, PathInfo(), data)
-         for diro in self.roots]
+    def walk(self, mode, process, data=None, ctl=None):
 
-    def walk_botmup(self, process, data=None):
-        [self.visit_botmup(diro, process, PathInfo(), data)
+        if ctl is None: ctl = self.default_ctl
+
+        [self.visit (diro, DirTree.WalkInfo (process=process, pathi=PathInfo(),
+                                             data=data, mode=mode, ctl=ctl))
          for diro in self.roots]
 
     # ---------------------------------------------
@@ -360,7 +384,7 @@ class DirTree:
     # ---------------------------------------------
 
     def compute_attributes(self):
-        self.walk_botmup (Dir.botmup_compute_attributes)
+        self.walk (mode=botmup, process=Dir.botmup_compute_attributes)
 
     # -----------------------------------------
     # -- Checking directory tree consistency --
@@ -411,7 +435,7 @@ class DirTree:
         self.check_downtree_consistency(diro, pathi)
 
     def check_consistency(self):
-        self.walk_topdown (self.topdown_check_consistency)
+        self.walk (mode=topdown, process=self.topdown_check_consistency)
 
 # ************************
 # ** Document Generator **
@@ -540,23 +564,52 @@ class DocGenerator(object):
     # -- generate index (toplevel) page --
     # ------------------------------------
 
+    class TCinfo:
+        def __init__ (self):
+            self.max_tclen = 0
+
+    def gen_tc_entry(self, diro, pathi, data):
+
+        dtext = get_content (os.path.join(diro.root, diro.dfile()))
+
+        self.ofd.write ('* ' + diro.root + '\n')
+
+    def tc_filter (self, diro):
+        return dirProcess if (diro.tc or diro.tcset) else dirSkip
+
+    def compute_max_tclen(self, diro, pathi, ti):
+        thislen = len (diro.root)
+        if thislen > ti.max_tclen:
+            ti.max_tclen = thislen
+
+    def generate_tc_index(self):
+        self.ofd.write (sec_header ("Testcase Index"))
+
+        tci = self.TCinfo()
+
+        self.dirtree.walk (
+            mode=topdown, process=self.compute_max_tclen,
+            ctl=self.tc_filter, data=tci)
+
+        self.dirtree.walk (
+            mode=topdown, process=self.gen_tc_entry,
+            ctl=self.tc_filter, data=tci)
+
+
     def generate_index(self, chapdirs):
 
-        fd = open(os.path.join(self.doc_dir, 'index.rst'), 'w')
-        fd.write(rest.chapter('GNATcoverage Requirements and TestCases'))
+        self.ofd = open(os.path.join(self.doc_dir, 'index.rst'), 'w')
+        self.ofd.write(rest.chapter('GNATcoverage Requirements and TestCases'))
 
-        fd.write(get_content(os.path.join(self.root_dir, 'set.txt')))
+        self.ofd.write(get_content(os.path.join(self.root_dir, 'set.txt')))
 
-        fd.write (sec_header ("TOC"))
+        self.ofd.write (sec_header ("TOC"))
         chapfiles = [self.file2docfile(os.path.join(self.root_dir, d))
                      for d in chapdirs]
-        fd.write(rest.toctree(chapfiles, 1))
+        self.ofd.write(rest.toctree(chapfiles, 1))
 
-        fd.write (sec_header ("Testcase Index"))
-
-        self.dirtree.walk_topdown (Dir.maybe_gen_tc_entry, fd)
-
-        fd.close()
+        self.generate_tc_index()
+        self.ofd.close()
 
     # ----------------------------
     # -- generate resource file --
@@ -585,7 +638,9 @@ class DocGenerator(object):
 
         self.dirtree = DirTree()
 
-        chapdirs = ["Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
+        chapdirs = ["Report"]
+        # chapdirs += ["Ada/stmt", "Ada/decision", "Ada/mcdc"]
+
         self.generate_chapters(chapdirs)
 
         # The directory object tree is available at this stage
