@@ -475,25 +475,19 @@ class DocGenerator(object):
     # -- Generating doc contents for a directory --
     # ---------------------------------------------
 
-    def maybe_set_section(self, diro):
-        """Generate the Set description section as needed"""
-
-        if not diro.has_settxt(): return
+    def gen_set_section(self, diro):
+        """Generate the Set description section"""
 
         self.ofd.write(get_content(os.path.join(diro.root, 'set.txt')))
 
-    def maybe_req_section(self, diro):
-        """Generate the Requirement section as needed"""
-
-        if not diro.has_reqtxt(): return
+    def gen_req_section(self, diro):
+        """Generate the Requirement description section"""
 
         self.ofd.write(sec_header("Requirement"));
         self.ofd.write(get_content(os.path.join(diro.root, 'req.txt')))
 
-    def maybe_tc_section(self, diro):
-        """Generate the TestCase section as needed"""
-
-        if not diro.has_tctxt() and not diro.has_testpy(): return
+    def gen_tc_section(self, diro):
+        """Generate the TestCase description section"""
 
         tco = TestCase (dir=diro.root, dgen=self)
 
@@ -531,9 +525,13 @@ class DocGenerator(object):
         self.ofd.write(
             rest.section(to_title(os.path.basename(diro.root))))
 
-        self.maybe_set_section(diro)
-        self.maybe_req_section(diro)
-        self.maybe_tc_section(diro)
+        if diro.has_settxt ():
+            self.gen_set_section(diro)
+        if diro.has_reqtxt ():
+            self.gen_req_section(diro)
+        if diro.has_tctxt ():
+            self.gen_tc_section(diro)
+
         self.maybe_toc_section(diro)
 
         self.ofd.close()
@@ -560,41 +558,79 @@ class DocGenerator(object):
         [self.generate_chapter(os.path.join(self.root_dir, d))
          for d in chapdirs]
 
-    # ------------------------------------
-    # -- generate index (toplevel) page --
-    # ------------------------------------
+    # ---------------------------------
+    # -- generate the testcase index --
+    # ---------------------------------
+
+    # We generate a sphinx simple table, like
+    #
+    # ====== =======
+    # TC dir Summary
+    # ====== =======
+    # .../If <first sentence in tc.txt>
+    # ====== =======
+
+    # To be refined ...
 
     class TCinfo:
         def __init__ (self):
             self.max_tclen = 0
 
-    def gen_tc_entry(self, diro, pathi, data):
+    def tc_text(self, diro):
+        return os.path.relpath (diro.root, self.root_dir)
+
+    def gen_tc_entry(self, diro, pathi, ti):
+
+        # Fetch the contents aimed at the Summary column, first sentence in
+        # the testcase description file (text up to the first dot or full text
+        # in absence of dot).
 
         dtext = get_content (os.path.join(diro.root, diro.dfile()))
 
-        self.ofd.write ('* ' + diro.root + '\n')
+        todot = re.match (".*?\.", dtext, re.DOTALL)
+        sumtext = todot.group(0) if todot else dtext
+
+        # Then write the whole entry
+
+        self.ofd.write (
+            '%-*s %s\n' % (ti.max_tclen, self.tc_text(diro),
+                           sumtext.replace ('\n', ' ')))
+
+    def compute_max_tclen(self, diro, pathi, ti):
+        thislen = len (self.tc_text(diro))
+        if thislen > ti.max_tclen:
+            ti.max_tclen = thislen
 
     def tc_filter (self, diro):
         return dirProcess if (diro.tc or diro.tcset) else dirSkip
-
-    def compute_max_tclen(self, diro, pathi, ti):
-        thislen = len (diro.root)
-        if thislen > ti.max_tclen:
-            ti.max_tclen = thislen
 
     def generate_tc_index(self):
         self.ofd.write (sec_header ("Testcase Index"))
 
         tci = self.TCinfo()
 
+        # We first need to compute the common length for all the items
+        # in the first column
+
         self.dirtree.walk (
             mode=topdown, process=self.compute_max_tclen,
             ctl=self.tc_filter, data=tci)
+
+        # Then we ouptut the table header, the entries, and the table footer
+
+        self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
+        self.ofd.write ("%-*s Summary\n" % (tci.max_tclen, "TC"))
+        self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
 
         self.dirtree.walk (
             mode=topdown, process=self.gen_tc_entry,
             ctl=self.tc_filter, data=tci)
 
+        self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
+
+    # ------------------------------------
+    # -- generate index (toplevel) page --
+    # ------------------------------------
 
     def generate_index(self, chapdirs):
 
