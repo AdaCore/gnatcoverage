@@ -5,8 +5,9 @@ Check the following kinds of object declarations for which we expect to have
 elaboration code because of required initializations:
 
 * object declarations with explicit initialization expressions;
+
 * declarations of objects whose types define implicit initialization (this
   includes record types and access types).
 
 Check local and global declarations, declarations located in functions and in
-subprograms. Check objects of different kinds.
+subprograms.
