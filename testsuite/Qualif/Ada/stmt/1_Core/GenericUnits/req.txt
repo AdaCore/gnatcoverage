@@ -6,8 +6,4 @@ other cases the code from a generic unit shall be reported as uncovered
 
 **Testing strategy**
 
-Generic packages and generic subprograms shall be checked.
-
-Library-level generics and locally declared generics shall be checked.
-
-Library-level instantiations and local instantiations shall be checked.
+Check libray-level and local generic declarations and instantiations.
