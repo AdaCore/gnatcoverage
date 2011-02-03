@@ -1,3 +1,0 @@
-If a declaration sequence is elaborated, no declaration from this sequence
-shall be reported as uncovered. If a declaration sequence is not elaborated,
-no declaration from this sequence shall be reported as covered.
