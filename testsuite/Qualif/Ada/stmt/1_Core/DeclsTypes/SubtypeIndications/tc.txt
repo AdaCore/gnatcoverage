@@ -1,0 +1,11 @@
+Check that a declaration that contains a subtype indication is reported as
+uncovered if the declaration is not elaborated, and it does not reported as
+uncovered if the declaration is elaborated. 
+
+Tests include cases where the subtype indication is the only statement
+to cover.
+
+Subtype indication are checked when used in:
+ * subtype declarations;
+ * object declarations;
+ * component declarations;

@@ -1,5 +1,0 @@
-A subtype indication that contains a range, index or discriminant constraint
-may generate a coverage information. If such subtype indication is not
-elaborated it shall be reported as uncovered. If it is elaborated it shall not
-be reported as uncovered.
-
