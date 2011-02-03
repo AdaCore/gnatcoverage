@@ -2483,7 +2483,7 @@ class CheckReport:
         cmdLine1 = Piece (
             pattern="Command line:", pre=verNumber)
         cmdLine2 = Piece (
-            pattern="xcov coverage", pre=cmdLine1)
+            pattern="xcov(\.exe)? coverage", pre=cmdLine1)
 
         covLevel = Piece (
             pattern="Coverage level: stmt(\+(decision|mcdc))?", pre=cmdLine2)
