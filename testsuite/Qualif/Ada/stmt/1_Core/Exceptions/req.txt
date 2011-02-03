@@ -1,9 +1,11 @@
-Statement coverage is assessed correctly for exception mechanism. This means
-that:
+If an exception is raised, then the subsequent statements shall
+be reported as not covered and only the corresponding exception handler
+(if any) shall be reported as covered.
 
- * a RAISE statement shall be reported as uncovered if it is not executed. The
-   statements from exception handlers shall be reported as uncovered if no
-   exception is raised.
+
+A raise statement shall be reported as uncovered if it is not executed. The
+statements within the exception handlers shall be reported as uncovered if no
+exception is raised.
 
  * if a RAISE statement id executed, all the statements of the given frame that
    have not been executed yet, shall be reported as uncovered.
