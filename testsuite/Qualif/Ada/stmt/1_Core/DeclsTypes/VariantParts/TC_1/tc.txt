@@ -1,7 +1,0 @@
-Check that when an object of variant record type is created and elaboration of
-the object declaration includes evaluation of default initialization
-expressions for components defined in variant part then only the code executed
-as the result of evaluating expressions in variants corresponding to
-discriminant values is reported as covered, and the code that can be called
-from other variants is reported as uncovered. Test drivers create record
-object with different discrimnant values.

@@ -1,0 +1,10 @@
+The variant part of a variant record type declaration declaration of a record works 
+like an implicit case statement when an
+object of a variant part is created. When a specific variant is chosen for the
+discriminant(s) value(s) specified, the corresponding initialization
+expression (if any) is evaluated. This expression evaluation may result in
+function call, that is, in execution of some piece of code that does not have
+an explicit connection to the place of the object declaration.
+
+Check that only the code associated to the chosen variant is reported as covered,
+including the code of initialization expressions (if any).
