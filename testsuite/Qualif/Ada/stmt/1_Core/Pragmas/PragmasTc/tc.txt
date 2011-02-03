@@ -1,0 +1,6 @@
+Check the pragams involving actual execution:
+
+ * Assert
+ * Debug
+ * Precondition
+ * Postcondition
