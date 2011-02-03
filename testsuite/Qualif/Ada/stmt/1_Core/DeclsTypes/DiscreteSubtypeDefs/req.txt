@@ -1,5 +1,0 @@
-A discrete subtype definition that contains a range may generate a coverage
-information. If such discrete subtype definition is not elaborated it shall be
-reported as uncovered. If it is elaborated it shall not be reported as
-uncovered.
-
