@@ -1644,6 +1644,54 @@ class XnotesExpander:
                 contents.append(line[2:].lstrip())
         return contents
 
+    def __wrap_lre(self, lre):
+        """The actual expression we match against source lines for
+           a "/LRE/" expressed expectation"""
+
+        # The parens are crucial here. Consider what would happen for
+        # /bla|blo/ without them ...
+
+        return "-- # (" + lre + ")"
+
+    # builtin markers support: to let test writers put things like
+    #
+    #    -- # __l-s-
+    #
+    # in the functional sources to mean: unless explicitly overriden by
+    # a regular expectation spec, expect l- s- for this line always.
+
+    # What default notes we expect for what designator text
+
+    builtin_lxs = {"__l-s-": "l- s-",
+                   "__l!d!": "l! d!"
+                   }
+
+    def __builtin_lcxs(self, ucx):
+        """Builtin default Line coverage expectations, added to every
+           Unit coverage expectations spec unless already there in UCX"""
+
+        # Fetch the explicit line expectations from UCX and compute those
+        # not there for which we have a default to provide. Beware that the
+        # expressions in UCX were wrapped by parse_lcx already
+
+        ux_lres = [lcx.lre for lcx in ucx[1]]
+        nothere = [lre for lre in self.builtin_lxs
+                   if self.__wrap_lre(lre) not in ux_lres]
+
+        # Now compute the list of LCX objects for each of those defaults
+
+        return [self.__parse_lcx("/%s/ %s" % (lre, self.builtin_lxs[lre]))
+                for lre in nothere]
+
+    def __register_ucx(self, ucx, uxset):
+        """Add UCX to the set already in UXSET, adding builtin
+           default expectations that were not overriden."""
+
+        ucx[1].extend(self.__builtin_lcxs(ucx))
+
+        [uxset.append (UnitCX(source=source, LXset=ucx[1]))
+         for source in ucx[0]]
+
     def __parse_scovdata(self, scovdata):
         """Parse the given SCOV_DATA and return the corresponding
         list of UnitCX instances."""
@@ -1660,16 +1708,15 @@ class XnotesExpander:
                 # Build the associated UnitCX object, followed by resetting
                 # current_ucx before we start reading the next ucx.
                 if current_ucx[0] is not None:
-                    UXset += [UnitCX(source=source,
-                                         LXset=current_ucx[1])
-                                for source in current_ucx[0]]
+                    self.__register_ucx(ucx=current_ucx, uxset=UXset)
                 current_ucx = (self.__parse_sources(line), [])
             else:
-               # This must be an LX line.
-               current_ucx[1].append(self.__parse_lcx(line))
+                # This must be an LX line.
+                current_ucx[1].append(self.__parse_lcx(line))
+
         if current_ucx[0] is not None:
-            [UXset.append (UnitCX(source=source, LXset=current_ucx[1]))
-             for source in current_ucx[0]]
+            self.__register_ucx(ucx=current_ucx, uxset=UXset)
+
         return UXset
 
     def __parse_sources(self, image):
@@ -1721,7 +1768,7 @@ class XnotesExpander:
 
         lx_rnotes = self.__parse_expected_rnotes(m.group(3))
 
-        return LineCX("-- # (" + lx_lre + ")", lx_lnote, lx_rnotes)
+        return LineCX(self.__wrap_lre(lx_lre), lx_lnote, lx_rnotes)
 
     def __decode_note_choice(self, text):
         """Given a note_choice that depends potentially on the coverage
