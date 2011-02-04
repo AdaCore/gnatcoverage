@@ -89,9 +89,10 @@ class TestCase:
         # Find all the with clauses
         matches = re.findall(r'(?:\n|;|^)\s*with\s*([^;]+)\s*;', content, re.S)
         matches = [k.replace(' ', '') for k in matches]
+        matches = [k.replace('.', '-') for k in matches]
+
         result = []
-        for m in matches:
-            result += m.lower().split(',')
+        [result.extend (m.lower().split(',')) for m in matches]
         result = set(result)
 
         # Remove support package
@@ -256,8 +257,8 @@ class Dir:
             some_req    |= subdo.req
             some_tc     |= subdo.tc
 
-            some_notreq    |= not subdo.req
-            some_nottc     |= not subdo.tc
+            some_notreq  |= not subdo.req
+            some_nottc   |= not subdo.tc
 
             some_tcorset  |= subdo.tc | subdo.tcset
             some_reqorset |= subdo.req | subdo.reqset
@@ -279,6 +280,9 @@ class Dir:
                 'req.txt' if self.req else
                 'set.txt' if self.set else
                 None)
+
+    def dtext (self):
+        return get_content (os.path.join (self.root, self.dfile()))
 
 # ********************************
 # ** Directory Tree abstraction **
@@ -429,6 +433,13 @@ class DirTree:
 
         warn_if (diro.req and not diro.all_reqorset and not diro.all_tcorset,
             "missing testcases for leaf req in %s" % diro.root)
+
+        # Warn on missing testing strategy in leaf requirement with multiple
+        # testcases
+
+        warn_if (diro.req and len (diro.subdos) > 1 and diro.all_tcorset
+                 and not re.search ("Testing [Ss]trategy", diro.dtext()),
+                 "req at %s misses testing strategy description" % diro.root)
 
     def topdown_check_consistency (self, diro, pathi, data):
         self.check_local_consistency(diro, pathi)
@@ -585,7 +596,7 @@ class DocGenerator(object):
         # the testcase description file (text up to the first dot or full text
         # in absence of dot).
 
-        dtext = get_content (os.path.join(diro.root, diro.dfile()))
+        dtext = diro.dtext()
 
         todot = re.match (".*?\.", dtext, re.DOTALL)
         sumtext = todot.group(0) if todot else dtext
@@ -675,7 +686,7 @@ class DocGenerator(object):
         self.dirtree = DirTree()
 
         chapdirs = ["Report"]
-        # chapdirs += ["Ada/stmt", "Ada/decision", "Ada/mcdc"]
+        chapdirs += ["Ada/stmt", "Ada/decision", "Ada/mcdc"]
 
         self.generate_chapters(chapdirs)
 
