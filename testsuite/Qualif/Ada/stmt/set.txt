@@ -18,7 +18,7 @@ Part              ...
                   of control-flow transfers, fundamental mecanism for an
                   imperative language.
 
-*Sanity*          Holds material inspired from the SVTAS proposals to
+*Robustness*      Holds material inspired from the SVTAS proposals to
                   demonstrate that the toolset correctly handles potentially
                   confusing constructs that would fool naive analyzers for
                   various sorts of reasons.
