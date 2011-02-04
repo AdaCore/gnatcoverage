@@ -1,0 +1,3 @@
+Check that inlining does not affect coverage information for subprogram
+bodies. In other terms, check that the fact that a subprogram is inlined does
+not imply it is covered and check that on.......

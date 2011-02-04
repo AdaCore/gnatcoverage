@@ -1,4 +1,0 @@
-RETURN statement shall be reported as covered only when it is actually
-executed. If a RETURN statement is executed, then all the statements in a
-subprogram body that have not been executed by this moment shall be reported
-as uncovered.

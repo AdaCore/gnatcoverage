@@ -1,2 +1,0 @@
-Check that inlining does not affect coverage information for subprogram
-bodies. Check both procedures and functions.

@@ -1,6 +1,6 @@
 Check that for inherited subprograms, the code of a user-defined subprogram is
 reported as uncovered if neither this subprogram nor any subprogram inherited
-from  it (directly or indirectly) is called. Check that call to overriding
+from it (directly or indirectly) is called. Check that call to overriding
 subprogram does not result in reporting the code of overridden subprogram as
 covered.
 
@@ -8,3 +8,10 @@ The functional code includes more then one level of inheritance. Test drivers
 call inherited subprograms in different ways, including dispatching calls,
 calls through access-to-subprogram value and calls resulted from evaluating of
 default expressions.
+
+Check different kinds of subprogram invocation:
+
+* ordinary calls by means of a call statement/function call expression;
+* dynamic calls through access-to-subprogram value;
+* implicit calls as the result of evaluation of default initialization
+  expressions;

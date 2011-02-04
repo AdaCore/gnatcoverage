@@ -1,2 +1,0 @@
-If a subprogram is never called, all the code from the subprogram body shall
-be reported as uncovered.
