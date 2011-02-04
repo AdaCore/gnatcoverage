@@ -95,8 +95,8 @@ class TestCase:
         [result.extend (m.lower().split(',')) for m in matches]
         result = set(result)
 
-        # Remove support package
-        result -= set(['support'])
+        # Remove packages we don't care about and probably could locate
+        result -= set(['support', 'system'])
 
         file_list = set([])
         for item in result:
@@ -110,7 +110,8 @@ class TestCase:
             file_list |= body
 
             warn_if (len(body | spec) == 0,
-                'no body or spec unit "%s" (%s)' % (item, sourcefile))
+                'no body or spec source found for unit "%s" (from %s)'
+                     % (item, sourcefile))
 
         return file_list
 
