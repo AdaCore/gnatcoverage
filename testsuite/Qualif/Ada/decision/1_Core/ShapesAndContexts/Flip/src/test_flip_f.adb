@@ -9,3 +9,4 @@ end;
 -- /evaluate/    l! d!
 -- /returnTrue/  l+ 0
 -- /returnFalse/ l- s-
+-- /returnVal/   l+ 0
