@@ -12,5 +12,6 @@ package body Value is
 
    function F (X : Boolean) return Boolean is
    begin
+      return Dovalue (X, Bomb => False); -- # returnVal
    end;
 end;
