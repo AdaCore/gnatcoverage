@@ -1,3 +1,10 @@
 When the coverage achieved by multiple execution traces is evaluated, a
 decision coverage violation shall only be reported when it would have been for
 all the traces individually.
+
+**Testing Strategy**
+
+We exercise consolidation of traces obtained for single vector invocations
+over a range of basic decisions.
+
+We check all the possible combinations of inputs without repetitions.

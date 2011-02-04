@@ -1,0 +1,22 @@
+This is the root of the "Tool Operational Requirements" and "Testcases"
+hierarchy that constitutes part of the GNATcoverage qualification material.
+This is decomposed in several toplevel chapters:
+
+==============  ===========================================================
+Chapter         Holds material to define and validate expectations w.r.t.
+==============  ===========================================================
+*report*        the qualified output format
+*Ada/*          the source coverage criteria for Ada:
+*stmt*          Statement Coverage (SC)
+*decision*      Decision Coverage (DC)
+*mcdc*          Modified Condition/Decision Coverage (MCDC)
+==============  ===========================================================
+
+The SC, DC, and MCDC chapters are those corresponding to the DO-178 structural
+coverage criteria. Each chapter adds material (requirements and validating
+testcases) on top of the previous ones.
+
+* The SC chapter applies for a DO-178 level C certification,
+* The SC and the DC chapters apply for a DO-178 level B certification
+* The SC, DC and MCDC chapters apply for a DO-178 level A certification
+
