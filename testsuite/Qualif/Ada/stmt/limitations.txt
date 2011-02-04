@@ -1,0 +1,3 @@
+Generics: if a generic is not instantiated, then its declaration is NOT reported as uncovered.
+
+WHAT ABOUT INLINED SUBPROGRAMS?
