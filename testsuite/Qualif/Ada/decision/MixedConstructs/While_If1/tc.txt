@@ -1,0 +1,9 @@
+Exercise a simple If statement within a While loop, with cases where
+
+* The loop is not entered
+
+* The loop is entered and the if control decision never evaluates true
+
+* The loop is entered and the if control decision never evaluates false
+
+* The loop is entered and the if control decision evaluates true and false
