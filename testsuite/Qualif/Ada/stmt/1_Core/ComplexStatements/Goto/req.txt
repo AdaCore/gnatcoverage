@@ -1,0 +1,28 @@
+A GOTO statement shall not be reported as covered if it is a part of a
+straight-line statement block and the block is not entered; statements
+following a GOTO statement which is executed shall be reported as not covered.
+
+**Testing strategy**
+
+* control transfer inside the same straight-line statement block should be
+  checked;
+
+* control transfer back and forward shall be checked;
+
+* control transfer out of immediately enclosing statement sequence shall be
+  checked (jumping out of a LOOP, CASE, IF, block statements);
+
+* jumping out of exception handler cannot be checked when the sources are
+  compiled with -gnatp;
+
+* when used to transfer control out of a compound statement, GOTO usually
+  is enclosed by some conditional statement - otherwise we will get dead code
+  that cannot be considered as a normal thing in a real code. When considering
+  the case when a GOTO statement transfers control out of something, we
+  implicitly assume that this GOTO is a part of some IF statement that
+  defines the condition when the control should be transferred.
+
+For enclosing contexts only typical situations shall be considered: procedure
+body, function body, generic unit. One test case may combine more then one
+cases from above.
+

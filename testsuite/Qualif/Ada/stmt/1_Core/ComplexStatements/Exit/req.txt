@@ -1,0 +1,22 @@
+An exit statement is a simple statement. If an exit statement is not executed
+then it shall be reported as uncovered.
+
+An exit statement can be used only as a component of some loop statement. If
+the enclosing loop statement is not executed and if it does not go at least in
+its first iteration, all the enclosed exit statements shall be reported as
+uncovered.
+
+**Testing strategy**
+
+Both syntax forms of exit statement (with and without condition) shall be
+checked.
+
+The case of nested loop statements and EXIT statement in inner loop that
+transfers the control out of outer loop shall be checked.
+
+The case when a loop contains more than one exit statement shall be checked.
+
+This requirement and the corresponding tests are about coverage of an exit
+statement itself, but not about coverage of the components of a loop statement
+that contains an exit statement. See Loop_Statements for loop statement
+coverage.
