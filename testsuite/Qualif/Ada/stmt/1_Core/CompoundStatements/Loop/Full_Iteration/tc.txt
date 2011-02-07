@@ -1,4 +1,0 @@
-Check that if a loop statement is executed and if it goes through its complete iteration at least once, then neither the loop statement nor any of its component
-statements are reported as uncovered. The test driver executes all the
-functional code, trying to execute all the statements, so nothing is expected
-to be reported as uncovered.

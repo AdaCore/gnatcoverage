@@ -1,8 +1,0 @@
-Check that if all the path of an IF statement are executed, then no path and
-no component statement is reported as uncovered. The test driver executes the
-functional code in such a way that all the paths of all the IF statements are
-executed, it calls subprograms from the functional code several times to do
-that. The exception is the IF statement from the elaboration code in the body
-of the More_IF_Statements package (its IF path is executed as a part of
-package elaboration, so this path and its component statements is expected to
-be reported as covered, and the rest of this IF statement - as uncovered)

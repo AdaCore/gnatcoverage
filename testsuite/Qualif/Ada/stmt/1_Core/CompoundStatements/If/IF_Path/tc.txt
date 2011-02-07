@@ -1,5 +1,0 @@
-Check that if an IF statement is executed, and its IF path is chosen, then
-this path and all its component statements are reported as covered. All the
-other paths (if any) and components thereof are reported as uncovered. The
-test driver executes the functional code in such a way that IF path are
-chosen for all the IF statements contained in the code.

@@ -1,8 +1,0 @@
-Check that, if a loop statement is executed, but during its first iteration the control is transferred outside the loop, then the rest of the loop component statements are
-reported as uncovered. The test driver calls only those subprograms from the
-functional code that contain loops with EXIT statements. The statements that
-are components of these loop statements and that follow the EXIT statements
-are expected to be reported as uncovered, except for the loop statements from
-the body of the More_LOOP_Statements package (they are fully executed as a
-part of package elaboration, so they and all their component statements are
-expected to be reported as covered).
