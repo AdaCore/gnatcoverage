@@ -1,9 +1,0 @@
-Check that renaming of a subprogram does not cause by itself the code of the
-renamed subprogram to be reported as covered. That is, if the renamed
-subprogram is not called using its original name or the name defined by
-renaming declaration, its code shall be reported as uncovered. If a subprogram
-is called by using any of the names defined for it, its code shall not be
-reported as uncovered.
-
-Test drivers check procedure and function renamings that are done at library
-level and that are local.

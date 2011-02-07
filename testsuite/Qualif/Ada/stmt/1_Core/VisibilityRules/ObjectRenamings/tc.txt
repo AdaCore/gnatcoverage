@@ -1,6 +1,0 @@
-Check that if an object renaming declaration is not elaborated it is
-reported as uncovered. If evaluating of the object being renamed includes a
-function call, the code of the called function shall be reported as
-uncovered if the renaming declaration is not elaborated.
-
-Library-level and local object renaming declarations shall be checked.
