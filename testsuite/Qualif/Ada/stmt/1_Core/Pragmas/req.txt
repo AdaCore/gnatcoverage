@@ -1,1 +1,0 @@
-A pragma shall be reported as uncovered if in is not executed.

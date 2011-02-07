@@ -1,7 +1,0 @@
-Check that the fact that the code is located in a subunit does not affect
-generating coverage information. Functional code contains some typical code
-patterns placed in subunits, and test drivers execute different parts of this
-code.
-
-Both subprogram and package subunits are checked. More then one level of
-subunits is checked.

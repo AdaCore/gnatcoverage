@@ -1,2 +1,0 @@
-If a package is not elaborated, then all associated code, including the
-statements in the package body, shall be reported as uncovered.
