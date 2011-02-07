@@ -1,36 +1,15 @@
-A statement shall be reported as uncovered if it is not executed.
+Compound statements are elements of chapter 5 which typically
+contain other (compound) statements.
 
-Some statements are called simple statements, a simple statement is considered
-as an atomic construct for the coverage analysis purposes.
-
-Some other statements are compound statements. A compound statement contains
-another (simple or compound) statements as components thereof. If a compound
-statement is not executed, the statement itself and all its component
-statements shall be reported as uncovered. If a compound statement is executed
-but a control transfer takes place as a part of its execution, and this
-control transfer goes outside the statement, then the component statements
-that have not been executed before this control transfer shall be reported as
-uncovered.
-
-Some compound statements contain execution paths. An execution path is a part
-of the statement corresponding to a separate edge in the program control
-graph. If a statement path is not chosen when executing the statement, all the
-component statements belonging to this part shall be reported as uncovered. A
-statement path may contain a condition that defines if this path shall be
-chosen as a part of the statement execution. If this expression is not
-evaluated as a part of the statement execution, the corresponding part of the
-path shall be reported as noncovered.
+A compound statement shall be reported as uncovered if it is not executed.
 
 **Testing strategy**
 
 This tool operation requirement is split into subordinate requirements
-according to the sections of Chapter 5 (Statements) of ARM:
+according to the sections of Chapter 5 (Statements) of the ARM.
 
-* Null_Statements       (5.1 Simple and Compound Statements, Sequences of such)
-* Assignment_Statements (5.2 Assignment Statements)
 * If_Statements         (5.3 If Statements)
 * Case_Statements       (5.4 Case Statements)
 * Loop_Statements       (5.5 Loop Statements)
-* Block_Statements      (5.6 Block Statements)
+* Block                 (5.6 Block Statements) 
 * Exit_Statements       (5.7 Exit Statements)
-* Goto_Statements       (5.8 Goto Statements)

@@ -1,13 +1,14 @@
-Assignements
+Simple statements are elements of chapter 5 which are atomic (they do
+not contain other statements).
 
-Block
+A simple statement shall be reported as uncovered if it is not executed.
 
-Exception
+**Testing strategy**
 
-Null
+This tool operation requirement is split into subordinate requirements
+according to the sections of Chapter 5 (Statements) of the ARM.
 
-Packages (elaboration)
-
-Subunits
-
-pragmas
+* Assign statement    (ch. 5.1)
+* Null statement      (ch. 5.2)
+* Exit statement      (ch. 5.7)
+* Goto statement      (ch. 5.8)

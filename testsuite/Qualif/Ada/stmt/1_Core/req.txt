@@ -1,57 +1,21 @@
 A language construct shall be reported as uncovered if it is not executed or
 elaborated as a part of a program execution.
 
-If execution or elaboration of a construct A causes explicit or implicit
-transfer of control to code fragment B, then the constructs from B shall be
-reported as covered only if A is executed (elaborated) and the effect of its
-execution (elaboration) causes the transfer of control in question, and it
-shall be reported as uncovered in all other cases.
-
 **Testing strategy**
 
-Constructs considered for coverage analysis purposes at the statement
-coverage level are declarations, statements and statement paths. A statement
-path is a part of a control statement corresponding to a separate branch in
-the control graph.
-
-Expressions are not considered on their own because at the statement coverage
-level each expression is reported as covered or uncovered together with the
-declaration, statement or statement path it is a component of.
-
-As for declarations, only those of them that result in elaboration code are
-considered.
-
-A set of language constructs considered for coverage analysis purposes
-corresponds to the execution profile being qualified. That is, if ZFP
-run-time profile is chosen, tasking constructs are not considered, if '-gnatp'
-is set as for compilation options then the effect of raising of predefined
-options as run-time checks is not considered and so on.
-
-Each language construct in question is tested separately, the only
-combinations of language features used in the tests are those that are needed
-to create the test case for a target construct.
-
-When testing a construct, some typical contexts shall be checked, there is no
-need to check all possible contexts where the construct can be used and
-combinations thereof.
-
-Tests are not supposed to check deep constructs and/or execution
-contexts nesting level and big code fragments (long construct sequences).
-
 The further decomposition of this general requirement is based on the
-structure of the Ada Reference Manual (ARM). The top-level subordinate
-requirements are organized in the following way (the corresponding ARM
-chapters are given in brackets):
+structure of the Ada Reference Manual (ARM). We consider the following 
+chapters of the ARM:
 
-* Pragmas                (2 - Lexical Elements)
-* DeclsTypes             (3 - Declarations and Types)
-* Statements             (5 - Statements)
-* Subprograms            (6 - Subprograms)
-* Packages               (7 - Packages)
-* VisibilityRules        (8 - Visibility_Rules)
-* ProgramStructure       (10 - Program Structure and Compilation Issues)
-* Exceptions             (11 - Exceptions)
-* GenericUnits           (12 - Generic Units)
+* ch. 2 - Lexical elements
+* ch. 3 - Declarations and Types
+* ch. 5 - Statements
+* ch. 6 - Subprograms
+* ch. 7 - Packages
+* ch. 8 - Visibility_Rules
+* ch. 10 - Program Structure and Compilation Issues
+* ch. 11 - Exceptions
+* ch. 12 - Generic Units
 
 Other ARM chapters are not considered as the base for subordinate requirements
 because of the following reasons:
@@ -69,3 +33,36 @@ because of the following reasons:
 * Chapter 13 - Representation Issues: Constructs described in this chapter do
   not result in executable code so they are of no interest for coverage
   analysis.
+
+This requirement set is decomposed into subordinated requirements as follows
+(the corresponding ARM chapters are given in brackets):
+
+* DeclsTypes          (ch. 3)
+
+* SimpleStatements
+ * Null                (ch. 5.1)
+ * Assignment          (ch. 5.2)
+ * Goto                (ch. 5.8) 
+ 
+* CompoundStatements 
+ * If                  (ch. 5.3) 
+ * Case                (ch. 5.4)  
+ * Loop                (ch. 5.5)
+ * Block               (ch. 5.6)  
+ * Exit                (ch. 5.7)  
+
+* Subprograms          (ch. 6)           
+
+* GenericUnits         (ch. 12)     
+
+* Others
+ * Pragmas             (ch. 2)
+ * Packages            (ch. 7)  
+ * Object renaming     (part of ch. 8)       
+ * Subprogram renaming (part of ch. 8)
+ * Subunits            (ch. 10) 
+ * Exception           (ch. 11) 
+ 
+       
+
+
