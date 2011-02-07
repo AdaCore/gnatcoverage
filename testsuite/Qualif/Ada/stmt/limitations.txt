@@ -1,3 +1,13 @@
-Generics: if a generic is not instantiated, then its declaration is NOT reported as uncovered.
+Everything inside Subprograms: does it makes sense at all?
+
+others/Subunits
+
+Generics: what does it happen if a generic is not instantiated?
 
 WHAT ABOUT INLINED SUBPROGRAMS?
+
+TO DO:
+
+CompoundStateemtns/Block is a testcase, not a requirement
+SimpleStatements/Goto is a requirement, not a testcase
+missing text for others/req.txt
