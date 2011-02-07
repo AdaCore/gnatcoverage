@@ -1,1 +1,0 @@
-A block statement contains others statements and (optionally) declarations and exception handlers as its components. If the execution does not reach a block statement, all its components shall be reported as uncovered.

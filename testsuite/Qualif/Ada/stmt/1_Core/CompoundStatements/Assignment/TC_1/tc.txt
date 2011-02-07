@@ -1,1 +1,0 @@
-Check various code fragments that contain assignment statements in different contextes. 

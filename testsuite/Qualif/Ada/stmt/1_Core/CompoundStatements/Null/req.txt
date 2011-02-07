@@ -1,2 +1,0 @@
-If a null statement is not executed then it shall be reported as uncovered.
-
