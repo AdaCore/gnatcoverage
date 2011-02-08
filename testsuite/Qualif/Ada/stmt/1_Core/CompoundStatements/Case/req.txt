@@ -7,14 +7,12 @@ is not chosen, then all statements it contains shall not be covered.
 
 **Testing strategy**
 
-Check different syntax forms of CASE statement:
-
-* with and without OTHERS laternative;
-* alternatives defined by an expression and by a range;
-* alternatives containing one value and multiple values.
-
 Check the coverage when:
 * the CASE statement is not executed;
 * just one alternative is chosen;
 * several alternatives are chosen.
 
+Check different syntax forms of CASE statement:
+* with and without OTHERS laternative;
+* alternatives defined by an expression and by a range;
+* alternatives containing one value and multiple values.

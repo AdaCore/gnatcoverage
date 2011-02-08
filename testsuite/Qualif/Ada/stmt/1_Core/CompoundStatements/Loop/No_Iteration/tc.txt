@@ -1,9 +1,3 @@
 Check that, if a conditional loop statement is executed, but the loop condition prevents
-even the first loop iteration, then all the statement that are the components
-of this loop are reported as uncovered (whereas the loop itself is reported as
-covered). The test driver calls only those subprograms from the functional
-code that contain conditional loops. The statements that are components of
-these loop statements are expected to be reported as uncovered, except for the
-loop statements from the body of the More_LOOP_Statements package (they are
-fully executed as a part of package elaboration, so they  and all their
-component statements are expected to be reported as covered).
+even the first loop iteration, then all the contained statement are not covered
+(whereas the loop itself is reported as covered).

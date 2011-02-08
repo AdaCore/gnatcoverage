@@ -1,4 +1,5 @@
-Check that if a loop statement is executed and if it goes through its complete iteration at least once, then neither the loop statement nor any of its component
-statements are reported as uncovered. The test driver executes all the
-functional code, trying to execute all the statements, so nothing is expected
-to be reported as uncovered.
+Check that if the LOOP condition is evsluated to TRUE at least once, then:
+* all statements preceding it are covered;
+* at least the first statement following it is covered.
+
+Check (inverted) FOR, WHILE and unconditional loops.

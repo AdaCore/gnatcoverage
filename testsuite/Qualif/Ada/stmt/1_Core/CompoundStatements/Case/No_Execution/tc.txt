@@ -1,4 +1,5 @@
 Check that if a CASE statement is not executed, then the statement itself,
-all alternatives and all statements they contain are uncovered.
+all alternatives and all statements they contain are uncovered. The tests 
+only "with"s the functional code, but they do not execute anything from it.
 
 Check different forms of the CASE statement.
