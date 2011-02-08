@@ -1,1 +1,0 @@
-Check the coverage of LOOP statements containing GOTO statements. Check different forms of LOOP statements. 
