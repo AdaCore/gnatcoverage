@@ -8,6 +8,8 @@ WHAT ABOUT INLINED SUBPROGRAMS?
 
 TO DO:
 
-CompoundStateemtns/Block is a testcase, not a requirement
-SimpleStatements/Goto is a requirement, not a testcase
-missing text for others/req.txt
+* CompoundStateemtns/Block is a testcase, not a requirement
+* SimpleStatements/Goto is a requirement, not a testcase
+* missing text for miscellaneous/req.txt
+* collapse object and subprogram remaining into a single testcase in miscellaneous
+* Split exceptions into 2 testcases, one for raise, one for exception handler
