@@ -6,6 +6,12 @@ Generics: what does it happen if a generic is not instantiated?
 
 WHAT ABOUT INLINED SUBPROGRAMS?
 
+DeclarationsAndTypes/DeclSequences
+
+In general the emphasisi in DeclarationsAndTypes seems pointless.
+
+We compile with -gnatp, so cannot test implicit exception raise.
+
 TO DO:
 
 * CompoundStateemtns/Block is a testcase, not a requirement
