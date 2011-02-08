@@ -1,28 +1,20 @@
-A CASE statement contains more than one execution path (referred as CASE
-alternatives or simply alternatives below), and the execution of a CASE
-statement executes exactly one alternative. Each CASE alternative contains
-other statements as its components.
+A CASE statement is composed by several CASE alternatives and zero or
+one OTHERS alternative. Each alternative contains other statements.
 
-If a CASE statement is not executed, the statement itself and all the
-statements in all its alternatives shall be reported as uncovered (Test case
-No_Execution).
-
-If a CASE statement is executed once, the statement itself and the component
-statements of the alternative that is executed shall be reported as covered
-and for all the other alternatives all their component statements shall be
-reported as uncovered (Test case One_Alternative)
-
-If a CASE statement is executed more than once, then the statement itself and
-component statements of all the alternatives that are chosen for the
-executions of this statement shall be reported as covered, and the component
-statements of the alternatives that are not executed shall be reported as
-uncovered (Test case Several_Alternatives).
+The coverage of a CASE statement shall depend on the evaluation of its alternatives.
+If an alternative is not evaluated, then it shall not be covered. If an alternative
+is not chosen, then all statements it contains shall not be covered.
 
 **Testing strategy**
 
-Different syntax forms of CASE statement should be checked:
+Check different syntax forms of CASE statement:
 
-* with and without OTHERS choice;
-* choices defined by an expression and by a range;
-* choices containing one value and multiple values.
+* with and without OTHERS laternative;
+* alternatives defined by an expression and by a range;
+* alternatives containing one value and multiple values.
+
+Check the coverage when:
+* the CASE statement is not executed;
+* just one alternative is chosen;
+* several alternatives are chosen.
 

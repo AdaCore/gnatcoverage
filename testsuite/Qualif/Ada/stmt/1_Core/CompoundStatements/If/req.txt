@@ -2,8 +2,8 @@ An IF statement is composed by an IF branch, zero or more ELSIF branches and zer
 ELSE branch. Each branch contains one or more statements. 
 
 The coverage of an IF statement shall depend on the evaluation of its branches. If a branch is
-evaluated, then it shall be reported as covered. If a branch is chosen, then at least the first statement
-it contains shall be covered.
+not evaluated, then it shall not be covered. If a branch is not chosen, then all statements
+it contains shall not be covered.
 
 **Testing strategy**
 
