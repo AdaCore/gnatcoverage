@@ -37,31 +37,32 @@ because of the following reasons:
 This requirement set is decomposed into subordinated requirements as follows
 (the corresponding ARM chapters are given in brackets):
 
-* DeclsTypes          (ch. 3)
+* DeclarationAndTypes          (ch. 3)
 
 * SimpleStatements
  * Null                (ch. 5.1)
  * Assignment          (ch. 5.2)
  * Goto                (ch. 5.8) 
- 
+ * Exit                (ch. 5.7) 
+  
 * CompoundStatements 
  * If                  (ch. 5.3) 
  * Case                (ch. 5.4)  
  * Loop                (ch. 5.5)
  * Block               (ch. 5.6)  
- * Exit                (ch. 5.7)  
-
+ 
 * Subprograms          (ch. 6)           
+
+* Exception            (ch. 11)
 
 * GenericUnits         (ch. 12)     
 
-* Others
+* Miscellaneous
  * Pragmas             (ch. 2)
  * Packages            (ch. 7)  
- * Object renaming     (part of ch. 8)       
- * Subprogram renaming (part of ch. 8)
+ * Renaming            (ch. 8)       
  * Subunits            (ch. 10) 
- * Exception           (ch. 11) 
+ 
  
        
 
