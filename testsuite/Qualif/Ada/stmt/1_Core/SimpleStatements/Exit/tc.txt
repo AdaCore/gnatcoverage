@@ -1,5 +1,5 @@
 Exercise various code fragments that contain loops with exit statements.
-Verify that an exit statement is reported as covered only if execution reaches
+Check that an exit statement is reported as covered only if execution reaches
 its immediately enclosing loop statement and at least the first loop
 iteration reaches this exit statement, and it is reported as uncovered
 otherwise.
