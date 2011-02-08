@@ -1,5 +1,3 @@
-Check that if an IF statement is executed, and its IF path is chosen, then
-this path and all its component statements are reported as covered. All the
-other paths (if any) and components thereof are reported as uncovered. The
-test driver executes the functional code in such a way that IF path are
-chosen for all the IF statements contained in the code.
+Check that if an IF statement is executed and its IF branch is chosen, then:
+* the IF branch and at least the first statement it contains are covered;
+* all other branches and the statements they contain are reported as uncovered.

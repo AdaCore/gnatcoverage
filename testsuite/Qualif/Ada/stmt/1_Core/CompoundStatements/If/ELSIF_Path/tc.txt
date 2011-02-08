@@ -1,13 +1,8 @@
-Check that if an IF statement is executed, and its ElSIF path is chosen, then
-this path and all its component statements are reported as covered, the IF
-path and all the preceding ELSIF path (if any) are reported as covered, but
-their components are reported as uncovered, and all the paths that follows
-this ELSIF path (if any) and components thereof are reported as uncovered. The
-test drivers execute the functional code in such a way that ELSIF paths are
-chosen for IF statements contained in the code (so IF statements without ELSIF
-path are not executed at all). For an IF statement with multiple ELSIF path
-dest drivers execute different ELSIF paths. The exception is the IF statement
-from the elaboration code in the body of the More_IF_Statements package (its
-IF path is executed as a part of package elaboration, so this path and its
-component statements is expected to be reported as covered, and the rest of
-this IF statement - as uncovered)
+Check that if an IF statement is executed and one ElSIF branch is chosen, then:
+* the IF branch is covered, but the statements it contains are uncovered;
+* all ELSIF branches before the chosen one are reported as covered, but the
+statements they contain are reported as uncovered;
+* the chosen ELSIF branch is covered;
+* at least the first statement contained in the chosen ELSIF branch is covered;
+* the ELSE branch and the statements it contains are uncovered. 
+Check IF statements with one and more ELSIF branches.
