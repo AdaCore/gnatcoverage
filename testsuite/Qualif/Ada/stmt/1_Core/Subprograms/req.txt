@@ -5,7 +5,7 @@ according to the semantics of these constructs as described in Chapter 6
 **Testing strategy**
 Check the following aspects:
 
-* Coverage of subprogram declaration does not imply coverasge of subprogram body.
+* Coverage of subprogram declaration.
 * Coverage of inherited subprograms, including overriding ones.
-* Coverage of inlined subprograms
-* Coverage of the return statement
+* Coverage of inlined subprograms.
+* Coverage of the return statement.
