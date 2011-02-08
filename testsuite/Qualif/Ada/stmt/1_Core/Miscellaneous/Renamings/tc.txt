@@ -1,0 +1,4 @@
+Check the code containing renaming declarations, including:
+* Object declarations containing a function call as their components
+* Subprogram renamings
+Tests include library-level and local renaming declarations.
