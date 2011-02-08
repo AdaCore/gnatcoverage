@@ -12,6 +12,8 @@ In general the emphasisi in DeclarationsAndTypes seems pointless.
 
 We compile with -gnatp, so cannot test implicit exception raise.
 
+DeclarationAndTypes/ObjectDeclaration: we refer to "elaboration code". I am not sure it is appropriate
+
 TO DO:
 
 * CompoundStateemtns/Block is a testcase, not a requirement
