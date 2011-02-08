@@ -1,0 +1,7 @@
+Check that the coverage of programs containing goto statements in the following cases:
+* Within a sequence of statements
+* Inside a block statement
+* Inside a case statement
+* Inside an if statement
+* Inside a loop
+Tests include control transfer back and forward.
