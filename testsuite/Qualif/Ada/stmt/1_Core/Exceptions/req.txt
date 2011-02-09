@@ -1,0 +1,9 @@
+Statement coverage shall be assessed correctly for Ada exceptions mechanism as
+described in Chapter 11 "Exceptions" of the Ada Reference Manual.
+
+**Testing strategy**
+Check the following aspects:
+
+* Exception raising
+* Exception propagation
+* Exception handling

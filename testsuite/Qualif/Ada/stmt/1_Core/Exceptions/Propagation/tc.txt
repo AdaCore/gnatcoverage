@@ -1,0 +1,5 @@
+Check that if an exception is raised and propagated, then all the code that
+is skipped because of the exception propagation is reported as uncovered.
+
+Cases to check are restricted by ZFP limitation on exception propagation, so
+the only case to check is nested block statements.
