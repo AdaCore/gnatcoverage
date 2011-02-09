@@ -1,0 +1,6 @@
+Check that if a predefined exception is implicitely raised or a raise statement
+is executed, then all subsequent statements are reported as not covered.
+Check that if a raise statement is not executed it is reported as uncovered.
+Consider exception raise in procedure and function bodies and in block
+statements
+

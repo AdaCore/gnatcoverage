@@ -1,4 +1,4 @@
---  Test driver for exceptions. It calls all the subprograms from the
+--  Test driver for exception raise. It calls all the subprograms from the
 --  functional code, but does it in such a way that no exception is raised, so
 --  all the RAISE statements and all the code in all the exception handlers are
 --  expected to be reported as uncovered.
@@ -19,9 +19,15 @@ begin
    Assert (Fun2 (0) = 1);
 
    Proc3 (Int);
-   Assert (Int = 5);
+   Assert (Int = 1);
 
-   Assert (Fun3 (0) = 0);
+   Assert (Fun3 (0) = 1);
+
+   Int := 3;
+   Proc4 (Int);
+   Assert (Int = 6);
+
+   Assert (Fun4 (0) = 0);
 
 end Test_Exceptions_No_Exception_Raise;
 
@@ -43,21 +49,29 @@ end Test_Exceptions_No_Exception_Raise;
 -- /no_raise_fun2/                  l+ 0
 
 -- /proc3/                          l+ 0
--- /raise_my_exception_proc3/       l- s-
--- /after_raise_proc3/              l+ 0
--- /raise_constraint_error_proc3/   l- s-
--- /elsif_proc3/                    l+ 0
--- /in_elsif_proc3/                 l+ 0
--- /after_if_proc3/                 l+ 0
--- /constraint_error_handler_proc3/ l- s-
--- /others_handler_proc3/           l- s-
+-- /no_raise_proc3/                 l+ 0
+-- /raise_proc3/                    l- s-
 
 -- /fun3/                           l+ 0
--- /raise_constraint_error_fun3/    l- s-
--- /after_raise_fun3/               l+ 0
--- /raise_my_exception_fun3/        l- s-
--- /elsif_fun3/                     l+ 0
--- /in_elsif_fun3/                  l- s-
--- /after_if_fun3/                  l+ 0
--- /my_exception_handler_fun3/      l- s-
--- /others_handler_fun3/            l- s-
+-- /raise_fun3/                     l- s-
+-- /no_raise_fun3/                  l+ 0
+
+-- /proc4/                          l+ 0
+-- /raise_my_exception_proc4/       l- s-
+-- /after_raise_proc4/              l+ 0
+-- /raise_constraint_error_proc4/   l- s-
+-- /elsif_proc4/                    l+ 0
+-- /in_elsif_proc4/                 l+ 0
+-- /after_if_proc4/                 l+ 0
+-- /constraint_error_handler_proc4/ l- s-
+-- /others_handler_proc4/           l- s-
+
+-- /fun4/                           l+ 0
+-- /raise_constraint_error_fun4/    l- s-
+-- /after_raise_fun4/               l+ 0
+-- /raise_my_exception_fun4/        l- s-
+-- /elsif_fun4/                     l+ 0
+-- /in_elsif_fun4/                  l- s-
+-- /after_if_fun4/                  l+ 0
+-- /my_exception_handler_fun4/      l- s-
+-- /others_handler_fun4/            l- s-
