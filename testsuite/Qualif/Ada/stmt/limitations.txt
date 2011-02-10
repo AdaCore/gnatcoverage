@@ -1,23 +1,5 @@
-Everything inside Subprograms: does it makes sense at all?
-
-others/Subunits
-
 Generics: what does it happen if a generic is not instantiated?
-
-WHAT ABOUT INLINED SUBPROGRAMS?
-
-DeclarationsAndTypes/DeclSequences
-
-In general the emphasisi in DeclarationsAndTypes seems pointless.
-
-We compile with -gnatp, so cannot test implicit exception raise.
-
-DeclarationAndTypes/ObjectDeclaration: we refer to "elaboration code". I am not sure it is appropriate
 
 TO DO:
 
 * CompoundStateemtns/Block is a testcase, not a requirement
-* SimpleStatements/Goto is a requirement, not a testcase
-* missing text for miscellaneous/req.txt
-* collapse object and subprogram remaining into a single testcase in miscellaneous
-* Split exceptions into 2 testcases, one for raise, one for exception handler
