@@ -1,0 +1,1 @@
+Check that indentention does not effect coverage.

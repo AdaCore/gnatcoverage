@@ -1,7 +1,0 @@
-Exercise a no-op function featuring statements guarded by conditional
-constructs that won't transfer control to them, but indented in a way which
-could lead to believe that the code isn't conditioned at all, hence covered
-even if not actually executed.  Verify that the unreached statements are
-always reported uncovered.
-
-

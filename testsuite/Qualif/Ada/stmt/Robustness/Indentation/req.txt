@@ -1,5 +1,0 @@
-Statement coverage assessment remains correct in the presence of indentations
-which may fool naive analyzers into mis-evaluating whether code is conditioned
-or not.
-
-
