@@ -1,5 +1,7 @@
 The coverage of the statements inside the LOOP statement shall depend 
-on the evaluation of the loop condition. If the LOOP condition is not evaluated,
+on the evaluation of the loop condition. 
+
+If the LOOP condition is not evaluated,
 the all preceding statements shall not be covered. If the
 LOOP condition is evaluated to FALSE during the first iteration,
 then all subsequent statements shall not be covered.
