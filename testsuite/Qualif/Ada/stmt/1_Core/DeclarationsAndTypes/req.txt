@@ -7,8 +7,6 @@ The testing strategy considers the elements contained in chapter 3
 of the Ada Reference Manual which are relevant from a structural coverage
 analysis perspective. It takes into account the following cases:
 
-* Declaration Sequences.
-
 * Discrete Subtype Definitions.
 
 * Object Declarations. 
