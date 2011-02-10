@@ -1,0 +1,4 @@
+Check that coverage is not influenced by multiple statements
+physically located on the same line.
+
+Check unconditional and conditional statements.
