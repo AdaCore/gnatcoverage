@@ -1,3 +1,0 @@
-Exercise two overloaded subprograms called Flip, declared in the same
-compilation unit. Verify that calls to one of these subprograms does not
-influence coverage results for calls to the other.
