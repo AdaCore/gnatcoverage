@@ -1,0 +1,1 @@
+Check coverage in case of nested block statements.

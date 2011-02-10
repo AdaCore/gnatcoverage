@@ -1,0 +1,10 @@
+A block statement contains others statements and (optionally) declarations and
+exception handlers as its components. If the execution does not reach a block
+statement, all its components shall be reported as uncovered.
+
+**Testing strategy**
+
+* Check varios syntax forms of a block statement (with and without a
+declarative part, with and without exception handlers) in different contexts;
+
+* Check nested block statements.

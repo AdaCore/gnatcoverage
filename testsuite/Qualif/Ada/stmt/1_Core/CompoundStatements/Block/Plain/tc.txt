@@ -1,0 +1,2 @@
+Check various code fragments that contain block statements with and without
+declarative part, with and without exception handlers.
