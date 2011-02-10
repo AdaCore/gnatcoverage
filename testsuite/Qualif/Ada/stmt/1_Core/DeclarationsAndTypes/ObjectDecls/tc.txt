@@ -2,7 +2,7 @@ Check that an object declaration is reported as uncovered if it is not
 elaborated, and that it is not reported as uncovered if it is elaborated.
 
 Check the following kinds of object declarations for which we expect to have
-elaboration code because of required initializations:
+implicit execution of code for the initializations:
 
 * object declarations with explicit initialization expressions;
 
