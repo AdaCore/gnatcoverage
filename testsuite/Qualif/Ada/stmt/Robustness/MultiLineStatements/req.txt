@@ -1,3 +1,0 @@
-When a statement spanning multiple lines isn't reached, a single "statement
-not covered" violation is reported wih a source location designating the first
-line occupied by the statement.
