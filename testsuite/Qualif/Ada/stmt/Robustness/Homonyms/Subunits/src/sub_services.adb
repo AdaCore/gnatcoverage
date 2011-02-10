@@ -1,6 +1,6 @@
 with Support; use Support;
 
-package body Services is
+package body Sub_Services is
 
    procedure FlipX (X : in out Integer) is separate;
    procedure Flip  (X : in out Integer) renames Flipx;
