@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2009-2010, AdaCore                     --
+--                     Copyright (C) 2009-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -58,7 +58,7 @@ package Qemudrv_Base is
                                        new String'("$dir_exe"),
                                        new String'("-bios"),
                                        new String'("$base_bin"),
-                                       new String'("-trace"),
+                                       new String'("-exec-trace"),
                                        new String'("$trace"))
       ),
       (Target => new String'("qemu-sbc834x"),
@@ -71,7 +71,7 @@ package Qemudrv_Base is
                                        new String'("-no-reboot"),
                                        new String'("-kernel"),
                                        new String'("$exe"),
-                                       new String'("-trace"),
+                                       new String'("-exec-trace"),
                                        new String'("$trace"))
       ),
       (Target => new String'("leon-elf"),
@@ -83,7 +83,7 @@ package Qemudrv_Base is
                                        new String'("at697"),
                                        new String'("-kernel"),
                                        new String'("$exe"),
-                                       new String'("-trace"),
+                                       new String'("-exec-trace"),
                                        new String'("$trace"))
 
       ),
@@ -96,7 +96,7 @@ package Qemudrv_Base is
                                        new String'("tsc695"),
                                        new String'("-kernel"),
                                        new String'("$exe"),
-                                       new String'("-trace"),
+                                       new String'("-exec-trace"),
                                        new String'("$trace"))
 
       ),
@@ -114,14 +114,14 @@ package Qemudrv_Base is
                                        new String'("-boot"),
                                        new String'("a"),
                                        new String'("-nographic"),
-                                       new String'("-trace"),
+                                       new String'("-exec-trace"),
                                        new String'("$trace"))
       ),
       (Target => new String'("i386-linux"),
        Build_Command => null,
        Build_Options => null,
        Run_Command => new String'("qemu-i386"),
-       Run_Options => new String_List'(new String'("-trace"),
+       Run_Options => new String_List'(new String'("-exec-trace"),
                                        new String'("$trace"),
                                        new String'("$exe"))
       ),
