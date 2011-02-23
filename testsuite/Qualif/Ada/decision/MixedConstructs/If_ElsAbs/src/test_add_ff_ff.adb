@@ -8,8 +8,10 @@ end;
 --# add.adb
 -- /tover0/  l! dT-
 -- /tover1/  l! 0
--- /retplus/ l- s-
+-- /retp0/   l- s-
+-- /retp1/   l- 0
 -- /tunder0/ l! dT-
 -- /tunder1/ l! 0
--- /retmin/  l- s-
+-- /retm0/   l- s-
+-- /retm1/   l- 0
 -- /fault/   l+ 0
