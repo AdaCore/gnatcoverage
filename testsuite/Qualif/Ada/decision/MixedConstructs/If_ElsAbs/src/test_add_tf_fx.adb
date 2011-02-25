@@ -1,8 +1,8 @@
 with Support, Add; use Support, Add;
 
-procedure Test_Add_FF_FF is
+procedure Test_Add_TF_FX is
 begin
-   Assert (Time (123) + Time_Span (-124) = (False, Time (0)));
+   Assert (Time'Last + Time_Span (123) = (Valid => False, Value => 0));
 end;
 
 --# add.adb
