@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -1455,7 +1455,7 @@ package body SC_Obligations is
                                      others               => <>));
                   Previous_Statement := SCO_Vector.Last_Index;
 
-               when 'I' | 'E' | 'P' | 'W' | 'X' =>
+               when 'I' | 'E' | 'G' | 'P' | 'W' | 'X' =>
                   --  Decision
 
                   pragma Assert (Current_Decision = No_SCO_Id);
