@@ -244,6 +244,7 @@ package body SC_Obligations is
    type Decision_Kind is
      (If_Statement,
       Exit_Statement,
+      Entry_Guard,
       Pragma_Assert_Check_PPC,
       While_Loop,
       Expression);
@@ -1937,6 +1938,7 @@ package body SC_Obligations is
       case C is
          when 'I'    => return If_Statement;
          when 'E'    => return Exit_Statement;
+         when 'G'    => return Entry_Guard;
          when 'P'    => return Pragma_Assert_Check_PPC;
          when 'W'    => return While_Loop;
          when 'X'    => return Expression;
