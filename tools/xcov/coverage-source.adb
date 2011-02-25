@@ -257,7 +257,9 @@ package body Coverage.Source is
                         & " never exercised");
                   end if;
 
-               elsif Basic_Block_Has_Code (Enclosing_Statement (SCO)) then
+               elsif D_Kind (SCO) = Entry_Guard
+                 or else Basic_Block_Has_Code (Enclosing_Statement (SCO))
+               then
 
                   --  Similar to the above for statement coverage: a decision
                   --  that cannot ever be executed is reported as No_Code, not
@@ -270,7 +272,9 @@ package body Coverage.Source is
                   --  case only; if the statement was not executed, we report
                   --  only the statement failure.
 
-                  if SCI_Of_SCO (Enclosing_Statement (SCO)).Executed then
+                  if D_Kind (SCO) = Entry_Guard
+                       or else SCI_Of_SCO (Enclosing_Statement (SCO)).Executed
+                  then
                      Report (SCO, "never evaluated");
                   end if;
                   SCO_State := Not_Covered;
@@ -427,26 +431,29 @@ package body Coverage.Source is
          --  Find enclosing statement SCO and mark it as executed. Note: for
          --  the guard condition of an entry, there is no enclosing statement.
 
-         if D_Kind (SCO) /= Entry_Guard then
-            S_SCO := SCO;
-            while Kind (S_SCO) /= Statement loop
-               S_SCO := Parent (S_SCO);
-               pragma Assert (S_SCO /= No_SCO_Id);
-            end loop;
+         S_SCO := SCO;
+         while Kind (S_SCO) /= Statement loop
+            if Kind (S_SCO) = Decision
+                 and then D_Kind (S_SCO) = Entry_Guard
+            then
+               S_SCO := No_SCO_Id;
+               exit;
+            end if;
+            S_SCO := Parent (S_SCO);
+            pragma Assert (S_SCO /= No_SCO_Id);
+         end loop;
 
-            loop
-               --  Mark S_SCO as executed
+         while S_SCO /= No_SCO_Id loop
+            exit when SCI_Vector.Element (S_SCO).Executed;
 
-               SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
+            --  Mark S_SCO as executed
 
-               --  Propagate back to beginning of basic block
+            SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
 
-               S_SCO := Previous (S_SCO);
-               exit when S_SCO = No_SCO_Id
-                 or else SCI_Vector.Element (S_SCO).Executed;
-               SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
-            end loop;
-         end if;
+            --  Propagate back to beginning of basic block
+
+            S_SCO := Previous (S_SCO);
+         end loop;
 
          if not (Enabled (Decision) or else MCDC_Coverage_Enabled)
            or else Kind (SCO) /= Condition
