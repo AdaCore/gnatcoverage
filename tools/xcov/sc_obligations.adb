@@ -239,16 +239,6 @@ package body SC_Obligations is
    function To_Statement_Kind (C : Character) return Statement_Kind;
    --  Convert character code for statement kind to corresponding enum value
 
-   --  Decision_Kind denotes the various decision kinds identified in SCOs
-
-   type Decision_Kind is
-     (If_Statement,
-      Exit_Statement,
-      Entry_Guard,
-      Pragma_Assert_Check_PPC,
-      While_Loop,
-      Expression);
-
    function To_Decision_Kind (C : Character) return Decision_Kind;
    --  Convert character code for decision kind to corresponding enum value
 
@@ -970,6 +960,15 @@ package body SC_Obligations is
       end loop;
       raise Constraint_Error with "condition index out of range";
    end Condition;
+
+   ------------
+   -- D_Kind --
+   ------------
+
+   function D_Kind (SCO : SCO_Id) return Decision_Kind is
+   begin
+      return SCO_Vector.Element (SCO).D_Kind;
+   end D_Kind;
 
    ----------------------
    -- Degraded_Origins --

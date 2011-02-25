@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -424,26 +424,29 @@ package body Coverage.Source is
             end;
          end loop;
 
-         --  Find enclosing statement SCO and mark it as executed
+         --  Find enclosing statement SCO and mark it as executed. Note: for
+         --  the guard condition of an entry, there is no enclosing statement.
 
-         S_SCO := SCO;
-         while Kind (S_SCO) /= Statement loop
-            S_SCO := Parent (S_SCO);
-            pragma Assert (S_SCO /= No_SCO_Id);
-         end loop;
+         if D_Kind (SCO) /= Entry_Guard then
+            S_SCO := SCO;
+            while Kind (S_SCO) /= Statement loop
+               S_SCO := Parent (S_SCO);
+               pragma Assert (S_SCO /= No_SCO_Id);
+            end loop;
 
-         loop
-            --  Mark S_SCO as executed
+            loop
+               --  Mark S_SCO as executed
 
-            SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
+               SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
 
-            --  Propagate back to beginning of basic block
+               --  Propagate back to beginning of basic block
 
-            S_SCO := Previous (S_SCO);
-            exit when S_SCO = No_SCO_Id
-              or else SCI_Vector.Element (S_SCO).Executed;
-            SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
-         end loop;
+               S_SCO := Previous (S_SCO);
+               exit when S_SCO = No_SCO_Id
+                 or else SCI_Vector.Element (S_SCO).Executed;
+               SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
+            end loop;
+         end if;
 
          if not (Enabled (Decision) or else MCDC_Coverage_Enabled)
            or else Kind (SCO) /= Condition

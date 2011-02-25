@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -127,6 +127,17 @@ package SC_Obligations is
 
    --  Decision SCOs
 
+   --  Decision_Kind denotes the various decision kinds identified in SCOs
+
+   type Decision_Kind is
+     (If_Statement,
+      Exit_Statement,
+      Entry_Guard,
+      Pragma_Assert_Check_PPC,
+      While_Loop,
+      Expression);
+
+   function D_Kind (SCO : SCO_Id) return Decision_Kind;
    function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id;
    function Last_Cond_Index (SCO : SCO_Id) return Condition_Index;
    function Degraded_Origins (SCO : SCO_Id) return Boolean;
