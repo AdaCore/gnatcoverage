@@ -165,6 +165,12 @@ package SCOs is
    --    entries appear in one logical statement sequence, continuation lines
    --    are marked by Cs and appear immediately after the CS line.
 
+   --    Implementation permission: a SCO generator is permitted to emit a
+   --    narrower SLOC range for a statement if the corresponding code
+   --    generation circuitry ensures that all debug information for the code
+   --    implementing the statement will be labeled with SLOCs that fall within
+   --    that narrower range.
+
    --  Decisions
 
    --    Note: in the following description, logical operator includes only the
@@ -278,7 +284,8 @@ package SCOs is
    --    form is used, e.g. A in (2,7,11.15).
 
    --    The expression can be followed by chaining indicators of the form
-   --    Tsloc-range or Fsloc-range.
+   --    Tsloc-range or Fsloc-range, where the sloc-range is that of some
+   --    entry on a CS line.
 
    --    T* is present when the statement with the given sloc range is executed
    --    if, and only if, the decision evaluates to TRUE.
