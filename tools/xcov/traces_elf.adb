@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2010, AdaCore                     --
+--                     Copyright (C) 2008-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -2961,80 +2961,93 @@ package body Traces_Elf is
                                         Symbol_Addresses,
                                         Line_Addr.First);
 
-            Next_Line_Cursor := Next (Line_Cursor);
-            if Has_Element (Next_Line_Cursor) then
-               --  Consider line range up to next line info if remaining within
-               --  the same symbol.
+            --  Because of code elimination, we may have lines that
+            --  correspond to no code; in which case Symbol can be
+            --  null.  In such a case, we just want to skip all lines
+            --  that that are associated to this null symbol.
 
-               Next_Line_Addr := Element (Next_Line_Cursor);
-               if Get_Address_Info
+            if Symbol /= null then
+               Next_Line_Cursor := Next (Line_Cursor);
+
+               if Has_Element (Next_Line_Cursor) then
+                  --  Consider line range up to next line info if
+                  --  remaining within the same symbol.
+
+                  Next_Line_Addr := Element (Next_Line_Cursor);
+
+                  if Get_Address_Info
                     (Exec.all, Symbol_Addresses, Next_Line_Addr.First) = Symbol
-               then
-                  Sloc_End := Next_Line_Addr.Sloc;
+                  then
+                     Sloc_End := Next_Line_Addr.Sloc;
+                  else
+                     Sloc_End := Sloc_Begin;
+                  end if;
                else
                   Sloc_End := Sloc_Begin;
                end if;
-            else
-               Sloc_End := Sloc_Begin;
-            end if;
 
-            --  Two different cases:
-            --
-            --  * if the two consecutive slocs are in the same source file,
-            --  we check if there is a SCO in this range. Not strictly correct:
-            --  consider the case when a function declared in a package is
-            --  inlined in an other function inside this same package; in
-            --  this case, the range defined by two consecutive debug slocs may
-            --  not correspond to anything relevant in the source code. This
-            --  should not matter much though. Inlining causes other problems
-            --  to statement coverage anyway. Plus, the consequence of this
-            --  error will just be to include a routine in a package that
-            --  contains SCO; that's certainly fine as, in the source coverage
-            --  case, the routine list is mostly a way to select the source
-            --  files to handle; if we have some SCOs in the file in which
-            --  a routine is defined, it is certainly appropriate to add it to
-            --  trace name database.
-            --
-            --  * if the two consecutive slocs are in a different source file.
-            --  in this case, it is never a good idea to consider the range of
-            --  these two slocs. Deal with them separately.
-            --
-            --  In any case, the whole last line is included in its range by
-            --  taking the maximum column number.
+               --  Two different cases:
+               --
+               --  * if the two consecutive slocs are in the same
+               --  source file, we check if there is a SCO in this
+               --  range. Not strictly correct: consider the case when
+               --  a function declared in a package is inlined in an
+               --  other function inside this same package; in this
+               --  case, the range defined by two consecutive debug
+               --  slocs may not correspond to anything relevant in
+               --  the source code. This should not matter much
+               --  though. Inlining causes other problems to statement
+               --  coverage anyway. Plus, the consequence of this
+               --  error will just be to include a routine in a
+               --  package that contains SCO; that's certainly fine
+               --  as, in the source coverage case, the routine list
+               --  is mostly a way to select the source files to
+               --  handle; if we have some SCOs in the file in which a
+               --  routine is defined, it is certainly appropriate to
+               --  add it to trace name database.
+               --
+               --  * if the two consecutive slocs are in a different
+               --  source file.  in this case, it is never a good idea
+               --  to consider the range of these two slocs. Deal with
+               --  them separately.
+               --
+               --  In any case, the whole last line is included in its
+               --  range by taking the maximum column number.
 
-            if Sloc_Begin.Source_File = Sloc_End.Source_File
-              and then Sloc_Begin < Sloc_End
-            then
-               Sloc_End.Column := Natural'Last;
-               Select_Symbol := Selected (Sloc_Begin, Sloc_End);
-
-            else
-               declare
-                  Sloc_End : Source_Location := Sloc_Begin;
-               begin
+               if Sloc_Begin.Source_File = Sloc_End.Source_File
+                 and then Sloc_Begin < Sloc_End
+               then
                   Sloc_End.Column := Natural'Last;
                   Select_Symbol := Selected (Sloc_Begin, Sloc_End);
-               end;
 
-               declare
-                  Sloc_Begin : constant Source_Location := Sloc_End;
-               begin
-                  Sloc_End.Column := Natural'Last;
-                  Select_Symbol :=
-                    Select_Symbol or else Selected (Sloc_Begin, Sloc_End);
-               end;
-            end if;
+               else
+                  declare
+                     Sloc_End : Source_Location := Sloc_Begin;
+                  begin
+                     Sloc_End.Column := Natural'Last;
+                     Select_Symbol := Selected (Sloc_Begin, Sloc_End);
+                  end;
 
-            --  Now, include the symbol to the routine table if it
-            --  is selected and not already included:
-
-            if Select_Symbol then
-               if not Is_In (Symbol.Symbol_Name) then
-                  Add_Routine_Name (Symbol.Symbol_Name, Exec);
+                  declare
+                     Sloc_Begin : constant Source_Location := Sloc_End;
+                  begin
+                     Sloc_End.Column := Natural'Last;
+                     Select_Symbol :=
+                       Select_Symbol or else Selected (Sloc_Begin, Sloc_End);
+                  end;
                end if;
 
-               Skip_Symbol (Symbol);
-               exit when not Has_Element (Line_Cursor);
+               --  Now, include the symbol to the routine table if it
+               --  is selected and not already included:
+
+               if Select_Symbol then
+                  if not Is_In (Symbol.Symbol_Name) then
+                     Add_Routine_Name (Symbol.Symbol_Name, Exec);
+                  end if;
+
+                  Skip_Symbol (Symbol);
+                  exit when not Has_Element (Line_Cursor);
+               end if;
             end if;
          end;
          Next (Line_Cursor);
