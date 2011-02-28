@@ -127,17 +127,6 @@ package SC_Obligations is
 
    --  Decision SCOs
 
-   --  Decision_Kind denotes the various decision kinds identified in SCOs
-
-   type Decision_Kind is
-     (If_Statement,
-      Exit_Statement,
-      Entry_Guard,
-      Pragma_Assert_Check_PPC,
-      While_Loop,
-      Expression);
-
-   function D_Kind (SCO : SCO_Id) return Decision_Kind;
    function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id;
    function Last_Cond_Index (SCO : SCO_Id) return Condition_Index;
    function Degraded_Origins (SCO : SCO_Id) return Boolean;
@@ -148,7 +137,8 @@ package SC_Obligations is
 
    function Enclosing_Statement (SCO : SCO_Id) return SCO_Id;
    --  Enclosing statement (climbing up the tree through any enclosing
-   --  conditions).
+   --  conditions). May be No_SCO_Id for decisions that are not part of any
+   --  statement (e.g. Entry_Guard).
 
    procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
 

@@ -257,10 +257,9 @@ package body Coverage.Source is
                         & " never exercised");
                   end if;
 
-               elsif D_Kind (SCO) = Entry_Guard
+               elsif Enclosing_Statement (SCO) = No_SCO_Id
                  or else Basic_Block_Has_Code (Enclosing_Statement (SCO))
                then
-
                   --  Similar to the above for statement coverage: a decision
                   --  that cannot ever be executed is reported as No_Code, not
                   --  Not_Covered. Note: the enclosing statement may be covered
@@ -270,9 +269,10 @@ package body Coverage.Source is
                   --  the corresponding conditional branch instruction). We
                   --  report the coverage failure for the decision in that
                   --  case only; if the statement was not executed, we report
-                  --  only the statement failure.
+                  --  only the statement failure. If there is no enclosing
+                  --  statement then we always report the coverage status.
 
-                  if D_Kind (SCO) = Entry_Guard
+                  if Enclosing_Statement (SCO) = No_SCO_Id
                        or else SCI_Of_SCO (Enclosing_Statement (SCO)).Executed
                   then
                      Report (SCO, "never evaluated");
@@ -428,21 +428,9 @@ package body Coverage.Source is
             end;
          end loop;
 
-         --  Find enclosing statement SCO and mark it as executed. Note: for
-         --  the guard condition of an entry, there is no enclosing statement.
+         --  Find enclosing statement SCO (if any) and mark it as executed
 
-         S_SCO := SCO;
-         while Kind (S_SCO) /= Statement loop
-            if Kind (S_SCO) = Decision
-                 and then D_Kind (S_SCO) = Entry_Guard
-            then
-               S_SCO := No_SCO_Id;
-               exit;
-            end if;
-            S_SCO := Parent (S_SCO);
-            pragma Assert (S_SCO /= No_SCO_Id);
-         end loop;
-
+         S_SCO := Enclosing_Statement (SCO);
          while S_SCO /= No_SCO_Id loop
             exit when SCI_Vector.Element (S_SCO).Executed;
 
