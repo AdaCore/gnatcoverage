@@ -416,7 +416,7 @@ in D's influence set.
 
 \end{itemize}
 
-The theorem has now been demonstrated in all cases. 
+The theorem has now been demonstrated in all cases.
 
 \subsubsection{OBC}
 
@@ -1230,7 +1230,7 @@ sub-decision of D, obviously; ``strict'' sub-decisions):
                           & + merge(path\_to(not SC, BDDBC\_Coverage(DL)),\\
                           & \quad  LPLD\_Not\_Evaluated(DR))
     \end{align*}
-  
+
   \item Last diamond introduced:\\
     i.e. no diamonds in BDD(DR) and a diamond has been created when building
     BDD(D). In this case:
@@ -1418,13 +1418,13 @@ then have three cases:
 $NF(D) = NT(D) = 1$
 
 \emph{case 2:} D = $DL \ \orelse{} \ DR$\\
-BDD(D) is constructed from BDD(DL) and BDD(DR). It is shown 
+BDD(D) is constructed from BDD(DL) and BDD(DR). It is shown
 in Figure~\ref{subfig:DL-or-DR}. Then:\\
 $NF(D) = NF(DL) * NF(DR)$\\
 $NT(D) = NT(DL) + NF(DL) * NT(DR)$
 
 \emph{case 3:} D = $DL \ \andthen{} \ DR$\\
-BDD(D) is constructed from BDD(DL) and BDD(DR). It is shown 
+BDD(D) is constructed from BDD(DL) and BDD(DR). It is shown
 in Figure~\ref{subfig:DL-and-DR}. Then:\\
 $NF(D) = NF(DL) + NT(DL) * NF(DR)$\\
 $NT(D) = NT(DL) * NT(DR)$
@@ -1441,7 +1441,7 @@ If D is of the form \andthen{} then $NF(D) \ge 2$.
 NF and NT are monotonic functions, i.e. if D' is a sub-decision of D,
 then we have
         $NF(D') \le NF(D)$
-and        
+and
         $NT(D') \le NT(D)$.
 \end{lemma}
 
@@ -2618,12 +2618,12 @@ annotated truth table earlier.
 \item No point in maintaining two different structures for MCDC(OUT, Dec) and
 paths\_to(OUT, Dec); the second one can be deduced from the first one by
 removing markers (property~\ref{thm:evals-and-paths}).
- 
+
 \item In the context of our expressions, multiplicative operators are
 always distributive over the additive ones. So one may just understand
 $\otimes$ and $\multimap$ as a cartesian product over annotated truth tables.
 $\oplus$ and $\with$ can be thought of as union.
- 
+
 \item We can have one entry per evaluation in the truth table, and several
 markers associated to them, thanks to left-distributivity of $\multimap$ over
 $\with$. Entries may be ordered to ease to factorize markers out:
@@ -2637,7 +2637,7 @@ e.g. for \{A=F, C=F\}, index is 000.
 \item An implementation may not add some evaluations if it can prove (by
 an other mean) that coupling prevents them. This may avoid to build
 the whole truth table.
-        
+
 \item In the modular implementation of BUILD\_MCDC, when analyzing a
 sub-decision that contains all conditions on which we focus, it is
 possible to drop any evaluation that does not execute one of these
