@@ -2932,11 +2932,11 @@ package body Traces_Elf is
         (Symbol_Addr : Addresses_Info_Acc)
       is
          Line_Addr : Addresses_Info_Acc :=
-           new Addresses_Info'(Kind   => Line_Addresses,
-                               First  => Symbol_Addr.Last,
-                               Last   => Symbol_Addr.Last,
-                               Parent => null,
-                               Sloc   => Slocs.No_Location);
+                       new Addresses_Info'(Kind   => Line_Addresses,
+                                           First  => Symbol_Addr.Last,
+                                           Last   => Symbol_Addr.Last,
+                                           Parent => null,
+                                           Sloc   => Slocs.No_Location);
       begin
          Line_Cursor := Floor (Line_Table, Line_Addr);
          Unchecked_Deallocation (Line_Addr);
@@ -2949,7 +2949,7 @@ package body Traces_Elf is
       while Has_Element (Line_Cursor) loop
          declare
             Line_Addr        : constant Addresses_Info_Acc :=
-                                  Element (Line_Cursor);
+                                 Element (Line_Cursor);
             Sloc_Begin       : constant Source_Location := Line_Addr.Sloc;
             Sloc_End         : Source_Location;
             Next_Line_Cursor : Cursor;
