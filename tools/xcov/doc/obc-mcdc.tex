@@ -11,6 +11,8 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{subfigure}
+\usepackage{cmll}
+\usepackage{txfonts}
 
 \usepackage{tikz}
 \usetikzlibrary{arrows,positioning}
@@ -1889,6 +1891,758 @@ problem.
 In other words, Masking MC/DC is still useful in the case of
 short-circuit operators; but only when there are diamonds in the
 decision's BDD.
+
+\section{Computing Masking MC/DC vectors}
+
+We have given earlier a simple way to determine if a pair of
+evaluations proves Masking MC/DC for a condition if only short-circuit
+operators are used. It was Theorem~\ref{thm:masking-short-circuit}: if
+a decision Dec contains only short-circuit operators, Masking MC/DC is
+reached for a condition C if and only if there exists a pair of
+evaluation (e1, e2) such that Dec[e1] = not Dec[e2], and C is the
+rightmost condition that is evaluated to two different values in e1
+and e2.
+
+In order to have an algorithm to generate a Masking MC/DC coverage of
+a decision, one may actually simplify even more the identification of
+a MC/DC pair. It is indeed possible to determine which condition may
+be proven to have an independent effect from a given evaluation, and
+identify a polarity of this evaluation; an evaluation pair for a
+condition C is then constituted by two evaluated marked for C with a
+different polarity.
+
+The marker of this polarity for a condition C will there be noted t(C)
+and f(C), depending on the value of C in the evaluation. For instance,
+for $(A \ \andthen{} \ B) \ \orelse{} \ C$:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c||c||c|}
+\hline
+    & A & B & C & Dec & Markers   \\ \hline
+(1) & T & T & X & T   & t(A), t(B)\\ \hline
+(2) & F & X & T & T   & t(C)      \\ \hline
+(3) & F & X & F & F   & f(A), f(C)\\ \hline
+(4) & T & F & T & T   & t(C)      \\ \hline
+(5) & T & F & F & F   & f(B), f(C)\\ \hline
+\end{tabular}
+\end{center}
+
+One property of Masking MC/DC that is worth mentioning is that any
+evaluation may be used to prove MC/DC on some condition of the
+decision. From Theorem~\ref{thm:masking-short-circuit}, if you have a
+evaluation e1, you may take any evaluation e2 such that Dec[e1] = not
+Dec[e2] (there is always such an e2 if the decision is not a simple
+boolean constant), and then the pair {e1, e2} proves MC/DC for some
+condition in the decision. In the previous example, this means that
+all lines of truth tables have a least one marker.
+
+To build the influence pairs, one would then have to build (f(x),t(x))
+pairs for each x in {A, B, C}. And one would want to choose the
+minimal number of evaluations that covers all t(x) and f(x). This is
+exactly the optimization version of the set covering problem, which is
+a well known (NP-hard) problem.
+
+Can we do better than that from the structure of the decision? e.g.
+get a minimal set without having to build the whole truth table? Not
+really. The thing is that we cannot know, from the structure of the
+decision, which evaluations should be prefered. That is really
+something that depends on the context of execution. In particular,
+coupling cannot be deduced from the structure of the decision; we have
+to know more about the context of the execution to deduce which
+evaluations are actually to be removed from the truth table. e.g. if
+the decision that we considered was actually:
+
+$(N1 = 0 \ \andthen{} \ N2 = 0) \ \orelse{} \ N1 > 0$
+
+...(that is to say: A ::= $N1 = 0$, B ::= $N2 = 0$, C ::= $N1 > 0$),
+we would not be able to deduce, from the structure of the decision,
+that eval (4) is impossible. That is really something that only an
+analysis of the context of execution (e.g. by abstract interpretation)
+can deduce.
+
+So, to compute the set of evaluations to reach Masking MC/DC on a decision,
+one could typically:
+\begin{itemize}
+\item build the annotated truth table from the structure of the decision;
+\item let abstract interpretation remove entries that are impossible
+      (because of coupling);
+\item use a well-known algorithm to solve the Covering Set problem.
+\end{itemize}
+
+The following sections will detail the first part.
+
+\subsection{Marking an evaluation}
+
+This section will first define formally the markers f(C)/t(C) and
+will prove its relationship with Masking MC/DC: that a pair of
+evaluations (eT,eF) is marked with (t(C), f(C)) if and only if
+it proves Masking MC/DC for C.
+
+Let e be a valid evaluation vector for a decision; e(C) being the
+value of condition C in this decision.
+
+For such an evaluation, we annotate the syntax tree with both the
+evaluation of each sub-decision and the MCDC markers. The algorithm
+is the following:
+
+\begin{description}
+\item[BUILD\_MARKERS.Simple\_Condition\_Decision]
+  The sub-decision is a single condition decision, it is of the form:\\
+  $DEC ::= C$\\
+  In this case:\\
+  $eval(C, e) = e(C)$\\
+  and, for markers:
+  \begin{itemize}
+  \item if C is evaluated to True in e:\\
+  \ $markers(DEC, e) = \{t(C)\}$
+  \item if C is evluated to False:\\
+  \ $markers(DEC, e) = \{f(C)\}$
+  \item and otherwise (if e(C) is not evaluated):\\
+  \ $markers(DEC, e) = \{\}$\\
+  \end{itemize}
+
+\item[BUILD\_MARKERS.Not]
+ The sub-decision is of the form:\\
+ $DEC ::= not DEC1$\\
+ In this case:\\
+ $eval(DEC, e)  = not eval(DEC1)$\\
+ $markers(DEC, e) = markers(DEC1)$\\
+
+\item[BUILD\_MARKERS.Short\_Circuit]
+ The sub-decision is of the form:\\
+ $DEC ::= DECL \ \anysc{} \ DECR$\\
+ In this case:\\
+ $eval(DEC, e) = eval(DECL, e) \ \anysc{} \ eval(DECR, e)$\\
+ and, for markers:
+ \begin{itemize}
+ \item if $eval(DEC, e) = eval(DECL, e) = eval(DECR, e)$:\\
+ \  $markers(DEC, e) = markers(DECL, e) + markers(DECR, e)$\\
+ (we will call this case ``both'')
+ \item if $eval(DEC, e) = eval(DECL, e) \ne markers(DECR, e)$:\\
+ \  $markers(DEC, e) = markers(DECL, e)$\\
+ (we will call this case ``left'')
+ \item if $eval(DEC, e) = eval(DECR, e) \ne markers(DECL, e)$:\\
+ \  $markers(DEC, e) = markers(DECR, e)$\\
+ (we will call this case ``right'')
+ \end{itemize}
+\end{description}
+
+The fact that eval(DEC, e) corresponds the evaluations of the
+(sub-)decision is pretty obvious.
+
+In BUILD\_MARKERS.Short\_Circuit, ``left'', ``right'' and ``both'' cover
+all possible cases ; we have either eval(DECL, e) or eval(DECR, e) (or
+both) that have the same value as eval(DEC, e). That's a obvious
+property of \adaand{}, \adaor{}, \andthen{}, \orelse{}... Let just
+maps the three cases on the three possible evaluations, just to make
+this clear:
+\begin{center}
+\begin{tabular}{|c|c||c||c|}
+\hline
+eval(DECL, e) & eval(DECR, e) & eval(DEC,e) & case\\ \hline
+   not SC     &   not SC      &   not SC    & ``both''\\ \hline
+   not SC     &     SC        &     SC      & ``right''\\ \hline
+     SC       &     X         &     SC      & ``left''\\ \hline
+\end{tabular}
+\end{center}
+
+Now let us prove this property that states the relation between these
+markers and MC/DC:
+\begin{theorem}
+ \label{thm:masking-markers}
+ Let eT, eF be two evaluations of DEC such that:
+ \begin{itemize}
+  \item eT(C) = T
+  \item eF(C) = F
+ \end{itemize}
+ (eT, eF) verifies Masking MC/DC for C in DEC if and only if:
+ \begin{itemize}
+  \item t(C) is in markers(DEC, eT)
+  \item f(C) is in markers(DEC, eF)
+ \end{itemize}
+\end{theorem}
+
+
+This will be proved by induction on the decision structure, and we
+will only consider the only case that is not totally trivial:
+BUILD\_MARKERS.Short\_Circuit. So we have $DEC ::= DECL \ \anysc{} \ DECR$,
+we assume that the property is true for DECL and DECR and show that is true for
+DEC as well. Let use consider the two sides of this equivalence
+separately:
+
+\begin{itemize}
+
+\item Let us suppose that (eT, eF) proves Masking MC/DC for a condition C,
+and let us prove that t(C)/f(C) are in markers(DEC, eT)/markers(DEC, eF):
+
+If C is in DECL: the root of DEC is colored with True in the influence tree,
+and the root of DECL is colored also with True in the influence
+tree, otherwise there would not be a path of True from C to the root of DEC.
+
+DEC's root and DECL's being both colored with True, they have both changed
+between eT and eF. This means that one of these two vectors is in the
+``both'' case, and the second is in the ``left'' case. In both cases,
+the markers of DECL is a subset of the markers of DEC.
+
+The root of DECL being colored with True, we have Masking MC/DC for C
+in DECL. By using the induction property on DECL, we can deduce that
+t(C) is in markers(DECL, eT), and f(C) in markers(DECL, eF). As we just
+proved that the markers of DECL are a subset of the marker of DEC, we
+therefore have t(C) in markers(DEC, eT) and t(F) in markers(DEC, eF).
+
+If C is in DECR: the same reasoning shows that (eT, eF) are ``right''
+and ``both''.  The same conclusion follows.
+
+\item Let us assume that t(C)/f(C) are in markers(DEC, eT)/markers(DEC, eF),
+and let us prove that (eT, eF) proves Masking MC/DC for a condition C:
+
+t(C) and f(C) can only come from the sub-decision that contains C.
+This rules out the case (``right'', ``left''); indeed, in this case:\\
+ markers(DEC, ``right'') = markers(DECR, ``right'')\\
+ markers(DEC, ``left'')  = markers(DECL, ``left'')\\
+...which would mean that either markers(DEC, eT) or markers(DEC, eF)
+would contain no marker for C (markers from C come either from DECL,
+or from DECR, but not from both!), which contradicts the hypothesis.
+So we have only two possible cases: either (``both'', ``left'') or
+(``both'', ``right'').
+
+If C is in DECL: then t(C) comes from markers(DECL, eT) and f(C) comes
+from markers(DECL, eF). So we can use the induction hypothesis to
+deduce that (eT, eF) proves Masking MC/DC for C in DECL. This
+means that DECL takes two different values with eT and eF; as
+we ruled out the case (``right'', ``left''), it means that we are
+in the case (``both'', ``left''). In this case, DEC changes its value
+as well, so it is colored with True in the influence Tree. Which
+means that we have a path of True from C to the root of this
+influence tree, and as the influence set is a singleton (per
+Lemma~\ref{lemma:short-circuit-influence-set}), this tells us
+that (eT, eF) proves MC/DC for C in DEC.
+
+If C is in DECR: same thing with the case (``both'', ``right'').
+
+\end{itemize}
+
+\subsection{Marking a truth table}
+
+The previous algorithm was about determining the markers to associate
+to a given evaluation; this one will compute the same thing for the
+whole truth table. it is expressed here in a general formalism: Linear
+Logic. It should then be possible deduce, from this formalism, an
+implementation tailored to the tool that we target. There are some
+comments about implementation at the end of this section.
+
+For now, we will be in the perfect world of Linear Logic expressions.
+
+\subsubsection{Linear Logic expressions}
+
+The idea would be to go through the structure of a decision and to produce
+an expression that records the relation between:
+\begin{itemize}
+\item a producer, that takes decision evaluations and produces markers t(c)
+      or/and f(c);
+\item a consumer, a dual actor that gives evaluations and receives markers.
+\end{itemize}
+
+As we will see, this scheme fits quite neatly to both the structure
+of the decision and the truth table that we want to produce.
+
+In the following, in order to easily talk of the forms of the
+expressions that the algorithm manipulates, we will gives some grammar
+fragments in BNF.  First fragments: we will be talking about
+conditions, which will be atoms in this context, and the MC/DC markers
+that we introduced previously:
+\begin{align*}
+ <condition> & ::= A | B | C | ...\\
+ <marker>    & ::= ('f(' <condition>  ')' ) | ( 't(' <condition> ')')
+\end{align*}
+It is not the purpose of this paper to give a comprehensive
+introduction to Linear Logic. Only a tiny understanding of this
+substructural logic is needed in our context.
+\cite{linear-logic-primer} is a good introduction; in particular, it
+gives an informal semantics that is good enough to understanding the
+algorithm that we will develop. We will just give here a similar
+informal interpretation in the context of our algorithm.
+
+\paragraph{linear negation}
+
+The linear negation express the producer-consumer relationship: if a
+ressource is received on one side, it is given on the other side. Take
+for example a marker $t(C)$: $t(C)^\bot$ expresses the fact that this
+marker is expected (by the consumer); on the contrary, $t(C)$
+expresses the fact that this marker in given up (by the producer).
+
+As classic negation, linear negation verifies double negation elimination:
+\begin{align*}
+ (a^\bot)^\bot = a
+\end{align*}
+
+
+\paragraph{Multiplicative conjunction}
+
+We need to be able to talk about particular evaluations of a decision;
+for instance to say that condition A has been evaluated to False, then
+condition C has been evaluated to True. We will use the multiplicative
+conjunction\footnote{Technically, the multiplicative conjunction is
+commutative in linear logic, so we lose the order in which these two
+conditions have been evaluated.  It does not matter much, we may just
+order them in an actual implementation.  We could also have used
+Cyclic Linear Logic, in which multiplicative operators are not
+commutative. But that would complicate a bit the expression of the
+algorithm, introducing exponentials; we chose to keep it simple.} for
+that. To refer to this evaluation, we would say:
+\begin{align*}
+ \{A=F\} \otimes \{C=T\}
+\end{align*}
+In this particular case, we may also just note $\{A=F, C=T\}$ as a shortcut.
+
+So the expressions that we just mentioned verifies the following BNF:
+\begin{align*}
+<condition\_eval> & ::= '\{' <condition> '=' ('T' | 'F') '\}'\\
+<decision\_eval>  & ::= <condition\_eval> [ \otimes <decision\_eval> ]
+\end{align*}
+
+\paragraph{Multiplicative disjunction}
+
+Because of the producer-consumer duality, there is also a multiplicative
+disjunction for the other side of this relationship. They are related together
+by De Morgan's laws:
+\begin{align*}
+ (a \otimes b)^\bot = a^\bot \parr a^\bot
+\end{align*}
+In our example, this gives us:
+\begin{align*}
+ (\{A=F\} \otimes \{C=T\})^\bot = \{A=F\}^\bot \parr \{C=T\}^\bot
+\end{align*}
+...which would express what the producer expects before delivering marker
+f(A).
+
+\paragraph{Linear implication}
+
+This duality allows to express contracts of the form: if you give me
+this, I'll give you that. Such a contract is expressed by the
+linear implication. It is defined as:
+\begin{align*}
+  a \multimap b ::= a^\bot \parr b
+\end{align*}
+This is similar to classical/intitionist logic where implication is
+defined as $\neg a \vee b$.  In the following, we may also use the
+reciprocical form $\multimapinv$:
+\begin{align*}
+  a \multimapinv b ::= a \parr b^\bot
+\end{align*}
+As the multiplicative disjunction is commutative, those are strictly
+equivalent, but the second form will be clearer in some expressions.
+
+We will use this operator to attach a marker to an evalation. e.g.
+\begin{align*}
+  \{A=F, C=T\} \multimap f(A)
+\end{align*}
+which you would read as: ``Give me A = F and C = T, and then I'll give f(A)
+(which is half of A's independence pair)''. That's the producer talking.
+
+We will give the BNF of such expressions as well (<mcdc\_markers> is
+developped later):
+\begin{align*}
+<mcdc\_vector> ::= <decision\_eval> '\multimap' <mcdc\_markers>
+\end{align*}
+
+\paragraph{Additive conjunction}
+
+Now we know how to talk about one evaluation; but we need to be able
+to talk about several of them, to say something like ``this evaluation *and*
+this evaluation proves MC/DC for this condition''. This ``and'' is the
+additive conjunction $\with$. e.g. to talk about vector (2) and (4) in our
+previous example, we would say:
+\begin{align*}
+  (\{A=F, C=T\} \multimap t(C)) \with (\{A=T, B=F, C=T\} \multimap t(C))
+\end{align*}
+i.e. if one wants to have a vector for which C is True and is the only
+condition that impacts the value of the decision, he may either choose
+\{A=F, C=T\}, or \{A=T, B=F, C=T\}.
+
+The multiplicative disjunction is distributive over the additive
+conjunction; therefore, linear implication is left-distributive over
+it:
+\begin{align*}
+ a \parr (b \with c)     & = (a \parr b) \with (a \parr c)\\
+ a \multimap (b \with c) & = (a \multimap b) \with (a \multimap c)
+\end{align*}
+With this property, the additive conjunction may also be used to
+express the fact that several markers are associated to the same
+decision evaluation.  e.g. eval (3) of our example has two markers f(A)
+and f(C), so it can be expressed as:
+\begin{align*}
+  \{A=F, C=T\} \multimap (f(A) \with f(C))
+\end{align*}
+As before, BNF for future references:
+\begin{align*}
+ <mcdc\_evals>   & ::= <mcdc\_vector> [ '\with' <mcdc\_evals> ]\\
+ <mcdc\_markers> & ::= <marker> [ '\with' <mcdc\_markers> ]
+\end{align*}
+
+\paragraph{Additive disjunction}
+
+Additive conjunction also has its dual operator: it is the additive
+disjunction $\oplus$, which verify De Morgan's law:
+\begin{align*}
+ (a \with b)^\bot = a^\bot \oplus a^\bot
+\end{align*}
+The duality of $\oplus$ and $\with$ actually helps expressing the side
+of a choice in an alternative. e.g. in $A \with B$, you may choose
+either A or B; in $A \oplus B$, you may be given A or B, but the
+choice is on the other side. Obviously, when one side can give $A
+\with B$, the other side can receive $A \oplus B$. In our case, this
+says that the choice between alternative paths is made by the
+consumer, not by the producer.
+
+The multiplicative conjunction is distributive over the additive
+disjunction; and, with De Morgan's law, linear implication is
+right-distributive over it:
+\begin{align*}
+  (a \oplus b) \otimes c & = (a \otimes c) \oplus (b \otimes c)\\
+  (a \oplus b) \multimap c & = (a \multimap c) \with (b \multimap c)
+\end{align*}
+So, to talk about the two vectors (2) and (4) previously, we may have
+factorized out t(C):
+\begin{align*}
+  (\{A=F, C=T\} \oplus \{A=T, B=F, C=T\}) \multimap t(C)
+\end{align*}
+And, as $\otimes$ is distributive over $\oplus$, this expression is
+equivalent to:
+\begin{align*}
+  ((\{A=F, C=T\} \oplus \{A=T, B=F\}) \otimes \{C=T\}) \multimap t(C)
+\end{align*}
+$\{A=F, C=T\} \oplus \{A=T, B=F\}$ is another way to state a known property of
+Masking MC/DC: when proving independent effect of C, it does not
+matter which path to C has been taken.
+
+The algorithm will indeed use $\oplus$ to talk about the alternative paths to
+reach a condition.
+
+\paragraph{Other properties}
+
+$\parr$, $\with$, $\otimes$ and $\oplus$ are all commutative and
+associative. Thanks to associativity of $\parr$ and De Morgan's law,
+we have the following property:
+
+\begin{align*}
+ a \multimap (b \multimap c) = (a \otimes b) \multimap c
+\end{align*}
+
+\subsubsection{Algorithm}
+
+The algorithm forms two kinds of expressions:
+\begin{itemize}
+\item two of them representing any path from root of BDD to True:
+  paths\_to (T, Dec) and paths\_to (F, Dec);
+\item two of them representing one half of any masking MC/DC coverage;
+  MCDC(T, Dec) represents the evaluations that exits on True,
+  MCDC(F, Dec) represents the evaluations that exits on False;
+  The final result being: $MCDC(T, Dec) \with MCDC(F,Dec)$
+\end{itemize}
+
+The algorithm is defined by induction on the structure of the decision:
+
+\begin{description}
+\item[BUILD\_MCDC.Simple\_Condition\_Decision]
+\begin{align*}
+    paths\_to(T, DEC) & = \{C=T\}\\
+    paths\_to(F, DEC) & = \{C=F\}\\
+    MCDC(T, DEC)      & = \{C=T\} \multimap t(c)\\
+    MCDC(F, DEC)      & = \{C=F\} \multimap f(c)
+\end{align*}
+
+\item[BUILD\_MCDC.NOT]
+\begin{align*}
+    paths\_to(T, DEC) & = paths\_to(F, DEC1)\\
+    paths\_to(F, DEC) & = paths\_to(T, DEC1)\\
+    MCDC(T, DEC)      & = MCDC(F, DEC1)\\
+    MCDC(F, DEC)      & = MCDC(T, DEC1)\\
+\end{align*}
+
+\item[BUILD\_MCDC.Short\_Circuit]
+\begin{align*}
+    paths\_to(\neg SC, DEC) =
+      & paths\_to(\neg SC, DECL)
+          \otimes paths\_to(\neg SC, DECR)\\
+    paths\_to(SC, DEC) =
+      & paths\_to(SC, DECL)\\
+      &  \oplus paths\_to(\neg SC, DECL)
+                  \otimes paths\_to(SC, DECR)\\
+    MCDC(\neg SC, DEC) =
+      & MCDC(\neg SC, DECL)
+          \multimapinv paths\_to(\neg SC, DECR)\\
+      & \with paths\_to(\neg SC, DECL)
+          \multimap MCDC(\neg SC, DECR)\\
+    MCDC(SC, DEC) =
+      & MCDC(SC, DECL) \\
+      & \with paths\_to(\neg SC, DECL) \multimap MCDC(SC, DECR)
+\end{align*}
+\end{description}
+
+A few comments before proving that the results of BUILD\_MCDC do represents
+what they are meant to be... to get an intuition of the linear
+operators.  Consider the case of BUILD\_MCDC.Short\_Circuit (as always,
+the only one that is really substantial). DEC's BDD can be represented
+as on figure~\ref{subfig:DL-anysc-DR}
+
+\begin{figure}[h]
+\centering
+
+\subfigure[$DL \ \anysc{} \ DR$]{
+\label{subfig:DL-anysc-DR}
+\begin{tikzpicture}[scale=0.8]
+  \node (DL) {DL}
+    child[->] {node (DLSC) {$SC$} edge from parent node[left] {$SC$}}
+    child[->] {
+     node (DR) {DR}
+      child[->] {node (DRSC) {$SC$} edge from parent node[left] {$SC$}}
+      child[->] {node (DRNSC) {$\neg SC$} edge from parent node[right] {$\neg SC$}}
+     edge from parent node[right] {$\neg SC$}
+    };
+\end{tikzpicture}
+
+}
+\end{figure}
+
+Paths to $SC$ in DEC contains exactly the paths to $SC$ in DECL and
+the concatenations of all paths to $\neg SC$ in DECL with all paths to
+$SC$ in DECR, which corresponds to this expression:
+\begin{align*}
+    paths\_to(SC, DEC) =
+      & paths\_to(SC, DECL)\\
+      &  \oplus paths\_to(\neg SC, DECL)
+                  \otimes paths\_to(SC, DECR)\\
+\end{align*}
+The concatenations are expressed by $\otimes$ and is assured by its
+distributivy over $\oplus$, as we will show below.
+
+Similarly, MCDC evaluations that reach $SC$ in DEC are exactly MCDC
+evaluations that reach $SC$ in DECL and the concatenations of all
+paths to $\neg SC$ (all paths: in Masking MC/DC, one does not care
+about the path to reach the condition for which we are proving the
+independence) with MCDC evaluations that reach $SC$ in DECR:
+\begin{align*}
+    MCDC(SC, DEC) =
+      & MCDC(SC, DECL) \\
+      & \with paths\_to(\neg SC, DECL) \multimap MCDC(SC, DECR)
+\end{align*}
+This time, the concatenation is expressed by $\multimap$ instead of
+$\otimes$. And the list of evaluations is constituted by $\with$
+instead of $\oplus$. But that's the same idea. It's just that there is
+a duality between $\with$ and $\oplus$ (resp. $\otimes$ and $\parr$)
+and that MCDC(...) and paths\_to(...) just happen to be on a different
+side of this duality. Otherwise, these operators work pretty much the
+same way.
+
+\subsubsection{Properties}
+
+We'll start with some simple syntactic properties:
+
+\begin{itemize}
+\item paths\_to(...) can be normalized to match the following syntax:
+\begin{align*}
+   <paths\_nf> ::= <decision\_eval> ['\oplus' paths\_nf]
+\end{align*}
+This is proven by induction; in the proof, and in all other proofs on this
+algorithm, only the case of BUILD\_MCDC.Short\_Circuit is non-trivial. This
+case is proven by using the distributivity of $\otimes$ over $\oplus$.
+
+Example:
+\begin{align*}
+paths\_to(T, (A \ \andthen{} \ B) \ \orelse{} \ C) & \\
+ = & \{A=T, B=T\} \oplus (\{A=F\} \oplus \{A=T, B=F\}) \otimes \{C=T\} \\
+ = & \{A=T, B=T\} \oplus \{A=F, C=T\} \oplus \{A=T, B=F, C=T\}
+\end{align*}
+
+\item MCDC(...) can be normalized to match the following syntax:
+\begin{align*}
+   <mcdc\_nf> ::= <mcdc\_vector> ['\with' <mcdc\_nf>]
+\end{align*}
+This is proven as the previous property, by structural induction,
+focusing on expressions of the form $paths\_to(...) \multimap MCDC(...)$
+in BUILD\_MCDC.Short\_Circuit. These expressions are reduced by:
+\begin{itemize}
+\item dismembering paths\_to(...), using right-distributivity of $\multimap$
+      over $\oplus$;
+\item dismembering MCDC(...), using left-distributivity of $\multimap$
+      over $\with$;
+\item merging evals of paths\_to(...) with evals of MCDC(...),
+      using associativity of $\parr$.
+\end{itemize}
+
+Example:
+\begin{align*}
+MCDC(F, (A \ \andthen{} \ B) \ \orelse{} \ C)\\
+ = & (\{A=T, B=F\} \multimap f(B) \with \{A=F\} \multimap f(A))
+        \multimapinv \{C=F\}\\
+ \ \with & (\{A=F\} \oplus \{A=T, B=F\}) \multimap (\{C=F\}
+         \multimap f(C))\\
+\\
+ = & (\{A=T, B=F\} \multimap f(B) \with \{A=F\} \multimap f(A))
+        \multimapinv \{C=F\}\\
+ \ \with & \{A=F\} \multimap (\{C=F\} \multimap f(C))\\
+ \ \with & \{A=T, B=F\} \multimap (\{C=F\} \multimap f(C))\\
+\\
+ = & (\{A=T, B=F\} \multimap f(B)) \multimapinv \{C=F\}\\
+ \ \with & (\{A=F\} \multimap f(A)) \multimapinv \{C=F\}\\
+ \ \with & \{A=F\} \multimap (\{C=F\} \multimap f(C))\\
+ \ \with & \{A=T, B=F\} \multimap (\{C=F\} \multimap f(C))\\
+\\
+ = &       \{A=T, B=F, C=F\} \multimap f(B)\\
+ \ \with & \{A=F,      C=F\} \multimap f(A)\\
+ \ \with & \{A=F,      C=F\} \multimap f(C)\\
+ \ \with & \{A=T, B=F, C=F\} \multimap f(C))
+\end{align*}
+
+We can even factorize common evaluations using left-distributivity of
+$\multimap$ over $\with$:
+\begin{align*}
+ =     \{A=T, B=F, C=F\}  \multimap  (f(B) \with f(C))
+ \with \{A=F,      C=F\}  \multimap  (f(A) \with f(C))
+\end{align*}
+
+For now on, the normal form for MCDC(...) will refer to the form where only
+one occurence of each decision evaluation can be found in the formula. That
+will be the next item.
+
+\item Unicity of normal forms
+
+Let us define normal forms as follow:
+\begin{definition}
+  \label{def:truth-table-normal-forms}
+  paths\_to(...) is said to be in normal form if it verifies
+  the syntax of <paths\_nf>.
+
+  MCDC(...) is said to be in normal form if it verifies
+  the syntax of <mcdc\_nf> and if only one occurence of each decision can be
+  found in the formula.
+\end{definition}
+
+Existence of normal form has been proven previously. We have a
+property of unicity (modulo commutativity) that is a general property
+of these expressions in linear logic:
+\begin{theorem}
+  \label{thm:truth-table-unicity}
+  Two expressions in normal forms are say to represent the same
+  truth table if you can reduce one to the other using only the
+  commutativity of $\otimes$, $\oplus$, $\with$, $\parr$.
+
+  Then, if an expression returned by BUILD\_MCDC can be reduced to two
+  different expressions in normal forms, then these two normals forms
+  represent the same truth table.
+\end{theorem}
+
+This is a general property of linear logic, that can be proven using
+its sequent calculus. We will not detail this proof here.
+% ??? add the proof in annex
+
+\item Evaluations and normal forms
+\begin{theorem}
+  \label{thm:evals-and-paths}
+  Let us call evals(EXP) the set of decisions evals in the normal form
+  of EXP. Let OUT be a boolean constant that represents the outcome of a
+  decision. We have the following properties:
+  \begin{itemize}
+  \item evals(paths\_to(OUT, Dec)) are exactly those that evaluates Dec to OUT;
+  \item evals(paths\_to(OUT, Dec)) = evals(MCDC(OUT, Dec)).
+  \end{itemize}
+\end{theorem}
+
+The first part says that paths\_to(OUT, Dec) does represent what it is
+meant to represent. That can be shown by structural induction; thanks
+to the distributivity of $\otimes$ over $\oplus$, it can be seen that:
+\begin{align*}
+  evals((A \oplus B) \otimes C))
+   = evals(A) * evals(C) + evals (B) * evals (C)
+\end{align*}
+
+$*$ on the left being the cartesian product, $+$ being the set union.
+After that, it is just a matter of checking that each paths to OUT is
+in evals(paths\_to(OUT, Dec)); this offers no technical difficulty.
+
+The second part says that all entries of the truth tables are
+annotated (which would eventually mean that all of them may be used to
+prove Masking MC/DC for a condition). That is one of the property that
+we introduced in our preliminary remarks.
+
+This is also proven be induction, using distributivity properties of
+$\multimap$ . One may use the multiplicative disjunction and its
+distributity over $\with$ to make the proof simpler. One may notice
+how, in the key case BUILD\_MCDC.Short\_Circuit, the expression of
+paths\_to(OUT, Dec) and MCDC(OUT, Dec) are similar. Again, no
+technical difficulty, just a mechanical check that each evals can be
+found in both expressions.
+
+\item MCDC vectors and normal forms
+\begin{theorem}
+  \label{thm:vectors-and-mcdc}
+  Let us call vectors(EXP) the set of mcdc vectors in the normal form of EXP.\\
+  Let OUT be a boolean constant that represents the outcome of a decision.\\
+  Then vectors(MCDC(OUT, Dec)) represents exactly the half of the annotated
+  truth table of Dec in which Dec is evaluated to OUT.
+\end{theorem}
+
+
+Evals on the left of $\multimap$ operators, markers on right. This
+just says that MCDC(OUT, Dec) does represent what it is meant to
+be.
+
+We already know that MCDC(OUT, Dec) contains all and only evals that
+such that the outcome of Dec is OUT: that was the second part of
+property~\ref{thm:evals-and-paths}. So, to prove the new property, we
+would just need to follow the markers.
+
+To prove that the resulting set contains all MC/DC markers, we would
+use a property of masking MC/DC: if an evaluation can be used to prove
+t(c) for a condition c in Dec, then it restriction to a sub-decision
+(that contains c) proves t(c) for this sub-decision as well (that
+lemma can be proven fairly easily with a structural induction on
+influence trees). Same thing for f(c). With this property, we can show
+that the coverage that is computed cannot be incomplete, otherwise the
+coverage of one of the sub-decisions (DL or DR) would be incomplete,
+which would contradict the induction hypothesis.
+\end{itemize}
+
+\subsubsection{Thoughts about implementation}
+
+From the properties of BUILD\_MCDC, we can deduce a set of
+simplification for a real implementation.
+
+\begin{itemize}
+\item MCDC(OUT, Dec) can be represented by a list of evaluations
+colored with the t(c)/f(c) markers; such a structure would represent
+the normal form of the expression. This list is what we called the
+annotated truth table earlier.
+
+\item No point in maintaining two different structures for MCDC(OUT, Dec) and
+paths\_to(OUT, Dec); the second one can be deduced from the first one by
+removing markers (property~\ref{thm:evals-and-paths}).
+ 
+\item In the context of our expressions, multiplicative operators are
+always distributive over the additive ones. So one may just understand
+$\otimes$ and $\multimap$ as a cartesian product over annotated truth tables.
+$\oplus$ and $\with$ can be thought of as union.
+ 
+\item We can have one entry per evaluation in the truth table, and several
+markers associated to them, thanks to left-distributivity of $\multimap$ over
+$\with$. Entries may be ordered to ease to factorize markers out:
+e.g. in $(A \ \andthen{} \ B) \ \orelse{} \ C$, evaluation \{A=T, B=F, C=T\}
+can be encoded in binary as 101. This gives us an index for ordering
+evaluations in the truth table. When in an evaluation a condition is
+not evaluated, the value of its digit in the index can be set to
+0 (or 1, as long as the same convention is kept for all such evaluations).
+e.g. for \{A=F, C=F\}, index is 000.
+
+\item An implementation may not add some evaluations if it can prove (by
+an other mean) that coupling prevents them. This may avoid to build
+the whole truth table.
+        
+\item In the modular implementation of BUILD\_MCDC, when analyzing a
+sub-decision that contains all conditions on which we focus, it is
+possible to drop any evaluation that does not execute one of these
+conditions.
+\end{itemize}
 
 \newpage
 \bibliographystyle{alpha}
