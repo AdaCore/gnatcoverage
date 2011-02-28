@@ -322,6 +322,99 @@ whole.
 
 The proof of this property is given in~\cite{ar0118} as well.
 
+The formal definitions of Masking MC/DC also allows to identify
+interesting properties when only short circuit operators are used.
+The following theorem tells us that, with short circuit operators,
+determining Masking MC/DC is as simple as for Unique Cause, and
+that no reasoning on the logical structure of the decision is needed:
+
+\begin{theorem}
+  \label{thm:masking-short-circuit}
+  If a decision Dec contains only short-circuit operators, Masking MC/DC is
+  reached for a condition C if and only if there exists a pair of evaluation
+  (e1, e2) such that Dec[e1] = not Dec[e2], and C is the rightmost
+  condition that is evaluated to True and False in e1 and e2.
+\end{theorem}
+
+The order here is the order of conditions in the decision expression; e.g.
+in $(A \ \andthen{} \ B) \ \orelse{} \ C$, the order is A, B, C.
+
+This theorem can be re-formulated in terms of influence trees, as in the
+following lemma:
+
+\begin{lemma}
+  \label{lemma:short-circuit-influence-set}
+  If the root node of an influence tree is colored with True, and
+  if it contains only short-circuit operators, then its influence
+  set contains only the rightmost True-colored condition.
+\end{lemma}
+
+This lemma can be proven by structural induction:
+
+\begin{itemize}
+
+\item if $D ::= C$ (simple condition decision):\\
+  the root of D's influence tree is C, so if it is colored with True then
+  it follows that the influence set is \{ C \}.
+
+\item if $D ::=\ \adanot{} \ D1$, supposing that the property holds for D1:\\
+  The root of D's influence tree is colored with True if and only if
+  the root of D1's influence tree is colored with True as well: The
+  former is evaluated to two different values (say: True, then False)
+  if and only if the latter is evaluated to two different values
+  (False, then True). Therefore, D1's influence set contains only the
+  rightmost True-colored condition in D1's influence tree, which also
+  is the rightmost True-colored condition in D's influence tree.  This
+  condition is the only one to have a path of True-colored nodes to
+  root in D1's influence tree, by definition of the influence set; as
+  a consequence, it is also the only condition to have such path to
+  root in D's influence tree. So the rightmost True-colored condition
+  in D's influence tree is the only condition in its influence set.
+
+\item if $D ::= DL \ \anysc{} \ DR$, $\anysc{}$ being a short-circuit operator,
+  and supposing that the property holds for DL and DR:\\
+
+  Let us define the boolean constant SC as follow:\\
+  If $\anysc{}$ is \andthen{}, let SC be False;\\
+  if $\anysc{}$ is \orelse{}, let SC be True.
+
+  Then there are three possible evaluations for DL, DR, D:
+
+\begin{center}
+\begin{tabular}{|c|c|c||c|}
+\hline
+Eval name & DL            & DR            & D                    \\ \hline
+e1        & \adanot{} SC  & \adanot{} SC  & \adanot{} SC         \\ \hline
+e2        & \adanot{} SC  & SC            & SC                   \\ \hline
+e3        & SC            & x             & SC                   \\ \hline
+\end{tabular}
+\end{center}
+
+If the root of D's influence tree is colored with True, then there are only
+two possible pairs of evaluations:
+
+\begin{itemize}
+\item (e1, e2): in this case, DR is colored with True and DL is colored with
+False; using the induction hypothesis, we know that DR's influence tree
+will have only one condition with a True-colored path to DR's root, and
+consequently to D's root in D's influence tree : that will be the rightmost
+True-colored condition in DR, and obviously in D. No conditions in DL
+have a True-colored path to D's root, since DR's root node is colored with
+False ; so the influence set contains only the rightmost True-colored
+condition.
+\item (e1, e3): in e3, DR is not evaluated, which means that none of its
+nodes are evaluated. This means that all of them are colored with
+False in DR's influence tree, and that no conditions of DR are colored
+with True in D's influence tree. Thus, the rightmost True-colored condition
+of D is in DL. By induction hypothesis, it is the only element of DL's
+influence set; it is therefore the only condition to have a True-colored
+path to DL's root node, and to D's root node. So this is the only element
+in D's influence set.
+\end{itemize}
+
+\end{itemize}
+
+The theorem has now been demonstrated in all cases. 
 
 \subsubsection{OBC}
 
@@ -1623,78 +1716,10 @@ two paths to (different) outcomes crosses each other and
 diverges. Nodes where these two paths diverges are exactly the
 conditions colored with True in the influence tree; and the last node
 is the righmost condition.  This means that
-Theorem~\ref{thm:masking-bdd} is directly implied by the following
-lemma:
+Theorem~\ref{thm:masking-bdd} is directly implied by
+Lemma~\ref{lemma:short-circuit-influence-set}.
 
-\begin{lemma}
-  \label{lemma:short-circuit-influence-set}
-  If the root node of an influence tree is colored with True, and
-  if it contains only short-circuit operators, then its influence
-  set contains only the rightmost True-colored condition.
-\end{lemma}
-
-This lemma can be proven by structural induction:
-
-\begin{itemize}
-
-\item if $D ::= C$ (simple condition decision):\\
-  the root of D's influence tree is C, so if it is colored with True then
-  it follows that the influence set is \{ C \}.
-
-\item if $D ::=\ \adanot{} \ D1$, supposing that the property holds for D1:\\
-  The root of D's influence tree is colored with True if and only if
-  the root of D1's influence tree is colored with True as well: The
-  former is evaluated to two different values (say: True, then False)
-  if and only if the latter is evaluated to two different values
-  (False, then True). Therefore, D1's influence set contains only the
-  rightmost True-colored condition in D1's influence tree, which also
-  is the rightmost True-colored condition in D's influence tree.  This
-  condition is the only one to have a path of True-colored nodes to
-  root in D1's influence tree, by definition of the influence set; as
-  a consequence, it is also the only condition to have such path to
-  root in D's influence tree. So the rightmost True-colored condition
-  in D's influence tree is the only condition in its influence set.
-
-\item if $D ::= DL \ \anysc{} \ DR$, supposing that the property holds
-  for DL and DR:\\
-  There are three possible evaluations for DL, DR, D:
-
-\begin{center}
-\begin{tabular}{|c|c|c||c|}
-\hline
-Eval name & DL            & DR            & D                    \\ \hline
-e1        & \adanot{} SC  & \adanot{} SC  & \adanot{} SC         \\ \hline
-e2        & \adanot{} SC  & SC            & SC                   \\ \hline
-e3        & SC            & x             & SC                   \\ \hline
-\end{tabular}
-\end{center}
-
-If the root of D's influence tree is colored with True, then there are only
-two possible pairs of evaluations:
-
-\begin{itemize}
-\item (e1, e2): in this case, DR is colored with True and DL is colored with
-False; using the induction hypothesis, we know that DR's influence tree
-will have only one condition with a True-colored path to DR's root, and
-consequently to D's root in D's influence tree : that will be the rightmost
-True-colored condition in DR, and obviously in D. No conditions in DL
-have a True-colored path to D's root, since DR's root node is colored with
-False ; so the influence set contains only the rightmost True-colored
-condition.
-\item (e1, e3): in e3, DR is not evaluated, which means that none of its
-nodes are evaluated. This means that all of them are colored with
-False in DR's influence tree, and that no conditions of DR are colored
-with True in D's influence tree. Thus, the righmost True-colored condition
-of D is in DL. By induction hypothesis, it is the only element of DL's
-influence set; it is therefore the only condition to have a True-colored
-path to DL's root node, and to D's root node. So this is the only element
-in D's influence set.
-\end{itemize}
-
-\end{itemize}
-
-The theorem has now been demonstrated in all cases. Let us now comment
-a bit about coupling:
+Let us now comment a bit about coupling:
 \begin{itemize}
 
 \item We have seen that the only difference between Unique Cause and
