@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -118,12 +118,26 @@ package body Inputs is
      (File_Name : String;
       Process   : not null access procedure (Name : String))
    is
+      function Get_Line_Compatible (F : File_Type) return String;
+      --  Same as Get_Line but eat trailing ASCII.CR so that DOS text files
+      --  can be read easily.
+
+      function Get_Line_Compatible (F : File_Type) return String is
+         L : constant String := Get_Line (F);
+      begin
+         if L'Length > 1 and then L (L'Last) = ASCII.CR then
+            return L (L'First .. L'Last - 1);
+         else
+            return L;
+         end if;
+      end Get_Line_Compatible;
+
       F : File_Type;
    begin
       Open (F, In_File, File_Name);
       while not End_Of_File (F) loop
          declare
-            L : constant String := Get_Line (F);
+            L : constant String := Get_Line_Compatible (F);
          begin
             if L = "" or else L (L'First) = '#' then
                null;
