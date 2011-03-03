@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Text_IO; use Ada.Text_IO;
+
 with Outputs; use Outputs;
 
 package body Inputs is
@@ -26,8 +27,7 @@ package body Inputs is
    -- Add_Input --
    ---------------
 
-   procedure Add_Input (Inputs : in out Inputs_Type; Name : String)
-   is
+   procedure Add_Input (Inputs : in out Inputs_Type; Name : String) is
 
       procedure Add_Input (Name : String);
       --  Add_Input for this particular Inputs (the one given in parameter).
@@ -41,7 +41,7 @@ package body Inputs is
          Inputs.Add_Input (Name);
       end Add_Input;
 
-      --  Start of processing for Add_Input
+   --  Start of processing for Add_Input
 
    begin
       if Name'Length = 0 then
@@ -95,7 +95,7 @@ package body Inputs is
          Process (Input.all);
       end Input_Lists_Process;
 
-      --  Start of processing for Iterate
+   --  Start of processing for Iterate
 
    begin
       Inputs.Iterate (Input_Lists_Process'Access);
@@ -119,8 +119,12 @@ package body Inputs is
       Process   : not null access procedure (Name : String))
    is
       function Get_Line_Compatible (F : File_Type) return String;
-      --  Same as Get_Line but eat trailing ASCII.CR so that DOS text files
-      --  can be read easily.
+      --  Same as Get_Line but eat trailing ASCII.CR so that DOS text files can
+      --  be read easily.
+
+      -------------------------
+      -- Get_Line_Compatible --
+      -------------------------
 
       function Get_Line_Compatible (F : File_Type) return String is
          L : constant String := Get_Line (F);
@@ -133,6 +137,9 @@ package body Inputs is
       end Get_Line_Compatible;
 
       F : File_Type;
+
+   --  Start of processing for Read_List_From_File
+
    begin
       Open (F, In_File, File_Name);
       while not End_Of_File (F) loop
