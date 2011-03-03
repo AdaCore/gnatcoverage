@@ -1076,7 +1076,6 @@ package body SC_Obligations is
    -------------------------
 
    function Enclosing_Statement (SCO : SCO_Id) return SCO_Id is
-      pragma Assert (Kind (SCO) = Decision);
    begin
       return Enclosing (Statement, SCO);
    end Enclosing_Statement;
