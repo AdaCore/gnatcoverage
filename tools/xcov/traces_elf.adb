@@ -768,6 +768,14 @@ package body Traces_Elf is
                Off := Off + Storage_Offset (V);
             end;
 
+         when DW_FORM_block4 =>
+            declare
+               V : Unsigned_32;
+            begin
+               Read_Word4 (Exec, Base, Off, V);
+               Off := Off + Storage_Offset (V);
+            end;
+
          when DW_FORM_flag
            | DW_FORM_data1 =>
             Off := Off + 1;
@@ -808,7 +816,7 @@ package body Traces_Elf is
             end;
 
          when others =>
-            Put ("???");
+            Put_Line ("Unhandled dwarf form #" & Unsigned_32'Image (Form));
             raise Program_Error;
       end case;
    end Skip_Dwarf_Form;
