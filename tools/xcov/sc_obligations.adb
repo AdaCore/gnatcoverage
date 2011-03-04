@@ -1054,9 +1054,8 @@ package body SC_Obligations is
    function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id is
       P_SCO : SCO_Id := SCO;
    begin
-      loop
+      while not (P_SCO = No_SCO_Id or else Kind (P_SCO) = What) loop
          P_SCO := Parent (P_SCO);
-         exit when P_SCO = No_SCO_Id or else Kind (P_SCO) = What;
       end loop;
       return P_SCO;
    end Enclosing;
