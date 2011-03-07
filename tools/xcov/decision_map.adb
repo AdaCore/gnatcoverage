@@ -328,7 +328,7 @@ package body Decision_Map is
 
       begin
          Parent_SCO := Parent (D_SCO);
-         if Kind (Parent_SCO) = Condition then
+         if Parent_SCO /= No_SCO_Id and then Kind (Parent_SCO) = Condition then
             Enclosing_D_SCO := Enclosing_Decision (Parent_SCO);
          else
             Enclosing_D_SCO := No_SCO_Id;
