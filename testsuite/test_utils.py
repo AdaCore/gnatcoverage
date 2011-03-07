@@ -43,6 +43,11 @@ GPRBUILD = 'gprbuild' + env.host.os.exeext
 GPRCLEAN = 'gprclean' + env.host.os.exeext
 XCOV     = 'xcov' + env.host.os.exeext
 
+# Mandatory extra compilation options for source coverage. Need to produce
+# SCOs and make sure we can reconvene object code with decision BDDs
+
+SCOV_CARGS =  ["-gnateS", "-fpreserve-control-flow"]
+
 # ***************************************************************************
 #         FatalError Exception, to raise when processing has to stop
 # ***************************************************************************
@@ -259,6 +264,8 @@ class Test (object):
                              'from the test category.')
         main.add_option('--board', dest='board', metavar='BOARD',
                         help='Specific target board to exercize')
+        main.add_option('--rtsgpr', dest='rtsgpr', metavar='RTSGPR',
+                     help='RTS .gpr to extend.')
         main.parse_args()
         if main.options.report_file is None:
             # This is a required "option" which is a bit self-contradictory,
@@ -359,7 +366,10 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
     The *ARGS arguments may be either: None, a string containing
     a space-separated list of options, or a list of options."""
 
-    all_gargs = ['-q', '-XSTYLE_CHECKS=', '-p', '-P%s' % project]
+    # Enforce -g, always needed and possibly not be included by our base
+    # runtime project file, e.g. ravenscar
+
+    all_gargs = ['-q', '-f', '-g', '-XSTYLE_CHECKS=', '-p', '-P%s' % project]
 
     all_gargs += thistest.gprconfoptions
     all_gargs += to_list(gargs)
@@ -384,8 +394,8 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
 # -- gprfor --
 # ------------
 def gprfor(mains, prjid="gen", srcdirs="src"):
-    """Generate a simple PRJID.gpr project file to build executables for
-    each main source file in the MAINS list, sources in SRCDIRS. Inexistant
+    """Generate a simple PRJID.gpr project file to build executables for each
+    main source file in the MAINS list, sources in SRCDIRS. Inexistant
     directories in SRCDIRS are ignored. Return the gpr file name.
     """
 
@@ -408,8 +418,11 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
     # Remove trailing comma on srcdirs, in case none of the provided ones
     # exists, which would produce an invalid gpr file.
 
-    gprtext = template % {'support_dir': thistest.support_dir(),
-                          'prjname': prjid,
+    basegpr = (thistest.options.rtsgpr
+               if thistest.options.rtsgpr else "%s/support/base" % ROOT_DIR)
+
+    gprtext = template % {'prjname': prjid,
+                          'extends': 'extends "%s"' % basegpr,
                           'srcdirs': srcdirs.rstrip(', '),
                           'gprmains': gprmains}
 
@@ -2136,11 +2149,9 @@ class SCOV_helper:
         # support sources.
 
         gprbuild(
-            gprfor ([main+".adb"], "gen",
-                    ["../"*n + "src" for n in range (1, 7)]
-                    + ["../"*n for n in range (1, 7)]),
-            cargs = ["-g", "-gnateS", "-fpreserve-control-flow", "-gnatd.X",
-                     "-gnata", "-gnat05"] + to_list(extracargs))
+            gprfor (mains = [main+".adb"], prjid="gen",
+                    srcdirs = ["../"*n + "src" for n in range (1, 7)]),
+            cargs = SCOV_CARGS + ["-gnat05"] + to_list(extracargs))
 
     # --------------
     # -- xcov_run --
@@ -2344,7 +2355,7 @@ class ExerciseAll:
     def __category(self):
         """Compute our test category from its directory location."""
         global TEST_DIR
-        root_expr = "(Ada|SanityCheck)"
+        root_expr = "(Ravenscar/.*|Ada|SanityCheck)"
         if re.search (root_expr + ".stmt", TEST_DIR):
             return "stmt"
         elif re.search (root_expr + ".decision", TEST_DIR):

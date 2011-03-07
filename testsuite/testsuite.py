@@ -60,7 +60,10 @@ def main():
         trace_dir = None
 
     # Generate the discs list for test.opt parsing
-    common_discs = ['ALL'] + env.discriminants + qualif_cargs_discriminants()
+    common_discs = \
+        ['ALL'] + env.discriminants \
+        + qualif_cargs_discriminants() \
+        + ravenscar_discriminants()
 
     # Dump the list of discriminants in a file.  We can then use that file
     # to determine which discriminants were set during a particular run.
@@ -77,9 +80,6 @@ def main():
     # Compute the test list. Use ./ in paths to maximize possible regexp
     # matches, in particular to allow use of command-line shell expansion
     # to elaborate the expression.
-
-    scovDir = "./Qualif/Ada/"
-    collDir = "./tests/"
 
     non_dead_list, dead_list = generate_testcase_list(
         re_filter(find (root=".", pattern="test.py"), options.run_test),
@@ -105,8 +105,14 @@ def main():
     # it here both factorizes the work for all testcases and prevents cache
     # effects if PATH changes between testsuite runs.
 
+    # When --rtsgpr is provided, e.g. for Ravenscar, assume it controls the
+    # necessary --RTS flags to pass. Otherwise, assume we are targetting zfp
+    # and configure to pass --RTS=zfp by default
+
+    defrts = "zfp" if not options.rtsgpr else ""
+
     Run(['gprconfig', '--batch',
-         '--config=Ada,,zfp',  '--config=C',  '--config=Asm',
+         '--config=Ada,,%s' % defrts,  '--config=C',  '--config=Asm',
          '--target=%s' % targetprefix, '-o', 'suite.cgpr' ],
         output='output/gprconfig.out')
 
@@ -141,6 +147,18 @@ def qualif_cargs_discriminants():
     discs = []
     for arg in Env().main_options.qualif_cargs.split():
         discs.append("QUALIF_CARGS_" + arg.lstrip('-'))
+    return discs
+
+def ravenscar_discriminants():
+    """Compute a list of discriminants (string) to reflect the use of a
+    Ravenscar base runtime library, as conveyed by the base gpr file to
+    extend, provided with the --rtsgpr command-line option.
+    """
+    if not Env().main_options.rtsgpr:
+        return []
+    discs = []
+    if re.search ("ravenscar", Env().main_options.rtsgpr):
+        discs.append("RTS_RAVENSCAR")
     return discs
 
 def re_filter(l, pattern=""):
@@ -260,9 +278,16 @@ def run_testcase(test, _job_info):
     if timeout is None:
         timeout = DEFAULT_TIMEOUT
 
+    # Setup test execution related files. Clear them upfront to prevent
+    # accumulation across executions and bogus reuse of old contents if
+    # running the test raises a premature exception, before the execution
+    # script gets a chance to initialize the file itself.
+
     output = ofile_for(test)
     outlog = olog_for(test)
     outdiff = odiff_for(test)
+
+    [os.remove (f) for f in (output, outlog, outdiff) if os.path.exists(f)]
 
     testcase_cmd = [sys.executable,
                     test.filename,
@@ -286,6 +311,9 @@ def run_testcase(test, _job_info):
     if Env().main_options.board is not None:
         testcase_cmd.append('--board=%s'
                             % Env().main_options.board)
+    if Env().main_options.rtsgpr is not None:
+        testcase_cmd.append('--rtsgpr=%s'
+                            % Env().main_options.rtsgpr)
     return Run(testcase_cmd, output=outdiff,
                bg=True, timeout=int(timeout) + DEFAULT_TIMEOUT)
 
@@ -384,6 +412,8 @@ def __parse_options():
                       'Note that it disables the use of valgrind.')
     m.add_option('--board', dest='board', metavar='BOARD',
                  help='Specific target board to exercize.')
+    m.add_option('--rtsgpr', dest='rtsgpr', metavar='RTSGPR',
+                 help='RTS .gpr to extend.')
     m.parse_args()
     disable_valgrind = m.options.disable_valgrind or m.options.bootstrap
 
