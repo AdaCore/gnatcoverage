@@ -105,9 +105,9 @@ def main():
     # it here both factorizes the work for all testcases and prevents cache
     # effects if PATH changes between testsuite runs.
 
-    # When --rtsgpr is provided, e.g. for Ravenscar, assume it controls the
-    # necessary --RTS flags to pass. Otherwise, assume we are targetting zfp
-    # and configure to pass --RTS=zfp by default
+    # When --rtsgpr is provided (and non empty), e.g. for Ravenscar, assume
+    # it controls the necessary --RTS flags to pass. Otherwise, assume we are
+    # targetting zfp and configure to pass --RTS=zfp by default
 
     defrts = "zfp" if not options.rtsgpr else ""
 
@@ -302,18 +302,27 @@ def run_testcase(test, _job_info):
         test_trace_dir = os.path.join(test.trace_dir, str(test_index))
         mkdir(test_trace_dir)
         testcase_cmd.append('--trace_dir=%s' % test_trace_dir)
+
+    # Propagate our command line arguments as testcase options. Beware that
+    # we're not using 'is not None' on purpose, to prevent propagating empty
+    # arguments.
+
     if Env().main_options.qualif_cargs:
         testcase_cmd.append('--qualif-cargs=%s'
                             % Env().main_options.qualif_cargs)
-    if Env().main_options.qualif_level is not None:
+
+    if Env().main_options.qualif_level:
         qualif_xcov_level=QUALIF_TO_XCOV_LEVEL[Env().main_options.qualif_level]
         testcase_cmd.append('--qualif-xcov-level=%s' % qualif_xcov_level)
-    if Env().main_options.board is not None:
+
+    if Env().main_options.board:
         testcase_cmd.append('--board=%s'
                             % Env().main_options.board)
-    if Env().main_options.rtsgpr is not None:
+
+    if Env().main_options.rtsgpr:
         testcase_cmd.append('--rtsgpr=%s'
                             % Env().main_options.rtsgpr)
+
     return Run(testcase_cmd, output=outdiff,
                bg=True, timeout=int(timeout) + DEFAULT_TIMEOUT)
 
