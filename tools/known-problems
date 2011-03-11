@@ -9,6 +9,15 @@ components. Except where specifically noted, all these problems have been
 corrected in the development tree, hence in wavefronts issued subsequent
 to the date specified (in ISO format YYYY-MM-DD) in the status line.
 
+K303-021 Unhandled dwarf block4 form
+
+  Problem:    Xcov crashed if there is a block4 form in the dwarf debug
+              infos.
+
+  Status:     This was fixed on 2011-03-03
+
+  Workaround: Remove it manually
+
 I618-020 Unexpected file analyzed
 
   Problem:    A file is analyzed even if there is no routine for it in
