@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                   Copyright (C) 2009-2010, AdaCore                       --
+--                   Copyright (C) 2009-2011, AdaCore                       --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -18,6 +18,35 @@
 ------------------------------------------------------------------------------
 
 package body MC_DC is
+
+   ---------
+   -- "<" --
+   ---------
+
+   function "<" (L, R : Evaluation) return Boolean is
+      use type Ada.Containers.Count_Type;
+   begin
+      if L.Decision /= R.Decision then
+         return L.Decision < R.Decision;
+      end if;
+
+      for J in R.Values.First_Index .. R.Values.Last_Index loop
+         if J > L.Values.Last_Index then
+            return True;
+
+         elsif L.Values.Element (J) < R.Values.Element (J) then
+            return True;
+
+         elsif L.Values.Element (J) > R.Values.Element (J) then
+            return False;
+         end if;
+      end loop;
+
+      --  Here when L.Values = R.Values
+
+      pragma Assert (L.Outcome = R.Outcome);
+      return False;
+   end "<";
 
    -----------
    -- Image --

@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                   Copyright (C) 2009-2010, AdaCore                       --
+--                   Copyright (C) 2009-2011, AdaCore                       --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -48,6 +48,9 @@ package MC_DC is
       --  condition is evaluated, No_Condition_Index once an outcome has been
       --  reached.
    end record;
+
+   function "<" (L, R : Evaluation) return Boolean;
+   --  Operator used to build an ordered set of evaluations
 
    function Is_MC_DC_Pair
      (Eval_1, Eval_2 : Evaluation;

@@ -18,6 +18,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
+with Ada.Containers.Ordered_Sets;
 
 with Interfaces;
 
@@ -38,7 +39,9 @@ package body Coverage.Source is
 
    package Evaluation_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Natural,
-      Element_Type => MC_DC.Evaluation);
+      Element_Type => Evaluation);
+
+   package Evaluation_Sets is new Ada.Containers.Ordered_Sets (Evaluation);
 
    type Outcome_Taken_Type is array (Boolean) of Boolean;
 
@@ -60,9 +63,9 @@ package body Coverage.Source is
             --  Each of these components is set True when the corresponding
             --  outcome has been exercised.
 
-            Evaluations : Evaluation_Vectors.Vector;
-            --  History of all evaluations of this decision (computed for MC/DC
-            --  only).
+            Evaluations : Evaluation_Sets.Set;
+            --  Set of all distinct evaluations of this decision (computed for
+            --  MC/DC only).
 
          when others =>
             null;
@@ -309,6 +312,8 @@ package body Coverage.Source is
    ------------------------
 
    function Compute_MCDC_State (SCO : SCO_Id) return Line_State is
+      use Evaluation_Sets;
+
       SCI : Source_Coverage_Info renames SCI_Vector.Element (SCO);
 
       Indep : array (0 .. Last_Cond_Index (SCO)) of Boolean :=
@@ -322,15 +327,17 @@ package body Coverage.Source is
 
       SCO_State : Line_State := No_Code;
 
+      E1, E2 : Cursor;
+
    begin
-      for E1 in SCI.Evaluations.First_Index
-             .. SCI.Evaluations.Last_Index - 1
-      loop
-         for E2 in E1 + 1 .. SCI.Evaluations.Last_Index loop
+      E1 := SCI.Evaluations.First;
+      while E1 /= No_Element loop
+         E2 := Next (E1);
+         while E2 /= No_Element loop
             Influent_Condition := Is_MC_DC_Pair
-                 (SCI.Evaluations.Element (E1),
-                  SCI.Evaluations.Element (E2),
-                  Unique_Cause => MCDC_Level = UC_MCDC);
+              (Element (E1),
+               Element (E2),
+               Unique_Cause => MCDC_Level = UC_MCDC);
 
             --  Record and report the first eval pair that shows independent
             --  influence of Influent_Condition.
@@ -342,16 +349,16 @@ package body Coverage.Source is
 
                Indep (Influent_Condition) := True;
                Report
-                 ("c" & Img (Integer (Influent_Condition))
+                 ("C" & Img (Integer (Influent_Condition))
                   & " independent influence shown by eval pair: "
-                  & Image (SCI.Evaluations.Element (E1))
-                  & " / "
-                  & Image (SCI.Evaluations.Element (E2)),
+                  & Image (Element (E1)) & " / " & Image (Element (E2)),
                   Sloc => First_Sloc (SCO),
                   SCO  => Condition (SCO, Influent_Condition),
                   Kind => Notice);
             end if;
+            Next (E2);
          end loop;
+         Next (E1);
       end loop;
 
       --  Iterate over conditions and report
@@ -573,7 +580,7 @@ package body Coverage.Source is
                     (Eval.Next_Condition = No_Condition_Index);
 
                   Eval.Outcome := CBE.Outcome;
-                  SCI.Evaluations.Append (Eval);
+                  SCI.Evaluations.Include (Eval);
                end Set_Outcome_Taken;
 
             --  Start of processing for Edge_Taken
