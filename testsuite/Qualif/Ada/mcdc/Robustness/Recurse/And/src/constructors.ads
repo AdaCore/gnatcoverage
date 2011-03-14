@@ -15,8 +15,7 @@ package Constructors is
    -- indep(A) = 1,3  indep(B) = 2,3
 
    function Expr_And_And (A, B, C : Boolean) return Expr_Ref;
-   --  [A and then (B and then C)] as Band (A, Band (B, C)), calling
-   --  for recursive eval without diamond
+   --  Band (A, Band (B, C)), calling for recursive eval without diamond
 
    --    A  B C  R
    -- ------------

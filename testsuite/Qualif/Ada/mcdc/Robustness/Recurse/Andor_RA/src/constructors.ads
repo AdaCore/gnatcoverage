@@ -17,9 +17,7 @@ package Constructors is
    -- indep(A) = 1,5  indep(B) = 3,5  indep(C) = 3,4 1,2 + 1,4 2,3 (masking)
 
    function Expr_Andor_Andor (A, B, C, D, E : Boolean) return Expr_Ref;
-   --  [ ({(A and then B) or else C} and then D) or else E]
-
-   --  as Bandor (Bandor (A, B, C), D, E), calling for recursive eval
+   --  Bandor (Bandor (A, B, C), D, E), calling for recursive eval
    --  within diamond
 
    --    A B C  D E  R
