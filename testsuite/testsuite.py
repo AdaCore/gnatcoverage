@@ -82,7 +82,8 @@ def main():
     # to elaborate the expression.
 
     non_dead_list, dead_list = generate_testcase_list(
-        re_filter(find (root=".", pattern="test.py"), options.run_test),
+        re_filter(find (root=".", pattern="test.py", follow_symlinks=True),
+                  options.run_test),
         common_discs, trace_dir)
 
     # Main loop :
