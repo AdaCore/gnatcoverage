@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2010, AdaCore                     --
+--                     Copyright (C) 2008-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -624,7 +624,7 @@ package body Files_Table is
          Open (File, In_File, Name);
          Success := True;
       exception
-         when Name_Error =>
+         when Name_Error | Use_Error =>
             Success := False;
       end Try_Open;
 
