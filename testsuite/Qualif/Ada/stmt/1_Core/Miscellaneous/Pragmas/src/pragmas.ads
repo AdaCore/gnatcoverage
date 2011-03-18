@@ -1,5 +1,7 @@
 --  The body contains "executable" pragmas in different contexts
+
 package Pragmas is
+
 
    subtype Acceptable_Integer is Integer range -20_000 .. 20_000;
    subtype Safe_Integer       is Integer range -10_000 .. 10_000;

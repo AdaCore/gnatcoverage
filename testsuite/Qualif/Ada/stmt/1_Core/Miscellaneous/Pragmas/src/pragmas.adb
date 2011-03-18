@@ -1,4 +1,9 @@
+pragma Check_Policy (Assertion, On);
+pragma Check_Policy (Precondition, On);
+pragma Check_Policy (Postcondition, On);
+
 with Support_Pragmas;
+
 package body Pragmas is
 
    procedure Check_Val (I : in out Integer);
