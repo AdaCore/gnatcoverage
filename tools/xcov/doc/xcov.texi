@@ -1430,91 +1430,92 @@ DECISION "Robot.Mod..." at 75:10: outcome TRUE never exercised
 In a similar fashion to statement or decision coverage, @xcov{} offers
 Modified Condition/Decision Coverage assessment capabilities with
 @option{--level=stmt+mcdc}.
+@c
+In addition to the particular level specification, you should also
+provide @xrun{} with the set of SCOs you plan to analyze later on
+using the produced trace, with a @code{--scos} argument as for
+@code{xcov coverage}.
+@c
+If you plan different analysis for a single run, providing a common
+superset to @xrun{} is fine.
+@c
+Providing @xrun{} with only a subset of the SCOs you will analyze
+might result in pessimistic assessments later on (spurious MCDC not
+achieved outcome).
 
 Compared to Decision Coverage, MCDC processing incurs extra
 verifications on the demonstration by the tests of the independent
 influence of boolean atoms in decisions, called @dfn{conditions} in
 the DO-178 literature.
 @c
-Several variants of the criterion apply in the field, with a common
-idea: for each condition in a decision, the tests are required to
-expose a pair of valuations where both the condition and the decision
-value change while some extra property on the other conditions holds.
+Several variants of the criterion exist, with a common idea: for each
+condition in a decision, tests are required to expose a pair of
+valuations where both the condition and the decision value change
+while some extra property on the other conditions holds.
+@c
+The point is to demonstrate that every condition is significant in the
+decision and that the tests exercised representative combinations of
+the possible behaviors, while keeping the number of required tests
+linear with the number of conditions in a decision.
 
-The point is basically to demonstrate that every condition is
-significant in the decision and that sufficient tests were performed
-to exercise representative combinations of the possible behaviors.
+@dfn{Unique Cause MCDC} is a common variant where the extra property
+is ``all of the other conditions in the decision shall remain unchanged''.
 @c
-An important aspect is to keep the number of required tests linear
-with the number of conditions in a decision.
+To illustrate, the table below expands the 4 possible
+condition/decision vectors for decision @code{A and then B}.
 @c
-All the variants of MCDC are expected to be satisfiable with
-Nconditions+1 @dfn{vectors} of condition/decision values in regular
-situations.
+@code{T}/@code{F} represent the True/False boolean values and the
+rightmost column indicates which vector pairs demonstrate Unique Cause
+independent effect of each condition.
 
-@dfn{Unique Cause MCDC} is a common variant where the extra property is
-stated as ``all of the other conditions in the decision keep the same
-value''.
-@c
-To illustrate, let us consider the case of @code{A and then B}, as a
-single decision with two conditions @code{A} and @code{B}.
-@c
-The table below expands the 4 possible condition/decision vectors,
-with T/F to represent the True/False boolean values and indications
-about pairs demonstrating Unique Cause independent effect of each
-condition (vectors #1 and #3 for @code{A}, #1 and #2 for @code{B}):
+@smallexample
 
-@multitable @columnfractions .05 .05 .05 .1 .05 .05
-@item # @tab @code{A} @tab @code{B} @tab @code{A && B} @tab @tab
-@item 1 @tab T @tab T @tab T @tab @code{A} @tab @code{B}
-@item 2 @tab T @tab F @tab F @tab          @tab @code{B}
-@item 3 @tab F @tab T @tab F @tab @code{A} @tab
-@item 4 @tab F @tab F @tab F @tab   @tab
-@end multitable
+| # | A  B  A && B | Indep |
+|---|--------------|-------|
+| 1 | T  T    T    | A  B  |
+| 2 | T  F    F    |    B  |
+| 3 | F  T    F    | A     |
+| 4 | F  F    F    |       |
 
-Xcov actually implements a common variant with particular semantics
-for short-circuit operators.
-@c
-The idea is to accept variations of some of the extra conditions in an
-independence pair as long as these conditions are not evaluated due to
+@end smallexample
+
+Xcov actually implements a common variant, accepting variations of
+other conditions in an independence pair as long as they could for
+sure not possibly influence the decision outcome, e.g. due to
 short-circuit semantics.
 @c
 This variant provides additional flexibility on the set of tests
 required to satisfy the criterion without reducing the minimal size of
 this set.
 @c
-In the @code{and then} case, the effect is the possibility to use the
-#4 + #1 pair as well to demonstrate the independent influence of
-@code{A} on the decision.
-@c
-Indeed, @code{B} is not evaluated at all when @code{A} is False in
-this expression, so changes on the value of @code{B} are irrelevant.
+In the @code{and then} case, it becomes possible to use the #4 + #1
+pair as well to demonstrate the independent influence of @code{A}, as
+@code{B} is not evaluated at all when @code{A} is False so the change
+on @code{B} is irrelevant in the decision switch.
 
-Output-wise, MCDC results materialize with as
-@code{--annotate=report} diagnostics on conditions, identified with
-their precise file:line:column source location.
+Output-wise, the in-source notes for the @code{xcov} or @code{html}
+formats are the same as for decision coverage reports, with condition
+specific cases marked with '!' as well.
+@c
+@code{--annotate=report} outputs feature specific diagnostics where
+conditions are identified with their precise file:line:column source
+location.
 @c
 Using the same decision as in the previous example to illustrate, we
 run the Explore robot in Cautious mode only, try both safe and unsafe
 actions and get:
 
 @smallexample
-
 robots.adb:75:10: condition has no independent influence pair, MC/DC not achieved
-
 @end smallexample
 
 @noindent
 Such condition related messages are only emitted when no more general
-diagnostic applies on the associated decision or statement.
+diagnostic applies on the associated decision or statement, however.
 @c
 In our familiar example, attempting only safe actions in Cautious mode
-yields a ``outcome TRUE never exercised'' diagnostic, not a couple of
-condition related messages.
-@c
-The in-source notes for the @code{xcov} or @code{html} formats are the
-same as for decision coverage reports, with condition specific cases
-marked with '!' as well.
+yields a ``@code{decision outcome TRUE never exercised}'' diagnostic,
+not a couple of condition related messages.
 
 @page
 @section Advanced features
