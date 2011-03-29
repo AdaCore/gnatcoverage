@@ -1,6 +1,1 @@
 Generics: what does it happen if a generic is not instantiated?
-
-TO DO:
-
-* CompoundStateemtns/Block is a testcase, not a requirement
-* Robustness/Homonyms shall be a test case, not a requirement
