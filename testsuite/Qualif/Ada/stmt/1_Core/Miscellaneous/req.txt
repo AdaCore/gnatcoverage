@@ -2,7 +2,7 @@ This requirement groups testcases to verify the correct coverage of miscellaneou
 elements from the ARM. All considered elements have minimal impact of structural
 coverage and are included mostly for completeness.
 
-** Testing strategy**
+**Testing strategy**
 
 Check the following elements:
 * Pragmas             (ch. 2)

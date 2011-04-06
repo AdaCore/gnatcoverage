@@ -1,6 +1,8 @@
 Statement coverage assessment remains well defined in the presence of code
 constructs that could fool simple minded analysis engines.
 
+**Testing Strategy**
+
 This general requirement is decomposed into lower level ones to address
 cases where
 
