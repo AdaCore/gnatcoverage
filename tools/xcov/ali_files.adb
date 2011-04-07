@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -33,15 +33,14 @@ package body ALI_Files is
    --------------
 
    function Load_ALI (ALI_Filename : String) return Source_File_Index is
-      ALI_File : File_Type;
+      ALI_File  : File_Type;
       ALI_Index : Source_File_Index;
 
       Line     : String_Access;
       Index    : Natural;
 
-      --  For regex matching
-
       Matches : Match_Array (0 .. 10);
+      --  For regex matching
 
       function Match (Index : Integer) return String;
       --  Return Index'th match in Line
@@ -80,10 +79,30 @@ package body ALI_Files is
          Next_Char : constant Character := Nextc;
       begin
          Index := Index + 1;
-         if Index > Line'Last + 1 and then not End_Of_File (ALI_File) then
-            Free (Line);
-            Line := new String'(Get_Line (ALI_File));
-            Index := 1;
+         if Index > Line'Last + 1 then
+
+            --  Note: normally we should just read the next line from ALI_File
+            --  and reset Index. However some older versions of the compiler
+            --  generated duplicated SCOs in some cases, so if we get two
+            --  successive identical lines, we ignore them and keep reading.
+
+            while not End_Of_File (ALI_File) loop
+               declare
+                  Next_Line : constant String := Get_Line (ALI_File);
+               begin
+                  if Next_Line = Line.all then
+                     Report
+                        ("ignoring duplicate line in ALI file "
+                         & ALI_Filename, Kind => Warning);
+
+                  else
+                     Free (Line);
+                     Line := new String'(Next_Line);
+                     Index := 1;
+                     exit;
+                  end if;
+               end;
+            end loop;
          end if;
          return Next_Char;
       end Getc;
