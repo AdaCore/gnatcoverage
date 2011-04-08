@@ -61,15 +61,15 @@ GNATcoverage qualified interface
 
 To obtain reports suitable for use as certification evidence, applicants shall use GNATcoverage as follows:
 
-#. To build the executable application is the GNAT Pro toolchain identified in the qualification environment obeying to the compilation options and coding standard rules documented there.
+* To build the executable application is the GNAT Pro toolchain identified in the qualification environment obeying to the compilation options and coding standard rules documented there.
 
-#. To obtain an execution trace file <TRACE> by running the <APP> executable application within the instrumented execution environment:
+* To obtain an execution trace file <TRACE> by running the <APP> executable application within the instrumented execution environment:
 
-.. code-block:: text
-
+.. code-block:: text 
+ 
  xcov run --target=<TARGET> --level=<LVL> <APP> -o <TRACE>
 
-#. To produce the <REPORT> file (format documented in  the GNATcoverage RM), feed the execution traces of interest to the coverage analyzer with:
+* To produce the <REPORT> file (format documented in  the GNATcoverage RM), feed the execution traces of interest to the coverage analyzer with:
 
 .. code-block:: text
 
