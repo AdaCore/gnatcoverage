@@ -1,0 +1,74 @@
+{
+ "RootArtifact" : "GNATcoverage",
+ "Plugins"      : "plugins",
+ "Artifacts":
+ {
+   "GNATcoverage" :
+   { "Content"   : {"Pattern": "env_thales_adiru.py", "Mime": "text/x-python", "Occurrences": "1"},
+     "Traceability" : {
+       "Plans" : {
+         "ArtifactClass" : "Plan",
+         "Repository"    : "plans",
+         "Activity"      : {"Description" : "Write Project Plans"},
+         "Occurrences"   : "1"},
+       "Release": {
+         "ArtifactClass" : "Release",
+         "Repository"    : "release",
+         "Activity"      : {"Description" : "Generate the release",
+                            "Automation"  : "GenRelease"},
+         "DependsOn"     : ["$(parent)::Plans::Pdf_Plans"],
+         "Occurrences"   : "1"}
+       }
+   },
+   "Release" :
+   { "Content"   : [{"Pattern": "*.pdf", "Mime": "application/pdf", "Occurrences": "*"},
+                    {"Pattern": "*.zip", "Mime": "application/zip", "Occurrences": "*"}]
+   },
+   "Plan" :
+   { "Content"   : [{"Pattern": "content.rst", "Mime": "text/x-rst", "Occurrences": "1"},
+                    {"Pattern": "conf.py", "Mime": "text/x-python", "Occurrences": "<=1"}],
+     "Traceability" : {
+       "Documentation Introduction": {
+         "ArtifactClass" : "Document",
+         "Repository"    : "Documentation_Introduction",
+         "Activity"      : {"Description" : "Write the documentation introduction"},
+         "Occurrences"   : "1"},
+       "Tool Qualification Plan": {
+         "ArtifactClass" : "Document",
+         "Repository"    : "Tool_Qualification_Plan",
+         "Activity"      : {"Description" : "Write the tool qualification plan"},
+         "Occurrences"   : "1"},
+       "Software Configuration Management Plan": {
+         "ArtifactClass" : "Document",
+         "Repository"    : "Software_Configuration_Management_Plan",
+         "Activity"      : {"Description" : "Write the software configuration management plan"},
+         "Occurrences"   : "1"},
+       "Software Quality Assurance Plan": {
+         "ArtifactClass" : "Document",
+         "Repository"    : "Software_Quality_Assurance_Plan",
+         "Activity"      : {"Description" : "Write the software quality assurance plan"},
+         "Occurrences"   : "1"},
+       "Pdf_Plans": {
+         "ArtifactClass" : "Pdf_Plans",
+         "Repository"    : "pdf",
+         "Activity"      : {"Description" : "Generate the document",
+                            "Automation"   : "SphinxGen"},
+         "Occurrences"   : "<=1"}
+     }
+   },
+   "Document" :
+   { "Content"   : {"Pattern": "content.rst", "Mime": "text/x-rst", "Occurrences": "1"},
+     "HasResult" : false,
+     "Traceability" : {
+       "DocPart": {
+         "ArtifactClass" : "Document",
+         "Repository"    : "$(subitem)",
+         "Activity"      : {"Description" : "Add document parts"},
+         "Occurrences"   : "*"
+       }
+     }
+   },
+   "Pdf_Plans" :
+   { "Content"   : {"Pattern": "plans.pdf", "Mime": "application/pdf", "Occurrences": "1"}}
+ }
+}
