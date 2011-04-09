@@ -1181,7 +1181,7 @@ class XnoteP_segment:
 
 class XnoteP:
 
-    NK_for = {'l0': lNoCode, 'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
+    NK_for = {'l.': lNoCode, 'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
               'l#': lx0, 'l*': lx1,
               's-': sNoCov, 's!': sPartCov,
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-':dNoCov,
