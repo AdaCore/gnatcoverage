@@ -14,6 +14,9 @@ In order to finalize the qualification of GNATcoverage, the final user needs to 
 
 #. **Delivery Acceptance.** On delivery of GNATcoverage and its qualification kit, the user shall assess the representativeness of the verification environment with the operational environment.
 #. **Configuration Management of Qualification Data.** The user need to put under configuration management all qualification data, see compliance matrix to table A-8 in :qmref:`$(project)::Plans::Software Configuration Management Plan`.
+#. **Tool conformity review.** The user need:
+    * To check that the current version of GNATcoverage has been used.
+    * To finalize the discussion on open problems (if any).
 #. **Provide a tool qualification agreement**, see section 12.2.4 of DO-178B.
 
 
