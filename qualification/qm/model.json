@@ -4,7 +4,7 @@
  "Artifacts":
  {
    "GNATcoverage" :
-   { "Content"   : {"Pattern": "env_thales_adiru.py", "Mime": "text/x-python", "Occurrences": "1"},
+   { "Content"   : {"Pattern": "env.py", "Mime": "text/x-python", "Occurrences": "1"},
      "Traceability" : {
        "Plans" : {
          "ArtifactClass" : "Plan",
@@ -17,7 +17,14 @@
          "Activity"      : {"Description" : "Generate the release",
                             "Automation"  : "GenRelease"},
          "DependsOn"     : ["$(parent)::Plans::Pdf_Plans"],
-         "Occurrences"   : "1"}
+         "Occurrences"   : "1"},
+       "Environment File" : {
+         "ArtifactClass" : "Environment",
+         "Repository"    : "environment",
+         "Activity"      : {"Description" : "Generate environment file",
+                            "Automation"  : "GenEnvironment",
+                            "Volatile"    : true},
+         "Occurrences"    : "1"}
        }
    },
    "Release" :
@@ -69,6 +76,8 @@
      }
    },
    "Pdf_Plans" :
-   { "Content"   : {"Pattern": "plans.pdf", "Mime": "application/pdf", "Occurrences": "1"}}
+   { "Content"   : {"Pattern": "plans.pdf", "Mime": "application/pdf", "Occurrences": "1"}},
+   "Environment" :
+   { "Content"   : {"Pattern": "content.rst", "Mime": "text/x-rst", "Occurrences": "1"}}
  }
 }
