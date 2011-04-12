@@ -1,4 +1,4 @@
-from test_utils import *
-ExerciseAll()
+from SCOV.tc import *
+TestCase().run()
 
 thistest.result()

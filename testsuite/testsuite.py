@@ -46,7 +46,7 @@ def main():
     # Parse command lines options
     options = __parse_options()
 
-    # Add current directory in PYTHONPATH (to find test_utils.py)
+    # Add current directory in PYTHONPATH (to find SUITE.utils.py)
     env = Env()
     env.add_search_path('PYTHONPATH', os.getcwd())
 
@@ -344,17 +344,13 @@ def gen_collect_result(show_diffs=False):
         test.filename = test.filename.replace('\\', '/')
 
         output = ofile_for(test)
-        test_out = ""
         if os.path.exists(output):
             f = open(output)
-            test_out = f.read()
-            if re.search("==== PASSED ============================.",
-                         test_out):
-                success = True
-            else:
-                success = False
-                f.seek(0)
-                f.close()
+            success = (
+                True if re.search(
+                    "==== PASSED ============================.", f.read())
+                else False)
+            f.close()
         else:
             success = False
         if not success:

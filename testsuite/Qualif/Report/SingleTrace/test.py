@@ -1,5 +1,6 @@
-from test_utils import *
+from SCOV.tc import *
+from SCOV.report import ReportChecker
 
-ExerciseAll(category="stmt")
-CheckReport("test_sort_lt",ntraces=1)
+TestCase(category="stmt").run()
+ReportChecker("test_sort_lt",ntraces=1).run()
 thistest.result()

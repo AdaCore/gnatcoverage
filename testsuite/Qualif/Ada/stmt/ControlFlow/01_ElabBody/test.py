@@ -9,7 +9,7 @@ env = Env()
 #env.add_search_path('PYTHONPATH', rootPath)
 print rootPath
 
-from test_utils import *
+from SCOV.tc import *
 
-ExerciseAll()
+TestCase().run()
 thistest.result()

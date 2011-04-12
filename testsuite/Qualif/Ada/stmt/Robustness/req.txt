@@ -3,8 +3,7 @@ constructs that could fool simple minded analysis engines.
 
 **Testing Strategy**
 
-This general requirement is decomposed into lower level ones to address
-cases where
+Check cases where
 
 * Code indentation could be misleading
 
@@ -13,3 +12,6 @@ cases where
 * Multiple statements share the same line
 
 * A single statement spans multiple lines
+
+* Entire sequences are inhibited because nested within a
+  conditional statically known to be always False

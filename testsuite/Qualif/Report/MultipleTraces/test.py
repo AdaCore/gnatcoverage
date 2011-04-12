@@ -1,5 +1,6 @@
-from test_utils import *
+from SCOV.tc import *
+from SCOV.report import ReportChecker
 
-ExerciseAll(category="stmt")
-CheckReport("cons_sort_gtin",ntraces=2)
+TestCase(category="stmt").run()
+ReportChecker("cons_sort_gtin",ntraces=2).run()
 thistest.result()
