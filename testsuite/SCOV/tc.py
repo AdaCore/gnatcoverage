@@ -3,7 +3,7 @@
 # ****************************************************************************
 
 # This module exposes the TestCase class, designed to automate all the
-# processing required to run a source coverage qualification "testcase" setup
+# processing required to run a source coverage qualification testcase setup
 # where test.py was found.
 #
 # A typical use, using default parameters, is TestCase_Here().run().
@@ -20,7 +20,7 @@
 # in this case.
 
 # This module also exposes ...
-from SUITE.utils import thistest
+from SUITE.context import thistest
 
 # allowing calls to thistest.result() straight after run(), without requiring
 # a dedicated import on the client side

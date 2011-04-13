@@ -7,7 +7,7 @@
 
 # ****************************************************************************
 
-from SUITE.utils import thistest
+from SUITE.context import thistest
 
 import re
 from SUITE.utils import match, do, compile, to_list, list_to_file
@@ -20,6 +20,7 @@ class MapChecker:
 
     def __init__(self, sources, options="",
                  objects=None, alis=None, ensure_dcscos=True):
+
         self.options = SCOV_CARGS +  " " + COMMON_CARGS + " " + options
         self.sources = to_list(sources)
         self.ensure_dcscos = ensure_dcscos

@@ -9,7 +9,10 @@
 # ***************************************************************************
 
 import re
-from SUITE.utils import thistest, FatalError
+
+from SUITE.context import thistest
+from SUITE.utils import FatalError
+
 from internals.tfiles import *
 
 # ===========================================================

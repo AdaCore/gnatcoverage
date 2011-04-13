@@ -78,9 +78,11 @@
 # have Xnote objects to represent the set of expected indications after
 # the line patterns were matched against a source.
 
-from SUITE.utils import lines_of, thistest, FatalError
-from segments import *
-from tfiles import Tfile
+from SUITE.context import thistest
+from SUITE.utils import lines_of, FatalError
+
+from . segments import *
+from . tfiles import Tfile
 
 # Symbolic values & names for kinds of coverage notes:
 # ----------------------------------------------------

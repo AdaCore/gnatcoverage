@@ -45,7 +45,7 @@ SCOV_CARGS = " -gnateS "
 
 # Internal helper to dispatch information to test.py.err/log/out
 
-class ReportOutput(object):
+class _ReportOutput(object):
     """A class that allows us to write some text to a report file, while
     bufferizing part of it until we know whether this part should also
     be printed on standard output or not.  The idea is to buffer the
@@ -150,7 +150,7 @@ class Test (object):
 
         self.options = self.cmdline_options()
         self.n_failed = 0
-        self.report = ReportOutput(self.options.report_file)
+        self.report = _ReportOutput(self.options.report_file)
         self.current_test_index = 0
 
         self.gprconfoptions = ['-v', '--config=%s' % ROOT_DIR+'/suite.cgpr',
