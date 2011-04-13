@@ -1,6 +1,7 @@
 pragma Check_Policy (Assertion, On);
 pragma Check_Policy (Precondition, On);
 pragma Check_Policy (Postcondition, On);
+pragma Debug_Policy (Check);
 
 with Support_Pragmas;
 
