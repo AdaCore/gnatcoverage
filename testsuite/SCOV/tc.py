@@ -163,11 +163,6 @@ class TestCase:
 
         self.cargs += to_list (extracargs)
 
-        # Step 3: Run the tests ...
-        # -------------------------
-
-        self.run()
-
     def run(self):
 
         # First, run the test for each driver, individually.
