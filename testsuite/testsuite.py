@@ -14,6 +14,7 @@ To run tests whose relative path to test.py match a provided regexp
 
 See ./testsuite.py -h for more help
 """
+
 # ***************************************************************************
 
 from gnatpython.env import Env
@@ -29,7 +30,10 @@ from glob import glob
 
 import logging, os, re, sys
 
-from SUITE.cutils import contents_of, re_filter
+from SUITE import cutils
+from SUITE.cutils import contents_of, re_filter, clear
+
+from SUITE.qdata import QDR
 
 DEFAULT_TIMEOUT = 600
 
@@ -130,6 +134,9 @@ class TestSuite:
             targetargs.append ("BOARD=%s" % self.env.main_options.board)
         Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']+targetargs,
             output='output/build_support.out')
+
+        # Instanciate what we'll need to produce a qualfication report
+        self.qdr = QDR()
 
     # -------------------------------
     # -- Discriminant computations --
@@ -235,7 +242,7 @@ class TestSuite:
         logf = test.logf()
         diff = test.diff()
 
-        [os.remove (f) for f in (outf, logf, diff) if os.path.exists(f)]
+        [cutils.clear (f) for f in (outf, logf, diff)]
 
         testcase_cmd = [sys.executable,
                         test.filename,
@@ -291,19 +298,13 @@ class TestSuite:
         # if it was xfailed, with what comment, what was the error log when
         # the test failed, ...
 
-        # Compute the actual execution status, what really happened
-        # independant from what was expected;
+        # Compute the actual execution status, what really happened whatever
+        # what was expected;
 
-        output = test.outf()
-        if os.path.exists(output):
-            f = open(output)
-            success = (
-                True if re.search(
-                    "==== PASSED ============================.", f.read())
-                else False)
-            f.close()
-        else:
-            success = False
+        outf = test.outf()
+        success = (
+            cutils.match("==== PASSED ==================", outf)
+            if os.path.exists(outf) else False)
 
         # If the execution failed, arrange to get a link to the err log
         # where the infrastructure expects it (typically not in the test
@@ -311,8 +312,7 @@ class TestSuite:
 
         if not success:
             odiff = self.odiff_for(test)
-            if os.path.exists(odiff):
-                rm(odiff)
+            cutils.clear (odiff)
             ln(test.diff(), odiff)
 
         # Compute the status of this test (OK, UOK, FAILED, XFAIL) from
@@ -361,6 +361,11 @@ class TestSuite:
                     logging.info(contents_of (test.diff()))
             else:
                 result_f.write('%s:%s:\n' % (test.rname(), status))
+
+        # Check if we have a qualification data instance pickled around,
+        # to register it for later test-results producion
+    
+        self.qdr.check_qdata_at(test.testdir)
 
     def odiff_for(self, test):
         """Returns path to diff file in the suite output directory.  This file
@@ -419,6 +424,7 @@ class TestSuite:
             m.options.run_test = ""
 
         return m.options
+
 
 # ==============
 # == TestCase ==
@@ -492,9 +498,6 @@ class TestCase(object):
         object should go."""
         return os.path.join(os.getcwd(), self.filename + '.err')
 
-    def tcof(self):
-        return os.path.join(os.getcwd(), "tc.pkl")
-
     # -----------------------------
     # -- Testcase identification --
     # -----------------------------
@@ -539,3 +542,4 @@ def _quoted_argv():
 if __name__ == "__main__":
     suite = TestSuite()
     suite.run()
+    suite.qdr.gen_report()

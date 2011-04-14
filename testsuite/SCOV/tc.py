@@ -28,8 +28,11 @@ from SUITE.context import thistest
 # ****************************************************************************
 
 import os, re
+
 from SUITE.cutils import to_list, contents_of, FatalError
 from SUITE.tutils import TEST_DIR, QUALIF_DIR
+
+from SUITE.qdata import Qdata, QdataEntry
 
 from gnatpython.fileutils import ls
 
@@ -163,20 +166,38 @@ class TestCase:
 
         self.cargs += to_list (extracargs)
 
+        # Setup qualification data for this testcase
+
+        self.qdata = Qdata()
+
+    # ---------------------
+    # -- run and helpers --
+    # ---------------------
+
+    def register_qde_for (self, drvo):
+        """Register a qualif data entry for the just executed driver object"""
+        self.qdata.register (
+            QdataEntry(eid="blob", xrnotes=drvo.xrnotes, xlnotes=drvo.xlnotes))
+
     def run(self):
 
         # First, run the test for each driver, individually.
-        [[SCOV_helper(drivers=[driver], xfile=driver,
-                      category=self.category,
-                      xcovlevel=covlevel).run(self.cargs)
+        [[self.register_qde_for (
+                    SCOV_helper(drivers=[driver],
+                                xfile=driver, category=self.category,
+                                xcovlevel=covlevel).run(self.cargs)
+                    )
          for driver in self.all_drivers]
          for covlevel in self.xcovlevels]
 
         # Next, run applicable consolidation tests.
-        consolidation_specs = ls ("src/cons_*.txt")
-        [[SCOV_helper(drivers=self.__drivers_from(cspec), xfile=cspec,
-                      category=self.category,
-                      xcovlevel=covlevel).run(self.cargs)
-          for cspec in consolidation_specs]
+        [[self.register_qde_for (
+                    SCOV_helper(drivers=self.__drivers_from(cspec),
+                                xfile=cspec, category=self.category,
+                                xcovlevel=covlevel).run(self.cargs)
+                    )
+          for cspec in ls ("src/cons_*.txt")]
           for covlevel in self.xcovlevels]
 
+        # Dump qualification data for test-results production purposes
+        self.qdata.flush()

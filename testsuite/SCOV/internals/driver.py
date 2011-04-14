@@ -28,7 +28,8 @@ from SUITE.tutils import gprbuild, gprfor, SCOV_CARGS, xrun, xcov, frame
 
 from gnatpython.fileutils import cd, mkdir
 
-from . notes import *
+from . cnotes import *
+from . xnotep import *
 from . expanders import *
 
 # ======================================
@@ -303,6 +304,9 @@ class SCOV_helper:
 
         self.to_homedir()
         thistest.flush()
+
+        # Let callers retrieve execution data at will
+        return self
 
     # -------------------------
     # -- working directories --

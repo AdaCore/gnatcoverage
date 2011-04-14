@@ -9,17 +9,15 @@
 # ***************************************************************************
 
 import re
-from gnatpython.fileutils import diff
+from gnatpython.fileutils import diff, os
 
 # -----------------
 # -- contents_of --
 # -----------------
 def contents_of(filename):
     """Return contents of file FILENAME"""
-    f = open(filename)
-    contents = f.read()
-    f.close()
-
+    with open(filename) as fd:
+        contents = fd.read()
     return contents
 
 # --------------
@@ -27,10 +25,8 @@ def contents_of(filename):
 # --------------
 def lines_of(filename):
     """Return contents of file FILENAME as a list of lines"""
-    f = open(filename)
-    contents = f.readlines()
-    f.close()
-
+    with open(filename) as fd:
+        contents = fd.readlines()
     return contents
 
 # -------------
@@ -58,9 +54,8 @@ def text_to_file(text, filename="tmp.list"):
     """Write TEXT to file FILENAME. Overwrite current contents.
     Return FILENAME."""
 
-    f = open (filename, "w")
-    f.write (text)
-    f.close ()
+    with open (filename, "w") as fd:
+        fd.write (text)
     return filename
 
 # ------------------
@@ -85,6 +80,14 @@ def match(pattern, filename, flags=0):
 def re_filter(l, pattern=""):
     """Compute the list of entries in L that match the PATTERN regexp."""
     return [t for t in l if re.search(pattern,t)]
+
+# -----------
+# -- clear --
+# -----------
+def clear(f):
+    """Remove file F if it exists"""
+    if os.path.exists(f):
+        os.remove(f)
 
 # ==========================
 # == FatalError Exception ==

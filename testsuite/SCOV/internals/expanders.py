@@ -32,16 +32,16 @@
 #                            v RnotesExpander
 #                  .ernotes = { sourcename - KnoteDict(rNoteKinds) of Enote }
 
-__all__ = ["LnotesExpander", "RnotesExpander", "XnotesExpander"]
-
 # ****************************************************************************
 
 import re, os
 
 from gnatpython.fileutils import ls
 
-from notes import *
-from segments import *
+from . cnotes import *
+from . xnotep import *
+from . tfiles import *
+from . segments import *
 
 # ------------
 # -- fb_get --
