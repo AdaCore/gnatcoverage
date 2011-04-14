@@ -79,7 +79,7 @@
 # the line patterns were matched against a source.
 
 from SUITE.context import thistest
-from SUITE.utils import lines_of, FatalError
+from SUITE.cutils import lines_of, FatalError
 
 from . segments import *
 from . tfiles import Tfile

@@ -23,14 +23,13 @@ __all__ = ["SCOV_helper"]
 
 import os
 
-from SUITE.utils import frame, to_list, list_to_file, match, contents_of
-from SUITE.utils import gprbuild, gprfor, SCOV_CARGS
-from SUITE.utils import xrun, xcov
+from SUITE.cutils import to_list, list_to_file, match, contents_of
+from SUITE.tutils import gprbuild, gprfor, SCOV_CARGS, xrun, xcov, frame
 
 from gnatpython.fileutils import cd, mkdir
 
-from notes import *
-from expanders import *
+from . notes import *
+from . expanders import *
 
 # ======================================
 # == SCOV_helper and internal helpers ==

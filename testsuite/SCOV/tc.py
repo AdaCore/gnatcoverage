@@ -28,8 +28,8 @@ from SUITE.context import thistest
 # ****************************************************************************
 
 import os, re
-from SUITE.utils import to_list, contents_of
-from SUITE.utils import FatalError, TEST_DIR, QUALIF_DIR
+from SUITE.cutils import to_list, contents_of, FatalError
+from SUITE.tutils import TEST_DIR, QUALIF_DIR
 
 from gnatpython.fileutils import ls
 

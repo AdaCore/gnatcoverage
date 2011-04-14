@@ -7,11 +7,10 @@
 
 # ****************************************************************************
 
-from SUITE.context import thistest
-
 import re
-from SUITE.utils import match, do, compile, to_list, list_to_file
-from SUITE.utils import SCOV_CARGS, COMMON_CARGS
+
+from SUITE.cutils import match, to_list, list_to_file
+from SUITE.tutils import thistest, SCOV_CARGS, COMMON_CARGS, do, compile
 
 # ==================
 # ==  MapChecker  ==

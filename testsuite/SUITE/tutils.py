@@ -1,72 +1,18 @@
 # ***************************************************************************
-# **                         Common Utility functions                      **
+# **                      TEST-COMMON UTILITY functions                    **
+# ***************************************************************************
+
+# This module exposes common utility functions to every test instance.  They
+# depend on the current test context and are not suitable for the toplevel
+# suite driver.
+
 # ***************************************************************************
 
 # The following import provides both us and our clients with the context
 # facilities ...
 
 from SUITE.context import *
-
-# -----------------
-# -- contents_of --
-# -----------------
-def contents_of(filename):
-    """Return contents of file FILENAME"""
-    f = open(filename)
-    contents = f.read()
-    f.close()
-
-    return contents
-
-# --------------
-# -- lines_of --
-# --------------
-def lines_of(filename):
-    """Return contents of file FILENAME as a list of lines"""
-    f = open(filename)
-    contents = f.readlines()
-    f.close()
-
-    return contents
-
-# -------------
-# -- to_list --
-# -------------
-def to_list(blob):
-    """Turn input BLOB into a list if it isn't already. Handle None
-       and whitespace separated strings. Return empty list otherwise."""
-
-    if isinstance (blob, list):
-        return blob
-
-    if blob == None:
-        return []
-
-    if isinstance (blob, str):
-        return blob.split ()
-
-    return []
-
-# ------------------
-# -- text_to_file --
-# ------------------
-def text_to_file(text, filename="tmp.list"):
-    """Write TEXT to file FILENAME. Overwrite current contents.
-    Return FILENAME."""
-
-    f = open (filename, "w")
-    f.write (text)
-    f.close ()
-    return filename
-
-# ------------------
-# -- list_to_file --
-# ------------------
-def list_to_file(l, filename="tmp.list"):
-    """Write list L to file FILENAME, one item per line. Typical use is
-       to generate response files. Return FILENAME."""
-
-    return text_to_file ('\n'.join (l) + '\n', filename)
+from SUITE.cutils import *
 
 # --------------
 # -- gprbuild --
@@ -223,20 +169,6 @@ def xrun(args, out=None):
 
     return xcov (['run', '--target=' + targetarg] + to_list(args),
                  inp=nulinput, out=out, register_failure=False)
-# -----------
-# -- match --
-# -----------
-def match(pattern, filename, flags=0):
-    """Whether regular expression PATTERN could be found in FILENAME"""
-    return re.search(pattern, contents_of(filename), flags) is not None
-
-# -------------
-# -- differs --
-# -------------
-def differs (file1, file2):
-    """Returns True if the content of the two files are different"""
-    diff_string = diff (file1, file2)
-    return diff_string != ''
 
 # --------
 # -- do --
@@ -285,19 +217,4 @@ class frame:
         self.width = 0
         self.lines = text.split('\n')
         [self.register(text) for text in self.lines]
-
-# ==========================
-# == FatalError Exception ==
-# ==========================
-
-# to raise when processing has to stop
-
-class FatalError(Exception):
-    def __init__(self,comment,output=None):
-        if output != None:
-            comment += '. Output was:\n'+contents_of(output)
-        self.comment = comment
-
-    def __str__(self):
-        return self.comment
 

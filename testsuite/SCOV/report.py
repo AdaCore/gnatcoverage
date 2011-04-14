@@ -10,8 +10,8 @@
 
 import re
 
-from SUITE.context import thistest
-from SUITE.utils import FatalError
+from SUITE.tutils import thistest
+from SUITE.cutils import FatalError
 
 from internals.tfiles import *
 
