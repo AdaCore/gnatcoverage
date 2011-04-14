@@ -79,6 +79,13 @@ def match(pattern, filename, flags=0):
     """Whether regular expression PATTERN could be found in FILENAME"""
     return re.search(pattern, contents_of(filename), flags) is not None
 
+# ---------------
+# -- re_filter --
+# ---------------
+def re_filter(l, pattern=""):
+    """Compute the list of entries in L that match the PATTERN regexp."""
+    return [t for t in l if re.search(pattern,t)]
+
 # ==========================
 # == FatalError Exception ==
 # ==========================

@@ -29,6 +29,8 @@ from glob import glob
 
 import logging, os, re, sys
 
+from SUITE.cutils import contents_of, re_filter
+
 DEFAULT_TIMEOUT = 600
 
 # A dictionary whose keys are the recognized values for the --qualif-level
@@ -73,9 +75,7 @@ class TestSuite:
             self.trace_dir = None
 
         # Generate the discs list for test.opt parsing
-        discs = self.base_discriminants() \
-            + self.qualif_cargs_discriminants() \
-            + self.ravenscar_discriminants()
+        discs = self.discriminants()
 
         # Dump the list of discriminants in a file.  We can then use that file
         # to determine which discriminants were set during a particular run.
@@ -134,6 +134,12 @@ class TestSuite:
     # -------------------------------
     # -- Discriminant computations --
     # -------------------------------
+
+    def discriminants (self):
+        """Full set of discriminants that apply to this test"""
+        return self.base_discriminants() \
+            + self.qualif_cargs_discriminants() \
+            + self.ravenscar_discriminants()
 
     def base_discriminants(self):
         return ['ALL'] + self.env.discriminants
@@ -273,29 +279,20 @@ class TestSuite:
     def collect_result(self, test, _process, _job_info):
         """MainLoop hook to collect results for a non-dead TEST instance."""
 
-        # Three things to do: logging (to stdout), append status to the
-        # output/results file for our nightly infrastructure, and see if
-        # there's a qualification testcase object pickled around, to fetch
-        # back for the generation of a qualification test-results aggregate
-        # report.
+        # Several things to do once a test has run:
+        # - logging (to stdout) the general test status,
+        # - append a status summary to the "output/results" file,
+        #   for our nightly infrastructure,
+        # - see if there's a testcase object pickled around,
+        #   to fetch back for the generation of a qualification
+        #   test-results aggregate report.
 
         # Compute a few useful facts: Whether the test passed or failed,
         # if it was xfailed, with what comment, what was the error log when
         # the test failed, ...
 
-        # success - xfail status dict
-        status_dict = {
-            # XFAIL?   PASSED => status   !PASSED => status
-              True:    {True:    'UOK',    False:    'OK'},
-              False:   {True:    'XFAIL',  False:    'FAILED'}}
-
-        xfail_comment = test.getopt('xfail', None)
-        xfail = xfail_comment is not None
-
-        failed_comment = test.getopt('failed', None)
-
-        # Avoid \ in filename for the final report
-        test.filename = test.filename.replace('\\', '/')
+        # Compute the actual execution status, what really happened
+        # independant from what was expected;
 
         output = test.outf()
         if os.path.exists(output):
@@ -308,17 +305,37 @@ class TestSuite:
         else:
             success = False
 
+        # If the execution failed, arrange to get a link to the err log
+        # where the infrastructure expects it (typically not in the test
+        # dedicated subdirectory where the original log resides)
+
         if not success:
             odiff = self.odiff_for(test)
             if os.path.exists(odiff):
                 rm(odiff)
             ln(test.diff(), odiff)
 
-            diff_fd = open(test.diff())
-            diff = diff_fd.read()
-            diff_fd.close()
+        # Compute the status of this test (OK, UOK, FAILED, XFAIL) from
+        # the combination of its execution success and a possible failure
+        # expectation
+
+        xfail_comment = test.getopt('xfail', None)
+        xfail = xfail_comment is not None
+
+        failed_comment = test.getopt('failed', None)
+
+        status_dict = {
+            # XFAIL?   PASSED => status   !PASSED => status
+              True:    {True:    'UOK',    False:    'OK'},
+              False:   {True:    'XFAIL',  False:    'FAILED'}}
 
         status = status_dict[success][xfail]
+
+        # Now log and populate "results" file
+
+        # Avoid \ in filename for the final report
+        test.filename = test.filename.replace('\\', '/')
+
         if xfail_comment:
             logging.info("%-60s %s (%s)" %
                          (test.filename, status, xfail_comment))
@@ -341,7 +358,7 @@ class TestSuite:
                 else:
                     result_f.write('%s:%s:\n' % (test.rname(), status))
                 if self.options.diffs and not xfail and not failed_comment:
-                    logging.info(diff)
+                    logging.info(contents_of (test.diff()))
             else:
                 result_f.write('%s:%s:\n' % (test.rname(), status))
 
@@ -513,11 +530,6 @@ def _quoted_argv():
         quoted_args.append(quoted_arg)
     return quoted_args
 
-def re_filter(l, pattern=""):
-    """Compute the list of entries in L that match the regexp PATTERN.
-    """
-    return [t for t in l if re.search(pattern,t)]
-
 # =================
 # == script body ==
 # =================
@@ -525,4 +537,5 @@ def re_filter(l, pattern=""):
 # Instanciate and run a TestSuite object ...
 
 if __name__ == "__main__":
-    TestSuite().run()
+    suite = TestSuite()
+    suite.run()
