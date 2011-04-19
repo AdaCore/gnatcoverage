@@ -265,6 +265,15 @@ private pred show_unique_cause [ex : Execution]
 
 run show_unique_cause for 7 but 1 BDD, 1 Execution
 
+private pred show_pathological_case [ex : Execution]
+{
+   #ex.bdd.nodes = 12
+   #inds [ex.outcome] = 3
+   branch_coverage [ex]
+}
+
+run show_pathological_case for 13 but 1 BDD, 1 Execution, 5 int
+
 private pred show_masking_mcdc [ex : Execution]
 {
    --  Show an execution that allows to reach Masking MC/DC
