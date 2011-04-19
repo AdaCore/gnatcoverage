@@ -199,6 +199,20 @@ RS_image = {None: "None",
             rsExempted: "rsExempted"}
 
 # -----------
+# -- Block --
+# -----------
+
+# Almost empty class that helps materialize source regions to which expected
+# coverage note instances belong. Instanciated while reading sources when
+# expected note patterns are processed. Our purpose is only to associate notes
+# with regions, for which an object id is enough + a parent link to represent
+# nesting trees.
+
+class Block:
+    def __init__(self, parent):
+        self.parent = parent
+
+# -----------
 # -- Cnote --
 # -----------
 

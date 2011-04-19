@@ -246,14 +246,6 @@ class RnotesExpander:
 # * Unit Coverage eXpecations (UniCX) objects to represent the associations
 #   of a sequence of line expectations with unit names.
 
-# -----------
-# -- Block --
-# -----------
-
-class Block:
-    def __init__(self, parent):
-        self.parent = parent
-
 # ------------
 # -- LineCX --
 # ------------
