@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -142,11 +142,18 @@ package Traces_Elf is
       PC   : Pc_Type) return Addresses_Info_Acc;
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
+   function Get_Slocs
+     (Exec        : Exe_File_Type;
+      PC          : Pc_Type;
+      Empty_Range : Boolean) return Source_Locations;
+   --  Use Exec's debug_lines information to determine the slocs for the
+   --  instruction at PC. If Empty_Range is False, filter out empty ranges.
+
    function Get_Sloc
      (Exec : Exe_File_Type;
       PC   : Pc_Type) return Source_Location;
-   --  Use Exec's debug_lines information to determine the sloc for the
-   --  instruction at PC.
+   --  Same as Get_Slocs, but returning a unique source location, with a
+   --  non-empty range.
 
    --  Canonical use of iterators:
    --

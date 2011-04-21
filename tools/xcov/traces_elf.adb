@@ -154,6 +154,13 @@ package body Traces_Elf is
 
    Empty_String_Acc : constant String_Access := new String'("");
 
+   function Get_Address_Infos
+     (Exec : Exe_File_Type;
+      Kind : Addresses_Kind;
+      PC   : Pc_Type) return Addresses_Containers.Set;
+   --  Same as Get_Address_Info, but return a set of address infos if there
+   --  are several matches.
+
    ---------
    -- "<" --
    ---------
@@ -1296,39 +1303,28 @@ package body Traces_Elf is
          Pos        : Cursor;
          Inserted   : Boolean;
       begin
-         if Last_Line /= null
-           and then Last_Line.First = Exec.Exe_Text_Start + Pc then
-            --  If the previous line was empty (i.e. last PC = new PC),
-            --  drop it; it is useless in the context of xcov.
-            --  Use its slot in the line table to record the new line.
+         Close_Source_Line;
 
-            Last_Line.Sloc :=
+         --  Note: Last and Parent are set by Build_Debug_Lines
+
+         Last_Line :=
+           new Addresses_Info'
+           (Kind   => Line_Addresses,
+            First  => Exec.Exe_Text_Start + Pc,
+            Last   => Exec.Exe_Text_Start + Pc,
+            Parent => null,
+            Sloc   =>
               (Source_File  => Get_Index_From_Full_Name
-                 (Filenames_Vectors.Element (Filenames, File).all),
+               (Filenames_Vectors.Element (Filenames, File).all),
                Line         => Natural (Line),
-               Column       => Natural (Column));
+               Column       => Natural (Column)));
 
-         else
-            --  If the previous line was not empty, finalize it and create a
-            --  new one.
+         Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
 
-            Close_Source_Line;
-
-            --  Note: Last and Parent are set by Build_Debug_Lines
-
-            Last_Line :=
-              new Addresses_Info'
-              (Kind   => Line_Addresses,
-               First  => Exec.Exe_Text_Start + Pc,
-               Last   => Exec.Exe_Text_Start + Pc,
-               Parent => null,
-               Sloc   =>
-                 (Source_File  => Get_Index_From_Full_Name
-                    (Filenames_Vectors.Element (Filenames, File).all),
-                  Line         => Natural (Line),
-                  Column       => Natural (Column)));
-
-            Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
+         if not Inserted then
+            --  An empty line has already been inserted at PC. Merge it with
+            --  current line.
+            Last_Line := Element (Pos);
          end if;
       end New_Source_Line;
 
@@ -1687,17 +1683,50 @@ package body Traces_Elf is
      (Exec : Exe_File_Type;
       PC   : Pc_Type) return Source_Location
    is
-      use Sloc_Sets;
-
-      Line_Info_Before : constant Addresses_Info_Acc :=
-                           Get_Address_Info (Exec, Line_Addresses, PC);
+      SL : constant Source_Locations := Get_Slocs (Exec, PC, False);
    begin
-      if Line_Info_Before = null then
+      if SL'Length = 0 then
          return Slocs.No_Location;
       else
-         return Line_Info_Before.Sloc;
+         --  If there are several slocs for a PC, only one should be
+         --  a non-empty range.
+         pragma Assert (SL'Length = 1);
+         return SL (1);
       end if;
    end Get_Sloc;
+
+   ---------------
+   -- Get_Slocs --
+   ---------------
+
+   function Get_Slocs
+     (Exec        : Exe_File_Type;
+      PC          : Pc_Type;
+      Empty_Range : Boolean) return Source_Locations
+   is
+      use Addresses_Containers;
+
+      Line_Info_Before : constant Addresses_Containers.Set :=
+                           Get_Address_Infos (Exec, Line_Addresses, PC);
+      Result           : Source_Locations
+                           (1 .. Natural (Line_Info_Before.Length));
+      Position         : Cursor := Line_Info_Before.First;
+      J                : Positive := Result'First;
+   begin
+      while Position /= No_Element loop
+         declare
+            Addr_Info : constant Addresses_Info_Acc := Element (Position);
+         begin
+            if Empty_Range or else Addr_Info.Last >= Addr_Info.First then
+               Result (J) := Addr_Info.Sloc;
+               J := J + 1;
+            end if;
+
+            Next (Position);
+         end;
+      end loop;
+      return Result (1 .. J - 1);
+   end Get_Slocs;
 
    --------------------------
    -- Load_Section_Content --
@@ -2282,9 +2311,31 @@ package body Traces_Elf is
       PC   : Pc_Type) return Addresses_Info_Acc
    is
       use Addresses_Containers;
-      Cur      : Cursor;
+
+      Addr_Infos : constant Addresses_Containers.Set :=
+                     Get_Address_Infos (Exec, Kind, PC);
+   begin
+      if Addr_Infos.Is_Empty then
+         return null;
+      else
+         return Element (Addr_Infos.First);
+      end if;
+   end Get_Address_Info;
+
+   -----------------------
+   -- Get_Address_Infos --
+   -----------------------
+
+   function Get_Address_Infos
+     (Exec : Exe_File_Type;
+      Kind : Addresses_Kind;
+      PC   : Pc_Type) return Addresses_Containers.Set
+   is
+      use Addresses_Containers;
+      Position : Cursor;
 
       PC_Addr  : aliased Addresses_Info (Kind);
+      Result   : Addresses_Containers.Set;
    begin
       PC_Addr.First := PC;
       PC_Addr.Last  := PC;
@@ -2294,13 +2345,17 @@ package body Traces_Elf is
       --  that is smaller than any element with the same PC and non-default
       --  values for other fields (use of Floor below).
 
-      Cur := Exec.Desc_Sets (Kind).Floor (PC_Addr'Unchecked_Access);
-      if Cur = No_Element or else Element (Cur).Last < PC then
-         return null;
-      else
-         return Element (Cur);
-      end if;
-   end Get_Address_Info;
+      Position := Exec.Desc_Sets (Kind).Floor (PC_Addr'Unchecked_Access);
+
+      while Position /= No_Element
+        and then Element (Position).First <= PC
+        and then (Element (Position).First > Element (Position).Last
+                  or else Element (Position).Last >= PC) loop
+         Result.Insert (Element (Position));
+         Previous (Position);
+      end loop;
+      return Result;
+   end Get_Address_Infos;
 
    ----------------
    -- Get_Symbol --

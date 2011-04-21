@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -52,6 +52,8 @@ package Slocs is
    --  Lexicographic order
 
    function Image (Sloc_Range : Source_Location_Range) return String;
+
+   type Source_Locations is array (Positive range <>) of Source_Location;
 
    package Sloc_Sets is new Ada.Containers.Ordered_Sets (Source_Location);
 

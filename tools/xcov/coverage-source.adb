@@ -22,6 +22,7 @@ with Ada.Containers.Ordered_Sets;
 
 with Interfaces;
 
+with Slocs;             use Slocs;
 with Decision_Map;      use Decision_Map;
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -403,24 +404,11 @@ package body Coverage.Source is
       Insn_Len   : Natural;
       SCO, S_SCO : SCO_Id;
 
-   begin
-      --  Iterate over trace for this routine
+      procedure Process_SCO (SCO : SCO_Id);
+      --  Compute source coverage for the given SCO
 
-      PC := T.First + Subp_Info.Offset;
-
-      Trace_Insns :
-      while PC <= T.Last + Subp_Info.Offset loop
-         Insn_Len :=
-           Disa_For_Machine (Machine).
-           Get_Insn_Length (Subp_Info.Insns (PC .. Subp_Info.Insns'Last));
-
-         --  Find SCO for this instruction
-
-         SCO := Sloc_To_SCO (Get_Sloc (Subp_Info.Exec.all, PC));
-         if SCO = No_SCO_Id then
-            goto Continue_Trace_Insns;
-         end if;
-
+      procedure Process_SCO (SCO : SCO_Id) is
+      begin
          --  Ensure there is a coverage information entry for this SCO
 
          while SCI_Vector.Last_Index < SCO loop
@@ -454,7 +442,7 @@ package body Coverage.Source is
            or else Kind (SCO) /= Condition
            or else not Cond_Branch_Map.Contains ((Subp_Info.Exec, PC))
          then
-            goto Continue_Trace_Insns;
+            return;
          end if;
 
          --  Here we have a condition SCO and the PC for a conditional branch
@@ -666,8 +654,34 @@ package body Coverage.Source is
 
             end case;
          end Process_Conditional_Branch;
+      end Process_SCO;
 
-         <<Continue_Trace_Insns>>
+   begin
+      --  Iterate over trace for this routine
+
+      PC := T.First + Subp_Info.Offset;
+
+      Trace_Insns :
+      while PC <= T.Last + Subp_Info.Offset loop
+         Insn_Len :=
+           Disa_For_Machine (Machine).
+           Get_Insn_Length (Subp_Info.Insns (PC .. Subp_Info.Insns'Last));
+
+         --  Find SCO for this instruction
+
+         declare
+            SL : constant Source_Locations :=
+                   Get_Slocs (Subp_Info.Exec.all, PC, True);
+         begin
+            for J in SL'Range loop
+               SCO := Sloc_To_SCO (SL (J));
+
+               if SCO /= No_SCO_Id then
+                  Process_SCO (SCO);
+               end if;
+            end loop;
+         end;
+
          PC := PC + Pc_Type (Insn_Len);
 
          --  Handle case where PC wraps
