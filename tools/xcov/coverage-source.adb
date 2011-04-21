@@ -404,10 +404,11 @@ package body Coverage.Source is
       Insn_Len   : Natural;
       SCO, S_SCO : SCO_Id;
 
-      procedure Process_SCO (SCO : SCO_Id);
-      --  Compute source coverage for the given SCO
+      procedure Discharge_SCO (SCO : SCO_Id);
+      --  Discharge the coverage obligation denoted by SCO using the current
+      --  execution trace.
 
-      procedure Process_SCO (SCO : SCO_Id) is
+      procedure Discharge_SCO (SCO : SCO_Id) is
       begin
          --  Ensure there is a coverage information entry for this SCO
 
@@ -654,7 +655,9 @@ package body Coverage.Source is
 
             end case;
          end Process_Conditional_Branch;
-      end Process_SCO;
+      end Discharge_SCO;
+
+   --  Start of processing for Compute_Source_Coverage
 
    begin
       --  Iterate over trace for this routine
@@ -667,7 +670,8 @@ package body Coverage.Source is
            Disa_For_Machine (Machine).
            Get_Insn_Length (Subp_Info.Insns (PC .. Subp_Info.Insns'Last));
 
-         --  Find SCO for this instruction
+         --  Discharge each SCO for source locations associated with this
+         --  instruction.
 
          declare
             SL : constant Source_Locations :=
@@ -677,7 +681,7 @@ package body Coverage.Source is
                SCO := Sloc_To_SCO (SL (J));
 
                if SCO /= No_SCO_Id then
-                  Process_SCO (SCO);
+                  Discharge_SCO (SCO);
                end if;
             end loop;
          end;
