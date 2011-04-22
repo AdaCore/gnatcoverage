@@ -1,5 +1,5 @@
 # ****************************************************************************
-# **                          TESTCASE abstraction                          **
+# ** TESTCASE abstraction **
 # ****************************************************************************
 
 # This module exposes the TestCase class, designed to automate all the
@@ -32,7 +32,7 @@ import os, re
 from SUITE.cutils import to_list, contents_of, FatalError
 from SUITE.tutils import TEST_DIR, QUALIF_DIR
 
-from SUITE.qdata import Qdata, QdataEntry
+from SUITE.qdata import Qdata, QDentry
 
 from gnatpython.fileutils import ls
 
@@ -150,8 +150,8 @@ class TestCase:
             "decision": ["stmt+decision"],
             "mcdc":     ["stmt+uc_mcdc", "stmt+mcdc"]}
 
-        if self.__qualification_p() and thistest.options.qualif_xcov_level:
-            self.xcovlevels = [thistest.options.qualif_xcov_level]
+        if self.__qualification_p() and thistest.options.qualif_level:
+            self.xcovlevels = [thistest.options.qualif_level]
         else:
             self.xcovlevels = default_xcovlevels_for [self.category]
 
@@ -168,7 +168,7 @@ class TestCase:
 
         # Setup qualification data for this testcase
 
-        self.qdata = Qdata()
+        self.qdata = Qdata(tcid=TEST_DIR)
 
     # ---------------------
     # -- run and helpers --
@@ -176,28 +176,34 @@ class TestCase:
 
     def register_qde_for (self, drvo):
         """Register a qualif data entry for the just executed driver object"""
-        self.qdata.register (
-            QdataEntry(eid="blob", xrnotes=drvo.xrnotes, xlnotes=drvo.xlnotes))
+        self.qdata.register (QDentry(eid="blob", xrnotes=drvo.xrnotes))
 
     def run(self):
 
-        # First, run the test for each driver, individually.
-        [[self.register_qde_for (
+        try:
+
+            # First, run the test for each driver, individually.
+            [self.register_qde_for (
                     SCOV_helper(drivers=[driver],
                                 xfile=driver, category=self.category,
                                 xcovlevel=covlevel).run(self.cargs)
                     )
-         for driver in self.all_drivers]
-         for covlevel in self.xcovlevels]
+             for covlevel in self.xcovlevels
+             for driver in self.all_drivers]
 
-        # Next, run applicable consolidation tests.
-        [[self.register_qde_for (
+            # Next, run applicable consolidation tests.
+            [self.register_qde_for (
                     SCOV_helper(drivers=self.__drivers_from(cspec),
                                 xfile=cspec, category=self.category,
                                 xcovlevel=covlevel).run(self.cargs)
                     )
-          for cspec in ls ("src/cons_*.txt")]
-          for covlevel in self.xcovlevels]
+             for covlevel in self.xcovlevels
+             for cspec in ls ("src/cons_*.txt")]
 
-        # Dump qualification data for test-results production purposes
-        self.qdata.flush()
+        finally:
+
+            # If we are running for qualification purposes, dump data needed
+            # for qualification test-results production purposes
+
+            if thistest.options.qualif_level:
+                self.qdata.flush(errcount=thistest.n_failed)

@@ -2,13 +2,13 @@
 # **                TESTSUITE QUALIFICATION DATA FACILITIES                 **
 # ****************************************************************************
 
-# This module exposes the testsuite qualification data management facilities
-# aimed at the production of a test-results report a testsuite execution.
+# This module exposes the testsuite qualification data management facilities,
+# aimed at the production of a test-results report at the end of the testsuite
+# execution.
 #
-# Testcases dump Qdata instances when they execute,
-#
-# The testsuite driver retrieves and accumulates them on the fly, then
-# produces a report from the complete set at the end.
+# Testcases dump Qdata instances when they execute. The testsuite driver
+# retrieves and accumulates them on the fly, then produces a report from the
+# complete set at the end.
 
 # ****************************************************************************
 
@@ -18,74 +18,239 @@ from SCOV.internals.cnotes import *
 
 QDATA_PKFILE = "tc.pkl"
 
-# ===================================================
-# == Qdata classes, filled and dumped by testcases ==
-# ===================================================
+# -------------
+# -- qdaf_in --
+# -------------
 
-# We expect one Qdata instance per qualification testcase,
-# which hosts a sequence of entries, still:
+def qdaf_in(dir):
+    """Filename for qualification data to be pickled in DIR"""
+    return os.path.join (dir, QDATA_PKFILE)
 
-class QdataEntry:
+# ================================================================
+# == Qualification Data classes, filled and dumped by testcases ==
+# ================================================================
 
-    # { sourcename -> KnoteDict } dictionaries of expected line and report
-    # notes. For each testcase, we'll have one instance of this per
-    # SCOV_helper execution (one per driver + one per consolidation spec)
+# We expect one Qdata instance per qualification testcase, which hosts a
+# sequence of entries; typically one per SCOV_helper execution (that is, per
+# driver + consolidation spec)
 
-    def __init__(self, eid, xlnotes, xrnotes):
-        self.eid = eid
-        self.xlnotes = xlnotes
-        self.xrnotes = xrnotes
+class QDentry:
+
+    def __init__(self, eid, xrnotes):
+        self.eid = eid           # entry id
+        self.xrnotes = xrnotes   # expected report notes, KnoteDict per source
 
 class Qdata:
-    def __init__(self):
+    def __init__(self, tcid):
         self.entries = []
+        self.errcount = None
+        self.tcid = tcid
 
     def register (self, ob):
         self.entries.append (ob)
 
-    def flush(self):
-        with open(QDATA_PKFILE, "w") as fd:
+    def flush(self, errcount):
+        self.errcount = errcount
+        with open(qdaf_in("."), "w") as fd:
             pickle.dump(self, fd)
 
-# =======================================================================
-# == QDR - Qualification Data Repository for the toplevel suite driver ==
-# =======================================================================
+# ========================================================================
+# == QDregistry - Qualification Data repository for the toplevel driver ==
+# ========================================================================
 
-class QDR:
+# list, for each testcase, of:
+#
+#  qdata  with .tcid
+#              .entries = [ (.eid, .xrnotes), (.eid, .xrnotes), ... ]
+#                                      |
+# -------------------------------------+--------
+#    source ->   kind  -> list of expected notes
+#       v         vv             vvvvv
+# { "bla.adb": { sNoCov : [ Xnote, Xnote, ... ],
+#                dTNoCov: [ Xnote, ... ]
+#                ...
+#              }
+#    ...
+# }
+
+class QDregistry:
 
     def __init__(self):
 
         # The full qualification data for this report; sequence of testcase
-        # qualification data entries.
+        # Qdata instances.
 
         self.qdl = []
 
-    # ----------------------------
-    # -- gen_report and helpers --
-    # ----------------------------
+    def check_qdata (self, qdaf):
+        """Once we're done executing a testcase, check if
+        there is a qdata object pickled in QDAF and retrieve it if so."""
 
-    def check_qdata_at(self, tcdir):
-        """Once we're done executing a testcase at TCDIR, check if
-        there is a qdata object pickled there and retrieve it if so."""
-
-        qdf = os.path.join (tcdir, QDATA_PKFILE)
-
-        if not os.path.exists(qdf):
+        if not os.path.exists(qdaf):
             return
 
-        with open (qdf) as fd:
+        with open (qdaf) as fd:
             self.qdl.append (pickle.load (fd))
 
-    # ----------------------------
-    # -- gen_report and helpers --
-    # ----------------------------
+# ==============
+# == QDreport ==
+# ==============
+
+nov, scv, dcv, ccv, xbv, sta = range (6)
+
+columns = {
+    nov : "nov",
+    scv : "scv",
+    dcv : "dcv",
+    ccv : "ccv",
+    xbv : "xbv",
+    sta : "ok?" }
+
+cnt_columns = [nov, scv, dcv, ccv, xbv]
+
+column_for = {
+    xBlock0 : nov,
+
+    sNoCov   : scv, sPartCov : scv,
+    dtNoCov  : dcv, dfNoCov  : dcv, dPartCov : dcv, dNoCov : dcv,
+    cPartCov : ccv,
+
+    xBlock1 : xbv
+}
+
+class ColCounts:
+    def __init__(self):
+        self.total = 0
+        self.discharged = 0
+
+    def __str__(self):
+        if self.discharged != self.total:
+            return "%3d/%-3d" % (self.discharged, self.total)
+        else:
+            return "%-7d" % self.total
+
+class ColErr:
+    def __init__(self, errcount):
+        self.errcount = errcount
+
+    def __str__(self):
+        return "  :-)  " if self.errcount == 0 else "  :-(  "
+
+class RSTfile:
+    def __init__(self, filename):
+        self.fd = None
+        self.open (filename)
+
+    def open(self, filename):
+        self.fd = open ("qreport/source/" + filename, 'w')
+
+    def write(self, text, postfix = '\n'):
+        self.fd.write (text+postfix)
+
+    def close(self):
+        self.fd.close()
+
+class QDreport:
+
+    def __init__(self, qdreg):
+        self.qdl = qdreg.qdl
+
+        self.rstf = None
+
+        self.gen_envinfo()
+        self.gen_tctable()
+        self.gen_tcsummary()
+        self.gen_index()
+
+    # -----------------------------
+    # -- gen_tctable and helpers --
+    # -----------------------------
+
+    def count(self, rdline, note):
+        rdcol = rdline[column_for[note.kind]]
+        rdcol.total += 1
+        if note.discharger:
+            rdcol.discharged += 1
 
     def process_qdata(self, qdata):
-        pass
 
-    def gen_report(self):
-        """Once we're done executing all the testcases, generate a
-        test-results qualification report from the corresponding set of qdata
-        instances."""
+        rdline = {}
+        [rdline.__setitem__(key, ColCounts()) for key in cnt_columns]
+
+        print qdata.errcount
+        rdline.__setitem__(sta, ColErr(qdata.errcount))
+
+        [self.count (rdline, note)
+         for qde in qdata.entries for src in qde.xrnotes
+         for notelist in qde.xrnotes[src].itervalues()
+         for note in notelist]
+
+        self.rdata [qdata.tcid] = rdline
+        self.tcid_len = max (self.tcid_len, len(qdata.tcid))
+
+    def gen_tcline_for(self, tcid):
+        rdline = self.rdata[tcid]
+        tcline = " ".join (
+            ["%-*s" % (self.tcid_len, tcid)]
+            + [str(rdline[col]) for col in rdline])
+
+        self.rstf.write (tcline)
+
+    def gen_tctable(self):
+
+        # Width of the testcase id column on every line. Start with a min to
+        # have room for at least the column title
+        self.tcid_len = 8
+
+        # Report data from which we'll generate the lines of text, after
+        # aggregating counters for all the entries for each testcase
+        self.rdata = {}
+
+        # Do compute the column values now. This is not their string
+        # representation yet
 
         [self.process_qdata(qd) for qd in self.qdl]
+
+        # Now compute and write out the string representations, wrapped
+        # in a simple REST table construct. Something like
+        #
+        # =========== ======== ======== ... =======
+        # testcase    nov      scv          ok?
+        # =========== ======== ======== ... =======
+        # Qualif/bla  3        1            :-)
+        # ...
+        # =========== ======== ======== ... =======
+
+
+        sepl = ("=" * self.tcid_len
+                + (" " + "=" * 7) * len(columns))
+
+        headl = " ".join (
+            ["%-*s" % (self.tcid_len, "testcase")]
+            + ["%-7s" % columns[col] for col in columns])
+
+        self.rstf = RSTfile ("tctable.rst")
+
+        self.rstf.write (sepl)
+        self.rstf.write (headl)
+        self.rstf.write (sepl)
+
+        [self.gen_tcline_for(qd.tcid) for qd in self.qdl]
+
+        self.rstf.write (sepl)
+
+        self.rstf.close()
+
+    def gen_tcsummary(self):
+        self.rstf = RSTfile ("tcsummary.rst")
+        self.rstf.close()
+
+    def gen_index(self):
+        self.rstf = RSTfile ("index.rst")
+        self.rstf.close()
+
+    def gen_envinfo(self):
+        self.rstf = RSTfile ("envinfo.rst")
+        self.rstf.close()
+
+

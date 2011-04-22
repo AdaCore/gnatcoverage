@@ -33,7 +33,7 @@ import logging, os, re, sys
 from SUITE import cutils
 from SUITE.cutils import contents_of, re_filter, clear
 
-from SUITE.qdata import QDR
+from SUITE.qdata import QDregistry, QDreport, qdaf_in
 
 DEFAULT_TIMEOUT = 600
 
@@ -135,8 +135,11 @@ class TestSuite:
         Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']+targetargs,
             output='output/build_support.out')
 
-        # Instanciate what we'll need to produce a qualfication report
-        self.qdr = QDR()
+        # Instanciate what we'll need to produce a qualfication report.
+        # Do that always, even if not running for qualif. The registry will
+        # just happen to be empty if we're not running for qualif.
+
+        self.qdreg = QDregistry()
 
     # -------------------------------
     # -- Discriminant computations --
@@ -241,8 +244,9 @@ class TestSuite:
         outf = test.outf()
         logf = test.logf()
         diff = test.diff()
+        qdaf = test.qdaf()
 
-        [cutils.clear (f) for f in (outf, logf, diff)]
+        [cutils.clear (f) for f in (outf, logf, diff, qdaf)]
 
         testcase_cmd = [sys.executable,
                         test.filename,
@@ -267,8 +271,8 @@ class TestSuite:
             testcase_cmd.append('--qualif-cargs=%s' % mopt.qualif_cargs)
 
         if mopt.qualif_level:
-            qualif_xcov_level = QUALIF_TO_XCOV_LEVEL[mopt.qualif_level]
-            testcase_cmd.append('--qualif-xcov-level=%s' % qualif_xcov_level)
+            testcase_cmd.append(
+                '--qualif-level=%s' % QUALIF_TO_XCOV_LEVEL[mopt.qualif_level])
 
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
@@ -363,9 +367,9 @@ class TestSuite:
                 result_f.write('%s:%s:\n' % (test.rname(), status))
 
         # Check if we have a qualification data instance pickled around,
-        # to register it for later test-results producion
-    
-        self.qdr.check_qdata_at(test.testdir)
+        # and register it for later test-results production
+
+        self.qdreg.check_qdata (test.qdaf())
 
     def odiff_for(self, test):
         """Returns path to diff file in the suite output directory.  This file
@@ -498,6 +502,9 @@ class TestCase(object):
         object should go."""
         return os.path.join(os.getcwd(), self.filename + '.err')
 
+    def qdaf(self):
+        return qdaf_in(self.testdir)
+
     # -----------------------------
     # -- Testcase identification --
     # -----------------------------
@@ -542,4 +549,4 @@ def _quoted_argv():
 if __name__ == "__main__":
     suite = TestSuite()
     suite.run()
-    suite.qdr.gen_report()
+    QDreport(suite.qdreg)

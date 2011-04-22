@@ -243,7 +243,7 @@ class Test (object):
         main.add_option('--qualif-cargs', dest='qualif_cargs', metavar='ARGS',
                         help='Additional arguments to pass to the compiler '
                              'when building the test programs.')
-        main.add_option('--qualif-xcov-level', dest='qualif_xcov_level',
+        main.add_option('--qualif-level', dest='qualif_level',
                         metavar='CONTEXT_LEVEL',
                         help='For qualification tests, force the context '
                              'level to CONTEXT_LEVEL instead of deducing it '
