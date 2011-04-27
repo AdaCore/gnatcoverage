@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -16,6 +16,7 @@
 -- Boston, MA 02111-1307, USA.                                              --
 --                                                                          --
 ------------------------------------------------------------------------------
+
 --  This packages provides a set of routines to manage xcov's outputs
 --  (error messages and annotated reports).
 
