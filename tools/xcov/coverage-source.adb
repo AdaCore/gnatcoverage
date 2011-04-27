@@ -408,6 +408,10 @@ package body Coverage.Source is
       --  Discharge the coverage obligation denoted by SCO using the current
       --  execution trace.
 
+      -------------------
+      -- Discharge_SCO --
+      -------------------
+
       procedure Discharge_SCO (SCO : SCO_Id) is
          Propagating, No_Propagation : Boolean;
       begin
