@@ -409,6 +409,7 @@ package body Coverage.Source is
       --  execution trace.
 
       procedure Discharge_SCO (SCO : SCO_Id) is
+         Propagating, No_Propagation : Boolean;
       begin
          --  Ensure there is a coverage information entry for this SCO
 
@@ -427,15 +428,28 @@ package body Coverage.Source is
          --  Find enclosing statement SCO (if any) and mark it as executed
 
          S_SCO := Enclosing_Statement (SCO);
+         Propagating := False;
          while S_SCO /= No_SCO_Id loop
             exit when SCI_Vector.Element (S_SCO).Executed;
 
-            --  Mark S_SCO as executed
+            --  For pragma Pre/Postcondition, no propagation: the statement
+            --  is never marked as executed by propagation, and marking it
+            --  does not cause propagation to other statements.
 
-            SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
+            No_Propagation := Is_Pragma_Pre_Post_Condition (S_SCO);
+
+            if not (Propagating and No_Propagation) then
+
+               --  Mark S_SCO as executed
+
+               SCI_Vector.Update_Element (S_SCO, Set_Executed'Access);
+            end if;
+
+            exit when not Propagating and No_Propagation;
 
             --  Propagate back to beginning of basic block
 
+            Propagating := True;
             S_SCO := Previous (S_SCO);
          end loop;
 

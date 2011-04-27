@@ -96,6 +96,9 @@ package SC_Obligations is
    --  Set Basic_Block_Has_Code for SCO as well as all previous SCOs in its
    --  basic block.
 
+   function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean;
+   --  True if SCO is for a pragma Pre/Postcondition
+
    --  Condition SCOs
 
    function Index (SCO : SCO_Id) return Condition_Index;
