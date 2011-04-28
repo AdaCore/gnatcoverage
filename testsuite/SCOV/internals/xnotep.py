@@ -26,7 +26,7 @@ from . tfiles import Tfile
 # matched line by line, we need to materialize a single note for the whole
 # block.
 
-class XnoteP_block:
+class _XnoteP_block:
 
     def __init__(self, notep):
         self.notep  = notep
@@ -51,7 +51,7 @@ class XnoteP_block:
 
 # !block notes without a specific segment text are relevant to entire lines
 
-class XnoteP_line:
+class _XnoteP_line:
 
     def __init__(self, notep):
         self.notep = notep
@@ -67,7 +67,7 @@ class XnoteP_line:
 # we'll expect a reported note to designate a point within that subtext (most
 # often, the beginning of it)
 
-class XnoteP_segment:
+class _XnoteP_segment:
 
     def __init__(self, notep, stext):
         self.notep = notep
@@ -123,11 +123,11 @@ class XnoteP:
         # required test only once:
 
         if block_p (self.kind):
-            self.factory = XnoteP_block (notep=self)
+            self.factory = _XnoteP_block (notep=self)
         elif not self.stext:
-            self.factory = XnoteP_line (notep=self)
+            self.factory = _XnoteP_line (notep=self)
         else:
-            self.factory = XnoteP_segment (notep=self, stext=stext)
+            self.factory = _XnoteP_segment (notep=self, stext=stext)
 
     def instanciate_over (self, tline, block):
         return self.factory.instanciate_over (tline, block)
