@@ -73,7 +73,7 @@ class LnotesExpander:
 
     def listing_to_enotes(self, dotxcov):
         self.source = dotxcov.rsplit ('.', 1)[0]
-        self.elnotes[self.source] = KnoteDict(lNoteKinds)
+        self.elnotes[self.source] = KnoteDict(elNoteKinds)
         Tfile (filename=dotxcov, process=self.process_tline)
 
     def __init__(self, dotxcov_pattern):
@@ -130,7 +130,7 @@ class RnotesExpander:
 
     def register(self, source, enote):
         if source not in self.ernotes:
-            self.ernotes[source] = KnoteDict(rNoteKinds)
+            self.ernotes[source] = KnoteDict(erNoteKinds)
         self.ernotes[source].register (enote)
 
     def process_tline(self, tline):
@@ -330,8 +330,8 @@ class UnitCX:
 
         # dictionaries of expected line and report notes for our unit
 
-        self.xldict = KnoteDict(lNoteKinds)
-        self.xrdict = KnoteDict(rNoteKinds)
+        self.xldict = KnoteDict(xlNoteKinds)
+        self.xrdict = KnoteDict(xrNoteKinds)
 
         self.source = source
         self.current_block = None

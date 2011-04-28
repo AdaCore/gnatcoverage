@@ -48,8 +48,7 @@
 # end on the same line) or full LINEs (segment from first to last column) or
 # POINTs (one column segments).
 
-# Expected indications are expressed as comments in single test
-# drivers like:
+# Expected indications are expressed as comments in single test drivers, like:
 #
 # -- test_blob1.adb --
 # procedure test_blob1 is
@@ -78,6 +77,14 @@
 # have Xnote objects to represent the set of expected indications after
 # the line patterns were matched against a source.
 
+# For =report outputs, violation expectations, such as "s-", map one-to-one
+# with some indication we ought to find in a coverage assessment report.
+#
+# Conversely, the "0" empty set denotes the expectation of an absence of
+# reported violations, corresonding to a full set of possible indications.
+#
+# We qualify "0" as an anti-expectation.
+
 # ****************************************************************************
 
 # Symbolic values & names for kinds of coverage notes:
@@ -85,6 +92,7 @@
 
 # lNoCode  : no code for line (=xcov)
 # lFullCov : full coverage for line (=xcov)
+# r0       : expect empty set of violations (=report)
 # lx0      : line part of exempted block, 0 deviations (=xcov)
 # lx1      : line part of exempted block, >0 deviations (=xcov)
 # lNoCov   : line not covered (=xcov)
@@ -104,13 +112,49 @@
 
 lNoCode, lFullCov, \
 strictNote, \
-lx0, lx1, \
+r0, lx0, lx1, \
 deviationNote, \
 lNoCov, lPartCov, \
 sNoCov, sPartCov, \
 dtNoCov, dfNoCov, dPartCov, dNoCov, cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(18)
+xBlock0, xBlock1 = range(19)
+
+NK_image  = {None: "None",
+             lNoCode: "lNoCode", lFullCov: "lFullCov",
+             lNoCov: "lNoCov", lPartCov: "lPartCov",
+             r0 : "r0", lx0: "lx0", lx1: "lx1",
+             sNoCov: "sNoCov", sPartCov: "sPartCov",
+             dtNoCov: "dtNoCov", dfNoCov: "dfNoCov",
+             dPartCov: "dPartCov", dNoCov: "dNoCov",
+             xBlock0: "xBlock0", xBlock1: "xBlock1",
+             cPartCov: "cPartCov"}
+
+# ===============================
+# == Useful sets of note kinds ==
+# ===============================
+
+# Line notes (=xcov); the set of possible expectations matches the
+# set of possible emitted indications
+
+elNoteKinds = (lNoCode, lNoCov, lPartCov, lFullCov, lx0, lx1)
+xlNoteKinds = elNoteKinds
+
+# Report notes (=report), feature anti-expectations as well, that
+# explicitely state expection of absence of emitted notes
+
+sNoteKinds = (sNoCov, sPartCov)
+dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov)
+cNoteKinds = (cPartCov,)
+xNoteKinds = (xBlock0, xBlock1)
+rAntiKinds = (r0,)
+
+erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds
+xrNoteKinds = erNoteKinds+rAntiKinds
+
+# ==========================
+# == Note Kind Predicates ==
+# ==========================
 
 # DEVIATION notes are those representing violations of a coverage mandate
 # associated with a general criterion.
@@ -141,52 +185,15 @@ def block_p(nkind):
 def strict_p(nkind):
     return nkind > strictNote
 
+# ANTI expectations are those that explicitly state that we expect absence
+# of emitted indications
 
-NK_image  = {None: "None",
-             lNoCode: "lNoCode", lFullCov: "lFullCov",
-             lNoCov: "lNoCov", lPartCov: "lPartCov",
-             lx0: "lx0", lx1: "lx1",
-             sNoCov: "sNoCov", sPartCov: "sPartCov",
-             dtNoCov: "dtNoCov", dfNoCov: "dfNoCov",
-             dPartCov: "dPartCov", dNoCov: "dNoCov",
-             xBlock0: "xBlock0", xBlock1: "xBlock1",
-             cPartCov: "cPartCov"}
+def anti_p(nkind):
+    return nkind in rAntiKinds
 
-# Useful sets of note kinds:
-# --------------------------
-
-lNoteKinds = (lNoCode, lNoCov, lPartCov, lFullCov, lx0, lx1)
-
-sNoteKinds = (sNoCov, sPartCov)
-dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov)
-cNoteKinds = (cPartCov,)
-
-xNoteKinds = (xBlock0, xBlock1)
-
-# Note kinds that can be associated to one of xcov's message, independantly
-# of the context of invocation.
-rNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds
-
-# Relevant/Possible Line and Report notes for CATEGORY/CONTEXT:
-# -------------------------------------------------------------
-
-rp_lnotes_for = { "stmt":     lNoteKinds,
-                  "decision": lNoteKinds,
-                  "mcdc":     lNoteKinds
-                }
-
-rp_rnotes_for = { "stmt":     xNoteKinds+sNoteKinds,
-                  "decision": xNoteKinds+sNoteKinds+dNoteKinds,
-                  "mcdc":     xNoteKinds+sNoteKinds+dNoteKinds+cNoteKinds
-                }
-
-# Note that we do care about exemptions at every level and need to watch out
-# for subtle changes in the number of violations exempted when running a given
-# test in different contexts (for different target levels).
-
-# ====================
-# == Coverage Notes ==
-# ====================
+# ===========================
+# == Coverage Note Classes ==
+# ===========================
 
 # Report section identifiers, to let us control when looking for indication
 # patterns and check that each appears in the section where we expect it.
@@ -240,6 +247,7 @@ class Cnote:
 # source line:
 
 class Xnote (Cnote):
+
     def __init__(self, xnp, block):
         Cnote.__init__ (self, xnp.kind)
         self.weak = xnp.weak
@@ -253,7 +261,7 @@ class Xnote (Cnote):
         # Determine our expected segment id. Simple enough not to warrant
         # a class specialization by itself.
 
-        if self.kind in lNoteKinds:
+        if self.kind in xlNoteKinds:
             self.rsid = None
         elif self.kind in xNoteKinds:
             self.rsid = rsExempted
@@ -261,8 +269,19 @@ class Xnote (Cnote):
             self.rsid = rsNotExempted
 
     def register_match(self, segment):
-        self.segment = segment
+        """Register that this instance matched SEGMENT for a source line.
+        Increase the number of such matches and remember only the last."""
+
         self.nmatches += 1
+        self.segment = segment
+
+    def satisfied(self):
+        """Tell whether this [anti-]expectation is satisfied at this point."""
+
+        if anti_p(self.kind):
+            return self.discharger == None
+        else:
+            return self.discharger != None
 
 # -----------
 # -- Enote --

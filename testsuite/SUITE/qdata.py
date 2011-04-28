@@ -104,11 +104,12 @@ columns = {
     dcv : "dcv",
     ccv : "ccv",
     xbv : "xbv",
-    sta : "ok?" }
+    sta : "status" }
 
 cnt_columns = [nov, scv, dcv, ccv, xbv]
 
 column_for = {
+    r0      : nov,
     xBlock0 : nov,
 
     sNoCov   : scv, sPartCov : scv,
@@ -121,11 +122,11 @@ column_for = {
 class ColCounts:
     def __init__(self):
         self.total = 0
-        self.discharged = 0
+        self.satisfied = 0
 
     def __str__(self):
-        if self.discharged != self.total:
-            return "%3d/%-3d" % (self.discharged, self.total)
+        if self.satisfied != self.total:
+            return "%3d/%-3d" % (self.satisfied, self.total)
         else:
             return "%-7d" % self.total
 
@@ -134,7 +135,7 @@ class ColErr:
         self.errcount = errcount
 
     def __str__(self):
-        return "  :-)  " if self.errcount == 0 else "  :-(  "
+        return "passed " if self.errcount == 0 else "FAILED "
 
 class RSTfile:
     def __init__(self, filename):
@@ -169,15 +170,17 @@ class QDreport:
     def count(self, rdline, note):
         rdcol = rdline[column_for[note.kind]]
         rdcol.total += 1
-        if note.discharger:
-            rdcol.discharged += 1
+
+        if note.satisfied():
+            rdcol.satisfied += 1
+        else:
+            print note.__dict__
 
     def process_qdata(self, qdata):
 
         rdline = {}
         [rdline.__setitem__(key, ColCounts()) for key in cnt_columns]
 
-        print qdata.errcount
         rdline.__setitem__(sta, ColErr(qdata.errcount))
 
         [self.count (rdline, note)

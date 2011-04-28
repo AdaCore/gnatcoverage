@@ -103,7 +103,7 @@ class XnoteP:
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-':dNoCov,
               'c!': cPartCov,
               'x0': xBlock0, 'x+': xBlock1,
-              '0': None}
+              '0': r0}
 
     def __init__(self, text, stext=None):
         self.weak = text[0] == '~'

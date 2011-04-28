@@ -203,7 +203,9 @@ class TestCase:
         finally:
 
             # If we are running for qualification purposes, dump data needed
-            # for qualification test-results production purposes
+            # for qualification test-results production purposes. try/finally
+            # is critical in making sure we dump results in case of failure
+            # with exception as well.
 
             if thistest.options.qualif_level:
                 self.qdata.flush(errcount=thistest.n_failed)

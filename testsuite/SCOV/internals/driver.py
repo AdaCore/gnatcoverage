@@ -23,14 +23,20 @@ __all__ = ["SCOV_helper"]
 
 import os
 
+from SUITE.context import thistest
+
 from SUITE.cutils import to_list, list_to_file, match, contents_of
 from SUITE.tutils import gprbuild, gprfor, SCOV_CARGS, xrun, xcov, frame
 
 from gnatpython.fileutils import cd, mkdir
 
-from . cnotes import *
-from . xnotep import *
-from . expanders import *
+from . cnotes import r0, xBlock0, xBlock1
+from . cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds
+from . cnotes import xNoteKinds, sNoteKinds, dNoteKinds, cNoteKinds
+from . cnotes import strict_p, deviation_p, anti_p, positive_p
+from . cnotes import NK_image
+
+from . expanders import XnotesExpander, LnotesExpander, RnotesExpander
 
 # ======================================
 # == SCOV_helper and internal helpers ==
@@ -47,11 +53,64 @@ class ListDict(dict):
             dict.__setitem__(self, key, [])
         return dict.__getitem__(self, key)
 
+# Relevant expectations and emitted Line and Report notes for each test
+# CATEGORY:
+# ---------------------------------------------------------------------
+
+# The dictionary keys are test categories here. The values tell what kind of
+# expectations and emitted notes we care about for a given key. "care about"
+# means "match emitted notes with expectations, ignore otherwise".
+
+# This is used to prevent complaints about reported indications that could
+# show up and not be stated as expected when a test is run for a stricter
+# qualification context than its category (e.g. a stmt coverage test run
+# for a level B or A qualification level).
+
+# Line notes remain the same across levels, albeit with different meanings.
+
+# Relevant Line expectations for each category are the same as the relevant
+# emitted line notes.
+
+r_eln_for = { # relevant emitted line notes
+    "stmt":     elNoteKinds,
+    "decision": elNoteKinds,
+    "mcdc":     elNoteKinds
+    }
+
+r_lxp_for = { # relevant line expectations
+    "stmt":     r_eln_for["stmt"],
+    "decision": r_eln_for["decision"],
+    "mcdc":     r_eln_for["mcdc"]
+    }
+
+# The set of Report expectations we need to care about varies across
+# levels. We need to ignore decision related messages in stmt coverage tests,
+# for instance.
+
+# We do care about exemptions at every level (and need to watch out for
+# changes in the number of violations exempted when running a given test in
+# different contexts (for different target levels).
+
+# The relevant report expectations for each category are the same as the
+# relevant emitted report notes augmented with anti-expectations
+
+r_ern_for = { # relevant emitted report notes
+    "stmt":     xNoteKinds+sNoteKinds,
+    "decision": xNoteKinds+sNoteKinds+dNoteKinds,
+    "mcdc":     xNoteKinds+sNoteKinds+dNoteKinds+cNoteKinds
+    }
+
+r_rxp_for = { # relevant report expectations
+    "stmt":     r_ern_for["stmt"]+rAntiKinds,
+    "decision": r_ern_for["decision"]+rAntiKinds,
+    "mcdc":     r_ern_for["mcdc"]+rAntiKinds,
+    }
+
 # --------------
 # -- Xchecker --
 # --------------
 
-class Xchecker:
+class _Xchecker:
     """Internal eXpectation marks checker class. This is used by SCOV_helper
     to compare sets of lines where coverage marks are expected with sets of
     lines where actual coverage marks were found in a report."""
@@ -59,10 +118,24 @@ class Xchecker:
     # --------------
     # -- __init__ --
     # --------------
-    def __init__(self, report, xdict, edict):
-        self.n_failed_init = thistest.n_failed
+    def __init__(self, report, xdict, rxp, edict, ren):
+
+        # Our point is to assess what relevant expectations of XDICT are
+        # satisfied from relevant emitted notes in EDICT. The relevance
+        # criteria wasn't applied to the dictionary contents, we are doing
+        # that from lists of relevant kinds as RXP for expectations and REN
+        # for emitted notes.
+
         self.xdict = xdict
+        self.rxp = rxp
+
         self.edict = edict
+        self.ren = ren
+
+        # We display the original report when this instance exposes test
+        # failures. Remember what we need to be able to do that at the end.
+
+        self.n_failed_init = thistest.n_failed
         self.report = report
 
     def register_failure(self, comment):
@@ -88,6 +161,32 @@ class Xchecker:
                     en.rsid != xn.rsid, "discharge section mismatch")
                 return
 
+    def process_one_unsat (self, xn, some_dsat, some_psat):
+
+        # Process one unsatisfied expected note XN, registering failure for
+        # unsatisfied expectation unless we have reasons not to.
+        # SOME_DSAT/PSAT tells if XN is within a fuzzy block where at least
+        # one deviation/positive expectation was satisfied.
+
+        # By definition, unsatisfied weak expectations are ok and report
+        # anti-expectations are expected to be unmatched
+
+        if xn.weak or anti_p(xn.kind):
+            return
+
+        # Then unmatched expectations are ok in fuzzy blocks where at least
+        # one similar (positive or deviation) expectation was satisfied.
+
+        if some_dsat and deviation_p(xn.kind):
+            return
+
+        if some_psat and positive_p(xn.kind):
+            return
+
+        self.register_failure (
+            "Expected %s mark missing at %s"
+            % (NK_image[xn.kind], str(xn.segment)))
+
     def process_unsat(self, block):
 
         # Process unatisfied expected notes associated with BLOCK.
@@ -108,16 +207,9 @@ class Xchecker:
 
         # Then complain about the unsatisfied stuff as necessary:
 
-        for xn in self.unsat[block]:
-            dev_p = deviation_p(xn.kind)
-            pos_p = positive_p(xn.kind)
-            if (not xn.weak
-                and ((not dev_p and not pos_p)
-                     or (dev_p and not dsat_p)
-                     or (pos_p and not psat_p))):
-                self.register_failure (
-                    "Expected %s mark missing at %s"
-                    % (NK_image[xn.kind], str(xn.segment)))
+        [self.process_one_unsat (
+                xn=xn, some_dsat=dsat_p, some_psat=psat_p)
+         for xn in self.unsat[block]]
 
     def register_unsat(self, xn):
         self.unsat[xn.block].append(xn)
@@ -150,12 +242,12 @@ class Xchecker:
         [self.register_failure(
                 "Unexpected %s mark at %s" %
                 (NK_image[en.kind], str(en.segment)))
-         for en in enotes if not en.discharges]
+         for en in enotes if (not en.discharges) or anti_p(en.discharges.kind)]
 
-    def process_notes(self, relevant_note_kinds, discharge_kdict):
+    def run (self, discharge_kdict):
         thistest.log ("\n~~ processing " + self.report + " ~~\n")
 
-        # For each kind in RELEVANT_NOTE_KINDS, process discharges of
+        # For each kind in RELEVANT_XNOTE_KINDS, process discharges of
         # expectations from emitted notes. DISCHARGE_KDICT provides a special
         # set of of emitted note kinds that may discharge a given kind of
         # expected note, when that set is wider than the target kind alone.
@@ -164,21 +256,25 @@ class Xchecker:
         # guaranteed one to one correspondance between emitted vs expected
         # kinds for discharges.
 
-        # Process expected notes first, complaining about those that are not
-        # discharged (expected bla missing).
+        # Process expectations first, looking for candidate dischargers and
+        # complaining about violation expectations that were not discharged
+        # (expected bla missing). Discharges of anti-expectations are also
+        # registered here, silently.  Complaints will come out of the emitted
+        # notes processing below.
 
         [self.process_xkind(
                 xkind = xkind, ekinds = discharge_kdict.get (xkind, [xkind]))
-         for xkind in relevant_note_kinds]
+         for xkind in self.rxp]
 
-        # Then process emitted notes, complaining about those that don't
-        # discharge any expectation as required (unexpected blo).
+        # Then process the relevant emitted notes, complaining about those
+        # that don't discharge any expectation as required, or that discharge
+        # an anti expectation (unexpected blo).
 
-        [self.process_ekind(ekind) for ekind in relevant_note_kinds]
+        [self.process_ekind(ekind) for ekind in self.ren]
 
         # Dump the report contents in case this check exposed a test failure:
 
-        if  thistest.n_failed > self.n_failed_init:
+        if thistest.n_failed > self.n_failed_init:
             thistest.log("\nreport contents:\n")
             thistest.log(contents_of(self.report))
         else:
@@ -220,12 +316,8 @@ class SCOV_helper:
         self.xlnotes = xnotes.xlnotes
         self.xrnotes = xnotes.xrnotes
 
-    # -----------------
-    # -- consolidate --
-    # -----------------
-    def consolidate(self):
-        """Whether SELF instantiates a consolidation test."""
-        return len(self.drivers) > 1
+        # Even though we remember them here, we won't be looking at the
+        # xlnotes if we're running for qualification.
 
     # ----------------
     # -- singletest --
@@ -405,22 +497,23 @@ class SCOV_helper:
 
     def gen_xcov_reports(self):
         """Generate the reports against which we will check expectation
-        specs. Request both the xcov format, which produces .ad?.xcov outputs,
-        and the report format, which gets saved as report.out."""
+        specs. Request the report format, saved as test.rep, and the xcov
+        format (.ad?.xcov outputs) if we're not in qualification mode"""
 
         traces = list_to_file(
             [self.awdir_for(main)+main+'.trace' for main in self.drivers],
             "traces.list")
 
-        self.gen_one_xcov_report(traces, format="xcov")
+        self.gen_one_xcov_report(
+            traces, format="report", options="-o test.rep")
+
+        if not thistest.options.qualif_level:
+            self.gen_one_xcov_report(traces, format="xcov")
 
         # When nothing of possible interest shows up for a unit, xcov
         # generates nothing at all. Create dummy reports here to prevent
         # fatal exceptions trying to open them downstream.
         [self.force_xcov_report(source+'.xcov') for source in self.xrnotes]
-
-        self.gen_one_xcov_report(
-            traces, format="report", options="-o test.rep")
 
     # ------------------------
     # -- check_expectations --
@@ -452,6 +545,10 @@ class SCOV_helper:
         # * Accept that some emitted notes discharge expectations of some
         #   other kind as well. This is conveyed by the discharge_kdict values
         #   below.
+        #
+        # * This mechanism is also used to convey that all the relevant notes
+        #   may "discharge" anti-expectations, which will cause a test failure
+        #   when that happens.
 
         # Symbolic strength of each category and context level, to let us
         # determine when we're running some test of a given catgeory with a
@@ -467,7 +564,40 @@ class SCOV_helper:
 
         stricter_level = strength [self.xcovlevel] > strength [self.category]
 
-        # Line notes checks
+        # Report notes checks
+        # -------------------
+
+        # Setup our discharging configuration for stricter_level mode,
+        # then augment with What is allowed to hit a "0" report expectation
+        # statement:
+
+        discharge_kdict = {
+            # let an emitted xBlock1 discharge an xBlock0 expectation, as
+            # an extra exempted violations are most likely irrelevant for the
+            # category
+            xBlock0: [xBlock0, xBlock1]
+            } if stricter_level else {}
+
+        discharge_kdict.update (
+            {r0 : r_ern_for[self.category]})
+
+        # Then do check:
+
+        _Xchecker (
+            report ='test.rep',
+            xdict  = self.xrnotes.get(source),
+            rxp    = r_rxp_for[self.category],
+            edict  = self.ernotes.get(source, KnoteDict(erNoteKinds)),
+            ren    = r_ern_for[self.category]
+            ).run (discharge_kdict)
+
+        # Line notes checks, meaningless if we're in qualification mode
+        # -------------------------------------------------------------
+
+        if thistest.options.qualif_level:
+            return
+
+        # Setup our discharging configuration for stricter_level mode
 
         discharge_kdict = {
             # In stricter_level mode, we let ...
@@ -481,28 +611,15 @@ class SCOV_helper:
             # strictness, hence irrelevant for the category
             lx0:      [lx0, lx1] } if stricter_level else {}
 
-        Xchecker (
-            source+'.xcov',
-            self.xlnotes.get(source),
-            self.elnotes.get(source, KnoteDict(lNoteKinds))
-            ).process_notes(rp_lnotes_for[self.category], discharge_kdict)
+        # Then do check:
 
-
-        # Report notes checks
-
-        discharge_kdict = {
-            # In stricter_level mode, we let ...
-
-            # an emitted xBlock1 discharge an xBlock0 expectation, as the
-            # extra exempted violations are most likely irrelevant for the
-            # category
-            xBlock0: [xBlock0, xBlock1] } if stricter_level else {}
-
-        Xchecker (
-            'test.rep',
-            self.xrnotes.get(source),
-            self.ernotes.get(source, KnoteDict(rNoteKinds))
-            ).process_notes(rp_rnotes_for[self.category], discharge_kdict)
+        _Xchecker (
+            report = source+'.xcov',
+            xdict  = self.xlnotes.get(source),
+            rxp    = r_lxp_for[self.category],
+            edict  = self.elnotes.get(source, KnoteDict(elNoteKinds)),
+            ren    = r_eln_for[self.category]
+            ).run (discharge_kdict)
 
     # ---------
     # -- log --
