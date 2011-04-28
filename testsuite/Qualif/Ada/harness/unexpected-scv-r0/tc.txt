@@ -1,0 +1,3 @@
+Don't call into functional code, implying stmt coverage failure, and state
+absence of violation expected. Test should fail with unexpected s-.
+

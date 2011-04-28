@@ -1,0 +1,12 @@
+The test harness works as intended.
+
+**Testing strategy**
+
+Check that the harness properly
+
+* detects forced test failures against missing expectations or
+  anti-expectations (which state explicitly that no violation is expected to
+  be reported)
+
+* deals with irrelevant violations emitted for a test designed for one
+  level and exercised for a stricter qualification target 
