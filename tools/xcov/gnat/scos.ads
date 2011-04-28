@@ -356,11 +356,11 @@ package SCOs is
    No_Source_Location : Source_Location := (No_Line_Number, No_Column_Number);
 
    type SCO_Table_Entry is record
-      From : Source_Location;
-      To   : Source_Location;
-      C1   : Character;
-      C2   : Character;
-      Last : Boolean;
+      From : Source_Location := No_Source_Location;
+      To   : Source_Location := No_Source_Location;
+      C1   : Character       := ' ';
+      C2   : Character       := ' ';
+      Last : Boolean         := False;
 
       Pragma_Sloc : Source_Ptr := No_Location;
       --  For the statement SCO for a pragma, or for any expression SCO nested
