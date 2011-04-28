@@ -45,7 +45,8 @@ This is all still "under construction" so subject to change.
 
  * gnatpython (and rlimit)
  To install it:
- svn checkout svn://scm.forge.open-do.org/scmrepos/svn/gnatpython/trunk support/gnatpython
+ svn checkout svn://scm.forge.open-do.org/scmrepos/svn/gnatpython/trunk \
+              support/gnatpython
  export PYTHONPATH=`pwd`/support/gnatpython
  Compile rlimit and add it to your PATH.
 
@@ -75,3 +76,76 @@ this command line.
   Typical cause : The .cgpr file in 'support/lib/<target>/<target>.cgpr' was
                   produced with too old a version of gprbuild.
   Way around    : Remove it.
+
+-----------------------------------------
+-- General python support architecture --
+-----------------------------------------
+
+The toplevel driver is testsuite.py. It spawns independant instances of
+test.py:
+                    
+  testsuite.py ---o-spawn-> subdir1/test.py
+                  |
+		  o-spawn-> subdir2/test.py
+
+We provide a few modules of facilities to help test writers and allow
+sharing pickled data between tests and the toplevel driver, required for
+the production of qualification "test-results" reports. Below is a rough
+sketch of the overall architecture:
+
+Modules are split in two packages:
+
+  SUITE - set of modules relevant across the entire set of tests
+  SCOV  - set of modules relevant for source coverage tests in particular
+
+The split in modules is designed to isolate ~standalone functional facilities
+and cut harmful dependencies.
+
+Each test relies on a single Test object, which holds and controls the test
+execution context (switch to initial test directory, parse command line
+options, maintain execution status, ...). This facility is offered by the
+SUITE.context module, which instanciates the object, and needs to be imported
+only in a test.py context. Any dependency on the "current test context" module
+from the toplevel driver makes no sense at all and would most probably cause
+a testsuite failure.
+
+This settled, we have:
+
+ SUITE
+ -----
+   cutils.py  : Common utilities, for both tests and the toplevel driver
+                [e.g. to_list(blob), contents_of(filename), ...]
+
+   context.py : Current test context [Test class, "thistest" instance]
+
+   tutils.py  : Common utilities that depend on "thistest" instance, so
+                for tests only [xrun, gprbuild, ???]
+
+   qdata.py   : Qualification reports facilities, to allow queuing
+                pickled data between tests and the toplevel driver
+
+ SCOV
+ ----
+   tc.py      : TestCase class for source coverage tests
+
+   report.py  : Format checker for qualified reports, 
+
+   map.py     : MapChecker class for xcov map-routines tests
+
+   internals
+   ---------
+     cnotes.py    : Classes to represent expected or emitted coverage notes
+
+     driver.py    : Class to help drive a source coverage test [SCOV_helper]
+
+     expanders.py : Expand coverage note instances from xcov reports or from
+                    expectation-specs + sources
+
+     xnotep.py    : Class to represent user expectation patterns
+
+     segments.py :  Source segment abstractions [line, line:col, ...], to
+                    help check for inclusions.
+
+     tfiles.py :    Text files (and lines) abstractions to automate processing
+                    on read and assign numbers to lines.
+                     
