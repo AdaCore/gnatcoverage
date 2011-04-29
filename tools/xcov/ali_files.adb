@@ -206,7 +206,7 @@ package body ALI_Files is
                begin
                   Match (U_Matcher, Line (3 .. Line'Last), Matches);
                   if Matches (0) /= No_Match then
-                     Current_Unit :=  Get_Index_From_Simple_Name (Match (1));
+                     Current_Unit := Get_Index_From_Simple_Name (Match (1));
                   end if;
                end;
 
