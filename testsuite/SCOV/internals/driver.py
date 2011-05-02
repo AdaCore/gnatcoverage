@@ -26,7 +26,7 @@ import os
 from SUITE.context import thistest
 
 from SUITE.cutils import to_list, list_to_file, match, contents_of
-from SUITE.tutils import gprbuild, gprfor, SCOV_CARGS, xrun, xcov, frame
+from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 
 from gnatpython.fileutils import cd, mkdir
 
@@ -450,7 +450,7 @@ class SCOV_helper:
         gprbuild(
             gprfor (mains = [main+".adb"], prjid="gen",
                     srcdirs = ["../"*n + "src" for n in range (1, 7)]),
-            cargs = to_list(SCOV_CARGS) + ["-gnat05"] + to_list(extracargs))
+            cargs=to_list(extracargs))
 
     # --------------
     # -- xcov_run --
