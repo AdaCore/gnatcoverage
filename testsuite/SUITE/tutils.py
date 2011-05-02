@@ -64,6 +64,16 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
     # Fetch the support project file template
     template = contents_of (os.path.join (ROOT_DIR, "template.gpr"))
 
+    # Determine the language(s) of the mains.
+    # Eventually, we might just want to explore the SRCDIRS directories
+    # and compute the list of languages from there???
+    languages_l = []
+    for filename in mains:
+        if "Ada" not in languages_l and filename.endswith(".adb"):
+            languages_l.append("Ada")
+        elif "C" not in languages_l and filename.endswith(".c"):
+            languages_l.append("C")
+
     # Instanciate the template fields. Turn the list of main sources into
     # the proper comma separated sequence of string literals for the Main
     # GPR attribute. Likewise for source dirs, plus filter on existence.
@@ -71,8 +81,9 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
     # The existence check allows widening the set of tentative dirs while
     # preventing complaints from gprbuild about inexistent ones.
 
-    gprmains = ', '.join(['"%s"' % m for m in mains])
-    srcdirs  = ', '.join(['"%s"' % d for d in srcdirs if os.path.exists(d)])
+    gprmains  = ', '.join(['"%s"' % m for m in mains])
+    srcdirs   = ', '.join(['"%s"' % d for d in srcdirs if os.path.exists(d)])
+    languages = ', '.join(['"%s"' %l for l in languages_l])
 
     # Remove trailing comma on srcdirs, in case none of the provided ones
     # exists, which would produce an invalid gpr file.
@@ -83,6 +94,7 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
     gprtext = template % {'prjname': prjid,
                           'extends': 'extends "%s"' % basegpr,
                           'srcdirs': srcdirs.rstrip(', '),
+                          'languages' : languages,
                           'gprmains': gprmains}
 
     # Dump the new contents into the target gpr file and return

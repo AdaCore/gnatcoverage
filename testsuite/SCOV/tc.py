@@ -124,6 +124,7 @@ class TestCase:
 
         self.all_drivers = []
         self.__expand_drivers("src/test_*.adb " + extradrivers)
+        self.__expand_drivers("src/test_*.c")
 
         if len(self.all_drivers) == 0:
             self.__expand_shared_drivers()

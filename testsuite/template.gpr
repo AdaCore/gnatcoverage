@@ -9,8 +9,11 @@ project %(prjname)s %(extends)s is
    for Object_Dir use "obj";
    for Exec_Dir use ".";
 
+   for Languages use (%(languages)s);
+
    package Compiler is
       for Default_Switches ("Ada") use ("-gnat05", "-gnateS");
+      for Default_Switches ("C") use ("-fdump-scos");
    end Compiler;
 
    for Main use (%(gprmains)s);
