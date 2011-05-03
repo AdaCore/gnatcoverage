@@ -328,6 +328,8 @@ class TestSuite:
 
         failed_comment = test.getopt('failed', None)
 
+        comment = xfail_comment if xfail_comment else failed_comment
+
         status_dict = {
             # XFAIL?   PASSED => status   !PASSED => status
               True:    {True:    'UOK',    False:    'OK'},
@@ -340,27 +342,17 @@ class TestSuite:
         # Avoid \ in filename for the final report
         test.filename = test.filename.replace('\\', '/')
 
-        if xfail_comment:
-            logging.info("%-60s %s (%s)" %
-                         (test.filename, status, xfail_comment))
-        elif failed_comment:
-            logging.info("%-60s %s (%s)" %
-                         (test.filename, status, failed_comment))
+        if comment:
+            logging.info("%-60s %s (%s)" % (test.filename, status, comment))
         else:
             logging.info("%-60s %s" % (test.filename, status))
 
         with open(os.path.join('output', 'results'), 'a') as result_f:
             if not success:
-                if xfail_comment:
-                    result_f.write(
-                        '%s:%s:%s\n' %
-                        (test.rname(), status, xfail_comment.strip('"')))
-                elif failed_comment:
-                    result_f.write(
-                        '%s:%s:%s\n' %
-                        (test.rname(), status, failed_comment.strip('"')))
-                else:
-                    result_f.write('%s:%s:\n' % (test.rname(), status))
+                result_f.write(
+                    '%s:%s:%s\n' %
+                    (test.rname(), status,
+                     comment.strip('"') if comment else ""))
                 if self.options.diffs and not xfail and not failed_comment:
                     logging.info(contents_of (test.diff()))
             else:
@@ -369,7 +361,8 @@ class TestSuite:
         # Check if we have a qualification data instance pickled around,
         # and register it for later test-results production
 
-        self.qdreg.check_qdata (test.qdaf())
+        self.qdreg.check_qdata (
+            qdaf=test.qdaf(), status=status, comment=comment)
 
     def odiff_for(self, test):
         """Returns path to diff file in the suite output directory.  This file

@@ -209,4 +209,4 @@ class TestCase:
             # with exception as well.
 
             if thistest.options.qualif_level:
-                self.qdata.flush(errcount=thistest.n_failed)
+                self.qdata.flush()
