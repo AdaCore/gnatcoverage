@@ -108,51 +108,83 @@ class QDregistry:
 
         self.qdl.append (qda)
 
-# ======================
-# == QDreport helpers ==
-# ======================
+
+# =======================================
+# == Qualification report and helpers  ==
+# =======================================
+
+# The core of our test-results report is a set of tables, matrix
+# of rows over a fixed set of columns
+
+# Column abstraction and instances, used both as column designators and
+# descriptive data holders
 
 class Column:
     def __init__(self, htext, legend=""):
+
+        # HTEXT is the column header text, and LEGEND is a brief
+        # description of the column contents
+
         self.htext = htext
         self.legend = legend
 
 class colid:
+
+    # Testcase description and status, for testcase table
+
     tc = Column (
-        htext="testcase", legend="Testcase")
-
-    nov = Column (
-        htext="nov", legend="No violations")
-
-    scv = Column (
-        htext="scv", legend="Statement Coverage violations")
-
-    dcv = Column (
-        htext="dcv", legend="Decision Coverage violations")
-
-    ccv = Column (
-        htext="ccv", legend="Condition Coverage violations")
-
-    xbv = Column (
-        htext="xbv", legend="Exempted violations")
+        htext="testcase", legend="Testcase id")
 
     sta = Column (
-        htext="status", legend="Status")
+        htext="status", legend="Test execution status")
 
-    uok = Column (
-        htext="UOK", legend="UOK")
+    # Expectation counters, for testcase table and counters summary
+
+    nov = Column (
+        htext="nov", legend="# absence of violations")
+
+    scv = Column (
+        htext="scv", legend="# Statement Coverage violations")
+
+    dcv = Column (
+        htext="dcv", legend="# Decision Coverage violations")
+
+    ccv = Column (
+        htext="ccv", legend="# Condition Coverage violations")
+
+    xbv = Column (
+        htext="xbv", legend="# Exempted blocks with violations")
+
+    # Status counters and overall status, for status summary
 
     failed = Column (
-        htext="FAILED", legend="FAILED")
+        htext="failed", legend="# tests failed")
 
-    ok = Column (
-        htext="OK", legend="OK")
-
-    xfail = Column (
-        htext="XFAIL", legend="XFAILED")
+    passed = Column (
+        htext="passed", legend="# tests passed")
 
     ovsta = Column (
-        htext="OVERALL", legend="Overall status")
+        htext="overall", legend="Testsuite overall status")
+
+    # Other status counters
+
+    uok = Column (
+        htext="uok", legend="Test ran OK despite expected to fail")
+
+    xfail = Column (
+        htext="xfail", legend="Test failed as expected")
+
+    # Columns for legend sub-tables
+
+    colname = Column (
+        htext="column", legend=None)
+
+    legend = Column (
+        htext="legend", legend=None)
+
+# ------------------------------------
+# -- Mappings to column identifiers --
+# ------------------------------------
 
 column_for = {
 
@@ -176,9 +208,9 @@ column_for = {
     # When checking status, map text passed by toplevel driver
     # to column. Note that we map UOK to the same as OK.
 
-    'OK'     : colid.ok,
-    'XFAIL'  : colid.xfail,
-    'UOK'    : colid.ok,
+    'OK'     : colid.passed,
+    'XFAIL'  : colid.passed,
+    'UOK'    : colid.passed,
     'FAILED' : colid.failed
 }
 
@@ -190,10 +222,21 @@ column_for = {
 viocnt_columns = (colid.nov, colid.scv, colid.dcv, colid.ccv, colid.xbv)
 
 # Status counters
-stacnt_columns = (colid.ok, colid.xfail, colid.failed)
+stacnt_columns = (colid.passed, colid.failed)
 
+# ----------------------------------
+# -- Column contents abstractions --
+# ----------------------------------
 
-class ColCounts:
+# These are used to offer a consistent interface despite variations of
+# contents kind for different columns in a table row, e.g. an "img" method to
+# return a string image of the contents with possible format variations.
+
+# Cell to hold satisfied/total counters
+# --------------------------------------
+
+class CountersCell:
+
     def __init__(self):
         self.total = 0
         self.satisfied = 0
@@ -208,15 +251,33 @@ class ColCounts:
         self.total += other.total
         self.satisfied += other.satisfied
 
-class ColText:
+# Cell to hold a simple text
+# --------------------------
+
+class TextCell:
     def __init__(self, text):
         self.text = text
 
     def img(self, details=False):
-        return "%-7s " % self.text
+        return "%s" % self.text
+
+# Cell to hold a qualification status
+# -----------------------------------
+
+class QstatusCell:
+    def __init__(self, text):
+
+        # TEXT is the precise test execution status provided by the toplevel
+        # driver (with uok, xfail, ...). Switch to the qualification status by
+        # mapping to the status counter column.
+
+        self.colid = column_for[text]
+
+    def img(self, details=False):
+        return "%s" % self.colid.htext
 
 # =============
-# == RTSfile ==
+# == RSTfile ==
 # =============
 
 class RSTfile:
@@ -227,31 +288,52 @@ class RSTfile:
     def open(self, filename):
         self.fd = open ("qreport/source/" + filename, 'w')
 
-    def write(self, text, postfix = '\n'):
-        self.fd.write (text+postfix)
+    def write(self, text, pre = 0, post = 1):
+        self.fd.write (rest.isolate (
+                text = text, pre = pre, post = post))
 
     def close(self):
         self.fd.close()
 
 # ==============
-# == RTStable ==
+# == RSTtable ==
 # ==============
 
 class RSTtable:
 
-    def __init__(self, columns, contents):
+    def __init__(self, title, text, columns, contents):
 
-        # COLUMNS is a set of column ids and CONTENTS is a list of
-        # {col -> text} dictionaries, one per table line
+        # COLUMNS is the list of columns for this table, CONTENTS is a list of
+        # {col -> text} dictionaries, one per table line. Compared to keys()
+        # in CONTENTS, COLUMNS is useful to enforce a provided order.
 
         self.columns = columns
         self.contents = contents
 
-    def __dump_id(self):
-        pass
+        # TITLE and TEXT are the table title and descriptive text, if any.
+        # When TITLE is None, the table description is omitted as a whole,
+        # legend included.
 
-    def __dump_legend(self):
-        pass
+        self.title = title
+        self.text  = text
+
+    def __dump_description(self):
+
+        # Dump the table title, descriptive text and legend
+
+        self.rstf.write (rest.strong (self.title), post=2)
+        self.rstf.write (self.text, post=2)
+
+        # For text alignment purposes, the legend is best displayed
+        # as a (description-less) table itself ...
+
+        RSTtable (
+            title = None, text = None,
+            columns = (colid.colname, colid.legend),
+            contents = [
+                {colid.colname : rest.emph(col.htext),
+                 colid.legend  : col.legend} for col in self.columns]
+            ).dump_to (self.rstf)
 
     def __dump_header(self):
         sepl = " ".join (
@@ -279,23 +361,39 @@ class RSTtable:
         self.rstf.write (sepl)
 
     def __compute_widths(self):
-        self.width = {}
-        [self.width.__setitem__ (col, 0) for col in self.columns]
+
+        # Compute the current width of every column, as the max of
+        # all the texts (on every contents + header line)
+
+        # This is useful to align the text of every column, for both
+        # content rows and the ReST table separation lines.
+
+        self.width = dict (
+            [(col, 0) for col in self.columns])
+
+        # Maximize column width over contents entries
 
         [self.width.__setitem__ (
                 col, max (self.width[col], len(centry[col])))
          for centry in self.contents for col in self.columns]
 
+        # Maximize column width with length of column header
+
         [self.width.__setitem__ (
                 col, max (self.width[col], len(col.htext)))
          for col in self.columns]
+
+    # -------------
+    # -- dump_to --
+    # -------------
 
     def dump_to(self, rstf):
 
         self.rstf = rstf
 
-        self.__dump_id ()
-        self.__dump_legend ()
+        if self.title:
+            self.__dump_description ()
+            self.rstf.write("~", post=2)
 
         self.__compute_widths ()
 
@@ -310,7 +408,7 @@ class RSTtable:
 class QDreport:
 
     def __init__(self, qdreg):
-        self.qdl = qdreg.qdl
+        self.qdl = sorted (qdreg.qdl, key=lambda qd: qd.tcid)
 
         self.rstf = None
 
@@ -328,28 +426,27 @@ class QDreport:
     # =========== ======== ======== ... =======
     # testcase    nov      scv          status
     # =========== ======== ======== ... =======
-    # Qualif/bla  3        1            OK
+    # Qualif/bla  3        1            passed
     # ...
     # =========== ======== ======== ... =======
 
-    def count(self, rdline, note):
-        rdcol = rdline[column_for[note.kind]]
-        rdcol.total += 1
-
+    def count(self, note, cell):
+        cell.total += 1
         if note.satisfied():
-            rdcol.satisfied += 1
+            cell.satisfied += 1
 
     def tcdata_for(self, qd):
 
         # Process one qualification data item, producing a report data line
         # for one testcase
 
-        this_tcdata = {}
-        [this_tcdata.__setitem__(key, ColCounts()) for key in viocnt_columns]
+        this_tcdata = dict (
+            [(key, CountersCell()) for key in viocnt_columns])
 
-        this_tcdata.__setitem__(colid.sta, ColText(qd.status))
+        this_tcdata.__setitem__(colid.sta, QstatusCell(qd.status))
 
-        [self.count (this_tcdata, note)
+        [self.count (
+                note = note, cell = this_tcdata [column_for[note.kind]])
          for qde in qd.entries for src in qde.xrnotes
          for notelist in qde.xrnotes[src].itervalues()
          for note in notelist]
@@ -357,11 +454,11 @@ class QDreport:
         return this_tcdata
 
     def compute_tcdata(self):
-        self.tcdata = {}
-        [self.tcdata.__setitem__ (qd, self.tcdata_for (qd)) for qd in self.qdl]
+        self.tcdata = dict (
+            [(qd, self.tcdata_for (qd)) for qd in self.qdl])
 
     def tcdict_for(self, qd):
-        r = {}
+        r = dict()
 
         r.__setitem__(colid.tc, "%s" % qd.tcid)
 
@@ -377,7 +474,15 @@ class QDreport:
 
         rstf = RSTfile ("tctable.rst")
 
+        rstf.write (rest.chapter ("Testcase execution summary"))
+
         RSTtable (
+            title = "Testcase Table",
+            text = \
+                "This table lists all the testcases that were executed." \
+                + "It displays the execution status and "\
+                + "a set of expectation counters for each of them. ""#"" in " \
+                + "the legend denotes ""number of satisfied expectations"".",
             columns = (colid.tc,) + viocnt_columns + (colid.sta,),
             contents = [self.tcdict_for(qd) for qd in self.qdl]
             ).dump_to (rstf)
@@ -401,22 +506,24 @@ class QDreport:
          for key in viocnt_columns]
 
     def compute_vcnt_data(self):
-        self.vcnts = {}
-        [self.vcnts.__setitem__ (key, ColCounts())
-         for key in viocnt_columns]
+        self.vcnts = dict (
+            [(key, CountersCell()) for key in viocnt_columns])
         [self.do_vcnt(qd) for qd in self.qdl]
 
     def vcnt_dict(self):
-        r = {}
-        [r.__setitem__ (col, "%s" % self.vcnts[col].img())
-         for col in viocnt_columns]
-        return r
+        return dict (
+            [(col, "%s" % self.vcnts[col].img()) for col in viocnt_columns])
 
     def gen_vcnt_summary(self):
 
         self.compute_vcnt_data ()
 
         RSTtable (
+            title = "Expectation Counters Summary",
+            text = \
+                "This table summarizes expectation counters across the " \
+                + "entire set of executed tests. Its sums the number of " \
+                + "satisfied expectations presented in the testcase table.",
             columns = viocnt_columns,
             contents = [self.vcnt_dict()]
             ).dump_to (self.rstf)
@@ -427,25 +534,23 @@ class QDreport:
 
     # Compute and write out a status totals summary like
     #
-    # ======== ======== ======= =======
-    # OK       XFAIL    FAILED  OVERALL
-    # ======== ======== ======= =======
-    # 3        1        0       OK
-    # ======== ======== ======= =======
+    # ======== ======== =======
+    # passed   failed   OVERALL
+    # ======== ======== =======
+    # 3        1        OK
+    # ======== ======== =======
 
     def do_scnt(self, qd):
         self.scnts[column_for[qd.status]] += 1
 
     def compute_scnt_data(self):
-        self.scnts = {}
-        [self.scnts.__setitem__ (key, 0) for key in stacnt_columns]
-
+        self.scnts = dict (
+            [(key, 0) for key in stacnt_columns])
         [self.do_scnt(qd) for qd in self.qdl]
 
     def scnt_dict(self):
-        r = {}
-        [r.__setitem__ (col, "%d" % self.scnts[col])
-         for col in stacnt_columns]
+        r = dict (
+            [(col, "%d" % self.scnts[col]) for col in stacnt_columns])
         r.__setitem__ (
             colid.ovsta,
             "%s" % "OK" if self.scnts[colid.failed] == 0 else "BING")
@@ -456,6 +561,12 @@ class QDreport:
         self.compute_scnt_data ()
 
         RSTtable (
+            title = "Status Counters and Overall Status",
+            text = \
+                "This table sums the number of tests that passed " \
+                + "or failed, as listed in the testcase table. It " \
+                + "displays the corresponding overall status of the entire " \
+                + "testsuite.",
             columns = stacnt_columns + (colid.ovsta,),
             contents = [self.scnt_dict ()]
             ).dump_to (self.rstf)
@@ -465,9 +576,13 @@ class QDreport:
     # -------------------
 
     def gen_tcsummary(self):
+
         self.rstf = RSTfile ("tcsummary.rst")
-        self.gen_vcnt_summary()
+
+        self.rstf.write (rest.chapter ("Testsuite executive summary"))
+
         self.gen_scnt_summary()
+        self.gen_vcnt_summary()
         self.rstf.close()
 
     # -----------------
@@ -487,6 +602,9 @@ class QDreport:
 
         self.rstf.write(
             rest.chapter('GNATcoverage Software Test Results'))
+
+        self.rstf.write(rest.toctree(
+                ["tctable.rst", "tcsummary.rst"], depth = 1))
 
         self.rstf.close()
 
