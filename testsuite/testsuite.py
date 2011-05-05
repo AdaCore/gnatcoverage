@@ -37,14 +37,55 @@ from SUITE.qdata import QDregistry, QDreport, qdaf_in
 
 DEFAULT_TIMEOUT = 600
 
+# ==========================================
+# == Qualification principles and control ==
+# ==========================================
+
+# The testsuite tree features particular subdirectories hosting TOR and
+# qualification testcases. These are all hosted down a single root directory,
+# and we designate the whole piece as the qualification subtree.
+
+# --qualif-cargs controls the compilation options used to compile the
+# qualification tests.
+
+# These tests may be run as part of a regular testing activity or for an
+# actual qualification process. The latter is indicated by passing
+# --qualif-level on the command line, in which case the testsuite is said to
+# run in qualification mode.
+
+# The qualification mode aims at producing a test-results qualification report
+# for the provided target level.
+
+# Beyond the production of a qualification report, --qualif-level has several
+# effects of note:
+#
+#   * The set of tests exercised is restricted to the set of qualification
+#     tests relevant for the target level,
+#
+#   * The coverage analysis tool is called with a --level corresponding to the
+#     target qualification level for all the tests, whatever the criterion the
+#     test was designed to assess. For example, for a target level A we will
+#     invoke gnatcov --level=stmt+mcdc even for tests designed to verify
+#     statement coverage only.
+
 # A dictionary whose keys are the recognized values for the --qualif-level
 # command-line switch, and whose values are the corresponding xcov --level
 # value.
-QUALIF_TO_XCOV_LEVEL = \
-{ "doA" : "stmt+mcdc",
-  "doB" : "stmt+decision",
-  "doC" : "stmt"
-}
+
+QUALIF_TO_XCOV_LEVEL = {
+    "doA" : "stmt+mcdc",
+    "doB" : "stmt+decision",
+    "doC" : "stmt"
+    }
+
+# For each qualification level, expression that a testdir should match for
+# the test to be applicable at that level
+
+QUALIF_SUBTREES = {
+    "doA" : "Qualif/(Report|Ada/(stmt|decision|mcdc))",
+    "doB" : "Qualif/(Report|Ada/(stmt|decision))",
+    "doC" : "Qualif/(Report|Ada/(stmt))"
+    }
 
 # ===============
 # == TestSuite ==
@@ -93,13 +134,22 @@ class TestSuite:
         with open(os.path.join('output', 'comment'), 'w') as fd:
             fd.write("Options: " + " ".join(_quoted_argv()) + "\n")
 
-        # Compute the test list. Use ./ in paths to maximize possible regexp
-        # matches, in particular to allow use of command-line shell expansion
-        # to elaborate the expression.
+        # Compute the test list. Arrange to have ./ in paths to maximize
+        # possible regexp matches, in particular to allow use of command-line
+        # shell expansion to elaborate the expression.
 
-        self.non_dead_list, self.dead_list = self.generate_testcase_list(
-            re_filter(find (root=".", pattern="test.py", follow_symlinks=True),
-                      self.options.run_test), discs)
+        # First get a list of test.py candidates, filtered according to the
+        # qualification mode and then to the user provided expression. Then
+        # partition into dead/non_dead according to test.opts.
+
+        self.non_dead_list, self.dead_list = self.partition_testcase_list(
+            re_filter(
+                re_filter (
+                    find (root=".", pattern="test.py", follow_symlinks=True),
+                    "." if not self.options.qualif_level
+                    else QUALIF_SUBTREES[self.options.qualif_level]),
+                self.options.run_test),
+            discs)
 
         # Report all dead tests
         with open(os.path.join('output', 'results'), 'w') as fd:
@@ -183,17 +233,19 @@ class TestSuite:
             discs.append("RTS_RAVENSCAR")
         return discs
 
-    # ----------------------------
-    # -- generate_testcase_list --
-    # ----------------------------
+    # -----------------------------
+    # -- partition_testcase_list --
+    # -----------------------------
 
-    def generate_testcase_list(self, test_list, discs):
-        """Compute and return two sorted list:
-            - the non-dead test list (to be run in the mainloop)
-            - the dead test list (not to be run)
+    def partition_testcase_list(self, test_list, discs):
+        """Partition TEST_LIST into a (non_dead_list, dead_list) tuple of
+        sorted lists according to discriminants DISCS. Entries in both lists
+        are TestCase instances.
         """
+
         dead_list = []
         non_dead_list = []
+
         for test in test_list:
             tc = TestCase(test)
             tc.parseopt(discs)
@@ -267,7 +319,11 @@ class TestSuite:
         # propagating empty arguments.
 
         mopt = self.env.main_options
-        if mopt.qualif_cargs:
+
+        # Pass qualif_cargs to tests in the qualification subtree even
+        # when not in qualification mode
+
+        if mopt.qualif_cargs and test.qualif_levels ():
             testcase_cmd.append('--qualif-cargs=%s' % mopt.qualif_cargs)
 
         if mopt.qualif_level:
@@ -331,7 +387,7 @@ class TestSuite:
         comment = xfail_comment if xfail_comment else failed_comment
 
         status_dict = {
-            # XFAIL?   PASSED => status   !PASSED => status
+            # XFAIL?   PASSED? => status   PASSED? => status
               True:    {True:    'UOK',    False:    'OK'},
               False:   {True:    'XFAIL',  False:    'FAILED'}}
 
@@ -342,21 +398,22 @@ class TestSuite:
         # Avoid \ in filename for the final report
         test.filename = test.filename.replace('\\', '/')
 
-        if comment:
-            logging.info("%-60s %s (%s)" % (test.filename, status, comment))
-        else:
-            logging.info("%-60s %s" % (test.filename, status))
+        logging.info(''.join (
+                ["%-60s %s" % (test.filename, status),
+                 " (%s)" % comment if comment else ""]))
+
+        # File the test status + possible comment on failure
 
         with open(os.path.join('output', 'results'), 'a') as result_f:
-            if not success:
-                result_f.write(
-                    '%s:%s:%s\n' %
-                    (test.rname(), status,
-                     comment.strip('"') if comment else ""))
-                if self.options.diffs and not xfail and not failed_comment:
-                    logging.info(contents_of (test.diff()))
-            else:
-                result_f.write('%s:%s:\n' % (test.rname(), status))
+            result_f.write(''.join (
+                    ["%s:%s" % (test.rname(), status),
+                     ":%s" % comment.strip('"') if not success and comment
+                     else ""]))
+
+        # Dump errlog on unexpected failure
+
+        if self.options.diffs and not success and not xfail:
+            logging.info(contents_of (test.diff()))
 
         # Check if we have a qualification data instance pickled around,
         # and register it for later test-results production
@@ -502,13 +559,22 @@ class TestCase(object):
     # -- Testcase identification --
     # -----------------------------
 
-    def rname(test):
+    def rname(self):
         """A unique representative name for TEST"""
 
-        filename = test.filename.replace('test.py', '')
+        filename = self.filename.replace('test.py', '')
         if filename.startswith('./'):
             filename = filename[2:]
         return filename.strip('/').replace('/', '-')
+
+    def qualif_levels(self):
+        """List of qualification levels to which SELF applies"""
+
+        # Check whether any real QUALIF_SUBTREES would match ...
+
+        return [
+            qlevel for qlevel in QUALIF_SUBTREES
+            if re.search (QUALIF_SUBTREES[qlevel], self.testdir)]
 
 # ======================
 # == Global functions ==

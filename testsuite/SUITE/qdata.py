@@ -358,7 +358,7 @@ class RSTtable:
     def __dump_footer(self):
         sepl = " ".join (
             ["=" * self.width[col] for col in self.columns])
-        self.rstf.write (sepl)
+        self.rstf.write (sepl, post=2)
 
     def __compute_widths(self):
 
@@ -478,11 +478,12 @@ class QDreport:
 
         RSTtable (
             title = "Testcase Table",
-            text = \
-                "This table lists all the testcases that were executed." \
-                + "It displays the execution status and "\
-                + "a set of expectation counters for each of them. ""#"" in " \
-                + "the legend denotes ""number of satisfied expectations"".",
+            text = ' '.join (
+                ["This table lists all the testcases that were executed.",
+                 "It displays the execution status and a set of expectation",
+                 "counters for each of them.",
+                 "\n\n\"#\" in the legend denotes \"number of satisfied",
+                 "expectations for ...\"."]),
             columns = (colid.tc,) + viocnt_columns + (colid.sta,),
             contents = [self.tcdict_for(qd) for qd in self.qdl]
             ).dump_to (rstf)

@@ -30,7 +30,7 @@ from SUITE.context import thistest
 import os, re
 
 from SUITE.cutils import to_list, contents_of, FatalError
-from SUITE.tutils import TEST_DIR, QUALIF_DIR
+from SUITE.tutils import TEST_DIR
 
 from SUITE.qdata import Qdata, QDentry
 
@@ -44,21 +44,11 @@ from internals.driver import SCOV_helper
 
 class TestCase:
 
-    def __qualification_p(self):
-        """Return true if SELF is used for qualification.
-        """
-
-        # Verifying that our directory location starts with QUALIF_DIR is
-        # sufficient for our purposes.
-
-        return os.path.abspath(TEST_DIR).startswith(QUALIF_DIR)
-
     def __expand_drivers(self, patterns):
         """Add to the list of drivers to exercize the set of files
         corresponding to every glob pattern in PATTERNS."""
 
-        for pattern in to_list(patterns):
-            self.all_drivers += ls(pattern)
+        [self.all_drivers.extend (ls(p)) for p in to_list(patterns)]
 
     def __expand_shared_drivers(self):
         """Search and expand possible shared drivers uptree for our local
@@ -85,7 +75,7 @@ class TestCase:
 
     def __category(self):
         """Compute our test category from its directory location."""
-        global TEST_DIR
+
         root_expr = "(Ravenscar/.*|Ada|SanityCheck)"
         if re.search (root_expr + ".stmt", TEST_DIR):
             return "stmt"
@@ -151,7 +141,7 @@ class TestCase:
             "decision": ["stmt+decision"],
             "mcdc":     ["stmt+uc_mcdc", "stmt+mcdc"]}
 
-        if self.__qualification_p() and thistest.options.qualif_level:
+        if thistest.options.qualif_level:
             self.xcovlevels = [thistest.options.qualif_level]
         else:
             self.xcovlevels = default_xcovlevels_for [self.category]
@@ -161,11 +151,12 @@ class TestCase:
         # Account for provided compilation flags for qualif tests, then
         # append test specific extra compilation flags.
 
-        self.cargs = []
-        if self.__qualification_p():
+        if thistest.options.qualif_cargs:
             self.cargs = to_list(thistest.options.qualif_cargs)
+        else:
+            self.cargs = []
 
-        self.cargs += to_list (extracargs)
+        self.cargs.extend (to_list (extracargs))
 
         # Setup qualification data for this testcase
 
