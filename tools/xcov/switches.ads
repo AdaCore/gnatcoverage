@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -21,6 +21,10 @@ package Switches is
 
    Verbose : Boolean := False;
    --  Verbose informational output
+
+   All_Decisions : Boolean := False;
+   --  If True, perform decision coverage in stmt+decision mode even for
+   --  decisions outside of control structures.
 
    ------------------------------
    -- Debugging switches (-d?) --

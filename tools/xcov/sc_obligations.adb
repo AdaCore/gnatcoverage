@@ -1238,6 +1238,43 @@ package body SC_Obligations is
       return SCO_Vector.Element (SCO).Index;
    end Index;
 
+   -------------------
+   -- Is_Expression --
+   -------------------
+
+   function Is_Expression (SCO : SCO_Id) return Boolean is
+      S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
+      SCOD  : SCO_Descriptor renames SCO_Vector.Element (SCO);
+   begin
+      pragma Assert (Kind (SCO) = Decision);
+
+      --  Check for expression outside of control structure
+
+      if SCOD.D_Kind = Expression then
+         return True;
+      end if;
+
+      --  Check for pragma Assert/Check/Pre/Post
+
+      if S_SCO = No_SCO_Id then
+         return False;
+      end if;
+
+      declare
+         S_SCOD : SCO_Descriptor renames SCO_Vector.Element (S_SCO);
+      begin
+         return SCOD.D_Kind = Pragma_Assert_Check_PPC
+           and then S_SCOD.S_Kind = Pragma_Statement
+           and then (S_SCOD.Pragma_Name = Pragma_Assert
+                       or else
+                     S_SCOD.Pragma_Name = Pragma_Check
+                       or else
+                     S_SCOD.Pragma_Name = Pragma_Precondition
+                       or else
+                     S_SCOD.Pragma_Name = Pragma_Postcondition);
+      end;
+   end Is_Expression;
+
    ----------------------------------
    -- Is_Pragma_Pre_Post_Condition --
    ----------------------------------
@@ -1245,8 +1282,8 @@ package body SC_Obligations is
    function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean is
       SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
    begin
-      return SCOD.Kind = Statement
-               and then SCOD.S_Kind = Pragma_Statement
+      pragma Assert (Kind (SCO) = Statement);
+      return SCOD.S_Kind = Pragma_Statement
                and then (SCOD.Pragma_Name = Pragma_Precondition
                            or else
                          SCOD.Pragma_Name = Pragma_Postcondition);

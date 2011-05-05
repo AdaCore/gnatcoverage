@@ -143,6 +143,10 @@ package SC_Obligations is
    --  conditions). May be No_SCO_Id for decisions that are not part of any
    --  statement (e.g. Entry_Guard).
 
+   function Is_Expression (SCO : SCO_Id) return Boolean;
+   --  True if SCO is for a pragma Assert/Pre/Postcondition/Check, or an
+   --  expression appearing outside of a control structure.
+
    procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
 
 end SC_Obligations;

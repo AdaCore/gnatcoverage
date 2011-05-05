@@ -96,6 +96,10 @@ package body Coverage.Source is
    function Compute_MCDC_State (SCO : SCO_Id) return Line_State;
    --  Compute the MC/DC state of SCO, which is already covered for DC
 
+   function Requires_Decision_Coverage (SCO : SCO_Id) return Boolean;
+   --  Always True if MC/DC is enabled, or if Switches.All_Decisions is True.
+   --  Otherwise true only for decisions that are part of a control structure.
+
    procedure Update_State
      (Prev_State : in out Line_State;
       SCO        : SCO_Id;
@@ -232,6 +236,7 @@ package body Coverage.Source is
 
             elsif Kind (SCO) = Decision
               and then (Enabled (Decision) or else MCDC_Coverage_Enabled)
+              and then Requires_Decision_Coverage (SCO)
             then
 
                --  Compute decision coverage state for this decision. Note that
@@ -842,6 +847,19 @@ package body Coverage.Source is
          return False;
       end if;
    end Has_Been_Executed;
+
+   --------------------------------
+   -- Requires_Decision_Coverage --
+   --------------------------------
+
+   function Requires_Decision_Coverage (SCO : SCO_Id) return Boolean is
+   begin
+      pragma Assert (Kind (SCO) = Decision);
+
+      return Switches.All_Decisions
+        or else MCDC_Coverage_Enabled
+        or else not Is_Expression (SCO);
+   end Requires_Decision_Coverage;
 
    ------------------
    -- Set_Executed --

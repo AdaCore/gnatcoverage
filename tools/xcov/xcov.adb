@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2010, AdaCore                     --
+--                    Copyright (C) 2008-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -461,6 +461,9 @@ procedure Xcov is
             elsif Has_Prefix (Arg, Exec_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Opt_Exe_Name := new String'(Option_Parameter (Arg));
+
+            elsif Arg = "--all-decisions" then
+               Switches.All_Decisions := True;
 
             elsif Arg = "--missing-files" then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
