@@ -1,4 +1,4 @@
-with Inc;
+with Support, Inc; use Support;
 
 -- Call, and state bogus s- expectation
 
