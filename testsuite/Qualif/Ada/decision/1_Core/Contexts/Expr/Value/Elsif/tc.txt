@@ -1,1 +1,0 @@
-Exercise a standalone value controlling an Elsif statement.

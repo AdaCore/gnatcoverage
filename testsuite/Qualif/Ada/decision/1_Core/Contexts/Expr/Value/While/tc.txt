@@ -1,1 +1,0 @@
-Exercise a standalone value controlling a While statement.
