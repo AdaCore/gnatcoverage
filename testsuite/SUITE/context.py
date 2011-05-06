@@ -19,6 +19,8 @@ from gnatpython.fileutils import cd, rm, which, diff, touch, mkdir, ls, find
 
 import os, re, sys
 
+from SUITE.control import GPRCLEAN
+
 # Move to test directory
 ROOT_DIR = os.getcwd()
 TEST_DIR = os.path.dirname(sys.modules['__main__'].__file__)
@@ -27,17 +29,6 @@ TEST_DIR = os.path.dirname(sys.modules['__main__'].__file__)
 QUALIF_DIR = os.path.join(ROOT_DIR, "Qualif")
 
 env = Env()
-
-# Append .exe on windows for native tools
-VALGRIND = 'valgrind' + env.host.os.exeext
-GPRBUILD = 'gprbuild' + env.host.os.exeext
-GPRCLEAN = 'gprclean' + env.host.os.exeext
-XCOV     = 'xcov' + env.host.os.exeext
-
-# Common compilation options + those needed for source coverage in particular
-
-COMMON_CARGS = " -g -fpreserve-control-flow "
-SCOV_CARGS = " -gnateS "
 
 # ==================
 # == ReportOutput ==

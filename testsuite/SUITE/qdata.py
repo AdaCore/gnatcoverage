@@ -12,11 +12,13 @@
 
 # ****************************************************************************
 
-import os, pickle
+import os, sys, pickle
 
 from REST import rest
 
 from SCOV.internals.cnotes import *
+
+from SUITE.control import BUILDER
 
 # -------------
 # -- qdaf_in --
@@ -156,6 +158,9 @@ class colid:
         htext="xbv", legend="# Exempted blocks with violations")
 
     # Status counters and overall status, for status summary
+
+    qlevel = Column (
+        htext="level", legend="qualification level")
 
     failed = Column (
         htext="failed", legend="# tests failed")
@@ -391,7 +396,7 @@ class RSTtable:
 
         self.rstf = rstf
 
-        if self.title:
+        if self.text:
             self.__dump_description ()
             self.rstf.write("~", post=2)
 
@@ -407,7 +412,8 @@ class RSTtable:
 
 class QDreport:
 
-    def __init__(self, qdreg):
+    def __init__(self, options, qdreg):
+        self.options = options
         self.qdl = sorted (qdreg.qdl, key=lambda qd: qd.tcid)
 
         self.rstf = None
@@ -521,10 +527,10 @@ class QDreport:
 
         RSTtable (
             title = "Expectation Counters Summary",
-            text = \
-                "This table summarizes expectation counters across the " \
-                + "entire set of executed tests. Its sums the number of " \
-                + "satisfied expectations presented in the testcase table.",
+            text = ''.join (
+                ["This table summarizes expectation counters across the ",
+                 "entire set of executed tests. Its sums the number of ",
+                 "satisfied expectations presented in the testcase table."]),
             columns = viocnt_columns,
             contents = [self.vcnt_dict()]
             ).dump_to (self.rstf)
@@ -536,7 +542,7 @@ class QDreport:
     # Compute and write out a status totals summary like
     #
     # ======== ======== =======
-    # passed   failed   OVERALL
+    # passed   failed   overall
     # ======== ======== =======
     # 3        1        OK
     # ======== ======== =======
@@ -553,6 +559,9 @@ class QDreport:
         r = dict (
             [(col, "%d" % self.scnts[col]) for col in stacnt_columns])
         r.__setitem__ (
+            colid.qlevel,
+            "%s" % self.options.qualif_level)
+        r.__setitem__ (
             colid.ovsta,
             "%s" % "OK" if self.scnts[colid.failed] == 0 else "BING")
         return r
@@ -562,13 +571,12 @@ class QDreport:
         self.compute_scnt_data ()
 
         RSTtable (
-            title = "Status Counters and Overall Status",
-            text = \
-                "This table sums the number of tests that passed " \
-                + "or failed, as listed in the testcase table. It " \
-                + "displays the corresponding overall status of the entire " \
-                + "testsuite.",
-            columns = stacnt_columns + (colid.ovsta,),
+            title = "Overall Status",
+            text = ''.join (
+                ["This table sums the number of tests that passed or ",
+                 "failed, as listed in the testcase table. It displays the"
+                 "corresponding overall status of the entire testsuite."]),
+            columns = (colid.qlevel,) + stacnt_columns + (colid.ovsta,),
             contents = [self.scnt_dict ()]
             ).dump_to (self.rstf)
 
@@ -580,7 +588,7 @@ class QDreport:
 
         self.rstf = RSTfile ("tcsummary.rst")
 
-        self.rstf.write (rest.chapter ("Testsuite executive summary"))
+        self.rstf.write (rest.chapter ("Testsuite status summary"))
 
         self.gen_scnt_summary()
         self.gen_vcnt_summary()
@@ -590,8 +598,65 @@ class QDreport:
     # -- gen_envinfo --
     # -----------------
 
+    def gen_suite_options(self):
+
+        item = Column (
+            htext = "Suite control", legend = None)
+
+        value = Column (
+            htext = "", legend = None)
+
+        RSTtable (
+            title = None, text = None,
+            columns = (item, value),
+            contents = [
+                {item : "qualification level",
+                 value: self.options.qualif_level
+                 },
+
+                {item : "full command line",
+                 value: ' '.join (sys.argv)
+                 },
+
+                {item : "compiler options",
+                 value: ' '.join (
+                        (BUILDER.COMMON_CARGS, BUILDER.SCOV_CARGS,
+                         self.options.qualif_cargs
+                         if self.options.qualif_cargs else ""))
+                 }
+                ]
+            ).dump_to (self.rstf)
+
+    def gen_suite_environ(self):
+
+        # builder program name and version
+
+        # compilation options
+
+        # host environment
+
+        item = Column (
+            htext = "Environment item", legend = None)
+
+        value = Column (
+            htext = "Value", legend = None)
+
+        RSTtable (
+            title = None, text = None,
+            columns = (item, value),
+            contents = [{item : "--qualif-level",
+                         value: ""}]
+            ).dump_to (self.rstf)
+
+
     def gen_envinfo(self):
         self.rstf = RSTfile ("envinfo.rst")
+        self.rstf.write (rest.chapter ("Execution environment"))
+
+        self.gen_suite_options ()
+        self.rstf.write ("~\n")
+        self.gen_suite_environ ()
+
         self.rstf.close()
 
     # ---------------
@@ -601,11 +666,10 @@ class QDreport:
     def gen_index(self):
         self.rstf = RSTfile ("index.rst")
 
-        self.rstf.write(
-            rest.chapter('GNATcoverage Software Test Results'))
+        self.rstf.write(rest.chapter('GNATcoverage Software Test Results'))
 
         self.rstf.write(rest.toctree(
-                ["tctable.rst", "tcsummary.rst"], depth = 1))
+                ["envinfo.rst", "tctable.rst", "tcsummary.rst"], depth = 1))
 
         self.rstf.close()
 

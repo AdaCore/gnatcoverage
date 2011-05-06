@@ -31,9 +31,11 @@ from glob import glob
 import logging, os, re, sys
 
 from SUITE import cutils
-from SUITE.cutils import contents_of, re_filter, clear
+from SUITE.cutils import contents_of, re_filter, clear, to_list
 
 from SUITE.qdata import QDregistry, QDreport, qdaf_in
+
+from SUITE.control import BUILDER
 
 DEFAULT_TIMEOUT = 600
 
@@ -162,21 +164,12 @@ class TestSuite:
 
         targetprefix = self.env.target.triplet
 
-        # Build a gprbuild configuration file for the testsuite as a
-        # whole. Doing it here both factorizes the work for all testcases and
-        # prevents cache effects if PATH changes between testsuite runs.
+        # Run the builder configuration for the testsuite as a whole. Doing it
+        # here both factorizes the work for all testcases and prevents cache
+        # effects if PATH changes between testsuite runs.
 
-        # When --rtsgpr is provided (and non empty), e.g. for Ravenscar,
-        # assume it controls the necessary --RTS flags to pass. Otherwise,
-        # assume we are targetting zfp and configure to pass --RTS=zfp by
-        # default
-
-        defrts = "zfp" if not self.options.rtsgpr else ""
-
-        Run(['gprconfig', '--batch',
-             '--config=Ada,,%s' % defrts,  '--config=C',  '--config=Asm',
-             '--target=%s' % targetprefix, '-o', 'suite.cgpr' ],
-            output='output/gprconfig.out')
+        Run(to_list (BUILDER.CONFIG_COMMAND (self.options)),
+            output='output/config.out')
 
         # Build support library as needed
         targetargs = ["TARGET=%s" % targetprefix]
@@ -405,7 +398,7 @@ class TestSuite:
         # File the test status + possible comment on failure
 
         with open(os.path.join('output', 'results'), 'a') as result_f:
-            result_f.write(''.join (
+            result_f.write('\n'.join (
                     ["%s:%s" % (test.rname(), status),
                      ":%s" % comment.strip('"') if not success and comment
                      else ""]))
@@ -608,4 +601,6 @@ def _quoted_argv():
 if __name__ == "__main__":
     suite = TestSuite()
     suite.run()
-    QDreport(suite.qdreg)
+
+    if suite.options.qualif_level:
+        QDreport(options=suite.options, qdreg=suite.qdreg)

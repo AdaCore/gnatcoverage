@@ -10,7 +10,9 @@
 import re
 
 from SUITE.cutils import match, to_list, list_to_file
-from SUITE.tutils import thistest, SCOV_CARGS, COMMON_CARGS, do, compile
+from SUITE.tutils import thistest, do, compile
+
+from SUITE.control import BUILDER
 
 # ==================
 # ==  MapChecker  ==
@@ -20,7 +22,9 @@ class MapChecker:
     def __init__(self, sources, options="",
                  objects=None, alis=None, ensure_dcscos=True):
 
-        self.options = SCOV_CARGS +  " " + COMMON_CARGS + " " + options
+        self.options = ' '.join ((
+                BUILDER.SCOV_CARGS, BUILDER.COMMON_CARGS, options))
+
         self.sources = to_list(sources)
         self.ensure_dcscos = ensure_dcscos
 

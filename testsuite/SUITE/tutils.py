@@ -8,11 +8,18 @@
 
 # ***************************************************************************
 
-# The following import provides both us and our clients with the context
-# facilities ...
+# Expose a few other items as a test util-facilities as well
 
+from SUITE.control import BUILDER, XCOV
 from SUITE.context import *
+
+SCOV_CARGS=BUILDER.SCOV_CARGS
+
+# Then mind our own buisness
+
 from SUITE.cutils import *
+
+VALGRIND  = 'valgrind' + env.host.os.exeext
 
 # --------------
 # -- gprbuild --
@@ -33,7 +40,7 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
     all_gargs += thistest.gprconfoptions
     all_gargs += to_list(gargs)
 
-    all_cargs = to_list(cargs) + to_list(COMMON_CARGS)
+    all_cargs = to_list(cargs) + to_list(BUILDER.COMMON_CARGS)
     if all_cargs:
         all_cargs.insert(0, '-cargs')
 
@@ -44,7 +51,7 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
     thistest.cleanup(project)
 
     ofile = "gprbuild.out"
-    p = Run([GPRBUILD] + all_gargs + all_cargs + all_largs,
+    p = Run(to_list(BUILDER.BASE_COMMAND) + all_gargs + all_cargs + all_largs,
             output=ofile, timeout=thistest.options.timeout)
     thistest.stop_if (
         p.status != 0, FatalError("gprbuild exit in error", ofile))
