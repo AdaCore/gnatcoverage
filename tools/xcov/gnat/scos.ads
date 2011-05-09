@@ -169,6 +169,12 @@ package SCOs is
    --    entries appear in one logical statement sequence, continuation lines
    --    are marked by Cs and appear immediately after the CS line.
 
+   --    Implementation permission: a SCO generator is permitted to emit a
+   --    narrower SLOC range for a statement if the corresponding code
+   --    generation circuitry ensures that all debug information for the code
+   --    implementing the statement will be labeled with SLOCs that fall within
+   --    that narrower range.
+
    --  Decisions
 
    --    Note: in the following description, logical operator includes only the
@@ -251,16 +257,17 @@ package SCOs is
    --      term ::= element
    --      term ::= expression
 
-   --      element ::= outcome sloc-range
+   --      element ::= *sloc-range
 
-   --    outcome is one of the following letters:
+   --    where * is one of the following letters:
 
    --      c  condition
    --      t  true condition
    --      f  false condition
 
-   --      where t/f are used to mark a condition that has been recognized by
-   --      the compiler as always being true or false.
+   --      t/f are used to mark a condition that has been recognized by the
+   --      compiler as always being true or false. c is the normal case of
+   --      conditions whose value is not known at compile time.
 
    --    & indicates AND THEN connecting two conditions
 
@@ -282,7 +289,8 @@ package SCOs is
    --    form is used, e.g. A in (2,7,11.15).
 
    --    The expression can be followed by chaining indicators of the form
-   --    Tsloc-range or Fsloc-range.
+   --    Tsloc-range or Fsloc-range, where the sloc-range is that of some
+   --    entry on a CS line.
 
    --    T* is present when the statement with the given sloc range is executed
    --    if, and only if, the decision evaluates to TRUE.
@@ -309,6 +317,12 @@ package SCOs is
 
    --    In all other cases, chaining indicators are omitted
 
+   --    Implementation permission: a SCO generator is permitted to emit a
+   --    narrower SLOC range for a condition if the corresponding code
+   --    generation circuitry ensures that all debug information for the code
+   --    evaluating the condition will be labeled with SLOCs that fall within
+   --    that narrower range.
+
    --  Case Expressions
 
    --    For case statements, we rely on statement coverage to make sure that
@@ -328,7 +342,7 @@ package SCOs is
 
    --  Disabled pragmas
 
-   --    No SCO is generated for disabled pragmas.
+   --    No SCO is generated for disabled pragmas
 
    ---------------------------------------------------------------------
    -- Internal table used to store Source Coverage Obligations (SCOs) --

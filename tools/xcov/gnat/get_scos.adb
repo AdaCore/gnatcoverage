@@ -2,7 +2,7 @@
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
---                             G E T _ S C O S                               --
+--                             G E T _ S C O S                              --
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
@@ -24,6 +24,9 @@
 ------------------------------------------------------------------------------
 
 pragma Ada_2005;
+--  This unit is not part of the compiler proper, it is used in tools that
+--  read SCO information from ALI files (Xcov and sco_test). Ada 2005
+--  constructs may therefore be used freely (and are indeed).
 
 with SCOs;   use SCOs;
 with Snames; use Snames;
@@ -163,6 +166,7 @@ procedure Get_SCOs is
       Check ('-');
       Get_Source_Location (Loc2);
    end Get_Source_Location_Range;
+
    --------------
    -- Skip_EOL --
    --------------
@@ -291,6 +295,7 @@ begin
                      Skipc;
                      if Typ = 'P' then
                         Pid := Unknown_Pragma;
+
                         if Nextc not in '1' .. '9' then
                            N := 1;
                            loop
@@ -299,6 +304,7 @@ begin
                               N := N + 1;
                            end loop;
                            Skipc;
+
                            begin
                               Pid :=
                                 Pragma_Id'Value ("pragma_" & Buf (1 .. N));
@@ -392,6 +398,18 @@ begin
 
                elsif C = ' ' then
                   Skip_Spaces;
+
+               elsif C = 'T' or else C = 'F' then
+
+                  --  Chaining indicator: skip for now???
+
+                  declare
+                     Loc1, Loc2 : Source_Location;
+                     pragma Unreferenced (Loc1, Loc2);
+                  begin
+                     Skipc;
+                     Get_Source_Location_Range (Loc1, Loc2);
+                  end;
 
                else
                   raise Data_Error;
