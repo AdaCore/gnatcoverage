@@ -449,7 +449,7 @@ class SCOV_helper:
 
         gprbuild(
             gprfor (mains = [main+".adb"], prjid="gen",
-                    srcdirs = ["../"*n + "src" for n in range (1, 7)]),
+                    srcdirs = ["../"*n + "src" for n in range (1, 8)]),
             cargs=to_list(extracargs))
 
     # --------------
