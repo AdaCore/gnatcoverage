@@ -7,5 +7,5 @@ drivers=_overlap|_no_overlap
 --  /checkValid/    l! d!
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l- s-
---  /preValid/      l* x+
+--  /preValid/      l#;mu=>l* x0, mu => x+
 --  /checkOverlap/  l+ 0

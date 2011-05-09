@@ -9,10 +9,10 @@ procedure Test_Ranges_Invalid is
 begin
    Set (Ra, 4, 1); -- invalid
    Set (Rb, 1, 2);
-   
+
    --  One call to Overlap, with invalid range Ra.
    --  Invoke silent last chance handler.
-   
+
    Ov := Overlap (Ra, Rb);
 end;
 
@@ -20,6 +20,6 @@ end;
 --  /checkValid/    l+ 0
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l+ 0
---  /preValid/      l* x+
+--  /preValid/      l#;mu=>l* x0, mu => x+
 --  /checkOverlap/  l- s-
 

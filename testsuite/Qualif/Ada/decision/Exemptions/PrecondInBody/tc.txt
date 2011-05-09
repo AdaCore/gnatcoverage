@@ -4,10 +4,10 @@ expressed in a subprogram declarative part.
 Check outcome expectations for
 
 * situations where the precondition is always evaluated True
-  (nominal case, exempted violations)
+  (nominal case, exempted violations at level A)
 
 * situations where the precondition is evaluated only False
-  (force error case, exempted violations)
+  (force error case, exempted violations at level A)
 
 * consolidation of the previous cases: precondition exercized both
   ways (no exempted violation)
