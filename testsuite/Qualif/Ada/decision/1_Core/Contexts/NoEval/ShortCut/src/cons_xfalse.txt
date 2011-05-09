@@ -4,5 +4,7 @@ drivers=andidor_f
 --  Expect inner decision never evaluated and outer decision False.
 
 --# andidor.adb
---  /eval/ l! d-:"A",dT-:"X"
+--  /eval/ l! mu=>d-:"A",dT-:"X"
+--  /true/  l- s-
+--  /false/ l+ 0
 

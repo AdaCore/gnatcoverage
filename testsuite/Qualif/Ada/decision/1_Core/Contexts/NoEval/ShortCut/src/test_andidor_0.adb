@@ -10,3 +10,5 @@ end;
 
 --# andidor.adb
 --  /eval/ l- s-
+--  /true/  l- s-
+--  /false/ l- s-
