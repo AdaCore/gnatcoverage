@@ -23,8 +23,11 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with SCOs;  use SCOs;
-with Types; use Types;
+pragma Ada_2005;
+
+with SCOs;   use SCOs;
+with Snames; use Snames;
+with Types;  use Types;
 
 with Ada.IO_Exceptions; use Ada.IO_Exceptions;
 
@@ -192,6 +195,10 @@ procedure Get_SCOs is
       end loop;
    end Skip_Spaces;
 
+   Buf : String (1 .. 32_768);
+   N   : Natural;
+   --  Scratch buffer, and index into it
+
 --  Start of processing for Get_Scos
 
 begin
@@ -227,32 +234,24 @@ begin
 
             --  Scan out dependency number and file name
 
-            declare
-               Ptr : String_Ptr := new String (1 .. 32768);
-               N   : Integer;
+            Skip_Spaces;
+            Dnum := Get_Int;
 
-            begin
-               Skip_Spaces;
-               Dnum := Get_Int;
+            Skip_Spaces;
 
-               Skip_Spaces;
+            N := 0;
+            while Nextc > ' ' loop
+               N := N + 1;
+               Buf (N) := Getc;
+            end loop;
 
-               N := 0;
-               while Nextc > ' ' loop
-                  N := N + 1;
-                  Ptr.all (N) := Getc;
-               end loop;
+            --  Make new unit table entry (will fill in To later)
 
-               --  Make new unit table entry (will fill in To later)
-
-               SCO_Unit_Table.Append (
-                 (File_Name => new String'(Ptr.all (1 .. N)),
-                  Dep_Num   => Dnum,
-                  From      => SCO_Table.Last + 1,
-                  To        => 0));
-
-               Free (Ptr);
-            end;
+            SCO_Unit_Table.Append (
+              (File_Name => new String'(Buf (1 .. N)),
+               Dep_Num   => Dnum,
+               From      => SCO_Table.Last + 1,
+               To        => 0));
 
          --  Statement entry
 
@@ -260,6 +259,7 @@ begin
             declare
                Typ : Character;
                Key : Character;
+               Pid : Pragma_Id;
 
             begin
                --  If continuation, reset Last indication in last entry
@@ -289,16 +289,40 @@ begin
                      Typ := ' ';
                   else
                      Skipc;
+                     if Typ = 'P' then
+                        Pid := Unknown_Pragma;
+                        if Nextc not in '1' .. '9' then
+                           N := 1;
+                           loop
+                              Buf (N) := Getc;
+                              exit when Nextc = ':';
+                              N := N + 1;
+                           end loop;
+                           Skipc;
+                           begin
+                              Pid :=
+                                Pragma_Id'Value ("pragma_" & Buf (1 .. N));
+                           exception
+                              when Constraint_Error =>
+
+                                 --  Pid remains set to Unknown_Pragma
+
+                                 null;
+                           end;
+                        end if;
+                     end if;
                   end if;
 
                   Get_Source_Location_Range (Loc1, Loc2);
 
-                  Add_SCO
-                    (C1   => Key,
-                     C2   => Typ,
-                     From => Loc1,
-                     To   => Loc2,
-                     Last => At_EOL);
+                  SCO_Table.Append
+                    ((C1          => Key,
+                      C2          => Typ,
+                      From        => Loc1,
+                      To          => Loc2,
+                      Last        => At_EOL,
+                      Pragma_Sloc => No_Location,
+                      Pragma_Name => Pid));
 
                   exit when At_EOL;
                   Key := 's';
@@ -307,7 +331,7 @@ begin
 
          --  Decision entry
 
-         when 'I' | 'E' | 'G' | 'P' | 'W' | 'X' =>
+         when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' =>
             Dtyp := C;
             Skip_Spaces;
 
@@ -325,12 +349,13 @@ begin
                   Get_Source_Location (Loc);
                end if;
 
-               Add_SCO
-                 (C1   => Dtyp,
-                  C2   => ' ',
-                  From => Loc,
-                  To   => No_Source_Location,
-                  Last => False);
+               SCO_Table.Append
+                 ((C1     => Dtyp,
+                   C2     => ' ',
+                   From   => Loc,
+                   To     => No_Source_Location,
+                   Last   => False,
+                   others => <>));
             end;
 
             --  Loop through terms in complex expression
@@ -341,11 +366,12 @@ begin
                   Cond := C;
                   Skipc;
                   Get_Source_Location_Range (Loc1, Loc2);
-                  Add_SCO
-                    (C2   => Cond,
-                     From => Loc1,
-                     To   => Loc2,
-                     Last => False);
+                  SCO_Table.Append
+                    ((C2     => Cond,
+                      From   => Loc1,
+                      To     => Loc2,
+                      Last   => False,
+                      others => <>));
 
                elsif C = '!' or else
                      C = '&' or else
@@ -357,7 +383,11 @@ begin
                      Loc : Source_Location;
                   begin
                      Get_Source_Location (Loc);
-                     Add_SCO (C1 => C, From => Loc, Last => False);
+                     SCO_Table.Append
+                       ((C1     => C,
+                         From   => Loc,
+                         Last   => False,
+                         others => <>));
                   end;
 
                elsif C = ' ' then
