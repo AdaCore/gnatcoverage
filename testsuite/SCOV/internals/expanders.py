@@ -216,7 +216,9 @@ class RnotesExpander:
 #     lx := "-- " lx_lre lx_lnote_list [lx_rnote_list] <newline>
 #     lx_lre := "/" REGEXP "/"
 #     weak_mark := ~
-#     cov_level_test := <s|d|m|u> "=>"
+#     cov_level_choice := <s|d|m|u>
+#     cov_level_list := cov_level_choice [cov_level_list]
+#     cov_level_test := cov_level_list "=>"
 #     lx_lnote_list := lx_lnote_choice [";" lx_lnote_list]
 #     lx_lnote_choice := [cov_level_test] [weak_mark] lx_lnote
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
@@ -511,20 +513,19 @@ class XnotesExpander:
         return LineCX(self.__wrap_lre(lx_lre), lx_lnote, lx_rnotes)
 
     def __decode_note_choice(self, text):
-        """Given a note_choice that depends potentially on the coverage
-        level, return a list that represents this dependance,
-        whose first element is the coverage level that it depends on
-        (or an empty string if the note does not depend on the level)
-        and whose second element is the expectation note if the choice
-        is taken.
+        """Given a note_choice that depends potentially on a list of coverage
+        levels, return a list of (xcov-level, expected-note-text) tuples that
+        represent those dependences.
 
         For instance, given:
 
-            'u => l!'
+            'u => l!' or 'sd => l+'
 
         ...this function will return:
 
-            ['stmt+uc_mcdc', 'l!']
+            [('stmt+uc_mcdc', 'l!')]
+            or
+            [('stmt', 'l+'), ('stmt+decision', 'l+')]
 
         """
         level_from_char = {"s" : "stmt",
@@ -536,20 +537,26 @@ class XnotesExpander:
 
         if len(result) == 1:
             # No choice
-            return ["", text]
+            return [("", text)]
         elif len(result) > 2:
             # Parse error
             raise FatalError("Note choice %s contains more than one arrow"
                              % text)
         else:
-            return [level_from_char[result[0]], result[1]]
+            note = result[1].lstrip(' ')
+            lev_list = result[0].rstrip(' ')
+
+            return [(level_from_char[lchar], note) for lchar in lev_list]
 
     def __select_lnote(self, text):
         """Decode text to return the line note for the current
         coverage level."""
+
         lx_lnote_list = text.split(";")
-        level_table = dict([self.__decode_note_choice(conditional_note)
-                            for conditional_note in lx_lnote_list])
+
+        level_table = dict(
+            [ln_tuple for cond_notes in lx_lnote_list
+             for ln_tuple in self.__decode_note_choice(cond_notes)])
 
         if not level_table.has_key(''):
             raise FatalError("No default case in line expectation: %s" % text)
@@ -559,5 +566,7 @@ class XnotesExpander:
     def __select_rnote(self, text):
         """Decode text to return the report note for the current
         coverage level."""
-        level_table = dict([['', "0"], self.__decode_note_choice(text)])
+        level_table = dict(
+            [('', "0")]
+            + [ln_tuple for ln_tuple in self.__decode_note_choice(text)])
         return fb_get(level_table, self.xcov_level)
