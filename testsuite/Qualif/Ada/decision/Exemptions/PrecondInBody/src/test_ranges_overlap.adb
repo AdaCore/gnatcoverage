@@ -39,6 +39,6 @@ end;
 --  /checkValid/    l! d!
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l- s-
---  /preValid/      l#;mu=>l* x0, mu => x+
---  /checkOverlap/  l+;mu=>l! mu => dF-
+--  /preValid/      l#;mu=>l* x0, mu=>x+
+--  /checkOverlap/  l+;mu=>l! mu=>dF-
 

@@ -22,5 +22,5 @@ end;
 --  /retSXY/   l- s-
 
 --# points.ads
---  /preSX/    l+;mu=>l! mu => dF-
+--  /preSX/    l+;mu=>l! mu=>dF-
 --  /preSY/    l- s-

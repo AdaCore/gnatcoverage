@@ -21,5 +21,5 @@ end;
 --  /preSXY/   l- s-
 --  /retSXY/   l- s-
 --  /exempt/   l* x+
---  /preSX$/   l+;mu=>l! mu => dF-
+--  /preSX$/   l+;mu=>l! mu=>dF-
 --  /preSY$/   l- s-
