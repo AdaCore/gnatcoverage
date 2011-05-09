@@ -1,7 +1,11 @@
 package body A1O2 is
    function Andthen (A, B : Boolean) return Boolean is
    begin
-      return A and then B; -- # valueF
+      if A and then B then -- # valueF
+         return True;      -- # true
+      else
+         return False;     -- # false
+      end if;
    end;
 
    function F (A, B, C, D : Boolean) return Boolean is

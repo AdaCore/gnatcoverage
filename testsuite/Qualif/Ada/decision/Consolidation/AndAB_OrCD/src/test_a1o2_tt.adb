@@ -7,4 +7,6 @@ end;
 
 --# a1o2.adb
 --  /valueF/ l! dF-
---  /evals/  l! dF-:"A and then B" # dF-:"C or else D"
+--  /true/  l+ 0
+--  /false/ l- s-
+--  /evals/  l+;mu=>l! mu=>dF-:"A and then B" # mu=>dF-:"C or else D"
