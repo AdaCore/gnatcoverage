@@ -1,1 +1,0 @@
-Exercise expressions in pragma Debug call actual involving an "and then" expression.

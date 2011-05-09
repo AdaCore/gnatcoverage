@@ -14,8 +14,8 @@ end;
 --  /bodyX/    l+ 0
 --  /bodyY/    l+ 0
 --  /bodySet/  l+ 0
---  /preSet/   l! d!
+--  /preSet/   l+;mu=>l! mu => d!
 
 --# points.ads
---  /preX/    l! d!
---  /preY/    l! d!
+--  /preX/    l+;mu=>l! mu => d!
+--  /preY/    l+;mu=>l! mu => d!

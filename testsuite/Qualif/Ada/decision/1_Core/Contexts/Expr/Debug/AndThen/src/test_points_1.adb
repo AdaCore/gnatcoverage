@@ -2,8 +2,8 @@ with Support, Points; use Support, Points;
 
 --  Call Set and Same_X - not Same_X neither Same_XY.
 
---  Verify stmt and partial coverage on preconditions for the first 2, and
---  stmts uncovered for everything on the last 2.
+--  Verify stmt and partial mcdc coverage on preconditions for the first 2,
+--  and stmts uncovered for everything on the last 2.
 
 procedure Test_Points_1 is
    P1, P2 : Point;
@@ -21,5 +21,5 @@ end;
 --  /preSXY/   l- s-
 --  /retSXY/   l- s-
 --  /exempt/   l* x+
---  /preSX$/   l! dF-
+--  /preSX$/   l+;mu=>l! mu => dF-
 --  /preSY$/   l- s-

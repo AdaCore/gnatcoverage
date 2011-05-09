@@ -2,7 +2,7 @@ with Support, Points; use Support, Points;
 
 --  Call Set, Same_Y and same_XY - not Same_X.
 
---  Verify partial coverage on preconditions for the first 3, and stmts
+--  Verify partial mcdc coverage on preconditions for the first 3, and stmts
 --  uncovered for everything on the last one. Account for the decision in
 --  Same_XY as well.
 
@@ -20,8 +20,8 @@ end;
 --  /bodySX/   l- s-
 --  /bodySY/   l+ 0
 --  /bodySet/  l+ 0
---  /preSXY/   l! dF-
---  /retSXY/   l! dT-
+--  /preSXY/   l+;mu=>l! mu => dF-
+--  /retSXY/   l+;mu=>l! mu => dT-
 --  /exempt/   l* x+
 --  /preSX$/   l- s-
---  /preSY$/   l! dF-
+--  /preSY$/   l+;mu=>l! mu => dF-
