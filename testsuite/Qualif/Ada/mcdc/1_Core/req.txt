@@ -1,10 +1,21 @@
-# For decisions evaluated both true and false, the tool shall report every
+In addition to expressions that directly influence control constructs, the
+tool shall recognize as a decision any expression that features at least two
+conditions combined with and-then or or-else short-circuit operators. We
+denote these as "complex" expressions, which need not appear within explicit
+control constructs to be recognized as decisions. Examples of extra contexts
+where complex expressions are recognized as decisions include the right-hand
+side of an assignment statement, active assertion pragmas, or
+
+All the base "decision" chapter requirements apply to the full set of
+decisions as defined here, and in addition:
+
+#. For decisions evaluated both True and False, the tool shall report every
    condition for which the independent effect was not demonstrated. Such
    condition specific diagnotics shall designate the particular condition
    source location.
 
-# The tool shall be able to handle arbitrarily complex decisions in any
-  context where such expressions might appear.
+#. The tool shall be able to handle arbitrarily complex decisions in any
+   context where such expressions might appear.
 
 **Testing Strategy**
 
@@ -20,11 +31,11 @@ of situations:
 
 We exercise each decision of interest in multiple manners, always including
 
-* a set of vectors where the decision evaluates only true,
+* a set of vectors where the decision evaluates only True,
 
-* a set of vectors where the decision evaluates only false,
+* a set of vectors where the decision evaluates only False,
 
-* sets of vectors where the decision evaluates both true and false, with
+* sets of vectors where the decision evaluates both True and False, with
   at least
 
   * one set not demonstrating the independent effect of any condition,
@@ -33,3 +44,4 @@ We exercise each decision of interest in multiple manners, always including
 
 * a situation where the statements exposing the decision aren't
   executed at all.
+
