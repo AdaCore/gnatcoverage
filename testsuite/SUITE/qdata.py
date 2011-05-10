@@ -18,8 +18,6 @@ from REST import rest
 
 from SCOV.internals.cnotes import *
 
-from SUITE.control import BUILDER
-
 # -------------
 # -- qdaf_in --
 # -------------
@@ -410,6 +408,12 @@ class RSTtable:
 # == QDreport ==
 # ==============
 
+import time, datetime, platform, socket
+
+from gnatpython.ex import Run
+from SUITE.control import BUILDER
+from SUITE.cutils  import version
+
 class QDreport:
 
     def __init__(self, options, qdreg):
@@ -601,7 +605,7 @@ class QDreport:
     def gen_suite_options(self):
 
         item = Column (
-            htext = "Suite control", legend = None)
+            htext = "Suite control items", legend = None)
 
         value = Column (
             htext = "", legend = None)
@@ -610,14 +614,12 @@ class QDreport:
             title = None, text = None,
             columns = (item, value),
             contents = [
+                {item : "command line",
+                 value: ' '.join (sys.argv)
+                 },
                 {item : "qualification level",
                  value: self.options.qualif_level
                  },
-
-                {item : "full command line",
-                 value: ' '.join (sys.argv)
-                 },
-
                 {item : "compiler options",
                  value: ' '.join (
                         (BUILDER.COMMON_CARGS, BUILDER.SCOV_CARGS,
@@ -629,29 +631,39 @@ class QDreport:
 
     def gen_suite_environ(self):
 
-        # builder program name and version
-
-        # compilation options
-
-        # host environment
-
         item = Column (
-            htext = "Environment item", legend = None)
+            htext = "Environment items", legend = None)
 
         value = Column (
-            htext = "Value", legend = None)
+            htext = "", legend = None)
 
         RSTtable (
             title = None, text = None,
             columns = (item, value),
-            contents = [{item : "--qualif-level",
-                         value: ""}]
+            contents = [
+                {item : "report timestamp",
+                 value: time.strftime ("%a %b %d, %Y. %H:%M", time.localtime())
+                 },
+                {item : "user & system",
+                 value: ' '.join (
+                        (os.getlogin(), "@", socket.gethostname(),
+                         "(" + ' '.join ((
+                                    platform.system(), platform.release()))
+                         + ")"))
+                 },
+                {item : "compiler (+version)",
+                 value: version("gcc")
+                 },
+                {item : "builder (+version)",
+                 value: version(BUILDER.BASE_COMMAND)
+                 }
+                ]
             ).dump_to (self.rstf)
 
 
     def gen_envinfo(self):
         self.rstf = RSTfile ("envinfo.rst")
-        self.rstf.write (rest.chapter ("Execution environment"))
+        self.rstf.write (rest.chapter ("Execution context summary"))
 
         self.gen_suite_options ()
         self.rstf.write ("~\n")
@@ -672,6 +684,4 @@ class QDreport:
                 ["envinfo.rst", "tctable.rst", "tcsummary.rst"], depth = 1))
 
         self.rstf.close()
-
-
 

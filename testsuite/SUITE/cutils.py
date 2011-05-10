@@ -10,6 +10,7 @@
 
 import re
 from gnatpython.fileutils import diff, os
+from gnatpython.ex import Run
 
 # -----------------
 # -- contents_of --
@@ -88,6 +89,13 @@ def clear(f):
     """Remove file F if it exists"""
     if os.path.exists(f):
         os.remove(f)
+
+# -------------
+# -- version --
+# -------------
+def version(tool):
+    return Run(
+        to_list(tool + " --version")).out.split('\n')[0]
 
 # ==========================
 # == FatalError Exception ==
