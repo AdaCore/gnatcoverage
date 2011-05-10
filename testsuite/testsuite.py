@@ -398,10 +398,10 @@ class TestSuite:
         # File the test status + possible comment on failure
 
         with open(os.path.join('output', 'results'), 'a') as result_f:
-            result_f.write('\n'.join (
+            result_f.write(''.join (
                     ["%s:%s" % (test.rname(), status),
                      ":%s" % comment.strip('"') if not success and comment
-                     else ""]))
+                     else ""]) + '\n')
 
         # Dump errlog on unexpected failure
 
