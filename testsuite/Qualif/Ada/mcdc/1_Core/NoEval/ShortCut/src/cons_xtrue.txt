@@ -1,10 +1,11 @@
 drivers=andidor_t
 
 --  Consolidate all drivers running X => True.
---  Expect inner decision fully covered and outer as well.
+--  Expect inner decision fully covered and outer as well. Independant
+--  effect of X not demonstrated, though
 
 --# andidor.adb
---  /eval/ l+ 0
+--  /eval/ l! c!:"X"
 --  /true/  l+ 0
 --  /false/ l+ 0
 
