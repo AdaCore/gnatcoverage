@@ -1,47 +1,73 @@
-In addition to expressions that directly influence control constructs, the
-tool shall recognize as a decision any expression that features at least two
-conditions combined with and-then or or-else short-circuit operators. We
-denote these as "complex" expressions, which need not appear within explicit
-control constructs to be recognized as decisions. Examples of extra contexts
-where complex expressions are recognized as decisions include the right-hand
-side of an assignment statement, active assertion pragmas, or
+
+===============   ===========================================================
+Requirement Id    Description
+===============   ===========================================================
+**core**          In addition to expressions that directly influence
+                  control-flow constructs, the tool shall recognize as
+                  decisions *complex* Boolean expressions in any context
+                  where they might apppear, for example also on the
+                  right-hand side of an assignment, as part of an object
+                  declaration initializer, as a subprogram actual or within
+                  an active assertion pragma.
+===============   ===========================================================
+
+Even though direct subexpressions are still not decisions on their own,
+sub-decisions nesting is possible from the variety of possible contexts where
+an expression is considered a decision. For example, ``A and then Op (B or
+else C)`` has two decisions, one with two conditions (B and C) used as an
+actual in a function call, and an outer one with two conditions as well (A and
+the function call).
 
 All the base "decision" chapter requirements apply to the full set of
-decisions as defined here, and in addition:
+decisions as defined here. Subsidiary requirements are completed of refined as
+follows:
 
-#. For decisions evaluated both True and False, the tool shall report every
-   condition for which the independent effect was not demonstrated. Such
-   condition specific diagnotics shall designate the particular condition
-   source location.
-
-#. The tool shall be able to handle arbitrarily complex decisions in any
-   context where such expressions might appear.
+===============   ===========================================================
+Requirement Id    Description
+===============   ===========================================================
+**cparteval**     For decisions evaluated both True and False, the tool shall
+                  report every condition for which the independent effect was
+                  not demonstrated. Such condition specific diagnotics shall
+                  designate the particular condition source location.
+**dnoeval**       When a decision is never evaluated even though the enclosing
+                  statement or declaration has been executed (e.g. because of
+                  a short-circuit or of an exception occurrence), the decision
+		  shall be reported as never evaluated.
+===============   ===========================================================
 
 **Testing Strategy**
 
-We check that all the aspects of this requirement are satisfied in a variety
-of situations:
+To address *dcomplete*, we check that all the aspects of this requirement are
+satisfied in a variety of situations. We start with two subsets of testcases:
 
-* With expressions involving different kinds of operands, not only
-  straight boolean variables [Operands].
+* [Operands] basic expressions involving different kinds of operands, not only
+  simple boolean variables (e.g. attribute references or subprogram calls).
 
-* With expressions of different shapes placed in various contexts, to
-  verify the tool's capability to handle arbitrary expressions everywhere
-  they might appear [ShapesAndContexts];
+* [ShapesAndContexts] expressions of various topologies placed in various
+  contexts, to verify the tool's capability to handle arbitrary expressions
+  everywhere they might appear.
 
 We exercise each decision of interest in multiple manners, always including
 
-* a set of vectors where the decision evaluates only True,
+* a set of vectors where the decision evaluates only True (*dparteval*),
 
-* a set of vectors where the decision evaluates only False,
+* a set of vectors where the decision evaluates only False (*dparteval*),
 
 * sets of vectors where the decision evaluates both True and False, with
   at least
 
-  * one set not demonstrating the independent effect of any condition,
-  * one set demonstrating the independent effect of each condition alone,
-  * one set demonstrating the independent effect of all the conditions.
+  * one set not demonstrating the independent effect of any condition
+    (*cparteval*),
+
+  * one set demonstrating the independent effect of each condition alone
+    (*cparteval*),
+
+  * one set demonstrating the independent effect of all the conditions
+    (*dcovered*).
 
 * a situation where the statements exposing the decision aren't
-  executed at all.
+  executed at all (*snoexec*).
+
+On top of this, we add a [NoEval] subset of tests to address the particular
+*dnoeval* case, a rare kind of occurrence in practice.
 
