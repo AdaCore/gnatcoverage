@@ -1,0 +1,3 @@
+Exercise ``Eval (Arg1)``, where the condition evaluation (call) might raise an
+exception. Verify that occurrences of un-evaluation on raise don't influence
+the assessment reached by otherwise successful evaluations.
