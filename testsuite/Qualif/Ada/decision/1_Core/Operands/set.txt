@@ -1,0 +1,9 @@
+This section groups testcases aimed at verifying that the tool handles all the
+possible forms of conditions in a decision, not only boolean variables.
+
+We exercise simple decisions involving various possible kinds of conditions,
+either isolated or mixed with other kinds. We make sure here to exercise cases
+known to require internal comparisons, to demonstrate that the tool knows to
+distinguish internal tests aimed at computing a condition value versus tests
+aimed at computing the decision from the condition values.
+
