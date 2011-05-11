@@ -616,6 +616,18 @@ package body Coverage.Source is
 
                         null;
 
+                     elsif CBE.Dest_Kind = Raise_Exception then
+
+                        --  Exception raised: abandon current evaluation
+
+                        Report (Exe, PC,
+                          "edge " & E'Img & " raised an exception, "
+                          & "abandoning evaluation", Kind => Notice);
+
+                        if Has_Diamond (D_SCO) or else Debug_Full_History then
+                           Evaluation_Stack.Delete_Last;
+                        end if;
+
                      else
                         Report
                           (Exe, PC,
