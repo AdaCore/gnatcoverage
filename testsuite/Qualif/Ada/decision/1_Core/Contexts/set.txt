@@ -1,0 +1,11 @@
+This section groups testcases aimed at verifying the tool's capability to
+handle arbitrary expressions everywhere they might appear.
+
+Expressions of various topologies are exercised in various contexts where they
+might appear, separating
+
+* Control-flow constructs where the expressions indeed act as decisions, from
+
+* Other contexts, where the expressions shall only be recognized as decisions
+  for a DO178 level A qualification.
+
