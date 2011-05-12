@@ -1,0 +1,10 @@
+This section groups testcases aimed at checking that the is able to handle
+conditions of arbitrary complexity in decisions.
+
+We exercise simple decisions involving various possible kinds of conditions,
+either isolated or mixed with other kinds. We make sure here to exercise cases
+where conditions require internal comparisons not directly representative of
+the condition False/True value determination itself, for example implicit
+tests for null ranges to evaluate the length value in an expression like
+"S'length > 12".
+
