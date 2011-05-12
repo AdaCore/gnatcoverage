@@ -4,6 +4,7 @@ import os
 import rest
 import glob
 import re
+import sys
 
 DOC_DIR = "source"
 ROOT_DIR = "../../../testsuite/Qualif"
@@ -197,7 +198,7 @@ class PathInfo:
 # hierarchy
 
 class Dir:
-    def __init__(self, root, subdirs, files, dgen):
+    def __init__(self, root, subdirs, files):
 
         # Filesystem attributes for this directory
 
@@ -304,21 +305,29 @@ dirProcess, dirSkip, dirCut = range (3)
 # skip processing for this node and don't walk children
 
 class DirTree:
-    def __init__(self):
+    def __init__(self, root, hook=None):
         self.dir = {}   # dir-name -> dir-object dictionary
         self.roots = [] # set of orphan dir objects
 
-    # ----------------------------------------------
-    # -- Setting up the tree of directory objects --
-    # ----------------------------------------------
+        [self.map (dirname, subdirs, files, hook)
+         for (dirname, subdirs, files) in os.walk(os.path.abspath(root))]
+
+        self.compute_attributes()
 
     # Hook for the DocGenerator abstraction, which it calls while walking the
     # TOR/TC file tree top down, so parents are mapped first
 
-    def map(self, dirname, diro):
+    def map(self, dirname, subdirs, files, hook):
+
+        # Ignore some subdirectories
+        [subdirs.remove(d) for d in copy(subdirs)
+         if d in ('.svn', 'src') or d.startswith('tmp_')]
+
+        diro = Dir (root=dirname, subdirs=subdirs, files=files)
 
         # map this dir first ...
         self.dir[dirname] = diro
+        if hook: hook (diro)
 
         # and setup links with/in the parent directory, the tree is walked
         # top down, so we're supposed to have seen it already when there is
@@ -490,21 +499,30 @@ class DocGenerator(object):
     def gen_set_section(self, diro):
         """Generate the Set description section"""
 
-        self.ofd.write(get_content(os.path.join(diro.root, 'set.txt')))
+        contents = get_content(os.path.join(diro.root, 'set.txt'))
+        self.ofd.write(contents)
+
+        return contents
 
     def gen_req_section(self, diro):
         """Generate the Requirement description section"""
 
         self.ofd.write(sec_header("Requirement"));
-        self.ofd.write(get_content(os.path.join(diro.root, 'req.txt')))
+
+        contents = get_content(os.path.join(diro.root, 'req.txt'))
+        self.ofd.write(contents)
+
+        return contents
 
     def gen_tc_section(self, diro):
         """Generate the TestCase description section"""
 
         tco = TestCase (dir=diro.root, dgen=self)
 
+        contents = get_content(os.path.join(diro.root, 'tc.txt'))
+
         if diro.has_tctxt():
-            self.ofd.write(get_content(os.path.join(diro.root, 'tc.txt')))
+            self.ofd.write(contents)
 
         self.ofd.write(subsec_header("Test Data"))
         self.ofd.write(rest.list(
@@ -518,6 +536,8 @@ class DocGenerator(object):
 
         self.register_resources (
             tco.fnsources | tco.drsources | tco.conspecs)
+
+        return contents
 
     def maybe_toc_section(self, diro):
         """Generate the Table Of Contents section as needed"""
@@ -537,14 +557,16 @@ class DocGenerator(object):
         self.ofd.write(
             rest.section(to_title(os.path.basename(diro.root))))
 
-        if diro.has_settxt ():
-            self.gen_set_section(diro)
-        if diro.has_reqtxt ():
-            self.gen_req_section(diro)
-        if diro.has_tctxt ():
-            self.gen_tc_section(diro)
+        contents = (
+            self.gen_set_section(diro) if diro.has_settxt ()
+            else self.gen_req_section(diro) if diro.has_reqtxt ()
+            else self.gen_tc_section(diro)  if diro.has_tctxt ()
+            else "")
 
         self.maybe_toc_section(diro)
+
+        if re.search ("<tctable>", contents):
+            self.gen_tc_index(diro.root)
 
         self.ofd.close()
 
@@ -555,16 +577,10 @@ class DocGenerator(object):
     def generate_chapter(self, root_dir):
         """Generate documentation for chapter at ROOT_DIR"""
 
-        for root, dirs, files in os.walk(os.path.abspath(root_dir)):
+        dirtree = DirTree(
+            root = root_dir, hook = self.gen_doc_contents)
 
-            # Ignore some subdirectories
-            [dirs.remove(d) for d in copy(dirs)
-	     if d in ('.svn', 'src') or d.startswith('tmp_')]
-
-            diro = Dir (root=root, subdirs=dirs, files=files, dgen=self)
-
-            self.dirtree.map (dirname=root, diro=diro)
-            self.gen_doc_contents (diro=diro)
+        dirtree.check_consistency()
 
     def generate_chapters(self, chapdirs):
         [self.generate_chapter(os.path.join(self.root_dir, d))
@@ -585,11 +601,12 @@ class DocGenerator(object):
     # To be refined ...
 
     class TCinfo:
-        def __init__ (self):
+        def __init__ (self, root):
             self.max_tclen = 0
+            self.root = root
 
-    def tc_text(self, diro):
-        return os.path.relpath (diro.root, self.root_dir)
+    def tc_text(self, diro, prefix):
+        return os.path.relpath (diro.root, prefix)
 
     def gen_tc_entry(self, diro, pathi, ti):
 
@@ -605,36 +622,39 @@ class DocGenerator(object):
         # Then write the whole entry
 
         self.ofd.write (
-            '%-*s %s\n' % (ti.max_tclen, self.tc_text(diro),
-                           sumtext.replace ('\n', ' ')))
+            '%-*s %s\n' % (
+                ti.max_tclen, self.tc_text(diro=diro, prefix=ti.root),
+                sumtext.replace ('\n', ' ')))
 
     def compute_max_tclen(self, diro, pathi, ti):
-        thislen = len (self.tc_text(diro))
+        thislen = len (self.tc_text(diro=diro, prefix=ti.root))
         if thislen > ti.max_tclen:
             ti.max_tclen = thislen
 
     def tc_filter (self, diro):
         return dirProcess if (diro.tc or diro.tcset) else dirSkip
 
-    def generate_tc_index(self):
-        self.ofd.write (sec_header ("Testcase Index"))
+    def gen_tc_index(self, root):
 
-        tci = self.TCinfo()
+        dirtree = DirTree (root = root, hook = None)
+
+        tci = self.TCinfo(root = root)
 
         # We first need to compute the common length for all the items
         # in the first column
 
-        self.dirtree.walk (
+        dirtree.walk (
             mode=topdown, process=self.compute_max_tclen,
             ctl=self.tc_filter, data=tci)
 
         # Then we ouptut the table header, the entries, and the table footer
 
+        self.ofd.write (rest.section ("Testcase table"));
         self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
         self.ofd.write ("%-*s Summary\n" % (tci.max_tclen, "TC"))
         self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
 
-        self.dirtree.walk (
+        dirtree.walk (
             mode=topdown, process=self.gen_tc_entry,
             ctl=self.tc_filter, data=tci)
 
@@ -656,7 +676,6 @@ class DocGenerator(object):
                      for d in chapdirs]
         self.ofd.write(rest.toctree(chapfiles, 1))
 
-        self.generate_tc_index()
         self.ofd.close()
 
     # ----------------------------
@@ -682,24 +701,28 @@ class DocGenerator(object):
     # -- checking tree consistency along the way --
     # ---------------------------------------------
 
-    def generate_all(self):
+    def generate_all(self, chapdirs):
 
-        self.dirtree = DirTree()
+        # ref_chapdirs = [
+        #    "Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
 
-        chapdirs = ["Report"]
-        chapdirs += ["Ada/stmt", "Ada/decision", "Ada/mcdc"]
+        ref_chapdirs = [
+            "Ada/decision", "Ada/mcdc"]
 
-        self.generate_chapters(chapdirs)
+        # [Re]generate only the requested chapters, when specified,
+        # everything otherwise
 
-        # The directory object tree is available at this stage
+        self.generate_chapters(
+            ref_chapdirs if chapdirs is None else chapdirs)
 
-        self.dirtree.compute_attributes()
-        self.dirtree.check_consistency()
+        # Generate index for the whole reference tree, always
 
-        self.generate_index(chapdirs)
+        self.generate_index(ref_chapdirs)
         self.generate_resources()
 
 # The main of the script
 if __name__ == "__main__":
     mygen = DocGenerator(ROOT_DIR, DOC_DIR)
-    mygen.generate_all()
+
+    mygen.generate_all(
+        chapdirs = sys.argv[1:] if len (sys.argv) > 1 else None)
