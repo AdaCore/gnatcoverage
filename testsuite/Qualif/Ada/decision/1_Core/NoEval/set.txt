@@ -1,0 +1,17 @@
+This section groups testcases aimed at checking the tool's capability
+to handle situations where decisions are not evaluated even though the
+statement they control is executed.
+
+The general idea is to exercise expressions where each condition could be made
+to raise an exception, stopping the decision evaluation. We check that
+
+* a "decision never evaluated" diagnostic is emitted when no evaluation
+  succeeds at all, and that
+
+* exception occurrences don't influence the coverage achieved by otherwise
+  successful evaluations.
+
+... for a variety of cases; different expression topologies and different
+sources of exceptions.
+
+.. <tctable>
