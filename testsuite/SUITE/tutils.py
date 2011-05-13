@@ -100,6 +100,7 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
 
     gprtext = template % {'prjname': prjid,
                           'extends': 'extends "%s"' % basegpr,
+                          'base': basegpr.split('/')[-1],
                           'srcdirs': srcdirs.rstrip(', '),
                           'languages' : languages,
                           'gprmains': gprmains}
