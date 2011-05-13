@@ -1,3 +1,0 @@
-Exercise ``if Eval (Arg1) and then Eval (Arg2)``, where either call might
-raise an exception. Verify that occurrences of un-evaluation on raise don't
-influence the assessment reached by otherwise successful evaluations.
