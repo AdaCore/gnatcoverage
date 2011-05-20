@@ -298,7 +298,7 @@ class SCOV_helper:
     # -- __init__ --
     # --------------
     def __init__(self, drivers, xfile, category, xcovlevel):
-        self.drivers = [os.path.basename(no_ext(d)) for d in drivers]
+        self.drivers = [os.path.basename(d) for d in drivers]
         self.category = category
         self.xcovlevel = xcovlevel
 
@@ -353,7 +353,7 @@ class SCOV_helper:
 
         lali="obj/"+os.path.basename(no_ext(source) + ".ali")
         for main in self.drivers:
-            tloc=self.awdir_for(main)+lali
+            tloc=self.awdir_for(no_ext(main))+lali
             if os.path.exists(tloc):
                 return tloc
 
@@ -391,7 +391,7 @@ class SCOV_helper:
         if self.singletest():
             self.build(self.drivers[0],extracargs)
             self.alis = list_to_file(self.ali_list(), "alis.list")
-            self.xcov_run(self.drivers[0])
+            self.xcov_run(no_ext(self.drivers[0]))
         else:
             self.alis = list_to_file(self.ali_list(), "alis.list")
 
@@ -434,7 +434,7 @@ class SCOV_helper:
         # testcase.
 
         if self.singletest():
-            return self.rwdir_for(self.drivers[0])
+            return self.rwdir_for(no_ext(self.drivers[0]))
         else:
             return self.rwdir_for(
                 os.path.basename(no_ext(self.xfile)))
@@ -454,7 +454,7 @@ class SCOV_helper:
         # support sources.
 
         gprbuild(
-            gprfor (mains = [main+".adb"], prjid="gen",
+            gprfor (mains = [main], prjid="gen",
                     srcdirs = ["../"*n + "src" for n in range (1, 8)]),
             cargs=to_list(extracargs))
 
@@ -507,7 +507,8 @@ class SCOV_helper:
         format (.ad?.xcov outputs) if we're not in qualification mode"""
 
         traces = list_to_file(
-            [self.awdir_for(main)+main+'.trace' for main in self.drivers],
+            [self.awdir_for(no_ext(main))+no_ext(main)+'.trace'
+             for main in self.drivers],
             "traces.list")
 
         self.gen_one_xcov_report(
@@ -632,8 +633,8 @@ class SCOV_helper:
     # ---------
     def log(self):
         frame ("%s, %s\n%s coverage with --level=%s"
-               % (str(self.drivers), self.xfile,
-                  self.category, self.xcovlevel),
+               % (str([no_ext(main) for main in self.drivers]),
+                  self.xfile, self.category, self.xcovlevel),
                char='*').display()
 
     # ----------------
