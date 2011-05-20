@@ -76,7 +76,7 @@ class TestCase:
     def __category(self):
         """Compute our test category from its directory location."""
 
-        root_expr = "(Ravenscar/.*|Ada|SanityCheck)"
+        root_expr = "(Ravenscar/.*|Ada|C|SanityCheck)"
         if re.search (root_expr + ".stmt", TEST_DIR):
             return "stmt"
         elif re.search (root_expr + ".decision", TEST_DIR):
