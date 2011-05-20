@@ -24,7 +24,7 @@ __all__ = ["SCOV_helper"]
 import os
 
 from SUITE.context import thistest
-
+from SUITE.control import language_info
 from SUITE.cutils import to_list, list_to_file, match, contents_of
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 
@@ -351,7 +351,8 @@ class SCOV_helper:
         # all identical, and they should be for typical situations where the
         # same sources were exercised by multiple drivers:
 
-        lali="obj/"+os.path.basename(no_ext(source) + ".ali")
+        lang_info = language_info(source)
+        lali="obj/"+os.path.basename(no_ext(source) + lang_info.scos_ext)
         for main in self.drivers:
             tloc=self.awdir_for(no_ext(main))+lali
             if os.path.exists(tloc):

@@ -42,6 +42,7 @@ from . cnotes import *
 from . xnotep import *
 from . tfiles import *
 from . segments import *
+from SUITE.control import language_info
 
 # ------------
 # -- fb_get --
@@ -364,12 +365,13 @@ class XnotesExpander:
         """Return a list of strings containing the SCOV_data.
         To simplify parsing, the leading "--" is also stripped.
         """
+        lang_info = language_info(scov_file)
 
-        # The scov data begins at the first line that starts with
-        # a '--#' comment.  Any line that starts as a comment after
-        # this first '--#' line is assumed to be part of the scov data.
-        # Build a list of lines containing the scov data stored in
-        # scov_file now.
+        # The scov data begins at the first line that starts with the
+        # language's comment marker, followed by a '#'. Any line that
+        # starts as a comment after this first '#' comment line is assumed
+        # to be part of the scov data.  Build a list of lines containing
+        # the scov data stored in scov_file now.
         contents = []
         in_scovdata = False
         for line in lines_of(scov_file):
@@ -377,13 +379,13 @@ class XnotesExpander:
             # more flexibility.  Also take care of the trailing new-line
             # character that we get from lines_of.
             line.strip()
-            if line.startswith('--#'):
+            if line.startswith(lang_info.comment + '#'):
                 in_scovdata = True
-            if in_scovdata and line.startswith('--'):
-                # Also take this opportunity to strip the leading '--'
-                # as well as any space immediately followint it.  This
-                # will simplify the parsing a little bit.
-                contents.append(line[2:].lstrip())
+            if in_scovdata and line.startswith(lang_info.comment):
+                # Also take this opportunity to strip the leading comment
+                # string as well as any space immediately following it.
+                # This will simplify the parsing a little bit.
+                contents.append(line[len(lang_info.comment):].lstrip())
         return contents
 
     def __wrap_lre(self, lre):
