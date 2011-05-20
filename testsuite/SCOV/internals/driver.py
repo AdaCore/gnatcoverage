@@ -53,6 +53,13 @@ class ListDict(dict):
             dict.__setitem__(self, key, [])
         return dict.__getitem__(self, key)
 
+def no_ext(filename):
+    """Return the filename with the extension stripped away.
+
+    This is mostly a shortcut for using splitext(...)[0], in order
+    to make the code that makes these conversions easier to read."""
+    return os.path.splitext(filename)[0]
+
 # Relevant expectations and emitted Line and Report notes for each test
 # CATEGORY:
 # ---------------------------------------------------------------------
@@ -291,8 +298,7 @@ class SCOV_helper:
     # -- __init__ --
     # --------------
     def __init__(self, drivers, xfile, category, xcovlevel):
-        self.drivers = [os.path.basename(os.path.splitext(d)[0])
-                        for d in drivers]
+        self.drivers = [os.path.basename(no_ext(d)) for d in drivers]
         self.category = category
         self.xcovlevel = xcovlevel
 
@@ -345,7 +351,7 @@ class SCOV_helper:
         # all identical, and they should be for typical situations where the
         # same sources were exercised by multiple drivers:
 
-        lali="obj/"+os.path.basename(os.path.splitext(source)[0] + ".ali")
+        lali="obj/"+os.path.basename(no_ext(source) + ".ali")
         for main in self.drivers:
             tloc=self.awdir_for(main)+lali
             if os.path.exists(tloc):
@@ -431,7 +437,7 @@ class SCOV_helper:
             return self.rwdir_for(self.drivers[0])
         else:
             return self.rwdir_for(
-                os.path.basename(os.path.splitext(self.xfile)[0]))
+                os.path.basename(no_ext(self.xfile)))
 
     def awdir(self):
         """Absolute path to Working Directory for current instance."""
