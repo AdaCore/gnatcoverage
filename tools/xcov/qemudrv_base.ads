@@ -42,11 +42,8 @@ package Qemudrv_Base is
 
    Drivers : constant Driver_Target_Array :=
      ((Target => new String'("qemu-prep"),
-       Build_Command => new String'("powerpc-elf-objcopy"),
-       Build_Options => new String_List'(new String'("-O"),
-                                         new String'("binary"),
-                                         new String'("$exe"),
-                                         new String'("$bin")),
+       Build_Command => null,
+       Build_Options => null,
        Run_Command => new String'("qemu-system-ppc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -57,7 +54,9 @@ package Qemudrv_Base is
                                        new String'("-L"),
                                        new String'("$dir_exe"),
                                        new String'("-bios"),
-                                       new String'("$base_bin"),
+                                       new String'("-"),
+                                       new String'("-kernel"),
+                                       new String'("$exe"),
                                        new String'("-exec-trace"),
                                        new String'("$trace"))
       ),
