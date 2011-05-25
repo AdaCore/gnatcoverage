@@ -1,1 +1,1 @@
-Exercise "A and then B" used to control an Elsif statement.
+Exercise ``A and then B`` used to control the elsif part of an IF statement.
