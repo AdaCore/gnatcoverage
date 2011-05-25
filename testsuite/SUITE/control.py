@@ -83,6 +83,3 @@ class BUILDER:
                 GPRCONFIG, '--batch',
                 '--config=C --config=Asm --config=Ada,,%s' % defrts,
                 '--target=%s' % env.target.triplet, '-o suite.cgpr'))
-
-
-

@@ -16,8 +16,7 @@
 #   vs expectations), and evaluates associated consolidation requests, if any.
 
 # The class facilities may be used for regression tests as well, not part of
-# the qualification database. The --qualif-cargs compilation flags don't apply
-# in this case.
+# the qualification database.
 
 # This module also exposes ...
 from SUITE.context import thistest
@@ -133,30 +132,25 @@ class TestCase:
 
         # - Set of xcovlevel values to exercise:
 
-        # If we have a qualification test and a common context level, use
-        # that. Fallback to defaults otherwise.
+        # If we have an explicit level query, use that. Fallback to defaults
+        # otherwise. When there are multiple levels for a category, e.g. mcdc
+        # variants, pick the first one only in qualification mode.
 
         default_xcovlevels_for = {
             "stmt":     ["stmt"],
             "decision": ["stmt+decision"],
             "mcdc":     ["stmt+uc_mcdc", "stmt+mcdc"]}
 
-        if thistest.options.qualif_level:
-            self.xcovlevels = [thistest.options.qualif_level]
+        if thistest.options.xcov_level:
+            self.xcovlevels = [thistest.options.xcov_level]
         else:
-            self.xcovlevels = default_xcovlevels_for [self.category]
+            defaults = default_xcovlevels_for [self.category]
+            self.xcovlevels = (
+                [defaults[0]] if thistest.options.qualif_level else defaults)
 
         # - compilation arguments:
 
-        # Account for provided compilation flags for qualif tests, then
-        # append test specific extra compilation flags.
-
-        if thistest.options.qualif_cargs:
-            self.cargs = to_list(thistest.options.qualif_cargs)
-        else:
-            self.cargs = []
-
-        self.cargs.extend (to_list (extracargs))
+        self.cargs = to_list (extracargs)
 
         # Setup qualification data for this testcase
 

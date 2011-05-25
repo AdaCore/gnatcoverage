@@ -231,14 +231,17 @@ class Test (object):
         main.add_option('--report-file', dest='report_file', metavar='FILE',
                         help='The filename where to store the test report '
                              '[required]')
-        main.add_option('--qualif-cargs', dest='qualif_cargs', metavar='ARGS',
+        main.add_option('--qualif-level', dest='qualif_level',
+                        metavar='QUALIF_LEVEL',
+                        help='The target qualification level when we are '
+                             'running in qualification mode.')
+        main.add_option('--cargs', dest='cargs', metavar='CARGS',
                         help='Additional arguments to pass to the compiler '
                              'when building the test programs.')
-        main.add_option('--qualif-level', dest='qualif_level',
-                        metavar='CONTEXT_LEVEL',
-                        help='For qualification tests, force the context '
-                             'level to CONTEXT_LEVEL instead of deducing it '
-                             'from the test category.')
+        main.add_option('--xcov-level', dest='xcov_level',
+                        help='Force the --level argument passed to xcov '
+                             'instead of deducing it from the test category '
+                             'when that normally happens.')
         main.add_option('--board', dest='board', metavar='BOARD',
                         help='Specific target board to exercize')
         main.add_option('--rtsgpr', dest='rtsgpr', metavar='RTSGPR',

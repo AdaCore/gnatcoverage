@@ -47,9 +47,6 @@ DEFAULT_TIMEOUT = 600
 # qualification testcases. These are all hosted down a single root directory,
 # and we designate the whole piece as the qualification subtree.
 
-# --qualif-cargs controls the compilation options used to compile the
-# qualification tests.
-
 # These tests may be run as part of a regular testing activity or for an
 # actual qualification process. The latter is indicated by passing
 # --qualif-level on the command line, in which case the testsuite is said to
@@ -57,6 +54,9 @@ DEFAULT_TIMEOUT = 600
 
 # The qualification mode aims at producing a test-results qualification report
 # for the provided target level.
+
+# --qualif-cargs controls the compilation options used to compile the
+# qualification tests.
 
 # Beyond the production of a qualification report, --qualif-level has several
 # effects of note:
@@ -70,23 +70,33 @@ DEFAULT_TIMEOUT = 600
 #     invoke gnatcov --level=stmt+mcdc even for tests designed to verify
 #     statement coverage only.
 
-# A dictionary whose keys are the recognized values for the --qualif-level
-# command-line switch, and whose values are the corresponding xcov --level
-# value.
+# A dictionary of information of interest for each qualification level:
 
-QUALIF_TO_XCOV_LEVEL = {
-    "doA" : "stmt+mcdc",
-    "doB" : "stmt+decision",
-    "doC" : "stmt"
-    }
+class QlevelInfo:
+    def __init__(self, levelid, subtrees, xcovlevel):
+        self.levelid   = levelid   # string identifier
 
-# For each qualification level, expression that a testdir should match for
-# the test to be applicable at that level
+        # regexp of directory subtrees: testdirs that match this
+        # hold qualification tests for this level
+        self.subtrees  = subtrees
 
-QUALIF_SUBTREES = {
-    "doA" : "Qualif/(Report|Ada/(stmt|decision|mcdc))",
-    "doB" : "Qualif/(Report|Ada/(stmt|decision))",
-    "doC" : "Qualif/(Report|Ada/(stmt))"
+        # --level argument to pass to xcov when running such tests when in
+        # --qualification mode
+        self.xcovlevel = xcovlevel
+
+QLEVEL_INFO = {
+    "doA" : QlevelInfo (
+        levelid   = "doA",
+        subtrees  = "Qualif/(Report|Ada/(stmt|decision|mcdc))",
+        xcovlevel = "stmt+mcdc"),
+    "doB" : QlevelInfo (
+        levelid   = "doB",
+        subtrees  = "Qualif/(Report|Ada/(stmt|decision))",
+        xcovlevel = "stmt+decision"),
+    "doC" : QlevelInfo (
+        levelid   = "doC",
+        subtrees  = "Qualif/(Report|Ada/(stmt))",
+        xcovlevel = "stmt")
     }
 
 # ===============
@@ -149,7 +159,7 @@ class TestSuite:
                 re_filter (
                     find (root=".", pattern="test.py", follow_symlinks=True),
                     "." if not self.options.qualif_level
-                    else QUALIF_SUBTREES[self.options.qualif_level]),
+                    else QLEVEL_INFO[self.options.qualif_level].subtrees),
                 self.options.run_test),
             discs)
 
@@ -191,6 +201,7 @@ class TestSuite:
     def discriminants (self):
         """Full set of discriminants that apply to this test"""
         return self.base_discriminants() \
+            + self.qualif_level_discriminants() \
             + self.qualif_cargs_discriminants() \
             + self.ravenscar_discriminants()
 
@@ -207,24 +218,36 @@ class TestSuite:
 
         Return an empty list if --qualif-cargs was not used.
         """
-        if not self.env.main_options.qualif_cargs:
-            return []
-        discs = []
-        for arg in self.env.main_options.qualif_cargs.split():
-            discs.append("QUALIF_CARGS_" + arg.lstrip('-'))
-        return discs
+
+        return (
+            [] if not self.env.main_options.qualif_cargs
+            else ["QUALIF_CARGS_%s" % arg.lstrip('-')
+                  for arg in self.env.main_options.qualif_cargs.split()]
+            )
+
+    def qualif_level_discriminants(self):
+        """List of single discriminant (string) denoting our current
+        qualification mode, if any. This is ['QUALIF_LEVEL_XXX'] when invoked
+        with --qualif-level=XXX, [] otherwise"""
+
+        return (
+            [] if not self.env.main_options.qualif_level
+            else ["QUALIF_LEVEL_%s" % self.env.main_options.qualif_level]
+            )
 
     def ravenscar_discriminants(self):
         """Compute a list of discriminants (string) to reflect the use of a
         Ravenscar base runtime library, as conveyed by the base gpr file to
         extend, provided with the --rtsgpr command-line option.
         """
-        if not self.env.main_options.rtsgpr:
-            return []
-        discs = []
-        if re.search ("ravenscar", self.env.main_options.rtsgpr):
-            discs.append("RTS_RAVENSCAR")
-        return discs
+
+        return (
+            [] if not self.env.main_options.rtsgpr
+            else ["RTS_RAVENSCAR"] if re.search (
+                "ravenscar", self.env.main_options.rtsgpr)
+            else []
+            )
+
 
     # -----------------------------
     # -- partition_testcase_list --
@@ -313,15 +336,21 @@ class TestSuite:
 
         mopt = self.env.main_options
 
-        # Pass qualif_cargs to tests in the qualification subtree even
-        # when not in qualification mode
+        qlevels = test.qualif_levels ()
 
-        if mopt.qualif_cargs and test.qualif_levels ():
-            testcase_cmd.append('--qualif-cargs=%s' % mopt.qualif_cargs)
+        # In qualification mode, pass the target qualification level to
+        # qualification tests and enforce the proper xcov-level
 
-        if mopt.qualif_level:
+        if mopt.qualif_level and qlevels:
+            testcase_cmd.append('--qualif-level=%s' % mopt.qualif_level)
             testcase_cmd.append(
-                '--qualif-level=%s' % QUALIF_TO_XCOV_LEVEL[mopt.qualif_level])
+                '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
+
+        # Enforce cargs for tests in the qualification subtree even
+        # when not in qualification mode.
+
+        if mopt.qualif_cargs and qlevels:
+            testcase_cmd.append('--cargs=%s' % mopt.qualif_cargs)
 
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
@@ -445,10 +474,16 @@ class TestSuite:
                      help='Additional arguments to pass to the compiler '
                           'when building the test programs.')
         m.add_option('--qualif-level', dest='qualif_level',
-                     type="choice", choices=QUALIF_TO_XCOV_LEVEL.keys(),
-                     metavar='CONTEXT_LEVEL',
-                     help='Force the qualification context to CONTEXT_LEVEL '
-                          'instead of deducing it from the test category.')
+                     type="choice", choices=QLEVEL_INFO.keys(),
+                     metavar='QUALIF_LEVEL',
+                     help='State we are running in qualification mode for '
+                          'a QUALIF_LEVEL target. This selects a set of '
+                          'applicable tests for that level.')
+        m.add_option('--qualif-xcov-level', dest='qualif_xcov_level',
+                     metavar='QUALIF_XCOV_LEVEL',
+                     help='Force the xcov --level argument to '
+                          'QUALIF_XCOV_LEVEL instead of deducing it from '
+                          'the test category when that would normally happen.')
         m.add_option('--bootstrap', dest="bootstrap",
                      action='store_true', default=False,
                      help='Use xcov to assess coverage of its own testsuite.'
@@ -563,11 +598,10 @@ class TestCase(object):
     def qualif_levels(self):
         """List of qualification levels to which SELF applies"""
 
-        # Check whether any real QUALIF_SUBTREES would match ...
-
+        # Check which QLEVEL subtrees would match ...
         return [
-            qlevel for qlevel in QUALIF_SUBTREES
-            if re.search (QUALIF_SUBTREES[qlevel], self.testdir)]
+            qlevel for qlevel in QLEVEL_INFO
+            if re.search (QLEVEL_INFO[qlevel].subtrees, self.testdir)]
 
 # ======================
 # == Global functions ==

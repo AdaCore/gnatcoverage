@@ -26,27 +26,46 @@ VALGRIND  = 'valgrind' + env.host.os.exeext
 # --------------
 def gprbuild(project, gargs=None, cargs=None, largs=None):
     """Cleanup & build the provided PROJECT file using gprbuild, passing
-    GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches
-    (in addition to the switches required by the infrastructure.
+    GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches, in
+    addition to the switches required by the infrastructure.
 
     The *ARGS arguments may be either: None, a string containing
     a space-separated list of options, or a list of options."""
 
-    # Enforce -g, always needed and possibly not be included by our base
-    # runtime project file, e.g. ravenscar
+    # For toplevel gprbuild args, force a few bits useful for practical
+    # reasons and without influence on code generation, then add our testsuite
+    # configuration options (selecting target model and board essentially).
 
-    all_gargs = ['-q', '-f', '-XSTYLE_CHECKS=', '-p', '-P%s' % project]
+    all_gargs = [
+        '-q', '-f',         # quiet mode, always rebuild
+        '-XSTYLE_CHECKS=',  # style checks off
+        '-p',               # create missing directories (obj, typically)
+        '-P%s' % project]
+    all_gargs.extend (thistest.gprconfoptions)
 
-    all_gargs += thistest.gprconfoptions
-    all_gargs += to_list(gargs)
+    all_gargs.extend (to_list(gargs))
+
+    # For CARGS, account for possible options passed either as an explicit
+    # argument to this routine, or queried from the command line. Expect never
+    # to have both.
+
+    thistest.stop_if (cargs and thistest.options.cargs,
+        FatalError("internal CARGS requested together with command line"))
+
+    if not cargs:
+        cargs = thistest.options.cargs
 
     all_cargs = to_list(cargs) + to_list(BUILDER.COMMON_CARGS)
     if all_cargs:
         all_cargs.insert(0, '-cargs')
 
+    # For LARGS, nothing particular
+
     all_largs = to_list(largs)
     if all_largs:
         all_largs.insert(0, '-largs')
+
+    # Now cleanup, do build and check status
 
     thistest.cleanup(project)
 
@@ -71,41 +90,45 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
     # Fetch the support project file template
     template = contents_of (os.path.join (ROOT_DIR, "template.gpr"))
 
-    # Determine the language(s) of the mains.
-    # Eventually, we might just want to explore the SRCDIRS directories
-    # and compute the list of languages from there???
-    languages_l = []
-    for filename in mains:
-        if "Ada" not in languages_l and filename.endswith(".adb"):
-            languages_l.append("Ada")
-        elif "C" not in languages_l and filename.endswith(".c"):
-            languages_l.append("C")
+    # Instanciate the template fields.
 
-    # Instanciate the template fields. Turn the list of main sources into
-    # the proper comma separated sequence of string literals for the Main
-    # GPR attribute. Likewise for source dirs, plus filter on existence.
+    # Turn the list of main sources into the proper comma separated sequence
+    # of string literals for the Main GPR attribute.
 
-    # The existence check allows widening the set of tentative dirs while
-    # preventing complaints from gprbuild about inexistent ones.
+    gprmains = ', '.join(['"%s"' % m for m in mains])
 
-    gprmains  = ', '.join(['"%s"' % m for m in mains])
-    srcdirs   = ', '.join(['"%s"' % d for d in srcdirs if os.path.exists(d)])
+    # Likewise for source dirs. Filter on existence, to allow widening the set
+    # of tentative dirs while preventing complaints from gprbuild about
+    # inexistent ones. Remove a lone trailing comma, which happens when none
+    # of the provided dirs exists and would produce an invalid gpr file.
+
+    srcdirs = ', '.join(['"%s"' % d for d in srcdirs if os.path.exists(d)])
+    srcdirs = srcdirs.rstrip(', ')
+
+    # Determine the language(s) from the mains.
+
+    languages_l = set([])
+    [languages_l.add(
+            "Ada" if filename.endswith(".adb")
+            else "C" if filename.endswith(".c")
+            else "UNKNOWN_LANG_FOR_%s" % filename)
+     for filename in mains]
+
     languages = ', '.join(['"%s"' %l for l in languages_l])
 
-    # Remove trailing comma on srcdirs, in case none of the provided ones
-    # exists, which would produce an invalid gpr file.
+    # And the base project file we need to extend
 
     basegpr = (thistest.options.rtsgpr
                if thistest.options.rtsgpr else "%s/support/base" % ROOT_DIR)
 
+    # Now instanciate, dump the contents into the target gpr file and return
+
     gprtext = template % {'prjname': prjid,
                           'extends': 'extends "%s"' % basegpr,
                           'base': basegpr.split('/')[-1],
-                          'srcdirs': srcdirs.rstrip(', '),
+                          'srcdirs': srcdirs,
                           'languages' : languages,
                           'gprmains': gprmains}
-
-    # Dump the new contents into the target gpr file and return
 
     return text_to_file (text = gprtext, filename = prjid + ".gpr")
 
