@@ -7,9 +7,9 @@ Requirement Id    Description
 ===============   ===========================================================
 
 **base**          The tool shall recognize as decisions any *simple* or
-                  *complex* Boolean expressions that directly control the
+                  *complex* Boolean expression that directly controls the
                   behavior of IF, WHILE and EXIT-WHEN control-flow
-                  constructs. Only the expression as a whole is considered a
+                  constructs.  Only the expression as a whole is considered a
                   decision; subexpressions are not decisions on their own.
 
                   *Simple* expressions are Boolean atoms such as a lone
@@ -55,9 +55,9 @@ To address *dcomplete*, we check that all the aspects of this requirement are
 satisfied in a wide variety of situations. We start with two subsets of
 testcases:
 
-* ``Topologies`` exercise a panel of expressions over Boolean variables
-  (single value, negated, two or more combined with and-then or or-else, ...),
-  each placed in a variety of program contexts,
+* ``Topologies`` exercise a panel of expression topologies over Boolean
+  variables (single value, negated, two or more combined with and-then or
+  or-else, ...), each placed in a variety of program contexts,
 
 * ``Operands`` exercise basic expressions (no more than two operands) over
   different kinds of operands (attribute references, subprogram calls, ...;

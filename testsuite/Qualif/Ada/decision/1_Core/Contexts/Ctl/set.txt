@@ -1,0 +1,4 @@
+This section groups testcases aimed at verifying the tool's capability to
+handle decisions (expressions influencing control-flow constructs) of
+arbitrary topology everywhere they might appear.
+
