@@ -16,7 +16,7 @@ The SC, DC, and MCDC chapters are those corresponding to the DO-178 structural
 coverage criteria. Each chapter adds material (requirements and validating
 testcases) on top of the previous ones.
 
-* The SC chapter applies for a DO-178 level C certification,
-* The SC and the DC chapters apply for a DO-178 level B certification
-* The SC, DC and MCDC chapters apply for a DO-178 level A certification
+* For a DO-178 level C certification, the SC chapter applies;
+* For a DO-178 level B certification, the SC and the DC chapters apply;
+* For a DO-178 level A certification, the SC, DC and MCDC chapters apply
 
