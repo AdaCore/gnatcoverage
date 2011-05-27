@@ -1,0 +1,2 @@
+Exercise ``A or else B`` in Preconditions, attached to a subprogram
+declaration or within a body declarative part.
