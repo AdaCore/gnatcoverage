@@ -1,2 +1,1 @@
-Exercise ``A and then B`` as a Precondition within a subprogram body
-declarative part.
+Exercise ``A or else B`` within a Debug pragma.
