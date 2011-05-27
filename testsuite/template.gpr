@@ -12,10 +12,7 @@ project %(prjname)s %(extends)s is
    for Languages use (%(languages)s);
 
    package Compiler is
-      for Default_Switches ("Ada") use 
-      	  %(base)s.Compiler'Default_Switches ("Ada") & ("-gnat05", "-gnateS");
-      for Default_Switches ("C") use
-      	  %(base)s.Compiler'Default_Switches ("C") & ("-fdump-scos");
+%(compswitches)s
    end Compiler;
 
    for Main use (%(gprmains)s);

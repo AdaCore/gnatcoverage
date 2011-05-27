@@ -16,6 +16,8 @@ import os, sys, pickle
 
 from REST import rest
 
+from SUITE.cutils import to_list
+
 from SCOV.internals.cnotes import *
 
 # -------------
@@ -411,7 +413,7 @@ class RSTtable:
 import time, datetime, platform, socket
 
 from gnatpython.ex import Run
-from SUITE.control import BUILDER
+from SUITE.control import BUILDER, LANGINFO
 from SUITE.cutils  import version
 
 class QDreport:
@@ -620,13 +622,15 @@ class QDreport:
                 {item : "qualification level",
                  value: self.options.qualif_level
                  },
-                {item : "compiler options",
+                {item : "common compiler options",
                  value: ' '.join (
-                        (BUILDER.COMMON_CARGS, BUILDER.SCOV_CARGS,
+                        (BUILDER.COMMON_CARGS,
                          self.options.qualif_cargs
                          if self.options.qualif_cargs else ""))
-                 }
-                ]
+                 } ] + \
+                [ { item : "for %s" % lang,
+                    value: ' '.join (to_list (LANGINFO[lang].cargs))
+                  } for lang in ("Ada", "C") ]
             ).dump_to (self.rstf)
 
     def gen_suite_environ(self):

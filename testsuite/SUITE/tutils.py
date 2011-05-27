@@ -10,10 +10,8 @@
 
 # Expose a few other items as a test util-facilities as well
 
-from SUITE.control import BUILDER, XCOV
+from SUITE.control import BUILDER, XCOV, LANGINFO
 from SUITE.context import *
-
-SCOV_CARGS=BUILDER.SCOV_CARGS
 
 # Then mind our own buisness
 
@@ -116,17 +114,41 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
 
     languages = ', '.join(['"%s"' %l for l in languages_l])
 
-    # And the base project file we need to extend
+    # The base project file we need to extend, and the way to refer to it
+    # from the project contents
 
     basegpr = (thistest.options.rtsgpr
                if thistest.options.rtsgpr else "%s/support/base" % ROOT_DIR)
+
+    baseref = basegpr.split('/')[-1]
+
+    # The Compiler package contents for compilation switches, taking care not
+    # to clobber what the base project file provides (in particular possible
+    # --RTS bits for Ravenscar). The idea is to output something like
+    #
+    #  for Default_Switches ("Ada") use
+    #    $baseref.Compiler'Default_Switches ("Ada") & ("-gnat05", "-gnateS");
+    #
+    # for all relevant languages, where the options are fetched from the
+    # corresponding LANGINFO entry
+
+    compswitches = '\n'.join (
+        ['for Default_Switches ("%(lang)s") use \n'
+         '%(baseref)s.Compiler\'Default_Switches ("%(lang)s") & %(opts)s;'
+         % {"opts": "(" + ",".join (
+                    ['"%s"' % opt
+                     for opt in to_list(LANGINFO[lang].cargs)]
+                    ) + ")",
+            "lang": lang, "baseref": baseref}
+         for lang in languages_l]
+        );
 
     # Now instanciate, dump the contents into the target gpr file and return
 
     gprtext = template % {'prjname': prjid,
                           'extends': 'extends "%s"' % basegpr,
-                          'base': basegpr.split('/')[-1],
                           'srcdirs': srcdirs,
+                          'compswitches': compswitches,
                           'languages' : languages,
                           'gprmains': gprmains}
 
