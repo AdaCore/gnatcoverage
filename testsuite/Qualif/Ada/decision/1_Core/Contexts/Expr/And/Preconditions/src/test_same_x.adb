@@ -1,11 +1,11 @@
 with Support, Points; use Support, Points;
 
---  Call Set and Same_X - not Same_X neither Same_XY.
+--  Call Set and Same_X - not Same_Y neither Same_XY.
 
---  Verify stmt and partial mcdc coverage on preconditions for the first 2,
---  and stmts uncovered for everything on the last 2.
+--  Verify full coverage on everything for the first 2,
+--  and stmts uncovered on the last 2.
 
-procedure Test_Points_1 is
+procedure Test_Same_X is
    P1, P2 : Point;
 begin
    Set (P1, X => 0, Y => 1);
@@ -22,5 +22,5 @@ end;
 --  /retSXY/   l- s-
 
 --# points.ads
---  /preSX/    l+;mu=>l! mu=>dF-
+--  /preSX/    l+ 0
 --  /preSY/    l- s-

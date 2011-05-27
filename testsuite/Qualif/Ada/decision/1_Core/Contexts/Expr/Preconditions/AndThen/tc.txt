@@ -1,2 +1,0 @@
-Exercise preconditions involving an "and then" expression, in both a
-package spec and a subprogram declarative part.
