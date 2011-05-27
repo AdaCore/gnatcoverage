@@ -18,7 +18,7 @@ package body Points is
    end;
 
    function Same_XY (P1, P2 : Point) return Boolean is
-      pragma Precondition (P1.Set and then P2.Set); -- # evalSXY
+      pragma Precondition (P1.Set and then P2.Set); -- # preSXY
    begin
       return P1.X = P2.X and then P1.Y = P2.Y; -- # retSXY
    end;
