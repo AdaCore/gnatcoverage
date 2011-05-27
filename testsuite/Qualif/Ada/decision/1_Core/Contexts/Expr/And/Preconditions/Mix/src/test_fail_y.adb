@@ -6,7 +6,7 @@ with Support, Points, Silent_Last_Chance; use Support, Points;
 
 --  Verify full stmt coverage nevertheless, except for the Same_Y body.
 
-procedure Test_Fail_X is
+procedure Test_Fail_Y is
    P1, P2 : Point;
 begin
    Set (P1, X => 0, Y => 1);
@@ -14,6 +14,7 @@ begin
    Assert (Same_X (P1, P1));
    Assert (Same_XY (P1, P1));
 
+   P2.Y := 1; -- improper way to set
    Assert (Same_Y (P1, P2));
 end;
 

@@ -14,6 +14,8 @@ begin
    Assert (Same_X (P1, P1));
    Assert (Same_Y (P1, P1));
 
+   P2.X := 0; -- improper way to set
+   P2.Y := 1; -- improper way to set
    Assert (Same_XY (P1, P2));
 end;
 
