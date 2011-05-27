@@ -1,6 +1,6 @@
 with Passor;
 
--- precond True only (from A), all stmt covered
+-- evalcond True only (from A), all stmt covered
 
 procedure Test_Passor_Tx is
 begin

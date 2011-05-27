@@ -1,6 +1,6 @@
 with Passor, Silent_Last_Chance;
 
--- precond true and false, all stmt covered
+-- evalcond true and false, all stmt covered
 
 procedure Test_Passor_FU is
 begin

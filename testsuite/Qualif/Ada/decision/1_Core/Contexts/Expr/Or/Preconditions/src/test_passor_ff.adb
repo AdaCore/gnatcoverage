@@ -1,6 +1,6 @@
 with Passor, Silent_Last_Chance;
 
--- precond False only, all stmt covered
+-- evalcond False only, body stmt uncovered
 
 procedure Test_Passor_FF is
 begin
@@ -12,4 +12,4 @@ end;
 
 --# passor.adb
 --  /eval/ l+ 0
---  /stmt/ l+ 0
+--  /stmt/ l- s-
