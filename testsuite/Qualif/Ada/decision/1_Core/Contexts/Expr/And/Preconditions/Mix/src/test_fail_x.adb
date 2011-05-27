@@ -1,7 +1,7 @@
 with Support, Points, Silent_Last_Chance; use Support, Points;
 
 --  Call Same_Y and Same_XY with regular arguments. Call Same_X with an
---  unset second point, causing a evalcondition failure and only that for
+--  unset second point, causing a precondition failure and only that for
 --  the associated expression.
 
 --  Verify full stmt coverage nevertheless, except for the Same_X body.
