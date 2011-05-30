@@ -1,0 +1,9 @@
+drivers=test_passand_(tt|ft)
+
+--# passand.ads
+--  /eval/ l! c!:"B"
+
+--# passand.adb
+--  /eval/ l! c!:"B"
+--  /stmt/ l+ 0
+

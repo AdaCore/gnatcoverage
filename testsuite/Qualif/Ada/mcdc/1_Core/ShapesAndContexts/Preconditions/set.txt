@@ -1,3 +1,0 @@
-This section groups testcases exercising basic decisions in Precondition
-contexts. MCDC is equivalent to DC on a single-condition case, so we have
-no specific test for that here.
