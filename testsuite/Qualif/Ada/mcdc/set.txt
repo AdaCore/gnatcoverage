@@ -1,5 +1,5 @@
 
-This section holds the tool operational requirements and associated testcases
+This section holds the Tool Operational Requirements and associated testcases
 related to Modified Condition/Decision Coverage assessments.  This is split in
 several parts:
 
@@ -15,6 +15,10 @@ Part               Holds material to ...
                    naive analyzers.
                    This includes cases such as multiple decisions sharing a
                    line or a single decision spanning multiple lines.
+
+*MixedConstructs*  demonstrate that the toolset correctly handles mixes of
+                   various statement and decision constructs, representative
+                   of what would be found in real applications.
 
 *Consolidation*    define and validate the expected
                    processing of multiple execution traces combined together.

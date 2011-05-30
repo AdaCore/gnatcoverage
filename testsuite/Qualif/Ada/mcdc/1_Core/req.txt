@@ -12,11 +12,11 @@ Requirement Id    Description
 ===============   ===========================================================
 
 Even though direct subexpressions are still not decisions on their own,
-sub-decisions nesting is possible from the variety of possible contexts where
-an expression is considered a decision. For example, ``A and then Op (B or
-else C)`` has two decisions, one with two conditions (B and C) used as an
-actual in a function call, and an outer one with two conditions as well (A and
-the function call).
+sub-decisions nesting is possible from the variety of contexts where an
+expression is considered a decision. For example, ``A and then Op (B or else
+C)`` has two decisions, one with two conditions (B and C) used as an actual in
+a function call to Op, and an outer one with two conditions as well (A and the
+function call itself).
 
 All the base "decision" chapter requirements apply to the full set of
 decisions as defined here. Subsidiary requirements are completed of refined as
