@@ -49,12 +49,20 @@ class TestCase:
 
         [self.all_drivers.extend (ls(p)) for p in to_list(patterns)]
 
-    def __expand_shared_drivers(self):
-        """Search and expand possible shared drivers uptree for our local
-        functional units."""
+    def __expand_cspecs(self, patterns):
+        """Add to the list of consolidation specs to exercize the set of files
+        corresponding to every glob pattern in PATTERNS."""
 
-        # shared drivers would be <updir>/test_<xx>*.adb for some possible
-        # updir and every <xx> such that there is a src/<xx>*.adb.
+        [self.all_cspecs.extend (ls(p)) for p in to_list(patterns)]
+
+    def __expand_shared_controllers(self, drivers, cspecs):
+        """Search and expand possible shared drivers and/or consolidation
+        specs uptree for our local functional units."""
+
+        # shared drivers would be <updir>/test_<xx>*.(adb|c) for some possible
+        # updir and every <xx> such that there is a src/<xx>*.(adb|c).
+
+        # Likewise for consolidation specs, as <updir>/cons_<xx>*.txt
 
         # gather *set* of <xx> candidates first, then expand the associated
         # possible lists of drivers (each maybe empty). Beware not to include
@@ -62,15 +70,20 @@ class TestCase:
         # drivers.
 
         sxx = set(srcmatch.group(1)
-                  for srcmatch in (re.match ("([a-z_]*).*\.adb",
+                  for srcmatch in (re.match ("([a-z_]*).*\.(adb|c)",
                                              os.path.basename(src))
                                    for src in ls ("src/*"))
                   if srcmatch)
 
-        [self.__expand_drivers (
-                "%ssrc/test_%s*.adb" % (prefix, body))
-         for prefix in ("../" * n for n in range(1, 3))
-         for body in sxx]
+        for body in sxx:
+            for prefix in ("../" * n for n in range(1, 3)):
+                if drivers: self.__expand_drivers (
+                    "%(p)ssrc/test_%(b)s*.adb %(p)ssrc/test_%(b)s*.c"
+                    % {'p' : prefix, 'b' : body}
+                    )
+                if cspecs: self.__expand_cspecs (
+                    "%ssrc/cons_%s*.txt" % (prefix, body)
+                    )
 
     def __category(self):
         """Compute our test category from its directory location."""
@@ -104,23 +117,33 @@ class TestCase:
 
     def __init__(self, extradrivers="", extracargs="", category=None):
 
-        # Step 1: Compute the list of drivers to exercise ...
-        # ---------------------------------------------------
+        # Step 1: Compute the list of drivers and consolidation specs
+        #         to exercise
+        # -----------------------------------------------------------
 
-        # Probe all those from src/ plus those explicitely provided. If that
-        # is empty, see if we have bodies aimed at being exercised by common
-        # drivers up-tree. Abort if there's nothing to exercise at all
+        # Drivers first. Probe all those from src/ plus those explicitely
+        # provided. If that is empty, see if we have bodies aimed at being
+        # exercised by common drivers up-tree. Abort if there's nothing to
+        # exercise at all
 
         self.all_drivers = []
-        self.__expand_drivers("src/test_*.adb " + extradrivers)
-        self.__expand_drivers("src/test_*.c")
+        self.__expand_drivers("src/test_*.adb src/test_*.c " + extradrivers)
 
         if len(self.all_drivers) == 0:
-            self.__expand_shared_drivers()
+            self.__expand_shared_controllers(drivers=True, cspecs=False)
 
         thistest.stop_if (
             len(self.all_drivers) == 0,
             FatalError ("Request to exercise empty test_set"))
+
+        # Seek consolidation specs, then. Similar scheme, local check first,
+        # then seek shared entities
+
+        self.all_cspecs = []
+        self.__expand_cspecs("src/cons_*.txt")
+
+        if len(self.all_cspecs) == 0:
+            self.__expand_shared_controllers(drivers=False, cspecs=True)
 
 
         # Step 2: Determine a few test parameters common to all drivers
@@ -184,7 +207,7 @@ class TestCase:
                                 xcovlevel=covlevel).run(self.cargs)
                     )
              for covlevel in self.xcovlevels
-             for cspec in ls ("src/cons_*.txt")]
+             for cspec in self.all_cspecs]
 
         finally:
 
