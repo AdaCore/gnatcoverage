@@ -42,7 +42,7 @@ from . cnotes import *
 from . xnotep import *
 from . tfiles import *
 from . segments import *
-from SUITE.control import language_info
+from SUITE.control import LANGINFO, language_info
 
 # ------------
 # -- fb_get --
@@ -159,17 +159,25 @@ class RnotesExpander:
         #                 source name:segmt: note text (-> note kind)
 
         # First, try to figure out the source name, one of our main dictionary
-        # keys. If no match at all, skip.
+        # keys. Expect this to be a sequence of non-blank characters ending
+        # with one of the possible source extensions we know about, preceding
+        # a ':' character. Note that the registered extensions embed the '.'
+        # character.
 
-        xsrc = '([^ ]*)\.(ads|adb):(.*)'
+        xsrc = '([^ ]*)(%s):(.*)' % '|'.join (
+            [ext for li in LANGINFO.values() for ext in li.src_ext])
         p = re.match(xsrc, rline)
+
+        # If no match at all, skip. Otherwise, proceed with the complete
+        # source name we found.
+
         if not p:
             return None
+        else:
+            source = ''.join ([p.group(1), p.group(2)])
 
-        source = "%s.%s" % (p.group(1), p.group(2))
-
-        # Then, work over the trailing part. Not stricly necessary, but
-        # shorter so slightly more efficient.
+        # Then, work over the trailing part, past the ':' character. Not
+        # stricly necessary, but shorter so slightly more efficient.
 
         tail = p.group(3)
 
@@ -329,6 +337,7 @@ class UnitCX:
         self.check_block_on (tline)
 
     def __init__(self, source, LXset):
+
         self.LXset = LXset
 
         # dictionaries of expected line and report notes for our unit
@@ -348,6 +357,31 @@ class UnitCX:
 # -- XnotesExpander --
 # --------------------
 
+# We need to parse things slightly differently for different languages. For
+# example, expectation lines or expectation anchors which start with a comment
+# marker.
+#
+# The comment marker for expectation lines depends on the language where the
+# expectation lines are found, which migh be a test driver or a consolidation
+# spec).
+#
+# The comment marker for expectation anchors depends on the language of the
+# unit where this anchor will be matched.
+#
+# For example, a multi language expectations spec in an Ada driver or a
+# consolidation spec would look like:
+#
+#   comment marker for an Ada test driver or a consolidation spec
+#   v
+#   --# foo.adb
+#   --  /foo-ref/  ...  (search for "-- # foo-ref" in foo.adb)
+#                                    ^ comment marker for Ada
+#   --# bar.c
+#   --  /bar-ref/  ...  (search for "// # bar-ref" in bar.c)
+#                                    ^ comment marker for C
+#
+# In a C test driver, the leading comment marker would be "//".
+
 class XnotesExpander:
 
     def __init__(self, xfile, xcov_level):
@@ -363,8 +397,10 @@ class XnotesExpander:
 
     def __get_scovdata(self, scov_file):
         """Return a list of strings containing the SCOV_data.
-        To simplify parsing, the leading "--" is also stripped.
+        To simplify parsing, the leading comment markers are stripped.
         """
+
+        # The langinfo corresponding to the language of SCOV_FILE
         lang_info = language_info(scov_file)
 
         # The scov data begins at the first line that starts with the
@@ -388,15 +424,6 @@ class XnotesExpander:
                 contents.append(line[len(lang_info.comment):].lstrip())
         return contents
 
-    def __wrap_lre(self, lre):
-        """The actual expression we match against source lines for
-           a "/LRE/" expressed expectation"""
-
-        # The parens are crucial here. Consider what would happen for
-        # /bla|blo/ without them ...
-
-        return "-- # (" + lre + ")"
-
     # builtin markers support: to let test writers put things like
     #
     #    -- # __l-s-
@@ -419,21 +446,39 @@ class XnotesExpander:
         # expressions in UCX were wrapped by parse_lcx already
 
         ux_lres = [lcx.lre for lcx in ucx[1]]
-        nothere = [lre for lre in self.builtin_lxs
-                   if self.__wrap_lre(lre) not in ux_lres]
+        nothere = [lre for lre in self.builtin_lxs if lre not in ux_lres]
 
         # Now compute the list of LCX objects for each of those defaults
 
         return [self.__parse_lcx("/%s/ %s" % (lre, self.builtin_lxs[lre]))
                 for lre in nothere]
 
+    def __wrap_lre(self, lx, langinfo):
+        """For a source expressed in the language described by LANGINFO,
+        adjust line regular expression in LX to be matched against source, to
+        expect it prefixed with "xx # " where "xx" is the language comment
+        marker."""
+
+        lx.lre = langinfo.comment + " # (" + lx.lre + ")"
+
+        # The parens are crucial here. Consider what would happen for
+        # /bla|blo/ without them ...
+
     def __register_ucx(self, ucx, uxset):
         """Add UCX to the set already in UXSET, adding builtin
            default expectations that were not overriden."""
 
-        ucx[1].extend(self.__builtin_lcxs(ucx))
+        lxset = ucx[1]
+        lxset.extend(self.__builtin_lcxs(ucx))
 
-        [uxset.append (UnitCX(source=source, LXset=ucx[1]))
+        # Wrap LREs to make sure we look for them in explicit anchors within
+        # sources, not as arbitrary sections of source lines. Assume that all
+        # the sources for this expectation block are in the same language.
+
+        langinfo = language_info(ucx[0][0])
+        [self.__wrap_lre(lx, langinfo) for lx in lxset]
+
+        [uxset.append (UnitCX(source=source, LXset=lxset))
          for source in ucx[0]]
 
     def __parse_scovdata(self, scovdata):
@@ -441,7 +486,8 @@ class XnotesExpander:
         list of UnitCX instances."""
 
         # The current UnitCX object being built.  We start a new UnitCX
-        # everytime we see a "sources" line (which starts with '--#').
+        # everytime we see a "sources" line (which starts with '#', after
+        # comment markers were stripped).
         current_ucx = (None, [])
 
         # The UXset being built while reading the scov data.
@@ -512,7 +558,7 @@ class XnotesExpander:
 
         lx_rnotes = self.__parse_expected_rnotes(m.group(3))
 
-        return LineCX(self.__wrap_lre(lx_lre), lx_lnote, lx_rnotes)
+        return LineCX(lx_lre, lx_lnote, lx_rnotes)
 
     def __decode_note_choice(self, text):
         """Given a note_choice that depends potentially on a list of coverage
