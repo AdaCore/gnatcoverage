@@ -1,10 +1,18 @@
 with Support, Add; use Support, Add;
 
-procedure Test_Add_A_XX is
+-- indep(B) wrt "A and then B" controlling the IF part
+
+procedure Test_Add_B_XX is
 begin
-   Assert (Time (1) + Time_Span (12) = (Valid => True, Value => 23));
-   Assert (Time (1) + Time_Span (-2) = (Valid => False, Value => 0));
+   Assert -- Right >= 0, no overflow
+     (Time (1) + Time_Span (12) = (Valid => True, Value => 13));
+   Assert -- Right >= 0, overflow
+     (Time (Time'Last) + Time_Span (2) = (Valid => False, Value => 0));
 end;
+
+--  A B IF  C D ELSIF
+--  T T T   X X X
+--  T F F   F X F
 
 --# add.adb
 -- /tover0/  l! c!:"Right"
