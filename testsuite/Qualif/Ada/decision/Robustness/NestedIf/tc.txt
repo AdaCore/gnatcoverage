@@ -1,6 +1,5 @@
-Check that valuations of an inner condition operands don't fool the tool's
-assessment of that decision coverage when the corresponding inner statement is
-not executed.
+Check that the tool properly distinguishes independant simple nested
+constructs.
 
 Exercise a simple If statement, without an Else or Elsif part, nested within
 another one, with both Ifs controlled by independant conditions. Verify that

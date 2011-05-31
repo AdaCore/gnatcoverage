@@ -1,1 +1,1 @@
-Exercise a standalone value controlling a While statement.
+Exercise a standalone Boolean value ``B`` used to control a WHILE statement.

@@ -1,0 +1,2 @@
+Exercise a standalone Boolean value ``B`` used to control an IF statement without an Else or Elsif part.
+

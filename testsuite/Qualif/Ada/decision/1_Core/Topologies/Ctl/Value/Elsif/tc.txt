@@ -1,1 +1,1 @@
-Exercise a standalone value controlling an Elsif statement.
+Exercise a standalone Boolean value ``B`` used to control an ELSIF statement.
