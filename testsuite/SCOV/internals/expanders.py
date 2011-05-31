@@ -455,9 +455,8 @@ class XnotesExpander:
 
     def __wrap_lre(self, lx, langinfo):
         """For a source expressed in the language described by LANGINFO,
-        adjust line regular expression in LX to be matched against source, to
-        expect it prefixed with "xx # " where "xx" is the language comment
-        marker."""
+        adjust line regular expression in LX to expect it prefixed with
+        "xx # " where "xx" is the language comment marker."""
 
         lx.lre = langinfo.comment + " # (" + lx.lre + ")"
 
