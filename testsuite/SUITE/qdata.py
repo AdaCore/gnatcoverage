@@ -243,17 +243,17 @@ stacnt_columns = (colid.passed, colid.failed)
 class CountersCell:
 
     def __init__(self):
-        self.total = 0
+        self.expected = 0
         self.satisfied = 0
 
     def img(self, details=False):
         if details:
-            return "%d/%d" % (self.satisfied, self.total)
+            return "%d/%d" % (self.satisfied, self.expected)
         else:
-            return "%d" % self.total
+            return "%d" % self.expected
 
     def augment_by(self, other):
-        self.total += other.total
+        self.expected += other.expected
         self.satisfied += other.satisfied
 
 # Cell to hold a simple text
@@ -443,7 +443,7 @@ class QDreport:
     # =========== ======== ======== ... =======
 
     def count(self, note, cell):
-        cell.total += 1
+        cell.expected += 1
         if note.satisfied():
             cell.satisfied += 1
 
