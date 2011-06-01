@@ -1,1 +1,1 @@
-Exercise a "not V" controlling a While statement.
+Exercise ``not V`` used to control a While statement.

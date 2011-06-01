@@ -1,6 +1,7 @@
 
 This section holds the tool operational requirements and associated testcases
-related to Statement Coverage assessments.  This is split in several parts:
+related to Statement Coverage assessments for the Ada language.  This is split
+in several parts:
 
 ===============   =============================================================
 Part              ...
@@ -15,10 +16,9 @@ Part              ...
 *ControlFlow*     Holds material inspired from the SVTAS (Software Verification
                   Tool Assessment Study) proposals to demonstrate proper
                   processing of statement sequences and various possible forms
-                  of control-flow transfers, fundamental mecanism for an
-                  imperative language.
+                  of control-flow transfers.
 
-*Robustness*      Holds material inspired from the SVTAS proposals to
+*Robustness*      Holds material to
                   demonstrate that the toolset correctly handles potentially
                   confusing constructs that would fool naive analyzers for
                   various sorts of reasons.

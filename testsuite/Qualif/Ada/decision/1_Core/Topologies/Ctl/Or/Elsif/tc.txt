@@ -1,1 +1,1 @@
-Exercise ``A or else B`` used to control the elsif part of an IF statement.
+Exercise ``A or else B`` used to control an ELSIF part of an IF statement.

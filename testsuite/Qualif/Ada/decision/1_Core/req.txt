@@ -1,6 +1,6 @@
 
-DC assessements are all governed by a toplevel base requirement which settles
-the notion of *decision*:
+Decision Coverage (DC) assessements are all governed by a base requirement
+which settles the notion of *decision*:
 
 ===============   =============================================================
 Requirement Id    Description
@@ -58,14 +58,19 @@ To address *dcomplete*, we check that all the aspects of this requirement are
 satisfied in a wide variety of situations. We start with two subsets of
 testcases:
 
-* ``Topologies`` exercise a panel of expression topologies over Boolean
+* ``Topologies``: exercise a panel of expression topologies over Boolean
   variables (single value, negated, two or more combined with and-then or
   or-else, ...), each placed in a variety of program contexts,
 
-* ``Operands`` exercise basic expressions (no more than two operands) over
-  different kinds of operands (attribute references, subprogram calls, ...;
-  not only simple boolean variables), each placed in a variety of program
+* ``Operands``: exercise basic expressions (no more than two operands) over
+  different kinds of operands (attribute references, subprogram calls, ...);
+  not only simple boolean variables, each placed in a variety of program
   contexts as well.
+
+*dnoeval* is addressed with a third subset:
+
+* ``NoEval``: exercise basic expressions arranging to interrupt evaluations
+  with exception occurrences.
 
 We exercise each decision of interest in multiple manners, always including
 
@@ -79,5 +84,3 @@ We exercise each decision of interest in multiple manners, always including
 * a situation where the statements exposing the decision aren't
   executed at all (*snoexec*).
 
-On top of this, the ``NoEval`` subset of tests addresses the particular
-*dnoeval* case, a rare kind of occurrence in practice.
