@@ -12,7 +12,7 @@
 
 # ****************************************************************************
 
-import os, sys, pickle
+import os, sys, pickle, re
 
 from REST import rest
 
@@ -140,6 +140,9 @@ class colid:
     sta = Column (
         htext="status", legend="Test execution status")
 
+    cat = Column (
+        htext="category", legend="Test category")
+
     # Expectation counters, for testcase table and counters summary
 
     nov = Column (
@@ -158,9 +161,6 @@ class colid:
         htext="xbv", legend="# Exempted blocks with violations")
 
     # Status counters and overall status, for status summary
-
-    qlevel = Column (
-        htext="level", legend="qualification level")
 
     failed = Column (
         htext="failed", legend="# tests failed")
@@ -256,6 +256,17 @@ class CountersCell:
         self.expected += other.expected
         self.satisfied += other.satisfied
 
+# Cell to hold a simple integer value
+# -----------------------------------
+
+class IntCell:
+
+    def __init__(self, initval=0):
+        self.value = initval
+
+    def img(self, details=False):
+        return "%d" % self.value
+
 # Cell to hold a simple text
 # --------------------------
 
@@ -308,16 +319,19 @@ class RSTtable:
 
     def __init__(self, title, text, columns, contents):
 
-        # COLUMNS is the list of columns for this table, CONTENTS is a list of
-        # {col -> text} dictionaries, one per table line. Compared to keys()
-        # in CONTENTS, COLUMNS is useful to enforce a provided order.
+        # COLUMNS is the list of columns for this table, CONTENTS is a
+        # list of {col -> text} dictionaries, one per table line.  Compared
+        # to CONTENTS.keys(), COLUMNS is useful to enforce a column order.
+
+        # CONTENTS may be None, which is useful to display a common
+        # title/text/legend for a set of tables with contents coming right
+        # after.
 
         self.columns = columns
         self.contents = contents
 
         # TITLE and TEXT are the table title and descriptive text, if any.
-        # When TITLE is None, the table description is omitted as a whole,
-        # legend included.
+        # Both may be None. The table legend is omitted when TEXT is None.
 
         self.title = title
         self.text  = text
@@ -326,7 +340,12 @@ class RSTtable:
 
         # Dump the table title, descriptive text and legend
 
-        self.rstf.write (rest.strong (self.title), post=2)
+        if self.title:
+            self.rstf.write (rest.strong (self.title), post=2)
+
+        if self.text is None:
+            return
+
         self.rstf.write (self.text, post=2)
 
         # For text alignment purposes, the legend is best displayed
@@ -396,15 +415,18 @@ class RSTtable:
 
         self.rstf = rstf
 
-        if self.text:
-            self.__dump_description ()
+        self.__dump_description ()
+
+        # If we have a legend and contents, separate the two:
+        if self.text is not None and self.contents is not None:
             self.rstf.write("~", post=2)
 
-        self.__compute_widths ()
+        if self.contents is not None:
+            self.__compute_widths ()
 
-        self.__dump_header ()
-        self.__dump_contents ()
-        self.__dump_footer ()
+            self.__dump_header ()
+            self.__dump_contents ()
+            self.__dump_footer ()
 
 # ==============
 # == QDreport ==
@@ -416,6 +438,23 @@ from gnatpython.ex import Run
 from SUITE.control import BUILDER, LANGINFO
 from SUITE.cutils  import version
 
+# "Category" to which each testcase belongs, and which drives the segmentation
+# of the qualification report
+
+class Category:
+    def __init__(self, name, matcher):
+        self.name = name
+        self.matcher = matcher
+
+        self.qdl = []
+
+    def trymatch(self, qda):
+        if re.search(self.matcher, qda.tcid):
+            self.qdl.append (qda)
+            return True
+        else:
+            return False
+
 class QDreport:
 
     def __init__(self, options, qdreg):
@@ -425,22 +464,54 @@ class QDreport:
         self.rstf = None
 
         self.gen_envinfo()
-        self.gen_tctable()
+
+        self.categories = (
+            Category (
+                name="Statement Coverage", matcher="Qualif/Ada/stmt"),
+            Category (
+                name="Decision Coverage",  matcher="Qualif/Ada/decision"),
+            Category (
+                name="Mcdc Coverage",      matcher="Qualif/Ada/mcdc"),
+            Category (
+                name="Report Format",      matcher="Qualif/Report/"),
+            Category (
+                name="Others",             matcher=".")
+            )
+
+        [self.categorize(qda) for qda in self.qdl]
+
+        self.compute_tcdata()
+
+        self.gen_tctables()
         self.gen_tcsummary()
         self.gen_index()
 
-    # -----------------
-    # -- gen_tctable --
-    # -----------------
+    def categorize(self, qda):
+        for cat in self.categories:
+            if cat.trymatch(qda):
+                return
 
-    # Compute and write out a testcase table like
+        raise FatalError (
+            comment="unable to categorize testcase %s" % qda.tcid)
+
+    # --------------------
+    # -- compute_tcdata --
+    # --------------------
+
+    # The base data we will be working over: a dictionary associating each
+    # testcase qualification data with a dictionary of it's execution summary
+    # cells (one for each column). Something like:
     #
-    # =========== ======== ======== ... =======
-    # testcase    nov      scv          status
-    # =========== ======== ======== ... =======
-    # Qualif/bla  3        1            passed
-    # ...
-    # =========== ======== ======== ... =======
+    # { qd -> { colid.tc: TextCell(qd.tcid),
+    #           colid.nov: CountersCell(),
+    #           ...
+    #           colid.sta: QstatusCell(qd.status)
+    #         }
+    #   ...
+    # }
+
+    def tccolumns(self):
+        return (colid.tc,) + viocnt_columns + (colid.sta,)
 
     def count(self, note, cell):
         cell.expected += 1
@@ -453,9 +524,10 @@ class QDreport:
         # for one testcase
 
         this_tcdata = dict (
-            [(key, CountersCell()) for key in viocnt_columns])
-
-        this_tcdata.__setitem__(colid.sta, QstatusCell(qd.status))
+            [(colid.tc, TextCell (qd.tcid))]
+            + [(key, CountersCell()) for key in viocnt_columns]
+            + [(colid.sta, QstatusCell(qd.status))]
+            )
 
         [self.count (
                 note = note, cell = this_tcdata [column_for[note.kind]])
@@ -469,135 +541,154 @@ class QDreport:
         self.tcdata = dict (
             [(qd, self.tcdata_for (qd)) for qd in self.qdl])
 
+    # ------------------
+    # -- gen_tctables --
+    # ------------------
+
+    # For each category, compute and write out a testcase table like
+    #
+    # =========== ======== ======== ... =======
+    # testcase    nov      scv          status
+    # =========== ======== ======== ... =======
+    # Qualif/bla  3        1            passed
+    # ...
+    # =========== ======== ======== ... =======
+
     def tcdict_for(self, qd):
-        r = dict()
+        details = column_for[qd.status] != colid.passed
+        return dict(
+            [(col, "%s" % self.tcdata[qd][col].img(details))
+             for col in self.tcdata[qd]])
 
-        r.__setitem__(colid.tc, "%s" % qd.tcid)
+    def gen_tctables(self):
 
-        details = qd.status != 'OK'
-        [r.__setitem__(col, "%s" % self.tcdata[qd][col].img(details))
-         for col in self.tcdata[qd]]
+        self.rstf = RSTfile ("tctable.rst")
+        self.rstf.write (rest.chapter ("Testcase execution summary"))
 
-        return r
-
-    def gen_tctable(self):
-
-        self.compute_tcdata()
-
-        rstf = RSTfile ("tctable.rst")
-
-        rstf.write (rest.chapter ("Testcase execution summary"))
+        # Arrange to get a single description and legend followed by a set of
+        # tables with data for each category.
 
         RSTtable (
-            title = "Testcase Table",
-            text = ' '.join (
-                ["This table lists all the testcases that were executed.",
-                 "It displays the execution status and a set of expectation",
-                 "counters for each of them.",
-                 "\n\n\"#\" in the legend denotes \"number of satisfied",
-                 "expectations for ...\"."]),
-            columns = (colid.tc,) + viocnt_columns + (colid.sta,),
-            contents = [self.tcdict_for(qd) for qd in self.qdl]
-            ).dump_to (rstf)
-
-        rstf.close()
-
-    # ----------------------
-    # -- gen_vcnt_summary --
-    # ----------------------
-
-    # Compute and write out a counter totals summary like
-    #
-    # ======== ======== ...
-    # nov      scv
-    # ======== ======== ...
-    # 3        1
-    # ======== ======== ...
-
-    def do_vcnt(self, qd):
-        [self.vcnts[key].augment_by(self.tcdata[qd][key])
-         for key in viocnt_columns]
-
-    def compute_vcnt_data(self):
-        self.vcnts = dict (
-            [(key, CountersCell()) for key in viocnt_columns])
-        [self.do_vcnt(qd) for qd in self.qdl]
-
-    def vcnt_dict(self):
-        return dict (
-            [(col, "%s" % self.vcnts[col].img()) for col in viocnt_columns])
-
-    def gen_vcnt_summary(self):
-
-        self.compute_vcnt_data ()
-
-        RSTtable (
-            title = "Expectation Counters Summary",
-            text = ''.join (
-                ["This table summarizes expectation counters across the ",
-                 "entire set of executed tests. Its sums the number of ",
-                 "satisfied expectations presented in the testcase table."]),
-            columns = viocnt_columns,
-            contents = [self.vcnt_dict()]
+            title = None,
+            text = \
+                "The following tables list all the testcases that were "
+                "executed, with their execution status and a set of "
+                "expectation counters. '#' in the legend abbreviates "
+                "\"number of satisfied expectations for ...\".",
+            columns = self.tccolumns(),
+            contents = None,
             ).dump_to (self.rstf)
 
-    # ---------------------
-    # -- gen_scnt_summary --
-    # ---------------------
+        [RSTtable (
+                title = "%s tests" % cat.name,
+                text = None,
+                columns = self.tccolumns(),
+                contents = [self.tcdict_for(qd) for qd in cat.qdl]
+                ).dump_to (self.rstf)
+         for cat in self.categories if cat.qdl]
 
-    # Compute and write out a status totals summary like
-    #
-    # ======== ======== =======
-    # passed   failed   overall
-    # ======== ======== =======
-    # 3        1        OK
-    # ======== ======== =======
-
-    def do_scnt(self, qd):
-        self.scnts[column_for[qd.status]] += 1
-
-    def compute_scnt_data(self):
-        self.scnts = dict (
-            [(key, 0) for key in stacnt_columns])
-        [self.do_scnt(qd) for qd in self.qdl]
-
-    def scnt_dict(self):
-        r = dict (
-            [(col, "%d" % self.scnts[col]) for col in stacnt_columns])
-        r.__setitem__ (
-            colid.qlevel,
-            "%s" % self.options.qualif_level)
-        r.__setitem__ (
-            colid.ovsta,
-            "%s" % "OK" if self.scnts[colid.failed] == 0 else "BING")
-        return r
-
-    def gen_scnt_summary(self):
-
-        self.compute_scnt_data ()
-
-        RSTtable (
-            title = "Overall Status",
-            text = ''.join (
-                ["This table sums the number of tests that passed or ",
-                 "failed, as listed in the testcase table. It displays the"
-                 "corresponding overall status of the entire testsuite."]),
-            columns = (colid.qlevel,) + stacnt_columns + (colid.ovsta,),
-            contents = [self.scnt_dict ()]
-            ).dump_to (self.rstf)
+        self.rstf.close()
 
     # -------------------
     # -- gen_tcsummary --
     # -------------------
 
+    # Compute and write out an overall summary like
+    #
+    # =========  ======= ======= ======= === === ...
+    # category   #passed #failed overall nov scv ...
+    # =========  ======= ======= ======= === === ...
+    # Statement  3       1       NOK
+    # ...
+    # Total      ...
+    # =========  ======= ======= ======= === === ...
+
+    def sumcolumns(self):
+        return (colid.cat,) + stacnt_columns + (colid.ovsta,) + viocnt_columns
+
+    def init_data_for(self, catid):
+
+        # Initial data for the line corresponding to category CATID. The
+        # overall status column is set separately, once the final counter
+        # values are known
+
+        return dict (
+            [(colid.cat, TextCell(catid))]
+            + [(col, IntCell()) for col in stacnt_columns]
+            + [(col, CountersCell()) for col in viocnt_columns]
+            )
+
+    def do_sum(self, qd, catsum):
+        [catsum[key].augment_by(self.tcdata[qd][key])
+         for key in viocnt_columns]
+        catsum[column_for[qd.status]].value += 1
+
+    def sumdata_for(self, cat, totsum):
+
+        # Compute the summary data for category CAT, and accumulate
+        # into the TOTSUM total summary along the way
+
+        thissum = self.init_data_for(cat.name)
+        [self.do_sum (qd=qd, catsum=catsum)
+         for qd in cat.qdl for catsum in (thissum, totsum)]
+
+        # We're done computing counters for the current category. Update
+        # the corresponding overall status column and return
+
+        thissum.__setitem__ (
+            colid.ovsta, TextCell (
+                "%s" % "OK" if thissum[colid.failed].value == 0 else "BING"))
+
+        return thissum
+
+    def sumdata(self):
+
+        # Compute the base data for the summary table. This is a list of
+        # {colid -> Cell} dictionaries, with one list entry for each test
+        # category + a total. Something like
+
+        # [ { colid.cat: TextCell("stmt"), colid.passed: IntCell() ... },
+        #   { colid.cat: TextCell("decision"), colid.passed: IntCell() ... }
+        #   { colid.cat: TextCell("total"),  colid.passed: IntCell() ... }
+        # ]
+
+        # Allocate the total summary now, and update it together with each
+        # category as we go
+
+        totsum = self.init_data_for("Total")
+
+        catsums = [
+            self.sumdata_for(c, totsum) for c in self.categories if c.qdl]
+
+        totsum.__setitem__ (
+            colid.ovsta, TextCell (
+                "%s" % "OK" if totsum[colid.failed].value == 0 else "BING"))
+
+        return catsums + [totsum]
+
+    def sumcontents(self):
+
+        # Compute the list of { colid -> text } dictionaries for the summary
+        # table, with a list entry for each test category (+ total)
+
+        return [dict ([(col, "%s" % catsum[col].img())
+                       for col in self.sumcolumns()])
+                for catsum in self.sumdata()]
+
     def gen_tcsummary(self):
 
         self.rstf = RSTfile ("tcsummary.rst")
-
         self.rstf.write (rest.chapter ("Testsuite status summary"))
 
-        self.gen_scnt_summary()
-        self.gen_vcnt_summary()
+        RSTtable (
+            title = None,
+            text = \
+                "This table summarizes status and expectation counters "
+                "for each test category across the entire testsuite.",
+            columns = self.sumcolumns(),
+            contents = self.sumcontents()
+            ).dump_to (self.rstf)
+
         self.rstf.close()
 
     # -----------------
@@ -619,18 +710,15 @@ class QDreport:
                 {item : "command line",
                  value: ' '.join (sys.argv)
                  },
-                {item : "qualification level",
-                 value: self.options.qualif_level
-                 },
                 {item : "common compiler options",
                  value: ' '.join (
                         (BUILDER.COMMON_CARGS,
                          self.options.qualif_cargs
                          if self.options.qualif_cargs else ""))
                  } ] + \
-                [ { item : "for %s" % lang,
+                [ { item : "plus, for %s" % lang,
                     value: ' '.join (to_list (LANGINFO[lang].cargs))
-                  } for lang in ("Ada", "C") ]
+                  } for lang in ("Ada",) ]
             ).dump_to (self.rstf)
 
     def gen_suite_environ(self):
