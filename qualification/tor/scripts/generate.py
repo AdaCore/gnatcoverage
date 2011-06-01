@@ -274,8 +274,8 @@ class Dir:
         self.all_reqorset = not some_notreqorset
         self.all_tcorset  = not some_nottcorset
 
-        self.tcset = self.set and all_tc
-        self.reqset = self.set and all_req
+        self.tcset = self.set and self.all_tcorset
+        self.reqset = self.set and self.all_reqorset
 
     def dfile(self):
         return ('tc.txt' if self.tc else
@@ -565,8 +565,8 @@ class DocGenerator(object):
 
         if re.search ("<tctable>", contents):
             self.gen_tc_index(diro.root)
-
-        self.maybe_toc_section(diro)
+        else:
+            self.maybe_toc_section(diro)
 
         self.ofd.close()
 
@@ -606,25 +606,35 @@ class DocGenerator(object):
             self.root = root
 
     def tc_text(self, diro, prefix):
-        return os.path.relpath (diro.root, prefix)
+        return ':doc:`%s`' % self.ref(diro.root)
 
     def gen_tc_entry(self, diro, pathi, ti):
 
+        # TC indexes are requested with hooks from description texts, to
+        # include a brief on directory contents downtree. We never care for a
+        # brief on the requesting context, which might show up here when the
+        # request is issued from a testcase set descriptions for example.
+
+        if ti.root == diro.root:
+            return
+
         # Fetch the contents aimed at the Summary column, first sentence in
-        # the testcase description file (text up to the first dot or full text
-        # in absence of dot).
+        # the description file (text up to the first dot or full text in
+        # absence of dot).
 
         dtext = diro.dtext()
 
         todot = re.match (".*?\.", dtext, re.DOTALL)
-        sumtext = todot.group(0) if todot else dtext
+        sumtext = (todot.group(0) if todot else dtext).replace ('\n', ' ')
+
+        if diro.tcset:
+            sumtext = rest.strong (sumtext.strip())
 
         # Then write the whole entry
 
-        self.ofd.write (
-            '%-*s %s\n' % (
+        self.ofd.write ('%-*s %s\n' % (
                 ti.max_tclen, self.tc_text(diro=diro, prefix=ti.root),
-                sumtext.replace ('\n', ' ')))
+                sumtext))
 
     def compute_max_tclen(self, diro, pathi, ti):
         thislen = len (self.tc_text(diro=diro, prefix=ti.root))
