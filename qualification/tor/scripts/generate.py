@@ -507,7 +507,7 @@ class DocGenerator(object):
     def gen_req_section(self, diro):
         """Generate the Requirement description section"""
 
-        self.ofd.write(sec_header("Requirement"));
+        self.ofd.write(sec_header("Requirement(s)"));
 
         contents = get_content(os.path.join(diro.root, 'req.txt'))
         self.ofd.write(contents)
@@ -546,7 +546,7 @@ class DocGenerator(object):
                       for sd in diro.subdirs]
 
         if tocentries:
-            self.ofd.write(sec_header("TOC"));
+            self.ofd.write(sec_header("Links"));
             self.ofd.write(
                 rest.toctree(tocentries, depth = 1 if not diro.pdo else 2))
 
@@ -563,10 +563,10 @@ class DocGenerator(object):
             else self.gen_tc_section(diro)  if diro.has_tctxt ()
             else "")
 
-        self.maybe_toc_section(diro)
-
         if re.search ("<tctable>", contents):
             self.gen_tc_index(diro.root)
+
+        self.maybe_toc_section(diro)
 
         self.ofd.close()
 
@@ -649,9 +649,8 @@ class DocGenerator(object):
 
         # Then we ouptut the table header, the entries, and the table footer
 
-        self.ofd.write (rest.section ("Testcase table"));
         self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
-        self.ofd.write ("%-*s Summary\n" % (tci.max_tclen, "TC"))
+        self.ofd.write ("%-*s Summary\n" % (tci.max_tclen, "Testcase"))
         self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
 
         dirtree.walk (
@@ -671,7 +670,7 @@ class DocGenerator(object):
 
         self.ofd.write(get_content(os.path.join(self.root_dir, 'set.txt')))
 
-        self.ofd.write (sec_header ("TOC"))
+        self.ofd.write (sec_header ("Links"))
         chapfiles = [self.file2docfile(os.path.join(self.root_dir, d))
                      for d in chapdirs]
         self.ofd.write(rest.toctree(chapfiles, 1))
@@ -707,7 +706,7 @@ class DocGenerator(object):
         #    "Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
 
         ref_chapdirs = [
-            "Ada/decision", "Ada/mcdc"]
+            "Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
 
         # [Re]generate only the requested chapters, when specified,
         # everything otherwise
