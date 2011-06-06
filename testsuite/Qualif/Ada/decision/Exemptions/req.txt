@@ -7,3 +7,5 @@ Check proper behavior on decisions placed in a restricted set of possible
 contexts, to validate that the exemption facility works for decision coverage
 violations specifically. Proper behavior over context variations is deemed
 validated by the statement coverage testcases.
+
+.. <tctable>

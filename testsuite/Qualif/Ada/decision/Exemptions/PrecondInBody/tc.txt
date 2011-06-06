@@ -1,14 +1,12 @@
 Exercise the use of an exemption region to exempt a functional precondition
-expressed in a subprogram declarative part.
+expressed in a subprogram declarative part. Check:
 
-Check outcome expectations for
+* Situations where the precondition is always evaluated True
+  (nominal case, exempted DC violation)
 
-* situations where the precondition is always evaluated True
-  (nominal case, exempted violations at level A)
+* Situations where the precondition is evaluated only False
+  (force error case, exempted DC violation)
 
-* situations where the precondition is evaluated only False
-  (force error case, exempted violations at level A)
-
-* consolidation of the previous cases: precondition exercized both
+* Consolidation of the previous cases: precondition exercized both
   ways (no exempted violation)
  

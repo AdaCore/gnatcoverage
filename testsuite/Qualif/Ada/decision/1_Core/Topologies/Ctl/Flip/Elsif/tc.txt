@@ -1,1 +1,1 @@
-Exercise ``not V`` used to control an ELSIF part of an IF statement.
+Exercise ``not V`` used to control the ELSIF part of an IF statement.

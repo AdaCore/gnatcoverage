@@ -1,0 +1,3 @@
+Exercise a decision featuring a mix of String attributes, array slices and
+aggregates in conditions.
+

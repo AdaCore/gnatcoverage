@@ -1,5 +1,6 @@
-This section groups testcases aimed at verifying that the tool handles all the
-possible forms of conditions in a decision, not only boolean variables.
+This section groups testcases aimed at cheking the tool's capability to
+perform correct DC assessments on decisions featuring all the possible forms
+of conditions, not only Boolean variables.
 
 We exercise simple decisions involving various possible kinds of conditions,
 either isolated or mixed with other kinds. We make sure here to exercise cases

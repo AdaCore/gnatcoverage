@@ -1,1 +1,1 @@
-Exercise "A or else B" used as a record component initializer.
+Exercise ``A or else B`` used as a record component initializer.

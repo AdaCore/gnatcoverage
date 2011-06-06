@@ -1,5 +1,5 @@
 This section groups testcases aimed at verifying the tool's capability to
-handle expressions of arbitrary topology everywhere they might appear.  We
-distinguish explicit control-flow constructs, where the expressions indeed
-act as decisions, from other contexts.
+perform correct DC assessments on expressions of arbitrary topology everywhere
+they might appear.  We distinguish explicit control-flow constructs from other
+contexts.
 

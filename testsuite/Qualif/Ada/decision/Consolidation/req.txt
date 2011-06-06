@@ -8,3 +8,5 @@ We exercise consolidation of traces obtained for single vector invocations
 over a range of basic decisions.
 
 We check all the possible combinations of inputs without repetitions.
+
+.. <tctable>

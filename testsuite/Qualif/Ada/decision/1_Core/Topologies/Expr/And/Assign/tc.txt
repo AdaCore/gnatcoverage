@@ -1,1 +1,1 @@
-Exercise "A and then B" on the RHS of an Assignment statement.
+Exercise ``A and then B`` on the RHS of an Assignment statement.
