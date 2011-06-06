@@ -1,2 +1,0 @@
-Exercise ``A or else B`` in Preconditions pragmas and alike, attached to
-subprogram declarations or within subprogram bodies.
