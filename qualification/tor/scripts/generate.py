@@ -586,11 +586,11 @@ class DocGenerator(object):
         [self.generate_chapter(os.path.join(self.root_dir, d))
          for d in chapdirs]
 
-    # ---------------------------------
-    # -- generate the testcase index --
-    # ---------------------------------
+    # ---------------------------
+    # -- generate index tables --
+    # ---------------------------
 
-    # We generate a sphinx simple table, like
+    # We generate simple sphinx tables like
     #
     # ====== =======
     # TC dir Summary
@@ -608,21 +608,27 @@ class DocGenerator(object):
     def tc_text(self, diro, prefix):
         return ':doc:`%s`' % self.ref(diro.root)
 
-    def gen_tc_entry(self, diro, pathi, ti):
+    def gen_table_entry(self, diro, pathi, ti):
 
-        # TC indexes are requested with hooks from description texts, to
-        # include a brief on directory contents downtree. We never care for a
-        # brief on the requesting context, which might show up here when the
-        # request is issued from a testcase set descriptions for example.
+        # Indexes are requested with hooks from description texts, to include
+        # a brief on directory contents downtree. We never care for a brief on
+        # the requesting context itself.
 
         if ti.root == diro.root:
+            return
+
+        # Intermediate sets are sometimes introduced for test drivers
+        # organization purposes. They have empty descrpition texts and we
+        # don't care for an extra line in the index in this case.
+
+        dtext = diro.dtext().strip()
+
+        if not dtext:
             return
 
         # Fetch the contents aimed at the Summary column, first sentence in
         # the description file (text up to the first dot or full text in
         # absence of dot).
-
-        dtext = diro.dtext()
 
         todot = re.match (".*?\.", dtext, re.DOTALL)
         sumtext = (todot.group(0) if todot else dtext).replace ('\n', ' ')
@@ -641,10 +647,7 @@ class DocGenerator(object):
         if thislen > ti.max_tclen:
             ti.max_tclen = thislen
 
-    def tc_filter (self, diro):
-        return dirProcess if (diro.tc or diro.tcset) else dirSkip
-
-    def gen_tc_index(self, root):
+    def gen_index_table(self, root, nodectl):
 
         dirtree = DirTree (root = root, hook = None)
 
@@ -655,7 +658,7 @@ class DocGenerator(object):
 
         dirtree.walk (
             mode=topdown, process=self.compute_max_tclen,
-            ctl=self.tc_filter, data=tci)
+            ctl=nodectl, data=tci)
 
         # Then we ouptut the table header, the entries, and the table footer
 
@@ -664,10 +667,21 @@ class DocGenerator(object):
         self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
 
         dirtree.walk (
-            mode=topdown, process=self.gen_tc_entry,
-            ctl=self.tc_filter, data=tci)
+            mode=topdown, process=self.gen_table_entry,
+            ctl=nodectl, data=tci)
 
         self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
+
+
+    def gen_tc_index(self, root):
+        self.gen_index_table (
+            root=root, nodectl=lambda diro:
+                dirProcess if (diro.tc or diro.tcset) else dirSkip)
+
+    def gen_subset_index(self, root):
+        self.gen_index_table (
+            root=root, nodectl=lambda diro:
+                dirCut if diro.tcset else dirSkip)
 
     # ------------------------------------
     # -- generate index (toplevel) page --
