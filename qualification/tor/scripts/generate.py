@@ -189,6 +189,7 @@ class TestCase:
 class PathInfo:
     def __init__(self):
         self.n_req = 0  # Number of requirement expressions so far
+        self.depth = 0  # Depth of this node wrt root of walk operation
 
 # ***************************
 # ** Directory abstraction **
@@ -300,9 +301,9 @@ class Dir:
 topdown, botmup = range (2)
 
 dirProcess, dirSkip, dirCut = range (3)
-# process this node and walk children
-# skip processing for this node, walk children nevertheless
-# skip processing for this node and don't walk children
+# dirProcess: process this node and walk children
+# dirCut:     process this node and don't walk children
+# dirSkip:    skip processing for this node, walk children nevertheless
 
 class DirTree:
     def __init__(self, root, hook=None):
@@ -360,7 +361,7 @@ class DirTree:
 
     def enter(self, diro, wi):
         if diro.has_reqtxt(): wi.pathi.n_req += 1
-        return wi.ctl (diro)
+        return wi.ctl (diro, wi.pathi)
 
     def exit(self, diro, wi):
         if diro.has_reqtxt(): wi.pathi.n_req -= 1
@@ -368,18 +369,20 @@ class DirTree:
     def visit (self, diro, wi):
         ctl = self.enter(diro, wi)
 
-        if ctl == dirProcess and wi.mode == topdown:
+        if ctl != dirSkip and wi.mode == topdown:
             wi.process(diro, wi.pathi, wi.data)
 
         if ctl != dirCut:
+            wi.pathi.depth += 1
             [self.visit(subdo, wi) for subdo in diro.subdos]
+            wi.pathi.depth -= 1
 
-        if ctl == dirProcess and wi.mode == botmup:
+        if ctl != dirSkip and wi.mode == botmup:
             wi.process(diro, wi.pathi, wi.data)
 
         self.exit(diro, wi)
 
-    def default_ctl(self, diro):
+    def default_ctl(self, diro, pathi):
         return dirProcess
 
     # Exposed facilities.
@@ -496,33 +499,37 @@ class DocGenerator(object):
     # -- Generating doc contents for a directory --
     # ---------------------------------------------
 
+
+    def contents_from(self, diro, name):
+
+        SUBST = {
+            "tc-index": self.tc_index,
+            "subset-index": self.subset_index
+            }
+
+        contents = get_content(os.path.join(diro.root, name))
+        return contents % dict(
+            [(key, SUBST[key](diro.root))
+             for key in SUBST if ("(%s)s" % key) in contents]
+            )
+
     def gen_set_section(self, diro):
         """Generate the Set description section"""
 
-        contents = get_content(os.path.join(diro.root, 'set.txt'))
-        self.ofd.write(contents)
-
-        return contents
+        self.ofd.write(self.contents_from (diro, "set.txt"))
 
     def gen_req_section(self, diro):
         """Generate the Requirement description section"""
 
-        self.ofd.write(sec_header("Requirement(s)"));
-
-        contents = get_content(os.path.join(diro.root, 'req.txt'))
-        self.ofd.write(contents)
-
-        return contents
+        self.ofd.write(sec_header("Requirement(s)"))
+        self.ofd.write(self.contents_from (diro, "req.txt"))
 
     def gen_tc_section(self, diro):
         """Generate the TestCase description section"""
 
         tco = TestCase (dir=diro.root, dgen=self)
 
-        contents = get_content(os.path.join(diro.root, 'tc.txt'))
-
-        if diro.has_tctxt():
-            self.ofd.write(contents)
+        self.ofd.write(self.contents_from (diro, "tc.txt"))
 
         self.ofd.write(subsec_header("Test Data"))
         self.ofd.write(rest.list(
@@ -536,8 +543,6 @@ class DocGenerator(object):
 
         self.register_resources (
             tco.fnsources | tco.drsources | tco.conspecs)
-
-        return contents
 
     def maybe_toc_section(self, diro):
         """Generate the Table Of Contents section as needed"""
@@ -557,16 +562,12 @@ class DocGenerator(object):
         self.ofd.write(
             rest.section(to_title(os.path.basename(diro.root))))
 
-        contents = (
-            self.gen_set_section(diro) if diro.has_settxt ()
-            else self.gen_req_section(diro) if diro.has_reqtxt ()
-            else self.gen_tc_section(diro)  if diro.has_tctxt ()
-            else "")
-
-        if re.search ("<tctable>", contents):
-            self.gen_tc_index(diro.root)
-        else:
-            self.maybe_toc_section(diro)
+        if diro.has_settxt ():
+            self.gen_set_section(diro)
+        elif diro.has_reqtxt ():
+            self.gen_req_section(diro)
+        elif diro.has_tctxt ():
+            self.gen_tc_section(diro)
 
         self.ofd.close()
 
@@ -600,22 +601,18 @@ class DocGenerator(object):
 
     # To be refined ...
 
-    class TCinfo:
-        def __init__ (self, root):
+    class WalkInfo:
+        def __init__ (self, root, emphsets):
             self.max_tclen = 0
             self.root = root
+
+            self.text = ""
+            self.emphsets = emphsets
 
     def tc_text(self, diro, prefix):
         return ':doc:`%s`' % self.ref(diro.root)
 
-    def gen_table_entry(self, diro, pathi, ti):
-
-        # Indexes are requested with hooks from description texts, to include
-        # a brief on directory contents downtree. We never care for a brief on
-        # the requesting context itself.
-
-        if ti.root == diro.root:
-            return
+    def maybe_add_line_for (self, diro, pathi, wi):
 
         # Intermediate sets are sometimes introduced for test drivers
         # organization purposes. They have empty descrpition texts and we
@@ -626,62 +623,68 @@ class DocGenerator(object):
         if not dtext:
             return
 
-        # Fetch the contents aimed at the Summary column, first sentence in
-        # the description file (text up to the first dot or full text in
-        # absence of dot).
+        # Fetch the contents aimed at the Summary column, first paragraph in
+        # the description file.
 
-        todot = re.match (".*?\.", dtext, re.DOTALL)
-        sumtext = (todot.group(0) if todot else dtext).replace ('\n', ' ')
+        toblank = re.search (".*?(\n[ \t]*\n)", dtext, re.DOTALL)
+        sumtext = (toblank.group(0) if toblank else dtext).replace ('\n', ' ')
 
-        if diro.tcset:
+        if wi.emphsets and diro.set:
             sumtext = rest.strong (sumtext.strip())
 
-        # Then write the whole entry
+        # Then append the whole entry
 
-        self.ofd.write ('%-*s %s\n' % (
-                ti.max_tclen, self.tc_text(diro=diro, prefix=ti.root),
-                sumtext))
+        wi.text += '%-*s %s\n' % (
+            wi.max_tclen, self.tc_text(diro=diro, prefix=wi.root),
+            sumtext)
 
-    def compute_max_tclen(self, diro, pathi, ti):
-        thislen = len (self.tc_text(diro=diro, prefix=ti.root))
-        if thislen > ti.max_tclen:
-            ti.max_tclen = thislen
+    def compute_max_tclen(self, diro, pathi, wi):
+        thislen = len (self.tc_text(diro=diro, prefix=wi.root))
+        if thislen > wi.max_tclen:
+            wi.max_tclen = thislen
 
-    def gen_index_table(self, root, nodectl):
+    def index_table(self, root, nodectl, emphsets):
 
         dirtree = DirTree (root = root, hook = None)
 
-        tci = self.TCinfo(root = root)
+        wi = self.WalkInfo (root=root, emphsets=emphsets)
 
         # We first need to compute the common length for all the items
         # in the first column
 
         dirtree.walk (
             mode=topdown, process=self.compute_max_tclen,
-            ctl=nodectl, data=tci)
+            ctl=nodectl, data=wi)
 
-        # Then we ouptut the table header, the entries, and the table footer
+        # Then we append the table header, the entries, and the table footer
 
-        self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
-        self.ofd.write ("%-*s Summary\n" % (tci.max_tclen, "Testcase"))
-        self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
+        wi.text += ''.join ([
+            "%-s ========\n" % ('=' * wi.max_tclen),
+            "%-*s Summary\n" % (wi.max_tclen, "Entry"),
+            "%-s ========\n" % ('=' * wi.max_tclen)
+            ])
 
         dirtree.walk (
-            mode=topdown, process=self.gen_table_entry,
-            ctl=nodectl, data=tci)
+            mode=topdown, process=self.maybe_add_line_for,
+            ctl=nodectl, data=wi)
 
-        self.ofd.write ("%-s ========\n" % ('=' * tci.max_tclen))
+        wi.text += "%-s ========\n" % ('=' * wi.max_tclen)
 
+        return wi.text
 
-    def gen_tc_index(self, root):
-        self.gen_index_table (
-            root=root, nodectl=lambda diro:
-                dirProcess if (diro.tc or diro.tcset) else dirSkip)
+    def tc_index(self, root):
+        return self.index_table (
+            root=root, emphsets=True, nodectl=lambda diro, pathi:
+                (dirProcess if pathi.depth > 0 and (diro.tc or diro.tcset)
+                 else dirSkip)
+            )
 
-    def gen_subset_index(self, root):
-        self.gen_index_table (
-            root=root, nodectl=lambda diro:
-                dirCut if diro.tcset else dirSkip)
+    def subset_index(self, root):
+        return self.index_table (
+            root=root, emphsets=False, nodectl=lambda diro, pathi:
+                (dirCut if pathi.depth > 0 and (diro.set or diro.req)
+                 else dirSkip)
+            )
 
     # ------------------------------------
     # -- generate index (toplevel) page --
@@ -725,9 +728,6 @@ class DocGenerator(object):
     # ---------------------------------------------
 
     def generate_all(self, chapdirs):
-
-        # ref_chapdirs = [
-        #    "Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
 
         ref_chapdirs = [
             "Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
