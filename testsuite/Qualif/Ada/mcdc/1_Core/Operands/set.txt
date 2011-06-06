@@ -8,5 +8,5 @@ the condition False/True value determination itself, for example implicit
 tests for null ranges to evaluate the length value in an expression like
 "S'length > 12".
 
-.. <tctable>
+%(tc-index)s
 

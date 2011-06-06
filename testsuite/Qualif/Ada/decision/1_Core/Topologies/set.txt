@@ -1,5 +1,10 @@
 This section groups testcases aimed at verifying the tool's capability to
 perform correct DC assessments on expressions of arbitrary topology everywhere
-they might appear.  We distinguish explicit control-flow constructs from other
-contexts.
+they might appear.
 
+We exercise a panel of expression topologies over Boolean variables (single
+value, negated, two or more combined with and-then or or-else, ...), each
+placed in a variety of program contexts. We distinguish explicit control-flow
+constructs from other contexts.
+
+%(subset-index)s

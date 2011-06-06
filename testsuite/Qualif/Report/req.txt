@@ -57,5 +57,5 @@ here. That assessment (correctness of the reported violations vs expectations
 for particular programs), is defined and validated by sibling chapters of this
 qualification material.
 
-.. <tctable>
+%(tc-index)s
 

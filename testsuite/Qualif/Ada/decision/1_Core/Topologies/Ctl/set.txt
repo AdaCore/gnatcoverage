@@ -2,6 +2,6 @@ This section groups testcases aimed at verifying the tool's capability to
 handle decisions of arbitrary topology in any language flow construct they
 might control.
 
-.. <tctable>
+%(tc-index)s
 
 

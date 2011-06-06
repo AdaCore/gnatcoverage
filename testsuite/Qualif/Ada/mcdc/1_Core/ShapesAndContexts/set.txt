@@ -6,5 +6,5 @@ each in a representative set of common program contexts where such expressions
 might appear. MCDC is equivalent to DC for decisions with only one condition,
 so we have no testcase for such decisions here.
 
-.. <tctable>
+%(tc-index)s
 

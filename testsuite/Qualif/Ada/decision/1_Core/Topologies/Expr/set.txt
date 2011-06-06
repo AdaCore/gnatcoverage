@@ -1,7 +1,6 @@
 This section groups testcases aimed at verifying the tool's proper processing
 of Boolean expressions in contexts that are not explicit control-flow
-constructs, verifying that they are *not* considered as decisions to be
-exercised both True and False.
+constructs.
 
-.. <tctable>
+%(tc-index)s
 

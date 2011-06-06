@@ -1,3 +1,7 @@
+Material to define and validate the core expectations for Decision Coverage
+(DC) assessments. All the other DC related sections rely on this one.
+
+**Requirements**
 
 Decision Coverage (DC) assessements are all governed by a base requirement
 which settles the notion of *decision*:
@@ -46,25 +50,13 @@ Requirement Id    Description
 
 **Testing Strategy**
 
-To address *dcomplete*, we check that all the aspects of this requirement are
-satisfied in a wide variety of situations, exposed with two subsets of
+To address *dcomplete* and *dnoeval*, we expose three main subsets of
 testcases:
 
-* ``Topologies``: exercise a panel of expression topologies over Boolean
-  variables (single value, negated, two or more combined with and-then or
-  or-else, ...), each placed in a variety of program contexts,
+%(subset-index)s
 
-* ``Operands``: exercise basic expressions (no more than two operands) over
-  different kinds of operands (attribute references, subprogram calls, ...);
-  not only simple boolean variables, each placed in a variety of program
-  contexts as well.
-
-Then *dnoeval* is addressed with a third subset:
-
-* ``NoEval``: exercise basic expressions arranging to interrupt evaluations
-  with exception occurrences.
-
-We exercise each decision of interest in multiple manners, always including
+Through all of them, we consistenly exercise each decision of interest in
+multiple manners, always including:
 
 * a set of vectors where the decision evaluates only True (*dparteval*),
 
