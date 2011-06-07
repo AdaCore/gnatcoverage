@@ -1,10 +1,15 @@
+Material to define and validate the core expectations for Statement Coverage
+(SC) assessments. All the other SC related sections rely on this one.
+
+%(req)s
+
 A language construct shall be reported as uncovered if it is not executed or
 elaborated as a part of a program execution.
 
-**Testing strategy**
+%(tstrat)s
 
 The further decomposition of this general requirement is based on the
-structure of the Ada Reference Manual (ARM). We consider the following 
+structure of the Ada Reference Manual (ARM). We consider the following
 chapters of the ARM:
 
 * ch. 2 - Lexical elements
@@ -23,7 +28,7 @@ because of the following reasons:
 * Chapter 1  - General: No language construct described;
 
 * Chapter 4 - Names and Expressions: The described constructs are not
-  considered on their own for coverage analysis purposed, the coverage
+  considered on their own for coverage analysis purposes. The coverage
   information is computed for enclosing statement or declaration constructs;
 
 * Chapter 9 - Tasks and Synchronization: The execution profile being
@@ -40,30 +45,31 @@ This requirement set is decomposed into subordinated requirements as follows
 * DeclarationAndTypes          (ch. 3)
 
 * SimpleStatements
+
  * Null                (ch. 5.1)
  * Assignment          (ch. 5.2)
- * Goto                (ch. 5.8) 
- * Exit                (ch. 5.7) 
-  
-* CompoundStatements 
- * If                  (ch. 5.3) 
- * Case                (ch. 5.4)  
+ * Goto                (ch. 5.8)
+ * Exit                (ch. 5.7)
+
+* CompoundStatements
+
+ * If                  (ch. 5.3)
+ * Case                (ch. 5.4)
  * Loop                (ch. 5.5)
- * Block               (ch. 5.6)  
- 
-* Subprograms          (ch. 6)           
+ * Block               (ch. 5.6)
+
+* Subprograms          (ch. 6)
 
 * Exception            (ch. 11)
 
-* GenericUnits         (ch. 12)     
+* GenericUnits         (ch. 12)
 
 * Miscellaneous
+
  * Pragmas             (ch. 2)
- * Packages            (ch. 7)  
- * Renaming            (ch. 8)       
- * Subunits            (ch. 10) 
- 
- 
-       
+ * Packages            (ch. 7)
+ * Renaming            (ch. 8)
+ * Subunits            (ch. 10)
+
 
 

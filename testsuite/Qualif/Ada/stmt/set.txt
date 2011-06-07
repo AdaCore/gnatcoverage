@@ -3,36 +3,4 @@ This section holds the tool operational requirements and associated testcases
 related to Statement Coverage assessments for the Ada language.  This is split
 in several parts:
 
-===============   =============================================================
-Part              ...
-===============   =============================================================
-*Core*            Defines the core Statement Coverage requirements and
-		  validates proper behavior of the tool for them on isolated
-                  language constructs.
-                  The organization mirrors that of the language reference
-                  manual to make sure that the suite is representative of all
-                  the language aspects we need to handle.
-
-*ControlFlow*     Holds material inspired from the SVTAS (Software Verification
-                  Tool Assessment Study) proposals to demonstrate proper
-                  processing of statement sequences and various possible forms
-                  of control-flow transfers.
-
-*Robustness*      Holds material to
-                  demonstrate that the toolset correctly handles potentially
-                  confusing constructs that would fool naive analyzers for
-                  various sorts of reasons.
-                  This includes cases such as multiple statements sharing a
-                  line or a single statement spanning multiple lines.
-
-*Consolidation*   Holds material to define and validate the expected processing
-                  of multiple execution traces combined together.
-
-*Exemptions*      Holds material to define and validate the expected processing
-                  of exemption regions.
-===============   =============================================================
-
-While the Core section concentrates on isolated languages constructs,
-testcases in other sections deliberately feature mixes of such, validating the
-tool correctness when various kinds of constructs are combined together.
-
+%(subset-index)s

@@ -1,9 +1,11 @@
+%(req)s
+
 Compound statements are elements of chapter 5 which typically
 contain other (compound) statements.
 
 A compound statement shall be reported as uncovered if it is not executed.
 
-**Testing strategy**
+%(tstrat)s
 
 This tool operation requirement is split into subordinate requirements
 according to the sections of Chapter 5 (Statements) of the ARM.
@@ -13,3 +15,6 @@ according to the sections of Chapter 5 (Statements) of the ARM.
 * Loop_Statements       (5.5 Loop Statements)
 * Block                 (5.6 Block Statements) 
 * Exit_Statements       (5.7 Exit Statements)
+
+%(subset-index)s
+

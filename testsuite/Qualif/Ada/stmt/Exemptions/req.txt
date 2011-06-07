@@ -1,3 +1,7 @@
+Material to define and validate the expected processing of exemption regions.
+
+%(reqs)s
+
 Proper behavior of the Coverage Exemptions facility translates into
 multiple expectations:
 
@@ -18,25 +22,13 @@ multiple expectations:
    constructs such as statements or subprograms, and groups of such in all the
    contexts where they may appear.
 
-**Testing strategy**
+%(tstrat)s
 
 We validate all the aspects of this requirement with a set of testcases,
 subdivided in sections according to point #5 - demonstrate ability to exempt
-various groups of syntactic constructs. In particular, we have testcases with
-exemption regions that encompass:
+various groups of syntactic constructs:
 
-* the whole of a procedure body [WholeBody],
-
-* groups of statements within
-
-   * the root sequence of a subprogram body [StmtsInBody],
-   * a local exception handler [StmtsInHandler],
-   * a package body elaboration code, generic case included [StmtsInElab],
-
-* a group of entire subprograms [SubprogsInUnit],
-
-* a mix of statements and declarations in a package spec + body [MixInUnits,
-  StmtsInSubprog]
+%(tc-index)s
 
 Each test features some mix of exempted regions and regular code, exercised in
 multiple manners to cover well identified sections of the program. All the

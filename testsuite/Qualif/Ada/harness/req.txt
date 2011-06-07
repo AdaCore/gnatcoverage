@@ -1,6 +1,6 @@
 The test harness works as intended.
 
-**Testing strategy**
+%(tstrat)s
 
 Check that the harness properly
 

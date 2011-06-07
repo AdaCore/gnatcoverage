@@ -1,3 +1,5 @@
+%(req)s
+
 The coverage of the statements inside the LOOP statement shall depend 
 on the evaluation of the loop condition. 
 
@@ -8,15 +10,20 @@ then all subsequent statements shall not be covered.
 If the LOOP condition is evaluated to TRUE at least once,
 then at least the first subsequent statement shall be covered.
 
-**Testing strategy**
+%(tstrat)s
 
 Check the coverage when:
+
 * the LOOP condition is evaluated to TRUE;
 * the LOOP condition is evaluated to FALSE;
 * the LOOP condition is not evaluated
 
 Check different syntax forms of LOOP statement:
+
 * FOR loop;
 * reverse FOR loop;
 * WHILE loop;
 * unconditional loop.
+
+%(tc-index)s
+

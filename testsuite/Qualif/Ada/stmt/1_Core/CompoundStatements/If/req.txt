@@ -1,3 +1,5 @@
+%(req)s
+
 An IF statement is composed by an IF branch, zero or more ELSIF branches and zero or one
 ELSE branch. Each branch contains one or more statements. 
 
@@ -5,13 +7,16 @@ The coverage of an IF statement shall depend on the evaluation of its branches. 
 not evaluated, then it shall not be covered. If a branch is not chosen, then all statements
 it contains shall not be covered.
 
-**Testing strategy**
+%(tstrat)s
 
 Check different forms of IF statements, with/without ELSIF branches and with/without ELSE branches.
 Check the coverage when:
+
 * the IF branch is not evaluated
 * the IF branch is chosen
 * one ELSIF branch is chosen
 * the ELSE branch is chosen
 * multiple branches are chosen via multiple invocations.
+
+%(tc-index)s
 

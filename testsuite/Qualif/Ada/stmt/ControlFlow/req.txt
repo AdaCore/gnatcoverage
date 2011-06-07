@@ -1,3 +1,9 @@
+Material inspired from the SVTAS (Software Verification Tool Assessment Study)
+proposals to demonstrate proper processing of statement sequences and various
+possible forms of control-flow transfers.
+
+%(req)s
+
 Statement coverage is assessed correctly for straightline sequences (basic
 blocks) of statements and combinations of such constructed with jump-like
 control flow transfers (goto, return, raise, exit).
@@ -24,18 +30,16 @@ block, all the statements in the block shall be reported uncovered.
 3. Check that various forms of control-flow transfers are handled properly,
    from
 
-   * goto statements, 
+   * goto statements,
 
    * return statements,
-   
+
    * loop exits,
 
    * local exception raises,
 
 4. Check correct handling of statements that evaluate only partially, in
    particular with expression shortcircuits.
-  
-  
 
-
+%(tc-index)s
 

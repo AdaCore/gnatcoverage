@@ -1,11 +1,17 @@
+%(req)s
+
 Statement coverage shall be assessed correctly for Ada subprogram constructs
 according to the semantics of these constructs as described in Chapter 6
 "Subprograms" of the Ada Reference Manual.
 
-**Testing strategy**
+%(tstrat)s
+
 Check the following aspects:
 
 * Coverage of subprogram declaration.
 * Coverage of inherited subprograms, including overriding ones.
 * Coverage of inlined subprograms.
 * Coverage of the return statement.
+
+%(tc-index)s
+

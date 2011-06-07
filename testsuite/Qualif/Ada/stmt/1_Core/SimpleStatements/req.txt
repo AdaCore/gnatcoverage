@@ -1,9 +1,11 @@
+%(req)s
+
 Simple statements are elements of chapter 5 which are atomic (they do
 not contain other statements).
 
 A simple statement shall be reported as uncovered if it is not executed.
 
-**Testing strategy**
+%(tstrat)s
 
 This tool operation requirement is split into subordinate requirements
 according to the sections of Chapter 5 (Statements) of the ARM.
@@ -12,3 +14,6 @@ according to the sections of Chapter 5 (Statements) of the ARM.
 * Null statement      (ch. 5.2)
 * Exit statement      (ch. 5.7)
 * Goto statement      (ch. 5.8)
+
+%(tc-index)s
+

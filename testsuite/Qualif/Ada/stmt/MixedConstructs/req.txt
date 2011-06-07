@@ -1,3 +1,9 @@
+Material to demonstrate that the toolset correctly handles mixes of various
+statement constructs, representative of what would be found in real
+applications.
+
+%(req)s
+
 The Core requirements are honored on programs mixing arbitrary Ada constructs
 together, with arbitrary levels of syntactic nesting (such as loops within
 tests within subprograms etc).
@@ -16,4 +22,6 @@ situations:
 * If controls evaluated True only, False only or both,
 
 * Combinations of these allowed by the nesting structure.
+
+%(tc-index)s
 

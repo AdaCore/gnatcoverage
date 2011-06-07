@@ -1,3 +1,5 @@
-Exercise a package that features non-exempted code and a couple of exemption
-regions for short sequences of statements within a subprogram body, all
-protected by a local exception handler.
+Check processing of exemptions applying to groups of statements within the
+root sequence of a subprogram body.
+
+Exercise non-exempted code and a couple of exemption regions within a
+subprogram body, all protected by a local exception handler.
