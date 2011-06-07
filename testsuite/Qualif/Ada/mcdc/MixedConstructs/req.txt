@@ -1,3 +1,9 @@
+Material to demonstrate that the toolset correctly handles mixes of various
+statement and decision constructs, representative of what would be found in
+real applications.
+
+**Requirment**
+
 The Core requirements are honored on programs mixing arbitrary Ada constructs
 together, with arbitrary levels of syntactic nesting (such as loops within
 tests within subprograms etc).

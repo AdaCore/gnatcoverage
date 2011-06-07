@@ -1,12 +1,13 @@
-This section groups testcases aimed at checking that the is able to handle
-conditions of arbitrary complexity in decisions.
+This section groups testcases aimed at cheking the tool's capability to
+perform correct MCDC assessments on decisions featuring all the possible forms
+of conditions, not only Boolean variables.
 
-We exercise simple decisions involving various possible kinds of conditions,
-either isolated or mixed with other kinds. We make sure here to exercise cases
-where conditions require internal comparisons not directly representative of
-the condition False/True value determination itself, for example implicit
-tests for null ranges to evaluate the length value in an expression like
-"S'length > 12".
+We exercise basic decisions involving various possible kinds of conditions
+(attribute references, subprogram calls, ...), either isolated or mixed with
+other kinds in a variety of program contexts. We make sure here to exercise
+cases known to require internal comparisons, to demonstrate that the tool
+knows to distinguish internal tests from those representative of each
+condition valuation.
 
 %(tc-index)s
 

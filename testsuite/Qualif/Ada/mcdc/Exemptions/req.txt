@@ -1,3 +1,7 @@
+Material to define and validate the expected processing of exemption regions.
+
+**Requirement**
+
 Exemption regions shall operate over MCDC violations as they do for statement
 coverage violations.
 

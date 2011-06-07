@@ -1,10 +1,12 @@
-This section groups testcase aimed at checking that the tool is able to handle
-decisions of arbitrary topology, in any context where they are allowed.
+This section groups testcases aimed at verifying the tool's capability to
+perform correct MCDC assessments on expressions of arbitrary topology
+everywhere they might appear.
 
-We exercise a range of boolean expression topologies over boolean variables,
-each in a representative set of common program contexts where such expressions
-might appear. MCDC is equivalent to DC for decisions with only one condition,
-so we have no testcase for such decisions here.
+We exercise a panel of expression topologies over Boolean variables (single
+value, negated, two or more combined with and-then or or-else, ...), each
+placed in a variety of program contexts.  MCDC is equivalent to DC for
+decisions with only one condition so we have no testcase for such decisions
+here.
 
 %(tc-index)s
 
