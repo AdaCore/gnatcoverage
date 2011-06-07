@@ -310,29 +310,39 @@ class DirTree:
         self.dir = {}   # dir-name -> dir-object dictionary
         self.roots = [] # set of orphan dir objects
 
-        [self.map (dirname, subdirs, files, hook)
+        # First compute the tree of directory objects starting at ROOT,
+        # setting up for each the .pdo link to parent and the .subdos list of
+        # children. This is achieved by performing a top down walk of the os
+        # directory structure.
+
+        [self.topdown_map (dirname, subdirs, files, hook)
          for (dirname, subdirs, files) in os.walk(os.path.abspath(root))]
+
+        # Then compute exta node attributes, once the tree of internal
+        # directory objects is setup.
 
         self.compute_attributes()
 
-    # Hook for the DocGenerator abstraction, which it calls while walking the
-    # TOR/TC file tree top down, so parents are mapped first
+    def topdown_map(self, dirname, subdirs, files, hook):
 
-    def map(self, dirname, subdirs, files, hook):
+        # Map directory DIRNAME into our dictionary and set up links to/from
+        # its parent directory, if any. We're called along a topdown walk, so
+        # we have mapped the parent directory already if there is one.
 
         # Ignore some subdirectories
+
         [subdirs.remove(d) for d in copy(subdirs)
          if d in ('.svn', 'src') or d.startswith('tmp_')]
 
+        # Map a new object for this dir ...
+
         diro = Dir (root=dirname, subdirs=subdirs, files=files)
 
-        # map this dir first ...
         self.dir[dirname] = diro
         if hook: hook (diro)
 
-        # and setup links with/in the parent directory, the tree is walked
-        # top down, so we're supposed to have seen it already when there is
-        # one
+        # Find out its parent object by name. If there's no parent object,
+        # this dir is a root. Setup the links otherwise.
 
         parentname = os.path.dirname(dirname)
 
