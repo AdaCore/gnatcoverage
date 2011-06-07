@@ -451,8 +451,8 @@ class DirTree:
         # testcases
 
         warn_if (diro.req and len (diro.subdos) > 1 and diro.all_tcorset
-                 and not re.search ("Testing [Ss]trategy", diro.dtext()),
-                 "req at %s misses testing strategy description" % diro.root)
+                 and "%(tstrat)s" not in diro.dtext(),
+             "req at %s misses testing strategy description" % diro.root)
 
     def topdown_check_consistency (self, diro, pathi, data):
         self.check_local_consistency(diro, pathi)
@@ -499,12 +499,14 @@ class DocGenerator(object):
     # -- Generating doc contents for a directory --
     # ---------------------------------------------
 
-
     def contents_from(self, diro, name):
 
         SUBST = {
             "tc-index": self.tc_index,
-            "subset-index": self.subset_index
+            "subset-index": self.subset_index,
+            "reqs": self.reqs_header,
+            "req": self.req_header,
+            "tstrat": self.tstrat_header
             }
 
         contents = get_content(os.path.join(diro.root, name))
@@ -521,7 +523,6 @@ class DocGenerator(object):
     def gen_req_section(self, diro):
         """Generate the Requirement description section"""
 
-        self.ofd.write(sec_header("Requirement(s)"))
         self.ofd.write(self.contents_from (diro, "req.txt"))
 
     def gen_tc_section(self, diro):
@@ -569,6 +570,7 @@ class DocGenerator(object):
         elif diro.has_tctxt ():
             self.gen_tc_section(diro)
 
+        self.maybe_toc_section(diro)
         self.ofd.close()
 
     # ---------------------------
@@ -685,6 +687,19 @@ class DocGenerator(object):
                 (dirCut if pathi.depth > 0 and (diro.set or diro.req)
                  else dirSkip)
             )
+
+    # ----------------------------
+    # -- req and tstrat headers --
+    # ----------------------------
+
+    def req_header (self, root, plural=False):
+        return rest.subsection ("Requirement" + ("s" if plural else ""))
+
+    def reqs_header (self, root):
+        return self.req_header (root, plural=True)
+
+    def tstrat_header (self, root):
+        return rest.subsection ("Testing Strategy")
 
     # ------------------------------------
     # -- generate index (toplevel) page --
