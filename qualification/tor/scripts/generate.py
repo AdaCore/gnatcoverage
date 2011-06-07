@@ -216,6 +216,14 @@ class Dir:
         self.pdo = None
         self.subdos = []
 
+        # Properties from presence of local files, better cached to prevent
+        # repeated real file presence checks
+
+        self.req  = self.has_reqtxt()
+        self.test = self.has_testpy()
+        self.tc   = self.has_tctxt()
+        self.set  = self.has_settxt()
+
     def has_reqtxt(self):
         return "req.txt" in self.files
 
@@ -233,14 +241,6 @@ class Dir:
     # ------------------------------------------
 
     def botmup_compute_attributes (self, pathi, data):
-
-        # Properties from presence of local files, better cached to prevent
-        # repeated real file presence checks
-
-        self.req  = self.has_reqtxt()
-        self.test = self.has_testpy()
-        self.tc   = self.has_tctxt()
-        self.set  = self.has_settxt()
 
         # Compute predicates over our set of children. We expect the children
         # attributes to be available here.
@@ -360,11 +360,11 @@ class DirTree:
             self.data = data
 
     def enter(self, diro, wi):
-        if diro.has_reqtxt(): wi.pathi.n_req += 1
+        if diro.req: wi.pathi.n_req += 1
         return wi.ctl (diro, wi.pathi)
 
     def exit(self, diro, wi):
-        if diro.has_reqtxt(): wi.pathi.n_req -= 1
+        if diro.req: wi.pathi.n_req -= 1
 
     def visit (self, diro, wi):
         ctl = self.enter(diro, wi)
@@ -515,26 +515,16 @@ class DocGenerator(object):
              for key in SUBST if ("(%s)s" % key) in contents]
             )
 
-    def gen_set_section(self, diro):
-        """Generate the Set description section"""
-
-        self.ofd.write(self.contents_from (diro, "set.txt"))
-
-    def gen_req_section(self, diro):
-        """Generate the Requirement description section"""
-
-        self.ofd.write(self.contents_from (diro, "req.txt"))
-
     def gen_tc_section(self, diro):
         """Generate the TestCase description section"""
 
         tco = TestCase (dir=diro.root, dgen=self)
 
-        self.ofd.write(self.contents_from (diro, "tc.txt"))
+        self.ofd.write(rest.subsection ("Test Sources"))
 
-        self.ofd.write(subsec_header("Test Data"))
+        self.ofd.write(subsec_header("Functional Code"))
         self.ofd.write(rest.list(
-                [':ref:`%s`' % self.ref(d) for d in tco.fnsources]))
+                [':ref:`%s`' % self.ref(d) for d in sorted(tco.fnsources)]))
 
         self.ofd.write(subsec_header("Test Procedures"))
         self.ofd.write(rest.list(
@@ -563,11 +553,10 @@ class DocGenerator(object):
         self.ofd.write(
             rest.section(to_title(os.path.basename(diro.root))))
 
-        if diro.has_settxt ():
-            self.gen_set_section(diro)
-        elif diro.has_reqtxt ():
-            self.gen_req_section(diro)
-        elif diro.has_tctxt ():
+        if diro.dfile():
+            self.ofd.write(self.contents_from (diro=diro, name=diro.dfile()))
+
+        if diro.tc:
             self.gen_tc_section(diro)
 
         self.maybe_toc_section(diro)
@@ -608,7 +597,7 @@ class DocGenerator(object):
             self.max_tclen = 0
             self.root = root
 
-            self.text = ""
+            self.contents = []
             self.emphsets = emphsets
 
     def tc_text(self, diro, prefix):
@@ -636,9 +625,9 @@ class DocGenerator(object):
 
         # Then append the whole entry
 
-        wi.text += '%-*s %s\n' % (
-            wi.max_tclen, self.tc_text(diro=diro, prefix=wi.root),
-            sumtext)
+        wi.contents.append ('%-*s %s\n' % (
+                wi.max_tclen, self.tc_text(diro=diro, prefix=wi.root),
+                sumtext))
 
     def compute_max_tclen(self, diro, pathi, wi):
         thislen = len (self.tc_text(diro=diro, prefix=wi.root))
@@ -658,9 +647,9 @@ class DocGenerator(object):
             mode=topdown, process=self.compute_max_tclen,
             ctl=nodectl, data=wi)
 
-        # Then we append the table header, the entries, and the table footer
+        # Then we compute the table header, the entries, and the table footer
 
-        wi.text += ''.join ([
+        text = ''.join ([
             "%-s ========\n" % ('=' * wi.max_tclen),
             "%-*s Summary\n" % (wi.max_tclen, "Entry"),
             "%-s ========\n" % ('=' * wi.max_tclen)
@@ -670,9 +659,12 @@ class DocGenerator(object):
             mode=topdown, process=self.maybe_add_line_for,
             ctl=nodectl, data=wi)
 
-        wi.text += "%-s ========\n" % ('=' * wi.max_tclen)
+        wi.contents.sort()
+        text += ''.join (wi.contents)
 
-        return wi.text
+        text += "%-s ========\n" % ('=' * wi.max_tclen)
+
+        return text
 
     def tc_index(self, root):
         return self.index_table (
