@@ -1,13 +1,13 @@
 Material to define and validate the expected processing of multiple execution
 traces combined together.
 
-**Requirement**
+%(req)s
 
 When the coverage achieved by multiple execution traces is evaluated, an mcdc
 violation shall only be reported when it would have been for all the traces
 individually.
 
-**Testing Strategy**
+%(tstrat)s
 
 We exercise consolidation of traces obtained for single vector invocations
 over a range of basic decisions.
@@ -18,3 +18,4 @@ inputs without repetitions.
 We operate similarily for decisions with three operands, except we aggregate
 inputs that differ only on non-evaluated conditions.
 
+%(tc-index)s

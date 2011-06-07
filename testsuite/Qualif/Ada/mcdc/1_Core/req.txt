@@ -1,7 +1,7 @@
 Material to define and validate the core expectations for MC/DC assessments.
 All the other sub-sections rely on this one.
 
-**Requirements**
+%(reqs)s
 
 Compared to Decision Coverage, MCDC assessements first enlarges the set
 of expressions that shall be considered as decisions:
@@ -36,7 +36,7 @@ Requirement Id    Description
 		  shall be reported as never evaluated.
 ===============   ===========================================================
 
-**Testing Strategy**
+%(tstrat)s
 
 To address *dcomplete* and *dnoeval*, we expose three main subsets of
 testcases:

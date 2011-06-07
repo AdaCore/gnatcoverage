@@ -6,7 +6,7 @@ If execution reaches the top of a basic block, no statement in the block is
 reported uncovered. Conversely, if execution doesn't reach the top of a basic
 block, all the statements in the block shall be reported uncovered.
 
-**Testing Strategy**
+%(tstrat)s
 
 1. Check that basic blocks of statements are recognized in various
    possible contexts:

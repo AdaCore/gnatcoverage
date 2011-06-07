@@ -1,7 +1,7 @@
 Statement coverage assessment remains well defined in the presence of code
 constructs that could fool simple minded analysis engines.
 
-**Testing Strategy**
+%(tstrat)s
 
 Check cases where
 
