@@ -1,0 +1,470 @@
+This section describes and illustrates the overall organization of the
+GNATcoverage qualification test harness.
+
+--------
+Overview
+--------
+
+To elaborate how the tool should behave and assess that it produces reliable
+outputs, we provide:
+
+* An explicit description of the expected behavior as a set of *Tool
+  Operational Requirements* (TORs) for nominal use conditions, and
+
+* A set of executable *Test Cases* (TCs) associated with each requirement,
+  exercized to validate that the behavior indeed corresponds to expectations.
+
+Multiple aspects of the tool behavior have to be considered. We distinguish
+different categories of tool operational requirements for this purpose:
+
+* *Coverage of source language constructs*. This category focuses on the
+  users' expectations with respect to coverage metrics for specific language
+  constructs (if statements, loop, blocks, etc), isolated or combined
+  together.
+
+  Programming language reference manuals provide a significant contribution in
+  identifying the constructs of interest.
+
+  Testcases for this kind of TORs typically exercise a piece of functional
+  code in various ways, for example by causing a Boolean expression to be
+  evaluated just True or False, and verify that results are as expected in all
+  the variations.
+
+* *General coverage analysis facilities*. This category focuses on general
+  facilities offered by the tool, not at all tied to a particular language
+  construct, such as the support for coverage exemptions, or consolidation
+  capabilities.
+
+  In addition to validating the tool behavior with respect to the stated
+  requirements, testcases in this category extend the set of exercized code
+  samples where mutliple language features are mixed together.
+
+* *Compliance of the output report with the documented format*, part of the
+  tool qualified interface.
+
+  In addition to dedicated testcases designed to verify that all the mandatory
+  pieces are there, part of these requirements are also implicitly validated
+  by the execution of all the coverage checking testcases in other categories,
+  where specific sections of the report are scanned to search for criteria
+  violation messages.
+
+For the two first categories, our principal focus is to assess that
+GNATcoverage is *sound*, that is, to make sure that violations of a given
+coverage criterion are detected.
+
+Our testsuite driver expects a strict one-to-one match between result
+expectations stated by test writers in testcases and the diagnostics emitted
+by the tool, such that every reported violation must have been stated as
+expected and every expected violation must be reported for a test to pass.
+
+------------------------
+Operational organization
+------------------------
+
+We qualify a well identified GNATcoverage/GNATemulator bundle to perform
+structural coverage assessments in accordance with the qualified interface.
+
+The qualification focuses on the ``--annotate=report`` text output of
+GNATcoverage, which exposes a list of violations with respect to a given
+coverage criterion, diagnostics such as ``statement not covered at
+<file>:<line>:<col>`` or alike.
+
+Tool Operational Requirements, Test Cases and the associated Tests are
+all collected and linked together in a filesystem tree, version controlled
+through a configuration management repository.
+
+A set of strict organizational rules is enforced to ensure global consistency,
+traceability, and allow automated execution of the tests by a testsuite driver
+to assess the tool behavior correctness.
+
+Toplevel entry points
+*********************
+
+All the language specific artifacts are hosted in the Qualif/<language>
+directory subtree.
+
+**Tool Operational Requirements**
+
+Each TOR maps to a physical folder in the repository.
+%
+The folder name is the TOR identifier.
+% 
+All the qualification artifacts related to a TOR are stored as either files
+or subfolders within the TOR directory:
+
+Every TOR directory holds a ``req.txt`` file where the TOR textual
+specification resides.
+%
+The TOR is then either validated by one or more testcases, or subdivided
+as a set of simpler TORs.
+
+Each testcase materializes as a subdirectory, as described in
+the following section.
+%
+When a TOR is validated by several testcases, the ``req.txt`` specification
+shall include a ``Testing Strategy'' section which provides a general
+description of how distinct aspects of the requirement are fullfilled by each
+testcase.
+
+Sub-TORs are hosted as subdirectories as well and obey the same rules as
+their parent.
+
+**Test Cases & Tests**
+
+A Test Case is set of Tests aimed at validating part or all of an operational
+requirement.
+%
+Each test case associated with a TOR is held in a subdirectory of the TOR
+folder.
+%
+The subdirectory name is the testcase identifier.
+
+Every testcase subdirectory shall contain a ``tc.txt`` file, which holds
+a textual description of the test case intent and organization.
+%
+When this is one of multiple test cases for a requirement, this description
+completes the general comments found in the TOR Testing Strategy notes.
+
+The sources for a test case always involve two categories of sources:
+
+* Functional sources, code for which some coverage properties are to be
+  assessed,
+
+* Driver sources, which invoke the functional code in various ways and embed a
+  description of the expected coverage outcome.
+
+File names starting with ``test_`` identify driver sources. Multiple drivers
+may be used to exercise a single functional source.
+
+Every testcase has specific sources, always located in the ``src/``
+subdirectory of the testcase folder. Sources may be shared between test cases,
+for either functional or driver code, searched in ``src`` subdirectories of
+parent folders as needed.
+
+Section :ref:`harness-assessment` explains how the testsuite engine
+locates and executes the applicable drivers for a test case.
+
+Section :ref:`testcase-dev` provides details on how test case development
+proceeds, including on how coverage expectations are specified.
+
+The following section offers a summary of the general tree organization for
+a dummy TOR/TC tree structure:
+
+**Summary**
+
+First, the toplevel entries, then a couple of TORs with two standalone test
+cases associated with the first one:
+
+``
+ Qualif/<language>/stmt 
+                  /decision
+                  /mcdc
+
+ stmt/TOR_1/req.txt (with Testing Strategy notes)
+     .     .
+     .     /TC_1/tc.txt
+     .     .    /src/foo.adb
+     .     .        /test_foo_1.adb
+     .     .        /test_foo_2.adb
+     .     .
+     .     /TC_2/tc.txt
+     .          /src/bar.adb
+     .              /test_bar_1.adb
+     .              /test_bar_2.adb
+     .
+     /TOR_2/req.txt [...]
+     ...
+``
+
+Second, a couple of test cases sharing driver or functional sources:
+
+``
+ stmt/TOR_7/req.txt 
+     .     .
+     .     /src/test_foo_1.adb
+     .     .   /test_foo_2.adb
+     .     .
+     .     /TC_1/tc.txt
+     .     .    /src/foo.adb
+     .     .
+     .     /TC_2/tc.txt
+     .     .    /src/foo.adb
+     ...
+``
+
+``
+ stmt/TOR_9/req.txt 
+     .     .
+     .     /src/bar.adb
+     .     .
+     .     /TC_1/tc.txt
+     .     .    /src/test_bar_1.adb
+     .     .
+     .     /TC_2/tc.txt
+     .     .    /src/test_bar_1.adb
+     ...
+``
+
+.. _harness-assessment:
+---------------------------------------
+Behavior Correctness Assessment Process
+---------------------------------------
+
+Our testsuite automated execution is Python driven.
+
+For a list a infrastructure preriquisites to allow the tests to run, see the
+README file in the suite toplevel dir.
+
+Locating and executing Test Cases
+*********************************
+
+The testsuite engine, invoked from the qualification toplevel directory,
+searches for test cases, executes every one it finds, keeps track of
+passes/failures as it goes, and produces a synthetic report at the end.
+
+The engine uses the ``PATH`` environment variable to select the tools.
+
+It reports the corresponding versions, as well as the set of compilation
+command line options exercized.
+
+To locate test cases, the engine seeks executable ``test.py`` Python files,
+expected everywhere a ``tc.txt`` (testcase description) resides.
+
+For every test case, the execution first locates the applicable driver
+sources, selecting those from the ``src/`` subdirectory, if any, or searching
+uptree otherwise.
+
+In the latter case, functional sources are expected in ``src/`` and the
+engine searches by name for corresponding ``test_`` candidates.
+
+For every ``test_<x>`` driver, the engine then ...
+
+* Builds the executable program (driver + functional code to exercize),
+
+* Executes the program with ``xcov run``, producing an execution trace,
+
+* Invokes ``xcov coverage`` to analyze the trace and produce coverage
+  reports,
+
+* Compares the outputs with the expectations stated in the driver sources,
+
+* Decides whether they match (test passes) or not (test fails) and report.
+
+All of this is performed in a separate subdirectory called ``tmp_test_<x>``.
+
+Consolidation Scenarii
+**********************
+
+The engine then checks whether consolidation scenarii are to be exercized.
+
+These are specified as ``cons_<scenario_id>.txt`` text files found in the
+local ``src/`` subdirectory or uptree. Each is expected to contain a
+``drivers=<regexp>`` line followed by coverage expectations.
+
+For each consolidation scenario found, the engine consolidates the traces
+previously produced by all the drivers whose name matches ``regexp`` (for
+example, ``.``  selects them all), compares the results with the scenario
+expectations and reports.
+
+This is all performed in a separate subdirectory called
+ ``tmp_cons_<scenario_id>``.
+
+\subsection{Control Options}
+
+The engine driver supports various options to help developers, like
+ways to select subsets of case to exercize or ways to specify alternate
+compilation options for expermientation purposes.
+%
+These are for \xcov{} developers use only.
+
+.. _testcase-dev:
+---------------------
+Test Case development
+---------------------
+
+Overview
+********
+
+To contribute a test case for a TOR, developers have to
+
+*  Create of a dedicated subdirectory in the TOR folder,
+
+* Provide ``tc.txt``, describing the testcase intent and organization,
+
+* Develop the test case specific sources, providing coverage expectations
+  and/or support for them as needed (see in the following text),
+
+* Provide a ``test.py`` to hook in the testsuite engine.
+
+Thanks to the simple source naming conventions and the in-source embedded
+expectations, the ``test.py`` contents is entirely generic and can simply be
+copied from one test case to the other.
+
+The presence of a this file is still useful to help the toplevel driver locate
+and launch testcase executions, as outlined in section
+:ref:`harness-assessment`.
+
+Coverage Expectations
+*********************
+
+The description of expectations on coverage results is achieved with two
+devices:
+
+* **In functional sources**:
+
+  Comments starting with ``-- #`` on lines for which coverage
+  expectations need to be specified. These provide ways to refer
+  to functional lines from ...
+
+* **In driver sources, at the end**, a sequence of:
+
+  ``--# <functional_file_name>``
+
+  followed by an optional sequence of:
+
+  ``--  /regexp/ <expected .xcov note> <expected report notes>``
+
+In the optional sequence at the end of driver sources:
+
+* ``/regexp/`` selects all the source lines matching ``-- # & regexp``
+
+* ``<expected .xcov note>`` denotes the synthesis sign we expect on the
+  selected lines in the ``--annotate=xcov`` output:
+
+  \begin{tabular}{ll}
+    Text & Denotes an expected ... \\ \hline
+    ``l-``, ``l+``, ``l.`` &
+    '``-``', '``+``' or '``.``' coverage status synthesis sign, respectively \\
+    ``l\#``, ``l*``  &
+    '``\#``' or '``*``' exemption status synthesis sign, respectively\\
+  \end{tabular}
+
+* ``<expected report notes>`` is a comma separated sequence of coverage
+  violation diagnostics expected for the selected lines in the
+  ``--annotate=report`` output:
+  
+  \begin{tabular}{ll}
+    Text & Denotes an expected ... \\ \hline
+    ``0``   & absence of diagnostic \\
+    ``s-``  & "statement not covered" \\
+    ``dT-`` & "decision outcome True not covered" \\
+    ``dF-`` & "decision outcome False not covered" \\
+    ``d!``  & "one decision outcome not covered" \\
+    ``c!``  & "independent influence of condition not demonstrated"  \\
+    ``x0``  & "exempted region, 0 exemptions" \\
+    ``x+``  & "exempted region, > 0 exemptions" \\
+  \end{tabular}
+
+  Some of these notes require precise source location designations, such as a
+  line segment to identify a specific condition.
+  % 
+  This is achieved with a ``:"subtext"`` extension to the note, for example
+  \verb|c!:"B"| to denote the second condition on a line with
+  \verb|V := A and then B;|.
+
+The rationale for introducing such a circuitry, instead of, for example, using
+straight file comparisons with pre-recorded expected outputs, is threefold:
+
+* It brings a lot of flexibility to accomodate minor changes in output
+  formatting or line numbers in test cases, which facilitates maintenance;
+
+* It involves developers actively in the expectations specification
+  process, which needs to be done very carefully.
+  
+  This point is reinforced by requesting the expected .xcov notes eventhough
+  the ``--annotate=xcov`` output is not qualified, which also strengthens
+  the case on the tool qualified output, as checks over it are redunded
+  on an alternate format. 
+
+* It allows sharing sources across test cases in a very well controlled
+  manner, which lets us multiply the number of test scenarii exercized, hence
+  the qualification assessment strength, without causing an untractable
+  growth of the testsuite complexity.
+
+Below is a simple example, with a functional ``in_range.adb`` source
+first:
+
+``
+      function In_Range (X , Min, Max : Integer) return Boolean is
+      begin
+         if X < Min then     -- # XcmpMin
+            return False;    -- # XoutMin
+         elsif X > Max then  -- # XcmpMax
+            return False;    -- # XoutMax
+         else
+            return True;     -- # Xin
+         end if;
+      end;
+``
+
+Then a driver with expectations referencing the functional
+lines with markers:
+
+``
+      --  Exercize X > max only. Verify that the < min exit and the
+      --  in-range case are reported uncovered.
+
+      procedure Test_In_Range_GTmax is
+      begin
+         Assert (not In_Range (4, 2, 3));
+      end;
+
+      --# in_range.adb
+      --  /XcmpMin/  l+ 0
+      --  /XoutMin/  l- s-
+      --  /XcmpMax/  l+ 0
+      --  /XoutMax/  l+ 0
+      --  /Xin/      l- s-
+``
+
+The ``<expected .xcov note>`` column (2nd) for ``in_range.adb`` states
+that we expect a ``--annotate=xcov`` output with:
+
+``
+      expected notes here
+        v
+      1 .: function In_Range (X , Min, Max : Integer) return Boolean is
+      2 .: begin
+      3 +:    if X < Min then     -- # XcmpMin
+      4 -:       return False;    -- # XoutMin
+      5 +:    elsif X > Max then  -- # XcmpMax
+      6 +:       return False;    -- # XoutMax
+      7 .:    else
+      8 -:       return True;     -- # Xin
+      9 .:    end if;
+     10 .: end;
+``
+
+The ``<expected report notes>`` column (3rd) indicates we're expecting
+"statement not covered" diagnostics for lines 4 and 8 out of ``xcov
+  --annotate=report``.
+
+More on expectations semantics
+******************************
+
+The essential purpose of the qualification process is to make sure that
+improperly covered items are reported as such.
+%
+On this ground, the testsuite enforces stricter checks for '``!``' and
+'``-``' items than for '``+``':
+
+* For '``-``' or '``!``' items, there must be an exact match between the
+  stated expectations and results reported by \xcov{} (in both output formats
+  examined):  
+  every expectation must be found in the tool outputs, and every occurrence
+  in the tool output must have a corresponding expectation.
+
+  This makes sure that expectations are specified carefully and that the
+  tool reports exactly what we expect.
+
+* For '``+``' items (.xcov outputs only), only the first of the previously
+  described checks applies. Absence of an expectation statement for '``+``' on
+  a line doesn't cause a test failure.
+
+``/regexp/`` filters that select no lines are allowed and act as a
+no-ops. This is useful in situations where a single driver is shared across
+different tests.
+
+Non-empty intersections between different filters are "allowed" as well but
+eventhough sometimes convenient, they most often correspond to mistakes. The
+sets of expected indications just accumulate.
