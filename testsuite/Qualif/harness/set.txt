@@ -17,20 +17,20 @@ outputs, we provide:
 Multiple aspects of the tool behavior have to be considered. We distinguish
 different categories of tool operational requirements for this purpose:
 
-* *Coverage of source language constructs*. This category focuses on the
+* **Coverage of source language constructs**. This category focuses on the
   users' expectations with respect to coverage metrics for specific language
   constructs (if statements, loop, blocks, etc), isolated or combined
   together.
-
-  Programming language reference manuals provide a significant contribution in
-  identifying the constructs of interest.
 
   Testcases for this kind of TORs typically exercise a piece of functional
   code in various ways, for example by causing a Boolean expression to be
   evaluated just True or False, and verify that results are as expected in all
   the variations.
+  Programming language reference manuals provide a significant contribution in
+  identifying the constructs of interest.
 
-* *General coverage analysis facilities*. This category focuses on general
+
+* **General coverage analysis facilities**. This category focuses on general
   facilities offered by the tool, not at all tied to a particular language
   construct, such as the support for coverage exemptions, or consolidation
   capabilities.
@@ -39,7 +39,7 @@ different categories of tool operational requirements for this purpose:
   requirements, testcases in this category extend the set of exercized code
   samples where mutliple language features are mixed together.
 
-* *Compliance of the output report with the documented format*, part of the
+* **Compliance of the output report with the documented format**, part of the
   tool qualified interface.
 
   In addition to dedicated testcases designed to verify that all the mandatory
@@ -86,21 +86,21 @@ directory subtree.
 **Tool Operational Requirements**
 
 Each TOR maps to a physical folder in the repository.
-%
+
 The folder name is the TOR identifier.
-% 
+
 All the qualification artifacts related to a TOR are stored as either files
 or subfolders within the TOR directory:
 
 Every TOR directory holds a ``req.txt`` file where the TOR textual
 specification resides.
-%
+
 The TOR is then either validated by one or more testcases, or subdivided
 as a set of simpler TORs.
 
 Each testcase materializes as a subdirectory, as described in
 the following section.
-%
+
 When a TOR is validated by several testcases, the ``req.txt`` specification
 shall include a ``Testing Strategy'' section which provides a general
 description of how distinct aspects of the requirement are fullfilled by each
@@ -113,15 +113,15 @@ their parent.
 
 A Test Case is set of Tests aimed at validating part or all of an operational
 requirement.
-%
+
 Each test case associated with a TOR is held in a subdirectory of the TOR
 folder.
-%
+
 The subdirectory name is the testcase identifier.
 
 Every testcase subdirectory shall contain a ``tc.txt`` file, which holds
 a textual description of the test case intent and organization.
-%
+
 When this is one of multiple test cases for a requirement, this description
 completes the general comments found in the TOR Testing Strategy notes.
 
@@ -153,10 +153,9 @@ a dummy TOR/TC tree structure:
 **Summary**
 
 First, the toplevel entries, then a couple of TORs with two standalone test
-cases associated with the first one:
+cases associated with the first one::
 
-``
- Qualif/<language>/stmt 
+ Qualif/<language>/stmt
                   /decision
                   /mcdc
 
@@ -174,12 +173,10 @@ cases associated with the first one:
      .
      /TOR_2/req.txt [...]
      ...
-``
 
-Second, a couple of test cases sharing driver or functional sources:
+Second, a couple of test cases sharing driver or functional sources::
 
-``
- stmt/TOR_7/req.txt 
+ stmt/TOR_7/req.txt
      .     .
      .     /src/test_foo_1.adb
      .     .   /test_foo_2.adb
@@ -190,10 +187,8 @@ Second, a couple of test cases sharing driver or functional sources:
      .     /TC_2/tc.txt
      .     .    /src/foo.adb
      ...
-``
 
-``
- stmt/TOR_9/req.txt 
+ stmt/TOR_9/req.txt
      .     .
      .     /src/bar.adb
      .     .
@@ -203,7 +198,6 @@ Second, a couple of test cases sharing driver or functional sources:
      .     /TC_2/tc.txt
      .     .    /src/test_bar_1.adb
      ...
-``
 
 .. _harness-assessment:
 ---------------------------------------
@@ -274,7 +268,7 @@ This is all performed in a separate subdirectory called
 The engine driver supports various options to help developers, like
 ways to select subsets of case to exercize or ways to specify alternate
 compilation options for expermientation purposes.
-%
+
 These are for \xcov{} developers use only.
 
 .. _testcase-dev:
@@ -310,57 +304,57 @@ Coverage Expectations
 The description of expectations on coverage results is achieved with two
 devices:
 
-* **In functional sources**:
-
-  Comments starting with ``-- #`` on lines for which coverage
-  expectations need to be specified. These provide ways to refer
-  to functional lines from ...
+* **In functional sources**, comments starting with ``-- #`` on lines for
+  which coverage expectations need to be specified. These provide ways to
+  refer to functional lines from ...
 
 * **In driver sources, at the end**, a sequence of:
 
-  ``--# <functional_file_name>``
-
-  followed by an optional sequence of:
-
-  ``--  /regexp/ <expected .xcov note> <expected report notes>``
+  | ``--# <functional_file_name>`` followed by an optional sequence of:
+  | ``--  /regexp/ <expected .xcov note> <expected report notes>`` lines
 
 In the optional sequence at the end of driver sources:
 
-* ``/regexp/`` selects all the source lines matching ``-- # & regexp``
+* ``/regexp/`` selects all the source lines matching ``-- # <regexp>``
 
 * ``<expected .xcov note>`` denotes the synthesis sign we expect on the
   selected lines in the ``--annotate=xcov`` output:
 
-  \begin{tabular}{ll}
-    Text & Denotes an expected ... \\ \hline
-    ``l-``, ``l+``, ``l.`` &
-    '``-``', '``+``' or '``.``' coverage status synthesis sign, respectively \\
-    ``l\#``, ``l*``  &
-    '``\#``' or '``*``' exemption status synthesis sign, respectively\\
-  \end{tabular}
+  =========================  =======================
+  Text                       Denotes an expected ...
+  =========================  =======================
+  ``l-``, ``l+``, or ``l.``  ``-``, ``+``, or ``.``
+                             coverage status synthesis sign, respectively
+
+  ``l#``, ``l*``             ``#`` or ``*``
+                             exemption status synthesis sign, respectively
+  =========================  =======================
+
 
 * ``<expected report notes>`` is a comma separated sequence of coverage
   violation diagnostics expected for the selected lines in the
   ``--annotate=report`` output:
-  
-  \begin{tabular}{ll}
-    Text & Denotes an expected ... \\ \hline
-    ``0``   & absence of diagnostic \\
-    ``s-``  & "statement not covered" \\
-    ``dT-`` & "decision outcome True not covered" \\
-    ``dF-`` & "decision outcome False not covered" \\
-    ``d!``  & "one decision outcome not covered" \\
-    ``c!``  & "independent influence of condition not demonstrated"  \\
-    ``x0``  & "exempted region, 0 exemptions" \\
-    ``x+``  & "exempted region, > 0 exemptions" \\
-  \end{tabular}
+
+   =======   ======
+   Text      Denotes an expected ...
+   =======   ======
+   ``0``     absence of diagnostic
+   ``s-``    ``statement not covered``
+   ``dT-``   ``decision outcome True not covered``
+   ``dF-``   ``decision outcome False not covered``
+   ``d!``    ``one decision outcome not covered``
+   ``c!``    ``independent influence of condition not demonstrated``
+   ``x0``    ``exempted region, 0 exemptions``
+   ``x+``    ``exempted region, > 0 exemptions``
+   =======   ======
+
 
   Some of these notes require precise source location designations, such as a
   line segment to identify a specific condition.
-  % 
+
   This is achieved with a ``:"subtext"`` extension to the note, for example
-  \verb|c!:"B"| to denote the second condition on a line with
-  \verb|V := A and then B;|.
+  ``c!:"B"`` to denote the second condition on a line with ``V := A and then
+  B;``.
 
 The rationale for introducing such a circuitry, instead of, for example, using
 straight file comparisons with pre-recorded expected outputs, is threefold:
@@ -370,21 +364,20 @@ straight file comparisons with pre-recorded expected outputs, is threefold:
 
 * It involves developers actively in the expectations specification
   process, which needs to be done very carefully.
-  
+
   This point is reinforced by requesting the expected .xcov notes eventhough
   the ``--annotate=xcov`` output is not qualified, which also strengthens
   the case on the tool qualified output, as checks over it are redunded
-  on an alternate format. 
+  on an alternate format.
 
 * It allows sharing sources across test cases in a very well controlled
   manner, which lets us multiply the number of test scenarii exercized, hence
   the qualification assessment strength, without causing an untractable
   growth of the testsuite complexity.
 
-Below is a simple example, with a functional ``in_range.adb`` source
-first:
+Below is a simple example, with a functional ``in_range.adb`` Ada source
+first::
 
-``
       function In_Range (X , Min, Max : Integer) return Boolean is
       begin
          if X < Min then     -- # XcmpMin
@@ -395,12 +388,10 @@ first:
             return True;     -- # Xin
          end if;
       end;
-``
 
 Then a driver with expectations referencing the functional
-lines with markers:
+lines with markers::
 
-``
       --  Exercize X > max only. Verify that the < min exit and the
       --  in-range case are reported uncovered.
 
@@ -415,12 +406,10 @@ lines with markers:
       --  /XcmpMax/  l+ 0
       --  /XoutMax/  l+ 0
       --  /Xin/      l- s-
-``
 
 The ``<expected .xcov note>`` column (2nd) for ``in_range.adb`` states
-that we expect a ``--annotate=xcov`` output with:
+that we expect a ``--annotate=xcov`` output with::
 
-``
       expected notes here
         v
       1 .: function In_Range (X , Min, Max : Integer) return Boolean is
@@ -433,24 +422,23 @@ that we expect a ``--annotate=xcov`` output with:
       8 -:       return True;     -- # Xin
       9 .:    end if;
      10 .: end;
-``
 
 The ``<expected report notes>`` column (3rd) indicates we're expecting
 "statement not covered" diagnostics for lines 4 and 8 out of ``xcov
-  --annotate=report``.
+--annotate=report``.
 
 More on expectations semantics
 ******************************
 
 The essential purpose of the qualification process is to make sure that
 improperly covered items are reported as such.
-%
+
 On this ground, the testsuite enforces stricter checks for '``!``' and
 '``-``' items than for '``+``':
 
 * For '``-``' or '``!``' items, there must be an exact match between the
-  stated expectations and results reported by \xcov{} (in both output formats
-  examined):  
+  stated expectations and results reported by xcov (in both output formats
+  examined):
   every expectation must be found in the tool outputs, and every occurrence
   in the tool output must have a corresponding expectation.
 
