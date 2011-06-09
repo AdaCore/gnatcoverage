@@ -1,2 +1,2 @@
-Exercise "A or else (not B)"
+Exercise ``A or else (not B)``
 on the RHS of an Assignment statement.

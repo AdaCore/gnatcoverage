@@ -1,2 +1,2 @@
-Exercise "A and then Orelse(B, C)"
+Exercise ``A and then Orelse(B, C)``
 used as a Return statement value.

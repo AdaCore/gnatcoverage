@@ -1,2 +1,2 @@
-Exercise "A and then (B or else C)"
+Exercise ``A and then (B or else C)``
 used as part of a record component aggregate initializer.

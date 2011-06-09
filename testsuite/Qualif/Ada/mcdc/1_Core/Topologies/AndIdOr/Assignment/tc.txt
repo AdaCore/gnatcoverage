@@ -1,2 +1,2 @@
-Exercise "A and then Id(B or else C)"
+Exercise ``A and then Id(B or else C)``
 on the RHS of an Assignment statement.

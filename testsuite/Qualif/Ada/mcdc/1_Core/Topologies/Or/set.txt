@@ -1,2 +1,2 @@
 This section groups testcases that exercise a decision of the form
-"A or else B" in various contexts.
+``A or else B`` in various contexts.

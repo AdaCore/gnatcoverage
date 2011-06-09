@@ -1,2 +1,2 @@
-Exercise "A or else B"
+Exercise ``A or else B``
 used as an array index.

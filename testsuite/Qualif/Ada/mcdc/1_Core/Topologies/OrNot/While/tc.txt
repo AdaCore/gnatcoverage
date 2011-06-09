@@ -1,2 +1,2 @@
-Exercise "A or else (not B)"
+Exercise ``A or else (not B)``
 used as a While statement control.

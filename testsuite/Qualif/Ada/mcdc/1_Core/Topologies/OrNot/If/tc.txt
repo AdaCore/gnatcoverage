@@ -1,2 +1,2 @@
-Exercise "A or else (not B)"
+Exercise ``A or else (not B)``
 used to control an If statement.

@@ -1,2 +1,2 @@
-Exercise "A and then Id(B or else C)"
+Exercise ``A and then Id(B or else C)``
 used as an exit-when expression.

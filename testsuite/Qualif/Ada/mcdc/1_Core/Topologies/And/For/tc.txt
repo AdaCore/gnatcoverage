@@ -1,2 +1,2 @@
-Exercise "A and then B"
+Exercise ``A and then B``
 used as a For statement control.

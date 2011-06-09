@@ -1,2 +1,2 @@
-Exercise "(A or else B) and then (C or else D)"
+Exercise ``(A or else B) and then (C or else D)``
 used as a local boolean object initializer.

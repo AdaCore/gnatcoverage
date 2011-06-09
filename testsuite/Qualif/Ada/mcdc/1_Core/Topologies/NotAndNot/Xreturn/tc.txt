@@ -1,2 +1,2 @@
-Exercise "(not A) and then (not B)"
+Exercise ``(not A) and then (not B)``
 used as an extended return statement value.

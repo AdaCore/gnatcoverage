@@ -1,2 +1,2 @@
-Exercise "(not A) and then (not B)"
+Exercise ``(not A) and then (not B)``
 used to control a Case statement.

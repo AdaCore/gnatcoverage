@@ -1,2 +1,2 @@
-Exercise "(not A) or else B"
+Exercise ``(not A) or else B``
 used as a record component initializer.

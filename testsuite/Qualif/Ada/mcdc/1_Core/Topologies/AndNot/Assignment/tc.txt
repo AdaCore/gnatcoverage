@@ -1,2 +1,2 @@
-Exercise "A and then not B"
+Exercise ``A and then not B``
 on the RHS of an Assignment statement.
