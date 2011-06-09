@@ -461,7 +461,7 @@ class DirTree:
         # testcases
 
         warn_if (diro.req and len (diro.subdos) > 1 and diro.all_tcorset
-                 and "%(tstrat)s" not in diro.dtext(),
+                 and "%(tstrategy-headline)s" not in diro.dtext(),
              "req at %s misses testing strategy description" % diro.root)
 
     def topdown_check_consistency (self, diro, pathi, data):
@@ -514,9 +514,9 @@ class DocGenerator(object):
         SUBST = {
             "tc-index": self.tc_index,
             "subset-index": self.subset_index,
-            "reqs": self.reqs_header,
-            "req": self.req_header,
-            "tstrat": self.tstrat_header
+            "reqs-headline": self.reqs_headline,
+            "req-headline": self.req_headline,
+            "tstrategy-headline": self.tstrat_headline
             }
 
         contents = get_content(os.path.join(diro.root, name))
@@ -690,17 +690,17 @@ class DocGenerator(object):
                  else dirSkip)
             )
 
-    # ----------------------------
-    # -- req and tstrat headers --
-    # ----------------------------
+    # ---------------------------------
+    # -- req and tstrategy headlines --
+    # ---------------------------------
 
-    def req_header (self, root, plural=False):
+    def req_headline (self, root, plural=False):
         return rest.subsection ("Requirement" + ("s" if plural else ""))
 
-    def reqs_header (self, root):
-        return self.req_header (root, plural=True)
+    def reqs_headline (self, root):
+        return self.req_headline (root, plural=True)
 
-    def tstrat_header (self, root):
+    def tstrat_headline (self, root):
         return rest.subsection ("Testing Strategy")
 
     # ------------------------------------
@@ -747,7 +747,7 @@ class DocGenerator(object):
     def generate_all(self, chapdirs):
 
         ref_chapdirs = [
-            "Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
+            "harness", "Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
 
         # [Re]generate only the requested chapters, when specified,
         # everything otherwise
