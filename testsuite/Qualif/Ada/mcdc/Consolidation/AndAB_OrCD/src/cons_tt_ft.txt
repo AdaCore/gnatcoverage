@@ -1,0 +1,5 @@
+drivers=_tt|_ft
+
+--# a1o2.adb
+--  /valueF/ l! c!:"B"
+--  /evals/  l! c!:"B" # dF-:"C or else D"

@@ -1,5 +1,0 @@
-drivers=_ft|_tt
-
---# a1o2.adb
---  /valueF/ l+ 0
---  /evals/  l+;mu=>l! mu=>dF-:"C or else D"

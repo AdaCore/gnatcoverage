@@ -1,7 +1,7 @@
-drivers=_ft|_ff
+drivers=_ft|_tf
 
 --# a1o2.adb
 --  /valueF/ l! dT-
 --  /true/  l- s-
 --  /false/ l+ 0
---  /evals/  l+;mu=>l! mu=>dT-:"A and then B"
+--  /evals/  l! c!:"B" # c!:"D"

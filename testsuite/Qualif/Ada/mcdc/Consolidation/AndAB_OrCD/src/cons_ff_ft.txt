@@ -4,4 +4,4 @@ drivers=_ff|_ft
 --  /valueF/   l! dT-
 --  /true/  l- s-
 --  /false/ l+ 0
---  /evals/  l+;mu=>l! mu=>dT-:"A and then B"
+--  /evals/  l! dT-:"A and then B" # c!:"D"
