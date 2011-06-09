@@ -1,0 +1,141 @@
+
+**************************************************
+**  ['test_orelse_v0'], src/test_orelse_v0.adb  **
+** decision coverage with --level=stmt+decision **
+**************************************************
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~ Processing UX for orelse.adb ~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~ processing test.rep ~~
+
+OK
+
+
+~~ processing orelse.adb.xcov ~~
+
+OK
+
+
+**************************************************
+**  ['test_orelse_v1'], src/test_orelse_v1.adb  **
+** decision coverage with --level=stmt+decision **
+**************************************************
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~ Processing UX for orelse.adb ~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~ processing test.rep ~~
+
+OK
+
+
+~~ processing orelse.adb.xcov ~~
+
+OK
+
+
+**************************************************
+**  ['test_orelse_v2'], src/test_orelse_v2.adb  **
+** decision coverage with --level=stmt+decision **
+**************************************************
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~ Processing UX for orelse.adb ~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~ processing test.rep ~~
+
+OK
+
+
+~~ processing orelse.adb.xcov ~~
+
+OK
+
+
+***********************************************************
+** ['test_orelse_v0', 'test_orelse_v1'], src/cons_01.txt **
+**      decision coverage with --level=stmt+decision     **
+***********************************************************
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~ Processing UX for orelse.adb ~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~ processing test.rep ~~
+
+OK
+
+
+~~ processing orelse.adb.xcov ~~
+
+OK
+
+
+************************************************************
+** ['test_orelse_v1', 'test_orelse_v2'], src/cons_012.txt **
+**      decision coverage with --level=stmt+decision      **
+************************************************************
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~ Processing UX for orelse.adb ~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~ processing test.rep ~~
+
+OK
+
+
+~~ processing orelse.adb.xcov ~~
+
+OK
+
+
+***********************************************************
+** ['test_orelse_v0', 'test_orelse_v2'], src/cons_02.txt **
+**      decision coverage with --level=stmt+decision     **
+***********************************************************
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~ Processing UX for orelse.adb ~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~ processing test.rep ~~
+
+OK
+
+
+~~ processing orelse.adb.xcov ~~
+
+OK
+
+
+***********************************************************
+** ['test_orelse_v1', 'test_orelse_v2'], src/cons_12.txt **
+**      decision coverage with --level=stmt+decision     **
+***********************************************************
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~ Processing UX for orelse.adb ~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+~~ processing test.rep ~~
+
+OK
+
+
+~~ processing orelse.adb.xcov ~~
+
+OK
+
+==== PASSED ============================.

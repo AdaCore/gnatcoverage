@@ -1,0 +1,45 @@
+2011-06-09 23:22:22,097: gnatpython.fileutils    : DEBUG    ls ['src/test_*.adb']
+2011-06-09 23:22:22,097: gnatpython.fileutils    : DEBUG    ls ['src/test_*.c']
+2011-06-09 23:22:22,098: gnatpython.fileutils    : DEBUG    ls ['src/cons_*.txt']
+2011-06-09 23:22:22,101: gnatpython.ex           : DEBUG    Run: gprclean -Pgen.gpr -v --config=/home/hainque/couverture/testsuite/suite.cgpr -XTARGET=powerpc-elf
+2011-06-09 23:22:22,121: gnatpython.fileutils    : DEBUG    rm *.xcov
+2011-06-09 23:22:22,121: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,121: gnatpython.fileutils    : DEBUG    rm *.bin
+2011-06-09 23:22:22,121: gnatpython.fileutils    : DEBUG    ls ['*.bin']
+2011-06-09 23:22:22,127: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 gprbuild -q -f -XSTYLE_CHECKS= -p -Pgen.gpr -v --config=/home/hainque/couverture/testsuite/suite.cgpr -XTARGET=powerpc-elf -cargs -g -fpreserve-control-flow
+2011-06-09 23:22:22,208: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov run --target=powerpc-elf /home/hainque/couverture/testsuite/Qualif/Ada/decision/Consolidation/Or/tmp_test_orelse_v0/test_orelse_v0 --level=stmt+decision --scos=@alis.list
+2011-06-09 23:22:22,221: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=report @traces.list -o test.rep
+2011-06-09 23:22:22,230: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=xcov @traces.list
+2011-06-09 23:22:22,234: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,237: gnatpython.ex           : DEBUG    Run: gprclean -Pgen.gpr -v --config=/home/hainque/couverture/testsuite/suite.cgpr -XTARGET=powerpc-elf
+2011-06-09 23:22:22,257: gnatpython.fileutils    : DEBUG    rm *.xcov
+2011-06-09 23:22:22,257: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,257: gnatpython.fileutils    : DEBUG    rm *.bin
+2011-06-09 23:22:22,257: gnatpython.fileutils    : DEBUG    ls ['*.bin']
+2011-06-09 23:22:22,262: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 gprbuild -q -f -XSTYLE_CHECKS= -p -Pgen.gpr -v --config=/home/hainque/couverture/testsuite/suite.cgpr -XTARGET=powerpc-elf -cargs -g -fpreserve-control-flow
+2011-06-09 23:22:22,344: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov run --target=powerpc-elf /home/hainque/couverture/testsuite/Qualif/Ada/decision/Consolidation/Or/tmp_test_orelse_v1/test_orelse_v1 --level=stmt+decision --scos=@alis.list
+2011-06-09 23:22:22,357: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=report @traces.list -o test.rep
+2011-06-09 23:22:22,366: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=xcov @traces.list
+2011-06-09 23:22:22,369: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,371: gnatpython.ex           : DEBUG    Run: gprclean -Pgen.gpr -v --config=/home/hainque/couverture/testsuite/suite.cgpr -XTARGET=powerpc-elf
+2011-06-09 23:22:22,388: gnatpython.fileutils    : DEBUG    rm *.xcov
+2011-06-09 23:22:22,388: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,388: gnatpython.fileutils    : DEBUG    rm *.bin
+2011-06-09 23:22:22,388: gnatpython.fileutils    : DEBUG    ls ['*.bin']
+2011-06-09 23:22:22,394: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 gprbuild -q -f -XSTYLE_CHECKS= -p -Pgen.gpr -v --config=/home/hainque/couverture/testsuite/suite.cgpr -XTARGET=powerpc-elf -cargs -g -fpreserve-control-flow
+2011-06-09 23:22:22,476: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov run --target=powerpc-elf /home/hainque/couverture/testsuite/Qualif/Ada/decision/Consolidation/Or/tmp_test_orelse_v2/test_orelse_v2 --level=stmt+decision --scos=@alis.list
+2011-06-09 23:22:22,489: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=report @traces.list -o test.rep
+2011-06-09 23:22:22,498: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=xcov @traces.list
+2011-06-09 23:22:22,502: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,509: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=report @traces.list -o test.rep
+2011-06-09 23:22:22,518: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=xcov @traces.list
+2011-06-09 23:22:22,522: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,529: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=report @traces.list -o test.rep
+2011-06-09 23:22:22,538: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=xcov @traces.list
+2011-06-09 23:22:22,542: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,549: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=report @traces.list -o test.rep
+2011-06-09 23:22:22,558: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=xcov @traces.list
+2011-06-09 23:22:22,562: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
+2011-06-09 23:22:22,569: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=report @traces.list -o test.rep
+2011-06-09 23:22:22,578: gnatpython.ex           : DEBUG    Run: /home/hainque/local/bin/rlimit 600 xcov coverage --scos=@alis.list --level=stmt+decision --annotate=xcov @traces.list
+2011-06-09 23:22:22,582: gnatpython.fileutils    : DEBUG    ls ['*.xcov']
