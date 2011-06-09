@@ -1,5 +1,7 @@
 Exercise the use of an exemption region to exempt a functional precondition
-expressed in a subprogram declarative part. Check:
+expressed manually (explicit check) at the beginning of a subprogram body.
+
+Check:
 
 * Situations where the precondition is always evaluated True
   (nominal case, exempted DC violation)
