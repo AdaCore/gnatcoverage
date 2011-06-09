@@ -1,13 +1,13 @@
 Material to define and validate the expected processing of multiple
 execution traces combined together.
 
-%(req)s
+%(req-headline)s
 
 When the coverage achieved by multiple execution traces is evaluated, a
 statement coverage violation shall only be reported when it would have been
 for all the traces individually.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 %(tc-index)s
 

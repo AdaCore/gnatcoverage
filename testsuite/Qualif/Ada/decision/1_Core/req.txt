@@ -1,7 +1,7 @@
 Material to define and validate the core expectations for Decision Coverage
 (DC) assessments. All the other DC related sections rely on this one.
 
-%(reqs)s
+%(reqs-headline)s
 
 Decision Coverage (DC) assessements are all governed by a base requirement
 which settles the notion of *decision*:
@@ -48,7 +48,7 @@ Requirement Id    Description
 ===============   =============================================================
 
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 To address *dcomplete* and *dnoeval*, we expose three main subsets of
 testcases:

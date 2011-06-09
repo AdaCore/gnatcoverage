@@ -1,12 +1,12 @@
 Material to define and validate the core expectations for Statement Coverage
 (SC) assessments. All the other SC related sections rely on this one.
 
-%(req)s
+%(req-headline)s
 
 A language construct shall be reported as uncovered if it is not executed or
 elaborated as a part of a program execution.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 The further decomposition of this general requirement is based on the
 structure of the Ada Reference Manual (ARM). We consider the following

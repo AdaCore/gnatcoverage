@@ -1,11 +1,11 @@
-%(req)s
+%(req-headline)s
 
 Compound statements are elements of chapter 5 which typically
 contain other (compound) statements.
 
 A compound statement shall be reported as uncovered if it is not executed.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 This tool operation requirement is split into subordinate requirements
 according to the sections of Chapter 5 (Statements) of the ARM.

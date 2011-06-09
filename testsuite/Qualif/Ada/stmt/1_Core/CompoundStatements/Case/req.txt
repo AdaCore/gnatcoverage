@@ -1,4 +1,4 @@
-%(req)s
+%(req-headline)s
 
 A CASE statement is composed by several CASE alternatives and zero or
 one OTHERS alternative. Each alternative contains other statements.
@@ -7,7 +7,7 @@ The coverage of a CASE statement shall depend on the evaluation of its alternati
 If an alternative is not evaluated, then it shall not be covered. If an alternative
 is not chosen, then all statements it contains shall not be covered.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 Check the coverage when:
 

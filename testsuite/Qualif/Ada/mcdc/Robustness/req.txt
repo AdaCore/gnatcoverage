@@ -3,11 +3,11 @@ confusing constructs that would fool naive analyzers.  This includes cases
 such as multiple decisions sharing a line or a single decision spanning
 multiple lines.
 
-%(req)s
+%(req-headline)s
 
 The Core MCDC requirements shall remain satisfied in presence of constructs
 that could fool simple minded analyzers.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 %(tc-index)s

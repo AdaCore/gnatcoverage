@@ -1,9 +1,9 @@
-%(req)s
+%(req-headline)s
 
 Statement coverage shall be assessed correctly for Ada exceptions mechanism as
 described in Chapter 11 "Exceptions" of the Ada Reference Manual.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 Check the following aspects:
 

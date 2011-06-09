@@ -1,6 +1,6 @@
 Material to define and validate the expected processing of exemption regions.
 
-%(reqs)s
+%(reqs-headline)s
 
 Proper behavior of the Coverage Exemptions facility translates into
 multiple expectations:
@@ -22,7 +22,7 @@ multiple expectations:
    constructs such as statements or subprograms, and groups of such in all the
    contexts where they may appear.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 We validate all the aspects of this requirement with a set of testcases,
 subdivided in sections according to point #5 - demonstrate ability to exempt

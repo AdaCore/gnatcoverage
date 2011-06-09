@@ -1,13 +1,13 @@
 Material to define and validate the expected processing of multiple execution
 traces combined together.
 
-%(req)s
+%(req-headline)s
 
 When the coverage achieved by multiple execution traces is evaluated, a
 decision coverage violation shall only be reported when it would have been for
 all the traces individually.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 We exercise consolidation of traces obtained for single vector invocations
 over a range of basic decisions.

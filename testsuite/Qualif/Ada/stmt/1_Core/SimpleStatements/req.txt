@@ -1,11 +1,11 @@
-%(req)s
+%(req-headline)s
 
 Simple statements are elements of chapter 5 which are atomic (they do
 not contain other statements).
 
 A simple statement shall be reported as uncovered if it is not executed.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 This tool operation requirement is split into subordinate requirements
 according to the sections of Chapter 5 (Statements) of the ARM.

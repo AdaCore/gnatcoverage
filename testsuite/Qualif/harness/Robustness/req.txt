@@ -1,6 +1,6 @@
 The test harness works as intended.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 Check that the harness properly
 

@@ -1,9 +1,9 @@
-%(req)s
+%(req-headline)s
 
 If a declaration is not elaborated as part of the program execution,
 then it shall be reported as uncovered.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 The testing strategy considers the elements contained in chapter 3 
 of the Ada Reference Manual which are relevant from a structural coverage

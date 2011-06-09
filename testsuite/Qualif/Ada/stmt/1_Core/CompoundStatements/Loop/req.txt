@@ -1,4 +1,4 @@
-%(req)s
+%(req-headline)s
 
 The coverage of the statements inside the LOOP statement shall depend 
 on the evaluation of the loop condition. 
@@ -10,7 +10,7 @@ then all subsequent statements shall not be covered.
 If the LOOP condition is evaluated to TRUE at least once,
 then at least the first subsequent statement shall be covered.
 
-%(tstrat)s
+%(tstrategy-headline)s
 
 Check the coverage when:
 
