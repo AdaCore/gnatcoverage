@@ -20,6 +20,8 @@ end;
 --  /checkValid/    l+ 0
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l+ 0
---  /preValid/      l#;mu=>l* x0, mu=>x+
+--  /preValid/      l* x+
 --  /checkOverlap/  l- s-
+--  /overlapTrue/   l- s-
+--  /overlapFalse/  l- s-
 

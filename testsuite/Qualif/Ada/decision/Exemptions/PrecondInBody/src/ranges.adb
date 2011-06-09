@@ -12,13 +12,19 @@ package body Ranges is
    end;
 
    function Overlap (R1, R2 : XYrange) return Boolean is
+   begin
       pragma Annotate                                    -- # preValid
         (Xcov, Exempt_On, "expect no invalid ranges");   -- # preValid
-      pragma Precondition (R1.Valid and then R2.Valid);  -- # preValid
+      if not (R1.Valid and then R2.Valid) then  -- # preValid
+         raise Program_Error;                   -- # preValid
+      end if;                                   -- # preValid
       pragma Annotate (Xcov, Exempt_Off);                -- # preValid
 
-   begin
-      return R2.X <= R1.Y and then R2.Y >= R1.X; -- # checkOverlap
+      if R2.X <= R1.Y and then R2.Y >= R1.X then -- # checkOverlap
+         return True;  -- # overlapTrue
+      else
+         return False; -- # overlapFalse
+      end if;
    end;
 
 end;

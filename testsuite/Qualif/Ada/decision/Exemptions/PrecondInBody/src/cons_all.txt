@@ -10,3 +10,5 @@ drivers=_overlap|_no_overlap|invalid
 --  /assignInvalid/ l+ 0
 --  /preValid/      l# x0
 --  /checkOverlap/  l+ 0
+--  /overlapTrue/   l+ 0
+--  /overlapFalse/  l+ 0

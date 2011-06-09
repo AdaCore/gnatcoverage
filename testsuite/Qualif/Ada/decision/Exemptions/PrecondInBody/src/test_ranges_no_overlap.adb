@@ -1,7 +1,7 @@
 with Ranges, Support; use Ranges, Support;
 
 -- Exercise various situations where two ranges don't overlap.
--- Exempted precondition evaluated True only.
+-- Exempted precondition evaluated True only. raise not covered.
 
 procedure Test_Ranges_No_Overlap is
    Ra, Rb : XYrange;
@@ -23,6 +23,7 @@ end;
 --  /checkValid/    l! d!
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l- s-
---  /preValid/      l#;mu=>l* x0, mu=>x+
---  /checkOverlap/  l+;mu=>l! mu=>dT-
-
+--  /preValid/      l* x+
+--  /checkOverlap/  l! dT-
+--  /overlapTrue/   l- s-
+--  /overlapFalse/  l+ 0
