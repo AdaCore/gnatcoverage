@@ -16,11 +16,8 @@ check that the behavior matches expectations in a wide range of possible
 situations:
 
 * Loops entered or not,
-
 * Possible case selections taken alone or combined with others,
-
 * If controls evaluated True only, False only or both,
-
 * Combinations of these allowed by the nesting structure.
 
-$(tc-index)s
+%(tc-index)s
