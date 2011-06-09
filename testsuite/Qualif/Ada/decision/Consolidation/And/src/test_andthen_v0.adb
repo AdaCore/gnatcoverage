@@ -1,8 +1,10 @@
 with Support, Andthen; use Support;
 
-procedure Test_Andthen_F is
+procedure Test_Andthen_V0 is
 begin
-   Assert (Andthen (True, False) = False);
+   for X in False .. True loop
+      Assert (Andthen (False, X) = False);
+   end loop;
 end;
 
 --# andthen.adb

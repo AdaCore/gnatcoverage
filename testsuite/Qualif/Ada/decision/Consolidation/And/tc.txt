@@ -1,4 +1,4 @@
-Check that full coverage of an "and then" decision is achieved by
-combining a trace that evaluates the decision only True with one that
-evaluates the decision only False.
+Exercise ``A and then B`` will all the possible input vectors independently,
+then check the consolidated results for all the possible combinations of those
+vectors.
 
