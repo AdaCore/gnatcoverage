@@ -14,33 +14,28 @@ outputs, we provide:
 * A set of executable *Test Cases* (TCs) associated with each requirement,
   exercized to validate that the behavior indeed corresponds to expectations.
 
-Multiple aspects of the tool behavior have to be considered. We distinguish
-different categories of tool operational requirements for this purpose:
+We distinguish different categories of tool operational requirements, with
+expectations regarding:
 
-* **Coverage of source language constructs**. This category focuses on the
-  users' expectations with respect to coverage metrics for specific language
-  constructs (if statements, loop, blocks, etc), isolated or combined
-  together.
+* **Core coverage metrics for source language constructs**, for example to
+  validate statement coverage assessments on conditional constructs, loops,
+  etc.
 
   Testcases for this kind of TORs typically exercise a piece of functional
   code in various ways, for example by causing a Boolean expression to be
   evaluated just True or False, and verify that results are as expected in all
   the variations.
   Programming language reference manuals provide a significant contribution in
-  identifying the constructs of interest.
+  identifying the constructs of interest. 
 
-
-* **General coverage analysis facilities**. This category focuses on general
-  facilities offered by the tool, not at all tied to a particular language
-  construct, such as the support for coverage exemptions, or consolidation
-  capabilities.
+* **General coverage analysis facilities**, for example the support for
+  coverage exemptions or consolidation capabilities.
 
   In addition to validating the tool behavior with respect to the stated
   requirements, testcases in this category extend the set of exercized code
   samples where mutliple language features are mixed together.
 
-* **Compliance of the output report with the documented format**, part of the
-  tool qualified interface.
+* **The output report format**, part of the tool qualified interface.
 
   In addition to dedicated testcases designed to verify that all the mandatory
   pieces are there, part of these requirements are also implicitly validated
@@ -52,11 +47,6 @@ For the two first categories, our principal focus is to assess that
 GNATcoverage is *sound*, that is, to make sure that violations of a given
 coverage criterion are detected.
 
-Our testsuite driver expects a strict one-to-one match between result
-expectations stated by test writers in testcases and the diagnostics emitted
-by the tool, such that every reported violation must have been stated as
-expected and every expected violation must be reported for a test to pass.
-
 ------------------------
 Operational organization
 ------------------------
@@ -66,22 +56,25 @@ structural coverage assessments in accordance with the qualified interface.
 
 The qualification focuses on the ``--annotate=report`` text output of
 GNATcoverage, which exposes a list of violations with respect to a given
-coverage criterion, diagnostics such as ``statement not covered at
-<file>:<line>:<col>`` or alike.
+coverage criterion, such as ``statement not covered at <file>:<line>:<col>``.
 
-Tool Operational Requirements, Test Cases and the associated Tests are
-all collected and linked together in a filesystem tree, version controlled
-through a configuration management repository.
+Tool Operational Requirements and Test Cases are all collected and linked
+together in a filesystem tree, version controlled through a configuration
+management repository. Uniform sets of these are allowed as well, permitting
+the constitution of logical groups as needed.
 
-A set of strict organizational rules is enforced to ensure global consistency,
-traceability, and allow automated execution of the tests by a testsuite driver
-to assess the tool behavior correctness.
+A set of strict organizational rules is enforced to
 
-Toplevel entry points
-*********************
+* Ensure global consistency and requirements to testcase traceability,
 
-All the language specific artifacts are hosted in the Qualif/<language>
-directory subtree.
+* Allow automated execution of the tests, producing a ``test-results``
+  qualification report,
+
+* Allow the generation the TOR/TC description bundle, part of the tool
+  qualification data items.
+
+Low level basic blocks: TORs and TCs
+************************************
 
 **Tool Operational Requirements**
 
@@ -93,7 +86,7 @@ All the qualification artifacts related to a TOR are stored as either files
 or subfolders within the TOR directory:
 
 Every TOR directory holds a ``req.txt`` file where the TOR textual
-specification resides.
+specification resides. 
 
 The TOR is then either validated by one or more testcases, or subdivided
 as a set of simpler TORs.
@@ -109,7 +102,7 @@ testcase.
 Sub-TORs are hosted as subdirectories as well and obey the same rules as
 their parent.
 
-**Test Cases & Tests**
+**Test Cases**
 
 A Test Case is set of Tests aimed at validating part or all of an operational
 requirement.
@@ -150,10 +143,12 @@ proceeds, including on how coverage expectations are specified.
 The following section offers a summary of the general tree organization for
 a dummy TOR/TC tree structure:
 
-**Summary**
+**Illustrations**
 
-First, the toplevel entries, then a couple of TORs with two standalone test
-cases associated with the first one::
+Language specific artifacts are hosted in the Qualif/<language> directory
+subtree, organized in sets to group items related to each major coverage
+criterion. Below is a sketch of the toplevel entries, then of a couple of TORs
+and two standalone test cases associated with the first one::
 
  Qualif/<language>/stmt
                   /decision
@@ -174,7 +169,8 @@ cases associated with the first one::
      /TOR_2/req.txt [...]
      ...
 
-Second, a couple of test cases sharing driver or functional sources::
+Now come a sketch for a couple of test cases sharing driver or functional
+sources::
 
  stmt/TOR_7/req.txt
      .     .
@@ -199,10 +195,34 @@ Second, a couple of test cases sharing driver or functional sources::
      .     .    /src/test_bar_1.adb
      ...
 
+Wrapup facilities
+*****************
+
+**Intermediate sets of artifcats**
+
+Intermediate directories to hols groups of artifcats. A ``set.txt`` file
+is expected to describe their contents.
+
+**Automatic index tables from descriptive briefs**
+
+TOR or SET artifacts
+
+``%(subset-index)s``
+``%(tc-index)s``
+
+Use first paragraph in sub-artifact descriptions.
+
+This mechanism has two major advantages:
+
+* less typing + enforced consistency => easier maintenance
+
+* cross references allow direct access to sub artifacts
+
+
 .. _harness-assessment:
----------------------------------------
-Behavior Correctness Assessment Process
----------------------------------------
+-----------------------------------------
+Behavior Correctness Verification Process
+-----------------------------------------
 
 Our testsuite automated execution is Python driven.
 
@@ -245,6 +265,11 @@ For every ``test_<x>`` driver, the engine then ...
 * Decides whether they match (test passes) or not (test fails) and report.
 
 All of this is performed in a separate subdirectory called ``tmp_test_<x>``.
+
+Our testsuite driver expects a strict one-to-one match between result
+expectations stated by test writers in testcases and the diagnostics emitted
+by the tool, such that every reported violation must have been stated as
+expected and every expected violation must be reported for a test to pass.
 
 Consolidation Scenarii
 **********************
@@ -456,3 +481,4 @@ different tests.
 Non-empty intersections between different filters are "allowed" as well but
 eventhough sometimes convenient, they most often correspond to mistakes. The
 sets of expected indications just accumulate.
+
