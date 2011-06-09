@@ -67,8 +67,16 @@ Test Cases
 **********
 
 A Test Case is set of Tests aimed at validating part or all of an operational
-requirement. The sources for a test case always involve two categories of
-sources:
+requirement. We support two categories of Tests:
+
+* Program tests, which run a specific program, perform coverage analysis
+  over it and match the analysis outcome against stated expectations,
+
+* Consolidation tests, which perform coverage analysis for the consolidated
+  set of traces obtained for a given set of program tests, and match the
+  analysis outcome against stated expectations as well.
+
+The sources for a program test always involve two categories of files:
 
 * Functional sources, code for which some coverage properties are to be
   assessed,
@@ -77,13 +85,28 @@ sources:
   description of the expected coverage outcome.
 
 File names starting with ``test_`` identify driver sources. Multiple drivers
-may be used to exercise a single functional source. Each driver execution and
-output verification constitutes a Test.
+may be used to exercise a single functional source.
 
-In addition to Tests corresponding to driver sources, a Test Case might
-feature consolidation Tests.  Consolidation scenarii are identified as
-``cons_<scenario_id>.txt`` text files.  Each specifies the set of drivers to
-consolidate followed by the corresponding coverage expectations.
+Consolidation scenarii are identified as ``cons_<scenario_id>.txt`` text
+files.  Each specifies the set of drivers to consolidate followed by the
+corresponding coverage expectations.
+
+The following example illustrates a possible set of files involved for a
+fictive Test Case exercising an Ada function F which implements an ``and
+then`` evaluation. The test case features 4 tests, with three program tests
+and one consolidation scenario::
+
+  andthen.adb          -- functional code, exposes
+                       --   function F (A, B: Boolean) return Boolean
+
+  test_andthen_tt.adb  -- driver calling F (True, True), and stating what
+                       -- coverage results are expected over andthen.adb
+
+  test_andthen_tf.adb  -- driver calling F (True, False)
+  test_andthen_fx.adb  -- driver calling F (False, X)
+
+  cons_andthen_all.adb -- consolidation spec for all the program tests,
+                       -- with the corresponding expected coverage results
 
 Coverage Expectations
 *********************
@@ -105,13 +128,13 @@ In the optional sequence at the end of driver sources:
 * ``/regexp/`` selects all the source lines matching ``-- # <regexp>``
 
 * ``<expected .xcov note>`` denotes the synthesis sign we expect on the
-  selected lines in the ``--annotate=xcov`` output (even though that output
-  is not qualified, see :ref:`rationale <harness-rationale>`):
+  selected lines in the ``--annotate=xcov`` output (to be stated even though
+  that output is not qualified, see :ref:`rationale <harness-rationale>`):
 
   =========================  =======================
   Text                       Denotes an expected ...
   =========================  =======================
-  ``l-``, ``l+``, or ``l.``  ``-``, ``+``, or ``.``
+  ``l-``, ``l+``, or ``l!``  ``-``, ``+``, or ``!``
                              coverage status synthesis sign, respectively
 
   ``l#``, ``l*``             ``#`` or ``*``
@@ -181,7 +204,7 @@ lines with markers::
       --  /XoutMax/  l+ 0
       --  /Xin/      l- s-
 
-The ``<expected .xcov note>`` column (2nd) for ``in_range.adb`` states
+The ``<expected .xcov note>`` (2nd) column for ``in_range.adb`` states
 that we expect a ``--annotate=xcov`` output with::
 
       expected notes here
@@ -197,8 +220,8 @@ that we expect a ``--annotate=xcov`` output with::
       9 .:    end if;
      10 .: end;
 
-The ``<expected report notes>`` column (3rd) indicates we're expecting
-"statement not covered" diagnostics for lines 4 and 8 out of ``xcov
+The ``<expected report notes>`` (3rd) column indicates we're expecting
+``statement not covered`` diagnostics for lines 4 and 8 out of ``xcov
 --annotate=report``.
 
 .. _harness-rationale:
@@ -206,8 +229,9 @@ The ``<expected report notes>`` column (3rd) indicates we're expecting
 Rationale
 *********
 
-The rationale for introducing such a circuitry, instead of, for example, using
-straight file comparisons with pre-recorded expected outputs, is threefold:
+The rationale for introducing the embedded expectations circuitry, instead of,
+for example, straight file comparisons with pre-recorded expected outputs, is
+threefold:
 
 * It brings a lot of flexibility to accomodate minor changes in output
   formatting or line numbers in test cases, which facilitates maintenance;
@@ -216,20 +240,27 @@ straight file comparisons with pre-recorded expected outputs, is threefold:
   process, which needs to be done very carefully.
 
 * It allows sharing sources across test cases in a very well controlled
-  manner, which lets us multiply the number of test scenarii exercised, hence
-  the qualification assessment strength, without causing an untractable
-  growth of the testsuite complexity.
+  manner, which lets us multiply the number of tests, hence the qualification
+  assessment strength, without causing an untractable growth of the testsuite
+  complexity.
 
+The inclusion of .xcov results in embedded coverage expectations (even though
+this output format is not part of the qualified interface) is motivated by
+several factors:
 
-This point is reinforced by requesting the expected .xcov notes eventhough
-  the ``--annotate=xcov`` output is not qualified, which also strengthens the
-  case on the tool qualified output, as checks over it are redunded on an
-  alternate format during regular testing campaigns.
+* We need to assess the quality of these outputs during our development
+  testing campains, and leveraging the qualification testbase for this purpose
+  has clear maintenance benefits.  We don't even produce those outputs during
+  qualification runs, however, to make sure that they don't interfere with the
+  qualification results.
 
+* Having to fill them in reinforces the Test Case development rigor, as it
+  adds one element that test writers have to care about when specifying expected
+  outcomes.
 
-----------------------------------------
-Operational details for test development
-----------------------------------------
+---------------------------
+Test Development Guidelines
+---------------------------
 
 A set of strict organizational rules is enforced to
 
@@ -321,7 +352,7 @@ The presence of a this file is still useful to help the toplevel driver locate
 and launch testcase executions, as outlined in section
 :ref:`harness-assessment`.
 
-The :ref:`validation process <harness-validation>` section explains how the
+The :ref:`Testsuite Engine <harness-engine>` section explains how the
 testsuite engine locates and executes the applicable drivers for a test case.
 
 Intermediate Sets
@@ -335,7 +366,7 @@ constituent only.
 Illustrations
 *************
 
-Below is a sketch of the toplevel entries:
+Below is a sketch of the toplevel entries::
 
  Qualif/<language>/stmt
                   /decision
@@ -393,17 +424,17 @@ sources::
 
 .. _harness-index-tables:
 
-**Automatic index tables**
+Automatic index tables
+**********************
 
 In TOR or SET descriptions, two macros are available to automate the
-production of sub-artifact indexes. An index is a table of two-column
-entries, where
+production of sub-artifact indexes, tables of two-column entries where
 
 * The first column is the subartifact id, cross-reference to the actual
   contents,
 
 * The second column is a brief description of the subartifact, extracted
-  from the subartifact description text (first paragraph by convention)
+  from the subartifact description text (first paragraph)
 
 We support two kinds of indexes, subsituted anywhere they appear in the text:
 
@@ -419,68 +450,6 @@ This mechanism has several advantages:
 
 * They offer an easy way to get a synthetic view of the material downtree,
   with cross references allowing direct access to sub artifacts of interest
-
-.. _harness-validation:
-
--------------------------------
-Details on the testsuite engine
--------------------------------
-
-Our testsuite automated execution is Python driven.
-
-For a list a infrastructure preriquisites to allow the tests to run, see the
-README file in the suite toplevel dir.
-
-Locating and executing Test Cases
-*********************************
-
-The testsuite engine, invoked from the qualification toplevel directory,
-searches for test cases, executes every one it finds, keeps track of
-passes/failures as it goes, and produces a synthetic report at the end.
-
-The engine uses the ``PATH`` environment variable to select the tools.
-
-It reports the corresponding versions, as well as the set of compilation
-command line options exercised.
-
-To locate test cases, the engine seeks executable ``test.py`` Python files,
-expected everywhere a ``tc.txt`` (testcase description) resides.
-
-For every test case, the execution first locates the applicable driver
-sources, selecting those from the ``src/`` subdirectory, if any, or searching
-uptree otherwise.
-
-In the latter case, functional sources are expected in ``src/`` and the
-engine searches by name for corresponding ``test_`` candidates.
-
-For every ``test_<x>`` driver, the engine then ...
-
-* Builds the executable program (driver + functional code to exercise),
-
-* Executes the program with ``xcov run``, producing an execution trace,
-
-* Invokes ``xcov coverage`` to analyze the trace and produce coverage
-  reports,
-
-* Compares the outputs with the expectations stated in the driver sources,
-
-* Decides whether they match (test passes) or not (test fails) and report.
-
-All of this is performed in a separate subdirectory called ``tmp_test_<x>``.
-
-Consolidation Scenarii
-**********************
-
-The engine then checks whether consolidation scenarii are to be exercised,
-either in the local ``src/`` subdirectory or uptree.
-
-For each consolidation scenario found, the engine consolidates the traces
-previously produced by all the drivers whose name matche the ``drivers``
-regexp (for example, ``.`` selects them all), compares the results with the
-scenario expectations and reports.
-
-This is all performed in a separate subdirectory called
- ``tmp_cons_<scenario_id>``.
 
 
 More on expectations semantics
@@ -512,4 +481,63 @@ different tests.
 Non-empty intersections between different filters are "allowed" as well but
 eventhough sometimes convenient, they most often correspond to mistakes. The
 sets of expected indications just accumulate.
+
+.. _harness-engine:
+
+----------------
+Testsuite Engine
+----------------
+
+Our testsuite automated execution is Python driven.
+
+For a list a infrastructure preriquisites to allow the tests to run, see the
+README file in the suite toplevel dir.
+
+Locating and executing Test Cases
+*********************************
+
+The testsuite engine, invoked from the qualification toplevel directory,
+searches for test cases, executes every one it finds, keeps track of
+passes/failures as it goes, and produces a synthetic report at the end.
+
+The engine uses the ``PATH`` environment variable to select the tools.
+
+It reports the corresponding versions, as well as the set of compilation
+command line options exercised.
+
+To locate test cases, the engine seeks executable ``test.py`` Python files,
+expected everywhere a ``tc.txt`` (testcase description) resides.
+
+For every test case, the execution first locates the applicable driver
+sources, selecting those from the ``src/`` subdirectory, if any, or searching
+uptree otherwise.
+
+In the latter case, functional sources are expected in ``src/`` and the
+engine searches uptree by name for corresponding ``test_`` candidates.
+
+For every ``test_<x>`` driver, the engine then ...
+
+* Builds the executable program (driver + functional code to exercise),
+
+* Executes the program with ``xcov run``, producing an execution trace,
+
+* Invokes ``xcov coverage`` to analyze the trace and produce coverage
+  reports,
+
+* Compares the outputs with the expectations stated in the driver sources,
+
+* Decides whether they match (test passes) or not (test fails) and report.
+
+All of this is performed in a separate subdirectory called ``tmp_test_<x>``.
+
+The engine then checks whether consolidation scenarii are to be exercised,
+either in the local ``src/`` subdirectory or uptree.
+
+For each consolidation scenario found, the engine consolidates the traces
+previously produced by all the drivers whose name matche the ``drivers``
+regexp (for example, ``.`` selects them all), compares the results with the
+scenario expectations and reports.
+
+This is all performed in a separate subdirectory called
+``tmp_cons_<scenario_id>``.
 
