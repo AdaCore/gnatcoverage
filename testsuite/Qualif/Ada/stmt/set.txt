@@ -1,6 +1,5 @@
+Statement Coverage (SC) TORs and Testcases for Ada
 
-This section holds the tool operational requirements and associated testcases
-related to Statement Coverage assessments for the Ada language.  This is split
-in several parts:
+This is split in several parts:
 
 %(subset-index)s

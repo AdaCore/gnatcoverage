@@ -1,6 +1,6 @@
+Decision Coverage (DC) TORs and Testcases for Ada
 
-This section holds the tool operational requirements and associated testcases
-related to Decision Coverage (DC) assessments.  This is split in several parts:
+This is split in several parts:
 
 %(subset-index)s
 

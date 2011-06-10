@@ -1,5 +1,4 @@
-This section describes and illustrates the overall organization of the
-GNATcoverage qualification test harness.
+Overall organization of the GNATcoverage qualification test harness
 
 --------
 Overview
