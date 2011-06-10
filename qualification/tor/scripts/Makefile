@@ -17,7 +17,7 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) sou
 all: clean generate html
 
 generate:
-	./generate.py ${CHAPTERS}
+	./generate.py $(CHAPTERS)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"

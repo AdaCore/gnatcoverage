@@ -255,13 +255,17 @@ class Dir:
         some_notreq  = False
         some_tc      = False
         some_nottc   = False
+        some_set     = False
+        some_notset  = False
 
         for subdo in self.subdos:
             some_req    |= subdo.req
             some_tc     |= subdo.tc
+            some_set    |= subdo.set
 
             some_notreq  |= not subdo.req
             some_nottc   |= not subdo.tc
+            some_notset  |= not subdo.set
 
             some_tcorset  |= subdo.tc | subdo.tcset
             some_reqorset |= subdo.req | subdo.reqset
@@ -269,14 +273,17 @@ class Dir:
             some_nottcorset  |= not (subdo.tc | subdo.tcset)
             some_notreqorset |= not (subdo.req | subdo.reqset)
 
-        all_tc = not some_nottc
-        all_req = not some_notreq
+        self.all_tc = not some_nottc
+        self.all_req = not some_notreq
+        self.all_set = not some_notset
 
         self.all_reqorset = not some_notreqorset
         self.all_tcorset  = not some_nottcorset
 
-        self.tcset = self.set and self.all_tcorset
-        self.reqset = self.set and self.all_reqorset
+        self.tcset = self.set and self.all_tc
+        self.reqset = self.set and self.all_req
+
+        self.container = self.set or self.req
 
     def dfile(self):
         return ('tc.txt' if self.tc else
@@ -305,53 +312,11 @@ dirProcess, dirSkip, dirCut = range (3)
 # dirCut:     process this node and don't walk children
 # dirSkip:    skip processing for this node, walk children nevertheless
 
+im = { dirSkip: "dirSkip", dirProcess: "dirProcess", dirCut: "dirCut" }
+
 class DirTree:
-    def __init__(self, root, hook=None):
-        self.dir = {}   # dir-name -> dir-object dictionary
-        self.roots = [] # set of orphan dir objects
-
-        # First compute the tree of directory objects starting at ROOT,
-        # setting up for each the .pdo link to parent and the .subdos list of
-        # children. This is achieved by performing a top down walk of the os
-        # directory structure.
-
-        [self.topdown_map (dirname, subdirs, files, hook)
-         for (dirname, subdirs, files) in os.walk(os.path.abspath(root))]
-
-        # Then compute exta node attributes, once the tree of internal
-        # directory objects is setup.
-
-        self.compute_attributes()
-
-    def topdown_map(self, dirname, subdirs, files, hook):
-
-        # Map directory DIRNAME into our dictionary and set up links to/from
-        # its parent directory, if any. We're called along a topdown walk, so
-        # we have mapped the parent directory already if there is one.
-
-        # Ignore some subdirectories
-
-        [subdirs.remove(d) for d in copy(subdirs)
-         if d in ('.svn', 'src') or d.startswith('tmp_')]
-
-        # Map a new object for this dir ...
-
-        diro = Dir (root=dirname, subdirs=subdirs, files=files)
-
-        self.dir[dirname] = diro
-        if hook: hook (diro)
-
-        # Find out its parent object by name. If there's no parent object,
-        # this dir is a root. Setup the links otherwise.
-
-        parentname = os.path.dirname(dirname)
-
-        if parentname not in self.dir:
-            self.roots.append(diro)
-        else:
-            parento = self.dir[parentname]
-            diro.pdo = parento
-            parento.subdos.append(diro)
+    def __init__(self, roots):
+        self.roots = roots
 
     # ------------------------------------------------------------
     # -- Tree walking facilities, once we're past the first doc --
@@ -369,49 +334,98 @@ class DirTree:
             self.pathi = pathi
             self.data = data
 
-    def enter(self, diro, wi):
+    def __enter(self, diro, wi):
         if diro.req: wi.pathi.n_req += 1
-        return wi.ctl (diro, wi.pathi)
+        return wi.ctl (diro, wi.pathi, wi.data)
 
-    def exit(self, diro, wi):
+    def __exit(self, diro, wi):
         if diro.req: wi.pathi.n_req -= 1
 
-    def visit (self, diro, wi):
-        ctl = self.enter(diro, wi)
+    def __visit (self, diro, wi):
+        ctl = self.__enter(diro, wi)
 
         if ctl != dirSkip and wi.mode == topdown:
             wi.process(diro, wi.pathi, wi.data)
 
         if ctl != dirCut:
             wi.pathi.depth += 1
-            [self.visit(subdo, wi) for subdo in diro.subdos]
+            [self.__visit(subdo, wi) for subdo in diro.subdos]
             wi.pathi.depth -= 1
 
         if ctl != dirSkip and wi.mode == botmup:
             wi.process(diro, wi.pathi, wi.data)
 
-        self.exit(diro, wi)
+        self.__exit(diro, wi)
 
-    def default_ctl(self, diro, pathi):
+    def __default_ctl(self, diro, pathi, widata):
         return dirProcess
 
     # Exposed facilities.
 
     def walk(self, mode, process, data=None, ctl=None):
 
-        if ctl is None: ctl = self.default_ctl
+        if ctl is None: ctl = self.__default_ctl
 
-        [self.visit (diro, DirTree.WalkInfo (process=process, pathi=PathInfo(),
-                                             data=data, mode=mode, ctl=ctl))
+        [self.__visit (
+                diro=diro, wi=DirTree.WalkInfo (
+                    process=process, pathi=PathInfo(),
+                    data=data, mode=mode, ctl=ctl))
          for diro in self.roots]
 
-    # ---------------------------------------------
-    # -- Computing tree/node attributes, before  --
-    # -- more sophisticated walks can take place --
-    # ---------------------------------------------
+    # ---------------------------------------
+    # -- Tree filtering/pruning facilities --
+    # ---------------------------------------
 
-    def compute_attributes(self):
-        self.walk (mode=botmup, process=Dir.botmup_compute_attributes)
+    def rprune (self, namelist):
+
+        """prune all subdirs of self that are do *not* lead to any dir
+           in NAMELIST"""
+
+        class WalkInfo:
+            def __init__(self, tokeep):
+                self.tokeep = tokeep
+                self.toprune = []
+
+        def prunectl (diro, pathi, wi):
+
+            # See if diro is within or beyond any of our dirs to keep
+            # Keep going (skip) if within. Cut search if beyond.
+
+            for tokeep in wi.tokeep:
+                if os.path.commonprefix ((diro.root, tokeep)) == diro.root:
+                    return dirSkip if len(diro.root) < len(tokeep) else dirCut
+
+            # diro is for sure not within or down any of our dirs to keep.
+            # register for actual pruning and don't search past it.
+
+            wi.toprune.append (diro)
+            return dirCut
+
+        # Walk this tree to compute the list of directories to prune, then do
+        # prune for real.  We don't effectively prune nodes during the walk to
+        # prevent mishaps caused by changes to our internal datastructures
+        # while they are being processed.
+
+        wi = WalkInfo (tokeep=namelist)
+        self.walk (
+            mode=topdown, process=lambda diro, pathi, wi: None,
+            ctl=prunectl, data=wi)
+
+        [diro.pdo.subdos.remove (diro) for diro in wi.toprune]
+
+    # ---------------------
+    # -- Sorting entries --
+    # ---------------------
+
+    def sort (self):
+        def sort_subdos (diro, pathi, wi):
+            diro.subdos.sort (
+                cmp = lambda x, y:
+                    (x.container < y.container if x.container != y.container
+                     else x.root < y.root)
+                )
+
+        self.walk (mode=botmup, process=sort_subdos)
 
     # -----------------------------------------
     # -- Checking directory tree consistency --
@@ -471,6 +485,63 @@ class DirTree:
     def check_consistency(self):
         self.walk (mode=topdown, process=self.topdown_check_consistency)
 
+class DirTree_FromPath (DirTree):
+
+    def __init__(self, rootp):
+
+        DirTree.__init__(self, roots=[])
+
+        # First compute the tree of directory objects starting at path ROOTP,
+        # setting up for each the .pdo link to parent and the .subdos list of
+        # children. This is achieved by performing a top down walk of the os
+        # directory structure.
+
+        self.dir = {}   # dir-name -> dir-object dictionary
+        [self.topdown_map (dirname, subdirs, files)
+         for (dirname, subdirs, files) in os.walk(os.path.abspath(rootp))]
+
+        # Then compute exta node attributes, once the tree of internal
+        # directory objects is setup.
+
+        self.compute_attributes()
+
+    def topdown_map(self, dirname, subdirs, files):
+
+        # Map directory DIRNAME into our dictionary and set up links to/from
+        # its parent directory, if any. We're called along a topdown walk, so
+        # we have mapped the parent directory already if there is one.
+
+        # Ignore some subdirectories
+
+        [subdirs.remove(d) for d in copy(subdirs)
+         if d in ('.svn', 'src') or d.startswith('tmp_')]
+
+        # Map a new object for this dir ...
+
+        diro = Dir (root=dirname, subdirs=subdirs, files=files)
+
+        self.dir[dirname] = diro
+
+        # Find out its parent object by name. If there's no parent object,
+        # this dir is a root. Setup the links otherwise.
+
+        parentname = os.path.dirname(dirname)
+
+        if parentname not in self.dir:
+            self.roots.append(diro)
+        else:
+            parento = self.dir[parentname]
+            diro.pdo = parento
+            parento.subdos.append(diro)
+
+    # ---------------------------------------------
+    # -- Computing tree/node attributes, before  --
+    # -- more sophisticated walks can take place --
+    # ---------------------------------------------
+
+    def compute_attributes(self):
+        self.walk (mode=botmup, process=Dir.botmup_compute_attributes)
+
 # ************************
 # ** Document Generator **
 # ************************
@@ -512,16 +583,18 @@ class DocGenerator(object):
     def contents_from(self, diro, name):
 
         SUBST = {
+            "toplevel-index": self.toplev_index,
             "tc-index": self.tc_index,
             "subset-index": self.subset_index,
             "reqs-headline": self.reqs_headline,
             "req-headline": self.req_headline,
-            "tstrategy-headline": self.tstrat_headline
+            "tstrategy-headline": self.tstrat_headline,
+            "toc": self.toc
             }
 
         contents = get_content(os.path.join(diro.root, name))
         return contents % dict(
-            [(key, SUBST[key](diro.root))
+            [(key, SUBST[key](diro))
              for key in SUBST if ("(%s)s" % key) in contents]
             )
 
@@ -536,27 +609,19 @@ class DocGenerator(object):
         self.ofd.write(rest.list(
                 [':ref:`%s`' % self.ref(d) for d in sorted(tco.fnsources)]))
 
-        self.ofd.write(subsec_header("Test Procedures"))
+        self.ofd.write(subsec_header("Program Tests"))
         self.ofd.write(rest.list(
                     [':ref:`%s`' % self.ref(d) for d in tco.drsources]))
-        self.ofd.write(rest.list(
+
+        if tco.conspecs:
+            self.ofd.write(subsec_header("Consolidation Tests"))
+            self.ofd.write(rest.list(
                     [':ref:`%s`' % self.ref(d) for d in tco.conspecs]))
 
         self.register_resources (
             tco.fnsources | tco.drsources | tco.conspecs)
 
-    def maybe_toc_section(self, diro):
-        """Generate the Table Of Contents section as needed"""
-
-        tocentries = [self.file2docfile(os.path.join(diro.root, sd))
-                      for sd in diro.subdirs]
-
-        if tocentries:
-            self.ofd.write(sec_header("Links"));
-            self.ofd.write(
-                rest.toctree(tocentries, depth = 1 if not diro.pdo else 2))
-
-    def gen_doc_contents (self, diro):
+    def gen_doc_contents (self, diro, pathi, wi):
         dest_filename = self.file2docfile(diro.root)
         self.ofd = open(os.path.join(self.doc_dir, dest_filename), 'w')
 
@@ -569,24 +634,23 @@ class DocGenerator(object):
         if diro.tc:
             self.gen_tc_section(diro)
 
-        self.maybe_toc_section(diro)
         self.ofd.close()
 
     # ---------------------------
     # -- generate doc chapters --
     # ---------------------------
 
-    def generate_chapter(self, root_dir):
-        """Generate documentation for chapter at ROOT_DIR"""
+    def generate_chapters(self, chapdirs):
 
-        dirtree = DirTree(
-            root = root_dir, hook = self.gen_doc_contents)
+        dirtree = DirTree_FromPath(rootp=self.root_dir)
+
+        dirtree.rprune (
+            [os.path.join (self.root_dir, dir) for dir in chapdirs])
 
         dirtree.check_consistency()
 
-    def generate_chapters(self, chapdirs):
-        [self.generate_chapter(os.path.join(self.root_dir, d))
-         for d in chapdirs]
+        dirtree.sort ()
+        dirtree.walk (mode=topdown, process=self.gen_doc_contents)
 
     # ---------------------------
     # -- generate index tables --
@@ -603,14 +667,14 @@ class DocGenerator(object):
     # To be refined ...
 
     class WalkInfo:
-        def __init__ (self, root, emphsets):
+        def __init__ (self, rootp, emphctl):
             self.max_tclen = 0
-            self.root = root
+            self.rootp = rootp
 
             self.contents = []
-            self.emphsets = emphsets
+            self.emphctl = emphctl
 
-    def tc_text(self, diro, prefix):
+    def tc_text(self, diro):
         return ':doc:`%s`' % self.ref(diro.root)
 
     def maybe_add_line_for (self, diro, pathi, wi):
@@ -630,25 +694,25 @@ class DocGenerator(object):
         toblank = re.search (".*?(\n[ \t]*\n)", dtext, re.DOTALL)
         sumtext = (toblank.group(0) if toblank else dtext).replace ('\n', ' ')
 
-        if wi.emphsets and diro.set:
-            sumtext = rest.strong (sumtext.strip())
+        if wi.emphctl:
+            sumtext = wi.emphctl(sumtext.strip(), diro)
 
         # Then append the whole entry
 
         wi.contents.append ('%-*s %s\n' % (
-                wi.max_tclen, self.tc_text(diro=diro, prefix=wi.root),
+                wi.max_tclen, self.tc_text(diro=diro),
                 sumtext))
 
     def compute_max_tclen(self, diro, pathi, wi):
-        thislen = len (self.tc_text(diro=diro, prefix=wi.root))
+        thislen = len (self.tc_text(diro=diro))
         if thislen > wi.max_tclen:
             wi.max_tclen = thislen
 
-    def index_table(self, root, nodectl, emphsets):
+    def index_table(self, rooto, nodectl, emphctl):
 
-        dirtree = DirTree (root = root, hook = None)
+        dirtree = DirTree (roots=[rooto])
 
-        wi = self.WalkInfo (root=root, emphsets=emphsets)
+        wi = self.WalkInfo (rootp=rooto.root, emphctl=emphctl)
 
         # We first need to compute the common length for all the items
         # in the first column
@@ -669,24 +733,39 @@ class DocGenerator(object):
             mode=topdown, process=self.maybe_add_line_for,
             ctl=nodectl, data=wi)
 
-        wi.contents.sort()
         text += ''.join (wi.contents)
 
         text += "%-s ========\n" % ('=' * wi.max_tclen)
 
         return text
 
-    def tc_index(self, root):
+    def tc_index(self, diro):
         return self.index_table (
-            root=root, emphsets=True, nodectl=lambda diro, pathi:
+            rooto   = diro,
+            emphctl = lambda text, diro:
+                (rest.strong(text) if diro.set else text),
+            nodectl = lambda diro, pathi, wi:
                 (dirProcess if pathi.depth > 0 and (diro.tc or diro.tcset)
                  else dirSkip)
             )
 
-    def subset_index(self, root):
+    def subset_index(self, diro):
         return self.index_table (
-            root=root, emphsets=False, nodectl=lambda diro, pathi:
+            rooto   = diro,
+            emphctl = None,
+            nodectl = lambda diro, pathi, wi:
                 (dirCut if pathi.depth > 0 and (diro.set or diro.req)
+                 else dirSkip)
+            )
+
+    def toplev_index(self, diro):
+        return self.index_table (
+            rooto   = diro,
+            emphctl = lambda text, diro:
+                (rest.strong(text) if diro.set and diro.all_set else text),
+            nodectl = lambda diro, pathi, wi:
+                (dirProcess if pathi.depth == 1 and diro.set
+                 else dirCut if pathi.depth > 1 and diro.set
                  else dirSkip)
             )
 
@@ -694,32 +773,29 @@ class DocGenerator(object):
     # -- req and tstrategy headlines --
     # ---------------------------------
 
-    def req_headline (self, root, plural=False):
+    def req_headline (self, diro, plural=False):
         return rest.subsection ("Requirement" + ("s" if plural else ""))
 
-    def reqs_headline (self, root):
-        return self.req_headline (root, plural=True)
+    def reqs_headline (self, diro):
+        return self.req_headline (diro, plural=True)
 
-    def tstrat_headline (self, root):
+    def tstrat_headline (self, diro):
         return rest.subsection ("Testing Strategy")
 
-    # ------------------------------------
-    # -- generate index (toplevel) page --
-    # ------------------------------------
+    # -----------------
+    # -- toc entries --
+    # -----------------
 
-    def generate_index(self, chapdirs):
+    def toc(self, diro):
 
-        self.ofd = open(os.path.join(self.doc_dir, 'index.rst'), 'w')
-        self.ofd.write(rest.chapter('GNATcoverage Requirements and TestCases'))
+        tocentries = [
+            self.file2docfile(os.path.join(diro.root, sd))
+            for sd in diro.subdirs]
 
-        self.ofd.write(get_content(os.path.join(self.root_dir, 'set.txt')))
-
-        self.ofd.write (sec_header ("Links"))
-        chapfiles = [self.file2docfile(os.path.join(self.root_dir, d))
-                     for d in chapdirs]
-        self.ofd.write(rest.toctree(chapfiles, 1))
-
-        self.ofd.close()
+        return ''.join (
+            [sec_header("Links"),
+             rest.toctree(tocentries, depth = 1 if not diro.pdo else 2)]
+            ) if tocentries else ""
 
     # ----------------------------
     # -- generate resource file --
@@ -739,6 +815,14 @@ class DocGenerator(object):
             fd.write(rest.code_block(get_content(r), 'ada'))
             fd.close()
 
+    def generate_toc(self):
+        fd = open(os.path.join(self.doc_dir, 'toc.rst'), 'w')
+        fd.write(
+            '\n'.join ([".. toctree::", "   :glob:", '', "   *"]) + '\n\n'
+            )
+        fd.close()
+
+
     # ---------------------------------------------
     # -- generate all the document items,        --
     # -- checking tree consistency along the way --
@@ -755,10 +839,8 @@ class DocGenerator(object):
         self.generate_chapters(
             ref_chapdirs if chapdirs is None else chapdirs)
 
-        # Generate index for the whole reference tree, always
-
-        self.generate_index(ref_chapdirs)
         self.generate_resources()
+        self.generate_toc()
 
 # The main of the script
 if __name__ == "__main__":
