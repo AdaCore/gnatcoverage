@@ -14,23 +14,11 @@ block, all the statements in the block shall be reported uncovered.
 
 %(tstrategy-headline)s
 
-
 2. Check that uncommon sequences are handled properly:
 
    * Very long sequences,
 
    * Sequences of null or no-op statements (pragmas)
-
-3. Check that various forms of control-flow transfers are handled properly,
-   from
-
-   * goto statements,
-
-   * return statements,
-
-   * loop exits,
-
-   * local exception raises,
 
 4. Check correct handling of statements that evaluate only partially, in
    particular with expression shortcircuits.
