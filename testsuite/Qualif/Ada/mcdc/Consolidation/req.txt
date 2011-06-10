@@ -12,8 +12,9 @@ individually.
 We exercise consolidation of traces obtained for single vector invocations
 over a range of basic decisions.
 
-For decisions with two operands, we check all the possible combinations of
-inputs without repetitions.
+For decisions with two operands, first run with every possible input vector
+independently, then check all the possible combinations of those input vectors
+without repetitions.
 
 We operate similarily for decisions with three operands, except we aggregate
 inputs that differ only on non-evaluated conditions.

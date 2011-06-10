@@ -1,0 +1,4 @@
+Check that a ``return A and then B`` statement is never reported uncovered when
+it is reached, even in case of shortcircuits in the expression evaluation. Also
+check that the statement is reported uncovered in absence of a call.
+

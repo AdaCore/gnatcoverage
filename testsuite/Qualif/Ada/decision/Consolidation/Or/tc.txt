@@ -1,4 +1,1 @@
-Exercise ``A or else B`` with all the possible input vectors independently,
-then check the consolidated results for all the possible combinations of those
-vectors.
-
+Exercise consolidation over ``A or else B``.

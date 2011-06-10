@@ -1,6 +1,6 @@
-Exercise code which features a simple If statement nested in one of the
-possible selections of a Case statement, itself conditioned by an outer If
-statement executed as part of a While loop.
+Exercise a simple If statement nested in one of the possible selections of a
+Case statement, itself conditioned by an outer If statement executed as part of
+a While loop.
 
 Check situations where:
 
@@ -11,3 +11,5 @@ Check situations where:
 
 * The inner Case statement is reached for each possible selection alone, then
   for combinations of them. The inner If statement is exercised both ways.
+
+

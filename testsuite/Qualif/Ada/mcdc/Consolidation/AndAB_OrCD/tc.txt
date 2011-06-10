@@ -1,5 +1,5 @@
-Exercise a functional source featuring Andthen (A and then B, C or else D),
-as three distinct decisions over combinations of A, B, C and D.
+Exercise consolidation over ``Andthen (X => A and then B, Y => C or else D)``,
+with an ``X and then Y`` evaluation within the Andthen function.
 
 Arrange to have four distinct executions corresponding to the possible
 values of each primary decision (True/False for A and then B together

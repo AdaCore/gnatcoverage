@@ -1,0 +1,6 @@
+Check that basic blocks of statements are recognized in various possible
+contexts:
+
+   * Package elaboration body
+
+   * Subprogram bodies or local block declarations

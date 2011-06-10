@@ -14,12 +14,6 @@ block, all the statements in the block shall be reported uncovered.
 
 %(tstrategy-headline)s
 
-1. Check that basic blocks of statements are recognized in various
-   possible contexts:
-
-   * Package elaboration body
-
-   * Subprogram bodies or local block declarations
 
 2. Check that uncommon sequences are handled properly:
 

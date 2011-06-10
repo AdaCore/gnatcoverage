@@ -12,6 +12,8 @@ all the traces individually.
 We exercise consolidation of traces obtained for single vector invocations
 over a range of basic decisions.
 
-We check all the possible combinations of inputs without repetitions.
+For each decision, first run with every possible relevant input vector
+independently, then check all the possible combinations of those input
+vectors without repetitions.
 
 %(tc-index)s
