@@ -1,6 +1,0 @@
-Exercise a package that exposes a noop subprogram with a null statement body
-and features a null statement elaboration sequence.
-
-Verify that the null statements are reported uncovered when the control flow
-does not reach them.
-

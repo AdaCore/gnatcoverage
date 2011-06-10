@@ -1,4 +1,5 @@
-Check that coverage is not influenced by multiple statements
-physically located on the same line.
+Check that multiple statements located on the same source line are
+handled properly.
 
-Check unconditional and conditional statements.
+Exercise cases with both unconditional and conditional statements on a single
+source line.

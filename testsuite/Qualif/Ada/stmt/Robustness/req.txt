@@ -10,18 +10,9 @@ constructs that could fool simple minded analysis engines.
 
 %(tstrategy-headline)s
 
-Check cases where
-
-* Code indentation could be misleading
-
-* The presence of homonym entities could be misleading
-
-* Multiple statements share the same line
-
-* A single statement spans multiple lines
-
-* Entire sequences are inhibited because nested within a
-  conditional statically known to be always False
+Check a panel of cases where code construct particularities could concievably
+cause inaccuracies or errors in coverage diagnostics if the tool were to
+implement too simple analysis schemes;
 
 %(tc-index)s
 

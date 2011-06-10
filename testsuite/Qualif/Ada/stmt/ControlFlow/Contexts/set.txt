@@ -1,6 +1,5 @@
 Check that basic blocks of statements are recognized in various possible
-contexts:
+contexts.
 
-   * Package elaboration body
+%(tc-index)s
 
-   * Subprogram bodies or local block declarations
