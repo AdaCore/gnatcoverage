@@ -1,12 +1,14 @@
-with Support, And_Then; use Support;
+with Support, Andthen; use Support;
 
 procedure Test_Andthen_AB is
 begin
-   Assert (And_Then (True, True) = True);
-   Assert (And_Then (True, False) = False);
-   Assert (And_Then (False, True) = False);
+   Assert (Andthen (True, True) = True);
+   Assert (Andthen (True, False) = False);
+   Assert (Andthen (False, True) = False);
 end;
 
---# and_then.adb
--- /return/  l+ 0
--- /andthen/ l+ 0
+--# andthen.adb
+-- /eval0/  l+ 0
+-- /eval1/  l+ 0
+-- /true/   l+ 0
+-- /false/  l+ 0

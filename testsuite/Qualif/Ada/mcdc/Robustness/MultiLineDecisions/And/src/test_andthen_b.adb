@@ -1,11 +1,13 @@
-with Support, And_Then; use Support;
+with Support, Andthen; use Support;
 
 procedure Test_Andthen_B is
 begin
-   Assert (And_Then (True, True) = True);
-   Assert (And_Then (True, False) = False);
+   Assert (Andthen (True, True) = True);
+   Assert (Andthen (True, False) = False);
 end;
 
---# and_then.adb
--- /return/  l! c!:"A"
--- /andthen/ l! 0
+--# andthen.adb
+-- /eval0/  l! c!:"A"
+-- /eval1/  l! 0
+-- /true/   l+ 0
+-- /false/  l+ 0
