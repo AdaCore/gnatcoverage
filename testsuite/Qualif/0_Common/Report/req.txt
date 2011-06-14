@@ -1,3 +1,7 @@
+Describe the tool output report format and check compliance to it.
+
+%(requirements)s
+
 The xcov qualified interface is the synthetic output of the --annotate=report
 command line option. The output report shall:
 
@@ -42,14 +46,9 @@ command line option. The output report shall:
 **Testing Strategy**
 
 We provide testcases to check that the reports produced by the tool satisfy
-the requirements in a range of different situations, with
+the requirements in a range of different situations, with:
 
-* Cases where violations get reported from a single execution trace or more,
-  validating proper counts of trace file info in their corresponding section
-  [SingleTrace, MultipleTraces]
-
-* A case where no violation or exempted region is expected, validating
-  the presence of the corresponding sections nevertheless [EmptySections]
+%(tc-index)s
 
 We validate the presence and structure of all the expected sections and items
 in each testcase. We do not validate the correctness of the section contents
@@ -57,5 +56,4 @@ here. That assessment (correctness of the reported violations vs expectations
 for particular programs), is defined and validated by sibling chapters of this
 qualification material.
 
-%(tc-index)s
 
