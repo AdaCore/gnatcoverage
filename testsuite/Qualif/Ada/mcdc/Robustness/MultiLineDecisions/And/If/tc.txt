@@ -1,1 +1,1 @@
-Exercise ``A or else B`` split over multiple lines in a return statement.
+Exercise ``A and then B`` split over multiple lines in an IF statement.

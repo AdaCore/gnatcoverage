@@ -1,2 +1,2 @@
-Exercise recursive decision evaluations.
+Check that recursive decision evaluations are processed correctly.
 
