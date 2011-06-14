@@ -1,2 +1,1 @@
-Exercise a subprogram returning a simple two operands expression split over
-multiple lines.
+Exercise ``A and then B`` split over multiple lines in a return statement.
