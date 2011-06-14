@@ -4,3 +4,6 @@ This is decomposed in several toplevel chapters:
 
 %(toplevel-index)s
 
+The language specific chapters that apply depend on your qualification
+objectives. The other chapters are of general relevance, independent of
+the sought qualification level.
