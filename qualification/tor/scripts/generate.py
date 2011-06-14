@@ -418,14 +418,14 @@ class DirTree:
     # ---------------------
 
     def sort (self):
-        def sort_subdos (diro, pathi, wi):
-            diro.subdos.sort (
-                cmp = lambda x, y:
-                    (x.container < y.container if x.container != y.container
-                     else x.root < y.root)
-                )
 
-        self.walk (mode=botmup, process=sort_subdos)
+        self.walk (
+            mode=botmup,
+            process=lambda diro, pathi, wi: (diro.subdos.sort (
+                    key = lambda subdo:
+                        (subdo.container, subdo.root)
+                    ))
+            )
 
     # -----------------------------------------
     # -- Checking directory tree consistency --
@@ -621,12 +621,18 @@ class DocGenerator(object):
         self.register_resources (
             tco.fnsources | tco.drsources | tco.conspecs)
 
+    ALT_TITLES = {
+        "Qualif": "GNATcoverage TORs"
+        }
+
     def gen_doc_contents (self, diro, pathi, wi):
         dest_filename = self.file2docfile(diro.root)
         self.ofd = open(os.path.join(self.doc_dir, dest_filename), 'w')
 
-        self.ofd.write(
-            rest.section(to_title(os.path.basename(diro.root))))
+        ttext = os.path.basename(diro.root)
+        ttext = self.ALT_TITLES[ttext] if ttext in self.ALT_TITLES else ttext
+
+        self.ofd.write(rest.section(to_title(ttext)))
 
         if diro.dfile():
             self.ofd.write(self.contents_from (diro=diro, name=diro.dfile()))
@@ -695,7 +701,7 @@ class DocGenerator(object):
         sumtext = (toblank.group(0) if toblank else dtext).replace ('\n', ' ')
 
         if wi.emphctl:
-            sumtext = wi.emphctl(sumtext.strip(), diro)
+            sumtext = wi.emphctl(sumtext.strip(), diro, pathi)
 
         # Then append the whole entry
 
@@ -742,10 +748,12 @@ class DocGenerator(object):
     def tc_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            emphctl = lambda text, diro:
-                (rest.strong(text) if diro.set else text),
+            emphctl = lambda text, diro, pathi:
+                (rest.strong(text) if diro.container and pathi.depth == 1
+                 else rest.emphasis(text) if diro.container
+                 else text),
             nodectl = lambda diro, pathi, wi:
-                (dirProcess if pathi.depth > 0 and (diro.tc or diro.tcset)
+                (dirProcess if pathi.depth > 0
                  else dirSkip)
             )
 
@@ -761,11 +769,12 @@ class DocGenerator(object):
     def toplev_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            emphctl = lambda text, diro:
-                (rest.strong(text) if diro.set and diro.all_set else text),
+            emphctl = lambda text, diro, pathi:
+                (rest.strong(text) if pathi.depth == 1
+                 else text),
             nodectl = lambda diro, pathi, wi:
-                (dirProcess if pathi.depth == 1 and diro.set
-                 else dirCut if pathi.depth > 1 and diro.set
+                (dirProcess if pathi.depth == 1 and diro.container
+                 else dirCut if pathi.depth > 1 and diro.container
                  else dirSkip)
             )
 
@@ -831,7 +840,7 @@ class DocGenerator(object):
     def generate_all(self, chapdirs):
 
         ref_chapdirs = [
-            "harness", "Report", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
+            "0_Common", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
 
         # [Re]generate only the requested chapters, when specified,
         # everything otherwise
