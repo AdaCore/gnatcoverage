@@ -77,4 +77,3 @@ The quality assurance on tool operational requirements is specific to a precise 
   * Record and approve software requirements deviations (8.3e).
 
 * **output:** QA inspection report qa/<CLIENT>/DDMMYYYY/ qa_conformity.doc)
-a/<CLIENT>/DDMMYYYY/ qa_conformity.doc)

@@ -6,6 +6,7 @@ Qualification data are produced both in the qualification and user environments 
 
 #. the GNAT Pro executable name, version number and host operating system;
 #. the GNAT Pro compilation switches;
+#. The GNATemulator executable name, version number and host operating system;
 #. the GNATcoverage executable name, version number and host operating system.
 
 If all points above are equal, then the two environments are equivalent.
