@@ -208,10 +208,7 @@ class Dir:
         self.files   = files   # list of local file names
 
         # Links to parent and children in the directory tree. These are
-        # set as dir objects get mapped within a DirTree instance. We expect
-        # these to be constructed in a top-down fashion, and the up link is
-        # assumed to be setup before other methods are called (so we know if
-        # this is a root section)
+        # set as dir objects get mapped within a DirTree instance.
 
         self.pdo = None
         self.subdos = []
@@ -582,6 +579,16 @@ class DocGenerator(object):
 
     def contents_from(self, diro, name):
 
+        """Fetch descriptive text in file NAME for artifact in DIRO, and
+           proceed with supported macro-replacements. Append a TC index to TC
+           set descriptions that don't have one."""
+
+        # Fetch the descriptive text
+
+        contents = get_content(os.path.join(diro.root, name))
+
+        # Compute the dictionary of substitutions to apply
+
         SUBST = {
             "toplevel-index": self.toplev_index,
             "tc-index": self.tc_index,
@@ -592,11 +599,20 @@ class DocGenerator(object):
             "toc": self.toc
             }
 
-        contents = get_content(os.path.join(diro.root, name))
-        return contents % dict(
+        dosubst = dict(
             [(key, SUBST[key](diro))
              for key in SUBST if ("(%s)s" % key) in contents]
             )
+
+        # Compute the extra text to add at the end, depending on
+        # the kind of artifact and on what substitutions apply
+
+        extratext = (
+            self.tc_index(diro) if diro.tcset and "tc-index" not in dosubst
+            else ""
+        )
+
+        return contents % dosubst + extratext
 
     def gen_tc_section(self, diro):
         """Generate the TestCase description section"""
