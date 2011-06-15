@@ -43,7 +43,7 @@ command line option. The output report shall:
 
   * End with a count of those regions
 
-%(tstrategy)s
+%(tstrategy-headline)s
 
 We provide testcases to check that the reports produced by the tool satisfy
 the requirements in a range of different situations, with:

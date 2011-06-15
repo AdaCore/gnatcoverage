@@ -9,13 +9,8 @@ A simple statement shall be reported as uncovered if it is not executed.
 
 %(tstrategy-headline)s
 
-This tool operation requirement is split into subordinate requirements
-according to the sections of Chapter 5 (Statements) of the ARM;
-
-* Assign statement    (ch. 5.1)
-* Null statement      (ch. 5.2)
-* Exit statement      (ch. 5.7)
-* Goto statement      (ch. 5.8)
+This is split into subordinate requirements according to the sections of
+Chapter 5 (Statements) of the ARM;
 
 %(tc-index)s
 
