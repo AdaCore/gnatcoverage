@@ -1,6 +1,10 @@
 package body BB_Pack is
 begin
-   X := 0;     -- # elab
-   X := X + 1; -- # elab
-   X := X - 1; -- # elab
+   Sum := X + Y; -- # elab
+
+   declare
+      Prod : Integer := X * Y; -- # elab
+   begin
+      Sum_Plus_Prod := Sum + Prod;
+   end;
 end;
