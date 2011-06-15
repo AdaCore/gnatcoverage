@@ -1,3 +1,5 @@
+Declarations and Types (ARM chapter 3)
+
 %(req-headline)s
 
 If a declaration is not elaborated as part of the program execution,
@@ -5,14 +7,8 @@ then it shall be reported as uncovered.
 
 %(tstrategy-headline)s
 
-The testing strategy considers the elements contained in chapter 3 
-of the Ada Reference Manual which are relevant from a structural coverage
-analysis perspective. It takes into account the following cases:
-
-* Discrete Subtype Definitions.
-* Object Declarations. 
-* Subtype Indications.
-* Variant Records.
+We exercise test programs for all the ARM chapter 3 elements of relevance
+from a structural coverage analysis perspective:
 
 %(tc-index)s
 

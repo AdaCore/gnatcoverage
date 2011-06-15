@@ -1,3 +1,5 @@
+Exceptions (ARM chapter 11)
+
 %(req-headline)s
 
 Statement coverage shall be assessed correctly for Ada exceptions mechanism as
@@ -6,10 +8,6 @@ described in Chapter 11 "Exceptions" of the Ada Reference Manual.
 %(tstrategy-headline)s
 
 Check the following aspects:
-
-* Exception raising
-* Exception propagation
-* Exception handling
 
 %(tc-index)s
 

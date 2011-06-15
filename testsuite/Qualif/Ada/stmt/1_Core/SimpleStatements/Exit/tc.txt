@@ -1,3 +1,5 @@
+Check SC assessments wrt loop Exit statements (ch. 5.7)
+
 Exercise various code fragments that contain loops with exit statements.
 Check that an exit statement is reported as covered only if execution reaches
 its immediately enclosing loop statement and at least the first loop

@@ -12,64 +12,29 @@ The further decomposition of this general requirement is based on the
 structure of the Ada Reference Manual (ARM). We consider the following
 chapters of the ARM:
 
-* ch. 2 - Lexical elements
-* ch. 3 - Declarations and Types
-* ch. 5 - Statements
-* ch. 6 - Subprograms
-* ch. 7 - Packages
-* ch. 8 - Visibility_Rules
-* ch. 10 - Program Structure and Compilation Issues
-* ch. 11 - Exceptions
-* ch. 12 - Generic Units
+%(subset-index)s
 
 Other ARM chapters are not considered as the base for subordinate requirements
 because of the following reasons:
 
-* Chapter 1  - General: No language construct described;
+==============================  ===============================================
+Chapter                         Not included because ...
+==============================  ===============================================
+1 (General)                     No language construct described
 
-* Chapter 4 - Names and Expressions: The described constructs are not
-  considered on their own for coverage analysis purposes. The coverage
-  information is computed for enclosing statement or declaration constructs;
+4 (Names and Expressions)       The described constructs are not considered on
+                                their own for coverage analysis purposes. The
+			        coverage information is computed for enclosing
+                                statement or declaration constructs
 
-* Chapter 9 - Tasks and Synchronization: The execution profile being
-  qualified is based on Zero Foot Print run-time and it does not support any
-  construct described in this chapter;
+9 (Tasks and Synchronization)   The execution profile being qualified is based
+                                on Zero Foot Print run-time, which does not
+                                support any construct described in this chapter
 
-* Chapter 13 - Representation Issues: Constructs described in this chapter do
-  not result in executable code so they are of no interest for coverage
-  analysis.
-
-This requirement set is decomposed into subordinated requirements as follows
-(the corresponding ARM chapters are given in brackets):
-
-* DeclarationAndTypes          (ch. 3)
-
-* SimpleStatements
-
- * Null                (ch. 5.1)
- * Assignment          (ch. 5.2)
- * Goto                (ch. 5.8)
- * Exit                (ch. 5.7)
-
-* CompoundStatements
-
- * If                  (ch. 5.3)
- * Case                (ch. 5.4)
- * Loop                (ch. 5.5)
- * Block               (ch. 5.6)
-
-* Subprograms          (ch. 6)
-
-* Exception            (ch. 11)
-
-* GenericUnits         (ch. 12)
-
-* Miscellaneous
-
- * Pragmas             (ch. 2)
- * Packages            (ch. 7)
- * Renaming            (ch. 8)
- * Subunits            (ch. 10)
+13 (Representation Issues)      Constructs described in this chapter do not
+                                result in executable code so they are of no
+                                interest for coverage analysis.
+==============================  ===============================================
 
 
 

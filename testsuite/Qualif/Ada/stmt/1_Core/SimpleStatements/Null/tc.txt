@@ -1,3 +1,5 @@
+Check SC assessments wrt Null statements (ch. 5.2)
+
 Check various code fragments that contain null statements such as:
 
 * case statement alternative;

@@ -1,3 +1,7 @@
+Check IF statements with only the IF branch chosen.
+
 Check that if an IF statement is executed and its IF branch is chosen, then:
+
 * the IF branch and at least the first statement it contains are covered;
+
 * all other branches and the statements they contain are reported as uncovered.

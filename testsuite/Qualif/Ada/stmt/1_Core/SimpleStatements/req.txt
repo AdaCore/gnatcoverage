@@ -1,3 +1,5 @@
+Simple Statements (ARM chapter 5, part 1)
+
 %(req-headline)s
 
 Simple statements are elements of chapter 5 which are atomic (they do
@@ -8,7 +10,7 @@ A simple statement shall be reported as uncovered if it is not executed.
 %(tstrategy-headline)s
 
 This tool operation requirement is split into subordinate requirements
-according to the sections of Chapter 5 (Statements) of the ARM.
+according to the sections of Chapter 5 (Statements) of the ARM;
 
 * Assign statement    (ch. 5.1)
 * Null statement      (ch. 5.2)

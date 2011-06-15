@@ -1,5 +1,7 @@
-Check that an object declaration is reported as uncovered if it is not
-elaborated, and that it is not reported as uncovered if it is elaborated.
+Check SC assessments over Object Declarations.
+
+Check that an object declaration is reported as uncovered iif it is not
+elaborated.
 
 Check the following kinds of object declarations for which we expect to have
 implicit execution of code for the initializations:

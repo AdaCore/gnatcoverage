@@ -1,6 +1,14 @@
-Check that if an IF statement is executed and the ElSE branch is chosen then:
-* the IF brach is covered;
+Check IF/ELSE statements with only the ELSE part chosen.
+
+Check that if an IF statement is executed and the ELSE branch is chosen then:
+
+* the IF branch is covered;
+
 * all ELSIF branches are reported as covered;
-* all statements contained in the IF and ELSIF branches are reported as uncovered.
+
+* all statements contained in the IF and ELSIF branches are reported as
+  uncovered.
+
 * at least the first statement in the ELSE branch are reported as coverted.
+
 Check the coverage of IF statements with and without the ELSE branch.

@@ -1,5 +1,11 @@
-Check that, if the LOOP condition is evaluated to FALSE during the first iteration then:
+Check LOOP with an EXIT condition evaluated False the first time around.
+
+Check that, if the EXIT condition is evaluated to FALSE during the first
+iteration then:
+
 * all statements preceding it are covered;
-* all statements within the LOOP statement and following the LOOP condition are not covered.
+
+* all statements within the LOOP statement and following the LOOP condition
+  are not covered.
 
 Check (inverted) FOR, WHILE and unconditional loops.

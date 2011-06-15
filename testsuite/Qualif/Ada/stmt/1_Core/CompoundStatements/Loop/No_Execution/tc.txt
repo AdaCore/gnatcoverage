@@ -1,3 +1,5 @@
-Check that, if a loop statement is not executed, then the loop statement itself and all of
-its components are reported as uncovered. The tests only "with"s the
-functional code, but they do not execute anything from it.
+Check LOOPs not executed at all.
+
+Check that, if a loop statement is not executed, then the loop statement
+itself and all of its components are reported as uncovered. The tests only
+"with"s the functional code, but they do not execute anything from it.

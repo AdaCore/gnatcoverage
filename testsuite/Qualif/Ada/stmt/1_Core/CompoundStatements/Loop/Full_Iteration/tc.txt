@@ -1,4 +1,7 @@
-Check that if the LOOP condition is evsluated to TRUE at least once, then:
+Check LOOPs with a control condition evaluated True at least once.
+
+Check that if the LOOP condition is evaluated to TRUE at least once, then:
+
 * all statements preceding it are covered;
 * at least the first statement following it is covered.
 

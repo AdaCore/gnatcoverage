@@ -1,3 +1,5 @@
+Check SC assessments wrt Package elaborations (ch. 7)
+
 Check proper coverage assessment of elaboration statements in both local and
 library level packages. Check that the only situation when code from a package
 body is reported uncovered is for a local package declared in a subprogram body

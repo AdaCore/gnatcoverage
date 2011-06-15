@@ -1,3 +1,5 @@
+Check SC assessments wrt Subunits (ch. 10)
+
 The only element from Chapter 10 ("Program Structure and Compilation Issues")
 from the Ada Language Reference Manual that needs a special attention for
 coverage analysis is subunits.

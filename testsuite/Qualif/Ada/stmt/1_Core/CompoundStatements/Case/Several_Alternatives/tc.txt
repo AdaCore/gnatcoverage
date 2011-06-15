@@ -1,7 +1,9 @@
+Check CASE statements executed several times.
+
 Check that if a CASE statement is executed  several times, then:
+
 * the statement itself is covered;
-* all chosen alternatives are covered;
-* at least the first statement of the chosen alternatives are covered;
-* all non-chosen alternatives, and the statements they contain, are non-covered.
+* all chosen alternatives are covered as expected;
+* all non-chosen alternatives and the statements they contain, are non-covered.
 
 Check different forms of the CASE statement.

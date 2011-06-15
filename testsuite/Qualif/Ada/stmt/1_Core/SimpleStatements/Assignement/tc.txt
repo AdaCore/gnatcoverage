@@ -1,1 +1,4 @@
-Check that if an assignement statement is not executed, then it is reported as uncovered.
+Check SC assessments wrt Assignment statements (ch. 5.1)
+
+Check that if an assignement statement is not executed, then it is
+reported as uncovered.

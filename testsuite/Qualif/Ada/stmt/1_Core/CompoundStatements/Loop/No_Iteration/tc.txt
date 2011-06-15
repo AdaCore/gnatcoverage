@@ -1,3 +1,6 @@
-Check that, if a conditional loop statement is executed, but the loop condition prevents
-even the first loop iteration, then all the contained statement are not covered
-(whereas the loop itself is reported as covered).
+Check LOOPs with a full control condition evaluated False the first time
+around.
+
+Check that, if a conditional loop statement is executed, but the loop
+condition prevents even the first loop iteration, then all the contained
+statement are not covered (whereas the loop itself is reported as covered).

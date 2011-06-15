@@ -5,6 +5,6 @@ begin
    declare
       Prod : Integer := X * Y; -- # elab
    begin
-      Sum_Plus_Prod := Sum + Prod;
+      Sum_Plus_Prod := Sum + Prod; -- # elab
    end;
 end;

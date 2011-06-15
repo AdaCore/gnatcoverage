@@ -1,17 +1,15 @@
+Miscellaneous items with minimal impact on structural coverage (ARM chapters
+2, 7, 8 and 10)
+
 %(req-headline)s
 
-This requirement groups testcases to verify the correct coverage of miscellaneous
-elements from the ARM. All considered elements have minimal impact of structural
-coverage and are included mostly for completeness.
+This requirement groups testcases to verify the correct coverage of
+miscellaneous elements from the ARM. All considered elements have minimal
+impact of structural coverage and are included mostly for completeness.
 
 %(tstrategy-headline)s
 
 Check the following elements:
 
-* Pragmas             (ch. 2)
-* Packages            (ch. 7)  
-* Renaming            (ch. 8)       
-* Subunits            (ch. 10) 
- 
 %(tc-index)s
 

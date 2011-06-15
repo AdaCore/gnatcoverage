@@ -1,3 +1,5 @@
+Compound Statements (ARM chapter 5, part 2)
+
 %(req-headline)s
 
 Compound statements are elements of chapter 5 which typically
@@ -16,5 +18,5 @@ according to the sections of Chapter 5 (Statements) of the ARM.
 * Block                 (5.6 Block Statements) 
 * Exit_Statements       (5.7 Exit Statements)
 
-%(subset-index)s
+%(tc-index)s
 

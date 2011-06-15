@@ -1,6 +1,6 @@
 Describe the tool output report format and check compliance to it.
 
-%(requirements)s
+%(reqs-headline)s
 
 The xcov qualified interface is the synthetic output of the --annotate=report
 command line option. The output report shall:
@@ -43,7 +43,7 @@ command line option. The output report shall:
 
   * End with a count of those regions
 
-**Testing Strategy**
+%(tstrategy)s
 
 We provide testcases to check that the reports produced by the tool satisfy
 the requirements in a range of different situations, with:
@@ -55,5 +55,4 @@ in each testcase. We do not validate the correctness of the section contents
 here. That assessment (correctness of the reported violations vs expectations
 for particular programs), is defined and validated by sibling chapters of this
 qualification material.
-
 

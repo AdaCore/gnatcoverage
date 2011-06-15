@@ -1,3 +1,5 @@
+Generic Units (ARM chapter 12)
+
 %(req-headline)s
 
 The code of a generic unit shall be reported as covered only if the generic is
