@@ -1,2 +1,0 @@
-Exercise a subprogram returning a simple two operands expression split over
-multiple lines.

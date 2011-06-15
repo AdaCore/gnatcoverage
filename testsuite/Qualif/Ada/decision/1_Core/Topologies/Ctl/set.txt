@@ -1,6 +1,5 @@
-This section groups testcases aimed at verifying the tool's capability to
-handle decisions of arbitrary topology in any language flow construct they
-might control.
+Check processing of decisions of arbitrary topology in any language flow
+construct they might control.
 
 %(tc-index)s
 

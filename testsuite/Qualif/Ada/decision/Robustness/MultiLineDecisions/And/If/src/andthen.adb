@@ -1,4 +1,4 @@
-function And_Then (A, B : Boolean) return Boolean is
+function Andthen (A, B : Boolean) return Boolean is
 begin
    if A          -- # eval0
      and then B  -- # eval1
