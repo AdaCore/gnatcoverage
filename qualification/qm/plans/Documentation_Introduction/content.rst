@@ -15,7 +15,7 @@ Definitions List
 
 .. rubric:: Environment
 
-The context on which GNAT check is used.
+The context on which GNATcoverage is used.
 
 .. rubric:: GNATcoverage
 
