@@ -1,9 +1,7 @@
-Simple Statements (ARM chapter 5, part 1)
+Simple Statements (ARM chapter 5, part 1: statements that do not contain other
+statements)
 
 %(req-headline)s
-
-Simple statements are elements of chapter 5 which are atomic (they do
-not contain other statements).
 
 A simple statement shall be reported as uncovered if it is not executed.
 

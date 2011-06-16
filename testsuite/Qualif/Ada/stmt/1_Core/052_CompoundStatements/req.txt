@@ -1,22 +1,14 @@
-Compound Statements (ARM chapter 5, part 2)
+Compound Statements (ARM chapter 5, part 2: statements that contain other
+statements)
 
 %(req-headline)s
-
-Compound statements are elements of chapter 5 which typically
-contain other (compound) statements.
 
 A compound statement shall be reported as uncovered if it is not executed.
 
 %(tstrategy-headline)s
 
 This tool operation requirement is split into subordinate requirements
-according to the sections of Chapter 5 (Statements) of the ARM.
-
-* If_Statements         (5.3 If Statements)
-* Case_Statements       (5.4 Case Statements)
-* Loop_Statements       (5.5 Loop Statements)
-* Block                 (5.6 Block Statements) 
-* Exit_Statements       (5.7 Exit Statements)
+according to the sections of Chapter 5 (Statements) of the ARM:
 
 %(tc-index)s
 

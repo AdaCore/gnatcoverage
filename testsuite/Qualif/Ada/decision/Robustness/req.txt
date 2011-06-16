@@ -9,6 +9,6 @@ constructs that could fool simple minded analyzers.
 
 %(tstrategy-headline)s
 
-<To be completed>
+Check the following set of cases:
 
 %(tc-index)s

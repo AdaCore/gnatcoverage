@@ -8,11 +8,8 @@ statement, all its components shall be reported as uncovered.
 
 %(tstrategy-headline)s
 
-* Check various syntax forms of a block statement (with and without a
-  declarative part, with and without exception handlers) in different
-  contexts;
-
-* Check nested block statements.
+We check proper handling of block statements by way of the following set of
+testcases:
 
 %(tc-index)s
 

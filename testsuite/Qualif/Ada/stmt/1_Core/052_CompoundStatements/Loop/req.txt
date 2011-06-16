@@ -1,4 +1,4 @@
-Loop and Exit statements (ch. 5.5 and 5.7)
+Loop statements (ch. 5.5)
 
 %(req-headline)s
 

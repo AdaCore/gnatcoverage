@@ -1,9 +1,9 @@
-Check CASE statements executed only once.
+Check CASE statements executed only once:
 
-Check that if a CASE statement is executed only once, then:
+Expect
 
 * the CASE statement is reported as covered;
-* the chosen alterantive is reported as covered;
+* the chosen alternative is reported as covered;
 * at least the first statement of the chosen alternative is covered;
 * all alternatives preceding the chosen one are covered but
   the statements they contain are uncovered;
