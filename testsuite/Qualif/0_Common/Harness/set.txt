@@ -18,7 +18,7 @@ reliable outputs, we provide:
   Operational Requirements* (TORs) for nominal use conditions, and
 
 * A set of executable *Test Cases* (TCs) associated with each requirement,
-  exercized to validate that the behavior indeed corresponds to expectations.
+  exercised to validate that the behavior indeed corresponds to expectations.
 
 We distinguish different categories of tool operational requirements, with
 expectations regarding:
@@ -59,7 +59,7 @@ TORs specify the tool expected behavior in nominal conditions of use.
 
 Each TOR description comes with a Testing Strategy, describing how the
 sub-artifacts (sub-tors and/or test cases) are organized to demonstrate that
-the tool complies with the requirement.  This description includes synthetic
+the tool complies with the requirements.  This description includes synthetic
 indexes offering overviews of the available sub artifacts.
 
 Test Cases
@@ -127,8 +127,8 @@ In the optional sequence at the end of driver sources:
 * ``/regexp/`` selects all the source lines matching ``-- # <regexp>``
 
 * ``<expected .xcov note>`` denotes the synthesis sign we expect on the
-  selected lines in the ``--annotate=xcov`` output (to be stated even though
-  that output is not qualified, see :ref:`rationale <harness-rationale>`):
+  selected lines in the ``--annotate=xcov`` output, to be stated even though
+  that output is not qualified (see :ref:`rationale <harness-rationale>`):
 
   =========================  =======================
   Text                       Denotes an expected ...
@@ -148,7 +148,7 @@ In the optional sequence at the end of driver sources:
    =======   ======
    Text      Denotes an expected ...
    =======   ======
-   ``0``     absence of diagnostic
+   ``0``     absence of diagnostic (empty set)
    ``s-``    ``statement not covered``
    ``dT-``   ``decision outcome True not covered``
    ``dF-``   ``decision outcome False not covered``
@@ -166,24 +166,19 @@ In the optional sequence at the end of driver sources:
   ``c!:"B"`` to denote the second condition on a line with ``V := A and then
   B;``.
 
-Our testsuite driver expects a strict one-to-one match between result
-expectations stated by test writers in testcases and the diagnostics emitted
-by the tool, such that every reported violation must have been stated as
-expected and every expected violation must be reported for a test to pass.
-
 Below is a simple example, with a functional ``in_range.adb`` Ada source
 first::
 
-      function In_Range (X , Min, Max : Integer) return Boolean is
-      begin
-         if X < Min then     -- # XcmpMin
-            return False;    -- # XoutMin
-         elsif X > Max then  -- # XcmpMax
-            return False;    -- # XoutMax
-         else
-            return True;     -- # Xin
-         end if;
-      end;
+    1:  function In_Range (X , Min, Max : Integer) return Boolean is
+    2:  begin
+    3:     if X < Min then     -- # XcmpMin
+    4:        return False;    -- # XoutMin
+    5:     elsif X > Max then  -- # XcmpMax
+    6:        return False;    -- # XoutMax
+    7:     else
+    8:        return True;     -- # Xin
+    9:     end if;
+   10:  end;
 
 Then a driver with expectations referencing the functional
 lines with markers::
@@ -219,9 +214,46 @@ that we expect a ``--annotate=xcov`` output with::
       9 .:    end if;
      10 .: end;
 
-The ``<expected report notes>`` (3rd) column indicates we're expecting
-``statement not covered`` diagnostics for lines 4 and 8 out of ``xcov
---annotate=report``.
+The ``<expected report notes>`` (3rd) column indicates what we're expecting
+from the qualified output out of ``xcov --annotate=report`` :
+
+* ``statement not covered`` diagnostics for lines 4 and 8, stated by the
+  ``s-`` expectations, and
+
+* No violation diagnostic for lines 3, 5, and 6, stated by the ``0``
+  expectations for the other lines where statements reside.
+
+Which would translate in an expected piece of report output such as::
+
+      2.1. NON-EXEMPTED VIOLATIONS
+
+      in_range.adb:4:7: statement not executed
+      in_range.adb:8:7: statement not executed
+      2 violations
+
+Test evaluation criteria 
+************************
+
+Our testsuite driver expects a strict one-to-one match between result
+expectations stated in testcases and the diagnostics emitted by the tool. A
+test passes if and only if:
+
+* Every reported violation has been stated as expected, and
+
+* Every violation stated as expected has been reported.
+
+This makes the ``0`` expressions representative of positive coverage
+expectations in a context where the qualified output report does not
+materialize positive results explicitly.
+
+In the previous example, ``-- /XcmpMax/ l+ 0`` is a way to state that we
+expect the statement on line 6 (marked with "# XcmpMax") to be covered, and
+the testsuite engine verifies this even though the output report does *not*
+feature any explicit indication to that effect. Technically, we state that we
+expect 0 violation messages on that line, and any violation indication emitted
+for it (e.g. if the statement happened not to be covered) would cause the test
+to fail.
+
 
 .. _harness-rationale:
 
@@ -249,7 +281,7 @@ several factors:
 
 * We need to assess the quality of these outputs during our development
   testing campains, and leveraging the qualification testbase for this purpose
-  has clear maintenance benefits.  We don't even produce those outputs during
+  has clear maintenance benefits.  We don't produce those outputs during
   qualification runs, however, to make sure that they don't interfere with the
   qualification results.
 
