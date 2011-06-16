@@ -38,14 +38,15 @@ def paragraph(title):
     return heading(title, '"')
 
 
-def toctree(item_list, depth=2):
-    result = "\n"
-    result += ".. toctree::\n"
-    result += "   :maxdepth: %s\n\n" % depth
-    for item in item_list:
-        result += "   %s\n" % item
-    result += "\n"
-    return result
+def toctree(itemlist, depth=2, attrlist=()):
+    return '\n'.join (
+        [".. toctree::",
+         "   :maxdepth: %s" % depth]
+        +
+        ["   %s" % attr for attr in attrlist]
+        + ['\n'] +
+        ["   %s" % item for item in itemlist]
+        ) + '\n'
 
 
 def emphasis(content):

@@ -615,7 +615,8 @@ class DocGenerator(object):
         return contents % dosubst + extratext
 
     def gen_tc_section(self, diro):
-        """Generate the TestCase description section"""
+        """Generate the TestCase Sources section, and register the
+           sources as resources"""
 
         tco = TestCase (dir=diro.root, dgen=self)
 
@@ -637,6 +638,16 @@ class DocGenerator(object):
         self.register_resources (
             tco.fnsources | tco.drsources | tco.conspecs)
 
+    def gen_toc_section(self, diro):
+        """Generate the Table Of Contents section as needed"""
+
+        tocentries = [
+            self.file2docfile(os.path.join(diro.root, sdo.root))
+            for sdo in diro.subdos]
+
+        self.ofd.write('\n\n' + rest.toctree(
+                itemlist=tocentries, depth=1, attrlist=[":hidden:"]))
+
     ALT_TITLES = {
         "Qualif": "GNATcoverage TORs"
         }
@@ -655,6 +666,8 @@ class DocGenerator(object):
 
         if diro.tc:
             self.gen_tc_section(diro)
+
+        self.gen_toc_section(diro)
 
         self.ofd.close()
 
@@ -840,14 +853,6 @@ class DocGenerator(object):
             fd.write(rest.code_block(get_content(r), 'ada'))
             fd.close()
 
-    def generate_toc(self):
-        fd = open(os.path.join(self.doc_dir, 'toc.rst'), 'w')
-        fd.write(
-            '\n'.join ([".. toctree::", "   :glob:", '', "   *"]) + '\n\n'
-            )
-        fd.close()
-
-
     # ---------------------------------------------
     # -- generate all the document items,        --
     # -- checking tree consistency along the way --
@@ -865,7 +870,6 @@ class DocGenerator(object):
             ref_chapdirs if chapdirs is None else chapdirs)
 
         self.generate_resources()
-        self.generate_toc()
 
 # The main of the script
 if __name__ == "__main__":
