@@ -231,30 +231,6 @@ Which would translate in an expected piece of report output such as::
       in_range.adb:8:7: statement not executed
       2 violations
 
-Test evaluation criteria 
-************************
-
-Our testsuite driver expects a strict one-to-one match between result
-expectations stated in testcases and the diagnostics emitted by the tool. A
-test passes if and only if:
-
-* Every reported violation has been stated as expected, and
-
-* Every violation stated as expected has been reported.
-
-This makes the ``0`` expressions representative of positive coverage
-expectations in a context where the qualified output report does not
-materialize positive results explicitly.
-
-In the previous example, ``-- /XcmpMax/ l+ 0`` is a way to state that we
-expect the statement on line 6 (marked with "# XcmpMax") to be covered, and
-the testsuite engine verifies this even though the output report does *not*
-feature any explicit indication to that effect. Technically, we state that we
-expect 0 violation messages on that line, and any violation indication emitted
-for it (e.g. if the statement happened not to be covered) would cause the test
-to fail.
-
-
 .. _harness-rationale:
 
 Rationale
@@ -288,6 +264,115 @@ several factors:
 * Having to fill them in reinforces the Test Case development rigor, as it
   adds one element that test writers have to care about when specifying expected
   outcomes.
+
+------------------------
+Test evaluation criteria 
+------------------------
+
+A test either PASSes of FAILs. A test passes if and only if it runs to
+completion without hitting any cause of failure. We rely on a few concepts
+and mechanisms to validate our tests:
+
+Internal Assertions for Program Tests
+*************************************
+
+The general process for every Program Test is to build the program, run it,
+produce the corresponding coverage results and check if they correspond to the
+expectations stated in the test driver source (see :ref:`Testsuite Engine
+<harness-engine>` for more details).
+
+The first possible cause of test FAILure is an unexpected execution
+interruption, for example from an uncaught exception occurrence in Ada.
+
+We leverage this to enforce self validation of our testcases thanks to
+internal functional assertions, aborting execution as soon as one is not met,
+which provides extra confidence that what the test does corresponds to what
+was intended by its author.
+
+
+Match between actual coverage results and stated expectations
+*************************************************************
+
+After checking for internal assertions, our testsuite driver expects a strict
+one-to-one match between result expectations stated in testcases and the
+diagnostics emitted by the tool. On this account, a test PASSes only if:
+
+* Every reported violation has been stated as expected, and
+
+* Every violation stated as expected has been reported.
+
+In other word, any violation reported but not expected or expected but not
+reported triggers a test FAILure.
+
+This makes the ``0`` expressions representative of positive coverage
+expectations in a context where the qualified output report does not
+materialize positive results explicitly.
+In the previous example, ``-- /XcmpMax/ l+ 0`` is a way to state that we
+expect the statement on line 6 (marked with "# XcmpMax") to be covered, and
+the testsuite engine verifies this even though the output report does *not*
+feature any explicit indication to that effect. Technically, we state that we
+expect 0 violation messages on that line, and any violation indication emitted
+for it (e.g. if the statement happened not to be covered) would cause the test
+to fail.
+
+Test categories vs. execution level
+***********************************
+
+Each testcase is designed to validate a particular TOR, typically associated
+with a specific coverage criterion. We have testcases designed to validate
+aspects of Statement Coverage assessments, others aimed at Decision Coverage
+etc. We call *category* the particular criteria for which a testcase was
+designed.
+
+Test categories determine the set of potential coverage violations relevant
+for each test, which does not necessarily correspond to the set of potential
+violations that might be reported for it, in particular when the overall tool
+qualification objectives target a stricter criterion.
+
+For example, consider this excerpt of functional code to be exercised for a
+Statement Coverage TOR::
+
+  procedure Check (Do_Inner : Boolean) is
+  begin
+    if Do_Inner then  -- # test
+      Inner_Action;   -- # action
+    end if
+  end;
+
+A single driver that calls into this code with ``Do_Inner = True`` expects to
+achieve full statement coverage and would read like::
+
+  procedure Test_Check is
+  begin
+    Check (Do_Inner => True);
+  end;
+
+  --# check.adb
+  --  /test/   l+ 0
+  --  /action/ l+ 0
+
+Now, SC tests also apply when the qualification objectives include, say,
+statement + decision coverage, in which case the tool will perform this test
+with ``--level=stmt+decision`` and output a decision coverage violation
+for the ``# test`` line.
+This decision coverage violation is irrelevant for a statement coverage test,
+however, and should just be ignored.
+
+In effect, ``0`` expectations need to be (and are) interpreted in accordance
+with the test category to prevent FAILURES from violations of stricter
+criteria. In our example test of statement category, the ``0`` expectations
+are meant to convey that we expect no *statement coverage* violation on the
+lines and violations of stricter criteria there ought to be ignored.
+
+
+Harness self verification
+*************************
+
+By construction, the set of tool qualification testcases are expected to all
+PASS. To validate the harness operation, we developped a specific requirement
+and set of testcases aimed at checking the FAILure detection capabilities:
+
+%(tc-index)s
 
 ---------------------------
 Test Development Guidelines

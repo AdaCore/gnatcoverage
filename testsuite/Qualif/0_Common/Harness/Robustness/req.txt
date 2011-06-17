@@ -1,12 +1,22 @@
-The test harness works as intended.
+Define and validate the harness FAILure detection capability.
+
+%(reqs-headline)s
+
+The test harness shall comply to the following requirements:
+
+* A test that does not run to completion shall FAIL;
+
+* Presence in the ouput report of an unexpected violation applicable to the
+  test category shall cause FAILure.  Unexpected here means either nothing
+  stated at all or an explicit ``0`` expectation stating that nothing is
+  expected.
+
+* Absence of an expected violation from the output report shall cause FAILure
+
+* Presence in the output report of violations not applicable to the test
+  category shall be ignored
 
 %(tstrategy-headline)s
 
-Check that the harness properly
+%(tc-index)s
 
-* detects forced test failures against missing expectations or
-  anti-expectations (which state explicitly that no violation is expected to
-  be reported)
-
-* deals with irrelevant violations emitted for a test designed for one
-  level and exercised for a stricter qualification target 
