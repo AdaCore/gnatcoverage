@@ -148,8 +148,8 @@ In the optional sequence at the end of driver sources:
    =======   ======
    Text      Denotes an expected ...
    =======   ======
-   ``0``     absence of diagnostic (empty set)
-   ``s-``    ``statement not covered``
+   ``0``     absence of diagnostic
+   ``s-``    ``statement not executed``
    ``dT-``   ``decision outcome True not covered``
    ``dF-``   ``decision outcome False not covered``
    ``d!``    ``one decision outcome not covered``
