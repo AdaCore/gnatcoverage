@@ -1,14 +1,10 @@
-package body Notandnot is
+with Support; use Support;
 
-   function One_Of (A, B : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body Notandnot is
 
    function F (A, B : Boolean) return Boolean is
    begin
-      return One_Of ((not A) and then (not B),   -- # evalStmt
-                     (not A) and then (not B));  -- # evalOther
+      return Value ((not A) and then (not B)); -- # evalStmt
    end;
 
 end;

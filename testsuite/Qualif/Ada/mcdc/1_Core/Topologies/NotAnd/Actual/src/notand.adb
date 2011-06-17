@@ -1,14 +1,10 @@
-package body Notand is
+with Support; use Support;
 
-   function One_Of (A, B : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body Notand is
 
    function F (A, B : Boolean) return Boolean is
    begin
-      return One_Of ((not A) and then B,   -- # evalStmt
-                     (not A) and then B);  -- # evalOther
+      return Value ((not A) and then B);   -- # evalStmt
    end;
 
 end;

@@ -1,16 +1,9 @@
-package body PorPandPorP is
+with Support; use Support;
 
-   function One_Of (A, B, C, D : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body PorPandPorP is
 
    function F (A, B, C, D : Boolean) return Boolean is
    begin
-      return One_Of ((A or else B) and then (C or else D),   -- # evalStmt
-                     (A or else B) and then (C or else D),   -- # evalOther
-                     (A or else B) and then (C or else D),   -- # evalOther
-                     (A or else B) and then (C or else D));  -- # evalOther
+      return Value ((A or else B) and then (C or else D));   -- # evalStmt
    end;
-
 end;

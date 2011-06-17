@@ -1,14 +1,10 @@
-package body Ornot is
+with Support; use Support;
 
-   function One_Of (A, B : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body Ornot is
 
    function F (A, B : Boolean) return Boolean is
    begin
-      return One_Of (A or else (not B),   -- # evalStmt
-                     A or else (not B));  -- # evalOther
+      return Value (A or else (not B));   -- # evalStmt
    end;
 
 end;

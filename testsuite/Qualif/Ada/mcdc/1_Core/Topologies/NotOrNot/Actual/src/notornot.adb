@@ -1,14 +1,9 @@
-package body Notornot is
+with Support; use Support;
 
-   function One_Of (A, B : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body Notornot is
 
    function F (A, B : Boolean) return Boolean is
    begin
-      return One_Of ((not A) or else (not B),   -- # evalStmt
-                     (not A) or else (not B));  -- # evalOther
+      return Value ((not A) or else (not B));   -- # evalStmt
    end;
-
 end;

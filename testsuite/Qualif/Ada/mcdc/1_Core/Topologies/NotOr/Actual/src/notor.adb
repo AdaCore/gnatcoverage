@@ -1,14 +1,9 @@
-package body Notor is
+with Support; use Support;
 
-   function One_Of (A, B : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body Notor is
 
    function F (A, B : Boolean) return Boolean is
    begin
-      return One_Of ((not A) or else B,   -- # evalStmt
-                     (not A) or else B);  -- # evalOther
+      return Value ((not A) or else B);   -- # evalStmt
    end;
-
 end;

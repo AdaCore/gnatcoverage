@@ -1,14 +1,10 @@
-package body Orelse is
+with Support; use Support;
 
-   function One_Of (A, B : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body Orelse is
 
    function Or_Else (A, B : Boolean) return Boolean is
    begin
-      return One_Of (A or else B,   -- # evalStmt
-                     A or else B);  -- # evalOther
+      return Value (A or else B);   -- # evalStmt
    end;
 
 end;

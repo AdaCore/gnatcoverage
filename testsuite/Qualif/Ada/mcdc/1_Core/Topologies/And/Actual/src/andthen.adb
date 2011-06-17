@@ -1,14 +1,10 @@
-package body Andthen is
+with Support; use Support;
 
-   function One_Of (A, B : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body Andthen is
 
    function And_Then (A, B : Boolean) return Boolean is
    begin
-      return One_Of (A and then B,   -- # evalStmt
-                     A and then B);  -- # evalOther
+      return Value (A and then B);   -- # evalStmt
    end;
 
 end;

@@ -1,14 +1,9 @@
-package body PandPor is
+with Support; use Support;
 
-   function One_Of (A, B : Boolean) return Boolean is
-   begin
-      return A;  -- # returnValue
-   end;
+package body PandPor is
 
    function F (A, B, C : Boolean) return Boolean is
    begin
-      return One_Of ((A and then B) or else C,   -- # evalStmt
-                     (A and then B) or else C);  -- # evalOther
+      return Value ((A and then B) or else C);   -- # evalStmt
    end;
-
 end;
