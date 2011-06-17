@@ -18,11 +18,12 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Ordered_Sets;
-with Ada.Text_IO;       use Ada.Text_IO;
-with Interfaces;        use Interfaces;
+with Ada.Strings.Unbounded;
 with System.Storage_Elements;
 
-with GNAT.Strings;      use GNAT.Strings;
+with Ada.Text_IO;  use Ada.Text_IO;
+with Interfaces;   use Interfaces;
+with GNAT.Strings; use GNAT.Strings;
 
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -301,14 +302,22 @@ package body Decision_Map is
             end if;
 
             if Report_If_Unexpected then
-               Report
-                 (Exec, Insn'First,
-                  "evaluation of unexpected condition" & CI'Img
-                  & " (expected"
-                  & Condition_Index'Image (Current_CI)
-                  & " or"
-                  & Condition_Index'Image (Current_CI + 1) & ")"
-                  & " in decision " & Image (DS_Top.Decision));
+               declare
+                  use Ada.Strings.Unbounded;
+
+                  Msg : Unbounded_String;
+               begin
+                  Msg := To_Unbounded_String
+                           ("evaluation of unexpected condition" & CI'Img
+                            & " (expected");
+                  if Current_CI >= 0 then
+                     Append (Msg, Condition_Index'Image (Current_CI) & " or");
+                  end if;
+                  Append (Msg,
+                    Condition_Index'Image (Current_CI + 1) & ")"
+                    & " in decision " & Image (DS_Top.Decision));
+                  Report (Exec, Insn'First, To_String (Msg));
+               end;
             end if;
             return False;
          end Is_Expected_Condition;
