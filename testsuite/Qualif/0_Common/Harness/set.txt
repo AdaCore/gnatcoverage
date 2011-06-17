@@ -340,7 +340,8 @@ Statement Coverage TOR::
   end;
 
 A single driver that calls into this code with ``Do_Inner = True`` expects to
-achieve full statement coverage and would read like::
+achieve full statement coverage and would feature ``0`` expectations to convey
+that, for example::
 
   procedure Test_Check is
   begin
@@ -359,7 +360,7 @@ This decision coverage violation is irrelevant for a statement coverage test,
 however, and should just be ignored.
 
 In effect, ``0`` expectations need to be (and are) interpreted in accordance
-with the test category to prevent FAILURES from violations of stricter
+with the test category to prevent FAILures from violations of stricter
 criteria. In our example test of statement category, the ``0`` expectations
 are meant to convey that we expect no *statement coverage* violation on the
 lines and violations of stricter criteria there ought to be ignored.
