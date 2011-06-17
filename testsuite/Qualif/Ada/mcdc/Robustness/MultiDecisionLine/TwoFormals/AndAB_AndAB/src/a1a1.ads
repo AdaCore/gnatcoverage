@@ -1,7 +1,7 @@
 
 package A1A1 is
-   function F (A, B : Boolean) return Boolean;
-   --  Evaluate A and then B twice on the same line and return the value.
+   procedure Process (A, B : Boolean);
+   --  Evaluate A and then B twice on the same line
 
    --  +--------+-----+
    --  | A   B  | And |  Vec #

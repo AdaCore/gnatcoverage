@@ -5,7 +5,7 @@ with Support, A1A1; use Support, A1A1;
 
 procedure Test_A1A1_V1 is
 begin
-   Assert (not F (A => False, B => True));
+   Process (A => False, B => True);
 end;
 
 --# a1a1.adb
