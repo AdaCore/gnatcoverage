@@ -478,7 +478,6 @@ package body Coverage.Source is
 
             CBI : constant Cond_Branch_Info :=
                     Cond_Branch_Map.Element ((Subp_Info.Exec, PC));
-            pragma Assert (CBI.Condition = SCO);
 
             procedure Edge_Taken (E : Edge_Kind);
             --  Record that edge E for the conditional branch at PC has been
@@ -655,6 +654,18 @@ package body Coverage.Source is
          --  Start of processing for Process_Conditional_Branch
 
          begin
+            if CBI.Condition /= SCO then
+
+               --  The SCO being discharged is not the condition tested by
+               --  this conditional branch instruction, so nothing to do here.
+               --  This can happen when inlining is present, in which case the
+               --  conditional instruction testing one condition can have
+               --  supplementary slocs corresponding to a call to the enclosing
+               --  subprograms, which itself is a condition.
+
+               return;
+            end if;
+
             Report
               (Exe, PC,
                "processing cond branch trace op" & T.Op'Img,
