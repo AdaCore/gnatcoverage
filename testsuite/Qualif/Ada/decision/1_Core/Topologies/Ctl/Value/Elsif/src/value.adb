@@ -1,3 +1,5 @@
+with Support;
+
 package body Value is
    function Dovalue (X, Bomb : Boolean) return Boolean is
    begin
@@ -12,6 +14,9 @@ package body Value is
 
    function F (X : Boolean) return Boolean is
    begin
-      return Dovalue (X, Bomb => False); -- # returnVal
+      -- The intermediate call to Identity below is intended to prevent DCE,
+      -- hence lines without code, in the callee if the call gets inlined.
+
+      return Dovalue (X, Bomb => Support.Identity(False)); -- # returnVal
    end;
 end;
