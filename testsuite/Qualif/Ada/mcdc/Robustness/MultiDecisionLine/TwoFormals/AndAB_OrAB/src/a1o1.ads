@@ -1,8 +1,7 @@
 
 package A1O1 is
-   function F (A, B : Boolean) return Boolean;
+   procedure Process (A, B : Boolean);
    --  Evaluate A and then B as well as A or else B on the same line.
-   --  Return the former.
 
    --  +--------+-----+           +--------+----+
    --  | A   B  | And |  Vec #    | A   B  | Or |

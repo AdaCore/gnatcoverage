@@ -3,12 +3,15 @@ statements)
 
 %(req-headline)s
 
-A compound statement shall be reported as uncovered if it is not executed.
+A compound statement shall be reported as uncovered if it is not
+executed. This plus the Core requirements apply to all the statements
+nested in the compound one, recursively.
 
 %(tstrategy-headline)s
 
 This tool operation requirement is split into subordinate requirements
-according to the sections of Chapter 5 (Statements) of the ARM:
+according to the sections of Chapter 5 (Statements) of the ARM, which
+distinguishes multiple kinds of compound statements:
 
 %(tc-index)s
 

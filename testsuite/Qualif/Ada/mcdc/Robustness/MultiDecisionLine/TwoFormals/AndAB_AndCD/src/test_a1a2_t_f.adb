@@ -2,7 +2,7 @@ with A1A2, Support; use A1A2, Support;
 
 procedure Test_A1A2_T_F is
 begin
-   Assert (F (A => True, B => True, C => False, D => True));
+   Process (A => True, B => True, C => False, D => True);
 end;
 
 --# a1a2.adb
