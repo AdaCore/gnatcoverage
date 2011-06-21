@@ -248,21 +248,23 @@ class Dir:
         some_reqorset    = False
         some_notreqorset = False
 
-        some_req     = False
-        some_notreq  = False
-        some_tc      = False
-        some_nottc   = False
-        some_set     = False
-        some_notset  = False
+        some_req      = False
+        some_notreq   = False
+        some_tc       = False
+        some_nottc    = False
+        some_set      = False
+        some_notset   = False
+        some_nottcset = False
 
         for subdo in self.subdos:
             some_req    |= subdo.req
             some_tc     |= subdo.tc
             some_set    |= subdo.set
 
-            some_notreq  |= not subdo.req
-            some_nottc   |= not subdo.tc
-            some_notset  |= not subdo.set
+            some_notreq   |= not subdo.req
+            some_nottc    |= not subdo.tc
+            some_notset   |= not subdo.set
+            some_nottcset |= not subdo.tcset
 
             some_tcorset  |= subdo.tc | subdo.tcset
             some_reqorset |= subdo.req | subdo.reqset
@@ -270,15 +272,41 @@ class Dir:
             some_nottcorset  |= not (subdo.tc | subdo.tcset)
             some_notreqorset |= not (subdo.req | subdo.reqset)
 
-        self.all_tc = not some_nottc
-        self.all_req = not some_notreq
-        self.all_set = not some_notset
+        self.all_tc    = not some_nottc
+        self.all_req   = not some_notreq
+        self.all_set   = not some_notset
+        self.all_tcset = not some_nottcset
 
         self.all_reqorset = not some_notreqorset
         self.all_tcorset  = not some_nottcorset
 
-        self.tcset = self.set and self.all_tc
-        self.reqset = self.set and self.all_req
+        # For TC sets, consider the difference in consistency between
+        #
+        # 1) either:
+        #    set/tc
+        #       /tc
+        #       /tc
+        #
+        #    or:
+        #    set/set/tc
+        #           /tc
+        #       /set/tc
+        #           /tc
+        #
+        # (only allow sets of TCs, or sets of sets)
+        #
+        # 2) or possibly
+        #    set/set/tc
+        #           /tc
+        #       /tc
+        #
+        # (allow sets of either tc or set)
+
+        # We go for 2, to allow subgroups specific to "pragma" contexts (with
+        # dedicated sets of drivers) in Topologies sections.
+
+        self.tcset = self.set and self.all_tcorset
+        self.reqset = self.set and self.all_reqorset
 
         self.container = self.set or self.req
 
