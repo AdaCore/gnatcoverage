@@ -454,9 +454,14 @@ class SCOV_helper:
         # sources from a working directory, and typical locations of common
         # support sources.
 
+        # Turn inlining off for the driver unit, to make sure we exercise
+        # the functional code as separately compiled, not an inlined version
+        # of it in a non-representative driver context.
+
         gprbuild(
             gprfor (mains = [main], prjid="gen",
-                    srcdirs = ["../"*n + "src" for n in range (1, 10)]),
+                    srcdirs = ["../"*n + "src" for n in range (1, 10)],
+                    main_cargs = "-fno-inline"),
             cargs=to_list(extracargs))
 
     # --------------

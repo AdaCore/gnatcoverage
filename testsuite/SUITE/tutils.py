@@ -10,7 +10,7 @@
 
 # Expose a few other items as a test util-facilities as well
 
-from SUITE.control import BUILDER, XCOV, LANGINFO
+from SUITE.control import BUILDER, XCOV, LANGINFO, language_info
 from SUITE.context import *
 
 # Then mind our own buisness
@@ -76,7 +76,7 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
 # ------------
 # -- gprfor --
 # ------------
-def gprfor(mains, prjid="gen", srcdirs="src"):
+def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None):
     """Generate a simple PRJID.gpr project file to build executables for each
     main source file in the MAINS list, sources in SRCDIRS. Inexistant
     directories in SRCDIRS are ignored. Return the gpr file name.
@@ -105,12 +105,9 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
 
     # Determine the language(s) from the mains.
 
-    languages_l = set([])
-    [languages_l.add(
-            "Ada" if filename.endswith(".adb")
-            else "C" if filename.endswith(".c")
-            else "UNKNOWN_LANG_FOR_%s" % filename)
-     for filename in mains]
+    languages_l = set(
+        [language_info(main).name for main in mains]
+        )
 
     languages = ', '.join(['"%s"' %l for l in languages_l])
 
@@ -141,7 +138,21 @@ def gprfor(mains, prjid="gen", srcdirs="src"):
                     ) + ")",
             "lang": lang, "baseref": baseref}
          for lang in languages_l]
-        );
+        ) + '\n'
+
+    # Then, if we have specific flags for the mains, append them. This is
+    # typically something like
+    #
+    #  for Switches("test_blob.adb") use
+    #    Compiler'Default_Switches("Ada") & ("-fno-inline")
+
+    compswitches += '\n'.join (
+        ['for Switches("%s") use \n'
+         '  Compiler\'Default_Switches ("%s") & (%s);' % (
+                main, language_info(main).name, ','.join(
+                    ['"%s"' % carg for carg in to_list(main_cargs)]))
+         for main in mains]
+        ) + '\n'
 
     # Now instanciate, dump the contents into the target gpr file and return
 
