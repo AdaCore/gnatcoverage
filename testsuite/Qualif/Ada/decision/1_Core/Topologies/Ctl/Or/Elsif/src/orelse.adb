@@ -1,3 +1,5 @@
+with Support;
+
 package body Orelse is
    function F (A, B, X : Boolean) return Boolean is
    begin
@@ -12,7 +14,10 @@ package body Orelse is
 
    function Or_Else (A, B : Boolean) return Boolean is
    begin
-      return F (A, B, False); -- # retVal
+      -- Identity is intended to prevent possible constant folding
+      -- bias in results, irrelevant for this testcase purposes
+
+      return F (A, B, X => Support.Identity(False)); -- # retVal
    end;
 end;
 

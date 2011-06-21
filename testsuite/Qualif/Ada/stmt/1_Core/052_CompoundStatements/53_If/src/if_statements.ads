@@ -11,7 +11,7 @@ package IF_Statements is
    procedure Set_Max
      (Res        : out T;
       Arg1, Arg2 :     T);
-   --  Set Res to maximub from Arg1 and Arg2. The body contains IF statement
+   --  Set Res to maximun from Arg1 and Arg2. The body contains IF statement
    --  without ELSE path and without ELSIF path
 end IF_Statements;
 

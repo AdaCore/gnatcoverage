@@ -34,7 +34,7 @@ expectations regarding:
 * **General coverage analysis facilities**, for example the support for
   coverage exemptions or consolidation capabilities.
   In addition to validating the tool behavior with respect to the stated
-  requirements, testcases in this category extend the set of exercized code
+  requirements, testcases in this category extend the set of exercised code
   samples where mutliple language features are mixed together.
 
 * **The output report format**, part of the tool qualified interface.

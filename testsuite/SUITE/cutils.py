@@ -37,16 +37,11 @@ def to_list(blob):
     """Turn input BLOB into a list if it isn't already. Handle None
        and whitespace separated strings. Return empty list otherwise."""
 
-    if isinstance (blob, list):
-        return blob
-
-    if blob == None:
-        return []
-
-    if isinstance (blob, str):
-        return blob.split ()
-
-    return []
+    return (
+        blob if isinstance (blob, list)
+        else blob.split() if isinstance (blob, str)
+        else []
+        )
 
 # ------------------
 # -- text_to_file --
