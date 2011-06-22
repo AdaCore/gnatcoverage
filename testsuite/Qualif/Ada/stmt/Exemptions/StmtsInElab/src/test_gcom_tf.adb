@@ -1,12 +1,8 @@
-with Support, Gcom; use Support;
+with Support, Comi_Init, Comi_Noinit; use Support;
 
---  Instanciate gcom with auto-init both False and True - call covered at the
---  generic source level. Force variable values to prevent total absence of
---  code from constant folding otherwise.
+--  Reach gcom with auto-init both False and True - call covered => exempted
 
 procedure Test_Gcom_TF is
-   package Com_Init is new Gcom (Auto_Init => Identity (True));
-   package Com_Noinit is new Gcom (Auto_Init => Identity (False));
 begin
    Assert (Com_Init.Initialized = True);
    Assert (Com_Noinit.Initialized = False);

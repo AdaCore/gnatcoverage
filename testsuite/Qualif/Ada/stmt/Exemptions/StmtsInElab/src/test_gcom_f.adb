@@ -1,12 +1,10 @@
-with Support, Gcom; use Support;
+with Support, Comi_Noinit; use Support;
 
--- Instanciate gcom with auto-init False - call exempted. Force a variable
---  value to preventtotal absence of code from constant folding otherwise.
+-- Reach gcom with auto-init False - call not covered => exempted.
 
 procedure Test_Gcom_F is
-   package Com_Noinit is new Gcom (Auto_Init => Identity (False));
 begin
-   Assert (Com_Noinit.Initialized = False);
+   Assert (Comi_Noinit.Initialized = False);
 end;
 
 --# gcom.adb

@@ -1,11 +1,10 @@
-with Support, Gcom; use Support;
+with Support, Comi_Init; use Support;
 
--- Instanciate gcom with auto-init True - call covered.
+-- Reach gcom with auto-init True - call covered => no exemption
 
 procedure Test_Gcom_T is
-   package Com_Auto is new Gcom (Auto_Init => True);
 begin
-   Assert (Com_Auto.Initialized = True);
+   Assert (Comi_Init.Initialized = True);
 end;
 
 --# gcom.adb
