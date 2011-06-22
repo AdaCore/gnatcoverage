@@ -5,6 +5,7 @@ import rest
 import glob
 import re
 import sys
+import json
 
 DOC_DIR = "source"
 ROOT_DIR = "../../../testsuite/Qualif"
@@ -14,7 +15,8 @@ ROOT_DIR = "../../../testsuite/Qualif"
 # **********************
 
 def get_content(filename):
-    """Return contents of a file"""
+    """Return contents of file FILENAME as a string"""
+
     fd = open(filename, 'r')
     content = fd.read()
     fd.close()
@@ -45,8 +47,11 @@ def subsec_header(str):
     """Return a Subsection header text to be used for subsection title STR"""
     return header(rest.emphasis(str), pre_skip=2, post_skip=2)
 
+def warn(text):
+    print "warning: %s" % text
+
 def warn_if(cond, text):
-    if cond: print "warning: %s" % text
+    if cond: warn(text)
 
 
 # **************************
@@ -207,6 +212,8 @@ class Dir:
         self.subdirs = subdirs # list of local subdir names
         self.files   = files   # list of local file names
 
+        self.name    = os.path.basename(root) # local name of this dir
+
         # Links to parent and children in the directory tree. These are
         # set as dir objects get mapped within a DirTree instance.
 
@@ -317,7 +324,11 @@ class Dir:
                 None)
 
     def dtext (self):
-        return get_content (os.path.join (self.root, self.dfile()))
+        if self.dfile() == None:
+            warn ("missing description file in %s" % self.root)
+            return ""
+        else:
+            return get_content (os.path.join (self.root, self.dfile()))
 
 # ********************************
 # ** Directory Tree abstraction **
@@ -444,13 +455,58 @@ class DirTree:
 
     def sort (self):
 
-        self.walk (
-            mode=botmup,
-            process=lambda diro, pathi, wi: (diro.subdos.sort (
-                    key = lambda subdo:
-                        (subdo.container, subdo.root)
-                    ))
-            )
+        """Sort the list of subdirectory objects registered for each tree
+        node, to influence processing order in tree walks (hence insertion
+        order in auto-indexes)"""
+
+        def sort_subdos(diro, pathi, wi):
+
+            # Sort subdirectories of DIRO. Arrange to get
+            #
+            # * All the non containers first, to make sure that
+            #
+            #     sub/x
+            #     y
+            #
+            #   gets out as
+            #
+            #     y     bla
+            #     sub   blo
+            #     x     blu
+            #
+            #   and not as
+            #
+            #     sub  blo
+            #     x    blu
+            #     y    bla
+            #
+            #   where y would be perceived as a child of "sub"
+            #
+            #  * Those for which a local key in their respective key order,
+            #    all before or after those without explicit keys depending
+            #    on the "default" entry,
+            #
+            #  * In every subcase, sort by subdirectory name
+
+            # Fetch the local { subdirname: key } dictionary, if any
+
+            kfile = os.path.join (diro.root, "keys.txt")
+            keys = (
+                json.loads (get_content(kfile)) if os.path.exists(kfile)
+                else {"default": 0}
+                )
+
+            # Then sort according to our three criteria of interest
+
+            diro.subdos.sort (
+               key = lambda subdo:
+                   (subdo.container,
+                    keys[subdo.name] if subdo.name in keys
+                    else keys["default"],
+                    subdo.name)
+                )
+
+        self.walk (mode=botmup, process=sort_subdos)
 
     # -----------------------------------------
     # -- Checking directory tree consistency --
@@ -684,8 +740,9 @@ class DocGenerator(object):
         dest_filename = self.file2docfile(diro.root)
         self.ofd = open(os.path.join(self.doc_dir, dest_filename), 'w')
 
-        ttext = os.path.basename(diro.root)
-        ttext = self.ALT_TITLES[ttext] if ttext in self.ALT_TITLES else ttext
+        ttext = (
+            self.ALT_TITLES[diro.name] if diro.name in self.ALT_TITLES
+            else diro.name)
 
         self.ofd.write(rest.section(to_title(ttext)))
 
