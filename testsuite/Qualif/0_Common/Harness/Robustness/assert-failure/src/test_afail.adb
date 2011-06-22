@@ -2,7 +2,7 @@ with Support;
 
 procedure Test_Afail is
 begin
-   Assert (False); -- # assert
+   Support.Assert (False); -- # assert
 end;
 
 --# test_afail.adb
