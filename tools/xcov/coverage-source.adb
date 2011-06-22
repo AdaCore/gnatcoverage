@@ -409,15 +409,16 @@ package body Coverage.Source is
       Insn_Len   : Natural;
       SCO, S_SCO : SCO_Id;
 
-      procedure Discharge_SCO (SCO : SCO_Id);
+      procedure Discharge_SCO (SCO : SCO_Id; Empty_Range : Boolean);
       --  Discharge the coverage obligation denoted by SCO using the current
-      --  execution trace.
+      --  execution trace for an instruction at PC. Empty_Range is True if
+      --  the sloc for PC that is associated with SCO has an empty PC range.
 
       -------------------
       -- Discharge_SCO --
       -------------------
 
-      procedure Discharge_SCO (SCO : SCO_Id) is
+      procedure Discharge_SCO (SCO : SCO_Id; Empty_Range : Boolean) is
          Propagating, No_Propagation : Boolean;
       begin
          --  Ensure there is a coverage information entry for this SCO
@@ -465,6 +466,7 @@ package body Coverage.Source is
          if not (Enabled (Decision) or else MCDC_Coverage_Enabled)
            or else Kind (SCO) /= Condition
            or else not Cond_Branch_Map.Contains ((Subp_Info.Exec, PC))
+           or else Empty_Range
          then
             return;
          end if;
@@ -478,6 +480,7 @@ package body Coverage.Source is
 
             CBI : constant Cond_Branch_Info :=
                     Cond_Branch_Map.Element ((Subp_Info.Exec, PC));
+            pragma Assert (CBI.Condition = SCO);
 
             procedure Edge_Taken (E : Edge_Kind);
             --  Record that edge E for the conditional branch at PC has been
@@ -654,18 +657,6 @@ package body Coverage.Source is
          --  Start of processing for Process_Conditional_Branch
 
          begin
-            if CBI.Condition /= SCO then
-
-               --  The SCO being discharged is not the condition tested by
-               --  this conditional branch instruction, so nothing to do here.
-               --  This can happen when inlining is present, in which case the
-               --  conditional instruction testing one condition can have
-               --  supplementary slocs corresponding to a call to the enclosing
-               --  subprograms, which itself is a condition.
-
-               return;
-            end if;
-
             Report
               (Exe, PC,
                "processing cond branch trace op" & T.Op'Img,
@@ -721,13 +712,15 @@ package body Coverage.Source is
 
          declare
             SL : constant Source_Locations :=
-                   Get_Slocs (Subp_Info.Exec.all, PC, True);
+                   Get_Slocs (Subp_Info.Exec.all, PC, Empty_Range => True);
          begin
             for J in SL'Range loop
                SCO := Sloc_To_SCO (SL (J));
 
+               --  All but the last sloc in SL correspond to an empty PC range
+
                if SCO /= No_SCO_Id then
-                  Discharge_SCO (SCO);
+                  Discharge_SCO (SCO, Empty_Range => J < SL'Last);
                end if;
             end loop;
          end;
