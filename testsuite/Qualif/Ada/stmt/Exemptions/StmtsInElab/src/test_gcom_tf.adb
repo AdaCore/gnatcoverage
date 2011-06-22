@@ -4,8 +4,8 @@ with Support, Comi_Init, Comi_Noinit; use Support;
 
 procedure Test_Gcom_TF is
 begin
-   Assert (Com_Init.Initialized = True);
-   Assert (Com_Noinit.Initialized = False);
+   Assert (Comi_Init.Initialized = True);
+   Assert (Comi_Noinit.Initialized = False);
 end;
 
 --# gcom.adb
