@@ -1,0 +1,5 @@
+{ "stmt": 1,
+  "decision": 2,
+  "mcdc": 3
+}
+
