@@ -1,3 +1,5 @@
+with Support; use Support;
+
 package body Flip is
    function Doflip (X, Bomb : Boolean) return Boolean is
    begin
@@ -12,7 +14,7 @@ package body Flip is
 
    function F (X : Boolean) return Boolean is
    begin
-      return Doflip (X, Bomb => False); -- # returnVal
+      return Doflip (X, Bomb => Identity(False)); -- # returnVal
    end;
 end;
 

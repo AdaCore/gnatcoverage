@@ -1,3 +1,5 @@
+with Support; use Support;
+
 package body Andthen is
    function F (A, B, X : Boolean) return Boolean is
    begin
@@ -12,7 +14,7 @@ package body Andthen is
 
    function And_Then (A, B : Boolean) return Boolean is
    begin
-      return F (A, B, False); -- # retVal
+      return F (A, B, Identity(False)); -- # retVal
    end;
 end;
 
