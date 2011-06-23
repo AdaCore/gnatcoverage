@@ -356,12 +356,20 @@ package body Decision_Map is
                exit;
             end if;
 
+            --  If the condition being evaluated is the first one in its
+            --  decision, assume that we are starting a new nested evaluation.
+
+            exit when Cond_Index = 0;
+
+            --  Otherwise pop completed evaluations from the stack until we
+            --  find the relevant pending one.
+
             Analyze_Decision_Occurrence (Exec, Ctx, DS_Top);
             Ctx.Decision_Stack.Delete_Last;
             DS_Top := null;
          end loop;
 
-         if DS_Top = null then
+         if DS_Top = null or else DS_Top.Decision /= D_SCO then
             --  Push new context
 
             DS_Top := new Decision_Occurrence'
