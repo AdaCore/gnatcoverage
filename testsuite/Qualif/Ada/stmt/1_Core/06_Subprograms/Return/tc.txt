@@ -1,7 +1,12 @@
-Check that when a RETURN statement is not executed it is reported as
-uncovered. Check that if a RETURN statement is executed then all the
-statements in a subprogram body that have not been executed by that moment
-shall be reported as uncovered.
+Return statements
+
+Check that:
+
+* A RETURN statement reported as uncovered when it is not executed.
+
+* If a RETURN statement is executed then all the statements in a subprogram
+  body that have not been executed by that moment shall be reported as
+  uncovered.
 
 Check RETURN statements in procedure and in function. Check the
 situation when the body contains more then one RETURN statement.

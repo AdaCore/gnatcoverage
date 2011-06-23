@@ -9,6 +9,8 @@ constructs that could fool simple minded analyzers.
 
 %(tstrategy-headline)s
 
-Check the following set of cases:
+Check a panel of cases where code construct particularities could concievably
+cause inaccuracies or errors in coverage diagnostics if the tool were to
+implement too simple analysis schemes:
 
 %(tc-index)s

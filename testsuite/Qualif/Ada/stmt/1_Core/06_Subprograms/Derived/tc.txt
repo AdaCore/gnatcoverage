@@ -1,8 +1,13 @@
-Check that for inherited subprograms, the code of a user-defined subprogram is
-reported as uncovered if neither this subprogram nor any subprogram inherited
-from it (directly or indirectly) is called. Check that call to overriding
-subprogram does not result in reporting the code of overridden subprogram as
-covered.
+Derived subprograms
+
+Check that:
+
+* The code of a user-defined subprogram is reported as uncovered if neither
+  this subprogram nor any subprogram inherited from it (directly or
+  indirectly) is called.
+
+* A call to overriding subprogram does not result in reporting the code of
+  overridden subprogram as covered.
 
 The functional code includes more then one level of inheritance. Test drivers
 call inherited subprograms in different ways, including dispatching calls,

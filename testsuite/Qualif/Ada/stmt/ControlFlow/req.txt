@@ -14,8 +14,8 @@ block, all the statements in the block shall be reported uncovered.
 
 %(tstrategy-headline)s
 
-All the aspects of this requirement are validated by a few groups of testcases
-:
+All the aspects of this requirement are validated by a the following set of
+testcases :
  
 %(tc-index)s
 

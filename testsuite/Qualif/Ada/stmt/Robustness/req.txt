@@ -12,7 +12,7 @@ constructs that could fool simple minded analysis engines.
 
 Check a panel of cases where code construct particularities could concievably
 cause inaccuracies or errors in coverage diagnostics if the tool were to
-implement too simple analysis schemes;
+implement too simple analysis schemes:
 
 %(tc-index)s
 
