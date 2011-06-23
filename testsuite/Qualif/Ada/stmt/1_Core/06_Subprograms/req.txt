@@ -7,7 +7,8 @@ described in Chapter 6 "Subprograms" of the Ada Reference Manual.
 
 %(tstrategy-headline)s
 
-We address all the parts of chapter 6 with the following set of testcases:
+We exercise the following set of testcases:
 
 %(tc-index)s
+
 

@@ -1,4 +1,4 @@
-Check SC assessments wrt Package elaborations (ch. 7)
+Check SC assessments of package elaboration statements
 
 Check proper coverage assessment of elaboration statements in both local and
 library level packages. Check that the only situation when code from a package

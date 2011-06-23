@@ -1,0 +1,10 @@
+Check SC assessments for subprograms declared in various package regions
+
+Check that the tool recognizes subprograms declared in all the possible
+regions of packages, in particular:
+
+* subprogams declared in the public or private private of a package spec,
+
+* subprograms declared in a package body only
+
+
