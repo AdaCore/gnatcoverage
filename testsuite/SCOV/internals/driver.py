@@ -458,6 +458,11 @@ class SCOV_helper:
         # the functional code as separately compiled, not an inlined version
         # of it in a non-representative driver context.
 
+        # ??? The candidate paths generated here are bogus, climbing up 10
+        # levels is liable to get us out of the Couverture test suite structure
+        # completely. The upper bound should instead be the relative depth of
+        # the current project directory with respect to the test suite root.
+
         gprbuild(
             gprfor (mains = [main], prjid="gen",
                     srcdirs = ["../"*n + "src" for n in range (1, 10)],
