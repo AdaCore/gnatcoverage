@@ -1,0 +1,20 @@
+Lexical Elements (ARM chapter 2)
+
+%(req-headline)s
+
+The only chapter 2 item relevant to SC assessments are Pragmas, which might
+embed executable constructs. Different kinds of pragmas exist, some always
+active, some possibly ignored depending on configuration parameters. We obey a
+single requirement in this context:
+
+Active pragmas shall be recognized and handled as simple statements: an active
+pragma shall be reported uncovered unless reached by execution/elaboration
+flow.
+
+%(tstrategy-headline)s
+
+We check this requirement for different kinds of pragmas in various
+possible source regions, with the following set of testcases:
+
+%(tc-index)s
+
