@@ -1,2 +1,2 @@
-This section groups testcases aimed at demonstrating proper behavior in
+Check proper behavior in
 various situations involving coupled conditions.

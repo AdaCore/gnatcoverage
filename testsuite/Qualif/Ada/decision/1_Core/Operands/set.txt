@@ -1,4 +1,4 @@
-This section groups testcases aimed at cheking the tool's capability to
+Check the tool's capability to
 perform correct DC assessments on decisions featuring all the possible forms
 of conditions, not only Boolean variables.
 

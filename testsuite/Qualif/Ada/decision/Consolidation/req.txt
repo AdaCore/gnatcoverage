@@ -1,4 +1,4 @@
-Material to define and validate the expected processing of multiple execution
+Define and validate the expected processing of multiple execution
 traces combined together.
 
 %(req-headline)s

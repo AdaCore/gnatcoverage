@@ -1,4 +1,4 @@
-Material to define and validate the core expectations for Statement Coverage
+Define and validate the core expectations for Statement Coverage
 (SC) assessments. All the other SC related sections rely on this one.
 
 %(req-headline)s

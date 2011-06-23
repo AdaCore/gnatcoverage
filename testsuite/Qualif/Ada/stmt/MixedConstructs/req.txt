@@ -1,4 +1,4 @@
-Material to demonstrate that the toolset correctly handles mixes of various
+Check that the toolset correctly handles mixes of various
 statement constructs, representative of what would be found in real
 applications.
 

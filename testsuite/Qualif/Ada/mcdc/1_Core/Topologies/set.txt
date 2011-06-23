@@ -1,4 +1,4 @@
-This section groups testcases aimed at verifying the tool's capability to
+Check the tool's capability to
 perform correct MCDC assessments on expressions of arbitrary topology
 everywhere they might appear.
 

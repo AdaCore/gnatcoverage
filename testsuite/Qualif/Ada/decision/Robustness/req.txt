@@ -1,4 +1,4 @@
-Material to demonstrate that the toolset correctly handles potentially
+Check that the toolset correctly handles potentially
 confusing constructs that would fool naive analyzers, e.g. cases of decisions
 spanning multiple lines.
 

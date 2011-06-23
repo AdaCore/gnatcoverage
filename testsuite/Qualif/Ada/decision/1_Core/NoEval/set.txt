@@ -1,4 +1,4 @@
-This section groups testcases aimed at checking the tool's capability to
+Check the tool's capability to
 handle situations where decisions are not evaluated (don't yield an outcome)
 even though the statement they control is executed. This typically happens
 when an evaluation is interrupted by an exception occurrence.

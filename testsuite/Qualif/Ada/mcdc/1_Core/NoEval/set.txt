@@ -1,4 +1,4 @@
-This section groups testcases that check proper differentiation of a case
+Check proper differentiation of a case
 involving a decision enclosed in an uncovered statement versus that of a
 decision possibly unevaluated despite coverage of the enclosing statement.
 

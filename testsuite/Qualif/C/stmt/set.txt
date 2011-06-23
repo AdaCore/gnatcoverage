@@ -1,2 +1,2 @@
-This section holds the tool operational requirements and associated testcases
-related to Statement Coverage assessments for the C language. 
+Statement Coverage (SC) TORs and Testcases for C
+
