@@ -1,9 +1,0 @@
-Check SC assessments wrt Pragmas (ch. 2)
-
-Check that a pragmas which is not elaborated is reported as uncovered. Check
-the following kind of pragmas:
-
- * Assert
- * Debug
- * Precondition
- * Postcondition

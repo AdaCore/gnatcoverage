@@ -10,4 +10,5 @@ begin
 end;
 
 --# asserts.adb
--- /eval/ l+ 0
+-- /eval/   l+ 0
+-- /assert/ l. 0
