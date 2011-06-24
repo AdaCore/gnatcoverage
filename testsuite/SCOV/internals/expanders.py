@@ -44,15 +44,6 @@ from . tfiles import *
 from . segments import *
 from SUITE.control import LANGINFO, language_info
 
-# ------------
-# -- fb_get --
-# ------------
-
-def fb_get(dict, key):
-    """Get DICT[KEY], falling back to DICT[''] if KEY is not a
-    a valid key in DICT"""
-    return dict.get(key, dict[""])
-
 # --------------------
 # -- LnotesExpander --
 # --------------------
@@ -605,15 +596,26 @@ class XnotesExpander:
             [ln_tuple for cond_notes in lx_lnote_list
              for ln_tuple in self.__decode_note_choice(cond_notes)])
 
-        if not level_table.has_key(''):
-            raise FatalError("No default case in line expectation: %s" % text)
+        if level_table.has_key(self.xcov_level):
+            return level_table [self.xcov_level]
+        elif level_table.has_key(''):
+            return level_table ['']
+        else:
+            raise FatalError(
+                "Missing line expectation choice for level %s in %s"
+                % (self.xcov_level, text))
 
-        return fb_get(level_table, self.xcov_level)
 
     def __select_rnote(self, text):
         """Decode text to return the report note for the current
         coverage level."""
         level_table = dict(
-            [('', "0")]
-            + [ln_tuple for ln_tuple in self.__decode_note_choice(text)])
-        return fb_get(level_table, self.xcov_level)
+            [ln_tuple for ln_tuple in self.__decode_note_choice(text)])
+
+        if level_table.has_key(self.xcov_level):
+            return level_table [self.xcov_level]
+        elif level_table.has_key(''):
+            return level_table ['']
+        else:
+            return "0"
+
