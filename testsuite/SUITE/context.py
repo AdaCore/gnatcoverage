@@ -6,8 +6,7 @@
 # instance of a Test class, to switch to the test subdir, and offer command
 # line and test status management facilities.
 
-# It also exposes a few global variables of general use (env, TEST_DIR,
-# QUALIF_DIR etc)
+# It also exposes a few global variables of general use (env, TEST_DIR, etc)
 
 # ***************************************************************************
 
@@ -20,13 +19,16 @@ from gnatpython.fileutils import cd, rm, which, diff, touch, mkdir, ls, find
 import os, re, sys
 
 from SUITE.control import GPRCLEAN
+from SUITE.cutils import ndirs_in
 
-# Move to test directory
+# This module is loaded as part of a Run operation for a test.py
+# file found and launched by the toplevel driver
+
+# This is where the toplevel invocation was issued:
 ROOT_DIR = os.getcwd()
-TEST_DIR = os.path.dirname(sys.modules['__main__'].__file__)
 
-# The Qualif directory, where all tests used for qualification are located.
-QUALIF_DIR = os.path.join(ROOT_DIR, "Qualif")
+# And this is the relative directory where test.py was found:
+TEST_DIR = os.path.dirname(sys.modules['__main__'].__file__)
 
 env = Env()
 
@@ -136,6 +138,12 @@ class Test (object):
         gprbuild options we'll have to pass on every call to convey config
         options.
         """
+
+        # Compute the depth of this test wrt testsuite root, as the number of
+        # directory entries in TEST_DIR.
+
+        self.depth = ndirs_in (
+            os.path.relpath (os.path.join (ROOT_DIR, TEST_DIR), ROOT_DIR))
 
         cd(TEST_DIR)
 

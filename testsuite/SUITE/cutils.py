@@ -92,6 +92,22 @@ def version(tool):
     return Run(
         to_list(tool + " --version")).out.split('\n')[0]
 
+# --------------
+# -- ndirs_in --
+# --------------
+def ndirs_in(path):
+    """Return the number of directory name components in PATH."""
+
+    # Count how many times we can split PATH with os.path until reaching an
+    # empty head. This lets os.path deal with the separator recognition
+
+    nsplits = 0
+    while path:
+        (path, tail) = os.path.split(path)
+        nsplits += 1
+
+    return nsplits
+
 # ==========================
 # == FatalError Exception ==
 # ==========================
