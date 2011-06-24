@@ -1,0 +1,19 @@
+Pragmas (ARM 2.x)
+
+%(reqs-headline)s
+
+Different kinds of pragmas exist, some always active, some possibly ignored
+depending on configuration parameters. We obey the following requirements in
+this context:
+
+* Inactive pragmas shall be ignored;
+
+* Active pragmas shall be recognized and handled as simple statements.
+
+%(tstrategy-headline)s
+
+We check this requirement for different kinds of pragmas in various
+possible source regions, with the following set of testcases:
+
+%(tc-index)s
+

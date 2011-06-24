@@ -1,0 +1,13 @@
+Subunits (ARM chapter 10.X)
+
+%(req-headline)s
+
+SC assessments shall operate in subunits as in regular units.
+
+%(tstrategy-headline)s
+
+We perform basic statement coverage assessments within several kinds of
+subunits, by way of the following set of testcases:
+
+%(tc-index)s
+

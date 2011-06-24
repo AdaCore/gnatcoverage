@@ -1,0 +1,7 @@
+Lexical Elements (ARM chapter 2)
+
+There are only very few chapter 2 items relevant to SC assessements, for
+which we provide subsidiary requirements:
+
+%(subset-index)s
+

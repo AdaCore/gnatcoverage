@@ -1,0 +1,7 @@
+Visibility Rules (ARM chapter 8)
+
+There are only very few chapter 8 items relevant to SC assessements, for
+which we provide subsidiary requirements:
+
+%(subset-index)s
+
