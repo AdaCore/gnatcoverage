@@ -139,8 +139,11 @@ class Test (object):
         options.
         """
 
-        # Compute the depth of this test wrt testsuite root, as the number of
-        # directory entries in TEST_DIR.
+        # Compute the depth of this test wrt testsuite root. We join ROOT and
+        # TEST dirs then compute the length of the relative path, instead of
+        # just counting the number of components in TEST_DIR, to prevent
+        # inacuracies from possible "./" components that don't really increase
+        # the depth.
 
         self.depth = ndirs_in (
             os.path.relpath (os.path.join (ROOT_DIR, TEST_DIR), ROOT_DIR))
