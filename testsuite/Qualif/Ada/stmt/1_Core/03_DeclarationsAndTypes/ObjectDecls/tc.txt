@@ -1,15 +1,12 @@
-Check SC assessments over Object Declarations.
+Check SC of Object Declarations
 
 Check that an object declaration is reported as uncovered iif it is not
-elaborated.
+elaborated. Exercise object declarations for which we expect to have implicit
+execution of code for the initializations:
 
-Check the following kinds of object declarations for which we expect to have
-implicit execution of code for the initializations:
+* Object declarations with explicit initialization expressions;
 
-* object declarations with explicit initialization expressions;
+* Declarations of objects whose types define implicit initialization (access
+  types and record types with component initializers).
 
-* declarations of objects whose types define implicit initialization (this
-  includes record types and access types).
-
-Check local and global declarations, declarations located in functions and in
-subprograms.
+Check local and global declarations.

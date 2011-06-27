@@ -1,4 +1,4 @@
-ARM chap.6 : Subprograms
+ARM chap. 6 : Subprograms
 
 %(req-headline)s
 

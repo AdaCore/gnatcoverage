@@ -1,4 +1,4 @@
-Check SC assessments wrt Null statements (ch. 5.2)
+Check SC of Null statements (ARM 5.2)
 
 Check various code fragments that contain null statements such as:
 
@@ -6,8 +6,8 @@ Check various code fragments that contain null statements such as:
 
 * null procedure;
 
-* last statement in a statement sequence that has a label attached to it and
-  is used in control transfer to skip the preceding sequence of statements.
+* last statement in a sequence, with a label attached to it used to skip
+  earlier statements in the sequence.
 
 Check that only those null statements that are not executed are reported as
 uncovered.

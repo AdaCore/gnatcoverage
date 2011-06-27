@@ -1,10 +1,9 @@
-Pragmas (ARM 2.x)
+Pragmas (ARM 2.8)
 
 %(reqs-headline)s
 
 Different kinds of pragmas exist, some always active, some possibly ignored
-depending on configuration parameters. We obey the following requirements in
-this context:
+depending on configuration parameters.
 
 * Inactive pragmas shall be ignored;
 

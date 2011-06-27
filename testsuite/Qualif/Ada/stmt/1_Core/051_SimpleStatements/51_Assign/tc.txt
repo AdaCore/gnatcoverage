@@ -1,4 +1,5 @@
-Check SC assessments wrt Assignment statements (ch. 5.1)
+Check SC of Assignment statements (ARM 5.1)
 
-Check that if an assignement statement is not executed, then it is
-reported as uncovered.
+Check that if an assignement statement is not executed, then it is reported as
+uncovered. Exercise assignments in various source contexts, in sequence or
+single, within conditional control or not.
