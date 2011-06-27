@@ -1,5 +1,4 @@
-Simple Statements (ARM chapter 5, part 1: statements that do not contain other
-statements)
+ARM chap. 5 : Simple Statements (that do not contain other statements)
 
 %(req-headline)s
 
@@ -7,8 +6,8 @@ A simple statement shall be reported as uncovered if it is not executed.
 
 %(tstrategy-headline)s
 
-This is split into subordinate requirements according to the sections of
-Chapter 5 (Statements) of the ARM;
+We exercise every possible kind of simple statement, as defined by the ARM,
+in a variety of situations by way of the following set of testcases:
 
 %(tc-index)s
 

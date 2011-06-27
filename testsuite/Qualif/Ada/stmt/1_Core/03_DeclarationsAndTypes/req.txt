@@ -1,4 +1,4 @@
-Declarations and Types (ARM chapter 3)
+ARM chap. 3 : Declarations and Types
 
 %(req-headline)s
 

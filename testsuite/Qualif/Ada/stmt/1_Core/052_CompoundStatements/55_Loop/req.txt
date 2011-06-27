@@ -1,4 +1,4 @@
-Loop statements (ch. 5.5)
+Loop statements (ARM 5.5)
 
 %(req-headline)s
 

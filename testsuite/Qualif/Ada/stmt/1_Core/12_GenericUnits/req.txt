@@ -1,4 +1,4 @@
-Generic Units (ARM chapter 12)
+ARM chap. 12 : Generic Units
 
 %(req-headline)s
 
@@ -10,7 +10,8 @@ other cases the code from a generic unit shall be reported as uncovered.
 
 %(tstrategy-headline)s
 
-Check libray-level and local generic declarations and instantiations.
+We check libray-level and local generic declarations and instantiations
+by way of the following set of testcases:
 
 %(tc-index)s
 

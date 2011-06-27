@@ -1,4 +1,4 @@
-Lexical Elements (ARM chapter 2)
+ARM chap. 2 : Lexical Elements
 
 There are only very few chapter 2 items relevant to SC assessements, for
 which we provide subsidiary requirements:

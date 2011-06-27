@@ -1,4 +1,4 @@
-Exceptions (ARM chapter 11)
+ARM chap. 11 : Exceptions
 
 %(req-headline)s
 
@@ -7,7 +7,7 @@ described in Chapter 11 "Exceptions" of the Ada Reference Manual.
 
 %(tstrategy-headline)s
 
-Check the following aspects:
+We exercise the following set of testcases:
 
 %(tc-index)s
 

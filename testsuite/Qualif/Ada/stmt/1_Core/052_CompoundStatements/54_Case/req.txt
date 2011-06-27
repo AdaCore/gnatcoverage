@@ -1,4 +1,4 @@
-Case Statements (ch. 5.4)
+Case Statements (ARM 5.4)
 
 %(req-headline)s
 

@@ -1,4 +1,4 @@
-Packages (ARM chapter 7)
+ARM chap. 7 : Packages
 
 %(req-headline)s
 

@@ -1,5 +1,4 @@
-Compound Statements (ARM chapter 5, part 2: statements that contain other
-statements)
+ARM chap. 5 : Compound Statements (that contain other statements)
 
 %(req-headline)s
 
@@ -9,9 +8,8 @@ nested in the compound one, recursively.
 
 %(tstrategy-headline)s
 
-This tool operation requirement is split into subordinate requirements
-according to the sections of Chapter 5 (Statements) of the ARM, which
-distinguishes multiple kinds of compound statements:
+This requirement is split into subordinate ones for all the possible kinds of
+compound statements, as identified by the ARM:
 
 %(tc-index)s
 
