@@ -1,5 +1,5 @@
 --  Test driver for IF statements. It calls all the subprograms from the
---  functional code (more then once for some of these subprograms) to ensure
+--  functional code (more than once for some of these subprograms) to ensure
 --  that all the paths of all the IF statements are executed.
 
 with If_Statements;      use If_Statements;

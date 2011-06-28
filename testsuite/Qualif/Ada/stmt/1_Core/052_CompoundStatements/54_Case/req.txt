@@ -1,9 +1,10 @@
-Case Statements (ARM 5.4)
+Case statements (ARM 5.4)
 
 %(req-headline)s
 
-A CASE statement is composed by several CASE alternatives and zero or
-one OTHERS alternative. Each alternative contains other statements.
+A CASE statement starts with a *header* that introduces the controling
+expression, followed by zero or more CASE alternatives and zero or one OTHERS
+alternative. Each alternative contains other statements.
 
 The coverage of a CASE statement shall depend on the evaluation of its
 alternatives.  If an alternative is not evaluated, then it shall not be
