@@ -2,14 +2,17 @@ ARM chap. 5 : Compound Statements (that contain other statements)
 
 %(req-headline)s
 
-A compound statement shall be reported as uncovered if it is not
-executed. This plus the Core requirements apply to all the statements
-nested in the compound one, recursively.
+For all compound statements all the SC requirements apply to all the
+statements nested in the compound one, recursively. In addition, specific
+requirements apply to each possible kind of compound statement, as identified
+by the ARM standard:
+
+%(subset-index)s
 
 %(tstrategy-headline)s
 
-This requirement is split into subordinate ones for all the possible kinds of
-compound statements, as identified by the ARM:
+Each subsidiary requirement features its own testing strategy. Here is
+a direct index of the corresponding testcases:
 
 %(tc-index)s
 
