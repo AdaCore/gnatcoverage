@@ -1,14 +1,11 @@
---  Test driver for IF statements. Executes only those IF statements that
---  contain ELSe paths, does this in such a way that the ELSE path is chosen
---  for each statement being executed.
+--  Test driver for IF statements. Execute all the functional IF statements
+--  arranging to take the [implicit] ELSE paths only.
 
 with If_Statements;      use If_Statements;
 with More_IF_Statements; use More_IF_Statements;
-with Support;            use Support;
-procedure Test_ELSE_Path is
-   procedure My_Set_Max is new Set_Max (Integer);
-   function My_Max_From_Two is new Max_From_Two (Integer);
+with Instances, Support; use Instances, Support;
 
+procedure Test_ELSE_Path is
    Res : Integer;
 begin
 
@@ -20,6 +17,10 @@ begin
    Assert (My_Max_From_Two (1, 3) = 3);
 
    Assert (Global_Var = 11);
+
+   Set_Prime_Number (Num => 50, Res => Res);
+   Assert (Res = 0);
+
 end Test_ELSE_Path;
 
 --# if_statements.adb
@@ -32,30 +33,30 @@ end Test_ELSE_Path;
 -- /inifsetmax/  l- s-
 
 --# more_if_statements.adb
--- /prime/       l- s-
--- /ifprime/     l- s-
+-- /prime/       l+ 0
+-- /ifprime/     l+ 0
 -- /1prime/      l- s-
--- /comp2prime/  l- s-
+-- /comp2prime/  l+ 0
 -- /2prime/      l- s-
--- /comp3prime/  l- s-
+-- /comp3prime/  l+ 0
 -- /3prime/      l- s-
--- /comp4prime/  l- s-
+-- /comp4prime/  l+ 0
 -- /4prime/      l- s-
--- /comp5prime/  l- s-
+-- /comp5prime/  l+ 0
 -- /5prime/      l- s-
--- /comp6prime/  l- s-
+-- /comp6prime/  l+ 0
 -- /6prime/      l- s-
--- /comp7prime/  l- s-
+-- /comp7prime/  l+ 0
 -- /7prime/      l- s-
--- /comp8prime/  l- s-
+-- /comp8prime/  l+ 0
 -- /8prime/      l- s-
--- /comp9prime/  l- s-
+-- /comp9prime/  l+ 0
 -- /9prime/      l- s-
--- /comp10prime/ l- s-
+-- /comp10prime/ l+ 0
 -- /10prime/     l- s-
 -- /max/         l+ 0
 -- /ifmax/       l- s-
---  /elsemax/    l+ 0
+-- /elsemax/     l+ 0
 -- /elab/        l+ 0
 -- /gt0elab/     l+ 0
 -- /notgt0elab/  l- s-

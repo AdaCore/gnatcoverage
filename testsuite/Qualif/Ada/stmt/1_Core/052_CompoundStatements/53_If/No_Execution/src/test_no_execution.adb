@@ -1,10 +1,13 @@
+--  Don't exercise any of the functional code at all. Expect everything to be
+--  reported uncovered except the relevant package elaboration body parts.
+
 with If_Statements;      use If_Statements;
 with More_IF_Statements; use More_IF_Statements;
-with Support;       use Support;
+with Instances, Support; use Instances, Support;
+
 procedure Test_No_Execution is
-   procedure My_Set_Max is new Set_Max (Integer);
 begin
-   Assert (True);
+   null;
 end Test_No_Execution;
 
 --# if_statements.adb
@@ -13,8 +16,8 @@ end Test_No_Execution;
 -- /XcmpMax/     l- s-
 -- /XoutMax/     l- s-
 -- /Xin/         l- s-
--- /setmax/      ~l- ~s-
--- /inifsetmax/  ~l- ~s-
+-- /setmax/      l- s-
+-- /inifsetmax/  l- s-
 
 --# more_if_statements.adb
 -- /prime/       l- s-
@@ -38,9 +41,9 @@ end Test_No_Execution;
 -- /9prime/      l- s-
 -- /comp10prime/ l- s-
 -- /10prime/     l- s-
--- /max/         ~l- ~s-
--- /ifmax/       ~l- ~s-
---  /elsemax/    ~l- ~s-
+-- /max/         l- s-
+-- /ifmax/       l- s-
+--  /elsemax/    l- s-
 -- /elab/        l+ 0
 -- /gt0elab/     l+ 0
 -- /notgt0elab/  l- s-

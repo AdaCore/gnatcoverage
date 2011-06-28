@@ -1,14 +1,11 @@
---  Test driver for IF statements. It executes all the IF statements from the
---  functional code in such a way that an IF path is chosen for each IF
---  statement.
+--  Test driver for IF statements. Execute all the functional IF statements
+--  arranging to take the IF paths only.
 
 with If_Statements;      use If_Statements;
 with More_IF_Statements; use More_IF_Statements;
-with Support;            use Support;
-procedure Test_IF_Path is
-   procedure My_Set_Max is new Set_Max (Integer);
-   function My_Max_From_Two is new Max_From_Two (Integer);
+with Instances, Support; use Instances, Support;
 
+procedure Test_IF_Path is
    Res  : Integer;
 begin
 

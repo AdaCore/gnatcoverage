@@ -1,5 +1,2 @@
-Check IF statements not executed at all.
+Check SC with IF statements not executed at all.
 
-Check that if an IF statement is not executed, then all its branches and all
-statements they contain are reported as uncovered. The tests only "with"s the
-functional code, but they do not execute anything from it.

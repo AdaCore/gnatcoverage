@@ -1,20 +1,27 @@
-If Statements (ARM 5.3)
+If statements (ARM 5.3)
 
 %(req-headline)s
 
-An IF statement comprises an IF branch, zero or more ELSIF branches and zero
+An IF statement comprises an IF *branch*, zero or more ELSIF branches and zero
 or one ELSE branch. IF and ELSIF branches feature a control expression and all
 the branches contain one or more statements. The nested statements get to
 execute when the flow reaches the branch and the control expression, if any,
 evaluates True.
 
-IF and ELSIF branches that are never reached shall be reported uncovered, and
-all the SC requirements apply to all the nested statements, recursively.
+In addition to the common requirements that apply to the nested statements,
+IF and ELSIF branches that are never reached shall be reported uncovered.
 
 %(tstrategy-headline)s
 
-Exercise different forms of IF statements, with/without ELSIF branches and
-with/without ELSE branches, in the following set of testcase:
+We verify all the aspects of this requirement over
+
+* Various forms of IF statements (with/without ELSIF branches, with/without
+  ELSE branches), located in ...
+
+* Various source contexts (regular functions orprocedures, generic instances,
+  package elaboration body), ...
+
+All through a panel of branch selection schemes:
 
 %(tc-index)s
 

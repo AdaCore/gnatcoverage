@@ -1,5 +1,2 @@
-Check IF statements with all the branches covered.
+Check SC with IF statements taking all their branches.
 
-Check that if all the branches of an IF statement are executed, then all of
-them are covered and at least the first statement they contain is reported as
-covered.

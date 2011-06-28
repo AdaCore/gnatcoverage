@@ -1,15 +1,4 @@
-Check IF/ELSIF statements with only one ELSIF branch chosen.
+Check SC with IF statements taking ELSIF branches only.
 
-Check that if an IF statement is executed and one ELSIF branch is chosen, then:
-
-* the IF branch is covered, but the statements it contains are uncovered;
-
-* all ELSIF branches before the chosen one are reported as covered, but the
-  statements they contain are reported as uncovered;
-
-* the chosen ELSIF branch is covered;
-
-* at least the first statement contained in the chosen ELSIF branch is covered;
-
-* the ELSE branch and the statements it contains are uncovered.  Check IF
-  statements with one and more ELSIF branches.
+Exercise IF constructs with one or more ELSIF branches. Check results on
+taking either the first one, the last one, or one in the middle.
