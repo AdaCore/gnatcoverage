@@ -1,5 +1,5 @@
 Check SC of loop Exit statements (ARM 5.7)
 
-Exercise various code fragments that contain loops with exit statements.
-Check that these exit statements are reported covered when execution reaches
-them, or uncovered otherwise.
+Check that exit statements are reported covered when execution reaches them,
+or uncovered otherwise. Exercise exit statements in various sorts of loops
+(loop, while, for) alone or combined with other exits for the same loop.
