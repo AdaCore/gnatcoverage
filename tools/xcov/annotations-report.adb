@@ -93,9 +93,6 @@ package body Annotations.Report is
       Item : String);
    --  Close the current section
 
-   function Should_Be_Displayed (M : Message) return Boolean;
-   --  Return True is M is serious enough to be included into the report
-
    procedure Put_Message
      (Pp : in out Report_Pretty_Printer'Class;
       M  : Message);
@@ -350,7 +347,9 @@ package body Annotations.Report is
      (Pp : in out Report_Pretty_Printer;
       M  : Message) is
    begin
-      if Should_Be_Displayed (M) then
+      --  Messages with Kind = Notice need not be included in the report
+
+      if M.Kind > Notice then
          if Pp.Exemption /= Slocs.No_Location then
             Pp.Exempted_Messages.Append (M);
             Inc_Exemption_Count (Pp.Exemption);
@@ -466,14 +465,5 @@ package body Annotations.Report is
                 & Title);
       New_Line (Output.all);
    end Section;
-
-   -------------------------
-   -- Should_Be_Displayed --
-   -------------------------
-
-   function Should_Be_Displayed (M : Message) return Boolean is
-   begin
-      return M.Kind /= Notice;
-   end Should_Be_Displayed;
 
 end Annotations.Report;
