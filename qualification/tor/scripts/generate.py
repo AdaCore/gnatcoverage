@@ -788,7 +788,6 @@ class DocGenerator(object):
 
     class WalkInfo:
         def __init__ (self, rootp, emphctl):
-            self.max_tclen = 0
             self.rootp = rootp
 
             self.contents = []
@@ -819,14 +818,9 @@ class DocGenerator(object):
 
         # Then append the whole entry
 
-        wi.contents.append ('%-*s %s\n' % (
-                wi.max_tclen, self.tc_text(diro=diro),
+        wi.contents.append ('    %s|%s\n' % (
+                self.tc_text(diro=diro),
                 sumtext))
-
-    def compute_max_tclen(self, diro, pathi, wi):
-        thislen = len (self.tc_text(diro=diro))
-        if thislen > wi.max_tclen:
-            wi.max_tclen = thislen
 
     def index_table(self, rooto, nodectl, emphctl):
 
@@ -834,28 +828,20 @@ class DocGenerator(object):
 
         wi = self.WalkInfo (rootp=rooto.root, emphctl=emphctl)
 
-        # We first need to compute the common length for all the items
-        # in the first column
-
-        dirtree.walk (
-            mode=topdown, process=self.compute_max_tclen,
-            ctl=nodectl, data=wi)
-
         # Then we compute the table header, the entries, and the table footer
 
-        text = ''.join ([
-            "%-s ========\n" % ('=' * wi.max_tclen),
-            "%-*s Summary\n" % (wi.max_tclen, "Entry"),
-            "%-s ========\n" % ('=' * wi.max_tclen)
-            ])
+        text = '\n' + '\n'.join (
+            ['.. csv-table::',
+             '   :widths: 20, 70',
+             '   :delim: |',
+             '   :header: "Entry", "Summary"']
+            ) + "\n\n"
 
         dirtree.walk (
             mode=topdown, process=self.maybe_add_line_for,
             ctl=nodectl, data=wi)
 
         text += ''.join (wi.contents)
-
-        text += "%-s ========\n" % ('=' * wi.max_tclen)
 
         return text
 
