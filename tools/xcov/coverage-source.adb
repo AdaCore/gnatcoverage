@@ -220,7 +220,7 @@ package body Coverage.Source is
               and then First_Sloc (SCO).Line /= Line_Num
             then
 
-               --  For a decision that spans multiple lines, line state is
+               --  For a decision that spans multiple lines, SCO state is
                --  computed for the first line, and then cached in the SCI and
                --  reused for subsequent lines.
 
@@ -293,6 +293,7 @@ package body Coverage.Source is
 
                if MCDC_Coverage_Enabled then
                   if SCO_State = Covered then
+
                      --  Complete computation of MC/DC coverage state if SCO is
                      --  covered for decision coverage.
 
@@ -300,6 +301,7 @@ package body Coverage.Source is
                        (Line_Info, SCO, MCDC_Level, Compute_MCDC_State (SCO));
 
                   elsif SCO_State /= No_Code then
+
                      --  Case of MC/DC enabled but at least one outcome never
                      --  taken: do not report details regarding MC/DC coverage,
                      --  just record that MC/DC is not achieved.
