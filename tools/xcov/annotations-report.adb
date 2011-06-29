@@ -55,12 +55,13 @@ package body Annotations.Report is
    procedure Close_Report_File;
    --  Close the handle to the final report
 
-   type Report_Pretty_Printer is new Pretty_Printer with record
-      --  Pretty printer type for the final report
+   --  Pretty printer type for the final report
 
+   type Violations_Array is array (Coverage_Level) of Natural;
+   type Report_Pretty_Printer is new Pretty_Printer with record
       Current_File_Index : Source_File_Index;
-      --  When going through the lines of a source file,
-      --  This is set to the current source file index.
+      --  When going through the lines of a source file, this is set to the
+      --  current source file index.
 
       Item_Count : Natural := 0;
       --  Total number of errors in current section
@@ -76,6 +77,9 @@ package body Annotations.Report is
 
       Exemption : Slocs.Source_Location := Slocs.No_Location;
       --  Exemption sloc applying to current line, if any
+
+      Violations : Violations_Array := (others => 0);
+      --  Tally of violations by coverage objective
    end record;
 
    procedure Chapter
@@ -100,6 +104,17 @@ package body Annotations.Report is
    --  Pretty_Print_Message is that Put_Message does not tries to know if the
    --  message should be exempted or not, and do not modify the
    --  Exempted_Messages buffer.
+
+   procedure Count_Violation
+     (Pp : in out Report_Pretty_Printer'Class;
+      M  : Message);
+   --  Count M in violations tally
+
+   function Pluralize (Count : Natural; Item : String) return String;
+   --  Return:
+   --    "No <item>"       (if Count = 0)
+   --    "1 <item>"        (if Count = 1)
+   --    "<Count> <item>s" (if Count > 1)
 
    --------------------------------------------------
    -- Report_Pretty_Printer's primitive operations --
@@ -155,6 +170,35 @@ package body Annotations.Report is
       end if;
    end Close_Report_File;
 
+   ---------------------
+   -- Count_Violation --
+   ---------------------
+
+   procedure Count_Violation
+     (Pp : in out Report_Pretty_Printer'Class;
+      M  : Message)
+   is
+   begin
+      pragma Assert (M.SCO /= No_SCO_Id);
+      case Kind (M.SCO) is
+         when Statement =>
+            Pp.Violations (Stmt) := Pp.Violations (Stmt) + 1;
+
+         when Decision =>
+            if Is_Expression (M.SCO) then
+               Pp.Violations (MCDC_Level) := Pp.Violations (MCDC_Level) + 1;
+            else
+               Pp.Violations (Decision) := Pp.Violations (Decision) + 1;
+            end if;
+
+         when Condition =>
+            Pp.Violations (MCDC_Level) := Pp.Violations (MCDC_Level) + 1;
+
+         when others =>
+            raise Program_Error with "unexpected SCO kind in violation";
+      end case;
+   end Count_Violation;
+
    -----------------
    -- End_Section --
    -----------------
@@ -165,14 +209,7 @@ package body Annotations.Report is
    is
       Output : constant File_Access := Get_Output;
    begin
-      if Pp.Item_Count = 0 then
-         Put_Line (Output.all, "No " & Item & ".");
-      elsif Pp.Item_Count = 1 then
-         Put_Line (Output.all, "1 " & Item & ".");
-      else
-         Put_Line (Output.all, Img (Pp.Item_Count) & " " & Item & "s");
-      end if;
-
+      Put_Line (Output.all, Pluralize (Pp.Item_Count, Item) & ".");
       New_Line (Output.all);
       Pp.Item_Count := 0;
    end End_Section;
@@ -214,6 +251,23 @@ package body Annotations.Report is
       Final_Report.Name := new String'(Final_Report_Name);
       Create (Final_Report.File, Out_File, Final_Report_Name);
    end Open_Report_File;
+
+   ---------------
+   -- Pluralize --
+   ---------------
+
+   function Pluralize (Count : Natural; Item : String) return String is
+   begin
+      if Count = 0 then
+         return "No " & Item;
+
+      elsif Count = 1 then
+         return "1 " & Item;
+
+      else
+         return Img (Count) & " " & Item & "s";
+      end if;
+   end Pluralize;
 
    ----------------------
    -- Pretty_Print_End --
@@ -288,6 +342,18 @@ package body Annotations.Report is
       ALI_Annotations.Iterate (Process_One_Exemption'Access);
       Pp.End_Section (Item => "exempted region");
 
+      Pp.Chapter ("ANALYSIS SUMMARY");
+      for J in Pp.Violations'Range loop
+         if Enabled (J)
+           or else (J = Decision and then MCDC_Coverage_Enabled)
+         then
+            Put_Line
+              (Output.all,
+               Pluralize (Pp.Violations (J),
+                 "non-exempted " & J'Img & " violation") & '.');
+         end if;
+      end loop;
+      New_Line (Output.all);
       Put_Line (Output.all, "END OF REPORT");
    end Pretty_Print_End;
 
@@ -314,30 +380,6 @@ package body Annotations.Report is
    begin
       Pp.Exemption := Info.Exemption;
    end Pretty_Print_Start_Line;
-
-   -----------------
-   -- Put_Message --
-   -----------------
-
-   procedure Put_Message
-     (Pp : in out Report_Pretty_Printer'Class;
-      M  : Message)
-   is
-      Output : constant File_Access := Get_Output;
-   begin
-      if M.SCO /= No_SCO_Id then
-         Put (Output.all, Image (First_Sloc (M.SCO)));
-         Put (Output.all, ": ");
-         Put (Output.all, To_Lower (SCO_Kind'Image (Kind (M.SCO))) & " ");
-      else
-         Put (Output.all, Image (M.Sloc));
-         Put (Output.all, ": ");
-      end if;
-
-      Put (Output.all, M.Msg.all);
-      Pp.Item_Count := Pp.Item_Count + 1;
-      New_Line (Output.all);
-   end Put_Message;
 
    --------------------------
    -- Pretty_Print_Message --
@@ -447,6 +489,32 @@ package body Annotations.Report is
          Skip := True;
       end if;
    end Pretty_Print_Start_File;
+
+   -----------------
+   -- Put_Message --
+   -----------------
+
+   procedure Put_Message
+     (Pp : in out Report_Pretty_Printer'Class;
+      M  : Message)
+   is
+      Output : constant File_Access := Get_Output;
+   begin
+      if M.SCO /= No_SCO_Id then
+         Put (Output.all, Image (First_Sloc (M.SCO)));
+         Put (Output.all, ": ");
+         Put (Output.all, To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
+
+         Pp.Count_Violation (M);
+      else
+         Put (Output.all, Image (M.Sloc));
+         Put (Output.all, ": ");
+      end if;
+
+      Put (Output.all, M.Msg.all);
+      Pp.Item_Count := Pp.Item_Count + 1;
+      New_Line (Output.all);
+   end Put_Message;
 
    -------------
    -- Section --
