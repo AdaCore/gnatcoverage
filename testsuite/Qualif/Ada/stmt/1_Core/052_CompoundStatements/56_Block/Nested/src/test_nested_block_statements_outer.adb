@@ -1,4 +1,4 @@
---  Test driver for block statements. It exdecutes the functional code in such
+--  Test driver for block statements. It executes the functional code in such
 --  a way that only the outer block statement is executed, so statements from
 --  nested block statements are expected to be reported as uncovered.
 

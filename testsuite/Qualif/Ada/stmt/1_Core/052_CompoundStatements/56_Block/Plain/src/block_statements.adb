@@ -45,6 +45,12 @@ package body Block_Statements is
 
    function Factorial (N : T) return T is
       Result : T;
+
+      --  To make sure that we get a check within the loop and that the
+      --  handler remains around
+
+      pragma Unsuppress (Overflow_Check);
+
    begin
       if N < 0 then                                    -- # 3stmt
          Result := 0;                                  -- # 3inif

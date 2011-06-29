@@ -4,11 +4,10 @@
 --  to be reported as covered, but all the block statement and components
 --  thereof are expected to be reported as uncovered.
 
-with Block_Statements; use Block_Statements;
-with Support;          use Support;
+with Block_Statements;    use Block_Statements;
+with Instances, Support;  use Instances, Support;
+
 procedure Test_Block_Statements_No_Exec is
-   function My_Factorial is new Factorial (Integer);
-   procedure My_Swap is new Swap_G (Integer);
 
    Res1 : Integer := Identity (1);
    Res2 : Integer := Identity (1);
@@ -49,7 +48,7 @@ end Test_Block_Statements_No_Exec;
 -- /3blockstmt/       l- s-
 -- /3loopstmtblock/   l- s-
 -- /3inloopstmtblock/ l- s-
--- /3handlerblock/    ~l- ~s-
+-- /3handlerblock/    l- s-
 
 -- /4stmt/            l+ 0
 -- /4inif/            l+ 0

@@ -2,9 +2,10 @@ SC expectations regarding Block statements (ARM 5.6)
 
 %(req-headline)s
 
-A block statement contains others statements and (optionally) declarations and
-exception handlers as its components. If the execution does not reach a block
-statement, all its components shall be reported as uncovered.
+A block statement contains others statements and, optionally, declarations and
+exception handlers as its components. The common SC requirements apply to all
+those nested statements. No extra requirement applies to the block specific
+syntactic elements.
 
 %(tstrategy-headline)s
 

@@ -1,12 +1,10 @@
 --  Test driver for block statements. It executes all the parts of the
 --  functional code. Everything is expected to be reported as covered.
 
-with Block_Statements; use Block_Statements;
-with Support;          use Support;
-procedure Test_Block_Statements_Full is
-   function My_Factorial is new Factorial (Integer);
-   procedure My_Swap is new Swap_G (Integer);
+with Block_Statements;   use Block_Statements;
+with Instances, Support; use Instances, Support;
 
+procedure Test_Block_Statements_Full is
    Res1 : Integer := Identity (1);
    Res2 : Integer := Identity (2);
 
@@ -56,7 +54,7 @@ end Test_Block_Statements_Full;
 -- /3blockstmt/       l+ 0
 -- /3loopstmtblock/   l+ 0
 -- /3inloopstmtblock/ l+ 0
--- /3handlerblock/    ~l- ~s-
+-- /3handlerblock/    l- s-
 
 -- /4stmt/            l+ 0
 -- /4inif/            l+ 0

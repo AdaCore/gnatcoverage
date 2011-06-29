@@ -1,1 +1,1 @@
-Check coverage in case of nested block statements.
+Check SC with nested block statements
