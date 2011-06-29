@@ -16,10 +16,10 @@ IF and ELSIF branches that are never reached shall be reported uncovered.
 We verify all the aspects of this requirement over
 
 * Various forms of IF statements (with/without ELSIF branches, with/without
-  ELSE branches), located in ...
+  ELSE branches),
 
-* Various source contexts (regular functions orprocedures, generic instances,
-  package elaboration body), ...
+* In various source contexts (regular functions or procedures, generic
+  instances, package elaboration body),
 
 All through a panel of branch selection schemes:
 

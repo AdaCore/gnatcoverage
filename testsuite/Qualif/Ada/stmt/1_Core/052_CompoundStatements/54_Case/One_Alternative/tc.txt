@@ -1,13 +1,2 @@
-Check CASE statements executed only once:
-
-Expect
-
-* the CASE statement is reported as covered;
-* the chosen alternative is reported as covered;
-* at least the first statement of the chosen alternative is covered;
-* all alternatives preceding the chosen one are covered but
-  the statements they contain are uncovered;
-* all alternatives following the chosen one, and the statements they
-  contain are uncovered.
-
-Check different forms of the CASE statement.
+Check SC on a panel of CASE statements executed only once, selecting a single
+alternative for each

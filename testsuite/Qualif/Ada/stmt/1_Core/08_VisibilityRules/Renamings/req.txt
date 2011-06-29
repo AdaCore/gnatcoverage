@@ -1,4 +1,4 @@
-Renamings (ARM chapter 8.X)
+Renaming declarations (ARM chapter 8.5)
 
 %(reqs-headline)s
 

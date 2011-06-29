@@ -2,15 +2,11 @@ Loop statements (ARM 5.5)
 
 %(req-headline)s
 
-The coverage of the statements inside the LOOP statement shall depend 
-on the evaluation of the loop condition. 
+LOOP statements feature a mandatory loop *header* that introduces the
+control-flow iteration scheme, and an optional set of exit statements.
 
-If the LOOP condition is not evaluated,
-the all preceding statements shall not be covered. If the
-LOOP condition is evaluated to FALSE during the first iteration,
-then all subsequent statements shall not be covered.
-If the LOOP condition is evaluated to TRUE at least once,
-then at least the first subsequent statement shall be covered.
+In addition to the common requirements that apply to the nested statements,
+loop headers that are never reached shall be reported uncovered.
 
 %(tstrategy-headline)s
 
