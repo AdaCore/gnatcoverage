@@ -1,4 +1,4 @@
-Loop statements (ARM 5.5)
+SC expectations regarding Loop statements (ARM 5.5)
 
 %(req-headline)s
 
@@ -10,18 +10,17 @@ loop headers that are never reached shall be reported uncovered.
 
 %(tstrategy-headline)s
 
-Check the coverage when:
+We verify all the aspects of this requirement over
 
-* the LOOP condition is evaluated to TRUE;
-* the LOOP condition is evaluated to FALSE;
-* the LOOP condition is not evaluated
+* A variety of loop constructs (for, while, reverse, unconditional),
 
-Check different syntax forms of LOOP statement:
+* With and without exit statements for all variants, located at various places
+  in the nested sequence (at the beginning, at the end, somewhere in between),
 
-* FOR loop;
-* reverse FOR loop;
-* WHILE loop;
-* unconditional loop.
+* Within a variety of source contexts (regular function, procedure or package
+  elaboration bodies, generic instances)
+
+All through a panel of iteration schemes:
 
 %(tc-index)s
 

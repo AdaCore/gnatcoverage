@@ -1,4 +1,4 @@
-ARM chap. 3 : Declarations and Types
+SC expectations regarding ARM chap. 3 : Declarations and Types
 
 %(req-headline)s
 

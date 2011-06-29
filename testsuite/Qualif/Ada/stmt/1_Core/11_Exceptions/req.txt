@@ -1,4 +1,4 @@
-ARM chap. 11 : Exceptions
+SC expectations regarding ARM chap. 11 : Exceptions
 
 %(req-headline)s
 

@@ -1,4 +1,4 @@
-ARM chap. 5 : Compound Statements (that contain other statements)
+SC expectations regarding ARM chap. 5 : Compound Statements (that contain other statements)
 
 %(req-headline)s
 

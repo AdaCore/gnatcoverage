@@ -1,6 +1,3 @@
-Check LOOPs with a full control condition evaluated False the first time
-around.
+Check SC with LOOP statements that don't even start an iteration over
+the nested sequence, guarded out by the header control expression
 
-Check that, if a conditional loop statement is executed, but the loop
-condition prevents even the first loop iteration, then all the contained
-statement are not covered (whereas the loop itself is reported as covered).

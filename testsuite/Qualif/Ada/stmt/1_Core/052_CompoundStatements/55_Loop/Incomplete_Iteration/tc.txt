@@ -1,11 +1,5 @@
-Check LOOP with an EXIT condition evaluated False the first time around.
+Check SC with LOOP statements that execute only a partial iteration
+over the nested sequence, interrupted by an exit statement
 
-Check that, if the EXIT condition is evaluated to FALSE during the first
-iteration then:
-
-* all statements preceding it are covered;
-
-* all statements within the LOOP statement and following the LOOP condition
-  are not covered.
-
-Check (inverted) FOR, WHILE and unconditional loops.
+Check, in particular, that the nested statements past the exit point are
+reported uncovered.

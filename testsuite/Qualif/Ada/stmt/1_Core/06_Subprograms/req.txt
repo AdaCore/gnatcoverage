@@ -1,4 +1,4 @@
-ARM chap. 6 : Subprograms
+SC expectations regarding ARM chap. 6 : Subprograms
 
 %(req-headline)s
 

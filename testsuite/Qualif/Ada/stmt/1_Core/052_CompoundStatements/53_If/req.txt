@@ -1,4 +1,4 @@
-If statements (ARM 5.3)
+SC expectations regarding If statements (ARM 5.3)
 
 %(req-headline)s
 
@@ -24,4 +24,3 @@ We verify all the aspects of this requirement over
 All through a panel of branch selection schemes:
 
 %(tc-index)s
-

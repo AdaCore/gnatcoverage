@@ -1,5 +1,5 @@
 Check SC of Assignment statements (ARM 5.1)
 
-Check that if an assignement statement is not executed, then it is reported as
-uncovered. Exercise assignments in various source contexts, in sequence or
-single, within conditional control or not.
+Exercise assignments in various source contexts (within procedure, function or
+package elaboration bodies, within conditional control or nor), in sequence or
+single.

@@ -1,8 +1,3 @@
-Check LOOPs with a control condition evaluated True at least once.
+Check SC with LOOP statements that execute at least one full
+iteration over the nested sequence
 
-Check that if the LOOP condition is evaluated to TRUE at least once, then:
-
-* all statements preceding it are covered;
-* at least the first statement following it is covered.
-
-Check (inverted) FOR, WHILE and unconditional loops.

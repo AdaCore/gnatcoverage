@@ -1,4 +1,4 @@
-ARM chap. 7 : Packages
+SC expectations regarding ARM chap. 7 : Packages
 
 %(req-headline)s
 

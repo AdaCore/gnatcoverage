@@ -10,31 +10,25 @@ if it is not executed or elaborated as a part of the program execution.
 
 To ensure coverage of all the relevant language constructs, we decompose the
 validation of this general requirement in accordance with the Ada Reference
-Manual (ARM), as follows:
+Manual (ARM):
 
 %(subset-index)s
 
-A few chapters are not included, for the following reasons:
+A few chapters are not included for the following reasons:
 
-==============================  ===============================================
-Chapter                         Not included because ...
-==============================  ===============================================
-1 (General)                     No language construct described
+.. csv-table::
+   :header: "Chapter", "Not included because ..."
+   :widths: 30, 60
+   :delim:  |
 
-4 (Names and Expressions)       The described constructs are not considered on
-                                their own for coverage analysis purposes. The
-			        coverage information is computed for enclosing
-                                statement or declaration constructs
-
-9 (Tasks and Synchronization)   The execution profile being qualified is based
-                                on Zero Foot Print run-time, which does not
-                                support any construct described in this chapter
-
-13 (Representation Issues)      Constructs described in this chapter do not
-                                result in executable code so they are of no
-                                interest for coverage analysis.
-==============================  ===============================================
-
-
-
+   ARM chap. 1 : General                | No language construct described
+   ARM chap. 4 : Names and Expressions | "The described constructs are not
+   considered on their own for coverage analysis purposes. The coverage
+   information is computed for enclosing statement or declaration constructs."
+   ARM chap. 9 : Tasks and Synchronization | "The execution profile being
+   qualified is based on Zero Foot Print run-time, which does not support any
+   construct described in this chapter"
+   ARM chap. 13 : Representation Issues | "Constructs described in this
+   chapter do not result in executable code so they are of no interest for
+   coverage analysis."
 
