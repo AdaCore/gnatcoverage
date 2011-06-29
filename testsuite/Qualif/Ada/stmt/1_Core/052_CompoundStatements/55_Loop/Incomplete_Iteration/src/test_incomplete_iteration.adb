@@ -5,11 +5,9 @@
 
 with LOOP_Statements;         use LOOP_Statements;
 with LOOP_Statements_Support; use LOOP_Statements_Support;
-with Support;                 use Support;
-procedure Test_Incomplete_Iteration is
-   function My_Factorial is new Factorial (Natural);
-   procedure My_Sum_First_Under_Limit is new Sum_First_Under_Limit (10);
+with Instances,Support;       use Instances, Support;
 
+procedure Test_Incomplete_Iteration is
    My_Sample : Sample (Identity (1) .. Identity (10)) :=
      (others => Level (Identity (13)));
 
@@ -42,9 +40,8 @@ end Test_Incomplete_Iteration;
 -- /inloopbeforeexitinif2/ l- s-
 -- /inloopexit2/           l- s-
 -- /preLoop3/              l+ 0
--- /loop3/                 ~l+ ~0
 -- /inloopexit3/           l+ 0
--- /inloop3/               ~l- ~s-
+-- /inloop3/               l- s-
 -- /postLoop3/             l+ 0
 -- /preLoop4/              l+ 0
 -- /loop4/                 l+ 0

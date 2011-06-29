@@ -6,7 +6,7 @@ LOOP statements feature a mandatory loop *header* that introduces the
 control-flow iteration scheme, and an optional set of exit statements.
 
 In addition to the common requirements that apply to the nested statements,
-loop headers that are never reached shall be reported uncovered.
+For or While loop headers that are never reached shall be reported uncovered.
 
 %(tstrategy-headline)s
 

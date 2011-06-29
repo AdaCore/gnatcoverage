@@ -47,7 +47,7 @@ package body LOOP_Statements is
       Res   := 1;                   -- # preLoop3
       Count := 1;                   -- # preLoop3
 
-      loop                          -- # loop3
+      loop
          exit when Count > N;       -- # inloopexit3
          Res   := Res * Count;      -- # inloop3
          Count := Count + 1;        -- # inloop3
