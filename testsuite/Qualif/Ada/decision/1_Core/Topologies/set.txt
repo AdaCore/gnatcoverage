@@ -1,6 +1,5 @@
-Check the tool's capability to
-perform correct DC assessments on expressions of arbitrary topology everywhere
-they might appear.
+Check DC assessments on expressions of various topologies everywhere they
+might appear.
 
 We exercise a panel of expression topologies over Boolean variables (single
 value, negated, two or more combined with and-then or or-else, ...), each

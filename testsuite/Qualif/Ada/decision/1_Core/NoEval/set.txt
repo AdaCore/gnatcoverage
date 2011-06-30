@@ -1,7 +1,6 @@
-Check the tool's capability to
-handle situations where decisions are not evaluated (don't yield an outcome)
-even though the statement they control is executed. This typically happens
-when an evaluation is interrupted by an exception occurrence.
+Check DC assessments when decisions are not entirely evaluated (don't yield an
+outcome) even though the statement they control is executed, typically when
+evaluation is interrupted by an exception occurrence.
 
 We exercise a range of expressions where each condition could be made to raise
 an exception in a panel of cases, checking that
