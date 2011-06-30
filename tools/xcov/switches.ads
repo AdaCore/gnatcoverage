@@ -26,6 +26,11 @@ package Switches is
    --  If True, perform decision coverage in stmt+decision mode even for
    --  decisions outside of control structures.
 
+   All_Messages : Boolean := False;
+   --  If True, then when performing source coverage analysis, also include in
+   --  the report messages other than violations of a source coverage
+   --  obligation.
+
    ------------------------------
    -- Debugging switches (-d?) --
    ------------------------------

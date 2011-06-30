@@ -465,6 +465,9 @@ procedure Xcov is
             elsif Arg = "--all-decisions" then
                Switches.All_Decisions := True;
 
+            elsif Arg = "--all-messages" then
+               Switches.All_Messages := True;
+
             elsif Arg = "--missing-files" then
                Check_Option (Arg, Command, (1 => Cmd_Coverage));
                Flag_Show_Missing := True;

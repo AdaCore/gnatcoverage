@@ -25,6 +25,7 @@ with GNAT.Time_Stamp;
 
 with ALI_Files;
 with Qemu_Traces;
+with Switches;
 with Traces_Files;
 with Traces_Files_List;
 
@@ -64,7 +65,7 @@ package body Annotations.Report is
       --  current source file index.
 
       Item_Count : Natural := 0;
-      --  Total number of errors in current section
+      --  Total count of items (violations/exempted regions) in current section
 
       Current_Chapter : Natural := 0;
       --  Current chapter in final report
@@ -91,11 +92,6 @@ package body Annotations.Report is
      (Pp    : in out Report_Pretty_Printer'Class;
       Title : String);
    --  Open a new section in final report
-
-   procedure End_Section
-     (Pp   : in out Report_Pretty_Printer'Class;
-      Item : String);
-   --  Close the current section
 
    procedure Put_Message
      (Pp : in out Report_Pretty_Printer'Class;
@@ -154,8 +150,9 @@ package body Annotations.Report is
       Output : constant File_Access := Get_Output;
    begin
       Pp.Current_Chapter := Pp.Current_Chapter + 1;
-      Put_Line (Output.all, Img (Pp.Current_Chapter) & ". " & Title);
+
       New_Line (Output.all);
+      Put_Line (Output.all, Img (Pp.Current_Chapter) & ". " & Title);
    end Chapter;
 
    -----------------------
@@ -198,21 +195,6 @@ package body Annotations.Report is
             raise Program_Error with "unexpected SCO kind in violation";
       end case;
    end Count_Violation;
-
-   -----------------
-   -- End_Section --
-   -----------------
-
-   procedure End_Section
-     (Pp   : in out Report_Pretty_Printer'Class;
-      Item : String)
-   is
-      Output : constant File_Access := Get_Output;
-   begin
-      Put_Line (Output.all, Pluralize (Pp.Item_Count, Item) & ".");
-      New_Line (Output.all);
-      Pp.Item_Count := 0;
-   end End_Section;
 
    ---------------------
    -- Generate_Report --
@@ -333,16 +315,46 @@ package body Annotations.Report is
          Pp.Item_Count := Pp.Item_Count + 1;
       end Process_One_Exemption;
 
+      Total_Violations : Natural;
+
    --  Start of processing for Pretty_Print_End
 
    begin
-      Pp.End_Section (Item => "violation");
+      if Source_Coverage_Enabled then
+         Total_Violations := 0;
+         for J in Pp.Violations'Range loop
+            Total_Violations := Total_Violations + Pp.Violations (J);
+         end loop;
+      else
+         Total_Violations := Pp.Item_Count;
+      end if;
+
+      if Pp.Item_Count > 0 then
+         New_Line (Output.all);
+      end if;
+
+      Put_Line (Output.all, Pluralize (Total_Violations, "violation") & ".");
+
+      if Source_Coverage_Enabled and then Switches.All_Messages then
+         Put_Line
+           (Output.all,
+            Pluralize (Pp.Item_Count - Total_Violations, "other message")
+            & ".");
+      end if;
 
       Pp.Section ("EXEMPTED REGIONS");
       ALI_Annotations.Iterate (Process_One_Exemption'Access);
-      Pp.End_Section (Item => "exempted region");
+
+      if Pp.Item_Count > 0 then
+         New_Line (Output.all);
+      end if;
+
+      Put_Line
+        (Output.all, Pluralize (Pp.Item_Count, "exempted region") & ".");
 
       Pp.Chapter ("ANALYSIS SUMMARY");
+
+      New_Line (Output.all);
       for J in Pp.Violations'Range loop
          if Enabled (J)
            or else (J = Decision and then MCDC_Coverage_Enabled)
@@ -430,7 +442,6 @@ package body Annotations.Report is
          Put_Line (Output.all, "  date: "
                    & Format_Date_Info (Get_Info (E.Trace, Date_Time)));
          Put_Line (Output.all, "  tag: " & Get_Info (E.Trace, User_Data));
-         New_Line (Output.all);
       end Display_Trace_File_Info;
 
    --  Start of processing for Pretty_Print_Start
@@ -441,6 +452,7 @@ package body Annotations.Report is
 
       Pp.Chapter ("ASSESSMENT CONTEXT");
 
+      New_Line (Output.all);
       Put_Line (Output.all, "Date and time of execution: "
                 & GNAT.Time_Stamp.Current_Time);
       Put_Line (Output.all, "Tool version: XCOV " & Xcov_Version);
@@ -527,6 +539,9 @@ package body Annotations.Report is
       Output : constant File_Access := Get_Output;
    begin
       Pp.Current_Section := Pp.Current_Section + 1;
+      Pp.Item_Count := 0;
+
+      New_Line (Output.all);
       Put_Line (Output.all,
                 Img (Pp.Current_Chapter) & "."
                 & Img (Pp.Current_Section) & ". "

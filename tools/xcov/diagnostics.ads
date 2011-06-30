@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -59,6 +59,7 @@ package Diagnostics is
      (SCO  : SCO_Id;
       Msg  : String;
       Kind : Report_Kind := Error);
+   --  Report a violation of a source coverage obligation
 
    procedure Report
      (Msg  : String;
@@ -74,7 +75,8 @@ package Diagnostics is
    --     !!! error
    --  The message is also recorded in the source line information for its sloc
    --  or in the Detached_Messages vector, if there is no such source line
-   --  information.
+   --  information. If SCO is not No_SCO_Id, the message denotes a violation
+   --  of the denoted Source Coverage Obligation.
 
    function Image (M : Message) return String;
 
