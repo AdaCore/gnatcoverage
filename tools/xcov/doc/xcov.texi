@@ -382,13 +382,13 @@ quantifiers defined over three core elements:
 in the usual programming language sense.
 
 @item @dfn{Decision},
-defined as ``a Boolean expression composed of conditions and zero or
-more Boolean operators.''.
+defined as ``a top-level Boolean expression (that is not an operand of
+a Boolean operator)''.
 
 @item @dfn{Condition},
-defined as ``a decision without a Boolean operator'' with an extra
-detail: ``If a condition appears more than once in a decision, each
-occurrence is a distinct condition.''.
+defined as ``an elementary Boolean expression (which is not a Boolean
+operator applied to some subexpressions)''. Note that if a given subexpression
+occurs more than once in a decision, each occurrence is a distinct condition.
 @end itemize
 
 @noindent The quantifiers are as follows:
