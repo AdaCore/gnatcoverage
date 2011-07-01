@@ -1,6 +1,5 @@
-Check that the toolset correctly handles mixes of various
-statement and decision constructs, representative of what would be found in
-real applications.
+Check DC on mixes of various statement and decision constructs, representative
+of what would be found in real applications.
 
 %(req-headline)s
 

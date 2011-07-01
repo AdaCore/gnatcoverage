@@ -1,4 +1,4 @@
-Check SC with potentially confusing constructs that would fool naive analyzers
+Check SC on potentially confusing constructs that would fool naive analyzers
 for various sorts of reasons.  This includes cases such as multiple statements
 sharing a line or a single statement spanning multiple lines.
 

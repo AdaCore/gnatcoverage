@@ -1,4 +1,4 @@
-Check processing of Boolean expressions in contexts that are not explicit
+Check DC on Boolean expressions in contexts that are not explicit
 control-flow constructs.
 
 %(tc-index)s

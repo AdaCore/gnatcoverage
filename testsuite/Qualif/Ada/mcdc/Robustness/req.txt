@@ -1,7 +1,6 @@
-Check that the toolset correctly handles potentially
-confusing constructs that would fool naive analyzers.  This includes cases
-such as multiple decisions sharing a line or a single decision spanning
-multiple lines.
+Check MCDC on potentially confusing constructs that would fool naive
+analyzers, e.g. multiple decisions sharing a line or a single decision
+spanning multiple lines.
 
 %(req-headline)s
 

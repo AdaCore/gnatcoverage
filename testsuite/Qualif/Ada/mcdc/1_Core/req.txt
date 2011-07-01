@@ -1,14 +1,14 @@
-Define and validate the core expectations for MC/DC assessments.
+Define and validate the core expectations for MCDC assessments.
 All the other sub-sections rely on this one.
 
 %(reqs-headline)s
 
 Compared to Decision Coverage, MCDC assessements first enlarges the set
-of expressions that shall be considered as decisions:
+of expressions that shall be processed as decisions:
 
 * In addition to expressions that directly influence control-flow constructs,
   the tool shall recognize as decisions *complex* Boolean expressions in any
-  context where they might apppear, for example also on the right-hand side of
+  context where they might apppear, for example on the right-hand side of
   an assignment, as part of an object declaration initializer, as a subprogram
   actual or within an active assertion pragma.
 

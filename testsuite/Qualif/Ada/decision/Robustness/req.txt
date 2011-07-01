@@ -1,6 +1,5 @@
-Check that the toolset correctly handles potentially
-confusing constructs that would fool naive analyzers, e.g. cases of decisions
-spanning multiple lines.
+Check DC on potentially confusing constructs that would fool naive analyzers,
+e.g. cases of decisions spanning multiple lines.
 
 %(req-headline)s
 
