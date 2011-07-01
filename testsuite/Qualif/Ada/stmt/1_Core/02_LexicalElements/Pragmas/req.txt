@@ -1,4 +1,4 @@
-Pragmas (ARM 2.8)
+SC expectations regarding Pragmas (ARM 2.8)
 
 %(reqs-headline)s
 

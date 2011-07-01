@@ -1,4 +1,4 @@
-Check DC assessments on decisions that are not entirely evaluated (don't yield
+Check the correctness of DC assessments on decisions that are not entirely evaluated (don't yield
 an outcome) even though the statement they control is executed, typically when
 evaluation is interrupted by an exception occurrence.
 

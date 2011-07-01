@@ -1,4 +1,4 @@
-Check DC assessments on expressions of various topologies everywhere they
+Check the correctness of DC assessments on expressions of various topologies everywhere they
 might appear.
 
 We exercise a panel of expression topologies over Boolean variables (single
