@@ -2,12 +2,25 @@ SC expectations regarding ARM chap. 11 : Exceptions
 
 %(req-headline)s
 
-Statement coverage shall be assessed correctly for Ada exceptions mechanism as
-described in Chapter 11 "Exceptions" of the Ada Reference Manual.
+Statement Coverage shall be assessed correctly for Ada exceptions mechanism as
+described in Chapter 11 "Exceptions" of the Ada Reference Manual. In
+particular:
+
+* ``raise`` statements shall be reported uncovered when unreached,
+
+* The flow-control effects of implicit and explicit exception raises shall be
+  handled correctly,
+
+* The full set of core SC requirements apply to all the statements within
+  exception handlers.
 
 %(tstrategy-headline)s
 
-We exercise the following set of testcases:
+We exercise a variety of testcases that resort to implicit or explicit
+exceptions for flow-control transfer purposes, each following a common testing
+variation pattern all along:
+
+* 
 
 %(tc-index)s
 

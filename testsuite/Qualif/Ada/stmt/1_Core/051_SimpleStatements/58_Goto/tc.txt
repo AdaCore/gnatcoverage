@@ -1,12 +1,13 @@
 Check SC with Goto statements (ARM 5.8)
 
-Check that the coverage of programs containing goto statements in the
-following cases:
+Check that Exit statements are reported covered when execution reaches them,
+or uncovered otherwise, and that their control-flow effects are handled
+correctly.
 
-* Within a sequence of statements
-* Inside a block statement
-* Inside a case statement
-* Inside an if statement
-* Inside a loop
+Exercise backward and forward transfers of control within:
 
-Tests include control transfer back and forward.
+* straight sequences of statements
+* block, case, if or loop statements
+
+
+
