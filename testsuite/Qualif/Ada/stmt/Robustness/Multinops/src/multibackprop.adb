@@ -1,7 +1,9 @@
 package body MultibackProp is
    procedure Q is
+      X : Integer;
+      pragma Volatile (X);
    begin
-      null; -- # trueEval
+      X := 12; -- # trueEval
    end Q;
 
    procedure P (X : Boolean) is
