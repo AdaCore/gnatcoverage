@@ -1,4 +1,4 @@
-package body Return_Statements is
+package body Fret is
 
    procedure Proc1 (I : in Integer; J : out Integer) is
    begin
@@ -64,4 +64,4 @@ package body Return_Statements is
       return Res;            -- # fun_2_fin
    end Fun2;
 
-end Return_Statements;
+end Fret;
