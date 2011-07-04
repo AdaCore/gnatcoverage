@@ -15,4 +15,12 @@ a direct index of the corresponding testcases:
 
 %(tc-index)s
 
+A common scheme governs the organization of all the testcases: they all
+exercise subprograms arranging to have a mix of cases where:
+
+* Some but not all of the code executes,
+
+* All the code executes,
+
+* None of the code executes (the subprogram is not called).
 
