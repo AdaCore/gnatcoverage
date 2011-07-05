@@ -1,6 +1,6 @@
 package Flip is
 
-   function Neg (A : Integer) return Boolean;
+   procedure Neg (A : Integer; R : out Boolean);
 
    -- Constants intended to map to False, True, or raise from explicit
    -- test or check failure

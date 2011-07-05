@@ -1,5 +1,5 @@
 package Fuor is
-   function Orelse (A, B : Integer) return Boolean;
+   procedure Orelse (A, B : Integer; R : out Boolean);
 
    -- Constants that map to False, True or raise, respectively
 

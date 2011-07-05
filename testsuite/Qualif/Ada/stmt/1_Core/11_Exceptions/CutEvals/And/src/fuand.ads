@@ -1,5 +1,5 @@
 package Fuand is
-   function Andthen (A, B : Integer) return Boolean;
+   procedure Andthen (A, B : Integer; R : out Boolean);
 
    -- Constants intended to map to False, True, or raise from explicit
    -- test or check failure

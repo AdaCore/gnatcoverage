@@ -2,17 +2,20 @@ with Support, Flip; use Support, Flip;
 
 package body Flip_Helper is
 
+   V : Boolean;
+
    procedure Eval_T is
    begin
-      Assert (Neg (T) = False);
+      Neg (T, V);
+      Assert (V = False);
    end;
    procedure Eval_F is
    begin
-      Assert (Neg (F) = True);
+      Neg (F, V);
+      Assert (V = True);
    end;
    procedure Eval_R is
-      V : Boolean;
    begin
-      V := Neg (R);
+      Neg (R, V);
    end;
 end;

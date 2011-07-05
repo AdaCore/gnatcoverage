@@ -2,12 +2,12 @@ with Args; use Args;
 
 package body Flip is
 
-   function Neg (A : Integer) return Boolean is
+   procedure Neg (A : Integer; R : out Boolean) is
    begin
       if not Bool (Intval(A)) then -- # eval
-         return True;  -- # true
+         R := True;  -- # true
       else
-         return False; -- # false
+         R := False; -- # false
       end if;
    end;
 

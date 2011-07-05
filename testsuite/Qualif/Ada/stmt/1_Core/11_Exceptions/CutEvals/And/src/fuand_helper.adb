@@ -6,27 +6,31 @@ package body FUAND_Helper is
 
    procedure Eval_FX_F is
    begin
-      Assert (Fuand.Andthen (F, T) = False);
-      Assert (Fuand.Andthen (F, F) = False);
+      Fuand.Andthen (F, T, V);
+      Assert (V = False);
+      Fuand.Andthen (F, F, V);
+      Assert (V = False);
    end;
 
    procedure Eval_TF_F is
    begin
-      Assert (Fuand.Andthen (T, F) = False);
+      Fuand.Andthen (T, F, V);
+      Assert (V = False);
    end;
 
    procedure Eval_TT_T is
    begin
-      Assert (Fuand.Andthen (T, T) = True);
+      Fuand.Andthen (T, T, V);
+      Assert (V = True);
    end;
 
    procedure Eval_RX is
    begin
-      V := Fuand.Andthen (R, F);
+      Fuand.Andthen (R, F, V);
    end;
 
    procedure Eval_TR is
    begin
-      V := Fuand.Andthen (T, R);
+      Fuand.Andthen (T, R, V);
    end;
 end;

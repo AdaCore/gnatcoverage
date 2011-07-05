@@ -4,13 +4,13 @@ package body Flip is
 
    pragma Unsuppress (All_Checks);
 
-   function Neg (A : Integer) return Boolean is
+   procedure Neg (A : Integer; R : out Boolean) is
    begin
       -- Possible index check failure here
       if not Bool_For (A) then -- # eval
-         return True;  -- # true
+         R := True;  -- # true
       else
-         return False; -- # false
+         R := False; -- # false
       end if;
    end;
 

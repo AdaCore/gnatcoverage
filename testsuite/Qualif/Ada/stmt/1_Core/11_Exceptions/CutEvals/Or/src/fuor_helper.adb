@@ -6,27 +6,31 @@ package body FUOR_Helper is
 
    procedure Eval_FF_F is
    begin
-      Assert (Fuor.Orelse (F, F) = False);
+      Fuor.Orelse (F, F, V);
+      Assert (V = False);
    end;
 
    procedure Eval_TX_T is
    begin
-      Assert (Fuor.Orelse (T, F) = True);
-      Assert (Fuor.Orelse (T, T) = True);
+      Fuor.Orelse (T, F, V);
+      Assert (V  = True);
+      Fuor.Orelse (T, T, V);
+      Assert (V  = True);
    end;
 
    procedure Eval_FT_T is
    begin
-      Assert (Fuor.Orelse (F, T) = True);
+      Fuor.Orelse (F, T, V);
+      Assert (V = True);
    end;
 
    procedure Eval_RX is
    begin
-      V := Fuor.Orelse (R, F);
+      Fuor.Orelse (R, F, V);
    end;
 
    procedure Eval_FR is
    begin
-      V := Fuor.Orelse (F, R);
+      Fuor.Orelse (F, R, V);
    end;
 end;

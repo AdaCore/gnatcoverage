@@ -2,17 +2,20 @@ with Support, Val; use Support, Val;
 
 package body Val_Helper is
 
+   V : Boolean;
+
    procedure Eval_T is
    begin
-      Assert (Bool (T) = True);
+      Bool (T, V);
+      Assert (V = True);
    end;
    procedure Eval_F is
    begin
-      Assert (Bool (F) = False);
+      Bool (F, V);
+      Assert (V = False);
    end;
    procedure Eval_R is
-      V : Boolean;
    begin
-      V := Bool (R);
+      Bool (R, V);
    end;
 end;

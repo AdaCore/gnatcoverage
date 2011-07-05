@@ -2,12 +2,12 @@ with Args; use Args;
 
 package body Val is
 
-   function Bool (A : Integer) return Boolean is
+   procedure Bool (A : Integer; R : out Boolean) is
    begin
       if Bool (Intval(A)) then -- # eval
-         return True;  -- # true
+         R := True;  -- # true
       else
-         return False; -- # false
+         R := False; -- # false
       end if;
    end;
 

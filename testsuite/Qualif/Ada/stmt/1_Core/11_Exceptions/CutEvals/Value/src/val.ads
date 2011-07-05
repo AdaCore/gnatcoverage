@@ -1,5 +1,5 @@
 package Val is
-   function Bool (A : Integer) return Boolean;
+   procedure Bool (A : Integer; R : out Boolean);
 
    -- Constants intended to map to False, True, or raise from explicit
    -- test or check failure

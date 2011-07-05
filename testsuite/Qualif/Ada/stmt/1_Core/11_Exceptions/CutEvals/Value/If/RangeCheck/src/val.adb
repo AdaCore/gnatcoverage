@@ -4,12 +4,12 @@ package body Val is
 
    pragma Unsuppress (All_Checks);
 
-   function Bool (A : Integer) return Boolean is
+   procedure Bool (A : Integer; R : out Boolean) is
    begin
       if Bool (Boolval(A)) then -- # eval
-         return True;  -- # true
+         R := True;  -- # true
       else
-         return False; -- # false
+         R := False; -- # false
       end if;
    end;
 
