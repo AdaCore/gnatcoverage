@@ -473,7 +473,9 @@ class QDreport:
             Category (
                 name="Mcdc Coverage",      matcher="Qualif/Ada/mcdc"),
             Category (
-                name="Report Format",      matcher="Qualif/Report/"),
+                name="Report Format",      matcher="Qualif/Common/Report"),
+            Category (
+                name="Harness Check",      matcher="Qualif/Common/Harness"),
             Category (
                 name="Others",             matcher=".")
             )
