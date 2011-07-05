@@ -1,4 +1,0 @@
-Check SC of compound statements controlled by expressions that can fail to
-evaluate because of exceptions
-
-
