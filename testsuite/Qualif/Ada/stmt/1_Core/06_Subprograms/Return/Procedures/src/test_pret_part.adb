@@ -13,12 +13,6 @@ begin
    Proc2 (1, Int);
    Assert (Int = 2);
 
-   Int := Fun1 (1);
-   Assert (Int = 1);
-
-   Int := Fun2 (0);
-   Assert (Int = 0);
-
 end Test_Pret_Part;
 
 --# pret.adb
