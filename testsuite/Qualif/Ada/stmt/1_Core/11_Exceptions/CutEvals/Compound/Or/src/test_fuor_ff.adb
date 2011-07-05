@@ -6,6 +6,6 @@ begin
 end;
 
 --# fuor.adb
---  /eval/  l! dT-
+--  /eval/  l+ 0
 --  /true/  l- s-
 --  /false/ l+ 0

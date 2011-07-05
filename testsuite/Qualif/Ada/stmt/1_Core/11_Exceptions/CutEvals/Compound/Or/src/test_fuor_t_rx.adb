@@ -8,6 +8,6 @@ begin
 end;
 
 --# fuor.adb
---  /eval/  l! dF-
+--  /eval/  l+ 0
 --  /true/  l+ 0
 --  /false/ l- s-

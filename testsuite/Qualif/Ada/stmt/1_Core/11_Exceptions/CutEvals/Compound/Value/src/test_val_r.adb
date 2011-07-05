@@ -6,6 +6,6 @@ begin
 end;
 
 --# val.adb
---  /eval/  l! d-
+--  /eval/  l+ 0
 --  /true/  l- s-
 --  /false/ l- s-
