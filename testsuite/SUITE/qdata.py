@@ -341,7 +341,7 @@ class RSTtable:
         # Dump the table title, descriptive text and legend
 
         if self.title:
-            self.rstf.write (rest.strong (self.title), post=2)
+            self.rstf.write (rest.section (self.title), post=2)
 
         if self.text is None:
             return
@@ -359,30 +359,8 @@ class RSTtable:
                  colid.legend  : col.legend} for col in self.columns]
             ).dump_to (self.rstf)
 
-    def __dump_header(self):
-        sepl = " ".join (
-            ["=" * self.width[col] for col in self.columns])
-
-        headl = " ".join (
-            ["%-*s" % (self.width [col], col.htext)
-             for col in self.columns])
-
-        self.rstf.write (sepl)
-        self.rstf.write (headl)
-        self.rstf.write (sepl)
-
-    def __dump_centry(self, ce):
-        entryl = " ".join (
-            ["%-*s" % (self.width[col], ce[col]) for col in self.columns])
-        self.rstf.write (entryl)
-
     def __dump_contents(self):
-        [self.__dump_centry (ce) for ce in self.contents]
-
-    def __dump_footer(self):
-        sepl = " ".join (
-            ["=" * self.width[col] for col in self.columns])
-        self.rstf.write (sepl, post=2)
+        [self.dump_centry (ce) for ce in self.contents]
 
     def __compute_widths(self):
 
@@ -407,6 +385,34 @@ class RSTtable:
                 col, max (self.width[col], len(col.htext)))
          for col in self.columns]
 
+    # -------------------------------------------
+    # -- Internals to be specialized as needed --
+    # -------------------------------------------
+
+    # Version to generate "simple" table here
+
+    def dump_header(self):
+        sepl = " ".join (
+            ["=" * self.width[col] for col in self.columns])
+
+        headl = " ".join (
+            ["%-*s" % (self.width [col], col.htext)
+             for col in self.columns])
+
+        self.rstf.write (sepl)
+        self.rstf.write (headl)
+        self.rstf.write (sepl)
+
+    def dump_centry(self, ce):
+        entryl = " ".join (
+            ["%-*s" % (self.width[col], ce[col]) for col in self.columns])
+        self.rstf.write (entryl)
+
+    def dump_footer(self):
+        sepl = " ".join (
+            ["=" * self.width[col] for col in self.columns])
+        self.rstf.write (sepl, post=2)
+
     # -------------
     # -- dump_to --
     # -------------
@@ -423,10 +429,40 @@ class RSTtable:
 
         if self.contents is not None:
             self.__compute_widths ()
-
-            self.__dump_header ()
+            self.dump_header ()
             self.__dump_contents ()
-            self.__dump_footer ()
+            self.dump_footer ()
+
+# ==============
+# == CSVtable ==
+# ==============
+
+class CSVtable (RSTtable):
+
+    def __init__(self, title, text, columns, contents):
+        RSTtable.__init__ (
+            self, title=title, text=text,
+            columns=columns, contents=contents)
+
+    def dump_header(self):
+        text = '\n' + '\n'.join (
+            ['.. csv-table::',
+             # '   :widths: 20, 70',
+             '   :delim: |',
+             '   :header: %s' % ",".join (
+                    ['"%s"' % col.htext for col in self.columns])
+             ]
+            ) + "\n"
+        self.rstf.write (text)
+
+    def dump_centry(self, ce):
+        entryl = "|".join (
+            ["   %s" % ce[col] for col in self.columns])
+        self.rstf.write (entryl)
+
+    def dump_footer(self):
+        self.rstf.write ('\n')
+
 
 # ==============
 # == QDreport ==

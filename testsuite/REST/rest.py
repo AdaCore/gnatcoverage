@@ -15,6 +15,9 @@ def part(title):
 def chapter(title):
     return heading(title, '*')
 
+def section(title):
+    return heading(title, '=')
+
 def emph(content):
     return "*" + content + "*"
 
