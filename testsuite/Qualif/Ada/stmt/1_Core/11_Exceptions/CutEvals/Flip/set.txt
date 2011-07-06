@@ -1,2 +1,0 @@
-SC testcases for ``not A`` where operand evaluations might raise exception
-
