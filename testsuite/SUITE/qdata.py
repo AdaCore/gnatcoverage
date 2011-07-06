@@ -470,6 +470,7 @@ class CSVtable (RSTtable):
 
 import time, datetime, platform, socket
 
+from gnatpython.env import Env
 from gnatpython.ex import Run
 from SUITE.control import BUILDER, LANGINFO
 from SUITE.cutils  import version
@@ -767,6 +768,8 @@ class QDreport:
         value = Column (
             htext = "", legend = None)
 
+        comp = Env().target.triplet + "-gcc"
+
         RSTtable (
             title = None, text = None,
             columns = (item, value),
@@ -774,15 +777,12 @@ class QDreport:
                 {item : "report timestamp",
                  value: time.strftime ("%a %b %d, %Y. %H:%M", time.localtime())
                  },
-                {item : "user & system",
+                {item : "system",
                  value: ' '.join (
-                        (os.getlogin(), "@", socket.gethostname(),
-                         "(" + ' '.join ((
-                                    platform.system(), platform.release()))
-                         + ")"))
+                        (platform.system(), platform.release()))
                  },
                 {item : "compiler (+version)",
-                 value: version("gcc")
+                 value: version(comp)
                  },
                 {item : "builder (+version)",
                  value: version(BUILDER.BASE_COMMAND)
