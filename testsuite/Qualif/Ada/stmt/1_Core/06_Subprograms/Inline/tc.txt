@@ -1,8 +1,0 @@
-Inlining effects
-
-Check that:
-
-* inlining does not affect coverage information for subprogram bodies,
-
-* inlining does not require additional tests to achieve coverage.
-
