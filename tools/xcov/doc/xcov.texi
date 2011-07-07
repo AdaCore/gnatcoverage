@@ -109,7 +109,7 @@ details about what exactly is to be evaluated.
 
 One of our target applications is the use of coverage analysis in
 software certification processes such as the DO-178B standard enforced
-in the civilian avionics domain.
+in the civil avionics domain.
 @c
 In this context, the application code and the test sequences are both
 derived from a common set of requirements, independently, and structural
@@ -1319,17 +1319,18 @@ It may be directed to a file instead, with the addition of a
 @subsection Decision Coverage (DC)
 @pindex Decision Coverage with Xcov
 @noindent
-@xcov{} offers Decision Coverage assessment capabilities with
-@option{--level=stmt+decision}.
+@xcov{} features combined Statement and Decision Coverage assessment
+capabilities with @option{--level=stmt+decision}.
 @c
-The use process is identical to the one for statement coverage, except
-that it yields coverage results of a different nature.
+We consider to be @dfn{decisions} all the boolean expressions used
+to influence the control flow via explicit constructs in the source
+program, such as @code{if} statements or @code{while} loops.
 @c
-We refer to @dfn{decisions} as all the boolean expressions used to
-influence the control flow via explicit constructs in the source
-program (such as @code{if} statements or @code{while} loops), plus all
-the boolean expressions that feature a short circuit operator in other
-contexts (e.g. on the right hand side of an assignment).
+For proper operation, expressions may only resort to short-circuit
+operators to combine operands.
+@c
+The @gnat{} compilers offer the @code{No_Direct_Boolean_Operator}
+restriction pragma to make sure this rule is obeyed.
 
 A decision is said fully covered when tests were made so that the
 decision has evaluated to both True and False.
@@ -1338,8 +1339,9 @@ If only one of these two possible outcomes was exercised, the decision
 is said partially covered.
 @c
 The case where none of the possible decision outcomes was exercised
-corresponds to situations where the enclosing statement was not
-exercised at all.
+happens when the enclosing statement was not executed at all, or when
+all the attempted evaluations were interrupted e.g. because of
+exceptions.
 @c
 Uncovered statements remain reported as such, without further details
 even if there are decisions therein.
@@ -1427,7 +1429,7 @@ DECISION "Robot.Mod..." at 75:10: outcome TRUE never exercised
 @subsection Modified Condition/Decision Coverage (MCDC)
 @pindex MCDC Coverage with Xcov
 @noindent
-In a similar fashion to statement or decision coverage, @xcov{} offers
+In a similar fashion to statement or decision coverage, @xcov{} features
 Modified Condition/Decision Coverage assessment capabilities with
 @option{--level=stmt+mcdc}.
 @c
@@ -1443,10 +1445,47 @@ Providing @xrun{} with only a subset of the SCOs you will analyze
 might result in pessimistic assessments later on (spurious MCDC not
 achieved outcome).
 
-Compared to Decision Coverage, MCDC processing incurs extra
+To support MCDC, we introduce a distinction between two kinds of
+Boolean expressions:
+
+@itemize 
+
+@item @dfn{Simple} Boolean expressions are Boolean atoms such as a lone
+ Boolean variable or a function call, possibly negated.
+
+@item @dfn{Complex}
+ Boolean expressions are those that feature at least two Boolean atoms
+combined with short-circuit operators, the only ones allowed for
+proper operation as for Decision Coverage.
+
+@end itemize
+
+In addition to simple and complex expressions used to influence
+control-flow statements, we treat as decisions all the complex Boolean
+expressions anywhere they might appear.
+@c
+For example, the Ada code excerpt below:
+
+@smallexample
+  X := A and then not B;
+  if Y then [...]
+@end smallexample
+
+@noindent
+... features two expressions subject to MCDC analysis: @code{A and
+then not B} (complex expression with two atoms), on the right hand
+side of the assignment to @code{X}, and the simple @code{Y} expression
+that controls the @code{if} statement.
+@c
+The Boolean atoms in a decision are called @dfn{conditions} in the
+DO-178 literature.  The types involved need not be restricted to the
+standard Boolean type when one is defined by the language; For Ada,
+typically, they may subtypes or types derived from the fundamental
+Boolean type.
+
+Compared to Decision Coverage, MCDC assessments incur extra
 verifications on the demonstration by the tests of the independent
-influence of boolean atoms in decisions, called @dfn{conditions} in
-the DO-178 literature.
+influence of conditions on decisions.
 @c
 Several variants of the criterion exist, with a common idea: for each
 condition in a decision, tests are required to expose a pair of
@@ -1673,8 +1712,8 @@ violations away from the genuine defects out of a testing sequence.
 @c
 The Xcov @dfn{exemptions} facility was designed for this purpose.
 
-For Ada with the GNAT compilers, coverage exemptions are requested for
-sections of source by the insertion of dedicated pragmas.
+For Ada with the @gnat{} compilers, coverage exemptions are requested
+for sections of source by the insertion of dedicated pragmas.
 @c
 @code{pragma Annotate (Xcov, Exempt_On, "justification text");} starts
 a section, providing some exemption justification text that will be
