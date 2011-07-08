@@ -4,12 +4,16 @@
 # There are three components (aka documents): PLANS, TORs, and STR (Software
 # Test Results)
 
+# NOTE: Beware that the testresults are obtained by running the testsuite,
+# with the compiler determined by your PATH.
+
 # Expect a single argument, name of a directory where all the operations are
 # performed (where artifact sources are extracted, built, ...)
 
 if [ $# != 1 ]
 then
-    echo "usage: $0 <ROOT>"
+    echo "usage: $0 <TMPROOT>"
+    echo "!! Make sure to have the proper toolchain on PATH !!"
     exit 1
 fi
 
@@ -19,35 +23,35 @@ fi
 
 # Setup the temporary dir. Make sure we will start afresh ...
 
-ROOT=$1
+TMPROOT=$1
 
-if [ -e "$ROOT" ]
+if [ -e "$TMPROOT" ]
 then
-    echo "ROOT $ROOT exists already"
+    echo "TMPROOT $TMPROOT exists already"
     exit 1
 fi
 
-mkdir $ROOT
-if [ ! -d $ROOT ]
+mkdir $TMPROOT
+if [ ! -d $TMPROOT ]
 then
-    echo "creation of $ROOT failed somehow"
+    echo "creation of $TMPROOT failed somehow"
     exit 1
 fi
 
 # Get there and acquire an absolute reference so we can
 # get back easily as needed
 
-cd $ROOT
-ROOT=$PWD
+cd $TMPROOT
+TMPROOT=$PWD
 
-# Where we place the build products in the end
+# Where we place the intermediate documents until we build the toplevel index
 
-PACKROOT=$ROOT/COUVERTURE
+PACKROOT=$TMPROOT/ITEMS
 mkdir -p $PACKROOT
 
 # Checkout "sources"
 
-cd $ROOT
+cd $TMPROOT
 
 OPENDO_SVN=svn://scm.forge.open-do.org/scmrepos/svn
 
@@ -57,11 +61,10 @@ svn checkout -q $OPENDO_SVN/couverture/trunk/couverture
 # -- BUILDS TOR document --
 # -------------------------
 
-cd $ROOT/couverture/qualification/tor/scripts
+cd $TMPROOT/couverture/qualification/tor/scripts
 make
 
-TORDIR=$PWD/build
-ln -s $TORDIR $PACKROOT/TOR
+mv build/html $PACKROOT/TOR
 
 # -------------------------
 # -- BUILDS STR document --
@@ -70,26 +73,53 @@ ln -s $TORDIR $PACKROOT/TOR
 # This incurs running the testsuite first. See testsuite.py for the
 # role of --qualif-level
 
-cd $ROOT/couverture/testsuite
+cd $TMPROOT/couverture/testsuite
 
 ln -s ../tools/xcov/examples/support support
-svn checkout $OPENDO_SVN/gnatpython/trunk/gnatpython  support/gnatpython
+svn checkout -q $OPENDO_SVN/gnatpython/trunk/gnatpython  support/gnatpython
 export PYTHONPATH=`pwd`/support/gnatpython
 
 ./testsuite.py --target=ppc-elf --disable-valgrind --qualif-level=doA -j6
 
 # Then build the STR report 
 
-make -C qreport html
+cd qreport
+make html
 
-STRDIR=$PWD/qreport/build
-ln -s $STRDIR $PACKROOT/STR
+mv build/html $PACKROOT/STR
 
 # ---------------------------
 # -- BUILDS PLANS document --
 # ---------------------------
 
-cd $ROOT
+cd $TMPROOT
 
-# to be completed
+mkdir $PACKROOT/PLANS
+cp couverture/qualification/plans/plans.pdf $PACKROOT/PLANS
+
+# ??? to be completed
+
+# ------------------------------------------------------
+# -- BUILDS TOPLEVEL index and bundle things together --
+# ------------------------------------------------------
+
+cd $TMPROOT/couverture/qualification/index
+make html
+
+INDEXROOT=GNATCOVERAGE-QM  # relative to TMPROOT
+
+if [ -e $TMPROOT/$INDEXROOT ]
+then
+   echo "INDEXROOT already there, err!"
+   exit 1
+fi
+
+# Create our toplevel tree by renaming the index html product
+mv build/html $TMPROOT/$INDEXROOT
+
+# Reach there, move items and zip
+cd $TMPROOT
+mv $PACKROOT $INDEXROOT
+
+zip -q -r $INDEXROOT.zip $INDEXROOT
 
