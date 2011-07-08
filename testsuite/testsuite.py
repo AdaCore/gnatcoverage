@@ -90,15 +90,15 @@ class QlevelInfo:
 QLEVEL_INFO = {
     "doA" : QlevelInfo (
         levelid   = "doA",
-        subtrees  = "Qualif/(Common|Ada/(stmt|decision|mcdc))",
+        subtrees  = "Qualif/(Common|Appendix|Ada/(stmt|decision|mcdc))",
         xcovlevel = "stmt+mcdc"),
     "doB" : QlevelInfo (
         levelid   = "doB",
-        subtrees  = "Qualif/(Common|Ada/(stmt|decision))",
+        subtrees  = "Qualif/(Common|Appendix|Ada/(stmt|decision))",
         xcovlevel = "stmt+decision"),
     "doC" : QlevelInfo (
         levelid   = "doC",
-        subtrees  = "Qualif/(Common|Ada/(stmt))",
+        subtrees  = "Qualif/(Common|Appendix|Ada/(stmt))",
         xcovlevel = "stmt")
     }
 
