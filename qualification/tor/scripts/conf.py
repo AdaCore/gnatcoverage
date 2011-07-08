@@ -40,8 +40,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Couverture'
-copyright = u'2010, AdaCore'
+project = u'GNATcoverage'
+copyright = u'2011, AdaCore'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -103,7 +103,7 @@ html_theme_path = ['.']
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-#html_title = None
+html_title = "%s TORs" % project
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #html_short_title = None
@@ -164,7 +164,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'Couverturedoc'
+htmlhelp_basename = 'GNATcoveragedoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -178,7 +178,7 @@ htmlhelp_basename = 'Couverturedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Couverture.tex', u'Couverture Documentation',
+  ('index', 'GNATcoverage.tex', u'GNATcoverage Documentation',
    u'AdaCore', 'manual'),
 ]
 
@@ -211,6 +211,6 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'couverture', u'Couverture Documentation',
+    ('index', 'couverture', u'GNATcoverage Documentation',
      [u'AdaCore'], 1)
 ]
