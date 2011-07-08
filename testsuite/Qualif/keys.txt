@@ -1,6 +1,6 @@
-{ "Common": 1,
-  "Ada": 2,
-  "C": 3,
+{ "Ada": 1,
+  "C": 2,
+  "Common": 3,
   "Appendix": 100
 }
 
