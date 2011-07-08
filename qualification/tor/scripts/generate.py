@@ -746,6 +746,9 @@ class DocGenerator(object):
 
         self.ofd.write(rest.section(to_title(ttext)))
 
+        if diro.tc:
+            self.ofd.write(self.tc_headline(diro))
+
         if diro.dfile():
             self.ofd.write(self.contents_from (diro=diro, name=diro.dfile()))
 
@@ -884,11 +887,14 @@ class DocGenerator(object):
             )
 
     # ---------------------------------
-    # -- req and tstrategy headlines --
+    # -- req, tc and tstrategy headlines --
     # ---------------------------------
 
     def req_headline (self, diro, plural=False):
         return rest.subsection ("Requirement" + ("s" if plural else ""))
+
+    def tc_headline (self, diro):
+        return rest.subsection ("Testcase description")
 
     def reqs_headline (self, diro):
         return self.req_headline (diro, plural=True)
