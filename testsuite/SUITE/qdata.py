@@ -479,9 +479,10 @@ from SUITE.cutils  import version
 # of the qualification report
 
 class Category:
-    def __init__(self, name, matcher):
-        self.name = name
-        self.matcher = matcher
+    def __init__(self, name, matcher, internal=False):
+        self.name     = name
+        self.matcher  = matcher
+        self.internal = internal
 
         self.qdl = []
 
@@ -511,6 +512,11 @@ class QDreport:
                 name="Mcdc Coverage",      matcher="Qualif/Ada/mcdc"),
             Category (
                 name="Report Format",      matcher="Qualif/Common/Report"),
+
+            Category (
+                name="Harness Check",      matcher="Qualif/Appendix/Harness",
+                internal=True),
+
             Category (
                 name="Others",             matcher=".")
             )
@@ -622,7 +628,7 @@ class QDreport:
                 columns = self.tccolumns(),
                 contents = [self.tcdict_for(qd) for qd in cat.qdl]
                 ).dump_to (self.rstf)
-         for cat in self.categories if cat.qdl]
+         for cat in self.categories if cat.qdl and not cat.internal]
 
         self.rstf.close()
 
@@ -666,15 +672,22 @@ class QDreport:
         # into the TOTSUM total summary along the way
 
         thissum = self.init_data_for(cat.name)
-        [self.do_sum (qd=qd, catsum=catsum)
-         for qd in cat.qdl for catsum in (thissum, totsum)]
 
-        # We're done computing counters for the current category. Update
-        # the corresponding overall status column and return
+        [self.do_sum (qd=qd, catsum=thissum) for qd in cat.qdl]
+
+        # skip internal categories unless they exhibit failures
+
+        if cat.internal and thissum[colid.failed].value == 0:
+            return None
+
+        # Otherwise, update the overall status column, accumulate into the
+        # TOTSUM summary and return
 
         thissum.__setitem__ (
             colid.ovsta, TextCell (
                 "%s" % "OK" if thissum[colid.failed].value == 0 else "BING"))
+
+        [self.do_sum (qd=qd, catsum=totsum) for qd in cat.qdl]
 
         return thissum
 
@@ -695,7 +708,9 @@ class QDreport:
         totsum = self.init_data_for("Total")
 
         catsums = [
-            self.sumdata_for(c, totsum) for c in self.categories if c.qdl]
+            csum for csum in [self.sumdata_for(cat, totsum)
+                              for cat in self.categories if cat.qdl]
+            if csum]
 
         totsum.__setitem__ (
             colid.ovsta, TextCell (
