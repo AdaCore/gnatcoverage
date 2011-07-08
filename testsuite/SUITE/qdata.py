@@ -439,7 +439,8 @@ class RSTtable:
 
 class CSVtable (RSTtable):
 
-    def __init__(self, title, text, columns, contents):
+    def __init__(self, title, text, columns, contents, controls = ()):
+        self.controls = controls
         RSTtable.__init__ (
             self, title=title, text=text,
             columns=columns, contents=contents)
@@ -447,16 +448,15 @@ class CSVtable (RSTtable):
     def dump_header(self):
         text = '\n' + '\n'.join (
             ['.. csv-table::',
-             # '   :widths: 20, 70',
-             '   :delim: |',
-             '   :header: %s' % ",".join (
+             '   :delim: &',
+             '   :header: %s' % " , ".join (
                     ['"%s"' % col.htext for col in self.columns])
-             ]
+             ] + ['   ' + ctl for ctl in self.controls]
             ) + "\n"
         self.rstf.write (text)
 
     def dump_centry(self, ce):
-        entryl = "|".join (
+        entryl = " & ".join (
             ["   %s" % ce[col] for col in self.columns])
         self.rstf.write (entryl)
 
@@ -511,8 +511,6 @@ class QDreport:
                 name="Mcdc Coverage",      matcher="Qualif/Ada/mcdc"),
             Category (
                 name="Report Format",      matcher="Qualif/Common/Report"),
-            Category (
-                name="Harness Check",      matcher="Qualif/Common/Harness"),
             Category (
                 name="Others",             matcher=".")
             )
@@ -742,20 +740,21 @@ class QDreport:
         value = Column (
             htext = "", legend = None)
 
-        RSTtable (
+        CSVtable (
             title = None, text = None,
             columns = (item, value),
+            controls = [":widths: 30, 65"],
             contents = [
-                {item : "command line",
+                {item : "testsuite execution command line",
                  value: ' '.join (sys.argv)
                  },
-                {item : "common compiler options",
+                {item : "compiler switches - language agnostic",
                  value: ' '.join (
                         (BUILDER.COMMON_CARGS,
                          self.options.qualif_cargs
                          if self.options.qualif_cargs else ""))
                  } ] + \
-                [ { item : "plus, for %s" % lang,
+                [ { item : "compiler switches - %s specifc" % lang,
                     value: ' '.join (to_list (LANGINFO[lang].cargs))
                   } for lang in ("Ada",) ]
             ).dump_to (self.rstf)
@@ -770,22 +769,20 @@ class QDreport:
 
         comp = Env().target.triplet + "-gcc"
 
-        RSTtable (
+        CSVtable (
             title = None, text = None,
             columns = (item, value),
+            controls = [":widths: 20, 65"],
             contents = [
                 {item : "report timestamp",
                  value: time.strftime ("%a %b %d, %Y. %H:%M", time.localtime())
                  },
-                {item : "system",
+                {item : "host system",
                  value: ' '.join (
                         (platform.system(), platform.release()))
                  },
                 {item : "compiler (+version)",
                  value: version(comp)
-                 },
-                {item : "builder (+version)",
-                 value: version(BUILDER.BASE_COMMAND)
                  }
                 ]
             ).dump_to (self.rstf)
