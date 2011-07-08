@@ -1,6 +1,4 @@
-Material inspired from the SVTAS (Software Verification Tool Assessment Study)
-proposals to demonstrate proper processing of statement sequences and various
-possible forms of control-flow transfers.
+SC expectations focused on statement sequences and control-flow transfers.
 
 %(req-headline)s
 
