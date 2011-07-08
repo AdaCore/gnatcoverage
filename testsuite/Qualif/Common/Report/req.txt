@@ -2,8 +2,8 @@ Describe the tool output report format and check compliance to it
 
 %(reqs-headline)s
 
-The xcov qualified interface is the synthetic output of the --annotate=report
-command line option. The output report shall:
+The tool qualified output is the synthetic report produced by the
+--annotate=report command line option. The output report shall:
 
 * Start with an explicit "COVERAGE REPORT" indication
 
