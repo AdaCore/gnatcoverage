@@ -787,11 +787,12 @@ class DocGenerator(object):
     # To be refined ...
 
     class WalkInfo:
-        def __init__ (self, rootp, emphctl):
+        def __init__ (self, rootp, emphctl, textctl):
             self.rootp = rootp
 
             self.contents = []
             self.emphctl = emphctl
+            self.textctl = textctl
 
     def tc_text(self, diro):
         return ':doc:`%s`' % self.ref(diro.root)
@@ -822,11 +823,12 @@ class DocGenerator(object):
                 self.tc_text(diro=diro),
                 sumtext))
 
-    def index_table(self, rooto, nodectl, emphctl):
+    def index_table(self, rooto, nodectl, emphctl, textctl):
 
         dirtree = DirTree (roots=[rooto])
 
-        wi = self.WalkInfo (rootp=rooto.root, emphctl=emphctl)
+        wi = self.WalkInfo (
+            rootp=rooto.root, emphctl=emphctl, textctl=textctl)
 
         # Then we compute the table header, the entries, and the table footer
 
@@ -852,6 +854,7 @@ class DocGenerator(object):
                 (rest.strong(text) if diro.container and pathi.depth == 1
                  else rest.emphasis(text) if diro.container
                  else text),
+            textctl = self.tc_text,
             nodectl = lambda diro, pathi, wi:
                 (dirProcess if pathi.depth > 0
                  else dirSkip)
@@ -861,6 +864,7 @@ class DocGenerator(object):
         return self.index_table (
             rooto   = diro,
             emphctl = None,
+            textctl = self.tc_text,
             nodectl = lambda diro, pathi, wi:
                 (dirCut if pathi.depth > 0 and (diro.set or diro.req)
                  else dirSkip)
@@ -872,6 +876,7 @@ class DocGenerator(object):
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if pathi.depth == 1
                  else text),
+            textctl = self.tc_text,
             nodectl = lambda diro, pathi, wi:
                 (dirProcess if pathi.depth == 1 and diro.container
                  else dirCut if pathi.depth > 1 and diro.container
