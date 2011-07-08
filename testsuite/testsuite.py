@@ -69,6 +69,9 @@ DEFAULT_TIMEOUT = 600
 #     test was designed to assess. For example, for a target level A we will
 #     invoke gnatcov --level=stmt+mcdc even for tests designed to verify
 #     statement coverage only.
+#
+#   * For criteria with variants (e.g. unique-cause and masking mcdc),
+#     exercise only the default one.
 
 # A dictionary of information of interest for each qualification level:
 
