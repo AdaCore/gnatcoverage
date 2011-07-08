@@ -365,16 +365,6 @@ criteria. In our example test of statement category, the ``0`` expectations
 are meant to convey that we expect no *statement coverage* violation on the
 lines and violations of stricter criteria there ought to be ignored.
 
-
-Harness self verification
-*************************
-
-By construction, the set of tool qualification testcases are expected to all
-PASS. To validate the harness operation, we developped a specific requirement
-and set of testcases aimed at checking the FAILure detection capabilities:
-
-%(tc-index)s
-
 ---------------------------
 Test Development Guidelines
 ---------------------------
