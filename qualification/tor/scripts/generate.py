@@ -932,7 +932,7 @@ class DocGenerator(object):
     def generate_all(self, chapdirs):
 
         ref_chapdirs = [
-            "Common", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
+            "Appendix", "Common", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
 
         # [Re]generate only the requested chapters, when specified,
         # everything otherwise
