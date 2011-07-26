@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -111,6 +111,22 @@ package body Coverage is
          return MCDC;
       end if;
    end MCDC_Level;
+
+   ----------------
+   -- Object_Level --
+   ----------------
+
+   function Object_Level return Object_Coverage_Level is
+   begin
+      pragma Assert (Object_Coverage_Enabled);
+      if Enabled (Insn) then
+         pragma Assert (not Enabled (Branch));
+         return Insn;
+      else
+         pragma Assert (not Enabled (Insn));
+         return Branch;
+      end if;
+   end Object_Level;
 
    -----------------------------
    -- Object_Coverage_Enabled --

@@ -58,7 +58,16 @@ package body Annotations.Report is
 
    --  Pretty printer type for the final report
 
-   type Violations_Array is array (Coverage_Level) of Natural;
+   type Message_Class is
+     range 0 .. Coverage_Level'Pos (Coverage_Level'Last) + 1;
+   No_Coverage_Level : constant Message_Class := Message_Class'Last;
+
+   function Section_Of_Message (M : Message) return Message_Class;
+   --  Indicate the coverage criterion a given message pertains to (by its
+   --  'Pos), or No_Coverage_Level if M is not a violation message.
+
+   type Messages_Array is array (Message_Class) of Message_Vectors.Vector;
+
    type Report_Pretty_Printer is new Pretty_Printer with record
       Current_File_Index : Source_File_Index;
       --  When going through the lines of a source file, this is set to the
@@ -79,8 +88,9 @@ package body Annotations.Report is
       Exemption : Slocs.Source_Location := Slocs.No_Location;
       --  Exemption sloc applying to current line, if any
 
-      Violations : Violations_Array := (others => 0);
-      --  Tally of violations by coverage objective
+      Nonexempted_Messages : Messages_Array;
+      --  All output messages, classified by section according to relevant
+      --  coverage level.
    end record;
 
    procedure Chapter
@@ -92,19 +102,6 @@ package body Annotations.Report is
      (Pp    : in out Report_Pretty_Printer'Class;
       Title : String);
    --  Open a new section in final report
-
-   procedure Put_Message
-     (Pp : in out Report_Pretty_Printer'Class;
-      M  : Message);
-   --  Print M in the final report and update item count. The difference with
-   --  Pretty_Print_Message is that Put_Message does not tries to know if the
-   --  message should be exempted or not, and do not modify the
-   --  Exempted_Messages buffer.
-
-   procedure Count_Violation
-     (Pp : in out Report_Pretty_Printer'Class;
-      M  : Message);
-   --  Count M in violations tally
 
    function Pluralize (Count : Natural; Item : String) return String;
    --  Return:
@@ -166,35 +163,6 @@ package body Annotations.Report is
          Free (Final_Report.Name);
       end if;
    end Close_Report_File;
-
-   ---------------------
-   -- Count_Violation --
-   ---------------------
-
-   procedure Count_Violation
-     (Pp : in out Report_Pretty_Printer'Class;
-      M  : Message)
-   is
-   begin
-      pragma Assert (M.SCO /= No_SCO_Id);
-      case Kind (M.SCO) is
-         when Statement =>
-            Pp.Violations (Stmt) := Pp.Violations (Stmt) + 1;
-
-         when Decision =>
-            if Is_Expression (M.SCO) then
-               Pp.Violations (MCDC_Level) := Pp.Violations (MCDC_Level) + 1;
-            else
-               Pp.Violations (Decision) := Pp.Violations (Decision) + 1;
-            end if;
-
-         when Condition =>
-            Pp.Violations (MCDC_Level) := Pp.Violations (MCDC_Level) + 1;
-
-         when others =>
-            raise Program_Error with "unexpected SCO kind in violation";
-      end case;
-   end Count_Violation;
 
    ---------------------
    -- Generate_Report --
@@ -261,14 +229,33 @@ package body Annotations.Report is
 
       Output : constant File_Access := Get_Output;
 
-      procedure Process_One_Exemption (C : Cursor);
+      Total_Messages : Natural;
+      --  Total count of output non-exempted messages (both violations and
+      --  other messages).
+
+      Total_Exempted_Regions : Natural;
+
+      procedure Messages_For_Section
+        (MC    : Message_Class;
+         Title : String;
+         Item  : String);
+      --  Output all buffered messages of the given class in a section with
+      --  the given title. Item is the noun for the summary line counting
+      --  messages in the section.
+
+      procedure Output_Message (C : Message_Vectors.Cursor);
+      --  Print M in the final report and update item count. The difference
+      --  with Pretty_Print_Message is that Put_Message does not tries to know
+      --  if the message should be exempted or not.
+
+      procedure Output_Exemption (C : Cursor);
       --  Show summary information for exemption denoted by C
 
-      ---------------------------
-      -- Process_One_Exemption --
-      ---------------------------
+      ----------------------
+      -- Output_Exemption --
+      ----------------------
 
-      procedure Process_One_Exemption (C : Cursor) is
+      procedure Output_Exemption (C : Cursor) is
          E        : constant ALI_Annotation := Element (C);
          Next_C   : constant Cursor := Next (C);
          Sloc     : constant Source_Location := Key (C);
@@ -296,6 +283,7 @@ package body Annotations.Report is
          --  Output summary for this region: sloc range, exempted message count
          --  and justification.
 
+         New_Line (Output.all);
          Put (Output.all,
            Image (Slocs.Source_Location_Range'
                     (First_Sloc => Sloc, Last_Sloc => End_Sloc)));
@@ -310,61 +298,117 @@ package body Annotations.Report is
 
          Put_Line (Output.all, ", justification:");
          Put_Line (Output.all, E.Message.all);
-         New_Line (Output.all);
 
+         Total_Exempted_Regions := Total_Exempted_Regions + 1;
+      end Output_Exemption;
+
+      --------------------
+      -- Output_Message --
+      --------------------
+
+      procedure Output_Message (C : Message_Vectors.Cursor) is
+         M : Message renames Message_Vectors.Element (C);
+      begin
+         if M.SCO /= No_SCO_Id then
+            Put (Output.all, Image (First_Sloc (M.SCO)));
+            Put (Output.all, ": ");
+            Put (Output.all, To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
+
+         else
+            Put (Output.all, Image (M.Sloc));
+            Put (Output.all, ": ");
+         end if;
+
+         Put (Output.all, M.Msg.all);
+         Total_Messages := Total_Messages + 1;
          Pp.Item_Count := Pp.Item_Count + 1;
-      end Process_One_Exemption;
+         New_Line (Output.all);
+      end Output_Message;
 
-      Total_Violations : Natural;
+      --------------------------
+      -- Messages_For_Section --
+      --------------------------
+
+      procedure Messages_For_Section
+        (MC    : Message_Class;
+         Title : String;
+         Item  : String)
+      is
+      begin
+         Pp.Section (Title);
+
+         Pp.Nonexempted_Messages (MC).Iterate (Output_Message'Access);
+         if Pp.Item_Count > 0 then
+            New_Line (Output.all);
+         end if;
+         Put_Line (Output.all, Pluralize (Pp.Item_Count, Item) & ".");
+      end Messages_For_Section;
 
    --  Start of processing for Pretty_Print_End
 
    begin
-      if Source_Coverage_Enabled then
-         Total_Violations := 0;
-         for J in Pp.Violations'Range loop
-            Total_Violations := Total_Violations + Pp.Violations (J);
-         end loop;
-      else
-         Total_Violations := Pp.Item_Count;
-      end if;
+      Pp.Chapter ("NON-EXEMPTED VIOLATIONS");
 
-      if Pp.Item_Count > 0 then
-         New_Line (Output.all);
-      end if;
+      Total_Messages := 0;
 
-      Put_Line (Output.all, Pluralize (Total_Violations, "violation") & ".");
+      for L in Coverage_Level loop
+         if Enabled (L)
+           or else (L = Decision and then MCDC_Coverage_Enabled)
+         then
+            Messages_For_Section
+              (Coverage_Level'Pos (L),
+               Title => L'Img & " COVERAGE",
+               Item  => "violation");
+         else
+            pragma Assert
+              (Pp.Nonexempted_Messages (Coverage_Level'Pos (L)).Is_Empty);
+            null;
+         end if;
+      end loop;
 
       if Source_Coverage_Enabled and then Switches.All_Messages then
-         Put_Line
-           (Output.all,
-            Pluralize (Pp.Item_Count - Total_Violations, "other message")
-            & ".");
+         Messages_For_Section
+           (No_Coverage_Level,
+            Title => "OTHER ERRORS",
+            Item  => "message");
       end if;
 
-      Pp.Section ("EXEMPTED REGIONS");
-      ALI_Annotations.Iterate (Process_One_Exemption'Access);
+      Pp.Chapter ("EXEMPTED REGIONS");
+      Total_Exempted_Regions := 0;
+      ALI_Annotations.Iterate (Output_Exemption'Access);
 
-      if Pp.Item_Count > 0 then
-         New_Line (Output.all);
-      end if;
-
+      New_Line (Output.all);
       Put_Line
-        (Output.all, Pluralize (Pp.Item_Count, "exempted region") & ".");
+        (Output.all,
+         Pluralize (Total_Exempted_Regions, "exempted region") & ".");
 
       Pp.Chapter ("ANALYSIS SUMMARY");
 
       New_Line (Output.all);
-      for J in Pp.Violations'Range loop
+      for J in Coverage_Level loop
          if Enabled (J)
            or else (J = Decision and then MCDC_Coverage_Enabled)
          then
             Put_Line
               (Output.all,
-               Pluralize (Pp.Violations (J),
+               Pluralize (Natural (Pp.Nonexempted_Messages
+                                     (Coverage_Level'Pos (J)).Length),
                  "non-exempted " & J'Img & " violation") & '.');
          end if;
       end loop;
+
+      if Source_Coverage_Enabled and then Switches.All_Messages then
+         Put_Line
+           (Output.all,
+            Pluralize (Natural (Pp.Nonexempted_Messages
+                                  (No_Coverage_Level).Length),
+              "other message") & ".");
+      end if;
+
+      Put_Line
+        (Output.all,
+         Pluralize (Total_Exempted_Regions, "exempted region") & ".");
+
       New_Line (Output.all);
       Put_Line (Output.all, "END OF REPORT");
    end Pretty_Print_End;
@@ -399,7 +443,9 @@ package body Annotations.Report is
 
    procedure Pretty_Print_Message
      (Pp : in out Report_Pretty_Printer;
-      M  : Message) is
+      M  : Message)
+   is
+      MC : constant Message_Class := Section_Of_Message (M);
    begin
       --  Messages with Kind = Notice need not be included in the report
 
@@ -408,7 +454,7 @@ package body Annotations.Report is
             Pp.Exempted_Messages.Append (M);
             Inc_Exemption_Count (Pp.Exemption);
          else
-            Pp.Put_Message (M);
+            Pp.Nonexempted_Messages (MC).Append (M);
          end if;
       end if;
    end Pretty_Print_Message;
@@ -436,12 +482,12 @@ package body Annotations.Report is
       procedure Display_Trace_File_Info (Position : Cursor) is
          E : constant Trace_File_Element_Acc := Element (Position);
       begin
-         Put_Line (Output.all, " " & E.Filename.all);
+         Put_Line (Output.all, E.Filename.all);
          Put_Line (Output.all, "  program: "
                    & Get_Info (E.Trace, Exec_File_Name));
-         Put_Line (Output.all, "  date: "
+         Put_Line (Output.all, "  date   : "
                    & Format_Date_Info (Get_Info (E.Trace, Date_Time)));
-         Put_Line (Output.all, "  tag: " & Get_Info (E.Trace, User_Data));
+         Put_Line (Output.all, "  tag    : " & Get_Info (E.Trace, User_Data));
       end Display_Trace_File_Info;
 
    --  Start of processing for Pretty_Print_Start
@@ -469,12 +515,9 @@ package body Annotations.Report is
       Put_Line (Output.all, "Coverage level: " & Coverage_Option_Value);
       New_Line (Output.all);
 
-      Put_Line (Output.all, "trace files:");
+      Put_Line (Output.all, "Trace files:");
       New_Line (Output.all);
       Files.Iterate (Display_Trace_File_Info'Access);
-
-      Pp.Chapter ("VIOLATIONS AND EXEMPTION REGIONS");
-      Pp.Section ("NON-EXEMPTED VIOLATIONS");
    end Pretty_Print_Start;
 
    -----------------------------
@@ -502,32 +545,6 @@ package body Annotations.Report is
       end if;
    end Pretty_Print_Start_File;
 
-   -----------------
-   -- Put_Message --
-   -----------------
-
-   procedure Put_Message
-     (Pp : in out Report_Pretty_Printer'Class;
-      M  : Message)
-   is
-      Output : constant File_Access := Get_Output;
-   begin
-      if M.SCO /= No_SCO_Id then
-         Put (Output.all, Image (First_Sloc (M.SCO)));
-         Put (Output.all, ": ");
-         Put (Output.all, To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
-
-         Pp.Count_Violation (M);
-      else
-         Put (Output.all, Image (M.Sloc));
-         Put (Output.all, ": ");
-      end if;
-
-      Put (Output.all, M.Msg.all);
-      Pp.Item_Count := Pp.Item_Count + 1;
-      New_Line (Output.all);
-   end Put_Message;
-
    -------------
    -- Section --
    -------------
@@ -548,5 +565,41 @@ package body Annotations.Report is
                 & Title);
       New_Line (Output.all);
    end Section;
+
+   ------------------------
+   -- Section_Of_Message --
+   ------------------------
+
+   function Section_Of_Message (M : Message) return Message_Class is
+   begin
+      if M.SCO /= No_SCO_Id then
+         declare
+            L : Coverage_Level;
+         begin
+            case Kind (M.SCO) is
+               when Statement =>
+                  L := Stmt;
+
+               when Decision =>
+                  if Is_Expression (M.SCO) then
+                     L := MCDC_Level;
+
+                  else
+                     L := Decision;
+                  end if;
+
+               when Condition =>
+                  L := MCDC_Level;
+
+               when others =>
+                  raise Program_Error with "unexpected SCO kind in violation";
+            end case;
+            return Coverage_Level'Pos (L);
+         end;
+
+      else
+         return No_Coverage_Level;
+      end if;
+   end Section_Of_Message;
 
 end Annotations.Report;
