@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -273,7 +273,7 @@ package body Annotations is
          end if;
       end Pretty_Print_Message;
 
-      --  Start of processing for Disp_Messages
+   --  Start of processing for Disp_Messages
 
    begin
       LI.Messages.Iterate (Pretty_Print_Message'Access);
