@@ -7,5 +7,5 @@ begin
 end;
 
 --# starts.adb
---  /startsLength/ l! dT-
+--  /startsLength/ l! eT-
 --  /startsKey/    l! 0

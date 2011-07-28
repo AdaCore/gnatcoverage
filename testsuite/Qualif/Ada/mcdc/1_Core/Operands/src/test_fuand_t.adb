@@ -6,6 +6,6 @@ begin
 end;
 
 --# fuand.adb
---  /evalA/   l! dF-
+--  /evalA/   l! eF-
 --  /evalB/   l! 0
 

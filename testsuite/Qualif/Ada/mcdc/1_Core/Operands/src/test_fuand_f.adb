@@ -8,6 +8,6 @@ begin
 end;
 
 --# fuand.adb
---  /evalA/   l! dT-
+--  /evalA/   l! eT-
 --  /evalB/   l! 0
 

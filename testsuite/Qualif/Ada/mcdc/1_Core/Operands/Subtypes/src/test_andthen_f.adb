@@ -10,5 +10,5 @@ begin
 end;
 
 --# andthen_variants.adb
---  /evaluate/ l! dT-
+--  /evaluate/ l! eT-
 
