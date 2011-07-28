@@ -9,4 +9,4 @@ begin
 end;
 
 --# exprs-e_and.adb
---  /evalAnd/ l+ 0
+--  /eval/ l+ 0

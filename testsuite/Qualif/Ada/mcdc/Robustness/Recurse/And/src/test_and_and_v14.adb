@@ -8,4 +8,4 @@ begin
 end;
 
 --# exprs-e_and.adb
---  /evalAnd/ l! c!:"E.B"
+--  /eval/ l! c!:"E.B"
