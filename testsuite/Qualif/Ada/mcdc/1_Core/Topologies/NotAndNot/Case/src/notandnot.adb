@@ -2,7 +2,7 @@ package body Notandnot is
 
    function F (A, B : Boolean) return Boolean is
    begin
-      case (not A) and then (not B) is -- # evalStmt
+      case (not A) and then (not B) is -- # evalStmt :o/e:
          when True =>
             return True;   -- # decisionTrue
          when False =>

@@ -6,7 +6,7 @@ package body PorPandPorP is
 
    function F (A, B, C, D : Boolean) return Boolean is
       E : Expr := -- # returnValue
-        (Value => (A or else B) and then (C or else D));  -- # evalOther
+        (Value => (A or else B) and then (C or else D));  -- # evalOther :o/e:
    begin
       return E.Value;  -- # returnValue
    end;

@@ -2,7 +2,7 @@ package body Notor is
 
    procedure Eval_F (A, B : Boolean; E : out Boolean) is
    begin
-      E := (not A) or else B; -- # evalStmt
+      E := (not A) or else B; -- # evalStmt :o/e:
    end;
 
    function F (A, B : Boolean) return Boolean is

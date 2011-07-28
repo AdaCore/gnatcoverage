@@ -2,7 +2,7 @@ package body Notor is
 
    function F (A, B : Boolean) return Boolean is
    begin
-      case (not A) or else B is -- # evalStmt
+      case (not A) or else B is -- # evalStmt :o/e:
          when True =>
             return True;    -- # decisionTrue
          when False =>

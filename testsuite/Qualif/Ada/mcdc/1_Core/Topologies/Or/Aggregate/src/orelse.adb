@@ -5,7 +5,7 @@ package body Orelse is
    end record;
 
    function Or_Else (A, B : Boolean) return Boolean is
-      E : Expr := (Value => A or else B);  -- # evalStmt
+      E : Expr := (Value => A or else B);  -- # evalStmt :o/e:
    begin
       return E.Value;  -- # returnValue
    end;

@@ -2,7 +2,7 @@ package body Notornot is
 
    procedure Eval_F (A, B : Boolean; E : out Boolean) is
    begin
-      E := (not A) or else (not B); -- # evalStmt
+      E := (not A) or else (not B); -- # evalStmt :o/e:
    end;
 
    function F (A, B : Boolean) return Boolean is

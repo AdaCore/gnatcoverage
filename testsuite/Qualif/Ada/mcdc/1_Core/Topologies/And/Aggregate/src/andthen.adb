@@ -5,7 +5,7 @@ package body Andthen is
    end record;
 
    function And_Then (A, B : Boolean) return Boolean is
-      E : Expr := (Value => A and then B);  -- # evalStmt
+      E : Expr := (Value => A and then B);  -- # evalStmt :o/e:
    begin
       return E.Value;  -- # returnValue
    end;

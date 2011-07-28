@@ -1,7 +1,7 @@
 package body Ornot is
    function F (A, B : Boolean) return Boolean is
    begin
-      if A or else (not B) then  -- # evalStmt
+      if A or else (not B) then  -- # evalStmt :o/d:
          return True;      -- # decisionTrue
       else
          return False;     -- # decisionFalse

@@ -6,8 +6,8 @@ begin
 end;
 
 --# andcor.adb
--- /andthen/     l! dT-
--- /orelse/      l! dT-
+-- /andthen/     l! oT-
+-- /orelse/      l! oT-
 -- /returnOr/    l+ 0
 -- /orTrue/      l- s-
 -- /orFalse/     l+ 0

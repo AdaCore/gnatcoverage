@@ -12,7 +12,7 @@ begin
 end Test_PorPandPorP_T;
 
 --# porpandporp.adb
---  /eval(Stmt|Other)/  l!  dF-
+--  /eval(Stmt|Other)/  l!  oF-
 --  /decisionTrue/  l+ 0
 --  /decisionFalse/ l- s-
 --  /returnValue/ l+ 0

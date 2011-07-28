@@ -8,6 +8,6 @@ begin
 end;
 
 --# c3.adb
---  /eval/ l! dT-
+--  /eval/ l! eT-
 
 

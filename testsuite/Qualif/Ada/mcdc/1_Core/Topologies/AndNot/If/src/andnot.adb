@@ -1,7 +1,7 @@
 package body Andnot is
    function F (A, B : Boolean) return Boolean is
    begin
-      if A and then not B then  -- # evalStmt
+      if A and then not B then  -- # evalStmt :o/d:
          return True;       -- # decisionTrue
       else
          return False;      -- # decisionFalse

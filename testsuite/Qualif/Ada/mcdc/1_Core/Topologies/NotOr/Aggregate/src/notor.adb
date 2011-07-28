@@ -5,7 +5,7 @@ package body Notor is
    end record;
 
    function F (A, B : Boolean) return Boolean is
-      E : Expr := (Value => (not A) or else B);  -- # evalStmt
+      E : Expr := (Value => (not A) or else B);  -- # evalStmt :o/e:
    begin
       return E.Value;  -- # returnValue
    end;

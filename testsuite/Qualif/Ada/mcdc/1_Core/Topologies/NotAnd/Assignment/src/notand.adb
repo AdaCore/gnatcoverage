@@ -2,7 +2,7 @@ package body Notand is
 
    procedure Eval_F (A, B : Boolean; E : out Boolean) is
    begin
-      E := (not A) and then B; -- # evalStmt
+      E := (not A) and then B; -- # evalStmt :o/e:
    end;
 
    function F (A, B : Boolean) return Boolean is

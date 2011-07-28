@@ -5,7 +5,7 @@ package body POrPAndPorP is
       Touched : Bmap := (others => False);  -- # decl
    begin
       for Value in  -- # returnValue
-        False .. ((A or else B) and then (C or else D))  -- # evalOther
+        False .. ((A or else B) and then (C or else D))  -- # evalOther :o/e:
       loop
          Touched (Value) := True;  -- # returnValue
       end loop;

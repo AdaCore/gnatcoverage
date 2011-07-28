@@ -2,7 +2,7 @@ package body Ornot is
 
    procedure Eval_F (A, B : Boolean; E : out Boolean) is
    begin
-      E := A or else (not B); -- # evalStmt
+      E := A or else (not B); -- # evalStmt :o/e:
    end;
 
    function F (A, B : Boolean) return Boolean is

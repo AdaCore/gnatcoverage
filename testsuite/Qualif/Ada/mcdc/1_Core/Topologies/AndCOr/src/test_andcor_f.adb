@@ -9,7 +9,7 @@ begin
 end;
 
 --# andcor.adb
--- /andthen/     l! dT-
+-- /andthen/     l! oT-
 -- /orelse/      l- s-
 -- /returnOr/    l- s-
 -- /orTrue/      l- s-

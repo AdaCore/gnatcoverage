@@ -2,7 +2,7 @@ package body Andnot is
 
    procedure Eval_F (A, B : Boolean; E : out Boolean) is
    begin
-      E := A and then not B; -- # evalStmt
+      E := A and then not B; -- # evalStmt :o/e:
    end;
 
    function F (A, B : Boolean) return Boolean is

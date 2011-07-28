@@ -6,7 +6,7 @@ begin
 end;
 
 --# andnot.adb
---  /eval(Stmt|Other)/ l! dF-
+--  /eval(Stmt|Other)/ l! oF-
 --  /decisionTrue/  l+ 0
 --  /decisionFalse/ l- s-
 --  /returnValue/   l+ 0

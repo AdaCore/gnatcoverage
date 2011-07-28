@@ -5,7 +5,7 @@ package body Andnot is
    end record;
 
    function F (A, B : Boolean) return Boolean is
-      E : Expr := (Value => A and then not B);  -- # evalStmt
+      E : Expr := (Value => A and then not B);  -- # evalStmt :o/e:
    begin
       return E.Value;  -- # returnValue
    end;

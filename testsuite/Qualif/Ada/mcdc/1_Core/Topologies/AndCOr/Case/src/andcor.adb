@@ -2,7 +2,7 @@ package body AndCOr is
    
    function Orelse (B, C : Boolean) return Boolean is
    begin
-      case B or else C is -- # orelse
+      case B or else C is -- # orelse :o/e:
 	 when True  => return True;  -- # orTrue
 	 when False => return False; -- # orFalse
       end case;
@@ -10,7 +10,7 @@ package body AndCOr is
    
    function F (A, B, C : Boolean) return Boolean is
    begin
-      case A and then Orelse (B, C) is -- # andthen
+      case A and then Orelse (B, C) is -- # andthen :o/e:
          when True =>
             return True;               -- # returnTrue
          when False =>

@@ -5,7 +5,7 @@ package body AndPorP is
    end record;
 
    function F (A, B, C : Boolean) return Boolean is
-      E : Expr := (Value => (A and then (B or else C))); -- # evalStmt
+      E : Expr := (Value => (A and then (B or else C))); -- # evalStmt :o/e:
    begin
       return E.Value;  -- # returnValue
    end;
