@@ -6,6 +6,6 @@ begin
 end;
 
 --# porpand.adb
--- /eval/ l! dT-
+-- /eval/ l! eT-
 
 

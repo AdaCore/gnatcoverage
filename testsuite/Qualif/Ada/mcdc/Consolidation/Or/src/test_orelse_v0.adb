@@ -6,6 +6,6 @@ begin
 end;
 
 --# orelse.adb
---  /eval/ l! dT-
+--  /eval/ l! eT-
 
 

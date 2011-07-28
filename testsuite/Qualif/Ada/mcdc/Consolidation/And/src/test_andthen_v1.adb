@@ -6,6 +6,6 @@ begin
 end;
 
 --# andthen.adb
---  /eval/ l! dT-
+--  /eval/ l! eT-
 
 

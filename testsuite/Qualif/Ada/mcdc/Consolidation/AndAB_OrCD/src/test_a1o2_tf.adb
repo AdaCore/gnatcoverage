@@ -9,4 +9,4 @@ end;
 --  /valueF/ l! dT-
 --  /true/  l- s-
 --  /false/ l+ 0
---  /evals/  l! dF-:"A and then B" # dT-:"C or else D"
+--  /evals/  l! eF-:"A and then B" # eT-:"C or else D"
