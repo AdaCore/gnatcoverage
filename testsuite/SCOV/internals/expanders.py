@@ -260,7 +260,7 @@ class RnotesExpander:
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
 #     lx_rnote_list := lx_rnote_choice [lx_rnote_list]
 #     lx_rnote_choice := [cov_level_test] [weak_mark] lx_rnote
-#     lx_rnote := <s-|s!|dT-|dF-|d!|eT-|eF-|c!|x0|x+>[:"TEXT"]
+#     lx_rnote := <s-|s!|dT-|dF-|d!|eT-|eF-|oT-|oF-|c!|x0|x+>[:"TEXT"]
 
 # The start of the SCOV data is identified as the first comment whose syntax
 # matches a "sources" line.  Any comment before then is assumed to be a normal
@@ -297,11 +297,11 @@ class LineCX:
         self.lnp = lnp
         self.rnps = rnps
 
-    def instanciate_lnotes_over(self, tline, block):
-        return [self.lnp.instanciate_over (tline, block)]
+    def instanciate_lnotes_over(self, tline, block, srules):
+        return [self.lnp.instanciate_over (tline, block, srules)]
 
-    def instanciate_rnotes_over(self, tline, block):
-        return [rnp.instanciate_over (tline, block)
+    def instanciate_rnotes_over(self, tline, block, srules):
+        return [rnp.instanciate_over (tline, block, srules)
                 for rnp in self.rnps if rnp.kind]
 
 # ------------
@@ -325,11 +325,11 @@ class UnitCX:
     # expected notes instanciations
     # -----------------------------
 
-    def instanciate_notes_for(self, lx, tline, block):
+    def instanciate_notes_for(self, lx, tline, block, srules):
         [self.xldict.register (ln)
-         for ln in lx.instanciate_lnotes_over (tline, block)]
+         for ln in lx.instanciate_lnotes_over (tline, block, srules)]
         [self.xrdict.register (rn)
-         for rn in lx.instanciate_rnotes_over (tline, block) if rn]
+         for rn in lx.instanciate_rnotes_over (tline, block, srules) if rn]
 
     # fuzz block processing
     # ---------------------
@@ -355,11 +355,40 @@ class UnitCX:
                 FatalError ("end of nonexistant block at\n=> " + tline.text))
             self.current_block = self.current_block.parent
 
+    # kind subsitution rules processing
+    # ---------------------------------
+
+    subst_tuples_for = {
+        "o/d": {otNoCov: dtNoCov,
+                ofNoCov: dfNoCov,
+                oNoCov : dNoCov},
+
+        "o/e": {otNoCov: etNoCov,
+                ofNoCov: efNoCov,
+                oNoCov : eNoCov}
+        }
+
+    def check_srules_on (self, tline):
+
+        # Check for kind substitution rules on this line. Reset
+        # at every line for now.
+
+        m = re.search (":(.*):$", tline.text)
+
+        if not m:
+            self.current_srules = None
+        else:
+            self.current_srules = {}
+            [self.current_srules.update (self.subst_tuples_for [sim])
+             for sim in m.group(1).split(',')]
+
     # toplevel processing
     # -------------------
 
     def process_tline(self, tline):
-        [self.instanciate_notes_for (lx, tline, self.current_block)
+        self.check_srules_on (tline)
+        [self.instanciate_notes_for (
+                lx, tline, self.current_block, self.current_srules)
          for lx in self.LXset if re.search (lx.lre, tline.text)]
         self.check_block_on (tline)
 
@@ -374,6 +403,7 @@ class UnitCX:
 
         self.source = source
         self.current_block = None
+        self.current_srules = {}
         self.tfile  = Tfile (filename=self.locate_source(source),
                              process=self.process_tline)
 

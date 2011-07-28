@@ -115,27 +115,39 @@
 # xBlock0  : exempted block, 0 deviations (=report)
 # xBlock1  : exempted block, >0 deviations (=report)
 
+# Tansient kinds: these may be used in expectations and should always be
+# subject to substitution rules mapping them to other kinds. No emitted note
+# will ever match them. These are useful for shared drivers when the actual
+# kind of expectation depends on the functional code.
+
+# Expression vs Control decisions:
+
+# otNoCov  : outcome True not covered (=report)
+# ofNoCov  : outcome False not covered (=report)
+# oNoCov   : never evaluated (=report)
+
 lNoCode, lFullCov, \
 strictNote, \
 r0, lx0, lx1, \
 deviationNote, \
 lNoCov, lPartCov, \
 sNoCov, sPartCov, \
-dtNoCov, dfNoCov, dPartCov, dNoCov, \
+dtNoCov, dfNoCov, dNoCov, dPartCov, \
 etNoCov, efNoCov, eNoCov, \
+otNoCov, ofNoCov, oNoCov, \
 cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(22)
+xBlock0, xBlock1 = range(25)
 
 NK_image  = {None: "None",
              lNoCode: "lNoCode", lFullCov: "lFullCov",
              lNoCov: "lNoCov", lPartCov: "lPartCov",
              r0 : "r0", lx0: "lx0", lx1: "lx1",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
-             dtNoCov: "dtNoCov", dfNoCov: "dfNoCov",
-             dPartCov: "dPartCov", dNoCov: "dNoCov",
-             etNoCov: "etNoCov", efNoCov: "efNoCov",
-             eNoCov: "eNoCov",
+             dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
+             dPartCov: "dPartCov",
+             etNoCov: "etNoCov", efNoCov: "efNoCov", eNoCov: "eNoCov",
+             otNoCov: "otNoCov", ofNoCov: "ofNoCov", oNoCov: "oNoCov",
              xBlock0: "xBlock0", xBlock1: "xBlock1",
              cPartCov: "cPartCov"}
 
@@ -160,7 +172,13 @@ xNoteKinds = (xBlock0, xBlock1)                     # Exemption regions
 
 rAntiKinds = (r0,)                                  # Anti-expectaions
 
-erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds
+tNoteKinds = (otNoCov, ofNoCov, oNoCov)             # Transient kinds
+
+# Even though they are expected never to be emitted, we include the transient
+# kinds in the Emitted Report Notes set because we do want to handle them as
+# if they could be emitted and report them as unmatched.
+
+erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds+tNoteKinds
 xrNoteKinds = erNoteKinds+rAntiKinds
 
 # ==========================
@@ -248,8 +266,8 @@ class Cnote:
 
 class Xnote (Cnote):
 
-    def __init__(self, xnp, block):
-        Cnote.__init__ (self, xnp.kind)
+    def __init__(self, xnp, block, kind):
+        Cnote.__init__ (self, kind)
         self.weak = xnp.weak
         self.block = block
 

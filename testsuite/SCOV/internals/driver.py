@@ -32,7 +32,7 @@ from gnatpython.fileutils import cd, mkdir
 
 from . cnotes import r0, xBlock0, xBlock1
 from . cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds
-from . cnotes import xNoteKinds, sNoteKinds, dNoteKinds, cNoteKinds
+from . cnotes import xNoteKinds, sNoteKinds, dNoteKinds, cNoteKinds, tNoteKinds
 from . cnotes import strict_p, deviation_p, anti_p, positive_p
 from . cnotes import NK_image
 
@@ -102,9 +102,9 @@ r_lxp_for = { # relevant line expectations
 # relevant emitted report notes augmented with anti-expectations
 
 r_ern_for = { # relevant emitted report notes
-    "stmt":     xNoteKinds+sNoteKinds,
-    "decision": xNoteKinds+sNoteKinds+dNoteKinds,
-    "mcdc":     xNoteKinds+sNoteKinds+dNoteKinds+cNoteKinds
+    "stmt":     tNoteKinds+xNoteKinds+sNoteKinds,
+    "decision": tNoteKinds+xNoteKinds+sNoteKinds+dNoteKinds,
+    "mcdc":     tNoteKinds+xNoteKinds+sNoteKinds+dNoteKinds+cNoteKinds
     }
 
 r_rxp_for = { # relevant report expectations

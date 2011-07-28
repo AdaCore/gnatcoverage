@@ -32,7 +32,7 @@ class _XnoteP_block:
         self.notep  = notep
         self.lastni = None    # The last note instance we returned
 
-    def instanciate_over(self, tline, block):
+    def instanciate_over(self, tline, block, kind):
 
         # We create a single instance the first time around, then expand the
         # section over subsequence matches.
@@ -42,7 +42,7 @@ class _XnoteP_block:
             self.lastni.segment.sloc1.l = tline.lno
 
         else:
-            thisni = Xnote (xnp=self.notep, block=block)
+            thisni = Xnote (xnp=self.notep, block=block, kind=kind)
             thisni.register_match (Section(
                     l0 = tline.lno, c0 = 0, l1 = tline.lno, c1 = 0))
 
@@ -56,9 +56,9 @@ class _XnoteP_line:
     def __init__(self, notep):
         self.notep = notep
 
-    def instanciate_over(self, tline, block):
+    def instanciate_over(self, tline, block, kind):
 
-        thisni = Xnote (xnp=self.notep, block=block)
+        thisni = Xnote (xnp=self.notep, block=block, kind=kind)
         thisni.register_match (Line(tline.lno))
 
         return thisni
@@ -73,9 +73,9 @@ class _XnoteP_segment:
         self.notep = notep
         self.stext = stext
 
-    def instanciate_over(self, tline, block):
+    def instanciate_over(self, tline, block, kind):
 
-        thisni = Xnote (xnp=self.notep, block=block)
+        thisni = Xnote (xnp=self.notep, block=block, kind=kind)
 
         # Register matches for Segments corresponding to all the instances
         # of the subtext we find, then error out if too few or too many.
@@ -100,8 +100,9 @@ class XnoteP:
     NK_for = {'l.': lNoCode, 'l-': lNoCov, 'l!': lPartCov, 'l+': lFullCov,
               'l#': lx0, 'l*': lx1,
               's-': sNoCov, 's!': sPartCov,
-              'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-':dNoCov,
-              'eT-': etNoCov, 'eF-': efNoCov, 'e-':eNoCov,
+              'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-': dNoCov,
+              'eT-': etNoCov, 'eF-': efNoCov, 'e-': eNoCov,
+              'oT-': otNoCov, 'oF-': ofNoCov, 'o-': oNoCov,
               'c!': cPartCov,
               'x0': xBlock0, 'x+': xBlock1,
               '0': r0}
@@ -130,6 +131,13 @@ class XnoteP:
         else:
             self.factory = _XnoteP_segment (notep=self, stext=stext)
 
-    def instanciate_over (self, tline, block):
-        return self.factory.instanciate_over (tline, block)
+    def instanciate_over (self, tline, block, srules):
+
+        kind = (
+            srules.__getitem__ (self.kind) if srules and self.kind in srules
+            else self.kind
+            )
+
+        return self.factory.instanciate_over (
+            tline=tline, block=block, kind=kind)
 
