@@ -43,6 +43,7 @@ from . xnotep import *
 from . tfiles import *
 from . segments import *
 from SUITE.control import LANGINFO, language_info
+from SUITE.cutils import Identifier
 
 # --------------------
 # -- LnotesExpander --
@@ -83,31 +84,61 @@ class LnotesExpander:
 # Construct a { source -> KnoteDict } dictionary of emitted Line Notes
 # from =xcov outputs in files corresponding to a provided DOTXCOV_PATTERN
 
+# Report section identifiers, to let us control when looking for indication
+# patterns and check that each appears in the section where we expect it.
+
+class rsid:
+
+    class Rsection (Identifier): pass
+
+    Xr = Rsection (name="XR")
+    Sc = Rsection (name="SC")
+    Dc = Rsection (name="DC")
+    Mc = Rsection (name="MCDC")
+    No = Rsection (name="NoInterest")
+
 class RnotesExpander:
     """Produce list of Enote instances found in a "report" output."""
 
-    NK_for = {"decision outcome FALSE never": dfNoCov,
-              "decision outcome TRUE never": dtNoCov,
-              "decision never evaluated": dNoCov,
-              "decision not exercised in both directions": dPartCov,
-              "multiple statement SCOs": sPartCov,
-              "condition has no independent influence pair": cPartCov,
-              "statement not executed": sNoCov}
+    # Texts indicative of note kinds, each expected in a specific section only
+
+    NK_for = {
+
+        rsid.No:
+            {},
+
+        rsid.Sc:
+            {"statement not executed": sNoCov,
+             "multiple statement SCOs": sPartCov},
+
+        rsid.Dc:
+            {"decision outcome FALSE never": dfNoCov,
+             "decision outcome TRUE never": dtNoCov,
+             "decision never evaluated": dNoCov,
+             "decision not exercised in both directions": dPartCov},
+
+        rsid.Mc:
+            {"decision outcome FALSE never": efNoCov,
+             "decision outcome TRUE never": etNoCov,
+             "decision never evaluated": eNoCov,
+             "condition has no independent influence pair": cPartCov}
+        }
 
     def nkind_for(self, ntext):
 
-        # Search for a possible straight correspondance first
+        # If we are in the exemptions section, check for exemption notes
 
-        for key in self.NK_for:
+        if self.section == rsid.Xr:
+            r = re.search (": (\d+) exempted violation", ntext)
+            return (None if not r
+                    else xBlock0 if int(r.group(1)) == 0 else xBlock1)
+
+
+        # Otherwise, check for keys relevant to the current section:
+        skeys = self.NK_for[self.section]
+        for key in skeys:
             if ntext.find (key) != -1:
-                return self.NK_for [key]
-
-        # If we haven't found a match, check for exemption notes. The text
-        # will tell us if we have one, and we need to look at the number of
-        # exempted violations to finalize.
-
-        r = re.search (": (\d+) exempted violation", ntext)
-        if r: return xBlock0 if int(r.group(1)) == 0 else xBlock1
+                return skeys [key]
 
         return None
 
@@ -115,7 +146,7 @@ class RnotesExpander:
 
         # We need to ignore everything not in the report sections
         # of interest, so until we know we're in ...
-        self.section = rsNoInterest
+        self.section = rsid.No
 
         self.report = report
         Tfile (filename=self.report, process=self.process_tline)
@@ -132,17 +163,21 @@ class RnotesExpander:
         # Figure out which section we're [getting] in.  Beware that
         # the ordering of the regexp checks matters here.
 
-        if re.search ("NON-EXEMPTED VIOLATIONS", rline):
-            self.section = rsNotExempted
+        if re.search ("EXEMPTED REGIONS", rline):
+            self.section = rsid.Xr
             return None
-        elif re.search ("EXEMPTED REGIONS", rline):
-            self.section = rsExempted
+        elif re.search ("STMT COVERAGE", rline):
+            self.section = rsid.Sc
+        elif re.search ("DECISION COVERAGE", rline):
+            self.section = rsid.Dc
+        elif re.search ("MCDC COVERAGE", rline):
+            self.section = rsid.Mc
             return None
         elif re.match (".* (violation|region)\.$", rline):
             # Getting out of a section of interest ...
-            self.section = rsNoInterest
+            self.section = rsid.No
 
-        if self.section == rsNoInterest: return None
+        if self.section == rsid.No: return None
 
         # In section of interest, match the emitted note text. We expect
         # something like "andthen.adb:10:33: statement not covered",
@@ -175,7 +210,8 @@ class RnotesExpander:
         nkind = self.nkind_for (tail)
         if nkind == None:
             thistest.failed (
-                "(%s) '%s' ?" % (self.report, rline.rstrip('\n')))
+                "(%s, %s section) '%s' ?" % (
+                    self.report, self.section.name, rline.rstrip('\n')))
             return None
 
         section = Section_within (tail)
@@ -224,7 +260,7 @@ class RnotesExpander:
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
 #     lx_rnote_list := lx_rnote_choice [lx_rnote_list]
 #     lx_rnote_choice := [cov_level_test] [weak_mark] lx_rnote
-#     lx_rnote := <s-|s!|dT-|dF-|d!|u!|m!|x0|x+>[:"TEXT"]
+#     lx_rnote := <s-|s!|dT-|dF-|d!|eT-|eF-|c!|x0|x+>[:"TEXT"]
 
 # The start of the SCOV data is identified as the first comment whose syntax
 # matches a "sources" line.  Any comment before then is assumed to be a normal

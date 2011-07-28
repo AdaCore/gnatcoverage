@@ -158,14 +158,11 @@ class _Xchecker:
         for en in self.edict [ekind]:
 
             # Register a discharge and return as soon as segments match.
-            # Complain about report section mismatches, nevertheless.
 
             if en.segment.within (xn.segment):
                 en.discharges = xn
                 xn.discharger = en
                 self.sat[xn.block].append(xn)
-                thistest.fail_if (
-                    en.rsid != xn.rsid, "discharge section mismatch")
                 return
 
     def process_one_unsat (self, xn, some_dsat, some_psat):

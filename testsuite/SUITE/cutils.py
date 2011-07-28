@@ -123,3 +123,10 @@ class FatalError(Exception):
     def __str__(self):
         return self.comment
 
+# =================
+# == Identifiers ==
+# =================
+
+class Identifier:
+    def __init__(self, name):
+        self.name = name

@@ -100,10 +100,15 @@
 
 # sNoCov   : stmt not covered (=report)
 # sPartCov : unable to assess precise stmt coverage (=report)
+
 # dtNoCov  : decision outcome True not covered (=report)
 # dfNoCov  : decision outcome False not covered (=report)
 # dPartCov : one decision outcome not covered (=report)
 # dNoCov   : decision never evaluated (=report)
+
+# etNoCov  : expression outcome True not covered (=report)
+# efNoCov  : expression outcome False not covered (=report)
+# eNoCov   : expression never evaluated (=report)
 
 # cPartCov : independent effect of condition not demonstrated (=report)
 
@@ -116,9 +121,11 @@ r0, lx0, lx1, \
 deviationNote, \
 lNoCov, lPartCov, \
 sNoCov, sPartCov, \
-dtNoCov, dfNoCov, dPartCov, dNoCov, cPartCov, \
+dtNoCov, dfNoCov, dPartCov, dNoCov, \
+etNoCov, efNoCov, eNoCov, \
+cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(19)
+xBlock0, xBlock1 = range(22)
 
 NK_image  = {None: "None",
              lNoCode: "lNoCode", lFullCov: "lFullCov",
@@ -127,6 +134,8 @@ NK_image  = {None: "None",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
              dtNoCov: "dtNoCov", dfNoCov: "dfNoCov",
              dPartCov: "dPartCov", dNoCov: "dNoCov",
+             etNoCov: "etNoCov", efNoCov: "efNoCov",
+             eNoCov: "eNoCov",
              xBlock0: "xBlock0", xBlock1: "xBlock1",
              cPartCov: "cPartCov"}
 
@@ -140,14 +149,16 @@ NK_image  = {None: "None",
 elNoteKinds = (lNoCode, lNoCov, lPartCov, lFullCov, lx0, lx1)
 xlNoteKinds = elNoteKinds
 
-# Report notes (=report), feature anti-expectations as well, that
+# Report notes (=report), which feature anti-expectations that
 # explicitely state expection of absence of emitted notes
 
-sNoteKinds = (sNoCov, sPartCov)
-dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov)
-cNoteKinds = (cPartCov,)
-xNoteKinds = (xBlock0, xBlock1)
-rAntiKinds = (r0,)
+sNoteKinds = (sNoCov, sPartCov)                     # SC violations
+dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov)   # DC violations
+cNoteKinds = (etNoCov, efNoCov, eNoCov, cPartCov)   # MCDC violations
+
+xNoteKinds = (xBlock0, xBlock1)                     # Exemption regions
+
+rAntiKinds = (r0,)                                  # Anti-expectaions
 
 erNoteKinds = sNoteKinds+dNoteKinds+cNoteKinds+xNoteKinds
 xrNoteKinds = erNoteKinds+rAntiKinds
@@ -195,16 +206,6 @@ def anti_p(nkind):
 # == Coverage Note Classes ==
 # ===========================
 
-# Report section identifiers, to let us control when looking for indication
-# patterns and check that each appears in the section where we expect it.
-
-rsNoInterest, rsNotExempted, rsExempted = range (3)
-
-RS_image = {None: "None",
-            rsNoInterest: "rsNoInterest",
-            rsNotExempted: "rsNotExempted",
-            rsExempted: "rsExempted"}
-
 # -----------
 # -- Block --
 # -----------
@@ -232,12 +233,11 @@ class Cnote:
 
         self.kind = kind
         self.segment = None
-        self.rsid = None
 
         # An expected note for one segment will be discharged by an emitted
-        # note of the same kind for a tighter segment, and the emitted note
-        # will have to be found in the expected report section. =xcov reports
-        # are considered section-less, and rsid remains None in this case.
+        # note of the same kind for a tighter segment. The emitted note will
+        # have to be found in the expected report section. =xcov reports are
+        # considered section-less.
 
 # -----------
 # -- Xnote --
@@ -257,16 +257,6 @@ class Xnote (Cnote):
         self.nmatches = 0
 
         self.discharger = None  # The Enote that discharged this
-
-        # Determine our expected segment id. Simple enough not to warrant
-        # a class specialization by itself.
-
-        if self.kind in xlNoteKinds:
-            self.rsid = None
-        elif self.kind in xNoteKinds:
-            self.rsid = rsExempted
-        else:
-            self.rsid = rsNotExempted
 
     def register_match(self, segment):
         """Register that this instance matched SEGMENT for a source line.
