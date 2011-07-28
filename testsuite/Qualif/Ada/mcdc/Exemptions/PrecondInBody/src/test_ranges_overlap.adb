@@ -40,5 +40,5 @@ end;
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l- s-
 --  /preValid/      l* x+
---  /checkOverlap/  l! dF-
+--  /checkOverlap/  l! eF-
 

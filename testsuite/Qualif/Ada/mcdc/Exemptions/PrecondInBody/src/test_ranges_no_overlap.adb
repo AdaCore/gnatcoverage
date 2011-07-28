@@ -24,5 +24,5 @@ end;
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l- s-
 --  /preValid/      l* x+
---  /checkOverlap/  l! dT-
+--  /checkOverlap/  l! eT-
 

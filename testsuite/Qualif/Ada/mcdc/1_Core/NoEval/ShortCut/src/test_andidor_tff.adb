@@ -9,6 +9,6 @@ begin
 end;
 
 --# andidor.adb
---  /eval/ l! dT-:"X", dT-:"A"
+--  /eval/ l! dT-:"X", eT-:"A"
 --  /true/  l- s-
 --  /false/ l+ 0

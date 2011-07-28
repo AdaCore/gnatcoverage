@@ -104,16 +104,16 @@ class ReportChecker:
             pattern="Coverage level: stmt(\+(decision|mcdc))?", pre=cmdLine2)
 
         trHeader = Piece (
-            pattern="trace files:", pre=covLevel)
+            pattern="Trace files:", pre=covLevel)
 
         trFile = Piece (
             pattern="\.trace", pre=trHeader, nexpected=ntraces)
         trPgm = Piece (
-            pattern="program:", pre=None, nexpected=ntraces)
+            pattern="program *:", pre=None, nexpected=ntraces)
         trDate = Piece (
-            pattern="date:", pre=None, nexpected=ntraces)
+            pattern="date *:", pre=None, nexpected=ntraces)
         trTag = Piece (
-            pattern="tag:", pre=None, nexpected=ntraces)
+            pattern="tag *:", pre=None, nexpected=ntraces)
 
         vioHeader = Piece (
             pattern="NON-EXEMPTED VIOLATIONS", pre=trTag)
