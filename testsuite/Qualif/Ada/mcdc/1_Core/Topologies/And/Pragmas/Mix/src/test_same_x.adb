@@ -19,5 +19,5 @@ end;
 --  /retSXY/   l- s-
 
 --# points.ads
---  /preSX/    l! dF-
+--  /preSX/    l! eF-
 --  /preSY/    l- s-

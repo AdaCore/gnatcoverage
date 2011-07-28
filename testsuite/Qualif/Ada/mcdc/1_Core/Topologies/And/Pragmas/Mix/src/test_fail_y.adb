@@ -20,9 +20,9 @@ end;
 --  /bodySX/   l+ 0
 --  /bodySY/   l- s-
 --  /bodySet/  l+ 0
---  /preSXY/   l! dF-
---  /retSXY/   l! dF-
+--  /preSXY/   l! eF-
+--  /retSXY/   l! eF-
 
 --# points.ads
---  /preSX/    l! dF-
---  /preSY/    l! dT-
+--  /preSX/    l! eF-
+--  /preSY/    l! eT-

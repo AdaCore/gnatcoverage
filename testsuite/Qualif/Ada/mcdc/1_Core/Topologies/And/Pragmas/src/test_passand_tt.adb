@@ -8,8 +8,8 @@ begin
 end;
 
 --# passand.ads
---  /eval/ l! dF-
+--  /eval/ l! eF-
 
 --# passand.adb
---  /eval/ l! dF-
+--  /eval/ l! eF-
 --  /stmt/ l+ 0
