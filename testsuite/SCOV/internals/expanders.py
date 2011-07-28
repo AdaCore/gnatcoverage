@@ -373,7 +373,7 @@ class UnitCX:
         # Check for kind substitution rules on this line. Reset
         # at every line for now.
 
-        m = re.search (":(.*):$", tline.text)
+        m = re.search ("# .*:(.*):$", tline.text)
 
         if not m:
             self.current_srules = None
