@@ -1,4 +1,4 @@
 drivers=test_a1o1_v(0|1)
 
 --# a1o1.adb
--- /evals/  l! dT-:"A and then B" # c!:"A or"
+-- /evals/  l! eT-:"A and then B" # c!:"A or"

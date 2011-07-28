@@ -9,4 +9,4 @@ begin
 end;
 
 --# a1o1.adb
--- /evals/  l! dT-:"A and then B" # dT-:"A or else B"
+-- /evals/  l! eT-:"A and then B" # eT-:"A or else B"

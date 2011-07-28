@@ -8,5 +8,5 @@ begin
 end;
 
 --# a1o2.adb
--- /evals/ l! dT-:"C or else D"
+-- /evals/ l! eT-:"C or else D"
 

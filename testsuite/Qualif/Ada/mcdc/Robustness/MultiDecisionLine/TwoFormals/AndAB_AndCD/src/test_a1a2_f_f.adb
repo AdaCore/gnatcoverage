@@ -10,5 +10,5 @@ begin
 end;
 
 --# a1a2.adb
--- /evals/ l! dT-:"A and then B" # dT-:"C and then D"
+-- /evals/ l! eT-:"A and then B" # eT-:"C and then D"
 

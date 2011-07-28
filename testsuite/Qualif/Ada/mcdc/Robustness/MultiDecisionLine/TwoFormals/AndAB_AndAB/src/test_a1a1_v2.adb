@@ -9,5 +9,5 @@ begin
 end;
 
 --# a1a1.adb
--- /evals/  l! dT-:"A and then B," # dT-:"A and then B\)"
+-- /evals/  l! eT-:"A and then B," # eT-:"A and then B\)"
 

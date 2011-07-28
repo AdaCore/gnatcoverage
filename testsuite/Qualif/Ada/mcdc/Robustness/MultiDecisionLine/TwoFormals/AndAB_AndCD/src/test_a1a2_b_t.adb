@@ -7,5 +7,5 @@ begin
 end;
 
 --# a1a2.adb
--- /evals/ l! c!:"A" # dF-:"C and then D"
+-- /evals/ l! c!:"A" # eF-:"C and then D"
 

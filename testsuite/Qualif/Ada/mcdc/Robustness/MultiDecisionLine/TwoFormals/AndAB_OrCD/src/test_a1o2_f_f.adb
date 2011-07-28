@@ -10,5 +10,5 @@ begin
 end;
 
 --# a1o2.adb
--- /evals/ l! dT-:"A and then B" # dT-:"C or else D"
+-- /evals/ l! eT-:"A and then B" # eT-:"C or else D"
 
