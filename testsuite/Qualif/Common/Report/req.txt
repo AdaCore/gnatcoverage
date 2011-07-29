@@ -25,16 +25,17 @@ The tool qualified output is the synthetic report produced by the
 
   * Information about each of the input trace files:
 
-    * trace tag & file name,
-    * trace production date & time,
-    * program executable file name,
+    * trace tag & file name
+    * trace production date & time
+    * program executable file name
 
-* The "Non-exempted violations" section shall
+* The "Non-exempted violations" section shall feature a set of subsections,
+  one for each criterion assessed with
 
-  * List all the target criterion obligations unsatisfied (violated) by the
-    set of executions conveyed by the provided execution traces, and
+  * A list of all the criterion obligations unsatisfied (violated) by
+    the set of executions conveyed by the provided execution traces, and
 
-  * End with a count of those violations
+  * A count of those violations
 
 * The "Exempted Regions" section shall
 
@@ -43,10 +44,13 @@ The tool qualified output is the synthetic report produced by the
 
   * End with a count of those regions
 
-* The "Analysis summary" section shall expose a single synthetic line
-  for each coverage criterion assessed, with a count of the non-exempted
-  violations of that particular criterion.
+* The "Analysis summary" section shall expose
+
+  * A single synthetic line for each coverage criterion assessed, with a count
+    of the non-exempted violations of that particular criterion.
   
+  * A single synthetic line providing the count of exempted regions.
+
 %(tstrategy-headline)s
 
 We provide testcases to check that the reports produced by the tool satisfy

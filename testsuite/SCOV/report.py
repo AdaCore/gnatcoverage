@@ -32,10 +32,12 @@ class Piece:
         self.nexpected = nexpected
         self.matches = []
 
-        # Expected predecessor pattern. The last match of these
-        # will need to happen before the first match of self.
+        # Expected predecessor and successor patterns.
 
         self.pre = pre
+
+        # For nexpected > 0 the last match of pre will need to happen before
+        # the first match of self
 
     # Called for self on every report line
 
@@ -51,6 +53,7 @@ class Piece:
     def __last_match(self):
         return self.matches[-1]
 
+
     def check(self):
 
         # Check for presence of expected pieces
@@ -58,34 +61,62 @@ class Piece:
         thistest.stop_if (
             len (self.matches) == 0,
             FatalError('no occurrence of pattern "%s"' % self.pattern))
-        thistest.fail_if (
-            len (self.matches) < self.nexpected,
-            'too few matches of pattern "%s"' % self.pattern)
-        thistest.fail_if (
-            len (self.matches) > self.nexpected,
-            'too many matches of pattern "%s"' % self.pattern)
 
-        # Check for expected ordering of pieces
+        nmatches = len (self.matches)
 
-        thistest.fail_if (
-            self.pre and
-            (self.pre.__last_match().lno > self.__first_match().lno),
-            'first match for "%s" too early wrt predecessor "%s"' %
-            (self.pattern, self.pre.pattern if self.pre else "err"))
+        if self.nexpected > 0:
+            thistest.fail_if (
+                nmatches != self.nexpected,
+                '%d matches of pattern "%s", != expected %d' % (
+                    nmatches, self.pattern, self.nexpected)
+                )
+
+            thistest.fail_if (
+                self.pre and
+                (self.pre.__last_match().lno > self.__first_match().lno),
+                'first match for "%s" too early wrt predecessor "%s"' %
+                (self.pattern, self.pre.pattern if self.pre else "err"))
+
+        else:
+            thistest.fail_if (
+                nmatches < abs(self.nexpected),
+                '%d matches of pattern "%s", < expected %d min' % (
+                    nmatches, self.pattern, abs(self.nexpected))
+                )
 
 # ==========================
 # == Whole report checker ==
 # ==========================
+
+# expected per-criterion sections for each test category
+
+crit_for = {
+    "stmt":     ["STMT"],
+    "decision": ["STMT", "DECISION"],
+    "mcdc":     ["STMT", "DECISION", "MCDC"]
+}
+
 
 class ReportChecker:
 
     def __process_line(self,tline):
         [rpe.check_match (tline) for rpe in self.rpElements]
 
-    def __setup_expectations(self, ntraces):
+    def __register(self, rpieces):
+        self.rpElements.extend (rpieces)
+
+    def __setup_expectations(self, ntraces, category):
+
+        self.rpElements = []
+
+        # REPORT START
 
         rpStart  = Piece (
             pattern="COVERAGE REPORT", pre=None)
+
+        self.__register (rpieces = [rpStart])
+
+        # ASSESSMENT CONTEXT
 
         ctxHeader = Piece (
             pattern="ASSESSMENT CONTEXT", pre=rpStart)
@@ -115,29 +146,64 @@ class ReportChecker:
         trTag = Piece (
             pattern="tag *:", pre=None, nexpected=ntraces)
 
+        self.__register (
+            rpieces = [ctxHeader, runStamp, verNumber,
+                       cmdLine1, cmdLine2,
+                       covLevel, trHeader, trFile, trPgm, trDate, trTag]
+            )
+
+        # NON-EXEMPTED VIOLATIONS
+
         vioHeader = Piece (
             pattern="NON-EXEMPTED VIOLATIONS", pre=trTag)
-        vioCount = Piece (
-            pattern="([0-9]+|No) violation", pre=vioHeader)
+
+        self.__register (rpieces = [vioHeader])
+
+        pre=vioHeader
+        for crit in crit_for [category]:
+            vsHeader = Piece (
+                pattern="%s COVERAGE" % crit, pre=pre)
+            vsCount = Piece (
+                pattern="([0-9]+|No) violation", nexpected=-1, pre=vsHeader)
+            self.__register (rpieces = [vsHeader, vsCount])
+            pre=vsCount
+
+        # EXEMPTED REGIONS
 
         xmrHeader = Piece (
-            pattern="EXEMPTED REGIONS", pre=vioCount)
+            pattern="EXEMPTED REGIONS", pre=vsCount)
         xmrCount = Piece (
-            pattern="([0-9]+|No) exempted region", pre=xmrHeader)
+            pattern="([0-9]+|No) exempted region", nexpected=-1, pre=xmrHeader)
+
+        self.__register (rpieces = [xmrHeader, xmrCount])
+
+        # ANALYSIS SUMMARY
+
+        sumHeader = Piece (
+            pattern="ANALYSIS SUMMARY", pre=xmrHeader)
+
+        self.__register (rpieces = [sumHeader])
+
+        pre=sumHeader
+        for crit in crit_for [category]:
+            sumLine = Piece (
+                pattern="([0-9]+|No) non-exempted %s violation" % crit,
+                pre=pre)
+            self.__register (rpieces = [sumLine])
+            pre=sumLine
+
+        xmrCount = Piece (
+            pattern="([0-9]+|No) exempted region", nexpected=-1, pre=sumLine)
+        self.__register (rpieces = [xmrCount])
+
+        # END OF REPORT
 
         rpEnd    = Piece (
             pattern="END OF REPORT", pre=xmrCount)
+        self.__register (rpieces = [rpEnd])
 
-        self.rpElements = [
-            rpStart,
-            ctxHeader, runStamp, verNumber,
-            cmdLine1, cmdLine2,
-            covLevel, trHeader, trFile, trPgm, trDate, trTag,
-            vioHeader, vioCount, xmrHeader, xmrCount,
-            rpEnd]
-
-    def __init__(self, subdir, ntraces):
-        self.__setup_expectations(ntraces)
+    def __init__(self, subdir, ntraces, category):
+        self.__setup_expectations(ntraces, category)
         self.report = Tfile ("tmp_%s/test.rep" % subdir, self.__process_line)
 
     def run (self):
