@@ -194,6 +194,7 @@ class TestCase:
 class PathInfo:
     def __init__(self):
         self.n_req = 0  # Number of requirement expressions so far
+        self.n_tc = 0   # Number of tc nodes so far
         self.depth = 0  # Depth of this node wrt root of walk operation
 
 # ***************************
@@ -372,10 +373,12 @@ class DirTree:
 
     def __enter(self, diro, wi):
         if diro.req: wi.pathi.n_req += 1
+        if diro.tc: wi.pathi.n_tc += 1
         return wi.ctl (diro, wi.pathi, wi.data)
 
     def __exit(self, diro, wi):
         if diro.req: wi.pathi.n_req -= 1
+        if diro.tc: wi.pathi.n_tc -= 1
 
     def __visit (self, diro, wi):
         ctl = self.__enter(diro, wi)
@@ -533,6 +536,12 @@ class DirTree:
         warn_if ((diro.tc or diro.tcset) and pathi.n_req < 1,
             "tc or set without req uptree at %s" % diro.root)
 
+        warn_if (diro.req and pathi.n_req > 1,
+            "nested req (%d up) at %s" % (pathi.n_req - 1, diro.root))
+
+        warn_if (diro.req and pathi.n_tc > 0,
+            "req with tc uptree at %s" % diro.root)
+
     def check_downtree_consistency (self, diro, pathi):
         """Perform checks on the relationships DIRO and its children"""
 
@@ -546,7 +555,7 @@ class DirTree:
         warn_if (diro.set and not (diro.all_tcorset or diro.all_reqorset),
             "inconsistent subdirs for set.txt at %s" % diro.root)
 
-        warn_if (diro.req and not (diro.all_reqorset or diro.all_tcorset),
+        warn_if (diro.req and not diro.all_tcorset,
             "inconsistent subdirs down req.txt at %s" % diro.root)
 
         warn_if (diro.req and not diro.all_reqorset and not diro.all_tcorset,
@@ -558,6 +567,15 @@ class DirTree:
         warn_if (diro.req and len (diro.subdos) > 1 and diro.all_tcorset
                  and "%(tstrategy-headline)s" not in diro.dtext(),
              "req at %s misses testing strategy description" % diro.root)
+
+        # If one subdo is req, check others
+
+        nreq = 0
+        for subdo in diro.subdos:
+            if subdo.req: nreq += 1
+
+        warn_if (nreq > 0 and nreq != len (diro.subdos),
+            "some but not all are reqs downtree at %s"  diro.root)
 
     def topdown_check_consistency (self, diro, pathi, data):
         self.check_local_consistency(diro, pathi)
@@ -677,7 +695,6 @@ class DocGenerator(object):
             "toplevel-index": self.toplev_index,
             "tc-index": self.tc_index,
             "subset-index": self.subset_index,
-            "reqs-headline": self.reqs_headline,
             "req-headline": self.req_headline,
             "tstrategy-headline": self.tstrat_headline,
             "toc": self.toc
@@ -692,7 +709,9 @@ class DocGenerator(object):
         # the kind of artifact and on what substitutions apply
 
         extratext = (
-            self.tc_index(diro) if diro.tcset and "tc-index" not in dosubst
+            self.tc_index(diro) if (
+            diro.tcset and  "tc-index" not in dosubst
+            and "subset-index" not in dosubst)
             else ""
         )
 
@@ -748,6 +767,9 @@ class DocGenerator(object):
 
         if diro.tc:
             self.ofd.write(self.tc_headline(diro))
+
+        if diro.tcset:
+            self.ofd.write(self.tcset_headline(diro))
 
         if diro.dfile():
             self.ofd.write(self.contents_from (diro=diro, name=diro.dfile()))
@@ -826,7 +848,11 @@ class DocGenerator(object):
                 self.tc_text(diro=diro),
                 sumtext))
 
-    def index_table(self, rooto, nodectl, emphctl, textctl):
+    def index_table(
+        self, rooto, nodectl, emphctl, textctl,
+        tblctl=(':widths: 20, 70',),
+        tblhdr=None
+        ):
 
         dirtree = DirTree (roots=[rooto])
 
@@ -836,10 +862,10 @@ class DocGenerator(object):
         # Then we compute the table header, the entries, and the table footer
 
         text = '\n' + '\n'.join (
-            ['.. csv-table::',
-             '   :widths: 20, 70',
-             '   :delim: |',
-             '   :header: "Entry", "Summary"']
+            ('.. csv-table::',
+             '   :delim: |')
+            + ('   :header: %s' % tblhdr,) if tblhdr else ()
+            + ('   ' + item for item in tblctl)
             ) + "\n\n"
 
         dirtree.walk (
@@ -853,6 +879,7 @@ class DocGenerator(object):
     def tc_index(self, diro):
         return self.index_table (
             rooto   = diro,
+            tblhdr = '"TC or group", "Purpose"',
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if diro.container and pathi.depth == 1
                  else rest.emphasis(text) if diro.container
@@ -894,10 +921,10 @@ class DocGenerator(object):
         return rest.subsection ("Requirement" + ("s" if plural else ""))
 
     def tc_headline (self, diro):
-        return rest.subsection ("Testcase description")
+        return rest.subsection ("Testcase")
 
-    def reqs_headline (self, diro):
-        return self.req_headline (diro, plural=True)
+    def tcset_headline (self, diro):
+        return rest.subsection ("Testcase Group")
 
     def tstrat_headline (self, diro):
         return rest.subsection ("Testing Strategy")
