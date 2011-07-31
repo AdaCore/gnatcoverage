@@ -575,7 +575,7 @@ class DirTree:
             if subdo.req: nreq += 1
 
         warn_if (nreq > 0 and nreq != len (diro.subdos),
-            "some but not all are reqs downtree at %s"  diro.root)
+            "some but not all are reqs downtree at %s" %  diro.root)
 
     def topdown_check_consistency (self, diro, pathi, data):
         self.check_local_consistency(diro, pathi)
@@ -862,10 +862,10 @@ class DocGenerator(object):
         # Then we compute the table header, the entries, and the table footer
 
         text = '\n' + '\n'.join (
-            ('.. csv-table::',
-             '   :delim: |')
-            + ('   :header: %s' % tblhdr,) if tblhdr else ()
-            + ('   ' + item for item in tblctl)
+            ['.. csv-table::',
+             '   :delim: |']
+            + (['   :header: %s' % tblhdr,] if tblhdr else [])
+            + ['   ' + item for item in tblctl]
             ) + "\n\n"
 
         dirtree.walk (
