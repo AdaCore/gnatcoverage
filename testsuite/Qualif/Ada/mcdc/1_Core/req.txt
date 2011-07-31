@@ -1,4 +1,4 @@
-Define and validate the core expectations for MCDC assessments.
+Core expectations for MCDC assessments.
 All the other sub-sections rely on this one.
 
 %(req-headline)s

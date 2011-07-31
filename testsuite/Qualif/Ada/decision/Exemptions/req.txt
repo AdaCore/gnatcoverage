@@ -1,4 +1,4 @@
-Define and validate DC expectations regarding exemption regions.
+DC expectations regarding exemption regions.
 
 %(req-headline)s
 

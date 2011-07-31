@@ -1,4 +1,4 @@
-Define and validate MCDC expectations regarding exemption regions.
+MCDC expectations regarding exemption regions.
 
 %(req-headline)s
 

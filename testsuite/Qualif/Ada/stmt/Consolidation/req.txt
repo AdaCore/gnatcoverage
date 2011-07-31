@@ -1,4 +1,4 @@
-Define and validate SC expectations regarding the combination of multiple
+SC expectations regarding the combination of multiple
 execution traces together.
 
 %(req-headline)s

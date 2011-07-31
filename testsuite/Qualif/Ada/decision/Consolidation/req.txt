@@ -1,4 +1,4 @@
-Define and validate DC expectations regarding the combination of multiple
+DC expectations regarding the combination of multiple
 execution traces together.
 
 %(req-headline)s
