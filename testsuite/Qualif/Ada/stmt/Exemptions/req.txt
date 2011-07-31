@@ -1,6 +1,6 @@
 Define and validate SC expectations regarding exemption regions.
 
-%(reqs-headline)s
+%(req-headline)s
 
 Proper behavior of the Coverage Exemptions facility translates into
 multiple expectations:

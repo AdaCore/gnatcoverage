@@ -1,6 +1,6 @@
 Describe the tool output report format and check compliance to it
 
-%(reqs-headline)s
+%(req-headline)s
 
 The tool qualified output is the synthetic report produced by the
 --annotate=report command line option. The output report shall:

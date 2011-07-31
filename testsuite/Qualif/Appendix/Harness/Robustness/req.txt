@@ -6,7 +6,7 @@ requirement and set of testcases expected to FAIL. This is not a GNATcoverage
 tool requirement per se and is *not* meant as full fledged qualification
 material for the harness.
 
-%(reqs-headline)s
+%(req-headline)s
 
 The test harness shall comply to the following requirements:
 

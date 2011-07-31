@@ -1,7 +1,7 @@
 Define and validate the core expectations for MCDC assessments.
 All the other sub-sections rely on this one.
 
-%(reqs-headline)s
+%(req-headline)s
 
 Compared to Decision Coverage, MCDC assessements first enlarges the set
 of expressions that shall be processed as decisions:

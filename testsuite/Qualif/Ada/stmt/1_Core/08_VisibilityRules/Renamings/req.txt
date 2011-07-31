@@ -1,6 +1,6 @@
 Renaming declarations (ARM chapter 8.5)
 
-%(reqs-headline)s
+%(req-headline)s
 
 * Renaming declarations shall be recognized and processed as regular object
   declarations,
