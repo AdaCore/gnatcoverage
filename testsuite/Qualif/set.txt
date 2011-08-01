@@ -1,9 +1,10 @@
 This is the root of the "Tool Operational Requirements" and "Testcases"
 hierarchy that constitutes part of the GNATcoverage qualification material.
-This is decomposed in several toplevel chapters:
+
+This is decomposed in several toplevel chapters, summarized in the table
+below. The language specific chapters that apply depend on your qualification
+objectives. The other chapters are of general relevance, independent of the
+sought qualification level.
 
 %(toplevel-index)s
 
-The language specific chapters that apply depend on your qualification
-objectives. The other chapters are of general relevance, independent of
-the sought qualification level.
