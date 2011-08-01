@@ -201,6 +201,26 @@ class PathInfo:
 # ** Directory abstraction **
 # ***************************
 
+class DirKind:
+    def __init__ (self, txthdl, tblhdl, image):
+        self.txthdl = txthdl
+        self.tblhdl = tblhdl
+        self.image  = image
+
+class dcl:
+    TC = DirKind (
+        image="tc", txthdl = "Testcase", tblhdl = None)
+    TCSET = DirKind (
+        image="tcg", txthdl = "Testcase Group", tblhdl = "Testcase or Group")
+    REQ = DirKind (
+        image="rq", txthdl = "Requirement", tblhdl = "Testcase or Group")
+    REQSET = DirKind (
+        image="rqg", txthdl = "Requirement group", tblhdl = "Requirement")
+    INTRO = DirKind (
+        image="intro", txthdl = "Introductory material", tblhdl = "Section")
+
+    kinds = (TC, TCSET, REQ, REQSET, INTRO)
+
 # DocGenerator helper to process one specific subdirectory of the TOR/TC
 # hierarchy
 
@@ -228,6 +248,10 @@ class Dir:
         self.test = self.has_testpy()
         self.tc   = self.has_tctxt()
         self.set  = self.has_settxt()
+
+        # title name
+
+        self.tname = to_title (self.name)
 
     def has_reqtxt(self):
         return "req.txt" in self.files
@@ -313,23 +337,43 @@ class Dir:
         # We go for 2, to allow subgroups specific to "pragma" contexts (with
         # dedicated sets of drivers) in Topologies sections.
 
-        self.tcset = self.set and self.all_tcorset
-        self.reqset = self.set and self.all_reqorset
+        self.tcset  = self.set and self.all_tc
+        self.tctset = self.set and self.all_tcorset
+
+        self.reqset  = self.set and self.all_req
+        self.reqtset = self.set and self.all_reqorset
 
         self.container = self.set or self.req
 
-    def dfile(self):
-        return ('tc.txt' if self.tc else
-                'req.txt' if self.req else
-                'set.txt' if self.set else
-                None)
+    def dfile(self, path=False):
+        base = (
+            'tc.txt' if self.tc else
+            'req.txt' if self.req else
+            'set.txt' if self.set else
+            None)
+
+        return (
+            os.path.join (self.root, base) if base and path
+            else base)
 
     def dtext (self):
         if self.dfile() == None:
             warn ("missing description file in %s" % self.root)
             return ""
         else:
-            return get_content (os.path.join (self.root, self.dfile()))
+            return get_content (self.dfile(path=True))
+
+    def kind (self):
+        if self.tc:
+            return dcl.TC
+        elif self.tcset:
+            return dcl.TCSET
+        elif self.req:
+            return dcl.REQ
+        elif self.reqset:
+            return dcl.REQSET
+        else:
+            return dcl.INTRO
 
 # ********************************
 # ** Directory Tree abstraction **
@@ -599,6 +643,11 @@ class DirTree_FromPath (DirTree):
         [self.topdown_map (dirname, subdirs, files)
          for (dirname, subdirs, files) in os.walk(os.path.abspath(rootp))]
 
+        # Arrange for the intermediate directories just there for file
+        # organisation purposes to disappear from our tree representation
+
+        self.do_cross_overs()
+
         # Then compute exta node attributes, once the tree of internal
         # directory objects is setup.
 
@@ -637,6 +686,34 @@ class DirTree_FromPath (DirTree):
     # -- Computing tree/node attributes, before  --
     # -- more sophisticated walks can take place --
     # ---------------------------------------------
+
+    def do_bridge_over(self, diro):
+
+        print "======== Bridging over " + diro.root
+
+        diro.pdo.subdos.remove(diro)
+
+        for subdo in diro.subdos:
+            diro.pdo.subdos.append(subdo)
+            subdo.tname += "/%s" % diro.tname
+            subdo.pdo = diro.pdo
+
+    def decide_cross_over (self, diro, pathi, wi):
+
+        if diro.set and os.path.getsize (diro.dfile(path=True)) == 0:
+            wi.tobridge.append (diro)
+
+    def do_cross_overs(self):
+
+        class WalkInfo:
+            def __init__(self):
+                self.tobridge = []
+
+        wi = WalkInfo ()
+        self.walk (
+            mode=topdown, process=self.decide_cross_over, data=wi)
+
+        [self.do_bridge_over (diro) for diro in wi.tobridge]
 
     def compute_attributes(self):
         self.walk (mode=botmup, process=Dir.botmup_compute_attributes)
@@ -694,7 +771,8 @@ class DocGenerator(object):
         SUBST = {
             "toplevel-index": self.toplev_index,
             "tc-index": self.tc_index,
-            "subset-index": self.subset_index,
+            "subset-index": self.part_index,
+            "part-index": self.part_index,
             "req-headline": self.req_headline,
             "tstrategy-headline": self.tstrat_headline,
             "toc": self.toc
@@ -751,25 +829,42 @@ class DocGenerator(object):
         self.ofd.write('\n\n' + rest.toctree(
                 itemlist=tocentries, depth=1, attrlist=[":hidden:"]))
 
+    # --------------------------------------
+    # -- Tailored directory tree instance --
+    # --------------------------------------
+
+    def dirtree(self, chapdirs):
+
+        dirtree = DirTree_FromPath(rootp=self.root_dir)
+
+        dirtree.rprune (
+            [os.path.join (self.root_dir, dir) for dir in chapdirs])
+
+        dirtree.check_consistency()
+        dirtree.sort ()
+
+        return dirtree
+
+    # ---------------------------
+    # -- generate doc chapters --
+    # ---------------------------
+
     ALT_TITLES = {
         "Qualif": "GNATcoverage TORs"
         }
 
-    def gen_doc_contents (self, diro, pathi, wi):
+    def __gen_doc_contents (self, diro, pathi, wi):
         dest_filename = self.file2docfile(diro.root)
         self.ofd = open(os.path.join(self.doc_dir, dest_filename), 'w')
 
         ttext = (
-            self.ALT_TITLES[diro.name] if diro.name in self.ALT_TITLES
-            else diro.name)
+            self.ALT_TITLES[diro.tname] if diro.tname in self.ALT_TITLES
+            else diro.tname)
 
-        self.ofd.write(rest.section(to_title(ttext)))
-
-        if diro.tc:
-            self.ofd.write(self.tc_headline(diro))
-
-        if diro.tcset:
-            self.ofd.write(self.tcset_headline(diro))
+        txthdl = diro.kind().txthdl
+        self.ofd.write(rest.section(
+                ttext + (" -- %s" % txthdl if txthdl else "")
+                ))
 
         if diro.dfile():
             self.ofd.write(self.contents_from (diro=diro, name=diro.dfile()))
@@ -781,46 +876,31 @@ class DocGenerator(object):
 
         self.ofd.close()
 
+
+    def generate_chapters(self, dirtree):
+
+        dirtree.walk (mode=topdown, process=self.__gen_doc_contents)
+
     # ---------------------------
-    # -- generate doc chapters --
+    # -- generate general index --
     # ---------------------------
 
-    def generate_chapters(self, chapdirs):
+    def generate_genindex(self, dirtree):
 
-        dirtree = DirTree_FromPath(rootp=self.root_dir)
-
-        dirtree.rprune (
-            [os.path.join (self.root_dir, dir) for dir in chapdirs])
-
-        dirtree.check_consistency()
-
-        dirtree.sort ()
-        dirtree.walk (mode=topdown, process=self.gen_doc_contents)
+        pass
 
     # ---------------------------
     # -- generate index tables --
     # ---------------------------
 
-    # We generate simple sphinx tables like
-    #
-    # ====== =======
-    # TC dir Summary
-    # ====== =======
-    # .../If <first sentence in tc.txt>
-    # ====== =======
-
-    # To be refined ...
+    # Hackish at times. To be refined ...
 
     class WalkInfo:
-        def __init__ (self, rootp, emphctl, textctl):
+        def __init__ (self, rootp, emphctl):
             self.rootp = rootp
 
             self.contents = []
             self.emphctl = emphctl
-            self.textctl = textctl
-
-    def tc_text(self, diro):
-        return ':doc:`%s`' % self.ref(diro.root)
 
     def maybe_add_line_for (self, diro, pathi, wi):
 
@@ -830,41 +910,43 @@ class DocGenerator(object):
 
         dtext = diro.dtext().strip()
 
-        if not dtext:
-            return
-
         # Fetch the contents aimed at the Summary column, first paragraph in
         # the description file.
 
         toblank = re.search (".*?(\n[ \t]*\n)", dtext, re.DOTALL)
         sumtext = (toblank.group(0) if toblank else dtext).replace ('\n', ' ')
 
+        entrytext = diro.tname
+
         if wi.emphctl:
             sumtext = wi.emphctl(sumtext.strip(), diro, pathi)
+            entrytext = wi.emphctl(entrytext.strip(), diro, pathi)
+
+        linktext = ':doc:`%s <%s>`' % (
+            diro.kind().image, self.ref(diro.root))
 
         # Then append the whole entry
 
-        wi.contents.append ('    %s|%s\n' % (
-                self.tc_text(diro=diro),
-                sumtext))
+        wi.contents.append (
+            '   %s|%s|%s\n' % (linktext, entrytext, sumtext))
 
     def index_table(
-        self, rooto, nodectl, emphctl, textctl,
-        tblctl=(':widths: 20, 70',),
-        tblhdr=None
+        self, rooto, nodectl, emphctl,
+        tblhdr, tblctl=(':widths: 2, 20, 70',)
         ):
 
         dirtree = DirTree (roots=[rooto])
 
         wi = self.WalkInfo (
-            rootp=rooto.root, emphctl=emphctl, textctl=textctl)
+            rootp=rooto.root, emphctl=emphctl)
 
-        # Then we compute the table header, the entries, and the table footer
+        # Then we compute the table header, the entries, and the "link"
+        # column legend if needed
 
         text = '\n' + '\n'.join (
             ['.. csv-table::',
              '   :delim: |']
-            + (['   :header: %s' % tblhdr,] if tblhdr else [])
+            + ['   :header: %s' % ','.join (tblhdr)]
             + ['   ' + item for item in tblctl]
             ) + "\n\n"
 
@@ -874,39 +956,53 @@ class DocGenerator(object):
 
         text += ''.join (wi.contents)
 
+        linkcolheader = tblhdr[0]
+        if linkcolheader:
+            text = '\n'.join (
+                [text, "",
+                 "**%s** " % linkcolheader
+                 + "In such tables, this column always features an "
+                 + "hyperlink to the section described by the line, "
+                 + "with a text indicative of the section kind:",
+                 ""] + ["* *%s*\tdesignates some %s" % (k.image, k.txthdl)
+                        for k in dcl.kinds]
+                )
+
         return text
 
     def tc_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            tblhdr = '"TC or group", "Purpose"',
+            tblhdr  = ("", "Testcase or Group", "Description"),
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if diro.container and pathi.depth == 1
                  else rest.emphasis(text) if diro.container
                  else text),
-            textctl = self.tc_text,
             nodectl = lambda diro, pathi, wi:
                 (dirProcess if pathi.depth > 0
                  else dirSkip)
             )
 
-    def subset_index(self, diro):
+    def subset_index(self, diro, tblhdr = None):
         return self.index_table (
             rooto   = diro,
+            tblhdr  = tblhdr,
             emphctl = None,
-            textctl = self.tc_text,
             nodectl = lambda diro, pathi, wi:
                 (dirCut if pathi.depth > 0 and (diro.set or diro.req)
                  else dirSkip)
             )
 
+    def part_index(self, diro):
+        return self.subset_index (diro, tblhdr = ("", "Part", "Description"))
+
     def toplev_index(self, diro):
         return self.index_table (
             rooto   = diro,
+            tblhdr = ("(*)", "Chapter", "Description"),
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if pathi.depth == 1
                  else text),
-            textctl = self.tc_text,
             nodectl = lambda diro, pathi, wi:
                 (dirProcess if pathi.depth == 1 and diro.container
                  else dirCut if pathi.depth > 1 and diro.container
@@ -917,17 +1013,14 @@ class DocGenerator(object):
     # -- req, tc and tstrategy headlines --
     # ---------------------------------
 
+    def headline (self, text):
+        return rest.subsection (text)
+
     def req_headline (self, diro, plural=False):
-        return rest.subsection ("Requirement" + ("s" if plural else ""))
-
-    def tc_headline (self, diro):
-        return rest.subsection ("Testcase")
-
-    def tcset_headline (self, diro):
-        return rest.subsection ("Testcase Group")
+        return self.headline ("Requirement" + ("s" if plural else ""))
 
     def tstrat_headline (self, diro):
-        return rest.subsection ("Testing Strategy")
+        return self.headline ("Testing Strategy")
 
     # -----------------
     # -- toc entries --
@@ -975,8 +1068,11 @@ class DocGenerator(object):
         # [Re]generate only the requested chapters, when specified,
         # everything otherwise
 
-        self.generate_chapters(
+        dirtree = self.dirtree (
             ref_chapdirs if chapdirs is None else chapdirs)
+
+        self.generate_chapters(dirtree)
+        self.generate_genindex(dirtree)
 
         self.generate_resources()
 
