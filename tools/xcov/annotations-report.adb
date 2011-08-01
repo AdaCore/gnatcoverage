@@ -307,19 +307,26 @@ package body Annotations.Report is
       --------------------
 
       procedure Output_Message (C : Message_Vectors.Cursor) is
-         M : Message renames Message_Vectors.Element (C);
+         M     : Message renames Message_Vectors.Element (C);
+         First : Natural := M.Msg'First;
       begin
          if M.SCO /= No_SCO_Id then
             Put (Output.all, Image (First_Sloc (M.SCO)));
             Put (Output.all, ": ");
-            Put (Output.all, To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
+            if M.Msg (First) = '^' then
+               First := First + 1;
+            else
+               Put
+                 (Output.all,
+                  To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
+            end if;
 
          else
             Put (Output.all, Image (M.Sloc));
             Put (Output.all, ": ");
          end if;
 
-         Put (Output.all, M.Msg.all);
+         Put (Output.all, M.Msg (First .. M.Msg'Last));
          Total_Messages := Total_Messages + 1;
          Pp.Item_Count := Pp.Item_Count + 1;
          New_Line (Output.all);

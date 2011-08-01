@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -109,16 +109,22 @@ package body Diagnostics is
          end if;
       end SCO_Image;
 
+      First : Natural := M.Msg'First;
+
    --  Start of processing for Image
 
    begin
+      if M.Msg (First) = '^' then
+         First := First + 1;
+      end if;
+
       return
         Prefix (M.Kind)   &
         PC_Image          &
         Sloc_Image        &
         " "               &
         Kind_Image        &
-        SCO_Image & M.Msg.all;
+        SCO_Image & M.Msg (First .. M.Msg'Last);
    end Image;
 
    ------------

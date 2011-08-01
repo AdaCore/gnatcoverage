@@ -196,8 +196,8 @@ package body Coverage.Source is
                      if not Multiple_Statements_Reported then
                         Multiple_Statements_Reported := True;
                         Report
-                          (First_Sloc (SCO),
-                           "multiple statement SCOs on line, unable to "
+                          (SCO,
+                           "^multiple statements on line, unable to "
                            & "establish full statement coverage",
                            Kind => Warning);
                      end if;
