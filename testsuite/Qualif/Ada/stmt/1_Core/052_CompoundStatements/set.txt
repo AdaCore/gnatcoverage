@@ -1,12 +1,8 @@
 SC expectations regarding ARM chap. 5 : Compound Statements (that contain
 other statements)
 
-%(req-headline)s
-
-For all the compound statements, all the SC requirements apply to all the
-statements nested in the compound one.
-
-In addition, specific requirements apply to each possible kind of compound
+By construction all the SC requirements apply to all the statements nested in
+compound ones. Specific requirements apply to each possible kind of compound
 statement, as identified by the ARM standard:
 
 %(subset-index)s
