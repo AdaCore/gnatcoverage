@@ -486,13 +486,15 @@ class DirTree:
             for tokeep in wi.tokeep:
                 dirtokeep = tokeep + "/"
                 if os.path.commonprefix ((rootdir, dirtokeep)) == rootdir:
-                    return dirSkip if len(rootdir) < len(dirtokeep) else dirCutPost
+                    return (
+                        dirSkip if len(rootdir) < len(dirtokeep)
+                        else dirCutPre)
 
             # diro is for sure not within or down any of our dirs to keep.
             # register for actual pruning and don't search past it.
 
             wi.toprune.append (diro)
-            return dirCutPost
+            return dirCutPre
 
         # Walk this tree to compute the list of directories to prune, then do
         # prune for real.  We don't effectively prune nodes during the walk to
