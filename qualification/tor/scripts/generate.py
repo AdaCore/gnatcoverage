@@ -912,7 +912,7 @@ class DocGenerator(object):
 
     def __gen_index_contents (self, diro, pathi, wi):
 
-        self.ofd.write (subsec_header (diro.tname))
+        self.ofd.write (self.headline (diro.tname + " Requirements"))
         self.ofd.write (self.req_index (diro))
 
     def generate_genindex(self, dirtree):
@@ -925,7 +925,7 @@ class DocGenerator(object):
                  ""]
                 ))
 
-        self.ofd.write (self.headline ("General Requirements Index"))
+        self.ofd.write (rest.section ("General Indexes"))
 
         dirtree.walk (
             mode=topdown, process=self.__gen_index_contents,
@@ -939,7 +939,7 @@ class DocGenerator(object):
     # -- generate index tables --
     # ---------------------------
 
-    # Hackish at times. To be refined ...
+    # To be refined ...
 
     class WalkInfo:
         def __init__ (self, rootp, emphctl):
@@ -1085,12 +1085,12 @@ class DocGenerator(object):
                 icNid: "Requirement or Group",
                 icBrief: "Description"},
             emphctl = lambda text, diro, pathi:
-                (rest.strong(text) if diro.container and pathi.depth == 0
-                 else rest.emphasis(text) if diro.container
+                (rest.strong(text) if pathi.depth == 1
+                 else rest.emphasis(text) if pathi.depth > 1
                  else text),
             nodectl = lambda diro, pathi, wi:
                 (dirSkip if pathi.depth == 0
-                 else dirCutPre if diro.tc or diro.tcset
+                 else dirCutPost if diro.req
                  else dirProcess)
             )
 
