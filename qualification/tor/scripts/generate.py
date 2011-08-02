@@ -387,12 +387,14 @@ class Dir:
 
 topdown, botmup = range (2)
 
-dirProcess, dirSkip, dirCut = range (3)
+dirProcess, dirSkip, dirCutPre, dirCutPost = range (4)
 # dirProcess: process this node and walk children
-# dirCut:     process this node and don't walk children
+# dirCutPre:  don't process this node and don't walk children
+# dirCutPost: process this node and don't walk children
 # dirSkip:    skip processing for this node, walk children nevertheless
 
-im = { dirSkip: "dirSkip", dirProcess: "dirProcess", dirCut: "dirCut" }
+im = { dirSkip: "dirSkip", dirProcess: "dirProcess",
+       dirCutPre: "dirCutPre", dirCutPost: "dirCutPost" }
 
 class DirTree:
     def __init__(self, roots):
@@ -426,15 +428,18 @@ class DirTree:
     def __visit (self, diro, wi):
         ctl = self.__enter(diro, wi)
 
-        if ctl != dirSkip and wi.mode == topdown:
+        process_this = ctl not in [dirSkip, dirCutPre]
+        visit_children = ctl not in [dirCutPre, dirCutPost]
+
+        if process_this and wi.mode == topdown:
             wi.process(diro, wi.pathi, wi.data)
 
-        if ctl != dirCut:
+        if visit_children:
             wi.pathi.depth += 1
             [self.__visit(subdo, wi) for subdo in diro.subdos]
             wi.pathi.depth -= 1
 
-        if ctl != dirSkip and wi.mode == botmup:
+        if process_this and wi.mode == botmup:
             wi.process(diro, wi.pathi, wi.data)
 
         self.__exit(diro, wi)
@@ -470,18 +475,24 @@ class DirTree:
 
         def prunectl (diro, pathi, wi):
 
-            # See if diro is within or beyond any of our dirs to keep
+            # See if diro is within or beyond any of our dirs to keep.
             # Keep going (skip) if within. Cut search if beyond.
 
+            # Append "/" to items to prevent "bla/C" from being considered
+            # a directory prefix of "bla/Common"
+
+            rootdir = diro.root + "/"
+
             for tokeep in wi.tokeep:
-                if os.path.commonprefix ((diro.root, tokeep)) == diro.root:
-                    return dirSkip if len(diro.root) < len(tokeep) else dirCut
+                dirtokeep = tokeep + "/"
+                if os.path.commonprefix ((rootdir, dirtokeep)) == rootdir:
+                    return dirSkip if len(rootdir) < len(dirtokeep) else dirCutPost
 
             # diro is for sure not within or down any of our dirs to keep.
             # register for actual pruning and don't search past it.
 
             wi.toprune.append (diro)
-            return dirCut
+            return dirCutPost
 
         # Walk this tree to compute the list of directories to prune, then do
         # prune for real.  We don't effectively prune nodes during the walk to
@@ -681,12 +692,13 @@ class DirTree_FromPath (DirTree):
             diro.pdo = parento
             parento.subdos.append(diro)
 
-    # ---------------------------------------------
-    # -- Computing tree/node attributes, before  --
-    # -- more sophisticated walks can take place --
-    # ---------------------------------------------
+    # --------------------------------------------------------------
+    # -- Abstract away nodes that were introduced only for source --
+    # -- sharing purposes, and that should not introduce an extra --
+    # -- layer in the qualification material.                     --
+    # -- -----------------------------------------------------------
 
-    def do_bridge_over(self, diro):
+    def __do_bridge_over(self, diro):
 
         print "======== Bridging over " + diro.root
 
@@ -694,10 +706,11 @@ class DirTree_FromPath (DirTree):
 
         for subdo in diro.subdos:
             diro.pdo.subdos.append(subdo)
-            subdo.tname += ".%s" % diro.tname
             subdo.pdo = diro.pdo
 
-    def decide_cross_over (self, diro, pathi, wi):
+            subdo.tname += ".%s" % diro.tname
+
+    def __decide_cross_over (self, diro, pathi, wi):
 
         if diro.set and os.path.getsize (diro.dfile(path=True)) == 0:
             wi.tobridge.append (diro)
@@ -710,9 +723,14 @@ class DirTree_FromPath (DirTree):
 
         wi = WalkInfo ()
         self.walk (
-            mode=topdown, process=self.decide_cross_over, data=wi)
+            mode=topdown, process=self.__decide_cross_over, data=wi)
 
-        [self.do_bridge_over (diro) for diro in wi.tobridge]
+        [self.__do_bridge_over (diro) for diro in wi.tobridge]
+
+    # ---------------------------------------------
+    # -- Computing tree/node attributes, before  --
+    # -- more sophisticated walks can take place --
+    # ---------------------------------------------
 
     def compute_attributes(self):
         self.walk (mode=botmup, process=Dir.botmup_compute_attributes)
@@ -858,7 +876,7 @@ class DocGenerator(object):
     def __gen_doc_contents (self, diro, pathi, wi):
 
         self.ofd = open(
-            self.docpath_to (self.file2docfile(diro.root))
+            self.docpath_to (self.file2docfile(diro.root)), 'w')
 
         ttext = (
             self.ALT_TITLES[diro.tname] if diro.tname in self.ALT_TITLES
@@ -890,13 +908,26 @@ class DocGenerator(object):
 
     def __gen_index_contents (self, diro, pathi, wi):
 
+        self.ofd.write (subsec_header (diro.tname))
         self.ofd.write (self.req_index (diro))
 
     def generate_genindex(self, dirtree):
 
-        self.ofd = open(self.docpath_to ("genindex.rst"), 'w')
+        self.ofd = open(self.docpath_to ("sumtables.rst"), 'w')
 
-        dirtree.walk (mode=topdown, process=self.__gen_index_contents)
+        self.ofd.write ('\n'.join (
+                [".. index::",
+                 "   single: Summary tables; Requirements",
+                 ""]
+                ))
+
+        self.ofd.write (self.headline ("General Requirements Index"))
+
+        dirtree.walk (
+            mode=topdown, process=self.__gen_index_contents,
+            ctl = lambda diro, pathi, wi:
+                (dirSkip if pathi.depth == 0 else dirCutPost)
+            )
 
         self.ofd.close()
 
@@ -954,11 +985,6 @@ class DocGenerator(object):
         # Compute the table header, the entries, and the "link"
         # column legend if needed
 
-        # See if we can refine the "Entry name" header text
-
-        if rooto.tcset:
-            tblhdr[1] = "Testcase"
-
         text = '\n' + '\n'.join (
             ['.. csv-table::',
              '   :delim: |']
@@ -1005,7 +1031,7 @@ class DocGenerator(object):
             tblhdr  = tblhdr,
             emphctl = None,
             nodectl = lambda diro, pathi, wi:
-                (dirCut if pathi.depth > 0 and (diro.set or diro.req)
+                (dirCutPost if pathi.depth > 0 and (diro.set or diro.req)
                  else dirSkip)
             )
 
@@ -1021,25 +1047,26 @@ class DocGenerator(object):
                  else text),
             nodectl = lambda diro, pathi, wi:
                 (dirProcess if pathi.depth == 1 and diro.container
-                 else dirCut if pathi.depth > 1 and diro.container
+                 else dirCutPost if pathi.depth > 1 and diro.container
                  else dirSkip)
             )
 
     def req_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            tblhdr  = ("", "Node name", "Description"),
+            tblhdr  = ("", "Requirement or Group", "Description"),
             emphctl = lambda text, diro, pathi:
-                (rest.strong(text) if diro.container and pathi.depth == 1
+                (rest.strong(text) if diro.container and pathi.depth == 0
                  else rest.emphasis(text) if diro.container
                  else text),
             nodectl = lambda diro, pathi, wi:
-                (dirProcess if pathi.depth > 0
-                 else dirSkip)
+                (dirSkip if pathi.depth == 0
+                 else dirCutPre if diro.tc or diro.tcset
+                 else dirProcess)
             )
 
     # ---------------------------------
-    # -- req, tc and tstrategy headlines --
+    # -- req and tstrategy headlines --
     # ---------------------------------
 
     def headline (self, text):
