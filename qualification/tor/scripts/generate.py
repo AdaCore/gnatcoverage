@@ -202,22 +202,21 @@ class PathInfo:
 # ***************************
 
 class DirKind:
-    def __init__ (self, txthdl, tblhdl, image):
-        self.txthdl = txthdl
-        self.tblhdl = tblhdl
+    def __init__ (self, txthdl, image):
         self.image  = image
+        self.txthdl = txthdl
 
 class dcl:
     TC = DirKind (
-        image="tc", txthdl = "Testcase", tblhdl = None)
+        image="tc", txthdl = "Testcase")
     TCSET = DirKind (
-        image="tcg", txthdl = "Testcase Group", tblhdl = "Testcase or Group")
+        image="tcg", txthdl = "Testcase Group")
     REQ = DirKind (
-        image="rq", txthdl = "Requirement", tblhdl = "Testcase or Group")
+        image="rq", txthdl = "Requirement")
     REQSET = DirKind (
-        image="rqg", txthdl = "Requirement group", tblhdl = "Requirement")
+        image="rqg", txthdl = "Requirement Group")
     INTRO = DirKind (
-        image="intro", txthdl = "Introductory material", tblhdl = "Section")
+        image="intro", txthdl = "Introductory Material")
 
     kinds = (TC, TCSET, REQ, REQSET, INTRO)
 
@@ -695,7 +694,7 @@ class DirTree_FromPath (DirTree):
 
         for subdo in diro.subdos:
             diro.pdo.subdos.append(subdo)
-            subdo.tname += "/%s" % diro.tname
+            subdo.tname += ".%s" % diro.tname
             subdo.pdo = diro.pdo
 
     def decide_cross_over (self, diro, pathi, wi):
@@ -734,6 +733,9 @@ class DocGenerator(object):
 
     def register_resources(self, rset):
         self.resource_list |= rset
+
+    def docpath_to(self, filename):
+        return os.path.join(self.doc_dir, filename)
 
     def file2docfile(self, filename):
         """Return the associated filename for a given path"""
@@ -854,8 +856,9 @@ class DocGenerator(object):
         }
 
     def __gen_doc_contents (self, diro, pathi, wi):
-        dest_filename = self.file2docfile(diro.root)
-        self.ofd = open(os.path.join(self.doc_dir, dest_filename), 'w')
+
+        self.ofd = open(
+            self.docpath_to (self.file2docfile(diro.root))
 
         ttext = (
             self.ALT_TITLES[diro.tname] if diro.tname in self.ALT_TITLES
@@ -885,9 +888,17 @@ class DocGenerator(object):
     # -- generate general index --
     # ---------------------------
 
+    def __gen_index_contents (self, diro, pathi, wi):
+
+        self.ofd.write (self.req_index (diro))
+
     def generate_genindex(self, dirtree):
 
-        pass
+        self.ofd = open(self.docpath_to ("genindex.rst"), 'w')
+
+        dirtree.walk (mode=topdown, process=self.__gen_index_contents)
+
+        self.ofd.close()
 
     # ---------------------------
     # -- generate index tables --
@@ -940,8 +951,13 @@ class DocGenerator(object):
         wi = self.WalkInfo (
             rootp=rooto.root, emphctl=emphctl)
 
-        # Then we compute the table header, the entries, and the "link"
+        # Compute the table header, the entries, and the "link"
         # column legend if needed
+
+        # See if we can refine the "Entry name" header text
+
+        if rooto.tcset:
+            tblhdr[1] = "Testcase"
 
         text = '\n' + '\n'.join (
             ['.. csv-table::',
@@ -1009,6 +1025,19 @@ class DocGenerator(object):
                  else dirSkip)
             )
 
+    def req_index(self, diro):
+        return self.index_table (
+            rooto   = diro,
+            tblhdr  = ("", "Node name", "Description"),
+            emphctl = lambda text, diro, pathi:
+                (rest.strong(text) if diro.container and pathi.depth == 1
+                 else rest.emphasis(text) if diro.container
+                 else text),
+            nodectl = lambda diro, pathi, wi:
+                (dirProcess if pathi.depth > 0
+                 else dirSkip)
+            )
+
     # ---------------------------------
     # -- req, tc and tstrategy headlines --
     # ---------------------------------
@@ -1042,14 +1071,14 @@ class DocGenerator(object):
     # ----------------------------
 
     def generate_resources(self):
-        fd = open(os.path.join(self.doc_dir, 'resources.rst'), 'w')
+        fd = open(self.docpath_to ('resources.rst'), 'w')
         fd.write(rest.chapter('Resources'))
         fd.write(rest.toctree(
                 [self.file2docfile(d) for d in self.resource_list]))
         fd.close()
 
         for r in self.resource_list:
-            fd = open(os.path.join(self.doc_dir, self.file2docfile(r)), 'w')
+            fd = open(self.docpath_to(self.file2docfile(r)), 'w')
             fd.write('\n.. _%s:\n\n' % self.ref(r))
             fd.write(rest.section(os.path.basename(r)))
             fd.write(rest.code_block(get_content(r), 'ada'))
