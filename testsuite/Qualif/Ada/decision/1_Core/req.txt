@@ -20,51 +20,46 @@ which settles the notion of *decision*:
   need not be restricted to the standard Boolean type; they may subtypes or
   types derived from the Ada fundamental type.
 
-In this context, the following set of subsidiary requirements shall all be
-obeyed:
+In this context, the following set of rules shall be obeyed:
 
-===============   =============================================================
-Requirement Id    Description
-===============   =============================================================
-**snoexec**       When the control-flow statement influenced by a decision
-                  has not been executed, that statement shall be reported as
-                  not covered and nothing shall be reported about the decision.
+1 When the control-flow statement influenced by a decision has not been
+  executed, that statement shall be reported as not covered and nothing shall
+  be reported about the decision.
 
-**dnoeval**       When a decision is never evaluated even though the enclosing
-                  statement has been executed (e.g. because of exceptions
-                  preventing the computation of an outcome), the decision
-		  shall be reported as never evaluated.
+2 When a decision is evaluated only True or False, it shall be reported as
+  only partially covered. In this case as in the previous one, the tool shall
+  designate the decision with an unambiguous file-name:line#:col# reference.
 
-**dparteval**     When a decision is evaluated only True or False, it shall be
-                  reported as only partially covered. In this case as in the
-                  previous one, the tool shall designate the decision with an
-                  unambiguous file-name:line#:col# reference.
+3 When a decision is evaluated both True and False, no decision coverage
+  violation shall be reported for it.
 
-**dcovered**      When a decision is evaluated both True and False, no decision
-                  coverage violation shall be reported for it.
+4 When a decision is never evaluated even though the enclosing statement has
+  been executed (e.g. because of exceptions preventing the computation of an
+  outcome), the decision shall be reported as never evaluated.
 
-**dcomplete**     The tool shall be able to handle arbitrarily complex
-                  decisions in any context where they might appear.
-===============   =============================================================
-
+5 The tool shall be able to handle arbitrarily complex decisions in any
+  context where they might appear.
 
 %(tstrategy-headline)s
 
-To address *dcomplete* and *dnoeval*, we expose three main subsets of
-testcases:
+We validate all the rules thanks to three main subsets of testcases:
 
 %(subset-index)s
 
-Through all of them, we consistenly exercise each decision of interest in
-multiple manners, always including:
+Rules 1 to 3 are validated by variations exercised in every individual
+testcase, where we consistenly check each decision of interest in multiple
+manners, always including:
 
-* a set of vectors where the decision evaluates only True (*dparteval*),
+* a set of vectors where the decision evaluates only True (*rule #2*),
 
-* a set of vectors where the decision evaluates only False (*dparteval*),
+* a set of vectors where the decision evaluates only False (*rule #2*),
 
 * a set of vectors where the decision evaluates both True and False
-  (*dcovered*),
+  (*rule #3*),
 
 * a situation where the statements exposing the decision aren't
-  executed at all (*snoexec*).
+  executed at all (*rule #1*).
+
+Rule #4 and #5 are addressed by the organization of the set of testcase groups
+presented in the table above.
 

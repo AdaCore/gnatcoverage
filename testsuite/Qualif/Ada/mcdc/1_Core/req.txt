@@ -18,49 +18,43 @@ expression needs to be treated as a decision. For example, ``if A and then Op
 an actual in a function call to Op, and an outer one with two conditions as
 well (A and the function call itself).
 
-All the base DC requirements apply to the full set of decisions as defined
-here. Subsidiary requirements are completed of refined as follows:
+All the base DC rules apply unchanged to the full set of decisions as defined
+here. Rule #3, about decisions evaluated both True and False, is complemented
+by an additional rule:
 
-===============   ===========================================================
-Requirement Id    Description
-===============   ===========================================================
-**cparteval**     For expressions evaluated both True and False, the tool shall
-                  report every condition for which the independent effect was
-                  not demonstrated. Such condition specific diagnotics shall
-                  designate the particular condition source location.
-
-**dnoeval**       When an expression never yields an outcome even though the
-		  enclosing statement or declaration has been executed (e.g.
-                  because of a short-circuit or of an exception occurrence),
-                  a ``decision never evaluated`` diagnostic shall be emitted.
-===============   ===========================================================
+3' For expressions evaluated both True and False, the tool shall report every
+   condition for which the independent effect was not demonstrated. Such
+   condition specific diagnotics shall designate the particular condition
+   source location.
 
 %(tstrategy-headline)s
 
-To address *dcomplete* and *dnoeval*, we expose three main subsets of
-testcases:
+The testing strategy is similar to the one chosen for the DC core requirement,
+with the following set of testcases:
 
 %(subset-index)s
 
-Through all of them, we consistenly exercise each expression of interest in
-multiple manners, always including:
+Rules 1 to 3' are validated by variations exercised in every individual
+testcase, where we consistenly check each decision of interest in multiple
+manners, always including:
 
-* a set of vectors where the decision evaluates only True (*dparteval*),
+* a situation where the statements exposing the decision aren't
+  executed at all (*rule #1*),
 
-* a set of vectors where the decision evaluates only False (*dparteval*),
+* a set of vectors where the decision evaluates only True (*rule #2*),
+
+* a set of vectors where the decision evaluates only False (*rule #2*),
 
 * sets of vectors where the decision evaluates both True and False, with
   at least
 
   * one set not demonstrating the independent effect of any condition
-    (*cparteval*),
+    (*rules #3 and 3'*),
 
   * one set demonstrating the independent effect of each condition alone
-    (*cparteval*),
+    (*rules #3 and 3'*),
 
   * one set demonstrating the independent effect of all the conditions
-    (*dcovered*).
+    (*rule #3 and 3'*).
 
-* a situation where the statements exposing the decision aren't
-  executed at all (*snoexec*).
 
