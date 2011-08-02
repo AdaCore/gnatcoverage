@@ -109,7 +109,7 @@ class RnotesExpander:
 
         rsid.Sc:
             {"statement not executed": sNoCov,
-             "multiple statement SCOs": sPartCov},
+             "multiple statements on line": sPartCov},
 
         rsid.Dc:
             {"decision outcome FALSE never": dfNoCov,
