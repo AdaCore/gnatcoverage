@@ -741,6 +741,8 @@ class DirTree_FromPath (DirTree):
 # ** Document Generator **
 # ************************
 
+icLink, icNid, icBrief = range (3)
+
 class DocGenerator(object):
 
     def __init__(self, root_dir, doc_dir):
@@ -946,7 +948,7 @@ class DocGenerator(object):
             self.contents = []
             self.emphctl = emphctl
 
-    def maybe_add_line_for (self, diro, pathi, wi):
+    def __maybe_addline_for (self, diro, pathi, wi):
 
         # Intermediate sets are sometimes introduced for test drivers
         # organization purposes. They have empty descrpition texts and we
@@ -974,10 +976,7 @@ class DocGenerator(object):
         wi.contents.append (
             '   %s|%s|%s\n' % (linktext, entrytext, sumtext))
 
-    def index_table(
-        self, rooto, nodectl, emphctl,
-        tblhdr, tblctl=(':widths: 2, 20, 70',)
-        ):
+    def index_table(self, rooto, nodectl, emphctl, tblhdr):
 
         dirtree = DirTree (roots=[rooto])
 
@@ -987,15 +986,26 @@ class DocGenerator(object):
         # Compute the table header, the entries, and the "link"
         # column legend if needed
 
+        if rooto.set and rooto.all_tc:
+            tblhdr[icNid] = "Testcase"
+        elif rooto.set and rooto.all_tcorset:
+            tblhdr[icNid] = "Testcase or Group"
+        elif rooto.set and rooto.all_req:
+            tblhdr[icNid] = "Requirement"
+        elif rooto.set and rooto.all_reqorset:
+            tblhdr[icNid] = "Requirement or Group"
+
         text = '\n' + '\n'.join (
             ['.. csv-table::',
              '   :delim: |']
-            + ['   :header: %s' % ','.join (tblhdr)]
-            + ['   ' + item for item in tblctl]
+            + ['   :header: %s' % ','.join (
+                    [tblhdr[cid] for cid in [icLink, icNid, icBrief]]
+                    )]
+            + ['   :widths: 2, 20, 70']
             ) + "\n\n"
 
         dirtree.walk (
-            mode=topdown, process=self.maybe_add_line_for,
+            mode=topdown, process=self.__maybe_addline_for,
             ctl=nodectl, data=wi)
 
         text += ''.join (wi.contents)
@@ -1005,9 +1015,10 @@ class DocGenerator(object):
             text = '\n'.join (
                 [text, "",
                  "**%s** " % linkcolheader
-                 + "In such tables, this column always features an "
-                 + "hyperlink to the section described by the line, "
-                 + "with a text indicative of the section kind:",
+                 +
+                 "For each section described by a line, this column features "
+                 "an hyperlink to the section contents. The hyperlink text is "
+                 "indicative of the section kind:",
                  ""] + ["* *%s*\tdesignates some %s" % (k.image, k.txthdl)
                         for k in dcl.kinds]
                 )
@@ -1017,7 +1028,10 @@ class DocGenerator(object):
     def tc_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            tblhdr  = ("", "Testcase or Group", "Description"),
+            tblhdr  = {
+                icLink: "",
+                icNid:  "Testcase or Group",
+                icBrief: "Description"},
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if diro.container and pathi.depth == 1
                  else rest.emphasis(text) if diro.container
@@ -1038,12 +1052,22 @@ class DocGenerator(object):
             )
 
     def part_index(self, diro):
-        return self.subset_index (diro, tblhdr = ("", "Part", "Description"))
+        return self.subset_index (
+            diro,
+            tblhdr  = {
+                icLink:  "",
+                icNid:   "Part",
+                icBrief: "Description"}
+            )
+
 
     def toplev_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            tblhdr = ("(*)", "Chapter", "Description"),
+            tblhdr = {
+                icLink: "(*)",
+                icNid: "Chapter",
+                icBrief: "Description"},
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if pathi.depth == 1
                  else text),
@@ -1056,7 +1080,10 @@ class DocGenerator(object):
     def req_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            tblhdr  = ("", "Requirement or Group", "Description"),
+            tblhdr = {
+                icLink: "",
+                icNid: "Requirement or Group",
+                icBrief: "Description"},
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if diro.container and pathi.depth == 0
                  else rest.emphasis(text) if diro.container
