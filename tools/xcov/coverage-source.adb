@@ -147,6 +147,10 @@ package body Coverage.Source is
             function SCI_Of_SCO (SCO : SCO_Id) return Source_Coverage_Info;
             --  Return the SCI for SCO, or Default_SCI if not present
 
+            ----------------
+            -- SCI_Of_SCO --
+            ----------------
+
             function SCI_Of_SCO (SCO : SCO_Id) return Source_Coverage_Info is
                Default_SCI : Source_Coverage_Info (Kind => Kind (SCO));
                pragma Warnings (Off, Default_SCI);
@@ -191,7 +195,9 @@ package body Coverage.Source is
                      --  information, which prevents discriminating between
                      --  multiple statement SCOs on the same line. We therefore
                      --  conservatively mark this SCO (and hence the complete
-                     --  line) as partially, rather than fully, covered.
+                     --  line) as partially, rather than fully, covered, and
+                     --  we report a coverage violation on the first SCO on the
+                     --  second SCO on the line.
 
                      if not Multiple_Statements_Reported then
                         Multiple_Statements_Reported := True;
