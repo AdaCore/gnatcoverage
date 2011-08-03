@@ -251,26 +251,16 @@ class Dir:
         # Properties from presence of local files, better cached to prevent
         # repeated real file presence checks
 
-        self.req  = self.has_reqtxt()
-        self.test = self.has_testpy()
-        self.tc   = self.has_tctxt()
-        self.set  = self.has_settxt()
+        self.req  = "req.txt" in self.files
+        self.hreq = "hreq.txt" in self.files
+        self.test = "test.py" in self.files
+        self.tc   = "tc.txt" in self.files
+        self.htc  = "htc.txt" in self.files
+        self.set  = "set.txt" in self.files
 
-        # title name
+        # title name, to be displayed in index tables
 
         self.tname = to_title (self.name)
-
-    def has_reqtxt(self):
-        return "req.txt" in self.files
-
-    def has_settxt(self):
-        return "set.txt" in self.files
-
-    def has_tctxt(self):
-        return "tc.txt" in self.files
-
-    def has_testpy(self):
-        return "test.py" in self.files
 
     # ------------------------------------------
     # -- Bottom-Up node attribute computation --
@@ -386,9 +376,11 @@ class Dir:
 
     def dfile(self, path=False):
         base = (
-            'tc.txt' if self.tc else
-            'req.txt' if self.req else
-            'set.txt' if self.set else
+            'tc.txt'   if self.tc else
+            'set.txt'  if self.set else
+            'req.txt'  if self.req else
+            'htc.txt'  if self.htc else
+            'hreq.txt' if self.hreq else
             None)
 
         return (
@@ -624,7 +616,7 @@ class DirTree:
     def check_local_consistency (self, diro, pathi):
         """Perform checks on the files present in DIRO"""
 
-        warn_if (not (diro.req or diro.tc or diro.set),
+        warn_if (not (diro.req or diro.tc or diro.set or diro.htc or diro.hreq),
             "missing description text at %s" % diro.root)
         warn_if (diro.req and len(diro.files) > 1,
             "req.txt not alone in %s" % diro.root)
@@ -632,12 +624,8 @@ class DirTree:
             "set.txt not alone in %s" % diro.root)
         warn_if (diro.tc and not diro.test,
             "tc.txt without test.py in %s" % diro.root)
-        warn_if (not diro.tc and diro.test,
+        warn_if (diro.test and not diro.tc and not diro.htc,
             "test.py without tc.txt in %s" % diro.root)
-
-        warn_if(diro.files and
-                not diro.tc and not diro.set and not diro.req,
-            "unexpected files in %s (%s)" % (diro.root, str(diro.files)))
 
         warn_if ((diro.tc or diro.tcgroup) and pathi.n_req < 1,
             "tc or set without req uptree at %s" % diro.root)
@@ -658,13 +646,14 @@ class DirTree:
 
         # Warn on structural inconsistencies
 
-        warn_if (diro.set and not (diro.all_tcorset or diro.all_reqorset),
+        warn_if (diro.set and not (diro.all_tcorgroup or diro.all_reqorgroup),
             "inconsistent subdirs for set.txt at %s" % diro.root)
 
-        warn_if (diro.req and not diro.all_tcorset,
+        warn_if (diro.req and not diro.all_tcorgroup,
             "inconsistent subdirs down req.txt at %s" % diro.root)
 
-        warn_if (diro.req and not diro.all_reqorset and not diro.all_tcorset,
+        warn_if (
+            diro.req and not diro.all_reqorgroup and not diro.all_tcorgroup,
             "missing testcases for leaf req in %s" % diro.root)
 
         # Warn on missing testing strategy in leaf requirement with multiple
@@ -760,7 +749,7 @@ class DirTree_FromPath (DirTree):
             diro.pdo.subdos.append(subdo)
             subdo.pdo = diro.pdo
 
-            subdo.tname += ".%s" % diro.tname
+            subdo.tname = '.'.join ([diro.tname, subdo.tname])
 
     def __decide_cross_over (self, diro, pathi, wi):
 
@@ -1091,10 +1080,7 @@ class DocGenerator(object):
     def tc_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            tblhdr  = {
-                icLink: "",
-                icNid:  "Testcase or Group",
-                icBrief: "Description"},
+            tblhdr  = {},
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if diro.container and pathi.depth == 1
                  else rest.emphasis(text) if diro.container
