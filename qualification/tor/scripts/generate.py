@@ -5,10 +5,9 @@ import rest
 import glob
 import re
 import sys
-import json
 
 DOC_DIR = "source"
-ROOT_DIR = "../../../testsuite/Qualif"
+ROOT_DIR = "../testsuite/Qualif"
 
 # **********************
 # ** Helper functions **
@@ -201,24 +200,32 @@ class PathInfo:
 # ** Directory abstraction **
 # ***************************
 
+# The kind of material node that the directory holds. This is used
+# to determine the hyperlink and the page title texts
+
 class DirKind:
     def __init__ (self, txthdl, image):
         self.image  = image
         self.txthdl = txthdl
 
 class dcl:
+
     TC = DirKind (
         image="tc", txthdl = "Testcase")
-    TCSET = DirKind (
+
+    TCG = DirKind (
         image="tcg", txthdl = "Testcase Group")
+
     REQ = DirKind (
         image="rq", txthdl = "Requirement")
-    REQSET = DirKind (
+
+    REQG = DirKind (
         image="rqg", txthdl = "Requirement Group")
+
     INTRO = DirKind (
         image="intro", txthdl = "Introductory Material")
 
-    kinds = (TC, TCSET, REQ, REQSET, INTRO)
+    kinds = (TC, TCG, REQ, REQG, INTRO)
 
 # DocGenerator helper to process one specific subdirectory of the TOR/TC
 # hierarchy
@@ -273,45 +280,59 @@ class Dir:
         # Compute predicates over our set of children. We expect the children
         # attributes to be available here.
 
-        some_tcorset    = False
-        some_nottcorset = False
+        some_reqgroup    = False
+        some_notreqgroup = False
+        some_tcgroup     = False
+        some_nottcgroup  = False
 
         some_reqorset    = False
         some_notreqorset = False
+        some_tcorset     = False
+        some_nottcorset  = False
 
-        some_req      = False
-        some_notreq   = False
-        some_tc       = False
-        some_nottc    = False
-        some_set      = False
-        some_notset   = False
-        some_nottcset = False
+        some_req       = False
+        some_notreq    = False
+        some_tc        = False
+        some_nottc     = False
+        some_set       = False
+        some_notset    = False
+        some_notreqset = False
+        some_nottcset  = False
 
         for subdo in self.subdos:
             some_req    |= subdo.req
             some_tc     |= subdo.tc
             some_set    |= subdo.set
 
-            some_notreq   |= not subdo.req
-            some_nottc    |= not subdo.tc
-            some_notset   |= not subdo.set
-            some_nottcset |= not subdo.tcset
+            some_notreq    |= not subdo.req
+            some_nottc     |= not subdo.tc
+            some_notset    |= not subdo.set
+            some_notreqset |= not subdo.reqset
+            some_nottcset  |= not subdo.tcset
 
-            some_tcorset  |= subdo.tc | subdo.tcset
+            some_reqgroup    |= subdo.reqgroup
+            some_notreqgroup |= not subdo.reqgroup
+            some_tcgroup     |= subdo.tcgroup
+            some_nottcgroup  |= not subdo.tcgroup
+
             some_reqorset |= subdo.req | subdo.reqset
+            some_tcorset  |= subdo.tc | subdo.tcset
 
-            some_nottcorset  |= not (subdo.tc | subdo.tcset)
             some_notreqorset |= not (subdo.req | subdo.reqset)
+            some_nottcorset  |= not (subdo.tc | subdo.tcset)
 
-        self.all_tc    = not some_nottc
-        self.all_req   = not some_notreq
-        self.all_set   = not some_notset
-        self.all_tcset = not some_nottcset
+        self.all_tc     = not some_nottc
+        self.all_req    = not some_notreq
+        self.all_set    = not some_notset
+        self.all_reqset = not some_notreqset
+        self.all_tcset  = not some_nottcset
 
         self.all_reqorset = not some_notreqorset
         self.all_tcorset  = not some_nottcorset
+        self.all_reqgroup = not some_notreqgroup
+        self.all_tcgroup  = not some_nottcgroup
 
-        # For TC sets, consider the difference in consistency between
+        # For TC groups, consider the difference in consistency between
         #
         # 1) either:
         #    set/tc
@@ -337,10 +358,12 @@ class Dir:
         # dedicated sets of drivers) in Topologies sections.
 
         self.tcset  = self.set and self.all_tc
-        self.tctset = self.set and self.all_tcorset
+        self.tcgroup = self.set and (
+            (self.all_tcorset and some_tc) or self.all_tcset)
 
         self.reqset  = self.set and self.all_req
-        self.reqtset = self.set and self.all_reqorset
+        self.reqgroup = self.set and (
+            (self.all_reqorset and some_req) or self.all_reqset)
 
         self.container = self.set or self.req
 
@@ -362,15 +385,25 @@ class Dir:
         else:
             return get_content (self.dfile(path=True))
 
+    # ----------------------------------------------------
+    # -- The kind of material node this directory holds --
+    # ----------------------------------------------------
+
+    # This conveys how we want the node to be referenced and titled, and is
+    # not meant to be only representative of structural properties. REQ nodes
+    # often are tcset or tcgroup as well, for example.
+
     def kind (self):
         if self.tc:
             return dcl.TC
-        elif self.tcset:
-            return dcl.TCSET
         elif self.req:
             return dcl.REQ
-        elif self.reqset:
-            return dcl.REQSET
+
+        elif self.tcgroup:
+            return dcl.TCG
+        elif self.reqgroup:
+            return dcl.REQG
+
         else:
             return dcl.INTRO
 
@@ -589,7 +622,7 @@ class DirTree:
                 not diro.tc and not diro.set and not diro.req,
             "unexpected files in %s (%s)" % (diro.root, str(diro.files)))
 
-        warn_if ((diro.tc or diro.tcset) and pathi.n_req < 1,
+        warn_if ((diro.tc or diro.tcgroup) and pathi.n_req < 1,
             "tc or set without req uptree at %s" % diro.root)
 
         warn_if (diro.req and pathi.n_req > 1,
@@ -812,7 +845,7 @@ class DocGenerator(object):
 
         extratext = (
             self.tc_index(diro) if (
-            diro.tcset and  "tc-index" not in dosubst
+            diro.tcgroup and  "tc-index" not in dosubst
             and "subset-index" not in dosubst)
             else ""
         )
@@ -988,10 +1021,14 @@ class DocGenerator(object):
 
         if rooto.set and rooto.all_tc:
             tblhdr[icNid] = "Testcase"
+        elif rooto.set and rooto.all_tcgroup:
+            tblhdr[icNid] = "Testcase Group"
         elif rooto.set and rooto.all_tcorset:
             tblhdr[icNid] = "Testcase or Group"
         elif rooto.set and rooto.all_req:
             tblhdr[icNid] = "Requirement"
+        elif rooto.set and rooto.all_reqgroup:
+            tblhdr[icNid] = "Requirement Group"
         elif rooto.set and rooto.all_reqorset:
             tblhdr[icNid] = "Requirement or Group"
 
