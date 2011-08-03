@@ -845,8 +845,7 @@ class DocGenerator(object):
         SUBST = {
             "toplevel-index": self.toplev_index,
             "tc-index": self.tc_index,
-            "subset-index": self.part_index,
-            "part-index": self.part_index,
+            "subset-index": self.subset_index,
             "req-headline": self.req_headline,
             "tstrategy-headline": self.tstrat_headline,
             "toc": self.toc
@@ -998,33 +997,38 @@ class DocGenerator(object):
             self.contents = []
             self.emphctl = emphctl
 
+            self.nreqs = 0
+            self.topdepth = sys.maxint
+
     def __maybe_addline_for (self, diro, pathi, wi):
 
-        # Intermediate sets are sometimes introduced for test drivers
-        # organization purposes. They have empty descrpition texts and we
-        # don't care for an extra line in the index in this case.
+        if pathi.depth < wi.topdepth:
+            wi.topdepth = pathi.depth
 
-        dtext = diro.dtext().strip()
+        if diro.req:
+            wi.nreqs += 1
 
         # Fetch the contents aimed at the Summary column, first paragraph in
         # the description file.
 
+        dtext = diro.dtext().strip()
         toblank = re.search (".*?(\n[ \t]*\n)", dtext, re.DOTALL)
         sumtext = (toblank.group(0) if toblank else dtext).replace ('\n', ' ')
 
-        entrytext = diro.tname
+        linktext = ':doc:`%s <%s>`' % (
+            diro.kind().image, self.ref(diro.root))
+
+        entrytext = "%s%s" % (
+            ". . " * (pathi.depth - wi.topdepth), diro.tname)
 
         if wi.emphctl:
             sumtext = wi.emphctl(sumtext.strip(), diro, pathi)
             entrytext = wi.emphctl(entrytext.strip(), diro, pathi)
 
-        linktext = ':doc:`%s <%s>`' % (
-            diro.kind().image, self.ref(diro.root))
-
         # Then append the whole entry
 
         wi.contents.append (
-            '   %s|%s|%s\n' % (linktext, entrytext, sumtext))
+            '   %s#%s#%s\n' % (linktext, entrytext, sumtext))
 
     def index_table(self, rooto, nodectl, emphctl, tblhdr):
 
@@ -1033,25 +1037,30 @@ class DocGenerator(object):
         wi = self.WalkInfo (
             rootp=rooto.root, emphctl=emphctl)
 
+        # Pick defaults for each column header
+
+        if icLink not in tblhdr:
+            tblhdr[icLink] = ""
+
+        if icNid not in tblhdr:
+            tblhdr[icNid] = (
+                "Testcase" if rooto.all_tc
+                else "Testcase Group" if rooto.all_tcgroup
+                else "Testcase or Group" if rooto.all_tcorgroup
+                else "Requirement" if rooto.all_req
+                else "Requirement Group" if rooto.all_reqgroup
+                else "Requirement or Group" if rooto.all_reqorgroup
+                else "Part")
+
+        if icBrief not in tblhdr:
+            tblhdr[icBrief] = "Description"
+
         # Compute the table header, the entries, and the "link"
         # column legend if needed
 
-        if rooto.set and rooto.all_tc:
-            tblhdr[icNid] = "Testcase"
-        elif rooto.set and rooto.all_tcgroup:
-            tblhdr[icNid] = "Testcase Group"
-        elif rooto.set and rooto.all_tcorgroup:
-            tblhdr[icNid] = "Testcase or Group"
-        elif rooto.set and rooto.all_req:
-            tblhdr[icNid] = "Requirement"
-        elif rooto.set and rooto.all_reqgroup:
-            tblhdr[icNid] = "Requirement Group"
-        elif rooto.set and rooto.all_reqorgroup:
-            tblhdr[icNid] = "Requirement or Group"
-
         text = '\n' + '\n'.join (
             ['.. csv-table::',
-             '   :delim: |']
+             '   :delim: #']
             + ['   :header: %s' % ','.join (
                     [tblhdr[cid] for cid in [icLink, icNid, icBrief]]
                     )]
@@ -1095,33 +1104,20 @@ class DocGenerator(object):
                  else dirSkip)
             )
 
-    def subset_index(self, diro, tblhdr = None):
+    def subset_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            tblhdr  = tblhdr,
+            tblhdr  = {},
             emphctl = None,
             nodectl = lambda diro, pathi, wi:
                 (dirCutPost if pathi.depth > 0 and (diro.set or diro.req)
                  else dirSkip)
             )
 
-    def part_index(self, diro):
-        return self.subset_index (
-            diro,
-            tblhdr  = {
-                icLink:  "",
-                icNid:   "Part",
-                icBrief: "Description"}
-            )
-
-
     def toplev_index(self, diro):
         return self.index_table (
             rooto   = diro,
-            tblhdr = {
-                icLink: "(*)",
-                icNid: "Chapter",
-                icBrief: "Description"},
+            tblhdr = {icLink: "(*)", icNid: "Chapter"},
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if pathi.depth == 1
                  else text),
@@ -1133,11 +1129,8 @@ class DocGenerator(object):
 
     def req_index(self, diro):
         return self.index_table (
-            rooto   = diro,
-            tblhdr = {
-                icLink: "",
-                icNid: "Requirement or Group",
-                icBrief: "Description"},
+            rooto  = diro,
+            tblhdr = {},
             emphctl = lambda text, diro, pathi:
                 (rest.strong(text) if pathi.depth == 1
                  else rest.emphasis(text) if pathi.depth > 1
