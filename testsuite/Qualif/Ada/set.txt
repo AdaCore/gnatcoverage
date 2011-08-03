@@ -1,3 +1,6 @@
 Source coverage TORs and Testcases for Ada
 
-%(part-index)s
+This is split in several parts, one per target coverage criterion of
+relevance:
+
+%(subset-index)s
