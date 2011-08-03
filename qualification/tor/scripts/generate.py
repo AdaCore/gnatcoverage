@@ -950,8 +950,14 @@ class DocGenerator(object):
 
     def __gen_index_contents (self, diro, pathi, wi):
 
-        self.ofd.write (self.headline (diro.tname + " Requirements"))
-        self.ofd.write (self.req_index (diro))
+        ri = self.req_index (diro)
+
+        if ri.nreqs == 0: return
+
+        self.ofd.write (
+            ''.join ([self.headline (diro.tname + " Requirements"),
+                      ri.text])
+            )
 
     def generate_genindex(self, dirtree):
 
@@ -982,12 +988,13 @@ class DocGenerator(object):
     class WalkInfo:
         def __init__ (self, rootp, emphctl):
             self.rootp = rootp
-
-            self.contents = []
             self.emphctl = emphctl
 
-            self.nreqs = 0
             self.topdepth = sys.maxint
+
+            self.text = None
+
+            self.nreqs = 0
 
     def __maybe_addline_for (self, diro, pathi, wi):
 
@@ -1016,8 +1023,8 @@ class DocGenerator(object):
 
         # Then append the whole entry
 
-        wi.contents.append (
-            '   %s#%s#%s\n' % (linktext, entrytext, sumtext))
+        wi.text.append (
+            '   %s#%s#%s' % (linktext, entrytext, sumtext))
 
     def index_table(self, rooto, nodectl, emphctl, tblhdr):
 
@@ -1047,25 +1054,25 @@ class DocGenerator(object):
         # Compute the table header, the entries, and the "link"
         # column legend if needed
 
-        text = '\n' + '\n'.join (
-            ['.. csv-table::',
-             '   :delim: #']
-            + ['   :header: %s' % ','.join (
+        wi.text = [
+            "",
+            '.. csv-table::',
+            '   :delim: #',
+            '   :widths: 2, 20, 70'
+            ] + [
+            '   :header: %s' % ','.join (
                     [tblhdr[cid] for cid in [icLink, icNid, icBrief]]
-                    )]
-            + ['   :widths: 2, 20, 70']
-            ) + "\n\n"
+                    )
+            ] + ['', '']
 
         dirtree.walk (
             mode=topdown, process=self.__maybe_addline_for,
             ctl=nodectl, data=wi)
 
-        text += ''.join (wi.contents)
-
         linkcolheader = tblhdr[0]
         if linkcolheader:
-            text = '\n'.join (
-                [text, "",
+            wi.text.extend (
+                ["",
                  "**%s** " % linkcolheader
                  +
                  "For each section described by a line, this column features "
@@ -1075,7 +1082,8 @@ class DocGenerator(object):
                         for k in dcl.kinds]
                 )
 
-        return text
+        wi.text = '\n'.join (wi.text)
+        return wi
 
     def tc_index(self, diro):
         return self.index_table (
@@ -1088,7 +1096,7 @@ class DocGenerator(object):
             nodectl = lambda diro, pathi, wi:
                 (dirProcess if pathi.depth > 0
                  else dirSkip)
-            )
+            ).text
 
     def subset_index(self, diro):
         return self.index_table (
@@ -1098,7 +1106,7 @@ class DocGenerator(object):
             nodectl = lambda diro, pathi, wi:
                 (dirCutPost if pathi.depth > 0 and (diro.set or diro.req)
                  else dirSkip)
-            )
+            ).text
 
     def toplev_index(self, diro):
         return self.index_table (
@@ -1111,7 +1119,7 @@ class DocGenerator(object):
                 (dirProcess if pathi.depth == 1 and diro.container
                  else dirCutPost if pathi.depth > 1 and diro.container
                  else dirSkip)
-            )
+            ).text
 
     def req_index(self, diro):
         return self.index_table (
