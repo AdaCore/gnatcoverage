@@ -5,9 +5,10 @@ import rest
 import glob
 import re
 import sys
+import json
 
 DOC_DIR = "source"
-ROOT_DIR = "../testsuite/Qualif"
+ROOT_DIR = "../../../testsuite/Qualif"
 
 # **********************
 # ** Helper functions **
@@ -290,6 +291,11 @@ class Dir:
         some_tcorset     = False
         some_nottcorset  = False
 
+        some_reqorgroup    = False
+        some_notreqorgroup = False
+        some_tcorgroup     = False
+        some_nottcorgroup  = False
+
         some_req       = False
         some_notreq    = False
         some_tc        = False
@@ -312,6 +318,7 @@ class Dir:
 
             some_reqgroup    |= subdo.reqgroup
             some_notreqgroup |= not subdo.reqgroup
+
             some_tcgroup     |= subdo.tcgroup
             some_nottcgroup  |= not subdo.tcgroup
 
@@ -321,6 +328,12 @@ class Dir:
             some_notreqorset |= not (subdo.req | subdo.reqset)
             some_nottcorset  |= not (subdo.tc | subdo.tcset)
 
+            some_reqorgroup |= subdo.req | subdo.reqgroup
+            some_tcorgroup  |= subdo.tc | subdo.tcgroup
+
+            some_notreqorgroup |= not (subdo.req | subdo.reqgroup)
+            some_nottcorgroup  |= not (subdo.tc | subdo.tcgroup)
+
         self.all_tc     = not some_nottc
         self.all_req    = not some_notreq
         self.all_set    = not some_notset
@@ -329,8 +342,12 @@ class Dir:
 
         self.all_reqorset = not some_notreqorset
         self.all_tcorset  = not some_nottcorset
+
         self.all_reqgroup = not some_notreqgroup
         self.all_tcgroup  = not some_nottcgroup
+
+        self.all_reqorgroup = not some_notreqorgroup
+        self.all_tcorgroup  = not some_nottcorgroup
 
         # For TC groups, consider the difference in consistency between
         #
@@ -359,11 +376,11 @@ class Dir:
 
         self.tcset  = self.set and self.all_tc
         self.tcgroup = self.set and (
-            (self.all_tcorset and some_tc) or self.all_tcset)
+            (self.all_tcorgroup and some_tc) or self.all_tcset)
 
         self.reqset  = self.set and self.all_req
         self.reqgroup = self.set and (
-            (self.all_reqorset and some_req) or self.all_reqset)
+            (self.all_reqorgroup and some_req) or self.all_reqset)
 
         self.container = self.set or self.req
 
@@ -1023,13 +1040,13 @@ class DocGenerator(object):
             tblhdr[icNid] = "Testcase"
         elif rooto.set and rooto.all_tcgroup:
             tblhdr[icNid] = "Testcase Group"
-        elif rooto.set and rooto.all_tcorset:
+        elif rooto.set and rooto.all_tcorgroup:
             tblhdr[icNid] = "Testcase or Group"
         elif rooto.set and rooto.all_req:
             tblhdr[icNid] = "Requirement"
         elif rooto.set and rooto.all_reqgroup:
             tblhdr[icNid] = "Requirement Group"
-        elif rooto.set and rooto.all_reqorset:
+        elif rooto.set and rooto.all_reqorgroup:
             tblhdr[icNid] = "Requirement or Group"
 
         text = '\n' + '\n'.join (
