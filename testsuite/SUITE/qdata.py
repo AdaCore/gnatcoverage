@@ -154,8 +154,8 @@ class colid:
     dcv = Column (
         htext="dcv", legend="# Decision Coverage violations")
 
-    ccv = Column (
-        htext="ccv", legend="# Condition Coverage violations")
+    mcv = Column (
+        htext="mcv", legend="# MCDC Coverage violations")
 
     xbv = Column (
         htext="xbv", legend="# Exempted blocks with violations")
@@ -206,7 +206,9 @@ column_for = {
     dPartCov : colid.dcv,
     dNoCov   : colid.dcv,
 
-    cPartCov : colid.ccv,
+    etNoCov  : colid.mcv,
+    efNoCov  : colid.mcv,
+    cPartCov : colid.mcv,
 
     xBlock1  : colid.xbv,
 
@@ -224,7 +226,7 @@ column_for = {
 # -------------------------------
 
 # Violation counters
-viocnt_columns = (colid.nov, colid.scv, colid.dcv, colid.ccv, colid.xbv)
+viocnt_columns = (colid.nov, colid.scv, colid.dcv, colid.mcv, colid.xbv)
 
 # Status counters
 stacnt_columns = (colid.passed, colid.failed)
