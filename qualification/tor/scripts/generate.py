@@ -258,9 +258,16 @@ class Dir:
         self.htc  = "htc.txt" in self.files
         self.set  = "set.txt" in self.files
 
-        # title name, to be displayed in index tables
+        # title name, to be displayed in index tables, and sorting key.
+
+        # The sorting key is the directory name (not title name) for starters,
+        # which is meant to allow prefix characters (numbers prior to the
+        # first '_') to influence sorts while not being displayed. We will
+        # need to update that when bridging over nodes, to make sure that the
+        # children remain grouped wrt their new parent and set of siblings.
 
         self.tname = to_title (self.name)
+        self.sname = self.name
 
     # ------------------------------------------
     # -- Bottom-Up node attribute computation --
@@ -324,6 +331,8 @@ class Dir:
             some_notreqorgroup |= not (subdo.req | subdo.reqgroup)
             some_nottcorgroup  |= not (subdo.tc | subdo.tcgroup)
 
+        # Populate this info as attributes on this node
+
         self.all_tc     = not some_nottc
         self.all_req    = not some_notreq
         self.all_set    = not some_notset
@@ -339,7 +348,24 @@ class Dir:
         self.all_reqorgroup = not some_notreqorgroup
         self.all_tcorgroup  = not some_nottcorgroup
 
-        # For TC groups, consider the difference in consistency between
+        self.container = self.set or self.req
+
+        # TC or REQ SETS are nodes with consistent children (all reqs or all
+        # tcs).
+
+        self.tcset  = self.set and self.all_tc
+        self.reqset  = self.set and self.all_req
+
+        # Some mixes are legitimate, as long as the leaf item kinds (tc
+        # or req) remain consistent. We call GROUPS those containers, and at
+        # this stage we let the notion propagate up pretty freely:
+
+        self.tcgroup = self.set and self.all_tcorgroup
+        self.reqgroup = self.set and self.all_reqorgroup
+
+        # Consistency checks need to be applied elswhere to determine whether
+        # such or such mix is acceptable. Consider for example the difference
+        # in consistency between
         #
         # 1) either:
         #    set/tc
@@ -361,18 +387,17 @@ class Dir:
         #
         # (allow sets of either tc or set)
 
-        # We go for 2, to allow subgroups specific to "pragma" contexts (with
-        # dedicated sets of drivers) in Topologies sections.
+        # Now compute the node KIND, which conveys how we want the node to be
+        # referenced (in index table hyperlinks) and titled. This is not meant
+        # to be representative of structural properties. REQ nodes often are
+        # tcset or tcgroup as well, for example.
 
-        self.tcset  = self.set and self.all_tc
-        self.tcgroup = self.set and (
-            (self.all_tcorgroup and some_tc) or self.all_tcset)
-
-        self.reqset  = self.set and self.all_req
-        self.reqgroup = self.set and (
-            (self.all_reqorgroup and some_req) or self.all_reqset)
-
-        self.container = self.set or self.req
+        self.kind = (
+            dcl.TC if self.tc
+            else dcl.REQ if self.req
+            else dcl.TCG if self.tcgroup
+            else dcl.REQG if self.reqgroup
+            else dcl.INTRO)
 
     def dfile(self, path=False):
         base = (
@@ -394,27 +419,6 @@ class Dir:
         else:
             return get_content (self.dfile(path=True))
 
-    # ----------------------------------------------------
-    # -- The kind of material node this directory holds --
-    # ----------------------------------------------------
-
-    # This conveys how we want the node to be referenced and titled, and is
-    # not meant to be only representative of structural properties. REQ nodes
-    # often are tcset or tcgroup as well, for example.
-
-    def kind (self):
-        if self.tc:
-            return dcl.TC
-        elif self.req:
-            return dcl.REQ
-
-        elif self.tcgroup:
-            return dcl.TCG
-        elif self.reqgroup:
-            return dcl.REQG
-
-        else:
-            return dcl.INTRO
 
 # ********************************
 # ** Directory Tree abstraction **
@@ -602,9 +606,9 @@ class DirTree:
             diro.subdos.sort (
                key = lambda subdo:
                    (subdo.container,
-                    keys[subdo.name] if subdo.name in keys
+                    keys[subdo.sname] if subdo.sname in keys
                     else keys["default"],
-                    subdo.name)
+                    subdo.sname)
                 )
 
         self.walk (mode=botmup, process=sort_subdos)
@@ -616,7 +620,8 @@ class DirTree:
     def check_local_consistency (self, diro, pathi):
         """Perform checks on the files present in DIRO"""
 
-        warn_if (not (diro.req or diro.tc or diro.set or diro.htc or diro.hreq),
+        warn_if (
+            not (diro.set or diro.req or diro.tc or diro.htc or diro.hreq),
             "missing description text at %s" % diro.root)
         warn_if (diro.req and len(diro.files) > 1,
             "req.txt not alone in %s" % diro.root)
@@ -662,15 +667,6 @@ class DirTree:
         warn_if (diro.req and len (diro.subdos) > 1 and diro.all_tcorset
                  and "%(tstrategy-headline)s" not in diro.dtext(),
              "req at %s misses testing strategy description" % diro.root)
-
-        # If one subdo is req, check others
-
-        nreq = 0
-        for subdo in diro.subdos:
-            if subdo.req: nreq += 1
-
-        warn_if (nreq > 0 and nreq != len (diro.subdos),
-            "some but not all are reqs downtree at %s" %  diro.root)
 
     def topdown_check_consistency (self, diro, pathi, data):
         self.check_local_consistency(diro, pathi)
@@ -750,6 +746,7 @@ class DirTree_FromPath (DirTree):
             subdo.pdo = diro.pdo
 
             subdo.tname = '.'.join ([diro.tname, subdo.tname])
+            subdo.sname = '.'.join ([diro.sname, subdo.sname])
 
     def __decide_cross_over (self, diro, pathi, wi):
 
@@ -924,7 +921,7 @@ class DocGenerator(object):
             self.ALT_TITLES[diro.tname] if diro.tname in self.ALT_TITLES
             else diro.tname)
 
-        txthdl = diro.kind().txthdl
+        txthdl = diro.kind.txthdl
         self.ofd.write(rest.section(
                 ttext + (" -- %s" % txthdl if txthdl else "")
                 ))
@@ -1012,7 +1009,7 @@ class DocGenerator(object):
         sumtext = (toblank.group(0) if toblank else dtext).replace ('\n', ' ')
 
         linktext = ':doc:`%s <%s>`' % (
-            diro.kind().image, self.ref(diro.root))
+            diro.kind.image, self.ref(diro.root))
 
         entrytext = "%s%s" % (
             ". . " * (pathi.depth - wi.topdepth), diro.tname)
@@ -1041,12 +1038,15 @@ class DocGenerator(object):
         if icNid not in tblhdr:
             tblhdr[icNid] = (
                 "Testcase" if rooto.all_tc
-                else "Testcase Group" if rooto.all_tcgroup
                 else "Testcase or Group" if rooto.all_tcorgroup
                 else "Requirement" if rooto.all_req
-                else "Requirement Group" if rooto.all_reqgroup
                 else "Requirement or Group" if rooto.all_reqorgroup
                 else "Part")
+
+                # all_tcgroup/all_reqgroup doesn't imply that only tc/req
+                # groups appear in the table. Indeed, the attribute reflects
+                # our first level of children and we might well be going to
+                # walk downtree past them.
 
         if icBrief not in tblhdr:
             tblhdr[icBrief] = "Description"
