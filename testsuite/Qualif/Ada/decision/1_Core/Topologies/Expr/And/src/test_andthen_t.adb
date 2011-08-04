@@ -6,7 +6,7 @@ begin
 end;
 
 --# andthen.adb
---  /andthen/  l+;mu=>l! mu=>dF-
+--  /andthen/  l+;mu=>l! mu=>eF-
 --  /retTrue/  l+ 0
 --  /retFalse/ l- s-
 --  /retVal/   l+ 0

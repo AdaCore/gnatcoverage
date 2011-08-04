@@ -7,7 +7,7 @@ begin
 end;
 
 --# orelse.adb
---  /orelse/   l+;mu=>l! mu=>dF-
+--  /orelse/   l+;mu=>l! mu=>eF-
 --  /retTrue/  l+ 0
 --  /retFalse/ l- s-
 --  /retVal/   l+ 0
