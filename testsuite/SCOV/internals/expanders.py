@@ -199,6 +199,7 @@ class RsectionSet:
                 "decision outcome FALSE never": efNoCov,
                 "decision outcome TRUE never": etNoCov,
                 "decision never evaluated": eNoCov,
+                "decision not exercised in both directions": ePartCov,
                 "condition has no independent influence pair": cPartCov}
             )
 

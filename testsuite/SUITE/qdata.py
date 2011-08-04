@@ -208,6 +208,7 @@ column_for = {
 
     etNoCov  : colid.mcv,
     efNoCov  : colid.mcv,
+    ePartCov : colid.mcv,
     cPartCov : colid.mcv,
 
     xBlock1  : colid.xbv,

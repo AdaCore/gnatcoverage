@@ -108,6 +108,7 @@
 
 # etNoCov  : expression outcome True not covered (=report)
 # efNoCov  : expression outcome False not covered (=report)
+# ePartCov : one expression outcome not covered (=report)
 # eNoCov   : expression never evaluated (=report)
 
 # cPartCov : independent effect of condition not demonstrated (=report)
@@ -133,11 +134,11 @@ deviationNote, \
 lNoCov, lPartCov, \
 sNoCov, sPartCov, \
 dtNoCov, dfNoCov, dNoCov, dPartCov, \
-etNoCov, efNoCov, eNoCov, \
+etNoCov, efNoCov, eNoCov, ePartCov, \
 otNoCov, ofNoCov, oNoCov, \
 cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(25)
+xBlock0, xBlock1 = range(26)
 
 NK_image  = {None: "None",
              lNoCode: "lNoCode", lFullCov: "lFullCov",
@@ -147,6 +148,7 @@ NK_image  = {None: "None",
              dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
              dPartCov: "dPartCov",
              etNoCov: "etNoCov", efNoCov: "efNoCov", eNoCov: "eNoCov",
+             ePartCov: "ePartCov",
              otNoCov: "otNoCov", ofNoCov: "ofNoCov", oNoCov: "oNoCov",
              xBlock0: "xBlock0", xBlock1: "xBlock1",
              cPartCov: "cPartCov"}
@@ -164,9 +166,14 @@ xlNoteKinds = elNoteKinds
 # Report notes (=report), which feature anti-expectations that
 # explicitely state expection of absence of emitted notes
 
-sNoteKinds = (sNoCov, sPartCov)                     # SC violations
-dNoteKinds = (dtNoCov, dfNoCov, dPartCov, dNoCov)   # DC violations
-cNoteKinds = (etNoCov, efNoCov, eNoCov, cPartCov)   # MCDC violations
+sNoteKinds = ( # SC violations
+    sNoCov, sPartCov)
+
+dNoteKinds = ( # DC violations
+    dtNoCov, dfNoCov, dPartCov, dNoCov)
+
+cNoteKinds = ( # MCDC violations
+    etNoCov, efNoCov, ePartCov, eNoCov,  cPartCov)
 
 xNoteKinds = (xBlock0, xBlock1)                     # Exemption regions
 
