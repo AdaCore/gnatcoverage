@@ -1,6 +1,5 @@
-Check MCDC on potentially confusing constructs that would fool naive
-analyzers, e.g. multiple decisions sharing a line or a single decision
-spanning multiple lines.
+MCDC expectations with respect to potentially confusing constructs,
+e.g. multiple decisions sharing a line.
 
 %(req-headline)s
 

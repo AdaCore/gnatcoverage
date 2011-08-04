@@ -1,5 +1,5 @@
-Check SC on mixes of various statement constructs, representative of what
-would be found in real applications.
+SC expectations on mixes of statement constructs, representative of real
+application code.
 
 %(req-headline)s
 

@@ -1,5 +1,5 @@
-Check DC on potentially confusing constructs that would fool naive analyzers,
-e.g. cases of decisions spanning multiple lines.
+DC expectations with respect to potentially confusing constructs,
+e.g. decisions spanning multiple lines.
 
 %(req-headline)s
 

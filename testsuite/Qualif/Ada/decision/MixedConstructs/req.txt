@@ -1,5 +1,5 @@
-Check DC on mixes of various statement and decision constructs, representative
-of what would be found in real applications.
+DC expectations on mixes of statement and decision constructs representative
+of real application code.
 
 %(req-headline)s
 
