@@ -82,102 +82,179 @@ class LnotesExpander:
 # --------------------
 
 # Construct a { source -> KnoteDict } dictionary of emitted Line Notes
-# from =xcov outputs in files corresponding to a provided DOTXCOV_PATTERN
+# from a provided =report outputs.
 
-# Report section identifiers, to let us control when looking for indication
+# Report section classes, to let us control when looking for indication
 # patterns and check that each appears in the section where we expect it.
 
-class rsid:
+# Abstract Report section
 
-    class Rsection (Identifier): pass
+class Rsection:
+    def __init__(self, name, re_start):
+        self.name = name
+        self.re_start = re_start
 
-    Xr = Rsection (name="XR")
-    Sc = Rsection (name="SC")
-    Dc = Rsection (name="DC")
-    Mc = Rsection (name="MCDC")
-    No = Rsection (name="NoInterest")
+        self.enotes = []
+        self.n_starts = 0
+        self.n_ends = 0
+
+    def register(self, enote):
+        self.enotes.append (enote)
+
+    def starts_on(self, rline):
+        if not re.search (self.re_start, rline): return False
+
+        self.n_starts += 1
+        return True
+
+    # def ends_on(self, rline):
+
+    def validate_ecount(self, count):
+        n_observed = len(self.enotes)
+        thistest.fail_if (
+            count != n_observed,
+            "(%s report section) recognized %d notes != summary (%d)\n" %
+            (self.name, n_observed, count))
+
+        self.n_ends += 1
+        return True
+
+    def value(self, count):
+        return (0 if count=="No" else int(count))
+
+    def check(self):
+        thistest.fail_if (
+            self.n_starts != self.n_ends,
+            "(%s report section): %d starts != %d ends" % (
+                self.name, self.n_starts, self.n_ends)
+            )
+
+# Violations section
+
+class Vsection (Rsection):
+    def __init__(self, name, re_start, re_notes):
+        Rsection.__init__(self, name=name, re_start=re_start)
+        self.re_notes = re_notes
+
+    def nkind_for(self, rline):
+        for key in self.re_notes:
+            if rline.find (key) != -1:
+                return self.re_notes [key]
+        return None
+
+    def ends_on(self, rline):
+        p = re.match ("(No|\d+) violation[s]*\.$", rline)
+        return p and self.validate_ecount (count=self.value(p.group(1)))
+
+# eXemptions section
+
+class Xsection (Rsection):
+    def __init__(self, name, re_start):
+        Rsection.__init__(self, name=name, re_start=re_start)
+
+    def nkind_for(self, rline):
+        r = re.search (": (\d+) exempted violation", rline)
+        return (None if not r
+                else xBlock0 if int(r.group(1)) == 0 else xBlock1)
+
+    def ends_on(self, rline):
+        p = re.match ("(No|\d+) exempted region[s]*\.$", rline)
+        return p and self.validate_ecount (count=self.value(p.group(1)))
+
+
+# Analysis summary section
+
+class Asection (Rsection):
+    def __init__(self, name, re_start):
+        Rsection.__init__(self, name=name, re_start=re_start)
+
+
+# Set of sections in a report
+
+class RsectionSet:
+    def __init__(self):
+        self.Xr = Xsection (
+            name="XR", re_start="EXEMPTED REGIONS"
+            )
+
+        self.Sc = Vsection (
+            name="SC", re_start="STMT COVERAGE",
+            re_notes = {
+                "statement not executed": sNoCov,
+                "multiple statements on line": sPartCov}
+            )
+
+        self.Dc = Vsection (
+            name="DC", re_start="DECISION COVERAGE",
+            re_notes = {
+                "decision outcome FALSE never": dfNoCov,
+                "decision outcome TRUE never": dtNoCov,
+                "decision never evaluated": dNoCov,
+                "decision not exercised in both directions": dPartCov}
+            )
+
+        self.Mc = Vsection (
+            name="MCDC", re_start="MCDC COVERAGE",
+            re_notes = {
+                "decision outcome FALSE never": efNoCov,
+                "decision outcome TRUE never": etNoCov,
+                "decision never evaluated": eNoCov,
+                "condition has no independent influence pair": cPartCov}
+            )
+
+        self.rsections = (self.Sc, self.Dc, self.Mc, self.Xr)
+
+    def starts_with (self, rline):
+        for rs in self.rsections:
+            if rs.starts_on (rline):
+                return rs
+        return None
+
+    def check (self):
+        [rs.check() for rs in self.rsections]
 
 class RnotesExpander:
     """Produce list of Enote instances found in a "report" output."""
-
-    # Texts indicative of note kinds, each expected in a specific section only
-
-    NK_for = {
-
-        rsid.No:
-            {},
-
-        rsid.Sc:
-            {"statement not executed": sNoCov,
-             "multiple statements on line": sPartCov},
-
-        rsid.Dc:
-            {"decision outcome FALSE never": dfNoCov,
-             "decision outcome TRUE never": dtNoCov,
-             "decision never evaluated": dNoCov,
-             "decision not exercised in both directions": dPartCov},
-
-        rsid.Mc:
-            {"decision outcome FALSE never": efNoCov,
-             "decision outcome TRUE never": etNoCov,
-             "decision never evaluated": eNoCov,
-             "condition has no independent influence pair": cPartCov}
-        }
-
-    def nkind_for(self, ntext):
-
-        # If we are in the exemptions section, check for exemption notes
-
-        if self.section == rsid.Xr:
-            r = re.search (": (\d+) exempted violation", ntext)
-            return (None if not r
-                    else xBlock0 if int(r.group(1)) == 0 else xBlock1)
-
-
-        # Otherwise, check for keys relevant to the current section:
-        skeys = self.NK_for[self.section]
-        for key in skeys:
-            if ntext.find (key) != -1:
-                return skeys [key]
-
-        return None
 
     def to_enotes(self, report):
 
         # We need to ignore everything not in the report sections
         # of interest, so until we know we're in ...
-        self.section = rsid.No
+
+        self.rset = RsectionSet()
+        self.rs = None
 
         self.report = report
         Tfile (filename=self.report, process=self.process_tline)
+
+        self.rset.check()
 
     def register(self, source, enote):
         if source not in self.ernotes:
             self.ernotes[source] = KnoteDict(erNoteKinds)
         self.ernotes[source].register (enote)
+        self.rs.register (enote)
 
     def process_tline(self, tline):
 
         rline = tline.text
 
-        # Figure out which section we're [getting] in.  Beware that
-        # the ordering of the regexp checks matters here.
+        # Check if we are getting in a section of interest. If so, register
+        # that and get to next line.
 
-        if re.search ("EXEMPTED REGIONS", rline):
-            self.section = rsid.Xr
+        rs = self.rset.starts_with (rline)
+        if rs:
+            self.rs = rs
             return None
-        elif re.search ("STMT COVERAGE", rline):
-            self.section = rsid.Sc
-        elif re.search ("DECISION COVERAGE", rline):
-            self.section = rsid.Dc
-        elif re.search ("MCDC COVERAGE", rline):
-            self.section = rsid.Mc
-            return None
-        elif re.match (".* (violation|region)\.$", rline):
-            # Getting out of a section of interest ...
-            self.section = rsid.No
 
-        if self.section == rsid.No: return None
+        # Check if we are getting out of the current section of interest ...
+
+        if self.rs and self.rs.ends_on(rline):
+            self.rs = None
+
+        # Skip this line if we're out of any section of interest
+
+        if self.rs == None: return None
 
         # In section of interest, match the emitted note text. We expect
         # something like "andthen.adb:10:33: statement not covered",
@@ -207,21 +284,21 @@ class RnotesExpander:
 
         tail = p.group(3)
 
-        nkind = self.nkind_for (tail)
+        nkind = self.rs.nkind_for (tail)
         if nkind == None:
             thistest.failed (
                 "(%s, %s section) '%s' ?" % (
-                    self.report, self.section.name, rline.rstrip('\n')))
+                    self.report, self.rs.name, rline.rstrip('\n')))
             return None
 
-        section = Section_within (tail)
+        segment = Section_within (tail)
 
         thistest.stop_if (
-            not section,
+            not segment,
             FatalError ("Unable to parse report line\n'%s'" % rline))
 
         return self.register (
-            source, Enote (kind=nkind, segment=section))
+            source, Enote (kind=nkind, segment=segment))
 
     def __init__(self, report):
 
@@ -230,7 +307,6 @@ class RnotesExpander:
 
         self.ernotes = {}
         self.to_enotes (report)
-
 
 # --------------------
 # -- XnotesExpander --
