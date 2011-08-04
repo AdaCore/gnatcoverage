@@ -298,13 +298,11 @@ class Xnote (Cnote):
 # Emitted note, as extracted from an xcov report:
 
 class Enote(Cnote):
-    def __init__(self, kind, segment, rsid=None):
+    def __init__(self, kind, segment):
         self.kind = kind        # The kind of emitted note
         self.segment = segment  # The line segment it designates
 
         self.discharges = None  # The Xnote it discharges
-        self.rsid = rsid        # The report section where this was found
-
 
 # ---------------
 # -- KnoteDict --

@@ -221,7 +221,7 @@ class RnotesExpander:
             FatalError ("Unable to parse report line\n'%s'" % rline))
 
         return self.register (
-            source, Enote (kind=nkind, segment=section, rsid=self.section))
+            source, Enote (kind=nkind, segment=section))
 
     def __init__(self, report):
 
