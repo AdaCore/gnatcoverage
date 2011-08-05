@@ -1,4 +1,4 @@
-SC expectations regarding RETURN statements
+SC expectations regarding Return statements
 
 %(req-headline)s
 

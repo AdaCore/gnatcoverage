@@ -1,4 +1,4 @@
-SC expectations on mixes of statement constructs, representative of real
+SC expectations for mixes of statement constructs, representative of real
 application code.
 
 %(req-headline)s

@@ -3,24 +3,28 @@ SC expectations regarding exemption regions.
 %(req-headline)s
 
 Proper behavior of the Coverage Exemptions facility translates into
-multiple expectations:
+the following set of rules:
 
-1. Exempted regions shall all be synthesized in a distinct section of the
-   output report, with a single message per region.
+====== ======================================================================
+Rule # Description
+====== ======================================================================
+1      Exempted regions shall all be synthesized in a distinct section of
+       the output report, with a single message per region.
 
-2. Each exemption message shall expose the range of source locations covered
-   by the region declaration, and indicate whether 0 or more coverage
-   violations were actually exempted within this range.
+2      Each exemption message shall expose the range of source locations
+       covered by the region declaration, and indicate whether 0 or more
+       coverage violations were actually exempted within this range.
 
-3. Exemption regions shall not influence the diagnostics emitted on constructs
-   outside of them.
+3      Exemption regions shall not influence the diagnostics emitted on
+       constructs outside of them.
 
-4. The report section dedicated to exemption regions shall not contain any
-   other kind of information.
+4      The report section dedicated to exemption regions shall not contain
+       any other kind of information.
 
-5. Exemption regions may be declared to exempt various levels of syntactic
-   constructs such as statements or subprograms, and groups of such in all the
-   contexts where they may appear.
+5      Exemption regions may be declared to exempt various levels of
+       syntactic constructs such as statements or subprograms, and groups of
+       such in all the contexts where they may appear.
+====== ======================================================================
 
 %(tstrategy-headline)s
 
@@ -32,7 +36,7 @@ various groups of syntactic constructs:
 
 Each test features some mix of exempted regions and regular code, exercised in
 multiple manners to cover well identified sections of the program. All the
-other aspects of the requirement (points #1 to #4) are validated by the fact
+other aspects of the requirement (rules #1 to #4) are validated by the fact
 that all the tests run as expected.
 
 For every single stated expectation, exempted region or non-exempted
