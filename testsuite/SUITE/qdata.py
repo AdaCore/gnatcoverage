@@ -214,7 +214,7 @@ column_for = {
     xBlock1  : colid.xbv,
 
     # When checking status, map text passed by toplevel driver
-    # to column. Note that we map UOK to the same as OK.
+    # to column.
 
     'OK'     : colid.passed,
     'XFAIL'  : colid.passed,
