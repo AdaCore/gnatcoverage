@@ -149,16 +149,16 @@ class colid:
         htext="nov", legend="# absence of violations")
 
     scv = Column (
-        htext="scv", legend="# Statement Coverage violations")
+        htext="scv", legend="# STATEMENT Coverage violations")
 
     dcv = Column (
-        htext="dcv", legend="# Decision Coverage violations")
+        htext="dcv", legend="# DECISION Coverage violations")
 
     mcv = Column (
         htext="mcv", legend="# MCDC Coverage violations")
 
     xbv = Column (
-        htext="xbv", legend="# Exempted blocks with violations")
+        htext="xbv", legend="# EXEMPTION blocks with violations")
 
     # Status counters and overall status, for status summary
 
@@ -209,6 +209,7 @@ column_for = {
     etNoCov  : colid.mcv,
     efNoCov  : colid.mcv,
     ePartCov : colid.mcv,
+    eNoCov   : colid.mcv,
     cPartCov : colid.mcv,
 
     xBlock1  : colid.xbv,
