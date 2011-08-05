@@ -204,7 +204,7 @@ class PathInfo:
 # Used to compute common attributes (such as all_req etc) on a set of nodes
 
 class NodeSet:
-    def __init__(self, nodes=()):
+    def __init__(self, diros=()):
 
         self.some_reqgroup    = False
         self.some_notreqgroup = False
@@ -230,55 +230,64 @@ class NodeSet:
         self.some_notreqset = False
         self.some_nottcset  = False
 
-        self.nodes = []
+        self.diros = []
 
-        [self.register_one (node) for node in nodes]
+        [self.register_one (diro) for diro in diros]
         self.sync()
 
-    def register_one (self, subdo):
-        self.some_req    |= subdo.req
-        self.some_tc     |= subdo.tc
-        self.some_set    |= subdo.set
+    def register_one (self, diro):
+        self.some_req    |= diro.req
+        self.some_tc     |= diro.tc
+        self.some_set    |= diro.set
 
-        self.some_notreq    |= not subdo.req
-        self.some_nottc     |= not subdo.tc
-        self.some_notset    |= not subdo.set
-        self.some_notreqset |= not subdo.reqset
-        self.some_nottcset  |= not subdo.tcset
+        self.some_notreq    |= not diro.req
+        self.some_nottc     |= not diro.tc
+        self.some_notset    |= not diro.set
+        self.some_notreqset |= not diro.reqset
+        self.some_nottcset  |= not diro.tcset
 
-        self.some_reqgroup    |= subdo.reqgroup
-        self.some_notreqgroup |= not subdo.reqgroup
+        self.some_reqgroup    |= diro.reqgroup
+        self.some_notreqgroup |= not diro.reqgroup
 
-        self.some_tcgroup     |= subdo.tcgroup
-        self.some_nottcgroup  |= not subdo.tcgroup
+        self.some_tcgroup     |= diro.tcgroup
+        self.some_nottcgroup  |= not diro.tcgroup
 
-        self.some_reqorset |= subdo.req | subdo.reqset
-        self.some_tcorset  |= subdo.tc | subdo.tcset
+        self.some_reqorset |= diro.req | diro.reqset
+        self.some_tcorset  |= diro.tc | diro.tcset
 
-        self.some_notreqorset |= not (subdo.req | subdo.reqset)
-        self.some_nottcorset  |= not (subdo.tc | subdo.tcset)
+        self.some_notreqorset |= not (diro.req | diro.reqset)
+        self.some_nottcorset  |= not (diro.tc | diro.tcset)
 
-        self.some_reqorgroup |= subdo.req | subdo.reqgroup
-        self.some_tcorgroup  |= subdo.tc | subdo.tcgroup
+        self.some_reqorgroup |= diro.req | diro.reqgroup
+        self.some_tcorgroup  |= diro.tc | diro.tcgroup
 
-        self.some_notreqorgroup |= not (subdo.req | subdo.reqgroup)
-        self.some_nottcorgroup  |= not (subdo.tc | subdo.tcgroup)
+        self.some_notreqorgroup |= not (diro.req | diro.reqgroup)
+        self.some_nottcorgroup  |= not (diro.tc | diro.tcgroup)
+
+        self.diros.append (diro)
 
     def sync(self):
-        self.all_tc     = not self.some_nottc
-        self.all_req    = not self.some_notreq
-        self.all_set    = not self.some_notset
-        self.all_reqset = not self.some_notreqset
-        self.all_tcset  = not self.some_nottcset
 
-        self.all_reqorset = not self.some_notreqorset
-        self.all_tcorset  = not self.some_nottcorset
+        # Beware of queries over empty sets. All the some_ attributes
+        # start False, so the all_ attributes would turn true if we're
+        # not cautious
 
-        self.all_reqgroup = not self.some_notreqgroup
-        self.all_tcgroup  = not self.some_nottcgroup
+        has_diro = len(self.diros) > 0
 
-        self.all_reqorgroup = not self.some_notreqorgroup
-        self.all_tcorgroup  = not self.some_nottcorgroup
+        self.all_tc     = has_diro and not self.some_nottc
+        self.all_req    = has_diro and not self.some_notreq
+        self.all_set    = has_diro and not self.some_notset
+        self.all_reqset = has_diro and not self.some_notreqset
+        self.all_tcset  = has_diro and not self.some_nottcset
+
+        self.all_reqorset = has_diro and not self.some_notreqorset
+        self.all_tcorset  = has_diro and not self.some_nottcorset
+
+        self.all_reqgroup = has_diro and not self.some_notreqgroup
+        self.all_tcgroup  = has_diro and not self.some_nottcgroup
+
+        self.all_reqorgroup = has_diro and not self.some_notreqorgroup
+        self.all_tcorgroup  = has_diro and not self.some_nottcorgroup
 
 # ***************************
 # ** Directory abstraction **
@@ -366,7 +375,7 @@ class Dir:
         # Compute predicates over our set of children. We expect the children
         # attributes to be available here.
 
-        self.sdset = NodeSet (nodes=self.subdos)
+        self.sdset = NodeSet (diros=self.subdos)
 
         # Populate extra attributes on this node
 
@@ -852,6 +861,7 @@ class DocGenerator(object):
             "toplevel-index": self.toplev_index,
             "tc-index": self.tc_index,
             "subset-index": self.subset_index,
+            "global-reqindex": self.global_reqindex,
             "req-headline": self.req_headline,
             "tstrategy-headline": self.tstrat_headline,
             "toc": self.toc
@@ -871,6 +881,11 @@ class DocGenerator(object):
             and "subset-index" not in dosubst)
             else ""
         )
+
+        if extratext:
+            print "info: adding extratext to %s:\n" % diro.root
+            print extratext
+            print "-- end of extra text"
 
         return contents % dosubst + extratext
 
@@ -912,7 +927,7 @@ class DocGenerator(object):
     # -- Tailored directory tree instance --
     # --------------------------------------
 
-    def dirtree(self, chapdirs):
+    def root_dirtree(self, chapdirs):
 
         dirtree = DirTree_FromPath(rootp=self.root_dir)
 
@@ -957,44 +972,9 @@ class DocGenerator(object):
         self.ofd.close()
 
 
-    def generate_chapters(self, dirtree):
+    def generate_chapters(self):
 
-        dirtree.walk (mode=topdown, process=self.__gen_doc_contents)
-
-    # ---------------------------
-    # -- generate general index --
-    # ---------------------------
-
-    def __gen_index_contents (self, diro, pathi, wi):
-
-        ri = self.req_index (diro)
-
-        if ri.nreqs == 0: return
-
-        self.ofd.write (
-            ''.join ([self.headline (diro.tname + " Requirements"),
-                      ri.text])
-            )
-
-    def generate_genindex(self, dirtree):
-
-        self.ofd = open(self.docpath_to ("sumtables.rst"), 'w')
-
-        self.ofd.write ('\n'.join (
-                [".. index::",
-                 "   single: Summary tables; Requirements",
-                 ""]
-                ))
-
-        self.ofd.write (rest.section ("General Indexes"))
-
-        dirtree.walk (
-            mode=topdown, process=self.__gen_index_contents,
-            ctl = lambda diro, pathi, wi:
-                (dirSkip if pathi.depth == 0 else dirCutPost)
-            )
-
-        self.ofd.close()
+        self.dirtree.walk (mode=topdown, process=self.__gen_doc_contents)
 
     # ---------------------------
     # -- generate index tables --
@@ -1040,11 +1020,11 @@ class DocGenerator(object):
         wi.text.append (
             '   %s#%s#%s' % (linktext, entrytext, sumtext))
 
-        self.lset.register_one (node=diro)
+        wi.lset.register_one (diro=diro)
 
     def index_table(self, rooto, nodectl, emphctl, tblhdr):
 
-        dirtree = DirTree (roots=[rooto])
+        local_dirtree = DirTree (roots=[rooto])
 
         wi = self.WalkInfo (
             rootp=rooto.root, emphctl=emphctl)
@@ -1053,22 +1033,9 @@ class DocGenerator(object):
 
         wi.text = []
 
-        dirtree.walk (
+        local_dirtree.walk (
             mode=topdown, process=self.__maybe_addline_for,
             ctl=nodectl, data=wi)
-
-        linkcolheader = tblhdr[0]
-        if linkcolheader:
-            wi.text.extend (
-                ["",
-                 "**%s** " % linkcolheader
-                 +
-                 "For each section described by a line, this column features "
-                 "an hyperlink to the section contents. The hyperlink text is "
-                 "indicative of the section kind:",
-                 ""] + ["* *%s*\tdesignates some %s" % (k.image, k.txthdl)
-                        for k in dcl.kinds]
-                )
 
         # sync the line attributes and pick defaults for each column header
 
@@ -1080,21 +1047,17 @@ class DocGenerator(object):
         if icNid not in tblhdr:
             tblhdr[icNid] = (
                 "Testcase" if wi.lset.all_tc
+                else "Testcase Group" if wi.lset.all_tcgroup
                 else "Testcase or Group" if wi.lset.all_tcorgroup
                 else "Requirement" if wi.lset.all_req
+                else "Requirement Group" if wi.lset.all_reqgroup
                 else "Requirement or Group" if wi.lset.all_reqorgroup
-                else "Part")
-
-                # all_tcgroup/all_reqgroup doesn't imply that only tc/req
-                # groups appear in the table. Indeed, the attribute reflects
-                # our first level of children and we might well be going to
-                # walk downtree past them.
+                else "Item")
 
         if icBrief not in tblhdr:
             tblhdr[icBrief] = "Description"
 
-        # Compute the table header, the entries, and the "link"
-        # column legend if needed
+        # Compute the table header
 
         wi.text = [
             "",
@@ -1106,6 +1069,19 @@ class DocGenerator(object):
                     [tblhdr[cid] for cid in [icLink, icNid, icBrief]]
                     )
             ] + ['', ''] + wi.text
+
+        linkcolheader = tblhdr[icLink]
+        if linkcolheader:
+            wi.text.extend (
+                ["",
+                 "**%s** " % linkcolheader
+                 +
+                 "For each section described by a line, this column features "
+                 "an hyperlink to the section contents. The hyperlink text is "
+                 "indicative of the section kind:",
+                 ""] + ["* *%s*\tdesignates some %s" % (k.image, k.txthdl)
+                        for k in dcl.kinds]
+                )
 
 
         wi.text = '\n'.join (wi.text)
@@ -1147,7 +1123,11 @@ class DocGenerator(object):
                  else dirSkip)
             ).text
 
-    def req_index(self, diro):
+    # ---------------------------
+    # -- generate general index --
+    # ---------------------------
+
+    def local_reqindex(self, diro):
         return self.index_table (
             rooto  = diro,
             tblhdr = {},
@@ -1160,6 +1140,32 @@ class DocGenerator(object):
                  else dirCutPost if diro.req
                  else dirProcess)
             )
+
+    def __gen_index_contents (self, diro, pathi, wi):
+
+        lwi = self.local_reqindex (diro)
+
+        lwi.text = ''.join (
+            [self.headline (diro.tname + " Requirements"), lwi.text]
+            ) if lwi.lset.some_req  else ""
+
+        wi.text = ''.join ([wi.text, lwi.text])
+
+    def global_reqindex(self, diro):
+
+        class WalkInfo:
+            def __init__(self):
+                self.text=""
+
+        wi = WalkInfo()
+
+        self.dirtree.walk (
+            mode=topdown, process=self.__gen_index_contents,
+            data=wi, ctl = lambda diro, pathi, wi:
+                (dirSkip if pathi.depth == 0 else dirCutPost)
+            )
+
+        return wi.text
 
     # ---------------------------------
     # -- req and tstrategy headlines --
@@ -1220,12 +1226,10 @@ class DocGenerator(object):
         # [Re]generate only the requested chapters, when specified,
         # everything otherwise
 
-        dirtree = self.dirtree (
+        self.dirtree = self.root_dirtree (
             ref_chapdirs if chapdirs is None else chapdirs)
 
-        self.generate_chapters(dirtree)
-        self.generate_genindex(dirtree)
-
+        self.generate_chapters()
         self.generate_resources()
 
 # The main of the script
