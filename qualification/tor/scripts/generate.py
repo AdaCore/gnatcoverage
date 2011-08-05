@@ -210,6 +210,8 @@ class NodeSet:
         self.some_notreqgroup = False
         self.some_tcgroup     = False
         self.some_nottcgroup  = False
+        self.some_appmat    = False
+        self.some_notappmat = False
 
         self.some_reqorset    = False
         self.some_notreqorset = False
@@ -225,10 +227,14 @@ class NodeSet:
         self.some_notreq    = False
         self.some_tc        = False
         self.some_nottc     = False
+        self.some_app       = False
+        self.some_notapp    = False
         self.some_set       = False
         self.some_notset    = False
+
         self.some_notreqset = False
         self.some_nottcset  = False
+        self.some_notappset = False
 
         self.diros = []
 
@@ -239,18 +245,25 @@ class NodeSet:
         self.some_req    |= diro.req
         self.some_tc     |= diro.tc
         self.some_set    |= diro.set
+        self.some_app    |= diro.app
 
         self.some_notreq    |= not diro.req
         self.some_nottc     |= not diro.tc
         self.some_notset    |= not diro.set
+        self.some_notapp    |= not diro.app
+
         self.some_notreqset |= not diro.reqset
         self.some_nottcset  |= not diro.tcset
+        self.some_notappset |= not diro.appset
 
         self.some_reqgroup    |= diro.reqgroup
         self.some_notreqgroup |= not diro.reqgroup
 
         self.some_tcgroup     |= diro.tcgroup
         self.some_nottcgroup  |= not diro.tcgroup
+
+        self.some_appmat     |= diro.appmat
+        self.some_notappmat  |= not diro.appmat
 
         self.some_reqorset |= diro.req | diro.reqset
         self.some_tcorset  |= diro.tc | diro.tcset
@@ -277,14 +290,18 @@ class NodeSet:
         self.all_tc     = has_diro and not self.some_nottc
         self.all_req    = has_diro and not self.some_notreq
         self.all_set    = has_diro and not self.some_notset
+        self.all_app    = has_diro and not self.some_notapp
+
         self.all_reqset = has_diro and not self.some_notreqset
         self.all_tcset  = has_diro and not self.some_nottcset
+        self.all_appset = has_diro and not self.some_notappset
 
         self.all_reqorset = has_diro and not self.some_notreqorset
         self.all_tcorset  = has_diro and not self.some_nottcorset
 
         self.all_reqgroup = has_diro and not self.some_notreqgroup
         self.all_tcgroup  = has_diro and not self.some_nottcgroup
+        self.all_appmat   = has_diro and not self.some_notappmat
 
         self.all_reqorgroup = has_diro and not self.some_notreqorgroup
         self.all_tcorgroup  = has_diro and not self.some_nottcorgroup
@@ -315,10 +332,13 @@ class dcl:
     REQG = DirKind (
         image="rqg", txthdl = "Requirement Group")
 
+    APP = DirKind (
+        image="app", txthdl = "Appendix Material")
+
     INTRO = DirKind (
         image="intro", txthdl = "Introductory Material")
 
-    kinds = (TC, TCG, REQ, REQG, INTRO)
+    kinds = (TC, TCG, REQ, REQG, APP, INTRO)
 
 # DocGenerator helper to process one specific subdirectory of the TOR/TC
 # hierarchy
@@ -354,6 +374,7 @@ class Dir:
         self.tc   = "tc.txt" in self.files
         self.htc  = "htc.txt" in self.files
         self.set  = "set.txt" in self.files
+        self.app  = "app.txt" in self.files
 
         # title name, to be displayed in index tables, and sorting key.
 
@@ -381,11 +402,12 @@ class Dir:
 
         self.container = self.set or self.req
 
-        # TC or REQ SETS are nodes with consistent children (all reqs or all
-        # tcs).
+        # TC, APP or REQ SETS are nodes with consistent children (all reqs,
+        # all tcs, or all apps).
 
         self.tcset  = self.set and self.sdset.all_tc
         self.reqset  = self.set and self.sdset.all_req
+        self.appset  = self.set and self.sdset.all_app
 
         # Some mixes are legitimate, as long as the leaf item kinds (tc
         # or req) remain consistent. We call GROUPS those containers, and at
@@ -393,6 +415,7 @@ class Dir:
 
         self.tcgroup = self.set and self.sdset.all_tcorgroup
         self.reqgroup = self.set and self.sdset.all_reqorgroup
+        self.appmat = self.app or (self.set and self.sdset.all_appmat)
 
         # Consistency checks need to be applied elswhere to determine whether
         # such or such mix is acceptable. Consider for example the difference
@@ -428,6 +451,7 @@ class Dir:
             else dcl.REQ if self.req
             else dcl.TCG if self.tcgroup
             else dcl.REQG if self.reqgroup
+            else dcl.APP if self.appmat
             else dcl.INTRO)
 
     def dfile(self, path=False):
@@ -437,6 +461,7 @@ class Dir:
             'req.txt'  if self.req else
             'htc.txt'  if self.htc else
             'hreq.txt' if self.hreq else
+            'app.txt'  if self.app else
             None)
 
         return (
@@ -652,7 +677,8 @@ class DirTree:
         """Perform checks on the files present in DIRO"""
 
         warn_if (
-            not (diro.set or diro.req or diro.tc or diro.htc or diro.hreq),
+            not (diro.set or diro.req or diro.tc or diro.app
+                 or diro.htc or diro.hreq),
             "missing description text at %s" % diro.root)
         warn_if (diro.req and len(diro.files) > 1,
             "req.txt not alone in %s" % diro.root)
@@ -860,6 +886,7 @@ class DocGenerator(object):
         SUBST = {
             "toplevel-index": self.toplev_index,
             "tc-index": self.tc_index,
+            "app-index": self.app_index,
             "subset-index": self.subset_index,
             "global-reqindex": self.global_reqindex,
             "req-headline": self.req_headline,
@@ -881,11 +908,6 @@ class DocGenerator(object):
             and "subset-index" not in dosubst)
             else ""
         )
-
-        if extratext:
-            print "info: adding extratext to %s:\n" % diro.root
-            print extratext
-            print "-- end of extra text"
 
         return contents % dosubst + extratext
 
@@ -1110,6 +1132,16 @@ class DocGenerator(object):
                  else dirSkip)
             ).text
 
+    def app_index(self, diro):
+        return self.index_table (
+            rooto   = diro,
+            tblhdr  = {},
+            emphctl = None,
+            nodectl = lambda diro, pathi, wi:
+                (dirProcess if pathi.depth > 0 and diro.appmat
+                 else dirSkip)
+            ).text
+
     def toplev_index(self, diro):
         return self.index_table (
             rooto   = diro,
@@ -1119,7 +1151,8 @@ class DocGenerator(object):
                  else text),
             nodectl = lambda diro, pathi, wi:
                 (dirProcess if pathi.depth == 1 and diro.container
-                 else dirCutPost if pathi.depth > 1 and diro.container
+                 else dirCutPost if (
+                    pathi.depth > 1 and (diro.container or diro.appmat))
                  else dirSkip)
             ).text
 
