@@ -509,13 +509,13 @@ class QDreport:
 
         self.categories = (
             Category (
-                name="Statement Coverage", matcher="Qualif/Ada/stmt"),
+                name="STATEMENT Coverage", matcher="Qualif/Ada/stmt"),
             Category (
-                name="Decision Coverage",  matcher="Qualif/Ada/decision"),
+                name="DECISION Coverage",  matcher="Qualif/Ada/decision"),
             Category (
-                name="Mcdc Coverage",      matcher="Qualif/Ada/mcdc"),
+                name="MCDC Coverage",      matcher="Qualif/Ada/mcdc"),
             Category (
-                name="Report Format",      matcher="Qualif/Common/Report"),
+                name="REPORT Format",      matcher="Qualif/Common/Report"),
 
             Category (
                 name="Harness Check",      matcher="Qualif/Appendix/Harness",
