@@ -197,6 +197,89 @@ class PathInfo:
         self.n_tc = 0   # Number of tc nodes so far
         self.depth = 0  # Depth of this node wrt root of walk operation
 
+# **************************
+# ** Node Set abstraction **
+# **************************
+
+# Used to compute common attributes (such as all_req etc) on a set of nodes
+
+class NodeSet:
+    def __init__(self, nodes=()):
+
+        self.some_reqgroup    = False
+        self.some_notreqgroup = False
+        self.some_tcgroup     = False
+        self.some_nottcgroup  = False
+
+        self.some_reqorset    = False
+        self.some_notreqorset = False
+        self.some_tcorset     = False
+        self.some_nottcorset  = False
+
+        self.some_reqorgroup    = False
+        self.some_notreqorgroup = False
+        self.some_tcorgroup     = False
+        self.some_nottcorgroup  = False
+
+        self.some_req       = False
+        self.some_notreq    = False
+        self.some_tc        = False
+        self.some_nottc     = False
+        self.some_set       = False
+        self.some_notset    = False
+        self.some_notreqset = False
+        self.some_nottcset  = False
+
+        self.nodes = []
+
+        [self.register_one (node) for node in nodes]
+        self.sync()
+
+    def register_one (self, subdo):
+        self.some_req    |= subdo.req
+        self.some_tc     |= subdo.tc
+        self.some_set    |= subdo.set
+
+        self.some_notreq    |= not subdo.req
+        self.some_nottc     |= not subdo.tc
+        self.some_notset    |= not subdo.set
+        self.some_notreqset |= not subdo.reqset
+        self.some_nottcset  |= not subdo.tcset
+
+        self.some_reqgroup    |= subdo.reqgroup
+        self.some_notreqgroup |= not subdo.reqgroup
+
+        self.some_tcgroup     |= subdo.tcgroup
+        self.some_nottcgroup  |= not subdo.tcgroup
+
+        self.some_reqorset |= subdo.req | subdo.reqset
+        self.some_tcorset  |= subdo.tc | subdo.tcset
+
+        self.some_notreqorset |= not (subdo.req | subdo.reqset)
+        self.some_nottcorset  |= not (subdo.tc | subdo.tcset)
+
+        self.some_reqorgroup |= subdo.req | subdo.reqgroup
+        self.some_tcorgroup  |= subdo.tc | subdo.tcgroup
+
+        self.some_notreqorgroup |= not (subdo.req | subdo.reqgroup)
+        self.some_nottcorgroup  |= not (subdo.tc | subdo.tcgroup)
+
+    def sync(self):
+        self.all_tc     = not self.some_nottc
+        self.all_req    = not self.some_notreq
+        self.all_set    = not self.some_notset
+        self.all_reqset = not self.some_notreqset
+        self.all_tcset  = not self.some_nottcset
+
+        self.all_reqorset = not self.some_notreqorset
+        self.all_tcorset  = not self.some_nottcorset
+
+        self.all_reqgroup = not self.some_notreqgroup
+        self.all_tcgroup  = not self.some_nottcgroup
+
+        self.all_reqorgroup = not self.some_notreqorgroup
+        self.all_tcorgroup  = not self.some_nottcorgroup
+
 # ***************************
 # ** Directory abstraction **
 # ***************************
@@ -248,6 +331,11 @@ class Dir:
         self.pdo = None
         self.subdos = []
 
+        # NodeSet for subdos, which we'll populate when computing
+        # attributes bottom-up
+
+        self.sdset = None
+
         # Properties from presence of local files, better cached to prevent
         # repeated real file presence checks
 
@@ -278,90 +366,24 @@ class Dir:
         # Compute predicates over our set of children. We expect the children
         # attributes to be available here.
 
-        some_reqgroup    = False
-        some_notreqgroup = False
-        some_tcgroup     = False
-        some_nottcgroup  = False
+        self.sdset = NodeSet (nodes=self.subdos)
 
-        some_reqorset    = False
-        some_notreqorset = False
-        some_tcorset     = False
-        some_nottcorset  = False
-
-        some_reqorgroup    = False
-        some_notreqorgroup = False
-        some_tcorgroup     = False
-        some_nottcorgroup  = False
-
-        some_req       = False
-        some_notreq    = False
-        some_tc        = False
-        some_nottc     = False
-        some_set       = False
-        some_notset    = False
-        some_notreqset = False
-        some_nottcset  = False
-
-        for subdo in self.subdos:
-            some_req    |= subdo.req
-            some_tc     |= subdo.tc
-            some_set    |= subdo.set
-
-            some_notreq    |= not subdo.req
-            some_nottc     |= not subdo.tc
-            some_notset    |= not subdo.set
-            some_notreqset |= not subdo.reqset
-            some_nottcset  |= not subdo.tcset
-
-            some_reqgroup    |= subdo.reqgroup
-            some_notreqgroup |= not subdo.reqgroup
-
-            some_tcgroup     |= subdo.tcgroup
-            some_nottcgroup  |= not subdo.tcgroup
-
-            some_reqorset |= subdo.req | subdo.reqset
-            some_tcorset  |= subdo.tc | subdo.tcset
-
-            some_notreqorset |= not (subdo.req | subdo.reqset)
-            some_nottcorset  |= not (subdo.tc | subdo.tcset)
-
-            some_reqorgroup |= subdo.req | subdo.reqgroup
-            some_tcorgroup  |= subdo.tc | subdo.tcgroup
-
-            some_notreqorgroup |= not (subdo.req | subdo.reqgroup)
-            some_nottcorgroup  |= not (subdo.tc | subdo.tcgroup)
-
-        # Populate this info as attributes on this node
-
-        self.all_tc     = not some_nottc
-        self.all_req    = not some_notreq
-        self.all_set    = not some_notset
-        self.all_reqset = not some_notreqset
-        self.all_tcset  = not some_nottcset
-
-        self.all_reqorset = not some_notreqorset
-        self.all_tcorset  = not some_nottcorset
-
-        self.all_reqgroup = not some_notreqgroup
-        self.all_tcgroup  = not some_nottcgroup
-
-        self.all_reqorgroup = not some_notreqorgroup
-        self.all_tcorgroup  = not some_nottcorgroup
+        # Populate extra attributes on this node
 
         self.container = self.set or self.req
 
         # TC or REQ SETS are nodes with consistent children (all reqs or all
         # tcs).
 
-        self.tcset  = self.set and self.all_tc
-        self.reqset  = self.set and self.all_req
+        self.tcset  = self.set and self.sdset.all_tc
+        self.reqset  = self.set and self.sdset.all_req
 
         # Some mixes are legitimate, as long as the leaf item kinds (tc
         # or req) remain consistent. We call GROUPS those containers, and at
         # this stage we let the notion propagate up pretty freely:
 
-        self.tcgroup = self.set and self.all_tcorgroup
-        self.reqgroup = self.set and self.all_reqorgroup
+        self.tcgroup = self.set and self.sdset.all_tcorgroup
+        self.reqgroup = self.set and self.sdset.all_reqorgroup
 
         # Consistency checks need to be applied elswhere to determine whether
         # such or such mix is acceptable. Consider for example the difference
@@ -651,20 +673,18 @@ class DirTree:
 
         # Warn on structural inconsistencies
 
-        warn_if (diro.set and not (diro.all_tcorgroup or diro.all_reqorgroup),
-            "inconsistent subdirs for set.txt at %s" % diro.root)
-
-        warn_if (diro.req and not diro.all_tcorgroup,
+        warn_if (diro.req and not diro.sdset.all_tcorgroup,
             "inconsistent subdirs down req.txt at %s" % diro.root)
 
         warn_if (
-            diro.req and not diro.all_reqorgroup and not diro.all_tcorgroup,
+            diro.req and not (diro.sdset.all_reqorgroup
+                              or diro.sdset.all_tcorgroup),
             "missing testcases for leaf req in %s" % diro.root)
 
         # Warn on missing testing strategy in leaf requirement with multiple
         # testcases
 
-        warn_if (diro.req and len (diro.subdos) > 1 and diro.all_tcorset
+        warn_if (diro.req and len (diro.subdos) > 1 and diro.sdset.all_tcorset
                  and "%(tstrategy-headline)s" not in diro.dtext(),
              "req at %s misses testing strategy description" % diro.root)
 
@@ -991,15 +1011,12 @@ class DocGenerator(object):
 
             self.text = None
 
-            self.nreqs = 0
+            self.lset = NodeSet()
 
     def __maybe_addline_for (self, diro, pathi, wi):
 
         if pathi.depth < wi.topdepth:
             wi.topdepth = pathi.depth
-
-        if diro.req:
-            wi.nreqs += 1
 
         # Fetch the contents aimed at the Summary column, first paragraph in
         # the description file.
@@ -1023,6 +1040,8 @@ class DocGenerator(object):
         wi.text.append (
             '   %s#%s#%s' % (linktext, entrytext, sumtext))
 
+        self.lset.register_one (node=diro)
+
     def index_table(self, rooto, nodectl, emphctl, tblhdr):
 
         dirtree = DirTree (roots=[rooto])
@@ -1030,17 +1049,40 @@ class DocGenerator(object):
         wi = self.WalkInfo (
             rootp=rooto.root, emphctl=emphctl)
 
-        # Pick defaults for each column header
+        # Start by computing the list of lines of the table body
+
+        wi.text = []
+
+        dirtree.walk (
+            mode=topdown, process=self.__maybe_addline_for,
+            ctl=nodectl, data=wi)
+
+        linkcolheader = tblhdr[0]
+        if linkcolheader:
+            wi.text.extend (
+                ["",
+                 "**%s** " % linkcolheader
+                 +
+                 "For each section described by a line, this column features "
+                 "an hyperlink to the section contents. The hyperlink text is "
+                 "indicative of the section kind:",
+                 ""] + ["* *%s*\tdesignates some %s" % (k.image, k.txthdl)
+                        for k in dcl.kinds]
+                )
+
+        # sync the line attributes and pick defaults for each column header
+
+        wi.lset.sync()
 
         if icLink not in tblhdr:
             tblhdr[icLink] = ""
 
         if icNid not in tblhdr:
             tblhdr[icNid] = (
-                "Testcase" if rooto.all_tc
-                else "Testcase or Group" if rooto.all_tcorgroup
-                else "Requirement" if rooto.all_req
-                else "Requirement or Group" if rooto.all_reqorgroup
+                "Testcase" if wi.lset.all_tc
+                else "Testcase or Group" if wi.lset.all_tcorgroup
+                else "Requirement" if wi.lset.all_req
+                else "Requirement or Group" if wi.lset.all_reqorgroup
                 else "Part")
 
                 # all_tcgroup/all_reqgroup doesn't imply that only tc/req
@@ -1063,24 +1105,8 @@ class DocGenerator(object):
             '   :header: %s' % ','.join (
                     [tblhdr[cid] for cid in [icLink, icNid, icBrief]]
                     )
-            ] + ['', '']
+            ] + ['', ''] + wi.text
 
-        dirtree.walk (
-            mode=topdown, process=self.__maybe_addline_for,
-            ctl=nodectl, data=wi)
-
-        linkcolheader = tblhdr[0]
-        if linkcolheader:
-            wi.text.extend (
-                ["",
-                 "**%s** " % linkcolheader
-                 +
-                 "For each section described by a line, this column features "
-                 "an hyperlink to the section contents. The hyperlink text is "
-                 "indicative of the section kind:",
-                 ""] + ["* *%s*\tdesignates some %s" % (k.image, k.txthdl)
-                        for k in dcl.kinds]
-                )
 
         wi.text = '\n'.join (wi.text)
         return wi
