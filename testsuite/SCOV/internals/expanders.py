@@ -62,7 +62,8 @@ class LnotesExpander:
         m = re.match('\s*([0-9]+) (.):', tline.text)
         if m: self.elnotes[self.source].register (
             Enote (kind = self.NK_for[m.group(2)],
-                   segment = Line(int(m.group(1)))))
+                   segment = Line(int(m.group(1))),
+                   source = self.source))
 
     def listing_to_enotes(self, dotxcov):
         self.source = dotxcov.rsplit ('.', 1)[0]
@@ -94,12 +95,8 @@ class Rsection:
         self.name = name
         self.re_start = re_start
 
-        self.enotes = []
         self.n_starts = 0
         self.n_ends = 0
-
-    def register(self, enote):
-        self.enotes.append (enote)
 
     def starts_on(self, rline):
         if not re.search (self.re_start, rline): return False
@@ -109,19 +106,6 @@ class Rsection:
 
     # def ends_on(self, rline):
 
-    def validate_ecount(self, count):
-        n_observed = len(self.enotes)
-        thistest.fail_if (
-            count != n_observed,
-            "(%s report section) recognized %d notes != summary (%d)\n" %
-            (self.name, n_observed, count))
-
-        self.n_ends += 1
-        return True
-
-    def value(self, count):
-        return (0 if count=="No" else int(count))
-
     def check(self):
         thistest.fail_if (
             self.n_starts != self.n_ends,
@@ -129,11 +113,87 @@ class Rsection:
                 self.name, self.n_starts, self.n_ends)
             )
 
+    def value(self, count):
+        return (0 if count=="No" else int(count))
+
+# eNote sections (violations or exempted regions)
+
+class Nsection (Rsection):
+
+    def __init__(self, name, re_start):
+        Rsection.__init__(self, name=name, re_start=re_start)
+
+        self.enotes = []
+
+    # def nkind_for(self, rline)
+
+    def try_parse_enote(self, rline):
+
+        # We expect something like:
+        #
+        #       "andthen.adb:10:33: statement not covered",
+        #        -----------:-----: ---------------------
+        #        source name:segmt: note text (-> note kind)
+
+        # First, try to figure out the source name, one of our main dictionary
+        # keys. Expect this to be a sequence of non-blank characters ending
+        # with one of the possible source extensions we know about, preceding
+        # a ':' character. Note that the registered extensions embed the '.'
+        # character.
+
+        xsrc = '([^ ]*)(%s):(.*)' % '|'.join (
+            [ext for li in LANGINFO.values() for ext in li.src_ext])
+        p = re.match(xsrc, rline)
+
+        # If no match at all, punt.
+
+        if not p: return None
+
+        # Otherwise, proceed with the complete source name we found.
+
+        source = ''.join ([p.group(1), p.group(2)])
+
+        # Then, work over the trailing part, past the ':' character. Not
+        # stricly necessary, but shorter so slightly more efficient.
+
+        tail = p.group(3)
+
+        nkind = self.nkind_for (tail)
+        if nkind == None:
+            thistest.failed (
+                "(%s =report section) '%s' ?" % (
+                    self.rs.name, rline.rstrip('\n')))
+            return None
+
+        segment = Section_within (tail)
+
+        thistest.stop_if (
+            not segment,
+            FatalError ("Unable to parse report line\n'%s'" % rline))
+
+        return Enote (kind=nkind, segment=segment, source=source)
+
+    def try_parse(self, rline):
+        enote = self.try_parse_enote(rline)
+        if enote:
+            self.enotes.append(enote)
+        return enote
+
+    def validate_ecount(self, count):
+        self.ecount = len(self.enotes)
+        thistest.fail_if (
+            count != self.ecount,
+            "(%s report section) recognized %d notes != summary (%d)\n" %
+            (self.name, self.ecount, count))
+
+        self.n_ends += 1
+        return True
+
 # Violations section
 
-class Vsection (Rsection):
+class Vsection (Nsection):
     def __init__(self, name, re_start, re_notes):
-        Rsection.__init__(self, name=name, re_start=re_start)
+        Nsection.__init__(self, name=name, re_start=re_start)
         self.re_notes = re_notes
 
     def nkind_for(self, rline):
@@ -148,9 +208,9 @@ class Vsection (Rsection):
 
 # eXemptions section
 
-class Xsection (Rsection):
+class Xsection (Nsection):
     def __init__(self, name, re_start):
-        Rsection.__init__(self, name=name, re_start=re_start)
+        Nsection.__init__(self, name=name, re_start=re_start)
 
     def nkind_for(self, rline):
         r = re.search (": (\d+) exempted violation", rline)
@@ -165,9 +225,48 @@ class Xsection (Rsection):
 # Analysis summary section
 
 class Asection (Rsection):
-    def __init__(self, name, re_start):
+    def __init__(self, name, re_start, skeys):
         Rsection.__init__(self, name=name, re_start=re_start)
+        self.skeys = skeys
+        self.checked = dict (
+            [(sec, False) for sec in skeys])
 
+    def try_match(self, sec, rline):
+        p = re.match (self.skeys[sec], rline)
+
+        if p:
+            sum_count = self.value (p.group(1))
+            sec_count = sec.ecount
+            thistest.fail_if (
+                sum_count != sec_count,
+                "summary count %d != section count %d for %s" % (
+                    sum_count, sec_count, sec.name)
+                )
+            thistest.fail_if (
+                sec.n_starts != 1,
+                "summary found for section starts != 1 (%s)" % sec.name
+                )
+            self.checked[sec] = True
+
+    def try_parse(self, rline):
+        [self.try_match(sec, rline)
+         for sec in self.skeys if not self.checked[sec]]
+        return None
+
+    def ends_on(self, rline):
+        p = re.match ("END OF REPORT$", rline)
+        if p:
+            self.n_ends += 1
+        return p
+
+    def check (self):
+        Rsection.check (self)
+
+        [thistest.fail_if (
+                sec.n_starts > 0 and not self.checked[sec],
+                "summary count check missing for section %s" % sec.name
+                ) for sec in self.skeys
+         ]
 
 # Set of sections in a report
 
@@ -178,14 +277,14 @@ class RsectionSet:
             )
 
         self.Sc = Vsection (
-            name="SC", re_start="STMT COVERAGE",
+            name="STMT", re_start="STMT COVERAGE",
             re_notes = {
                 "statement not executed": sNoCov,
                 "multiple statements on line": sPartCov}
             )
 
         self.Dc = Vsection (
-            name="DC", re_start="DECISION COVERAGE",
+            name="DECISION", re_start="DECISION COVERAGE",
             re_notes = {
                 "decision outcome FALSE never": dfNoCov,
                 "decision outcome TRUE never": dtNoCov,
@@ -193,26 +292,46 @@ class RsectionSet:
                 "decision not exercised in both directions": dPartCov}
             )
 
-        self.Mc = Vsection (
-            name="MCDC", re_start="MCDC COVERAGE",
-            re_notes = {
-                "decision outcome FALSE never": efNoCov,
-                "decision outcome TRUE never": etNoCov,
-                "decision never evaluated": eNoCov,
-                "decision not exercised in both directions": ePartCov,
-                "condition has no independent influence pair": cPartCov}
+        mcdc_notes =  {
+            "decision outcome FALSE never": efNoCov,
+            "decision outcome TRUE never": etNoCov,
+            "decision never evaluated": eNoCov,
+            "decision not exercised in both directions": ePartCov,
+            "condition has no independent influence pair": cPartCov
+            }
+
+        self.Uc = Vsection (
+            name="UC_MCDC", re_start="UC_MCDC COVERAGE",
+            re_notes = mcdc_notes
             )
 
-        self.rsections = (self.Sc, self.Dc, self.Mc, self.Xr)
+        self.Mc = Vsection (
+            name="MCDC", re_start=" MCDC COVERAGE",
+            re_notes = mcdc_notes
+            )
+
+        self.vsections = (self.Sc, self.Dc, self.Uc, self.Mc)
+
+        self.nsections = self.vsections + (self.Xr,)
+
+        self.As = Asection (
+            name="AS", re_start="ANALYSIS SUMMARY",
+            skeys = dict (
+                [(s, "(No|\d+) non-exempted %s violation[s]*\.$" % s.name)
+                 for s in self.vsections]
+                + [(self.Xr, "(No|\d+) exempted region[s]*\.$")])
+            )
+
+        self.allsections = self.nsections + (self.As,)
 
     def starts_with (self, rline):
-        for rs in self.rsections:
+        for rs in self.allsections:
             if rs.starts_on (rline):
                 return rs
         return None
 
     def check (self):
-        [rs.check() for rs in self.rsections]
+        [rs.check() for rs in self.allsections]
 
 class RnotesExpander:
     """Produce list of Enote instances found in a "report" output."""
@@ -230,11 +349,11 @@ class RnotesExpander:
 
         self.rset.check()
 
-    def register(self, source, enote):
+    def register(self, enote):
+        source = enote.source
         if source not in self.ernotes:
             self.ernotes[source] = KnoteDict(erNoteKinds)
         self.ernotes[source].register (enote)
-        self.rs.register (enote)
 
     def process_tline(self, tline):
 
@@ -257,49 +376,16 @@ class RnotesExpander:
 
         if self.rs == None: return None
 
-        # In section of interest, match the emitted note text. We expect
-        # something like "andthen.adb:10:33: statement not covered",
-        #                 -----------:-----: ---------------------
-        #                 source name:segmt: note text (-> note kind)
+        enote = self.rs.try_parse(rline)
 
-        # First, try to figure out the source name, one of our main dictionary
-        # keys. Expect this to be a sequence of non-blank characters ending
-        # with one of the possible source extensions we know about, preceding
-        # a ':' character. Note that the registered extensions embed the '.'
-        # character.
+        # Some sections produce enotes, some don't (e.g. analysis summary).
+        # An error is issued by the section processing if it should find one
+        # but couldn't.
 
-        xsrc = '([^ ]*)(%s):(.*)' % '|'.join (
-            [ext for li in LANGINFO.values() for ext in li.src_ext])
-        p = re.match(xsrc, rline)
+        if enote:
+            self.register (enote)
 
-        # If no match at all, skip. Otherwise, proceed with the complete
-        # source name we found.
-
-        if not p:
-            return None
-        else:
-            source = ''.join ([p.group(1), p.group(2)])
-
-        # Then, work over the trailing part, past the ':' character. Not
-        # stricly necessary, but shorter so slightly more efficient.
-
-        tail = p.group(3)
-
-        nkind = self.rs.nkind_for (tail)
-        if nkind == None:
-            thistest.failed (
-                "(%s, %s section) '%s' ?" % (
-                    self.report, self.rs.name, rline.rstrip('\n')))
-            return None
-
-        segment = Section_within (tail)
-
-        thistest.stop_if (
-            not segment,
-            FatalError ("Unable to parse report line\n'%s'" % rline))
-
-        return self.register (
-            source, Enote (kind=nkind, segment=segment))
+        return enote
 
     def __init__(self, report):
 
