@@ -1,3 +1,5 @@
 Appendix
 
-%(subset-index)s
+This is split as the following set of sections:
+
+%(app-index)s
