@@ -7,12 +7,18 @@
 # NOTE: Beware that the testresults are obtained by running the testsuite,
 # with the compiler determined by your PATH.
 
-# Expect a single argument, name of a directory where all the operations are
-# performed (where artifact sources are extracted, built, ...)
+# Expect two arguments:
 
-if [ $# != 1 ]
+# 1- name of a directory where all the operations are performed (where
+#    artifact sources are extracted, built, ...). This directory must not
+#    exist when the script starts. The script will error out otherwise.
+
+# 2- Base name of the bundle to be created, as a .zip file deposited in the
+#    temporary directory.
+
+if [ $# != 2 ]
 then
-    echo "usage: $0 <TMPROOT>"
+    echo "usage: $0 <TMPROOT> <BUNDLENAME>"
     echo "!! Make sure to have the proper toolchain on PATH !!"
     exit 1
 fi
@@ -37,6 +43,9 @@ then
     echo "creation of $TMPROOT failed somehow"
     exit 1
 fi
+
+shift
+BUNDLENAME=$1
 
 # Get there and acquire an absolute reference so we can
 # get back easily as needed
@@ -106,7 +115,7 @@ cp couverture/qualification/plans/plans.pdf $PACKROOT/PLANS
 cd $TMPROOT/couverture/qualification/index
 make html
 
-INDEXROOT=GNATCOVERAGE-QM  # relative to TMPROOT
+INDEXROOT=${BUNDLENAME}  # relative to TMPROOT
 
 if [ -e $TMPROOT/$INDEXROOT ]
 then
