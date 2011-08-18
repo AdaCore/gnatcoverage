@@ -3,8 +3,7 @@ hierarchy that constitutes part of the GNATcoverage qualification material.
 
 This is decomposed in several toplevel chapters, summarized in the table
 below. The language specific chapters that apply depend on your qualification
-objectives. The other chapters are of general relevance, independent of the
-sought qualification level.
+objectives.
 
 %(toplevel-index)s
 
