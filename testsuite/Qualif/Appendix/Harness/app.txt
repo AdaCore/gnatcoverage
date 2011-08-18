@@ -49,18 +49,19 @@ TORs and Test Cases
 -------------------
 
 Tool Operational Requirements and Test Cases are all collected and linked
-together as a tree. Each TOR is either subdivided into simpler TORs or
-directly validated by a set of testcases.
+together as a tree.
 
 Tool Operational Requirements
 *****************************
 
 TORs specify the tool expected behavior in nominal conditions of use.
 
-Each TOR description comes with a Testing Strategy, describing how the
-sub-artifacts (sub-tors and/or test cases) are organized to demonstrate that
-the tool complies with the requirements.  This description includes synthetic
-indexes offering overviews of the available sub artifacts.
+Each TOR comes with a set of Test Cases to validate it, and every TOR
+description comes with a Testing Strategy text describing how the tests are
+organized to demonstrate that the tool complies with the requirement.
+
+Requirement *Groups* are introduced to expose a general organisation
+constructed as a logical hierarchy.
 
 Test Cases
 **********
@@ -106,6 +107,9 @@ and one consolidation scenario::
 
   cons_andthen_all.adb -- consolidation spec for all the program tests,
                        -- with the corresponding expected coverage results
+
+As for requirements, Test Case *Groups* are introduced for organizational
+purposes as needed.
 
 Coverage Expectations
 *********************
