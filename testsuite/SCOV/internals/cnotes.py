@@ -125,7 +125,8 @@
 
 # otNoCov  : outcome True not covered (=report)
 # ofNoCov  : outcome False not covered (=report)
-# oNoCov   : never evaluated (=report)
+# oPartCov : one outcome not covered (=report)
+# oNoCov   : outcome never evaluated (=report)
 
 lNoCode, lFullCov, \
 strictNote, \
@@ -135,10 +136,10 @@ lNoCov, lPartCov, \
 sNoCov, sPartCov, \
 dtNoCov, dfNoCov, dNoCov, dPartCov, \
 etNoCov, efNoCov, eNoCov, ePartCov, \
-otNoCov, ofNoCov, oNoCov, \
+otNoCov, ofNoCov, oNoCov, oPartCov, \
 cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(26)
+xBlock0, xBlock1 = range(27)
 
 NK_image  = {None: "None",
              lNoCode: "lNoCode", lFullCov: "lFullCov",
@@ -150,6 +151,7 @@ NK_image  = {None: "None",
              etNoCov: "etNoCov", efNoCov: "efNoCov", eNoCov: "eNoCov",
              ePartCov: "ePartCov",
              otNoCov: "otNoCov", ofNoCov: "ofNoCov", oNoCov: "oNoCov",
+             oPartCov: "oPartCov",
              xBlock0: "xBlock0", xBlock1: "xBlock1",
              cPartCov: "cPartCov"}
 
@@ -179,7 +181,7 @@ xNoteKinds = (xBlock0, xBlock1)                     # Exemption regions
 
 rAntiKinds = (r0,)                                  # Anti-expectaions
 
-tNoteKinds = (otNoCov, ofNoCov, oNoCov)             # Transient kinds
+tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)   # Transient kinds
 
 # Even though they are expected never to be emitted, we include the transient
 # kinds in the Emitted Report Notes set because we do want to handle them as

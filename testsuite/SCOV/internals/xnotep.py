@@ -102,7 +102,7 @@ class XnoteP:
               's-': sNoCov, 's!': sPartCov,
               'dT-': dtNoCov, 'dF-': dfNoCov, 'd!': dPartCov, 'd-': dNoCov,
               'eT-': etNoCov, 'eF-': efNoCov, 'e!': ePartCov, 'e-': eNoCov,
-              'oT-': otNoCov, 'oF-': ofNoCov, 'o-': oNoCov,
+              'oT-': otNoCov, 'oF-': ofNoCov, 'o!': oPartCov, 'o-': oNoCov,
               'c!': cPartCov,
               'x0': xBlock0, 'x+': xBlock1,
               '0': r0}

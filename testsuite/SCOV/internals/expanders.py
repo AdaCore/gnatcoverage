@@ -541,22 +541,25 @@ class UnitCX:
         # outcome expectations for line are to produce "decision"
         # expectations
 
-        "o/d": {otNoCov: dtNoCov,
-                ofNoCov: dfNoCov,
-                oNoCov : dNoCov},
+        "o/d": {otNoCov : dtNoCov,
+                ofNoCov : dfNoCov,
+                oPartCov: dPartCov,
+                oNoCov  : dNoCov},
 
         # outcome expectations for line are to produce "expression"
         # expectations
 
-        "o/e": {otNoCov: etNoCov,
-                ofNoCov: efNoCov,
-                oNoCov : eNoCov},
+        "o/e": {otNoCov : etNoCov,
+                ofNoCov : efNoCov,
+                oPartCov: ePartCov,
+                oNoCov  : eNoCov},
 
         # outcome expectations for line are to be ignored
 
-        "o/0": {otNoCov: r0,
-                ofNoCov: r0,
-                oNoCov : r0,
+        "o/0": {otNoCov : r0,
+                ofNoCov : r0,
+                oPartCov: r0,
+                oNoCov  : r0,
                 lPartCov: lFullCov
                 }
         }
