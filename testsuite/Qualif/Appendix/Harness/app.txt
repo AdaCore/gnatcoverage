@@ -103,7 +103,7 @@ and one consolidation scenario::
                        -- coverage results are expected over andthen.adb
 
   test_andthen_tf.adb  -- driver calling F (True, False)
-  test_andthen_fx.adb  -- driver calling F (False, X)
+  test_andthen_fx.adb  -- driver calling F (False, X) for X in [True, False]
 
   cons_andthen_all.adb -- consolidation spec for all the program tests,
                        -- with the corresponding expected coverage results
