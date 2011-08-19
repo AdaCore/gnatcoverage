@@ -1,6 +1,0 @@
-Check DC on decisions of arbitrary topology in any language flow
-construct they might control.
-
-%(tc-index)s
-
-
