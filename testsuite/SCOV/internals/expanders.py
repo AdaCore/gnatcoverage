@@ -521,14 +521,44 @@ class UnitCX:
     # kind subsitution rules processing
     # ---------------------------------
 
+    # For shared drivers that exercise boolean expressions in different
+    # possible contexts (control constructs or others), determined by the
+    # functional source. For example,
+    #
+    #    Assert (Andthen (A => True, B => True));
+    #
+    # doesn't exercise the False outcome of an and-then expression, always.
+    # This could result in different output expectations depending on the
+    # context where the expression is used.
+    #
+    # A shared driver would express this with "oF-", that needs to be turned
+    # into, say, dF- or eF- according to hints in the functional source.  Such
+    # hints are provided as :<subst-key>: at the end of line anchors, with the
+    # following possible values for <subst-key> :
+
     subst_tuples_for = {
+
+        # outcome expectations for line are to produce "decision"
+        # expectations
+
         "o/d": {otNoCov: dtNoCov,
                 ofNoCov: dfNoCov,
                 oNoCov : dNoCov},
 
+        # outcome expectations for line are to produce "expression"
+        # expectations
+
         "o/e": {otNoCov: etNoCov,
                 ofNoCov: efNoCov,
-                oNoCov : eNoCov}
+                oNoCov : eNoCov},
+
+        # outcome expectations for line are to be ignored
+
+        "o/0": {otNoCov: r0,
+                ofNoCov: r0,
+                oNoCov : r0,
+                lPartCov: lFullCov
+                }
         }
 
     def check_srules_on (self, tline):
