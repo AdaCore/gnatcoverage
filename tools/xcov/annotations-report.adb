@@ -235,6 +235,9 @@ package body Annotations.Report is
 
       Total_Exempted_Regions : Natural;
 
+      function Has_Exempted_Region return Boolean;
+      --  True iff there's at least one exempted region
+
       procedure Messages_For_Section
         (MC    : Message_Class;
          Title : String;
@@ -250,6 +253,22 @@ package body Annotations.Report is
 
       procedure Output_Exemption (C : Cursor);
       --  Show summary information for exemption denoted by C
+
+      -------------------------
+      -- Has_Exempted_Region --
+      -------------------------
+
+      function Has_Exempted_Region return Boolean is
+         C : Cursor := ALI_Annotations.First;
+      begin
+         while Has_Element (C) loop
+            if Element (C).Kind = Exempt_On then
+               return True;
+            end if;
+            Next (C);
+         end loop;
+         return False;
+      end Has_Exempted_Region;
 
       ----------------------
       -- Output_Exemption --
@@ -351,10 +370,19 @@ package body Annotations.Report is
          Put_Line (Output.all, Pluralize (Pp.Item_Count, Item) & ".");
       end Messages_For_Section;
 
+      Non_Exempted_Str : constant String := "non-exempted ";
+      Non_Exempted     : String renames Non_Exempted_Str
+                                          (Non_Exempted_Str'First ..
+                                           Boolean'Pos (Has_Exempted_Region)
+                                             * Non_Exempted_Str'Last);
+      --  If Has_Exempted_Region is True, Non_Exempted = Non_Exempted_Str,
+      --  else Non_Exempted = "". Used to omit the mention "non-exempted" when
+      --  there's no exemption in sight anyway.
+
    --  Start of processing for Pretty_Print_End
 
    begin
-      Pp.Chapter ("NON-EXEMPTED VIOLATIONS");
+      Pp.Chapter (To_Upper (Non_Exempted) & "VIOLATIONS");
 
       Total_Messages := 0;
 
@@ -380,14 +408,16 @@ package body Annotations.Report is
             Item  => "message");
       end if;
 
-      Pp.Chapter ("EXEMPTED REGIONS");
-      Total_Exempted_Regions := 0;
-      ALI_Annotations.Iterate (Output_Exemption'Access);
+      if Has_Exempted_Region then
+         Pp.Chapter ("EXEMPTED REGIONS");
+         Total_Exempted_Regions := 0;
+         ALI_Annotations.Iterate (Output_Exemption'Access);
 
-      New_Line (Output.all);
-      Put_Line
-        (Output.all,
-         Pluralize (Total_Exempted_Regions, "exempted region") & ".");
+         New_Line (Output.all);
+         Put_Line
+           (Output.all,
+            Pluralize (Total_Exempted_Regions, "exempted region") & ".");
+      end if;
 
       Pp.Chapter ("ANALYSIS SUMMARY");
 
@@ -400,7 +430,7 @@ package body Annotations.Report is
               (Output.all,
                Pluralize (Natural (Pp.Nonexempted_Messages
                                      (Coverage_Level'Pos (J)).Length),
-                 "non-exempted " & J'Img & " violation") & '.');
+                 Non_Exempted & J'Img & " violation") & '.');
          end if;
       end loop;
 
@@ -412,9 +442,11 @@ package body Annotations.Report is
               "other message") & ".");
       end if;
 
-      Put_Line
-        (Output.all,
-         Pluralize (Total_Exempted_Regions, "exempted region") & ".");
+      if Has_Exempted_Region then
+         Put_Line
+           (Output.all,
+            Pluralize (Total_Exempted_Regions, "exempted region") & ".");
+      end if;
 
       New_Line (Output.all);
       Put_Line (Output.all, "END OF REPORT");
