@@ -84,7 +84,7 @@ mv build/html $PACKROOT/TOR
 
 cd $TMPROOT/couverture/testsuite
 
-ln -s ../tools/xcov/examples/support support
+mv ../tools/xcov/examples/support support
 svn checkout -q $OPENDO_SVN/gnatpython/trunk/gnatpython  support/gnatpython
 export PYTHONPATH=`pwd`/support/gnatpython
 
