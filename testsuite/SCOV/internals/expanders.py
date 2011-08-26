@@ -317,7 +317,7 @@ class RsectionSet:
         self.As = Asection (
             name="AS", re_start="ANALYSIS SUMMARY",
             skeys = dict (
-                [(s, "(No|\d+) non-exempted %s violation[s]*\.$" % s.name)
+                [(s, "(No|\d+).* %s violation[s]*\.$" % s.name)
                  for s in self.vsections]
                 + [(self.Xr, "(No|\d+) exempted region[s]*\.$")])
             )
