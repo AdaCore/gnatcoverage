@@ -583,10 +583,10 @@ class DirTree:
             # Append "/" to items to prevent "bla/C" from being considered
             # a directory prefix of "bla/Common"
 
-            rootdir = diro.root + "/"
+            rootdir = diro.root + os.sep
 
             for tokeep in wi.tokeep:
-                dirtokeep = tokeep + "/"
+                dirtokeep = tokeep + os.sep
                 if os.path.commonprefix ((rootdir, dirtokeep)) == rootdir:
                     return (
                         dirSkip if len(rootdir) < len(dirtokeep)
@@ -1253,8 +1253,7 @@ class DocGenerator(object):
 
     def generate_all(self, chapdirs):
 
-        ref_chapdirs = [
-            "Appendix", "Common", "Ada/stmt", "Ada/decision", "Ada/mcdc"]
+        ref_chapdirs = ["Appendix", "Common", "Ada"]
 
         # [Re]generate only the requested chapters, when specified,
         # everything otherwise
