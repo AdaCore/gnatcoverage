@@ -18,7 +18,7 @@ def run (s, out=None):
     print "run : %s" % s
     l = s.split()
     if out == None:
-        out = l[0]
+        out = l[0]+".log"
     return Run (s.split(), output=out)
 
 def announce (s):
@@ -62,43 +62,48 @@ class QMAT:
         os.chdir(self.rootdir)
         run ("svn co -q %s" % OPENDO_SVN + "/couverture/trunk/couverture")
 
-        self.repodir = self.rootdir + "/couverture"
+        self.repodir = os.path.join (self.rootdir, "couverture")
 
     def build_tor (self):
         announce ("building TOR")
 
-        os.chdir ("%s/qualification/tor/scripts" % self.repodir)
-        run ("make CHAPTERS=Appendix")
-        shutil.move ("build/html", self.itemsdir + "/TOR")
+        os.chdir (os.path.join (
+                self.repodir, "qualification", "tor", "scripts"))
+        run ("make")
+        shutil.move (
+            os.path.join ("build", "html"),
+            os.path.join (self.itemsdir, "TOR"))
 
     def build_str (self):
         announce ("building STR")
 
-        os.chdir ("%s/testsuite" % self.repodir)
+        os.chdir (os.path.join (self.repodir, "testsuite"))
         shutil.move (
-            "../tools/xcov/examples/support",
+            os.path.join ("..", "tools", "xcov", "examples", "support"),
             "support")
 
-        run ("./testsuite.py --target=ppc-elf --disable-valgrind "
-             + "--qualif-level=doA -j6 Report")
+        run ("python testsuite.py --target=ppc-elf --disable-valgrind "
+             + "--qualif-level=doA -j6")
 
-        os.chdir ("%s/testsuite/qreport" % self.repodir)
+        os.chdir (os.path.join (self.repodir, "testsuite", "qreport"))
         run ("make html")
 
-        shutil.move ("build/html", self.itemsdir + "/STR")
+        shutil.move (
+            os.path.join ("build", "html"),
+            os.path.join (self.itemsdir, "STR"))
 
     def build_plans (self):
         announce ("building PLANS")
 
         os.mkdir ("%s/PLANS" % self.itemsdir)
         shutil.copy (
-            "%s/qualification/plans/plans.pdf" % self.repodir,
-            "%s/PLANS" % self.itemsdir)
+            os.path.join (self.repodir, "qualification", "plans", "plans.pdf"),
+            os.path.join (self.itemsdir, "PLANS"))
 
     def build_pack (self):
         announce ("building INDEX")
 
-        os.chdir ("%s/qualification/index" % self.repodir)
+        os.chdir (os.path.join (self.repodir, "qualification", "index"))
         run ("make html")
 
         packroot = os.path.join (self.rootdir, self.pname)
@@ -107,7 +112,7 @@ class QMAT:
             os.path.exists (packroot), "%s exists already !!" % packroot
             )
 
-        shutil.move ("build/html", packroot)
+        shutil.move (os.path.join ("build", "html"), packroot)
         shutil.move (self.itemsdir, packroot)
 
         os.chdir (self.rootdir)
