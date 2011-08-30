@@ -382,7 +382,7 @@ package body Annotations.Report is
    --  Start of processing for Pretty_Print_End
 
    begin
-      Pp.Chapter (To_Upper (Non_Exempted) & "VIOLATIONS");
+      Pp.Chapter (To_Upper (Non_Exempted) & "COVERAGE VIOLATIONS");
 
       Total_Messages := 0;
 
