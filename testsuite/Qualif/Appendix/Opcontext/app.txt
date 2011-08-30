@@ -1,0 +1,24 @@
+Operational Context
+
+Proper operation of the tool depends on a few external rules that need to
+be obeyed: 
+
+========  ===================================================================
+Rule #    
+========  ===================================================================
+1         Use of a proper GNAT/GCC compiler version, as identified by the
+          tool provider
+
+2         Use of the ``-fpreserve-control-flow`` compiler command-line
+          option, whatever the criterion to be assessed
+
+3         -O0 or -O1 optimization level only, with or without inlining. -O2
+          or extra individual optimization flags are not supported.
+
+4         For criteria involving decisions or conditions in the DO-178B
+          sense, use of binary Boolean operators restricted to those with
+          short-circuit semantics (and-then/or-else in Ada)
+========  ===================================================================
+
+Rule #3 is enforced by the ``No_Direct_Boolean_Operator`` Restriction pragma
+in the GNAT series of compilers.
