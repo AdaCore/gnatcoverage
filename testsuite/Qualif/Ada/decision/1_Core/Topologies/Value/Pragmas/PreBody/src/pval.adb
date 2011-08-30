@@ -1,6 +1,6 @@
 pragma Check_Policy (Precondition, On);
 
-package body Value is
+package body Pval is
 
    function F (X : Boolean) return Boolean is
       pragma Precondition (X); -- # eval :o/0:

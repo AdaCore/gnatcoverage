@@ -1,11 +1,11 @@
-with Support, Value; use Support, Value;
+with Support, Pval; use Support, Pval;
 
-procedure Test_Value_0 is
+procedure Test_Pval_0 is
 begin
    Assert (True);
 end;
 
---# value.adb
+--# pval.adb
 -- /__l!d!/      l- s-
 -- /eval/    l- s-
 -- /returnTrue/  l- s-

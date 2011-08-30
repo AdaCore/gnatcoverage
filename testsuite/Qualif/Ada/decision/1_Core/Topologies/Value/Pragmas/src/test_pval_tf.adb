@@ -1,12 +1,12 @@
-with Support, Silent_Last_Chance, Value; use Support, Value;
+with Support, Silent_Last_Chance, Pval; use Support, Pval;
 
-procedure Test_Value_TF is
+procedure Test_Pval_TF is
 begin
    Assert (F (True) = True);
    Assert (F (False) = False);
 end;
 
---# value.adb
+--# pval.adb
 -- /eval/    l+ 0
 -- /returnTrue/  l+ 0
 -- /returnFalse/ l+ 0
