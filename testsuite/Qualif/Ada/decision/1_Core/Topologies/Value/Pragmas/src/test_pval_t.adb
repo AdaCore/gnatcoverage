@@ -5,6 +5,9 @@ begin
    Assert (F (True) = True);
 end;
 
+--# pval.ads
+-- /eval/    l! o!
+
 --# pval.adb
 -- /eval/    l! o!
 -- /returnTrue/  l+ 0
