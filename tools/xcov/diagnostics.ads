@@ -60,8 +60,7 @@ package Diagnostics is
       Msg  : String;
       Kind : Report_Kind := Error);
    --  Report a violation of a source coverage obligation. Note: the SCO kind
-   --  will be prepended to Msg in reports, unless Msg starts with the ^
-   --  character.
+   --  will be prepended to Msg in reports, unless Msg starts with ^ (caret).
 
    procedure Report
      (Msg  : String;
