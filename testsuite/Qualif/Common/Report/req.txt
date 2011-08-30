@@ -1,4 +1,4 @@
-Describe the tool output report format and check compliance to it
+qDescribe the tool output report format and check compliance to it
 
 %(req-headline)s
 
@@ -9,8 +9,9 @@ The tool qualified output is the synthetic report produced by the
 
 * End with an explicit "END OF REPORT" indication
 
-* Feature four sections in between: "Assessment Context",
-  "Non-exempted violations", "Exempted Regions" and "Analysis summary"
+* Feature up to four sections in between: "Assessment Context", "Coverage
+  violations", "Exempted Regions" if any such region was declared in the
+  sources of interest, and "Analysis summary"
 
 * The "Assessment Context" section shall summarize all the elements
   of relevance to characterize the reported assessment unambiguously:
@@ -21,7 +22,7 @@ The tool qualified output is the synthetic report produced by the
 
   * Full command line issued to produce the report
 
-  * Target criterion
+  * Coverage criteria assessed (e.g. "stmt" or "stmt+decision")
 
   * Information about each of the input trace files:
 

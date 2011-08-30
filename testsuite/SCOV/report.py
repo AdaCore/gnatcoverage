@@ -105,7 +105,7 @@ class ReportChecker:
     def __register(self, rpieces):
         self.rpElements.extend (rpieces)
 
-    def __setup_expectations(self, ntraces, category):
+    def __setup_expectations(self, ntraces, category, xregions):
 
         self.rpElements = []
 
@@ -155,7 +155,9 @@ class ReportChecker:
         # NON-EXEMPTED VIOLATIONS
 
         vioHeader = Piece (
-            pattern="NON-EXEMPTED VIOLATIONS", pre=trTag)
+            pattern = ("%sCOVERAGE VIOLATIONS"
+                       % ("NON-EXEMPTED " if xregions else "")),
+            pre = trTag)
 
         self.__register (rpieces = [vioHeader])
 
@@ -170,40 +172,47 @@ class ReportChecker:
 
         # EXEMPTED REGIONS
 
-        xmrHeader = Piece (
-            pattern="EXEMPTED REGIONS", pre=vsCount)
-        xmrCount = Piece (
-            pattern="([0-9]+|No) exempted region", nexpected=-1, pre=xmrHeader)
+        if xregions:
+            xmrHeader = Piece (
+                pattern = "EXEMPTED REGIONS", pre=vsCount)
+            xmrCount = Piece (
+                pattern = "([0-9]+|No) exempted region", nexpected=-1,
+                pre = xmrHeader)
 
-        self.__register (rpieces = [xmrHeader, xmrCount])
+            self.__register (rpieces = [xmrHeader, xmrCount])
 
         # ANALYSIS SUMMARY
 
         sumHeader = Piece (
-            pattern="ANALYSIS SUMMARY", pre=xmrHeader)
+            pattern = "ANALYSIS SUMMARY",
+            pre = xmrHeader if xregions else vsHeader)
 
         self.__register (rpieces = [sumHeader])
 
         pre=sumHeader
         for crit in crit_for [category]:
             sumLine = Piece (
-                pattern="([0-9]+|No) non-exempted %s violation" % crit,
-                pre=pre)
+                pattern = ("([0-9]+|No) %s%s violation" %
+                           ("non-exempted " if xregions else "", crit)),
+                pre = pre)
             self.__register (rpieces = [sumLine])
             pre=sumLine
 
-        xmrCount = Piece (
-            pattern="([0-9]+|No) exempted region", nexpected=-1, pre=sumLine)
-        self.__register (rpieces = [xmrCount])
+        if xregions:
+            sumLine = Piece (
+                pattern = "([0-9]+|No) exempted region",
+                nexpected = -1,
+                pre = sumLine)
+            self.__register (rpieces = [sumLine])
 
         # END OF REPORT
 
         rpEnd    = Piece (
-            pattern="END OF REPORT", pre=xmrCount)
+            pattern="END OF REPORT", pre=sumLine)
         self.__register (rpieces = [rpEnd])
 
-    def __init__(self, subdir, ntraces, category):
-        self.__setup_expectations(ntraces, category)
+    def __init__(self, subdir, ntraces, category, xregions):
+        self.__setup_expectations(ntraces, category, xregions)
         self.report = Tfile ("tmp_%s/test.rep" % subdir, self.__process_line)
 
     def run (self):
