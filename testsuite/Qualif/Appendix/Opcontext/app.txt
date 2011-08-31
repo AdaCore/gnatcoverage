@@ -20,5 +20,5 @@ Rule #
           short-circuit semantics (and-then/or-else in Ada)
 ========  ===================================================================
 
-Rule #3 is enforced by the ``No_Direct_Boolean_Operator`` Restriction pragma
+Rule #4 is enforced by the ``No_Direct_Boolean_Operator`` Restriction pragma
 in the GNAT series of compilers.

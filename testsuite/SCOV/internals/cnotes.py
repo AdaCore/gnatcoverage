@@ -93,6 +93,7 @@
 # lNoCode  : no code for line (=xcov)
 # lFullCov : full coverage for line (=xcov)
 # r0       : expect empty set of violations (=report)
+# r0c      : like r0, on a statement continuation line (=report)
 # lx0      : line part of exempted block, 0 deviations (=xcov)
 # lx1      : line part of exempted block, >0 deviations (=xcov)
 # lNoCov   : line not covered (=xcov)
@@ -130,7 +131,7 @@
 
 lNoCode, lFullCov, \
 strictNote, \
-r0, lx0, lx1, \
+r0, r0c, lx0, lx1, \
 deviationNote, \
 lNoCov, lPartCov, \
 sNoCov, sPartCov, \
@@ -139,12 +140,12 @@ etNoCov, efNoCov, eNoCov, ePartCov, \
 otNoCov, ofNoCov, oNoCov, oPartCov, \
 cPartCov, \
 blockNote, \
-xBlock0, xBlock1 = range(27)
+xBlock0, xBlock1 = range(28)
 
 NK_image  = {None: "None",
              lNoCode: "lNoCode", lFullCov: "lFullCov",
              lNoCov: "lNoCov", lPartCov: "lPartCov",
-             r0 : "r0", lx0: "lx0", lx1: "lx1",
+             r0 : "r0", r0c: "r0c", lx0: "lx0", lx1: "lx1",
              sNoCov: "sNoCov", sPartCov: "sPartCov",
              dtNoCov: "dtNoCov", dfNoCov: "dfNoCov", dNoCov: "dNoCov",
              dPartCov: "dPartCov",
@@ -179,7 +180,7 @@ cNoteKinds = ( # MCDC violations
 
 xNoteKinds = (xBlock0, xBlock1)                     # Exemption regions
 
-rAntiKinds = (r0,)                                  # Anti-expectaions
+rAntiKinds = (r0, r0c)                              # Anti-expectations
 
 tNoteKinds = (otNoCov, ofNoCov, oPartCov, oNoCov)   # Transient kinds
 

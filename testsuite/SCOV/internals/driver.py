@@ -30,7 +30,7 @@ from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 
 from gnatpython.fileutils import cd, mkdir
 
-from . cnotes import r0, xBlock0, xBlock1
+from . cnotes import r0, r0c, xBlock0, xBlock1
 from . cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds
 from . cnotes import xNoteKinds, sNoteKinds, dNoteKinds, cNoteKinds, tNoteKinds
 from . cnotes import strict_p, deviation_p, anti_p, positive_p
@@ -579,8 +579,8 @@ class SCOV_helper:
         # -------------------
 
         # Setup our discharging configuration for stricter_level mode,
-        # then augment with What is allowed to hit a "0" report expectation
-        # statement:
+        # then augment with what is allowed to hit "0" or "0c" report
+        # expectation statements:
 
         discharge_kdict = {
             # let an emitted xBlock1 discharge an xBlock0 expectation, as
@@ -590,7 +590,9 @@ class SCOV_helper:
             } if stricter_level else {}
 
         discharge_kdict.update (
-            {r0 : r_ern_for[self.category]})
+            {r0 : r_ern_for[self.category],
+             r0c : r_ern_for[self.category]
+             })
 
         # Then do check:
 

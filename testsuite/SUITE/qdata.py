@@ -122,13 +122,15 @@ class QDregistry:
 # descriptive data holders
 
 class Column:
-    def __init__(self, htext, legend=""):
+    def __init__(self, htext, legend="", hidden=False):
 
-        # HTEXT is the column header text, and LEGEND is a brief
-        # description of the column contents
+        # HTEXT is the column header text,
+        # LEGEND is a brief description of the column contents,
+        # HIDDEN tells if the column should not be displayed
 
         self.htext = htext
         self.legend = legend
+        self.hidden = hidden
 
 class colid:
 
@@ -159,6 +161,9 @@ class colid:
 
     xbv = Column (
         htext="xbv", legend="# EXEMPTION blocks with violations")
+
+    igv = Column (
+        htext="igv", legend="counters to be ignored", hidden=True)
 
     # Status counters and overall status, for status summary
 
@@ -196,6 +201,7 @@ column_for = {
     # When counting notes, map note kinds to table columns
 
     r0      : colid.nov,
+    r0c     : colid.igv,
     xBlock0 : colid.nov,
 
     sNoCov   : colid.scv,
@@ -228,7 +234,9 @@ column_for = {
 # -------------------------------
 
 # Violation counters
-viocnt_columns = (colid.nov, colid.scv, colid.dcv, colid.mcv, colid.xbv)
+viocnt_columns = (
+    colid.nov, colid.igv, colid.scv, colid.dcv, colid.mcv, colid.xbv
+    )
 
 # Status counters
 stacnt_columns = (colid.passed, colid.failed)
@@ -331,7 +339,7 @@ class RSTtable:
         # title/text/legend for a set of tables with contents coming right
         # after.
 
-        self.columns = columns
+        self.columns = [col for col in columns if not col.hidden]
         self.contents = contents
 
         # TITLE and TEXT are the table title and descriptive text, if any.
