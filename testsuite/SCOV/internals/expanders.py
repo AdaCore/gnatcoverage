@@ -116,7 +116,7 @@ class Rsection:
     def value(self, count):
         return (0 if count=="No" else int(count))
 
-# eNote sections (violations or exempted regions)
+# eNote sections (violations, exempted regions, or other messages)
 
 class Nsection (Rsection):
 
@@ -162,7 +162,7 @@ class Nsection (Rsection):
         if nkind == None:
             thistest.failed (
                 "(%s =report section) '%s' ?" % (
-                    self.rs.name, rline.rstrip('\n')))
+                    self.name, rline.rstrip('\n')))
             return None
 
         segment = Section_within (tail)
@@ -204,6 +204,24 @@ class Vsection (Nsection):
 
     def ends_on(self, rline):
         p = re.match ("(No|\d+) violation[s]*\.$", rline)
+        return p and self.validate_ecount (count=self.value(p.group(1)))
+
+# Other errors section
+
+class Osection (Nsection):
+    def __init__(self, name, re_start):
+        Nsection.__init__(self, name=name, re_start=re_start)
+
+    def nkind_for(self, rline):
+
+        # Messages in this section are always unexpected and should trigger
+        # test failure. Just tell we don't know how to bind them on any sort
+        # of expected note kind, and let the generic engine do the rest.
+
+        return None
+
+    def ends_on(self, rline):
+        p = re.match ("(No|\d+) message[s]*\.$", rline)
         return p and self.validate_ecount (count=self.value(p.group(1)))
 
 # eXemptions section
@@ -310,9 +328,13 @@ class RsectionSet:
             re_notes = mcdc_notes
             )
 
+        self.Oe = Osection (
+            name="OE", re_start="OTHER ERRORS"
+            )
+
         self.vsections = (self.Sc, self.Dc, self.Uc, self.Mc)
 
-        self.nsections = self.vsections + (self.Xr,)
+        self.nsections = self.vsections + (self.Xr, self.Oe)
 
         self.As = Asection (
             name="AS", re_start="ANALYSIS SUMMARY",
