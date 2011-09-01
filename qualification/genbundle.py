@@ -32,6 +32,9 @@ class QMAT:
         self.rootdir = options.rootdir
         self.pname = options.pname
 
+        self.re_tests = options.re_tests
+        self.re_chapters = options.re_chapters
+
     def to_root (self):
         os.chdir (self.rootdir)
 
@@ -69,7 +72,12 @@ class QMAT:
 
         os.chdir (os.path.join (
                 self.repodir, "qualification", "tor", "scripts"))
-        run ("make")
+
+        make_args = (
+            'CHAPTERS="%s"' % self.re_chapters if self.re_chapters else '')
+
+        run ("make " + make_args)
+
         shutil.move (
             os.path.join ("build", "html"),
             os.path.join (self.itemsdir, "TOR"))
@@ -83,7 +91,7 @@ class QMAT:
             "support")
 
         run ("python testsuite.py --target=ppc-elf --disable-valgrind "
-             + "--qualif-level=doA -j6")
+             + "--qualif-level=doA -j6 " + self.re_tests)
 
         os.chdir (os.path.join (self.repodir, "testsuite", "qreport"))
         run ("make html")
@@ -95,10 +103,22 @@ class QMAT:
     def build_plans (self):
         announce ("building PLANS")
 
-        os.mkdir ("%s/PLANS" % self.itemsdir)
-        shutil.copy (
-            os.path.join (self.repodir, "qualification", "plans", "plans.pdf"),
-            os.path.join (self.itemsdir, "PLANS"))
+        if 0:
+            os.chdir (
+                os.path.join (self.repodir, "qualification", "qm", "plans"))
+            run ("qm_server -l scripts/generate_plan.py -p 0 .")
+
+            shutil.move (
+                os.path.join (self.repodir, "qualification", "qm", "plans", "html"),
+                os.path.join (self.itemsdir, "PLANS"))
+
+        else:
+            os.chdir (os.path.join (self.repodir, "qualification", "plans"))
+            run ("tar xzf html.tar.gz")
+
+            shutil.move (
+                os.path.join (self.repodir, "qualification", "plans", "html"),
+                os.path.join (self.itemsdir, "PLANS"))
 
     def build_pack (self):
         announce ("building INDEX")
@@ -125,6 +145,8 @@ if __name__ == "__main__":
     op = optparse.OptionParser(usage="%prog <options>")
     op.add_option ("-r", "--root-dir", dest="rootdir")
     op.add_option ("-p", "--package-name", dest="pname")
+    op.add_option ("-t", "--re_tests", dest="re_tests")
+    op.add_option ("-c", "--re_chapters", dest="re_chapters")
 
     (options, args) = op.parse_args()
 
@@ -132,10 +154,13 @@ if __name__ == "__main__":
         not options.rootdir,  "no root dir specified"
         )
 
-    if not options.pname:
+    if options.pname == None:
         today = date.today()
         options.pname = "GNATCOV-QMAT-%4d-%02d-%02d" % (
             today.year, today.month, today.day)
+
+    if options.re_tests == None:
+        options.re_tests = ""
 
     qmat = QMAT (options=options)
     qmat.setup_basedirs()
