@@ -513,7 +513,7 @@ class QDreport:
 
         self.rstf = None
 
-        self.gen_envinfo()
+        self.gen_envinfo(sepfile="env.rst")
 
         self.categories = (
             Category (
@@ -537,9 +537,10 @@ class QDreport:
 
         self.compute_tcdata()
 
-        self.gen_tctables()
-        self.gen_tcsummary()
-        self.gen_index()
+        self.gen_tctables(sepfile="tctables.rst")
+        self.gen_tssummary(sepfile="tssummary.rst")
+
+        self.gen_index(sepfiles=["env.rst", "tctables.rst", "tssummary.rst"])
 
     def categorize(self, qda):
         for cat in self.categories:
@@ -615,9 +616,11 @@ class QDreport:
             [(col, "%s" % self.tcdata[qd][col].img(details))
              for col in self.tcdata[qd]])
 
-    def gen_tctables(self):
+    def gen_tctables(self, sepfile=None):
 
-        self.rstf = RSTfile ("tctable.rst")
+        if sepfile:
+            self.rstf = RSTfile (sepfile)
+
         self.rstf.write (rest.chapter ("Testcase execution summary"))
 
         # Arrange to get a single description and legend followed by a set of
@@ -642,10 +645,11 @@ class QDreport:
                 ).dump_to (self.rstf)
          for cat in self.categories if cat.qdl and not cat.internal]
 
-        self.rstf.close()
+        if sepfile:
+            self.rstf.close()
 
     # -------------------
-    # -- gen_tcsummary --
+    # -- gen_tssummary --
     # -------------------
 
     # Compute and write out an overall summary like
@@ -739,9 +743,11 @@ class QDreport:
                        for col in self.sumcolumns()])
                 for catsum in self.sumdata()]
 
-    def gen_tcsummary(self):
+    def gen_tssummary(self, sepfile):
 
-        self.rstf = RSTfile ("tcsummary.rst")
+        if sepfile:
+            self.rstf = RSTfile (sepfile)
+
         self.rstf.write (rest.chapter ("Testsuite status summary"))
 
         RSTtable (
@@ -753,7 +759,8 @@ class QDreport:
             contents = self.sumcontents()
             ).dump_to (self.rstf)
 
-        self.rstf.close()
+        if sepfile:
+            self.rstf.close()
 
     # -----------------
     # -- gen_envinfo --
@@ -815,27 +822,31 @@ class QDreport:
             ).dump_to (self.rstf)
 
 
-    def gen_envinfo(self):
-        self.rstf = RSTfile ("envinfo.rst")
+    def gen_envinfo(self, sepfile=None):
+
+        if sepfile:
+            self.rstf = RSTfile (sepfile)
+
         self.rstf.write (rest.chapter ("Execution context summary"))
 
         self.gen_suite_options ()
         self.rstf.write ("~\n")
         self.gen_suite_environ ()
 
-        self.rstf.close()
+        if sepfile:
+            self.rstf.close()
 
     # ---------------
     # -- gen_index --
     # ---------------
 
-    def gen_index(self):
+    def gen_index(self, sepfiles):
+
         self.rstf = RSTfile ("index.rst")
 
         self.rstf.write(rest.chapter('GNATcoverage Software Test Results'))
 
-        self.rstf.write(rest.toctree(
-                ["envinfo.rst", "tctable.rst", "tcsummary.rst"], depth = 1))
+        self.rstf.write(rest.toctree(sepfiles, depth = 1))
 
         self.rstf.close()
 
