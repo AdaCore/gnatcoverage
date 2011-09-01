@@ -22,5 +22,5 @@ end;
 -- /tunder0/ l! dT-
 -- /tunder1/ l! 0
 -- /retm0/   l- s-
--- /retm1/   l- 0
+-- /retm1/   l- 0c
 -- /fault/   l+ 0

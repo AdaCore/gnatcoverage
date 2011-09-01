@@ -11,7 +11,7 @@ end;
 -- /retp0/   l+ 0
 -- /retp1/   l+ 0
 -- /tunder0/ l- s-
--- /tunder1/ l- 0
+-- /tunder1/ l- 0c
 -- /retm0/   l- s-
--- /retm1/   l- 0
+-- /retm1/   l- 0c
 -- /fault/   l- s-

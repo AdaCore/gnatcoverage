@@ -7,6 +7,6 @@ end;
 
 --# fuor.adb
 --  /evalA/   l- s-
---  /evalB/   l- 0
+--  /evalB/   l- 0c
 --  /oncall/  l- s-
 

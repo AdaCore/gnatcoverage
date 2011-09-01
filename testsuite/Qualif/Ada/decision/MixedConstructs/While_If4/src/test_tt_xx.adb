@@ -14,7 +14,7 @@ end;
 -- /AF_evA/   l! dF-
 -- /AF_skip/  l+ 0
 -- /AF_evLB/  l- s-
--- /AF_evHB/  l- 0
+-- /AF_evHB/  l- 0c
 -- /AF_fault/ l- s-
 -- /AF_ok/    l- s-
 -- /AF_next/  l+ 0

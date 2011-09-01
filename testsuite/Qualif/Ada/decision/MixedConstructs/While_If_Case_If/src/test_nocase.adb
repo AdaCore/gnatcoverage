@@ -21,7 +21,7 @@ end;
 -- /FA_case/       l- s-
 -- /FA_activate/   l- s-
 -- /FA_tinhibitLB/ l- s-
--- /FA_tinhibitHB/ l- 0
+-- /FA_tinhibitHB/ l- 0c
 -- /FA_inhibit/    l- s-
 -- /FA_next/       l+ 0
 

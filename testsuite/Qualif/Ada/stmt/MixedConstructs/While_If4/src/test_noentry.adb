@@ -20,7 +20,7 @@ end;
 -- /AF_evA/   l- s-
 -- /AF_skip/  l- s-
 -- /AF_evLB/  l- s-
--- /AF_evHB/  l- 0
+-- /AF_evHB/  l- 0c
 -- /AF_fault/ l- s-
 -- /AF_ok/    l- s-
 -- /AF_next/  l- s-

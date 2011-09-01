@@ -17,10 +17,10 @@ end;
 -- /SO_t0/       l+ 0
 -- /SO_undecide/ l+ 0
 -- /SO_loop0/    l- s-
--- /SO_loop1/    l- 0
+-- /SO_loop1/    l- 0c
 -- /SO_decide/   l- s-
 -- /SO_tfaultLB/ l- s-
--- /SO_tfaultHB/ l- 0
+-- /SO_tfaultHB/ l- 0c
 -- /SO_fault/    l- s-
 -- /SO_check/    l- s-
 -- /SO_broken/   l- s-

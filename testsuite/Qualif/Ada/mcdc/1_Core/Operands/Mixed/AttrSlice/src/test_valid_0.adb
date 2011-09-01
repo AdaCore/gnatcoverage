@@ -8,4 +8,4 @@ end;
 --# validate.adb
 -- /retLen/    l- s-
 -- /checkLen/  l- s-
--- /checkKey/  l- 0
+-- /checkKey/  l- 0c

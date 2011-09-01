@@ -7,7 +7,7 @@ end;
 
 --# ornot.adb
 --  /evalStmt/      l- s-
---  /evalOther/     l- 0
+--  /evalOther/     l- 0c
 --  /decisionTrue/  l- s-
 --  /decisionFalse/ l- s-
 --  /returnValue/   l- s-

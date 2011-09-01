@@ -24,7 +24,7 @@ end;
 -- /SO_undecide/ l+ 0
 -- /SO_decide/   l+ 0
 -- /SO_loop0/    l+ 0
--- /SO_loop1/    l+ 0
+-- /SO_loop1/    l+ 0c
 -- /SO_tfaultLB/ l! dT-
 -- /SO_tfaultHB/ l! 0
 -- /SO_fault/    l- s-
