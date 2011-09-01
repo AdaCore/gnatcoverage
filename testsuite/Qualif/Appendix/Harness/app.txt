@@ -153,6 +153,7 @@ In the optional sequence at the end of driver sources:
    Text      Denotes an expected diagnostic like:       In report section:
    =======   ========================================== ==================
    ``0``     absence of diagnostic                      all
+   ``0c``    absence of diagnostic, continuation        all
    ``s-``    ``statement not executed``                 stmt coverage
    ``dT-``   ``decision outcome True not covered``      decision coverage
    ``dF-``   ``decision outcome False not covered``     decision coverage
