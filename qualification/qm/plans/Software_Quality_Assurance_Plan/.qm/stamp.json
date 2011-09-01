@@ -1,1 +1,14 @@
-[{"artifact": "/plans/Software_Quality_Assurance_Plan", "files": [{"file": "content.rst", "signature": "ced5da078b33c314d031003b14b88893"}]}, {"artifact": "/plans", "files": [{"file": "content.rst", "signature": "6903b2ae479c53af89da30e8f1d63815"}, {"file": "conf.py", "signature": "2a2e23d19ff6f7347cf080e50ca61251"}]}]
+
+[
+  {"artifact": "/plans/Software_Quality_Assurance_Plan", "files":     
+        [
+          {"file": "content.rst", "sha1": "9d75602a0b1593cd539abd9815942af02c3e92b4"}
+        ]
+        }, 
+  {"artifact": "/plans", "files":     
+        [
+          {"file": "content.rst", "sha1": "bf5c699bf4481aa0495a30b5fe647504fbc55552"}, 
+              {"file": "conf.py", "sha1": "0d27e790ef17e4485b7cc2d9f0a89ee53e1832cd"}
+        ]
+        }
+]

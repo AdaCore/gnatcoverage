@@ -1,1 +1,14 @@
-[{"artifact": "/plans/Tool_Qualification_Plan", "files": [{"file": "content.rst", "signature": "6576ff1edc58e34eda6ba26bccbf505b"}]}, {"artifact": "/plans", "files": [{"file": "content.rst", "signature": "6903b2ae479c53af89da30e8f1d63815"}, {"file": "conf.py", "signature": "2a2e23d19ff6f7347cf080e50ca61251"}]}]
+
+[
+  {"artifact": "/plans/Tool_Qualification_Plan", "files":     
+        [
+          {"file": "content.rst", "sha1": "151418185ac0cad91a24e76a0c2ad4f1ccb5ce4e"}
+        ]
+        }, 
+  {"artifact": "/plans", "files":     
+        [
+          {"file": "content.rst", "sha1": "bf5c699bf4481aa0495a30b5fe647504fbc55552"}, 
+              {"file": "conf.py", "sha1": "0d27e790ef17e4485b7cc2d9f0a89ee53e1832cd"}
+        ]
+        }
+]

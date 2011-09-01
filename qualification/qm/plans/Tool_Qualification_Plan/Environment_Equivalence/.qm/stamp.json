@@ -1,1 +1,13 @@
-[{"artifact": "/plans/Tool_Qualification_Plan/Environment_Equivalence", "files": [{"file": "content.rst", "signature": "d3c7b90581b0735df83a165b318498bc"}]}, {"artifact": "/plans/Tool_Qualification_Plan", "files": [{"file": "content.rst", "signature": "6576ff1edc58e34eda6ba26bccbf505b"}]}]
+
+[
+  {"artifact": "/plans/Tool_Qualification_Plan/Environment_Equivalence", "files":     
+        [
+          {"file": "content.rst", "sha1": "71fa3b11e1568b8356ac903830d4481ac508c8b1"}
+        ]
+        }, 
+  {"artifact": "/plans/Tool_Qualification_Plan", "files":     
+        [
+          {"file": "content.rst", "sha1": "151418185ac0cad91a24e76a0c2ad4f1ccb5ce4e"}
+        ]
+        }
+]

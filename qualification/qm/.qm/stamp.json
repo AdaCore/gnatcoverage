@@ -1,1 +1,8 @@
-[{"artifact": "/", "files": [{"file": "env.py", "signature": "6cf2877bc3e1ea718a6eadd6dc4a8430"}]}]
+
+[
+  {"artifact": "/", "files":     
+        [
+          {"file": "env.py", "sha1": "1666633be7d1e7b5e5eec93e76482c21017b02f1"}
+        ]
+        }
+]

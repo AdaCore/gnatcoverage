@@ -16,7 +16,7 @@
          "Repository"    : "release",
          "Activity"      : {"Description" : "Generate the release",
                             "Automation"  : "GenRelease"},
-         "DependsOn"     : ["$(parent)::Plans::Pdf_Plans"],
+         "DependsOn"     : ["$(parent)::Plans::Html_Plans"],
          "Occurrences"   : "1"},
        "Environment File" : {
          "ArtifactClass" : "Environment",
@@ -28,7 +28,7 @@
        }
    },
    "Release" :
-   { "Content"   : [{"Pattern": "*.pdf", "Mime": "application/pdf", "Occurrences": "*"},
+   { "Content"   : [{"Pattern": "*.html", "Mime": "text/html", "Occurrences": "*"},
                     {"Pattern": "*.zip", "Mime": "application/zip", "Occurrences": "*"}]
    },
    "Plan" :
@@ -55,11 +55,11 @@
          "Repository"    : "Software_Quality_Assurance_Plan",
          "Activity"      : {"Description" : "Write the software quality assurance plan"},
          "Occurrences"   : "1"},
-       "Pdf_Plans": {
-         "ArtifactClass" : "Pdf_Plans",
-         "Repository"    : "pdf",
-         "Activity"      : {"Description" : "Generate the document",
-                            "Automation"   : "SphinxGen"},
+       "Html_Plans": {
+         "ArtifactClass" : "Html_Plans",
+         "Repository"    : "html",
+         "Activity"      : {"Description" : "Generate the html document",
+                            "Automation"   : "HtmlGenerator"},
          "Occurrences"   : "<=1"}
      }
    },
@@ -75,8 +75,8 @@
        }
      }
    },
-   "Pdf_Plans" :
-   { "Content"   : {"Pattern": "plans.pdf", "Mime": "application/pdf", "Occurrences": "1"}},
+   "Html_Plans" :
+   { "Content"   : {"Pattern": "content.html", "Mime": "text/html", "Occurrences": "1"}},
    "Environment" :
    { "Content"   : {"Pattern": "content.rst", "Mime": "text/x-rst", "Occurrences": "1"}}
  }
