@@ -451,8 +451,11 @@ class RSTtable:
 
 class CSVtable (RSTtable):
 
-    def __init__(self, title, text, columns, contents, controls = ()):
+    def __init__(self, title, text, columns, contents,
+                 delim = '&', controls = ()):
+
         self.controls = controls
+        self.delim = delim
         RSTtable.__init__ (
             self, title=title, text=text,
             columns=columns, contents=contents)
@@ -460,7 +463,7 @@ class CSVtable (RSTtable):
     def dump_header(self):
         text = '\n' + '\n'.join (
             ['.. csv-table::',
-             '   :delim: &',
+             '   :delim: ' + self.delim,
              '   :header: %s' % " , ".join (
                     ['"%s"' % col.htext for col in self.columns])
              ] + ['   ' + ctl for ctl in self.controls]
@@ -468,7 +471,7 @@ class CSVtable (RSTtable):
         self.rstf.write (text)
 
     def dump_centry(self, ce):
-        entryl = " & ".join (
+        entryl = (" %s " % self.delim).join (
             ["   %s" % ce[col] for col in self.columns])
         self.rstf.write (entryl)
 
@@ -798,31 +801,36 @@ class QDreport:
         item = Column (
             htext = "Environment items", legend = None)
 
-        value = Column (
+        v1 = Column (
+            htext = "", legend = None)
+
+        v2 = Column (
             htext = "", legend = None)
 
         comp = Env().target.triplet + "-gcc"
 
         CSVtable (
             title = None, text = None,
-            columns = (item, value),
-            controls = [":widths: 20, 65"],
+            columns = (item, v1, v2),
+            controls = [":widths: 25, 20, 55"],
+            delim = '|',
             contents = [
-                {item : "report timestamp",
-                 value: time.strftime ("%a %b %d, %Y. %H:%M", time.localtime())
-                 },
-                {item : "host system",
-                 value: ' '.join (
+                {item : "report timestamp & host system",
+                 v1: time.strftime ("%a %b %d, %Y. %H:%M", time.localtime()),
+                 v2: ' '.join (
                         (platform.system(), platform.release()))
                  },
-                {item : "GNAT Pro executable",
-                 value: version(comp)
+                {item : "GNAT Pro executable & version",
+                 v1: comp,
+                 v2: version(comp)
                  },
-                {item : "GNATcoverage executable",
-                 value: version("xcov")
+                {item : "GNATcov executable & version",
+                 v1: "xcov",
+                 v2: version ("xcov")
                  },
-                {item : "GNATemulator executable",
-                 value: version("qemu-system-ppc")
+                {item : "GNATemu executable & version",
+                 v1: "qemu-system-ppc",
+                 v2: version("qemu-system-ppc")
                  }
                 ]
             ).dump_to (self.rstf)

@@ -89,8 +89,18 @@ def clear(f):
 # -- version --
 # -------------
 def version(tool):
-    return Run(
-        to_list(tool + " --version")).out.split('\n')[0]
+    """Return version information as reported by the execution of TOOL
+    --version"""
+
+    # --version often dumps more than the version number. Our heuristic here
+    # is to fetch the first line only, where the version number is typically
+    # found, and strip possible copyright notices that might appear there as
+    # well.
+
+    version = Run( to_list(tool + " --version")).out.split('\n')[0]
+    cprpos = version.lower().find ("copyright")
+
+    return version [0:cprpos-1] if cprpos != -1 else version
 
 # --------------
 # -- ndirs_in --
