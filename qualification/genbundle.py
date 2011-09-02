@@ -110,17 +110,26 @@ class QMAT:
             os.path.join ("build", "html"),
             os.path.join (self.itemsdir, "STR"))
 
-    def build_plans (self):
+    def build_plans (self, use_qm):
         announce ("building PLANS")
 
-        os.chdir (
-            os.path.join (self.repodir, "qualification", "qm"))
-        run ("qm_server -l scripts/generate_plan.py -p 0 .")
+        if use_qm:
+            os.chdir (
+                os.path.join (self.repodir, "qualification", "qm"))
+            run ("qm_server -l scripts/generate_plan.py -p 0 .")
 
-        shutil.move (
-            os.path.join (
-                self.repodir, "qualification", "qm", "plans", "html"),
-            os.path.join (self.itemsdir, "PLANS"))
+            shutil.move (
+                os.path.join (
+                    self.repodir, "qualification", "qm", "plans", "html"),
+                os.path.join (self.itemsdir, "PLANS"))
+
+        else:
+            os.chdir (os.path.join (self.repodir, "qualification", "plans"))
+            run ("tar xzf html.tar.gz")
+
+            shutil.move (
+                os.path.join (self.repodir, "qualification", "plans", "html"),
+                os.path.join (self.itemsdir, "PLANS"))
 
     def build_pack (self):
         announce ("building INDEX")
@@ -150,6 +159,7 @@ if __name__ == "__main__":
     op.add_option ("-t", "--re_tests", dest="re_tests")
     op.add_option ("-c", "--re_chapters", dest="re_chapters")
     op.add_option ("-y", "--retry", dest="retry", action="store_true")
+    op.add_option ("-m", "--use-qm", dest="use_qm", action="store_true")
 
     (options, args) = op.parse_args()
 
@@ -173,6 +183,6 @@ if __name__ == "__main__":
 
     qmat.build_tor()
     qmat.build_str()
-    qmat.build_plans()
+    qmat.build_plans(use_qm=options.use_qm)
     qmat.build_pack()
 
