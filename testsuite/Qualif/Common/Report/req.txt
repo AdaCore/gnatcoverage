@@ -10,9 +10,8 @@ The tool qualified output is the synthetic report produced by the
 * End with an explicit "END OF REPORT" indication
 
 * Feature up to four sections in between: "Assessment Context", "Coverage
-  violations", "Exempted Regions" if any such region was declared in the
-  sources of interest, and "Analysis summary"
-
+  violations", "Exempted Regions" (optionally), and "Analysis summary"
+ 
 * The "Assessment Context" section shall summarize all the elements
   of relevance to characterize the reported assessment unambiguously:
 
@@ -30,7 +29,7 @@ The tool qualified output is the synthetic report produced by the
     * trace production date & time
     * program executable file name
 
-* The "Non-exempted violations" section shall feature a set of subsections,
+* The "Coverage violations" section shall feature a set of subsections,
   one for each criterion assessed with
 
   * A list of all the criterion obligations unsatisfied (violated) by
@@ -38,12 +37,15 @@ The tool qualified output is the synthetic report produced by the
 
   * A count of those violations
 
-* The "Exempted Regions" section shall
+* The "Exempted Regions", when present, shall
 
   * Summarize information about all the exemption regions in the scope of the
     examined coverage obligations, and
 
   * End with a count of those regions
+
+  It shall only be present when exemption regions were declared in the sources
+  of interest.
 
 * The "Analysis summary" section shall expose
 
@@ -63,5 +65,5 @@ We validate the presence and structure of all the expected sections and items
 in each testcase. We do not validate the correctness of the section contents
 here. That assessment (correctness of the reported violations vs expectations
 for particular programs), is defined and validated by sibling chapters of this
-qualification material.
+in this document.
 
