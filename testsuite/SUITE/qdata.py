@@ -815,12 +815,19 @@ class QDreport:
                  value: ' '.join (
                         (platform.system(), platform.release()))
                  },
-                {item : "compiler (+version)",
+                {item : "GNAT Pro executable",
                  value: version(comp)
+                 },
+                {item : "GNATcoverage executable",
+                 value: version("xcov")
+                 },
+                {item : "GNATemulator executable",
+                 value: version("qemu-system-ppc")
                  }
                 ]
             ).dump_to (self.rstf)
 
+        # ??? qemu-system-ppc ???
 
     def gen_envinfo(self, sepfile=None):
 
