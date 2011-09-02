@@ -1,7 +1,7 @@
-Operational Context
+Operational Environment
 
-Proper operation of the tool depends on a few external rules that need to
-be obeyed: 
+Proper operation of the tool for source coverage assessment depends on a few
+external rules that need to be obeyed:
 
 ========  ===================================================================
 Rule #    
@@ -9,8 +9,8 @@ Rule #
 1         Use of a proper GNAT/GCC compiler version, as identified by the
           tool provider
 
-2         Use of the ``-fpreserve-control-flow`` compiler command-line
-          option, whatever the criterion to be assessed
+2         Use of the ``-fpreserve-control-flow -gnateS`` compiler
+          command-line options, whatever the criterion to be assessed
 
 3         -O0 or -O1 optimization level only, with or without inlining. -O2
           or extra individual optimization flags are not supported.
