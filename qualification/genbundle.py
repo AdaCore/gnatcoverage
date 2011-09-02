@@ -14,12 +14,26 @@ def fail_if (p, msg):
         print msg
         raise Error
 
-def run (s, out=None):
-    print "run : %s" % s
-    l = s.split()
+def contents_of(filename):
+    with open(filename) as fd:
+        return fd.read()
+
+def run (s, out=None, env=None):
+    print "from : %s" % os.getcwd()
+    print "run  : %s" % s
+
+    cmd = s.split()
+
     if out == None:
-        out = l[0]+".log"
-    return Run (s.split(), output=out)
+        out = cmd[0]+".log"
+
+    p = Run (cmd, output=out, env=env)
+
+    fail_if (
+        p.status != 0, "execution failed\n"
+        + "cmd was %s\n" % str(cmd)
+        + "log was:\n" + contents_of(out))
+
 
 def announce (s):
     print "=========== " + s
@@ -29,14 +43,15 @@ OPENDO_SVN = "svn://scm.forge.open-do.org/scmrepos/svn"
 class QMAT:
 
     def __init__(self, options):
-        self.rootdir = options.rootdir
         self.pname = options.pname
 
         self.re_tests = options.re_tests
         self.re_chapters = options.re_chapters
 
-    def to_root (self):
-        os.chdir (self.rootdir)
+        self.rootdir =  os.path.abspath (options.rootdir)
+        self.itemsdir = os.path.join (self.rootdir, "ITEMS")
+
+        self.repodir = os.path.join (self.rootdir, "couverture")
 
     def setup_basedirs (self):
 
@@ -47,15 +62,12 @@ class QMAT:
             "root dir '%s' exists already" % self.rootdir
             )
 
-        self.rootdir = os.path.abspath (self.rootdir)
-
         os.mkdir (self.rootdir)
         fail_if (
             not os.path.isdir(self.rootdir),
             "creation of root dir '%s' failed somehow" % self.rootdir
             )
 
-        self.itemsdir = os.path.join (self.rootdir, "ITEMS")
         os.mkdir (self.itemsdir)
 
 
@@ -65,8 +77,6 @@ class QMAT:
         os.chdir(self.rootdir)
         run ("svn co -q %s" % OPENDO_SVN + "/couverture/trunk/couverture")
 
-        self.repodir = os.path.join (self.rootdir, "couverture")
-
     def build_tor (self):
         announce ("building TOR")
 
@@ -74,7 +84,7 @@ class QMAT:
                 self.repodir, "qualification", "tor", "scripts"))
 
         make_args = (
-            'CHAPTERS="%s"' % self.re_chapters if self.re_chapters else '')
+            "CHAPTERS='%s'" % self.re_chapters if self.re_chapters else "")
 
         run ("make " + make_args)
 
@@ -100,16 +110,17 @@ class QMAT:
             os.path.join ("build", "html"),
             os.path.join (self.itemsdir, "STR"))
 
-    def build_plans (self):
+    def build_plans (self, use_qm):
         announce ("building PLANS")
 
-        if 0:
+        if use_qm:
             os.chdir (
-                os.path.join (self.repodir, "qualification", "qm", "plans"))
+                os.path.join (self.repodir, "qualification", "qm"))
             run ("qm_server -l scripts/generate_plan.py -p 0 .")
 
             shutil.move (
-                os.path.join (self.repodir, "qualification", "qm", "plans", "html"),
+                os.path.join (
+                    self.repodir, "qualification", "qm", "plans", "html"),
                 os.path.join (self.itemsdir, "PLANS"))
 
         else:
@@ -147,6 +158,8 @@ if __name__ == "__main__":
     op.add_option ("-p", "--package-name", dest="pname")
     op.add_option ("-t", "--re_tests", dest="re_tests")
     op.add_option ("-c", "--re_chapters", dest="re_chapters")
+    op.add_option ("-y", "--retry", dest="retry", action="store_true")
+    op.add_option ("-m", "--use-qm", dest="use_qm", action="store_true")
 
     (options, args) = op.parse_args()
 
@@ -163,10 +176,13 @@ if __name__ == "__main__":
         options.re_tests = ""
 
     qmat = QMAT (options=options)
-    qmat.setup_basedirs()
-    qmat.checkout_sources()
+
+    if not options.retry:
+        qmat.setup_basedirs()
+        qmat.checkout_sources()
+
     qmat.build_tor()
     qmat.build_str()
-    qmat.build_plans()
+    qmat.build_plans(use_qm=options.use_qm)
     qmat.build_pack()
 
