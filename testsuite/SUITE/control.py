@@ -62,7 +62,7 @@ class LangInfo:
 
 LANGINFO = {
     "Ada":  LangInfo(name="Ada", src_ext=[".ads", ".adb"], scos_ext=".ali",
-                     comment='--', cargs="-gnateS -gnat05 -gnatw.Xe"),
+                     comment='--', cargs="-gnateS -gnat05"),
     "C":    LangInfo(name="C", src_ext=[".h", ".c"], scos_ext=".gli",
                      comment='//', cargs="-fdump-scos"),
     "Cons": LangInfo(name="Consolidation", src_ext=".txt", scos_ext=None,
