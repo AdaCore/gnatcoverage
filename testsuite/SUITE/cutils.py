@@ -97,10 +97,10 @@ def version(tool):
     # found, and strip possible copyright notices that might appear there as
     # well.
 
-    version = Run( to_list(tool + " --version")).out.split('\n')[0]
-    cprpos = version.lower().find ("copyright")
+    version = Run(to_list(tool + " --version")).out.split('\n')[0]
+    cprpos = version.lower().find (",")
 
-    return version [0:cprpos-1] if cprpos != -1 else version
+    return version [0:cprpos] if cprpos != -1 else version
 
 # --------------
 # -- ndirs_in --
