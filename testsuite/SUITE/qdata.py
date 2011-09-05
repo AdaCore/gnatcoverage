@@ -494,7 +494,8 @@ from SUITE.cutils  import version
 # of the qualification report
 
 class Category:
-    def __init__(self, name, matcher, internal=False):
+    def __init__(self, name, matcher, lang=None, internal=False):
+        self.lang     = lang
         self.name     = name
         self.matcher  = matcher
         self.internal = internal
@@ -516,27 +517,52 @@ class QDreport:
 
         self.rstf = None
 
-        self.gen_envinfo(sepfile="env.rst")
+        # All the parts of our report get structured with sections
+        # based on test categories. We distinguish language specific
+        # categories from common ones.
 
-        self.categories = (
+        lang_categories = [
+            (Category (
+                    lang=lang, name="%s - STATEMENT Coverage" % lang,
+                    matcher="Qualif/%s/stmt" % lang),
+             Category (
+                    lang=lang, name="%s - DECISION Coverage" % lang,
+                    matcher="Qualif/%s/decision" % lang),
+             Category (
+                    lang=lang, name="%s - MCDC Coverage" % lang,
+                    matcher="Qualif/%s/mcdc" % lang)
+             ) for lang in ("Ada", "C")
+            ]
+
+        lang_categories = [
+            cat for lang_cats in lang_categories for cat in lang_cats]
+
+        other_categories = [
             Category (
-                name="STATEMENT Coverage", matcher="Qualif/Ada/stmt"),
-            Category (
-                name="DECISION Coverage",  matcher="Qualif/Ada/decision"),
-            Category (
-                name="MCDC Coverage",      matcher="Qualif/Ada/mcdc"),
-            Category (
-                name="REPORT Format",      matcher="Qualif/Common/Report"),
+                name="REPORT Format", matcher="Qualif/Common/Report"),
 
             Category (
-                name="Harness Check",      matcher="Qualif/Appendix/Harness",
+                name="Harness Check", matcher="Qualif/Appendix/Harness",
                 internal=True),
 
             Category (
-                name="Others",             matcher=".")
-            )
+                name="Others", matcher=".")
+            ]
+
+        self.categories = lang_categories + other_categories
 
         [self.categorize(qda) for qda in self.qdl]
+
+        # Compute the set of languages for which tests have matched (that is,
+        # were run). This is useful e.g. to decide which sets of compilation
+        # options should be displayed in the environment description items.
+
+        self.languages = set (
+            [cat.lang for cat in lang_categories if cat.qdl])
+
+        self.gen_envinfo(sepfile="env.rst")
+
+        # Then compute the tables and summaries of test status counters
 
         self.compute_tcdata()
 
@@ -791,9 +817,9 @@ class QDreport:
                          self.options.qualif_cargs
                          if self.options.qualif_cargs else ""))
                  } ] + \
-                [ { item : "compiler switches - %s specifc" % lang,
+                [ { item : "compiler switches - %s specific" % lang,
                     value: ' '.join (to_list (LANGINFO[lang].cargs))
-                  } for lang in ("Ada",) ]
+                  } for lang in self.languages ]
             ).dump_to (self.rstf)
 
     def gen_suite_environ(self):
@@ -807,7 +833,9 @@ class QDreport:
         v2 = Column (
             htext = "", legend = None)
 
-        comp = Env().target.triplet + "-gcc"
+        gnatpro = Env().target.triplet + "-gcc"
+        gnatemu = Env().target.triplet + "-gnatemu"
+        gnatcov = "xcov"
 
         CSVtable (
             title = None, text = None,
@@ -821,16 +849,16 @@ class QDreport:
                         (platform.system(), platform.release()))
                  },
                 {item : "GNAT Pro executable & version",
-                 v1: comp,
-                 v2: version(comp)
+                 v1: gnatpro,
+                 v2: version(gnatpro)
                  },
                 {item : "GNATcov executable & version",
-                 v1: "xcov",
-                 v2: version ("xcov")
+                 v1: gnatcov,
+                 v2: version (gnatcov)
                  },
                 {item : "GNATemu executable & version",
-                 v1: "qemu-system-ppc",
-                 v2: version("qemu-system-ppc")
+                 v1: gnatemu,
+                 v2: version(gnatemu)
                  }
                 ]
             ).dump_to (self.rstf)
