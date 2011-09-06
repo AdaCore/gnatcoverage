@@ -18,11 +18,9 @@ def contents_of(filename):
     with open(filename) as fd:
         return fd.read()
 
-def run (s, out=None, env=None):
+def run_list (cmd, out=None, env=None):
     print "from : %s" % os.getcwd()
-    print "run  : %s" % s
-
-    cmd = s.split()
+    print "run  : %s" % str(cmd)
 
     if out == None:
         out = cmd[0]+".log"
@@ -31,9 +29,10 @@ def run (s, out=None, env=None):
 
     fail_if (
         p.status != 0, "execution failed\n"
-        + "cmd was %s\n" % str(cmd)
         + "log was:\n" + contents_of(out))
 
+def run (s, out=None, env=None):
+    run_list (s.split())
 
 def announce (s):
     print "=========== " + s
@@ -96,12 +95,28 @@ class QMAT:
         announce ("building STR")
 
         os.chdir (os.path.join (self.repodir, "testsuite"))
-        shutil.move (
-            os.path.join ("..", "tools", "xcov", "examples", "support"),
-            "support")
 
-        run ("python testsuite.py --target=ppc-elf --disable-valgrind "
-             + "--qualif-level=doA -j6 " + self.re_tests)
+        orisupport = os.path.join (
+            "..", "tools", "xcov", "examples", "support")
+
+        if os.path.exists (orisupport):
+            shutil.move (orisupport, "support")
+
+        base_cmd = (
+            "python testsuite.py --target=ppc-elf --disable-valgrind -j6 "
+            "--qualif-level=doA"
+            )
+
+        run_list (
+            base_cmd.split() + [
+                '--qualif-cargs=-O0',
+                '--qualif-cargs-Ada=-gnatp',
+                self.re_tests ]
+            )
+
+        # ??? How would we go about passing multiple options in a single
+        # qualif-cargs here ? quotes get through, as part of the option text,
+        # as well ...
 
         os.chdir (os.path.join (self.repodir, "testsuite", "qreport"))
         run ("make html")
@@ -173,7 +188,7 @@ if __name__ == "__main__":
             today.year, today.month, today.day)
 
     if options.re_tests == None:
-        options.re_tests = ""
+        options.re_tests = "Qualif/(Ada|Common)"
 
     qmat = QMAT (options=options)
 
