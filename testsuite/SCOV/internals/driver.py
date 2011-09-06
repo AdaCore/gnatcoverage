@@ -310,7 +310,11 @@ class SCOV_helper:
         # { sourcename -> KnoteDict } dictionaries of emitted/expected
         # line/report notes. We'll extract emitted notes from reports when we
         # know they have been produced. We extract expected notes from the
-        # provided expectation file
+        # provided expectation file.
+
+        # This needs to be done now, to make sure that we can register this
+        # driver object with maximum details for qualification results before
+        # run() is called, hence early wrt possible exception occurrences.
 
         self.elnotes = {}
         self.ernotes = {}

@@ -184,10 +184,17 @@ class TestCase:
     # ---------------------
 
     def register_qde_for (self, drvo):
-        """Register a qualif data entry for the just executed driver object"""
+        """Register a qualif data entry for driver object DRVO, about to
+        be executed"""
         self.qdata.register (QDentry(eid="blob", xrnotes=drvo.xrnotes))
+        return drvo
 
     def run(self):
+
+        # We have exception processing below, which needs to operate
+        # in the test root dir.
+
+        homedir = os.getcwd()
 
         try:
 
@@ -195,8 +202,8 @@ class TestCase:
             [self.register_qde_for (
                     SCOV_helper(drivers=[driver],
                                 xfile=driver, category=self.category,
-                                xcovlevel=covlevel).run(self.cargs)
-                    )
+                                xcovlevel=covlevel)
+                    ).run(self.cargs)
              for covlevel in self.xcovlevels
              for driver in self.all_drivers]
 
@@ -204,8 +211,8 @@ class TestCase:
             [self.register_qde_for (
                     SCOV_helper(drivers=self.__drivers_from(cspec),
                                 xfile=cspec, category=self.category,
-                                xcovlevel=covlevel).run(self.cargs)
-                    )
+                                xcovlevel=covlevel)
+                    ).run(self.cargs)
              for covlevel in self.xcovlevels
              for cspec in self.all_cspecs]
 
@@ -215,6 +222,11 @@ class TestCase:
             # for qualification test-results production purposes. try/finally
             # is critical in making sure we dump results in case of failure
             # with exception as well.
+
+            # This must be done in the test root dir and an exception might
+            # have left us anywhere, so ...
+
+            os.chdir (homedir)
 
             if thistest.options.qualif_level:
                 self.qdata.flush()
