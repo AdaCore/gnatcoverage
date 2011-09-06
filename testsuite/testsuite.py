@@ -33,7 +33,7 @@ import logging, os, re, sys
 from SUITE import cutils
 from SUITE.cutils import contents_of, re_filter, clear, to_list
 
-from SUITE.qdata import QDregistry, QDreport, qdaf_in
+from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
 
 from SUITE.control import BUILDER
 
@@ -87,18 +87,27 @@ class QlevelInfo:
         # --qualification mode
         self.xcovlevel = xcovlevel
 
+RE_QCOMMON="(Common|Appendix)"
+RE_QLANG="(%s)" % '|'.join (QLANGUAGES)
+
 QLEVEL_INFO = {
+
     "doA" : QlevelInfo (
         levelid   = "doA",
-        subtrees  = "Qualif/(Common|Appendix|Ada/(stmt|decision|mcdc))",
+        subtrees  = ("%s/%s|%s/(stmt|decision|mcdc)"
+                     % (QROOTDIR, RE_QCOMMON, RE_QLANG)),
         xcovlevel = "stmt+mcdc"),
+
     "doB" : QlevelInfo (
         levelid   = "doB",
-        subtrees  = "Qualif/(Common|Appendix|Ada/(stmt|decision))",
+        subtrees  = ("%s/%s|%s/(stmt|decision)"
+                     % (QROOTDIR, RE_QCOMMON, RE_QLANG)),
         xcovlevel = "stmt+decision"),
+
     "doC" : QlevelInfo (
         levelid   = "doC",
-        subtrees  = "Qualif/(Common|Appendix|Ada/(stmt))",
+        subtrees  = ("%s/%s|%s/(stmt)"
+                     % (QROOTDIR, RE_QCOMMON, RE_QLANG)),
         xcovlevel = "stmt")
     }
 

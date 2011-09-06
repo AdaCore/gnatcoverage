@@ -1,5 +1,5 @@
 # ****************************************************************************
-# **                TESTSUITE QUALIFICATION DATA FACILITIES                 **
+# **                TESTSUITE QUALIFICATION-DATA FACILITIES                 **
 # ****************************************************************************
 
 # This module exposes the testsuite qualification data management facilities,
@@ -17,8 +17,16 @@ import os, sys, pickle, re
 from REST import rest
 
 from SUITE.cutils import to_list
+from SUITE.control import LANGINFO
 
 from SCOV.internals.cnotes import *
+
+QLANGUAGES = (li.name for li in LANGINFO.values() if li.scos_ext)
+# list of languages we support qualification tests for
+
+QROOTDIR="Qualif"
+# String that identifies a qualification test at the beginning of it's
+# sub-directory name relative to the testsuite root
 
 # -------------
 # -- qdaf_in --
@@ -524,14 +532,14 @@ class QDreport:
         lang_categories = [
             (Category (
                     lang=lang, name="%s - STATEMENT Coverage" % lang,
-                    matcher="Qualif/%s/stmt" % lang),
+                    matcher="%s/%s/stmt" % (QROOTDIR, lang)),
              Category (
                     lang=lang, name="%s - DECISION Coverage" % lang,
-                    matcher="Qualif/%s/decision" % lang),
+                    matcher="%s/%s/decision" % (QROOTDIR, lang)),
              Category (
                     lang=lang, name="%s - MCDC Coverage" % lang,
-                    matcher="Qualif/%s/mcdc" % lang)
-             ) for lang in ("Ada", "C")
+                    matcher="%s/%s/mcdc" % (QROOTDIR, lang))
+             ) for lang in QLANGUAGES
             ]
 
         lang_categories = [
@@ -802,6 +810,21 @@ class QDreport:
 
         value = Column (
             htext = "", legend = None)
+
+        # Some options are really language specific (e.g. -gnatp, -gnateS,
+        # ...) and we need to split these out, as dumping a single catenation
+        # of all the possibilities makes no sense.  Besides, we might be
+        # producing qualification results only for a subset all the possible
+        # supported languages, and we want to omit the specifics corresponding
+        # to languages out of that subset.
+
+        # Options might be coming from a variety of places:
+        # - BUILDER.COMMON_CARGS (e.g. -fpreserve-control-flow),
+        # - LANGINFO.cargs (e.g. -gnateS for Ada, -fdump-scos for C)
+        # - --qualif-cargs
+
+        # ??? as of today, --qualif-cargs might contain a mix of common and
+        # language specific options. This needs to be refined.
 
         CSVtable (
             title = None, text = None,
