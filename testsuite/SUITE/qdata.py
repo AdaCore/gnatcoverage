@@ -21,7 +21,7 @@ from SUITE.control import LANGINFO
 
 from SCOV.internals.cnotes import *
 
-QLANGUAGES = (li.name for li in LANGINFO.values() if li.scos_ext)
+QLANGUAGES = [li.name for li in LANGINFO.values() if li.scos_ext]
 # list of languages we support qualification tests for
 
 QROOTDIR="Qualif"
@@ -821,10 +821,9 @@ class QDreport:
         # Options might be coming from a variety of places:
         # - BUILDER.COMMON_CARGS (e.g. -fpreserve-control-flow),
         # - LANGINFO.cargs (e.g. -gnateS for Ada, -fdump-scos for C)
-        # - --qualif-cargs
+        # - --qualif-cargs family
 
-        # ??? as of today, --qualif-cargs might contain a mix of common and
-        # language specific options. This needs to be refined.
+        options = self.options.__dict__
 
         CSVtable (
             title = None, text = None,
@@ -837,11 +836,14 @@ class QDreport:
                 {item : "compiler switches - language agnostic",
                  value: ' '.join (
                         (BUILDER.COMMON_CARGS,
-                         self.options.qualif_cargs
-                         if self.options.qualif_cargs else ""))
+                         options["qualif_cargs"])
+                        )
                  } ] + \
                 [ { item : "compiler switches - %s specific" % lang,
-                    value: ' '.join (to_list (LANGINFO[lang].cargs))
+                    value: ' '.join (
+                        (LANGINFO[lang].cargs,
+                         options["qualif_cargs_%s" % lang])
+                        )
                   } for lang in self.languages ]
             ).dump_to (self.rstf)
 

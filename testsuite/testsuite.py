@@ -55,8 +55,8 @@ DEFAULT_TIMEOUT = 600
 # The qualification mode aims at producing a test-results qualification report
 # for the provided target level.
 
-# --qualif-cargs controls the compilation options used to compile the
-# qualification tests.
+# The --qualif-cargs family controls the compilation options used to compile
+# the the qualification tests.
 
 # Beyond the production of a qualification report, --qualif-level has several
 # effects of note:
@@ -84,7 +84,7 @@ class QlevelInfo:
         self.subtrees  = subtrees
 
         # --level argument to pass to xcov when running such tests when in
-        # --qualification mode
+        # qualification mode
         self.xcovlevel = xcovlevel
 
 RE_QCOMMON="(Common|Appendix)"
@@ -221,21 +221,24 @@ class TestSuite:
         return ['ALL'] + self.env.discriminants
 
     def qualif_cargs_discriminants(self):
-        """Compute a list of discriminants (string) for each switch passed
-        in the --qualif-cargs command-line option.  The format of each
-        discriminant is a follow: QUALIF_CARGS_<X> where <X> is the switch
-        stripped of its leading dashes.  For instance, if this testsuite
-        is called with --qualif-cargs='-gnatp -O1', then this function should
-        return ['QUALIF_CARGS_gnatp', 'QUALIF_CARGS_O1'].
+        """Compute a list of discriminants (string) for each switch passed in
+        all the --qualif-cargs command-line option(s).  The format of each
+        discriminant QUALIF_CARGS_<X> where <X> is the switch stripped of its
+        leading dashes.
+
+        For instance, if this testsuite is called with --qualif-cargs='-O1'
+        --qualif-cargs-Ada='-gnatp', then this function should return
+        ['QUALIF_CARGS_gnatp', 'QUALIF_CARGS_O1'].
 
         Return an empty list if --qualif-cargs was not used.
         """
 
-        return (
-            [] if not self.env.main_options.qualif_cargs
-            else ["QUALIF_CARGS_%s" % arg.lstrip('-')
-                  for arg in self.env.main_options.qualif_cargs.split()]
+        allopts = ' '.join (
+            [self.env.main_options.__dict__[opt] for opt in
+             ("qualif_cargs" + ext
+              for ext in [""] + ["_%s" % l for l in QLANGUAGES])]
             )
+        return ["QUALIF_CARGS_%s" % arg.lstrip('-') for arg in allopts.split()]
 
     def qualif_level_discriminants(self):
         """List of single discriminant (string) denoting our current
@@ -358,11 +361,24 @@ class TestSuite:
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
 
-        # Enforce cargs for tests in the qualification subtree even
-        # when not in qualification mode.
+        # Enforce cargs for tests in the qualification subtree even when not
+        # in qualification mode.  We need to pass both the common cargs and
+        # those specific to the test language.
 
-        if mopt.qualif_cargs and qlevels:
-            testcase_cmd.append('--cargs=%s' % mopt.qualif_cargs)
+        if qlevels:
+
+            lang = test.lang()
+
+            cargs = (
+                ["qualif_cargs" + ext
+                 for ext in [""] + (["_%s" % lang] if lang else [])]
+                )
+            cargs = ' '.join (
+                [mopt.__dict__[opt] for opt in cargs if mopt.__dict__[opt]]
+                )
+
+            if cargs:
+                testcase_cmd.append('--cargs=%s' % cargs)
 
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
@@ -482,9 +498,23 @@ class TestSuite:
                      metavar='N', default=1, help='Allow N jobs at once')
         m.add_option("--old-res", dest="old_res", type="string",
                         help="Old testsuite.res file")
+
+        # qualif-cargs family: a common, language agnostic, one + one for each
+        # language we support. Iterations on qualif-cargs wrt languages will
+        # be performed using explicit references to the attribute dictionary
+        # of m.options.
+
         m.add_option('--qualif-cargs', dest='qualif_cargs', metavar='ARGS',
                      help='Additional arguments to pass to the compiler '
-                          'when building the test programs.')
+                          'when building the test programs. Language agnostic.')
+
+        [m.add_option(
+                '--qualif-cargs-%s' % lang,
+                dest='qualif_cargs_%s' % lang,
+                help='qualif-cargs specific to %s tests' % lang,
+                metavar="...")
+         for lang in QLANGUAGES]
+
         m.add_option('--qualif-level', dest='qualif_level',
                      type="choice", choices=QLEVEL_INFO.keys(),
                      metavar='QUALIF_LEVEL',
@@ -516,6 +546,15 @@ class TestSuite:
             logging.info("Running tests matching '%s'" % m.options.run_test)
         else:
             m.options.run_test = ""
+
+        # --qualif-cargs "" should be kept semantically equivalent to absence
+        # of --qualif-cargs at all, and forcing a string allows simpler code
+        # downstream.
+
+        [m.options.__dict__.__setitem__ (opt, "")
+         for opt in ("qualif_cargs%s" % ext
+                     for ext in [""] + ["_%s" % lang for lang in QLANGUAGES])
+         if m.options.__dict__[opt] == None]
 
         return m.options
 
@@ -614,6 +653,13 @@ class TestCase(object):
         return [
             qlevel for qlevel in QLEVEL_INFO
             if re.search (QLEVEL_INFO[qlevel].subtrees, self.testdir)]
+
+    def lang(self):
+        """The language specific subtree SELF pertains to"""
+        for lang in QLANGUAGES:
+            if self.testdir.find ("%s/%s/" % (QROOTDIR, lang)) != -1:
+                return lang
+        return None
 
 # ======================
 # == Global functions ==
