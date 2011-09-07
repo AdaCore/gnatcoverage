@@ -12,14 +12,14 @@ This section contains compliance matrix with the guidance contained in section 1
    12.2b|not applicable|verification tool
    12.2c |see  :qmref:`$(project)::Plans::Software Configuration Management Plan` and see :qmref:`$(project)::Plans::Software Quality Assurance Plan`
    12.2.1|not applicable| verification tool
-   12.2.2| see "Tool Operational Requirement and Test cases document", see "Tests Results document", and `GNATcoverage Qualified Interface`_ |
+   12.2.2| see the TOR document, the STR report, and `GNATcoverage Qualified Interface`_ |
    12.2.3a|to be provided by the applicant|See :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`
    12.2.3b|CC2 see  :qmref:`$(project)::Plans::Software Configuration Management Plan`|verification tool
    12.2.3c|not applicable|verification tool
    12.2.3.1|not applicable|nonetheless we provide :qmref:`$(project)::Plans::Tool Qualification Plan` (this document)
-   12.2.3.2a|see "Tool Operational Requirement and Test case document"|
+   12.2.3.2a|see the TOR document|
    12.2.3.2b|see "GNAT Pro User's Guide" and "GNATcoverage User's Guide" and "GNATcoverage README" |
-   12.2.3.2c|??? where is described the actual operational environment???|See :qmref:`$(project)::Plans::Tool Qualification Plan::Environment_Equivalence`
+   12.2.3.2c|see the "Operational Environment" section of the TOR document|See :qmref:`$(project)::Plans::Tool Qualification Plan::Environment_Equivalence`
    12.2.3.2d|not applicable|verification tool
    12.2.4|to be provided by the applicant |see :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`
    
@@ -49,11 +49,11 @@ GNATcoverage qualified interface
 
 To obtain reports suitable for use as certification evidence, applicants shall use GNATcoverage as follows:
 
-* Build the object code composing the application under test with the GNAT Pro toolchain identified in the Tool Operational Requirements obeying to the compilation options and coding standard rules documented in the Operational Environment section.
+* Build the application object code with the GNAT Pro toolchain identified in the Operational Environment section of TOR document, obeying the compilation options and coding standard rules documented there as well.
 
 * Build the test code and test harness and link it with the relevant application objects if necessary to form one or several test executables. The test code does not need to be compiled with the switches described in the Operational Environment section, nor does it need to comply to the coding standard.
 
-* Obtain as many execution trace files (<TRACE>) as needed by running the test  executables (<APP>) within the instrumented execution environment:
+* Obtain as many execution trace files (<TRACE>) as needed by running the test executables (<APP>) within the instrumented execution environment, specifying the target architecture (<TARGET>) *and* the criterion level to be assessed (<LVL>) as well:
 
 .. code-block:: text 
  
@@ -61,15 +61,15 @@ To obtain reports suitable for use as certification evidence, applicants shall u
  ...
  xcov run --target=<TARGET> --level=<LVL> <APP> -o <TRACE>
 
-* Produce a single <REPORT> file (format documented in  the GNATcoverage User's Guide), consolidating the various coverage information associated with the various execution  traces of interest:
+* Produce a single <REPORT> file (format documented in the GNATcoverage User's Guide), consolidating the coverage outcome for the list of execution traces stored in the <traces.list> file, and querying results for the list of source units designated in the <alis.list> file:
 
 .. code-block:: text
 
  xcov coverage --annotate=report --level=<LVL> --scos=@<alis.list> @<traces.list> -o <REPORT>
 
-where:
+In the sample commands above:
 
-* <APP> is test executable
+* <APP> is a test executable
 * <LVL> designates the coverage criteria to assess. See :qmref:`$(project)::Plans::Tool Qualification Plan::Tool_Overview` Software Level
 * <REPORT> is the output file containing the GNATcoverage report
 * <TARGET> identifies the target platform (as in the GNAT Pro toolchain prefixes, e.g.  powerpc-elf);

@@ -31,7 +31,7 @@ A file containing the GNATcoverage output.
 
 .. rubric:: Test
 
-A test is an concretization of a testcase with precise values and parameters.
+A part of a testcase which exercizes functional code in a precise manner, aimed at obtaining precise expected coverage results.
 
 .. rubric:: Testcase
 
@@ -69,3 +69,14 @@ AdaCore: GNAT Pro User Guide. Available as part of GNAT Pro documentation.
 .. rubric:: GNATcoverage RM
 
 AdaCore: GNATcoverage Reference Manual.
+
+.. rubric:: TOR document
+
+GNATcoverage Tool Operational Requirements and Testcases document
+
+.. rubric:: STR report
+
+GNATcoverage Software Test Results report
+
+
+
