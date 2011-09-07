@@ -7,7 +7,7 @@
         }, 
   {"artifact": "/plans", "files":     
         [
-          {"file": "content.rst", "sha1": "bf5c699bf4481aa0495a30b5fe647504fbc55552"}, 
+          {"file": "content.rst", "sha1": "818e0421392b0e0b8710162cad292812283040a8"}, 
               {"file": "conf.py", "sha1": "0d27e790ef17e4485b7cc2d9f0a89ee53e1832cd"}
         ]
         }
