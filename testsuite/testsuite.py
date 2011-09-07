@@ -90,24 +90,30 @@ class QlevelInfo:
 RE_QCOMMON="(Common|Appendix)"
 RE_QLANG="(%s)" % '|'.join (QLANGUAGES)
 
+# A regular expression that matches subdirs of qualification tests that
+# should apply for coverage criteria RE_CRIT.
+
+def RE_SUBTREE (re_crit):
+    return "%(root)s/((%(common)s)|(%(lang)s/(%(crit)s)))" % {
+        "root": QROOTDIR, "common": RE_QCOMMON,
+        "lang": RE_QLANG, "crit": re_crit
+        }
+
 QLEVEL_INFO = {
 
     "doA" : QlevelInfo (
         levelid   = "doA",
-        subtrees  = ("%s/%s|%s/(stmt|decision|mcdc)"
-                     % (QROOTDIR, RE_QCOMMON, RE_QLANG)),
+        subtrees  = RE_SUBTREE (re_crit="stmt|decision|mcdc"),
         xcovlevel = "stmt+mcdc"),
 
     "doB" : QlevelInfo (
         levelid   = "doB",
-        subtrees  = ("%s/%s|%s/(stmt|decision)"
-                     % (QROOTDIR, RE_QCOMMON, RE_QLANG)),
+        subtrees  = RE_SUBTREE (re_crit="stmt|decision"),
         xcovlevel = "stmt+decision"),
 
     "doC" : QlevelInfo (
         levelid   = "doC",
-        subtrees  = ("%s/%s|%s/(stmt)"
-                     % (QROOTDIR, RE_QCOMMON, RE_QLANG)),
+        subtrees  = RE_SUBTREE (re_crit="stmt"),
         xcovlevel = "stmt")
     }
 
