@@ -577,7 +577,11 @@ class QDreport:
         self.gen_tctables(sepfile="tctables.rst")
         self.gen_tssummary(sepfile="tssummary.rst")
 
-        self.gen_index(sepfiles=["env.rst", "tctables.rst", "tssummary.rst"])
+        # Rely on a static toplevel index instead of generating one here.
+        # This is much simpler to tailor and the harcoded knowledge (set of
+        # sections/documents) is very limited and unlikely to change.
+
+        # self.gen_index(sepfiles=["env.rst", "tctables.rst", "tssummary.rst"])
 
     def categorize(self, qda):
         for cat in self.categories:
@@ -658,7 +662,7 @@ class QDreport:
         if sepfile:
             self.rstf = RSTfile (sepfile)
 
-        self.rstf.write (rest.chapter ("Testcase execution summary"))
+        self.rstf.write (rest.chapter ("Testcase Execution summary"))
 
         # Arrange to get a single description and legend followed by a set of
         # tables with data for each category.
@@ -785,7 +789,7 @@ class QDreport:
         if sepfile:
             self.rstf = RSTfile (sepfile)
 
-        self.rstf.write (rest.chapter ("Testsuite status summary"))
+        self.rstf.write (rest.chapter ("Testsuite Status summary"))
 
         RSTtable (
             title = None,
@@ -895,7 +899,7 @@ class QDreport:
         if sepfile:
             self.rstf = RSTfile (sepfile)
 
-        self.rstf.write (rest.chapter ("Execution context summary"))
+        self.rstf.write (rest.chapter ("Execution Context summary"))
 
         self.gen_suite_options ()
         self.rstf.write ("~\n")
