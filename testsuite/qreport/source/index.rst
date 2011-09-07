@@ -11,8 +11,9 @@ This report features the following sections:
    :widths: 20, 65
    :delim:  |
 
-   :doc:`env` | "Operational Environment descriptive items (host operating
-   system, tools identification, compilation options)"
+   :doc:`env` | "Tables describing the Operational Environment in which this
+   report was produced (host operating system, tools identification,
+   compilation options, ...)"
    :doc:`tctables` | "Tables of execution status for all the Testcases,
    grouped by language/criterion category"
    :doc:`tssummary` | "Testsuite global status, with synthetic counters
