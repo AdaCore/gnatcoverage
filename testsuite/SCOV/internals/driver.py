@@ -368,19 +368,16 @@ class SCOV_helper:
         """Return a list of ali files corresponding to the list of sources
         specified in this tests's UXset.
         """
-        all_alis = {}
-        for ali in [self.locate_ali(source) for source in self.xrnotes]:
-            if ali:
-                all_alis[ali] = 1
-        return all_alis.keys()
+        return  (
+            [ali for ali in (self.locate_ali(source)
+                             for source in self.xrnotes) if ali]
+            )
 
     # ---------
     # -- run --
     # ---------
-    def run(self, extracargs=""):
-        """Evaluate source coverage as exercised by self.drivers over
-        the sources in self.UXset. Compare actual errors with expected
-        specs in the associated LXset."""
+    def run(self, extracargs="", extragargs=""):
+        """Evaluate source coverage as exercised by self.drivers"""
 
         self.log()
 
@@ -391,7 +388,7 @@ class SCOV_helper:
         # For single tests (no consolidation), we first need to build and
         # xcov run to get an execution trace:
         if self.singletest():
-            self.build(self.drivers[0],extracargs)
+            self.build (self.drivers[0], extracargs, extragargs)
             self.alis = list_to_file(self.ali_list(), "alis.list")
             self.xcov_run(no_ext(self.drivers[0]))
         else:
@@ -448,7 +445,7 @@ class SCOV_helper:
     # -----------
     # -- build --
     # -----------
-    def build(self,main,extracargs):
+    def build(self, main, extracargs, extragargs):
         """gprBuild binary for main program MAIN"""
 
         # Seek a few tentative source dirs, for typical locations of test
@@ -464,7 +461,8 @@ class SCOV_helper:
                     srcdirs = [
                     "../"*n + "src" for n in range (1, thistest.depth)],
                     main_cargs = "-fno-inline"),
-            cargs=to_list(extracargs))
+            cargs=to_list(extracargs),
+            gargs=to_list(extracargs))
 
     # --------------
     # -- xcov_run --
