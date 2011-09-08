@@ -55,12 +55,12 @@ package Diagnostics is
       Msg  : String;
       Kind : Report_Kind := Error);
 
-   procedure Report
+   procedure Report_Violation
      (SCO  : SCO_Id;
-      Msg  : String;
-      Kind : Report_Kind := Error);
+      Msg  : String);
    --  Report a violation of a source coverage obligation. Note: the SCO kind
    --  will be prepended to Msg in reports, unless Msg starts with ^ (caret).
+   --  A violation message has message kind Error.
 
    procedure Report
      (Msg  : String;

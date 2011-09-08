@@ -201,11 +201,10 @@ package body Coverage.Source is
 
                      if not Multiple_Statements_Reported then
                         Multiple_Statements_Reported := True;
-                        Report
+                        Report_Violation
                           (SCO,
                            "^multiple statements on line, unable to "
-                           & "establish full statement coverage",
-                           Kind => Warning);
+                           & "establish full statement coverage");
                      end if;
                      SCO_State := Partially_Covered;
                   end if;
@@ -216,7 +215,7 @@ package body Coverage.Source is
                   --  Generate violation message on first line of SCO
 
                   if Line_Num = First_Sloc (SCO).Line then
-                     Report (SCO, "not executed");
+                     Report_Violation (SCO, "not executed");
                   end if;
                end if;
 
@@ -263,9 +262,11 @@ package body Coverage.Source is
                   --  been taken then this is outcome TRUE, else FALSE.
 
                   if Degraded_Origins (SCO) then
-                     Report (SCO, "not exercised in both directions");
+                     Report_Violation
+                       (SCO, "not exercised in both directions");
+
                   else
-                     Report
+                     Report_Violation
                        (SCO,
                         "outcome "
                         & SCI.Outcome_Taken (False)'Img
@@ -290,7 +291,7 @@ package body Coverage.Source is
                   if Enclosing_Statement (SCO) = No_SCO_Id
                        or else SCI_Of_SCO (Enclosing_Statement (SCO)).Executed
                   then
-                     Report (SCO, "never evaluated");
+                     Report_Violation (SCO, "never evaluated");
                   end if;
                   SCO_State := Not_Covered;
                end if;
@@ -580,12 +581,11 @@ package body Coverage.Source is
                         Eval := Pop_Eval;
 
                         if Eval.Values /= Inferred_Values then
-                           Report
+                           Report_Violation
                              (D_SCO,
-                              "inferred values mismatch: expected "
+                              "^inferred values mismatch: expected "
                               & Image (Inferred_Values)
-                              & ", got " & Image (Eval.Values),
-                              Kind => Error);
+                              & ", got " & Image (Eval.Values));
                         end if;
 
                      else

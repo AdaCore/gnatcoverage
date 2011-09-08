@@ -150,14 +150,13 @@ package body Diagnostics is
       Report (Msg, Sloc => Sloc, Kind => Kind);
    end Report;
 
-   procedure Report
+   procedure Report_Violation
      (SCO  : SCO_Id;
-      Msg  : String;
-      Kind : Report_Kind := Error)
+      Msg  : String)
    is
    begin
-      Report (Msg, Sloc => First_Sloc (SCO), SCO => SCO, Kind => Kind);
-   end Report;
+      Report (Msg, Sloc => First_Sloc (SCO), SCO => SCO, Kind => Error);
+   end Report_Violation;
 
    procedure Report
      (Msg  : String;

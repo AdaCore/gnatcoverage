@@ -648,7 +648,7 @@ package body SC_Obligations is
          Put_Line ("--- Root condition:" & BDD.Root_Condition'Img);
          if BDD.Diamond_Base /= No_BDD_Node_Id then
             Report
-              (BDD.Decision,
+              (First_Sloc (BDD.Decision),
                "BDD node" & BDD.Diamond_Base'Img
                & " reachable through multiple paths",
                Kind => Notice);
@@ -1688,21 +1688,13 @@ package body SC_Obligations is
                end case;
 
                if First /= No_Location then
-                  begin
-                     Sloc_To_SCO_Map.Insert (SCOD.Sloc_Range, SCO);
-                  exception
-                     when Constraint_Error =>
-                        --  Handle the case of junk nested conditions (happens
-                        --  with junk SCOs generated for modular integer
-                        --  expressions)???
+                  Sloc_To_SCO_Map.Insert (SCOD.Sloc_Range, SCO);
 
-                        Report
-                          (SCO,
-                           "same sloc range as "
-                           & Image (Sloc_To_SCO_Map.Element (SCOD.Sloc_Range))
-                           & ", ignored",
-                           Kind => Warning);
-                  end;
+                  --  Note: we used to handle Constraint_Error here to account
+                  --  for old compilers that generated junk SCOs with the same
+                  --  source locations. These bugs have now been fixed, so the
+                  --  work-around was removed, and if this happened again we'd
+                  --  propagate the exception.
                end if;
             end Process_Descriptor;
 
@@ -1821,15 +1813,18 @@ package body SC_Obligations is
       procedure Check_Condition (Cur : Cursor) is
          use Ada.Containers;
 
-         SCOD : SCO_Descriptor renames Element (Cur);
+         SCOD  : SCO_Descriptor renames Element (Cur);
+         D_SCO : constant SCO_Id := Enclosing_Decision (To_Index (Cur));
       begin
          if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
+            --  Static analysis failed???
+
             Report
-              (To_Index (Cur), "no conditional branch (in "
-               & Decision_Kind'Image
-                   (SCO_Vector.Element
-                     (Enclosing_Decision (To_Index (Cur))).D_Kind)
-               & ")",
+              (SCOD.Sloc_Range.First_Sloc,
+               Msg  => "no conditional branch (in "
+                         & Decision_Kind'Image
+                             (SCO_Vector.Element (D_SCO).D_Kind)
+                         & ")",
                Kind => Diagnostics.Error);
 
             --  Report a static analysis error if one condition has no

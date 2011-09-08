@@ -537,8 +537,8 @@ package body Decision_Map is
          CBI            : in out Cond_Branch_Info;
          Edge           : Edge_Kind)
       is
-         Edge_Name         : constant String := Edge'Img;
-         Edge_Info         : Cond_Edge_Info renames CBI.Edges (Edge);
+         Edge_Name : constant String := Edge'Img;
+         Edge_Info : Cond_Edge_Info renames CBI.Edges (Edge);
 
          function Check_Possible_Successor
            (Next_Condition : Condition_Index) return Tristate;
@@ -1181,9 +1181,12 @@ package body Decision_Map is
       for J in Condition_Index'First .. D_Occ.Last_Cond_Index loop
          for Val in Boolean'Range loop
             if not Has_Valuation (J, Val) then
-               Report (Condition (D_Occ.Decision, J),
-                       "lacks edge for " & Val'Img,
-                      Kind => Warning);
+
+               --  Static analysis failed???
+
+               Report (First_Sloc (Condition (D_Occ.Decision, J)),
+                       Msg  => "condition lacks edge for " & Val'Img,
+                       Kind => Warning);
             end if;
          end loop;
       end loop;
