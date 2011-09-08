@@ -183,7 +183,15 @@ package body Diagnostics is
 
    procedure Output_Message (M : Message) is
    begin
-      if Verbose or else M.Kind > Warning then
+      --  In Verbose mode, output all messages, else output only non-violation
+      --  messages of level higher than Notice. Note that violations are
+      --  always reported in the annotated sources or report output, so it's
+      --  fine to omit them here.
+
+      if Verbose
+           or else
+         (M.Kind > Notice and then M.SCO = No_SCO_Id)
+      then
          Put_Line (Image (M));
       end if;
    end Output_Message;
