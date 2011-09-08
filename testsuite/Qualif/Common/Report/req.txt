@@ -61,9 +61,26 @@ the requirements in a range of different situations:
 
 %(tc-index)s
 
-We validate the presence and structure of all the expected sections and items
-in each testcase. We do not validate the correctness of the section contents
-here. That assessment (correctness of the reported violations vs expectations
-for particular programs), is defined and validated by sibling chapters of this
-in this document.
+In each of these testcases, we validate the presence and structure of all the
+expected sections and items in the "Assessment Context" part. We don't verify
+the general correctness of reported violations vs expectations here. This is
+defined and validated by sibling chapters of this TOR document, in particular
+those dedicated to specific coverage criteria.
+
+The output report correctness also gets validated as part of those other
+chapters, with the testsuite engine checking that:
+
+* All the reported coverage violations are found in the correct report
+  section,
+
+* The synthetic counters at the end of sections reporting violations or
+  exempted regions is correct (matches the actual number of items reported in
+  the section),
+
+* The synthetic counters reported in the global "Analysis Summary" section are
+  the same as those reported in individual sections,
+
+* There is an exact correspondance between the reported items and the testcase
+  expectations, with a test passing only if everything reported was stated as
+  expected and everything expected was found to be reported.
 
