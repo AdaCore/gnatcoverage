@@ -830,13 +830,29 @@ package body Decision_Map is
 
          elsif Opposite_CBE.Origin /= Unknown then
             --  Opposite branch is associated with a known valuation of the
-            --  condition.
+            --  condition, so this edge must have the opposite valuation. If
+            --  that opposite valuation determines a known outcome, check that
+            --  this edge has a consistent destination before setting origin.
 
-            Set_Known_Origin
-              (Cond_Branch_PC,
-               CBI,
-               Edge,
-               not To_Boolean (Opposite_CBE.Origin));
+            declare
+               Candidate_Val     : constant Boolean :=
+                                     not To_Boolean (Opposite_CBE.Origin);
+               Candidate_Outcome : constant Tristate :=
+                                     Outcome (CBI.Condition, Candidate_Val);
+            begin
+               if Candidate_Outcome = Unknown
+                    or else Known_Outcome (To_Boolean (Candidate_Outcome)).
+                              Is_Empty
+                    or else Known_Outcome (To_Boolean (Candidate_Outcome)).
+                              Contains (CBI.Edges (Edge).Destination)
+               then
+                  Set_Known_Origin
+                    (Cond_Branch_PC,
+                     CBI,
+                     Edge,
+                     not To_Boolean (Opposite_CBE.Origin));
+               end if;
+            end;
          end if;
       end Label_From_Opposite;
 
@@ -962,7 +978,11 @@ package body Decision_Map is
          for Edge in Edge_Kind loop
             --  Finally report destinations we still can't label
 
-            if CBI.Edges (Edge).Dest_Kind = Unknown then
+            if CBI.Edges (Edge).Dest_Kind = Unknown
+                 or else
+               (CBI.Edges (Edge).Dest_Kind = Outcome
+                  and then CBI.Edges (Edge).Origin = Unknown)
+            then
                Report (Exe, CB_Loc.PC,
                        "unable to label " & Edge'Img
                        & " destination "
