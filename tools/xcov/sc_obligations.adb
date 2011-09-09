@@ -1814,7 +1814,6 @@ package body SC_Obligations is
          use Ada.Containers;
 
          SCOD  : SCO_Descriptor renames Element (Cur);
-         D_SCO : constant SCO_Id := Enclosing_Decision (To_Index (Cur));
       begin
          if SCOD.Kind = Condition and then SCOD.PC_Set.Length = 0 then
             --  Static analysis failed???
@@ -1823,7 +1822,8 @@ package body SC_Obligations is
               (SCOD.Sloc_Range.First_Sloc,
                Msg  => "no conditional branch (in "
                          & Decision_Kind'Image
-                             (SCO_Vector.Element (D_SCO).D_Kind)
+                             (SCO_Vector.Element
+                                (Enclosing_Decision (To_Index (Cur))).D_Kind)
                          & ")",
                Kind => Diagnostics.Error);
 
@@ -1840,6 +1840,9 @@ package body SC_Obligations is
 
          end if;
       end Check_Condition;
+
+   --  Start of processing for Report_SCOs_Without_Code
+
    begin
       SCO_Vector.Iterate (Check_Condition'Access);
    end Report_SCOs_Without_Code;
