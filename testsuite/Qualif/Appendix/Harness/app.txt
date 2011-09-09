@@ -152,8 +152,8 @@ In the optional sequence at the end of driver sources:
    =======   ========================================== ==================
    Text      Denotes an expected diagnostic like:       In report section:
    =======   ========================================== ==================
-   ``0``     absence of diagnostic                      all
-   ``0c``    absence of diagnostic, continuation        all
+   ``0``     no diagnostic                              all
+   ``0c``    no diagnostic, continuation (see below)    all
    ``s-``    ``statement not executed``                 stmt coverage
    ``dT-``   ``decision outcome True not covered``      decision coverage
    ``dF-``   ``decision outcome False not covered``     decision coverage
@@ -269,8 +269,8 @@ several factors:
   qualification results.
 
 * Having to fill them in reinforces the Test Case development rigor, as it
-  adds one element that test writers have to care about when specifying expected
-  outcomes.
+  adds one element that test writers have to care about when specifying
+  expected outcomes.
 
 ------------------------
 Test evaluation criteria 
@@ -314,6 +314,7 @@ reported triggers a test FAILure.
 This makes the ``0`` expressions representative of positive coverage
 expectations in a context where the qualified output report does not
 materialize positive results explicitly.
+
 In the previous example, ``-- /XcmpMax/ l+ 0`` is a way to state that we
 expect the statement on line 6 (marked with "# XcmpMax") to be covered, and
 the testsuite engine verifies this even though the output report does *not*
@@ -321,6 +322,15 @@ feature any explicit indication to that effect. Technically, we state that we
 expect 0 violation messages on that line, and any violation indication emitted
 for it (e.g. if the statement happened not to be covered) would cause the test
 to fail.
+
+When a single statement spans over multiple lines, we have situations where we
+need to specify expectations for all the lines while there's actually just a
+single real positive expectation (as there is only one statement). We use the
+``0c`` expectation code in such cases, to indicate that we expect nothing to
+be reported for the line (and have testsuite engine check that), but that this
+is the continuation of another expectation stated earlier, so shouldn't be
+counted as a positive expectation in qualification test-results reports.
+
 
 Test categories vs. execution level
 ***********************************
