@@ -88,17 +88,12 @@ class TestCase:
     def __category(self):
         """Compute our test category from its directory location."""
 
-        root_expr = "(Ravenscar/.*|Ada|C|SanityCheck)"
-        if re.search (root_expr + ".stmt", TEST_DIR):
-            return "stmt"
-        elif re.search (root_expr + ".decision", TEST_DIR):
-            return "decision"
-        elif re.search (root_expr + ".mcdc", TEST_DIR):
-            return "mcdc"
-        else:
-            raise FatalError(
-                "Unable to determine test category from test dir: %s"
-                %TEST_DIR)
+        for crit in ("stmt", "decision", "mcdc"):
+            if re.search ("/%s/" % crit, TEST_DIR):
+                return crit
+
+        raise FatalError(
+            "Unable to determine test category from dir '%s'" % TEST_DIR)
 
     def __drivers_from(self, cspec):
         """Compute the set of drivers that need to be combined for
