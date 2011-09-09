@@ -35,7 +35,7 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
     # configuration options (selecting target model and board essentially).
 
     all_gargs = [
-        '-v', '-f',         # verbose mode, always rebuild
+        '-f',               # always rebuild
         '-XSTYLE_CHECKS=',  # style checks off
         '-p',               # create missing directories (obj, typically)
         '-P%s' % project]

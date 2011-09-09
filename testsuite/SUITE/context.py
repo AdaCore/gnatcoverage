@@ -155,8 +155,14 @@ class Test (object):
         self.report = _ReportOutput(self.options.report_file)
         self.current_test_index = 0
 
-        self.gprconfoptions = ['-v', '--config=%s' % ROOT_DIR+'/suite.cgpr',
-                               '-XTARGET=%s' % env.target.triplet]
+        self.gprconfoptions = [
+            # verbose mode for verifiability in qualif mode.
+            # quiet mode for performance (less io) otherwise.
+            '-v' if self.options.qualif_level else '-q',
+
+            '--config=%s' % ROOT_DIR+'/suite.cgpr',
+            '-XTARGET=%s' % env.target.triplet]
+
         if self.options.board:
             self.gprconfoptions.append ('-XBOARD=%s' % self.options.board)
 
