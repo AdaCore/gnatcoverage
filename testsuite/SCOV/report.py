@@ -101,43 +101,38 @@ class Piece:
 
     def check(self):
 
-        # Check for presence of expected pieces
-
         nmatches = len (self.matches)
 
-        if self.nexpected >= 0:
+        # Check that we have the number of expected matches
 
-            # If we have an explicit number of matches expected, check
-            # that we had exactly that
+        thistest.fail_if (
+            nmatches != self.nexpected,
+            '%d matches of pattern "%s", != expected %d' % (
+                nmatches, self.pattern, self.nexpected)
+            )
 
+        # If we expected matches, have some, and have an ordering
+        # constraint specified, check it
+
+        if self.nexpected > 0 and nmatches != 0 and self.pre:
+            last_pre = self.pre.__last_match().lno
+            first_self = self.__first_match().lno
             thistest.fail_if (
-                nmatches != self.nexpected,
-                '%d matches of pattern "%s", != expected %d' % (
-                    nmatches, self.pattern, self.nexpected)
-                )
-
-            # If we expected matches, have some, and have an ordering
-            # constraint specified, check it
-
-            thistest.fail_if (
-                self.nexpected > 0 and nmatches != 0 and self.pre and
-                (self.pre.__last_match().lno > self.__first_match().lno),
-                'first match for "%s" too early wrt predecessor "%s"' %
-                (self.pattern, self.pre.pattern if self.pre else "err"))
-
-        else:
-            thistest.fail_if (
-                nmatches < abs(self.nexpected),
-                '%d matches of pattern "%s", < expected %d min' % (
-                    nmatches, self.pattern, abs(self.nexpected))
+                last_pre > first_self,
+                'first match for "%s" (%d) too early wrt predecessor "%s" (%d)'
+                % (self.pattern, first_self,  self.pre.pattern, last_pre)
                 )
 
 # ==========================
 # == Whole report checker ==
 # ==========================
 
-# expected per-criterion sections for each xcov --level, ordered as they
+# All the possible per-criterion sections, ordered as they
 # should be in the report
+
+all_crit = ["STMT", "DECISION", "MCDC"]
+
+# Those that we expect for each xcov --level
 
 crit_for = {
     "stmt":          ["STMT"],
@@ -220,10 +215,6 @@ class ReportChecker:
         # We want to check that the expected sections are there, and that the
         # unexpected sections are not there. We create Pieces with nexpected
         # == 0 for this purpose, and will check that nmatches == 0 as well.
-
-        all_crit = set (
-            [crit for crit_list in crit_for.values() for crit in crit_list]
-            )
 
         pre = vioHeader
 
