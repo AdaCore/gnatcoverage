@@ -15,6 +15,9 @@ from SUITE.cutils import FatalError
 
 from internals.tfiles import *
 
+# What the whole report checker should do
+MATCH_NEXT_PIECE, MATCH_NEXT_LINE = range (2)
+
 # ===========================================================
 # == Single pattern of text expected somewhere in a report ==
 # ===========================================================
@@ -26,10 +29,30 @@ class Piece:
 
         self.pattern = pattern
 
+        # Whether this is a "bounded" Piece, which should stop hitting matches
+        # at some point.
+
+        self.bounded = nexpected < 0
+
+        # We use this to deal with cases of identical patterns that can
+        # legitimately appear several times at different places and that we
+        # wish to match individually. Consider for example
+        #
+        #    STMT VIOLATIONS
+        #    ...
+        #    2 violations
+        #
+        #    DECISION VIOLATIONS
+        #    ...
+        #    3 violations
+        #
+        # and we want to recognize the two "\d+ violations" patterns as
+        # distinct instances, each hit once with its correct line number.
+
         # How many times (lines) we expect to match and set of
         # tline instances that did actually match
 
-        self.nexpected = nexpected
+        self.nexpected = abs(nexpected)
         self.matches = []
 
         # Expected predecessor and successor patterns.
@@ -39,11 +62,33 @@ class Piece:
         # For nexpected > 0 the last match of pre will need to happen before
         # the first match of self
 
+    def full (self):
+        return self.bounded and len (self.matches) == self.nexpected
+
     # Called for self on every report line
 
     def check_match(self,tline):
+
+        # If this is a bounded Piece that has hit all it's expected matches
+        # already, just skip it: don't record an extra match and keep looking
+        # for other Piece candidates for that text
+
+        if self.full():
+            return MATCH_NEXT_PIECE
+
+        # Otherwise, check if the provided line matches this Piece. If it
+        # does, record and check if that fills this possibly bounded Piece.
+        # If it does, consider that line the "property" of this Piece and
+        # don't try to match it against following Pieces. The other Pieces
+        # that would have matched this (as well) will need to be hit by a
+        # different line.
+
         if re.search (self.pattern, tline.text):
             self.matches.append (tline)
+            if self.full():
+                return MATCH_NEXT_LINE
+
+        return MATCH_NEXT_PIECE
 
     # Check expectations once we're done going through all the report lines
 
@@ -58,21 +103,24 @@ class Piece:
 
         # Check for presence of expected pieces
 
-        thistest.stop_if (
-            len (self.matches) == 0,
-            FatalError('no occurrence of pattern "%s"' % self.pattern))
-
         nmatches = len (self.matches)
 
-        if self.nexpected > 0:
+        if self.nexpected >= 0:
+
+            # If we have an explicit number of matches expected, check
+            # that we had exactly that
+
             thistest.fail_if (
                 nmatches != self.nexpected,
                 '%d matches of pattern "%s", != expected %d' % (
                     nmatches, self.pattern, self.nexpected)
                 )
 
+            # If we expected matches, have some, and have an ordering
+            # constraint specified, check it
+
             thistest.fail_if (
-                self.pre and
+                self.nexpected > 0 and nmatches != 0 and self.pre and
                 (self.pre.__last_match().lno > self.__first_match().lno),
                 'first match for "%s" too early wrt predecessor "%s"' %
                 (self.pattern, self.pre.pattern if self.pre else "err"))
@@ -88,26 +136,34 @@ class Piece:
 # == Whole report checker ==
 # ==========================
 
-# expected per-criterion sections for each test category
+# expected per-criterion sections for each xcov --level, ordered as they
+# should be in the report
 
 crit_for = {
-    "stmt":     ["STMT"],
-    "decision": ["STMT", "DECISION"],
-    "mcdc":     ["STMT", "DECISION", "MCDC"]
+    "stmt":          ["STMT"],
+    "stmt+decision": ["STMT", "DECISION"],
+    "stmt+mcdc":     ["STMT", "DECISION", "MCDC"]
 }
 
 
 class ReportChecker:
 
     def __process_line(self,tline):
-        [rpe.check_match (tline) for rpe in self.rpElements]
+
+        # See what Piece(s) matches TLINE, stopping on request
+        for rpe in self.rpElements:
+            if rpe.check_match (tline) == MATCH_NEXT_LINE:
+                return
 
     def __register(self, rpieces):
         self.rpElements.extend (rpieces)
 
-    def __setup_expectations(self, ntraces, category, xregions):
+    def __setup_expectations(self, ntraces, xcovlevel, xregions):
 
         self.rpElements = []
+
+        # Track the last Piece with nexpected > 0
+        pre = None
 
         # REPORT START
 
@@ -155,64 +211,97 @@ class ReportChecker:
         # NON-EXEMPTED VIOLATIONS
 
         vioHeader = Piece (
-            pattern = ("%sCOVERAGE VIOLATIONS"
+            pattern = ("\d+. %sCOVERAGE VIOLATIONS"
                        % ("NON-EXEMPTED " if xregions else "")),
             pre = trTag)
 
         self.__register (rpieces = [vioHeader])
 
-        pre=vioHeader
-        for crit in crit_for [category]:
+        # We want to check that the expected sections are there, and that the
+        # unexpected sections are not there. We create Pieces with nexpected
+        # == 0 for this purpose, and will check that nmatches == 0 as well.
+
+        all_crit = set (
+            [crit for crit_list in crit_for.values() for crit in crit_list]
+            )
+
+        pre = vioHeader
+
+        for crit in all_crit:
+
+            # How many instances of a section we expect for a criterion
+            # depends on the xcov --level argument
+
+            nexpected = 1 if crit in crit_for [xcovlevel] else 0
+
             vsHeader = Piece (
-                pattern="%s COVERAGE" % crit, pre=pre)
-            vsCount = Piece (
-                pattern="([0-9]+|No) violation", nexpected=-1, pre=vsHeader)
-            self.__register (rpieces = [vsHeader, vsCount])
-            pre=vsCount
+                pattern   ="%s COVERAGE" % crit,
+                nexpected = nexpected,
+                pre = pre if nexpected else None)
+
+            self.__register (rpieces = [vsHeader])
+
+            # If we do expect a section, add a pattern for the violation
+            # counter and update the current pre chain reference. Unexpected
+            # sections should be left out of that chain.
+
+            if nexpected > 0:
+                vsCount = Piece (
+                    pattern   = "([0-9]+|No) violation",
+                    nexpected = -1,
+                    pre = vsHeader)
+
+                self.__register (rpieces = [vsCount])
+
+                pre = vsCount
 
         # EXEMPTED REGIONS
 
         if xregions:
             xmrHeader = Piece (
-                pattern = "EXEMPTED REGIONS", pre=vsCount)
+                pattern = "EXEMPTED REGIONS", pre=pre)
             xmrCount = Piece (
                 pattern = "([0-9]+|No) exempted region", nexpected=-1,
                 pre = xmrHeader)
 
             self.__register (rpieces = [xmrHeader, xmrCount])
+            pre = xmrCount
 
         # ANALYSIS SUMMARY
 
         sumHeader = Piece (
             pattern = "ANALYSIS SUMMARY",
-            pre = xmrHeader if xregions else vsHeader)
+            pre = pre)
 
         self.__register (rpieces = [sumHeader])
+        pre = sumHeader
 
-        pre=sumHeader
-        for crit in crit_for [category]:
+        for crit in crit_for [xcovlevel]:
             sumLine = Piece (
                 pattern = ("([0-9]+|No) %s%s violation" %
                            ("non-exempted " if xregions else "", crit)),
                 pre = pre)
             self.__register (rpieces = [sumLine])
-            pre=sumLine
+            pre = sumLine
 
         if xregions:
             sumLine = Piece (
                 pattern = "([0-9]+|No) exempted region",
                 nexpected = -1,
-                pre = sumLine)
+                pre = pre)
             self.__register (rpieces = [sumLine])
+            pre = sumLine
 
         # END OF REPORT
 
         rpEnd    = Piece (
-            pattern="END OF REPORT", pre=sumLine)
+            pattern="END OF REPORT", pre=pre)
         self.__register (rpieces = [rpEnd])
 
-    def __init__(self, subdir, ntraces, category, xregions):
-        self.__setup_expectations(ntraces, category, xregions)
+    def __init__(self, subdir, ntraces, xcovlevel, xregions):
+        self.__setup_expectations(
+            ntraces=ntraces, xcovlevel=xcovlevel, xregions=xregions
+            )
         self.report = Tfile ("tmp_%s/test.rep" % subdir, self.__process_line)
 
     def run (self):
