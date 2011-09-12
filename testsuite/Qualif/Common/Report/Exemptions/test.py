@@ -1,7 +1,7 @@
 from SCOV.tc import *
 from SCOV.report import ReportChecker
 
-tc=TestCase()
+tc=TestCase(category=None)
 tc.run()
 
 ReportChecker(

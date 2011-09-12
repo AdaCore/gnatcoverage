@@ -16,7 +16,7 @@ end;
 --  /checkValid/    l+ 0
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l+ 0
---  /preValid/      l# x0
+--  /preValid/      s=>l#;dum=>l* s=>x0, dum=>x+
 --  /checkOverlap/  l- s-
 --  /overlapTrue/   l- s-
 --  /overlapFalse/  l- s-

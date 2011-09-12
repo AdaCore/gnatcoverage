@@ -1,11 +1,11 @@
 from SCOV.tc import *
 from SCOV.report import ReportChecker
 
-tc = TestCase()
+tc=TestCase(category=None)
 tc.run()
 
 ReportChecker(
-    "test_sort_full", ntraces=1, xcovlevel=tc.xcovlevels[0], xregions=0
+    "test_expr_some", ntraces=1, xcovlevel=tc.xcovlevels[0], xregions=0
     ).run()
 
 thistest.result()
