@@ -388,7 +388,10 @@ class SCOV_helper:
         # For single tests (no consolidation), we first need to build and
         # xcov run to get an execution trace:
         if self.singletest():
-            self.build (self.drivers[0], extracargs, extragargs)
+            self.build (
+                main=self.drivers[0],
+                extracargs=extracargs, extragargs=extragargs
+                )
             self.alis = list_to_file(self.ali_list(), "alis.list")
             self.xcov_run(no_ext(self.drivers[0]))
         else:
@@ -462,7 +465,7 @@ class SCOV_helper:
                     "../"*n + "src" for n in range (1, thistest.depth)],
                     main_cargs = "-fno-inline"),
             cargs=to_list(extracargs),
-            gargs=to_list(extracargs))
+            gargs=to_list(extragargs))
 
     # --------------
     # -- xcov_run --
