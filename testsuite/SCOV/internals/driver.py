@@ -64,7 +64,7 @@ def no_ext(filename):
 # CATEGORY:
 # ---------------------------------------------------------------------
 
-# The dictionary keys are test categories here. The values tell what kind of
+# The dictionary keys are test categories here. The values tell what kind of#
 # expectations and emitted notes we care about for a given key. "care about"
 # means "match emitted notes with expectations, ignore otherwise".
 
@@ -575,7 +575,10 @@ class SCOV_helper:
                      "stmt+uc_mcdc": 3   # context
                      }
 
-        stricter_level = strength [self.xcovlevel] > strength [self.category]
+        stricter_level = (
+            self.category and
+            strength [self.xcovlevel] > strength [self.category]
+            )
 
         # Report notes checks
         # -------------------
@@ -591,9 +594,22 @@ class SCOV_helper:
             xBlock0: [xBlock0, xBlock1]
             } if stricter_level else {}
 
+        # For tests without a category, pick the relevant note kinds from
+        # the strictest category possibly corresponding to the xcov-level.
+
+        strictest_cat_for = {
+            "stmt": "stmt",
+            "stmt+decision" : "decision",
+            "stmt+mcdc": "mcdc"
+            }
+
+        relevance_cat = (
+            self.category if self.category
+            else strictest_cat_for[self.xcovlevel])
+
         discharge_kdict.update (
-            {r0 : r_ern_for[self.category],
-             r0c : r_ern_for[self.category]
+            {r0 : r_ern_for[relevance_cat],
+             r0c : r_ern_for[relevance_cat]
              })
 
         # Then do check:
@@ -601,9 +617,9 @@ class SCOV_helper:
         _Xchecker (
             report ='test.rep',
             xdict  = self.xrnotes.get(source),
-            rxp    = r_rxp_for[self.category],
+            rxp    = r_rxp_for[relevance_cat],
             edict  = self.ernotes.get(source, KnoteDict(erNoteKinds)),
-            ren    = r_ern_for[self.category]
+            ren    = r_ern_for[relevance_cat]
             ).run (discharge_kdict)
 
         # Line notes checks, meaningless if we're in qualification mode
@@ -631,9 +647,9 @@ class SCOV_helper:
         _Xchecker (
             report = source+'.xcov',
             xdict  = self.xlnotes.get(source),
-            rxp    = r_lxp_for[self.category],
+            rxp    = r_lxp_for[relevance_cat],
             edict  = self.elnotes.get(source, KnoteDict(elNoteKinds)),
-            ren    = r_eln_for[self.category]
+            ren    = r_eln_for[relevance_cat]
             ).run (discharge_kdict)
 
     # ---------

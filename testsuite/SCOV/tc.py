@@ -37,6 +37,17 @@ from gnatpython.fileutils import ls
 
 from internals.driver import SCOV_helper
 
+class Category:
+    def __init__(self, name, strength):
+        self.name = name
+        self.strength = strength
+
+class CAT:
+    auto = Category (
+        name = "auto",
+        strength = 1000
+        )
+
 # ==============
 # == TestCase ==
 # ==============
@@ -110,7 +121,7 @@ class TestCase:
 
         return [drv for drv in self.all_drivers if re.search (drv_expr, drv)]
 
-    def __init__(self, extradrivers="", extracargs="", category=None):
+    def __init__(self, extradrivers="", extracargs="", category=CAT.auto):
 
         # Step 1: Compute the list of drivers and consolidation specs
         #         to exercise
@@ -146,7 +157,8 @@ class TestCase:
 
         # - test category:
 
-        self.category = category if category else self.__category()
+        self.category = (
+            self.__category() if category == CAT.auto else category)
 
         # - Set of xcovlevel values to exercise:
 
@@ -155,6 +167,11 @@ class TestCase:
         # variants, pick the first one only in qualification mode.
 
         default_xcovlevels_for = {
+            # A test without category should be ready for anything.
+            # Exercise with the strictest possible mode.
+
+            None: ["stmt+mcdc"],
+
             "stmt":     ["stmt"],
             "decision": ["stmt+decision"],
             "mcdc":     ["stmt+uc_mcdc", "stmt+mcdc"]}
