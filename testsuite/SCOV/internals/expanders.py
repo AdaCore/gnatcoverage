@@ -793,14 +793,27 @@ class XnotesExpander:
         return image.split()[1:]
 
     def __parse_one_expected_rnote(self, image):
-        image=image.strip()
+
+        # We have at hand single note spec, possibly conditioned by the
+        # xcov-level. Something like "s-", "d=>dT-", or "mu=>c!:"B".
+
+        # First fetch the note text that corresponds to our actual xcov-level.
+        # If we have no applicable text, state so.
+
+        ntext = self.__select_rnote(image)
+        if not ntext:
+            return None
+
+        # Otherwise, figure out the note kind + possible column localization
+        # parts and return a note pattern instance
+
         if ':' in image:
             (noteim, stextim) = image.split(':')
             stext=stextim.strip('"')
         else:
             (noteim, stext) = (image, None)
 
-        return XnoteP (text=self.__select_rnote(noteim), stext=stext)
+        return XnoteP (text=ntext, stext=stext)
 
     def __parse_expected_rnotes(self, image):
         if '#' in image:
@@ -809,12 +822,17 @@ class XnotesExpander:
             imlist = image.split(',')
         else:
             imlist = [image]
-        return [self.__parse_one_expected_rnote(im) for im in imlist]
+        return [
+            rnote for rnote in (
+            self.__parse_one_expected_rnote(im.strip())
+            for im in imlist) if rnote
+            ]
 
     def __parse_lcx(self, image):
         """Parse IMAGE as a string that contains a line expectation
         spec and return the corresponding LineCX object.
         """
+
         # Extract the LRE from the rest of the image.
         m = re.match("\s*/(.*)/\s+([^\s]*)( .*)?", image)
         if m is None:
@@ -828,9 +846,16 @@ class XnotesExpander:
 
         thistest.stop_if (
             not m.group(3),
-            FatalError ("Missing expected report notes in %s" % image))
+            FatalError ("Missing expected report notes spec in %s" % image)
+            )
 
         lx_rnotes = self.__parse_expected_rnotes(m.group(3))
+
+        thistest.stop_if (
+            not lx_rnotes,
+            FatalError ("No applicable expected report note for '%s' in '%s'"
+                        % (self.xcov_level, image))
+            )
 
         return LineCX(lx_lre, lx_lnote, lx_rnotes)
 
@@ -891,15 +916,19 @@ class XnotesExpander:
 
 
     def __select_rnote(self, text):
-        """Decode text to return the report note for the current
-        coverage level."""
+        """Decode TEXT into a report note for the current coverage level."""
+
+        # Set of level->note_kind associations in TEXT
+
         level_table = dict(
             [ln_tuple for ln_tuple in self.__decode_note_choice(text)])
+
+        # If we have one association for the exact level we're running,
+        # use that. Fallback to a default kind if we have one.
 
         if level_table.has_key(self.xcov_level):
             return level_table [self.xcov_level]
         elif level_table.has_key(''):
             return level_table ['']
-        else:
-            return "0"
 
+        return None
