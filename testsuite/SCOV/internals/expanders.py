@@ -807,13 +807,13 @@ class XnotesExpander:
         # Otherwise, figure out the note kind + possible column localization
         # parts and return a note pattern instance
 
-        if ':' in image:
-            (noteim, stextim) = image.split(':')
+        if ':' in ntext:
+            (noteim, stextim) = ntext.split(':')
             stext=stextim.strip('"')
         else:
-            (noteim, stext) = (image, None)
+            (noteim, stext) = (ntext, None)
 
-        return XnoteP (text=ntext, stext=stext)
+        return XnoteP (text=noteim, stext=stext)
 
     def __parse_expected_rnotes(self, image):
         if '#' in image:
@@ -879,8 +879,7 @@ class XnotesExpander:
                            "d" : "stmt+decision",
                            "m" : "stmt+mcdc",
                            "u" : "stmt+uc_mcdc"}
-        sep = "=>"
-        result = text.split(sep)
+        result = text.split("=>")
 
         if len(result) == 1:
             # No choice
