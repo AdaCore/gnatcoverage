@@ -505,10 +505,26 @@ class SCOV_helper:
         particulat FORMAT, from a provided list of TRACES over a provided list
         of ALIS. The command output is saved in a file named FORMAT.out."""
 
+        # Latch standard output in a file and check contents on return.
+
+        ofile = format+".out"
         p = xcov (args = ['coverage', '--scos=@'+self.alis,
                           '--level='+self.xcovlevel,
                           '--annotate='+format, "@"+traces] + to_list(options),
-                  out = format+".out")
+                  out = ofile)
+
+        # Standard output might typically contain labeling warnings issued
+        # by the static analysis phase, or error messages issued when a trace
+        # indicates that some unlabeled edge was taken.  None of this should
+        # happen so we simply fail as soon as the output file is not empty.
+        # Note that we do this in qualification mode as well, even though what
+        # we're looking at is not stricly part of the qualified interface.
+
+        thistest.fail_if (
+            os.path.getsize (ofile) > 0,
+            "xcov standard output not empty (%s):\n--\n%s"  % (
+                ofile, contents_of (ofile))
+            )
 
     # ----------------------
     # -- gen_xcov_reports --
