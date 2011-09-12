@@ -365,10 +365,21 @@ class SCOV_helper:
     # -- ali_list --
     # --------------
     def ali_list(self):
-        """Return a list of ali files corresponding to the list of sources
+        """Return a set of ali files corresponding to the list of sources
         specified in this tests's UXset.
         """
-        return  (
+
+        # It is legitimate for some sources to not have an associated ali, for
+        # example Ada separate sub-units compiled as part of their parent. We
+        # just skip those and will fail matching expectations if the SCOs are
+        # nowhere else.
+
+        # We might also have expectations for different sources that map to
+        # the same ali, as for example with the spec and body of the same
+        # package.  We make our result a set to prevent duplicates and xcov
+        # warnings later on.
+
+        return set (
             [ali for ali in (self.locate_ali(source)
                              for source in self.xrnotes) if ali]
             )
