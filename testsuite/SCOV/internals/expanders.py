@@ -851,11 +851,26 @@ class XnotesExpander:
 
         lx_rnotes = self.__parse_expected_rnotes(m.group(3))
 
-        thistest.stop_if (
-            not lx_rnotes,
-            FatalError ("No applicable expected report note for '%s' in '%s'"
-                        % (self.xcov_level, image))
+        # If we had expectations specified (still running here), and none
+        # of them is applicable to the current xcov-level, default to empty
+        # set expectation
+
+        if not lx_rnotes:
+            lx_rnotes = [XnoteP (text="0", stext=None)]
+
+        # If we have both an empty-set expectation and something else,
+        # expectations are wrong. This is a safeguard against a common
+        # mistake, thinking, say, that "d=>dT-, 0" means "dT- if
+        # --level=stmt+decision, 0 _otherwise_", while it means "dT- etc, 0
+        # _always_ (not tied to any particular level)" instead.
+
+        else:
+
+            thistest.stop_if (
+                len (lx_rnotes) > 1 and "0" in lx_rnotes,
+                FatalError ("Contradictory =report expectation in %s" % image)
             )
+
 
         return LineCX(lx_lre, lx_lnote, lx_rnotes)
 
