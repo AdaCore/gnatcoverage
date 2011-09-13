@@ -25,7 +25,7 @@ import os
 
 from SUITE.context import thistest
 from SUITE.control import language_info
-from SUITE.cutils import to_list, list_to_file, match, contents_of
+from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 
 from gnatpython.fileutils import cd, mkdir
@@ -53,12 +53,6 @@ class ListDict(dict):
             dict.__setitem__(self, key, [])
         return dict.__getitem__(self, key)
 
-def no_ext(filename):
-    """Return the filename with the extension stripped away.
-
-    This is mostly a shortcut for using splitext(...)[0], in order
-    to make the code that makes these conversions easier to read."""
-    return os.path.splitext(filename)[0]
 
 # Relevant expectations and emitted Line and Report notes for each test
 # CATEGORY:
@@ -569,14 +563,8 @@ class SCOV_helper:
         self.elnotes = LnotesExpander("*.xcov").elnotes
         self.ernotes = RnotesExpander("test.rep").ernotes
 
-        [self.check_expectations_over (source) for source in self.xrnotes]
-
-    def check_expectations_over(self, source):
-        """Process expectations for a particular source, comparing
-        expected coverage marks against what is found in the xcov reports
-        for this source."""
-
-        frame ("Processing UX for %s" % (source), post=0, char='~').display()
+        # Compute a few things that we will need repeatedly over all the
+        # sources with expectations to match
 
         # When we're running for a level stricter than the test category
         # (e.g. running a stmt test with --level=stmt+decision), we
@@ -610,22 +598,9 @@ class SCOV_helper:
             strength [self.xcovlevel] > strength [self.category]
             )
 
-        # Report notes checks
-        # -------------------
-
-        # Setup our discharging configuration for stricter_level mode,
-        # then augment with what is allowed to hit "0" or "0c" report
-        # expectation statements:
-
-        discharge_kdict = {
-            # let an emitted xBlock1 discharge an xBlock0 expectation, as
-            # an extra exempted violations are most likely irrelevant for the
-            # category
-            xBlock0: [xBlock0, xBlock1]
-            } if stricter_level else {}
-
-        # For tests without a category, pick the relevant note kinds from
-        # the strictest category possibly corresponding to the xcov-level.
+        # For tests without a category, we will pick the relevant note
+        # kinds from the strictest category possibly corresponding to the
+        # xcov-level.
 
         strictest_cat_for = {
             "stmt": "stmt",
@@ -637,32 +612,31 @@ class SCOV_helper:
             self.category if self.category
             else strictest_cat_for[self.xcovlevel])
 
-        discharge_kdict.update (
+        # Setup our report and line discharging configurations (kinds of
+        # emitted notes that are allowed to discharge other kinds of expected
+        # notes), for =report and =xcov outputs.
+
+        # =report outputs, stricter_level micro relaxations first:
+
+        r_discharge_kdict = ({
+            # let an emitted xBlock1 discharge an xBlock0 expectation, as an
+            # extra exempted violations are most likely irrelevant for the
+            # category
+            xBlock0: [xBlock0, xBlock1]} if stricter_level else {}
+        )
+
+        # Then augment with what is allowed to hit "0" or "0c" expectation
+        # statements:
+
+        r_discharge_kdict.update (
             {r0 : r_ern_for[relevance_cat],
              r0c : r_ern_for[relevance_cat]
              })
 
-        # Then do check:
 
-        _Xchecker (
-            report ='test.rep',
-            xdict  = self.xrnotes.get(source),
-            rxp    = r_rxp_for[relevance_cat],
-            edict  = self.ernotes.get(source, KnoteDict(erNoteKinds)),
-            ren    = r_ern_for[relevance_cat]
-            ).run (discharge_kdict)
+        # =xcov outputs, stricter_level micro relaxations only:
 
-        # Line notes checks, meaningless if we're in qualification mode
-        # -------------------------------------------------------------
-
-        if thistest.options.qualif_level:
-            return
-
-        # Setup our discharging configuration for stricter_level mode
-
-        discharge_kdict = {
-            # In stricter_level mode, we let ...
-
+        l_discharge_kdict = ({
             # an emitted l! discharge an expected l+, when the l! is most
             # likely caused by irrelevant violations for the category
             lFullCov: [lFullCov, lPartCov],
@@ -671,8 +645,38 @@ class SCOV_helper:
             # exempted violations are most likely caused by the level extra
             # strictness, hence irrelevant for the category
             lx0:      [lx0, lx1] } if stricter_level else {}
+        )
 
-        # Then do check:
+        # Now process source by source
+
+        [self.check_expectations_over (
+            source=source, relevance_cat=relevance_cat,
+            r_discharge_kdict=r_discharge_kdict,
+            l_discharge_kdict=l_discharge_kdict) for source in self.xrnotes
+        ]
+
+    def check_expectations_over(
+        self, source, relevance_cat, r_discharge_kdict, l_discharge_kdict):
+        """Process expectations for a particular SOURCE, comparing
+        expected coverage marks against what is found in the xcov reports
+        for this source."""
+
+        frame ("Processing UX for %s" % (source), post=0, char='~').display()
+
+        # Report notes checks
+
+        _Xchecker (
+            report ='test.rep',
+            xdict  = self.xrnotes.get(source),
+            rxp    = r_rxp_for[relevance_cat],
+            edict  = self.ernotes.get(source, KnoteDict(erNoteKinds)),
+            ren    = r_ern_for[relevance_cat]
+            ).run (r_discharge_kdict)
+
+        # Line notes checks, meaningless if we're in qualification mode
+
+        if thistest.options.qualif_level:
+            return
 
         _Xchecker (
             report = source+'.xcov',
@@ -680,7 +684,7 @@ class SCOV_helper:
             rxp    = r_lxp_for[relevance_cat],
             edict  = self.elnotes.get(source, KnoteDict(elNoteKinds)),
             ren    = r_eln_for[relevance_cat]
-            ).run (discharge_kdict)
+            ).run (l_discharge_kdict)
 
     # ---------
     # -- log --
