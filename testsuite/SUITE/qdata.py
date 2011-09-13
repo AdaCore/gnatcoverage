@@ -48,8 +48,9 @@ def qdaf_in(dir):
 
 class QDentry:
 
-    def __init__(self, eid, xrnotes):
-        self.eid = eid           # entry id
+    def __init__(self, xfile, drivers, xrnotes):
+        self.xfile = xfile       # expectation file
+        self.drivers = drivers   # drivers run to satisfy them
         self.xrnotes = xrnotes   # expected report notes, KnoteDict per source
 
 class Qdata:

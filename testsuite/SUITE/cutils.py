@@ -12,6 +12,13 @@ import re
 from gnatpython.fileutils import diff, os
 from gnatpython.ex import Run
 
+# ------------
+# -- no_ext --
+# ------------
+def no_ext(filename):
+    """Return the filename with the extension stripped away."""
+    return os.path.splitext(filename)[0]
+
 # -----------------
 # -- contents_of --
 # -----------------

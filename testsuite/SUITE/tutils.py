@@ -280,9 +280,10 @@ class frame:
 
     def display(self):
         thistest.log('\n' * self.pre + self.char * (self.width + 6))
-        for text in self.lines:
-            thistest.log("%s %s %s" % (
-                self.char * 2, text.center(self.width), self.char*2))
+        [thistest.log(
+            "%s %s %s" % (
+            self.char * 2, text.center(self.width), self.char*2))
+         for text in self.lines]
         thistest.log(self.char * (self.width + 6) + '\n' * self.post)
 
     def __init__(self, text, char='o', pre=1, post=1):

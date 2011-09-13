@@ -198,7 +198,11 @@ class TestCase:
     def register_qde_for (self, drvo):
         """Register a qualif data entry for driver object DRVO, about to
         be executed"""
-        self.qdata.register (QDentry(eid="blob", xrnotes=drvo.xrnotes))
+
+        self.qdata.register (
+            QDentry (xfile=drvo.xfile,
+                     drivers=drvo.drivers, xrnotes=drvo.xrnotes)
+            )
         return drvo
 
     def run(self):

@@ -8,10 +8,12 @@
 
 # ***************************************************************************
 
-import re
+import re, os.path
 
-from SUITE.tutils import thistest
-from SUITE.cutils import FatalError
+from SUITE.tutils import thistest, frame
+from SUITE.cutils import FatalError, no_ext
+
+from SCOV.internals.cnotes import xNoteKinds
 
 from internals.tfiles import *
 
@@ -102,6 +104,14 @@ class Piece:
     def check(self):
 
         nmatches = len (self.matches)
+
+        0 and thistest.log (
+            "--\nChecking %s:\n" % str(self)
+            + "pattern = '%s', nexpected = %d, nmatches = %d\n"
+               % (self.pattern, self.nexpected, nmatches)
+            + "pre = %s" % str (self.pre)
+            )
+
 
         # Check that we have the number of expected matches
 
@@ -289,12 +299,37 @@ class ReportChecker:
             pattern="END OF REPORT", pre=pre)
         self.__register (rpieces = [rpEnd])
 
-    def __init__(self, subdir, ntraces, xcovlevel, xregions):
+    def __process_one_test (self, qde):
+
+        frame (text = ("report check for xfile = %s\n" % qde.xfile
+                       + "drivers = %s" % str(qde.drivers)),
+               char = '~').display()
+
+        # Count the number of expected exemption regions
+
+        xregions = 0
+        for source_xrn in qde.xrnotes.values():
+            for kind in xNoteKinds:
+                xregions += len (source_xrn[kind])
+
+        # We're looking at the last report produced, with the last
+        # applicable xcov-level
+
         self.__setup_expectations(
-            ntraces=ntraces, xcovlevel=xcovlevel, xregions=xregions
+            ntraces   = len(qde.drivers),
+            xcovlevel = self.tc.xcovlevels[-1],
+            xregions  = xregions
             )
-        self.report = Tfile ("tmp_%s/test.rep" % subdir, self.__process_line)
+
+        self.report = Tfile (
+            "tmp_%s/test.rep" % no_ext(os.path.basename(qde.xfile)),
+            self.__process_line)
+
+        [rpe.check () for rpe in self.rpElements]
+
+    def __init__(self, tc):
+        self.tc = tc
 
     def run (self):
-        [rpe.check () for rpe in self.rpElements]
+        [self.__process_one_test (qde=qde) for qde in self.tc.qdata.entries]
 
