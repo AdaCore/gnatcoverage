@@ -2,7 +2,7 @@
 Software Quality Assurance Plan
 ===============================
 
-We remind here that GNATcoverage is qualified as a verification tool. As such such most configuration management activities are not mandatory, in particular:
+We remind here that GNATcoverage is qualified as a verification tool. As such, most configuration management activities are not mandatory, in particular:
 
 .. csv-table:: Compliance matrix for Table A-9 of DO-178B
    :delim: |

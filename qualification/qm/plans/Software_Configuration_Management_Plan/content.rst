@@ -4,7 +4,7 @@ Software Configuration Management Plan
 
 The configuration management of qualification data is a responsibility of the applicant (see :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`).
 
-GNATcoverage is qualified as a verification tool. As such such most configuration management activities are not mandatory, in particular:
+GNATcoverage is qualified as a verification tool. As such, most configuration management activities are not mandatory, in particular:
 
 
 .. csv-table:: Compliance matrix for Table A-8
