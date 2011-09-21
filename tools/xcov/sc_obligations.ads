@@ -56,6 +56,9 @@ package SC_Obligations is
    procedure Report_SCOs_Without_Code;
    --  Output a list of conditions without associated conditional branches
 
+   procedure Iterate (P : access procedure (SCO : SCO_Id));
+   --  Execute P for each SCO
+
    type Tristate is (False, True, Unknown);
    subtype Known_Tristate is Tristate range False .. True;
    --  State of a condition, if known

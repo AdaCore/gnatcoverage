@@ -1289,6 +1289,17 @@ package body SC_Obligations is
                          SCOD.Pragma_Name = Pragma_Postcondition);
    end Is_Pragma_Pre_Post_Condition;
 
+   -------------
+   -- Iterate --
+   -------------
+
+   procedure Iterate (P : access procedure (SCO : SCO_Id)) is
+   begin
+      for J in SCO_Vector.First_Index .. SCO_Vector.Last_Index loop
+         P (J);
+      end loop;
+   end Iterate;
+
    ----------
    -- Kind --
    ----------
