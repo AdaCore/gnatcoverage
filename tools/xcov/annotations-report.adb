@@ -29,7 +29,9 @@ with Switches;
 with Traces_Files;
 with Traces_Files_List;
 
-with Coverage; use Coverage;
+with Coverage.Source;
+use Coverage, Coverage.Source;
+
 with Version;  use Version;
 with Strings;  use Strings;
 
@@ -58,15 +60,25 @@ package body Annotations.Report is
 
    --  Pretty printer type for the final report
 
-   type Message_Class is
-     range 0 .. Coverage_Level'Pos (Coverage_Level'Last) + 1;
-   No_Coverage_Level : constant Message_Class := Message_Class'Last;
+   type Report_Section is
+     range Coverage_Level'Pos (Coverage_Level'First)
+        .. Coverage_Level'Pos (Coverage_Level'Last) + 1;
+   No_Coverage_Level : constant Report_Section := Report_Section'Last;
 
-   function Section_Of_Message (M : Message) return Message_Class;
-   --  Indicate the coverage criterion a given message pertains to (by its
-   --  'Pos), or No_Coverage_Level if M is not a violation message.
+   function Section_Of_SCO (SCO : SCO_Id) return Report_Section;
+   function Section_Of_Message (M : Message) return Report_Section;
+   --  Indicate the coverage criterion a given SCO/message pertains to (by its
+   --  'Pos), or No_Coverage_Level if SCO has no related section/M is not a
+   --  violation message.
 
-   type Messages_Array is array (Message_Class) of Message_Vectors.Vector;
+   type Messages_Array is array (Report_Section) of Message_Vectors.Vector;
+
+   type SCO_Tally is record
+      Total   : Natural := 0;
+      Covered : Natural := 0;
+   end record;
+
+   type SCO_Tallies_Array is array (Coverage_Level) of SCO_Tally;
 
    type Report_Pretty_Printer is new Pretty_Printer with record
       Current_File_Index : Source_File_Index;
@@ -91,6 +103,9 @@ package body Annotations.Report is
       Nonexempted_Messages : Messages_Array;
       --  All output messages, classified by section according to relevant
       --  coverage level.
+
+      SCO_Tallies : SCO_Tallies_Array;
+      --  Tally of SCOs for each report section
    end record;
 
    procedure Chapter
@@ -239,7 +254,7 @@ package body Annotations.Report is
       --  True iff there's at least one exempted region
 
       procedure Messages_For_Section
-        (MC    : Message_Class;
+        (MC    : Report_Section;
          Title : String;
          Item  : String);
       --  Output all buffered messages of the given class in a section with
@@ -253,6 +268,32 @@ package body Annotations.Report is
 
       procedure Output_Exemption (C : Cursor);
       --  Show summary information for exemption denoted by C
+
+      procedure Count_SCO (SCO : SCO_Id);
+      --  Account for SCO in the coverage tally
+
+      ---------------
+      -- Count_SCO --
+      ---------------
+
+      procedure Count_SCO (SCO : SCO_Id) is
+         Section : constant Report_Section := Section_Of_SCO (SCO);
+         L       : Coverage_Level;
+         State   : SCO_State;
+      begin
+         if Section /= No_Coverage_Level then
+            L := Coverage_Level'Val (Section);
+
+            State := Get_Line_State (SCO, L);
+
+            if State /= No_Code then
+               Pp.SCO_Tallies (L).Total := Pp.SCO_Tallies (L).Total + 1;
+               if State = Covered then
+                  Pp.SCO_Tallies (L).Covered := Pp.SCO_Tallies (L).Covered + 1;
+               end if;
+            end if;
+         end if;
+      end Count_SCO;
 
       -------------------------
       -- Has_Exempted_Region --
@@ -356,7 +397,7 @@ package body Annotations.Report is
       --------------------------
 
       procedure Messages_For_Section
-        (MC    : Message_Class;
+        (MC    : Report_Section;
          Title : String;
          Item  : String)
       is
@@ -368,6 +409,19 @@ package body Annotations.Report is
             New_Line (Output.all);
          end if;
          Put_Line (Output.all, Pluralize (Pp.Item_Count, Item) & ".");
+
+         --  Count of total (coverable) and covered SCOs is displayed only
+         --  if --all-messages is specified.
+
+         if All_Messages and then MC /= No_Coverage_Level then
+            declare
+               T : SCO_Tally renames Pp.SCO_Tallies (Coverage_Level'Val (MC));
+            begin
+               Put_Line (Output.all,
+                         Pluralize (T.Covered, "coverage obligation")
+                         & " covered out of" & T.Total'Img & ".");
+            end;
+         end if;
       end Messages_For_Section;
 
       Non_Exempted_Str : constant String := "non-exempted ";
@@ -382,6 +436,10 @@ package body Annotations.Report is
    --  Start of processing for Pretty_Print_End
 
    begin
+      if Source_Coverage_Enabled then
+         SC_Obligations.Iterate (Count_SCO'Access);
+      end if;
+
       Pp.Chapter (To_Upper (Non_Exempted) & "COVERAGE VIOLATIONS");
 
       Total_Messages := 0;
@@ -484,7 +542,7 @@ package body Annotations.Report is
      (Pp : in out Report_Pretty_Printer;
       M  : Message)
    is
-      MC : constant Message_Class := Section_Of_Message (M);
+      MC : constant Report_Section := Section_Of_Message (M);
    begin
       --  Messages with Kind = Notice need not be included in the report
 
@@ -609,36 +667,60 @@ package body Annotations.Report is
    -- Section_Of_Message --
    ------------------------
 
-   function Section_Of_Message (M : Message) return Message_Class is
+   function Section_Of_Message (M : Message) return Report_Section is
    begin
       if M.SCO /= No_SCO_Id then
          declare
-            L : Coverage_Level;
+            S : constant Report_Section := Section_Of_SCO (M.SCO);
          begin
-            case Kind (M.SCO) is
-               when Statement =>
-                  L := Stmt;
+            if S = No_Coverage_Level then
+               --  A violation message is expected to always be relevant to
+               --  some report section.
 
-               when Decision =>
-                  if Is_Expression (M.SCO) then
-                     L := MCDC_Level;
-
-                  else
-                     L := Decision;
-                  end if;
-
-               when Condition =>
-                  L := MCDC_Level;
-
-               when others =>
-                  raise Program_Error with "unexpected SCO kind in violation";
-            end case;
-            return Coverage_Level'Pos (L);
+               raise Program_Error with "unexpected SCO kind in violation";
+            end if;
+            return S;
          end;
 
       else
          return No_Coverage_Level;
       end if;
    end Section_Of_Message;
+
+   --------------------
+   -- Section_Of_SCO --
+   --------------------
+
+   function Section_Of_SCO (SCO : SCO_Id) return Report_Section is
+      MCDC_Section : Report_Section;
+   begin
+      --  Need to initialize MCDC_Section specially because it is erroneous
+      --  to evaluate MCDC_Level if MCDC coverage is not enabled.
+
+      if MCDC_Coverage_Enabled then
+         MCDC_Section := Coverage_Level'Pos (MCDC_Level);
+      else
+         MCDC_Section := No_Coverage_Level;
+      end if;
+
+      case Kind (SCO) is
+         when Statement =>
+            return Coverage_Level'Pos (Stmt);
+
+         when Decision =>
+            if Is_Expression (SCO) then
+               return MCDC_Section;
+
+            else
+               return Coverage_Level'Pos (Decision);
+            end if;
+
+         when Condition =>
+            return MCDC_Section;
+
+         when others =>
+            return No_Coverage_Level;
+      end case;
+   end Section_Of_SCO;
 
 end Annotations.Report;
