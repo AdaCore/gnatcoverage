@@ -892,6 +892,7 @@ begin
             Check_Argument_Available
               (SCOs_Inputs, "SCOs FILEs", Command);
             Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+            Coverage.Source.Initialize_SCI;
 
          elsif Object_Coverage_Enabled then
             if Inputs.Length (SCOs_Inputs) /= 0 then
