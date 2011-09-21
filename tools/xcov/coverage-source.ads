@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2011, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -27,6 +27,9 @@ with SC_Obligations; use SC_Obligations;
 
 package Coverage.Source is
 
+   procedure Initialize_SCI;
+   --  Initialize source coverage information vector once SCOs have been loaded
+
    procedure Compute_Source_Coverage
      (Subp_Name : String_Access;
       Subp_Info : Subprogram_Info;
@@ -44,8 +47,11 @@ package Coverage.Source is
    --  Assuming that SCO's kind is Statement, return True if it has been
    --  executed, False otherwise.
 
+   subtype SCO_State is Line_State range Not_Covered .. No_Code;
    function Get_Line_State
      (SCO   : SCO_Id;
-      Level : Coverage_Level) return Line_State;
+      Level : Coverage_Level) return SCO_State;
+   --  Return SCO's contribution to the state of the enclosing line, i.e.
+   --  SCO's specific coverage state, ignoring any exemptions.
 
 end Coverage.Source;

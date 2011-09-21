@@ -430,20 +430,6 @@ package body Coverage.Source is
       procedure Discharge_SCO (SCO : SCO_Id; Empty_Range : Boolean) is
          Propagating, No_Propagation : Boolean;
       begin
-         --  Ensure there is a coverage information entry for this SCO
-
-         while SCI_Vector.Last_Index < SCO loop
-            declare
-               New_Index : constant SCO_Id := SCI_Vector.Last_Index + 1;
-               New_SCI   : Source_Coverage_Info
-                 (Kind  => Kind (New_Index));
-               pragma Warnings (Off, New_SCI);
-               --  Used for default initialization value only
-            begin
-               SCI_Vector.Append (New_SCI);
-            end;
-         end loop;
-
          --  Find enclosing statement SCO (if any) and mark it as executed
 
          S_SCO := Enclosing_Statement (SCO);
@@ -848,7 +834,7 @@ package body Coverage.Source is
 
    function Get_Line_State
      (SCO   : SCO_Id;
-      Level : Coverage_Level) return Line_State is
+      Level : Coverage_Level) return SCO_State is
    begin
       if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
          return SCI_Vector.Element (SCO).State (Level);
@@ -871,6 +857,33 @@ package body Coverage.Source is
          return False;
       end if;
    end Has_Been_Executed;
+
+   --------------------
+   -- Initialize_SCI --
+   --------------------
+
+   procedure Initialize_SCI is
+      procedure Add_SCI (SCO : SCO_Id);
+      --  Add SCI for SCO
+
+      -------------
+      -- Add_SCI --
+      -------------
+
+      procedure Add_SCI (SCO : SCO_Id) is
+         New_SCI   : Source_Coverage_Info (Kind  => Kind (SCO));
+         pragma Warnings (Off, New_SCI);
+         --  Used for default initialization value only
+      begin
+         pragma Assert (SCO = SCI_Vector.Last_Index + 1);
+         SCI_Vector.Append (New_SCI);
+      end Add_SCI;
+
+      --  Start of processing for Initialize_SCI
+
+   begin
+      SC_Obligations.Iterate (Add_SCI'Access);
+   end Initialize_SCI;
 
    --------------------------------
    -- Decision_Requires_Coverage --
