@@ -413,7 +413,7 @@ package body Annotations.Report is
          --  Count of total (coverable) and covered SCOs is displayed only
          --  if --all-messages is specified.
 
-         if All_Messages and then MC /= No_Coverage_Level then
+         if Switches.All_Messages and then MC /= No_Coverage_Level then
             declare
                T : SCO_Tally renames Pp.SCO_Tallies (Coverage_Level'Val (MC));
             begin
