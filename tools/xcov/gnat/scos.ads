@@ -227,15 +227,15 @@ package SCOs is
 
    --    Here * is one of the following characters:
 
-   --      I  decision in IF statement or conditional expression
    --      E  decision in EXIT WHEN statement
    --      G  decision in entry guard
+   --      I  decision in IF statement or conditional expression
    --      P  decision in pragma Assert/Check/Pre_Condition/Post_Condition
    --      W  decision in WHILE iteration scheme
    --      X  decision appearing in some other expression context
 
-   --    For I, E, G, P, W, sloc is the source location of the IF, EXIT,
-   --    ENTRY, PRAGMA or WHILE token, respectively
+   --    For E, G, I, P, W, sloc is the source location of the EXIT, ENTRY, IF,
+   --    PRAGMA or WHILE token, respectively
 
    --    For X, sloc is omitted
 
@@ -388,10 +388,10 @@ package SCOs is
    --    statements on a single CS line (possibly followed by Cs continuation
    --    lines).
 
-   --    Decision (IF/EXIT/WHILE)
-   --      C1   = 'I'/'E'/'W' (for IF/EXIT/WHILE)
+   --    Decision (EXIT/entry guard/IF/WHILE)
+   --      C1   = 'E'/'G'/'I'/'W' (for EXIT/entry Guard/IF/WHILE)
    --      C2   = ' '
-   --      From = IF/EXIT/WHILE token
+   --      From = EXIT/ENTRY/IF/WHILE token
    --      To   = No_Source_Location
    --      Last = unused
 
