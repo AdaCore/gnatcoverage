@@ -176,6 +176,11 @@ package SCOs is
    --    we are generating SCO's only for simple coverage, then we are not
    --    interested in decisions in any case.
 
+   --    Note: the reason we include NOT is for informational purposes. The
+   --    presence of NOT does not generate additional coverage obligations,
+   --    but if we know where the NOT's are, the coverage tool can generate
+   --    more accurate diagnostics on uncovered tests.
+
    --    A top level boolean expression is a boolean expression that is not an
    --    operand of a logical operator.
 
