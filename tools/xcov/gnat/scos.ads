@@ -167,7 +167,7 @@ package SCOs is
    --  Decisions
 
    --    Note: in the following description, logical operator includes only the
-   --    short circuited forms and NOT (so can be only NOT, AND THEN, OR ELSE).
+   --    short-circuited forms and NOT (so can be only NOT, AND THEN, OR ELSE).
    --    The reason that we can exclude AND/OR/XOR is that we expect SCO's to
    --    be generated using the restriction No_Direct_Boolean_Operators if we
    --    are interested in decision coverage, which does not permit the use of
@@ -222,7 +222,7 @@ package SCOs is
    --    For X, sloc is omitted.
 
    --    The expression is a prefix polish form indicating the structure of
-   --    the decision, including logical operators and short circuit forms.
+   --    the decision, including logical operators and short-circuit forms.
    --    The following is a grammar showing the structure of expression:
 
    --      expression ::= term             (if expr is not logical operator)
@@ -253,10 +253,10 @@ package SCOs is
 
    --    ! indicates NOT applied to the expression.
 
-   --    In the context of Couverture, the No_Direct_Boolean_Opeartors
+   --    In the context of Couverture, the No_Direct_Boolean_Operators
    --    restriction is assumed, and no other operator can appear.
 
-   --    The SCO line for a decision always occur after the CS line for the
+   --    The SCO line for a decision always occurs after the CS line for the
    --    enclosing statement. The SCO line for a nested decision always occurs
    --    after the line for the enclosing decision.
 
