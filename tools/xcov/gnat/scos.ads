@@ -148,7 +148,8 @@ package SCOs is
    --      i  generic instantiation
    --      C  CASE statement (includes only the expression)
    --      F  FOR/WHILE loop statement (includes only the iteration scheme)
-   --      I  IF statement (includes only the condition)
+   --      I  IF statement (includes only the condition [in the RM sense, which
+   --         is a decision in the SCO sense])
    --      P  PRAGMA
    --      R  extended RETURN statement
 
