@@ -24,8 +24,9 @@
 ------------------------------------------------------------------------------
 
 pragma Ada_2005;
---  Need comment on why this is needed, and why it is OK to have it ???
---  (since it would not normally be allowed in compiler sources) ???
+--  This unit is not part of the compiler proper, it is used in tools that
+--  read SCO information from ALI files (Xcov and sco_test). Ada 2005
+--  constructs may therefore be used freely (and are indeed).
 
 with SCOs;   use SCOs;
 with Snames; use Snames;
