@@ -305,6 +305,12 @@ package SCOs is
 
    --    In all other cases, chaining indicators are omitted
 
+   --    Implementation permission: a SCO generator is permitted to emit a
+   --    narrower SLOC range for a condition if the corresponding code
+   --    generation circuitry ensures that all debug information for the code
+   --    evaluating the condition will be labeled with SLOCs that fall within
+   --    that narrower range.
+
    --  Case Expressions
 
    --    For case statements, we rely on statement coverage to make sure that
