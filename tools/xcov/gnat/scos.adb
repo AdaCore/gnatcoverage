@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 2009-2011, Free Software Foundation, Inc.         --
+--             Copyright (C) 2009, Free Software Foundation, Inc.           --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -25,18 +25,15 @@
 
 package body SCOs is
 
-   ----------------
-   -- Initialize --
-   ----------------
-
-   procedure Initialize is
+   procedure Add_SCO
+     (From : Source_Location := No_Location;
+      To   : Source_Location := No_Location;
+      C1   : Character       := ' ';
+      C2   : Character       := ' ';
+      Last : Boolean         := False)
+   is
    begin
-      SCO_Table.Init;
-      SCO_Unit_Table.Init;
-
-      --  Set dummy zeroth entry for sort routine, real entries start at 1
-
-      SCO_Unit_Table.Increment_Last;
-   end Initialize;
+      SCO_Table.Append ((From, To, C1, C2, Last));
+   end Add_SCO;
 
 end SCOs;
