@@ -152,7 +152,6 @@ package SCOs is
    --      E  EXIT statement
    --      F  FOR loop statement (from FOR through end of iteration scheme)
    --      I  IF statement (from IF through end of condition)
-   --      p  disabled PRAGMA
    --      P  PRAGMA
    --      R  extended RETURN statement
    --      W  WHILE loop statement (from WHILE through end of condition)
@@ -388,6 +387,12 @@ package SCOs is
    --    statements on a single CS line (possibly followed by Cs continuation
    --    lines).
 
+   --    Note: for a pragma that may be disabled (Debug, Assert, PPC, Check),
+   --    the entry is initially created with C2 = 'p', to mark it as disabled.
+   --    Later on during semantic analysis, if the pragma is enabled,
+   --    Set_SCO_Pragma_Enabled changes C2 to 'P' to cause the entry to be
+   --    emitted in Put_SCOs.
+
    --    Decision (EXIT/entry guard/IF/WHILE)
    --      C1   = 'E'/'G'/'I'/'W' (for EXIT/entry Guard/IF/WHILE)
    --      C2   = ' '
@@ -402,14 +407,12 @@ package SCOs is
    --      To   = No_Source_Location
    --      Last = unused
 
-   --      Note: when the parse tree is first scanned, we unconditionally build
-   --      a pragma decision entry for any decision in a pragma (here as always
-   --      in SCO contexts, the only pragmas with decisions are Assert, Check,
-   --      dyadic Debug, Precondition and Postcondition).
-   --
-   --      During analysis, if the pragma is enabled, Set_SCO_Pragma_Enabled
-   --      marks the statement SCO table entry as enaabled (C1 changed from 'p'
-   --      to 'P') to cause the entry to be emitted in Put_SCOs.
+   --    Note: when the parse tree is first scanned, we unconditionally build a
+   --    pragma decision entry for any decision in a pragma (here as always in
+   --    SCO contexts, the only pragmas with decisions are Assert, Check,
+   --    dyadic Debug, Precondition and Postcondition). These entries will
+   --    be omitted in output if the pragma is disabled (see comments for
+   --    statement entries).
 
    --    Decision (Expression)
    --      C1   = 'X'
