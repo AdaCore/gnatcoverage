@@ -216,7 +216,7 @@ package SCOs is
 
    --    For each decision, a decision line is generated with the form:
 
-   --      C* sloc expression
+   --      C* sloc expression [chaining]
 
    --    Here * is one of the following characters:
 
@@ -275,6 +275,34 @@ package SCOs is
    --    Note that membership tests are considered to be a single simple
    --    condition, and that is true even if the Ada 2005 set membership
    --    form is used, e.g. A in (2,7,11.15).
+
+   --    The expression can be followed by chaining indicators of the form
+   --    Tsloc or Fsloc.
+
+   --    Tsloc is present when the statement starting at sloc is executed if,
+   --    and only if, the decision evaluates to TRUE.
+
+   --    Fsloc is present when the statement starting at sloc is executed if,
+   --    and only if, the decision evaluates to FALSE.
+
+   --    For an IF statement or ELSIF part, a T chaining indicator is always
+   --    present, with the sloc of the first statement in the corresponding
+   --    sequence.
+
+   --    For an ELSE part, the last decision in the IF statement (that of the
+   --    last ELSIF part, if any, or that of the IF statement if there is no
+   --    ELSIF part) has an F chaining indicator with the sloc of the first
+   --    statement in the sequence of the ELSE part.
+
+   --    For a WHILE loop, a T chaining indicator is always present, with the
+   --    sloc of the first statement in the loop, but no F chaining indicator
+   --    is ever present.
+
+   --    For an EXIT WHEN statement, an F chaining indicator is present if
+   --    there is an immediately following sequence in the same sequence of
+   --    statements.
+
+   --    In all other cases, chaining indicators are omitted.
 
    --  Case Expressions
 
