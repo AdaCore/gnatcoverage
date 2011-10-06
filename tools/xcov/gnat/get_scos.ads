@@ -23,26 +23,36 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package contains the routines used to deal with generation and output
---  of Soure Coverage Obligations (SCO's) used for coverage analysis purposes.
+--  This package contains the function used to read SCO information from an
+--  ALI file and populate the tables defined in package SCOs with the result.
 
-with SCOs;  use SCOs;
-with Types; use Types;
 generic
+   --  These subprograms provide access to the ALI file. Locating, opening
+   --  and providing access to the ALI file is the callers' responsibility.
+
    with function Getc return Character is <>;
+   --  Get next character, positioning the ALI file ready to read the
+   --  following character (equivalent to calling Skipc, then Nextc). If
+   --  the end of file is encountered, the value Types.EOF is returned.
+
    with function Nextc return Character is <>;
-   pragma Unreferenced (Getc);
-   pragma Unreferenced (Nextc);
-function Get_SCOs (Info : Int := 0) return Unit_Index;
---  Load SCO information for given unit into SCOs tables. Getc gets the next
---  character from the ALI file, consuming it. It returns 16#1A# to mark the
---  end of file. Nextc looks at the next character without consuming it. The
---  procedure is called with Getc ready to read the C in the first column of
---  the first line of the SCO information for a unit in the ALI file. Reading
---  stops on encountering either the end of file, or a non-blank line starting
---  with a character other than C. On return, Getc would read either this end
---  of file character or the character other than C. Info is simply some kind
---  of identifying information which is stashed in the SCO_Unit_Table for later
---  retrieval (e.g. in the compiler it is the Unit_Number_Type value). If it
---  is not needed, it can be ommitted and left as zero. The returned value is
---  the index of the new entry created in the SCO_Unit_Table.
+   --  Look at the next character, and return it, leaving the position of the
+   --  file unchanged, so that a subsequent call to Getc or Nextc will return
+   --  this same character. If the file is positioned at the end of file, then
+   --  Types.EOF is returned.
+
+   with procedure Skipc is <>;
+   --  Skip past the current character (which typically was read with Nextc),
+   --  and position to the next character, which will be returned by the next
+   --  call to Getc or Nextc.
+
+procedure Get_SCOs;
+--  Load SCO information from ALI file text format into internal SCO tables
+--  (SCOs.SCO_Table and SCOs.SCO_Unit_Table). On entry the input file is
+--  positioned to the initial 'C' of the first SCO line in the ALI file.
+--  On return, the file is positioned either to the end of file, or to the
+--  first character of the line following the SCO information (which will
+--  never start with a 'C').
+--
+--  If a format error is detected in the input, then an exceptions is raised
+--  (Ada.IO_Exceptions.Data_Error), with the file positioned to the error.
