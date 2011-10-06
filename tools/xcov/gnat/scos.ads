@@ -215,7 +215,7 @@ package SCOs is
 
    --    For each decision, a decision line is generated with the form:
 
-   --      C*sloc expression
+   --      C* sloc expression
 
    --    Here * is one of the following characters:
 
