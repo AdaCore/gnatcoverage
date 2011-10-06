@@ -281,10 +281,7 @@ package SCOs is
 
    --    Statements
    --      C1   = 'S' for entry point, 's' otherwise
-   --      C2   = 't', 's', 'o', 'r', 'i',
-   --             'C', 'E', 'F', 'I', 'P', 'R', 'W', ' '
-   --             (type/subtype/object/renaming/instantiation/
-   --              CASE/EXIT/FOR/IF/PRAGMA/RETURN/WHILE/other)
+   --      C2   = type code to appear on CS line (or ' ' if none)
    --      From = starting source location
    --      To   = ending source location
    --      Last = False for all but the last entry, True for last entry
