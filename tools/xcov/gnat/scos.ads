@@ -48,10 +48,6 @@ package SCOs is
    --  Put_SCO reads the internal tables and generates text lines in the ALI
    --  format.
 
-   --  ??? The specification below for the SCO ALI format and the internal
-   --  data structures have been modified, but the implementation has not been
-   --  updated yet to reflect these specification changes.
-
    --------------------
    -- SCO ALI Format --
    --------------------
@@ -150,8 +146,9 @@ package SCOs is
    --      o  object declaration
    --      r  renaming declaration
    --      i  generic instantiation
-   --      C  CASE statement
-   --      F  FOR loop statement
+   --      C  CASE statement (includes only the expression)
+   --      F  FOR/While loop statement (includes only the iteration scheme)
+   --      I  IF statement (includes only the condition)
    --      P  PRAGMA
    --      R  extended RETURN statement
 
@@ -279,7 +276,7 @@ package SCOs is
 
    --    Statements
    --      C1   = 'S' for entry point, 's' otherwise
-   --      C2   = 't', 's', 'o', 'r', 'i', 'C', 'F', 'P', 'R', ' '
+   --      C2   = 't', 's', 'o', 'r', 'i', 'C', 'F', 'I', 'P', 'R', ' '
    --             (type/subtype/object/renaming/instantiation/
    --              CASE/FOR/PRAGMA/RETURN/other)
    --      From = starting source location
