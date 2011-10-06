@@ -321,7 +321,6 @@ begin
 
                if Dtyp = 'X' then
                   Loc := No_Source_Location;
-
                else
                   Get_Source_Location (Loc);
                end if;
