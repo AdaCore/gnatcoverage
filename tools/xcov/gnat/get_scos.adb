@@ -343,9 +343,8 @@ begin
                      Last => False);
 
                elsif C = '!' or else
-                 C = '^' or else
-                 C = '&' or else
-                 C = '|'
+                     C = '&' or else
+                     C = '|'
                then
                   Skipc;
                   Add_SCO (C1 => C, Last => False);
