@@ -154,8 +154,18 @@ package body Diagnostics is
      (SCO  : SCO_Id;
       Msg  : String)
    is
+      Sloc : Source_Location;
    begin
-      Report (Msg, Sloc => First_Sloc (SCO), SCO => SCO, Kind => Error);
+      --  For an MC/DC violation, the message is attached to the decision for
+      --  the benefit of HTML output.
+
+      if Kind (SCO) = Condition then
+         Sloc := First_Sloc (Enclosing_Decision (SCO));
+      else
+         Sloc := First_Sloc (SCO);
+      end if;
+
+      Report (Msg, Sloc => Sloc, SCO => SCO, Kind => Error);
    end Report_Violation;
 
    procedure Report

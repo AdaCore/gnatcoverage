@@ -382,11 +382,9 @@ package body Coverage.Source is
          if not Indep (J) then
             Update_State
               (SCO_State, Condition (SCO, J), MCDC_Level, Not_Covered);
-            Report
-              ("has no independent influence pair, MC/DC not achieved",
-               Sloc => First_Sloc (SCO),
-               SCO  => Condition (SCO, J),
-               Kind => Warning);
+            Report_Violation
+              (SCO => Condition (SCO, J),
+               Msg => "has no independent influence pair, MC/DC not achieved");
          else
             Update_State (SCO_State, Condition (SCO, J), MCDC_Level, Covered);
          end if;
