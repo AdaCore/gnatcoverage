@@ -653,8 +653,10 @@ package body Annotations is
       if M.SCO /= No_SCO_Id then
          return SCO_Kind'Image (Kind (M.SCO))
            & " """ & SCO_Text (M.SCO) & '"'
-           & " at " & Img (M.Sloc.Line) & ":" & Img (M.Sloc.Column)
-           & ": " & M.Msg.all;
+           & " at "
+           & Img (First_Sloc (M.SCO).Line) & ":"
+           & Img (First_Sloc (M.SCO).Column)
+           & " " & M.Msg.all;
       else
          return Image (M.Sloc) & ": " & M.Msg.all;
       end if;
