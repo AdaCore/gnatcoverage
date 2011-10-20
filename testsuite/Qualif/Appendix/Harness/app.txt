@@ -60,8 +60,8 @@ Each TOR comes with a set of Test Cases to validate it, and every TOR
 description comes with a Testing Strategy text describing how the tests are
 organized to demonstrate that the tool complies with the requirement.
 
-Requirement *Groups* are introduced to expose a general organisation
-constructed as a logical hierarchy.
+Requirement and Testcase *Groups* are introduced to expose a general
+organisation constructed as a logical hierarchy.
 
 Test Cases
 **********
@@ -399,36 +399,29 @@ A set of strict organizational rules is enforced to
 Language specific artifacts are hosted in the Qualif/<language> directory
 subtree, with sets grouping items related to each major coverage criterion.
 
-Tool Operational Requirements
-*****************************
+Tool Operational Requirements (TORs)
+************************************
 
-Each TOR maps to a physical folder in the repository. The folder name is the
-TOR identifier. All the qualification artifacts related to a TOR are stored as
-either files or subfolders within the TOR directory:
+* A TOR maps to a physical folder in the repository where a ``req.txt`` file
+  resides. The folder name is the TOR identifier and the ``req.txt`` file
+  contains the TOR textual specification in ReST format.
 
-* Every TOR directory holds a ``req.txt`` file where the TOR textual
-  specification resides.
+* Each TOR is validated by one or more testcases,
 
-* Each TOR is either validated by one or more testcases, or subdivided as
-  a set of simpler TORs.
+* Each testcase or group materializes as a subdirectory, structured as
+  described in the following section.
 
-* Each testcase materializes as a subdirectory, as described in the following
-  section.
-
-* Sub-TORs are hosted as subdirectories as well and obey the same rules as
-  their parent.
-
-The TOR description in ``req.txt`` shall follow a few guidelines:
+The TOR description in ``req.txt`` must obey a few guidelines:
 
 * The description should start with a brief paragraph summarizing the TOR
-  contents. This facilitates the automatic generation of indexes from parent
-  artifacts;
+  contents. This facilitates the automatic generation of index tables from
+  ancestor artifacts;
 
 * The TOR body, following the brief, should start with
   ``%%(req-headline)s`` to ensure a consistent style in the final
   documentation.
 
-* When the TOR is validated by several testcases, the TOR body shall be
+* When a TOR is validated by several testcases, the TOR body shall be
   followed by a "Testing Strategy" section, providing a general description of
   how distinct aspects of the requirement are fullfilled by testcases. This
   section should start with ``%%(tstrategy-headline)s``.
@@ -436,6 +429,15 @@ The TOR description in ``req.txt`` shall follow a few guidelines:
 * When you wish to include a synthetic summary of sub-artifacts in the
   description, consider using the automatic
   :ref:`index-tables <harness-index-tables>` available for this purpose.
+
+Sub-TORs (TOR directories children of another one uptree) are not allowed.
+
+TOR Groups may be constituted, however, by way of intermediate subdirectories
+that feature a ``set.txt`` file containing a textual description of the group
+contents and intent. As for TOR descriptions, group descriptions should start
+with a brief summary paragraph for inclusion within automatically generated
+index tables uptree. The children of a TOR group may be TORs or TOR groups,
+not necessarily all the same.
 
 Test Cases
 **********
@@ -479,22 +481,30 @@ and launch testcase executions, as outlined in section
 The :ref:`Testsuite Engine <harness-engine>` section explains how the
 testsuite engine locates and executes the applicable drivers for a test case.
 
-Intermediate Sets
-*****************
-
-Subsets of TORs or TCs are allowed, permitting the elaboration of logical
-groups as needed. These materialize as subdirectories featuring a ``set.txt``
-description, and shall be homonogeneous, with TOR constituents only or TC
-constituent only.
+As for TORs, Testcase groups may be consistuted while sub-testcases (testcases
+children of a testcase, not of a group) are not allowed. The group
+construction devices and rules are similar: a subdirectory with a ``set.txt``
+file, at least a brief description as the first paragraph, Testcase or
+Testcase group children only.
 
 Illustrations
 *************
 
 Below is a sketch of the toplevel entries::
 
- Qualif/<language>/stmt
-                  /decision
-                  /mcdc
+ Qualif/<lang>/stmt (requirement group)
+              .   /Core (requirement group)
+              .      ...
+              .   /Consolidation (requirement)
+              .   /Exemptions (requirement)
+              .   ...
+              .
+              /decision
+              .   <likewise>
+              .
+              /mcdc
+              .   <likewise>
+
 
 The toplevel directory for each criterion typically acts as a container for a
 set toplevel requirements for that criterion, so holds a general ``set.txt``
@@ -552,13 +562,17 @@ Automatic index tables
 **********************
 
 In TOR or SET descriptions, two macros are available to automate the
-production of sub-artifact indexes, tables of two-column entries where
+production of sub-artifact index tables where each line features
 
-* The first column is the subartifact id, cross-reference to the actual
-  contents,
+* A brief indication of the kind of sub-artifact represented by the line (for
+  example ``tcg`` to denote Testcase Group). This text embeds a cross
+  reference link straight to the artifact contents, and a legend of the possible
+  values is provided in the root node of the whole TOR/TC hierarchy.
 
-* The second column is a brief description of the subartifact, extracted
-  from the subartifact description text (first paragraph)
+* The subartifact identifier, name of the filesystem subdirectory where it resides,
+
+* A brief description of the subartifact, first paragraph of the associated
+  description text.
 
 We support two kinds of indexes, subsituted anywhere they appear in the text:
 
