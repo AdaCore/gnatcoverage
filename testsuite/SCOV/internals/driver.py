@@ -30,7 +30,7 @@ from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 
 from gnatpython.fileutils import cd, mkdir
 
-from . cnotes import r0, r0c, xBlock0, xBlock1
+from . cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
 from . cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds
 from . cnotes import xNoteKinds, sNoteKinds, dNoteKinds, cNoteKinds, tNoteKinds
 from . cnotes import strict_p, deviation_p, anti_p, positive_p
