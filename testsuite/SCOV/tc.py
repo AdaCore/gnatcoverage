@@ -100,7 +100,7 @@ class TestCase:
         """Compute our test category from its directory location."""
 
         for crit in ("stmt", "decision", "mcdc"):
-            if re.search ("/%s/" % crit, TEST_DIR):
+            if re.search ("/%s(/|$)" % crit, TEST_DIR):
                 return crit
 
         raise FatalError(
