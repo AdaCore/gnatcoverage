@@ -637,7 +637,7 @@ begin
          return;
 
       when Cmd_Version =>
-         Put_Line ("XCOV Pro " & Standard.Version.Xcov_Version);
+         Put_Line ("GNATcov Pro " & Standard.Version.Xcov_Version);
          return;
 
       when Cmd_Disp_Routines =>
