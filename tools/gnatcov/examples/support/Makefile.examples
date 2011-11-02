@@ -48,7 +48,7 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
   GENXCOVLIST=\
     $(XCOV) disp-routines $(wildcard obj/$(TARGET)/*.o) > $*.routines
   XCOVFILTER=--routines=@$*.routines
-  XCOVRUN=xcov run \
+  XCOVRUN=$(XCOV) run \
     --target=$(XCOVTARGET) --level=$(XCOVLEVEL) obj/$(TARGET)/$<
 
 else
@@ -62,7 +62,7 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
   GENXCOVLIST=\
     ls $(wildcard obj/$(TARGET)/*.ali) > $*.alis
   XCOVFILTER=--scos=@$*.alis
-  XCOVRUN=xcov run \
+  XCOVRUN=$(XCOV) run \
     --target=$(XCOVTARGET) --level=$(XCOVLEVEL) $(XCOVFILTER) obj/$(TARGET)/$<
 endif
 endif

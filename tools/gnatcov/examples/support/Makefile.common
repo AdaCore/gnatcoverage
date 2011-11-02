@@ -10,7 +10,7 @@ TARGET = powerpc-elf
 
 # ====================================================================
 # BOARD specialization wrt TARGET. Used to control the compilation of
-# the support library, and passed to xcov run when specified. 
+# the support library, and passed to XCOV run when specified. 
 # ===================================================================
 
 ifeq ($(TARGET), powerpc-elf)
@@ -20,7 +20,7 @@ BOARD = unspec
 endif
 
 # ==========================================================
-# What we'll pass to xcov run
+# What we'll pass to XCOV run
 # ==========================================================
 
 # If we have a particular BOARD specified, use that.
@@ -59,7 +59,7 @@ else
 endif
 
 # ===========================================
-# tty adjustments commands around xcov --run:
+# tty adjustments commands around  XCOV run:
 # ===========================================
 
 # Default to NOPs, force "stty raw" on Unix terminals, except
@@ -79,7 +79,12 @@ endif
 # Commands:
 # =========
 
-XCOV=xcov
+XCOV=gnatcov
+# Name of our command-line front-end to "run" a program or do "coverage"
+# analysis.  This used to be "xcov" and gave the original variable name.
+# This name remains a proper abstraction of a an actual name that we
+# don't really care about. 
+
 BUILDER=GPR_PROJECT_PATH=../support gprbuild $(GPRBUILD_TARGETARGS)
 MKDIR=mkdir -p
 RM=rm
