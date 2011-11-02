@@ -17,7 +17,7 @@ import os, sys, pickle, re
 from REST import rest
 
 from SUITE.cutils import to_list
-from SUITE.control import LANGINFO
+from SUITE.control import LANGINFO, XCOV
 
 from SCOV.internals.cnotes import *
 
@@ -865,7 +865,7 @@ class QDreport:
 
         gnatpro = Env().target.triplet + "-gcc"
         gnatemu = Env().target.triplet + "-gnatemu"
-        gnatcov = "xcov"
+        gnatcov = XCOV
 
         CSVtable (
             title = None, text = None,
