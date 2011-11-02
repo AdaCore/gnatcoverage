@@ -8,9 +8,15 @@ MKDIR=mkdir -p
 MAKEINFO=makeinfo
 exeext=
 
-all: xcov
+# Binary program name
+PGMNAME=gnatcov
 
-xcov: force
+# Directory name in the install tree
+DIRNAME=gnatcoverage
+
+all: $(PGMNAME)
+
+$(PGMNAME): force
 	$(GNATMAKE) $(ADAFLAGS) $@
 
 ppc_genopc:
@@ -24,31 +30,32 @@ ADA_GEN_SUBDIR=gnat
 MOVE_IF_CHANGE=mv -f
 
 copy_gnat_src: force
-	@echo "GNAT sources are now mirrored in the XCOV repository iteslf"
+	@echo "GNAT sources are now mirrored in the GNATCOV repository iteslf"
 
 #################
 # Documentation #
 #################
 
 .PHONY: doc
-doc: doc/xcov.pdf doc/xcov.info doc/xcov.html doc/xcov.txt
+doc: doc/$(PGMNAME).pdf doc/$(PGMNAME).info doc/$(PGMNAME).html doc/$(PGMNAME).txt
 
-doc/xcov.pdf: doc/xcov.texi
+doc/$(PGMNAME).pdf: doc/$(PGMNAME).texi
 	texi2pdf -b $<
-	mv xcov.pdf $@
+	chmod o=u $(PGMNAME).pdf
+	mv $(PGMNAME).pdf $@
 	$(RM) *.aux *.cp *.fn *.ky *.log *.pg *.toc *.tp *.vr
 
-doc/xcov.info: doc/xcov.texi
+doc/$(PGMNAME).info: doc/$(PGMNAME).texi
 	$(MAKEINFO) $< -o $@
 
-doc/xcov.html: doc/xcov.texi
+doc/$(PGMNAME).html: doc/$(PGMNAME).texi
 	$(MAKEINFO) --no-split --html -o $@ $< 
 
-doc/xcov.txt: doc/xcov.texi
+doc/$(PGMNAME).txt: doc/$(PGMNAME).texi
 	$(MAKEINFO) --plaintext -o $@ $<
 
 clean:
-	$(RM) *.o *.ali xcov b~*
+	$(RM) *.o *.ali $(PGMNAME) b~*
 
 ##########################
 # Installation/Packaging #
@@ -57,18 +64,18 @@ clean:
 .PHONY: install
 install:
 	$(MKDIR) $(PREFIX)/bin
-	$(MKDIR) $(PREFIX)/share/examples/xcov
-	$(MKDIR) $(PREFIX)/share/doc/xcov
-	$(MKDIR) $(PREFIX)/share/doc/xcov/html
-	$(MKDIR) $(PREFIX)/share/doc/xcov/pdf
-	$(MKDIR) $(PREFIX)/share/doc/xcov/info
-	$(MKDIR) $(PREFIX)/share/doc/xcov/txt
+	$(MKDIR) $(PREFIX)/share/examples/$(DIRNAME)
+	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)
+	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/html
+	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/pdf
+	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/info
+	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/txt
 	$(CP) README $(PREFIX)
-	$(CP) xcov$(exeext) $(PREFIX)/bin
-	$(CP) -r examples/* $(PREFIX)/share/examples/xcov
-	$(CP) -r doc/*.html $(PREFIX)/share/doc/xcov/html
-	$(CP) -r doc/*.pdf  $(PREFIX)/share/doc/xcov/pdf
-	$(CP) -r doc/*.txt  $(PREFIX)/share/doc/xcov/txt
-	$(CP) -r doc/*.info $(PREFIX)/share/doc/xcov/info
+	$(CP) $(PGMNAME)$(exeext) $(PREFIX)/bin
+	$(CP) -r examples/* $(PREFIX)/share/examples/$(DIRNAME)
+	$(CP) -r doc/*.html $(PREFIX)/share/doc/$(DIRNAME)/html
+	$(CP) -r doc/*.pdf  $(PREFIX)/share/doc/$(DIRNAME)/pdf
+	$(CP) -r doc/*.txt  $(PREFIX)/share/doc/$(DIRNAME)/txt
+	$(CP) -r doc/*.info $(PREFIX)/share/doc/$(DIRNAME)/info
 
 force:

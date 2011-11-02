@@ -53,7 +53,7 @@ with Traces_Dbase;      use Traces_Dbase;
 with Traces_Disa;
 with Version;
 
-procedure Xcov is
+procedure GNATcov is
 
    procedure Usage;
    --  Display usage information for documented commands
@@ -1175,4 +1175,4 @@ exception
       --  An error message has already been displayed
 
       null;
-end Xcov;
+end GNATcov;
