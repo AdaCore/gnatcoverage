@@ -12,7 +12,7 @@ import re
 from SUITE.cutils import match, to_list, list_to_file
 from SUITE.tutils import thistest, do, compile
 
-from SUITE.control import BUILDER, LANGINFO
+from SUITE.control import BUILDER, LANGINFO, XCOV
 
 # ==================
 # ==  MapChecker  ==
@@ -59,8 +59,8 @@ class MapChecker:
         # Run xcov map-routines and check absence of errors
 
         mapoutput = do(
-            "xcov map-routines -v --scos=@%s %s"
-            % (list_to_file(self.alis), " ".join(self.objects)))
+            "%s map-routines -v --scos=@%s %s"
+            % (XCOV, list_to_file(self.alis), " ".join(self.objects)))
 
         maperrors = [str(m) for m in
                      re.findall("(\*\*\*|\!\!\!)(.*)", mapoutput)]

@@ -11,7 +11,8 @@ env = Env()
 GPRBUILD  = 'gprbuild' + env.host.os.exeext
 GPRCONFIG = 'gprconfig' + env.host.os.exeext
 GPRCLEAN  = 'gprclean' + env.host.os.exeext
-XCOV      = 'xcov' + env.host.os.exeext
+
+XCOV      = 'gnatcov' + env.host.os.exeext
 
 class LangInfo:
     """A class that provides some info about a given language.

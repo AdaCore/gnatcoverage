@@ -4,7 +4,7 @@
 
 This is a python driven testsuite for the Couverture project.
 
-Most tests use gprbuild to build programs for run/anlysis by xcov/qemu.
+Most tests use gprbuild to build programs for run/anlysis by gnatcov/qemu.
 Programs are most often Ada + c/asm low-level support bits to provide
 the bare qemu board init sequence & minimal IO support.
 
@@ -37,9 +37,9 @@ This is all still "under construction" so subject to change.
 -------------------
 
  * At the testsuite dir level, a "support" subdirectory corresponding
-   to the one in ../tools/xcov/examples, for example
+   to the one in ../tools/gnatcov/examples, for example
 
- ln -s ../tools/xcov/examples/support support
+ ln -s ../tools/gnatcov/examples/support support
 
  * a target compiler supporting -fpreserve-control-flow (e.g GNAT Pro 6.3.2)
 
@@ -51,7 +51,7 @@ This is all still "under construction" so subject to change.
  export PYTHONPATH=`pwd`/support/gnatpython
  Compile rlimit and add it to your PATH.
 
- * The xcov & qemu binaries you wish to exercise
+ * The gnatcov & qemu binaries you wish to exercise
 
 -----------------------
 -- Running the tests --
@@ -131,7 +131,7 @@ This settled, we have:
 
    report.py  : Format checker for qualified reports, 
 
-   map.py     : MapChecker class for xcov map-routines tests
+   map.py     : MapChecker class for gnatcov map-routines tests
 
    internals
    ---------
@@ -139,7 +139,7 @@ This settled, we have:
 
      driver.py    : Class to help drive a source coverage test [SCOV_helper]
 
-     expanders.py : Expand coverage note instances from xcov reports or from
+     expanders.py : Expand coverage note instances from gnatcov reports or from
                     expectation-specs + sources
 
      xnotep.py    : Class to represent user expectation patterns
