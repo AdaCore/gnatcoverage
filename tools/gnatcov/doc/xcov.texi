@@ -3,20 +3,31 @@
 @c %**start of header
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 @c                                                                            o
-@c                            XCOV DOCUMENTATION                              o
+@c                        GNATcoverage DOCUMENTATION                          o
 @c                                                                            o
 @c oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
-@setfilename xcov.info
-@settitle Xcov documentation
+@setfilename gnatcov.info
+@settitle GNATcoverage documentation
 @c %**end of header
 
-@macro xcov
-@command{xcov}
+@c How to spell and typeset the binary program name of our command
+@c line front-end.
+
+@macro gc
+@command{gnatcov}
 @end macro
 
-@macro xrun
+@c A shortcut for a widely used sequence
+
+@macro gcrun
 @command{xcov run}
+@end macro
+
+@c How to spell and typeset the GNATcoverage product name
+
+@macro gcp
+@sc{GNATcoverage}
 @end macro
 
 @macro h {text}  @c style for headers in descriptive tables
@@ -47,7 +58,7 @@
 @set explore_dir examples/explore
 
 @titlepage
-@title Xcov Fundamentals & User's Guide
+@title @gcp{} Users Guide
 @end titlepage
 
 @contents
@@ -60,33 +71,32 @@
 @top  About this Document
 
 @noindent
-This document introduces the fundamentals of Xcov, a non intrusive
-structural coverage analysis framework, together with a toolset user's
-guide.
+This document introduces the fundamental principles behind @gcp{}, a
+non intrusive structural coverage analysis framework, and offers a
+toolset user's guide.
 
-@ref{scov-basics} introduces the contextual elements of the Xcov's
-development. This includes a general definition and rationale for
-``Structural Coverage Analysis'', the process model we consider and a
-description of different possible kinds of analysis activities.
+@ref{scov-basics} provides a brief introduction to the ``Structural Coverage
+Analysis'' process nature and intent, including a short discussion on the
+fundamental distinction between ``object'' and ``source'' coverage criteria.
 
-@ref{xcov-grounds} describes the Xcov framework core operation mode and
+@ref{xcov-grounds} describes the @gcp{} framework core operation mode and
 capabilities.
 
-@ref{xcov-guide} is the toolset user's guide, with details on the tools
-command lines, use examples for various situations and outputs
-interpretation guidelines.
+@ref{xcov-guide} is the toolset user's guide, with details on the tool
+command line interface, use examples for various situations and interpretation
+guidelines for the different sorts of reports that the tool can produce.
 
 Various concepts are illustrated with examples throughout.
 @
-Most of the program sources for these examples are taken from toy
-``explorer robot'' application, developed just for this illustrative
+Most of the program sources for these examples are taken from the 
+``exploration robot'' application, developed just for this illustrative
 purpose and introduced in @ref{explore}.
 
 
 @menu
 * scov-basics::  Structural Coverage Basics
-* xcov-grounds:: Xcov Fundamentals
-* xcov-guide::   Xcov User's Guide
+* xcov-grounds:: @gcp{} Fundamentals
+* xcov-guide::   @gcp{} User's Guide
 * explore::      The Explore Guide Example
 @end menu
 
@@ -98,30 +108,37 @@ purpose and introduced in @ref{explore}.
 @node scov-basics,xcov-grounds,Top,Top
 @chapter Structural Coverage Analysis Basics
 
-@section General Definition & Rationale
+@section General Definition & Intent
 @noindent
-Structural coverage analysis may be viewed as a software development
-activity aimed at analysing which pieces of an application source and/or
-machine code are exercised by executions of the application software.
+Structural coverage analysis can be viewed as a software development
+activity aimed at examining which pieces of an application program
+(source and/or machine code) are exercised by executions of the
+application software.
 @c
-There may be several reasons why such an activity is performed and extra
-details about what exactly is to be evaluated.
-
-One of our target applications is the use of coverage analysis in
-software certification processes such as the DO-178B standard enforced
-in the civil avionics domain.
+There may be several reasons why coverage analysis is performed.
+@c
+A typical case is the use in software certification processes such as
+the DO-178B standard enforced in the civil avionics domain.
 @c
 In this context, the application code and the test sequences are both
-derived from a common set of requirements, independently, and structural
-coverage analysis is one of the means to confront the pieces.
-@c
-Essentially, it allows an assessment of the testing campain quality and
-helps the identification of various forms of pointless code or of
-requirements imprecision/incompleteness.
+derived from a common set of requirements, independently, and the
+analysis is meant to fulfill two complementary goals:
 
-In the following sections we introduce the elements of a coverage
-analysis process together with @dfn{terms} to be reused throughout this
-document.
+@itemize
+
+@item Assess the quality of a testing campain, on the grounds that
+insufficient testing of some requirements often leads to improper
+coverage of the code that implement them,
+
+@item Identify pieces of the application code that aren't tied to
+a requirement, on the grounds that there would be no test to exercise
+them.
+
+@end itemize
+
+In the following sections we introduce the common components of a
+coverage analysis process, together with @dfn{terms} to be reused
+throughout this document.
 
 @section Process Model
 
@@ -131,7 +148,7 @@ A typical coverage analysis process comprises three principal steps:
 @enumerate
 @item
 A binary @dfn{executable program} is produced from a set of program
-@dfn{sources} by development toolchains with compilers, linkers, etc.
+@dfn{sources} by a development toolchain (compiler, linker, etc).
 
 @item
 The executable program runs within an @dfn{execution environment}, and
@@ -532,15 +549,15 @@ unrequired significant additional testing efforts.
 @c *******************************************************************
 
 @node xcov-grounds,xcov-guide,scov-basics,Top
-@chapter Xcov Fundamentals
+@chapter @gcp{} Fundamentals
 
 @section Instrumentation mode
 @noindent
-The core principle in the Xcov framework is to leverage the generation
+The core principle in the @gcp{} framework is to leverage the generation
 of raw coverage data by a virtual execution environment instrumented to
 produce machine level traces about the code it executes.
 @c 
-We typically refer to these as @dfn{execution traces}.
+We refer to these as @dfn{execution traces}.
 
 The environment typically is a representative emulator of a real
 target microprocessor, possibly augmented with extensions to let it
@@ -567,7 +584,7 @@ analysis anticipated.
 
 @section Object Coverage Analysis
 @noindent
-To start with, Xcov allows the confrontation of execution traces with
+To start with, @gcp{} allows the confrontation of execution traces with
 the full machine code available from program files, hence precise object
 coverage analysis with both instruction and branch coverage capabilities.
 @c
@@ -581,7 +598,7 @@ executed or not, and for each conditional branch whether it has been
 taken, not taken or both.
 
 Then, provided extra information to establish instruction to source line
-correspondance, Xcov is also able to render the object coverage outcome
+correspondance, @gcp{} is also able to render the object coverage outcome
 through source annotations, with source line annnotations derived from
 those of all the associated machine instructions.
 @c
@@ -592,7 +609,7 @@ standard DWARF debug information or alike.
 
 @section Source Coverage Analysis
 @noindent
-Xcov is also designed to allow Source Coverage Analysis, with central
+@gcp{} is also designed to allow Source Coverage Analysis, with central
 focus on user source code and support for the three DO-178B criteria:
 Statement, Decision and Modified Condition/Decision Coverage.
 @c
@@ -616,7 +633,7 @@ in this case unless very strong constraints are met by the source
 constructs.
 @c
 Using extended traces or flat ones with source constraints, the MCDC
-capabilities of Xcov rely on the presence of a conditional branch
+capabilities of @gcp{} rely on the presence of a conditional branch
 instruction for each non-constant condition.
 @c
 We provide sets of compilation options suitable for both this
@@ -628,15 +645,14 @@ general.
 Different teams have different organizations and software development
 infrastructures.
 @c
-Xcov is designed as a modular set of light tools, intended to be
+@gcp{} is designed as a modular set of light tools, intended to be
 adaptable to various operational contexts.
 
 @c *******************************************************************
 @c *                          USER'S GUIDE                           *
 @c *******************************************************************
 @node xcov-guide,,xcov-grounds,Top
-
-@chapter Xcov User's Guide
+@chapter @gcp{} Users Guide
 
 @section Getting Started
 @noindent
@@ -649,7 +665,7 @@ toolset architecture and interface:
 @verbatiminclude README
 @end smallexample
 
-As suggested by the previous introduction, Xcov offers a front-end to
+As suggested by the previous introduction, @gcp{} offers a front-end to
 various coverage analysis related functionalities, each activated by a
 toplevel of command line option:
 
@@ -669,7 +685,7 @@ capitalization and consolidation.
 @section Instrumented Execution
 @pindex xcov run
 @noindent
-@xrun{} offers a unified interface to launch programs for a specific
+@gcrun{} offers a unified interface to launch programs for a specific
 target machine within the appropriate instrumented execution environment
 to produce execution traces.
 
@@ -702,10 +718,10 @@ The @code{FILE} argument is the executable program file name.
 This name is stored as-provided in the output trace header, where it is
 retrieved later by @code{xcov coverage} for analysis purposes.
 
-By default, @xrun{} writes the execution trace in the current directory,
+By default, @gcrun{} writes the execution trace in the current directory,
 in a file named like the executable input with a @code{.trace} suffix.
 @c
-For example @xrun{} @code{/path/to/myexecfile} produces a
+For example @gcrun{} @code{/path/to/myexecfile} produces a
 @code{myexecfile.trace} file in the current directory.
 @c
 @option{--output} allows the selection of an alternate output file name.
@@ -948,7 +964,7 @@ those for individual instructions: '-', '+' and '!' denote
 @dfn{uncovered}, @dfn{fully covered} or @dfn{partially covered} lines
 respectively.
 
-At this stage, @xcov{} relies on dwarf debug information to associate
+At this stage, @gc{} relies on dwarf debug information to associate
 machine instructions with their corresponding source lines, so these
 annotations are only possible when this is available.
 @c
@@ -1058,7 +1074,7 @@ fffc0878 +:  94 21 ff f0  stwu   r1,-0x0010(r1)
 
 @subsection Focusing on subprograms of interest
 @noindent
-Xcov provides a number of facilities to allow filtering results so that
+@gcp{} provides a number of facilities to allow filtering results so that
 only those of actual interest show up.
 
 The primary filtering device for object coverage analysis is the
@@ -1092,7 +1108,7 @@ fffc1078 +:  40 be 00 1c      bne+   cr7,0xfffc1094 <robots__unsafe+00000020>
 [...]
 @end smallexample
 
-Xcov provides a @option{disp-routines} command to help the elaboration
+@gcp{} provides a @option{disp-routines} command to help the elaboration
 of symbol lists.
 @c
 The general synopsis is as follows:
@@ -1173,11 +1189,11 @@ Source coverage analysis focuses on source elements such as
 @c
 Machine object code is entirely abstracted away.
 @c
-For source coverage assessment, @xcov{} relies on @dfn{Source Coverage
+For source coverage assessment, @gc{} relies on @dfn{Source Coverage
 Obligation} (SCO) tables, compact descriptions of the source elements
 relevant to coverage analysis.
 
-As of today, @xcov{} supports SCOs provided as part of the Ada Library
+As of today, @gc{} supports SCOs provided as part of the Ada Library
 Information files generated by the @gnat{} compilers when invoked with
 the @option{-gnateS} command line option.
 @c
@@ -1187,11 +1203,11 @@ optimizers disabled (@command{-O0} in gcc parlance).
 Support for optimized code is being worked on for future versions.
 
 The general process to perform source coverage analysis is similar to
-the one for object coverage: @xrun{} produces execution traces, and
+the one for object coverage: @gcrun{} produces execution traces, and
 @code{xcov coverage} generates reports out of them. 
 @c
 Source coverage analysis is requested thanks to variants of the
-@code{--level} option, which should be passed to both @xrun{} and
+@code{--level} option, which should be passed to both @gcrun{} and
 @code{xcov coverage}.
 
 The set of SCOs for which coverage is to be assessed is provided by
@@ -1223,7 +1239,7 @@ line, @code{html} features line colorization and an index page, and
 out of the analysis performed.
 
 @subsection Statement Coverage (SC)
-@pindex Statement Coverage with Xcov
+@pindex Statement Coverage with @gcp{}
 @noindent
 Statement coverage is achieved with @code{--level=stmt}, together with
 @code{--scos} to provide the set of SCOs of interest via ALI files.
@@ -1317,9 +1333,9 @@ It may be directed to a file instead, with the addition of a
 @option{-o <filename>} option on the command line.
 
 @subsection Decision Coverage (DC)
-@pindex Decision Coverage with Xcov
+@pindex Decision Coverage with @gcp{}
 @noindent
-@xcov{} features combined Statement and Decision Coverage assessment
+@gc{} features combined Statement and Decision Coverage assessment
 capabilities with @option{--level=stmt+decision}.
 @c
 We consider to be @dfn{decisions} all the boolean expressions used
@@ -1427,21 +1443,21 @@ DECISION "Robot.Mod..." at 75:10: outcome TRUE never exercised
 @end smallexample
 
 @subsection Modified Condition/Decision Coverage (MCDC)
-@pindex MCDC Coverage with Xcov
+@pindex MCDC Coverage with @gcp{}
 @noindent
-In a similar fashion to statement or decision coverage, @xcov{} features
+In a similar fashion to statement or decision coverage, @gc{} features
 Modified Condition/Decision Coverage assessment capabilities with
 @option{--level=stmt+mcdc}.
 @c
 In addition to the particular level specification, you should also
-provide @xrun{} with the set of SCOs you plan to analyze later on
+provide @gcrun{} with the set of SCOs you plan to analyze later on
 using the produced trace, with a @code{--scos} argument as for
 @code{xcov coverage}.
 @c
 If you plan different analysis for a single run, providing a common
-superset to @xrun{} is fine.
+superset to @gcrun{} is fine.
 @c
-Providing @xrun{} with only a subset of the SCOs you will analyze
+Providing @gcrun{} with only a subset of the SCOs you will analyze
 might result in pessimistic assessments later on (spurious MCDC not
 achieved outcome).
 
@@ -1518,7 +1534,7 @@ independent effect of each condition.
 
 @end smallexample
 
-Xcov actually implements a common variant, accepting variations of
+@gcp{} actually implements a common variant, accepting variations of
 other conditions in an independence pair as long as they could for
 sure not possibly influence the decision outcome, e.g. due to
 short-circuit semantics.
@@ -1561,15 +1577,15 @@ not a couple of condition related messages.
 
 @subsection Coverage Data Capitalization & Consolidation
 @c
-The @xcov{} philosophy with respect to coverage data capitalization is
+The @gc{} philosophy with respect to coverage data capitalization is
 to provide flexible means to allow custom trace management facilities,
 not to dictate a specific organization.
 @c
 Two devices were introduced for this purpose: trace tags let users
 associate an arbitrary string with each execution trace, and
-@xrun{} stores a reference to the executable program there as well.
+@gcrun{} stores a reference to the executable program there as well.
 @c
-In addition to this, @xcov{} features coverage consolidation
+In addition to this, @gc{} features coverage consolidation
 capabilities, to allow coverage analysis of a provided set of routines
 from runs exercising them possibly in the context of different
 executable programs.
@@ -1670,13 +1686,13 @@ consolidate.
 @c
 The trace order has no influence in either case.
 
-To help traceability, @xcov{} provides the full list of traces used to
+To help traceability, @gc{} provides the full list of traces used to
 assess reported results, in two possible places: in the @code{html}
 indexes and in the preliminary information part of the
 @code{--annotate=report} output when such formats are requested.
 @c
 Each trace filename is listed together with information recorded in
-the trace by @xrun{}: the trace creation timestamp, the
+the trace by @gcrun{}: the trace creation timestamp, the
 path-to-executable command line argument, and the provided
 @code{--tag} value.
 
@@ -1684,14 +1700,14 @@ path-to-executable command line argument, and the provided
 The example provided here focuses on object coverage analysis for
 illustrative puroposes.
 @c
-Xcov's consolidation capabilities apply identically to the source
+@gcp{}'s consolidation capabilities apply identically to the source
 coverage analysis case, with multiple execution traces on input and
 @code{--scos} to specify the sources subset of interest.
 
 @subsection XML outputs for automated processing
 @pindex @code{XML outputs}
 In addition to the @code{report}, @code{xcov[+]} and @code{html[+]}
-output formats, @xcov{} offers XML outputs for all the supported
+output formats, @gc{} offers XML outputs for all the supported
 criteria.
 @c
 These outputs are obtained with @option{--annotate=xml} on the command
@@ -1699,7 +1715,7 @@ line, which generates an XML file for each source file of interest,
 plus an @code{index.xml} which includes all the others.
 
 XML outputs are intended for automated processing by other tools, and
-provide a representation of @xcov{} internal computations with full
+provide a representation of @gc{} internal computations with full
 details for maximum flexibility.
 @c
 Their specification is provided as an appendix of this document.
@@ -1710,7 +1726,7 @@ proper coverage of some source statement or decision is not
 achievable, and it is convenient to be able to abstract these coverage
 violations away from the genuine defects out of a testing sequence.
 @c
-The Xcov @dfn{exemptions} facility was designed for this purpose.
+The @gcp{} @dfn{exemptions} facility was designed for this purpose.
 
 For Ada with the @gnat{} compilers, coverage exemptions are requested
 for sections of source by the insertion of dedicated pragmas.
@@ -1743,7 +1759,7 @@ appendix section dedicated to the synthetic text report format.
 @node explore,,Top,Top
 @section The ``Explore'' Guide Example
 @noindent
-The Explore example is a toy Ada application we use throughout the @xcov{}
+The Explore example is a toy Ada application we use throughout the @gc{}
 documentation to introduce and illustrate a number of concepts.
 @c
 Below is a short functional and organisational description, verbatim from
@@ -1788,7 +1804,7 @@ Below is a verbatim inclusion of the relevant Ada specification:
 @section @code{--annotate=report} output format - source coverage
 
 This section describes the format of the synthetic text report
-produced by the @code{--annotate=report} mode of Xcov for source
+produced by the @code{--annotate=report} mode of @gcp{} for source
 coverage criteria.
 @c
 We use a generated report as an example, filtering the elements
@@ -1866,11 +1882,11 @@ production context:
 
 @itemize -
 @item Date & time when the report was produced
-@item Command line and Version of Xcov that produced the report
+@item Command line and Version of @gcp{} that produced the report
 @item Coverage criterion assessed
 @item Details on the input trace files:
 path to binary program exercised (as provided on the command line),
-production time stamp, --tag argument to @xrun{} when the trace was
+production time stamp, --tag argument to @gcrun{} when the trace was
 produced
 @end itemize
 
@@ -1949,7 +1965,7 @@ diagnostic is emitted alone.
 For instance, if an Ada statement like "@code{X := A and then B;}" is
 not covered at all, a "@code{statement not executed}" violation is
 emitted alone, even if we're assessing for, say,
-@code{--level=stmt+decision} ; @xcov{} emits no decision oriented
+@code{--level=stmt+decision} ; @gc{} emits no decision oriented
 violation in this case.
 
 @c *******************************************************************
