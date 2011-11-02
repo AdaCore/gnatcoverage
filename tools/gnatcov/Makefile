@@ -14,6 +14,9 @@ PGMNAME=gnatcov
 # Directory name in the install tree
 DIRNAME=gnatcoverage
 
+DOCFORMATS=pdf html txt info
+ALLDOCS=$(foreach fmt, $(DOCFORMATS), doc/$(PGMNAME).$(fmt))
+
 all: $(PGMNAME)
 
 $(PGMNAME): force
@@ -37,7 +40,7 @@ copy_gnat_src: force
 #################
 
 .PHONY: doc
-doc: doc/$(PGMNAME).pdf doc/$(PGMNAME).info doc/$(PGMNAME).html doc/$(PGMNAME).txt
+doc: $(ALLDOCS)
 
 doc/$(PGMNAME).pdf: doc/$(PGMNAME).texi
 	texi2pdf -b $<
@@ -55,7 +58,7 @@ doc/$(PGMNAME).txt: doc/$(PGMNAME).texi
 	$(MAKEINFO) --plaintext -o $@ $<
 
 clean:
-	$(RM) *.o *.ali $(PGMNAME) b~*
+	$(RM) *.o *.ali $(PGMNAME) b~* $(ALLDOCS)
 
 ##########################
 # Installation/Packaging #

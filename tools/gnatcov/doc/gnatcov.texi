@@ -652,7 +652,7 @@ adaptable to various operational contexts.
 @c *                          USER'S GUIDE                           *
 @c *******************************************************************
 @node xcov-guide,,xcov-grounds,Top
-@chapter @gcp{} Users Guide
+@chapter @sc{GNATcoverage} Users Guide
 
 @section Getting Started
 @noindent
