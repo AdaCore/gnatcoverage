@@ -159,7 +159,7 @@ package SCOs is
    --      Note: for I and W, condition above is in the RM syntax sense (this
    --      condition is a decision in SCO terminology).
 
-   --    and is omitted for all other cases.
+   --    and is omitted for all other cases
 
    --    Note: up to 6 entries can appear on a single CS line. If more than 6
    --    entries appear in one logical statement sequence, continuation lines
@@ -229,7 +229,7 @@ package SCOs is
    --    For I, E, P, W, sloc is the source location of the IF, EXIT, PRAGMA or
    --    WHILE token.
 
-   --    For X, sloc is omitted.
+   --    For X, sloc is omitted
 
    --    The expression is a prefix polish form indicating the structure of
    --    the decision, including logical operators and short-circuit forms.
@@ -257,11 +257,11 @@ package SCOs is
    --      where t/f are used to mark a condition that has been recognized by
    --      the compiler as always being true or false.
 
-   --    & indicates AND THEN connecting two conditions.
+   --    & indicates AND THEN connecting two conditions
 
-   --    | indicates OR ELSE connecting two conditions.
+   --    | indicates OR ELSE connecting two conditions
 
-   --    ! indicates NOT applied to the expression.
+   --    ! indicates NOT applied to the expression
 
    --    Note that complex decisions do NOT include non-short-circuited logical
    --    operators (AND/XOR/OR). In the context of existing coverage tools the
@@ -302,7 +302,7 @@ package SCOs is
    --    there is an immediately following sequence in the same sequence of
    --    statements.
 
-   --    In all other cases, chaining indicators are omitted.
+   --    In all other cases, chaining indicators are omitted
 
    --  Case Expressions
 
@@ -315,7 +315,7 @@ package SCOs is
 
    --      CC sloc-range sloc-range ...
 
-   --    where sloc-range covers the range of the case expression.
+   --    where sloc-range covers the range of the case expression
 
    --    Note: up to 6 entries can appear on a single CC line. If more than 6
    --    entries appear in one logical statement sequence, continuation lines
