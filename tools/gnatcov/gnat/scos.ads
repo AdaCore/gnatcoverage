@@ -312,8 +312,9 @@ package SCOs is
    --    Note: successive statements (possibly interspersed with entries of
    --    other kinds, that are ignored for this purpose), starting with one
    --    labeled with C1 = 'S', up to and including the first one labeled with
-   --    Last=True, indicate the sequence to be output for a sequence of
-   --    statements on a single CS line (possily followed by cs continuations)
+   --    Last = True, indicate the sequence to be output for a sequence of
+   --    statements on a single CS line (possibly followed by Cs continuation
+   --    lines).
 
    --    Decision (IF/EXIT/WHILE)
    --      C1   = 'I'/'E'/'W' (for IF/EXIT/WHILE)
@@ -332,13 +333,13 @@ package SCOs is
    --      Last = unused
 
    --      Note: when the parse tree is first scanned, we unconditionally build
-   --      a pragma decision entry for any complex decision in a pragma (here
-   --      as always in SCO contexts, the only relevant pragmas are Assert,
-   --      Check, Precondition, and Postcondition). Then when we output the
-   --      SCO information to the ALI file, we use the Node field to check the
-   --      Pragma_Enabled flag, and if it is False, we suppress output of the
-   --      pragma decision line. On reading back SCO data from an ALI file, the
-   --      Node field is always set to Empty.
+   --      a pragma decision entry for any decision in a pragma (here as always
+   --      in SCO contexts, the only relevant pragmas are Assert, Check,
+   --      Precondition and Postcondition). Then when we output the SCO info
+   --      to the ALI file, we use the Node field to check the Pragma_Enabled
+   --      flag, and if it is False, we suppress output of the pragma decision
+   --      line. On reading back SCO data from an ALI file, the Node field is
+   --      always set to Empty.
 
    --    Decision (Expression)
    --      C1   = 'X'
