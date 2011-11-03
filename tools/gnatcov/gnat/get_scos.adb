@@ -54,7 +54,12 @@ procedure Get_SCOs is
    --  value read. Data_Error is raised for overflow (value greater than
    --  Int'Last), or if the initial character is not a digit.
 
-   procedure Get_Sloc_Range (Loc1, Loc2 : out Source_Location);
+   procedure Get_Source_Location (Loc : out Source_Location);
+   --  Reads a source location in the form line:col and places the source
+   --  location in Loc1. Raises Data_Error if the format does not match this
+   --  requirement. Note that initial spaces are not skipped.
+
+   procedure Get_Source_Location_Range (Loc1, Loc2 : out Source_Location);
    --  Skips initial spaces, then reads a source location range in the form
    --  line:col-line:col and places the two source locations in Loc1 and Loc2.
    --  Raises Data_Error if format does not match this requirement.
@@ -129,31 +134,32 @@ procedure Get_SCOs is
          raise Data_Error;
    end Get_Int;
 
-   --------------------
-   -- Get_Sloc_Range --
-   --------------------
+   -------------------------
+   -- Get_Source_Location --
+   -------------------------
 
-   procedure Get_Sloc_Range (Loc1, Loc2 : out Source_Location) is
+   procedure Get_Source_Location (Loc : out Source_Location) is
       pragma Unsuppress (Range_Check);
-
    begin
-      Skip_Spaces;
-
-      Loc1.Line := Logical_Line_Number (Get_Int);
+      Loc.Line := Logical_Line_Number (Get_Int);
       Check (':');
-      Loc1.Col := Column_Number (Get_Int);
-
-      Check ('-');
-
-      Loc2.Line := Logical_Line_Number (Get_Int);
-      Check (':');
-      Loc2.Col := Column_Number (Get_Int);
-
+      Loc.Col := Column_Number (Get_Int);
    exception
       when Constraint_Error =>
          raise Data_Error;
-   end Get_Sloc_Range;
+   end Get_Source_Location;
 
+   -------------------------------
+   -- Get_Source_Location_Range --
+   -------------------------------
+
+   procedure Get_Source_Location_Range (Loc1, Loc2 : out Source_Location) is
+   begin
+      Skip_Spaces;
+      Get_Source_Location (Loc1);
+      Check ('-');
+      Get_Source_Location (Loc2);
+   end Get_Source_Location_Range;
    --------------
    -- Skip_EOL --
    --------------
@@ -285,7 +291,7 @@ begin
                      Skipc;
                   end if;
 
-                  Get_Sloc_Range (Loc1, Loc2);
+                  Get_Source_Location_Range (Loc1, Loc2);
 
                   Add_SCO
                     (C1   => Key,
@@ -318,9 +324,7 @@ begin
                   C := Nextc;
 
                else
-                  Loc.Line := Logical_Line_Number (Get_Int);
-                  Check (':');
-                  Loc.Col := Column_Number (Get_Int);
+                  Get_Source_Location (Loc);
                end if;
 
                Add_SCO
@@ -337,7 +341,7 @@ begin
                if C = 'c' or else C = 't' or else C = 'f' then
                   Cond := C;
                   Skipc;
-                  Get_Sloc_Range (Loc1, Loc2);
+                  Get_Source_Location_Range (Loc1, Loc2);
                   Add_SCO
                     (C2   => Cond,
                      From => Loc1,
@@ -349,7 +353,13 @@ begin
                      C = '|'
                then
                   Skipc;
-                  Add_SCO (C1 => C, Last => False);
+
+                  declare
+                     Loc : Source_Location;
+                  begin
+                     Get_Source_Location (Loc);
+                     Add_SCO (C1 => C, From => Loc, Last => False);
+                  end;
 
                elsif C = ' ' then
                   Skip_Spaces;
