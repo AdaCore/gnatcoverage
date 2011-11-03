@@ -26,12 +26,12 @@
 --  This package contains the routines used to deal with generation and output
 --  of Soure Coverage Obligations (SCO's) used for coverage analysis purposes.
 
+with SCOs;  use SCOs;
 with Types; use Types;
-
 generic
    with function Getc return Character;
    with function Nextc return Character;
-procedure Get_SCOS (U : Unit_Number_Type);
+   function Get_SCOS (Info : Int := 0) return Unit_Index;
 --  Load SCO information for given unit into SCOs tables. Getc gets the next
 --  character from the ALI file, consuming it. It returns 16#1A# to mark the
 --  end of file. Nextc looks at the next character without consuming it. The
@@ -39,4 +39,8 @@ procedure Get_SCOS (U : Unit_Number_Type);
 --  the first line of the SCO information for a unit in the ALI file. Reading
 --  stops on encountering either the end of file, or a non-blank line starting
 --  with a character other than C. On return, Getc would read either this end
---  of file character or the character other than C.
+--  of file character or the character other than C. Info is simply some kind
+--  of identifying information which is stashed in the SCO_Unit_Table for later
+--  retrieval (e.g. in the compiler it is the Unit_Number_Type value). If it
+--  is not needed, it can be ommitted and left as zero. The returned value is
+--  the index of the new entry created in the SCO_Unit_Table.
