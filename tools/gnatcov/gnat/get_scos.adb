@@ -24,6 +24,8 @@
 ------------------------------------------------------------------------------
 
 pragma Ada_2005;
+--  Need comment on why this is needed, and why it is OK to have it ???
+--  (since it would not normally be allowed in compiler sources) ???
 
 with SCOs;   use SCOs;
 with Snames; use Snames;
@@ -297,12 +299,14 @@ begin
                            exit when Nextc = ':';
                            N := N + 1;
                         end loop;
+
                         begin
                            Pid := Pragma_Id'Value (Buf (1 .. N));
                         exception
                            when Constraint_Error =>
                               Pid := Unknown_Pragma;
                         end;
+
                         Skipc;
                      end if;
                   end if;
