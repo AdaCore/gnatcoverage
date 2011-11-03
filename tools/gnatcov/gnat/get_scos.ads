@@ -31,6 +31,8 @@ with Types; use Types;
 generic
    with function Getc return Character is <>;
    with function Nextc return Character is <>;
+   pragma Unreferenced (Getc);
+   pragma Unreferenced (Nextc);
 function Get_SCOs (Info : Int := 0) return Unit_Index;
 --  Load SCO information for given unit into SCOs tables. Getc gets the next
 --  character from the ALI file, consuming it. It returns 16#1A# to mark the
