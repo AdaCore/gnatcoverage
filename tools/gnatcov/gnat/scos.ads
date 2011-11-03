@@ -319,7 +319,7 @@ package SCOs is
    --      Last = unused
 
    --    Operator
-   --      C1   = '!', '^', '&', '|'
+   --      C1   = '!', '&', '|'
    --      C2   = ' '
    --      From = location of NOT/AND/OR token
    --      To   = No_Source_Location
