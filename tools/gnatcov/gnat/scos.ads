@@ -277,26 +277,26 @@ package SCOs is
    --    form is used, e.g. A in (2,7,11.15).
 
    --    The expression can be followed by chaining indicators of the form
-   --    Tsloc or Fsloc.
+   --    Tsloc-range or Fsloc-range.
 
-   --    Tsloc is present when the statement starting at sloc is executed if,
-   --    and only if, the decision evaluates to TRUE.
+   --    T* is present when the statement with the given sloc range is executed
+   --    if, and only if, the decision evaluates to TRUE.
 
-   --    Fsloc is present when the statement starting at sloc is executed if,
-   --    and only if, the decision evaluates to FALSE.
+   --    F* is present when the statement with the given sloc range is executed
+   --    if, and only if, the decision evaluates to FALSE.
 
    --    For an IF statement or ELSIF part, a T chaining indicator is always
-   --    present, with the sloc of the first statement in the corresponding
-   --    sequence.
+   --    present, with the sloc range of the first statement in the
+   --    corresponding sequence.
 
    --    For an ELSE part, the last decision in the IF statement (that of the
    --    last ELSIF part, if any, or that of the IF statement if there is no
-   --    ELSIF part) has an F chaining indicator with the sloc of the first
-   --    statement in the sequence of the ELSE part.
+   --    ELSIF part) has an F chaining indicator with the sloc range of the
+   --    first statement in the sequence of the ELSE part.
 
    --    For a WHILE loop, a T chaining indicator is always present, with the
-   --    sloc of the first statement in the loop, but no F chaining indicator
-   --    is ever present.
+   --    sloc range of the first statement in the loop, but no F chaining
+   --    indicator is ever present.
 
    --    For an EXIT WHEN statement, an F chaining indicator is present if
    --    there is an immediately following sequence in the same sequence of
@@ -409,6 +409,12 @@ package SCOs is
    --      From = starting source location
    --      To   = ending source location
    --      Last = False for all but the last entry, True for last entry
+
+   --    Element (chaining indicator)
+   --      C1   = 'H' (cHain)
+   --      C2   = 'T' or 'F' (chaining on decision true/false)
+   --      From = starting source location of chained statement
+   --      To   = ending source location of chained statement
 
    --    Note: the sequence starting with a decision, and continuing with
    --    operators and elements up to and including the first one labeled with
