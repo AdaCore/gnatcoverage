@@ -56,7 +56,7 @@ procedure Get_SCOs is
 
    procedure Get_Source_Location (Loc : out Source_Location);
    --  Reads a source location in the form line:col and places the source
-   --  location in Loc1. Raises Data_Error if the format does not match this
+   --  location in Loc. Raises Data_Error if the format does not match this
    --  requirement. Note that initial spaces are not skipped.
 
    procedure Get_Source_Location_Range (Loc1, Loc2 : out Source_Location);
@@ -321,7 +321,6 @@ begin
 
                if Dtyp = 'X' then
                   Loc := No_Source_Location;
-                  C := Nextc;
 
                else
                   Get_Source_Location (Loc);
@@ -337,6 +336,7 @@ begin
 
             --  Loop through terms in complex expression
 
+            C := Nextc;
             while C /= CR and then C /= LF loop
                if C = 'c' or else C = 't' or else C = 'f' then
                   Cond := C;
