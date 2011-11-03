@@ -86,6 +86,9 @@ package SCOs is
    --        a Source_Reference pragma was encountered (since all line number
    --        references will be with respect to the original file).
 
+   --        Isn't the filename indication redundant, since we can look it up
+   --        from the D line???
+
    --  Statements
 
    --    For the purpose of SCO generation, the notion of statement includes
