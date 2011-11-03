@@ -222,8 +222,8 @@ begin
             --  Scan out dependency number and file name
 
             declare
-               Ptr  : String_Ptr := new String (1 .. 32768);
-               N    : Integer;
+               Ptr : String_Ptr := new String (1 .. 32768);
+               N   : Integer;
 
             begin
                Skip_Spaces;
@@ -304,60 +304,67 @@ begin
          when 'I' | 'E' | 'P' | 'W' | 'X' =>
             Dtyp := C;
             Skip_Spaces;
-            C := Getc;
 
-            --  Case of simple condition
+            --  Output header
 
-            if C = 'c' or else C = 't' or else C = 'f' then
-               Cond := C;
-               Get_Sloc_Range (Loc1, Loc2);
+            declare
+               Loc : Source_Location;
+
+            begin
+               --  Acquire location information
+
+               if Dtyp = 'X' then
+                  Loc := No_Source_Location;
+               else
+                  Loc.Line := Logical_Line_Number (Get_Int);
+                  Check (':');
+                  Loc.Col := Column_Number (Get_Int);
+               end if;
+
                Add_SCO
                  (C1   => Dtyp,
-                  C2   => Cond,
-                  From => Loc1,
-                  To   => Loc2,
-                  Last => True);
+                  C2   => ' ',
+                  From => Loc,
+                  To   => No_Source_Location,
+                  Last => False);
+            end;
 
-            --  Complex expression
+            --  Loop through terms in complex expression
 
-            else
-               Add_SCO (C1 => Dtyp, Last => False);
+            while C /= CR and then C /= LF loop
+               if C = 'c' or else C = 't' or else C = 'f' then
+                  Cond := C;
+                  Skipc;
+                  Get_Sloc_Range (Loc1, Loc2);
+                  Add_SCO
+                    (C2   => Cond,
+                     From => Loc1,
+                     To   => Loc2,
+                     Last => False);
 
-               --  Loop through terms in complex expression
+               elsif C = '!' or else
+                 C = '^' or else
+                 C = '&' or else
+                 C = '|'
+               then
+                  Skipc;
+                  Add_SCO (C1 => C, Last => False);
 
-               while C /= CR and then C /= LF loop
-                  if C = 'c' or else C = 't' or else C = 'f' then
-                     Cond := C;
-                     Skipc;
-                     Get_Sloc_Range (Loc1, Loc2);
-                     Add_SCO
-                       (C2   => Cond,
-                        From => Loc1,
-                        To   => Loc2,
-                        Last => False);
+               elsif C = ' ' then
+                  Skip_Spaces;
 
-                  elsif C = '!' or else
-                        C = '^' or else
-                        C = '&' or else
-                        C = '|'
-                  then
-                     Skipc;
-                     Add_SCO (C1 => C, Last => False);
+               else
+                  raise Data_Error;
+               end if;
 
-                  elsif C = ' ' then
-                     Skip_Spaces;
+               C := Nextc;
+            end loop;
 
-                  else
-                     raise Data_Error;
-                  end if;
+            --  Reset Last indication to True for last entry
 
-                  C := Nextc;
-               end loop;
+            SCO_Table.Table (SCO_Table.Last).Last := True;
 
-               --  Reset Last indication to True for last entry
-
-               SCO_Table.Table (SCO_Table.Last).Last := True;
-            end if;
+         --  No other SCO lines are possible
 
          when others =>
             raise Data_Error;
