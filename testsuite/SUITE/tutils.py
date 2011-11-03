@@ -214,7 +214,7 @@ def xcov(args, out=None, inp=None, register_failure=True):
                 output=out, input=inp, timeout=thistest.options.timeout)
     thistest.stop_if(
         register_failure and p.status != 0,
-        FatalError('"xcov ' + ' '.join(args) + '" exit in error', out))
+        FatalError('"%s ' % XCOV + ' '.join(args) + '" exit in error', out))
     return p
 
 # ----------

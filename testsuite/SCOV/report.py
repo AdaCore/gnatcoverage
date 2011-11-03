@@ -12,6 +12,7 @@ import re, os.path
 
 from SUITE.tutils import thistest, frame
 from SUITE.cutils import FatalError, no_ext
+from SUITE.control import XCOV
 
 from SCOV.internals.cnotes import xNoteKinds
 
@@ -190,7 +191,7 @@ class ReportChecker:
         cmdLine1 = Piece (
             pattern="Command line:", pre=verNumber)
         cmdLine2 = Piece (
-            pattern="xcov(\.exe)? coverage", pre=cmdLine1)
+            pattern="%s(\.exe)? coverage" % XCOV, pre=cmdLine1)
 
         covLevel = Piece (
             pattern="Coverage level: stmt(\+(decision|mcdc))?", pre=cmdLine2)
