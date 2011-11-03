@@ -52,7 +52,7 @@ We validate all the rules thanks to three main subsets of testcases:
 %(subset-index)s
 
 Rules #1 to 3 are validated by variations exercised in every individual
-testcase, where we consistenly check each decision of interest in multiple
+testcase, where we consistently check each decision of interest in multiple
 manners, always including:
 
 * a situation where the statements exposing the decision aren't

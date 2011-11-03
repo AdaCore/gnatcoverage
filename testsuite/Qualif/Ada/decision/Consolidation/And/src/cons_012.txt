@@ -1,7 +1,7 @@
-drivers=_v1|_v2
+drivers=_v0|_v1|_v2
 
 --# andthen.adb
---  /eval/ l+ 0
+--  /eval/  l+ 0
 --  /true/  l+ 0
 --  /false/ l+ 0
 
