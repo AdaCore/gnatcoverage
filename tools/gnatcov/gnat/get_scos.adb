@@ -315,6 +315,8 @@ begin
 
                if Dtyp = 'X' then
                   Loc := No_Source_Location;
+                  C := Nextc;
+
                else
                   Loc.Line := Logical_Line_Number (Get_Int);
                   Check (':');
