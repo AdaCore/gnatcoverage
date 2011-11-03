@@ -334,8 +334,7 @@ package SCOs is
 
    --    Note: the sequence starting with a decision, and continuing with
    --    operators and elements up to and including the first one labeled with
-   --    Last = True, indicate the sequence to be output for a complex decision
-   --    on a single CD decision line.
+   --    Last = True, indicate the sequence to be output on one decision line.
 
    ----------------
    -- Unit Table --
