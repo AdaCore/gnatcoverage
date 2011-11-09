@@ -31,7 +31,7 @@ from glob import glob
 import logging, os, re, sys
 
 from SUITE import cutils
-from SUITE.cutils import contents_of, re_filter, clear, to_list
+from SUITE.cutils import contents_of, re_filter, clear, to_list, FatalError
 
 from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
 
@@ -141,9 +141,11 @@ class TestSuite:
         self.env.add_search_path('PYTHONPATH', os.getcwd())
 
         # Setup log directories
-        mkdir('output')
+        self.log_dir = os.path.join (os.getcwd(), 'output')
+        mkdir(self.log_dir)
+
         if self.options.bootstrap:
-            self.trace_dir = os.path.join(os.getcwd(), 'output/traces')
+            self.trace_dir = os.path.join (self.log_dir, 'traces')
             rm(self.trace_dir, recursive=True)
             mkdir(self.trace_dir)
         else:
@@ -154,14 +156,16 @@ class TestSuite:
 
         # Dump the list of discriminants in a file.  We can then use that file
         # to determine which discriminants were set during a particular run.
-        with open(os.path.join('output', 'discs'), 'w') as fd:
+        with open(os.path.join(self.log_dir, 'discs'), 'w') as fd:
             fd.write(" ".join(discs) + "\n")
 
         # Dump useful information about this run in a file.  This file can be
         # used as a testsuite report header, allowing a review to determine
         # immediately how the testsuite was run to get those results.  For
         # now, we only provide the command-line switches.
-        with open(os.path.join('output', 'comment'), 'w') as fd:
+
+        self.comment = os.path.join(self.log_dir, 'comment')
+        with open(self.comment, 'w') as fd:
             fd.write("Options: " + " ".join(_quoted_argv()) + "\n")
 
         # Compute the test list. Arrange to have ./ in paths to maximize
@@ -182,7 +186,7 @@ class TestSuite:
             discs)
 
         # Report all dead tests
-        with open(os.path.join('output', 'results'), 'w') as fd:
+        with open (os.path.join(self.log_dir, 'results'), 'w') as fd:
             [fd.write('%s:DEAD:\n' % dt.filename) for dt in self.dead_list]
 
         # Compute targetprefix, prefix to designate target specific versions
@@ -197,20 +201,25 @@ class TestSuite:
         # effects if PATH changes between testsuite runs.
 
         Run(to_list (BUILDER.CONFIG_COMMAND (self.options)),
-            output='output/config.out')
+            output=os.path.join (self.log_dir, 'config.out'))
 
         # Build support library as needed
         targetargs = ["TARGET=%s" % targetprefix]
         if self.env.main_options.board:
             targetargs.append ("BOARD=%s" % self.env.main_options.board)
         Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']+targetargs,
-            output='output/build_support.out')
+            output=os.path.join (self.log_dir, 'build_support.out'))
 
         # Instanciate what we'll need to produce a qualfication report.
         # Do that always, even if not running for qualif. The registry will
         # just happen to be empty if we're not running for qualif.
 
         self.qdreg = QDregistry()
+
+        # Initialize counter of consecutive failures, to stop the run
+        # when it is visibly useless to keep going
+
+        self.n_consecutive_failures = 0
 
     # -------------------------------
     # -- Discriminant computations --
@@ -310,7 +319,7 @@ class TestSuite:
                  self.collect_result,
                  self.options.jobs)
 
-        ReportDiff('output', self.options.old_res).txt_image('rep_couverture')
+        ReportDiff(self.log_dir, self.options.old_res).txt_image('rep_couverture')
 
     # ------------------
     # -- run_testcase --
@@ -460,7 +469,7 @@ class TestSuite:
 
         # File the test status + possible comment on failure
 
-        with open(os.path.join('output', 'results'), 'a') as result_f:
+        with open(os.path.join(self.log_dir, 'results'), 'a') as result_f:
             result_f.write(''.join (
                     ["%s:%s" % (test.rname(), status),
                      ":%s" % comment.strip('"') if not success and comment
@@ -477,6 +486,21 @@ class TestSuite:
         self.qdreg.check_qdata (
             qdaf=test.qdaf(), status=status, comment=comment)
 
+        # Check if we need to stop the Suite as a whole
+
+        if status == 'FAILED':
+            self.n_consecutive_failures += 1
+        else:
+            self.n_consecutive_failures = 0
+
+        if self.n_consecutive_failures > 10:
+            msg = ("Stopped after %d consecutive failures"
+                   % self.n_consecutive_failures)
+
+            with open(self.comment, 'a') as fd:
+                fd.write("Log: " + msg + "\n")
+            raise FatalError (msg)
+
     def odiff_for(self, test):
         """Returns path to diff file in the suite output directory.  This file
         is used to generate report and results files."""
@@ -485,7 +509,7 @@ class TestSuite:
         if filename.startswith('./'):
             filename = filename[2:]
         filename = filename.strip('/').replace('/', '-')
-        return os.path.join('output', filename + '.out')
+        return os.path.join(self.log_dir, filename + '.out')
 
     # -------------------
     # -- parse_options --
