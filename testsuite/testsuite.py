@@ -311,15 +311,20 @@ class TestSuite:
 
     def run (self):
 
-        # Main loop : run all the tests and collect the test results,
-        # then generate the human readable report
+        # Main loop : run all the tests and collect the test results, then
+        # generate the human readable report. Make sure we produce a report
+        # on exception as well, e.g. stop on consecutive failures threshold.
 
-        MainLoop(self.non_dead_list,
-                 self.run_testcase,
-                 self.collect_result,
-                 self.options.jobs)
+        try :
+            MainLoop(self.non_dead_list,
+                     self.run_testcase,
+                     self.collect_result,
+                     self.options.jobs)
 
-        ReportDiff(self.log_dir, self.options.old_res).txt_image('rep_couverture')
+        finally:
+            ReportDiff(
+                self.log_dir, self.options.old_res
+                ).txt_image('rep_couverture')
 
     # ------------------
     # -- run_testcase --
@@ -493,7 +498,7 @@ class TestSuite:
         else:
             self.n_consecutive_failures = 0
 
-        if self.n_consecutive_failures > 10:
+        if self.n_consecutive_failures >= 10:
             msg = ("Stopped after %d consecutive failures"
                    % self.n_consecutive_failures)
 
