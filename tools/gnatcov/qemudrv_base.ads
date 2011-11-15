@@ -38,7 +38,8 @@ package Qemudrv_Base is
       Run_Options   : String_List_Access;
    end record;
 
-   type Driver_Target_Array is array (Natural range <>) of Driver_Target;
+   type Driver_Target_Array is
+     array (Natural range <>) of aliased Driver_Target;
 
    Drivers : constant Driver_Target_Array :=
      ((Target => new String'("qemu-prep"),

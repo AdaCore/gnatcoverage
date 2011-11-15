@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2009-2010, AdaCore                     --
+--                     Copyright (C) 2009-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -69,13 +69,113 @@ package body Qemudrv is
       Histmap  : String_Access;
       Eargs    : String_List_Access)
    is
-      Driver_Index : Integer;
-      Real_Target  : not null String_Access := Target_Default;
       Nbr_Eargs    : Natural := 0;
+
+      type Driver_Target_Access is access constant Driver_Target;
+
+      function Driver_Control_For
+        (Target : String_Access) return Driver_Target_Access;
+      --  Return an access to the Driver_Target control block to use for
+      --  TARGET. This will be a <target>-gnatemu block if GNATemulator is
+      --  available on PATH, or a low-level emulator block from our static
+      --  configuration table otherwise. Return null if we can't figure out
+      --  any sensible control block for the provided target name.
+
+      ------------------------
+      -- Driver_Control_For --
+      ------------------------
+
+      function Driver_Control_For
+        (Target : String_Access) return Driver_Target_Access is
+      begin
+
+         --  If we have GNATemulator for Target on PATH, use that. --target
+         --  values provided by users are expected to match the GNATemulator
+         --  target names in such cases, so there's no point looking into
+         --  the Aliases entries here.
+
+         declare
+            Gnatemu : constant String_Access
+              := GNAT.OS_Lib.Locate_Exec_On_Path (Target.all & "-gnatemu");
+         begin
+
+            if Gnatemu /= null then
+
+               --  We just need to pass the executable name and request the
+               --  production of traces. Until there is support for the latter
+               --  in the GNATemulator interface, we request it straight to
+               --  the underlying emulator.
+
+               return new Driver_Target'
+                 (Target => Target,
+                  Build_Command => null,
+                  Build_Options => null,
+                  Run_Command => new String'(Gnatemu.all),
+                  Run_Options => new String_List'
+                    (new String'("--eargs"),
+                     new String'("-exec-trace"),
+                     new String'("$trace"),
+                     new String'("--eargs-end"),
+                     new String'("$exe"))
+                 );
+            end if;
+         end;
+
+         --  Otherwise, see if we have a bare emulator entry for Target. The
+         --  target name might be a generic alias for a low-level board name
+         --  in this case.
+
+         declare
+            Resolved_Target : String_Access := Target;
+         begin
+
+            --  Resolve against our target board Aliases table first,
+            --  then seek a matching Driver entry.
+
+            for I in Aliases'Range loop
+               if Resolved_Target.all = Aliases (I).Alias.all then
+                  Resolved_Target := Aliases (I).Target;
+               end if;
+            end loop;
+
+            for I in Drivers'Range loop
+               if Drivers (I).Target.all = Resolved_Target.all then
+                  return Drivers (I)'Access;
+               end if;
+            end loop;
+         end;
+
+         --  Nothing we can do if we haven't found anything at this point
+
+         return null;
+
+      end Driver_Control_For;
+
+      Real_Target : not null String_Access := Target_Default;
+      --  What we should be using as the target name, possibly not
+      --  provided on entry.
+
+      Control : Driver_Target_Access;
+      --  The corresponding Driver_Target control block
+
    begin
+
+      --  Setup our basic internal control parameters
+
       if Target /= null then
          Real_Target := Target;
       end if;
+
+      Control := Driver_Control_For (Real_Target);
+
+      if Control = null then
+         Error ("unknown target " & Real_Target.all);
+         Error (" (use --help to get target list)");
+         --  ??? xcov run --help should give the target list
+         return;
+      end if;
+
+      --  Setup global state
 
       if Output /= null then
          Trace_Output := Output;
@@ -123,59 +223,34 @@ package body Qemudrv is
          Free (Trace_File);
       end;
 
-      --  Resolve the possible target alias and search for the driver
-
-      for I in Aliases'Range loop
-         if Real_Target.all = Aliases (I).Alias.all then
-            Real_Target := Aliases (I).Target;
-         end if;
-      end loop;
-
-      Driver_Index := -1;
-      for I in Drivers'Range loop
-         if Drivers (I).Target.all = Real_Target.all then
-            Driver_Index := I;
-            exit;
-         end if;
-      end loop;
-
-      if Driver_Index < 0 then
-         Error ("unknown target " & Real_Target.all);
-         Error (" (use --help to get target list)");
-         --  ??? xcov run --help should give the target list
-         return;
-      end if;
-
       --  Build the executable (if necessary)
 
-      if Drivers (Driver_Index).Build_Command /= null then
-         Run_Command (Drivers (Driver_Index).Build_Command,
-                      Drivers (Driver_Index).Build_Options.all);
+      if Control.Build_Command /= null then
+         Run_Command (Control.Build_Command, Control.Build_Options.all);
       end if;
 
       --  The 'prepare' target do not launch qemu
 
-      if Drivers (Driver_Index).Run_Command = null then
+      if Control.Run_Command = null then
          return;
       end if;
 
       --  Run qemu
 
       declare
-         Driver : Driver_Target renames Drivers (Driver_Index);
-         L : constant Natural := Driver.Run_Options'Length;
+         L : constant Natural := Control.Run_Options'Length;
          Opts : String_List (1 .. L + Nbr_Eargs);
       begin
-         Opts (1 .. L) := Driver.Run_Options.all;
+         Opts (1 .. L) := Control.Run_Options.all;
 
          if Eargs /= null then
             Opts (L + 1 .. L + Nbr_Eargs) := Eargs (1 .. Nbr_Eargs);
          end if;
 
-         Run_Command (Driver.Run_Command, Opts);
+         Run_Command (Control.Run_Command, Opts);
 
          if Verbose then
-            Put (Driver.Run_Command.all & " finished");
+            Put (Control.Run_Command.all & " finished");
          end if;
       end;
 
