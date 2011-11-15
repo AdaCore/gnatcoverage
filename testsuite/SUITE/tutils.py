@@ -230,10 +230,6 @@ def xrun(args, out=None):
     nulinput = "devnul"
     touch(nulinput)
 
-    # On leon-elf, qemu is stopped by generating a double-fault.  This
-    # crashes the board and therefore qemu exits with an error message.
-    # As this is expected, we don't stop the test because of exit status.
-
     # Compute our --target argument to xcov run.  If we have a specific
     # target board specified, use that.  Fallback on our general target
     # triplet otherwise.
@@ -244,7 +240,7 @@ def xrun(args, out=None):
         targetarg = env.target.triplet
 
     return xcov (['run', '--target=' + targetarg] + to_list(args),
-                 inp=nulinput, out=out, register_failure=False)
+                 inp=nulinput, out=out)
 
 # --------
 # -- do --
