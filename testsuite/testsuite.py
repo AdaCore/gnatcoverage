@@ -313,7 +313,8 @@ class TestSuite:
 
         # Main loop : run all the tests and collect the test results, then
         # generate the human readable report. Make sure we produce a report
-        # on exception as well, e.g. stop on consecutive failures threshold.
+        # and keep going on exception as well, e.g. on stop for consecutive
+        # failures threshold.
 
         try :
             MainLoop(self.non_dead_list,
@@ -321,10 +322,13 @@ class TestSuite:
                      self.collect_result,
                      self.options.jobs)
 
-        finally:
-            ReportDiff(
-                self.log_dir, self.options.old_res
-                ).txt_image('rep_couverture')
+        except Exception as e:
+            logging.info("Mailoop stopped on exception occurrence")
+            logging.info(e.__str__())
+
+        ReportDiff(
+            self.log_dir, self.options.old_res
+            ).txt_image('rep_couverture')
 
     # ------------------
     # -- run_testcase --
