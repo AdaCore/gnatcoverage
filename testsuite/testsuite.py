@@ -323,7 +323,7 @@ class TestSuite:
                      self.options.jobs)
 
         except Exception as e:
-            logging.info("Mailoop stopped on exception occurrence")
+            logging.info("Mainloop stopped on exception occurrence")
             logging.info(e.__str__())
 
         ReportDiff(
