@@ -18,7 +18,7 @@ from gnatpython.fileutils import cd, rm, which, diff, touch, mkdir, ls, find
 
 import os, re, sys
 
-from SUITE.control import GPRCLEAN
+from SUITE.control import GPRCLEAN, BUILDER
 from SUITE.cutils import ndirs_in
 
 # This module is loaded as part of a Run operation for a test.py
@@ -160,7 +160,7 @@ class Test (object):
             # quiet mode for performance (less io) otherwise.
             '-v' if self.options.qualif_level else '-q',
 
-            '--config=%s' % ROOT_DIR+'/suite.cgpr',
+            '--config=%s' % os.path.join (ROOT_DIR, BUILDER.SUITE_CGPR),
             '-XTARGET=%s' % env.target.triplet]
 
         if self.options.board:
@@ -261,8 +261,8 @@ class Test (object):
                              'when that normally happens.')
         main.add_option('--board', dest='board', metavar='BOARD',
                         help='Specific target board to exercize')
-        main.add_option('--rtsgpr', dest='rtsgpr', metavar='RTSGPR',
-                     help='RTS .gpr to extend.')
+        main.add_option('--RTS', dest='RTS', metavar='RTS',
+                     help='--RTS option to pass to gprbuild.')
         main.parse_args()
         if main.options.report_file is None:
             # This is a required "option" which is a bit self-contradictory,

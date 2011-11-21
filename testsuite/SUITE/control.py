@@ -3,7 +3,13 @@
 # ***************************************************************************
 
 from gnatpython.env import Env
+from gnatpython.ex import Run
+from gnatpython.fileutils import mv, rm
 import os.path
+
+from cutils import contents_of
+
+from tempfile import NamedTemporaryFile
 
 env = Env()
 
@@ -84,21 +90,64 @@ def language_info(source_filename):
 
 class BUILDER:
 
+    # Common compilation args, passed to all build invocations
+
     COMMON_CARGS = " -g -fpreserve-control-flow "
+
+    # Base command for a build
 
     BASE_COMMAND = GPRBUILD
 
+    # Configuration file suitable for all the builder invocations,
+    # setup early, once, to latch the compiler paths and RTS settings
+
+    SUITE_CGPR = "auto.cgpr"
+
     @staticmethod
-    def CONFIG_COMMAND (toplev_options):
+    def RUN_CONFIG_SEQUENCE (toplev_options):
+        """Arrange to generate the SUITE_CONFIG configuration file"""
 
-        # When --rtsgpr is provided (and non empty), e.g. for Ravenscar,
-        # assume it controls the necessary --RTS flags to pass. Otherwise,
-        # assume we are targetting zfp and configure to pass --RTS=zfp by
-        # default for Ada
+        # In principle, this would be something like
+        #
+        #  gprconfig --config=C --config=Asm --config=Ada --target=powerpc-elf
+        #
+        # to latch the compiler selections for all the languages, plus extra
+        # bits for the RTS selection.
+        #
+        # RTS selection by relative path (e.g.
+        #   --RTS=powerpc-elf/ravenscar-full-prep) isn't supported by
+        # gprconfig, however. It is supported gprbuild though, so we resort
+        # to it here.
 
-        defrts = "zfp" if not toplev_options.rtsgpr else ""
+        # We build a temporary dummy project file in the current directory,
+        # specifying languages only.
 
-        return " ".join ((
-                GPRCONFIG, '--batch',
-                '--config=C --config=Asm --config=Ada,,%s' % defrts,
-                '--target=%s' % env.target.triplet, '-o suite.cgpr'))
+        tempgpr = NamedTemporaryFile (
+            mode = "w+b", bufsize = -1,
+            suffix = ".gpr", prefix = "config",
+            dir = "."
+            )
+
+        tempgpr.write ('\n'.join (
+                ('project %(prjname)s is',
+                 '  for Languages use ("Asm", "C", "Ada");',
+                 'end %(prjname)s;')
+                ) % {'prjname': os.path.basename(tempgpr.name).split('.')[0]}
+            )
+        tempgpr.flush()
+
+        # We now run gprbuild -Ptemp.gpr --target=bla --RTS=blo, which
+        # will complain about missing sources, but only after producing
+        # an automatic config file with everything we need, and nothing
+        # else (no other file).
+
+        # Use the requested --RTS for Ada, default to zfp if unspecified
+
+        Run ([GPRBUILD, '-P', tempgpr.name,
+              '--RTS:ada=%s' % (toplev_options.RTS or "zfp"),
+              '--target=%s' % env.target.triplet]
+             )
+
+        # Close (so delete) the temporary gpr file
+
+        tempgpr.close()

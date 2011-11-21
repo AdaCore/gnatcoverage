@@ -114,10 +114,11 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None):
     # The base project file we need to extend, and the way to refer to it
     # from the project contents
 
-    basegpr = (thistest.options.rtsgpr
-               if thistest.options.rtsgpr else "%s/support/base" % ROOT_DIR)
+    basegpr = (
+        ("%s/support/base" % ROOT_DIR) if not thistest.options.RTS else "")
 
-    baseref = basegpr.split('/')[-1]
+    baseref = (
+        (basegpr.split('/')[-1] + ".") if basegpr else "")
 
     # The Compiler package contents for compilation switches, taking care not
     # to clobber what the base project file provides (in particular possible
@@ -131,7 +132,7 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None):
 
     compswitches = '\n'.join (
         ['for Default_Switches ("%(lang)s") use \n'
-         '%(baseref)s.Compiler\'Default_Switches ("%(lang)s") & %(opts)s;'
+         '%(baseref)sCompiler\'Default_Switches ("%(lang)s") & %(opts)s;'
          % {"opts": "(" + ",".join (
                     ['"%s"' % opt
                      for opt in to_list(LANGINFO[lang].cargs)]
@@ -156,12 +157,13 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None):
 
     # Now instanciate, dump the contents into the target gpr file and return
 
-    gprtext = template % {'prjname': prjid,
-                          'extends': 'extends "%s"' % basegpr,
-                          'srcdirs': srcdirs,
-                          'compswitches': compswitches,
-                          'languages' : languages,
-                          'gprmains': gprmains}
+    gprtext = template % {
+        'prjname': prjid,
+        'extends': ('extends "%s"' % basegpr) if basegpr else "",
+        'srcdirs': srcdirs,
+        'compswitches': compswitches,
+        'languages' : languages,
+        'gprmains': gprmains}
 
     return text_to_file (text = gprtext, filename = prjid + ".gpr")
 

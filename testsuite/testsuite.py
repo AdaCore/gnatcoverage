@@ -179,7 +179,10 @@ class TestSuite:
         self.non_dead_list, self.dead_list = self.partition_testcase_list(
             re_filter(
                 re_filter (
-                    find (root=".", pattern="test.py", follow_symlinks=True),
+                    [t for root in ["Qualif", "tests"]
+                     for t in find (
+                            root, pattern="test.py", follow_symlinks=True)
+                     ],
                     "." if not self.options.qualif_level
                     else QLEVEL_INFO[self.options.qualif_level].subtrees),
                 self.options.run_test),
@@ -196,12 +199,11 @@ class TestSuite:
 
         targetprefix = self.env.target.triplet
 
-        # Run the builder configuration for the testsuite as a whole. Doing it
-        # here both factorizes the work for all testcases and prevents cache
-        # effects if PATH changes between testsuite runs.
+        # Run the builder configuration for the testsuite as a whole. Doing
+        # it here once both factorizes the work for all testcases and prevents
+        # cache effects if PATH changes between testsuite runs.
 
-        Run(to_list (BUILDER.CONFIG_COMMAND (self.options)),
-            output=os.path.join (self.log_dir, 'config.out'))
+        BUILDER.RUN_CONFIG_SEQUENCE (self.options)
 
         # Build support library as needed
         targetargs = ["TARGET=%s" % targetprefix]
@@ -268,13 +270,13 @@ class TestSuite:
     def ravenscar_discriminants(self):
         """Compute a list of discriminants (string) to reflect the use of a
         Ravenscar base runtime library, as conveyed by the base gpr file to
-        extend, provided with the --rtsgpr command-line option.
+        extend, provided with the --RTS command-line option.
         """
 
         return (
-            [] if not self.env.main_options.rtsgpr
+            [] if not self.env.main_options.RTS
             else ["RTS_RAVENSCAR"] if re.search (
-                "ravenscar", self.env.main_options.rtsgpr)
+                "ravenscar", self.env.main_options.RTS)
             else []
             )
 
@@ -407,8 +409,8 @@ class TestSuite:
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
 
-        if mopt.rtsgpr:
-            testcase_cmd.append('--rtsgpr=%s' % mopt.rtsgpr)
+        if mopt.RTS:
+            testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
         return Run(testcase_cmd, output=diff, bg=True,
                    timeout=int(timeout) + DEFAULT_TIMEOUT)
@@ -572,7 +574,7 @@ class TestSuite:
                           'Note that it disables the use of valgrind.')
         m.add_option('--board', dest='board', metavar='BOARD',
                      help='Specific target board to exercize.')
-        m.add_option('--rtsgpr', dest='rtsgpr', metavar='RTSGPR',
+        m.add_option('--RTS', dest='RTS', metavar='RTS',
                      help='RTS .gpr to extend.')
         m.parse_args()
 
