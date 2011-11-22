@@ -135,12 +135,12 @@ class BUILDER:
 
         # Use the requested --RTS for Ada, default to zfp if unspecified
 
+        rm (BUILDER.SUITE_CGPR)
+
         Run ([GPRBUILD, '-P', tempgpr.name,
               '--RTS:ada=%s' % (toplev_options.RTS or "zfp"),
               '--target=%s' % env.target.triplet,
               '--autoconf=%s' % BUILDER.SUITE_CGPR]
              )
-
-        # Delete the temporary gpr file
 
         rm (tempgpr.name)
