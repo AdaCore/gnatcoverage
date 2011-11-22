@@ -4,12 +4,8 @@
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
-from gnatpython.fileutils import mv, rm
+from gnatpython.fileutils import rm
 import os.path
-
-from cutils import contents_of
-
-from tempfile import NamedTemporaryFile
 
 env = Env()
 
@@ -101,7 +97,7 @@ class BUILDER:
     # Configuration file suitable for all the builder invocations,
     # setup early, once, to latch the compiler paths and RTS settings
 
-    SUITE_CGPR = "auto.cgpr"
+    SUITE_CGPR = "suite.cgpr"
 
     @staticmethod
     def RUN_CONFIG_SEQUENCE (toplev_options):
@@ -122,11 +118,7 @@ class BUILDER:
         # We build a temporary dummy project file in the current directory,
         # specifying languages only.
 
-        tempgpr = NamedTemporaryFile (
-            mode = "w+b", bufsize = -1,
-            suffix = ".gpr", prefix = "config",
-            dir = "."
-            )
+        tempgpr = open ("suite.gpr", "w")
 
         tempgpr.write ('\n'.join (
                 ('project %(prjname)s is',
@@ -134,7 +126,7 @@ class BUILDER:
                  'end %(prjname)s;')
                 ) % {'prjname': os.path.basename(tempgpr.name).split('.')[0]}
             )
-        tempgpr.flush()
+        tempgpr.close()
 
         # We now run gprbuild -Ptemp.gpr --target=bla --RTS=blo, which
         # will complain about missing sources, but only after producing
@@ -145,9 +137,10 @@ class BUILDER:
 
         Run ([GPRBUILD, '-P', tempgpr.name,
               '--RTS:ada=%s' % (toplev_options.RTS or "zfp"),
-              '--target=%s' % env.target.triplet]
+              '--target=%s' % env.target.triplet,
+              '--autoconf=%s' % BUILDER.SUITE_CGPR]
              )
 
-        # Close (so delete) the temporary gpr file
+        # Delete the temporary gpr file
 
-        tempgpr.close()
+        rm (tempgpr.name)
