@@ -21,7 +21,7 @@
 @c A shortcut for a widely used sequence
 
 @macro gcrun
-@command{xcov run}
+@command{gnatcov run}
 @end macro
 
 @c How to spell and typeset the GNATcoverage product name
@@ -58,7 +58,7 @@
 @set explore_dir examples/explore
 
 @titlepage
-@title @gcp{} Users Guide
+@title @gcp{} User's Guide
 @end titlepage
 
 @contents
@@ -79,10 +79,10 @@ toolset user's guide.
 Analysis'' process nature and intent, including a short discussion on the
 fundamental distinction between ``object'' and ``source'' coverage criteria.
 
-@ref{xcov-grounds} describes the @gcp{} framework core operation mode and
-capabilities.
+@ref{gnatcov-grounds} describes core operation mode and
+capabilities of the @gcp{} framework.
 
-@ref{xcov-guide} is the toolset user's guide, with details on the tool
+@ref{gnatcov-guide} is the toolset user's guide, with details on the tool
 command line interface, use examples for various situations and interpretation
 guidelines for the different sorts of reports that the tool can produce.
 
@@ -95,8 +95,8 @@ purpose and introduced in @ref{explore}.
 
 @menu
 * scov-basics::  Structural Coverage Basics
-* xcov-grounds:: @gcp{} Fundamentals
-* xcov-guide::   @gcp{} User's Guide
+* gnatcov-grounds:: @gcp{} Fundamentals
+* gnatcov-guide::   @gcp{} User's Guide
 * explore::      The Explore Guide Example
 @end menu
 
@@ -105,7 +105,7 @@ purpose and introduced in @ref{explore}.
 @c *                      COVERAGE ANALYSIS BASICS                   *
 @c *******************************************************************
 
-@node scov-basics,xcov-grounds,Top,Top
+@node scov-basics,gnatcov-grounds,Top,Top
 @chapter Structural Coverage Analysis Basics
 
 @section General Definition & Intent
@@ -166,8 +166,8 @@ along those lines: the program is compiled and linked by @gcc{}
 binary data file and @gcov{} is then used to generate annotated sources
 from the original files, the executable and the execution data.
 @c
-Below is an example with a simple test of the Explore queues
-abstraction, compiled with the @gnat{} toolchain for Ada:
+Below is an example sequence for a fictive test compiled with the
+@gnat{} toolchain for Ada:
 
 @smallexample
 
@@ -279,9 +279,8 @@ that an "Ada exception X is raised on attempts to extract an item out of an
 empty queue", and we expect this code not to be exercised in regular
 executions.
 @c
-It remains applicative code, still, and even the weakest DO-178B
-certification level requires tests to cover it, to make sure that at least
-minimal checks on its behavior with respect to requirements were performed.
+It remains applicative code, still, and even the weakest DO-178B criterion
+requires tests to cover it.
 @c
 Something has to be done outside nominal executions in this case.
 @c
@@ -297,14 +296,12 @@ late stages of the project, and it is often useful or simply unavoidable
 to perform coverage analysis on segregated pieces first.
 
 Besides, even if full coverage of some applicative components could
-theortically be achieved from a single execution, it is often just more
-convenient or sensible to be able to reach the goal in an incremental
-fashion.
+theortically be achieved from a single execution, it is often just
+more convenient or sensible to proceed in an incremental fashion.
 @c
 In the Explore case, for instance, a strategy like "purpose is to maximize
 the entire application coverage by running a minimal number of sessions"
-would be a pain and actually go against the requirements based testing
-philosophy.
+would actually go against the requirements based testing philosophy.
 @c
 One instead typically runs different sessions to verify different
 specific application requirements, each session produces its own
@@ -312,12 +309,8 @@ coverage data.
 
 @dfn{Consolidation} denotes the process of gathering the capitalized
 coverage information for the various pieces of a system into a unified
-view, with explicit input on what pieces are expected to have been
-covered.
+view.
 @c
-Pieces of no interest, or which might differ between the various
-testing scenarii (e.g. unit test harness) may be abstracted away.
-
 The need for coverage data consolidation often correlates with testing
 strategies: whether coverage data is obtained from unit testing of
 individual components, from integration testing of the system as a whole,
@@ -326,11 +319,8 @@ from some intermediate organisation, or possibly from a mix of all these.
 
 @subsection Process Integration
 @noindent
-As hinted by the previous sections, coverage analysis is a potentially
-complex activity, which requires potentially complex metrics on
-potentially complex software involved in potentially complex project
-development cycles.
-
+Coverage analysis is a potentially complex activity.
+@c
 @dfn{Process integration} refers to the organization of the analysis
 toolset that will provide consistent and easy access to all the features
 of interest for a given project.
@@ -346,14 +336,10 @@ Coverage analysis always involves the evaluation of various
 my program source statements or of the corresponding machine code was
 exercised (covered) by this set of executions?''.
 @c
-In practice, this is most often refined down at the module or subprogram
-level and comes together with detailed reports about the bits which were
-exercised and those that were not.
-@c
 The process is typically driven by specific objectives like ``tests
 should result in coverage of 100% of the application program source
 statements''.
-@c
+
 Every toolset offers its own spectrum of analysis possibilities, with
 variations in the implementation schemes.
 @c
@@ -381,10 +367,10 @@ example as an annotated assembly output.
 They can also be rendered on a representation of the program sources,
 for example by way of annotations for each source line to synthesize
 information about all the machine code generated for that line.
-@c
-The focus is always on machine code coverage, in any case, and source
-annotations in this context are just a means to organize and hilight
-machine code properties of interest for the end user.
+
+The focus is always on machine object code coverage, in any case, and
+source annotations in this context are just a means to organize and
+highlight machine code properties of interest for the end user.
 
 @subsection Source Coverage Analysis
 @noindent
@@ -399,13 +385,14 @@ quantifiers defined over three core elements:
 in the usual programming language sense.
 
 @item @dfn{Decision},
-defined as ``a top-level Boolean expression (that is not an operand of
-a Boolean operator)''.
+defined as ``a top-level Boolean expression, that is not an operand of
+a binary Boolean operator''.
 
 @item @dfn{Condition},
-defined as ``an elementary Boolean expression (which is not a Boolean
-operator applied to some subexpressions)''. Note that if a given subexpression
-occurs more than once in a decision, each occurrence is a distinct condition.
+defined as ``an elementary Boolean expression, leaf of operand of a
+Decision''.  Unary Boolean operators are part of conditions, and if a
+given subexpression occurs more than once in a decision, each
+occurrence counts as a distinct condition.
 @end itemize
 
 @noindent The quantifiers are as follows:
@@ -434,9 +421,32 @@ certification levels this way: full @dfn{Statement Coverage} at level C,
 @dfn{Decision Coverage} at level B and @dfn{Modified Condition/Decision
 Coverage} at level A.
 
-Below is an illustration of the principal differences between the
-criteria over a simple example function out of an early version of the
-Explore sources:
+The sample code and comments below illustrate the main differences
+between the criteria over a simple function extracted out of an early
+version of the Explore sources.
+
+Statement Coverage of the @code{Unsafe} function requires execution of
+all the source statements at least once.
+@c
+This can be achieved with a single call to the function, as soon as the
+boolean decision controlling the @code{if} statement evaluates to
+@code{True}.
+
+Decision Coverage requires that every decision has evaluated at least
+once to @code{True} and at least once @code{False}, which necessitates
+at least two calls in our example to exercise the @code{if} controlling
+expression both ways.
+@c
+It also requires going through every possible entry and exit point,
+without further impact of note on the simple example at hand.
+
+Modified Condition/Decision Coverage requires additional variations over
+the conditions, and combinations to show that each condition can affect
+the decision outcome in an independent manner.
+@c
+This is expected to be possible with Nconditions+1 evaluations, so
+enforces a more precise testing of the expressions structure while
+keeping the test base complexity linear with the number of conditions.
 
 @smallexample
 
@@ -467,31 +477,8 @@ Explore sources:
    end;
 @end smallexample
 
-Statement Coverage of the @code{Unsafe} function requires execution of
-all the source statements at least once.
-@c
-This can be achieved with a single call to the function, as soon as the
-boolean decision controlling the @code{if} statement evaluates to
-@code{True}.
-
-Decision Coverage requires that every decision has evaluated at least
-once to @code{True} and at least once @code{False}, which necessitates
-at least two calls in our example to exercise the @code{if} controlling
-expression both ways.
-@c
-It also requires going through every possible entry and exit point,
-without further impact of note on the simple example at hand.
-
-Modified Condition/Decision Coverage requires additional variations over
-the conditions, and combinations to show that each condition can affect
-the decision outcome in an independent manner.
-@c
-This is expected to be possible with Nconditions+1 evaluations, so
-enforces a more precise testing of the expressions structure while
-keeping the test base complexity linear with the number of conditions.
-@c
 There exist several variants of the MCDC criteria, with differences in
-the way independence may be shown - @bibref{ar0118}, @bibref{cast6}.
+the way independence may be shown @bibref{ar0118}, @bibref{cast6}.
 
 @subsection Source vs Object Quantifiers
 @noindent
@@ -500,97 +487,88 @@ Object and Source coverage quantifiers are of very different natures.
 Both have both pros and cons, some very dependent on the evaluation
 context and purpose.
 
-An interesting study is that of the implication relationships between
-criteria, to determine if satisfying one criteria may be used as a means
-to claim another.
-@c
-These correlations are not at all trivial in the general case.
-@c
-Below are a few points to illustrate.
+One sort of interrogation often comes up regarding this topic: whether
+satisfying one kind of criterion may be used to claim one of another
+kind, for example, whether satisfying object instruction coverage may
+be used to claim statement coverage achieved.
 
-As a starter example, we may consider that Object Branch or even
-Instruction Coverage implies Statement Coverage while the opposite is
-not true.
+The relationships between source and object level criteria are subtle
+and answering such questions is non-trivial in the general case.
 @c
-To illustrate the basic idea, take the case of a modulo computation: it
-is expressed with a single statement in C or Ada, and the machine code
-typically features different paths to honor variations conditioned on
-the sign of the operands.
-@c
-A single pass trough this code will cover the source statement and not
-the full instruction set.
-@c
-Conversely, covering the full set of machine instructions necessitates
-several passes through the code, hence coverage of the source statement.
-@c
-For the general case, statements for which no machine code is produced
-need care but don't introduce fundamental difficulties.
+In addition, when this happens to be possible, actually using one
+critierion for another has impacts on the testing process and cost
+that need to be accounted for.
 
+As a basic introduction to the idea, consider the case of a modulo
+computation expressed with a single source statement in C or Ada,
+using the @code{%} or @code{mod} operator, respectively.
+@c
+The machine code for such a statement typically features different
+paths with conditional branches to honor variations conditioned on the
+sign of the operands.
+@c
+A single pass trough this code will cover the source statement
+and not the full instruction set.
+@c
+Conversely, coverage of the full set of machine instructions implies
+coverage of the source statement, indeed, but necessitates several
+passes through the code, hence a more extensive (and expensive) test
+set.
+@c
 Along similar lines, we may consider that full Object Branch Coverage
 implies Decision Coverage while the opposite is not true.
-@c
-We also observe that Object Instruction Coverage does not imply
-Decision Coverage, and that Obect Branch Coverage does not imply MC/DC
-in the general case - @bibref{AR07/20}, @bibref{obc-mcdc}.
-@c
-Besides, when it does imply MC/DC, Object Branch Coverage often
-requires more extensive testing so is not necessarily an interesting
-alternate.
 
-In any case, assumptions validity need to be complemented with practical
-consequences in industrial applications.
+Addressing this topic in detail is way beyond the scope of this
+manual.
 @c
-In particular, using one criteria as a means to achieve another when an
-implication holds (e.g. seeking OBC to achieve DC) might call for
-unrequired significant additional testing efforts.
+One common and significant field of interest has been the
+``equivalence'' between Object Branch Coverage and MCDC, subject
+of a few publications @bibref{AR07/20}, @bibref{obc-mcdc}.
+
 
 @c *******************************************************************
-@c *                        XCOV FUNDAMENTALS                        *
+@c *                        GNATCOV FUNDAMENTALS                     *
 @c *******************************************************************
 
-@node xcov-grounds,xcov-guide,scov-basics,Top
+@node gnatcov-grounds,gnatcov-guide,scov-basics,Top
 @chapter @gcp{} Fundamentals
 
 @section Instrumentation mode
 @noindent
-The core principle in the @gcp{} framework is to leverage the generation
-of raw coverage data by a virtual execution environment instrumented to
-produce machine level traces about the code it executes.
-@c 
-We refer to these as @dfn{execution traces}.
+The core principle in the @gcp{} framework is to rely on the generation
+of raw coverage data by an execution environment instrumented to produce
+machine level traces about the code it executes.
+@c
+These are sequences of information such as ``executed block of instructions
+from code address X to Y'', ``end of the execution block was a conditional
+jump to address Z, taken'', which we refer to as @dfn{execution traces}.
 
 The environment typically is a representative emulator of a real
 target microprocessor, possibly augmented with extensions to let it
 communicate with external devices.
 @c
-For common architectures, we leverage @qemu{} @bibref{qemu} for this
+For common architectures, we use @qemu{} @bibref{qemu} for this
 purpose, as a reliable and efficient free-software emulator we can
 instrument to generate the traces.
 
 The environment may also be a pure virtual machine such as existing ones
-for Java or Caml like languages.
+for Java or Caml like languages, or a real hardware board equipped with a
+probe to gather the execution traces.
 @c
 In any case, the program itself isn't instrumented, so coverage
-measurements can be performed on target code, as embedded eventually,
-and the virtual environment runs on development hosts, which offers a
-lot of flexibility.
-
-The raw coverage data out of the execution environment is very low level
-information about the executed instruction and branch sequences at the
-machine level.
+measurements can be performed on target code, as embedded eventually.
 @c
-The actual contents structure may vary, depending on the kind of
-analysis anticipated.
+In addition, virtual environments can run on development hosts, which
+offers a lot of flexibility.
 
 @section Object Coverage Analysis
 @noindent
-To start with, @gcp{} allows the confrontation of execution traces with
-the full machine code available from program files, hence precise object
-coverage analysis with both instruction and branch coverage capabilities.
+To start with, @gcp{} allows matching execution traces with the full
+machine code available from program files, hence precise object coverage
+analysis with both instruction and branch coverage capabilities.
 @c
 This is achievable with simple traces that can be gathered and
-represented in a very efficient manner, schematically as a flat compact
-map of status per executed instruction or linear sequence.
+represented in a very efficient manner.
 
 The results may first be rendered at the assembly language level, with
 annotations for each machine instruction to indicate whether it was
@@ -605,40 +583,31 @@ those of all the associated machine instructions.
 Typically, a source line is marked as @dfn{fully}/@dfn{partially}
 covered when all/part of the associated machine instructions were
 executed, and the instruction/line correspondance is extracted from
-standard DWARF debug information or alike.
+standard DWARF debug information.
 
 @section Source Coverage Analysis
 @noindent
-@gcp{} is also designed to allow Source Coverage Analysis, with central
-focus on user source code and support for the three DO-178B criteria:
+@gcp{} is also designed to allow Source Coverage Analysis, focused on
+applicative source code with support for the three DO-178B criteria:
 Statement, Decision and Modified Condition/Decision Coverage.
-@c
-For MCDC, the framework sets up the necessary elements to be able to
-reconstruct the exercised run-time condition/decision vectors.
-@c
-An important part is the introduction of @dfn{Source Coverage
-Obligations}, or SCOs, compact tables generated to indicate the source
-elements of relevance to coverage analysis activities.
-@c
-SCOs are designed to be independent from the target certification level,
-which only influences the way a given trace is determined to meet.
 
-For @qemu{} targets and the @gcc{} compilation toochain, the toolset uses SCOs
-and precise debug information to associate conditional branches with
-conditions, then traces are extended to track the history of run-time
-behavior at those branch points.
+The toolset relies on three essential artifacts for this purpose:
+
+First, @dfn{Source Coverage Obligations} (SCOs), side tables generated
+by the compiler for each source, describing the nature and location of
+source elements of relevance to coverage analysis activities.
 @c
-Indeed, the object coverage flat execution traces aren't precise enough
-in this case unless very strong constraints are met by the source
-constructs.
-@c
-Using extended traces or flat ones with source constraints, the MCDC
-capabilities of @gcp{} rely on the presence of a conditional branch
-instruction for each non-constant condition.
-@c
-We provide sets of compilation options suitable for both this
-particular purpose and for the Source Coverage analysis activity in
-general.
+These are elements like ``statement at <sloc>'', ``decision
+from <sloc1> to <sloc2>'', or ``condition at <sloc3>'', expressed
+in a compact manner.
+
+Second, precise debug information that associate machine instructions and
+conditional branches with statements, decisions and conditions.
+
+Third, compilation options that control the compiler behavior to make sure
+that the generated machine code is properly structured to let us infer the
+source level criteria from everything we have at hand (execution traces,
+SCOs and debug information).
 
 @section Modularity and Flexibility
 @noindent
@@ -651,7 +620,7 @@ adaptable to various operational contexts.
 @c *******************************************************************
 @c *                          USER'S GUIDE                           *
 @c *******************************************************************
-@node xcov-guide,,xcov-grounds,Top
+@node gnatcov-guide,,gnatcov-grounds,Top
 @chapter @sc{GNATcoverage} Users Guide
 
 @section Getting Started
@@ -683,7 +652,7 @@ capitalization and consolidation.
 
 @page
 @section Instrumented Execution
-@pindex xcov run
+@pindex gnatcov run
 @noindent
 @gcrun{} offers a unified interface to launch programs for a specific
 target machine within the appropriate instrumented execution environment
@@ -694,7 +663,7 @@ a simple use for a @code{powerpc-elf} or a @code{leon-elf} target,
 using the dedicated @gcc{} toolchain to build from sources and the
 @option{--target} execution engine selector.
 @c
-The general interface synopsis is available from @command{xcov --help},
+The general interface synopsis is available from @command{gnatcov --help},
 as follows:
 
 @smallexample
@@ -716,7 +685,7 @@ the program within the underlying instrumented environment.
 The @code{FILE} argument is the executable program file name.
 @c
 This name is stored as-provided in the output trace header, where it is
-retrieved later by @code{xcov coverage} for analysis purposes.
+retrieved later by @code{gnatcov coverage} for analysis purposes.
 
 By default, @gcrun{} writes the execution trace in the current directory,
 in a file named like the executable input with a @code{.trace} suffix.
@@ -738,10 +707,10 @@ users see fit for custom trace management purposes.
 
 @page
 @section Object Coverage Analysis
-@pindex @code{xcov coverage}, for object coverage analysis
+@pindex @code{gnatcov coverage}, for object coverage analysis
 @noindent
 Over execution traces, various levels of object coverage analysis may be
-performed with @code{xcov coverage}.
+performed with @code{gnatcov coverage}.
 @c
 An analysis variant first needs to be selected with the @option{--level}
 option:
@@ -869,10 +838,10 @@ and request branch coverage data in assembly format:
 
 @smallexample
 
-... $ xcov run --target=powerpc-elf explore
+... $ gnatcov run --target=powerpc-elf explore
 [Explore runs in @qemu{} - type 'p', then 'Q']
 
-... $ xcov coverage --level=branch --annotate=asm explore.trace      
+... $ gnatcov coverage --level=branch --annotate=asm explore.trace      
 
 @end smallexample
 
@@ -1006,7 +975,7 @@ itself (what code materializes) and where the instantiation takes place
 @c
 Choices were made for In-Source reports.
 @c
-Behind the scenes, xcov uses standard debug information to establish the
+Behind the scenes, gnatcov uses standard debug information to establish the
 links between object code and original source, so the choice stems from
 this information essentially.
 @c
@@ -1078,7 +1047,7 @@ fffc0878 +:  94 21 ff f0  stwu   r1,-0x0010(r1)
 only those of actual interest show up.
 
 The primary filtering device for object coverage analysis is the
-@option{--routines} option to @code{xcov coverage}.
+@option{--routines} option to @code{gnatcov coverage}.
 @c
 @option{--routines} expects a single argument, to designate a set of
 symbols, and restricts coverage results to machine code generated for
@@ -1100,7 +1069,7 @@ symbol list file:
 $ cat slist
 robots__unsafe
 
-$ xcov coverage --level=branch --annotate=asm --routines=@@slist explore.trace
+$ gnatcov coverage --level=branch --annotate=asm --routines=@@slist explore.trace
 Coverage level: BRANCH
 robots__unsafe !: fffc1074-fffc109b
 fffc1074 +:  2f 83 00 02      cmpiw  cr7,r3,0x0002
@@ -1120,7 +1089,7 @@ The general synopsis is as follows:
 @end verbatim
 @end smallexample
 
-@code{xcov disp-routines} outputs the list of symbols in a set built
+@code{gnatcov disp-routines} outputs the list of symbols in a set built
 from object files provided on the command line.
 @c
 'Object file' is to be taken in the general sense of 'conforming to a
@@ -1146,14 +1115,14 @@ set they build.
 
 @smallexample
 
-$ xcov disp-routines explore
+$ gnatcov disp-routines explore
   # (symbols defined in the 'explore' executable)
 
-$ xcov disp-routines explore --exclude test_stations.o
+$ gnatcov disp-routines explore --exclude test_stations.o
   # (symbols from the 'explore' executable)
   # - (symbols from the 'test_stations.o' object file)
 
-$ xcov disp-routines --include @@sl1 --exclude @@sl2 --include @@sl3
+$ gnatcov disp-routines --include @@sl1 --exclude @@sl2 --include @@sl3
   # (symbols from the object files listed in text file sl1)
   # - (symbols from the object files listed in text file sl2)
   # + (symbols from the object files listed in text file sl3)
@@ -1182,7 +1151,7 @@ in A.
 
 @page
 @section Source Coverage Analysis
-@pindex @code{xcov coverage}, for source coverage analysis
+@pindex @code{gnatcov coverage}, for source coverage analysis
 
 Source coverage analysis focuses on source elements such as
 ``statements'' or ``decisions''.
@@ -1204,11 +1173,11 @@ Support for optimized code is being worked on for future versions.
 
 The general process to perform source coverage analysis is similar to
 the one for object coverage: @gcrun{} produces execution traces, and
-@code{xcov coverage} generates reports out of them. 
+@code{gnatcov coverage} generates reports out of them. 
 @c
 Source coverage analysis is requested thanks to variants of the
 @code{--level} option, which should be passed to both @gcrun{} and
-@code{xcov coverage}.
+@code{gnatcov coverage}.
 
 The set of SCOs for which coverage is to be assessed is provided by
 way of a @option{--scos} command line option, which accepts either a
@@ -1266,10 +1235,10 @@ Note the @option{--level} option passed to both @code{run} and
 
 @smallexample
 
-$ xcov run --level=stmt explore
+$ gnatcov run --level=stmt explore
 ... run session, trace goes to explore.trace by default ...
 
-$ xcov coverage --level=stmt --scos=obj/robots.ali --annotate=xcov explore.trace
+$ gnatcov coverage --level=stmt --scos=obj/robots.ali --annotate=xcov explore.trace
 
 @end smallexample
 
@@ -1281,7 +1250,7 @@ For instance, in a Unix-like environment:
 @smallexample
 
 $ ls obj/*.ali > alis
-$ xcov coverage --scos=@@alis --level=stmt --annotate=xcov explore.trace
+$ gnatcov coverage --scos=@@alis --level=stmt --annotate=xcov explore.trace
 
 @end smallexample
 
@@ -1395,7 +1364,7 @@ below on a sample of the @code{Robots} control code:
 
 @smallexample
 
-  $ xcov coverage --level=stmt+decision --annotate=report
+  $ gnatcov coverage --level=stmt+decision --annotate=report
     --scos=obj/powerpc-elf/robots.ali explore.trace
   ...
   robots.adb:56:9: decision outcome TRUE never exercised
@@ -1452,7 +1421,7 @@ Modified Condition/Decision Coverage assessment capabilities with
 In addition to the particular level specification, you should also
 provide @gcrun{} with the set of SCOs you plan to analyze later on
 using the produced trace, with a @code{--scos} argument as for
-@code{xcov coverage}.
+@code{gnatcov coverage}.
 @c
 If you plan different analysis for a single run, providing a common
 superset to @gcrun{} is fine.
@@ -1598,10 +1567,10 @@ only partially and look at the results:
 
 @smallexample
 
-$ xcov run --target=powerpc-elf --tag 'Safe explore session' explore
+$ gnatcov run --target=powerpc-elf --tag 'Safe explore session' explore
 [... Probe, Step on clear square, Quit ...]
 
-$ xcov coverage --level=branch --annotate=xcov+ --routines=robots__unsafe
+$ gnatcov coverage --level=branch --annotate=xcov+ --routines=robots__unsafe
   explore.trace  
    
   robots.adb.xcov
@@ -1639,9 +1608,9 @@ and observe full object branch coverage:
 @smallexample
 $ make UNIT_TESTS=test_explore
 [...]
-xcov run --target=powerpc-elf test_explore
+gnatcov run --target=powerpc-elf test_explore
 
-$ xcov coverage --level=branch --annotate=xcov+ --routines=robots__unsafe
+$ gnatcov coverage --level=branch --annotate=xcov+ --routines=robots__unsafe
   test_explore.trace explore.trace
 
 
@@ -1681,7 +1650,7 @@ In the example at hand, we could have, say, an
 @end smallexample
 
 @noindent
-and pass @code{@@explore.tracelist} to @code{xcov coverage} to
+and pass @code{@@explore.tracelist} to @code{gnatcov coverage} to
 consolidate.
 @c
 The trace order has no influence in either case.
@@ -1844,9 +1813,9 @@ COVERAGE REPORT
 1. OVERVIEW
 
 Date and time of execution: 2010-11-10 18:16:59.00
-Tool version: XCOV 1.0.0w (20081119)
+Tool version: GNATCOV 1.0.0w (20110919)
 Command line:
-xcov coverage --scos=queues.ali --level=stmt+decision --annotate=report xplr.trace
+gnatcov coverage --scos=queues.ali --level=stmt+decision --annotate=report xplr.trace
 
 Coverage level: stmt+decision
 
@@ -1854,7 +1823,7 @@ trace files:
 
  xplr.trace
   program: obj/powerpc-elf/explore
-  date: 2010-11-10 17:16:47 
+  date: 2011-08-10 17:16:47 
   tag: some exemption test
 
 2. NON-EXEMPTED VIOLATIONS
