@@ -76,14 +76,16 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
 # ------------
 # -- gprfor --
 # ------------
-def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None):
+def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None, langs=None):
     """Generate a simple PRJID.gpr project file to build executables for each
     main source file in the MAINS list, sources in SRCDIRS. Inexistant
-    directories in SRCDIRS are ignored. Return the gpr file name.
+    directories in SRCDIRS are ignored. Assume the set of languages is LANGS
+    when specify; infer from the mains otherwise. Return the gpr file name.
     """
 
     mains = to_list(mains)
     srcdirs = to_list(srcdirs)
+    langs = to_list(langs)
 
     # Fetch the support project file template
     template = contents_of (os.path.join (ROOT_DIR, "template.gpr"))
@@ -105,7 +107,7 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None):
 
     # Determine the language(s) from the mains.
 
-    languages_l = set(
+    languages_l = langs or set(
         [language_info(main).name for main in mains]
         )
 
@@ -138,7 +140,7 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None):
                      for opt in to_list(LANGINFO[lang].cargs)]
                     ) + ")",
             "lang": lang, "baseref": baseref}
-         for lang in languages_l]
+         for lang in languages_l if lang in LANGINFO]
         ) + '\n'
 
     # Then, if we have specific flags for the mains, append them. This is
