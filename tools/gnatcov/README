@@ -1,10 +1,11 @@
 PACKAGE CONTENTS
 ================
 
-This package provides the xcov front-end to coverage analysis activities.  It
-may be used both as a wrapper to an instrumented execution environment able to
-produce machine-level execution traces (xcov run) and as a trace analyzer able
-to render coverage results in various output formats (xcov coverage).
+This package provides the gnatcov front-end to coverage analysis activities.
+It may be used both as a wrapper to an instrumented execution environment able
+to produce machine-level execution traces (gnatcov run) and as a trace
+analyzer able to render coverage results in various output formats (gnatcov
+coverage).
 
 Instrumented execution environments are provided as separate packages. As of
 today, we leverage instrumented versions of Qemu, an open source processor
@@ -36,11 +37,11 @@ with -bin in the name), you have
 
   * An <unpack-subdir>/share subdirectory with the doc and examples;
 
-  * An <unpack-subdir>/bin subdirectory with the "xcov" program.
+  * An <unpack-subdir>/bin subdirectory with the "gnatcov" program.
 
-The xcov binary is standalone, so you may access it by simply adjusting your
-PATH environment variable. A prerequisite to using xcov run is to have the
-instrumented environment available already.
+The gnatcov binary is standalone, so you may access it by simply adjusting
+your PATH environment variable. A prerequisite to using gnatcov run is to have
+the instrumented environment available already.
 
 If this is more convenient for you, you may transfer the contents of the
 "shared" and "bin" subdirectories into their corresponding entries within a
@@ -59,7 +60,7 @@ tar.gz archive with -src in the name), you have
   * Examples and the documentation in the "examples" and "doc" subdirectories
     respectively.
 
-To build the xcov binary, just invoke "make". This requires an Ada 2005
+To build the gnatcov binary, just invoke "make". This requires an Ada 2005
 capable compiler and the Makefile resorts to GNAT for this purpose.
 
 To build pdf and other versions of the documentation, invoke "make doc".
@@ -68,17 +69,16 @@ QUICK START - OBJECT COVERAGE
 =============================
 
 A quick starter is the "engines" basic example, assuming you have installed
-your target compilation toolchain, this package, and the instrumented qemu
-(qemu-system-ppc|sparc from binary distributions or built from the proper
-source tree).
+your target compilation toolchain, this package, and the target GNATemulator
+package.
 
 The first step is to setup the PATH environment variable to include locations
-for both the target compiler and the xcov/qemu "bin" directory. For example
-with a bash like shell:
+for both the target compiler and the gnatcov/emulator "bin" directory. For
+example with a bash like shell:
 
-  $ PATH=/usr/local/gnat/6.1.2/bin:/usr/local/xcov/bin:$PATH
+  $ PATH=/usr/local/gnat/6.4.2/bin:/usr/local/gnatcov/bin:$PATH
 
-Then switch to the Xcov "engines" example directory and exercise the
+Then switch to the "engines" example directory and exercise the
 "test_engines" test there for your target, thanks to the local Makefile:
 
   engines $ make TARGET=powerpc-elf
@@ -93,8 +93,8 @@ an index page in index-test_engines.html.
 
 Here is a brief description of what is going on:
 
-# Step 1:  Build an executable program suitable for Qemu. This is a
-# -------  regular Ada build with a couple of extra bsp components for
+# Step 1:  Build an executable program suitable for GNATemulator. This is
+# -------  a regular Ada build with a couple of extra bsp components for
 #          startup, io & a dedicated linker script:
 
 powerpc-elf-gcc -c -o start.o ../support/powerpc-elf/start.s
@@ -105,12 +105,12 @@ powerpc-elf-gcc -c -g -O1 -fpreserve-control-flow test_engines.adb
 # Step 2:  Run the executable program within the instrumented Qemu
 # -------  to get an execution '.trace' file:
 
-xcov run --target=powerpc-elf --level=branch test_engines
+gnatcov run --target=powerpc-elf --level=branch test_engines
 
-# Step 3:  Ask xcov to analyze the trace and produce an html version of
+# Step 3:  Ask gnatcov to analyze the trace and produce an html version of
 # -------  the results, with object coverage branch info rendered on source:
 
-xcov coverage --level=branch --annotate=html+ test_engines.trace
+gnatcov coverage --level=branch --annotate=html+ test_engines.trace
 mv index.html index-test_engines.html
 
 The local Makefile actually just includes a generic Makefile, common to all
@@ -125,10 +125,10 @@ Source coverage analysis involves a similar process, with few differences:
   stmt+decision or stmt+mcdc ;
 
 * Sources should be compiled with -g -fpreserve-control-flow -gnateS,
-  and currently with -O0. We don't support optimized code yet ;
+  and up to -O1 -gnat for optimizations.
 
 * The list of units for which analysis is desired needs to be passed as
-  a list of ALIs with the '--scos' option to both xcov run and xcov coverage,
+  a list of ALIs with the '--scos' option to both gnatcov run and coverage,
   for instance via a response file (--scos=@file_with_list_of_ALIs)
 
 This can be exercised for our examples by passing an extra XCOVLEVEL
@@ -137,6 +137,6 @@ argument to 'make' invocations, for example 'make XCOVLEVEL=stmt'.
 FURTHER DOCUMENTATION
 =====================
 
-Further documentation is available from the "Xcov Fundamentals & Users Guide"
+Further documentation is available from the "GNATcoverage User's Guide"
 in the <unpack/installation-root>/share/doc/xcov directory of this package.
 
