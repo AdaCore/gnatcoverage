@@ -272,7 +272,7 @@ class Asection (Rsection):
         return None
 
     def ends_on(self, rline):
-        p = re.match ("END OF REPORT$", rline)
+        p = re.match (".. END OF REPORT ..$", rline)
         if p:
             self.n_ends += 1
         return p
