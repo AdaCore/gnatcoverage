@@ -71,6 +71,25 @@ package body Annotations.Report is
    --  'Pos), or No_Coverage_Level if SCO has no related section/M is not a
    --  violation message.
 
+   function Underline (S : String; C : Character := '-') return String;
+   --  Return, as a string with line-feeds, S underlined with a sequence
+   --  of C, for example
+   --
+   --  input-string-in-S
+   --  -----------------
+
+   function Frame (S : String; C : Character := '=') return String;
+   --  Similar to Underline, but framing S as in
+   --
+   --  =======================
+   --  == input string in S ==
+   --  =======================
+
+   function Highlight (S : String; C : Character := '*') return String;
+   --  Return S with a couple of C on both sides, as in
+   --
+   --  ** input string in S **
+
    type Messages_Array is array (Report_Section) of Message_Vectors.Vector;
 
    type SCO_Tally is record
@@ -164,7 +183,7 @@ package body Annotations.Report is
       Pp.Current_Chapter := Pp.Current_Chapter + 1;
 
       New_Line (Output.all);
-      Put_Line (Output.all, Img (Pp.Current_Chapter) & ". " & Title);
+      Put_Line (Output.all, Frame (Img (Pp.Current_Chapter) & ". " & Title));
    end Chapter;
 
    -----------------------
@@ -178,6 +197,17 @@ package body Annotations.Report is
          Free (Final_Report.Name);
       end if;
    end Close_Report_File;
+
+   ------------
+   --  Frame --
+   ------------
+
+   function Frame (S : String; C : Character := '=') return String is
+      HS : constant String := Highlight (S, C);
+      Line : constant String (1 .. HS'Length) := (others => C);
+   begin
+      return Line & ASCII.LF & HS & ASCII.LF & Line;
+   end Frame;
 
    ---------------------
    -- Generate_Report --
@@ -206,6 +236,16 @@ package body Annotations.Report is
          return Standard_Output;
       end if;
    end Get_Output;
+
+   ---------------
+   -- Highlight --
+   ---------------
+
+   function Highlight (S : String; C : Character := '*') return String is
+      Side : constant String (1 .. 2) := (others => C);
+   begin
+      return Side & " " & S & " " & Side;
+   end Highlight;
 
    ----------------------
    -- Open_Report_File --
@@ -507,7 +547,7 @@ package body Annotations.Report is
       end if;
 
       New_Line (Output.all);
-      Put_Line (Output.all, "END OF REPORT");
+      Put_Line (Output.all, Highlight ("END OF REPORT"));
    end Pretty_Print_End;
 
    ---------------------------
@@ -590,8 +630,7 @@ package body Annotations.Report is
    --  Start of processing for Pretty_Print_Start
 
    begin
-      Put_Line (Output.all, "COVERAGE REPORT");
-      New_Line (Output.all);
+      Put_Line (Output.all, Highlight ("COVERAGE REPORT"));
 
       Pp.Chapter ("ASSESSMENT CONTEXT");
 
@@ -657,9 +696,9 @@ package body Annotations.Report is
 
       New_Line (Output.all);
       Put_Line (Output.all,
-                Img (Pp.Current_Chapter) & "."
-                & Img (Pp.Current_Section) & ". "
-                & Title);
+                Underline (Img (Pp.Current_Chapter) & "."
+                           & Img (Pp.Current_Section) & ". "
+                           & Title));
       New_Line (Output.all);
    end Section;
 
@@ -722,5 +761,15 @@ package body Annotations.Report is
             return No_Coverage_Level;
       end case;
    end Section_Of_SCO;
+
+   -----------------
+   --  Underline  --
+   -----------------
+
+   function Underline (S : String; C : Character := '-') return String is
+      Line : constant String (1 .. S'Length) := (others => C);
+   begin
+      return S & ASCII.LF & Line;
+   end Underline;
 
 end Annotations.Report;
