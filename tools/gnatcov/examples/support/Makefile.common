@@ -20,17 +20,15 @@ BOARD = unspec
 endif
 
 # ==========================================================
-# What we'll pass to XCOV run
+# What --target will we pass to XCOV run
 # ==========================================================
 
-# If we have a particular BOARD specified, use that.
-# Fallback to the more general TARGET otherwise.
+# With XCOV actually gnatcov, we make sure it can resort to
+# <target>-gnatemu by passing $(TARGET) always.
 
-ifneq ($(BOARD), unspec)
-XCOVTARGET = $(BOARD)
-else
+# ??? Need to arrange to pass $(BOARD) when specified.
+
 XCOVTARGET = $(TARGET)
-endif
 
 # ============================================================
 # Examples support directory, relative to example subdir, and
