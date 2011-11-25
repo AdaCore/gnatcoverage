@@ -295,7 +295,7 @@ class TestSuite:
         non_dead_list = []
 
         for test in test_list:
-            tc = TestCase(test)
+            tc = TestCase(test, self.trace_dir)
             tc.parseopt(discs)
             if tc.is_dead():
                 dead_list.append(tc)
@@ -609,13 +609,14 @@ class TestCase(object):
     # Index to assign to the next instance of this class
     index = 0
 
-    def __init__(self, filename):
+    def __init__(self, filename, trace_dir=None):
         """Create a new TestCase for the given filename. If trace_dir
         is specified, save the bootstrap traces there."""
         self.testdir      = os.path.dirname(filename)
         self.filename     = filename
         self.expected_out = None
         self.opt          = None
+        self.trace_dir    = trace_dir
 
         self.index        = TestCase.index
         TestCase.index += 1
