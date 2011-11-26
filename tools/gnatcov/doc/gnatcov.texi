@@ -12,30 +12,21 @@
 @c %**end of header
 
 @c How to spell and typeset the binary program name of our command
-@c line front-end.
+@c line front-end, then a shortcut for a widely used sequence
 
 @macro gc
 @command{gnatcov}
 @end macro
 
-@c A shortcut for a widely used sequence
-
 @macro gcrun
 @command{gnatcov run}
 @end macro
 
-@c How to spell and typeset the GNATcoverage product name
+@c How to spell and typeset the GNATcoverage product name and a few
+@c others
 
 @macro gcp
 @sc{GNATcoverage}
-@end macro
-
-@macro h {text}  @c style for headers in descriptive tables
-@dfn{\text\}
-@end macro
-
-@macro bibref {entry}
-[@cite{\entry\}]
 @end macro
 
 @macro gcc
@@ -54,12 +45,26 @@
 @sc{gcov}
 @end macro
 
+@c style for headers in descriptive tables
+
+@macro h {text} 
+@dfn{\text\}
+@end macro
+
+@c Reference to bibliographic entries
+
+@macro bibref {entry}
+[@cite{\entry\}]
+@end macro
+
 @c Directory where the Explore guide example is stored
 @set explore_dir examples/explore
 
 @titlepage
 @title @gcp{} User's Guide
 @end titlepage
+
+@paragraphindent 0
 
 @contents
 
@@ -919,7 +924,7 @@ annotations for both instruction and branch coverage:
 @multitable @columnfractions .1 .8
 @item @h{Note} @tab @h{Means ...}
 @item '@code{.}'
-@tab no associated machine code for this line
+@tab no machine code associated with this line
 @item '@code{-}'
 @tab all the instructions associated with the line are '-' (uncovered)
 @item '@code{+}'
@@ -968,28 +973,19 @@ source line in the @option{=xcov} or @option{=html} cases.
 
 @subsection Inlined and Template/Generic entities
 @noindent
-The generated code for an inlined subprogram or a generic instantiation
-implicitely associates with two source locations: the entity source
-itself (what code materializes) and where the instantiation takes place
-(where the generated code goes).
-@c
-Choices were made for In-Source reports.
-@c
-Behind the scenes, gnatcov uses standard debug information to establish the
-links between object code and original source, so the choice stems from
-this information essentially.
-@c
-The next paragraphs are specific to the @gnat{}/@gcc{} chains in this
-respect.
+The generated code for an inlined subprogram call or a generic
+instantiation materializes two distinct source entities: the expanded
+source (subprogram or package body) and the expansion request (subprogram
+call or generic instanciation).
 
 For inlined calls, the @gcc{} debug information associates the generated
 machine code with the inlined source positions, so the related object
-coverage information is reported there.
+coverage information is attached there.
 @c
 This scheme has all the instances reported at a centralized location and
 allows use of the full inlined subprogram source structure to organize
 the results.
-@c
+
 Consider for example the following excerpt of branch coverage report for
 the Station control code in Explore.
 @c
@@ -1508,7 +1504,8 @@ other conditions in an independence pair as long as they could for
 sure not possibly influence the decision outcome, e.g. due to
 short-circuit semantics.
 @c
-This variant provides additional flexibility on the set of tests
+This variant, well known as @dfn{Masking} MCDC @bibref{ar018},
+@bibref{cast6} provides additional flexibility on the set of tests
 required to satisfy the criterion without reducing the minimal size of
 this set.
 @c
@@ -1540,6 +1537,243 @@ diagnostic applies on the associated decision or statement, however.
 In our familiar example, attempting only safe actions in Cautious mode
 yields a ``@code{decision outcome TRUE never exercised}'' diagnostic,
 not a couple of condition related messages.
+
+@subsection Synthetic text reports
+
+This section describes the format of the synthetic text report
+produced by the @code{--annotate=report} mode of @gcp{} for source
+coverage criteria.
+
+@subsubsection{General structure and example}
+@noindent
+The synthetic reports features explicit start/end of report
+notifications and four sections in between: Assessment Context, Non
+Exempted Violations, Exempted Regions and Analysis Summary.
+@c
+The general structure is sketched below and a more detailed
+description of each report section follows.
+
+@smallexample
+
+** COVERAGE REPORT **
+
+===========================
+== 1. ASSESSMENT CONTEXT ==
+===========================
+...
+=========================================
+== 2. NON-EXEMPTED COVERAGE VIOLATIONS ==
+=========================================
+...
+=========================
+== 3. EXEMPTED REGIONS ==
+=========================
+...
+=========================
+== 4. ANALYSIS SUMMARY ==
+=========================
+...
+** END OF REPORT **
+@end smallexample
+
+@subsubsection{Assessment Context}
+@noindent
+The @strong{Assessment Context} section exposes the following
+information items:
+
+@itemize -
+@item Date & time when the report was produced
+@item Command line and Version of @gcp{} that produced the report
+@item Coverage level requested to be analyzed
+@item Details on the input trace files:
+path to binary program exercised (as provided on the command line),
+production time stamp and tag string (@option{--tag} command line
+argument value).
+
+@end itemize
+
+Here is a example excerpt:
+
+@smallexample
+
+===========================
+== 1. ASSESSMENT CONTEXT ==
+===========================
+
+Date and time of execution: 2011-11-24 16:33:44.00
+Tool version: XCOV 1.0.0w (20111119)
+
+Command line:
+
+gnatcov coverage --scos=@@eng.alis --level=stmt+mcdc --annotate=report t0.trace
+
+Coverage level: stmt+mcdc
+
+Trace files:
+
+t0.trace
+  program: obj/powerpc-elf/test_engines
+  date   : 2011-11-24 15:33:44
+  tag    : sample run
+
+@end smallexample
+
+The set of units that this report is about is conveyed by the
+@option{--scos} option arguments on the quoted command line.
+
+@subsubsection{Non-exempted Coverage Violations}
+@noindent
+The @strong{Non-exempted violations} section lists and counts the
+coverage violations with that relate to source lines not part of an
+exemption region.
+@c
+The violations are grouped in subsections, one per assessed criterion
+according to the @option{--level} option:
+
+@multitable @columnfractions .2 .6
+
+@item
+ @code{@strong{--level}}
+ @tab @strong{Assessed criteria / Report subsections}
+@item
+ @code{=stmt}
+ @tab @code{Statement Coverage}
+@item
+  @code{=stmt+decision}
+  @tab @code{Statement and Decision Coverage}
+@item
+  @code{=stmt+mcdc}
+  @tab @code{Statement, Decision and MCDC Coverage}
+
+@end multitable
+
+
+All the non-exempted violations are reported using a consistent
+format, as follows:
+
+@smallexample
+
+  queues.adb:1641:17: statement not executed
+   (source) : (loc) : (violation description)
+
+@end smallexample
+
+@noindent
+@emph{source} and @emph{loc} are the basename of the source file and
+the precise @code{line:column} location within that source where the
+violation was detected.
+
+The table that follows summarizes the list of violation items that
+might be emitted together for each criterion:
+
+@multitable @columnfractions .3 .65
+@item
+ @code{@strong{Criterion}}
+ @tab @strong{Possible violations}
+@item
+ @code{Statement Coverage}
+ @tab @code{statement not executed}
+
+@item
+  @code{Decision Coverage}
+  @tab @code{decision outcome TRUE not covered}
+@item
+  @tab @code{decision outcome FALSE not covered}
+@item
+  @tab @code{one decision outcome not covered}
+
+@item
+  @code{MCDC Coverage}
+  @tab @code{condition has no independent influence pair}
+
+@end multitable
+
+Here is an example output excerpt for @option{--level=stmt+mcdc}, with
+one subsection for each of the three criteria requested at that level:
+
+@smallexample
+
+=========================================
+== 2. NON-EXEMPTED COVERAGE VIOLATIONS ==
+=========================================
+
+2.1. STMT COVERAGE
+------------------
+
+engines.adb:71:10: statement not executed
+
+1 violation.
+
+2.2. DECISION COVERAGE
+----------------------
+
+engines.adb:70:14: decision outcome TRUE never exercised
+
+1 violation.
+
+2.3. MCDC COVERAGE
+------------------
+
+engines.adb:34:14: condition has no independent influence pair, MC/DC not achieved
+engines.adb:46:13: condition has no independent influence pair, MC/DC not achieved
+
+2 violations.
+
+@end smallexample
+
+When multiple violations apply someplace, the most salliant
+diagnostic is emitted alone.
+@c
+For instance, if an Ada statement like "@code{X := A and then B;}" is
+not covered at all, a "@code{statement not executed}" violation is
+emitted alone, even if we're assessing for, say,
+@code{--level=stmt+decision} ; @gc{} emits no decision oriented
+violation in this case.
+
+
+@subsubsection{Exempted Regions}
+@noindent
+The @strong{Exempted violations} section lists and counts the exempted
+regions, displaying for each the source location span, the number of
+actually exempted violations in the region, and the exemption
+justification text. For example:
+
+@smallexample
+
+=========================
+== 3. EXEMPTED REGIONS ==
+=========================
+
+assert.adb:22:4-27:4: 2 exempted violations, justification:
+assertions are expected never to fail
+
+1 exempted region.
+
+@end smallexample
+
+@subsubsection{Analysis Summary}
+
+The @strong{Analysis Summary} section summarizes just the counts
+reported in each of the previous report sections.
+@c
+For our example report so far, this would be:
+
+@smallexample
+
+=========================
+== 4. ANALYSIS SUMMARY ==
+=========================
+
+1 non-exempted STMT violation.
+1 non-exempted DECISION violation.
+2 non-exempted MCDC violations.
+1 exempted region.
+
+@end smallexample
+
+This section provides a quick way to determine whether the requested
+coverage level, as conveyed by @option{--level}, is fully satisfied,
+with details available from the per criterion sections that precede.
 
 @page
 @section Advanced features
@@ -1665,7 +1899,6 @@ the trace by @gcrun{}: the trace creation timestamp, the
 path-to-executable command line argument, and the provided
 @code{--tag} value.
 
-
 The example provided here focuses on object coverage analysis for
 illustrative puroposes.
 @c
@@ -1769,173 +2002,6 @@ Below is a verbatim inclusion of the relevant Ada specification:
 @verbatiminclude annotations-xml.ads
 @end smallexample
 
-@page
-@section @code{--annotate=report} output format - source coverage
-
-This section describes the format of the synthetic text report
-produced by the @code{--annotate=report} mode of @gcp{} for source
-coverage criteria.
-@c
-We use a generated report as an example, filtering the elements
-relevant to the code excerpt below:
-
-@smallexample
- [...]
- 59    procedure Notify_Error_On (Q : in Queue) is
- 60    begin
- 61       raise Program_Error;
- 62    end Notify_Error_On;
- 63 
- 64    procedure Push (Item : Data_Type; Q : in out Queue) is
- 65    begin
- 66       pragma Annotate (Xcov, Exempt_On, "we never overflow a Queue");
- 67       if Full (Q) then
- 68          Notify_Error_On (Q);
- 69       end if;
- 70       pragma Annotate (Xcov, Exempt_Off);
- [...]
-@end smallexample
-
-This code excerpt is extracted from a sample Queues data type
-abstraction.
-@c
-Queue overflows are expected never to happen, so an exemption section
-is in place for the code performing the corresponding check at the
-beginning of a Push operation.
-@c
-Below is a copy of the report produced for a sample run where the
-general @code{Notify_Error_On} subprogram is not called otherwise:
-
-@smallexample
-
-COVERAGE REPORT
-
-1. OVERVIEW
-
-Date and time of execution: 2010-11-10 18:16:59.00
-Tool version: GNATCOV 1.0.0w (20110919)
-Command line:
-gnatcov coverage --scos=queues.ali --level=stmt+decision --annotate=report xplr.trace
-
-Coverage level: stmt+decision
-
-trace files:
-
- xplr.trace
-  program: obj/powerpc-elf/explore
-  date: 2011-08-10 17:16:47 
-  tag: some exemption test
-
-2. NON-EXEMPTED VIOLATIONS
-
-queues.adb:61:7: statement not executed
-1 violation
-
-3. EXEMPTED VIOLATIONS
-
-queues.adb:66:7-70:7: 2 exempted violations, justification:
-we never overflow a Queue
-
-1 exempted region.
-
-END OF REPORT
-@end smallexample
-
-@noindent
-The start and end of report are explicit, and the report body features
-three sections: Overview, Non-exempted violations and Exempted violations.
-
-@noindent
-The @strong{Overview} section exposes elements about the report
-production context:
-
-@itemize -
-@item Date & time when the report was produced
-@item Command line and Version of @gcp{} that produced the report
-@item Coverage criterion assessed
-@item Details on the input trace files:
-path to binary program exercised (as provided on the command line),
-production time stamp, --tag argument to @gcrun{} when the trace was
-produced
-@end itemize
-
-@noindent
-The @strong{Exempted violations} section lists and counts the exempted
-regions, displaying for each the source location span, the number of
-actually exempted violations in the region, and the exemption
-justification text.
-
-@noindent
-The @strong{Non-exempted violations} section lists and counts the
-coverage violations (with respect to the assessed criteria) that
-relate to source lines not part of an exemption region.
-@c
-All the non-exempted violations are reported using a consistent
-format, as follows:
-
-@smallexample
-
-  queues.adb:1641:17: statement not executed
-   (source) : (loc) : (vfamily)  (details)
-
-@end smallexample
-
-@noindent
-@emph{source} and @emph{loc} are the basename of the source file and
-the precise @code{line:column} location within that source where the
-violation was detected.
-@c
-@emph{vfamily} identifies the family of coverage violation reported in
-this particular case, and @emph{details} provides additional
-information.
-@c
-Below is the list of family/detail items that might be emitted
-together with the @code{--level} argument from which each may appear:
-
-@multitable @columnfractions .2 .15 .6
-
-@item
- @code{@strong{--level}}
- @tab @strong{family}
- @tab @strong{detail}
-@item
- @code{=stmt}
- @tab @code{statement}
- @tab @code{not executed}
-
-@item
-  @code{=stmt+decision}
-  @tab @code{decision}
-  @tab @code{outcome TRUE not covered}
-@item
-  @tab
-  @tab @code{outcome FALSE not covered}
-@item
-  @tab
-  @tab @code{one outcome not covered}
-
-@item
-  @code{=stmt+mcdc}
-  @tab @code{condition}
-  @tab @code{has no independent influence pair}
-
-@end multitable
-
-Violations for one level may be issued while assessing stricter
-levels as well.
-@c
-For example, "@code{statement not executed}" or "@code{decision
-outcome TRUE not covered}" violations might be emitted in the course
-of a @code{stmt+mcdc} assessement.
-
-When multiple violations apply someplace, the largest grain
-diagnostic is emitted alone.
-@c
-For instance, if an Ada statement like "@code{X := A and then B;}" is
-not covered at all, a "@code{statement not executed}" violation is
-emitted alone, even if we're assessing for, say,
-@code{--level=stmt+decision} ; @gc{} emits no decision oriented
-violation in this case.
 
 @c *******************************************************************
 @c *                          BIBLIOGRAPHY                           *
