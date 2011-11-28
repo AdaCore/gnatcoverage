@@ -596,7 +596,7 @@ package body Decision_Map is
          --  destination does satisfy it).
 
          --  HYP: a branch destination is an outcome when it branches past
-         --  the conditional branch instruction for the last condition.
+         --  the last conditional branch instruction for the last condition.
 
          if (Edge_Info.Dest_Kind = Outcome and then Edge_Info.Origin = Unknown)
               or else
