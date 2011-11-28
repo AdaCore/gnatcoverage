@@ -1544,7 +1544,7 @@ This section describes the format of the synthetic text report
 produced by the @code{--annotate=report} mode of @gcp{} for source
 coverage criteria.
 
-@subsubsection{General structure and example}
+@subsubsection General structure and example
 @noindent
 The synthetic reports features explicit start/end of report
 notifications and four sections in between: Assessment Context, Non
@@ -1576,7 +1576,7 @@ description of each report section follows.
 ** END OF REPORT **
 @end smallexample
 
-@subsubsection{Assessment Context}
+@subsubsection Assessment Context
 @noindent
 The @strong{Assessment Context} section exposes the following
 information items:
@@ -1621,7 +1621,7 @@ t0.trace
 The set of units that this report is about is conveyed by the
 @option{--scos} option arguments on the quoted command line.
 
-@subsubsection{Non-exempted Coverage Violations}
+@subsubsection Non-exempted Coverage Violations
 @noindent
 The @strong{Non-exempted violations} section lists and counts the
 coverage violations with that relate to source lines not part of an
@@ -1731,7 +1731,7 @@ emitted alone, even if we're assessing for, say,
 violation in this case.
 
 
-@subsubsection{Exempted Regions}
+@subsubsection Exempted Regions
 @noindent
 The @strong{Exempted violations} section lists and counts the exempted
 regions, displaying for each the source location span, the number of
@@ -1751,7 +1751,7 @@ assertions are expected never to fail
 
 @end smallexample
 
-@subsubsection{Analysis Summary}
+@subsubsection Analysis Summary
 
 The @strong{Analysis Summary} section summarizes just the counts
 reported in each of the previous report sections.
