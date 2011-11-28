@@ -48,6 +48,9 @@ package Slocs is
    type Source_Location_Range is record
       First_Sloc, Last_Sloc : Source_Location;
    end record;
+
+   No_Range : constant Source_Location_Range := (No_Location, No_Location);
+
    function "<" (L, R : Source_Location_Range) return Boolean;
    --  Lexicographic order
 

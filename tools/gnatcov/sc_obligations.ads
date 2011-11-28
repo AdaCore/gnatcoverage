@@ -92,6 +92,18 @@ package SC_Obligations is
    function Previous   (SCO : SCO_Id) return SCO_Id;
    --  Previous statement in basic block
 
+   procedure Dominant
+     (SCO     : SCO_Id;
+      Dom_SCO : out SCO_Id;
+      Dom_Val : out Boolean);
+   --  Return the dominant for SCO, if any.
+
+   --  When SCO is executed:
+   --    * If Dom_SCO is a statement, it is guaranteed to have been executed
+   --      and Dom_Val is set to an unspecified value
+   --    * If Dom_SCO is a decision, it is guaranteed to have been evaluated
+   --      with value Dom_Val.
+
    function Basic_Block_Has_Code (SCO : SCO_Id) return Boolean;
    --  True if any SCO in basic block has associated object code
 
@@ -101,6 +113,10 @@ package SC_Obligations is
 
    function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Pre/Postcondition
+
+   function Handler_Range (SCO : SCO_Id) return Source_Location_Range;
+   --  For a statement within an exception handler, return the sloc range of
+   --  the (innermost) handler.
 
    --  Condition SCOs
 

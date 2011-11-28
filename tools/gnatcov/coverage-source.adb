@@ -427,6 +427,23 @@ package body Coverage.Source is
 
       procedure Discharge_SCO (SCO : SCO_Id; Empty_Range : Boolean) is
          Propagating, No_Propagation : Boolean;
+         Dom_SCO : SCO_Id;
+         Dom_Val : Boolean;
+
+         procedure Set_Outcome_Taken (SCI : in out Source_Coverage_Info);
+         --  Set SCI.Outcome_Taken (Dom_Val) to True
+
+         -----------------------
+         -- Set_Outcome_Taken --
+         -----------------------
+
+         procedure Set_Outcome_Taken (SCI : in out Source_Coverage_Info) is
+         begin
+            SCI.Outcome_Taken (Dom_Val) := True;
+         end Set_Outcome_Taken;
+
+      --  Start of processing for Discharge_SCO
+
       begin
          --  Find enclosing statement SCO (if any) and mark it as executed
 
@@ -453,7 +470,13 @@ package body Coverage.Source is
             --  Propagate back to beginning of basic block
 
             Propagating := True;
-            S_SCO := Previous (S_SCO);
+
+            Dominant (S_SCO, Dom_SCO, Dom_Val);
+            if Dom_SCO /= No_SCO_Id and then Kind (Dom_SCO) = Decision then
+               SCI_Vector.Update_Element (Dom_SCO, Set_Outcome_Taken'Access);
+            end if;
+
+            S_SCO := Enclosing_Statement (Dom_SCO);
          end loop;
 
          if not (Enabled (Decision) or else MCDC_Coverage_Enabled)

@@ -274,10 +274,14 @@ package body SC_Obligations is
             S_Kind   : Statement_Kind;
             --  Statement kind indication
 
-            Previous : SCO_Id;
-            --  Previous statement in sequence. If this one has been executed
-            --  then we can safely infer that the previous one has been as
-            --  well (recursively).
+            Dominant       : SCO_Id;
+            Dominant_Value : Boolean;
+            --  Previous statement in sequence, or dominant decision. See
+            --  comment for function Dominant.
+
+            Handler_Range : Source_Location_Range := No_Range;
+            --  Sloc range of the exception handler of which this is the first
+            --  statement.
 
             Basic_Block_Has_Code : Boolean;
             --  Set True when code is present for this or any following SCO in
@@ -984,6 +988,21 @@ package body SC_Obligations is
       return SCO_Vector.Element (SCO).Degraded_Origins;
    end Degraded_Origins;
 
+   --------------
+   -- Dominant --
+   --------------
+
+   procedure Dominant
+     (SCO     : SCO_Id;
+      Dom_SCO : out SCO_Id;
+      Dom_Val : out Boolean)
+   is
+      SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+   begin
+      Dom_SCO := SCOD.Dominant;
+      Dom_Val := SCOD.Dominant_Value;
+   end Dominant;
+
    -------------------
    -- Dump_Decision --
    -------------------
@@ -1113,6 +1132,26 @@ package body SC_Obligations is
          Prev_Value := BDDN.Parent_Value;
       end if;
    end Get_Origin;
+
+   -------------------
+   -- Handler_Range --
+   -------------------
+
+   function Handler_Range (SCO : SCO_Id) return Source_Location_Range is
+      S_SCO : SCO_Id := SCO;
+   begin
+      while S_SCO /= No_SCO_Id loop
+         declare
+            SCOD : SCO_Descriptor renames SCO_Vector.Element (S_SCO);
+         begin
+            if SCOD.Handler_Range /= No_Range then
+               return SCOD.Handler_Range;
+            end if;
+         end;
+         S_SCO := Previous (S_SCO);
+      end loop;
+      return No_Range;
+   end Handler_Range;
 
    -----------------
    -- Has_Diamond --
@@ -1339,9 +1378,10 @@ package body SC_Obligations is
       Cur_SCO_Unit : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
 
-      Previous_Statement : SCO_Id := No_SCO_Id;
-      --  Previous statement in the same CS line, used for chaining of basic
-      --  blocks.
+      Dom_SCO : SCO_Id := No_SCO_Id;
+      Dom_Val : Boolean;
+      Current_Handler_Range : Source_Location_Range := No_Range;
+      --  Dominant information for basic block chaining
 
       Current_Decision : SCO_Id := No_SCO_Id;
       --  Decision whose conditions are being processed
@@ -1498,13 +1538,35 @@ package body SC_Obligations is
 
          begin
             case SCOE.C1 is
-               when 'S' | 's' =>
-                  --  Statement
+               when '>' =>
+                  --  Dominance marker: processed in conjunction with following
+                  --  'S' entry.
 
-                  pragma Assert (Current_Decision = No_SCO_Id);
-                  if SCOE.C1 = 'S' then
-                     Previous_Statement := No_SCO_Id;
+                  pragma Assert (Dom_SCO = No_SCO_Id);
+                  if SCOE.Last then
+                     --  Ignore dominance marker because all S entries in its
+                     --  sequence have been suppressed.
+
+                     null;
+
+                  else
+                     case SCOE.C2 is
+                        when 'T' | 'F' | 'S' =>
+                           Dom_SCO := Sloc_To_SCO (Make_Sloc (SCOE.From));
+                           Dom_Val := SCOE.C2 = 'T';
+
+                        when 'E' =>
+                           Current_Handler_Range :=
+                             (First_Sloc => Make_Sloc (SCOE.From),
+                              Last_Sloc  => Make_Sloc (SCOE.To));
+
+                        when others =>
+                           raise Program_Error;
+                     end case;
                   end if;
+
+               when 'S' | 's' =>
+                  pragma Assert (Current_Decision = No_SCO_Id);
 
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind                 => Statement,
@@ -1512,14 +1574,23 @@ package body SC_Obligations is
                                      Sloc_Range           =>
                                        (First_Sloc => Make_Sloc (SCOE.From),
                                         Last_Sloc  => Make_Sloc (SCOE.To)),
-                                     S_Kind                =>
+                                     S_Kind               =>
                                        To_Statement_Kind (SCOE.C2),
-                                     Previous              =>
-                                       Previous_Statement,
+                                     Dominant             => Dom_SCO,
+                                     Dominant_Value       => Dom_Val,
+                                     Handler_Range        =>
+                                       Current_Handler_Range,
                                      Basic_Block_Has_Code => False,
                                      Pragma_Name          => SCOE.Pragma_Name,
                                      others               => <>));
-                  Previous_Statement := SCO_Vector.Last_Index;
+
+                  Current_Handler_Range := No_Range;
+                  Dom_Val := False;
+                  if SCOE.Last then
+                     Dom_SCO := No_SCO_Id;
+                  else
+                     Dom_SCO := SCO_Vector.Last_Index;
+                  end if;
 
                when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' =>
                   --  Decision
@@ -1803,8 +1874,11 @@ package body SC_Obligations is
    --------------
 
    function Previous (SCO : SCO_Id) return SCO_Id is
+      Dom_SCO : SCO_Id;
+      Dom_Val : Boolean;
    begin
-      return SCO_Vector.Element (SCO).Previous;
+      Dominant (SCO, Dom_SCO, Dom_Val);
+      return Enclosing_Statement (Dom_SCO);
    end Previous;
 
    ------------------------------

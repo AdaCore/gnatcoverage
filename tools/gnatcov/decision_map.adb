@@ -1045,6 +1045,9 @@ package body Decision_Map is
          Next_PC              : Pc_Type := Edge_Info.Destination;
          BB                   : Basic_Block;
 
+         Next_PC_SCO : SCO_Id;
+         --  Statement at Next_PC
+
          function SCO_For_Jump return SCO_Id;
          --  Return the SCO_Id (if any) of the jump instruction at the end of
          --  BB.
@@ -1063,6 +1066,34 @@ package body Decision_Map is
       begin
          <<Follow_Jump>>
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
+
+         --  Check for exception or outcome using dominance information
+
+         Next_PC_SCO :=
+           Enclosing_Statement (Sloc_To_SCO (Get_Sloc (Exe.all, Next_PC)));
+
+         if Next_PC_SCO /= No_SCO_Id then
+            declare
+               Dom_SCO : SCO_Id;
+               Dom_Val : Boolean;
+               --  Dominance information for statement SCO at Next_PC
+
+            begin
+               Dominant (Next_PC_SCO, Dom_SCO, Dom_Val);
+               if Dom_SCO /= No_SCO_Id
+                 and then Dom_SCO = Parent (CBI.Condition)
+               then
+                  --  This edge branches to a statement dominated by CBI's
+                  --  decision being evaluated to Dom_Val.
+
+                  Edge_Info.Dest_Kind := Outcome;
+                  Edge_Info.Outcome := To_Tristate (Dom_Val);
+                  return;
+               end if;
+            end;
+         end if;
+
+         --  Continue tracing object control flow
 
          case BB.Branch is
             when Br_Jmp =>
