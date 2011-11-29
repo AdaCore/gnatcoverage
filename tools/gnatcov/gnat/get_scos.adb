@@ -287,8 +287,8 @@ begin
 
                   case Typ is
                      when '>' =>
-                        --  A dominance marker may be present only at an entry
-                        --  point.
+
+                        --  Dominance marker may be present only at entry point
 
                         pragma Assert (Key = 'S');
 
@@ -308,6 +308,7 @@ begin
                                  exit when Nextc = ':';
                                  N := N + 1;
                               end loop;
+
                               Skipc;
 
                               begin
