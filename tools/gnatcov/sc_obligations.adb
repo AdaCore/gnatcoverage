@@ -274,10 +274,17 @@ package body SC_Obligations is
             S_Kind   : Statement_Kind;
             --  Statement kind indication
 
-            Dominant       : SCO_Id;
-            Dominant_Value : Boolean;
+            Dominant       : SCO_Id   := No_SCO_Id;
+            Dominant_Value : Tristate := Unknown;
             --  Previous statement in sequence, or dominant decision. See
-            --  comment for function Dominant.
+            --  comment for function Dominant. Dominant_Value is Unknown for
+            --  a statement dominant, or a valid boolean value for a decision
+            --  dominant.
+
+            Dominant_Sloc  : Source_Location := No_Location;
+            --  While SCOs are being read, we only get the sloc of the dominant
+            --  and store it here. We set the Dominant component later on after
+            --  the Sloc -> SCO map has been constructed.
 
             Handler_Range : Source_Location_Range := No_Range;
             --  Sloc range of the exception handler of which this is the first
@@ -913,7 +920,10 @@ package body SC_Obligations is
       Element_Type => SCO_Id);
 
    Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
-   --  Map of statement, decision and condition SCOs
+   --  Map of statement and condition SCOs
+
+   D_Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
+   --  Map of decision SCOs
 
    Operator_Map : Sloc_To_SCO_Maps.Map;
    --  Map of operator SCOs
@@ -1000,7 +1010,12 @@ package body SC_Obligations is
       SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
    begin
       Dom_SCO := SCOD.Dominant;
-      Dom_Val := SCOD.Dominant_Value;
+
+      if Dom_SCO /= No_SCO_Id and then Kind (Dom_SCO) = Decision then
+         Dom_Val := To_Boolean (SCOD.Dominant_Value);
+      else
+         Dom_Val := False;
+      end if;
    end Dominant;
 
    -------------------
@@ -1378,8 +1393,9 @@ package body SC_Obligations is
       Cur_SCO_Unit : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
 
-      Dom_SCO : SCO_Id := No_SCO_Id;
-      Dom_Val : Boolean;
+      Dom_SCO  : SCO_Id          := No_SCO_Id;
+      Dom_Sloc : Source_Location := No_Location;
+      Dom_Val  : Tristate        := Unknown;
       Current_Handler_Range : Source_Location_Range := No_Range;
       --  Dominant information for basic block chaining
 
@@ -1551,9 +1567,13 @@ package body SC_Obligations is
 
                   else
                      case SCOE.C2 is
-                        when 'T' | 'F' | 'S' =>
-                           Dom_SCO := Sloc_To_SCO (Make_Sloc (SCOE.From));
-                           Dom_Val := SCOE.C2 = 'T';
+                        when 'S' =>
+                           Dom_Sloc := Make_Sloc (SCOE.From);
+                           Dom_Val  := Unknown;
+
+                        when 'T' | 'F' =>
+                           Dom_Sloc := Make_Sloc (SCOE.From);
+                           Dom_Val  := To_Tristate (SCOE.C2 = 'T');
 
                         when 'E' =>
                            Current_Handler_Range :=
@@ -1577,6 +1597,7 @@ package body SC_Obligations is
                                      S_Kind               =>
                                        To_Statement_Kind (SCOE.C2),
                                      Dominant             => Dom_SCO,
+                                     Dominant_Sloc        => Dom_Sloc,
                                      Dominant_Value       => Dom_Val,
                                      Handler_Range        =>
                                        Current_Handler_Range,
@@ -1585,7 +1606,8 @@ package body SC_Obligations is
                                      others               => <>));
 
                   Current_Handler_Range := No_Range;
-                  Dom_Val := False;
+                  Dom_Val  := Unknown;
+                  Dom_Sloc := No_Location;
                   if SCOE.Last then
                      Dom_SCO := No_SCO_Id;
                   else
@@ -1715,9 +1737,16 @@ package body SC_Obligations is
                                     Kind (Enclosing_SCO) /= Decision);
                      SCOD.Parent := Enclosing_SCO;
 
-                     --  Decisions are not included in the sloc map, instead
-                     --  their conditions are.
+                     --  Decisions are not included in the main sloc map,
+                     --  (their conditions are), but they are recorded in a
+                     --  separate D_Sloc_To_SCO_Map.
 
+                     if SCOD.Control_Location /= No_Location then
+                        D_Sloc_To_SCO_Map.Insert
+                          ((SCOD.Control_Location, No_Location), SCO);
+                     else
+                        D_Sloc_To_SCO_Map.Insert (SCOD.Sloc_Range, SCO);
+                     end if;
                      First := No_Location;
 
                      for L in SCOD.Sloc_Range.First_Sloc.Line
@@ -1782,6 +1811,53 @@ package body SC_Obligations is
 
          begin
             SCO_Vector.Update_Element (SCO, Process_Descriptor'Access);
+         end;
+      end loop;
+
+      --  Now that all decisions and statements have been entered in the
+      --  sloc -> SCO map, set the Dominant information.
+
+      for SCO in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
+         declare
+            procedure Set_Dominant_From_Sloc (SCOD : in out SCO_Descriptor);
+            --  Set SCOD.Dominant (if unset) to the innermost SCO containing
+            --  SCOD.Dominant_Sloc.
+
+            ------------------
+            -- Set_Dominant --
+            ------------------
+
+            procedure Set_Dominant_From_Sloc (SCOD : in out SCO_Descriptor) is
+               Dom_Sloc_SCO : SCO_Id;
+            begin
+               if SCOD.Kind = Statement
+                    and then SCOD.Dominant_Sloc /= No_Location
+               then
+                  pragma Assert (SCOD.Dominant = No_SCO_Id);
+
+                  --  Retrieve innermost SCO at designated sloc
+
+                  if SCOD.Dominant_Value = Unknown then
+                     --  Case of >S: dominant SCO is a statement
+
+                     Dom_Sloc_SCO := Sloc_To_SCO (SCOD.Dominant_Sloc);
+                     pragma Assert (Kind (Dom_Sloc_SCO) = Statement);
+
+                  else
+                     --  Case of >T / >F: dominant SCO is a decision
+
+                     Dom_Sloc_SCO :=
+                       D_Sloc_To_SCO_Map.Element
+                         ((SCOD.Dominant_Sloc, No_Location));
+                     pragma Assert (Kind (Dom_Sloc_SCO) = Decision);
+                  end if;
+
+                  SCOD.Dominant := Dom_Sloc_SCO;
+               end if;
+            end Set_Dominant_From_Sloc;
+
+         begin
+            SCO_Vector.Update_Element (SCO, Set_Dominant_From_Sloc'Access);
          end;
       end loop;
    end Load_SCOs;

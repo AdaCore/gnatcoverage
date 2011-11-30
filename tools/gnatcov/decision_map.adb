@@ -688,10 +688,17 @@ package body Decision_Map is
                else
                   --  In the case of a decision with only one condition (but
                   --  possibly multiple branches for each condition), assign
-                  --  an arbitrary origin to each outcome destination.
+                  --  an arbitrary origin to the last outcome destination if no
+                  --  previous information allowed to identify it (the other
+                  --  destination will be labeled by Label_From_Opposite).
+
+                  --  Note: we don't degrade origins for the first edge
+                  --  immediately because dominance information might allow
+                  --  precise labeling on the second edge.
 
                   if D_Occ.Last_Cond_Index = Condition_Index'First
                     and then Edge_Info.Dest_Kind = Outcome
+                    and then Edge = Edge_Kind'Last
                   then
                      for J in Boolean'Range loop
                         if Known_Outcome (J).Contains
@@ -703,12 +710,12 @@ package body Decision_Map is
                            Set_Degraded_Origins (D_Occ.Decision);
                            Known_Outcome (J).Include (Edge_Info.Destination);
 
-                           --  We know that both edges from this CB are
-                           --  (distinct) outcomes, and we arbitrarily decide
-                           --  that this one is the one for outcome J.
-                           --  If the outcome for origin True is also J,
-                           --  then the origin for this edge is True, else it
-                           --  is False.
+                           --  Both edges from this conditional branch
+                           --  instruction are (distinct) outcomes, and we
+                           --  arbitrarily decide that this one is the one for
+                           --  outcome J. If the outcome for origin True is
+                           --  also J, then the origin for this edge is True,
+                           --  else it is False.
 
                            Set_Known_Origin
                              (Cond_Branch_PC, CBI, Edge,
@@ -1081,7 +1088,7 @@ package body Decision_Map is
             begin
                Dominant (Next_PC_SCO, Dom_SCO, Dom_Val);
                if Dom_SCO /= No_SCO_Id
-                 and then Dom_SCO = Parent (CBI.Condition)
+                 and then Dom_SCO = Enclosing_Decision (CBI.Condition)
                then
                   --  This edge branches to a statement dominated by CBI's
                   --  decision being evaluated to Dom_Val.
