@@ -4,7 +4,7 @@ drivers=_overlap|_no_overlap
 --  Exempted precondition evaluated True only.
 
 --# ranges.adb
---  /checkValid/    l! d!
+--  /checkValid/    l! dT-
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l- s-
 --  /preValid/      l* x+

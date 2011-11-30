@@ -8,6 +8,6 @@ end;
 
 --# andthen.adb
 --  /evalA/ l+ 0
---  /evalB/ l! d!
+--  /evalB/ l! dT-
 --  /true/  l- s-
 --  /false/ l+ 0

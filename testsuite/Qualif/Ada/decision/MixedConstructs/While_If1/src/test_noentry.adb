@@ -16,7 +16,7 @@ end;
 
 -- /CO_decl/   ~l+ 0
 -- /CO_init/   l+ 0
--- /CO_while/  l! d!
+-- /CO_while/  l! dT-
 -- /CO_test/   l- s-
 -- /CO_incT/   l- s-
 -- /CO_incF/   l- s-

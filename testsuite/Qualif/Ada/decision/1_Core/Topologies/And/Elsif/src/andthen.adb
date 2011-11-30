@@ -3,7 +3,7 @@ with Support; use Support;
 package body Andthen is
    function F (A, B, X : Boolean) return Boolean is
    begin
-      if X then               -- # __l!d!
+      if X then               -- # __l!dT-
          raise Program_Error; -- # __l-s-
       elsif A and then B then -- # andthen :o/d:
          return True;         -- # retTrue

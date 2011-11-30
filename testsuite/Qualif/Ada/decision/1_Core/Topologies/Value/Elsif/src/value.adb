@@ -3,7 +3,7 @@ with Support;
 package body Value is
    function Dovalue (X, Bomb : Boolean) return Boolean is
    begin
-      if Bomb then            -- # __l!d!
+      if Bomb then            -- # __l!dT-
          raise Program_Error; -- # __l-s-
       elsif X then       -- # eval :o/d:
          return True;    -- # returnTrue

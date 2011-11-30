@@ -29,7 +29,7 @@ end;
 
 --# sensors-status.adb
 
--- /SO_t0/       l! d!
+-- /SO_t0/       l! dT-
 -- /SO_undecide/ l- s-
 -- /SO_decide/   l+ 0
 -- /SO_loop0/    l+ 0

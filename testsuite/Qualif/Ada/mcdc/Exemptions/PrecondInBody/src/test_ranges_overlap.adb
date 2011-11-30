@@ -36,7 +36,7 @@ begin
 end;
 
 --# ranges.adb
---  /checkValid/    l! d!
+--  /checkValid/    l! dT-
 --  /assignValid/   l+ 0
 --  /assignInvalid/ l- s-
 --  /preValid/      l* x+

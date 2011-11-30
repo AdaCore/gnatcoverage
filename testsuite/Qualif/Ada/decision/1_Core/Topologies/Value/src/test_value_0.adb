@@ -6,8 +6,8 @@ begin
 end;
 
 --# value.adb
--- /__l!d!/      l- s-
--- /eval/    l- s-
+-- /__l!dT-/     l- s-
+-- /eval/        l- s-
 -- /returnTrue/  l- s-
 -- /returnFalse/ l- s-
 -- /returnVal/   l- s-

@@ -14,7 +14,7 @@ end;
 
 --# sensors-status.adb
 
--- /SO_t0/       l! d!
+-- /SO_t0/       l! dF-
 -- /SO_undecide/ l+ 0
 -- /SO_loop0/    l- s-
 -- /SO_loop1/    l- 0c

@@ -709,7 +709,8 @@ class XnotesExpander:
     # What default notes we expect for what designator text
 
     builtin_lxs = {"__l-s-": "l- s-",
-                   "__l!d!": "l! d!"
+                   "__l!d!": "l! d!",
+                   "__l!dT-": "l! dT-"
                    }
 
     def __builtin_lcxs(self, ucx):

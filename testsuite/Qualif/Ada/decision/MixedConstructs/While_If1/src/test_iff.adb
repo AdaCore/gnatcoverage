@@ -22,7 +22,7 @@ end;
 -- /CO_decl/   ~l+ 0
 -- /CO_init/   l+ 0
 -- /CO_while/  l+ 0
--- /CO_test/   l! d!
+-- /CO_test/   l! dT-
 -- /CO_incT/   l- s-
 -- /CO_incF/   l+ 0
 -- /CO_next/   l+ 0

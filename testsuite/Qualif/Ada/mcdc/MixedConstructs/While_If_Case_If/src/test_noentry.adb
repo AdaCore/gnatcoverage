@@ -10,7 +10,7 @@ end;
 --# slists-forall.adb
 
 -- /FA_init/       l+ 0
--- /FA_while/      l! d!
+-- /FA_while/      l! dT-
 -- /FA_tactive/    l- s-
 -- /FA_case/       l- s-
 -- /FA_activate/   l- s-

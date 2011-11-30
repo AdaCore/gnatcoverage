@@ -3,7 +3,7 @@ with Support;
 package body Orelse is
    function F (A, B, X : Boolean) return Boolean is
    begin
-      if X then               -- # __l!d!
+      if X then               -- # __l!dT-
          raise Program_Error; -- # __l-s-
       elsif A or else B then  -- # orelse :o/d:
          return True;      -- # retTrue

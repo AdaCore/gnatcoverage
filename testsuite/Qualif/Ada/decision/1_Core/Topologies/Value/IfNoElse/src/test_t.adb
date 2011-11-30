@@ -7,6 +7,6 @@ begin
 end;
 
 --# checks.adb
--- /eval/   l! o!
+-- /eval/   l! oF-
 -- /incOK/  l+ 0
 -- /incAll/ l+ 0

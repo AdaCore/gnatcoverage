@@ -7,6 +7,6 @@ begin
 end;
 
 --# flip.adb
---  /eval/  l! d!
+--  /eval/  l! dF-
 --  /false/  l- s-
 --  /true/ l+ 0
