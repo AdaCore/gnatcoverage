@@ -292,8 +292,9 @@ begin
 
                         pragma Assert (Key = 'S');
 
+                        Skipc;
                         Key := '>';
-                        Typ := Nextc;
+                        Typ := Getc;
 
                      when '1' .. '9' =>
                         Typ := ' ';
