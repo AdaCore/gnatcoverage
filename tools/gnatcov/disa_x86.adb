@@ -3,7 +3,7 @@
 --                              Couverture                                  --
 --                                                                          --
 --                    Copyright (C) 2006 Tristan Gingold                    --
---                     Copyright (C) 2009-2010, AdaCore                     --
+--                     Copyright (C) 2009-2011, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -470,6 +470,23 @@ package body Disa_X86 is
       16#0e#       => ("        ", C_None, C_None),
       16#0f#       => ("        ", C_None, C_None),
 
+      16#40#       => ("cmovo   ", C_Gv, C_Ev),
+      16#41#       => ("cmovno  ", C_Gv, C_Ev),
+      16#42#       => ("cmovb   ", C_Gv, C_Ev),
+      16#43#       => ("cmovae  ", C_Gv, C_Ev),
+      16#44#       => ("cmove   ", C_Gv, C_Ev),
+      16#45#       => ("cmovne  ", C_Gv, C_Ev),
+      16#46#       => ("cmovbe  ", C_Gv, C_Ev),
+      16#47#       => ("cmova   ", C_Gv, C_Ev),
+      16#48#       => ("cmovs   ", C_Gv, C_Ev),
+      16#49#       => ("cmovns  ", C_Gv, C_Ev),
+      16#4a#       => ("cmovpe  ", C_Gv, C_Ev),
+      16#4b#       => ("cmovpo  ", C_Gv, C_Ev),
+      16#4c#       => ("cmovl   ", C_Gv, C_Ev),
+      16#4d#       => ("cmovge  ", C_Gv, C_Ev),
+      16#4e#       => ("cmovle  ", C_Gv, C_Ev),
+      16#4f#       => ("cmovg   ", C_Gv, C_Ev),
+
       2#1000_0000# => ("jo      ", C_Jz, C_None),
       2#1000_0001# => ("jno     ", C_Jz, C_None),
       2#1000_0010# => ("jb      ", C_Jz, C_None),
@@ -507,6 +524,7 @@ package body Disa_X86 is
       16#A4#       => ("shld    ", C_Ev, C_Gv_Ib),
       16#A5#       => ("shld    ", C_Ev, C_Gv_Cl),
       16#Ac#       => ("shrd    ", C_Ev, C_Gv_Ib),
+      16#Ad#       => ("shrd    ", C_Ev, C_Gv_Cl),
       16#Af#       => ("imul    ", C_Gv, C_Ev),
 
       16#B6#       => ("movzx   ", C_Gv, C_Eb),
@@ -516,6 +534,16 @@ package body Disa_X86 is
       16#BD#       => ("bsr     ", C_Gv, C_Ev),
       16#BE#       => ("movsx   ", C_Gv, C_Eb),
       16#BF#       => ("movsx   ", C_Gv, C_Ew),
+
+      16#c8#        => ("bswap   ", C_Reg_Ax, C_None),
+      16#c9#        => ("bswap   ", C_Reg_Cx, C_None),
+      16#ca#        => ("bswap   ", C_Reg_Dx, C_None),
+      16#cb#        => ("bswap   ", C_Reg_Bx, C_None),
+      16#cc#        => ("bswap   ", C_Reg_Sp, C_None),
+      16#cd#        => ("bswap   ", C_Reg_Bp, C_None),
+      16#ce#        => ("bswap   ", C_Reg_Si, C_None),
+      16#cf#        => ("bswap   ", C_Reg_Di, C_None),
+
       others       => ("        ", C_None, C_None));
 
    subtype String3 is String (1 .. 3);
@@ -725,6 +753,30 @@ package body Disa_X86 is
       16#18# .. 16#1f# => ("fcmovu  ", C_H0, C_H),
       16#29#           => ("fucompp ", C_None, C_None),
       others           => ("        ", C_None, C_None)
+     );
+
+   Insn_Desc_Esc_DB : constant Sub_Esc_Desc_Array_Type :=
+     (
+      16#00# .. 16#07# => ("fcmovnb ", C_H0, C_H),
+      16#08# .. 16#0f# => ("fcmovne ", C_H0, C_H),
+      16#10# .. 16#17# => ("fcmovnbe", C_H0, C_H),
+      16#18# .. 16#1f# => ("fcmovnu ", C_H0, C_H),
+      16#20# .. 16#27# => ("        ", C_None, C_None),
+      16#28# .. 16#2f# => ("fucomi  ", C_H0, C_H),
+      16#30# .. 16#37# => ("fcomi   ", C_H0, C_H),
+      16#38# .. 16#3f# => ("        ", C_None, C_None)
+     );
+
+   Insn_Desc_Esc_DC : constant Sub_Esc_Desc_Array_Type :=
+     (
+      16#00# .. 16#07# => ("fadd    ", C_H0, C_H),
+      16#08# .. 16#0f# => ("fmul    ", C_H0, C_H),
+      16#10# .. 16#17# => ("        ", C_None, C_None),
+      16#18# .. 16#1f# => ("        ", C_None, C_None),
+      16#20# .. 16#27# => ("fsubr   ", C_H0, C_H),
+      16#28# .. 16#2f# => ("fsub    ", C_H0, C_H),
+      16#30# .. 16#37# => ("fdivr   ", C_H0, C_H),
+      16#38# .. 16#3f# => ("fdiv    ", C_H0, C_H)
      );
 
    Insn_Desc_Esc_DE : constant Sub_Esc_Desc_Array_Type :=
@@ -1541,14 +1593,16 @@ package body Disa_X86 is
                   Desc := Insn_Desc_Esc_D9 (Bf_6 (B1 and 2#111111#));
                when 2#010# =>
                   Desc := Insn_Desc_Esc_DA (Bf_6 (B1 and 2#111111#));
+               when 2#011# =>
+                  Desc := Insn_Desc_Esc_DB (Bf_6 (B1 and 2#111111#));
+               when 2#100# =>
+                  Desc := Insn_Desc_Esc_DC (Bf_6 (B1 and 2#111111#));
                when 2#101# =>
                   Desc := Insn_Desc_Esc_DD (Ext_Modrm_Reg (B1));
                when 2#110# =>
                   Desc := Insn_Desc_Esc_DE (Bf_6 (B1 and 2#111111#));
                when 2#111# =>
                   Desc := Insn_Desc_Esc_DF (Bf_6 (B1 and 2#111111#));
-               when others =>
-                  raise Program_Error with "disa_x86: unhandled esc 00-bf";
             end case;
             Dst := Desc.Dst;
             Src := Desc.Src;
