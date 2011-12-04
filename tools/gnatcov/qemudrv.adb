@@ -22,6 +22,8 @@ with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Directories;  use Ada.Directories;
 
+with Ada.Containers.Vectors;
+
 with Interfaces;
 
 with GNAT.OS_Lib;
@@ -54,6 +56,11 @@ package body Qemudrv is
    procedure Error (Msg : String);
    --  Display the message on the error output and set exit status
 
+   function Expand_Arguments
+     (Args, Eargs : String_List_Access) return String_List;
+   --  Expand macro arguments in ARGS and hook EARGS into a complete list
+   --  of real arguments to pass to the immediate execution environment.
+
    procedure Run_Command (Command : String_Access; Options : String_List);
    --  Spawn command with options
 
@@ -69,8 +76,6 @@ package body Qemudrv is
       Histmap  : String_Access;
       Eargs    : String_List_Access)
    is
-      Nbr_Eargs    : Natural := 0;
-
       type Driver_Target_Access is access constant Driver_Target;
 
       function Driver_Control_For
@@ -101,10 +106,9 @@ package body Qemudrv is
 
             if Gnatemu /= null then
 
-               --  We just need to pass the executable name and request the
-               --  production of traces. Until there is support for the latter
-               --  in the GNATemulator interface, we request it straight to
-               --  the underlying emulator.
+               --  We just need to pass the executable name to Gnatemu (last),
+               --  and request the production of traces straight to the
+               --  underlying emulator in addition to our own -eargs.
 
                return new Driver_Target'
                  (Target => Target,
@@ -115,6 +119,7 @@ package body Qemudrv is
                     (new String'("--eargs"),
                      new String'("-exec-trace"),
                      new String'("$trace"),
+                     new String'("$eargs"),
                      new String'("--eargs-end"),
                      new String'("$exe"))
                  );
@@ -187,10 +192,6 @@ package body Qemudrv is
 
       Executable := new String'(Exe_File);
 
-      if Eargs /= null then
-         Nbr_Eargs := Eargs'Length;
-      end if;
-
       --  Create the trace file
 
       declare
@@ -229,30 +230,18 @@ package body Qemudrv is
          Run_Command (Control.Build_Command, Control.Build_Options.all);
       end if;
 
-      --  The 'prepare' target do not launch qemu
+      --  If we have no command to run, we're done.  Otherwise, run it.
 
       if Control.Run_Command = null then
          return;
       end if;
 
-      --  Run qemu
+      Run_Command (Control.Run_Command,
+                   Expand_Arguments (Control.Run_Options, Eargs));
 
-      declare
-         L : constant Natural := Control.Run_Options'Length;
-         Opts : String_List (1 .. L + Nbr_Eargs);
-      begin
-         Opts (1 .. L) := Control.Run_Options.all;
-
-         if Eargs /= null then
-            Opts (L + 1 .. L + Nbr_Eargs) := Eargs (1 .. Nbr_Eargs);
-         end if;
-
-         Run_Command (Control.Run_Command, Opts);
-
-         if Verbose then
-            Put (Control.Run_Command.all & " finished");
-         end if;
-      end;
+      if Verbose then
+         Put (Control.Run_Command.all & " finished");
+      end if;
 
    exception
       when Exec_Error =>
@@ -299,15 +288,130 @@ package body Qemudrv is
       P ("  -v --verbose                 Be verbose");
       P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
       P ("  -o FILE  --output=FILE       Write traces to FILE");
-      P ("  -eargs EARGS                 Pass EARGS to the simulator");
+      P ("  -eargs EARGS                 " &
+           "Pass EARGS to the low-level emulator");
    end Help;
+
+   ----------------------
+   -- Expand_Arguments --
+   ----------------------
+
+   function Expand_Arguments
+     (Args, Eargs : String_List_Access) return String_List
+   is
+
+      --  Args might include a $eargs macro or not, and in either case, we
+      --  might have actual Eargs to expand or not.  We just append items as
+      --  they come into a vector and convert that into a String_List
+      --  eventually.
+
+      function Length (L : String_List_Access) return Integer;
+      --  Number of items in list L if not null.  Zero if L is null.
+
+      function Length (L : String_List_Access) return Integer is
+      begin
+         if L = null then
+            return 0;
+         else
+            return L'Length;
+         end if;
+      end Length;
+
+      Max_N_Args : constant Integer := Length (Args) + Length (Eargs);
+      --  Maximum size of the final argument vector.  All the macros expand
+      --  into a single string, except eargs which expands into a string per
+      --  earg.
+
+      subtype Args_Index is Integer range 1 .. Max_N_Args;
+
+      package String_Access_Vectors is
+         new Ada.Containers.Vectors (Index_Type => Args_Index,
+                                     Element_Type => String_Access);
+
+      Argv : String_Access_Vectors.Vector;
+      --  Vector of real command line arguments  to pass, past the expansion
+      --  of argument macros ($exe, $trace, $eargs, ...)
+
+      procedure Append
+        (Argv : in out String_Access_Vectors.Vector; SL : String_List_Access);
+      --  Append the string in SL to the ARGV vector
+
+      procedure Append
+        (Argv : in out String_Access_Vectors.Vector;
+         SL   : String_List_Access)
+      is
+      begin
+         for I in SL'Range loop
+            Argv.Append (SL (I));
+         end loop;
+      end Append;
+
+      Eargs_Q : String_List_Access := Eargs;
+      --  List of eargs that remains to be added to the command line
+
+   begin
+      --  Copy arguments and expand argument macros
+
+      for J in Args'Range loop
+         if Args (J).all = "$exe" then
+            Argv.Append (Executable);
+
+         elsif Args (J).all = "$bin" then
+            Argv.Append (new String'(Executable.all & ".bin"));
+
+         elsif Args (J).all = "$dir_exe" then
+            Argv.Append (new String'(Containing_Directory (Executable.all)));
+
+         elsif Args (J).all = "$base_bin" then
+            Argv.Append (new String'(Simple_Name (Executable.all) & ".bin"));
+
+         elsif Args (J).all = "$trace" then
+            if Histmap_Filename /= null then
+               Argv.Append (new String'("histmap=" & Histmap_Filename.all
+                                          & ',' & Trace_Output.all));
+            elsif MCDC_Coverage_Enabled then
+               Argv.Append (new String'("history," & Trace_Output.all));
+            else
+               Argv.Append (Trace_Output);
+            end if;
+         elsif Args (J).all = "$eargs" then
+
+            if Eargs_Q /= null then
+               Append (Argv, Eargs_Q);
+               Eargs_Q := null;
+            end if;
+         else
+            Argv.Append (Args (J));
+         end if;
+      end loop;
+
+      --  If we had eargs to pass and didn't have a macro to place them
+      --  specifically, add them at the end
+
+      if Eargs_Q /= null then
+         Append (Argv, Eargs_Q);
+      end if;
+
+      --  Now convert the vector into a String_List and return
+
+      declare
+         Result : String_List (1 .. Integer (Argv.Length));
+      begin
+         for I in Argv.First_Index .. Argv.Last_Index loop
+            Result (I) := Argv (I);
+         end loop;
+         return Result;
+      end;
+
+   end Expand_Arguments;
 
    -----------------
    -- Run_Command --
    -----------------
 
-   procedure Run_Command (Command : String_Access; Options : String_List) is
-      Args    : String_List (1 .. Options'Length) := Options;
+   procedure Run_Command
+     (Command : String_Access; Options : String_List)
+   is
       Success : Boolean;
       Prg     : String_Access;
    begin
@@ -315,55 +419,28 @@ package body Qemudrv is
 
       Prg := GNAT.OS_Lib.Locate_Exec_On_Path (Command.all);
       if Prg = null then
-         Error ("xcov run: cannot find "
+         Error ("gnatcov run: cannot find "
                   & Command.all
                   & " on your path");
          raise Exec_Error;
       end if;
 
-      --  Copy arguments and expand argument macros
-
-      for J in Args'Range loop
-         if Args (J).all = "$exe" then
-            Args (J) := Executable;
-
-         elsif Args (J).all = "$bin" then
-            Args (J) := new String'(Executable.all & ".bin");
-
-         elsif Args (J).all = "$dir_exe" then
-            Args (J) := new String'(Containing_Directory (Executable.all));
-
-         elsif Args (J).all = "$base_bin" then
-            Args (J) := new String'(Simple_Name (Executable.all) & ".bin");
-
-         elsif Args (J).all = "$trace" then
-            if Histmap_Filename /= null then
-               Args (J) := new String'("histmap=" & Histmap_Filename.all & ','
-                                         & Trace_Output.all);
-            elsif MCDC_Coverage_Enabled then
-               Args (J) := new String'("history," & Trace_Output.all);
-            else
-               Args (J) := Trace_Output;
-            end if;
-         end if;
-      end loop;
-
       if Verbose then
          Put ("exec: ");
          Put (Prg.all);
-         for I in Args'Range loop
+         for I in Options'Range loop
             Put (' ');
-            Put (Args (I).all);
+            Put (Options (I).all);
          end loop;
          New_Line;
       end if;
 
       --  Run
 
-      GNAT.OS_Lib.Spawn (Prg.all, Args, Success);
+      GNAT.OS_Lib.Spawn (Prg.all, Options, Success);
       if not Success then
          if Verbose then
-            Error ("xcov run failed");
+            Error ("gnatcov run failed");
          end if;
          raise Exec_Error;
       end if;
