@@ -17,6 +17,8 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.Regpat; use GNAT.Regpat;
+
 with Ada.Unchecked_Conversion;
 with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
@@ -118,10 +120,10 @@ package body Qemudrv is
                   Run_Options => new String_List'
                     (new String'("--eargs"),
                      new String'("-exec-trace"),
-                     new String'("$trace"),
-                     new String'("$eargs"),
+                     new String'("%trace"),
+                     new String'("%eargs"),
                      new String'("--eargs-end"),
-                     new String'("$exe"))
+                     new String'("%exe"))
                  );
             end if;
          end;
@@ -258,6 +260,114 @@ package body Qemudrv is
       Set_Exit_Status (Failure);
    end Error;
 
+   ----------------------
+   -- Expand_Arguments --
+   ----------------------
+
+   function Try_Expand (Arg : String) return String_Access;
+   --  Try string-macro expansions on ARG.  Return a newly allocated string
+   --  with the expansion performed if one applied, null oterwise.
+
+   function Expand_Arguments
+     (Args, Eargs : String_List_Access) return String_List
+   is
+
+      --  Args might include a %eargs macro or not, and in either case, we
+      --  might have actual Eargs to expand or not.  We just append items as
+      --  they come into a vector and convert that into a String_List
+      --  eventually.
+
+      function Length (L : String_List_Access) return Integer;
+      --  Number of items in list L if not null.  Zero if L is null.
+
+      function Length (L : String_List_Access) return Integer is
+      begin
+         if L = null then
+            return 0;
+         else
+            return L'Length;
+         end if;
+      end Length;
+
+      Max_N_Args : constant Integer := Length (Args) + Length (Eargs);
+      --  Maximum size of the final argument vector.  All the macros expand
+      --  into a single string, except eargs which expands into a string per
+      --  earg.
+
+      subtype Args_Index is Integer range 1 .. Max_N_Args;
+
+      package String_Access_Vectors is
+         new Ada.Containers.Vectors (Index_Type => Args_Index,
+                                     Element_Type => String_Access);
+
+      subtype Svector is String_Access_Vectors.Vector;
+
+      Argv : Svector;
+      --  Vector of real command line arguments to pass, past the expansion
+      --  of argument macros (%exe, %trace, %eargs, ...)
+
+      procedure Append
+        (Argv : in out String_Access_Vectors.Vector; SL : String_List_Access);
+      --  Append the sequence of strings in SL to the ARGV vector
+
+      procedure Append
+        (Argv : in out String_Access_Vectors.Vector;
+         SL   : String_List_Access)
+      is
+      begin
+         for I in SL'Range loop
+            Argv.Append (SL (I));
+         end loop;
+      end Append;
+
+      Eargs_Q : String_List_Access := Eargs;
+      --  List of eargs that remains to be added to the command line
+
+   begin
+      --  Copy arguments and expand argument macros
+
+      for J in Args'Range loop
+
+         --  First see if we have a single-string macro to expand.  If we
+         --  don't, check for %eargs.  If we have nothing to expand, just
+         --  append the argument as-is.
+
+         declare
+            Exp : constant String_Access := Try_Expand (Args (J).all);
+         begin
+            if Exp /= null then
+               Argv.Append (Exp);
+            elsif Args (J).all = "%eargs" then
+               if Eargs_Q /= null then
+                  Append (Argv, Eargs_Q);
+                  Eargs_Q := null;
+               end if;
+            else
+               Argv.Append (Args (J));
+            end if;
+         end;
+      end loop;
+
+      --  If we had eargs to pass and didn't have a macro to place them
+      --  specifically, add them at the end
+
+      if Eargs_Q /= null then
+         Append (Argv, Eargs_Q);
+      end if;
+
+      --  Now convert the vector into a String_List and return
+
+      declare
+         Result : String_List (1 .. Integer (Argv.Length));
+      begin
+         for I in Argv.First_Index .. Argv.Last_Index loop
+            Result (I) := Argv (I);
+         end loop;
+         return Result;
+      end;
+
+   end Expand_Arguments;
+
    ----------
    -- Help --
    ----------
@@ -292,118 +402,147 @@ package body Qemudrv is
            "Pass EARGS to the low-level emulator");
    end Help;
 
-   ----------------------
-   -- Expand_Arguments --
-   ----------------------
+   ------------------------
+   -- Try_Expand helpers --
+   ------------------------
 
-   function Expand_Arguments
-     (Args, Eargs : String_List_Access) return String_List
-   is
+   --  Value functions, each return the single-string value corresponding
+   --  to a specific string-macro:
 
-      --  Args might include a $eargs macro or not, and in either case, we
-      --  might have actual Eargs to expand or not.  We just append items as
-      --  they come into a vector and convert that into a String_List
-      --  eventually.
+   --  %exe
 
-      function Length (L : String_List_Access) return Integer;
-      --  Number of items in list L if not null.  Zero if L is null.
+   function Exe return String;
 
-      function Length (L : String_List_Access) return Integer is
+   function Exe return String is
+   begin
+      return Executable.all;
+   end Exe;
+
+   --  %bin
+
+   function Bin return String;
+
+   function Bin return String is
+   begin
+      return Executable.all & ".bin";
+   end Bin;
+
+   --  %dir_exe
+
+   function Dir_Exe return String;
+
+   function Dir_Exe return String is
+   begin
+      return Containing_Directory (Executable.all);
+   end Dir_Exe;
+
+   --  %base_bin
+
+   function Base_Bin return String;
+
+   function Base_Bin return String is
+   begin
+      return Simple_Name (Executable.all) & ".bin";
+   end Base_Bin;
+
+   --  %trace
+
+   function Trace return String;
+
+   function Trace return String is
+   begin
+      if Histmap_Filename /= null then
+         return "histmap=" & Histmap_Filename.all
+           & ',' & Trace_Output.all;
+
+      elsif MCDC_Coverage_Enabled then
+         return "history," & Trace_Output.all;
+
+      else
+         return Trace_Output.all;
+      end if;
+   end Trace;
+
+   --  A table saying which value function to call for each macro. Better
+   --  extracted out to be computed once only.
+
+   type Smacro_Entry is record
+      Key  : String_Access;
+      Eval : access function return String;
+   end record;
+
+   type Smacro_Table is array (Integer range <>) of Smacro_Entry;
+
+   SMtable : constant Smacro_Table :=
+     ((Key => new String'("%exe"), Eval => Exe'Access),
+      (Key => new String'("%bin"), Eval => Bin'Access),
+      (Key => new String'("%dir_exe"), Eval => Dir_Exe'Access),
+      (Key => new String'("%base_bin"), Eval => Base_Bin'Access),
+      (Key => new String'("%trace"), Eval => Trace'Access)
+     );
+
+   ----------------
+   -- Try_Expand --
+   ----------------
+
+   function Try_Expand (Arg : String) return String_Access is
+
+      --  For earch possible string-macro, we check presence and deal
+      --  with the replacement using regexp matching.
+
+      type Macro_Matches is new Match_Array (0 .. 2);
+      --  An array to hold regpat groups matching strings that precede and
+      --  follow a key in an outer string, as in <pre>KEY<post>.
+
+      function Match
+        (Arg, Key : String; Matches : access Macro_Matches) return Boolean;
+      --  Whether KEY is somewhere within ARG.  When it is, MATCHES (1..2)
+      --  hold regpat groups describing what precedes and follows.
+
+      function Match
+        (Arg, Key : String; Matches : access Macro_Matches) return Boolean
+      is
+         Regexp : constant String := "^(.*)" & Key & "(.*)$";
       begin
-         if L = null then
-            return 0;
-         else
-            return L'Length;
-         end if;
-      end Length;
+         Match (Compile (Regexp), Arg, Matches.all);
+         return Matches (0) /= No_Match;
+      end Match;
 
-      Max_N_Args : constant Integer := Length (Args) + Length (Eargs);
-      --  Maximum size of the final argument vector.  All the macros expand
-      --  into a single string, except eargs which expands into a string per
-      --  earg.
+      function Substitute
+        (Matches : Macro_Matches; Arg, Value : String) return String;
+      --  ARG is a string where a macro key was found.  MATCHES holds the
+      --  regpat groups that describe what precedes and follows the key.
+      --  Return a string corresponding to ARG where the macro is replaced
+      --  by VALUE.
 
-      subtype Args_Index is Integer range 1 .. Max_N_Args;
-
-      package String_Access_Vectors is
-         new Ada.Containers.Vectors (Index_Type => Args_Index,
-                                     Element_Type => String_Access);
-
-      Argv : String_Access_Vectors.Vector;
-      --  Vector of real command line arguments  to pass, past the expansion
-      --  of argument macros ($exe, $trace, $eargs, ...)
-
-      procedure Append
-        (Argv : in out String_Access_Vectors.Vector; SL : String_List_Access);
-      --  Append the string in SL to the ARGV vector
-
-      procedure Append
-        (Argv : in out String_Access_Vectors.Vector;
-         SL   : String_List_Access)
+      function Substitute
+        (Matches : Macro_Matches; Arg, Value : String) return String
       is
       begin
-         for I in SL'Range loop
-            Argv.Append (SL (I));
-         end loop;
-      end Append;
+         --  When a <pre> or <post> key part is empty, we expect the
+         --  corresponding group to hold an empty string that we can
+         --  concatenate as well.
 
-      Eargs_Q : String_List_Access := Eargs;
-      --  List of eargs that remains to be added to the command line
+         return (Arg (Matches (1).First .. Matches (1).Last)
+                   & Value & Arg (Matches (2).First .. Matches (2).Last));
+      end Substitute;
+
+      M : aliased Macro_Matches;
 
    begin
-      --  Copy arguments and expand argument macros
 
-      for J in Args'Range loop
-         if Args (J).all = "$exe" then
-            Argv.Append (Executable);
+      --  Loop over the candidate macro replacements.  Substitute and
+      --  return as soon we find a match.
 
-         elsif Args (J).all = "$bin" then
-            Argv.Append (new String'(Executable.all & ".bin"));
-
-         elsif Args (J).all = "$dir_exe" then
-            Argv.Append (new String'(Containing_Directory (Executable.all)));
-
-         elsif Args (J).all = "$base_bin" then
-            Argv.Append (new String'(Simple_Name (Executable.all) & ".bin"));
-
-         elsif Args (J).all = "$trace" then
-            if Histmap_Filename /= null then
-               Argv.Append (new String'("histmap=" & Histmap_Filename.all
-                                          & ',' & Trace_Output.all));
-            elsif MCDC_Coverage_Enabled then
-               Argv.Append (new String'("history," & Trace_Output.all));
-            else
-               Argv.Append (Trace_Output);
-            end if;
-         elsif Args (J).all = "$eargs" then
-
-            if Eargs_Q /= null then
-               Append (Argv, Eargs_Q);
-               Eargs_Q := null;
-            end if;
-         else
-            Argv.Append (Args (J));
+      for I in SMtable'Range loop
+         if Match (Arg, SMtable (I).Key.all, M'Access) then
+            return new String'
+              (Substitute (M, Arg, SMtable (I).Eval.all));
          end if;
       end loop;
 
-      --  If we had eargs to pass and didn't have a macro to place them
-      --  specifically, add them at the end
-
-      if Eargs_Q /= null then
-         Append (Argv, Eargs_Q);
-      end if;
-
-      --  Now convert the vector into a String_List and return
-
-      declare
-         Result : String_List (1 .. Integer (Argv.Length));
-      begin
-         for I in Argv.First_Index .. Argv.Last_Index loop
-            Result (I) := Argv (I);
-         end loop;
-         return Result;
-      end;
-
-   end Expand_Arguments;
+      return null;
+   end Try_Expand;
 
    -----------------
    -- Run_Command --

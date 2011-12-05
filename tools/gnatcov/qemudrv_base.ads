@@ -53,13 +53,13 @@ package Qemudrv_Base is
                                        new String'("n"),
                                        new String'("-no-reboot"),
                                        new String'("-L"),
-                                       new String'("$dir_exe"),
+                                       new String'("%dir_exe"),
                                        new String'("-bios"),
                                        new String'("-"),
                                        new String'("-kernel"),
-                                       new String'("$exe"),
+                                       new String'("%exe"),
                                        new String'("-exec-trace"),
-                                       new String'("$trace"))
+                                       new String'("%trace"))
       ),
       (Target => new String'("qemu-sbc834x"),
        Build_Command => null,
@@ -70,9 +70,9 @@ package Qemudrv_Base is
                                        new String'("SBC834x"),
                                        new String'("-no-reboot"),
                                        new String'("-kernel"),
-                                       new String'("$exe"),
+                                       new String'("%exe"),
                                        new String'("-exec-trace"),
-                                       new String'("$trace"))
+                                       new String'("%trace"))
       ),
       (Target => new String'("leon-elf"),
        Build_Command => null,
@@ -82,9 +82,9 @@ package Qemudrv_Base is
                                        new String'("-M"),
                                        new String'("at697"),
                                        new String'("-kernel"),
-                                       new String'("$exe"),
+                                       new String'("%exe"),
                                        new String'("-exec-trace"),
-                                       new String'("$trace"))
+                                       new String'("%trace"))
 
       ),
       (Target => new String'("erc32-elf"),
@@ -95,9 +95,9 @@ package Qemudrv_Base is
                                        new String'("-M"),
                                        new String'("tsc695"),
                                        new String'("-kernel"),
-                                       new String'("$exe"),
+                                       new String'("%exe"),
                                        new String'("-exec-trace"),
-                                       new String'("$trace"))
+                                       new String'("%trace"))
 
       ),
       (Target => new String'("i386-pok"),
@@ -115,15 +115,15 @@ package Qemudrv_Base is
                                        new String'("a"),
                                        new String'("-nographic"),
                                        new String'("-exec-trace"),
-                                       new String'("$trace"))
+                                       new String'("%trace"))
       ),
       (Target => new String'("i386-linux"),
        Build_Command => null,
        Build_Options => null,
        Run_Command => new String'("qemu-i386"),
        Run_Options => new String_List'(new String'("-exec-trace"),
-                                       new String'("$trace"),
-                                       new String'("$exe"))
+                                       new String'("%trace"),
+                                       new String'("%exe"))
       ),
       (Target => new String'("prepare"),
        Build_Command => null,
