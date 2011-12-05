@@ -699,30 +699,21 @@ package body Decision_Map is
                   if D_Occ.Last_Cond_Index = Condition_Index'First
                     and then Edge_Info.Dest_Kind = Outcome
                     and then Edge = Edge_Kind'Last
+                    and then Known_Outcome (False).Is_Empty
+                    and then Known_Outcome (True).Is_Empty
                   then
-                     for J in Boolean'Range loop
-                        if Known_Outcome (J).Contains
-                             (Edge_Info.Destination)
-                        then
-                           exit;
+                     Set_Degraded_Origins (D_Occ.Decision);
+                     Known_Outcome (True).Include (Edge_Info.Destination);
 
-                        elsif Known_Outcome (J).Is_Empty then
-                           Set_Degraded_Origins (D_Occ.Decision);
-                           Known_Outcome (J).Include (Edge_Info.Destination);
+                     --  Both edges from this conditional branch instruction
+                     --  are (distinct) outcomes, and we arbitrarily decide
+                     --  that this one is the one for outcome True. So, if the
+                     --  outcome for origin True is True, then the origin for
+                     --  for this edge is True, else it is False.
 
-                           --  Both edges from this conditional branch
-                           --  instruction are (distinct) outcomes, and we
-                           --  arbitrarily decide that this one is the one for
-                           --  outcome J. If the outcome for origin True is
-                           --  also J, then the origin for this edge is True,
-                           --  else it is False.
-
-                           Set_Known_Origin
-                             (Cond_Branch_PC, CBI, Edge,
-                              Outcome (CBI.Condition, True) = To_Tristate (J));
-                           exit;
-                        end if;
-                     end loop;
+                     Set_Known_Origin
+                       (Cond_Branch_PC, CBI, Edge,
+                        Outcome (CBI.Condition, True) = To_Tristate (True));
                   end if;
                end if;
             end;
