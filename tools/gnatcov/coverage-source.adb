@@ -472,7 +472,14 @@ package body Coverage.Source is
             Propagating := True;
 
             Dominant (S_SCO, Dom_SCO, Dom_Val);
-            if Dom_SCO /= No_SCO_Id and then Kind (Dom_SCO) = Decision then
+            if Dom_SCO /= No_SCO_Id
+                 and then Kind (Dom_SCO) = Decision
+                 and then not Degraded_Origins (Dom_SCO)
+            then
+               Report
+                 (Msg  => "propagating from " & Image (S_SCO) & " to "
+                          & Image (Dom_SCO) & "=" & Dom_Val'Img,
+                  Kind => Notice);
                SCI_Vector.Update_Element (Dom_SCO, Set_Outcome_Taken'Access);
             end if;
 
@@ -560,6 +567,11 @@ package body Coverage.Source is
 
                   SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
 
+                  Report (Exe, PC,
+                    Msg  => "outcome " & CBE.Outcome'Img & " of "
+                            & Image (D_SCO) & " reached by " & E'Img,
+                    Kind => Notice);
+
                   --  Processing full evaluation history is costly, and
                   --  requires full traces of conditional branches, so we
                   --  do it only when actually required.
@@ -605,8 +617,7 @@ package body Coverage.Source is
                      end if;
                   end if;
 
-                  pragma Assert
-                    (Eval.Next_Condition = No_Condition_Index);
+                  pragma Assert (Eval.Next_Condition = No_Condition_Index);
 
                   Eval.Outcome := CBE.Outcome;
                   SCI.Evaluations.Include (Eval);
