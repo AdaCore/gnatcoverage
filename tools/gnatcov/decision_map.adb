@@ -1103,6 +1103,11 @@ package body Decision_Map is
                      Edge_Info.Outcome := To_Tristate (Dom_Val);
                      return;
                   end if;
+
+                  --  Here if we reached a decision other than the one being
+                  --  evaluated.
+
+                  exit when Kind (Dom_SCO) /= Statement;
                end loop;
             end;
          end if;
