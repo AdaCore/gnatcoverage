@@ -1086,17 +1086,24 @@ package body Decision_Map is
                --  Dominance information for statement SCO at Next_PC
 
             begin
-               Dominant (Next_PC_SCO, Dom_SCO, Dom_Val);
-               if Dom_SCO /= No_SCO_Id
-                 and then Dom_SCO = Enclosing_Decision (CBI.Condition)
-               then
-                  --  This edge branches to a statement dominated by CBI's
-                  --  decision being evaluated to Dom_Val.
+               --  Walk back through all statement dominants, stop on decision
+               --  dominant or when no dominant information is available.
 
-                  Edge_Info.Dest_Kind := Outcome;
-                  Edge_Info.Outcome := To_Tristate (Dom_Val);
-                  return;
-               end if;
+               Dom_SCO := Next_PC_SCO;
+               loop
+                  Dominant (Dom_SCO, Dom_SCO, Dom_Val);
+                  exit when Dom_SCO = No_SCO_Id;
+
+                  if Dom_SCO = Enclosing_Decision (CBI.Condition) then
+
+                     --  Here if this edge branches to a statement dominated by
+                     --  CBI's decision being evaluated to Dom_Val.
+
+                     Edge_Info.Dest_Kind := Outcome;
+                     Edge_Info.Outcome := To_Tristate (Dom_Val);
+                     return;
+                  end if;
+               end loop;
             end;
          end if;
 
