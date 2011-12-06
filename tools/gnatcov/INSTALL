@@ -1,0 +1,34 @@
+===================================================
+== INSTALL - binary distribution                 ==
+== (zip or tar.gz archive with -bin in the name) ==
+===================================================
+
+If you have a bash command shell or alike available, just run the "doinstall"
+script and follow the instructions.
+
+The script will ask you for the location of a place (aka prefix) where it will
+transfer the contents of a "bin" and of a "shared" subdirectory.
+
+A typical prefix is the root of your compilation toolchain install tree, where
+you can copy the subdirectory contents by other means if you don't have a bash
+like environment available.
+
+=========================================================
+== INSTALL - source distribution                       ==
+== (repo, zip or tar.gz archive with -src in the name) ==
+=========================================================
+
+If you retrieved this README from a source distribution 
+
+  * Sources of the front-end straight at hand, together with this README
+    and a Makefile;
+
+  * Examples and the documentation in the "examples" and "doc" subdirectories
+    respectively.
+
+To build the gnatcov binary, just invoke "make". This requires an Ada 2005
+capable compiler and the Makefile resorts to GNAT for this purpose.
+
+To build pdf and other versions of the documentation, invoke "make doc".
+
+Then, to install, make install PREFIX=<your-prefix>

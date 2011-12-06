@@ -1,76 +1,20 @@
 PACKAGE CONTENTS
 ================
 
-This package provides the gnatcov front-end to coverage analysis activities.
-It may be used both as a wrapper to an instrumented execution environment able
-to produce machine-level execution traces (gnatcov run) and as a trace
-analyzer able to render coverage results in various output formats (gnatcov
-coverage).
+This package provides the gnatcov front-end to coverage analysis activities, 
+to be used as:
 
-Instrumented execution environments are provided as separate packages. As of
-today, we leverage instrumented versions of Qemu, an open source processor
-emulator.
+* a wrapper to an instrumented execution environment able
+  to produce execution traces (gnatcov run), and 
 
-As part of the examples subdirectory, the package also includes:
+* a trace analyzer able to render coverage results in various
+  output formats (gnatcov coverage).
 
-* A light Qemu Board Support Package to link with your executable to let
-  it run within the emulated environment,
+Instrumented execution environments are provided as part of the
+GNATemulator separate product line.
 
-* A couple of very basic library components for Ada (simple IO, memory
-  copy/set/compare, ...) in case they are not available otherwise,
-
-* A number of example programs you can exercise to get familiar with the
-  toolset, with Makefiles to illustrate build/run/analyze sequences.
-
-The "Explore" example is introduced in the user's guide and used for
-illustration purposes there. It features both an interactive program and AUnit
-based tests for some of the program units.
-
-The "Engines" example is used to provide a quick first contact with the
-tools, through the QUICK START section below.
-
-INSTALL - binary distribution
-=============================
-
-If you retrieved this README from a binary distribution (zip or tar.gz archive
-with -bin in the name), you have
-
-  * An <unpack-subdir>/share subdirectory with the doc and examples;
-
-  * An <unpack-subdir>/bin subdirectory with the "gnatcov" program.
-
-The gnatcov binary is standalone, so you may access it by simply adjusting
-your PATH environment variable. A prerequisite to using gnatcov run is to have
-the instrumented environment available already.
-
-If this is more convenient for you, you may transfer the contents of the
-"shared" and "bin" subdirectories into their corresponding entries within a
-pre-existing installation tree, where a compiler toolset is located for
-instance.
-
-INSTALL - source distribution
-=============================
-
-If you retrieved this README from a source distribution (repository, zip or
-tar.gz archive with -src in the name), you have
-
-  * Sources of the front-end straight at hand, together with this README
-    and a Makefile;
-
-  * Examples and the documentation in the "examples" and "doc" subdirectories
-    respectively.
-
-To build the gnatcov binary, just invoke "make". This requires an Ada 2005
-capable compiler and the Makefile resorts to GNAT for this purpose.
-
-To build pdf and other versions of the documentation, invoke "make doc".
-
-QUICK START - OBJECT COVERAGE
-=============================
-
-A quick starter is the "engines" basic example, assuming you have installed
-your target compilation toolchain, this package, and the target GNATemulator
-package.
+QUICK START - SOURCE COVERAGE (statement, decision, or mcdc analysis)
+=====================================================================
 
 The first step is to setup the PATH environment variable to include locations
 for both the target compiler and the gnatcov/emulator "bin" directory. For
@@ -78,65 +22,89 @@ example with a bash like shell:
 
   $ PATH=/usr/local/gnat/6.4.2/bin:/usr/local/gnatcov/bin:$PATH
 
-Then switch to the "engines" example directory and exercise the
-"test_engines" test there for your target, thanks to the local Makefile:
+To perform source coverage analysis, you first need to build your application
+with the "-g -fpreserve-control-flow" compilation options, plus "-gnateS" for
+Ada and "-fdump-scos" for C. Optimization is supported up to -O1, with inlining
+allowed.
+
+Once your application is built, the analysis proceeds in two steps.
+Essentially:
+
+  1) gnatcov run --target=<target> <yourapp.elf>
+
+     runs you application within the instrumented environment, producing
+     <yourapp.trace>
+
+  2) gnatcov coverage --level=<criterion> --scos=@<ALIs> 
+     --annotate=<report-format> <yourapp.trace>
+
+     producing a coverage report from the execution trace, focused on
+     units provided as a list of ALI files for Ada and GLI files for C.
+     (both containing set of so called Source Coverage Obligations).
+
+For example, to obtain 
+ 
+  (a) a statement coverage report
+  (b) in html format, focused on ...
+  (c) two Ada units u1.adb and u2.adb, exercized by a ...
+  (d) program compiled into utest.elf, for a ...
+  (e) powerpc-elf target, 
+
+you would do:
+ 
+  1) gnatcov run --target=powerpc-elf utest.elf
+                        (e)              (d)
+
+  2) <to focus on u1 and u2 in particular, write a "ualis" file with
+      this contents:
+      u1.ali
+      u2.ali
+     > (c), then:
+
+     gnatcov coverage --level=stmt --annotate=html --scos=@ualis utest.trace
+                            (a)           (b)           (c)          (d)
+
+For mcdc analysis, you must pass the --level (=stmt+mcdc) and the --scos
+options to gnatcov run as well.
+ 
+This package provides examples with Makefiles that automate the full process
+to illustrate it on sample programs, including the build sequence using a
+local BSP for GNATemulator.
+ 
+A quick starter is the "engines" example, very simple, which you can execise
+by just switching to the "engines" subdirectory and typing
 
   engines $ make TARGET=powerpc-elf
 
-Or if you want to test on a Leon board (sparc based):
+The local Makefile (in the engines subdirectory) includes a generic Makefile
+common to all the examples, and you may run & try the other ones similarily.
 
-  engines $ make TARGET=leon-elf
-
-This performs a build/run/analyze sequence out of which object coverage
-results rendered in sources are produced in html format, browsable from
-an index page in index-test_engines.html.
-
-Here is a brief description of what is going on:
-
-# Step 1:  Build an executable program suitable for GNATemulator. This is
-# -------  a regular Ada build with a couple of extra bsp components for
-#          startup, io & a dedicated linker script:
-
-powerpc-elf-gcc -c -o start.o ../support/powerpc-elf/start.s
-...
-powerpc-elf-gcc -c -g -O1 -fpreserve-control-flow test_engines.adb
-...
-
-# Step 2:  Run the executable program within the instrumented Qemu
-# -------  to get an execution '.trace' file:
-
-gnatcov run --target=powerpc-elf --level=branch test_engines
-
-# Step 3:  Ask gnatcov to analyze the trace and produce an html version of
-# -------  the results, with object coverage branch info rendered on source:
-
-gnatcov coverage --level=branch --annotate=html+ test_engines.trace
-mv index.html index-test_engines.html
-
-The local Makefile actually just includes a generic Makefile, common to all
-the examples and which you may reuse and adapt to your specific needs.
-
-QUICK START - SOURCE COVERAGE
+QUICK START - OBJECT COVERAGE
 =============================
 
-Source coverage analysis involves a similar process, with few differences:
+The object coverage analysis process is similar to the source coverage
+analysis one, with only few differences:
 
-* It is requested by specific values of the --level argument: stmt,
-  stmt+decision or stmt+mcdc ;
+* Object coverage criteria are requested by specific values of the --level
+  argument to gnatcov coverage: "insn" or "branch" for "object
+  instruction/branch coverage", respectively ;
 
-* Sources should be compiled with -g -fpreserve-control-flow -gnateS,
-  and up to -O1 -gnat for optimizations.
+* Sources need not be compiled with particular options. When your binary
+  executables are produced with options suitable for source coverage analysis,
+  you can perform object and source analysis from the same traces.
 
-* The list of units for which analysis is desired needs to be passed as
-  a list of ALIs with the '--scos' option to both gnatcov run and coverage,
-  for instance via a response file (--scos=@file_with_list_of_ALIs)
+* The --scos option, required for source coverage, needs to be removed.
+  There there is no Source Coverage Obligation for object coverage criteria.
 
-This can be exercised for our examples by passing an extra XCOVLEVEL
-argument to 'make' invocations, for example 'make XCOVLEVEL=stmt'.
+* The --routines option is available in gnatcov coverage to focus your 
+  reports on a partcular set of symbols.
+ 
+Object coverage can be exercised for our examples by passing an extra
+XCOVLEVEL argument to 'make' invocations, for example 'make XCOVLEVEL=insn'.
 
 FURTHER DOCUMENTATION
 =====================
 
-Further documentation is available from the "GNATcoverage User's Guide"
-in the <unpack/installation-root>/share/doc/xcov directory of this package.
+Further documentation is available from the "GNATcoverage User's Guide" in the
+<unpack/installation-root>/share/doc/gnatcoverage directory of this package.
 

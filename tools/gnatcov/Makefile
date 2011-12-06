@@ -64,7 +64,7 @@ clean:
 # Installation/Packaging #
 ##########################
 
-.PHONY: install
+.PHONY: install distrib
 install:
 	$(MKDIR) $(PREFIX)/bin
 	$(MKDIR) $(PREFIX)/share/examples/$(DIRNAME)
@@ -73,7 +73,6 @@ install:
 	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/pdf
 	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/info
 	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/txt
-	$(CP) README $(PREFIX)
 	$(CP) $(PGMNAME)$(exeext) $(PREFIX)/bin
 	$(CP) -r examples/* $(PREFIX)/share/examples/$(DIRNAME)
 	$(CP) -r doc/*.html $(PREFIX)/share/doc/$(DIRNAME)/html
@@ -81,4 +80,10 @@ install:
 	$(CP) -r doc/*.txt  $(PREFIX)/share/doc/$(DIRNAME)/txt
 	$(CP) -r doc/*.info $(PREFIX)/share/doc/$(DIRNAME)/info
 
+distrib: install
+	$(CP) README INSTALL $(PREFIX)
+	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
+	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
+        doinstall.tmplt > $(PREFIX)/doinstall
+	chmod +x $(PREFIX)/doinstall
 force:
