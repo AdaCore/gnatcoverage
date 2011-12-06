@@ -1,7 +1,15 @@
 ===================================================
 == INSTALL - binary distribution                 ==
-== (zip or tar.gz archive with -bin in the name) ==
 ===================================================
+
+.exe with -bin in the name, for Windows environments only
+---------------------------------------------------------
+
+The .exe version holds an installshield helper. Just double-click on the
+.exe file and follow the instructions.
+
+.zip or tar.gz archive with -bin in the name
+--------------------------------------------
 
 If you have a bash command shell or alike available, just run the "doinstall"
 script and follow the instructions.
