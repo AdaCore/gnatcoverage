@@ -17,13 +17,16 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO;       use Ada.Text_IO;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Strings.Unbounded;
+with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Regpat; use GNAT.Regpat;
 
 with Diagnostics; use Diagnostics;
 with Files_Table; use Files_Table;
 with Get_SCOs;
+with Outputs;     use Outputs;
 with Switches;    use Switches;
 
 package body ALI_Files is
@@ -159,7 +162,7 @@ package body ALI_Files is
       --  the Exempt_Off message must be either empty or identical to the
       --  Exempt_On one.
 
-   --  Start of processing for Load_SCOs_From_ALI
+   --  Start of processing for Load_ALI
 
    begin
       --  First check whether this ALI has been already loaded. We identify
@@ -174,6 +177,37 @@ package body ALI_Files is
 
       ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => True);
       Open (ALI_File, In_File, ALI_Filename);
+
+      --  Check first line
+
+      declare
+         use Ada.Strings.Unbounded;
+
+         V_Line    : constant String := Get_Line (ALI_File);
+         V_Regexp  : constant String := "^V ""(.*)""$";
+         V_Matcher : constant Pattern_Matcher := Compile (V_Regexp);
+
+         Error_Msg : Unbounded_String;
+      begin
+         Match (V_Matcher, V_Line, Matches);
+         if Matches (0) = No_Match then
+            Error_Msg :=
+              To_Unbounded_String
+                ("malformed ALI file """ & ALI_Filename & """");
+
+            if V_Line'Length > 3
+                 and then
+               To_Lower (V_Line (V_Line'Last - 3 .. V_Line'Last)) = ".ali"
+            then
+               Append
+                 (Error_Msg,
+                  ASCII.LF
+                  & "to load ALIs from list use ""--scos=@"
+                  & ALI_Filename & """");
+            end if;
+            Fatal_Error (To_String (Error_Msg));
+         end if;
+      end;
 
       --  Here once the ALI file has been succesfully opened
 

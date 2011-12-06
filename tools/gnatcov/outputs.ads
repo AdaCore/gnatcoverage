@@ -39,10 +39,11 @@ package Outputs is
    --  Display Msg on stderr and set exit status to failure
 
    procedure Fatal_Error (Msg : String);
-   --  Same as Error, and cause Xcov to terminate by raising Fatal_Error_Exc.
+   pragma No_Return (Fatal_Error);
+   --  Same as Error, and cause Xcov to terminate by raising Fatal_Error_Exc
 
    procedure Normal_Exit;
-   --  Cause Xcov to terminate. exit status OK.
+   --  Cause Xcov to terminate. exit status OK
 
    -----------------------
    -- Annotated sources --
