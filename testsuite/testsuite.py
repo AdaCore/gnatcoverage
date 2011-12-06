@@ -330,7 +330,7 @@ class TestSuite:
 
         ReportDiff(
             self.log_dir, self.options.old_res
-            ).txt_image('rep_couverture')
+            ).txt_image('rep_gnatcov')
 
     # ------------------
     # -- run_testcase --
