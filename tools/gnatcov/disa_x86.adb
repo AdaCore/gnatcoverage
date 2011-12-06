@@ -25,6 +25,7 @@
 with Interfaces; use Interfaces;
 
 package body Disa_X86 is
+
    subtype Byte is Interfaces.Unsigned_8;
    type Bf_2 is mod 2 ** 2;
    type Bf_3 is mod 2 ** 3;
@@ -42,7 +43,8 @@ package body Disa_X86 is
       C_0F,
       C_Lock,
 
-      --  Start of Modrm.
+      --  Start of Modrm
+
       C_Eb,
       C_Ep,
       C_Ev,
@@ -61,9 +63,10 @@ package body Disa_X86 is
       C_Mq,
       C_Ms,
       C_M,
-      --  End of modrm.
 
-      C_Rv_Mw, --  FIXME
+      --  End of Modrm
+
+      C_Rv_Mw, --  FIXME???
 
       C_Gw,
       C_Gz,
@@ -124,10 +127,11 @@ package body Disa_X86 is
 
    subtype Modrm_Code is Code_Type range C_Eb .. C_M;
 
-   --  Description for one instruction.
+   --  Description for one instruction
+
    type Insn_Desc_Type is record
-      --  Name of the operation.
       Name : String8;
+      --  Name of the operation
 
       Dst, Src : Code_Type;
    end record;
@@ -824,7 +828,8 @@ package body Disa_X86 is
       7 => ("        ", C_None, C_None)
      );
 
-   --  Standard widths of operations.
+   --  Standard widths of operations
+
    type Width_Array_Type is array (Width_Type) of Character;
    Width_Char : constant Width_Array_Type :=
      (W_None => '-', W_8 => 'b', W_16 => 'w', W_32 => 'l');
@@ -836,31 +841,44 @@ package body Disa_X86 is
    To_Z : constant To_Z_Type :=
      (W_None => W_None, W_8 => W_None, W_16 => W_16, W_32 => W_32);
 
-   --  Bits extraction from byte functions.
-   --  For a byte, MSB (most significant bit) is bit 7 while
-   --  LSB (least significant bit) is bit 0.
+   --  Bits extraction from byte functions
 
-   --  Extract bits 2, 1 and 0.
+   --  For a byte, MSB (most significant bit) is bit 7 while LSB (least
+   --  significant bit) is bit 0.
+
    function Ext_210 (B : Byte) return Bf_3;
    pragma Inline (Ext_210);
+   --  Extract bits 2, 1 and 0
 
-   --  Extract bits 5-3 of byte B.
    function Ext_543 (B : Byte) return Bf_3;
    pragma Inline (Ext_543);
+   --  Extract bits 5-3 of byte B
 
-   --  Extract bits 7-6 of byte B.
    function Ext_76 (B : Byte) return Bf_2;
    pragma Inline (Ext_76);
+   --  Extract bits 7-6 of byte B
+
+   -------------
+   -- Ext_210 --
+   -------------
 
    function Ext_210 (B : Byte) return Bf_3 is
    begin
       return Bf_3 (B and 2#111#);
    end Ext_210;
 
+   -------------
+   -- Ext_543 --
+   -------------
+
    function Ext_543 (B : Byte) return Bf_3 is
    begin
       return Bf_3 (Shift_Right (B, 3) and 2#111#);
    end Ext_543;
+
+   ------------
+   -- Ext_76 --
+   ------------
 
    function Ext_76 (B : Byte) return Bf_2 is
    begin
@@ -868,14 +886,18 @@ package body Disa_X86 is
    end Ext_76;
 
    function Ext_Modrm_Mod (B : Byte) return Bf_2 renames Ext_76;
-   function Ext_Modrm_Rm (B : Byte) return Bf_3 renames Ext_210;
+   function Ext_Modrm_Rm  (B : Byte) return Bf_3 renames Ext_210;
    function Ext_Modrm_Reg (B : Byte) return Bf_3 renames Ext_543;
-   function Ext_Sib_Base (B : Byte) return Bf_3 renames Ext_210;
+   function Ext_Sib_Base  (B : Byte) return Bf_3 renames Ext_210;
    function Ext_Sib_Index (B : Byte) return Bf_3 renames Ext_543;
    function Ext_Sib_Scale (B : Byte) return Bf_2 renames Ext_76;
 
    type Hex_Str is array (Natural range 0 .. 15) of Character;
    Hex_Digit : constant Hex_Str := "0123456789abcdef";
+
+   ----------------------
+   -- Disassemble_Insn --
+   ----------------------
 
    procedure Disassemble_Insn
      (Self     : X86_Disassembler;
@@ -891,25 +913,25 @@ package body Disa_X86 is
 
       Bad_Memory : exception;
 
-      --  Index in LINE of the next character to be written.
       Lo : Natural;
+      --  Index in LINE of the next character to be written
 
-      --  The instruction memory, 0 based.
       function Mem (Off : Pc_Type) return Byte;
+      --  The instruction memory, 0 based
 
-      --  Add NAME to the line.
       procedure Add_Name (Name : String8);
       pragma Inline (Add_Name);
+      --  Add NAME to the line
 
-      --  Add CHAR to the line.
       procedure Add_Char (C : Character);
       pragma Inline (Add_Char);
+      --  Add CHAR to the line
 
-      --  Add STR to the line.
       procedure Add_String (Str : String);
+      --  Add STR to the line
 
-      --  Add BYTE to the line.
       procedure Add_Byte (V : Byte);
+      --  Add BYTE to the line
 
       procedure Add_Comma;
       procedure Name_Align (Orig : Natural);
@@ -941,6 +963,10 @@ package body Disa_X86 is
       pragma Unreferenced (Add_Opcode);
       --  XXX
 
+      --------------
+      -- Add_Char --
+      --------------
+
       procedure Add_Char (C : Character) is
       begin
          if Lo <= Line'Last then
@@ -949,7 +975,10 @@ package body Disa_X86 is
          end if;
       end Add_Char;
 
-      --  Add STR to the line.
+      ----------------
+      -- Add_String --
+      ----------------
+
       procedure Add_String (Str : String) is
       begin
          if Lo + Str'Length <= Line'Last then
@@ -962,12 +991,19 @@ package body Disa_X86 is
          end if;
       end Add_String;
 
-      --  Add BYTE to the line.
+      --------------
+      -- Add_Byte --
+      --------------
+
       procedure Add_Byte (V : Byte) is
       begin
          Add_Char (Hex_Digit (Natural (Shift_Right (V, 4) and 16#0f#)));
          Add_Char (Hex_Digit (Natural (Shift_Right (V, 0) and 16#0f#)));
       end Add_Byte;
+
+      --------------
+      -- Add_Name --
+      --------------
 
       procedure Add_Name (Name : String8) is
       begin
@@ -977,10 +1013,18 @@ package body Disa_X86 is
          end loop;
       end Add_Name;
 
+      ---------------
+      -- Add_Comma --
+      ---------------
+
       procedure Add_Comma is
       begin
          Add_String (", ");
       end Add_Comma;
+
+      ----------------
+      -- Name_Align --
+      ----------------
 
       procedure Name_Align (Orig : Natural) is
       begin
@@ -990,8 +1034,11 @@ package body Disa_X86 is
          end loop;
       end Name_Align;
 
-      procedure Add_Opcode (Name : String8; Width : Width_Type)
-      is
+      ----------------
+      -- Add_Opcode --
+      ----------------
+
+      procedure Add_Opcode (Name : String8; Width : Width_Type) is
          L : constant Natural := Lo;
       begin
          Add_Name (Name);
@@ -1001,12 +1048,20 @@ package body Disa_X86 is
          Name_Align (L);
       end Add_Opcode;
 
+      ----------------
+      -- Add_Reg_St --
+      ----------------
+
       procedure Add_Reg_St (F : Bf_3) is
       begin
          Add_String ("%st(");
          Add_Char (Hex_Digit (Natural (F)));
          Add_Char (')');
       end Add_Reg_St;
+
+      -----------------
+      -- Add_Reg_Seg --
+      -----------------
 
       procedure Add_Reg_Seg (F : Bf_3) is
       begin
@@ -1029,6 +1084,10 @@ package body Disa_X86 is
                Add_String ("%??");
          end case;
       end Add_Reg_Seg;
+
+      -------------
+      -- Add_Reg --
+      -------------
 
       procedure Add_Reg (F : Bf_3; W : Width_Type) is
          type Reg_Name2_Array is array (Bf_3) of String (1 .. 2);
@@ -1053,6 +1112,10 @@ package body Disa_X86 is
          end case;
       end Add_Reg;
 
+      ---------
+      -- Mem --
+      ---------
+
       function Mem (Off : Pc_Type) return Byte is
       begin
          if Off not in Insn_Bin'Range then
@@ -1060,6 +1123,10 @@ package body Disa_X86 is
          end if;
          return Insn_Bin (Off);
       end Mem;
+
+      ----------------
+      -- Decode_Val --
+      ----------------
 
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type)
       is
@@ -1106,6 +1173,10 @@ package body Disa_X86 is
          end case;
       end Decode_Val;
 
+      ----------------
+      -- Decode_Imm --
+      ----------------
+
       procedure Decode_Imm (Off : in out Pc_Type; Width : Width_Type)
       is
       begin
@@ -1113,6 +1184,10 @@ package body Disa_X86 is
          Decode_Val (Off, Width);
          Off := Off + Width_Len (Width);
       end Decode_Imm;
+
+      -----------------
+      -- Decode_Disp --
+      -----------------
 
       procedure Decode_Disp (Off : Pc_Type;
                              Width : Width_Type;
@@ -1142,6 +1217,10 @@ package body Disa_X86 is
          end if;
       end Decode_Disp;
 
+      ---------------------
+      -- Decode_Disp_Rel --
+      ---------------------
+
       procedure Decode_Disp_Rel (Off : in out Pc_Type;
                                  Width : Width_Type) is
          Disp_Off : constant Pc_Type := Off;
@@ -1150,10 +1229,18 @@ package body Disa_X86 is
          Decode_Disp (Disp_Off, Width, Off);
       end Decode_Disp_Rel;
 
+      ----------------------
+      -- Decode_Modrm_Reg --
+      ----------------------
+
       procedure Decode_Modrm_Reg (B : Byte; Width : Width_Type) is
       begin
          Add_Reg (Ext_Modrm_Reg (B), Width);
       end Decode_Modrm_Reg;
+
+      ----------------
+      -- Decode_Sib --
+      ----------------
 
       procedure Decode_Sib (Sib : Byte; B_Mod : Bf_2)
       is
@@ -1189,6 +1276,10 @@ package body Disa_X86 is
          end if;
          Add_Char (')');
       end Decode_Sib;
+
+      ----------------------
+      -- Decode_Modrm_Mem --
+      ----------------------
 
       procedure Decode_Modrm_Mem (Off : Pc_Type; Width : Width_Type)
       is
@@ -1239,8 +1330,10 @@ package body Disa_X86 is
          end case;
       end Decode_Modrm_Mem;
 
-      --  Return the length of the modrm bytes.
-      --  At least 1 (mod/rm), at most 6 (mod/rm + SUB + disp32).
+      ----------------------
+      -- Decode_Modrm_Len --
+      ----------------------
+
       function Decode_Modrm_Len (Off : Pc_Type) return Pc_Type
       is
          B : Byte;
@@ -1252,8 +1345,9 @@ package body Disa_X86 is
          M_Rm := Ext_Modrm_Rm (B);
          case M_Mod is
             when 2#11# =>
-               --  Register.
+               --  Register
                return 1;
+
             when 2#10# =>
                if M_Rm = 2#100# then
                   --  SIB + disp32
@@ -1261,6 +1355,7 @@ package body Disa_X86 is
                else
                   return 1 + 4;
                end if;
+
             when 2#01# =>
                if M_Rm = 2#100# then
                   --  SIB + disp8
@@ -1268,10 +1363,12 @@ package body Disa_X86 is
                else
                   return 1 + 1;
                end if;
+
             when 2#00# =>
                if M_Rm = 2#101# then
-                  --  disp32.
+                  --  disp32
                   return 1 + 4;
+
                elsif M_Rm = 2#100# then
                   --  SIB
                   if Ext_Sib_Base (Mem (Off + 1)) = 2#101# then
@@ -1279,11 +1376,16 @@ package body Disa_X86 is
                   else
                      return 1 + 1;
                   end if;
+
                else
                   return 1;
                end if;
          end case;
       end Decode_Modrm_Len;
+
+      -----------------
+      -- Add_Operand --
+      -----------------
 
       procedure Add_Operand (C : Code_Type;
                              Off_Modrm : Pc_Type;
@@ -1403,6 +1505,10 @@ package body Disa_X86 is
          end case;
       end Add_Operand;
 
+      -------------------
+      -- Update_Length --
+      -------------------
+
       procedure Update_Length (C : Code_Type;
                                Off_Imm : in out Pc_Type;
                                W : Width_Type) is
@@ -1460,20 +1566,25 @@ package body Disa_X86 is
          end case;
       end Update_Length;
 
-      Off : Pc_Type;
+      Off       : Pc_Type;
       Off_Modrm : Pc_Type;
-      Off_Imm : Pc_Type;
-      B : Byte;
-      B1 : Byte;
-      Desc : Insn_Desc_Type;
-      Name : String8;
-      W : Width_Type := W_32;
+      Off_Imm   : Pc_Type;
+
+      B, B1 : Byte;
+
+      Desc     : Insn_Desc_Type;
+      Name     : String8;
+      W        : Width_Type := W_32;
       Src, Dst : Code_Type;
+
+   --  Start of processing for Disassemble_Insn
+
    begin
       Off := Insn_Bin'First;
       Lo := Line'First;
 
-      --  Read the first instruction byte and handle prefixes.
+      --  Read the first instruction byte and handle prefixes
+
       loop
          B := Mem (Off);
          Desc := Insn_Desc (B);
@@ -1490,19 +1601,24 @@ package body Disa_X86 is
                Add_Char (' ');
                Desc := Insn_Desc (B1);
                exit;
+
             when C_Lock =>
                Add_Name (Desc.Name);
                Add_Char (' ');
+
             when C_Prefix_Oper =>
                W := W_16;
+
             when C_0F =>
                B := Mem (Off);
                Off := Off + 1;
                Desc := Insn_Desc_0F (B);
                exit;
+
             when C_Prefix =>
-               --  TODO.
+               --  TODO???
                raise Program_Error;
+
             when others =>
                exit;
          end case;
@@ -1511,62 +1627,73 @@ package body Disa_X86 is
       case Desc.Name (1) is
          when ' ' =>
             Name := "invalid*";
-            Src := C_None;
-            Dst := C_None;
+            Src  := C_None;
+            Dst  := C_None;
+
          when '1' =>
             B1 := Mem (Off);
             Name (1 .. 3) := Group_Name_1 (Ext_543 (B1));
-            Name (4) := ' ';
-            Src := Desc.Src;
-            Dst := Desc.Dst;
+            Name (4)      := ' ';
+            Src           := Desc.Src;
+            Dst           := Desc.Dst;
+
          when '2' =>
             B1 := Mem (Off);
             Name (1 .. 3) := Group_Name_2 (Ext_543 (B1));
-            Name (4) := ' ';
-            Src := Desc.Src;
-            Dst := Desc.Dst;
+            Name (4)      := ' ';
+            Src           := Desc.Src;
+            Dst           := Desc.Dst;
+
          when '3' =>
-            B1 := Mem (Off);
-            Dst := Desc.Dst;
+            B1   := Mem (Off);
+            Dst  := Desc.Dst;
             Desc := Insn_Desc_G3 (Ext_543 (B1));
             Name := Desc.Name;
+
             if B = 16#F6# then
                Src := Desc.Dst;
             else
                Src := Desc.Src;
             end if;
+
          when '4' =>
-            B1 := Mem (Off);
+            B1   := Mem (Off);
             Desc := Insn_Desc_G4 (Ext_543 (B1));
             Name := Desc.Name;
-            Src := Desc.Src;
-            Dst := Desc.Dst;
+            Src  := Desc.Src;
+            Dst  := Desc.Dst;
+
          when '5' =>
-            B1 := Mem (Off);
+            B1   := Mem (Off);
             Desc := Insn_Desc_G5 (Ext_543 (B1));
             Name := Desc.Name;
-            Src := Desc.Src;
-            Dst := Desc.Dst;
+            Src  := Desc.Src;
+            Dst  := Desc.Dst;
+
          when '6' =>
-            B1 := Mem (Off);
+            B1   := Mem (Off);
             Desc := Insn_Desc_G6 (Ext_543 (B1));
             Name := Desc.Name;
-            Src := Desc.Src;
-            Dst := Desc.Dst;
+            Src  := Desc.Src;
+            Dst  := Desc.Dst;
+
          when '7' =>
             B1 := Mem (Off);
             Desc := Insn_Desc_G7 (Ext_543 (B1));
             Name := Desc.Name;
-            Src := Desc.Src;
-            Dst := Desc.Dst;
+            Src  := Desc.Src;
+            Dst  := Desc.Dst;
+
          when 'E' =>
             Name (1) := 'E';
-            Src := C_M;
-            Dst := C_None;
+            Src      := C_M;
+            Dst      := C_None;
+
          when 'a' .. 'z' =>
             Name := Desc.Name;
-            Src := Desc.Src;
-            Dst := Desc.Dst;
+            Src  := Desc.Src;
+            Dst  := Desc.Dst;
+
          when others =>
             raise Program_Error with "disa_x86 unhandled name " & Desc.Name;
       end case;
@@ -1582,8 +1709,8 @@ package body Disa_X86 is
          B1 := Mem (Off);
          if Ext_Modrm_Mod (B1) /= 2#11# then
             Desc := Insn_Desc_Esc (Bf_3 (B and 2#111#), Ext_Modrm_Reg (B1));
-            Dst := Desc.Dst;
-            Src := C_None;
+            Dst  := Desc.Dst;
+            Src  := C_None;
             Name := Desc.Name;
          else
             case Bf_3 (B and 2#111#) is
@@ -1632,6 +1759,7 @@ package body Disa_X86 is
 
       Line_Pos := Lo;
       Insn_Len := Natural (Off_Imm - Insn_Bin'First);
+
    exception
       when Bad_Memory =>
          Add_String ("[truncated]");
@@ -1639,18 +1767,27 @@ package body Disa_X86 is
          Insn_Len := Insn_Bin'Length;
    end Disassemble_Insn;
 
+   ---------------------
+   -- Get_Insn_Length --
+   ---------------------
+
    function Get_Insn_Length
      (Self     : X86_Disassembler;
       Insn_Bin : Binary_Content) return Positive
    is
-      Line : String (1 .. 0);
+      Line     : String (1 .. 0);
       Line_Pos : Natural;
-      Res : Natural;
+      Len      : Natural;
+
    begin
-      Disassemble_Insn (Self, Insn_Bin, Insn_Bin'First,
-                        Line, Line_Pos, Res, Nul_Symbolizer);
-      return Res;
+      Disassemble_Insn
+        (Self, Insn_Bin, Insn_Bin'First, Line, Line_Pos, Len, Nul_Symbolizer);
+      return Len;
    end Get_Insn_Length;
+
+   -------------------------
+   -- Get_Insn_Properties --
+   -------------------------
 
    procedure Get_Insn_Properties
      (Self        : X86_Disassembler;
@@ -1667,7 +1804,13 @@ package body Disa_X86 is
       pragma Unreferenced (Dest);
       pragma Unreferenced (Fallthrough);
       B, B1 : Byte;
+
    begin
+      --  Make sure OUT parameters have a valid value
+
+      Dest        := No_PC;
+      Fallthrough := No_PC;
+
       B := Insn_Bin (Insn_Bin'First);
 
       case B is
@@ -1675,8 +1818,8 @@ package body Disa_X86 is
            | 16#E0# .. 16#E2#
            | 16#E3# =>
             --  Jcc Jb / Loop Jb / jrcxz
-            Branch := Br_Jmp;
-            Flag_Cond := True;
+            Branch     := Br_Jmp;
+            Flag_Cond  := True;
             Flag_Indir := False;
             --  FIXME: Dest and Fallthrough
             return;
@@ -1685,8 +1828,8 @@ package body Disa_X86 is
             B := Insn_Bin (Insn_Bin'First + 1);
             if B in 16#80# .. 16#8F# then
                --  Jcc Jz
-               Branch := Br_Jmp;
-               Flag_Cond := True;
+               Branch     := Br_Jmp;
+               Flag_Cond  := True;
                Flag_Indir := False;
                --  FIXME: Dest and Fallthrough
             else
@@ -1699,16 +1842,16 @@ package body Disa_X86 is
            | 16#CA#  --  retf
            | 16#CB#
            | 16#CF# =>  -- iret
-            Branch := Br_Ret;
-            Flag_Cond := False;
+            Branch     := Br_Ret;
+            Flag_Cond  := False;
             Flag_Indir := True;
             return;
 
          when 16#E8#
            | 16#9A# =>
             --  Call / callf
-            Branch := Br_Call;
-            Flag_Cond := False;
+            Branch     := Br_Call;
+            Flag_Cond  := False;
             Flag_Indir := False;
             --  FIXME: Dest and Fallthrough
             return;
@@ -1717,8 +1860,8 @@ package body Disa_X86 is
            | 16#EA#
            | 16#EB# =>
             --  jmp
-            Branch := Br_Jmp;
-            Flag_Cond := False;
+            Branch     := Br_Jmp;
+            Flag_Cond  := False;
             Flag_Indir := False;
             --  FIXME: Dest and Fallthrough
             return;
@@ -1728,16 +1871,18 @@ package body Disa_X86 is
             case Ext_543 (B1) is
                when 2#010# | 2#011# =>
                   --  call / callf
-                  Branch := Br_Call;
-                  Flag_Cond := False;
+                  Branch     := Br_Call;
+                  Flag_Cond  := False;
                   Flag_Indir := True;
                   return;
+
                when 2#100# | 2#101# =>
                   --  jmp / jmpf
-                  Branch := Br_Jmp;
-                  Flag_Cond := False;
+                  Branch     := Br_Jmp;
+                  Flag_Cond  := False;
                   Flag_Indir := True;
                   return;
+
                when others =>
                   null;
             end case;
