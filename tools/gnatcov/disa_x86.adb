@@ -858,6 +858,20 @@ package body Disa_X86 is
    pragma Inline (Ext_76);
    --  Extract bits 7-6 of byte B
 
+   Bad_Memory : exception;
+
+   type Mem_Read is access function (Off : Pc_Type) return Byte;
+
+   function Decode_Val
+     (Mem   : Mem_Read;
+      Off   : Pc_Type;
+      Width : Width_Type)
+     return Unsigned_32;
+   --  Decode values in instruction. Addresses are relative to
+   --  a certain PC and Mem is a function that reads one byte at
+   --  an offset from this PC, and Off is the offset of the value to
+   --  decode.
+
    -------------
    -- Ext_210 --
    -------------
@@ -895,6 +909,43 @@ package body Disa_X86 is
    type Hex_Str is array (Natural range 0 .. 15) of Character;
    Hex_Digit : constant Hex_Str := "0123456789abcdef";
 
+   ----------------
+   -- Decode_Val --
+   ----------------
+
+   function Decode_Val
+     (Mem   : Mem_Read;
+      Off   : Pc_Type;
+      Width : Width_Type)
+     return Unsigned_32
+   is
+      V : Unsigned_32;
+   begin
+      case Width is
+         when W_8 =>
+            V := Unsigned_32 (Mem (Off));
+            --  Sign extension.
+
+            if V >= 16#80# then
+               V := 16#Ffff_Ff00# or V;
+            end if;
+            return V;
+
+         when W_16 =>
+            return Shift_Left (Unsigned_32 (Mem (Off + 1)), 8)
+              or Unsigned_32 (Mem (Off));
+
+         when W_32 =>
+            return  Shift_Left (Unsigned_32 (Mem (Off + 3)), 24)
+              or Shift_Left (Unsigned_32 (Mem (Off + 2)), 16)
+              or Shift_Left (Unsigned_32 (Mem (Off + 1)), 8)
+              or Shift_Left (Unsigned_32 (Mem (Off + 0)), 0);
+
+         when W_None =>
+            raise Program_Error;
+      end case;
+   end Decode_Val;
+
    ----------------------
    -- Disassemble_Insn --
    ----------------------
@@ -910,8 +961,6 @@ package body Disa_X86 is
    is
       pragma Unreferenced (Self);
       pragma Unreferenced (Pc);
-
-      Bad_Memory : exception;
 
       Lo : Natural;
       --  Index in LINE of the next character to be written
@@ -939,8 +988,6 @@ package body Disa_X86 is
       procedure Add_Reg_St (F : Bf_3);
       procedure Add_Reg_Seg (F : Bf_3);
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type);
-      function Decode_Val (Off : Pc_Type; Width : Width_Type)
-                          return Unsigned_32;
       procedure Decode_Imm (Off : in out Pc_Type; Width : Width_Type);
       procedure Decode_Disp (Off : Pc_Type;
                              Width : Width_Type;
@@ -1147,32 +1194,6 @@ package body Disa_X86 is
          end case;
       end Decode_Val;
 
-      function Decode_Val (Off : Pc_Type; Width : Width_Type)
-                          return Unsigned_32
-      is
-         V : Unsigned_32;
-      begin
-         case Width is
-            when W_8 =>
-               V := Unsigned_32 (Mem (Off));
-               --  Sign extension.
-               if V >= 16#80# then
-                  V := 16#Ffff_Ff00# or V;
-               end if;
-               return V;
-            when W_16 =>
-               return Shift_Left (Unsigned_32 (Mem (Off + 1)), 8)
-                 or Unsigned_32 (Mem (Off));
-            when W_32 =>
-               return  Shift_Left (Unsigned_32 (Mem (Off + 3)), 24)
-                 or Shift_Left (Unsigned_32 (Mem (Off + 2)), 16)
-                 or Shift_Left (Unsigned_32 (Mem (Off + 1)), 8)
-                 or Shift_Left (Unsigned_32 (Mem (Off + 0)), 0);
-            when W_None =>
-               raise Program_Error;
-         end case;
-      end Decode_Val;
-
       ----------------
       -- Decode_Imm --
       ----------------
@@ -1198,7 +1219,7 @@ package body Disa_X86 is
          Off_Orig : constant Pc_Type := Off;
       begin
          L := Lo;
-         V := Decode_Val (Off, Width) + Offset;
+         V := Decode_Val (Mem'Unrestricted_Access, Off, Width) + Offset;
          Sym.Symbolize (V, Line, Lo);
          if L /= Lo then
             if V = 0 then
@@ -1799,17 +1820,27 @@ package body Disa_X86 is
       Dest        : out Pc_Type;
       Fallthrough : out Pc_Type)
    is
-      pragma Unreferenced (Self);
-      pragma Unreferenced (Pc);
-      pragma Unreferenced (Dest);
-      pragma Unreferenced (Fallthrough);
       B, B1 : Byte;
+
+      function Mem (Off : Pc_Type) return Byte;
+
+      ---------
+      -- Mem --
+      ---------
+
+      function Mem (Off : Pc_Type) return Byte is
+      begin
+         if Off > Insn_Bin'Length  then
+            raise Bad_Memory;
+         end if;
+         return Insn_Bin (Insn_Bin'First + Off);
+      end Mem;
 
    begin
       --  Make sure OUT parameters have a valid value
 
       Dest        := No_PC;
-      Fallthrough := No_PC;
+      Fallthrough := Pc + Pc_Type (Get_Insn_Length (Self, Insn_Bin));
 
       B := Insn_Bin (Insn_Bin'First);
 
@@ -1821,7 +1852,7 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := True;
             Flag_Indir := False;
-            --  FIXME: Dest and Fallthrough
+            Dest := Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
             return;
 
          when 16#0F# =>
@@ -1831,7 +1862,8 @@ package body Disa_X86 is
                Branch     := Br_Jmp;
                Flag_Cond  := True;
                Flag_Indir := False;
-               --  FIXME: Dest and Fallthrough
+               Dest :=
+                 Fallthrough + Decode_Val (Mem'Unrestricted_Access, 2, W_32);
             else
                Branch := Br_None;
             end if;
@@ -1847,37 +1879,60 @@ package body Disa_X86 is
             Flag_Indir := True;
             return;
 
-         when 16#E8#
-           | 16#9A# =>
-            --  Call / callf
+         when 16#E8# =>
+            --  Call
             Branch     := Br_Call;
             Flag_Cond  := False;
             Flag_Indir := False;
-            --  FIXME: Dest and Fallthrough
+            Dest :=
+              Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
-         when 16#E9#
-           | 16#EA#
-           | 16#EB# =>
-            --  jmp
+         when 16#9A# =>
+            --  Callf
+            Branch     := Br_Call;
+            Flag_Cond  := False;
+            Flag_Indir := False;
+            Dest := Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+            return;
+
+         when 16#E9# =>
+            --  jmp rel32
             Branch     := Br_Jmp;
             Flag_Cond  := False;
             Flag_Indir := False;
-            --  FIXME: Dest and Fallthrough
+            Dest :=
+              Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+            return;
+
+         when 16#EA# =>
+            --  jmp ptr32
+            Branch     := Br_Jmp;
+            Flag_Cond  := False;
+            Flag_Indir := False;
+            Dest := Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+            return;
+
+         when 16#EB# =>
+            --  jmp rel8
+            Branch     := Br_Jmp;
+            Flag_Cond  := False;
+            Flag_Indir := False;
+            Dest := Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
             return;
 
          when 16#FF# =>
             B1 := Insn_Bin (Insn_Bin'First + 1);
             case Ext_543 (B1) is
                when 2#010# | 2#011# =>
-                  --  call / callf
+                  --  call / callf, absolute indirect
                   Branch     := Br_Call;
                   Flag_Cond  := False;
                   Flag_Indir := True;
                   return;
 
                when 2#100# | 2#101# =>
-                  --  jmp / jmpf
+                  --  jmp / jmpf, absolute indirect
                   Branch     := Br_Jmp;
                   Flag_Cond  := False;
                   Flag_Indir := True;
