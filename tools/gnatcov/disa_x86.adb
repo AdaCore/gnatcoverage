@@ -23,6 +23,8 @@
 --  These manuals can be found at http://www.intel.com/product/manuals/
 
 with Interfaces; use Interfaces;
+with Outputs;    use Outputs;
+with Hex_Images; use Hex_Images;
 
 package body Disa_X86 is
 
@@ -1843,6 +1845,7 @@ package body Disa_X86 is
 
       Dest        := No_PC;
       Fallthrough := No_PC;
+      Branch      := Br_None;
 
       B := Insn_Bin (Insn_Bin'First);
 
@@ -1955,7 +1958,9 @@ package body Disa_X86 is
             null;
       end case;
 
-      Branch := Br_None;
+   exception
+      when Bad_Memory =>
+         Warn ("assembler analysis truncated at PC = " & Hex_Image (Pc));
    end Get_Insn_Properties;
 
 end Disa_X86;
