@@ -1820,6 +1820,8 @@ package body Disa_X86 is
       Dest        : out Pc_Type;
       Fallthrough : out Pc_Type)
    is
+      pragma Unreferenced (Self);
+
       B, B1 : Byte;
 
       function Mem (Off : Pc_Type) return Byte;
@@ -1840,7 +1842,7 @@ package body Disa_X86 is
       --  Make sure OUT parameters have a valid value
 
       Dest        := No_PC;
-      Fallthrough := Pc + Pc_Type (Get_Insn_Length (Self, Insn_Bin));
+      Fallthrough := No_PC;
 
       B := Insn_Bin (Insn_Bin'First);
 
@@ -1852,6 +1854,7 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := True;
             Flag_Indir := False;
+            Fallthrough := Pc + 2;
             Dest := Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
             return;
 
@@ -1862,6 +1865,7 @@ package body Disa_X86 is
                Branch     := Br_Jmp;
                Flag_Cond  := True;
                Flag_Indir := False;
+               Fallthrough := Pc + 6;
                Dest :=
                  Fallthrough + Decode_Val (Mem'Unrestricted_Access, 2, W_32);
             else
@@ -1884,6 +1888,7 @@ package body Disa_X86 is
             Branch     := Br_Call;
             Flag_Cond  := False;
             Flag_Indir := False;
+            Fallthrough := Pc + 5;
             Dest :=
               Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
@@ -1893,6 +1898,7 @@ package body Disa_X86 is
             Branch     := Br_Call;
             Flag_Cond  := False;
             Flag_Indir := False;
+            Fallthrough := Pc + 5;
             Dest := Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
@@ -1901,6 +1907,7 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := False;
             Flag_Indir := False;
+            Fallthrough := Pc + 5;
             Dest :=
               Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
@@ -1910,6 +1917,7 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := False;
             Flag_Indir := False;
+            Fallthrough := Pc + 5;
             Dest := Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
@@ -1918,6 +1926,7 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := False;
             Flag_Indir := False;
+            Fallthrough := Pc + 2;
             Dest := Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
             return;
 
