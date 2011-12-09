@@ -42,6 +42,9 @@ package body ALI_Files is
       Line     : String_Access;
       Index    : Natural;
 
+      Preserve_Control_Flow_Seen : Boolean := False;
+      --  Set True if unit has been compiled with -fpreserve-control-flow
+
       Matches : Match_Array (0 .. 10);
       --  For regex matching
 
@@ -233,6 +236,11 @@ package body ALI_Files is
          end loop;
 
          case Line (1) is
+            when 'A' =>
+               if Line.all = "A -fpreserve-control-flow" then
+                  Preserve_Control_Flow_Seen := True;
+               end if;
+
             when 'U' =>
                declare
                   U_Regexp  : constant String := "[^\t]*\t+([^\t]*)\t";
@@ -318,6 +326,12 @@ package body ALI_Files is
                null;
          end case;
       end loop Scan_ALI;
+
+      if not Preserve_Control_Flow_Seen then
+         Put_Line
+           ("warning: " & ALI_Filename
+            & ": unit compiled without -fpreserve-control-flow");
+      end if;
 
       if Expected_Annotation_Kind = Exempt_Off then
          declare
