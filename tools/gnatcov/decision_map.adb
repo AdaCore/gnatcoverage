@@ -1046,20 +1046,8 @@ package body Decision_Map is
          Next_PC_SCO : SCO_Id;
          --  Statement at Next_PC
 
-         function SCO_For_Jump return SCO_Id;
-         --  Return the SCO_Id (if any) of the jump instruction at the end of
-         --  BB.
-
-         ------------------
-         -- SCO_For_Jump --
-         ------------------
-
-         function SCO_For_Jump return SCO_Id is
-         begin
-            return Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC));
-         end SCO_For_Jump;
-
-      --  Start of processing for Trace_Destination
+         SCO_For_Jump : SCO_Id;
+         --  SCO for the jump instruction at the end of BB
 
       begin
          <<Follow_Jump>>
@@ -1105,6 +1093,7 @@ package body Decision_Map is
 
          --  Continue tracing object control flow
 
+         SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC));
          case BB.Branch is
             when Br_Jmp =>
                if BB.Cond then
@@ -1119,12 +1108,17 @@ package body Decision_Map is
                   end if;
 
                elsif BB.To_PC /= Unconditional_Branch
-                       and then SCO_For_Jump = CBI.Condition
+                       and then
+                     (SCO_For_Jump = CBI.Condition
+                        or else
+                      SCO_For_Jump = Enclosing_Statement (CBI.Condition))
                then
 
                   --  Make sure we won't follow the same unconditional branch
                   --  twice. Note that we follow unconditional jumps only when
-                  --  they remain within the current condition.
+                  --  they remain within the current condition (or its
+                  --  enclosing statement, because some intermediate insns
+                  --  might be decorated with just the statement sloc).
 
                   if Unconditional_Branch = No_PC then
                      Unconditional_Branch := BB.To_PC;
