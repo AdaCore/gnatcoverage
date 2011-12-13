@@ -181,13 +181,16 @@ package body ALI_Files is
       ALI_Index := Get_Index_From_Full_Name (ALI_Filename, Insert => True);
       Open (ALI_File, In_File, ALI_Filename);
 
-      --  Check first line
+      --  Check that the first line is a valid ALI V line.
+      --  Note: the regex has no trailing $ because when reading a Windows
+      --  ALI file on UNIX, we need to account for the presence of a trailing
+      --  CR character.
 
       declare
          use Ada.Strings.Unbounded;
 
          V_Line    : constant String := Get_Line (ALI_File);
-         V_Regexp  : constant String := "^V ""(.*)""$";
+         V_Regexp  : constant String := "^V ""(.*)""";
          V_Matcher : constant Pattern_Matcher := Compile (V_Regexp);
 
          Error_Msg : Unbounded_String;
