@@ -2142,10 +2142,14 @@ package body SC_Obligations is
             SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
          begin
             if Sloc.Column = 0 then
+               --  For a fuzzy match, never return a decision/condition SCO,
+               --  always go up to the enclosing statement.
+
                exit when
                  Sloc.Source_File = SCOD.Sloc_Range.First_Sloc.Source_File
                  and then Sloc.Line in SCOD.Sloc_Range.First_Sloc.Line
-                                    .. SCOD.Sloc_Range.Last_Sloc.Line;
+                                    .. SCOD.Sloc_Range.Last_Sloc.Line
+                 and then SCOD.Kind = Statement;
             else
                exit when
                  SCOD.Sloc_Range.First_Sloc <= Sloc

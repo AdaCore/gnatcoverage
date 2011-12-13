@@ -36,10 +36,11 @@ package SC_Obligations is
    function Image (SCO : SCO_Id; With_Sloc : Boolean := True) return String;
 
    function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
-   --  Return the innermost SCO whose range contains the given sloc.
-   --  It is an error if multiple such SCOs exist and aren't nested.
-   --  Note: if Sloc has a null column number, returns an unspecified SCO
-   --  among those covering that line.
+   --  Return the innermost condition or statement SCO whose range contains
+   --  the given sloc. It is an error if multiple such SCOs exist and aren't
+   --  nested.
+   --  Note: if Sloc has a null column number, returns an unspecified statement
+   --  SCO among those covering that line (never a condition).
    --  For No_Location, return No_SCO_Id.
 
    type Operator_Kind is (Op_Not, Op_And_Then, Op_Or_Else);
