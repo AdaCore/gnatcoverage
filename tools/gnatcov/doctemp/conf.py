@@ -41,8 +41,8 @@ master_doc = 'index'
 
 rst_epilog = """
 .. |gcv| replace:: :literal:`gnatcov`
-.. |gcvrun| replace:: :literal:`gnatcov run`
-.. |gcvcov| replace:: :literal:`gnatcov coverage`
+.. |gcvrun| replace:: :literal:`gnatcov` :literal:`run`
+.. |gcvcov| replace:: :literal:`gnatcov` :literal:`coverage`
 .. |gcp| replace:: :emphasis:`GNATcoverage`
 .. |gem| replace:: :emphasis:`GNATemulator`
 """
