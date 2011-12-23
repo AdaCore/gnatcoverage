@@ -40,26 +40,30 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 rst_epilog = """
-.. |gcv| replace:: :literal:`gnatcov`
-.. |gcvrun| replace:: :literal:`gnatcov` :literal:`run`
-.. |gcvcov| replace:: :literal:`gnatcov` :literal:`coverage`
-.. |gcp| replace:: :emphasis:`GNATcoverage`
-.. |gem| replace:: :emphasis:`GNATemulator`
+.. |gcv| replace:: :command:`gnatcov`
+.. |gcvrun| replace:: :command:`gnatcov` :command:`run`
+.. |gcvcov| replace:: :command:`gnatcov` :command:`coverage`
+
+.. |gcp|  replace:: GNATcoverage
+.. |gem|  replace:: GNATemulator
+.. |gnat| replace:: GNAT
+.. |gpro| replace:: GNAT Pro
+
+.. |marg| replace:: *(mandatory)*
+.. |rarg| replace:: possibly repeated and accepting `@<list-file>` arguments
 """
 
 # General information about the project.
 project = u'GNATcoverage'
 copyright = u'2009-2011, AdaCore'
 
-def get_version():
-   return "2.0"
-
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
-#
+
 # The short X.Y version.
-version = get_version()
+version = "2.0"
+
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -102,7 +106,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinxdoc'
+html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -149,10 +153,10 @@ html_static_path = ['_static']
 #html_additional_pages = {}
 
 # If false, no module index is generated.
-#html_domain_indices = True
+html_domain_indices = True
 
 # If false, no index is generated.
-#html_use_index = True
+html_use_index = True
 
 # If true, the index is split into individual pages for each letter.
 #html_split_index = False
@@ -214,7 +218,7 @@ latex_documents = [
 #latex_appendices = []
 
 # If false, no module index is generated.
-#latex_domain_indices = True
+latex_domain_indices = True
 
 
 # -- Options for manual page output --------------------------------------------

@@ -4,6 +4,14 @@ Object Coverage Analysis
 
 @pindex `gnatcov coverage`, for object coverage analysis
 
+General principles & Compilation requirements
+=============================================
+
+.. _gnatcov_obj_coverage-commandline:
+
+``gnatcov`` ``(object)`` ``coverage`` command line
+==================================================
+
 Over execution traces, various levels of object coverage analysis may be
 performed with `gnatcov coverage`.
 An analysis variant first needs to be selected with the *--level*
@@ -11,11 +19,11 @@ option:
 
 @multitable @columnfractions .15 .8
 * *=insn*
-@tab requests @dfn{Object Instruction Coverage} data, with an indication for
+@tab requests @dfn:term:`Object Instruction Coverage` data, with an indication for
 every instruction of whether it has been executed or not.
 
 * *=branch*
-@tab requests @dfn{Object Branch Coverage} data, with extra details about
+@tab requests @dfn:term:`Object Branch Coverage` data, with extra details about
 the directions taken by conditional branch instructions.
 
 @end multitable
@@ -56,26 +64,26 @@ annotated assembly code for all the program routines on standard output.
 The annotations are visible as a special character at the beginning of
 each machine code line to convey information about the corresponding
 instruction, with variants for instruction or branch coverage modes.
-We call @dfn{simple} those machine instructions which are not
-@dfn{conditional branch} instructions.
+We call @dfn:term:`simple` those machine instructions which are not
+@dfn:term:`conditional branch` instructions.
 
-For @dfn{Object Instruction Coverage}, with *--level=insn*, we
+For @dfn:term:`Object Instruction Coverage`, with *--level=insn*, we
 define:
 
 @multitable @columnfractions .1 .8
-* @h{Note} @tab @h{Means ...}
+* @h:term:`Note` @tab @h:term:`Means ...`
 * '`-`'
 @tab instruction was never executed
 * '`+`'
 @tab instruction was executed
 @end multitable
 
-For @dfn{Object Branch coverage} (*--level=branch*),
+For @dfn:term:`Object Branch coverage` (*--level=branch*),
 the `+' case is refined for conditional branch instructions and two
 additional notes are possible:
 
 @multitable @columnfractions .1 .8
-* @h{Note} @tab @h{Means ...}
+* @h:term:`Note` @tab @h:term:`Means ...`
 * '`-`'
 @tab instruction never was executed
 * '`+`'
@@ -87,9 +95,9 @@ branch
 @tab conditional branch was executed, never taken
 @end multitable
 
-We qualify instructions marked with *+* as @dfn{fully covered},
-those marked with *-* as @dfn{uncovered} and the others as
-@dfn{partially covered}.
+We qualify instructions marked with *+* as @dfn:term:`fully covered`,
+those marked with *-* as @dfn:term:`uncovered` and the others as
+@dfn:term:`partially covered`.
 
 To illustrate, we will consider the Branch Coverage outcome for a piece
 of the Explore example, produced out of a couple of runs within |qemu| for
@@ -201,7 +209,7 @@ We defined a uniform synthesis of source line from object code
 annotations for both instruction and branch coverage:
 
 @multitable @columnfractions .1 .8
-* @h{Note} @tab @h{Means ...}
+* @h:term:`Note` @tab @h:term:`Means ...`
 * '`.`'
 @tab no machine code associated with this line
 * '`-`'
@@ -214,7 +222,7 @@ annotations for both instruction and branch coverage:
 
 To lines with associated object code we apply qualifiers similar to
 those for individual instructions: '-', '+' and '!' denote
-@dfn{uncovered}, @dfn{fully covered} or @dfn{partially covered} lines
+@dfn:term:`uncovered`, @dfn:term:`fully covered` or @dfn:term:`partially covered` lines
 respectively.
 
 At this stage, |gcv| relies on dwarf debug information to associate
@@ -356,7 +364,7 @@ The general synopsis is as follows:
 ::
 
   @verbatim
-   disp-routines {[--exclude|--include] FILES}
+   disp-routines :term:`[--exclude|--include] FILES`
      Build a list of routines from object files
   @end verbatim
   

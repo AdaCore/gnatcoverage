@@ -31,11 +31,11 @@ Runs you application within the instrumented environment suitable for
 Produces a coverage report from the execution trace.
 
 The :option:`--scos` option conveys the so called `Source Coverage
-Obligations` (SCOs), which drive the assessment process for source
-criteria and at the same time specify the set of source units for which a
-report should be produced.  The argument value in the example here (using the
-@ notation) is the name of a file which contains the set of Ada ALI files or C
-GLI files corresponding to the source units of interest.
+Obligations` (SCOs), which drive the assessment process for source criteria
+and at the same time specify the set of source units for which a report should
+be produced.  The argument value in the example here (using the @ notation) is
+the name of a file which contains the set of Ada ALI files or C GLI files
+corresponding to the source units of interest.
 
 For example, to obtain (a) a statement coverage report, (b) in html format,
 (c) focused on two Ada units u1.adb and u2.adb, (d) from a program

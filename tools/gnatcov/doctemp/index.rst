@@ -9,7 +9,9 @@ GNATcoverage User's Guide
    gnatcov_run
    source_coverage
    object_coverage
+   facilities
    appendix
+   glossary
    bibliography
 
 
