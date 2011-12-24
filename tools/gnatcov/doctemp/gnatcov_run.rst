@@ -57,7 +57,7 @@ produced traces later on. This is actually only useful for MCDC analysis,
 combined with :option:`--scos`.  See the :ref:`trace-control` section of
 this chapter for additional details.
 
-:option:`--scos`, |rarg| : Convey the set of Source Coverage Obligations
+:option:`--scos`, |rarg| : Convey the set of :term:`Source Coverage Obligations`
 (SCOs) intended to be assessed from the produced traces. As :option:`--level`,
 this option is only useful for MCDC analysis, as described in greater details
 in the :ref:`trace-control` section later in this chapter.

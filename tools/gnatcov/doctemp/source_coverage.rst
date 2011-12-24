@@ -62,46 +62,66 @@ as follows:
    -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in
                                LISTFILE to the list of traces
 
-:option:`-c`, :option:`--level` |marg| : Request the assessment of a
-specific set of coverage criteria.  The possible values for source level
-analysis are ``stmt``, ``stmt+decision`` and variants of ``stmt+mcdc``,
-described in detail in later sections of this documentation.
+:option:`-c`, :option:`--level` |marg| :
+   Request the assessment of a specific set of coverage criteria.  The
+   possible values for source level analysis are ``stmt``, ``stmt+decision``
+   and variants of ``stmt+mcdc``, described in detail in later sections of
+   this documentation.
 
-:option:`-a`, :option:`--annotate` |marg| : Request a specific output
-report format.  The relevant values for source level analysis are ``xcov[+]``,
-``html[+]`` and ``report``, all described in the :ref:`sreport-formats`
-section.
+:option:`-a`, :option:`--annotate` |marg| :
+   Request a specific output report format.  The relevant values for source
+   level analysis are ``xcov[+]``, ``html[+]`` and ``report``, all described
+   in the :ref:`sreport-formats` section.
 
-:option:`--routines`: This is specific to object coverage analysis and is
-described in the :ref:`gnatcov_obj_coverage-commandline` section of this
-documentation.
+:option:`--routines`:
+   This is specific to object coverage analysis and is described in the
+   :ref:`gnatcov_obj_coverage-commandline` section of this documentation.
 
-:option:`--output-dir` : Request that the report files (index and annotated
-sources for the ``xcov`` and ``html`` output formats) be output in the
-provided directory. They are output in the current directory, where |gcv|, is
-launched, otherwise.
+:option:`--output-dir` :
+   Request that the report files (index and annotated sources for the ``xcov``
+   and ``html`` output formats) be output in the provided directory. They are
+   output in the current directory, where |gcv|, is launched, otherwise.
  
-:option:`--o` : Request that the synthetic report produced by
-``--annotate=report`` be output in the provided filname.
+:option:`-o` :
+   Request that the synthetic report produced by ``--annotate=report`` be
+   output in the provided filname, instead of standard output by default.
 
-:option:`--scos` |marg|, |rarg| : Provide the set of source units for which
-the requested coverage level is to be assessed, by the way of the
-corresponding Library Information files containing the relevant SCOs. Each
-instance of this option on the command line accumulates the provided set to
-what is to be assessed eventually.
+:option:`--scos` |marg|, |rarg| :
+   Provide the set of source units for which the requested coverage level is
+   to be assessed, by the way of the corresponding Library Information files
+   containing the relevant SCOs. Each instance of this option on the command
+   line accumulates the provided set to what is to be assessed eventually.
 
-:option:`-T`, :option:`--trace` |marg|, |rarg| : Provide the set of execution
-traces for which a report is to be produced. When multiple traces are
-provided, |gcv| produces a consolidated result, as if there had been a single
-execution producing one trace that would have been the catenation of all the
-individual traces.  See the :ref:`consolidation` section for a description of
-the consolidation facility.
+:option:`-T`, :option:`--trace` |marg|, |rarg| :
+   Provide the set of execution traces for which a report is to be
+   produced. When multiple traces are provided, |gcv| produces a consolidated
+   result, as if there had been a single execution producing one trace that
+   would have been the catenation of all the individual traces.  See the
+   :ref:`consolidation` section for a description of the consolidation
+   facility.
 
 Elements on the command line that are not tied to a particular option are
-considered as trace file arguments. :option:`--trace` is marked mandatory to
-indicate that at least one trace file
+considered as trace file arguments. :option:`--trace` is marked mandatory only
+to indicate that at least one trace file is required, which may but need not
+be introduced with :option:`-T` or :option:`--trace`.
 
-The following sections first describe the available report formats, then
+Here are a few examples of valid command lines:
+
+::
+
+  gnatcov coverage --level=stmt --annotate=report --trace=myprog.trace
+  # statement coverage assessment for a single trace,
+  # synthetic text report on standard output
+
+  gnatcov coverage --level=stmt+decision --annotate=html prog1.trace prog2.trace
+  # statement and decision coverage assessment for two traces stated as two
+  # instances of orphan arguments. html report files in current directory
+
+  gnatcov coverage --level=stmt+decision --annotate=html @mytraces
+  # Same report, with prog1.trace and prog2.trace listed in the
+  # "mytraces" text file
+
+The following sections now describe the available report formats, then
 provide more details and examples regarding the supported coverage criteria.
 
 .. _sreport-formats:
@@ -112,17 +132,49 @@ Output report formats
 Source coverage reports may be produced in various formats, as requested
 with the :option:`--annotate` option to |gcvcov|.
 
-`xcov` is a text format with a coverage annotation on each source
-line, `html` features line colorization and an index page, and
-`report` outputs the sequence of incomplete coverage diagnostics
-out of the analysis performed.
+Annotated sources, html : :option:`--annotate=html[+]`
+------------------------------------------------------
 
-Synthetic text reports
-----------------------
+:option:`--annotate=html` produces essentially
 
-This section describes the format of the synthetic text report
-produced by the `--annotate=report` mode of |gcp| for source
-coverage criteria.
+- One `.html` browsable annotated source file per compilation unit for which
+  source coverage obligations were provided,
+
+- An `index.html` page which summarizes the assessment context (assessed
+  criteria, set of trace files involved, with their tags, ...) and the
+  coverage results for all the units, with links to their annotated
+  sources.
+
+Each annotated source page features a header followed by the original source
+lines, all numbered.
+
+Prio to it's sequence number and the source text that follow, every line has a
+single character indicative of a coverage status for the line. We call this
+character a :dfn:`coverage annotation`, which may be one of the following:
+
+.. csv-table::
+   :delim: 10, 80
+   :widths: 10, 80
+   :header: Character, Meaning
+
+   ``.`` 
+
+In addition, each source line is colorized to reflect its associated coverage
+completeness, with green, orange and red for ``+``, ``!`` or ``-`` coverage
+respectively.
+
+With the `+` extension, the annotated machine code for each line
+may be expanded below it by a mouse click on the line.
+
+Annotated sources, text : :option:`--annotate=xcov[+]`
+------------------------------------------------------
+
+Violations summary, text : :option:`--annotate=report`
+------------------------------------------------------
+
+:option:`--annotate=report` produces a syntetic text report of all the
+coverage violations relevant to the set of criteria to be assessed per the
+:option:`--level` argument.
 
 General structure and example
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -131,7 +183,6 @@ The synthetic reports features explicit start/end of report notifications and
 four sections in between: Assessment Context, Non Exempted Violations,
 Exempted Regions and Analysis Summary.  The general structure is sketched
 below and a more detailed description of each report section follows.
-
 
 ::
 
@@ -222,14 +273,13 @@ format, as follows:
 
     queues.adb:1641:17: statement not executed
      (source) : (loc) : (violation description)
-
   
 
 *source* and *loc* are the basename of the source file and
-the precise `line:column` location within that source where the
+the precise ``line:column`` location within that source where the
 violation was detected.
 
-The table that follows summarizes the list of violation items that
+The following table summarizes the list of violation items that
 might be emitted together for each criterion:
 
 .. csv-table::
@@ -241,7 +291,8 @@ might be emitted together for each criterion:
    Decision Coverage  | ``decision outcome TRUE not covered``
                       | ``decision outcome FALSE not covered``
                       | ``one decision outcome not covered``
-   MCDC Coverage      | ``condition has no independent influence pair``
+   MCDC Coverage      | all the decision coverage items, plus ...
+                      | ``condition has no independent influence pair``
 
 
 Here is an example output excerpt for :option:`--level=stmt+mcdc`, with
@@ -275,7 +326,6 @@ one subsection for each of the three criteria requested at that level:
 
   2 violations.
 
-  
 
 When multiple violations apply someplace, the most salliant diagnostic is
 emitted alone. For instance, if an Ada statement like "`X := A and then B;`"
