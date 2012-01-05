@@ -2,37 +2,31 @@
 Appendices
 **********
 
+.. _sample_sc_html_index:
 
-The 'Explore' Guide Example
-===========================
+Sample html index, Source Coverage
+==================================
 
-The Explore example is a toy Ada application we use throughout the |gcv|
-documentation to introduce and illustrate a number of concepts.
-Below is a short functional and organisational description, verbatim from
-the sources:
+.. image:: sample_sc_html_index.png
 
 
-::
+.. _sample_sc_html_unit:
 
-  @verbatiminclude examples/explore/src/overview.ads
-  
+Sample html annotated source, Source Coverage
+=============================================
 
-@page
+.. image:: sample_sc_html_unit.png
+
 
 Trace Format Definition
 =======================
 
-This information is best located and maintained in the source comments,
-where it naturally gets updated as the project evolves.
-Below is a verbatim inclusion of the relevant Ada specification:
+This information is best located and maintained in the source comments, where
+it naturally gets updated as the project evolves. Below is a verbatim
+inclusion of the relevant Ada specification:
 
-
-::
-
-  @verbatiminclude qemu_traces.ads
+.. include: ../qemu_traces.ads
   
-
-@page
 
 Source Coverage Obligations Definition
 ======================================
@@ -44,8 +38,6 @@ Below is a verbatim inclusion of the relevant Ada specification:
 
   @verbatiminclude gnat/scos.ads
   
-
-@page
 
 XML output specifications
 =========================

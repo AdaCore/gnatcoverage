@@ -7,41 +7,67 @@ General principles & Compilation requirements
 
 Source coverage analysis computes metrics focused on source programming
 language entities such as high level `statements` or `decisions` (DO178
-parlance for boolean expressions). Machine object code is entirely
-abstracted away.
+parlance for boolean expressions).
 
 For this purpose, |gcp| relies on :term:`Source Coverage Obligation` (SCO)
 tables, compact descriptions of the nature and source location of program
 entities relevant to source coverage criteria.  These tables are part of the
-Library Information produced by the |gpro| compilers, in the .ali or .gli
-file corresponding to each Ada or C unit, respectively.
-
-The generation of SCO tables is triggered by the :option:`-gnateS` compilation
-option for Ada, and by the :option:`-fdump-scos` option for C. These options
-must be used to compile the sources you wish to analyze later on.
+Library Information produced by the |gpro| compilers, in the .ali or .gli file
+corresponding to each Ada or C unit, respectively. They are produced on
+demand, by the :option:`-gnateS` compilation option for Ada, and by the
+:option:`-fdump-scos` option for C. These options must be used to compile the
+sources you wish to analyze later on.
 
 In addition, all the sources must also be compiled :option:`-g`
 :option:`-fpreserve-control-flow`, both necessary to allow an accurate mapping
-of the execution traces back to source level obligations, and optimization is
+of the execution traces back to source level obligations. Optimization is
 supported up to :option:`-O1`, with inlining allowed.
  
-Once your application is built, the general process to perform source coverage
-analysis proceeds in two steps: use |gcvrun| to produce execution traces, then
-|gcvcov| to generate coverage reports.
+Once your application is built, the source coverage analysis proceeds in two
+steps: |gcvrun| is used to produce execution traces, then |gcvcov| to generate
+coverage reports. The compiler output is suitable whatever the assessed
+criteria; there is never a requirement to recompile just because a different
+criterion needs to be analyzed.
 
 The :ref:`gnatcov_run-commandline` section of this document provides details on
 the trace production interface. The remainder of this chapter explains the use
 of |gcvcov| in particular, to analyse traces once they have been produced.
 
+We will be using Ada examples to illustrate, based on the following
+very simple applicative unit:
+
+::
+
+   function Between (X1, X2, X : Integer) return Boolean;
+   --  Whether X is between X1 and X2, inclusive and however they are ordered
+
+   function Between (X1, X2, X : Integer) return Boolean is
+   begin
+      if X1 < X2 then
+         return X >= X1 and then X <= X2;
+      else
+         return X >= X2 and then X <= X1;
+      end if;
+   end;
+
+This unit features 3 statements: the single ``if`` and the two ``return``
+statements, and 3 decisions: one Boolean expression within each statement.
+
+The first decision, controlling the ``if`` statement, has a single operand
+(:term:`condition` in DO178 parlance), and is called a :term:`simple Boolean
+expression`. Each of the two other expressions features two conditions
+combined by a short-circuit operator, and is so categorized as a :term:`complex
+Boolean expression`.
+
 .. _gnatcov_src_coverage-commandline:
 
-``gnatcov`` ``(source)`` ``coverage`` command line
-==================================================
+|gcvcov| command line
+=====================
 
-Source coverage analysis is performed by invoking |gcvcov| for a source level
-criterion via the :option:`--level` command line option.
+Source coverage analysis with |gcp| is performed by invoking |gcvcov| for a
+source level criterion via the :option:`--level` command line option.
 
-The general interface synopsis is available from ``gnatcov`` ``--help``,
+The general interface synopsis is available from |gcv| :option:`--help`,
 as follows:
 
 ::
@@ -90,7 +116,7 @@ as follows:
    Provide the set of source units for which the requested coverage level is
    to be assessed, by the way of the corresponding Library Information files
    containing the relevant SCOs. Each instance of this option on the command
-   line accumulates the provided set to what is to be assessed eventually.
+   line adds to what is to be assessed eventually.
 
 :option:`-T`, :option:`--trace` |marg|, |rarg| :
    Provide the set of execution traces for which a report is to be
@@ -109,17 +135,20 @@ Here are a few examples of valid command lines:
 
 ::
 
-  gnatcov coverage --level=stmt --annotate=report --trace=myprog.trace
-  # statement coverage assessment for a single trace,
-  # synthetic text report on standard output
+  gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=prog.trace
+  #                      (a)         (b)              (c)            (d)
+  # (a) Request Statement coverage assessment,
+  # (b) for units associated with the ALI files listed in the "alis" text file,
+  # (c) producing a synthetic text report on standard output (no -o option),
+  # (d) out of a single execution trace "prog.trace".
 
-  gnatcov coverage --level=stmt+decision --annotate=html prog1.trace prog2.trace
-  # statement and decision coverage assessment for two traces stated as two
-  # instances of orphan arguments. html report files in current directory
+  gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html t1 t2
+  # Statement and Decision coverage assessments for two traces "t1" and "t2",
+  # stated as two orphan arguments, producing html report files in the current
+  # directory
 
-  gnatcov coverage --level=stmt+decision --annotate=html @mytraces
-  # Same report, with prog1.trace and prog2.trace listed in the
-  # "mytraces" text file
+  gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html @mytraces
+  # Same report, with t1 and t2 listed in the "mytraces" text file
 
 The following sections now describe the available report formats, then
 provide more details and examples regarding the supported coverage criteria.
@@ -129,39 +158,66 @@ provide more details and examples regarding the supported coverage criteria.
 Output report formats
 =====================
 
-Source coverage reports may be produced in various formats, as requested
-with the :option:`--annotate` option to |gcvcov|.
+Source coverage reports may be produced in various formats, as requested with
+the :option:`--annotate` option of |gcvcov|.
 
 Annotated sources, html : :option:`--annotate=html[+]`
 ------------------------------------------------------
 
-:option:`--annotate=html` produces essentially
+For source coverage criteria, |gcvcov| :option:`--annotate=html` produces:
 
-- One `.html` browsable annotated source file per compilation unit for which
-  source coverage obligations were provided,
+- One `.html` annotated source file per compilation unit stated to be
+  of interest,
 
-- An `index.html` page which summarizes the assessment context (assessed
-  criteria, set of trace files involved, with their tags, ...) and the
-  coverage results for all the units, with links to their annotated
-  sources.
+- An `index.html` page which contains a description of the assessment context
+  (assessed criteria, set of trace files involved, ...) and a summary of the
+  coverage results for all the units, with links to their annotated sources.
 
-Each annotated source page features a header followed by the original source
-lines, all numbered.
-
-Prio to it's sequence number and the source text that follow, every line has a
-single character indicative of a coverage status for the line. We call this
-character a :dfn:`coverage annotation`, which may be one of the following:
+Each annotated source page includes a header followed by the original source
+lines, all numbered. Next to the number, prior to the source text that
+follows, every source line features a single character indicative of a
+computed coverage status of the line. We call this character a :dfn:`coverage
+annotation`. which may be one of the following:
 
 .. csv-table::
-   :delim: 10, 80
+   :delim: |
    :widths: 10, 80
-   :header: Character, Meaning
+   :header: Annotation, Meaning
 
-   ``.`` 
+   ``.`` | No coverage obligation is attached to the line 
+   ``+`` | Coverage obligations attached to the line, all satisfied 
+   ``-`` | Coverage obligations attached to the line, none satisfied 
+   ``!`` | Coverage obligations attached to the line, some satisfied 
 
-In addition, each source line is colorized to reflect its associated coverage
-completeness, with green, orange and red for ``+``, ``!`` or ``-`` coverage
-respectively.
+In addition to carrying a coverage annotation, each source line with
+obligations is colorized in green, orange or red for ``+``, ``!`` or ``-``
+coverage respectively.
+
+To illustrate, let us consider that we exercise our example functional unit in
+this fashion:
+
+::
+
+  procedure Test_Inrange is
+  begin
+     Assert (Between (X1 => 2, X2 => 5, X => 3)); -- X1 < X < X2
+  end;
+
+This executes the ``if`` statement once, evaluates the controlling decision
+True and executes the first ``return`` statement once to return True.
+
+If we then perform, say, Statement Coverage analysis, we get a ``+``
+annotation for the corresponding lines, a ``-`` for the line with the second
+``return`` statement (never executed), and a ``.`` everywhere else.
+
+The page header includes a summary of the line counts for the whole unit,
+together with the corresponding source file name and the assessed coverage
+level.
+
+See the :ref:`sample annotated source <sample_sc_html_unit>` appendix for a
+sample of such html annotated source, and the :ref:`sample html index
+<sample_sc_html_index>` for an example index page, which embeds a
+self-description of all the items it contains.
 
 With the `+` extension, the annotated machine code for each line
 may be expanded below it by a mouse click on the line.
