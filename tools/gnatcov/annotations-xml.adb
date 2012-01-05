@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -150,7 +150,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_Start_Instruction_Set
      (Pp    : in out Xml_Pretty_Printer;
-      State : Line_State);
+      State : Any_Line_State);
 
    procedure Pretty_Print_End_Instruction_Set
      (Pp : in out Xml_Pretty_Printer);
@@ -476,7 +476,7 @@ package body Annotations.Xml is
 
    procedure Pretty_Print_Start_Instruction_Set
      (Pp    : in out Xml_Pretty_Printer;
-      State : Line_State) is
+      State : Any_Line_State) is
    begin
       Pp.ST ("instruction_set", A ("coverage", State_Char (State)));
    end Pretty_Print_Start_Instruction_Set;

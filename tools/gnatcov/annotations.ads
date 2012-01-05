@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2010, AdaCore                      --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -105,7 +105,7 @@ private
 
    procedure Pretty_Print_Start_Instruction_Set
      (Pp    : in out Pretty_Printer;
-      State : Line_State) is null;
+      State : Any_Line_State) is null;
    --  Let Pp start the pretty printing of a set of instructions, State
    --  being the merged state of all its instructions.
 
