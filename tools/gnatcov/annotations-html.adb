@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2010, AdaCore                     --
+--                     Copyright (C) 2008-2012, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -259,13 +259,13 @@ package body Annotations.Html is
       Pi ("This report presents a global view of the coverage");
       Pi ("results for the given coverage level. It sums up:");
       Pi ("<ul>");
-      Pi ("<li> the list of trace files processed by xcov;");
-      Pi ("<li> the global results;");
-      Pi ("<li> the coverage result per source files.");
+      Pi ("<li> the list of trace files processed by gnatcov;");
+      Pi ("<li> the global coverage results;");
+      Pi ("<li> the coverage results per source file.");
       Pi ("</ul>");
       Pi ("<br/>");
 
-      Pi ("For each trace files, the following information is given:");
+      Pi ("For each trace file, the following information is given:");
       Pi ("<ul>");
       Pi ("<li> the name of the trace file;");
       Pi ("<li> the name of the executable that has been used to");
@@ -277,22 +277,25 @@ package body Annotations.Html is
 
       Pi ("The results (total and per file) contain:");
       Pi ("<ul>");
-      Pi ("<li> the total number of lines for the corresponding unit;");
-      Pi ("""lines"" should here be understood as ""source line of code that");
-      Pi ("generates object code"" (in that respect, comments are not");
-      Pi ("considered as ""lines"");");
-      Pi ("<li> the number of lines (as defined previously) that are");
-      Pi ("considered as covered, in accordance with the chosen coverage");
-      Pi ("criteria;");
-      Pi ("<li> the number of lines partially covered according to this");
-      Pi ("criteria;");
-      Pi ("<li> the number of lines that are not covered at all according");
-      Pi ("to this criteria;");
-      Pi ("<li> A visual summary of these coverage datas.");
+      Pi ("<li> the total number of lines ""of relevance"" for the unit");
+      Pi ("(definition blow);");
+      Pi ("<li> the number of such lines that are");
+      Pi ("considered as fully, partially, or not covered for the chosen");
+      Pi ("coverage criteria;");
+      Pi ("<li> the number of such lines that are part of an");
+      Pi ("exemption region, with or without actually exempted violations");
+      Pi ("<li> a visual summary of this coverage data.");
       Pi ("</ul>");
       Pi ("<br/>");
 
-      Pi ("In the visual summary, the colors have the following meaning:");
+      Pi ("""line of relevance"" are the source lines");
+      Pi ("that have associated object code and which include");
+      Pi ("all or part of a source entity of interest if we are");
+      Pi ("assessing a source level criterion.");
+      Pi ("<br/>");
+      Pi ("Source comment lines are never included in the counts, typically.");
+      Pi ("In the visual summaries, the colors have the following meaning:");
+      Pi ("<br/>");
       Pi ("<br/>");
 
       Pi ("  <table cellspacing=""1"" class=""LegendTable"">");
@@ -458,9 +461,10 @@ package body Annotations.Html is
       Pi ("<body>");
       Pi ("<div id=""top"">");
       Pi ("<h4 align=""right""><a href=""#help""> help </a></h4>");
-      Pi ("<h1 align=""center"">XCOV coverage report</h1>");
+      Pi ("<h1 align=""center"">GNATcoverage report</h1>");
       Pi ("<h2 align=""center"">Coverage level: "
-          & Coverage_Option_Value & "</h2>");
+            & Coverage_Option_Value & "</h2>");
+
       Pi ("</div>");
 
       --  List of traces.
@@ -634,11 +638,16 @@ package body Annotations.Html is
       Plh (Pp, "<h4 align=""right""><a href=""index.html""> index </a></h4>");
       Plh (Pp, "<h1 align=""center"">" & Simple_Source_Filename & "</h1>");
       Plh (Pp, "<h2 align=""center"">Coverage level: "
-           & Coverage_Option_Value & "</h2>");
+             & Coverage_Option_Value & "</h2>");
+
+      Plh (Pp, "<hr/>");
+
       Plh (Pp, "<table class=""SumTable""><tr>");
       Print_Coverage_Header (Pp.Html_File, "", False);
       Print_Coverage_Stats (Pp.Html_File, Info.Stats);
       Plh (Pp, "</tr></table>");
+
+      Plh (Pp, "<hr/>");
 
       Plh (Pp, "<table width=""100%"" cellpadding=""0"" "
            & "class=""SourceFile"">");
@@ -752,14 +761,22 @@ package body Annotations.Html is
               & Key_Name & "</td>");
       end if;
 
-      Put_Line (F, "      <td class=""SumHead""> total lines with code</td>");
-      Put_Line (F, "      <td class=""SumHead""> fully covered</td>");
-      Put_Line (F, "      <td class=""SumHead""> partially covered</td>");
-      Put_Line (F, "      <td class=""SumHead""> not covered</td>");
-      Put_Line (F, "      <td class=""SumHead""> exempted, no violation</td>");
-      Put_Line (F, "      <td class=""SumHead""> exempted</td>");
-      Put_Line (F, "      <td class=""SumHead""> visual summary </td>");
-      Put_Line (F, "    </tr>");
+      Put_Line
+        (F, "      <td class=""SumHead""> total lines of relevance</td>");
+      Put_Line
+        (F, "      <td class=""SumHead""> fully covered</td>");
+      Put_Line
+        (F, "      <td class=""SumHead""> partially covered</td>");
+      Put_Line
+        (F, "      <td class=""SumHead""> not covered</td>");
+      Put_Line
+        (F, "      <td class=""SumHead""> exempted, no violation</td>");
+      Put_Line
+        (F, "      <td class=""SumHead""> exempted</td>");
+      Put_Line
+        (F, "      <td class=""SumHead""> visual summary </td>");
+
+      Put_Line  (F, "    </tr>");
    end Print_Coverage_Header;
 
    --------------------------
