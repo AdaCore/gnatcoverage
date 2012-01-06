@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2008-2011, AdaCore                      --
+--                    Copyright (C) 2008-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -23,6 +23,7 @@ with Ada.Containers;    use Ada.Containers;
 
 with GNAT.Strings;      use GNAT.Strings;
 
+with ALI_Files;         use ALI_Files;
 with Annotations;       use Annotations;
 with Annotations.Html;
 with Annotations.Xcov;
@@ -113,7 +114,8 @@ procedure GNATcov is
       P ("      FORM is one of asm,xcov,html,xcov+,html+,report");
       P ("   --routines=<ROUTINE|@FILE>  Add ROUTINE, or all routine listed");
       P ("                               in FILE to the list of routines");
-      P ("   --scos=<FILE|@LISTFILE>     Consider all the SCOs in ALI file");
+      P ("   --alis=<FILE|@LISTFILE>");
+      P ("   --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from");
       P ("                               FILE for this operation; or do that");
       P ("                               for each file listed in LISTFILE");
       P ("   --output-dir=DIR            Put the =html|xcov outputs into DIR");
@@ -162,6 +164,7 @@ procedure GNATcov is
    Annotate_Option_Short     : constant String := "-a";
    Routines_Option           : constant String := "--routines=";
    SCOs_Option               : constant String := "--scos=";
+   ALIs_Option               : constant String := "--alis=";
    Final_Report_Option       : constant String := "--report=";
    Output_Dir_Option         : constant String := "--output-dir=";
    Trace_Option              : constant String := "--trace=";
@@ -194,7 +197,7 @@ procedure GNATcov is
    Trace_Inputs        : Inputs.Inputs_Type;
    Exe_Inputs          : Inputs.Inputs_Type;
    Obj_Inputs          : Inputs.Inputs_Type;
-   SCOs_Inputs         : Inputs.Inputs_Type;
+   ALIs_Inputs         : Inputs.Inputs_Type;
    Routines_Inputs     : Inputs.Inputs_Type;
    Text_Start          : Pc_Type := 0;
    Target              : String_Access := null;
@@ -434,11 +437,13 @@ procedure GNATcov is
                      Fatal_Error ("bad parameter for " & Coverage_Option);
                end;
 
-            elsif Has_Prefix (Arg, SCOs_Option) then
+            elsif Has_Prefix (Arg, SCOs_Option)
+              or else Has_Prefix (Arg, ALIs_Option)
+            then
                Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
                                             2 => Cmd_Coverage,
                                             3 => Cmd_Run));
-               Inputs.Add_Input (SCOs_Inputs, Option_Parameter (Arg));
+               Inputs.Add_Input (ALIs_Inputs, Option_Parameter (Arg));
 
             elsif Has_Prefix (Arg, Routines_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
@@ -679,6 +684,11 @@ begin
       when Cmd_Map_Routines =>
          declare
             procedure Build_Decision_Map (Exec_Name : String);
+            --  Prepare decision map build for Exec_Name
+
+            ------------------------
+            -- Build_Decision_Map --
+            ------------------------
 
             procedure Build_Decision_Map (Exec_Name : String) is
             begin
@@ -686,10 +696,11 @@ begin
 
                Build_Decision_Map (Exec_Name, Text_Start, Exec_Name & ".dmap");
             end Build_Decision_Map;
-         begin
-            Check_Argument_Available (SCOs_Inputs, "SCOs FILEs", Command);
 
-            Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+         begin
+            Check_Argument_Available (ALIs_Inputs, "SCOs FILEs", Command);
+
+            Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
             Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
             if Verbose then
                SC_Obligations.Report_SCOs_Without_Code;
@@ -886,18 +897,18 @@ begin
 
       when Cmd_Coverage =>
 
-         --  Load SCOs
+         --  Load ALI files
 
          if Source_Coverage_Enabled then
+            --  SCOs are mandatory for source coverage
+
             Check_Argument_Available
-              (SCOs_Inputs, "SCOs FILEs", Command);
-            Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+              (ALIs_Inputs, "SCOs FILEs", Command);
+            Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
             Coverage.Source.Initialize_SCI;
 
          elsif Object_Coverage_Enabled then
-            if Inputs.Length (SCOs_Inputs) /= 0 then
-               Error ("list of SCOs not allowed for object coverage");
-            end if;
+            Inputs.Iterate (ALIs_Inputs, Load_ALI'Access);
 
          else
             Fatal_Error ("Please specify a coverage level");
@@ -1154,11 +1165,11 @@ begin
                Histmap : String_Access := null;
             begin
                if MCDC_Coverage_Enabled then
-                  if Length (SCOs_Inputs) = 0 then
+                  if Length (ALIs_Inputs) = 0 then
                      Warn ("No SCOs specified for MC/DC level");
                   else
                      Histmap := new String'(Exe_File & ".dmap");
-                     Inputs.Iterate (SCOs_Inputs, Load_SCOs'Access);
+                     Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
                      Build_Decision_Map (Exe_File, Text_Start, Histmap.all);
                   end if;
                end if;

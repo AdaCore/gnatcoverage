@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2011, AdaCore                      --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -1412,7 +1412,8 @@ package body SC_Obligations is
 
       Last_SCO_Upon_Entry : constant SCO_Id := SCO_Vector.Last_Index;
 
-      ALI_Index : constant Source_File_Index := Load_ALI (ALI_Filename);
+      ALI_Index : constant Source_File_Index :=
+                             Load_ALI (ALI_Filename, With_SCOs => True);
    begin
       if ALI_Index = No_Source_File then
          return;

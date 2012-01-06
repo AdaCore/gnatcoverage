@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2011, AdaCore                      --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -35,7 +35,17 @@ package body ALI_Files is
    -- Load_ALI --
    --------------
 
-   function Load_ALI (ALI_Filename : String) return Source_File_Index is
+   procedure Load_ALI (ALI_Filename : String) is
+      Discard : Source_File_Index;
+      pragma Unreferenced (Discard);
+   begin
+      Discard := Load_ALI (ALI_Filename, With_SCOs => False);
+   end Load_ALI;
+
+   function Load_ALI
+     (ALI_Filename : String;
+      With_SCOs    : Boolean) return Source_File_Index
+   is
       ALI_File  : File_Type;
       ALI_Index : Source_File_Index;
 
@@ -330,12 +340,6 @@ package body ALI_Files is
          end case;
       end loop Scan_ALI;
 
-      if not Preserve_Control_Flow_Seen then
-         Put_Line
-           ("warning: " & ALI_Filename
-            & ": unit compiled without -fpreserve-control-flow");
-      end if;
-
       if Expected_Annotation_Kind = Exempt_Off then
          declare
             use ALI_Annotation_Maps;
@@ -350,11 +354,18 @@ package body ALI_Files is
          end;
       end if;
 
-      Index := 1;
+      if  With_SCOs then
+         if not Preserve_Control_Flow_Seen then
+            Put_Line
+              ("warning: " & ALI_Filename
+               & ": unit compiled without -fpreserve-control-flow");
+         end if;
 
-      Get_SCOs_From_ALI;
+         Index := 1;
+         Get_SCOs_From_ALI;
+      end if;
+
       Close (ALI_File);
-
       return ALI_Index;
    end Load_ALI;
 

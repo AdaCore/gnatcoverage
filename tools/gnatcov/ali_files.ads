@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2011, AdaCore                      --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -28,11 +28,16 @@ with Types; use Types;
 
 package ALI_Files is
 
-   function Load_ALI (ALI_Filename : String) return Types.Source_File_Index;
-   --  Load coverage information (coverage exemptions and source coverage
-   --  obligations) from ALI_Filename. Returns the source file index for the
-   --  ALI file. Subsequent calls for the same ALI file will return
-   --  No_Source_File immediately, without reloading the file.
+   function Load_ALI
+     (ALI_Filename : String;
+      With_SCOs    : Boolean) return Types.Source_File_Index;
+   --  Load coverage related information (coverage exemptions and, if With_SCOs
+   --  is True, source coverage obligations) from ALI_Filename. Returns the
+   --  source file index for the ALI file. Subsequent calls for the same ALI
+   --  file will return No_Source_File immediately, without reloading the file.
+
+   procedure Load_ALI (ALI_Filename : String);
+   --  Load ALI information for Filename, without SCOs
 
    type ALI_Annotation_Kind is (Exempt_On, Exempt_Off);
 
