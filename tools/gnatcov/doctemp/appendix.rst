@@ -4,16 +4,16 @@ Appendices
 
 .. _sample_sc_html_index:
 
-Sample html index, Source Coverage
-==================================
+Sample html index
+=================
 
 .. image:: sample_sc_html_index.png
 
 
 .. _sample_sc_html_unit:
 
-Sample html annotated source, Source Coverage
-=============================================
+Sample html annotated source
+============================
 
 .. image:: sample_sc_html_unit.png
 
@@ -25,8 +25,9 @@ This information is best located and maintained in the source comments, where
 it naturally gets updated as the project evolves. Below is a verbatim
 inclusion of the relevant Ada specification:
 
-.. include: ../qemu_traces.ads
-  
+.. include:: ../qemu_traces.ads
+   :literal:
+   
 
 Source Coverage Obligations Definition
 ======================================

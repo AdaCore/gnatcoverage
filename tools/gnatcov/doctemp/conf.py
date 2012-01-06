@@ -50,7 +50,7 @@ rst_epilog = """
 .. |gpro| replace:: GNAT Pro
 
 .. |marg| replace:: *(mandatory)*
-.. |rarg| replace:: possibly repeated and accepting `@<list-file>` arguments
+.. |rarg| replace:: possibly repeated and accepting :term:`@listfile arguments`
 """
 
 # General information about the project.

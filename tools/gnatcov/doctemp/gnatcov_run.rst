@@ -100,7 +100,7 @@ to |gcvrun|:
   histories, chronological record of the directions taken at conditional
   branch points in the machine code,
 
-* :option:`--scos=@<list-file>` to convey the set of SCOs that will be subject
+* :option:`--scos=@list-file` to convey the set of SCOs that will be subject
   to MCDC analysis, asking |gcv| to focus the branch history collections
   on the critical branches only.
 

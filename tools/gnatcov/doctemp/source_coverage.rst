@@ -161,23 +161,28 @@ Output report formats
 Source coverage reports may be produced in various formats, as requested with
 the :option:`--annotate` option of |gcvcov|.
 
-Annotated sources, html : :option:`--annotate=html[+]`
+The :option:`xcov` and :option:`html` formats both produce a set of annotated
+source files, in the directory where |gcv| is launched unless overriden with
+a :option:`--output-dir` option.
+
+The :option:`report` output consists in a synthetic text report of coverage
+violations with respect to the requested criteria, produced on standard output
+by default or in the file specified by the :option:`-o` command line option.
+
+In all the cases, the report focuses on the sources stated to be of interest
+by way of the :option:`--scos` command line argument.
+
+Annotated sources, text : :option:`--annotate=xcov[+]`
 ------------------------------------------------------
 
-For source coverage criteria, |gcvcov| :option:`--annotate=html` produces:
+For source coverage criteria, |gcvcov| :option:`--annotate=xcov` produces an
+annotated version of each source file, in text format, named after the original
+source with an extra ``.xcov`` extension at the end.
 
-- One `.html` annotated source file per compilation unit stated to be
-  of interest,
-
-- An `index.html` page which contains a description of the assessment context
-  (assessed criteria, set of trace files involved, ...) and a summary of the
-  coverage results for all the units, with links to their annotated sources.
-
-Each annotated source page includes a header followed by the original source
-lines, all numbered. Next to the number, prior to the source text that
-follows, every source line features a single character indicative of a
-computed coverage status of the line. We call this character a :dfn:`coverage
-annotation`. which may be one of the following:
+Each annotated source contains a global summary of the assessment results
+followed by the original source lines, all numbered and marked with a coverage
+annotation next to the line number. The annotation on a line always consists
+in a single character, which may be one of the following:
 
 .. csv-table::
    :delim: |
@@ -188,10 +193,6 @@ annotation`. which may be one of the following:
    ``+`` | Coverage obligations attached to the line, all satisfied 
    ``-`` | Coverage obligations attached to the line, none satisfied 
    ``!`` | Coverage obligations attached to the line, some satisfied 
-
-In addition to carrying a coverage annotation, each source line with
-obligations is colorized in green, orange or red for ``+``, ``!`` or ``-``
-coverage respectively.
 
 To illustrate, let us consider that we exercise our example functional unit in
 this fashion:
@@ -210,35 +211,82 @@ If we then perform, say, Statement Coverage analysis, we get a ``+``
 annotation for the corresponding lines, a ``-`` for the line with the second
 ``return`` statement (never executed), and a ``.`` everywhere else.
 
-The page header includes a summary of the line counts for the whole unit,
-together with the corresponding source file name and the assessed coverage
-level.
+Here is the full report produced for our example unit, where the ``Between``
+function is actually part of an Ada package abstraction. The original source
+file is ``range.adb`` so the annotated version is ``range.adb.xcov``:
 
-See the :ref:`sample annotated source <sample_sc_html_unit>` appendix for a
-sample of such html annotated source, and the :ref:`sample html index
-<sample_sc_html_index>` for an example index page, which embeds a
-self-description of all the items it contains.
+::
 
-With the `+` extension, the annotated machine code for each line
-may be expanded below it by a mouse click on the line.
+ gnatcov/examples/docsupport/src/ranges.adb:
+ 67% of 3 lines covered
+ Coverage level: stmt
+   1 .: package body Ranges is
+   2 .:    
+   3 .:    function Between (X1, X2, X : Integer) return Boolean is
+   4 .:    begin
+   5 +:       if X1 < X2 then
+   6 +:          return X >= X1 and then X <= X2;
+   7 .:       else
+   8 -:          return X >= X2 and then X <= X1;
+   9 .:       end if;
+  10 .:    end;
+  11 .:    
+  12 .: end;
 
-Annotated sources, text : :option:`--annotate=xcov[+]`
+:option:`--annotate=xcov+` (with a trailing +) works the same, only providing
+extra details below lines with improperly satisfied obligations. The kind of
+available details depends on the coverage criteria involved. Here is an
+excerpt for our previous example, where the only improperly satisfied obligation
+is an uncovered statement on line 8:
+
+::
+
+ ...
+   8 -:          return X >= X2 and then X <= X1;
+   STATEMENT "return X ..." at 8:10 not executed
+
+
+Annotated sources, html : :option:`--annotate=html[+]`
 ------------------------------------------------------
+
+For source coverage criteria, |gcvcov| :option:`--annotate=html` produces an
+annotated version of each source file, in html format, named after the original
+source with an extra ``.html`` extension at the end.
+
+Each annotated source page contains a summary of the assessment results
+followed by the original source lines, all numbered and marked with a coverage
+annotation as in the :option:`--annotate=xcov` case. In addition, lines with
+obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
+coverage respectively.
+
+An `index.html` page is also produced, which contains a description of the
+assessment context (assessed criteria, set of trace files involved, ...) and a
+summary of the coverage results for all the units, with links to their
+annotated sources.
+
+See our :ref:`sample html index <sample_sc_html_index>` appendix for an
+example index page, which embeds a self-description of all the items it
+contains. See the :ref:`sample annotated source <sample_sc_html_unit>`
+appendix for a sample of html annotated source.
+
+Similarily to the :option:`xcov` format case, :option:`--annotate=html+` (with
+a trailing +) adds details about improperly satisfied obligations.  In the
+html version, these extra details are not immediatly visible: they are folded
+within their associated line and expanded below when a mouse click hits the
+line.
 
 Violations summary, text : :option:`--annotate=report`
 ------------------------------------------------------
 
-:option:`--annotate=report` produces a syntetic text report of all the
-coverage violations relevant to the set of criteria to be assessed per the
-:option:`--level` argument.
+For source coverage criteria, |gcvcov| :option:`--annotate=report` produces a
+syntetic text report that lists all the :term:`coverage violations` (failure
+to satisfy some aspect of a coverage criterion) relevant to the set of
+assessed criteria.
 
-General structure and example
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The synthetic reports features explicit start/end of report notifications and
-four sections in between: Assessment Context, Non Exempted Violations,
-Exempted Regions and Analysis Summary.  The general structure is sketched
-below and a more detailed description of each report section follows.
+The report features explicit start/end of report notifications and
+at least three sections in between: Assessment Context, Coverage Violations,
+and Analysis Summary.  The general structure is sketched below and a more
+detailed description of each report section follows.
 
 ::
 
@@ -248,20 +296,20 @@ below and a more detailed description of each report section follows.
   == 1. ASSESSMENT CONTEXT ==
   ===========================
   ...
-  =========================================
-  == 2. NON-EXEMPTED COVERAGE VIOLATIONS ==
-  =========================================
+  ============================
+  == 2. COVERAGE VIOLATIONS ==
+  ============================
   ...
   =========================
-  == 3. EXEMPTED REGIONS ==
-  =========================
-  ...
-  =========================
-  == 4. ANALYSIS SUMMARY ==
+  == 3. ANALYSIS SUMMARY ==
   =========================
   ...
   ** END OF REPORT **
-  
+
+
+A few variations are introduced when :term:`exemption regions` are in scope.
+See the :ref:`exemptions` section for more details on their use and effect on
+the output reports.
 
 Assessment Context
 ^^^^^^^^^^^^^^^^^^
@@ -304,13 +352,13 @@ Here is a example excerpt:
 The set of units that this report is about is conveyed by the
 :option:`--scos` option arguments on the quoted command line.
 
-Non-exempted Coverage Violations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Coverage Violations
+^^^^^^^^^^^^^^^^^^^
 
-The *Non-exempted violations* section lists and counts the coverage violations
-with that relate to source lines not part of an exemption region.  The
-violations are grouped in subsections, one per assessed criterion according to
-the :option:`--level` option:
+The *Coverage Violations* section lists and counts the coverage violations
+that relate to source lines not part of an exemption region.  The violations
+are grouped in subsections, one per assessed criterion according to the
+:option:`--level` option:
 
 .. csv-table::
    :delim: |
@@ -356,9 +404,9 @@ one subsection for each of the three criteria requested at that level:
 
 ::
 
-  =========================================
-  == 2. NON-EXEMPTED COVERAGE VIOLATIONS ==
-  =========================================
+  ============================
+  == 2. COVERAGE VIOLATIONS ==
+  ============================
 
   2.1. STMT COVERAGE
   ------------------
@@ -384,31 +432,11 @@ one subsection for each of the three criteria requested at that level:
 
 
 When multiple violations apply someplace, the most salliant diagnostic is
-emitted alone. For instance, if an Ada statement like "`X := A and then B;`"
-is not covered at all, a "`statement not executed`" violation is emitted
-alone, even if we're assessing for, say, `--level=stmt+decision` ; |gcv| emits
+emitted alone. For instance, if an Ada statement like ``X := A and then B;``
+is not covered at all, a ``statement not executed`` violation is emitted
+alone, even if we're assessing for, say, :option:`--level=stmt+decision` ; |gcv| emits
 no decision oriented violation in this case.
 
-Exempted Regions
-^^^^^^^^^^^^^^^^
-
-The *Exempted violations* section lists and counts the exempted regions,
-displaying for each the source location span, the number of actually exempted
-violations in the region, and the exemption justification text. For example:
-
-::
-
-  =========================
-  == 3. EXEMPTED REGIONS ==
-  =========================
-
-  assert.adb:22:4-27:4: 2 exempted violations, justification:
-  assertions are expected never to fail
-
-  1 exempted region.
-
-See the :ref:`exemptions` section 
-  
 Analysis Summary
 ^^^^^^^^^^^^^^^^
 
@@ -418,13 +446,12 @@ the previous report sections.  For our example report so far, this would be:
 ::
 
   =========================
-  == 4. ANALYSIS SUMMARY ==
+  == 3. ANALYSIS SUMMARY ==
   =========================
 
   1 non-exempted STMT violation.
   1 non-exempted DECISION violation.
   2 non-exempted MCDC violations.
-  1 exempted region.
 
   
 This section provides a quick way to determine whether the requested coverage
@@ -435,7 +462,9 @@ from the per criterion sections that precede.
 Statement Coverage (SC) assessments
 ===================================
 
-Statement coverage is achieved with :option:`--level=stmt`, together with
+Statement coverage is achieved with :option:`--level=stmt`.
+
+ together with
 :option:`--scos` to provide the set of SCOs of interest via ALI files.
 The `xcov` and `html` annotation formats both generate a
 representation of the sources with annotations on each relevant line,
@@ -450,6 +479,10 @@ according to the following table:
 * '`+`'
 @tab statement covered (executed) on this line
 @end multitable
+
+BLOB ON EXCEPTIONS
+
+MULTIPLE STMTS ON A LINE
 
 Below is a sample session to illustrate on the Explore example, for the
 `robots` unit after recompilation with *-gnateS -O0*.  Note the *--level*
@@ -503,12 +536,6 @@ lines with uncovered statements, for example like:
   stations.adb:89: statement not executed
 
   
-
-More details on the report format are available in a dedicated
-appendix of this documentation.
-By default, the report goes to standard output.
-It may be directed to a file instead, with the addition of a
-*-o <filename>* option on the command line.
 
 Decision Coverage (DC) assessments
 ==================================
@@ -730,39 +757,4 @@ diagnostic applies on the associated decision or statement, however.
 In our familiar example, attempting only safe actions in Cautious mode
 yields a '`decision outcome TRUE never exercised`' diagnostic,
 not a couple of condition related messages.
-
-.. _exemptions:
-
-Coverage Exemptions
-===================
-
-In some circumstances, there are good and well understood reasons why proper
-coverage of some source statement or decision is not achievable, and it is
-convenient to be able to abstract these coverage violations away from the
-genuine defects of a testing campaign.  The |gcp| :dfn:`exemptions` facility
-was designed for this purpose.
-
-For Ada with the |gnat| compilers, coverage exemptions are requested for
-sections of source by the insertion of dedicated pragmas:
-
-- ``pragma Annotate (Xcov, Exempt_On, "justification text");`` starts a
-  section, providing some justification text that will be recalled in coverage
-  reports.
-
-- ``pragma Annotate (Xcov, Exempt_Off);`` closes the current exemption section.
-
-There may be no overlap between exemption regions.
-
-Exempted regions are reported as blocks in both the annotated source
-and the synthetic text reports.
-
-In annotated source reports, a ``#`` or ``*`` caracter annotates all the
-exempted lines, depending on whether 0 or at least 1 violation was exempted
-over the whole section, respectively.
-
-In synthetic text reports, a single indication is emitted for each exempted
-region, and the indications for all the regions are grouped in a separate
-report section.
-
-
 
