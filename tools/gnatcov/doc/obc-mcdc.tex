@@ -862,26 +862,26 @@ evaluation strategy.
 
 \subsection{Equivalence case}
 
-We now consider the case of an expression whose BDD has no diamond paths,
+We now consider the case of an expression whose BDD is a tree,
 i.e. for each BDD node there is exactly one path from the entry point to
 that node. The following property holds:
 
 \begin{description}
-\item[BDDBC\_No\_Diamond\_Indep\_Implies\_MCDC]
-  For a BDD with no diamonds, if conditions are independent, then
+\item[BDDBC\_Tree\_Indep\_Implies\_MCDC]
+  For a BDD tree, if conditions are independent, then
   BDD branch coverage implies Unique Cause MC/DC and Masking MC/DC.
 \end{description}
 
 Let's consider a condition C. Since we have BDD branch coverage,
 all possible paths starting at C have been taken (by recurrence on path
-length, taking advantage of no cycles and no diamonds).
+length).
 
 From the independent outcome reachability property, we have two paths
 starting at C, beginning each with one edge from C, and ending on the
 two outcomes of the decision. Let's call them PCT and PCF.
 
 These paths are disjoint: any condition appearing in one is not evaluated
-in the other (because of no-diamond).
+in the other (because of the BDD is a tree).
 
 These two paths are parts of paths PT and PF from the BDD entry point to
 either outcome, and they cannot differ on the part of the path from the
@@ -900,10 +900,10 @@ in \alloyspec{bdd\_coverage.als}.
 
 \subsection{Non-equivalence case}
 
-The general idea of this proof is to show that, for any BDD with a
-diamond, we can build a set of evaluations that covers the BDD
-branches in such a way that there is at least one condition for which
-MC/DC is not met.
+The general idea of this proof is to show that, if a BDD is not a
+tree, we can build a set of evaluations that covers the BDD branches
+in such a way that there is at least one condition for which MC/DC is
+not met.
 
 If we want to have a proof that will work for any definition of MC/DC,
 we cannot rely on a failure of the independence criteria; \textit{to
@@ -940,7 +940,7 @@ The formal definition would be:
 \end{definition}
 
 It turns out that we can build a set of evaluations such that BDDBC is
-reached, but not MC/DC, when the BDD has a diamond.  Let's take the
+reached, but not MC/DC, when the BDD is not a tree.  Let's take the
 canonical example:\\
 $(A \ \andthen{} \ B) \orelse{} \ C$\\
 and these evaluations:
@@ -961,40 +961,41 @@ this cannot show that B affects the outcome of the decision.
 
 Let us give a general idea of how we would prove that in the general
 case. First, remember that we are dealing with reduced ordered BDDs;
-so each node can be ordered. This property allows us to have a
-proper concept of ``last diamond node'' and its ``last parent''. In our
-example, the last diamond node would be C, its last parent B.
+so each node can be ordered. This property allows us to have a proper
+concept of ``last multipath node'' and its ``last parent''. In our
+example, the last multipath node would be C, its last parent B.
 
-Now, we would show that the last parent of the last diamond node has
+Now, we would show that the last parent of the last multipath node has
 an interesting property: one of its exit edge is always connected
 directly to an outcome (for B, it is outcome True). Its other exit
-edge being connected to the last diamond node (obviously), it is
+edge being connected to the last multipath node (obviously), it is
 possible to cover this edge in such a way that the outcome of the
 corresponding evaluation is the same as the ``direct outcome'';
 e.g. when evaluating B to False, we would evaluate C to True and exit
 on True. We know that this is possible using the property that, from
-each node of the BDD (and, in this case, the diamond C), there exists
-at least one evaluation that reaches outcome True and at least one that
-reach outcome False.
+each node of the BDD (and, in this case, the multipath node C), there
+exists at least one evaluation that reaches outcome True and at least
+one that reach outcome False.
 
 This means that we can cover all exit and incoming edges of the last
-parent of the last diamond in such a way that the evaluations \textit{always}
-exit on the same outcome; and, from the property of its exit edges, we
-can see that this set of evaluations can be completed to reach BDDBC
+parent of the last multipath node in such a way that the evaluations
+\textit{always} exit on the same outcome; and, from the property of
+its exit edges, we can see that this set of evaluations can be
+completed to reach BDDBC
 \textit{without evaluating this node anymore}. This builds a BDD coverage
 that does not satisfy Weak MC/DC for this node.
 
 The following sections will detail this proof.
 
-\subsubsection{Last diamond}
+\subsubsection{Last multipath node}
 
 We have previously built a function index(D,C) that defines a full
 order over the nodes of a (RO)BDD. Based on this function, we can
 define the following entities:
 \begin{itemize}
 \item in a BDD, let the last node be the node with the greatest index;
-\item let a diamond node be a node with more than one parent;
-\item let the last diamond node of a decision be the diamond with the
+\item let a multipath node be a node with more than one parent;
+\item let the last multipath node of a decision be the multipath node with the
       greatest index;
 \item let the last parent of a node be the parent with the greatest index.
 \end{itemize}
@@ -1003,7 +1004,7 @@ Some examples from our canonical case
 $D ::= (A \ \andthen{} \ B) \orelse{} \ C$:
 \begin{itemize}
 \item index(D,A) = 1, index(D,B) = 2, index(D,C) = 3;
-\item the last diamond node is C; it is also the last node;
+\item the last multipath node is C; it is also the last node;
 \item the last parent of C is B.
 \end{itemize}
 
@@ -1015,21 +1016,21 @@ We have the following properties:
 \end{lemma}
 
 \begin{lemma}
-  \label{lemma:last-parent-of-the-last-diamond}
-   If a BDD contains diamonds, then the last parent of the last diamond
+  \label{lemma:last-parent-of-the-last-multipath-node}
+   If a BDD is not a tree, then the last parent of the last multipath node
    has an exit edge that is directly connected to an outcome.
 
-   This outcome will be called the direct outcome (of the last of parent of
-   the last diamond). The edge connected to the the direct outcome will be
-   called the direct exit edge.
+   This outcome will be called the direct outcome (of the last of
+   parent of the last multipath node). The edge connected to the the
+   direct outcome will be called the direct exit edge.
 \end{lemma}
 
 This can be seen in our example:
 \begin{itemize}
 \item the last node being C, its exit edges are connected directly to True and
       False;
-\item the last parent of the last diamond being B; when it is True, the outcome
-      True is reached.
+\item the last parent of the last multipath node being B; when it is True,
+      the outcome True is reached.
 \end{itemize}
 
 The two properties can be proved by structural induction on the BDD.
@@ -1038,30 +1039,29 @@ reader. Here is a proof of the second one:
 
 \begin{itemize}
 \item if $D ::= C$ (simple condition decision):\\
-  the BDD does not contain any diamonds, so the property is trivially true
-  in this case.
+  the BDD is a tree, so the property is trivially true in this case.
 
 \item if $D ::=\ \adanot{} \ D1$:\\
-  if D1 does not contain diamond, D does not either, the propery is trivial
-  as well. If it does contain diamond, well, only outcome labels are different
+  if D1 is a tree, D is also a tree, the propery is trivial
+  as well. If it is not, well, only outcome labels are different
   between BDD(D) and BDD(D1), so the property holds for D if it holds for D1.
 
 \item if $D ::= DL \ \anysc{} \ DR$, supposing that the property holds
   for DL and DR; four cases then:
 
   \begin{itemize}
-  \item If no diamonds were in BDD(DL) and BDD(DR), and none were introduced
-    by building BDD(D) from them: then BDD(D) contains no diamonds, the
-    property is trivial.
+  \item If both BDD(DL) and BDD(DR) were trees, and no multipath nodes were
+    introduced by building BDD(D) from them: then BDD(D) is a tree,
+    the property is trivial.
 
-  \item If DR contains a diamond: then the last diamond node of D is
-    the last diamond node in DR. By construction, BDD(DR) is a
-    sub-tree of BDD(D), the exit edges of the last diamond node are
+  \item If DR contains a multipath node: then the last multipath node of D
+    is the last multipath node in DR. By construction, BDD(DR) is a
+    sub-tree of BDD(D), the exit edges of the last multipath node are
     the same in BDD(DR) and in BDD(D). So if the property holds for
     DR, it holds for D.
 
-  \item If DR contains no diamonds, and if building BDD(D) from
-    BDD(DR) and BDD(DL) introduces a new diamond: this new diamond
+  \item If DR contains no multipath nodes, and if building BDD(D) from
+    BDD(DR) and BDD(DL) introduces a new one: this new multipath
     node has to be root(DR), as only this node has gained new incoming
     edges: in Build\_BDD, the exit edges of BDD(DR) labeled ``not SC''
     are connected to BDD(DL)'s root. Therefore, its parent nodes are
@@ -1070,30 +1070,30 @@ reader. Here is a proof of the second one:
     edge to ``not SC'' in BDD(DL). Its other exit edge will remain
     unchanged in BDD(D) and will be connected to an outcome
     (``SC''). This last node of BDD(DL) is also the last parent of
-    this diamond node, as no other nodes in cond(DL) have a greater
-    index. And (finally), this introduced diamond node is D's last
-    diamond node, as DR contains no diamonds (initial hypothesis). So
-    we have identified the last parent of the last diamond and showed
+    this multipath node, as no other nodes in cond(DL) have a greater
+    index. And (finally), this introduced multipath node is D's last
+    multipath node, as DR contains none (initial hypothesis). So
+    we have identified the last parent of the last multipath node and showed
     that one of its exit edges is connected to an outcome in BDD(D); that's
     the property that we were trying to prove.
 
-  \item If DR contains no diamonds, and if no diamonds were introduced
-    when building BDD(D), but if DL contains a diamond: the last
-    diamond node in D is the same node as the last diamond node in DL.
-    The last parent of the last diamond in DL has an exit edge that
+  \item If DR contains is a tree, and if no multipath nodes were introduced
+    when building BDD(D), but if DL contains one: the last
+    multipath node in D is the same node as the last multipath node in DL.
+    The last parent of the last multipath node in DL has an exit edge that
     connects to SC; otherwise, it would be connected to BDD(DR)'s root
     when building BDD(D), and as the last node would also be connected
     to this root node (it also has an exit edge to SC in DR, as a
     consequence of property~\ref{lemma:last-node}), BDD(DR)'s root
     would have at least two fathers in D, which contradicts the
-    hypothesis that no diamonds were introduced. So this exit edges of
-    the last parent of the last diamond in DL (and D) will still be
+    hypothesis that no multipath nodes were introduced. So this exit edges of
+    the last parent of the last multipath node in DL (and D) will still be
     connected to an outcome after building D. So the property is true
     in this case as well.
   \end{itemize}
 \end{itemize}
 
-The property~\ref{lemma:last-parent-of-the-last-diamond} has now been
+The property~\ref{lemma:last-parent-of-the-last-multipath-node} has now been
 established in all possible cases. This proof will actually be quite
 useful as its structure will be used to build a coverage that satisfies
 BDDBC but not Weak MC/DC.
@@ -1125,26 +1125,26 @@ Some conventions first to help us manipulate paths through BDD:
 \subsubsection{Building a BDD branch coverage that does not verify Weak MC/DC}
 
 For a given decision D, our coverage will be ensured by the union of
-three sets of paths Short\_Circuit\_LPLD(D), Long\_Circuit\_LPLD(D) and
-LPLD\_Not\_Evaluated(D), which verifies the following set-specific
+three sets of paths Short\_Circuit\_LPLMN(D), Long\_Circuit\_LPLMN(D) and
+LPLMN\_Not\_Evaluated(D), which verifies the following set-specific
 invariants:
 
 \begin{description}
-\item[Short\_Circuit\_LPLD\_Invariant]
-  If BDD(D) is diamondless, Short\_Circuit\_LPLD(D) is empty;
+\item[Short\_Circuit\_LPLMN\_Invariant]
+  If BDD(D) is a tree, Short\_Circuit\_LPLMN(D) is empty;
   otherwise, it contains a non-empty set of paths, each reaching the
-  last parent of the last diamond node and then exiting on its direct
+  last parent of the last multipath node and then exiting on its direct
   outcome.
 
-\item[Long\_Circuit\_LPLD\_Invariant]
-  If BDD(D) is diamondless, Long\_Circuit\_LPLD(D) is empty;
+\item[Long\_Circuit\_LPLMN\_Invariant]
+  If BDD(D) is a tree, Long\_Circuit\_LPLMN(D) is empty;
   otherwise, it contains a non-empty set of paths, each reaching the last
-  parent of the last diamond node, then going to the last diamond node, and
-  then reaching the same outcome as Short\_Circuit\_LPLD(D).
+  parent of the last multipath node, then going to the last multipath node, and
+  then reaching the same outcome as Short\_Circuit\_LPLMN(D).
 
-\item[LPLD\_Not\_Evaluated\_Invariant]
-  No path in LPLD\_Not\_Evaluated(D) evaluates the last parent of the last
-  diamond node.
+\item[LPLMN\_Not\_Evaluated\_Invariant]
+  No path in LPLMN\_Not\_Evaluated(D) evaluates the last parent of the last
+  multipath node.
 \end{description}
 
 ...plus one other ``global'' invariants:
@@ -1159,18 +1159,18 @@ As a consequence of this last invariant, we will now call
 BDDBC\_Coverage the union of these three sets:
 
 \begin{align*}
-  BDDBC\_Coverage(D) & = Short\_Circuit\_LPLD(D)\\
-                     & + Long\_Circuit\_LPLD(D)\\
-                     & + LPLD\_Not\_Evaluated(D)
+  BDDBC\_Coverage(D) & = Short\_Circuit\_LPLMN(D)\\
+                     & + Long\_Circuit\_LPLMN(D)\\
+                     & + LPLMN\_Not\_Evaluated(D)
 \end{align*}
 
 Note also that an other property falls naturally from
-LPLD\_Not\_Evaluated\_Invariant and BDDBC\_Coverage\_Invariant:
+LPLMN\_Not\_Evaluated\_Invariant and BDDBC\_Coverage\_Invariant:
 
 \begin{description}
 \item[Incoming\_Edges]
-  The union of Long\_Circuit\_LPLD and Short\_Circuit\_LPLD covers all incoming
-  edges of the last parent of the last diamond node.
+  The union of Long\_Circuit\_LPLMN and Short\_Circuit\_LPLMN covers all incoming
+  edges of the last parent of the last multipath node.
 \end{description}
 
 Anyway, here is the definition, case by case, of a recursive build
@@ -1185,8 +1185,8 @@ sub-decision of D, obviously; ``strict'' sub-decisions):
   $D ::= C$\\
   In this case:
   \begin{align*}
-    Short\_Circuit\_LPLD(D) & = Long\_Circuit\_LPLD(D) = \{\}\\
-    LPLD\_Not\_Evaluated(D) & = \{C -> True, C -> False\}\\
+    Short\_Circuit\_LPLMN(D) & = Long\_Circuit\_LPLMN(D) = \{\}\\
+    LPLMN\_Not\_Evaluated(D) & = \{C -> True, C -> False\}\\
   \end{align*}
 
 
@@ -1194,9 +1194,9 @@ sub-decision of D, obviously; ``strict'' sub-decisions):
   The sub-decision is of the form:\\
   $D ::=\ \adanot{} \ D1$
 
-  Then Short\_Circuit\_LPLD(D) is built by switching the outcome of each
-  path contained in Short\_Circuit\_LPLD(D1). Same operations for
-  Long\_Circuit\_LPLD(D) and No\_LPLD(D).
+  Then Short\_Circuit\_LPLMN(D) is built by switching the outcome of each
+  path contained in Short\_Circuit\_LPLMN(D1). Same operations for
+  Long\_Circuit\_LPLMN(D) and No\_LPLMN(D).
 
 
 \item[Build\_BDD\_Cov.Short\_Circuit\_Operator]
@@ -1206,37 +1206,37 @@ sub-decision of D, obviously; ``strict'' sub-decisions):
   Four sub-cases:
 
   \begin{itemize}
-  \item No diamonds:\\
-    No diamonds in BDD(DL) and BDD(DR), and none were introduced
+  \item No multipath nodes:\\
+    No multipath nodes in BDD(DL) and BDD(DR), and none were introduced
     by building BDD(D) from them. Then:\\
     \begin{align*}
-      Short\_Circuit\_LPLD(D) & = \{\}\\
-      Long\_Circuit\_LPLD (D) & = \{\}\\
-      LPLD\_Not\_Evaluated(D) & = path\_to(SC, BDDBC\_Coverage(DL))\\
+      Short\_Circuit\_LPLMN(D) & = \{\}\\
+      Long\_Circuit\_LPLMN (D) & = \{\}\\
+      LPLMN\_Not\_Evaluated(D) & = path\_to(SC, BDDBC\_Coverage(DL))\\
                             & + merge(path\_to(not SC, BDDBC\_Coverage (DL)),\\
                             & \quad BDDBC\_Coverage(DR))
     \end{align*}
 
-  \item Diamond in DR:\\
-    i.e. Short\_Circuit\_LPLD(DR) and Long\_Circuit\_LPLD(DR) contain at least
-    one element each.
+  \item Multipath node in DR:\\
+    i.e. Short\_Circuit\_LPLMN(DR) and Long\_Circuit\_LPLMN(DR) contain
+    at least one element each.
     Let p\_dl be an arbitrary path to ``not SC'' in BDD(DL), taken from
     BDDBC\_Coverage(DL). In BDD(D), it corresponds to a path to root(DR).
     Then:
     \begin{align*}
-    Short\_Circuit\_LPLD(D) & = merge(\{p\_dl\}, Short\_Circuit\_LPLD(DR))\\
-    Long\_Circuit\_LPLD(D)  & = merge(\{p\_dl\}, Long\_Circuit\_LPLD(DR))\\
-    LPLD\_Not\_Evaluated(D) & = path\_to(SC, BDDBC\_Coverage(DL))\\
+    Short\_Circuit\_LPLMN(D) & = merge(\{p\_dl\}, Short\_Circuit\_LPLMN(DR))\\
+    Long\_Circuit\_LPLMN(D)  & = merge(\{p\_dl\}, Long\_Circuit\_LPLMN(DR))\\
+    LPLMN\_Not\_Evaluated(D) & = path\_to(SC, BDDBC\_Coverage(DL))\\
                           & + merge(path\_to(not SC, BDDBC\_Coverage(DL)),\\
-                          & \quad  LPLD\_Not\_Evaluated(DR))
+                          & \quad  LPLMN\_Not\_Evaluated(DR))
     \end{align*}
 
-  \item Last diamond introduced:\\
-    i.e. no diamonds in BDD(DR) and a diamond has been created when building
+  \item Last Multipath node introduced:\\
+    i.e. BDD(DR) is a tree and a multipath node has been created when building
     BDD(D). In this case:
     \begin{itemize}
-    \item $Short\_Circuit\_LPLD(DR) = Long\_Circuit\_LPLD(DR) = \{\}$
-    \item the last diamond node in D is root(DR).
+    \item $Short\_Circuit\_LPLMN(DR) = Long\_Circuit\_LPLMN(DR) = \{\}$
+    \item the last multipath node in D is root(DR).
     \end{itemize}
 
     Let SC\_DL be the subset of paths in path\_to(SC,
@@ -1250,53 +1250,53 @@ sub-decision of D, obviously; ``strict'' sub-decisions):
 
     Then the coverage for BDD(D) is built as follows:
     \begin{align*}
-    Short\_Circuit\_LPLD(D) & = SC\_DL\\
-    Long\_Circuit\_LPLD(D)  & = merge(LC\_DL, \{sc\_dr\})\\
-    LPLD\_Not\_Evaluated(D) & = path\_to(SC, REST\_DL)\\
+    Short\_Circuit\_LPLMN(D) & = SC\_DL\\
+    Long\_Circuit\_LPLMN(D)  & = merge(LC\_DL, \{sc\_dr\})\\
+    LPLMN\_Not\_Evaluated(D) & = path\_to(SC, REST\_DL)\\
                             & + merge(path\_to(not SC), REST\_DL),\\
                             & \quad BDDBC\_Coverage(DR))
     \end{align*}
     (Note that we are allowed to merge path\_to(not SC, REST\_DL) because
     it is non-empty; there is at least one other node that has an exit
     edge directly connected to ``not SC'' in BDD(DL), otherwise no
-    diamond would have been created; so it must have at least one path
+    multipath node would have been created; so it must have at least one path
     that does not evaluate the last node in BDD(DL); that property
     gives us the right to use the merge operation. Same thing for LC\_DL
     and SC\_DL that are both non-empty thanks to
     property~\ref{lemma:last-node}).
 
-  \item Diamond in DL only:\\
-    i.e. no diamonds in BDD(DR), no new diamonds introduced when
-    building BDD(D), but at least one diamond in BDD(DL).  The last
-    parent of the last diamond in DL has its ``direct'' exit edge
+  \item Multipath node in DL only:\\
+    i.e. BDD(DR) is a tree, no new multipath nodes introduced when
+    building BDD(D), but at least one multipath node in BDD(DL). The last
+    parent of the last multipath node in DL has its ``direct'' exit edge
     that connects to SC; otherwise, it would have been connected to
     BDD(DR)'s root when building BDD(D), and as the last node would
     also be connected to this root node (it also has an exit edge to
     SC in DR, as a consequence of property~\ref{lemma:last-node}), BDD(DR)'s
     root would have at least two fathers in D, which contradicts the
-    hypothesis that no diamonds were introduced.  Let sc\_dr be an
+    hypothesis that no multipath nodes were introduced.  Let sc\_dr be an
     arbitrary path in DR exiting on SC.  Then the coverage for BDD(D)
     is built as follows:
     \begin{align*}
-    Short\_Circuit\_LPLD(D) & = Short\_Circuit\_LPLD(DL)\\
-    Long\_Circuit\_LPLD(D)  & = merge(Long\_Circuit\_LPLD(DL), \{sc\_dr\})\\
-    LPLD\_Not\_Evaluated(D) & = path\_to(SC, LPLD\_Not\_Evaluated(DL))\\
-                         & + merge(path\_to(not SC, LPLD\_Not\_Evaluated(DL),\\
+    Short\_Circuit\_LPLMN(D) & = Short\_Circuit\_LPLMN(DL)\\
+    Long\_Circuit\_LPLMN(D)  & = merge(Long\_Circuit\_LPLMN(DL), \{sc\_dr\})\\
+    LPLMN\_Not\_Evaluated(D) & = path\_to(SC, LPLMN\_Not\_Evaluated(DL))\\
+                         & + merge(path\_to(not SC, LPLMN\_Not\_Evaluated(DL),\\
                          & BDDBC\_Coverage(DR))
     \end{align*}
   \end{itemize}
 \end{description}
 
 Our sets are now defined in all possible cases. It is quite easy to
-check that Short\_Circuit\_LPLD\_Invariant,
-Long\_Circuit\_LPLD\_Invariant, LPLD\_Not\_Evaluated\_Invariant and
+check that Short\_Circuit\_LPLMN\_Invariant,
+Long\_Circuit\_LPLMN\_Invariant, LPLMN\_Not\_Evaluated\_Invariant and
 BDDBC\_Coverage\_Invariant are enforced by this build procedure; each
 one falls so obviously from the construction (in every case) that it
 will be quite painful to elaborate.
 
 So we can build a BDD coverage in such a way that, if there is a
-diamond in the BDD, then the decision will have the same outcome for
-any evaluation where the last parent of the last diamond is
+multipath node in the BDD, then the decision will have the same outcome for
+any evaluation where the last parent of the last multipath node is
 evaluated. This means that this BDD coverage does not imply Weak
 MC/DC; that which was to be demonstrated.
 
@@ -1305,9 +1305,9 @@ MC/DC; that which was to be demonstrated.
 We have therefore proved the following property:
 
 \begin{theorem}
-  \label{thm:no-diamond}
+  \label{thm:no-multipath-node}
   Given a decision D, branch coverage of the BDD implies MC/DC if,
-  and only if, there is no diamond in the BDD (i.e.  no node of the
+  and only if, this BDD is a tree(i.e.  no node of the
   BDD is reachable through more that one path from the root).
 \end{theorem}
 
@@ -1341,9 +1341,9 @@ to more complex subexpressions).
 % http://lists.forge.open-do.org/pipermail/couverture-discuss/2010-February/000075.html
 
 We prove this theorem by showing that this alternative characterization is
-equivalent to having no diamonds in the associated BDD.
+equivalent to having no multipath nodes in the associated BDD.
 Theorem~\ref{thm:lhs-same-operator} follows by application of
-Theorem~\ref{thm:no-diamond}.
+Theorem~\ref{thm:no-multipath-node}.
 
 Let's consider a decision D and its BDD.
 
@@ -1396,11 +1396,6 @@ Let's consider a decision D and its BDD.
 }
 \caption{case 2 and 3}
 \end{figure}
-
-There is a diamond in a BDD if and only if there is at least one node
-such that the number of paths to reach it from root is strictly
-greater than 1; we will use this caracterization to prove our
-property.
 
 \emph{Proof of the simplified case:}
 
@@ -1462,15 +1457,15 @@ those paths in BDD(DL) reaching True, by construction; the number of
 these paths is NT(DL).
 
 Thus, DR's root node in the BDD(DL) is reachable by more than one
-path. As a consequence, there is a diamond in this BDD.
+path. As a consequence, there is a multipath node in this BDD.
 
 Similarly, if a decision D of the form \orelse{} contains a
 sub-decision D' of the form \andthen{} on the left-hand side, we can
 exhibit a node in the BDD(D) that is reachable by more
 than one path.
 
-By contraposition, if there are no diamonds in the BDD associated to a
-decision D, then D has no \orelse{} sub-decision on the left of its
+By contraposition, if the BDD associated to a decision D is a tree,
+then D has no \orelse{} sub-decision on the left of its
 \andthen{} sub-decisions, and no \andthen{} sub-decision to the left of
 its \orelse{} sub-decision.
 
@@ -1491,7 +1486,7 @@ Proof of Lemma~\ref{lemma:NF-NT-only-one-oper} is on structural induction on
 the form of decisions, based on the 3 cases distinguished above.
 
 By structural induction on the depth of the BDD, we can show that there cannot
-be any diamonds in the BDD associated to D, which proves that the desired
+be any multipath node in the BDD associated to D, which proves that the desired
 implication holds.
 
 \emph{Proof of the general case:}
@@ -1728,7 +1723,7 @@ Let us now comment a bit about coupling:
 Masking MC/DC is the constraint on the way to reach the considered
 condition: the same path for both evaluations for Unique Cause, any
 path for Masking MC/DC. In a BDD, the path to reach a node is unique
-in the case of no diamond; that shall encourage us to have a closer
+in the case of no multipath nodes; that shall encourage us to have a closer
 look at this special case.
 
 \item When we commented about Masking MC/DC, we saw that the
@@ -1740,22 +1735,22 @@ discussed in the following sections.
 \end{itemize}
 
 
-\subsection{Coupled conditions without diamonds}
+\subsection{Coupled conditions without multipath nodes}
 
 First, it can be seen that strong coupling only gives degredated cases,
 where some branches of the BDD cannot possibly be covered; this is
 what the following theorem states:
 
 \begin{theorem}
-  \label{thm:strong-coupling-no-diamond}
-  A BDD with no diamonds and with strongly coupled conditions cannot be
-  covered for BDD branch coverage, Masking MC/DC, Unique Cause MC/DC.
+  \label{thm:strong-coupling-no-multipath-nodes}
+  A BDD with no multipath nodes and with strongly coupled conditions cannot
+  be covered for BDD branch coverage, Masking MC/DC, Unique Cause MC/DC.
 \end{theorem}
 
 As Unique Cause MC/DC and Masking MC/DC are stronger than BDD branch
 coverage, we only need to prove this theorem for BDD branch coverage.
 
-In a BDD with no diamonds, there is only one possible path to each
+In a BDD with no multipath nodes, there is only one possible path to each
 node, traversing all the previous conditions in the BDD ordering. Take
 two strongly coupled conditions; let us call fc the first one in the
 BDD ordering, lc the second one. When lc is executed, fc has been
@@ -1769,7 +1764,7 @@ the other exit edge is never executed. In any case, BDD branch
 coverage cannot be achieved, as at least one edge is never taken.
 
 This means that there are no meaningful cases of strong coupling
-without diamonds. They could typically be optimizied out by the
+without multipath nodes. They could typically be optimizied out by the
 compiler.
 
 We can however exhibit some cases of weak coupling that makes sense.
@@ -1797,10 +1792,10 @@ F     & T     & F & F \\ \hline
 \end{center}
 
 It can be seen that Unique Cause MC/DC and Masking
-MC/DC are equivalent in the case of no diamonds, as there is only one
+MC/DC are equivalent in the case of no multipath nodes, as there is only one
 possible path to each node; this is a consequence of
 Theorem~\ref{thm:masking-bdd} and Theorem~\ref{thm:unique-cause-bdd}.
-So, with no diamonds, Masking MC/DC does not gain us anything, comparing
+So, with no multipath nodes, Masking MC/DC does not gain us anything, comparing
 to Unique Cause MC/DC (or BDD branch coverage):
 \begin{itemize}
 \item in the cases of strong coupling, none of these coverage criteria
@@ -1808,14 +1803,14 @@ can be reached;
 \item in all other cases, all of them are equivalent anyway.
 \end{itemize}
 
-If Masking MC/DC is of some help to handle coupled conditions, it has to
-be when the decision's BDD contains diamonds. That is the second case that
-we will investigate.
+If Masking MC/DC is of some help to handle coupled conditions, it has
+to be when the decision's BDD contains multipath nodes. That is the
+second case that we will investigate.
 
-\subsection{Coupled conditions with diamonds}
+\subsection{Coupled conditions with multipath nodes}
 
-The Theorem~\ref{thm:strong-coupling-no-diamond} cannot be extended to the
-case of diamonds. Take for instance this decision:
+The Theorem~\ref{thm:strong-coupling-no-multipath-nodes} cannot be
+extended to the case of multipath nodes. Take for instance this decision:
 
 $Dec ::= (A \ \andthen{} \ B) \ \orelse{} \ (\adanot{} \ A \ \andthen{} \ C)$
 
@@ -1889,7 +1884,7 @@ reached is not an appropriate general solution to the coupling
 problem.
 
 In other words, Masking MC/DC is still useful in the case of
-short-circuit operators; but only when there are diamonds in the
+short-circuit operators; but only when there are multipath nodes in the
 decision's BDD.
 
 \section{Computing Masking MC/DC vectors}
