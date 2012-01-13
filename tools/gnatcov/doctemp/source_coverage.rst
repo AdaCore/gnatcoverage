@@ -13,12 +13,12 @@ For this purpose, |gcp| relies on :term:`Source Coverage Obligation` (SCO)
 tables, compact descriptions of the nature and source location of program
 entities relevant to source coverage criteria.  These tables are part of the
 Library Information produced by the |gpro| compilers, in the .ali or .gli file
-corresponding to each Ada or C unit, respectively. They are produced on
-demand, by the :option:`-gnateS` compilation option for Ada, and by the
-:option:`-fdump-scos` option for C. These options must be used to compile the
-sources you wish to analyze later on.
+corresponding to each Ada or C unit, respectively.
 
-In addition, all the sources must also be compiled :option:`-g`
+Source coverage obligations are produced on demand, by the :option:`-gnateS`
+compilation option for Ada, and by the :option:`-fdump-scos` option for
+C. These options must be used to compile the sources you wish to analyze later
+on. In addition, all the sources must also be compiled :option:`-g`
 :option:`-fpreserve-control-flow`, both necessary to allow an accurate mapping
 of the execution traces back to source level obligations. Optimization is
 supported up to :option:`-O1`, with inlining allowed.
@@ -32,32 +32,6 @@ criterion needs to be analyzed.
 The :ref:`gnatcov_run-commandline` section of this document provides details on
 the trace production interface. The remainder of this chapter explains the use
 of |gcvcov| in particular, to analyse traces once they have been produced.
-
-We will be using Ada examples to illustrate, based on the following
-very simple applicative unit:
-
-::
-
-   function Between (X1, X2, X : Integer) return Boolean;
-   --  Whether X is between X1 and X2, inclusive and however they are ordered
-
-   function Between (X1, X2, X : Integer) return Boolean is
-   begin
-      if X1 < X2 then
-         return X >= X1 and then X <= X2;
-      else
-         return X >= X2 and then X <= X1;
-      end if;
-   end;
-
-This unit features 3 statements: the single ``if`` and the two ``return``
-statements, and 3 decisions: one Boolean expression within each statement.
-
-The first decision, controlling the ``if`` statement, has a single operand
-(:term:`condition` in DO178 parlance), and is called a :term:`simple Boolean
-expression`. Each of the two other expressions features two conditions
-combined by a short-circuit operator, and is so categorized as a :term:`complex
-Boolean expression`.
 
 .. _gnatcov_src_coverage-commandline:
 
@@ -159,15 +133,21 @@ Output report formats
 =====================
 
 Source coverage reports may be produced in various formats, as requested with
-the :option:`--annotate` option of |gcvcov|.
+the :option:`--annotate` command line argument of |gcvcov|.
 
 The :option:`xcov` and :option:`html` formats both produce a set of annotated
 source files, in the directory where |gcv| is launched unless overriden with
 a :option:`--output-dir` option.
 
-The :option:`report` output consists in a synthetic text report of coverage
-violations with respect to the requested criteria, produced on standard output
-by default or in the file specified by the :option:`-o` command line option.
+The :option:`report` output consists in a synthetic text report of
+:term:`coverage violations` with respect to the requested criteria, produced on
+standard output by default or in the file specified by the :option:`-o`
+command line option.
+
+Later in this documentation we name output formats by the text to add to
+:option:`--annotate` on the command line. For example, we use "the
+:option:`=report` outputs" to mean "the coverage reports produced with
+:option:`--annotate=report` ". 
 
 In all the cases, the report focuses on the sources stated to be of interest
 by way of the :option:`--scos` command line argument.
@@ -195,17 +175,19 @@ in a single character, which may be one of the following:
    ``!`` | Coverage obligations attached to the line, some satisfied 
 
 To illustrate, let us consider that we exercise our example functional unit in
-this fashion:
+the following fashion, with ``X1 < X2`` in every call:
 
 ::
 
-  procedure Test_Inrange is
+  procedure Test_X1X2 is
   begin
      Assert (Between (X1 => 2, X2 => 5, X => 3)); -- X1 < X < X2
+     Assert (not Between (X1 => 2, X2 => 5, X => 8)); -- X1 < X2 < X
   end;
 
-This executes the ``if`` statement once, evaluates the controlling decision
-True and executes the first ``return`` statement once to return True.
+This executes the ``if`` statement twice, evaluates the controlling decision
+True only and executes the first ``return`` statement twice, to return True
+then False.
 
 If we then perform, say, Statement Coverage analysis, we get a ``+``
 annotation for the corresponding lines, a ``-`` for the line with the second
@@ -234,17 +216,18 @@ file is ``range.adb`` so the annotated version is ``range.adb.xcov``:
   12 .: end;
 
 :option:`--annotate=xcov+` (with a trailing +) works the same, only providing
-extra details below lines with improperly satisfied obligations. The kind of
-available details depends on the coverage criteria involved. Here is an
-excerpt for our previous example, where the only improperly satisfied obligation
-is an uncovered statement on line 8:
+extra details below lines with improperly satisfied obligations. The available
+details consists in the list of coverage :term:`violations` diagnosed for the
+line, which depends on the coverage criteria involved. Here is an excerpt for
+our previous example, where the only improperly satisfied obligation is an
+uncovered statement on line 8:
 
 ::
 
  ...
    8 -:          return X >= X2 and then X <= X1;
    STATEMENT "return X ..." at 8:10 not executed
-
+ ...
 
 Annotated sources, html : :option:`--annotate=html[+]`
 ------------------------------------------------------
@@ -272,8 +255,7 @@ appendix for a sample of html annotated source.
 Similarily to the :option:`xcov` format case, :option:`--annotate=html+` (with
 a trailing +) adds details about improperly satisfied obligations.  In the
 html version, these extra details are not immediatly visible: they are folded
-within their associated line and expanded below when a mouse click hits the
-line.
+within their associated line and expanded when a mouse click hits the line.
 
 Violations summary, text : :option:`--annotate=report`
 ------------------------------------------------------
@@ -314,7 +296,8 @@ the output reports.
 Assessment Context
 ^^^^^^^^^^^^^^^^^^
 
-The *Assessment Context* section exposes the following information items:
+The *Assessment Context* report section exposes the following information
+items:
 
 * Date & time when the report was produced
 * Command line and Version of |gcp| that produced the report
@@ -355,10 +338,10 @@ The set of units that this report is about is conveyed by the
 Coverage Violations
 ^^^^^^^^^^^^^^^^^^^
 
-The *Coverage Violations* section lists and counts the coverage violations
-that relate to source lines not part of an exemption region.  The violations
-are grouped in subsections, one per assessed criterion according to the
-:option:`--level` option:
+The *Coverage Violations* report section lists and counts the coverage
+violations that relate to source lines not part of an exemption region.  The
+violations are grouped in subsections, one per assessed criterion according to
+the :option:`--level` option:
 
 .. csv-table::
    :delim: |
@@ -370,7 +353,7 @@ are grouped in subsections, one per assessed criterion according to the
    `stmt+mcdc`     | Statement, Decision and MCDC Coverage
 
 
-All the non-exempted violations are reported using a consistent
+All the violations are reported using a consistent
 format, as follows:
 
 ::
@@ -399,8 +382,15 @@ might be emitted together for each criterion:
                       | ``condition has no independent influence pair``
 
 
-Here is an example output excerpt for :option:`--level=stmt+mcdc`, with
-one subsection for each of the three criteria requested at that level:
+When multiple violations apply someplace, the most salliant diagnostic is
+emitted alone. For instance, if an Ada statement like ``X := A and then B;``
+is not covered at all, a ``statement not executed`` violation is emitted
+alone, even if we're assessing for, say, :option:`--level=stmt+decision` ;
+|gcv| emits no decision oriented violation in this case.
+
+Here is an output excerpt for our example with :option:`--level=stmt+mcdc`,
+producing one subsection for each of the three criteria requested at that
+level:
 
 ::
 
@@ -411,37 +401,29 @@ one subsection for each of the three criteria requested at that level:
   2.1. STMT COVERAGE
   ------------------
 
-  engines.adb:71:10: statement not executed
+  ranges.adb:8:10: statement not executed
 
   1 violation.
 
   2.2. DECISION COVERAGE
   ----------------------
 
-  engines.adb:70:14: decision outcome TRUE never exercised
+  ranges.adb:5:10: decision outcome FALSE never exercised
 
   1 violation.
 
   2.3. MCDC COVERAGE
   ------------------
 
-  engines.adb:34:14: condition has no independent influence pair, MC/DC not achieved
-  engines.adb:46:13: condition has no independent influence pair, MC/DC not achieved
+  ranges.adb:6:17: condition has no independent influence pair, MC/DC not achieved
 
-  2 violations.
-
-
-When multiple violations apply someplace, the most salliant diagnostic is
-emitted alone. For instance, if an Ada statement like ``X := A and then B;``
-is not covered at all, a ``statement not executed`` violation is emitted
-alone, even if we're assessing for, say, :option:`--level=stmt+decision` ; |gcv| emits
-no decision oriented violation in this case.
+  1 violation.
 
 Analysis Summary
 ^^^^^^^^^^^^^^^^
 
-The *Analysis Summary* section summarizes just the counts reported in each of
-the previous report sections.  For our example report so far, this would be:
+The *Analysis Summary* report section summarizes just the counts reported in
+each of the previous sections.  For our example report so far, this would be:
 
 ::
 
@@ -451,193 +433,326 @@ the previous report sections.  For our example report so far, this would be:
 
   1 non-exempted STMT violation.
   1 non-exempted DECISION violation.
-  2 non-exempted MCDC violations.
+  1 non-exempted MCDC violations.
 
   
 This section provides a quick way to determine whether the requested coverage
-level, as conveyed by :option:`--level`, is fully satisfied, with details available
-from the per criterion sections that precede.
+level is fully satisfied, with details available from the per criterion
+sections that precede.
 
 
 Statement Coverage (SC) assessments
 ===================================
 
-Statement coverage is achieved with :option:`--level=stmt`.
+General principles
+------------------
 
- together with
-:option:`--scos` to provide the set of SCOs of interest via ALI files.
-The `xcov` and `html` annotation formats both generate a
-representation of the sources with annotations on each relevant line,
-according to the following table:
+Statement Coverage analysis, which focuses on :dfn:`statement` source
+entities. is requested with the :option:`--level=stmt` command line
+argument of |gcvcov|.
 
-@multitable @columnfractions .1 .8
-* @h:term:`Note` @tab @h:term:`Means ...`
-* '`.`'
-@tab no SCO or no executable code for this line
-* '`-`'
-@tab statement uncovered (not executed) on this line
-* '`+`'
-@tab statement covered (executed) on this line
-@end multitable
+In synthetic :option:`=report` outputs, unexecuted statements are reported as
+Statement Coverage violations in the report section dedicated to these. 
 
-BLOB ON EXCEPTIONS
+In annotated source outputs, the coverage annotations convey the following
+indications:
 
-MULTIPLE STMTS ON A LINE
+.. csv-table::
+   :delim: |
+   :widths: 10, 80
+   :header: Annotation, Meaning
 
-Below is a sample session to illustrate on the Explore example, for the
-`robots` unit after recompilation with *-gnateS -O0*.  Note the *--level*
-option passed to both `run` and `coverage` invocations::
+   ``+`` | At least one statement on the line, all covered 
+   ``-`` | At least one statement on the line, none covered
+   ``!`` | At least one statement on the line, some covered
 
-  $ gnatcov run --level=stmt explore
-  ... run session, trace goes to explore.trace by default ...
+When a single statement spans multiple lines, the coverage annotation is
+present on all the lines, as the two ``+`` signs for the single assignment
+in the following excerpt::
 
-  $ gnatcov coverage --level=stmt --scos=obj/robots.ali --annotate=xcov explore.trace  
+  2 .:  -- A single assignment spanning two lines
+  3 .:
+  4 +:  Result :=
+  5 +:     Input1 + Input2;
+  6 .:
 
-To analyze a full set of units at once, just fetch the list of ALI files in a
-list and provide an `}file to @code{--scos`.  For instance, in a Unix-like
-environment::
+For compound statements, the coverage status is reported *only* on the
+introduction part of the statement. For an Ada *if* statement, for example,
+coverage is reported for the ``if`` line only, not on the ``else``, ``elsif``
+or ``end if;`` lines, and not on lines where inner statements reside.
 
-  $ ls obj/*.ali > alis
-  $ gnatcov coverage --scos=@alis --level=stmt --annotate=xcov explore.trace
+Declarations are generally considered as statements, so are reported
+covered/uncovered when they have (initialization) code associated with them.
 
+Finally, a statement is considered covered as soon as part of the associated
+machine code is executed, in particular even when the statement execution is
+interrupted somehow, for example by an exception occurrence. For instance, the
+statement below::
+
+  X := Function_That_Raises_Exception (Y) + Z;
+
+Will be reported as covered as soon as it is reached, even if the expression
+evaluation never really terminates.
+
+
+Example program and assessments
+-------------------------------
+
+To illustrate the just presented points more specifically, we consider a
+different example than the ``Between`` function introduced previously::
+
+   function Div_With_Check (X, Y : Integer) return Integer;
+   --  If Y /= 0, divide X by Y and return the result. Raise
+   --  Program_Error otherwise.
+
+   function Div_With_Check (X, Y : Integer) return Integer is
+   begin
+      if Y = 0 then
+         raise Program_Error;
+      else
+         return X / Y;
+      end if;
+   end;
+
+With the spec and body stored in source files named ``div_with_check.ads`` and
+``div_with_check.adb``,  we first exercise the function for Y = 1 only, using a
+the following :term:`test driver` in ``test_div1.adb``::
+
+   procedure Test_Div1  is
+      X : constant Integer := 4;
+   begin
+      Assert (Div_With_Check (X, 1) = X);
+   end;
+
+
+Once the driver + application bundle is built, we have a ``test_div1`` executable
+that we execute with::
+
+  gnatcov run test_div1
+
+This produces ``test_div1.trace``, which we analyze for the Statement Coverage
+criterion as follows::
   
-.. highlight:: ada
+  gnatcov coverage --level=stmt --scos=div_with_check.ali --annotate=xcov test_div1.trace
 
-For the `Stations` unit, this produces a `stations.adb.xcov`
-output with::
+Since we pass a single :option:`--scos` argument with a straight ``.ali`` file
+name, the analysis focuses on the corresponding unit alone. Results for the
+test drivers and harness are most often not of interest because these units
+are not part of the applicative code for which coverage objectives are to be
+met.
 
-  Coverage level: STMT
-  87% of 38 lines covered
-  [...]
-    74 .:       function Control_For (C : Character) return Robot_Control;
-    75 .:       --  Map user input character C to Robot_Control command, Nop if
-    76 .:       --  the input isn't recognized.
-    77 .:
-    78 .:       function Control_For
-    79 .:         (C : Character) return Robot_Control is
-    80 .:       begin
-    81 +:          case C is
-    82 .:             when 'p' | 'P' =>
-    83 +:                return (Code => Probe, Value => 0);
-    84 .:             when 's' | 'S' =>
-    85 +:                return (Code => Step_Forward, Value => 0);
-    86 .:             when 'l' | 'L' =>
-    87 -:                return (Code => Rotate_Left, Value => 0);
-    88 .:             when 'r' | 'R' =>
-    89 -:                return (Code => Rotate_Right, Value => 0);
+:option:`--annotate=xcov` requests results as annotated sources in text format,
+which we get in ``div_with_check.adb.xcov``::
 
-`--annotate=report` instead simply diagnoses the set of source
-lines with uncovered statements, for example like:
+   docsupport/src/div_with_check.adb:
+   67% of 3 lines covered
+   Coverage level: stmt
+      1 .: function Div_With_Check (X, Y : Integer) return Integer is
+      2 .: begin
+      3 +:    if Y = 0 then
+      4 -:       raise Program_Error;
+      5 .:    else
+      6 +:       return X / Y;
+      7 .:    end if;
+      8 .: end;
 
+We can observe that:
+
+- Only the ``if`` line of the compound *if* statement is annotated,
+  as covered since the function was called.
+
+- The inner ``raise`` and ``return`` statements are marked uncovered and
+  covered respectively, as expected since the function was only called with
+  arguments for which the ``if`` controling decision evaluates False.
+
+As a second experiment, we exercise the function for Y = 0 only, using a the
+following :term:`test driver` in ``test_div0.adb``::
+
+   procedure Test_Div0  is
+      Result : Integer
+        := Div_With_Check (4, 0);
+   begin
+      Put_Line ("R = " & Integer'Image (Result));
+   end;
+
+The analysis proceeds in a very similar fashion as the previous one. We
+request results on the test driver as well this time, as it features
+constructs relevant to the points we wish to illustrate::
+
+  ls test_div0.ali div_with_checks.ali > alis
+  gnatcov coverage --level=stmt --scos=@alis --annotate=xcov test_div0.trace
+
+The first command is a Unix-like way to create a file named ``alis`` which
+contains the list of ALI files corresponding to the units we want included in
+the assessement results.
+
+The :option:`=xcov` outputs we obtain follow. First, results for the
+functional unit, with the ``if`` statement coverage reversed::
+
+   docsupport/src/div_with_check.adb:
+   67% of 3 lines covered
+   Coverage level: stmt
+      1 .: function Div_With_Check (X, Y : Integer) return Integer is
+      2 .: begin
+      3 +:    if Y = 0 then
+      4 +:       raise Program_Error;
+      5 .:    else
+      6 -:       return X / Y;
+      7 .:    end if;
+      8 .: end;
+      9 .:    
+
+Then, results for the test driver where we can note that
+
+- The two lines of the local ``Result`` definition are annotated,
+
+- This definition is marked covered even though it was evaluated only once
+  with an initialization expression that raised an exception, and
+
+- The driver body is reported uncovered, as expected since an exception triggered
+  during the elaboration of the subprogram declarative part.
 
 ::
 
-  stations.adb:87: statement not executed
-  stations.adb:89: statement not executed
+   docsupport/src/test_div0.adb:
+   67% of 3 lines covered
+   Coverage level: stmt
+      1 .: with Div_With_Check, Ada.Text_IO; use Ada.Text_IO;
+      2 .: 
+      3 .: procedure Test_Div0  is
+      4 +:    Result : Integer
+      5 +:      := Div_With_Check (4, 0);
+      6 .: begin
+      7 -:    Put_Line ("R = " & Integer'Image (Result));
+      8 .: end;
 
-  
+The corresponding synthetic report is simply obtained by running |gcvcov|
+again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
+
+   ** COVERAGE REPORT **
+
+   ===========================
+   == 1. ASSESSMENT CONTEXT ==
+   ===========================
+
+   Date and time of execution: 2012-01-11 16:37:17.00
+   Tool version: XCOV 1.0.0w (20081119)
+
+   Command line:
+
+   gnatcov coverage --level=stmt --scos=@alis --annotate=report test_div0.trace
+
+   Coverage level: stmt
+
+   Trace files:
+
+   test_div0.trace
+     program: obj/test_div0
+     date   : 2012-01-11 15:37:17
+     tag    : 
+
+   ============================
+   == 2. COVERAGE VIOLATIONS ==
+   ============================
+
+   2.1. STMT COVERAGE
+   ------------------
+
+   div_with_check.adb:6:7: statement not executed
+   test_div0.adb:7:4: statement not executed
+
+   2 violations.
+
+   =========================
+   == 3. ANALYSIS SUMMARY ==
+   =========================
+
+   2 STMT violations.
+
+   ** END OF REPORT **
+
+We can see here that the two lines marked ``-`` in the :option:`=xcov` outputs
+are properly reported as violations in the ``STMT COVERAGE`` section of this
+report, and that this section is the only one presented in the ``COVERAGE
+VIOLATIONS`` part, as only this criterion was to be analyzed per the
+:option:`--level=stmt` argument.
 
 Decision Coverage (DC) assessments
 ==================================
 
-|gcv| features combined Statement and Decision Coverage assessment
-capabilities with :option:`--level=stmt+decision`.
+General principles
+------------------
 
-We consider to be :dfn:`decisions` all the boolean expressions used
-to influence the control flow via explicit constructs in the source
-program, such as ``if`` statements or ``while`` loops.
+|gcv| performs combined Statement and Decision Coverage assessments
+with the :option:`--level=stmt+decision` command line option.
 
-For proper operation, expressions may only resort to short-circuit operators
-to combine operands.  The |gnat| compilers offer the
-`No_Direct_Boolean_Operator` restriction pragma to make sure this rule is
-obeyed.
+In this context, we consider to be :dfn:`decisions` all the Boolean
+expressions used to influence the control flow via explicit constructs in the
+source program, such as ``if`` statements or ``while`` loops.
 
-A decision is said fully covered when tests were made so that the
-decision has evaluated to both true and false.
+For proper operation, only short-circuit operators are allowed to combine
+operands, as enforced by the `No_Direct_Boolean_Operator` restriction pragma
+offered by the |gnat| compilers for Ada.
 
-If only one of these two possible outcomes was exercised, the decision
-is said partially covered.
-The case where none of the possible decision outcomes was exercised
-happens when the enclosing statement was not executed at all, or when
-all the attempted evaluations were interrupted e.g. because of
-exceptions.
-Uncovered statements remain reported as such, without further details
-even if there are decisions therein.
+A decision is said :dfn:`fully covered`, or just :dfn:`covered`, as soon as it
+has been evaluated at least once True and once False during the program
+execution. If only one or none of these two possible outcomes was exercised,
+the decision is said :dfn:`partially covered`.  The case where none of the
+possible outcomes was exercised happens when the enclosing statement was not
+executed at all, or when all the attempted evaluations were interrupted
+e.g. because of exceptions.
 
-The `xcov` and `html` annotation formats both generate a
-representation of the sources with annotations at the beginning of
-each relevant line, according to the following table:
+The following table summarizes the meaning of the :option:`=xcov` and
+:option:`=html` annotations:
 
-@multitable @columnfractions .1 .8
-* @h:term:`Note` @tab @h:term:`Means ...`
-* '`.`'
-@tab no SCO or no executable code for this line
-* '`-`'
-@tab statement uncovered on this line
-* '`!`'
-@tab decision partially covered on this line
-* '`+`'
-@tab all the decisions on this line are fully covered
-@end multitable
+.. csv-table::
+  :delim: |
+  :widths: 10, 80
+  :header: Annotation, Meaning
 
-As for object coverage, additional information is available on request
-with an extra `+` suffix on the annotation format, that is, with
-`--annotate=xcov+` or `html+`.
-Extra details are typically provided for decisions partially covered,
-with information about which outcome was not exercised.
+   ``+`` | All the statements and decisions on the line are covered
+   ``-`` | Statement on the line was not executed
+   ``!`` | At least one decision partially covered on the line
 
-The `--annotate=report` synthetic output lists information about
-uncovered statements and partial decision coverage.
-For example, after exercising Explore to have the robot execute safe
-commands in both Cautious and Dumb modes, we get the expected results
-below on a sample of the `Robots` control code:
+A precise description of the actual violations is available for each line on
+request, with a trailing `+` added the annotation format passed to
+:option:`--annotate`, that is with :option:`=xcov+` or :option:`=html+`.
+
+The :option:`=report` synthetic output lists the statement and decision
+coverage violations, in the ``STMT`` and ``DECISION`` coverage report section
+respectively.
+
+When a decision is part of a statement and the statement is uncovered, only
+the statement level violation is reported. The nested decision level
+violations are implicit in this case.
 
 
-::
+Example program and assessments
+-------------------------------
 
-    $ gnatcov coverage --level=stmt+decision --annotate=report
-      --scos=obj/powerpc-elf/robots.ali explore.trace
-    ...
-    robots.adb:56:9: decision outcome TRUE never exercised
-    robots.adb:75:10: decision outcome TRUE never exercised
-    robots.adb:78: statement not executed
+To illustrate the just presented points, we will exercise the example
+functional unit below (spec and body in ``mod_with_check.ads`` and
+``mod_with_check.adb``)::
 
-  
+   function Mod_With_Check (X, Y : Integer) return Integer;
+   --  If Y /= 0, return X mod Y. Raise Constraint_Error otherwise.
 
-For decision related diagnostics, the source location features both a
-line and a column number to designate the first token of the decision
-unambiguously.
-Below is the corresponding `--annotate=xcov+` output excerpt.
-Decision diagnostics are always expanded on the first line of the
-decision:
+   function Mod_With_Check (X, Y : Integer) return Integer is
+   begin
+      if Y = 0 then
+         raise Constraint_Error;
+      else
+         return X mod Y;
+      end if;
+   end;
+
+We first experiment with the following test driver::
 
 
-::
 
-    [...]
-    51 .:    function Unsafe (Cmd : Robot_Command; Sqa : Square) ...
-    52 .:    begin
-    53 .:       --  Stepping forward with a block or a water pit ahead is Unsafe
-    54 .:
-    55 +:       return
-    56 !:         Cmd = Step_Forward
-  DECISION "Cmd = Ste..." at 56:9: outcome TRUE never exercised
-    57 !:         and then (Sqa = Block or else Sqa = Water);
-    58 .:    end Unsafe;
-    [...]
-    64 .:    procedure Process_Next_Control
-    65 .:      (Port : Robot_Control_Links.IOport_Access)
-    66 .:    is
-    [...]
-    73 .:       --  Cautious, the robot refuses to process unsafe controls
-    74 .:
-    75 !:       if Robot.Mode = Cautious
-  DECISION "Robot.Mod..." at 75:10: outcome TRUE never exercised
-    76 !:         and then Unsafe (Ctrl.Code, Probe_Ahead (Robot.Hw.Rad))
-    77 .:       then
-    78 -:          return;
-    79 .:       end if;
-    [...]
+   
+
+
 
   
 

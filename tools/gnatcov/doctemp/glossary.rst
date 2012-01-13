@@ -4,11 +4,11 @@ Glossary of terms & concepts
 
 .. glossary::
 
-   simple Boolean expression
+   Simple Boolean Expression
       Boolean expression with a single operand, possibly negated. No binary
       operator.
 
-   complex Boolean expression
+   Complex Boolean Expression
       Boolean expression with at least two operands, where all the binary
       operators are defined to enforce short-circuit semantics.
       
