@@ -1842,7 +1842,14 @@ package body SC_Obligations is
                      --  Case of >S: dominant SCO is a statement
 
                      Dom_Sloc_SCO := Sloc_To_SCO (SCOD.Dominant_Sloc);
-                     pragma Assert (Kind (Dom_Sloc_SCO) = Statement);
+
+                     --  Dom_Sloc_SCO is permitted to be No_SCO_Id because
+                     --  for a dominant that is a disabled pragma Debug, older
+                     --  compiler versions used to omit the statement SCO.
+
+                     pragma Assert
+                       (Dom_Sloc_SCO = No_SCO_Id
+                          or else Kind (Dom_Sloc_SCO) = Statement);
 
                   else
                      --  Case of >T / >F: dominant SCO is a decision
