@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2011, AdaCore                      --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -89,6 +89,11 @@ package SC_Obligations is
    function Parent     (SCO : SCO_Id) return SCO_Id;
 
    --  Statement SCOs
+
+   function Is_Disabled_Statement (SCO : SCO_Id) return Boolean;
+   --  True for a disabled statement, i.e. a statement that is guaranteed to
+   --  never generate any code and is excluded from the scope of coverage
+   --  analysis.
 
    function Previous   (SCO : SCO_Id) return SCO_Id;
    --  Previous statement in basic block

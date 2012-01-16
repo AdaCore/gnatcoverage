@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2011, AdaCore                      --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -180,6 +180,13 @@ package body Coverage.Source is
                   --  block, else we leave it as No_Code, so that a line ends
                   --  up marked as No_Code only if no code execution can ever
                   --  cause it to be marked as covered.
+
+                  null;
+
+               elsif Is_Disabled_Statement (SCO) then
+
+                  --  A disabled statement is never covered, nor not-covered
+                  --  (it has no code and is not subject to coverage analysis).
 
                   null;
 

@@ -233,6 +233,7 @@ package body SC_Obligations is
       For_Loop_Statement,
       If_Statement,
       Pragma_Statement,
+      Disabled_Pragma_Statement,
       Extended_Return_Statement,
       While_Loop_Statement,
       Other_Statement);
@@ -1287,10 +1288,22 @@ package body SC_Obligations is
    -----------
 
    function Index (SCO : SCO_Id) return Condition_Index is
+      SCOD  : SCO_Descriptor renames SCO_Vector.Element (SCO);
    begin
-      pragma Assert (Kind (SCO) = Condition);
-      return SCO_Vector.Element (SCO).Index;
+      pragma Assert (SCOD.Kind = Condition);
+      return SCOD.Index;
    end Index;
+
+   ---------------------------
+   -- Is_Disabled_Statement --
+   ---------------------------
+
+   function Is_Disabled_Statement (SCO : SCO_Id) return Boolean is
+      SCOD  : SCO_Descriptor renames SCO_Vector.Element (SCO);
+   begin
+      pragma Assert (SCOD.Kind = Statement);
+      return SCOD.S_Kind = Disabled_Pragma_Statement;
+   end Is_Disabled_Statement;
 
    -------------------
    -- Is_Expression --
@@ -2207,6 +2220,7 @@ package body SC_Obligations is
          when 'F'    => return For_Loop_Statement;
          when 'I'    => return If_Statement;
          when 'P'    => return Pragma_Statement;
+         when 'p'    => return Disabled_Pragma_Statement;
          when 'R'    => return Extended_Return_Statement;
          when 'W'    => return While_Loop_Statement;
          when ' '    => return Other_Statement;
