@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2011, AdaCore                     --
+--                     Copyright (C) 2008-2012, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -1290,7 +1290,22 @@ package body Traces_Elf is
             return;
          end if;
 
+         --  Set the last PC for this line
+
          Last_Line.Last := Exec.Exe_Text_Start + Pc - 1;
+
+         --  Work-around a gc-section issue.  It is possible there is an empty
+         --  line statement at address 0 (because it was discarded).  Avoid to
+         --  set Last to 0xffff_ffff as it would cover all the executable.
+         --  FIXME: discard the whole block ?
+
+         if Last_Line.Last = Pc_Type'Last
+           and then Last_Line.First = 0
+         then
+            Last_Line.First := 1;
+            Last_Line.Last := 0;
+         end if;
+
          Last_Line := null;
       end Close_Source_Line;
 
