@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2010, AdaCore                       --
+--                      Copyright (C) 2010-2012, AdaCore                    --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -100,7 +100,7 @@ package body Gdb_MI_IO is
       procedure Log_Gdb_Output;
 
       procedure Log_Gdb_Output is
-         S : String := Gdb_Output_Buffer (1 .. B_Idx);
+         S : constant String := Gdb_Output_Buffer (1 .. B_Idx);
       begin
          if Logging_On then
             Put (Log_File, Clock - Time_Initialized, Fore => 5, Aft => 2);
@@ -148,9 +148,9 @@ package body Gdb_MI_IO is
    end Get_Gdb_Line;
 
    procedure Put_Gdb_Line (S : String) is
-      Dir : String := "< ";
       C : Character := ASCII.LF;
       N : Integer;
+      pragma Unreferenced (N);
    begin
       if not Initialized then
          Put_Line (Standard_Error,

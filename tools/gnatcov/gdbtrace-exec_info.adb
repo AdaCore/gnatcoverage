@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                        Copyright (C) 2010, AdaCore                       --
+--                     Copyright (C) 2010-2012, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -18,7 +18,6 @@
 ------------------------------------------------------------------------------
 
 with Elf_Files;  use Elf_Files;
-with Elf32;      use Elf32;
 with Elf_Arch32; use Elf_Arch32;
 with Elf_Common; use Elf_Common;
 with Interfaces; use Interfaces;
@@ -26,8 +25,6 @@ with Swaps;      use Swaps;
 
 with Text_IO;     use Text_IO;
 with GNAT.OS_Lib; use GNAT.OS_Lib;
-
-with Ada.IO_Exceptions;
 
 separate (Gdbtrace)
 package body Exec_Info is

@@ -17,7 +17,6 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;
 
 with ALI_Files;   use ALI_Files;
