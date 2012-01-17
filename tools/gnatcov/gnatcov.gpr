@@ -1,0 +1,12 @@
+project Default is
+
+   package Compiler is
+      for Default_Switches ("ada") use ("-gnatwea", "-g", "-gnat05", "-gnatyg");
+      for Switches ("ppc_genopc.adb") use ("-g", "-gnat05");
+   end Compiler;
+
+   for Source_Dirs use (".", "gnat");
+   for Main use ("gdbtrace.adb", "gnatcov.adb", "ppc_genopc.adb");
+
+end Default;
+
