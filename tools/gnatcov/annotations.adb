@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                    Copyright (C) 2009-2011, AdaCore                      --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -278,49 +278,6 @@ package body Annotations is
    begin
       LI.Messages.Iterate (Pretty_Print_Message'Access);
    end Disp_Messages;
-
-   -----------------------
-   -- Disp_File_Summary --
-   -----------------------
-
-   procedure Disp_File_Summary is
-
-      procedure Disp_One_File (File : File_Info_Access);
-      --  Display summary for the given file
-
-      procedure Process_One_File (File_Index : Source_File_Index);
-      --  Process file at Index and display its summary if it has some
-      --  coverage info to display.
-
-      -------------------
-      -- Disp_One_File --
-      -------------------
-
-      procedure Disp_One_File (File : File_Info_Access) is
-      begin
-         Put (File.Simple_Name.all);
-         Put (": ");
-         Put (Get_Stat_String (File.Stats));
-         New_Line;
-      end Disp_One_File;
-
-      ----------------------
-      -- Process_One_File --
-      ----------------------
-
-      procedure Process_One_File (File_Index : Source_File_Index) is
-         FI : constant File_Info_Access := Get_File (File_Index);
-      begin
-         if To_Display (FI) then
-            Disp_One_File (FI);
-         end if;
-      end Process_One_File;
-
-   --  Start of processing for Disp_File_Summary
-
-   begin
-      Files_Table_Iterate (Process_One_File'Access);
-   end Disp_File_Summary;
 
    ---------------
    -- Disp_SCOs --

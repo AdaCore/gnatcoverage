@@ -53,9 +53,6 @@ package Annotations is
    Annotation : Annotation_Format := Annotate_Unknown;
    --  The kind of output being generated
 
-   procedure Disp_File_Summary;
-   --  Display per-file summary
-
 private
 
    function SCO_Text (SCO : SCO_Id; Length : Natural := 8) return String;
