@@ -22,7 +22,7 @@ on. In addition, all the sources must also be compiled :option:`-g`
 :option:`-fpreserve-control-flow`, both necessary to allow an accurate mapping
 of the execution traces back to source level obligations. Optimization is
 supported up to :option:`-O1`, with inlining allowed.
- 
+
 Once your application is built, the source coverage analysis proceeds in two
 steps: |gcvrun| is used to produce execution traces, then |gcvcov| to generate
 coverage reports. The compiler output is suitable whatever the assessed
@@ -81,7 +81,7 @@ as follows:
    Request that the report files (index and annotated sources for the ``xcov``
    and ``html`` output formats) be output in the provided directory. They are
    output in the current directory, where |gcv|, is launched, otherwise.
- 
+
 :option:`-o` :
    Request that the synthetic report produced by ``--annotate=report`` be
    output in the provided filname, instead of standard output by default.
@@ -147,7 +147,7 @@ command line option.
 Later in this documentation we name output formats by the text to add to
 :option:`--annotate` on the command line. For example, we use "the
 :option:`=report` outputs" to mean "the coverage reports produced with
-:option:`--annotate=report` ". 
+:option:`--annotate=report` ".
 
 In all the cases, the report focuses on the sources stated to be of interest
 by way of the :option:`--scos` command line argument.
@@ -169,10 +169,10 @@ in a single character, which may be one of the following:
    :widths: 10, 80
    :header: Annotation, Meaning
 
-   ``.`` | No coverage obligation is attached to the line 
-   ``+`` | Coverage obligations attached to the line, all satisfied 
-   ``-`` | Coverage obligations attached to the line, none satisfied 
-   ``!`` | Coverage obligations attached to the line, some satisfied 
+   ``.`` | No coverage obligation is attached to the line
+   ``+`` | Coverage obligations attached to the line, all satisfied
+   ``-`` | Coverage obligations attached to the line, none satisfied
+   ``!`` | Coverage obligations attached to the line, some satisfied
 
 To illustrate, let us consider that we exercise our example functional unit in
 the following fashion, with ``X1 < X2`` in every call:
@@ -203,7 +203,7 @@ file is ``range.adb`` so the annotated version is ``range.adb.xcov``:
  67% of 3 lines covered
  Coverage level: stmt
    1 .: package body Ranges is
-   2 .:    
+   2 .:
    3 .:    function Between (X1, X2, X : Integer) return Boolean is
    4 .:    begin
    5 +:       if X1 < X2 then
@@ -212,7 +212,7 @@ file is ``range.adb`` so the annotated version is ``range.adb.xcov``:
    8 -:          return X >= X2 and then X <= X1;
    9 .:       end if;
   10 .:    end;
-  11 .:    
+  11 .:
   12 .: end;
 
 :option:`--annotate=xcov+` (with a trailing +) works the same, only providing
@@ -331,7 +331,7 @@ Here is a example excerpt:
     date   : 2011-11-24 15:33:44
     tag    : sample run
 
-  
+
 The set of units that this report is about is conveyed by the
 :option:`--scos` option arguments on the quoted command line.
 
@@ -360,7 +360,7 @@ format, as follows:
 
     queues.adb:1641:17: statement not executed
      (source) : (loc) : (violation description)
-  
+
 
 *source* and *loc* are the basename of the source file and
 the precise ``line:column`` location within that source where the
@@ -435,7 +435,7 @@ each of the previous sections.  For our example report so far, this would be:
   1 non-exempted DECISION violation.
   1 non-exempted MCDC violations.
 
-  
+
 This section provides a quick way to determine whether the requested coverage
 level is fully satisfied, with details available from the per criterion
 sections that precede.
@@ -452,7 +452,7 @@ entities. is requested with the :option:`--level=stmt` command line
 argument of |gcvcov|.
 
 In synthetic :option:`=report` outputs, unexecuted statements are reported as
-Statement Coverage violations in the report section dedicated to these. 
+Statement Coverage violations in the report section dedicated to these.
 
 In annotated source outputs, the coverage annotations convey the following
 indications:
@@ -462,7 +462,7 @@ indications:
    :widths: 10, 80
    :header: Annotation, Meaning
 
-   ``+`` | At least one statement on the line, all covered 
+   ``+`` | At least one statement on the line, all covered
    ``-`` | At least one statement on the line, none covered
    ``!`` | At least one statement on the line, some covered
 
@@ -482,7 +482,7 @@ coverage is reported for the ``if`` line only, not on the ``else``, ``elsif``
 or ``end if;`` lines, and not on lines where inner statements reside.
 
 Declarations are generally considered as statements, so are reported
-covered/uncovered when they have (initialization) code associated with them.
+covered/uncovered when they have initialization code associated with them.
 
 Finally, a statement is considered covered as soon as part of the associated
 machine code is executed, in particular even when the statement execution is
@@ -498,8 +498,9 @@ evaluation never really terminates.
 Example program and assessments
 -------------------------------
 
-To illustrate the just presented points more specifically, we consider a
-different example than the ``Between`` function introduced previously::
+To illustrate the just presented points, we consider the example functional
+unit below, with the spec and body stored in source files named
+``div_with_check.ads`` and ``div_with_check.adb``::
 
    function Div_With_Check (X, Y : Integer) return Integer;
    --  If Y /= 0, divide X by Y and return the result. Raise
@@ -514,8 +515,7 @@ different example than the ``Between`` function introduced previously::
       end if;
    end;
 
-With the spec and body stored in source files named ``div_with_check.ads`` and
-``div_with_check.adb``,  we first exercise the function for Y = 1 only, using a
+We first exercise the function for Y = 1 only, using a
 the following :term:`test driver` in ``test_div1.adb``::
 
    procedure Test_Div1  is
@@ -532,7 +532,7 @@ that we execute with::
 
 This produces ``test_div1.trace``, which we analyze for the Statement Coverage
 criterion as follows::
-  
+
   gnatcov coverage --level=stmt --scos=div_with_check.ali --annotate=xcov test_div1.trace
 
 Since we pass a single :option:`--scos` argument with a straight ``.ali`` file
@@ -600,7 +600,7 @@ functional unit, with the ``if`` statement coverage reversed::
       6 -:       return X / Y;
       7 .:    end if;
       8 .: end;
-      9 .:    
+      9 .:
 
 Then, results for the test driver where we can note that
 
@@ -618,7 +618,7 @@ Then, results for the test driver where we can note that
    67% of 3 lines covered
    Coverage level: stmt
       1 .: with Div_With_Check, Ada.Text_IO; use Ada.Text_IO;
-      2 .: 
+      2 .:
       3 .: procedure Test_Div0  is
       4 +:    Result : Integer
       5 +:      := Div_With_Check (4, 0);
@@ -649,7 +649,7 @@ again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
    test_div0.trace
      program: obj/test_div0
      date   : 2012-01-11 15:37:17
-     tag    : 
+     tag    :
 
    ============================
    == 2. COVERAGE VIOLATIONS ==
@@ -730,31 +730,146 @@ violations are implicit in this case.
 Example program and assessments
 -------------------------------
 
-To illustrate the just presented points, we will exercise the example
-functional unit below (spec and body in ``mod_with_check.ads`` and
-``mod_with_check.adb``)::
+To illustrate the just presented points, we consider the example functional
+Ada unit below, with the spec and body stored in source files named
+``divmod.ads`` and ``divmod.adb``::
 
-   function Mod_With_Check (X, Y : Integer) return Integer;
-   --  If Y /= 0, return X mod Y. Raise Constraint_Error otherwise.
+   procedure Divmod
+     (X, Y : Integer; Value : out Integer;
+      Divides : out Boolean; Tell : Boolean);
+   --  Compute X / Y into VALUE and set DIVIDES to indicate whether Y divides X.
+   --  Output a note when so and a request to TELL is issued.
 
-   function Mod_With_Check (X, Y : Integer) return Integer is
+   procedure Divmod
+     (X, Y : Integer; Value : out Integer;
+      Divides : out Boolean; Tell : Boolean) is
    begin
-      if Y = 0 then
-         raise Constraint_Error;
+      if X mod Y = 0 then
+         Divides := True;
+         if Tell then
+            Put_Line (Integer'Image (Y) & " divides " & Integer'Image (X));
+         end if;
       else
-         return X mod Y;
+         Divides := False;
       end if;
-   end;
+
+      Value := X / Y;
+   end Divmod;
 
 We first experiment with the following test driver::
 
+   procedure Test_Divmod2  is
+      Value : Integer;
+      Divides : Boolean;
+   begin
+      Divmod (X => 5, Y => 2, Value => Value,
+              Divides => Divides, Tell => True);
+      Assert (Divides = False);
+
+      Divmod (X => 6, Y => 2, Value => Value,
+              Divides => Divides, Tell => True);
+      Assert (Divides = True);
+   end Test_Divmod2;
+
+This exercises the ``Divmod`` function twice. The outer ``if`` construct
+executes both ways and the ``if Tell then`` test runs once only for ``Tell``
+True. Indeed, the only :option:`stmt+decision` violation by our driver is the
+``Tell`` decision coverage, only partially achieved since we have only
+exercised the True case. This is confirmed by the section of :option:`=report`
+output quoted below::
+
+   2.1. STMT COVERAGE
+   ------------------
+
+   No violation.
+
+   2.2. DECISION COVERAGE
+   ----------------------
+
+   divmod.adb:14:10: decision outcome FALSE never exercised
+
+   1 violation.
+
+For :option:`--annotate=xcov`, this translates as follows::
+
+   8 .: procedure Divmod
+   9 .:   (X, Y : Integer; Value : out Integer;
+  10 .:    Divides : out Boolean; Tell : Boolean) is
+  11 .: begin
+  12 +:    if X mod Y = 0 then
+  13 +:       Divides := True;
+  14 !:       if Tell then
+  15 +:          Put_Line (Integer'Image (Y) & " divides " & Integer'Image (X));
+  16 .:       end if;
+  17 .:    else
+  18 +:       Divides := False;
+  19 .:    end if;
+  20 .:
+  21 +:    Value := X / Y;
+  22 .: end Divmod;
+
+Now we exercise with another test driver::
+
+   procedure Test_Divmod0  is
+      Value : Integer;
+      Divides : Boolean;
+   begin
+      Divmod (X => 5, Y => 0, Value => Value,
+              Divides => Divides, Tell => True);
+   end Test_Divmod0;
+
+The particularity of this case is to issue a single call passing 0 for the
+Y argument, which triggers a check failure for the ``mod`` operation. This
+results in the following :option:`=xcov` output::
+
+   8 .: procedure Divmod
+   9 .:   (X, Y : Integer; Value : out Integer;
+  10 .:    Divides : out Boolean; Tell : Boolean) is
+  11 .: begin
+  12 !:    if X mod Y = 0 then
+  13 -:       Divides := True;
+  14 -:       if Tell then
+  15 -:          Put_Line (Integer'Image (Y) & " divides " & Integer'Image (X));
+  16 .:       end if;
+  17 .:    else
+  18 -:       Divides := False;
+  19 .:    end if;
+  20 .:
+  21 -:    Value := X / Y;
+  22 .: end Divmod;
+
+We have an interesting situation where
+
+* While the outer ``if`` statement is reached and covered (as a statement),
+  the ``X mod Y = 0`` embedded decision is actually never evaluated because
+  the only evaluation attempted is interrupted by an exception.
+
+* None of the other statements is ever reached as a result.
+
+This gets all confirmed by the :option:`=report` output below, on which we
+also notice that the only diagnostic emitted for the uncovered inner ``if`` is
+the statement coverage violation. The associated decision coverage violation is
+implicit and diagnosing it as well would only add redundancy::
+
+   2.1. STMT COVERAGE
+   ------------------
+
+   divmod.adb:13:7: statement not executed
+   divmod.adb:14:7: statement not executed
+   divmod.adb:15:10: statement not executed
+   divmod.adb:18:7: statement not executed
+   divmod.adb:21:4: statement not executed
+
+   5 violations.
+
+   2.2. DECISION COVERAGE
+   ----------------------
+
+   divmod.adb:12:7: decision never evaluated
+
+   1 violation.
 
 
-   
-
-
-
-  
 
 Modified Condition/Decision Coverage (MCDC) assessments
 =======================================================
@@ -795,7 +910,7 @@ For example, the Ada code excerpt below:
 
     X := A and then not B;
     if Y then [...]
-  
+
 
 ... features two expressions subject to MCDC analysis: `A and then not B` (complex expression with two atoms), on the right hand
 side of the assignment to `X`, and the simple `Y` expression
@@ -836,7 +951,7 @@ independent effect of each condition.
   | 3 | F  T    F    | A     |
   | 4 | F  F    F    |       |
 
-  
+
 
 |gcp| actually implements a common variant, accepting variations of
 other conditions in an independence pair as long as they could for
@@ -865,7 +980,7 @@ actions and get:
 ::
 
   robots.adb:75:10: condition has no independent influence pair, MC/DC not achieved
-  
+
 
 Such condition related messages are only emitted when no more general
 diagnostic applies on the associated decision or statement, however.
