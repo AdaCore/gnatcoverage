@@ -10,5 +10,5 @@ purpose.
 .. toctree::
    :maxdepth: 2
 
-   gnatcov_run
+   run_commandline
    control

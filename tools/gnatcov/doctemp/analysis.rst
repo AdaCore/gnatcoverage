@@ -10,7 +10,7 @@ formats.
 .. toctree::
    :maxdepth: 2
 
-   gnatcov_coverage
+   cov_commandline
    source_coverage
    object_coverage
    facilities
