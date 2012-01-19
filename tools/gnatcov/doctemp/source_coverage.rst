@@ -612,18 +612,10 @@ with the :option:`--level=stmt+decision` command line option.
 
 In this context, we consider to be :dfn:`decisions` all the Boolean
 expressions used to influence the control flow via explicit constructs in the
-source program, such as ``if`` statements or ``while`` loops. For example,
-in Ada::
-
-  while not Empty (Queue) loop 
-     ...   
-  end loop;
-
-  if                                   
-
-For proper operation, only short-circuit operators are allowed to combine
-operands, as enforced by the `No_Direct_Boolean_Operator` restriction pragma
-offered by the |gnat| compilers for Ada.
+source program, such as ``if`` statements or ``while`` loops. For proper
+operation, only short-circuit operators are allowed to combine operands, as
+enforced by the `No_Direct_Boolean_Operator` restriction pragma offered by the
+|gnat| compilers for Ada.
 
 A decision is said :dfn:`fully covered`, or just :dfn:`covered`, as soon as it
 has been evaluated at least once True and once False during the program
@@ -645,18 +637,19 @@ The following table summarizes the meaning of the :option:`=xcov` and
    ``-`` | Statement on the line was not executed
    ``!`` | At least one decision partially covered on the line
 
-A precise description of the actual violations is available for each line on
-request, with a trailing `+` added the annotation format passed to
-:option:`--annotate`, that is with :option:`=xcov+` or :option:`=html+`.
+
+When a trailing `+` added the annotation format passed to :option:`--annotate`
+(so with :option:`=xcov+` or :option:`=html+`), a precise description of the
+actual violations available for each line in addition to the annotation.
 
 The :option:`=report` synthetic output lists the statement and decision
 coverage violations, in the ``STMT`` and ``DECISION`` coverage report section
 respectively.
 
-When a decision is part of a statement and the statement is uncovered, only
-the statement level violation is reported. The nested decision level
-violations are implicit in this case.
-
+Whatever the format, when a decision is part of a statement and the statement
+is uncovered, only the statement level violation is reported. The nested
+decision level violations are implicit in this case and diagnosing them as
+well would only add redundancy.
 
 Example program and assessments
 -------------------------------
@@ -704,8 +697,8 @@ We first experiment with the following test driver::
 
 This exercises the ``Divmod`` function twice. The outer ``if`` construct
 executes both ways and the ``if Tell then`` test runs once only for ``Tell``
-True. Indeed, the only :option:`stmt+decision` violation by our driver is the
-``Tell`` decision coverage, only partially achieved since we have only
+True. As a result, the only :option:`stmt+decision` violation by our driver is
+the ``Tell`` decision coverage, only partially achieved since we have only
 exercised the True case. This is confirmed by the section of :option:`=report`
 output that follows, where we find the two coverage violations sections
 expected for the requested set of criteria::
@@ -750,9 +743,9 @@ Now we exercise with another test driver::
               Divides => Divides, Tell => True);
    end Test_Divmod0;
 
-The particularity of this case is to issue a single call passing 0 for the
-Y argument, which triggers a check failure for the ``mod`` operation. This
-results in the following :option:`=xcov` output::
+Here we issue a single call passing 0 for the Y argument, which triggers a
+check failure for the ``mod`` operation. This results in the following
+:option:`=xcov` output::
 
    8 .: procedure Divmod
    9 .:   (X, Y : Integer; Value : out Integer;
@@ -780,8 +773,7 @@ We have an interesting situation where
 
 This gets all confirmed by the :option:`=report` output below, on which we
 also notice that the only diagnostic emitted for the uncovered inner ``if`` is
-the statement coverage violation. The associated decision coverage violation is
-implicit and diagnosing it as well would only add redundancy::
+the statement coverage violation::
 
    2.1. STMT COVERAGE
    ------------------

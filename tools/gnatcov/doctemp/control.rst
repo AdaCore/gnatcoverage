@@ -1,21 +1,6 @@
 **************************
-Emulator and Trace Control
+Trace Control and Contents
 **************************
-
-Emulator control
-================
-
-When |gem| is available on your PATH as `<target>-gnatemu`, |gcp| uses it to
-run your program. |gem| acts as a wrapper around the real machine emulator in
-this case, taking care of low-level interfacing details that are irrelevant to
-users.
-
-Otherwise, |gcp| resorts directly to the low level emulator configured for
-your :option:`--target` argument, if any and if it is available on your PATH.
-
-The :option:`-eargs` command line options that |gcvrun| receives are
-passed straight to the low-level emulation engine in both cases.
-They are not interpreted by |gem| when it is used.
 
 .. _trace-control:
 
@@ -48,3 +33,20 @@ in the set provided to |gcvrun|.
 Statement or decision coverage assessments, conversely, can be performed with
 any kind of trace, so traces with history aimed at MCDC may be used for those
 other criteria as well.
+
+Trace file contents
+===================
+
+A trace file essentially consists in
+
+* A header with general information about the trace generation context (name
+  of the binary executable passed to |gcvrun|, :option:`--tag` argument value,
+  production date & time, ...), followed by
+
+* The machine execution trace entries (roughly, one per execution basic block,
+  with information on the branch decision at the end)
+
+The precise structure is described in the ``qemu_traces.ads`` unit of the
+gnatcov sources, and gnatcov offers a :option:`dump-trace` option to display
+the contents of trace files passed as arguments.
+
