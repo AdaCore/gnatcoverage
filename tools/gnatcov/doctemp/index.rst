@@ -6,9 +6,9 @@ GNATcoverage User's Guide
    :maxdepth: 2
 
    getting_started
-   execution
-   analysis
-   gps_integration
+   run
+   coverage
+   gps
    appendix
    glossary
    bibliography
