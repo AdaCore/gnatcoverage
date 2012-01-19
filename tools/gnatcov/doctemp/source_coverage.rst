@@ -23,106 +23,21 @@ on. In addition, all the sources must also be compiled :option:`-g`
 of the execution traces back to source level obligations. Optimization is
 supported up to :option:`-O1`, with inlining allowed.
 
-Once your application is built, the source coverage analysis proceeds in two
-steps: |gcvrun| is used to produce execution traces, then |gcvcov| to generate
-coverage reports. The compiler output is suitable whatever the assessed
-criteria; there is never a requirement to recompile just because a different
-criterion needs to be analyzed.
+Once your application is built, the analysis proceeds in two steps: |gcvrun|
+is used to produce execution traces, then |gcvcov| to generate coverage
+reports. *Source* coverage, in particular, is queried by passing a specific
+:option:`--level` argument. The possible values for source level analysis are
+``stmt``, ``stmt+decision`` and variants of ``stmt+mcdc``, all described in detail
+in later sections of this documentation.
+
+The compiler output is suitable whatever the assessed criteria; there is never
+a requirement to recompile just because a different criterion needs to be
+analyzed.
 
 The :ref:`gnatcov_run-commandline` section of this document provides details on
 the trace production interface. The remainder of this chapter explains the use
 of |gcvcov| in particular, to analyse traces once they have been produced.
 
-.. _gnatcov_src_coverage-commandline:
-
-|gcvcov| command line
-=====================
-
-Source coverage analysis with |gcp| is performed by invoking |gcvcov| for a
-source level criterion via the :option:`--level` command line option.
-
-The general interface synopsis is available from |gcv| :option:`--help`,
-as follows:
-
-::
-
- coverage OPTIONS TRACE_FILES
-   Generate coverage report
-   -c LEVEL --level=LEVEL     Specify coverage levels
-      LEVEL is one of branch|insn|stmt|stmt+decision|stmt+mcdc|stmt+uc_mcdc
-   -a FORM  --annotate=FORM    Generate a FORM report
-      FORM is one of asm,xcov,html,xcov+,html+,report
-   --routines=<ROUTINE|@FILE>  Add ROUTINE, or all routine listed
-                               in FILE to the list of routines
-   --scos=<FILE|@LISTFILE>     Consider all the SCOs in ALI file
-                               FILE for this operation; or do that
-                               for each file listed in LISTFILE
-   --output-dir=DIR            Put the =html|xcov outputs into DIR
-   -o FILE                     Put the =report output into FILE
-   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in
-                               LISTFILE to the list of traces
-
-:option:`-c`, :option:`--level` |marg| :
-   Request the assessment of a specific set of coverage criteria.  The
-   possible values for source level analysis are ``stmt``, ``stmt+decision``
-   and variants of ``stmt+mcdc``, described in detail in later sections of
-   this documentation.
-
-:option:`-a`, :option:`--annotate` |marg| :
-   Request a specific output report format.  The relevant values for source
-   level analysis are ``xcov[+]``, ``html[+]`` and ``report``, all described
-   in the :ref:`sreport-formats` section.
-
-:option:`--routines`:
-   This is specific to object coverage analysis and is described in the
-   :ref:`gnatcov_obj_coverage-commandline` section of this documentation.
-
-:option:`--output-dir` :
-   Request that the report files (index and annotated sources for the ``xcov``
-   and ``html`` output formats) be output in the provided directory. They are
-   output in the current directory, where |gcv|, is launched, otherwise.
-
-:option:`-o` :
-   Request that the synthetic report produced by ``--annotate=report`` be
-   output in the provided filname, instead of standard output by default.
-
-:option:`--scos` |marg|, |rarg| :
-   Provide the set of source units for which the requested coverage level is
-   to be assessed, by the way of the corresponding Library Information files
-   containing the relevant SCOs. Each instance of this option on the command
-   line adds to what is to be assessed eventually.
-
-:option:`-T`, :option:`--trace` |marg|, |rarg| :
-   Provide the set of execution traces for which a report is to be
-   produced. When multiple traces are provided, |gcv| produces a consolidated
-   result, as if there had been a single execution producing one trace that
-   would have been the catenation of all the individual traces.  See the
-   :ref:`consolidation` section for a description of the consolidation
-   facility.
-
-Elements on the command line that are not tied to a particular option are
-considered as trace file arguments. :option:`--trace` is marked mandatory only
-to indicate that at least one trace file is required, which may but need not
-be introduced with :option:`-T` or :option:`--trace`.
-
-Here are a few examples of valid command lines:
-
-::
-
-  gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=prog.trace
-  #                      (a)         (b)              (c)            (d)
-  # (a) Request Statement coverage assessment,
-  # (b) for units associated with the ALI files listed in the "alis" text file,
-  # (c) producing a synthetic text report on standard output (no -o option),
-  # (d) out of a single execution trace "prog.trace".
-
-  gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html t1 t2
-  # Statement and Decision coverage assessments for two traces "t1" and "t2",
-  # stated as two orphan arguments, producing html report files in the current
-  # directory
-
-  gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html @mytraces
-  # Same report, with t1 and t2 listed in the "mytraces" text file
 
 The following sections now describe the available report formats, then
 provide more details and examples regarding the supported coverage criteria.
@@ -476,10 +391,19 @@ in the following excerpt::
   5 +:     Input1 + Input2;
   6 .:
 
-For compound statements, the coverage status is reported *only* on the
-introduction part of the statement. For an Ada *if* statement, for example,
-coverage is reported for the ``if`` line only, not on the ``else``, ``elsif``
-or ``end if;`` lines, and not on lines where inner statements reside.
+For compound statements, the coverage status of the compound construct per se
+is reported only on the parts that embed flow control expressions. For an Ada
+*if* statement, for example, coverage is reported on the ``if`` or ``elsif``
+lines only, not on the ``else``, or ``end if;`` lines, and not on lines where
+inner statements reside. The lines where inner statements reside are annotated
+in accordance with the nature and coverage status of those statements
+only. For example, see the ``.`` annotations on lines 4 and 6 in::
+
+  2 +:  if This_Might_Not_Be_True then
+  3 -:     Result := -1;
+  4 .:  else
+  5 +:     Result := 12;
+  6 .:  end if;
 
 Declarations are generally considered as statements, so are reported
 covered/uncovered when they have initialization code associated with them.
@@ -498,8 +422,8 @@ evaluation never really terminates.
 Example program and assessments
 -------------------------------
 
-To illustrate the just presented points, we consider the example functional
-unit below, with the spec and body stored in source files named
+To illustrate the just presented points further, we consider the example
+functional unit below, with the spec and body stored in source files named
 ``div_with_check.ads`` and ``div_with_check.adb``::
 
    function Div_With_Check (X, Y : Integer) return Integer;
@@ -525,8 +449,8 @@ the following :term:`test driver` in ``test_div1.adb``::
    end;
 
 
-Once the driver + application bundle is built, we have a ``test_div1`` executable
-that we execute with::
+Once the driver+application bundle is built, we have a ``test_div1``
+executable that we execute with::
 
   gnatcov run test_div1
 
@@ -609,8 +533,8 @@ Then, results for the test driver where we can note that
 - This definition is marked covered even though it was evaluated only once
   with an initialization expression that raised an exception, and
 
-- The driver body is reported uncovered, as expected since an exception triggered
-  during the elaboration of the subprogram declarative part.
+- The driver body is reported uncovered, as expected since an exception
+  triggered during the elaboration of the subprogram declarative part.
 
 ::
 
@@ -688,7 +612,14 @@ with the :option:`--level=stmt+decision` command line option.
 
 In this context, we consider to be :dfn:`decisions` all the Boolean
 expressions used to influence the control flow via explicit constructs in the
-source program, such as ``if`` statements or ``while`` loops.
+source program, such as ``if`` statements or ``while`` loops. For example,
+in Ada::
+
+  while not Empty (Queue) loop 
+     ...   
+  end loop;
+
+  if                                   
 
 For proper operation, only short-circuit operators are allowed to combine
 operands, as enforced by the `No_Direct_Boolean_Operator` restriction pragma
@@ -737,8 +668,8 @@ Ada unit below, with the spec and body stored in source files named
    procedure Divmod
      (X, Y : Integer; Value : out Integer;
       Divides : out Boolean; Tell : Boolean);
-   --  Compute X / Y into VALUE and set DIVIDES to indicate whether Y divides X.
-   --  Output a note when so and a request to TELL is issued.
+   --  Compute X / Y into VALUE and set DIVIDES to indicate whether
+   --  Y divides X. Output a note to this effect when requested to TELL.
 
    procedure Divmod
      (X, Y : Integer; Value : out Integer;
@@ -776,7 +707,8 @@ executes both ways and the ``if Tell then`` test runs once only for ``Tell``
 True. Indeed, the only :option:`stmt+decision` violation by our driver is the
 ``Tell`` decision coverage, only partially achieved since we have only
 exercised the True case. This is confirmed by the section of :option:`=report`
-output quoted below::
+output that follows, where we find the two coverage violations sections
+expected for the requested set of criteria::
 
    2.1. STMT COVERAGE
    ------------------
@@ -868,7 +800,6 @@ implicit and diagnosing it as well would only add redundancy::
    divmod.adb:12:7: decision never evaluated
 
    1 violation.
-
 
 
 Modified Condition/Decision Coverage (MCDC) assessments

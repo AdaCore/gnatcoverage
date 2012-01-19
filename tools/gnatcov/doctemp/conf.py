@@ -193,7 +193,7 @@ htmlhelp_basename = 'GNATcoveragedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'GNATcoverage.tex', u'GNATcoverage Documentation',
+  ('index', 'GNATcoverage.tex', u'GNATcoverage User\'s Guide',
    u'AdaCore', 'manual'),
 ]
 
@@ -226,7 +226,7 @@ latex_domain_indices = True
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'gnatcoverage', u'GNATcoverage Documentation',
+    ('index', 'gnatcoverage', u'GNATcoverage User\'s Guide',
      [u'AdaCore'], 1)
 ]
 

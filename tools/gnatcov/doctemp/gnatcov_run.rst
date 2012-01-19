@@ -1,5 +1,5 @@
 **********************
-Instrumented Execution
+|gcvrun| command line
 **********************
 
 .. index:
@@ -9,9 +9,6 @@ Instrumented Execution
 target machine and produce execution traces.
 
 .. _gnatcov_run-commandline:
-
-|gcvrun| command line
-=====================
 
 The general interface synopsis is available from ``gnatcov`` ``--help``,
 as follows:

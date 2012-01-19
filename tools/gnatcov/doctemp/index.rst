@@ -1,15 +1,14 @@
-
+#########################
 GNATcoverage User's Guide
-=========================
+#########################
 
 .. toctree::
    :maxdepth: 2
 
    getting_started
-   gnatcov_run
-   source_coverage
-   object_coverage
-   facilities
+   execution
+   analysis
+   gps_integration
    appendix
    glossary
    bibliography
