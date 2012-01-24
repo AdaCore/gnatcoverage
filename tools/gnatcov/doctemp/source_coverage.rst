@@ -2,6 +2,8 @@
 Source Coverage Analysis
 ************************
 
+.. include:: bibrefs.rsti
+
 General principles & Compilation requirements
 =============================================
 
@@ -893,15 +895,13 @@ pair for B.
 conditions in an independence pair as long as they could for sure not possibly
 influence the decision outcome, e.g. due to short-circuit semantics.
 
-This variant, well known as :dfn:`Masking` MCDC :ref:`ar018`,
-:ref:`cast6` provides additional flexibility on the set of tests
-required to satisfy the criterion without reducing the minimal size of
-this set.
+This variant, well known as :dfn:`Masking` MCDC |ar0118|, |cast6| provides
+additional flexibility on the set of tests required to satisfy the criterion
+without reducing the minimal size of this set.
 
-In the `and then` case, it becomes possible to use the #4 + #1
-pair as well to demonstrate the independent influence of `A`, as
-`B` is not evaluated at all when `A` is False so the change
-on `B` is irrelevant in the decision switch.
+In the ``A and then B`` case, it becomes possible to use 4 + 1 as another
+independence pair for A as well, as `B` is not evaluated at all when `A` is
+False so the change on `B` is irrelevant in the decision switch.
 
 
 Example program and assessments
