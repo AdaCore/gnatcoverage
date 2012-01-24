@@ -12,5 +12,3 @@ GNATcoverage User's Guide
    appendix
    glossary
    bibliography
-
-

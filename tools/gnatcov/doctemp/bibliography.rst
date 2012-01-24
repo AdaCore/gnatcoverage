@@ -2,45 +2,21 @@
 Bibliography
 ************
 
-@macro CHILENSKI
-John J. Chilenski
-@end macro
+.. |CHILENSKI| replace:: John J. Chilenski
 
-@macro GUITTON
-Jérôme Guitton
-@end macro
+.. |GUITTON| replace:: Jérôme Guitton
 
-@macro MOY
-Yannick Moy
-@end macro
+.. |MOY| replace:: Yannick Moy
 
-@macro QUINOT
-Thomas Quinot
-@end macro
+.. |QUINOT| replace:: Thomas Quinot
 
-@macro KURTZ
-John L. Kurtz
-@end macro
+.. |KURTZ| replace:: John L. Kurtz
 
-@macro MILLER
-S. Miller
-@end macro
+.. |MILLER| replace:: S. Miller
 
-@macro CAST
-CAST, Certification Authorities Software Team
-@end macro
+.. |CAST| replace:: CAST, Certification Authorities Software Team
 
-@macro FAA
-FAA, Federal Aviation Administration
-@end macro
-
-@macro bibdef:term:`entry`
-.. _\\entry\\:
-
-@strong:term:`[\\entry\\]`
-@end macro
-
-@multitable @columnfractions .1 .8
+.. |FAA| replace:: FAA, Federal Aviation Administration
 
 * @bibdef:term:`gcc`
 @tab GCC: The GNU Compiler Collection.
@@ -73,8 +49,8 @@ IEEE Software Engineering Journal, volume 9, issue 5, September 2004.
 Coverage (MC/DC) and Decision Coverage (DC) ?
 |CAST|. Position Paper #10, June 2002.
 
-* @bibdef :term:`ar0118`
-@tab An Investigation of Three Forms of the Modified
+.. [ar0118]
+An Investigation of Three Forms of the Modified
 Condition/Decision Coverage (MCDC) Criterion.
 |CHILENSKI|. DOT/FAA/AR-01/18, April 2001.
 

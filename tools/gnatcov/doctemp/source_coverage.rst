@@ -25,10 +25,10 @@ supported up to :option:`-O1`, with inlining allowed.
 
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage
-reports. *Source* coverage, in particular, is queried by passing a specific
-:option:`--level` argument. The possible values for source level analysis are
-``stmt``, ``stmt+decision`` and variants of ``stmt+mcdc``, all described in detail
-in later sections of this documentation.
+reports. *Source* coverage is queried by passing a specific :option:`--level`
+argument. The possible values for source level analysis are :option:`stmt`,
+:option:`stmt+decision` and variants of :option:`stmt+mcdc`, all described in
+detail in later sections of this documentation.
 
 The compiler output is suitable whatever the assessed criteria; there is never
 a requirement to recompile just because a different criterion needs to be
@@ -114,7 +114,7 @@ file is ``range.adb`` so the annotated version is ``range.adb.xcov``:
 
 ::
 
- gnatcov/examples/docsupport/src/ranges.adb:
+ examples/src/ranges.adb:
  67% of 3 lines covered
  Coverage level: stmt
    1 .: package body Ranges is
@@ -222,9 +222,7 @@ items:
   production time stamp and tag string (:option:`--tag` command line
   argument value).
 
-Here is a example excerpt:
-
-::
+Here is a example excerpt::
 
   ===========================
   == 1. ASSESSMENT CONTEXT ==
@@ -468,7 +466,7 @@ met.
 :option:`--annotate=xcov` requests results as annotated sources in text format,
 which we get in ``div_with_check.adb.xcov``::
 
-   docsupport/src/div_with_check.adb:
+   examples/src/div_with_check.adb:
    67% of 3 lines covered
    Coverage level: stmt
       1 .: function Div_With_Check (X, Y : Integer) return Integer is
@@ -513,7 +511,7 @@ the assessement results.
 The :option:`=xcov` outputs we obtain follow. First, results for the
 functional unit, with the ``if`` statement coverage reversed::
 
-   docsupport/src/div_with_check.adb:
+   examples/src/div_with_check.adb:
    67% of 3 lines covered
    Coverage level: stmt
       1 .: function Div_With_Check (X, Y : Integer) return Integer is
@@ -538,7 +536,7 @@ Then, results for the test driver where we can note that
 
 ::
 
-   docsupport/src/test_div0.adb:
+   examples/src/test_div0.adb:
    67% of 3 lines covered
    Coverage level: stmt
       1 .: with Div_With_Check, Ada.Text_IO; use Ada.Text_IO;
@@ -617,6 +615,10 @@ operation, only short-circuit operators are allowed to combine operands, as
 enforced by the `No_Direct_Boolean_Operator` restriction pragma offered by the
 |gnat| compilers for Ada.
 
+The types involved in decisions need not be restricted to the standard Boolean
+type when one is defined by the language; For Ada, typically, they may
+subtypes or types derived from the fundamental Boolean type.
+
 A decision is said :dfn:`fully covered`, or just :dfn:`covered`, as soon as it
 has been evaluated at least once True and once False during the program
 execution. If only one or none of these two possible outcomes was exercised,
@@ -638,9 +640,10 @@ The following table summarizes the meaning of the :option:`=xcov` and
    ``!`` | At least one decision partially covered on the line
 
 
-When a trailing `+` added the annotation format passed to :option:`--annotate`
-(so with :option:`=xcov+` or :option:`=html+`), a precise description of the
-actual violations available for each line in addition to the annotation.
+When a trailing `+` is added the annotation format passed to
+:option:`--annotate` (:option:`=xcov+` or :option:`=html+`), a precise
+description of the actual violations is available for each line in addition to
+the annotation.
 
 The :option:`=report` synthetic output lists the statement and decision
 coverage violations, in the ``STMT`` and ``DECISION`` coverage report section
@@ -797,97 +800,38 @@ the statement coverage violation::
 Modified Condition/Decision Coverage (MCDC) assessments
 =======================================================
 
-In a similar fashion to statement or decision coverage, |gcv| features
-Modified Condition/Decision Coverage assessment capabilities with
-*--level=stmt+mcdc*.
-In addition to the particular level specification, you should also
-provide |gcvrun| with the set of SCOs you plan to analyze later on
-using the produced trace, with a `--scos` argument as for
-`gnatcov coverage`.
-If you plan different analysis for a single run, providing a common
-superset to |gcvrun| is fine.
-Providing |gcvrun| with only a subset of the SCOs you will analyze
-might result in pessimistic assessments later on (spurious MCDC not
-achieved outcome).
+General Principles
+------------------
 
-To support MCDC, we introduce a distinction between two kinds of
-Boolean expressions:
+|gcv| performs combined Statement and Modified Condition/Decision Coverage
+assessments with :option:`--level=stmt+mcdc` passed to |gcvcov|.
 
+In addition to this particular :option:`--level` option, you should also
+provide |gcvrun| with the set of SCOs you plan to analyze, with a `--scos`
+argument as well. See the :ref:`trace-control` section for more details on
+this aspect of the procedure.
 
-* @dfn:term:`Simple` Boolean expressions are Boolean atoms such as a lone
-  Boolean variable or a function call, possibly negated.
+Compared to Decision Coverage, MCDC analysis incurs two important
+differences:
 
-* @dfn:term:`Complex`
-  Boolean expressions are those that feature at least two Boolean atoms
-  combined with short-circuit operators, the only ones allowed for
-  proper operation as for Decision Coverage.
+* For each decision in the sources of interest, testing shall demonstrate the
+  :dfn:`independant influence` of every operand in addition to just exercising
+  the two expression outcomes (see the :ref:`mcdc-variants` section that
+  follows). The Boolean operands are called :term:`conditions` in the DO-178
+  literature.
 
-
-In addition to simple and complex expressions used to influence
-control-flow statements, we treat as decisions all the complex Boolean
-expressions anywhere they might appear.
-For example, the Ada code excerpt below:
-
-
-::
+* We also treat as decisions all the Boolean expressions that involve at least
+  two operands (which we call :term:`complex Boolean expressions`), not only
+  when used to direct some source control-flow oriented statement. For example,
+  we consider that::
 
     X := A and then not B;
     if Y then [...]
 
-
-... features two expressions subject to MCDC analysis: `A and then not B` (complex expression with two atoms), on the right hand
-side of the assignment to `X`, and the simple `Y` expression
-that controls the `if` statement.
-The Boolean atoms in a decision are called @dfn:term:`conditions` in the
-DO-178 literature.  The types involved need not be restricted to the
-standard Boolean type when one is defined by the language; For Ada,
-typically, they may subtypes or types derived from the fundamental
-Boolean type.
-
-Compared to Decision Coverage, MCDC assessments incur extra
-verifications on the demonstration by the tests of the independent
-influence of conditions on decisions.
-Several variants of the criterion exist, with a common idea: for each
-condition in a decision, tests are required to expose a pair of
-valuations where both the condition and the decision value change
-while some extra property on the other conditions holds.
-The point is to demonstrate that every condition is significant in the
-decision and that the tests exercised representative combinations of
-the possible behaviors, while keeping the number of required tests
-linear with the number of conditions in a decision.
-
-@dfn:term:`Unique Cause MCDC` is a common variant where the extra property
-is 'all of the other conditions in the decision shall remain unchanged'.
-To illustrate, the table below expands the 4 possible
-condition/decision vectors for decision `A and then B`.
-`T`/`F` represent the True/False boolean values and the
-rightmost column indicates which vector pairs demonstrate Unique Cause
-independent effect of each condition.
-
-
-::
-
-  | # | A  B  A && B | Indep |
-  |---|--------------|-------|
-  | 1 | T  T    T    | A  B  |
-  | 2 | T  F    F    |    B  |
-  | 3 | F  T    F    | A     |
-  | 4 | F  F    F    |       |
-
-
-
-|gcp| actually implements a common variant, accepting variations of
-other conditions in an independence pair as long as they could for
-sure not possibly influence the decision outcome, e.g. due to
-short-circuit semantics.
-This variant, well known as @dfn:term:`Masking` MCDC @bibref:term:`ar018`,
-@bibref:term:`cast6` provides additional flexibility on the set of tests
-required to satisfy the criterion without reducing the minimal size of
-this set.
-In the `and then` case, it becomes possible to use the #4 + #1
-pair as well to demonstrate the independent influence of `A`, as
-`B` is not evaluated at all when `A` is False so the change
-on `B` is irrelevant in the decision switch.
+  features two expressions subject to MCDC analysis: ``A and then not B``
+  (complex Boolean expression with two atoms), on the right hand side of the
+  assignment to X, and the simple expression ``Y`` that controls the ``if``
+  statement.
 
 Output-wise, the in-source notes for the `xcov` or `html`
 formats are the same as for decision coverage reports, with condition
@@ -910,4 +854,63 @@ diagnostic applies on the associated decision or statement, however.
 In our familiar example, attempting only safe actions in Cautious mode
 yields a '`decision outcome TRUE never exercised`' diagnostic,
 not a couple of condition related messages.
+
+.. _mcdc-variants:
+
+MCDC variants
+-------------
+
+Compared to Decision Coverage, achieving MCDC requires tests that demonstrate
+the independent influence of conditions in decisions. Several variants of the
+criterion exist.
+
+:dfn:`Unique Cause MCDC` is the original variant described in the DO178B
+reference guidelines, where independant influence of a specific condition must
+be demonstrated by a pair of tests where the decision value toggles while only
+that condition changed.
+
+To illustrate, consider the following table which exposes the 4 possible
+condition/decision vectors for the ``A and then B`` expression, and where T
+and F stand for True and False, respectively. Each line in such a table is an
+:term:`evaluation vector`, and the pairs that demonstrate the independant
+effect of conditions are known as :term:`independence pairs`.
+
+.. csv-table::
+   :delim: |
+   :header: #, A, B, A and then B
+
+   1 | T | T | T
+   2 | T | F | F
+   3 | F | T | F
+   4 | F | F | F
+
+
+Evaluations 1 + 3 constitute a Unique Cause independence pair for A, where A
+changes, B does not, and the expression value toggles. 1 + 2 constitues a
+pair for B.
+
+|gcp| actually implements a common variant, accepting variations of other
+conditions in an independence pair as long as they could for sure not possibly
+influence the decision outcome, e.g. due to short-circuit semantics.
+
+This variant, well known as :dfn:`Masking` MCDC :ref:`ar018`,
+:ref:`cast6` provides additional flexibility on the set of tests
+required to satisfy the criterion without reducing the minimal size of
+this set.
+
+In the `and then` case, it becomes possible to use the #4 + #1
+pair as well to demonstrate the independent influence of `A`, as
+`B` is not evaluated at all when `A` is False so the change
+on `B` is irrelevant in the decision switch.
+
+
+Example program and assessments
+-------------------------------
+
+Focusing on units of interest
+=============================
+
+Inlined and Template/Generic entities
+=====================================
+
 

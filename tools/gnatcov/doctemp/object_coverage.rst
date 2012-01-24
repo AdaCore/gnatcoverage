@@ -56,8 +56,14 @@ Besides, if source coverage analysis is to be performed as well, the
 whole process is simpler if the same compilation options are used, and
 these have to be strictly controlled for source coverage.
 
+.. _oreport-formats:
+
+Output report formats
+=====================
+
+
 Machine level reports, `--annotate=asm`
-=======================================
+---------------------------------------
 
 For object coverage analysis purposes, *--annotate=asm* produces
 annotated assembly code for all the program routines on standard output.
@@ -186,18 +192,17 @@ and the second one is not even exercised:
   ...
   
 
-In-Source text reports, `--annotate=xcov[+]`
-============================================
+Annotated sources, text : :option:`--annotate=xcov[+]`
+------------------------------------------------------
 
 For object coverage analysis, *--annotate=xcov* produces
 annotated source files with the `.xcov` extension in the current
 directory, one per original compilation unit.
-An alternate output directory may be selected by passing a
-*--output-dir=<directory name>* command line option as well.
 
 The annotations are visible as a special character at the beginning of
 every source line, which synthesizes the coverage status of all the
 machine instructions generated for this line.
+
 The machine instructions are printed next to their associated source
 line when the *+* option extension is used.
 Eventhough the annotations are rendered on source lines in this case,
@@ -231,8 +236,8 @@ annotations are only possible when this is available.
 In |gcc| parlance, this requires compilation with the *-g*
 command line switch, designed never to influence the generated code.
 
-In-Source html reports, `--annotate=html[+]`
-============================================
+Annotated sources, html : :option:`--annotate=html[+]`
+------------------------------------------------------
 
 *--annotate=html* produces one `.html` browsable annotated
 source file per original compilation unit in the current directory.
@@ -248,8 +253,8 @@ links to the annotated sources.
 With the `+` extension, the annotated machine code for each line
 may be expanded below it by a mouse click on the line.
 
-Synthetic reports, `--annotate=report`
-======================================
+Violations summary, text : :option:`--annotate=report`
+------------------------------------------------------
 
 For object coverage analysis, *--annotate=report* produces a
 synthetic summary of per function coverage results, with a single

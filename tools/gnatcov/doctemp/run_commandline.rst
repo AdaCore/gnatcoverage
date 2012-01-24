@@ -1,3 +1,5 @@
+.. _gnatcov_run-commandline:
+
 **********************
 |gcvrun| command line
 **********************
@@ -7,8 +9,6 @@
 
 |gcvrun| offers a unified interface to launch programs for a specific
 target machine and produce execution traces.
-
-.. _gnatcov_run-commandline:
 
 The general interface synopsis is available from ``gnatcov`` ``--help``,
 as follows:
