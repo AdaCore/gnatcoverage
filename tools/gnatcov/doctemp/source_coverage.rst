@@ -69,6 +69,22 @@ Later in this documentation we name output formats by the text to add to
 In all the cases, the report focuses on the sources stated to be of interest
 by way of the :option:`--scos` command line argument.
 
+We will illustrate the various formats with samples extracted from outputs
+obtained by perfoming coverage analysis of the following example Ada
+application unit::
+
+   function Between (X1, X2, X : Integer) return Boolean;
+   --  Whether X is between X1 and X2, inclusive and however they are ordered
+
+   function Between (X1, X2, X : Integer) return Boolean is
+   begin
+      if X1 < X2 then
+         return X >= X1 and then X <= X2;
+      else
+         return X >= X2 and then X <= X1;
+      end if;
+   end Between;
+
 Annotated sources, text : :option:`--annotate=xcov[+]`
 ------------------------------------------------------
 
@@ -87,14 +103,12 @@ in a single character, which may be one of the following:
    :header: Annotation, Meaning
 
    ``.`` | No coverage obligation is attached to the line
-   ``+`` | Coverage obligations attached to the line, all satisfied
    ``-`` | Coverage obligations attached to the line, none satisfied
    ``!`` | Coverage obligations attached to the line, some satisfied
+   ``+`` | Coverage obligations attached to the line, all satisfied
 
 To illustrate, let us consider that we exercise our example functional unit in
-the following fashion, with ``X1 < X2`` in every call:
-
-::
+the following fashion, with ``X1 < X2`` in every call::
 
   procedure Test_X1X2 is
   begin
@@ -112,9 +126,7 @@ annotation for the corresponding lines, a ``-`` for the line with the second
 
 Here is the full report produced for our example unit, where the ``Between``
 function is actually part of an Ada package abstraction. The original source
-file is ``range.adb`` so the annotated version is ``range.adb.xcov``:
-
-::
+file is ``range.adb`` so the annotated version is ``range.adb.xcov``::
 
  examples/src/ranges.adb:
  67% of 3 lines covered
@@ -137,9 +149,7 @@ extra details below lines with improperly satisfied obligations. The available
 details consists in the list of coverage :term:`violations` diagnosed for the
 line, which depends on the coverage criteria involved. Here is an excerpt for
 our previous example, where the only improperly satisfied obligation is an
-uncovered statement on line 8:
-
-::
+uncovered statement on line 8::
 
  ...
    8 -:          return X >= X2 and then X <= X1;
@@ -362,12 +372,12 @@ Statement Coverage (SC) assessments
 General principles
 ------------------
 
-Statement Coverage analysis, which focuses on :dfn:`statement` source
-entities. is requested with the :option:`--level=stmt` command line
-argument of |gcvcov|.
+|gcv| performs Statement Coverage assessments with the :option:`--level=stmt`
+command line option.
 
-In synthetic :option:`=report` outputs, unexecuted statements are reported as
-Statement Coverage violations in the report section dedicated to these.
+In synthetic :option:`=report` outputs, unexecuted source statements are
+listed as Statement Coverage violations in the report section dedicated to
+these.
 
 In annotated source outputs, the coverage annotations convey the following
 indications:
@@ -377,9 +387,9 @@ indications:
    :widths: 10, 80
    :header: Annotation, Meaning
 
-   ``+`` | At least one statement on the line, all covered
    ``-`` | At least one statement on the line, none covered
    ``!`` | At least one statement on the line, some covered
+   ``+`` | At least one statement on the line, all covered
 
 When a single statement spans multiple lines, the coverage annotation is
 present on all the lines, as the two ``+`` signs for the single assignment
@@ -630,16 +640,16 @@ executed at all, or when all the attempted evaluations were interrupted
 e.g. because of exceptions.
 
 The following table summarizes the meaning of the :option:`=xcov` and
-:option:`=html` annotations:
+:option:`=html` annotations, diagnostics taking precedence first:
 
 .. csv-table::
   :delim: |
   :widths: 10, 80
   :header: Annotation, Meaning
 
-   ``+`` | All the statements and decisions on the line are covered
    ``-`` | Statement on the line was not executed
    ``!`` | At least one decision partially covered on the line
+   ``+`` | All the statements and decisions on the line are covered
 
 
 When a trailing `+` is added the annotation format passed to
@@ -770,11 +780,12 @@ check failure for the ``mod`` operation. This results in the following
 
 We have an interesting situation where
 
-* While the outer ``if`` statement is reached and covered (as a statement),
-  the ``X mod Y = 0`` embedded decision is actually never evaluated because
-  the only evaluation attempted is interrupted by an exception.
+* The outer ``if`` statement is reached and covered (as a statement),
 
-* None of the other statements is ever reached as a result.
+* No evaluation of the ``X mod Y = 0`` decision terminates,
+  because the only attempted computation is interrupted by an exception, so
+
+* None of the other statements is ever reached.
 
 This gets all confirmed by the :option:`=report` output below, on which we
 also notice that the only diagnostic emitted for the uncovered inner ``if`` is
@@ -835,27 +846,38 @@ differences:
   assignment to X, and the simple expression ``Y`` that controls the ``if``
   statement.
 
-Output-wise, the in-source notes for the `xcov` or `html`
-formats are the same as for decision coverage reports, with condition
-specific cases marked with '!' as well.
-`--annotate=report` outputs feature specific diagnostics where
-conditions are identified with their precise file:line:column source
-location.
-Using the same decision as in the previous example to illustrate, we
-run the Explore robot in Cautious mode only, try both safe and unsafe
-actions and get:
+Output-wise, the source annotations for the :option:`=xcov` or :option:`=html`
+formats are the same as for decision coverage, with condition specific cases
+marked with a ``!`` as well:
 
 
-::
+.. csv-table::
+  :delim: |
+  :widths: 10, 80
+  :header: Annotation, Meaning
 
-  robots.adb:75:10: condition has no independent influence pair, MC/DC not achieved
+   ``-`` | Statement on the line was not executed
+   ``!`` | At least one decision/condition partially covered on the line
+   ``+`` | All the statements and decisions/conditions on the line are covered
 
 
-Such condition related messages are only emitted when no more general
-diagnostic applies on the associated decision or statement, however.
-In our familiar example, attempting only safe actions in Cautious mode
-yields a '`decision outcome TRUE never exercised`' diagnostic,
-not a couple of condition related messages.
+The :option:`=report` outputs feature an extra MCDC section in the Coverage
+Violations segment of the report, which holds:
+
+- The condition specific diagnosics (``independent influence not
+  demonstrated`` messages), as well as
+
+- Decision level diagnostics (such as ``decisiont outcome True not covered``
+  messages) for the Complex Boolean Expressions not directing a control-flow
+  oriented source statement and which we treat as decisions nevertheless.
+
+There again, condition or decision related messages are only emitted when no
+more general diagnostic applies on the associated entity. Condition specific
+diagnostics, for example, are only produced in absence of enclosing statement
+or decision level violation.
+
+See the :ref:`mcdc-examples` section that follows for a few illustrations of
+these points.
 
 .. _mcdc-variants:
 
@@ -866,16 +888,15 @@ Compared to Decision Coverage, achieving MCDC requires tests that demonstrate
 the independent influence of conditions in decisions. Several variants of the
 criterion exist.
 
-:dfn:`Unique Cause MCDC` is the original variant described in the DO178B
-reference guidelines, where independant influence of a specific condition must
-be demonstrated by a pair of tests where the decision value toggles while only
-that condition changed.
+:dfn:`Unique Cause MCDC` is the original criterion described in the DO178B
+reference guidelines, where independent influence of a specific condition must
+be demonstrated by a pair of tests where only that condition changes and the
+decision value toggles.
 
-To illustrate, consider the following table which exposes the 4 possible
-condition/decision vectors for the ``A and then B`` expression, and where T
-and F stand for True and False, respectively. Each line in such a table is an
-:term:`evaluation vector`, and the pairs that demonstrate the independant
-effect of conditions are known as :term:`independence pairs`.
+Consider the following table which exposes the 4 possible condition/decision
+vectors for the ``A and then B`` expression, where T stands for True, F stands
+for False, and the italics indicate that the condition evaluation is
+short-circuited:
 
 .. csv-table::
    :delim: |
@@ -883,29 +904,52 @@ effect of conditions are known as :term:`independence pairs`.
 
    1 | T | T | T
    2 | T | F | F
-   3 | F | T | F
-   4 | F | F | F
+   3 | F | *T* | F
+   4 | F | *F* | F
 
+
+Each line in such a table is called an :term:`evaluation vector`, and
+the pairs that demonstrate the independant effect of conditions are known as
+:term:`independence pairs`.
 
 Evaluations 1 + 3 constitute a Unique Cause independence pair for A, where A
-changes, B does not, and the expression value toggles. 1 + 2 constitues a
-pair for B.
+changes, B does not, and the expression value toggles. 1 + 2 constitues a pair
+for B.
 
-|gcp| actually implements a common variant, accepting variations of other
-conditions in an independence pair as long as they could for sure not possibly
-influence the decision outcome, e.g. due to short-circuit semantics.
+The closest criterion supported by |gcp| is a very minor variation where
+conditions that are not evaluated due to short-circuit semantics are allowed
+to differ as well in a pair. Indeed, their value change cannot possibly have
+influenced the decision toggle (since they are not even considered in the
+computation), so they can never invalidate the effect of another condition.
 
-This variant, well known as :dfn:`Masking` MCDC |ar0118|, |cast6| provides
-additional flexibility on the set of tests required to satisfy the criterion
-without reducing the minimal size of this set.
+We call this variation :dfn:`Unique Cause + Short-Circuit MCDC`, activated
+with :option:`--level=stmt+uc_mcdc` on the command line (uc\_ refers to
+Unique Cause). From the ``A and then B`` table just introduced, 4 + 1 becomes
+another valid independence pair for A, as `B` is not evaluated at all when `A`
+is False so the change on `B` is irrelevant in the decision switch.
 
-In the ``A and then B`` case, it becomes possible to use 4 + 1 as another
-independence pair for A as well, as `B` is not evaluated at all when `A` is
-False so the change on `B` is irrelevant in the decision switch.
+:option:`--level=stmt+mcdc`  actually implements another variant, known as
+:dfn:`Masking MCDC` |ar0118|, accepted as a sound alternative and offering
+improved support for coupled conditions |cast6|.
 
+Masking MCDC allows even further flexibility in the possible variations of
+conditions in an independence pair. Indeed, as soon as only short-circuit
+operators are involved, all the conditions that appear on the left of a given
+condition in the expression text are allowed to change without invalidating
+the said condition independent influence demonstration by a pair.
+
+.. _mcdc-examples:
 
 Example program and assessments
 -------------------------------
+
+demo !dc => !mcdc msg
+
+demo mcdc on flat complex bool expr
+
+demo short circuit flexibility
+
+
 
 Focusing on units of interest
 =============================
