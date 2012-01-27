@@ -73,15 +73,15 @@ We will illustrate the various formats with samples extracted from outputs
 obtained by perfoming coverage analysis of the following example Ada
 application unit::
 
-   function Between (X1, X2, X : Integer) return Boolean;
-   --  Whether X is between X1 and X2, inclusive and however they are ordered
+   function Between (X1, X2, V : Integer) return Boolean;
+   --  Whether V is between X1 and X2, inclusive and however they are ordered
 
-   function Between (X1, X2, X : Integer) return Boolean is
+   function Between (X1, X2, V : Integer) return Boolean is
    begin
       if X1 < X2 then
-         return X >= X1 and then X <= X2;
+         return V >= X1 and then V <= X2;
       else
-         return X >= X2 and then X <= X1;
+         return V >= X2 and then V <= X1;
       end if;
    end Between;
 
@@ -110,10 +110,10 @@ in a single character, which may be one of the following:
 To illustrate, let us consider that we exercise our example functional unit in
 the following fashion, with ``X1 < X2`` in every call::
 
-  procedure Test_X1X2 is
+  procedure Test_X1VX2V is
   begin
-     Assert (Between (X1 => 2, X2 => 5, X => 3)); -- X1 < X < X2
-     Assert (not Between (X1 => 2, X2 => 5, X => 8)); -- X1 < X2 < X
+     Assert (Between (X1 => 2, X2 => 5, V => 3)); -- X1 < V < X2
+     Assert (not Between (X1 => 2, X2 => 5, V => 8)); -- X1 < X2 < V
   end;
 
 This executes the ``if`` statement twice, evaluates the controlling decision
@@ -133,12 +133,12 @@ file is ``range.adb`` so the annotated version is ``range.adb.xcov``::
  Coverage level: stmt
    1 .: package body Ranges is
    2 .:
-   3 .:    function Between (X1, X2, X : Integer) return Boolean is
+   3 .:    function Between (X1, X2, V : Integer) return Boolean is
    4 .:    begin
    5 +:       if X1 < X2 then
-   6 +:          return X >= X1 and then X <= X2;
+   6 +:          return V >= X1 and then V <= X2;
    7 .:       else
-   8 -:          return X >= X2 and then X <= X1;
+   8 -:          return V >= X2 and then V <= X1;
    9 .:       end if;
   10 .:    end;
   11 .:
@@ -152,8 +152,8 @@ our previous example, where the only improperly satisfied obligation is an
 uncovered statement on line 8::
 
  ...
-   8 -:          return X >= X2 and then X <= X1;
-   STATEMENT "return X ..." at 8:10 not executed
+   8 -:          return V >= X2 and then V <= X1;
+   STATEMENT "return V ..." at 8:10 not executed
  ...
 
 Annotated sources, html : :option:`--annotate=html[+]`
@@ -245,14 +245,14 @@ Here is a example excerpt::
 
   Command line:
 
-  gnatcov coverage --scos=@eng.alis --level=stmt+mcdc --annotate=report t0.trace
+  gnatcov coverage --scos=@alis --level=stmt+mcdc --annotate=report test_x1x2.trace
 
   Coverage level: stmt+mcdc
 
   Trace files:
 
-  t0.trace
-    program: obj/powerpc-elf/test_engines
+  test_x1x2.trace
+    program: obj/test_x1x2
     date   : 2011-11-24 15:33:44
     tag    : sample run
 
@@ -279,13 +279,10 @@ the :option:`--level` option:
 
 
 All the violations are reported using a consistent
-format, as follows:
+format, as follows::
 
-::
-
-    queues.adb:1641:17: statement not executed
-     (source) : (loc) : (violation description)
-
+    ranges.adb:8:10: statement not executed
+      source  :sloc: violation description
 
 *source* and *loc* are the basename of the source file and
 the precise ``line:column`` location within that source where the
@@ -315,9 +312,7 @@ alone, even if we're assessing for, say, :option:`--level=stmt+decision` ;
 
 Here is an output excerpt for our example with :option:`--level=stmt+mcdc`,
 producing one subsection for each of the three criteria requested at that
-level:
-
-::
+level::
 
   ============================
   == 2. COVERAGE VIOLATIONS ==
@@ -348,9 +343,7 @@ Analysis Summary
 ^^^^^^^^^^^^^^^^
 
 The *Analysis Summary* report section summarizes just the counts reported in
-each of the previous sections.  For our example report so far, this would be:
-
-::
+each of the previous sections.  For our example report so far, this would be::
 
   =========================
   == 3. ANALYSIS SUMMARY ==
@@ -835,7 +828,7 @@ differences:
 
 * We also treat as decisions all the Boolean expressions that involve at least
   two operands (which we call :term:`complex Boolean expressions`), not only
-  when used to direct some source control-flow oriented statement. For example,
+  when used to direct some conditional control-flow oriented statement. For example,
   we consider that::
 
     X := A and then not B;
@@ -936,20 +929,169 @@ Masking MCDC allows even further flexibility in the possible variations of
 conditions in an independence pair. Indeed, as soon as only short-circuit
 operators are involved, all the conditions that appear on the left of a given
 condition in the expression text are allowed to change without invalidating
-the said condition independent influence demonstration by a pair.
+the said condition influence demonstration by a pair.
 
 .. _mcdc-examples:
 
 Example program and assessments
 -------------------------------
 
-demo !dc => !mcdc msg
+We reuse one of our previous examples to illustrate, with a simple functional
+unit to exercise::
 
-demo mcdc on flat complex bool expr
+   function Between (X1, X2, V : Integer) return Boolean;
+   --  Whether V is between X1 and X2, inclusive and however they are ordered
 
-demo short circuit flexibility
+   function Between (X1, X2, V : Integer) return Boolean is
+   begin
+      if X1 < X2 then
+         return V >= X1 and then V <= X2;
+      else
+         return V >= X2 and then V <= X1;
+      end if;
+   end Between;
+
+First consider the following test driver, which exercises only a single case where
+X1 < V < X2::
+
+   procedure Test_X1VX2 is
+   begin
+      Assert (Between (X1 => 2, X2 => 5, V => 3)); -- X1 < V < X2
+   end Test_X1XX2;
+
+Performing MCDC analysis requires the execution step to be told about it,
+by providing both the :option:`--level` and the :option:`--scos`  arguments
+to |gcvrun| (see the :ref:`trace-control` for details)::
+
+   gnatcov run --level=stmt+mcdc --scos=@alis test_x1xx2
+
+We start by looking at the `=xcov+` output to get a first set of useful
+results::
+
+   gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov+ test_x1vx2.trace
+
+This produces a ``ranges.adb.xcov`` annotated source in text format with this
+contents::
+
+      8 .:    function Between (X1, X2, V : Integer) return Boolean is
+      9 .:    begin
+     10 !:       if X1 < X2 then
+   DECISION "X1 < X2" at 10:10 outcome FALSE never exercised
+     11 !:          return V >= X1 and then V <= X2;
+   DECISION "V >= X1 a..." at 11:17 outcome FALSE never exercised
+     12 .:       else
+     13 -:          return V >= X2 and then V <= X1;
+   STATEMENT "return V ..." at 13:10 not executed
+     14 .:       end if;
+     15 .:    end Between;
+
+This is all as expected from what the driver does, with a few points of note:
+
+- The diagnostic on line 11 confirms that Complex Boolean Expression are
+  treated as decisions even when not used to direct a conditional control-flow
+  statement. The expression is indeed used here as a straight, unconditional
+  ``return`` statement value;
+
+- Only the decision level violations are emitted for lines 10 and 11. The
+  independant influence of the conditions is not demonstrated but this is
+  implicit from the decision partial coverage so is not notified;
+
+- Similarily, only the statement level violation is emitted for line 13,
+  eventhough there are decision and condition level violations as well.
+
+Another aspect of interest is that we have partial decision coverage on two
+kinds of decisions (one control-flow decision controling the *if*, and another
+one used a straight return value), and this distinction places the violations
+in distinct sections of the :option:`=report` output::
+
+   ============================
+   == 2. COVERAGE VIOLATIONS ==
+   ============================
+
+   2.1. STMT COVERAGE
+   ------------------
+
+   ranges.adb:13:10: statement not executed
+
+   1 violation.
+
+   2.2. DECISION COVERAGE
+   ----------------------
+
+   ranges.adb:10:10: decision outcome FALSE never exercised
+
+   1 violation.
+
+   2.3. MCDC COVERAGE
+   ------------------
+
+   ranges.adb:11:17: decision outcome FALSE never exercised
+
+   1 violation.
+
+   =========================
+   == 3. ANALYSIS SUMMARY ==
+   =========================
+
+   1 STMT violation.
+   1 DECISION violation.
+   1 MCDC violation.
 
 
+We indeed have two ``decision outcome FALSE never exercised`` diagnostics in
+distinct report sections here.
+
+Running again our original test driver which exercises two cases where X1 < X2::
+
+   procedure Test_X1VX2V is
+   begin
+      Assert (Between (X1 => 2, X2 => 5, V => 3)); -- X1 < V < X2
+      Assert (not Between (X1 => 2, X2 => 5, V => 8)); -- X1 < X2 < V
+   end;
+
+The first return expression is valued both ways and we obtain an example of
+condition specific diagnostic on line 11::
+
+     8 .:    function Between (X1, X2, V : Integer) return Boolean is
+     9 .:    begin
+    10 !:       if X1 < X2 then
+  DECISION "X1 < X2" at 10:10 outcome FALSE never exercised
+    11 !:          return V >= X1 and then V <= X2;
+  CONDITION "V >= X1" at 11:17 has no independent influence pair, MC/DC not achieved
+    12 .:       else
+    13 -:          return V >= X2 and then V <= X1;
+  STATEMENT "return V ..." at 13:10 not executed
+    14 .:       end if;
+    15 .:    end Between;
+
+Indeed, looking at an evaluation table for the first return decision:
+
+.. csv-table::
+   :delim: |
+   :header: #, A: V >= X1, B: V <= X2, A and then B, Case
+
+   1 | T | T | T | X1 < V < X2
+   2 | T | F | F | X1 < X2 < V
+   3 | F | *T* | F |
+   4 | F | *F* | F |
+
+We observe that our driver exercises vectors 1 and 2 only, where:
+
+- The two exercised evaluation vectors feature a toggle on the decision and
+  the second condition only, so achieve decision coverage and demonstrate that
+  condition's independant influence;
+
+- The first condition (V >= X1) never varies so we're missing some
+  that demonstrates it's independant influence to achieve MCDC on this
+  particular decision.
+
+As we mentioned in the discussion on MCDC variants, adding vector 3 would
+achieve MCDC for this decision. Just looking at the table, adding vector 4
+instead would achieve MCDC as well since the second condition is
+short-circuited so its value change is not relevant. The condition expressions
+are such that running vector 4 is not possible, however, since we can't have V
+both < X1 (condition 1 False) and V > X2 (condition 2 False) at the same time
+when X1 < X2.
 
 Focusing on units of interest
 =============================
