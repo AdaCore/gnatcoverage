@@ -1077,13 +1077,13 @@ Indeed, looking at an evaluation table for the first return decision:
 
 We observe that our driver exercises vectors 1 and 2 only, where:
 
-- The two exercised evaluation vectors feature a toggle on the decision and
-  the second condition only, so achieve decision coverage and demonstrate that
+- The two evaluations feature a toggle on the decision and the second
+  condition only, so achieve decision coverage and demonstrate that
   condition's independant influence;
 
-- The first condition (V >= X1) never varies so we're missing some
-  that demonstrates it's independant influence to achieve MCDC on this
-  particular decision.
+- The first condition (V >= X1) never varies so this test set couldn't
+  demonstrate independant influence of this condition and achieve MCDC on the
+  decision.
 
 As we mentioned in the discussion on MCDC variants, adding vector 3 would
 achieve MCDC for this decision. Just looking at the table, adding vector 4
