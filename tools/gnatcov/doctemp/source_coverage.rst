@@ -1142,6 +1142,84 @@ Unix ``grep`` tool to filter::
 
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
 
-Inlined and Template/Generic entities
-=====================================
+Inlining and Optimization
+=========================
+
+In the vast majority of situations, inlining is just transparent to source
+coverage metrics: calls are treated as regular statements and coverage of the
+inlined bodies is reported on the corresponding sources regardless of their
+actual inlining status.
+
+In rare cases, when compiling with inlining and optimization enabled
+(:option:`-O1 -gnatn` for Ada with GNAT), constant propagation results in
+total absence of code for some sequences of statements in local subprograms.
+|gcp| considers that there is just nothing to cover at all in such sequences:
+the source lines are annotated with a ``.`` to indicate absence of coverage
+obligations in the annotated source reports, and no violation is emitted in
+the :option:`=report` outputs.
+
+Here is an example outcome illustrating this possibility for the statement
+coverage criterion::
+
+   4 .: procedure Test_Pos1 is
+   5 .:    function Pos (X : Integer) return Boolean;
+   6 .:    pragma Inline (Pos);
+   7 .: 
+   8 .:    function Pos (X : Integer) return Boolean is
+   9 .:    begin
+  10 +:       if X > 0 then
+  11 +:          Put_Line ("X is positive");
+  12 +:          return True;
+  13 .:       else
+  14 .:          Put_Line ("X is not positive");
+  15 .:          return False;
+  16 .:       end if;
+  17 .:    end Pos;
+  18 .: 
+  19 .: begin
+  20 +:    Assert (Pos (1) = True);
+  21 .: end Test_Pos1;
+
+The ``Pos`` function is called only once, with a constant argument such that
+only one alternative of the ``if`` statement is exercized. It is statically
+known that the ``else`` part can never possibly be entered, so there is really
+just nothing to cover there.
+
+This is similar (hence treated identically) to a common case where debugging
+code is present in the source and inhibited on purpose for regular operation,
+for example with constructs like::
+
+  if Debug_Mode then
+    ...
+  end if;
+
+in Ada, with something like ``Debug_Mode : constant Boolean := False;``
+around, or the corresponding::
+
+  #if DEBUG_MODE
+    ...
+  #endif
+
+in C, with an accompanying ``#define DEBUG_MODE O`` or alike around.
+
+The effect we have described is really specific to the case of local
+subprograms, as only is this situation can the compiler determine that the
+alternate part is not possibly reachable. Besides, the full assessment
+capabilities remain active for the code that is materialized. Switching to a
+different criterion, a Decision Coverage violation remains properly diagnosed
+in our previous example for instance::
+
+    8 .:    function Pos (X : Integer) return Boolean is
+    9 .:    begin
+   10 !:       if X > 0 then
+ DECISION "X > 0" at 10:10 outcome FALSE never exercised
+   11 +:          Put_Line ("X is positive");
+   12 +:          return True;
+
+
+Template/Generic units
+======================
+
+
+Generic units are uniformly treated as single source entities
 
