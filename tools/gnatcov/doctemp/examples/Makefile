@@ -21,11 +21,12 @@ build:
 	@echo '  for Object_Dir use "$(OSUBDIR)";' >> $(GPR)
 	@echo 'end UT;' >> $(GPR)
 	gprbuild -p -f --target=$(TARGET) --RTS=$(TARGET)/$(RTS) -P$(GPR) $(UT).adb \
-	-cargs:Ada -gnateS -gnaty -gnatwe -cargs -g -fpreserve-control-flow
+	-cargs:Ada -gnateS -gnaty -gnatwe -cargs -g -fpreserve-control-flow \
+	-bargs -A=$(UT).alis
 
 run:
 	gnatcov run $(OSUBDIR)/$(UT)
-	ls $(OSUBDIR)/*.ali | grep -v support.ali > alis
+	grep -v support.ali $(OSUBDIR)/$(UT).alis > alis
 	gnatcov coverage --level=$(XCOVLEVEL) --scos=@alis \
 	--annotate=$(ANNOTATE) $(UT).trace
 
