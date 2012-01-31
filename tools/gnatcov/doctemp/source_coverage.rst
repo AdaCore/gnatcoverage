@@ -1094,7 +1094,7 @@ are such that running vector 4 is not possible, however, since we can't have V
 both < X1 (condition 1 False) and V > X2 (condition 2 False) at the same time
 when X1 < X2.
 
-Specifing the units of interest
+Specifying the units of interest
 ===============================
 
 |gcp| is not project aware. |gcvcov| is told about the sources for which a
@@ -1142,21 +1142,89 @@ Unix ``grep`` tool to filter::
 
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
 
-Inlining and Optimization
-=========================
+Inlining and Generic/Template entities
+======================================
+
+General principles
+------------------
 
 In the vast majority of situations, inlining is just transparent to source
 coverage metrics: calls are treated as regular statements and coverage of the
 inlined bodies is reported on the corresponding sources regardless of their
 actual inlining status.
 
+
+Generic units are uniformly treated as single source entities: the coverage
+achieved by all the instances is combined and reported against the generic
+source only, not for each individual instance.
+
+Consider the following functional Ada generic unit for example::
+
+   generic
+      type Num_T is range <>;
+   package Genpos is
+      procedure Count (X : Num_T);
+      --  Increment N_Positive is X > 0
+
+      N_Positive : Natural := 0;
+      --  Number of positive values passed to Count
+   end Genpos;
+
+   package body Genpos is
+      procedure Count (X : Num_T) is
+      begin
+         if X > 0 then
+            N_Positive := N_Positive + 1;
+         end if;
+      end Count;
+   end Genpos;
+
+The body of ``Count`` features a decision.  Now consider the simple test
+driver below::
+
+   procedure Test_Genpos is
+      type T1 is new Integer;
+      package Pos_T1 is new Genpos (Num_T => T1);
+
+      type T2 is new Integer;
+      package Pos_T2 is new Genpos (Num_T => T2);
+   begin
+      Pos_T1.Count (X => 1);
+      Assert (Pos_T1.N_Positive = 1);
+
+      Pos_T2.Count (X => -1);
+      Assert (Pos_T2.N_Positive = 0);
+   end Test_Genpos;
+
+This instanciates the generic unit twice, and each instance exercises one
+outcome of the decision only. The two combined together do exercise the
+decision boths ways, though, and this is what |gcp| reports::
+
+  gnatcov coverage --level=stmt+decision --annotate=xcov+ ...
+
+  -- genpos.adb.xcov:
+
+  100% of 2 lines covered
+  Coverage level: stmt+decision
+   1 .: package body Genpos is
+   2 .:    procedure Count (X : Num_T) is
+   3 .:    begin
+   4 +:       if X > 0 then
+   5 +:          N_Positive := N_Positive + 1;
+   6 .:       end if;
+   7 .:    end Count;
+   8 .: end Genpos;
+
+Optimization considerations
+---------------------------
+
 In rare cases, when compiling with inlining and optimization enabled
 (:option:`-O1 -gnatn` for Ada with GNAT), constant propagation results in
-total absence of code for some sequences of statements in local subprograms.
-|gcp| considers that there is just nothing to cover at all in such sequences:
-the source lines are annotated with a ``.`` to indicate absence of coverage
-obligations in the annotated source reports, and no violation is emitted in
-the :option:`=report` outputs.
+total absence of code for some sequences of statements in inlined local
+subprograms.  |gcp| considers that there is just nothing to cover at all in
+such sequences: the source lines are annotated with a ``.`` to indicate
+absence of coverage obligations in the annotated source reports, and no
+violation is emitted in the :option:`=report` outputs.
 
 Here is an example outcome illustrating this possibility for the statement
 coverage criterion::
@@ -1185,9 +1253,23 @@ only one alternative of the ``if`` statement is exercized. It is statically
 known that the ``else`` part can never possibly be entered, so there is really
 just nothing to cover there.
 
-This is similar (hence treated identically) to a common case where debugging
-code is present in the source and inhibited on purpose for regular operation,
-for example with constructs like::
+This effect is really specific to the case of local subprograms, as only is
+this situation can the compiler determine that the alternate part is not
+possibly reachable. Besides, the full assessment capabilities remain active
+for the code that is materialized. Switching to a different criterion, a
+Decision Coverage violation remains properly diagnosed in our example
+for instance::
+
+    8 .:    function Pos (X : Integer) return Boolean is
+    9 .:    begin
+   10 !:       if X > 0 then
+ DECISION "X > 0" at 10:10 outcome FALSE never exercised
+   11 +:          Put_Line ("X is positive");
+   12 +:          return True;
+
+This is all comparable (hence treated identically) to a common case where
+debugging code is present in the source and inhibited on purpose for regular
+operation, for example with constructs like::
 
   if Debug_Mode then
     ...
@@ -1202,24 +1284,7 @@ around, or the corresponding::
 
 in C, with an accompanying ``#define DEBUG_MODE O`` or alike around.
 
-The effect we have described is really specific to the case of local
-subprograms, as only is this situation can the compiler determine that the
-alternate part is not possibly reachable. Besides, the full assessment
-capabilities remain active for the code that is materialized. Switching to a
-different criterion, a Decision Coverage violation remains properly diagnosed
-in our previous example for instance::
-
-    8 .:    function Pos (X : Integer) return Boolean is
-    9 .:    begin
-   10 !:       if X > 0 then
- DECISION "X > 0" at 10:10 outcome FALSE never exercised
-   11 +:          Put_Line ("X is positive");
-   12 +:          return True;
-
-
-Template/Generic units
-======================
-
-
-Generic units are uniformly treated as single source entities
+Similar observations apply to cases of generic instanciations where
+constant parameters turn what appears to be conditional in the source
+into a constant value in some instances.
 
