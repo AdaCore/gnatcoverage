@@ -2,76 +2,56 @@
 Object Coverage Analysis
 ************************
 
-@pindex `gnatcov coverage`, for object coverage analysis
-
 General principles & Compilation requirements
 =============================================
 
-.. _gnatcov_obj_coverage-commandline:
+Object coverage analysis computes metrics focused on machine-level object
+code, concerned with machine basic instructions or conditional branches.
 
-``gnatcov`` ``(object)`` ``coverage`` command line
-==================================================
+On request, the metrics can be presented on sources, with an annotation on
+each line synthesizing the coverage status of all the instructions
+generated for this line. This mapping relies on debug information, so
+sources must be compiled with :option:`-g` for this to work. There is no
+further compilation requirement for object coverage alone. However, if
+source coverage analysis is to be performed as well, the whole process is
+simpler if the same compilation options are used, and these have to be
+strictly controlled for source coverage.
 
-Over execution traces, various levels of object coverage analysis may be
-performed with `gnatcov coverage`.
-An analysis variant first needs to be selected with the *--level*
-option:
+Once your application is built, the analysis proceeds in two steps:
+|gcvrun| is used to produce execution traces, then |gcvcov| to generate
+coverage reports. *Object* coverage is queried by passing a specific
+:option:`--level` argument. The possible values for source level analysis
+are :option:`insn`, and :option:`branch`, described in detail in later
+sections of this documentation.
 
-@multitable @columnfractions .15 .8
-* *=insn*
-@tab requests @dfn:term:`Object Instruction Coverage` data, with an indication for
-every instruction of whether it has been executed or not.
+As for source coverage, there is never a requirement to recompile just
+because a different criterion needs to be analyzed.
 
-* *=branch*
-@tab requests @dfn:term:`Object Branch Coverage` data, with extra details about
-the directions taken by conditional branch instructions.
+The :ref:`gnatcov_run-commandline` section of this document provides details on
+the trace production interface. The remainder of this chapter explains the use
+of |gcvcov| in particular, to analyse traces once they have been produced.
 
-@end multitable
+The following sections now describe the available report formats, then
+provide more details and examples regarding the supported coverage criteria.
 
-An additional *--annotate* option selects the output format:
-
-@multitable @columnfractions .15 .8
-* *=asm*
-@tab annotated assembly code on standard output.
-
-* *=xcov[+]*
-@tab annotated source files, with the object code for each source
-line interspersed if the `+` variant is selected.
-
-* *=html[+]*
-@tab html index of per source file coverage summary, with links to
-annotated sources [`+` code expandable from each source line].
-
-* *=report*
-@tab synthetic report of per subprogram coverage results.
-@end multitable
-
-The following sections provides extra details and examples for each
-situation.
-In principle, this is all pretty independent of the program
-compilation options.
-Aggressive optimizations very often make source to object code
-associations more difficult, however.
-Besides, if source coverage analysis is to be performed as well, the
-whole process is simpler if the same compilation options are used, and
-these have to be strictly controlled for source coverage.
 
 .. _oreport-formats:
 
 Output report formats
 =====================
 
-
 Machine level reports, `--annotate=asm`
 ---------------------------------------
 
-For object coverage analysis purposes, *--annotate=asm* produces
-annotated assembly code for all the program routines on standard output.
-The annotations are visible as a special character at the beginning of
-each machine code line to convey information about the corresponding
-instruction, with variants for instruction or branch coverage modes.
-We call @dfn:term:`simple` those machine instructions which are not
-@dfn:term:`conditional branch` instructions.
+For object coverage analysis, :option:`--annotate=asm` produces annotated assembly
+code for all the program routines on standard output.  The annotations are
+visible as a special character at the beginning of each machine code line
+to convey information about the corresponding instruction, with variants
+for instruction or branch coverage modes.
+
+  We call @dfn:term:`simple` those
+machine instructions which are not @dfn:term:`conditional branch`
+instructions.
 
 For @dfn:term:`Object Instruction Coverage`, with *--level=insn*, we
 define:
