@@ -3,8 +3,6 @@
 --                        Copyright (C) 2012, AdaCore                       --
 ------------------------------------------------------------------------------
 
-with Priv;
-
 procedure Divmod
   (X, Y : Integer; Value : out Integer;
    Divides : out Boolean; Tell : Boolean);
