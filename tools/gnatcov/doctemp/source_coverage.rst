@@ -28,10 +28,9 @@ supported up to :option:`-O1`, with inlining allowed.
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage
 reports. *Source* coverage is queried by passing a specific :option:`--level`
-argument. The compiler output is suitable whatever the assessed criteria;
-there is never a requirement to recompile just because a different criterion
-needs to be analyzed.
-
+argument to |gcvcov|. The compiler output is suitable whatever the assessed
+criteria; there is never a requirement to recompile just because a different
+criterion needs to be analyzed.
 
 The :ref:`gnatcov_run-commandline` section of this document provides details
 on the trace production interface. The remainder of this chapter explains the
@@ -147,7 +146,7 @@ file is ``range.adb`` so the annotated version is ``range.adb.xcov``::
 
 :option:`--annotate=xcov+` (with a trailing +) works the same, only providing
 extra details below lines with improperly satisfied obligations. The available
-details consists in the list of coverage :term:`violations` diagnosed for the
+details consists in the list of :term:`coverage violations` diagnosed for the
 line, which depends on the coverage criteria involved. Here is an excerpt for
 our previous example, where the only improperly satisfied obligation is an
 uncovered statement on line 8::
@@ -283,9 +282,8 @@ format, as follows::
     ranges.adb:8:10: statement not executed
       source  :sloc: violation description
 
-*source* and *loc* are the basename of the source file and
-the precise ``line:column`` location within that source where the
-violation was detected.
+*source* and *sloc* are the source file basename and the precise
+``line:column`` location within that source where the violation was detected.
 
 The following table summarizes the list of violation items that
 might be emitted together for each criterion:
@@ -358,8 +356,8 @@ level is fully satisfied, with details available from the per criterion
 sections that precede.
 
 
-Statement Coverage (SC) assessments (:option:`--level=stmt`)
-============================================================
+Statement Coverage assessments (:option:`--level=stmt`)
+=======================================================
 
 General principles
 ------------------
@@ -603,8 +601,8 @@ report, and that this section is the only one presented in the ``COVERAGE
 VIOLATIONS`` part, as only this criterion was to be analyzed per the
 :option:`--level=stmt` argument.
 
-Decision Coverage (DC) assessments (:option:`--level=stmt+decision`)
-====================================================================
+Decision Coverage assessments (:option:`--level=stmt+decision`)
+===============================================================
 
 General principles
 ------------------
@@ -1000,8 +998,9 @@ This is all as expected from what the driver does, with a few points of note:
 
 Another aspect of interest is that we have partial decision coverage on two
 kinds of decisions (one control-flow decision controling the *if*, and another
-one used a straight return value), and this distinction places the violations
-in distinct sections of the :option:`=report` output::
+one used a straight return value), and this distinction places the two
+``decision outcome FALSE never exercised`` violations in distinct sections of
+the :option:`=report` output::
 
    ============================
    == 2. COVERAGE VIOLATIONS ==
@@ -1036,9 +1035,6 @@ in distinct sections of the :option:`=report` output::
    1 DECISION violation.
    1 MCDC violation.
 
-
-We indeed have two ``decision outcome FALSE never exercised`` diagnostics in
-distinct report sections here.
 
 Now running again our original test driver which exercises two cases where X1
 < X2::
@@ -1077,13 +1073,12 @@ Indeed, looking at an evaluation table for the first return decision:
 
 We observe that our driver exercises vectors 1 and 2 only, where:
 
-- The two evaluations feature a toggle on the decision and the second
-  condition only, so achieve decision coverage and demonstrate that
-  condition's independant influence;
+- The two evaluations toggle the decision and the second condition only, so
+  achieve decision coverage and demonstrate that condition's independant
+  influence;
 
 - The first condition (V >= X1) never varies so this test set couldn't
-  demonstrate independant influence of this condition and achieve MCDC on the
-  decision.
+  demonstrate independant influence of this condition.
 
 As we mentioned in the discussion on MCDC variants, adding vector 3 would
 achieve MCDC for this decision. Just looking at the table, adding vector 4
@@ -1104,11 +1099,11 @@ argument, so focusing on units of interest resolves to computing the list of
 Library Information files to provide there.
 
 For Ada test drivers or applications, GNAT provides a useful device for this
-computation : the :option:`-A` command line argument to :command:`gnatbind`,
-produces a list of all the .ali files involved in the executable construction.
-By default, the list goes to standard output. It may be directed to a file on
-request, with :option:`-A=<list-filename>`, and you may of course filter this
-list as you see fit depending on your analysis purposes.
+computation : the :option:`-A` command line argument to :command:`gnatbind`
+which produces a list of all the .ali files involved in the executable
+construction.  By default, the list goes to standard output. It may be
+directed to a file on request with :option:`-A=<list-filename>`, and you may
+of course filter this list as you see fit depending on your analysis purposes.
 
 For example, the illustrative cases we have included in the previous sections
 were constructed as unit tests with functional units and sample drivers to
@@ -1154,10 +1149,9 @@ coverage metrics: calls are treated as regular statements and coverage of the
 inlined bodies is reported on the corresponding sources regardless of their
 actual inlining status.
 
-
-Generic units are uniformly treated as single source entities: the coverage
-achieved by all the instances is combined and reported against the generic
-source only, not for each individual instance.
+As for generic units, they are uniformly treated as single source entities,
+with the coverage achieved by all the instances combined and reported against
+the generic source only, not for each individual instance.
 
 Consider the following functional Ada generic unit for example::
 
@@ -1223,9 +1217,8 @@ In rare cases, when compiling with inlining and optimization enabled
 (:option:`-O1 -gnatn` for Ada with GNAT), constant propagation results in
 total absence of code for some sequences of statements in inlined local
 subprograms.  |gcp| considers that there is just nothing to cover at all in
-such sequences: the source lines are annotated with a ``.`` to indicate
-absence of coverage obligations in the annotated source reports, and no
-violation is emitted in the :option:`=report` outputs.
+such sequences, so the lines are annotated with a ``.`` in the annotated
+source reports and no violation is emitted in the :option:`=report` outputs.
 
 Here is an example outcome illustrating this possibility for the statement
 coverage criterion::
@@ -1249,10 +1242,11 @@ coverage criterion::
   20 +:    Assert (Pos (1) = True);
   21 .: end Test_Pos1;
 
-The ``Pos`` function is called only once, with a constant argument such that
-only one alternative of the ``if`` statement is exercized. It is statically
-known that the ``else`` part can never possibly be entered, so there is really
-just nothing to cover there.
+The local ``Pos`` function is called only once, with a constant argument such
+that only one alternative of the ``if`` statement is exercized. It is
+statically known that the ``else`` part can never possibly be entered, so no
+code is emitted at all for this alternative and there is really just nothing
+to cover there.
 
 This effect is really specific to the case of local subprograms, as only is
 this situation can the compiler determine that the alternate part is not
