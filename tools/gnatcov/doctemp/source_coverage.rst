@@ -4,6 +4,8 @@ Source Coverage Analysis
 
 .. include:: bibrefs.rsti
 
+.. _scov-principles:
+
 General principles & Compilation requirements
 =============================================
 
@@ -219,7 +221,7 @@ See the :ref:`exemptions` section for more details on their use and effect on
 the output reports.
 
 Assessment Context
-------------------
+^^^^^^^^^^^^^^^^^^
 
 The *Assessment Context* report section exposes the following information
 items:
@@ -259,7 +261,7 @@ The set of units that this report is about is conveyed by the
 :option:`--scos` option arguments on the quoted command line.
 
 Coverage Violations
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 The *Coverage Violations* report section lists and counts the coverage
 violations that relate to source lines not part of an exemption region.  The
@@ -337,7 +339,7 @@ level::
   1 violation.
 
 Analysis Summary
-----------------
+^^^^^^^^^^^^^^^^
 
 The *Analysis Summary* report section summarizes just the counts reported in
 each of the previous sections.  For our example report so far, this would be::
@@ -813,7 +815,7 @@ the statement coverage violation::
 
 
 Modified Condition/Decision Coverage analysis (:option:`--level=stmt+mcdc`)
-===============================================================================
+===========================================================================
 
 General Principles
 ------------------
@@ -964,8 +966,8 @@ unit to exercise:
       end if;
    end Between;
 
-First consider the following test driver, which exercises only a single case where
-X1 < V < X2:
+First consider the following test driver, which exercises only a
+single case where X1 < V < X2:
 
 .. code-block:: ada
 
@@ -1102,13 +1104,13 @@ We observe that our driver exercises vectors 1 and 2 only, where:
 - The first condition (V >= X1) never varies so this test set couldn't
   demonstrate independant influence of this condition.
 
-As we mentioned in the discussion on MCDC variants, adding vector 3 would
-achieve MCDC for this decision. Just looking at the table, adding vector 4
-instead would achieve MCDC as well since the second condition is
-short-circuited so its value change is not relevant. The condition expressions
-are such that running vector 4 is not possible, however, since we can't have V
-both < X1 (condition 1 False) and V > X2 (condition 2 False) at the same time
-when X1 < X2.
+As we mentioned in the discussion on MCDC variants, adding vector 3
+would achieve MCDC for this decision. Just looking at the table,
+adding vector 4 instead would achieve MCDC as well since the second
+condition is short-circuited so its value change is not relevant. The
+condition expressions are such that running vector 4 is not possible,
+however, since we can't have V both < X1 (condition 1 False) and V >
+X2 (condition 2 False) at the same time when X1 < X2.
 
 .. _sunits:
 
