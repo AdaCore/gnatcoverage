@@ -219,7 +219,7 @@ See the :ref:`exemptions` section for more details on their use and effect on
 the output reports.
 
 Assessment Context
-^^^^^^^^^^^^^^^^^^
+------------------
 
 The *Assessment Context* report section exposes the following information
 items:
@@ -259,7 +259,7 @@ The set of units that this report is about is conveyed by the
 :option:`--scos` option arguments on the quoted command line.
 
 Coverage Violations
-^^^^^^^^^^^^^^^^^^^
+-------------------
 
 The *Coverage Violations* report section lists and counts the coverage
 violations that relate to source lines not part of an exemption region.  The
@@ -337,7 +337,7 @@ level::
   1 violation.
 
 Analysis Summary
-^^^^^^^^^^^^^^^^
+----------------
 
 The *Analysis Summary* report section summarizes just the counts reported in
 each of the previous sections.  For our example report so far, this would be::
@@ -356,7 +356,7 @@ level is fully satisfied, with details available from the per criterion
 sections that precede.
 
 
-Statement Coverage assessments (:option:`--level=stmt`)
+Statement Coverage analysis (:option:`--level=stmt`)
 =======================================================
 
 General principles
@@ -424,7 +424,9 @@ Example program and assessments
 
 To illustrate the just presented points further, we consider the example
 functional unit below, with the spec and body stored in source files named
-``div_with_check.ads`` and ``div_with_check.adb``::
+``div_with_check.ads`` and ``div_with_check.adb``:
+
+.. code-block:: ada
 
    function Div_With_Check (X, Y : Integer) return Integer;
    --  If Y /= 0, divide X by Y and return the result. Raise
@@ -440,7 +442,9 @@ functional unit below, with the spec and body stored in source files named
    end;
 
 We first exercise the function for Y = 1 only, using a
-the following :term:`test driver` in ``test_div1.adb``::
+the following :term:`test driver` in ``test_div1.adb``:
+
+.. code-block:: ada
 
    procedure Test_Div1  is
       X : constant Integer := 4;
@@ -490,7 +494,9 @@ We can observe that:
   arguments for which the ``if`` controling decision evaluates False.
 
 As a second experiment, we exercise the function for Y = 0 only, using a the
-following :term:`test driver` in ``test_div0.adb``::
+following :term:`test driver` in ``test_div0.adb``:
+
+.. code-block:: ada
 
    procedure Test_Div0  is
       Result : Integer
@@ -601,8 +607,8 @@ report, and that this section is the only one presented in the ``COVERAGE
 VIOLATIONS`` part, as only this criterion was to be analyzed per the
 :option:`--level=stmt` argument.
 
-Decision Coverage assessments (:option:`--level=stmt+decision`)
-===============================================================
+Decision Coverage analysis (:option:`--level=stmt+decision`)
+============================================================
 
 General principles
 ------------------
@@ -661,7 +667,9 @@ Example program and assessments
 
 To illustrate the just presented points, we consider the example functional
 Ada unit below, with the spec and body stored in source files named
-``divmod.ads`` and ``divmod.adb``::
+``divmod.ads`` and ``divmod.adb``:
+
+.. code-block:: ada
 
    procedure Divmod
      (X, Y : Integer; Value : out Integer;
@@ -685,7 +693,9 @@ Ada unit below, with the spec and body stored in source files named
       Value := X / Y;
    end Divmod;
 
-We first experiment with the following test driver::
+We first experiment with the following test driver:
+
+.. code-block:: ada
 
    procedure Test_Divmod2  is
       Value : Integer;
@@ -738,7 +748,9 @@ For :option:`--annotate=xcov`, this translates as follows::
   21 +:    Value := X / Y;
   22 .: end Divmod;
 
-Now we exercise with another test driver::
+Now we exercise with another test driver:
+
+.. code-block:: ada
 
    procedure Test_Divmod0  is
       Value : Integer;
@@ -800,7 +812,7 @@ the statement coverage violation::
    1 violation.
 
 
-Modified Condition/Decision Coverage assessments  (:option:`--level=stmt+mcdc`)
+Modified Condition/Decision Coverage analysis (:option:`--level=stmt+mcdc`)
 ===============================================================================
 
 General Principles
@@ -825,8 +837,8 @@ differences:
 
 * We also treat as decisions all the Boolean expressions that involve at least
   two operands (which we call :term:`complex Boolean expressions`), not only
-  when used to direct some conditional control-flow oriented statement. For example,
-  we consider that::
+  when used to direct some conditional control-flow oriented statement. For
+  example, we consider that::
 
     X := A and then not B;
     if Y then [...]
@@ -855,7 +867,7 @@ The :option:`=report` outputs feature an extra MCDC section in the Coverage
 Violations segment of the report, which holds:
 
 - The condition specific diagnosics (``independent influence not
-  demonstrated`` messages), as well as
+  demonstrated``), as well as
 
 - Decision level diagnostics (such as ``decisiont outcome True not covered``
   messages) for the Complex Boolean Expressions not directing a control-flow
@@ -887,6 +899,8 @@ Consider the following table which exposes the 4 possible condition/decision
 vectors for the ``A and then B`` expression, where T stands for True, F stands
 for False, and the italics indicate that the condition evaluation is
 short-circuited:
+
+.. tabularcolumns:: |c|cc|c|
 
 .. csv-table::
    :delim: |
@@ -934,7 +948,9 @@ Example program and assessments
 -------------------------------
 
 We reuse one of our previous examples to illustrate, with a simple functional
-unit to exercise::
+unit to exercise:
+
+.. code-block:: ada
 
    function Between (X1, X2, V : Integer) return Boolean;
    --  Whether V is between X1 and X2, inclusive and however they are ordered
@@ -949,7 +965,9 @@ unit to exercise::
    end Between;
 
 First consider the following test driver, which exercises only a single case where
-X1 < V < X2::
+X1 < V < X2:
+
+.. code-block:: ada
 
    procedure Test_X1VX2 is
    begin
@@ -1037,7 +1055,9 @@ the :option:`=report` output::
 
 
 Now running again our original test driver which exercises two cases where X1
-< X2::
+< X2:
+
+.. code-block:: ada
 
    procedure Test_X1VX2V is
    begin
@@ -1061,6 +1081,8 @@ condition specific diagnostic on line 11::
     15 .:    end Between;
 
 Indeed, looking at an evaluation table for the first return decision:
+
+.. tabularcolumns:: |c|cc|c|c|
 
 .. csv-table::
    :delim: |
@@ -1138,7 +1160,7 @@ Unix ``grep`` tool to filter::
 
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
 
-Inlining and Generic/Template entities
+Inlining, Generic units & Optimization
 ======================================
 
 General principles
@@ -1153,7 +1175,9 @@ As for generic units, they are uniformly treated as single source entities,
 with the coverage achieved by all the instances combined and reported against
 the generic source only, not for each individual instance.
 
-Consider the following functional Ada generic unit for example::
+Consider the following functional Ada generic unit for example:
+
+.. code-block:: ada
 
    generic
       type Num_T is range <>;
@@ -1175,7 +1199,9 @@ Consider the following functional Ada generic unit for example::
    end Genpos;
 
 The body of ``Count`` features a decision.  Now consider the simple test
-driver below::
+driver below:
+
+.. code-block:: ada
 
    procedure Test_Genpos is
       type T1 is new Integer;
@@ -1210,6 +1236,8 @@ decision boths ways, though, and this is what |gcp| reports::
    7 .:    end Count;
    8 .: end Genpos;
 
+.. _optimization:
+
 Optimization considerations
 ---------------------------
 
@@ -1221,7 +1249,9 @@ such sequences, so the lines are annotated with a ``.`` in the annotated
 source reports and no violation is emitted in the :option:`=report` outputs.
 
 Here is an example outcome illustrating this possibility for the statement
-coverage criterion::
+coverage criterion (see the ``.`` annotations on lines 14 and 15):
+
+.. code-block:: ada
 
    4 .: procedure Test_Pos1 is
    5 .:    function Pos (X : Integer) return Boolean;
@@ -1243,17 +1273,19 @@ coverage criterion::
   21 .: end Test_Pos1;
 
 The local ``Pos`` function is called only once, with a constant argument such
-that only one alternative of the ``if`` statement is exercized. It is
-statically known that the ``else`` part can never possibly be entered, so no
-code is emitted at all for this alternative and there is really just nothing
-to cover there.
+that only one alternative of the ``if`` statement is exercised. It is
+statically known that the ``else`` part can never be entered, so no code is
+emitted at all for this alternative and there is really just nothing to cover
+there.
 
 This effect is really specific to the case of local subprograms, as only is
 this situation can the compiler determine that the alternate part is not
 possibly reachable. Besides, the full assessment capabilities remain active
 for the code that is materialized. Switching to a different criterion, a
 Decision Coverage violation remains properly diagnosed in our example
-for instance::
+for instance:
+
+.. code-block:: ada
 
     8 .:    function Pos (X : Integer) return Boolean is
     9 .:    begin

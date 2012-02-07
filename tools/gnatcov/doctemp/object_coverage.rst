@@ -9,45 +9,51 @@ Object coverage analysis computes metrics focused on machine-level object
 code, concerned with machine basic instructions or conditional branches.
 
 On request, the metrics can be presented on sources, with an annotation on
-each line synthesizing the coverage status of all the instructions
-generated for this line. This mapping relies on debug information, so
-sources must be compiled with :option:`-g` for this to work. There is no
-further compilation requirement for object coverage alone. However, if
-source coverage analysis is to be performed as well, the whole process is
-simpler if the same compilation options are used, and these have to be
-strictly controlled for source coverage.
+each line synthesizing the coverage status of all the instructions generated
+for this line. This mapping relies on debug information, so sources must be
+compiled with :option:`-g` for this to work. There is no further compilation
+requirement for object coverage alone. However, if source coverage analysis is
+to be performed as well, the whole process is simpler if the same compilation
+options are used, and these have to be strictly controlled for source
+coverage.
 
-Once your application is built, the analysis proceeds in two steps:
-|gcvrun| is used to produce execution traces, then |gcvcov| to generate
-coverage reports. *Object* coverage is queried by passing a specific
-:option:`--level` argument. The possible values for source level analysis
-are :option:`insn`, and :option:`branch`, described in detail in later
-sections of this documentation.
-
-As for source coverage, there is never a requirement to recompile just
-because a different criterion needs to be analyzed.
+Once your application is built, the analysis proceeds in two steps: |gcvrun|
+is used to produce execution traces, then |gcvcov| to generate coverage
+reports. *Object* coverage is queried by passing a specific :option:`--level`
+argument to |gcvcov|; :option:`=insn` or :option:`=branch`, described in
+detail in the following sections. As for source coverage, there is never a
+requirement to recompile just because a different criterion needs to be
+analyzed.
 
 The :ref:`gnatcov_run-commandline` section of this document provides details on
 the trace production interface. The remainder of this chapter explains the use
 of |gcvcov| in particular, to analyse traces once they have been produced.
 
-The following sections now describe the available report formats, then
-provide more details and examples regarding the supported coverage criteria.
+The general command line structure is always like::
 
+  gnatcov coverage --level=<criterion> --annotate=<format> [--routines=<names>] ...
+
+The following sections now describe the :ref:`available report formats
+<oreport-formats>`, then provide more details regarding the supported coverage
+criteria and on the way to :ref:`specify the object routines of interest
+<oroutines>`.
 
 .. _oreport-formats:
 
-Output report formats
-=====================
+Output report formats (:option:`--annotate`)
+============================================
 
-Machine level reports, `--annotate=asm`
----------------------------------------
+Machine level reports (:option:`=asm`)
+--------------------------------------
 
-For object coverage analysis, :option:`--annotate=asm` produces annotated assembly
-code for all the program routines on standard output.  The annotations are
-visible as a special character at the beginning of each machine code line
-to convey information about the corresponding instruction, with variants
-for instruction or branch coverage modes.
+For object coverage analysis, :option:`--annotate=asm` produces annotated
+assembly code for all the selected routines on standard output.  The
+annotations are visible as a special character at the beginning of each
+machine code line to convey information about the corresponding instruction.
+
+
+with variants for instruction or branch coverage modes.
+
 
   We call @dfn:term:`simple` those
 machine instructions which are not @dfn:term:`conditional branch`
@@ -304,6 +310,8 @@ symbol names in the start-of-sequence addresses:
   fffc0878 +:  94 21 ff f0  stwu   r1,-0x0010(r1)
    [...]
   
+
+.. _oroutines:
 
 Focusing on subprograms of interest
 ===================================
