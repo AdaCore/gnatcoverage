@@ -39,7 +39,8 @@ on the trace production interface. The remainder of this chapter explains the
 use of |gcvcov| in particular, to analyse traces once they have been produced.
 The general structure of this command line is always like::
 
-  gnatcov coverage --level=<criterion> --annotate=<format> --scos=<LI files> ...
+  gnatcov coverage --level=<criterion> --annotate=<format>
+                   --scos=<LI files> ... <traces>
 
 The following sections now describe the :ref:`available report formats
 <sreport-formats>`, then provide more details regarding the supported coverage
@@ -55,8 +56,8 @@ Source coverage reports may be produced in various formats, as requested with
 the :option:`--annotate` command line argument of |gcvcov|.
 
 The :option:`xcov` and :option:`html` formats both produce a set of annotated
-source files, in the directory where |gcv| is launched unless overriden with
-a :option:`--output-dir` option.
+source files, in the directory where |gcv| is launched unless overriden with a
+:ref:`--output-dir option <cov-outdir>`.
 
 The :option:`report` output consists in a synthetic text report of
 :term:`coverage violations` with respect to the requested criteria, produced on
@@ -786,10 +787,9 @@ We have an interesting situation where
 
 * The outer ``if`` statement is reached and covered (as a statement),
 
-* No evaluation of the ``X mod Y = 0`` decision terminates,
-  because the only attempted computation is interrupted by an exception, so
-
-* None of the other statements is ever reached.
+* No evaluation of the ``X mod Y = 0`` decision terminates, because the only
+  attempted computation is interrupted by an exception, so none of the other
+  statements is ever reached.
 
 This gets all confirmed by the :option:`=report` output below, on which we
 also notice that the only diagnostic emitted for the uncovered inner ``if`` is

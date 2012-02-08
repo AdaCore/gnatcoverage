@@ -10,16 +10,15 @@ General principles & Compilation requirements
 Object coverage analysis computes metrics focused on machine-level object
 code, concerned with machine basic instructions or conditional branches.
 
-On request, the metrics can be presented on sources, with an
-annotation on each line synthesizing the coverage status of all the
-instructions generated for this line. This mapping relies on debug
-information, so sources must be compiled with :option:`-g` for this to
-work. There is no further compilation requirement for object coverage
-alone. However, if source coverage analysis is to be performed as
-well, the whole process is simpler if the same compilation options are
-used, and these have to be strictly controlled for source
-coverage. See the :ref:`corresponding section <scov-principles>` for
-more details.
+On request, the metrics can be presented on sources, with an annotation on
+each line synthesizing the coverage status of all the instructions generated
+for this line. This mapping relies on debug information, so sources must be
+compiled with :option:`-g` for this to work. There is no further compilation
+requirement for object coverage alone. However, if source coverage analysis is
+to be performed as well, the whole process is simpler if the same compilation
+options are used, and they have to be strictly controlled for source
+coverage. See the :ref:`corresponding section <scov-principles>` for more
+details.
 
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage
@@ -34,7 +33,8 @@ on the trace production interface. The remainder of this chapter explains the
 use of |gcvcov| in particular, to analyse traces once they have been
 produced. The general command line structure is always like::
 
-  gnatcov coverage --level=<criterion> --annotate=<format> [--routines=<names>] ... <traces>
+  gnatcov coverage --level=<criterion> --annotate=<format>
+                   [--routines=<names>] ... <traces>
 
 The optional :option:`--routines` argument provides the set of object level
 subprogram names on which the analysis should focus. It defaults to the full
@@ -57,7 +57,9 @@ Machine level reports (:option:`=asm`)
 For object coverage analysis, :option:`--annotate=asm` produces annotated
 assembly code for all the selected routines on standard output.  The
 annotations are first visible as a special character on each machine code line
-to convey the coverage status of the corresponding instruction, for example::
+to convey the coverage status of the corresponding instruction. The following
+example introduces a sample output excerpt for an ``_assert`` subprogram
+compiled for the PowerPc architecture::
 
    _assert !: fff00258-fff002b7
    fff00258 +:  94 21 ff e0      stwu   r1,-0x0020(r1)
@@ -73,45 +75,47 @@ to convey the coverage status of the corresponding instruction, for example::
    ...
    fff002b4 +:  4e 80 00 20      blr
 
-``-`` on a line always conveys that the instruction was not executed at all,
-or (stated differently) *uncovered*. ``+`` means that the instruction is
-*fully covered* with respect to the analyzed criterion and other annotations,
-conveying *partial coverage* might show up depending on the criterion and kind
-of instruction. More details on the instruction specific annotations are
-provided in the criterion specific sections that follow.
+A ``-`` for a line always conveys that the instruction was not executed at
+all. The instruction is also said to be *uncovered* in this case. A ``+`` means
+that the instruction is *fully covered* with respect to the analyzed criterion
+and other annotations, conveying *partial coverage*, might show up depending on
+the criterion and kind of instruction. More details on the instruction
+specific annotations are provided in the criterion specific sections that
+follow.
 
-As the example above suggests, the report also annotates each subprogram
-symbol as a whole. The annotation includes the range of addresses that the
-subprogram spans and a synthetic coverage indication:
+As the first line of the example suggests, the report also annotates each
+subprogram symbol as a whole, with the range of addresses that the subprogram
+spans and a synthetic coverage indication according to the following table:
 
 .. csv-table::
   :delim: |
   :widths: 10, 80
-  :header: Annotation, Meaning
+  :header: Symbol Annotation, Meaning
 
    ``-`` | All the subprogram instructions are uncovered (none executed)
    ``+`` | All the subprogram instructions are fully covered
    ``!`` | Some of the subprogram instructions were fully or partially covered
 
+In our example, the code features both fully covered and uncovered
+instructions, and the ``_assert`` symbol as a whole is marked partially
+covered with a ``!`` annotation.
 
 Annotated sources, text (:option:`=xcov[+]`)
 --------------------------------------------
 
 For object coverage analysis, :option:`--annotate=xcov` produces annotated
-source files with the ``.xcov`` extension in the current directory, one per
-original compilation unit.
+source files with the ``.xcov`` extension, one per original compilation unit
+in the :ref:`selected output directory <cov-outdir>`.
 
-The annotations are visible as a special character at the beginning of
-every source line, which synthesizes the coverage status of all the
-machine instructions generated for this line.
-
-We defined a uniform synthesis of source line from object code annotations for
-both instruction and branch coverage:
+The annotations are visible as a special character at the beginning of every
+source line, which synthesizes the coverage status of all the machine
+instructions generated for this line. The following table povides a uniform
+description of this synthesis for all the object level criteria:
 
 .. csv-table::
   :delim: |
   :widths: 10, 80
-  :header: Annotation, Meaning
+  :header: Source Annotation, Meaning
 
    ``.`` | no machine code associated with this line
    ``-`` | all the instructions associated with the line are ``-`` (uncovered)
@@ -120,36 +124,44 @@ both instruction and branch coverage:
 
 To lines with associated object code we apply qualifiers similar to those for
 individual instructions: when the synthetic coverage indication for a line is
-``-``, ``+`` or ``!``, we say qualify the line as *uncovered*, *fully
-covered*, or *partially covered*, respectively.
+``-``, ``+`` or ``!``, we qualify the line as *uncovered*, *fully covered*, or
+*partially covered*, respectively.
 
 Note that eventhough the annotations are rendered on source lines in this
 case, they are really meant to convey object code properties, hence are of a
 different nature than what the DO-178B source structural coverage criteria
-refer to.
-
-With an extra ``+`` at the end of the format name
-(:option:`--annotate=xcov+`), the machine instructions and their individual
-coverage status are printed next to their associated source line.
+refer to. For example, 
 
 Example here
+
+With :option:`--annotate=xcov+` (extra ``+`` at the end), the machine
+instructions and their individual coverage status are printed next to their
+associated source line.
+
 
 Annotated sources, html (:option:`=html[+]`)
 --------------------------------------------
 
-:option:`--annotate=html` produces one ``.html`` browsable annotated
-source file per original compilation unit, in the current directory by
-default or in the output directory selected with :option:`--output-dir`.
+For source coverage criteria, |gcvcov| :option:`--annotate=html` produces an
+annotated version of each source file, in html format, named after the original
+source with an extra ``.html`` extension at the end.
 
-The annotations are identical to the :option:`=xcov` ones, and each source
-line is colorized in green, orange and red to reflect full, partial or null
+Each annotated source page contains a summary of the assessment results
+followed by the original source lines, all numbered and marked with a coverage
+annotation as in the :option:`--annotate=xcov` case. In addition, lines with
+obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
 coverage respectively.
 
-An ``index.html`` page summarizes the coverage results and provide
-links to the annotated sources.
+An `index.html` page is also produced, which contains a description of the
+assessment context (assessed criteria, set of trace files involved, ...) and a
+summary of the coverage results for all the units, with links to their
+annotated sources.
 
-With the ``+`` extension, the annotated machine code for each line
-may be expanded below it by a mouse click on the line.
+Similarily to the :option:`xcov` format case, :option:`--annotate=html+` (with
+a trailing +) attaches to each line details about the coverage status of all
+the individual instructions generated for the line. These are folded within
+the line and expanded when a mouse click hits it.
+
 
 Violations summary, text (:option:`=report`)
 --------------------------------------------
@@ -157,24 +169,62 @@ Violations summary, text (:option:`=report`)
 For object coverage analysis, :option:`--annotate=report` produces a
 synthetic summary of per function coverage results, with a single
 annotation assigned to each function in the same way it is to each
-source line in the *=xcov* or *=html* cases.
+source line in the :option:`=xcov` or :option:`=html` cases.
 
 Object Instruction Coverage analysis (:option:`--level=insn`)
 =============================================================
 
-Object *Intruction* Coverage treats basic and conditional branch instructions
-identically, as either executed (then fully covered) or not (then
-uncovered). The :option:`=asm` instruction annotations follow:
+Object *Instruction* Coverage treats basic and conditional branch instructions
+identically, as either executed (then fully covered) or not (then uncovered).
+The :option:`=asm` instruction annotations follow:
 
 .. csv-table::
   :delim: |
   :widths: 10, 80
-  :header: Annotation, Meaning
+  :header: Insn Annotation, Meaning
 
    ``-`` | the instruction was not executed
    ``+`` | the instruction was executed
 
-Example with conditional branch + even though not taken
+Let us consider the following Ada example unit to illustrate:
+
+.. code-block:: ada
+
+   procedure Assert (T : Boolean) is
+   begin
+      if not T then
+         raise Program_Error;
+      end if;
+   end Assert;
+
+The corresponding PowerPC code coverage excerpt below, in :option:`=asm`
+format, is representative of the instruction coverage achieved by nominal
+executions where ``Assert`` is never called with T False::
+
+   _assert !: 258-2b7
+   258 +:  94 21 ff e0      stwu   r1,-0x0020(r1)
+   25c +:  7c 08 02 a6      mflr   r0
+   260 +:  90 01 00 24      stw    r0,0x0024(r1)
+   ...
+   280 +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
+   284 +:  41 9e 00 18      beq-   cr7,29c <support__assert+044>
+   ...
+   294 -:  38 80 00 1b      li     r4,0x001b
+   298 -:  4b ff ff 35      bl     <__gnat_last_chance_handler>
+   29c +:  60 00 00 00      ori    r0,r0,0x0000
+   ...
+
+Expectedely, the coverage annotations report all the instructions as executed
+except the two issuing the call to ``__gnat_last_chance_handler``, which
+correspond to the ``raise`` statement in the GNAT high integrity profiles
+without exception propagation support.
+
+The two instructions at offsets 280 and 284 are the comparison and branch
+conditioned on the comparison result that implement the *if* construct. We
+note here that the conditional branch is reported fully covered, as merely
+executed, even though always taken. Object Branch Coverage analysis would
+report this as a partial coverage if this particular instruction, as described
+in the following section.
 
 
 Object Branch Coverage analysis (:option:`--level=branch`)
@@ -183,13 +233,14 @@ Object Branch Coverage analysis (:option:`--level=branch`)
 Object *Branch* Coverage treats basic and conditional branch instructions
 differently. Basic instructions are considered fully covered as soon as
 executed, while conditional branches have to be executed at least twice, once
-taking the branch and once not taking it (executing fall-through) for this
-purpose. To simplify the descriptions, we 
+taking the branch and once executing fall-through. We sometimes abusively
+refer to this situation as :dfn:`taking the branch both ways` even if one case
+actually corresponds to the branch not being taken.
 
 .. csv-table::
   :delim: |
   :widths: 10, 80
-  :header: Annotation, Meaning
+  :header: Insn Annotation, Meaning
 
    ``-`` | the instruction was never executed
    ``+`` | the instruction was executed and taken both ways for a conditional branch
@@ -283,8 +334,8 @@ and the second one is not even exercised:
   ...
   
 
-Inlined and Template/Generic entities
-=====================================
+Inlining and Generic units
+==========================
 
 The generated code for an inlined subprogram call or a generic
 instantiation materializes two distinct source entities: the expanded
