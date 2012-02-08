@@ -13,6 +13,7 @@
 \usepackage{subfigure}
 \usepackage{cmll}
 \usepackage{txfonts}
+\usepackage{mathpartir}
 
 \usepackage{tikz}
 \usetikzlibrary{arrows,positioning}
@@ -2529,8 +2530,8 @@ of these expressions in linear logic:
 \end{theorem}
 
 This is a general property of linear logic, that can be proven using
-its sequent calculus. We will not detail this proof here.
-% ??? add the proof in annex
+its sequent calculus. The detail of this proof may be found in
+Appendix~\ref{ap:proof-truth-table-unicity}.
 
 \item Evaluations and normal forms
 \begin{theorem}
@@ -2638,6 +2639,238 @@ sub-decision that contains all conditions on which we focus, it is
 possible to drop any evaluation that does not execute one of these
 conditions.
 \end{itemize}
+
+\appendix
+\section{unicity of normal forms of paths\_to(...) and MCDC(...)}
+\label{ap:proof-truth-table-unicity}
+
+An interesting opportunity to manipulate the sequent calculus of
+linear logic; but this does not bring any additional knowledge about
+MCDC... which is why it is in appendix.
+
+First, note that the normal forms of paths\_to(...) and MCDC(...)
+have (almost) dual syntaxes:
+\begin{itemize}
+\item to $\oplus$ in <paths\_nf>, one may associate its dual operator $\with$
+  in <mcdc\_nf>;
+\item to $\otimes$ in each <decision\_eval> of <paths\_nf>, one may associate
+  its dual operator $\parr$ in <mcdc\_nf> when re-writing the linear
+  implication and using Demorgan's laws; e.g.
+   $(A \otimes B) \multimap f(A) = A^\bot \parr B^\bot \parr f(A)$
+\end{itemize}
+
+The only difference is that <mcdc\_marks> may contain several marks
+separated by $\with$. Still, if we develop MCDC(...) using
+left-distributivity of $\multimap$ over $\with$, the syntax of the
+result is in duality with <paths\_nf>; so if we are able to prove that
+the normal form of paths\_to(...) is unique, a dual proof would show
+that this development of MCDC(...) is unique. The last step is
+straight-forward.
+
+So we will concentrate on <paths\_nf>. We will show that if two
+expressions $E_1$ and $E_2$ satisfy <paths\_nf> and are such that they
+are reductible to each other, then they are identical. To show that,
+we will just need to prove the following lemma:
+
+\begin{lemma}
+  \label{lemma:evals-in-paths-nf}
+ if $E_1$ and $E_2$ satisfy <paths\_nf>, and if $E_1 \vdash E_2$,
+ then $evals(E_1)$ is a part of $evals(E_2)$.
+\end{lemma}
+
+As a consequence of this lemma, if $E_1 \vdash E_2$ and $E_2 \vdash E_1$,
+then $evals(E_1) = evals(E_2)$, so they may only differ by the order in
+which these evals appear in both expressions; QOD.
+
+(Strictly speaking, $E_1 = \{A=F\} \oplus \{B=F\}$ and $E2 = \{B=F\} \oplus
+\{A=F\}$ are two different expressions that both verifies <paths\_nf>
+and are equivalent; but we are of course considering unicity modulo
+commutativity in this context.)
+
+This lemma will be proven by recursion on the total number of evals in
+the sequent $E_1 \vdash E_2$. In each case, we will consider a cut-free
+proof of this sequent and reason on the last rule that has been
+applied.
+
+
+\subsection{if $\#evals(E_1) + \#evals(E_2) = 1$}
+
+Then the sequent is either $\vdash E_2$ or $E_1 \vdash$, and the syntax
+of $E_2$ or $E_1$ satisfies <decision\_eval>. This syntax uses only
+multiplicatives connectors, so the sequent has a proof in the
+multiplicative fragment of the linear logic. This fragment is
+conservative over contexts: it means that for any rule the context in
+the conclusion is the disjoint union of those of the premises:
+e.g. for $\otimes$:
+
+\inferrule{
+ \vdash \Gamma, A\\
+ \vdash \Delta, B
+}{\vdash \Gamma, \Delta, A \otimes B}
+
+...$\Gamma$, $\Delta$, A and B are both in the conclusion and in the premises.
+
+Any atom A in $E_1$ (resp. $E_2$) has therefore been introduced by an
+axiom:
+
+\inferrule{ }
+{\vdash A, A^\bot}
+
+This axiom has also introduced $A^\bot$ and as we have conservation
+over context, this atom is also in the conclusion. However, all atoms
+in the conclusion ($\vdash E_1$ or $E_2 \vdash$) have the same
+polarity. So no such expression exists.
+
+
+\subsection{if $\#evals(E_1) + \#evals(E_2) = 2$}
+
+Then $\#evals(E_1) = \#evals(E_2) = 1$; otherwise, we would be in a
+similar case as the previous one, and the fact that all atoms are of
+the same polarity would lead us to the same conclusion.
+
+This means that we have $E_1 \vdash E_2$, with $E_1$ and $E_2$ satisfying
+<decision\_eval>.  We are still in the multiplicative fragment; as it
+is conservative over contexts, we can still say that any atom has its
+dual alter-ego in the final sequent. So if an atom A is in $E_2$, then A
+($A^\bot$ passed on the left side of $\vdash$ becomes A) has to be in
+$E_1$, as all other atoms of $E_2$ have the same polarity as A. As a
+consequence, $E_1$ and $E_2$ contain the same set of atoms articulated by
+$\otimes$. So, commutativity of $\otimes$ aside, $E_1 = E_2$.
+
+
+\subsection{if $\#evals(E_1) + \#evals(E_2) = N \quad (N > 2)$,
+           assuming that the property is true for
+           $\#evals(E_1) + \#evals(E_2) < N$}
+
+Three sub-cases:
+
+\subsubsection{if $\#evals(E_1) > 1$ and $\#evals(E_2) > 1$}
+
+Both $E_1$ and $E_2$ contains at least two <decision\_eval>'s, separated by
+$\oplus$. So the last rule applied in a proof of $E_1 \vdash E_2$ is either an
+introduction of $\oplus$ on the left, or the introduction of $\oplus$ on the
+right. In the first case, the last rule is of the form:
+
+\inferrule{
+EL_1 \vdash E_2\\
+ER_1 \vdash E_2}
+{EL_1 \oplus ER_1 \vdash E_2}
+
+...with $E_1 ::= EL_1 \oplus ER_1$. $\#evals(EL_1) + \#evals(E_2) < N$, so
+we can use the induction hypothesis on $EL_1 \vdash E_2$: $evals(EL_1)$ is
+a part of $evals(E_2)$. Same thing for $ER_1 \vdash E_2$: $evals(ER_1)$ is
+a part of $evals(E_2)$.  As a consequence, the union of $evals(EL_1)$
+and $evals(ER_1)$ is also a part of $evals(E_2)$. QOD.
+
+In the second case, the last rule is of the form:
+
+\begin{tabular}{ccc}
+\inferrule{
+E_1 \vdash EL_2
+} {E_1 \vdash EL_2 \oplus ER_2}
+& or &
+\inferrule{
+E_1 \vdash ER_2
+} {E_1 \vdash EL_2 \oplus ER_2}
+\end{tabular}
+  
+%       E1 |- EL2              E1 |- ER2
+%  ------------------  or   -----------------
+%    E1 |- EL2 + ER2         E1 |- EL2 + ER2
+
+...with $E_2 ::= EL_2 + ER_2$. We'll concentrate only on the first
+case, the second is obviously identical. In this case, $\#evals(EL_2)
+< N$, so we can use the induction hypothesis on $E_1 \vdash EL_2$:
+$evals(E_1)$ is a part of $evals(E_2)$. A fortuiri, it is also a part
+of $evals(EL_2 + ER_2)$. QOD.
+
+
+\subsubsection{if $\#evals(E_1) > 1$, $\#evals(E_2) = 1$}
+
+In this case, the last rule may either be an introduction of $\oplus$ on
+the left, or an introduction of $\otimes$ on the right. For the first
+case, same reasoning as in the previous case. For the second case, if the last
+rule introduces $\otimes$ on the right, it is of the form:
+
+\inferrule{
+E_1 \vdash EL_2\\
+\vdash ER_2
+}{E1 \vdash EL_2 \otimes ER_2}
+
+%   E1 |- EL2  |- ER2
+%  --------------------
+%    E1 |- EL2 * ER2
+
+...with $E_2 ::= EL_2 \otimes ER_2$. The syntax of $ER_2$ satisfies
+<decision\_eval>, which makes $\vdash ER_2$ false (that is the initial
+case that we considered in this inductive proof). So this cannot be
+the last rule, only the first case makes sense, and it has already
+been proven.
+
+
+\subsubsection{if $\#evals(E_1) = 1$, $\#evals(E_2) > 1$}
+
+In this case, the last rule may either be an introduction of $\oplus$ on the
+right, or an introduction of $\otimes$ on the left. For the first case, same
+reasoning as in the first case. For the second case, if the last rule
+introduces $\otimes$ on the left, it is of the form:
+
+\inferrule{
+EL_1, ER_1 \vdash E_2
+}{EL_1 \otimes ER_1 \vdash E_2}
+
+%    EL1, ER1 |- E2
+%  --------------------
+%   EL1 * ER1 |- E2
+
+...with $E_1 ::= EL_1 \otimes ER_1$. The sequent $EL_1, ER_1 \vdash E_2$ is
+in the same situation; the rule above it is either an introduction of
+$\oplus$ on the right, or an introduction of $\otimes$ on the left. So
+we may have any number of left-introductions of $\otimes$ before a
+right-introduction of $\oplus$:
+
+\inferrule{
+ \inferrule{
+ \inferrule{
+  E_{11}, E_{12}, \dots, E_{1N}   \vdash EL_2
+  }{E_{11}, E_{12}, \dots, E_{1N}  \vdash EL_2 \oplus ER_2}
+ }{\vdots}
+}{E_{11} \otimes E_{12} \otimes ... \otimes E_{1N} \vdash EL_2 \oplus ER_2}
+
+%    E11, E12, ..., E1N   |- EL2
+%  -----------------------------------
+%    E11, E12, ..., E1N   |- EL2 + ER2
+%  -----------------------------------
+%  -----------------------------------
+%   E11 * E12 * ... * E1N |- EL2 + ER2
+
+It can easily be seen that one can switch to order, applying the set of
+left-introductions above the final right-introduction, as
+they only touch one side of the sequent; i.e. there exists an equivalent
+proof of $E_1 \vdash E_2$ of the form:
+
+\inferrule{
+ \inferrule{
+ \inferrule{
+  E_{11}, E_{12}, \dots, E_{1N}  \vdash EL_2 \oplus ER_2
+  }{\vdots}
+ }{E_{11} \otimes E_{12} \otimes ... \otimes E_{1N} \vdash EL_2}
+}{E_{11} \otimes E_{12} \otimes ... \otimes E_{1N} \vdash EL_2 \oplus ER_2}
+
+%    E11, E12, ..., E1N   |- EL2
+%  -----------------------------------
+%  -----------------------------------
+%   E11 * E12 * ... * E1N |- EL2
+%  -----------------------------------
+%   E11 * E12 * ... * E1N |- EL2 + ER2
+
+So we are back to the case where the last rule is a right-introduction
+of $\oplus$, which has been studied in the first case. QOD.
+
+The fourth sub-case would be $\#evals(E_1) = 1$ and $\#evals(E_2) = 1$,
+but it is the exact same case as $\#evals(E_1) + \#evals(E_2) = 2$... So
+we have covered all cases and proven the lemma.
+
 
 \newpage
 \bibliographystyle{alpha}
