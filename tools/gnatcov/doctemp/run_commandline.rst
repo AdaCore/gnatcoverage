@@ -80,8 +80,9 @@ run your program. |gem| acts as a wrapper around the real machine emulator in
 this case, taking care of low-level interfacing details that are irrelevant to
 users.
 
-Otherwise, |gcp| resorts directly to the low level emulator configured for
-your :option:`--target` argument, if any and if it is available on your PATH.
+Otherwise, |gcp| resorts directly to the low level emulator statically
+configured for your :option:`--target` argument (when the tool was built), if
+any, and if it is available on your PATH.
 
 The :option:`-eargs` command line options that |gcvrun| receives are
 passed straight to the low-level emulation engine in both cases.

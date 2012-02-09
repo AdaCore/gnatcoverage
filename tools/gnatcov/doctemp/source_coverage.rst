@@ -42,10 +42,11 @@ The general structure of this command line is always like::
   gnatcov coverage --level=<criterion> --annotate=<format>
                    --scos=<LI files> ... <traces>
 
-The following sections now describe the :ref:`available report formats
-<sreport-formats>`, then provide more details regarding the supported coverage
-criteria and on the way to :ref:`specify the source units of interest
-<sunits>` together with their coverage obligations.
+The :ref:`sunits` section later in this chapter provides guidelines and tools
+to help constructing the relevant argument of :option:`--scos`. Prior to this,
+the coming sections now describe the :ref:`available report formats
+<sreport-formats>`, then provide more details regarding :ref:`scov-stmt`,
+:ref:`scov-dc`, and :ref:`scov-mcdc`.
 
 .. _sreport-formats:
 
@@ -64,10 +65,10 @@ The :option:`report` output consists in a synthetic text report of
 standard output by default or in the file specified by the :option:`-o`
 command line option.
 
-Later in this documentation we name output formats by the text to add to
+Later in this chapter we name output formats by the text to add to
 :option:`--annotate` on the command line. For example, we use "the
 :option:`=report` outputs" to mean "the coverage reports produced with
-:option:`--annotate=report` ".
+:option:`--annotate=report`".
 
 In all the cases, the report focuses on the sources stated to be of interest
 by way of the :option:`--scos` command line argument.
@@ -88,8 +89,8 @@ application unit::
       end if;
    end Between;
 
-Annotated sources, text : :option:`--annotate=xcov[+]`
-------------------------------------------------------
+Annotated sources, text (:option:`=xcov[+]`)
+--------------------------------------------
 
 For source coverage criteria, |gcvcov| :option:`--annotate=xcov` produces an
 annotated version of each source file, in text format, named after the original
@@ -159,8 +160,8 @@ uncovered statement on line 8::
    STATEMENT "return V ..." at 8:10 not executed
  ...
 
-Annotated sources, html : :option:`--annotate=html[+]`
-------------------------------------------------------
+Annotated sources, html (:option:`=html[+]`)
+--------------------------------------------
 
 For source coverage criteria, |gcvcov| :option:`--annotate=html` produces an
 annotated version of each source file, in html format, named after the original
@@ -187,8 +188,8 @@ a trailing +) adds details about improperly satisfied obligations.  In the
 html version, these extra details are not immediatly visible: they are folded
 within their associated line and expanded when a mouse click hits the line.
 
-Violations summary, text : :option:`--annotate=report`
-------------------------------------------------------
+Violations summary, text (`=report`)
+------------------------------------
 
 For source coverage criteria, |gcvcov| :option:`--annotate=report` produces a
 syntetic text report that lists all the :term:`coverage violations` (failure
@@ -358,6 +359,8 @@ This section provides a quick way to determine whether the requested coverage
 level is fully satisfied, with details available from the per criterion
 sections that precede.
 
+
+.. _scov-stmt:
 
 Statement Coverage analysis (:option:`--level=stmt`)
 =======================================================
@@ -610,6 +613,8 @@ report, and that this section is the only one presented in the ``COVERAGE
 VIOLATIONS`` part, as only this criterion was to be analyzed per the
 :option:`--level=stmt` argument.
 
+.. _scov-dc:
+
 Decision Coverage analysis (:option:`--level=stmt+decision`)
 ============================================================
 
@@ -813,6 +818,7 @@ the statement coverage violation::
 
    1 violation.
 
+.. _scov-mcdc:
 
 Modified Condition/Decision Coverage analysis (:option:`--level=stmt+mcdc`)
 ===========================================================================
@@ -853,7 +859,6 @@ differences:
 Output-wise, the source annotations for the :option:`=xcov` or :option:`=html`
 formats are the same as for decision coverage, with condition specific cases
 marked with a ``!`` as well:
-
 
 .. csv-table::
   :delim: |
@@ -929,10 +934,10 @@ influenced the decision toggle (since they are not even considered in the
 computation), so they can never invalidate the effect of another condition.
 
 We call this variation :dfn:`Unique Cause + Short-Circuit MCDC`, activated
-with :option:`--level=stmt+uc_mcdc` on the command line (uc\_ refers to
-Unique Cause). From the ``A and then B`` table just introduced, 4 + 1 becomes
-another valid independence pair for A, as `B` is not evaluated at all when `A`
-is False so the change on `B` is irrelevant in the decision switch.
+with :option:`--level=stmt+uc_mcdc` on the command line. From the ``A and then
+B`` table just introduced, 4 + 1 becomes another valid independence pair for
+A, as `B` is not evaluated at all when `A` is False so the change on `B` is
+irrelevant in the decision switch.
 
 :option:`--level=stmt+mcdc`  actually implements another variant, known as
 :dfn:`Masking MCDC` |ar0118|, accepted as a sound alternative and offering

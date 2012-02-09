@@ -40,6 +40,8 @@ interface synopsis is available from |gcv| :option:`--help`::
    Request that the synthetic report produced by ``--annotate=report`` be
    output in the provided filname instead of standard output by default.
 
+.. _cov-outdir:
+
 :option:`--output-dir` :
    Request that the report files (index and annotated sources for the ``xcov``
    and ``html`` output formats) be output in the provided directory. They are
@@ -53,18 +55,19 @@ interface synopsis is available from |gcv| :option:`--help`::
    :ref:`consolidation` section for a description of the consolidation
    facility.
 
-:option:`--routines`:
+:option:`--routines`, |rarg|:
    For object coverage analysis specifically, provide the list of object
    symbol names that correspond to routines for which the coverage assessment
    is to be performed. Each instance of this option on the command line adds
-   to what is to be assessed eventually.
+   to what is to be assessed eventually. See the :ref:`oroutines` section for
+   extra details and use examples.
 
 :option:`--scos`, |rarg|:
    For source coverage analysis specifically, provide the set of source units
    for which the coverage assessment is to be performed, by the way of the
    corresponding Library Information files containing the relevant SCOs. Each
    instance of this option on the command line adds to what is to be assessed
-   eventually.
+   eventually. See the :ref:`sunits` section for extra details and use examples.
 
 Elements on the command line that are not tied to a particular option are
 considered as trace file arguments. :option:`--trace` is marked mandatory only
@@ -87,3 +90,4 @@ Here are a few examples of valid command lines::
 
   gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html @mytraces
   # Same report, with t1 and t2 listed in the "mytraces" text file
+

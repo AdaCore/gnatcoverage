@@ -64,6 +64,7 @@ Glossary of terms & concepts
       applicative part only.
 
    @listfile arguments
+   @listfile argument
       Part of a command line that designates a file which contains a
       list of items, one per line in the file. The expected nature of each
       item depends on the context.

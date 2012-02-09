@@ -26,7 +26,7 @@ build:
 
 run:
 	gnatcov run $(OSUBDIR)/$(UT)
-	grep -v support.ali $(OSUBDIR)/$(UT).alis > alis
+	grep -v xxsupport.ali $(OSUBDIR)/$(UT).alis > alis
 	gnatcov coverage --level=$(XCOVLEVEL) --scos=@alis \
 	--annotate=$(ANNOTATE) $(UT).trace
 

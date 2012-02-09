@@ -1,6 +1,6 @@
-*****************
-Common Facilities
-*****************
+*********************************************************
+Source/Object Coverage common considerations & facilities
+*********************************************************
 
 .. _exemptions:
 
@@ -8,10 +8,10 @@ Exemption Regions
 =================
 
 In some circumstances, there are good and well understood reasons why proper
-coverage of some source statement or decision is not achievable, and it is
-convenient to be able to abstract these coverage violations away from the
-genuine defects of a testing campaign.  The |gcp| :dfn:`exemptions` facility
-was designed for this purpose.
+coverage of some source construct is not achievable, and it is convenient to
+be able to abstract these coverage violations away from the genuine defects of
+a testing campaign.  The |gcp| :dfn:`exemptions` facility was designed for
+this purpose.
 
 For Ada with the |gnat| compilers, coverage exemptions are requested for
 sections of source by the insertion of dedicated pragmas:
@@ -24,8 +24,8 @@ sections of source by the insertion of dedicated pragmas:
 
 There may be no overlap between exemption regions.
 
-Exempted regions are reported as blocks in both the annotated source
-and the synthetic text reports.
+Exempted regions are reported as blocks in both the annotated source and the
+synthetic text reports, for both source and object coverage metrics.
 
 In annotated source reports, a ``#`` or ``*`` caracter annotates all the
 exempted lines, depending on whether 0 or at least 1 violation was exempted
@@ -60,9 +60,15 @@ In addition, the regular Coverage Violations sections gets renamed as
 Coverage Consolidation
 ======================
 
-.. _flexibility:
+.. _osmetrics:
 
-Assessement Flexibility
-=======================
+Object vs Source level metrics
+==============================
 
+Even tough the executable object code reflects semantics originally expressed
+in the application sources, Object and Source level coverage metrics are of
+very different nature, concerned with entities of very different kinds
+(machine instructions vs high level constructs). This section's purpose is to
+stress this point again and to illustrate with a couple of typical observable
+differences in the |gcp| outputs.
 
