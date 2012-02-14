@@ -69,7 +69,8 @@ all the instructions associated with each source line.
 Later in this chapter we name output formats by the text to add to
 :option:`--annotate` on the command line. For example, we use "the
 :option:`=asm` outputs" to mean "the coverage reports produced with
-:option:`--annotate=asm`".
+:option:`--annotate=asm`". We also sometimes use *in-source* reports
+or outputs to designate the set of outputs in annotated source forms. 
 
 We illustrate the various formats with output excerpts obtained by perfoming
 coverage analysis of the following example Ada support unit:
@@ -383,12 +384,13 @@ are allowed and the associated subsets accumulate. The argument might be
 either a single symbol name or a :term:`@listfile argument` expected to
 contain a list of symbol names.
 
-For example, focusing on three symbols ``sym1``, ``sym2`` and ``sym3``
-can be achieved with::
+For example, focusing on three symbols ``sym1``, ``sym2`` and ``sym3`` can be
+achieved with either one of the following set of :option:`--routines`
+combinations::
 
-  gnatcov coverage ... --routines=sym1 --routines=sym2 --routines=sym3
-  gnatcov coverage ... --routines=@symlist123
-  gnatcov coverage ... --routines=sym3 --routines=@symlist12
+  --routines=sym1 --routines=sym2 --routines=sym3
+  or --routines=@symlist123
+  or --routines=sym3 --routines=@symlist12
 
 ... provided a ``symlist12`` text file containing the first two symbol names 
 and a ``symlist123`` text file containing the three of them.
@@ -396,9 +398,7 @@ and a ``symlist123`` text file containing the three of them.
 It is often convenient to compute the lists of symbols for a :term:`@listfile
 argument`, for example as "the full set of defined subprograms except those
 with ``test_`` or ``harness_`` at the beginning of their name". |gcv| provides
-the |gcvdsp| sub-command for this purpose.
-
-The general synopsis is as follows::
+the |gcvdsp| sub-command for this purpose. The general synopsis is as follows::
 
    disp-routines :term:`[--exclude|--include] FILES`
      Build a list of routines from object files
@@ -411,16 +411,15 @@ ELF`, so includes executable files as well as single compilation unit objects.
 The output set is built incrementally while processing the arguments
 left to right.
 
-:option:`--include` 
-  states "from now on, symbols defined in the forthcoming
-  object files are to be added to the result set".
+:option:`--include` states "from now on, symbols defined in the forthcoming
+   object files are to be added to the result set".
 
-:option:`--exclude`
-  states "from now on, symbols defined in the forthcoming
-  object files are to be removed from the result set".
+:option:`--exclude` states "from now on, symbols defined in the forthcoming
+   object files are to be removed from the result set".
 
-An implicit :option:`--include` is assumed right at the beginning, which
-may be :term:`@listfile arguments` containing a list of object files.
+An implicit :option:`--include` is assumed right at the beginning, and each
+argument may be either the direct name of an object file or a :term:`@listfile
+argument` containing a list of such names.
 
 Below are a few examples of commands together with a description of the
 set they build::
@@ -438,84 +437,194 @@ set they build::
     # + (symbols from the object files listed in text file sl3)
 
 
-In-source reports, when requested, are generated for sources associated
-with the selected symbols' object code via debug line information.
-Coverage synthesis notes are produced only on those designated lines.
-For example, `--annotate=xcov --routines=robots__unsafe` will
-produce a single `robots.adb.xcov` in-source report with
-annotations on the `Unsafe` function lines only, because the debug
-info maps the code of the unique symbol of interest there and only there.
+Annotated source reports, when requested, are generated for sources associated
+with the selected symbols' object code via debug information, and coverage
+annotations are produced only on the corresponding lines.
 
-Note that inlining can have surprising effects in this context, when the
-machine code is associated with the inlined entity and not the call
-site.
-When the code for a symbol A in unit Ua embeds code inlined from unit
-Ub, an in-source report for routine A only will typically produce two
-output files, one for Ua where the source of some of the symbol code
-reside, and one for Ub, for lines referenced by the machine code inlined
-in A.   
+For example, assuming we have a ``robots.adb`` Ada unit featuring a ``Reset``
+subprogram, which produces a ``robots__reset`` object symbol::
 
-Inlining and Generic units
-==========================
+  gnatcov coverage --level=insn --annotate=xcov --routines=robots__reset
 
-The generated code for an inlined subprogram call or a generic
-instantiation materializes two distinct source entities: the expanded
-source (subprogram or package body) and the expansion request (subprogram
-call or generic instanciation).
+... would produce a single `robots.adb.xcov` annotated source report with
+annotations on the `Reset` subprogram lines only when the debug info maps the
+code of the unique symbol of interest there and only there. Inlining can have
+surprising effects in this context, as the following section describes in
+greater details.
 
-For inlined calls, the :command:`gcc` debug information associates the
-generated machine code with the inlined source positions, so the related
-object coverage information is attached there.  This scheme has all the
-instances reported at a centralized location and allows use of the full
-inlined subprogram source structure to organize the results.
+Inlining, Generic units and In-source outputs
+==============================================
 
-Consider for example the following excerpt of branch coverage report for
-the Station control code in Explore.
-A call to an `Update` subprogram is inlined in
-`Process_Pending_Inputs`.
-We observe that the code reported in the `Update` sources is coming
-from the `process_pending_inputs` symbol, where it was inlined, and
-that absence of code is reported at the call site, since indeed all the
-code for this call is attached to the inlined entity.
+The generated code for an inlined subprogram call or a generic instantiation
+materializes two distinct source entities: the expanded source (of the inlined
+subprogram or of the instanciated generic body) and the expansion request
+(the subprogram call or the generic instanciation).
 
+While this is of no consequence for :option:`=asm` outputs, which just report
+coverage of raw machine instructions within their object level subprograms,
+regardless of the object code origin, this raises a few points of note for
+in-source outputs.
 
-::
+For inlined calls, potentially surprising results might show up when a
+specific set of object routines is queried. Indeed, when the code for a symbol
+A in unit Ua embeds code inlined from unit Ub, a request for an annotated
+source report for routine A, intuitively expected to yield a report for Ua
+only, will typically produce an output file for Ub as well, for lines
+referenced by the machine code inlined in A.
 
-    53 .:       procedure Update (Map : in out Geomap; Situ : Situation) is
-    54 +:          Posa : constant Position := Pos_Ahead_Of (Situ);
-  <stations__run__process_pending_inputs.1939+fffc1bb4>:+
-  fffc1c04 +:  4b ff ed c1  bl     0xfffc09c4 <geomaps__pos_ahead_of>
-  fffc1c08 +:  90 61 00 30  stw    r3,0x0030(r1)
-    55 .:       begin
-    56 +:          Map (Posa.X, Posa.Y) := Situ.Sqa;
-  <stations__run__process_pending_inputs.1939+fffc1bc4>:+
-  fffc1c28 +:  88 01 00 19  lbz    r0,0x0019(r1)
-  fffc1c2c +:  98 03 00 0f  stb    r0,0x000f(r3)
-    [...]
-    63 +:       procedure Process_Pending_Inputs (Sta : Station_Access) is
-    [...]
-    68 .:             Update (Sta.Map, Situ);
-  
+Consider the following Ada units for example, in source files named
+``intops.ads``, ``intops.adb`` and ``test_inc0.adb``:
 
-Similar principles apply to template instantiations such as those of Ada
-generic units, and the centralized view property is well illustrated
-this way.
-The excerpt below provides an example with the `Queues` abstraction
-in Explore, instantiated in several places.
-The corresponding code sequences are all attached to original unit
-source, with an indication of their instantiation locations via the
-symbol names in the start-of-sequence addresses:
+.. code-block:: ada
+
+   -- intops.ads
+
+   package Intops is
+      procedure Inc (X : in out Integer);
+      pragma Inline (Inc);
+   end Intops;
+
+   -- intops.adb
+
+   package body Intops is
+      procedure Inc (X : in out Integer) is
+      begin
+         X := X + 1;
+      end Inc;
+   end Intops;
+
+   -- test_inc0.adb
+
+   procedure Test_Inc0  is
+      X : Integer := 0;
+   begin
+      Inc (X);
+      Assert (X = 1);
+   end Test_Inc0;
 
 
-::
+Compiling so that the ``Inc (X);`` call in Test_Inc0 is inlined, and after
+execution of the ``test_inc0`` executable, the following analysis::
 
-    39 +:    function Empty (Q : Queue) return Boolean is
-  <robot_control_links__data_queue_p__empty+fffc02fc>:+
-  fffc02fc +:  94 21 ff f0  stwu   r1,-0x0010(r1)
-   [...]
-  <geomaps__situation_links__data_queue_p__empty+fffc0878>:+
-  fffc0878 +:  94 21 ff f0  stwu   r1,-0x0010(r1)
-   [...]
-  
+  gnatcov coverage --level=insn --routines=_test_inc0 --annotate=xcov+ test_inc0.trace
 
+produces an ``intops.adb.xcov`` annotated source as well, despite the request
+to report about the Test_Inc0 procedure only. Indeed, the object code of this
+procedure also contains (inlined) code coming from the other unit.
+
+For generic units, |gcp| aggregates information for all the instances on the
+common generic source, so each line annotation is sort of a super synthesis of
+the coverage achieved for all the instructions attached to this line through
+all the generic instances.
+
+Let us consider the generic Ada unit below to illustrate:
+
+.. code-block:: ada
+
+   generic
+      type Num_T is range <>;
+   package Genpos is
+      procedure Count (X : Num_T);
+      --  Increment N_Positive is X > 0
+
+      N_Positive : Natural := 0;
+      --  Number of positive values passed to Count
+   end Genpos;
+
+   package body Genpos is
+      procedure Count (X : Num_T) is
+      begin
+         if X > 0 then
+            N_Positive := N_Positive + 1;
+         end if;
+      end Count;
+   end Genpos;
+
+Then two distinct instances in their own package, producing separate
+object code for each instance:
+
+.. code-block:: ada
+
+   with Genpos;
+   package POSI is
+      type T1 is new Integer;
+      package Pos_T1 is new Genpos (Num_T => T1);
+
+      type T2 is new Integer;
+      package Pos_T2 is new Genpos (Num_T => T2);
+   end POSI;
+
+And now a simple test driver that executes all the code for ``Count`` in the
+first instance (going within the *if* statement), and only part of the code
+for ``Count`` in the second instance (not going within the *if* statement):
+   
+.. code-block:: ada
+
+   with POSI; use POSI
+   procedure Test_Genpos is
+   begin
+      Pos_T1.Count (X => 1);
+      Assert (Pos_T1.N_Positive = 1);
+
+      Pos_T2.Count (X => -1);
+      Assert (Pos_T2.N_Positive = 0);
+   end Test_Genpos;
+
+The precise :option:`insn` coverage difference is first visible in the
+:option:`=asm` report. The conditioned part of ``Count`` clearly shows up as
+uncovered in the ``Pos_T2`` instance (``-`` at offset 204 and on), while it is
+reported covered as expected in the ``Pos_T1`` instance (``+`` at offset 1b4
+and on)::
+
+   posi__pos_t1__count +: 198-1e7
+   ...
+   1ac +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
+   1b0 +:  40 9d 00 24      ble-   cr7,0x1d4 <posi__pos_t1__count+0000003c>
+   1b4 +:  3c 00 00 00      lis    r0,0x0000
+   ...
+   1d4 +:  60 00 00 00      ori    r0,r0,0x0000
+   ...
+   1e4 +:  4e 80 00 20      blr
+
+   posi__pos_t2__count !: 1e8-237
+   ...
+   1fc +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
+   200 +:  40 9d 00 24      ble-   cr7,0x224 <posi__pos_t2__count+0000003c>
+   204 -:  3c 00 00 00      lis    r0,0x0000
+   ...
+   224 +:  60 00 00 00      ori    r0,r0,0x0000
+   ...
+   234 +:  4e 80 00 20      blr
+
+This translates into a partial coverage annotation for the corresponding
+source line in the :option:`=xcov` output (``!`` on line 10)
+
+.. code-block:: ada
+
+   6 .: package body Genpos is
+   7 +:    procedure Count (X : Num_T) is
+   8 .:    begin
+   9 +:       if X > 0 then
+  10 !:          N_Positive := N_Positive + 1;
+  11 .:       end if;
+  12 +:    end Count;
+  13 .: end Genpos;
+
+And the :option:`=xcov+` (or :option:`=html+`) output gathers everything
+together, with the blocks of instructions coming from different instances
+identifiable by the associated object symbol names::
+
+   ...
+     10 !:          N_Positive := N_Positive + 1;
+
+   <posi__pos_t1__count+0000001c>:+
+   1b4 +:  3c 00 00 00  lis    r0,0x0000
+   ...
+   1d0 +:  91 2b 10 48  stw    r9,0x1048(r11)
+
+   <posi__pos_t2__count+0000001c>:-
+   204 -:  3c 00 00 00  lis    r0,0x0000
+   ...
+   220 -:  91 2b 10 4c  stw    r9,0x104c(r11)
+     11 .:       end if;
 
