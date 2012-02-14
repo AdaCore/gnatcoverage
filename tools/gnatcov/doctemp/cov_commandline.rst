@@ -2,7 +2,7 @@
 |gcvcov| command line
 *********************
 
-.. _gnatcov_src_coverage-commandline:
+.. _gnatcov_coverage-commandline:
 
 Coverage analysis with |gcp| is performed by invoking |gcvcov| for a set of
 critera queried via the :option:`--level` command line option. The general

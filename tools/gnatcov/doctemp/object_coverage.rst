@@ -380,9 +380,9 @@ of interest so reports refer to this (sub)set only.
 
 Each occurrence of :option:`--routines` on the command line expects a single
 argument which specifies a subset of symbols of interest. Multiple occurrences
-are allowed and the associated subsets accumulate. The argument might be
-either a single symbol name or a :term:`@listfile argument` expected to
-contain a list of symbol names.
+are allowed and the subsets accumulate. The argument might be either a single
+symbol name or a :term:`@listfile argument` expected to contain a list of
+symbol names.
 
 For example, focusing on three symbols ``sym1``, ``sym2`` and ``sym3`` can be
 achieved with either one of the following set of :option:`--routines`
