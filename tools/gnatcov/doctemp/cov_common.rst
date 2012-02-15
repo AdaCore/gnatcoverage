@@ -81,6 +81,8 @@ possibly overlapping symbols. This is typically useful with unit testing
 campains, when different programs are built to exercise differents aspects of
 a common application part.
 
+**Example**
+
 We will consider achieving statement coverage of the following example Ada
 units to illustrate:
 
@@ -228,29 +230,43 @@ Which confirms full statement coverage of the Commands package body:
   .....
   27 .: end Commands;
 
-The performed consolidation indeed involved different programs with only
-partial unit and object code overlap, as depicted on the following
+**Further considerations**
+
+In our example, the performed consolidation involved different programs with
+only partial unit and object code overlap, as depicted on the following
 representation::
 
-    < Prog. 1 (test_cmd_safe)  >
+    < test_cmd_safe executable >
     oooooooooooooooooooooooooooo-----------------+
     | Test_Cmd_Safe | Commands | Test_Cmd_Unsafe |
     +---------------oooooooooooooooooooooooooooooo
-                    <  Prog. 2 (test_cmd_unsafe) >
+                    < test_cmd_unsafe executable >
                 
 The example analysis focused on the Commands unit for a source coverage
 criterion. Of course, the other units could have been included in the analysis
 as well, even though not overlapping between the different executable
 programs.
 
-Consolidation actually doesn't *require* any overlapping at all. The only
-technical requirement is that the object code be identical for all the
-overlapping symbols, which |gcp| verifies.
+Consolidation actually doesn't *require* overlapping. You might as well, for
+example, want to consolidate results from different programs testing entirely
+disjoint units. The only technical requirement is that the object code be
+identical for all the overlapping symbols, which |gcp| verifies.
 
-How does it get visible ? list of traces, tags, ...
+The set of traces involved in a computation is visible in various places:
 
-similar for object coverage
+- In the *Assessment Context* section of :option:`=report` outputs, where
+  the command line is quoted and detailed information about each trace is
+  provided (trace file name, timestamp, tag, ...)
 
+- In the :option:`html` index header, where the list of trace names and tags
+  used to produce the report is provided.
+
+All the principles we have described so far apply to consolidated *object*
+coverage analysis as well, and the only process differences are the general
+source/object coverage ones. In particular, the focus of the analysis needs to
+be specified with :ref:`--routines <oroutines>` instead of :ref:`--scos
+<sunits>`, providing object level symbol names instead of source level unit
+names.
 
 .. _osmetrics:
 
