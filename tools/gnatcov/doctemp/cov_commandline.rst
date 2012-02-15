@@ -2,6 +2,9 @@
 |gcvcov| command line
 *********************
 
+.. index::
+   single: gnatcov coverage command line
+
 .. _gnatcov_coverage-commandline:
 
 Coverage analysis with |gcp| is performed by invoking |gcvcov| for a set of

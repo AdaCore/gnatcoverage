@@ -1,11 +1,11 @@
+.. index::
+   single: gnatcov run command line
+
 .. _gnatcov_run-commandline:
 
 **********************
 |gcvrun| command line
 **********************
-
-.. index:
-   :single: gnatcov run
 
 |gcvrun| offers a unified interface to launch programs for a specific
 target machine and produce execution traces.
