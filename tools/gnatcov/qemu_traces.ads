@@ -197,8 +197,8 @@ package Qemu_Traces is
    Trace_Op_Fault : constant Unsigned_8 := 16#20#;
    --  Machine fault occurred at pc
 
-   Trace_Op_Br0 : constant Unsigned_8 := 16#01#;
-   Trace_Op_Br1 : constant Unsigned_8 := 16#02#;
+   Trace_Op_Br0 : constant Unsigned_8 := 16#01#; --  Branch
+   Trace_Op_Br1 : constant Unsigned_8 := 16#02#; --  Fallthrough
    --  Op_Block execution terminated with branch taken in direction 0 or 1
 
    -------------------------------------------
