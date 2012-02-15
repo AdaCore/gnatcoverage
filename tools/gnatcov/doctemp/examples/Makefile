@@ -8,7 +8,7 @@ ANNOTATE=xcov
 
 UT=
 GPR=ut.gpr
-TDIR=tmp_$(UT)
+TDIR=_$(UT:test_%=%)
 OSUBDIR=obj
 
 all:
