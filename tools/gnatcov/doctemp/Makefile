@@ -24,10 +24,10 @@ html: gen
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-latexpdf: gen
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+pdf: gen
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/pdf
 	@echo "Running LaTeX files through pdflatex..."
-	make -C $(BUILDDIR)/latex all-pdf
+	make -C $(BUILDDIR)/pdf all-pdf
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
 
 text: gen
