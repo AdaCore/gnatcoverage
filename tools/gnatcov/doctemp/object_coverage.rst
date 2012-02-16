@@ -153,6 +153,8 @@ single character which synthesizes the coverage status of all the machine
 instructions generated for this line. The following table povides a uniform
 description of this synthesis for all the object level criteria:
 
+.. tabularcolumns:: cl
+
 .. csv-table::
   :delim: |
   :widths: 10, 80
@@ -228,6 +230,8 @@ identically, as either executed or not, hence fully covered or uncovered.
 
 The :option:`=asm` instruction annotations follow:
 
+.. tabularcolumns:: cl
+
 .. csv-table::
   :delim: |
   :widths: 10, 80
@@ -290,6 +294,8 @@ have to be executed at least twice to be claimed fully covered : once taking
 the branch and once executing fall-through, which we sometimes abusively refer
 to as :dfn:`taken both ways` even if one case actually corresponds to the
 branch not being taken.
+
+.. tabularcolumns:: cl
 
 .. csv-table::
   :delim: |
@@ -411,11 +417,10 @@ ELF`, so includes executable files as well as single compilation unit objects.
 The output set is built incrementally while processing the arguments
 left to right.
 
-:option:`--include` states "from now on, symbols defined in the forthcoming
-   object files are to be added to the result set".
-
-:option:`--exclude` states "from now on, symbols defined in the forthcoming
-   object files are to be removed from the result set".
+:option:`--include` states "from now on, until contradicted, symbols defined
+in object files are added to the result set", and :option:`--exclude` states
+"from now on, until contradicted, symbols defined in object files are removed
+from the result set".
 
 An implicit :option:`--include` is assumed right at the beginning, and each
 argument may be either the direct name of an object file or a :term:`@listfile

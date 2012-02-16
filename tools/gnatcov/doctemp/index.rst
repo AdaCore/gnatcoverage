@@ -8,7 +8,6 @@ GNATcoverage User's Guide
    getting_started
    run
    coverage
-   gps
    appendix
    glossary
    bibliography

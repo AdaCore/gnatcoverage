@@ -101,6 +101,7 @@ followed by the original source lines, all numbered and marked with a coverage
 annotation next to the line number. The annotation on a line always consists
 in a single character, which may be one of the following:
 
+.. tabularcolumns:: cl
 .. csv-table::
    :delim: |
    :widths: 10, 80
@@ -270,6 +271,7 @@ violations that relate to source lines not part of an exemption region.  The
 violations are grouped in subsections, one per assessed criterion according to
 the :option:`--level` option:
 
+.. tabularcolumns:: ll
 .. csv-table::
    :delim: |
    :header: :option:`--level=`, Assessed criteria / Report subsections
@@ -292,6 +294,7 @@ format, as follows::
 The following table summarizes the list of violation items that
 might be emitted together for each criterion:
 
+.. tabularcolumns:: ll
 .. csv-table::
    :delim: |
    :widths: 30 65
@@ -365,9 +368,6 @@ sections that precede.
 Statement Coverage analysis (:option:`--level=stmt`)
 =======================================================
 
-General principles
-------------------
-
 |gcv| performs Statement Coverage assessments with the :option:`--level=stmt`
 command line option.
 
@@ -378,6 +378,7 @@ these.
 In annotated source outputs, the coverage annotations convey the following
 indications:
 
+.. tabularcolumns:: cl
 .. csv-table::
    :delim: |
    :widths: 10, 80
@@ -618,9 +619,6 @@ VIOLATIONS`` part, as only this criterion was to be analyzed per the
 Decision Coverage analysis (:option:`--level=stmt+decision`)
 ============================================================
 
-General principles
-------------------
-
 |gcv| performs combined Statement and Decision Coverage assessments
 with the :option:`--level=stmt+decision` command line option.
 
@@ -646,6 +644,7 @@ e.g. because of exceptions.
 The following table summarizes the meaning of the :option:`=xcov` and
 :option:`=html` annotations, diagnostics taking precedence first:
 
+.. tabularcolumns:: cl
 .. csv-table::
   :delim: |
   :widths: 10, 80
@@ -823,9 +822,6 @@ the statement coverage violation::
 Modified Condition/Decision Coverage analysis (:option:`--level=stmt+mcdc`)
 ===========================================================================
 
-General Principles
-------------------
-
 |gcv| performs combined Statement and Modified Condition/Decision Coverage
 assessments with :option:`--level=stmt+mcdc` passed to |gcvcov|.
 
@@ -860,6 +856,7 @@ Output-wise, the source annotations for the :option:`=xcov` or :option:`=html`
 formats are the same as for decision coverage, with condition specific cases
 marked with a ``!`` as well:
 
+.. tabularcolumns:: cl
 .. csv-table::
   :delim: |
   :widths: 10, 80
@@ -908,7 +905,6 @@ for False, and the italics indicate that the condition evaluation is
 short-circuited:
 
 .. tabularcolumns:: |c|cc|c|
-
 .. csv-table::
    :delim: |
    :header: #, A, B, A and then B
@@ -1187,9 +1183,6 @@ and a ``ulist123`` text file containing the three of them.
 
 Inlining, Generic units & Optimization
 ======================================
-
-General principles
-------------------
 
 In the vast majority of situations, inlining is just transparent to source
 coverage metrics: calls are treated as regular statements and coverage of the

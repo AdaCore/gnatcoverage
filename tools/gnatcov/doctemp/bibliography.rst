@@ -5,19 +5,17 @@ Bibliography
 .. |CHILENSKI| replace:: John J. Chilenski
 
 .. |GUITTON| replace:: Jerome Guitton
-
 .. |MOY| replace:: Yannick Moy
-
+.. |HAINQUE| replace:: Olivier Hainque
+.. |COMAR| replace:: Cyrille Comar
 .. |QUINOT| replace:: Thomas Quinot
 
 .. |KURTZ| replace:: John L. Kurtz
-
 .. |MILLER| replace:: S\. Miller
 
 .. |CAST| replace:: CAST, Certification Authorities Software Team
 
 .. |FAA| replace:: FAA, Federal Aviation Administration
-
 
 .. _bib-gcc:
 
@@ -75,6 +73,12 @@ Structural Coverage at the Source Code and Object Code Levels.
 **[obc-mcdc]** Technical Report on OBC/MCDC properties.
 |GUITTON|, |MOY| and |QUINOT|. Couverture project, October 2010.
 
+.. _bib-erts12:
+
+**[erts12]** Formalization and Comparison of MCDC and Object Branch Coverage
+Criteria |GUITTON|, |QUINOT|, |HAINQUE| and |COMAR|. 6th conference on
+Embedded Real-Time Software and Systems. Feb 1-3, 2012. Toulouse, France.
+
 .. _bib-rcdc:
 
 **[rcdc]** From MC/DC to RC/DC: Formalization and Analysis of
@@ -82,5 +86,6 @@ Control-Flow Testing Criteria.
 S. Vilkomir and J. Bowen.
 ZB2002: Formal Specification and Development in Z and B, Springer LNCS
 2272, 2002.
+
 
 
