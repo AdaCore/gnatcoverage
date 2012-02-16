@@ -3,7 +3,7 @@ GNATcoverage User's Guide
 #########################
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 3
 
    getting_started
    run
