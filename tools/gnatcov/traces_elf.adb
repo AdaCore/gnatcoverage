@@ -1924,7 +1924,7 @@ package body Traces_Elf is
          end if;
       end Coverage_State;
 
-      It : Entry_Iterator;
+      It    : Entry_Iterator;
       Trace : Trace_Entry;
 
    --  Start of processing for Set_Insn_State

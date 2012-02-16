@@ -208,7 +208,7 @@ package body Annotations is
                Symbol : constant Addresses_Info_Acc :=
                  Get_Symbol (Info.Exec.all, Instruction_Set.First);
             begin
-               if Label'Length > 0 and Symbol /= null then
+               if Label'Length > 0 and then Symbol /= null then
                   In_Symbol := True;
                   Pretty_Print_Start_Symbol
                     (Pp,
