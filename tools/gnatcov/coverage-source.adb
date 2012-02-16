@@ -704,7 +704,7 @@ package body Coverage.Source is
 
                when 3 =>
                   if MCDC_Coverage_Enabled
-                       and then (Has_Diamond (SCO) or else Debug_Full_History)
+                    and then (Has_Diamond (D_SCO) or else Debug_Full_History)
                   then
                      --  For MC/DC we need full historical traces, not just
                      --  accumulated traces.
