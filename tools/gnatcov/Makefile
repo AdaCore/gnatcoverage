@@ -14,8 +14,8 @@ PGMNAME=gnatcov
 # Directory name in the install tree
 DIRNAME=gnatcoverage
 
-DOCFORMATS=pdf html txt info
-ALLDOCS=$(foreach fmt, $(DOCFORMATS), doc/$(PGMNAME).$(fmt))
+DOCFORMATS=pdf html
+ALLDOCS=$(foreach fmt, $(DOCFORMATS), doc-$(fmt))
 
 all: $(PGMNAME)
 
@@ -39,23 +39,20 @@ copy_gnat_src: force
 # Documentation #
 #################
 
+SPHINX_DOCDIR=doc/sphinx
+
 .PHONY: doc
 doc: $(ALLDOCS)
 
-doc/$(PGMNAME).pdf: doc/$(PGMNAME).texi
-	texi2pdf -b $<
-	chmod o=u $(PGMNAME).pdf
-	mv $(PGMNAME).pdf $@
-	$(RM) *.aux *.cp *.fn *.ky *.log *.pg *.toc *.tp *.vr
+doc-prepare:
+	cd $(SPHINX_DOCDIR); \
+	perl -pi -e "s/^version =.*/version = \"$$($(PGMNAME) --version)\"/" conf.py
 
-doc/$(PGMNAME).info: doc/$(PGMNAME).texi
-	$(MAKEINFO) $< -o $@
+doc-pdf: doc-prepare
+	cd $(SPHINX_DOCDIR); make pdf 
 
-doc/$(PGMNAME).html: doc/$(PGMNAME).texi
-	$(MAKEINFO) --no-split --html -o $@ $< 
-
-doc/$(PGMNAME).txt: doc/$(PGMNAME).texi
-	$(MAKEINFO) --plaintext -o $@ $<
+doc-html: doc-prepare
+	cd $(SPHINX_DOCDIR); make html
 
 clean:
 	$(RM) *.o *.ali $(PGMNAME) b~* $(ALLDOCS)
@@ -67,18 +64,19 @@ clean:
 .PHONY: install distrib
 install:
 	$(MKDIR) $(PREFIX)/bin
+	$(CP) $(PGMNAME)$(exeext) $(PREFIX)/bin
+
 	$(MKDIR) $(PREFIX)/share/examples/$(DIRNAME)
+	$(CP) -r examples/* $(PREFIX)/share/examples/$(DIRNAME)
+
 	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)
 	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/html
 	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/pdf
-	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/info
-	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/txt
-	$(CP) $(PGMNAME)$(exeext) $(PREFIX)/bin
-	$(CP) -r examples/* $(PREFIX)/share/examples/$(DIRNAME)
-	$(CP) -r doc/*.html $(PREFIX)/share/doc/$(DIRNAME)/html
-	$(CP) -r doc/*.pdf  $(PREFIX)/share/doc/$(DIRNAME)/pdf
-	$(CP) -r doc/*.txt  $(PREFIX)/share/doc/$(DIRNAME)/txt
-	$(CP) -r doc/*.info $(PREFIX)/share/doc/$(DIRNAME)/info
+
+	$(CP) -r $(SPHINX_DOCDIR)/_build/html/*.html \
+	   $(PREFIX)/share/doc/$(DIRNAME)/html
+	$(CP) -r $(SPHINX_DOCDIR)/_build/pdf/*.pdf \
+	   $(PREFIX)/share/doc/$(DIRNAME)/pdf
 
 distrib: install
 	$(CP) README INSTALL $(PREFIX)
