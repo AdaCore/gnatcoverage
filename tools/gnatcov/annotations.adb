@@ -147,8 +147,8 @@ package body Annotations is
    ---------------------------
 
    procedure Disp_Instruction_Sets
-     (Pp   : in out Pretty_Printer'Class;
-      LI   : Line_Info)
+     (Pp : in out Pretty_Printer'Class;
+      LI : Line_Info)
    is
       use Traces_Disa;
 
@@ -257,8 +257,8 @@ package body Annotations is
       use Message_Vectors;
 
       procedure Pretty_Print_Message (Position : Cursor);
-      --  Let Pp print the message in the line's message vector at Position
-      --  if this message is an error or a warning
+      --  Let Pp print the message in the line's message vector at Position if
+      --  this message is an error or a warning.
 
       --------------------------
       -- Pretty_Print_Message --
@@ -342,7 +342,7 @@ package body Annotations is
                   end if;
 
                when Condition =>
-                  --  Condition without a father decision. This should never
+                  --  Condition without a parent decision. This should never
                   --  happen; fatal error.
 
                   Fatal_Error ("no decision attached to " & Image (SCO));
