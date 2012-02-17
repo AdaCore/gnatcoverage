@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                       Copyright (C) 2009, AdaCore                        --
+--                    Copyright (C) 2009-2012, AdaCore                      --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -56,6 +56,13 @@ package body Coverage.Object is
       It     : Entry_Iterator;
       T      : Trace_Entry;
    begin
+      if Last < First then
+
+         --  Empty range
+
+         return No_Code;
+      end if;
+
       Init_Post (Base, It, First);
       loop
          Get_Next_Trace (T, It);
