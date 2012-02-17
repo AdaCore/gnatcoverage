@@ -39,20 +39,20 @@ copy_gnat_src: force
 # Documentation #
 #################
 
-SPHINX_DOCDIR=doc/sphinx
+UMAN_DOCDIR=doc/umanual
 
 .PHONY: doc
 doc: $(ALLDOCS)
 
 doc-prepare:
-	cd $(SPHINX_DOCDIR); \
+	cd $(UMAN_DOCDIR); \
 	perl -pi -e "s/^version =.*/version = \"$$($(PGMNAME) --version)\"/" conf.py
 
 doc-pdf: doc-prepare
-	cd $(SPHINX_DOCDIR); make pdf 
+	cd $(UMAN_DOCDIR); make pdf 
 
 doc-html: doc-prepare
-	cd $(SPHINX_DOCDIR); make html
+	cd $(UMAN_DOCDIR); make html
 
 clean:
 	$(RM) *.o *.ali $(PGMNAME) b~* $(ALLDOCS)
@@ -73,9 +73,9 @@ install:
 	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/html
 	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/pdf
 
-	$(CP) -r $(SPHINX_DOCDIR)/_build/html/*.html \
+	$(CP) -r $(UMAN_DOCDIR)/_build/html/*.html \
 	   $(PREFIX)/share/doc/$(DIRNAME)/html
-	$(CP) -r $(SPHINX_DOCDIR)/_build/pdf/*.pdf \
+	$(CP) -r $(UMAN_DOCDIR)/_build/pdf/*.pdf \
 	   $(PREFIX)/share/doc/$(DIRNAME)/pdf
 
 distrib: install
