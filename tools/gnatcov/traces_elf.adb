@@ -1265,8 +1265,8 @@ package body Traces_Elf is
       Last : Storage_Offset;
 
       Pc           : Pc_Type;
-      Line, Column : Unsigned_32;
       File         : Natural;
+      Line, Column : Unsigned_32;
       Line_Base2   : Unsigned_32;
 
       Nbr_Dirnames  : Unsigned_32;
@@ -1276,6 +1276,7 @@ package body Traces_Elf is
 
       Last_Line     : Addresses_Info_Acc := null;
 
+      procedure Reset_Lines;
       procedure New_Source_Line;
       procedure Close_Source_Line;
       --  Need comments???
@@ -1294,16 +1295,14 @@ package body Traces_Elf is
 
          Last_Line.Last := Exec.Exe_Text_Start + Pc - 1;
 
-         --  Work-around a gc-section issue.  It is possible there is an empty
-         --  line statement at address 0 (because it was discarded).  Avoid to
-         --  set Last to 0xffff_ffff as it would cover all the executable.
+         --  Work-around a gc-section issue: there may be an empty line
+         --  statement at address 0 (because it was discarded). Avoid setting
+         --  Last to 0xffff_ffff as it would cover all the executable.
          --  FIXME: discard the whole block ?
 
-         if Last_Line.Last = Pc_Type'Last
-           and then Last_Line.First = 0
-         then
+         if Last_Line.Last = Pc_Type'Last and then Last_Line.First = 0 then
             Last_Line.First := 1;
-            Last_Line.Last := 0;
+            Last_Line.Last  := 0;
          end if;
 
          Last_Line := null;
@@ -1315,12 +1314,14 @@ package body Traces_Elf is
 
       procedure New_Source_Line is
          use Addresses_Containers;
-         Pos        : Cursor;
-         Inserted   : Boolean;
+
+         Pos      : Cursor;
+         Inserted : Boolean;
       begin
          Close_Source_Line;
 
-         --  Note: Last and Parent are set by Build_Debug_Lines
+         --  Note: Last will be updated by Close_Source_Line, and Parent is set
+         --  later on by Build_Debug_Lines.
 
          Last_Line :=
            new Addresses_Info'
@@ -1337,11 +1338,25 @@ package body Traces_Elf is
          Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
 
          if not Inserted then
+
             --  An empty line has already been inserted at PC. Merge it with
             --  current line.
+
             Last_Line := Element (Pos);
          end if;
       end New_Source_Line;
+
+      -----------------
+      -- Reset_Lines --
+      -----------------
+
+      procedure Reset_Lines is
+      begin
+         Pc     := 0;
+         File   := 1;
+         Line   := 1;
+         Column := 0;
+      end Reset_Lines;
 
    --  Start of processing for Read_Debug_Lines
 
@@ -1377,10 +1392,7 @@ package body Traces_Elf is
 
       --  Initial state registers
 
-      Pc := 0;
-      Line := 1;
-      File := 1;
-      Column := 0;
+      Reset_Lines;
 
       Line_Base2 := Unsigned_32 (Line_Base);
       if (Line_Base and 16#80#) /= 0 then
@@ -1421,11 +1433,15 @@ package body Traces_Elf is
             Dir      : String_Access;
          begin
             if File_Dir /= 0
-              and then File_Dir <= Nbr_Dirnames then
+              and then File_Dir <= Nbr_Dirnames
+            then
                Dir := Filenames_Vectors.Element (Dirnames, Integer (File_Dir));
+
             elsif Compilation_Directory /= null
-              and then not GNAT.OS_Lib.Is_Absolute_Path (Filename) then
+              and then not GNAT.OS_Lib.Is_Absolute_Path (Filename)
+            then
                Dir := Compilation_Directory;
+
             else
                Dir := Empty_String_Acc;
             end if;
@@ -1449,7 +1465,7 @@ package body Traces_Elf is
 
          if B = 0 then
 
-            --  Extended opcode.
+            --  Extended opcode
 
             Read_ULEB128 (Base, Off, Ext_Len);
             Old_Off := Off;
@@ -1457,11 +1473,8 @@ package body Traces_Elf is
             case Ext_Opc is
                when DW_LNE_end_sequence =>
                   Close_Source_Line;
-                  --  Initial state.
-                  Pc := 0;
-                  Line := 1;
-                  File := 1;
-                  Column := 0;
+
+                  Reset_Lines;
 
                when DW_LNE_set_address =>
                   Read_Address
@@ -1471,7 +1484,8 @@ package body Traces_Elf is
                   raise Program_Error with "DW_LNE_define_file unhandled";
 
                when DW_LNE_set_discriminator =>
-                  --  Ignored.
+                  --  Ignored
+
                   null;
 
                when others =>
@@ -1504,7 +1518,7 @@ package body Traces_Elf is
                   Read_ULEB128 (Base, Off, Column);
 
                when DW_LNS_negate_stmt     |
-                 DW_LNS_set_basic_block =>
+                    DW_LNS_set_basic_block =>
                   null;
 
                when DW_LNS_const_add_pc =>
@@ -1515,13 +1529,15 @@ package body Traces_Elf is
                when DW_LNS_fixed_advance_pc =>
                   raise Program_Error with "DW_LNS_fixed_advance_pc unhandled";
 
-               when DW_LNS_set_prologue_end
-                 | DW_LNS_set_epilogue_begin
-                 | DW_LNS_set_isa =>
+               when DW_LNS_set_prologue_end   |
+                    DW_LNS_set_epilogue_begin |
+                    DW_LNS_set_isa            =>
                   null;
 
                when others =>
-                  --  Instruction length.
+
+                  --  Instruction length
+
                   for J in 1 .. Opc_Length (B) loop
                      Read_ULEB128 (Base, Off, Arg);
                   end loop;
@@ -1557,6 +1573,10 @@ package body Traces_Elf is
       --  Return the element designated by Cur or null if cur doesn't
       --  designate an element.
 
+      -----------------
+      -- Get_Element --
+      -----------------
+
       function Get_Element (Cur : Cursor) return Addresses_Info_Acc is
       begin
          if Cur /= No_Element then
@@ -1566,14 +1586,17 @@ package body Traces_Elf is
          end if;
       end Get_Element;
 
-      Cur_Cu : Compile_Unit_Lists.Cursor;
+      Cur_Cu     : Compile_Unit_Lists.Cursor;
       Cur_Subprg : Cursor;
-      Cur_Sec : Cursor;
-      Cur_Line : Cursor;
-      Cu : Compile_Unit_Desc;
-      Subprg : Addresses_Info_Acc;
-      Sec : Addresses_Info_Acc;
-      Line : Addresses_Info_Acc;
+      Cur_Sec    : Cursor;
+      Cur_Line   : Cursor;
+      Cu         : Compile_Unit_Desc;
+      Subprg     : Addresses_Info_Acc;
+      Sec        : Addresses_Info_Acc;
+      Line       : Addresses_Info_Acc;
+
+   --  Start of processing for Build_Debug_Lines
+
    begin
       --  Return now if already loaded
 
@@ -1594,7 +1617,7 @@ package body Traces_Elf is
          Compile_Unit_Lists.Next (Cur_Cu);
       end loop;
 
-      --  Set Last and Parent
+      --  Set Parent links
 
       Cur_Line := First (Exec.Desc_Sets (Line_Addresses));
 
