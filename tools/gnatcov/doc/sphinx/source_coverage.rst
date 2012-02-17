@@ -244,7 +244,7 @@ Here is a example excerpt::
   ===========================
 
   Date and time of execution: 2011-11-24 16:33:44.00
-  Tool version: XCOV 1.0.0w (20111119)
+  Tool version: GNATcoverage 1.0.0w (20111119)
 
   Command line:
 
@@ -436,8 +436,7 @@ functional unit below, with the spec and body stored in source files named
 .. code-block:: ada
 
    function Div_With_Check (X, Y : Integer) return Integer;
-   --  If Y /= 0, divide X by Y and return the result. Raise
-   --  Program_Error otherwise.
+   --  return X / Y if Y /= 0. Raise Program_Error otherwise
 
    function Div_With_Check (X, Y : Integer) return Integer is
    begin
@@ -448,7 +447,7 @@ functional unit below, with the spec and body stored in source files named
       end if;
    end;
 
-We first exercise the function for Y = 1 only, using a
+We first exercise the function for Y = 1 only, using
 the following :term:`test driver` in ``test_div1.adb``:
 
 .. code-block:: ada
@@ -458,7 +457,6 @@ the following :term:`test driver` in ``test_div1.adb``:
    begin
       Assert (Div_With_Check (X, 1) = X);
    end;
-
 
 Once the driver+application bundle is built, we have a ``test_div1``
 executable that we execute with::
@@ -474,14 +472,12 @@ Since we pass a single :option:`--scos` argument with a straight ``.ali`` file
 name, the analysis focuses on the corresponding unit alone. Results for the
 test drivers and harness are most often not of interest because these units
 are not part of the applicative code for which coverage objectives are to be
-met.
+met. :option:`--annotate=xcov` requests results as annotated sources in text
+format, which we get in ``div_with_check.adb.xcov``::
 
-:option:`--annotate=xcov` requests results as annotated sources in text format,
-which we get in ``div_with_check.adb.xcov``::
-
-   examples/src/div_with_check.adb:
-   67% of 3 lines covered
-   Coverage level: stmt
+    examples/src/div_with_check.adb:
+    67% of 3 lines covered
+    Coverage level: stmt
       1 .: function Div_With_Check (X, Y : Integer) return Integer is
       2 .: begin
       3 +:    if Y = 0 then
@@ -500,8 +496,7 @@ We can observe that:
   covered respectively, as expected since the function was only called with
   arguments for which the ``if`` controling decision evaluates False.
 
-As a second experiment, we exercise the function for Y = 0 only, using a the
-following :term:`test driver` in ``test_div0.adb``:
+As a second experiment, we exercise the function for Y = 0 only, using:
 
 .. code-block:: ada
 
@@ -573,7 +568,7 @@ again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
    ===========================
 
    Date and time of execution: 2012-01-11 16:37:17.00
-   Tool version: XCOV 1.0.0w (20081119)
+   Tool version: GNATcoverage 1.0.0w (20081119)
 
    Command line:
 
@@ -642,7 +637,7 @@ executed at all, or when all the attempted evaluations were interrupted
 e.g. because of exceptions.
 
 The following table summarizes the meaning of the :option:`=xcov` and
-:option:`=html` annotations, diagnostics taking precedence first:
+:option:`=html` annotations:
 
 .. tabularcolumns:: cl
 .. csv-table::
@@ -721,9 +716,9 @@ This exercises the ``Divmod`` function twice. The outer ``if`` construct
 executes both ways and the ``if Tell then`` test runs once only for ``Tell``
 True. As a result, the only :option:`stmt+decision` violation by our driver is
 the ``Tell`` decision coverage, only partially achieved since we have only
-exercised the True case. This is confirmed by the section of :option:`=report`
-output that follows, where we find the two coverage violations sections
-expected for the requested set of criteria::
+exercised the True case. This is confirmed by :option:`=report` excerpt below,
+where we find the two violations sections in accordance with the requested set
+of criteria::
 
    2.1. STMT COVERAGE
    ------------------
@@ -796,8 +791,8 @@ We have an interesting situation where
   statements is ever reached.
 
 This gets all confirmed by the :option:`=report` output below, on which we
-also notice that the only diagnostic emitted for the uncovered inner ``if`` is
-the statement coverage violation::
+also notice that the only diagnostic emitted for the uncovered inner ``if``,
+on line 14, is the statement coverage violation::
 
    2.1. STMT COVERAGE
    ------------------
@@ -868,14 +863,14 @@ marked with a ``!`` as well:
 
 
 The :option:`=report` outputs feature an extra MCDC section in the Coverage
-Violations segment of the report, which holds:
+Violations segment, which holds:
 
 - The condition specific diagnosics (``independent influence not
   demonstrated``), as well as
 
-- Decision level diagnostics (such as ``decisiont outcome True not covered``
+- Decision level diagnostics (such as ``decision outcome True not covered``
   messages) for the Complex Boolean Expressions not directing a control-flow
-  oriented source statement and which we treat as decisions nevertheless.
+  oriented statement and which we treat as decisions nevertheless.
 
 There again, condition or decision related messages are only emitted when no
 more general diagnostic applies on the associated entity. Condition specific
@@ -981,7 +976,7 @@ Performing MCDC analysis requires the execution step to be told about it,
 by providing both the :option:`--level` and the :option:`--scos`  arguments
 to |gcvrun| (see the :ref:`trace-control` for details)::
 
-   gnatcov run --level=stmt+mcdc --scos=@alis test_x1xx2
+   gnatcov run --level=stmt+mcdc --scos=@alis test_x1vx2
 
 We start by looking at the `=xcov+` output to get a first set of useful
 results::
@@ -1047,14 +1042,6 @@ the :option:`=report` output::
    ranges.adb:11:17: decision outcome FALSE never exercised
 
    1 violation.
-
-   =========================
-   == 3. ANALYSIS SUMMARY ==
-   =========================
-
-   1 STMT violation.
-   1 DECISION violation.
-   1 MCDC violation.
 
 
 Now running again our original test driver which exercises two cases where X1

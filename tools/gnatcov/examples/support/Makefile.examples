@@ -24,7 +24,7 @@
 BUILDFLAGS=
 
 # Kind of coverage analysis to be performed (--level argument)
-XCOVLEVEL?=branch
+XCOVLEVEL?=stmt+decision
 
 # ----------------------------------------------------------------------------
 # Object vs source coverage action variants for common rules

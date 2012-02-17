@@ -36,8 +36,12 @@ source_suffix = '.rst'
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
 
-# The master toctree document.
-master_doc = 'index'
+# The master toctree document. Our corporate site links to gnatcov.html and
+# our original texi based documents were all gnatcov.xxx. This doc is
+# essentially about the "gnatcov" front-end anyway, so preserving the original
+# scheme makes most sense.
+
+master_doc = 'gnatcov'
 
 rst_epilog = """
 .. |gcv| replace:: :command:`gnatcov`
@@ -193,7 +197,7 @@ htmlhelp_basename = 'GNATcoveragedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', project+'.tex', html_title,
+  (master_doc, master_doc+'.tex', html_title,
    u'AdaCore', 'manual'),
 ]
 
