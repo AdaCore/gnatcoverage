@@ -10,6 +10,6 @@ possible criteria, producing reports in a variety of possible formats.
    :maxdepth: 2
 
    cov_commandline
-   source_coverage
-   object_coverage
+   cov_source
+   cov_object
    cov_common

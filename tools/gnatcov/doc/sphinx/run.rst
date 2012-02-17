@@ -10,4 +10,4 @@ run the program in an environment that will produce execution traces. The
    :maxdepth: 2
 
    run_commandline
-   control
+   run_control
