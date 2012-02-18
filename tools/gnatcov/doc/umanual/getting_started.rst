@@ -5,7 +5,7 @@ Getting Started
 |gcp| provides coverage analysis facilities through the |gcv| command-line
 tool. |gcv| relies on an instrumented execution environment to produce
 execution traces instead of having to instrument to program itself. |gem|
-provides such an enviroment, offering support for coverage assessments
+provides such an environment, offering support for coverage assessments
 directly on the target code in cross configurations.
 
 |gcp| supports both source and object level coverage criteria: statement,

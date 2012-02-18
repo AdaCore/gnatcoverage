@@ -1,0 +1,12 @@
+\makeatletter 
+  \fancypagestyle{normal}{ 
+    \fancyhf{} 
+    \fancyfoot[LE,RO]{{\py@HeaderFamily\thepage}} 
+    \fancyfoot[LO]{{\py@HeaderFamily\nouppercase{\rightmark}}} 
+    \fancyfoot[RE]{{\py@HeaderFamily\nouppercase{\leftmark}}} 
+    \fancyhead[LE]{{\py@HeaderFamily \@title}}
+    \fancyhead[RO]{{\py@HeaderFamily \py@release}}
+    \renewcommand{\headrulewidth}{0.4pt} 
+    \renewcommand{\footrulewidth}{0.4pt} 
+  } 
+\makeatother 
