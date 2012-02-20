@@ -1,0 +1,5 @@
+This directory holds the valgrind trace adapter for GNATcoverage.
+
+This adapter consists in pieces allowing the construction of an instrumented
+version of valgrind, able to produce (upon request) execution traces suitable
+for analysis by gnatcov coverage.
