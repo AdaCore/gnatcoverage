@@ -457,8 +457,8 @@ code of the unique symbol of interest there and only there. Inlining can have
 surprising effects in this context, as the following section describes in
 greater details.
 
-Inlining, Generic units & In-source outputs
-===========================================
+Inlining & Generic units
+========================
 
 The generated code for an inlined subprogram call or a generic instantiation
 materializes two distinct source entities: the expanded source (of the inlined

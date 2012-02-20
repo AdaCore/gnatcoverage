@@ -1,6 +1,6 @@
-**************************************************
-Source/Object Coverage Considerations & Facilities
-**************************************************
+*************************************
+Source/Object Coverage Considerations
+*************************************
 
 Even though the executable object code reflects semantics originally expressed
 in the application sources, Object and Source level coverage metrics are of
@@ -13,8 +13,6 @@ tools capabilities aimed at helping the analysis in various operational
 contexts, when some coverage violations are legitimate and need to be documented,
 or when the global assessment strategy needs consolidation across multiple programs
 or executions.
-
-.. include:: bibrefs.rsti
 
 .. _osmetrics:
 
@@ -193,7 +191,7 @@ coverage attached to line 3, we indeed get::
 We have a clear illustration of the |gcp| ability to perform accurate
 assessments of distinct source and object criteria here, actually based on
 solid theoretical grounds established as part of the *Couverture* research
-project from which |gcp| originates |erts12|.
+project from which |gcp| originates.
 
 .. _exemptions:
 

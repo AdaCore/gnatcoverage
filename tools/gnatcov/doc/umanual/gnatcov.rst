@@ -10,4 +10,3 @@ GNATcoverage User's Guide  [|release|]
    coverage
    appendix
    glossary
-   bibliography

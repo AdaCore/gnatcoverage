@@ -70,8 +70,9 @@ compilation to coverage analysis of a very simple Ada program.
 
 **Example**
 
-The sequence exercises the following very basic Ada package, with a spec and
-body in source files named ``ops.ads`` and ``ops.adb``:
+We now provide an example of complete |gcp| use sequence, from source
+compilation to coverage analysis. We start from the very basic Ada package
+below, with a spec and body in source files named ``ops.ads`` and ``ops.adb``:
 
 .. code-block:: ada
 
@@ -174,6 +175,7 @@ quoted below:
    8 .:    end Apply;
    9 .: end Ops;
 
-We get, as expected, ``+`` / ``-`` annotations (next to the line numbers) that
-indicate proper coverage of all the statements except the one dealing with a
-``Decrement`` operation, indeed never exercised by our driver.
+The analysis results are visible as ``+`` / ``-`` annotations on source lines,
+next to the line numbers. The results we have here indicate proper coverage of
+all the statements except the one dealing with a ``Decrement`` operation,
+indeed never exercised by our driver.

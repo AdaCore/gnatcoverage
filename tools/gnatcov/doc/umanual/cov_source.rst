@@ -2,8 +2,6 @@
 Source Coverage Analysis
 ************************
 
-.. include:: bibrefs.rsti
-
 .. _scov-principles:
 
 General principles & Compilation requirements
@@ -620,9 +618,10 @@ with the :option:`--level=stmt+decision` command line option.
 In this context, we consider to be :dfn:`decisions` all the Boolean
 expressions used to influence the control flow via explicit constructs in the
 source program, such as ``if`` statements or ``while`` loops. For proper
-operation, only short-circuit operators are allowed to combine operands, as
-enforced by the `No_Direct_Boolean_Operator` restriction pragma offered by the
-|gnat| compilers for Ada.
+operation, only short-circuit operators are allowed to combine operands:
+``and-then`` or ``or-else`` in Ada, ``&&`` or ``||`` in C).  With the |gnat|
+compilers, this can be enforced with a `No_Direct_Boolean_Operator`
+restriction pragma for Ada.
 
 The types involved in decisions need not be restricted to the standard Boolean
 type when one is defined by the language; For Ada, typically, they may
@@ -930,9 +929,9 @@ B`` table just introduced, 4 + 1 becomes another valid independence pair for
 A, as `B` is not evaluated at all when `A` is False so the change on `B` is
 irrelevant in the decision switch.
 
-:option:`--level=stmt+mcdc`  actually implements another variant, known as
-:dfn:`Masking MCDC` |ar0118|, accepted as a sound alternative and offering
-improved support for coupled conditions |cast6|.
+:option:`--level=stmt+mcdc` actually implements another variant, known as
+:dfn:`Masking MCDC`, accepted as a sound alternative and offering improved
+support for coupled conditions.
 
 Masking MCDC allows even further flexibility in the possible variations of
 conditions in an independence pair. Indeed, as soon as only short-circuit
@@ -1139,13 +1138,13 @@ Unix ``grep`` tool to filter::
 
     # Filter the driver/harness units out of the list:
 
-    grep -v 'test_[^/]*.ali' test_divmod0.alis > divmod0.alis 
+    grep -v 'test_[^/]*.ali' test_divmod0.alis > divmod0.alis
 
     # Run/Analyse using the lists. Using the superset for "run" is
     # fine and allows accurate mcdc analysis of the test_ units later
     # on if that happens to become of interest.  An extra flexibility
     # just in case.
- 
+
     gnatcov run --level=stmt+mcdc --scos=@test_divmod0.alis
 
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
@@ -1168,8 +1167,8 @@ combinations::
 and a ``ulist123`` text file containing the three of them.
 
 
-Inlining, Generic units & Optimization
-======================================
+Inlining & Generic Units
+========================
 
 In the vast majority of situations, inlining is just transparent to source
 coverage metrics: calls are treated as regular statements and coverage of the
@@ -1261,7 +1260,7 @@ coverage criterion (see the ``.`` annotations on lines 14 and 15):
    4 .: procedure Test_Pos1 is
    5 .:    function Pos (X : Integer) return Boolean;
    6 .:    pragma Inline (Pos);
-   7 .: 
+   7 .:
    8 .:    function Pos (X : Integer) return Boolean is
    9 .:    begin
   10 +:       if X > 0 then
@@ -1272,7 +1271,7 @@ coverage criterion (see the ``.`` annotations on lines 14 and 15):
   15 .:          return False;
   16 .:       end if;
   17 .:    end Pos;
-  18 .: 
+  18 .:
   19 .: begin
   20 +:    Assert (Pos (1) = True);
   21 .: end Test_Pos1;

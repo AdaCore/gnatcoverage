@@ -56,7 +56,8 @@ doc-html: doc-prepare
 	cd $(UMAN_DOCDIR); make html
 
 clean:
-	$(RM) *.o *.ali $(PGMNAME) b~* $(ALLDOCS)
+	$(RM) *.o *.ali $(PGMNAME) b~*
+	make -C doc/umanual clean
 
 ##########################
 # Installation/Packaging #
