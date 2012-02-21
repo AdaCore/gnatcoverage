@@ -2,19 +2,17 @@ Compliance to guidance
 ======================
 This section contains compliance matrix with the guidance contained in section 12.2 of DO-178B. 
 
-**Note:** in the following, we always use the term "verification tool" to indicate the software level of the tool following the DO-178B terminology. In this context, this term is equivalent to TQL5 for DO-178C.
-
 .. csv-table:: **Section 12.2**
    :delim: |
    :header: "Section", "Data", "Notes"
 
    12.2a|verification tool|see `Software Level`_
    12.2b|not applicable|verification tool
-   12.2c |see  :qmref:`$(project)::Plans::Software Configuration Management Plan` and see :qmref:`$(project)::Plans::Software Quality Assurance Plan`
+   12.2c |see  :qmref:`$(project)::Plans::Software Configuration Management Hints` and see :qmref:`$(project)::Plans::Software Quality Assurance Plan`
    12.2.1|not applicable| verification tool
    12.2.2| see the TOR document, the STR report, and `GNATcoverage Qualified Interface`_ |
    12.2.3a|to be provided by the applicant|See :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`
-   12.2.3b|CC2 see  :qmref:`$(project)::Plans::Software Configuration Management Plan`|verification tool
+   12.2.3b|CC2 see  :qmref:`$(project)::Plans::Software Configuration Management Hints`|verification tool
    12.2.3c|not applicable|verification tool
    12.2.3.1|not applicable|nonetheless we provide :qmref:`$(project)::Plans::Tool Qualification Plan` (this document)
    12.2.3.2a|see the TOR document|

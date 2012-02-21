@@ -19,5 +19,5 @@ GNATcoverage DO-178B/ED-12B Qualification Plans
 
    Documentation Introduction
    Tool Qualification Plan
-   Software Configuration Management Plan
+   Software Configuration Management Hints
    Software Quality Assurance Plan

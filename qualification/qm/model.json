@@ -45,10 +45,10 @@
          "Repository"    : "Tool_Qualification_Plan",
          "Activity"      : {"Description" : "Write the tool qualification plan"},
          "Occurrences"   : "1"},
-       "Software Configuration Management Plan": {
+       "Software Configuration Management Hints": {
          "ArtifactClass" : "Document",
-         "Repository"    : "Software_Configuration_Management_Plan",
-         "Activity"      : {"Description" : "Write the software configuration management plan"},
+         "Repository"    : "Software_Configuration_Management_Hints",
+         "Activity"      : {"Description" : "Write the software configuration management hints"},
          "Occurrences"   : "1"},
        "Software Quality Assurance Plan": {
          "ArtifactClass" : "Document",

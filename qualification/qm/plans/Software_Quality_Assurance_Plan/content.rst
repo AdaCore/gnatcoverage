@@ -9,7 +9,7 @@ We remind here that GNATcoverage is qualified as a verification tool. As such, m
    :header: "Item", "Description", "Ref.", "Notes", "Activity"
 
    1|Assurance is obtained that software development and integral processes comply with approved software plans and standards.|8.1a|For verification tools, this is limited to the compliance of tool processes with approved plans|`Reading of GNATcoverage Qualification Material: Plans`_, `Inspection of qualification data (by sampling)`_
-   2|Assurance is obtained that transition criteria for the software life cycle processes are satisfied.|8.1b|Not required for verification tools|n/a
+   2|Assurance is obtained that transition criteria for the software life cycle processes are satisfied.|8.1b|Not required for verification tools|not applicable
    3|Software conformity review is conducted.|8.1c, 8.3e, 8.3f| Items 8.3a, 8.3b. 8.3c, 8.3d, 8.3g, 8.3h and 8.3i are not required for verification tools or CC2; 8.3f is also not required because verification tool qualification is supposed to be black-box|`Tool Conformity Review`_
 
 Quality Assurance Activities

@@ -1,14 +1,1 @@
-
-[
-  {"artifact": "/plans/Documentation_Introduction", "files":     
-        [
-          {"file": "content.rst", "sha1": "f21db6b1fc63d879f2f3758bd6a048b7bc8b6bbb"}
-        ]
-        }, 
-  {"artifact": "/plans", "files":     
-        [
-          {"file": "content.rst", "sha1": "818e0421392b0e0b8710162cad292812283040a8"}, 
-              {"file": "conf.py", "sha1": "0d27e790ef17e4485b7cc2d9f0a89ee53e1832cd"}
-        ]
-        }
-]
+[{"artifact":"/plans/Documentation_Introduction", "files":[{"sha1":"f21db6b1fc63d879f2f3758bd6a048b7bc8b6bbb", "file":"content.rst"}]}, {"artifact":"/plans", "files":[{"sha1":"a162c4b267531becd94505994f10663737bc97ce", "file":"content.rst"}, {"sha1":"0fac3b20cc119d9c0e6131f43d071b048ab7a562", "file":"conf.py"}]}]

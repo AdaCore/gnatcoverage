@@ -1,13 +1,1 @@
-
-[
-  {"artifact": "/plans/Tool_Qualification_Plan/User_Activities", "files":     
-        [
-          {"file": "content.rst", "sha1": "30e83e2b606ad5348a1a66b8cdca5897b7f0f45a"}
-        ]
-        }, 
-  {"artifact": "/plans/Tool_Qualification_Plan", "files":     
-        [
-          {"file": "content.rst", "sha1": "151418185ac0cad91a24e76a0c2ad4f1ccb5ce4e"}
-        ]
-        }
-]
+[{"artifact":"/plans/Tool_Qualification_Plan/User_Activities", "files":[{"sha1":"106bca27cc6f36ed4dd99b104617fc66b05a1045", "file":"content.rst"}]}, {"artifact":"/plans/Tool_Qualification_Plan", "files":[{"sha1":"151418185ac0cad91a24e76a0c2ad4f1ccb5ce4e", "file":"content.rst"}]}]
