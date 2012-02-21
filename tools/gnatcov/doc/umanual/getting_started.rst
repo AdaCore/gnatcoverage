@@ -10,8 +10,8 @@ directly on the target code in cross configurations.
 
 |gcp| supports both source and object level coverage criteria: statement,
 decision, or mcdc coverage for the source level, and instruction or branch
-coverage for the object level. Once your application is built, the analysis
-proceeds in two steps:
+coverage for the object level. Once your application is built, a typical
+analysis proceeds in two steps:
 
 1) Use |gcvrun| to run your application within the instrumented environment,
    producing <yourapp.trace>. gnatcov determines the target architecture
@@ -22,8 +22,8 @@ proceeds in two steps:
 2) Use |gcvcov| to produce a coverage report from the execution trace, with a
    command line that looks like the following::
 
-     gnatcov coverage --level=<criterion> [--scos=@<ALIs>] [--routines=@<symbols>]
-        --annotate=<report-format> <yourapp.trace>
+     gnatcov coverage --level=<criterion> --annotate=<report-format>
+        [--scos=@<ALIs>] [--routines=@<symbols>] <yourapp.trace>
 
 Very briefly here:
 
@@ -57,15 +57,16 @@ Object coverage analysis proceeds in a similar fashion, with different
 involved (by definition of *object* coverage), so no :option:`--scos`
 argument, and no specific constraint on the compilation options.
 
-Beyond the simple cases sketched above, |gcp| supports common advanced
-capabilities, available for both source and object coverage criteria. In
-particular: consolidated assessments, computing results for a set of execution
-traces, and exemption regions, allowing users to define code regions for which
-coverage violations are expected and legitimate.
+Beyond the simple cases sketched above, |gcp| supports advanced capabilities
+available for both source and object coverage criteria. Two examples are
+*coverage consolidation*, computing results for a set of execution traces, and
+*exemption regions*, allowing users to define code regions for which coverage
+violations are expected and legitimate.
 
 The following chapters provide many more details on the various possible modes
-of operation. Next in this chapter comes an example complete sequence, from
-compilation to coverage analysis of a very simple Ada program.
+of operation. Prior to this, next in this chapter, comes a complete example
+sequence illustrating steps from compilation to coverage analysis of a very
+simple Ada program.
 
 
 **Example**
@@ -104,10 +105,10 @@ in ``test_inc.adb``:
      pragma Assert (X = 5);
    end Test_Inc;
 
-Our analysis is using the GNAT Pro toolset for powerpc-elf to build, and
-GNATemulator for the same target (invoked by gnatcov run) to emulate. The
-executable construction is performed using :command:`gprbuild`, operating on
-the following ``ops.gpr`` project file::
+We use the GNAT Pro toolset for powerpc-elf to build, and GNATemulator for the
+same target (invoked by gnatcov run) to emulate. The executable construction
+is performed using :command:`gprbuild`, operating on the following ``ops.gpr``
+project file::
 
    project Ops is
     for Languages use ("Ada");
@@ -149,20 +150,20 @@ Now, we can analyse the coverage achieved by this execution using
 
   gnatcov coverage --level=stmt --annotate=xcov test_inc.trace --scos=obj/ops.ali
 
-Here, we 
+Here, we request
 
-- request a source *statement coverage* assessment with :option:`--level=stmt`
+- a source *statement coverage* assessment with :option:`--level=stmt`
 
-- query an annotated source report in text format  with :option:`--annotate=xcov`
+- an annotated source report in text format  with :option:`--annotate=xcov`
 
 - focus on the functional unit only with :option:`--annotate=obj/ops.ali`
 
-This produces a single annotated source in the current directory, ``ops.adb.xcov``
-quoted below:
+This produces a single annotated source in the current directory,
+``ops.adb.xcov`` quoted below:
 
 .. code-block:: ada
 
-  /home/hainque/couverture/tools/gnatcov/doctemp/examples/starter/src/ops.adb:
+  examples/starter/src/ops.adb:
   67% of 3 lines covered
   Coverage level: stmt
    1 .: package body Ops is
