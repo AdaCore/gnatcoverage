@@ -46,7 +46,7 @@ doc: $(ALLDOCS)
 
 doc-prepare:
 	cd $(UMAN_DOCDIR); \
-	VERSION=$$($(PGMNAME) --version | sed -e 's/^[a-zA-Z]* *//'); \
+	VERSION=$$(sed -n -e 's/.*Version.*"\(.*\)".*/\1/p' ../../version.ads); \
 	perl -pi -e "s#^version =.*#version = \"$$VERSION\"#" conf.py
 
 doc-pdf: doc-prepare
