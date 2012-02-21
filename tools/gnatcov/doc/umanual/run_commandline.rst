@@ -7,13 +7,9 @@
 |gcvrun| command line
 **********************
 
-|gcvrun| offers a unified interface to launch programs for a specific
-target machine and produce execution traces.
-
-The general interface synopsis is available from ``gnatcov`` ``--help``,
-as follows:
-
-::
+|gcvrun| offers a unified interface to launch programs for a specific target
+machine and produce execution traces. The general interface synopsis is
+available from ``gnatcov`` ``--help``, as follows::
 
    run [OPTIONS] FILE [-eargs EARGS...]
      Options are:
@@ -27,6 +23,11 @@ as follows:
      --scos=FILE                  Add FILE to the set of SCOS
      -eargs EARGS                 Pass EARGS to the low-level emulator
   
+:option:`FILE` |marg| :
+  The executable program to be emulated. This provided name is stored in
+  the output trace header, where it is retrieved later by |gcvcov| for
+  analysis purposes. Relative paths will be considered relative to the
+  location where |gcvcov| is launched.
 
 :option:`-t`, :option:`--target` :
   The target architecture/board/abi that your program was built for. This
@@ -48,9 +49,7 @@ as follows:
 :option:`-T`, `--tag` :
   Store the provided string argument verbatim as a trace tag attribute in the
   output trace header.  The tag so associated with a trace can be retrieved
-  from trace dumps and is output as part of some analysis reports.  It is
-  useful as a flexible trace identification facility, structured as users see
-  fit for custom trace management purposes.
+  from trace dumps and is output as part of some analysis reports.
 
 :option:`--level` :
   Convey the kind of analysis that is intended from the produced traces later
@@ -68,23 +67,30 @@ as follows:
   Pass what follows to the low-level machine simulator that eventually
   executes the program.
 
-:option:`FILE` |marg| :
-  The executable program to be emulated. This name is stored as-provided in
-  the output trace header, where it is retrieved later by |gcvcov| for
-  analysis purposes. Relative paths will be considered relative to the
-  location where |gcvcov| is launched, not relative to where the trace file is
-  located.
-
 When |gem| is available on your PATH as `<target>-gnatemu`, |gcp| uses it to
 run your program. |gem| acts as a wrapper around the real machine emulator in
-this case, taking care of low-level interfacing details that are irrelevant to
-users.
-
-Otherwise, |gcp| resorts directly to the low level emulator statically
-configured for your :option:`--target` argument (when the tool was built), if
-any, and if it is available on your PATH.
+this case, taking care of low-level interfacing details. Otherwise, |gcp|
+resorts directly to the low level emulator statically configured for your
+:option:`--target` argument (when the tool was built), if any, and if it is
+available on your PATH.
 
 The :option:`-eargs` command line options that |gcvrun| receives are
 passed straight to the low-level emulation engine in both cases.
 They are not interpreted by |gem| when it is used.
 
+Here are a few examples of valid command lines. The simplest possible first::
+
+  gnatcov run myprog
+  # determine the target architecture, then run myprog in the corresponding
+  # instrumented environment. Produce myprog.trace in the current directory.
+
+  gnatcov run myprog -o myrun.trace
+  # Likewise, producing myrun.trace instead, still in the current directory
+
+  gnatcov run myprog -o myrun.trace -eargs -v
+  # Likewise, also requesting verbose output from the low level execution
+  # engine, *not* from gnatemulator if it happens to be involved.
+
+  gnatcov run myprog -T "trace for documentation example"
+  # Providing a trace tag, that can de retrieved with trace dump facilities
+  # and which is displayed in some output reports.

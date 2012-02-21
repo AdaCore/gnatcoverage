@@ -9,21 +9,19 @@ General principles & Compilation requirements
 
 Source coverage analysis computes metrics focused on source programming
 language entities such as high level `statements` or `decisions` (DO178
-parlance for boolean expressions).
+parlance for boolean expressions). For this purpose, |gcp| relies on
+:term:`Source Coverage Obligation` (SCO) tables, compact descriptions of the
+nature and source location of program entities relevant to source coverage
+criteria.  These tables are part of the Library Information produced by the
+|gpro| compilers, in the .ali or .gli file corresponding to each Ada or C
+unit, respectively.
 
-For this purpose, |gcp| relies on :term:`Source Coverage Obligation` (SCO)
-tables, compact descriptions of the nature and source location of program
-entities relevant to source coverage criteria.  These tables are part of the
-Library Information produced by the |gpro| compilers, in the .ali or .gli file
-corresponding to each Ada or C unit, respectively.
-
-Source coverage obligations are produced on demand, by the :option:`-gnateS`
-compilation option for Ada, and by the :option:`-fdump-scos` option for
-C. These options must be used to compile the sources you wish to analyze later
-on. In addition, all the sources must also be compiled :option:`-g`
-:option:`-fpreserve-control-flow`, both necessary to allow an accurate mapping
-of the execution traces back to source level obligations. Optimization is
-supported up to :option:`-O1`, with inlining allowed.
+Source coverage obligations are produced by the :option:`-gnateS` compilation
+option for Ada and by the :option:`-fdump-scos` option for C. Accurate mapping
+of the execution traces back to source level obligations requires :option:`-g`
+:option:`-fpreserve-control-flow`. These options must be used to compile the
+sources you wish to analyze later on. Optimization is supported up to
+:option:`-O1`, with inlining allowed.
 
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage
@@ -33,9 +31,9 @@ criteria; there is never a requirement to recompile just because a different
 criterion needs to be analyzed.
 
 The :ref:`gnatcov_run-commandline` section of this document provides details
-on the trace production interface. The remainder of this chapter explains the
-use of |gcvcov| in particular, to analyse traces once they have been produced.
-The general structure of this command line is always like::
+on the trace production interface. The remainder of this chapter focuses on
+the use of |gcvcov| to analyse traces once they have been produced.  The
+general structure of this command line is always like::
 
   gnatcov coverage --level=<criterion> --annotate=<format>
                    --scos=<LI files> ... <traces>
@@ -52,31 +50,27 @@ Output report formats (:option:`--annotate`)
 ============================================
 
 Source coverage reports may be produced in various formats, as requested with
-the :option:`--annotate` command line argument of |gcvcov|.
+the :option:`--annotate` command line argument of |gcvcov|. 
 
 The :option:`xcov` and :option:`html` formats both produce a set of annotated
 source files, in the directory where |gcv| is launched unless overriden with a
-:ref:`--output-dir option <cov-outdir>`.
-
-The :option:`report` output consists in a synthetic text report of
-:term:`coverage violations` with respect to the requested criteria, produced on
-standard output by default or in the file specified by the :option:`-o`
-command line option.
+:ref:`--output-dir option <cov-outdir>`. The :option:`report` output consists
+in a synthetic text report of :term:`coverage violations` with respect to the
+requested criteria, produced on standard output by default or in the file
+specified by the :option:`-o` command line option.
 
 Later in this chapter we name output formats by the text to add to
 :option:`--annotate` on the command line. For example, we use "the
 :option:`=report` outputs" to mean "the coverage reports produced with
 :option:`--annotate=report`".
 
-In all the cases, the report focuses on the sources stated to be of interest
-by way of the :option:`--scos` command line argument.
-
 We will illustrate the various formats with samples extracted from outputs
 obtained by perfoming coverage analysis of the following example Ada
 application unit::
 
    function Between (X1, X2, V : Integer) return Boolean;
-   --  Whether V is between X1 and X2, inclusive and however they are ordered
+   --  Whether V is between X1 and X2, inclusive and regardless
+   --  of their ordering.
 
    function Between (X1, X2, V : Integer) return Boolean is
    begin
@@ -91,8 +85,9 @@ Annotated sources, text (:option:`=xcov[+]`)
 --------------------------------------------
 
 For source coverage criteria, |gcvcov| :option:`--annotate=xcov` produces an
-annotated version of each source file, in text format, named after the original
-source with an extra ``.xcov`` extension at the end.
+annotated version of each source file, in text format, named after the
+original source with an extra ``.xcov`` extension at the end (``x.ext.xcov``
+for a source named ``x.ext``).
 
 Each annotated source contains a global summary of the assessment results
 followed by the original source lines, all numbered and marked with a coverage
@@ -110,53 +105,37 @@ in a single character, which may be one of the following:
    ``!`` | Coverage obligations attached to the line, some satisfied
    ``+`` | Coverage obligations attached to the line, all satisfied
 
-To illustrate, let us consider that we exercise our example functional unit in
-the following fashion, with ``X1 < X2`` in every call::
+Here is, to illustrate, the full statement coverage report produced for our
+example unit when the ``Between`` function was called so that the ``if``
+control evaluated True only. The function is actually part of an Ada package,
+called Ranges, with an original body source file ``named.adb``:
 
-  procedure Test_X1VX2V is
-  begin
-     Assert (Between (X1 => 2, X2 => 5, V => 3)); -- X1 < V < X2
-     Assert (not Between (X1 => 2, X2 => 5, V => 8)); -- X1 < X2 < V
-  end;
-
-This executes the ``if`` statement twice, evaluates the controlling decision
-True only and executes the first ``return`` statement twice, to return True
-then False.
-
-If we then perform, say, Statement Coverage analysis, we get a ``+``
-annotation for the corresponding lines, a ``-`` for the line with the second
-``return`` statement (never executed), and a ``.`` everywhere else.
-
-Here is the full report produced for our example unit, where the ``Between``
-function is actually part of an Ada package abstraction. The original source
-file is ``range.adb`` so the annotated version is ``range.adb.xcov``::
+.. code-block:: ada
 
  examples/src/ranges.adb:
  67% of 3 lines covered
  Coverage level: stmt
    1 .: package body Ranges is
-   2 .:
-   3 .:    function Between (X1, X2, V : Integer) return Boolean is
-   4 .:    begin
-   5 +:       if X1 < X2 then
-   6 +:          return V >= X1 and then V <= X2;
-   7 .:       else
-   8 -:          return V >= X2 and then V <= X1;
-   9 .:       end if;
-  10 .:    end;
-  11 .:
-  12 .: end;
+   2 .:    function Between (X1, X2, V : Integer) return Boolean is
+   3 .:    begin
+   4 +:       if X1 < X2 then
+   5 +:          return V >= X1 and then V <= X2;
+   6 .:       else
+   7 -:          return V >= X2 and then V <= X1;
+   8 .:       end if;
+   9 .:    end;
+  10 .: end;
 
 :option:`--annotate=xcov+` (with a trailing +) works the same, only providing
 extra details below lines with improperly satisfied obligations. The available
 details consists in the list of :term:`coverage violations` diagnosed for the
 line, which depends on the coverage criteria involved. Here is an excerpt for
 our previous example, where the only improperly satisfied obligation is an
-uncovered statement on line 8::
-
+uncovered statement on line 7::
+ 
  ...
-   8 -:          return V >= X2 and then V <= X1;
-   STATEMENT "return V ..." at 8:10 not executed
+   7 -:          return V >= X2 and then V <= X1;
+   STATEMENT "return V ..." at 7:10 not executed
  ...
 
 Annotated sources, html (:option:`=html[+]`)
@@ -228,8 +207,13 @@ The *Assessment Context* report section exposes the following information
 items:
 
 * Date & time when the report was produced
-* Command line and Version of |gcp| that produced the report
+
+* Command line and Version of |gcp| that produced the report. The set of units
+  that this report is about is conveyed by the :option:`--scos` option arguments
+  quoted there.
+
 * Coverage level requested to be analyzed
+
 * Details on the input trace files:
   path to binary program exercised (as provided on the command line),
   production time stamp and tag string (:option:`--tag` command line
@@ -258,9 +242,6 @@ Here is a example excerpt::
     tag    : sample run
 
 
-The set of units that this report is about is conveyed by the
-:option:`--scos` option arguments on the quoted command line.
-
 Coverage Violations
 ^^^^^^^^^^^^^^^^^^^
 
@@ -283,7 +264,7 @@ the :option:`--level` option:
 All the violations are reported using a consistent
 format, as follows::
 
-    ranges.adb:8:10: statement not executed
+    ranges.adb:7:10: statement not executed
       source  :sloc: violation description
 
 *source* and *sloc* are the source file basename and the precise
@@ -323,21 +304,21 @@ level::
   2.1. STMT COVERAGE
   ------------------
 
-  ranges.adb:8:10: statement not executed
+  ranges.adb:7:10: statement not executed
 
   1 violation.
 
   2.2. DECISION COVERAGE
   ----------------------
 
-  ranges.adb:5:10: decision outcome FALSE never exercised
+  ranges.adb:4:10: decision outcome FALSE never exercised
 
   1 violation.
 
   2.3. MCDC COVERAGE
   ------------------
 
-  ranges.adb:6:17: condition has no independent influence pair, MC/DC not achieved
+  ranges.adb:5:17: condition has no independent influence pair, MC/DC not achieved
 
   1 violation.
 
@@ -456,22 +437,14 @@ the following :term:`test driver` in ``test_div1.adb``:
       Assert (Div_With_Check (X, 1) = X);
    end;
 
-Once the driver+application bundle is built, we have a ``test_div1``
-executable that we execute with::
-
-  gnatcov run test_div1
-
-This produces ``test_div1.trace``, which we analyze for the Statement Coverage
-criterion as follows::
+From a ``test_div1.trace`` obtained with |gcvrun|, we analyze for the
+Statement Coverage criterion using the following |gcvcov| invocation::
 
   gnatcov coverage --level=stmt --scos=div_with_check.ali --annotate=xcov test_div1.trace
 
-Since we pass a single :option:`--scos` argument with a straight ``.ali`` file
-name, the analysis focuses on the corresponding unit alone. Results for the
-test drivers and harness are most often not of interest because these units
-are not part of the applicative code for which coverage objectives are to be
-met. :option:`--annotate=xcov` requests results as annotated sources in text
-format, which we get in ``div_with_check.adb.xcov``::
+We get an :option:`=xcov` annotated source result in text format for the
+functional unit on which the analysis is focused, in
+``div_with_check.adb.xcov``::
 
     examples/src/div_with_check.adb:
     67% of 3 lines covered
@@ -505,23 +478,14 @@ As a second experiment, we exercise the function for Y = 0 only, using:
       Put_Line ("R = " & Integer'Image (Result));
    end;
 
-The analysis proceeds in a very similar fashion as the previous one. We
-request results on the test driver as well this time, as it features
+We request results on the test driver as well this time, as it features
 constructs relevant to the points we wish to illustrate::
 
-  ls test_div0.ali div_with_checks.ali > alis
   gnatcov coverage --level=stmt --scos=@alis --annotate=xcov test_div0.trace
 
-The first command is a Unix-like way to create a file named ``alis`` which
-contains the list of ALI files corresponding to the units we want included in
-the assessement results.
+The :option:`=xcov` outputs follow. First, for the functional unit, with the
+``if`` statement coverage reversed compared to the previous testcase::
 
-The :option:`=xcov` outputs we obtain follow. First, results for the
-functional unit, with the ``if`` statement coverage reversed::
-
-   examples/src/div_with_check.adb:
-   67% of 3 lines covered
-   Coverage level: stmt
       1 .: function Div_With_Check (X, Y : Integer) return Integer is
       2 .: begin
       3 +:    if Y = 0 then
@@ -532,7 +496,7 @@ functional unit, with the ``if`` statement coverage reversed::
       8 .: end;
       9 .:
 
-Then, results for the test driver where we can note that
+Then, for the test driver where we can note that
 
 - The two lines of the local ``Result`` definition are annotated,
 
@@ -544,7 +508,6 @@ Then, results for the test driver where we can note that
 
 ::
 
-   examples/src/test_div0.adb:
    67% of 3 lines covered
    Coverage level: stmt
       1 .: with Div_With_Check, Ada.Text_IO; use Ada.Text_IO;
@@ -618,8 +581,8 @@ with the :option:`--level=stmt+decision` command line option.
 In this context, we consider to be :dfn:`decisions` all the Boolean
 expressions used to influence the control flow via explicit constructs in the
 source program, such as ``if`` statements or ``while`` loops. For proper
-operation, only short-circuit operators are allowed to combine operands:
-``and-then`` or ``or-else`` in Ada, ``&&`` or ``||`` in C).  With the |gnat|
+operation, only short-circuit operators are allowed to combine operands;
+``and-then`` or ``or-else`` in Ada, ``&&`` or ``||`` in C.  With the |gnat|
 compilers, this can be enforced with a `No_Direct_Boolean_Operator`
 restriction pragma for Ada.
 
@@ -731,7 +694,8 @@ of criteria::
 
    1 violation.
 
-For :option:`--annotate=xcov`, this translates as follows::
+For :option:`--annotate=xcov`, this translates as follows, with a single
+partial coverage annotation on the inner ``if`` control line::
 
    8 .: procedure Divmod
    9 .:   (X, Y : Integer; Value : out Integer;
@@ -781,7 +745,7 @@ check failure for the ``mod`` operation. This results in the following
   21 -:    Value := X / Y;
   22 .: end Divmod;
 
-We have an interesting situation where
+We have an interesting situation here, where
 
 * The outer ``if`` statement is reached and covered (as a statement),
 
@@ -790,8 +754,8 @@ We have an interesting situation where
   statements is ever reached.
 
 This gets all confirmed by the :option:`=report` output below, on which we
-also notice that the only diagnostic emitted for the uncovered inner ``if``,
-on line 14, is the statement coverage violation::
+also notice that the only diagnostic emitted for the uncovered inner ``if``
+on line 14 is the statement coverage violation::
 
    2.1. STMT COVERAGE
    ------------------
@@ -817,12 +781,11 @@ Modified Condition/Decision Coverage analysis (:option:`--level=stmt+mcdc`)
 ===========================================================================
 
 |gcv| performs combined Statement and Modified Condition/Decision Coverage
-assessments with :option:`--level=stmt+mcdc` passed to |gcvcov|.
-
-In addition to this particular :option:`--level` option, you should also
-provide |gcvrun| with the set of SCOs you plan to analyze, with a `--scos`
-argument as well. See the :ref:`trace-control` section for more details on
-this aspect of the procedure.
+analysis with :option:`--level=stmt+mcdc` passed to |gcvcov|. In addition to
+this particular :option:`--level` option, you should also provide |gcvrun|
+with the set of SCOs you plan to analyze, with a `--scos` argument as
+well. See the :ref:`trace-control` section for more details on this aspect of
+the procedure.
 
 Compared to Decision Coverage, MCDC analysis incurs two important
 differences:
@@ -836,15 +799,13 @@ differences:
 * We also treat as decisions all the Boolean expressions that involve at least
   two operands (which we call :term:`complex Boolean expressions`), not only
   when used to direct some conditional control-flow oriented statement. For
-  example, we consider that::
+  example, we consider that the code excerpt below features two expressions
+  subject to MCDC analysis: ``A and then not B``, as a complex Boolean
+  expression with two operands, and the simple ``Y`` expression that controls
+  the ``if`` statement::
 
     X := A and then not B;
     if Y then [...]
-
-  features two expressions subject to MCDC analysis: ``A and then not B``
-  (complex Boolean expression with two atoms), on the right hand side of the
-  assignment to X, and the simple expression ``Y`` that controls the ``if``
-  statement.
 
 Output-wise, the source annotations for the :option:`=xcov` or :option:`=html`
 formats are the same as for decision coverage, with condition specific cases
@@ -985,6 +946,7 @@ results::
 This produces a ``ranges.adb.xcov`` annotated source in text format with this
 contents::
 
+    ......
       8 .:    function Between (X1, X2, V : Integer) return Boolean is
       9 .:    begin
      10 !:       if X1 < X2 then
@@ -1017,34 +979,27 @@ one used a straight return value), and this distinction places the two
 ``decision outcome FALSE never exercised`` violations in distinct sections of
 the :option:`=report` output::
 
-   ============================
-   == 2. COVERAGE VIOLATIONS ==
-   ============================
+   =========================
+   == COVERAGE VIOLATIONS ==
+   =========================
 
    2.1. STMT COVERAGE
    ------------------
 
    ranges.adb:13:10: statement not executed
 
-   1 violation.
-
    2.2. DECISION COVERAGE
    ----------------------
 
    ranges.adb:10:10: decision outcome FALSE never exercised
-
-   1 violation.
 
    2.3. MCDC COVERAGE
    ------------------
 
    ranges.adb:11:17: decision outcome FALSE never exercised
 
-   1 violation.
 
-
-Now running again our original test driver which exercises two cases where X1
-< X2:
+Now running another test driver which exercises two cases where X1 < X2:
 
 .. code-block:: ada
 
@@ -1054,8 +1009,8 @@ Now running again our original test driver which exercises two cases where X1
       Assert (not Between (X1 => 2, X2 => 5, V => 8)); -- X1 < X2 < V
    end;
 
-The first return expression is valued both ways and we obtain an example of
-condition specific diagnostic on line 11::
+The first return expression is valued both ways and this results in an example
+of condition specific diagnostic on line 11::
 
      8 .:    function Between (X1, X2, V : Integer) return Boolean is
      9 .:    begin
@@ -1140,13 +1095,11 @@ Unix ``grep`` tool to filter::
 
     grep -v 'test_[^/]*.ali' test_divmod0.alis > divmod0.alis
 
-    # Run/Analyse using the lists. Using the superset for "run" is
-    # fine and allows accurate mcdc analysis of the test_ units later
-    # on if that happens to become of interest.  An extra flexibility
-    # just in case.
+    # Run/Analyse using the lists. We use the superset for "run", which
+    # allows accurate mcdc analysis of the test_ units later on if that
+    # happens to become of interest.
 
     gnatcov run --level=stmt+mcdc --scos=@test_divmod0.alis
-
     gnatcov coverage --level=stmt+mcdc --annotate=xcov --scos=@divmod0.alis
 
 Each occurrence of :option:`--scos` on the command line expects a single

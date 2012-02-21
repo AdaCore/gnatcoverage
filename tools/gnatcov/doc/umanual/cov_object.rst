@@ -114,10 +114,15 @@ our ``Assert`` subprogram compiled for the PowerPc architecture::
    ...
    120 +:  4e 80 00 20      blr
 
-A ``-`` for a line always conveys that the instruction was not executed at
-all. The instruction is also said to be *uncovered* in this case. A ``+``
-means that the instruction is *fully covered* with respect to the analyzed
-criterion, and other annotations, conveying *partial coverage*, might show up
+A ``-`` annotation for a line always conveys that the instruction was not
+executed at all. The instruction is also said to be *uncovered* in this
+case. Conversely, a ``+`` means that the instruction is *fully covered* with
+respect to the analyzed criterion, with a meaning which depends on both the
+criterion and the kind of instruction -- typically, whether the instruction
+is a conditional branch and whether we are doing mere instruction or object
+branch coverage nalaysis.
+
+Other annotations, conveying *partial coverage*, might show up as well, also
 depending on the criterion and kind of instruction. More details on the
 instruction specific annotations are provided in the criterion specific
 sections that follow.
@@ -131,7 +136,7 @@ spans and a synthetic coverage indication according to the following table:
 .. csv-table::
   :delim: |
   :widths: 10, 80
-  :header: Symbol Annotation, Meaning
+  :header: Symbol Annotation,Meaning
 
    ``-`` | All the subprogram instructions are uncovered (none executed)
    ``+`` | All the subprogram instructions are fully covered
@@ -171,7 +176,8 @@ as an indication of the assessed criterion. The example below is an example
 of report obtained for our Assert unit:
 
 .. code-block:: ada
-
+ 
+ examples/src/assert.adb:
  75% of 4 lines covered
  Coverage level: insn
    1 +: procedure Assert (T : Boolean) is
@@ -330,6 +336,7 @@ satisfied::
 
 The corresponding :option:`=xcov` output follows::
 
+ examples/src/assert.adb:
  50% of 4 lines covered
  Coverage level: branch
    1 +: procedure Assert (T : Boolean) is
@@ -341,11 +348,11 @@ The corresponding :option:`=xcov` output follows::
 
 The partial branch coverage logically translates into a partial coverage
 annotation on the line to which the branch is attached, here the line of the
-*if* statement that the conditional branch implements.
+*if* statement that the conditional branch implements. This is confirmed by
+the :option:`=xcov+` output, where the individual instructions are visible as
+well together with their own coverage indications::
 
-This is confirmed by the :option:`=xcov+` output, where the individual
-instructions are visible as well together with their own coverage indications::
-
+   examples/src/assert.adb:
    50% of 4 lines covered
    Coverage level: branch
       1 +: procedure Assert (T : Boolean) is
@@ -355,11 +362,10 @@ instructions are visible as well together with their own coverage indications::
    0dc +:  98 1f 00 08  stb    r0,0x0008(r31)
       2 .: begin
       3 !:    if not T then
-   <_ada_assert+0000001c>:+
+   <_ada_assert+0000001c>:!
    0e0 +:  88 1f 00 08  lbz    r0,0x0008(r31)
    ...
    0ec +:  2f 80 00 00  cmpiw  cr7,r0,0x0000
-   <_ada_assert+0000002c>:!
    0f0 >:  41 9e 00 18  beq-   cr7,0x108 <_ada_assert+00000044>
       4 -:       raise Program_Error;
    <_ada_assert+00000030>:-
@@ -414,17 +420,13 @@ provided on the command line. :dfn:`Object file` is to be taken in the general
 sense here, as :dfn:`conforming to a supported object file format, typically
 ELF`, so includes executable files as well as single compilation unit objects.
 
-The output set is built incrementally while processing the arguments
-left to right.
-
-:option:`--include` states "from now on, until contradicted, symbols defined
-in object files are added to the result set", and :option:`--exclude` states
-"from now on, until contradicted, symbols defined in object files are removed
-from the result set".
-
-An implicit :option:`--include` is assumed right at the beginning, and each
-argument may be either the direct name of an object file or a :term:`@listfile
-argument` containing a list of such names.
+The output set is built incrementally while processing the arguments left to
+right. :option:`--include` states "from now on, until contradicted, symbols
+defined in object files are added to the result set", and :option:`--exclude`
+states "from now on, until contradicted, symbols defined in object files are
+removed from the result set". An implicit :option:`--include` is assumed right
+at the beginning, and each argument may be either the direct name of an object
+file or a :term:`@listfile argument` containing a list of such names.
 
 Below are a few examples of commands together with a description of the
 set they build::
@@ -462,13 +464,11 @@ Inlining & Generic units
 
 The generated code for an inlined subprogram call or a generic instantiation
 materializes two distinct source entities: the expanded source (of the inlined
-subprogram or of the instanciated generic body) and the expansion request
-(the subprogram call or the generic instanciation).
-
-While this is of no consequence for :option:`=asm` outputs, which just report
-coverage of raw machine instructions within their object level subprograms,
-regardless of the object code origin, this raises a few points of note for
-in-source outputs.
+subprogram or of the instanciated generic body) and the expansion request (the
+subprogram call or the generic instanciation). While this is of no consequence
+for :option:`=asm` outputs, which just report coverage of raw machine
+instructions within their object level subprograms, regardless of the object
+code origin, this raises a few points of note for in-source outputs.
 
 For inlined calls, potentially surprising results might show up when a
 specific set of object routines is queried. Indeed, when the code for a symbol
@@ -482,14 +482,12 @@ Consider the following Ada units for example, in source files named
 
 .. code-block:: ada
 
-   -- intops.ads
+   -- Functional unit
 
    package Intops is
       procedure Inc (X : in out Integer);
       pragma Inline (Inc);
    end Intops;
-
-   -- intops.adb
 
    package body Intops is
       procedure Inc (X : in out Integer) is
@@ -498,7 +496,7 @@ Consider the following Ada units for example, in source files named
       end Inc;
    end Intops;
 
-   -- test_inc0.adb
+   -- Test Driver
 
    procedure Test_Inc0  is
       X : Integer := 0;
@@ -513,9 +511,11 @@ execution of the ``test_inc0`` executable, the following analysis::
 
   gnatcov coverage --level=insn --routines=_test_inc0 --annotate=xcov+ test_inc0.trace
 
-produces an ``intops.adb.xcov`` annotated source as well, despite the request
-to report about the Test_Inc0 procedure only. Indeed, the object code of this
-procedure also contains (inlined) code coming from the other unit.
+Thanks to :option:`--routines`, this requests to report about the Test_Inc0
+procedure only, so we intuitively expect a single ``test_inc0.adb.xcov``
+annotated source result. The command actually produces an ``intops.adb.xcov``
+report as well because the object code of Test_Inc0 also contains inlined
+code coming from the other unit.
 
 For generic units, |gcp| aggregates information for all the instances on the
 common generic source, so each line annotation is sort of a super synthesis of
@@ -550,7 +550,6 @@ object code for each instance:
 
 .. code-block:: ada
 
-   with Genpos;
    package POSI is
       type T1 is new Integer;
       package Pos_T1 is new Genpos (Num_T => T1);
@@ -565,7 +564,6 @@ for ``Count`` in the second instance (not going within the *if* statement):
    
 .. code-block:: ada
 
-   with POSI; use POSI
    procedure Test_Genpos is
    begin
       Pos_T1.Count (X => 1);
@@ -581,28 +579,26 @@ uncovered in the ``Pos_T2`` instance (``-`` at offset 204 and on), while it is
 reported covered as expected in the ``Pos_T1`` instance (``+`` at offset 1b4
 and on)::
 
-   posi__pos_t1__count +: 198-1e7
-   ...
+   posi__pos_t1__count +: 1ac-1e7
    1ac +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
    1b0 +:  40 9d 00 24      ble-   cr7,0x1d4 <posi__pos_t1__count+0000003c>
-   1b4 +:  3c 00 00 00      lis    r0,0x0000
-   ...
-   1d4 +:  60 00 00 00      ori    r0,r0,0x0000
+   1b4 +:  3c 00 00 00      lis    r0,0x0000        -
+   ...                                              - cond branch not taken
+   1d4 +:  60 00 00 00      ori    r0,r0,0x0000  <--o
    ...
    1e4 +:  4e 80 00 20      blr
 
-   posi__pos_t2__count !: 1e8-237
-   ...
+   posi__pos_t2__count !: 1fc-237
    1fc +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
    200 +:  40 9d 00 24      ble-   cr7,0x224 <posi__pos_t2__count+0000003c>
-   204 -:  3c 00 00 00      lis    r0,0x0000
-   ...
-   224 +:  60 00 00 00      ori    r0,r0,0x0000
+   204 -:  3c 00 00 00      lis    r0,0x0000        |
+   ...                                              | cond branch taken
+   224 +:  60 00 00 00      ori    r0,r0,0x0000 <---o
    ...
    234 +:  4e 80 00 20      blr
 
-This translates into a partial coverage annotation for the corresponding
-source line in the :option:`=xcov` output (``!`` on line 10)
+This yields a partial coverage annotation for the corresponding source line in
+the :option:`=xcov` output (``!`` on line 10):
 
 .. code-block:: ada
 
@@ -621,15 +617,13 @@ identifiable by the associated object symbol names::
 
    ...
      10 !:          N_Positive := N_Positive + 1;
-
    <posi__pos_t1__count+0000001c>:+
    1b4 +:  3c 00 00 00  lis    r0,0x0000
    ...
    1d0 +:  91 2b 10 48  stw    r9,0x1048(r11)
-
    <posi__pos_t2__count+0000001c>:-
    204 -:  3c 00 00 00  lis    r0,0x0000
    ...
    220 -:  91 2b 10 4c  stw    r9,0x104c(r11)
-     11 .:       end if;
+
 

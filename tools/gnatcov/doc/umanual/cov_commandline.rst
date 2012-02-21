@@ -75,9 +75,8 @@ interface synopsis is available from |gcv| :option:`--help`::
 Elements on the command line that are not tied to a particular option are
 considered as trace file arguments. :option:`--trace` is marked mandatory only
 to indicate that at least one trace file is required, which may but need not
-be introduced with :option:`-T` or :option:`--trace`.
-
-Here are a few examples of valid command lines::
+be introduced with :option:`-T` or :option:`--trace`. Here are a few examples
+of valid command lines::
 
   gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=prog.trace
   #                      (a)         (b)              (c)            (d)
@@ -88,8 +87,7 @@ Here are a few examples of valid command lines::
 
   gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html t1 t2
   # Statement and Decision coverage assessments for two traces "t1" and "t2",
-  # stated as two orphan arguments, producing html report files in the current
-  # directory
+  # producing html report files in the current directory.
 
   gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html @mytraces
   # Same report, with t1 and t2 listed in the "mytraces" text file

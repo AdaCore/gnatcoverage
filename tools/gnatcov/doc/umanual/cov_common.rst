@@ -5,14 +5,13 @@ Source/Object Coverage Considerations
 Even though the executable object code reflects semantics originally expressed
 in the application sources, Object and Source level coverage metrics are of
 very different nature, concerned with entities of very different kinds
-(machine instructions vs high level constructs).
-
-The first section of this chapter aims at stressing this point further with a
-couple of illustrative examples. The following sections then present advanced
-tools capabilities aimed at helping the analysis in various operational
-contexts, when some coverage violations are legitimate and need to be documented,
-or when the global assessment strategy needs consolidation across multiple programs
-or executions.
+(machine instructions vs high level constructs). The first section of this
+chapter aims at stressing this point further with a couple of illustrative
+examples. The following sections then present advanced tool capabilities
+designed to help the analysis in various operational contexts, when some
+coverage violations are legitimate and need to be documented, or when the
+global assessment strategy needs consolidation across multiple programs or
+executions.
 
 .. _osmetrics:
 
