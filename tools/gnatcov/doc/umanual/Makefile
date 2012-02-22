@@ -12,25 +12,22 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help clean html latexpdf text
+.PHONY: help clean html pdf
 
-clean:
-	-rm -rf $(BUILDDIR)/html $(BUILDDIR)/pdf
+clean.%:
+	-rm -rf $(BUILDDIR)/$*
 
-gen:
+clean: clean.pdf clean.html
+	-rm -rf $(BUILDDIR)/doctrees
+	-rmdir $(BUILDDIR)
 
-html: gen
+prepare:
+	VERSION=$$(sed -n -e 's/.*Version.*"\(.*\)".*/\1/p' ../../version.ads); \
+	perl -pi -e "s#^version =.*#version = \"$$VERSION\"#" conf.py
+
+html: prepare
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
-	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-pdf: gen
+pdf: prepare
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/pdf
-	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/pdf all-pdf
-	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
-
-text: gen
-	$(SPHINXBUILD) -b text $(ALLSPHINXOPTS) $(BUILDDIR)/text
-	@echo
-	@echo "Build finished. The text files are in $(BUILDDIR)/text."

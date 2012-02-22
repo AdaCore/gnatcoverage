@@ -5,6 +5,7 @@ RM=rm -f
 CP=cp -pf
 LN=ln -sf
 MKDIR=mkdir -p
+RMDIR=-rmdir
 MAKEINFO=makeinfo
 exeext=
 
@@ -15,7 +16,6 @@ PGMNAME=gnatcov
 DIRNAME=gnatcoverage
 
 DOCFORMATS=pdf html
-ALLDOCS=$(foreach fmt, $(DOCFORMATS), doc-$(fmt))
 
 all: $(PGMNAME)
 
@@ -39,46 +39,87 @@ copy_gnat_src: force
 # Documentation #
 #################
 
+# We need two kinds of targets for documentation:
+# - One for developers that just builds the docs and leaves
+#   everything in place (e.g. temporary sphinx build subdirs)
+# - One for package production purposes that clears the
+#   intermediate artifacts
+
+# The 'doc' general target builds all the formats and cleans up the build
+# trees afterwards. This is to be used for package construction.
+
+# The 'doc.<format>' targets just builds a format and leaves artifacts
+# around.
+
+# In both cases the constructed user doc elements are always copied
+# to the doc/<format> subdir eventually.
+
 UMAN_DOCDIR=doc/umanual
 
+# Prepare to build one version of the doc, updating the sphinx conf.py
+# "version" variable. Extract the version number from the gnatcov sources,
+# not from the result of "gnatcov --version". The former is supposed to
+# be accurate and we know it is available.
+
+# Build, copy, cleanup for one version (format) of the doc.
+
+doc-build.%:
+	make -C $(UMAN_DOCDIR) $*
+
+doc-copy.%:
+	$(MKDIR) doc/$*
+	$(CP) -r $(UMAN_DOCDIR)/_build/$*/*.$* doc/$*
+
 .PHONY: doc
-doc: $(ALLDOCS)
 
-doc-prepare:
-	cd $(UMAN_DOCDIR); \
-	VERSION=$$(sed -n -e 's/.*Version.*"\(.*\)".*/\1/p' ../../version.ads); \
-	perl -pi -e "s#^version =.*#version = \"$$VERSION\"#" conf.py
+doc.%: doc-build.% doc-copy.%
+	@echo $@ done
 
-doc-pdf: doc-prepare
-	cd $(UMAN_DOCDIR); make pdf 
+doc: $(foreach fmt, $(DOCFORMATS), doc.$(fmt)) clean-doc-build
 
-doc-html: doc-prepare
-	cd $(UMAN_DOCDIR); make html
+###################
+# General cleanup #
+###################
 
-clean:
+.PHONY: clean-bin clean-doc-copy clean-doc-build clean
+
+clean-bin:
 	$(RM) *.o *.ali $(PGMNAME) b~*
-	make -C doc/umanual clean
+
+clean-doc-copy.%:
+	   $(RM) doc/$*/*.$*
+	   $(RMDIR) doc/$*
+
+clean-doc-copy: $(foreach fmt, $(DOCFORMATS), clean-doc-copy.$(fmt))
+
+clean-doc-build:
+	make -C $(UMAN_DOCDIR) clean
+
+clean: clean-bin clean-doc-build clean-doc-copy
 
 ##########################
 # Installation/Packaging #
 ##########################
 
-.PHONY: install distrib
-install:
+.PHONY: install-bin install-examples install-doc install
+
+install-bin:
 	$(MKDIR) $(PREFIX)/bin
 	$(CP) $(PGMNAME)$(exeext) $(PREFIX)/bin
 
+install-examples:
 	$(MKDIR) $(PREFIX)/share/examples/$(DIRNAME)
 	$(CP) -r examples/* $(PREFIX)/share/examples/$(DIRNAME)
 
-	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)
-	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/html
-	$(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/pdf
+install-doc.%:
+	   $(MKDIR) $(PREFIX)/share/doc/$(DIRNAME)/$*
+	   $(CP) -r doc/$*/* $(PREFIX)/share/doc/$(DIRNAME)/$*
 
-	$(CP) -r $(UMAN_DOCDIR)/_build/html/*.html \
-	   $(PREFIX)/share/doc/$(DIRNAME)/html
-	$(CP) -r $(UMAN_DOCDIR)/_build/pdf/*.pdf \
-	   $(PREFIX)/share/doc/$(DIRNAME)/pdf
+install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
+
+install: install-bin install-examples install-doc
+
+.PHONY: distrib force
 
 distrib: install
 	$(CP) README INSTALL $(PREFIX)
