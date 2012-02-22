@@ -1,9 +1,0 @@
-This directory contains
-
-  * gnatcov.texi, source of the gnatcov user's guide built by ../Makefile
-
-  * LaTeX sources of various technical reports, to be built with the local
-    'Makefile.reports', by "make -fMakefile.reports REPORT=<report basename>"
-
-  * BibTex databases for references and publications.
-
