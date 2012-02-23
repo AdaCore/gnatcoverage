@@ -51,24 +51,16 @@ copy_gnat_src: force
 # The 'doc.<format>' targets just builds a format and leaves artifacts
 # around.
 
-# In both cases the constructed user doc elements are always copied
+# In both cases the constructed user doc elements are copied
 # to the doc/<format> subdir eventually.
 
 UMAN_DOCDIR=doc/umanual
-
-# Prepare to build one version of the doc, updating the sphinx conf.py
-# "version" variable. Extract the version number from the gnatcov sources,
-# not from the result of "gnatcov --version". The former is supposed to
-# be accurate and we know it is available.
-
-# Build, copy, cleanup for one version (format) of the doc.
 
 doc-build.%:
 	make -C $(UMAN_DOCDIR) $*
 
 doc-copy.%:
-	$(MKDIR) doc/$*
-	$(CP) -r $(UMAN_DOCDIR)/_build/$*/*.$* doc/$*
+	make -C $(UMAN_DOCDIR) COPYDIR=$(shell pwd)/doc/$* copy.$*
 
 .PHONY: doc
 
@@ -87,8 +79,7 @@ clean-bin:
 	$(RM) *.o *.ali $(PGMNAME) b~*
 
 clean-doc-copy.%:
-	   $(RM) doc/$*/*.$*
-	   $(RMDIR) doc/$*
+	   $(RM) -r doc/$*
 
 clean-doc-copy: $(foreach fmt, $(DOCFORMATS), clean-doc-copy.$(fmt))
 
@@ -97,9 +88,9 @@ clean-doc-build:
 
 clean: clean-bin clean-doc-build clean-doc-copy
 
-##########################
-# Installation/Packaging #
-##########################
+################
+# Installation #
+################
 
 .PHONY: install-bin install-examples install-doc install
 
@@ -119,7 +110,11 @@ install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 
 install: install-bin install-examples install-doc
 
-.PHONY: distrib force
+#############
+# Packaging #
+#############
+
+.PHONY: distrib
 
 distrib: install
 	$(CP) README INSTALL $(PREFIX)
@@ -127,4 +122,5 @@ distrib: install
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
 	chmod +x $(PREFIX)/doinstall
+
 force:
