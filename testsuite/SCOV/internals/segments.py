@@ -47,6 +47,12 @@ def Sloc_from(text):
     return Sloc (
         line = int(items[0]), col = int(items [1]))
 
+# Now the concrete classes. Each features a __str__ method for displays by the
+# testuite (in error messages for example) and a "_from (text)" method to
+# construct an instance from text known to be properly formed, coming from
+# gnatcov outputs. The _str_ images do not need to match the format expected
+# by their _from sibling in the same class.
+
 # A Section is the association of two slocs to materialize the start
 # and the end of a source section, and which knows to determine if it
 # is included within another section.
@@ -73,7 +79,7 @@ class Section:
                 and self.sloc1.beforeq (other.sloc1))
 
     def __str__(self):
-        return "%d:%d-%d:%d" % (
+        return "section %d:%d-%d:%d" % (
             self.sloc0.l, self.sloc0.c, self.sloc1.l, self.sloc1.c)
 
 def Section_from(text):
@@ -92,7 +98,7 @@ class Segment (Section):
         Section.__init__(self, l0 = lno, c0 = clo, l1 = lno, c1 = chi)
 
     def __str__(self):
-        return "%d:%d-%d" % (self.sloc0.l, self.sloc0.c, self.sloc1.c)
+        return "segment %d:%d-%d" % (self.sloc0.l, self.sloc0.c, self.sloc1.c)
 
 def Segment_from(text):
     topitems = text.split (':', 1)
@@ -108,7 +114,7 @@ class Line (Segment):
         Segment.__init__(self, lno = lno, clo = 0, chi = 0)
 
     def __str__(self):
-        return "%d:" % self.sloc0.l
+        return "line %d" % self.sloc0.l
 
 def Line_from(text):
     items = text.split (':', 1)
@@ -121,7 +127,7 @@ class Point (Segment):
         Segment.__init__(self, lno = lno, clo = col, chi = col)
 
     def __str__(self):
-        return "%d:%d" % (self.sloc0.l, self.sloc0.c)
+        return "sloc %d:%d" % (self.sloc0.l, self.sloc0.c)
 
 def Point_from(text):
     items = text.split (':', 1)
