@@ -192,11 +192,23 @@ class TestSuite:
         with open (os.path.join(self.log_dir, 'results'), 'w') as fd:
             [fd.write('%s:DEAD:\n' % dt.filename) for dt in self.dead_list]
 
-        # Warn about an empty non-dead list, in quiet mode as well. This is almost
+        # Warn about an empty non-dead list, always. This is almost
         # certainly a selection mistake in any case.
 
         if not self.non_dead_list:
-            logging.warning ("List of (non-dead) tests to run is empty. Selection mistake ?")
+            logging.warning (
+                "List of non-dead tests to run is empty. Selection mistake ?")
+
+        # Otherwise, advertise the number of tests to run, even in quiet mode,
+        # so we have at least a minimum feedback to match what is going to run
+        # against the intent.
+
+        else:
+            logging.info (
+                "%d non-dead tests to run%s ..." % (
+                    len(self.non_dead_list),
+                    ", displaying failures only" if self.options.quiet else "")
+                )
 
         # Compute targetprefix, prefix to designate target specific versions
         # of command line tools (a-la <prefix>-gnatmake) and expected as the
