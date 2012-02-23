@@ -192,6 +192,12 @@ class TestSuite:
         with open (os.path.join(self.log_dir, 'results'), 'w') as fd:
             [fd.write('%s:DEAD:\n' % dt.filename) for dt in self.dead_list]
 
+        # Warn about an empty non-dead list, in quiet mode as well. This is almost
+        # certainly a selection mistake in any case.
+
+        if not self.non_dead_list:
+            logging.warning ("List of (non-dead) tests to run is empty. Selection mistake ?")
+
         # Compute targetprefix, prefix to designate target specific versions
         # of command line tools (a-la <prefix>-gnatmake) and expected as the
         # --target argument of other command line tools such as gprbuild or
@@ -474,10 +480,6 @@ class TestSuite:
         # Avoid \ in filename for the final report
         test.filename = test.filename.replace('\\', '/')
 
-        logging.info(''.join (
-                ["%-60s %s" % (test.filename, status),
-                 " (%s)" % comment if comment else ""]))
-
         # File the test status + possible comment on failure
 
         with open(os.path.join(self.log_dir, 'results'), 'a') as result_f:
@@ -485,6 +487,14 @@ class TestSuite:
                     ["%s:%s" % (test.rname(), status),
                      ":%s" % comment.strip('"') if not success and comment
                      else ""]) + '\n')
+
+        # Log status as needed. All tests are logged in !quiet mode.
+        # Real failures are always logged.
+
+        if (not self.options.quiet) or (not success and not xfail):
+            logging.info(''.join (
+                    ["%-60s %s" % (test.filename, status),
+                     " (%s)" % comment if comment else ""]))
 
         # Dump errlog on unexpected failure
 
@@ -530,6 +540,8 @@ class TestSuite:
         """Parse command lines options"""
 
         m = Main(add_targets_options=True)
+        m.add_option('--quiet', dest='quiet', action='store_true',
+                     default=False, help='Quiet mode. Display test failures only')
         m.add_option('--diffs', dest='diffs', action='store_true',
                      default=False, help='show diffs on stdout')
         m.add_option('--disable-valgrind', dest='disable_valgrind',
@@ -582,9 +594,11 @@ class TestSuite:
             m.options.disable_valgrind or m.options.bootstrap)
 
         if m.args:
-            # Run only tests matching provided regexp
+            # Run only tests matching the provided regexp
             m.options.run_test = m.args[0]
-            logging.info("Running tests matching '%s'" % m.options.run_test)
+
+            if not m.options.quiet:
+                logging.info("Running tests matching '%s'" % m.options.run_test)
         else:
             m.options.run_test = ""
 
