@@ -499,7 +499,7 @@ class TestSuite:
         # Dump errlog on unexpected failure
 
         if self.options.diffs and not success and not xfail:
-            logging.info(contents_of (test.diff()))
+            logging.info("Error log:\n" + contents_of (test.diff()))
 
         # Check if we have a qualification data instance pickled around,
         # and register it for later test-results production
