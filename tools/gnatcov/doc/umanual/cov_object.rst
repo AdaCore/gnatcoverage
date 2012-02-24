@@ -214,17 +214,22 @@ Each annotated source page contains a summary of the assessment results
 followed by the original source lines, all numbered and marked with a coverage
 annotation as in the :option:`--annotate=xcov` case. In addition, lines with
 obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
-coverage respectively.
-
-An `index.html` page is also produced, which contains a description of the
-assessment context (assessed criteria, set of trace files involved, ...) and a
-summary of the coverage results for all the units, with links to their
-annotated sources.
+coverage respectively. An `index.html` page is also produced, which contains a
+description of the assessment context (assessed criteria, set of trace files
+involved, ...) and a summary of the coverage results for all the units, with
+links to their annotated sources.
 
 Similarily to the :option:`xcov` format case, :option:`--annotate=html+` (with
 a trailing +) attaches to each line details about the coverage status of all
 the individual instructions generated for the line. These are folded within
 the line and expanded when a mouse click hits it.
+
+A few aspects of the page style are governed by a set of Cascading Style Sheet
+(CSS) parameters, fetched from a ``xcov.css`` file in the directory where
+|gcv| is launched. If this file is available when |gcv| starts, |gcv| uses it
+so users may setup a customized version if needed. If the file is not
+available, |gcv| creates a default one which users may use as a starting
+point to create their customized version if needed.
 
 .. _ocov-insn:
 
@@ -232,9 +237,8 @@ Object Instruction Coverage analysis (:option:`--level=insn`)
 =============================================================
 
 Object *Instruction* Coverage treats basic and conditional branch instructions
-identically, as either executed or not, hence fully covered or uncovered.
-
-The :option:`=asm` instruction annotations follow:
+identically, as either executed or not, hence fully covered or uncovered. The
+:option:`=asm` instruction annotations are as follows:
 
 .. tabularcolumns:: cl
 
@@ -265,12 +269,10 @@ executions where the subprogram is never called with T False::
 Expectedely, the coverage annotations report all the instructions as executed
 except the two issuing the call to ``__gnat_last_chance_handler``, which
 correspond to the ``raise`` statement in the GNAT high integrity profiles
-without exception propagation support.
-
-The two instructions at offsets 0ec and 0f0 are the comparison and branch
-conditioned on the comparison result that implement the *if* construct. We
-note here that the conditional branch is reported fully covered, as merely
-executed, even though always taken.
+without exception propagation support. The two instructions at offsets 0ec and
+0f0 are the comparison and branch conditioned on the comparison result that
+implement the *if* construct. We note here that the conditional branch is
+reported fully covered, as merely executed, even though always taken.
 
 The corresponding :option:`=xcov` output follows:
 
@@ -299,7 +301,8 @@ executed, as in the Instruction Coverage case.  Conditional branches, however,
 have to be executed at least twice to be claimed fully covered : once taking
 the branch and once executing fall-through, which we sometimes abusively refer
 to as :dfn:`taken both ways` even if one case actually corresponds to the
-branch not being taken.
+branch not being taken.  The :option:`=asm` instruction annotations are as
+follows:
 
 .. tabularcolumns:: cl
 

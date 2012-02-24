@@ -166,6 +166,14 @@ a trailing +) adds details about improperly satisfied obligations.  In the
 html version, these extra details are not immediatly visible: they are folded
 within their associated line and expanded when a mouse click hits the line.
 
+A few aspects of the page style are governed by a set of Cascading Style Sheet
+(CSS) parameters, fetched from a ``xcov.css`` file in the directory where
+|gcv| is launched. If this file is available when |gcv| starts, |gcv| uses it
+so users may setup a customized version if needed. If the file is not
+available, |gcv| creates a default one which users may use as a starting
+point to create their customized version if needed.
+
+
 Violations summary, text (`=report`)
 ------------------------------------
 
