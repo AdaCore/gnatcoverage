@@ -17,7 +17,7 @@ analysis proceeds in two steps:
    producing <yourapp.trace>. gnatcov determines the target architecture
    automatically from the executable headers::
 
-     gnatcov run <yourapp.elf>
+     gnatcov run <yourapp>
 
 2) Use |gcvcov| to produce a coverage report from the execution trace, with a
    command line that looks like the following::
