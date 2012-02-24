@@ -133,7 +133,7 @@ The binary decision diagram of the decision, sketched below, is not a tree::
 
   o---o    o---o 
   | A |f-->| B |f--> False
-  o---o    p---o
+  o---o    o---o
     t        f
     |        v  
     |      o---o 
