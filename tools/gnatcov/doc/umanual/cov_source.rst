@@ -938,8 +938,8 @@ to |gcvrun| (see the :ref:`trace-control` for details)::
 
    gnatcov run --level=stmt+mcdc --scos=@alis test_x1vx2
 
-We start by looking at the `=xcov+` output to get a first set of useful
-results::
+We start by looking at the :option:`=xcov+` output to get a first set of
+useful results::
 
    gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov+ test_x1vx2.trace
 
