@@ -16,13 +16,16 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Text_IO; use Ada.Text_IO;
+with GNAT.Strings; use GNAT.Strings;
+with Ada.Text_IO;  use Ada.Text_IO;
 
 package Traces_Dump is
 
-   procedure Dump_Routines_Traces;
+   procedure Dump_Routines_Traces (Output_Name : String_Access);
    --  Go through the routine database and display their object coverage
-   --  information along with an assembly dump.
+   --  information along with an assembly dump. If OUTPUT_NAME is not null,
+   --  create the corresponding file and dump the results there. Dump to
+   --  the current default output stream otherwise.
 
    procedure Dump_Uncovered_Routines (Report : File_Access);
    --  Go through the routine database and dump the list of uncovered

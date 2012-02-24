@@ -16,10 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Strings; use GNAT.Strings;
-
 with Traces_Disa;
 with Hex_Images;
+with Coverage;
 with Traces_Names; use Traces_Names;
 with Traces_Dbase; use Traces_Dbase;
 with Traces_Lines; use Traces_Lines;
@@ -32,7 +31,7 @@ package body Traces_Dump is
    -- Dump_Routines_Traces --
    --------------------------
 
-   procedure Dump_Routines_Traces
+   procedure Dump_Routines_Traces (Output_Name : String_Access)
    is
       use Traces_Disa;
 
@@ -80,10 +79,30 @@ package body Traces_Dump is
          end if;
       end Process_One;
 
+      --  We resort to a number of routines and internal iterators that use
+      --  Text_IO.Put to dump stuff without any consideration for a custom
+      --  output stream. To support '--output' for the Asm format, we just
+      --  temporarily redirect the default Output stream here.
+      --
+      --  The --annotate=asm + --output combination is infrequent and not
+      --  worth the burden of a more general solution with invasive intrusions
+      --  in internal services.
+
+      Entry_Output : constant File_Access := Current_Output;
+      Output_File : File_Type;
+
    --  Start of processing for Dump_Routines_Traces
 
    begin
+      if Output_Name /= null then
+         Create (Output_File, Out_File, Output_Name.all);
+         Set_Output (Output_File);
+      end if;
+
+      Put_Line ("Coverage level: " & Coverage.Coverage_Option_Value);
       Iterate (Process_One'Access);
+
+      Set_Output (Entry_Output.all);
    end Dump_Routines_Traces;
 
    -----------------------------

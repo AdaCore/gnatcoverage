@@ -117,8 +117,8 @@ procedure GNATcov is
       P ("   --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from");
       P ("                               FILE for this operation; or do that");
       P ("                               for each file listed in LISTFILE");
-      P ("   --output-dir=DIR            Put the =html|xcov outputs into DIR");
-      P ("   -o FILE                     Put the =report output into FILE");
+      P ("   --output-dir=DIR            Put the html|xcov outputs into DIR");
+      P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");
       New_Line;
@@ -1128,8 +1128,7 @@ begin
                     ("Asm output supported for object coverage only");
                end if;
                Traces_Disa.Flag_Show_Asm := True;
-               Put_Line ("Coverage level: " & Coverage_Option_Value);
-               Traces_Dump.Dump_Routines_Traces;
+               Traces_Dump.Dump_Routines_Traces (Output);
 
             when Annotate_Xml =>
                Annotations.Xml.Generate_Report;
