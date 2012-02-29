@@ -124,6 +124,15 @@ package Qemudrv_Base is
                                        new String'("%trace"),
                                        new String'("%exe"))
       ),
+      (Target => new String'("i686-pc-linux-gnu"),
+       Build_Command => null,
+       Build_Options => null,
+       Run_Command => new String'("valgrind"),
+       Run_Options => new String_List'(
+           new String'("--tool=coverage"),
+           new String'("--cov-exec-file=%trace"),
+           new String'("%exe"))
+      ),
       (Target => new String'("prepare"),
        Build_Command => null,
        Build_Options => null,
