@@ -1,0 +1,27 @@
+
+VALGRIND_DIR=$(shell dirname `which valgrind`)
+VALGRIND_INCLUDE=$(VALGRIND_DIR)/../include/valgrind
+VALGRIND_LIBS=$(VALGRIND_DIR)/../lib/valgrind
+
+
+CPP_FLAGS=-I. -I$(VALGRIND_INCLUDE) -DVGA_x86=1 -DVGO_linux=1 -DVGP_x86_linux=1 -DVGPV_x86_linux_vanilla=1
+CFLAGS=-mpreferred-stack-boundary=2 -O2 -g -Wall -Wmissing-prototypes -Wshadow -Wpointer-arith -Wstrict-prototypes -Wmissing-declarations -Wno-format-zero-length -fno-strict-aliasing -fno-builtin -Wno-long-long  -Wno-pointer-sign -fno-stack-protector
+LDFLAGS=-static -nodefaultlibs -nostartfiles -u _start -Wl,--build-id=none
+LIBS=$(VALGRIND_LIBS)/libcoregrind-x86-linux.a $(VALGRIND_LIBS)/libvex-x86-linux.a -lgcc
+
+all: coverage
+
+%.o: %.c
+	gcc $(CPP_FLAGS) $(CFLAGS) -c $< -o $@
+
+cov_traces.o: cov_traces.c cov_traces.h
+
+cov_main.o: cov_main.c cov_traces.h
+
+# The address 0x38000000 is the valt_load_address value from valgrind build.
+# This value should be changed for Darwin (0x138000000).
+coverage: cov_traces.o cov_main.o
+	gcc $(CFLAGS) -o coverage cov_traces.o cov_main.o $(LDFLAGS) -Wl,-Ttext=0x38000000 $(LIBS)
+
+install:
+	cp -p coverage $(VALGRIND_LIBS)/coverage-x86-linux

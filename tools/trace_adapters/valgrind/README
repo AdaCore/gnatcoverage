@@ -3,3 +3,15 @@ This directory holds the valgrind trace adapter for GNATcoverage.
 This adapter consists in pieces allowing the construction of an instrumented
 version of valgrind, able to produce (upon request) execution traces suitable
 for analysis by gnatcov coverage.
+
+How to build
+============
+
+ * Make sure you have Valgrind 3.7.0 installed (with headers):
+    <prefix>/bin/valgrind
+    <prefix>/lib/valgrind/
+    <prefix>/include/valgrind/
+ * Build and install:
+    $ cd coverage
+    $ make -f Makefile.coverage
+    $ sudo make -f Makefile.coverage install
