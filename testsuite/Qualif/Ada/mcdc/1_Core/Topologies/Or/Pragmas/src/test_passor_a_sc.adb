@@ -6,6 +6,8 @@ procedure Test_Passor_A_SC is
 begin
    Passor (True, True);
    Passor (False, False);
+exception
+    when others => null;
 end;
 
 --# passor.ads

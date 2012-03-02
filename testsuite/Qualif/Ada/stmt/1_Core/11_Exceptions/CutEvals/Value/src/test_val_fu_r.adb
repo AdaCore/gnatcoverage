@@ -5,6 +5,8 @@ begin
    Val_Helper.Eval_T;
    Val_Helper.Eval_F;
    Val_Helper.Eval_R;
+exception
+    when others => null;
 end;
 
 --# val.adb

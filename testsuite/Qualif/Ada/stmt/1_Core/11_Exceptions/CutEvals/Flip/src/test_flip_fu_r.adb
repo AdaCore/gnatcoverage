@@ -5,6 +5,8 @@ begin
    Flip_Helper.Eval_T;
    Flip_Helper.Eval_F;
    Flip_Helper.Eval_R;
+exception
+    when others => null;
 end;
 
 --# flip.adb

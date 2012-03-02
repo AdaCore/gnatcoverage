@@ -6,6 +6,8 @@ begin
    FUOR_Helper.Eval_TX_T;
 
    FUOR_Helper.Eval_FR;
+exception
+    when others => null;
 end;
 
 --# fuor.adb

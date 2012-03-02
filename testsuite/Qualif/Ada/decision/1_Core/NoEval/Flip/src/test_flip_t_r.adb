@@ -4,6 +4,8 @@ procedure Test_Flip_T_R is
 begin
    Flip_Helper.Eval_T;
    Flip_Helper.Eval_R;
+exception
+    when others => null;
 end;
 
 --# flip.adb

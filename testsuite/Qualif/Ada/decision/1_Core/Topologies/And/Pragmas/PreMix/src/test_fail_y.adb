@@ -16,6 +16,8 @@ begin
 
    P2.Y := 1; -- improper way to set
    Assert (Same_Y (P1, P2));
+exception
+    when others => null;
 end;
 
 --# points.adb

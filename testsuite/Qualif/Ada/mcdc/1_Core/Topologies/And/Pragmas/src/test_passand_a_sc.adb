@@ -7,6 +7,8 @@ procedure Test_Passand_A_SC is
 begin
    Passand (True, True);
    Passand (False, False);
+exception
+    when others => null;
 end;
 
 --# passand.ads

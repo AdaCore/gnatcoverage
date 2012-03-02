@@ -6,6 +6,8 @@ procedure Test_Passand_A is
 begin
    Passand (True, True);
    Passand (False, True);
+exception
+    when others => null;
 end;
 
 --# passand.ads

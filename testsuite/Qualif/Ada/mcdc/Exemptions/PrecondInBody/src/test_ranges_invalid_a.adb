@@ -14,6 +14,8 @@ begin
    --  Invoke silent last chance handler.
 
    Ov := Overlap (Ra, Rb);
+exception
+    when others => null;
 end;
 
 --# ranges.adb

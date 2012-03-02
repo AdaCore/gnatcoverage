@@ -6,6 +6,8 @@ begin
    FUAND_Helper.Eval_TF_F;
 
    FUAND_Helper.Eval_RX;
+exception
+    when others => null;
 end;
 
 --# fuand.adb

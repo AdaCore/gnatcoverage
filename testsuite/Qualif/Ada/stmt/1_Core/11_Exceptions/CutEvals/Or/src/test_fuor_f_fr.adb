@@ -4,6 +4,8 @@ procedure Test_FUOR_F_FR is
 begin
    FUOR_Helper.Eval_FF_F;
    FUOR_Helper.Eval_FR;
+exception
+    when others => null;
 end;
 
 --# fuor.adb

@@ -5,6 +5,8 @@ with Passor, Silent_Last_Chance;
 procedure Test_Passor_FT is
 begin
    Passor (False, True);
+exception
+    when others => null;
 end;
 
 --# passor.ads

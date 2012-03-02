@@ -6,6 +6,8 @@ procedure Test_Passor_B is
 begin
    Passor (False, True);
    Passor (False, False);
+exception
+    when others => null;
 end;
 
 --# passor.ads

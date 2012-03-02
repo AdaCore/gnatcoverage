@@ -5,6 +5,8 @@ with Passand, Silent_Last_Chance;
 procedure Test_Passand_FF is
 begin
    Passand (False, False);
+exception
+    when others => null;
 end;
 
 --# passand.ads

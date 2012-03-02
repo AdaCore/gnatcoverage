@@ -6,6 +6,8 @@ procedure Test_Passor_FU is
 begin
    Passor (True, False);
    Passor (False, False);
+exception
+    when others => null;
 end;
 
 --# passor.ads

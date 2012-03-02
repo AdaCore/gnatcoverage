@@ -4,6 +4,8 @@ procedure Test_FUAND_T_TR is
 begin
    FUAND_Helper.Eval_TT_T;
    FUAND_Helper.Eval_TR;
+exception
+    when others => null;
 end;
 
 --# fuand.adb

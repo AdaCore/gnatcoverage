@@ -4,6 +4,8 @@ procedure Test_Val_T_R is
 begin
    Val_Helper.Eval_T;
    Val_Helper.Eval_R;
+exception
+    when others => null;
 end;
 
 --# val.adb
