@@ -144,6 +144,7 @@ class TestSuite:
         self.log_dir = os.path.join (os.getcwd(), 'output')
         mkdir(self.log_dir)
 
+        # Setup trace directories for bootstrap runs
         if self.options.bootstrap:
             self.trace_dir = os.path.join (self.log_dir, 'traces')
             rm(self.trace_dir, recursive=True)
