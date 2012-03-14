@@ -178,7 +178,7 @@ Violations summary, text (`=report`)
 ------------------------------------
 
 For source coverage criteria, |gcvcov| :option:`--annotate=report` produces a
-syntetic text report that lists all the :term:`coverage violations` (failure
+summary that lists all the :term:`coverage violations` (failure
 to satisfy some aspect of a coverage criterion) relevant to the set of
 assessed criteria.
 
