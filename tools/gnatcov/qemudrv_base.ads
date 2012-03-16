@@ -129,9 +129,10 @@ package Qemudrv_Base is
        Build_Options => null,
        Run_Command => new String'("valgrind"),
        Run_Options => new String_List'(
-           new String'("--tool=coverage"),
-           new String'("--cov-exec-file=%trace"),
-           new String'("%exe"))
+                                       new String'("--quiet"),
+                                       new String'("--tool=coverage"),
+                                       new String'("--cov-exec-file=%trace"),
+                                       new String'("%exe"))
       ),
       (Target => new String'("prepare"),
        Build_Command => null,
