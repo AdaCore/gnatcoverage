@@ -191,31 +191,21 @@ def xcov(args, out=None, inp=None, register_failure=True):
 
     # make ARGS a list from whatever it is, to allow unified processing
     args = to_list (args)
-    retry = 0
 
     if thistest.options.trace_dir is not None:
         # Bootstrap - run xcov under xcov
 
-        # QEMU's "user" mode is showing some instabilities on x86-linux;
-        # see J618-020. So try to re-run if failure. And these instabilities
-        # are very visible in 'run' mode; so do the bootstrap for 'coverage'
-        # mode only.
         if len (args) > 0 and args[0] == 'coverage':
             thistest.current_test_index += 1
-            args = ['run', '-t', 'i386-linux',
+            args = ['run', '-t', 'i686-pc-linux-gnu',
                     '-o', os.path.join(thistest.options.trace_dir,
                                        str(thistest.current_test_index)
                                        + '.trace'),
                     which(XCOV), '-eargs'] + args
-            retry = 3
 
     # Execute, check status, raise on error and return otherwise
     p = Run(maybe_valgrind([XCOV]) + args,
             output=out, input=inp, timeout=thistest.options.timeout)
-    while p.status != 0 and retry > 0:
-        retry -= 1
-        p = Run(maybe_valgrind([XCOV]) + args,
-                output=out, input=inp, timeout=thistest.options.timeout)
     thistest.stop_if(
         register_failure and p.status != 0,
         FatalError('"%s ' % XCOV + ' '.join(args) + '" exit in error', out))
