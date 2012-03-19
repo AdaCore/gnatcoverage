@@ -174,9 +174,9 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None, langs=None):
 # --------------------
 def maybe_valgrind(command):
     """Return the input COMMAND list, with 'valgrind -q' prepended if
-    valgrind is available and was not disabled through options.
+    valgrind is available and was enabled through options.
     """
-    if (not thistest.options.disable_valgrind) and which(VALGRIND) != '':
+    if (thistest.options.enable_valgrind) and which(VALGRIND) != '':
         command = [VALGRIND, '-q'] + command
     return command
 

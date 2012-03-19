@@ -130,8 +130,8 @@ class TestSuite:
 
         # Parse command lines options
 
-        # Set to True if the tests should not be run under valgrind control.
-        self.disable_valgrind = False
+        # Set to True if the tests should be run under valgrind control.
+        self.enable_valgrind = False
 
         self.options = self.__parse_options()
 
@@ -382,8 +382,8 @@ class TestSuite:
                         '--log-file=' + logf,
                         '--target', self.env.target.platform,
                         '--timeout', str(timeout)]
-        if self.disable_valgrind:
-            testcase_cmd.append('--disable-valgrind')
+        if self.enable_valgrind:
+            testcase_cmd.append('--enable-valgrind')
         if self.trace_dir is not None:
             test_trace_dir = os.path.join(test.trace_dir, str(test.index))
             mkdir(test_trace_dir)
@@ -557,9 +557,9 @@ class TestSuite:
                      default=False, help='Quiet mode. Display test failures only')
         m.add_option('--diffs', dest='diffs', action='store_true',
                      default=False, help='show diffs on stdout')
-        m.add_option('--disable-valgrind', dest='disable_valgrind',
+        m.add_option('--enable-valgrind', dest='enable_valgrind',
                      action='store_true', default=False,
-                     help='disable the use of valgrind when running each test')
+                     help='enable the use of valgrind when running each test')
         m.add_option('-j', '--jobs', dest='jobs', type='int',
                      metavar='N', default=1, help='Allow N jobs at once')
         m.add_option("--old-res", dest="old_res", type="string",
@@ -603,8 +603,8 @@ class TestSuite:
                      help='RTS .gpr to extend.')
         m.parse_args()
 
-        self.disable_valgrind = (
-            m.options.disable_valgrind or m.options.bootstrap)
+        self.enable_valgrind = (
+            m.options.enable_valgrind and not m.options.bootstrap)
 
         if m.args:
             # Run only tests matching the provided regexp
