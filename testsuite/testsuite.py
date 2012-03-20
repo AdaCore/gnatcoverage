@@ -19,7 +19,7 @@ See ./testsuite.py -h for more help
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
-from gnatpython.fileutils import mkdir, rm, ln, find
+from gnatpython.fileutils import mkdir, rm, ln, find, which
 from gnatpython.main import Main
 from gnatpython.mainloop import MainLoop
 
@@ -35,7 +35,7 @@ from SUITE.cutils import contents_of, re_filter, clear, to_list, FatalError
 
 from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
 
-from SUITE.control import BUILDER
+from SUITE.control import BUILDER, XCOV
 
 DEFAULT_TIMEOUT = 600
 
@@ -145,7 +145,7 @@ class TestSuite:
         mkdir(self.log_dir)
 
         # Setup trace directories for bootstrap runs
-        if self.options.bootstrap:
+        if self.options.bootstrap_scos != None:
             self.trace_dir = os.path.join (self.log_dir, 'traces')
             rm(self.trace_dir, recursive=True)
             mkdir(self.trace_dir)
@@ -350,6 +350,20 @@ class TestSuite:
         ReportDiff(
             self.log_dir, self.options.old_res
             ).txt_image('rep_gnatcov')
+
+        # Generate bootstrap results
+        if self.options.bootstrap_scos != None:
+
+            # Generate trace list file
+            trace_list = glob(self.trace_dir + '/*/*.trace')
+            with open(self.trace_dir + '/trace.list', 'w') as file:
+                file.write("\n".join(trace_list))
+
+            Run(['time', which(XCOV), 'coverage', '--level=stmt',
+                 '--scos=@' + self.options.bootstrap_scos, '--annotate=html',
+                 '@' + self.trace_dir + '/trace.list',
+                 '--output-dir=' + self.trace_dir],
+                output=os.path.join(self.log_dir, 'bootstrap.out'))
 
     # ------------------
     # -- run_testcase --
@@ -592,11 +606,12 @@ class TestSuite:
                      help='Force the xcov --level argument to '
                           'QUALIF_XCOV_LEVEL instead of deducing it from '
                           'the test category when that would normally happen.')
-        m.add_option('--bootstrap', dest="bootstrap",
-                     action='store_true', default=False,
-                     help='Use xcov to assess coverage of its own testsuite.'
-                          'Only supported on x86-linux.'
-                          'Note that it disables the use of valgrind.')
+        m.add_option('--bootstrap-scos', dest='bootstrap_scos',
+                     metavar='BOOTSTRAP_SCOS',
+                     help='scos for bootstap coverage report. '
+                     'Use xcov to assess coverage of its own testsuite. '
+                     'Only supported on x86-linux. '
+                     'Note that it disables the use of valgrind.')
         m.add_option('--board', dest='board', metavar='BOARD',
                      help='Specific target board to exercize.')
         m.add_option('--RTS', dest='RTS', metavar='RTS',
@@ -604,7 +619,7 @@ class TestSuite:
         m.parse_args()
 
         self.enable_valgrind = (
-            m.options.enable_valgrind and not m.options.bootstrap)
+            m.options.enable_valgrind and m.options.bootstrap_scos == None)
 
         if m.args:
             # Run only tests matching the provided regexp
