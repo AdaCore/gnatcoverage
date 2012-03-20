@@ -1,5 +1,5 @@
 GNATMAKE=gnatmake
-ADAFLAGS=-gnat05 -gnatwae -gnata -g -gnatyg -Ignat -gnateS
+ADAFLAGS=-gnat05 -gnatwae -gnata -g -gnatyg -Ignat -gnateS -O1 -fpreserve-control-flow
 PREFIX=install
 RM=rm -f
 CP=cp -pf
