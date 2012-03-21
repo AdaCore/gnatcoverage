@@ -1,3 +1,3 @@
-version = '0.9'
-release = '0.9'
+version = '1.0'
+release = '1.0'
 
