@@ -360,8 +360,6 @@ void trace_init(const char *cov_exec_arg)
     if (tracefile < 0) {
         VG_(message)(Vg_FailMsg, "can't open file '%s': %m\n", cov_exec_file);
         VG_(exit)(1);
-    } else {
-        VG_(message)(Vg_UserMsg, "open file '%s'\n", cov_exec_file);
     }
 
     hdr.version = QEMU_TRACE_VERSION;
