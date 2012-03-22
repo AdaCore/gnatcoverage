@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2012, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -118,8 +118,7 @@ package body Stations is
 
       New_Line;
       Put_Line ("'C'autious mode, 'D'umb mode");
-      Put ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
-      Flush;
+      Put_Line ("'P'robe, 'S'tep, Rotate 'L'eft/'R'ight, 'Q'uit ? ");
 
       Get (C); Put (C); New_Line;
 

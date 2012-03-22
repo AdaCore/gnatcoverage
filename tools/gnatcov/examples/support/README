@@ -1,7 +1,7 @@
 This directory features a number of facilities to help automated build,
 execution and cov analysis of simple examples for several possible qemu
-targets. Examples rely on a minimal library to setup the base execution
-envionment in qemu and offer very basic IO capabilities.
+targets. An internal "support" library is available to offer common services
+to all examples, for example a custom exception last-chance handler.
 
 The facilities in this directory include a number of GNAT project files
 and Makefiles:

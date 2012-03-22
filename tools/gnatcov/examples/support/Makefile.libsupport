@@ -4,13 +4,7 @@ include Makefile.common
 
 LIBSUPPORT_ARCHIVE = $(LIBSUPPORT_DIR)/libsupport.a
 
-ifneq ($(MAYBE_LDSCRIPT),)
-LIBSUPPORT_LDSCRIPT = $(LIBSUPPORT_DIR)/$(BOARD).ld
-else
-LIBSUPPORT_LDSCRIPT = 
-endif
-
-all: $(LIBSUPPORT_DIR) $(LIBSUPPORT_LDSCRIPT) $(LIBSUPPORT_ARCHIVE)
+all: $(LIBSUPPORT_DIR) $(LIBSUPPORT_ARCHIVE)
      
 $(LIBSUPPORT_DIR):
 	mkdir -p $@
@@ -18,11 +12,6 @@ $(LIBSUPPORT_DIR):
 $(LIBSUPPORT_ARCHIVE): force
 	$(BUILDER) -XBUILD=yes -p -Plibsupport -f
 	$(BUILDER) -XBUILD=yes -p -Plibsupport -XUNITTEST=yes
-
-ifneq ($(LIBSUPPORT_LDSCRIPT),)
-$(LIBSUPPORT_LDSCRIPT): $(MAYBE_LDSCRIPT)
-	$(CP) $< $@
-endif
 
 clean:
 	$(RM) -rf lib obj

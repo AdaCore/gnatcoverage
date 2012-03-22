@@ -58,7 +58,7 @@ ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
   # filter and pass the filter to xcov run so that it has visibility on
   # decision locations
 
-  INTERNALBUILDFLAGS = -gnateS -cargs -fpreserve-control-flow
+  INTERNALBUILDFLAGS = -cargs:ada -gnateS -cargs -fpreserve-control-flow
   GENXCOVLIST=\
     ls $(wildcard obj/$(TARGET)/*.ali) > $*.alis
   XCOVFILTER=--scos=@$*.alis

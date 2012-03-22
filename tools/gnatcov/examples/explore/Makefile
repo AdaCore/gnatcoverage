@@ -5,10 +5,9 @@
 # make TESTS=explore            runs the interactive program
 # make UNIT_TESTS=test_explore  runs the AUnit based tests
 
-# Additionally, this Makefile lets you select target to use:
+# The interactive version of this test will only run in specially
+# equipped configurations:
 
-# make TARGET=native XCOVTARGET=i386-linux ... runs on x86-linux
-# make TARGET=powerpc-elf                  ... runs on bare board PowerPC
-# make TARGET=leon-elf                     ... runs on bare board Leon.
+# make TARGET=powerpc-eabispe  ... runs on bare board PowerPC/e500v2
 
 include ../support/Makefile.examples

@@ -8,27 +8,29 @@
 
 TARGET = powerpc-elf
 
-# ====================================================================
-# BOARD specialization wrt TARGET. Used to control the compilation of
-# the support library, and passed to XCOV run when specified. 
-# ===================================================================
-
-ifeq ($(TARGET), powerpc-elf)
-BOARD = qemu-prep
-else
-BOARD = unspec
-endif
-
 # ==========================================================
 # What --target will we pass to XCOV run
 # ==========================================================
 
-# With XCOV actually gnatcov, we make sure it can resort to
-# <target>-gnatemu by passing $(TARGET) always.
-
-# ??? Need to arrange to pass $(BOARD) when specified.
+# gnatcov doesn't support a separate notion of board vs
+# target (e.g. sbc8348 for powerpc-elf binaries), but knows
+# of target variants such as "qemu-prep" or "qemu-sbc8348x".
 
 XCOVTARGET = $(TARGET)
+
+# ===================================================================
+# RTS specialization wrt TARGET, controlling the application build.
+# ===================================================================
+
+ifeq ($(TARGET), powerpc-elf)
+RTS = powerpc-elf/ravenscar-sfp-prep
+else ifeq ($(TARGET), powerpc-eabispe)
+RTS = powerpc-eabispe/ravenscar-sfp-p2020
+else ifeq ($(TARGET), leon-elf)
+RTS = ravenscar
+else
+RTS = default
+endif
 
 # ============================================================
 # Examples support directory, relative to example subdir, and
@@ -36,18 +38,16 @@ XCOVTARGET = $(TARGET)
 # ============================================================
 
 SUPPORT_DIR = ../support
-LIBSUPPORT_DIR = $(SUPPORT_DIR)/lib/$(BOARD)
+LIBSUPPORT_DIR = $(SUPPORT_DIR)/lib/$(TARGET)
 
 SUPPORT_SRC_DIR = $(SUPPORT_DIR)/src
-
-MAYBE_LDSCRIPT = $(wildcard $(SUPPORT_SRC_DIR)/$(TARGET)/$(BOARD).ld)
 
 # =======================================================
 # CROSS toolchain prefix and target related arguments to
 # gprbuild:
 # =======================================================
 
-GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) -XBOARD=$(BOARD) --RTS:Ada=zfp
+GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) --RTS:Ada=$(RTS)
 
 ifeq ($(TARGET),native)
   CROSSPREFIX =
