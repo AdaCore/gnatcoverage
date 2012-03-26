@@ -114,10 +114,10 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None, langs=None):
     languages = ', '.join(['"%s"' %l for l in languages_l])
 
     # The base project file we need to extend, and the way to refer to it
-    # from the project contents
+    # from the project contents. This provides a default last chance handler
+    # on which we rely to detect termination on exception occurrence.
 
-    basegpr = (
-        ("%s/support/base" % ROOT_DIR) if not thistest.options.RTS else "")
+    basegpr = "%s/support/base" % ROOT_DIR
 
     baseref = (
         (basegpr.split('/')[-1] + ".") if basegpr else "")

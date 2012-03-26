@@ -138,7 +138,7 @@ class BUILDER:
         rm (BUILDER.SUITE_CGPR)
 
         Run ([GPRBUILD, '-P', tempgpr.name,
-              '--RTS:ada=%s' % (toplev_options.RTS or "zfp"),
+              '--RTS=%s' % toplev_options.RTS,
               '--target=%s' % env.target.triplet,
               '--autoconf=%s' % BUILDER.SUITE_CGPR]
              )

@@ -26,6 +26,20 @@ BUILDFLAGS=
 # Kind of coverage analysis to be performed (--level argument)
 XCOVLEVEL?=stmt+decision
 
+# ---------------------------------------------------------------------------
+# Pick a default RTS from TARGET, if not provided already
+# ---------------------------------------------------------------------------
+
+ifeq ($(TARGET), powerpc-elf)
+RTS = powerpc-elf/ravenscar-sfp-prep
+else ifeq ($(TARGET), powerpc-eabispe)
+RTS = powerpc-eabispe/ravenscar-sfp-p2020
+else ifeq ($(TARGET), leon-elf)
+RTS = ravenscar
+else
+RTS = default
+endif
+
 # ----------------------------------------------------------------------------
 # Object vs source coverage action variants for common rules
 # ----------------------------------------------------------------------------
@@ -132,7 +146,7 @@ $(UNIT_TESTS): libsupport force
 	$(BUILDER) -f -p -Pharness $(BUILDERFLAGS)\
 	-XRUNTIME=zfp -XUNITTEST=yes -XPLATFORM=$(TARGET)
 
-MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) -f Makefile.libsupport
+MKSUPPORT=$(MAKE) -C $(SUPPORT_DIR) RTS=$(RTS) -f Makefile.libsupport
 
 libsupport:
 	$(MKSUPPORT) all

@@ -18,20 +18,6 @@ TARGET = powerpc-elf
 
 XCOVTARGET = $(TARGET)
 
-# ===================================================================
-# RTS specialization wrt TARGET, controlling the application build.
-# ===================================================================
-
-ifeq ($(TARGET), powerpc-elf)
-RTS = powerpc-elf/ravenscar-sfp-prep
-else ifeq ($(TARGET), powerpc-eabispe)
-RTS = powerpc-eabispe/ravenscar-sfp-p2020
-else ifeq ($(TARGET), leon-elf)
-RTS = ravenscar
-else
-RTS = default
-endif
-
 # ============================================================
 # Examples support directory, relative to example subdir, and
 # support library specific location:
@@ -47,7 +33,11 @@ SUPPORT_SRC_DIR = $(SUPPORT_DIR)/src
 # gprbuild:
 # =======================================================
 
-GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) --RTS:Ada=$(RTS)
+# Eventhough the --RTS is a typical Ada device, it is provided without
+# language filtering here, which allows even C only applications to benefit
+# from the BSP including in the Ada library.
+
+GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) --RTS=$(RTS)
 
 ifeq ($(TARGET),native)
   CROSSPREFIX =

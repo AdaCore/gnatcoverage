@@ -1,10 +1,10 @@
 /****************************************************************************
  *                                                                          *
- *                              Couverture                                  *
+ *                              GNATcoverage                                *
  *                                                                          *
- *                       Copyright (C) 2010, AdaCore                        *
+ *                      Copyright (C) 2012, AdaCore                         *
  *                                                                          *
- * Couverture is free software; you can redistribute it  and/or modify it   *
+ * GNATcoverage is free software; you can redistribute it  and/or modify it *
  * under terms of the GNU General Public License as published by the Free   *
  * Software Foundation; either version 2, or (at your option) any later     *
  * version.  Couverture is distributed in the hope that it will be useful,  *
@@ -17,5 +17,10 @@
  *                                                                          *
  ****************************************************************************/
 
-extern void __outb(int port, unsigned char v);
-extern unsigned char __inb(int port);
+/* Our local last chance handlers for Ada rely on "abort", and this is not
+   part of the standard RTS on leon.  */
+
+void abort (void)
+{
+  asm ("mov 0, %g1; ta 0");
+}

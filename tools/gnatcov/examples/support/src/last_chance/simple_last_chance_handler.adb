@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2009, AdaCore                     --
+--                     Copyright (C) 2008-2012, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -17,7 +17,7 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
-with Text_IO;
+with GNAT.IO;
 
 package body Simple_Last_Chance_Handler is
 
@@ -32,10 +32,10 @@ package body Simple_Last_Chance_Handler is
       pragma Import (C, C_Abort, "abort");
       pragma No_Return (C_Abort);
    begin
-      Text_IO.New_Line;
-      Text_IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
-      Text_IO.Put_Line ("!!! EXCEPTION RAISED !!!");
-      Text_IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
+      GNAT.IO.New_Line;
+      GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
+      GNAT.IO.Put_Line ("!!! EXCEPTION RAISED !!!");
+      GNAT.IO.Put_Line ("!!!!!!!!!!!!!!!!!!!!!!!!");
 
       --  No return procedure.
       C_Abort;

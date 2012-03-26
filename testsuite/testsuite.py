@@ -228,7 +228,8 @@ class TestSuite:
         targetargs = ["TARGET=%s" % targetprefix]
         if self.env.main_options.board:
             targetargs.append ("BOARD=%s" % self.env.main_options.board)
-        Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']+targetargs,
+        Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']
+            + targetargs + ["RTS=%s" % self.env.main_options.RTS],
             output=os.path.join (self.log_dir, 'build_support.out'))
 
         # Instanciate what we'll need to produce a qualfication report.
@@ -293,8 +294,7 @@ class TestSuite:
         """
 
         return (
-            [] if not self.env.main_options.RTS
-            else ["RTS_RAVENSCAR"] if re.search (
+            ["RTS_RAVENSCAR"] if re.search (
                 "ravenscar", self.env.main_options.RTS)
             else []
             )
@@ -442,8 +442,7 @@ class TestSuite:
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
 
-        if mopt.RTS:
-            testcase_cmd.append('--RTS=%s' % mopt.RTS)
+        testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
         return Run(testcase_cmd, output=diff, bg=True,
                    timeout=int(timeout) + DEFAULT_TIMEOUT)
@@ -615,11 +614,14 @@ class TestSuite:
         m.add_option('--board', dest='board', metavar='BOARD',
                      help='Specific target board to exercize.')
         m.add_option('--RTS', dest='RTS', metavar='RTS',
-                     help='RTS .gpr to extend.')
+                     help='RTS library to use, mandatory for BSP support')
         m.parse_args()
 
         self.enable_valgrind = (
             m.options.enable_valgrind and m.options.bootstrap_scos == None)
+
+        if not m.options.RTS:
+            m.error ("RTS argument missing, mandatory for BSP selection")
 
         if m.args:
             # Run only tests matching the provided regexp
