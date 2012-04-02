@@ -292,15 +292,16 @@ class TestSuite:
 
     def rts_discriminants(self):
         """Compute a list of discriminants (string) to reflect the use of a
-        Ravenscar base runtime library, as conveyed by the base gpr file to
-        extend, provided with the --RTS command-line option.
-        """
+        Ravenscar base runtime library, as conveyed by the --RTS command-line
+        option."""
 
         return (
-            ["RTS_RAVENSCAR"] if re.search (
-                "ravenscar", self.env.main_options.RTS)
-            else ["RTS_ZFP"] if re.search (
+            ["RTS_ZFP"] if re.search (
                 "zfp", self.env.main_options.RTS)
+            else ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP"] if re.search (
+                "ravenscar.*sfp", self.env.main_options.RTS)
+            else ["RTS_RAVENSCAR", "RTS_RAVENSCAR_FULL"] if re.search (
+                "ravenscar", self.env.main_options.RTS)
             else ["RTS_FULL"]
             )
 
