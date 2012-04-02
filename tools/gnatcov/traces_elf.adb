@@ -312,8 +312,7 @@ package body Traces_Elf is
 
    procedure Insert
      (Set : in out Addresses_Containers.Set;
-      El  : Addresses_Info_Acc)
-      renames Addresses_Containers.Insert;
+      El  : Addresses_Info_Acc) renames Addresses_Containers.Insert;
 
    ---------------
    -- Open_File --
@@ -1304,6 +1303,33 @@ package body Traces_Elf is
             Last_Line.Last  := 0;
          end if;
 
+         --  If this entry has a non-empty range, mark it as such using the
+         --  Is_Last flag, and propagate the range to all entries with the same
+         --  start address and an empty range.
+
+         if Last_Line.Last >= Last_Line.First then
+            Last_Line.Is_Last := True;
+            declare
+               use Addresses_Containers;
+
+               procedure Set_Last (Cur : Cursor);
+               --  Set Last to Last_Line.Last
+
+               procedure Set_Last (Cur : Cursor) is
+                  Info : constant Addresses_Info_Acc := Element (Cur);
+               begin
+                  if Info.Last < Info.First then
+                     pragma Assert (not Info.Is_Last);
+                     Info.Last := Last_Line.Last;
+                  end if;
+               end Set_Last;
+
+            begin
+               Get_Address_Infos (Exec, Line_Addresses, Last_Line.First).
+                 Iterate (Set_Last'Access);
+            end;
+         end if;
+
          Last_Line := null;
       end Close_Source_Line;
 
@@ -1324,15 +1350,16 @@ package body Traces_Elf is
 
          Last_Line :=
            new Addresses_Info'
-           (Kind   => Line_Addresses,
-            First  => Exec.Exe_Text_Start + Pc,
-            Last   => Exec.Exe_Text_Start + Pc,
-            Parent => null,
-            Sloc   =>
+           (Kind    => Line_Addresses,
+            First   => Exec.Exe_Text_Start + Pc,
+            Last    => Exec.Exe_Text_Start + Pc,
+            Parent  => null,
+            Sloc    =>
               (Source_File  => Get_Index_From_Full_Name
                (Filenames_Vectors.Element (Filenames, File).all),
                Line         => Natural (Line),
-               Column       => Natural (Column)));
+               Column       => Natural (Column)),
+            Is_Last => False);
 
          Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
 
@@ -1720,13 +1747,13 @@ package body Traces_Elf is
      (Exec : Exe_File_Type;
       PC   : Pc_Type) return Source_Location
    is
-      SL : constant Source_Locations := Get_Slocs (Exec, PC, False);
+      SL : constant Source_Locations :=
+             Get_Slocs (Exec, PC, Last_Only => True);
    begin
       if SL'Length = 0 then
          return Slocs.No_Location;
+
       else
-         --  If there are several slocs for a PC, only one should be
-         --  a non-empty range.
          pragma Assert (SL'Length = 1);
          return SL (1);
       end if;
@@ -1737,9 +1764,9 @@ package body Traces_Elf is
    ---------------
 
    function Get_Slocs
-     (Exec        : Exe_File_Type;
-      PC          : Pc_Type;
-      Empty_Range : Boolean) return Source_Locations
+     (Exec      : Exe_File_Type;
+      PC        : Pc_Type;
+      Last_Only : Boolean := False) return Source_Locations
    is
       use Addresses_Containers;
 
@@ -1754,7 +1781,10 @@ package body Traces_Elf is
          declare
             Addr_Info : constant Addresses_Info_Acc := Element (Position);
          begin
-            if Empty_Range or else Addr_Info.Last >= Addr_Info.First then
+            if Addr_Info.Last >= Addr_Info.First
+                 and then
+               (Addr_Info.Is_Last or else not Last_Only)
+            then
                Result (J) := Addr_Info.Sloc;
                J := J + 1;
             end if;
@@ -1854,9 +1884,10 @@ package body Traces_Elf is
       while Cur /= No_Element loop
          Line := Element (Cur);
 
-         --  Only add lines that are in Section
+         --  Only add lines that are in Section (i.e. whose First address is
+         --  in Section'Range).
 
-         exit when Line.Last > Section'Last;
+         exit when Line.First > Section'Last;
          if Line.First >= Section'First then
 
             --  Get corresponding file (check previous file for speed-up)
@@ -2379,7 +2410,7 @@ package body Traces_Elf is
 
       --  Note: we assume that type Addresses_Info provides adequate default
       --  initialization so that setting First and Last only yields an element
-      --  that is smaller than any element with the same PC and non-default
+      --  that sorts higher than any element with the same PC and non-default
       --  values for other fields (use of Floor below).
 
       Position := Exec.Desc_Sets (Kind).Floor (PC_Addr'Unchecked_Access);
@@ -2387,7 +2418,8 @@ package body Traces_Elf is
       while Position /= No_Element
         and then Element (Position).First <= PC
         and then (Element (Position).First > Element (Position).Last
-                  or else Element (Position).Last >= PC) loop
+                  or else Element (Position).Last >= PC)
+      loop
          Result.Insert (Element (Position));
          Previous (Position);
       end loop;
@@ -3032,11 +3064,12 @@ package body Traces_Elf is
         (Symbol_Addr : Addresses_Info_Acc)
       is
          Line_Addr : Addresses_Info_Acc :=
-                       new Addresses_Info'(Kind   => Line_Addresses,
-                                           First  => Symbol_Addr.Last,
-                                           Last   => Symbol_Addr.Last,
-                                           Parent => null,
-                                           Sloc   => Slocs.No_Location);
+                       new Addresses_Info'(Kind    => Line_Addresses,
+                                           First   => Symbol_Addr.Last,
+                                           Last    => Symbol_Addr.Last,
+                                           Parent  => null,
+                                           Sloc    => Slocs.No_Location,
+                                           Is_Last => False);
       begin
          Line_Cursor := Floor (Line_Table, Line_Addr);
          Unchecked_Deallocation (Line_Addr);

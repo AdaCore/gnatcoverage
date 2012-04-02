@@ -142,11 +142,11 @@ package Traces_Elf is
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
    function Get_Slocs
-     (Exec        : Exe_File_Type;
-      PC          : Pc_Type;
-      Empty_Range : Boolean) return Source_Locations;
+     (Exec      : Exe_File_Type;
+      PC        : Pc_Type;
+      Last_Only : Boolean := False) return Source_Locations;
    --  Use Exec's debug_lines information to determine the slocs for the
-   --  instruction at PC. If Empty_Range is False, filter out empty ranges.
+   --  instruction at PC.
 
    function Get_Sloc
      (Exec : Exe_File_Type;
@@ -179,6 +179,7 @@ package Traces_Elf is
    --  record. For records with the same start address, compare names (for
    --  sections, subprograms or symbols) or slocs (for sloc info), with unset
    --  (null / No_Location) values sorting higher than any specific set value.
+   --  Note that the end address is not part of the comparison key.
 
    package Addresses_Containers is new Ada.Containers.Ordered_Sets
      (Element_Type => Addresses_Info_Acc);
@@ -209,6 +210,11 @@ package Traces_Elf is
 
          when Line_Addresses =>
             Sloc : Source_Location := No_Location;
+
+            Is_Last : Boolean := False;
+            --  Set True for the last of a set of slocs associated with a given
+            --  range of addresses.
+
       end case;
    end record;
 

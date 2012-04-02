@@ -745,7 +745,7 @@ package body Coverage.Source is
 
          declare
             SL : constant Source_Locations :=
-                   Get_Slocs (Subp_Info.Exec.all, PC, Empty_Range => True);
+                   Get_Slocs (Subp_Info.Exec.all, PC);
          begin
             for J in SL'Range loop
                SCO := Sloc_To_SCO (SL (J));

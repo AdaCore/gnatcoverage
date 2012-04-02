@@ -55,13 +55,6 @@ package body Coverage.Object is
       It     : Entry_Iterator;
       T      : Trace_Entry;
    begin
-      if Last < First then
-
-         --  Empty range
-
-         return No_Code;
-      end if;
-
       Init_Post (Base, It, First);
       loop
          Get_Next_Trace (T, It);
