@@ -300,8 +300,8 @@ class TestSuite:
             )
 
     def rts_discriminants(self):
-        """Compute a list of discriminants (string) to reflect the use of a
-        Ravenscar base runtime library, as conveyed by the --RTS command-line
+        """Compute a list of discriminant strings that reflect the kind of
+        runtime support library in use, as conveyed by the --RTS command-line
         option."""
 
         return (
