@@ -228,12 +228,21 @@ class TestSuite:
         # Build support library as needed
 
         if control.need_libsupport():
+
             targetargs = ["TARGET=%s" % targetprefix]
             if self.options.board:
                 targetargs.append ("BOARD=%s" % self.options.board)
-            Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']
-                + targetargs + ["RTS=%s" % self.options.RTS],
-                output=os.path.join (self.log_dir, 'build_support.out'))
+
+            logfile = os.path.join (self.log_dir, 'build_support.out')
+
+            p = Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']
+                    + targetargs + ["RTS=%s" % self.options.RTS],
+                    output=logfile)
+
+            if p.status != 0:
+                raise FatalError (
+                    ("Problem during libsupport construction. %s:\n" % logfile)
+                    + contents_of (logfile))
 
         # Instanciate what we'll need to produce a qualfication report.
         # Do that always, even if not running for qualif. The registry will
