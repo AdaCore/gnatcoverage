@@ -5,7 +5,7 @@
 from gnatpython.env import Env
 from gnatpython.ex import Run
 from gnatpython.fileutils import rm
-import os.path
+import os.path, re
 
 env = Env()
 
@@ -133,8 +133,6 @@ class BUILDER:
         # an automatic config file with everything we need, and nothing
         # else (no other file).
 
-        # Use the requested --RTS for Ada, default to zfp if unspecified
-
         rm (BUILDER.SUITE_CGPR)
 
         Run ([GPRBUILD, '-P', tempgpr.name,
@@ -144,3 +142,22 @@ class BUILDER:
              )
 
         rm (tempgpr.name)
+
+# ===============================
+# == libsupport considerations ==
+# ===============================
+
+# We rely on our support lib to provide a common last chance handler
+# in every configuration where this makes sense, in particular with
+# ZFP and Ravenscar RTS libraries.
+
+# This function controls whether we build the library and link with it
+
+def need_libsupport ():
+    # We need the libsupport to get stable last chance handling for
+    # zfp and ravenscar runtimes. We can't have a last chance handler
+    # and don't really need one for full runtimes (which terminate on
+    # exceptions, unlike ravenscar), native or cross.
+
+    return re.search ("zfp|ravenscar", env.main_options.RTS)
+

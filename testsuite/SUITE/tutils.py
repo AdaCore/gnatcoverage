@@ -10,7 +10,8 @@
 
 # Expose a few other items as a test util-facilities as well
 
-from SUITE.control import BUILDER, XCOV, LANGINFO, language_info
+from SUITE import control
+from SUITE.control import BUILDER, XCOV, LANGINFO, language_info, need_libsupport
 from SUITE.context import *
 
 # Then mind our own buisness
@@ -117,7 +118,9 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None, langs=None):
     # from the project contents. This provides a default last chance handler
     # on which we rely to detect termination on exception occurrence.
 
-    basegpr = "%s/support/base" % ROOT_DIR
+    basegpr = (
+        ("%s/support/base" % ROOT_DIR) if control.need_libsupport ()
+        else None)
 
     baseref = (
         (basegpr.split('/')[-1] + ".") if basegpr else "")

@@ -35,6 +35,7 @@ from SUITE.cutils import contents_of, re_filter, clear, to_list, FatalError
 
 from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
 
+from SUITE import control
 from SUITE.control import BUILDER, XCOV
 
 DEFAULT_TIMEOUT = 600
@@ -225,12 +226,14 @@ class TestSuite:
         BUILDER.RUN_CONFIG_SEQUENCE (self.options)
 
         # Build support library as needed
-        targetargs = ["TARGET=%s" % targetprefix]
-        if self.env.main_options.board:
-            targetargs.append ("BOARD=%s" % self.env.main_options.board)
-        Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']
-            + targetargs + ["RTS=%s" % self.env.main_options.RTS],
-            output=os.path.join (self.log_dir, 'build_support.out'))
+
+        if control.need_libsupport():
+            targetargs = ["TARGET=%s" % targetprefix]
+            if self.options.board:
+                targetargs.append ("BOARD=%s" % self.options.board)
+            Run(['make', '-C', 'support', '-f', 'Makefile.libsupport']
+                + targetargs + ["RTS=%s" % self.options.RTS],
+                output=os.path.join (self.log_dir, 'build_support.out'))
 
         # Instanciate what we'll need to produce a qualfication report.
         # Do that always, even if not running for qualif. The registry will
