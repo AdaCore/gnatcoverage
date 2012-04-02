@@ -255,7 +255,7 @@ class TestSuite:
         return self.base_discriminants() \
             + self.qualif_level_discriminants() \
             + self.qualif_cargs_discriminants() \
-            + self.ravenscar_discriminants()
+            + self.rts_discriminants()
 
     def base_discriminants(self):
         return ['ALL'] + self.env.discriminants
@@ -290,7 +290,7 @@ class TestSuite:
             else ["QUALIF_LEVEL_%s" % self.env.main_options.qualif_level]
             )
 
-    def ravenscar_discriminants(self):
+    def rts_discriminants(self):
         """Compute a list of discriminants (string) to reflect the use of a
         Ravenscar base runtime library, as conveyed by the base gpr file to
         extend, provided with the --RTS command-line option.
@@ -299,7 +299,9 @@ class TestSuite:
         return (
             ["RTS_RAVENSCAR"] if re.search (
                 "ravenscar", self.env.main_options.RTS)
-            else []
+            else ["RTS_ZFP"] if re.search (
+                "zfp", self.env.main_options.RTS)
+            else ["RTS_FULL"]
             )
 
 
