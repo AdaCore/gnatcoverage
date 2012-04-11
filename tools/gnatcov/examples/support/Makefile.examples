@@ -20,6 +20,8 @@
 # each, but final results for one are likely to be intermixed or partially
 # clobbered by those for another.
 
+include ../support/Makefile.common
+
 # User arguments to pass to the builder
 BUILDFLAGS=
 
@@ -85,8 +87,6 @@ endif
 BUILDERFLAGS=$(INTERNALBUILDFLAGS) $(BUILDFLAGS)
 
 .PRECIOUS: %.trace
-
-include ../support/Makefile.common
 
 all: build trace analyze
 
