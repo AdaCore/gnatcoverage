@@ -54,6 +54,9 @@ package body ALI_Files is
       Preserve_Control_Flow_Seen : Boolean := False;
       --  Set True if unit has been compiled with -fpreserve-control-flow
 
+      GNAT_eS_Seen               : Boolean := False;
+      --  Set True if unit has been compiled with -gnateS
+
       Matches : Match_Array (0 .. 10);
       --  For regex matching
 
@@ -233,14 +236,7 @@ package body ALI_Files is
       Expected_Annotation_Kind := Exempt_On;
       Expected_Annotation_Msg  := null;
 
-      Scan_ALI : loop
-         if End_Of_File (ALI_File) then
-            --  No SCOs in this ALI
-
-            Close (ALI_File);
-            return No_Source_File;
-         end if;
-
+      Scan_ALI : while not End_Of_File (ALI_File) loop
          loop
             Free (Line);
             Line := new String'(Get_Line (ALI_File));
@@ -251,6 +247,9 @@ package body ALI_Files is
             when 'A' =>
                if Line.all = "A -fpreserve-control-flow" then
                   Preserve_Control_Flow_Seen := True;
+
+               elsif Line.all = "A -gnateS" then
+                  GNAT_eS_Seen := True;
                end if;
 
             when 'U' =>
@@ -353,15 +352,27 @@ package body ALI_Files is
          end;
       end if;
 
-      if  With_SCOs then
+      if With_SCOs then
          if not Preserve_Control_Flow_Seen then
             Put_Line
               ("warning: " & ALI_Filename
                & ": unit compiled without -fpreserve-control-flow");
          end if;
 
-         Index := 1;
-         Get_SCOs_From_ALI;
+         if not GNAT_eS_Seen then
+            Put_Line
+              ("warning: " & ALI_Filename & ": unit compiled without -gnateS");
+         end if;
+
+         if End_Of_File (ALI_File) then
+            --  No SCOs in this ALI
+
+            ALI_Index := No_Source_File;
+
+         else
+            Index := 1;
+            Get_SCOs_From_ALI;
+         end if;
       end if;
 
       Close (ALI_File);
