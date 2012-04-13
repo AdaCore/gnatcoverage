@@ -501,7 +501,7 @@ class UnitCX:
         """Helper for __init__. Return valid relative path were SOURCE may be
         found, searching plausible locations from the instantiation point."""
 
-        for pdir in ["src/", "../src/"]:
+        for pdir in ("../"*n + "src/" for n in range (0, thistest.depth)):
             if os.path.exists(pdir+source):
                 return pdir+source
 
