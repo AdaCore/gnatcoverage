@@ -30,6 +30,14 @@ abstract project Base is
       end case;
    end Compiler;
 
+   --  Force inclusion of the first last_chance_handler available.  The
+   --  intent is to favor the one from our libsupport when used, expected
+   --  to appear before the RTS library on the command line.
+
+   package Linker is
+     for Leading_Switches ("Ada") use ("-Wl,-u,__gnat_last_chance_handler");
+   end Linker;
+
    package IDE is
      for Compiler_Command ("Ada") use Common.Toolchain_Prefix & "gnatmake";
      for Compiler_Command ("C") use Common.Toolchain_Prefix & "gcc";
