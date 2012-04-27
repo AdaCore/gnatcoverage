@@ -55,7 +55,7 @@ package body ALI_Files is
       --  Set True if unit has been compiled with -fpreserve-control-flow
 
       GNAT_eS_Seen               : Boolean := False;
-      --  Set True if unit has been compiled with -gnateS
+      --  Set True if unit has been compiled with -gnateS (or -fdump-scos)
 
       Matches : Match_Array (0 .. 10);
       --  For regex matching
@@ -248,7 +248,10 @@ package body ALI_Files is
                if Line.all = "A -fpreserve-control-flow" then
                   Preserve_Control_Flow_Seen := True;
 
-               elsif Line.all = "A -gnateS" then
+               elsif Line.all = "A -gnateS"
+                       or else
+                     Line.all = "A -fdump-scos"
+               then
                   GNAT_eS_Seen := True;
                end if;
 
@@ -361,7 +364,8 @@ package body ALI_Files is
 
          if not GNAT_eS_Seen then
             Put_Line
-              ("warning: " & ALI_Filename & ": unit compiled without -gnateS");
+              ("warning: " & ALI_Filename
+               & ": unit compiled without SCO generation");
          end if;
 
          if End_Of_File (ALI_File) then
