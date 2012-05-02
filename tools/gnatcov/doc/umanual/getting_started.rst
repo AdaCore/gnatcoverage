@@ -48,9 +48,10 @@ Very briefly here:
 
 
 For source coverage assessments, sources must be compiled with
-:option:`-g -fpreserve-control-flow`, plus :option:`-gnateS` for Ada or
-:option:`-fdump-scos` for C. Optimization is supported up to :option:`-O1`
-and inlining is allowed.
+:option:`-g -fpreserve-control-flow -fdump-scos`.
+Optimization is supported up to :option:`-O1` and inlining is allowed.
+For backwards compatibility, for Ada :option:`-gnateS` can be used as
+a synonym of :option:`-fdump-scos`.
 
 Object coverage analysis proceeds in a similar fashion, with different
 :option:`--level` option values. There is no `source` coverage obligation
@@ -119,7 +120,7 @@ project file::
 First, we build with this command line::
 
    gprbuild -p --target=powerpc-elf --RTS=powerpc-elf/zfp-prep -Pops.gpr test_inc.adb
-    -cargs:Ada -gnateS -gnata -cargs -g -fpreserve-control-flow
+    -cargs:Ada -fdump-scos -gnata -cargs -g -fpreserve-control-flow
 
 In this particular case:
 

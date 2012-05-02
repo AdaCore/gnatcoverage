@@ -16,12 +16,12 @@ criteria.  These tables are part of the Library Information produced by the
 |gpro| compilers, in the .ali or .gli file corresponding to each Ada or C
 unit, respectively.
 
-Source coverage obligations are produced by the :option:`-gnateS` compilation
-option for Ada and by the :option:`-fdump-scos` option for C. Accurate mapping
-of the execution traces back to source level obligations requires :option:`-g`
-:option:`-fpreserve-control-flow`. These options must be used to compile the
-sources you wish to analyze later on. Optimization is supported up to
-:option:`-O1`, with inlining allowed.
+Source coverage obligations are produced by the :option:`-fdump-scos`
+compilation option. Accurate mapping of the execution
+traces back to source level obligations requires :option:`-g`
+:option:`-fpreserve-control-flow`. These options must be used to compile
+the sources you wish to analyze later on. Optimization is supported up
+to :option:`-O1`, with inlining allowed.
 
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage
@@ -1096,7 +1096,7 @@ Unix ``grep`` tool to filter::
 
     gprbuild -p --target=powerpc-elf --RTS=powerpc-elf/zfp-prep
          -Put.gpr test_divmod0.adb
-         -cargs:Ada -gnateS -gnaty -gnatwe -cargs -g -fpreserve-control-flow
+         -cargs:Ada -fdump-scos -gnaty -gnatwe -cargs -g -fpreserve-control-flow
      ==> -bargs -A=test_divmod0.alis
 
     # Filter the driver/harness units out of the list:
