@@ -97,14 +97,15 @@ class QMAT:
         os.chdir (os.path.join (self.repodir, "testsuite"))
 
         orisupport = os.path.join (
-            "..", "tools", "xcov", "examples", "support")
+            "..", "tools", "gnatcov", "examples", "support")
 
         if os.path.exists (orisupport):
             shutil.move (orisupport, "support")
 
         base_cmd = (
-            "python testsuite.py --target=ppc-elf --disable-valgrind -j6 "
-            "--qualif-level=doA"
+            "python testsuite.py "
+            "--target=ppc-elf --RTS=powerpc-elf/zfp-prep "
+            "--qualif-level=doA -j6"
             )
 
         run_list (
@@ -174,7 +175,8 @@ if __name__ == "__main__":
     op.add_option ("-t", "--re_tests", dest="re_tests")
     op.add_option ("-c", "--re_chapters", dest="re_chapters")
     op.add_option ("-y", "--retry", dest="retry", action="store_true")
-    op.add_option ("-m", "--use-qm", dest="use_qm", action="store_true")
+    op.add_option ("-m", "--use-qm", dest="use_qm", action="store_true",
+                   default=False)
 
     (options, args) = op.parse_args()
 
