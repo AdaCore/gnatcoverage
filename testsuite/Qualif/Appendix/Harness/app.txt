@@ -149,21 +149,21 @@ In the optional sequence at the end of driver sources:
   violation diagnostics expected for the selected lines in the
   ``--annotate=report`` output:
 
-   =======   ========================================== ==================
-   Text      Denotes an expected diagnostic like:       In report section:
-   =======   ========================================== ==================
-   ``0``     no diagnostic                              all
-   ``0c``    no diagnostic, continuation (see below)    all
-   ``s-``    ``statement not executed``                 stmt coverage
-   ``dT-``   ``decision outcome True not covered``      decision coverage
-   ``dF-``   ``decision outcome False not covered``     decision coverage
-   ``d!``    ``one decision outcome not covered``       decision coverage
-   ``eT-``   ``decision outcome True not covered``      mcdc coverage
-   ``eF-``   ``decision outcome False not covered``     mcdc coverage
-   ``c!``    ``condition influence not demonstrated``   mcdc coverage
-   ``x0``    ``exempted region, 0 exemptions``          exempted regions
-   ``x+``    ``exempted region, > 0 exemptions``        exempted regions
-   =======   ========================================== ==================
+  =======   ========================================== ==================
+  Text      Denotes an expected diagnostic like:       In report section:
+  =======   ========================================== ==================
+  ``0``     no diagnostic                              all
+  ``0c``    no diagnostic, continuation (see below)    all
+  ``s-``    ``statement not executed``                 stmt coverage
+  ``dT-``   ``decision outcome True not covered``      decision coverage
+  ``dF-``   ``decision outcome False not covered``     decision coverage
+  ``d!``    ``one decision outcome not covered``       decision coverage
+  ``eT-``   ``decision outcome True not covered``      mcdc coverage
+  ``eF-``   ``decision outcome False not covered``     mcdc coverage
+  ``c!``    ``condition influence not demonstrated``   mcdc coverage
+  ``x0``    ``exempted region, 0 exemptions``          exempted regions
+  ``x+``    ``exempted region, > 0 exemptions``        exempted regions
+  =======   ========================================== ==================
 
 
   Some of these notes require precise source location designations, such as a
