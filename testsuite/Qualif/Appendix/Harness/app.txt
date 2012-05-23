@@ -316,7 +316,7 @@ expectations in a context where the qualified output report does not
 materialize positive results explicitly.
 
 In the previous example, ``-- /XcmpMax/ l+ 0`` is a way to state that we
-expect the statement on line 6 (marked with "# XcmpMax") to be covered, and
+expect the statement on line 5 (marked with "# XcmpMax") to be covered, and
 the testsuite engine verifies this even though the output report does *not*
 feature any explicit indication to that effect. Technically, we state that we
 expect 0 violation messages on that line, and any violation indication emitted
