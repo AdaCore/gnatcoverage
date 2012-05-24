@@ -134,8 +134,6 @@ package body Project is
 
       Prj_Tree.Recompute_View;
 
-      --  Prepare list of LI files
-
    end Compute_Project_View;
 
    -------------------
