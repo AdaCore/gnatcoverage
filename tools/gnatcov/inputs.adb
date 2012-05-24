@@ -29,7 +29,7 @@ package body Inputs is
    procedure Add_Input (Inputs : in out Inputs_Type; Name : String) is
 
       procedure Add_Input (Name : String);
-      --  Add_Input for this particular Inputs (the one given in parameter).
+      --  Add_Input for this particular Inputs (the one given in parameter)
 
       ---------------
       -- Add_Input --

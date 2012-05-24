@@ -1,12 +1,25 @@
-project Default is
+with "gnatcoll";
+project Gnatcov is
 
    package Compiler is
-      for Default_Switches ("ada") use ("-gnatwea", "-g", "-gnat05", "-gnatyg");
+      for Default_Switches ("ada") use
+        ("-gnat05",
+
+         "-gnatwae",
+         "-gnatyg",
+
+         "-gnata",
+
+         "-g",
+         "-O1",
+         "-gnateS",
+         "-fpreserve-control-flow");
+
       for Switches ("ppc_genopc.adb") use ("-g", "-gnat05");
    end Compiler;
 
    for Source_Dirs use (".", "gnat");
    for Main use ("gdbtrace.adb", "gnatcov.adb", "ppc_genopc.adb");
 
-end Default;
+end Gnatcov;
 

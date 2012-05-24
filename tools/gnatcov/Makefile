@@ -1,5 +1,4 @@
 GNATMAKE=gnatmake
-ADAFLAGS=-gnat05 -gnatwae -gnata -g -gnatyg -Ignat -gnateS -O1 -fpreserve-control-flow
 PREFIX=install
 RM=rm -f
 CP=cp -pf
@@ -20,10 +19,10 @@ DOCFORMATS=pdf html
 all: $(PGMNAME)
 
 $(PGMNAME): force
-	$(GNATMAKE) $(ADAFLAGS) $@
+	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
 
 ppc_genopc:
-	$(GNATMAKE) $(ADAFLAGS) $@
+	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
 
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@

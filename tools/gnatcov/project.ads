@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2011-2012, AdaCore                     --
+--                        Copyright (C) 2012, AdaCore                       --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,20 +16,30 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Simplified version of same-named package from GNAT
+--  GNAT projects support
 
-package Snames is
+package Project is
 
-   --  Values of type Pragma_Id must be a subset of those of the same-name type
-   --  in GNAT, and must include Unknown_Pragma.
+   procedure Load_Project (Prj_Name : String);
+   --  Load the named project
 
-   type Pragma_Id is (
-     Pragma_Assert,
-     Pragma_Check,
-     Pragma_Debug,
-     Pragma_Postcondition,
-     Pragma_Precondition,
+   procedure Add_Scenario_Var (Key, Value : String);
+   --  Set the indicated scenario variable to the given value
 
-     Unknown_Pragma);
+   procedure Compute_Project_View;
+   --  Recompute the view of the loaded project within the current scenario
 
-end Snames;
+   --------------------------------------
+   -- Accessors for project properties --
+   --------------------------------------
+
+   function Get_Level return String;
+   --  Return Prj_Name'Level
+
+   procedure Enumerate_Mains (Main_Cb : access procedure (Main_Name : String));
+   --  Call Main_Cb once for every main of the root project
+
+   procedure Enumerate_LIs (LI_Cb : access procedure (LI_Name : String));
+   --  Call LI_Cb once for every relevant library information (ALI/GLI) file
+
+end Project;

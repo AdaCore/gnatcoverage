@@ -37,6 +37,7 @@ with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Inputs;            use Inputs;
 with Outputs;           use Outputs;
+with Project;           use Project;
 with Qemu_Traces;
 with Qemudrv;
 with SC_Obligations;    use SC_Obligations;
@@ -166,6 +167,8 @@ procedure GNATcov is
    ALIs_Option               : constant String := "--alis=";
    Final_Report_Option       : constant String := "--report=";
    Output_Dir_Option         : constant String := "--output-dir=";
+   Project_Option            : constant String := "-P";
+   Scenario_Var_Option       : constant String := "-X";
    Trace_Option              : constant String := "--trace=";
    Trace_Option_Short        : constant String := "-T";
    Target_Option             : constant String := "--target=";
@@ -203,6 +206,13 @@ procedure GNATcov is
    Output              : String_Access := null;
    Tag                 : String_Access := null;
    Eargs               : String_List_Access := null;
+   Project_Loaded      : Boolean := False;
+
+   type Option_Kind is (Coverage_Level);
+   Option_Set : array (Option_Kind) of Boolean := (others => False);
+   --  Elements of this array are set True when the corresponding item is
+   --  specified on the command line (thus overriding any default from a
+   --  project file).
 
    Opt_Exe_Name : String_Access := null;
    --  Path to executable from the command line; it overrides the default one
@@ -210,6 +220,27 @@ procedure GNATcov is
 
    procedure Parse_Command_Line;
    --  Parse the command line and set the above local variables
+
+   procedure Set_Project (Prj_Name : String);
+   --  Use the named project file
+
+   procedure Set_Defaults_From_Project;
+   --  Load the project file and set defaults for relevant options if they
+   --  have not been overridden on the command line.
+
+   -----------------
+   -- Set_Project --
+   -----------------
+
+   procedure Set_Project (Prj_Name : String) is
+   begin
+      if Project_Loaded then
+         Fatal_Error ("only one project may be specified");
+      else
+         Load_Project (Prj_Name);
+         Project_Loaded := True;
+      end if;
+   end Set_Project;
 
    ------------------------
    -- Parse_Command_Line --
@@ -228,9 +259,9 @@ procedure GNATcov is
       --  return "<part2>".
 
       function Next_Arg (What : String) return String;
-      --  Increment Arg_Index then return Argument (Arg_Index). If
-      --  end of command line is reached, display an error message and
-      --  raise Constraint_Error.
+      --  Increment Arg_Index and return Argument (Arg_Index). If end of
+      --  command line is reached, display an error message, and raise
+      --  Constraint_Error.
 
       procedure Check_Argument_Available
         (What    : String;
@@ -383,9 +414,7 @@ procedure GNATcov is
                   end loop;
                end;
 
-            elsif Arg = Verbose_Option
-              or else Arg = Verbose_Option_Short
-            then
+            elsif Arg = Verbose_Option or else Arg = Verbose_Option_Short then
                Verbose := True;
 
             elsif Arg = Eargs_Option then
@@ -411,6 +440,35 @@ procedure GNATcov is
                                             2 => Cmd_Coverage));
                Output := new String'(Option_Parameter (Arg));
 
+            elsif Arg = Project_Option then
+               Set_Project (Next_Arg ("project"));
+
+            elsif Has_Prefix (Arg, Project_Option) then
+               Set_Project
+                 (Arg (Arg'First + Project_Option'Length .. Arg'Last));
+
+            elsif Has_Prefix (Arg, Scenario_Var_Option) then
+
+               --  Get name and value from "-X<name>=<value>"
+
+               declare
+                  Name_First, Name_Last, Value_First : Positive;
+               begin
+                  Name_First := Arg'First + 2;
+                  Name_Last := Name_First - 1;
+                  while Name_Last < Arg'Last
+                          and then Arg (Name_Last + 1) /= '='
+                  loop
+                     Name_Last := Name_Last + 1;
+                  end loop;
+
+                  Value_First := Name_Last + 2;
+
+                  Add_Scenario_Var
+                    (Key   => Arg (Name_First .. Name_Last),
+                     Value => Arg (Value_First .. Arg'Last));
+               end;
+
             elsif Has_Prefix (Arg, Tag_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Run));
                Tag := new String'(Option_Parameter (Arg));
@@ -420,6 +478,7 @@ procedure GNATcov is
                                             2 => Cmd_Run));
                begin
                   Set_Coverage_Levels (Next_Arg ("coverage level"));
+                  Option_Set (Coverage_Level) := True;
                exception
                   when Constraint_Error =>
                      Fatal_Error
@@ -617,13 +676,89 @@ procedure GNATcov is
       end loop;
    end Parse_Command_Line;
 
+   -------------------------------
+   -- Set_Defaults_From_Project --
+   -------------------------------
+
+   procedure Set_Defaults_From_Project is
+
+      generic
+         Input_List : in out Inputs_Type;
+      procedure Add_Item (S : String);
+      --  Add S to Input_List
+
+      --------------
+      -- Add_Item --
+      --------------
+
+      procedure Add_Item (S : String) is
+      begin
+         Inputs.Add_Input (Input_List, S);
+      end Add_Item;
+
+      procedure Add_LI   is new Add_Item (ALIs_Inputs);
+      procedure Add_Main is new Add_Item (Exe_Inputs);
+
+   --  Start of processing for Set_Defaults_From_Project
+
+   begin
+      --  Nothing to do if no project specified
+
+      if not Project_Loaded then
+         return;
+      end if;
+
+      --  Coverage level
+
+      if not Option_Set (Coverage_Level) then
+         declare
+            Level_From_Project : constant String := Get_Level;
+         begin
+            if Level_From_Project /= "" then
+               Set_Coverage_Levels (Level_From_Project);
+            end if;
+         exception
+            when others =>
+               Fatal_Error
+                 ("invalid coverage level from project: "
+                  & Level_From_Project);
+         end;
+      end if;
+
+      --  Executables
+
+      if Inputs.Length (Exe_Inputs) = 0 then
+         Enumerate_Mains (Add_Main'Access);
+      end if;
+
+      --  Analysis subjects (routines/units)
+
+      if Object_Coverage_Enabled then
+
+         --  Set routines from project
+
+         null;
+
+      elsif Inputs.Length (ALIs_Inputs) = 0 then
+         Enumerate_LIs (Add_LI'Access);
+      end if;
+   end Set_Defaults_From_Project;
+
    Base : aliased Traces_Base;
    Exec : aliased Exe_File_Type;
 
-   --  Start of processing for Xcov
+--  Start of processing for Xcov
 
 begin
+   --  Process command line
+
    Parse_Command_Line;
+
+   --  Process project file: generate defaults for options not specified from
+   --  the command line.
+
+   Compute_Project_View;
+   Set_Defaults_From_Project;
 
    --  Now execute the specified command
 
