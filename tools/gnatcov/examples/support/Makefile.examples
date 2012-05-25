@@ -32,14 +32,15 @@ XCOVLEVEL?=stmt+decision
 # Pick a default RTS from TARGET, if not provided already
 # ---------------------------------------------------------------------------
 
+RTS = default
 ifeq ($(TARGET), powerpc-elf)
 RTS = powerpc-elf/ravenscar-sfp-prep
-else ifeq ($(TARGET), powerpc-eabispe)
+endif
+ifeq ($(TARGET), powerpc-eabispe)
 RTS = powerpc-eabispe/ravenscar-sfp-p2020
-else ifeq ($(TARGET), leon-elf)
+endif
+ifeq ($(TARGET), leon-elf)
 RTS = ravenscar
-else
-RTS = default
 endif
 
 # ----------------------------------------------------------------------------
