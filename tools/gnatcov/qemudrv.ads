@@ -26,6 +26,7 @@ package Qemudrv is
       Tag      : String_Access;
       Output   : String_Access;
       Histmap  : String_Access;
+      Kernel   : String_Access;
       Eargs    : String_List_Access);
    --  Run Exe_File on QEMU for Target (e.g. "powerpc-elf") with Output
    --  for trace output file; if Tag is not null, append it to the trace

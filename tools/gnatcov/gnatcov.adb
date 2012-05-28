@@ -122,6 +122,8 @@ procedure GNATcov is
       P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");
+      P ("   --target=NAME               Specify execution target");
+      P ("   --kernel=FILE               Specify which kernel to use");
       New_Line;
    end Usage;
 
@@ -166,6 +168,7 @@ procedure GNATcov is
    SCOs_Option               : constant String := "--scos=";
    ALIs_Option               : constant String := "--alis=";
    Final_Report_Option       : constant String := "--report=";
+   Kernel_Option             : constant String := "--kernel=";
    Output_Dir_Option         : constant String := "--output-dir=";
    Project_Option            : constant String := "-P";
    Scenario_Var_Option       : constant String := "-X";
@@ -205,6 +208,7 @@ procedure GNATcov is
    Target              : String_Access := null;
    Output              : String_Access := null;
    Tag                 : String_Access := null;
+   Kernel              : String_Access := null;
    Eargs               : String_List_Access := null;
    Project_Loaded      : Boolean := False;
 
@@ -472,6 +476,10 @@ procedure GNATcov is
             elsif Has_Prefix (Arg, Tag_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Run));
                Tag := new String'(Option_Parameter (Arg));
+
+            elsif Has_Prefix (Arg, Kernel_Option) then
+               Check_Option (Arg, Command, (1 => Cmd_Run));
+               Kernel := new String'(Option_Parameter (Arg));
 
             elsif Arg = Coverage_Option_Short then
                Check_Option (Arg, Command, (1 => Cmd_Coverage,
@@ -757,8 +765,10 @@ begin
    --  Process project file: generate defaults for options not specified from
    --  the command line.
 
-   Compute_Project_View;
-   Set_Defaults_From_Project;
+   if Project_Loaded then
+      Compute_Project_View;
+      Set_Defaults_From_Project;
+   end if;
 
    --  Now execute the specified command
 
@@ -1307,7 +1317,8 @@ begin
                   end if;
                end if;
 
-               Qemudrv.Driver (Exe_File, Target, Tag, Output, Histmap, Eargs);
+               Qemudrv.Driver (Exe_File, Target, Tag, Output, Histmap,
+                               Kernel, Eargs);
             end Run;
          begin
             Inputs.Iterate (Exe_Inputs, Run'Access);

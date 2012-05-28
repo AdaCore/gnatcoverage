@@ -122,7 +122,8 @@ package Qemu_Traces is
    --  entry to finish the sequence.
 
    type Info_Kind_Type is
-     (Info_End, Exec_File_Name, Coverage_Options, User_Data, Date_Time);
+     (Info_End, Exec_File_Name, Coverage_Options, User_Data, Date_Time,
+      Kernel_File_Name);
 
    type Trace_Info_Header is record
       Info_Kind   : Unsigned_32;

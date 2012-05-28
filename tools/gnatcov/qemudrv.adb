@@ -75,6 +75,7 @@ package body Qemudrv is
       Tag      : String_Access;
       Output   : String_Access;
       Histmap  : String_Access;
+      Kernel   : String_Access;
       Eargs    : String_List_Access)
    is
       type Driver_Target_Access is access constant Driver_Target;
@@ -103,6 +104,7 @@ package body Qemudrv is
          declare
             Gnatemu : constant String_Access
               := GNAT.OS_Lib.Locate_Exec_On_Path (Target.all & "-gnatemu");
+            List : String_List_Access;
          begin
 
             if Gnatemu /= null then
@@ -111,19 +113,25 @@ package body Qemudrv is
                --  and request the production of traces straight to the
                --  underlying emulator in addition to our own -eargs.
 
+               if Kernel = null then
+                  List := new String_List (1 .. 6);
+                  List (6) := new String'("%exe");
+               else
+                  List := new String_List (1 .. 7);
+                  List (6) := new String'("--kernel=" & Kernel.all);
+                  List (7) := new String'("%exe");
+               end if;
+               List (1 .. 5) := (new String'("--eargs"),
+                                 new String'("-exec-trace"),
+                                 new String'("%trace"),
+                                 new String'("%eargs"),
+                                 new String'("--eargs-end"));
                return new Driver_Target'
                  (Target => Target,
                   Build_Command => null,
                   Build_Options => null,
-                  Run_Command => new String'(Gnatemu.all),
-                  Run_Options => new String_List'
-                    (new String'("--eargs"),
-                     new String'("-exec-trace"),
-                     new String'("%trace"),
-                     new String'("%eargs"),
-                     new String'("--eargs-end"),
-                     new String'("%exe"))
-                 );
+                  Run_Command => Gnatemu,
+                  Run_Options => List);
             end if;
          end;
 
@@ -219,6 +227,9 @@ package body Qemudrv is
 
          if GNAT.Strings."/=" (Tag, null) then
             Append_Info (Trace_File, User_Data, Tag.all);
+         end if;
+         if GNAT.Strings."/=" (Kernel, null) then
+            Append_Info (Trace_File, Kernel_File_Name, Kernel.all);
          end if;
 
          Write_Trace_File (Trace_Output.all, Trace_File);
