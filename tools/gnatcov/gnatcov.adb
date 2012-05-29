@@ -710,12 +710,6 @@ procedure GNATcov is
    --  Start of processing for Set_Defaults_From_Project
 
    begin
-      --  Nothing to do if no project specified
-
-      if not Project_Loaded then
-         return;
-      end if;
-
       --  Coverage level
 
       if not Option_Set (Coverage_Level) then
@@ -762,8 +756,8 @@ begin
 
    Parse_Command_Line;
 
-   --  Process project file: generate defaults for options not specified from
-   --  the command line.
+   --  Projects support: generate defaults for options not specified from the
+   --  command line.
 
    if Project_Loaded then
       Compute_Project_View;
