@@ -177,11 +177,13 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None, langs=None):
 # --------------------
 def maybe_valgrind(command):
     """Return the input COMMAND list, with 'valgrind -q' prepended if
-    valgrind is available and was enabled through options.
+    valgrind is requested.  valgrind will have to be available for the
+    execution to proceed.
     """
-    if (thistest.options.enable_valgrind) and which(VALGRIND) != '':
-        command = [VALGRIND, '-q'] + command
-    return command
+    return (
+        ([VALGRIND, '-q'] + command) if thistest.options.enable_valgrind
+        else command
+        )
 
 # ----------
 # -- xcov --
