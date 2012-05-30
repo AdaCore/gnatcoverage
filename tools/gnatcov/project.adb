@@ -279,11 +279,13 @@ package body Project is
    --  Start of processing for List_From_Project
 
    begin
-      for J in List_Attr_Value'Range loop
-         Result.Include (List_Attr_Value (J).all);
-         Free (List_Attr_Value (J));
-      end loop;
-      Free (List_Attr_Value);
+      if List_Attr_Value /= null then
+         for J in List_Attr_Value'Range loop
+            Result.Include (List_Attr_Value (J).all);
+            Free (List_Attr_Value (J));
+         end loop;
+         Free (List_Attr_Value);
+      end if;
 
       if List_File_Attr_Value /= "" then
          Read_List_From_File
