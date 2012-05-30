@@ -158,6 +158,7 @@ In the optional sequence at the end of driver sources:
   ``dT-``   ``decision outcome True not covered``      decision coverage
   ``dF-``   ``decision outcome False not covered``     decision coverage
   ``d!``    ``one decision outcome not covered``       decision coverage
+  ``d-``    ``decision never eveluated``               decision coverage
   ``eT-``   ``decision outcome True not covered``      mcdc coverage
   ``eF-``   ``decision outcome False not covered``     mcdc coverage
   ``c!``    ``condition influence not demonstrated``   mcdc coverage
