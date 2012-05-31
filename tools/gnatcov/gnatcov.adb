@@ -1177,41 +1177,35 @@ begin
             procedure Process_Trace_For_Src_Coverage
               (Trace_File : Trace_File_Element_Acc)
             is
-               Exe_File : Exe_File_Acc;
-
-               procedure Process_Info (File : Trace_File_Type);
-               --  Process infos from trace file
-
-               procedure Process_Trace (E : Trace_Entry);
-               --  Process one trace for trace file
-
+               Exe_File                : Exe_File_Acc;
                Current_Sym             : Addresses_Info_Acc;
                Current_Subp_Info       : Subprogram_Info;
                Current_Subp_Info_Valid : Boolean;
+               E                       : Trace_Entry;
+               Desc                    : Trace_File_Descriptor;
+               Eof                     : Boolean;
 
-               ------------------
-               -- Process_Info --
-               ------------------
+            --  Start of processing for Process_Trace_For_Src_Coverage
 
-               procedure Process_Info (File : Trace_File_Type) is
-               begin
-                  Exe_File := Open_Exec (Trace_File.Filename.all, File);
+            begin
+               Open_Trace_File (Trace_File.Filename.all,
+                                Desc, Trace_File.Trace);
 
-                  --  Load symbols from executable (sets the rebase offset for
-                  --  each symbol) and perform static analysis.
+               Exe_File := Open_Exec (Trace_File.Filename.all,
+                                      Trace_File.Trace);
 
-                  Decision_Map.Analyze (Exe_File);
-               end Process_Info;
+               --  Load symbols from executable (sets the rebase offset for
+               --  each symbol) and perform static analysis.
 
-               -------------------
-               -- Process_Trace --
-               -------------------
+               Decision_Map.Analyze (Exe_File);
 
-               procedure Process_Trace (E : Trace_Entry) is
-               begin
+               loop
+                  Read_Trace_Entry (Desc, Eof, E);
+                  exit when Eof;
+
                   if Current_Sym = null
-                       or else
-                     E.First not in Current_Sym.First .. Current_Sym.Last
+                    or else
+                    E.First not in Current_Sym.First .. Current_Sym.Last
                   then
                      Current_Sym :=
                        Get_Address_Info
@@ -1229,16 +1223,9 @@ begin
                      Compute_Source_Coverage
                        (Current_Sym.Symbol_Name, Current_Subp_Info, E);
                   end if;
-               end Process_Trace;
+               end loop;
 
-            --  Start of processing for Process_Trace_For_Src_Coverage
-
-            begin
-               Read_Trace_File
-                 (Trace_File.Filename.all,
-                  Trace_File.Trace,
-                  Process_Info'Access,
-                  Process_Trace'Access);
+               Close_Trace_File (Desc);
             end Process_Trace_For_Src_Coverage;
 
          begin
