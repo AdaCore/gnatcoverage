@@ -398,7 +398,7 @@ package body Qemudrv is
 
    begin
       P ("run [OPTIONS] FILE [-eargs EARGS...]");
-      P ("  -t TARGET  --target=TARGET   Set the target");
+      P ("  -t TARGET  --target=TARGET   Set the execution target");
       Put (Indent & "    targets:");
       for I in Drivers'Range loop
          Put (' ');
@@ -410,7 +410,6 @@ package body Qemudrv is
       P ("  -o FILE  --output=FILE       Write traces to FILE");
       P ("  -eargs EARGS                 " &
            "Pass EARGS to the low-level emulator");
-      P ("  --target=NAME                Specify execution target");
       P ("  --kernel=FILE                Specify which kernel to use");
    end Help;
 
