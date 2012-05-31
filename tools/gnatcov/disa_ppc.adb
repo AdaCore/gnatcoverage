@@ -374,16 +374,22 @@ package body Disa_Ppc is
       Branch      : out Branch_Kind;
       Flag_Indir  : out Boolean;
       Flag_Cond   : out Boolean;
-      Dest        : out Unsigned_32;
-      Fallthrough : out Unsigned_32)
+      Branch_Dest : out Dest;
+      FT_Dest     : out Dest)
    is
       Insn : constant Unsigned_32 := To_Insn (Insn_Bin);
 
       Opc, Xo, Bo : Unsigned_32;
       D : Unsigned_32;
    begin
+      Branch_Dest := (No_PC, No_PC);
+      FT_Dest     := (No_PC, No_PC);
+
+      Flag_Indir := False;
+      Flag_Cond  := False;
+
       Opc := Get_Field (F_OPC, Insn);
-      Xo := Get_Field (F_XO, Insn);
+      Xo  := Get_Field (F_XO, Insn);
 
       --  To be overriden for non-common cases
 
@@ -396,32 +402,28 @@ package body Disa_Ppc is
       if Opc = 18 then
          --  Opc = 18: b, ba, bl and bla
 
-         Flag_Indir := False;
-         Flag_Cond := False;
          D := Shift_Left (Get_Signed_Field (F_LI, Insn), 2);
          if Get_Field (F_AA, Insn) = 1 then
-            Dest := D;
+            Branch_Dest.Target := D;
          else
-            Dest := Pc + D;
+            Branch_Dest.Target := Pc + D;
          end if;
          return;
 
       elsif Opc = 16 then
          --  bcx
 
-         Flag_Indir := False;
          D := Shift_Left (Get_Signed_Field (F_BD, Insn), 2);
          if Get_Field (F_AA, Insn) = 1 then
-            Dest := D;
+            Branch_Dest.Target := D;
          else
-            Dest := Pc + D;
+            Branch_Dest.Target := Pc + D;
          end if;
 
       elsif Opc = 19 and Xo = 16 then
          --  bclrx
 
          Flag_Indir := True;
-         Dest := 0;
          if Branch = Br_Jmp then
             Branch := Br_Ret;
          end if;
@@ -430,19 +432,15 @@ package body Disa_Ppc is
          --  bcctrx
 
          Flag_Indir := True;
-         Dest := 0;
 
       else
          Branch := Br_None;
-         Flag_Indir := False;
-         Flag_Cond := False;
-         Dest := 0;
          return;
       end if;
 
       Bo := Get_Field (F_BO, Insn);
       Flag_Cond := not ((Bo and 2#10100#) = 2#10100#);
-      Fallthrough := PC + Pc_Type (Get_Insn_Length (Self, Insn_Bin));
+      FT_Dest.Target := PC + Pc_Type (Get_Insn_Length (Self, Insn_Bin));
    end Get_Insn_Properties;
 
 end Disa_Ppc;

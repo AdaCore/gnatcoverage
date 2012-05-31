@@ -26,6 +26,7 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 
+with Disassemblers;  use Disassemblers;
 with SC_Obligations; use SC_Obligations;
 with Traces;         use Traces;
 with Traces_Elf;     use Traces_Elf;
@@ -67,7 +68,7 @@ package Decision_Map is
       --  If not Unknown, indicate which value of the tested condition causes
       --  this edge to be taken.
 
-      Destination    : Pc_Type;
+      Destination    : Dest;
       --  Edge destination
 
       Dest_Kind      : Edge_Dest_Kind := Unknown;

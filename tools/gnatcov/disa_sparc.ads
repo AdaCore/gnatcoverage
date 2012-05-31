@@ -51,8 +51,8 @@ package Disa_Sparc is
       Branch      : out Branch_Kind;
       Flag_Indir  : out Boolean;
       Flag_Cond   : out Boolean;
-      Dest        : out Pc_Type;
-      Fallthrough : out Pc_Type);
+      Branch_Dest : out Dest;
+      FT_Dest     : out Dest);
    --  Determine whether the given instruction, located at PC, is a branch
    --  instruction of some kind (indicated by Branch).
    --  For a branch, indicate whether it is indirect (Flag_Indir) and whether

@@ -754,12 +754,18 @@ package body Disa_Sparc is
       Branch      : out Branch_Kind;
       Flag_Indir  : out Boolean;
       Flag_Cond   : out Boolean;
-      Dest        : out Pc_Type;
-      Fallthrough : out Pc_Type)
+      Branch_Dest : out Dest;
+      FT_Dest     : out Dest)
    is
       W : Unsigned_32;
       R : Unsigned_32;
    begin
+      --  Make sure OUT parameters have a valid value
+
+      Branch_Dest := (No_PC, No_PC);
+      FT_Dest     := (No_PC, No_PC);
+      Branch      := Br_None;
+
       if Insn_Bin'Length < 4 then
          raise Program_Error;
       end if;
@@ -776,8 +782,8 @@ package body Disa_Sparc is
                   if (Get_Field (F_Cond, W) and 2#0111#) /= 0 then
                      Flag_Cond := True;
                   end if;
-                  Dest := Pc + Get_Field_Sext (F_Disp22, W) * 4;
-                  Fallthrough :=
+                  Branch_Dest.Target := Pc + Get_Field_Sext (F_Disp22, W) * 4;
+                  FT_Dest.Target :=
                     Pc + Pc_Type (2 * Get_Insn_Length (Self, Insn_Bin));
                   Branch := Br_Jmp;
                   return;
@@ -787,7 +793,7 @@ package body Disa_Sparc is
             end case;
 
          when 2#01# =>
-            Dest := Pc + Get_Field_Sext (F_Disp30, W) * 4;
+            Branch_Dest.Target := Pc + Get_Field_Sext (F_Disp30, W) * 4;
             Branch := Br_Call;
             return;
 

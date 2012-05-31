@@ -1817,8 +1817,8 @@ package body Disa_X86 is
       Branch      : out Branch_Kind;
       Flag_Indir  : out Boolean;
       Flag_Cond   : out Boolean;
-      Dest        : out Pc_Type;
-      Fallthrough : out Pc_Type)
+      Branch_Dest : out Dest;
+      FT_Dest     : out Dest)
    is
       pragma Unreferenced (Self);
 
@@ -1838,11 +1838,13 @@ package body Disa_X86 is
          return Insn_Bin (Insn_Bin'First + Off);
       end Mem;
 
+   --  Start of processing for Get_Insn_Properties
+
    begin
       --  Make sure OUT parameters have a valid value
 
-      Dest        := No_PC;
-      Fallthrough := No_PC;
+      Branch_Dest := (No_PC, No_PC);
+      FT_Dest     := (No_PC, No_PC);
       Branch      := Br_None;
 
       B := Insn_Bin (Insn_Bin'First);
@@ -1855,8 +1857,9 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := True;
             Flag_Indir := False;
-            Fallthrough := Pc + 2;
-            Dest := Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
+            FT_Dest.Target := Pc + 2;
+            Branch_Dest.Target :=
+              FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
             return;
 
          when 16#0F# =>
@@ -1866,11 +1869,10 @@ package body Disa_X86 is
                Branch     := Br_Jmp;
                Flag_Cond  := True;
                Flag_Indir := False;
-               Fallthrough := Pc + 6;
-               Dest :=
-                 Fallthrough + Decode_Val (Mem'Unrestricted_Access, 2, W_32);
-            else
-               Branch := Br_None;
+               FT_Dest.Target := Pc + 6;
+               Branch_Dest.Target :=
+                 FT_Dest.Target
+                   + Decode_Val (Mem'Unrestricted_Access, 2, W_32);
             end if;
             return;
 
@@ -1889,9 +1891,9 @@ package body Disa_X86 is
             Branch     := Br_Call;
             Flag_Cond  := False;
             Flag_Indir := False;
-            Fallthrough := Pc + 5;
-            Dest :=
-              Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+            FT_Dest.Target := Pc + 5;
+            Branch_Dest.Target :=
+              FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
          when 16#9A# =>
@@ -1899,8 +1901,9 @@ package body Disa_X86 is
             Branch     := Br_Call;
             Flag_Cond  := False;
             Flag_Indir := False;
-            Fallthrough := Pc + 5;
-            Dest := Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+            FT_Dest.Target := Pc + 5;
+            Branch_Dest.Target :=
+              Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
          when 16#E9# =>
@@ -1908,9 +1911,9 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := False;
             Flag_Indir := False;
-            Fallthrough := Pc + 5;
-            Dest :=
-              Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+            FT_Dest.Target := Pc + 5;
+            Branch_Dest.Target :=
+              FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
          when 16#EA# =>
@@ -1918,8 +1921,9 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := False;
             Flag_Indir := False;
-            Fallthrough := Pc + 5;
-            Dest := Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+            FT_Dest.Target := Pc + 5;
+            Branch_Dest.Target :=
+              Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
          when 16#EB# =>
@@ -1927,8 +1931,9 @@ package body Disa_X86 is
             Branch     := Br_Jmp;
             Flag_Cond  := False;
             Flag_Indir := False;
-            Fallthrough := Pc + 2;
-            Dest := Fallthrough + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
+            FT_Dest.Target := Pc + 2;
+            Branch_Dest.Target :=
+              FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
             return;
 
          when 16#FF# =>

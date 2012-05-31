@@ -69,16 +69,16 @@ package body Decision_Map is
 
       --  Properties of the branch instruction at the end of the basic block:
 
-      Dest      : Pc_Type := No_PC;
+      Branch_Dest : Dest := (No_PC, No_PC);
       --  Destination
 
-      Branch    : Branch_Kind := Br_None;
+      Branch      : Branch_Kind := Br_None;
       --  Branch kind
 
-      Cond      : Boolean;
+      Cond        : Boolean;
       --  True if conditional branch
 
-      Condition : SCO_Id := No_SCO_Id;
+      Condition   : SCO_Id := No_SCO_Id;
       --  If this is a conditional branch testing a condition, identifies it
    end record;
 
@@ -109,12 +109,12 @@ package body Decision_Map is
    --  Build decision map for the given subprogram
 
    procedure Analyze_Conditional_Branch
-     (Exec              : Exe_File_Acc;
-      Insn              : Binary_Content;
-      Branch_Dest       : Pc_Type;
-      Fallthrough_Dest  : Pc_Type;
-      Ctx               : in out Cond_Branch_Context;
-      BB                : in out Basic_Block);
+     (Exec        : Exe_File_Acc;
+      Insn        : Binary_Content;
+      Branch_Dest : Dest;
+      FT_Dest     : Dest;
+      Ctx         : in out Cond_Branch_Context;
+      BB          : in out Basic_Block);
    --  Process one conditional branch instruction: identify relevant source
    --  coverable construct, and record association in the decision map. Sets
    --  BB.Condition if applicable.
@@ -209,12 +209,12 @@ package body Decision_Map is
    --------------------------------
 
    procedure Analyze_Conditional_Branch
-     (Exec              : Exe_File_Acc;
-      Insn              : Binary_Content;
-      Branch_Dest       : Pc_Type;
-      Fallthrough_Dest  : Pc_Type;
-      Ctx               : in out Cond_Branch_Context;
-      BB                : in out Basic_Block)
+     (Exec        : Exe_File_Acc;
+      Insn        : Binary_Content;
+      Branch_Dest : Dest;
+      FT_Dest     : Dest;
+      Ctx         : in out Cond_Branch_Context;
+      BB          : in out Basic_Block)
    is
       Sloc : constant Source_Location := Get_Sloc (Exec.all, Insn'First);
       --  Source location of Insn
@@ -408,7 +408,7 @@ package body Decision_Map is
                     (Destination => Branch_Dest,
                      others      => <>),
                   Fallthrough =>
-                    (Destination => Fallthrough_Dest,
+                    (Destination => FT_Dest,
                      others      => <>))));
       end Process_Condition;
    end Analyze_Conditional_Branch;
@@ -452,12 +452,13 @@ package body Decision_Map is
       end record;
 
       package Known_Destination_Maps is new Ada.Containers.Ordered_Maps
-        (Key_Type     => Pc_Type,
+        (Key_Type     => Dest,
          Element_Type => Known_Destination);
 
       Known_Destinations : Known_Destination_Maps.Map;
 
-      Known_Outcome : array (Boolean) of PC_Sets.Set;
+      package Dest_Sets is new Ada.Containers.Ordered_Sets (Dest);
+      Known_Outcome : array (Boolean) of Dest_Sets.Set;
       --  When set, each element of this array is a set of edge destinations
       --  known to correspond to the respective outcome of the decision.
 
@@ -605,7 +606,7 @@ package body Decision_Map is
                 = Last_CBI.Edges (Branch).Destination
                 or else Edge_Info.Destination
                           = Last_CBI.Edges (Fallthrough).Destination
-                or else Edge_Info.Destination > Last_Seen_Condition_PC))
+                or else Edge_Info.Destination.Target > Last_Seen_Condition_PC))
          then
             Edge_Info.Dest_Kind := Outcome;
 
@@ -965,7 +966,7 @@ package body Decision_Map is
 
          begin
             return Edge_Info.Origin'Img & "->" & Edge'Img
-              & " = " & Hex_Image (Edge_Info.Destination)
+              & " = " & Hex_Image (Edge_Info.Destination.Target)
               & " " & Edge_Info.Dest_Kind'Img & Additional_Info_Image;
          end Dest_Image;
 
@@ -983,7 +984,7 @@ package body Decision_Map is
                Report (Exe, CB_Loc.PC,
                        "unable to label " & Edge'Img
                        & " destination "
-                       & Hex_Image (CBI.Edges (Edge).Destination),
+                       & Hex_Image (CBI.Edges (Edge).Destination.Target),
                        Kind => Warning);
             end if;
          end loop;
@@ -1039,8 +1040,8 @@ package body Decision_Map is
          Unconditional_Branch : Pc_Type := No_PC;
          --  First unconditional branch traced, used to avoid infinite loops
 
-         Next_PC              : Pc_Type := Edge_Info.Destination;
-         BB                   : Basic_Block;
+         Next_PC : Pc_Type := Edge_Info.Destination.Target;
+         BB      : Basic_Block;
 
          Next_PC_SCO : SCO_Id;
          --  Statement at Next_PC
@@ -1123,14 +1124,14 @@ package body Decision_Map is
                      Unconditional_Branch := BB.To_PC;
                   end if;
 
-                  Next_PC := BB.Dest;
+                  Next_PC := BB.Branch_Dest.Target;
                   goto Follow_Jump;
                end if;
 
             when Br_Call =>
                declare
                   Sym : constant Addresses_Info_Acc :=
-                          Get_Symbol (Exe.all, BB.Dest);
+                          Get_Symbol (Exe.all, BB.Branch_Dest.Target);
                   Sym_Name : String_Access;
                begin
                   if Sym /= null then
@@ -1269,8 +1270,8 @@ package body Decision_Map is
             Branch      : Branch_Kind;
             Flag_Indir  : Boolean;
             Flag_Cond   : Boolean;
-            Dest        : Pc_Type;
-            Fallthrough : Pc_Type;
+            Branch_Dest : Dest;
+            FT_Dest     : Dest;
             --  Properties of Insn
 
          begin
@@ -1280,28 +1281,28 @@ package body Decision_Map is
                Branch      => Branch,
                Flag_Indir  => Flag_Indir,
                Flag_Cond   => Flag_Cond,
-               Dest        => Dest,
-               Fallthrough => Fallthrough);
+               Branch_Dest => Branch_Dest,
+               FT_Dest     => FT_Dest);
 
             if Branch /= Br_None then
                declare
                   BB : Basic_Block :=
-                         (From      => Current_Basic_Block_Start,
-                          To_PC     => Insn'First,
-                          To        => Insn'Last,
-                          Dest      => Dest,
-                          Branch    => Branch,
-                          Cond      => Flag_Cond,
-                          Condition => No_SCO_Id);
+                         (From        => Current_Basic_Block_Start,
+                          To_PC       => Insn'First,
+                          To          => Insn'Last,
+                          Branch_Dest => Branch_Dest,
+                          Branch      => Branch,
+                          Cond        => Flag_Cond,
+                          Condition   => No_SCO_Id);
                begin
                   if Branch = Br_Jmp and then Flag_Cond then
                      Analyze_Conditional_Branch
                        (Exec,
-                        Insn             => Insn,
-                        Branch_Dest      => Dest,
-                        Fallthrough_Dest => Fallthrough,
-                        Ctx              => Context,
-                        BB               => BB);
+                        Insn        => Insn,
+                        Branch_Dest => Branch_Dest,
+                        FT_Dest     => FT_Dest,
+                        Ctx         => Context,
+                        BB          => BB);
                   end if;
                   Context.Basic_Blocks.Insert (BB);
                end;
@@ -1420,7 +1421,7 @@ package body Decision_Map is
    begin
       return Hex_Image (BB.From) & "-" & Hex_Image (BB.To)
                & " " & BB.Branch'Img & Cond_Char (BB.Cond) & " "
-               & Hex_Image (BB.Dest);
+               & Hex_Image (BB.Branch_Dest.Target);
    end Image;
 
    ---------------

@@ -30,6 +30,7 @@ with GNAT.OS_Lib;
 with Coverage;          use Coverage;
 with Coverage.Object;   use Coverage.Object;
 with Disa_Common;       use Disa_Common;
+with Disassemblers;     use Disassemblers;
 with Dwarf;
 with Dwarf_Handling;    use Dwarf_Handling;
 with Elf32;
@@ -2064,8 +2065,8 @@ package body Traces_Elf is
                   Branch      : Branch_Kind;
                   Flag_Indir  : Boolean;
                   Flag_Cond   : Boolean;
-                  Dest        : Pc_Type;
-                  Fallthrough : Pc_Type;
+                  Branch_Dest : Dest;
+                  FT_Dest     : Dest;
 
                   Op : constant Unsigned_8 := Trace.Op and 3;
                   Trace_Len : constant Pc_Type := Trace.Last - Trace.First + 1;
@@ -2096,8 +2097,8 @@ package body Traces_Elf is
                      Branch      => Branch,
                      Flag_Indir  => Flag_Indir,
                      Flag_Cond   => Flag_Cond,
-                     Dest        => Dest,
-                     Fallthrough => Fallthrough);
+                     Branch_Dest => Branch_Dest,
+                     FT_Dest     => FT_Dest);
 
                   if Flag_Cond then
                      case Op is
