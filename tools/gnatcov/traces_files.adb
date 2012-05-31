@@ -23,8 +23,6 @@ with Ada.Text_IO; use Ada.Text_IO;
 
 with System;
 
-with GNAT.OS_Lib; use GNAT.OS_Lib;
-
 with Hex_Images; use Hex_Images;
 with Swaps;
 with Traces; use Traces;
@@ -39,15 +37,6 @@ package body Traces_Files is
 
    function Make_Trace_Header (Kind : Trace_Kind) return Trace_Header;
    --  Create a trace file header with the given kind
-
-   type Trace_File_Descriptor is record
-      Fd : File_Descriptor;
-
-      --  Parameter from header
-      Kind             : Trace_Kind;
-      Sizeof_Target_Pc : Unsigned_8;
-      Big_Endian       : Boolean;
-   end record;
 
    Trace_Header_Size : constant Natural :=
                          Trace_Header'Size / System.Storage_Unit;
@@ -180,18 +169,13 @@ package body Traces_Files is
    -- Read_Trace_File --
    ---------------------
 
-   procedure Read_Trace_File
+   procedure Open_Trace_File
      (Filename   : String;
-      Trace_File : out Trace_File_Type;
-      Info_Cb    : access procedure (File : Trace_File_Type);
-      Trace_Cb   : access procedure (E : Trace_Entry))
+      Desc       : out Trace_File_Descriptor;
+      Trace_File : out Trace_File_Type)
    is
-      Desc : Trace_File_Descriptor;
-      E32 : Trace_Entry32;
-      E64 : Trace_Entry64;
-      Addr : System.Address;
+      Hdr : Trace_Header;
       Res : Integer;
-      Res_Size : Integer;
    begin
       --  Open file
 
@@ -200,88 +184,114 @@ package body Traces_Files is
          raise Bad_File_Format with "cannot open file " & Filename;
       end if;
 
-      declare
-         Hdr : Trace_Header;
-      begin
+      --  Read header
+
+      if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
+        /= Trace_Header_Size
+      then
+         raise Bad_File_Format with "cannot read header";
+      end if;
+      Check_Header (Desc, Hdr);
+
+      if Hdr.Kind = Info then
+         Read_Trace_File_Infos (Trace_File, Desc);
+
          --  Read header
 
-         if Read (Desc.Fd, Hdr'Address, Trace_Header_Size)
-           /= Trace_Header_Size
-         then
+         Res := Read (Desc.Fd, Hdr'Address, Trace_Header_Size);
+         if Res = 0 then
+            --  No trace header
+            return;
+         end if;
+         if Res /= Trace_Header_Size then
             raise Bad_File_Format with "cannot read header";
          end if;
          Check_Header (Desc, Hdr);
+      end if;
+      Decode_Trace_Header (Hdr, Trace_File, Desc);
+   exception
+      when others =>
+         Close (Desc.Fd);
+         raise;
+   end Open_Trace_File;
 
-         if Hdr.Kind = Info then
-            Read_Trace_File_Infos (Trace_File, Desc);
+   procedure Read_Trace_Entry
+     (Desc       : Trace_File_Descriptor;
+      Eof        : out Boolean;
+      E          : out Trace_Entry)
+   is
+      E32 : Trace_Entry32;
+      Res : Integer;
+   begin
+      if Desc.Sizeof_Target_Pc /= 4 then
+         raise Bad_File_Format with "only 4 bytes pc are handled";
+      end if;
 
-            --  Read header
+      --  Read an entry
 
-            Res := Read (Desc.Fd, Hdr'Address, Trace_Header_Size);
-            if Res = 0 then
-               if Info_Cb /= null then
-                  Info_Cb.all (Trace_File);
-               end if;
-               Close (Desc.Fd);
-               return;
-            end if;
-            if Res /= Trace_Header_Size then
-               raise Bad_File_Format with "cannot read header";
-            end if;
-            Check_Header (Desc, Hdr);
-         end if;
-         Decode_Trace_Header (Hdr, Trace_File, Desc);
-      exception
-         when others =>
-            Close (Desc.Fd);
-            raise;
-      end;
+      Res := Read (Desc.Fd, E32'Address, E32_Size);
+
+      --  Check result
+
+      if Res = 0 then
+         Eof := True;
+         return;
+      else
+         Eof := False;
+      end if;
+
+      if Res /= E32_Size then
+         Close (Desc.Fd);
+         raise Bad_File_Format with "file truncated";
+      end if;
+
+      --  Basic checks
+
+      if Desc.Big_Endian /= Big_Endian_Host then
+         Swaps.Swap_32 (E32.Pc);
+         Swaps.Swap_16 (E32.Size);
+      end if;
+
+      E := Trace_Entry'(First  => E32.Pc,
+                        Last   => E32.Pc + Pc_Type (E32.Size) - 1,
+                        Op     => E32.Op,
+                        State  => Unknown);
+   end Read_Trace_Entry;
+
+   procedure Close_Trace_File
+     (Desc : in out Trace_File_Descriptor)
+   is
+   begin
+      Close (Desc.Fd);
+   end Close_Trace_File;
+
+   procedure Read_Trace_File
+     (Filename   : String;
+      Trace_File : out Trace_File_Type;
+      Info_Cb    : access procedure (File : Trace_File_Type);
+      Trace_Cb   : not null access procedure (E : Trace_Entry))
+   is
+      Desc : Trace_File_Descriptor;
+      E : Trace_Entry;
+      Eof : Boolean;
+   begin
+      --  Open file
+      Open_Trace_File (Filename, Desc, Trace_File);
 
       if Info_Cb /= null then
          Info_Cb.all (Trace_File);
       end if;
 
-      if Desc.Sizeof_Target_Pc = 4 then
-         Addr := E32'Address;
-         Res_Size := E32_Size;
-      else
-         Addr := E64'Address;
-         Res_Size := E64_Size;
-      end if;
-
       loop
-         --  Read an entry
-
-         Res := Read (Desc.Fd, Addr, Res_Size);
-
-         --  Check result
-
-         exit when Res = 0;
-         if Res /= Res_Size then
-            Close (Desc.Fd);
-            raise Bad_File_Format with "file truncated";
-         end if;
-
-         --  Basic checks
-
-         if Desc.Sizeof_Target_Pc /= 4 then
-            raise Bad_File_Format with "only 4 bytes pc are handled";
-         end if;
-
-         if Desc.Big_Endian /= Big_Endian_Host then
-            Swaps.Swap_32 (E32.Pc);
-            Swaps.Swap_16 (E32.Size);
-         end if;
+         Read_Trace_Entry (Desc, Eof, E);
+         exit when Eof;
 
          --  Supply entry to caller
 
-         Trace_Cb.all (Trace_Entry'(First  => E32.Pc,
-                                    Last   => E32.Pc + Pc_Type (E32.Size) - 1,
-                                    Op     => E32.Op,
-                                    State  => Unknown));
+         Trace_Cb.all (E);
       end loop;
 
-      Close (Desc.Fd);
+      Close_Trace_File (Desc);
    end Read_Trace_File;
 
    ---------------------
@@ -293,22 +303,20 @@ package body Traces_Files is
       Trace_File : out Trace_File_Type;
       Base       : in out Traces_Base)
    is
-      procedure Read_Trace_Entry (E : Trace_Entry);
-      --  Comment needed???
-
-      ----------------------
-      -- Read_Trace_Entry --
-      ----------------------
-
-      procedure Read_Trace_Entry (E : Trace_Entry) is
-      begin
-         Add_Entry (Base,
-                    First => E.First,
-                    Last  => E.Last,
-                    Op    => E.Op);
-      end Read_Trace_Entry;
+      Desc : Trace_File_Descriptor;
+      E : Trace_Entry;
+      Eof : Boolean;
    begin
-      Read_Trace_File (Filename, Trace_File, null, Read_Trace_Entry'Access);
+      Open_Trace_File (Filename, Desc, Trace_File);
+
+      loop
+         Read_Trace_Entry (Desc, Eof, E);
+         exit when Eof;
+
+         Add_Entry (Base, First => E.First, Last => E.Last, Op => E.Op);
+      end loop;
+
+      Close_Trace_File (Desc);
    end Read_Trace_File;
 
    ----------------

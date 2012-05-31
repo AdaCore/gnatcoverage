@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 with Interfaces; use Interfaces;
+with GNAT.OS_Lib; use GNAT.OS_Lib;
 
 with Qemu_Traces;  use Qemu_Traces;
 with Traces_Dbase; use Traces_Dbase;
@@ -24,7 +25,10 @@ with Traces;
 package Traces_Files is
 
    type Trace_File_Type is limited private;
-   --  Trace file descriptor
+   --  In memory content of a trace file
+
+   type Trace_File_Descriptor is limited private;
+   --  Descriptor to open/read a trace file
 
    procedure Append_Info
      (File : in out Trace_File_Type;
@@ -50,6 +54,26 @@ package Traces_Files is
    Write_Error : exception;
    --  Exception is raised in case of OS error during write
 
+   procedure Open_Trace_File
+     (Filename   : String;
+      Desc       : out Trace_File_Descriptor;
+      Trace_File : out Trace_File_Type);
+   --  Open a trace file, without reading the traces.  In case of failure,
+   --  an exception is raised and the file is considered as not open.
+
+   procedure Read_Trace_Entry
+     (Desc       : Trace_File_Descriptor;
+      Eof        : out Boolean;
+      E          : out Traces.Trace_Entry);
+   --  Read a trace from DESC. Set EOF to True in case of end-of-file (in
+   --  this case E isn't set), otherwise EOF is set to False and E is
+   --  valid. In case of failure, an exception is raised and the file is
+   --  closed.
+
+   procedure Close_Trace_File
+     (Desc : in out Trace_File_Descriptor);
+   --  Close DESC
+
    procedure Read_Trace_File
      (Filename   : String;
       Trace_File : out Trace_File_Type;
@@ -60,7 +84,7 @@ package Traces_Files is
      (Filename   : String;
       Trace_File : out Trace_File_Type;
       Info_Cb    : access procedure (File : Trace_File_Type);
-      Trace_Cb   : access procedure (E : Traces.Trace_Entry));
+      Trace_Cb   : not null access procedure (E : Traces.Trace_Entry));
    --  Read a trace file, call Info_Cb after reading infos (if not null), and
    --  call Trace_Cb for each entry.
 
@@ -110,6 +134,15 @@ private
 
       First_Infos : Trace_File_Info_Acc;
       Last_Infos  : Trace_File_Info_Acc;
+   end record;
+
+   type Trace_File_Descriptor is record
+      Fd : File_Descriptor;
+
+      --  Parameter from header
+      Kind             : Trace_Kind;
+      Sizeof_Target_Pc : Unsigned_8;
+      Big_Endian       : Boolean;
    end record;
 
 end Traces_Files;
