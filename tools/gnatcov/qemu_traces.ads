@@ -201,6 +201,14 @@ package Qemu_Traces is
    Trace_Op_Br1 : constant Unsigned_8 := 16#02#; --  Fallthrough
    --  Op_Block execution terminated with branch taken in direction 0 or 1
 
+   Trace_Op_Special : constant Unsigned_8 := 16#80#;
+   --  Special entry, emitted by the program.
+
+   --  Special operations (in the size field of a trace):
+
+   Trace_Special_Loadaddr : constant Unsigned_16 := 1;
+   --  Module loaded at PC
+
    -------------------------------------------
    -- Decision Map or Trace Control Section --
    -------------------------------------------

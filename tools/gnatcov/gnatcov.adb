@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Interfaces;
 with Ada.Command_Line;  use Ada.Command_Line;
 with Ada.Text_IO;       use Ada.Text_IO;
 with Ada.Containers;    use Ada.Containers;
@@ -122,8 +123,6 @@ procedure GNATcov is
       P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");
-      P ("   --target=NAME               Specify execution target");
-      P ("   --kernel=FILE               Specify which kernel to use");
       New_Line;
    end Usage;
 
@@ -1177,6 +1176,8 @@ begin
             procedure Process_Trace_For_Src_Coverage
               (Trace_File : Trace_File_Element_Acc)
             is
+               use Interfaces;
+
                Exe_File                : Exe_File_Acc;
                Current_Sym             : Addresses_Info_Acc;
                Current_Subp_Info       : Subprogram_Info;
@@ -1184,12 +1185,18 @@ begin
                E                       : Trace_Entry;
                Desc                    : Trace_File_Descriptor;
                Eof                     : Boolean;
+               Has_Kernel              : Boolean;
+               Offset                  : Pc_Type := 0;
 
             --  Start of processing for Process_Trace_For_Src_Coverage
 
             begin
                Open_Trace_File (Trace_File.Filename.all,
                                 Desc, Trace_File.Trace);
+
+               Has_Kernel :=
+                 Get_Info (Trace_File.Trace,
+                           Qemu_Traces.Kernel_File_Name)'Length > 0;
 
                Exe_File := Open_Exec (Trace_File.Filename.all,
                                       Trace_File.Trace);
@@ -1199,9 +1206,48 @@ begin
 
                Decision_Map.Analyze (Exe_File);
 
+               if Has_Kernel then
+                  --  Go to the loadaddr entry
+                  loop
+                     Read_Trace_Entry (Desc, Eof, E);
+                     exit when Eof;
+
+                     if E.Op = Qemu_Traces.Trace_Op_Special then
+                        if E.First = 0 then
+                           Fatal_Error
+                             ("Invalid 'loadaddr' special trace entry");
+                        else
+                           Offset := E.First;
+                        end if;
+                        exit;
+                     end if;
+                  end loop;
+                  if Offset = 0 then
+                     Fatal_Error ("No 'loadaddr' special trace entry");
+                  end if;
+               end if;
+
                loop
                   Read_Trace_Entry (Desc, Eof, E);
                   exit when Eof;
+
+                  if E.Op = Qemu_Traces.Trace_Op_Special then
+                     if not Has_Kernel then
+                        Fatal_Error
+                          ("Unexpected 'loadaddr' special trace entry");
+                     else
+                        Fatal_Error
+                          ("Duplicate 'loadaddr' special trace entry");
+                     end if;
+                  end if;
+                  if Offset /= 0 then
+                     if E.First < Offset then
+                        goto Skip;
+                     else
+                        E.First := E.First - Offset;
+                        E.Last := E.Last - Offset;
+                     end if;
+                  end if;
 
                   if Current_Sym = null
                     or else
@@ -1223,6 +1269,8 @@ begin
                      Compute_Source_Coverage
                        (Current_Sym.Symbol_Name, Current_Subp_Info, E);
                   end if;
+
+                  << Skip >> null;
                end loop;
 
                Close_Trace_File (Desc);
