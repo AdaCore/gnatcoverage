@@ -19,13 +19,16 @@
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
 
+with Ada.Text_IO; use Ada.Text_IO;
+
 with GNAT.Strings;      use GNAT.Strings;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
-with Inputs;  use Inputs;
-with Outputs; use Outputs;
+with Inputs;   use Inputs;
+with Outputs;  use Outputs;
+with Switches; use Switches;
 
 package body Project is
 
@@ -204,7 +207,11 @@ package body Project is
                  Attribute_Value (Prj_Tree.Root_Project, Main_Attribute);
    begin
       for J in Mains'Range loop
-         Main_Cb (+Full_Name (Create_From_Dir (Exec_Dir, +Mains (J).all)));
+         Main_Cb
+           (+Full_Name
+              (Create_From_Dir
+                 (Exec_Dir,
+                  Prj_Tree.Root_Project.Executable_Name (+Mains (J).all))));
          Free (Mains (J));
       end loop;
       Free (Mains);
@@ -246,6 +253,22 @@ package body Project is
          end;
       end loop;
       Prj_Tree := new Project_Tree;
+
+      declare
+         Gnatls_Version : GNAT.Strings.String_Access;
+      begin
+         Env.Set_Path_From_Gnatls
+           (Gnatls       => "gnatls",
+            GNAT_Version => Gnatls_Version,
+            Errors       => null);
+         if Verbose then
+            if Gnatls_Version /= null then
+               Put_Line
+                 ("default paths set from GNATLS " & Gnatls_Version.all);
+               Free (Gnatls_Version);
+            end if;
+         end if;
+      end;
    end Initialize;
 
    -----------------------
