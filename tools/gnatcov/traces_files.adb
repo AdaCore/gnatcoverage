@@ -313,7 +313,7 @@ package body Traces_Files is
          Read_Trace_Entry (Desc, Eof, E);
          exit when Eof;
 
-         if Op /= Trace_Op_Special then
+         if E.Op /= Trace_Op_Special then
             Add_Entry (Base, First => E.First, Last => E.Last, Op => E.Op);
          end if;
       end loop;
