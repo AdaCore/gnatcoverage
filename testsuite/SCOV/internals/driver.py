@@ -390,17 +390,31 @@ class SCOV_helper:
         # switch back when done:
         self.to_workdir(self.rwdir())
 
+        # Compute our GPR now, which we will need for build of single tests
+        # and/or analysis later on if in gprmode
+
+        # Turn inlining off for the driver unit, to make sure we exercise
+        # the functional code as separately compiled, not an inlined version
+        # of it in a non-representative driver context.
+
+        self.gpr = gprfor (
+            mains = self.drivers, prjid="gen",
+            srcdirs = [
+                "../"*n + "src" for n in range (1, thistest.depth)],
+            main_cargs = "-fno-inline")
+
         # For single tests (no consolidation), we first need to build and
         # xcov run to get an execution trace:
         if self.singletest():
-            self.build (
-                main=self.drivers[0],
-                extracargs=extracargs, extragargs=extragargs
-                )
-            self.alis = list_to_file(self.ali_list(), "alis.list")
+            self.build (extracargs=extracargs, extragargs=extragargs)
+
+        self.alis = list_to_file(self.ali_list(), "alis.list")
+        self.ascos = (
+            ("-P%s" % self.gpr) if thistest.options.gprmode
+            else ("--scos=@%s" % self.alis))
+
+        if self.singletest():
             self.xcov_run(no_ext(self.drivers[0]))
-        else:
-            self.alis = list_to_file(self.ali_list(), "alis.list")
 
         # Then, whatever the kind of test again, run xcov to get actual
         # coverage reports and check against our Xpectation specs.
@@ -453,24 +467,15 @@ class SCOV_helper:
     # -----------
     # -- build --
     # -----------
-    def build(self, main, extracargs, extragargs):
+    def build(self, extracargs, extragargs):
         """gprBuild binary for main program MAIN"""
 
         # Seek a few tentative source dirs, for typical locations of test
         # sources from a working directory, and typical locations of common
         # support sources.
 
-        # Turn inlining off for the driver unit, to make sure we exercise
-        # the functional code as separately compiled, not an inlined version
-        # of it in a non-representative driver context.
-
-        gprbuild(
-            gprfor (mains = [main], prjid="gen",
-                    srcdirs = [
-                    "../"*n + "src" for n in range (1, thistest.depth)],
-                    main_cargs = "-fno-inline"),
-            cargs=to_list(extracargs),
-            gargs=to_list(extragargs))
+        gprbuild (
+            self.gpr, cargs=to_list(extracargs), gargs=to_list(extragargs))
 
     # --------------
     # -- xcov_run --
@@ -483,8 +488,9 @@ class SCOV_helper:
         # a different directory, such as in consolidation tests.
 
         ofile="xcov_run_%s.out" % main
+
         xrun([self.awdir_for(main)+main,
-              "--level=%s" % self.xcovlevel, "--scos=@%s" % self.alis],
+              "--level=%s" % self.xcovlevel, self.ascos],
              out=ofile)
 
         thistest.fail_if (
@@ -502,7 +508,7 @@ class SCOV_helper:
         # Latch standard output in a file and check contents on return.
 
         ofile = format+".out"
-        p = xcov (args = ['coverage', '--scos=@'+self.alis,
+        p = xcov (args = ['coverage', self.ascos,
                           '--level='+self.xcovlevel,
                           '--annotate='+format, "@"+traces] + to_list(options),
                   out = ofile)

@@ -457,6 +457,9 @@ class TestSuite:
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
 
+        if mopt.gprmode:
+            testcase_cmd.append('--gprmode')
+
         testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
         return Run(testcase_cmd, output=diff, bg=True,
@@ -583,6 +586,8 @@ class TestSuite:
         m = Main(add_targets_options=True)
         m.add_option('--quiet', dest='quiet', action='store_true',
                      default=False, help='Quiet mode. Display test failures only')
+        m.add_option('--gprmode', dest='gprmode', action='store_true',
+                     default=False, help='Use -P instead of --scos')
         m.add_option('--diffs', dest='diffs', action='store_true',
                      default=False, help='show diffs on stdout')
         m.add_option('--enable-valgrind', dest='enable_valgrind',

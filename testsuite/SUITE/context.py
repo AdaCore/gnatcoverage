@@ -240,6 +240,8 @@ class Test (object):
         main = Main(require_docstring=False, add_targets_options=True)
         main.add_option('--timeout', dest='timeout', type=int,
                         default=None)
+        main.add_option('--gprmode', dest='gprmode',
+                        action='store_true', default=False)
         main.add_option('--enable-valgrind', dest='enable_valgrind',
                         action='store_true', default=False)
         main.add_option('--trace_dir', dest='trace_dir', metavar='DIR',
