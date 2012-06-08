@@ -9,7 +9,7 @@
 # ***************************************************************************
 
 import re
-from gnatpython.fileutils import diff, os
+from gnatpython.fileutils import diff, os, cd, mkdir
 from gnatpython.ex import Run
 
 # ------------
@@ -124,6 +124,13 @@ def ndirs_in(path):
         nsplits += 1
 
     return nsplits
+
+# ----------------
+# -- to_wsubdir --
+# ----------------
+def to_wsubdir (subdir = "tmp_"):
+    mkdir (subdir)
+    cd (subdir)
 
 # ==========================
 # == FatalError Exception ==
