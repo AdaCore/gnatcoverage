@@ -774,6 +774,14 @@ package body Traces_Elf is
                Off := Off + Storage_Offset (V);
             end;
 
+         when DW_FORM_block2 =>
+            declare
+               V : Unsigned_16;
+            begin
+               Read_Word2 (Exec, Base, Off, V);
+               Off := Off + Storage_Offset (V);
+            end;
+
          when DW_FORM_block4 =>
             declare
                V : Unsigned_32;
