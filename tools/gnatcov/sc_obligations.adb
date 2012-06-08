@@ -227,6 +227,7 @@ package body SC_Obligations is
       Object_Declaration,
       Renaming_Declaration,
       Generic_Instantiation,
+      Accept_Statement,
       Case_Statement,
       Exit_Statement,
       For_Loop_Statement,
@@ -234,6 +235,7 @@ package body SC_Obligations is
       Pragma_Statement,
       Disabled_Pragma_Statement,
       Extended_Return_Statement,
+      Select_Statement,
       While_Loop_Statement,
       Other_Statement);
 
@@ -2214,6 +2216,7 @@ package body SC_Obligations is
          when 'o'    => return Object_Declaration;
          when 'r'    => return Renaming_Declaration;
          when 'i'    => return Generic_Instantiation;
+         when 'A'    => return Accept_Statement;
          when 'C'    => return Case_Statement;
          when 'E'    => return Exit_Statement;
          when 'F'    => return For_Loop_Statement;
@@ -2221,6 +2224,7 @@ package body SC_Obligations is
          when 'P'    => return Pragma_Statement;
          when 'p'    => return Disabled_Pragma_Statement;
          when 'R'    => return Extended_Return_Statement;
+         when 'S'    => return Select_Statement;
          when 'W'    => return While_Loop_Statement;
          when ' '    => return Other_Statement;
          when others => raise Constraint_Error;
