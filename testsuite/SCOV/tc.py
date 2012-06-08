@@ -75,7 +75,7 @@ class TestCase:
 
         # Likewise for consolidation specs, as <updir>/cons_<xx>*.txt
 
-        # gather *set* of <xx> candidates first, then expand the associated
+        # Gather *set* of <xx> candidates first, then expand the associated
         # possible lists of drivers (each maybe empty). Beware not to include
         # child or sub units, as these dont mirror as such in the set of test
         # drivers.
@@ -85,6 +85,14 @@ class TestCase:
                                              os.path.basename(src))
                                    for src in ls ("src/*"))
                   if srcmatch)
+
+        # If there is no candidate body in src/, arrange to run all the
+        # drivers. This is useful for test groups on GPR variations for
+        # example, where we typically want to run all the drivers and check
+        # the analysis results against different sets of SCOS.
+
+        if len(sxx) == 0:
+            sxx = [""]
 
         for body in sxx:
             for prefix in ("../" * n for n in range(1, 3)):
