@@ -48,6 +48,50 @@ class CAT:
         strength = 1000
         )
 
+class CovControl:
+
+    def __init__ (
+        self, units_in = None, ulist_in = None,
+        units_out = None, ulist_out = None, xreports = None):
+
+        self.units_in = units_in
+        self.units_out = units_out
+        self.ulist_in = ulist_in
+        self.ulist_out = ulist_out
+
+        self.xreports = xreports
+
+    def __gprattrname (self, for_list, to_exclude):
+        return "%(prefix)s%(kind)s" % {
+            "prefix": "Excluded_" if to_exclude else "",
+            "kind": "Units_List" if for_list else "Units"
+            }
+
+    def __gprattr (self, value, for_list, to_exclude):
+        attrname = self.__gprattrname (for_list=for_list, to_exclude=to_exclude)
+        return (
+            ("for %s use @%s;" % (attrname, value)) if value and for_list
+            else
+            ("for %s use (%s);" % (
+                    attrname, ','.join (['\"%s\"' % v for v in value])
+                    )) if value and not for_list
+            else
+            ("-- empty %s" % attrname)
+            )
+
+    def gpr (self):
+        return '\n'.join ([
+                "package Coverage is",
+                self.__gprattr (
+                    for_list = False, to_exclude = False, value = self.units_in),
+                self.__gprattr (
+                    for_list = False, to_exclude = True, value = self.units_out),
+                self.__gprattr (
+                    for_list = True, to_exclude = False, value = self.ulist_in),
+                self.__gprattr (
+                    for_list = True, to_exclude = True, value = self.ulist_out),
+                "end Coverage;"])
+
 # ==============
 # == TestCase ==
 # ==============
@@ -213,7 +257,7 @@ class TestCase:
             )
         return drvo
 
-    def run(self):
+    def run(self, covcontrol = None):
 
         # We have exception processing below, which needs to operate
         # in the test root dir.
@@ -226,7 +270,7 @@ class TestCase:
             [self.register_qde_for (
                     SCOV_helper(drivers=[driver],
                                 xfile=driver, category=self.category,
-                                xcovlevel=covlevel)
+                                xcovlevel=covlevel, covcontrol=covcontrol)
                     ).run(self.cargs)
              for covlevel in self.xcovlevels
              for driver in self.all_drivers]
@@ -235,7 +279,7 @@ class TestCase:
             [self.register_qde_for (
                     SCOV_helper(drivers=self.__drivers_from(cspec),
                                 xfile=cspec, category=self.category,
-                                xcovlevel=covlevel)
+                                xcovlevel=covlevel, covcontrol=covcontrol)
                     ).run(self.cargs)
              for covlevel in self.xcovlevels
              for cspec in self.all_cspecs]

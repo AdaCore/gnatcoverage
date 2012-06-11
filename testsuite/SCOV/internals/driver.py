@@ -288,10 +288,11 @@ class SCOV_helper:
     # --------------
     # -- __init__ --
     # --------------
-    def __init__(self, drivers, xfile, category, xcovlevel):
+    def __init__(self, drivers, xfile, category, xcovlevel, covcontrol):
         self.drivers = [os.path.basename(d) for d in drivers]
         self.category = category
         self.xcovlevel = xcovlevel
+        self.covcontrol = covcontrol
 
         # Internal attributes: Directory where the instantiation takes place,
         # base prefix of Working Directory names, and original expectations
@@ -391,33 +392,43 @@ class SCOV_helper:
         self.to_workdir(self.rwdir())
 
         # Compute our GPR now, which we will need for build of single tests
-        # and/or analysis later on if in gprmode
-
-        # Turn inlining off for the driver unit, to make sure we exercise
-        # the functional code as separately compiled, not an inlined version
-        # of it in a non-representative driver context.
+        # and/or analysis later on if in gprmode.  Turn inlining off for the
+        # driver unit, so we exercise the functional code as separately
+        # compiled, not as an inlined version of it in a non-representative
+        # driver context.
 
         self.gpr = gprfor (
             mains = self.drivers, prjid="gen",
             srcdirs = [
                 "../"*n + "src" for n in range (1, thistest.depth)],
-            main_cargs = "-fno-inline")
+            main_cargs = "-fno-inline",
+            extra = self.covcontrol.gpr () if self.covcontrol else "")
 
-        # For single tests (no consolidation), we first need to build and
-        # xcov run to get an execution trace:
+        # For single tests (no consolidation), we first need to build,
+        # producing the binary to execute and the ALIs files, then to gnatcov
+        # run to get an execution trace.  All these we already have for
+        # consolidation tests.
+
         if self.singletest():
             self.build (extracargs=extracargs, extragargs=extragargs)
 
-        self.alis = list_to_file(self.ali_list(), "alis.list")
+        # Compute the gnatcov command line argument we'll pass to convey
+        # the set of scos to operate upon.  Note that we need these for
+        # both gnatcov run and gnatcov coverage.
+
         self.ascos = (
-            ("-P%s" % self.gpr) if thistest.options.gprmode
-            else ("--scos=@%s" % self.alis))
+            ("-P%s" % self.gpr) if thistest.options.gprmode or self.covcontrol
+            else ("--scos=@%s" % list_to_file(self.ali_list(), "alis.list")))
 
         if self.singletest():
             self.xcov_run(no_ext(self.drivers[0]))
 
-        # Then, whatever the kind of test again, run xcov to get actual
-        # coverage reports and check against our Xpectation specs.
+        # At this point, we have everything we need for the analysis. Either
+        # from the just done build+run in the single test case, or from
+        # previous such sequences in the consolidation case.  Run gnatcov
+        # coverage to get actual coverage reports and check against our
+        # Xpectation specs.
+
         self.gen_xcov_reports()
         self.check_expectations()
 
