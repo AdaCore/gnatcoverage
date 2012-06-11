@@ -42,9 +42,9 @@ Very briefly here:
   contains the set of Ada ALI files or C GLI files corresponding to the source
   units of interest.
 
-- :option:`--routines` is specific to the object level criteria, and optional
-  in this case. This conveys the set of object symbol names on which the analysis
-  should focus, if any.
+- :option:`--routines` is specific to the object level criteria, and
+  optional in this case. This conveys the set of object symbol names
+  on which the analysis should focus, if any.
 
 
 For source coverage assessments, sources must be compiled with
@@ -144,7 +144,7 @@ subdirectory. Our second step is to execute this program within the
 instrumented execution environment, via GNATemulator, to obtain a
 ``test_inc.trace`` execution trace. We do this with |gcvrun|, as follows::
 
-  gnatcov run obj/test_inc
+  gnatcov run --target=powerpc-elf obj/test_inc
 
 Now, we can analyse the coverage achieved by this execution using
 |gcvcov|, for example with the following command line::

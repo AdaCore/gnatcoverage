@@ -32,8 +32,8 @@ available from ``gnatcov`` ``--help``, as follows::
 :option:`-t`, :option:`--target` :
   The target architecture/board/abi that your program was built for. This
   typically corresponds to the target prefix of your compilation toolchain,
-  for example ``powerpc-elf`` or ``leon-elf``. |gcv| knows how to infer this
-  from the executable header most of the time.
+  for example ``powerpc-elf`` or ``leon-elf``. By default, |gcv| assumes
+  this is the same as its host environment.
 
 :option:`-v`, :option:`--verbose` :
   Request verbose output. In particular, this displays the commands launched
