@@ -37,7 +37,8 @@ with Traces_Files; use Traces_Files;
 
 package body Qemudrv is
 
-   Target_Default : constant String_Access := new String'("powerpc-elf");
+   Target_Default : constant String_Access
+     := new String'(Standard'Target_Name);
 
    --  Variables set by the command line.
 
