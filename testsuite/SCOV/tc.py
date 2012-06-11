@@ -48,18 +48,37 @@ class CAT:
         strength = 1000
         )
 
+# ===================================
+# == Coverage Results User Control ==
+# ===================================
+
+# Facility to allow GPR level control. Still experimental.
+
 class CovControl:
 
     def __init__ (
         self, units_in = None, ulist_in = None,
         units_out = None, ulist_out = None, xreports = None):
 
+        # To control Units related attributes in the GPR Coverage package:
+
         self.units_in = units_in
         self.units_out = units_out
         self.ulist_in = ulist_in
         self.ulist_out = ulist_out
 
+        # To instruct the testsuite driver about source reports we expect.
+        # None means unspecified. Very different from specified empty.
+
         self.xreports = xreports
+
+    def unexpected (self, source):
+        return (
+            self.xreports is not None
+            and source not in self.xreports)
+
+    def expected (self, source):
+        return not self.unexpected (source)
 
     def __gprattrname (self, for_list, to_exclude):
         return "%(prefix)s%(kind)s" % {

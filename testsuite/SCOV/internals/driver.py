@@ -28,7 +28,7 @@ from SUITE.control import language_info
 from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
 
-from gnatpython.fileutils import cd, mkdir
+from gnatpython.fileutils import cd, mkdir, ls
 
 from . cnotes import r0, r0c, xBlock0, xBlock1, lx0, lx1, lFullCov, lPartCov
 from . cnotes import KnoteDict, elNoteKinds, erNoteKinds, rAntiKinds
@@ -564,21 +564,51 @@ class SCOV_helper:
         if not thistest.options.qualif_level:
             self.gen_one_xcov_report(traces, format="xcov")
 
-        # When nothing of possible interest shows up for a unit, xcov
-        # generates nothing at all. Create dummy reports here to prevent
-        # fatal exceptions trying to open them downstream.
-        [self.force_xcov_report(source+'.xcov') for source in self.xrnotes]
+    # ------------------------------
+    # -- check_unexpected_reports --
+    # ------------------------------
+
+    def check_unexpected_reports (self):
+
+        """Check that we don't have unexpected reports or notes."""
+
+        [thistest.fail_if (
+                self.covcontrol.unexpected (s),
+                "report note found for %s, not in expected list" % s)
+         for s in self.ernotes]
+
+        [thistest.fail_if (
+                self.covcontrol.unexpected (s.rstrip (".xcov")),
+                "%s report found, for source not in expected list" % s)
+         for s in ls ("*.xcov")]
 
     # ------------------------
     # -- check_expectations --
     # ------------------------
     def check_expectations(self):
 
-        # Expand the reports into source->emitted-notes dictionaries
+        # Complain about report notes or xcov reports for unexpected
+        # sources, when the list happens to be specified. We need the
+        # source->emitted report notes expanded for this purpose.
+
+        # Checking that we do have the expected reports will be performed by
+        # the regular coverage expectation assessments triggered below.
+
+        self.ernotes = RnotesExpander("test.rep").ernotes
+
+        if self.covcontrol and self.covcontrol.xreports != None:
+            self.check_unexpected_reports ()
+
+        # When nothing of possible interest shows up for a unit, xcov
+        # generates nothing at all. Create dummy reports here to prevent
+        # fatal exceptions trying to open them downstream.
+
+        [self.force_xcov_report(source+'.xcov') for source in self.xrnotes]
+
+        # Now expand the reports into source->emitted-notes dictionaries
         # and check against our per-source expectations.
 
         self.elnotes = LnotesExpander("*.xcov").elnotes
-        self.ernotes = RnotesExpander("test.rep").ernotes
 
         # Compute a few things that we will need repeatedly over all the
         # sources with expectations to match
@@ -664,12 +694,15 @@ class SCOV_helper:
             lx0:      [lx0, lx1] } if stricter_level else {}
         )
 
-        # Now process source by source
+        # Now process source by source, skipping those for which no report
+        # is expected when the list happens to be specified
 
         [self.check_expectations_over (
             source=source, relevance_cat=relevance_cat,
             r_discharge_kdict=r_discharge_kdict,
-            l_discharge_kdict=l_discharge_kdict) for source in self.xrnotes
+            l_discharge_kdict=l_discharge_kdict)
+         for source in self.xrnotes if (
+                not self.covcontrol or self.covcontrol.expected (source))
         ]
 
     def check_expectations_over(
