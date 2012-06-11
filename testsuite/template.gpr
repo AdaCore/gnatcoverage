@@ -5,16 +5,18 @@
 
 project %(prjname)s %(extends)s is
 
-   for Source_Dirs use (%(srcdirs)s);
-   for Object_Dir use "obj";
-   for Exec_Dir use ".";
+for Source_Dirs use (%(srcdirs)s);
+for Object_Dir use "obj";
+for Exec_Dir use ".";
 
-   for Languages use (%(languages)s);
+for Languages use (%(languages)s);
 
-   package Compiler is
+package Compiler is
 %(compswitches)s
-   end Compiler;
+end Compiler;
 
-   for Main use (%(gprmains)s);
+for Main use (%(gprmains)s);
+
+%(extra)s
 
 end %(prjname)s;

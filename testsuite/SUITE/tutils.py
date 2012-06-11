@@ -77,11 +77,15 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
 # ------------
 # -- gprfor --
 # ------------
-def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None, langs=None):
+def gprfor(
+    mains, prjid="gen", srcdirs="src",
+    main_cargs=None, langs=None, extra=""
+    ):
     """Generate a simple PRJID.gpr project file to build executables for each
     main source file in the MAINS list, sources in SRCDIRS. Inexistant
     directories in SRCDIRS are ignored. Assume the set of languages is LANGS
-    when specify; infer from the mains otherwise. Return the gpr file name.
+    when specified; infer from the mains otherwise. Add EXTRA, if any, at the
+    end of the project file contents and return the gpr file name.
     """
 
     mains = to_list(mains)
@@ -168,7 +172,8 @@ def gprfor(mains, prjid="gen", srcdirs="src", main_cargs=None, langs=None):
         'srcdirs': srcdirs,
         'compswitches': compswitches,
         'languages' : languages,
-        'gprmains': gprmains}
+        'gprmains': gprmains,
+        'extra': extra}
 
     return text_to_file (text = gprtext, filename = prjid + ".gpr")
 
