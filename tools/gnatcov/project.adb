@@ -37,23 +37,20 @@ package body Project is
                              (1 => Coverage_Package'Access);
 
    type Attribute is
-     (Default_Switches,
-      Units,
+     (Units,
       Excluded_Units,
       Routines,
       Excluded_Routines,
 
-      Level,
-      Output_Format,
       Units_List,
       Excluded_Units_List,
       Routines_List,
       Excluded_Routines_List);
 
    subtype List_Attribute is
-     Attribute range Default_Switches .. Excluded_Routines;
+     Attribute range Units .. Excluded_Routines;
    subtype String_Attribute is
-     Attribute range Level .. Excluded_Routines_List;
+     Attribute range Units_List .. Excluded_Routines_List;
 
    function "+" (A : String_Attribute) return Attribute_Pkg_String;
    function "+" (A : List_Attribute) return Attribute_Pkg_List;
@@ -70,7 +67,12 @@ package body Project is
      new Ada.Containers.Indefinite_Ordered_Sets (Element_Type => String);
 
    Env      : Project_Environment_Access;
-   Prj_Tree : Project_Tree_Access;
+
+   package Tree_Maps is
+     new Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => String,
+        Element_Type => Project_Tree_Access);
+   Prj_Trees : Tree_Maps.Map;
 
    procedure Initialize;
    --  Initialize project environment
@@ -82,6 +84,15 @@ package body Project is
    --  Return a vector containing each value of List_Attr (a list attribute),
    --  and each value from successive lines in the file denoted by
    --  List_File_Attr (a string attribute).
+
+   procedure Enumerate_LIs
+     (Prj_Tree       : Project_Tree_Access;
+      LI_Cb          : access procedure (LI_Name : String);
+      Override_Units : String_Sets.Set);
+   --  Enumerate LIs from a single project tree
+
+   procedure Compute_Project_View (Prj_Tree : Project_Tree_Access);
+   --  Compute view for a single project tree
 
    ---------
    -- "+" --
@@ -111,6 +122,26 @@ package body Project is
    --------------------------
 
    procedure Compute_Project_View is
+
+      procedure Process_One_Tree (C : Tree_Maps.Cursor);
+      --  Compute project view for tree rooted at C
+
+      ----------------------
+      -- Process_One_Tree --
+      ----------------------
+
+      procedure Process_One_Tree (C : Tree_Maps.Cursor) is
+      begin
+         Compute_Project_View (Tree_Maps.Element (C));
+      end Process_One_Tree;
+
+   --  Start of processing for Compute_Project_View
+
+   begin
+      Prj_Trees.Iterate (Process_One_Tree'Access);
+   end Compute_Project_View;
+
+   procedure Compute_Project_View (Prj_Tree : Project_Tree_Access) is
       Vars     : Scenario_Variable_Array := Prj_Tree.Scenario_Variables;
       Changed  : Boolean := False;
       --  Set True if one scenario variable is specified explicitly
@@ -143,8 +174,56 @@ package body Project is
    -- Enumerate_LIs --
    -------------------
 
-   procedure Enumerate_LIs (LI_Cb : access procedure (LI_Name : String)) is
-      Iter    : Project_Iterator := Start (Prj_Tree.Root_Project);
+   procedure Enumerate_LIs
+     (LI_Cb          : access procedure (LI_Name : String);
+      Override_Units : Inputs.Inputs_Type)
+   is
+      Units_Set : String_Sets.Set;
+
+      procedure Add_Override (U : String);
+      --  Add U to Units_Set
+
+      procedure Process_One_Tree (C : Tree_Maps.Cursor);
+      --  Enumerate LIs from the tree rooted at C
+
+      ------------------
+      -- Add_Override --
+      ------------------
+
+      procedure Add_Override (U : String) is
+      begin
+         Units_Set.Include (U);
+      end Add_Override;
+
+      ----------------------
+      -- Process_One_Tree --
+      ----------------------
+
+      procedure Process_One_Tree (C : Tree_Maps.Cursor) is
+      begin
+         Enumerate_LIs (Tree_Maps.Element (C), LI_Cb, Units_Set);
+      end Process_One_Tree;
+
+   --  Start of processing for Enumerate_LIs
+
+   begin
+      Inputs.Iterate (Override_Units, Add_Override'Access);
+      Prj_Trees.Iterate (Process_One_Tree'Access);
+   end Enumerate_LIs;
+
+   procedure Enumerate_LIs
+     (Prj_Tree       : Project_Tree_Access;
+      LI_Cb          : access procedure (LI_Name : String);
+      Override_Units : String_Sets.Set)
+   is
+      Iter    : Project_Iterator :=
+                  Start
+                     (Root_Project     => Prj_Tree.Root_Project,
+                      Recursive        =>
+                        Switches.Recursive_Projects
+                          or else not Override_Units.Is_Empty,
+                      Include_Extended => False);
+
       Project : Project_Type;
    begin
       loop
@@ -152,16 +231,7 @@ package body Project is
          exit when Project = No_Project;
 
          declare
-            Inc_Units : constant String_Sets.Set :=
-                          List_From_Project
-                            (Project,
-                             List_Attr      => +Units,
-                             List_File_Attr => +Units_List);
-            Exc_Units : constant String_Sets.Set :=
-                          List_From_Project
-                            (Project,
-                             List_Attr      => +Excluded_Units,
-                             List_File_Attr => +Excluded_Units_List);
+            Inc_Units, Exc_Units : String_Sets.Set;
 
             use Library_Info_Lists;
 
@@ -187,50 +257,28 @@ package body Project is
             Lib_Info : List;
 
          begin
-            Prj_Tree.Root_Project.Library_Files (List => Lib_Info);
+            if Override_Units.Is_Empty then
+               Inc_Units :=
+                 List_From_Project
+                   (Project,
+                    List_Attr      => +Units,
+                    List_File_Attr => +Units_List);
+               Exc_Units :=
+                 List_From_Project
+                   (Project,
+                    List_Attr      => +Excluded_Units,
+                    List_File_Attr => +Excluded_Units_List);
+
+            else
+               Inc_Units := Override_Units;
+            end if;
+
+            Current (Iter).Library_Files (List => Lib_Info);
             Lib_Info.Iterate (Process_LI'Access);
          end;
          Next (Iter);
       end loop;
    end Enumerate_LIs;
-
-   ---------------------
-   -- Enumerate_Mains --
-   ---------------------
-
-   procedure Enumerate_Mains
-     (Main_Cb : access procedure (Main_Name : String))
-   is
-      Exec_Dir : constant Virtual_File :=
-                   Executables_Directory (Prj_Tree.Root_Project);
-      Mains : String_List_Access :=
-                 Attribute_Value (Prj_Tree.Root_Project, Main_Attribute);
-   begin
-      for J in Mains'Range loop
-         Main_Cb
-           (+Full_Name
-              (Create_From_Dir
-                 (Exec_Dir,
-                  Prj_Tree.Root_Project.Executable_Name (+Mains (J).all))));
-         Free (Mains (J));
-      end loop;
-      Free (Mains);
-   end Enumerate_Mains;
-
-   ---------------
-   -- Get_Level --
-   ---------------
-
-   function Get_Level return String is
-   begin
-      return Prj_Tree
-               .Root_Project
-               .Attribute_Value
-                  (Attribute      => Build (Coverage_Package, Level'Img),
-                   Index          => "",
-                   Default        => "",
-                   Use_Extended   => False);
-   end Get_Level;
 
    ----------------
    -- Initialize --
@@ -252,7 +300,6 @@ package body Project is
             end if;
          end;
       end loop;
-      Prj_Tree := new Project_Tree;
 
       declare
          Gnatls_Version : GNAT.Strings.String_Access;
@@ -326,17 +373,21 @@ package body Project is
    ------------------
 
    procedure Load_Project (Prj_Name : String) is
+      Prj_Tree : Project_Tree_Access;
    begin
-      pragma Assert (Env = null and then Prj_Tree = null);
-      Initialize;
+      if Env = null then
+         Initialize;
+         pragma Assert (Env /= null);
+      end if;
 
-      pragma Assert (Env /= null);
-
+      Prj_Tree := new Project_Tree;
       Prj_Tree.Load
         (Root_Project_Path => Create (+Prj_Name),
          Env               => Env,
          Packages_To_Check => Coverage_Package_List'Access,
          Recompute_View    => False);
+
+      Prj_Trees.Include (Prj_Name, Prj_Tree);
    end Load_Project;
 
 end Project;

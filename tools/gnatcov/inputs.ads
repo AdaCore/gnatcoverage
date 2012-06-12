@@ -52,7 +52,7 @@ package Inputs is
    --  Name (Name'First + 1 .. Name'Last) to Inputs.
 
    procedure Iterate
-     (Inputs  : in out Inputs_Type;
+     (Inputs  : Inputs_Type;
       Process : not null access procedure (Input : String));
    --  Go through the input list and call Process on each entry
 

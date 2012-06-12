@@ -166,11 +166,13 @@ procedure GNATcov is
    Routines_Option           : constant String := "--routines=";
    SCOs_Option               : constant String := "--scos=";
    ALIs_Option               : constant String := "--alis=";
+   Units_Option              : constant String := "--units=";
    Final_Report_Option       : constant String := "--report=";
    Kernel_Option             : constant String := "--kernel=";
    Output_Dir_Option         : constant String := "--output-dir=";
    Project_Option            : constant String := "-P";
    Scenario_Var_Option       : constant String := "-X";
+   Recursive_Option          : constant String := "--recursive";
    Trace_Option              : constant String := "--trace=";
    Trace_Option_Short        : constant String := "-T";
    Target_Option             : constant String := "--target=";
@@ -203,6 +205,7 @@ procedure GNATcov is
    Obj_Inputs          : Inputs.Inputs_Type;
    ALIs_Inputs         : Inputs.Inputs_Type;
    Routines_Inputs     : Inputs.Inputs_Type;
+   Units_Inputs        : Inputs.Inputs_Type;
    Text_Start          : Pc_Type := 0;
    Target              : String_Access := null;
    Output              : String_Access := null;
@@ -210,12 +213,6 @@ procedure GNATcov is
    Kernel              : String_Access := null;
    Eargs               : String_List_Access := null;
    Project_Loaded      : Boolean := False;
-
-   type Option_Kind is (Coverage_Level);
-   Option_Set : array (Option_Kind) of Boolean := (others => False);
-   --  Elements of this array are set True when the corresponding item is
-   --  specified on the command line (thus overriding any default from a
-   --  project file).
 
    Opt_Exe_Name : String_Access := null;
    --  Path to executable from the command line; it overrides the default one
@@ -472,6 +469,9 @@ procedure GNATcov is
                      Value => Arg (Value_First .. Arg'Last));
                end;
 
+            elsif Arg = Recursive_Option then
+               Switches.Recursive_Projects := True;
+
             elsif Has_Prefix (Arg, Tag_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Run));
                Tag := new String'(Option_Parameter (Arg));
@@ -485,7 +485,6 @@ procedure GNATcov is
                                             2 => Cmd_Run));
                begin
                   Set_Coverage_Levels (Next_Arg ("coverage level"));
-                  Option_Set (Coverage_Level) := True;
                exception
                   when Constraint_Error =>
                      Fatal_Error
@@ -509,6 +508,12 @@ procedure GNATcov is
                                             2 => Cmd_Coverage,
                                             3 => Cmd_Run));
                Inputs.Add_Input (ALIs_Inputs, Option_Parameter (Arg));
+
+            elsif Has_Prefix (Arg, Units_Option) then
+               Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
+                                            2 => Cmd_Coverage,
+                                            3 => Cmd_Run));
+               Inputs.Add_Input (Units_Inputs, Option_Parameter (Arg));
 
             elsif Has_Prefix (Arg, Routines_Option) then
                Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
@@ -704,33 +709,10 @@ procedure GNATcov is
       end Add_Item;
 
       procedure Add_LI   is new Add_Item (ALIs_Inputs);
-      procedure Add_Main is new Add_Item (Exe_Inputs);
 
    --  Start of processing for Set_Defaults_From_Project
 
    begin
-      --  Coverage level
-
-      if not Option_Set (Coverage_Level) then
-         declare
-            Level_From_Project : constant String := Get_Level;
-         begin
-            if Level_From_Project /= "" then
-               Set_Coverage_Levels (Level_From_Project);
-            end if;
-         exception
-            when others =>
-               Fatal_Error
-                 ("invalid coverage level from project: "
-                  & Level_From_Project);
-         end;
-      end if;
-
-      --  Executables
-
-      if Inputs.Length (Exe_Inputs) = 0 then
-         Enumerate_Mains (Add_Main'Access);
-      end if;
 
       --  Analysis subjects (routines/units)
 
@@ -741,7 +723,7 @@ procedure GNATcov is
          null;
 
       elsif Inputs.Length (ALIs_Inputs) = 0 then
-         Enumerate_LIs (Add_LI'Access);
+         Enumerate_LIs (Add_LI'Access, Override_Units => Units_Inputs);
       end if;
    end Set_Defaults_From_Project;
 

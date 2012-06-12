@@ -18,6 +18,8 @@
 
 --  GNAT projects support
 
+with Inputs;
+
 package Project is
 
    procedure Load_Project (Prj_Name : String);
@@ -33,13 +35,12 @@ package Project is
    -- Accessors for project properties --
    --------------------------------------
 
-   function Get_Level return String;
-   --  Return Prj_Name'Level
-
-   procedure Enumerate_Mains (Main_Cb : access procedure (Main_Name : String));
-   --  Call Main_Cb once for every main of the root project
-
-   procedure Enumerate_LIs (LI_Cb : access procedure (LI_Name : String));
-   --  Call LI_Cb once for every relevant library information (ALI/GLI) file
+   procedure Enumerate_LIs
+     (LI_Cb          : access procedure (LI_Name : String);
+      Override_Units : Inputs.Inputs_Type);
+   --  Call LI_Cb once for every relevant library information (ALI/GLI) file.
+   --  If Override_Units is present, it overrides the set of units to be
+   --  considered, else the set defined by the project through the Units,
+   --  Units_List, Exclude_Units, and Exclude_Units_List attributes is used.
 
 end Project;

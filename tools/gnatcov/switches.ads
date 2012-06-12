@@ -30,6 +30,10 @@ package Switches is
    --  the report messages other than violations of a source coverage
    --  obligation.
 
+   Recursive_Projects : Boolean := False;
+   --  When a project file is specified using -P, also consider all imported
+   --  projects for coverage.
+
    ------------------------------
    -- Debugging switches (-d?) --
    ------------------------------

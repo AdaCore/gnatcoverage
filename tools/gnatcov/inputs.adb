@@ -76,7 +76,7 @@ package body Inputs is
    -------------
 
    procedure Iterate
-     (Inputs  : in out Inputs_Type;
+     (Inputs  : Inputs_Type;
       Process : not null access procedure (Input : String))
    is
       use Input_Lists;
