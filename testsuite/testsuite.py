@@ -314,16 +314,24 @@ class TestSuite:
 
         dlist = ["RTS_ZFP"]
 
+        # ex --RTS=powerpc-elf/zfp-prep
+
         if re.search ("zfp", self.env.main_options.RTS):
             dlist.append ("RTS_ZFP_STRICT")
+
+        # ex --RTS=powerpc-elf/ravenscar-sfp-prep or --RTS=ravenscar-sfp
 
         elif re.search ("ravenscar.*sfp", self.env.main_options.RTS):
             dlist.extend (
                 ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP", "RAVENSCAR_SFP_STRICT"])
 
+        # ex --RTS=powerpc-elf/ravenscar-full-prep or --RTS=ravenscar
+
         elif re.search ("ravenscar", self.env.main_options.RTS):
             dlist.extend (
                 ["RTS_RAVENSCAR", "RTS_RAVENSCAR_FULL", "RAVENSCAR_FULL_STRICT"])
+
+        # ex --RTS=native or --RTS=kernel
 
         else:
             dlist.extend (
