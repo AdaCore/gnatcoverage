@@ -304,15 +304,33 @@ class TestSuite:
         runtime support library in use, as conveyed by the --RTS command-line
         option."""
 
-        return (
-            ["RTS_ZFP"] if re.search (
-                "zfp", self.env.main_options.RTS)
-            else ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP"] if re.search (
-                "ravenscar.*sfp", self.env.main_options.RTS)
-            else ["RTS_RAVENSCAR", "RTS_RAVENSCAR_FULL"] if re.search (
-                "ravenscar", self.env.main_options.RTS)
-            else ["RTS_FULL"]
-            )
+        # RTS_BLA in test.opt is taken to mean "this test is compliant with
+        # the BLA profile and nothing inferior". This requires a lib with *at
+        # least* this capability and should work (hence be activated) with
+        # libs featuring more, e.g. a FULL runtime for a RAVENSCAR test.
+
+        # With a "_STRICT" suffix, the discriminant is taken to mean "for
+        # exactly this profile and nothing else".
+
+        dlist = ["RTS_ZFP"]
+
+        if re.search ("zfp", self.env.main_options.RTS):
+            dlist.append ("RTS_ZFP_STRICT")
+
+        elif re.search ("ravenscar.*sfp", self.env.main_options.RTS):
+            dlist.extend (
+                ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP", "RAVENSCAR_SFP_STRICT"])
+
+        elif re.search ("ravenscar", self.env.main_options.RTS):
+            dlist.extend (
+                ["RTS_RAVENSCAR", "RTS_RAVENSCAR_FULL", "RAVENSCAR_FULL_STRICT"])
+
+        else:
+            dlist.extend (
+                ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP", "RTS_RAVENSCAR_FULL",
+                 "RTS_FULL"])
+
+        return dlist
 
 
     # -----------------------------
@@ -620,11 +638,6 @@ class TestSuite:
                      help='State we are running in qualification mode for '
                           'a QUALIF_LEVEL target. This selects a set of '
                           'applicable tests for that level.')
-        m.add_option('--qualif-xcov-level', dest='qualif_xcov_level',
-                     metavar='QUALIF_XCOV_LEVEL',
-                     help='Force the xcov --level argument to '
-                          'QUALIF_XCOV_LEVEL instead of deducing it from '
-                          'the test category when that would normally happen.')
         m.add_option('--bootstrap-scos', dest='bootstrap_scos',
                      metavar='BOOTSTRAP_SCOS',
                      help='scos for bootstap coverage report. '
