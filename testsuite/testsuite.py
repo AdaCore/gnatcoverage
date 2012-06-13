@@ -28,6 +28,7 @@ from gnatpython.reports import ReportDiff
 
 from glob import glob
 
+import time
 import logging, os, re, sys
 
 from SUITE import cutils
@@ -117,6 +118,7 @@ QLEVEL_INFO = {
         subtrees  = RE_SUBTREE (re_crit="stmt"),
         xcovlevel = "stmt")
     }
+
 
 # ===============
 # == TestSuite ==
@@ -494,6 +496,8 @@ class TestSuite:
 
         testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
+        test.start_time = time.time()
+
         return Run(testcase_cmd, output=diff, bg=True,
                    timeout=int(timeout) + DEFAULT_TIMEOUT)
 
@@ -511,6 +515,8 @@ class TestSuite:
         # - see if there's a testcase object pickled around,
         #   to fetch back for the generation of a qualification
         #   test-results aggregate report.
+
+        test.end_time = time.time()
 
         # Compute a few useful facts: Whether the test passed or failed,
         # if it was xfailed, with what comment, what was the error log when
@@ -567,10 +573,15 @@ class TestSuite:
         # Log status as needed. All tests are logged in !quiet mode.
         # Real failures are always logged.
 
+        dsec = test.end_time - test.start_time
+
         if (not self.options.quiet) or (not success and not xfail):
-            logging.info(''.join (
-                    ["%-60s %s" % (test.filename, status),
-                     " (%s)" % comment if comment else ""]))
+            logging.info (
+                "%-68s %s - %s %s" % (
+                    test.filename,
+                    "%02d m %02d s" % (dsec / 60, dsec % 60),
+                    status, "(%s)" % comment if comment else "")
+                )
 
         # Dump errlog on unexpected failure
 
