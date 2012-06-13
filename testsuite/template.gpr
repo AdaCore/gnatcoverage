@@ -17,6 +17,10 @@ end Compiler;
 
 for Main use (%(gprmains)s);
 
+package Builder is
+for Executable_Suffix use "";
+end Builder;
+
 %(extra)s
 
 end %(prjname)s;
