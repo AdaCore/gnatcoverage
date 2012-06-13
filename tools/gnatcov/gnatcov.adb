@@ -1307,6 +1307,7 @@ begin
          end case;
 
       when Cmd_Run =>
+         Check_Argument_Available (Exe_Inputs, "EXE", Command);
          declare
             procedure Run (Exe_File : String);
             --  Run Exe_File in QEMU
