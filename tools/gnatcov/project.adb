@@ -16,20 +16,21 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Ordered_Maps;
-with Ada.Containers.Indefinite_Ordered_Sets;
 
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
+with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Strings;      use GNAT.Strings;
 
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
-with Inputs;   use Inputs;
-with Outputs;  use Outputs;
-with Switches; use Switches;
+with Diagnostics; use Diagnostics;
+with Inputs;      use Inputs;
+with Outputs;     use Outputs;
+with Switches;    use Switches;
 
 package body Project is
 
@@ -64,8 +65,20 @@ package body Project is
    Scv_Map : Scv_Maps.Map;
    --  All defined scenario variables
 
-   package String_Sets is
-     new Ada.Containers.Indefinite_Ordered_Sets (Element_Type => String);
+   type Unit_Info is record
+      Original_Name : Unbounded_String;
+      --  Units are referenced in unit maps under their lowercased name.
+      --  Here we record the name with original casing (from the project or
+      --  the command line).
+
+      LI_Seen : Boolean;
+      --  Set true if the LI file for this unit has been seen
+   end record;
+
+   package Unit_Maps is
+     new Ada.Containers.Indefinite_Ordered_Maps
+       (Key_Type     => String,
+        Element_Type => Unit_Info);
 
    Env      : Project_Environment_Access;
 
@@ -78,10 +91,11 @@ package body Project is
    procedure Initialize;
    --  Initialize project environment
 
-   function List_From_Project
+   procedure List_From_Project
      (Prj            : Project_Type;
       List_Attr      : Attribute_Pkg_List;
-      List_File_Attr : Attribute_Pkg_String) return String_Sets.Set;
+      List_File_Attr : Attribute_Pkg_String;
+      Units          : out Unit_Maps.Map);
    --  Return a vector containing each value of List_Attr (a list attribute),
    --  and each value from successive lines in the file denoted by
    --  List_File_Attr (a string attribute).
@@ -89,11 +103,15 @@ package body Project is
    procedure Enumerate_LIs
      (Prj_Tree       : Project_Tree_Access;
       LI_Cb          : access procedure (LI_Name : String);
-      Override_Units : String_Sets.Set);
+      Override_Units : in out Unit_Maps.Map);
    --  Enumerate LIs from a single project tree
 
    procedure Compute_Project_View (Prj_Tree : Project_Tree_Access);
    --  Compute view for a single project tree
+
+   procedure Report_Units_Without_LI (Units : Unit_Maps.Map; Origin : String);
+   --  Output a warning for any element of Units that has LI_Seen set False.
+   --  Origin indicates where the Units list comes from.
 
    ---------
    -- "+" --
@@ -179,7 +197,7 @@ package body Project is
      (LI_Cb          : access procedure (LI_Name : String);
       Override_Units : Inputs.Inputs_Type)
    is
-      Units_Set : String_Sets.Set;
+      Units : Unit_Maps.Map;
 
       procedure Add_Override (U : String);
       --  Add U to Units_Set
@@ -193,7 +211,9 @@ package body Project is
 
       procedure Add_Override (U : String) is
       begin
-         Units_Set.Include (To_Lower (U));
+         Units.Include
+           (To_Lower (U),
+            (Original_Name => To_Unbounded_String (U), LI_Seen => False));
       end Add_Override;
 
       ----------------------
@@ -202,7 +222,7 @@ package body Project is
 
       procedure Process_One_Tree (C : Tree_Maps.Cursor) is
       begin
-         Enumerate_LIs (Tree_Maps.Element (C), LI_Cb, Units_Set);
+         Enumerate_LIs (Tree_Maps.Element (C), LI_Cb, Units);
       end Process_One_Tree;
 
    --  Start of processing for Enumerate_LIs
@@ -215,7 +235,7 @@ package body Project is
    procedure Enumerate_LIs
      (Prj_Tree       : Project_Tree_Access;
       LI_Cb          : access procedure (LI_Name : String);
-      Override_Units : String_Sets.Set)
+      Override_Units : in out Unit_Maps.Map)
    is
       Iter    : Project_Iterator :=
                   Start
@@ -226,59 +246,112 @@ package body Project is
                       Include_Extended => False);
 
       Project : Project_Type;
+
    begin
       loop
          Project := Current (Iter);
          exit when Project = No_Project;
 
          declare
-            Inc_Units, Exc_Units : String_Sets.Set;
+            Lib_Info : Library_Info_Lists.List;
 
-            use Library_Info_Lists;
+            procedure Filter_Lib_Info
+              (Inc_Units : in out Unit_Maps.Map;
+               Exc_Units : Unit_Maps.Map);
+            --  Call LI_Cb for any LI file of the project that is in Inc_Units
+            --  and not in Exc_Units.
 
-            procedure Process_LI (C : Cursor);
-            --  Add the LI file to SCO_Inputs, if it is meant to be included
+            ---------------------
+            -- Filter_Lib_Info --
+            ---------------------
 
-            ----------------
-            -- Process_LI --
-            ----------------
+            procedure Filter_Lib_Info
+              (Inc_Units : in out Unit_Maps.Map;
+               Exc_Units : Unit_Maps.Map)
+            is
 
-            procedure Process_LI (C : Cursor) is
-               U : constant String :=
-                     Unit_Name (Prj_Tree.Info (Element (C).Source_File));
+               procedure Process_LI (C : Library_Info_Lists.Cursor);
+               --  Add the LI file to SCO_Inputs, if it is meant to be included
+
+               ----------------
+               -- Process_LI --
+               ----------------
+
+               procedure Process_LI (C : Library_Info_Lists.Cursor) is
+                  use Library_Info_Lists;
+                  use Unit_Maps;
+
+                  procedure Set_LI_Seen (U : String; UI : in out Unit_Info);
+                  --  Record that the LI file for U was found
+
+                  -----------------
+                  -- Set_LI_Seen --
+                  -----------------
+
+                  procedure Set_LI_Seen (U : String; UI : in out Unit_Info) is
+                     pragma Unreferenced (U);
+                  begin
+                     UI.LI_Seen := True;
+                  end Set_LI_Seen;
+
+                  U  : constant String :=
+                         Unit_Name (Prj_Tree.Info (Element (C).Source_File));
+                  UC : constant Unit_Maps.Cursor := Inc_Units.Find (U);
+
+               --  Start of processing for Process_LI
+
+               begin
+                  if (Inc_Units.Is_Empty or else UC /= Unit_Maps.No_Element)
+                    and then not Exc_Units.Contains (U)
+                  then
+                     LI_Cb (+Full_Name (Element (C).Library_File));
+                     if UC /= Unit_Maps.No_Element then
+                        Inc_Units.Update_Element (UC, Set_LI_Seen'Access);
+                     end if;
+                  end if;
+               end Process_LI;
+
+            --  Start of processing for Filter_Lib_Info
+
             begin
-               if (Inc_Units.Is_Empty
-                     or else Inc_Units.Contains (U))
-                 and then not Exc_Units.Contains (U)
-               then
-                  LI_Cb (+Full_Name (Element (C).Library_File));
-               end if;
-            end Process_LI;
+               Lib_Info.Iterate (Process_LI'Access);
+            end Filter_Lib_Info;
 
-            Lib_Info : List;
+            Inc_Units, Exc_Units : Unit_Maps.Map;
 
          begin
+            Current (Iter).Library_Files (List => Lib_Info);
+
             if Override_Units.Is_Empty then
-               Inc_Units :=
-                 List_From_Project
-                   (Project,
-                    List_Attr      => +Units,
-                    List_File_Attr => +Units_List);
-               Exc_Units :=
-                 List_From_Project
-                   (Project,
-                    List_Attr      => +Excluded_Units,
-                    List_File_Attr => +Excluded_Units_List);
+               List_From_Project
+                 (Project,
+                  List_Attr      => +Units,
+                  List_File_Attr => +Units_List,
+                  Units          => Inc_Units);
+
+               List_From_Project
+                 (Project,
+                  List_Attr       => +Excluded_Units,
+                  List_File_Attr  => +Excluded_Units_List,
+                  Units           => Exc_Units);
+
+               Filter_Lib_Info (Inc_Units, Exc_Units);
+               Report_Units_Without_LI
+                 (Inc_Units,
+                  Origin => +Full_Name (Project.Project_Path));
 
             else
-               Inc_Units := Override_Units;
-            end if;
 
-            Current (Iter).Library_Files (List => Lib_Info);
-            Lib_Info.Iterate (Process_LI'Access);
+               --  Note: Exc_Units is intentionally left uninitialized (empty)
+               --  in this call.
+
+               Filter_Lib_Info (Override_Units, Exc_Units);
+            end if;
          end;
          Next (Iter);
       end loop;
+
+      Report_Units_Without_LI (Override_Units, Origin => "<command line>");
    end Enumerate_LIs;
 
    ----------------
@@ -323,13 +396,12 @@ package body Project is
    -- List_From_Project --
    -----------------------
 
-   function List_From_Project
+   procedure List_From_Project
      (Prj            : Project_Type;
       List_Attr      : Attribute_Pkg_List;
-      List_File_Attr : Attribute_Pkg_String) return String_Sets.Set
+      List_File_Attr : Attribute_Pkg_String;
+      Units          : out Unit_Maps.Map)
    is
-      Result : String_Sets.Set;
-
       procedure Add_Line (S : String);
       --  Add S to Result
 
@@ -339,7 +411,9 @@ package body Project is
 
       procedure Add_Line (S : String) is
       begin
-         Result.Include (To_Lower (S));
+         Units.Include
+           (To_Lower (S),
+            (Original_Name => To_Unbounded_String (S), LI_Seen => False));
       end Add_Line;
 
       List_Attr_Value      : String_List_Access :=
@@ -352,7 +426,7 @@ package body Project is
    begin
       if List_Attr_Value /= null then
          for J in List_Attr_Value'Range loop
-            Result.Include (To_Lower (List_Attr_Value (J).all));
+            Add_Line (List_Attr_Value (J).all);
             Free (List_Attr_Value (J));
          end loop;
          Free (List_Attr_Value);
@@ -365,8 +439,6 @@ package body Project is
                                  Base_Dir  => Dir_Name (Project_Path (Prj)))),
             Add_Line'Access);
       end if;
-
-      return Result;
    end List_From_Project;
 
    ------------------
@@ -390,5 +462,35 @@ package body Project is
 
       Prj_Trees.Include (Prj_Name, Prj_Tree);
    end Load_Project;
+
+   -----------------------------
+   -- Report_Units_Without_LI --
+   -----------------------------
+
+   procedure Report_Units_Without_LI
+     (Units  : Unit_Maps.Map;
+      Origin : String)
+   is
+      procedure Report_One (C : Unit_Maps.Cursor);
+      --  Report missing LI for unit denote by C
+
+      ----------------
+      -- Report_One --
+      ----------------
+
+      procedure Report_One (C : Unit_Maps.Cursor) is
+         use Unit_Maps;
+         UI : Unit_Info renames Element (C);
+      begin
+         if not UI.LI_Seen then
+            Report
+              (Origin & ": no LI for " & To_String (UI.Original_Name),
+               Kind => Warning);
+         end if;
+      end Report_One;
+
+   begin
+      Units.Iterate (Report_One'Access);
+   end Report_Units_Without_LI;
 
 end Project;
