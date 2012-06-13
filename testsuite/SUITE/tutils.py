@@ -243,8 +243,17 @@ def xrun(args, out=None):
     else:
         targetarg = env.target.triplet
 
-    return xcov (['run', '--target=' + targetarg] + to_list(args),
-                 inp=nulinput, out=out)
+    # Compute our full list of arguments to gnatcov now, which might need
+    # to include an extra --kernel
+
+    allargs = ['run', '--target=' + targetarg]
+
+    if thistest.options.kernel:
+        allargs.append ('--kernel=' + thistest.options.kernel)
+
+    allargs.extend (to_list(args))
+
+    return xcov (allargs, inp=nulinput, out=out)
 
 # --------
 # -- do --

@@ -486,6 +486,12 @@ class TestSuite:
         if mopt.gprmode:
             testcase_cmd.append('--gprmode')
 
+        # If we have a kernel argument, resolve to fullpath now, providing
+        # straightforward visibility to local test.py instances downtree.
+
+        if mopt.kernel:
+            testcase_cmd.append('--kernel=%s' % os.path.abspath (mopt.kernel))
+
         testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
         return Run(testcase_cmd, output=diff, bg=True,
@@ -656,6 +662,8 @@ class TestSuite:
                      help='Specific target board to exercize.')
         m.add_option('--RTS', dest='RTS', metavar='RTS',
                      help='RTS library to use, mandatory for BSP support')
+        m.add_option('--kernel', dest='kernel', metavar='KERNEL',
+                     help='KERNEL to pass to gnatcov run in addition to exe')
         m.parse_args()
 
         self.enable_valgrind = (

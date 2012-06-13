@@ -265,6 +265,8 @@ class Test (object):
                         help='Specific target board to exercize')
         main.add_option('--RTS', dest='RTS', metavar='RTS',
                      help='--RTS option to pass to gprbuild.')
+        main.add_option('--kernel', dest='kernel', metavar='KERNEL',
+                     help='KERNEL to pass to gnatcov run in addition to exe')
         main.parse_args()
         if main.options.report_file is None:
             # This is a required "option" which is a bit self-contradictory,
