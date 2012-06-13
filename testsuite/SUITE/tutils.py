@@ -224,7 +224,7 @@ def xcov(args, out=None, inp=None, register_failure=True):
 # ----------
 # -- xrun --
 # ----------
-def xrun(args, out=None):
+def xrun(args, out=None, register_failure=True):
     """Run <xcov run> with arguments ARGS for the current target."""
 
     # We special case xcov --run to pass an extra --target option and
@@ -253,7 +253,9 @@ def xrun(args, out=None):
 
     allargs.extend (to_list(args))
 
-    return xcov (allargs, inp=nulinput, out=out)
+    return xcov (
+        allargs, inp=nulinput, out=out,
+        register_failure=register_failure)
 
 # --------
 # -- do --
