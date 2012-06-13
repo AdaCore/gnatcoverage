@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Sets;
 
@@ -192,7 +193,7 @@ package body Project is
 
       procedure Add_Override (U : String) is
       begin
-         Units_Set.Include (U);
+         Units_Set.Include (To_Lower (U));
       end Add_Override;
 
       ----------------------
@@ -338,7 +339,7 @@ package body Project is
 
       procedure Add_Line (S : String) is
       begin
-         Result.Include (S);
+         Result.Include (To_Lower (S));
       end Add_Line;
 
       List_Attr_Value      : String_List_Access :=
@@ -351,7 +352,7 @@ package body Project is
    begin
       if List_Attr_Value /= null then
          for J in List_Attr_Value'Range loop
-            Result.Include (List_Attr_Value (J).all);
+            Result.Include (To_Lower (List_Attr_Value (J).all));
             Free (List_Attr_Value (J));
          end loop;
          Free (List_Attr_Value);
