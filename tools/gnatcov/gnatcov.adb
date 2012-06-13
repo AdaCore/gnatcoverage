@@ -708,7 +708,7 @@ procedure GNATcov is
          Inputs.Add_Input (Input_List, S);
       end Add_Item;
 
-      procedure Add_LI   is new Add_Item (ALIs_Inputs);
+      procedure Add_LI is new Add_Item (ALIs_Inputs);
 
    --  Start of processing for Set_Defaults_From_Project
 
