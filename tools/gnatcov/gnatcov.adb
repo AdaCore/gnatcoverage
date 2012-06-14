@@ -64,23 +64,30 @@ procedure GNATcov is
    --  Display usage information for internal debugging commands
 
    procedure Check_Argument_Available
-     (Args    : Inputs.Inputs_Type;
-      What    : String;
-      Command : Command_Type := No_Command);
+     (Args            : Inputs.Inputs_Type;
+      What            : String;
+      Command         : Command_Type := No_Command;
+      Additional_Info : String := "");
    --  Report a fatal error if Args is empty
+
+   procedure Check_SCOs_Available (Command : Command_Type);
+   --  Call Check_Argument_Available to check for presence of SCOs
 
    ------------------------------
    -- Check_Argument_Available --
    ------------------------------
 
    procedure Check_Argument_Available
-     (Args    : Inputs.Inputs_Type;
-      What    : String;
-      Command : Command_Type := No_Command) is
+     (Args            : Inputs.Inputs_Type;
+      What            : String;
+      Command         : Command_Type := No_Command;
+      Additional_Info : String := "")
+   is
    begin
       if Inputs.Length (Args) = 0 then
-         Fatal_Error ("missing " & What & " argument "
-                      & For_Command_Switch (Command));
+         Fatal_Error
+           ("missing " & What & For_Command_Switch (Command)
+           & Additional_Info);
       end if;
    end Check_Argument_Available;
 
@@ -228,6 +235,19 @@ procedure GNATcov is
    --  Load the project file and set defaults for relevant options if they
    --  have not been overridden on the command line.
 
+   --------------------------
+   -- Check_SCOs_Available --
+   --------------------------
+
+   procedure Check_SCOs_Available (Command : Command_Type) is
+   begin
+      Check_Argument_Available
+        (ALIs_Inputs,
+         "SCOs",
+         Command,
+         " (specify Units in project or use --units/--scos)");
+   end Check_SCOs_Available;
+
    -----------------
    -- Set_Project --
    -----------------
@@ -289,9 +309,9 @@ procedure GNATcov is
          end if;
       end Check_Argument_Available;
 
-      ------------------------------
-      -- Check_Argument_Available --
-      ------------------------------
+      -----------------------------
+      -- Check_Annotation_Format --
+      -----------------------------
 
       procedure Check_Annotation_Format (Annotation : Annotation_Format) is
       begin
@@ -817,7 +837,7 @@ begin
             end Build_Decision_Map;
 
          begin
-            Check_Argument_Available (ALIs_Inputs, "SCOs FILEs", Command);
+            Check_SCOs_Available (Command);
 
             Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
             Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
@@ -1021,8 +1041,7 @@ begin
          if Source_Coverage_Enabled then
             --  SCOs are mandatory for source coverage
 
-            Check_Argument_Available
-              (ALIs_Inputs, "SCOs FILEs", Command);
+            Check_SCOs_Available (Command);
             Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
             Coverage.Source.Initialize_SCI;
 
@@ -1308,6 +1327,7 @@ begin
 
       when Cmd_Run =>
          Check_Argument_Available (Exe_Inputs, "EXE", Command);
+
          declare
             procedure Run (Exe_File : String);
             --  Run Exe_File in QEMU

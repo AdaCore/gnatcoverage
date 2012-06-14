@@ -49,7 +49,7 @@ package body Commands is
       if Command = No_Command then
          return "";
       else
-         return "for " & To_Switch (Command);
+         return " for " & To_Switch (Command);
       end if;
    end For_Command_Switch;
 
