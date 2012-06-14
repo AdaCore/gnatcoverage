@@ -305,9 +305,12 @@ package body Project is
                     and then not Exc_Units.Contains (U)
                   then
                      LI_Cb (+Full_Name (Element (C).Library_File));
-                     if UC /= Unit_Maps.No_Element then
-                        Inc_Units.Update_Element (UC, Set_LI_Seen'Access);
-                     end if;
+                  end if;
+
+                  --  Mark unit seen even if it is excluded
+
+                  if UC /= Unit_Maps.No_Element then
+                     Inc_Units.Update_Element (UC, Set_LI_Seen'Access);
                   end if;
                end Process_LI;
 
