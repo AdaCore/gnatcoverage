@@ -95,10 +95,12 @@ package body Project is
      (Prj            : Project_Type;
       List_Attr      : Attribute_Pkg_List;
       List_File_Attr : Attribute_Pkg_String;
-      Units          : out Unit_Maps.Map);
+      Units          : out Unit_Maps.Map;
+      Defined        : out Boolean);
    --  Return a vector containing each value of List_Attr (a list attribute),
    --  and each value from successive lines in the file denoted by
-   --  List_File_Attr (a string attribute).
+   --  List_File_Attr (a string attribute). Defined is set True if either
+   --  List_Attr or List_File_Attr is defined explicitly in the project.
 
    procedure Enumerate_LIs
      (Prj_Tree       : Project_Tree_Access;
@@ -252,8 +254,17 @@ package body Project is
          Project := Current (Iter);
          exit when Project = No_Project;
 
+         Put_Line ("Processing project " & Project.Name);
          declare
             Lib_Info : Library_Info_Lists.List;
+
+            Inc_Units         : Unit_Maps.Map;
+            Inc_Units_Defined : Boolean;
+            --  Units to be included, as specified in project
+
+            Exc_Units         : Unit_Maps.Map;
+            Exc_Units_Defined : Boolean;
+            --  Units to be excluded, as specified in project
 
             procedure Filter_Lib_Info
               (Inc_Units : in out Unit_Maps.Map;
@@ -301,7 +312,9 @@ package body Project is
                --  Start of processing for Process_LI
 
                begin
-                  if (Inc_Units.Is_Empty or else UC /= Unit_Maps.No_Element)
+                  Put_Line ("Process LI for unit " & U);
+                  Put_Line ("IUD: " & Inc_Units_Defined'Img);
+                  if (UC /= Unit_Maps.No_Element or else not Inc_Units_Defined)
                     and then not Exc_Units.Contains (U)
                   then
                      LI_Cb (+Full_Name (Element (C).Library_File));
@@ -320,8 +333,6 @@ package body Project is
                Lib_Info.Iterate (Process_LI'Access);
             end Filter_Lib_Info;
 
-            Inc_Units, Exc_Units : Unit_Maps.Map;
-
          begin
             Current (Iter).Library_Files (List => Lib_Info);
 
@@ -330,13 +341,15 @@ package body Project is
                  (Project,
                   List_Attr      => +Units,
                   List_File_Attr => +Units_List,
-                  Units          => Inc_Units);
+                  Units          => Inc_Units,
+                  Defined        => Inc_Units_Defined);
 
                List_From_Project
                  (Project,
                   List_Attr       => +Excluded_Units,
                   List_File_Attr  => +Excluded_Units_List,
-                  Units           => Exc_Units);
+                  Units           => Exc_Units,
+                  Defined         => Exc_Units_Defined);
 
                Filter_Lib_Info (Inc_Units, Exc_Units);
                Report_Units_Without_LI
@@ -347,6 +360,8 @@ package body Project is
 
                --  Note: Exc_Units is intentionally left uninitialized (empty)
                --  in this call.
+
+               Inc_Units_Defined := True;
 
                Filter_Lib_Info (Override_Units, Exc_Units);
             end if;
@@ -403,7 +418,8 @@ package body Project is
      (Prj            : Project_Type;
       List_Attr      : Attribute_Pkg_List;
       List_File_Attr : Attribute_Pkg_String;
-      Units          : out Unit_Maps.Map)
+      Units          : out Unit_Maps.Map;
+      Defined        : out Boolean)
    is
       procedure Add_Line (S : String);
       --  Add S to Result
@@ -427,6 +443,8 @@ package body Project is
    --  Start of processing for List_From_Project
 
    begin
+      Defined := List_Attr_Value /= null or else List_File_Attr_Value /= "";
+
       if List_Attr_Value /= null then
          for J in List_Attr_Value'Range loop
             Add_Line (List_Attr_Value (J).all);
