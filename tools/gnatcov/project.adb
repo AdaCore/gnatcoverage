@@ -487,7 +487,8 @@ package body Project is
       begin
          if not UI.LI_Seen then
             Report
-              (Origin & ": no LI for " & To_String (UI.Original_Name),
+              (Origin & ": no information found for unit "
+               & To_String (UI.Original_Name),
                Kind => Warning);
          end if;
       end Report_One;
