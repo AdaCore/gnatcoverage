@@ -89,7 +89,7 @@ class CovControl:
     def __gprattr (self, value, for_list, to_exclude):
         attrname = self.__gprattrname (for_list=for_list, to_exclude=to_exclude)
         return (
-            ("for %s use @%s;" % (attrname, value)) if value and for_list
+            ("for %s use \"%s\";" % (attrname, value)) if value and for_list
             else
             ("for %s use (%s);" % (
                     attrname, ','.join (['\"%s\"' % v for v in value])

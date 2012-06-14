@@ -397,10 +397,15 @@ class SCOV_helper:
         # compiled, not as an inlined version of it in a non-representative
         # driver context.
 
+        # Most of the tests with coverage control operate within
+        # an extra subdir level
+        this_depth = (
+            thistest.depth + 1 if self.covcontrol else thistest.depth)
+
         self.gpr = gprfor (
             mains = self.drivers, prjid="gen",
             srcdirs = [
-                "../"*n + "src" for n in range (1, thistest.depth)],
+                "../"*n + "src" for n in range (1, this_depth)],
             main_cargs = "-fno-inline",
             extra = self.covcontrol.gpr () if self.covcontrol else "")
 

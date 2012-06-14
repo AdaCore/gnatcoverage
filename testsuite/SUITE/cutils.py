@@ -125,12 +125,25 @@ def ndirs_in(path):
 
     return nsplits
 
-# ----------------
-# -- to_wsubdir --
-# ----------------
-def to_wsubdir (subdir = "tmp_"):
-    mkdir (subdir)
-    cd (subdir)
+# ==========
+# == Wdir ==
+# ==========
+
+class Wdir:
+
+    def __init__(self, subdir=None):
+        self.homedir = os.getcwd()
+        if subdir:
+            self.to_subdir (subdir)
+
+    def to_subdir (self, dir):
+        self.to_homedir ()
+        mkdir (dir)
+        cd (dir)
+
+    def to_homedir (self):
+        cd (self.homedir)
+
 
 # ==========================
 # == FatalError Exception ==
