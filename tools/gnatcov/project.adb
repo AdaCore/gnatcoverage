@@ -432,30 +432,42 @@ package body Project is
             (Original_Name => To_Unbounded_String (S), LI_Seen => False));
       end Add_Line;
 
-      List_Attr_Value      : String_List_Access :=
-                               Attribute_Value (Prj, List_Attr);
-      List_File_Attr_Value : constant String :=
-                               Attribute_Value (Prj, List_File_Attr);
-
    --  Start of processing for List_From_Project
 
    begin
-      Defined := List_Attr_Value /= null or else List_File_Attr_Value /= "";
 
-      if List_Attr_Value /= null then
-         for J in List_Attr_Value'Range loop
-            Add_Line (List_Attr_Value (J).all);
-            Free (List_Attr_Value (J));
-         end loop;
-         Free (List_Attr_Value);
+      --  We check each attribute in sequence and the set we're filling
+      --  is "defined" as soon as one is set explicitly.
+
+      Defined := False;
+
+      if Has_Attribute (Prj, List_Attr) then
+         Defined := True;
+         declare
+            List_Attr_Value : String_List_Access :=
+              Attribute_Value (Prj, List_Attr);
+         begin
+            for J in List_Attr_Value'Range loop
+               Add_Line (List_Attr_Value (J).all);
+               Free (List_Attr_Value (J));
+            end loop;
+            Free (List_Attr_Value);
+         end;
       end if;
 
-      if List_File_Attr_Value /= "" then
-         Read_List_From_File
-           (+Full_Name
-              (Create_From_Base (Base_Name => +List_File_Attr_Value,
-                                 Base_Dir  => Dir_Name (Project_Path (Prj)))),
-            Add_Line'Access);
+      if Has_Attribute (Prj, List_File_Attr) then
+         Defined := True;
+         declare
+            List_File_Attr_Value : constant String :=
+              Attribute_Value (Prj, List_File_Attr);
+         begin
+            Read_List_From_File
+              (+Full_Name
+                 (Create_From_Base
+                    (Base_Name => +List_File_Attr_Value,
+                     Base_Dir  => Dir_Name (Project_Path (Prj)))),
+               Add_Line'Access);
+         end;
       end if;
    end List_From_Project;
 
