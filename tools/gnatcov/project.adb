@@ -254,7 +254,6 @@ package body Project is
          Project := Current (Iter);
          exit when Project = No_Project;
 
-         Put_Line ("Processing project " & Project.Name);
          declare
             Lib_Info : Library_Info_Lists.List;
 
@@ -312,8 +311,6 @@ package body Project is
                --  Start of processing for Process_LI
 
                begin
-                  Put_Line ("Process LI for unit " & U);
-                  Put_Line ("IUD: " & Inc_Units_Defined'Img);
                   if (UC /= Unit_Maps.No_Element or else not Inc_Units_Defined)
                     and then not Exc_Units.Contains (U)
                   then
