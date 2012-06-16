@@ -3,6 +3,8 @@
 --  This is read by the gprfor() helper routine, which substitutes
 --  the python string template fields with proper values.
 
+%(deps)s
+
 project %(prjname)s %(extends)s is
 
 for Source_Dirs use (%(srcdirs)s);

@@ -48,17 +48,24 @@ class CAT:
         strength = 1000
         )
 
-# ===================================
-# == Coverage Results User Control ==
-# ===================================
+# =================================
+# == User Level Coverage Control ==
+# =================================
 
 # Facility to allow GPR level control. Still experimental.
 
 class CovControl:
 
     def __init__ (
-        self, units_in = None, ulist_in = None,
-        units_out = None, ulist_out = None, xreports = None):
+        self, deps = (), units_in = None, ulist_in = None,
+        units_out = None, ulist_out = None, xreports = None,
+        scoptions = ""):
+
+        # To control "with" dependencies and gnatcov options
+        # to pass SCOs
+
+        self.deps = deps
+        self.scoptions = scoptions
 
         # To control Units related attributes in the GPR Coverage package:
 
@@ -89,11 +96,13 @@ class CovControl:
     def __gprattr (self, value, for_list, to_exclude):
         attrname = self.__gprattrname (for_list=for_list, to_exclude=to_exclude)
         return (
-            ("for %s use \"%s\";" % (attrname, value)) if value and for_list
+            ("for %s use \"%s\";" % (attrname, value)
+             ) if (value is not None and for_list)
             else
             ("for %s use (%s);" % (
                     attrname, ','.join (['\"%s\"' % v for v in value])
-                    )) if value and not for_list
+                    )
+             ) if value is not None and not for_list
             else
             ("-- empty %s" % attrname)
             )
@@ -289,7 +298,7 @@ class TestCase:
             [self.register_qde_for (
                     SCOV_helper(drivers=[driver],
                                 xfile=driver, category=self.category,
-                                xcovlevel=covlevel, covcontrol=covcontrol)
+                                xcovlevel=covlevel, covctl=covcontrol)
                     ).run(self.cargs)
              for covlevel in self.xcovlevels
              for driver in self.all_drivers]
@@ -298,7 +307,7 @@ class TestCase:
             [self.register_qde_for (
                     SCOV_helper(drivers=self.__drivers_from(cspec),
                                 xfile=cspec, category=self.category,
-                                xcovlevel=covlevel, covcontrol=covcontrol)
+                                xcovlevel=covlevel, covctl=covcontrol)
                     ).run(self.cargs)
              for covlevel in self.xcovlevels
              for cspec in self.all_cspecs]

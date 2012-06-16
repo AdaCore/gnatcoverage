@@ -288,11 +288,11 @@ class SCOV_helper:
     # --------------
     # -- __init__ --
     # --------------
-    def __init__(self, drivers, xfile, category, xcovlevel, covcontrol):
+    def __init__(self, drivers, xfile, category, xcovlevel, covctl):
         self.drivers = [os.path.basename(d) for d in drivers]
         self.category = category
         self.xcovlevel = xcovlevel
-        self.covcontrol = covcontrol
+        self.covctl = covctl
 
         # Internal attributes: Directory where the instantiation takes place,
         # base prefix of Working Directory names, and original expectations
@@ -400,14 +400,15 @@ class SCOV_helper:
         # Most of the tests with coverage control operate within
         # an extra subdir level
         this_depth = (
-            thistest.depth + 1 if self.covcontrol else thistest.depth)
+            thistest.depth + 1 if self.covctl else thistest.depth)
 
         self.gpr = gprfor (
             mains = self.drivers, prjid="gen",
             srcdirs = [
                 "../"*n + "src" for n in range (1, this_depth)],
             main_cargs = "-fno-inline",
-            extra = self.covcontrol.gpr () if self.covcontrol else "")
+            deps = self.covctl.deps if self.covctl else (),
+            extra = self.covctl.gpr () if self.covctl else "")
 
         # For single tests (no consolidation), we first need to build,
         # producing the binary to execute and the ALIs files, then to gnatcov
@@ -422,8 +423,11 @@ class SCOV_helper:
         # both gnatcov run and gnatcov coverage.
 
         self.ascos = (
-            ("-P%s" % self.gpr) if thistest.options.gprmode or self.covcontrol
-            else ("--scos=@%s" % list_to_file(self.ali_list(), "alis.list")))
+            to_list (self.covctl.scoptions) if (
+                self.covctl and self.covctl.scoptions)
+            else ["-P%s" % self.gpr] if thistest.options.gprmode or self.covctl
+            else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
+            )
 
         if self.singletest():
             self.xcov_run(no_ext(self.drivers[0]))
@@ -506,7 +510,7 @@ class SCOV_helper:
         ofile="xcov_run_%s.out" % main
 
         xrun([self.awdir_for(main)+main,
-              "--level=%s" % self.xcovlevel, self.ascos],
+              "--level=%s" % self.xcovlevel] + self.ascos,
              out=ofile)
 
         thistest.fail_if (
@@ -524,9 +528,12 @@ class SCOV_helper:
         # Latch standard output in a file and check contents on return.
 
         ofile = format+".out"
-        p = xcov (args = ['coverage', self.ascos,
-                          '--level='+self.xcovlevel,
-                          '--annotate='+format, "@"+traces] + to_list(options),
+        p = xcov (
+            args =  ['coverage',
+                     '--level='+self.xcovlevel,
+                     '--annotate='+format, "@"+traces
+                     ] + self.ascos + to_list(options)
+                  ,
                   out = ofile)
 
         # Standard output might typically contain labeling warnings issued
@@ -578,12 +585,12 @@ class SCOV_helper:
         """Check that we don't have unexpected reports or notes."""
 
         [thistest.fail_if (
-                self.covcontrol.unexpected (s),
+                self.covctl.unexpected (s),
                 "report note found for %s, not in expected list" % s)
          for s in self.ernotes]
 
         [thistest.fail_if (
-                self.covcontrol.unexpected (s.rstrip (".xcov")),
+                self.covctl.unexpected (s.rstrip (".xcov")),
                 "%s report found, for source not in expected list" % s)
          for s in ls ("*.xcov")]
 
@@ -601,7 +608,7 @@ class SCOV_helper:
 
         self.ernotes = RnotesExpander("test.rep").ernotes
 
-        if self.covcontrol and self.covcontrol.xreports != None:
+        if self.covctl and self.covctl.xreports != None:
             self.check_unexpected_reports ()
 
         # When nothing of possible interest shows up for a unit, xcov
@@ -707,7 +714,7 @@ class SCOV_helper:
             r_discharge_kdict=r_discharge_kdict,
             l_discharge_kdict=l_discharge_kdict)
          for source in self.xrnotes if (
-                not self.covcontrol or self.covcontrol.expected (source))
+                not self.covctl or self.covctl.expected (source))
         ]
 
     def check_expectations_over(
@@ -745,8 +752,9 @@ class SCOV_helper:
     # -- log --
     # ---------
     def log(self):
-        frame ("%s, %s\n%s coverage with --level=%s"
-               % (str([no_ext(main) for main in self.drivers]),
+        frame ("%s/ %s, %s\n%s coverage with --level=%s"
+               % (os.path.relpath (os.getcwd(), thistest.homedir),
+                  str([no_ext(main) for main in self.drivers]),
                   self.xfile, self.category, self.xcovlevel),
                char='*').display()
 

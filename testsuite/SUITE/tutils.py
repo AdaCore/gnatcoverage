@@ -79,7 +79,7 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
 # ------------
 def gprfor(
     mains, prjid="gen", srcdirs="src",
-    main_cargs=None, langs=None, extra=""
+    main_cargs=None, langs=None, deps=(), extra=""
     ):
     """Generate a simple PRJID.gpr project file to build executables for each
     main source file in the MAINS list, sources in SRCDIRS. Inexistant
@@ -87,6 +87,9 @@ def gprfor(
     when specified; infer from the mains otherwise. Add EXTRA, if any, at the
     end of the project file contents and return the gpr file name.
     """
+
+    deps = '\n'.join (
+        ["with \"%s\";" % dep for dep in deps])
 
     mains = to_list(mains)
     srcdirs = to_list(srcdirs)
@@ -173,6 +176,7 @@ def gprfor(
         'compswitches': compswitches,
         'languages' : languages,
         'gprmains': gprmains,
+        'deps': deps,
         'extra': extra}
 
     return text_to_file (text = gprtext, filename = prjid + ".gpr")

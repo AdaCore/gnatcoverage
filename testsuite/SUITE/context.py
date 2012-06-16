@@ -145,8 +145,11 @@ class Test (object):
         # inacuracies from possible "./" components that don't really increase
         # the depth.
 
+        self.reldir = TEST_DIR
+        self.homedir = os.path.join (ROOT_DIR, TEST_DIR)
+
         self.depth = ndirs_in (
-            os.path.relpath (os.path.join (ROOT_DIR, TEST_DIR), ROOT_DIR))
+            os.path.relpath (self.homedir, ROOT_DIR))
 
         cd(TEST_DIR)
 

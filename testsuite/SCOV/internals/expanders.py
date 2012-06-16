@@ -619,11 +619,19 @@ class UnitCX:
         self.xldict = KnoteDict(xlNoteKinds)
         self.xrdict = KnoteDict(xrNoteKinds)
 
-        self.source = source
         self.current_block = None
         self.current_srules = {}
         self.tfile  = Tfile (filename=self.locate_source(source),
                              process=self.process_tline)
+
+        # Source names in expectations might contain paths, which facilitates
+        # tests of GPR facilities with a project hierarchy.
+        #
+        # Record the source basename as our source attribute, which is used to
+        # key in the various dictionaries and match the the name of annotated
+        # source reports, always produced in the current directory only.
+
+        self.source = os.path.basename (source)
 
         thistest.stop_if (
             self.current_block, FatalError ("fuzz block still open at EOF"))

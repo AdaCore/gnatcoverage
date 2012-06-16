@@ -8,7 +8,7 @@
 
 # ***************************************************************************
 
-import re
+import re, tempfile
 from gnatpython.fileutils import diff, os, cd, mkdir
 from gnatpython.ex import Run
 
@@ -69,6 +69,16 @@ def list_to_file(l, filename="tmp.list"):
        to generate response files. Return FILENAME."""
 
     return text_to_file ('\n'.join (l) + '\n', filename)
+
+# -----------------
+# -- list_to_tmp --
+# -----------------
+def list_to_tmp(l):
+    """Write list L to file FILENAME, one item per line. Typical use is
+       to generate response files. Return FILENAME."""
+
+    return text_to_file (
+        '\n'.join (l) + '\n', tempfile.mktemp(suffix=".list"))
 
 # -----------
 # -- match --
