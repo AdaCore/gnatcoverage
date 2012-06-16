@@ -254,12 +254,13 @@ procedure GNATcov is
 
    procedure Set_Project (Prj_Name : String) is
    begin
-      if Project_Loaded then
-         Fatal_Error ("only one project may be specified");
-      else
-         Load_Project (Prj_Name);
-         Project_Loaded := True;
-      end if;
+
+      --  This will be called once per -P.  Load each provided project, then
+      --  indicate that we need to construct a project view and fetch defaults
+      --  from there.
+
+      Load_Project (Prj_Name);
+      Project_Loaded := True;
    end Set_Project;
 
    ------------------------
