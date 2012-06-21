@@ -163,11 +163,13 @@ class Test (object):
             # quiet mode for performance (less io) otherwise.
             '-v' if self.options.qualif_level else '-q',
 
-            '--config=%s' % os.path.join (ROOT_DIR, BUILDER.SUITE_CGPR),
+            '--config=%s' % os.path.join (ROOT_DIR, BUILDER.SUITE_CGPR)]
+
+        self.gprvaroptions = [
             '-XTARGET=%s' % env.target.triplet]
 
         if self.options.board:
-            self.gprconfoptions.append ('-XBOARD=%s' % self.options.board)
+            self.gprvaroptions.append ('-XBOARD=%s' % self.options.board)
 
     # -------------
     # -- cleanup --
@@ -176,7 +178,8 @@ class Test (object):
     def cleanup(self, project):
         """Cleanup possible remnants of previous builds."""
 
-        Run([GPRCLEAN, "-P%s" % project] + self.gprconfoptions)
+        Run([GPRCLEAN, "-P%s" % project]
+            + self.gprconfoptions + self.gprvaroptions)
         rm('*.xcov')
         rm('*.bin')
 

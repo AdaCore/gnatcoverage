@@ -41,6 +41,7 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
         '-p',               # create missing directories (obj, typically)
         '-P%s' % project]
     all_gargs.extend (thistest.gprconfoptions)
+    all_gargs.extend (thistest.gprvaroptions)
 
     all_gargs.extend (to_list(gargs))
 
@@ -218,8 +219,13 @@ def xcov(args, out=None, inp=None, register_failure=True):
                     which(XCOV), '-eargs'] + args
 
     # Execute, check status, raise on error and return otherwise
-    p = Run(maybe_valgrind([XCOV]) + args,
+
+    # Pass the GPR scenario vars always. They are strictly necessary for
+    # -P and should be harmless otherwise.
+
+    p = Run(maybe_valgrind([XCOV]) + args + thistest.gprvaroptions,
             output=out, input=inp, timeout=thistest.options.timeout)
+
     thistest.stop_if(
         register_failure and p.status != 0,
         FatalError('"%s ' % XCOV + ' '.join(args) + '" exit in error', out))
