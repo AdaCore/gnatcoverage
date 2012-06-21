@@ -493,6 +493,23 @@ package body Project is
       Prj_Trees.Include (Prj_Name, Prj_Tree);
    end Load_Project;
 
+   -----------------
+   -- Set_Subdirs --
+   -----------------
+
+   procedure Set_Subdirs (Subdir : String) is
+   begin
+      if Env = null then
+         Report
+           ("Option --subdir should be passed after loading project(s).",
+            Kind => Warning);
+
+         Initialize;
+      end if;
+
+      Env.Set_Object_Subdir (+Subdir);
+   end Set_Subdirs;
+
    -----------------------------
    -- Report_Units_Without_LI --
    -----------------------------

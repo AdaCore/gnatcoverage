@@ -31,6 +31,9 @@ package Project is
    procedure Compute_Project_View;
    --  Recompute the view of the loaded project within the current scenario
 
+   procedure Set_Subdirs (Subdir : String);
+   --  Set the object subdir in all loaded projects
+
    --------------------------------------
    -- Accessors for project properties --
    --------------------------------------

@@ -178,6 +178,7 @@ procedure GNATcov is
    Kernel_Option             : constant String := "--kernel=";
    Output_Dir_Option         : constant String := "--output-dir=";
    Project_Option            : constant String := "-P";
+   Subdirs_Option            : constant String := "--subdirs=";
    Scenario_Var_Option       : constant String := "-X";
    Recursive_Option          : constant String := "--recursive";
    Trace_Option              : constant String := "--trace=";
@@ -221,6 +222,8 @@ procedure GNATcov is
    Eargs               : String_List_Access := null;
    Project_Loaded      : Boolean := False;
 
+   Subdirs             : String_Access := null;
+
    Opt_Exe_Name : String_Access := null;
    --  Path to executable from the command line; it overrides the default one
    --  from trace files.
@@ -234,6 +237,9 @@ procedure GNATcov is
    procedure Set_Defaults_From_Project;
    --  Load the project file and set defaults for relevant options if they
    --  have not been overridden on the command line.
+
+   procedure Set_Command_Line_Subdirs (Dir : String);
+   --  Handle the --subdirs option
 
    --------------------------
    -- Check_SCOs_Available --
@@ -262,6 +268,21 @@ procedure GNATcov is
       Load_Project (Prj_Name);
       Project_Loaded := True;
    end Set_Project;
+
+   ------------------------------
+   -- Set_Command_Line_Subdirs --
+   ------------------------------
+
+   procedure Set_Command_Line_Subdirs (Dir : String) is
+   begin
+      --  If multiple subdirs are selected, the last one overrides the previous
+      --  ones
+      if Subdirs /= null then
+         Free (Subdirs);
+      end if;
+
+      Subdirs := new String'(Dir);
+   end Set_Command_Line_Subdirs;
 
    ------------------------
    -- Parse_Command_Line --
@@ -467,6 +488,9 @@ procedure GNATcov is
             elsif Has_Prefix (Arg, Project_Option) then
                Set_Project
                  (Arg (Arg'First + Project_Option'Length .. Arg'Last));
+
+            elsif Has_Prefix (Arg, Subdirs_Option) then
+               Set_Command_Line_Subdirs (Option_Parameter (Arg));
 
             elsif Has_Prefix (Arg, Scenario_Var_Option) then
 
@@ -757,6 +781,13 @@ begin
    --  Process command line
 
    Parse_Command_Line;
+
+   --  Projects support: handle subdirs option
+
+   if Subdirs /= null then
+      Set_Subdirs (Subdirs.all);
+      Free (Subdirs);
+   end if;
 
    --  Projects support: generate defaults for options not specified from the
    --  command line.
