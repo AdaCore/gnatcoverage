@@ -1,7 +1,7 @@
 
 with Support, Expr; use Support, Expr;
 
-procedure Test_Expr_TF is
+procedure Test_Expr_Full is
 begin
    -- cover and-then
    
