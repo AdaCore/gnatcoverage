@@ -207,6 +207,13 @@ def xcov(args, out=None, inp=None, register_failure=True):
     # make ARGS a list from whatever it is, to allow unified processing
     args = to_list (args)
 
+    # Add the GPR scenario vars always.  They are strictly necessary for
+    # -P and should be harmless otherwise.  We don't just append them at
+    # the end since we could have a -eargs there. We insert them one by
+    # one just past the <command> argument.
+
+    [args.insert (1, vopt) for vopt in thistest.gprvaroptions]
+
     if thistest.options.trace_dir is not None:
         # Bootstrap - run xcov under xcov
 
@@ -220,10 +227,7 @@ def xcov(args, out=None, inp=None, register_failure=True):
 
     # Execute, check status, raise on error and return otherwise
 
-    # Pass the GPR scenario vars always. They are strictly necessary for
-    # -P and should be harmless otherwise.
-
-    p = Run(maybe_valgrind([XCOV]) + args + thistest.gprvaroptions,
+    p = Run(maybe_valgrind([XCOV]) + args,
             output=out, input=inp, timeout=thistest.options.timeout)
 
     thistest.stop_if(
