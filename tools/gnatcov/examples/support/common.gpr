@@ -10,7 +10,11 @@ abstract project Common is
    --  General target families, used as a toolchain selector
    --  essentially
 
-   type Target_Type is ("native", "powerpc-elf", "powerpc-eabispe", "leon-elf");
+   type Target_Type is 
+   ( "native",
+     "powerpc-elf", "powerpc-eabispe",
+     "leon-elf", "leon3-elf"
+   );
    Target : Target_Type := external ("TARGET", "powerpc-elf");
 
    --  Compute the Toolchain_Prefix to use
