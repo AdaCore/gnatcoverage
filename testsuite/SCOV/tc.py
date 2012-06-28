@@ -32,6 +32,7 @@ from SUITE.cutils import to_list, contents_of, FatalError
 from SUITE.tutils import TEST_DIR
 
 from SUITE.qdata import Qdata, QDentry
+from SUITE.gprutils import gprcov_for
 
 from gnatpython.fileutils import ls
 
@@ -87,38 +88,13 @@ class CovControl:
     def expected (self, source):
         return not self.unexpected (source)
 
-    def __gprattrname (self, for_list, to_exclude):
-        return "%(prefix)s%(kind)s" % {
-            "prefix": "Excluded_" if to_exclude else "",
-            "kind": "Units_List" if for_list else "Units"
-            }
-
-    def __gprattr (self, value, for_list, to_exclude):
-        attrname = self.__gprattrname (for_list=for_list, to_exclude=to_exclude)
-        return (
-            ("for %s use \"%s\";" % (attrname, value)
-             ) if (value is not None and for_list)
-            else
-            ("for %s use (%s);" % (
-                    attrname, ','.join (['\"%s\"' % v for v in value])
-                    )
-             ) if value is not None and not for_list
-            else
-            ("-- empty %s" % attrname)
-            )
-
     def gpr (self):
-        return '\n'.join ([
-                "package Coverage is",
-                self.__gprattr (
-                    for_list = False, to_exclude = False, value = self.units_in),
-                self.__gprattr (
-                    for_list = False, to_exclude = True, value = self.units_out),
-                self.__gprattr (
-                    for_list = True, to_exclude = False, value = self.ulist_in),
-                self.__gprattr (
-                    for_list = True, to_exclude = True, value = self.ulist_out),
-                "end Coverage;"])
+        return gprcov_for (
+            units_in = self.units_in,
+            units_out = self.units_out,
+            ulist_in = self.ulist_in,
+            ulist_out = self.ulist_out
+            )
 
 # ==============
 # == TestCase ==
