@@ -8,13 +8,14 @@ rm -rf $LIST
 
 LIST=""
 LIST="$LIST $(find -type d -name 'obj')"
+LIST="$LIST $(find -type d -name 'obj_*')"
 rm -rf $LIST
 
 LIST=""
 LIST="$LIST $(find -type f -name 'test.py.???')"
 LIST="$LIST $(find -type f -name '*~')"
 LIST="$LIST $(find -type f -name '*.adb.*')"
-rm -rf $(echo $LIST | sed -e 's/[^ ]*svn[^ ]*//g')
+echo rm -rf $(ls $LIST | grep -v svn)
 
 
 
