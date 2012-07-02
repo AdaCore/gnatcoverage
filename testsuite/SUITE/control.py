@@ -161,3 +161,19 @@ def need_libsupport ():
 
     return re.search ("zfp|ravenscar", env.main_options.RTS)
 
+# ==========================
+# == target specificities ==
+# ==========================
+
+class TargetInfo:
+    def __init__ (self, exeext):
+        self.exeext = exeext
+
+TARGETINFO = {
+    "powerpc-wrs-vxworks": TargetInfo (exeext = ".out")
+}
+
+def target_info (target=None):
+    if target is None:
+        target = env.target.triplet
+    return TARGETINFO [target] if target in TARGETINFO else None

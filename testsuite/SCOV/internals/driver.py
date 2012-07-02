@@ -27,6 +27,7 @@ from SUITE.context import thistest
 from SUITE.control import language_info
 from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
+from SUITE.tutils import exename_for, tracename_for
 
 from gnatpython.fileutils import cd, mkdir, ls
 
@@ -509,7 +510,7 @@ class SCOV_helper:
 
         ofile="xcov_run_%s.out" % main
 
-        xrun([self.awdir_for(main)+main,
+        xrun([self.awdir_for(main)+exename_for(main),
               "--level=%s" % self.xcovlevel] + self.ascos,
              out=ofile)
 
@@ -566,7 +567,7 @@ class SCOV_helper:
         format (.ad?.xcov outputs) if we're not in qualification mode"""
 
         traces = list_to_file(
-            [self.awdir_for(no_ext(main))+no_ext(main)+'.trace'
+            [self.awdir_for(no_ext(main))+tracename_for(no_ext(main))
              for main in self.drivers],
             "traces.list")
 

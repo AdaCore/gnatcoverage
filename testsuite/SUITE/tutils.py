@@ -182,6 +182,19 @@ def gprfor(
 
     return text_to_file (text = gprtext, filename = prjid + ".gpr")
 
+# ----------------------------------------------
+# -- exename_for, tracename_for, dmapname_for --
+# ----------------------------------------------
+
+def exename_for (pgmname):
+    return (pgmname + thistest.tinfo.exeext) if thistest.tinfo else pgmname
+
+def tracename_for (pgmname):
+    return exename_for (pgmname) + ".trace"
+
+def dmapname_for (pgmname):
+    return exename_for (pgmname) + ".dmap"
+
 # --------------------
 # -- maybe_valgrind --
 # --------------------

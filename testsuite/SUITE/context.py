@@ -18,7 +18,7 @@ from gnatpython.fileutils import cd, rm, which, diff, touch, mkdir, ls, find
 
 import os, re, sys
 
-from SUITE.control import GPRCLEAN, BUILDER
+from SUITE.control import GPRCLEAN, BUILDER, target_info
 from SUITE.cutils import ndirs_in
 
 # This module is loaded as part of a Run operation for a test.py
@@ -170,6 +170,8 @@ class Test (object):
 
         if self.options.board:
             self.gprvaroptions.append ('-XBOARD=%s' % self.options.board)
+
+        self.tinfo = target_info ()
 
     # -------------
     # -- cleanup --
