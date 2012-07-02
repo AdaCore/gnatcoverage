@@ -166,11 +166,14 @@ def need_libsupport ():
 # ==========================
 
 class TargetInfo:
-    def __init__ (self, exeext):
+    def __init__ (self, exeext, partiallinks):
         self.exeext = exeext
+        self.partiallinks = partiallinks
 
 TARGETINFO = {
-    "powerpc-wrs-vxworks": TargetInfo (exeext = ".out")
+    "powerpc-wrs-vxworks": TargetInfo (
+        exeext = ".out", partiallinks=True
+        )
 }
 
 def target_info (target=None):
