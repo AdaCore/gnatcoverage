@@ -757,6 +757,7 @@ package body Disa_Sparc is
       Branch_Dest : out Dest;
       FT_Dest     : out Dest)
    is
+      pragma Unreferenced (Self);
       W : Unsigned_32;
       R : Unsigned_32;
    begin
@@ -803,7 +804,7 @@ package body Disa_Sparc is
                      --  If a is set, the instruction immediately following
                      --  the branch instruction is not executed (ie, it is
                      --  annulled).
-                     FT_Dest.Delay_Slot := No_Pc;
+                     FT_Dest.Delay_Slot := No_PC;
                   end if;
                   if (Get_Field (F_Cond, W) and 2#0111#) /= 0 then
                      Flag_Cond := True;
@@ -816,7 +817,7 @@ package body Disa_Sparc is
                      --  annul field rules:
                      if Get_Field (F_A, W) = 1 then
                         --  if a = 1, the delay instruction is annulled;
-                        Branch_Dest.Delay_Slot := No_Pc;
+                        Branch_Dest.Delay_Slot := No_PC;
                      else
                         --  if a = 0, the delay instruction is executed.
                         Branch_Dest.Delay_Slot := Pc + 4;
@@ -844,7 +845,7 @@ package body Disa_Sparc is
 
          when 2#10# =>
             if Get_Field (F_Op3, W) = 16#38# then
-               Dest.Delay_Slot := Pc + 4;
+               Branch_Dest.Delay_Slot := Pc + 4;
                --  jmpl.
                Flag_Indir := True;
                R := Get_Field (F_Rd, W);
