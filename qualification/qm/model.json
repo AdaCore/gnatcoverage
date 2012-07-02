@@ -18,7 +18,7 @@
                             "Automation"  : "GenRelease"},
          "DependsOn"     : ["$(parent)::Plans::Html_Plans"],
          "Occurrences"   : "1"},
-       "Environment File" : {
+       "Environment" : {
          "ArtifactClass" : "Environment",
          "Repository"    : "environment",
          "Activity"      : {"Description" : "Generate environment file",
@@ -55,6 +55,12 @@
          "Repository"    : "Software_Quality_Assurance_Plan",
          "Activity"      : {"Description" : "Write the software quality assurance plan"},
          "Occurrences"   : "1"},
+       "Pdf_Plan": {
+         "ArtifactClass" : "Pdf_Plan",
+         "Repository"    : "pdf",
+         "Activity"      : {"Description" : "Generate the document",
+                            "Automation"   : "GnatCheckPdfGenerator"},
+         "Occurrences"   : "<=1"},
        "Html_Plans": {
          "ArtifactClass" : "Html_Plans",
          "Repository"    : "html",
@@ -63,6 +69,8 @@
          "Occurrences"   : "<=1"}
      }
    },
+   "Pdf_Plan" :
+   { "Content"   : {"Pattern": "plan.pdf", "Mime": "application/pdf", "Occurrences": "1"}},
    "Document" :
    { "Content"   : {"Pattern": "content.rst", "Mime": "text/x-rst", "Occurrences": "1"},
      "HasResult" : false,
@@ -78,6 +86,7 @@
    "Html_Plans" :
    { "Content"   : {"Pattern": "content.html", "Mime": "text/html", "Occurrences": "1"}},
    "Environment" :
-   { "Content"   : {"Pattern": "content.rst", "Mime": "text/x-rst", "Occurrences": "1"}}
+   { "Content"   : [{"Pattern": "content.rst", "Mime": "text/x-rst", "Occurrences": "1"},
+                    {"Pattern": "env_data.py", "Mime": "text/x-python", "Occurrences": "1"}]}
  }
 }

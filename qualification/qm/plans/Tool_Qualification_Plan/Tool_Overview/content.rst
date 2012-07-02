@@ -8,18 +8,33 @@ This section contains compliance matrix with the guidance contained in section 1
 
    12.2a|verification tool|see `Software Level`_
    12.2b|not applicable|verification tool
-   12.2c |see  :qmref:`$(project)::Plans::Software Configuration Management Hints` and see :qmref:`$(project)::Plans::Software Quality Assurance Plan`
-   12.2.1|not applicable| verification tool
-   12.2.2| see the TOR document, the STR report, and `GNATcoverage Qualified Interface`_ |
-   12.2.3a|to be provided by the applicant|See :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`
-   12.2.3b|CC2 see  :qmref:`$(project)::Plans::Software Configuration Management Hints`|verification tool
-   12.2.3c|not applicable|verification tool
-   12.2.3.1|not applicable|nonetheless we provide :qmref:`$(project)::Plans::Tool Qualification Plan` (this document)
-   12.2.3.2a|see the TOR document|
-   12.2.3.2b|see "GNAT Pro User's Guide" and "GNATcoverage User's Guide" and "GNATcoverage README" |
-   12.2.3.2c|see the "Operational Environment" section of the TOR document|See :qmref:`$(project)::Plans::Tool Qualification Plan::Environment_Equivalence`
-   12.2.3.2d|not applicable|verification tool
-   12.2.4|to be provided by the applicant |see :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`
+    12.2c (Software Configuration Management Hints)|Compliance matrix to table A-8 in :qmref:`$(project)::Plans::Software Configuration Management Hints`|Up to the applicant, see :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`
+   12.2c (Software Quality Assurance Plan) | Compliance matrix to to table A-9 in :qmref:`$(project)::Plans::Software Quality Assurance Plan`
+
+Section **12.2.1** does not apply to verification tools.
+
+.. csv-table:: **Section 12.2.2**
+   :delim: |
+   :header: "Section", "Data", "Notes"
+
+   12.2.2 (Tool Operational Requirements)| Tool Operational Requirement document and Tests Results document|
+   12.2.2 (Normal operational conditions)| `GNATcoverage Qualified Interface`_ |
+
+.. csv-table:: **Section 12.2.3**
+   :delim: |
+   :header: "Section", "Data", "Notes"
+
+   12.2.3a|To be provided by the applicant|See :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`
+   12.2.3b|CC2|GNATcoverage is qualified as a verification tool
+   12.2.3c|Not applicable|GNATcoverage is qualified as a verification tool
+   12.2.3.1|:qmref:`$(project)::Plans::Tool Qualification Plan` (this document)|Not required for verification tools, but still provided in this document
+   12.2.3.2a|Tool Operational Requirement document (tor_tc.ppdf)|
+   12.2.3.2b|GNATcoverage RM|
+   12.2.3.2c|See :qmref:`$(project)::Plans::Tool Qualification Plan::Environment_Equivalence`
+   12.2.3.2d|Not applicable|GNATcoverage is qualified as a verification tool
+
+The Tool Qualification Agreement (**section 12.2.4**) is to be provided by the applicant (see :qmref:`$(project)::Plans::Tool Qualification Plan::User_Activities`)
+   
    
 Tool Overview
 =============
