@@ -788,7 +788,6 @@ package body Disa_Sparc is
                   --   (PC + 4) + (sign extnd (disp22) * 4)
                   Branch_Dest.Target :=
                     Pc + 4 + Get_Field_Sext (F_Disp22, W) * 4;
-                  FT_Dest.Target := Pc + 8;
 
                   --  Sparc v7 spec:
                   --  If the branch is not taken, the annul bit field (a) is
@@ -799,12 +798,12 @@ package body Disa_Sparc is
                   if Get_Field (F_A, W) = 0 then
                      --  If the annul field is zero, the delay instruction is
                      --  executed.
-                     FT_Dest.Delay_Slot := Pc + 4;
+                     FT_Dest.Target := Pc + 4;
                   else
                      --  If a is set, the instruction immediately following
                      --  the branch instruction is not executed (ie, it is
                      --  annulled).
-                     FT_Dest.Delay_Slot := No_PC;
+                     FT_Dest.Target := Pc + 8;
                   end if;
                   if (Get_Field (F_Cond, W) and 2#0111#) /= 0 then
                      Flag_Cond := True;
