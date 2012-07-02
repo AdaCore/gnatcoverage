@@ -779,12 +779,49 @@ package body Disa_Sparc is
          when 2#00# =>
             case Get_Field (F_Op2, W) is
                when 2#010# | 2#110# =>
+                  --  Bicc / FBfcc
+
+                  --  Sparc v7 spec:
+                  --  [...] the branch is taken, causing a delayed, PC-relative
+                  --  control transfer to the address
+                  --   (PC + 4) + (sign extnd (disp22) * 4)
+                  Branch_Dest.Target :=
+                    Pc + 4 + Get_Field_Sext (F_Disp22, W) * 4;
+                  FT_Dest.Target := Pc + 8;
+
+                  --  Sparc v7 spec:
+                  --  If the branch is not taken, the annul bit field (a) is
+                  --  checked.  [...]
+                  --  If the branch is taken, the annul field is ignored, and
+                  --  the delay instruction is executed.
+                  Branch_Dest.Delay_Slot := Pc + 4;
+                  if Get_Field (F_A, W) = 0 then
+                     --  If the annul field is zero, the delay instruction is
+                     --  executed.
+                     FT_Dest.Delay_Slot := Pc + 4;
+                  else
+                     --  If a is set, the instruction immediately following
+                     --  the branch instruction is not executed (ie, it is
+                     --  annulled).
+                     FT_Dest.Delay_Slot := No_Pc;
+                  end if;
                   if (Get_Field (F_Cond, W) and 2#0111#) /= 0 then
                      Flag_Cond := True;
+                  elsif Get_Field (F_Cond, W) = 2#1000# then
+                     --  BA
+                     --  Sparc v7 spec:
+                     --  Branch Always (BA), because it always branch
+                     --  regardless of the condition code, would normally
+                     --  ignore the annul field. Instead it follows the same
+                     --  annul field rules:
+                     if Get_Field (F_A, W) = 1 then
+                        --  if a = 1, the delay instruction is annulled;
+                        Branch_Dest.Delay_Slot := No_Pc;
+                     else
+                        --  if a = 0, the delay instruction is executed.
+                        Branch_Dest.Delay_Slot := Pc + 4;
+                     end if;
                   end if;
-                  Branch_Dest.Target := Pc + Get_Field_Sext (F_Disp22, W) * 4;
-                  FT_Dest.Target :=
-                    Pc + Pc_Type (2 * Get_Insn_Length (Self, Insn_Bin));
                   Branch := Br_Jmp;
                   return;
 
@@ -793,12 +830,21 @@ package body Disa_Sparc is
             end case;
 
          when 2#01# =>
-            Branch_Dest.Target := Pc + Get_Field_Sext (F_Disp30, W) * 4;
+            --  Call
+            --  Sparc v7 spec:
+            --  The CALL instruction causes a delayed, unconditionnal,
+            --  PC-relative control transfer to the address
+            --  (PC + 4) + (disp30 * 4).
+            --  [...], therefore the delay slot instruction following the CALL
+            --  instruction is always executed.
+            Branch_Dest.Target := Pc + 4 + Get_Field_Sext (F_Disp30, W) * 4;
+            Branch_Dest.Delay_Slot := Pc + 4;
             Branch := Br_Call;
             return;
 
          when 2#10# =>
             if Get_Field (F_Op3, W) = 16#38# then
+               Dest.Delay_Slot := Pc + 4;
                --  jmpl.
                Flag_Indir := True;
                R := Get_Field (F_Rd, W);
