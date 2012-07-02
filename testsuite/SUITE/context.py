@@ -62,7 +62,9 @@ class _ReportOutput(object):
         PARAMETERS
           report_file: The name of the file where to write all the logs.
         """
-        self.report_fd = open(report_file, "w")
+        self.report_file = report_file
+
+        self.report_fd = open(self.report_file, "w")
         self.output = ""
         self.print_diff = False
 
@@ -96,6 +98,7 @@ class _ReportOutput(object):
             print self.output,
         self.output = ""
         self.print_diff = False
+        self.report_fd.flush()
 
     def close(self):
         """Close the file descriptor for our report file.
