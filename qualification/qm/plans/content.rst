@@ -7,7 +7,7 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Plans
    :header: "Name", "Company", "Email"
 
    Matteo Bordin|AdaCore|bordin@adacore.com
-   Vassiliy Fofanov|AdaCore|fofanov@adacore.com
+   Olivier Hainque|AdaCore|hainque@adacore.com
 
 .. csv-table:: **Revised by**
    :delim: |
