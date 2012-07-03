@@ -1,6 +1,6 @@
 function MinX2 (X : Natural) return Natural is
-   Min : Natural;
-   Xle2 : exception;
+   Min : Natural;      -- # decl
+   Xle2 : exception;   -- # decl
 
 begin
    Min := 2;           -- # common
