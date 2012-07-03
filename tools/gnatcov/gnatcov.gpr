@@ -19,7 +19,7 @@ project Gnatcov is
    end Compiler;
 
    for Source_Dirs use (".", "gnat");
-   for Main use ("gdbtrace.adb", "gnatcov.adb", "ppc_genopc.adb");
+   for Main use ("gnatcov.adb", "ppc_genopc.adb");
 
 end Gnatcov;
 
