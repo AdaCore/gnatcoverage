@@ -887,14 +887,20 @@ package body Traces_Elf is
             when EM_PPC =>
                case Elf_R_Type (R.R_Info) is
                   when R_PPC_ADDR32 =>
+                     Write_Word4 (Exec,
+                                  Data (0)'Address,
+                                  Storage_Offset (R.R_Offset), R.R_Addend);
+                  when R_PPC_NONE =>
                      null;
                   when others =>
-                     raise Program_Error;
+                     raise Program_Error with "unhandled PPC relocation";
                end case;
             when EM_SPARC =>
                case Elf_R_Type (R.R_Info) is
                   when R_SPARC_UA32 =>
-                     null;
+                     Write_Word4 (Exec,
+                                  Data (0)'Address,
+                                  Storage_Offset (R.R_Offset), R.R_Addend);
                   when others =>
                      raise Program_Error;
                end case;
@@ -905,9 +911,6 @@ package body Traces_Elf is
                raise Program_Error;
          end case;
 
-         Write_Word4 (Exec,
-                      Data (0)'Address,
-                      Storage_Offset (R.R_Offset), R.R_Addend);
       end loop;
       Unchecked_Deallocation (Relocs);
    end Apply_Relocations;
