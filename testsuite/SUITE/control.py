@@ -173,10 +173,15 @@ class TargetInfo:
 TARGETINFO = {
     "powerpc-wrs-vxworks": TargetInfo (
         exeext = ".out", partiallinks=True
+        ),
+    "default": TargetInfo (
+        exeext = "", partiallinks=False
         )
 }
 
 def target_info (target=None):
     if target is None:
         target = env.target.triplet
-    return TARGETINFO [target] if target in TARGETINFO else None
+    return (
+        TARGETINFO [target] if target in TARGETINFO
+        else TARGETINFO["default"])
