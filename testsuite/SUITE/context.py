@@ -176,6 +176,13 @@ class Test (object):
 
         self.tinfo = target_info ()
 
+        # Whether this test will be using project files to locate SCOs when
+        # running gnatcov.  This is decided on a per gnatcov invocation basis.
+        # self.options.gnatcov states whether we're queried to do this for
+        # SCOV driven tests.
+
+        self.gprmode = False
+
     # -------------
     # -- cleanup --
     # -------------

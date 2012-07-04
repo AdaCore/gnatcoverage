@@ -423,10 +423,12 @@ class SCOV_helper:
         # the set of scos to operate upon.  Note that we need these for
         # both gnatcov run and gnatcov coverage.
 
+        thistest.gprmode = thistest.options.gprmode or self.covctl
+
         self.ascos = (
             to_list (self.covctl.scoptions) if (
                 self.covctl and self.covctl.scoptions)
-            else ["-P%s" % self.gpr] if thistest.options.gprmode or self.covctl
+            else ["-P%s" % self.gpr] if thistest.gprmode
             else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
             )
 
