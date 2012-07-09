@@ -46,7 +46,7 @@ package body Files_Table is
       "="             => "=");
 
    Simple_Name_Map : Filename_Maps.Map;
-   Full_Name_Map : Filename_Maps.Map;
+   Full_Name_Map   : Filename_Maps.Map;
 
    Current_File_Line_Cache : File_Info_Access := null;
    --  Current file whose lines are cached in the file table. There is
@@ -631,7 +631,7 @@ package body Files_Table is
 
       Name : String_Access;
 
-      --  Start of processing for Open
+   --  Start of processing for Open
 
    begin
       if not FI.Has_Source then
