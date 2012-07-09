@@ -1332,7 +1332,9 @@ package body SC_Obligations is
          S_SCOD : SCO_Descriptor renames SCO_Vector.Element (S_SCO);
       begin
          return SCOD.D_Kind = Pragma_Assert_Check_PPC
-           and then S_SCOD.S_Kind = Pragma_Statement
+           and then (S_SCOD.S_Kind = Pragma_Statement
+                       or else
+                     S_SCOD.S_Kind = Disabled_Pragma_Statement)
            and then (S_SCOD.Pragma_Name = Pragma_Assert
                        or else
                      S_SCOD.Pragma_Name = Pragma_Check
@@ -1351,7 +1353,9 @@ package body SC_Obligations is
       SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
    begin
       pragma Assert (Kind (SCO) = Statement);
-      return SCOD.S_Kind = Pragma_Statement
+      return (SCOD.S_Kind = Pragma_Statement
+                or else
+              SCOD.S_Kind = Disabled_Pragma_Statement)
                and then (SCOD.Pragma_Name = Pragma_Precondition
                            or else
                          SCOD.Pragma_Name = Pragma_Postcondition);
