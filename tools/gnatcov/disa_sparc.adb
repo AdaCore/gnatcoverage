@@ -785,9 +785,8 @@ package body Disa_Sparc is
                   --  Sparc v7 spec:
                   --  [...] the branch is taken, causing a delayed, PC-relative
                   --  control transfer to the address
-                  --   (PC + 4) + (sign extnd (disp22) * 4)
-                  Branch_Dest.Target :=
-                    Pc + 4 + Get_Field_Sext (F_Disp22, W) * 4;
+                  --  PC + (sign extnd (disp22) * 4)
+                  Branch_Dest.Target := Pc + Get_Field_Sext (F_Disp22, W) * 4;
 
                   --  Sparc v7 spec:
                   --  If the branch is not taken, the annul bit field (a) is
@@ -833,11 +832,10 @@ package body Disa_Sparc is
             --  Call
             --  Sparc v7 spec:
             --  The CALL instruction causes a delayed, unconditionnal,
-            --  PC-relative control transfer to the address
-            --  (PC + 4) + (disp30 * 4).
+            --  PC-relative control transfer to the address PC + (disp30 * 4).
             --  [...], therefore the delay slot instruction following the CALL
             --  instruction is always executed.
-            Branch_Dest.Target := Pc + 4 + Get_Field_Sext (F_Disp30, W) * 4;
+            Branch_Dest.Target := Pc + Get_Field_Sext (F_Disp30, W) * 4;
             Branch_Dest.Delay_Slot := Pc + 4;
             Branch := Br_Call;
             return;
