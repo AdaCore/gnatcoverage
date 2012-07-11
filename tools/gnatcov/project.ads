@@ -32,7 +32,7 @@ package Project is
    --  Recompute the view of the loaded project within the current scenario
 
    procedure Set_Subdirs (Subdir : String);
-   --  Set the object subdir in all loaded projects
+   --  Set the object subdir for all loaded projects
 
    --------------------------------------
    -- Accessors for project properties --

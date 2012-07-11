@@ -397,12 +397,10 @@ package body Project is
            (Gnatls       => "gnatls",
             GNAT_Version => Gnatls_Version,
             Errors       => null);
-         if Verbose then
-            if Gnatls_Version /= null then
-               Put_Line
-                 ("default paths set from GNATLS " & Gnatls_Version.all);
-               Free (Gnatls_Version);
-            end if;
+         if Verbose and then Gnatls_Version /= null then
+            Put_Line
+              ("default paths set from GNATLS " & Gnatls_Version.all);
+            Free (Gnatls_Version);
          end if;
       end;
    end Initialize;
@@ -499,15 +497,12 @@ package body Project is
 
    procedure Set_Subdirs (Subdir : String) is
    begin
-      if Env = null then
-         Report
-           ("Option --subdir should be passed after loading project(s).",
-            Kind => Warning);
+      --  The --subdirs switch is relevant only if projects are used, otherwise
+      --  it can safely be ignored.
 
-         Initialize;
+      if Env /= null then
+         Env.Set_Object_Subdir (+Subdir);
       end if;
-
-      Env.Set_Object_Subdir (+Subdir);
    end Set_Subdirs;
 
    -----------------------------
