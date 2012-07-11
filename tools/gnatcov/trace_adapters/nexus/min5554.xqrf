@@ -1,0 +1,103 @@
+<Root>
+  <REG_HEADER>
+    <Title type="String">BF283F24-70B9-4f97-86E6-0AD5BAAE9E01</Title>
+    <VersionHigh type="String">0</VersionHigh>
+    <VersionLow type="String">1</VersionLow>
+  </REG_HEADER>
+  <REG_ROOT>
+    <RegVer type="Integer">1254453248</RegVer>
+    <Project>
+      <CompilerType type="Integer">0</CompilerType>
+      <GlobalOptions>
+        <AHeaderExtension type="String">INC</AHeaderExtension>
+        <AInpExtensions type="String">ASM</AInpExtensions>
+        <AOutExtensions type="String">OBJ</AOutExtensions>
+        <AsmAdditionalOutExt type="String"></AsmAdditionalOutExt>
+        <AssemblerRelPath type="String"></AssemblerRelPath>
+        <BeepWhenDone type="Integer">1</BeepWhenDone>
+        <ChangeWorkingDirectory type="Integer">1</ChangeWorkingDirectory>
+        <CInpExtensions type="String">C;CPP</CInpExtensions>
+        <CmpAdditionalOutExt type="String"></CmpAdditionalOutExt>
+        <CompCmdLinePostfix type="String"></CompCmdLinePostfix>
+        <CompCmdLinePrefix type="String"></CompCmdLinePrefix>
+        <CompilerDirectory type="String"></CompilerDirectory>
+        <CompilerRelPath type="String"></CompilerRelPath>
+        <CopyOutputFilesToTargetDir type="Integer">1</CopyOutputFilesToTargetDir>
+        <COutExtensions type="String">OBJ</COutExtensions>
+        <DeleteTemporalyFiles type="Integer">0</DeleteTemporalyFiles>
+        <DF_AllowBlanks type="String">True</DF_AllowBlanks>
+        <DF_End type="String"></DF_End>
+        <DF_Keyword type="String"></DF_Keyword>
+        <DF_ReqBlanks type="String">True</DF_ReqBlanks>
+        <DF_Start type="String"></DF_Start>
+        <DF_Valid type="String">False</DF_Valid>
+        <DisplayParameters type="Integer">0</DisplayParameters>
+        <ExecutableFileName type="String"></ExecutableFileName>
+        <ExternalMake type="Integer">0</ExternalMake>
+        <ExternalMakeFile type="String"></ExternalMakeFile>
+        <ExternalMakeFileParameters type="String"></ExternalMakeFileParameters>
+        <HeaderExtension type="String">H</HeaderExtension>
+        <LinkerRelPath type="String"></LinkerRelPath>
+        <LInpExtensions type="String">OBJ;LIB</LInpExtensions>
+        <LnkAdditionalOutExt type="String"></LnkAdditionalOutExt>
+        <PathSeparator type="String">\</PathSeparator>
+        <RootDir type="String"></RootDir>
+        <RunAfterAsm type="String"></RunAfterAsm>
+        <RunAfterAsmParam type="String"></RunAfterAsmParam>
+        <RunAfterComp type="String"></RunAfterComp>
+        <RunAfterCompParam type="String"></RunAfterCompParam>
+        <RunAfterLinker type="String"></RunAfterLinker>
+        <RunAfterLinkerParam type="String"></RunAfterLinkerParam>
+        <RunBeforeBuild type="String"></RunBeforeBuild>
+        <RunBeforeBuildParam type="String"></RunBeforeBuildParam>
+        <RunBeforeMake type="String"></RunBeforeMake>
+        <RunBeforeMakeParam type="String"></RunBeforeMakeParam>
+        <RunWithRelativePath type="Integer">0</RunWithRelativePath>
+        <ShowToolWindow type="Integer">0</ShowToolWindow>
+        <mbBuild>
+          <Mode type="Integer">0</Mode>
+          <Options type="String"></Options>
+          <Path type="String"></Path>
+        </mbBuild>
+        <mbMake>
+          <Mode type="Integer">0</Mode>
+          <Options type="String"></Options>
+          <Path type="String"></Path>
+        </mbMake>
+      </GlobalOptions>
+      <Project.0>
+        <DefaultTargetName type="String"></DefaultTargetName>
+        <FilterName type="String">No filter</FilterName>
+        <ProjectName type="String"></ProjectName>
+        <AdvancedLinkerOptions>
+          <AsmCustomFilterName type="String"></AsmCustomFilterName>
+          <AsmUseDefaultName type="String">True</AsmUseDefaultName>
+          <CaptureErrOutOnly type="String">False</CaptureErrOutOnly>
+          <CmpCustomFilterName type="String"></CmpCustomFilterName>
+          <CmpUseDefaultName type="String">True</CmpUseDefaultName>
+          <ExternalFilterPath type="String"></ExternalFilterPath>
+          <LinkCustomFilterName type="String"></LinkCustomFilterName>
+          <LinkUseDefaultName type="String">True</LinkUseDefaultName>
+          <UseExternalFilter type="String">False</UseExternalFilter>
+        </AdvancedLinkerOptions>
+        <TargetOptions>
+          <AsmArgFile type="String"></AsmArgFile>
+          <BuildOptions type="String"></BuildOptions>
+          <CompArgFile type="String"></CompArgFile>
+          <CRLF type="String">False</CRLF>
+          <ExternalMakeFileParameters type="String"></ExternalMakeFileParameters>
+          <IndFileLocation type="Integer">0</IndFileLocation>
+          <IndirectionFile type="String"></IndirectionFile>
+          <LinkerOptions type="String"></LinkerOptions>
+          <MakeOptions type="String"></MakeOptions>
+          <RunAfterLinkParam type="String"></RunAfterLinkParam>
+          <SkipObjectCheck type="String">False</SkipObjectCheck>
+          <TargetDirectory type="String"></TargetDirectory>
+          <TargetDirectory2 type="String"></TargetDirectory2>
+          <TranslateCharacter type="Integer">38</TranslateCharacter>
+          <UseTargetDirectory2 type="String">No</UseTargetDirectory2>
+        </TargetOptions>
+      </Project.0>
+    </Project>
+  </REG_ROOT>
+</Root>
