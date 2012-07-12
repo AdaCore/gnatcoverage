@@ -67,26 +67,29 @@ Trace control for MCDC
 
 MCDC analysis using execution traces requires specific care to make
 sure that assessments are both accurate and efficient.
-With |gcp|, this is achieved by the combination of two options passed
+With |gcp|, this is achieved by the combination of two indications passed
 to |gcvrun|:
 
 * :option:`--level=stmt+mcdc` to activate the collection of object branch
   histories, chronological record of the directions taken at conditional
   branch points in the machine code,
 
-* :option:`--scos=@list-file` to convey the set of SCOs that will be subject
-  to MCDC analysis, asking |gcv| to focus the branch history collections
-  on the critical branches only.
+* command line switches specifying what units will be subject to MCDC
+  analysis, asking |gcv| to focus the branch history collections
+  on the critical branches only, as identified by each unit's SCOs.
+  This indication can be given either using project files, or using
+  the low-level :option:`--scos` switch (see section :ref:`_sunits`).
 
-MCDC assessment is only accurate when branch history was turned on for
-decisions that require it, which |gcv| knows to determine from SCOs.  With
-:option:`--level=stmt+mcdc` and in absence of :option:`--scos`, history is
+MCDC assessment can be performed accurately only if branch history is turned
+on for decisions that require it, which |gcv| knows to determine from SCOs.
+With :option:`--level=stmt+mcdc` and in the absence of any explicit
+selection of relevant units using one of the available methods, history is
 activated for all the object conditional branch instructions, resulting in
 larger traces and increased processing time compared to what is strictly
-needed. Providing SCOs instructs |gcv| to restrict history collections to
-branches that need it, allowing optimized operation downstream.  Care must be
-taken in this case not to query MCDC analysis on SCOs that were not included
-in the set provided to |gcvrun|.
+needed. Providing SCOs instructs |gcv| to restrict history collections
+to branches that need it, allowing optimized operation downstream.
+Care must be taken in this case not to request MCDC analysis for units whose
+SCOs were not included in the set provided to |gcvrun|.
 
 Statement or decision coverage assessments, conversely, can be performed with
 any kind of trace, so traces with history aimed at MCDC may be used for those
