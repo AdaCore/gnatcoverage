@@ -66,7 +66,7 @@ available from ``gnatcov`` ``--help``, as follows::
    When using project files to identify units of interest for source coverage,
    also consider imported projects.
 
-   See the :ref:`sunits` section for extra details and use examples.
+   See section :ref:`sunits` for extra details and use examples.
 
 :option:`--units`, |rarg|:
    When using project files, override the list of units of interest for
@@ -83,7 +83,7 @@ available from ``gnatcov`` ``--help``, as follows::
    coverage, in particular bypassing project-based unit selection based on
    switches :option:`-P` and :option:`--units`.
 
-See the :ref:`sunits` section for extra details and use examples about the
+See section :ref:`sunits` for extra details and use examples about the
 various switches used to specify units of interest for source coverage.
 Note that as :option:`--level`, in the case of |gcvrun| these options are
 useful only in the case of MCDC analysis.

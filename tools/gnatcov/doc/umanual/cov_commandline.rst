@@ -79,7 +79,7 @@ interface synopsis is available from |gcv| :option:`--help`::
    When using project files to identify units of interest for source coverage,
    also consider imported projects.
 
-   See the :ref:`sunits` section for extra details and use examples.
+   See section :ref:`sunits` for extra details and use examples.
 
 :option:`--units`, |rarg|:
    When using project files, override the list of units of interest for
@@ -96,7 +96,7 @@ interface synopsis is available from |gcv| :option:`--help`::
    coverage, in particular bypassing project-based unit selection based on
    switches :option:`-P` and :option:`--units`.
 
-See the :ref:`sunits` section for extra details and use examples about the
+See section :ref:`sunits` for extra details and use examples about the
 various switches used to specify units of interest for source coverage.
 
 Elements on the command line that are not tied to a particular option are

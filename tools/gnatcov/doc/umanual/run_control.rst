@@ -78,7 +78,7 @@ to |gcvrun|:
   analysis, asking |gcv| to focus the branch history collections
   on the critical branches only, as identified by each unit's SCOs.
   This indication can be given either using project files, or using
-  the low-level :option:`--scos` switch (see section :ref:`_sunits`).
+  the low-level :option:`--scos` switch (see section :ref:`sunits`).
 
 MCDC assessment can be performed accurately only if branch history is turned
 on for decisions that require it, which |gcv| knows to determine from SCOs.
