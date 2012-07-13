@@ -14,7 +14,7 @@ available from ``gnatcov`` ``--help``, as follows::
    run [OPTIONS] FILE [-eargs EARGS...]
      Options are:
      -t TARGET  --target=TARGET   Set the target
-       targets: powerpc-elf leon-elf i386-pok i386-linux prepare
+       targets: powerpc-elf leon-elf leon3-elf powerpc-wrs-vxworks
      -v --verbose                 Be verbose
      -T TAG  --tag=TAG            Put TAG in tracefile
      -o FILE  --output=FILE       Write traces to FILE
@@ -22,6 +22,7 @@ available from ``gnatcov`` ``--help``, as follows::
                                   analysis criterion
      --scos=FILE                  Add FILE to the set of SCOS
      -eargs EARGS                 Pass EARGS to the low-level emulator
+     --kernel=FILE                Specify which kernel to use
   
 :option:`FILE` |marg| :
   The executable program to be emulated. This provided name is stored in
@@ -90,6 +91,12 @@ useful only in the case of MCDC analysis.
 :option:`-eargs` :
   Pass what follows to the low-level machine simulator that eventually
   executes the program.
+
+:option:`--kernel` :
+  Tell the underlying emulator that the executable program actually
+  is a module to be loaded on top of the provided kernel binary. This is
+  typically for VxWorks kinds of targets, where the kernel is a tailored
+  version built to include GNATemulator support.
 
 When |gem| is available on your PATH as `<target>-gnatemu`, |gcp| uses it to
 run your program. |gem| acts as a wrapper around the real machine emulator in
