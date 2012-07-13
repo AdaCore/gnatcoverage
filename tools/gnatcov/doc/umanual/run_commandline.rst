@@ -57,11 +57,35 @@ available from ``gnatcov`` ``--help``, as follows::
   :option:`--scos`.  See the :ref:`trace-control` section of this chapter for
   additional details.
 
-:option:`--scos`, |rarg| :
-  Convey the set of :term:`Source Coverage Obligations` (SCOs) intended to be
-  assessed from the produced traces. As :option:`--level`, this option is only
-  useful for MCDC analysis, as described in greater details in the
-  :ref:`trace-control` section later in this chapter.
+:option:`-P`:
+   Use indicated project file to identify units of interest for source
+   coverage.
+
+:option:`--recursive`: 
+   When using project files to identify units of interest for source coverage,
+   also consider imported projects.
+
+   See the :ref:`sunits` section for extra details and use examples.
+
+:option:`--units`, |rarg|:
+   When using project files, override the list of units of interest for
+   source coverage.
+
+:option:`--subdirs`:
+   When using project files, look for Library Information files in the
+   indicated subdirectory of each project's object directory.
+
+:option:`--scos`, |rarg|:
+   For source coverage analysis specifically, provide the set of Library
+   Information files from which SCOs should be loaded. This low-level switch
+   effectively overrides the selection of units of interest for source
+   coverage, in particular bypassing project-based unit selection based on
+   switches :option:`-P` and :option:`--units`.
+
+See the :ref:`sunits` section for extra details and use examples about the
+various switches used to specify units of interest for source coverage.
+Note that as :option:`--level`, in the case of |gcvrun| these options are
+useful only in the case of MCDC analysis.
 
 :option:`-eargs` :
   Pass what follows to the low-level machine simulator that eventually

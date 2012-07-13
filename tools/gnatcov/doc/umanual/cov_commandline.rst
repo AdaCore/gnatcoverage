@@ -71,41 +71,33 @@ interface synopsis is available from |gcv| :option:`--help`::
    to what is to be assessed eventually. See the :ref:`oroutines` section for
    extra details and use examples.
 
-:option:`-P`, :option:`--recursive`:
-   For source coverage analysis specifically, use the given project file.
-   The set of source units for which the coverage assessment is to be performed
-   is either determined from the project file, or can be overridden using the
-   :option:`--units` command line switch. In the absence of :option:`--units`,
-   the unit set is determined as follow:
-     - an initial set of units is determined using the Units and Units_List
-       attributes in the project's Coverage package; by default this initial
-       set comprises all units of the project
-     - units determined using the Excluded_Units and Excluded_Units_List
-       attributes are then removed from the initial set.
+:option:`-P`:
+   Use indicated project file to identify units of interest for source
+   coverage.
 
-   If :option:`--recursive` is present, the same processing occurs for
-   each imported project, recursively
+:option:`--recursive`:
+   When using project files to identify units of interest for source coverage,
+   also consider imported projects.
 
    See the :ref:`sunits` section for extra details and use examples.
 
 :option:`--units`, |rarg|:
-   When using project files, override the list of units on which to assess
-   coverage.
+   When using project files, override the list of units of interest for
+   source coverage.
 
 :option:`--subdirs`:
    When using project files, look for Library Information files in the
    indicated subdirectory of each project's object directory.
 
 :option:`--scos`, |rarg|:
-   For source coverage analysis specifically, provide the set of source units
-   for which the coverage assessment is to be performed, by the way of the
-   corresponding Library Information files containing the relevant SCOs. Each
-   instance of this option on the command line adds to what is to be assessed
-   eventually. Note that use of this low-level switch bypasses any
-   project-based unit selection (see switches :option:`-P` and
-   :option:`--units`).
+   For source coverage analysis specifically, provide the set of Library
+   Information files from which SCOs should be loaded. This low-level switch
+   effectively overrides the selection of units of interest for source
+   coverage, in particular bypassing project-based unit selection based on
+   switches :option:`-P` and :option:`--units`.
 
-   See the :ref:`sunits` section for extra details and use examples.
+See the :ref:`sunits` section for extra details and use examples about the
+various switches used to specify units of interest for source coverage.
 
 Elements on the command line that are not tied to a particular option are
 considered as trace file arguments. :option:`--trace` is marked mandatory only
