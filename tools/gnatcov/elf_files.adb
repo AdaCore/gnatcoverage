@@ -275,12 +275,8 @@ package body Elf_Files is
       end if;
    end Get_Shdr_By_Name;
 
-   function Get_Sym (File : Elf_File; Addr : Address) return Elf_Sym
-   is
+   function Get_Sym (File : Elf_File; Addr : Address) return Elf_Sym is
       Res : Elf_Sym;
-      type Elf_Sym_Acc is access Elf_Sym;
-      function To_Elf_Sym_Acc is new Ada.Unchecked_Conversion
-        (Address, Elf_Sym_Acc);
    begin
       Res := To_Elf_Sym_Acc (Addr).all;
       if File.Need_Swap then
