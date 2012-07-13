@@ -1159,7 +1159,7 @@ default all units in the project are considered for coverage analysis.
 
 For example, given a project with three packages Pak1, Pak2, and Pak3,
 if you want to do coverage analysis only for Pak1 and Pak3 you can
-specify:
+specify::
 
    project proj is
       package Coverage is
@@ -1173,7 +1173,7 @@ specify:
 Excluded_Units and Excluded_Units_List operate in a similar way and
 are used to indicate units that are never considered for coverage.
 Getting back at our example, you can obtain the same result as above
-by specifying:
+by specifying::
 
    project proj is
       package Coverage is
