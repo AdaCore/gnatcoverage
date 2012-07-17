@@ -47,12 +47,12 @@ with GNAT.Directory_Operations; use GNAT.Directory_Operations;
 --  since it is intended to be called from gnatcov (no fat
 --  fingers), many things are not checked.
 --
---  This program should reside in ../libexec/gnatcov, relative
+--  This program should reside in ../libexec/gnatcoverage, relative
 --  to the directory containing the gnatcov program. It expects
 --  that other programs that it calls (the python program, and
 --  the trace conversion program) to reside in the same directory.
 --  It expcts to find the winIdea configuration files in
---  ../../share/gnatcov (relative to isys_drive itself).
+--  ../../share/gnatcoverage (relative to isys_drive itself).
 
 procedure isys_drv is
    S_Idx1, S_Idx2 : Positive;
@@ -64,7 +64,8 @@ procedure isys_drv is
    --  the history file and the trace file.
 
    Execs_Dir : String := Normalize_Pathname ("..", Command_Name);
-   Share_Dir : String := Normalize_Pathname ("../../share/gnatcov", Execs_Dir);
+   Share_Dir : String :=
+     Normalize_Pathname ("../../share/gnatcoverage", Execs_Dir);
    --  Paths to directories containing this program and other programs
    --  called by it, and to the directory containing winIdea configuration
    --  files.
@@ -81,7 +82,7 @@ procedure isys_drv is
 
    Project_Files_Basename : String_Access;
    --  The names of the various winIdea configuration files which are copied
-   --  from the share/gnatcov location to the workspace directoy are
+   --  from the share/gnatcoverage location to the workspace directoy are
    --  constructed from this string, whose value depends upon the particular
    --  processor.
 
