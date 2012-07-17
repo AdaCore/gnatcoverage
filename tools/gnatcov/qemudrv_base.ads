@@ -143,7 +143,7 @@ package Qemudrv_Base is
       (Target => new String'("iSystem-5554"),
        Build_Command => null,
        Build_Options => null,
-       Run_Command => new String'("../libexec/gnatcov/isys_drv"),
+       Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
        Run_Options => new String_List'(
          new String'("5554"),
          new String'("%exe"),
@@ -153,7 +153,7 @@ package Qemudrv_Base is
       (Target => new String'("iSystem-5634"),
        Build_Command => null,
        Build_Options => null,
-       Run_Command => new String'("../libexec/gnatcov/isys_drv"),
+       Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
        Run_Options => new String_List'(
          new String'("5634"),
          new String'("%exe"),

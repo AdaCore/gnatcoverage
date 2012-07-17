@@ -15,7 +15,7 @@ If you have a bash command shell or alike available, just run the "doinstall"
 script and follow the instructions.
 
 The script will ask you for the location of a place (aka prefix) where it will
-transfer the contents of a "bin" and of a "shared" subdirectory.
+transfer the contents of the "bin", "share" and "libexec" subdirectories.
 
 A typical prefix is the root of your compilation toolchain install tree, where
 you can copy the subdirectory contents by other means if you don't have a bash

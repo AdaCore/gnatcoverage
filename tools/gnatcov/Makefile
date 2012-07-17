@@ -7,6 +7,8 @@ MKDIR=mkdir -p
 RMDIR=-rmdir
 MAKEINFO=makeinfo
 exeext=
+SUBDIRS = trace_adapters/nexus
+.PHONY: all $(SUBDIRS)
 
 # Binary program name
 PGMNAME=gnatcov
@@ -16,10 +18,13 @@ DIRNAME=gnatcoverage
 
 DOCFORMATS=pdf html
 
-all: $(PGMNAME)
+all: $(PGMNAME) $(SUBDIRS)
 
 $(PGMNAME): force
 	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
+
+$(SUBDIRS):
+	$(MAKE) -C $@
 
 ppc_genopc:
 	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
@@ -86,6 +91,9 @@ clean-doc-build:
 	make -C $(UMAN_DOCDIR) clean
 
 clean: clean-bin clean-doc-build clean-doc-copy
+	for dir in $(SUBDIRS); do \
+	  $(MAKE) -C $$dir clean; \
+	done
 
 ################
 # Installation #
@@ -107,7 +115,11 @@ install-doc.%:
 
 install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 
-install: install-bin install-examples install-doc
+#install: install-bin install-examples install-doc
+install: install-bin install-examples
+	for Dir in $(SUBDIRS); do \
+	  $(MAKE) -C $$Dir PREFIX=$(PREFIX) install || exit 1; \
+	done
 
 #############
 # Packaging #
@@ -118,6 +130,7 @@ install: install-bin install-examples install-doc
 distrib: install
 	$(CP) README INSTALL $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
+            -e "/^version/s/..$$/\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
 	chmod +x $(PREFIX)/doinstall

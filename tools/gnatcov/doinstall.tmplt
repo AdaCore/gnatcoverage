@@ -84,7 +84,7 @@ standard_installation () {
  
    # Makes the real installation
    mkdir -p $prefix
-   (tar cf - bin share | (cd $prefix; tar xf -)) 2>&1 | tee $tmpout
+   (tar cf - bin share libexec | (cd $prefix; tar xf -)) 2>&1 | tee $tmpout
 
    # Check that installation was OK
 

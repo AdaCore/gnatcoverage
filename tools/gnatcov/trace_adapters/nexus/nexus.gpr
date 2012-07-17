@@ -1,0 +1,10 @@
+project Nexus is
+   for Source_Dirs use (".", "../..");
+
+   for Main use ("nexus_trace_gen.adb", "isys_drv.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use ("-g", "-gnatyy", "-gnat05");
+   end Compiler;
+
+end Nexus;
