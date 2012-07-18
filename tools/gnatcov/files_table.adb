@@ -168,6 +168,37 @@ package body Files_Table is
       Last_Source_Search_Entry := E;
    end Add_Source_Search;
 
+   --------------------
+   -- Build_Filename --
+   --------------------
+
+   function Build_Filename
+     (Dir      : String;
+      Filename : String) return String_Access
+   is
+      use Ada.Characters.Handling;
+      Res : String := Dir & '/' & Filename;
+   begin
+      if Res'Length > 2 and then Res (Res'First + 1) = ':' then
+         --  Looks like a Windows file name
+
+         --  Capitalize the driver letter
+
+         Res (Res'First) := To_Upper (Res (Res'First));
+
+         --  Lower case letters, back-slashify
+
+         for I in Res'First + 2 .. Res'Last loop
+            if Is_Upper (Res (I)) then
+               Res (I) := To_Lower (Res (I));
+            elsif Res (I) = '/' then
+               Res (I) := '\';
+            end if;
+         end loop;
+      end if;
+      return new String'(Res);
+   end Build_Filename;
+
    ---------------------
    -- End_Lex_Element --
    ---------------------
@@ -648,6 +679,16 @@ package body Files_Table is
       --  Try original path
 
       Try_Open (File, Name.all, Success);
+
+      if Success and then FI.Full_Name = null then
+
+         --  Found using simple name (in current directory)
+
+         FI.Full_Name :=
+           Build_Filename
+             (Ada.Directories.Current_Directory,
+              FI.Simple_Name.all);
+      end if;
 
       --  Try to rebase
 

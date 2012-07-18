@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
@@ -145,12 +144,6 @@ package body Traces_Elf is
    --  Allocate memory for section SEC of EXEC and read it.
    --  LEN is the length of the section, CONTENT is its binary content.
    --  The low bound of CONTENT is 0.
-
-   function Build_Filename (Dir : String; Filename : String)
-                           return String_Access;
-   --  Create a filename from a directory name and a filename.
-   --  The directory name is expected to be not empty.
-   --  If the filename looks like a Windows filename, it is canonicalized.
 
    Empty_String_Acc : constant String_Access := new String'("");
 
@@ -1205,32 +1198,6 @@ package body Traces_Elf is
      (Index_Type => Positive,
       Element_Type => String_Access,
       "=" => "=");
-
-   function Build_Filename
-     (Dir : String; Filename : String) return String_Access
-   is
-      use Ada.Characters.Handling;
-      Res : String := Dir & '/' & Filename;
-   begin
-      if Res'Length > 2 and then Res (Res'First + 1) = ':' then
-         --  Looks like a Windows file name
-
-         --  Capitalize the driver letter
-
-         Res (Res'First) := To_Upper (Res (Res'First));
-
-         --  Lower case letters, back-slashify
-
-         for I in Res'First + 2 .. Res'Last loop
-            if Is_Upper (Res (I)) then
-               Res (I) := To_Lower (Res (I));
-            elsif Res (I) = '/' then
-               Res (I) := '\';
-            end if;
-         end loop;
-      end if;
-      return new String'(Res);
-   end Build_Filename;
 
    ----------------------
    -- Read_Debug_Lines --

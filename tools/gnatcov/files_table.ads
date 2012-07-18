@@ -32,9 +32,17 @@ with Traces_Lines;   use Traces_Lines;
 with Types;          use Types;
 
 package Files_Table is
+
    --  This package manages a source file table and, for each file, a table of
    --  its source lines. Coverage information can be associated with each
    --  file/line. Only object coverage is supported.
+
+   function Build_Filename
+     (Dir      : String;
+      Filename : String) return String_Access;
+   --  Create a filename from a directory name and a filename.
+   --  The directory name is expected to be not empty.
+   --  If the filename looks like a Windows filename, it is canonicalized.
 
    --  Global directory of all source files
 
@@ -153,7 +161,7 @@ package Files_Table is
       --  False if no source file is found that corresponds to this file name
 
       Alias_Num : Natural;
-      --  0 if no other source file has the same basename, otherwise a uniq
+      --  0 if no other source file has the same basename, otherwise a unique
       --  index.
 
       Lines : Source_Lines;
