@@ -397,15 +397,34 @@ package body Qemudrv is
          Put_Line (Indent & Str);
       end P;
 
+      Driver_Idx : Natural;
+      Filled     : Positive;
    begin
       P ("run [OPTIONS] FILE [-eargs EARGS...]");
       P ("  -t TARGET  --target=TARGET   Set the execution target");
-      Put (Indent & "    targets:");
-      for I in Drivers'Range loop
-         Put (' ');
-         Put (Drivers (I).Target.all);
+      P (Indent & "    targets: A prefix to a version of gnatemu on PATH, or");
+      Driver_Idx := Drivers'First;
+      loop
+         exit when Driver_Idx > Drivers'Last;
+         Put  (Indent & "      " & Drivers (Driver_Idx).Target.all);
+         Filled := Indent'Length + 6 + Drivers (Driver_Idx).Target'Length;
+         loop
+            Driver_Idx := Driver_Idx + 1;
+            if Driver_Idx > Drivers'Last then
+               New_Line;
+               exit;
+            end if;
+            Filled := Filled + 1 + Drivers (Driver_Idx).Target'Length;
+            if Filled >= 80 then
+               New_Line;
+               exit;
+            end if;
+            Put (' ' & Drivers (Driver_Idx).Target.all);
+         end loop;
       end loop;
-      New_Line;
+      --  Perhaps there is a library function suitable for doing
+      --  the line filling that is done by hand here. ???
+
       P ("  -v --verbose                 Be verbose");
       P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
       P ("  -o FILE  --output=FILE       Write traces to FILE");

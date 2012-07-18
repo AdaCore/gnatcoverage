@@ -34,7 +34,8 @@ available from ``gnatcov`` ``--help``, as follows::
   The target architecture/board/abi that your program was built for. This
   typically corresponds to the target prefix of your compilation toolchain,
   for example ``powerpc-elf`` or ``leon-elf``. By default, |gcv| assumes
-  this is the same as its host environment.
+  this is the same as its host environment. Further explanation is provided
+  below, after the options' descriptions.
 
 :option:`-v`, :option:`--verbose` :
   Request verbose output. In particular, this displays the commands launched
@@ -98,7 +99,8 @@ useful only in the case of MCDC analysis.
   typically for VxWorks kinds of targets, where the kernel is a tailored
   version built to include GNATemulator support.
 
-When |gem| is available on your PATH as `<target>-gnatemu`, |gcp| uses it to
+When |gem| is available on your PATH as `<target>-gnatemu` (`<target>` is the
+value provided as the :option:`--target` argument), |gcp| uses it to
 run your program. |gem| acts as a wrapper around the real machine emulator in
 this case, taking care of low-level interfacing details. Otherwise, |gcp|
 resorts directly to the low level emulator statically configured for your

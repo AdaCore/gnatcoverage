@@ -189,6 +189,8 @@ package Qemu_Traces is
       Pad0 : Unsigned_8;
    end record;
 
+   --  Size is the size of the trace (all the instructions) in bytes.
+
    --  The Operation conveyed is a bitmask of the following possibilities:
 
    Trace_Op_Block : constant Unsigned_8 := 16#10#;

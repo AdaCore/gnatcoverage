@@ -115,8 +115,7 @@ install-doc.%:
 
 install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 
-#install: install-bin install-examples install-doc
-install: install-bin install-examples
+install: install-bin install-examples install-doc
 	for Dir in $(SUBDIRS); do \
 	  $(MAKE) -C $$Dir PREFIX=$(PREFIX) install || exit 1; \
 	done
@@ -134,5 +133,9 @@ distrib: install
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
 	chmod +x $(PREFIX)/doinstall
+
+# The second -e script may not be self-explanatory: removes the ^M
+#  before the closing quote so that doinstall output of the version
+#  isn't overwritten.
 
 force:
