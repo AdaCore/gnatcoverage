@@ -129,13 +129,8 @@ install: install-bin install-examples install-doc
 distrib: install
 	$(CP) README INSTALL $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
-            -e "/^version/s/..$$/\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
 	chmod +x $(PREFIX)/doinstall
-
-# The second -e script may not be self-explanatory: removes the ^M
-#  before the closing quote so that doinstall output of the version
-#  isn't overwritten.
 
 force:
