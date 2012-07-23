@@ -86,6 +86,7 @@ package body Traces_Elf is
       Base : Address;
       Off  : in out Storage_Offset;
       Val  : Integer_32);
+   pragma Unreferenced (Write_Word4);
    procedure Read_Address
      (Exec : Exe_File_Type;
       Base : Address;
@@ -115,10 +116,16 @@ package body Traces_Elf is
       Base : Address;
       Off  : in out Storage_Offset;
       Form : Unsigned_32);
+
+   function To_Elf_Word is new Ada.Unchecked_Conversion (Elf_Sword, Elf_Word);
+
    procedure Apply_Relocations
-     (Exec    : Exe_File_Type;
+     (Exec    : in out Exe_File_Type;
       Sec_Rel : Elf_Half;
       Data    : in out Binary_Content);
+   --  Apply relocations from SEC_REL to DATA.
+   --  This procedure should only be called to relocate dwarf debug sections,
+   --  and therefore handles only a small subset of the relocations.
 
    procedure Read_Debug_Lines
      (Exec                  : in out Exe_File_Type;
@@ -144,6 +151,10 @@ package body Traces_Elf is
    --  Allocate memory for section SEC of EXEC and read it.
    --  LEN is the length of the section, CONTENT is its binary content.
    --  The low bound of CONTENT is 0.
+
+   procedure Load_Symtab (Exec : in out Exe_File_Type);
+   --  Load the symbol table (but not the string table) if not already
+   --  loaded.
 
    Empty_String_Acc : constant String_Access := new String'("");
 
@@ -446,7 +457,6 @@ package body Traces_Elf is
         or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
       then
          return SHN_UNDEF;
-
       else
          return Elf_Half (Symtab_Shdr.Sh_Link);
       end if;
@@ -833,7 +843,7 @@ package body Traces_Elf is
    -----------------------
 
    procedure Apply_Relocations
-     (Exec    : Exe_File_Type;
+     (Exec    : in out Exe_File_Type;
       Sec_Rel : Elf_Half;
       Data    : in out Binary_Content)
    is
@@ -842,9 +852,13 @@ package body Traces_Elf is
       Relocs : Binary_Content_Acc;
       Relocs_Base : Address;
 
+      Sym_Num : Elf32_Word;
+      Sym : Elf_Sym;
+
       Shdr : Elf_Shdr_Acc;
       Off : Storage_Offset;
 
+      Offset : Elf_Word;
       R : Elf_Rela;
    begin
       Shdr := Get_Shdr (Exec.Exe_File, Sec_Rel);
@@ -854,18 +868,18 @@ package body Traces_Elf is
       if Natural (Shdr.Sh_Entsize) /= Elf_Rela_Size then
          raise Program_Error;
       end if;
+      if Shdr.Sh_Size mod Elf32_Word (Elf_Rela_Size) /= 0 then
+         raise Program_Error;
+      end if;
       Alloc_And_Load_Section (Exec, Sec_Rel, Relocs_Len, Relocs, Relocs_Base);
+      if Relocs_Len /= Shdr.Sh_Size then
+         raise Program_Error;
+      end if;
+
+      Load_Symtab (Exec);
 
       Off := 0;
       while Off < Storage_Offset (Relocs_Len) loop
-         if
-           Off + Storage_Offset (Elf_Rela_Size) > Storage_Offset (Relocs_Len)
-         then
-            --  Truncated
-
-            raise Program_Error;
-         end if;
-
          --  Read relocation entry
 
          Read_Word4 (Exec, Relocs_Base, Off, R.R_Offset);
@@ -873,7 +887,22 @@ package body Traces_Elf is
          Read_Word4 (Exec, Relocs_Base, Off, R.R_Addend);
 
          if R.R_Offset > Data'Last then
-            raise Program_Error;
+            raise Program_Error with "relocation offset beyond section size";
+         end if;
+
+         Sym_Num := Elf32_R_Sym (R.R_Info);
+         if Sym_Num > Elf_Word (Exec.Nbr_Symbols) then
+            raise Program_Error with "invalid symbol number in relocation";
+         end if;
+         Sym := Get_Sym
+           (Exec.Exe_File,
+            Exec.Symtab (Sym_Num * Elf_Word (Elf_Sym_Size))'Address);
+         if Elf_St_Type (Sym.St_Info) = STT_SECTION then
+            Offset := Get_Shdr (Exec.Exe_File,
+                                Sym.St_Shndx).Sh_Addr;
+         else
+            --  Also relocate global/local symbols ???
+            Offset := 0;
          end if;
 
          case Exec.Exe_Machine is
@@ -882,7 +911,8 @@ package body Traces_Elf is
                   when R_PPC_ADDR32 =>
                      Write_Word4 (Exec,
                                   Data (0)'Address,
-                                  Storage_Offset (R.R_Offset), R.R_Addend);
+                                  Storage_Offset (R.R_Offset),
+                                  Offset + To_Elf_Word (R.R_Addend));
                   when R_PPC_NONE =>
                      null;
                   when others =>
@@ -893,9 +923,10 @@ package body Traces_Elf is
                   when R_SPARC_UA32 =>
                      Write_Word4 (Exec,
                                   Data (0)'Address,
-                                  Storage_Offset (R.R_Offset), R.R_Addend);
+                                  Storage_Offset (R.R_Offset),
+                                  Offset + To_Elf_Word (R.R_Addend));
                   when others =>
-                     raise Program_Error;
+                     raise Program_Error with "unhandled SPARC relocation";
                end case;
             when others =>
                Outputs.Fatal_Error
@@ -1193,6 +1224,39 @@ package body Traces_Elf is
       Unchecked_Deallocation (Infos);
       Unchecked_Deallocation (Abbrevs);
    end Build_Debug_Compile_Units;
+
+   -----------------
+   -- Load_Symtab --
+   -----------------
+
+   procedure Load_Symtab (Exec : in out Exe_File_Type) is
+      Symtab_Shdr : Elf_Shdr_Acc;
+      Symtab_Len : Elf_Word;
+   begin
+      if Exec.Nbr_Symbols /= 0 then
+         --  Already loaded.
+         return;
+      end if;
+
+      if Exec.Sec_Symtab = SHN_UNDEF then
+         raise Program_Error with "no symbol table";
+      end if;
+
+      Alloc_And_Load_Section (Exec, Exec.Sec_Symtab, Symtab_Len, Exec.Symtab);
+      Symtab_Shdr := Get_Shdr (Exec.Exe_File, Exec.Sec_Symtab);
+      if Symtab_Shdr.Sh_Type /= SHT_SYMTAB
+        or else Symtab_Shdr.Sh_Link = 0
+        or else Natural (Symtab_Shdr.Sh_Entsize) /= Elf_Sym_Size
+      then
+         raise Program_Error with "invalid symbol table section";
+      end if;
+      if Symtab_Shdr.Sh_Size /= Symtab_Len
+        or else Symtab_Shdr.Sh_Size mod Elf_Word (Elf_Sym_Size) /= 0
+      then
+         raise Program_Error with "invalid symtab size";
+      end if;
+      Exec.Nbr_Symbols := Natural (Symtab_Len) / Elf_Sym_Size;
+   end Load_Symtab;
 
    package Filenames_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive,
@@ -1681,6 +1745,8 @@ package body Traces_Elf is
       Shdr : Elf_Shdr_Acc;
       Addr : Pc_Type;
       Last : Pc_Type;
+      Offset : Pc_Type;
+      Do_Reloc : Boolean;
    begin
       --  Return now if already built
 
@@ -1689,6 +1755,9 @@ package body Traces_Elf is
       end if;
 
       --  Iterate over all section headers
+
+      Offset := 0;
+      Do_Reloc := Get_Ehdr (Exec.Exe_File).E_Type = ET_REL;
 
       for Idx in 0 .. Get_Shdr_Num (Exec.Exe_File) - 1 loop
          Shdr := Get_Shdr (Exec.Exe_File, Idx);
@@ -1700,9 +1769,17 @@ package body Traces_Elf is
            and then (Shdr.Sh_Type = SHT_PROGBITS)
            and then Shdr.Sh_Size > 0
          then
-            Addr := Pc_Type (Shdr.Sh_Addr + Exec.Exe_Text_Start);
-            Last := Pc_Type (Shdr.Sh_Addr + Exec.Exe_Text_Start
-                               + Shdr.Sh_Size - 1);
+            Addr := Pc_Type (Shdr.Sh_Addr + Offset);
+            Last := Pc_Type (Shdr.Sh_Addr + Offset + Shdr.Sh_Size - 1);
+
+            if Do_Reloc then
+               --  Relocate the sections, so that they won't overlap.
+               --  This is when the executable is a partially linked
+               --  with section per function binary (such as VxWorks DKM).
+               Shdr.Sh_Addr := Shdr.Sh_Addr + Offset;
+               Offset := (Last + Shdr.Sh_Addralign - 1)
+                 and not (Shdr.Sh_Addralign - 1);
+            end if;
 
             Insert (Exec.Desc_Sets (Section_Addresses),
                     new Addresses_Info'
@@ -2271,8 +2348,7 @@ package body Traces_Elf is
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
       Sec : Addresses_Info_Acc;
 
-      Symtab_Len : Elf_Size;
-      Symtabs : Binary_Content_Acc;
+      Symtab_Base : Address;
 
       Strtab_Idx : Elf_Half;
       Strtab_Len : Elf_Size;
@@ -2308,19 +2384,19 @@ package body Traces_Elf is
       if Exec.Sec_Symtab = SHN_UNDEF then
          return;
       end if;
+      Load_Symtab (Exec.all);
+      Symtab_Base := Exec.Symtab (0)'Address;
 
       Strtab_Idx := Get_Strtab_Idx (Exec.all);
       if Strtab_Idx = SHN_UNDEF then
          return;
       end if;
-
-      Alloc_And_Load_Section (Exec.all, Exec.Sec_Symtab, Symtab_Len, Symtabs);
       Alloc_And_Load_Section (Exec.all, Strtab_Idx, Strtab_Len, Strtabs);
 
-      for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
+      for I in 1 .. Exec.Nbr_Symbols loop
          ESym := Get_Sym
            (Exec.Exe_File,
-            Symtabs (0)'Address + Storage_Offset ((I - 1) * Elf_Sym_Size));
+            Symtab_Base + Storage_Offset ((I - 1) * Elf_Sym_Size));
          Sym_Type := Elf_St_Type (ESym.St_Info);
 
          if  (Sym_Type = STT_FUNC or else Sym_Type = STT_NOTYPE)
@@ -2345,7 +2421,6 @@ package body Traces_Elf is
       end loop;
 
       Unchecked_Deallocation (Strtabs);
-      Unchecked_Deallocation (Symtabs);
    end Build_Symbols;
 
    ----------------------

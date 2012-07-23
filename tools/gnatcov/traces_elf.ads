@@ -300,6 +300,11 @@ private
       Lines_Len : Elf_Size := 0;
       Lines : Binary_Content_Acc := null;
 
+      --  Symbol table
+
+      Symtab : Binary_Content_Acc := null;
+      Nbr_Symbols : Natural := 0;
+
       Compile_Units : Compile_Unit_Lists.List;
 
       Desc_Sets : Desc_Sets_Type;
