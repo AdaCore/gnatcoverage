@@ -63,6 +63,10 @@ package body ALI_Files is
       function Match (Index : Integer) return String;
       --  Return Index'th match in Line
 
+      function Get_Stripped_Line (F : File_Type) return String;
+      --  Like Get_Line but strip trailing CR, to allow for processing Windows
+      --  LI files on a UNIX host.
+
       function Getc return Character;
       --  Consume and return next character from Line.
       --  Load next line if at end of line. Return ^Z if at end of file.
@@ -106,7 +110,7 @@ package body ALI_Files is
 
             while not End_Of_File (ALI_File) loop
                declare
-                  Next_Line : constant String := Get_Line (ALI_File);
+                  Next_Line : constant String := Get_Stripped_Line (ALI_File);
                begin
                   if Next_Line = Line.all then
                      Report
@@ -124,6 +128,20 @@ package body ALI_Files is
          end if;
          return Next_Char;
       end Getc;
+
+      -----------------------
+      -- Get_Stripped_Line --
+      -----------------------
+
+      function Get_Stripped_Line (F : File_Type) return String is
+         Line : constant String := Get_Line (F);
+         Last : Integer := Line'Last;
+      begin
+         if Line (Last) = ASCII.CR then
+            Last := Last - 1;
+         end if;
+         return Line (Line'First .. Last);
+      end Get_Stripped_Line;
 
       -----------
       -- Match --
@@ -194,15 +212,12 @@ package body ALI_Files is
       Open (ALI_File, In_File, ALI_Filename);
 
       --  Check that the first line is a valid ALI V line.
-      --  Note: the regex has no trailing $ because when reading a Windows
-      --  ALI file on UNIX, we need to account for the presence of a trailing
-      --  CR character.
 
       declare
          use Ada.Strings.Unbounded;
 
-         V_Line    : constant String := Get_Line (ALI_File);
-         V_Regexp  : constant String := "^V ""(.*)""";
+         V_Line    : constant String := Get_Stripped_Line (ALI_File);
+         V_Regexp  : constant String := "^V ""(.*)""$";
          V_Matcher : constant Pattern_Matcher := Compile (V_Regexp);
 
          Error_Msg : Unbounded_String;
@@ -239,7 +254,7 @@ package body ALI_Files is
       Scan_ALI : while not End_Of_File (ALI_File) loop
          loop
             Free (Line);
-            Line := new String'(Get_Line (ALI_File));
+            Line := new String'(Get_Stripped_Line (ALI_File));
             exit when Line'Length > 0;
          end loop;
 
