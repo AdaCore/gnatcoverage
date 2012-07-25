@@ -1776,6 +1776,8 @@ package body Traces_Elf is
                --  Relocate the sections, so that they won't overlap.
                --  This is when the executable is a partially linked
                --  with section per function binary (such as VxWorks DKM).
+               --
+               --  Note that section are not slided by Exe_Text_Start ???
                Shdr.Sh_Addr := Shdr.Sh_Addr + Offset;
                Offset := (Last + Shdr.Sh_Addralign - 1)
                  and not (Shdr.Sh_Addralign - 1);
@@ -2349,11 +2351,13 @@ package body Traces_Elf is
       Sec : Addresses_Info_Acc;
 
       Symtab_Base : Address;
+      Do_Reloc : Boolean;
 
       Strtab_Idx : Elf_Half;
       Strtab_Len : Elf_Size;
       Strtabs : Binary_Content_Acc;
       ESym : Elf_Sym;
+      Offset : Pc_Type;
 
       Sym_Type : Unsigned_8;
       Sym      : Addresses_Info_Acc;
@@ -2374,12 +2378,16 @@ package body Traces_Elf is
          return;
       end if;
 
+      --  Fill the Sections_Info array
+
       Cur := First (Exec.Desc_Sets (Section_Addresses));
       while Has_Element (Cur) loop
          Sec := Element (Cur);
          Sections_Info (Sec.Section_Index) := Sec;
          Next (Cur);
       end loop;
+
+      --  Load symtab and strtab
 
       if Exec.Sec_Symtab = SHN_UNDEF then
          return;
@@ -2393,6 +2401,9 @@ package body Traces_Elf is
       end if;
       Alloc_And_Load_Section (Exec.all, Strtab_Idx, Strtab_Len, Strtabs);
 
+      Do_Reloc := Get_Ehdr (Exec.Exe_File).E_Type = ET_REL;
+      Offset := Exec.Exe_Text_Start;
+
       for I in 1 .. Exec.Nbr_Symbols loop
          ESym := Get_Sym
            (Exec.Exe_File,
@@ -2404,12 +2415,17 @@ package body Traces_Elf is
            and then Sections_Info (ESym.St_Shndx) /= null
            and then ESym.St_Size > 0
          then
+            if Do_Reloc then
+               --  Relocate symbols
+               Offset := Exec.Exe_Text_Start
+                 + Sections_Info (ESym.St_Shndx).First;
+            end if;
+
             Sym := new Addresses_Info'
               (Kind        => Symbol_Addresses,
-               First       => Exec.Exe_Text_Start + Pc_Type (ESym.St_Value),
-               Last        =>
-                 Exec.Exe_Text_Start + Pc_Type (ESym.St_Value
-                                                         + ESym.St_Size - 1),
+               First       => Offset + Pc_Type (ESym.St_Value),
+               Last        => Offset + Pc_Type (ESym.St_Value
+                                                + ESym.St_Size - 1),
                Parent      => Sections_Info (ESym.St_Shndx),
                Symbol_Name => new String'
                                 (Read_String
