@@ -152,8 +152,7 @@ package body Files_Table is
    -- Add_Source_Search --
    -----------------------
 
-   procedure Add_Source_Search (Prefix : String)
-   is
+   procedure Add_Source_Search (Prefix : String) is
       E : Source_Search_Entry_Acc;
    begin
       E := new Source_Search_Entry'(Prefix => new String'(Prefix),
