@@ -16,19 +16,26 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces; use Interfaces;
+with Ada.Directories;
 with Ada.Unchecked_Deallocation;
 
-package body Elf_Files is
-   function Get_My_Data return Elf_Uchar;
-   function Get_String (Strtab : Elf_Strtab_Acc; Idx : Elf_Size)
-                       return String;
+with Interfaces; use Interfaces;
 
-   function Get_My_Data return Elf_Uchar
-   is
+package body Elf_Files is
+
+   function Get_My_Data return Elf_Uchar;
+   function Get_String
+     (Strtab : Elf_Strtab_Acc; Idx : Elf_Size) return String;
+
+   -----------------
+   -- Get_My_Data --
+   -----------------
+
+   function Get_My_Data return Elf_Uchar is
       type Arr4 is array (0 .. 3) of Elf_Uchar;
       function To_Arr4 is new Ada.Unchecked_Conversion (Elf_Word, Arr4);
       V : constant Arr4 := To_Arr4 (16#01020304#);
+
    begin
       if V = (16#01#, 16#02#, 16#03#, 16#04#) then
          return ELFDATA2MSB;
@@ -41,26 +48,41 @@ package body Elf_Files is
 
    My_Data : constant Elf_Uchar := Get_My_Data;
 
-   procedure Open_File (File : out Elf_File; Filename : String)
-   is
-      use GNAT.OS_Lib;
+   ---------------
+   -- Open_File --
+   ---------------
+
+   procedure Open_File (File : out Elf_File; Filename : String) is
+      Basename : constant String := Ada.Directories.Simple_Name (Filename);
    begin
-      File := (Filename => new String'(Filename),
-               Status => Status_Ok,
+      File := (Filename  => new String'(Filename),
+               Status    => Status_Ok,
                Need_Swap => False,
-               Fd => Invalid_FD,
-               Ehdr => <>,
-               Shdr => null,
+               Fd        => Invalid_FD,
+               Ehdr      => <>,
+               Shdr      => null,
                Sh_Strtab => null);
 
-      --  Open the file.
-      File.Fd := Open_Read (Filename, Binary);
-      if File.Fd = Invalid_FD then
-         File.Status := Status_Open_Failure;
-         raise Error;
-      end if;
+      --  Open the file
+
+      loop
+         File.Fd := Open_Read (File.Filename.all, Binary);
+         exit when File.Fd /= Invalid_FD;
+
+         --  If open failed and Filename includes a directory name, try again
+         --  with just the base name, else bail out.
+
+         if File.Filename.all /= Basename then
+            Free (File.Filename);
+            File.Filename := new String'(Basename);
+         else
+            File.Status := Status_Open_Failure;
+            raise Error;
+         end if;
+      end loop;
 
       --  Read the Ehdr
+
       if Read (File.Fd, File.Ehdr'Address, Elf_Ehdr_Size) /= Elf_Ehdr_Size then
          File.Status := Status_Read_Error;
          Close (File.Fd);
@@ -69,9 +91,9 @@ package body Elf_Files is
       end if;
 
       if File.Ehdr.E_Ident (EI_MAG0) /= ELFMAG0
-        or File.Ehdr.E_Ident (EI_MAG1) /= ELFMAG1
-        or File.Ehdr.E_Ident (EI_MAG2) /= ELFMAG2
-        or File.Ehdr.E_Ident (EI_MAG3) /= ELFMAG3
+        or else File.Ehdr.E_Ident (EI_MAG1) /= ELFMAG1
+        or else File.Ehdr.E_Ident (EI_MAG2) /= ELFMAG2
+        or else File.Ehdr.E_Ident (EI_MAG3) /= ELFMAG3
       then
          File.Status := Status_Bad_Magic;
          Close (File.Fd);
@@ -80,7 +102,6 @@ package body Elf_Files is
       end if;
 
       if File.Ehdr.E_Ident (EI_CLASS) /= Elf_Arch_Class
---        or Ehdr.E_Ident (EI_DATA) /= ELFDATA2LSB
         or File.Ehdr.E_Ident (EI_VERSION) /= EV_CURRENT
       then
          File.Status := Status_Bad_Class;
@@ -94,12 +115,13 @@ package body Elf_Files is
       if File.Need_Swap then
          Elf_Ehdr_Swap (File.Ehdr);
       end if;
-
    end Open_File;
 
-   procedure Close_File (File : in out Elf_File)
-   is
-      use GNAT.OS_Lib;
+   ----------------
+   -- Close_File --
+   ----------------
+
+   procedure Close_File (File : in out Elf_File) is
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
         (Elf_Shdr_Arr, Elf_Shdr_Arr_Acc);
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
@@ -114,20 +136,31 @@ package body Elf_Files is
       --  messages, so we don't deallocate it.
    end Close_File;
 
+   ----------------
+   -- Get_Status --
+   ----------------
+
    function Get_Status (File : Elf_File) return Elf_File_Status is
    begin
       return File.Status;
    end Get_Status;
+
+   ------------------
+   -- Get_Filename --
+   ------------------
 
    function Get_Filename (File : Elf_File) return String is
    begin
       return File.Filename.all;
    end Get_Filename;
 
-   procedure Load_Shdr (File : in out Elf_File)
-   is
-      use GNAT.OS_Lib;
+   ---------------
+   -- Load_Shdr --
+   ---------------
+
+   procedure Load_Shdr (File : in out Elf_File) is
       Size : Natural;
+
    begin
       if Get_Ehdr (File).E_Shentsize /= Elf_Half (Elf_Shdr_Size) then
          raise Error;
@@ -155,14 +188,19 @@ package body Elf_Files is
       File.Sh_Strtab :=
         new Elf_Strtab (0 .. File.Shdr (File.Ehdr.E_Shstrndx).Sh_Size);
       Load_Section (File, File.Ehdr.E_Shstrndx, File.Sh_Strtab (0)'Address);
-      --  File.Sh_Strtab := Get_Strtab (File, Get_Ehdr (File).E_Shstrndx);
    end Load_Shdr;
 
+   ------------------
+   -- Load_Section --
+   ------------------
+
    procedure Load_Section
-     (File : Elf_File; Shdr : Elf_Shdr_Acc; Addr : Address)
+     (File : Elf_File;
+      Shdr : Elf_Shdr_Acc;
+      Addr : Address)
    is
-      use GNAT.OS_Lib;
       Size : Natural;
+
    begin
       Lseek (File.Fd, Long_Integer (Shdr.Sh_Offset), Seek_Set);
       Size := Natural (Shdr.Sh_Size);
@@ -171,7 +209,14 @@ package body Elf_Files is
       end if;
    end Load_Section;
 
-   procedure Load_Section (File : Elf_File; Index : Elf_Half; Addr : Address)
+   ------------------
+   -- Load_Section --
+   ------------------
+
+   procedure Load_Section
+     (File  : Elf_File;
+      Index : Elf_Half;
+      Addr  : Address)
    is
    begin
       if File.Shdr = null then
@@ -180,14 +225,20 @@ package body Elf_Files is
       Load_Section (File, Get_Shdr (File, Index), Addr);
    end Load_Section;
 
+   --------------
+   -- Get_Ehdr --
+   --------------
+
    function Get_Ehdr (File : Elf_File) return Elf_Ehdr is
    begin
       return File.Ehdr;
    end Get_Ehdr;
 
-   function Get_Shdr (File : Elf_File; Index : Elf_Half)
-                     return Elf_Shdr_Acc
-   is
+   --------------
+   -- Get_Shdr --
+   --------------
+
+   function Get_Shdr (File : Elf_File; Index : Elf_Half) return Elf_Shdr_Acc is
    begin
       if Index >= File.Ehdr.E_Shnum then
          raise Constraint_Error;
@@ -195,24 +246,18 @@ package body Elf_Files is
       return File.Shdr (Index)'Access;
    end Get_Shdr;
 
+   ------------------
+   -- Get_Shdr_Num --
+   ------------------
+
    function Get_Shdr_Num (File : Elf_File) return Elf_Half is
    begin
       return File.Ehdr.E_Shnum;
    end Get_Shdr_Num;
 
---     function Get_Section_Name (File : Elf_File; Index : Elf_Half)
---                               return String is
---     begin
---        raise Error;
---        return "";
---     end Get_Section_Name;
-
---     function Get_Section_By_Name (File : Elf_File; Name : String)
---                                  return Elf_Half is
---     begin
---        raise Error;
---        return 0;
---     end Get_Section_By_Name;
+   ------------------------
+   -- Get_Section_Length --
+   ------------------------
 
    function Get_Section_Length (File : Elf_File; Index : Elf_Half)
                                       return Elf_Size is
@@ -223,9 +268,15 @@ package body Elf_Files is
       return File.Shdr (Index).Sh_Size;
    end Get_Section_Length;
 
-   --  Load a section in memory.  Only the file length bytes are loaded.
+   --  Load a section in memory.  Only the file length bytes are loaded
+   --  what is this comment referring to???
 
-   function Get_String (Strtab : Elf_Strtab_Acc; Idx : Elf_Size) return String
+   ----------------
+   -- Get_String --
+   ----------------
+
+   function Get_String
+     (Strtab : Elf_Strtab_Acc; Idx : Elf_Size) return String
    is
       E : Elf_Size;
    begin
@@ -240,16 +291,24 @@ package body Elf_Files is
       end if;
    end Get_String;
 
-   function Get_Shdr_Name (File : Elf_File; Index : Elf_Half)
-                          return String
+   -------------------
+   -- Get_Shdr_Name --
+   -------------------
+
+   function Get_Shdr_Name
+     (File : Elf_File; Index : Elf_Half) return String
    is
    begin
       return Get_String (File.Sh_Strtab,
                          Elf_Size (Get_Shdr (File, Index).Sh_Name));
    end Get_Shdr_Name;
 
-   function Get_Shdr_By_Name (File : Elf_File; Name : String)
-                                return Elf_Half
+   ----------------------
+   -- Get_Shdr_By_Name --
+   ----------------------
+
+   function Get_Shdr_By_Name
+     (File : Elf_File; Name : String) return Elf_Half
    is
       Shdr : Elf_Shdr_Acc;
    begin
@@ -262,8 +321,12 @@ package body Elf_Files is
       return SHN_UNDEF;
    end Get_Shdr_By_Name;
 
-   function Get_Shdr_By_Name (File : Elf_File; Name : String)
-                             return Elf_Shdr_Acc
+   ----------------------
+   -- Get_Shdr_By_Name --
+   ----------------------
+
+   function Get_Shdr_By_Name
+     (File : Elf_File; Name : String) return Elf_Shdr_Acc
    is
       I : Elf_Half;
    begin
@@ -274,6 +337,10 @@ package body Elf_Files is
          return File.Shdr (I)'Access;
       end if;
    end Get_Shdr_By_Name;
+
+   -------------
+   -- Get_Sym --
+   -------------
 
    function Get_Sym (File : Elf_File; Addr : Address) return Elf_Sym is
       Res : Elf_Sym;

@@ -15,11 +15,15 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
+with Ada.Unchecked_Conversion;
+
 with System; use System;
+
+with GNAT.OS_Lib; use GNAT.OS_Lib;
+
 with Elf_Common; use Elf_Common;
 with Elf_Arch; use Elf_Arch;
-with Ada.Unchecked_Conversion;
-with GNAT.OS_Lib;
 
 package Elf_Files is
    type Elf_File is limited private;
@@ -103,8 +107,6 @@ private
 
    function To_Strtab_Fat_Acc is new Ada.Unchecked_Conversion
      (Address, Strtab_Fat_Acc);
-
-   type String_Access is access String;
 
    function To_Elf_Ehdr_Acc is new Ada.Unchecked_Conversion
      (Address, Elf_Ehdr_Acc);
