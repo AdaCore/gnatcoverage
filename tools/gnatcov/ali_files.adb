@@ -137,7 +137,7 @@ package body ALI_Files is
          Line : constant String := Get_Line (F);
          Last : Integer := Line'Last;
       begin
-         if Line (Last) = ASCII.CR then
+         if Last in Line'Range and then Line (Last) = ASCII.CR then
             Last := Last - 1;
          end if;
          return Line (Line'First .. Last);
