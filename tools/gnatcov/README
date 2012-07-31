@@ -10,101 +10,25 @@ to be used as:
 * a trace analyzer able to render coverage results in various
   output formats (gnatcov coverage).
 
-Instrumented execution environments are provided as part of the
-GNATemulator separate product line.
+Instrumented execution environments are provided as part of the GNATemulator
+separate product line.
 
-QUICK START - SOURCE COVERAGE (statement, decision, or mcdc analysis)
-=====================================================================
+Documentation, including a getting started guide, is available from the
+"GNATcoverage User's Guide" in the share/doc/gnatcoverage sub-directory of
+this distribution.
 
-The first step is to setup the PATH environment variable to include locations
-for both the target compiler and the gnatcov/emulator "bin" directory. For
-example with a bash like shell:
-
-  $ PATH=/usr/local/gnat/6.4.2/bin:/usr/local/gnatcov/bin:$PATH
-
-To perform source coverage analysis, you first need to build your application
-with the "-g -fpreserve-control-flow" compilation options, plus "-gnateS" for
-Ada and "-fdump-scos" for C. Optimization is supported up to -O1, with inlining
-allowed.
-
-Once your application is built, the analysis proceeds in two steps.
-Essentially:
-
-  1) gnatcov run --target=<target> <yourapp.elf>
-
-     runs you application within the instrumented environment, producing
-     <yourapp.trace>
-
-  2) gnatcov coverage --level=<criterion> --scos=@<ALIs> 
-     --annotate=<report-format> <yourapp.trace>
-
-     producing a coverage report from the execution trace, focused on
-     units provided as a list of ALI files for Ada and GLI files for C.
-     (both containing set of so called Source Coverage Obligations).
-
-For example, to obtain 
+This package also provides examples with Makefiles that automate the full
+build/run/analyze sequence on sample programs targeted to GNATemulator.
  
-  (a) a statement coverage report
-  (b) in html format, focused on ...
-  (c) two Ada units u1.adb and u2.adb, exercized by a ...
-  (d) program compiled into utest.elf, for a ...
-  (e) powerpc-elf target, 
-
-you would do:
- 
-  1) gnatcov run --target=powerpc-elf utest.elf
-                        (e)              (d)
-
-  2) <to focus on u1 and u2 in particular, write a "ualis" file with
-      this contents:
-      u1.ali
-      u2.ali
-     > (c), then:
-
-     gnatcov coverage --level=stmt --annotate=html --scos=@ualis utest.trace
-                            (a)           (b)           (c)          (d)
-
-For mcdc analysis, you must pass the --level (=stmt+mcdc) and the --scos
-options to gnatcov run as well.
- 
-This package provides examples with Makefiles that automate the full process
-to illustrate it on sample programs, including the build sequence using a
-local BSP for GNATemulator.
- 
-A quick starter is the "engines" example, very simple, which you can execise
-by just switching to the "engines" subdirectory and typing
+A quick starter is the "engines" example, very simple, which you can exercise
+by just switching to share/examples/gnatcoverage/engines and typing
 
   engines $ make TARGET=powerpc-elf
 
 The local Makefile (in the engines subdirectory) includes a generic Makefile
 common to all the examples, and you may run & try the other ones similarily.
 
-QUICK START - OBJECT COVERAGE
-=============================
-
-The object coverage analysis process is similar to the source coverage
-analysis one, with only few differences:
-
-* Object coverage criteria are requested by specific values of the --level
-  argument to gnatcov coverage: "insn" or "branch" for "object
-  instruction/branch coverage", respectively ;
-
-* Sources need not be compiled with particular options. When your binary
-  executables are produced with options suitable for source coverage analysis,
-  you can perform object and source analysis from the same traces.
-
-* The --scos option, required for source coverage, needs to be removed.
-  There there is no Source Coverage Obligation for object coverage criteria.
-
-* The --routines option is available in gnatcov coverage to focus your 
-  reports on a partcular set of symbols.
- 
-Object coverage can be exercised for our examples by passing an extra
-XCOVLEVEL argument to 'make' invocations, for example 'make XCOVLEVEL=insn'.
-
-FURTHER DOCUMENTATION
-=====================
-
-Further documentation is available from the "GNATcoverage User's Guide" in the
-<unpack/installation-root>/share/doc/gnatcoverage directory of this package.
+Specific coverage criteria can be exercised by passing an extra XCOVLEVEL
+argument to 'make' invocations, for example 'make XCOVLEVEL=insn' for object
+instruction coverage or 'make XCOVLEVEL=stmt' for source statement coverage.
 
