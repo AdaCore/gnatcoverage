@@ -23,7 +23,8 @@ analysis proceeds in two steps:
    command line that looks like the following::
 
      gnatcov coverage --level=<criterion> --annotate=<report-format>
-        [--scos=@<ALIs>] [--routines=@<symbols>] <yourapp.trace>
+        [--scos=@<libfiles-list> | -P<root-gpr>] [--routines=@<symbols-list>]
+        <yourapp.trace>
 
 Very briefly here:
 
@@ -34,18 +35,22 @@ Very briefly here:
 - :option:`--annotate` specifies the desired output report format
   (synthetic list of coverage violations, text or html annotated sources, ...)
 
-- :option:`--scos` is specific to the source level criteria, and mandatory in
-  this case. This conveys the so called `Source Coverage Obligations` (SCOs),
-  which help drive the assessment process and at the same time specify the set
-  of source units for which a report should be produced.  The argument value
-  in the example here (using the @ notation) is the name of a file which
-  contains the set of Ada ALI files or C GLI files corresponding to the source
-  units of interest.
+- :option:`--scos` is specific to the source level criteria, to convey the so
+  called `Source Coverage Obligations` (statements, decisions, ...) to be
+  processed. The argument value in the example here, using the @ notation, is
+  the name of a file which contains the set of Ada ALI files or C GLI files
+  corresponding to the source units of interest. This drives the assessment
+  process and at the same time specifies the set of source units for which a
+  report should be produced.
+
+- :option:`-P` might be used instead of --scos, to designate a root GNAT
+  project file from which the set of coverage obligations can be inferred
+  using high level project abstractions such as source units closures or
+  sub-projects dependencies.
 
 - :option:`--routines` is specific to the object level criteria, and
   optional in this case. This conveys the set of object symbol names
   on which the analysis should focus, if any.
-
 
 For source coverage assessments, sources must be compiled with
 :option:`-g -fpreserve-control-flow -fdump-scos`.
@@ -64,17 +69,16 @@ available for both source and object coverage criteria. Two examples are
 *exemption regions*, allowing users to define code regions for which coverage
 violations are expected and legitimate.
 
-The following chapters provide many more details on the various possible modes
-of operation. Prior to this, next in this chapter, comes a complete example
-sequence illustrating steps from compilation to coverage analysis of a very
-simple Ada program.
+The following chapters in this manual provide many more details on the various
+possible modes of operation. Prior to this, next in this chapter, comes a
+complete example sequence illustrating steps from compilation to coverage
+analysis of a very simple Ada program.
 
 
 **Example**
 
-We now provide an example of complete |gcp| use sequence, from source
-compilation to coverage analysis. We start from the very basic Ada package
-below, with a spec and body in source files named ``ops.ads`` and ``ops.adb``:
+We start from the very basic Ada package below, with a spec and body in source
+files named ``ops.ads`` and ``ops.adb``:
 
 .. code-block:: ada
 
@@ -113,7 +117,7 @@ project file::
 
    project Ops is
     for Languages use ("Ada");
-    for Source_Dirs use ("src");
+    for Source_Dirs use (".");
     for Object_Dir use "obj";
    end Ops;
 
@@ -149,18 +153,19 @@ instrumented execution environment, via GNATemulator, to obtain a
 Now, we can analyse the coverage achieved by this execution using
 |gcvcov|, for example with the following command line::
 
-  gnatcov coverage --level=stmt --annotate=xcov test_inc.trace --scos=obj/ops.ali
+  gnatcov coverage --level=stmt --annotate=xcov test_inc.trace -Pops.gpr
 
 Here, we request
 
-- a source *statement coverage* assessment with :option:`--level=stmt`
+- A source *statement coverage* assessment with :option:`--level=stmt`,
 
-- an annotated source report in text format  with :option:`--annotate=xcov`
+- An annotated source report in text format with :option:`--annotate=xcov`,
 
-- focus on the functional unit only with :option:`--annotate=obj/ops.ali`
+- For the complete set of units involved in the executable, per
+  :option:`-Pops.gpr` and no specification otherwise in the project file.
 
-This produces a single annotated source in the current directory,
-``ops.adb.xcov`` quoted below:
+This produces annotated sources in the current directory,
+with ``ops.adb.xcov`` quoted below:
 
 .. code-block:: ada
 
@@ -181,3 +186,7 @@ The analysis results are visible as ``+`` / ``-`` annotations on source lines,
 next to the line numbers. The results we have here indicate proper coverage of
 all the statements except the one dealing with a ``Decrement`` operation,
 indeed never exercised by our driver.
+
+Focus on specific units, excluding the test driver from the analysis closure
+for example, can be achieved by adding a ``Coverage`` package to the project
+file or by using :option:`--scos=obj/ops.ali` instead of :option:`-P`.
