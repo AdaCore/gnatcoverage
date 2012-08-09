@@ -96,8 +96,9 @@ package body Coverage.Source is
    --  Compute the MC/DC state of SCO, which is already covered for DC
 
    function Decision_Requires_Coverage (SCO : SCO_Id) return Boolean;
-   --  Always True if MC/DC is enabled, or if Switches.All_Decisions is True.
-   --  Otherwise true only for decisions that are part of a control structure.
+   --  Always True for all decisions that are part of a control structure;
+   --  for other decisions, True if All_Decisions is set, or if the decision
+   --  is complex and MC/DC is enabled.
 
    procedure Update_State
      (Prev_State : in out Line_State;
