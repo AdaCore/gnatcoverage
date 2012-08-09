@@ -24,4 +24,11 @@ package body Ops is
          when Decrement => X := X - 1;
       end case;
    end Apply;
+
+   procedure Assert (T : Boolean) is
+   begin
+      if not T then
+         raise Program_Error;
+      end if;
+   end Assert;
 end Ops;
