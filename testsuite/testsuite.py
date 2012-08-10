@@ -313,39 +313,25 @@ class TestSuite:
         runtime support library in use, as conveyed by the --RTS command-line
         option."""
 
-        # RTS_BLA in test.opt is taken to mean "this test is compliant with
-        # the BLA profile and nothing inferior". This requires a lib with *at
-        # least* this capability and should work (hence be activated) with
-        # libs featuring more, e.g. a FULL runtime for a RAVENSCAR test.
-
-        # With a "_STRICT" suffix, the discriminant is taken to mean "for
-        # exactly this profile and nothing else".
-
-        dlist = ["RTS_ZFP"]
-
         # ex --RTS=powerpc-elf/zfp-prep
 
         if re.search ("zfp", self.env.main_options.RTS):
-            dlist.append ("RTS_ZFP_STRICT")
+            return ["RTS_ZFP"]
 
         # ex --RTS=powerpc-elf/ravenscar-sfp-prep or --RTS=ravenscar-sfp
 
         elif re.search ("ravenscar.*sfp", self.env.main_options.RTS):
-            dlist.extend (
-                ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP", "RAVENSCAR_SFP_STRICT"])
+            return ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP"]
 
         # ex --RTS=powerpc-elf/ravenscar-full-prep or --RTS=ravenscar
 
         elif re.search ("ravenscar", self.env.main_options.RTS):
-            dlist.extend (
-                ["RTS_RAVENSCAR", "RTS_RAVENSCAR_FULL", "RAVENSCAR_FULL_STRICT"])
+            return ["RTS_RAVENSCAR", "RTS_RAVENSCAR_FULL"]
 
         # ex --RTS=native or --RTS=kernel
 
         else:
-            dlist.extend (
-                ["RTS_RAVENSCAR", "RTS_RAVENSCAR_SFP", "RTS_RAVENSCAR_FULL",
-                 "RTS_FULL"])
+            return ["RTS_FULL"]
 
         return dlist
 
