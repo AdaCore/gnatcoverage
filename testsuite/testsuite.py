@@ -143,6 +143,11 @@ class TestSuite:
         self.env = Env()
         self.env.add_search_path('PYTHONPATH', os.getcwd())
 
+        # Check sanity of a provided toolchain path, if any, and adjust PATH
+        # accordingly
+        if self.options.toolchain:
+            self.setup_toolchain (self.options.toolchain)
+
         # Setup log directories
         self.log_dir = os.path.join (os.getcwd(), 'output')
         mkdir(self.log_dir)
@@ -263,10 +268,12 @@ class TestSuite:
 
     def discriminants (self):
         """Full set of discriminants that apply to this test"""
-        return self.base_discriminants() \
-            + self.qualif_level_discriminants() \
-            + self.qualif_cargs_discriminants() \
+        return (
+            self.base_discriminants()
+            + self.qualif_level_discriminants()
+            + self.qualif_cargs_discriminants()
             + self.rts_discriminants()
+            + self.toolchain_discriminants())
 
     def base_discriminants(self):
         return ['ALL'] + self.env.discriminants
@@ -342,6 +349,14 @@ class TestSuite:
 
         return dlist
 
+    def toolchain_discriminants (self):
+        """Compute the list of discriminants that reflect the version of the
+        particular toolchain in use, if any, for example "7.0.2" for
+        /path/to/gnatpro-7.0.2. The match is on the sequence of three single
+        digits separated by dots."""
+
+        m = re.search ("(\d\.[01]\.[012])", self.options.toolchain)
+        return [m.group(1)] if m else []
 
     # -----------------------------
     # -- partition_testcase_list --
@@ -675,6 +690,9 @@ class TestSuite:
                      help='RTS library to use, mandatory for BSP support')
         m.add_option('--kernel', dest='kernel', metavar='KERNEL',
                      help='KERNEL to pass to gnatcov run in addition to exe')
+        m.add_option(
+            '--toolchain', dest='toolchain', metavar='TOOLCHAIN',
+            default="", help='Use toolchain in the provided path value')
         m.parse_args()
 
         self.enable_valgrind = (
@@ -703,6 +721,35 @@ class TestSuite:
 
         return m.options
 
+    # ---------------------
+    # -- setup_toolchain --
+    # ---------------------
+
+    def setup_toolchain (self, prefix):
+
+        """Adjust PATH to have PREFIX/bin ahead in PATH after sanity
+        checking that it contains at least a couple of programs we'll
+        need (e.g. <target>-gcc and gprbuild)."""
+
+        # Sanity check that <toolchain>/bin contains at least
+        # a couple of binaries we'll need
+
+        bindir = os.path.join (prefix, "bin")
+
+        if (not os.path.exists (
+                os.path.join (bindir, self.env.target.triplet + "-gcc"))
+            or not os.path.exists (
+                os.path.join (bindir, "gprbuild"))
+            ):
+            raise FatalError (
+                'Provided toolchain dir "%s" misses essential binaries' %
+                self.options.toolchain)
+
+        # Adjust PATH to place <bindir> ahead so that the tests we
+        # spawn use it.
+
+        self.env.add_search_path(
+            env_var = 'PATH', path = bindir, append = False)
 
 # ==============
 # == TestCase ==
