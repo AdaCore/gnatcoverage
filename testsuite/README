@@ -46,29 +46,64 @@ runtime), you also need at the toplevel, together with this README:
 
      ln -s ../tools/gnatcov/examples/support support
 
+   Otherwise, you might just checkout the relevant subdir from the scm repo,
+   for example with:
+
+      svn co svn+ssh://$OPENDO_ROOT/tools/gnatcov/examples/support
+
 -----------------------
 -- Running the tests --
 -----------------------
 
-For a powerpc-elf target, run:
-  ./testsuite.py --diffs --target=ppc-elf --RTS=powerpc-elf/zfp-prep
+Launching tests is then achieved by running the top-level python driver,
+typically like:
 
-For a native x86-linux configuration, if you have a properly instrumented
-version of valgrind, remove --target and pass --RTS=native:
+  ./testsuite.py [--target=<target-product>] --RTS=<rts> [other-options] [regexp]
 
-  ./testsuite.py --diffs --RTS=native
+Note the use of target _product_ names here, not gcc target triplets.
+For example:
 
-To run a specific set of tests, append a regexp of test directory names to
-this command line.
+  # Cross configurations, using GNATemulator:
+  ./testsuite.py --target=ppc-elf --RTS=powerpc-elf/ravenscar-sfp-prep
+  ./testsuite.py --target=leon-elf --RTS=ravenscar
+  ./testsuite.py --target=ppc-vx6 --RTS=kernel --kernel=tests/kernels/vx6.8-fastsbc
+
+  # Native configuration, using an instrumented valgrind (x86-linux only):
+  ./testsuite.py --RTS=native
+
+The optional ''regexp'' at the end instructs the driver to run only those
+tests whose relative path from the root to test.py matches the expression.
+
+For more details on the available options:
+
+{{{
+./testsuite.py --help
+}}}
+
+-----------------
+-- Output logs --                     
+-----------------
 
 After test runs, each test directory contains:
 
   test.py.log, a list of all the commands executed by the test.
-  test.py.out, all the produced outputs.
-  test.py.err, all the produced outputs.
+  test.py.out, all the produced regular outputs.
+  test.py.err, all the produced error logs.
 
-The toplevel directory contains res_couverture and rep_couverture
-synthesis files in addition.
+The toplevel directory contains res_gnatcov and rep_gnatcov synthesis files in
+addition.
+
+For tests using the basic python API to gprbuild and gnatcov (the SUITE module
+sketched below), the error log most of the time includes short notifications
+entirely dependant on the test together with an exception traceback.
+
+For tests using the testsuite high-level source coverage facilities, the logs
+are typically much longer and structured in a systematic fashion.
+
+Each testcase dumps a section per test driver, with a general header, and one
+subsection per relevant output format (=xcov or =report, typically) which
+includes the analysis of differences between expected results and the output
+for this specific format,
 
 -----------------------------------------
 -- General python support architecture --
@@ -141,4 +176,3 @@ This settled, we have:
 
      tfiles.py :    Text files (and lines) abstractions to automate processing
                     on read and assign numbers to lines.
-                     
