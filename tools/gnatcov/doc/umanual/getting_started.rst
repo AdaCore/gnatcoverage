@@ -2,6 +2,9 @@
 Getting Started
 ***************
 
+General Principles
+==================
+
 |gcp| provides coverage analysis facilities through the |gcv| command-line
 tool. |gcv| relies on an instrumented execution environment to produce
 execution traces instead of having to instrument to program itself. |gem|
@@ -14,13 +17,11 @@ coverage for the object level. Once your application is built, a typical
 analysis proceeds in two steps:
 
 1) Use |gcvrun| to run your application within the instrumented environment,
-   producing <yourapp.trace>. gnatcov determines the target architecture
-   automatically from the executable headers::
+   producing <yourapp.trace>::
 
-     gnatcov run <yourapp>
+     gnatcov run <yourapp> [--target=<target>] [--kernel=<kernel>]
 
-2) Use |gcvcov| to produce a coverage report from the execution trace, with a
-   command line that looks like the following::
+2) Use |gcvcov| to produce a coverage report from the execution trace, like::
 
      gnatcov coverage --level=<criterion> --annotate=<report-format>
         [--scos=@<libfiles-list> | -P<root-gpr>] [--routines=@<symbols-list>]
@@ -28,7 +29,17 @@ analysis proceeds in two steps:
 
 Very briefly here:
 
-- :option:`--level` specfies the coverage criterion to be assessed
+- :option:`--target` is necessary for all the cross configurations to select
+  the execution environment that will know how to produce execution traces.
+  This would typically be <target>-gnatemu. Not providing this option requests
+  instrumented execution on the native platform, using very system specific
+  means available in only few configurations.
+
+- :option:`--kernel` is necessary for cross configurations where an operating
+  system kernel such as VxWorks is required to load and launch your applicative
+  modules on top of the bare machine execution environment. 
+
+- :option:`--level` specifies the coverage criterion to be assessed
   (:option:`=stmt`, :option:`=stmt+decision`, or :option:`=stmt+mcdc` for
   source levels; :option:`=insn` or :option:`=branch` for object levels)
 
@@ -75,7 +86,8 @@ complete example sequence illustrating steps from compilation to coverage
 analysis of a very simple Ada program.
 
 
-**Example**
+Example session
+===============
 
 We start from the very basic Ada package below, with a spec and body in source
 files named ``ops.ads`` and ``ops.adb``:
@@ -190,3 +202,4 @@ indeed never exercised by our driver.
 Focus on specific units, excluding the test driver from the analysis closure
 for example, can be achieved by adding a ``Coverage`` package to the project
 file or by using :option:`--scos=obj/ops.ali` instead of :option:`-P`.
+
