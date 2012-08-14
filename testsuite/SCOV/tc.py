@@ -62,10 +62,15 @@ class CovControl:
         units_out = None, ulist_out = None, xreports = None,
         scoptions = ""):
 
-        # To control "with" dependencies and gnatcov options
-        # to pass SCOs
+        # To control "with" dependencies
 
         self.deps = deps
+
+        # gnatcov options to pass SCOs. As we're setting up a coverage control
+        # object, this is NOT intended for --scos. This is intended for
+        # "--recursive" or "--units" in addition to a -P argument, which needs
+        # to be provided by the caller as well.
+
         self.scoptions = scoptions
 
         # To control Units related attributes in the GPR Coverage package:

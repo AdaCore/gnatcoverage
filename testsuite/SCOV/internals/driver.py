@@ -432,6 +432,9 @@ class SCOV_helper:
             else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
             )
 
+        # Do gnatcov run now unless we're consolidating.  We'll just reuse
+        # traces from previous executions in the latter case.
+
         if self.singletest():
             self.xcov_run(no_ext(self.drivers[0]))
 
