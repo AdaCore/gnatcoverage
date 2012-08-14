@@ -794,16 +794,19 @@ package body Disa_Sparc is
                   --  If the branch is taken, the annul field is ignored, and
                   --  the delay instruction is executed.
                   Branch_Dest.Delay_Slot := Pc + 4;
+
+                  FT_Dest.Target := Pc + 8;
                   if Get_Field (F_A, W) = 0 then
                      --  If the annul field is zero, the delay instruction is
                      --  executed.
-                     FT_Dest.Target := Pc + 4;
+                     FT_Dest.Delay_Slot := Pc + 4;
                   else
                      --  If a is set, the instruction immediately following
                      --  the branch instruction is not executed (ie, it is
                      --  annulled).
-                     FT_Dest.Target := Pc + 8;
+                     FT_Dest.Delay_Slot := No_PC;
                   end if;
+
                   if (Get_Field (F_Cond, W) and 2#0111#) /= 0 then
                      Flag_Cond := True;
                   elsif Get_Field (F_Cond, W) = 2#1000# then
@@ -813,6 +816,9 @@ package body Disa_Sparc is
                      --  regardless of the condition code, would normally
                      --  ignore the annul field. Instead it follows the same
                      --  annul field rules:
+
+                     --  Isn't this redundant with the above setting???
+
                      if Get_Field (F_A, W) = 1 then
                         --  if a = 1, the delay instruction is annulled;
                         Branch_Dest.Delay_Slot := No_PC;

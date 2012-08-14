@@ -1284,6 +1284,25 @@ package body Decision_Map is
                Branch_Dest => Branch_Dest,
                FT_Dest     => FT_Dest);
 
+            --  If both edges have the same delay slot address, then said delay
+            --  slot is always executed, whether or not we branch, so we
+            --  ignore it for the purpose of edge destination equivalence.
+            --  We thus treat:
+
+            --     cond-branch tgt
+            --     insn (in delay slot)
+
+            --  as equivalent to:
+
+            --     insn
+            --     cond-branch tgt
+            --     nop (in delay slot)
+
+            if Branch_Dest.Delay_Slot = FT_Dest.Delay_Slot then
+               Branch_Dest.Delay_Slot := No_PC;
+               FT_Dest.Delay_Slot     := No_PC;
+            end if;
+
             if Branch /= Br_None then
                declare
                   BB : Basic_Block :=

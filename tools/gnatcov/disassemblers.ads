@@ -48,10 +48,7 @@ package Disassemblers is
       --  Target address of the branch destination
 
       Delay_Slot : Pc_Type := No_PC;
-      --  Set to the delay slot address. Note: if the delay slot is the
-      --  instruction immediately preceding the target address, then Delay_Slot
-      --  must be set to No_PC, and Target to the delay slot address.
-
+      --  Set to the delay slot address
    end record;
 
    function "<" (Left, Right : Dest) return Boolean;
@@ -73,8 +70,8 @@ package Disassemblers is
    --  (Branch_Dest); if it is conditional, determine the destination if the
    --  condition is no verified (FT_Dest).
 
-   --  Note: for FT_Dest, Delay_Slot is always False because even if there is
-   --  a delay slot, execution proceeds sequentially at the next address,
-   --  so we simply set FT_Dest.Target to the address of the delay slot.
+   --  Note: Delay_Slot needs to be set even if the case of a fallthrough
+   --  destination, where the Target will be the next sequential instruction
+   --  after the delay slot.
 
 end Disassemblers;
