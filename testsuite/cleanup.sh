@@ -3,7 +3,7 @@
 
 LIST=""
 LIST="$LIST $(find -type d -name 'tmp_*')"
-LIST="$LIST $(find -type d -name '[0-9]')"
+LIST="$LIST $(find -type d -name '[0-9]*')"
 rm -rf $LIST
 
 LIST=""
