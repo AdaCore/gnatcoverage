@@ -11,6 +11,5 @@ end;
 -- /decisionTrue/   l- s-
 -- /decisionFalse/  l- s-
 -- /returnValue/    l- s-
--- /typedecl/ ~l- ~s-
 -- /decl/    l- s-
 
