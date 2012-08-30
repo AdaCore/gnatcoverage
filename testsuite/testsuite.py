@@ -313,9 +313,14 @@ class TestSuite:
         runtime support library in use, as conveyed by the --RTS command-line
         option."""
 
+        # --RTS=zfp is strict zfp, missing malloc, memcmp, memcpy and put
+
+        if self.env.main_options.RTS == "zfp":
+            return ["RTS_ZFP_STRICT"]
+
         # ex --RTS=powerpc-elf/zfp-prep
 
-        if re.search ("zfp", self.env.main_options.RTS):
+        elif re.search ("zfp", self.env.main_options.RTS):
             return ["RTS_ZFP"]
 
         # ex --RTS=powerpc-elf/ravenscar-sfp-prep or --RTS=ravenscar-sfp
