@@ -8,7 +8,7 @@ with Local_Instantiations;
 with Support;         use Support;
 procedure Test_Instantiations_Part_1 is
    use Local_Instantiations.Stacks;
-   S   : Stack (10);
+   S   : Stack;
    Int : Integer := 0;
 begin
    Push (13, S);

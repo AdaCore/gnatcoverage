@@ -5,7 +5,7 @@ generic
 
 package Stacks_G is
 
-   type Stack (Size : Natural) is private;
+   type Stack is private;
 
    procedure Push (V : Value; S : in out Stack);
    procedure Pop (V : out Value; S : in out Stack);
@@ -15,11 +15,16 @@ package Stacks_G is
    function Default_Stack return Stack;
 
 private
-   type Value_Array is array (Natural range <>) of Value; -- # elab
-   type Stack (Size : Natural) is record                  -- # elab
-      Store : Value_Array (1 .. Size);                    -- # elab
-      N_Values : Natural := 0;                            -- # elab
+   --  We use a small static size here to prevent dragging dependencies to
+   --  memcpy, malloc or secondary stack services, irrelevant to the purpose
+   --  of the testcase family we serve.
+   
+   type Value_Array is array (1 .. 5) of Value; -- # elab
+   
+   type Stack is record           -- # elab
+      Store : Value_Array;        -- # elab
+      N_Values : Natural := 0;    -- # elab
    end record;
 
-   Default_Stack_Var : Stack (10);                        -- # elab
+   Default_Stack_Var : Stack;     -- # elab
 end Stacks_G;

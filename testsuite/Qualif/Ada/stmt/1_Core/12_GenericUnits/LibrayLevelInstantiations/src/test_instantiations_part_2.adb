@@ -8,7 +8,7 @@ with Stacks;
 with Update;
 with Support;         use Support;
 procedure Test_Instantiations_Part_2 is
-   S : Stacks.Stack (10);
+   S : Stacks.Stack;
    I : Integer := 1;
    J : Integer := 2;
 
