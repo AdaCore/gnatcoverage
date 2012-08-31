@@ -697,7 +697,8 @@ class TestSuite:
             m.options.run_test = m.args[0]
 
             if not m.options.quiet:
-                logging.info("Running tests matching '%s'" % m.options.run_test)
+                logging.info(
+                    "Searching for tests matching '%s'" % m.options.run_test)
         else:
             m.options.run_test = ""
 
