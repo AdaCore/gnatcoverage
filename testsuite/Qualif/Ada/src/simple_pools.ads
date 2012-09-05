@@ -7,9 +7,9 @@ package Simple_Pools is
    
    generic 
       type Data_Type is limited private;
-      type Data_Access is access all Data_Type;
       Capacity : Natural;
    package Basic_Pool is
+      type Data_Access is access all Data_Type;
       function Allocate return Data_Access;
    end;
    
