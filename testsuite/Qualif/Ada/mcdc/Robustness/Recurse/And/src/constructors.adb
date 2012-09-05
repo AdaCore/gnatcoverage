@@ -1,8 +1,15 @@
-package body Constructors is
+with Simple_Pools;
 
+package body Constructors is
+   
+   package Band_Pool is new Simple_Pools.Basic_Pool
+     (Data_Type => Band, Capacity => 20);
+   
    function Expr_And (A, B : Expr_Ref) return Expr_Ref is
+      Eptr : constant Band_Pool.Data_Access := Band_Pool.Allocate;
    begin
-      return new Band'(A => A, B => B);
+      Eptr.all := (A => A, B => B);
+      return Expr_Ref (Eptr);
    end;
 
    function Expr_And (A, B : Boolean) return Expr_Ref is
