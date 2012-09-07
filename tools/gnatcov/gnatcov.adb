@@ -1068,6 +1068,13 @@ begin
 
       when Cmd_Coverage =>
 
+         --  Validate combination of output format and coverage level
+
+         if Annotation = Annotate_Report and then Object_Coverage_Enabled then
+            Fatal_Error
+              ("Report output is supported for source coverage only");
+         end if;
+
          --  Load ALI files
 
          if Source_Coverage_Enabled then
