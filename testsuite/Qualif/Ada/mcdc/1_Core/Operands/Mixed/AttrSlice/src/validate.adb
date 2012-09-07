@@ -4,9 +4,9 @@ package body Validate is
       return S.Length;  -- # retLen
    end;
 
-   function Valid (Sptr : Str_Access) return Boolean is
+   function Valid (Sptr : Str) return Boolean is
    begin
-      return (Length (Sptr.all) = 5 -- # checkLen
-                and then Sptr.all.Value (1 .. 5) = "VALID");  -- # checkKey
+      return (Length (Sptr) = 5 -- # checkLen
+                and then Sptr.Value (1 .. 5) = "VALID");  -- # checkKey
    end;
 end;
