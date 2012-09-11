@@ -9,6 +9,15 @@ components. Except where specifically noted, all these problems have been
 corrected in the development tree, hence in wavefronts issued subsequent
 to the date specified (in ISO format YYYY-MM-DD) in the status line.
 
+L725-033 Unexpected conditional branch trace
+
+  Problem:    Gnatcov may report unexpected conditional branch traces on sparc
+              when performing decision or md/dc coverage.
+
+  Status:     This was fixed on 2012-09-10
+
+  Workaround: Use statement coverage level
+
 L116-008 No coverage when executable was linked with --gc-sections
 
   Problem:    Xcov may report nothing if the program was linked with
