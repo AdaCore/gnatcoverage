@@ -60,8 +60,13 @@ available from ``gnatcov`` ``--help``, as follows::
   additional details.
 
 :option:`-P`:
-   Use indicated project file to identify units of interest for source
-   coverage.
+   Use indicated project file as the root project. Default options are taken
+   from this project. All projects listed in --projects switches must be
+   imported by the root project.
+ 
+:option:`--projects`, |rarg|:
+   When using project files, consider units of interest from the given
+   projects.
 
 :option:`--recursive`: 
    When using project files to identify units of interest for source coverage,

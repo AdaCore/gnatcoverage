@@ -220,7 +220,7 @@ items:
 
 * Command line and Version of |gcp| that produced the report. The set of units
   that the report is about is conveyed by the command line switches
-  summarized there (:option:`-P`, :option:`--units`, :option:`--scos`).
+  summarized there (:option:`--projects`, :option:`--units`, :option:`--scos`).
 
 * Coverage level requested to be analyzed
 
@@ -1144,9 +1144,13 @@ Information files to be loaded, you can use GNAT project files to specify units
 of interest, and let |gcv| determine automatically the location of
 these files.
 
-Projects are passed to |gcv| using :option:`-P`. Multiple projects
-can be specified on the command line. Coverage analysis is then performed
-for units of interest in each listed project.
+Projects are passed to |gcv| using :option:`-P` and :option:`--projects`.
+A single root project must be specified using :option:`-P`. Multiple projects
+of interest (that are with the project tree rooted at the given root
+project) may be specified using :option:`--projects`. Coverage analysis is
+then performed for units of interest in each listed project. If only
+:option:`-P` is used, then units of interest from the root project
+itself are considered.
 
 Within a given project, units of interest are identified using specific
 attributes in the project file. Four attributes can be defined in package

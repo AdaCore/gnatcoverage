@@ -19,6 +19,7 @@
 with Ada.Containers.Indefinite_Ordered_Maps;
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
@@ -81,12 +82,13 @@ package body Project is
         Element_Type => Unit_Info);
 
    Env      : Project_Environment_Access;
+   Prj_Tree : Project_Tree_Access;
 
-   package Tree_Maps is
+   package Project_Maps is
      new Ada.Containers.Indefinite_Ordered_Maps
        (Key_Type     => String,
-        Element_Type => Project_Tree_Access);
-   Prj_Trees : Tree_Maps.Map;
+        Element_Type => Project_Type);
+   Prj_Map : Project_Maps.Map;
 
    procedure Initialize;
    --  Initialize project environment
@@ -102,18 +104,15 @@ package body Project is
    --  List_File_Attr (a string attribute). Defined is set True if either
    --  List_Attr or List_File_Attr is defined explicitly in the project.
 
-   procedure Enumerate_LIs
-     (Prj_Tree       : Project_Tree_Access;
-      LI_Cb          : access procedure (LI_Name : String);
-      Override_Units : in out Unit_Maps.Map);
-   --  Enumerate LIs from a single project tree
-
-   procedure Compute_Project_View (Prj_Tree : Project_Tree_Access);
-   --  Compute view for a single project tree
-
    procedure Report_Units_Without_LI (Units : Unit_Maps.Map; Origin : String);
    --  Output a warning for any element of Units that has LI_Seen set False.
    --  Origin indicates where the Units list comes from.
+
+   procedure Enumerate_LIs
+     (Root_Project       : Project_Type;
+      LI_Cb              : access procedure (LI_Name : String);
+      Override_Units_Map : in out Unit_Maps.Map);
+   --  Enumerate LI files for subtree of Prj_Tree rooted at Root_Project
 
    ---------
    -- "+" --
@@ -129,6 +128,41 @@ package body Project is
       return Build (Coverage_Package, A'Img);
    end "+";
 
+   -----------------
+   -- Add_Project --
+   -----------------
+
+   procedure Add_Project (Prj_Name : String) is
+      Prj         : Project_Type;
+      Prj_Name_FS : constant GNATCOLL.VFS.Filesystem_String :=
+        +Simple_Name (Prj_Name);
+      Last        : Integer;
+   begin
+      --  Strip optional Project_File_Extension
+
+      if Prj_Name_FS'Length >= Project_File_Extension'Length
+           and then
+         Prj_Name_FS (Prj_Name_FS'Last - Project_File_Extension'Length + 1
+                      .. Prj_Name_FS'Last) = Project_File_Extension
+      then
+         Last := Prj_Name_FS'Last - Project_File_Extension'Length;
+      else
+         Last := Prj_Name_FS'Last;
+      end if;
+
+      --  Look up project from project tree
+
+      Prj := Prj_Tree.Project_From_Name
+        (+Prj_Name_FS (Prj_Name_FS'First .. Last));
+      if Prj = No_Project then
+         Fatal_Error ("project " & Prj_Name & " not found");
+      end if;
+
+      --  Add it to Prj_Map
+
+      Prj_Map.Insert (Prj_Name, Prj);
+   end Add_Project;
+
    ----------------------
    -- Add_Scenario_Var --
    ----------------------
@@ -143,26 +177,6 @@ package body Project is
    --------------------------
 
    procedure Compute_Project_View is
-
-      procedure Process_One_Tree (C : Tree_Maps.Cursor);
-      --  Compute project view for tree rooted at C
-
-      ----------------------
-      -- Process_One_Tree --
-      ----------------------
-
-      procedure Process_One_Tree (C : Tree_Maps.Cursor) is
-      begin
-         Compute_Project_View (Tree_Maps.Element (C));
-      end Process_One_Tree;
-
-   --  Start of processing for Compute_Project_View
-
-   begin
-      Prj_Trees.Iterate (Process_One_Tree'Access);
-   end Compute_Project_View;
-
-   procedure Compute_Project_View (Prj_Tree : Project_Tree_Access) is
       Vars     : Scenario_Variable_Array := Prj_Tree.Scenario_Variables;
       Changed  : Boolean := False;
       --  Set True if one scenario variable is specified explicitly
@@ -188,7 +202,6 @@ package body Project is
       --  Then compute project view
 
       Prj_Tree.Recompute_View;
-
    end Compute_Project_View;
 
    -------------------
@@ -196,55 +209,16 @@ package body Project is
    -------------------
 
    procedure Enumerate_LIs
-     (LI_Cb          : access procedure (LI_Name : String);
-      Override_Units : Inputs.Inputs_Type)
-   is
-      Units : Unit_Maps.Map;
-
-      procedure Add_Override (U : String);
-      --  Add U to Units_Set
-
-      procedure Process_One_Tree (C : Tree_Maps.Cursor);
-      --  Enumerate LIs from the tree rooted at C
-
-      ------------------
-      -- Add_Override --
-      ------------------
-
-      procedure Add_Override (U : String) is
-      begin
-         Units.Include
-           (To_Lower (U),
-            (Original_Name => To_Unbounded_String (U), LI_Seen => False));
-      end Add_Override;
-
-      ----------------------
-      -- Process_One_Tree --
-      ----------------------
-
-      procedure Process_One_Tree (C : Tree_Maps.Cursor) is
-      begin
-         Enumerate_LIs (Tree_Maps.Element (C), LI_Cb, Units);
-      end Process_One_Tree;
-
-   --  Start of processing for Enumerate_LIs
-
-   begin
-      Inputs.Iterate (Override_Units, Add_Override'Access);
-      Prj_Trees.Iterate (Process_One_Tree'Access);
-   end Enumerate_LIs;
-
-   procedure Enumerate_LIs
-     (Prj_Tree       : Project_Tree_Access;
-      LI_Cb          : access procedure (LI_Name : String);
-      Override_Units : in out Unit_Maps.Map)
+     (Root_Project       : Project_Type;
+      LI_Cb              : access procedure (LI_Name : String);
+      Override_Units_Map : in out Unit_Maps.Map)
    is
       Iter    : Project_Iterator :=
                   Start
-                     (Root_Project     => Prj_Tree.Root_Project,
+                     (Root_Project     => Root_Project,
                       Recursive        =>
                         Switches.Recursive_Projects
-                          or else not Override_Units.Is_Empty,
+                          or else not Override_Units_Map.Is_Empty,
                       Include_Extended => False);
 
       Project : Project_Type;
@@ -254,7 +228,7 @@ package body Project is
          Project := Current (Iter);
          exit when Project = No_Project;
 
-         declare
+         Enumerate_Project : declare
             Lib_Info : Library_Info_Lists.List;
 
             Inc_Units         : Unit_Maps.Map;
@@ -279,61 +253,57 @@ package body Project is
               (Inc_Units : in out Unit_Maps.Map;
                Exc_Units : Unit_Maps.Map)
             is
-
-               procedure Process_LI (C : Library_Info_Lists.Cursor);
-               --  Add the LI file to SCO_Inputs, if it is meant to be included
-
-               ----------------
-               -- Process_LI --
-               ----------------
-
-               procedure Process_LI (C : Library_Info_Lists.Cursor) is
-                  use Library_Info_Lists;
-                  use Unit_Maps;
-
-                  procedure Set_LI_Seen (U : String; UI : in out Unit_Info);
-                  --  Record that the LI file for U was found
-
-                  -----------------
-                  -- Set_LI_Seen --
-                  -----------------
-
-                  procedure Set_LI_Seen (U : String; UI : in out Unit_Info) is
-                     pragma Unreferenced (U);
-                  begin
-                     UI.LI_Seen := True;
-                  end Set_LI_Seen;
-
-                  U  : constant String :=
-                         Unit_Name (Prj_Tree.Info (Element (C).Source_File));
-                  UC : constant Unit_Maps.Cursor := Inc_Units.Find (U);
-
-               --  Start of processing for Process_LI
-
-               begin
-                  if (UC /= Unit_Maps.No_Element or else not Inc_Units_Defined)
-                    and then not Exc_Units.Contains (U)
-                  then
-                     LI_Cb (+Full_Name (Element (C).Library_File));
-                  end if;
-
-                  --  Mark unit seen even if it is excluded
-
-                  if UC /= Unit_Maps.No_Element then
-                     Inc_Units.Update_Element (UC, Set_LI_Seen'Access);
-                  end if;
-               end Process_LI;
-
-            --  Start of processing for Filter_Lib_Info
-
             begin
-               Lib_Info.Iterate (Process_LI'Access);
+               for LI of Lib_Info loop
+                  Process_LI : declare
+                     use Library_Info_Lists;
+                     use Unit_Maps;
+
+                     procedure Set_LI_Seen (U : String; UI : in out Unit_Info);
+                     --  Record that the LI file for U was found
+
+                     -----------------
+                     -- Set_LI_Seen --
+                     -----------------
+
+                     procedure Set_LI_Seen
+                       (U  : String;
+                        UI : in out Unit_Info)
+                     is
+                        pragma Unreferenced (U);
+                     begin
+                        UI.LI_Seen := True;
+                     end Set_LI_Seen;
+
+                     U  : constant String :=
+                       Unit_Name (Prj_Tree.Info (LI.Source_File));
+                     UC : constant Unit_Maps.Cursor := Inc_Units.Find (U);
+
+                  --  Start of processing for Process_LI
+
+                  begin
+                     if (UC /= Unit_Maps.No_Element
+                         or else not Inc_Units_Defined)
+                       and then not Exc_Units.Contains (U)
+                     then
+                        LI_Cb (+Full_Name (LI.Library_File));
+                     end if;
+
+                     --  Mark unit seen even if it is excluded
+
+                     if UC /= Unit_Maps.No_Element then
+                        Inc_Units.Update_Element (UC, Set_LI_Seen'Access);
+                     end if;
+                  end Process_LI;
+               end loop;
             end Filter_Lib_Info;
+
+         --  Start of processing for Enumerate_Project
 
          begin
             Current (Iter).Library_Files (List => Lib_Info);
 
-            if Override_Units.Is_Empty then
+            if Override_Units_Map.Is_Empty then
                List_From_Project
                  (Project,
                   List_Attr      => +Units,
@@ -359,14 +329,46 @@ package body Project is
                --  in this call.
 
                Inc_Units_Defined := True;
-
-               Filter_Lib_Info (Override_Units, Exc_Units);
+               Filter_Lib_Info (Override_Units_Map, Exc_Units);
             end if;
-         end;
+         end Enumerate_Project;
+
          Next (Iter);
       end loop;
+   end Enumerate_LIs;
 
-      Report_Units_Without_LI (Override_Units, Origin => "<command line>");
+   procedure Enumerate_LIs
+     (LI_Cb          : access procedure (LI_Name : String);
+      Override_Units : Inputs.Inputs_Type)
+   is
+      use Project_Maps;
+
+      Override_Units_Map : Unit_Maps.Map;
+
+      procedure Add_Override (U : String);
+      --  Add U to Override_Units_Map
+
+      ------------------
+      -- Add_Override --
+      ------------------
+
+      procedure Add_Override (U : String) is
+      begin
+         Override_Units_Map.Include
+           (To_Lower (U),
+            (Original_Name => To_Unbounded_String (U), LI_Seen => False));
+      end Add_Override;
+
+   --  Start of processing for Enumerate_LIs
+
+   begin
+      Iterate (Override_Units, Add_Override'Access);
+
+      for Prj of Prj_Map loop
+         Enumerate_LIs (Prj, LI_Cb, Override_Units_Map);
+      end loop;
+
+      Report_Units_Without_LI (Override_Units_Map, Origin => "<command line>");
    end Enumerate_LIs;
 
    ----------------
@@ -469,17 +471,19 @@ package body Project is
       end if;
    end List_From_Project;
 
-   ------------------
-   -- Load_Project --
-   ------------------
+   -----------------------
+   -- Load_Root_Project --
+   -----------------------
 
-   procedure Load_Project (Prj_Name : String) is
-      Prj_Tree : Project_Tree_Access;
+   procedure Load_Root_Project (Prj_Name : String) is
    begin
-      if Env = null then
-         Initialize;
-         pragma Assert (Env /= null);
+      if Prj_Tree /= null then
+         Fatal_Error ("only one root project can be specified");
       end if;
+
+      pragma Assert (Env = null);
+      Initialize;
+      pragma Assert (Env /= null);
 
       Prj_Tree := new Project_Tree;
       Prj_Tree.Load
@@ -487,9 +491,7 @@ package body Project is
          Env               => Env,
          Packages_To_Check => Coverage_Package_List'Access,
          Recompute_View    => False);
-
-      Prj_Trees.Include (Prj_Name, Prj_Tree);
-   end Load_Project;
+   end Load_Root_Project;
 
    -----------------
    -- Set_Subdirs --
@@ -513,27 +515,15 @@ package body Project is
      (Units  : Unit_Maps.Map;
       Origin : String)
    is
-      procedure Report_One (C : Unit_Maps.Cursor);
-      --  Report missing LI for unit denote by C
-
-      ----------------
-      -- Report_One --
-      ----------------
-
-      procedure Report_One (C : Unit_Maps.Cursor) is
-         use Unit_Maps;
-         UI : Unit_Info renames Element (C);
-      begin
+   begin
+      for UI of Units loop
          if not UI.LI_Seen then
             Report
               (Origin & ": no information found for unit "
                & To_String (UI.Original_Name),
                Kind => Warning);
          end if;
-      end Report_One;
-
-   begin
-      Units.Iterate (Report_One'Access);
+      end loop;
    end Report_Units_Without_LI;
 
 end Project;

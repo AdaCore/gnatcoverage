@@ -13,13 +13,17 @@ interface synopsis is available from |gcv| :option:`--help`::
 
  gnatcov coverage OPTIONS TRACE_FILES
    Generate coverage report
-   -c LEVEL --level=LEVEL     Specify coverage levels
+   -c LEVEL --level=LEVEL      Specify coverage levels
       LEVEL is one of branch|insn|stmt|stmt+decision|stmt+mcdc|stmt+uc_mcdc
    -a FORM  --annotate=FORM    Generate a FORM report
       FORM is one of asm,xcov,html,xcov+,html+,report
    --routines=<ROUTINE|@FILE>  Add ROUTINE, or all routine listed
                                in FILE to the list of routines
-   -P<PROJECT>                 Consider units from PROJECT
+   -P<ROOT-PROJECT>            Use the indicated root project
+   --projects=<PROJECT|@LISTFILE>
+                               Consider the SCOs for units of interest in
+                               PROJECT, or each project listed in LISTFILE
+                               (requires -P)
    --recursive                 Also consider units from any imported project
    --units=<UNIT|@LISTFILE>    Consider the SCOs for the indicated UNIT, or
                                each unit listed in LISTFILE (requires -P)
@@ -72,8 +76,13 @@ interface synopsis is available from |gcv| :option:`--help`::
    extra details and use examples.
 
 :option:`-P`:
-   Use indicated project file to identify units of interest for source
-   coverage.
+   Use indicated project file as the root project. Default options are taken
+   from this project. All projects listed in --projects switches must be
+   imported by the root project.
+
+:option:`--projects`, |rarg|:
+   When using project files, consider units of interest from the given
+   projects.
 
 :option:`--recursive`:
    When using project files to identify units of interest for source coverage,
@@ -94,7 +103,7 @@ interface synopsis is available from |gcv| :option:`--help`::
    Information files from which SCOs should be loaded. This low-level switch
    effectively overrides the selection of units of interest for source
    coverage, in particular bypassing project-based unit selection based on
-   switches :option:`-P` and :option:`--units`.
+   switches :option:`--projects` and :option:`--units`.
 
 See section :ref:`sunits` for extra details and use examples about the
 various switches used to specify units of interest for source coverage.

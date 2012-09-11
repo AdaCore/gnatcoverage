@@ -3,7 +3,7 @@ project Gnatcov is
 
    package Compiler is
       for Default_Switches ("ada") use
-        ("-gnat05",
+        ("-gnat12",
 
          "-gnatwae",
          "-gnatyg",
@@ -15,7 +15,7 @@ project Gnatcov is
          "-gnateS",
          "-fpreserve-control-flow");
 
-      for Switches ("ppc_genopc.adb") use ("-g", "-gnat05");
+      for Switches ("ppc_genopc.adb") use ("-g", "-gnat12");
    end Compiler;
 
    for Source_Dirs use (".", "gnat");

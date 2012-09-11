@@ -177,7 +177,8 @@ procedure GNATcov is
    Final_Report_Option       : constant String := "--report=";
    Kernel_Option             : constant String := "--kernel=";
    Output_Dir_Option         : constant String := "--output-dir=";
-   Project_Option            : constant String := "-P";
+   Root_Project_Option       : constant String := "-P";
+   Projects_Option           : constant String := "--projects=";
    Subdirs_Option            : constant String := "--subdirs=";
    Scenario_Var_Option       : constant String := "-X";
    Recursive_Option          : constant String := "--recursive";
@@ -214,13 +215,14 @@ procedure GNATcov is
    ALIs_Inputs         : Inputs.Inputs_Type;
    Routines_Inputs     : Inputs.Inputs_Type;
    Units_Inputs        : Inputs.Inputs_Type;
+   Projects_Inputs     : Inputs.Inputs_Type;
    Text_Start          : Pc_Type := 0;
    Target              : String_Access := null;
    Output              : String_Access := null;
    Tag                 : String_Access := null;
    Kernel              : String_Access := null;
    Eargs               : String_List_Access := null;
-   Project_Loaded      : Boolean := False;
+   Root_Project        : String_Access := null;
 
    Subdirs             : String_Access := null;
 
@@ -231,8 +233,8 @@ procedure GNATcov is
    procedure Parse_Command_Line;
    --  Parse the command line and set the above local variables
 
-   procedure Set_Project (Prj_Name : String);
-   --  Use the named project file
+   procedure Set_Root_Project (Prj_Name : String);
+   --  Use the named project file as root project
 
    procedure Set_Defaults_From_Project;
    --  Load the project file and set defaults for relevant options if they
@@ -253,36 +255,6 @@ procedure GNATcov is
          Command,
          " (specify Units in project or use --units/--scos)");
    end Check_SCOs_Available;
-
-   -----------------
-   -- Set_Project --
-   -----------------
-
-   procedure Set_Project (Prj_Name : String) is
-   begin
-
-      --  This will be called once per -P.  Load each provided project, then
-      --  indicate that we need to construct a project view and fetch defaults
-      --  from there.
-
-      Load_Project (Prj_Name);
-      Project_Loaded := True;
-   end Set_Project;
-
-   ------------------------------
-   -- Set_Command_Line_Subdirs --
-   ------------------------------
-
-   procedure Set_Command_Line_Subdirs (Dir : String) is
-   begin
-      --  If multiple subdirs are selected, the last one overrides the previous
-      --  ones
-      if Subdirs /= null then
-         Free (Subdirs);
-      end if;
-
-      Subdirs := new String'(Dir);
-   end Set_Command_Line_Subdirs;
 
    ------------------------
    -- Parse_Command_Line --
@@ -482,12 +454,15 @@ procedure GNATcov is
                                             2 => Cmd_Coverage));
                Output := new String'(Option_Parameter (Arg));
 
-            elsif Arg = Project_Option then
-               Set_Project (Next_Arg ("project"));
+            elsif Arg = Root_Project_Option then
+               Set_Root_Project (Next_Arg ("root project"));
 
-            elsif Has_Prefix (Arg, Project_Option) then
-               Set_Project
-                 (Arg (Arg'First + Project_Option'Length .. Arg'Last));
+            elsif Has_Prefix (Arg, Root_Project_Option) then
+               Set_Root_Project
+                 (Arg (Arg'First + Root_Project_Option'Length .. Arg'Last));
+
+            elsif Has_Prefix (Arg, Projects_Option) then
+               Inputs.Add_Input (Projects_Inputs, Option_Parameter (Arg));
 
             elsif Has_Prefix (Arg, Subdirs_Option) then
                Set_Command_Line_Subdirs (Option_Parameter (Arg));
@@ -733,6 +708,21 @@ procedure GNATcov is
       end loop;
    end Parse_Command_Line;
 
+   ------------------------------
+   -- Set_Command_Line_Subdirs --
+   ------------------------------
+
+   procedure Set_Command_Line_Subdirs (Dir : String) is
+   begin
+      --  If multiple subdirs are selected, the last one overrides the previous
+      --  ones
+      if Subdirs /= null then
+         Free (Subdirs);
+      end if;
+
+      Subdirs := new String'(Dir);
+   end Set_Command_Line_Subdirs;
+
    -------------------------------
    -- Set_Defaults_From_Project --
    -------------------------------
@@ -763,7 +753,7 @@ procedure GNATcov is
 
       if Object_Coverage_Enabled then
 
-         --  Set routines from project
+         --  Set routines from project, not supported yet???
 
          null;
 
@@ -771,6 +761,19 @@ procedure GNATcov is
          Enumerate_LIs (Add_LI'Access, Override_Units => Units_Inputs);
       end if;
    end Set_Defaults_From_Project;
+
+   ----------------------
+   -- Set_Root_Project --
+   ----------------------
+
+   procedure Set_Root_Project (Prj_Name : String) is
+   begin
+      if Root_Project /= null then
+         Fatal_Error ("only one root project may be specified");
+      end if;
+      Root_Project := new String'(Prj_Name);
+      Load_Root_Project (Prj_Name);
+   end Set_Root_Project;
 
    Base : aliased Traces_Base;
    Exec : aliased Exe_File_Type;
@@ -789,12 +792,21 @@ begin
       Free (Subdirs);
    end if;
 
-   --  Projects support: generate defaults for options not specified from the
-   --  command line.
+   if Root_Project /= null then
+      --  If a root project has been specified but no project is being
+      --  considered for coverage analysis, consider the root by default.
 
-   if Project_Loaded then
+      if Length (Projects_Inputs) = 0 then
+         Inputs.Add_Input (Projects_Inputs, Root_Project.all);
+      end if;
+
+      Inputs.Iterate (Projects_Inputs, Project.Add_Project'Access);
+
       Compute_Project_View;
       Set_Defaults_From_Project;
+
+   elsif Length (Projects_Inputs) /= 0 then
+      Fatal_Error (Projects_Option & " requires " & Root_Project_Option);
    end if;
 
    --  Now execute the specified command
