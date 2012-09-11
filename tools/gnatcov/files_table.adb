@@ -610,6 +610,30 @@ package body Files_Table is
       Iterate_On_Lines (FI, Free_Line_Cache'Access);
    end Invalidate_Line_Cache;
 
+   ----------------------------
+   -- Is_Multistatement_Line --
+   ----------------------------
+
+   function Is_Multistatement_Line (Sloc : Source_Location) return Boolean is
+      LI : constant Line_Info_Access :=
+        Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
+      Count : Natural := 0;
+
+   begin
+      if LI /= null then
+         for J in LI.SCOs.First_Index .. LI.SCOs.Last_Index loop
+            if Kind (LI.SCOs.Element (J)) = Statement then
+               Count := Count + 1;
+            end if;
+            if Count > 1 then
+               return True;
+            end if;
+
+         end loop;
+      end if;
+      return False;
+   end Is_Multistatement_Line;
+
    ----------------------
    -- Iterate_On_Lines --
    ----------------------

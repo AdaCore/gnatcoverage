@@ -235,6 +235,9 @@ package Files_Table is
    --  Return True if there is some relevant coverage information to display
    --  for this file and for the current coverage criteria.
 
+   function Is_Multistatement_Line (Sloc : Source_Location) return Boolean;
+   --  True if there is more than one Statement SCO for the line of Sloc
+
 private
    --  Describe a source file - one element per line
 

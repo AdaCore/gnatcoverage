@@ -27,6 +27,7 @@ with GNAT.Strings; use GNAT.Strings;
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
+with Files_Table;       use Files_Table;
 with Hex_Images;        use Hex_Images;
 with Qemu_Traces;
 with Slocs;             use Slocs;
@@ -1043,7 +1044,8 @@ package body Decision_Map is
          Next_PC : Pc_Type := Edge_Info.Destination.Target;
          BB      : Basic_Block;
 
-         Next_PC_SCO : SCO_Id;
+         Next_PC_Sloc : Source_Location;
+         Next_PC_SCO  : SCO_Id;
          --  Statement at Next_PC
 
          SCO_For_Jump : SCO_Id;
@@ -1053,12 +1055,21 @@ package body Decision_Map is
          <<Follow_Jump>>
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
 
-         --  Check for exception or outcome using dominance information
+         Next_PC_Sloc := Get_Sloc (Exe.all, Next_PC);
+
+         --  Check for exception or outcome using dominance information.
+         --  Note that this relies on an accurate mapping of slocs to
+         --  SCO for statements, not conditions. Since statements slocs have
+         --  only only line granularity (not column granularity), this must be
+         --  disabled in the case of multiple statements occurring on the same
+         --  line.
 
          Next_PC_SCO :=
-           Enclosing_Statement (Sloc_To_SCO (Get_Sloc (Exe.all, Next_PC)));
+           Enclosing_Statement (Sloc_To_SCO (Next_PC_Sloc));
 
-         if Next_PC_SCO /= No_SCO_Id then
+         if Next_PC_SCO /= No_SCO_Id
+           and then not Is_Multistatement_Line (Next_PC_Sloc)
+         then
             declare
                Dom_SCO : SCO_Id;
                Dom_Val : Boolean;
