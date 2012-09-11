@@ -364,9 +364,21 @@ package body Project is
    begin
       Iterate (Override_Units, Add_Override'Access);
 
-      for Prj of Prj_Map loop
-         Enumerate_LIs (Prj, LI_Cb, Override_Units_Map);
-      end loop;
+      if not Override_Units_Map.Is_Empty then
+
+         --  If --units is specified, always traverse the complete project
+         --  tree from the root.
+
+         Enumerate_LIs
+           (Root_Project (Prj_Tree.all), LI_Cb, Override_Units_Map);
+
+      else
+         --  No --units: only considered selected projects
+
+         for Prj of Prj_Map loop
+            Enumerate_LIs (Prj, LI_Cb, Override_Units_Map);
+         end loop;
+      end if;
 
       Report_Units_Without_LI (Override_Units_Map, Origin => "<command line>");
    end Enumerate_LIs;
