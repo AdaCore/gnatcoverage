@@ -61,6 +61,16 @@ package Traces_Files is
    --  Open a trace file, without reading the traces.  In case of failure,
    --  an exception is raised and the file is considered as not open.
 
+   procedure Read_Loadaddr_Trace_Entry
+     (Desc       : Trace_File_Descriptor;
+      Trace_File : Trace_File_Type;
+      Offset     : out Traces.Pc_Type);
+   --  Fetch the load address from the entries, and discard all entries
+   --  before the special trace:
+   --  * if the trace file has a kernel info, then skip all traces until the
+   --  loadaddr special entry and set Offset to the load address.
+   --  * if there is no kernel, set Offset to 0.
+
    procedure Read_Trace_Entry
      (Desc       : Trace_File_Descriptor;
       Eof        : out Boolean;

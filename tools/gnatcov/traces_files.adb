@@ -258,6 +258,39 @@ package body Traces_Files is
                         State  => Unknown);
    end Read_Trace_Entry;
 
+   procedure Read_Loadaddr_Trace_Entry
+     (Desc       : Trace_File_Descriptor;
+      Trace_File : Trace_File_Type;
+      Offset     : out Pc_Type)
+   is
+      Eof : Boolean;
+      E : Trace_Entry;
+   begin
+      if Get_Info (Trace_File, Qemu_Traces.Kernel_File_Name)'Length > 0 then
+         --  Has a kernel and therefore a load address.
+
+         --  Go to the loadaddr entry
+         loop
+            Read_Trace_Entry (Desc, Eof, E);
+            if Eof then
+               raise Bad_File_Format with "No 'loadaddr' special trace entry";
+            end if;
+
+            if E.Op = Qemu_Traces.Trace_Op_Special then
+               if E.First = 0 then
+                  raise Bad_File_Format
+                    with "Invalid 'loadaddr' special trace entry";
+               else
+                  Offset := E.First;
+               end if;
+               return;
+            end if;
+         end loop;
+      else
+         Offset := 0;
+      end if;
+   end Read_Loadaddr_Trace_Entry;
+
    procedure Close_Trace_File
      (Desc : in out Trace_File_Descriptor)
    is
@@ -306,15 +339,22 @@ package body Traces_Files is
       Desc : Trace_File_Descriptor;
       E : Trace_Entry;
       Eof : Boolean;
+      Offset : Pc_Type;
    begin
       Open_Trace_File (Filename, Desc, Trace_File);
+
+      Read_Loadaddr_Trace_Entry (Desc, Trace_File, Offset);
 
       loop
          Read_Trace_Entry (Desc, Eof, E);
          exit when Eof;
 
-         if E.Op /= Trace_Op_Special then
-            Add_Entry (Base, First => E.First, Last => E.Last, Op => E.Op);
+         if E.Op = Trace_Op_Special then
+            raise Bad_File_Format with "Unexpected special trace entry";
+         elsif E.First >= Offset then
+            Add_Entry (Base,
+                       First => E.First - Offset, Last => E.Last - Offset,
+                       Op => E.Op);
          end if;
       end loop;
 
@@ -390,9 +430,36 @@ package body Traces_Files is
    procedure Dump_Trace_File (Filename : String)
    is
       Trace_File : Trace_File_Type;
+      Desc : Trace_File_Descriptor;
+      E : Trace_Entry;
+      Eof : Boolean;
+      Offset : Pc_Type := 0;
    begin
-      Read_Trace_File (Filename, Trace_File,
-                       Dump_Infos'Access, Dump_Entry'Access);
+      --  Open file
+      Open_Trace_File (Filename, Desc, Trace_File);
+
+      Dump_Infos (Trace_File);
+
+      loop
+         Read_Trace_Entry (Desc, Eof, E);
+         exit when Eof;
+
+         if E.Op = Qemu_Traces.Trace_Op_Special then
+            Offset := E.First;
+         end if;
+
+         if Offset /= 0 then
+            if E.First > Offset then
+               E.First := E.First - Offset;
+               E.Last := E.Last - Offset;
+               Dump_Entry (E);
+            end if;
+         else
+            Dump_Entry (E);
+         end if;
+      end loop;
+
+      Close_Trace_File (Desc);
       Free (Trace_File);
    end Dump_Trace_File;
 

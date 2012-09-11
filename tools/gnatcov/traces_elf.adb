@@ -2932,6 +2932,7 @@ package body Traces_Elf is
       Shdr : Elf_Shdr_Acc;
       Last : Pc_Type;
       Addr : Pc_Type;
+      Offset : Pc_Type;
 
       Sym : Addresses_Info_Acc;
       Cur_Sym : Addresses_Containers.Cursor;
@@ -2950,6 +2951,7 @@ package body Traces_Elf is
       Sym_Type : Unsigned_8;
       Cur : Addresses_Containers.Cursor;
       Ok : Boolean;
+      Do_Reloc : Boolean;
    begin
       --  Search symtab and strtab, exit in case of failure
 
@@ -2964,6 +2966,7 @@ package body Traces_Elf is
       end if;
 
       --  Build sets for A+X sections
+      --  FIXME: this somewhat duplicates the logic of Build_Sections.
 
       for Idx in 0 .. Nbr_Shdr - 1 loop
          Shdr := Get_Shdr (Efile, Idx);
@@ -2986,6 +2989,7 @@ package body Traces_Elf is
       Alloc_And_Load_Section (File.all, Strtab_Idx, Strtab_Len, Strtabs);
 
       --  Walk the symtab and put interesting symbols into the containers
+      --  FIXME: this somewhat duplicates the logic of Build_Symbols.
 
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
          A_Sym := Get_Sym
@@ -2995,6 +2999,7 @@ package body Traces_Elf is
          if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
            and then A_Sym.St_Shndx in Shdr_Sets'Range
            and then Shdr_Sets (A_Sym.St_Shndx) /= null
+           and then A_Sym.St_Size > 0
          then
             Sym_Name := new String'
               (Read_String (Strtabs (A_Sym.St_Name)'Address));
@@ -3022,9 +3027,13 @@ package body Traces_Elf is
 
       --  Walk the sections and put routines into the database
 
+      Do_Reloc := Get_Ehdr (Efile).E_Type = ET_REL;
+      Offset := 0;
       for I in Shdr_Sets'Range loop
          if Shdr_Sets (I) /= null then
             Shdr := Get_Shdr (Efile, I);
+
+            --  Section range
 
             Addr := Pc_Type (Shdr.Sh_Addr);
             Last := Pc_Type (Shdr.Sh_Addr + Shdr.Sh_Size - 1);
@@ -3038,7 +3047,17 @@ package body Traces_Elf is
 
             --  Get the first symbol in the section
 
-            while Sym /= null and then Sym.First < Addr loop
+            if Do_Reloc then
+               Offset := Addr;
+            end if;
+            while Sym /= null and then Sym.First + Offset < Addr loop
+               --  Can this happen ?
+               Put_Line
+                 (Standard_Error, "symbol " & Sym.Symbol_Name.all
+                  & " doesn't belong to its section "
+                  &  Get_Shdr_Name (Efile, I)
+                  & " [" & Unsigned_16'Image (I) & " ]");
+
                Free (Sym.Symbol_Name);
                Unchecked_Deallocation (Sym);
                Next (Cur_Sym);
@@ -3049,19 +3068,23 @@ package body Traces_Elf is
                Sym := Element (Cur_Sym);
             end loop;
 
-            while Sym /= null and then Sym.Last <= Last loop
+            while Sym /= null and then Sym.Last + Offset <= Last loop
                if Sym.First > Sym.Last then
-                  if Sym.First <= Last then
+                  if Sym.First + Offset <= Last then
                      Put_Line
                        (Standard_Error, "empty symbol " & Sym.Symbol_Name.all
-                          & " at " & Hex_Image (Sym.First));
+                        & " at " & Hex_Image (Sym.First)
+                        & " in section " &  Get_Shdr_Name (Efile, I));
                   end if;
 
                else
-                  if Sym.First > Addr then
+                  if Sym.First + Offset > Addr then
                      Put_Line
                        (Standard_Error, "no symbols for "
-                        & Hex_Image (Addr) & "-" & Hex_Image (Sym.First - 1));
+                        & Hex_Image (Addr) & "-"
+                        & Hex_Image (Sym.First + Offset - 1)
+                        & " in section " &  Get_Shdr_Name (Efile, I)
+                        & " [" & Unsigned_16'Image (I) & " ]");
                   end if;
 
                   if Exclude then
@@ -3081,7 +3104,7 @@ package body Traces_Elf is
                      end;
                   end if;
 
-                  Addr := Sym.Last;
+                  Addr := Sym.Last + Offset;
                   exit when Addr = Pc_Type'Last;
                   Addr := Addr + 1;
                end if;
@@ -3099,7 +3122,9 @@ package body Traces_Elf is
             if Addr < Last then
                Put_Line
                  (Standard_Error, "no symbols for "
-                    & Hex_Image (Addr) & "-" & Hex_Image (Last));
+                  & Hex_Image (Addr) & "-" & Hex_Image (Last)
+                  & " in section " &  Get_Shdr_Name (Efile, I)
+                  & " [" & Unsigned_16'Image (I) & " ]");
             end if;
             Unchecked_Deallocation (Shdr_Sets (I));
          end if;
