@@ -1209,6 +1209,8 @@ Each occurrence of this switch indicates one unit to focus on, or with the
 :option:`--units` is used, the Units, Units_List, Excluded_Units, and
 Excluded_Units_List attributes are not taken into account.
 
+.. image: Proot.png
+
 Inlining & Generic Units
 ========================
 

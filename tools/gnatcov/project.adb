@@ -111,8 +111,10 @@ package body Project is
    procedure Enumerate_LIs
      (Root_Project       : Project_Type;
       LI_Cb              : access procedure (LI_Name : String);
-      Override_Units_Map : in out Unit_Maps.Map);
-   --  Enumerate LI files for subtree of Prj_Tree rooted at Root_Project
+      Override_Units_Map : in out Unit_Maps.Map;
+      Recursive          : Boolean);
+   --  Enumerate LI files for Root_Project. If Recursive is True, do so for
+   --  the whole subtree rooted at Root_Project.
 
    ---------
    -- "+" --
@@ -211,14 +213,13 @@ package body Project is
    procedure Enumerate_LIs
      (Root_Project       : Project_Type;
       LI_Cb              : access procedure (LI_Name : String);
-      Override_Units_Map : in out Unit_Maps.Map)
+      Override_Units_Map : in out Unit_Maps.Map;
+      Recursive          : Boolean)
    is
       Iter    : Project_Iterator :=
                   Start
                      (Root_Project     => Root_Project,
-                      Recursive        =>
-                        Switches.Recursive_Projects
-                          or else not Override_Units_Map.Is_Empty,
+                      Recursive        => Recursive,
                       Include_Extended => False);
 
       Project : Project_Type;
@@ -370,13 +371,20 @@ package body Project is
          --  tree from the root.
 
          Enumerate_LIs
-           (Root_Project (Prj_Tree.all), LI_Cb, Override_Units_Map);
+           (Root_Project (Prj_Tree.all),
+            LI_Cb,
+            Override_Units_Map,
+            Recursive => True);
 
       else
          --  No --units: only considered selected projects
 
          for Prj of Prj_Map loop
-            Enumerate_LIs (Prj, LI_Cb, Override_Units_Map);
+            Enumerate_LIs
+              (Prj,
+               LI_Cb,
+               Override_Units_Map,
+               Recursive => Switches.Recursive_Projects);
          end loop;
       end if;
 
