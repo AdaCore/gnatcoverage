@@ -280,6 +280,14 @@ def xrun(args, out=None, register_failure=True):
 
     allargs.extend (to_list(args))
 
+
+    # Workaround for L805-002: gnatemu hangs during gnatcov testing for
+    # ppc-vx6-windows. I don't know why but adding -s switch seems to fix the
+    # problem. We use this temporary solution to be able to restart testing on
+    # ppc-vx6-windows.
+    if targetarg == 'powerpc-wrs-vxworks':
+        allargs = allargs + ['-eargs', '-s']
+
     return xcov (
         allargs, inp=nulinput, out=out,
         register_failure=register_failure)
