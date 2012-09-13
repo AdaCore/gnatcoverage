@@ -1,5 +1,8 @@
 import re, subprocess
 
+def render(tree):
+  subprocess.call(["dot", "-Tpng", "-o"+tree+".png", tree+".dot"])
+
 def gen_tree(tmpl, outfile, selected):
   for l in tmpl:
     m = re.search('([a-z_0-9]*) \[(.*)\];', l)
@@ -23,4 +26,6 @@ trees = {
 }
 for k in trees:
   gen_tree(tmpl, open(k + ".dot", "w"), trees[k])
-  subprocess.call(["dot", "-Tpng", "-o"+k+".png", k+".dot"])
+  render(k)
+
+render('prjtree')
