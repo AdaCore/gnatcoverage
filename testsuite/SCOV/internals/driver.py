@@ -478,7 +478,11 @@ class SCOV_helper:
 
     def rwdir_for(self,main):
         """Relative path to Working Directory for single MAIN."""
-        return self.wdbase + main + "/"
+
+        # Strip a possible "test_" prefix. This allows shortening pathnames
+        # and the prefix is pointless in providing a unique temp dir.
+
+        return self.wdbase + main.lstrip("test_") + "/"
 
     def awdir_for(self,main):
         """Absolute path to Working Directory for single MAIN."""
