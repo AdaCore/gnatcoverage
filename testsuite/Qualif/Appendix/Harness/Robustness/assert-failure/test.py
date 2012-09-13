@@ -1,5 +1,7 @@
 from SCOV.tc import *
-TestCase(category="stmt").run()
+from SCOV.tctl import CAT
+
+TestCase(category=CAT.stmt).run()
 
 from SCOV.harness import *
 

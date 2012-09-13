@@ -1,4 +1,6 @@
 from SCOV.tc import *
-TestCase(category="stmt").run()
+from SCOV.tctl import CAT
+
+TestCase(category=CAT.stmt).run()
 
 thistest.result()

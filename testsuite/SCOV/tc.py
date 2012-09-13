@@ -38,22 +38,26 @@ from gnatpython.fileutils import ls
 
 from internals.driver import SCOV_helper
 
-class Category:
-    def __init__(self, name, strength):
-        self.name = name
-        self.strength = strength
-
-class CAT:
-    auto = Category (
-        name = "auto",
-        strength = 1000
-        )
+from SCOV.tctl import CAT
 
 # =================================
 # == User Level Coverage Control ==
 # =================================
 
-# Facility to allow GPR level control. Still experimental.
+# Facility to allow GPR level control. An instance of this might be
+# passed to the TestCase run() invocation below, essentially to
+#
+#   - Influence the project file constructed to build the testcase binaries,
+#     with dependencies to other projects or directives pertaining to the
+#     Coverage package within the project.
+#
+#   - State the set of units for which we expect reports as result. The
+#     testsuite driver will then check that we do get the expected reports and
+#     only those. For those that are expected, the testsuite performs the
+#     standard checks of matching outcome with expectations stated in drivers.
+#
+#   - Influence the GPR related command line options to gnatcov, controlling
+#     which projects are to be considered part of the analysis closure.
 
 class CovControl:
 
@@ -80,10 +84,19 @@ class CovControl:
         self.ulist_in = ulist_in
         self.ulist_out = ulist_out
 
-        # To instruct the testsuite driver about source reports we expect.
-        # None means unspecified. Very different from specified empty.
+        # To instruct the testsuite driver about the set of source reports we
+        # expect.
+
+        # None is taken to mean "we don't expect anything in particular" as in
+        # "we don't care", so anything is expected. An empty list is taken to
+        # mean "we expect no report at all", so anything that comes out is
+        # unexpected.
 
         self.xreports = xreports
+
+    # ------------------
+    # -- [un]expected --
+    # ------------------
 
     def unexpected (self, source):
         return (
@@ -93,7 +106,15 @@ class CovControl:
     def expected (self, source):
         return not self.unexpected (source)
 
+    # ---------
+    # -- gpr --
+    # ---------
+
     def gpr (self):
+
+        """The GPR Coverage package corresponding to our lists of attribute
+           contents, as a multiline string."""
+
         return gprcov_for (
             units_in = self.units_in,
             units_out = self.units_out,
@@ -157,15 +178,15 @@ class TestCase:
                     "%ssrc/cons_%s*.txt" % (prefix, body)
                     )
 
-    def __category(self):
-        """Compute our test category from its directory location."""
+    def __category_from_dir(self):
+        """Compute test category from directory location."""
 
-        for crit in ("stmt", "decision", "mcdc"):
-            if re.search ("/%s(/|$)" % crit, TEST_DIR):
-                return crit
+        for cat in CAT.critcats:
+            if re.search ("/%s(/|$)" % cat.name, TEST_DIR):
+                return cat
 
         raise FatalError(
-            "Unable to determine test category from dir '%s'" % TEST_DIR)
+            "Unable to infer test category from subdir '%s'" % TEST_DIR)
 
     def __drivers_from(self, cspec):
         """Compute the set of drivers that need to be combined for
@@ -218,8 +239,12 @@ class TestCase:
 
         # - test category:
 
+        # If automatic detection from subdir was requested, do that.
+        # Otherwise, use the provided argument, which might be None or a
+        # criterion related value.
+
         self.category = (
-            self.__category() if category == CAT.auto else category)
+            self.__category_from_dir() if category == CAT.auto else category)
 
         # - Set of xcovlevel values to exercise:
 
@@ -228,14 +253,13 @@ class TestCase:
         # variants, pick the first one only in qualification mode.
 
         default_xcovlevels_for = {
-            # A test without category should be ready for anything.
-            # Exercise with the strictest possible mode.
-
+            # Tests without categories should be ready for anything.
+            # Exercise with the strictest possible mode:
             None: ["stmt+mcdc"],
 
-            "stmt":     ["stmt"],
-            "decision": ["stmt+decision"],
-            "mcdc":     ["stmt+uc_mcdc", "stmt+mcdc"]}
+            CAT.stmt:     ["stmt"],
+            CAT.decision: ["stmt+decision"],
+            CAT.mcdc:     ["stmt+uc_mcdc", "stmt+mcdc"]}
 
         if thistest.options.xcov_level:
             self.xcovlevels = [thistest.options.xcov_level]
@@ -248,7 +272,8 @@ class TestCase:
 
         self.cargs = to_list (extracargs)
 
-        # Setup qualification data for this testcase
+        # Step 3: Setup qualification data for this testcase
+        # --------------------------------------------------
 
         self.qdata = Qdata(tcid=TEST_DIR)
 

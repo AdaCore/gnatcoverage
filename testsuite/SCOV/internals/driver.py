@@ -23,6 +23,8 @@ __all__ = ["SCOV_helper"]
 
 import os
 
+from SCOV.tctl import CAT
+
 from SUITE.context import thistest
 from SUITE.control import language_info
 from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
@@ -74,15 +76,15 @@ class ListDict(dict):
 # emitted line notes.
 
 r_eln_for = { # relevant emitted line notes
-    "stmt":     elNoteKinds,
-    "decision": elNoteKinds,
-    "mcdc":     elNoteKinds
+    CAT.stmt:     elNoteKinds,
+    CAT.decision: elNoteKinds,
+    CAT.mcdc:     elNoteKinds
     }
 
 r_lxp_for = { # relevant line expectations
-    "stmt":     r_eln_for["stmt"],
-    "decision": r_eln_for["decision"],
-    "mcdc":     r_eln_for["mcdc"]
+    CAT.stmt:     r_eln_for[CAT.stmt],
+    CAT.decision: r_eln_for[CAT.decision],
+    CAT.mcdc:     r_eln_for[CAT.mcdc]
     }
 
 # The set of Report expectations we need to care about varies across
@@ -97,15 +99,15 @@ r_lxp_for = { # relevant line expectations
 # relevant emitted report notes augmented with anti-expectations
 
 r_ern_for = { # relevant emitted report notes
-    "stmt":     tNoteKinds+xNoteKinds+sNoteKinds,
-    "decision": tNoteKinds+xNoteKinds+sNoteKinds+dNoteKinds,
-    "mcdc":     tNoteKinds+xNoteKinds+sNoteKinds+dNoteKinds+cNoteKinds
+    CAT.stmt:     tNoteKinds+xNoteKinds+sNoteKinds,
+    CAT.decision: tNoteKinds+xNoteKinds+sNoteKinds+dNoteKinds,
+    CAT.mcdc:     tNoteKinds+xNoteKinds+sNoteKinds+dNoteKinds+cNoteKinds
     }
 
 r_rxp_for = { # relevant report expectations
-    "stmt":     r_ern_for["stmt"]+rAntiKinds,
-    "decision": r_ern_for["decision"]+rAntiKinds,
-    "mcdc":     r_ern_for["mcdc"]+rAntiKinds,
+    CAT.stmt:     r_ern_for[CAT.stmt]+rAntiKinds,
+    CAT.decision: r_ern_for[CAT.decision]+rAntiKinds,
+    CAT.mcdc:     r_ern_for[CAT.mcdc]+rAntiKinds,
     }
 
 # --------------
@@ -296,12 +298,22 @@ class SCOV_helper:
         self.covctl = covctl
 
         # Internal attributes: Directory where the instantiation takes place,
-        # base prefix of Working Directory names, and original expectations
-        # file.
+        # original expectations file, and base prefix of Working Directory
+        # names
 
         self.homedir = os.getcwd()+"/"
-        self.wdbase  = "tmp_"
         self.xfile   = xfile
+
+        # Reflect the test category in the base prefix of the working
+        # directory name, required for multi-category testcases.
+
+        wdbase_for = {
+            None:         "tmp_",
+            CAT.stmt:     "st_",
+            CAT.decision: "dc_",
+            CAT.mcdc:     "mc_"
+            }
+        self.wdbase  = wdbase_for [self.category]
 
         # { sourcename -> KnoteDict } dictionaries of emitted/expected
         # line/report notes. We'll extract emitted notes from reports when we
@@ -650,13 +662,16 @@ class SCOV_helper:
         # determine when we're running some test of a given catgeory with a
         # stricter --level
 
-        strength = { "stmt": 1,          # category & context level
-                     "decision" : 2,     # category
-                     "mcdc" : 3,         # category
-                     "stmt+decision": 2, # context
-                     "stmt+mcdc": 3,     # context
-                     "stmt+uc_mcdc": 3   # context
-                     }
+        strength = {
+            CAT.stmt: 1,       # categories
+            CAT.decision: 2,
+            CAT.mcdc: 3,
+
+            "stmt": 1,         # context levels
+            "stmt+decision": 2,
+            "stmt+mcdc": 3,
+            "stmt+uc_mcdc": 3
+            }
 
         stricter_level = (
             self.category and
@@ -668,9 +683,9 @@ class SCOV_helper:
         # xcov-level.
 
         strictest_cat_for = {
-            "stmt": "stmt",
-            "stmt+decision" : "decision",
-            "stmt+mcdc": "mcdc"
+            "stmt": CAT.stmt,
+            "stmt+decision" : CAT.decision,
+            "stmt+mcdc": CAT.mcdc
             }
 
         relevance_cat = (
