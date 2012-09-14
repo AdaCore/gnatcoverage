@@ -1,18 +1,17 @@
 digraph G {
-
-	size = "7.5,7.5";
 	compound = true;
+        size = "3.5,3.5";
 	node [ shape = box, style=filled,
-          color = lightblue, fontcolor = black ];
+          color = lightblue, fontcolor = black, fontsize=12 ];
 
 	{
-		root [ label = "Root project", width = 2.5 ];
+		root [ label = "Root project", width = 2.0 ];
 	}
 	{ rank = same ; root };
 
 	{
-		ss_a [ label = "Subsystem A", width = 2.5 ];
-		ss_b [ label = "Subsystem B", width = 2.5 ];
+		ss_a [ label = "Subsystem A", width = 2.0 ];
+		ss_b [ label = "Subsystem B", width = 2.0 ];
 	}
 	{ rank = same ; ss_a; ss_b }
 	root -> ss_a;
@@ -37,7 +36,7 @@ digraph G {
 	ss_b -> sb3;
 
 	{
-		common [ label = "Common", width = 2.5 ];
+		common [ label = "Common", width = 2.0 ];
 	}
 
 	sa1 -> common;

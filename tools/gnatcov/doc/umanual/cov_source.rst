@@ -1121,7 +1121,7 @@ Unix ``grep`` tool to filter::
 Each occurrence of :option:`--scos` on the command line expects a single
 argument which specifies a subset of units of interest. Multiple occurrences
 are allowed and the subsets accumulate. The argument might be either a single
-unit name or a :term:`@listfile argument` expected to contain a list of unit
+unit name or a :term:`@listfile` argument expected to contain a list of unit
 names.
 
 For example, focusing on three Ada units ``u1``, ``u2`` and ``u3`` can be
@@ -1150,9 +1150,57 @@ of interest (that are with the project tree rooted at the given root
 project) may be specified using :option:`--projects`. Coverage analysis is
 then performed for units of interest in each listed project. If only
 :option:`-P` is used, then units of interest from the root project
-itself are considered.
+itself are considered. If :option:`--recursive` is used, imported projects
+are also considered recursively.
 
-Within a given project, units of interest are identified using specific
+As an example, we will consider a root project importing two subsystem
+projects A and B, each of which importing further projects A1, A2, A3,
+B1, B2, B3, with A1 and B3 importing some common code (see :ref:`fig-prjtree`).
+
+.. _fig-prjtree:
+.. figure:: prjtree.*
+  :align: center
+
+  Example project tree
+
+As mentioned above, if only -Proot is given, then coverage analysis is
+done for units of interest in the root project (:ref:`fig-Proot`).
+
+.. _fig-Proot:
+.. figure:: Proot.*
+  :align: center
+
+  ``gnatcov coverage -Proot ...``
+
+You can perform coverage analysis for the Subsystem A project only
+(:ref:`fig-Proot-ss_a`).
+
+.. _fig-Proot-ss_a:
+.. figure:: Proot-ss_a.*
+  :align: center
+
+  ``gnatcov coverage -Proot --projects=subsystem_a ...``
+
+If both the root project and some other project are of interest, the
+root project must be listed explicitly (:ref:`fig-Proot-root-ss_a`).
+
+.. _fig-Proot-root-ss_a:
+.. figure:: Proot-root-ss_a.*
+  :align: center
+
+  ``gnatcov coverage -Proot --projects=root --projects=ss_a``
+
+You can also recursively consider all projects imported by specified
+projects (:ref:`fig-Proot-ss_a-recursive`).
+
+.. _fig-Proot-ss_a-recursive:
+.. figure:: Proot-ss_a-recursive.*
+  :align: center
+
+  ``gnatcov coverage -Proot --projects=subsystem_a --recursive ...``
+
+The above process selects *projects of interest*. Now within each
+of these projects, units of interest are identified using specific
 attributes in the project file. Four attributes can be defined in package
 Coverage: Units, Units_List, Excluded_Units, and Excluded_Units_List.
 
@@ -1196,11 +1244,6 @@ are as follows:
   set comprises all units of the project
 - units determined using the Excluded_Units and Excluded_Units_List
   attributes are then removed from the initial set.
-
-
-By default this is applied only to those exact projects listed on the command
-line. However if if the :option:`--recursive` command line switch is used,
-then this procedure is also applied (recursively) to imported projects.
 
 The list of units to be considered for a given execution of |gcv| can also be
 overridden from the command line using :option:`--units=<UNIT|@LISTFILE>`.

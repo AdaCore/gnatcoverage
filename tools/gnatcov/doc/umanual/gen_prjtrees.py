@@ -2,6 +2,7 @@ import re, subprocess
 
 def render(tree):
   subprocess.call(["dot", "-Tpng", "-o"+tree+".png", tree+".dot"])
+  subprocess.call(["dot", "-Tpdf", "-o"+tree+".pdf", tree+".dot"])
 
 def gen_tree(tmpl, outfile, selected):
   for l in tmpl:

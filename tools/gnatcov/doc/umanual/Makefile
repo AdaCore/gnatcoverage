@@ -33,13 +33,15 @@ copy.html:
 	-mkdir -p $(COPYDIR)
 	rsync -a --delete $(BUILDDIR)/html/ $(COPYDIR)
 
-prepare:
+stamp-prepare: gen_prjtrees.py prjtree.dot ../../version.ads
 	VERSION=$$(sed -n -e 's/.*Version.*"\(.*\)".*/\1/p' ../../version.ads); \
 	perl -pi -e "s#^version =.*#version = \"$$VERSION\"#" conf.py
+	python gen_prjtrees.py
+	touch stamp-prepare
 
-html: prepare
+html: stamp-prepare
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 
-pdf: prepare
+pdf: stamp-prepare
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/pdf
 	make -C $(BUILDDIR)/pdf all-pdf
