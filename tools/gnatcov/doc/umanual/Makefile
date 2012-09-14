@@ -14,7 +14,9 @@ PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
 
-.PHONY: help clean html pdf
+.PHONY: help clean html pdf all
+
+all: html pdf
 
 clean.%:
 	-rm -rf $(BUILDDIR)/$*
