@@ -17,6 +17,7 @@ from SUITE.control import XCOV
 from SCOV.internals.cnotes import xNoteKinds
 
 from internals.tfiles import *
+from gnatpython.fileutils import ls
 
 # What the whole report checker should do
 MATCH_NEXT_PIECE, MATCH_NEXT_LINE = range (2)
@@ -322,9 +323,16 @@ class ReportChecker:
             xregions  = xregions
             )
 
-        self.report = Tfile (
-            "tmp_%s/test.rep" % no_ext(os.path.basename(qde.xfile)),
-            self.__process_line)
+        # ??? This is relying too much on knowledge about how
+        # the testuite driver works ...
+
+        tmpdir = "tmp_" + no_ext(os.path.basename(qde.xfile)).lstrip ("test_")
+        reports = ls (os.path.join (tmpdir, "test.rep"))
+
+        thistest.fail_if (
+            len (reports) != 1, "expected 1 report, found %d" % len (reports))
+
+        self.report = Tfile (reports[0], self.__process_line)
 
         [rpe.check () for rpe in self.rpElements]
 
