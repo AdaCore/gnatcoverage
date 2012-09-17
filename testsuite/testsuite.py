@@ -185,6 +185,12 @@ class TestSuite:
         # qualification mode and then to the user provided expression. Then
         # partition into dead/non_dead according to test.opts.
 
+        if not self.options.quiet:
+            logging.info(
+                "Searching for tests, %s ...",
+                ("matching '%s'" % self.options.run_test)
+                if self.options.run_test else "unfiltered")
+
         self.non_dead_list, self.dead_list = self.partition_testcase_list(
             re_filter(
                 re_filter (
@@ -692,15 +698,9 @@ class TestSuite:
         if not m.options.RTS:
             m.error ("RTS argument missing, mandatory for BSP selection")
 
-        if m.args:
-            # Run only tests matching the provided regexp
-            m.options.run_test = m.args[0]
+        # Determine the test filtering regexp
 
-            if not m.options.quiet:
-                logging.info(
-                    "Searching for tests matching '%s'" % m.options.run_test)
-        else:
-            m.options.run_test = ""
+        m.options.run_test = m.args[0] if m.args else ""
 
         # --qualif-cargs "" should be kept semantically equivalent to absence
         # of --qualif-cargs at all, and forcing a string allows simpler code
