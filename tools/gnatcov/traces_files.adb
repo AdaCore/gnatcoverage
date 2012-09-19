@@ -35,6 +35,9 @@ package body Traces_Files is
      (Fd : File_Descriptor; Kind : Trace_Kind; Base : Traces_Base);
    --  Need comments???
 
+   procedure Dump_Trace_File (Filename : String; Raw : Boolean);
+   --  Dump a trace file, offsetting addresses unless Raw is true
+
    function Make_Trace_Header (Kind : Trace_Kind) return Trace_Header;
    --  Create a trace file header with the given kind
 
@@ -427,34 +430,32 @@ package body Traces_Files is
    -- Dump_Trace_File --
    ---------------------
 
-   procedure Dump_Trace_File (Filename : String)
+   procedure Dump_Trace_File (Filename : String; Raw : Boolean)
    is
       Trace_File : Trace_File_Type;
       Desc : Trace_File_Descriptor;
       E : Trace_Entry;
       Eof : Boolean;
-      Offset : Pc_Type := 0;
+      Offset : Pc_Type;
    begin
       --  Open file
       Open_Trace_File (Filename, Desc, Trace_File);
 
       Dump_Infos (Trace_File);
 
+      if Raw then
+         Offset := 0;
+      else
+         Read_Loadaddr_Trace_Entry (Desc, Trace_File, Offset);
+      end if;
+
       loop
          Read_Trace_Entry (Desc, Eof, E);
          exit when Eof;
 
-         if E.Op = Qemu_Traces.Trace_Op_Special then
-            Offset := E.First;
-         end if;
-
-         if Offset /= 0 then
-            if E.First > Offset then
-               E.First := E.First - Offset;
-               E.Last := E.Last - Offset;
-               Dump_Entry (E);
-            end if;
-         else
+         if Raw or else E.First >= Offset then
+            E.First := E.First - Offset;
+            E.Last := E.Last - Offset;
             Dump_Entry (E);
          end if;
       end loop;
@@ -462,6 +463,20 @@ package body Traces_Files is
       Close_Trace_File (Desc);
       Free (Trace_File);
    end Dump_Trace_File;
+
+   procedure Dump_Trace_File (Filename : String) is
+   begin
+      Dump_Trace_File (Filename, False);
+   end Dump_Trace_File;
+
+   -------------------------
+   -- Dump_Raw_Trace_File --
+   -------------------------
+
+   procedure Dump_Raw_Trace_File (Filename : String) is
+   begin
+      Dump_Trace_File (Filename, True);
+   end Dump_Raw_Trace_File;
 
    -----------------------
    -- Make_Trace_Header --

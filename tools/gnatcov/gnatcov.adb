@@ -143,13 +143,16 @@ procedure GNATcov is
       P ("Debugging commands:");
       New_Line;
       P (" dump-trace FILES");
+      P ("   Display of trace files, slided if necessary");
+      New_Line;
+      P (" dump-trace-raw FILES");
       P ("   Raw display of trace files");
       New_Line;
       P (" dump-trace-base FILES");
-      P ("   Raw display of merged trace files");
+      P ("   Display of merged trace files");
       New_Line;
       P (" dump-trace-asm EXE TRACE_FILES");
-      P ("   Raw display of trace files with assembly code for each trace");
+      P ("   Display of trace files with assembly code for each trace");
       New_Line;
       P (" dump-sections EXEs");
       P (" dump-symbols EXEs");
@@ -624,11 +627,12 @@ procedure GNATcov is
                Outputs.Set_Output_Dir (Option_Parameter (Arg));
 
             elsif Arg = Trace_Option_Short then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                            2 => Cmd_Dump_Trace,
-                                            3 => Cmd_Dump_Trace_Base,
-                                            4 => Cmd_Dump_Trace_Asm,
-                                            5 => Cmd_Run));
+               Check_Option (Arg, Command, (Cmd_Coverage,
+                                            Cmd_Dump_Trace,
+                                            Cmd_Dump_Trace_Raw,
+                                            Cmd_Dump_Trace_Base,
+                                            Cmd_Dump_Trace_Asm,
+                                            Cmd_Run));
 
                --  Tag_Option_Short conflicts with Trace_Option_Short...
                if Command = Cmd_Run then
@@ -638,10 +642,11 @@ procedure GNATcov is
                end if;
 
             elsif Has_Prefix (Arg, Trace_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                            2 => Cmd_Dump_Trace,
-                                            3 => Cmd_Dump_Trace_Base,
-                                            4 => Cmd_Dump_Trace_Asm));
+               Check_Option (Arg, Command, (Cmd_Coverage,
+                                            Cmd_Dump_Trace,
+                                            Cmd_Dump_Trace_Raw,
+                                            Cmd_Dump_Trace_Base,
+                                            Cmd_Dump_Trace_Asm));
                Inputs.Add_Input (Trace_Inputs, Option_Parameter (Arg));
 
             elsif Arg = "--exclude" then
@@ -669,6 +674,7 @@ procedure GNATcov is
 
                   when Cmd_Coverage
                     | Cmd_Dump_Trace
+                    | Cmd_Dump_Trace_Raw
                     | Cmd_Dump_Trace_Base =>
                      Inputs.Add_Input (Trace_Inputs, Arg);
 
@@ -894,6 +900,11 @@ begin
       when Cmd_Dump_Trace =>
          Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
          Inputs.Iterate (Trace_Inputs, Dump_Trace_File'Access);
+         return;
+
+      when Cmd_Dump_Trace_Raw =>
+         Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
+         Inputs.Iterate (Trace_Inputs, Dump_Raw_Trace_File'Access);
          return;
 
       when Cmd_Dump_Trace_Base =>

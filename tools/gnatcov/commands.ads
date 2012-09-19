@@ -28,6 +28,7 @@ package Commands is
       Cmd_Disp_Routines,
       Cmd_Map_Routines,
       Cmd_Dump_Trace,
+      Cmd_Dump_Trace_Raw,
       Cmd_Dump_Trace_Base,
       Cmd_Dump_Trace_Asm,
       Cmd_Dump_Sections,

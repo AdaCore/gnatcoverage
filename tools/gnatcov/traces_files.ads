@@ -110,6 +110,9 @@ package Traces_Files is
    --  Write a trace file of kind Info (no traces base needed)
 
    procedure Dump_Trace_File (Filename : String);
+   --  Dump of a trace file, but handle loadaddr
+
+   procedure Dump_Raw_Trace_File (Filename : String);
    --  Raw dump of a trace file
 
    procedure Create_Trace_File
