@@ -727,11 +727,11 @@ class TestSuite:
         # a couple of binaries we'll need
 
         bindir = os.path.join (prefix, "bin")
-
+        exeext = self.env.host.os.exeext
         if (not os.path.exists (
-                os.path.join (bindir, self.env.target.triplet + "-gcc"))
+                os.path.join (bindir, self.env.target.triplet + "-gcc"+exeext))
             or not os.path.exists (
-                os.path.join (bindir, "gprbuild"))
+                os.path.join (bindir, "gprbuild"+exeext))
             ):
             raise FatalError (
                 'Provided toolchain dir "%s" misses essential binaries' %
