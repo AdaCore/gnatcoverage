@@ -1,5 +1,6 @@
 Check SC with multiple kinds of raise operations, implicit or explicit,
 for language or user defined exceptions in various program contexts.
 
-
+Cases to check are restricted by ZFP limitation on exception propagation,
+intra subprogram only.
 
