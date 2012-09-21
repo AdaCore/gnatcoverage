@@ -124,7 +124,7 @@ devices:
 * **In driver sources, at the end**, a sequence of:
 
   | ``--# <functional_file_name>`` followed by an optional sequence of:
-  | ``--  /regexp/ <expected .xcov note> <expected report notes>`` lines
+  | ``--  /regexp/ <expected .xcov note> ## <expected report notes>`` lines
 
 In the optional sequence at the end of driver sources:
 
@@ -200,11 +200,11 @@ lines with markers::
       end;
 
       --# in_range.adb
-      --  /XcmpMin/  l+ 0
-      --  /XoutMin/  l- s-
-      --  /XcmpMax/  l+ 0
-      --  /XoutMax/  l+ 0
-      --  /Xin/      l- s-
+      --  /XcmpMin/  l+ ## 0
+      --  /XoutMin/  l- ## s-
+      --  /XcmpMax/  l+ ## 0
+      --  /XoutMax/  l+ ## 0
+      --  /Xin/      l- ## s-
 
 The ``<expected .xcov note>`` (2nd) column for ``in_range.adb`` states
 that we expect a ``--annotate=xcov`` output with::
@@ -316,7 +316,7 @@ This makes the ``0`` expressions representative of positive coverage
 expectations in a context where the qualified output report does not
 materialize positive results explicitly.
 
-In the previous example, ``-- /XcmpMax/ l+ 0`` is a way to state that we
+In the previous example, ``-- /XcmpMax/ l+ ## 0`` is a way to state that we
 expect the statement on line 5 (marked with "# XcmpMax") to be covered, and
 the testsuite engine verifies this even though the output report does *not*
 feature any explicit indication to that effect. Technically, we state that we
@@ -367,8 +367,8 @@ that, for example::
   end;
 
   --# check.adb
-  --  /test/   l+ 0
-  --  /action/ l+ 0
+  --  /test/   l+ ## 0
+  --  /action/ l+ ## 0
 
 Now, SC tests also apply when the qualification objectives include, say,
 statement + decision coverage, in which case the tool will perform this test

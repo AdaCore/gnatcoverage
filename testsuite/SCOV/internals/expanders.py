@@ -434,15 +434,18 @@ class RnotesExpander:
 #     sources := "--# " filename_list
 #     filename_list := FILENAME [filename_list]
 #     lx_list := lx <newline> [lx_list]
-#     lx := "-- " lx_lre lx_lnote_list [lx_rnote_list] <newline>
+#     lx := "-- " lx_lre lx_lnote_list " ## " lx_rnote_list <newline>
 #     lx_lre := "/" REGEXP "/"
 #     weak_mark := ~
+
 #     cov_level_choice := <s|d|m|u>
 #     cov_level_list := cov_level_choice [cov_level_list]
 #     cov_level_test := cov_level_list "=>"
+
 #     lx_lnote_list := lx_lnote_choice [";" lx_lnote_list]
 #     lx_lnote_choice := [cov_level_test] [weak_mark] lx_lnote
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
+
 #     lx_rnote_list := lx_rnote_choice [lx_rnote_list]
 #     lx_rnote_choice := [cov_level_test] [weak_mark] lx_rnote
 #     lx_rnote := <s-|s!|dT-|dF-|d!|eT-|eF-|oT-|oF-|c!|x0|x+>[:"TEXT"]
@@ -716,9 +719,9 @@ class XnotesExpander:
 
     # What default notes we expect for what designator text
 
-    builtin_lxs = {"__l-s-": "l- s-",
-                   "__l!d!": "l! d!",
-                   "__l!dT-": "l! dT-"
+    builtin_lxs = {"__l-s-":  "l- ## s-",
+                   "__l!d!":  "l! ## d!",
+                   "__l!dT-": "l! ## dT-"
                    }
 
     def __builtin_lcxs(self, ucx):
@@ -842,14 +845,18 @@ class XnotesExpander:
         spec and return the corresponding LineCX object.
         """
 
-        # Extract the LRE from the rest of the image.
-        m = re.match("\s*/(.*)/\s+([^\s]*)( .*)?", image)
+        # Extract the various parts of interest from the image.
+
+        m = re.match("\s*/(.*?)/\s+([^\s]*) ## (.*)", image)
+        #                 ^^^^^    ^^^^^^^^    ^^^^
+        #                 lre      lnote       rnotes
+
         if m is None:
             raise FatalError(
                 "Invalid '%s' line expectation spec.\n" % image
-                + "Expected /LRE/ lnote [rnotes]")
+                + "Expected /LRE/ lnotes ## rnotes")
 
-        lx_lre    = m.group(1)
+        lx_lre   = m.group(1)
         lx_lnote = XnoteP (text=self.__select_lnote (m.group(2)),
                            stext=None)
 
@@ -910,8 +917,8 @@ class XnotesExpander:
             return [("", text)]
         elif len(result) > 2:
             # Parse error
-            raise FatalError("Note choice %s contains more than one arrow"
-                             % text)
+            raise FatalError(
+                "Note choice %s contains more than one arrow" % text)
         else:
             note = result[1].lstrip(' ')
             lev_list = result[0].rstrip(' ')
