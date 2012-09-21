@@ -7,7 +7,7 @@ begin
 end;
 
 --# orelse.adb
--- /eval0/  l! c!:"A"
--- /eval1/  l! 0
--- /true/   l+ 0
--- /false/  l+ 0
+-- /eval0/  l! ## c!:"A"
+-- /eval1/  l! ## 0
+-- /true/   l+ ## 0
+-- /false/  l+ ## 0

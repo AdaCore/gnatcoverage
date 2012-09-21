@@ -19,9 +19,9 @@ exception
 end;
 
 --# ranges.adb
---  /checkValid/    l+ 0
---  /assignValid/   l+ 0
---  /assignInvalid/ l+ 0
---  /preValid/      l* x+
---  /checkOverlap/  l- s-
+--  /checkValid/    l+ ## 0
+--  /assignValid/   l+ ## 0
+--  /assignInvalid/ l+ ## 0
+--  /preValid/      l* ## x+
+--  /checkOverlap/  l- ## s-
 

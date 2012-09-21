@@ -6,12 +6,12 @@ begin
 end;
 
 --# points.adb
---  /bodySX/   l- s-
---  /bodySY/   l- s-
---  /bodySet/  l- s-
---  /preSXY/   l- s-
---  /retSXY/   l- s-
+--  /bodySX/   l- ## s-
+--  /bodySY/   l- ## s-
+--  /bodySet/  l- ## s-
+--  /preSXY/   l- ## s-
+--  /retSXY/   l- ## s-
 
 --# points.ads
---  /preSX/    l- s-
---  /preSY/    l- s-
+--  /preSX/    l- ## s-
+--  /preSY/    l- ## s-

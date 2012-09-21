@@ -1,9 +1,9 @@
 drivers=outmin|inrange
 
 --# ranges.adb
---  /checkOmin/ l+ 0
---  /outMin/    l+ 0
---  /checkOmax/ l+ 0
---  /outMax/    l- s-
---  /inRange/   l+ 0
+--  /checkOmin/ l+ ## 0
+--  /outMin/    l+ ## 0
+--  /checkOmax/ l+ ## 0
+--  /outMax/    l- ## s-
+--  /inRange/   l+ ## 0
 

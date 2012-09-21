@@ -10,8 +10,8 @@ exception
 end;
 
 --# passor.ads
---  /eval/ l! eT-
+--  /eval/ l! ## eT-
 
 --# passor.adb
---  /eval/ l! eT-
---  /stmt/ l- s-
+--  /eval/ l! ## eT-
+--  /stmt/ l- ## s-

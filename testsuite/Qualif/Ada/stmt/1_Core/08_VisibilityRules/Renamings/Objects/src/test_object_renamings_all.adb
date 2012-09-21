@@ -19,13 +19,13 @@ begin
 end Test_Object_Renamings_All;
 
 --# libray_level_renamings.ads
--- /renaming/         l+ 0
+-- /renaming/         l+ ## 0
 
 --# renamed_objects.adb
--- /get_index/        l+ 0
--- /if_get_index/     l+ 0
--- /else_get_index/   l+ 0
+-- /get_index/        l+ ## 0
+-- /if_get_index/     l+ ## 0
+-- /else_get_index/   l+ ## 0
 
 --# local_renamings.adb
--- /get_comp/         l+ 0
--- /get_another_comp/ l+ 0
+-- /get_comp/         l+ ## 0
+-- /get_another_comp/ l+ ## 0

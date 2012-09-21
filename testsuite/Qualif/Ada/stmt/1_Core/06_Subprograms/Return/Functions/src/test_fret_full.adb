@@ -33,17 +33,17 @@ begin
 end Test_Fret_Full;
 
 --# fret.adb
--- /fun1_start/         l+ 0
--- /fun1_first_return/  l+ 0
--- /fun_1_fin/          l+ 0
+-- /fun1_start/         l+ ## 0
+-- /fun1_first_return/  l+ ## 0
+-- /fun_1_fin/          l+ ## 0
 
--- /fun2_start/         l+ 0
--- /fun2_1_return/      l+ 0
--- /fun2_1_elsif/       l+ 0
--- /fun2_2_return/      l+ 0
--- /fun2_2_elsif/       l+ 0
--- /fun2_case/          l+ 0
--- /fun2_3_return/      l+ 0
--- /fun2_4_return/      l+ 0
--- /fun2_others/        l+ 0
--- /fun_2_fin/          l+ 0
+-- /fun2_start/         l+ ## 0
+-- /fun2_1_return/      l+ ## 0
+-- /fun2_1_elsif/       l+ ## 0
+-- /fun2_2_return/      l+ ## 0
+-- /fun2_2_elsif/       l+ ## 0
+-- /fun2_case/          l+ ## 0
+-- /fun2_3_return/      l+ ## 0
+-- /fun2_4_return/      l+ ## 0
+-- /fun2_others/        l+ ## 0
+-- /fun_2_fin/          l+ ## 0

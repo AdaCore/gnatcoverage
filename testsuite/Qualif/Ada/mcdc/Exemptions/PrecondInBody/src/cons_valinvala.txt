@@ -5,8 +5,8 @@ drivers=_overlap|_no_overlap|invalid_a
 --  effect of check on Rb not demonstrated.
 
 --# ranges.adb
---  /checkValid/    l+ 0
---  /assignValid/   l+ 0
---  /assignInvalid/ l+ 0
---  /preValid/      l* x+
---  /checkOverlap/  l+ 0
+--  /checkValid/    l+ ## 0
+--  /assignValid/   l+ ## 0
+--  /assignInvalid/ l+ ## 0
+--  /preValid/      l* ## x+
+--  /checkOverlap/  l+ ## 0

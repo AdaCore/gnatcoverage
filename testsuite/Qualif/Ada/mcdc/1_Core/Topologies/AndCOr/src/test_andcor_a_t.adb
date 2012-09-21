@@ -7,12 +7,12 @@ begin
 end;
 
 --# andcor.adb
--- /andthen/     l! c!:"Orelse"
--- /orelse/      l! oF-
--- /returnOr/    l+ 0
--- /orTrue/      l+ 0
--- /orFalse/     l- s-
--- /returnTrue/  l+ 0
--- /returnFalse/ l+ 0
--- /returnValue/ l+ 0
--- /decl/ l+ 0
+-- /andthen/     l! ## c!:"Orelse"
+-- /orelse/      l! ## oF-
+-- /returnOr/    l+ ## 0
+-- /orTrue/      l+ ## 0
+-- /orFalse/     l- ## s-
+-- /returnTrue/  l+ ## 0
+-- /returnFalse/ l+ ## 0
+-- /returnValue/ l+ ## 0
+-- /decl/ l+ ## 0

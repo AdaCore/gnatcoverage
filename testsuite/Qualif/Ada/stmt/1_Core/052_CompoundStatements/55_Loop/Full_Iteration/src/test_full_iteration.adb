@@ -41,33 +41,33 @@ begin
 end Test_Full_Iteration;
 
 --# loop_statements.adb
--- /preLoop1/              l+ 0
--- /loop1/                 l+ 0
--- /inloopbeforeexit1/     l+ 0
--- /inloopexit1/           l+ 0
--- /inloopafterexit1/      l+ 0
--- /postLoop1/             l+ 0
--- /preLoop2/              l+ 0
--- /loop2/                 l+ 0
--- /inloopbeforeexit2/     l+ 0
--- /inloopbeforeexitinif2/ l+ 0
--- /inloopexit2/           l+ 0
--- /preLoop3/              l+ 0
--- /inloopexit3/           l+ 0
--- /inloop3/               l+ 0
--- /postLoop3/             l+ 0
--- /preLoop4/              l+ 0
--- /loop4/                 l+ 0
--- /inloopexit4/           l+ 0
--- /inloop4/               l+ 0
+-- /preLoop1/              l+ ## 0
+-- /loop1/                 l+ ## 0
+-- /inloopbeforeexit1/     l+ ## 0
+-- /inloopexit1/           l+ ## 0
+-- /inloopafterexit1/      l+ ## 0
+-- /postLoop1/             l+ ## 0
+-- /preLoop2/              l+ ## 0
+-- /loop2/                 l+ ## 0
+-- /inloopbeforeexit2/     l+ ## 0
+-- /inloopbeforeexitinif2/ l+ ## 0
+-- /inloopexit2/           l+ ## 0
+-- /preLoop3/              l+ ## 0
+-- /inloopexit3/           l+ ## 0
+-- /inloop3/               l+ ## 0
+-- /postLoop3/             l+ ## 0
+-- /preLoop4/              l+ ## 0
+-- /loop4/                 l+ ## 0
+-- /inloopexit4/           l+ ## 0
+-- /inloop4/               l+ ## 0
 
 --# more_loop_statements.adb
--- /preLoop1/              l+ 0
--- /Loop1/                 l+ 0
--- /inLoop1/               l+ 0
--- /inIfinLoop1/           l+ 0
--- /postLoop1/             l+ 0
--- /Loop2/                 l+ 0
--- /inLoop2/               l+ 0
--- /inIfinLoop2/           l+ 0
--- /elab/                  l+ 0
+-- /preLoop1/              l+ ## 0
+-- /Loop1/                 l+ ## 0
+-- /inLoop1/               l+ ## 0
+-- /inIfinLoop1/           l+ ## 0
+-- /postLoop1/             l+ ## 0
+-- /Loop2/                 l+ ## 0
+-- /inLoop2/               l+ ## 0
+-- /inIfinLoop2/           l+ ## 0
+-- /elab/                  l+ ## 0

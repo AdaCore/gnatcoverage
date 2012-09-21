@@ -21,15 +21,15 @@ begin
 end Test_Subtype_Indications_Full;
 
 --# subtype_indications.ads
--- /dcl/ l+ 0
+-- /dcl/ l+ ## 0
 
 --# subtype_indications.adb
--- /1_local_dcl/ l+ 0
--- /1_stmt/      l+ 0
--- /2_local_dcl/ l+ 0
--- /2_stmt/      l+ 0
--- /3_local_dcl/ l+ 0
--- /3_stmt/      l+ 0
+-- /1_local_dcl/ l+ ## 0
+-- /1_stmt/      l+ ## 0
+-- /2_local_dcl/ l+ ## 0
+-- /2_stmt/      l+ ## 0
+-- /3_local_dcl/ l+ ## 0
+-- /3_stmt/      l+ ## 0
 
 
 

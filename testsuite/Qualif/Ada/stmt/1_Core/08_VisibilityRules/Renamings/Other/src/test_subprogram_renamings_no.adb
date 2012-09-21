@@ -14,16 +14,16 @@ begin
 end Test_Subprogram_Renamings_No;
 
 --# lib_level_fun.adb
--- /stmt/     l- s-
+-- /stmt/     l- ## s-
 
 --# lib_level_proc.adb
--- /stmt/     l- s-
+-- /stmt/     l- ## s-
 
 --# pack.adb
--- /local/    l- s-
--- /p1/       l- s-
--- /p2/       l- s-
--- /p3/       l- s-
--- /f1/       l- s-
--- /f2/       l- s-
--- /f3/       l- s-
+-- /local/    l- ## s-
+-- /p1/       l- ## s-
+-- /p2/       l- ## s-
+-- /p3/       l- ## s-
+-- /f1/       l- ## s-
+-- /f2/       l- ## s-
+-- /f3/       l- ## s-

@@ -22,14 +22,14 @@ begin
 end Test_GOTO_Statements_Block_1;
 
 --# goto_statements_block.adb
--- /1inblock/   l+ 0
--- /1if/        l+ 0
--- /in1if/      l+ 0
--- /1goto/      l+ 0
--- /2block/     l- s-
--- /2if/        ~l- ~s-
--- /in2if/      ~l- ~s-
--- /2goto/      ~l- ~s-
--- /after2goto/ ~l- ~s-
--- /afterblock/ l- s-
--- /fin/        l+ 0
+-- /1inblock/   l+ ## 0
+-- /1if/        l+ ## 0
+-- /in1if/      l+ ## 0
+-- /1goto/      l+ ## 0
+-- /2block/     l- ## s-
+-- /2if/        ~l- ## ~s-
+-- /in2if/      ~l- ## ~s-
+-- /2goto/      ~l- ## ~s-
+-- /after2goto/ ~l- ## ~s-
+-- /afterblock/ l- ## s-
+-- /fin/        l+ ## 0

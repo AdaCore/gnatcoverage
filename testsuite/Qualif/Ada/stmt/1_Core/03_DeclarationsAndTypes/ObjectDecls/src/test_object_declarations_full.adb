@@ -130,69 +130,69 @@ begin
 end Test_Object_Declarations_Full;
 
 --# access_swap.adb
---  /stmt/ l+ 0
+--  /stmt/ l+ ## 0
 
 --# integer_swap.adb
---  /stmt/ l+ 0
+--  /stmt/ l+ ## 0
 
 --# matrix_swap.adb
---  /stmt/ l+ 0
+--  /stmt/ l+ ## 0
 
 --# private_swap.adb
---  /stmt/ l+ 0
+--  /stmt/ l+ ## 0
 
 --# record_swap.adb
---  /stmt/ l+ 0
---  /if/   l+ 0
+--  /stmt/ l+ ## 0
+--  /if/   l+ ## 0
 
 --# record_derived_swap.adb
---  /stmt/ l+ 0
---  /if/   l+ 0
+--  /stmt/ l+ ## 0
+--  /if/   l+ ## 0
 
 --# record_impl_init_swap.adb
---  /stmt/ l+ 0
---  /if/   l+ 0
+--  /stmt/ l+ ## 0
+--  /if/   l+ ## 0
 
 --# decls_pack_1.ads
---  /dcls/    l+ 0
---  /g1_dcls/ l+ 0
---  /g2_dcls/ l+ 0
+--  /dcls/    l+ ## 0
+--  /g1_dcls/ l+ ## 0
+--  /g2_dcls/ l+ ## 0
 
 --# decls_pack_1.adb
---  /local_swap/    l+ 0
---  /decl/          l+ 0
---  /stmt/          l+ 0
---  /case1/         l+ 0
---  /case2/         l- s-
+--  /local_swap/    l+ ## 0
+--  /decl/          l+ ## 0
+--  /stmt/          l+ ## 0
+--  /case1/         l+ ## 0
+--  /case2/         l- ## s-
 
---  /g1_local_swap/ l+ 0
---  /g1_decl/       l+ 0
---  /g1_stmt/       l+ 0
+--  /g1_local_swap/ l+ ## 0
+--  /g1_decl/       l+ ## 0
+--  /g1_stmt/       l+ ## 0
 
---  /g2_local_swap/ l+ 0
---  /g2_decl/       l+ 0
---  /g2_stmt/       l+ 0
+--  /g2_local_swap/ l+ ## 0
+--  /g2_decl/       l+ ## 0
+--  /g2_stmt/       l+ ## 0
 
 --# decls_pack_2.ads
---  /dcls/    l+ 0
---  /g1_dcls/ l+ 0
---  /g2_dcls/ ~l+ 0
+--  /dcls/    l+ ## 0
+--  /g1_dcls/ l+ ## 0
+--  /g2_dcls/ ~l+ ## 0
 
 --# decls_pack_2.adb
---  /local_swap/        l+ 0
---  /decl/              l+ 0
---  /stmt/              l+ 0
---  /in_if/             l+ 0
+--  /local_swap/        l+ ## 0
+--  /decl/              l+ ## 0
+--  /stmt/              l+ ## 0
+--  /in_if/             l+ ## 0
 
---  /g1_local_swap/      l+ 0
---  /g1_in_iflocal_swap/ l+ 0
---  /g1_decl/            l+ 0
---  /g1_stmt/            l+ 0
---  /g1_in_if/           l- s-
+--  /g1_local_swap/      l+ ## 0
+--  /g1_in_iflocal_swap/ l+ ## 0
+--  /g1_decl/            l+ ## 0
+--  /g1_stmt/            l+ ## 0
+--  /g1_in_if/           l- ## s-
 
---  /g2_local_swap/      l+ 0
---  /g2_decl/            l+ 0
---  /g2_stmt/            l+ 0
---  /g2_case1/           l+ 0
---  /g2_case2/           l- s-
---  /g2_case3/           l- s-
+--  /g2_local_swap/      l+ ## 0
+--  /g2_decl/            l+ ## 0
+--  /g2_stmt/            l+ ## 0
+--  /g2_case1/           l+ ## 0
+--  /g2_case2/           l- ## s-
+--  /g2_case3/           l- ## s-

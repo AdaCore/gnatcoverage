@@ -7,8 +7,8 @@ begin
 end;
 
 --# colors.adb
---  /case/  l+ 0
---  /red/   l+ 0
---  /green/ l- s-
---  /blue/  l+ 0
+--  /case/  l+ ## 0
+--  /red/   l+ ## 0
+--  /green/ l- ## s-
+--  /blue/  l+ ## 0
 

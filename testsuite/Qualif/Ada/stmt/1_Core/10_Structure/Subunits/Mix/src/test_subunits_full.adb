@@ -20,21 +20,21 @@ begin
 end Test_Subunits_Full;
 
 --# pack-inner-fun-proc.adb
--- /stmt/     l+ 0
+-- /stmt/     l+ ## 0
 
 --# pack-inner-fun.adb
--- /stmt/     l+ 0
--- /if/       l+ 0
--- /else/     l+ 0
+-- /stmt/     l+ ## 0
+-- /if/       l+ ## 0
+-- /else/     l+ ## 0
 
 --# pack-inner.adb
--- /stmt/     l+ 0
+-- /stmt/     l+ ## 0
 
 --# pack-new_value.adb
--- /stmt/     l+ 0
+-- /stmt/     l+ ## 0
 
 --# pack-update.adb
--- /stmt/     l+ 0
+-- /stmt/     l+ ## 0
 
 --# pack.adb
--- /stmt/     l+ 0
+-- /stmt/     l+ ## 0

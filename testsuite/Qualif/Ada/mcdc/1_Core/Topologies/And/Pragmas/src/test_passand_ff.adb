@@ -10,8 +10,8 @@ exception
 end;
 
 --# passand.ads
---  /eval/ l! eT-
+--  /eval/ l! ## eT-
 
 --# passand.adb
---  /eval/ l! eT-
---  /stmt/ l- s-
+--  /eval/ l! ## eT-
+--  /stmt/ l- ## s-

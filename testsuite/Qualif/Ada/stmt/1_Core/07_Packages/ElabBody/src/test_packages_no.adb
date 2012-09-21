@@ -11,8 +11,8 @@ begin
 end Test_Packages_No;
 
 --# library_level_proc.adb
--- /proc/      l- s-
+-- /proc/      l- ## s-
 
 --# pack_1.adb
--- /fun/       l- s-
--- /proc_1/    l- s-
+-- /fun/       l- ## s-
+-- /proc_1/    l- ## s-

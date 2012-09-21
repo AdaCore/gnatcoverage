@@ -31,31 +31,31 @@ begin
 end Test_Block_Statements_Blocks;
 
 --# block_statements.adb
--- /1if/              l+ 0
--- /1dclblock/        l+ 0
--- /1stmtblock/       l+ 0
+-- /1if/              l+ ## 0
+-- /1dclblock/        l+ ## 0
+-- /1stmtblock/       l+ ## 0
 
--- /2if/              l+ 0
--- /2dclblock/        l+ 0
--- /2stmtblock/       l+ 0
--- /21ifstmtblock/    l+ 0
--- /2in1ifstmtblock/  l+ 0
--- /22ifstmtblock/    l+ 0
--- /2in2ifstmtblock/  l+ 0
--- /2stmtblock/       l+ 0
+-- /2if/              l+ ## 0
+-- /2dclblock/        l+ ## 0
+-- /2stmtblock/       l+ ## 0
+-- /21ifstmtblock/    l+ ## 0
+-- /2in1ifstmtblock/  l+ ## 0
+-- /22ifstmtblock/    l+ ## 0
+-- /2in2ifstmtblock/  l+ ## 0
+-- /2stmtblock/       l+ ## 0
 
--- /3stmt/            l+ 0
--- /3inif/            l- s-
--- /3blockstmt/       l+ 0
--- /3loopstmtblock/   l+ 0
--- /3inloopstmtblock/ l+ 0
--- /3handlerblock/    l- s-
+-- /3stmt/            l+ ## 0
+-- /3inif/            l- ## s-
+-- /3blockstmt/       l+ ## 0
+-- /3loopstmtblock/   l+ ## 0
+-- /3inloopstmtblock/ l+ ## 0
+-- /3handlerblock/    l- ## s-
 
--- /4stmt/            l+ 0
--- /4inif/            l- s-
--- /4dclblock/        l+ 0
--- /4blockstmt/       l+ 0
--- /41ifstmtblock/    l+ 0
--- /4in1ifstmtblock/  l+ 0
--- /42ifstmtblock/    l+ 0
--- /4in2ifstmtblock/  l+ 0
+-- /4stmt/            l+ ## 0
+-- /4inif/            l- ## s-
+-- /4dclblock/        l+ ## 0
+-- /4blockstmt/       l+ ## 0
+-- /41ifstmtblock/    l+ ## 0
+-- /4in1ifstmtblock/  l+ ## 0
+-- /42ifstmtblock/    l+ ## 0
+-- /4in2ifstmtblock/  l+ ## 0

@@ -12,16 +12,16 @@ begin
 end Test_Derived_Subprograms_No;
 
 --# subprogram_pack.adb
--- /fun1/       l- s-
--- /fun2/       l- s-
--- /fun3/       l- s-
--- /proc1/      l- s-
--- /proc2/      l- s-
--- /class_wide/ l- s-
+-- /fun1/       l- ## s-
+-- /fun2/       l- ## s-
+-- /fun3/       l- ## s-
+-- /proc1/      l- ## s-
+-- /proc2/      l- ## s-
+-- /class_wide/ l- ## s-
 
 --# derived_1.adb
--- /proc2/      l- s-
+-- /proc2/      l- ## s-
 
 --# derived_2.adb
--- /fun2/       l- s-
--- /proc2/      l- s-
+-- /fun2/       l- ## s-
+-- /proc2/      l- ## s-

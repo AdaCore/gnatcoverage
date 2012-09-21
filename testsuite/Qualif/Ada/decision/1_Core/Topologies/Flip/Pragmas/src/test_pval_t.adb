@@ -8,10 +8,10 @@ exception
 end;
 
 --# pval.ads
--- /eval/    l! o!
+-- /eval/    l! ## o!
 
 --# pval.adb
--- /eval/    l! o!
--- /returnTrue/  l- s-
--- /returnFalse/ l- s-
--- /returnVal/   l- s-
+-- /eval/    l! ## o!
+-- /returnTrue/  l- ## s-
+-- /returnFalse/ l- ## s-
+-- /returnVal/   l- ## s-

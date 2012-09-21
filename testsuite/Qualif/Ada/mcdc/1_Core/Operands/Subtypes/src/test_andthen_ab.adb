@@ -12,4 +12,4 @@ begin
 end;
 
 --# andthen_variants.adb
---  /evaluate/ l+ 0
+--  /evaluate/ l+ ## 0

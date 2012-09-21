@@ -31,15 +31,15 @@ end;
 
 --# slists-fault.adb
 
--- /AF_decl/  l+ 0
--- /AF_init/  l+ 0
--- /AF_while/ l+ 0
--- /AF_ren/   l+ 0
--- /AF_evA/   l+ 0
--- /AF_skip/  l- s-
--- /AF_evLB/  l+ 0
--- /AF_evHB/  l+ 0
--- /AF_fault/ l+ 0
--- /AF_ok/    l+ 0
--- /AF_next/  l+ 0
+-- /AF_decl/  l+ ## 0
+-- /AF_init/  l+ ## 0
+-- /AF_while/ l+ ## 0
+-- /AF_ren/   l+ ## 0
+-- /AF_evA/   l+ ## 0
+-- /AF_skip/  l- ## s-
+-- /AF_evLB/  l+ ## 0
+-- /AF_evHB/  l+ ## 0
+-- /AF_fault/ l+ ## 0
+-- /AF_ok/    l+ ## 0
+-- /AF_next/  l+ ## 0
 

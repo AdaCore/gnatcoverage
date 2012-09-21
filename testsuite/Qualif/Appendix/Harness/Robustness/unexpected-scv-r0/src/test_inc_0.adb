@@ -8,4 +8,4 @@ begin
 end;
 
 --# inc.adb
---  /inc/ l- 0
+--  /inc/ l- ## 0

@@ -16,14 +16,14 @@ begin
 end Test_Pret_Part;
 
 --# pret.adb
--- /proc1_1/            l+ 0
--- /proc1_return/       l- s-
--- /proc1_after_return/ l+ 0
+-- /proc1_1/            l+ ## 0
+-- /proc1_return/       l- ## s-
+-- /proc1_after_return/ l+ ## 0
 
--- /proc2_start/        l+ 0
--- /proc2_1/            l+ 0
--- /proc2_2/            l- s-
--- /proc2_3/            l- s-
--- /proc2_others/       l- s-
--- /proc2_fin/          l- s-
+-- /proc2_start/        l+ ## 0
+-- /proc2_1/            l+ ## 0
+-- /proc2_2/            l- ## s-
+-- /proc2_3/            l- ## s-
+-- /proc2_others/       l- ## s-
+-- /proc2_fin/          l- ## s-
 

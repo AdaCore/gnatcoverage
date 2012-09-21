@@ -14,9 +14,9 @@ begin
 end Test_Inlined_Subprograms_Full;
 
 --# inlined_subprograms.adb
--- /proc_no_inline/ l+ 0
--- /proc1/          l+ 0
--- /proc2/          l+ 0
--- /fun_no_inline/  l+ 0
--- /fun1/           l+ 0
--- /fun2/           l+ 0
+-- /proc_no_inline/ l+ ## 0
+-- /proc1/          l+ ## 0
+-- /proc2/          l+ ## 0
+-- /fun_no_inline/  l+ ## 0
+-- /fun1/           l+ ## 0
+-- /fun2/           l+ ## 0

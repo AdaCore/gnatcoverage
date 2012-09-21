@@ -6,7 +6,7 @@ begin
 end;
 
 --# flip.adb
--- /eval/    l! oT-
--- /returnTrue/  l- s-
--- /returnFalse/ l+ 0
--- /returnVal/   l+ 0
+-- /eval/    l! ## oT-
+-- /returnTrue/  l- ## s-
+-- /returnFalse/ l+ ## 0
+-- /returnVal/   l+ ## 0

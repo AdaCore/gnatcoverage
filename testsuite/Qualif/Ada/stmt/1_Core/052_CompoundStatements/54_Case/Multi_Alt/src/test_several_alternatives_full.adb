@@ -91,43 +91,43 @@ begin
 end Test_Several_Alternatives_Full;
 
 --# case_statements.adb
--- /colorcase/       l+ 0
--- /white/           l+ 0
--- /red/             l+ 0
--- /yellow/          l+ 0
--- /green/           l+ 0
--- /blue/            l+ 0
--- /brown/           l+ 0
--- /black/           l+ 0
--- /valcase/         l+ 0
--- /1case/           l+ 0
--- /2case/           l+ 0
--- /4case/           l+ 0
--- /7case/           l+ 0
--- /others/          l+ 0
+-- /colorcase/       l+ ## 0
+-- /white/           l+ ## 0
+-- /red/             l+ ## 0
+-- /yellow/          l+ ## 0
+-- /green/           l+ ## 0
+-- /blue/            l+ ## 0
+-- /brown/           l+ ## 0
+-- /black/           l+ ## 0
+-- /valcase/         l+ ## 0
+-- /1case/           l+ ## 0
+-- /2case/           l+ ## 0
+-- /4case/           l+ ## 0
+-- /7case/           l+ ## 0
+-- /others/          l+ ## 0
 
 --# more_case_statements.adb
--- /caseprime/       l+ 0
--- /1prime/          l+ 0
--- /2prime/          l+ 0
--- /3prime/          l+ 0
--- /4prime/          l+ 0
--- /5prime/          l+ 0
--- /6prime/          l+ 0
--- /7prime/          l+ 0
--- /8prime/          l+ 0
--- /9prime/          l+ 0
--- /10prime/         l+ 0
--- /othersprim/      l+ 0
--- /adjust/          l+ 0
--- /1adjust/         l+ 0
--- /2adjust/         l+ 0
--- /100adjust/       l+ 0
--- /othersadjust/    l+ 0
--- /elab/            l+ 0
--- /1elab/           l+ 0
--- /2elab/           l- s-
--- /otherselabint/   l- s-
--- /whiteelab/       l+ 0
--- /blueelab/        l- s-
--- /otherselabcolor/ l- s-
+-- /caseprime/       l+ ## 0
+-- /1prime/          l+ ## 0
+-- /2prime/          l+ ## 0
+-- /3prime/          l+ ## 0
+-- /4prime/          l+ ## 0
+-- /5prime/          l+ ## 0
+-- /6prime/          l+ ## 0
+-- /7prime/          l+ ## 0
+-- /8prime/          l+ ## 0
+-- /9prime/          l+ ## 0
+-- /10prime/         l+ ## 0
+-- /othersprim/      l+ ## 0
+-- /adjust/          l+ ## 0
+-- /1adjust/         l+ ## 0
+-- /2adjust/         l+ ## 0
+-- /100adjust/       l+ ## 0
+-- /othersadjust/    l+ ## 0
+-- /elab/            l+ ## 0
+-- /1elab/           l+ ## 0
+-- /2elab/           l- ## s-
+-- /otherselabint/   l- ## s-
+-- /whiteelab/       l+ ## 0
+-- /blueelab/        l- ## s-
+-- /otherselabcolor/ l- ## s-

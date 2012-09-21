@@ -14,28 +14,28 @@ begin
 end Test_Exemptions_No_Call;
 
 --# exemptions.ads
--- /decl/              l+ 0
--- /xdecl/             l# x0
--- /negI/              l+ 0
+-- /decl/              l+ ## 0
+-- /xdecl/             l# ## x0
+-- /negI/              l+ ## 0
 
 --# exemptions.adb
--- /xswap/             l* x+
--- /swap_stmt/         l- s-
+-- /xswap/             l* ## x+
+-- /swap_stmt/         l- ## s-
 
--- /factorial/         l- s-
--- /1_factorial/       l- s-
--- /xfactorial/        l* x+
--- /elsif_factorial/   l- s-
--- /rec_factorial/     l- s-
+-- /factorial/         l- ## s-
+-- /1_factorial/       l- ## s-
+-- /xfactorial/        l* ## x+
+-- /elsif_factorial/   l- ## s-
+-- /rec_factorial/     l- ## s-
 
--- /another_swap/      l+ 0
+-- /another_swap/      l+ ## 0
 
--- /another_factorial/ l- s-
--- /in_loop_a_f/       l- s-
--- /in_if_a_f/         l- s-
--- /handler_a_f/       l- s-
+-- /another_factorial/ l- ## s-
+-- /in_loop_a_f/       l- ## s-
+-- /in_if_a_f/         l- ## s-
+-- /handler_a_f/       l- ## s-
 
--- /xelab_1/           l# x0
--- /elab/              l+ 0
--- /xelab_2/           l# x0
+-- /xelab_1/           l# ## x0
+-- /elab/              l+ ## 0
+-- /xelab_2/           l# ## x0
 

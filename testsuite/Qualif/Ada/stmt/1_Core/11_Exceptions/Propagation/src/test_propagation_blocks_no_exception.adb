@@ -17,16 +17,16 @@ begin
 end Test_Propagation_Blocks_No_Exception;
 
 --#  pack.adb
--- /if1/            l+ 0
--- /raise1/         l- s-
--- /if2/            l+ 0
--- /raise2/         l- s-
--- /after_raise2/   l+ 0
--- /after_ce_raise/ l+ 0
--- /handler_CE/     l- s-
--- /after_block_1/  l+ 0
--- /handler_E1/     l- s-
--- /after_block_2/  l+ 0
--- /handler_E2/     l- s-
--- /after_block_3/  l+ 0
--- /handler_others/ l- s-
+-- /if1/            l+ ## 0
+-- /raise1/         l- ## s-
+-- /if2/            l+ ## 0
+-- /raise2/         l- ## s-
+-- /after_raise2/   l+ ## 0
+-- /after_ce_raise/ l+ ## 0
+-- /handler_CE/     l- ## s-
+-- /after_block_1/  l+ ## 0
+-- /handler_E1/     l- ## s-
+-- /after_block_2/  l+ ## 0
+-- /handler_E2/     l- ## s-
+-- /after_block_3/  l+ ## 0
+-- /handler_others/ l- ## s-

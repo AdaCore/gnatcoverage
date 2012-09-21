@@ -10,7 +10,7 @@ begin
 end;
 
 --# notes.adb
---  /cnote/ l- s-
---  /dtne/  l- s-
---  /dfne/  l+ 0
+--  /cnote/ l- ## s-
+--  /dtne/  l- ## s-
+--  /dfne/  l+ ## 0
 

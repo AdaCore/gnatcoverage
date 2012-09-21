@@ -9,6 +9,6 @@ exception
 end;
 
 --# fuand.adb
---  /eval/  l! dF-
---  /true/  l+ 0
---  /false/ l- s-
+--  /eval/  l! ## dF-
+--  /true/  l+ ## 0
+--  /false/ l- ## s-

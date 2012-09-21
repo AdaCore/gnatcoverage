@@ -8,6 +8,6 @@ exception
 end;
 
 --# fuor.adb
---  /eval/  l+ 0
---  /true/  l- s-
---  /false/ l- s-
+--  /eval/  l+ ## 0
+--  /true/  l- ## s-
+--  /false/ l- ## s-

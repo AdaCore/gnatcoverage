@@ -10,4 +10,4 @@ begin
 end;
 
 --# counters.adb
--- /DecX/ l- s-
+-- /DecX/ l- ## s-

@@ -8,8 +8,8 @@ begin
 end;
 
 --# notand.adb
---  /eval(Stmt|Other)/  l+ 0
---  /decisionTrue/  l+ 0
---  /decisionFalse/ l+ 0
---  /returnValue/   l+ 0
---  /decl/   l+ 0
+--  /eval(Stmt|Other)/  l+ ## 0
+--  /decisionTrue/  l+ ## 0
+--  /decisionFalse/ l+ ## 0
+--  /returnValue/   l+ ## 0
+--  /decl/   l+ ## 0

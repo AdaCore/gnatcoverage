@@ -14,11 +14,11 @@ end;
 
 --# slists-count.adb
 
--- /CO_decl/   ~l+ 0
--- /CO_init/   l+ 0
--- /CO_while/  l+ 0
--- /CO_test/   l- s-
--- /CO_incT/   l- s-
--- /CO_incF/   l- s-
--- /CO_next/   l- s-
+-- /CO_decl/   ~l+ ## 0
+-- /CO_init/   l+ ## 0
+-- /CO_while/  l+ ## 0
+-- /CO_test/   l- ## s-
+-- /CO_incT/   l- ## s-
+-- /CO_incF/   l- ## s-
+-- /CO_next/   l- ## s-
 

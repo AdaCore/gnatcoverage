@@ -11,13 +11,13 @@ begin
 end Test_GOTO_Statements_Straight_3;
 
 --# goto_statements_straight.adb
--- /1if/         l+ 0
--- /1goto/       l- s-
--- /2if/         l+ 0
--- /2goto/       l- s-
--- /after2goto/  l+ 0
--- /3goto/       l+ 0
--- /after3goto/  l- s-
--- /4goto/       l- s-
--- /after4goto/  l- s-
--- /fin/         l+ 0
+-- /1if/         l+ ## 0
+-- /1goto/       l- ## s-
+-- /2if/         l+ ## 0
+-- /2goto/       l- ## s-
+-- /after2goto/  l+ ## 0
+-- /3goto/       l+ ## 0
+-- /after3goto/  l- ## s-
+-- /4goto/       l- ## s-
+-- /after4goto/  l- ## s-
+-- /fin/         l+ ## 0

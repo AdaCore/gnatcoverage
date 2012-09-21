@@ -15,12 +15,12 @@ end;
 --  T F F   F X F
 
 --# add.adb
--- /tover0/  l! c!:"Right"
--- /tover1/  l! 0
--- /retp0/   l+ 0
--- /retp1/   l+ 0
--- /tunder0/ l! dT-
--- /tunder1/ l! 0
--- /retm0/   l- s-
--- /retm1/   l- 0c
--- /fault/   l+ 0
+-- /tover0/  l! ## c!:"Right"
+-- /tover1/  l! ## 0
+-- /retp0/   l+ ## 0
+-- /retp1/   l+ ## 0
+-- /tunder0/ l! ## dT-
+-- /tunder1/ l! ## 0
+-- /retm0/   l- ## s-
+-- /retm1/   l- ## 0c
+-- /fault/   l+ ## 0

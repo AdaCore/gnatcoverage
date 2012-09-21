@@ -8,10 +8,10 @@ begin
 end;
 
 --# stacks.adb
--- /xregion/   l* x+
+-- /xregion/   l* ## x+
 
--- /push_decl/ l- s-
--- /push_body/ l- s-
--- /pop_decl/  l- s-
--- /pop_body/  l- s-
--- /err_body/  l- s-
+-- /push_decl/ l- ## s-
+-- /push_body/ l- ## s-
+-- /pop_decl/  l- ## s-
+-- /pop_body/  l- ## s-
+-- /err_body/  l- ## s-

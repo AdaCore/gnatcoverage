@@ -6,8 +6,8 @@ begin
 end;
 
 --# passand.ads
---  /eval/ l- s-
+--  /eval/ l- ## s-
 
 --# passand.adb
---  /eval/ l- s-
---  /stmt/ l- s-
+--  /eval/ l- ## s-
+--  /stmt/ l- ## s-

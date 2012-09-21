@@ -9,5 +9,5 @@ begin
 end;
 
 --# overloads.adb
---  /flipx/  l- s-
---  /flipb/  l+ 0
+--  /flipx/  l- ## s-
+--  /flipb/  l+ ## 0

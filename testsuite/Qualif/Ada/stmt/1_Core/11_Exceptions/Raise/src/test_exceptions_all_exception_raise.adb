@@ -36,46 +36,46 @@ begin
 end Test_Exceptions_All_Exception_Raise;
 
 --#  pack.adb
--- /proc1/                          l+ 0
--- /raise_proc1/                    l+ 0
--- /no_raise_proc1/                 l- s-
+-- /proc1/                          l+ ## 0
+-- /raise_proc1/                    l+ ## 0
+-- /no_raise_proc1/                 l- ## s-
 
--- /fun1/                           l+ 0
--- /raise_fun1/                     l+ 0
--- /no_raise_fun1/                  l- s-
+-- /fun1/                           l+ ## 0
+-- /raise_fun1/                     l+ ## 0
+-- /no_raise_fun1/                  l- ## s-
 
--- /proc2/                          l+ 0
--- /raise_proc2/                    l+ 0
--- /no_raise_proc2/                 l- s-
+-- /proc2/                          l+ ## 0
+-- /raise_proc2/                    l+ ## 0
+-- /no_raise_proc2/                 l- ## s-
 
--- /fun2/                           l+ 0
--- /raise_fun2/                     l+ 0
--- /no_raise_fun2/                  l- s-
+-- /fun2/                           l+ ## 0
+-- /raise_fun2/                     l+ ## 0
+-- /no_raise_fun2/                  l- ## s-
 
--- /proc3/                          l+ 0
--- /no_raise_proc3/                 l- s-
--- /raise_proc3/                    l+ 0
+-- /proc3/                          l+ ## 0
+-- /no_raise_proc3/                 l- ## s-
+-- /raise_proc3/                    l+ ## 0
 
--- /fun3/                           l+ 0
--- /raise_fun3/                     l+ 0
--- /no_raise_fun3/                  l- s-
+-- /fun3/                           l+ ## 0
+-- /raise_fun3/                     l+ ## 0
+-- /no_raise_fun3/                  l- ## s-
 
--- /proc4/                          l+ 0
--- /raise_my_exception_proc4/       l- s-
--- /after_raise_proc4/              l+ 0
--- /raise_constraint_error_proc4/   l+ 0
--- /elsif_proc4/                    l- s-
--- /in_elsif_proc4/                 l- s-
--- /after_if_proc4/                 l- s-
--- /constraint_error_handler_proc4/ l+ 0
--- /others_handler_proc4/           l- s-
+-- /proc4/                          l+ ## 0
+-- /raise_my_exception_proc4/       l- ## s-
+-- /after_raise_proc4/              l+ ## 0
+-- /raise_constraint_error_proc4/   l+ ## 0
+-- /elsif_proc4/                    l- ## s-
+-- /in_elsif_proc4/                 l- ## s-
+-- /after_if_proc4/                 l- ## s-
+-- /constraint_error_handler_proc4/ l+ ## 0
+-- /others_handler_proc4/           l- ## s-
 
--- /fun4/                           l+ 0
--- /raise_constraint_error_fun4/    l+ 0
--- /after_raise_fun4/               l- s-
--- /raise_my_exception_fun4/        l- s-
--- /elsif_fun4/                     l- s-
--- /in_elsif_fun4/                  l- s-
--- /after_if_fun4/                  l- s-
--- /my_exception_handler_fun4/      l- s-
--- /others_handler_fun4/            l+ 0
+-- /fun4/                           l+ ## 0
+-- /raise_constraint_error_fun4/    l+ ## 0
+-- /after_raise_fun4/               l- ## s-
+-- /raise_my_exception_fun4/        l- ## s-
+-- /elsif_fun4/                     l- ## s-
+-- /in_elsif_fun4/                  l- ## s-
+-- /after_if_fun4/                  l- ## s-
+-- /my_exception_handler_fun4/      l- ## s-
+-- /others_handler_fun4/            l+ ## 0

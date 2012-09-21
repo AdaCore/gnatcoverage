@@ -6,7 +6,7 @@ begin
 end;
 
 --# notes.adb
---  /cnote/ l- s-
---  /dtne/  l- s-
---  /dfne/  l- s-
+--  /cnote/ l- ## s-
+--  /dtne/  l- ## s-
+--  /dfne/  l- ## s-
 

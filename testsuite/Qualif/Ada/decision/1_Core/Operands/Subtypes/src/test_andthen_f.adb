@@ -10,7 +10,7 @@ begin
 end;
 
 --# andthen_variants.adb
---  /eval/  l! dT-
---  /true/  l- s-
---  /false/ l+ 0
+--  /eval/  l! ## dT-
+--  /true/  l- ## s-
+--  /false/ l+ ## 0
 

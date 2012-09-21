@@ -6,5 +6,5 @@ begin
 end;
 
 --# sub_services.adb sub_services-flipx.adb sub_services-flipb.adb
---  /flipx/ l- s-
---  /flipb/ l+ 0
+--  /flipx/ l- ## s-
+--  /flipb/ l+ ## 0

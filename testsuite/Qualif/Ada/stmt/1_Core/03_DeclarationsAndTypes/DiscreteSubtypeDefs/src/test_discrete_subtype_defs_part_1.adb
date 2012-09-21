@@ -17,19 +17,19 @@ begin
 end Test_Discrete_Subtype_Defs_Part_1;
 
 --# discrete_subtype_defs.ads
--- /dcl/    l+ 0
--- /g1_dcl/ l+ 0
--- /g1_dcl/ ~l- ~s-
+-- /dcl/    l+ ## 0
+-- /g1_dcl/ l+ ## 0
+-- /g1_dcl/ ~l- ## ~s-
 
 --# discrete_subtype_defs.adb
--- /1_local_dcl/ l+ 0
--- /1_stmt/      l+ 0
--- /1_1_loop/    l+ 0
--- /1_2_loop/    l+ 0
--- /1_if/        l- s-
+-- /1_local_dcl/ l+ ## 0
+-- /1_stmt/      l+ ## 0
+-- /1_1_loop/    l+ ## 0
+-- /1_2_loop/    l+ ## 0
+-- /1_if/        l- ## s-
 
--- /2_local_dcl/ l- s-
--- /2_stmt/      l- s-
--- /2_1_loop/    l- s-
--- /2_2_loop/    l- s-
--- /2_if/        l- s-
+-- /2_local_dcl/ l- ## s-
+-- /2_stmt/      l- ## s-
+-- /2_1_loop/    l- ## s-
+-- /2_2_loop/    l- ## s-
+-- /2_if/        l- ## s-

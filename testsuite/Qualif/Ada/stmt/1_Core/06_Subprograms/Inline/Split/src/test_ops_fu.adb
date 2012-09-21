@@ -9,6 +9,6 @@ begin
 end;
 
 --# ops.adb
---  /eval/ ~l+ 0
---  /up/   l+ 0
---  /down/ l+ 0
+--  /eval/ ~l+ ## 0
+--  /up/   l+ ## 0
+--  /down/ l+ ## 0

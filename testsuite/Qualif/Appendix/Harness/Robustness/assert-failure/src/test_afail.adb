@@ -6,4 +6,4 @@ begin
 end;
 
 --# test_afail.adb
---  /assert/ l+ 0
+--  /assert/ l+ ## 0

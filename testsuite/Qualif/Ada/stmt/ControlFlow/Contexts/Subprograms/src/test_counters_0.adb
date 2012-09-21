@@ -8,4 +8,4 @@ begin
 end;
 
 --# counters.adb
--- /./ l- s-
+-- /./ l- ## s-

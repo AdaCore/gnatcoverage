@@ -13,15 +13,15 @@ end;
 
 --# slists-fault.adb
 
--- /AF_decl/  l+ 0
--- /AF_init/  l+ 0
--- /AF_while/ l! dT-
--- /AF_ren/   l- s-
--- /AF_evA/   l- s-
--- /AF_skip/  l- s-
--- /AF_evLB/  l- s-
--- /AF_evHB/  l- 0c
--- /AF_fault/ l- s-
--- /AF_ok/    l- s-
--- /AF_next/  l- s-
+-- /AF_decl/  l+ ## 0
+-- /AF_init/  l+ ## 0
+-- /AF_while/ l! ## dT-
+-- /AF_ren/   l- ## s-
+-- /AF_evA/   l- ## s-
+-- /AF_skip/  l- ## s-
+-- /AF_evLB/  l- ## s-
+-- /AF_evHB/  l- ## 0c
+-- /AF_fault/ l- ## s-
+-- /AF_ok/    l- ## s-
+-- /AF_next/  l- ## s-
 

@@ -6,9 +6,9 @@ begin
 end;
 
 --# ops.adb
--- /incOp/     l- s-
--- /incCheck/  l. 0
--- /incCount/  l. 0
--- /elabOp/    l+ 0
--- /elabCheck/ l. 0
--- /elabCount/ l. 0
+-- /incOp/     l- ## s-
+-- /incCheck/  l. ## 0
+-- /incCount/  l. ## 0
+-- /elabOp/    l+ ## 0
+-- /elabCheck/ l. ## 0
+-- /elabCount/ l. ## 0

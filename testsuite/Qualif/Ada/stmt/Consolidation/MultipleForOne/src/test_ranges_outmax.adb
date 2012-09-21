@@ -12,8 +12,8 @@ begin
 end;
 
 --# ranges.adb
---  /checkOmin/ l+ 0
---  /outMin/    l- s-
---  /checkOmax/ l+ 0
---  /outMax/    l+ 0
---  /inRange/   l- s-
+--  /checkOmin/ l+ ## 0
+--  /outMin/    l- ## s-
+--  /checkOmax/ l+ ## 0
+--  /outMax/    l+ ## 0
+--  /inRange/   l- ## s-

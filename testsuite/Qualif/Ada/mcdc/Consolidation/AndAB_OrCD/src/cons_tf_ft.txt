@@ -1,7 +1,7 @@
 drivers=_tf|_ft
 
 --# a1o2.adb
---  /valueF/ l! dT-
---  /true/  l- s-
---  /false/ l+ 0
---  /evals/  l! c!:"B" # c!:"D"
+--  /valueF/ l! ## dT-
+--  /true/  l- ## s-
+--  /false/ l+ ## 0
+--  /evals/  l! ## c!:"B" # c!:"D"

@@ -10,8 +10,8 @@ begin
 end;
 
 --# passor.ads
---  /eval/ l+ 0
+--  /eval/ l+ ## 0
 
 --# passor.adb
---  /eval/ l+ 0
---  /stmt/ l+ 0
+--  /eval/ l+ ## 0
+--  /stmt/ l+ ## 0

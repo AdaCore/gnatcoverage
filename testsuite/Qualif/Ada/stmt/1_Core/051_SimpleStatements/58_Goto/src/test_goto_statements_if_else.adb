@@ -19,19 +19,19 @@ begin
 end Test_GOTO_Statements_If_Else;
 
 --# goto_statements_if.adb
--- /if/         l+ 0
--- /1if/        l- s-
--- /1goto/      l- s-
--- /2if/        l- s-
--- /2goto/      l- s-
--- /inif/       l- s-
--- /elsif/      l+ 0
--- /3if/        l- s-
--- /3goto/      l- s-
--- /inelsif/    l- s-
--- /4if/        l+ 0
--- /4goto/      l+ 0
--- /inelse/     l- s-
--- /5goto/      l- s-
--- /after5goto/ l- s-
--- /fin/        l+ 0
+-- /if/         l+ ## 0
+-- /1if/        l- ## s-
+-- /1goto/      l- ## s-
+-- /2if/        l- ## s-
+-- /2goto/      l- ## s-
+-- /inif/       l- ## s-
+-- /elsif/      l+ ## 0
+-- /3if/        l- ## s-
+-- /3goto/      l- ## s-
+-- /inelsif/    l- ## s-
+-- /4if/        l+ ## 0
+-- /4goto/      l+ ## 0
+-- /inelse/     l- ## s-
+-- /5goto/      l- ## s-
+-- /after5goto/ l- ## s-
+-- /fin/        l+ ## 0

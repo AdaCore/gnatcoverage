@@ -33,5 +33,5 @@ begin
 end;
 
 --# expr.adb
---  /eval/  l+ 0
---  /latch/ l+ 0
+--  /eval/  l+ ## 0
+--  /latch/ l+ ## 0

@@ -39,17 +39,17 @@ begin
 end Test_Subprogram_Decls_Full;
 
 --# library_level_fun.adb
--- /fun/        l+ 0
+-- /fun/        l+ ## 0
 
 --# library_level_proc.adb
--- /proc/       l+ 0
+-- /proc/       l+ ## 0
 
 --# subprogram_pack.adb
--- /fun1/       l+ 0
--- /fun2/       l+ 0
--- /proc1/      l+ 0
--- /proc2/      l+ 0
--- /proc3/      l+ 0
--- /proc4/      l+ 0
--- /local_proc/ l+ 0
--- /local_fun/  l+ 0
+-- /fun1/       l+ ## 0
+-- /fun2/       l+ ## 0
+-- /proc1/      l+ ## 0
+-- /proc2/      l+ ## 0
+-- /proc3/      l+ ## 0
+-- /proc4/      l+ ## 0
+-- /local_proc/ l+ ## 0
+-- /local_fun/  l+ ## 0

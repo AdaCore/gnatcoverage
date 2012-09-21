@@ -7,4 +7,4 @@ begin
 end;
 
 --# tipos.adb
---  /xblock/  l# x0:"test exempting all"
+--  /xblock/  l# ## x0:"test exempting all"

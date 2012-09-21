@@ -28,19 +28,19 @@ begin
 end Test_Instantiations_Full;
 
 --# pack.adb
--- /new_value_g/   l+ 0
--- /swap/          l+ 0
--- /proc/          l+ 0
+-- /new_value_g/   l+ ## 0
+-- /swap/          l+ ## 0
+-- /proc/          l+ ## 0
 
 --#  stacks_g.ads
--- /elab/          l+ 0
+-- /elab/          l+ ## 0
 
 --#  stacks_g.adb
--- /push/          l+ 0
--- /pop/           l+ 0
--- /n_values/      l+ 0
--- /default_stack/ l+ 0
--- /elab/          l+ 0
+-- /push/          l+ ## 0
+-- /pop/           l+ ## 0
+-- /n_values/      l+ ## 0
+-- /default_stack/ l+ ## 0
+-- /elab/          l+ ## 0
 
 --# update_g.adb
--- /stmt/          l+ 0
+-- /stmt/          l+ ## 0

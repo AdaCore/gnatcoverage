@@ -10,21 +10,21 @@ begin
 end Test_Subunits_No;
 
 --# pack-inner-fun-proc.adb
--- /stmt/     l- s-
+-- /stmt/     l- ## s-
 
 --# pack-inner-fun.adb
--- /stmt/     l- s-
--- /if/       l- s-
--- /else/     l- s-
+-- /stmt/     l- ## s-
+-- /if/       l- ## s-
+-- /else/     l- ## s-
 
 --# pack-inner.adb
--- /stmt/     l+ 0
+-- /stmt/     l+ ## 0
 
 --# pack-new_value.adb
--- /stmt/     l- s-
+-- /stmt/     l- ## s-
 
 --# pack-update.adb
--- /stmt/     l- s-
+-- /stmt/     l- ## s-
 
 --# pack.adb
--- /stmt/     l- s-
+-- /stmt/     l- ## s-

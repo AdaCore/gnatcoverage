@@ -11,7 +11,7 @@ begin
 end;
 
 --# expr.adb
---  /evalOr/   s=>l+;dum=>l! s=>0, dum=>dF-
---  /latchOr/  l+ 0
---  /evalAnd/  s=>l+;dum=>l! s=>0, dum=>dT-
---  /latchAnd/ l- s-
+--  /evalOr/   s=>l+;dum=>l! ## s=>0, dum=>dF-
+--  /latchOr/  l+ ## 0
+--  /evalAnd/  s=>l+;dum=>l! ## s=>0, dum=>dT-
+--  /latchAnd/ l- ## s-

@@ -34,33 +34,33 @@ begin
 end Test_No_Iteration;
 
 --# loop_statements.adb
--- /preLoop1/              l+ 0
--- /loop1/                 l+ 0
--- /inloopbeforeexit1/     l- s-
--- /inloopexit1/           l- s-
--- /inloopafterexit1/      l- s-
--- /postLoop1/             l+ 0
--- /preLoop2/              l+ 0
--- /loop2/                 l+ 0
--- /inloopbeforeexit2/     l- s-
--- /inloopbeforeexitinif2/ l- s-
--- /inloopexit2/           l- s-
--- /preLoop3/              l- s-
--- /inloopexit3/           l- s-
--- /inloop3/               l- s-
--- /postLoop3/             l- s-
--- /preLoop4/              l+ 0
--- /loop4/                 l+ 0
--- /inloopexit4/           l- s-
--- /inloop4/               l- s-
+-- /preLoop1/              l+ ## 0
+-- /loop1/                 l+ ## 0
+-- /inloopbeforeexit1/     l- ## s-
+-- /inloopexit1/           l- ## s-
+-- /inloopafterexit1/      l- ## s-
+-- /postLoop1/             l+ ## 0
+-- /preLoop2/              l+ ## 0
+-- /loop2/                 l+ ## 0
+-- /inloopbeforeexit2/     l- ## s-
+-- /inloopbeforeexitinif2/ l- ## s-
+-- /inloopexit2/           l- ## s-
+-- /preLoop3/              l- ## s-
+-- /inloopexit3/           l- ## s-
+-- /inloop3/               l- ## s-
+-- /postLoop3/             l- ## s-
+-- /preLoop4/              l+ ## 0
+-- /loop4/                 l+ ## 0
+-- /inloopexit4/           l- ## s-
+-- /inloop4/               l- ## s-
 
 --# more_loop_statements.adb
--- /preLoop1/              l+ 0
--- /Loop1/                 l+ 0
--- /inLoop1/               l- s-
--- /inIfinLoop1/           l- s-
--- /postLoop1/             l+ 0
--- /Loop2/                 l+ 0
--- /inLoop2/               l- s-
--- /inIfinLoop2/           l- s-
--- /elab/                  l+ 0
+-- /preLoop1/              l+ ## 0
+-- /Loop1/                 l+ ## 0
+-- /inLoop1/               l- ## s-
+-- /inIfinLoop1/           l- ## s-
+-- /postLoop1/             l+ ## 0
+-- /Loop2/                 l+ ## 0
+-- /inLoop2/               l- ## s-
+-- /inIfinLoop2/           l- ## s-
+-- /elab/                  l+ ## 0

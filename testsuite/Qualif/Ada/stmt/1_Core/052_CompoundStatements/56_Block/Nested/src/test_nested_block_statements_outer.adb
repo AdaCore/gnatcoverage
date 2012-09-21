@@ -15,6 +15,6 @@ end Test_Nested_Block_Statements_Outer;
 
 --# nested_block_statements.adb
 
--- /outer_block/  l+ 0
--- /middle_block/ l- s-
--- /inner_block/  l- s-
+-- /outer_block/  l+ ## 0
+-- /middle_block/ l- ## s-
+-- /inner_block/  l- ## s-

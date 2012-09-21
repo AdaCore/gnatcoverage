@@ -7,6 +7,6 @@ begin
 end;
 
 --# ops.adb
---  /ops/      l- s-
---  /internal/ l- s-
---  /private/  l- s-
+--  /ops/      l- ## s-
+--  /internal/ l- ## s-
+--  /private/  l- ## s-

@@ -6,7 +6,7 @@ begin
 end;
 
 --# andthen.adb
---  /evalA/ l! dF-
---  /evalB/ l! dF-
---  /true/  l+ 0
---  /false/ l- s-
+--  /evalA/ l! ## dF-
+--  /evalB/ l! ## dF-
+--  /true/  l+ ## 0
+--  /false/ l- ## s-

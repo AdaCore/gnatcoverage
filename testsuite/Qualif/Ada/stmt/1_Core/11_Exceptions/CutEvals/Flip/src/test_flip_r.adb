@@ -8,6 +8,6 @@ exception
 end;
 
 --# flip.adb
---  /eval/  l+ 0
---  /false/  l- s-
---  /true/ l- s-
+--  /eval/  l+ ## 0
+--  /false/  l- ## s-
+--  /true/ l- ## s-

@@ -5,7 +5,7 @@ drivers=andidor_t
 --  effect of X not demonstrated, though
 
 --# andidor.adb
---  /eval/ l! c!:"X"
---  /true/  l+ 0
---  /false/ l+ 0
+--  /eval/ l! ## c!:"X"
+--  /true/  l+ ## 0
+--  /false/ l+ ## 0
 

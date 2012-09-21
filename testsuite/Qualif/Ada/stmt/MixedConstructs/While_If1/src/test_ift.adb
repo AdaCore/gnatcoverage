@@ -20,11 +20,11 @@ end;
 
 --# slists-count.adb
 
--- /CO_decl/   ~l+ 0
--- /CO_init/   l+ 0
--- /CO_while/  l+ 0
--- /CO_test/   l+ 0
--- /CO_incT/   l+ 0
--- /CO_incF/   l- s-
--- /CO_next/   l+ 0
+-- /CO_decl/   ~l+ ## 0
+-- /CO_init/   l+ ## 0
+-- /CO_while/  l+ ## 0
+-- /CO_test/   l+ ## 0
+-- /CO_incT/   l+ ## 0
+-- /CO_incF/   l- ## s-
+-- /CO_next/   l+ ## 0
 

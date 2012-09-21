@@ -8,6 +8,6 @@ begin
 end;
 
 --# ops.adb
---  /eval/ ~l+ 0
---  /up/   l+ 0
---  /down/ l- s-
+--  /eval/ ~l+ ## 0
+--  /up/   l+ ## 0
+--  /down/ l- ## s-

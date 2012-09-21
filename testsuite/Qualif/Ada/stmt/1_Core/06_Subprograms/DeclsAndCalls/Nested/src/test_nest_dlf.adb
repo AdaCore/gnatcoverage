@@ -12,18 +12,18 @@ begin
 end;
 
 --# nest.adb
---  /check/ l+ 0
---  /lfun/  l+ 0
---  /lfi/   l- s-
---  /lfd/   l+ 0
---  /lproc/ l- s-
---  /lpi/   l- s-
---  /lpd/   l- s-
---  /pfun/  l- s-
---  /pfi/   l- s-
---  /pfd/   l- s-
---  /pproc/ l- s-
---  /ppi/   l- s-
---  /ppd/   l- s-
---  /indirect/ l- s-
+--  /check/ l+ ## 0
+--  /lfun/  l+ ## 0
+--  /lfi/   l- ## s-
+--  /lfd/   l+ ## 0
+--  /lproc/ l- ## s-
+--  /lpi/   l- ## s-
+--  /lpd/   l- ## s-
+--  /pfun/  l- ## s-
+--  /pfi/   l- ## s-
+--  /pfd/   l- ## s-
+--  /pproc/ l- ## s-
+--  /ppi/   l- ## s-
+--  /ppd/   l- ## s-
+--  /indirect/ l- ## s-
 

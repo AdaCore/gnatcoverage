@@ -36,11 +36,11 @@ begin
 end;
 
 --# ranges.adb
---  /checkValid/    l! dT-
---  /assignValid/   l+ 0
---  /assignInvalid/ l- s-
---  /preValid/      l* x+
---  /checkOverlap/  l! dF-
---  /overlapTrue/   l+ 0
---  /overlapFalse/  l- s-
+--  /checkValid/    l! ## dT-
+--  /assignValid/   l+ ## 0
+--  /assignInvalid/ l- ## s-
+--  /preValid/      l* ## x+
+--  /checkOverlap/  l! ## dF-
+--  /overlapTrue/   l+ ## 0
+--  /overlapFalse/  l- ## s-
 

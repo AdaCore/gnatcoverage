@@ -6,6 +6,6 @@ begin
 end;
 
 --# fuor.adb
---  /evalA/   l! eT-
---  /evalB/   l! 0
+--  /evalA/   l! ## eT-
+--  /evalB/   l! ## 0
 

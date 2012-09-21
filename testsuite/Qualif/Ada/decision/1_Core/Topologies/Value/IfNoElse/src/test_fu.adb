@@ -10,6 +10,6 @@ begin
 end;
 
 --# checks.adb
--- /eval/   l+ 0
--- /incOK/  l+ 0
--- /incAll/ l+ 0
+-- /eval/   l+ ## 0
+-- /incOK/  l+ ## 0
+-- /incAll/ l+ ## 0

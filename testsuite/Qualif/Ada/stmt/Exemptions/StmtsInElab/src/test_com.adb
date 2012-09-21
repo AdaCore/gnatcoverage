@@ -10,5 +10,5 @@ begin
 end;
 
 --# com.adb
--- /init_body/ l- s-
--- /init_call/ l* x+
+-- /init_body/ l- ## s-
+-- /init_call/ l* ## x+

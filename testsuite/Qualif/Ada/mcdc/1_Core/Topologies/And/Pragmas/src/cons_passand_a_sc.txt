@@ -3,8 +3,8 @@ drivers=test_passand_(tt|ff)
 --  indep effect of A demonstrated despite change on B, short-circuited
 
 --# passand.ads
---  /eval/ l! c!:"B"
+--  /eval/ l! ## c!:"B"
 
 --# passand.adb
---  /eval/ l! c!:"B"
---  /stmt/ l+ 0
+--  /eval/ l! ## c!:"B"
+--  /stmt/ l+ ## 0

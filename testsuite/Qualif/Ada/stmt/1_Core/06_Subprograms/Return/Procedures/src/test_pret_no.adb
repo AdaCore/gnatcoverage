@@ -10,12 +10,12 @@ begin
 end Test_Pret_No;
 
 --# pret.adb
--- /proc1_1/            l- s-
--- /proc1_return/       l- s-
--- /proc1_after_return/ l- s-
--- /proc2_start/        l- s-
--- /proc2_1/            l- s-
--- /proc2_2/            l- s-
--- /proc2_3/            l- s-
--- /proc2_others/       l- s-
--- /proc2_fin/          l- s-
+-- /proc1_1/            l- ## s-
+-- /proc1_return/       l- ## s-
+-- /proc1_after_return/ l- ## s-
+-- /proc2_start/        l- ## s-
+-- /proc2_1/            l- ## s-
+-- /proc2_2/            l- ## s-
+-- /proc2_3/            l- ## s-
+-- /proc2_others/       l- ## s-
+-- /proc2_fin/          l- ## s-

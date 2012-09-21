@@ -137,7 +137,7 @@ devices:
 
   --# <functional_file_name>      followed by optional sequence of:
 
-  --  /regexp/ <expected .xcov note> <expected report notes>
+  --  /regexp/ <expected ## .xcov note> <expected report notes>
 
   where
 
@@ -208,11 +208,11 @@ Ada/stmt/IsolatedContructs/CompoundS/IfStatements
       end;
 
       --# in_range.adb
-      --  /XcmpMin/  l+ 0
-      --  /XoutMin/  l- s-
-      --  /XcmpMax/  l+ 0
-      --  /XoutMax/  l+ 0
-      --  /Xin/      l- s-
+      --  /XcmpMin/  l+ ## 0
+      --  /XoutMin/  l- ## s-
+      --  /XcmpMax/  l+ ## 0
+      --  /XoutMax/  l+ ## 0
+      --  /Xin/      l- ## s-
 
 The <expected .xcov note> column (2nd) for in_range.adb indicates that we're
 expecting an annotated .adb.xcov output (out of xcov --annotate=xcov) like:

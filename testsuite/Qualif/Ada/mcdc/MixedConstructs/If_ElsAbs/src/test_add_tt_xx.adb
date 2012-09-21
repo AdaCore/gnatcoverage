@@ -6,12 +6,12 @@ begin
 end;
 
 --# add.adb
--- /tover0/  l! dF-
--- /tover1/  l! 0
--- /retp0/   l+ 0
--- /retp1/   l+ 0
--- /tunder0/ l- s-
--- /tunder1/ l- 0c
--- /retm0/   l- s-
--- /retm1/   l- 0c
--- /fault/   l- s-
+-- /tover0/  l! ## dF-
+-- /tover1/  l! ## 0
+-- /retp0/   l+ ## 0
+-- /retp1/   l+ ## 0
+-- /tunder0/ l- ## s-
+-- /tunder1/ l- ## 0c
+-- /retm0/   l- ## s-
+-- /retm1/   l- ## 0c
+-- /fault/   l- ## s-

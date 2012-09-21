@@ -55,40 +55,40 @@ begin
 end Test_Multiple_Paths;
 
 --# if_statements.adb
--- /XcmpMin/    l+ 0
--- /XoutMin/    l+ 0
--- /XcmpMax/    l+ 0
--- /XoutMax/    l+ 0
--- /Xin/        l+ 0
--- /setmax/     l+ 0
--- /inifsetmax/ l+ 0
+-- /XcmpMin/    l+ ## 0
+-- /XoutMin/    l+ ## 0
+-- /XcmpMax/    l+ ## 0
+-- /XoutMax/    l+ ## 0
+-- /Xin/        l+ ## 0
+-- /setmax/     l+ ## 0
+-- /inifsetmax/ l+ ## 0
 
 --# more_if_statements.adb
--- /prime/       l+ 0
--- /ifprime/     l+ 0
--- /1prime/      l+ 0
--- /comp2prime/  l+ 0
--- /2prime/      l+ 0
--- /comp3prime/  l+ 0
--- /3prime/      l+ 0
--- /comp4prime/  l+ 0
--- /4prime/      l+ 0
--- /comp5prime/  l+ 0
--- /5prime/      l+ 0
--- /comp6prime/  l+ 0
--- /6prime/      l+ 0
--- /comp7prime/  l+ 0
--- /7prime/      l+ 0
--- /comp8prime/  l+ 0
--- /8prime/      l+ 0
--- /comp9prime/  l+ 0
--- /9prime/      l+ 0
--- /comp10prime/ l+ 0
--- /10prime/     l+ 0
--- /max/         l+ 0
--- /ifmax/       l+ 0
---  /elsemax/    l+ 0
--- /elab/        l+ 0
--- /gt0elab/     l+ 0
--- /notgt0elab/  l- s-
--- /eq0elabeq0/  l- s-
+-- /prime/       l+ ## 0
+-- /ifprime/     l+ ## 0
+-- /1prime/      l+ ## 0
+-- /comp2prime/  l+ ## 0
+-- /2prime/      l+ ## 0
+-- /comp3prime/  l+ ## 0
+-- /3prime/      l+ ## 0
+-- /comp4prime/  l+ ## 0
+-- /4prime/      l+ ## 0
+-- /comp5prime/  l+ ## 0
+-- /5prime/      l+ ## 0
+-- /comp6prime/  l+ ## 0
+-- /6prime/      l+ ## 0
+-- /comp7prime/  l+ ## 0
+-- /7prime/      l+ ## 0
+-- /comp8prime/  l+ ## 0
+-- /8prime/      l+ ## 0
+-- /comp9prime/  l+ ## 0
+-- /9prime/      l+ ## 0
+-- /comp10prime/ l+ ## 0
+-- /10prime/     l+ ## 0
+-- /max/         l+ ## 0
+-- /ifmax/       l+ ## 0
+--  /elsemax/    l+ ## 0
+-- /elab/        l+ ## 0
+-- /gt0elab/     l+ ## 0
+-- /notgt0elab/  l- ## s-
+-- /eq0elabeq0/  l- ## s-

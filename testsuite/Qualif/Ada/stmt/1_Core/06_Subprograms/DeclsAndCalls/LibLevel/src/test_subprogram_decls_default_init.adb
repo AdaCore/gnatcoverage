@@ -20,11 +20,11 @@ begin
 end;
 
 --# subprogram_pack.adb
--- /fun1/       l+ 0
--- /fun2/       l+ 0
--- /proc1/      l- s-
--- /proc2/      l+ 0
--- /proc3/      l- s-
--- /proc4/      l- s-
--- /local_proc/ l+ 0
--- /local_fun/  l+ 0
+-- /fun1/       l+ ## 0
+-- /fun2/       l+ ## 0
+-- /proc1/      l- ## s-
+-- /proc2/      l+ ## 0
+-- /proc3/      l- ## s-
+-- /proc4/      l- ## s-
+-- /local_proc/ l+ ## 0
+-- /local_fun/  l+ ## 0

@@ -9,13 +9,13 @@ end;
 
 --# slists-forall.adb
 
--- /FA_init/       l+ 0
--- /FA_while/      l! dT-
--- /FA_tactive/    l- s-
--- /FA_case/       l- s-
--- /FA_activate/   l- s-
--- /FA_tinhibitLB/ l- s-
--- /FA_tinhibitHB/ l- 0c
--- /FA_inhibit/    l- s-
--- /FA_next/       l- s-
+-- /FA_init/       l+ ## 0
+-- /FA_while/      l! ## dT-
+-- /FA_tactive/    l- ## s-
+-- /FA_case/       l- ## s-
+-- /FA_activate/   l- ## s-
+-- /FA_tinhibitLB/ l- ## s-
+-- /FA_tinhibitHB/ l- ## 0c
+-- /FA_inhibit/    l- ## s-
+-- /FA_next/       l- ## s-
 

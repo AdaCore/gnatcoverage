@@ -10,6 +10,6 @@ exception
 end;
 
 --# val.adb
---  /eval/  l+ 0
---  /true/  l+ 0
---  /false/ l+ 0
+--  /eval/  l+ ## 0
+--  /true/  l+ ## 0
+--  /false/ l+ ## 0

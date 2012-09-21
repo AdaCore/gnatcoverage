@@ -19,16 +19,16 @@ begin
 end Test_Propagation_Blocks_2;
 
 --#  pack.adb
--- /if1/            l+ 0
--- /raise1/         l- s-
--- /if2/            l+ 0
--- /raise2/         l+ 0
--- /after_raise2/   l- s-
--- /after_ce_raise/ l- s-
--- /handler_CE/     l- s-
--- /after_block_1/  l- s-
--- /handler_E1/     l- s-
--- /after_block_2/  l- s-
--- /handler_E2/     l+ 0
--- /after_block_3/  l+ 0
--- /handler_others/ l- s-
+-- /if1/            l+ ## 0
+-- /raise1/         l- ## s-
+-- /if2/            l+ ## 0
+-- /raise2/         l+ ## 0
+-- /after_raise2/   l- ## s-
+-- /after_ce_raise/ l- ## s-
+-- /handler_CE/     l- ## s-
+-- /after_block_1/  l- ## s-
+-- /handler_E1/     l- ## s-
+-- /after_block_2/  l- ## s-
+-- /handler_E2/     l+ ## 0
+-- /after_block_3/  l+ ## 0
+-- /handler_others/ l- ## s-

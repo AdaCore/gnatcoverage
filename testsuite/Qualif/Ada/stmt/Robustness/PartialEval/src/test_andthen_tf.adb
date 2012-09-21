@@ -9,4 +9,4 @@ begin
 end;
 
 --# andthen.adb
--- /andthen/ l+ 0
+-- /andthen/ l+ ## 0

@@ -10,6 +10,6 @@ exception
 end;
 
 --# fuor.adb
---  /eval/  l+ 0
---  /true/  l+ 0
---  /false/ l- s-
+--  /eval/  l+ ## 0
+--  /true/  l+ ## 0
+--  /false/ l- ## s-

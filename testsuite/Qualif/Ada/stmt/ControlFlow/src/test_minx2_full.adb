@@ -11,9 +11,9 @@ begin
 end;
 
 --# minx2.adb
---  /common/ l+ 0
---  /xgt0/   l+ 0
---  /xgt2/   l+ 0
---  /xle2/   l+ 0
+--  /common/ l+ ## 0
+--  /xgt0/   l+ ## 0
+--  /xgt2/   l+ ## 0
+--  /xle2/   l+ ## 0
 
 

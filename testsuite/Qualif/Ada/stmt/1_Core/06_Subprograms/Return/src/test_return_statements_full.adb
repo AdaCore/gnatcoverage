@@ -51,28 +51,28 @@ begin
 end Test_Return_Statements_Full;
 
 --# return_statements.adb
--- /proc1_1/            l+ 0
--- /proc1_return/       l+ 0
--- /proc1_after_return/ l+ 0
+-- /proc1_1/            l+ ## 0
+-- /proc1_return/       l+ ## 0
+-- /proc1_after_return/ l+ ## 0
 
--- /proc2_start/        l+ 0
--- /proc2_1/            l+ 0
--- /proc2_2/            l+ 0
--- /proc2_3/            l+ 0
--- /proc2_others/       l+ 0
--- /proc2_fin/          l+ 0
+-- /proc2_start/        l+ ## 0
+-- /proc2_1/            l+ ## 0
+-- /proc2_2/            l+ ## 0
+-- /proc2_3/            l+ ## 0
+-- /proc2_others/       l+ ## 0
+-- /proc2_fin/          l+ ## 0
 
--- /fun1_start/         l+ 0
--- /fun1_first_return/  l+ 0
--- /fun_1_fin/          l+ 0
+-- /fun1_start/         l+ ## 0
+-- /fun1_first_return/  l+ ## 0
+-- /fun_1_fin/          l+ ## 0
 
--- /fun2_start/         l+ 0
--- /fun2_1_return/      l+ 0
--- /fun2_1_elsif/       l+ 0
--- /fun2_2_return/      l+ 0
--- /fun2_2_elsif/       l+ 0
--- /fun2_case/          l+ 0
--- /fun2_3_return/      l+ 0
--- /fun2_4_return/      l+ 0
--- /fun2_others/        l+ 0
--- /fun_2_fin/          l+ 0
+-- /fun2_start/         l+ ## 0
+-- /fun2_1_return/      l+ ## 0
+-- /fun2_1_elsif/       l+ ## 0
+-- /fun2_2_return/      l+ ## 0
+-- /fun2_2_elsif/       l+ ## 0
+-- /fun2_case/          l+ ## 0
+-- /fun2_3_return/      l+ ## 0
+-- /fun2_4_return/      l+ ## 0
+-- /fun2_others/        l+ ## 0
+-- /fun_2_fin/          l+ ## 0

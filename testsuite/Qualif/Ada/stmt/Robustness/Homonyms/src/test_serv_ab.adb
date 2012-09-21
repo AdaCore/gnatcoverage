@@ -6,8 +6,8 @@ begin
 end;
 
 --# services.adb
---  /checkE/    l+ 0
---  /outEserv/  l+ 0
---  /checkO/    l- s-
---  /outOserv/  l- s-
---  /outOk/     l- s-
+--  /checkE/    l+ ## 0
+--  /outEserv/  l+ ## 0
+--  /checkO/    l- ## s-
+--  /outOserv/  l- ## s-
+--  /outOk/     l- ## s-

@@ -37,20 +37,20 @@ begin
 end Test_AndPorPand_Coupled_Alt_1;
 
 --# andporpand_coupled_alt.adb
--- /F1_evaluate/        l! c!:"A"
--- /coupF1_evaluate/    l! c!:"A"
--- /F1_decisionTrue/    l+ 0
--- /F1_decisionFalse/   l+ 0
--- /F2_evaluate/        l! c!:"A"
--- /coupF2_evaluate/    l! c!:"B"
--- /F2_decisionTrue/    l+ 0
--- /F2_decisionFalse/   l+ 0
--- /F3_evaluate/        l! 0
--- /coupF3_evaluate/    l! c!:"B"
--- /coupF3_evaluate/    l! c!:"A"
--- /F3_decisionTrue/    l+ 0
--- /F3_decisionFalse/   l+ 0
--- /decl/               ~l+ 0
--- /returnValue/        l+ 0
--- /returnTrue/         l+ 0
--- /returnFalse/        l+ 0
+-- /F1_evaluate/        l! ## c!:"A"
+-- /coupF1_evaluate/    l! ## c!:"A"
+-- /F1_decisionTrue/    l+ ## 0
+-- /F1_decisionFalse/   l+ ## 0
+-- /F2_evaluate/        l! ## c!:"A"
+-- /coupF2_evaluate/    l! ## c!:"B"
+-- /F2_decisionTrue/    l+ ## 0
+-- /F2_decisionFalse/   l+ ## 0
+-- /F3_evaluate/        l! ## 0
+-- /coupF3_evaluate/    l! ## c!:"B"
+-- /coupF3_evaluate/    l! ## c!:"A"
+-- /F3_decisionTrue/    l+ ## 0
+-- /F3_decisionFalse/   l+ ## 0
+-- /decl/               ~l+ ## 0
+-- /returnValue/        l+ ## 0
+-- /returnTrue/         l+ ## 0
+-- /returnFalse/        l+ ## 0

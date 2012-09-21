@@ -8,5 +8,5 @@ begin
 end;
 
 --# starts.adb
---  /startsLength/ l+ 0
---  /startsKey/    l+ 0
+--  /startsLength/ l+ ## 0
+--  /startsKey/    l+ ## 0

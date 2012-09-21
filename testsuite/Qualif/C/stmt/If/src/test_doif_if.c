@@ -8,10 +8,10 @@ void main (void)
 }
 
 //# doif.c
-//  /body/  l+ 0
-//  /eval/  l+ 0
-//  /if/    l+ 0
-//  /else/  l- s-
+//  /body/  l+ ## 0
+//  /eval/  l+ ## 0
+//  /if/    l+ ## 0
+//  /else/  l- ## s-
 
 
 

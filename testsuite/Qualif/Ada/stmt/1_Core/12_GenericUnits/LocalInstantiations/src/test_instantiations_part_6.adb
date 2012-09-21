@@ -14,19 +14,19 @@ begin
 end Test_Instantiations_Part_6;
 
 --# pack.adb
--- /new_value_g/   l- s-
--- /swap/          l- s-
--- /proc/          l- s-
+-- /new_value_g/   l- ## s-
+-- /swap/          l- ## s-
+-- /proc/          l- ## s-
 
 --#  stacks_g.ads
--- /elab/          l+ 0
+-- /elab/          l+ ## 0
 
 --#  stacks_g.adb
--- /push/          l+ 0
--- /pop/           l- s-
--- /n_values/      l- s-
--- /default_stack/ l- s-
--- /elab/          l+ 0
+-- /push/          l+ ## 0
+-- /pop/           l- ## s-
+-- /n_values/      l- ## s-
+-- /default_stack/ l- ## s-
+-- /elab/          l+ ## 0
 
 --# update_g.adb
--- /stmt/          l+ 0
+-- /stmt/          l+ ## 0

@@ -19,25 +19,25 @@ begin
 end Test_Object_Declarations_No;
 
 --# access_swap.adb
---  /stmt/ l- s-
+--  /stmt/ l- ## s-
 
 --# integer_swap.adb
---  /stmt/ l- s-
+--  /stmt/ l- ## s-
 
 --# matrix_swap.adb
---  /stmt/ l- s-
+--  /stmt/ l- ## s-
 
 --# private_swap.adb
---  /stmt/ l- s-
+--  /stmt/ l- ## s-
 
 --# record_swap.adb
---  /stmt/ l- s-
+--  /stmt/ l- ## s-
 
 --# record_derived_swap.adb
---  /stmt/ l- s-
---  /if/   l- s-
+--  /stmt/ l- ## s-
+--  /if/   l- ## s-
 
 --# record_impl_init_swap.adb
---  /stmt/ l- s-
---  /if/   l- s-
+--  /stmt/ l- ## s-
+--  /if/   l- ## s-
 

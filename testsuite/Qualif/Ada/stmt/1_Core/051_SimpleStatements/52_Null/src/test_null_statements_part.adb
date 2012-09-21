@@ -28,21 +28,21 @@ begin
 end Test_Null_Statements_Part;
 
 --# null_statements.adb
--- /emptynull1/   l+ 0
--- /emptynull2/   l- s-
--- /caseproc/     l+ 0
--- /case1proc/    l- s-
--- /case2proc/    l- s-
--- /casenullproc/ l+ 0
--- /casefun/      l+ 0
--- /case1fun/     l- s-
--- /case2fun/     l+ 0
--- /casenullfun/  l- s-
--- /max/          l+ 0
--- /maxif/        l+ 0
--- /amaxskip/     l- s-
--- /maxnull/      l+ 0
--- /min/          l- s-
--- /aminif/       l- s-
--- /aminskip/     l- s-
--- /minnull/      l- s-
+-- /emptynull1/   l+ ## 0
+-- /emptynull2/   l- ## s-
+-- /caseproc/     l+ ## 0
+-- /case1proc/    l- ## s-
+-- /case2proc/    l- ## s-
+-- /casenullproc/ l+ ## 0
+-- /casefun/      l+ ## 0
+-- /case1fun/     l- ## s-
+-- /case2fun/     l+ ## 0
+-- /casenullfun/  l- ## s-
+-- /max/          l+ ## 0
+-- /maxif/        l+ ## 0
+-- /amaxskip/     l- ## s-
+-- /maxnull/      l+ ## 0
+-- /min/          l- ## s-
+-- /aminif/       l- ## s-
+-- /aminskip/     l- ## s-
+-- /minnull/      l- ## s-

@@ -11,8 +11,8 @@ begin
 end;
 
 --# minx2.adb
---  /decl/   ~l- ~s-
---  /common/ l- s-
---  /xle2/   l- s-
---  /xgt0/   l- s-
---  /xgt2/   l- s-
+--  /decl/   ~l- ## ~s-
+--  /common/ l- ## s-
+--  /xle2/   l- ## s-
+--  /xgt0/   l- ## s-
+--  /xgt2/   l- ## s-

@@ -8,6 +8,6 @@ begin
 end;
 
 --# andthen_variants.adb
---  /eval/  l! dF-
---  /true/  l+ 0
---  /false/ l- s-
+--  /eval/  l! ## dF-
+--  /true/  l+ ## 0
+--  /false/ l- ## s-

@@ -27,17 +27,17 @@ begin
 end Test_Subprogram_Decls_Ordinary_Calls;
 
 --# library_level_fun.adb
--- /fun/        l- s-
+-- /fun/        l- ## s-
 
 --# library_level_proc.adb
--- /proc/       l+ 0
+-- /proc/       l+ ## 0
 
 --# subprogram_pack.adb
--- /fun1/       l+ 0
--- /fun2/       l- s-
--- /proc1/      l+ 0
--- /proc2/      l+ 0
--- /proc3/      l- s-
--- /proc4/      l- s-
--- /local_proc/ l+ 0
--- /local_fun/  l+ 0
+-- /fun1/       l+ ## 0
+-- /fun2/       l- ## s-
+-- /proc1/      l+ ## 0
+-- /proc2/      l+ ## 0
+-- /proc3/      l- ## s-
+-- /proc4/      l- ## s-
+-- /local_proc/ l+ ## 0
+-- /local_fun/  l+ ## 0

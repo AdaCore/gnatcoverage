@@ -12,7 +12,7 @@ begin
 end;
 
 --# notes.adb
---  /cnote/ l- s-
---  /dtne/  l+ 0
---  /dfne/  l+ 0
+--  /cnote/ l- ## s-
+--  /dtne/  l+ ## 0
+--  /dfne/  l+ ## 0
 

@@ -8,6 +8,6 @@ begin
 end;
 
 --# fuor.adb
---  /evalA/   l+ 0
---  /evalB/   l+ 0
+--  /evalA/   l+ ## 0
+--  /evalB/   l+ ## 0
 

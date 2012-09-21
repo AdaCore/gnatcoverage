@@ -83,68 +83,68 @@ begin
 end Test_Object_Declarations_Part_1;
 
 --# access_swap.adb
---  /stmt/ l+ 0
+--  /stmt/ l+ ## 0
 
 --# integer_swap.adb
---  /stmt/ l+ 0
+--  /stmt/ l+ ## 0
 
 --# matrix_swap.adb
---  /stmt/ l+ 0
+--  /stmt/ l+ ## 0
 
 --# private_swap.adb
---  /stmt/ l- s-
+--  /stmt/ l- ## s-
 
 --# record_swap.adb
---  /stmt/ l- s-
+--  /stmt/ l- ## s-
 
 --# record_derived_swap.adb
---  /stmt/ l- s-
---  /if/   l- s-
+--  /stmt/ l- ## s-
+--  /if/   l- ## s-
 
 --# record_impl_init_swap.adb
---  /stmt/ l- s-
---  /if/   l- s-
+--  /stmt/ l- ## s-
+--  /if/   l- ## s-
 
 --# decls_pack_1.ads
---  /dcls/    l+ 0
---  /g1_dcls/ l+ 0
---  /g2_dcls/ ~l- ~s-
+--  /dcls/    l+ ## 0
+--  /g1_dcls/ l+ ## 0
+--  /g2_dcls/ ~l- ## ~s-
 
 --# decls_pack_1.adb
---  /local_swap/    l+ 0
---  /decl/          l- s-
---  /stmt/          l- s-
---  /case1/         l- s-
---  /case2/         l- s-
+--  /local_swap/    l+ ## 0
+--  /decl/          l- ## s-
+--  /stmt/          l- ## s-
+--  /case1/         l- ## s-
+--  /case2/         l- ## s-
 
---  /g1_local_swap/ l+ 0
---  /g1_decl/       ~l- ~s-
---  /g1_stmt/       ~l- ~s-
+--  /g1_local_swap/ l+ ## 0
+--  /g1_decl/       ~l- ## ~s-
+--  /g1_stmt/       ~l- ## ~s-
 
---  /g2_local_swap/ ~l- ~s-
---  /g2_decl/       ~l- ~s-
---  /g2_stmt/       ~l- ~s-
+--  /g2_local_swap/ ~l- ## ~s-
+--  /g2_decl/       ~l- ## ~s-
+--  /g2_stmt/       ~l- ## ~s-
 
 --# decls_pack_2.ads
---  /dcls/    l+ 0
---  /g1_dcls/ l+ 0
---  /g2_dcls/ ~l- ~s-
+--  /dcls/    l+ ## 0
+--  /g1_dcls/ l+ ## 0
+--  /g2_dcls/ ~l- ## ~s-
 
 --# decls_pack_2.adb
---  /local_swap/        l+ 0
---  /decl/              l- s-
---  /stmt/              l- s-
---  /in_if/             l- s-
+--  /local_swap/        l+ ## 0
+--  /decl/              l- ## s-
+--  /stmt/              l- ## s-
+--  /in_if/             l- ## s-
 
---  /g1_local_swap/      l+ 0
---  /g1_in_iflocal_swap/ l+ 0
---  /g1_decl/            ~l- ~s-
---  /g1_stmt/            ~l- ~s-
---  /g1_in_if_stmt/      ~l- ~s-
+--  /g1_local_swap/      l+ ## 0
+--  /g1_in_iflocal_swap/ l+ ## 0
+--  /g1_decl/            ~l- ## ~s-
+--  /g1_stmt/            ~l- ## ~s-
+--  /g1_in_if_stmt/      ~l- ## ~s-
 
---  /g2_local_swap/      ~l- ~s-
---  /g2_decl/            ~l- ~s-
---  /g2_stmt/            ~l- ~s-
---  /g2_case1/           ~l- ~s-
---  /g2_case2/           ~l- ~s-
---  /g2_case3/           ~l- ~s-
+--  /g2_local_swap/      ~l- ## ~s-
+--  /g2_decl/            ~l- ## ~s-
+--  /g2_stmt/            ~l- ## ~s-
+--  /g2_case1/           ~l- ## ~s-
+--  /g2_case2/           ~l- ## ~s-
+--  /g2_case3/           ~l- ## ~s-

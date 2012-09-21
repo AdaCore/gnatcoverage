@@ -1,8 +1,8 @@
 drivers=_v0|_v2
 
 --# orelse.adb
---  /eval/ l+ 0
---  /true/  l+ 0
---  /false/ l+ 0
+--  /eval/ l+ ## 0
+--  /true/  l+ ## 0
+--  /false/ l+ ## 0
 
 

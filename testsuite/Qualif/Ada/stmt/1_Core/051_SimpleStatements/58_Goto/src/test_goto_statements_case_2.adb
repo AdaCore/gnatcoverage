@@ -19,18 +19,18 @@ begin
 end Test_GOTO_Statements_Case_2;
 
 --# goto_statements_case.adb
--- /case/         l+ 0
--- /1if/          l- s-
--- /1goto/        l- s-
--- /2if/          l- s-
--- /2goto/        l- s-
--- /in1altcase/   l- s-
--- /3if/          l+ 0
--- /3goto/        l+ 0
--- /in2altcase/   l- s-
--- /4if/          l- s-
--- /4goto/        l- s-
--- /inotherscase/ l- s-
--- /5goto/        l- s-
--- /after5goto/   l- s-
--- /fin/          l+ 0
+-- /case/         l+ ## 0
+-- /1if/          l- ## s-
+-- /1goto/        l- ## s-
+-- /2if/          l- ## s-
+-- /2goto/        l- ## s-
+-- /in1altcase/   l- ## s-
+-- /3if/          l+ ## 0
+-- /3goto/        l+ ## 0
+-- /in2altcase/   l- ## s-
+-- /4if/          l- ## s-
+-- /4goto/        l- ## s-
+-- /inotherscase/ l- ## s-
+-- /5goto/        l- ## s-
+-- /after5goto/   l- ## s-
+-- /fin/          l+ ## 0

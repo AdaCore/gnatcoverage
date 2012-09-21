@@ -11,10 +11,10 @@ begin
 end Test_Object_Renamings_No;
 
 --#  renamed_objects.adb
--- /get_index/        l- s-
--- /if_get_index/     l- s-
--- /else_get_index/   l- s-
+-- /get_index/        l- ## s-
+-- /if_get_index/     l- ## s-
+-- /else_get_index/   l- ## s-
 
 --# local_renamings.adb
--- /get_comp/         l- s-
--- /get_another_comp/ l- s-
+-- /get_comp/         l- ## s-
+-- /get_another_comp/ l- ## s-

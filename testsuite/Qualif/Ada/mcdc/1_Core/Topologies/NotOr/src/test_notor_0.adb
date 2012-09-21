@@ -6,9 +6,9 @@ begin
 end;
 
 --# notor.adb
---  /evalStmt/      l- s-
---  /evalOther/     l- 0c
---  /decisionTrue/  l- s-
---  /decisionFalse/ l- s-
---  /returnValue/   l- s-
---  /decl/   l- s-
+--  /evalStmt/      l- ## s-
+--  /evalOther/     l- ## 0c
+--  /decisionTrue/  l- ## s-
+--  /decisionFalse/ l- ## s-
+--  /returnValue/   l- ## s-
+--  /decl/   l- ## s-

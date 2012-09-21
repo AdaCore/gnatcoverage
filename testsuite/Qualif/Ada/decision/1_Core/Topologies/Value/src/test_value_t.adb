@@ -6,7 +6,7 @@ begin
 end;
 
 --# value.adb
--- /eval/    l! oF-
--- /returnTrue/  l+ 0
--- /returnFalse/ l- s-
--- /returnVal/   l+ 0
+-- /eval/    l! ## oF-
+-- /returnTrue/  l+ ## 0
+-- /returnFalse/ l- ## s-
+-- /returnVal/   l+ ## 0

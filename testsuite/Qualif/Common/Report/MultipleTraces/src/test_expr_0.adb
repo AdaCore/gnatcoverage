@@ -7,5 +7,5 @@ begin
 end;
 
 --# expr.adb
---  /eval/  l- s-
---  /latch/ l- s-
+--  /eval/  l- ## s-
+--  /latch/ l- ## s-

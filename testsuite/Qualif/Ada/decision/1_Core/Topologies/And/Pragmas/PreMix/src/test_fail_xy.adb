@@ -22,12 +22,12 @@ exception
 end;
 
 --# points.adb
---  /bodySX/   l+ 0
---  /bodySY/   l+ 0
---  /bodySet/  l+ 0
---  /preSXY/   l+ 0
---  /retSXY/   l- s-
+--  /bodySX/   l+ ## 0
+--  /bodySY/   l+ ## 0
+--  /bodySet/  l+ ## 0
+--  /preSXY/   l+ ## 0
+--  /retSXY/   l- ## s-
 
 --# points.ads
---  /preSX/    l+ 0
---  /preSY/    l+ 0
+--  /preSX/    l+ ## 0
+--  /preSY/    l+ ## 0

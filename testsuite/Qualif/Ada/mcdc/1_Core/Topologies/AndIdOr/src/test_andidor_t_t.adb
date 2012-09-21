@@ -8,8 +8,8 @@ begin
 end;
 
 --# andidor.adb
--- /eval(Stmt|Other)/      l! oF-:"A",eF-:"B"
--- /decisionTrue/  l+ 0
--- /decisionFalse/ l- s-
--- /returnValue/   l+ 0
--- /decl/   l+ 0
+-- /eval(Stmt|Other)/      l! ## oF-:"A",eF-:"B"
+-- /decisionTrue/  l+ ## 0
+-- /decisionFalse/ l- ## s-
+-- /returnValue/   l+ ## 0
+-- /decl/   l+ ## 0

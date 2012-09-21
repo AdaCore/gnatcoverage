@@ -19,12 +19,12 @@ exception
 end;
 
 --# points.adb
---  /bodySX/   l+ 0
---  /bodySY/   l- s-
---  /bodySet/  l+ 0
---  /preSXY/   l! eF-
---  /retSXY/   l! eF-
+--  /bodySX/   l+ ## 0
+--  /bodySY/   l- ## s-
+--  /bodySet/  l+ ## 0
+--  /preSXY/   l! ## eF-
+--  /retSXY/   l! ## eF-
 
 --# points.ads
---  /preSX/    l! eF-
---  /preSY/    l! eT-
+--  /preSX/    l! ## eF-
+--  /preSY/    l! ## eT-

@@ -18,12 +18,12 @@ end;
 --  F X F   T T T
 
 --# add.adb
--- /tover0/  l+ 0
--- /tover1/  l+ 0
--- /retp0/   l+ 0
--- /retp1/   l+ 0
--- /tunder0/ l! 0
--- /tunder1/ l! c!:"Left"
--- /retm0/   l+ 0
--- /retm1/   l+ 0
--- /fault/   l+ 0
+-- /tover0/  l+ ## 0
+-- /tover1/  l+ ## 0
+-- /retp0/   l+ ## 0
+-- /retp1/   l+ ## 0
+-- /tunder0/ l! ## 0
+-- /tunder1/ l! ## c!:"Left"
+-- /retm0/   l+ ## 0
+-- /retm1/   l+ ## 0
+-- /fault/   l+ ## 0

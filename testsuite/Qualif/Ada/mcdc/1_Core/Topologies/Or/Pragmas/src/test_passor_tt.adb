@@ -8,8 +8,8 @@ begin
 end;
 
 --# passor.ads
---  /eval/ l! eF-
+--  /eval/ l! ## eF-
 
 --# passor.adb
---  /eval/ l! eF-
---  /stmt/ l+ 0
+--  /eval/ l! ## eF-
+--  /stmt/ l+ ## 0

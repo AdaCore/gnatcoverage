@@ -7,6 +7,6 @@ begin
 end;
 
 --# validate.adb
--- /retLen/   l+ 0
--- /checkLen/ l! eT-
--- /checkKey/ l! 0
+-- /retLen/   l+ ## 0
+-- /checkLen/ l! ## eT-
+-- /checkKey/ l! ## 0

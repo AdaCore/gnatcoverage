@@ -8,5 +8,5 @@ begin
 end;
 
 --# gcom.adb
--- /init_body/ l+ 0
--- /init_call/ l# x0
+-- /init_body/ l+ ## 0
+-- /init_call/ l# ## x0

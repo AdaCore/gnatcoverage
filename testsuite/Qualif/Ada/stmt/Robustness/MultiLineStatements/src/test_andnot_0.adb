@@ -9,5 +9,5 @@ begin
 end;
 
 --# andnot.adb
---  /Statementmark/ l- s-
---  /Linemark/      l- 0c
+--  /Statementmark/ l- ## s-
+--  /Linemark/      l- ## 0c

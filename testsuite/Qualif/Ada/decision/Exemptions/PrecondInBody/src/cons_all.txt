@@ -5,10 +5,10 @@ drivers=_overlap|_no_overlap|invalid
 --  True and False.
 
 --# ranges.adb
---  /checkValid/    l+ 0
---  /assignValid/   l+ 0
---  /assignInvalid/ l+ 0
---  /preValid/      l# x0
---  /checkOverlap/  l+ 0
---  /overlapTrue/   l+ 0
---  /overlapFalse/  l+ 0
+--  /checkValid/    l+ ## 0
+--  /assignValid/   l+ ## 0
+--  /assignInvalid/ l+ ## 0
+--  /preValid/      l# ## x0
+--  /checkOverlap/  l+ ## 0
+--  /overlapTrue/   l+ ## 0
+--  /overlapFalse/  l+ ## 0

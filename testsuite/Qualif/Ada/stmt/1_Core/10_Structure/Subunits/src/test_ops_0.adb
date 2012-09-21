@@ -7,18 +7,18 @@ begin
 end;
 
 --# ops.adb
---  /touch/ l- s-
---  /doops/ l- s-
---  /vsub/  l- s-
---  /psub/  l- s-
---  /isub/  l- s-
+--  /touch/ l- ## s-
+--  /doops/ l- ## s-
+--  /vsub/  l- ## s-
+--  /psub/  l- ## s-
+--  /isub/  l- ## s-
 
 --# ops-vsub.adb
---  /vsub/  l- s-
+--  /vsub/  l- ## s-
 
 --# ops-psub.adb
---  /psub/  l- s-
+--  /psub/  l- ## s-
 
 --# ops-isub.adb
---  /isub/  l- s-
+--  /isub/  l- ## s-
 

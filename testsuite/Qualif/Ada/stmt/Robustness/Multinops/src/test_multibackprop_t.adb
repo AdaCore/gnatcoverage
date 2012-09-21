@@ -11,5 +11,5 @@ end;
 
 --# multibackprop.adb
 
---  /alwaysEval/ l+ 0
---  /trueEval/   l+ 0
+--  /alwaysEval/ l+ ## 0
+--  /trueEval/   l+ ## 0

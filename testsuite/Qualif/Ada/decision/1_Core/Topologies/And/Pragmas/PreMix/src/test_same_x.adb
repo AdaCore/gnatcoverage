@@ -15,12 +15,12 @@ begin
 end;
 
 --# points.adb
---  /bodySX/   l+ 0
---  /bodySY/   l- s-
---  /bodySet/  l+ 0
---  /preSXY/   l- s-
---  /retSXY/   l- s-
+--  /bodySX/   l+ ## 0
+--  /bodySY/   l- ## s-
+--  /bodySet/  l+ ## 0
+--  /preSXY/   l- ## s-
+--  /retSXY/   l- ## s-
 
 --# points.ads
---  /preSX/    l+ 0
---  /preSY/    l- s-
+--  /preSX/    l+ ## 0
+--  /preSY/    l- ## s-

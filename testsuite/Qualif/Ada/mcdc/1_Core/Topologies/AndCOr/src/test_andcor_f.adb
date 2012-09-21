@@ -9,12 +9,12 @@ begin
 end;
 
 --# andcor.adb
--- /andthen/     l! oT-
--- /orelse/      l- s-
--- /returnOr/    l- s-
--- /orTrue/      l- s-
--- /orFalse/     l- s-
--- /returnTrue/  l- s-
--- /returnFalse/ l+ 0
--- /returnValue/ l+ 0
--- /decl/ l+ 0
+-- /andthen/     l! ## oT-
+-- /orelse/      l- ## s-
+-- /returnOr/    l- ## s-
+-- /orTrue/      l- ## s-
+-- /orFalse/     l- ## s-
+-- /returnTrue/  l- ## s-
+-- /returnFalse/ l+ ## 0
+-- /returnValue/ l+ ## 0
+-- /decl/ l+ ## 0

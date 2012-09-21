@@ -11,8 +11,8 @@ exception
 end;
 
 --# passand.ads
---  /eval/ l! c!:"B"
+--  /eval/ l! ## c!:"B"
 
 --# passand.adb
---  /eval/ l! c!:"B"
---  /stmt/ l+ 0
+--  /eval/ l! ## c!:"B"
+--  /stmt/ l+ ## 0

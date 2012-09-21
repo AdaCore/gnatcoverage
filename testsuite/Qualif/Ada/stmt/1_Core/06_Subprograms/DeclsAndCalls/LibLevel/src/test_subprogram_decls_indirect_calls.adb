@@ -33,17 +33,17 @@ begin
 end Test_Subprogram_Decls_Indirect_Calls;
 
 --# library_level_fun.adb
--- /fun/        l- s-
+-- /fun/        l- ## s-
 
 --# library_level_proc.adb
--- /proc/       l+ 0
+-- /proc/       l+ ## 0
 
 --# subprogram_pack.adb
--- /fun1/       l- s-
--- /fun2/       l- s-
--- /proc1/      l+ 0
--- /proc2/      l- s-
--- /proc3/      l+ 0
--- /proc4/      l+ 0
--- /local_proc/ l- s-
--- /local_fun/  l- s-
+-- /fun1/       l- ## s-
+-- /fun2/       l- ## s-
+-- /proc1/      l+ ## 0
+-- /proc2/      l- ## s-
+-- /proc3/      l+ ## 0
+-- /proc4/      l+ ## 0
+-- /local_proc/ l- ## s-
+-- /local_fun/  l- ## s-

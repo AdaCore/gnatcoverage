@@ -28,22 +28,22 @@ begin
 end Test_Incomplete_Iteration;
 
 --# loop_statements.adb
--- /preLoop1/              l+ 0
--- /loop1/                 l+ 0
--- /inloopbeforeexit1/     l+ 0
--- /inloopexit1/           l+ 0
--- /inloopafterexit1/      l- s-
--- /postLoop1/             l+ 0
--- /preLoop2/              l- s-
--- /loop2/                 l- s-
--- /inloopbeforeexit2/     l- s-
--- /inloopbeforeexitinif2/ l- s-
--- /inloopexit2/           l- s-
--- /preLoop3/              l+ 0
--- /inloopexit3/           l+ 0
--- /inloop3/               l- s-
--- /postLoop3/             l+ 0
--- /preLoop4/              l+ 0
--- /loop4/                 l+ 0
--- /inloopexit4/           l+ 0
--- /inloop4/               l- s-
+-- /preLoop1/              l+ ## 0
+-- /loop1/                 l+ ## 0
+-- /inloopbeforeexit1/     l+ ## 0
+-- /inloopexit1/           l+ ## 0
+-- /inloopafterexit1/      l- ## s-
+-- /postLoop1/             l+ ## 0
+-- /preLoop2/              l- ## s-
+-- /loop2/                 l- ## s-
+-- /inloopbeforeexit2/     l- ## s-
+-- /inloopbeforeexitinif2/ l- ## s-
+-- /inloopexit2/           l- ## s-
+-- /preLoop3/              l+ ## 0
+-- /inloopexit3/           l+ ## 0
+-- /inloop3/               l- ## s-
+-- /postLoop3/             l+ ## 0
+-- /preLoop4/              l+ ## 0
+-- /loop4/                 l+ ## 0
+-- /inloopexit4/           l+ ## 0
+-- /inloop4/               l- ## s-

@@ -28,47 +28,47 @@ begin
 end Test_GOTO_Statements_loop_No_Iteration;
 
 --# goto_statements_loop.adb
--- /1loop/          l+ 0
--- /11if/           l- s-
--- /11goto/         l- s-
--- /12if/           l- s-
--- /12goto/         l- s-
--- /1after2goto/    l- s-
--- /13goto/         l+ 0
--- /1after3goto/    l- s-
--- /14goto/         l- s-
--- /1after4goto/    l- s-
--- /15goto/         l- s-
--- /1after5goto/    l+ 0
--- /1fin/           l+ 0
+-- /1loop/          l+ ## 0
+-- /11if/           l- ## s-
+-- /11goto/         l- ## s-
+-- /12if/           l- ## s-
+-- /12goto/         l- ## s-
+-- /1after2goto/    l- ## s-
+-- /13goto/         l+ ## 0
+-- /1after3goto/    l- ## s-
+-- /14goto/         l- ## s-
+-- /1after4goto/    l- ## s-
+-- /15goto/         l- ## s-
+-- /1after5goto/    l+ ## 0
+-- /1fin/           l+ ## 0
 
--- /2beforeloop/    l+ 0
--- /2loop/          l+ 0
--- /21if/           l- s-
--- /21goto/         l- s-
--- /22if/           l- s-
--- /22goto/         l- s-
--- /2after2goto/    l- s-
--- /23goto/         l+ 0
--- /2after3goto/    l- s-
--- /24goto/         l- s-
--- /2after4goto/    l- s-
--- /25goto/         l- s-
--- /2after5goto/    l+ 0
--- /2fin/           l+ 0
+-- /2beforeloop/    l+ ## 0
+-- /2loop/          l+ ## 0
+-- /21if/           l- ## s-
+-- /21goto/         l- ## s-
+-- /22if/           l- ## s-
+-- /22goto/         l- ## s-
+-- /2after2goto/    l- ## s-
+-- /23goto/         l+ ## 0
+-- /2after3goto/    l- ## s-
+-- /24goto/         l- ## s-
+-- /2after4goto/    l- ## s-
+-- /25goto/         l- ## s-
+-- /2after5goto/    l+ ## 0
+-- /2fin/           l+ ## 0
 
--- /3beforeloop/    l+ 0
--- /3loop/          ~l+ ~0
--- /3exit/          l+ 0
--- /31if/           l- s-
--- /31goto/         l- s-
--- /32if/           l- s-
--- /32goto/         l- s-
--- /3after2goto/    l- s-
--- /33goto/         l+ 0
--- /3after3goto/    l- s-
--- /34goto/         l- s-
--- /3after4goto/    l- s-
--- /35goto/         l- s-
--- /3after5goto/    l+ 0
--- /3fin/           l+ 0
+-- /3beforeloop/    l+ ## 0
+-- /3loop/          ~l+ ## ~0
+-- /3exit/          l+ ## 0
+-- /31if/           l- ## s-
+-- /31goto/         l- ## s-
+-- /32if/           l- ## s-
+-- /32goto/         l- ## s-
+-- /3after2goto/    l- ## s-
+-- /33goto/         l+ ## 0
+-- /3after3goto/    l- ## s-
+-- /34goto/         l- ## s-
+-- /3after4goto/    l- ## s-
+-- /35goto/         l- ## s-
+-- /3after5goto/    l+ ## 0
+-- /3fin/           l+ ## 0

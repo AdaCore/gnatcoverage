@@ -47,16 +47,16 @@ begin
 end Test_Derived_Subprograms_Full;
 
 --# subprogram_pack.adb
--- /fun1/       l+ 0
--- /fun2/       l+ 0
--- /fun3/       l+ 0
--- /proc1/      l+ 0
--- /proc2/      l+ 0
--- /class_wide/ l+ 0
+-- /fun1/       l+ ## 0
+-- /fun2/       l+ ## 0
+-- /fun3/       l+ ## 0
+-- /proc1/      l+ ## 0
+-- /proc2/      l+ ## 0
+-- /class_wide/ l+ ## 0
 
 --# derived_1.adb
--- /proc2/      l+ 0
+-- /proc2/      l+ ## 0
 
 --# derived_2.adb
--- /fun2/       l+ 0
--- /proc2/      l+ 0
+-- /fun2/       l+ ## 0
+-- /proc2/      l+ ## 0

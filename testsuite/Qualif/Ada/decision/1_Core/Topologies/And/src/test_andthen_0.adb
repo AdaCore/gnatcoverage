@@ -6,8 +6,8 @@ begin
 end;
 
 --# andthen.adb
---  /__l!dT-/  l- s-
---  /andthen/  l- s-
---  /retTrue/  l- s-
---  /retFalse/ l- s-
---  /retVal/   l- s-
+--  /__l!dT-/  l- ## s-
+--  /andthen/  l- ## s-
+--  /retTrue/  l- ## s-
+--  /retFalse/ l- ## s-
+--  /retVal/   l- ## s-

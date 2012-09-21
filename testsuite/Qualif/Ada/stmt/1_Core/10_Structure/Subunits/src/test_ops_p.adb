@@ -10,18 +10,18 @@ begin
 end;
 
 --# ops.adb
---  /touch/ l+ 0
---  /doops/ l+ 0
---  /vsub/  l- s-
---  /psub/  l+ 0
---  /isub/  l- s-
+--  /touch/ l+ ## 0
+--  /doops/ l+ ## 0
+--  /vsub/  l- ## s-
+--  /psub/  l+ ## 0
+--  /isub/  l- ## s-
 
 --# ops-vsub.adb
---  /vsub/  l- s-
+--  /vsub/  l- ## s-
 
 --# ops-psub.adb
---  /psub/  l+ 0
+--  /psub/  l+ ## 0
 
 --# ops-isub.adb
---  /isub/  l- s-
+--  /isub/  l- ## s-
 

@@ -7,6 +7,6 @@ begin
 end;
 
 --# fuor.adb
---  /evalA/   l! c!:"Op"
---  /evalB/   l! 0
+--  /evalA/   l! ## c!:"Op"
+--  /evalB/   l! ## 0
 

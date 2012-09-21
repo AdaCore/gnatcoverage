@@ -15,15 +15,15 @@ begin
 end Test_Packages_Part_2;
 
 --# library_level_proc.adb
--- /proc/        l+ 0
+-- /proc/        l+ ## 0
 
 --# pack_1.adb
--- /fun/         l+ 0
--- /proc_1/      l+ 0
+-- /fun/         l+ ## 0
+-- /proc_1/      l+ ## 0
 
 --# pack_2.ads
--- /elab/        ~l+ ~0
+-- /elab/        ~l+ ## ~0
 
 --# pack_2.adb
--- /proc_2/      l- s-
--- /elab/        l+ 0
+-- /proc_2/      l- ## s-
+-- /elab/        l+ ## 0

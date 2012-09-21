@@ -11,4 +11,4 @@ begin
 end;
 
 --# andnot.adb
---  /doAndNot/  l! s!
+--  /doAndNot/  l! ## s!

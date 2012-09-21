@@ -35,26 +35,26 @@ begin
 end Test_EXIT_Statements_Full;
 
 --# exit_statements.adb
--- /1preloop/         l+ 0
--- /1loop/            ~l+ ~0
--- /in1loop1exit/     l+ 0
--- /in1loop2exit/     l+ 0
--- /in1loopafterexit/ l+ 0
--- /post1loop/        l+ 0
+-- /1preloop/         l+ ## 0
+-- /1loop/            ~l+ ## ~0
+-- /in1loop1exit/     l+ ## 0
+-- /in1loop2exit/     l+ ## 0
+-- /in1loopafterexit/ l+ ## 0
+-- /post1loop/        l+ ## 0
 
--- /2preloop/          l+ 0
--- /2loop/             l+ 0
--- /21exit/            l+ 0
--- /2after1exit/       l+ 0
--- /22exit/            l+ 0
--- /2after2exit/       l+ 0
+-- /2preloop/          l+ ## 0
+-- /2loop/             l+ ## 0
+-- /21exit/            l+ ## 0
+-- /2after1exit/       l+ ## 0
+-- /22exit/            l+ ## 0
+-- /2after2exit/       l+ ## 0
 
--- /3preloop/          l+ 0
--- /3outerloop/        l+ 0
--- /3innerloop/        l+ 0
--- /31exit/            l+ 0
--- /3after1exit/       l+ 0
--- /32exit/            l+ 0
--- /3after2exit/       l+ 0
--- /3afterinnerloop/   l+ 0
--- /postloop/          l+ 0
+-- /3preloop/          l+ ## 0
+-- /3outerloop/        l+ ## 0
+-- /3innerloop/        l+ ## 0
+-- /31exit/            l+ ## 0
+-- /3after1exit/       l+ ## 0
+-- /32exit/            l+ ## 0
+-- /3after2exit/       l+ ## 0
+-- /3afterinnerloop/   l+ ## 0
+-- /postloop/          l+ ## 0

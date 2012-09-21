@@ -15,23 +15,23 @@ begin
 end Test_Pragmas_Assert_Debug;
 
 --# pragmas.adb
--- /pre_check_val/      l- s-
--- /post_check_val/     l- s-
--- /check_val/          l- s-
--- /neverexecuted/      l- s-
+-- /pre_check_val/      l- ## s-
+-- /post_check_val/     l- ## s-
+-- /check_val/          l- ## s-
+-- /neverexecuted/      l- ## s-
 
--- /mainstream/         l+ 0
--- /nonemptyrange/      l+ 0
--- /morethenoneinrange/ l+ 0
--- /emptyrange/         l+ 0
--- /oneelement/         l+ 0
--- /XgtR/               l+ 0
--- /XltL/               l+ 0
--- /1debug/             l+ 0
--- /2debug/             l+ 0
--- /1assert/            l+ 0
--- /2assert/            l+ 0
--- /3assert/            l+ 0
--- /4assert/            l+ 0
+-- /mainstream/         l+ ## 0
+-- /nonemptyrange/      l+ ## 0
+-- /morethenoneinrange/ l+ ## 0
+-- /emptyrange/         l+ ## 0
+-- /oneelement/         l+ ## 0
+-- /XgtR/               l+ ## 0
+-- /XltL/               l+ ## 0
+-- /1debug/             l+ ## 0
+-- /2debug/             l+ ## 0
+-- /1assert/            l+ ## 0
+-- /2assert/            l+ ## 0
+-- /3assert/            l+ ## 0
+-- /4assert/            l+ ## 0
 
--- /is_safe/            l- s-
+-- /is_safe/            l- ## s-

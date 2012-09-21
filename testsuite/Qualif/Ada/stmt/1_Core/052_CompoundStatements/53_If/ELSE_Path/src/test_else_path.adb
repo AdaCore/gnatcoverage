@@ -24,40 +24,40 @@ begin
 end Test_ELSE_Path;
 
 --# if_statements.adb
--- /XcmpMin/     l+ 0
--- /XoutMin/     l- s-
--- /XcmpMax/     l+ 0
--- /XoutMax/     l- s-
--- /Xin/         l+ 0
--- /setmax/      l+ 0
--- /inifsetmax/  l- s-
+-- /XcmpMin/     l+ ## 0
+-- /XoutMin/     l- ## s-
+-- /XcmpMax/     l+ ## 0
+-- /XoutMax/     l- ## s-
+-- /Xin/         l+ ## 0
+-- /setmax/      l+ ## 0
+-- /inifsetmax/  l- ## s-
 
 --# more_if_statements.adb
--- /prime/       l+ 0
--- /ifprime/     l+ 0
--- /1prime/      l- s-
--- /comp2prime/  l+ 0
--- /2prime/      l- s-
--- /comp3prime/  l+ 0
--- /3prime/      l- s-
--- /comp4prime/  l+ 0
--- /4prime/      l- s-
--- /comp5prime/  l+ 0
--- /5prime/      l- s-
--- /comp6prime/  l+ 0
--- /6prime/      l- s-
--- /comp7prime/  l+ 0
--- /7prime/      l- s-
--- /comp8prime/  l+ 0
--- /8prime/      l- s-
--- /comp9prime/  l+ 0
--- /9prime/      l- s-
--- /comp10prime/ l+ 0
--- /10prime/     l- s-
--- /max/         l+ 0
--- /ifmax/       l- s-
--- /elsemax/     l+ 0
--- /elab/        l+ 0
--- /gt0elab/     l+ 0
--- /notgt0elab/  l- s-
--- /eq0elabeq0/  l- s-
+-- /prime/       l+ ## 0
+-- /ifprime/     l+ ## 0
+-- /1prime/      l- ## s-
+-- /comp2prime/  l+ ## 0
+-- /2prime/      l- ## s-
+-- /comp3prime/  l+ ## 0
+-- /3prime/      l- ## s-
+-- /comp4prime/  l+ ## 0
+-- /4prime/      l- ## s-
+-- /comp5prime/  l+ ## 0
+-- /5prime/      l- ## s-
+-- /comp6prime/  l+ ## 0
+-- /6prime/      l- ## s-
+-- /comp7prime/  l+ ## 0
+-- /7prime/      l- ## s-
+-- /comp8prime/  l+ ## 0
+-- /8prime/      l- ## s-
+-- /comp9prime/  l+ ## 0
+-- /9prime/      l- ## s-
+-- /comp10prime/ l+ ## 0
+-- /10prime/     l- ## s-
+-- /max/         l+ ## 0
+-- /ifmax/       l- ## s-
+-- /elsemax/     l+ ## 0
+-- /elab/        l+ ## 0
+-- /gt0elab/     l+ ## 0
+-- /notgt0elab/  l- ## s-
+-- /eq0elabeq0/  l- ## s-

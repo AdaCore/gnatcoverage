@@ -6,10 +6,10 @@ begin
 end;
 
 --# pval.ads
--- /eval/    l! o!
+-- /eval/    l! ## o!
 
 --# pval.adb
--- /eval/        l! o!
--- /returnTrue/  l+ 0
--- /returnFalse/ l- s-
--- /returnVal/   l+ 0
+-- /eval/        l! ## o!
+-- /returnTrue/  l+ ## 0
+-- /returnFalse/ l- ## s-
+-- /returnVal/   l+ ## 0

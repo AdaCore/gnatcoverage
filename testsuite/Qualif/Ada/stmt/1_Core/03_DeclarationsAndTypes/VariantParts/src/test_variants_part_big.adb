@@ -26,19 +26,19 @@ begin
 end Test_Variants_Part_Big;
 
 --# variants_support.adb
---  /var1stmt/ l+ 0
---  /var2stmt/ l+ 0
---  /var3stmt/ l+ 0
---  /varothersstmt/ l- s-
+--  /var1stmt/ l+ ## 0
+--  /var2stmt/ l+ ## 0
+--  /var3stmt/ l+ ## 0
+--  /varothersstmt/ l- ## s-
 
 -- # variant_3_g.ads
---  /var3gendcls/ l+ 0
+--  /var3gendcls/ l+ ## 0
 
 -- # variant_3_g.adb
---  /var3genstmts/ l+ 0
+--  /var3genstmts/ l+ ## 0
 
 -- # variant_others_g.ads
---  /varothersgendcls/ l- s-
+--  /varothersgendcls/ l- ## s-
 
 -- # variant_others_g.adb
---  /varothersgenstmts/ l- s-
+--  /varothersgenstmts/ l- ## s-

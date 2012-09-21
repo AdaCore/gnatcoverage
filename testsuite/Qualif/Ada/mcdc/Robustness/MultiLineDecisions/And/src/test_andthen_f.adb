@@ -8,7 +8,7 @@ begin
 end;
 
 --# andthen.adb
--- /eval0/  l! oT-
--- /eval1/  l! 0
--- /true/   l- s-
--- /false/  l+ 0
+-- /eval0/  l! ## oT-
+-- /eval1/  l! ## 0
+-- /true/   l- ## s-
+-- /false/  l+ ## 0

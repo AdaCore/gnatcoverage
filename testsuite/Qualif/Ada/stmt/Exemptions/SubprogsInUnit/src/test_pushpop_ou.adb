@@ -24,10 +24,10 @@ begin
 end;
 
 --# stacks.adb
--- /xregion/   l# x0
+-- /xregion/   l# ## x0
 
--- /push_decl/ l+ 0
--- /push_body/ l+ 0
--- /pop_decl/  l+ 0
--- /pop_body/  l+ 0
--- /err_body/  l+ 0
+-- /push_decl/ l+ ## 0
+-- /push_body/ l+ ## 0
+-- /pop_decl/  l+ ## 0
+-- /pop_body/  l+ ## 0
+-- /err_body/  l+ ## 0

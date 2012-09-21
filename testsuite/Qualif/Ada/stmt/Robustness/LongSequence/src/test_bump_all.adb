@@ -11,4 +11,4 @@ begin
 end;
 
 --# bump.adb
---  /bump/  l+ 0
+--  /bump/  l+ ## 0
