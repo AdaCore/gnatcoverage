@@ -728,14 +728,13 @@ class TestSuite:
 
         bindir = os.path.join (prefix, "bin")
         exeext = self.env.host.os.exeext
-        if (not os.path.exists (
-                os.path.join (bindir, self.env.target.triplet + "-gcc"+exeext))
-            or not os.path.exists (
-                os.path.join (bindir, "gprbuild"+exeext))
-            ):
-            raise FatalError (
-                'Provided toolchain dir "%s" misses essential binaries' %
-                self.options.toolchain)
+
+        def check_for (pgm):
+            if (not os.path.exists (os.path.join (bindir, pgm))):
+                raise FatalError ('Missing "%s" in "%s"' % (pgm, bindir))
+
+        [check_for (p+exeext) for p in (
+                self.env.target.triplet+"-gcc", "gprbuild")]
 
         # Adjust PATH to place <bindir> ahead so that the tests we
         # spawn use it.
