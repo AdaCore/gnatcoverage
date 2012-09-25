@@ -16,6 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with GNAT.Strings; use GNAT.Strings;
+
 package Switches is
 
    Verbose : Boolean := False;
@@ -46,5 +48,28 @@ package Switches is
    Debug_Ignore_Exemptions : Boolean := False;
    --  -di
    --  Exemption pragmas have no effect.
+
+   -------------------------
+   -- Sources of switches --
+   -------------------------
+
+   type Switches_Source is limited interface;
+   function Argument_Count (S : Switches_Source) return Natural is abstract;
+   function Argument (S : Switches_Source; Index : Positive) return String
+     is abstract;
+
+   type Command_Line_Switches_Source is
+     limited new Switches_Source with null record;
+   overriding function Argument_Count
+     (S : Command_Line_Switches_Source) return Natural;
+   overriding function Argument
+     (S : Command_Line_Switches_Source; Index : Positive) return String;
+
+   type String_List_Switches_Source (L : access String_List)  is
+     limited new Switches_Source with null record;
+   overriding function Argument_Count
+     (S : String_List_Switches_Source) return Natural;
+   overriding function Argument
+     (S : String_List_Switches_Source; Index : Positive) return String;
 
 end Switches;

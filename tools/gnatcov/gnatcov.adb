@@ -17,7 +17,8 @@
 ------------------------------------------------------------------------------
 
 with Interfaces;
-with Ada.Command_Line;  use Ada.Command_Line;
+
+with Ada.Command_Line;
 with Ada.Text_IO;       use Ada.Text_IO;
 with Ada.Containers;    use Ada.Containers;
 
@@ -98,7 +99,7 @@ procedure GNATcov is
    procedure Usage is
       procedure P (S : String) renames Put_Line;
    begin
-      P ("Usage: " & Command_Name & " ACTION [OPTIONS...]");
+      P ("Usage: " & Ada.Command_Line.Command_Name & " ACTION [OPTIONS...]");
       P ("Action is one of:");
       P (" --help");
       P ("   Display this help");
@@ -227,8 +228,6 @@ procedure GNATcov is
    Eargs               : String_List_Access := null;
    Root_Project        : String_Access := null;
 
-   Subdirs             : String_Access := null;
-
    Opt_Exe_Name : String_Access := null;
    --  Path to executable from the command line; it overrides the default one
    --  from trace files.
@@ -236,15 +235,10 @@ procedure GNATcov is
    procedure Parse_Command_Line;
    --  Parse the command line and set the above local variables
 
-   procedure Set_Root_Project (Prj_Name : String);
-   --  Use the named project file as root project
-
-   procedure Set_Defaults_From_Project;
-   --  Load the project file and set defaults for relevant options if they
-   --  have not been overridden on the command line.
-
-   procedure Set_Command_Line_Subdirs (Dir : String);
-   --  Handle the --subdirs option
+   procedure Set_Subjects_From_Project;
+   --  Load the project file and set defaults for options identifying the
+   --  entities of interest coverage analysis if they have not been identified
+   --  on the command line.
 
    --------------------------
    -- Check_SCOs_Available --
@@ -264,476 +258,566 @@ procedure GNATcov is
    ------------------------
 
    procedure Parse_Command_Line is
-      Arg_Index : Natural;
-      Arg_Count : constant Natural := Argument_Count;
+      type Pass_Type is (Command_Line_1, Project, Command_Line_2);
 
-      function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
-      --  Parse S to get an hexadecimal number (form : 0x[0-9a-f]+) and
-      --  return the value. If the parsing fails, fatal error.
-
-      function Option_Parameter (S : String) return String;
-      --  Assuming that S is of the form "<part1>=<part2>",
-      --  return "<part2>".
-
-      function Next_Arg (What : String) return String;
-      --  Increment Arg_Index and return Argument (Arg_Index). If end of
-      --  command line is reached, display an error message, and raise
-      --  Constraint_Error.
-
-      procedure Check_Argument_Available
-        (What    : String;
-         Command : Command_Type := No_Command);
-      --  Check that Arg_Index is not greater than Arg_Count. If not, display
-      --  an error message and raise Fatal_Error.
-
-      procedure Check_Annotation_Format (Annotation : Annotation_Format);
-      --  Warn if Annotation is unknown or deprecated
-
-      function Rest_Of_Command_Line return String_List_Access;
-      --  Return the rest of the command line in a string list
-
-      ------------------------------
-      -- Check_Argument_Available --
-      ------------------------------
-
-      procedure Check_Argument_Available
-        (What    : String;
-         Command : Command_Type := No_Command) is
-      begin
-         if Arg_Index > Arg_Count then
-            Fatal_Error ("missing " & What & " argument "
-                         & For_Command_Switch (Command));
-         end if;
-      end Check_Argument_Available;
-
-      -----------------------------
-      -- Check_Annotation_Format --
-      -----------------------------
-
-      procedure Check_Annotation_Format (Annotation : Annotation_Format) is
-      begin
-         if Annotation = Annotate_Unknown then
-            Fatal_Error ("bad parameter for " & Annotate_Option_Short);
-         end if;
-      end Check_Annotation_Format;
-
-      --------------
-      -- Next_Arg --
-      --------------
-
-      function Next_Arg (What : String) return String is
-      begin
-         Arg_Index := Arg_Index + 1;
-         Check_Argument_Available (What);
-         return Argument (Arg_Index);
-      end Next_Arg;
+      procedure Process_Switches
+        (S     : Switches_Source'Class;
+         First : Natural;
+         Pass  : Pass_Type);
+      --  Process switches from S starting at index First. Pass Command_Line_1
+      --  is the initial scan for the root project, pass Project is for default
+      --  switches from the root project, and pass Command_Line_2 is for the
+      --  normal processing of the remainder of the command line.
 
       ----------------------
-      -- Option_Parameter --
+      -- Process_Switches --
       ----------------------
 
-      function Option_Parameter (S : String) return String is
-      begin
-         for J in S'Range loop
-            if S (J) = '=' then
-               return S (J + 1 .. S'Last);
-            end if;
-         end loop;
-         return S;
-      end Option_Parameter;
-
-      ---------------
-      -- Parse_Hex --
-      ---------------
-
-      function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
+      procedure Process_Switches
+        (S     : Switches_Source'Class;
+         First : Natural;
+         Pass  : Pass_Type)
       is
-         Res : Pc_Type;
-         Pos : Natural;
-      begin
-         if S'Length < 3
-           or else S (S'First) /= '0'
-           or else (S (S'First + 1) /= 'x' and then S (S'First + 1) /= 'X')
-         then
-            Fatal_Error ("missing '0x' prefix for " & Flag_Name);
-         end if;
-         Pos := S'First + 2;
-         Get_Pc (Res, S, Pos);
-         if Pos <= S'Last then
-            Fatal_Error ("bad hexadecimal number for " & Flag_Name);
-         end if;
-         return Res;
-      end Parse_Hex;
+         Arg_Count : constant Natural := S.Argument_Count;
+         Arg_Index : Natural := First;
 
-      --------------------------
-      -- Rest_Of_Command_Line --
-      --------------------------
+         procedure Check_Annotation_Format (Annotation : Annotation_Format);
+         --  Warn if Annotation is unknown or deprecated
 
-      function Rest_Of_Command_Line return String_List_Access is
-         Result : constant String_List_Access :=
-           new String_List (1 .. Arg_Count - Arg_Index);
-         I : Natural := 1;
+         procedure Check_Argument_Available
+           (What    : String;
+            Command : Command_Type := No_Command);
+         --  Check that Arg_Index is not greater than Arg_Count. If not,
+         --  display an error message and raise Fatal_Error.
+
+         function Next_Arg (What : String) return String;
+         --  Increment Arg_Index and return Argument (Arg_Index). If end of
+         --  command line is reached, display an error message, and raise
+         --  Constraint_Error.
+
+         function Option_Parameter (S : String) return String;
+         --  Assuming that S is of the form "<part1>=<part2>",
+         --  return "<part2>".
+
+         function Parse_Hex (S : String; Flag_Name : String) return Pc_Type;
+         --  Parse S to get an hexadecimal number (form : 0x[0-9a-f]+) and
+         --  return the value. If the parsing fails, fatal error.
+
+         function Rest_Of_Command_Line return String_List_Access;
+         --  Return the rest of the command line in a string list
+
+         procedure Set_Root_Project (Prj_Name : String);
+         --  Use the named project file as root project. No-op during pass
+         --  Command_Line_2, fatal error if encountered during pass Project.
+
+         -----------------------------
+         -- Check_Annotation_Format --
+         -----------------------------
+
+         procedure Check_Annotation_Format (Annotation : Annotation_Format) is
+         begin
+            if Annotation = Annotate_Unknown then
+               Fatal_Error ("bad parameter for " & Annotate_Option_Short);
+            end if;
+         end Check_Annotation_Format;
+
+         ------------------------------
+         -- Check_Argument_Available --
+         ------------------------------
+
+         procedure Check_Argument_Available
+           (What    : String;
+            Command : Command_Type := No_Command) is
+         begin
+            if Arg_Index > Arg_Count then
+               Fatal_Error ("missing " & What & " argument "
+                            & For_Command_Switch (Command));
+            end if;
+         end Check_Argument_Available;
+
+         --------------
+         -- Next_Arg --
+         --------------
+
+         function Next_Arg (What : String) return String is
+         begin
+            Arg_Index := Arg_Index + 1;
+            Check_Argument_Available (What);
+            return S.Argument (Arg_Index);
+         end Next_Arg;
+
+         ----------------------
+         -- Option_Parameter --
+         ----------------------
+
+         function Option_Parameter (S : String) return String is
+         begin
+            for J in S'Range loop
+               if S (J) = '=' then
+                  return S (J + 1 .. S'Last);
+               end if;
+            end loop;
+            return S;
+         end Option_Parameter;
+
+         ---------------
+         -- Parse_Hex --
+         ---------------
+
+         function Parse_Hex (S : String; Flag_Name : String) return Pc_Type
+         is
+            Res : Pc_Type;
+            Pos : Natural;
+         begin
+            if S'Length < 3
+              or else S (S'First) /= '0'
+              or else (S (S'First + 1) /= 'x' and then S (S'First + 1) /= 'X')
+            then
+               Fatal_Error ("missing '0x' prefix for " & Flag_Name);
+            end if;
+            Pos := S'First + 2;
+            Get_Pc (Res, S, Pos);
+            if Pos <= S'Last then
+               Fatal_Error ("bad hexadecimal number for " & Flag_Name);
+            end if;
+            return Res;
+         end Parse_Hex;
+
+         --------------------------
+         -- Rest_Of_Command_Line --
+         --------------------------
+
+         function Rest_Of_Command_Line return String_List_Access is
+            Result : constant String_List_Access :=
+              new String_List (1 .. Arg_Count - Arg_Index);
+            I : Natural := 1;
+         begin
+            while Arg_Index < Arg_Count loop
+               Result (I) := new String'(Next_Arg ("eargs"));
+               I := I + 1;
+            end loop;
+            return Result;
+         end Rest_Of_Command_Line;
+
+         ----------------------
+         -- Set_Root_Project --
+         ----------------------
+
+         procedure Set_Root_Project (Prj_Name : String) is
+         begin
+            if Root_Project /= null then
+               Fatal_Error ("only one root project may be specified");
+            end if;
+            Root_Project := new String'(Prj_Name);
+            Load_Root_Project (Prj_Name);
+         end Set_Root_Project;
+
+      --  Start of processing for Process_Switches
+
       begin
-         while Arg_Index < Arg_Count loop
-            Result (I) := new String'(Next_Arg ("eargs"));
-            I := I + 1;
+         while Arg_Index <= Arg_Count loop
+            declare
+               Arg : String renames S.Argument (Arg_Index);
+            begin
+               case Pass is
+                  when Command_Line_1 =>
+                     if Arg = Root_Project_Option then
+                        Set_Root_Project (Next_Arg ("root project"));
+
+                     elsif Has_Prefix (Arg, Root_Project_Option) then
+                        Set_Root_Project
+                          (Arg (Arg'First + Root_Project_Option'Length ..
+                                Arg'Last));
+
+                     elsif Has_Prefix (Arg, Scenario_Var_Option) then
+
+                        --  Get name and value from "-X<name>=<value>"
+
+                        declare
+                           Name_First, Name_Last, Value_First : Positive;
+                        begin
+                           Name_First := Arg'First + 2;
+                           Name_Last := Name_First - 1;
+                           while Name_Last < Arg'Last
+                             and then Arg (Name_Last + 1) /= '='
+                           loop
+                              Name_Last := Name_Last + 1;
+                           end loop;
+
+                           Value_First := Name_Last + 2;
+
+                           Add_Scenario_Var
+                             (Key   => Arg (Name_First .. Name_Last),
+                              Value => Arg (Value_First .. Arg'Last));
+                        end;
+
+                     elsif Has_Prefix (Arg, Subdirs_Option) then
+                        Set_Subdirs (Option_Parameter (Arg));
+
+                     end if;
+
+                  when Command_Line_2 | Project =>
+                     if Arg = Root_Project_Option
+                       or else Has_Prefix (Arg, Root_Project_Option)
+                       or else Has_Prefix (Arg, Scenario_Var_Option)
+                       or else Has_Prefix (Arg, Subdirs_Option)
+                     then
+                        --  Ignore in command line pass 2, reject in project
+
+                        if Pass = Project then
+                           Fatal_Error
+                             (Arg & " may not be specified in a project");
+                        end if;
+
+                     elsif Has_Prefix (Arg, "-d") then
+                        --  Debugging options
+
+                        declare
+                           Pos : Positive := Arg'First + 2;
+                        begin
+                           if Pos > Arg'Last then
+                              Fatal_Error ("parameter required for -d");
+                           end if;
+
+                           while Pos <= Arg'Last loop
+                              case Arg (Pos) is
+                              when 'h' =>
+                                 Switches.Debug_Full_History       := True;
+                              when 'i' =>
+                                 Switches.Debug_Ignore_Exemptions  := True;
+                              when others =>
+                                 Fatal_Error ("bad parameter -d" & Arg (Pos));
+                              end case;
+                              Pos := Pos + 1;
+                           end loop;
+                        end;
+
+                     elsif Arg = Verbose_Option
+                             or else
+                           Arg = Verbose_Option_Short
+                     then
+                        Verbose := True;
+
+                     elsif Arg = Eargs_Option then
+                        Check_Option (Arg, Command, (1 => Cmd_Run));
+                        Eargs := Rest_Of_Command_Line;
+                        return;
+
+                     elsif Arg = Target_Option_Short then
+                        Check_Option (Arg, Command, (1 => Cmd_Run));
+                        Target := new String'(Next_Arg ("target"));
+
+                     elsif Has_Prefix (Arg, Target_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Run));
+                        Target := new String'(Option_Parameter (Arg));
+
+                     elsif Arg = Output_Option_Short then
+                        Check_Option (Arg, Command, (1 => Cmd_Run,
+                                                     2 => Cmd_Coverage));
+                        Output := new String'(Next_Arg ("output"));
+
+                     elsif Has_Prefix (Arg, Output_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Run,
+                                                     2 => Cmd_Coverage));
+                        Output := new String'(Option_Parameter (Arg));
+
+                     elsif Has_Prefix (Arg, Projects_Option) then
+                        Inputs.Add_Input
+                          (Projects_Inputs, Option_Parameter (Arg));
+
+                     elsif Arg = Recursive_Option then
+                        Switches.Recursive_Projects := True;
+
+                     elsif Has_Prefix (Arg, Tag_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Run));
+                        Tag := new String'(Option_Parameter (Arg));
+
+                     elsif Has_Prefix (Arg, Kernel_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Run));
+                        Kernel := new String'(Option_Parameter (Arg));
+
+                     elsif Arg = Coverage_Option_Short then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                                     2 => Cmd_Run));
+                        begin
+                           Set_Coverage_Levels (Next_Arg ("coverage level"));
+                        exception
+                           when Constraint_Error =>
+                              Fatal_Error
+                                ("bad parameter for " & Coverage_Option_Short);
+                        end;
+
+                     elsif Has_Prefix (Arg, Coverage_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                                     2 => Cmd_Run));
+                        begin
+                           Set_Coverage_Levels (Option_Parameter (Arg));
+                        exception
+                           when Constraint_Error =>
+                              Fatal_Error
+                                ("bad parameter for " & Coverage_Option);
+                        end;
+
+                     elsif Has_Prefix (Arg, SCOs_Option)
+                       or else Has_Prefix (Arg, ALIs_Option)
+                     then
+                        Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
+                                                     2 => Cmd_Coverage,
+                                                     3 => Cmd_Run));
+                        Inputs.Add_Input
+                          (ALIs_Inputs, Option_Parameter (Arg));
+
+                     elsif Has_Prefix (Arg, Units_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
+                                                     2 => Cmd_Coverage,
+                                                     3 => Cmd_Run));
+                        Inputs.Add_Input
+                          (Units_Inputs, Option_Parameter (Arg));
+
+                     elsif Has_Prefix (Arg, Routines_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
+                                                     2 => Cmd_Coverage,
+                                                     3 => Cmd_Run));
+                        Inputs.Add_Input
+                          (Routines_Inputs, Option_Parameter (Arg));
+
+                     elsif Arg = Deprecated_Routine_List_Option_Short then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                                     2 => Cmd_Run));
+                        Inputs.Add_Input (Routines_Inputs,
+                                          "@" & Next_Arg ("function list"));
+
+                     elsif Has_Prefix
+                       (Arg, Deprecated_Routine_List_Option)
+                     then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                                     2 => Cmd_Run));
+                        Inputs.Add_Input (Routines_Inputs,
+                                          "@" & Option_Parameter (Arg));
+
+                     elsif Has_Prefix (Arg, Exec_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Opt_Exe_Name := new String'(Option_Parameter (Arg));
+
+                     elsif Arg = "--all-decisions" then
+                        Switches.All_Decisions := True;
+
+                     elsif Arg = "--all-messages" then
+                        Switches.All_Messages := True;
+
+                     elsif Arg = "--missing-files" then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Flag_Show_Missing := True;
+
+                     elsif Has_Prefix (Arg, "--text-start=") then
+                        --  FIXME: not yet supported???
+                        --  Should be a global option (used when building
+                        --  decision map for --run)???
+
+                        begin
+                           Text_Start :=
+                             Parse_Hex
+                               (Arg (Arg'First + 13 .. Arg'Last),
+                                "--text-start");
+                        exception
+                           when Constraint_Error =>
+                              Fatal_Error ("Failure to parse --text-start");
+                        end;
+
+                     elsif Has_Prefix (Arg, "--source-rebase=") then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        declare
+                           Pos : Natural := 0;
+                        begin
+                           --  Parse source-rebase's argument. This option's
+                           --  form should be
+                           --  "--source-rebase=<OLD_PREFIX>=<NEW_PREFIX>".
+
+                           for I in Arg'First + 16 .. Arg'Last loop
+                              if Arg (I) = '=' then
+                                 Pos := I;
+                                 exit;
+                              end if;
+                           end loop;
+                           if Pos = 0 then
+                              Fatal_Error ("missing '=' in --source-rebase=");
+                           end if;
+                           Add_Source_Rebase (Arg (Arg'First + 16 .. Pos - 1),
+                                              Arg (Pos + 1 .. Arg'Last));
+                        end;
+
+                     elsif Has_Prefix (Arg, "--source-search=") then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
+
+                     elsif Arg = Annotate_Option_Short then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Annotation :=
+                          To_Annotation_Format
+                            (Next_Arg ("annotation format"));
+                        Check_Annotation_Format (Annotation);
+
+                     elsif Has_Prefix (Arg, Annotate_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Annotation :=
+                          To_Annotation_Format (Option_Parameter (Arg));
+                        Check_Annotation_Format (Annotation);
+
+                     elsif Has_Prefix (Arg, Final_Report_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Output := new String'(Option_Parameter (Arg));
+
+                     elsif Has_Prefix (Arg, Output_Dir_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Outputs.Set_Output_Dir (Option_Parameter (Arg));
+
+                     elsif Arg = Trace_Option_Short then
+                        Check_Option (Arg, Command, (Cmd_Coverage,
+                          Cmd_Dump_Trace,
+                          Cmd_Dump_Trace_Raw,
+                          Cmd_Dump_Trace_Base,
+                          Cmd_Dump_Trace_Asm,
+                          Cmd_Run));
+
+                        --  Tag_Option_Short conflicts with Trace_Option_Short
+
+                        if Command = Cmd_Run then
+                           Tag := new String'(Next_Arg (Arg));
+                        else
+                           Inputs.Add_Input
+                             (Trace_Inputs, Next_Arg ("trace file"));
+                        end if;
+
+                     elsif Has_Prefix (Arg, Trace_Option) then
+                        Check_Option (Arg, Command, (Cmd_Coverage,
+                          Cmd_Dump_Trace,
+                          Cmd_Dump_Trace_Raw,
+                          Cmd_Dump_Trace_Base,
+                          Cmd_Dump_Trace_Asm));
+                        Inputs.Add_Input
+                          (Trace_Inputs, Option_Parameter (Arg));
+
+                     elsif Arg = "--exclude" then
+                        Inputs.Add_Input (Obj_Inputs, Arg);
+
+                     elsif Arg = "--include" then
+                        Inputs.Add_Input (Obj_Inputs, Arg);
+
+                     elsif Arg (1) = '-' then
+                        Fatal_Error ("unknown option: " & Arg);
+
+                     else
+                        --  Handling of parameters that are not options (i.e.
+                        --  file list).
+
+                        case Command is
+                        when No_Command =>
+                           Fatal_Error ("No command specified");
+
+                        when Cmd_Help
+                           | Cmd_Help_Dump =>
+                           Fatal_Error ("no parameter allowed");
+
+                        when Cmd_Version =>
+                           null;
+
+                        when Cmd_Coverage
+                           | Cmd_Dump_Trace
+                           | Cmd_Dump_Trace_Raw
+                           | Cmd_Dump_Trace_Base =>
+                           Inputs.Add_Input (Trace_Inputs, Arg);
+
+                        when Cmd_Disp_Routines =>
+                           Inputs.Add_Input (Obj_Inputs, Arg);
+
+                        when Cmd_Dump_Sections
+                           | Cmd_Dump_Symbols
+                           | Cmd_Dump_Compile_Units
+                           | Cmd_Dump_Subprograms
+                           | Cmd_Dump_Lines
+                           | Cmd_Disassemble_Raw
+                           | Cmd_Disassemble =>
+                           Inputs.Add_Input (Exe_Inputs, Arg);
+
+                        when Cmd_Map_Routines =>
+                           Inputs.Add_Input (Exe_Inputs, Arg);
+
+                        when Cmd_Run =>
+                           if Inputs.Length (Exe_Inputs) > 1 then
+                              Fatal_Error
+                                ("Only one EXEC parameter is allowed with "
+                                 & To_Switch (Command));
+                           end if;
+                           Inputs.Add_Input (Exe_Inputs, Arg);
+
+                        when Cmd_Dump_Trace_Asm =>
+                           if Inputs.Length (Exe_Inputs) < 1 then
+                              Inputs.Add_Input (Exe_Inputs, Arg);
+                           else
+                              Inputs.Add_Input (Trace_Inputs, Arg);
+                           end if;
+                        end case;
+                     end if;
+               end case;
+            end;
+
+            Arg_Index := Arg_Index + 1;
          end loop;
-         return Result;
-      end Rest_Of_Command_Line;
+      end Process_Switches;
+
+      Command_Line : Command_Line_Switches_Source;
 
    --  Start of processing for Parse_Command_Line
 
    begin
       --  Require at least one argument
 
-      if Arg_Count = 0 then
+      if Command_Line.Argument_Count = 0 then
          Usage;
          Normal_Exit;
       end if;
 
       --  Decode command
 
-      Arg_Index := 1;
-      Command := To_Command (Argument (Arg_Index));
-      if Command /= No_Command then
-         Arg_Index := Arg_Index + 1;
-      else
-         Fatal_Error ("bad command " & Argument (Arg_Index)
+      Command := To_Command (Command_Line.Argument (1));
+      if Command = No_Command then
+         Fatal_Error ("bad command " & Command_Line.Argument (1)
                       & ".  Try option --help");
       end if;
 
-      --  Decode options
+      --  First command line scan: set root project and scenario variables
 
-      while Arg_Index <= Arg_Count loop
+      Process_Switches (Command_Line, 2, Command_Line_1);
+
+      --  Scan default switches from root project
+
+      if Root_Project /= null then
+         Compute_Project_View;
          declare
-            Arg : String renames Argument (Arg_Index);
+            Project_Switches : String_List_Access := Switches_From_Project;
          begin
-            if Has_Prefix (Arg, "-d") then
-               --  Debugging options
-
+            if Project_Switches /= null then
                declare
-                  Pos : Positive := Arg'First + 2;
+                  Project_Src : String_List_Switches_Source
+                    (Project_Switches.all'Access);
                begin
-                  if Pos > Arg'Last then
-                     Fatal_Error ("parameter required for -d");
-                  end if;
-
-                  while Pos <= Arg'Last loop
-                     case Arg (Pos) is
-                        when 'h' =>
-                           Switches.Debug_Full_History       := True;
-                        when 'i' =>
-                           Switches.Debug_Ignore_Exemptions  := True;
-                        when others =>
-                           Fatal_Error ("bad parameter -d" & Arg (Pos));
-                     end case;
-                     Pos := Pos + 1;
-                  end loop;
+                  Process_Switches (Project_Src, 1, Project);
+                  Free (Project_Switches);
                end;
-
-            elsif Arg = Verbose_Option or else Arg = Verbose_Option_Short then
-               Verbose := True;
-
-            elsif Arg = Eargs_Option then
-               Check_Option (Arg, Command, (1 => Cmd_Run));
-               Eargs := Rest_Of_Command_Line;
-               return;
-
-            elsif Arg = Target_Option_Short then
-               Check_Option (Arg, Command, (1 => Cmd_Run));
-               Target := new String'(Next_Arg ("target"));
-
-            elsif Has_Prefix (Arg, Target_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Run));
-               Target := new String'(Option_Parameter (Arg));
-
-            elsif Arg = Output_Option_Short then
-               Check_Option (Arg, Command, (1 => Cmd_Run,
-                                            2 => Cmd_Coverage));
-               Output := new String'(Next_Arg ("output"));
-
-            elsif Has_Prefix (Arg, Output_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Run,
-                                            2 => Cmd_Coverage));
-               Output := new String'(Option_Parameter (Arg));
-
-            elsif Arg = Root_Project_Option then
-               Set_Root_Project (Next_Arg ("root project"));
-
-            elsif Has_Prefix (Arg, Root_Project_Option) then
-               Set_Root_Project
-                 (Arg (Arg'First + Root_Project_Option'Length .. Arg'Last));
-
-            elsif Has_Prefix (Arg, Projects_Option) then
-               Inputs.Add_Input (Projects_Inputs, Option_Parameter (Arg));
-
-            elsif Has_Prefix (Arg, Subdirs_Option) then
-               Set_Command_Line_Subdirs (Option_Parameter (Arg));
-
-            elsif Has_Prefix (Arg, Scenario_Var_Option) then
-
-               --  Get name and value from "-X<name>=<value>"
-
-               declare
-                  Name_First, Name_Last, Value_First : Positive;
-               begin
-                  Name_First := Arg'First + 2;
-                  Name_Last := Name_First - 1;
-                  while Name_Last < Arg'Last
-                          and then Arg (Name_Last + 1) /= '='
-                  loop
-                     Name_Last := Name_Last + 1;
-                  end loop;
-
-                  Value_First := Name_Last + 2;
-
-                  Add_Scenario_Var
-                    (Key   => Arg (Name_First .. Name_Last),
-                     Value => Arg (Value_First .. Arg'Last));
-               end;
-
-            elsif Arg = Recursive_Option then
-               Switches.Recursive_Projects := True;
-
-            elsif Has_Prefix (Arg, Tag_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Run));
-               Tag := new String'(Option_Parameter (Arg));
-
-            elsif Has_Prefix (Arg, Kernel_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Run));
-               Kernel := new String'(Option_Parameter (Arg));
-
-            elsif Arg = Coverage_Option_Short then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                            2 => Cmd_Run));
-               begin
-                  Set_Coverage_Levels (Next_Arg ("coverage level"));
-               exception
-                  when Constraint_Error =>
-                     Fatal_Error
-                       ("bad parameter for " & Coverage_Option_Short);
-               end;
-
-            elsif Has_Prefix (Arg, Coverage_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                            2 => Cmd_Run));
-               begin
-                  Set_Coverage_Levels (Option_Parameter (Arg));
-               exception
-                  when Constraint_Error =>
-                     Fatal_Error ("bad parameter for " & Coverage_Option);
-               end;
-
-            elsif Has_Prefix (Arg, SCOs_Option)
-              or else Has_Prefix (Arg, ALIs_Option)
-            then
-               Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
-                                            2 => Cmd_Coverage,
-                                            3 => Cmd_Run));
-               Inputs.Add_Input (ALIs_Inputs, Option_Parameter (Arg));
-
-            elsif Has_Prefix (Arg, Units_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
-                                            2 => Cmd_Coverage,
-                                            3 => Cmd_Run));
-               Inputs.Add_Input (Units_Inputs, Option_Parameter (Arg));
-
-            elsif Has_Prefix (Arg, Routines_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
-                                            2 => Cmd_Coverage,
-                                            3 => Cmd_Run));
-               Inputs.Add_Input (Routines_Inputs, Option_Parameter (Arg));
-
-            elsif Arg = Deprecated_Routine_List_Option_Short then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                            2 => Cmd_Run));
-               Inputs.Add_Input (Routines_Inputs,
-                                 "@" & Next_Arg ("function list"));
-
-            elsif Has_Prefix (Arg, Deprecated_Routine_List_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                            2 => Cmd_Run));
-               Inputs.Add_Input (Routines_Inputs,
-                                 "@" & Option_Parameter (Arg));
-
-            elsif Has_Prefix (Arg, Exec_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               Opt_Exe_Name := new String'(Option_Parameter (Arg));
-
-            elsif Arg = "--all-decisions" then
-               Switches.All_Decisions := True;
-
-            elsif Arg = "--all-messages" then
-               Switches.All_Messages := True;
-
-            elsif Arg = "--missing-files" then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               Flag_Show_Missing := True;
-
-            elsif Has_Prefix (Arg, "--text-start=") then
-               --  FIXME: not yet supported???
-               --  Should be a global option (used when building decision map
-               --  for --run)???
-
-               begin
-                  Text_Start := Parse_Hex
-                    (Arg (Arg'First + 13 .. Arg'Last), "--text-start");
-               exception
-                  when Constraint_Error =>
-                     Fatal_Error ("Failure to parse --text-start");
-               end;
-
-            elsif Has_Prefix (Arg, "--source-rebase=") then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               declare
-                  Pos : Natural := 0;
-               begin
-                  --  Parse source-rebase's argument. This option's form should
-                  --  be "--source-rebase=<OLD_PREFIX>=<NEW_PREFIX>".
-                  for I in Arg'First + 16 .. Arg'Last loop
-                     if Arg (I) = '=' then
-                        Pos := I;
-                        exit;
-                     end if;
-                  end loop;
-                  if Pos = 0 then
-                     Fatal_Error ("missing '=' in --source-rebase=");
-                  end if;
-                  Add_Source_Rebase (Arg (Arg'First + 16 .. Pos - 1),
-                                     Arg (Pos + 1 .. Arg'Last));
-               end;
-
-            elsif Has_Prefix (Arg, "--source-search=") then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               Add_Source_Search (Arg (Arg'First + 16 .. Arg'Last));
-
-            elsif Arg = Annotate_Option_Short then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               Annotation :=
-                 To_Annotation_Format (Next_Arg ("annotation format"));
-               Check_Annotation_Format (Annotation);
-
-            elsif Has_Prefix (Arg, Annotate_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               Annotation := To_Annotation_Format (Option_Parameter (Arg));
-               Check_Annotation_Format (Annotation);
-
-            elsif Has_Prefix (Arg, Final_Report_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               Output := new String'(Option_Parameter (Arg));
-
-            elsif Has_Prefix (Arg, Output_Dir_Option) then
-               Check_Option (Arg, Command, (1 => Cmd_Coverage));
-               Outputs.Set_Output_Dir (Option_Parameter (Arg));
-
-            elsif Arg = Trace_Option_Short then
-               Check_Option (Arg, Command, (Cmd_Coverage,
-                                            Cmd_Dump_Trace,
-                                            Cmd_Dump_Trace_Raw,
-                                            Cmd_Dump_Trace_Base,
-                                            Cmd_Dump_Trace_Asm,
-                                            Cmd_Run));
-
-               --  Tag_Option_Short conflicts with Trace_Option_Short...
-               if Command = Cmd_Run then
-                  Tag := new String'(Next_Arg (Arg));
-               else
-                  Inputs.Add_Input (Trace_Inputs, Next_Arg ("trace file"));
-               end if;
-
-            elsif Has_Prefix (Arg, Trace_Option) then
-               Check_Option (Arg, Command, (Cmd_Coverage,
-                                            Cmd_Dump_Trace,
-                                            Cmd_Dump_Trace_Raw,
-                                            Cmd_Dump_Trace_Base,
-                                            Cmd_Dump_Trace_Asm));
-               Inputs.Add_Input (Trace_Inputs, Option_Parameter (Arg));
-
-            elsif Arg = "--exclude" then
-               Inputs.Add_Input (Obj_Inputs, Arg);
-
-            elsif Arg = "--include" then
-               Inputs.Add_Input (Obj_Inputs, Arg);
-
-            elsif Arg (1) = '-' then
-               Fatal_Error ("unknown option: " & Arg);
-
-            else
-               --  Handling of parameters that are not options (e.g. file list)
-
-               case Command is
-                  when No_Command =>
-                     Fatal_Error ("No command specified");
-
-                  when Cmd_Help
-                    | Cmd_Help_Dump =>
-                     Fatal_Error ("no parameter allowed");
-
-                  when Cmd_Version =>
-                     null;
-
-                  when Cmd_Coverage
-                    | Cmd_Dump_Trace
-                    | Cmd_Dump_Trace_Raw
-                    | Cmd_Dump_Trace_Base =>
-                     Inputs.Add_Input (Trace_Inputs, Arg);
-
-                  when Cmd_Disp_Routines =>
-                     Inputs.Add_Input (Obj_Inputs, Arg);
-
-                  when Cmd_Dump_Sections
-                    | Cmd_Dump_Symbols
-                    | Cmd_Dump_Compile_Units
-                    | Cmd_Dump_Subprograms
-                    | Cmd_Dump_Lines
-                    | Cmd_Disassemble_Raw
-                    | Cmd_Disassemble =>
-                     Inputs.Add_Input (Exe_Inputs, Arg);
-
-                  when Cmd_Map_Routines =>
-                     Inputs.Add_Input (Exe_Inputs, Arg);
-
-                  when Cmd_Run =>
-                     if Inputs.Length (Exe_Inputs) > 1 then
-                        Fatal_Error ("Only one EXEC parameter is allowed with "
-                                     & To_Switch (Command));
-                     end if;
-                     Inputs.Add_Input (Exe_Inputs, Arg);
-
-                  when Cmd_Dump_Trace_Asm =>
-                     if Inputs.Length (Exe_Inputs) < 1 then
-                        Inputs.Add_Input (Exe_Inputs, Arg);
-                     else
-                        Inputs.Add_Input (Trace_Inputs, Arg);
-                     end if;
-               end case;
             end if;
          end;
-
-         Arg_Index := Arg_Index + 1;
-      end loop;
-   end Parse_Command_Line;
-
-   ------------------------------
-   -- Set_Command_Line_Subdirs --
-   ------------------------------
-
-   procedure Set_Command_Line_Subdirs (Dir : String) is
-   begin
-      --  If multiple subdirs are selected, the last one overrides the previous
-      --  ones
-      if Subdirs /= null then
-         Free (Subdirs);
       end if;
 
-      Subdirs := new String'(Dir);
-   end Set_Command_Line_Subdirs;
+      --  Second command line scan: process remainder of options
+
+      Process_Switches (Command_Line, 2, Command_Line_2);
+   end Parse_Command_Line;
 
    -------------------------------
-   -- Set_Defaults_From_Project --
+   -- Set_Subjects_From_Project --
    -------------------------------
 
-   procedure Set_Defaults_From_Project is
+   procedure Set_Subjects_From_Project is
 
       generic
          Input_List : in out Inputs_Type;
@@ -751,12 +835,9 @@ procedure GNATcov is
 
       procedure Add_LI is new Add_Item (ALIs_Inputs);
 
-   --  Start of processing for Set_Defaults_From_Project
+   --  Start of processing for Set_Subjects_From_Project
 
    begin
-
-      --  Analysis subjects (routines/units)
-
       if Object_Coverage_Enabled then
 
          --  Set routines from project, not supported yet???
@@ -766,20 +847,7 @@ procedure GNATcov is
       elsif Inputs.Length (ALIs_Inputs) = 0 then
          Enumerate_LIs (Add_LI'Access, Override_Units => Units_Inputs);
       end if;
-   end Set_Defaults_From_Project;
-
-   ----------------------
-   -- Set_Root_Project --
-   ----------------------
-
-   procedure Set_Root_Project (Prj_Name : String) is
-   begin
-      if Root_Project /= null then
-         Fatal_Error ("only one root project may be specified");
-      end if;
-      Root_Project := new String'(Prj_Name);
-      Load_Root_Project (Prj_Name);
-   end Set_Root_Project;
+   end Set_Subjects_From_Project;
 
    Base : aliased Traces_Base;
    Exec : aliased Exe_File_Type;
@@ -791,13 +859,6 @@ begin
 
    Parse_Command_Line;
 
-   --  Projects support: handle subdirs option
-
-   if Subdirs /= null then
-      Set_Subdirs (Subdirs.all);
-      Free (Subdirs);
-   end if;
-
    if Root_Project /= null then
       --  If a root project has been specified but no project is being
       --  considered for coverage analysis, consider the root by default.
@@ -807,9 +868,7 @@ begin
       end if;
 
       Inputs.Iterate (Projects_Inputs, Project.Add_Project'Access);
-
-      Compute_Project_View;
-      Set_Defaults_From_Project;
+      Set_Subjects_From_Project;
 
    elsif Length (Projects_Inputs) /= 0 then
       Fatal_Error (Projects_Option & " requires " & Root_Project_Option);

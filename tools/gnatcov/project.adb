@@ -23,8 +23,6 @@ with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with GNAT.Strings;      use GNAT.Strings;
-
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
@@ -44,6 +42,7 @@ package body Project is
       Excluded_Units,
       Routines,
       Excluded_Routines,
+      Default_Switches,
 
       Units_List,
       Excluded_Units_List,
@@ -51,7 +50,7 @@ package body Project is
       Excluded_Routines_List);
 
    subtype List_Attribute is
-     Attribute range Units .. Excluded_Routines;
+     Attribute range Units .. Default_Switches;
    subtype String_Attribute is
      Attribute range Units_List .. Excluded_Routines_List;
 
@@ -513,20 +512,6 @@ package body Project is
          Recompute_View    => False);
    end Load_Root_Project;
 
-   -----------------
-   -- Set_Subdirs --
-   -----------------
-
-   procedure Set_Subdirs (Subdir : String) is
-   begin
-      --  The --subdirs switch is relevant only if projects are used, otherwise
-      --  it can safely be ignored.
-
-      if Env /= null then
-         Env.Set_Object_Subdir (+Subdir);
-      end if;
-   end Set_Subdirs;
-
    -----------------------------
    -- Report_Units_Without_LI --
    -----------------------------
@@ -545,5 +530,28 @@ package body Project is
          end if;
       end loop;
    end Report_Units_Without_LI;
+
+   ---------------------------
+   -- Switches_From_Project --
+   ---------------------------
+
+   function Switches_From_Project return String_List_Access is
+   begin
+      return Attribute_Value (Prj_Tree.Root_Project, +Default_Switches);
+   end Switches_From_Project;
+
+   -----------------
+   -- Set_Subdirs --
+   -----------------
+
+   procedure Set_Subdirs (Subdir : String) is
+   begin
+      --  The --subdirs switch is relevant only if projects are used, otherwise
+      --  it can safely be ignored.
+
+      if Env /= null then
+         Env.Set_Object_Subdir (+Subdir);
+      end if;
+   end Set_Subdirs;
 
 end Project;
