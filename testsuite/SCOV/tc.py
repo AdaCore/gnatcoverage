@@ -169,7 +169,7 @@ class TestCase:
             sxx = [""]
 
         for body in sxx:
-            for prefix in ("../" * n for n in range(1, 3)):
+            for prefix in ("../" * n for n in range(1, thistest.depth)):
                 if drivers: self.__expand_drivers (
                     "%(p)ssrc/test_%(b)s*.adb %(p)ssrc/test_%(b)s*.c"
                     % {'p' : prefix, 'b' : body}
