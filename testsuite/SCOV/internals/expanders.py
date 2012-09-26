@@ -431,8 +431,11 @@ class RnotesExpander:
 #     SCOV.data := ucx_list
 #     ucx_list := ucx <newline> [ucx_list]
 #     ucx := sources <new_line> lx_list
-#     sources := "--# " filename_list
-#     filename_list := FILENAME [filename_list]
+
+#     sources := "--# " filename_lists
+#     filename_lists := filename_list [| filename_lists]
+#     filename_list := FILENAME [ filename_list]
+
 #     lx_list := lx <newline> [lx_list]
 #     lx := "-- " lx_lre lx_lnote_list " ## " lx_rnote_list <newline>
 #     lx_lre := "/" REGEXP "/"
@@ -499,16 +502,6 @@ class LineCX:
 class UnitCX:
     """Associate a source name with a list of expected Coverage Line
     eXpectations. Construct Line and Report Xnote dictionaries."""
-
-    def locate_source(self, source):
-        """Helper for __init__. Return valid relative path were SOURCE may be
-        found, searching plausible locations from the instantiation point."""
-
-        for pdir in ("../"*n + "src/" for n in range (0, thistest.depth)):
-            if os.path.exists(pdir+source):
-                return pdir+source
-
-        raise FatalError ("Unable to locate source %s" % source)
 
     # expected notes instanciations
     # -----------------------------
@@ -586,7 +579,12 @@ class UnitCX:
                 oPartCov: r0,
                 oNoCov  : r0,
                 lPartCov: lFullCov
-                }
+                },
+
+        # eval on the line are in expression or decision context
+
+        "e": {},
+        "d": {}
         }
 
     def check_srules_on (self, tline):
@@ -613,7 +611,7 @@ class UnitCX:
          for lx in self.LXset if re.search (lx.lre, tline.text)]
         self.check_block_on (tline)
 
-    def __init__(self, source, LXset):
+    def __init__(self, sourcepath, LXset):
 
         self.LXset = LXset
 
@@ -624,8 +622,9 @@ class UnitCX:
 
         self.current_block = None
         self.current_srules = {}
-        self.tfile  = Tfile (filename=self.locate_source(source),
-                             process=self.process_tline)
+
+        self.tfile  = Tfile (
+            filename=sourcepath, process=self.process_tline)
 
         # Source names in expectations might contain paths, which facilitates
         # tests of GPR facilities with a project hierarchy.
@@ -634,7 +633,7 @@ class UnitCX:
         # key in the various dictionaries and match the the name of annotated
         # source reports, always produced in the current directory only.
 
-        self.source = os.path.basename (source)
+        self.source = os.path.basename (sourcepath)
 
         thistest.stop_if (
             self.current_block, FatalError ("fuzz block still open at EOF"))
@@ -750,6 +749,31 @@ class XnotesExpander:
         # The parens are crucial here. Consider what would happen for
         # /bla|blo/ without them ...
 
+    def __locate_source(self, source):
+        """Return valid relative path were SOURCE may be found, searching
+        plausible locations from the instantiation point."""
+
+        for pdir in ("../"*n + "src/" for n in range (0, thistest.depth)):
+            if os.path.exists(pdir+source):
+                return pdir+source
+
+        return None
+
+    def __examine_source_list (self, slist, goodlists):
+        """See if all the sources in SLIST can be resolved to existing
+        source paths looking uptree. Add the corresponding list of paths
+        to GOODLISTS when so."""
+
+        pathlist = []
+        for s in slist:
+            spath = self.__locate_source (s)
+            if not spath:
+                return
+            else:
+                pathlist.append (spath)
+
+        goodlists.append (pathlist)
+
     def __register_ucx(self, ucx, uxset):
         """Add UCX to the set already in UXSET, adding builtin
            default expectations that were not overriden."""
@@ -757,15 +781,41 @@ class XnotesExpander:
         lxset = ucx[1]
         lxset.extend(self.__builtin_lcxs(ucx))
 
+        # ucx[0] contains a list of lists like
+        # [[x0.adb, y0.adb], [x1.c, y1.c]] where
+        #
+        # - each sublist is a set of sources to which the set of line
+        #   expectations should attach.
+        #
+        # - exactly one sublist is expected to correspond to sources
+        #   we can actually find.
+
+
+        candlists = ucx[0]
+        goodlists = []
+        [self.__examine_source_list (slist, goodlists) for slist in ucx[0]]
+
+        if len (goodlists) != 1:
+            raise FatalError (
+                "goodlists = %d, != 1 for %s", len (goodlists), str(candlists)
+                )
+
+        # Now we work over our only good list of source paths
+
+        spaths = goodlists[0]
+
         # Wrap LREs to make sure we look for them in explicit anchors within
-        # sources, not as arbitrary sections of source lines. Assume that all
-        # the sources for this expectation block are in the same language.
+        # sources, not as arbitrary sections of source lines. The way to do
+        # this depends on the source languages. We assume they are all the
+        # same for our list.
 
-        langinfo = language_info(ucx[0][0])
-        [self.__wrap_lre(lx, langinfo) for lx in lxset]
+        [self.__wrap_lre(lx, language_info(spaths[0])) for lx in lxset]
 
-        [uxset.append (UnitCX(source=source, LXset=lxset))
-         for source in ucx[0]]
+        # Now instanciate a unit coverage expectations object for each
+        # source (path) in the list:
+
+        [uxset.append (UnitCX(sourcepath=spath, LXset=lxset))
+         for spath in spaths]
 
     def __parse_scovdata(self, scovdata):
         """Parse the given SCOV_DATA and return the corresponding
@@ -797,12 +847,17 @@ class XnotesExpander:
 
     def __parse_sources(self, image):
         """Given IMAGE as a string that contains a "sources" line,
-        parse that line and return a list of source filenames."""
+        parse that line and return a list of lists, one for each possible
+        set of sources expected to apply."""
 
-        # It's just a space-separated list of source files, with a leading
-        # '#' character, so all we have to do is return a split of that
-        # string, without the first '#'.
-        return image.split()[1:]
+        # # x0.adb y0.adb | x1.c y1.c
+        #
+        # -> [[x0.adb, y0.adb], [x1.c, y1.c]]
+        #
+        # to mean "this section applies to (x0.adb and y0.adb) or (x1.c an
+        # y1.c), whichever set we can reach from here.
+
+        return [alt.split(' ') for alt in image[1:].strip().split('|')]
 
     def __parse_one_expected_rnote(self, image):
 
@@ -847,9 +902,9 @@ class XnotesExpander:
 
         # Extract the various parts of interest from the image.
 
-        m = re.match("\s*/(.*?)/\s+([^\s]*) ## (.*)", image)
-        #                 ^^^^^    ^^^^^^^^    ^^^^
-        #                 lre      lnote       rnotes
+        m = re.match("\s*/(.*?)/\s+(.*) ## (.*)", image)
+        #                 ^^^^^    ^^^^    ^^^^
+        #                 lre      lnote   rnotes
 
         if m is None:
             raise FatalError(
@@ -929,7 +984,7 @@ class XnotesExpander:
         """Decode text to return the line note for the current
         coverage level."""
 
-        lx_lnote_list = text.split(";")
+        lx_lnote_list = [alt.strip() for alt in text.split(',')]
 
         level_table = dict(
             [ln_tuple for cond_notes in lx_lnote_list
