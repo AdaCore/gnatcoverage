@@ -59,7 +59,11 @@ package SC_Obligations is
    procedure Iterate (P : access procedure (SCO : SCO_Id));
    --  Execute P for each SCO
 
+   pragma Warnings (Off);
+   --  Redefinition of entity names from Standard
    type Tristate is (False, True, Unknown);
+   pragma Warnings (On);
+
    subtype Known_Tristate is Tristate range False .. True;
    --  State of a condition, if known
 
