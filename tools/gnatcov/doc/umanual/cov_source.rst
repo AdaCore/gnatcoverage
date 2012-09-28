@@ -1201,8 +1201,8 @@ projects (:ref:`fig-Proot-ss_a-recursive`).
 
 The above process selects *projects of interest*. Now within each
 of these projects, units of interest are identified using specific
-attributes in the project file. Four attributes can be defined in package
-Coverage: Units, Units_List, Excluded_Units, and Excluded_Units_List.
+attributes in package Coverage of project files: Units, Units_List,
+Excluded_Units, and Excluded_Units_List.
 
 Units and Units_List are similar to Sources and Sources_List: Units
 specifies a set of units, and Units_List specifies the name of a text
