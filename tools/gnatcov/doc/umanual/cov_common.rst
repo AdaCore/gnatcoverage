@@ -11,7 +11,8 @@ examples. The following sections then present advanced tool capabilities
 designed to help the analysis in various operational contexts, when some
 coverage violations are legitimate and need to be documented, or when the
 global assessment strategy needs consolidation across multiple programs or
-executions.
+executions. Finally, we introduce |gcv| features related to integration
+with the GNAT Project Manager.
 
 .. _osmetrics:
 
@@ -558,3 +559,36 @@ source/object coverage ones. In particular, the focus of the analysis needs to
 be specified with :ref:`--routines <oroutines>` instead of :ref:`--scos
 <sunits>`, providing object level symbol names instead of source level unit
 names.
+
+Using project files
+===================
+
+GNAT project files are a useful tool to describe the structure of larger
+applications, for the benefit of the tools intervening at various stages
+of development, from the IDE to build and analysis tools.
+|gcv| takes full advantage of GNAT projects. Various aspects of the
+coverage analysis activity can be controlled through project files.
+
+A single root project file may be specified on the command line using
+:option:`-P`. The following subsections describe how information from
+the `Coverage` package in project files can be used to control coverage
+analysis.
+
+Default switches
+----------------
+
+If the `Default_Switches` attribute is specified in the root project file,
+it is treated as a list of command line switches for |gcv|. These switches
+are processed before any other appearing on the command line, thus supplying
+defaults for the corresponding aspects. However note that certain switches
+such as :option:`--units` have cumulative effect, so that later occurrences
+on the command line add up with, rather than replace, those specified in
+the project file.
+
+Units of interest
+-----------------
+
+Four attributes of package Coverage intervene in the identification
+of units of interest: Units, Units_List, Excluded_Units, and
+Excluded_Units_List. Their usage is discussed in detail in section
+:ref:`sunits`.
