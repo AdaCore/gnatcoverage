@@ -31,8 +31,8 @@ Glossary of terms & concepts
       
    Evaluation Vector
       A set of Boolean values assigned to each :term:`condition` of a
-      :term:`decision` together with the resulting expression value. For example
-      A=True, B=False, Expression=False for ``A and then B``.
+      :term:`decision` together with the resulting expression value. For
+      example A=True, B=False, Expression=False for ``A and then B``.
 
    Exemption Regions
    Exemption Region
@@ -42,9 +42,10 @@ Glossary of terms & concepts
    Independence Pairs
    Independence Pair
       A pair of decision evaluation vectors that demonstrate the independent
-      influence of a specific condition on the decision for MCDC analysis purposes.
-      The set of valid pairs for a condition depends on the particular MCDC variant
-      driving the analysis.
+      influence of a specific condition on the decision for MCDC analysis
+      purposes.
+      The set of valid pairs for a condition depends on the particular MCDC
+      variant driving the analysis.
 
    Simple Boolean Expression
       Boolean expression with a single operand, possibly negated. No binary

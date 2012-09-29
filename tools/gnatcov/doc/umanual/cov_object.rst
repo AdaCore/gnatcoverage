@@ -41,10 +41,10 @@ subprogram names on which the analysis should focus. This set defaults to the
 full set of symbols defined by all the executables associated with the
 provided execution traces.
 
-The :ref:`oroutines` section later in this chapter provides guidelines and
-tools to help constructing the relevant list of names to pass to
-:option:`--routines`. Prior to this, the coming sections now describe the
-:ref:`available report formats <oreport-formats>`, then provide more details
+The :ref:`oroutines` section later in this chapter provides guidelines
+and tools to help constructing the relevant list of names for
+:option:`--routines`.  Prior to this comes a section describing the
+:ref:`available report formats <oreport-formats>`, then more details
 regarding :ref:`ocov-insn` and :ref:`ocov-branch`.
 
 .. _oreport-formats:
@@ -58,9 +58,8 @@ the :option:`--annotate` command line argument of |gcvcov|.
 The :option:`asm` format produces an annotated assembly output, with a
 coverage indication attached to every single instruction. This is the base
 information of interest to object coverage analysis, simply presented in
-different manners through the other possible output formats.
-
-The :option:`xcov` and :option:`html` formats both produce a set of annotated
+different manners through the other possible output formats. The
+:option:`xcov` and :option:`html` formats both produce a set of annotated
 source files, in the directory where |gcv| is launched unless overriden with a
 :ref:`--output-dir option <cov-outdir>`. Even though presented on sources, the
 annotations remain representative of object coverage metrics, synthesized for
@@ -72,12 +71,11 @@ Later in this chapter we name output formats by the text to add to
 :option:`--annotate=asm`". We also sometimes use *in-source* reports
 or outputs to designate the set of outputs in annotated source forms. 
 
-We illustrate the various formats with output excerpts obtained by perfoming
-coverage analysis of the following example Ada support unit:
+We illustrate the various formats with coverage analysis excerpts on
+the following example Ada support unit:
 
 .. code-block:: ada
 
-   procedure Assert (T : Boolean);
    --  raise Program_Error if T is False. Do nothing otherwise.
 
    procedure Assert (T : Boolean) is
@@ -172,8 +170,8 @@ description of this synthesis for all the object level criteria:
 
 The report also includes a short header, which features a global coverage
 count with respect to the total number of lines with associated code, as well
-as an indication of the assessed criterion. The example below is an example
-of report obtained for our Assert unit:
+as an indication of the assessed criterion. Below is an example of report
+obtained for our Assert unit:
 
 .. code-block:: ada
  
@@ -191,17 +189,15 @@ of report obtained for our Assert unit:
 To *lines* with associated object code we apply qualifiers similar to those
 for individual instructions: when the synthetic coverage indication for a line
 is ``-``, ``+`` or ``!``, we qualify the line as *uncovered*, *fully covered*,
-or *partially covered*, respectively.
+or *partially covered*, respectively. Note that even though they are rendered
+on source lines, the annotations are really meant to convey object code
+properties here, hence are of a different nature than what the DO-178B source
+structural coverage criteria refer to. See our :ref:`osmetrics` section for
+further details on this aspect.
 
 With :option:`--annotate=xcov+` (extra ``+`` at the end), the machine
 instructions and their individual coverage status are printed next to their
 associated source line.
-
-Note that even though they are rendered on source lines, the annotations are
-really meant to convey object code properties here, hence are of a different
-nature than what the DO-178B source structural coverage criteria refer to. See
-our :ref:`osmetrics` section for further details on this aspect.
-
 
 Annotated sources, html (:option:`=html[+]`)
 --------------------------------------------
@@ -224,12 +220,11 @@ a trailing +) attaches to each line details about the coverage status of all
 the individual instructions generated for the line. These are folded within
 the line and expanded when a mouse click hits it.
 
-A few aspects of the page style are governed by a set of Cascading Style Sheet
-(CSS) parameters, fetched from a ``xcov.css`` file in the directory where
-|gcv| is launched. If this file is available when |gcv| starts, |gcv| uses it
-so users may setup a customized version if needed. If the file is not
-available, |gcv| creates a default one which users may use as a starting
-point to create their customized version if needed.
+The page style is governed by a set of Cascading Style Sheet (CSS) parameters,
+fetched from a ``xcov.css`` file in the directory where |gcv| is launched. If
+this file is available when |gcv| starts, |gcv| uses it so users may setup a
+customized version if needed. If the file is not available, |gcv| creates a
+default one.
 
 .. _ocov-insn:
 
@@ -498,6 +493,7 @@ Consider the following Ada units for example, in source files named
          X := X + 1;
       end Inc;
    end Intops;
+
 
    -- Test Driver
 

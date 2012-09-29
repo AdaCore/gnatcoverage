@@ -11,16 +11,15 @@ Source coverage analysis computes metrics focused on source programming
 language entities such as high level `statements` or `decisions` (DO178
 parlance for boolean expressions). In |gcp| terms, we designate these entities
 as :term:`Source Coverage Obligations`, or SCOs. SCO tables, describing the
-nature and source location of each entity of interest, are part of the Library
+nature and source location of each item of interest, are part of the Library
 Information produced by the |gpro| compilers, in the .ali or .gli file
 corresponding to each Ada or C unit, respectively.
 
-Source coverage obligations are produced by the :option:`-fdump-scos`
-compilation option. Accurate mapping of the execution
-traces back to source level obligations requires :option:`-g`
-:option:`-fpreserve-control-flow`. These options must be used to compile
-the sources you wish to analyze later on. Optimization is supported up
-to :option:`-O1`, with inlining allowed.
+SCO tables are produced by the :option:`-fdump-scos` compilation
+option. Accurate mapping of the execution traces back to source level
+obligations requires :option:`-g` :option:`-fpreserve-control-flow`. These
+options must be used to compile the sources you wish to analyze later
+on. Optimization is supported up to :option:`-O1` with inlining.
 
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage
@@ -39,14 +38,12 @@ general structure of this command line is always like::
 
 The next sections describe the :ref:`available report formats
 <sreport-formats>`, then provide more details regarding :ref:`scov-stmt`,
-:ref:`scov-dc`, and :ref:`scov-mcdc`.
-
-Then, the :ref:`sunits` section provides guidelines and tools to help indicate
-which application units are to be considered for coverage assessment.
-Essentially, this is achieved by command line options that designate the sets
-of relevant Source Coverage Obligations, either straight from Library
-Information files with the :option:`--scos` option, or leveraging the higher
-level GNAT project file support with the :option:`-P` option.
+:ref:`scov-dc`, and :ref:`scov-mcdc`. The :ref:`sunits` section describes how
+application units to be considered for coverage assessment are to be
+specified.  Essentially, this is achieved by command line options that
+designate the sets of relevant Source Coverage Obligations, either straight
+from Library Information files with the :option:`--scos` option, or leveraging
+the higher level GNAT project file support with :option:`-P` related option.
 
 .. _sreport-formats:
 
@@ -112,7 +109,7 @@ in a single character, which may be one of the following:
 Here is, to illustrate, the full statement coverage report produced for our
 example unit when the ``Between`` function was called so that the ``if``
 control evaluated True only. The function is actually part of an Ada package,
-called Ranges, with an original body source file ``named.adb``:
+called Ranges, with an original body source file named ``ranges.adb``:
 
 .. code-block:: ada
 
@@ -137,45 +134,40 @@ line, which depends on the coverage criteria involved. Here is an excerpt for
 our previous example, where the only improperly satisfied obligation is an
 uncovered statement on line 7::
  
- ...
    7 -:          return V >= X2 and then V <= X1;
    STATEMENT "return V ..." at 7:10 not executed
- ...
 
 Annotated sources, html (:option:`=html[+]`)
 --------------------------------------------
 
 For source coverage criteria, |gcvcov| :option:`--annotate=html` produces an
-annotated version of each source file, in html format, named after the original
-source with an extra ``.html`` extension at the end.
+annotated version of each source file, in html format, named after the
+original source with an extra ``.html`` extension at the end. 
 
 Each annotated source page contains a summary of the assessment results
 followed by the original source lines, all numbered and marked with a coverage
-annotation as in the :option:`--annotate=xcov` case. In addition, lines with
-obligations are colorized in green, orange or red for ``+``, ``!`` or ``-``
-coverage respectively.
+annotation as in the :option:`--annotate=xcov` case. Lines with obligations
+are colorized in green, orange or red for ``+``, ``!`` or ``-`` coverage
+respectively.
 
-An `index.html` page is also produced, which contains a description of the
-assessment context (assessed criteria, set of trace files involved, ...) and a
-summary of the coverage results for all the units, with links to their
-annotated sources.
+An `index.html` page is also produced, which contains a summary of the
+assessment context (assessed criteria, trace files involved, ...) and of the
+coverage results for all the units, with links to their annotated sources.
 
-See our :ref:`sample html index <sample_sc_html_index>` appendix for an
-example index page, which embeds a self-description of all the items it
-contains. See the :ref:`sample annotated source <sample_sc_html_unit>`
-appendix for a sample of html annotated source.
+See our :ref:`sample html index <sample_sc_html_index>`
+appendix for an example index page, which embeds a self-description of all the
+items it contains. See the :ref:`sample annotated source
+<sample_sc_html_unit>` appendix for a sample of html annotated source.
+The page style is governed by a set of Cascading Style Sheet (CSS) parameters,
+fetched from a ``xcov.css`` file in the directory where |gcv| is launched. If
+this file is available when |gcv| starts, |gcv| uses it so users may setup a
+customized version if needed. If the file is not available, |gcv| creates a
+default one.
 
 Similarily to the :option:`xcov` format case, :option:`--annotate=html+` (with
 a trailing +) adds details about improperly satisfied obligations.  In the
 html version, these extra details are not immediatly visible: they are folded
 within their associated line and expanded when a mouse click hits the line.
-
-A few aspects of the page style are governed by a set of Cascading Style Sheet
-(CSS) parameters, fetched from a ``xcov.css`` file in the directory where
-|gcv| is launched. If this file is available when |gcv| starts, |gcv| uses it
-so users may setup a customized version if needed. If the file is not
-available, |gcv| creates a default one which users may use as a starting
-point to create their customized version if needed.
 
 
 Violations summary, text (`=report`)
@@ -1151,7 +1143,7 @@ Unix ``grep`` tool to filter::
 Each occurrence of :option:`--scos` on the command line expects a single
 argument which specifies a subset of units of interest. Multiple occurrences
 are allowed and the subsets accumulate. The argument might be either a single
-unit name or a :term:`@listfile` argument expected to contain a list of unit
+unit name or a :term:`@listfile argument` expected to contain a list of unit
 names.
 
 For example, focusing on three Ada units ``u1``, ``u2`` and ``u3`` can be
