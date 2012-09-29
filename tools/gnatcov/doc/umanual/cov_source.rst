@@ -9,12 +9,11 @@ General principles & Compilation requirements
 
 Source coverage analysis computes metrics focused on source programming
 language entities such as high level `statements` or `decisions` (DO178
-parlance for boolean expressions). For this purpose, |gcp| relies on
-:term:`Source Coverage Obligation` (SCO) tables, compact descriptions of the
-nature and source location of program entities relevant to source coverage
-criteria.  These tables are part of the Library Information produced by the
-|gpro| compilers, in the .ali or .gli file corresponding to each Ada or C
-unit, respectively.
+parlance for boolean expressions). In |gcp| terms, we designate these entities
+as :term:`Source Coverage Obligations`, or SCOs. SCO tables, describing the
+nature and source location of each entity of interest, are part of the Library
+Information produced by the |gpro| compilers, in the .ali or .gli file
+corresponding to each Ada or C unit, respectively.
 
 Source coverage obligations are produced by the :option:`-fdump-scos`
 compilation option. Accurate mapping of the execution
@@ -42,9 +41,12 @@ The next sections describe the :ref:`available report formats
 <sreport-formats>`, then provide more details regarding :ref:`scov-stmt`,
 :ref:`scov-dc`, and :ref:`scov-mcdc`.
 
-Then, the :ref:`sunits` section provides guidelines and tools to help
-constructing the command line arguments indicating what units of the
-application are to be considered for coverage assessment.
+Then, the :ref:`sunits` section provides guidelines and tools to help indicate
+which application units are to be considered for coverage assessment.
+Essentially, this is achieved by command line options that designate the sets
+of relevant Source Coverage Obligations, either straight from Library
+Information files with the :option:`--scos` option, or leveraging the higher
+level GNAT project file support with the :option:`-P` option.
 
 .. _sreport-formats:
 
@@ -240,7 +242,7 @@ Here is a example excerpt::
 
   Command line:
 
-  gnatcov coverage --scos=@alis --level=stmt+mcdc --annotate=report test_x1x2.trace
+  gnatcov coverage -Pmytest.gpr --level=stmt+mcdc --annotate=report test_x1x2.trace
 
   Coverage level: stmt+mcdc
 
@@ -491,7 +493,7 @@ As a second experiment, we exercise the function for Y = 0 only, using:
 We request results on the test driver as well this time, as it features
 constructs relevant to the points we wish to illustrate::
 
-  gnatcov coverage --level=stmt --scos=@alis --annotate=xcov test_div0.trace
+  gnatcov coverage --level=stmt -Pmytest.gpr --annotate=xcov test_div0.trace
 
 The :option:`=xcov` outputs follow. First, for the functional unit, with the
 ``if`` statement coverage reversed compared to the previous testcase::
@@ -543,7 +545,7 @@ again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
 
    Command line:
 
-   gnatcov coverage --level=stmt --scos=@alis --annotate=report test_div0.trace
+   gnatcov coverage --level=stmt -Pmytest.gpr --annotate=report test_div0.trace
 
    Coverage level: stmt
 
@@ -639,9 +641,8 @@ well would only add redundancy.
 Example program and assessments
 -------------------------------
 
-To illustrate the just presented points, we consider the example functional
-Ada unit below, with the spec and body stored in source files named
-``divmod.ads`` and ``divmod.adb``:
+To illustrate, we consider the example functional Ada unit below, with the
+spec and body stored in source files named ``divmod.ads`` and ``divmod.adb``:
 
 .. code-block:: ada
 
@@ -704,7 +705,7 @@ of criteria::
 
    1 violation.
 
-For :option:`--annotate=xcov`, this translates as follows, with a single
+For :option:`--annotate=xcov`, this translates as a single
 partial coverage annotation on the inner ``if`` control line::
 
    8 .: procedure Divmod
@@ -946,17 +947,13 @@ Performing MCDC analysis requires the execution step to be told about it,
 by providing both the :option:`--level` and a list of units for which analysis
 is to be performed to |gcvrun| (see the :ref:`trace-control` for details)::
 
-   gnatcov run --level=stmt+mcdc --scos=@alis test_x1vx2
+   gnatcov run --level=stmt+mcdc -Pmytest.gpr test_x1vx2
 
-We start by looking at the :option:`=xcov+` output to get a first set of
-useful results::
+We first request an :option:`=xcov+` report to get a first set of results, in
+the ``ranges.adb.xcov`` annotated source::
 
-   gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov+ test_x1vx2.trace
-
-This produces a ``ranges.adb.xcov`` annotated source in text format with this
-contents::
-
-    ......
+   gnatcov coverage --level=stmt+mcdc -Pmytest.gpr --annotate=xcov+ test_x1vx2.trace
+   ...
       8 .:    function Between (X1, X2, V : Integer) return Boolean is
       9 .:    begin
      10 !:       if X1 < X2 then
@@ -989,10 +986,6 @@ one used a straight return value), and this distinction places the two
 ``decision outcome FALSE never exercised`` violations in distinct sections of
 the :option:`=report` output::
 
-   =========================
-   == COVERAGE VIOLATIONS ==
-   =========================
-
    2.1. STMT COVERAGE
    ------------------
 
@@ -1019,8 +1012,8 @@ Now running another test driver which exercises two cases where X1 < X2:
       Assert (not Between (X1 => 2, X2 => 5, V => 8)); -- X1 < X2 < V
    end;
 
-The first return expression is valued both ways and this results in an example
-of condition specific diagnostic on line 11::
+The first return expression is valued both ways so we get an example of
+*condition* specific diagnostic on line 11::
 
      8 .:    function Between (X1, X2, V : Integer) return Boolean is
      9 .:    begin
@@ -1028,11 +1021,7 @@ of condition specific diagnostic on line 11::
   DECISION "X1 < X2" at 10:10 outcome FALSE never exercised
     11 !:          return V >= X1 and then V <= X2;
   CONDITION "V >= X1" at 11:17 has no independent influence pair, MC/DC not achieved
-    12 .:       else
-    13 -:          return V >= X2 and then V <= X1;
-  STATEMENT "return V ..." at 13:10 not executed
-    14 .:       end if;
-    15 .:    end Between;
+    ...
 
 Indeed, looking at an evaluation table for the first return decision:
 
@@ -1053,8 +1042,8 @@ We observe that our driver exercises vectors 1 and 2 only, where:
   achieve decision coverage and demonstrate that condition's independant
   influence;
 
-- The first condition (V >= X1) never varies so this test set couldn't
-  demonstrate independant influence of this condition.
+- The first condition (V >= X1) never varies so the independant influence
+  of this condition isn't demonstrated.
 
 As we mentioned in the discussion on MCDC variants, adding vector 3
 would achieve MCDC for this decision. Just looking at the table,
@@ -1063,6 +1052,47 @@ condition is short-circuited so its value change is not relevant. The
 condition expressions are such that running vector 4 is not possible,
 however, since we can't have V both < X1 (condition 1 False) and V >
 X2 (condition 2 False) at the same time when X1 < X2.
+
+.. _mcdc-limitations:
+
+Limitations with multi-threaded applications 
+--------------------------------------------
+
+There is one limitation in |gcp| with respect to mcdc assessments: potential
+inaccuracies in results reported for particular decisions when these decisions
+are evaluated concurrently by different threads.
+
+Technically, the decisions of concern are those for which the associated
+binary decision diagram is not a tree, that is, those with at least one
+condition node joining several possible evaluation paths.
+
+According to measures performed on a few large real code bases, occurrences of
+such decisions are statistically rare.  |gcv| can report about them on demand,
+thanks to the :command:`map-routines` analysis command when provided with the
+:option:`-v` option and the set of coverage obligations to examine.
+
+The code sample below illustrates the simplest possible problematic
+decision:
+
+.. code-block:: ada
+
+  function Mp (A, B, C : Boolean) return Boolean is
+  begin
+    return (A or else B) and then C;
+  end;
+
+And here is an excerpt of a |gcvmap| execution for a project which
+encompasses this function ::
+
+  gnatcov map-routines -v -Pmytest.gpr
+  ...
+  ----- BDD for decision SCO #2: DECISION at mp.adb:4:12-34
+  --- mp.adb:4:12: notice: BDD node 7 reachable through multiple paths
+  --- notice: OBC does not imply MC/DC coverage
+
+While the output actually contains a lot more details, the pattern displayed
+for the decisions of interest is consistent so can easily be filtered out to
+provide a synthetic view of all the relevant source locations.
 
 .. _sunits:
 

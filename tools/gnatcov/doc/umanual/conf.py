@@ -49,6 +49,7 @@ rst_epilog = """
 .. |gcvrun| replace:: :command:`gnatcov` :command:`run`
 .. |gcvcov| replace:: :command:`gnatcov` :command:`coverage`
 .. |gcvdsp| replace:: :command:`gnatcov` :command:`disp-routines`
+.. |gcvmap| replace:: :command:`gnatcov` :command:`map-routines`
 
 .. |gcp|  replace:: GNATcoverage
 .. |gem|  replace:: GNATemulator
