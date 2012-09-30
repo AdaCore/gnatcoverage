@@ -114,6 +114,8 @@ procedure GNATcov is
       New_Line;
       P (" disp-routines {[--exclude|--include] FILES}");
       P ("   Build a list of routines from object files");
+      P (" scan-objects {FILES}");
+      P ("   Scan object FILES for empty symbols or orphan regions");
       New_Line;
       P (" coverage OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
@@ -727,7 +729,8 @@ procedure GNATcov is
                            | Cmd_Dump_Trace_Base =>
                            Inputs.Add_Input (Trace_Inputs, Arg);
 
-                        when Cmd_Disp_Routines =>
+                        when Cmd_Disp_Routines
+                           | Cmd_Scan_Objects =>
                            Inputs.Add_Input (Obj_Inputs, Arg);
 
                         when Cmd_Dump_Sections
@@ -918,7 +921,8 @@ begin
                   Traces_Elf.Read_Routines_Name
                     (Disp_Routine_Arg,
                      Exclude   => Mode_Exclude,
-                     Keep_Open => False);
+                     Keep_Open => False,
+                     Strict    => False);
                end if;
             end Read_Routine_Name;
 
@@ -927,6 +931,32 @@ begin
             Inputs.Iterate (Obj_Inputs, Read_Routine_Name'Access);
             Traces_Names.Disp_All_Routines;
             return;
+         end;
+
+      when Cmd_Scan_Objects =>
+         declare
+
+            procedure Scan_One_Elf (Elf_Name : String);
+            --  Process to read routine names from ELF_NAME in strict mode,
+            --  warning about text section points of note wrt object coverage
+            --  (empty symbols, orphan regions, ...)
+
+            ------------------
+            -- Scan_One_Elf --
+            ------------------
+
+            procedure Scan_One_Elf (Elf_Name : String) is
+            begin
+               Traces_Elf.Read_Routines_Name
+                 (Elf_Name,
+                  Exclude    => False,
+                  Keep_Open  => False,
+                  Strict     => True);
+            end Scan_One_Elf;
+
+         begin
+            Check_Argument_Available (Obj_Inputs, "EXEC", Command);
+            Inputs.Iterate (Obj_Inputs, Scan_One_Elf'Access);
          end;
 
       when Cmd_Map_Routines =>

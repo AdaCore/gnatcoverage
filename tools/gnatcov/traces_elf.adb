@@ -2603,7 +2603,8 @@ package body Traces_Elf is
    procedure Read_Routines_Name
      (Filename  : String;
       Exclude   : Boolean;
-      Keep_Open : Boolean)
+      Keep_Open : Boolean;
+      Strict    : Boolean)
    is
       Exec : Exe_File_Acc;
    begin
@@ -2614,7 +2615,7 @@ package body Traces_Elf is
          Efile : Elf_File renames Exec.Exe_File;
       begin
          Load_Shdr (Efile);
-         Read_Routines_Name (Exec, Exclude => Exclude);
+         Read_Routines_Name (Exec, Exclude => Exclude, Strict => Strict);
          if not Keep_Open then
             Close_File (Efile);
          end if;
@@ -2908,7 +2909,10 @@ package body Traces_Elf is
    -- Read_Routines_Name --
    ------------------------
 
-   procedure Read_Routines_Name (File : Exe_File_Acc; Exclude : Boolean)
+   procedure Read_Routines_Name
+     (File    : Exe_File_Acc;
+      Exclude : Boolean;
+      Strict  : Boolean := False)
    is
       use Addresses_Containers;
       use Traces_Names;
@@ -3070,17 +3074,19 @@ package body Traces_Elf is
 
             while Sym /= null and then Sym.Last + Offset <= Last loop
                if Sym.First > Sym.Last then
-                  if Sym.First + Offset <= Last then
+                  if Strict and then Sym.First + Offset <= Last then
                      Put_Line
-                       (Standard_Error, "empty symbol " & Sym.Symbol_Name.all
+                       (Standard_Error,
+                        "warning: empty symbol " & Sym.Symbol_Name.all
                         & " at " & Hex_Image (Sym.First)
                         & " in section " &  Get_Shdr_Name (Efile, I));
                   end if;
 
                else
-                  if Sym.First + Offset > Addr then
+                  if Strict and then Sym.First + Offset > Addr then
                      Put_Line
-                       (Standard_Error, "no symbols for "
+                       (Standard_Error,
+                        "warning: no symbols for "
                         & Hex_Image (Addr) & "-"
                         & Hex_Image (Sym.First + Offset - 1)
                         & " in section " &  Get_Shdr_Name (Efile, I)
@@ -3119,9 +3125,10 @@ package body Traces_Elf is
                Sym := Element (Cur_Sym);
             end loop;
 
-            if Addr < Last then
+            if Strict and then Addr < Last then
                Put_Line
-                 (Standard_Error, "no symbols for "
+                 (Standard_Error,
+                  "warning: no symbols for "
                   & Hex_Image (Addr) & "-" & Hex_Image (Last)
                   & " in section " &  Get_Shdr_Name (Efile, I)
                   & " [" & Unsigned_16'Image (I) & " ]");

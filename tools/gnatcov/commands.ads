@@ -38,7 +38,9 @@ package Commands is
       Cmd_Dump_Lines,
       Cmd_Disassemble_Raw,
       Cmd_Disassemble,
-      Cmd_Run);
+      Cmd_Run,
+      Cmd_Scan_Objects
+     );
 
    function To_Command (Opt_String : String) return Command_Type;
    --  Convert a string of the form "com-mand" to the corresponding

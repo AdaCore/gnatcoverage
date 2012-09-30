@@ -222,12 +222,20 @@ package Traces_Elf is
       new Ada.Unchecked_Deallocation (Addresses_Info, Addresses_Info_Acc);
 
    procedure Read_Routines_Name
-     (Filename : String; Exclude : Boolean; Keep_Open : Boolean);
-   procedure Read_Routines_Name (File : Exe_File_Acc; Exclude : Boolean);
-   --  Add (or remove if EXCLUDE is true) routines read from an ELF image
-   --  to the routines database. If Keep_Open is True, leave the ELF image
-   --  open after loading.
-   --  Display errors on standard error.
+     (Filename  : String;
+      Exclude   : Boolean;
+      Keep_Open : Boolean;
+      Strict    : Boolean);
+
+   procedure Read_Routines_Name
+     (File    : Exe_File_Acc;
+      Exclude : Boolean;
+      Strict  : Boolean := False);
+   --  Add (or remove if EXCLUDE is true) routines read from an ELF image to
+   --  the routines database. If KEEP_OPEN is True, leave the ELF image open
+   --  after loading. If STRICT is True, check for empty symbols and orphan
+   --  regions, emitting warnings on standard error. Emit error about symbols
+   --  defined twice on standard error as well.
 
    procedure Routine_Names_From_Lines
      (Exec     : Exe_File_Acc;
