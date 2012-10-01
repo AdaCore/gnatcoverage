@@ -3160,6 +3160,10 @@ package body Traces_Elf is
       --  Acknowledge one SYMbol from scan on FILE, adding to or
       --  removing from the routines database depending on EXCLUDE.
 
+      --------------------
+      -- Ack_One_Symbol --
+      --------------------
+
       procedure Ack_One_Symbol (Sym : Addresses_Info_Acc) is
          use Traces_Names;
       begin
@@ -3181,6 +3185,8 @@ package body Traces_Elf is
          end if;
       end Ack_One_Symbol;
 
+   --  Start of processing for Read_Routines_Name
+
    begin
       Scan_Symbols_From
         (File   => File,
@@ -3197,7 +3203,7 @@ package body Traces_Elf is
       Exclude  : Boolean;
       Strict   : Boolean)
    is
-      --  Bridge to the version working from an executable file descriptor
+      --  Wrapper for the version working from an executable file descriptor
 
       procedure Process (Exec : Exe_File_Acc);
 
