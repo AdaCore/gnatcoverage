@@ -14,10 +14,11 @@ On request, the metrics can be presented on sources, with an annotation on
 each line synthesizing the coverage status of all the instructions generated
 for this line. This mapping relies on debug information, so sources must be
 compiled with :option:`-g` for this to work. There is no further compilation
-requirement for object coverage alone. However, if :ref:`source coverage
-analysis <scov>` is to be performed as well, the whole process is simpler if
-the same compilation options are used and they have to be strictly controlled
-for the source level criteria.
+requirement for object coverage alone. However, if source coverage analysis is
+to be performed as well, the whole process is simpler if the same compilation
+options are used, and they have to be strictly controlled for source
+coverage. See the :ref:`corresponding section <scov-principles>` for more
+details.
 
 Once your application is built, the analysis proceeds in two steps: |gcvrun|
 is used to produce execution traces, then |gcvcov| to generate coverage
@@ -40,13 +41,11 @@ subprogram names on which the analysis should focus. This set defaults to the
 full set of symbols defined by all the executables associated with the
 provided execution traces.
 
-Later in this chapter, :ref:`oroutines` explains how to construct the relevant
-list of names for :option:`--routines`.  Prior to this comes a section
-describing the :ref:`available report formats <oreport-formats>`, then more
-details regarding :ref:`ocov-insn`, :ref:`ocov-branch`, and specificities
-regarding :ref:`ocov-generics`. Finally, :ref:`ocov-full` describes tools that
-help analyze low-level object files for issues of interest when aiming at full
-object coverage.
+The :ref:`oroutines` section later in this chapter provides guidelines
+and tools to help constructing the relevant list of names for
+:option:`--routines`.  Prior to this comes a section describing the
+:ref:`available report formats <oreport-formats>`, then more details
+regarding :ref:`ocov-insn` and :ref:`ocov-branch`.
 
 .. _oreport-formats:
 
@@ -458,8 +457,6 @@ code of the unique symbol of interest there and only there. Inlining can have
 surprising effects in this context, as the following section describes in
 greater details.
 
-.. _ocov-generics:
-
 Inlining & Generic units
 ========================
 
@@ -588,6 +585,7 @@ and on)::
    ...                                              - cond branch not taken
    1d4 +:  60 00 00 00      ori    r0,r0,0x0000  <--o
    ...
+   1e4 +:  4e 80 00 20      blr
 
    posi__pos_t2__count !: 1fc-237
    1fc +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
@@ -596,6 +594,7 @@ and on)::
    ...                                              | cond branch taken
    224 +:  60 00 00 00      ori    r0,r0,0x0000 <---o
    ...
+   234 +:  4e 80 00 20      blr
 
 This yields a partial coverage annotation for the corresponding source line in
 the :option:`=xcov` output (``!`` on line 10):
@@ -615,6 +614,7 @@ And the :option:`=xcov+` (or :option:`=html+`) output gathers everything
 together, with the blocks of instructions coming from different instances
 identifiable by the associated object symbol names::
 
+   ...
      10 !:          N_Positive := N_Positive + 1;
    <posi__pos_t1__count+0000001c>:+
    1b4 +:  3c 00 00 00  lis    r0,0x0000
@@ -624,34 +624,5 @@ identifiable by the associated object symbol names::
    204 -:  3c 00 00 00  lis    r0,0x0000
    ...
    220 -:  91 2b 10 4c  stw    r9,0x104c(r11)
-
-
-.. _ocov-full:
-
-Full object coverage considerations
-===================================
-
-The previous sections focus on the coverage analysis of code attached to
-*symbols*, as listed by |gcv| :option:`disp-routines`. When full object level
-coverage is to be reached, a few extra details need to be looked at in
-addition. In particular, care is required regarding:
-
-* Orphaned code regions, that are not attached to any symbol and are
-  unaddressed by regular coverage reports,
-
-* Empty symbols, for which the reported code size is null.
-
-Orphaned regions usually show up out of legitimate code alignment requests
-issued for performance or target ABI considerations. Empty symbols most often
-result from low level assembly programmed parts missing the assembly
-directives aimed at populating the symbol table flags and fields.
-
-Both cases are typically harmless and easy to deal with once identified and
-analyzed, so information about them is only emitted on demand and not by
-default in every coverage report for any object level criterion. |gcv|
-provides the :option:`scan-objects` command to help there, which expects the
-set of object files to examine on the command line, as a sequence of either
-object file or :term:`@listfile argument`, and reports about the two kinds
-of situations described above.
 
 

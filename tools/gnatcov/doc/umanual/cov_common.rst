@@ -19,10 +19,10 @@ with the GNAT Project Manager.
 Object vs Source level metrics
 ==============================
 
-Our purpose here is to illustrate a few differences observable in the |gcp|
-annotated source outputs. It is *not* to perform a qualitative comparison
-between the two categories of criteria, way beyond the scope of this toolset
-user guide. The essential point is twofold:
+This section's purpose is to illustrate a few differences observable in the
+|gcp| annotated source outputs, It is *not* to perform a qualitative
+comparison between the two categories of criteria, way beyond the scope of
+this toolset user guide. The essential point is twofold:
 
 - Stress further that annotated source reports for object level criteria
   remain focused on object level metrics, and that source representations are
@@ -36,6 +36,7 @@ Ada unit:
 
 .. code-block:: ada
 
+   function Divides (X, Y : Integer) return Boolean;
    --  Whether X divides Y (as Y mod X is 0), outputing a message
    --  on standard output when True
 
@@ -61,14 +62,20 @@ Using the basic test driver below:
 
 ``Divides`` features a simple decision controlling an *if* statement exercised
 both ways so the driver achieves statement and decision coverage. It even
-achieves MCDC since the decision has a single condition, and this is correctly
-reported by |gcp|, with 100% stmt+mcdc coverage and ``+`` annotations
-everywhere in the :option:`=xcov` output::
+actually achieves MCDC coverage since the decision has a single condition, and
+this is correctly reported by |gcp|, with 100% stmt+mcdc coverage and ``+``
+annotations everywhere in the :option:`=xcov` output::
 
   gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov test_ops1.trace
-  ...
-  100% of 4 lines covered, Coverage level: stmt+mcdc
-  ...
+
+  # yields the following ops.adb.xcov:
+
+  100% of 4 lines covered
+  Coverage level: stmt+mcdc
+   1 .: with Ada.Text_IO; use Ada.Text_IO;
+   2 .:
+   3 .: package body Ops is
+   4 .:
    5 .:    function Divides (X, Y : Integer) return Boolean is
    6 .:    begin
    7 +:       if Y mod X = 0 then
@@ -78,6 +85,8 @@ everywhere in the :option:`=xcov` output::
   11 +:          return False;
   12 .:       end if;
   13 .:    end Divides;
+  14 .:
+  15 .: end Ops;
 
 If we consider object coverage now, we have to consider that the Ada ``mod``
 operator needs special treatment to handle negative operands, which incurs an
@@ -88,8 +97,10 @@ are not exercised by our basic driver, and object coverage for the same
 execution trace correctly reports partial achievement only::
 
   gnatcov coverage --level=insn --annotate=xcov test_ops1.trace
+
   ...
-  67% of 6 lines covered, Coverage level: insn
+  67% of 6 lines covered
+  Coverage level: insn
   ...
    5 +:    function Divides (X, Y : Integer) return Boolean is
    6 .:    begin
