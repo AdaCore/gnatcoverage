@@ -2597,36 +2597,6 @@ package body Traces_Elf is
    end Next_Iterator;
 
    ------------------------
-   -- Read_Routines_Name --
-   ------------------------
-
-   procedure Read_Routines_Name
-     (Filename  : String;
-      Exclude   : Boolean;
-      Keep_Open : Boolean;
-      Strict    : Boolean)
-   is
-      Exec : Exe_File_Acc;
-   begin
-      --  ??? Text_Start
-      Open_Exec (Filename, 0, Exec);
-
-      declare
-         Efile : Elf_File renames Exec.Exe_File;
-      begin
-         Load_Shdr (Efile);
-         Read_Routines_Name (Exec, Exclude => Exclude, Strict => Strict);
-         if not Keep_Open then
-            Close_File (Efile);
-         end if;
-      end;
-   exception
-      when Elf_Files.Error =>
-         Put_Line (Standard_Error, "cannot open: " & Filename);
-         raise;
-   end Read_Routines_Name;
-
-   ------------------------
    -- Build_Source_Lines --
    ------------------------
 
@@ -2905,17 +2875,47 @@ package body Traces_Elf is
       end loop;
    end Disassemble_File;
 
-   ------------------------
-   -- Read_Routines_Name --
-   ------------------------
+   procedure On_Elf_From
+     (Filename : String;
+      Cb       : access procedure (Exec : Exe_File_Acc));
+   --  Call CB with an open executable file descriptor for FILE,
+   --  closed on return.
 
-   procedure Read_Routines_Name
-     (File    : Exe_File_Acc;
-      Exclude : Boolean;
-      Strict  : Boolean := False)
+   -----------------
+   -- On_Elf_From --
+   -----------------
+
+   procedure On_Elf_From
+     (Filename : String;
+      Cb       : access procedure (Exec : Exe_File_Acc))
+   is
+      Exec : Exe_File_Acc;
+   begin
+      Open_Exec (Filename, 0, Exec); --  ??? Text_Start
+
+      declare
+         Efile : Elf_File renames Exec.Exe_File;
+      begin
+         Load_Shdr (Efile);
+         Cb (Exec);
+         Close_File (Efile);
+      end;
+   exception
+      when Elf_Files.Error =>
+         Put_Line (Standard_Error, "cannot open: " & Filename);
+         raise;
+   end On_Elf_From;
+
+   -----------------------
+   -- Scan_Symbols_From --
+   -----------------------
+
+   procedure Scan_Symbols_From
+     (File   : Exe_File_Acc;
+      Sym_Cb : access procedure (Sym : Addresses_Info_Acc);
+      Strict : Boolean)
    is
       use Addresses_Containers;
-      use Traces_Names;
 
       Efile : Elf_File renames File.Exe_File;
       --  Corresponding Elf_File - as we do low level accesses
@@ -3093,21 +3093,8 @@ package body Traces_Elf is
                         & " [" & Unsigned_16'Image (I) & " ]");
                   end if;
 
-                  if Exclude then
-                     Remove_Routine_Name (Sym.Symbol_Name);
-                  else
-                     begin
-                        Add_Routine_Name (Name => Sym.Symbol_Name,
-                                          Exec => File);
-                        Sym.Symbol_Name := null;
-                     exception
-                        when Constraint_Error =>
-                           --  TODO: improve error message???
-                           Put_Line (Standard_Error,
-                                     "symbol " & Sym.Symbol_Name.all
-                                       & " is defined twice in " &
-                                       Get_Filename (Efile));
-                     end;
+                  if Sym_Cb /= null then
+                     Sym_Cb.all (Sym);
                   end if;
 
                   Addr := Sym.Last + Offset;
@@ -3136,6 +3123,90 @@ package body Traces_Elf is
             Unchecked_Deallocation (Shdr_Sets (I));
          end if;
       end loop;
+   end Scan_Symbols_From;
+
+   -----------------------
+   -- Scan_Symbols_From --
+   -----------------------
+
+   procedure Scan_Symbols_From
+     (Filename : String;
+      Sym_Cb   : access procedure (Sym : Addresses_Info_Acc);
+      Strict   : Boolean)
+   is
+      --  Bridge to the version working from an executable file descriptor
+
+      procedure Process (Exec : Exe_File_Acc);
+
+      procedure Process (Exec : Exe_File_Acc) is
+      begin
+         Scan_Symbols_From (Exec, Sym_Cb, Strict);
+      end Process;
+   begin
+      On_Elf_From (Filename, Process'Access);
+   end Scan_Symbols_From;
+
+   ------------------------
+   -- Read_Routines_Name --
+   ------------------------
+
+   procedure Read_Routines_Name
+     (File    : Exe_File_Acc;
+      Exclude : Boolean;
+      Strict  : Boolean := False)
+   is
+
+      procedure Ack_One_Symbol (Sym : Addresses_Info_Acc);
+      --  Acknowledge one SYMbol from scan on FILE, adding to or
+      --  removing from the routines database depending on EXCLUDE.
+
+      procedure Ack_One_Symbol (Sym : Addresses_Info_Acc) is
+         use Traces_Names;
+      begin
+         if Exclude then
+            Remove_Routine_Name (Sym.Symbol_Name);
+         else
+            begin
+               Add_Routine_Name (Name => Sym.Symbol_Name,
+                                 Exec => File);
+               Sym.Symbol_Name := null;
+            exception
+               when Constraint_Error =>
+                  --  TODO: improve error message???
+                  Put_Line (Standard_Error,
+                            "symbol " & Sym.Symbol_Name.all
+                              & " is defined twice in " &
+                              Get_Filename (File.Exe_File));
+            end;
+         end if;
+      end Ack_One_Symbol;
+
+   begin
+      Scan_Symbols_From
+        (File   => File,
+         Sym_Cb => Ack_One_Symbol'Access,
+         Strict => Strict);
+   end Read_Routines_Name;
+
+   ------------------------
+   -- Read_Routines_Name --
+   ------------------------
+
+   procedure Read_Routines_Name
+     (Filename : String;
+      Exclude  : Boolean;
+      Strict   : Boolean)
+   is
+      --  Bridge to the version working from an executable file descriptor
+
+      procedure Process (Exec : Exe_File_Acc);
+
+      procedure Process (Exec : Exe_File_Acc) is
+      begin
+         Read_Routines_Name (Exec, Exclude, Strict);
+      end Process;
+   begin
+      On_Elf_From (Filename, Process'Access);
    end Read_Routines_Name;
 
    ------------------------------

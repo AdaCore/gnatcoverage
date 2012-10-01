@@ -926,9 +926,8 @@ begin
                else
                   Traces_Elf.Read_Routines_Name
                     (Disp_Routine_Arg,
-                     Exclude   => Mode_Exclude,
-                     Keep_Open => False,
-                     Strict    => False);
+                     Exclude => Mode_Exclude,
+                     Strict  => False);
                end if;
             end Read_Routine_Name;
 
@@ -943,9 +942,9 @@ begin
          declare
 
             procedure Scan_One_Elf (Elf_Name : String);
-            --  Process to read routine names from ELF_NAME in strict mode,
-            --  warning about text section points of note wrt object coverage
-            --  (empty symbols, orphan regions, ...)
+            --  Process to Scan_Symbols_From ELF_NAME in strict mode, warning
+            --  about text section points of note wrt object coverage (empty
+            --  symbols, orphan regions, ...)
 
             ------------------
             -- Scan_One_Elf --
@@ -953,11 +952,10 @@ begin
 
             procedure Scan_One_Elf (Elf_Name : String) is
             begin
-               Traces_Elf.Read_Routines_Name
+               Traces_Elf.Scan_Symbols_From
                  (Elf_Name,
-                  Exclude    => False,
-                  Keep_Open  => False,
-                  Strict     => True);
+                  Sym_Cb => null,
+                  Strict => True);
             end Scan_One_Elf;
 
          begin
