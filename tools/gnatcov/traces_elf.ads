@@ -245,6 +245,8 @@ package Traces_Elf is
    --  the routines database. If KEEP_OPEN is True, leave the ELF image open
    --  after loading. Honor STRICT as in Scan_Symbols_From and emit error
    --  about symbols defined twice on standard error as well.
+   --  Keep_Open has been removed???
+   --  Name should be "Read_Routine_Names"???
 
    procedure Routine_Names_From_Lines
      (Exec     : Exe_File_Acc;
