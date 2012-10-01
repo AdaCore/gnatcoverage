@@ -3147,10 +3147,10 @@ package body Traces_Elf is
    end Scan_Symbols_From;
 
    ------------------------
-   -- Read_Routines_Name --
+   -- Read_Routine_Names --
    ------------------------
 
-   procedure Read_Routines_Name
+   procedure Read_Routine_Names
      (File    : Exe_File_Acc;
       Exclude : Boolean;
       Strict  : Boolean := False)
@@ -3185,20 +3185,20 @@ package body Traces_Elf is
          end if;
       end Ack_One_Symbol;
 
-   --  Start of processing for Read_Routines_Name
+   --  Start of processing for Read_Routine_Names
 
    begin
       Scan_Symbols_From
         (File   => File,
          Sym_Cb => Ack_One_Symbol'Access,
          Strict => Strict);
-   end Read_Routines_Name;
+   end Read_Routine_Names;
 
    ------------------------
-   -- Read_Routines_Name --
+   -- Read_Routine_Names --
    ------------------------
 
-   procedure Read_Routines_Name
+   procedure Read_Routine_Names
      (Filename : String;
       Exclude  : Boolean;
       Strict   : Boolean)
@@ -3209,11 +3209,11 @@ package body Traces_Elf is
 
       procedure Process (Exec : Exe_File_Acc) is
       begin
-         Read_Routines_Name (Exec, Exclude, Strict);
+         Read_Routine_Names (Exec, Exclude, Strict);
       end Process;
    begin
       On_Elf_From (Filename, Process'Access);
-   end Read_Routines_Name;
+   end Read_Routine_Names;
 
    ------------------------------
    -- Routine_Names_From_Lines --

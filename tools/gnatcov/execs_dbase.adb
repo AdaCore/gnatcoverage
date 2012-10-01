@@ -46,7 +46,7 @@ package body Execs_Dbase is
          raise Routine_Name_Ambiguity;
       end if;
 
-      Read_Routines_Name
+      Read_Routine_Names
         (Execs_Maps.Element (Exec_Base.First).Exec, Exclude => False);
    end Build_Routines_Names;
 

@@ -233,20 +233,17 @@ package Traces_Elf is
    --  If STRICT, emit warnings about empty symbols and orphan regions on
    --  standard error.
 
-   procedure Read_Routines_Name
+   procedure Read_Routine_Names
      (Filename  : String;
       Exclude   : Boolean;
       Strict    : Boolean);
-   procedure Read_Routines_Name
+   procedure Read_Routine_Names
      (File    : Exe_File_Acc;
       Exclude : Boolean;
       Strict  : Boolean := False);
    --  Add (or remove if EXCLUDE is true) routines read from an ELF image to
-   --  the routines database. If KEEP_OPEN is True, leave the ELF image open
-   --  after loading. Honor STRICT as in Scan_Symbols_From and emit error
-   --  about symbols defined twice on standard error as well.
-   --  Keep_Open has been removed???
-   --  Name should be "Read_Routine_Names"???
+   --  the routines database. Honor STRICT as in Scan_Symbols_From and emit
+   --  error about symbols defined twice on standard error as well.
 
    procedure Routine_Names_From_Lines
      (Exec     : Exe_File_Acc;

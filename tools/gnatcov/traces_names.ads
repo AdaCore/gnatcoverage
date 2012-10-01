@@ -70,7 +70,7 @@ package Traces_Names is
                                Subp_Info : in out Subprogram_Info));
    --  Execute Proc for each routine in the database
 
-   procedure Read_Routines_Name_From_Text (Filename : String);
+   procedure Read_Routine_Names_From_Text (Filename : String);
    --  Read a list of routines name from a text file in the following format:
    --  * lines starting with '#' are ignored
    --  * one name per line

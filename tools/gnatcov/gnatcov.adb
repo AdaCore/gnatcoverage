@@ -924,7 +924,7 @@ begin
                elsif Disp_Routine_Arg = "--include" then
                   Mode_Exclude := False;
                else
-                  Traces_Elf.Read_Routines_Name
+                  Traces_Elf.Read_Routine_Names
                     (Disp_Routine_Arg,
                      Exclude => Mode_Exclude,
                      Strict  => False);
@@ -1319,7 +1319,7 @@ begin
                --  is one trace file.
 
                if Inputs.Length (Routines_Inputs) = 0 then
-                  Read_Routines_Name (Exe_File, Exclude => False);
+                  Read_Routine_Names (Exe_File, Exclude => False);
                end if;
 
                Load_Code_And_Traces (Exe_File, Base'Access);

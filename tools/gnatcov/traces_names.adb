@@ -358,16 +358,16 @@ package body Traces_Names is
    end Iterate;
 
    ----------------------------------
-   -- Read_Routines_Name_From_Text --
+   -- Read_Routine_Names_From_Text --
    ----------------------------------
 
-   procedure Read_Routines_Name_From_Text (Filename : String) is
+   procedure Read_Routine_Names_From_Text (Filename : String) is
    begin
       Read_List_From_File (Filename, Add_Routine_Name'Access);
    exception
       when Name_Error | Status_Error =>
          Fatal_Error ("cannot open routine list: " & Filename);
-   end Read_Routines_Name_From_Text;
+   end Read_Routine_Names_From_Text;
 
    -------------------------
    -- Remove_Routine_Name --
