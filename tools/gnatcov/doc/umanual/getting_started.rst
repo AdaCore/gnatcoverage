@@ -9,7 +9,9 @@ General Principles
 tool. |gcv| relies on an instrumented execution environment to produce
 execution traces instead of having to instrument to program itself. |gem|
 provides such an environment, offering support for coverage assessments
-directly on the target code in cross configurations.
+directly on the target code in cross configurations. Hardware probes might
+be used as trace producers as well, provided trace data is converted to the
+format |gcv| expects.
 
 |gcp| supports both source and object level coverage criteria: statement,
 decision, or mcdc coverage for the source level, and instruction or branch
@@ -29,11 +31,11 @@ analysis proceeds in two steps:
 
 Very briefly here:
 
-- :option:`--target` is necessary for all the cross configurations to select
-  the execution environment that will know how to produce execution traces.
-  This would typically be <target>-gnatemu. Not providing this option requests
-  instrumented execution on the native platform, using very system specific
-  means available in only few configurations.
+- :option:`--target` selects the execution environment that will know how to
+  produce execution traces, such as <target>-gnatemu for emulated
+  configurations.  Not providing this option requests instrumented execution
+  on the native platform, using very system specific means available in only
+  few configurations.
 
 - :option:`--kernel` is necessary for cross configurations where an operating
   system kernel such as VxWorks is required to load and launch your applicative
