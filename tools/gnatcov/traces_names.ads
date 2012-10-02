@@ -28,14 +28,14 @@ package Traces_Names is
 
    procedure Add_Routine_Name
      (Name : String_Access;
-      Exec : Exe_File_Acc := null);
+      Exec : Exe_File_Acc);
    --  Add a routine name to the database, and allocate an associated
    --  Subprogram_Info record (see below). Constraint_Error is raised if
    --  the name already exists.
 
    procedure Add_Routine_Name (Name : String);
    --  Same as Add_Routine_Name, but to be used when adding a routine name
-   --  from a file list and not from an exec file. An error is printed if
+   --  from a routine list instead of an exec file. An error is printed if
    --  the name already exists.
 
    --  Information recorded about each subprogram in the routines database

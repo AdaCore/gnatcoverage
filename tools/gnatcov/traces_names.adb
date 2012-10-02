@@ -230,7 +230,7 @@ package body Traces_Names is
 
    procedure Add_Routine_Name
      (Name : String_Access;
-      Exec : Exe_File_Acc := null)
+      Exec : Exe_File_Acc)
    is
    begin
       Names.Insert (Name,
