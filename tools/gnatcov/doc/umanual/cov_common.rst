@@ -119,17 +119,14 @@ believed for long:
    end Orand;
 
 
-The binary decision diagram of the decision, sketched below, is not a tree::
+The binary decision diagram of the decision, sketched below, is not a tree:
 
-  o---o    o---o 
-  | A |f-->| B |f--> False
-  o---o    o---o
-    t        f
-    |        v  
-    |      o---o 
-    +----->| C |f--> False
-           o---o
-             t-----> True
+.. _fig-multipath-bdd:
+.. figure:: multipath-bdd.*
+  :align: center
+
+  Binary Decision Diagram for ``(A or else B) and then C``, not a tree
+
 
 The simple driver below exercises all the paths through this BDD:
 

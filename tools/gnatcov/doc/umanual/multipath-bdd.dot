@@ -1,0 +1,32 @@
+digraph BDD {
+        rankdir = LR;
+        compound = T;
+        edge [ fontsize = 9 ];
+
+        {
+        node [ shape = box, style=filled,
+                  color = lightblue, fontcolor = black, fontsize=9 ];
+        
+	node_a [ label = "A" ];
+	node_b [ label = "B", group = "top_line" ];
+	node_c [ label = "C", group = "bot_line" ];
+        }
+
+        { rank = same; node_b; node_c}
+
+        {
+        node [ shape = ellipse, style=filled,
+                  color = darkslateblue, fontcolor = white, fontsize=9 ];
+
+        out_f [ label = "False", group = "top_line" ]
+        out_t [ label = "True", group = "bot_line" ]
+        }
+
+        node_a -> node_b [ label = "F" ]
+        node_a -> node_c [ label = "T" ]
+        node_b -> node_c [ label = "F" ]
+
+        node_b -> out_f  [ label = "F" ]
+        node_c -> out_f  [ label = "F" ]
+        node_c -> out_t  [ label = "T" ]
+}

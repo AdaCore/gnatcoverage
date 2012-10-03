@@ -33,10 +33,23 @@ copy.html:
 	-mkdir -p $(COPYDIR)
 	rsync -a --delete $(BUILDDIR)/html/ $(COPYDIR)
 
-stamp-prepare: gen_prjtrees.py prjtree.dot ../../version.ads
+%.png: %.dot
+	dot -T png -o $@ $<
+
+%.pdf: %.dot
+	dot -T pdf -o $@ $<
+
+multipath-bdd.png: multipath-bdd.dot
+multipath-bdd.pdf: multipath-bdd.dot
+
+prepare-images: gen_prjtrees.py prjtree.dot multipath-bdd.png multipath-bdd.pdf
+	python gen_prjtrees.py
+
+prepare-version: ../../version.ads
 	VERSION=$$(sed -n -e 's/.*Version.*"\(.*\)".*/\1/p' ../../version.ads); \
 	perl -pi -e "s#^version =.*#version = \"$$VERSION\"#" conf.py
-	python gen_prjtrees.py
+
+stamp-prepare: prepare-images prepare-version
 	touch stamp-prepare
 
 html: stamp-prepare

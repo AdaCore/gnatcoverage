@@ -388,7 +388,6 @@ by the executables designated by the analyzed traces.
 
 :option:`--routines` allows the specification of a set of subprogram symbols
 of interest so reports refer to this (sub)set only.
-
 Each occurrence of :option:`--routines` on the command line expects a single
 argument which specifies a subset of symbols of interest. Multiple occurrences
 are allowed and the subsets accumulate. The argument might be either a single
@@ -409,9 +408,11 @@ and a ``symlist123`` text file containing the three of them.
 It is often convenient to compute the lists of symbols for a :term:`@listfile
 argument`, for example as "the full set of defined subprograms except those
 with ``test_`` or ``harness_`` at the beginning of their name". |gcv| provides
-the |gcvdsp| sub-command for this purpose. The general synopsis is as follows::
+the |gcvdsp| sub-command for this purpose.
 
-   disp-routines :term:`[--exclude|--include] FILES`
+The general synopsis of |gcvdsp| is as follows::
+
+   disp-routines [--exclude|--include] FILES
      Build a list of routines from object files
 
 |gcvdsp| outputs the list of symbols in a set built from :dfn:`object files`
