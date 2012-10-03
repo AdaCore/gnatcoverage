@@ -229,9 +229,10 @@ package Traces_Elf is
      (Filename : String;
       Sym_Cb   : access procedure (Sym : Addresses_Info_Acc);
       Strict   : Boolean);
-   --  Scan FILE/FILENAME for executable symbols, calling Sym_Cb for each.
-   --  If STRICT, emit warnings about empty symbols and orphan regions on
-   --  standard error.
+   --  Scan FILE/FILENAME for executable symbols, calling SYM_CB for each
+   --  unless SYM_CB is null. If STRICT, emit warnings about empty symbols and
+   --  orphan regions on standard error. This is the one case when calling
+   --  with a null SYM_CB is useful.
 
    procedure Read_Routine_Names
      (Filename  : String;

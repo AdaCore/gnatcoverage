@@ -2992,7 +2992,11 @@ package body Traces_Elf is
                               Symtabs, Symtab_Base);
       Alloc_And_Load_Section (File.all, Strtab_Idx, Strtab_Len, Strtabs);
 
-      --  Walk the symtab and put interesting symbols into the containers
+      --  Walk the symtab and put interesting symbols into the containers.
+      --  Except for warnings in strict mode, leave empty symbols alone. We'd
+      --  need to be extra careful with the beginning or end of sections and
+      --  we wouldn't be able to analyze much about the symbols anyway.
+
       --  FIXME: this somewhat duplicates the logic of Build_Symbols.
 
       for I in 1 .. Natural (Symtab_Len) / Elf_Sym_Size loop
@@ -3003,25 +3007,49 @@ package body Traces_Elf is
          if  (Sym_Type = STT_FUNC or Sym_Type = STT_NOTYPE)
            and then A_Sym.St_Shndx in Shdr_Sets'Range
            and then Shdr_Sets (A_Sym.St_Shndx) /= null
-           and then A_Sym.St_Size > 0
          then
+
             Sym_Name := new String'
               (Read_String (Strtabs (A_Sym.St_Name)'Address));
 
-            Addresses_Containers.Insert
-              (Shdr_Sets (A_Sym.St_Shndx).all,
-               new Addresses_Info'
-                 (Kind        => Symbol_Addresses,
-                  First       => Pc_Type (A_Sym.St_Value),
-                  Last        => Pc_Type (A_Sym.St_Value + A_Sym.St_Size - 1),
-                  Parent      => null,
-                  Symbol_Name => Sym_Name),
-               Cur, Ok);
+            if A_Sym.St_Size = 0 then
 
-            if not Ok then
-               Put_Line (Standard_Error,
-                         "symbol " & Sym_Name.all
-                           & " is an alias at " & Hex_Image (A_Sym.St_Value));
+               --  Empty symbol. Warn if requested to do so, then just release
+               --  what we have allocated for the symbol already.
+
+               if Strict then
+                  Put_Line
+                    (Standard_Error,
+                     "warning: empty symbol " & Sym_Name.all
+                       & " at " & Hex_Image (A_Sym.St_Value)
+                       & " in section "
+                       & Get_Shdr_Name (Efile, A_Sym.St_Shndx));
+               end if;
+
+               Free (Sym_Name);
+
+            else
+
+               --  Non-empy symbol. Latch into our local container for
+               --  processing downstream.
+
+               Addresses_Containers.Insert
+                 (Shdr_Sets (A_Sym.St_Shndx).all,
+                  new Addresses_Info'
+                    (Kind   => Symbol_Addresses,
+                     First  => Pc_Type (A_Sym.St_Value),
+                     Last   => Pc_Type (A_Sym.St_Value + A_Sym.St_Size - 1),
+                     Parent => null,
+                     Symbol_Name => Sym_Name),
+                  Cur, Ok);
+
+               if not Ok then
+                  Put_Line (Standard_Error,
+                            "symbol " & Sym_Name.all
+                              & " is an alias at "
+                              & Hex_Image (A_Sym.St_Value));
+               end if;
+
             end if;
          end if;
       end loop;
@@ -3029,7 +3057,8 @@ package body Traces_Elf is
       Unchecked_Deallocation (Strtabs);
       Unchecked_Deallocation (Symtabs);
 
-      --  Walk the sections and put routines into the database
+      --  Walk the sections, invoking callback or warning for symbols of
+      --  interest as we go along.
 
       Do_Reloc := Get_Ehdr (Efile).E_Type = ET_REL;
       Offset := 0;
@@ -3043,11 +3072,10 @@ package body Traces_Elf is
             Last := Pc_Type (Shdr.Sh_Addr + Shdr.Sh_Size - 1);
 
             Cur_Sym := First (Shdr_Sets (I).all);
-            if Has_Element (Cur_Sym) then
-               Sym := Element (Cur_Sym);
-            else
-               Sym := null;
-            end if;
+
+            Sym := (if Has_Element (Cur_Sym)
+                    then Element (Cur_Sym)
+                    else null);
 
             --  Get the first symbol in the section
 
@@ -3064,52 +3092,45 @@ package body Traces_Elf is
 
                Free (Sym.Symbol_Name);
                Unchecked_Deallocation (Sym);
+
                Next (Cur_Sym);
-               if not Has_Element (Cur_Sym) then
-                  Sym := null;
-                  exit;
-               end if;
-               Sym := Element (Cur_Sym);
+               Sym := (if Has_Element (Cur_Sym)
+                       then Element (Cur_Sym)
+                       else null);
             end loop;
 
+            --  Now, process the symbols that are in the section's range.
+            --  We expect empty symbols to have been filtered out already.
+
             while Sym /= null and then Sym.Last + Offset <= Last loop
-               if Sym.First > Sym.Last then
-                  if Strict and then Sym.First + Offset <= Last then
-                     Put_Line
-                       (Standard_Error,
-                        "warning: empty symbol " & Sym.Symbol_Name.all
-                        & " at " & Hex_Image (Sym.First)
-                        & " in section " &  Get_Shdr_Name (Efile, I));
-                  end if;
 
-               else
-                  if Strict and then Sym.First + Offset > Addr then
-                     Put_Line
-                       (Standard_Error,
-                        "warning: no symbols for "
-                        & Hex_Image (Addr) & "-"
-                        & Hex_Image (Sym.First + Offset - 1)
-                        & " in section " &  Get_Shdr_Name (Efile, I)
-                        & " [" & Unsigned_16'Image (I) & " ]");
-                  end if;
+               pragma Assert (Sym.Last >= Sym.First);
 
-                  if Sym_Cb /= null then
-                     Sym_Cb.all (Sym);
-                  end if;
-
-                  Addr := Sym.Last + Offset;
-                  exit when Addr = Pc_Type'Last;
-                  Addr := Addr + 1;
+               if Strict and then Sym.First + Offset > Addr then
+                  Put_Line
+                    (Standard_Error,
+                     "warning: no symbols for "
+                       & Hex_Image (Addr) & "-"
+                       & Hex_Image (Sym.First + Offset - 1)
+                       & " in section " &  Get_Shdr_Name (Efile, I)
+                       & " [" & Unsigned_16'Image (I) & " ]");
                end if;
+
+               if Sym_Cb /= null then
+                  Sym_Cb.all (Sym);
+               end if;
+
+               Addr := Sym.Last + Offset;
+               exit when Addr = Pc_Type'Last;
+               Addr := Addr + 1;
 
                Free (Sym.Symbol_Name);
                Unchecked_Deallocation (Sym);
+
                Next (Cur_Sym);
-               if not Has_Element (Cur_Sym) then
-                  Sym := null;
-                  exit;
-               end if;
-               Sym := Element (Cur_Sym);
+               Sym := (if Has_Element (Cur_Sym)
+                       then Element (Cur_Sym)
+                       else null);
             end loop;
 
             if Strict and then Addr < Last then
