@@ -24,7 +24,7 @@ digraph BDD {
 
         node_a -> node_b [ label = "F" ]
         node_a -> node_c [ label = "T" ]
-        node_b -> node_c [ label = "F" ]
+        node_b -> node_c [ label = "T" ]
 
         node_b -> out_f  [ label = "F" ]
         node_c -> out_f  [ label = "F" ]
