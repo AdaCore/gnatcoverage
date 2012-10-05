@@ -17,7 +17,7 @@ See ./testsuite.py -h for more help
 
 # ***************************************************************************
 
-from gnatpython.env import Env
+from gnatpython.env import Env, getenv, putenv
 from gnatpython.ex import Run
 from gnatpython.fileutils import mkdir, rm, ln, find, which
 from gnatpython.main import Main
@@ -143,10 +143,9 @@ class TestSuite:
         self.env = Env()
         self.env.add_search_path('PYTHONPATH', os.getcwd())
 
-        # Check sanity of a provided toolchain path, if any, and adjust PATH
-        # accordingly
-        if self.options.toolchain:
-            self.setup_toolchain (self.options.toolchain)
+        # Perform the environment adjustments required to run the compilation
+        # toolchain properly.
+        self.setup_toolchain (self.options.toolchain)
 
         # Setup log directories
         self.log_dir = os.path.join (os.getcwd(), 'output')
@@ -719,9 +718,24 @@ class TestSuite:
 
     def setup_toolchain (self, prefix):
 
-        """Adjust PATH to have PREFIX/bin ahead in PATH after sanity
-        checking that it contains at least a couple of programs we'll
-        need (e.g. <target>-gcc and gprbuild)."""
+        """If a PREFIX is provided, adjust PATH to have PREFIX/bin ahead in
+        PATH after sanity checking that it contains at least a couple of
+        programs we'll need (e.g. <target>-gcc and gprbuild)."""
+
+        # If we don't have one set already, setup a dummy WIND_BASE. This is
+        # only needed for C tests with VxWorks compilers and is harmless for
+        # others. Our test sources don't depend on VxWorks headers so a dummy
+        # value is good enough. Setting a value remains needed to prevent
+        # preventive complaints from the gcc driver.
+
+        if not getenv ("WIND_BASE"):
+            putenv ("WIND_BASE", "")
+
+        # If we don't have a PREFIX to enforce, stop here. Otherwise, proceed
+        # to update PATH for that.
+
+        if not prefix:
+            return
 
         # Sanity check that <toolchain>/bin contains at least
         # a couple of binaries we'll need
