@@ -16,12 +16,15 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+
 with Interfaces;
 
 with ALI_Files;   use ALI_Files;
 with Coverage;
 with Coverage.Object;
 with Coverage.Source;
+with Coverage.Tags;
 with Outputs;     use Outputs;
 with Strings;     use Strings;
 with Switches;    use Switches;
@@ -604,13 +607,17 @@ package body Annotations is
    ------------------------
 
    function Message_Annotation (M : Message) return String is
+      use Coverage, Coverage.Tags;
    begin
       if M.SCO /= No_SCO_Id then
-         return SCO_Kind'Image (Kind (M.SCO))
+         return To_Lower (SCO_Kind'Image (Kind (M.SCO)))
            & " """ & SCO_Text (M.SCO) & '"'
            & " at "
            & Img (First_Sloc (M.SCO).Line) & ":"
            & Img (First_Sloc (M.SCO).Column)
+           & (if M.Tag = No_SC_Tag
+              then ""
+              else " (from " & Tag_Repository.Tag_Name (M.Tag) & ")")
            & " " & M.Msg.all;
       else
          return Image (M.Sloc) & ": " & M.Msg.all;
