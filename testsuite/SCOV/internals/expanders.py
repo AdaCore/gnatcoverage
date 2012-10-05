@@ -790,7 +790,6 @@ class XnotesExpander:
         # - exactly one sublist is expected to correspond to sources
         #   we can actually find.
 
-
         candlists = ucx[0]
         goodlists = []
         [self.__examine_source_list (slist, goodlists) for slist in ucx[0]]
@@ -800,7 +799,7 @@ class XnotesExpander:
                 "goodlists = %d, != 1 for %s", len (goodlists), str(candlists)
                 )
 
-        # Now we work over our only good list of source paths
+        # Now we work over our single good list of source paths
 
         spaths = goodlists[0]
 
