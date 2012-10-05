@@ -18,20 +18,23 @@
 
 --  Management of the routines database
 
-with Traces;       use Traces;
-with Traces_Dbase; use Traces_Dbase;
-with Traces_Lines; use Traces_Lines;
-with Traces_Elf;   use Traces_Elf;
-with GNAT.Strings; use GNAT.Strings;
+with GNAT.Strings;  use GNAT.Strings;
+
+with Coverage.Tags; use Coverage, Coverage.Tags;
+with Traces;        use Traces;
+with Traces_Dbase;  use Traces_Dbase;
+with Traces_Lines;  use Traces_Lines;
+with Traces_Elf;    use Traces_Elf;
 
 package Traces_Names is
 
    procedure Add_Routine_Name
      (Name : String_Access;
-      Exec : Exe_File_Acc);
+      Exec : Exe_File_Acc;
+      Tag  : out SC_Tag);
    --  Add a routine name to the database, and allocate an associated
    --  Subprogram_Info record (see below). Constraint_Error is raised if
-   --  the name already exists.
+   --  the name already exists. Returns the assigned routine tag.
 
    procedure Add_Routine_Name (Name : String);
    --  Same as Add_Routine_Name, but to be used when adding a routine name
@@ -50,10 +53,14 @@ package Traces_Names is
       Traces : Traces_Base_Acc;
       --  Traces for the subprogram
 
-      Offset : Pc_Type;
+      Offset : Pc_Type := No_PC;
       --  Offset to be added to trace PCs to rebase them for the reference
       --  code in Insns. Updated each time Add_Code is used to register a new
       --  instance of the code for this routine.
+
+      Tag : SC_Tag := No_SC_Tag;
+      --  Routine tag used when doing source coverage analysis with per-routine
+      --  tagging.
    end record;
 
    procedure Remove_Routine_Name (Name : String_Access);
@@ -132,8 +139,15 @@ package Traces_Names is
    function Compute_Routine_State
      (Insns  : Binary_Content_Acc;
       Traces : Traces_Base_Acc) return Line_State;
-   --  Compute routine state from its object coverage information and
-   --  from its content.
+   --  Compute routine state from its object coverage information and from its
+   --  content.
+
+   procedure Enter_Routine (Subp_Info : Subprogram_Info);
+   --  Record Subp_Info as the subprogram information for per-routine source
+   --  coverage analysis tagging.
+
+   function Get_Routine_Tag_Repository return Tag_Repository_Access;
+   pragma Inline (Get_Routine_Tag_Repository);
 
    Consolidation_Error : exception;
    --  Raised if consolidation is not possible (eg different code for a

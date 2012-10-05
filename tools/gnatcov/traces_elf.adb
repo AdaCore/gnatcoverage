@@ -26,8 +26,9 @@ with System.Storage_Elements; use System.Storage_Elements;
 
 with GNAT.OS_Lib;
 
-with Coverage;          use Coverage;
 with Coverage.Object;   use Coverage.Object;
+with Coverage.Source;   use Coverage.Source;
+with Coverage.Tags;     use Coverage.Tags;
 with Disa_Common;       use Disa_Common;
 with Disassemblers;     use Disassemblers;
 with Dwarf;
@@ -1932,6 +1933,7 @@ package body Traces_Elf is
       Cur         : Cursor;
       Line        : Addresses_Info_Acc;
       Source_File : Source_File_Index := No_Source_File;
+      Tag         : SC_Tag;
 
       Init_Line_State : Line_State;
 
@@ -1964,6 +1966,8 @@ package body Traces_Elf is
             Add_Line_For_Object_Coverage
               (Source_File, Init_Line_State, Line.Sloc.Line, Line, Base, Exec);
 
+            Tag := Tag_Repository.Get_Tag (Exec, Line.First);
+
             declare
                Info : Line_Info renames Get_Line (Line.Sloc).all;
 
@@ -1980,7 +1984,7 @@ package body Traces_Elf is
                   SCO : constant SCO_Id := SCO_Id_Vectors.Element (C);
                begin
                   if Kind (SCO) = Statement then
-                     Set_Basic_Block_Has_Code (SCO);
+                     Set_Basic_Block_Has_Code (SCO, Tag);
                   end if;
                end Set_BB_Has_Code;
 
@@ -2429,7 +2433,8 @@ package body Traces_Elf is
                Parent      => Sections_Info (ESym.St_Shndx),
                Symbol_Name => new String'
                                 (Read_String
-                                   (Strtabs (ESym.St_Name)'Address)));
+                                   (Strtabs (ESym.St_Name)'Address)),
+               Symbol_Tag  => No_SC_Tag);
 
             Addresses_Containers.Insert
               (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
@@ -3036,11 +3041,13 @@ package body Traces_Elf is
                Addresses_Containers.Insert
                  (Shdr_Sets (A_Sym.St_Shndx).all,
                   new Addresses_Info'
-                    (Kind   => Symbol_Addresses,
-                     First  => Pc_Type (A_Sym.St_Value),
-                     Last   => Pc_Type (A_Sym.St_Value + A_Sym.St_Size - 1),
-                     Parent => null,
-                     Symbol_Name => Sym_Name),
+                    (Kind        => Symbol_Addresses,
+                     First       => Pc_Type (A_Sym.St_Value),
+                     Last        => Pc_Type (A_Sym.St_Value
+                                               + A_Sym.St_Size - 1),
+                     Parent      => null,
+                     Symbol_Name => Sym_Name,
+                     Symbol_Tag  => No_SC_Tag),
                   Cur, Ok);
 
                if not Ok then
@@ -3193,7 +3200,8 @@ package body Traces_Elf is
          else
             begin
                Add_Routine_Name (Name => Sym.Symbol_Name,
-                                 Exec => File);
+                                 Exec => File,
+                                 Tag  => Sym.Symbol_Tag);
                Sym.Symbol_Name := null;
             exception
                when Constraint_Error =>
@@ -3375,7 +3383,8 @@ package body Traces_Elf is
 
                if Select_Symbol then
                   if not Is_In (Symbol.Symbol_Name) then
-                     Add_Routine_Name (Symbol.Symbol_Name, Exec);
+                     Add_Routine_Name
+                       (Symbol.Symbol_Name, Exec, Symbol.Symbol_Tag);
                   end if;
 
                   Skip_Symbol (Symbol);

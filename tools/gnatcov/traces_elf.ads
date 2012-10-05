@@ -20,12 +20,13 @@ with GNAT.Strings; use GNAT.Strings;
 with Ada.Unchecked_Deallocation;
 with Ada.Containers.Ordered_Sets;
 
-with Traces;       use Traces;
-with Traces_Dbase; use Traces_Dbase;
-with Elf_Arch;     use Elf_Arch;
-with Elf_Common;   use Elf_Common;
-with Elf_Files;    use Elf_Files;
-with Slocs;        use Slocs;
+with Coverage;      use Coverage;
+with Elf_Arch;      use Elf_Arch;
+with Elf_Common;    use Elf_Common;
+with Elf_Files;     use Elf_Files;
+with Traces;        use Traces;
+with Traces_Dbase;  use Traces_Dbase;
+with Slocs;         use Slocs;
 
 with Interfaces;
 
@@ -207,6 +208,7 @@ package Traces_Elf is
 
          when Symbol_Addresses =>
             Symbol_Name : String_Access;
+            Symbol_Tag  : SC_Tag;
 
          when Line_Addresses =>
             Sloc : Source_Location := No_Location;

@@ -20,6 +20,7 @@ with Ada.Containers.Vectors;
 
 with GNAT.Strings; use GNAT.Strings;
 
+with Coverage;       use Coverage;
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
 with Traces;         use Traces;
@@ -34,6 +35,7 @@ package Diagnostics is
       PC   : Pc_Type;
       Sloc : Source_Location;
       SCO  : SCO_Id;
+      Tag  : SC_Tag;
       Msg  : String_Access;
    end record;
 
@@ -56,6 +58,7 @@ package Diagnostics is
 
    procedure Report_Violation
      (SCO  : SCO_Id;
+      Tag  : SC_Tag;
       Msg  : String);
    --  Report a violation of a source coverage obligation. Note: the SCO kind
    --  will be prepended to Msg in reports, unless Msg starts with ^ (caret).
@@ -66,6 +69,7 @@ package Diagnostics is
       PC   : Pc_Type         := No_PC;
       Sloc : Source_Location := No_Location;
       SCO  : SCO_Id          := No_SCO_Id;
+      Tag  : SC_Tag          := No_SC_Tag;
       Kind : Report_Kind     := Error);
    --  Output diagnostic message during coverage analysis. Messages with Notice
    --  kind are omitted unless global flag Verbose is set. A prefix is

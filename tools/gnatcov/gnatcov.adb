@@ -33,6 +33,7 @@ with Annotations.Report;
 with Commands;          use Commands;
 with Coverage;          use Coverage;
 with Coverage.Source;   use Coverage.Source;
+with Coverage.Tags;     use Coverage.Tags;
 with Decision_Map;      use Decision_Map;
 with Elf_Files;
 with Execs_Dbase;       use Execs_Dbase;
@@ -71,8 +72,9 @@ procedure GNATcov is
       Additional_Info : String := "");
    --  Report a fatal error if Args is empty
 
-   procedure Check_SCOs_Available (Command : Command_Type);
-   --  Call Check_Argument_Available to check for presence of SCOs
+   procedure Load_All_SCOs (Check_SCOs : Boolean);
+   --  Load all listed SCO files and initialize source coverage data structure.
+   --  If Check_SCOs is True, report an error if no SCOs are provided.
 
    ------------------------------
    -- Check_Argument_Available --
@@ -139,6 +141,7 @@ procedure GNATcov is
       P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");
+      P ("   -S <routines|instances>     Perform separate source coverage");
       New_Line;
    end Usage;
 
@@ -200,6 +203,7 @@ procedure GNATcov is
    Target_Option_Short       : constant String := "-t";
    Output_Option             : constant String := "--output=";
    Output_Option_Short       : constant String := "-o";
+   Separate_Option_Short     : constant String := "-S";
    Tag_Option                : constant String := "--tag=";
    Verbose_Option            : constant String := "--verbose";
    Verbose_Option_Short      : constant String := "-v";
@@ -248,18 +252,22 @@ procedure GNATcov is
    --  entities of interest coverage analysis if they have not been identified
    --  on the command line.
 
-   --------------------------
-   -- Check_SCOs_Available --
-   --------------------------
+   -------------------
+   -- Load_All_SCOs --
+   -------------------
 
-   procedure Check_SCOs_Available (Command : Command_Type) is
+   procedure Load_All_SCOs (Check_SCOs : Boolean) is
    begin
-      Check_Argument_Available
-        (ALIs_Inputs,
-         "SCOs",
-         Command,
-         " (specify Units in project or use --units/--scos)");
-   end Check_SCOs_Available;
+      if Check_SCOs then
+         Check_Argument_Available
+           (ALIs_Inputs,
+            "SCOs",
+            Command,
+            " (specify Units in project or use --units/--scos)");
+      end if;
+      Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
+      Coverage.Source.Initialize_SCI;
+   end Load_All_SCOs;
 
    ------------------------
    -- Parse_Command_Line --
@@ -711,6 +719,24 @@ procedure GNATcov is
                      elsif Arg = "--include" then
                         Inputs.Add_Input (Obj_Inputs, Arg);
 
+                     elsif Arg = Separate_Option_Short then
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        declare
+                           type Coverage_Scopes is (Routines);
+                           Tag_Repositories : constant array (Coverage_Scopes)
+                             of Tag_Repository_Access :=
+                               (Routines => Get_Routine_Tag_Repository);
+                        begin
+                           Tag_Repository :=
+                             Tag_Repositories
+                               (Coverage_Scopes'Value
+                                    (Next_Arg ("separate coverage scope")));
+                        exception
+                           when Constraint_Error =>
+                              Fatal_Error
+                                ("bad parameter for " & Separate_Option_Short);
+                        end;
+
                      elsif Arg (1) = '-' then
                         Fatal_Error ("unknown option: " & Arg);
 
@@ -980,9 +1006,7 @@ begin
             end Build_Decision_Map;
 
          begin
-            Check_SCOs_Available (Command);
-
-            Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
+            Load_All_SCOs (Check_SCOs => True);
             Inputs.Iterate (Exe_Inputs, Build_Decision_Map'Access);
             if Verbose then
                SC_Obligations.Report_SCOs_Without_Code;
@@ -1194,11 +1218,7 @@ begin
          --  Load ALI files
 
          if Source_Coverage_Enabled then
-            --  SCOs are mandatory for source coverage
-
-            Check_SCOs_Available (Command);
-            Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
-            Coverage.Source.Initialize_SCI;
+            Load_All_SCOs (Check_SCOs => True);
 
          elsif Object_Coverage_Enabled then
             Inputs.Iterate (ALIs_Inputs, Load_ALI'Access);
@@ -1469,9 +1489,10 @@ begin
                if MCDC_Coverage_Enabled then
                   if Length (ALIs_Inputs) = 0 then
                      Warn ("No SCOs specified for MC/DC level");
+
                   else
                      Histmap := new String'(Exe_File & ".dmap");
-                     Inputs.Iterate (ALIs_Inputs, Load_SCOs'Access);
+                     Load_All_SCOs (Check_SCOs => False);
                      Build_Decision_Map (Exe_File, Text_Start, Histmap.all);
                   end if;
                end if;

@@ -292,10 +292,6 @@ package body SC_Obligations is
             --  Sloc range of the exception handler of which this is the first
             --  statement.
 
-            Basic_Block_Has_Code : Boolean;
-            --  Set True when code is present for this or any following SCO in
-            --  basic block.
-
             Pragma_Name : Pragma_Id;
             --  For a Pragma_Statement, corresponding pragma identifier
 
@@ -950,16 +946,6 @@ package body SC_Obligations is
       SCO_Vector.Update_Element (SCO, Update'Access);
    end Add_Address;
 
-   --------------------------
-   -- Basic_Block_Has_Code --
-   --------------------------
-
-   function Basic_Block_Has_Code (SCO : SCO_Id) return Boolean is
-      SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
-   begin
-      return SCOD.Basic_Block_Has_Code;
-   end Basic_Block_Has_Code;
-
    ---------------
    -- Condition --
    ---------------
@@ -1345,6 +1331,18 @@ package body SC_Obligations is
       end;
    end Is_Expression;
 
+   -----------------------------
+   -- Is_Pragma_Annotate_Xcov --
+   -----------------------------
+
+   function Is_Pragma_Annotate_Xcov (SCO : SCO_Id) return Boolean is
+      SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+   begin
+      pragma Assert (Kind (SCO) = Statement);
+      return SCOD.S_Kind = Pragma_Statement
+        and then ALI_Annotations.Contains (SCOD.Sloc_Range.First_Sloc);
+   end Is_Pragma_Annotate_Xcov;
+
    ----------------------------------
    -- Is_Pragma_Pre_Post_Condition --
    ----------------------------------
@@ -1620,7 +1618,6 @@ package body SC_Obligations is
                                      Dominant_Value       => Dom_Val,
                                      Handler_Range        =>
                                        Current_Handler_Range,
-                                     Basic_Block_Has_Code => False,
                                      Pragma_Name          => SCOE.Pragma_Name,
                                      others               => <>));
 
@@ -2033,67 +2030,6 @@ package body SC_Obligations is
    begin
       SCO_Vector.Iterate (Check_Condition'Access);
    end Report_SCOs_Without_Code;
-
-   ------------------------------
-   -- Set_Basic_Block_Has_Code --
-   ------------------------------
-
-   procedure Set_Basic_Block_Has_Code (SCO : SCO_Id) is
-
-      procedure Set_SCOD_BB_Has_Code (SCOD : in out SCO_Descriptor);
-      --  Set SCOD.Basic_Block_Has_Code
-
-      --------------------------
-      -- Set_SCOD_BB_Has_Code --
-      --------------------------
-
-      procedure Set_SCOD_BB_Has_Code (SCOD : in out SCO_Descriptor) is
-      begin
-         if SCOD.Kind = Statement
-              and then SCOD.S_Kind = Pragma_Statement
-              and then ALI_Annotations.Contains (SCOD.Sloc_Range.First_Sloc)
-         then
-            --  This is a statement SCO for a pragma Annotate (Xcov): do not
-            --  set Basic_Block_Has_Code, in order to avoid generating a bogus
-            --  violation for the pragma SCO.
-
-            null;
-
-         else
-            SCOD.Basic_Block_Has_Code := True;
-         end if;
-      end Set_SCOD_BB_Has_Code;
-
-      --  Local variables
-
-      S_SCO : SCO_Id := SCO;
-      Propagating, No_Propagation : Boolean;
-
-   --  Start of processing for Set_Basic_Block_Has_Code
-
-   begin
-      Propagating := False;
-      loop
-         --  Pragma Pre/Post-condition SCOs are not taken into account while
-         --  setting Basic_Block_Has_Code, because they are out of the normal
-         --  sequence of the enclosing list of declarations (the corresponding
-         --  code is instead generated in the subprogram to which they apply).
-         --  See also similar processing in the back propagation circuitry in
-         --  Coverage.Source.Compute_Source_Coverage.
-
-         No_Propagation := Is_Pragma_Pre_Post_Condition (S_SCO);
-
-         if not (Propagating and No_Propagation) then
-            SCO_Vector.Update_Element (S_SCO, Set_SCOD_BB_Has_Code'Access);
-         end if;
-
-         exit when not Propagating and No_Propagation;
-
-         Propagating := True;
-         S_SCO := Previous (S_SCO);
-         exit when S_SCO = No_SCO_Id or else Basic_Block_Has_Code (S_SCO);
-      end loop;
-   end Set_Basic_Block_Has_Code;
 
    --------------------------
    -- Set_Degraded_Origins --

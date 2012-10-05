@@ -140,6 +140,9 @@ package Files_Table is
       Exemption : Source_Location := Slocs.No_Location;
       --  If this line is covered by an exemption, this is set to the sloc of
       --  the Exempt_On annotation.
+
+      Statement_Count : Integer := -1;
+      --  Count of statement SCO on this line (-1 if not computed yet)
    end record;
 
    type Line_Info_Access is access Line_Info;
@@ -236,7 +239,8 @@ package Files_Table is
    --  for this file and for the current coverage criteria.
 
    function Is_Multistatement_Line (Sloc : Source_Location) return Boolean;
-   --  True if there is more than one Statement SCO for the line of Sloc
+   function Is_Multistatement_Line (LI : in out Line_Info) return Boolean;
+   --  True if there is more than one Statement SCO for the line of Sloc/LI
 
 private
    --  Describe a source file - one element per line

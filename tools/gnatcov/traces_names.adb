@@ -17,27 +17,43 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
+
 with Ada.Text_IO; use Ada.Text_IO;
 
 with Interfaces;
 
-with Coverage;        use Coverage;
 with Coverage.Object; use Coverage.Object;
 with Inputs;          use Inputs;
 with Outputs;         use Outputs;
 with Strings;         use Strings;
+with Switches;        use Switches;
 
 package body Traces_Names is
 
+   subtype Routine_SC_Tag is SC_Tag range No_SC_Tag + 1 .. SC_Tag'Last;
+   package Routine_Tag_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Routine_SC_Tag,
+      Element_Type => String_Access);
+
+   type Routine_Tag_Repository_Type is new Tag_Repository_Type with record
+      Routine_Tags    : Routine_Tag_Vectors.Vector;
+      Current_Routine : Subprogram_Info;
+   end record;
+
+   overriding function Get_Tag
+     (TR  : access Routine_Tag_Repository_Type;
+      Exe : Exe_File_Acc;
+      PC  : Pc_Type) return SC_Tag;
+
+   overriding function Tag_Name
+     (TR  : access Routine_Tag_Repository_Type;
+      Tag : SC_Tag) return String;
+
+   Routine_Tag_Repository : aliased Routine_Tag_Repository_Type;
+
    function Equal (L, R : Subprogram_Info) return Boolean;
    --  Needs comment???
-
-   function Equal (L, R : Subprogram_Info) return Boolean
-   is
-      pragma Unreferenced (L, R);
-   begin
-      return False;
-   end Equal;
 
    package Names_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => String_Access,
@@ -230,24 +246,35 @@ package body Traces_Names is
 
    procedure Add_Routine_Name
      (Name : String_Access;
-      Exec : Exe_File_Acc)
+      Exec : Exe_File_Acc;
+      Tag  : out SC_Tag)
    is
+      RTags : Routine_Tag_Vectors.Vector
+      renames Routine_Tag_Repository.Routine_Tags;
    begin
+      RTags.Append (Name);
       Names.Insert (Name,
         Subprogram_Info'(Exec   => Exec,
                          Insns  => null,
                          Traces => null,
-                         Offset => 0));
+                         Offset => 0,
+                         Tag    => RTags.Last_Index));
+      Tag := RTags.Last_Index;
+      if Verbose then
+         Put_Line ("Routine tag" & Tag'Img & ": " & Name.all);
+      end if;
    end Add_Routine_Name;
 
    procedure Add_Routine_Name (Name : String) is
-      Element : constant String_Access := new String'(Name);
-      Cur     : constant Names_Maps.Cursor := Names.Find (Element);
+      Element    : constant String_Access := new String'(Name);
+      Cur        : constant Names_Maps.Cursor := Names.Find (Element);
+      Unused_Tag : SC_Tag;
+      pragma Unreferenced (Unused_Tag);
    begin
       if Names_Maps.Has_Element (Cur) then
          Error ("symbol " & Name & " is already defined");
       else
-         Add_Routine_Name (Element, null);
+         Add_Routine_Name (Element, null, Unused_Tag);
       end if;
    end Add_Routine_Name;
 
@@ -260,6 +287,7 @@ package body Traces_Names is
       Traces : Traces_Base_Acc) return Line_State
    is
       use type Interfaces.Unsigned_32;
+
       State : Line_State := No_Code;
       Addr  : Pc_Type;
       It    : Entry_Iterator;
@@ -315,6 +343,26 @@ package body Traces_Names is
    end Disp_All_Routines;
 
    -------------------
+   -- Enter_Routine --
+   -------------------
+
+   procedure Enter_Routine (Subp_Info : Subprogram_Info) is
+   begin
+      Routine_Tag_Repository.Current_Routine := Subp_Info;
+   end Enter_Routine;
+
+   -----------
+   -- Equal --
+   -----------
+
+   function Equal (L, R : Subprogram_Info) return Boolean
+   is
+      pragma Unreferenced (L, R);
+   begin
+      return False;
+   end Equal;
+
+   -------------------
    -- Get_Subp_Info --
    -------------------
 
@@ -322,6 +370,32 @@ package body Traces_Names is
    begin
       return Names_Maps.Element (Names.Find (Name));
    end Get_Subp_Info;
+
+   -------------
+   -- Get_Tag --
+   -------------
+
+   overriding function Get_Tag
+     (TR  : access Routine_Tag_Repository_Type;
+      Exe : Exe_File_Acc;
+      PC  : Pc_Type) return SC_Tag
+   is
+      use type Pc_Type;
+
+   begin
+      if TR.Current_Routine.Insns = null then
+
+         --  No current routine
+
+         return Get_Symbol (Exe.all, PC).Symbol_Tag;
+
+      else
+         pragma Assert
+           (PC in TR.Current_Routine.Insns'First + TR.Current_Routine.Offset
+            .. TR.Current_Routine.Insns'Last + TR.Current_Routine.Offset);
+         return TR.Current_Routine.Tag;
+      end if;
+   end Get_Tag;
 
    -----------
    -- Is_In --
@@ -377,5 +451,26 @@ package body Traces_Names is
    begin
       Names.Exclude (Name);
    end Remove_Routine_Name;
+
+   --------------------------------
+   -- Get_Routine_Tag_Repository --
+   --------------------------------
+
+   function Get_Routine_Tag_Repository return Tag_Repository_Access is
+   begin
+      return Routine_Tag_Repository'Access;
+   end Get_Routine_Tag_Repository;
+
+   --------------
+   -- Tag_Name --
+   --------------
+
+   overriding function Tag_Name
+     (TR  : access Routine_Tag_Repository_Type;
+      Tag : SC_Tag) return String
+   is
+   begin
+      return TR.Routine_Tags.Element (Tag).all;
+   end Tag_Name;
 
 end Traces_Names;

@@ -23,6 +23,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with GNAT.Time_Stamp;
 
 with ALI_Files;
+with Coverage.Tags; use Coverage.Tags;
 with Qemu_Traces;
 with Switches;
 with Traces_Files;
@@ -418,6 +419,11 @@ package body Annotations.Report is
                Put
                  (Output.all,
                   To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
+            end if;
+
+            if M.Tag /= No_SC_Tag then
+               Put (Output.all,
+                    "(from " & Tag_Repository.Tag_Name (M.Tag) & ") ");
             end if;
 
          else

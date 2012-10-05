@@ -19,9 +19,10 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Text_IO;             use Ada.Text_IO;
 
-with Files_Table; use Files_Table;
-with Hex_Images;  use Hex_Images;
-with Switches;    use Switches;
+with Coverage.Tags; use Coverage.Tags;
+with Files_Table;   use Files_Table;
+with Hex_Images;    use Hex_Images;
+with Switches;      use Switches;
 
 package body Diagnostics is
 
@@ -53,6 +54,9 @@ package body Diagnostics is
 
       function Sloc_Image return String;
       --  Image of Sloc, null string for the value No_Location
+
+      function Tag_Image return String;
+      --  Tag indication, null string for the value No_SC_Tag
 
       ----------------
       -- Kind_Image --
@@ -102,11 +106,25 @@ package body Diagnostics is
       begin
          if M.SCO /= No_SCO_Id then
             return Image (M.SCO, With_Sloc => First_Sloc (M.SCO) /= M.Sloc)
+              & Tag_Image
               & ": ";
          else
             return "";
          end if;
       end SCO_Image;
+
+      ---------------
+      -- Tag_Image --
+      ---------------
+
+      function Tag_Image return String is
+      begin
+         if M.Tag /= No_SC_Tag then
+            return " (from " & Tag_Repository.Tag_Name (M.Tag) & ")";
+         else
+            return "";
+         end if;
+      end Tag_Image;
 
       First : Natural := M.Msg'First;
 
@@ -151,6 +169,7 @@ package body Diagnostics is
 
    procedure Report_Violation
      (SCO  : SCO_Id;
+      Tag  : SC_Tag;
       Msg  : String)
    is
       Sloc : Source_Location;
@@ -164,7 +183,7 @@ package body Diagnostics is
          Sloc := First_Sloc (SCO);
       end if;
 
-      Report (Msg, Sloc => Sloc, SCO => SCO, Kind => Error);
+      Report (Msg, Sloc => Sloc, SCO => SCO, Tag => Tag, Kind => Error);
    end Report_Violation;
 
    procedure Report
@@ -172,6 +191,7 @@ package body Diagnostics is
       PC   : Pc_Type         := No_PC;
       Sloc : Source_Location := No_Location;
       SCO  : SCO_Id          := No_SCO_Id;
+      Tag  : SC_Tag          := No_SC_Tag;
       Kind : Report_Kind     := Error)
    is
       M : constant Message :=
@@ -179,6 +199,7 @@ package body Diagnostics is
              PC   => PC,
              Sloc => Sloc,
              SCO  => SCO,
+             Tag  => Tag,
              Msg  => new String'(Msg));
    begin
       Output_Message (M);

@@ -616,22 +616,30 @@ package body Files_Table is
 
    function Is_Multistatement_Line (Sloc : Source_Location) return Boolean is
       LI : constant Line_Info_Access :=
-        Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
-      Count : Natural := 0;
-
+             Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
    begin
-      if LI /= null then
+      if LI = null then
+         return False;
+      else
+         return Is_Multistatement_Line (LI.all);
+      end if;
+   end Is_Multistatement_Line;
+
+   function Is_Multistatement_Line (LI : in out Line_Info) return Boolean is
+   begin
+      --  Count statements once, and then cache the result in
+      --  LI.Statement_Count.
+
+      if LI.Statement_Count < 0 then
+         LI.Statement_Count := 0;
          for J in LI.SCOs.First_Index .. LI.SCOs.Last_Index loop
             if Kind (LI.SCOs.Element (J)) = Statement then
-               Count := Count + 1;
+               LI.Statement_Count := LI.Statement_Count + 1;
             end if;
-            if Count > 1 then
-               return True;
-            end if;
-
          end loop;
       end if;
-      return False;
+
+      return LI.Statement_Count > 1;
    end Is_Multistatement_Line;
 
    ----------------------

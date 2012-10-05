@@ -113,12 +113,8 @@ package SC_Obligations is
    --    * If Dom_SCO is a decision, it is guaranteed to have been evaluated
    --      with value Dom_Val.
 
-   function Basic_Block_Has_Code (SCO : SCO_Id) return Boolean;
-   --  True if any SCO in basic block has associated object code
-
-   procedure Set_Basic_Block_Has_Code (SCO : SCO_Id);
-   --  Set Basic_Block_Has_Code for SCO as well as all previous SCOs in its
-   --  basic block.
+   function Is_Pragma_Annotate_Xcov (SCO : SCO_Id) return Boolean;
+   --  True if SCO is for a pragma Annotate (Xcov)
 
    function Is_Pragma_Pre_Post_Condition (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Pre/Postcondition

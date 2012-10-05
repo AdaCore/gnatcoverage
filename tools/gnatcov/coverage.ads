@@ -24,7 +24,6 @@
 --  it has been initialized.
 
 with Traces_Dbase; use Traces_Dbase;
-with Traces_Elf;   use Traces_Elf;
 
 package Coverage is
 
@@ -75,5 +74,11 @@ package Coverage is
 
    function Coverage_Option_Value return String;
    --  Return the coverage option value for the currently enabled levels
+
+   type SC_Tag is new Natural;
+   No_SC_Tag : constant SC_Tag := 0;
+   --  Several separated source coverage analyses may be simultaneously
+   --  performed on a given source construct, in which case each analysis is
+   --  identified by a different SC_Tag.
 
 end Coverage;
