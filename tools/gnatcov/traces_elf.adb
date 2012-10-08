@@ -1040,7 +1040,8 @@ package body Traces_Elf is
       end if;
 
       if Exec.Desc_Sets (Section_Addresses).Is_Empty then
-         --  The file may have no code.
+         --  The file may have no code
+
          return;
       end if;
 
