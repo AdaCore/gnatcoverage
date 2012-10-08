@@ -1,1 +1,0 @@
-ALL XFAIL "fooled by legitimate simplifications at -O1. unclear story on coupled conds. J415-020"
