@@ -29,18 +29,6 @@ package body Decls_Pack_1 is
          M2 := Tmp;                            -- # g1_local_swap
       end Local_Swap;
 
-      function Local_Fun (Arg : Matrix) return Matrix is
-         Result : Matrix := Arg;                -- # g1_decl
-      begin
-         for I in Result'Range (1) loop         -- # g1_stmt
-            for J in Result'Range (2) loop      -- # g1_stmt
-               Result (I, J) := -Result (I, J); -- # g1_stmt
-            end loop;
-         end loop;
-
-         return Result;                         -- # g1_stmt
-      end Local_Fun;
-
    end Decls_Pack_Matrix_G;
 
    package body Decls_Pack_Records_G is
@@ -51,16 +39,6 @@ package body Decls_Pack_1 is
          C1 := C2;                                               -- # g2_local_swap
          C2 := Tmp;                                              -- # g2_local_swap
       end Local_Swap;
-
-      function Local_Fun (Arg : Var_String) return Var_String is
-         Result : Var_String := Arg;                             -- # g2_decl
-      begin
-         for I in 1 .. Arg.Len loop                              -- # g2_stmt
-            Result.Data (I) := Character'Succ (Result.Data (I)); -- # g2_stmt
-         end loop;
-
-         return Result;                                          -- # g2_stmt
-      end Local_Fun;
 
    end Decls_Pack_Records_G;
 

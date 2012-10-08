@@ -19,7 +19,7 @@ with Support;       use Support;
 procedure Test_Object_Declarations_Full is
    package Decls_Pack_Matrix is new Decls_Pack_Matrix_G (1, 2);
    use Decls_Pack_Matrix;
-
+   
    package Decls_Pack_Records is new Decls_Pack_Records_G;
    use Decls_Pack_Records;
 
@@ -37,26 +37,29 @@ procedure Test_Object_Declarations_Full is
 
    Coord1 : Coordinate := Coordinate_Zero;
    Coord2 : Coordinate := (1.0, 1.0);
-
-   Coord_Var1 : Access_Coordinate := new Coordinate'(1.0, 2.0);
-   Coord_Var2 : Access_Coordinate := new Coordinate'(3.0, 4.0);
+   
+   Coord_Value1 : aliased Coordinate := (1.0, 2.0);
+   Coord_Value2 : aliased Coordinate := (3.0, 4.0);
+   Coord_Var1 : Access_All_Coordinate := Coord_Value1'Unchecked_Access;
+   Coord_Var2 : Access_All_Coordinate := Coord_Value2'Unchecked_Access;
 
    Int1 : Integer := 1;
    Int2 : Integer := 2;
 
    Matr1 : Matrix := (1 => (1 => 1));
    Matr2 : Matrix := (1 => (1 => 2));
-
+   
    P_Var1 : T_Private := Get_Private (10);
    P_Var2 : T_Private := Get_Private (20);
-
-   Var1 : Access_Integer := new Integer'(1);
-   Var2 : Access_Integer := new Integer'(2);
+   
+   Int_Value1 : aliased Integer := 1;
+   Int_Value2 : aliased Integer := 2;
+   Var1 : Access_All_Integer := Int_Value1'Unchecked_Access;
+   Var2 : Access_All_Integer := Int_Value2'Unchecked_Access;
 
    V1 : Derived_Coordinate := (1.0, 10.0);
    V2 : Derived_Coordinate := (2.0, 20.0);
 begin
-   Assert (Matrix_V = ((1, 2), (3, 4)));
    Assert (Derived_Discrete_Coordinate_V = (0, 0));
    Assert (My_String.Data = "Ada");
    Assert (Get_Integer (T_Private_C) = (0));
@@ -94,27 +97,22 @@ begin
    Assert (Coord2 = Coordinate_Zero and then Coord1 = (1.0, 1.0));
 
    --  Call all the subprograms from library packages
+   
    Decls_Pack_1.Local_Swap (Int1, Int2);
    Assert (Int1 = 1 and then Int2 = 2);
    Assert (Decls_Pack_1.Local_Fun (Mon) = Tue);
 
    Decls_Pack_2.Local_Swap (Var1, Var2);
    Assert (Var1.all = 2 and then Var2.all = 1);
-   Assert (Decls_Pack_2.Local_Fun (-1) = null);
 
    --  Call all subprograms from all instantiations
 
    Decls_Pack_Matrix.Local_Swap (Matr1, Matr2);
    Assert (Matr1 (1, 1) = 1 and then Matr2 (1, 1) = 2);
 
-   Assert (Decls_Pack_Matrix.Local_Fun (Matr1) = (1 => (1 => -1)));
-
    Decls_Pack_Records.Local_Swap (Coord1, Coord2);
    Assert (Coord1 = Coordinate_Zero and then Coord2 = (1.0, 1.0));
-
-   Assert (Decls_Pack_Records.Local_Fun (My_String).Data = "Beb");
-
-
+   
    Decls_Pack_Derived_Records.Local_Swap (V1, V2);
    Assert (V1.X = 2.0  and then
            V1.Y = 20.0 and then

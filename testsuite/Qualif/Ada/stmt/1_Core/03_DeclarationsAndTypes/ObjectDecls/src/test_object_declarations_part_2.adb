@@ -42,17 +42,20 @@ procedure Test_Object_Declarations_Part_2 is
    D_C_Var1 : Discrete_Coordinate := (10, 100);
    D_C_Var2 : Discrete_Coordinate := (20, 200);
 
-   Coord_Var1 : Access_Coordinate := new Coordinate'(1.0, 2.0);
-   Coord_Var2 : Access_Coordinate := new Coordinate'(3.0, 4.0);
-
-   Int1 : Integer := 1;
-   Int2 : Integer := 2;
+   Coord_Value1 : aliased Coordinate := (1.0, 2.0);
+   Coord_Value2 : aliased Coordinate := (3.0, 4.0);
+   Coord_Var1 : Access_All_Coordinate := Coord_Value1'Unchecked_Access;
+   Coord_Var2 : Access_All_Coordinate := Coord_Value2'Unchecked_Access;
 
    Matr1 : Matrix := (1 => (1 => 1));
    Matr2 : Matrix := (1 => (1 => 2));
 
-   Var1 : Access_Integer := new Integer'(1);
-   Var2 : Access_Integer := new Integer'(2);
+
+   Int1 : aliased Integer := 1;
+   Int2 : aliased Integer := 2;
+
+   Var1 : Access_All_Integer := Int1'Unchecked_Access;
+   Var2 : Access_All_Integer := Int2'Unchecked_Access;
 
    V1 : Derived_Coordinate := (1.0, 10.0);
    V2 : Derived_Coordinate := (2.0, 20.0);
@@ -82,10 +85,7 @@ begin
    --  Call subprograms from library packages
    Assert (Decls_Pack_1.Local_Fun (Mon) = Tue);
 
-   Assert (Decls_Pack_2.Local_Fun (-1) = null);
-
    --  Call subprograms from instantiations
-   Assert (Decls_Pack_Records.Local_Fun (My_String).Data = "Beb");
    Assert (Get_Integer (Decls_Pack_Private.Local_Fun (Get_Private (1))) = 100);
 end Test_Object_Declarations_Part_2;
 

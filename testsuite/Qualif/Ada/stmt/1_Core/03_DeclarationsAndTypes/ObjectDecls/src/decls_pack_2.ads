@@ -14,11 +14,7 @@ package Decls_Pack_2 is
    I : Integer := Identity (1);                                      -- # dcls
    --  Needed to avoid creating a dummy xcov report
 
-   procedure Local_Swap (V1, V2 : in out Access_Integer);
-
-   function Local_Fun (I : Integer) return Access_Const_Integer;
-   --  If I > 0 returns access value pointing to the value of I, otherwise
-   --  returns null
+   procedure Local_Swap (V1, V2 : in out Access_All_Integer);
 
    generic
    package Decls_Pack_Derived_Records_G is

@@ -44,6 +44,7 @@ package Decls_Support is
    type Access_All_Integer is access all Integer;
    type Access_Const_Integer is access constant Integer;
    type Access_Coordinate is access Coordinate;
+   type Access_All_Coordinate is access all Coordinate;
 
    --  Derived types
 

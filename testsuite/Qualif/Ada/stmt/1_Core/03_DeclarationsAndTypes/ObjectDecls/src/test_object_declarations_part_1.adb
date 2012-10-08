@@ -24,24 +24,27 @@ with Decls_Support; use Decls_Support;
 with Support;       use Support;
 
 procedure Test_Object_Declarations_Part_1 is
+
    package Decls_Pack_Matrix is new Decls_Pack_Matrix_G (1, 2);
    use Decls_Pack_Matrix;
-
+   
    package Decls_Pack_Derived_Records is new Decls_Pack_Derived_Records_G;
    use Decls_Pack_Derived_Records;
 
-   Coord_Var1 : Access_Coordinate := new Coordinate'(1.0, 2.0);
-   Coord_Var2 : Access_Coordinate := new Coordinate'(3.0, 4.0);
+   Coord_Value1 : aliased Coordinate := (1.0, 2.0);
+   Coord_Value2 : aliased Coordinate := (3.0, 4.0);
+   Coord_Var1 : Access_All_Coordinate := Coord_Value1'Unchecked_Access;
+   Coord_Var2 : Access_All_Coordinate := Coord_Value2'Unchecked_Access;
 
-   Int1 : Integer := 1;
-   Int2 : Integer := 2;
+   Int1 : aliased Integer := 1;
+   Int2 : aliased Integer := 2;
+
+   Var1 : Access_All_Integer := Int1'Unchecked_Access;
+   Var2 : Access_All_Integer := Int2'Unchecked_Access;
 
    Matr1 : Matrix := (1 => (1 => 1));
    Matr2 : Matrix := (1 => (1 => 2));
-
-   Var1 : Access_Integer := new Integer'(1);
-   Var2 : Access_Integer := new Integer'(2);
-
+   
    V1 : Derived_Coordinate := (1.0, 10.0);
    V2 : Derived_Coordinate := (2.0, 20.0);
 begin
@@ -61,7 +64,7 @@ begin
 
    Matrix_Swap (Matr1, Matr2);
    Assert (Matr1 (1, 1) = 2 and then Matr2 (1, 1) = 1);
-
+   
    --  Call subprograms from library packages
    Decls_Pack_1.Local_Swap (Int1, Int2);
    Assert (Int1 = 1 and then Int2 = 2);

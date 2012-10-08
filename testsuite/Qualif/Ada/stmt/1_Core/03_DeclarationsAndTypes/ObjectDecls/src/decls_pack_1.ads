@@ -25,8 +25,6 @@ package Decls_Pack_1 is
 
       procedure Local_Swap (M1, M2 : in out Matrix);
 
-      function Local_Fun (Arg : Matrix) return Matrix;
-      --  Changes the sign of each component of the argument.
    end Decls_Pack_Matrix_G;
 
    generic
@@ -36,9 +34,6 @@ package Decls_Pack_1 is
 
       procedure Local_Swap (C1, C2 : in out Coordinate);
 
-      function Local_Fun (Arg : Var_String) return Var_String;
-      --  For the Data field of the argument, replace each character with the
-      --  next one.
    end Decls_Pack_Records_G;
 
 end Decls_Pack_1;
