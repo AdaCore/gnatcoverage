@@ -39,9 +39,8 @@ package body Coverage is
    Coverage_Option_Map : Coverage_Option_Maps.Map;
 
    Levels : Levels_Type := (others => False);
-   Levels_Set : Boolean := False;
    --  Global variable that records the coverage operation that has been asked
-   --  to xcov. This should be modified only one time by Set_Coverage_Levels.
+   --  to xcov. Set using Set_Coverage_Levels.
 
    procedure Add_Coverage_Option (L : Levels_Type);
    --  Register L as a valid combination of coverage levels
@@ -153,9 +152,7 @@ package body Coverage is
 
    procedure Set_Coverage_Levels (Opt : String) is
    begin
-      pragma Assert (not Levels_Set);
       Levels := Coverage_Option_Map.Element (Opt'Unrestricted_Access);
-      Levels_Set := True;
    end Set_Coverage_Levels;
 
    ---------------
