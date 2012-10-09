@@ -285,7 +285,7 @@ def xrun(args, out=None, register_failure=True):
     # Adding -s switch seems to fix the problem. We use this temporary
     # solution to be able to restart testing on windows.
 
-    if "windows" in env.host.platform:
+    if env.host.os.name == "windows":
         allargs.extend (['-eargs', '-s'])
 
     return xcov (
