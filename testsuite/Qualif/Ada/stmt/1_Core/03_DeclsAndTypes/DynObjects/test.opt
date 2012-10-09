@@ -1,0 +1,2 @@
+RTS_ZFP_STRICT DEAD test does dynamic-mem and sec-stack alloc, !zfp-strict
+
