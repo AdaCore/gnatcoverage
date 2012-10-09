@@ -52,38 +52,78 @@ def gprdep_for (reldir, wd):
 # -- gprcov_for --
 # ----------------
 
-# Compute and return the text of a Coverage GPR package
-# from provided units or lists to include or exclude.
+# Compute and return the text of a Coverage GPR package from
+# * provided units or lists to include or exclude
+# * default_switches to install
 
-def __gprattrname (for_list, to_exclude):
-    return "%(prefix)s%(kind)s" % {
-        "prefix": "Excluded_" if to_exclude else "",
-        "kind": "Units_List" if for_list else "Units"
-        }
+def __gprattr (attrname, value, aslist):
+    """One project attribute definition string, for an attribute named
+    ATTRNAME, with the provided attribute VALUE, to be set as an attribute
+    list-value or not according to ASLIST. The definition string degrades into
+    a mere comment for value == None. Not for an empty list or string."""
 
-def __gprattr (value, for_list, to_exclude):
-    attrname = __gprattrname (for_list=for_list, to_exclude=to_exclude)
-    return (
-        ("for %s use \"%s\";" % (attrname, value)
-         ) if (value is not None and for_list)
-        else
-        ("for %s use (%s);" % (
-                attrname, ','.join (['\"%s\"' % v for v in value])
-                )
-         ) if value is not None and not for_list
-        else
-        ("-- empty %s" % attrname)
-        )
+    if value is None:
+        return "-- empty %s" % attrname
 
-def gprcov_for (units_in, ulist_in, units_out, ulist_out):
+    elif aslist:
+        return "for %s use (%s);" % (
+            attrname, ','.join (['\"%s\"' % v for v in value])
+            )
+    else:
+        return "for %s use \"%s\";" % (attrname, value)
+
+def __gpr_uattr (value, for_list, to_exclude):
+    """One attribute definition string, for a unit set kind of attribute, one
+    of (Units, Units_List, Excluded_Units, Excluded_Units_List). The FOR_LIST
+    argument qualifies the attribute name we aim at. When True, we typically
+    have a single list-filename argument."""
+
+    return __gprattr (
+        attrname = "%(prefix)s%(kind)s" % {
+            "prefix": "Excluded_" if to_exclude else "",
+            "kind": "Units_List" if for_list else "Units"
+            },
+        value  = value,
+        aslist = not for_list)
+
+def gprcov_for (
+    units_in=None,
+    ulist_in=None,
+    units_out=None,
+    ulist_out=None,
+    def_switches=None
+    ):
+    """The full Coverage package for a project file, with attribute
+    definition strings for Units, Units_List, Excluded_Units, Excluded_Units_List
+    and Default_Switches, each boiling down to a mere comment if the corresponding
+    argument passed here is None."""
+
     return '\n'.join ([
             "package Coverage is",
-            __gprattr (
-                for_list = False, to_exclude = False, value = units_in),
-            __gprattr (
-                for_list = False, to_exclude = True, value = units_out),
-            __gprattr (
-                for_list = True, to_exclude = False, value = ulist_in),
-            __gprattr (
-                for_list = True, to_exclude = True, value = ulist_out),
+
+            __gpr_uattr ( # Units
+                for_list = False,
+                to_exclude = False,
+                value = units_in),
+
+            __gpr_uattr ( # Excluded_Units
+                for_list = False,
+                to_exclude = True,
+                value = units_out),
+
+            __gpr_uattr ( # Units_List
+                for_list = True,
+                to_exclude = False,
+                value = ulist_in),
+
+            __gpr_uattr ( # Excluded_Units_List
+                for_list = True,
+                to_exclude = True,
+                value = ulist_out),
+
+            __gprattr ( # Default_Switches
+                attrname = "Default_Switches",
+                value = def_switches,
+                aslist = True),
+
             "end Coverage;"])
