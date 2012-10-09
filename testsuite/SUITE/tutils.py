@@ -280,6 +280,14 @@ def xrun(args, out=None, register_failure=True):
 
     allargs.extend (to_list(args))
 
+    # Workaround for L805-002: gnatemu hangs during gnatcov testing for
+    # ppc-vx6-windows, which happens to be visible for other targets as well.
+    # Adding -s switch seems to fix the problem. We use this temporary
+    # solution to be able to restart testing on windows.
+
+    if "windows" in env.host.platform:
+        allargs.extend (['-eargs', '-s'])
+
     return xcov (
         allargs, inp=nulinput, out=out,
         register_failure=register_failure)
