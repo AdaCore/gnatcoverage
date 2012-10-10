@@ -204,7 +204,8 @@ class TestSuite:
 
         # Report all dead tests
         with open (os.path.join(self.log_dir, 'results'), 'w') as fd:
-            [fd.write('%s:DEAD:\n' % dt.filename) for dt in self.dead_list]
+            [fd.write ("%s:%s\n" % (dt.filename, dt.killcmd))
+             for dt in self.dead_list]
 
         # Warn about an empty non-dead list, always. This is almost
         # certainly a selection mistake in any case.
@@ -343,8 +344,6 @@ class TestSuite:
         else:
             return ["RTS_FULL"]
 
-        return dlist
-
     def toolchain_discriminants (self):
         """Compute the list of discriminants that reflect the version of the
         particular toolchain in use, if any, for example "7.0.2" for
@@ -370,7 +369,7 @@ class TestSuite:
         for test in test_list:
             tc = TestCase(test, self.trace_dir)
             tc.parseopt(discs)
-            if tc.is_dead():
+            if tc.killcmd:
                 dead_list.append(tc)
             else:
                 non_dead_list.append(tc)
@@ -785,29 +784,38 @@ class TestCase(object):
     # -- Testcase options and status --
     # ---------------------------------
 
+    def __try_killcmd (self, cmd):
+        """See if CMD applies to this testcase according to test.opt.
+        Set self.cmd to the corresponding text for GAIA reports."""
+        value = self.opt.get_value (cmd)
+        self.killcmd = (
+            None if value is None
+            else "%s:%s" % (cmd, value)
+            )
+
     def parseopt(self, tags):
         """Parse the test.opt with the given tags"""
         test_opt = os.path.join(self.testdir, 'test.opt')
-        if os.path.exists(test_opt):
-            self.opt = OptFileParse(tags, test_opt)
+
+        self.opt = (
+            OptFileParse(tags, test_opt) if os.path.exists(test_opt)
+            else None
+            )
+
         self.expected_out = self.getopt('out', 'test.out')
+
+        self.killcmd = None
+        if self.opt:
+            [self.__try_killcmd (c) for c in ('DEAD', 'SKIP') if not self.killcmd]
 
     def getopt(self, key, default=None):
         """Get the value extracted from test.opt that correspond to key
-
         If key is not found. Returns default.
         """
-        if self.opt is None:
-            return default
-        else:
-            return self.opt.get_value(key, default_value=default)
-
-    def is_dead(self):
-        """Returns True if the test is DEAD"""
-        if self.opt is None:
-            return False
-        else:
-            return self.opt.is_dead
+        return (
+            self.opt.get_value(key, default_value=default) if self.opt
+            else default
+            )
 
     # ---------------------------
     # -- Testcase output files --
