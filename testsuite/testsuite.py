@@ -190,7 +190,7 @@ class TestSuite:
                 ("matching '%s'" % self.options.run_test)
                 if self.options.run_test else "unfiltered")
 
-        self.non_dead_list, self.dead_list = self.partition_testcase_list(
+        self.run_list, self.dead_list = self.partition_testcase_list(
             re_filter(
                 re_filter (
                     [t for root in ["Qualif", "tests"]
@@ -210,7 +210,7 @@ class TestSuite:
         # Warn about an empty non-dead list, always. This is almost
         # certainly a selection mistake in any case.
 
-        if not self.non_dead_list:
+        if not self.run_list:
             logging.warning (
                 "List of non-dead tests to run is empty. Selection mistake ?")
 
@@ -221,7 +221,7 @@ class TestSuite:
         else:
             logging.info (
                 "%d non-dead tests to run%s ..." % (
-                    len(self.non_dead_list),
+                    len(self.run_list),
                     ", displaying failures only" if self.options.quiet else "")
                 )
 
@@ -358,13 +358,13 @@ class TestSuite:
     # -----------------------------
 
     def partition_testcase_list(self, test_list, discs):
-        """Partition TEST_LIST into a (non_dead_list, dead_list) tuple of
+        """Partition TEST_LIST into a (run_list, dead_list) tuple of
         sorted lists according to discriminants DISCS. Entries in both lists
         are TestCase instances.
         """
 
         dead_list = []
-        non_dead_list = []
+        run_list = []
 
         for test in test_list:
             tc = TestCase(test, self.trace_dir)
@@ -372,12 +372,12 @@ class TestSuite:
             if tc.killcmd:
                 dead_list.append(tc)
             else:
-                non_dead_list.append(tc)
+                run_list.append(tc)
 
         # Sort lists
-        non_dead_list.sort()
+        run_list.sort()
         dead_list.sort()
-        return (non_dead_list, dead_list)
+        return (run_list, dead_list)
 
     # ---------
     # -- run --
@@ -391,7 +391,7 @@ class TestSuite:
         # failures threshold.
 
         try :
-            MainLoop(self.non_dead_list,
+            MainLoop(self.run_list,
                      self.run_testcase,
                      self.collect_result,
                      self.options.jobs)
