@@ -124,13 +124,30 @@ install: install-bin install-examples install-doc
 # Packaging #
 #############
 
-.PHONY: distrib
+# Prepare a to-be packaged distribution tree.
 
-distrib: install
+# Unix distribs are tar or zip versions of the three, unpacked by users then
+# installed with doinstall. We need a doinstall, README and INSTALL there.
+
+# Windows distribs are packaged and installed by an nsis installer or alike,
+# which has it's own extra info embedded and eventually installs just all what
+# the distrib tree contains. We don't want any toplevel item there.
+
+.PHONY: distrib-unix distrib-windows distrib
+
+distrib-unix: install
 	$(CP) README INSTALL $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
 	chmod +x $(PREFIX)/doinstall
+
+distrib-windows: install
+
+ifeq (${OS}, Windows_NT)
+distrib: distrib-windows
+else
+distrib: distrib-unix
+endif
 
 force:
