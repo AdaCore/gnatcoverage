@@ -485,7 +485,7 @@ As a second experiment, we exercise the function for Y = 0 only, using:
    end;
 
 We request results on the test driver as well this time, as it features
-constructs relevant to the points we wish to illustrate::
+constructs of relevance for our purposes::
 
   gnatcov coverage --level=stmt -Pmytest.gpr --annotate=xcov test_div0.trace
 
@@ -528,35 +528,17 @@ Then, for the test driver where we can note that
 The corresponding synthetic report is simply obtained by running |gcvcov|
 again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
 
-   ** COVERAGE REPORT **
-
    ===========================
    == 1. ASSESSMENT CONTEXT ==
    ===========================
-
-   Date and time of execution: 2012-01-11 16:37:17.00
-   Tool version: GNATcoverage 1.0.0w (20081119)
-
-   Command line:
-
-   gnatcov coverage --level=stmt -Pmytest.gpr --annotate=report test_div0.trace
-
-   Coverage level: stmt
-
-   Trace files:
-
-   test_div0.trace
-     program: obj/test_div0
-     date   : 2012-01-11 15:37:17
-     tag    :
-
+   ...
+  
    ============================
    == 2. COVERAGE VIOLATIONS ==
    ============================
 
    2.1. STMT COVERAGE
    ------------------
-
    div_with_check.adb:6:7: statement not executed
    test_div0.adb:7:4: statement not executed
 
@@ -567,8 +549,6 @@ again with :option:`--annotate=report` instead of :option:`--annotate=xcov`::
    =========================
 
    2 STMT violations.
-
-   ** END OF REPORT **
 
 We can see here that the two lines marked ``-`` in the :option:`=xcov` outputs
 are properly reported as violations in the ``STMT COVERAGE`` section of this
@@ -764,7 +744,6 @@ on line 14 is the statement coverage violation::
 
    2.1. STMT COVERAGE
    ------------------
-
    divmod.adb:13:7: statement not executed
    divmod.adb:14:7: statement not executed
    divmod.adb:15:10: statement not executed
@@ -775,7 +754,6 @@ on line 14 is the statement coverage violation::
 
    2.2. DECISION COVERAGE
    ----------------------
-
    divmod.adb:12:7: decision never evaluated
 
    1 violation.
@@ -947,6 +925,7 @@ We first request an :option:`=xcov+` report to get a first set of results, in
 the ``ranges.adb.xcov`` annotated source::
 
    gnatcov coverage --level=stmt+mcdc -Pmytest.gpr --annotate=xcov+ test_x1vx2.trace
+
    ...
       8 .:    function Between (X1, X2, V : Integer) return Boolean is
       9 .:    begin
@@ -980,19 +959,17 @@ one used a straight return value), and this distinction places the two
 ``decision outcome FALSE never exercised`` violations in distinct sections of
 the :option:`=report` output::
 
+
    2.1. STMT COVERAGE
    ------------------
-
    ranges.adb:13:10: statement not executed
 
    2.2. DECISION COVERAGE
    ----------------------
-
    ranges.adb:10:10: decision outcome FALSE never exercised
 
    2.3. MCDC COVERAGE
    ------------------
-
    ranges.adb:11:17: decision outcome FALSE never exercised
 
 
@@ -1065,8 +1042,11 @@ such decisions are statistically rare.  |gcv| can report about them on demand,
 thanks to the :command:`map-routines` analysis command when provided with the
 :option:`-v` option and the set of coverage obligations to examine.
 
-The code sample below illustrates the simplest possible problematic
-decision:
+The code sample below illustrates the simplest possible problematic decision
+and the following figure depicts the corresponding Binary Decision Diagram
+(commonly abbreviated as *BDD*), which states how sequence of operand
+evaluations, starting from the left, eventually lead to the expression
+outcome, here on the right:
 
 .. code-block:: ada
 
@@ -1075,18 +1055,26 @@ decision:
     return (A or else B) and then C;
   end;
 
-And here is an excerpt of a |gcvmap| execution for a project which
-encompasses this function ::
+.. figure:: multipath-bdd.*
+  :align: center
+
+  BDD for ``(A or else B) and then C``, not a tree
+
+The expression BDD is indeed not a tree, as the node representing the
+evaluation of C is reachable either directly from A, when A is True, or
+via B when A is False.
+
+Below is an excerpt of a |gcvmap| execution for a project which encompasses
+this function. While the output actually contains a lot more details, the
+pattern displayed for the decisions of interest is consistent so can easily be
+filtered out to provide a synthetic view of all the relevant source locations.
+::
 
   gnatcov map-routines -v -Pmytest.gpr
   ...
-  ----- BDD for decision SCO #2: DECISION at mp.adb:4:12-34
   --- mp.adb:4:12: notice: BDD node 7 reachable through multiple paths
   --- notice: OBC does not imply MC/DC coverage
 
-While the output actually contains a lot more details, the pattern displayed
-for the decisions of interest is consistent so can easily be filtered out to
-provide a synthetic view of all the relevant source locations.
 
 .. _sunits:
 
@@ -1150,45 +1138,48 @@ names.
 
 For example, focusing on three Ada units ``u1``, ``u2`` and ``u3`` can be
 achieved with either one of the following set of :option:`--scos`
-combinations::
+combinations, provided a ``ulist12`` text file containing the first two ALI
+file names and a ``ulist123`` text file containing the three of them::
 
   --scos=u1.ali --scos=u2.ali --scos=u3.ali
-  or --scos=@ulist123
-  or --scos=u3.ali --scos=@ulist12
-
-... provided a ``ulist12`` text file containing the first two ALI file names
-and a ``ulist123`` text file containing the three of them.
+  or --scos=@ulist123, or --scos=u3.ali --scos=@ulist12
 
 
 Using project files
 -------------------
 
 As an alternative to manually specifying the complete list of Library
-Information files to be loaded, you can use GNAT project files to specify units
-of interest, and let |gcv| determine automatically the location of
-these files.
+Information files to be loaded, you can use GNAT project files to specify
+units of interest, and let |gcv| determine automatically the location of these
+files.
 
-Projects are passed to |gcv| using :option:`-P` and :option:`--projects`.
-A single root project must be specified using :option:`-P`. Multiple projects
-of interest (that are with the project tree rooted at the given root
-project) may be specified using :option:`--projects`. Coverage analysis is
-then performed for units of interest in each listed project. If only
-:option:`-P` is used, then units of interest from the root project
-itself are considered. If :option:`--recursive` is used, imported projects
-are also considered recursively.
+Projects are passed to |gcv| using :option:`-P` and :option:`--projects`.  A
+single root project must be specified using :option:`-P`. Multiple projects of
+interest, within the project tree rooted at the given root project, may be
+specified using :option:`--projects`.
 
-As an example, we will consider a root project importing two subsystem
-projects A and B, each of which importing further projects A1, A2, A3,
-B1, B2, B3, with A1 and B3 importing some common code (see :ref:`fig-prjtree`).
+If :option:`-P` is used alone, without any :option:`--projects`, then units of
+interest from the root project itself are considered. With
+:option:`--projects` options, only the projects listed by these options are
+considered. The root project designated by :option:`-P` is not included in the
+scope if it is not listed in the :option:`--projects` set as well.
+In both cases, with a lone :option:`-P` or with :option:`--projects` in
+addition, projects imported by the listed ones are also considered recursively
+if :option:`--recursive` is used.
 
-.. _fig-prjtree:
-.. figure:: prjtree.*
+The following set of figures illustrates the effect of various possible
+combinations of options, assuming an example source tree with a root project
+importing two sub-projects A and B, each of which importing further projects
+A1, A2, A3, B1, B2, B3, with A1 and B3 importing some common code. The first
+figure below depicts the general project tree structure.
+
+.. image:: prjtree.*
   :align: center
 
-  Example project tree
-
-As mentioned above, if only -Proot is given, then coverage analysis is
-done for units of interest in the root project (:ref:`fig-Proot`).
+On this project tree, :ref:`fig-Proot` restricts the analysis to units in the
+root project only. :ref:`fig-Proot-ss_a` allows focusing on the Subsystem A
+project only, and if the root project is of interest as well, it must be listed
+explicitly as in :ref:`fig-Proot-root-ss_a`.
 
 .. _fig-Proot:
 .. figure:: Proot.*
@@ -1196,17 +1187,11 @@ done for units of interest in the root project (:ref:`fig-Proot`).
 
   ``gnatcov coverage -Proot ...``
 
-You can perform coverage analysis for the Subsystem A project only
-(:ref:`fig-Proot-ss_a`).
-
 .. _fig-Proot-ss_a:
 .. figure:: Proot-ss_a.*
   :align: center
 
   ``gnatcov coverage -Proot --projects=subsystem_a ...``
-
-If both the root project and some other project are of interest, the
-root project must be listed explicitly (:ref:`fig-Proot-root-ss_a`).
 
 .. _fig-Proot-root-ss_a:
 .. figure:: Proot-root-ss_a.*
@@ -1215,7 +1200,7 @@ root project must be listed explicitly (:ref:`fig-Proot-root-ss_a`).
   ``gnatcov coverage -Proot --projects=root --projects=ss_a``
 
 You can also recursively consider all projects imported by specified
-projects (:ref:`fig-Proot-ss_a-recursive`).
+projects with :option:`--recursive`, for example :ref:`fig-Proot-ss_a-recursive`:
 
 .. _fig-Proot-ss_a-recursive:
 .. figure:: Proot-ss_a-recursive.*
@@ -1223,16 +1208,18 @@ projects (:ref:`fig-Proot-ss_a-recursive`).
 
   ``gnatcov coverage -Proot --projects=subsystem_a --recursive ...``
 
-The above process selects *projects of interest*. Now within each
-of these projects, units of interest are identified using specific
-attributes in package Coverage of project files: Units, Units_List,
-Excluded_Units, and Excluded_Units_List.
+The :option:`-P` and :option:`--projects` options select *projects* of
+interest. Now within each of these projects, *units* of interest can also be
+specified, using specific attributes in package ``Coverage`` of project files.
+Four attributes are available for this purpose: ``Units``, ``Units_List``,
+``Excluded_Units``, and ``Excluded_Units_List``.
 
-Units and Units_List are similar to Sources and Sources_List: Units
-specifies a set of units, and Units_List specifies the name of a text
-file containing a list of units. If neither is specified, then by
-default all units in the project are considered for coverage analysis.
-
+``Units`` and ``Units_List`` are used to construct an initial set of units for
+which coverage analysis should be performed.  Similarily to ``Sources`` and
+``Sources_List``, ``Units`` specifies a set of units, and ``Units_List``
+specifies the name of a text file containing a list of units. If neither is
+specified, then by default all units in the project are considered for
+coverage analysis.
 For example, given a project with three packages Pak1, Pak2, and Pak3,
 if you want to do coverage analysis only for Pak1 and Pak3 you can
 specify::
@@ -1240,41 +1227,40 @@ specify::
    project proj is
       package Coverage is
          for Units use ("pak1", "pak3");
-
          --  Or alternatively using a units list:
          --  for Units_List use "units.txt";
       end Coverage;
    end proj;
 
-Excluded_Units and Excluded_Units_List operate in a similar way and
-are used to indicate units that are never considered for coverage.
-Getting back at our example, you can obtain the same result as above
-by specifying::
+``Excluded_Units`` and ``Excluded_Units_List`` operate in a similar way,
+indicating units that are never considered for coverage. Back to our example,
+the same result as above is obtained by specifying::
 
    project proj is
       package Coverage is
-         --  By default do coverage analysis on all units...
-
-         --  Except one:
+         --  Consider all units except one:
          for Excluded_Units use ("pak2");
       end Coverage;
    end proj;
 
-The exact rules for computation of the units to be considered for a project
-are as follows:
+When the exclude/include sets overlap, the excluding attributes prevail
+over the including ones. The exact rules for computation of the units to be
+considered for a project are as follows:
 
-- an initial set of units is determined using the Units and Units_List
-  attributes in the project's Coverage package; by default this initial
-  set comprises all units of the project
-- units determined using the Excluded_Units and Excluded_Units_List
-  attributes are then removed from the initial set.
+- An initial set is determined using the ``Units`` and ``Units_List``
+  attributes in the project's ``Coverage`` package; By default, if no such
+  attribute is found, the initial set comprises all the units of the project,
+
+- Units determined using the ``Excluded_Units`` and ``Excluded_Units_List``
+  attributes are removed from the initial set to yield the set to consider.
 
 The list of units to be considered for a given execution of |gcv| can also be
 overridden from the command line using :option:`--units=<UNIT|@LISTFILE>`.
-Each occurrence of this switch indicates one unit to focus on, or with the
-@ syntax the name of a file containing a list of units to focus on. When
-:option:`--units` is used, the Units, Units_List, Excluded_Units, and
-Excluded_Units_List attributes are not taken into account.
+Each occurrence of this switch indicates one unit to focus on, or with the @
+syntax the name of a file containing a list of units to focus on. When
+:option:`--units` is used, the ``Units``, ``Units_List``, ``Excluded_Units``,
+and ``Excluded_Units_List`` attributes are ignored.
+
 
 Inlining & Generic Units
 ========================

@@ -109,7 +109,7 @@ level relevance (what we call :term:`Source Coverage Obligation`) at all there.
 
 The second example we look at is the canonical case which exposed that object
 branch coverage does not necessarily imply mcdc coverage, contrary to what was
-believed for long:
+believed for long. Consider:
 
 .. code-block:: ada
 
@@ -118,14 +118,13 @@ believed for long:
       return (A or else B) and then C;
    end Orand;
 
-
 The binary decision diagram of the decision, sketched below, is not a tree:
 
 .. _fig-multipath-bdd:
 .. figure:: multipath-bdd.*
   :align: center
 
-  Binary Decision Diagram for ``(A or else B) and then C``, not a tree
+  BDD for ``(A or else B) and then C``, not a tree
 
 
 The simple driver below exercises all the paths through this BDD:

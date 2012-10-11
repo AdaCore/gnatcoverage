@@ -1,32 +1,42 @@
 digraph BDD {
+        size = "3.5, 2.5"
+        margin = "0.1"
         rankdir = LR;
-        compound = T;
-        edge [ fontsize = 9 ];
 
         {
         node [ shape = box, style=filled,
-                  color = lightblue, fontcolor = black, fontsize=9 ];
+               color = lightblue, fontcolor = black,
+               fontsize = 12
+             ];
         
-	node_a [ label = "A" ];
-	node_b [ label = "B", group = "top_line" ];
-	node_c [ label = "C", group = "bot_line" ];
-        }
-
-        { rank = same; node_b; node_c}
+	node_a [ label = "A", width = 1.5 ];
+	node_b [ label = "B", width = 1.5, group = "top_line" ];
+	node_c [ label = "C", width = 1.5, group = "bot_line" ];
+        } 
 
         {
         node [ shape = ellipse, style=filled,
-                  color = darkslateblue, fontcolor = white, fontsize=9 ];
+               color = darkslateblue, fontcolor = white,
+               fontsize = 12
+             ];
 
-        out_f [ label = "False", group = "top_line" ]
-        out_t [ label = "True", group = "bot_line" ]
+        out_f [ label = "False" , group = "top_line" ]
+        out_t [ label = "True" ,group = "bot_line" ]
         }
 
-        node_a -> node_b [ label = "F" ]
-        node_a -> node_c [ label = "T" ]
-        node_b -> node_c [ label = "T" ]
+        compound = true;
+        edge [ fontsize = 12 ];
 
-        node_b -> out_f  [ label = "F" ]
-        node_c -> out_f  [ label = "F" ]
-        node_c -> out_t  [ label = "T" ]
+        node_a -> node_b [ label = "False" ]
+        node_a -> node_c [ label = "True" ]
+
+        node_b -> node_c [ label = " True" , dir=back ]
+        // dir=back is to workaround a bug of rankdir=LR + rank=same,
+        // where the vertical edge is drawn backwards (C->B)
+        
+        { rank = same; node_b; node_c }
+
+        node_b -> out_f  [ label = "False" ]
+        node_c -> out_f  [ label = "False" ]
+        node_c -> out_t  [ label = "True" ]
 }

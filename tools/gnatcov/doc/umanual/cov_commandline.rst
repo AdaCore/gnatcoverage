@@ -51,14 +51,16 @@ interface synopsis is available from |gcv| :option:`--help`::
 
 :option:`-o` :
    Request that the synthetic report produced by ``--annotate=report`` be
-   output in the provided filname instead of standard output by default.
+   output in the provided filname instead of standard output by default. This
+   is just ignored for other output formats.
 
 .. _cov-outdir:
 
 :option:`--output-dir` :
    Request that the report files (index and annotated sources for the ``xcov``
    and ``html`` output formats) be output in the provided directory. They are
-   output in the current directory, where |gcv|, is launched, otherwise.
+   output in the current directory, where |gcv|, is launched, otherwise. The
+   directory must exist prior to invoking |gcv|.
 
 :option:`-T`, :option:`--trace` |marg|, |rarg| :
    Provide the set of execution traces for which a report is to be

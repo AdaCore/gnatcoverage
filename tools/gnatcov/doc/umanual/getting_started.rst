@@ -92,7 +92,8 @@ Example session
 ===============
 
 We start from the very basic Ada package below, with a spec and body in source
-files named ``ops.ads`` and ``ops.adb``:
+files named ``ops.ads`` and ``ops.adb``, exposing a set of very basic
+named operations over ``Integer`` objects:
 
 .. code-block:: ada
 
@@ -112,7 +113,7 @@ files named ``ops.ads`` and ``ops.adb``:
    end Ops;
 
 We analyse the coverage achieved by the sample unit :term:`test driver` below,
-in ``test_inc.adb``:
+in ``test_inc.adb``, which exercises the ``Increment`` operation only:
 
 .. code-block:: ada
 

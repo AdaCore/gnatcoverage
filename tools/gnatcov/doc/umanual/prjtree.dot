@@ -1,6 +1,7 @@
 digraph G {
 	compound = true;
-        size = "3.5,3.5";
+        size = "3.5,3.0";
+        margin = "0.1";
 	node [ shape = box, style=filled,
           color = lightblue, fontcolor = black, fontsize=12 ];
 
