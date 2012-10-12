@@ -195,6 +195,7 @@ package Traces_Elf is
       --  Parent of a symbol is a section.
       --  Parent of a CU is a section.
       --  Parent of a subprogram is a CU.
+      --  ... but we set the parent of a subprogram entry to Current_Sec???
       --  Parent of a line is a subprogram or a CU.
 
       case Kind is
