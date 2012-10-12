@@ -204,8 +204,8 @@ class TestSuite:
 
         # Report all dead tests
         with open (os.path.join(self.log_dir, 'results'), 'w') as fd:
-            [fd.write ("%s:%s\n" % (dt.filename, dt.killcmd))
-             for dt in self.dead_list]
+            [fd.write ("%s:%s\n" % (tc.rname(), tc.killcmd))
+             for tc in self.dead_list]
 
         # Warn about an empty non-dead list, always. This is almost
         # certainly a selection mistake in any case.
@@ -846,11 +846,16 @@ class TestCase(object):
     # -----------------------------
 
     def rname(self):
-        """A unique representative name for TEST"""
+        """A unique representative name for TEST, to be used in GAIA web URLs."""
+
+        # Start from the path to test.py, remove the value-less parts and
+        # replace slashes which would introduce problematic articial layers in
+        # URLs eventually.
 
         filename = self.filename.replace('test.py', '')
         if filename.startswith('./'):
             filename = filename[2:]
+
         return filename.strip('/').replace('/', '-')
 
     def qualif_levels(self):
