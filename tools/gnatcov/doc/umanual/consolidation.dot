@@ -1,0 +1,22 @@
+digraph consr {
+    size="3.5,2.5"; margin="0.05"
+    node [fontsize=12]
+
+    struct3 [shape = record, color=white,
+    label=<
+<TABLE COLOR="WHITE" BORDER="0" CELLBORDER="1" CELLPADDING="4" CELLSPACING="0">
+  <TR>
+    <TD COLSPAN="2" BGCOLOR="gold">~~  test_cmd_safe executable  ~~</TD>
+    <TD COLSPAN="1" BORDER="0"></TD>
+  </TR>
+  <TR BORDER="2">
+    <TD BGCOLOR="gold" HEIGHT="35">Test_Cmd_Safe</TD>
+    <TD BGCOLOR="darkgreen">Commands</TD>
+    <TD BGCOLOR="steelblue">Test_Cmd_Unsafe</TD>
+  </TR>
+  <TR>
+    <TD COLSPAN="1" BORDER="0"></TD>
+    <TD COLSPAN="2" BGCOLOR="steelblue">~~  test_cmd_unsafe executable  ~~</TD>
+  </TR>
+</TABLE>>];
+}

@@ -343,8 +343,8 @@ Coverage consolidation is the |gcp| facility allowing the computation of the
 overall coverage achieved by a set of executions. Consolidation is queried by
 passing the corresponding set of execution traces to |gcvcov|, which produces
 a single coverage report as a result. The focus of the analysis must be
-specified, via :ref:`--scos <sunits>` for source coverage or :ref:`--routines
-<oroutines>` for object coverage.
+specified, via :ref:`--scos` or project files for source coverage, or via
+:ref:`--routines <oroutines>` for object coverage.
 
 A typical case where consolidation is useful is when some part of an
 application depends on external inputs and several executions with different
@@ -511,23 +511,22 @@ Which confirms full statement coverage of the Commands package body:
 
 In our example, the performed consolidation involved different programs with
 only partial unit and object code overlap, as depicted on the following
-representation::
+representation:
 
-    < test_cmd_safe executable >
-    oooooooooooooooooooooooooooo-----------------+
-    | Test_Cmd_Safe | Commands | Test_Cmd_Unsafe |
-    +---------------oooooooooooooooooooooooooooooo
-                    < test_cmd_unsafe executable >
+.. _fig-consolidation:
+.. figure:: consolidation.*
+  :align: center
 
+  Consolidation on overlapping executables
+  
 The example analysis focused on the Commands unit for a source coverage
 criterion. Of course, the other units could have been included in the analysis
-as well, even though not overlapping between the different executable
-programs.
+as well, even though not overlapping between the different executables.
 
-Consolidation actually doesn't *require* overlapping. You might as well, for
-example, want to consolidate results from different programs testing entirely
-disjoint units. The only technical requirement is that the object code be
-identical for all the overlapping symbols, which |gcp| verifies.
+Consolidation actually doesn't *require* any overlapping. You might as well,
+for example, want to consolidate results from different programs testing
+entirely disjoint units. The only technical requirement is that the object
+code be identical for all the overlapping symbols, which |gcp| verifies.
 
 The set of traces involved in a computation is visible in various places:
 

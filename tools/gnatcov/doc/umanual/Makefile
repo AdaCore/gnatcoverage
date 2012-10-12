@@ -42,7 +42,12 @@ copy.html:
 multipath-bdd.png: multipath-bdd.dot
 multipath-bdd.pdf: multipath-bdd.dot
 
-prepare-images: gen_prjtrees.py prjtree.dot multipath-bdd.png multipath-bdd.pdf
+consolidation.png: consolidation.dot
+consolidation.pdf: consolidation.dot
+
+prepare-images:: consolidation.png consolidation.pdf
+prepare-images:: multipath-bdd.png multipath-bdd.pdf
+prepare-images:: gen_prjtrees.py prjtree.dot 
 	python gen_prjtrees.py
 
 prepare-version: ../../version.ads
