@@ -199,8 +199,8 @@ package Traces_Elf is
 
       case Kind is
          when Section_Addresses =>
-            Section_Name : String_Access;
-            Section_Index : Elf_Common.Elf_Half;
+            Section_Name    : String_Access;
+            Section_Index   : Elf_Common.Elf_Half;
             Section_Content : Binary_Content_Acc;
 
          when Subprogram_Addresses =>
