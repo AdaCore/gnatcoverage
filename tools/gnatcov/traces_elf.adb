@@ -1084,7 +1084,7 @@ package body Traces_Elf is
          --  Read DIEs
 
          loop
-            << Again >> null;
+         <<Again>>
             exit when Off >= Last;
             Read_ULEB128 (Base, Off, Num);
             if Num = 0 then
