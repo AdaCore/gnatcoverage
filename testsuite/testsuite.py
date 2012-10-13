@@ -198,7 +198,8 @@ class TestSuite:
                             root, pattern="test.py", follow_symlinks=True)
                      ],
                     "." if not self.options.qualif_level
-                    else QLEVEL_INFO[self.options.qualif_level].subtrees),
+                    else "(%s)|Z999" % (
+                        QLEVEL_INFO[self.options.qualif_level].subtrees)),
                 self.options.run_test),
             discs)
 
