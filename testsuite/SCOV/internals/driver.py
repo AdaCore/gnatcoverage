@@ -483,7 +483,7 @@ class SCOV_helper:
         # Strip a possible "test_" prefix. This allows shortening pathnames
         # and the prefix is pointless in providing a unique temp dir.
 
-        return self.wdbase + main.lstrip("test_") + "/"
+        return self.wdbase + main.replace ("test_", "", 1) + "/"
 
     def awdir_for(self,main):
         """Absolute path to Working Directory for single MAIN."""
