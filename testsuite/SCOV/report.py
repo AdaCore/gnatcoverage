@@ -326,7 +326,7 @@ class ReportChecker:
         # ??? This is relying too much on knowledge about how
         # the testuite driver works ...
 
-        tmpdir = "tmp_" + no_ext(os.path.basename(qde.xfile)).lstrip ("test_")
+        tmpdir = "tmp_" + no_ext(os.path.basename(qde.xfile)).replace ("test_", "", 1)
         reports = ls (os.path.join (tmpdir, "test.rep"))
 
         thistest.fail_if (
