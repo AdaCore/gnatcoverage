@@ -137,7 +137,6 @@ procedure GNATcov is
       P ("   --projects=<GPR|@LISTFILE>  Focus on specific projects within");
       P ("                               the transitive closure reachable");
       P ("                               from the root designated by -P");
-      P ("   --alis=<FILE|@LISTFILE>");
       P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");
