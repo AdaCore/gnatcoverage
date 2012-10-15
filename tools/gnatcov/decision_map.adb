@@ -308,7 +308,7 @@ package body Decision_Map is
                   Msg : Unbounded_String;
                begin
                   Msg := To_Unbounded_String
-                           ("evaluation of unexpected condition" & CI'Img
+                           ("unexpected condition" & CI'Img
                             & " (expected");
                   if Current_CI >= 0 then
                      Append (Msg, Condition_Index'Image (Current_CI) & " or");

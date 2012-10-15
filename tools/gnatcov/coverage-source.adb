@@ -939,9 +939,8 @@ package body Coverage.Source is
       if not In_Current_Evaluation then
          Report
            (Exe, PC,
-            "expected condition index"
-            & Evaluation_Stack.Last_Element.Next_Condition'Img
-            & ", got " & Index (C_SCO)'Img,
+            "unexpected condition" & Index (C_SCO)'Img & " in trace, expected"
+            & Evaluation_Stack.Last_Element.Next_Condition'Img,
             Kind => Warning);
       end if;
 
