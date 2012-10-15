@@ -15,6 +15,7 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
 with Interfaces; use Interfaces;
 
 package Qemu_Traces is
@@ -92,9 +93,9 @@ package Qemu_Traces is
    for Trace_Kind'Size use 8;
 
    type Trace_Header is record
-      Magic : Magic_String;      --  Magic string
-      Version : Unsigned_8;      --  Version of file format
-      Kind : Trace_Kind;         --  Section kind
+      Magic   : Magic_String; --  Magic string
+      Version : Unsigned_8;   --  Version of file format
+      Kind    : Trace_Kind;   --  Section kind
 
       Sizeof_Target_Pc : Unsigned_8;
       --  Size of Program Counter on target, in bytes
@@ -122,7 +123,11 @@ package Qemu_Traces is
    --  entry to finish the sequence.
 
    type Info_Kind_Type is
-     (Info_End, Exec_File_Name, Coverage_Options, User_Data, Date_Time,
+     (Info_End,
+      Exec_File_Name,
+      Coverage_Options,
+      User_Data,
+      Date_Time,
       Kernel_File_Name);
 
    type Trace_Info_Header is record
@@ -130,8 +135,7 @@ package Qemu_Traces is
       --  Info_Kind_Type'Pos, in endianness indicated by file header
 
       Info_Length : Unsigned_32;
-      --  Length of associated real data. This must be 0 for Info_End.
-
+      --  Length of associated real data. This must be 0 for Info_End
    end record;
 
    --  The amount of space actually occupied in the file for each entry is
@@ -218,7 +222,7 @@ package Qemu_Traces is
    --  The section contents is a sequence of Trace Control Entries.
 
    --  Entries are meant to convey range of addresses where branch history is
-   --  needed for mcdc computation purposes. The structure is piggybacked on
+   --  needed for MC/DC computation purposes. The structure is piggybacked on
    --  that of the Execution Trace output section, which has everything to
    --  represent address ranges already.
 
