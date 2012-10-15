@@ -992,6 +992,7 @@ package body Coverage.Source is
    --------------------
 
    procedure Initialize_SCI is
+
       procedure Add_SCI (SCO : SCO_Id);
       --  Add SCI for SCO
 
@@ -1005,7 +1006,7 @@ package body Coverage.Source is
          SCI_Vector.Append (SCI_Vectors.Empty_Vector);
       end Add_SCI;
 
-      --  Start of processing for Initialize_SCI
+   --  Start of processing for Initialize_SCI
 
    begin
       SC_Obligations.Iterate (Add_SCI'Access);
