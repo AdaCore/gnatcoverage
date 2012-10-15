@@ -1,6 +1,6 @@
 with Support, Vectors; use Support, Vectors;
                 
-procedure Test_Vector_Neg is
+procedure Test_Vectors_Neg is
 begin
    Assert (Sum_All_Abs (N => 7, Value => -4) = 28);
 end;

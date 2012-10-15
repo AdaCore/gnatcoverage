@@ -1,6 +1,6 @@
 with Support, Vectors; use Support, Vectors;
                 
-procedure Test_Vector_Pos is
+procedure Test_Vectors_Pos is
 begin
    Assert (Sum_All_Abs (N => 5, Value => 3) = 15);
 end;

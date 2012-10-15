@@ -1,6 +1,6 @@
 with Support, Heap; use Support, Heap;
 
-procedure Test_Heap_Pos is
+procedure Test_Heap_Neg is
    Ptr : Integer_Access := Ptr_To_Abs (-7);
 begin
    Assert (Ptr.all = 7);
