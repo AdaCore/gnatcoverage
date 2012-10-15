@@ -723,15 +723,6 @@ class TestSuite:
         PATH after sanity checking that it contains at least a couple of
         programs we'll need (e.g. <target>-gcc and gprbuild)."""
 
-        # If we don't have one set already, setup a dummy WIND_BASE. This is
-        # only needed for C tests with VxWorks compilers and is harmless for
-        # others. Our test sources don't depend on VxWorks headers so a dummy
-        # value is good enough. Setting a value remains needed to prevent
-        # preventive complaints from the gcc driver.
-
-        if not getenv ("WIND_BASE"):
-            putenv ("WIND_BASE", "")
-
         # If we don't have a PREFIX to enforce, stop here. Otherwise, proceed
         # to update PATH for that.
 
