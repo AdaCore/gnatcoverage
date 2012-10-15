@@ -57,6 +57,9 @@ package body ALI_Files is
       GNAT_eS_Seen               : Boolean := False;
       --  Set True if unit has been compiled with -gnateS (or -fdump-scos)
 
+      Debug_Seen                 : Boolean := False;
+      --  Set True if unit has been compiled with -g
+
       Matches : Match_Array (0 .. 10);
       --  For regex matching
 
@@ -268,6 +271,9 @@ package body ALI_Files is
                      Line.all = "A -fdump-scos"
                then
                   GNAT_eS_Seen := True;
+
+               elsif Line.all = "A -g" then
+                  Debug_Seen := True;
                end if;
 
             when 'U' =>
@@ -380,7 +386,13 @@ package body ALI_Files is
          if not GNAT_eS_Seen then
             Put_Line
               ("warning: " & ALI_Filename
-               & ": unit compiled without SCO generation");
+               & ": unit compiled without SCO generation (-fdump-scos)");
+         end if;
+
+         if not Debug_Seen then
+            Put_Line
+              ("warning: " & ALI_Filename
+               & ": unit compiled without debug information (-g)");
          end if;
 
          if End_Of_File (ALI_File) then
