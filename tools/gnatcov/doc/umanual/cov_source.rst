@@ -13,9 +13,9 @@ Source coverage analysis computes metrics focused on source programming
 language entities such as high level `statements` or `decisions` (DO178
 parlance for boolean expressions). In |gcp| terms, we designate these entities
 as :term:`Source Coverage Obligations`, or SCOs. SCO tables, describing the
-nature and source location of each item of interest, are part of the Library
-Information produced by the |gpro| compilers, in the .ali or .gli file
-corresponding to each Ada or C unit, respectively.
+nature and source location of each item of interest, are part of the
+information produced by the |gpro| compilers, in the .ali or .gli
+:term:`Library Information file` corresponding to each Ada or C unit.
 
 SCO tables are produced by the :option:`-fdump-scos` compilation
 option. Accurate mapping of the execution traces back to source level
@@ -1084,6 +1084,8 @@ Specifying the units of interest
 This section describes the command line switches that can be passed to
 |gcvrun| and |gcvcov| to indicate on what units coverage should be assessed.
 
+.. _passing_scos:
+
 Low-level interface (:option:`--scos`)
 --------------------------------------
 
@@ -1144,6 +1146,7 @@ file names and a ``ulist123`` text file containing the three of them::
   --scos=u1.ali --scos=u2.ali --scos=u3.ali
   or --scos=@ulist123, or --scos=u3.ali --scos=@ulist12
 
+.. _passing_gpr:
 
 Using project files
 -------------------

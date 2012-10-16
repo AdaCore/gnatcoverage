@@ -225,7 +225,7 @@ Indeed, in nominal circumstances, we expect that we never reach here with
 T`` decision controlling the ``if`` is only exercised one way.
 
 
-**Reporting**
+**Reporting about exempted regions**
 
 Exempted regions are reported as blocks in both the annotated source and the
 synthetic text reports, for both source and object coverage metrics.
@@ -331,6 +331,30 @@ In synthetic reports, the count of exempted violations is 0, like::
 
   1 exempted region.
 
+.. _exemption_alis:
+
+**Locating exemption annotations**
+
+While exemption regions are specified via annotations in source files,
+exemptions are not criterion specific. They apply to both source and object
+level criteria analyzed over the annotated regions.
+
+In the example above, we would have used similar exemption annotations to deal
+with expected object instruction and branch coverage failures in Eassert, as
+the conditional branch instruction used to implement the ``if`` statement
+is expected to remain partially covered, as well as the sequence of machine
+instructions triggerring the Ada exception raise.
+
+As for Source Coverage Obligations for source level criteria, information
+about the declared exemption regions is located in the :term:`Library
+Information files` produced by the compiler for every compilation unit.
+
+Similar mechanisms are available to designate units for which exemption
+regions are of interest: the :option:`--alis` command line option, with
+similar use rules as :ref:`--scos to designate source coverage obligations
+<passing_scos>`, and the :ref:`high level project file support <passing_gpr>`
+integrated in gnatcov.
+
 .. index::
    single: Coverage Consolidation
 
@@ -366,7 +390,6 @@ units to illustrate:
 .. code-block:: ada
 
    package Commands is
-
       type Command is (Step, Hold);
       type Perceived is (Room, Rock, Pit);
 
@@ -375,12 +398,10 @@ units to illustrate:
 
       N_Safe, N_Unsafe : Integer := 0;
       --  Count the number of safe/unsafe cases we have evaluated
-
    end Commands;
 
    package body Commands is
 
-      procedure Stat (Safe : Boolean);
       --  Update our eval counters according to a SAFE evaluation just made
 
       procedure Stat (Safe : Boolean) is
@@ -393,23 +414,18 @@ units to illustrate:
       end Stat;
 
       function Safe (Cmd : Command; Front : Perceived) return Boolean is
-
          --  Standing straight is always safe, and any other action is
          --  safe as soon as there is room ahead.
-
-         Result : constant Boolean
-           := Cmd = Hold or else Front = Room;
+         Result : constant Boolean := Cmd = Hold or else Front = Room;
       begin
          Stat (Result);
          return Result;
       end Safe;
-
    end Commands;
 
 We test the Commands package body by combining two sorts of drivers: one
 exercising cases where the ``Safe`` function is expected to return True, and
 one for cases where the function is expected to return False.
-
 The following code is a possible way to express the ``Safe`` returns True
 expectations:
 
@@ -417,9 +433,7 @@ expectations:
 
    procedure Test_Cmd_Safe is
    begin
-      --  Remaining still is always safe, as well as stepping
-      --  forward with room ahead
-
+      --  Remaining still is always safe, as is stepping with room ahead
       Assert (Safe (Cmd => Hold, Front => Rock));
       Assert (Safe (Cmd => Hold, Front => Pit));
       Assert (Safe (Cmd => Step, Front => Room));
@@ -429,7 +443,6 @@ Running the first program and analysing the achieved coverage for this one
 alone would be something like::
 
   gnatcov run test_cmd_safe   # produces test_cmd_safe.trace
-
   gnatcov coverage --level=stmt --scos=commands.ali --annotate=xcov test_cmd_safe.trace
 
 Producing a ``commands.adb.xcov`` report with:
@@ -448,7 +461,6 @@ Producing a ``commands.adb.xcov`` report with:
 In accordance with the testcase strategy, aimed at exercising *safe*
 situations only, everything is statement covered except the code specific to
 *unsafe* situations, here the counter update on line 11.
-
 Now comes the other driver, exercising cases where the ``Safe`` function is
 expected to return False:
 
@@ -457,7 +469,6 @@ expected to return False:
    procedure Test_Cmd_Unsafe is
    begin
       --  Stepping forward without room ahead is always unsafe
-
       Assert (not Safe (Cmd => Step, Front => Rock));
       Assert (not Safe (Cmd => Step, Front => Pit));
    end Test_Cmd_Unsafe;
@@ -476,26 +487,21 @@ This one alone produces the symetric ``commands.adb.xcov`` report, with:
   13 .:    end Stat;
 
 There again, the coverage results are in accordance with the intent, testing
-everything except the parts specific to *safe* situations.
-
-Now, the combination of the two drivers was intended to achieve a pretty
-complete testing of the provided functionality, and the corresponding coverage
-can be computed thanks to the |gcp| consolidation facility.
-
-This is performed by simply providing the two execution traces to |gcvcov|,
-for example like::
+everything except the parts specific to *safe* situations.  The combination of
+the two drivers was intended to achieve a pretty complete testing of the
+provided functionality, and the corresponding coverage can be computed thanks
+to the |gcp| consolidation facility, by simply providing the two execution
+traces to |gcvcov|::
 
   gnatcov coverage --level=stmt --scos=commands.ali --annotate=xcov
      test_cmd_safe.trace test_cmd_unsafe.trace
 
-Which confirms full statement coverage of the Commands package body:
+Which indeed yields full statement coverage of the Commands package body:
 
 .. code-block:: ada
 
- 100% of 7 lines covered
- Coverage level: stmt
-   1 .: package body Commands is
-  .....
+ 100% of 7 lines covered, Coverage level: stmt
+ ...
    6 .:    procedure Stat (Safe : Boolean) is
    7 .:    begin
    8 +:       if Safe then
@@ -504,8 +510,7 @@ Which confirms full statement coverage of the Commands package body:
   11 +:          N_Unsafe := N_Unsafe + 1;
   12 .:       end if;
   13 .:    end Stat;
-  .....
-  27 .: end Commands;
+
 
 **Further considerations**
 
@@ -517,7 +522,7 @@ representation:
 .. figure:: consolidation.*
   :align: center
 
-  Consolidation on overlapping executables
+  Overlapping executables
   
 The example analysis focused on the Commands unit for a source coverage
 criterion. Of course, the other units could have been included in the analysis

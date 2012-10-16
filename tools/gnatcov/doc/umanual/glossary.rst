@@ -47,6 +47,15 @@ Glossary of terms & concepts
       The set of valid pairs for a condition depends on the particular MCDC
       variant driving the analysis.
 
+   Library Information files
+   Library Information file
+      A text file produced by the compiler as it processes a source unit,
+      containing information about the entities present in the unit; for
+      example: dependencies w.r.t. other units, cross-reference information,
+      Source Coverage Obligations, annotation pragmas for exemption regions,
+      ...  These are ``.ali`` files for Ada and ``.gli`` files for C, produced
+      at the same place as the object file for a given compilation.
+      
    Simple Boolean Expression
       Boolean expression with a single operand, possibly negated. No binary
       operator.

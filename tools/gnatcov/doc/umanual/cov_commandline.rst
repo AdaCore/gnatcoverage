@@ -29,7 +29,8 @@ interface synopsis is available from |gcv| :option:`--help`::
                                each unit listed in LISTFILE (requires -P)
    --subdirs=<SUBDIR>          Look for ALI files in the given SUBDIR of
                                projects' build directory (when using -P)
-   --scos=<FILE|@LISTFILE>     Consider all the SCOs in ALI file
+   --alis=<FILE|@LISTFILE>
+   --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from
                                FILE for this operation; or do that
                                for each file listed in LISTFILE
    --output-dir=DIR            Put the =html|xcov outputs into DIR
@@ -97,15 +98,22 @@ interface synopsis is available from |gcv| :option:`--help`::
    source coverage.
 
 :option:`--subdirs`:
-   When using project files, look for Library Information files in the
+   When using project files, look for :term:`Library Information files` in the
    indicated subdirectory of each project's object directory.
 
 :option:`--scos`, |rarg|:
-   For source coverage analysis specifically, provide the set of Library
-   Information files from which SCOs should be loaded. This low-level switch
-   effectively overrides the selection of units of interest for source
-   coverage, in particular bypassing project-based unit selection based on
-   switches :option:`--projects` and :option:`--units`.
+   For source coverage analysis specifically, provide the set of
+   :term:`Library Information files` from which SCOs should be loaded. This
+   low-level switch effectively overrides the selection of units of interest
+   for source coverage, in particular bypassing project-based unit selection
+   based on switches :option:`--projects` and :option:`--units`.
+
+:option:`--alis`, |rarg|:
+    Similar to :option:`--scos` in primary intent: provide set of
+    :term:`Library Information files`. This is complementary to
+    :option:`--scos` for operations that rely on library information
+    items and don't require Source Coverage Obligations, in particular
+    for gathering exemption regions applicable to object level criteria.
 
 See section :ref:`sunits` for extra details and use examples about the
 various switches used to specify units of interest for source coverage.

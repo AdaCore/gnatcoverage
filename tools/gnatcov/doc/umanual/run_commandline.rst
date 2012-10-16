@@ -79,7 +79,7 @@ available from ``gnatcov`` ``--help``, as follows::
    source coverage.
 
 :option:`--subdirs`:
-   When using project files, look for Library Information files in the
+   When using project files, look for :term:`Library Information files` in the
    indicated subdirectory of each project's object directory.
 
 :option:`--scos`, |rarg|:
