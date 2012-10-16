@@ -4,7 +4,7 @@ include Makefile.common
 
 # Tailored compilation options for libsupport. Allow source
 # coverage analysis by default, useful for testsuite at least:
-LIBSUPPORT_CFLAGS=-fdump-scos -fpreserve-control-flow
+LIBSUPPORT_CFLAGS=-fdump-scos -fpreserve-control-flow -g
 
 LIBSUPPORT_ARCHIVE = $(LIBSUPPORT_DIR)/libsupport.a
 
