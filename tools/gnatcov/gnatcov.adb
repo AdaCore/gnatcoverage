@@ -856,8 +856,7 @@ procedure GNATcov is
 
             Get_Switches_From_Project ("*");
 
-            --  Get command-specific switches (drop "cmd_" prefix from
-            --  Cmd_String).
+            --  Get command-specific switches
 
             Get_Switches_From_Project (To_Switch (Command));
          end;
