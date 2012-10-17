@@ -42,7 +42,7 @@ package body Project is
       Excluded_Units,
       Routines,
       Excluded_Routines,
-      Default_Switches,
+      Switches,
 
       Units_List,
       Excluded_Units_List,
@@ -50,7 +50,7 @@ package body Project is
       Excluded_Routines_List);
 
    subtype List_Attribute is
-     Attribute range Units .. Default_Switches;
+     Attribute range Units .. Switches;
    subtype String_Attribute is
      Attribute range Units_List .. Excluded_Routines_List;
 
@@ -383,7 +383,7 @@ package body Project is
               (Prj,
                LI_Cb,
                Override_Units_Map,
-               Recursive => Switches.Recursive_Projects);
+               Recursive => Standard.Switches.Recursive_Projects);
          end loop;
       end if;
 
@@ -404,7 +404,7 @@ package body Project is
                       (Name    => A'Img,
                        Pkg     => Coverage_Package,
                        Is_List => A in List_Attribute,
-                       Indexed => (A = Default_Switches));
+                       Indexed => (A = Switches));
          begin
             if Err /= "" then
                Fatal_Error (Err);
@@ -539,7 +539,7 @@ package body Project is
    function Switches_From_Project (Op : String) return String_List_Access is
    begin
       return Attribute_Value
-        (Prj_Tree.Root_Project, +Default_Switches, Index => Op);
+        (Prj_Tree.Root_Project, +Switches, Index => Op);
    end Switches_From_Project;
 
    -----------------

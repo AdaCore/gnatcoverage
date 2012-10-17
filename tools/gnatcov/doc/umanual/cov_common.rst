@@ -566,11 +566,11 @@ analysis.
 Default switches
 ----------------
 
-If the `Default_Switches` attribute is specified in the root project file,
-it is treated as a list of command line switches for |gcv|. `Default_Switches`
+If the `Switches` attribute is specified in the root project file,
+it is treated as a list of command line switches for |gcv|. `Switches`
 accepts an index, indicating what |gcv| operation the switches apply to.
 Switches applying to all operations can be provided using
-`Default_Switches ("*")`.
+`Switches ("*")`.
 
 Switches from the project file are processed before any other appearing on
 the command line, thus supplying defaults for the corresponding aspects.
