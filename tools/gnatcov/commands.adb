@@ -90,7 +90,9 @@ package body Commands is
             Result (J) := '-';
          end if;
       end loop;
-      --  Skip 'cmd_'.
+
+      --  Skip 'cmd_' prefix
+
       return Result (Result'First + 4 .. Result'Last);
    end To_Switch;
 
