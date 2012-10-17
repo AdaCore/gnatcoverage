@@ -19,8 +19,8 @@
 with Interfaces;
 
 with Ada.Command_Line;
-with Ada.Text_IO;       use Ada.Text_IO;
-with Ada.Containers;    use Ada.Containers;
+with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Containers;          use Ada.Containers;
 
 with GNAT.Strings;      use GNAT.Strings;
 
@@ -559,7 +559,8 @@ procedure GNATcov is
                         exception
                            when Constraint_Error =>
                               Fatal_Error
-                                ("bad parameter for " & Coverage_Option_Short);
+                                ("bad parameter "
+                                 & Coverage_Option_Short & " " & Arg);
                         end;
 
                      elsif Has_Prefix (Arg, Coverage_Option) then
@@ -570,7 +571,7 @@ procedure GNATcov is
                         exception
                            when Constraint_Error =>
                               Fatal_Error
-                                ("bad parameter for " & Coverage_Option);
+                                ("bad parameter " & Arg);
                         end;
 
                      elsif Has_Prefix (Arg, SCOs_Option)
@@ -828,17 +829,37 @@ procedure GNATcov is
       if Root_Project /= null then
          Compute_Project_View;
          declare
-            Project_Switches : String_List_Access := Switches_From_Project;
+            procedure Get_Switches_From_Project (Index : String);
+            --  Get switches from project with indicated index
+
+            -------------------------------
+            -- Get_Switches_From_Project --
+            -------------------------------
+
+            procedure Get_Switches_From_Project (Index : String) is
+               Project_Switches : String_List_Access :=
+                                    Switches_From_Project (Index);
+            begin
+               if Project_Switches /= null then
+                  declare
+                     Project_Src : String_List_Switches_Source
+                       (Project_Switches.all'Access);
+                  begin
+                     Process_Switches (Project_Src, 1, Project);
+                     Free (Project_Switches);
+                  end;
+               end if;
+            end Get_Switches_From_Project;
+
          begin
-            if Project_Switches /= null then
-               declare
-                  Project_Src : String_List_Switches_Source
-                    (Project_Switches.all'Access);
-               begin
-                  Process_Switches (Project_Src, 1, Project);
-                  Free (Project_Switches);
-               end;
-            end if;
+            --  Get common switches
+
+            Get_Switches_From_Project ("*");
+
+            --  Get command-specific switches (drop "cmd_" prefix from
+            --  Cmd_String).
+
+            Get_Switches_From_Project (To_Switch (Command));
          end;
       end if;
 

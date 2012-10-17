@@ -403,7 +403,8 @@ package body Project is
                     Register_New_Attribute
                       (Name    => A'Img,
                        Pkg     => Coverage_Package,
-                       Is_List => A in List_Attribute);
+                       Is_List => A in List_Attribute,
+                       Indexed => (A = Default_Switches));
          begin
             if Err /= "" then
                Fatal_Error (Err);
@@ -535,9 +536,10 @@ package body Project is
    -- Switches_From_Project --
    ---------------------------
 
-   function Switches_From_Project return String_List_Access is
+   function Switches_From_Project (Op : String) return String_List_Access is
    begin
-      return Attribute_Value (Prj_Tree.Root_Project, +Default_Switches);
+      return Attribute_Value
+        (Prj_Tree.Root_Project, +Default_Switches, Index => Op);
    end Switches_From_Project;
 
    -----------------
