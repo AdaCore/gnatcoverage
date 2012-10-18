@@ -91,39 +91,43 @@ def gprcov_for (
     ulist_in=None,
     units_out=None,
     ulist_out=None,
-    def_switches=None
+    switches=(),
     ):
-    """The full Coverage package for a project file, with attribute
-    definition strings for Units, Units_List, Excluded_Units, Excluded_Units_List
-    and Default_Switches, each boiling down to a mere comment if the corresponding
-    argument passed here is None."""
+    """The full Coverage package for a project file, with attribute definition
+    strings for Units, Units_List, Excluded_Units, Excluded_Units_List and
+    Switches, each boiling down to a mere comment if the corresponding
+    argument passed here is None. For SWITCHES, we expect a command->switches
+    dictionary.
+    """
 
-    return '\n'.join ([
-            "package Coverage is",
+    return '\n'.join (
+        [ "package Coverage is",
 
-            __gpr_uattr ( # Units
+          __gpr_uattr ( # Units
                 for_list = False,
                 to_exclude = False,
                 value = units_in),
 
-            __gpr_uattr ( # Excluded_Units
+          __gpr_uattr ( # Excluded_Units
                 for_list = False,
                 to_exclude = True,
                 value = units_out),
 
-            __gpr_uattr ( # Units_List
+          __gpr_uattr ( # Units_List
                 for_list = True,
                 to_exclude = False,
                 value = ulist_in),
 
-            __gpr_uattr ( # Excluded_Units_List
+          __gpr_uattr ( # Excluded_Units_List
                 for_list = True,
                 to_exclude = True,
-                value = ulist_out),
-
-            __gprattr ( # Default_Switches
-                attrname = "Default_Switches",
-                value = def_switches,
-                aslist = True),
-
-            "end Coverage;"])
+                value = ulist_out)
+          ]
+        + [ # Switches (CMD)
+            __gprattr (
+                attrname = "Switches (\"%s\")" % cmd,
+                value = switches [cmd],
+                aslist = True) for cmd in switches
+            ]
+        + ["end Coverage;"]
+        )
