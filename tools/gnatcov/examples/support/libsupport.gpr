@@ -43,5 +43,12 @@ library project Libsupport is
       when "yes" => for Externally_Built use "false";
    end case;
 
+   --  Make sure recursive project file inclusions don't get
+   --  to produce reports for parts of this support lib, never
+   --  relevant to test results.
+
+   package Coverage is
+     for Units use ();
+   end Coverage;
 
 end Libsupport;
