@@ -552,36 +552,94 @@ names.
 Using project files
 ===================
 
-GNAT project files are a useful tool to describe the structure of larger
-applications, for the benefit of the tools intervening at various stages
-of development, from the IDE to build and analysis tools.
-|gcv| takes full advantage of GNAT projects. Various aspects of the
-coverage analysis activity can be controlled through project files.
+GNAT project files are a useful device to describe the structure of larger
+applications, for the benefit of the tools intervening at various stages of
+development, from the IDE to build and analysis tools.
 
-A single root project file may be specified on the command line using
-:option:`-P`. The following subsections describe how information from
-the `Coverage` package in project files can be used to control coverage
-analysis.
+|gcp| takes full advantage of GNAT projects for various aspects of the
+coverage analysis activity. Project files serve three major purpose for |gcp|:
 
-Default switches
-----------------
+1. Specify default switches for the various |gcv| commands,
 
-If the `Switches` attribute is specified in the root project file,
-it is treated as a list of command line switches for |gcv|. `Switches`
-accepts an index, indicating what |gcv| operation the switches apply to.
-Switches applying to all operations can be provided using
-`Switches ("*")`.
+2. Select units of interest and retrieve Source Coverage Obligations
+   for source coverage analysis,
 
-Switches from the project file are processed before any other appearing on
-the command line, thus supplying defaults for the corresponding aspects.
-However note that certain switches such as :option:`--units` have cumulative
-effect, so that later occurrences on the command line add up with, rather
-than replace, those specified in the project file.
+3. Retrieve exemption regions for source and object coverage analysis.
+  
+A common set of rules apply in all cases:
 
-Units of interest
------------------
+* A single root project file is specified on the command line using
+  :option:`-P`,
 
-Four attributes of package Coverage intervene in the identification
-of units of interest: Units, Units_List, Excluded_Units, and
-Excluded_Units_List. Their usage is discussed in detail in section
-:ref:`sunits`.
+* :option:`--projects` options might be added to designate specific projects
+  to operate on within the root dependency closure. As soon as one such option
+  is used, the root project itself needs to be listed explicitely as well to
+  be considered.
+
+* With :option:`--recursive` anywhere in addition, the set of projects to be
+  processed includes the transitive closure of all the projects designated by
+  :option:`-P` and :option:`--projects` if any.
+
+A ``Coverage`` package is allowed in every project file to provide attributes
+guiding the analysis in different possible ways. Two families of attributes
+are available today:
+
+* A ``Switches`` family allowing the specification of options to apply for the
+  various |gcv| commands involved in an execution/analysis sequence. This is
+  the core facility regarding point 1 above, covered in the :ref:`switches_attr`
+  section below.
+
+* A ``Units`` family, allowing fine grain selection of source units to
+  consider within a project tree, an additional item to help fulfill point 2
+  above.
+
+The project selection facilities are illustrated together with the fine grain
+unit selection devices in the :ref:`sunits` section, focused on source coverage
+perspectives.
+
+.. _switches_attr:
+
+Specifying command Switches from project files
+----------------------------------------------
+
+``Switches`` attributes in the root project file are treated as lists of
+command line switches for |gcv| commands. Each attribute specification
+requires an index indicating what |gcv| operation the switches apply to.  Each
+attribute value is expected to be a list of options for this operation.  Here
+is a first basic example::
+
+    package Coverage is
+       level := "--level=stmt"; -- to be reused in different contexts
+
+       for Switches ("run") use (level);
+       -- This will apply to "gnatcov run"
+
+       for Switches ("coverage") use (level, "--annotate=report");
+       -- This will apply to "gnatcov coverage"
+    end Coverage;
+
+For switches applicable to all the commands you are planning to use, the
+special ``"*"`` index is available to denote `any` command. If you are going
+to use only ``run`` and ``coverage``, for instance, the example above might be
+re-written as::
+
+    package Coverage is
+       for Switches ("*") use ("--level=stmt");
+       for Switches ("coverage") use ("--annotate=report");
+    end Coverage;
+
+The ``*`` arguments are always inserted first with respect to the final
+command line interpretation. In the example above, ``--level`` from the ``*``
+list cumulates before ``--annotate`` for |gcvcov|. Similarily, switches from
+the project file are always processed as if appearing before the others on the
+command line.
+
+For switches like :option:`--level` that don't accumulate to produce sets, the
+last occurrence on the command line prevails. The project file values act as
+defaults that can be overriden by an explicit value on the command line,
+wherever they are placed (before or after :option:`-P`).
+
+For switches such as :option:`--units` which have cumulative effect, later
+occurrences on the command line add up with, rather than replace, those
+specified in the project file.
+
