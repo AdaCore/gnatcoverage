@@ -18,7 +18,7 @@ LIST=""
 LIST="$LIST $(find -type f -name 'test.py.???')"
 LIST="$LIST $(find -type f -name '*~')"
 LIST="$LIST $(find -type f -name '*.adb.*')"
-echo rm -rf $(ls $LIST | grep -v svn)
+rm -rf $(ls $LIST | grep -v svn)
 
 
 
