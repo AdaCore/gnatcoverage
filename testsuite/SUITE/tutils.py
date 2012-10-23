@@ -13,6 +13,7 @@
 from SUITE import control
 from SUITE.control import BUILDER, XCOV, LANGINFO, language_info, need_libsupport
 from SUITE.context import *
+from SUITE.qdata import QLANGUAGES
 
 # Then mind our own buisness
 
@@ -23,6 +24,30 @@ VALGRIND  = 'valgrind' + env.host.os.exeext
 # --------------
 # -- gprbuild --
 # --------------
+
+# Helper for gprbuild(), adding to the CMDLINE_CARGS dictionary the -cargs
+# options we were passed for LANG, if any, indexed by the gprbuild command
+# line argument required to introduce them.
+
+def __add_cargs_for (lang, cmdline_cargs):
+
+    options = thistest.options
+
+    # The provided command line is available as a language specific variable
+    # in our set of options, named after the language when any: --cargs goes
+    # in opt."-cargs", --cargs:Ada in opt."-cargs:Ada" etc.
+
+    optgprname = "-cargs" + (':%s' % lang if lang else "")
+    optvarname = optgprname
+
+    cargs_for_lang = (
+        options.__dict__ [optvarname]
+        if optvarname in options.__dict__ else None
+        )
+
+    if cargs_for_lang:
+        cmdline_cargs [optgprname] = to_list (cargs_for_lang)
+
 def gprbuild(project, gargs=None, cargs=None, largs=None):
     """Cleanup & build the provided PROJECT file using gprbuild, passing
     GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches, in
@@ -46,18 +71,48 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
     all_gargs.extend (to_list(gargs))
 
     # For CARGS, account for possible options passed either as an explicit
-    # argument to this routine, or queried from the command line. Expect never
+    # argument to this routine or queried from the command line. Expect never
     # to have both.
 
-    thistest.stop_if (cargs and thistest.options.cargs,
+    # First, build a { gprbuild_optionname -> optionlist } dictionary
+    # for each optionname corresponding to a possible language or none,
+    # representative of the provided command python line:
+    #
+    # --cargs="-O1" --cargs-Ada="-gnatp -gnatn" yields
+    #
+    # { "-cargs": ["-O1"],
+    #   "-cargs:Ada": ["-gnatp", "-gnatn"]
+    # }
+
+    cmdline_cargs = {}
+    [__add_cargs_for (lang, cmdline_cargs) for lang in QLANGUAGES + [None]]
+
+    thistest.stop_if (cargs and cmdline_cargs,
         FatalError("internal CARGS requested together with command line"))
 
-    if not cargs:
-        cargs = thistest.options.cargs
+    # Complete this dictionary with generic "cargs" we need to add,
+    # those provided as an argument here, if any, then the common ones
+    # part of testsuite configuration:
 
-    all_cargs = to_list(cargs) + to_list(BUILDER.COMMON_CARGS)
-    if all_cargs:
-        all_cargs.insert(0, '-cargs')
+    complete_cargs = cmdline_cargs
+
+    if "-cargs" not in complete_cargs:
+        complete_cargs ["-cargs"] = []
+
+    if cargs:
+        complete_cargs ["-cargs"].extend (to_list(cargs))
+
+    complete_cargs ["-cargs"].extend (to_list(BUILDER.COMMON_CARGS))
+
+    # Now build the flattened list we need from the per-language dictionary:
+    # ["-cargs", "-O1", "-cargs:Ada", "-gnatp", ...]
+
+    all_cargs = []
+    [all_cargs.extend (optsequence)
+     for optsequence in (
+            [optname] + [opt for opt in complete_cargs [optname]]
+            for optname in complete_cargs)
+     ]
 
     # For LARGS, nothing particular
 

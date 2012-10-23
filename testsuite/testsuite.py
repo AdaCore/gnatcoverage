@@ -475,24 +475,28 @@ class TestSuite:
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
 
-        # Enforce cargs for tests in the qualification subtree even when not
-        # in qualification mode.  We need to pass both the common cargs and
-        # those specific to the test language.
+        # For tests in the qualification subtree, pass the qualif-cargs, even
+        # when not in qualification mode.
 
         if qlevels:
 
-            lang = test.lang()
+            # Tests are not necessarily mono-language so expect per
+            # language cargs as well. Add the corresponding --cargs to
+            # the inner invocation for each language we support
+            #
+            # For Ada, our --qualif-cargs-Ada is passed as -cargs:Ada, etc
 
-            cargs = (
-                ["qualif_cargs" + ext
-                 for ext in [""] + (["_%s" % lang] if lang else [])]
-                )
-            cargs = ' '.join (
-                [mopt.__dict__[opt] for opt in cargs if mopt.__dict__[opt]]
-                )
+            [testcase_cmd.append(
+                    '--cargs:%(lang)s=%(args)s' % {
+                        "lang" : lang,
+                        "args" : mopt.__dict__ ["qualif_cargs_" + lang]
+                        }
+                    )
+             for lang in QLANGUAGES]
 
-            if cargs:
-                testcase_cmd.append('--cargs=%s' % cargs)
+            # Then pass down language agnostic cargs as well
+
+            testcase_cmd.append('--cargs=%s' % mopt.qualif_cargs)
 
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
@@ -656,15 +660,18 @@ class TestSuite:
         # qualif-cargs family: a common, language agnostic, one + one for each
         # language we support. Iterations on qualif-cargs wrt languages will
         # be performed using explicit references to the attribute dictionary
-        # of m.options.
+        # of m.options. Provide a default to allow straight access from such
+        # iterations, without having to test.
 
         m.add_option('--qualif-cargs', dest='qualif_cargs', metavar='ARGS',
+                     default="",
                      help='Additional arguments to pass to the compiler '
                           'when building the test programs. Language agnostic.')
 
         [m.add_option(
                 '--qualif-cargs-%s' % lang,
                 dest='qualif_cargs_%s' % lang,
+                default="",
                 help='qualif-cargs specific to %s tests' % lang,
                 metavar="...")
          for lang in QLANGUAGES]

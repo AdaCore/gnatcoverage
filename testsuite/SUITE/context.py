@@ -18,8 +18,9 @@ from gnatpython.fileutils import cd, rm, which, diff, touch, mkdir, ls, find
 
 import os, re, sys
 
-from SUITE.control import GPRCLEAN, BUILDER, target_info
+from SUITE.control import GPRCLEAN, BUILDER, LANGINFO, target_info
 from SUITE.cutils import ndirs_in
+from SUITE.qdata import QLANGUAGES
 
 # This module is loaded as part of a Run operation for a test.py
 # file found and launched by the toplevel driver
@@ -272,9 +273,23 @@ class Test (object):
                         metavar='QUALIF_LEVEL',
                         help='The target qualification level when we are '
                              'running in qualification mode.')
-        main.add_option('--cargs', dest='cargs', metavar='CARGS',
+
+        # Map command line option values into variable names corresponding to
+        # what we'll need to pass to gprbuild for each language. The command
+        # line option -> gprbuild option translation is easier this way.
+
+        [main.add_option (
+                '--cargs:%s' % lang,
+                dest='-cargs:%s' % lang, metavar='CARGS_%s' % lang,
+                help='Additional arguments to pass to the %s compiler '
+                      'when building the test programs.' % lang
+                )
+         for lang in QLANGUAGES]
+
+        main.add_option('--cargs', dest='-cargs', metavar='CARGS',
                         help='Additional arguments to pass to the compiler '
                              'when building the test programs.')
+
         main.add_option('--xcov-level', dest='xcov_level',
                         help='Force the --level argument passed to xcov '
                              'instead of deducing it from the test category '
