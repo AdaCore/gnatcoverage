@@ -515,6 +515,14 @@ procedure GNATcov is
 
                      elsif Arg = Eargs_Option then
                         Check_Option (Arg, Command, (1 => Cmd_Run));
+
+                        --  If we don't yet have an Executable specified,
+                        --  pick the first earg.
+
+                        if Inputs.Length (Exe_Inputs) = 0 then
+                           Inputs.Add_Input (Exe_Inputs, Next_Arg ("eargs"));
+                        end if;
+
                         Eargs := Rest_Of_Command_Line;
                         return;
 
