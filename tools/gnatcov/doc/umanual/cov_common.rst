@@ -549,6 +549,8 @@ be specified with :ref:`--routines <oroutines>` instead of :ref:`--scos
 <sunits>`, providing object level symbol names instead of source level unit
 names.
 
+.. _using-gpr:
+
 Using project files
 ===================
 
