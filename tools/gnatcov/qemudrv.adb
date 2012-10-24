@@ -400,7 +400,7 @@ package body Qemudrv is
       Driver_Idx : Natural;
       Filled     : Positive;
    begin
-      P ("run [OPTIONS] FILE [-eargs EARGS...]");
+      P ("run [OPTIONS] [EXE] [-eargs EARGS...]");
       P ("  -t TARGET  --target=TARGET   Set the execution target");
       P (Indent & "    targets: A prefix to a version of gnatemu on PATH, or");
       Driver_Idx := Drivers'First;
@@ -429,7 +429,11 @@ package body Qemudrv is
       P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
       P ("  -o FILE  --output=FILE       Write traces to FILE");
       P ("  -eargs EARGS                 " &
-           "Pass EARGS to the low-level emulator");
+           "Pass EARGS to the low-level emulator.");
+      P ("                               " &
+           "First earg is picked as the EXE program");
+      P ("                               " &
+           "to run if not provided explicitly.");
       P ("  --kernel=FILE                Specify which kernel to use");
    end Help;
 
