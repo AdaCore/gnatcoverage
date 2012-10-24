@@ -135,7 +135,7 @@ Here are a few examples of valid command lines. The simplest possible first::
   # Likewise, producing myrun.trace instead, still in the current directory
 
   gnatcov run --target=powerpc-elf myprog -o myrun.trace -eargs --version
-  # Likewise, also requesting verbose output from the low level execution
+  # Likewise, also requesting version output from the low level execution
   # engine, *not* from gnatemulator if it happens to be involved.
 
   gnatcov run --target=powerpc-elf -o myrun.trace -eargs myprog --version
