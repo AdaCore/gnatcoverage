@@ -141,6 +141,7 @@ procedure GNATcov is
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");
       P ("   -S <routines|instances>     Perform separate source coverage");
+      P ("                               (EXPERIMENTAL)");
       New_Line;
    end Usage;
 
