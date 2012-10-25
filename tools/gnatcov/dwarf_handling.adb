@@ -15,44 +15,58 @@
 -- COPYING3.  If not, go to http://www.gnu.org/licenses for a complete copy --
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
+
 with Ada.Unchecked_Conversion;
 
 package body Dwarf_Handling is
+
    procedure Write_Byte (Addr : Address; Val : Unsigned_8);
 
-   procedure Build_Abbrev_Map (Base : Address; Res : out Abbrev_Map_Acc)
-   is
-      Max : Unsigned_32;
-      Off : Storage_Offset;
-      V : Unsigned_32;
-      V1 : Unsigned_32;
+   ----------------------
+   -- Build_Abbrev_Map --
+   ----------------------
+
+   procedure Build_Abbrev_Map (Base : Address; Res : out Abbrev_Map_Acc) is
+      Max   : Unsigned_32;
+      Off   : Storage_Offset;
+      V     : Unsigned_32;
+      V1    : Unsigned_32;
       N_Res : Abbrev_Map_Acc;
    begin
       Off := 0;
       Max := 0;
       Res := new Abbrev_Map_Type (0 .. 128);
       Res.all := (others => Null_Address);
+
       loop
          Read_ULEB128 (Base, Off, V);
+
          if V > Max then
             Max := V;
          end if;
+
          exit when V = 0;
+
          if Max > Res.all'Last then
             N_Res := new Abbrev_Map_Type (0 .. 2 * Max);
             N_Res (Res'Range) := Res.all;
             N_Res (Res'Last + 1 .. N_Res'Last) := (others => Null_Address);
-            Unchecked_Deallocation (Res);
+            Free (Res);
             Res := N_Res;
          end if;
+
          if Res (V) /= Null_Address then
             --  Put_Line ("!! abbrev override !!");
             return;
          end if;
+
          Res (V) := Base + Off;
          Read_ULEB128 (Base, Off, V);
-         --  Skip child flag.
+
+         --  Skip child flag
+
          Off := Off + 1;
+
          loop
             Read_ULEB128 (Base, Off, V);
             Read_ULEB128 (Base, Off, V1);
@@ -61,57 +75,77 @@ package body Dwarf_Handling is
       end loop;
    end Build_Abbrev_Map;
 
-   function Read_Byte (Addr : Address) return Unsigned_8
-   is
-      type Unsigned_8_Acc is access all Unsigned_8;
-      function To_Unsigned_8_Acc is new Ada.Unchecked_Conversion
-        (Address, Unsigned_8_Acc);
+   ---------------
+   -- Read_Byte --
+   ---------------
+
+   function Read_Byte (Addr : Address) return Unsigned_8 is
+      Result : Unsigned_8;
+      for Result'Address use Addr;
+      pragma Import (Ada, Result);
    begin
-      return To_Unsigned_8_Acc (Addr).all;
+      return Result;
    end Read_Byte;
 
+   ------------------
+   -- Read_ULEB128 --
+   ------------------
+
    procedure Read_ULEB128 (Base : Address;
-                           Off : in out Storage_Offset;
-                           Res : out Unsigned_32)
+                           Off  : in out Storage_Offset;
+                           Res  : out Unsigned_32)
    is
-      B : Unsigned_8;
+      B     : Unsigned_8;
       Shift : Integer;
    begin
-      Res := 0;
+      Res   := 0;
       Shift := 0;
+
       loop
          B := Read_Byte (Base + Off);
          Off := Off + 1;
          Res := Res or Shift_Left (Unsigned_32 (B and 16#7f#), Shift);
          exit when (B and 16#80#) = 0;
+
          Shift := Shift + 7;
       end loop;
    end Read_ULEB128;
 
+   ------------------
+   -- Read_SLEB128 --
+   ------------------
+
    procedure Read_SLEB128 (Base : Address;
-                           Off : in out Storage_Offset;
-                           Res : out Unsigned_32)
+                           Off  : in out Storage_Offset;
+                           Res  : out Unsigned_32)
    is
-      B : Unsigned_8;
+      B     : Unsigned_8;
       Shift : Integer;
    begin
-      Res := 0;
+      Res   := 0;
       Shift := 0;
+
       loop
          B := Read_Byte (Base + Off);
          Off := Off + 1;
          Res := Res or Shift_Left (Unsigned_32 (B and 16#7f#), Shift);
          Shift := Shift + 7;
+
          exit when (B and 16#80#) = 0;
       end loop;
+
       if Shift < 32 and (Res and Shift_Left (1, Shift - 1)) /= 0 then
          Res := Res or Shift_Left (-1, Shift);
       end if;
    end Read_SLEB128;
 
+   -------------------
+   -- Read_Word8_Le --
+   -------------------
+
    procedure Read_Word8_Le (Base : Address;
-                            Off : in out Storage_Offset;
-                            Res : out Unsigned_64)
+                            Off  : in out Storage_Offset;
+                            Res  : out Unsigned_64)
    is
       B : Unsigned_8;
    begin
@@ -122,6 +156,10 @@ package body Dwarf_Handling is
       end loop;
       Off := Off + 8;
    end Read_Word8_Le;
+
+   -------------------
+   -- Read_Word4_Le --
+   -------------------
 
    procedure Read_Word4_Le (Base : Address;
                             Off : in out Storage_Offset;
@@ -140,6 +178,10 @@ package body Dwarf_Handling is
       Off := Off + 4;
    end Read_Word4_Le;
 
+   -------------------
+   -- Read_Word2_Le --
+   -------------------
+
    procedure Read_Word2_Le (Base : Address;
                             Off : in out Storage_Offset;
                             Res : out Unsigned_16)
@@ -152,6 +194,10 @@ package body Dwarf_Handling is
         or Shift_Left (Unsigned_16 (B0), 0);
       Off := Off + 2;
    end Read_Word2_Le;
+
+   -------------------
+   -- Read_Word8_Be --
+   -------------------
 
    procedure Read_Word8_Be (Base : Address;
                             Off : in out Storage_Offset;
@@ -166,6 +212,10 @@ package body Dwarf_Handling is
       end loop;
       Off := Off + 8;
    end Read_Word8_Be;
+
+   -------------------
+   -- Read_Word4_Be --
+   -------------------
 
    procedure Read_Word4_Be (Base : Address;
                             Off : in out Storage_Offset;
@@ -184,6 +234,10 @@ package body Dwarf_Handling is
       Off := Off + 4;
    end Read_Word4_Be;
 
+   -------------------
+   -- Read_Word2_Be --
+   -------------------
+
    procedure Read_Word2_Be (Base : Address;
                          Off : in out Storage_Offset;
                          Res : out Unsigned_16)
@@ -197,6 +251,10 @@ package body Dwarf_Handling is
       Off := Off + 2;
    end Read_Word2_Be;
 
+   ---------------
+   -- Read_Byte --
+   ---------------
+
    procedure Read_Byte (Base : Address;
                         Off : in out Storage_Offset;
                         Res : out Unsigned_8)
@@ -205,6 +263,10 @@ package body Dwarf_Handling is
       Res := Read_Byte (Base + Off);
       Off := Off + 1;
    end Read_Byte;
+
+   -----------------
+   -- Read_String --
+   -----------------
 
    procedure Read_String (Base : Address; Off : in out Storage_Offset)
    is
@@ -215,6 +277,10 @@ package body Dwarf_Handling is
          exit when B = 0;
       end loop;
    end Read_String;
+
+   -----------------
+   -- Read_String --
+   -----------------
 
    function Read_String (Addr : Address) return String
    is
@@ -235,6 +301,10 @@ package body Dwarf_Handling is
       return Str (1 .. Len);
    end Read_String;
 
+   ----------------
+   -- Write_Byte --
+   ----------------
+
    procedure Write_Byte (Addr : Address; Val : Unsigned_8)
    is
       type Unsigned_8_Acc is access all Unsigned_8;
@@ -243,6 +313,10 @@ package body Dwarf_Handling is
    begin
       To_Unsigned_8_Acc (Addr).all := Val;
    end Write_Byte;
+
+   --------------------
+   -- Write_Word4_Le --
+   --------------------
 
    procedure Write_Word4_Le (Base : Address;
                              Off : in out Storage_Offset;
@@ -262,6 +336,10 @@ package body Dwarf_Handling is
       Off := Off + 4;
    end Write_Word4_Le;
 
+   --------------------
+   -- Write_Word4_Be --
+   --------------------
+
    procedure Write_Word4_Be (Base : Address;
                              Off : in out Storage_Offset;
                              Val : Unsigned_32)
@@ -279,4 +357,5 @@ package body Dwarf_Handling is
       Write_Byte (Base + Off + 3, B3);
       Off := Off + 4;
    end Write_Word4_Be;
+
 end Dwarf_Handling;

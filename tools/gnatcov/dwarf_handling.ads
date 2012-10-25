@@ -21,6 +21,7 @@ with System.Storage_Elements; use System.Storage_Elements;
 with Ada.Unchecked_Deallocation;
 
 package Dwarf_Handling is
+
    type Abbrev_Map_Type is array (Unsigned_32 range <>) of Address;
    type Abbrev_Map_Acc is access Abbrev_Map_Type;
    procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
