@@ -1,3 +1,6 @@
+# Usage: dwarfdump.py objdump -Dr <exe>
+# Annotates the output of objdump with sloc info from exe
+
 import subprocess, re, sys
 
 def get_dwarf(exe):
@@ -20,14 +23,16 @@ def do_dump(line_info, cmd):
   outs, errs = proc.communicate()
   linfo = []
   for l in outs.split('\n'):
-    m = re.match("([0-9a-f]+):", l)
-    if m and m.group(1) in line_info:
-      this_linfo = line_info[m.group(1)]
-      if this_linfo != linfo:
-        print ""
-        for li in this_linfo:
-          print ">>> " + li
-        linfo = this_linfo
+    m = re.match("( *[0-9a-f]+):", l)
+    if m:
+      a =  m.group(1).replace (' ', '0')
+      if a in line_info:
+        this_linfo = line_info[a]
+        if this_linfo != linfo:
+          print ""
+          for li in this_linfo:
+            print ">>> " + li
+          linfo = this_linfo
     print l
 
 if __name__ == "__main__":
