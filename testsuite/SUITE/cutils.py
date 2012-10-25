@@ -105,19 +105,22 @@ def clear(f):
 # -------------
 # -- version --
 # -------------
-def version(tool):
+def version(tool, nlines=1):
     """Return version information as reported by the execution of TOOL
-    --version"""
+    --version, expected on the first NLINES of output."""
 
-    # --version often dumps more than the version number. Our heuristic here
-    # is to fetch the first line only, where the version number is typically
-    # found, and strip possible copyright notices that might appear there as
-    # well.
+    # --version often dumps more than the version number on a line. A
+    # copyright notice is typically found there as well. Our heuristic
+    # here is to strip everything past the first comma.
 
-    version = Run(to_list(tool + " --version")).out.split('\n')[0]
-    cprpos = version.lower().find (",")
+    def version_on_line (text):
+        cprpos = text.find (",")
+        return text [0:cprpos] if cprpos != -1 else text
 
-    return version [0:cprpos] if cprpos != -1 else version
+    return '\n'.join (
+        [version_on_line (l) for l in
+         Run([tool, "--version"]).out.split('\n')[0:nlines]]
+        )
 
 # --------------
 # -- ndirs_in --

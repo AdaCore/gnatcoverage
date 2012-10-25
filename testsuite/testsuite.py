@@ -33,6 +33,7 @@ import logging, os, re, sys
 
 from SUITE import cutils
 from SUITE.cutils import contents_of, re_filter, clear, to_list, FatalError
+from SUITE.cutils import version
 
 from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
 
@@ -174,7 +175,7 @@ class TestSuite:
 
         self.comment = os.path.join(self.log_dir, 'comment')
         with open(self.comment, 'w') as fd:
-            fd.write("Options: " + " ".join(_quoted_argv()) + "\n")
+            fd.write(self.__early_comments ())
 
         # Compute the test list. Arrange to have ./ in paths to maximize
         # possible regexp matches, in particular to allow use of command-line
@@ -226,13 +227,6 @@ class TestSuite:
                     ", displaying failures only" if self.options.quiet else "")
                 )
 
-        # Compute targetprefix, prefix to designate target specific versions
-        # of command line tools (a-la <prefix>-gnatmake) and expected as the
-        # --target argument of other command line tools such as gprbuild or
-        # gprconfig.
-
-        targetprefix = self.env.target.triplet
-
         # Run the builder configuration for the testsuite as a whole. Doing
         # it here once both factorizes the work for all testcases and prevents
         # cache effects if PATH changes between testsuite runs.
@@ -243,7 +237,7 @@ class TestSuite:
 
         if control.need_libsupport():
 
-            targetargs = ["TARGET=%s" % targetprefix]
+            targetargs = ["TARGET=%s" % self.env.target.triplet]
             if self.options.board:
                 targetargs.append ("BOARD=%s" % self.options.board)
 
@@ -268,6 +262,34 @@ class TestSuite:
         # when it is visibly useless to keep going
 
         self.n_consecutive_failures = 0
+
+    # -----------------------------------
+    # -- Early comments about this run --
+    # -----------------------------------
+
+    def __options_comment (self):
+        return "Options: " + " ".join(_quoted_argv())
+
+    def __versions_comment (self):
+
+        prefix = (
+            self.env.target.triplet + '-'
+            ) if self.env.main_options.target else ""
+
+        all_versions = [
+            version ("gnatcov") + ", " + version (prefix+"gnatls")
+            ]
+
+        if self.env.main_options.target:
+            all_versions.append (version (prefix+"gnatemu", nlines=2))
+
+        return '\n'.join (
+            ["Running versions:"] + all_versions) + '\n'
+
+    def __early_comments (self):
+        return '\n'.join (
+            [self.__options_comment (),
+             self.__versions_comment ()])
 
     # -------------------------------
     # -- Discriminant computations --
