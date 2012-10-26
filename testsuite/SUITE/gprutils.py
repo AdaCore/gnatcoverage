@@ -1,4 +1,6 @@
 import os
+from collections import namedtuple
+
 from SUITE.cutils import contents_of
 
 # ----------------
@@ -52,6 +54,8 @@ def gprdep_for (reldir, wd):
 # -- gprcov_for --
 # ----------------
 
+Csw = namedtuple ("Csw", "cmd switches")
+
 # Compute and return the text of a Coverage GPR package from
 # * provided units or lists to include or exclude
 # * default_switches to install
@@ -86,6 +90,7 @@ def __gpr_uattr (value, for_list, to_exclude):
         value  = value,
         aslist = not for_list)
 
+
 def gprcov_for (
     units_in=None,
     ulist_in=None,
@@ -97,7 +102,7 @@ def gprcov_for (
     strings for Units, Units_List, Excluded_Units, Excluded_Units_List and
     Switches, each boiling down to a mere comment if the corresponding
     argument passed here is None. For SWITCHES, we expect a command->switches
-    dictionary.
+    sequence of ("command", [options]) Csw tuples
     """
 
     return '\n'.join (
@@ -125,9 +130,9 @@ def gprcov_for (
           ]
         + [ # Switches (CMD)
             __gprattr (
-                attrname = "Switches (\"%s\")" % cmd,
-                value = switches [cmd],
-                aslist = True) for cmd in switches
+                attrname = "Switches (\"%s\")" % csw.cmd,
+                value = csw.switches,
+                aslist = True) for csw in switches
             ]
         + ["end Coverage;"]
         )

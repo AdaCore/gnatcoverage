@@ -102,6 +102,13 @@ def clear(f):
     if os.path.exists(f):
         os.remove(f)
 
+# -----------
+# -- empty --
+# -----------
+def empty(f):
+    """True iif file F is empty, assumed to exist"""
+    return os.stat(f).st_size == 0
+
 # -------------
 # -- version --
 # -------------
