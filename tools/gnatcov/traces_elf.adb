@@ -1220,7 +1220,7 @@ package body Traces_Elf is
             At_Name := Null_Address;
             At_Comp_Dir := Null_Address;
          end loop;
-         Unchecked_Deallocation (Map);
+         Free (Map);
       end loop;
 
       Unchecked_Deallocation (Infos);
