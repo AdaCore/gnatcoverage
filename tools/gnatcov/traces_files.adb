@@ -430,8 +430,7 @@ package body Traces_Files is
    -- Dump_Trace_File --
    ---------------------
 
-   procedure Dump_Trace_File (Filename : String; Raw : Boolean)
-   is
+   procedure Dump_Trace_File (Filename : String; Raw : Boolean) is
       Trace_File : Trace_File_Type;
       Desc : Trace_File_Descriptor;
       E : Trace_Entry;
@@ -466,7 +465,7 @@ package body Traces_Files is
 
    procedure Dump_Trace_File (Filename : String) is
    begin
-      Dump_Trace_File (Filename, False);
+      Dump_Trace_File (Filename, Raw => False);
    end Dump_Trace_File;
 
    -------------------------
@@ -475,7 +474,7 @@ package body Traces_Files is
 
    procedure Dump_Raw_Trace_File (Filename : String) is
    begin
-      Dump_Trace_File (Filename, True);
+      Dump_Trace_File (Filename, Raw => True);
    end Dump_Raw_Trace_File;
 
    -----------------------
@@ -499,12 +498,13 @@ package body Traces_Files is
    -- Write_Trace_File_Info --
    ---------------------------
 
-   procedure Write_Trace_File_Info (Fd : File_Descriptor;
-                                    Trace_File : Trace_File_Type)
+   procedure Write_Trace_File_Info
+     (Fd         : File_Descriptor;
+      Trace_File : Trace_File_Type)
    is
-      Hdr : constant Trace_Header := Make_Trace_Header (Info);
+      Hdr     : constant Trace_Header := Make_Trace_Header (Info);
       Tr_Info : Trace_File_Info_Acc;
-      Ihdr : Trace_Info_Header;
+      Ihdr    : Trace_Info_Header;
    begin
       if Write (Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size then
          raise Write_Error with "failed to write first header";
@@ -565,12 +565,12 @@ package body Traces_Files is
       pragma Assert (Kind /= Info);
       Hdr : constant Trace_Header := Make_Trace_Header (Kind);
 
-      E : Trace_Entry;
-      E32 : Trace_Entry32;
-      E64 : Trace_Entry64;
-      Addr : System.Address;
+      E        : Trace_Entry;
+      E32      : Trace_Entry32;
+      E64      : Trace_Entry64;
+      Addr     : System.Address;
       Res_Size : Natural;
-      Cur : Entry_Iterator;
+      Cur      : Entry_Iterator;
    begin
       if Write (Fd, Hdr'Address, Trace_Header_Size) /= Trace_Header_Size then
          raise Write_Error with "failed to write header";
@@ -578,6 +578,7 @@ package body Traces_Files is
 
       pragma Warnings (Off);
       --  Needs comment???
+
       if Pc_Type_Size = 4 then
          Addr := E32'Address;
          Res_Size := E32_Size;
