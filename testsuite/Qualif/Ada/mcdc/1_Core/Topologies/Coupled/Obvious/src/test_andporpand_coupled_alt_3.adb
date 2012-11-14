@@ -41,14 +41,11 @@ end Test_AndPorPand_Coupled_Alt_3;
 -- /F1_decisionTrue/    l+ ## 0
 -- /F1_decisionFalse/   l+ ## 0
 -- /F2_evaluate/        l! ## 0
--- /coupF2_evaluate/    l! ## c!:"C"
--- /coupF2_evaluate/    l! ## c!:"B"
+-- /coupF2_evaluate/    l! ## c!:"C", c!:"B"
 -- /F2_decisionTrue/    l+ ## 0
 -- /F2_decisionFalse/   l+ ## 0
 -- /F3_evaluate/        l! ## 0
--- /coupF3_evaluate/    l! ## c!:"A"
--- /coupF3_evaluate/    l! ## c!:"B"
--- /coupF3_evaluate/    l! ## c!:"C"
+-- /coupF3_evaluate/    l! ## c!:"A", c!:"B", c!:"C"
 -- /F3_decisionTrue/    l+ ## 0
 -- /F3_decisionFalse/   l+ ## 0
 -- /decl/               ~l+ ## 0

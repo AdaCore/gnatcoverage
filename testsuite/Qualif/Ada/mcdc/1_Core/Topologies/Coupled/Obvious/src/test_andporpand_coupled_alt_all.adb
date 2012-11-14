@@ -54,8 +54,7 @@ end Test_AndPorPand_Coupled_Alt_All;
 -- /F2_decisionTrue/    l+ ## 0
 -- /F2_decisionFalse/   l+ ## 0
 -- /F3_evaluate/        l! ## 0
--- /coupF3_evaluate/    l! ## c!:"B"
--- /coupF3_evaluate/    l! ## c!:"A"
+-- /coupF3_evaluate/    l! ## c!:"B", c!:"A"
 -- /F3_decisionTrue/    l+ ## 0
 -- /F3_decisionFalse/   l+ ## 0
 -- /decl/               ~l+ ## 0

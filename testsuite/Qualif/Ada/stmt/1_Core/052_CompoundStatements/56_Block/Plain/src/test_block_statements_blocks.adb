@@ -42,7 +42,6 @@ end Test_Block_Statements_Blocks;
 -- /2in1ifstmtblock/  l+ ## 0
 -- /22ifstmtblock/    l+ ## 0
 -- /2in2ifstmtblock/  l+ ## 0
--- /2stmtblock/       l+ ## 0
 
 -- /3stmt/            l+ ## 0
 -- /3inif/            l- ## s-

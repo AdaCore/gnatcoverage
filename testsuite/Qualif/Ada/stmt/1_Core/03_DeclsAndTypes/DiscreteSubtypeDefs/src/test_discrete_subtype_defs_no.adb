@@ -13,7 +13,6 @@ end Test_Discrete_Subtype_Defs_No;
 --# discrete_subtype_defs.ads
 -- /dcl/    l+ ## 0
 -- /g1_dcl/ ~l- ## ~s-
--- /g1_dcl/ ~l- ## ~s-
 
 --# discrete_subtype_defs.adb
 -- /1_local_dcl/ l- ## s-

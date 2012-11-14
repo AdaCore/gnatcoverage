@@ -57,5 +57,4 @@ end Test_Handlers_No;
 -- /no_predefined_raise_fun4/       l- ## s-
 -- /raise_user_defined_fun4/        l- ## s-
 -- /no_raise_fun4/                  l- ## s-
--- /raise_user_defined_fun4/        l- ## s-
 -- /raise_predefined_fun4/          l- ## s-

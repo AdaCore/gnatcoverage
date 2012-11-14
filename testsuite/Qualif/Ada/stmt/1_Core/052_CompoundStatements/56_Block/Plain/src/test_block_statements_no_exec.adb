@@ -41,7 +41,6 @@ end Test_Block_Statements_No_Exec;
 -- /2in1ifstmtblock/  l- ## s-
 -- /22ifstmtblock/    l- ## s-
 -- /2in2ifstmtblock/  l- ## s-
--- /2stmtblock/       l- ## s-
 
 -- /3stmt/            l+ ## 0
 -- /3inif/            l+ ## 0

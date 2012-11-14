@@ -83,5 +83,4 @@ end Test_Handlers_User_Exception_Raise;
 -- /no_predefined_raise_fun4/       l+ ## 0
 -- /raise_user_defined_fun4/        l+ ## 0
 -- /no_raise_fun4/                  l- ## s-
--- /raise_user_defined_fun4/        l+ ## 0
 -- /raise_predefined_fun4/          l- ## s-
