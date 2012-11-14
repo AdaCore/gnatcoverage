@@ -127,6 +127,10 @@ QLEVEL_INFO = {
 # exercising all the tests with nightly variants, not only qualification
 # tests.
 
+# --cargs options are conveyed as CARGS_ discriminants, with leading dashes
+# stripped and without language indication. For example --cargs="-O1"
+# --cargs:Ada="-gnatp" translates as CARGS_O1 + CARGS_gnatp discriminants.
+
 # Individual tests that really depend on particular options might of course
 # request so, via the "cargs" argument to the gprbuild function in tutils.
 #
@@ -151,10 +155,9 @@ QLEVEL_INFO = {
 #                   |         |
 #                   --- XOR ---
 #                        v
-#                     COMBINE <-- SUITE.control.BUILDS.COMMON_CARGS
+#                     COMBINE <-- SUITE.control.BUILD.COMMON_CARGS
 #                        v
 #              run "gprbuild -Pgpr --cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
-
 
 # ===============
 # == TestSuite ==
@@ -532,9 +535,9 @@ class TestSuite:
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
 
-        # Pass cargs for all the tests, qualif familiy or not, in
-        # qualification mode or not. Tests are not necessarily mono-language
-        # so we pass per language cargs as well.
+        # Pass cargs for all the tests, qualif family or not, qualif mode
+        # or not.  Tests are not necessarily mono-language so we pass per
+        # language cargs as well.
 
         [testcase_cmd.append(
                 '--cargs:%(lang)s=%(args)s' % {
