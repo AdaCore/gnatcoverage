@@ -438,11 +438,18 @@ class SCOV_helper:
 
         thistest.gprmode = thistest.options.gprmode or self.covctl
 
-        self.ascos = (
+        self.scoptions = (
             to_list (self.covctl.scoptions) if (
                 self.covctl and self.covctl.scoptions)
             else ["-P%s" % self.gpr] if thistest.gprmode
             else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
+            )
+
+        # Compute the gnatcov coverage specific extra options that we'll have
+        # to pass.
+
+        self.covoptions = (
+            to_list (self.covctl.covoptions) if self.covctl else []
             )
 
         # Do gnatcov run now unless we're consolidating.  We'll just reuse
@@ -533,7 +540,7 @@ class SCOV_helper:
         ofile="xcov_run_%s.out" % main
 
         xrun([self.awdir_for(main)+exename_for(main),
-              "--level=%s" % self.xcovlevel] + self.ascos,
+              "--level=%s" % self.xcovlevel] + self.scoptions,
              out=ofile)
 
         thistest.fail_if (
@@ -552,12 +559,12 @@ class SCOV_helper:
 
         ofile = format+".out"
         p = xcov (
-            args =  ['coverage',
-                     '--level='+self.xcovlevel,
-                     '--annotate='+format, "@"+traces
-                     ] + self.ascos + to_list(options)
-                  ,
-                  out = ofile)
+            args = ['coverage',
+                    '--level='+self.xcovlevel,
+                    '--annotate='+format, "@"+traces
+                    ] + (self.scoptions + self.covoptions
+                         + to_list(options)),
+            out = ofile)
 
         # Standard output might typically contain labeling warnings issued
         # by the static analysis phase, or error messages issued when a trace
