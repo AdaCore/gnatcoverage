@@ -41,7 +41,7 @@ from SUITE.tutils import all_cargs_for_build
 #     optgroup := <atomic option sequence like "-gnatp" or "-S routines">
 
 #     lx := "-- " lx_lre lx_lnote_list " ## " lx_rnote_list <newline>
-#     lx_lre := "/" REGEXP "/"
+#     lx_lre := ["="]"/" REGEXP "/"
 #     weak_mark := ~
 
 #     cov_level_choice := <s|d|m|u>
@@ -62,13 +62,30 @@ from SUITE.tutils import all_cargs_for_build
 # free-text comment.  Any comment thereafter is assumed to be part of the
 # SCOV data.
 
-# The "lx_lre" is a regular expression that is used to identify source lines
-# that match "-- # " + lx_lre.  We decided to make the "-- # " implicit in
-# order to reduce the lx_lre expression to a minimum as well as to force a
-# standard format for all such markers.
-
-# slashes inside lx_lre tokens are allowed. The SCOV_data parser simply
+# LINE REGULAR EXPRESSION (LREs)
+# ------------------------------
+# LX_LRE in our grammar is a regular expression that is used to identify
+# source lines that match "-- # " + lx_lre.  We decided to make the "-- # "
+# implicit in order to reduce the lx_lre expression to a minimum as well as
+# to force a standard format for all such markers.
+#
+# Slashes inside lx_lre tokens are allowed. The SCOV_data parser simply
 # uses the first and last slash as the delimiters.
+#
+# Having two distinct LX lines with the same LRE is forbidden and flagged as
+# an error unless the newer LRE is marked as "overriding" with the optional
+# "=" prefix, in which case the corresponding LX line overrides the current
+# one for that LRE.
+#
+# The following construct is forbidden and will cause a test failure:
+#
+# -- /blu/ <A>
+# -- /blu/ <B>
+#
+# This one is allowed and yields <B> for /blu/:
+#
+# --  /blu/ <A>
+# -- =/blu/ <B>
 
 # SEPARATION TAGS (STAG addends)
 # ------------------------------
@@ -108,11 +125,11 @@ from SUITE.tutils import all_cargs_for_build
 #                                      on s- for /blu/.
 # 
 # --%cov: -S instances              <= From now on, grab expectations only if
-#                                      gnatcov coverage -S instances, then ...
-# --  /blu/ l! ## s-@(i:myinst)     <= Override expectations for /blu/
+#                                      coverage -S instances. When so ...
+# --  =/blu/ l! ## s-@(i:myinst)    <= Override expectations for /blu/
 # 
-# --%cov: -S routines               <= Likewise for -S routines
-# --  /blu/ l! ## s-@(myinst__blu)
+# --%cov: -S routines               <= Likewise for coverage -S routines
+# --  =/blu/ l! ## s-@(myinst__blu)
 #
 # Conditioning on cargs works the same. Both kinds of controls may be
 # and-combined with ## and each individual control may be inverted with
