@@ -153,14 +153,10 @@ class _Xchecker:
         # expected sloc range and separation tags, when any is expected,
         # must match.
 
-        # While absence of expected tag is matched by anything emitted
-        # (nothing at all or anything, whatever the kind and contents),
-        # absence of emitted separation tag never matches any stated
-        # expectation.
-
         return (
             en.segment.within (xn.segment)
-            and (not xn.stag or (en.stag and en.stag.match (xn.stag)))
+            and ((not xn.stag and not en.stag)
+                 or (xn.stag and en.stag and en.stag.match (xn.stag)))
             )
 
     def try_sat_over(self, ekind, xn):
@@ -329,6 +325,13 @@ class SCOV_helper:
             }
         self.wdbase  = wdbase_for [self.category]
 
+        # Compute the gnatcov coverage specific extra options that we'll have
+        # to pass. We need these early for Xnote expansions.
+
+        self.covoptions = (
+            to_list (self.covctl.covoptions) if self.covctl else []
+            )
+
         # { sourcename -> KnoteDict } dictionaries of emitted/expected
         # line/report notes. We'll extract emitted notes from reports when we
         # know they have been produced. We extract expected notes from the
@@ -341,7 +344,9 @@ class SCOV_helper:
         self.elnotes = {}
         self.ernotes = {}
 
-        xnotes = XnotesExpander (xfile, xcovlevel)
+        xnotes = XnotesExpander (
+            xfile=xfile, xcov_level=xcovlevel, covoptions=self.covoptions
+            )
         self.xlnotes = xnotes.xlnotes
         self.xrnotes = xnotes.xrnotes
 
@@ -457,13 +462,6 @@ class SCOV_helper:
                 self.covctl and self.covctl.scoptions)
             else ["-P%s" % self.gpr] if thistest.gprmode
             else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
-            )
-
-        # Compute the gnatcov coverage specific extra options that we'll have
-        # to pass.
-
-        self.covoptions = (
-            to_list (self.covctl.covoptions) if self.covctl else []
             )
 
         # Do gnatcov run now unless we're consolidating.  We'll just reuse
