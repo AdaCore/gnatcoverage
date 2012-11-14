@@ -58,18 +58,18 @@
 #
 # --# blob.adb       <= start of expectations for unit blob.adb
 #
-#       o---------- "line regular expression"
-#       |    o------ expected Line note for matching lines
-#       |    |  o--- set of expected Report notes for matching lines
-#       |    |  |
-#       v    v  v
-# --  /foo/  l- s-   <= for lines matching "-- # foo", expect
-#                       a '-' synthetic note on the =xcov line (l-)
-#                       a 'statement not covered' =report indication (s-)
+#       o------------- "line regular expression"
+#       |    o--------- expected Line note for matching lines
+#       |    |     o--- set of expected Report notes for matching lines
+#       |    |     |
+#       v    v     v
+# --  /foo/  l- ## s-   <= for lines matching "-- # foo", expect
+#                          a '-' synthetic note on the =xcov line (l-)
+#                          a 'statement not covered' =report indication (s-)
 #
-# --  /bar/  l+ 0    <= for lines matching "-- # bar", expect
-#                       a '+' synthetic note on the =xcov line (l+)
-#                       no =report indication (0 = empty set)
+# --  /bar/  l+ ## 0    <= for lines matching "-- # bar", expect
+#                          a '+' synthetic note on the =xcov line (l+)
+#                          no =report indication (0 = empty set)
 # --# otherunit.adb
 # --  ...
 #
