@@ -159,6 +159,9 @@ QLEVEL_INFO = {
 #                        v
 #              run "gprbuild -Pgpr --cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
 
+# In addition to the SUITE.control bits, the only default option we enforce is
+# -gnat05 for Ada.
+
 # ===============
 # == TestSuite ==
 # ===============
@@ -537,7 +540,12 @@ class TestSuite:
 
         # Pass cargs for all the tests, qualif family or not, qualif mode
         # or not.  Tests are not necessarily mono-language so we pass per
-        # language cargs as well.
+        # language cargs as well. Enforce -gnat05 by default for Ada.
+        
+        if not re.search (
+            "-gnat95|-gnat05|-gnat12", mopt.cargs_Ada
+            ):
+            mopt.cargs_Ada += " -gnat05"
 
         [testcase_cmd.append(
                 '--cargs:%(lang)s=%(args)s' % {
