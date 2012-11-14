@@ -149,29 +149,44 @@ class Nsection (Rsection):
 
         if not p: return None
 
-        # Otherwise, proceed with the complete source name we found.
+        # Otherwise, we'll proceed with the complete source name we found
+        # and work over the trailing part, past the ':' character.
 
-        source = ''.join ([p.group(1), p.group(2)])
+        # We construct the Enote object piece by piece
 
-        # Then, work over the trailing part, past the ':' character. Not
-        # stricly necessary, but shorter so slightly more efficient.
+        enote = Enote (
+            kind=None, segment=None, source=None, itag=None)
 
+        enote.source = ''.join ([p.group(1), p.group(2)])
         tail = p.group(3)
 
-        nkind = self.nkind_for (tail)
-        if nkind == None:
+        # Fetch and remove a possible instantiation tag. Removal is useful to
+        # facilitate matching of other parts, hence attempted first.
+        
+        def __itag_replacement_for (m):
+            enote.itag = m.group(1)  # side effect on caller.enote here
+            return ""
+
+        tail = re.sub (
+            pattern=" \(from (.*)\)", repl=__itag_replacement_for, string=tail)
+
+        # Determine the note kind from the text contents
+
+        enote.kind = self.nkind_for (tail)
+        if enote.kind == None:
             thistest.failed (
                 "(%s =report section) '%s' ?" % (
                     self.name, rline.rstrip('\n')))
             return None
 
-        segment = Section_within (tail)
+        # Fetch the sloc range designated by the text contents
 
+        enote.segment = Section_within (tail)
         thistest.stop_if (
-            not segment,
+            not enote.segment,
             FatalError ("Unable to parse report line\n'%s'" % rline))
 
-        return Enote (kind=nkind, segment=segment, source=source)
+        return enote
 
     def try_parse(self, rline):
         enote = self.try_parse_enote(rline)
@@ -863,6 +878,9 @@ class XnotesExpander:
         # We have at hand single note spec, possibly conditioned by the
         # xcov-level. Something like "s-", "d=>dT-", or "mu=>c!:"B".
 
+        # We might also have an expected instanciation tag in any of these
+        # cases, e.g. c!:"B"@(my_instance)
+
         # First fetch the note text that corresponds to our actual xcov-level.
         # If we have no applicable text, state so.
 
@@ -870,16 +888,25 @@ class XnotesExpander:
         if not ntext:
             return None
 
-        # Otherwise, figure out the note kind + possible column localization
-        # parts and return a note pattern instance
+        # Otherwise, figure out the note kind + possible column localization +
+        # possible instance specialization parts and return a note pattern
+        # instance
+
+        if '@(' in ntext:
+            (ntext, itag) = ntext.split('@(')
+            itag=itag.rstrip(')')
+        else:
+            itag = None
 
         if ':' in ntext:
-            (noteim, stextim) = ntext.split(':')
-            stext=stextim.strip('"')
+            (ntext, stext) = ntext.split(':"')
+            stext=stext.rstrip('"')
         else:
-            (noteim, stext) = (ntext, None)
+            stext = None
 
-        return XnoteP (text=noteim, stext=stext)
+        return XnoteP (
+            text=ntext, stext=stext, itag=itag
+            )
 
     def __parse_expected_rnotes(self, image):
         if '#' in image:

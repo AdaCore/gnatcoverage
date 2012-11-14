@@ -107,11 +107,32 @@ class XnoteP:
               'x0': xBlock0, 'x+': xBlock1,
               '0': r0, '0c': r0c}
 
-    def __init__(self, text, stext=None):
+    def __init__(self, text, stext=None, itag=None):
+
+        # WEAK conveys whether it is ok (not triggering test failure) for
+        # expectations produced by this pattern not to be discharged by an
+        # emitted note.
+
         self.weak = text[0] == '~'
         if self.weak: text = text[1:]
 
+        # KIND is the kind of note this expectation stands for
+
         self.kind = self.NK_for[text]
+
+        # STEXT is a substring in matching source lines where the sloc of an
+        # emitted note must fall to discharge. For example:
+        #
+        #         6 - 10
+        #         v   v
+        #  4:  if Cond1 and then Cond2 then  -- # expr
+        #
+        #  /expr/  c!:"Cond1"
+        #
+        # yields "Cond1" in stext meaning that we must find an emitted note
+        # with a sloc pointing somewhere within col 6 and col 10 to discharge
+        # the expectation for line 4 here.
+
         self.stext = stext
 
         # We could require and use stext to store expected justification text
@@ -121,15 +142,21 @@ class XnoteP:
             False and self.stext == None and self.kind in xNoteKinds,
             FatalError ("expected justification text required for %s" % text))
 
+        # ITAG is the text of an instanciation tag that we must find on an
+        # emitted note to discharge expectations produced from this pattern.
+
+        self.itag = itag
+
         # Setup our instanciation factory now, which lets us perform the
         # required test only once:
-
-        if block_p (self.kind):
-            self.factory = _XnoteP_block (notep=self)
-        elif not self.stext:
-            self.factory = _XnoteP_line (notep=self)
-        else:
-            self.factory = _XnoteP_segment (notep=self, stext=stext)
+ 
+        self.factory = (
+            _XnoteP_block (notep=self) if block_p (self.kind)
+            else 
+            _XnoteP_line (notep=self) if not self.stext
+            else 
+            _XnoteP_segment (notep=self, stext=stext)
+            )
 
     def instanciate_over (self, tline, block, srules):
 

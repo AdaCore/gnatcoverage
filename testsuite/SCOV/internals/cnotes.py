@@ -308,10 +308,13 @@ class Xnote (Cnote):
 # Emitted note, as extracted from an xcov report:
 
 class Enote(Cnote):
-    def __init__(self, kind, segment, source):
+    def __init__(self, kind, segment, source, itag=None):
+
         self.kind = kind        # The kind of emitted note
         self.segment = segment  # The line segment it designates
         self.source = source    # The corresponding source name
+        self.itag = itag        # The instanciation tag it contains
+
         self.discharges = None  # The Xnote it discharges
 
 # ---------------
