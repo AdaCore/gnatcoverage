@@ -227,34 +227,13 @@ def gprfor(
     baseref = (
         (basegpr.split('/')[-1] + ".") if basegpr else "")
 
-    # The Compiler package contents for compilation switches, taking care not
-    # to clobber what the base project file provides (in particular possible
-    # --RTS bits for Ravenscar). The idea is to output something like
-    #
-    #  for Default_Switches ("Ada") use
-    #    $baseref.Compiler'Default_Switches ("Ada") & ("-gnat05", "-gnateS");
-    #
-    # for all relevant languages, where the options are fetched from the
-    # corresponding LANGINFO entry
-
-    compswitches = '\n'.join (
-        ['for Default_Switches ("%(lang)s") use \n'
-         '%(baseref)sCompiler\'Default_Switches ("%(lang)s") & %(opts)s;'
-         % {"opts": "(" + ",".join (
-                    ['"%s"' % opt
-                     for opt in to_list(LANGINFO[lang].cargs)]
-                    ) + ")",
-            "lang": lang, "baseref": baseref}
-         for lang in languages_l if lang in LANGINFO]
-        ) + '\n'
-
-    # Then, if we have specific flags for the mains, append them. This is
+    # If we have specific flags for the mains, append them. This is
     # typically something like
     #
     #  for Switches("test_blob.adb") use
     #    Compiler'Default_Switches("Ada") & ("-fno-inline")
 
-    compswitches += '\n'.join (
+    compswitches = '\n'.join (
         ['for Switches("%s") use \n'
          '  Compiler\'Default_Switches ("%s") & (%s);' % (
                 main, language_info(main).name, ','.join(

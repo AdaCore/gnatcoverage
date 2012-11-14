@@ -6,28 +6,15 @@ with "common", "libsupport";
 
 abstract project Base is
 
-   --  Style checks options to compile Ada sources. To prevent possible
-   --  gprbuild errors on empty option, we use a toggle to make sure we add
-   --  nothing to the options instead of an empty string when no style checks
-   --  are required.
+   --  Style checks options to compile Ada sources.
 
-   Do_Style_Checks : Common.Yes_No_Type := external ("DO_STYLE_CHECKS", "no");
    Style_Checks := external ("STYLE_CHECKS", "-gnaty");
 
    for Languages use ("Ada");
    for Source_Files use ();
 
    package Compiler is
-
-      for Default_Switches ("C") use ("-g");
-      for Default_Switches ("Ada") use Compiler'Default_Switches("C");
-
-      case Do_Style_Checks is
-         when "no" => null;
-         when "yes" =>
-           for Default_Switches ("ada") use
-             Compiler'Default_Switches("ada") & Style_Checks;
-      end case;
+      for Default_Switches ("Ada") use (Style_Checks);
    end Compiler;
 
    --  Force inclusion of the first last_chance_handler available.  The

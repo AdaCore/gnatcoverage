@@ -144,7 +144,7 @@ QLEVEL_INFO = {
 #
 #     gprfor ()
 #        template.gpr 
-#        % Switches (lang) <-- SUITE.control.LANGINFO[lang].cargs
+#        % Switches (main) += "-fno-inline" as needed
 #             |
 #             |    User level control
 #             |    here or here
@@ -155,7 +155,8 @@ QLEVEL_INFO = {
 #                   |         |
 #                   --- XOR ---
 #                        v
-#                     COMBINE <-- SUITE.control.BUILD.COMMON_CARGS
+#                    --cargs += SUITE.control.BUILD.COMMON_CARGS
+#                        |      (-g -fdump-scos -fpreserve-control-flow)
 #                        v
 #              run "gprbuild -Pgpr --cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
 

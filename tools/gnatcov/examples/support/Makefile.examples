@@ -71,11 +71,11 @@ ifneq ($(filter $(OBJECT_LEVELS), $(XCOVLEVEL)),)
 else
 ifneq ($(filter $(SOURCE_LEVELS), $(XCOVLEVEL)),)
 
-  # Source coverage: force -gnateS -fpreserve-control-flow, use --scos to
-  # filter and pass the filter to xcov run so that it has visibility on
+  # Source coverage: force -g -fdump-scos -fpreserve-control-flow, use --scos
+  # to filter and pass the filter to xcov run so that it has visibility on
   # decision locations
 
-  INTERNALBUILDFLAGS = -cargs:ada -gnateS -cargs -fpreserve-control-flow
+  INTERNALBUILDFLAGS = -cargs -g -fdump-scos -fpreserve-control-flow
   GENXCOVLIST=\
     ls $(wildcard obj/$(TARGET)/*.ali) > $*.alis
   XCOVFILTER=--scos=@$*.alis

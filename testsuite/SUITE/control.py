@@ -35,18 +35,8 @@ class LangInfo:
            The comment marker used by that language to specify the start of a
            comment that runs until the end of the current line.  For instance,
            in Ada, it would be '--'.
-
-        cargs:
-           String of compilation command line arguments applied for sources
-           in this language. These should not influence code generation, as
-           such options are expected to be controllable externally.
-
-           This always includes the source coverage support switches, required
-           for all source coverage tests, harmless for object coverage tests,
-           and which should actually be used in this case as well if object
-           coverage were to be qualified.
     """
-    def __init__(self, name, src_ext, scos_ext, comment, cargs):
+    def __init__(self, name, src_ext, scos_ext, comment):
         # The parameters have the same meaning as the class'
         # attributes, with the following exceptions:
         #     src_ext: If only one filename extension is being used,
@@ -59,17 +49,16 @@ class LangInfo:
         self.src_ext = src_ext
         self.scos_ext = scos_ext
         self.comment = comment
-        self.cargs = cargs
 
 # A dictionary mapping a LangInfo instance to each known language.
 
 LANGINFO = {
     "Ada":  LangInfo(name="Ada", src_ext=[".ads", ".adb"], scos_ext=".ali",
-                     comment='--', cargs="-gnateS"),
+                     comment='--'),
     "C":    LangInfo(name="C", src_ext=[".h", ".c"], scos_ext=".gli",
-                     comment='//', cargs="-fdump-scos"),
+                     comment='//'),
     "Cons": LangInfo(name="Consolidation", src_ext=".txt", scos_ext=None,
-                     comment='--', cargs=None)
+                     comment='--')
     }
 
 def language_info(source_filename):
@@ -88,7 +77,7 @@ class BUILDER:
 
     # Common compilation args, passed to all build invocations
 
-    COMMON_CARGS = " -g -fpreserve-control-flow "
+    COMMON_CARGS = " -g -fpreserve-control-flow -fdump-scos"
 
     # Base command for a build
 
