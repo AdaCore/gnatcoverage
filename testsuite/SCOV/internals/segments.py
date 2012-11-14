@@ -179,7 +179,7 @@ class Sloc:
     # with one of the possible source extensions we know about.
 
     # Note that the registered LANGINFO extensions embed the '.'  character,
-        
+
     re = '(?P<sbase>[^ ]*)(?P<ext>%s):(?P<sec>[^ ]*)' % '|'.join (
         [ext for li in LANGINFO.values() for ext in li.src_ext])
 

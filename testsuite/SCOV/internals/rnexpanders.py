@@ -50,13 +50,13 @@ class Rdiagline:
     #      "andthen.adb:10:33: statement not covered",
     #       -----------:-----: ---------------------
     #       source name:segmt: diagnostic text
-        
+
     re = Sloc.re + " (?P<diag>.*)"
 
 def Rdiagline_from (text):
 
     p = re.match (Rdiagline.re, text)
-        
+
     return Rdiagline (
         sloc = Sloc_from_match (p),
         diag = p.group ("diag")
@@ -116,12 +116,12 @@ class Nsection (Rsection):
         enote = Enote (
             segment=dline.sloc.section, source=dline.sloc.filename,
             kind=None, stag=None
-            ) 
+            )
 
         # Fetch and remove a possible separation tag from the diganostic
         # text. Removal is useful to facilitate matching of other parts, hence
         # attempted first.
-        
+
         def __stag_replacement_for (m):
             enote.stag = Stag_from (m.group(1))  # side effect on caller here
             return ""

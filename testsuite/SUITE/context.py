@@ -314,7 +314,7 @@ class Test (object):
         """String of options passed as --cargs[:LANG] to the testsuite driver. None if
         no such option passed. LANG might be None, to fetch options passed as
         --cargs."""
-    
+
         return thistest.options.__dict__ [self.__cargs_optvar_for (lang)]
 
     def support_dir(self):

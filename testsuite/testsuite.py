@@ -148,15 +148,15 @@ QLEVEL_INFO = {
 # flags flow:
 #
 #     gprfor ()
-#        template.gpr 
+#        template.gpr
 #        % Switches (main) += "-fno-inline" as needed
-#             | 
+#             |
 #             |   direct calls from test.py,
 #             |   or via TestCase(extracargs)
-#             |       |        
+#             |       |
 #             v       v           testsuite.py
 #  gprbuild (gpr, extracargs)     [--cargs=<>] [--cargs:Ada=<>] [--cargs:C=<>]
-#                     |               |       
+#                     |               |
 #                     o----> ADD <----o
 #                             |
 #  SUITE.control.             v
@@ -552,7 +552,7 @@ class TestSuite:
         # Pass cargs for all the tests, qualif family or not, qualif mode
         # or not.  Tests are not necessarily mono-language so we pass per
         # language cargs as well. Enforce -gnat05 by default for Ada.
-        
+
         if not re.search (
             "-gnat95|-gnat05|-gnat12", mopt.cargs_Ada
             ):

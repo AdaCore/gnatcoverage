@@ -65,7 +65,7 @@ def gprbuild_cargs_with (thiscargs):
         + to_list (thistest.suite_cargs_for (lang=None))
         + to_list (thiscargs)
         )
-    
+
     [all_cargs.extend (
             ["-cargs:%s" % lang] + to_list (thistest.suite_cargs_for (lang)))
      for lang in QLANGUAGES
@@ -113,7 +113,7 @@ def gprbuild(project, extracargs=None, gargs=None, largs=None):
 
     ofile = "gprbuild.out"
     p = Run (
-        to_list(BUILDER.BASE_COMMAND) + ['-P%s' % project] 
+        to_list(BUILDER.BASE_COMMAND) + ['-P%s' % project]
         + all_gargs + all_cargs + all_largs,
         output=ofile, timeout=thistest.options.timeout
         )

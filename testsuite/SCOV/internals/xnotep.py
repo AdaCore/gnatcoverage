@@ -146,18 +146,18 @@ class XnoteP:
 
         # STAG is the separation tag that we must find on an emitted note to
         # discharge expectations produced from this pattern. Initially, at this
-        # __init__ point, this is set with the stag text found. 
+        # __init__ point, this is set with the stag text found.
 
         self.stag = stag
 
         # Setup our instanciation factory now, which lets us perform the
         # required test only once:
- 
+
         self.factory = (
             _XnoteP_block (notep=self) if block_p (self.kind)
-            else 
+            else
             _XnoteP_line (notep=self) if not self.stext
-            else 
+            else
             _XnoteP_segment (notep=self, stext=stext)
             )
 

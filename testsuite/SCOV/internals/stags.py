@@ -19,7 +19,7 @@
 from . segments import Sloc, Sloc_from
 
 # ==========
-# == Stag == 
+# == Stag ==
 # ==========
 
 # Abstract separation tag
@@ -35,7 +35,7 @@ class Stag:
             )
 
 def Stag_from (text):
-    stag = Itag (text) 
+    stag = Itag (text)
     if stag.components[0] is None:
         stag = Rtag (text)
     return stag
@@ -46,7 +46,7 @@ def Stag_from (text):
 
 # Routine separation tag. Text is routine name.
 
-class Rtag (Stag): 
+class Rtag (Stag):
     def __init__ (self, text):
         Stag.__init__ (self, text)
 
@@ -63,7 +63,7 @@ class Rtag (Stag):
 
 class Itag (Stag):
 
-    def __init__ (self, text):        
+    def __init__ (self, text):
         Stag.__init__ (self, text)
         self.components = [
             Sloc_from (part) for part in text.rstrip(']').split('[')
@@ -84,7 +84,7 @@ class Itag (Stag):
                 return False
 
         return True
- 
+
     def match_akin (self, other):
         return (
             len (self.components) == len (other.components)

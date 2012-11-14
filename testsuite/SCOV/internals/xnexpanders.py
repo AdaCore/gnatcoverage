@@ -123,11 +123,11 @@ from SUITE.tutils import gprbuild_cargs_with
 # --  /blu/ l! ## s-                <= By default (about to be conditionally
 #                                      overriden), expect no separation tag
 #                                      on s- for /blu/.
-# 
+#
 # --%cov: -S instances              <= From now on, grab expectations only if
 #                                      coverage -S instances. When so ...
 # --  =/blu/ l! ## s-@(i:myinst)    <= Override expectations for /blu/
-# 
+#
 # --%cov: -S routines               <= Likewise for coverage -S routines
 # --  =/blu/ l! ## s-@(myinst__blu)
 #
@@ -191,7 +191,7 @@ class LineCX:
     these define unit coverage expectation specs."""
 
     def __init__(self, lre, lnp, rnps, override):
-        
+
         self.lre = lre
         self.lnp = lnp
         self.rnps = rnps
@@ -439,7 +439,7 @@ class UXgroup:
     # -------------------------
     # -- Helpers for close() --
     # -------------------------
-    
+
     def __wrap_lre(self, lx, langinfo):
         """For a source expressed in the language described by LANGINFO,
         adjust line regular expression in LX to expect it prefixed with
@@ -453,7 +453,7 @@ class UXgroup:
     # -----------
     # -- close --
     # -----------
-    
+
     def close (self):
         """For each valid unit designated by one of our candidate lists,
         instantiate a UnitCX object and latch the list of instances.
@@ -510,7 +510,7 @@ class UXgroup:
 class XnotesExpander:
 
     # __get_scovdata ()
-    # 
+    #
     # __parse_scovdata ()
     #   >  __parse_groups_from ()
     #   |   > __try_ctl_update_from ()
@@ -524,7 +524,7 @@ class XnotesExpander:
     #   >  g.close () for all parsed groups
 
     def __init__(self, xfile, xcov_level, covoptions):
-        
+
         self.xfile = xfile
         self.xcov_level = xcov_level
 
@@ -538,7 +538,7 @@ class XnotesExpander:
 
         self.xlnotes = {}
         self.xrnotes = {}
-        
+
         [self.to_xnotes(ux) for ux in
          self.__parse_scovdata (self.__get_scovdata (xfile))]
 
@@ -606,7 +606,7 @@ class XnotesExpander:
         #            .               --------
         #            .               .kind  = sNoCov
         #            .               .stext = ...
-        #            .               .stag  = "<some stag>" 
+        #            .               .stag  = "<some stag>"
         #            .
         #            .uxset = None
 
@@ -645,7 +645,7 @@ class XnotesExpander:
 
             (ctl_update, ctl_value) = self.__try_ctl_update_from (line)
 
-            if ctl_update:                
+            if ctl_update:
 
                 # A CTL line was found, update our processing state
                 # accordingly:
@@ -653,7 +653,7 @@ class XnotesExpander:
                 grabbing = ctl_value
 
             elif line.startswith('#'):
-                                
+
                 # A new group starts. Close the current one first and start
                 # grabbing again unconditionally:
 
@@ -670,7 +670,7 @@ class XnotesExpander:
                 # consistency in any case.
 
                 lx = self.__parse_lcx(line)
-                
+
                 thistest.stop_if (
                     lx.lre in current_uxg.lxset and not lx.override,
                     FatalError (
@@ -681,7 +681,7 @@ class XnotesExpander:
 
                 if grabbing:
                     current_uxg.lxset [lx.lre] = lx
-                        
+
         # We're done with all the lines. Close the current group, if any.
 
         if current_uxg is not None:
@@ -763,7 +763,7 @@ class XnotesExpander:
         return (True, val)
 
     def __eval_ctl_update_from (self, part):
-        
+
         m = re.match (
             pattern=" *(?P<key>%.*?):(?P<opts>.*)\n?", string=part
             )
@@ -814,7 +814,7 @@ class XnotesExpander:
     #
     # In s-@(i:NAME), "i:NAME" resolves to "<file>:<line>" when we
     # have ...
-    # 
+    #
     #          <file>
     #          ...
     # <line>:  <instanciation code here>  -- # i:NAME
@@ -841,7 +841,7 @@ class XnotesExpander:
             # a test-writer's mistake though, and keeping only one arbitrarily
             # would cause endless confusion so we search them all and issue an
             # error as needed.
-            
+
             slocs = [
                 "%s:%d" % (os.path.basename (sp), tl.lno)
                 for sp in idict for tl in idict [sp] if name in tl.text
@@ -867,7 +867,7 @@ class XnotesExpander:
         i_xnps = [
             xnp for xnp in all_xnps if xnp.stag and self.imark in xnp.stag
             ]
-        
+
         if len (i_xnps) == 0:
             return
 
@@ -1050,7 +1050,7 @@ class XnotesExpander:
                 + "Expected /LRE/ lnotes ## rnotes")
 
         lx_lre = m.group("lre")
-        
+
         if lx_lre.startswith('='):
             lre_override = True
             lx_lre = lx_lre [1:]
