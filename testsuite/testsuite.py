@@ -58,9 +58,6 @@ DEFAULT_TIMEOUT = 600
 # The qualification mode aims at producing a test-results qualification report
 # for the provided target level.
 
-# The --qualif-cargs family controls the compilation options used to compile
-# the the qualification tests.
-
 # Beyond the production of a qualification report, --qualif-level has several
 # effects of note:
 #
@@ -119,6 +116,44 @@ QLEVEL_INFO = {
         subtrees  = RE_SUBTREE (re_crit="stmt"),
         xcovlevel = "stmt")
     }
+
+
+# ===============================
+# == Compilation Flags Control ==
+# ===============================
+
+# The --cargs family of options controls the compilation options used to
+# compile all the tests, part of the qualification tree or not. This allows
+# exercising all the tests with nightly variants, not only qualification
+# tests.
+
+# Individual tests that really depend on particular options might of course
+# request so, via the "cargs" argument to the gprbuild function in tutils.
+#
+# This is not allowed for qualifcation tests though, because we need simple
+# and reliable ways to determine the set of options we support and too many
+# possible sources for options is unwelcome.
+
+# On top of this user level control, we add a couple of flags such as
+# -fdump-scos automatically. Below is a sketch of the internal compilation
+# flags flow:
+#
+#     gprfor ()
+#        template.gpr 
+#        % Switches (lang) <-- SUITE.control.LANGINFO[lang].cargs
+#             |
+#             |    User level control
+#             |    here or here
+#             |     |        |
+#             |     |        o
+#             v     o      testsuite.py [--cargs=<>]
+#  gprbuild (gpr, cargs)   [--cargs:Ada=<>] [--cargs:C=<>]
+#                   |         |
+#                   --- XOR ---
+#                        v
+#                     COMBINE <-- SUITE.control.BUILDS.COMMON_CARGS
+#                        v
+#              run "gprbuild -Pgpr --cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
 
 
 # ===============
@@ -300,32 +335,32 @@ class TestSuite:
         return (
             self.base_discriminants()
             + self.qualif_level_discriminants()
-            + self.qualif_cargs_discriminants()
+            + self.cargs_discriminants()
             + self.rts_discriminants()
             + self.toolchain_discriminants())
 
     def base_discriminants(self):
         return ['ALL'] + self.env.discriminants
 
-    def qualif_cargs_discriminants(self):
+    def cargs_discriminants(self):
         """Compute a list of discriminants (string) for each switch passed in
-        all the --qualif-cargs command-line option(s).  The format of each
-        discriminant QUALIF_CARGS_<X> where <X> is the switch stripped of its
+        all the --cargs command-line option(s).  The format of each
+        discriminant CARGS_<X> where <X> is the switch stripped of its
         leading dashes.
 
-        For instance, if this testsuite is called with --qualif-cargs='-O1'
-        --qualif-cargs-Ada='-gnatp', then this function should return
-        ['QUALIF_CARGS_gnatp', 'QUALIF_CARGS_O1'].
+        For instance, if this testsuite is called with --cargs='-O1'
+        --cargs-Ada='-gnatp', then this function should return
+        ['CARGS_gnatp', 'CARGS_O1'].
 
-        Return an empty list if --qualif-cargs was not used.
+        Return an empty list if --cargs was not used.
         """
 
         allopts = ' '.join (
             [self.env.main_options.__dict__[opt] for opt in
-             ("qualif_cargs" + ext
+             ("cargs" + ext
               for ext in [""] + ["_%s" % l for l in QLANGUAGES])]
             )
-        return ["QUALIF_CARGS_%s" % arg.lstrip('-') for arg in allopts.split()]
+        return ["CARGS_%s" % arg.lstrip('-') for arg in allopts.split()]
 
     def qualif_level_discriminants(self):
         """List of single discriminant (string) denoting our current
@@ -497,28 +532,19 @@ class TestSuite:
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
 
-        # For tests in the qualification subtree, pass the qualif-cargs, even
-        # when not in qualification mode.
+        # Pass cargs for all the tests, qualif familiy or not, in
+        # qualification mode or not. Tests are not necessarily mono-language
+        # so we pass per language cargs as well.
 
-        if qlevels:
+        [testcase_cmd.append(
+                '--cargs:%(lang)s=%(args)s' % {
+                    "lang" : lang,
+                    "args" : mopt.__dict__ ["cargs_" + lang]
+                    }
+                )
+         for lang in QLANGUAGES]
 
-            # Tests are not necessarily mono-language so expect per
-            # language cargs as well. Add the corresponding --cargs to
-            # the inner invocation for each language we support
-            #
-            # For Ada, our --qualif-cargs-Ada is passed as -cargs:Ada, etc
-
-            [testcase_cmd.append(
-                    '--cargs:%(lang)s=%(args)s' % {
-                        "lang" : lang,
-                        "args" : mopt.__dict__ ["qualif_cargs_" + lang]
-                        }
-                    )
-             for lang in QLANGUAGES]
-
-            # Then pass down language agnostic cargs as well
-
-            testcase_cmd.append('--cargs=%s' % mopt.qualif_cargs)
+        testcase_cmd.append('--cargs=%s' % mopt.cargs)
 
         if mopt.board:
             testcase_cmd.append('--board=%s' % mopt.board)
@@ -679,22 +705,20 @@ class TestSuite:
         m.add_option("--old-res", dest="old_res", type="string",
                         help="Old testsuite.res file")
 
-        # qualif-cargs family: a common, language agnostic, one + one for each
-        # language we support. Iterations on qualif-cargs wrt languages will
-        # be performed using explicit references to the attribute dictionary
-        # of m.options. Provide a default to allow straight access from such
+        # cargs family: a common, language agnostic, one + one for each
+        # language we support. Iterations on cargs wrt languages will be
+        # performed using explicit references to the attribute dictionary of
+        # m.options. Provide a default to allow straight access from such
         # iterations, without having to test.
 
-        m.add_option('--qualif-cargs', dest='qualif_cargs', metavar='ARGS',
+        m.add_option('--cargs', dest='cargs', metavar='ARGS',
                      default="",
                      help='Additional arguments to pass to the compiler '
                           'when building the test programs. Language agnostic.')
 
         [m.add_option(
-                '--qualif-cargs-%s' % lang,
-                dest='qualif_cargs_%s' % lang,
-                default="",
-                help='qualif-cargs specific to %s tests' % lang,
+                '--cargs:%s' % lang, dest='cargs_%s' % lang,
+                default="", help='cargs specific to %s tests' % lang,
                 metavar="...")
          for lang in QLANGUAGES]
 
@@ -731,12 +755,12 @@ class TestSuite:
 
         m.options.run_test = m.args[0] if m.args else ""
 
-        # --qualif-cargs "" should be kept semantically equivalent to absence
-        # of --qualif-cargs at all, and forcing a string allows simpler code
+        # --cargs "" should be kept semantically equivalent to absence
+        # of --cargs at all, and forcing a string allows simpler code
         # downstream.
 
         [m.options.__dict__.__setitem__ (opt, "")
-         for opt in ("qualif_cargs%s" % ext
+         for opt in ("cargs%s" % ext
                      for ext in [""] + ["_%s" % lang for lang in QLANGUAGES])
          if m.options.__dict__[opt] == None]
 

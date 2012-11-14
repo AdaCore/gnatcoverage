@@ -826,7 +826,7 @@ class QDreport:
         # Options might be coming from a variety of places:
         # - BUILDER.COMMON_CARGS (e.g. -fpreserve-control-flow),
         # - LANGINFO.cargs (e.g. -gnateS for Ada, -fdump-scos for C)
-        # - --qualif-cargs family
+        # - --cargs family
 
         options = self.options.__dict__
 
@@ -841,13 +841,13 @@ class QDreport:
                 {item : "compiler switches - language agnostic",
                  value: ' '.join (
                         (BUILDER.COMMON_CARGS,
-                         options["qualif_cargs"])
+                         options["cargs"])
                         )
                  } ] + \
                 [ { item : "compiler switches - %s specific" % lang,
                     value: ' '.join (
                         (LANGINFO[lang].cargs,
-                         options["qualif_cargs_%s" % lang])
+                         options["cargs_%s" % lang])
                         )
                   } for lang in self.languages ]
             ).dump_to (self.rstf)
