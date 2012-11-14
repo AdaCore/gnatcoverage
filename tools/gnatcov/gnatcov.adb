@@ -19,8 +19,8 @@
 with Interfaces;
 
 with Ada.Command_Line;
-with Ada.Text_IO;             use Ada.Text_IO;
-with Ada.Containers;          use Ada.Containers;
+with Ada.Text_IO;    use Ada.Text_IO;
+with Ada.Containers; use Ada.Containers;
 
 with GNAT.Strings;      use GNAT.Strings;
 
@@ -140,7 +140,7 @@ procedure GNATcov is
       P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");
-      P ("   -S <routines|instances>     Perform separate source coverage");
+      P ("   -S <routine|instance>       Perform separate source coverage");
       P ("                               (EXPERIMENTAL)");
       New_Line;
    end Usage;
@@ -729,17 +729,11 @@ procedure GNATcov is
                         Inputs.Add_Input (Obj_Inputs, Arg);
 
                      elsif Arg = Separate_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
-                        declare
-                           type Coverage_Scopes is (Routines);
-                           Tag_Repositories : constant array (Coverage_Scopes)
-                             of Tag_Repository_Access :=
-                               (Routines => Get_Routine_Tag_Repository);
                         begin
-                           Tag_Repository :=
-                             Tag_Repositories
-                               (Coverage_Scopes'Value
-                                    (Next_Arg ("separate coverage scope")));
+                           Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                           Tag_Provider :=
+                             Tag_Providers.Create
+                               (Next_Arg ("separate coverage scope"));
                         exception
                            when Constraint_Error =>
                               Fatal_Error
@@ -861,11 +855,11 @@ procedure GNATcov is
             end Get_Switches_From_Project;
 
          begin
-            --  Get common switches
+            --  First get common switches...
 
             Get_Switches_From_Project ("*");
 
-            --  Get command-specific switches
+            --  ... then get command-specific switches
 
             Get_Switches_From_Project (To_Switch (Command));
          end;
@@ -915,6 +909,8 @@ procedure GNATcov is
    Base : aliased Traces_Base;
    Exec : aliased Exe_File_Type;
 
+   use type Tag_Provider_Access;
+
 --  Start of processing for Xcov
 
 begin
@@ -935,6 +931,12 @@ begin
 
    elsif Length (Projects_Inputs) /= 0 then
       Fatal_Error (Projects_Option & " requires " & Root_Project_Option);
+   end if;
+
+   --  Set defaults for options not specified so far
+
+   if Tag_Provider = null then
+      Tag_Provider := Tag_Providers.Create (Default_Tag_Provider_Name);
    end if;
 
    --  Now execute the specified command
@@ -1384,7 +1386,7 @@ begin
 
                Exe_File                : Exe_File_Acc;
                Current_Sym             : Addresses_Info_Acc;
-               Current_Subp_Info       : Subprogram_Info;
+               Current_Subp_Info       : aliased Subprogram_Info;
                Current_Subp_Info_Valid : Boolean;
                E                       : Trace_Entry;
                Desc                    : Trace_File_Descriptor;

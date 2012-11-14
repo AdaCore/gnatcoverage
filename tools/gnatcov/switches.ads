@@ -36,6 +36,9 @@ package Switches is
    --  When a project file is specified using -P, also consider all imported
    --  projects for coverage.
 
+   type Separated_Source_Coverage_Type is (None, Routines, Instances);
+   Separated_Source_Coverage : Separated_Source_Coverage_Type := None;
+
    ------------------------------
    -- Debugging switches (-d?) --
    ------------------------------

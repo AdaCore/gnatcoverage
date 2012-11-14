@@ -19,6 +19,7 @@
 --  ALI files reader
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
 
 with GNAT.Strings; use GNAT.Strings;
 
@@ -27,8 +28,17 @@ with Types; use Types;
 
 package ALI_Files is
 
+   package SFI_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Pos,
+      Element_Type => Source_File_Index);
+   --  Vector of source file indices, used to map dependency indicies in an
+   --  ALI file to our source file indices.
+
+   subtype SFI_Vector is SFI_Vectors.Vector;
+
    function Load_ALI
      (ALI_Filename : String;
+      Deps         : out SFI_Vector;
       With_SCOs    : Boolean) return Types.Source_File_Index;
    --  Load coverage related information (coverage exemptions and, if With_SCOs
    --  is True, source coverage obligations) from ALI_Filename. Returns the

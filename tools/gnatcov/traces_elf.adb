@@ -17,17 +17,16 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
-with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 
-with Interfaces; use Interfaces;
+with Ada.Directories; use Ada.Directories;
+with Ada.Text_IO;     use Ada.Text_IO;
 
 with System.Storage_Elements; use System.Storage_Elements;
 
 with GNAT.OS_Lib;
 
 with Coverage.Object;   use Coverage.Object;
-with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
 with Disa_Common;       use Disa_Common;
 with Disassemblers;     use Disassemblers;
@@ -39,7 +38,6 @@ with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Hex_Images;        use Hex_Images;
 with Outputs;
-with SC_Obligations;    use SC_Obligations;
 with Traces_Disa;
 with Traces_Lines;      use Traces_Lines;
 with Traces_Names;
@@ -159,12 +157,8 @@ package body Traces_Elf is
 
    Empty_String_Acc : constant String_Access := new String'("");
 
-   function Get_Address_Infos
-     (Exec : Exe_File_Type;
-      Kind : Addresses_Kind;
-      PC   : Pc_Type) return Addresses_Containers.Set;
-   --  Same as Get_Address_Info, but return a set of address infos if there
-   --  are several matches.
+   procedure Free is
+     new Ada.Unchecked_Deallocation (Addresses_Info, Addresses_Info_Acc);
 
    ---------
    -- "<" --
@@ -260,7 +254,8 @@ package body Traces_Elf is
          when Line_Addresses =>
             return Range_Img & " line "
               & Get_Full_Name (El.Sloc.Source_File) & ':'
-              & Sloc_Image (Line => El.Sloc.Line, Column => El.Sloc.Column);
+              & Sloc_Image (Line => El.Sloc.Line, Column => El.Sloc.Column)
+              & (if El.Disc /= 0 then " discriminator" & El.Disc'Img else "");
       end case;
    end Image;
 
@@ -390,10 +385,10 @@ package body Traces_Elf is
    begin
       Close_File (Exec.Exe_File);
 
-      Unchecked_Deallocation (Exec.Lines);
+      Free (Exec.Lines);
       Exec.Lines_Len := 0;
 
-      Unchecked_Deallocation (Exec.Debug_Strs);
+      Free (Exec.Debug_Strs);
       Exec.Debug_Str_Base := Null_Address;
       Exec.Debug_Str_Len := 0;
 
@@ -802,8 +797,8 @@ package body Traces_Elf is
             Off := Off + 2;
 
          when DW_FORM_data4
-           | DW_FORM_ref4
-           | DW_FORM_strp =>
+            | DW_FORM_ref4
+            | DW_FORM_strp =>
             Off := Off + 4;
 
          when DW_FORM_data8 =>
@@ -937,7 +932,7 @@ package body Traces_Elf is
          end case;
 
       end loop;
-      Unchecked_Deallocation (Relocs);
+      Free (Relocs);
    end Apply_Relocations;
 
    ----------------------------
@@ -1028,6 +1023,7 @@ package body Traces_Elf is
 
       Current_Sec     : Addresses_Info_Acc;
       Current_Subprg  : Addresses_Info_Acc;
+      Current_CU      : CU_Id := No_CU_Id;
       Compilation_Dir : String_Access;
       Unit_Filename   : String_Access;
       Subprg_Low      : Pc_Type;
@@ -1160,6 +1156,7 @@ package body Traces_Elf is
                   end if;
 
                   Unit_Filename := new String'(Read_String (At_Name));
+                  Current_CU    := Comp_Unit (Base_Name (Unit_Filename.all));
                   Exec.Compile_Units.Append
                     (Compile_Unit_Desc'(Unit_Filename,
                                         Compilation_Dir,
@@ -1205,7 +1202,8 @@ package body Traces_Elf is
                         Last            =>
                           Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
                         Parent          => Current_Sec,
-                        Subprogram_Name => new String'(Read_String (At_Name)));
+                        Subprogram_Name => new String'(Read_String (At_Name)),
+                        Subprogram_CU   => Current_CU);
                      Exec.Desc_Sets (Subprogram_Addresses).
                        Insert (Current_Subprg);
                   end if;
@@ -1223,8 +1221,8 @@ package body Traces_Elf is
          Free (Map);
       end loop;
 
-      Unchecked_Deallocation (Infos);
-      Unchecked_Deallocation (Abbrevs);
+      Free (Infos);
+      Free (Abbrevs);
    end Build_Debug_Compile_Units;
 
    -----------------
@@ -1282,8 +1280,8 @@ package body Traces_Elf is
       type Opc_Length_Acc is access Opc_Length_Type;
       Opc_Length : Opc_Length_Acc;
 
-      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Opc_Length_Type, Opc_Length_Acc);
+      procedure Free is
+        new Ada.Unchecked_Deallocation (Opc_Length_Type, Opc_Length_Acc);
 
       Total_Len    : Unsigned_32;
       Version      : Unsigned_16;
@@ -1311,6 +1309,7 @@ package body Traces_Elf is
       File         : Natural;
       Line, Column : Unsigned_32;
       Line_Base2   : Unsigned_32;
+      Disc         : Unsigned_32;
 
       Nbr_Dirnames  : Unsigned_32;
       Nbr_Filenames : Unsigned_32;
@@ -1360,6 +1359,10 @@ package body Traces_Elf is
                procedure Set_Last (Cur : Cursor);
                --  Set Last to Last_Line.Last
 
+               --------------
+               -- Set_Last --
+               --------------
+
                procedure Set_Last (Cur : Cursor) is
                   Info : constant Addresses_Info_Acc := Element (Cur);
                begin
@@ -1404,6 +1407,7 @@ package body Traces_Elf is
                (Filenames_Vectors.Element (Filenames, File).all),
                Line         => Natural (Line),
                Column       => Natural (Column)),
+            Disc    => Disc,
             Is_Last => False);
 
          Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
@@ -1415,6 +1419,7 @@ package body Traces_Elf is
 
             Last_Line := Element (Pos);
          end if;
+         Disc := 0;
       end New_Source_Line;
 
       -----------------
@@ -1427,6 +1432,7 @@ package body Traces_Elf is
          File   := 1;
          Line   := 1;
          Column := 0;
+         Disc   := 0;
       end Reset_Lines;
 
    --  Start of processing for Read_Debug_Lines
@@ -1544,7 +1550,6 @@ package body Traces_Elf is
             case Ext_Opc is
                when DW_LNE_end_sequence =>
                   Close_Source_Line;
-
                   Reset_Lines;
 
                when DW_LNE_set_address =>
@@ -1555,9 +1560,7 @@ package body Traces_Elf is
                   raise Program_Error with "DW_LNE_define_file unhandled";
 
                when DW_LNE_set_discriminator =>
-                  --  Ignored
-
-                  null;
+                  Read_ULEB128 (Base, Off, Disc);
 
                when others =>
                   raise Program_Error
@@ -1630,7 +1633,7 @@ package body Traces_Elf is
          raise Program_Error with "missing end_of_sequence";
       end if;
 
-      Unchecked_Deallocation (Opc_Length);
+      Free (Opc_Length);
    end Read_Debug_Lines;
 
    -----------------------
@@ -1657,14 +1660,10 @@ package body Traces_Elf is
          end if;
       end Get_Element;
 
-      Cur_Cu     : Compile_Unit_Lists.Cursor;
       Cur_Subprg : Cursor;
       Cur_Sec    : Cursor;
-      Cur_Line   : Cursor;
-      Cu         : Compile_Unit_Desc;
       Subprg     : Addresses_Info_Acc;
       Sec        : Addresses_Info_Acc;
-      Line       : Addresses_Info_Acc;
 
    --  Start of processing for Build_Debug_Lines
 
@@ -1681,16 +1680,11 @@ package body Traces_Elf is
 
       --  Read all .debug_line
 
-      Cur_Cu := Exec.Compile_Units.First;
-      while Compile_Unit_Lists.Has_Element (Cur_Cu) loop
-         Cu := Compile_Unit_Lists.Element (Cur_Cu);
+      for Cu of Exec.Compile_Units loop
          Read_Debug_Lines (Exec, Cu.Stmt_List, Cu.Compilation_Directory);
-         Compile_Unit_Lists.Next (Cur_Cu);
       end loop;
 
       --  Set Parent links
-
-      Cur_Line := First (Exec.Desc_Sets (Line_Addresses));
 
       Cur_Subprg := First (Exec.Desc_Sets (Subprogram_Addresses));
       Subprg := Get_Element (Cur_Subprg);
@@ -1698,8 +1692,7 @@ package body Traces_Elf is
       Cur_Sec := First (Exec.Desc_Sets (Section_Addresses));
       Sec := Get_Element (Cur_Sec);
 
-      while Cur_Line /= No_Element loop
-         Line := Element (Cur_Line);
+      for Line of Exec.Desc_Sets (Line_Addresses) loop
 
          --  Be sure Subprg and Sec are correctly set
 
@@ -1734,8 +1727,6 @@ package body Traces_Elf is
          --  Insert into Sloc -> Line info
 
          Exec.Known_Slocs.Include (Line.Sloc);
-
-         Next (Cur_Line);
       end loop;
    end Build_Debug_Lines;
 
@@ -1830,29 +1821,23 @@ package body Traces_Elf is
    is
       use Addresses_Containers;
 
-      Line_Info_Before : constant Addresses_Containers.Set :=
+      Line_Infos : constant Addresses_Containers.Set :=
                            Get_Address_Infos (Exec, Line_Addresses, PC);
-      Result           : Source_Locations
-                           (1 .. Natural (Line_Info_Before.Length));
-      Position         : Cursor := Line_Info_Before.First;
-      J                : Positive := Result'First;
-   begin
-      while Position /= No_Element loop
-         declare
-            Addr_Info : constant Addresses_Info_Acc := Element (Position);
-         begin
-            if Addr_Info.Last >= Addr_Info.First
-                 and then
-               (Addr_Info.Is_Last or else not Last_Only)
-            then
-               Result (J) := Addr_Info.Sloc;
-               J := J + 1;
-            end if;
+      Result     : Source_Locations (1 .. Natural (Line_Infos.Length));
+      Last       : Natural := Result'First - 1;
 
-            Next (Position);
-         end;
+   begin
+      for Addr_Info of Line_Infos loop
+         if Addr_Info.Last >= Addr_Info.First
+              and then
+            (Addr_Info.Is_Last or else not Last_Only)
+         then
+            Last := Last + 1;
+            Result (Last) := Addr_Info.Sloc;
+         end if;
       end loop;
-      return Result (1 .. J - 1);
+
+      return Result (Result'First .. Last);
    end Get_Slocs;
 
    --------------------------
@@ -1934,7 +1919,6 @@ package body Traces_Elf is
       Cur         : Cursor;
       Line        : Addresses_Info_Acc;
       Source_File : Source_File_Index := No_Source_File;
-      Tag         : SC_Tag;
 
       Init_Line_State : Line_State;
 
@@ -1966,34 +1950,7 @@ package body Traces_Elf is
 
             Add_Line_For_Object_Coverage
               (Source_File, Init_Line_State, Line.Sloc.Line, Line, Base, Exec);
-
-            Tag := Tag_Repository.Get_Tag (Exec, Line.First);
-
-            declare
-               Info : Line_Info renames Get_Line (Line.Sloc).all;
-
-               use SCO_Id_Vectors;
-
-               procedure Set_BB_Has_Code (C : SCO_Id_Vectors.Cursor);
-               --  Set Basic_Block_Has_Code for SCO at C
-
-               ---------------------
-               -- Set_BB_Has_Code --
-               ---------------------
-
-               procedure Set_BB_Has_Code (C : SCO_Id_Vectors.Cursor) is
-                  SCO : constant SCO_Id := SCO_Id_Vectors.Element (C);
-               begin
-                  if Kind (SCO) = Statement then
-                     Set_Basic_Block_Has_Code (SCO, Tag);
-                  end if;
-               end Set_BB_Has_Code;
-
-            begin
-               Info.SCOs.Iterate (Set_BB_Has_Code'Access);
-            end;
          end if;
-
          Next (Cur);
       end loop;
    end Build_Source_Lines_For_Section;
@@ -2442,7 +2399,7 @@ package body Traces_Elf is
          end if;
       end loop;
 
-      Unchecked_Deallocation (Strtabs);
+      Free (Strtabs);
    end Build_Symbols;
 
    ----------------------
@@ -2626,6 +2583,7 @@ package body Traces_Elf is
          pragma Unreferenced (Name);
       begin
          if Info.Exec /= null and then Info.Insns /= null then
+            Tag_Provider.Enter_Routine (Info);
             Build_Debug_Lines (Info.Exec.all);
             Build_Source_Lines_For_Section
               (Info.Exec, Info.Traces, Info.Insns.all);
@@ -3062,8 +3020,8 @@ package body Traces_Elf is
          end if;
       end loop;
 
-      Unchecked_Deallocation (Strtabs);
-      Unchecked_Deallocation (Symtabs);
+      Free (Strtabs);
+      Free (Symtabs);
 
       --  Walk the sections, invoking callback or warning for symbols of
       --  interest as we go along.
@@ -3278,10 +3236,11 @@ package body Traces_Elf is
                                            Last    => Symbol_Addr.Last,
                                            Parent  => null,
                                            Sloc    => Slocs.No_Location,
+                                           Disc    => 0,
                                            Is_Last => False);
       begin
          Line_Cursor := Floor (Line_Table, Line_Addr);
-         Unchecked_Deallocation (Line_Addr);
+         Free (Line_Addr);
       end Skip_Symbol;
 
    --  Start of processing for Routine_Names_From_Lines

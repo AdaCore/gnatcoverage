@@ -20,7 +20,7 @@
 
 with GNAT.Strings;  use GNAT.Strings;
 
-with Coverage.Tags; use Coverage, Coverage.Tags;
+with Coverage;      use Coverage;
 with Traces;        use Traces;
 with Traces_Dbase;  use Traces_Dbase;
 with Traces_Lines;  use Traces_Lines;
@@ -58,7 +58,7 @@ package Traces_Names is
       --  code in Insns. Updated each time Add_Code is used to register a new
       --  instance of the code for this routine.
 
-      Tag : SC_Tag := No_SC_Tag;
+      Routine_Tag : SC_Tag := No_SC_Tag;
       --  Routine tag used when doing source coverage analysis with per-routine
       --  tagging.
    end record;
@@ -90,12 +90,14 @@ package Traces_Names is
      (Routine_Name : String_Access;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
-      First_Code   : out Boolean);
+      First_Code   : out Boolean;
+      Subp_Info    : out Subprogram_Info);
    --  Add code for Routine_Name from Exec with the given contents. Updates the
    --  offset to be added to traces relative to Exec for this routine to rebase
    --  them for the recorded code chunk stored in the routines database.
    --  If this was the first time code was seen for this routine, First_Code
-   --  is set true.
+   --  is set true. The entry from the routine names table (Subp_Info) is
+   --  returned.
 
    procedure Add_Code_And_Traces
      (Routine_Name : String_Access;
@@ -141,13 +143,6 @@ package Traces_Names is
       Traces : Traces_Base_Acc) return Line_State;
    --  Compute routine state from its object coverage information and from its
    --  content.
-
-   procedure Enter_Routine (Subp_Info : Subprogram_Info);
-   --  Record Subp_Info as the subprogram information for per-routine source
-   --  coverage analysis tagging.
-
-   function Get_Routine_Tag_Repository return Tag_Repository_Access;
-   pragma Inline (Get_Routine_Tag_Repository);
 
    Consolidation_Error : exception;
    --  Raised if consolidation is not possible (eg different code for a

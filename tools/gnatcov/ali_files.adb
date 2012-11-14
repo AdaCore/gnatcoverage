@@ -35,24 +35,33 @@ package body ALI_Files is
    --------------
 
    procedure Load_ALI (ALI_Filename : String) is
-      Discard : Source_File_Index;
-      pragma Unreferenced (Discard);
+      Discard_SFI  : Source_File_Index;
+      Discard_Deps : SFI_Vector;
+
+      pragma Unreferenced (Discard_SFI);
+      pragma Warnings (Off, Discard_Deps);
+
    begin
-      Discard := Load_ALI (ALI_Filename, With_SCOs => False);
+      Discard_SFI := Load_ALI (ALI_Filename, Discard_Deps, With_SCOs => False);
    end Load_ALI;
 
    function Load_ALI
      (ALI_Filename : String;
+      Deps         : out SFI_Vector;
       With_SCOs    : Boolean) return Source_File_Index
    is
       ALI_File  : File_Type;
       ALI_Index : Source_File_Index;
 
-      Line     : String_Access;
-      Index    : Natural;
+      Line  : String_Access;
+      Index : Natural;
 
       Preserve_Control_Flow_Seen : Boolean := False;
       --  Set True if unit has been compiled with -fpreserve-control-flow
+
+      Debug_Instances_Seen       : Boolean := False;
+      pragma Unreferenced (Debug_Instances_Seen);
+      --  Set True if unit has been compiled with -fdebug-instances
 
       GNAT_eS_Seen               : Boolean := False;
       --  Set True if unit has been compiled with -gnateS (or -fdump-scos)
@@ -201,6 +210,8 @@ package body ALI_Files is
    --  Start of processing for Load_ALI
 
    begin
+      pragma Assert (Deps.Last_Index = 0);
+
       --  First check whether this ALI has been already loaded. We identify
       --  this by the fact that it already has an assigned Source_File_Index.
 
@@ -266,6 +277,9 @@ package body ALI_Files is
                if Line.all = "A -fpreserve-control-flow" then
                   Preserve_Control_Flow_Seen := True;
 
+               elsif Line.all = "A -fdebug-instances" then
+                  Debug_Instances_Seen := True;
+
                elsif Line.all = "A -gnateS"
                        or else
                      Line.all = "A -fdump-scos"
@@ -284,6 +298,17 @@ package body ALI_Files is
                   Match (U_Matcher, Line (3 .. Line'Last), Matches);
                   if Matches (0) /= No_Match then
                      Current_Unit := Get_Index_From_Simple_Name (Match (1));
+                  end if;
+               end;
+
+            when 'D' =>
+               declare
+                  D_Regexp  : constant String := "([^\t]*)\t";
+                  D_Matcher : constant Pattern_Matcher := Compile (D_Regexp);
+               begin
+                  Match (D_Matcher, Line (3 .. Line'Last), Matches);
+                  if Matches (0) /= No_Match then
+                     Deps.Append (Get_Index_From_Simple_Name (Match (1)));
                   end if;
                end;
 

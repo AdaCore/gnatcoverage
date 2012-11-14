@@ -617,7 +617,7 @@ package body Annotations is
            & Img (First_Sloc (M.SCO).Column)
            & (if M.Tag = No_SC_Tag
               then ""
-              else " (from " & Tag_Repository.Tag_Name (M.Tag) & ")")
+              else " (from " & Tag_Provider.Tag_Name (M.Tag) & ")")
            & " " & M.Msg.all;
       else
          return Image (M.Sloc) & ": " & M.Msg.all;

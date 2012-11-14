@@ -24,6 +24,8 @@ with Ada.Text_IO;  use Ada.Text_IO;
 with Interfaces;   use Interfaces;
 with GNAT.Strings; use GNAT.Strings;
 
+with Coverage.Source;   use Coverage.Source;
+with Coverage.Tags;     use Coverage.Tags;
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
@@ -162,6 +164,7 @@ package body Decision_Map is
       Sec    : Addresses_Info_Acc;
 
       First_Symbol_Occurrence : Boolean;
+      Subp_Info               : Subprogram_Info;
    begin
       Build_Debug_Lines (Exe_File.all);
 
@@ -184,11 +187,14 @@ package body Decision_Map is
               (Sym.Symbol_Name,
                Exe_File,
                Sec.Section_Content (Sym.First .. Sym.Last),
-               First_Symbol_Occurrence);
+               First_Symbol_Occurrence,
+               Subp_Info);
 
             --  Build decision map for routine based on referenced instance
 
             if First_Symbol_Occurrence then
+               Tag_Provider.Enter_Routine (Subp_Info);
+
                Analyze_Routine
                  (Sym.Symbol_Name,
                   Exe_File,
@@ -217,201 +223,251 @@ package body Decision_Map is
       Ctx         : in out Cond_Branch_Context;
       BB          : in out Basic_Block)
    is
-      Sloc : constant Source_Location := Get_Sloc (Exec.all, Insn'First);
-      --  Source location of Insn
+      use Coverage;
 
-      SCO : SCO_Id;
+      Tslocs : constant Tagged_Slocs :=
+                 Tag_Provider.Get_Slocs_And_Tags (Exec, Insn'First);
+      Sloc : Source_Location;
+      Tag  : SC_Tag;
+
+      SCO  : SCO_Id;
 
    begin
-      if Sloc = Slocs.No_Location then
-         --  No associated source, so no further processing required for source
-         --  coverage analysis.
+      for J in Tslocs'Range loop
+         Sloc := Tslocs (J).Sloc;
+         Tag  := Tslocs (J).Tag;
 
-         return;
-      end if;
+         --  Look up SCO
 
-      --  Look up SCO
+         SCO := Sloc_To_SCO (Sloc);
 
-      SCO := Sloc_To_SCO (Sloc);
+         if SCO /= No_SCO_Id and then Kind (SCO) = Condition then
 
-      if SCO = No_SCO_Id or else Kind (SCO) /= Condition then
-         return;
-      end if;
+            --  Here for conditional branches that have an associated Condition
+            --  SCO: mark instruction address for full (historical) traces
+            --  collection (for MC/DC source coverage analysis) if required by
+            --  decision structure (presence of multiple paths) or if
+            --  Debug_Full_History is set.
 
-      --  Here for conditional branches that have an associated Condition SCO
-
-      --  Mark instruction address for full (historical) traces collection
-      --  (for MC/DC source coverage analysis) if required by decision
-      --  structure (presence of multiple paths) or if Debug_Full_History is
-      --  set.
-
-      if Has_Diamond (Enclosing_Decision (SCO)) or else Debug_Full_History then
-         Add_Entry
-           (Base  => Decision_Map_Base,
-            First => Insn'First,
-            Last  => Insn'Last,
-            Op    => 0);
-      end if;
-
-      --  Record address in SCO descriptor
-
-      Add_Address (SCO, Insn'First);
-
-      --  Update control flow information
-
-      Process_Condition :
-      declare
-         D_SCO : constant SCO_Id := Enclosing_Decision (SCO);
-         --  Corresponding decision
-
-         Parent_SCO : SCO_Id;
-         --  Parent SCO of D_SCO, if appropriate
-
-         Enclosing_D_SCO : SCO_Id;
-         --  For a nested decision, the enclosing decision
-
-         DS_Top : Decision_Occurrence_Access;
-         --  Innermost currently open decision
-
-         Cond_Index : constant Condition_Index := Index (SCO);
-         --  Index of SCO in D_SCO
-
-         function Is_Expected_Condition
-           (CI                   : Condition_Index;
-            Report_If_Unexpected : Boolean := False) return Boolean;
-         --  Check whether we expect to evaluate CI: either we remain in the
-         --  current condition (case of a condition that requires multiple
-         --  branches), or we move to the next one.
-
-         procedure Check_Condition_Index (CI : Condition_Index);
-         --  Check whether CI is an expected condition, and if not, report an
-         --  error.
-
-         ---------------------------
-         -- Is_Expected_Condition --
-         ---------------------------
-
-         function Is_Expected_Condition
-           (CI                   : Condition_Index;
-            Report_If_Unexpected : Boolean := False) return Boolean
-         is
-            Current_CI : Condition_Index renames DS_Top.Seen_Condition;
-         begin
-            if CI in Current_CI .. Current_CI + 1 then
-               return True;
+            if Has_Diamond (Enclosing_Decision (SCO))
+              or else Debug_Full_History
+            then
+               Add_Entry
+                 (Base  => Decision_Map_Base,
+                  First => Insn'First,
+                  Last  => Insn'Last,
+                  Op    => 0);
             end if;
 
-            if Report_If_Unexpected then
-               declare
-                  use Ada.Strings.Unbounded;
+            --  Record address in SCO descriptor
 
-                  Msg : Unbounded_String;
+            Add_Address (SCO, Insn'First);
+
+            --  Update control flow information
+
+            Process_Condition :
+            declare
+               D_SCO : constant SCO_Id := Enclosing_Decision (SCO);
+               --  Corresponding decision
+
+               Parent_SCO : SCO_Id;
+               --  Parent SCO of D_SCO, if appropriate
+
+               Enclosing_D_SCO : SCO_Id;
+               --  For a nested decision, the enclosing decision
+
+               DS_Top : Decision_Occurrence_Access;
+               --  Innermost currently open decision
+
+               Cond_Index : constant Condition_Index := Index (SCO);
+               --  Index of SCO in D_SCO
+
+               function Is_Expected_Condition
+                 (CI                   : Condition_Index;
+                  Report_If_Unexpected : Boolean := False) return Boolean;
+               --  Check whether we expect to evaluate CI: either we remain in
+               --  the current condition (case of a condition that requires
+               --  multiple branches), or we move to the next one.
+
+               procedure Check_Condition_Index (CI : Condition_Index);
+               --  Check whether CI is an expected condition, and if not,
+               --  report an error.
+
+               ---------------------------
+               -- Is_Expected_Condition --
+               ---------------------------
+
+               function Is_Expected_Condition
+                 (CI                   : Condition_Index;
+                  Report_If_Unexpected : Boolean := False) return Boolean
+               is
+                  Current_CI : Condition_Index renames DS_Top.Seen_Condition;
+                  Last_CI    : Condition_Index renames DS_Top.Last_Cond_Index;
                begin
-                  Msg := To_Unbounded_String
-                           ("unexpected condition" & CI'Img
-                            & " (expected");
-                  if Current_CI >= 0 then
-                     Append (Msg, Condition_Index'Image (Current_CI) & " or");
+                  if CI in Condition_Index'Max (Current_CI,     0)
+                        .. Condition_Index'Min (Current_CI + 1, Last_CI)
+                  then
+                     return True;
                   end if;
-                  Append (Msg,
-                    Condition_Index'Image (Current_CI + 1) & ")"
-                    & " in decision " & Image (DS_Top.Decision));
-                  Report (Exec, Insn'First, To_String (Msg));
-               end;
-            end if;
-            return False;
-         end Is_Expected_Condition;
 
-         ---------------------------
-         -- Check_Condition_Index --
-         ---------------------------
+                  if Report_If_Unexpected then
+                     declare
+                        use Ada.Strings.Unbounded;
 
-         procedure Check_Condition_Index (CI : Condition_Index) is
-            Dummy : Boolean;
-            pragma Unreferenced (Dummy);
-         begin
-            Dummy := Is_Expected_Condition (CI, Report_If_Unexpected => True);
-         end Check_Condition_Index;
+                        Msg : Unbounded_String;
+                        Expect_Next_CI : Boolean;
+                     begin
+                        Msg := To_Unbounded_String
+                          ("unexpected condition" & CI'Img
+                           & " (expected");
 
-      --  Start of processing for Process_Condition
+                        Expect_Next_CI := Current_CI < DS_Top.Last_Cond_Index;
 
-      begin
-         Parent_SCO := Parent (D_SCO);
-         if Parent_SCO /= No_SCO_Id and then Kind (Parent_SCO) = Condition then
-            Enclosing_D_SCO := Enclosing_Decision (Parent_SCO);
-         else
-            Enclosing_D_SCO := No_SCO_Id;
+                        if Current_CI >= 0 then
+                           Append (Msg,
+                                   Condition_Index'Image (Current_CI));
+
+                           if Expect_Next_CI then
+                              Append (Msg, " or");
+                           end if;
+                        end if;
+
+                        if Expect_Next_CI then
+                           Append (Msg,
+                                   Condition_Index'Image (Current_CI + 1));
+                        end if;
+
+                        Append (Msg,
+                                ") in decision " & Image (DS_Top.Decision));
+
+                        if Tag /= No_SC_Tag then
+                           Append (Msg,
+                             ", tag=" & Tag_Provider.Tag_Name (Tag));
+                        end if;
+
+                        Report (Exec, Insn'First, To_String (Msg));
+                     end;
+                  end if;
+                  return False;
+               end Is_Expected_Condition;
+
+               ---------------------------
+               -- Check_Condition_Index --
+               ---------------------------
+
+               procedure Check_Condition_Index (CI : Condition_Index) is
+                  Dummy : Boolean;
+                  pragma Unreferenced (Dummy);
+               begin
+                  Dummy := Is_Expected_Condition
+                             (CI, Report_If_Unexpected => True);
+               end Check_Condition_Index;
+
+            --  Start of processing for Process_Condition
+
+            begin
+               Parent_SCO := Parent (D_SCO);
+
+               if Parent_SCO /= No_SCO_Id
+                 and then Kind (Parent_SCO) = Condition
+               then
+                  Enclosing_D_SCO := Enclosing_Decision (Parent_SCO);
+               else
+                  Enclosing_D_SCO := No_SCO_Id;
+               end if;
+
+               --  Flush completed decisions from the Decision_Stack
+
+               while Ctx.Decision_Stack.Length > 0 loop
+                  DS_Top := Ctx.Decision_Stack.Last_Element;
+                  exit when DS_Top.Decision = D_SCO
+                    and then Is_Expected_Condition (Cond_Index);
+
+                  if DS_Top.Decision = Enclosing_D_SCO then
+                     --  Here if the parent of our decision is part of a
+                     --  condition in another decision, and DS_Top is that
+                     --  enclosing decision.
+
+                     Check_Condition_Index (Index (Parent_SCO));
+                     DS_Top := null;
+                     exit;
+                  end if;
+
+                  --  If the condition being evaluated is the first one in its
+                  --  decision, assume that we are starting a new nested (or
+                  --  successive) evaluation.
+
+                  exit when Cond_Index = 0;
+
+                  --  Otherwise pop completed evaluations from the stack until
+                  --  we find the relevant pending one.
+
+                  Analyze_Decision_Occurrence (Exec, Ctx, DS_Top);
+                  Ctx.Decision_Stack.Delete_Last;
+                  DS_Top := null;
+               end loop;
+
+               if
+
+               --  No pending evaluation
+
+                 DS_Top = null
+
+               --  Evaluating a new, different decision than the enclosing one
+
+                 or else DS_Top.Decision /= D_SCO
+
+               --  Nested/successive evaluation of the same decision
+
+                 or else (DS_Top.Seen_Condition = DS_Top.Last_Cond_Index
+                          and then DS_Top.Last_Cond_Index > 0
+                          and then Cond_Index = 0)
+
+               then
+                  --  Push new context
+
+                  DS_Top := new Decision_Occurrence'
+                    (Last_Cond_Index => Last_Cond_Index (D_SCO),
+                     Decision        => D_SCO,
+                     others          => <>);
+                  Ctx.Decision_Stack.Append (DS_Top);
+               end if;
+
+               --  Here after pushing context for current decision, if needed
+
+               pragma Assert (DS_Top.Decision = D_SCO);
+               Check_Condition_Index (Cond_Index);
+
+               --  Record condition occurrence
+
+               Report
+                 (Exec, Insn'First,
+                  "cond branch for " & Image (SCO)
+                  & " (" & Img (Integer (Index (SCO))) & ")",
+                  Kind => Notice);
+               BB.Condition := SCO;
+
+               if Cond_Index > DS_Top.Seen_Condition then
+                  DS_Top.Seen_Condition := Cond_Index;
+               end if;
+
+               DS_Top.Conditional_Branches.Append (Insn'First);
+
+               Cond_Branch_Map.Insert
+                 ((Exec, Insn'First),
+                  Cond_Branch_Info'
+                    (Decision_Occurrence => DS_Top,
+                     Condition           => SCO,
+                     Edges               =>
+                       (Branch      =>
+                          (Destination => Branch_Dest,
+                           others      => <>),
+                        Fallthrough =>
+                          (Destination => FT_Dest,
+                           others      => <>))));
+            end Process_Condition;
          end if;
-
-         --  Flush completed decisions from the Decision_Stack
-
-         while Ctx.Decision_Stack.Length > 0 loop
-            DS_Top := Ctx.Decision_Stack.Last_Element;
-            exit when DS_Top.Decision = D_SCO
-              and then Is_Expected_Condition (Cond_Index);
-
-            if DS_Top.Decision = Enclosing_D_SCO then
-               Check_Condition_Index (Index (Parent_SCO));
-               DS_Top :=  null;
-               exit;
-            end if;
-
-            --  If the condition being evaluated is the first one in its
-            --  decision, assume that we are starting a new nested evaluation.
-
-            exit when Cond_Index = 0;
-
-            --  Otherwise pop completed evaluations from the stack until we
-            --  find the relevant pending one.
-
-            Analyze_Decision_Occurrence (Exec, Ctx, DS_Top);
-            Ctx.Decision_Stack.Delete_Last;
-            DS_Top := null;
-         end loop;
-
-         if DS_Top = null or else DS_Top.Decision /= D_SCO then
-            --  Push new context
-
-            DS_Top := new Decision_Occurrence'
-                            (Last_Cond_Index => Last_Cond_Index (D_SCO),
-                             Decision        => D_SCO,
-                             others          => <>);
-            Ctx.Decision_Stack.Append (DS_Top);
-         end if;
-
-         --  Here after pushing context for current decision, if needed
-
-         pragma Assert (DS_Top.Decision = D_SCO);
-         Check_Condition_Index (Cond_Index);
-
-         --  Record condition occurrence
-
-         Report
-           (Exec, Insn'First,
-            "cond branch for " & Image (SCO)
-            & " (" & Img (Integer (Index (SCO))) & ")",
-            Kind => Notice);
-         BB.Condition := SCO;
-
-         if Cond_Index > DS_Top.Seen_Condition then
-            DS_Top.Seen_Condition := Cond_Index;
-         end if;
-
-         DS_Top.Conditional_Branches.Append (Insn'First);
-
-         Cond_Branch_Map.Insert
-           ((Exec, Insn'First),
-            Cond_Branch_Info'
-              (Decision_Occurrence => DS_Top,
-               Condition           => SCO,
-               Edges               =>
-                 (Branch      =>
-                    (Destination => Branch_Dest,
-                     others      => <>),
-                  Fallthrough =>
-                    (Destination => FT_Dest,
-                     others      => <>))));
-      end Process_Condition;
+      end loop;
    end Analyze_Conditional_Branch;
 
    ---------------------------------
@@ -1275,6 +1331,7 @@ package body Decision_Map is
              Get_Insn_Length (Insns (PC .. Insns'Last));
 
          declare
+            LI   : Line_Info_Access;
             Insn : Binary_Content renames
                      Insns (PC .. PC + Pc_Type (Insn_Len) - 1);
 
@@ -1286,6 +1343,24 @@ package body Decision_Map is
             --  Properties of Insn
 
          begin
+            --  Find slocs for this PC, and mark all corresponding
+            --  statement SCOs as having code.
+
+            for Tsloc
+              of Tag_Provider.Get_Slocs_And_Tags (Exec, PC)
+            loop
+               LI := Get_Line (Tsloc.Sloc);
+               if LI /= null then
+                  for SCO of LI.SCOs loop
+                     if Kind (SCO) = Statement then
+                        Set_Basic_Block_Has_Code (SCO, Tsloc.Tag);
+                     end if;
+                  end loop;
+               end if;
+            end loop;
+
+            --  Disassemble instruction
+
             Disa_For_Machine (Machine).Get_Insn_Properties
               (Insn_Bin    => Insn,
                Pc          => PC,

@@ -18,10 +18,27 @@
 
 --  Source Coverage Obligations
 
-with Slocs;   use Slocs;
-with Traces;  use Traces;
+with Slocs;         use Slocs;
+with Traces;        use Traces;
 
 package SC_Obligations is
+
+   -----------------------
+   -- Compilation units --
+   -----------------------
+
+   type CU_Id is new Natural;
+   No_CU_Id : constant CU_Id := 0;
+   subtype Valid_CU_Id is CU_Id range No_CU_Id + 1 .. CU_Id'Last;
+
+   function Comp_Unit (LI_Name : String) return CU_Id;
+   --  Return the identifier for a given compilation unit, identified by the
+   --  base name of its LI file, or No_CU_Id if no such LI file has been
+   --  loaded.
+
+   ---------------------------------
+   -- Source Coverage Obligations --
+   ---------------------------------
 
    type SCO_Id is new Natural;
    No_SCO_Id : constant SCO_Id := 0;

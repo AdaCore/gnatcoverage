@@ -16,8 +16,11 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Traces;     use Traces;
-with Traces_Elf; use Traces_Elf;
+with Factory_Registry;
+with Slocs;            use Slocs;
+with Traces;           use Traces;
+with Traces_Elf;       use Traces_Elf;
+with Traces_Names;     use Traces_Names;
 
 package Coverage.Tags is
 
@@ -32,20 +35,41 @@ package Coverage.Tags is
    --  No_SC_Tag denotes the default cumulative analysis made for a SCO when
    --  no such distinction exists.
 
-   type Tag_Repository_Type is abstract tagged limited private;
-   type Tag_Repository_Access is access all Tag_Repository_Type'Class;
+   type Tag_Provider_Type is abstract tagged limited record
+      Current_Routine : Subprogram_Info;
+   end record;
 
-   function Get_Tag
-     (TR  : access Tag_Repository_Type;
+   type Tagged_Sloc is record
+      Sloc : Source_Location;
+      Tag  : SC_Tag;
+   end record;
+
+   type Tagged_Slocs is array (Positive range <>) of Tagged_Sloc;
+   --  Note: must have the same index base subtype as Slocs.Source_Locations
+
+   function Get_Slocs_And_Tags
+     (TP  : access Tag_Provider_Type;
       Exe : Exe_File_Acc;
-      PC  : Pc_Type) return SC_Tag
-      is abstract;
-   --  Return the tag for the given executable location
+      PC  : Pc_Type) return Tagged_Slocs is abstract;
+   --  Return a list of (sloc; tag) pairs for the given executable location.
+   --  Note that for PC that is associatied with more than one sloc (i.e. more
+   --  than one SCO), the relevant tag may be different for each sloc/SCO.
 
    function Tag_Name
-     (TR  : access Tag_Repository_Type;
+     (TP  : access Tag_Provider_Type;
       Tag : SC_Tag) return String is abstract;
    --  Return a user readable name for the given tag
+
+   procedure Enter_Routine
+     (TP        : access Tag_Provider_Type;
+      Subp_Info : Traces_Names.Subprogram_Info);
+   --  Record Subp_Info as the subprogram information for the routine being
+   --  analyzed (sets TP.Current_Routine).
+
+   package Tag_Providers is
+     new Factory_Registry (Tag_Provider_Type);
+
+   subtype Tag_Provider_Access is Tag_Providers.RT_Access;
 
    ----------------------------
    -- Default tag repository --
@@ -53,28 +77,39 @@ package Coverage.Tags is
 
    --  This repository does not assign any tags
 
-   type Default_Tag_Repository_Type is new Tag_Repository_Type with private;
+   type Default_Tag_Provider_Type is new Tag_Provider_Type with private;
 
-   overriding function Get_Tag
-     (TR  : access Default_Tag_Repository_Type;
+   overriding function Get_Slocs_And_Tags
+     (TP  : access Default_Tag_Provider_Type;
       Exe : Exe_File_Acc;
-      PC  : Pc_Type) return SC_Tag;
-   --  Return No_SC_Tag always
+      PC  : Pc_Type) return Tagged_Slocs;
+   --  Return all slocs for PC tagged with No_SC_Tag
 
    overriding function Tag_Name
-     (TR  : access Default_Tag_Repository_Type;
+     (TP  : access Default_Tag_Provider_Type;
       Tag : SC_Tag) return String;
-   --  Return an empty string
+   --  Return the empty string
 
-   Tag_Repository : Tag_Repository_Access;
+   Tag_Provider : Tag_Provider_Access;
+   Default_Tag_Provider_Name : constant String := "default";
+
+   ----------------------
+   -- Utility routines --
+   ----------------------
+
+   function Get_Slocs_With_Tag
+     (Exe : Exe_File_Acc;
+      PC  : Pc_Type;
+      Tag : SC_Tag) return Tagged_Slocs;
+   --  Return all slocs for PC, tagged with Tag
 
 private
 
-   type Tag_Repository_Type is abstract tagged limited null record;
+   type Default_Tag_Provider_Type is
+     new Tag_Provider_Type with null record;
 
-   type Default_Tag_Repository_Type is
-     new Tag_Repository_Type with null record;
-
-   Default_Tag_Repository : aliased Default_Tag_Repository_Type;
+   package R is new Tag_Providers.Register_Factory
+     (Name => Default_Tag_Provider_Name,
+      T    => Default_Tag_Provider_Type);
 
 end Coverage.Tags;

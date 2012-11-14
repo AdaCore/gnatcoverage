@@ -18,34 +18,62 @@
 
 package body Coverage.Tags is
 
-   -------------
-   -- Get_Tag --
-   -------------
+   -------------------
+   -- Enter_Routine --
+   -------------------
 
-   overriding function Get_Tag
-     (TR  : access Default_Tag_Repository_Type;
-      Exe : Exe_File_Acc;
-      PC  : Pc_Type) return SC_Tag
+   procedure Enter_Routine
+     (TP        : access Tag_Provider_Type;
+      Subp_Info : Traces_Names.Subprogram_Info)
    is
-      pragma Unreferenced (TR, Exe, PC);
    begin
-      return No_SC_Tag;
-   end Get_Tag;
+      TP.Current_Routine := Subp_Info;
+   end Enter_Routine;
+
+   ------------------------
+   -- Get_Slocs_And_Tags --
+   ------------------------
+
+   overriding function Get_Slocs_And_Tags
+     (TP  : access Default_Tag_Provider_Type;
+      Exe : Exe_File_Acc;
+      PC  : Pc_Type) return Tagged_Slocs
+   is
+      pragma Unreferenced (TP);
+   begin
+      return Get_Slocs_With_Tag (Exe, PC, No_SC_Tag);
+   end Get_Slocs_And_Tags;
+
+   ------------------------
+   -- Get_Slocs_With_Tag --
+   ------------------------
+
+   function Get_Slocs_With_Tag
+     (Exe : Exe_File_Acc;
+      PC  : Pc_Type;
+      Tag : SC_Tag) return Tagged_Slocs
+   is
+      Slocs : constant Source_Locations := Get_Slocs (Exe.all, PC);
+   begin
+      return Tslocs : Tagged_Slocs (Slocs'Range) do
+         for J in Slocs'Range loop
+            Tslocs (J) := (Sloc => Slocs (J), Tag => Tag);
+         end loop;
+      end return;
+   end Get_Slocs_With_Tag;
 
    --------------
    -- Tag_Name --
    --------------
 
    overriding function Tag_Name
-     (TR  : access Default_Tag_Repository_Type;
+     (TP  : access Default_Tag_Provider_Type;
       Tag : SC_Tag) return String
    is
-      pragma Unreferenced (TR);
+      pragma Unreferenced (TP);
       pragma Assert (Tag = No_SC_Tag);
    begin
       return "";
    end Tag_Name;
 
-begin
-   Tag_Repository := Default_Tag_Repository'Access;
 end Coverage.Tags;

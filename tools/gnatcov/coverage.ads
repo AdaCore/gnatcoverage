@@ -77,6 +77,7 @@ package Coverage is
 
    type SC_Tag is new Natural;
    No_SC_Tag : constant SC_Tag := 0;
+   subtype Valid_SC_Tag is SC_Tag range No_SC_Tag + 1 .. SC_Tag'Last;
    --  Several separated source coverage analyses may be simultaneously
    --  performed on a given source construct, in which case each analysis is
    --  identified by a different SC_Tag.

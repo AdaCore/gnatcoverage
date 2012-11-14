@@ -106,7 +106,6 @@ package body Diagnostics is
       begin
          if M.SCO /= No_SCO_Id then
             return Image (M.SCO, With_Sloc => First_Sloc (M.SCO) /= M.Sloc)
-              & Tag_Image
               & ": ";
          else
             return "";
@@ -120,7 +119,7 @@ package body Diagnostics is
       function Tag_Image return String is
       begin
          if M.Tag /= No_SC_Tag then
-            return " (from " & Tag_Repository.Tag_Name (M.Tag) & ")";
+            return " (from " & Tag_Provider.Tag_Name (M.Tag) & ")";
          else
             return "";
          end if;
@@ -141,7 +140,7 @@ package body Diagnostics is
         Sloc_Image        &
         " "               &
         Kind_Image        &
-        SCO_Image & M.Msg (First .. M.Msg'Last);
+        SCO_Image & M.Msg (First .. M.Msg'Last) & Tag_Image;
    end Image;
 
    ------------

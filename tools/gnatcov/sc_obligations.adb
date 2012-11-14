@@ -19,18 +19,24 @@
 --  Source Coverage Obligations
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Vectors;
+
+with Ada.Directories;   use Ada.Directories;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
-with ALI_Files;   use ALI_Files;
-with Diagnostics; use Diagnostics;
+with ALI_Files;     use ALI_Files;
+with Coverage.Tags; use Coverage, Coverage.Tags;
+with Diagnostics;   use Diagnostics;
+with Files_Table;   use Files_Table;
 with SCOs;
-with Snames;      use Snames;
-with Strings;     use Strings;
-with Switches;    use Switches;
-with Types;       use Types;
-with Files_Table; use Files_Table;
+with Snames;        use Snames;
+with Strings;       use Strings;
+with Switches;      use Switches;
+with Traces_Elf;    use Traces_Elf;
+with Traces_Names;  use Traces_Names;
+with Types;         use Types;
 
 package body SC_Obligations is
 
@@ -215,6 +221,63 @@ package body SC_Obligations is
 
    end BDD;
 
+   ---------------
+   -- Instances --
+   ---------------
+
+   type Inst_Id is new Natural;
+   No_Inst_Id : constant Inst_Id := 0;
+   subtype Valid_Inst_Id is Inst_Id range No_Inst_Id + 1 .. Inst_Id'Last;
+
+   type Inst_Info is record
+      Sloc               : Source_Location;
+      --  Instantiation location
+
+      Enclosing_Instance : Inst_Id;
+      --  Index of enclosing instance, or No_Inst_Id if instance is not nested
+
+      Comp_Unit          : CU_Id;
+      --  Originating compilation unit, for sanity checking purposes
+   end record;
+
+   package Inst_Info_Vectors is
+     new Ada.Containers.Vectors
+       (Index_Type   => Valid_Inst_Id,
+        Element_Type => Inst_Info);
+
+   Inst_Vector : Inst_Info_Vectors.Vector;
+
+   ------------------------
+   -- Source units table --
+   ------------------------
+
+   type CU_Info is record
+      First_Instance, Last_Instance : Inst_Id;
+      --  First and last index of SCO_Instance_Table entries for this unit
+
+      Deps : SFI_Vector;
+      --  Mapping of this unit's dependency numbers to source file indices
+   end record;
+
+   package CU_Info_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Valid_CU_Id,
+      Element_Type => CU_Info);
+
+   package CU_Maps is new Ada.Containers.Indefinite_Ordered_Maps
+     (Key_Type     => String,
+      Element_Type => Valid_CU_Id);
+
+   CU_Map    : CU_Maps.Map;
+   CU_Vector : CU_Info_Vectors.Vector;
+
+   procedure New_CU (Base_Name : String; Info : CU_Info);
+   --  Enter a new source unit, identified by the base name of its LI/object
+   --  files, and return its SU identifier.
+
+   function Instance_Loc (Inst_Index : Inst_Id) return String;
+   --  Return a string representation of the instantiation location denoted
+   --  by Inst_Index, which must be in Comp_Unit's instance range.
+
    -------------------------------
    -- Main SCO descriptor table --
    -------------------------------
@@ -363,6 +426,31 @@ package body SC_Obligations is
 
    function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id;
    --  Return the innermost enclosing SCO with the given Kind
+
+   -----------------------
+   -- Instance coverage --
+   -----------------------
+
+   type Instance_Tag_Provider_Type is new Tag_Provider_Type with record
+      Current_CU : CU_Id;
+   end record;
+
+   overriding function Get_Slocs_And_Tags
+     (TP  : access Instance_Tag_Provider_Type;
+      Exe : Exe_File_Acc;
+      PC  : Pc_Type) return Tagged_Slocs;
+
+   overriding function Tag_Name
+     (TP  : access Instance_Tag_Provider_Type;
+      Tag : SC_Tag) return String;
+
+   overriding procedure Enter_Routine
+     (TP        : access Instance_Tag_Provider_Type;
+      Subp_Info : Subprogram_Info);
+
+   package R is new Tag_Providers.Register_Factory
+     (Name => "instance", T => Instance_Tag_Provider_Type);
+   pragma Unreferenced (R);
 
    ---------
    -- BDD --
@@ -1105,6 +1193,24 @@ package body SC_Obligations is
       return Enclosing (Statement, SCO);
    end Enclosing_Statement;
 
+   -------------------
+   -- Enter_Routine --
+   -------------------
+
+   overriding procedure Enter_Routine
+     (TP        : access Instance_Tag_Provider_Type;
+      Subp_Info : Subprogram_Info)
+   is
+      Subprogram_Info : constant Addresses_Info_Acc :=
+                          Get_Address_Info
+                            (Exec => Subp_Info.Exec.all,
+                             Kind => Subprogram_Addresses,
+                             PC   => Subp_Info.Insns'First);
+   begin
+      Tag_Provider_Type (TP.all)'Access.Enter_Routine (Subp_Info);
+      TP.Current_CU := Subprogram_Info.Subprogram_CU;
+   end Enter_Routine;
+
    ----------------
    -- First_Sloc --
    ----------------
@@ -1135,6 +1241,61 @@ package body SC_Obligations is
          Prev_Value := BDDN.Parent_Value;
       end if;
    end Get_Origin;
+
+   -------------
+   -- Get_Tag --
+   -------------
+
+   overriding function Get_Slocs_And_Tags
+     (TP  : access Instance_Tag_Provider_Type;
+      Exe : Exe_File_Acc;
+      PC  : Pc_Type) return Tagged_Slocs
+   is
+      use SCOs;
+      use type Pc_Type;
+
+      Line_Infos : constant Addresses_Containers.Set :=
+        Get_Address_Infos (Exe.all, Line_Addresses, PC);
+
+      Tslocs : Tagged_Slocs (1 .. Integer (Line_Infos.Length));
+      Last   : Natural := Tslocs'First - 1;
+
+      Global_Instance_Index : Inst_Id;
+   begin
+      pragma Assert
+        (PC in TP.Current_Routine.Insns'First + TP.Current_Routine.Offset
+            .. TP.Current_Routine.Insns'Last  + TP.Current_Routine.Offset);
+
+      for Line_Info of Get_Address_Infos (Exe.all, Line_Addresses, PC) loop
+         if Line_Info.Last >= Line_Info.First then
+            Last := Last + 1;
+            Tslocs (Last).Sloc := Line_Info.Sloc;
+
+            if Line_Info.Disc /= 0 then
+               --  Non-zero discriminator found: it is an instance index within
+               --  the current compilation unit. Convert it to a global
+               --  instance index, and cast to tag.
+
+               Global_Instance_Index :=
+                 CU_Vector (TP.Current_CU).First_Instance
+                              + Inst_Id (Line_Info.Disc - 1);
+
+               pragma Assert
+                 (Global_Instance_Index
+                    <= CU_Vector (TP.Current_CU).Last_Instance);
+
+               pragma Assert
+                 (Inst_Vector.Element (Global_Instance_Index).Comp_Unit
+                    = TP.Current_CU);
+
+               Tslocs (Last).Tag := Valid_SC_Tag (Global_Instance_Index);
+            else
+               Tslocs (Last).Tag := No_SC_Tag;
+            end if;
+         end if;
+      end loop;
+      return Tslocs (Tslocs'First .. Last);
+   end Get_Slocs_And_Tags;
 
    -------------------
    -- Handler_Range --
@@ -1281,6 +1442,24 @@ package body SC_Obligations is
       return SCOD.Index;
    end Index;
 
+   ------------------
+   -- Instance_Loc --
+   ------------------
+
+   function Instance_Loc (Inst_Index : Inst_Id) return String
+   is
+      use SCOs;
+      use Ada.Strings;
+
+      II : Inst_Info renames Inst_Vector.Element (Inst_Index);
+   begin
+      return
+        Image (II.Sloc)
+          & (if II.Enclosing_Instance = No_Inst_Id
+             then ""
+             else " [" & Instance_Loc (II.Enclosing_Instance) & "]");
+   end Instance_Loc;
+
    ---------------------------
    -- Is_Disabled_Statement --
    ---------------------------
@@ -1426,10 +1605,16 @@ package body SC_Obligations is
       Current_BDD : BDD.BDD_Type;
       --  BDD of current decision
 
-      Last_SCO_Upon_Entry : constant SCO_Id := SCO_Vector.Last_Index;
+      --  Record last SCO and instance identifiers prior to loading SCOs
 
+      Last_SCO_Upon_Entry      : constant SCO_Id  := SCO_Vector.Last_Index;
+      Last_Instance_Upon_Entry : constant Inst_Id := Inst_Vector.Last_Index;
+
+      Deps : SFI_Vector;
       ALI_Index : constant Source_File_Index :=
-                             Load_ALI (ALI_Filename, With_SCOs => True);
+                             Load_ALI (ALI_Filename, Deps, With_SCOs => True);
+      --  This updates the last SCO and instance identifiers
+
    begin
       if ALI_Index = No_Source_File then
          return;
@@ -1707,6 +1892,36 @@ package body SC_Obligations is
          end Process_Entry;
       end loop;
 
+      --  Record compilation unit and instance range
+
+      New_CU (Base_Name (ALI_Filename),
+        (First_Instance => Last_Instance_Upon_Entry + 1,
+         Last_Instance  => Last_Instance_Upon_Entry + 1
+                             + Inst_Id (SCO_Instance_Table.Last)
+                             - Inst_Id (SCO_Instance_Table.First),
+         Deps           => Deps));
+
+      --  Import unit instance table into global table
+
+      for J in SCO_Instance_Table.First .. SCO_Instance_Table.Last loop
+         declare
+            SIE : SCO_Instance_Table_Entry
+                    renames SCO_Instance_Table.Table (J);
+         begin
+            Inst_Vector.Append
+              ((Sloc                =>
+                  (Source_File => Deps.Element (SIE.Inst_Dep_Num),
+                   Line        => Natural (SIE.Inst_Loc.Line),
+                   Column      => Natural (SIE.Inst_Loc.Col)),
+                Enclosing_Instance =>
+                  (if SIE.Enclosing_Instance = 0
+                   then No_Inst_Id
+                   else Last_Instance_Upon_Entry
+                      + Inst_Id (SIE.Enclosing_Instance)),
+                Comp_Unit          => CU_Vector.Last_Index));
+         end;
+      end loop;
+
       --  Build Sloc -> SCO index and set up Parent links
 
       for SCO in Last_SCO_Upon_Entry + 1 .. SCO_Vector.Last_Index loop
@@ -1884,6 +2099,16 @@ package body SC_Obligations is
          end;
       end loop;
    end Load_SCOs;
+
+   ------------
+   -- New_CU --
+   ------------
+
+   procedure New_CU (Base_Name : String; Info : CU_Info) is
+   begin
+      CU_Vector.Append (Info);
+      CU_Map.Insert (Base_Name, CU_Vector.Last_Index);
+   end New_CU;
 
    -------------------
    -- Next_BDD_Node --
@@ -2126,6 +2351,34 @@ package body SC_Obligations is
       end loop;
       return SCO;
    end Sloc_To_SCO;
+
+   ---------------
+   -- Comp_Unit --
+   ---------------
+
+   function Comp_Unit (LI_Name : String) return CU_Id is
+      use CU_Maps;
+      Cur : constant Cursor := CU_Map.Find (LI_Name);
+   begin
+      if Cur = CU_Maps.No_Element then
+         return No_CU_Id;
+      else
+         return Element (Cur);
+      end if;
+   end Comp_Unit;
+
+   --------------
+   -- Tag_Name --
+   --------------
+
+   overriding function Tag_Name
+     (TP  : access Instance_Tag_Provider_Type;
+      Tag : SC_Tag) return String
+   is
+      pragma Unreferenced (TP);
+   begin
+      return Instance_Loc (Inst_Id (Tag));
+   end Tag_Name;
 
    ----------------------
    -- To_Decision_Kind --

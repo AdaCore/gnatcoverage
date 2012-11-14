@@ -496,6 +496,7 @@ package body Coverage.Source is
 
       procedure Discharge_SCO (SCO : SCO_Id; Empty_Range : Boolean) is
          Propagating, No_Propagation : Boolean;
+
          Dom_SCO : SCO_Id;
          Dom_Val : Boolean;
 
@@ -543,6 +544,15 @@ package body Coverage.Source is
 
                --  Mark S_SCO as executed
 
+               Report
+                 (Msg  => "marking " & Image (S_SCO) & " executed"
+                            & (if Tag = No_SC_Tag
+                               then ""
+                               else ", tag=" & Tag_Provider.Tag_Name (Tag))
+
+                            & (if Propagating then " (propagating)" else ""),
+                    Kind => Notice);
+
                Update_SCI (S_SCO, Tag, Set_Executed'Access);
             end if;
 
@@ -559,8 +569,12 @@ package body Coverage.Source is
             then
                Report
                  (Msg  => "propagating from " & Image (S_SCO) & " to "
-                          & Image (Dom_SCO) & "=" & Dom_Val'Img,
+                            & Image (Dom_SCO) & " outcome " & Dom_Val'Img
+                            & (if Tag = No_SC_Tag
+                               then ""
+                               else ", tag=" & Tag_Provider.Tag_Name (Tag)),
                   Kind => Notice);
+
                Update_SCI (Dom_SCO, Tag, Set_Outcome_Taken'Access);
             end if;
 
@@ -806,9 +820,9 @@ package body Coverage.Source is
    --  Start of processing for Compute_Source_Coverage
 
    begin
-      --  Set current subprogram for per-routine tagging
+      --  Set current subprogram for separated source coverage analysis
 
-      Traces_Names.Enter_Routine (Subp_Info);
+      Tag_Provider.Enter_Routine (Subp_Info);
 
       --  Iterate over trace for this routine
 
@@ -816,8 +830,6 @@ package body Coverage.Source is
 
       Trace_Insns :
       while PC <= T.Last + Subp_Info.Offset loop
-         Tag := Tag_Repository.Get_Tag (Exe, PC);
-
          Insn_Len :=
            Disa_For_Machine (Machine).
            Get_Insn_Length (Subp_Info.Insns (PC .. Subp_Info.Insns'Last));
@@ -826,11 +838,12 @@ package body Coverage.Source is
          --  instruction.
 
          declare
-            SL : constant Source_Locations :=
-                   Get_Slocs (Subp_Info.Exec.all, PC);
+            SL : constant Tagged_Slocs :=
+                   Tag_Provider.Get_Slocs_And_Tags (Subp_Info.Exec, PC);
          begin
             for J in SL'Range loop
-               SCO := Sloc_To_SCO (SL (J));
+               SCO := Sloc_To_SCO (SL (J).Sloc);
+               Tag := SL (J).Tag;
 
                --  All but the last sloc in SL correspond to an empty PC range
 

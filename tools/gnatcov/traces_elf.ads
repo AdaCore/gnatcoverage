@@ -16,23 +16,25 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Strings; use GNAT.Strings;
-with Ada.Unchecked_Deallocation;
-with Ada.Containers.Ordered_Sets;
-
-with Coverage;      use Coverage;
-with Elf_Arch;      use Elf_Arch;
-with Elf_Common;    use Elf_Common;
-with Elf_Files;     use Elf_Files;
-with Traces;        use Traces;
-with Traces_Dbase;  use Traces_Dbase;
-with Slocs;         use Slocs;
-
-with Interfaces;
-
 with Ada.Containers.Doubly_Linked_Lists;
+with Ada.Containers.Ordered_Sets;
+with Ada.Unchecked_Deallocation;
+
+with Interfaces; use Interfaces;
+
 with System; use System;
+
+with GNAT.Strings; use GNAT.Strings;
+
+with Coverage;       use Coverage;
 with Disa_Symbolize; use Disa_Symbolize;
+with Elf_Arch;       use Elf_Arch;
+with Elf_Common;     use Elf_Common;
+with Elf_Files;      use Elf_Files;
+with Traces;         use Traces;
+with Traces_Dbase;   use Traces_Dbase;
+with SC_Obligations; use SC_Obligations;
+with Slocs;          use Slocs;
 
 package Traces_Elf is
 
@@ -41,7 +43,7 @@ package Traces_Elf is
    --  An array of byte, used to store ELF sections
 
    type Binary_Content_Acc is access Binary_Content;
-   procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
+   procedure Free is new Ada.Unchecked_Deallocation
      (Binary_Content, Binary_Content_Acc);
 
    type Exe_File_Type is limited new Symbolizer with private;
@@ -130,31 +132,6 @@ package Traces_Elf is
    procedure Disp_Compilation_Units (Exec : Exe_File_Type);
    --  Display compilation units filename of Exec
 
-   function Get_Address_Info
-     (Exec : Exe_File_Type;
-      Kind : Addresses_Kind;
-      PC   : PC_Type) return Addresses_Info_Acc;
-   --  Retrieve the descriptor of the given Kind whose range contains address
-   --  PC in Exec.
-
-   function Get_Symbol
-     (Exec : Exe_File_Type;
-      PC   : Pc_Type) return Addresses_Info_Acc;
-   --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
-
-   function Get_Slocs
-     (Exec      : Exe_File_Type;
-      PC        : Pc_Type;
-      Last_Only : Boolean := False) return Source_Locations;
-   --  Use Exec's debug_lines information to determine the slocs for the
-   --  instruction at PC.
-
-   function Get_Sloc
-     (Exec : Exe_File_Type;
-      PC   : Pc_Type) return Source_Location;
-   --  Same as Get_Slocs, but returning a unique source location, with a
-   --  non-empty range.
-
    --  Canonical use of iterators:
    --
    --  Init_Iterator (Exe, Section_Addresses, It);
@@ -191,12 +168,15 @@ package Traces_Elf is
       First, Last : Traces.Pc_Type;
 
       Parent : Addresses_Info_Acc;
-      --  Sections have no parent.
-      --  Parent of a symbol is a section.
-      --  Parent of a CU is a section.
-      --  Parent of a subprogram is a CU.
-      --  ... but we set the parent of a subprogram entry to Current_Sec???
-      --  Parent of a line is a subprogram or a CU.
+
+      --  Note: this is NOT the parent node in the sense of the DWARF tree.
+
+      --  Instead, in this structure:
+      --    Sections have no parent.
+      --    Parent of a symbol is a section.
+      --    Parent of a CU is a section.
+      --    Parent of a subprogram is a section as well
+      --    Parent of a line is a subprogram or a CU.
 
       case Kind is
          when Section_Addresses =>
@@ -206,6 +186,7 @@ package Traces_Elf is
 
          when Subprogram_Addresses =>
             Subprogram_Name : String_Access;
+            Subprogram_CU   : CU_Id;
 
          when Symbol_Addresses =>
             Symbol_Name : String_Access;
@@ -213,6 +194,7 @@ package Traces_Elf is
 
          when Line_Addresses =>
             Sloc : Source_Location := No_Location;
+            Disc : Unsigned_32     := 0;
 
             Is_Last : Boolean := False;
             --  Set True for the last of a set of slocs associated with a given
@@ -221,8 +203,37 @@ package Traces_Elf is
       end case;
    end record;
 
-   procedure Unchecked_Deallocation is
-      new Ada.Unchecked_Deallocation (Addresses_Info, Addresses_Info_Acc);
+   function Get_Address_Info
+     (Exec : Exe_File_Type;
+      Kind : Addresses_Kind;
+      PC   : PC_Type) return Addresses_Info_Acc;
+   --  Retrieve the descriptor of the given Kind whose range contains address
+   --  PC in Exec.
+
+   function Get_Address_Infos
+     (Exec : Exe_File_Type;
+      Kind : Addresses_Kind;
+      PC   : Pc_Type) return Addresses_Containers.Set;
+   --  Same as Get_Address_Info, but return a set of address infos if there
+   --  are several matches.
+
+   function Get_Symbol
+     (Exec : Exe_File_Type;
+      PC   : Pc_Type) return Addresses_Info_Acc;
+   --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
+
+   function Get_Slocs
+     (Exec      : Exe_File_Type;
+      PC        : Pc_Type;
+      Last_Only : Boolean := False) return Source_Locations;
+   --  Use Exec's debug_lines information to determine the slocs for the
+   --  instruction at PC.
+
+   function Get_Sloc
+     (Exec : Exe_File_Type;
+      PC   : Pc_Type) return Source_Location;
+   --  Same as Get_Slocs, but returning a unique source location, with a
+   --  non-empty range.
 
    procedure Scan_Symbols_From
      (File   : Exe_File_Acc;
@@ -326,6 +337,7 @@ private
       Nbr_Symbols : Natural := 0;
 
       Compile_Units : Compile_Unit_Lists.List;
+      --  Compilation units
 
       Desc_Sets : Desc_Sets_Type;
       --  Address descriptor sets

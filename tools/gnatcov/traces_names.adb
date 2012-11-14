@@ -24,6 +24,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces;
 
 with Coverage.Object; use Coverage.Object;
+with Coverage.Tags;   use Coverage.Tags;
 with Inputs;          use Inputs;
 with Outputs;         use Outputs;
 with Strings;         use Strings;
@@ -31,26 +32,26 @@ with Switches;        use Switches;
 
 package body Traces_Names is
 
-   subtype Routine_SC_Tag is SC_Tag range No_SC_Tag + 1 .. SC_Tag'Last;
    package Routine_Tag_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Routine_SC_Tag,
+     (Index_Type   => Valid_SC_Tag,
       Element_Type => String_Access);
 
-   type Routine_Tag_Repository_Type is new Tag_Repository_Type with record
+   type Routine_Tag_Provider_Type is new Tag_Provider_Type with record
       Routine_Tags    : Routine_Tag_Vectors.Vector;
-      Current_Routine : Subprogram_Info;
    end record;
 
-   overriding function Get_Tag
-     (TR  : access Routine_Tag_Repository_Type;
+   overriding function Get_Slocs_And_Tags
+     (TP  : access Routine_Tag_Provider_Type;
       Exe : Exe_File_Acc;
-      PC  : Pc_Type) return SC_Tag;
+      PC  : Pc_Type) return Tagged_Slocs;
 
    overriding function Tag_Name
-     (TR  : access Routine_Tag_Repository_Type;
+     (TP  : access Routine_Tag_Provider_Type;
       Tag : SC_Tag) return String;
 
-   Routine_Tag_Repository : aliased Routine_Tag_Repository_Type;
+   package R is new Tag_Providers.Register_Factory
+     (Name => "routine", T => Routine_Tag_Provider_Type);
+   pragma Unreferenced (R);
 
    function Equal (L, R : Subprogram_Info) return Boolean;
    --  Needs comment???
@@ -73,7 +74,8 @@ package body Traces_Names is
      (Routine_Name : String_Access;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
-      First_Code   : out Boolean)
+      First_Code   : out Boolean;
+      Subp_Info    : out Subprogram_Info)
    is
       use Names_Maps;
       use Interfaces;
@@ -127,6 +129,8 @@ package body Traces_Names is
 
             Subp_Info.Offset := Subp_Info.Insns'First - Content'First;
          end if;
+
+         Add_Code.Subp_Info := Subp_Info;
       end Update;
 
       Cur : constant Cursor := Names.Find (Routine_Name);
@@ -228,12 +232,13 @@ package body Traces_Names is
       Cur : Cursor;
 
       First_Code : Boolean;
-      pragma Unreferenced (First_Code);
+      Subp_Info  : Subprogram_Info;
+      pragma Unreferenced (First_Code, Subp_Info);
 
    --  Start of processing for Add_Code_And_Traces
 
    begin
-      Add_Code (Routine_Name, Exec, Content, First_Code);
+      Add_Code (Routine_Name, Exec, Content, First_Code, Subp_Info);
       Cur := Names.Find (Routine_Name);
       if Has_Element (Cur) then
          Names.Update_Element (Cur, Update'Access);
@@ -249,18 +254,35 @@ package body Traces_Names is
       Exec : Exe_File_Acc;
       Tag  : out SC_Tag)
    is
-      RTags : Routine_Tag_Vectors.Vector
-      renames Routine_Tag_Repository.Routine_Tags;
+      TP : Tag_Provider_Access renames Tag_Provider;
+
    begin
-      RTags.Append (Name);
+      --  If doing routine-based separated coverage analysis, record name
+      --  in routine tags table.
+
+      if TP.all in Routine_Tag_Provider_Type'Class then
+         declare
+            RTags : Routine_Tag_Vectors.Vector
+              renames Routine_Tag_Provider_Type (TP.all).Routine_Tags;
+         begin
+            RTags.Append (Name);
+            Tag := RTags.Last_Index;
+         end;
+
+      else
+         Tag := No_SC_Tag;
+      end if;
+
+      --  Create names table entry
+
       Names.Insert (Name,
-        Subprogram_Info'(Exec   => Exec,
-                         Insns  => null,
-                         Traces => null,
-                         Offset => 0,
-                         Tag    => RTags.Last_Index));
-      Tag := RTags.Last_Index;
-      if Verbose then
+                    Subprogram_Info'(Exec        => Exec,
+                                     Insns       => null,
+                                     Traces      => null,
+                                     Offset      => 0,
+                                     Routine_Tag => Tag));
+
+      if Verbose and then Tag /= No_SC_Tag then
          Put_Line ("Routine tag" & Tag'Img & ": " & Name.all);
       end if;
    end Add_Routine_Name;
@@ -294,6 +316,7 @@ package body Traces_Names is
       T     : Trace_Entry;
    begin
       if Insns = null then
+
          --  The routine was not found in the executable
 
          return Not_Covered;
@@ -342,15 +365,6 @@ package body Traces_Names is
       end loop;
    end Disp_All_Routines;
 
-   -------------------
-   -- Enter_Routine --
-   -------------------
-
-   procedure Enter_Routine (Subp_Info : Subprogram_Info) is
-   begin
-      Routine_Tag_Repository.Current_Routine := Subp_Info;
-   end Enter_Routine;
-
    -----------
    -- Equal --
    -----------
@@ -371,31 +385,22 @@ package body Traces_Names is
       return Names_Maps.Element (Names.Find (Name));
    end Get_Subp_Info;
 
-   -------------
-   -- Get_Tag --
-   -------------
+   ------------------------
+   -- Get_Slocs_And_Tags --
+   ------------------------
 
-   overriding function Get_Tag
-     (TR  : access Routine_Tag_Repository_Type;
+   overriding function Get_Slocs_And_Tags
+     (TP  : access Routine_Tag_Provider_Type;
       Exe : Exe_File_Acc;
-      PC  : Pc_Type) return SC_Tag
+      PC  : Pc_Type) return Tagged_Slocs
    is
       use type Pc_Type;
-
    begin
-      if TR.Current_Routine.Insns = null then
-
-         --  No current routine
-
-         return Get_Symbol (Exe.all, PC).Symbol_Tag;
-
-      else
-         pragma Assert
-           (PC in TR.Current_Routine.Insns'First + TR.Current_Routine.Offset
-            .. TR.Current_Routine.Insns'Last + TR.Current_Routine.Offset);
-         return TR.Current_Routine.Tag;
-      end if;
-   end Get_Tag;
+      pragma Assert
+        (PC in TP.Current_Routine.Insns'First + TP.Current_Routine.Offset
+            .. TP.Current_Routine.Insns'Last  + TP.Current_Routine.Offset);
+      return Get_Slocs_With_Tag (Exe, PC, TP.Current_Routine.Routine_Tag);
+   end Get_Slocs_And_Tags;
 
    -----------
    -- Is_In --
@@ -415,20 +420,10 @@ package body Traces_Names is
      (Proc : access procedure (Subp_Name : String_Access;
                                Subp_Info : in out Subprogram_Info))
    is
-      use Names_Maps;
-
-      procedure Process_One (Cur : Cursor);
-      --  Call Proc for the element at Cur
-
-      procedure Process_One (Cur : Cursor) is
-      begin
-         Names.Update_Element (Cur, Proc);
-      end Process_One;
-
-   --  Start of processing for Iterate
-
    begin
-      Names.Iterate (Process_One'Access);
+      for Cur in Names.Iterate loop
+         Names.Update_Element (Cur, Proc);
+      end loop;
    end Iterate;
 
    ----------------------------------
@@ -452,25 +447,16 @@ package body Traces_Names is
       Names.Exclude (Name);
    end Remove_Routine_Name;
 
-   --------------------------------
-   -- Get_Routine_Tag_Repository --
-   --------------------------------
-
-   function Get_Routine_Tag_Repository return Tag_Repository_Access is
-   begin
-      return Routine_Tag_Repository'Access;
-   end Get_Routine_Tag_Repository;
-
    --------------
    -- Tag_Name --
    --------------
 
    overriding function Tag_Name
-     (TR  : access Routine_Tag_Repository_Type;
+     (TP  : access Routine_Tag_Provider_Type;
       Tag : SC_Tag) return String
    is
    begin
-      return TR.Routine_Tags.Element (Tag).all;
+      return TP.Routine_Tags.Element (Tag).all;
    end Tag_Name;
 
 end Traces_Names;

@@ -421,17 +421,17 @@ package body Annotations.Report is
                   To_Lower (SCO_Kind'Image (Kind (M.SCO))) & ' ');
             end if;
 
-            if M.Tag /= No_SC_Tag then
-               Put (Output.all,
-                    "(from " & Tag_Repository.Tag_Name (M.Tag) & ") ");
-            end if;
-
          else
             Put (Output.all, Image (M.Sloc));
             Put (Output.all, ": ");
          end if;
 
          Put (Output.all, M.Msg (First .. M.Msg'Last));
+         if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
+            Put (Output.all,
+                 " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");
+         end if;
+
          Total_Messages := Total_Messages + 1;
          Pp.Item_Count := Pp.Item_Count + 1;
          New_Line (Output.all);
