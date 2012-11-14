@@ -153,7 +153,7 @@ QLEVEL_INFO = {
 #             v     o      testsuite.py [--cargs=<>]
 #  gprbuild (gpr, cargs)   [--cargs:Ada=<>] [--cargs:C=<>]
 #                   |         |
-#                   --- XOR ---
+#                   =-> XOR <-=
 #                        v
 #                    --cargs += SUITE.control.BUILD.COMMON_CARGS
 #                        |      (-g -fdump-scos -fpreserve-control-flow)
@@ -168,6 +168,13 @@ QLEVEL_INFO = {
 # ===============
 
 class TestSuite:
+
+    def push_comment (self, text, mode='a'):
+        """Dump TEXT into a "comment" file for this run, which will be displayed
+        as a testsuite report header."""
+
+        with open(os.path.join(self.log_dir, 'comment'), mode) as fd:
+            fd.write (text+'\n')
 
     def __init__(self):
         """Prepare the testsuite run: parse options, compute and dump
@@ -210,14 +217,8 @@ class TestSuite:
         with open(os.path.join(self.log_dir, 'discs'), 'w') as fd:
             fd.write(" ".join(discs) + "\n")
 
-        # Dump useful information about this run in a file.  This file can be
-        # used as a testsuite report header, allowing a review to determine
-        # immediately how the testsuite was run to get those results.  For
-        # now, we only provide the command-line switches.
-
-        self.comment = os.path.join(self.log_dir, 'comment')
-        with open(self.comment, 'w') as fd:
-            fd.write(self.__early_comments ())
+        # Dump useful comments about this run for starters.
+        self.push_comment (self.__early_comments (), mode='w')
 
         # Compute the test list. Arrange to have ./ in paths to maximize
         # possible regexp matches, in particular to allow use of command-line
@@ -466,6 +467,10 @@ class TestSuite:
             logging.info("Mainloop stopped on exception occurrence")
             logging.info(e.__str__())
 
+            self.push_comment ('\n'.join (
+                    ["!!! MAINLOOP STOPPED ON EXCEPTION !!!", e.__str__()]
+                    ))
+
         ReportDiff(
             self.log_dir, self.options.old_res
             ).txt_image('rep_gnatcov')
@@ -678,12 +683,9 @@ class TestSuite:
             self.n_consecutive_failures = 0
 
         if self.n_consecutive_failures >= 10:
-            msg = ("Stopped after %d consecutive failures"
-                   % self.n_consecutive_failures)
-
-            with open(self.comment, 'a') as fd:
-                fd.write("Log: " + msg + "\n")
-            raise FatalError (msg)
+            raise FatalError (
+                "Stopped after %d consecutive failures"
+                % self.n_consecutive_failures)
 
     def odiff_for(self, test):
         """Returns path to diff file in the suite output directory.  This file
