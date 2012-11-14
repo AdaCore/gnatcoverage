@@ -3,8 +3,8 @@
 # ****************************************************************************
 
 # Expose facilities to construct per-unit dictionaries of expected or reported
-# coverage notes, extracted from text files (=xcov or =report outputs, driver
-# sources).
+# coverage notes, extracted from text files (=xcov outputs, =report outputs, 
+# or driver sources).
 
 # The result dictionary keys are source names and values are KnoteDict
 # objects (per kind dictionary of note instances)
@@ -481,14 +481,42 @@ class RnotesExpander:
 # slashes inside lx_lre tokens are allowed. The SCOV_data parser simply
 # uses the first and last slash as the delimiters.
 
-# We use two intermediate abstractions to build the dictionaries from
+# We use three intermediate abstractions to build the dictionaries from
 # the expectations text:
 #
 # * Line Coverage eXpectations (LineCX) objects, to represent individual
-#   expectations line like  "--  /bla/ l- s-", and
+#   expectations line like  "--  /bla/ l- ## s-", and
 #
-# * Unit Coverage eXpecations (UniCX) objects to represent the associations
-#   of a sequence of line expectations with unit names.
+# * Unit Coverage eXpecations (UnitCX) objects to represent the associations
+#   of a sequence of line expectations with a single unit name.
+#
+# * Unit eXpectation Groups (UXgroup) objects to represent the associations of
+#   a sequence of line expectations with a list of unit names.
+#
+# For example, assuming an Ada driver, the excerpt below ...
+#
+# --# p1.adb p2.adb
+# --  /bla/ l- ## s-
+# --  /blo/ l+ ## 0
+#
+# --# x.adb
+# --  /blu/ l+ ## 0
+#
+# Will first yield:
+#
+# * One UCX group for [p1.adb, p2.adb] associated with
+#   two LineCX objects, one for /bla/ and one for /blo/
+#
+# * One UCX group for [x.adb] associated with one LineCX
+#   object for /blu/
+#
+# From there, we'll eventually produce three UnitCX objects:
+#
+# * One instantating internal note objects for /bla/ + /blo/ from p1.adb
+#
+# * One instantating internal note objects for /bla/ + /blo/ from p2.adb
+#
+# * One instantating internal note objects for /blu/ from x.adb
 
 # ------------
 # -- LineCX --
@@ -515,8 +543,9 @@ class LineCX:
 # ------------
 
 class UnitCX:
-    """Associate a source name with a list of expected Coverage Line
-    eXpectations. Construct Line and Report Xnote dictionaries."""
+    """Associate a single source name with a list of expected Coverage
+    Line eXpectations. Construct the corresponding Line and Report Xnote
+    dictionaries."""
 
     # expected notes instanciations
     # -----------------------------
@@ -653,6 +682,109 @@ class UnitCX:
         thistest.stop_if (
             self.current_block, FatalError ("fuzz block still open at EOF"))
 
+# --------------
+# -- UXgroup --
+# --------------
+
+class UXgroup:
+
+    def __init__ (self, ulists):
+
+        # ULISTS: the set of candidate unit lists for this group, as specified
+        # in the expectation spec. This is a list of lists like
+        #
+        #   [[x0.adb, y0.adb], [x1.c, y1.c]]
+        #
+        # where
+        #
+        # - each sublist is a set of sources to which the set of line
+        #   expectations should attach.
+        #
+        # - exactly one sublist is expected to correspond to sources
+        #   we can actually find.
+
+        self.ulists = ulists
+
+        # LXSET: a list set of LineCX objects corresponding to the stated
+        # expectations for the units we can find.
+
+        self.lxset = []
+
+    def __wrap_lre(self, lx, langinfo):
+        """For a source expressed in the language described by LANGINFO,
+        adjust line regular expression in LX to expect it prefixed with
+        "xx # " where "xx" is the language comment marker."""
+
+        lx.lre = langinfo.comment + " # (" + lx.lre + ")"
+
+        # The parens are crucial here. Consider what would happen for
+        # /bla|blo/ without them ...
+
+    def __locate_source(self, source):
+        """Return valid relative path were SOURCE may be found, searching
+        plausible locations from the instantiation point."""
+
+        for pdir in ("../"*n + "src/" for n in range (0, thistest.depth)):
+            if os.path.exists(pdir+source):
+                return pdir+source
+
+        return None
+
+    def __examine_source_list (self, slist, goodlists):
+        """See if all the sources in SLIST can be resolved to existing
+        source paths looking uptree. Add the corresponding list of paths
+        to GOODLISTS when so."""
+
+        pathlist = []
+        for s in slist:
+            spath = self.__locate_source (s)
+            if not spath:
+                return
+            else:
+                pathlist.append (spath)
+
+        goodlists.append (pathlist)
+
+    def __select_ulist (self):
+        """Search and return the one good list of units amongst the candidates
+        we have."""
+
+        candlists = self.ulists
+        goodlists = []
+        [self.__examine_source_list (slist, goodlists)
+         for slist in candlists]
+
+        thistest.stop_if (
+            len (goodlists) != 1,
+            FatalError (
+                "goodlists = %d, != 1 for %s" % (
+                    len (goodlists), str(candlists)))
+            )
+
+        return goodlists[0]
+
+    def close_on (self, uxset):
+        """For each valid unit designated one of our candidate lists, add a
+        UnitCX object to the set already in UXSET, adding builtin default
+        expectations that were not overriden."""
+
+        spaths = self.__select_ulist()
+
+        # Wrap LREs to make sure we look for them in explicit anchors within
+        # sources, not as arbitrary sections of source lines. The way to do
+        # this depends on the source languages. We assume they are all the
+        # same for our list.
+
+        [self.__wrap_lre(lx, language_info(spaths[0])) for lx in self.lxset]
+
+        # Now instanciate a unit coverage expectations object for each
+        # source (path) in the list:
+
+        [uxset.append (
+                UnitCX(sourcepath=spath, LXset=self.lxset)
+                )
+         for spath in spaths]
+
 # --------------------
 # -- XnotesExpander --
 # --------------------
@@ -738,124 +870,66 @@ class XnotesExpander:
                    "__l!dT-": "l! ## dT-"
                    }
 
-    def __builtin_lcxs(self, ucx):
-        """Builtin default Line coverage expectations, added to every
-           Unit coverage expectations spec unless already there in UCX"""
+    def __builtin_lcxs_for (self, uxg):
+        """Add builtin default LineCX for UXG."""
 
-        # Fetch the explicit line expectations from UCX and compute those
-        # not there for which we have a default to provide. Beware that the
-        # expressions in UCX were wrapped by parse_lcx already
+        # Fetch the explicit line expectations and compute those not there for
+        # which we have a default to provide. Beware that the expressions were
+        # wrapped by parse_lcx already
 
-        ux_lres = [lcx.lre for lcx in ucx[1]]
+        ux_lres = [lcx.lre for lcx in uxg.lxset]
         nothere = [lre for lre in self.builtin_lxs if lre not in ux_lres]
 
         # Now compute the list of LCX objects for each of those defaults
 
-        return [self.__parse_lcx("/%s/ %s" % (lre, self.builtin_lxs[lre]))
-                for lre in nothere]
+        return [
+            self.__parse_lcx("/%s/ %s" % (lre, self.builtin_lxs[lre]))
+            for lre in nothere
+            ]
 
-    def __wrap_lre(self, lx, langinfo):
-        """For a source expressed in the language described by LANGINFO,
-        adjust line regular expression in LX to expect it prefixed with
-        "xx # " where "xx" is the language comment marker."""
+    def __close_on (self, uxset, uxg):
+        
+        uxg.lxset.extend (
+            self.__builtin_lcxs_for (uxg))
 
-        lx.lre = langinfo.comment + " # (" + lx.lre + ")"
-
-        # The parens are crucial here. Consider what would happen for
-        # /bla|blo/ without them ...
-
-    def __locate_source(self, source):
-        """Return valid relative path were SOURCE may be found, searching
-        plausible locations from the instantiation point."""
-
-        for pdir in ("../"*n + "src/" for n in range (0, thistest.depth)):
-            if os.path.exists(pdir+source):
-                return pdir+source
-
-        return None
-
-    def __examine_source_list (self, slist, goodlists):
-        """See if all the sources in SLIST can be resolved to existing
-        source paths looking uptree. Add the corresponding list of paths
-        to GOODLISTS when so."""
-
-        pathlist = []
-        for s in slist:
-            spath = self.__locate_source (s)
-            if not spath:
-                return
-            else:
-                pathlist.append (spath)
-
-        goodlists.append (pathlist)
-
-    def __register_ucx(self, ucx, uxset):
-        """Add UCX to the set already in UXSET, adding builtin
-           default expectations that were not overriden."""
-
-        lxset = ucx[1]
-        lxset.extend(self.__builtin_lcxs(ucx))
-
-        # ucx[0] contains a list of lists like
-        # [[x0.adb, y0.adb], [x1.c, y1.c]] where
-        #
-        # - each sublist is a set of sources to which the set of line
-        #   expectations should attach.
-        #
-        # - exactly one sublist is expected to correspond to sources
-        #   we can actually find.
-
-        candlists = ucx[0]
-        goodlists = []
-        [self.__examine_source_list (slist, goodlists) for slist in ucx[0]]
-
-        if len (goodlists) != 1:
-            raise FatalError (
-                "goodlists = %d, != 1 for %s", len (goodlists), str(candlists)
-                )
-
-        # Now we work over our single good list of source paths
-
-        spaths = goodlists[0]
-
-        # Wrap LREs to make sure we look for them in explicit anchors within
-        # sources, not as arbitrary sections of source lines. The way to do
-        # this depends on the source languages. We assume they are all the
-        # same for our list.
-
-        [self.__wrap_lre(lx, language_info(spaths[0])) for lx in lxset]
-
-        # Now instanciate a unit coverage expectations object for each
-        # source (path) in the list:
-
-        [uxset.append (UnitCX(sourcepath=spath, LXset=lxset))
-         for spath in spaths]
+        uxg.close_on (uxset)
 
     def __parse_scovdata(self, scovdata):
-        """Parse the given SCOV_DATA and return the corresponding
+        """Parse the given SCOVDATA lines and return the corresponding
         list of UnitCX instances."""
 
-        # The current UnitCX object being built.  We start a new UnitCX
-        # everytime we see a "sources" line (which starts with '#', after
-        # comment markers were stripped).
-        current_ucx = (None, [])
-
-        # The UXset being built while reading the scov data.
+        # The full set of UnitCX objects being built
         UXset = []
-        for line in scovdata:
-            if line.startswith('#'):
-                # We have finished reading the data for the current_ucx.
-                # Build the associated UnitCX object, followed by resetting
-                # current_ucx before we start reading the next ucx.
-                if current_ucx[0] is not None:
-                    self.__register_ucx(ucx=current_ucx, uxset=UXset)
-                current_ucx = (self.__parse_sources(line), [])
-            else:
-                # This must be an LX line.
-                current_ucx[1].append(self.__parse_lcx(line))
+        
+        # First deal with everything that resolves to local references for
+        # each unit, working group by group.  We start a new group everytime
+        # we see a "sources" line (which starts with '#', after comment
+        # markers were stripped).
 
-        if current_ucx[0] is not None:
-            self.__register_ucx(ucx=current_ucx, uxset=UXset)
+        current_uxg = None
+
+        for line in scovdata:
+
+            if line.startswith('#'):
+                
+                # A new group starts. Close the current one first, if any.
+
+                if current_uxg is not None:
+                    self.__close_on (uxset=UXset, uxg=current_uxg)
+
+                current_uxg = UXgroup (ulists=self.__parse_sources(line))
+
+            else:
+
+                # This must be an LX line. Add to the set attached to the
+                # current group.
+
+                current_uxg.lxset.append(self.__parse_lcx(line))
+
+        # We're done with all the lines. Close the current group, if any.
+
+        if current_uxg is not None:
+            self.__close_on (uxset=UXset, uxg=current_uxg)
 
         return UXset
 
@@ -878,7 +952,7 @@ class XnotesExpander:
         # We have at hand single note spec, possibly conditioned by the
         # xcov-level. Something like "s-", "d=>dT-", or "mu=>c!:"B".
 
-        # We might also have an expected instanciation tag in any of these
+        # We might also have an expected instantiation tag in any of these
         # cases, e.g. c!:"B"@(my_instance)
 
         # First fetch the note text that corresponds to our actual xcov-level.
