@@ -132,7 +132,12 @@ QLEVEL_INFO = {
 # --cargs:Ada="-gnatp" translates as CARGS_O1 + CARGS_gnatp discriminants.
 
 # Individual tests that really depend on particular options might of course
-# request so, via the "cargs" argument to the gprbuild function in tutils.
+# request so, via:
+#
+# - The "extracargs" argument to the gprbuild function in tutils, for
+#   tests that invoke this function directly from test.py, or
+#
+# - The "extracargs" initializer argument of TestCase instances
 #
 # This is not allowed for qualifcation tests though, because we need simple
 # and reliable ways to determine the set of options we support and too many
@@ -145,20 +150,20 @@ QLEVEL_INFO = {
 #     gprfor ()
 #        template.gpr 
 #        % Switches (main) += "-fno-inline" as needed
-#             |
-#             |    User level control
-#             |    here or here
-#             |     |        |
-#             |     |        o
-#             v     o      testsuite.py [--cargs=<>]
-#  gprbuild (gpr, cargs)   [--cargs:Ada=<>] [--cargs:C=<>]
-#                   |         |
-#                   =-> XOR <-=
-#                        v
-#                    --cargs += SUITE.control.BUILD.COMMON_CARGS
-#                        |      (-g -fdump-scos -fpreserve-control-flow)
-#                        v
-#              run "gprbuild -Pgpr --cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
+#             | 
+#             |   direct calls from test.py,
+#             |   or via TestCase(extracargs)
+#             |       |        
+#             v       v           testsuite.py
+#  gprbuild (gpr, extracargs)     [--cargs=<>] [--cargs:Ada=<>] [--cargs:C=<>]
+#                     |               |       
+#                     o----> ADD <----o
+#                             |
+#  SUITE.control.             v
+#  BUILD.COMMON_CARGS   ---> ADD
+#  (-g -fdump-scos ...)       |
+#                             v
+#     run "gprbuild -Pgpr --cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
 
 # In addition to the SUITE.control bits, the only default option we enforce is
 # -gnat05 for Ada.

@@ -21,151 +21,102 @@ from SUITE.cutils import *
 
 VALGRIND  = 'valgrind' + env.host.os.exeext
 
-# --------------------------
-# -- gprbuild and helpers --
-# --------------------------
+# -------------------------
+# -- gprbuild_gargs_with --
+# -------------------------
 
-# Compute and return all the toplevel gprbuild arguments to pass. Account
-# for specific requests in THISGARGS.
+def gprbuild_gargs_with (thisgargs):
+    """Compute and return all the toplevel gprbuild arguments to pass. Account
+       for specific requests in THISGARGS."""
 
-def __all_gargs_for_build (thisgargs, gpr):
+    # Force a few bits useful for practical reasons and without influence on
+    # code generation, then add our testsuite configuration options (selecting
+    # target model and board essentially).
 
-    # For toplevel gprbuild args, force a few bits useful for practical
-    # reasons and without influence on code generation, then add our testsuite
-    # configuration options (selecting target model and board essentially).
-
-    all_gargs = [
+    return [
         '-f',               # always rebuild
         '-XSTYLE_CHECKS=',  # style checks off
-        '-p',               # create missing directories (obj, typically)
-        '-P%s' % gpr]
-    all_gargs.extend (thistest.gprconfoptions)
-    all_gargs.extend (thistest.gprvaroptions)
-
-    all_gargs.extend (to_list(thisgargs))
-
-    return all_gargs
-
-# String of options passed as --cargs[:LANG]. None if no such option
-# passed. LANG might be None, to fetch options passed as "--cargs".
-
-def __cmdline_cargs_for (lang):
-
-    # The provided command line is available as a language specific variable
-    # in our set of options, named after the language when any: --cargs goes
-    # in opt."-cargs", --cargs:Ada in opt."-cargs:Ada" etc.
-
-    optvarname =  "-cargs" + (':%s' % lang if lang else "")
-
-    return (
-        thistest.options.__dict__ [optvarname]
-        if optvarname in thistest.options.__dict__ else None
+        '-p'                # create missing directories (obj, typically)
+        ] + (
+        thistest.gprconfoptions
+        + thistest.gprvaroptions
+        + to_list (thisgargs)
         )
 
-# Add the -cargs command line options we were passed for LANG, if any, to the
-# CARGS dictionary, indexed by the gprbuild command line argument required to
-# introduce them.
+# -------------------------
+# -- gprbuild_cargs_with --
+# -------------------------
 
-def __set_cmdline_cargs_for (lang, cargs):
+def gprbuild_cargs_with (thiscargs):
+    """Compute and return all the cargs arguments to pass on gprbuild
+       invocations, including language agnostic and language specific ones
+       (-cargs and -cargs:<lang>). Account for specific requests in
+       THISCARGS."""
 
-    optgprname = "-cargs:%s" % lang
-
-    cargs_for_lang = __cmdline_cargs_for (lang)
-    if cargs_for_lang:
-        cargs [optgprname] = to_list (cargs_for_lang)
-
-# Compute and return all the cargs gprbuild arguments to pass, global (-cargs
-# ...) and language specific (-cargs:lang ...) Account for specific requests
-# in THISCARGS.
-
-def all_cargs_for_build (thiscargs):
-
-    # For CARGS, account for possible options passed either as an explicit
-    # argument to this routine or queried from the command line.
-
-    # To make sure we have a clear view of what options were used for a
+    # To make sure we have a clear view of what options are used for a
     # qualification run, qualification tests are not allowed to state
     # compilation flags of their own
 
     thistest.stop_if (thiscargs and thistest.options.qualif_level,
         FatalError("CARGS requested for qualification test. Forbidden."))
 
-    # We first build a { gprbuild_optionname -> optionlist } dictionary for
-    # each optionname corresponding to a possible language or none,
-    # representative of the provided command python line:
-    #
-    # --cargs="-O1" --cargs-Ada="-gnatp -gnatn" yields
-    #
-    # { "-cargs": ["-O1"],
-    #   "-cargs:Ada": ["-gnatp", "-gnatn"]
-    # }
-
-    # If we have specific cargs requested, use that. Fetch command line
-    # queries otherwise. In all cases, add flags coming from the global
-    # configuration.
-        
-    cargs = {
-        "-cargs": to_list(BUILDER.COMMON_CARGS)
-        }
-
-    if thiscargs:
-        cargs ["-cargs"].extend (
-            to_list(thiscargs)
-            )
-    else:
-        cargs ["-cargs"].extend (
-            to_list (__cmdline_cargs_for (lang=None))
-            )
-        [__set_cmdline_cargs_for (lang=lang, cargs=cargs)
-         for lang in QLANGUAGES]
-
-    # Now build the flattened list we need from the per-language dictionary:
-    # ["-cargs", "-O1", "-cargs:Ada", "-gnatp", ...]
-
-    all_cargs = []
-    [all_cargs.extend (optsequence)
-     for optsequence in (
-            [optname] + [opt for opt in cargs [optname]]
-            for optname in cargs if cargs [optname])
+    all_cargs = ["-cargs"] + (
+        to_list(BUILDER.COMMON_CARGS)
+        + to_list (thistest.suite_cargs_for (lang=None))
+        + to_list (thiscargs)
+        )
+    
+    [all_cargs.extend (
+            ["-cargs:%s" % lang] + to_list (thistest.suite_cargs_for (lang)))
+     for lang in QLANGUAGES
      ]
 
     return all_cargs
 
-# Compute and return all the largs gprbuild arguments to pass.
-# Account for specific requests in THISLARGS.
+# -------------------------
+# -- gprbuild_largs_with --
+# -------------------------
 
-def __all_largs_for_build (thislargs):
+def gprbuild_largs_with (thislargs):
+    """Compute and return all the largs gprbuild arguments to pass.
+       Account for specific requests in THISLARGS."""
 
-    # For LARGS, nothing particular
-
-    all_largs = to_list(thislargs)
+    all_largs = to_list (thislargs)
     if all_largs:
-        all_largs.insert(0, '-largs')
+        all_largs.insert (0, '-largs')
 
     return all_largs
 
-def gprbuild(project, gargs=None, cargs=None, largs=None):
+# --------------
+# -- gprbuild --
+# --------------
+
+def gprbuild(project, extracargs=None, gargs=None, largs=None):
     """Cleanup & build the provided PROJECT file using gprbuild, passing
     GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches, in
-    addition to the switches required by the infrastructure.
+    addition to the switches required by the infrastructure or provided on
+    the testsuite commandline for the --cargs family.
 
     The *ARGS arguments may be either: None, a string containing
     a space-separated list of options, or a list of options."""
 
     # Fetch options, from what is requested specifically here
-    # or from from command line requests
+    # or from command line requests
 
-    all_gargs = __all_gargs_for_build (thisgargs=gargs, gpr=project)
-    all_cargs = all_cargs_for_build (thiscargs=cargs)
-    all_largs = __all_largs_for_build (thislargs=largs)
+    all_gargs = gprbuild_gargs_with (thisgargs=gargs)
+    all_largs = gprbuild_largs_with (thislargs=largs)
+    all_cargs = gprbuild_cargs_with (thiscargs=extracargs)
 
     # Now cleanup, do build and check status
 
     thistest.cleanup(project)
 
     ofile = "gprbuild.out"
-    p = Run(to_list(BUILDER.BASE_COMMAND) + all_gargs + all_cargs + all_largs,
-            output=ofile, timeout=thistest.options.timeout)
+    p = Run (
+        to_list(BUILDER.BASE_COMMAND) + ['-P%s' % project] 
+        + all_gargs + all_cargs + all_largs,
+        output=ofile, timeout=thistest.options.timeout
+        )
     thistest.stop_if (
         p.status != 0, FatalError("gprbuild exit in error", ofile))
 

@@ -416,7 +416,7 @@ class SCOV_helper:
     # ---------
     # -- run --
     # ---------
-    def run(self, extracargs="", extragargs=""):
+    def run(self, extracargs=""):
         """Evaluate source coverage as exercised by self.drivers"""
 
         self.log()
@@ -451,7 +451,7 @@ class SCOV_helper:
         # consolidation tests.
 
         if self.singletest():
-            self.build (extracargs=extracargs, extragargs=extragargs)
+            gprbuild (self.gpr, extracargs=extracargs)
 
         # Compute the gnatcov command line argument we'll pass to convey
         # the set of scos to operate upon.  Note that we need these for
@@ -527,19 +527,6 @@ class SCOV_helper:
     def awdir(self):
         """Absolute path to Working Directory for current instance."""
         return self.homedir+self.rwdir()
-
-    # -----------
-    # -- build --
-    # -----------
-    def build(self, extracargs, extragargs):
-        """gprBuild binary for main program MAIN"""
-
-        # Seek a few tentative source dirs, for typical locations of test
-        # sources from a working directory, and typical locations of common
-        # support sources.
-
-        gprbuild (
-            self.gpr, cargs=to_list(extracargs), gargs=to_list(extragargs))
 
     # --------------
     # -- xcov_run --

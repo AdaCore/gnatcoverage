@@ -157,7 +157,7 @@ class Test (object):
 
         cd(TEST_DIR)
 
-        self.options = self.cmdline_options()
+        self.options = self.__cmdline_options()
         self.n_failed = 0
         self.report = _ReportOutput(self.options.report_file)
         self.current_test_index = 0
@@ -254,7 +254,7 @@ class Test (object):
     # -- Test options management --
     # -----------------------------
 
-    def cmdline_options(self):
+    def __cmdline_options(self):
         """Return an options object to represent the command line options"""
         main = Main(require_docstring=False, add_targets_options=True)
         main.add_option('--timeout', dest='timeout', type=int,
@@ -274,21 +274,20 @@ class Test (object):
                         help='The target qualification level when we are '
                              'running in qualification mode.')
 
-        # Map command line option values into variable names corresponding to
-        # what we'll need to pass to gprbuild for each language. The command
-        # line option -> gprbuild option translation is easier this way.
-
         [main.add_option (
-                '--cargs:%s' % lang,
-                dest='-cargs:%s' % lang, metavar='CARGS_%s' % lang,
-                help='Additional arguments to pass to the %s compiler '
-                      'when building the test programs.' % lang
+                '--cargs:%s' % lang, dest=self.__cargs_optvar_for (lang),
+                metavar='CARGS_%s' % lang, default="",
+                help=('Additional arguments to pass to the %s compiler '
+                      'when building the test programs.' % lang)
                 )
          for lang in QLANGUAGES]
 
-        main.add_option('--cargs', dest='-cargs', metavar='CARGS',
-                        help='Additional arguments to pass to the compiler '
-                             'when building the test programs.')
+        main.add_option(
+            '--cargs', dest=self.__cargs_optvar_for(lang=None),
+            metavar='CARGS', default="",
+            help=('Additional arguments to pass to the compiler '
+                  'when building the test programs.')
+            )
 
         main.add_option('--xcov-level', dest='xcov_level',
                         help='Force the --level argument passed to xcov '
@@ -306,6 +305,17 @@ class Test (object):
             # but it's easy to do it that way.
             main.error("The report file must be specified with --report-file")
         return main.options
+
+    def __cargs_optvar_for (self, lang):
+        """Name of our options dictionary key name to hold cargs for LANG."""
+        return "-cargs" + (':%s' % lang if lang else "")
+
+    def suite_cargs_for (self, lang):
+        """String of options passed as --cargs[:LANG] to the testsuite driver. None if
+        no such option passed. LANG might be None, to fetch options passed as
+        --cargs."""
+    
+        return thistest.options.__dict__ [self.__cargs_optvar_for (lang)]
 
     def support_dir(self):
         return os.path.join (ROOT_DIR, 'support')

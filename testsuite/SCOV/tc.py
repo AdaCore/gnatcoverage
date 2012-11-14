@@ -273,9 +273,10 @@ class TestCase:
             self.xcovlevels = (
                 [defaults[0]] if thistest.options.qualif_level else defaults)
 
-        # - compilation arguments:
+        # - extra compilation arguments, added to what --cargs was provided to
+        #   the testsuite command line:
 
-        self.cargs = to_list (extracargs)
+        self.extracargs = to_list (extracargs)
 
         # Step 3: Setup qualification data for this testcase
         # --------------------------------------------------
@@ -310,7 +311,7 @@ class TestCase:
                     SCOV_helper(drivers=[driver],
                                 xfile=driver, category=self.category,
                                 xcovlevel=covlevel, covctl=covcontrol)
-                    ).run(self.cargs)
+                    ).run(self.extracargs)
              for covlevel in self.xcovlevels
              for driver in self.all_drivers]
 
@@ -319,7 +320,7 @@ class TestCase:
                     SCOV_helper(drivers=self.__drivers_from(cspec),
                                 xfile=cspec, category=self.category,
                                 xcovlevel=covlevel, covctl=covcontrol)
-                    ).run(self.cargs)
+                    ).run(self.extracargs)
              for covlevel in self.xcovlevels
              for cspec in self.all_cspecs]
 

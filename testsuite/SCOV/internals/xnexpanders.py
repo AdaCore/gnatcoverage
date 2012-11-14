@@ -18,7 +18,7 @@ from . stags import Stag_from
 
 from SUITE.control import LANGINFO, language_info
 from SUITE.cutils import Identifier
-from SUITE.tutils import all_cargs_for_build
+from SUITE.tutils import gprbuild_cargs_with
 
 # We refer to the expressed user expectations as SCOV data, and parse it
 # according to the following grammar:
@@ -532,7 +532,7 @@ class XnotesExpander:
         # specific options to gnatcov coverage:
 
         self.ctls = {
-            "%cargs": ' '.join (all_cargs_for_build (thiscargs=None)),
+            "%cargs": ' '.join (gprbuild_cargs_with (thiscargs=None)),
             "%cov"  : ' '.join (covoptions)
             }
 
