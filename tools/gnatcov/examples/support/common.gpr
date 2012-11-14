@@ -7,15 +7,23 @@ abstract project Common is
    type Yes_No_Type is ("yes", "no");
    for Languages use ();
 
-   --  General target families, used as a toolchain selector
-   --  essentially
+   --  General target families. Essentially used as a toolchain and
+   --  library directory selector.
 
    type Target_Type is 
    ( "native",
      "powerpc-elf", "powerpc-eabispe",
-     "leon-elf", "leon3-elf"
+     "leon-elf", "leon3-elf",
+     "unspecified"
    );
-   Target : Target_Type := external ("TARGET", "powerpc-elf");
+   Target : Target_Type := external ("TARGET", "unspecified");
+
+   --  "unspecified" is useful for cases where a project that imports or
+   --  extends this one are used for operations that don't depend on any of
+   --  the built artifacts, such as the Coverage facilities. This will setup
+   --  attributes so project processing doesn't complain about missing dirs
+   --  and such that something will go wrong if we happen to really come to
+   --  depend on real contents there.
 
    --  Compute the Toolchain_Prefix to use
 

@@ -21,22 +21,30 @@ library project Libsupport is
    for Library_Kind use "static";
    for Library_Auto_Init use "False";
    for Languages use ("Ada", "C");
+   
+   case Common.Target is
+      when "unspecified" =>
+         Do_Build := "no";
+         for Library_Dir use "lib";
+         for Library_Name use "dummy";
 
-   for Source_Dirs use ("src", "src/" & Common.Target);
+      when others =>
+         for Source_Dirs use ("src", "src/" & Common.Target);
 
-   --  Aunit has its own last chance handler that we must not override,
-   --  and we need to include our own otherwise:
+         for Library_Dir use "lib/" & Common.Target;
+         for Object_Dir use "obj/" & Common.Target;
 
-   case Use_AUnit is
-      when "yes" =>
-	 for Library_Name use "supportaunit";
-      when "no" =>
-	 for Source_Dirs use Project'Source_Dirs & ("src/last_chance");
-	 for Library_name use "support";
+         --  Aunit has its own last chance handler that we must not override,
+         --  and we need to include our own otherwise:
+
+         case Use_AUnit is
+           when "yes" =>
+              for Library_Name use "supportaunit";
+           when "no" =>
+	      for Source_Dirs use Project'Source_Dirs & ("src/last_chance");
+	      for Library_name use "support";
+         end case;
    end case;
-
-   for Library_Dir use "lib/" & Common.Target;
-   for Object_Dir use "obj/" & Common.Target;
 
    case Do_Build is
       when "no"  => for Externally_Built use "true";
