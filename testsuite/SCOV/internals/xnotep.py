@@ -39,7 +39,7 @@ class _XnoteP_block:
 
         if self.lastni:
             thisni = None
-            self.lastni.segment.sloc1.l = tline.lno
+            self.lastni.segment.sp1.l = tline.lno
 
         else:
             thisni = Xnote (xnp=self.notep, block=block, kind=kind)
@@ -107,7 +107,7 @@ class XnoteP:
               'x0': xBlock0, 'x+': xBlock1,
               '0': r0, '0c': r0c}
 
-    def __init__(self, text, stext=None, itag=None):
+    def __init__(self, text, stext=None, stag=None):
 
         # WEAK conveys whether it is ok (not triggering test failure) for
         # expectations produced by this pattern not to be discharged by an
@@ -142,10 +142,10 @@ class XnoteP:
             False and self.stext == None and self.kind in xNoteKinds,
             FatalError ("expected justification text required for %s" % text))
 
-        # ITAG is the text of an instanciation tag that we must find on an
-        # emitted note to discharge expectations produced from this pattern.
+        # STAG is the separation tag that we must find on an emitted note to
+        # discharge expectations produced from this pattern.
 
-        self.itag = itag
+        self.stag = stag
 
         # Setup our instanciation factory now, which lets us perform the
         # required test only once:

@@ -11,22 +11,24 @@
 
 # ****************************************************************************
 
+from SUITE.control import LANGINFO
+
 import re
 
 # ======================================
 # == Section, Segment, Line and Point ==
 # ======================================
 
-# Sloc first, an internal helper which materializes a line:col coordinate and
-# knows to determine if it is past or before another sloc for inclusion check
-# purposes.
+# Spoint first, an internal helper which materializes a line:col coordinate
+# and knows to determine if it is past or before another sloc for inclusion
+# check purposes.
 
 # The first logical column of a line is numbered 1. Column 0 is used in slocs
 # designating a line as a whole. Any specific point on a line is considered to
 # be within the line, so past-or-eq the beginning of it, or before-or-eq the
 # end of it.
 
-class Sloc:
+class Spoint:
 
     def __init__ (self, line, col):
         self.l = line
@@ -42,9 +44,9 @@ class Sloc:
                 or (self.l == other.l
                     and (self.c <= other.c or other.c == 0)))
 
-def Sloc_from(text):
+def Spoint_from(text):
     items = text.split (':', 1)
-    return Sloc (
+    return Spoint (
         line = int(items[0]), col = int(items [1]))
 
 # Now the concrete classes. Each features a __str__ method for displays by the
@@ -71,16 +73,16 @@ class Section:
     #  3:1-7:6
 
     def __init__ (self, l0, c0, l1, c1):
-        self.sloc0 = Sloc (line = l0, col = c0)
-        self.sloc1 = Sloc (line = l1, col = c1)
+        self.sp0 = Spoint (line = l0, col = c0)
+        self.sp1 = Spoint (line = l1, col = c1)
 
     def within(self, other):
-        return (self.sloc0.pastoreq (other.sloc0)
-                and self.sloc1.beforeq (other.sloc1))
+        return (self.sp0.pastoreq (other.sp0)
+                and self.sp1.beforeq (other.sp1))
 
     def __str__(self):
         return "section %d:%d-%d:%d" % (
-            self.sloc0.l, self.sloc0.c, self.sloc1.l, self.sloc1.c)
+            self.sp0.l, self.sp0.c, self.sp1.l, self.sp1.c)
 
 def Section_from(text):
     topitems = text.split ('-', 1)
@@ -98,7 +100,7 @@ class Segment (Section):
         Section.__init__(self, l0 = lno, c0 = clo, l1 = lno, c1 = chi)
 
     def __str__(self):
-        return "segment %d:%d-%d" % (self.sloc0.l, self.sloc0.c, self.sloc1.c)
+        return "segment %d:%d-%d" % (self.sp0.l, self.sp0.c, self.sp1.c)
 
 def Segment_from(text):
     topitems = text.split (':', 1)
@@ -114,7 +116,7 @@ class Line (Segment):
         Segment.__init__(self, lno = lno, clo = 0, chi = 0)
 
     def __str__(self):
-        return "line %d" % self.sloc0.l
+        return "line %d" % self.sp0.l
 
 def Line_from(text):
     items = text.split (':', 1)
@@ -127,7 +129,7 @@ class Point (Segment):
         Segment.__init__(self, lno = lno, clo = col, chi = col)
 
     def __str__(self):
-        return "sloc %d:%d" % (self.sloc0.l, self.sloc0.c)
+        return "sloc %d:%d" % (self.sp0.l, self.sp0.c)
 
 def Point_from(text):
     items = text.split (':', 1)
@@ -155,3 +157,38 @@ def Section_within(text):
 
     return None
 
+# ==========
+# == Sloc ==
+# ==========
+
+class Sloc:
+    def __init__ (self, filename, section):
+        self.filename = filename
+        self.section = section
+
+    # Regular expression to try-match a text line in order to
+    # produce a valid object of this class
+
+    # Expect something like:
+    #
+    #      "andthen.adb:10:33:
+    #       -----------:-----:
+    #       source name:segmt:
+    #
+    # Expect the source name to be a sequence of non-blank characters ending
+    # with one of the possible source extensions we know about.
+
+    # Note that the registered LANGINFO extensions embed the '.'  character,
+        
+    re = '(?P<sbase>[^ ]*)(?P<ext>%s):(?P<sec>[^ ]*)' % '|'.join (
+        [ext for li in LANGINFO.values() for ext in li.src_ext])
+
+def Sloc_from_match (m):
+    return Sloc (
+        filename = ''.join ([m.group("sbase"), m.group("ext")]),
+        section = Section_within (m.group("sec"))
+        )
+
+def Sloc_from (text):
+    p = re.match (pattern=Sloc.re, string=text)
+    return Sloc_from_match (m=p) if p else None

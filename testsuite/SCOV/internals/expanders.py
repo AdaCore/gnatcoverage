@@ -42,6 +42,8 @@ from . cnotes import *
 from . xnotep import *
 from . tfiles import *
 from . segments import *
+from . stags import Stag_from
+
 from SUITE.control import LANGINFO, language_info
 from SUITE.cutils import Identifier
 
@@ -88,6 +90,37 @@ class LnotesExpander:
 # Report section classes, to let us control when looking for indication
 # patterns and check that each appears in the section where we expect it.
 
+# Abstract diagnostic line, a-la "p.adb:8:4 statement not executed". This
+# is a general Sloc followed by some diagnostic text.
+
+class Rdiagline:
+    def __init__ (self, sloc, diag):
+
+        # SLOC object and DIAGnostic text
+
+        self.sloc = sloc
+        self.diag = diag
+
+    # Regular expression to try-match a text line in order to
+    # produce a valid object of this class
+
+    # Expect something like:
+    #
+    #      "andthen.adb:10:33: statement not covered",
+    #       -----------:-----: ---------------------
+    #       source name:segmt: diagnostic text
+        
+    re = Sloc.re + " (?P<diag>.*)"
+
+def Rdiagline_from (text):
+
+    p = re.match (Rdiagline.re, text)
+        
+    return Rdiagline (
+        sloc = Sloc_from_match (p),
+        diag = p.group ("diag")
+        ) if p else None
+
 # Abstract Report section
 
 class Rsection:
@@ -129,64 +162,44 @@ class Nsection (Rsection):
 
     def try_parse_enote(self, rline):
 
-        # We expect something like:
-        #
-        #       "andthen.adb:10:33: statement not covered",
-        #        -----------:-----: ---------------------
-        #        source name:segmt: note text (-> note kind)
-
-        # First, try to figure out the source name, one of our main dictionary
-        # keys. Expect this to be a sequence of non-blank characters ending
-        # with one of the possible source extensions we know about, preceding
-        # a ':' character. Note that the registered extensions embed the '.'
-        # character.
-
-        xsrc = '([^ ]*)(%s):(.*)' % '|'.join (
-            [ext for li in LANGINFO.values() for ext in li.src_ext])
-        p = re.match(xsrc, rline)
+        dline = Rdiagline_from (rline)
 
         # If no match at all, punt.
 
-        if not p: return None
+        if not dline: return None
 
-        # Otherwise, we'll proceed with the complete source name we found
-        # and work over the trailing part, past the ':' character.
-
-        # We construct the Enote object piece by piece
+        # Otherwise, we construct the Enote object incrementally, as we need
+        # to sort out the note kind and separation tag from the diagnostic
+        # text
 
         enote = Enote (
-            kind=None, segment=None, source=None, itag=None)
+            segment=dline.sloc.section, source=dline.sloc.filename,
+            kind=None, stag=None
+            ) 
 
-        enote.source = ''.join ([p.group(1), p.group(2)])
-        tail = p.group(3)
-
-        # Fetch and remove a possible instantiation tag. Removal is useful to
-        # facilitate matching of other parts, hence attempted first.
+        # Fetch and remove a possible separation tag from the diganostic
+        # text. Removal is useful to facilitate matching of other parts, hence
+        # attempted first.
         
-        def __itag_replacement_for (m):
-            enote.itag = m.group(1)  # side effect on caller.enote here
+        def __stag_replacement_for (m):
+            enote.stag = Stag_from (m.group(1))  # side effect on caller here
             return ""
 
-        tail = re.sub (
-            pattern=" \(from (.*)\)", repl=__itag_replacement_for, string=tail)
+        this_diag = re.sub (
+            pattern=" \(from (.*)\)", repl=__stag_replacement_for,
+            string=dline.diag)
 
-        # Determine the note kind from the text contents
+        # Then determine the note kind from the remaining contents
 
-        enote.kind = self.nkind_for (tail)
+        enote.kind = self.nkind_for (this_diag)
+
         if enote.kind == None:
             thistest.failed (
-                "(%s =report section) '%s' ?" % (
-                    self.name, rline.rstrip('\n')))
+                "(%s =report section) '%s' ?" % (self.name, rline.rstrip('\n'))
+                )
             return None
-
-        # Fetch the sloc range designated by the text contents
-
-        enote.segment = Section_within (tail)
-        thistest.stop_if (
-            not enote.segment,
-            FatalError ("Unable to parse report line\n'%s'" % rline))
-
-        return enote
+        else:
+            return enote
 
     def try_parse(self, rline):
         enote = self.try_parse_enote(rline)
@@ -246,7 +259,7 @@ class Xsection (Nsection):
         Nsection.__init__(self, name=name, re_start=re_start)
 
     def nkind_for(self, rline):
-        r = re.search (": (\d+) exempted violation", rline)
+        r = re.search ("(\d+) exempted violation", rline)
         return (None if not r
                 else xBlock0 if int(r.group(1)) == 0 else xBlock1)
 
@@ -444,8 +457,8 @@ class RnotesExpander:
 # according to the following grammar:
 
 #     SCOV.data := ucx_list
-#     ucx_list := ucx <newline> [ucx_list]
-#     ucx := sources <new_line> lx_list
+#     ucx_list := ucx_group <newline> [ucx_list]
+#     ucx_group := sources <new_line> lx_list
 
 #     sources := "--# " filename_lists
 #     filename_lists := filename_list [| filename_lists]
@@ -466,7 +479,8 @@ class RnotesExpander:
 
 #     lx_rnote_list := lx_rnote_choice [lx_rnote_list]
 #     lx_rnote_choice := [cov_level_test] [weak_mark] lx_rnote
-#     lx_rnote := <s-|s!|dT-|dF-|d!|eT-|eF-|oT-|oF-|c!|x0|x+>[:"TEXT"]
+#     lx_rnote_kind = <s-|s!|dT-|dF-|d!|eT-|eF-|oT-|oF-|c!|x0|x+>
+#     lx_rnote := lx_rnote_kind[:"TEXT"][@(STAG)]
 
 # The start of the SCOV data is identified as the first comment whose syntax
 # matches a "sources" line.  Any comment before then is assumed to be a normal
@@ -480,6 +494,13 @@ class RnotesExpander:
 
 # slashes inside lx_lre tokens are allowed. The SCOV_data parser simply
 # uses the first and last slash as the delimiters.
+
+# STAG, when any, is the separation tag expected for the note. This will be a
+# bare routine name for outputs with -S routines, and a nest of instantiation
+# slocs for outputs with -S instances. In the latter case, slocs are stated in
+# a symbolic manner, as "i:NAME" to denote a generic instantiation somewhere
+# on a source line featuring an "i:NAME" anchor, for any source part of any of
+# the groups.
 
 # We use three intermediate abstractions to build the dictionaries from
 # the expectations text:
@@ -688,10 +709,11 @@ class UnitCX:
 
 class UXgroup:
 
-    def __init__ (self, ulists):
+    def __init__ (self, candlists):
 
-        # ULISTS: the set of candidate unit lists for this group, as specified
-        # in the expectation spec. This is a list of lists like
+        # SPLIST: good list of source paths from the set of candidate lists
+        # received in CANDLISTS for this group, as specified in the expectation
+        # spec. This is a list of lists like
         #
         #   [[x0.adb, y0.adb], [x1.c, y1.c]]
         #
@@ -701,14 +723,19 @@ class UXgroup:
         #   expectations should attach.
         #
         # - exactly one sublist is expected to correspond to sources
-        #   we can actually find.
+        #   we can actually find, which will be _the_ good one.
 
-        self.ulists = ulists
+        self.splist = self.__select_splist_from (candlists=candlists)
 
-        # LXSET: a list set of LineCX objects corresponding to the stated
+        # LXSET: a list of LineCX objects corresponding to the stated
         # expectations for the units we can find.
 
         self.lxset = []
+
+        # UXSET: a list of UnitCX instances, one per unit in the single
+        # good list in the CANDLISTS candidates. Computed on close().
+
+        self.uxset = None
 
     def __wrap_lre(self, lx, langinfo):
         """For a source expressed in the language described by LANGINFO,
@@ -745,11 +772,10 @@ class UXgroup:
 
         goodlists.append (pathlist)
 
-    def __select_ulist (self):
+    def __select_splist_from (self, candlists):
         """Search and return the one good list of units amongst the candidates
         we have."""
 
-        candlists = self.ulists
         goodlists = []
         [self.__examine_source_list (slist, goodlists)
          for slist in candlists]
@@ -763,27 +789,28 @@ class UXgroup:
 
         return goodlists[0]
 
-    def close_on (self, uxset):
-        """For each valid unit designated one of our candidate lists, add a
-        UnitCX object to the set already in UXSET, adding builtin default
-        expectations that were not overriden."""
-
-        spaths = self.__select_ulist()
+    def close (self):
+        """For each valid unit designated by one of our candidate lists,
+        instantiate a UnitCX object and latch the list of instances.
+        """
 
         # Wrap LREs to make sure we look for them in explicit anchors within
         # sources, not as arbitrary sections of source lines. The way to do
         # this depends on the source languages. We assume they are all the
         # same for our list.
 
-        [self.__wrap_lre(lx, language_info(spaths[0])) for lx in self.lxset]
+        [self.__wrap_lre(
+                lx, language_info(self.splist[0]))
+         for lx in self.lxset]
 
         # Now instanciate a unit coverage expectations object for each
-        # source (path) in the list:
+        # sourcepath in our list:
 
-        [uxset.append (
-                UnitCX(sourcepath=spath, LXset=self.lxset)
-                )
-         for spath in spaths]
+        self.uxset = [
+            UnitCX(sourcepath=sp, LXset=self.lxset) for sp in self.splist
+            ]
+
+        return self.uxset
 
 # --------------------
 # -- XnotesExpander --
@@ -887,24 +914,21 @@ class XnotesExpander:
             for lre in nothere
             ]
 
-    def __close_on (self, uxset, uxg):
-        
+    def __end_parse_on (self, uxg):
         uxg.lxset.extend (
-            self.__builtin_lcxs_for (uxg))
+            self.__builtin_lcxs_for (uxg)
+            )
+        return uxg
 
-        uxg.close_on (uxset)
+    # First level of group parsing, stopping prior to XnoteP instantiations
+    # to allow name -> sloc resolution in between.
 
-    def __parse_scovdata(self, scovdata):
-        """Parse the given SCOVDATA lines and return the corresponding
-        list of UnitCX instances."""
+    def __parse_groups_from (self, scovdata):
 
-        # The full set of UnitCX objects being built
-        UXset = []
-        
-        # First deal with everything that resolves to local references for
-        # each unit, working group by group.  We start a new group everytime
-        # we see a "sources" line (which starts with '#', after comment
-        # markers were stripped).
+        uxgroups = []
+
+        # We start a new group everytime we see a "sources" line (which starts
+        # with '#', after comment markers were stripped).
 
         current_uxg = None
 
@@ -913,25 +937,144 @@ class XnotesExpander:
             if line.startswith('#'):
                 
                 # A new group starts. Close the current one first, if any.
-
                 if current_uxg is not None:
-                    self.__close_on (uxset=UXset, uxg=current_uxg)
-
-                current_uxg = UXgroup (ulists=self.__parse_sources(line))
+                    uxgroups.append (self.__end_parse_on (current_uxg))
+                current_uxg = UXgroup (candlists=self.__parse_sources(line))
 
             else:
 
                 # This must be an LX line. Add to the set attached to the
                 # current group.
-
                 current_uxg.lxset.append(self.__parse_lcx(line))
 
         # We're done with all the lines. Close the current group, if any.
 
         if current_uxg is not None:
-            self.__close_on (uxset=UXset, uxg=current_uxg)
+            uxgroups.append (self.__end_parse_on (current_uxg))
 
-        return UXset
+        return uxgroups
+
+    # Instance names resolution to file:line kind of slocs.
+    #
+    # In s-@(i:NAME), "i:NAME" resolves to "<file>:<line>" when we
+    # have ...
+    # 
+    #          <file>
+    #          ...
+    # <line>:  <instanciation code here>  -- # i:NAME
+    #                                        ^^^^^^^^
+    #                                 instanciation marker here
+
+    # The real *source instance* designation marker, that disambiguates
+    # separation tags out of -S instances from routine separation tags out of
+    # -S routines in expectations, and which we also expect in instantiation
+    # line anchors.
+
+    imark = "i:"
+
+    def __resolve_stags_within (self, xnp, idict):
+
+        # xnp.stag contains something like i:NAME1[i:NAME2[i:NAME3]] to
+        # designate instantiations
+
+        def __sloc_for (m):
+            name = m.group(0)
+
+            # We expect exactly one match for a name so could arrange to stop
+            # at the first we find. Having multiple matches can happen out of
+            # a test-writer's mistake though, and keeping only one arbitrarily
+            # would cause endless confusion so we search them all and issue an
+            # error as needed.
+            
+            slocs = [
+                "%s:%d" % (os.path.basename (sp), tl.lno)
+                for sp in idict for tl in idict [sp] if name in tl.text
+                ]
+
+            thistest.stop_if (
+                len (slocs) != 1,
+                FatalError ("%d slocs found for stag %s" % (len (slocs), name))
+                )
+
+            return slocs[0]
+
+        xnp.stag = Stag_from (
+            re.sub (
+                pattern="%s[A-Z_0-9]+" % self.imark,
+                repl=__sloc_for, string=xnp.stag
+                )
+            )
+
+    def __resolve_stags_from (self, uxgroups):
+        """Resolve references like "i:NAME" in stags into the file:line
+        sloc where an instantiation of NAME is located in the set of sources
+        covered by all the units in UXGROUPS."""
+
+        # First collect the set of pattern objects that contain references we
+        # need to resolve.
+
+        xnps = [
+            xnp for uxg in uxgroups for lx in uxg.lxset for xnp in lx.rnps
+            if xnp.stag and self.imark in xnp.stag
+            ]
+
+        if len (xnps) == 0:
+            return
+
+        # Fetch instantiation lines from sources and resolve.  We expect
+        # exactly one instantiation per tagged line.
+
+        def __ilines_for (sp):
+            tf = Tfile (filename=sp, process=(lambda tl: None))
+            return [
+                tl for tl in tf.contents() if "# %s" % self.imark in tl.text
+                ]
+
+        spaths = [sp for uxg in uxgroups for sp in uxg.splist]
+        idict = dict (
+            [(sp, __ilines_for (sp)) for sp in spaths])
+
+        [self.__resolve_stags_within (xnp=xnp, idict=idict) for xnp in xnps]
+
+    def __parse_scovdata(self, scovdata):
+        """Parse the given SCOVDATA lines and return the corresponding
+        list of UCX instances."""
+
+        uxgroups = self.__parse_groups_from (scovdata)
+
+        # At this point, the groups aren't closed yet and we have something
+        # like:
+        #
+        # uxgroups = [UXgroup (), UXgroup () ...]
+        #             v
+        #            ---------
+        #            .splist = ["p1.adb", "subdir/p2.adb", ...]
+        #            .lxset  = [LineCX (), LineCX (), ...]
+        #            .           v
+        #            .        -------
+        #            .        .lre  = "/bla/"
+        #            .        .lnp  = XnoteP (...)
+        #            .        .rnps = [XnoteP (), XnoteP (), ...]
+        #            .                 v
+        #            .               --------
+        #            .               .kind  = sNoCov
+        #            .               .stext = ...
+        #            .               .stag  = "<some stag>" 
+        #            .
+        #            .uxset = None
+
+        # Before closing the groups to trigger the UnitCX creations together
+        # with the note instantiations from the XnoteP patterns, we run a name
+        # to sloc resolution pass for stags
+
+        self.__resolve_stags_from (uxgroups)
+
+        # Now we can close the groups and construct the complete list
+        # of UnitCX instances.
+
+        return [
+            ux for uxg in uxgroups for ux in uxg.close()
+            ]
 
     def __parse_sources(self, image):
         """Given IMAGE as a string that contains a "sources" line,
@@ -952,7 +1095,7 @@ class XnotesExpander:
         # We have at hand single note spec, possibly conditioned by the
         # xcov-level. Something like "s-", "d=>dT-", or "mu=>c!:"B".
 
-        # We might also have an expected instantiation tag in any of these
+        # We might also have an expected separation tag in any of these
         # cases, e.g. c!:"B"@(my_instance)
 
         # First fetch the note text that corresponds to our actual xcov-level.
@@ -967,10 +1110,10 @@ class XnotesExpander:
         # instance
 
         if '@(' in ntext:
-            (ntext, itag) = ntext.split('@(')
-            itag=itag.rstrip(')')
+            (ntext, stag) = ntext.split('@(')
+            stag=stag.rstrip(')')
         else:
-            itag = None
+            stag = None
 
         if ':' in ntext:
             (ntext, stext) = ntext.split(':"')
@@ -979,7 +1122,7 @@ class XnotesExpander:
             stext = None
 
         return XnoteP (
-            text=ntext, stext=stext, itag=itag
+            text=ntext, stext=stext, stag=stag
             )
 
     def __parse_expected_rnotes(self, image):

@@ -267,6 +267,20 @@ class Cnote:
         # have to be found in the expected report section. =xcov reports are
         # considered section-less.
 
+        # In addition, any note might have an associated "separation tag" to
+        # provide finer grained diagnostics in presence of inlining or generic
+        # instances.
+
+        self.stag = None
+
+    def image (self):
+        return (
+            "%s%s mark at %s" % (
+                NK_image[self.kind],
+                "(from %s)" % self.stag.text if self.stag else "",
+                str(self.segment))
+            )
+
 # -----------
 # -- Xnote --
 # -----------
@@ -282,6 +296,7 @@ class Xnote (Cnote):
         self.block = block
 
         self.stext = xnp.stext
+        self.stag = xnp.stag
         self.nmatches = 0
 
         self.discharger = None  # The Enote that discharged this
@@ -308,12 +323,12 @@ class Xnote (Cnote):
 # Emitted note, as extracted from an xcov report:
 
 class Enote(Cnote):
-    def __init__(self, kind, segment, source, itag=None):
+    def __init__(self, kind, segment, source, stag=None):
 
         self.kind = kind        # The kind of emitted note
         self.segment = segment  # The line segment it designates
         self.source = source    # The corresponding source name
-        self.itag = itag        # The instanciation tag it contains
+        self.stag = stag        # The separation tag it contains
 
         self.discharges = None  # The Xnote it discharges
 

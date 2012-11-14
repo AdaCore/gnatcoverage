@@ -145,6 +145,24 @@ class _Xchecker:
     def register_failure(self, comment):
         thistest.failed("("+self.report+") " + comment)
 
+    def __discharges (self, en, xn):
+        """Whether emitted note EN discharges expected note XN, already
+        known to be of the same kind."""
+
+        # The emitted note needs to designate a sloc range within the
+        # expected sloc range and separation tags, when any is expected,
+        # must match.
+
+        # While absence of expected tag is matched by anything emitted
+        # (nothing at all or anything, whatever the kind and contents),
+        # absence of emitted separation tag never matches any stated
+        # expectation.
+
+        return (
+            en.segment.within (xn.segment)
+            and (not xn.stag or (en.stag and en.stag.match (xn.stag)))
+            )
+
     def try_sat_over(self, ekind, xn):
 
         # See if expected note XN is satisfied by one of the emitted notes of
@@ -154,9 +172,7 @@ class _Xchecker:
 
         for en in self.edict [ekind]:
 
-            # Register a discharge and return as soon as segments match.
-
-            if en.segment.within (xn.segment):
+            if self.__discharges (en=en, xn=xn):
                 en.discharges = xn
                 xn.discharger = en
                 self.sat[xn.block].append(xn)
@@ -185,8 +201,8 @@ class _Xchecker:
             return
 
         self.register_failure (
-            "Expected %s mark missing at %s"
-            % (NK_image[xn.kind], str(xn.segment)))
+            "Missing expected %s" % xn.image ()
+            )
 
     def process_unsat(self, block):
 
@@ -240,9 +256,7 @@ class _Xchecker:
 
         enotes = self.edict[ekind]
 
-        [self.register_failure(
-                "Unexpected %s mark at %s" %
-                (NK_image[en.kind], str(en.segment)))
+        [self.register_failure("Unexpected %s" % en.image())
          for en in enotes if (not en.discharges) or anti_p(en.discharges.kind)]
 
     def run (self, discharge_kdict):
