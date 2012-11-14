@@ -12,7 +12,7 @@ import re
 from SUITE.cutils import match, to_list, list_to_file
 from SUITE.tutils import thistest, do, compile
 
-from SUITE.control import BUILDER, LANGINFO, XCOV
+from SUITE.control import BUILDER, XCOV
 
 # ==================
 # ==  MapChecker  ==
@@ -23,7 +23,7 @@ class MapChecker:
                  objects=None, alis=None, ensure_dcscos=True):
 
         self.options = ' '.join ((
-                LANGINFO["Ada"].cargs, BUILDER.COMMON_CARGS, options))
+                BUILDER.COMMON_CARGS, options))
 
         self.sources = to_list(sources)
         self.ensure_dcscos = ensure_dcscos
