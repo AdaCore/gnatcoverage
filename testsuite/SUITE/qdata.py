@@ -845,10 +845,7 @@ class QDreport:
                         )
                  } ] + \
                 [ { item : "compiler switches - %s specific" % lang,
-                    value: ' '.join (
-                        (LANGINFO[lang].cargs,
-                         options["cargs_%s" % lang])
-                        )
+                    value: options["cargs_%s" % lang]
                   } for lang in self.languages ]
             ).dump_to (self.rstf)
 
