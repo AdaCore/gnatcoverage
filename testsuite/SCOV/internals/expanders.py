@@ -46,6 +46,7 @@ from . stags import Stag_from
 
 from SUITE.control import LANGINFO, language_info
 from SUITE.cutils import Identifier
+from SUITE.tutils import all_cargs_for_build
 
 # --------------------
 # -- LnotesExpander --
@@ -456,15 +457,23 @@ class RnotesExpander:
 # We refer to the expressed user expectations as SCOV data, and parse it
 # according to the following grammar:
 
-#     SCOV.data := ucx_list
-#     ucx_list := ucx_group <newline> [ucx_list]
-#     ucx_group := sources <new_line> lx_list
+#     SCOV.data := ucxgroup__list
+#     ucxgroup__list := ucx_group <newline> [ucxgroup__list]
+#     ucx_group := sources <new_line> lx_or_ctl__list
 
 #     sources := "--# " filename_lists
-#     filename_lists := filename_list [| filename_lists]
+#     filename_lists := filename_list ["|" filename_lists]
 #     filename_list := FILENAME [ filename_list]
 
-#     lx_list := lx <newline> [lx_list]
+#     lx_or_ctl__list := lx_or_ctl <newline> [lx_or_ctl__list]
+#     lx_or_ctl := lx | ctl
+
+#     ctl := "-- " arg_ctl__list
+#     arg_ctl__list := arg_ctl ["## " arg_ctl__list]
+#     arg_ctl := "-- " ["!"]"%"<cargs|cov>":" optgroup__list
+#     optgroup__list := optgroup ["," optgroup__list]
+#     optgroup := <atomic option sequence like "-gnatp" or "-S routines">
+
 #     lx := "-- " lx_lre lx_lnote_list " ## " lx_rnote_list <newline>
 #     lx_lre := "/" REGEXP "/"
 #     weak_mark := ~
@@ -495,12 +504,63 @@ class RnotesExpander:
 # slashes inside lx_lre tokens are allowed. The SCOV_data parser simply
 # uses the first and last slash as the delimiters.
 
-# STAG, when any, is the separation tag expected for the note. This will be a
-# bare routine name for outputs with -S routines, and a nest of instantiation
-# slocs for outputs with -S instances. In the latter case, slocs are stated in
-# a symbolic manner, as "i:NAME" to denote a generic instantiation somewhere
-# on a source line featuring an "i:NAME" anchor, for any source part of any of
-# the groups.
+# SEPARATION TAGS (STAG addends)
+# ------------------------------
+# An STAG addend, when specified, is the separation tag expected for the
+# note. This will be a bare routine name for outputs with -S routines, and a
+# nest of instantiation slocs for outputs with -S instances. In the latter
+# case, slocs are stated in a symbolic manner, as "i:NAME" to denote a generic
+# instantiation somewhere on a source line featuring an "i:NAME" anchor, for
+# any source part of any of the groups.
+#
+# In absence of STAG part, the corresponding emitted notes must not contain
+# any separation tag indication to match. A bare "s-" is only matched by a
+# bare "statement not executed" =report indication for example, without any
+# separation tag mentioned.
+
+# CONDITIONAL EXPECTATIONS WITHIN A GROUP (CTL lines)
+# ---------------------------------------------------
+# %cargs: opt1[, opt2, ... optn] means: from now on, only grab the next-coming
+# lx lines if opt1 (and opt2 and ... up to optn) are part of the compilation
+# options for the test. A '!' at the beginning of an option inverts the logic
+# for this option in particular, meaning "... if this option is *not* part of
+# of the compilation args for the test.
+#
+# %cov: ... is similar, against the gnatcov coverage specific options for the
+# test instead of the compilation flags.
+#
+# When a lx line is grabbed, it replaces whatever was previously recorded for
+# the selecting regexp (lre) it holds, if anything.
+#
+# Here is a simple example:
+#
+# --# p.adb                         <= Start expectation group wrt p.adb
+# --  /bla/ ...
+# --
+# --  /blu/ l! ## s-                <= By default (about to be conditionally
+#                                      overriden), expect no separation tag
+#                                      on s- for /blu/.
+# 
+# --%cov: -S instances              <= From now on, grab expectations only if
+#                                      gnatcov coverage -S instances, then ...
+# --  /blu/ l! ## s-@(i:myinst)     <= Override expectations for /blu/
+# 
+# --%cov: -S routines               <= Likewise for -S routines
+# --  /blu/ l! ## s-@(myinst__blu)
+#
+# Conditioning on cargs works the same. Both kinds of controls may be
+# and-combined with ## and each individual control may be inverted with
+# a '!' prefix. For example:
+#
+# -- From now on, grab expectations only if gnatcov coverage -S routines
+# -- and compilation without -gnatn:
+#
+# --%cov: -S routines ## %cargs: !-gnatn
+#
+# Note that contrary to STAGS where absence in expectation means we expect no
+# emitted STAG at all, absence of an option in a CTL list means that it
+# doesn't matter whether this option is actually passed or not. '!' is there
+# for cases where we need to state dependency on option absence.
 
 # We use three intermediate abstractions to build the dictionaries from
 # the expectations text:
@@ -547,10 +607,16 @@ class LineCX:
     """Line Coverage eXpectations class.  Associated with source file names,
     these define unit coverage expectation specs."""
 
-    def __init__(self, lre, lnp, rnps):
+    def __init__(self, lre, lnp, rnps, override):
+        
         self.lre = lre
         self.lnp = lnp
         self.rnps = rnps
+
+        # Whether this line is meant to override an existing one
+        # with an identical lre:
+
+        self.override = override
 
     def instanciate_lnotes_over(self, tline, block, srules):
         return [self.lnp.instanciate_over (tline, block, srules)]
@@ -727,29 +793,27 @@ class UXgroup:
 
         self.splist = self.__select_splist_from (candlists=candlists)
 
-        # LXSET: a list of LineCX objects corresponding to the stated
-        # expectations for the units we can find.
+        # LXSET: During parsing, a dictionary of LineCX objects corresponding
+        # to the stated expectations for the sources we can find, indexed by
+        # LRE so we can easily override entries when processing conditional
+        # sections.  This is turned into a list eventually, when we know the
+        # set of values is fixed and all we need is iterate over values.
 
-        self.lxset = []
+        self.lxset = {}
 
         # UXSET: a list of UnitCX instances, one per unit in the single
         # good list in the CANDLISTS candidates. Computed on close().
 
         self.uxset = None
 
-    def __wrap_lre(self, lx, langinfo):
-        """For a source expressed in the language described by LANGINFO,
-        adjust line regular expression in LX to expect it prefixed with
-        "xx # " where "xx" is the language comment marker."""
 
-        lx.lre = langinfo.comment + " # (" + lx.lre + ")"
-
-        # The parens are crucial here. Consider what would happen for
-        # /bla|blo/ without them ...
+    # --------------------------
+    # -- Helpers for __init__ --
+    # --------------------------
 
     def __locate_source(self, source):
         """Return valid relative path were SOURCE may be found, searching
-        plausible locations from the instantiation point."""
+        plausible locations uptree from the current point."""
 
         for pdir in ("../"*n + "src/" for n in range (0, thistest.depth)):
             if os.path.exists(pdir+source):
@@ -789,6 +853,24 @@ class UXgroup:
 
         return goodlists[0]
 
+    # -------------------------
+    # -- Helpers for close() --
+    # -------------------------
+    
+    def __wrap_lre(self, lx, langinfo):
+        """For a source expressed in the language described by LANGINFO,
+        adjust line regular expression in LX to expect it prefixed with
+        "xx # " where "xx" is the language comment marker."""
+
+        lx.lre = langinfo.comment + " # (" + lx.lre + ")"
+
+        # The parens are crucial here. Consider what would happen for
+        # /bla|blo/ without them ...
+
+    # -----------
+    # -- close --
+    # -----------
+    
     def close (self):
         """For each valid unit designated by one of our candidate lists,
         instantiate a UnitCX object and latch the list of instances.
@@ -807,7 +889,8 @@ class UXgroup:
         # sourcepath in our list:
 
         self.uxset = [
-            UnitCX(sourcepath=sp, LXset=self.lxset) for sp in self.splist
+            UnitCX(sourcepath=sp, LXset=self.lxset)
+            for sp in self.splist
             ]
 
         return self.uxset
@@ -843,16 +926,46 @@ class UXgroup:
 
 class XnotesExpander:
 
-    def __init__(self, xfile, xcov_level):
+    # __get_scovdata ()
+    # 
+    # __parse_scovdata ()
+    #   >  __parse_groups_from ()
+    #   |   > __try_ctl_update_from ()
+    #   |   > __parse_sources ()
+    #   |   > __parse_lcx ()
+    #   |
+    #   >  __resolve_stags_from ()
+    #   |   > __resolve_itags_from ()
+    #   |   > xnp.instantiate_stag () for all xnote patterns
+    #   |
+    #   >  g.close () for all parsed groups
+
+    def __init__(self, xfile, xcov_level, covoptions):
+        
+        self.xfile = xfile
         self.xcov_level = xcov_level
+
+        # Reference controls for CTL lines - compilation options and
+        # specific options to gnatcov coverage:
+
+        self.ctls = {
+            "%cargs": ' '.join (all_cargs_for_build (thiscargs=None)),
+            "%cov"  : ' '.join (covoptions)
+            }
+
         self.xlnotes = {}
         self.xrnotes = {}
+        
         [self.to_xnotes(ux) for ux in
          self.__parse_scovdata (self.__get_scovdata (xfile))]
 
     def to_xnotes(self, ux):
         self.xlnotes [ux.source] = ux.xldict
         self.xrnotes [ux.source] = ux.xrdict
+
+    # --------------------
+    # -- __get_scovdata --
+    # --------------------
 
     def __get_scovdata(self, scov_file):
         """Return a list of strings containing the SCOV_data.
@@ -883,158 +996,9 @@ class XnotesExpander:
                 contents.append(line[len(lang_info.comment):].lstrip())
         return contents
 
-    # builtin markers support: to let test writers put things like
-    #
-    #    -- # __l-s-
-    #
-    # in the functional sources to mean: unless explicitly overriden by
-    # a regular expectation spec, expect l- s- for this line always.
-
-    # What default notes we expect for what designator text
-
-    builtin_lxs = {"__l-s-":  "l- ## s-",
-                   "__l!d!":  "l! ## d!",
-                   "__l!dT-": "l! ## dT-"
-                   }
-
-    def __builtin_lcxs_for (self, uxg):
-        """Add builtin default LineCX for UXG."""
-
-        # Fetch the explicit line expectations and compute those not there for
-        # which we have a default to provide. Beware that the expressions were
-        # wrapped by parse_lcx already
-
-        ux_lres = [lcx.lre for lcx in uxg.lxset]
-        nothere = [lre for lre in self.builtin_lxs if lre not in ux_lres]
-
-        # Now compute the list of LCX objects for each of those defaults
-
-        return [
-            self.__parse_lcx("/%s/ %s" % (lre, self.builtin_lxs[lre]))
-            for lre in nothere
-            ]
-
-    def __end_parse_on (self, uxg):
-        uxg.lxset.extend (
-            self.__builtin_lcxs_for (uxg)
-            )
-        return uxg
-
-    # First level of group parsing, stopping prior to XnoteP instantiations
-    # to allow name -> sloc resolution in between.
-
-    def __parse_groups_from (self, scovdata):
-
-        uxgroups = []
-
-        # We start a new group everytime we see a "sources" line (which starts
-        # with '#', after comment markers were stripped).
-
-        current_uxg = None
-
-        for line in scovdata:
-
-            if line.startswith('#'):
-                
-                # A new group starts. Close the current one first, if any.
-                if current_uxg is not None:
-                    uxgroups.append (self.__end_parse_on (current_uxg))
-                current_uxg = UXgroup (candlists=self.__parse_sources(line))
-
-            else:
-
-                # This must be an LX line. Add to the set attached to the
-                # current group.
-                current_uxg.lxset.append(self.__parse_lcx(line))
-
-        # We're done with all the lines. Close the current group, if any.
-
-        if current_uxg is not None:
-            uxgroups.append (self.__end_parse_on (current_uxg))
-
-        return uxgroups
-
-    # Instance names resolution to file:line kind of slocs.
-    #
-    # In s-@(i:NAME), "i:NAME" resolves to "<file>:<line>" when we
-    # have ...
-    # 
-    #          <file>
-    #          ...
-    # <line>:  <instanciation code here>  -- # i:NAME
-    #                                        ^^^^^^^^
-    #                                 instanciation marker here
-
-    # The real *source instance* designation marker, that disambiguates
-    # separation tags out of -S instances from routine separation tags out of
-    # -S routines in expectations, and which we also expect in instantiation
-    # line anchors.
-
-    imark = "i:"
-
-    def __resolve_stags_within (self, xnp, idict):
-
-        # xnp.stag contains something like i:NAME1[i:NAME2[i:NAME3]] to
-        # designate instantiations
-
-        def __sloc_for (m):
-            name = m.group(0)
-
-            # We expect exactly one match for a name so could arrange to stop
-            # at the first we find. Having multiple matches can happen out of
-            # a test-writer's mistake though, and keeping only one arbitrarily
-            # would cause endless confusion so we search them all and issue an
-            # error as needed.
-            
-            slocs = [
-                "%s:%d" % (os.path.basename (sp), tl.lno)
-                for sp in idict for tl in idict [sp] if name in tl.text
-                ]
-
-            thistest.stop_if (
-                len (slocs) != 1,
-                FatalError ("%d slocs found for stag %s" % (len (slocs), name))
-                )
-
-            return slocs[0]
-
-        xnp.stag = Stag_from (
-            re.sub (
-                pattern="%s[A-Z_0-9]+" % self.imark,
-                repl=__sloc_for, string=xnp.stag
-                )
-            )
-
-    def __resolve_stags_from (self, uxgroups):
-        """Resolve references like "i:NAME" in stags into the file:line
-        sloc where an instantiation of NAME is located in the set of sources
-        covered by all the units in UXGROUPS."""
-
-        # First collect the set of pattern objects that contain references we
-        # need to resolve.
-
-        xnps = [
-            xnp for uxg in uxgroups for lx in uxg.lxset for xnp in lx.rnps
-            if xnp.stag and self.imark in xnp.stag
-            ]
-
-        if len (xnps) == 0:
-            return
-
-        # Fetch instantiation lines from sources and resolve.  We expect
-        # exactly one instantiation per tagged line.
-
-        def __ilines_for (sp):
-            tf = Tfile (filename=sp, process=(lambda tl: None))
-            return [
-                tl for tl in tf.contents() if "# %s" % self.imark in tl.text
-                ]
-
-        spaths = [sp for uxg in uxgroups for sp in uxg.splist]
-        idict = dict (
-            [(sp, __ilines_for (sp)) for sp in spaths])
-
-        [self.__resolve_stags_within (xnp=xnp, idict=idict) for xnp in xnps]
+    # -------------------------
+    # -- __parse_scovdata () --
+    # -------------------------
 
     def __parse_scovdata(self, scovdata):
         """Parse the given SCOVDATA lines and return the corresponding
@@ -1076,6 +1040,175 @@ class XnotesExpander:
             ux for uxg in uxgroups for ux in uxg.close()
             ]
 
+    # --------------------------------------------------------
+    # -- __parse_groups_from() helper for __parse_scov_data --
+    # --------------------------------------------------------
+
+    # First level of group parsing, stopping prior to XnoteP instantiations
+    # to allow name -> sloc resolution in between.
+
+    def __parse_groups_from (self, scovdata):
+
+        uxgroups = []
+
+        # We start a new group everytime we see a "sources" line (which starts
+        # with '#', after comment markers were stripped).
+
+        current_uxg = None
+
+        grabbing = True
+
+        for line in scovdata:
+
+            (ctl_update, ctl_value) = self.__try_ctl_update_from (line)
+
+            if ctl_update:                
+
+                # A CTL line was found, update our processing state
+                # accordingly:
+
+                grabbing = ctl_value
+
+            elif line.startswith('#'):
+                                
+                # A new group starts. Close the current one first and start
+                # grabbing again unconditionally:
+
+                if current_uxg is not None:
+                    uxgroups.append (self.__end_parse_on (current_uxg))
+
+                current_uxg = UXgroup (candlists=self.__parse_sources(line))
+                grabbing = True
+
+            else:
+
+                # This must be an LX line. Add to the set attached to the
+                # current group if we're entitled to. Check lre overriding
+                # consistency in any case.
+
+                lx = self.__parse_lcx(line)
+                
+                thistest.stop_if (
+                    lx.lre in current_uxg.lxset and not lx.override,
+                    FatalError (
+                        "LRE dup without overriding note (%s, %s)" % (
+                            lx.lre, self.xfile)
+                        )
+                    )
+
+                if grabbing:
+                    current_uxg.lxset [lx.lre] = lx
+                        
+        # We're done with all the lines. Close the current group, if any.
+
+        if current_uxg is not None:
+            uxgroups.append (self.__end_parse_on (current_uxg))
+
+        return uxgroups
+
+    # -------------------------------------------------------
+    # -- __end_parse_on() helper for __parse_groups_from() --
+    # -------------------------------------------------------
+
+    # Called whe the first level parsing is done for UXG, prior
+    # to instance name resolution and group closing.
+
+    def __end_parse_on (self, uxg):
+        uxg.lxset = (
+            uxg.lxset.values() + self.__builtin_lcxs_for (uxg)
+            )
+        return uxg
+
+    # builtin markers support: to let test writers put things like
+    #
+    #    -- # __l-s-
+    #
+    # in the functional sources to mean: unless explicitly overriden by
+    # a regular expectation spec, expect l- s- for this line always.
+
+    # What default notes we expect for what designator text
+
+    builtin_lxs = {"__l-s-":  "l- ## s-",
+                   "__l!d!":  "l! ## d!",
+                   "__l!dT-": "l! ## dT-"
+                   }
+
+    def __builtin_lcxs_for (self, uxg):
+        """Add builtin default LineCX for UXG."""
+
+        # Fetch the explicit line expectations and compute those not there for
+        # which we have a default to provide. Beware that the expressions were
+        # wrapped by parse_lcx already
+
+        nothere = [lre for lre in self.builtin_lxs if lre not in uxg.lxset]
+
+        # Now compute the list of LCX objects for each of those defaults
+
+        return [
+            self.__parse_lcx("/%s/ %s" % (lre, self.builtin_lxs[lre]))
+            for lre in nothere
+            ]
+
+    # -----------------------------------------------------
+    # -- CTL parsing for control of conditional sections --
+    # -----------------------------------------------------
+
+    def __try_ctl_update_from (self, line):
+        """See if LINE is a CTL line and return the corresponding (do_update,
+        now_active) indication tuple. do_update tells if indeed LINE is a CTL
+        line and now_active tells whether the whole set of conditional options
+        match the current set of active ones."""
+
+        # CTL lines are like "%cov: -S routines ## %cargs: !-gnatn"
+        # They are the only lines that may start with '%'.
+
+        if not line.startswith ('%'):
+            return (False, None)
+
+        # To keep grabbing LX lines, all the CTL parts must evaluate True.  We
+        # always evaluate them all and don't implement shortcircuits. The code
+        # remains straightforward this way and we typically have one or two
+        # parts only so the potential efficiency gain is not worth any kind of
+        # complexification.
+
+        parts = line.split ("##")
+
+        val = True
+        for part in parts:
+            val &= self.__eval_ctl_update_from (part)
+
+        return (True, val)
+
+    def __eval_ctl_update_from (self, part):
+        
+        m = re.match (
+            pattern=" *(?P<key>%.*?):(?P<opts>.*)\n?", string=part
+            )
+
+        key = m.group("key")
+        opts = m.group("opts").strip()
+
+        this_val = True
+        for oseq in opts.split (','):
+
+            if oseq.startswith ('!'):
+                invert = True
+                oseq = oseq[1:]
+            else:
+                invert = False
+
+            optin = re.search (
+                pattern=oseq, string=self.ctls[key]
+                ) is not None
+
+            this_val &= not optin if invert else optin
+
+        return this_val
+
+    # ------------------------------------------------------
+    # -- __parse_sources() helper for __parse_groups_from --
+    # ------------------------------------------------------
+
     def __parse_sources(self, image):
         """Given IMAGE as a string that contains a "sources" line,
         parse that line and return a list of lists, one for each possible
@@ -1083,12 +1216,126 @@ class XnotesExpander:
 
         # # x0.adb y0.adb | x1.c y1.c
         #
-        # -> [[x0.adb, y0.adb], [x1.c, y1.c]]
+        # -> [["x0.adb", "y0.adb"], ["x1.c", "y1.c"]]
         #
         # to mean "this section applies to (x0.adb and y0.adb) or (x1.c an
         # y1.c), whichever set we can reach from here.
 
         return [alt.split(' ') for alt in image[1:].strip().split('|')]
+
+    # -----------------------------------------------------------------
+    # -- Instance name resolution helpers for __resolve_stags_from() --
+    # -----------------------------------------------------------------
+
+    # Instance names resolution to file:line kind of slocs.
+    #
+    # In s-@(i:NAME), "i:NAME" resolves to "<file>:<line>" when we
+    # have ...
+    # 
+    #          <file>
+    #          ...
+    # <line>:  <instanciation code here>  -- # i:NAME
+    #                                        ^^^^^^^^
+    #                                 instanciation marker here
+
+    # The real *source instance* designation marker, that disambiguates
+    # separation tags out of -S instances from routine separation tags out of
+    # -S routines in expectations, and which we also expect in instantiation
+    # line anchors.
+
+    imark = "i:"
+
+    def __resolve_itags_within (self, xnp, idict):
+
+        # xnp.stag contains something like i:NAME1[i:NAME2[i:NAME3]] to
+        # designate instantiations
+
+        def __sloc_for (m):
+            name = m.group(0)
+
+            # We expect exactly one match for a name so could arrange to stop
+            # at the first we find. Having multiple matches can happen out of
+            # a test-writer's mistake though, and keeping only one arbitrarily
+            # would cause endless confusion so we search them all and issue an
+            # error as needed.
+            
+            slocs = [
+                "%s:%d" % (os.path.basename (sp), tl.lno)
+                for sp in idict for tl in idict [sp] if name in tl.text
+                ]
+
+            thistest.stop_if (
+                len (slocs) != 1,
+                FatalError ("%d slocs found for stag %s" % (len (slocs), name))
+                )
+
+            return slocs[0]
+
+        xnp.stag = re.sub (
+            pattern="%s[A-Z_0-9]+" % self.imark,
+            repl=__sloc_for, string=xnp.stag
+            )
+
+    def __resolve_itags_from (self, all_xnps):
+        """Resolve references like "i:NAME" in stags into the file:line
+        sloc where an instantiation of NAME is located in the set of sources
+        covered by all the units in UXGROUPS."""
+
+        i_xnps = [
+            xnp for xnp in all_xnps if xnp.stag and self.imark in xnp.stag
+            ]
+        
+        if len (i_xnps) == 0:
+            return
+
+        # Fetch instantiation lines from sources and resolve.  We expect
+        # exactly one instantiation per tagged line.
+
+        def __ilines_for (sp):
+            tf = Tfile (filename=sp, process=(lambda tl: None))
+            return [
+                tl for tl in tf.contents() if "# %s" % self.imark in tl.text
+                ]
+
+        spaths = [sp for uxg in uxgroups for sp in uxg.splist]
+        idict = dict (
+            [(sp, __ilines_for (sp)) for sp in spaths])
+
+        [self.__resolve_itags_within (xnp=xnp, idict=idict) for xnp in i_xnps]
+
+    # --------------------------------------------------------
+    # -- __resolve_stags_from() helper for __parse_scovdata --
+    # --------------------------------------------------------
+
+    def __resolve_stags_from (self, uxgroups):
+        """Resolve instance references in separation tags from UXGROUPS, then
+        turn separation tag strings into Stag objects."""
+
+        all_xnps = [
+            xnp for uxg in uxgroups for lx in uxg.lxset for xnp in lx.rnps
+            ]
+
+        self.__resolve_itags_from (all_xnps)
+
+        [xnp.instantiate_stag ()
+         for xnp in all_xnps if xnp.stag is not None]
+
+    # --------------------------------------------------------
+    # -- Note parsing and selection helpers for __parse_lcx --
+    # --------------------------------------------------------
+
+    def __parse_expected_rnotes(self, image):
+        if '#' in image:
+            imlist = image.split('#')
+        elif ',' in image:
+            imlist = image.split(',')
+        else:
+            imlist = [image]
+        return [
+            rnote for rnote in (
+            self.__parse_one_expected_rnote(im.strip())
+            for im in imlist) if rnote
+            ]
 
     def __parse_one_expected_rnote(self, image):
 
@@ -1124,69 +1371,6 @@ class XnotesExpander:
         return XnoteP (
             text=ntext, stext=stext, stag=stag
             )
-
-    def __parse_expected_rnotes(self, image):
-        if '#' in image:
-            imlist = image.split('#')
-        elif ',' in image:
-            imlist = image.split(',')
-        else:
-            imlist = [image]
-        return [
-            rnote for rnote in (
-            self.__parse_one_expected_rnote(im.strip())
-            for im in imlist) if rnote
-            ]
-
-    def __parse_lcx(self, image):
-        """Parse IMAGE as a string that contains a line expectation
-        spec and return the corresponding LineCX object.
-        """
-
-        # Extract the various parts of interest from the image.
-
-        m = re.match("\s*/(.*?)/\s+(.*) ## (.*)", image)
-        #                 ^^^^^    ^^^^    ^^^^
-        #                 lre      lnote   rnotes
-
-        if m is None:
-            raise FatalError(
-                "Invalid '%s' line expectation spec.\n" % image
-                + "Expected /LRE/ lnotes ## rnotes")
-
-        lx_lre   = m.group(1)
-        lx_lnote = XnoteP (text=self.__select_lnote (m.group(2)),
-                           stext=None)
-
-        thistest.stop_if (
-            not m.group(3),
-            FatalError ("Missing expected report notes spec in %s" % image)
-            )
-
-        lx_rnotes = self.__parse_expected_rnotes(m.group(3))
-
-        # If we had expectations specified (still running here), and none
-        # of them is applicable to the current xcov-level, default to empty
-        # set expectation
-
-        if not lx_rnotes:
-            lx_rnotes = [XnoteP (text="0", stext=None)]
-
-        # If we have both an empty-set expectation and something else,
-        # expectations are wrong. This is a safeguard against a common
-        # mistake, thinking, say, that "d=>dT-, 0" means "dT- if
-        # --level=stmt+decision, 0 _otherwise_", while it means "dT- etc, 0
-        # _always_ (not tied to any particular level)" instead.
-
-        else:
-
-            thistest.stop_if (
-                len (lx_rnotes) > 1 and "0" in lx_rnotes,
-                FatalError ("Contradictory =report expectation in %s" % image)
-            )
-
-
-        return LineCX(lx_lre, lx_lnote, lx_rnotes)
 
     def __decode_note_choice(self, text):
         """Given a note_choice that depends potentially on a list of coverage
@@ -1260,3 +1444,64 @@ class XnotesExpander:
             return level_table ['']
 
         return None
+
+    # -----------------
+    # -- __parse_lcx --
+    # ------------------
+
+    def __parse_lcx(self, image):
+        """Parse IMAGE as a string that contains a line expectation
+        spec and return the corresponding LineCX object.
+        """
+
+        # Extract the various parts of interest from the image.
+
+        m = re.match (
+            string  = image,
+            pattern = "\s*(?P<lre>=?/.*?/)\s+(?P<lnote>.*) ## (?P<rnotes>.*)"
+            )
+
+        if m is None:
+            raise FatalError(
+                "Invalid '%s' line expectation spec.\n" % image
+                + "Expected /LRE/ lnotes ## rnotes")
+
+        lx_lre = m.group("lre")
+        
+        if lx_lre.startswith('='):
+            lre_override = True
+            lx_lre = lx_lre [1:]
+        else:
+            lre_override = False
+
+        lx_lre = lx_lre.strip ('/')
+
+        lx_lnote = XnoteP (
+            text=self.__select_lnote (m.group("lnote")), stext=None
+            )
+
+        lx_rnotes = self.__parse_expected_rnotes (m.group("rnotes"))
+
+        # If none of the stated report expectation applies to the current
+        # xcov-level, default to the empty set:
+
+        if not lx_rnotes:
+            lx_rnotes = [XnoteP (text="0", stext=None)]
+
+        # If we have both an empty-set expectation and something else,
+        # expectations are wrong. This is a safeguard against a common
+        # mistake, thinking, say, that "d=>dT-, 0" means "dT- if
+        # --level=stmt+decision, 0 _otherwise_", while it means "dT- etc, 0
+        # _always_ (not tied to any particular level)" instead.
+
+        else:
+
+            thistest.stop_if (
+                len (lx_rnotes) > 1 and "0" in lx_rnotes,
+                FatalError ("Contradictory =report expectation in %s" % image)
+            )
+
+        return LineCX (
+            lre = lx_lre, lnp = lx_lnote, rnps = lx_rnotes,
+            override = lre_override
+            )

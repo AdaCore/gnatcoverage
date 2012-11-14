@@ -15,6 +15,8 @@ from SUITE.context import thistest
 
 from SUITE.cutils import lines_of, FatalError
 
+from . stags import Stag_from
+
 from . cnotes import *
 from . segments import *
 from . tfiles import Tfile
@@ -143,7 +145,8 @@ class XnoteP:
             FatalError ("expected justification text required for %s" % text))
 
         # STAG is the separation tag that we must find on an emitted note to
-        # discharge expectations produced from this pattern.
+        # discharge expectations produced from this pattern. Initially, at this
+        # __init__ point, this is set with the stag text found. 
 
         self.stag = stag
 
@@ -157,6 +160,9 @@ class XnoteP:
             else 
             _XnoteP_segment (notep=self, stext=stext)
             )
+
+    def instantiate_stag (self):
+        self.stag = Stag_from (self.stag)
 
     def instanciate_over (self, tline, block, srules):
 

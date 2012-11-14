@@ -78,7 +78,7 @@ def __set_cmdline_cargs_for (lang, cargs):
 # ...) and language specific (-cargs:lang ...) Account for specific requests
 # in THISCARGS.
 
-def __all_cargs_for_build (thiscargs):
+def all_cargs_for_build (thiscargs):
 
     # For CARGS, account for possible options passed either as an explicit
     # argument to this routine or queried from the command line.
@@ -156,7 +156,7 @@ def gprbuild(project, gargs=None, cargs=None, largs=None):
     # or from from command line requests
 
     all_gargs = __all_gargs_for_build (thisgargs=gargs, gpr=project)
-    all_cargs = __all_cargs_for_build (thiscargs=cargs)
+    all_cargs = all_cargs_for_build (thiscargs=cargs)
     all_largs = __all_largs_for_build (thislargs=largs)
 
     # Now cleanup, do build and check status
