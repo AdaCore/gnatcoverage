@@ -1,0 +1,9 @@
+tests
+support/
+mc_*/
+st_*/
+dc_*/
+tmp_*/
+*.pyc
+*~
+test.py.???
