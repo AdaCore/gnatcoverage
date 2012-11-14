@@ -166,8 +166,8 @@ This settled, we have:
 
      driver.py    : Class to help drive a source coverage test [SCOV_helper]
 
-     expanders.py : Expand coverage note instances from gnatcov reports or from
-                    expectation-specs + sources
+     *expanders.py : Expand coverage note instances from gnatcov reports or from
+                     expectation-specs + sources
 
      xnotep.py    : Class to represent user expectation patterns
 

@@ -39,7 +39,9 @@ from . cnotes import xNoteKinds, sNoteKinds, dNoteKinds, cNoteKinds, tNoteKinds
 from . cnotes import strict_p, deviation_p, anti_p, positive_p
 from . cnotes import NK_image
 
-from . expanders import XnotesExpander, LnotesExpander, RnotesExpander
+from . xnexpanders import XnotesExpander
+from . lnexpanders import LnotesExpander
+from . rnexpanders import RnotesExpander
 
 # ======================================
 # == SCOV_helper and internal helpers ==
