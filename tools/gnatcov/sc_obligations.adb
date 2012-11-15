@@ -27,6 +27,7 @@ with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Text_IO;       use Ada.Text_IO;
 
 with ALI_Files;     use ALI_Files;
+with Aspects;       use Aspects;
 with Coverage.Tags; use Coverage, Coverage.Tags;
 with Diagnostics;   use Diagnostics;
 with Files_Table;   use Files_Table;
@@ -311,9 +312,10 @@ package body SC_Obligations is
      (If_Statement,
       Exit_Statement,
       Entry_Guard,
-      Pragma_Assert_Check_PPC,
+      Pragma_Decision,
       While_Loop,
-      Expression);
+      Expression,
+      Aspect);
 
    function To_Decision_Kind (C : Character) return Decision_Kind;
    --  Convert character code for decision kind to corresponding enum value
@@ -398,6 +400,9 @@ package body SC_Obligations is
                   --  Set True for the case of a single-condition decision,
                   --  whose conditional branch instructions have origins (i.e.
                   --  condition value labels) set modulo an arbitrary negation.
+
+                  Aspect_Name : Aspect_Id := No_Aspect;
+                  --  For an aspect decision, name of the aspect
 
                when Operator =>
                   Op_Kind : Operator_Kind;
@@ -1496,7 +1501,7 @@ package body SC_Obligations is
       declare
          S_SCOD : SCO_Descriptor renames SCO_Vector.Element (S_SCO);
       begin
-         return SCOD.D_Kind = Pragma_Assert_Check_PPC
+         return SCOD.D_Kind = Pragma_Decision
            and then (S_SCOD.S_Kind = Pragma_Statement
                        or else
                      S_SCOD.S_Kind = Disabled_Pragma_Statement)
@@ -1803,7 +1808,8 @@ package body SC_Obligations is
                                      Dominant_Value       => Dom_Val,
                                      Handler_Range        =>
                                        Current_Handler_Range,
-                                     Pragma_Name          => SCOE.Pragma_Name,
+                                     Pragma_Name          =>
+                                       Get_Pragma_Id (SCOE.Pragma_Aspect_Name),
                                      others               => <>));
 
                   Current_Handler_Range := No_Range;
@@ -1815,7 +1821,7 @@ package body SC_Obligations is
                      Dom_SCO := SCO_Vector.Last_Index;
                   end if;
 
-               when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' =>
+               when 'E' | 'G' | 'I' | 'P' | 'W' | 'X' | 'A' =>
                   --  Decision
 
                   pragma Assert (Current_Decision = No_SCO_Id);
@@ -1827,6 +1833,9 @@ package body SC_Obligations is
                                      D_Kind              =>
                                        To_Decision_Kind (SCOE.C1),
                                      Last_Cond_Index     => 0,
+                                     Aspect_Name         =>
+                                       Get_Aspect_Id
+                                         (SCOE.Pragma_Aspect_Name),
                                      others              => <>));
                   Current_BDD := BDD.Create (SCO_Vector.Last_Index);
 
@@ -2390,9 +2399,10 @@ package body SC_Obligations is
          when 'E'    => return Exit_Statement;
          when 'G'    => return Entry_Guard;
          when 'I'    => return If_Statement;
-         when 'P'    => return Pragma_Assert_Check_PPC;
+         when 'P'    => return Pragma_Decision;
          when 'W'    => return While_Loop;
          when 'X'    => return Expression;
+         when 'A'    => return Aspect;
          when others => raise Constraint_Error;
       end case;
    end To_Decision_Kind;
