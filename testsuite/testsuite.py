@@ -316,7 +316,7 @@ class TestSuite:
     # -----------------------------------
 
     def __options_comment (self):
-        return "Options: " + " ".join(_quoted_argv())
+        return "Testsuite options:\n" + " ".join(_quoted_argv())
 
     def __versions_comment (self):
 
@@ -335,7 +335,7 @@ class TestSuite:
             ["Running versions:"] + all_versions) + '\n'
 
     def __early_comments (self):
-        return '\n'.join (
+        return '\n\n'.join (
             [self.__options_comment (),
              self.__versions_comment ()])
 
