@@ -29,6 +29,7 @@ from SUITE.context import thistest
 from SUITE.control import language_info
 from SUITE.cutils import to_list, list_to_file, match, contents_of, no_ext
 from SUITE.tutils import gprbuild, gprfor, xrun, xcov, frame
+from SUITE.tutils import gprbuild_cargs_with
 from SUITE.tutils import exename_for, tracename_for
 
 from gnatpython.fileutils import cd, mkdir, ls
@@ -303,7 +304,9 @@ class SCOV_helper:
     # --------------
     # -- __init__ --
     # --------------
-    def __init__(self, drivers, xfile, category, xcovlevel, covctl):
+    def __init__(
+        self, drivers, xfile, category, xcovlevel, covctl, extracargs
+        ):
         self.drivers = [os.path.basename(d) for d in drivers]
         self.category = category
         self.xcovlevel = xcovlevel
@@ -330,9 +333,11 @@ class SCOV_helper:
         # Compute the gnatcov coverage specific extra options that we'll have
         # to pass. We need these early for Xnote expansions.
 
-        self.covoptions = (
-            to_list (self.covctl.covoptions) if self.covctl else []
-            )
+        self.covoptions = [
+            '--level='+self.xcovlevel
+            ] + (to_list (self.covctl.covoptions) if self.covctl else [])
+
+        self.extracargs = to_list (extracargs)
 
         # { sourcename -> KnoteDict } dictionaries of emitted/expected
         # line/report notes. We'll extract emitted notes from reports when we
@@ -347,7 +352,9 @@ class SCOV_helper:
         self.ernotes = {}
 
         xnotes = XnotesExpander (
-            xfile=xfile, xcov_level=xcovlevel, covoptions=self.covoptions
+            xfile=xfile, xcov_level=xcovlevel,
+            ctl_cov   = self.covoptions,
+            ctl_cargs = gprbuild_cargs_with (thiscargs=self.extracargs)
             )
         self.xlnotes = xnotes.xlnotes
         self.xrnotes = xnotes.xrnotes
@@ -416,7 +423,7 @@ class SCOV_helper:
     # ---------
     # -- run --
     # ---------
-    def run(self, extracargs=""):
+    def run(self):
         """Evaluate source coverage as exercised by self.drivers"""
 
         self.log()
@@ -451,7 +458,7 @@ class SCOV_helper:
         # consolidation tests.
 
         if self.singletest():
-            gprbuild (self.gpr, extracargs=extracargs)
+            gprbuild (self.gpr, extracargs=self.extracargs)
 
         # Compute the gnatcov command line argument we'll pass to convey
         # the set of scos to operate upon.  Note that we need these for
@@ -561,7 +568,6 @@ class SCOV_helper:
         ofile = format+".out"
         p = xcov (
             args = ['coverage',
-                    '--level='+self.xcovlevel,
                     '--annotate='+format, "@"+traces
                     ] + (self.scoptions + self.covoptions
                          + to_list(options)),

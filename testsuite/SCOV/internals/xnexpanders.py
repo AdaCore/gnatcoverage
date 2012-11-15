@@ -18,7 +18,6 @@ from . stags import Stag_from
 
 from SUITE.control import LANGINFO, language_info
 from SUITE.cutils import Identifier
-from SUITE.tutils import gprbuild_cargs_with
 
 # We refer to the expressed user expectations as SCOV data, and parse it
 # according to the following grammar:
@@ -523,26 +522,37 @@ class XnotesExpander:
     #   |
     #   >  g.close () for all parsed groups
 
-    def __init__(self, xfile, xcov_level, covoptions):
+    def __init__(self, xfile, xcov_level, ctl_cov, ctl_cargs):
+
+        # XFILE is the name of the file from which coverage expectations
+        # are to be extracted.
 
         self.xfile = xfile
+
+        # XCOV_LEVEL is the --level argument we are going to use.
+        # This is useful here to help select expectations when some
+        # are conditioned on levels ("m=>c!..." etc).
+
         self.xcov_level = xcov_level
 
-        # Reference controls for CTL lines - compilation options and
-        # specific options to gnatcov coverage:
+        # CTL_CARGS and CTL_COV are the reference controls for CTL lines -
+        # compilation options and specific options to gnatcov coverage that we
+        # are going to use:
 
         self.ctls = {
-            "%cargs": ' '.join (gprbuild_cargs_with (thiscargs=None)),
-            "%cov"  : ' '.join (covoptions)
+            "%cargs": ' '.join (ctl_cargs),
+            "%cov"  : ' '.join (ctl_cov)
             }
+
+        # And these are the dictionaries we expose:
 
         self.xlnotes = {}
         self.xrnotes = {}
 
-        [self.to_xnotes(ux) for ux in
+        [self.__to_xnotes(ux) for ux in
          self.__parse_scovdata (self.__get_scovdata (xfile))]
 
-    def to_xnotes(self, ux):
+    def __to_xnotes(self, ux):
         self.xlnotes [ux.source] = ux.xldict
         self.xrnotes [ux.source] = ux.xrdict
 
@@ -763,6 +773,15 @@ class XnotesExpander:
         return (True, val)
 
     def __eval_ctl_update_from (self, part):
+        """PART is a piece of CTL line for a single specific key, like
+        "%cov: -S instance, --level=stmt" or "%cargs: !-gnatn". Evaluate
+        whether all the elements are in our current CTL references (set
+        of actual coverage or compilation options provided at init time),
+        in whatever order. In the first example just quoted, this will
+        return True iif "-S instance" and "--level=stmt" are both in the
+        actual coverage options, in this order or the other."""
+
+        # First fetch the key and the set of option sequences to match:
 
         m = re.match (
             pattern=" *(?P<key>%.*?):(?P<opts>.*)\n?", string=part
@@ -771,18 +790,20 @@ class XnotesExpander:
         key = m.group("key")
         opts = m.group("opts").strip()
 
+        # Now evaluate whether each sequence is in the actual set
+        # of options that we were given for the key:
+
         this_val = True
         for oseq in opts.split (','):
 
+            oseq = oseq.strip()
             if oseq.startswith ('!'):
                 invert = True
                 oseq = oseq[1:]
             else:
                 invert = False
 
-            optin = re.search (
-                pattern=oseq, string=self.ctls[key]
-                ) is not None
+            optin = oseq in self.ctls[key]
 
             this_val &= not optin if invert else optin
 
