@@ -297,7 +297,10 @@ class TestCase:
             )
         return drvo
 
-    def run(self, covcontrol = None):
+    def run(self, covcontrol = None, subdirhint = ""):
+        """Execute this testcase, using coverage configuration
+        parameters from COVCONTROL and SUBDIRHINT prepended to each
+        driver id in temp subdir names."""
 
         # We have exception processing below, which needs to operate
         # in the test root dir.
@@ -311,7 +314,8 @@ class TestCase:
                     SCOV_helper(drivers=[driver],
                                 xfile=driver, category=self.category,
                                 xcovlevel=covlevel, covctl=covcontrol,
-                                extracargs=self.extracargs)
+                                extracargs=self.extracargs,
+                                subdirhint=subdirhint)
                     ).run()
              for covlevel in self.xcovlevels
              for driver in self.all_drivers]
@@ -321,7 +325,8 @@ class TestCase:
                     SCOV_helper(drivers=self.__drivers_from(cspec),
                                 xfile=cspec, category=self.category,
                                 xcovlevel=covlevel, covctl=covcontrol,
-                                extracargs=self.extracargs)
+                                extracargs=self.extracargs,
+                                subdirhint=subdirhint)
                     ).run()
              for covlevel in self.xcovlevels
              for cspec in self.all_cspecs]

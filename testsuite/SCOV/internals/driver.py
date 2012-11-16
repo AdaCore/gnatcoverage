@@ -305,7 +305,9 @@ class SCOV_helper:
     # -- __init__ --
     # --------------
     def __init__(
-        self, drivers, xfile, category, xcovlevel, covctl, extracargs
+        self, drivers, xfile, category,
+        xcovlevel, covctl,
+        extracargs, subdirhint=""
         ):
         self.drivers = [os.path.basename(d) for d in drivers]
         self.category = category
@@ -328,7 +330,7 @@ class SCOV_helper:
             CAT.decision: "dc_",
             CAT.mcdc:     "mc_"
             }
-        self.wdbase  = wdbase_for [self.category]
+        self.wdbase  = wdbase_for [self.category] + subdirhint
 
         # Compute the gnatcov coverage specific extra options that we'll have
         # to pass. We need these early for Xnote expansions.
