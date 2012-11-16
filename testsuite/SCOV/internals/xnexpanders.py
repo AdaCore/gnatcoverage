@@ -130,14 +130,14 @@ from SUITE.cutils import Identifier
 # --%cov: -S routines               <= Likewise for coverage -S routines
 # --  =/blu/ l! ## s-@(myinst__blu)
 #
-# Conditioning on cargs works the same. Both kinds of controls may be
-# and-combined with ## and each individual control may be inverted with
+# Conditioning on cargs works the same. Both kinds of controls appearing on
+# the same line are and-combined each individual control may be inverted with
 # a '!' prefix. For example:
 #
 # -- From now on, grab expectations only if gnatcov coverage -S routines
-# -- and compilation without -gnatn:
+# -- and compilation without -gnatn and with -gnatp:
 #
-# --%cov: -S routines ## %cargs: !-gnatn
+# --%cov: -S routines  %cargs: !-gnatn, -gnatp
 #
 # Note that contrary to STAGS where absence in expectation means we expect no
 # emitted STAG at all, absence of an option in a CTL list means that it
@@ -752,7 +752,7 @@ class XnotesExpander:
         line and now_active tells whether the whole set of conditional options
         match the current set of active ones."""
 
-        # CTL lines are like "%cov: -S routines ## %cargs: !-gnatn"
+        # CTL lines are like "%cov: -S routines %cargs: !-gnatn"
         # They are the only lines that may start with '%'.
 
         if not line.startswith ('%'):
@@ -764,7 +764,7 @@ class XnotesExpander:
         # parts only so the potential efficiency gain is not worth any kind of
         # complexification.
 
-        parts = line.split ("##")
+        parts = re.findall (pattern="%[^%\n]*", string=line)
 
         val = True
         for part in parts:
