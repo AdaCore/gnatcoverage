@@ -22,15 +22,17 @@ with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Ada.Containers.Vectors;
 
-with Ada.Directories;   use Ada.Directories;
-with Ada.Strings.Fixed; use Ada.Strings.Fixed;
-with Ada.Text_IO;       use Ada.Text_IO;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Directories;         use Ada.Directories;
+with Ada.Strings.Fixed;       use Ada.Strings.Fixed;
+with Ada.Text_IO;             use Ada.Text_IO;
 
 with ALI_Files;     use ALI_Files;
 with Aspects;       use Aspects;
 with Coverage.Tags; use Coverage, Coverage.Tags;
 with Diagnostics;   use Diagnostics;
 with Files_Table;   use Files_Table;
+with Namet;         use Namet;
 with SCOs;
 with Snames;        use Snames;
 with Strings;       use Strings;
@@ -1589,8 +1591,8 @@ package body SC_Obligations is
    procedure Load_SCOs (ALI_Filename : String) is
       use SCOs;
 
-      Cur_Source_File : Source_File_Index := No_Source_File;
-      Cur_SCO_Unit : SCO_Unit_Index;
+      Cur_Source_File        : Source_File_Index := No_Source_File;
+      Cur_SCO_Unit           : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
 
       Dom_SCO  : SCO_Id          := No_SCO_Id;
@@ -1757,6 +1759,8 @@ package body SC_Obligations is
                end if;
             end Update_Decision_Sloc;
 
+            Pragma_Aspect_Name : Name_Id := SCOE.Pragma_Aspect_Name;
+
          --  Start of processing for Process_Entry
 
          begin
@@ -1795,6 +1799,17 @@ package body SC_Obligations is
                when 'S' | 's' =>
                   pragma Assert (Current_Decision = No_SCO_Id);
 
+                  --  Older compilers produced pragma names in uppercase.
+                  --  We now expect them in lowercase (canonical form for
+                  --  Get_Pragma_Id), so convert here.
+
+                  if Pragma_Aspect_Name /= No_Name then
+                     Get_Name_String (Pragma_Aspect_Name);
+                     Name_Buffer (1 .. Name_Len) :=
+                       To_Lower (Name_Buffer (1 .. Name_Len));
+                     Pragma_Aspect_Name := Name_Find;
+                  end if;
+
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind                 => Statement,
                                      Origin               => ALI_Index,
@@ -1809,7 +1824,7 @@ package body SC_Obligations is
                                      Handler_Range        =>
                                        Current_Handler_Range,
                                      Pragma_Name          =>
-                                       Get_Pragma_Id (SCOE.Pragma_Aspect_Name),
+                                       Get_Pragma_Id (Pragma_Aspect_Name),
                                      others               => <>));
 
                   Current_Handler_Range := No_Range;
@@ -1834,8 +1849,7 @@ package body SC_Obligations is
                                        To_Decision_Kind (SCOE.C1),
                                      Last_Cond_Index     => 0,
                                      Aspect_Name         =>
-                                       Get_Aspect_Id
-                                         (SCOE.Pragma_Aspect_Name),
+                                       Get_Aspect_Id (Pragma_Aspect_Name),
                                      others              => <>));
                   Current_BDD := BDD.Create (SCO_Vector.Last_Index);
 
