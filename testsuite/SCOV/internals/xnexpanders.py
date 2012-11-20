@@ -673,7 +673,7 @@ class XnotesExpander:
                 current_uxg = UXgroup (candlists=self.__parse_sources(line))
                 grabbing = True
 
-            else:
+            elif line.startswith (('/', '=')):
 
                 # This must be an LX line. Add to the set attached to the
                 # current group if we're entitled to. Check lre overriding
@@ -691,6 +691,11 @@ class XnotesExpander:
 
                 if grabbing:
                     current_uxg.lxset [lx.lre] = lx
+
+            else:
+
+                # Regular comment. Just ignore.
+                pass
 
         # We're done with all the lines. Close the current group, if any.
 
@@ -863,8 +868,12 @@ class XnotesExpander:
             # would cause endless confusion so we search them all and issue an
             # error as needed.
 
+            # We expect to compare only against line numbers later on, so just
+            # stash a dummy column number here, required to form a regular
+            # Sloc still.
+
             slocs = [
-                "%s:%d" % (os.path.basename (sp), tl.lno)
+                "%s:%d:0" % (os.path.basename (sp), tl.lno)
                 for sp in idict for tl in idict [sp] if name in tl.text
                 ]
 
@@ -876,11 +885,11 @@ class XnotesExpander:
             return slocs[0]
 
         xnp.stag = re.sub (
-            pattern="%s[A-Z_0-9]+" % self.imark,
+            pattern="%s[A-Za-z_0-9]+" % self.imark,
             repl=__sloc_for, string=xnp.stag
             )
 
-    def __resolve_itags_from (self, all_xnps):
+    def __resolve_itags_from (self, all_xnps, uxgroups):
         """Resolve references like "i:NAME" in stags into the file:line
         sloc where an instantiation of NAME is located in the set of sources
         covered by all the units in UXGROUPS."""
@@ -919,7 +928,7 @@ class XnotesExpander:
             xnp for uxg in uxgroups for lx in uxg.lxset for xnp in lx.rnps
             ]
 
-        self.__resolve_itags_from (all_xnps)
+        self.__resolve_itags_from (all_xnps=all_xnps, uxgroups=uxgroups)
 
         [xnp.instantiate_stag ()
          for xnp in all_xnps if xnp.stag is not None]
