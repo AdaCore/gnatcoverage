@@ -407,8 +407,9 @@ class TestSuite:
     # ---------------------
 
     def __next_testcase_from (self, root):
-        """Generator function for MainLoop, producing a sequence of testcases
-        to be executed, updating self.run_list and self.dead_list on the fly."""
+        """Helper generator function for __next_testcase, producing a sequence
+        of testcases to be executed from a provided root directory, updating
+        self.run_list and self.dead_list on the fly."""
 
         if not self.options.quiet:
             logging.info(
@@ -440,6 +441,15 @@ class TestSuite:
                     self.run_list.append(tc)
                     yield tc
 
+    def __next_testcase (self):
+        """Generator for MainLoop, producing a sequence of testcases to be
+        executed, updating self.run_list and self.dead_list on the fly."""
+
+        return (
+            tc for root in ("./Qualif", "./tests")
+            for tc in self.__next_testcase_from (root)
+            )
+
     # ---------
     # -- run --
     # ---------
@@ -462,12 +472,11 @@ class TestSuite:
             )
 
         try :
-            [MainLoop(
-                    self.__next_testcase_from (root),
-                    self.run_testcase, self.collect_result,
-                    self.options.jobs
-                    )
-             for root in ("./Qualif", "./tests")]
+            MainLoop(
+                self.__next_testcase (),
+                self.run_testcase, self.collect_result,
+                self.options.jobs
+                )
 
         except Exception as e:
             logging.info("Mainloop stopped on exception occurrence")
