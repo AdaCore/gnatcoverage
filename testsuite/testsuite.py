@@ -151,7 +151,7 @@ QLEVEL_INFO = {
 #        template.gpr
 #        % Switches (main) += "-fno-inline" as needed
 #             |
-#             |   direct calls from test.py,
+#             |   direct calls to gprbuild() from test.py,
 #             |   or via TestCase(extracargs)
 #             |       |
 #             v       v           testsuite.py
@@ -174,39 +174,63 @@ QLEVEL_INFO = {
 
 class TestSuite:
 
-    def push_comment (self, text, mode='a'):
-        """Dump TEXT into a "comment" file for this run, which will be displayed
-        as a testsuite report header."""
+    # --------------------------
+    # -- GAIA file facilities --
+    # --------------------------
 
-        with open(os.path.join(self.log_dir, 'comment'), mode) as fd:
-            fd.write (text+'\n')
+    def __init_logdir (self):
+
+        self.log_dir = os.path.join (os.getcwd(), 'output')
+        mkdir(self.log_dir)
+
+        [open(os.path.join(self.log_dir, f), 'w').close()
+         for f in ('comment', 'results', 'discs')]
+
+    def __push_log (self, textlist, filename):
+        """Append the list of lines in TEXTLIST to the GAIA log FILENAME."""
+
+        with open(os.path.join(self.log_dir, filename), mode='a') as fd:
+            fd.write ('\n'.join (textlist) + '\n')
+
+    def __push_comments (self, textlist):
+        self.__push_log (
+            textlist = textlist, filename = 'comment')
+
+    def __push_results (self, textlist):
+        self.__push_log (
+            textlist = textlist, filename = 'results')
+
+    # ------------------------
+    # -- Object constructor --
+    # ------------------------
 
     def __init__(self):
         """Prepare the testsuite run: parse options, compute and dump
         discriminants, compute lists of dead/non-dead tests, run gprconfig and
         build the support library for the whole series of tests to come"""
 
-        # Parse command lines options
-
-        # Set to True if the tests should be run under valgrind control.
-        self.enable_valgrind = False
+        # Parse command lines options, also setting self.enable_valgrind
+        # to convey whether tests should be run under valgrind control:
 
         self.options = self.__parse_options()
 
         # Add current directory in PYTHONPATH, allowing TestCases to find the
-        # SUITE and SCOV packages
+        # SUITE and SCOV packages:
+
         self.env = Env()
         self.env.add_search_path('PYTHONPATH', os.getcwd())
 
         # Perform the environment adjustments required to run the compilation
-        # toolchain properly.
+        # toolchain properly:
+
         self.setup_toolchain (self.options.toolchain)
 
-        # Setup log directories
-        self.log_dir = os.path.join (os.getcwd(), 'output')
-        mkdir(self.log_dir)
+        # Setup the log directory and initialize the GAIA log files:
 
-        # Setup trace directories for bootstrap runs
+        self.__init_logdir ()
+
+        # Setup trace directories for bootstrap runs:
+
         if self.options.bootstrap_scos != None:
             self.trace_dir = os.path.join (self.log_dir, 'traces')
             rm(self.trace_dir, recursive=True)
@@ -214,66 +238,19 @@ class TestSuite:
         else:
             self.trace_dir = None
 
-        # Generate the discs list for test.opt parsing
-        discs = self.discriminants()
+        # Generate the discs list for test.opt parsing, and dump the list in a
+        # file we can then use that file to determine which discriminants were
+        # set during a particular run:
 
-        # Dump the list of discriminants in a file.  We can then use that file
-        # to determine which discriminants were set during a particular run.
-        with open(os.path.join(self.log_dir, 'discs'), 'w') as fd:
-            fd.write(" ".join(discs) + "\n")
+        self.discriminants = self.__discriminants()
+        self.__push_log (
+            textlist = [" ".join(self.discriminants)],
+            filename = "discs"
+            )
 
-        # Dump useful comments about this run for starters.
-        self.push_comment (self.__early_comments (), mode='w')
+        # Dump useful comments about this run for starters
 
-        # Compute the test list. Arrange to have ./ in paths to maximize
-        # possible regexp matches, in particular to allow use of command-line
-        # shell expansion to elaborate the expression.
-
-        # First get a list of test.py candidates, filtered according to the
-        # qualification mode and then to the user provided expression. Then
-        # partition into dead/non_dead according to test.opts.
-
-        if not self.options.quiet:
-            logging.info(
-                "Searching for tests, %s ...",
-                ("matching '%s'" % self.options.run_test)
-                if self.options.run_test else "unfiltered")
-
-        self.run_list, self.dead_list = self.partition_testcase_list(
-            re_filter(
-                re_filter (
-                    [t for root in ["Qualif", "tests"]
-                     for t in find (
-                            root, pattern="test.py", follow_symlinks=True)
-                     ],
-                    "." if not self.options.qualif_level
-                    else "(%s)|Z999" % (
-                        QLEVEL_INFO[self.options.qualif_level].subtrees)),
-                self.options.run_test),
-            discs)
-
-        # Report all dead tests
-        with open (os.path.join(self.log_dir, 'results'), 'w') as fd:
-            [fd.write ("%s:%s\n" % (tc.rname(), tc.killcmd))
-             for tc in self.dead_list]
-
-        # Warn about an empty non-dead list, always. This is almost
-        # certainly a selection mistake in any case.
-
-        if not self.run_list:
-            logging.warning (
-                "List of non-dead tests to run is empty. Selection mistake ?")
-
-        # Otherwise, advertise the number of tests to run, even in quiet mode,
-        # so we have at least a minimum feedback to match what is going to run
-        # against the intent.
-
-        else:
-            logging.info (
-                "%d non-dead tests to run%s ..." % (
-                    len(self.run_list),
-                    ", displaying failures only" if self.options.quiet else "")
-                )
+        self.__push_comments (self.__early_comments())
 
         # Run the builder configuration for the testsuite as a whole. Doing
         # it here once both factorizes the work for all testcases and prevents
@@ -343,19 +320,19 @@ class TestSuite:
     # -- Discriminant computations --
     # -------------------------------
 
-    def discriminants (self):
+    def __discriminants (self):
         """Full set of discriminants that apply to this test"""
         return (
-            self.base_discriminants()
-            + self.qualif_level_discriminants()
-            + self.cargs_discriminants()
-            + self.rts_discriminants()
-            + self.toolchain_discriminants())
+            self.__base_discriminants()
+            + self.__qualif_level_discriminants()
+            + self.__cargs_discriminants()
+            + self.__rts_discriminants()
+            + self.__toolchain_discriminants())
 
-    def base_discriminants(self):
+    def __base_discriminants(self):
         return ['ALL'] + self.env.discriminants
 
-    def cargs_discriminants(self):
+    def __cargs_discriminants(self):
         """Compute a list of discriminants (string) for each switch passed in
         all the --cargs command-line option(s).  The format of each
         discriminant CARGS_<X> where <X> is the switch stripped of its
@@ -375,7 +352,7 @@ class TestSuite:
             )
         return ["CARGS_%s" % arg.lstrip('-') for arg in allopts.split()]
 
-    def qualif_level_discriminants(self):
+    def __qualif_level_discriminants(self):
         """List of single discriminant (string) denoting our current
         qualification mode, if any. This is ['QUALIF_LEVEL_XXX'] when invoked
         with --qualif-level=XXX, [] otherwise"""
@@ -385,7 +362,7 @@ class TestSuite:
             else ["QUALIF_LEVEL_%s" % self.env.main_options.qualif_level]
             )
 
-    def rts_discriminants(self):
+    def __rts_discriminants(self):
         """Compute a list of discriminant strings that reflect the kind of
         runtime support library in use, as conveyed by the --RTS command-line
         option."""
@@ -415,7 +392,7 @@ class TestSuite:
         else:
             return ["RTS_FULL"]
 
-    def toolchain_discriminants (self):
+    def __toolchain_discriminants (self):
         """Compute the list of discriminants that reflect the version of the
         particular toolchain in use, if any, for example "7.0.2" for
         /path/to/gnatpro-7.0.2. The match is on the sequence of three single
@@ -425,31 +402,43 @@ class TestSuite:
         m = re.search ("(\d\.[01]\.[0123](?:rc)?)/?$", self.options.toolchain)
         return [m.group(1)] if m else []
 
-    # -----------------------------
-    # -- partition_testcase_list --
-    # -----------------------------
+    # ---------------------
+    # -- __next_testcase --
+    # ---------------------
 
-    def partition_testcase_list(self, test_list, discs):
-        """Partition TEST_LIST into a (run_list, dead_list) tuple of
-        sorted lists according to discriminants DISCS. Entries in both lists
-        are TestCase instances.
-        """
+    def __next_testcase_from (self, root):
+        """Generator function for MainLoop, producing a sequence of testcases
+        to be executed, updating self.run_list and self.dead_list on the fly."""
 
-        dead_list = []
-        run_list = []
+        if not self.options.quiet:
+            logging.info(
+                "Searching for tests, %s ...",
+                ("matching '%s' from %s" % (
+                        self.tc_filter if self.tc_filter else "unfiltered",
+                        root))
+                )
 
-        for test in test_list:
-            tc = TestCase(test, self.trace_dir)
-            tc.parseopt(discs)
-            if tc.killcmd:
-                dead_list.append(tc)
-            else:
-                run_list.append(tc)
+        test_py = "test.py"
 
-        # Sort lists
-        run_list.sort()
-        dead_list.sort()
-        return (run_list, dead_list)
+        for (dirname, subdirs, files) in os.walk(
+            top=root, topdown=True, followlinks=True
+            ):
+
+            if (test_py in files and
+                re.search (
+                    pattern=self.tc_filter, string=dirname)
+                ):
+
+                tc = TestCase (
+                    os.path.join (dirname, test_py), self.trace_dir
+                    )
+                tc.parseopt(self.discriminants)
+
+                if tc.killcmd:
+                    self.dead_list.append(tc)
+                else:
+                    self.run_list.append(tc)
+                    yield tc
 
     # ---------
     # -- run --
@@ -462,23 +451,57 @@ class TestSuite:
         # and keep going on exception as well, e.g. on stop for consecutive
         # failures threshold.
 
+        self.run_list = []
+        self.dead_list = []
+
+        self.tc_filter = (
+            self.options.run_test if self.options.run_test
+            else "." if not self.options.qualif_level
+            else "(%s)|Z999" % (
+                QLEVEL_INFO[self.options.qualif_level].subtrees)
+            )
+
         try :
-            MainLoop(self.run_list,
-                     self.run_testcase,
-                     self.collect_result,
-                     self.options.jobs)
+            [MainLoop(
+                    self.__next_testcase_from (root),
+                    self.run_testcase, self.collect_result,
+                    self.options.jobs
+                    )
+             for root in ("./Qualif", "./tests")]
 
         except Exception as e:
             logging.info("Mainloop stopped on exception occurrence")
             logging.info(e.__str__())
 
-            self.push_comment ('\n'.join (
-                    ["!!! MAINLOOP STOPPED ON EXCEPTION !!!", e.__str__()]
-                    ))
+            self.__push_comments (
+                ["!!! MAINLOOP STOPPED ON EXCEPTION !!!", e.__str__()]
+                )
 
         ReportDiff(
             self.log_dir, self.options.old_res
             ).txt_image('rep_gnatcov')
+
+        # Report all dead tests
+        self.__push_results (
+            ["%s:%s" % (tc.rname(), tc.killcmd)
+             for tc in self.dead_list]
+            )
+
+        # Warn about an empty non-dead list, always. This is almost
+        # certainly a selection mistake in any case.
+
+        if not self.run_list:
+            logging.warning (
+                "List of non-dead tests to run is empty. Selection mistake ?")
+
+        # Otherwise, advertise the number of tests we have run, even in quiet
+        # mode so we have minimum feedback to match against the intent.
+
+        else:
+            logging.info (
+                "%d tests executed, %d dead or skipped" % (
+                    len(self.run_list), len (self.dead_list))
+                )
 
         # Generate bootstrap results
         if self.options.bootstrap_scos != None:
@@ -650,11 +673,13 @@ class TestSuite:
 
         # File the test status + possible comment on failure
 
-        with open(os.path.join(self.log_dir, 'results'), 'a') as result_f:
-            result_f.write(''.join (
+        self.__push_results ([
+                ''.join (
                     ["%s:%s" % (test.rname(), status),
                      ":%s" % comment.strip('"') if not success and comment
-                     else ""]) + '\n')
+                     else ""]
+                    )
+             ])
 
         # Log status as needed. All tests are logged in !quiet mode.
         # Real failures are always logged.
