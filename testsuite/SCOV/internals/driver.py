@@ -794,12 +794,12 @@ class SCOV_helper:
     # -- log --
     # ---------
     def log(self):
-        frame ("%s/ %s, %s\n%s coverage with --level=%s"
+        frame ("%s/ %s, %s\n%s coverage with %s"
                % (os.path.relpath (os.getcwd(), thistest.homedir),
                   str([no_ext(main) for main in self.drivers]),
                   self.xfile,
                   self.category.name if self.category else "generic",
-                  self.xcovlevel),
+                  ' '.join (self.covoptions)),
                char='*').display()
 
     # ----------------
