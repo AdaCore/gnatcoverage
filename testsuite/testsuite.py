@@ -117,7 +117,6 @@ QLEVEL_INFO = {
         xcovlevel = "stmt")
     }
 
-
 # ===============================
 # == Compilation Flags Control ==
 # ===============================
@@ -312,9 +311,11 @@ class TestSuite:
             ["Running versions:"] + all_versions) + '\n'
 
     def __early_comments (self):
-        return '\n\n'.join (
-            [self.__options_comment (),
-             self.__versions_comment ()])
+        return [
+            '\n\n'.join (
+                [self.__options_comment (),
+                 self.__versions_comment ()])
+            ]
 
     # -------------------------------
     # -- Discriminant computations --
