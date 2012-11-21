@@ -445,6 +445,9 @@ class TestSuite:
         """Generator for MainLoop, producing a sequence of testcases to be
         executed, updating self.run_list and self.dead_list on the fly."""
 
+        # The "./" prefixes are useful to allow matching against user
+        # provided testname filters starting with "./" as well.
+
         return (
             tc for root in ("./Qualif", "./tests")
             for tc in self.__next_testcase_from (root)
