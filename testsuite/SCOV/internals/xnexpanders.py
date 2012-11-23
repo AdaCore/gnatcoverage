@@ -31,13 +31,15 @@ from SUITE.cutils import Identifier
 #     filename_list := FILENAME [ filename_list]
 
 #     lx_or_ctl__list := lx_or_ctl <newline> [lx_or_ctl__list]
-#     lx_or_ctl := lx | ctl
+#     lx_or_ctl := lx | cont | ctl
 
 #     ctl := "-- " arg_ctl__list
 #     arg_ctl__list := arg_ctl ["## " arg_ctl__list]
 #     arg_ctl := "-- " ["!"]"%"<cargs|cov>":" optgroup__list
 #     optgroup__list := optgroup ["," optgroup__list]
 #     optgroup := <atomic option sequence like "-gnatp" or "-S routines">
+
+#     cont := "--" <whitespaces> "##" lx_rnote_list <newline>
 
 #     lx := "-- " lx_lre lx_lnote_list " ## " lx_rnote_list <newline>
 #     lx_lre := ["="]"/" REGEXP "/"
@@ -78,13 +80,25 @@ from SUITE.cutils import Identifier
 #
 # The following construct is forbidden and will cause a test failure:
 #
-# -- /blu/ <A>
-# -- /blu/ <B>
+# -- /blu/ l- ## s-
+# -- /blu/ l- ## c!:"A"
 #
-# This one is allowed and yields <B> for /blu/:
+# The following one is allowed and yields the second set for /blu/:
 #
-# --  /blu/ <A>
-# -- =/blu/ <B>
+# --  /blu/ l- ## s-
+# -- =/blu/ l- ## c!:"A"
+
+# CONTINUATION LINES (CONT lines)
+# -------------------------------
+# Are meant to allow adding rnotes to a just preceding LX line. This is
+# typically useful when STAGs and generics are involved as this often leads
+# to multiple expectations with longuish descriptions. For example;
+#
+# -- %cov: -S routine %cargs: -O1, -gnatn
+# --  =/test-out/  l! ## s-@(sensors__rf__test), s-@(sensors__rc__test)
+# --                  ## c!:"Low"@(sensors__test)
+#                     ^^
+#                     continuation here
 
 # SEPARATION TAGS (STAG addends)
 # ------------------------------
@@ -651,6 +665,11 @@ class XnotesExpander:
 
         grabbing = True
 
+        # Track the last LCX we grabbed, so we can process continuation
+        # requests
+
+        lastlx = None
+
         for line in scovdata:
 
             (ctl_update, ctl_value) = self.__try_ctl_update_from (line)
@@ -661,6 +680,15 @@ class XnotesExpander:
                 # accordingly:
 
                 grabbing = ctl_value
+
+            elif grabbing and line.startswith('##'):
+
+                # A continuation line, to add rnotes that didn't fit
+                # on the previous ones.
+
+                lastlx.rnps.append (
+                    self.__parse_expected_rnotes (line[3:])
+                    )
 
             elif line.startswith('#'):
 
@@ -673,11 +701,10 @@ class XnotesExpander:
                 current_uxg = UXgroup (candlists=self.__parse_sources(line))
                 grabbing = True
 
-            elif line.startswith (('/', '=')):
+            elif grabbing and line.startswith (('/', '=')):
 
-                # This must be an LX line. Add to the set attached to the
-                # current group if we're entitled to. Check lre overriding
-                # consistency in any case.
+                # This must be an LX line. Check lre overriding and add to the
+                # set attached to the current group consistency.
 
                 lx = self.__parse_lcx(line)
 
@@ -689,12 +716,12 @@ class XnotesExpander:
                         )
                     )
 
-                if grabbing:
-                    current_uxg.lxset [lx.lre] = lx
+                current_uxg.lxset [lx.lre] = lx
+                lastlx = lx
 
             else:
 
-                # Regular comment. Just ignore.
+                # Not grabbing or regular comment. Just ignore.
                 pass
 
         # We're done with all the lines. Close the current group, if any.
@@ -1081,11 +1108,9 @@ class XnotesExpander:
 
         lx_lre = m.group("lre")
 
-        if lx_lre.startswith('='):
-            lre_override = True
+        lre_override = (lx_lre[0] == '=')
+        if lx_lre[0] != '/':
             lx_lre = lx_lre [1:]
-        else:
-            lre_override = False
 
         lx_lre = lx_lre.strip ('/')
 
