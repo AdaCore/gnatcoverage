@@ -39,7 +39,7 @@ from SUITE.cutils import Identifier
 #     optgroup__list := optgroup ["," optgroup__list]
 #     optgroup := <atomic option sequence like "-gnatp" or "-S routines">
 
-#     cont := "--" <whitespaces> "##" lx_rnote_list <newline>
+#     cont := "--" <whitespaces> "+#" lx_rnote_list <newline>
 
 #     lx := "-- " lx_lre lx_lnote_list " ## " lx_rnote_list <newline>
 #     lx_lre := ["="]"/" REGEXP "/"
@@ -96,7 +96,7 @@ from SUITE.cutils import Identifier
 #
 # -- %cov: -S routine %cargs: -O1, -gnatn
 # --  =/test-out/  l! ## s-@(sensors__rf__test), s-@(sensors__rc__test)
-# --                  ## c!:"Low"@(sensors__test)
+# --                  +# c!:"Low"@(sensors__test)
 #                     ^^
 #                     continuation here
 
@@ -681,7 +681,7 @@ class XnotesExpander:
 
                 grabbing = ctl_value
 
-            elif grabbing and line.startswith('##'):
+            elif grabbing and line.startswith('+#'):
 
                 # A continuation line, to add rnotes that didn't fit
                 # on the previous ones.
