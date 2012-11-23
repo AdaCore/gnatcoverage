@@ -13,5 +13,5 @@ How to build
     <prefix>/include/valgrind/
 
  * Build and install:
-    $ make -f Makefile.coverage
-    $ sudo make -f Makefile.coverage install
+    $ make 
+    $ sudo make install
