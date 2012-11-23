@@ -11,7 +11,7 @@ How to build
     <prefix>/bin/valgrind
     <prefix>/lib/valgrind/
     <prefix>/include/valgrind/
+
  * Build and install:
-    $ cd coverage
     $ make -f Makefile.coverage
     $ sudo make -f Makefile.coverage install
