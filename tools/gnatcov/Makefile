@@ -19,6 +19,17 @@ DOCFORMATS=pdf html
 # Base installation dir. Should be absolute pathname.
 PREFIX=$(PWD)/install
 
+############################
+# Kind of HOST OS we're on #
+############################
+
+ifneq (,$(findstring win, ${OSTYPE}))
+HOST_OS=windows
+endif
+ifneq (,$(findstring linux, ${OSTYPE}))
+HOST_OS=linux
+endif
+
 #####################################################################
 # Targets to build the core tool and the trace adapters, optionally #
 #####################################################################
@@ -47,10 +58,10 @@ PREFIX=$(PWD)/install
 # Determine the set of ADAPTER_SUBDIRS of relevance on our host OS
 
 ADAPTER_SUBDIRS =
-ifneq (,$(findstring Windows, ${OS}))
+ifeq ($(HOST_OS), windows)
 ADAPTER_SUBDIRS = trace_adapters/nexus
 endif
-ifneq (,$(findstring Linux, ${OS}))
+ifeq ($(HOST_OS), linux)
 ADAPTER_SUBDIRS = trace_adapters/valgrind
 endif
 
@@ -196,16 +207,16 @@ install-extra-tools:
 	  $(CP) $$tool $(EXTRA_TOOLS_DIR); \
 	done
 
-distrib-Linux-extra:
+distrib-linux-extra:
 	$(CP) README INSTALL $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
 	chmod +x $(PREFIX)/doinstall
 
-distrib-Windows_NT-extra:
+distrib-windows-extra:
 
-distrib: install install-adapters install-extra-tools distrib-${OS}-extra
+distrib: install install-adapters install-extra-tools distrib-${HOST_OS}-extra
 
 .PHONY: force
 
