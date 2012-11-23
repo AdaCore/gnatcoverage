@@ -126,8 +126,9 @@ install: install-bin install-examples install-doc
 
 # Prepare a to-be packaged distribution tree.
 
-# Unix distribs are tar or zip versions of the three, unpacked by users then
-# installed with doinstall. We need a doinstall, README and INSTALL there.
+# Unix distribs are tar or zip versions of the three main items (bin, doc
+# and examples), unpacked by users then installed with a doinstall script.
+# We need to add this script, a README and an INSTALL file in this case.
 
 # Windows distribs are packaged and installed by an nsis installer or alike,
 # which has it's own extra info embedded and eventually installs just all what
