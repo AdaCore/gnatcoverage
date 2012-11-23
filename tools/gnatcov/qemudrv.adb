@@ -16,24 +16,22 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Regpat; use GNAT.Regpat;
-
 with Ada.Unchecked_Conversion;
 with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Directories;  use Ada.Directories;
 
-with Ada.Containers.Vectors;
-
 with Interfaces;
 
 with GNAT.OS_Lib;
 
-with Coverage;     use Coverage;
 with Qemu_Traces;
 with Qemudrv_Base; use Qemudrv_Base;
 with Switches;     use Switches;
 with Traces_Files; use Traces_Files;
+
+with Qemudrv.Expander; use Qemudrv.Expander;
+with Qemudrv.State;    use Qemudrv.State;
 
 package body Qemudrv is
 
@@ -42,26 +40,12 @@ package body Qemudrv is
 
    --  Variables set by the command line.
 
-   Trace_Output : String_Access;
-   --  Trace output filename
-
-   Histmap_Filename : String_Access;
-   --  File name of history map or null if none.
-
-   Executable : String_Access;
-   --  Executable to run
-
    Exec_Error : exception;
    --  Raised when subprogram execution failed. The error message shall be
    --  generated before raising the exception.
 
    procedure Error (Msg : String);
    --  Display the message on the error output and set exit status
-
-   function Expand_Arguments
-     (Args, Eargs : String_List_Access) return String_List;
-   --  Expand macro arguments in ARGS and hook EARGS into a complete list
-   --  of real arguments to pass to the immediate execution environment.
 
    procedure Run_Command (Command : String_Access; Options : String_List);
    --  Spawn command with options
@@ -129,8 +113,8 @@ package body Qemudrv is
                                  new String'("--eargs-end"));
                return new Driver_Target'
                  (Target => Target,
-                  Build_Command => null,
-                  Build_Options => null,
+                  Setup_Command => null,
+                  Setup_Options => null,
                   Run_Command => Gnatemu,
                   Run_Options => List);
             end if;
@@ -237,24 +221,39 @@ package body Qemudrv is
          Free (Trace_File);
       end;
 
-      --  Build the executable (if necessary)
+      --  Execute whatever we need to prepare the execution
 
-      if Control.Build_Command /= null then
-         Run_Command (Control.Build_Command, Control.Build_Options.all);
-      end if;
+      --  Some setup operations work out of mere side effect of macro
+      --  expansions, e.g.  setting environment variables. The expansion is
+      --  required, but there's no real command to execute afterwards
 
-      --  If we have no command to run, we're done.  Otherwise, run it.
+      declare
+         Expanded_Setup_Command : constant String_Access
+           := Expand_Command (Control.Setup_Command);
+      begin
+         if Expanded_Setup_Command /= null then
+            Run_Command (Expanded_Setup_Command, Control.Setup_Options.all);
+         end if;
+      end;
 
-      if Control.Run_Command = null then
-         return;
-      end if;
+      --  Now proceed with the execution per se. Same logic.
 
-      Run_Command (Control.Run_Command,
-                   Expand_Arguments (Control.Run_Options, Eargs));
+      declare
+         Expanded_Run_Command : constant String_Access
+           := Expand_Command (Control.Run_Command);
+      begin
+         if Expanded_Run_Command /= null then
 
-      if Verbose then
-         Put (Control.Run_Command.all & " finished");
-      end if;
+            Run_Command
+              (Expanded_Run_Command,
+               Expand_Arguments (Control.Run_Options,
+                                 Eargs => Eargs));
+
+            if Verbose then
+               Put (Control.Run_Command.all & " finished");
+            end if;
+         end if;
+      end;
 
    exception
       when Exec_Error =>
@@ -270,114 +269,6 @@ package body Qemudrv is
       Put_Line (Standard_Error, Msg);
       Set_Exit_Status (Failure);
    end Error;
-
-   ----------------------
-   -- Expand_Arguments --
-   ----------------------
-
-   function Try_Expand (Arg : String) return String_Access;
-   --  Try string-macro expansions on ARG.  Return a newly allocated string
-   --  with the expansion performed if one applied, null oterwise.
-
-   function Expand_Arguments
-     (Args, Eargs : String_List_Access) return String_List
-   is
-
-      --  Args might include a %eargs macro or not, and in either case, we
-      --  might have actual Eargs to expand or not.  We just append items as
-      --  they come into a vector and convert that into a String_List
-      --  eventually.
-
-      function Length (L : String_List_Access) return Integer;
-      --  Number of items in list L if not null.  Zero if L is null.
-
-      function Length (L : String_List_Access) return Integer is
-      begin
-         if L = null then
-            return 0;
-         else
-            return L'Length;
-         end if;
-      end Length;
-
-      Max_N_Args : constant Integer := Length (Args) + Length (Eargs);
-      --  Maximum size of the final argument vector.  All the macros expand
-      --  into a single string, except eargs which expands into a string per
-      --  earg.
-
-      subtype Args_Index is Integer range 1 .. Max_N_Args;
-
-      package String_Access_Vectors is
-         new Ada.Containers.Vectors (Index_Type => Args_Index,
-                                     Element_Type => String_Access);
-
-      subtype Svector is String_Access_Vectors.Vector;
-
-      Argv : Svector;
-      --  Vector of real command line arguments to pass, past the expansion
-      --  of argument macros (%exe, %trace, %eargs, ...)
-
-      procedure Append
-        (Argv : in out String_Access_Vectors.Vector; SL : String_List_Access);
-      --  Append the sequence of strings in SL to the ARGV vector
-
-      procedure Append
-        (Argv : in out String_Access_Vectors.Vector;
-         SL   : String_List_Access)
-      is
-      begin
-         for I in SL'Range loop
-            Argv.Append (SL (I));
-         end loop;
-      end Append;
-
-      Eargs_Q : String_List_Access := Eargs;
-      --  List of eargs that remains to be added to the command line
-
-   begin
-      --  Copy arguments and expand argument macros
-
-      for J in Args'Range loop
-
-         --  First see if we have a single-string macro to expand.  If we
-         --  don't, check for %eargs.  If we have nothing to expand, just
-         --  append the argument as-is.
-
-         declare
-            Exp : constant String_Access := Try_Expand (Args (J).all);
-         begin
-            if Exp /= null then
-               Argv.Append (Exp);
-            elsif Args (J).all = "%eargs" then
-               if Eargs_Q /= null then
-                  Append (Argv, Eargs_Q);
-                  Eargs_Q := null;
-               end if;
-            else
-               Argv.Append (Args (J));
-            end if;
-         end;
-      end loop;
-
-      --  If we had eargs to pass and didn't have a macro to place them
-      --  specifically, add them at the end
-
-      if Eargs_Q /= null then
-         Append (Argv, Eargs_Q);
-      end if;
-
-      --  Now convert the vector into a String_List and return
-
-      declare
-         Result : String_List (1 .. Integer (Argv.Length));
-      begin
-         for I in Argv.First_Index .. Argv.Last_Index loop
-            Result (I) := Argv (I);
-         end loop;
-         return Result;
-      end;
-
-   end Expand_Arguments;
 
    ----------
    -- Help --
@@ -436,148 +327,6 @@ package body Qemudrv is
            "to run if not provided explicitly.");
       P ("  --kernel=FILE                Specify which kernel to use");
    end Help;
-
-   ------------------------
-   -- Try_Expand helpers --
-   ------------------------
-
-   --  Value functions, each return the single-string value corresponding
-   --  to a specific string-macro:
-
-   --  %exe
-
-   function Exe return String;
-
-   function Exe return String is
-   begin
-      return Executable.all;
-   end Exe;
-
-   --  %bin
-
-   function Bin return String;
-
-   function Bin return String is
-   begin
-      return Executable.all & ".bin";
-   end Bin;
-
-   --  %dir_exe
-
-   function Dir_Exe return String;
-
-   function Dir_Exe return String is
-   begin
-      return Containing_Directory (Executable.all);
-   end Dir_Exe;
-
-   --  %base_bin
-
-   function Base_Bin return String;
-
-   function Base_Bin return String is
-   begin
-      return Simple_Name (Executable.all) & ".bin";
-   end Base_Bin;
-
-   --  %trace
-
-   function Trace return String;
-
-   function Trace return String is
-   begin
-      if Histmap_Filename /= null then
-         return "histmap=" & Histmap_Filename.all
-           & ',' & Trace_Output.all;
-
-      elsif MCDC_Coverage_Enabled then
-         return "history," & Trace_Output.all;
-
-      else
-         return Trace_Output.all;
-      end if;
-   end Trace;
-
-   --  A table saying which value function to call for each macro. Better
-   --  extracted out to be computed once only.
-
-   type Smacro_Entry is record
-      Key  : String_Access;
-      Eval : access function return String;
-   end record;
-
-   type Smacro_Table is array (Integer range <>) of Smacro_Entry;
-
-   SMtable : constant Smacro_Table :=
-     ((Key => new String'("%exe"), Eval => Exe'Access),
-      (Key => new String'("%bin"), Eval => Bin'Access),
-      (Key => new String'("%dir_exe"), Eval => Dir_Exe'Access),
-      (Key => new String'("%base_bin"), Eval => Base_Bin'Access),
-      (Key => new String'("%trace"), Eval => Trace'Access)
-     );
-
-   ----------------
-   -- Try_Expand --
-   ----------------
-
-   function Try_Expand (Arg : String) return String_Access is
-
-      --  For earch possible string-macro, we check presence and deal
-      --  with the replacement using regexp matching.
-
-      type Macro_Matches is new Match_Array (0 .. 2);
-      --  An array to hold regpat groups matching strings that precede and
-      --  follow a key in an outer string, as in <pre>KEY<post>.
-
-      function Match
-        (Arg, Key : String; Matches : access Macro_Matches) return Boolean;
-      --  Whether KEY is somewhere within ARG.  When it is, MATCHES (1..2)
-      --  hold regpat groups describing what precedes and follows.
-
-      function Match
-        (Arg, Key : String; Matches : access Macro_Matches) return Boolean
-      is
-         Regexp : constant String := "^(.*)" & Key & "(.*)$";
-      begin
-         Match (Compile (Regexp), Arg, Matches.all);
-         return Matches (0) /= No_Match;
-      end Match;
-
-      function Substitute
-        (Matches : Macro_Matches; Arg, Value : String) return String;
-      --  ARG is a string where a macro key was found.  MATCHES holds the
-      --  regpat groups that describe what precedes and follows the key.
-      --  Return a string corresponding to ARG where the macro is replaced
-      --  by VALUE.
-
-      function Substitute
-        (Matches : Macro_Matches; Arg, Value : String) return String
-      is
-      begin
-         --  When a <pre> or <post> key part is empty, we expect the
-         --  corresponding group to hold an empty string that we can
-         --  concatenate as well.
-
-         return (Arg (Matches (1).First .. Matches (1).Last)
-                   & Value & Arg (Matches (2).First .. Matches (2).Last));
-      end Substitute;
-
-      M : aliased Macro_Matches;
-
-   begin
-
-      --  Loop over the candidate macro replacements.  Substitute and
-      --  return as soon we find a match.
-
-      for I in SMtable'Range loop
-         if Match (Arg, SMtable (I).Key.all, M'Access) then
-            return new String'
-              (Substitute (M, Arg, SMtable (I).Eval.all));
-         end if;
-      end loop;
-
-      return null;
-   end Try_Expand;
 
    -----------------
    -- Run_Command --

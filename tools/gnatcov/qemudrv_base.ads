@@ -21,15 +21,50 @@ with GNAT.OS_Lib;
 
 package Qemudrv_Base is
 
+   --  Configuration tables for Qemudrv. This controls what gnatcov run does
+   --  for a given --target argument when there is no <target>-gnatemulator in
+   --  sight.
+
+   --  There are two major tables exposed:
+   --
+   --  * A table of <target> -> commands associations, the Drivers array below
+   --
+   --  * A table of <target-alias> -> <target> pairs, the Aliases array below
+
+   --  For each target, two commands might get to execute:
+   --
+   --  * A Setup command, performing whatever is necessary to prepare the
+   --    actual execution command. For example, on old targets a .elf to .bin
+   --    executable file format conversion was required prior to execution by
+   --    qemu. In some other cases, environment variables need to be set for
+   --    the duration of the run.
+   --
+   --  * A Run command, performing the actual execution, expected to produce
+   --    the execution trace.
+   --
+   --  Each command is allowed to be passed a sequence of arguments, described
+   --  in the tables as well.
+
+   --  A few builtin macros are available for Commands or Arguments. At most
+   --  one reference per command or argument entry is allowed. For arguments,
+   --  this at most one per item in the argument list for a configuration.
+   --
+   --  See the Qemudrv.Expander unit spec for a description of the available
+   --  macros.
+
+   ----------------------------------
+   -- Driver Target Configurations --
+   ----------------------------------
+
    type Driver_Target is record
       --  Name of the target (triplet)
 
       Target        : String_Access;
 
-      --  Post-build command and option list (may be null)
+      --  Post-build, Pre-run, setup command and option list (may be null)
 
-      Build_Command : String_Access;
-      Build_Options : String_List_Access;
+      Setup_Command : String_Access;
+      Setup_Options : String_List_Access;
 
       --  Run command and option list
 
@@ -42,8 +77,8 @@ package Qemudrv_Base is
 
    Drivers : constant Driver_Target_Array :=
      ((Target => new String'("qemu-prep"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => new String'("qemu-system-ppc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -61,8 +96,8 @@ package Qemudrv_Base is
                                        new String'("%trace"))
       ),
       (Target => new String'("qemu-sbc834x"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => new String'("qemu-system-ppc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -74,8 +109,8 @@ package Qemudrv_Base is
                                        new String'("%trace"))
       ),
       (Target => new String'("leon-elf"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => new String'("qemu-system-sparc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -87,8 +122,8 @@ package Qemudrv_Base is
 
       ),
       (Target => new String'("erc32-elf"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => new String'("qemu-system-sparc"),
        Run_Options => new String_List'(new String'("-nographic"),
                                        new String'("-M"),
@@ -100,8 +135,8 @@ package Qemudrv_Base is
 
       ),
       (Target => new String'("i386-pok"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => new String'("qemu"),
        Run_Options => new String_List'(new String'("-fda"),
                                        new String'(GNAT.OS_Lib.Getenv
@@ -117,32 +152,32 @@ package Qemudrv_Base is
                                        new String'("%trace"))
       ),
       (Target => new String'("i386-linux"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => new String'("qemu-i386"),
        Run_Options => new String_List'(new String'("-exec-trace"),
                                        new String'("%trace"),
                                        new String'("%exe"))
       ),
       (Target => new String'("i686-pc-linux-gnu"),
-       Build_Command => null,
-       Build_Options => null,
-       Run_Command => new String'("valgrind"),
-       Run_Options => new String_List'(
+       Setup_Command => null,
+       Setup_Options => null,
+       Run_Command => new String'("%dir_tools/valgrind"),
+       Run_Options => new String_List'(new String'("%set_valgrind_env"),
                                        new String'("--quiet"),
                                        new String'("--tool=coverage"),
                                        new String'("--cov-exec-file=%trace"),
                                        new String'("%exe"))
       ),
       (Target => new String'("prepare"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => null,
        Run_Options => null
       ),
       (Target => new String'("iSystem-5554"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
        Run_Options => new String_List'(
          new String'("5554"),
@@ -151,8 +186,8 @@ package Qemudrv_Base is
         )
        ),
       (Target => new String'("iSystem-5634"),
-       Build_Command => null,
-       Build_Options => null,
+       Setup_Command => null,
+       Setup_Options => null,
        Run_Command => new String'("../libexec/gnatcoverage/isys_drv"),
        Run_Options => new String_List'(
          new String'("5634"),
@@ -161,6 +196,10 @@ package Qemudrv_Base is
        )
       )
      );
+
+   ---------------------------
+   -- Driver Target Aliases --
+   ---------------------------
 
    --  Target aliases: names users may feed to --target and that resolve
    --  to one of the target definitions above
