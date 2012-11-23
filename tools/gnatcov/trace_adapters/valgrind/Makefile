@@ -1,8 +1,9 @@
 
+MKDIR=mkdir -p
+
 VALGRIND_DIR=$(shell dirname `which valgrind`)
 VALGRIND_INCLUDE=$(VALGRIND_DIR)/../include/valgrind
 VALGRIND_LIBS=$(VALGRIND_DIR)/../lib/valgrind
-
 
 CPP_FLAGS=-I. -I$(VALGRIND_INCLUDE) \
           -DVGA_x86=1 -DVGO_linux=1 -DVGP_x86_linux=1 -DVGPV_x86_linux_vanilla=1
@@ -14,7 +15,9 @@ CFLAGS=-mpreferred-stack-boundary=2 -O2 -g \
        -Wno-long-long  -Wno-pointer-sign
 
 LDFLAGS=-static -nodefaultlibs -nostartfiles -u _start -Wl,--build-id=none
-LIBS=$(VALGRIND_LIBS)/libcoregrind-x86-linux.a $(VALGRIND_LIBS)/libvex-x86-linux.a -lgcc
+
+LIBS=$(VALGRIND_LIBS)/libcoregrind-x86-linux.a \
+     $(VALGRIND_LIBS)/libvex-x86-linux.a -lgcc
 
 COVERAGE_TOOL=coverage-x86-linux
 
@@ -31,10 +34,36 @@ cov_main.o: cov_main.c cov_traces.h
 # The address 0x38000000 is the valt_load_address value from valgrind build.
 # This value should be changed for Darwin (0x138000000).
 $(COVERAGE_TOOL): $(COVERAGE_OBJECTS)
-	gcc $(CFLAGS) -o $@ $(COVERAGE_OBJECTS) $(LDFLAGS) -Wl,-Ttext=0x38000000 $(LIBS)
+	gcc $(CFLAGS) -o $@ $(COVERAGE_OBJECTS) \
+            $(LDFLAGS) -Wl,-Ttext=0x38000000 $(LIBS)
+
+################
+# Installation #
+################
+
+# Support installation within the current valgrind tree, by default,
+# or within the "libexec/gnatcoverage" subdir of a provided PREFIX
+# otherwise
+
+PREFIX="VALGRIND_LIBS"
+
+ifeq ($(PREFIX), "VALGRIND_LIBS")
+INSTALL_DIR=$(VALGRIND_LIBS)
+else
+INSTALL_DIR=$(PREFIX)/libexec/gnatcoverage
+endif
+
+.PHONY: install
 
 install:
-	cp -p $(COVERAGE_TOOL) $(VALGRIND_LIBS)
+	$(MKDIR) $(INSTALL_DIR)
+	cp -p $(COVERAGE_TOOL) $(INSTALL_DIR)
+
+###########
+# Cleanup #
+###########
+
+.PHONY: clean
 
 clean:
 	rm -f $(COVERAGE_TOOL) $(COVERAGE_OBJECTS)

@@ -1,5 +1,4 @@
 GNATMAKE=gnatmake
-PREFIX=install
 RM=rm -f
 CP=cp -pf
 LN=ln -sf
@@ -7,8 +6,6 @@ MKDIR=mkdir -p
 RMDIR=-rmdir
 MAKEINFO=makeinfo
 exeext=
-SUBDIRS = trace_adapters/nexus
-.PHONY: all $(SUBDIRS)
 
 # Binary program name
 PGMNAME=gnatcov
@@ -16,15 +13,65 @@ PGMNAME=gnatcov
 # Directory name in the install tree
 DIRNAME=gnatcoverage
 
+# Documentation formats to produce on "make doc"
 DOCFORMATS=pdf html
 
-all: $(PGMNAME) $(SUBDIRS)
+# Base installation dir. Should be absolute pathname.
+PREFIX=$(PWD)/install
 
-$(PGMNAME): force
+#####################################################################
+# Targets to build the core tool and the trace adapters, optionally #
+#####################################################################
+
+# We provide distinct targets for the two categories of artifacts so
+# users get the core only by default in case they don't need the
+# adapters for their host, e.g. when building for gnatemu targets.
+
+# For example, a user who needs to build gnatcov on linux to perform
+# ppc-elf coverage only doesn't need the valgrind adapter for native
+# coverage. He might moreover be on a system where the adapter build
+# would fail (e.g. missing header files), so we really shouldn't try
+# to build these adapters by default.
+
+# So ...
+#
+# make or make gnatcov
+#
+#   builds the core gnatcov tool only
+#
+# make all or make gnatcov trace-adapters
+#
+#   builds both the tool and the trace-adapters of
+#   relevance for the host
+
+# Determine the set of ADAPTER_SUBDIRS of relevance on our host OS
+
+ADAPTER_SUBDIRS =
+ifneq (,$(findstring Windows, ${OS}))
+ADAPTER_SUBDIRS = trace_adapters/nexus
+endif
+ifneq (,$(findstring Linux, ${OS}))
+ADAPTER_SUBDIRS = trace_adapters/valgrind
+endif
+
+.PHONY: default all trace-adapters $(PGMNAME) $(ADAPTER_SUBDIRS)
+
+default: $(PGMNAME)
+
+trace-adapters: $(ADAPTER_SUBDIRS)
+
+all: $(PGMNAME) trace-adapters
+
+$(PGMNAME):
 	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
 
-$(SUBDIRS):
+$(ADAPTER_SUBDIRS):
 	$(MAKE) -C $@
+
+
+#######################
+# Internal facilities #
+#######################
 
 ppc_genopc:
 	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
@@ -91,7 +138,7 @@ clean-doc-build:
 	make -C $(UMAN_DOCDIR) clean
 
 clean: clean-bin clean-doc-build clean-doc-copy
-	for dir in $(SUBDIRS); do \
+	for dir in $(ADAPTER_SUBDIRS); do \
 	  $(MAKE) -C $$dir clean; \
 	done
 
@@ -99,7 +146,7 @@ clean: clean-bin clean-doc-build clean-doc-copy
 # Installation #
 ################
 
-.PHONY: install-bin install-examples install-doc install
+.PHONY: install-bin install-examples install-doc install install-adapters
 
 install-bin:
 	$(MKDIR) $(PREFIX)/bin
@@ -116,15 +163,18 @@ install-doc.%:
 install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 
 install: install-bin install-examples install-doc
-	for Dir in $(SUBDIRS); do \
-	  $(MAKE) -C $$Dir PREFIX=$(PREFIX) install || exit 1; \
+
+install-adapters:
+	for dir in $(ADAPTER_SUBDIRS); do \
+	  $(MAKE) -C $$dir PREFIX=$(PREFIX) install || exit 1; \
 	done
 
 #############
 # Packaging #
 #############
 
-# Prepare a to-be packaged distribution tree.
+# Prepare a to-be packaged distribution tree, accounting for a
+# provided set of EXTRA_TOOLS to bundle in.
 
 # Unix distribs are tar or zip versions of the three main items (bin, doc
 # and examples), unpacked by users then installed with a doinstall script.
@@ -134,21 +184,29 @@ install: install-bin install-examples install-doc
 # which has it's own extra info embedded and eventually installs just all what
 # the distrib tree contains. We don't want any toplevel item there.
 
-.PHONY: distrib-unix distrib-windows distrib
+.PHONY: distrib-Linux-extra distrib-Windows_NT-extra distrib
+.PHONY: install-extra-tools
 
-distrib-unix: install
+# Where the provided set of $(EXTRA_TOOLS) should be installed
+EXTRA_TOOLS_DIR=$(PREFIX)/libexec/gnatcoverage
+
+install-extra-tools:
+	$(MKDIR) $(EXTRA_TOOLS_DIR);
+	for tool in $(EXTRA_TOOLS); do \
+	  $(CP) $$tool $(EXTRA_TOOLS_DIR); \
+	done
+
+distrib-Linux-extra:
 	$(CP) README INSTALL $(PREFIX)
 	sed -e "s/^version=.*/version=\"$$($(PGMNAME) --version)\"/" \
 	    -e "s/^machine=.*/machine=\"$$(gcc -dumpmachine)\"/" \
         doinstall.tmplt > $(PREFIX)/doinstall
 	chmod +x $(PREFIX)/doinstall
 
-distrib-windows: install
+distrib-Windows_NT-extra:
 
-ifeq (${OS}, Windows_NT)
-distrib: distrib-windows
-else
-distrib: distrib-unix
-endif
+distrib: install install-adapters install-extra-tools distrib-${OS}-extra
+
+.PHONY: force
 
 force:
