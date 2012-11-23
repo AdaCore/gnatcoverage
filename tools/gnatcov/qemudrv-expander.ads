@@ -74,7 +74,7 @@ private package Qemudrv.Expander is
    --  either the $GNATCOV_TOOLS_DIR environment variable if defined, or
    --  <gnatcov-bindir>/../libexec/gnatcoverage otherwise.
 
-   --  %set_valgrind_lib
+   --  %set_valgrind_env
    --  -----------------
    --  Set the VALGRIND_LIB environment variable to designate the dir where
    --  our coverage tool can be found.
