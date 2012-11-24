@@ -103,54 +103,13 @@ package body Qemudrv.Expander is
 
    function Valgrind return String is
 
-      function Valgrind_In (Path : String) return String;
+      --  If we have valgrind in our local libexec subdir, use that.
+      --  Rely on PATH otherwise.
 
-      function Valgrind_In (Path : String) return String is
-      begin
-         return Path & "/valgrind";
-      end Valgrind_In;
-
-      --  A variable that users may set to designate a place
-      --  where tools should be picked first:
-
-      Tools_Path : constant String_Access
-        := GNAT.OS_Lib.Getenv ("GNATCOV_TOOLS_PATH");
+      Local_Valgrind : constant String := Libexec_Dir & "/valgrind";
 
    begin
-
-      if Tools_Path.all'Length > 0 then
-
-         --  We have a designated first-choice directory. If valgrind is
-         --  there, use that:
-
-         declare
-            Designated_Valgrind : constant String
-              := Valgrind_In (Tools_Path.all);
-         begin
-            if Exists (Designated_Valgrind) then
-               return Designated_Valgrind;
-            end if;
-         end;
-
-      else
-
-         --  Otherwise, if we have valgrind in our local libexec subdir, use
-         --  that:
-
-         declare
-            Local_Valgrind : constant String
-              := Valgrind_In (Libexec_Dir);
-         begin
-            if Exists (Local_Valgrind) then
-               return Local_Valgrind;
-            end if;
-         end;
-
-      end if;
-
-      --  Otherwise, resort to what PATH will have to say
-
-      return "valgrind";
+      return (if Exists (Local_Valgrind) then Local_Valgrind else "valgrind");
    end Valgrind;
 
    ----------------------

@@ -70,10 +70,8 @@ private package Qemudrv.Expander is
 
    --  %valgrind:
    --  ----------
-   --  Valgrind command name to use. "$GNATCOV_TOOLS_DIR/valgrind" if the
-   --  environment variable is defined and valgrind can be found there,
-   --  "<prefix>/libexec/gnatcoverage/valgrind" if valgrind can be found
-   --  there. "valgrind" otherwise.
+   --  Valgrind command name to use. "<prefix>/libexec/gnatcoverage/valgrind"
+   --  if valgrind can be found there. "valgrind" otherwise.
 
    --  %set_valgrind_env:
    --  ------------------
@@ -84,10 +82,18 @@ private package Qemudrv.Expander is
    -- Valgrind selection strategy --
    ---------------------------------
 
-   --  The logic here is to obey a user request expressed via the dedicated
-   --  environment variable, then arrange for things to just work by default
+   --  The logic here is to arrange for things to just work by default
    --  in environments where there is no bundled-in version but possibly a
    --  proper one on PATH, e.g. when building manually from source.
+
+   --  If there's no bundled-in version and there is no valgrind on PATH
+   --  or the one there doesn't work (e.g. < 3.7.0), install a recent one
+   --  (>= 3.7.0) on PATH.
+
+   --  If there is a bundled-in version and it doesn't work for a given
+   --  application (e.g. fork/exec failure because valgrind is located not at
+   --  its configured prefix), move it away and see previous note regarding
+   --  one on PATH.
 
 private
 
