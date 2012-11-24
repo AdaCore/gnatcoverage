@@ -162,7 +162,7 @@ package Qemudrv_Base is
       (Target => new String'("i686-pc-linux-gnu"),
        Setup_Command => null,
        Setup_Options => null,
-       Run_Command => new String'("%tools_dir/valgrind"),
+       Run_Command => new String'("%valgrind"),
        Run_Options => new String_List'(new String'("%set_valgrind_env"),
                                        new String'("--quiet"),
                                        new String'("--tool=coverage"),

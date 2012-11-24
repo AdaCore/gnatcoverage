@@ -32,6 +32,16 @@ package body Qemudrv.Expander is
 
    type Smt_Access is access constant Smacro_Table;
 
+   Gnatcov_Dir : constant String
+     := (Containing_Directory
+           (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all));
+
+   Gnatcov_Prefix : constant String
+     := Containing_Directory (Gnatcov_Dir);
+
+   Libexec_Dir : constant String
+     := Gnatcov_Prefix & "/libexec/gnatcoverage";
+
    function Try_Expand
      (Arg : String_Access; Mta : Smt_Access) return String_Access;
    --  Try string-macro expansions on ARG, replacing a key (if any) with the
@@ -64,17 +74,6 @@ package body Qemudrv.Expander is
       return Containing_Directory (Executable.all);
    end Exe_Dir;
 
-   --  %tools_dir
-
-   function Tools_Dir return String is
-      Tools_Path : constant String_Access
-        := GNAT.OS_Lib.Getenv ("GNATCOV_TOOLS_PATH");
-   begin
-      return (if Tools_Path'Length > 0
-              then Tools_Path.all
-              else "../libexec/gnatcoverage");
-   end Tools_Dir;
-
    --  %trace
 
    function Trace return String is
@@ -96,16 +95,63 @@ package body Qemudrv.Expander is
    function Set_Valgrind_Env return String is
    begin
       GNAT.OS_Lib.Setenv
-        (Name =>
-           "VALGRIND_LIB",
-         Value =>
-           (Containing_Directory
-              (GNAT.OS_Lib.Locate_Exec_On_Path (Command_Name).all)
-            & "/../libexec/gnatcoverage")
-         );
-
+        (Name => "VALGRIND_LIB", Value => Libexec_Dir);
       return "";
    end Set_Valgrind_Env;
+
+   --  %valgrind
+
+   function Valgrind return String is
+
+      function Valgrind_In (Path : String) return String;
+
+      function Valgrind_In (Path : String) return String is
+      begin
+         return Path & "/valgrind";
+      end Valgrind_In;
+
+      --  A variable that users may set to designate a place
+      --  where tools should be picked first:
+
+      Tools_Path : constant String_Access
+        := GNAT.OS_Lib.Getenv ("GNATCOV_TOOLS_PATH");
+
+   begin
+
+      if Tools_Path.all'Length > 0 then
+
+         --  We have a designated first-choice directory. If valgrind is
+         --  there, use that:
+
+         declare
+            Designated_Valgrind : constant String
+              := Valgrind_In (Tools_Path.all);
+         begin
+            if Exists (Designated_Valgrind) then
+               return Designated_Valgrind;
+            end if;
+         end;
+
+      else
+
+         --  Otherwise, if we have valgrind in our local libexec subdir, use
+         --  that:
+
+         declare
+            Local_Valgrind : constant String
+              := Valgrind_In (Libexec_Dir);
+         begin
+            if Exists (Local_Valgrind) then
+               return Local_Valgrind;
+            end if;
+         end;
+
+      end if;
+
+      --  Otherwise, resort to what PATH will have to say
+
+      return "valgrind";
+   end Valgrind;
 
    ----------------------
    -- Expand_Arguments --

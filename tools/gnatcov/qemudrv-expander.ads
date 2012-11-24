@@ -41,8 +41,8 @@ private package Qemudrv.Expander is
    --  The macro references are substituted with values returned by internal
    --  functions. Allowing expansion to yield an empty result is useful to let
    --  references operate by mere side effects of these function calls, e.g.
-   --  to set environment variables without actually inserting anything in the
-   --  final command line.
+   --  to set environment variables, without actually inserting anything in
+   --  the final command line.
 
    --  Macro references are all like %<macro-name>, with the following set of
    --  supported names:
@@ -68,16 +68,26 @@ private package Qemudrv.Expander is
    --  -------
    --  The -eargs list passed on the command line.
 
-   --  %tools_dir
+   --  %valgrind:
    --  ----------
-   --  Name of a directory where internal helpers are to be found, as
-   --  either the $GNATCOV_TOOLS_DIR environment variable if defined, or
-   --  <gnatcov-bindir>/../libexec/gnatcoverage otherwise.
+   --  Valgrind command name to use. "$GNATCOV_TOOLS_DIR/valgrind" if the
+   --  environment variable is defined and valgrind can be found there,
+   --  "<prefix>/libexec/gnatcoverage/valgrind" if valgrind can be found
+   --  there. "valgrind" otherwise.
 
-   --  %set_valgrind_env
-   --  -----------------
+   --  %set_valgrind_env:
+   --  ------------------
    --  Set the VALGRIND_LIB environment variable to designate the dir where
    --  our coverage tool can be found.
+
+   ---------------------------------
+   -- Valgrind selection strategy --
+   ---------------------------------
+
+   --  The logic here is to obey a user request expressed via the dedicated
+   --  environment variable, then arrange for things to just work by default
+   --  in environments where there is no bundled-in version but possibly a
+   --  proper one on PATH, e.g. when building manually from source.
 
 private
 
@@ -91,7 +101,7 @@ private
    function Trace return String;
 
    function Set_Valgrind_Env return String;
-   function Tools_Dir return String;
+   function Valgrind return String;
 
    --  A table saying which value function to call for each macro. Better
    --  extracted out to be computed once only.
@@ -113,8 +123,8 @@ private
       (Key => new String'("%trace"),
        Eval => Trace'Access),
 
-      (Key => new String'("%tools_dir"),
-       Eval => Tools_Dir'Access),
+      (Key => new String'("%valgrind"),
+       Eval => Valgrind'Access),
 
       (Key => new String'("%set_valgrind_env"),
        Eval => Set_Valgrind_Env'Access)
