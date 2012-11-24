@@ -18,7 +18,7 @@
 
 with GNAT.Strings; use GNAT.Strings;
 
-package Qemudrv is
+package Rundrv is
 
    procedure Driver
      (Exe_File : String;
@@ -35,4 +35,4 @@ package Qemudrv is
    procedure Help (Indent : String := "");
    --  Display the help for command run.
 
-end Qemudrv;
+end Rundrv;

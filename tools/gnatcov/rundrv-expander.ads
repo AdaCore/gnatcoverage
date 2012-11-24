@@ -16,7 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-private package Qemudrv.Expander is
+private package Rundrv.Expander is
 
    --  This unit provides the services that perform macro substitutions
    --  for references in the driver config commands or args.
@@ -139,4 +139,4 @@ private
    Smtable_For_Args : Smacro_Table renames Common_Smtable;
    Smtable_For_Commands : Smacro_Table renames Common_Smtable;
 
-end Qemudrv.Expander;
+end Rundrv.Expander;

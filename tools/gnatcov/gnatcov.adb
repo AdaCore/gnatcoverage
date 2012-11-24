@@ -42,7 +42,7 @@ with Inputs;            use Inputs;
 with Outputs;           use Outputs;
 with Project;           use Project;
 with Qemu_Traces;
-with Qemudrv;
+with Rundrv;
 with SC_Obligations;    use SC_Obligations;
 with Slocs;             use Slocs;
 with Strings;           use Strings;
@@ -112,7 +112,7 @@ procedure GNATcov is
       P (" --version");
       P ("   Display version");
       New_Line;
-      Qemudrv.Help (" ");
+      Rundrv.Help (" ");
       New_Line;
       P (" disp-routines {[--exclude|--include] FILES}");
       P ("   Build a list of routines from object files");
@@ -1527,7 +1527,7 @@ begin
                   end if;
                end if;
 
-               Qemudrv.Driver (Exe_File, Target, Tag, Output, Histmap,
+               Rundrv.Driver (Exe_File, Target, Tag, Output, Histmap,
                                Kernel, Eargs);
             end Run;
          begin

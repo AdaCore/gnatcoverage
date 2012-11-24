@@ -26,14 +26,14 @@ with Interfaces;
 with GNAT.OS_Lib;
 
 with Qemu_Traces;
-with Qemudrv_Base; use Qemudrv_Base;
+with Rundrv_Base; use Rundrv_Base;
 with Switches;     use Switches;
 with Traces_Files; use Traces_Files;
 
-with Qemudrv.Expander; use Qemudrv.Expander;
-with Qemudrv.State;    use Qemudrv.State;
+with Rundrv.Expander; use Rundrv.Expander;
+with Rundrv.State;    use Rundrv.State;
 
-package body Qemudrv is
+package body Rundrv is
 
    Target_Default : constant String_Access
      := new String'(Standard'Target_Name);
@@ -369,4 +369,4 @@ package body Qemudrv is
       end if;
    end Run_Command;
 
-end Qemudrv;
+end Rundrv;

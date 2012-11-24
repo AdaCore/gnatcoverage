@@ -16,10 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-private package Qemudrv.State is
+private package Rundrv.State is
 
    --  This unit provides a common place to hold state shared by the
-   --  Qemudrv family of units.
+   --  Rundrv family of units.
 
    Histmap_Filename : String_Access;
    --  File name of history map or null if none.
@@ -30,4 +30,4 @@ private package Qemudrv.State is
    Trace_Output : String_Access;
    --  Trace output filename
 
-end Qemudrv.State;
+end Rundrv.State;

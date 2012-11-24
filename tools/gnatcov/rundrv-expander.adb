@@ -26,9 +26,9 @@ with Ada.Command_Line; use Ada.Command_Line;
 with Coverage;     use Coverage;
 with GNAT.OS_Lib;
 
-with Qemudrv.State; use Qemudrv.State;
+with Rundrv.State; use Rundrv.State;
 
-package body Qemudrv.Expander is
+package body Rundrv.Expander is
 
    type Smt_Access is access constant Smacro_Table;
 
@@ -318,4 +318,4 @@ package body Qemudrv.Expander is
       return Arg;
    end Try_Expand;
 
-end Qemudrv.Expander;
+end Rundrv.Expander;

@@ -19,9 +19,9 @@
 with GNAT.Strings; use GNAT.Strings;
 with GNAT.OS_Lib;
 
-package Qemudrv_Base is
+package Rundrv_Base is
 
-   --  Configuration tables for Qemudrv. This controls what gnatcov run does
+   --  Configuration tables for Rundrv. This controls what gnatcov run does
    --  for a given --target argument when there is no <target>-gnatemulator in
    --  sight.
 
@@ -49,7 +49,7 @@ package Qemudrv_Base is
    --  one reference per command or argument entry is allowed. For arguments,
    --  this at most one per item in the argument list for a configuration.
    --
-   --  See the Qemudrv.Expander unit spec for a description of the available
+   --  See the Rundrv.Expander unit spec for a description of the available
    --  macros.
 
    ----------------------------------
@@ -222,4 +222,4 @@ package Qemudrv_Base is
            )
      );
 
-end Qemudrv_Base;
+end Rundrv_Base;
