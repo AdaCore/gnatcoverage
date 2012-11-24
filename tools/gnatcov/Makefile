@@ -23,10 +23,12 @@ PREFIX=$(PWD)/install
 # Kind of HOST OS we're on #
 ############################
 
-ifneq (,$(findstring win, ${OSTYPE}))
+OS=$(shell uname -s)
+
+ifneq (,$(filter MINGW% CYGW%, $(OS)))
 HOST_OS=windows
 endif
-ifneq (,$(findstring linux, ${OSTYPE}))
+ifneq (,$(filter Linux, $(OS)))
 HOST_OS=linux
 endif
 
@@ -202,9 +204,13 @@ install-adapters:
 EXTRA_TOOLS_DIR=$(PREFIX)/libexec/gnatcoverage
 
 install-extra-tools:
-	$(MKDIR) $(EXTRA_TOOLS_DIR);
+	if [ "$(EXTRA_TOOLS)" != "" ]; then \
+	  $(MKDIR) $(EXTRA_TOOLS_DIR); \
+	fi; \
 	for tool in $(EXTRA_TOOLS); do \
-	  $(CP) $$tool $(EXTRA_TOOLS_DIR); \
+	  if [ -f $$tool ]; then \
+	    $(CP) $$tool $(EXTRA_TOOLS_DIR); \
+	  fi \
 	done
 
 distrib-linux-extra:
