@@ -26,10 +26,10 @@ with Interfaces;
 with GNAT.OS_Lib;
 
 with Qemu_Traces;
-with Rundrv_Base; use Rundrv_Base;
 with Switches;     use Switches;
 with Traces_Files; use Traces_Files;
 
+with Rundrv.Config;   use Rundrv.Config;
 with Rundrv.Expander; use Rundrv.Expander;
 with Rundrv.State;    use Rundrv.State;
 

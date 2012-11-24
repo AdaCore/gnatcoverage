@@ -16,10 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Strings; use GNAT.Strings;
 with GNAT.OS_Lib;
 
-package Rundrv_Base is
+private package Rundrv.Config is
 
    --  Configuration tables for Rundrv. This controls what gnatcov run does
    --  for a given --target argument when there is no <target>-gnatemulator in
@@ -222,4 +221,4 @@ package Rundrv_Base is
            )
      );
 
-end Rundrv_Base;
+end Rundrv.Config;
