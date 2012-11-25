@@ -1,10 +1,54 @@
+###############################################
+# Targets and subtargets of interest to users #
+###############################################
+
+# To build exexcutable stuff:
+# ---------------------------
+# (requires a Ada 2012 capable gnat toolchain + gnatcoll)
+#
+# all
+#   bin        <- default
+#   adapters
+
+# To build the documentation:
+# ---------------------------
+# (requires sphinx & latex + tools):
+#
+# doc
+#   doc.pdf 
+#   doc.html
+
+# To install:
+# -----------
+#
+# install
+#   install-bin
+#   install-examples
+#   install-doc
+#
+# install-adapters
+#
+# All working with the PREFIX variable, that users may specify:
+
+# Base installation dir. Should be absolute pathname.
+PREFIX=$(PWD)/install
+
+# To cleanup:
+# -----------
+#
+# clean
+#   clean-bin
+#   clean-doc
+#   clean-adapters
+
+###################
+# Internal macros #
+###################
+
 GNATMAKE=gnatmake
 RM=rm -f
 CP=cp -pf
-LN=ln -sf
 MKDIR=mkdir -p
-RMDIR=-rmdir
-MAKEINFO=makeinfo
 exeext=
 
 # Binary program name
@@ -16,19 +60,16 @@ DIRNAME=gnatcoverage
 # Documentation formats to produce on "make doc"
 DOCFORMATS=pdf html
 
-# Base installation dir. Should be absolute pathname.
-PREFIX=$(PWD)/install
-
 ############################
 # Kind of HOST OS we're on #
 ############################
 
-OS=$(shell uname -s)
+UNAME=$(shell uname -s)
 
-ifneq (,$(filter MINGW% CYGW%, $(OS)))
+ifneq (,$(filter MINGW% CYGW%, $(UNAME)))
 HOST_OS=windows
 endif
-ifneq (,$(filter Linux, $(OS)))
+ifneq (,$(filter Linux, $(UNAME)))
 HOST_OS=linux
 endif
 
@@ -52,9 +93,9 @@ endif
 #
 #   builds the core gnatcov tool only
 #
-# make all or make gnatcov trace-adapters
+# make all or make gnatcov adapters
 #
-#   builds both the tool and the trace-adapters of
+#   builds both the tool and the adapters of
 #   relevance for the host
 
 # Determine the set of ADAPTER_SUBDIRS of relevance on our host OS
@@ -67,13 +108,15 @@ ifeq ($(HOST_OS), linux)
 ADAPTER_SUBDIRS = trace_adapters/valgrind
 endif
 
-.PHONY: default all trace-adapters $(PGMNAME) $(ADAPTER_SUBDIRS)
+.PHONY: default all adapters bin $(PGMNAME) $(ADAPTER_SUBDIRS)
 
-default: $(PGMNAME)
+default: bin
 
-trace-adapters: $(ADAPTER_SUBDIRS)
+adapters: $(ADAPTER_SUBDIRS)
 
-all: $(PGMNAME) trace-adapters
+bin: $(PGMNAME)
+
+all: bin adapters
 
 $(PGMNAME):
 	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
@@ -137,7 +180,7 @@ doc: $(foreach fmt, $(DOCFORMATS), doc.$(fmt)) clean-doc-build
 # General cleanup #
 ###################
 
-.PHONY: clean-bin clean-doc-copy clean-doc-build clean
+.PHONY: clean-bin clean-doc clean-doc-copy clean-doc-build clean clean-adapters
 
 clean-bin:
 	$(RM) *.o *.ali $(PGMNAME) b~*
@@ -150,10 +193,14 @@ clean-doc-copy: $(foreach fmt, $(DOCFORMATS), clean-doc-copy.$(fmt))
 clean-doc-build:
 	make -C $(UMAN_DOCDIR) clean
 
-clean: clean-bin clean-doc-build clean-doc-copy
+clean-adapters:
 	for dir in $(ADAPTER_SUBDIRS); do \
 	  $(MAKE) -C $$dir clean; \
 	done
+
+clean-doc: clean-doc-build clean-doc-copy
+
+clean: clean-bin clean-doc clean-adapters
 
 ################
 # Installation #
@@ -197,7 +244,7 @@ install-adapters:
 # which has it's own extra info embedded and eventually installs just all what
 # the distrib tree contains. We don't want any toplevel item there.
 
-.PHONY: distrib-Linux-extra distrib-Windows_NT-extra distrib
+.PHONY: distrib-linux-extra distrib-windows-extra distrib
 .PHONY: install-extra-tools
 
 # Where the provided set of $(EXTRA_TOOLS) should be installed
