@@ -82,18 +82,24 @@ private package Rundrv.Expander is
    -- Valgrind selection strategy --
    ---------------------------------
 
-   --  The logic here is to arrange for things to just work by default
-   --  in environments where there is no bundled-in version but possibly a
-   --  proper one on PATH, e.g. when building manually from source.
-
-   --  If there's no bundled-in version and there is no valgrind on PATH
-   --  or the one there doesn't work (e.g. < 3.7.0), install a recent one
-   --  (>= 3.7.0) on PATH.
-
-   --  If there is a bundled-in version and it doesn't work for a given
-   --  application (e.g. fork/exec failure because valgrind is located not at
-   --  its configured prefix), move it away and see previous note regarding
-   --  one on PATH.
+   --  The logic here is as follows:
+   --
+   --  * When it is there, resort to a bundled-in verion of ours that we
+   --    know works in most regular cases and that we could improve over
+   --    time for corner situations if real need be.
+   --
+   --  * Arrange for things to just work by default in environments where
+   --    there is no bundled-in version but possibly a proper one on PATH,
+   --    e.g. when building manually from source.
+   --
+   --  * If there's no bundled-in version and there is no valgrind on PATH
+   --    or the one there doesn't work (e.g. < 3.7.0), users can get things
+   --    to work by just installing a recent one (>= 3.7.0) on PATH.
+   --
+   --  * If there is a bundled-in version and it doesn't work for a given
+   --    app (e.g. fork/exec failure because valgrind is located not at its
+   --    configured prefix), move it away and fallback on a PATH oriented
+   --    strategy.
 
 private
 
