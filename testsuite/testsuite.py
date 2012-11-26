@@ -196,6 +196,14 @@ class TestSuite:
             textlist = textlist, filename = 'comment')
 
     def __push_results (self, textlist):
+
+        # Empty lists can show up here, e.g. an empty dead list for a run
+        # with filter or stopped by consecutive failures. Make sure not to
+        # dump an (invalid) empty line in the results file in this case.
+
+        if not textlist:
+            return
+
         self.__push_log (
             textlist = textlist, filename = 'results')
 
@@ -678,6 +686,8 @@ class TestSuite:
               False:   {True:    'XFAIL',  False:    'FAILED'}}
 
         status = status_dict[success][xfail]
+
+        status = 'FAILED'
 
         # Now log and populate "results" file
 
