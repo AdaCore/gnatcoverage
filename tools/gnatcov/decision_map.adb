@@ -1104,8 +1104,11 @@ package body Decision_Map is
          Next_PC_SCO  : SCO_Id;
          --  Statement at Next_PC
 
-         SCO_For_Jump : SCO_Id;
+         SCO_For_Jump, D_SCO_For_Jump : SCO_Id;
          --  SCO for the jump instruction at the end of BB
+
+         D_SCO : constant SCO_Id := Enclosing_Decision (CBI.Condition);
+         --  SCO for the decision
 
       begin
          <<Follow_Jump>>
@@ -1158,9 +1161,30 @@ package body Decision_Map is
             end;
          end if;
 
-         --  Continue tracing object control flow
+         --  Continue tracing object control flow: find SCOs for jump at end
+         --  of basic block.
+
+         --  Condition or Statement
 
          SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC));
+
+         --  Decision
+
+         D_SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC),
+                                        Include_Decisions => True);
+         if D_SCO_For_Jump /= No_SCO_Id
+              and then Kind (D_SCO_For_Jump) = Condition
+         then
+            D_SCO_For_Jump := Enclosing_Decision (D_SCO_For_Jump);
+         end if;
+
+         --  Note: there are cases (e.g. for Pre/Post aspects) where there
+         --  is a decision SCO with no enslosing statement SCO, and we have
+         --  code associated with the sloc of the decision, but not with the
+         --  sloc ranges of any of the conditions. In these cases we need to
+         --  look at D_SCO_For_Jump to identify that the code is still part of
+         --  the decision.
+
          case BB.Branch is
             when Br_Jmp =>
                if BB.Cond then
@@ -1218,11 +1242,27 @@ package body Decision_Map is
                       Has_Prefix (Sym_Name.all, Prefix => "__gnat_rcheck_"))
                   then
                      Edge_Info.Dest_Kind := Raise_Exception;
-                  else
-                     --  Assume call returns, continue tracing at next PC
 
+                  --  Call to Raise_Assert_Failure within the decision (with
+                  --  either a condition or a decision SCO), if if it is an
+                  --  assert or PPC): False outcome.
+
+                  elsif D_SCO_For_Jump = D_SCO
+                    and then Is_Assertion (D_SCO)
+                    and then
+                      Sym_Name /= null
+                    and then
+                      Sym_Name.all = "system__assertions__raise_assert_failure"
+                  then
+                     Edge_Info.Dest_Kind := Outcome;
+                     Edge_Info.Outcome   := False;
+
+                  --  Else assume call returns, continue tracing at next PC
+
+                  else
                      Next_PC := BB.To + 1;
                      goto Follow_Jump;
+
                   end if;
                end;
 

@@ -1467,6 +1467,33 @@ package body SC_Obligations is
              else " [" & Instance_Loc (II.Enclosing_Instance) & "]");
    end Instance_Loc;
 
+   ------------------
+   -- Is_Assertion --
+   ------------------
+
+   function Is_Assertion (SCO : SCO_Id) return Boolean is
+      SCOD  : SCO_Descriptor renames SCO_Vector.Element (SCO);
+   begin
+      pragma Assert (SCOD.Kind = Decision);
+      case SCOD.D_Kind is
+         when Pragma_Decision =>
+            --  False for pragma Debug, True for all others (i.e. Assert,
+            --  Pre/Postcondition, Check). Note: the pragma name is stored
+            --  in the enclosing statement SCO.
+
+            return SCO_Vector.Element (Enclosing_Statement (SCO)).Pragma_Name
+                     /= Pragma_Debug;
+
+         when Aspect =>
+            --  Always True for aspects (Pre/Post/Predicate/Invariant)
+
+            return True;
+
+         when others =>
+            return False;
+      end case;
+   end Is_Assertion;
+
    ---------------------------
    -- Is_Disabled_Statement --
    ---------------------------
@@ -2307,9 +2334,12 @@ package body SC_Obligations is
    -- Slocs_To_SCO --
    ------------------
 
-   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id
+   function Sloc_To_SCO
+     (Sloc              : Source_Location;
+      Include_Decisions : Boolean := False) return SCO_Id
    is
       use Sloc_To_SCO_Maps;
+
       L_Sloc : Source_Location := Sloc;
       Cur    : Cursor;
       SCO    : SCO_Id;
@@ -2341,11 +2371,9 @@ package body SC_Obligations is
       Cur := Sloc_To_SCO_Map.Floor
                ((First_Sloc => L_Sloc, Last_Sloc => No_Location));
 
-      if Cur = No_Element then
-         return No_SCO_Id;
+      if Cur /= No_Element then
+         SCO := Element (Cur);
       end if;
-
-      SCO := Element (Cur);
 
       while SCO /= No_SCO_Id loop
          declare
@@ -2359,7 +2387,9 @@ package body SC_Obligations is
                  Sloc.Source_File = SCOD.Sloc_Range.First_Sloc.Source_File
                  and then Sloc.Line in SCOD.Sloc_Range.First_Sloc.Line
                                     .. SCOD.Sloc_Range.Last_Sloc.Line
-                 and then SCOD.Kind = Statement;
+                 and then (SCOD.Kind = Statement
+                             or else
+                           (Include_Decisions and then SCOD.Kind = Decision));
             else
                exit when
                  SCOD.Sloc_Range.First_Sloc <= Sloc
@@ -2372,6 +2402,23 @@ package body SC_Obligations is
             SCO := Parent (SCO);
          end loop;
       end loop;
+
+      --  Check for decision (exact match only)
+
+      if Include_Decisions
+           and then
+         (SCO = No_SCO_Id or else Kind (SCO) = Statement)
+      then
+         Cur := D_Sloc_To_SCO_Map.Find
+           ((First_Sloc => Sloc, Last_Sloc => No_Location));
+         if Cur /= No_Element then
+            pragma Assert
+              (SCO = No_SCO_Id
+                 or else SCO = Enclosing_Statement (Element (Cur)));
+            SCO := Element (Cur);
+         end if;
+      end if;
+
       return SCO;
    end Sloc_To_SCO;
 

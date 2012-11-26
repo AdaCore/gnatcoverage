@@ -51,8 +51,11 @@ package SC_Obligations is
 
    function Image (SCO : SCO_Id; With_Sloc : Boolean := True) return String;
 
-   function Sloc_To_SCO (Sloc : Source_Location) return SCO_Id;
-   --  Return the innermost condition or statement SCO whose range contains
+   function Sloc_To_SCO
+     (Sloc              : Source_Location;
+      Include_Decisions : Boolean := False) return SCO_Id;
+   --  Return the innermost condition or statement SCO (or, if
+   --  Include_Decisions is set, the innermost decision) whose range contains
    --  the given sloc. It is an error if multiple such SCOs exist and aren't
    --  nested.
    --  Note: if Sloc has a null column number, returns an unspecified statement
@@ -187,6 +190,10 @@ package SC_Obligations is
    function Is_Expression (SCO : SCO_Id) return Boolean;
    --  True if SCO is for a pragma Assert/Pre/Postcondition/Check, or an
    --  expression appearing outside of a control structure.
+
+   function Is_Assertion (SCO : SCO_Id) return Boolean;
+   --  True if SCO is for a pragma Assert/Pre/Postcondition/Check, or an
+   --  equivalent aspect.
 
    procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
 
