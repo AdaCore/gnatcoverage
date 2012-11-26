@@ -54,7 +54,7 @@ TOOL_INSTALL_DIR=$(VALGRIND_PREFIX)/lib/valgrind
 .PHONY: install check-prefix
 
 check-prefix:
-	if [ ! -e $(VALGRIND_PREFIX)/bin/valgrind ]; then \
+	@if [ ! -e $(VALGRIND_PREFIX)/bin/valgrind ]; then \
 	  echo "warning: valgrind missing from prefix where adapter is installed."; \
 	fi
 

@@ -235,7 +235,7 @@ install-adapters:
 # For linux adapters, provide a default VALGRIND_PREFIX to the valgrind
 # plugin installer, designating our local libexec subdir:
 
-INSTALL_ADAPTERS_VARS_linux = "VALGRIND_PREFIX?=$(PREFIX)/libexec/gnatcoverage"
+INSTALL_ADAPTERS_VARS_linux = VALGRIND_PREFIX?=$(PREFIX)/libexec/gnatcoverage
 INSTALL_ADAPTERS_VARS_windows = 
 
 #############

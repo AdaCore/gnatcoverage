@@ -40,7 +40,7 @@ package body Rundrv.Expander is
      := Containing_Directory (Gnatcov_Dir);
 
    Libexec_Dir : constant String
-     := Gnatcov_Prefix & "/libexec/gnatcoverage";
+     := Gnatcov_Prefix & "/libexec/gnatcoverage/";
 
    function Try_Expand
      (Arg : String_Access; Mta : Smt_Access) return String_Access;
@@ -94,8 +94,15 @@ package body Rundrv.Expander is
 
    function Set_Valgrind_Env return String is
    begin
-      GNAT.OS_Lib.Setenv
-        (Name => "VALGRIND_LIB", Value => Libexec_Dir);
+
+      --  If we're using our bundled-in valgrind, adjust VALGRIND_LIB
+      --  accordingly.
+
+      if Valgrind /= "valgrind" then
+         GNAT.OS_Lib.Setenv
+           (Name => "VALGRIND_LIB", Value => Libexec_Dir & "lib/valgrind/");
+      end if;
+
       return "";
    end Set_Valgrind_Env;
 
@@ -103,10 +110,10 @@ package body Rundrv.Expander is
 
    function Valgrind return String is
 
-      --  If we have valgrind in our local libexec subdir, use that.
+      --  If we have a valgrind bundled-in our local libexec subdir, use that.
       --  Rely on PATH otherwise.
 
-      Local_Valgrind : constant String := Libexec_Dir & "/valgrind";
+      Local_Valgrind : constant String := Libexec_Dir & "bin/valgrind";
 
    begin
       return (if Exists (Local_Valgrind) then Local_Valgrind else "valgrind");
