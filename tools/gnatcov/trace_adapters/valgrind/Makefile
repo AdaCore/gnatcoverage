@@ -41,23 +41,26 @@ $(COVERAGE_TOOL): $(COVERAGE_OBJECTS)
 # Installation #
 ################
 
-# Support installation within the current valgrind tree, by default,
-# or within the "libexec/gnatcoverage" subdir of a provided PREFIX
-# otherwise
+# Install within a provided VALGRIND_PREFIX if one is provided, within PREFIX
+# otherwise. In both cases, take this as the root of a place where a regular
+# valgrind install is expected to be.
 
-PREFIX="VALGRIND_LIBS"
-
-ifeq ($(PREFIX), "VALGRIND_LIBS")
-INSTALL_DIR=$(VALGRIND_LIBS)
-else
-INSTALL_DIR=$(PREFIX)/libexec/gnatcoverage
+ifeq (,$(VALGRIND_PREFIX))
+VALGRIND_PREFIX=$(PREFIX)
 endif
 
-.PHONY: install
+TOOL_INSTALL_DIR=$(VALGRIND_PREFIX)/lib/valgrind
 
-install:
-	$(MKDIR) $(INSTALL_DIR)
-	cp -p $(COVERAGE_TOOL) $(INSTALL_DIR)
+.PHONY: install check-prefix
+
+check-prefix:
+	if [ ! -e $(VALGRIND_PREFIX)/bin/valgrind ]; then \
+	  echo "warning: valgrind missing from prefix where adapter is installed."; \
+	fi
+
+install: check-prefix
+	$(MKDIR) $(TOOL_INSTALL_DIR)
+	cp -p $(COVERAGE_TOOL) $(TOOL_INSTALL_DIR)
 
 ###########
 # Cleanup #

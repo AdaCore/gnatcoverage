@@ -226,15 +226,23 @@ install: install-bin install-examples install-doc
 
 install-adapters:
 	for dir in $(ADAPTER_SUBDIRS); do \
-	  $(MAKE) -C $$dir PREFIX=$(PREFIX) install || exit 1; \
+	  $(MAKE) -C $$dir \
+               PREFIX=$(PREFIX) \
+               $(INSTALL_ADAPTERS_VARS_$(HOST_OS)) \
+               install || exit 1; \
 	done
+
+# For linux adapters, provide a default VALGRIND_PREFIX to the valgrind
+# plugin installer, designating our local libexec subdir:
+
+INSTALL_ADAPTERS_VARS_linux = "VALGRIND_PREFIX?=$(PREFIX)/libexec/gnatcoverage"
+INSTALL_ADAPTERS_VARS_windows = 
 
 #############
 # Packaging #
 #############
 
-# Prepare a to-be packaged distribution tree, accounting for a
-# provided set of EXTRA_TOOLS to bundle in.
+# Prepare a to-be packaged distribution tree
 
 # Unix distribs are tar or zip versions of the three main items (bin, doc
 # and examples), unpacked by users then installed with a doinstall script.
@@ -245,20 +253,6 @@ install-adapters:
 # the distrib tree contains. We don't want any toplevel item there.
 
 .PHONY: distrib-linux-extra distrib-windows-extra distrib
-.PHONY: install-extra-tools
-
-# Where the provided set of $(EXTRA_TOOLS) should be installed
-EXTRA_TOOLS_DIR=$(PREFIX)/libexec/gnatcoverage
-
-install-extra-tools:
-	if [ "$(EXTRA_TOOLS)" != "" ]; then \
-	  $(MKDIR) $(EXTRA_TOOLS_DIR); \
-	fi; \
-	for tool in $(EXTRA_TOOLS); do \
-	  if [ -f $$tool ]; then \
-	    $(CP) $$tool $(EXTRA_TOOLS_DIR); \
-	  fi \
-	done
 
 distrib-linux-extra:
 	$(CP) README INSTALL $(PREFIX)
@@ -269,7 +263,7 @@ distrib-linux-extra:
 
 distrib-windows-extra:
 
-distrib: install install-adapters install-extra-tools distrib-${HOST_OS}-extra
+distrib: install install-adapters distrib-${HOST_OS}-extra
 
 .PHONY: force
 
