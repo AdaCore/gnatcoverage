@@ -687,8 +687,6 @@ class TestSuite:
 
         status = status_dict[success][xfail]
 
-        status = 'FAILED'
-
         # Now log and populate "results" file
 
         # Avoid \ in filename for the final report
