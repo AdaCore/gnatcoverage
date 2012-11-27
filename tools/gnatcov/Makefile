@@ -14,7 +14,7 @@
 # --------------------------------
 # -- To build the documentation --
 # --------------------------------
-# (requires sphinx & latex + tools):
+# (requires sphinx & latex + tools)
 #
 # doc
 #   doc.pdf 
@@ -104,13 +104,13 @@ endif
 
 # So ...
 #
-# make or make gnatcov
+# make or make bin
 #
-#   builds the core gnatcov tool only
+#   builds the core gnatcov tools only
 #
-# make all or make gnatcov adapters
+# make all or make bin adapters
 #
-#   builds both the tool and the adapters of
+#   builds both the core tools and the adapters of
 #   relevance for the host
 
 # Determine the set of ADAPTER_SUBDIRS of relevance on our host OS
