@@ -686,7 +686,7 @@ class XnotesExpander:
                 # A continuation line, to add rnotes that didn't fit
                 # on the previous ones.
 
-                lastlx.rnps.append (
+                lastlx.rnps.extend (
                     self.__parse_expected_rnotes (line[3:])
                     )
 
