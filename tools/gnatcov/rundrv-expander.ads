@@ -70,31 +70,38 @@ private package Rundrv.Expander is
 
    --  %valgrind:
    --  ----------
-   --  Valgrind command name to use. "<prefix>/libexec/gnatcoverage/valgrind"
-   --  if valgrind can be found there. "valgrind" otherwise.
+   --  Valgrind command name to use.
+   --  "<prefix>/libexec/gnatcoverage/bin/valgrind" if this exists, meaning we
+   --  have a valgrind install tree bundled-in. "valgrind" otherwise, meaning
+   --  we'll rely on PATH to provide a suitable valgrind with the coverage tool
+   --  installed.
 
    --  %set_valgrind_env:
    --  ------------------
-   --  Set the VALGRIND_LIB environment variable to designate the dir where
-   --  our coverage tool can be found.
+   --  When we have a valgrind install bundled-in, set the VALGRIND_LIB
+   --  environment variable to designate the corresponding lib dir, where
+   --  our coverage tool should have been installed together with the core
+   --  valgrind libs.
 
    ---------------------------------
    -- Valgrind selection strategy --
    ---------------------------------
 
    --  The logic here is as follows:
-   --
+
    --  * When it is there, resort to a bundled-in verion of ours that we
    --    know works in most regular cases and that we could improve over
    --    time for corner situations if real need be.
    --
    --  * Arrange for things to just work by default in environments where
    --    there is no bundled-in version but possibly a proper one on PATH,
-   --    e.g. when building manually from source.
-   --
+   --    e.g. when building manually from source. The coverage plugin must
+   --    have been installed in the corresponding lib dir in this case.
+
    --  * If there's no bundled-in version and there is no valgrind on PATH
    --    or the one there doesn't work (e.g. < 3.7.0), users can get things
-   --    to work by just installing a recent one (>= 3.7.0) on PATH.
+   --    to work by just installing a recent one (>= 3.7.0) on PATH, plus
+   --    the coverage plugin.
    --
    --  * If there is a bundled-in version and it doesn't work for a given
    --    app (e.g. fork/exec failure because valgrind is located not at its
