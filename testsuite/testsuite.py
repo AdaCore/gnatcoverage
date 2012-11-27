@@ -19,7 +19,7 @@ See ./testsuite.py -h for more help
 
 from gnatpython.env import Env, getenv, putenv
 from gnatpython.ex import Run
-from gnatpython.fileutils import mkdir, rm, ln, find, which
+from gnatpython.fileutils import mkdir, rm, ln, which, unixpath
 from gnatpython.main import Main
 from gnatpython.mainloop import MainLoop
 
@@ -418,7 +418,8 @@ class TestSuite:
     def __next_testcase_from (self, root):
         """Helper generator function for __next_testcase, producing a sequence
         of testcases to be executed from a provided root directory, updating
-        self.run_list and self.dead_list on the fly."""
+        self.run_list and self.dead_list on the fly. The testcase path ids are
+        canonicalized into unix form here."""
 
         if not self.options.quiet:
             logging.info(
@@ -440,7 +441,8 @@ class TestSuite:
                 ):
 
                 tc = TestCase (
-                    os.path.join (dirname, test_py), self.trace_dir
+                    filename  = unixpath (os.path.join (dirname, test_py)),
+                    trace_dir = self.trace_dir
                     )
                 tc.parseopt(self.discriminants)
 
@@ -689,9 +691,6 @@ class TestSuite:
 
         # Now log and populate "results" file
 
-        # Avoid \ in filename for the final report
-        test.filename = test.filename.replace('\\', '/')
-
         # File the test status + possible comment on failure
 
         self.__push_results ([
@@ -742,11 +741,7 @@ class TestSuite:
         """Returns path to diff file in the suite output directory.  This file
         is used to generate report and results files."""
 
-        filename = test.filename.replace('test.py', '')
-        if filename.startswith('./'):
-            filename = filename[2:]
-        filename = filename.strip('/').replace('/', '-')
-        return os.path.join(self.log_dir, filename + '.out')
+        return os.path.join(self.log_dir, test.rname() + '.out')
 
     # -------------------
     # -- parse_options --
@@ -960,7 +955,8 @@ class TestCase(object):
 
         # Start from the path to test.py, remove the value-less parts and
         # replace slashes which would introduce problematic articial layers in
-        # URLs eventually.
+        # URLs eventually. Note that we expect the filename path to have been
+        # unixified here.
 
         filename = self.filename.replace('test.py', '')
         if filename.startswith('./'):
