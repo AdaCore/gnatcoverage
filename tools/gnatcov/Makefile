@@ -2,24 +2,27 @@
 # Targets and subtargets of interest to users #
 ###############################################
 
-# To build exexcutable stuff:
-# ---------------------------
+# ----------------------------------
+# -- To build the excutable stuff --
+# ----------------------------------
 # (requires a Ada 2012 capable gnat toolchain + gnatcoll)
 #
 # all
 #   bin        <- default
 #   adapters
 
-# To build the documentation:
-# ---------------------------
+# --------------------------------
+# -- To build the documentation --
+# --------------------------------
 # (requires sphinx & latex + tools):
 #
 # doc
 #   doc.pdf 
 #   doc.html
 
-# To install:
-# -----------
+# ----------------
+# -- To install --
+# ----------------
 #
 # install
 #   install-bin
@@ -33,8 +36,20 @@
 # Base installation dir. Should be absolute pathname.
 PREFIX=$(PWD)/install
 
-# To cleanup:
-# -----------
+# Note for the valgrind adapter on linux:
+# ---------------------------------------
+# By default, install-adapters installs the valgrind coverage plugin in
+# the bundled-in valgrind tree (in <PREFIX>/libexec/gnatcoverage), populated
+# within binary packages only.
+#
+# When there is no such tree available (e.g. building gnatcov entirely from
+# sources), gnatcov will rely on PATH to find a suitable valgrind and the
+# adapter must be installed in the corresponding lib subdir. This is requested
+# by providing an explicit VALGRIND_PREFIX value.
+
+# ----------------
+# -- To cleanup --
+# ----------------
 #
 # clean
 #   clean-bin
