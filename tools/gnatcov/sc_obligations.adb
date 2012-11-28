@@ -1278,7 +1278,14 @@ package body SC_Obligations is
             Last := Last + 1;
             Tslocs (Last).Sloc := Line_Info.Sloc;
 
-            if Line_Info.Disc /= 0 then
+            --  Discriminator is an instance index if instance table is present
+            --  (SCOs loaded) and not empty.
+
+            if Line_Info.Disc /= 0
+                 and then TP.Current_CU /= No_CU_Id
+                 and then CU_Vector (TP.Current_CU).First_Instance
+                       >= CU_Vector (TP.Current_CU).Last_Instance
+            then
                --  Non-zero discriminator found: it is an instance index within
                --  the current compilation unit. Convert it to a global
                --  instance index, and cast to tag.
