@@ -285,7 +285,7 @@ package body ALI_Files is
 
             when 'U' =>
                declare
-                  U_Regexp  : constant String := "[^\t]*\t+([^\t]*)\t";
+                  U_Regexp  : constant String := "[^\t ]*[\t ]+([^\t ]*)[\t ]";
                   U_Matcher : constant Pattern_Matcher := Compile (U_Regexp);
                begin
                   Match (U_Matcher, Line (3 .. Line'Last), Matches);
@@ -296,7 +296,7 @@ package body ALI_Files is
 
             when 'D' =>
                declare
-                  D_Regexp  : constant String := "([^\t]*)\t";
+                  D_Regexp  : constant String := "([^\t ]*)[\t ]";
                   D_Matcher : constant Pattern_Matcher := Compile (D_Regexp);
                begin
                   Match (D_Matcher, Line (3 .. Line'Last), Matches);
