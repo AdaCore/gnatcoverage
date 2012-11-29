@@ -90,14 +90,18 @@ class QlevelInfo:
 RE_QCOMMON="(Common|Appendix)"
 RE_QLANG="(%s)" % '|'.join (QLANGUAGES)
 
-# A regular expression that matches subdirs of qualification tests that
-# should apply for coverage criteria RE_CRIT.
+# A regular expression that matches subdirs of qualification tests
+# that should apply for coverage criteria RE_CRIT.
 
 def RE_SUBTREE (re_crit):
     return "%(root)s/((%(common)s)|(%(lang)s/(%(crit)s)))" % {
         "root": QROOTDIR, "common": RE_QCOMMON,
         "lang": RE_QLANG, "crit": re_crit
         }
+
+# Note that we expect test directory names to be in unix form here.
+# This is easy to achieve, will have obvious observable effects if not
+# respected, and simplifies the regexp overall.
 
 QLEVEL_INFO = {
 
@@ -435,22 +439,34 @@ class TestSuite:
             top=root, topdown=True, followlinks=True
             ):
 
-            if (test_py in files and
-                re.search (
+            # Unixify the directory name early, to match expectations in
+            # our filtering patterns:
+
+            dirname = unixpath (dirname)
+
+            # If there is not test to execute in this dir or the dir name
+            # doesn't match the filter current filter, continue with the next
+            # candidate subdir:
+
+            if (test_py not in files
+                or not re.search (
                     pattern=self.tc_filter, string=dirname)
                 ):
+                continue
 
-                tc = TestCase (
-                    filename  = unixpath (os.path.join (dirname, test_py)),
-                    trace_dir = self.trace_dir
-                    )
-                tc.parseopt(self.discriminants)
+            # Otherwise, instantiate a Testcase object and proceed:
 
-                if tc.killcmd:
-                    self.dead_list.append(tc)
-                else:
-                    self.run_list.append(tc)
-                    yield tc
+            tc = TestCase (
+                filename  = os.path.join (dirname, test_py),
+                trace_dir = self.trace_dir
+                )
+            tc.parseopt(self.discriminants)
+
+            if tc.killcmd:
+                self.dead_list.append(tc)
+            else:
+                self.run_list.append(tc)
+                yield tc
 
     def __next_testcase (self):
         """Generator for MainLoop, producing a sequence of testcases to be
