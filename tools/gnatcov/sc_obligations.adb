@@ -1284,7 +1284,7 @@ package body SC_Obligations is
             if Line_Info.Disc /= 0
                  and then TP.Current_CU /= No_CU_Id
                  and then CU_Vector (TP.Current_CU).First_Instance
-                       >= CU_Vector (TP.Current_CU).Last_Instance
+                       <= CU_Vector (TP.Current_CU).Last_Instance
             then
                --  Non-zero discriminator found: it is an instance index within
                --  the current compilation unit. Convert it to a global
