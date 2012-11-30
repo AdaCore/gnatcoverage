@@ -344,6 +344,10 @@ begin
                         Key := '>';
                         Typ := Getc;
 
+                        --  Sanity check on dominance marker type indication
+
+                        pragma Assert (Typ in 'A' .. 'Z');
+
                      when '1' .. '9' =>
                         Typ := ' ';
 
