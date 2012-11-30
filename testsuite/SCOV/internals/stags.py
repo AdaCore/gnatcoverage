@@ -17,6 +17,7 @@
 # ****************************************************************************
 
 from . segments import Sloc, Sloc_from
+import itertools
 
 # ==========
 # == Stag ==
@@ -70,16 +71,13 @@ class Itag (Stag):
             ]
 
     def __all_components_match (self, other):
-        l1 = self.components
-        l2 = other.components
 
-        while l1:
-            p1 = l1.pop ()
-            p2 = l2.pop ()
+        # Check whether any component pair is found not to match:
 
-            if (p1.filename != p2.filename
+        for (c1, c2) in itertools.izip (self.components, other.components):
+            if (c1.filename != c2.filename
                 or
-                p1.section.sp0.l != p2.section.sp0.l
+                c1.section.sp0.l != c2.section.sp0.l
                 ):
                 return False
 
