@@ -35,9 +35,9 @@ from SUITE.cutils import Identifier
 
 #     ctl := "-- " arg_ctl__list
 #     arg_ctl__list := arg_ctl ["## " arg_ctl__list]
-#     arg_ctl := "-- " ["!"]"%"<cargs|cov>":" optgroup__list
+#     arg_ctl := "%"<cargs|cov|cancel>":" optgroup__list
 #     optgroup__list := optgroup ["," optgroup__list]
-#     optgroup := <atomic option sequence like "-gnatp" or "-S routines">
+#     optgroup := ["!"]<option sequence like "-gnatp" or "-S routines">
 
 #     cont := "--" <whitespaces> "+#" lx_rnote_list <newline>
 
@@ -157,6 +157,14 @@ from SUITE.cutils import Identifier
 # emitted STAG at all, absence of an option in a CTL list means that it
 # doesn't matter whether this option is actually passed or not. '!' is there
 # for cases where we need to state dependency on option absence.
+
+# "%cancel:" means "forget the current group", IOW, "ignore anything emitted
+# for the corresponding sources" if all the previous conditions are met. This
+# is useful for very specific combinations of compilation options and coverage
+# analysis modes known to be meaningless, such as -gnatn inlining together
+# with -S routine, expressed like
+#
+#   %cov: -S routine  %cargs: -gnatn  %cancel:
 
 # We use three intermediate abstractions to build the dictionaries from
 # the expectations text:
@@ -679,7 +687,10 @@ class XnotesExpander:
                 # A CTL line was found, update our processing state
                 # accordingly:
 
-                grabbing = ctl_value
+                if ctl_value == None:
+                    current_uxg = None
+                else:
+                    grabbing = ctl_value
 
             elif grabbing and line.startswith('+#'):
 
@@ -781,8 +792,13 @@ class XnotesExpander:
     def __try_ctl_update_from (self, line):
         """See if LINE is a CTL line and return the corresponding (do_update,
         now_active) indication tuple. do_update tells if indeed LINE is a CTL
-        line and now_active tells whether the whole set of conditional options
-        match the current set of active ones."""
+        line and now_active tells what to do next: True means "all the
+        filtering conditions were matched against the current set of active
+        ones, so grab whatever comes next for the group until the next CTL".
+        False means "Some conditions were not met, stop grabbing for the
+        current group until the next CTL". None means "A conditional request
+        for group nullification was expressed and all the conditions were
+        satisfied, so just forget the current group"."""
 
         # CTL lines are like "%cov: -S routines %cargs: !-gnatn"
         # They are the only lines that may start with '%'.
@@ -790,28 +806,46 @@ class XnotesExpander:
         if not line.startswith ('%'):
             return (False, None)
 
-        # To keep grabbing LX lines, all the CTL parts must evaluate True.  We
-        # always evaluate them all and don't implement shortcircuits. The code
-        # remains straightforward this way and we typically have one or two
-        # parts only so the potential efficiency gain is not worth any kind of
-        # complexification.
+        # To keep grabbing LX lines, all the CTL parts must evaluate True.
+        # Shortcircuit on match failure so we know that evaluation still
+        # running at one point means that all the conditions evaluated so far
+        # were satisfied.
 
         parts = re.findall (pattern="%[^%\n]*", string=line)
 
         val = True
         for part in parts:
-            val &= self.__eval_ctl_update_from (part)
+            this_val = self.__eval_ctl_update_from (part)
 
-        return (True, val)
+            if this_val == None:
+                # Nullification request. Still evaluating here so we know
+                # that all the prerequisites were satisfied:
+                return (True, None)
+
+            elif not this_val:
+                # This piece didn't match, shortcircuit:
+                return (True, False)
+
+            else:
+                # This piece matched and was not a cancellation request,
+                # keep evaluating:
+                continue
+
+        # All the pieces matched and there was no cancellation request
+        # on the way:
+
+        return (True, True)
 
     def __eval_ctl_update_from (self, part):
-        """PART is a piece of CTL line for a single specific key, like
-        "%cov: -S instance, --level=stmt" or "%cargs: !-gnatn". Evaluate
-        whether all the elements are in our current CTL references (set
-        of actual coverage or compilation options provided at init time),
-        in whatever order. In the first example just quoted, this will
-        return True iif "-S instance" and "--level=stmt" are both in the
-        actual coverage options, in this order or the other."""
+        """PART is a piece of CTL line for a single specific key, such as
+        "%cov: -S instance, --level=stmt", "%cargs: !-gnatn", or "%cancel:".
+        If this is "%cancel:", return None to reflect the nullification intent
+        for the control. Otherwise, evaluate and return whether all the
+        elements are in our current CTL references (set of actual coverage or
+        compilation options provided at init time), in whatever order. In the
+        first example just quoted, this will return True iif "-S instance" and
+        "--level=stmt" are both in the actual coverage options, in this order
+        or the other."""
 
         # First fetch the key and the set of option sequences to match:
 
@@ -821,6 +855,11 @@ class XnotesExpander:
 
         key = m.group("key")
         opts = m.group("opts").strip()
+
+        # If this is a nullification request, notify so:
+
+        if key == "%cancel":
+            return None
 
         # Now evaluate whether each sequence is in the actual set
         # of options that we were given for the key:
