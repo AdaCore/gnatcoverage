@@ -6,7 +6,7 @@ package body AndPorP is
    end;
 
    function F (A, B, C : Boolean) return Boolean is
-      Value : Boolean;
+      Value : Boolean; -- # decl
    begin
       Eval_And_Then (A, B, C, Value); -- # returnValue
       return Value;                -- # returnValue

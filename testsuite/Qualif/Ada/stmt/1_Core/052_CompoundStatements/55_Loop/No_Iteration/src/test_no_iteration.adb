@@ -45,6 +45,7 @@ end Test_No_Iteration;
 -- /inloopbeforeexit2/     l- ## s-
 -- /inloopbeforeexitinif2/ l- ## s-
 -- /inloopexit2/           l- ## s-
+-- /declLoop3/            ~l- ## ~s-
 -- /preLoop3/              l- ## s-
 -- /inloopexit3/           l- ## s-
 -- /inloop3/               l- ## s-

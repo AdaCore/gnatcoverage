@@ -13,3 +13,4 @@ end;
 
 --  /alwaysEval/ l+ ## 0
 --  /trueEval/   l- ## s-
+--  /truedecl/  ~l- ## ~s-

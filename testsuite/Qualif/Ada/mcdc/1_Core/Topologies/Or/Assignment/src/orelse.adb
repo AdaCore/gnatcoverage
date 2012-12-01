@@ -6,7 +6,7 @@ package body Orelse is
    end;
 
    function Or_Else (A, B : Boolean) return Boolean is
-      Value : Boolean;
+      Value : Boolean; -- # decl
    begin
       Eval_Or_Else (A, B, Value); -- # returnValue
       return Value;               -- # returnValue

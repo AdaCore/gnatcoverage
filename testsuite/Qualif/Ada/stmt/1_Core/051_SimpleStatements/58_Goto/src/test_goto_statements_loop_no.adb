@@ -24,6 +24,7 @@ end Test_GOTO_Statements_Loop_No;
 -- /1after5goto/    l- ## s-
 -- /1fin/           l- ## s-
 
+-- /2decl/         ~l- ## ~s-
 -- /2beforeloop/    l- ## s-
 -- /2loop/          l- ## s-
 -- /21if/           l- ## s-
@@ -39,8 +40,9 @@ end Test_GOTO_Statements_Loop_No;
 -- /2after5goto/    l- ## s-
 -- /2fin/           l- ## s-
 
+-- /3decl/         ~l- ## ~s-
 -- /3beforeloop/    l- ## s-
--- /3loop/          ~l- ## ~s-
+-- /3loop/         ~l- ## ~s-
 -- /3exit/          l- ## s-
 -- /31if/           l- ## s-
 -- /31goto/         l- ## s-

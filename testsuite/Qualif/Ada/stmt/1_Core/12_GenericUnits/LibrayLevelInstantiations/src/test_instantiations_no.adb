@@ -12,7 +12,8 @@ begin
 end Test_Instantiations_No;
 
 --# pack.adb
--- /new_value_g/   ~l- ## ~s-
+-- /decl/         ~l- ## ~s-
+-- /new_value_g/  ~l- ## ~s-
 -- /swap/          l- ## s-
 -- /proc/          l- ## s-
 

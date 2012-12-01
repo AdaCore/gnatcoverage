@@ -15,6 +15,7 @@ end Test_Instantiations_Part_3;
 -- /new_value_g/   l+ ## 0
 -- /swap/          l- ## s-
 -- /proc/          l- ## s-
+-- /decl/         ~l- ## ~s-
 
 --#  stacks_g.ads
 -- /elab/          l+ ## 0

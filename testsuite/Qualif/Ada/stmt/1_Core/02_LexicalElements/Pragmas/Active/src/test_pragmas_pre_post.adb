@@ -17,6 +17,7 @@ end Test_Pragmas_Pre_Post;
 -- /check_val/          l+ ## 0
 -- /neverexecuted/      l- ## s-
 
+-- /rangedecl/         ~l- ## ~s-
 -- /mainstream/         l- ## s-
 -- /nonemptyrange/      l- ## s-
 -- /morethenoneinrange/ l- ## s-

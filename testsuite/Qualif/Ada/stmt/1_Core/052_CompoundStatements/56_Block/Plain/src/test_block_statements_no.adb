@@ -23,6 +23,7 @@ end Test_Block_Statements_No;
 -- /22ifstmtblock/    l- ## s-
 -- /2in2ifstmtblock/  l- ## s-
 
+-- /3decl/           ~l- ## ~s-
 -- /3stmt/            l- ## s-
 -- /3inif/            l- ## s-
 -- /3blockstmt/       l- ## s-
@@ -30,6 +31,7 @@ end Test_Block_Statements_No;
 -- /3inloopstmtblock/ l- ## s-
 -- /3handlerblock/    l- ## s-
 
+-- /4decl/           ~l- ## ~s-
 -- /4stmt/            l- ## s-
 -- /4inif/            l- ## s-
 -- /4dclblock/        l- ## s-

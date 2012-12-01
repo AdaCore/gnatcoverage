@@ -7,7 +7,7 @@ package body GOTO_Statements_Block is
       Par4 : Integer)
       return Integer
    is
-      Result : Integer;
+      Result : Integer; -- # decl
    begin
 
       begin

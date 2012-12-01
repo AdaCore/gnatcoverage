@@ -1,7 +1,7 @@
 package body LOOP_Statements is
 
    function All_Less_Then (L : Level; S  : Sample) return Boolean is
-      Last_LT : Boolean;
+      Last_LT : Boolean; -- # declLoop1
       -- Whether the last examined sample value is known to be < L
    begin
 
@@ -24,8 +24,8 @@ package body LOOP_Statements is
       Str :     String;
       Ch  :     Character)
    is
-      First : Natural;
-      Last  : Natural;
+      First : Natural; -- # declLoop2
+      Last  : Natural; -- # declLoop2
    begin
       First := Str'First;                  -- # preLoop2
       Last  := Str'Last;                   -- # preLoop2
@@ -41,8 +41,8 @@ package body LOOP_Statements is
    end Find_Last_Char;
 
    function Factorial (N : T) return T is
-      Res   : T;
-      Count : T;
+      Res   : T; -- # declLoop3
+      Count : T; -- # declLoop3
    begin
       Res   := 1;                   -- # preLoop3
       Count := 1;                   -- # preLoop3
@@ -60,9 +60,9 @@ package body LOOP_Statements is
       (Res : out Integer;
        Arg :     Big_Sample)
    is
-      Idx   : Natural;
-      First : Natural;
-      Last  : Natural;
+      Idx   : Natural; -- # declLoop4
+      First : Natural; -- # declLoop4
+      Last  : Natural; -- # declLoop4
    begin
       Res   := 0;                                -- # preLoop4
       First := Arg'First;                        -- # preLoop4

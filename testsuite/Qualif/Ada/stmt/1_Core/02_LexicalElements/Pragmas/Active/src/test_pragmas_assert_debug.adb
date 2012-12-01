@@ -34,4 +34,5 @@ end Test_Pragmas_Assert_Debug;
 -- /3assert/            l+ ## 0
 -- /4assert/            l+ ## 0
 
+-- /safedecl/          ~l- ## ~s-
 -- /is_safe/            l- ## s-

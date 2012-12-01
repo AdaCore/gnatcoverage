@@ -44,12 +44,12 @@ package body Block_Statements is
    end Swap_Max_Min;
 
    function Factorial (N : T) return T is
-      Result : T;
+      Result : T; -- # 3decl
 
       --  To make sure that we get a check within the loop and that the
       --  handler remains around
 
-      pragma Unsuppress (Overflow_Check);
+      pragma Unsuppress (Overflow_Check); -- # 3decl
 
    begin
       if N < 0 then                                    -- # 3stmt
@@ -71,7 +71,7 @@ package body Block_Statements is
    end Factorial;
 
    function Sum_Min_Max (Arg : Sample) return Integer is
-      Result : Integer;
+      Result : Integer; -- # 4decl
    begin
       if Arg'Length = 0 then                           -- # 4stmt
          Result := 0;                                  -- # 4inif

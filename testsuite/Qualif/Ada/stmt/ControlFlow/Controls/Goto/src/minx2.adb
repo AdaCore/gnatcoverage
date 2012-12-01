@@ -1,7 +1,7 @@
 with Support; use Support;
 
 function MinX2 (X : Natural) return Natural is
-   M : Integer;
+   M : Integer; -- # decl
 begin
 
    if X > 2 then   -- # common

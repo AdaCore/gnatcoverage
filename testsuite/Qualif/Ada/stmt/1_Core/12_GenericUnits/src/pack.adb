@@ -14,7 +14,7 @@ package body Pack is
    end Pack_G;
 
    procedure Proc (I, J : in out Integer) is
-      package Pack_I is new Pack_G (Integer, 1);
+      package Pack_I is new Pack_G (Integer, 1); -- # decl
    begin
       Pack_I.Swap (I, J);                        -- # proc
    end Proc;

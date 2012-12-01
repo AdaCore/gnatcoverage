@@ -21,9 +21,11 @@ end Test_Subprogram_Renamings_No;
 
 --# pack.adb
 -- /local/    l- ## s-
+-- /declp1/  ~l- ## ~s-
 -- /p1/       l- ## s-
 -- /p2/       l- ## s-
 -- /p3/       l- ## s-
+-- /declf1/  ~l- ## ~s-
 -- /f1/       l- ## s-
 -- /f2/       l- ## s-
 -- /f3/       l- ## s-

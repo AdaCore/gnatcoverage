@@ -11,6 +11,7 @@ begin
 end Test_EXIT_Statements_No;
 
 --# exit_statements.adb
+-- /1decl/            ~l- ## ~s-
 -- /1preloop/         ~l- ## ~s-
 -- /1loop/            ~l- ## ~s-
 -- /in1loop1exit/     ~l- ## ~s-
@@ -18,6 +19,7 @@ end Test_EXIT_Statements_No;
 -- /in1loopafterexit/ ~l- ## ~s-
 -- /post1loop/        ~l- ## ~s-
 
+-- /2decl/            ~l- ## ~s-
 -- /2preloop/          l- ## s-
 -- /2loop/             l- ## s-
 -- /21exit/            l- ## s-
@@ -25,6 +27,7 @@ end Test_EXIT_Statements_No;
 -- /22exit/            l- ## s-
 -- /2after2exit/       l- ## s-
 
+-- /3decl/            ~l- ## ~s-
 -- /3preloop/          l- ## s-
 -- /3outerloop/        l- ## s-
 -- /3innerloop/        l- ## s-

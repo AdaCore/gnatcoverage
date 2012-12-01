@@ -1,6 +1,6 @@
 package body Assignment_Statements is
    procedure Swap (I, J : in out Integer) is
-      Tmp : Integer;
+      Tmp : Integer; -- # declswap
    begin
       Tmp := I;   -- # swap
       I   := J;   -- # swap
@@ -8,7 +8,7 @@ package body Assignment_Statements is
    end Swap;
 
    function Max_Value (I, J : Integer) return Integer is
-      Result : Integer;
+      Result : Integer;  -- # declmax
    begin
       Result := I;       -- # max
 

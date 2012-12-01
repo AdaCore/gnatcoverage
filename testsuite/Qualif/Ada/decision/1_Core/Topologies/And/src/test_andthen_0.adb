@@ -7,6 +7,7 @@ end;
 
 --# andthen.adb
 --  /__l!dT-/  l- ## s-
+--  /decl/    ~l- ## ~s-
 --  /andthen/  l- ## s-
 --  /retTrue/  l- ## s-
 --  /retFalse/ l- ## s-

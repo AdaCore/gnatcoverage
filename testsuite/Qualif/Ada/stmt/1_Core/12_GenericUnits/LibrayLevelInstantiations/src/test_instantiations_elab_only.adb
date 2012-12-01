@@ -17,6 +17,7 @@ end Test_Instantiations_Elab_Only;
 -- /new_value_g/   l- ## s-
 -- /swap/          l- ## s-
 -- /proc/          l- ## s-
+-- /decl/         ~l- ## ~s-
 
 --#  stacks_g.ads
 -- /elab/          l+ ## 0

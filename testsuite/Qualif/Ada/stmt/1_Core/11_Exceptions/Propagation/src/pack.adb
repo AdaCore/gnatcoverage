@@ -2,7 +2,6 @@ package body Pack is
    pragma Unsuppress (All_Checks);
 
    procedure Proc_With_Blocks (I, J, K : in out My_Int) is
-      pragma Unsuppress (All_Checks);
    begin
       begin
          begin

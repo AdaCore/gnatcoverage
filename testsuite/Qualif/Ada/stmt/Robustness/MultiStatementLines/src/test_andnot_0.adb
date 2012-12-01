@@ -9,3 +9,4 @@ end;
 
 --# andnot.adb
 --  /doAndNot/  l- ## s-:"Not_B .= not B",s-:"E .= A "
+--  /decl/     ~l- ## ~s-

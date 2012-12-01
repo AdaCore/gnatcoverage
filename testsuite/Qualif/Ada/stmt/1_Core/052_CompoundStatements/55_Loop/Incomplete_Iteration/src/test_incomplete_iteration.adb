@@ -34,6 +34,7 @@ end Test_Incomplete_Iteration;
 -- /inloopexit1/           l+ ## 0
 -- /inloopafterexit1/      l- ## s-
 -- /postLoop1/             l+ ## 0
+-- /declLoop2/            ~l- ## ~s-
 -- /preLoop2/              l- ## s-
 -- /loop2/                 l- ## s-
 -- /inloopbeforeexit2/     l- ## s-

@@ -1,8 +1,8 @@
 package body EXIT_Statements is
 
    function Factorial (N : T) return T is
-      Res   : T;
-      Count : T;
+      Res   : T;  -- # 1decl
+      Count : T;  -- # 1decl
    begin
       Res   := 1;                        -- # 1preloop
       Count := N;                        -- # 1preloop
@@ -21,7 +21,7 @@ package body EXIT_Statements is
      (Arg   : in out Array_Sample;
       Limit :        Positive)
    is
-      Sum : Integer;
+      Sum : Integer; -- # 2decl
    begin
       Sum := 0;                          -- # 2preloop
 
@@ -44,15 +44,15 @@ package body EXIT_Statements is
       Limit : Natural)
       return  Natural
    is
-      Result     : Natural;
+      Result     : Natural; -- # 3decl
 
-      First_Line : Natural;
-      Last_Line  : Natural;
-      Line_Idx   : Natural;
+      First_Line : Natural; -- # 3decl
+      Last_Line  : Natural; -- # 3decl
+      Line_Idx   : Natural; -- # 3decl
 
-      First_Col     : Natural;
-      Last_Col   : Natural;
-      Col_Idx    : Natural;
+      First_Col  : Natural; -- # 3decl
+      Last_Col   : Natural; -- # 3decl
+      Col_Idx    : Natural; -- # 3decl
 
    begin
       Result := 0;                                     -- # 3preloop

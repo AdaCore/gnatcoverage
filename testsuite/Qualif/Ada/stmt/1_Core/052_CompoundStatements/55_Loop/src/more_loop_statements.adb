@@ -5,8 +5,8 @@ package body More_LOOP_Statements is
 
 
    function N_Of (L : Level; S : Sample) return Natural is
-      I : Integer;
-      N : Natural;
+      I : Integer; -- # declLoop1
+      N : Natural; -- # declLoop1
    begin
       I := S'First;            -- # preLoop1
       N := 0;                  -- # preLoop1

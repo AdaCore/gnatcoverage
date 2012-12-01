@@ -9,4 +9,4 @@ end;
 --  /evalA/   l- ## s-
 --  /evalB/   l- ## 0c
 --  /oncall/  l- ## s-
-
+--  /decl/   ~l- ## ~s-

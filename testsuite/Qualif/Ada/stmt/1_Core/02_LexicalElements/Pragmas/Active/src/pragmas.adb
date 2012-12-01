@@ -19,8 +19,8 @@ package body Pragmas is
    end Check_Val;
 
    function In_Range (X, L, R : Integer) return Boolean is
-      Result : Boolean;
-      Arg    : Integer;
+      Result : Boolean; -- # rangedecl
+      Arg    : Integer; -- # rangedecl
    begin
       Arg := X;                                          -- # mainstream
 
@@ -55,7 +55,7 @@ package body Pragmas is
    end In_Range;
 
    function Is_Safe (I : Integer) return Boolean is
-      Tmp : Integer := I;                                -- # is_safe
+      Tmp : Integer := I;                                -- # safedecl
    begin
       Check_Val (Tmp);                                   -- # is_safe
       return Tmp = I;                                    -- # is_safe

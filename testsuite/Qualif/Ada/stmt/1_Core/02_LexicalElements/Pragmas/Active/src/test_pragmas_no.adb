@@ -17,6 +17,7 @@ end Test_Pragmas_No;
 -- /check_val/          l- ## s-
 -- /neverexecuted/      l- ## s-
 
+-- /rangedecl/         ~l- ## ~s-
 -- /mainstream/         l- ## s-
 -- /nonemptyrange/      l- ## s-
 -- /morethenoneinrange/ l- ## s-
@@ -31,4 +32,5 @@ end Test_Pragmas_No;
 -- /3assert/            l- ## s-
 -- /4assert/            l- ## s-
 
+-- /safedecl/          ~l- ## ~s-
 -- /is_safe/            l- ## s-

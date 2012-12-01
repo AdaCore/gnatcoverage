@@ -5,8 +5,8 @@ package body MultibackProp is
       --  start anchor. Make sure there is code associated with it, to
       --  prevent the call from being just not emitted at all.
 
-      X : Integer;
-      pragma Volatile (X);
+      X : Integer;         -- # truedecl
+      pragma Volatile (X); -- # truedecl
    begin
       X := 12; -- # trueEval
    end Q;

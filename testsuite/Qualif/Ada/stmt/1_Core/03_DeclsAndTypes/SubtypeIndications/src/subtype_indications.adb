@@ -17,7 +17,7 @@ package body Subtype_Indications is
       First       : Integer := Result'First;           -- # 2_local_dcl
       Last        : Integer := Result'Last;            -- # 2_local_dcl
       Current_Max : Integer := First;                  -- # 2_local_dcl
-      Tmp         : Integer;
+      Tmp         : Integer;                           -- # 2_local_dcl
    begin
       Result := V;                                     -- # 2_stmt
 

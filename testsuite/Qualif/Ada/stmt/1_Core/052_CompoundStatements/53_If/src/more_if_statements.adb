@@ -33,7 +33,7 @@ package body More_IF_Statements is
    end Set_Prime_Number;
 
    function Max_From_Two (Arg1, Arg2 : T) return T is
-      Result : T;
+      Result : T; -- # declmax
    begin
       if Arg1 > Arg2 then            -- # max
          Result := Arg1;             -- # ifmax

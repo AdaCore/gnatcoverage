@@ -40,8 +40,8 @@ package body GOTO_Statements_Loop is
       Par1 : in out Integer;
       Par2 : in out Integer)
    is
-      J        : Natural;
-      Last_Idx : Natural;
+      J        : Natural; -- # 2decl
+      Last_Idx : Natural; -- # 2decl
 
    begin
       J        := Arg'First;                                 -- # 2beforeloop
@@ -82,8 +82,8 @@ package body GOTO_Statements_Loop is
       Par1 : in out Integer;
       Par2 : in out Integer)
    is
-      J        : Natural;
-      Last_Idx : Natural;
+      J        : Natural; -- # 3decl
+      Last_Idx : Natural; -- # 3decl
 
    begin
       J        := Arg'First;                                 -- # 3beforeloop

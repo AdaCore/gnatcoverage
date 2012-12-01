@@ -20,6 +20,7 @@ end Test_No_Execution;
 -- /inifsetmax/  l- ## s-
 
 --# more_if_statements.adb
+-- /declmax/    ~l- ## ~s-
 -- /prime/       l- ## s-
 -- /ifprime/     l- ## s-
 -- /1prime/      l- ## s-

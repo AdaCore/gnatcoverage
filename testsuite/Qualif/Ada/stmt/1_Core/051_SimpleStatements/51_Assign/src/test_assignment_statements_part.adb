@@ -16,6 +16,7 @@ end Test_Assignment_Statements_Part;
 -- /swap/  l- ## s-
 -- /max/   l+ ## 0
 -- /ifmax/ l- ## s-
+-- /declswap/ ~l- ## ~s-
 
 --# assignment_statements_elab.adb
 -- /elab/  l+ ## 0

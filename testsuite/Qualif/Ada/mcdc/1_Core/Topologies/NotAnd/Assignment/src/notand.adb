@@ -6,7 +6,7 @@ package body Notand is
    end;
 
    function F (A, B : Boolean) return Boolean is
-      Value : Boolean;
+      Value : Boolean; -- # decl
    begin
       Eval_F (A, B, Value); -- # returnValue
       return Value;                -- # returnValue

@@ -10,6 +10,7 @@ begin
 end Test_Assignment_Statements_No;
 
 --# assignment_statements.adb
+-- /decl/ ~l- ## ~s-
 -- /swap/  l- ## s-
 -- /max/   l- ## s-
 -- /ifmax/ l- ## s-
