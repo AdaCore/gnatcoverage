@@ -457,7 +457,7 @@ class TestSuite:
             # Otherwise, instantiate a Testcase object and proceed:
 
             tc = TestCase (
-                filename  = os.path.join (dirname, test_py),
+                filename  = dirname + "/" + test_py,
                 trace_dir = self.trace_dir
                 )
             tc.parseopt(self.discriminants)
