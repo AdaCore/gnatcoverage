@@ -5,7 +5,7 @@ package body Pack is
    end Local;
 
    procedure P1 (I : in out Integer) is
-      procedure P1_Local (J : in out Integer) renames P2; -- # p1decl
+      procedure P1_Local (J : in out Integer) renames P2; -- # declp1
    begin
       I := I + 1;                     -- # p1
       P1_Local (I);                   -- # p1
