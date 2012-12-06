@@ -14,4 +14,4 @@ end;
 -- /returnTrue/  l- ## s-
 -- /returnFalse/ l+ ## 0
 -- /returnValue/ l+ ## 0
--- /decl/ l+ ## 0
+-- /decl/ ~l+ ## 0

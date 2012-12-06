@@ -18,4 +18,4 @@ end Test_PorPandPorP_BC;
 --  /decisionTrue/  l+ ## 0
 --  /decisionFalse/ l+ ## 0
 --  /returnValue/   l+ ## 0
---  /decl/          l+ ## 0
+--  /decl/          ~l+ ## 0
