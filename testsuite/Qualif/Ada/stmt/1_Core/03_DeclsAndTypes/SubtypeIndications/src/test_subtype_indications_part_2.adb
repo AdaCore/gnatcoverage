@@ -26,6 +26,7 @@ end Test_Subtype_Indications_Part_2;
 -- /1_local_dcl/ l- ## s-
 -- /1_stmt/      l- ## s-
 -- /2_local_dcl/ l+ ## 0
+-- /2_bare_dcl/ ~l+ ## 0
 -- /2_stmt/      l+ ## 0
 -- /3_local_dcl/ l+ ## 0
 -- /3_stmt/      l+ ## 0
