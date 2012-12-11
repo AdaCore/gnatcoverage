@@ -444,7 +444,7 @@ class TestSuite:
             # Unixify the directory name early, to match expectations in
             # our filtering patterns:
 
-            dirname = unixpath (dirname)
+            dirname =  dirname.replace ('\\', '/')
 
             # If there is not test to execute in this dir or the dir name
             # doesn't match the filter current filter, continue with the next
