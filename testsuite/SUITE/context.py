@@ -299,6 +299,9 @@ class Test (object):
                      help='--RTS option to pass to gprbuild.')
         main.add_option('--kernel', dest='kernel', metavar='KERNEL',
                      help='KERNEL to pass to gnatcov run in addition to exe')
+
+        main.add_option('--toolchain', dest='toolchain', default="")
+
         main.parse_args()
         if main.options.report_file is None:
             # This is a required "option" which is a bit self-contradictory,
