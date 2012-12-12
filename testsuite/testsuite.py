@@ -341,8 +341,9 @@ class TestSuite:
             + self.__qualif_level_discriminants()
             + self.__cargs_discriminants()
             + self.__rts_discriminants()
-            + [self.__toolchain_discriminant()] if self.options.toolchain else []
+            + self.__toolchain_discriminants()
             )
+
 
     def __base_discriminants(self):
         return ['ALL'] + self.env.discriminants
@@ -407,15 +408,16 @@ class TestSuite:
         else:
             return ["RTS_FULL"]
 
-    def __toolchain_discriminant (self):
-        """Compute the discriminant that reflects the version of the
-        particular toolchain in use, if any, for example "7.0.2" for
-        /path/to/gnatpro-7.0.2. The match is on the sequence of three single
-        digits separated by dots, possibly followed by "rc", then by maybe
-        a '/' prior to the end of string."""
+    def __toolchain_discriminants (self):
+        """Compute the list of discriminants that reflects the version of the
+        particular toolchain in use, if any. There's at most a single value in
+        this list at this stage, e.g. ["7.0.2"] for /path/to/gnatpro-7.0.2.
+        The match is on the sequence of three single digits separated by dots,
+        possibly followed by "rc", then by maybe a '/' prior to the end of
+        string."""
 
         m = re.search ("(\d\.[01]\.[0123](?:rc)?)/?$", self.options.toolchain)
-        return m.group(1) if m else None
+        return [m.group(1)] if m else []
 
     # ---------------------
     # -- __next_testcase --
@@ -646,7 +648,7 @@ class TestSuite:
 
         if mopt.toolchain:
             testcase_cmd.append (
-                '--toolchain=%s' % self.__toolchain_discriminant ()
+                '--toolchain=%s' % self.__toolchain_discriminants()[0]
                 )
 
         testcase_cmd.append('--RTS=%s' % mopt.RTS)
