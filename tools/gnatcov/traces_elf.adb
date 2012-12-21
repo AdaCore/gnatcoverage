@@ -1067,9 +1067,7 @@ package body Traces_Elf is
          Read_Word2 (Exec, Base, Off, Ver);
          Read_Word4 (Exec, Base, Off, Abbrev_Off);
          Read_Byte (Base, Off, Ptr_Sz);
-         if Ver /= 2 and Ver /= 3 then
-            exit;
-         end if;
+         exit when not Ver in 2 .. 3;
          Level := 0;
 
          Exec.Addr_Size := Natural (Ptr_Sz);
