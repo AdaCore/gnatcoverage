@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -1067,7 +1067,7 @@ package body Traces_Elf is
          Read_Word2 (Exec, Base, Off, Ver);
          Read_Word4 (Exec, Base, Off, Abbrev_Off);
          Read_Byte (Base, Off, Ptr_Sz);
-         exit when not Ver in 2 .. 3;
+         exit when Ver not in 2 .. 3;
          Level := 0;
 
          Exec.Addr_Size := Natural (Ptr_Sz);
