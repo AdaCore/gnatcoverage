@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -126,7 +126,6 @@ package body Rundrv.Expander is
    function Expand_Arguments
      (Args, Eargs : String_List_Access) return String_List
    is
-
       --  Args might include a %eargs macro or not, and in either case, we
       --  might have actual Eargs to expand or not.  We just append items as
       --  they come into a vector and convert that into a String_List
@@ -177,6 +176,8 @@ package body Rundrv.Expander is
 
       Eargs_Q : String_List_Access := Eargs;
       --  List of eargs that remains to be added to the command line
+
+   --  Start of processing for Expand_Arguments
 
    begin
       --  Copy arguments and expand argument macros
@@ -230,7 +231,6 @@ package body Rundrv.Expander is
          end loop;
          return Result;
       end;
-
    end Expand_Arguments;
 
    ----------------------
@@ -273,6 +273,17 @@ package body Rundrv.Expander is
       --  Whether KEY is somewhere within ARG.  When it is, MATCHES (1..2)
       --  hold regpat groups describing what precedes and follows.
 
+      function Substitute
+        (Matches : Macro_Matches; Arg, Value : String) return String;
+      --  ARG is a string where a macro key was found.  MATCHES holds the
+      --  regpat groups that describe what precedes and follows the key.
+      --  Return a string corresponding to ARG where the macro is replaced
+      --  by VALUE.
+
+      -----------
+      -- Match --
+      -----------
+
       function Match
         (Arg, Key : String; Matches : access Macro_Matches) return Boolean
       is
@@ -282,12 +293,9 @@ package body Rundrv.Expander is
          return Matches (0) /= No_Match;
       end Match;
 
-      function Substitute
-        (Matches : Macro_Matches; Arg, Value : String) return String;
-      --  ARG is a string where a macro key was found.  MATCHES holds the
-      --  regpat groups that describe what precedes and follows the key.
-      --  Return a string corresponding to ARG where the macro is replaced
-      --  by VALUE.
+      ----------------
+      -- Substitute --
+      ----------------
 
       function Substitute
         (Matches : Macro_Matches; Arg, Value : String) return String
@@ -302,6 +310,8 @@ package body Rundrv.Expander is
       end Substitute;
 
       M : aliased Macro_Matches;
+
+   --  Start of processing for Try_Expand
 
    begin
 

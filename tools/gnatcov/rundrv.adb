@@ -35,8 +35,8 @@ with Rundrv.State;    use Rundrv.State;
 
 package body Rundrv is
 
-   Target_Default : constant String_Access
-     := new String'(Standard'Target_Name);
+   Target_Default : constant String_Access :=
+                      new String'(Standard'Target_Name);
 
    --  Variables set by the command line.
 
@@ -81,16 +81,15 @@ package body Rundrv is
         (Target : String_Access) return Driver_Target_Access
       is
       begin
-
          --  If we have GNATemulator for Target on PATH, use that. --target
          --  values provided by users are expected to match the GNATemulator
          --  target names in such cases, so there's no point looking into
          --  the Aliases entries here.
 
          declare
-            Gnatemu : constant String_Access
-              := GNAT.OS_Lib.Locate_Exec_On_Path (Target.all & "-gnatemu");
-            List : String_List_Access;
+            Gnatemu : constant String_Access :=
+              GNAT.OS_Lib.Locate_Exec_On_Path (Target.all & "-gnatemu");
+            List    : String_List_Access;
          begin
 
             if Gnatemu /= null then
@@ -107,17 +106,18 @@ package body Rundrv is
                   List (6) := new String'("--kernel=" & Kernel.all);
                   List (7) := new String'("%exe");
                end if;
+
                List (1 .. 5) := (new String'("--eargs"),
                                  new String'("-exec-trace"),
                                  new String'("%trace"),
                                  new String'("%eargs"),
                                  new String'("--eargs-end"));
                return new Driver_Target'
-                 (Target => Target,
-                  Setup_Command => null,
-                  Setup_Options => null,
-                  Run_Command => Gnatemu,
-                  Run_Options => List);
+                  (Target        => Target,
+                   Setup_Command => null,
+                   Setup_Options => null,
+                   Run_Command   => Gnatemu,
+                   Run_Options   => List);
             end if;
          end;
 
