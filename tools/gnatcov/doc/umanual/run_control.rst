@@ -63,7 +63,7 @@ features the following information entries:
 .. _trace-control:
 
 Trace control for MCDC
-=======================
+======================
 
 MCDC analysis using execution traces requires specific care to make
 sure that assessments are both accurate and efficient.
