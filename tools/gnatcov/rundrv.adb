@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -78,7 +78,8 @@ package body Rundrv is
       ------------------------
 
       function Driver_Control_For
-        (Target : String_Access) return Driver_Target_Access is
+        (Target : String_Access) return Driver_Target_Access
+      is
       begin
 
          --  If we have GNATemulator for Target on PATH, use that. --target
@@ -157,8 +158,9 @@ package body Rundrv is
       Control : Driver_Target_Access;
       --  The corresponding Driver_Target control block
 
-   begin
+   --  Start of processing for Driver
 
+   begin
       --  Setup our basic internal control parameters
 
       if Target /= null then
@@ -168,8 +170,8 @@ package body Rundrv is
       Control := Driver_Control_For (Real_Target);
 
       if Control = null then
-         Error ("unknown target " & Real_Target.all);
-         Error (" (use --help to get target list)");
+         Error ("unknown target " & Real_Target.all
+                & " (use --help to get target list)");
          --  ??? xcov run --help should give the target list
          return;
       end if;
@@ -274,8 +276,8 @@ package body Rundrv is
    -- Help --
    ----------
 
-   procedure Help (Indent : String := "")
-   is
+   procedure Help (Indent : String := "") is
+
       procedure P (Str : String);
       --  Put_Line with proper indentation
 
@@ -290,10 +292,14 @@ package body Rundrv is
 
       Driver_Idx : Natural;
       Filled     : Positive;
+
+   --  Start of processing for Help
+
    begin
       P ("run [OPTIONS] [EXE] [-eargs EARGS...]");
       P ("  -t TARGET  --target=TARGET   Set the execution target");
       P (Indent & "    targets: A prefix to a version of gnatemu on PATH, or");
+
       Driver_Idx := Drivers'First;
       loop
          exit when Driver_Idx > Drivers'Last;
