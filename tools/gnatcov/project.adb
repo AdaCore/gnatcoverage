@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2012, AdaCore                       --
+--                     Copyright (C) 2012-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -510,7 +510,8 @@ package body Project is
         (Root_Project_Path => Create (+Prj_Name),
          Env               => Env,
          Packages_To_Check => Coverage_Package_List'Access,
-         Recompute_View    => False);
+         Recompute_View    => False,
+         Errors            => Outputs.Warning_Or_Error'Access);
    end Load_Root_Project;
 
    -----------------------------

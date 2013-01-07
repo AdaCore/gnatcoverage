@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -32,10 +32,13 @@ package Outputs is
    --  Fatal_Error or Normal_Exit instead.
 
    procedure Warn (Msg : String);
-   --  Display Msg on stderr
+   --  Display Msg on standard error prefixed with "warning: "
 
    procedure Error (Msg : String);
-   --  Display Msg on stderr and set exit status to failure
+   --  Display Msg on standard error and set exit status to failure
+
+   procedure Warning_Or_Error (Msg : String);
+   --  Display Msg on standard error
 
    procedure Fatal_Error (Msg : String);
    pragma No_Return (Fatal_Error);
