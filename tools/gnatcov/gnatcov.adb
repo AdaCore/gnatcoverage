@@ -485,6 +485,12 @@ procedure GNATcov is
                              (Arg & " may not be specified in a project");
                         end if;
 
+                        --  Ignore next argument as well if appropriate
+
+                        if Arg = Root_Project_Option then
+                           Arg_Index := Arg_Index + 1;
+                        end if;
+
                      elsif Has_Prefix (Arg, "-d") then
                         --  Debugging options
 
