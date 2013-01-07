@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -131,7 +131,7 @@ procedure GNATcov is
       P ("   --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from");
       P ("                               FILE for this operation; or do that");
       P ("                               for each file listed in LISTFILE");
-      P ("   -P=<GPR>                    Use GPR as root project to locate");
+      P ("   -P<GPR>                     Use GPR as root project to locate");
       P ("                               SCOs, select units to analyse and");
       P ("                               find default options");
       P ("   --projects=<GPR|@LISTFILE>  Focus on specific projects within");
@@ -1528,7 +1528,7 @@ begin
                end if;
 
                Rundrv.Driver (Exe_File, Target, Tag, Output, Histmap,
-                               Kernel, Eargs);
+                              Kernel, Eargs);
             end Run;
          begin
             Inputs.Iterate (Exe_Inputs, Run'Access);
