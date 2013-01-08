@@ -229,6 +229,11 @@ package body Project is
          Project := Current (Iter);
          exit when Project = No_Project;
 
+         --  If project is extended, go to the ultimate extending project,
+         --  which might override the Coverage package.
+
+         Project := Extending_Project (Project, Recurse => True);
+
          Enumerate_Project : declare
             Lib_Info : Library_Info_Lists.List;
 
