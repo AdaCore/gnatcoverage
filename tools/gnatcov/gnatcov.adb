@@ -432,11 +432,64 @@ procedure GNATcov is
 
       begin
          while Arg_Index <= Arg_Count loop
-            declare
+            Process_Switch : declare
                Arg : String renames S.Argument (Arg_Index);
+
+               function Common_Switch return Boolean;
+               --  Processing for switch valid in both command line and
+               --  project, and that need to be processed in all passes.
+               --  Return True if switch processed.
+
+               -------------------
+               -- Common_Switch --
+               -------------------
+
+               function Common_Switch return Boolean is
+               begin
+                  --  Debugging options
+
+                  if Has_Prefix (Arg, "-d") then
+                     declare
+                        Pos : Positive := Arg'First + 2;
+                     begin
+                        if Pos > Arg'Last then
+                           Fatal_Error ("parameter required for -d");
+                        end if;
+
+                        while Pos <= Arg'Last loop
+                           case Arg (Pos) is
+                           when 'h' =>
+                              Switches.Debug_Full_History       := True;
+                           when 'i' =>
+                              Switches.Debug_Ignore_Exemptions  := True;
+                           when others =>
+                              Fatal_Error ("bad parameter -d" & Arg (Pos));
+                           end case;
+                           Pos := Pos + 1;
+                        end loop;
+                     end;
+
+                  elsif Arg = Verbose_Option
+                          or else
+                        Arg = Verbose_Option_Short
+                  then
+                     Verbose := True;
+
+                  else
+                     return False;
+                  end if;
+
+                  return True;
+               end Common_Switch;
+
+            --  Start of processing for Process_Switch
+
             begin
                case Pass is
                   when Command_Line_1 =>
+                     --  A subset of switches are processed before projects
+                     --  are loaded.
+
                      if Arg = Root_Project_Option then
                         Set_Root_Project (Next_Arg ("root project"));
 
@@ -470,6 +523,8 @@ procedure GNATcov is
                      elsif Has_Prefix (Arg, Subdirs_Option) then
                         Set_Subdirs (Option_Parameter (Arg));
 
+                     elsif Common_Switch then
+                        null;
                      end if;
 
                   when Command_Line_2 | Project =>
@@ -490,35 +545,6 @@ procedure GNATcov is
                         if Arg = Root_Project_Option then
                            Arg_Index := Arg_Index + 1;
                         end if;
-
-                     elsif Has_Prefix (Arg, "-d") then
-                        --  Debugging options
-
-                        declare
-                           Pos : Positive := Arg'First + 2;
-                        begin
-                           if Pos > Arg'Last then
-                              Fatal_Error ("parameter required for -d");
-                           end if;
-
-                           while Pos <= Arg'Last loop
-                              case Arg (Pos) is
-                              when 'h' =>
-                                 Switches.Debug_Full_History       := True;
-                              when 'i' =>
-                                 Switches.Debug_Ignore_Exemptions  := True;
-                              when others =>
-                                 Fatal_Error ("bad parameter -d" & Arg (Pos));
-                              end case;
-                              Pos := Pos + 1;
-                           end loop;
-                        end;
-
-                     elsif Arg = Verbose_Option
-                             or else
-                           Arg = Verbose_Option_Short
-                     then
-                        Verbose := True;
 
                      elsif Arg = Eargs_Option then
                         Check_Option (Arg, Command, (1 => Cmd_Run));
@@ -746,6 +772,9 @@ procedure GNATcov is
                                 ("bad parameter for " & Separate_Option_Short);
                         end;
 
+                     elsif Common_Switch then
+                        null;
+
                      elsif Arg (1) = '-' then
                         Fatal_Error ("unknown option: " & Arg);
 
@@ -803,7 +832,7 @@ procedure GNATcov is
                         end case;
                      end if;
                end case;
-            end;
+            end Process_Switch;
 
             Arg_Index := Arg_Index + 1;
          end loop;
