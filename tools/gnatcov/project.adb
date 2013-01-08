@@ -307,7 +307,7 @@ package body Project is
          --  Start of processing for Enumerate_Project
 
          begin
-            Current (Iter).Library_Files (List => Lib_Info);
+            Project.Library_Files (List => Lib_Info);
 
             if Override_Units_Map.Is_Empty then
                List_From_Project
