@@ -425,7 +425,7 @@ procedure GNATcov is
                Fatal_Error ("only one root project may be specified");
             end if;
             Root_Project := new String'(Prj_Name);
-            Load_Root_Project (Prj_Name);
+            Load_Root_Project (Prj_Name, Target);
          end Set_Root_Project;
 
       --  Start of processing for Process_Switches
@@ -560,11 +560,9 @@ procedure GNATcov is
                         return;
 
                      elsif Arg = Target_Option_Short then
-                        Check_Option (Arg, Command, (1 => Cmd_Run));
                         Target := new String'(Next_Arg ("target"));
 
                      elsif Has_Prefix (Arg, Target_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Run));
                         Target := new String'(Option_Parameter (Arg));
 
                      elsif Arg = Output_Option_Short then

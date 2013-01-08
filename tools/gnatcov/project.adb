@@ -89,8 +89,9 @@ package body Project is
         Element_Type => Project_Type);
    Prj_Map : Project_Maps.Map;
 
-   procedure Initialize;
-   --  Initialize project environment
+   procedure Initialize (Target : GNAT.Strings.String_Access);
+   --  Initialize project environment. Target is the target prefix, or NULL
+   --  for the native case.
 
    procedure List_From_Project
      (Prj            : Project_Type;
@@ -394,7 +395,7 @@ package body Project is
    -- Initialize --
    ----------------
 
-   procedure Initialize is
+   procedure Initialize (Target : GNAT.Strings.String_Access) is
    begin
       Initialize (Env);
       for A in Attribute'Range loop
@@ -416,7 +417,8 @@ package body Project is
          Gnatls_Version : GNAT.Strings.String_Access;
       begin
          Env.Set_Path_From_Gnatls
-           (Gnatls       => "gnatls",
+           (Gnatls       => (if Target = null then "" else Target.all & '-')
+                              & "gnatls",
             GNAT_Version => Gnatls_Version,
             Errors       => null);
          if Verbose and then Gnatls_Version /= null then
@@ -495,14 +497,17 @@ package body Project is
    -- Load_Root_Project --
    -----------------------
 
-   procedure Load_Root_Project (Prj_Name : String) is
+   procedure Load_Root_Project
+     (Prj_Name : String;
+      Target   : GNAT.Strings.String_Access)
+   is
    begin
       if Prj_Tree /= null then
          Fatal_Error ("only one root project can be specified");
       end if;
 
       pragma Assert (Env = null);
-      Initialize;
+      Initialize (Target);
       pragma Assert (Env /= null);
 
       Prj_Tree := new Project_Tree;

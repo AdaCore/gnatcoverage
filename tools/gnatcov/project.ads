@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                        Copyright (C) 2012, AdaCore                       --
+--                     Copyright (C) 2012-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -24,9 +24,10 @@ with Inputs;
 
 package Project is
 
-   procedure Load_Root_Project (Prj_Name : String);
+   procedure Load_Root_Project (Prj_Name : String; Target : String_Access);
    --  Load the project tree rooted at Prj_Name (with optional
-   --  Project_File_Extension).
+   --  Project_File_Extension). Target is the target prefix, or NULL in the
+   --  native case.
 
    procedure Add_Project (Prj_Name : String);
    --  Add Prj_Name to the list of projects for which coverage analysis is
