@@ -152,6 +152,9 @@ This settled, we have:
    qdata.py   : Qualification reports facilities, to allow queuing
                 pickled data between tests and the toplevel driver
 
+   gprutils.py: Facilities to help the development of testcases
+                exercising gnatcov's GPR support. 
+
  SCOV
  ----
    tc.py      : TestCase class for source coverage tests
