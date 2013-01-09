@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,16 +16,18 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Characters.Handling;
+with Ada.Exceptions;          use Ada.Exceptions;
+with Ada.Text_IO;             use Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Ada.Unchecked_Deallocation;
-with Ada.Characters.Handling;
-with Ada.Text_IO; use Ada.Text_IO;
 
 with System;
 
 with Hex_Images; use Hex_Images;
+with Outputs;    use Outputs;
 with Swaps;
-with Traces; use Traces;
+with Traces;     use Traces;
 
 package body Traces_Files is
    procedure Dump_Infos (Trace_File : Trace_File_Type);
@@ -62,10 +64,11 @@ package body Traces_Files is
    -- Check_Header --
    ------------------
 
-   procedure Check_Header (Desc : in out Trace_File_Descriptor;
-                          Hdr : Trace_Header) is
+   procedure Check_Header
+     (Desc : in out Trace_File_Descriptor;
+      Hdr  : Trace_Header)
+   is
    begin
-      --  Check header.
       if Hdr.Magic /= Qemu_Trace_Magic then
          raise Bad_File_Format with "invalid header (bad magic)";
       end if;
@@ -213,9 +216,11 @@ package body Traces_Files is
       end if;
       Decode_Trace_Header (Hdr, Trace_File, Desc);
    exception
-      when others =>
+      when E : others =>
          Close (Desc.Fd);
-         raise;
+         Fatal_Error
+           ("Processing of trace file """ & Filename & """ failed:" & ASCII.LF
+            & Exception_Information (E));
    end Open_Trace_File;
 
    procedure Read_Trace_Entry
