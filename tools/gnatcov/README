@@ -1,8 +1,8 @@
 PACKAGE CONTENTS
 ================
 
-This package provides the gnatcov front-end to coverage analysis activities, 
-to be used as:
+This package provides the gnatcov front-end to coverage analysis activities. 
+This front-end exposes two major classes of services:
 
 * a wrapper to an instrumented execution environment able
   to produce execution traces (gnatcov run), and 
