@@ -1,0 +1,19 @@
+============================================
+Known problems in GNATcoverage version 1.1.1
+============================================
+
+Copyright (C) 2013, AdaCore
+
+The following is a listing of known problems in release 1.1.1. All these
+problems have been corrected in 1.2 wavefronts starting from date designated
+in the "Status" indication.
+
+KP-111-M105-005 spurious gnatcov complaint on coverage -P<space><gpr>
+
+  Problem:    gnatcov coverage -P emits a spurious complaint about a
+              badly formed trace file when spaces are inserted between
+              -P and the project file name on the command line.
+
+  Status:     This was fixed in 1.2 on 2013-01-05
+
+  Workaround: Remove the spaces between -P and the project file name.
