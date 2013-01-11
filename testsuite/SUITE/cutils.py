@@ -9,7 +9,7 @@
 # ***************************************************************************
 
 import re, tempfile
-from gnatpython.fileutils import diff, os, cd, mkdir
+from gnatpython.fileutils import diff, os, cd, mkdir, which
 from gnatpython.ex import Run
 
 # ------------
@@ -114,7 +114,16 @@ def empty(f):
 # -------------
 def version(tool, nlines=1):
     """Return version information as reported by the execution of TOOL
-    --version, expected on the first NLINES of output."""
+    --version, expected on the first NLINES of output. If TOOL is not
+    available from PATH, return a version text indicating unavailability."""
+
+    # If TOOL is not on PATH, return a version text indicating unavailability.
+    # This situation is legitimate here for gnatemu when running through a
+    # probe, and if we happen to actually need the tool later on, we'll see
+    # test failures anyway.
+
+    if not which(tool):
+        return tool + " unavailable"
 
     # --version often dumps more than the version number on a line. A
     # copyright notice is typically found there as well. Our heuristic
