@@ -8,7 +8,7 @@ The following is a listing of known problems in release 1.1.1. All these
 problems have been corrected in 1.2 wavefronts starting from date designated
 in the "Status" indication.
 
-KP-111-M105-005 spurious gnatcov complaint on coverage -P<space><gpr>
+KP-111-M105-005 Spurious gnatcov complaint on coverage -P<space><gpr>
 
   Problem:    gnatcov coverage -P emits a spurious complaint about a
               badly formed trace file when spaces are inserted between
@@ -17,3 +17,16 @@ KP-111-M105-005 spurious gnatcov complaint on coverage -P<space><gpr>
   Status:     This was fixed in 1.2 on 2013-01-05
 
   Workaround: Remove the spaces between -P and the project file name.
+
+KP-111-M105-004 Gnatcov uses wrong gnatls binary to set project search path
+
+  Problem:    gnatcov relies on calling the gnatls utility to establish
+              the search path for project files. However it always called
+              "gnatls" instead of the proper command for the target, which
+              is "<target>-gnatls" for cross targets, and "gnatls" for native
+              ones only.
+
+  Status:     This was fixed in 1.2 on 2013-01-08
+
+  Workaround: Add a symbolic link "gnatls" pointing to "<target>-gnatls" in
+              an appropriate directory on your PATH.

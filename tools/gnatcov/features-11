@@ -12,12 +12,13 @@ This date shows the implementation date of the feature. Any 1.1.0w wavefront
 subsequent to this date will contain the indicated feature, as will any
 release issued after this one.
 
-NF-11-KC21-020 Project file support for SCO localization (2012-07-12)
+NF-11-KC21-020 Project file support for determination of SCO path (2012-07-12)
 
-  GNATcoverage is now able to leverage .gpr project file hierarchies to
-  locate Source Coverage Obligations and help options control. This is
-  available via the "-P" command line option, as for other GNAT Pro tools,
-  complemented by support for a "Coverage" package in the project files.
+  GNATcoverage is now able to leverage GNAT project file to locate Source
+  Coverage Obligations and control coverage analysis options. Project files
+  may now specified on the gnatcov command line using options "-P" and
+  "--projects". A new package Coverage is introduced in project files, where
+  units of interest can be listed, and options specified.
 
 NF-11-L725-007 Per-instance source coverage on generics (2012-12-19)
 
