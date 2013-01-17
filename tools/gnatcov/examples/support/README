@@ -14,7 +14,8 @@ program. This ...
 - provides an easy way to identify abornmal termination, with a stable output
   whatever the RTS in use.
 
---------
+General organization
+====================
 
 The facilities in this directory include a number of GNAT project files
 and Makefiles:
@@ -53,4 +54,20 @@ inclusions:
                   |
  <example>/ :  Makefile
                
+--board vs --target use by the testsuite
+========================================
 
+ ./testsuite.py --target=<t> [--board=<b>]
+
+    make -f Makefile.libsupport TARGET=<t> [BOARD=<t>]
+
+    spawn (test.py)
+      |
+      v
+ .../test.py
+
+    gnatcov run --target=[<b> if --board=specified at toplevel]
+                         <t> otherwise
+
+    gprbuild -XTARGET=<t> [-XBOARD=<b>]
+ 

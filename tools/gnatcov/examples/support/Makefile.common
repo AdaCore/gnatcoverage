@@ -9,6 +9,12 @@
 TARGET = powerpc-elf
 
 # ==========================================================
+# Extra -XBOARD to pass to gprbuild
+# ==========================================================
+
+BOARD = unspecified
+
+# ==========================================================
 # What --target will we pass to XCOV run
 # ==========================================================
 
@@ -37,7 +43,7 @@ SUPPORT_SRC_DIR = $(SUPPORT_DIR)/src
 # language filtering here, which allows even C only applications to benefit
 # from the BSP including in the Ada library.
 
-GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) --RTS=$(RTS)
+GPRBUILD_TARGETARGS=-XTARGET=$(TARGET) -XBOARD=$(BOARD) --RTS=$(RTS)
 
 ifeq ($(TARGET),native)
   CROSSPREFIX =

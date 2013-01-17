@@ -25,6 +25,12 @@ abstract project Common is
    --  and such that something will go wrong if we happen to really come to
    --  depend on real contents there.
 
+   type Board_Type is 
+   ( "iSystem-5554",
+     "unspecified"
+   );
+   Board : Board_Type := external ("BOARD", "unspecified");
+
    --  Compute the Toolchain_Prefix to use
 
    Toolchain_Prefix := "";
