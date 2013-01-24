@@ -64,14 +64,15 @@ library project Libsupport is
          case Use_AUnit is
            when "yes" => null;
            when "no" =>
-              Source_Dirs := Source_Dirs & ("src/last_chance");
-
               --  Termination on some boards incur very specific protocols
               --  that the target RTS might not support. Allow board specific
               --  overrides of the last chance handler:
 
               case Common.Board is
-                when "unspecified" => null;
+                when "unspecified" => 
+                   Source_Dirs :=
+                     Source_Dirs & ("src/last_chance");
+
                 when others =>
                    Source_Dirs :=
                      Source_Dirs & ("src/last_chance_" & Common.Board);
