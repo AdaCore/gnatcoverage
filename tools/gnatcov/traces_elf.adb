@@ -1303,7 +1303,12 @@ package body Traces_Elf is
 
       Last : Storage_Offset;
 
-      Pc           : Pc_Type;
+      --  Base_Pc is there to memorize the PC at which a sequence starts, per
+      --  DW_LNE_set_address statements. This is null at the start of ranges
+      --  discarded by gc-section and we need to discard the relative entries
+      --  that follow as well.
+
+      Pc, Base_Pc  : Pc_Type;
       File         : Natural;
       Line, Column : Unsigned_32;
       Line_Base2   : Unsigned_32;
@@ -1389,6 +1394,14 @@ package body Traces_Elf is
          Pos      : Cursor;
          Inserted : Boolean;
       begin
+
+         --  Discard 0-relative entries in exec files, corresponding to
+         --  regions garbage collected by gc-section.
+
+         if Base_Pc = 0 and then Get_Ehdr (Exec.Exe_File).E_Type = ET_EXEC then
+            return;
+         end if;
+
          Close_Source_Line;
 
          --  Note: Last will be updated by Close_Source_Line, and Parent is set
@@ -1426,11 +1439,12 @@ package body Traces_Elf is
 
       procedure Reset_Lines is
       begin
-         Pc     := 0;
-         File   := 1;
-         Line   := 1;
-         Column := 0;
-         Disc   := 0;
+         Base_Pc := 0;
+         Pc      := 0;
+         File    := 1;
+         Line    := 1;
+         Column  := 0;
+         Disc    := 0;
       end Reset_Lines;
 
    --  Start of processing for Read_Debug_Lines
@@ -1553,6 +1567,7 @@ package body Traces_Elf is
                when DW_LNE_set_address =>
                   Read_Address
                     (Exec, Base, Off, Elf_Arch.Elf_Addr'Size / 8, Pc);
+                  Base_Pc := Pc;
 
                when DW_LNE_define_file =>
                   raise Program_Error with "DW_LNE_define_file unhandled";
