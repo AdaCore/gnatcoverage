@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -35,6 +35,10 @@ package Switches is
    Recursive_Projects : Boolean := False;
    --  When a project file is specified using -P, also consider all imported
    --  projects for coverage.
+
+   Branch_Stats : Boolean := False;
+   --  If True, dump statistics about branch instructions after the static
+   --  analysis pass.
 
    type Separated_Source_Coverage_Type is (None, Routines, Instances);
    Separated_Source_Coverage : Separated_Source_Coverage_Type := None;

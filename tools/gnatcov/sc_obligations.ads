@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -112,6 +112,33 @@ package SC_Obligations is
    function Parent     (SCO : SCO_Id) return SCO_Id;
 
    --  Statement SCOs
+
+   --  Statement_Kind denotes the various statement kinds identified in SCOs
+
+   type Any_Statement_Kind is
+     (No_Statement,
+      Type_Declaration,
+      Subtype_Declaration,
+      Object_Declaration,
+      Renaming_Declaration,
+      Generic_Instantiation,
+      Accept_Statement,
+      Case_Statement,
+      Exit_Statement,
+      For_Loop_Statement,
+      If_Statement,
+      Pragma_Statement,
+      Disabled_Pragma_Statement,
+      Extended_Return_Statement,
+      Select_Statement,
+      While_Loop_Statement,
+      Other_Statement);
+   subtype Statement_Kind is Any_Statement_Kind
+     range Any_Statement_Kind'Succ (No_Statement)
+        .. Any_Statement_Kind'Last;
+
+   function S_Kind (SCO : SCO_Id) return Any_Statement_Kind;
+   --  Return the statement kind for SCO, or No_Statement for No_SCO_Id.
 
    function Is_Disabled_Statement (SCO : SCO_Id) return Boolean;
    --  True for a disabled statement, i.e. a statement that is guaranteed to

@@ -208,6 +208,7 @@ procedure GNATcov is
    Verbose_Option            : constant String := "--verbose";
    Verbose_Option_Short      : constant String := "-v";
    Eargs_Option              : constant String := "-eargs";
+   Stats_Option              : constant String := "--stats";
 
    --  Undocumented (maintenance only) options
 
@@ -769,6 +770,10 @@ procedure GNATcov is
                               Fatal_Error
                                 ("bad parameter for " & Separate_Option_Short);
                         end;
+
+                     elsif Arg = Stats_Option then
+                        Check_Option (Arg, Command, (1 => Cmd_Map_Routines));
+                        Branch_Stats := True;
 
                      elsif Common_Switch then
                         null;

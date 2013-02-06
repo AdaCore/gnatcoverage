@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -55,7 +55,7 @@ package Decision_Map is
    --  analysis circuitry in Coverage.Sources.
 
    type Edge_Dest_Kind is
-     (Unknown, Condition, Outcome, Operator_Shortcut, Raise_Exception);
+     (Unknown, Condition, Outcome, Raise_Exception);
    --  Destination of an edge in the control flow graph within an occurrence of
    --  a decision: not determined yet, test another condition, final decision
    --  outcome reached, or raising an exception.
@@ -122,7 +122,7 @@ package Decision_Map is
       --  The decision being evaluated
 
       Conditional_Branches : PC_Vectors.Vector;
-      --  All conditional branch instructions testing this decision's condition
+      --  Conditional branch instructions testing this decision's conditions
 
       Seen_Condition       : Any_Condition_Index := No_Condition_Index;
       --  Index of the last seen condition (i.e. condition index of the last

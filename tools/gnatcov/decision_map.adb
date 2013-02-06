@@ -72,7 +72,7 @@ package body Decision_Map is
 
       --  Properties of the branch instruction at the end of the basic block:
 
-      Branch_Dest : Dest := (No_PC, No_PC);
+      Branch_Dest : Dest := (Target => No_PC, Delay_Slot => No_PC);
       --  Destination
 
       Branch      : Branch_Kind := Br_None;
@@ -98,11 +98,35 @@ package body Decision_Map is
    --  Return the basic block containing PC from the given set, or
    --  No_Basic_Block if none.
 
+   type Branch_Count_Array is
+     array (Branch_Kind, Any_Statement_Kind) of Natural;
+   --  Branch counts by branch kind and, for branches associated with a
+   --  statement SCO, statement kind.
+
+   type Cond_Branch_Kind is (None, Statement, Condition, Check);
+   --  Statistics category for a conditional branch instruction:
+   --    * no SCO
+   --    * statement SCO
+   --    * condition SCO, non-exception
+   --    * condition SCO, exception
+
+   type Cond_Branch_Count_Array is array (Cond_Branch_Kind) of Natural;
+
+   type Branch_Statistics is record
+      Branch_Counts      : Branch_Count_Array      :=
+                             (others => (others => 0));
+      Cond_Branch_Counts : Cond_Branch_Count_Array := (others => 0);
+   end record;
+
    type Cond_Branch_Context is limited record
       Decision_Stack : Decision_Occurrence_Vectors.Vector;
       --  The stack of open decision occurrences
 
       Basic_Blocks   : Basic_Block_Sets.Set;
+      --  All basic blocks in the routine being analyzed
+
+      Stats          : Branch_Statistics;
+      --  Statistics on conditional branches in the routine being analyzed
    end record;
 
    procedure Analyze_Routine
@@ -445,6 +469,7 @@ package body Decision_Map is
                   "cond branch for " & Image (SCO)
                   & " (" & Img (Integer (Index (SCO))) & ")",
                   Kind => Notice);
+               pragma Assert (BB.Condition = No_SCO_Id);
                BB.Condition := SCO;
 
                if Cond_Index > DS_Top.Seen_Condition then
@@ -803,11 +828,6 @@ package body Decision_Map is
                      & " does not branch to a possible successor condition");
                end if;
             end;
-
-         elsif Edge_Info.Dest_Kind = Operator_Shortcut then
-            --  No specific heuristic yet for this case
-
-            null;
          end if;
 
          --  Look for a previous edge with the same destination
@@ -1009,10 +1029,6 @@ package body Decision_Map is
 
                   when Outcome =>
                      return " (" & Edge_Info.Outcome'Img & ")";
-
-                  when Operator_Shortcut =>
-                     return
-                       " (" & Image (Edge_Info.Op_SCO) & ")";
 
                   when others =>
                      return "";
@@ -1438,18 +1454,91 @@ package body Decision_Map is
                           Branch_Dest => Branch_Dest,
                           Branch      => Branch,
                           Cond        => Flag_Cond,
-                          Condition   => No_SCO_Id);
+                          others      => <>);
+
+                  Branch_SCO : SCO_Id;
+                  --  SCO associated with BB.To_PC, for statistics purposes
+                  --  (note: if multiple SCOs are associated with this PC,
+                  --  an arbitrary one is selected).
+
                begin
-                  if Branch = Br_Jmp and then Flag_Cond then
-                     Analyze_Conditional_Branch
-                       (Exec,
-                        Insn        => Insn,
-                        Branch_Dest => Branch_Dest,
-                        FT_Dest     => FT_Dest,
-                        Ctx         => Context,
-                        BB          => BB);
+                  if Flag_Cond then
+                     if Branch = Br_Jmp then
+                        Analyze_Conditional_Branch
+                          (Exec,
+                           Insn        => Insn,
+                           Branch_Dest => Branch_Dest,
+                           FT_Dest     => FT_Dest,
+                           Ctx         => Context,
+                           BB          => BB);
+                     else
+                        --  Warn if conditional call or conditional return
+                        --  (such combinations are not supported).
+
+                        Report
+                          (Exec, BB.To_PC,
+                           "unexpected conditional branch of type "
+                             & Branch'Img,
+                           Kind => Warning);
+                     end if;
+                     Branch_SCO := BB.Condition;
+
+                  else
+                     declare
+                        Tslocs : constant Tagged_Slocs :=
+                          Tag_Provider.Get_Slocs_And_Tags (Exec, Insn'First);
+                     begin
+                        if Tslocs'Length > 0 then
+                           Branch_SCO :=
+                             Sloc_To_SCO (Tslocs (Tslocs'First).Sloc);
+                        else
+                           Branch_SCO := No_SCO_Id;
+                        end if;
+                     end;
                   end if;
                   Context.Basic_Blocks.Insert (BB);
+
+                  --  Update statistics
+
+                  if Branch_Stats then
+                     declare
+                        SK : constant Any_Statement_Kind :=
+                          S_Kind (Enclosing_Statement (Branch_SCO));
+                     begin
+                        Context.Stats.Branch_Counts (Branch, SK) :=
+                          Context.Stats.Branch_Counts (Branch, SK) + 1;
+                     end;
+
+                     if Flag_Cond then
+                        declare
+                           CBK : Cond_Branch_Kind;
+                        begin
+                           if Branch_SCO = No_SCO_Id then
+                              CBK := None;
+                           elsif BB.Condition = No_SCO_Id then
+                              CBK := Statement;
+                           else
+                              declare
+                                 CBI : constant Cond_Branch_Info :=
+                                   Cond_Branch_Map.Element ((Exec, BB.To_PC));
+                              begin
+                                 if CBI.Edges (Decision_Map.Branch).Dest_Kind
+                                   = Raise_Exception
+                                   or else CBI.Edges (Fallthrough).Dest_Kind
+                                   = Raise_Exception
+                                 then
+                                    CBK := Check;
+                                 else
+                                    CBK := Condition;
+                                 end if;
+                              end;
+                           end if;
+                           Context.Stats.Cond_Branch_Counts (CBK) :=
+                             Context.Stats.Cond_Branch_Counts (CBK) + 1;
+
+                        end;
+                     end if;
+                  end if;
                end;
             end if;
 
@@ -1473,6 +1562,59 @@ package body Decision_Map is
          Analyze_Decision_Occurrence
            (Exec, Context, Context.Decision_Stack.Element (J));
       end loop;
+
+      --  Report statistics
+
+      if Branch_Stats then
+         declare
+            S : constant String :=
+                  "Branch statistics for " & Get_Filename (Exec.all)
+                                           & ":" & Name.all;
+            First : Boolean;
+         begin
+            Put_Line (S);
+            Put_Line ((S'Range => '-'));
+            New_Line;
+
+            Put_Line ("Summary by branch kind:");
+            for J in Context.Stats.Branch_Counts'Range (1) loop
+               First := True;
+               for K in Context.Stats.Branch_Counts'Range (2) loop
+                  if Context.Stats.Branch_Counts (J, K) > 0 then
+                     if First then
+                        Put_Line ("  "
+                                  & (case J is
+                                       when Br_None => "--not a branch-- ",
+                                       when Br_Call => "subprogram call  ",
+                                       when Br_Ret  => "subprogram return",
+                                       when Br_Jmp  => "simple branch    "));
+                        First := False;
+                     end if;
+
+                     Put_Line ("    " & K'Img
+                               & Context.Stats.Branch_Counts (J, K)'Img);
+
+                  end if;
+               end loop;
+            end loop;
+            New_Line;
+
+            Put_Line ("Conditional branches:");
+            for J in Context.Stats.Cond_Branch_Counts'Range loop
+               if Context.Stats.Cond_Branch_Counts (J) > 0 then
+                  Put_Line
+                    (" "
+                     & (case J is
+                       when None      => "non-traceable",
+                       when Statement => "statement    ",
+                       when Condition => "condition    ",
+                       when Check     => "runtime check")
+                     & Context.Stats.Cond_Branch_Counts (J)'Img);
+               end if;
+            end loop;
+            New_Line;
+         end;
+      end if;
    end Analyze_Routine;
 
    --------------------------------

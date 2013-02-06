@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -284,26 +284,6 @@ package body SC_Obligations is
    -------------------------------
    -- Main SCO descriptor table --
    -------------------------------
-
-   --  Statement_Kind denotes the various statement kinds identified in SCOs
-
-   type Statement_Kind is
-     (Type_Declaration,
-      Subtype_Declaration,
-      Object_Declaration,
-      Renaming_Declaration,
-      Generic_Instantiation,
-      Accept_Statement,
-      Case_Statement,
-      Exit_Statement,
-      For_Loop_Statement,
-      If_Statement,
-      Pragma_Statement,
-      Disabled_Pragma_Statement,
-      Extended_Return_Statement,
-      Select_Statement,
-      While_Loop_Statement,
-      Other_Statement);
 
    function To_Statement_Kind (C : Character) return Statement_Kind;
    --  Convert character code for statement kind to corresponding enum value
@@ -1037,9 +1017,27 @@ package body SC_Obligations is
       begin
          SCOD.PC_Set.Include (Address);
       end Update;
+
+   --  Start of processing for Add_Address
+
    begin
       SCO_Vector.Update_Element (SCO, Update'Access);
    end Add_Address;
+
+   ---------------
+   -- Comp_Unit --
+   ---------------
+
+   function Comp_Unit (LI_Name : String) return CU_Id is
+      use CU_Maps;
+      Cur : constant Cursor := CU_Map.Find (LI_Name);
+   begin
+      if Cur = CU_Maps.No_Element then
+         return No_CU_Id;
+      else
+         return Element (Cur);
+      end if;
+   end Comp_Unit;
 
    ---------------
    -- Condition --
@@ -2313,6 +2311,19 @@ package body SC_Obligations is
       SCO_Vector.Iterate (Check_Condition'Access);
    end Report_SCOs_Without_Code;
 
+   ------------
+   -- S_Kind --
+   ------------
+
+   function S_Kind (SCO : SCO_Id) return Any_Statement_Kind is
+   begin
+      if SCO = No_SCO_Id then
+         return No_Statement;
+      else
+         return SCO_Vector.Element (SCO).S_Kind;
+      end if;
+   end S_Kind;
+
    --------------------------
    -- Set_Degraded_Origins --
    --------------------------
@@ -2428,21 +2439,6 @@ package body SC_Obligations is
 
       return SCO;
    end Sloc_To_SCO;
-
-   ---------------
-   -- Comp_Unit --
-   ---------------
-
-   function Comp_Unit (LI_Name : String) return CU_Id is
-      use CU_Maps;
-      Cur : constant Cursor := CU_Map.Find (LI_Name);
-   begin
-      if Cur = CU_Maps.No_Element then
-         return No_CU_Id;
-      else
-         return Element (Cur);
-      end if;
-   end Comp_Unit;
 
    --------------
    -- Tag_Name --

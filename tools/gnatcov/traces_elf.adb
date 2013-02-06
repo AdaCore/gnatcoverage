@@ -3156,15 +3156,15 @@ package body Traces_Elf is
       Strict  : Boolean := False)
    is
 
-      procedure Ack_One_Symbol (Sym : Addresses_Info_Acc);
+      procedure Add_Symbol (Sym : Addresses_Info_Acc);
       --  Acknowledge one SYMbol from scan on FILE, adding to or
       --  removing from the routines database depending on EXCLUDE.
 
-      --------------------
-      -- Ack_One_Symbol --
-      --------------------
+      ----------------
+      -- Add_Symbol --
+      ----------------
 
-      procedure Ack_One_Symbol (Sym : Addresses_Info_Acc) is
+      procedure Add_Symbol (Sym : Addresses_Info_Acc) is
          use Traces_Names;
       begin
          if Exclude then
@@ -3184,14 +3184,14 @@ package body Traces_Elf is
                               Get_Filename (File.Exe_File));
             end;
          end if;
-      end Ack_One_Symbol;
+      end Add_Symbol;
 
    --  Start of processing for Read_Routine_Names
 
    begin
       Scan_Symbols_From
         (File   => File,
-         Sym_Cb => Ack_One_Symbol'Access,
+         Sym_Cb => Add_Symbol'Access,
          Strict => Strict);
    end Read_Routine_Names;
 
@@ -3207,11 +3207,19 @@ package body Traces_Elf is
       --  Wrapper for the version working from an executable file descriptor
 
       procedure Process (Exec : Exe_File_Acc);
+      --  Needs comment???
+
+      -------------
+      -- Process --
+      -------------
 
       procedure Process (Exec : Exe_File_Acc) is
       begin
          Read_Routine_Names (Exec, Exclude, Strict);
       end Process;
+
+   --  Start of processing for Read_Routine_Names
+
    begin
       On_Elf_From (Filename, Process'Access);
    end Read_Routine_Names;
@@ -3302,31 +3310,27 @@ package body Traces_Elf is
 
                --  Two different cases:
                --
-               --  * if the two consecutive slocs are in the same
-               --  source file, we check if there is a SCO in this
-               --  range. Not strictly correct: consider the case when
-               --  a function declared in a package is inlined in an
-               --  other function inside this same package; in this
-               --  case, the range defined by two consecutive debug
-               --  slocs may not correspond to anything relevant in
-               --  the source code. This should not matter much
-               --  though. Inlining causes other problems to statement
-               --  coverage anyway. Plus, the consequence of this
-               --  error will just be to include a routine in a
-               --  package that contains SCO; that's certainly fine
-               --  as, in the source coverage case, the routine list
-               --  is mostly a way to select the source files to
-               --  handle; if we have some SCOs in the file in which a
-               --  routine is defined, it is certainly appropriate to
-               --  add it to trace name database.
+               --  * if the two consecutive slocs are in the same source file,
+               --  we check if there is a SCO in this range. Not strictly
+               --  correct: consider the case when a function declared in a
+               --  package is inlined in an other function inside this same
+               --  package; in this case, the range defined by two consecutive
+               --  debug slocs may not correspond to anything relevant in the
+               --  source code. This should not matter much though. Inlining
+               --  causes other problems to statement coverage anyway. Plus,
+               --  the consequence of this error will just be to include a
+               --  routine in a package that contains SCO; that's certainly
+               --  fine as, in the source coverage case, the routine list is
+               --  mostly a way to select the source files to handle; if we
+               --  have some SCOs in the file in which a routine is defined, it
+               --  is certainly appropriate to add it to trace name database.
                --
-               --  * if the two consecutive slocs are in a different
-               --  source file.  in this case, it is never a good idea
-               --  to consider the range of these two slocs. Deal with
-               --  them separately.
+               --  * if the two consecutive slocs are in a different source
+               --  file. in this case, it is never a good idea to consider
+               --  the range of these two slocs. Deal with them separately.
                --
-               --  In any case, the whole last line is included in its
-               --  range by taking the maximum column number.
+               --  In any case, the whole last line is included in its range by
+               --  taking the maximum column number.
 
                if Sloc_Begin.Source_File = Sloc_End.Source_File
                  and then Sloc_Begin < Sloc_End
