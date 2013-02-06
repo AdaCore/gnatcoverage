@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -1473,7 +1473,6 @@ package body Decision_Map is
          Analyze_Decision_Occurrence
            (Exec, Context, Context.Decision_Stack.Element (J));
       end loop;
-
    end Analyze_Routine;
 
    --------------------------------
