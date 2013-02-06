@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -30,25 +30,6 @@ package body Execs_Dbase is
    begin
       return L.Exec_File_Name = R.Exec_File_Name;
    end "=";
-
-   --------------------------
-   -- Build_Routines_Names --
-   --------------------------
-
-   procedure Build_Routines_Names is
-   begin
-      --  If there is more than one exec in the base, return an error;
-      --  otherwise, we may not know how to handle the ambiguities. We may want
-      --  to be more subtle at some point; but for now it seems reasonable to
-      --  refuse to deduce the function from several different exec files.
-
-      if Exec_Base.Length /= 1 then
-         raise Routine_Name_Ambiguity;
-      end if;
-
-      Read_Routine_Names
-        (Execs_Maps.Element (Exec_Base.First).Exec, Exclude => False);
-   end Build_Routines_Names;
 
    ---------------
    -- Open_Exec --

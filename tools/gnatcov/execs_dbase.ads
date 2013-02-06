@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -43,23 +43,18 @@ package Execs_Dbase is
 
    Routine_Name_Ambiguity : exception;
 
-   procedure Build_Routines_Names;
-   --  Build the routine list from the Execs database. If there is more than
-   --  one exec in Execs, this may not be possible; if it cannot be done, raise
-   --  Routine_Name_Ambiguity.
-
 private
 
    type Exec_Base_Entry is record
       --  Entry in the Exec base type.
 
       Exec_File_Name : File_Name;
-      --  Name of the file associated to this entry. This should be
-      --  a full path to an target executable on the host file system.
+      --  Name of the file associated to this entry. This should be a full path
+      --  to an target executable on the host file system.
 
       Exec           : Exe_File_Acc;
-      --  Access to the exe file information of the file whose name
-      --  is Elf_File_Name.
+      --  Access to the exe file information of the file whose name is
+      --  Elf_File_Name.
    end record;
 
    function "=" (L, R : Exec_Base_Entry) return Boolean;
