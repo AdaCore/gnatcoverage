@@ -16,8 +16,10 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.OS_Lib;      use GNAT.OS_Lib;
 with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Exceptions;
+
+with GNAT.OS_Lib;      use GNAT.OS_Lib;
 
 package body Outputs is
 
@@ -43,6 +45,11 @@ package body Outputs is
         & File_Name;
    begin
       Create (File, Out_File, Full_Path_Name);
+   exception
+      when E : Name_Error =>
+         Error ("failed to create output file " & Full_Path_Name & ":");
+         Error (Ada.Exceptions.Exception_Information (E));
+         raise;
    end Create_Output_File;
 
    -----------

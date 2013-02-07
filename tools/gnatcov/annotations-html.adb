@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -191,7 +191,8 @@ package body Annotations.Html is
       Close (F);
    exception
       when Name_Error =>
-         Put_Line (Standard_Error, "warning: cannot create xcov.css file");
+         --  Failed to create output file, an error message has been printed
+
          return;
    end Generate_Css_File;
 

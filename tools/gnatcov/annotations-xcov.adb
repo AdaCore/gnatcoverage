@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -168,9 +168,9 @@ package body Annotations.Xcov is
       begin
          Create_Output_File (Pp.Xcov_File, Output_Filename);
       exception
-         when Ada.Text_IO.Name_Error =>
-            Put_Line (Standard_Error,
-                      "cannot open " & Output_Filename);
+         when Name_Error =>
+            --  Failed to create output file, an error message has been printed
+
             return;
       end;
 
