@@ -104,8 +104,10 @@ package body Outputs is
       pragma Assert (Report_Output_Dir = null);
 
       if not Is_Directory (Output_Dir) then
-         Fatal_Error ("bad value for output directory:" & ASCII.LF &
-                      Output_Dir & " does not exists or is not a directory.");
+         Fatal_Error
+           ("output path "
+            & Output_Dir
+            & " does not exists or is not a directory");
       end if;
 
       Report_Output_Dir := new String'(Output_Dir);
