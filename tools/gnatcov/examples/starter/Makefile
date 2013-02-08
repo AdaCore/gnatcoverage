@@ -11,6 +11,7 @@ RTS=RTS_WAS_NOT_SET
 
 all:
 	gprbuild -p -f --target=$(TARGET) --RTS=$(RTS) -Pops.gpr test_inc.adb \
-	 -cargs:Ada -gnateS -gnata -cargs -g -fpreserve-control-flow
+	 -cargs -g -fpreserve-control-flow -fdump-scos
 	gnatcov run --target=$(TARGET) obj/test_inc
-	gnatcov coverage --level=stmt --annotate=$(ANNOTATE) test_inc.trace --scos=obj/ops.ali
+	gnatcov coverage --level=stmt --annotate=$(ANNOTATE) test_inc.trace \
+          --target=$(TARGET) -Pops.gpr
