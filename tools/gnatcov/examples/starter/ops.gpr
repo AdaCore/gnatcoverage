@@ -44,7 +44,7 @@ project Ops is
 
      --  Options passed by GPS to gprbuild when in "gnatcov" mode:
 
-     for Gnatcov_Mode_Switches use " --RTS=" & RTS;
+     for Gnatcov_Mode_Switches use "--RTS=" & RTS;
                    
   end Ide_Coverage;
 end Ops;
