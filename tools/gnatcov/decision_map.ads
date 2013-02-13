@@ -69,7 +69,8 @@ package Decision_Map is
       --  this edge to be taken.
 
       Destination    : Dest;
-      --  Edge destination
+      --  Edge destination (note: meaningless, and set to (No_PC, No_PC), if
+      --  the cond branch instruction for the edge is a conditional return).
 
       Dest_Kind      : Edge_Dest_Kind := Unknown;
       --  Edge destination classification, if known
