@@ -1,20 +1,37 @@
 import sys
-procid = sys.argv [1]
+proc_id = sys.argv [1]
 executable = sys.argv [2]
 
 import isystem.connect as ic
 
 cmgr = ic.ConnectionMgr()
-cmgr.connectMRU('.\workspace\min' + procid + '.xjrf')
+cmgr.connectMRU('.\workspace\min' + proc_id + '.xjrf')
 
-traceDoc = ic.CTraceController (cmgr, 'min' + procid + '.trd', 'w')
+traceDoc = ic.CTraceController (cmgr, 'min' + proc_id + '.trd', 'w')
 
 traceDoc.select ('Everything Individual Branch')
 
-loader = ic.CLoaderController (cmgr)
+loader   = ic.CLoaderController (cmgr)
 executer = ic.CExecutionController (cmgr)
-executer.resetAndRun (ic.CExecutionController.TOUT_1s)
-executer.stop ()
+
+if proc_id == "5554":
+  executer.resetAndRun (ic.CExecutionController.TOUT_1s)
+  executer.stop ()
+elif proc_id == "5634":
+  executer.reset ()
+  executer.stop ()
+  MPCCtrl = ic.CMPC5xxxController (cmgr)
+  TLB = MPCCtrl.getTLB (0)
+  TLB.m_dwMAS0 = 0x10030000
+  TLB.m_dwMAS1 = 0xC0000400
+  TLB.m_dwMAS2 = 0x40000008
+  TLB.m_dwMAS3 = 0x4000003F
+  TLB.m_dwMAS4 = 0x00030413
+  TLB.m_dwMAS5 = 0x00000000
+  MPCCtrl.setTLB (0, TLB)
+else:
+  print "Unknown processor ID value: " + proc_id
+  exit (1)
 
 downloadConfig = ic.CDownloadConfiguration ()
 downloadConfig.setCodeOffset (0).setSymbolsOffset (0). \
@@ -33,6 +50,8 @@ isyminfo = dbg.getSymbolInfo (ic.IConnectDebug.fMonitor |
 
 traceDoc.start ()
 executer.runUntilAddress (0, isyminfo.getAddress () )
+executer.waitUntilStopped ()
+
 formatter = ic.CTraceBinExportFormat ()
 formatter.setTraceItemFlags (0)
 formatter.setHeader (False) \

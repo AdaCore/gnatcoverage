@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                       Copyright (C) 2012, AdaCore                        --
+--                     Copyright (C) 2012-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -75,7 +75,7 @@ procedure isys_drv is
 
    Trace_Conversion_Path : String :=
     Normalize_Pathname ("Nexus_Trace_Gen", Execs_Dir);
-   Trace_Conv_Args : Argument_List (1 .. 4);
+   Trace_Conv_Args : Argument_List (1 .. 5);
 
    Success, C_Success : Boolean;
    --  Used by various procedures to report/calculate success.
@@ -200,12 +200,13 @@ begin
       OS_Exit (1);
    end if;
 
-   Trace_Conv_Args (1) := Executable_Path;
-   Trace_Conv_Args (2) := new String'(Workspace_Dir & '\' & "nexus_trace.bin");
-   Trace_Conv_Args (3) := Histfile_Path;
+   Trace_Conv_Args (1) := new String'(Argument (1));
+   Trace_Conv_Args (2) := Executable_Path;
+   Trace_Conv_Args (3) := new String'(Workspace_Dir & '\' & "nexus_trace.bin");
+   Trace_Conv_Args (4) := Histfile_Path;
    --  ??? Empty string doesn't get through to trace conversion program.
    --  Compensating on the other end using arg count.
-   Trace_Conv_Args (4) := Tracefile_Path;
+   Trace_Conv_Args (5) := Tracefile_Path;
    Spawn (Trace_Conversion_Path, Trace_Conv_Args, Success);
    if not Success then
       Put_Line (Standard_Error, "Error from trace conversion.");

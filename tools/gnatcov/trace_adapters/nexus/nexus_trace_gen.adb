@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -53,13 +53,15 @@ with Traces_Files; use Traces_Files;
 procedure Nexus_Trace_Gen is
 
    Usage : constant String :=
-     "usage: Nexus_Trace_Gen binary_file ocd_file [hist_file] trace_file";
+     "usage: Nexus_Trace_Gen"
+       & " proc_id binary_file ocd_file [hist_file] trace_file";
 
    type String_Ptr is access String;
 
    Tracefile_Path      : String_Ptr;
    Histfile_Path       : String_Ptr;
    Executable_Filename : String_Ptr;
+   Processor_ID        : String_Ptr;
 
    OCD_Filename        : String_Ptr;
    --  On Chip Debug file: file containing the Nexus trace messages.
@@ -75,6 +77,11 @@ procedure Nexus_Trace_Gen is
    type Insns_Array is array (Positive range <>) of Unsigned_32;
    Insns_Ptr        : access Insns_Array;
    N_Insns          : Positive;
+   ICNT_Adj         : Nexus_Packet_T;
+   --  Different implementation of Nexus count instructions
+   --  differently. ICNT_Adj is added to the ICNT value in
+   --  Branch Trace messages to land on the branch instruction.
+   --  Now, it is known to be 0 for MPC5634 and 1 for MPC5554.
 
    type Insn_Flags_T is record
       Been_Executed : Boolean;
@@ -87,6 +94,7 @@ procedure Nexus_Trace_Gen is
    Insn_Flags                 : access Insn_Flags_Array_T;
 
    Op_Code                    : Unsigned_32;
+   Ext_Op_Code                : Unsigned_32;
    Insn_Idx                   : Positive;
    Idx2                       : Positive;
    Block_Begin_Idx            : Positive;
@@ -156,27 +164,35 @@ procedure Nexus_Trace_Gen is
    --  array to write out traces.
 
 begin
-   --  Put_Line ("Argument_Count: " & Integer'Image (Argument_Count));
-   --  for J in 1 .. Argument_Count loop
-   --     Put_Line (Argument (J));
-   --  end loop;
 
-   if Argument_Count /= 3 and then Argument_Count /= 4 then
+   if Argument_Count /= 4 and then Argument_Count /= 5 then
       Put_Line (Standard_Error, Usage);
       Set_Exit_Status (1);
       return;
    end if;
 
-   Executable_Filename := new String'(Argument (1));
-   OCD_Filename := new String'(Argument (2));
-   if Argument_Count = 3 then
+   Processor_ID := new String'(Argument (1));
+   Executable_Filename := new String'(Argument (2));
+   OCD_Filename := new String'(Argument (3));
+   if Argument_Count = 4 then
       Histfile_Path := new String'("");
-      Tracefile_Path := new String'(Argument (3));
+      Tracefile_Path := new String'(Argument (4));
       Do_History := False;
    else
-      Histfile_Path := new String'(Argument (3));
-      Tracefile_Path := new String'(Argument (4));
+      Histfile_Path := new String'(Argument (4));
+      Tracefile_Path := new String'(Argument (5));
       Do_History := True;
+   end if;
+
+   if Processor_ID.all = "5634" then
+      ICNT_Adj := 0;
+   elsif Processor_ID.all = "5554" then
+      ICNT_Adj := 1;
+   else
+      Put_Line (Standard_Error, "Unrecognized Processor ID (procid).");
+      Put_Line (Standard_Error, Usage);
+      Set_Exit_Status (1);
+      return;
    end if;
 
    Open_File (Executable_File, Executable_Filename.all);
@@ -224,7 +240,9 @@ begin
    for J in Insn_Flags'Range loop
       Op_Code := Shift_Right (Insns_Ptr (J), 26);
       if Op_Code = 16 or else Op_Code = 18 or else
-        (Op_Code = 19 and then ((Insns_Ptr (J) and 16#3fe#) = 16#20#)) then
+        (Op_Code = 19 and then ((Insns_Ptr (J) and 16#3fe#) = 16#20#)) or else
+        (Op_Code = 19 and then ((Insns_Ptr (J) and 16#3fe#) = 16#12c#)) or else
+        (Op_Code = 31 and then ((Insns_Ptr (J) and 16#3fe#) = 16#008#)) then
          Insn_Flags (J) := (Is_Branch => True, others => False);
       else
          Insn_Flags (J) := (others => False);
@@ -385,7 +403,7 @@ begin
 
          when Prog_Trace_Direct_Branch_Message             =>
             N_Insns := Positive
-              (Nexus_Msg.Prog_Trace_Direct_Branch_Message_V.I_CNT + 1);
+              (Nexus_Msg.Prog_Trace_Direct_Branch_Message_V.I_CNT + ICNT_Adj);
             Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
             Insn_Idx := Block_Begin_Idx;
             if Do_History and then Insn_Flags (Insn_Idx).Historical then
@@ -455,9 +473,8 @@ begin
                Insn_Idx := Insn_Idx + 1;
             end loop;
 
-            --  For compactness, only trailing bits of the address of
-            --  the first non-contiguous  instruction are provided in the
-            --  Nexus message. Here we calculate the full 32 bit address.
+            --  For Direct Branch messages, the new address is calucluated
+            --  by analysis of the instruction.
 
             Br_Insn := Insns_Ptr (Block_End_Idx);
             Br_Addr := Text_First_Addr + Unsigned_32 (Block_End_Idx - 1) * 4;
@@ -474,6 +491,15 @@ begin
                if AA_Bit = 0 then
                   New_Addr := New_Addr + Br_Addr;
                end if;
+            elsif Op_Code = 19 then
+               Ext_Op_Code := Br_Insn and 16#0000_03fe#;
+               if Ext_Op_Code = 16#12c# then
+                  --  This is an isync op. New_Addr is next instruction. ??
+                  New_Addr := Br_Addr + 4;
+               else
+                  raise Program_Error with
+                    "Unexpected Extended opcode for opcode 19 Direct_Branch";
+               end if;
             else
                raise Program_Error with "Unexpected opcode for Direct Branch";
             end if;
@@ -481,7 +507,8 @@ begin
 
          when Prog_Trace_Indirect_Branch_Message           =>
             N_Insns := Positive
-              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_V.I_CNT + 1);
+              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_V.I_CNT
+               + ICNT_Adj);
             Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
             Insn_Idx := Block_Begin_Idx;
             if Do_History and then Insn_Flags (Insn_Idx).Historical then
@@ -566,7 +593,8 @@ begin
 
          when Prog_Trace_Direct_Branch_Message_Sync        =>
             N_Insns := Positive
-              (Nexus_Msg.Prog_Trace_Direct_Branch_Message_Sync_V.I_CNT + 1);
+              (Nexus_Msg.Prog_Trace_Direct_Branch_Message_Sync_V.I_CNT
+               + ICNT_Adj);
             if At_Trace_Start then
                N_Insns := N_Insns + 1;
                At_Trace_Start := False;

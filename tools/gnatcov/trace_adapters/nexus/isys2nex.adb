@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -124,7 +124,7 @@ package body Isys2nex is
                  (8, 8, Nexus_Msg.Debug_Status_V.STATUS, Actual_N_Bits);
 
             when Ownership_Trace_Message =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               raise Isys2nex_Error with "Unhandled TCODE: Ownership Trace";
 
             when Prog_Trace_Direct_Branch_Message =>
                Fill_Packet
@@ -140,11 +140,13 @@ package body Isys2nex is
                   Actual_N_Bits);
 
             when Data_Trace_Data_Write_Message =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               raise Isys2nex_Error with "Unhandled TCODE: Data Trace Write";
             when Data_Trace_Data_Read_Message =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               raise Isys2nex_Error with "Unhandled TCODE: Data Trace Read";
+
             when Error_Message =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               Fill_Packet (8, 8, Nexus_Msg.Error_Message_V.ECODE,
+                            Actual_N_Bits);
 
             when Prog_Trace_Direct_Branch_Message_Sync =>
                Fill_Packet
@@ -167,22 +169,35 @@ package body Isys2nex is
                   Actual_N_Bits);
 
             when Data_Trace_Data_Write_Message_Sync =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               raise Isys2nex_Error with "Unhandled TCODE: Data Write - Sync";
             when Data_Trace_Data_Read_Message_Sync =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               raise Isys2nex_Error with "Unhandled TCODE: Data Read - Sync";
 
             when Watchpoint_Message =>
                Fill_Packet
                  (4, 4, Nexus_Msg.Watchpoint_Message_V.WPHIT, Actual_N_Bits);
 
             when Resource_Full_Message =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               raise Isys2nex_Error with "Unhandled TCODE: Resource Full";
             when Prog_Trace_Indirect_Branch_Hist_Message =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               raise Isys2nex_Error with
+                 "Unhandled TCODE: Indirect Branch Hist";
             when Prog_Trace_Indirect_Branch_Hist_Message_Sync =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               raise Isys2nex_Error with
+                 "Unhandled TCODE: Indirect Branch Hist - Sync";
             when Prog_Trace_Program_Correlation_Message =>
-               raise Isys2nex_Error with "Unhandled TCODE";
+               Fill_Packet
+                 (1, 4,
+                  Nexus_Msg.Prog_Trace_Program_Correlation_Message_V.EVCODE,
+                  Actual_N_Bits);
+               Fill_Packet
+                 (1, 8,
+                  Nexus_Msg.Prog_Trace_Program_Correlation_Message_V.I_CNT,
+                  Actual_N_Bits);
+               Fill_Packet
+                 (1, 32,
+                  Nexus_Msg.Prog_Trace_Program_Correlation_Message_V.HIST,
+                  Actual_N_Bits);
 
             when  1 | 7 | 9 | 10 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23
                |  24 | 25 | 26 | 30 | 31 | 32 =>
