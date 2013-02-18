@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -206,7 +206,7 @@ package Traces_Elf is
    function Get_Address_Info
      (Exec : Exe_File_Type;
       Kind : Addresses_Kind;
-      PC   : PC_Type) return Addresses_Info_Acc;
+      PC   : Pc_Type) return Addresses_Info_Acc;
    --  Retrieve the descriptor of the given Kind whose range contains address
    --  PC in Exec.
 
