@@ -66,8 +66,10 @@ package body Disa_X86 is
       C_Pq,
       C_Pw,
       C_Qd,
+      C_Qdq,
       C_Qq,
 
+      C_Vd,
       C_Vdq,
       C_Vps,
       C_Vpd,
@@ -75,6 +77,7 @@ package body Disa_X86 is
       C_Vs,
       C_Vsd,
       C_Vss,
+      C_Vw,
 
       C_Wdq,
       C_Wps,
@@ -91,6 +94,7 @@ package body Disa_X86 is
       C_Md,
       C_Mb,
       C_Mw,
+      C_Mpd,
       C_Mps,
       C_Mq,
       C_Ms,
@@ -728,6 +732,125 @@ package body Disa_X86 is
 
    Insn_Desc_66_0F : constant Insn_Desc_Array_Type :=
      (
+      16#10#        => ("movupd          ", C_Pq, C_Qq, W_None),
+      16#11#        => ("movupd          ", C_Wpd, C_Vpd, W_None),
+      16#12#        => ("movlpd          ", C_Vq, C_Mq, W_None),
+      16#13#        => ("movlpd          ", C_Mq, C_Vq, W_None),
+      16#14#        => ("unpcklpd        ", C_Vpd, C_Wpd, W_None),
+      16#15#        => ("unpckhpd        ", C_Vpd, C_Wpd, W_None),
+      16#16#        => ("movhpd          ", C_Vq, C_Mq, W_None),
+      16#17#        => ("movhpd          ", C_Mq, C_Vpd, W_None),
+
+      16#28#        => ("movapd          ", C_Vpd, C_Wpd, W_None),
+      16#29#        => ("movapd          ", C_Wpd, C_Vpd, W_None),
+      16#2a#        => ("cvtpi2pd        ", C_Vpd, C_Qd, W_None),
+      16#2b#        => ("movntpd         ", C_Mpd, C_Vpd, W_None),
+      16#2c#        => ("cvttpd2pi       ", C_Pq, C_Wpd, W_None),
+      16#2d#        => ("cptpd2pi        ", C_Pq, C_Wpd, W_None),
+      16#2e#        => ("ucomisd         ", C_Vsd, C_Wsd, W_None),
+      16#2f#        => ("comisd          ", C_Vsd, C_Wsd, W_None),
+
+      16#50#        => ("movmskpd        ", C_Gd, C_Vpd, W_None),
+      16#51#        => ("sqrtpd          ", C_Vpd, C_Wpd, W_None),
+      --  The 16#52#-16#63# slots are reserved.
+      16#54#        => ("andpd           ", C_Vpd, C_Wpd, W_None),
+      16#55#        => ("andnpd          ", C_Vpd, C_Wpd, W_None),
+      16#56#        => ("orpdpd          ", C_Vpd, C_Wpd, W_None),
+      16#57#        => ("xorpd           ", C_Vpd, C_Wpd, W_None),
+      16#58#        => ("addpd           ", C_Vpd, C_Wpd, W_None),
+      16#59#        => ("mulpd           ", C_Vpd, C_Wpd, W_None),
+      16#5a#        => ("cvtp2ps         ", C_Vpd, C_Wpd, W_None),
+      16#5b#        => ("cvtps2dq        ", C_Vdq, C_Wps, W_None),
+      16#5c#        => ("subpd           ", C_Vpd, C_Wpd, W_None),
+      16#5d#        => ("minpd           ", C_Vpd, C_Wpd, W_None),
+      16#5e#        => ("divpd           ", C_Vpd, C_Wpd, W_None),
+      16#5f#        => ("maxpd           ", C_Vpd, C_Wpd, W_None),
+
+      16#60#        => ("punpcklbw       ", C_Vdq, C_Wdq, W_None),
+      16#61#        => ("punpcklwd       ", C_Vdq, C_Wdq, W_None),
+      16#62#        => ("punpckldq       ", C_Vdq, C_Wdq, W_None),
+      16#63#        => ("packsswb        ", C_Vdq, C_Wdq, W_None),
+      16#64#        => ("pcmpgtb         ", C_Vdq, C_Wdq, W_None),
+      16#65#        => ("pcmpgtw         ", C_Vdq, C_Wdq, W_None),
+      16#66#        => ("pcmpgtd         ", C_Vdq, C_Wdq, W_None),
+      16#67#        => ("packuswb        ", C_Vdq, C_Wdq, W_None),
+      16#68#        => ("punpckhbw       ", C_Vdq, C_Qdq, W_None),
+      16#69#        => ("punpckhwd       ", C_Vdq, C_Qdq, W_None),
+      16#6a#        => ("punpckhdq       ", C_Vdq, C_Qdq, W_None),
+      16#6b#        => ("packssdw        ", C_Vdq, C_Qdq, W_None),
+      16#6c#        => ("punpcklqdq      ", C_Vdq, C_Wdq, W_None),
+      16#6d#        => ("punpckhqd       ", C_Vdq, C_Wdq, W_None),
+      16#6e#        => ("movd            ", C_Vd, C_Ed, W_None),
+      16#6f#        => ("movdqa          ", C_Vdq, C_Wdq, W_None),
+
+      16#70#        => ("pshufd          ", C_Vdq, C_Wdq, W_8),
+      --  TODO??? 12/13/14 extended opcodes forms.
+      16#74#        => ("pcmpeqb         ", C_Vdq, C_Wdq, W_8),
+      16#75#        => ("pcmpeqw         ", C_Vdq, C_Wdq, W_8),
+      16#76#        => ("pcmpeqd         ", C_Vdq, C_Wdq, W_8),
+      --  The 16#77#-16#7b# slots are reserved.
+      16#7c#        => ("haddpd          ", C_Vdq, C_Wdq, W_8),
+      16#7d#        => ("hsubpd          ", C_Vdq, C_Wdq, W_8),
+      16#7e#        => ("movd            ", C_Ed, C_Vd, W_8),
+      16#7f#        => ("movdqa          ", C_Wdq, C_Vdq, W_8),
+
+      16#c2#        => ("cmpps           ", C_Vpd, C_Wpd, W_8),
+      16#c4#        => ("pinsrw          ", C_Vw, C_Ew, W_8),
+      16#c5#        => ("pextrw          ", C_Gw, C_Vw, W_8),
+      16#c6#        => ("shufpd          ", C_Vpd, C_Wpd, W_8),
+      --  TODO??? 19 extended opcodes forms.
+
+      16#d0#        => ("addsubpd        ", C_Vpd, C_Wpd, W_None),
+      16#d1#        => ("psrlw           ", C_Vdq, C_Wdq, W_None),
+      16#d2#        => ("psrld           ", C_Vdq, C_Wdq, W_None),
+      16#d3#        => ("psrlq           ", C_Vdq, C_Wdq, W_None),
+      16#d4#        => ("paddq           ", C_Vdq, C_Wdq, W_None),
+      16#d5#        => ("pmullw          ", C_Vdq, C_Wdq, W_None),
+      16#d6#        => ("movq            ", C_Wq, C_Vq, W_None),
+      16#d7#        => ("pmovmskb        ", C_Gd, C_Vdq, W_None),
+      16#d8#        => ("psubusb         ", C_Vdq, C_Wdq, W_None),
+      16#d9#        => ("psubusw         ", C_Vdq, C_Wdq, W_None),
+      16#da#        => ("pminub          ", C_Vdq, C_Wdq, W_None),
+      16#db#        => ("pand            ", C_Vdq, C_Wdq, W_None),
+      16#dc#        => ("paddusb         ", C_Vdq, C_Wdq, W_None),
+      16#dd#        => ("paddusw         ", C_Vdq, C_Wdq, W_None),
+      16#de#        => ("pmaxub          ", C_Vdq, C_Wdq, W_None),
+      16#df#        => ("pandn           ", C_Vdq, C_Wdq, W_None),
+
+      16#e0#        => ("pavgb           ", C_Vdq, C_Wdq, W_None),
+      16#e1#        => ("psraw           ", C_Vdq, C_Wdq, W_None),
+      16#e2#        => ("psrad           ", C_Vdq, C_Wdq, W_None),
+      16#e3#        => ("pavgw           ", C_Vdq, C_Wdq, W_None),
+      16#e4#        => ("pmulhuw         ", C_Vdq, C_Wdq, W_None),
+      16#e5#        => ("pmulhw          ", C_Vdq, C_Wdq, W_None),
+      16#e6#        => ("cvttpd2dq       ", C_Vdq, C_Wdq, W_None),
+      16#e7#        => ("movntdq         ", C_Vdq, C_Wdq, W_None),
+      16#e8#        => ("psubsb          ", C_Vdq, C_Wdq, W_None),
+      16#e9#        => ("psubsw          ", C_Vdq, C_Wdq, W_None),
+      16#ea#        => ("pminsw          ", C_Vdq, C_Wdq, W_None),
+      16#eb#        => ("por             ", C_Vdq, C_Wdq, W_None),
+      16#ec#        => ("paddsb          ", C_Vdq, C_Wdq, W_None),
+      16#ed#        => ("paddsw          ", C_Vdq, C_Wdq, W_None),
+      16#ee#        => ("pmaxsw          ", C_Vdq, C_Wdq, W_None),
+      16#ef#        => ("pxor            ", C_Vdq, C_Wdq, W_None),
+
+      --  The 16#f0# slot is reserved.
+      16#f1#        => ("psllw           ", C_Vdq, C_Wdq, W_None),
+      16#f2#        => ("pslld           ", C_Vdq, C_Wdq, W_None),
+      16#f3#        => ("psllq           ", C_Vdq, C_Wdq, W_None),
+      16#f4#        => ("pmuludq         ", C_Vdq, C_Wdq, W_None),
+      16#f5#        => ("pmaddwd         ", C_Vdq, C_Wdq, W_None),
+      16#f6#        => ("psadbw          ", C_Vdq, C_Wdq, W_None),
+      16#f7#        => ("maskmovq        ", C_Vdq, C_Wdq, W_None),
+      16#f8#        => ("psubb           ", C_Vdq, C_Wdq, W_None),
+      16#f9#        => ("psubw           ", C_Vdq, C_Wdq, W_None),
+      16#fa#        => ("psubd           ", C_Vdq, C_Wdq, W_None),
+      16#fb#        => ("psubq           ", C_Vdq, C_Wdq, W_None),
+      16#fc#        => ("paddb           ", C_Vdq, C_Wdq, W_None),
+      16#fd#        => ("paddw           ", C_Vdq, C_Wdq, W_None),
+      16#fe#        => ("paddd           ", C_Vdq, C_Wdq, W_None),
+      --  The 16#ff# slot is reserved.
+
       others        => ("                ", C_None, C_None, W_None));
 
    Insn_Desc_F2_0F : constant Insn_Desc_Array_Type :=
@@ -1715,7 +1838,8 @@ package body Disa_X86 is
                Decode_Imm (Off_Imm, To_Z (W));
                Add_Comma;
                Decode_Modrm_Mem (Off_Modrm, R);
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mq | C_Ms =>
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mq
+               | C_Ms =>
                Decode_Modrm_Mem (Off_Modrm, R_None);
             when C_Eb | C_Mb =>
                Decode_Modrm_Mem (Off_Modrm, R_8);
@@ -1765,10 +1889,11 @@ package body Disa_X86 is
 
             when C_Pd | C_Pq | C_Pw =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R_MM);
-            when C_Qd | C_Qq =>
+            when C_Qd | C_Qdq | C_Qq =>
                Decode_Modrm_Mem (Off_Modrm, R_MM);
 
-            when C_Vdq | C_Vps | C_Vpd | C_Vq | C_Vs | C_Vsd | C_Vss =>
+            when C_Vd | C_Vdq | C_Vps | C_Vpd | C_Vq | C_Vs | C_Vsd | C_Vss
+               | C_Vw =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R_XMM);
 
             when C_Wdq | C_Wps | C_Wpd | C_Wq | C_Wsd | C_Wss =>
@@ -1825,7 +1950,8 @@ package body Disa_X86 is
                Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
             when C_Ap =>
                Off_Imm := Off_Imm + 4 + 2; -- FIXME: oper16
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mq | C_Ms =>
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mq
+               | C_Ms =>
                return;
             when C_Ev | C_Ew | C_Eb =>
                return;
@@ -1839,9 +1965,10 @@ package body Disa_X86 is
             when C_Cd | C_Dd | C_Rd =>
                return;
 
-            when C_Pd | C_Pq | C_Pw | C_Qd | C_Qq =>
+            when C_Pd | C_Pq | C_Pw | C_Qd | C_Qdq | C_Qq =>
                return;
-            when C_Vdq | C_Vps | C_Vpd | C_Vq | C_Vs | C_Vsd | C_Vss =>
+            when C_Vd | C_Vdq | C_Vps | C_Vpd | C_Vq | C_Vs | C_Vsd | C_Vss
+               | C_Vw =>
                return;
             when C_Wdq | C_Wps | C_Wpd | C_Wq | C_Wsd | C_Wss =>
                return;
