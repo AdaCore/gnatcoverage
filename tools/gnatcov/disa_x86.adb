@@ -889,6 +889,45 @@ package body Disa_X86 is
 
    Insn_Desc_F3_0F : constant Insn_Desc_Array_Type :=
      (
+      16#10#        => ("movss           ", C_Vss, C_Wss, W_None),
+      16#11#        => ("movss           ", C_Wss, C_Vss, W_None),
+      16#13#        => ("movsldup        ", C_Vps, C_Wps, W_None),
+      --  The 16#14#-16#15# slots are reserved.
+      16#16#        => ("movshdup        ", C_Vps, C_Wps, W_None),
+      --  The 16#17# slot is reserved.
+      --  TODO??? 16 extended opcodes forms.
+      --  The 16#19#-16#1f# slots are reserved.
+
+      16#2a#        => ("cvtsi2ss        ", C_Vss, C_Ed, W_None),
+      16#2c#        => ("cvttss2si       ", C_Gd, C_Wss, W_None),
+      16#2d#        => ("cvtss2si        ", C_Gd, C_Wss, W_None),
+
+      --  The 16#50# slot is reserved.
+      16#51#        => ("sqrtss          ", C_Vss, C_Wss, W_None),
+      16#52#        => ("rsqrtss         ", C_Vss, C_Wss, W_None),
+      16#53#        => ("rcpss           ", C_Vss, C_Wss, W_None),
+      --  The 16#54#-16#57# slots are reserved.
+      16#58#        => ("addss           ", C_Vss, C_Wss, W_None),
+      16#59#        => ("mulss           ", C_Vss, C_Wss, W_None),
+      16#5a#        => ("cvtss2sd        ", C_Vsd, C_Wss, W_None),
+      16#5b#        => ("cvttps2dq       ", C_Vdq, C_Wps, W_None),
+      16#5c#        => ("subss           ", C_Vss, C_Wss, W_None),
+      16#5d#        => ("minss           ", C_Vss, C_Wss, W_None),
+      16#5e#        => ("divss           ", C_Vss, C_Wss, W_None),
+      16#5f#        => ("maxss           ", C_Vss, C_Wss, W_None),
+
+      16#6f#        => ("movdqu          ", C_Vdq, C_Wdq, W_None),
+
+      16#70#        => ("pshufhw         ", C_Vdq, C_Wdq, W_8),
+      --  TODO??? 12/13/14 extended opcodes forms.
+      --  The 16#74#-16#7d# slots are reserved.
+      16#7e#        => ("movq            ", C_Vq, C_Wq, W_None),
+      16#7f#        => ("movdqu          ", C_Wdq, C_Vdq, W_None),
+
+      16#c2#        => ("cmpss           ", C_Vss, C_Wss, W_8),
+      16#d6#        => ("movq2dq         ", C_Vdq, C_Qq, W_None),
+      16#e6#        => ("cvtdq2pd        ", C_Vpd, C_Wq, W_None),
+
       others        => ("                ", C_None, C_None, W_None));
 
    subtype String3 is String (1 .. 3);
