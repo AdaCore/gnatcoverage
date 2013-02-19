@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2012, AdaCore                     --
+--                     Copyright (C) 2006-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
