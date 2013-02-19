@@ -788,7 +788,7 @@ package body Disa_X86 is
      (
       16#00# .. 16#07# => ("faddp           ", C_H0, C_H),
       16#08# .. 16#0f# => ("fmulp           ", C_H0, C_H),
-      16#19#           => ("fcomp           ", C_None, C_None),
+      16#19#           => ("fcompp          ", C_None, C_None),
       16#20# .. 16#27# => ("fsubrp          ", C_H0, C_H),
       16#28# .. 16#2f# => ("fsubp           ", C_H0, C_H),
       16#30# .. 16#37# => ("fdivrp          ", C_H0, C_H),
