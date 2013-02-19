@@ -32,7 +32,11 @@ package body Disa_X86 is
    type Bf_6 is mod 2 ** 6;
 
    type Width_Type is (W_None, W_8, W_16, W_32, W_64, W_128);
-   type Reg_Class_Type is (R_None, R_8, R_16, R_32);
+   type Reg_Class_Type is
+      (R_None,
+       R_8, R_16, R_32,
+       R_Control, R_Debug,
+       R_MM, R_XMM);
    subtype String16 is String (1 .. 16);
 
    type Code_Type is
@@ -47,11 +51,36 @@ package body Disa_X86 is
       --  Start of Modrm
 
       C_Eb,
+      C_Ed,
       C_Ep,
       C_Ev,
       C_Ev_Iz,
       C_Ev_Ib,
       C_Ew,
+
+      C_Cd,
+      C_Dd,
+      C_Rd,
+
+      C_Pd,
+      C_Pq,
+      C_Qd,
+      C_Qq,
+
+      C_Vdq,
+      C_Vps,
+      C_Vpd,
+      C_Vq,
+      C_Vs,
+      C_Vsd,
+      C_Vss,
+
+      C_Wdq,
+      C_Wps,
+      C_Wpd,
+      C_Wq,
+      C_Wsd,
+      C_Wss,
 
       C_Ma,
       C_Mp,
@@ -61,6 +90,7 @@ package body Disa_X86 is
       C_Md,
       C_Mb,
       C_Mw,
+      C_Mps,
       C_Mq,
       C_Ms,
       C_M,
@@ -69,6 +99,7 @@ package body Disa_X86 is
 
       C_Rv_Mw, --  FIXME???
 
+      C_Gd,
       C_Gw,
       C_Gz,
       C_Gb,
@@ -476,6 +507,40 @@ package body Disa_X86 is
       16#0e#        => ("                ", C_None, C_None),
       16#0f#        => ("                ", C_None, C_None),
 
+      16#10#        => ("movups          ", C_Vps, C_Wps),
+      16#11#        => ("movups          ", C_Wps, C_Vps),
+      16#12#        => ("movlps          ", C_Vq, C_Mq),
+      16#13#        => ("movlps          ", C_Mq, C_Vq),
+      16#14#        => ("unpcklps        ", C_Vs, C_Wps),
+      16#15#        => ("unpckhps        ", C_Vs, C_Wps),
+      16#16#        => ("movhps          ", C_Vq, C_Mq),
+      16#17#        => ("movhps          ", C_Mq, C_Vps),
+
+      16#20#        => ("mov             ", C_Rd, C_Cd),
+      16#21#        => ("mov             ", C_Rd, C_Dd),
+      16#22#        => ("mov             ", C_Cd, C_Rd),
+      16#23#        => ("mov             ", C_Dd, C_Rd),
+      --  The 16#25# slot is reserved.
+      --  The 16#24# and 16#26# slots is a MOV for test registers. Not
+      --  documented.
+      --  The 16#27# slot is reserved.
+      16#28#        => ("movaps          ", C_Vps, C_Wps),
+      16#29#        => ("movaps          ", C_Wps, C_Vps),
+      16#2a#        => ("cvtpi2ps        ", C_Vps, C_Qq),
+      16#2b#        => ("movntps         ", C_Mps, C_Vps),
+      16#2c#        => ("cvttps2pi       ", C_Pq,  C_Wq),
+      16#2d#        => ("cvtps2pi        ", C_Pq,  C_Wq),
+      16#2e#        => ("ucomiss         ", C_Vss, C_Wss),
+      16#2f#        => ("comiss          ", C_Vps, C_Wps),
+
+      16#30#        => ("wrmsr           ", C_None, C_None),
+      16#31#        => ("rdtsc           ", C_None, C_None),
+      16#32#        => ("rdmsr           ", C_None, C_None),
+      16#33#        => ("rdpmc           ", C_None, C_None),
+      16#34#        => ("sysenter        ", C_None, C_None),
+      16#35#        => ("sysexit         ", C_None, C_None),
+      --  The 16#36#-16#3f# slot are reserved.
+
       16#40#        => ("cmovo           ", C_Gv, C_Ev),
       16#41#        => ("cmovno          ", C_Gv, C_Ev),
       16#42#        => ("cmovb           ", C_Gv, C_Ev),
@@ -492,6 +557,51 @@ package body Disa_X86 is
       16#4d#        => ("cmovge          ", C_Gv, C_Ev),
       16#4e#        => ("cmovle          ", C_Gv, C_Ev),
       16#4f#        => ("cmovg           ", C_Gv, C_Ev),
+
+      16#50#        => ("movmskps        ", C_Gd, C_Vps),
+      16#51#        => ("sqrtps          ", C_Vps, C_Wps),
+      16#52#        => ("rsqrtps         ", C_Vps, C_Wps),
+      16#53#        => ("rcpps           ", C_Vps, C_Wps),
+      16#54#        => ("andps           ", C_Vps, C_Wps),
+      16#55#        => ("andnps          ", C_Vps, C_Wps),
+      16#56#        => ("orps            ", C_Vps, C_Wps),
+      16#57#        => ("xorps           ", C_Vps, C_Wps),
+      16#58#        => ("addps           ", C_Vps, C_Wps),
+      16#59#        => ("mulps           ", C_Vps, C_Wps),
+      16#5a#        => ("cvtps2pd        ", C_Vps, C_Wps),
+      16#5b#        => ("cvtdq2ps        ", C_Vps, C_Wps),
+      16#5c#        => ("subps           ", C_Vps, C_Wps),
+      16#5d#        => ("minps           ", C_Vps, C_Wps),
+      16#5e#        => ("divps           ", C_Vps, C_Wps),
+      16#5f#        => ("maxps           ", C_Vps, C_Wps),
+
+      16#60#        => ("punpcklbw       ", C_Pq, C_Qd),
+      16#61#        => ("punpcklwd       ", C_Pq, C_Qd),
+      16#62#        => ("punpckldq       ", C_Pq, C_Qd),
+      16#63#        => ("packsswb        ", C_Pq, C_Qq),
+      16#64#        => ("pcmpgtb         ", C_Pq, C_Qq),
+      16#65#        => ("pcmpgtw         ", C_Pq, C_Qq),
+      16#66#        => ("pcmpgtd         ", C_Pq, C_Qq),
+      16#67#        => ("packuswb        ", C_Pq, C_Qq),
+      16#68#        => ("punpckhbw       ", C_Pq, C_Qq),
+      16#69#        => ("punpckhwd       ", C_Pq, C_Qq),
+      16#6a#        => ("punpckhdq       ", C_Pq, C_Qq),
+      16#6b#        => ("packssdw        ", C_Pq, C_Qq),
+      --  The 16#6c# and 16#6d# slots are reserved
+      16#6e#        => ("movd            ", C_Pq, C_Ed),
+      16#6f#        => ("movq            ", C_Pq, C_Qq),
+
+      --  TODO??? PSHUFW, which takes 3 operands.
+      --  TODO??? 12/13/14 extended opcodes forms.
+      16#74#        => ("pcmpeqb         ", C_Pq, C_Qq),
+      16#75#        => ("pcmpeqw         ", C_Pq, C_Qq),
+      16#76#        => ("pcmepeqd        ", C_Pq, C_Qq),
+      16#77#        => ("emms            ", C_None, C_None),
+      --  The 16#78#-16#7b# slots are reserved
+      16#7c#        => ("haddpd          ", C_Vpd, C_Wpd),
+      16#7d#        => ("hsubpd          ", C_Vpd, C_Wpd),
+      16#7e#        => ("movd            ", C_Ed, C_Pd),
+      16#7f#        => ("movq            ", C_Qq, C_Pq),
 
       2#1000_0000#  => ("jo              ", C_Jz, C_None),
       2#1000_0001#  => ("jno             ", C_Jz, C_None),
@@ -541,6 +651,7 @@ package body Disa_X86 is
       16#BE#        => ("movsx           ", C_Gv, C_Eb),
       16#BF#        => ("movsx           ", C_Gv, C_Ew),
 
+      --  TODO??? CMPPS, PINSRW, PEXTRW, SHUFPS. They takes 3 operands.
       16#c8#        => ("bswap           ", C_Reg_Ax, C_None),
       16#c9#        => ("bswap           ", C_Reg_Cx, C_None),
       16#ca#        => ("bswap           ", C_Reg_Dx, C_None),
@@ -549,6 +660,57 @@ package body Disa_X86 is
       16#cd#        => ("bswap           ", C_Reg_Bp, C_None),
       16#ce#        => ("bswap           ", C_Reg_Si, C_None),
       16#cf#        => ("bswap           ", C_Reg_Di, C_None),
+
+      --  The 16#d0# slot is reserved.
+      16#d1#        => ("psrlw           ", C_Pq, C_Qq),
+      16#d2#        => ("psrld           ", C_Pq, C_Qq),
+      16#d3#        => ("psrlq           ", C_Pq, C_Qq),
+      16#d4#        => ("paddq           ", C_Pq, C_Qq),
+      16#d5#        => ("pmullw          ", C_Pq, C_Qq),
+      --  The 16#d6# slot is reserved.
+      16#d7#        => ("pmovmskb        ", C_Gd, C_Pq),
+      16#d8#        => ("psubusb         ", C_Pq, C_Qq),
+      16#d9#        => ("psubusw         ", C_Pq, C_Qq),
+      16#da#        => ("pminub          ", C_Pq, C_Qq),
+      16#db#        => ("pand            ", C_Pq, C_Qq),
+      16#dc#        => ("paddusb         ", C_Pq, C_Qq),
+      16#dd#        => ("paddusw         ", C_Pq, C_Qq),
+      16#de#        => ("pmaxub          ", C_Pq, C_Qq),
+      16#df#        => ("pandn           ", C_Pq, C_Qq),
+
+      16#e0#        => ("pavgb           ", C_Pq, C_Qq),
+      16#e1#        => ("psraw           ", C_Pq, C_Qq),
+      16#e2#        => ("psrad           ", C_Pq, C_Qq),
+      16#e3#        => ("pavgw           ", C_Pq, C_Qq),
+      16#e4#        => ("pmulhuw         ", C_Pq, C_Qq),
+      16#e5#        => ("pmulhw          ", C_Pq, C_Qq),
+      --  The 16#e6# slot is reserved.
+      16#e7#        => ("movntq          ", C_Mq, C_Vq),
+      16#e8#        => ("psubsb          ", C_Pq, C_Qq),
+      16#e9#        => ("psubsw          ", C_Pq, C_Qq),
+      16#ea#        => ("pminsw          ", C_Pq, C_Qq),
+      16#eb#        => ("por             ", C_Pq, C_Qq),
+      16#ec#        => ("paddsb          ", C_Pq, C_Qq),
+      16#ed#        => ("paddsw          ", C_Pq, C_Qq),
+      16#ee#        => ("pmaxsw          ", C_Pq, C_Qq),
+      16#ef#        => ("pxor            ", C_Pq, C_Qq),
+
+      --  The 16#f0# slot is reserved.
+      16#f1#        => ("psllw           ", C_Pq, C_Qq),
+      16#f2#        => ("pslld           ", C_Pq, C_Qq),
+      16#f3#        => ("psllq           ", C_Pq, C_Qq),
+      16#f4#        => ("pmuludq         ", C_Pq, C_Qq),
+      16#f5#        => ("pmaddwd         ", C_Pq, C_Qq),
+      16#f6#        => ("psadbw          ", C_Pq, C_Qq),
+      16#f7#        => ("maskmovq        ", C_Pq, C_Pq),
+      16#f8#        => ("psubb           ", C_Pq, C_Qq),
+      16#f9#        => ("psubw           ", C_Pq, C_Qq),
+      16#fa#        => ("psubd           ", C_Pq, C_Qq),
+      16#fb#        => ("psubq           ", C_Pq, C_Qq),
+      16#fc#        => ("paddb           ", C_Pq, C_Qq),
+      16#fd#        => ("paddw           ", C_Pq, C_Qq),
+      16#fe#        => ("paddd           ", C_Pq, C_Qq),
+      --  The 16#ff# slot is reserved.
 
       others       =>  ("                ", C_None, C_None));
 
@@ -1180,12 +1342,21 @@ package body Disa_X86 is
       procedure Add_Reg (F : Bf_3; R : Reg_Class_Type) is
          type Reg_Name2_Array is array (Bf_3) of String (1 .. 2);
          type Reg_Name3_Array is array (Bf_3) of String (1 .. 3);
+         type Reg_Name4_Array is array (Bf_3) of String (1 .. 4);
          Regs_8 : constant Reg_Name2_Array :=
            ("al", "cl", "dl", "bl", "ah", "ch", "dh", "bh");
          Regs_16 : constant Reg_Name2_Array :=
            ("ax", "cx", "dx", "bx", "sp", "bp", "si", "di");
          Regs_32 : constant Reg_Name3_Array :=
            ("eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi");
+         Regs_Control : constant Reg_Name3_Array :=
+           ("cr0", "cr1", "cr2", "cr3", "cr4", "cr5", "cr6", "cr7");
+         Regs_Debug : constant Reg_Name3_Array :=
+           ("dr0", "dr1", "dr2", "dr3", "dr4", "dr5", "dr6", "dr7");
+         Regs_MM : constant Reg_Name3_Array :=
+           ("mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7");
+         Regs_XMM : constant Reg_Name4_Array :=
+           ("xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7");
       begin
          Add_Char ('%');
          case R is
@@ -1195,6 +1366,14 @@ package body Disa_X86 is
                Add_String (Regs_16 (F));
             when R_32 =>
                Add_String (Regs_32 (F));
+            when R_Control =>
+               Add_String (Regs_Control (F));
+            when R_Debug =>
+               Add_String (Regs_Debug (F));
+            when R_MM =>
+               Add_String (Regs_MM (F));
+            when R_XMM =>
+               Add_String (Regs_XMM (F));
             when R_None =>
                raise Program_Error;
          end case;
@@ -1564,6 +1743,25 @@ package body Disa_X86 is
                Add_Reg_Seg (Ext_Modrm_Reg (Mem (Off_Modrm)));
             when C_Fv =>
                null;
+
+            when C_Cd =>
+               Decode_Modrm_Reg (Mem (Off_Modrm), R_Control);
+            when C_Dd =>
+               Decode_Modrm_Reg (Mem (Off_Modrm), R_Debug);
+            when C_Rd =>
+               Decode_Modrm_Reg (Mem (Off_Modrm), R_32);
+
+            when C_Pd | C_Pq =>
+               Decode_Modrm_Reg (Mem (Off_Modrm), R_MM);
+            when C_Qd | C_Qq =>
+               Decode_Modrm_Mem (Off_Modrm, R_MM);
+
+            when C_Vdq | C_Vps | C_Vpd | C_Vq | C_Vs | C_Vsd | C_Vss =>
+               Decode_Modrm_Reg (Mem (Off_Modrm), R_XMM);
+
+            when C_Wdq | C_Wps | C_Wpd | C_Wq | C_Wsd | C_Wss =>
+               Decode_Modrm_Mem (Off_Modrm, R_XMM);
+
             when others =>
                raise Program_Error with
                  "operand: unhandled x86 code_type " & Code_Type'Image (C);
@@ -1625,6 +1823,17 @@ package body Disa_X86 is
                return;
             when C_Fv =>
                return;
+
+            when C_Cd | C_Dd | C_Rd =>
+               return;
+
+            when C_Pd | C_Pq | C_Qd | C_Qq =>
+               return;
+            when C_Vdq | C_Vps | C_Vpd | C_Vq | C_Vs | C_Vsd | C_Vss =>
+               return;
+            when C_Wdq | C_Wps | C_Wpd | C_Wq | C_Wsd | C_Wss =>
+               return;
+
             when others =>
                raise Program_Error with
                  "length: unhandled x86 code_type " & Code_Type'Image (C);
