@@ -31,7 +31,8 @@ package body Disa_X86 is
    type Bf_3 is mod 2 ** 3;
    type Bf_6 is mod 2 ** 6;
 
-   type Width_Type is (W_None, W_8, W_16, W_32);
+   type Width_Type is (W_None, W_8, W_16, W_32, W_64, W_128);
+   type Reg_Class_Type is (R_None, R_8, R_16, R_32);
    subtype String16 is String (1 .. 16);
 
    type Code_Type is
@@ -833,14 +834,38 @@ package body Disa_X86 is
 
    type Width_Array_Type is array (Width_Type) of Character;
    Width_Char : constant Width_Array_Type :=
-     (W_None => '-', W_8 => 'b', W_16 => 'w', W_32 => 'l');
+     (W_None => '-',
+      W_8 => 'b',
+      W_16 => 'w',
+      W_32 => 'l',
+      W_64 => 'q',
+      W_128 => 's');
    type Width_Len_Type is array (Width_Type) of Pc_Type;
    Width_Len : constant Width_Len_Type :=
-     (W_None => 0, W_8 => 1, W_16 => 2, W_32 => 4);
+     (W_None => 0,
+      W_8 => 1,
+      W_16 => 2,
+      W_32 => 4,
+      W_64 => 8,
+      W_128 => 16);
+
+   type To_General_Type is array (Width_Type) of Reg_Class_Type;
+   To_General : constant To_General_Type :=
+     (W_None   => R_None,
+      W_8      => R_8,
+      W_16     => R_16,
+      W_32     => R_32,
+      W_64     => R_None,
+      W_128    => R_None);
 
    type To_Z_Type is array (Width_Type) of Width_Type;
    To_Z : constant To_Z_Type :=
-     (W_None => W_None, W_8 => W_None, W_16 => W_16, W_32 => W_32);
+     (W_None => W_None,
+      W_8 => W_None,
+      W_16 => W_16,
+      W_32 => W_32,
+      W_64 => W_64,
+      W_128 => W_128);
 
    --  Bits extraction from byte functions
 
@@ -944,6 +969,9 @@ package body Disa_X86 is
 
          when W_None =>
             raise Program_Error;
+
+         when others =>
+            raise Program_Error with "unhandled 64/128bits decoding";
       end case;
    end Decode_Val;
 
@@ -985,7 +1013,7 @@ package body Disa_X86 is
 
       procedure Add_Comma;
       procedure Name_Align (Orig : Natural);
-      procedure Add_Reg (F : Bf_3; W : Width_Type);
+      procedure Add_Reg (F : Bf_3; R : Reg_Class_Type);
       procedure Add_Reg_St (F : Bf_3);
       procedure Add_Reg_Seg (F : Bf_3);
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type);
@@ -995,9 +1023,9 @@ package body Disa_X86 is
                              Offset : Unsigned_32 := 0);
       procedure Decode_Disp_Rel (Off : in out Pc_Type;
                                  Width : Width_Type);
-      procedure Decode_Modrm_Reg (B : Byte; Width : Width_Type);
+      procedure Decode_Modrm_Reg (B : Byte; R : Reg_Class_Type);
       procedure Decode_Sib (Sib : Byte; B_Mod : Bf_2);
-      procedure Decode_Modrm_Mem (Off : Pc_Type; Width : Width_Type);
+      procedure Decode_Modrm_Mem (Off : Pc_Type; R : Reg_Class_Type);
       function Decode_Modrm_Len (Off : Pc_Type) return Pc_Type;
       procedure Add_Operand (C : Code_Type;
                              Off_Modrm : Pc_Type;
@@ -1137,7 +1165,7 @@ package body Disa_X86 is
       -- Add_Reg --
       -------------
 
-      procedure Add_Reg (F : Bf_3; W : Width_Type) is
+      procedure Add_Reg (F : Bf_3; R : Reg_Class_Type) is
          type Reg_Name2_Array is array (Bf_3) of String (1 .. 2);
          type Reg_Name3_Array is array (Bf_3) of String (1 .. 3);
          Regs_8 : constant Reg_Name2_Array :=
@@ -1148,14 +1176,14 @@ package body Disa_X86 is
            ("eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi");
       begin
          Add_Char ('%');
-         case W is
-            when W_8 =>
+         case R is
+            when R_8 =>
                Add_String (Regs_8 (F));
-            when W_16 =>
+            when R_16 =>
                Add_String (Regs_16 (F));
-            when W_32 =>
+            when R_32 =>
                Add_String (Regs_32 (F));
-            when W_None =>
+            when R_None =>
                raise Program_Error;
          end case;
       end Add_Reg;
@@ -1192,6 +1220,8 @@ package body Disa_X86 is
                Add_Byte (Mem (Off + 0));
             when W_None =>
                raise Program_Error;
+            when others =>
+               raise Program_Error with "unhandled 64/128 bits decoding";
          end case;
       end Decode_Val;
 
@@ -1255,9 +1285,9 @@ package body Disa_X86 is
       -- Decode_Modrm_Reg --
       ----------------------
 
-      procedure Decode_Modrm_Reg (B : Byte; Width : Width_Type) is
+      procedure Decode_Modrm_Reg (B : Byte; R : Reg_Class_Type) is
       begin
-         Add_Reg (Ext_Modrm_Reg (B), Width);
+         Add_Reg (Ext_Modrm_Reg (B), R);
       end Decode_Modrm_Reg;
 
       ----------------
@@ -1276,14 +1306,14 @@ package body Disa_X86 is
          Add_Char ('(');
          if not (B = 2#101# and then B_Mod = 0) then
             --  Base
-            Add_Reg (B, W_32);
+            Add_Reg (B, R_32);
             if I /= 2#100# then
                Add_Char (',');
             end if;
          end if;
          if I /= 2#100# then
             --  Index
-            Add_Reg (I, W_32);
+            Add_Reg (I, R_32);
             --  Scale
             case S is
                when 2#00# =>
@@ -1303,7 +1333,7 @@ package body Disa_X86 is
       -- Decode_Modrm_Mem --
       ----------------------
 
-      procedure Decode_Modrm_Mem (Off : Pc_Type; Width : Width_Type)
+      procedure Decode_Modrm_Mem (Off : Pc_Type; R : Reg_Class_Type)
       is
          B : Byte;
          B_Mod : Bf_2;
@@ -1314,7 +1344,7 @@ package body Disa_X86 is
          B_Rm := Ext_Modrm_Rm (B);
          case B_Mod is
             when 2#11# =>
-               Add_Reg (B_Rm, Width);
+               Add_Reg (B_Rm, R);
             when 2#10# =>
                if B_Rm = 2#100# then
                   Decode_Disp (Off + 2, W_32);
@@ -1322,7 +1352,7 @@ package body Disa_X86 is
                else
                   Decode_Disp (Off + 1, W_32);
                   Add_Char ('(');
-                  Add_Reg (B_Rm, W_32);
+                  Add_Reg (B_Rm, R_32);
                   Add_Char (')');
                end if;
             when 2#01# =>
@@ -1332,7 +1362,7 @@ package body Disa_X86 is
                else
                   Decode_Disp (Off + 1, W_8);
                   Add_Char ('(');
-                  Add_Reg (B_Rm, W_32);
+                  Add_Reg (B_Rm, R_32);
                   Add_Char (')');
                end if;
             when 2#00# =>
@@ -1346,7 +1376,7 @@ package body Disa_X86 is
                   Decode_Disp (Off + 1, W_32);
                else
                   Add_Char ('(');
-                  Add_Reg (B_Rm, W_32);
+                  Add_Reg (B_Rm, R_32);
                   Add_Char (')');
                end if;
          end case;
@@ -1415,6 +1445,7 @@ package body Disa_X86 is
                              W : Width_Type)
       is
          Off2 : Pc_Type;
+         R : constant Reg_Class_Type := To_General (W);
       begin
          case C is
             when C_Reg_Bp =>
@@ -1460,31 +1491,31 @@ package body Disa_X86 is
             when C_Gv_Cl =>
                Add_String ("%cl");
                Add_Comma;
-               Decode_Modrm_Reg (Mem (Off_Modrm), W);
+               Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gv =>
-               Decode_Modrm_Reg (Mem (Off_Modrm), W);
+               Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gv_Ib =>
                Decode_Imm (Off_Imm, W_8);
                Add_Comma;
-               Decode_Modrm_Reg (Mem (Off_Modrm), W);
+               Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gb =>
-               Decode_Modrm_Reg (Mem (Off_Modrm), W_8);
+               Decode_Modrm_Reg (Mem (Off_Modrm), R_8);
             when C_Ev =>
-               Decode_Modrm_Mem (Off_Modrm, W);
+               Decode_Modrm_Mem (Off_Modrm, R);
             when C_Ew =>
-               Decode_Modrm_Mem (Off_Modrm, W_32);
+               Decode_Modrm_Mem (Off_Modrm, R_32);
             when C_Ev_Ib =>
                Decode_Imm (Off_Imm, W_8);
                Add_Comma;
-               Decode_Modrm_Mem (Off_Modrm, W);
+               Decode_Modrm_Mem (Off_Modrm, R);
             when C_Ev_Iz =>
                Decode_Imm (Off_Imm, To_Z (W));
                Add_Comma;
-               Decode_Modrm_Mem (Off_Modrm, W);
+               Decode_Modrm_Mem (Off_Modrm, R);
             when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mq | C_Ms =>
-               Decode_Modrm_Mem (Off_Modrm, W_None);
+               Decode_Modrm_Mem (Off_Modrm, R_None);
             when C_Eb | C_Mb =>
-               Decode_Modrm_Mem (Off_Modrm, W_8);
+               Decode_Modrm_Mem (Off_Modrm, R_8);
             when C_Ib =>
                Decode_Imm (Off_Imm, W_8);
             when C_Iv =>
@@ -1503,11 +1534,11 @@ package body Disa_X86 is
                Add_String ("%es:(%edi)");
             when C_Yv =>
                Add_String ("%es:(");
-               Add_Reg (7, W);
+               Add_Reg (7, R);
                Add_Char (')');
             when C_Xv =>
                Add_String ("%ds:(");
-               Add_Reg (6, W);
+               Add_Reg (6, R);
                Add_Char (')');
             when C_Xb =>
                Add_String ("%ds:(%esi)");
