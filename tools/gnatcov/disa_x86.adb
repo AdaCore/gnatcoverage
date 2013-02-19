@@ -552,6 +552,18 @@ package body Disa_X86 is
 
       others       =>  ("                ", C_None, C_None));
 
+   Insn_Desc_66_0F : constant Insn_Desc_Array_Type :=
+     (
+      others        => ("                ", C_None, C_None));
+
+   Insn_Desc_F2_0F : constant Insn_Desc_Array_Type :=
+     (
+      others        => ("                ", C_None, C_None));
+
+   Insn_Desc_F3_0F : constant Insn_Desc_Array_Type :=
+     (
+      others        => ("                ", C_None, C_None));
+
    subtype String3 is String (1 .. 3);
    type Group_Name_Array_Type is array (Bf_3) of String3;
    Group_Name_1 : constant Group_Name_Array_Type :=
@@ -1648,11 +1660,23 @@ package body Disa_X86 is
                B1 := Mem (Off);
                Off := Off + 1;
                if B1 = 16#0F# then
-                  raise Program_Error with "disa_x86: mmx/xmm unhandled";
+                  B1 := Mem (Off);
+                  Off := Off + 1;
+                  case B is
+                     when 16#F2# =>
+                        Desc := Insn_Desc_F2_0F (B1);
+                     when 16#F3# =>
+                        Desc := Insn_Desc_F3_0F (B1);
+                     when others =>
+                        Desc.Name (1) := ' ';
+                        Desc.Dst := C_None;
+                        Desc.Src := C_None;
+                  end case;
+               else
+                  Add_Name (Desc.Name);
+                  Add_Char (' ');
+                  Desc := Insn_Desc (B1);
                end if;
-               Add_Name (Desc.Name);
-               Add_Char (' ');
-               Desc := Insn_Desc (B1);
                exit;
 
             when C_Lock =>
@@ -1660,6 +1684,14 @@ package body Disa_X86 is
                Add_Char (' ');
 
             when C_Prefix_Oper =>
+               B1 := Mem (Off);
+               if B = 16#66# and then B1 = 16#0F# then
+                  Off := Off + 1;
+                  B1 := Mem (Off);
+                  Off := Off + 1;
+                  Desc := Insn_Desc_66_0F (B1);
+                  exit;
+               end if;
                W := W_16;
 
             when C_0F =>
