@@ -96,6 +96,7 @@ package body Disa_X86 is
       C_Mw,
       C_Mpd,
       C_Mps,
+      C_Mdq,
       C_Mq,
       C_Ms,
       C_M,
@@ -884,6 +885,7 @@ package body Disa_X86 is
       16#c2#        => ("cmpsd           ", C_Vsd, C_Wsd, W_8),
       16#d6#        => ("movdq2q         ", C_Pq, C_Vq, W_None),
       16#e6#        => ("cvtpd2dq        ", C_Vdq, C_Wdq, W_None),
+      16#f0#        => ("lddqu           ", C_Vdq, C_Mdq, W_None),
 
       others        => ("                ", C_None, C_None, W_None));
 
@@ -1908,7 +1910,7 @@ package body Disa_X86 is
                Add_Comma;
                Decode_Modrm_Mem (Off_Modrm, R);
             when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mq
-               | C_Ms =>
+               | C_Mdq | C_Ms =>
                Decode_Modrm_Mem (Off_Modrm, R_None);
             when C_Eb | C_Mb =>
                Decode_Modrm_Mem (Off_Modrm, R_8);
@@ -2019,8 +2021,8 @@ package body Disa_X86 is
                Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
             when C_Ap =>
                Off_Imm := Off_Imm + 4 + 2; -- FIXME: oper16
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mq
-               | C_Ms =>
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mdq
+               | C_Mq | C_Ms =>
                return;
             when C_Ev | C_Ew | C_Eb =>
                return;
