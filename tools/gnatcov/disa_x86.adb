@@ -855,6 +855,36 @@ package body Disa_X86 is
 
    Insn_Desc_F2_0F : constant Insn_Desc_Array_Type :=
      (
+      16#10#        => ("movsd           ", C_Vsd, C_Wsd, W_None),
+      16#11#        => ("movsd           ", C_Vsd, C_Wsd, W_None),
+      16#12#        => ("movddup         ", C_Vq, C_Wq, W_None),
+      16#1a#        => ("cvtsi2sd        ", C_Vsd, C_Ed, W_None),
+      16#1c#        => ("cvttsd2si       ", C_Gd, C_Wsd, W_None),
+      16#1d#        => ("cvtsd2si        ", C_Gd, C_Wsd, W_None),
+
+      --  Here...
+      16#52#        => ("sqrtsdsi        ", C_Vsd, C_Wsd, W_None),
+      --  ... and here, a lot of slots are reserved.
+      16#58#        => ("addsd           ", C_Vsd, C_Wsd, W_None),
+      16#59#        => ("mulsd           ", C_Vsd, C_Wsd, W_None),
+      16#5a#        => ("cvtsd2ss        ", C_Vsd, C_Wsd, W_None),
+      --  The 16#5b# slot is reserved.
+      16#5c#        => ("subsd           ", C_Vsd, C_Wsd, W_None),
+      16#5d#        => ("minsd           ", C_Vsd, C_Wsd, W_None),
+      16#5e#        => ("divsd           ", C_Vsd, C_Wsd, W_None),
+      16#5f#        => ("maxsd           ", C_Vsd, C_Wsd, W_None),
+
+      16#70#        => ("pshuflw         ", C_Vdq, C_Wdq, W_8),
+      --  TODO??? 12/13/14 extended opcodes forms.
+      --  The 16#74#-16#7b# slots are reserved.
+      16#7c#        => ("haddps          ", C_Vps, C_Wps, W_None),
+      16#7d#        => ("hsubps          ", C_Vps, C_Wps, W_None),
+      --  The 16#7e#-16#7f# slots are reserved.
+
+      16#c2#        => ("cmpsd           ", C_Vsd, C_Wsd, W_8),
+      16#d6#        => ("movdq2q         ", C_Pq, C_Vq, W_None),
+      16#e6#        => ("cvtpd2dq        ", C_Vdq, C_Wdq, W_None),
+
       others        => ("                ", C_None, C_None, W_None));
 
    Insn_Desc_F3_0F : constant Insn_Desc_Array_Type :=
