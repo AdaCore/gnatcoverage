@@ -23,6 +23,7 @@ with Ada.Directories;         use Ada.Directories;
 with Ada.Strings.Unbounded;   use Ada.Strings.Unbounded;
 with Ada.Text_IO;             use Ada.Text_IO;
 
+with GNATCOLL.Traces;   use GNATCOLL.Traces;
 with GNATCOLL.Projects; use GNATCOLL.Projects;
 with GNATCOLL.VFS;      use GNATCOLL.VFS;
 
@@ -514,6 +515,10 @@ package body Project is
       pragma Assert (Env = null);
       Initialize (Target);
       pragma Assert (Env /= null);
+
+      --  Allow activation of GNATcoll debug traces via configuration file
+
+      GNATCOLL.Traces.Parse_Config_File (Filename => No_File);
 
       Prj_Tree := new Project_Tree;
       Prj_Tree.Load
