@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Ordered_Sets;
-with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
@@ -121,6 +120,7 @@ package body Decision_Map is
       Branch_Counts      : Branch_Count_Array      :=
                              (others => (others => (others => 0)));
       Cond_Branch_Counts : Cond_Branch_Count_Array := (others => 0);
+      Non_Traceable      : Natural := 0;
    end record;
 
    type Cond_Branch_Context is limited record
@@ -1359,12 +1359,30 @@ package body Decision_Map is
       Current_Basic_Block_Start : Pc_Type;
       Context : Cond_Branch_Context;
 
+      procedure Put_Line (S : String; Underline : Character);
+      --  Output S, underline with the given character
+
+      --------------
+      -- Put_Line --
+      --------------
+
+      procedure Put_Line (S : String; Underline : Character) is
+      begin
+         Put_Line (S);
+         Put_Line (String'(S'Range => Underline));
+         New_Line;
+      end Put_Line;
+
+      Subp_Name : constant String := Get_Filename (Exec.all) & ":" & Name.all;
+
    --  Start of processing for Analyze_Routine
 
    begin
-      if Verbose then
-         Put_Line ("Building decision map for "
-                   & Get_Filename (Exec.all) & ":" & Name.all);
+      if Branch_Stats then
+         Put_Line
+           ("Branch statistics for " & Subp_Name, '=');
+      elsif Verbose then
+         Put_Line ("Building decision map for " & Subp_Name);
       end if;
 
       --  Iterate over instructions, looking for conditional branches
@@ -1436,7 +1454,7 @@ package body Decision_Map is
             end if;
 
             if Branch /= Br_None then
-               declare
+               Analyze_Branch : declare
                   BB : Basic_Block :=
                          (From        => Current_Basic_Block_Start,
                           To_PC       => Insn'First,
@@ -1447,6 +1465,7 @@ package body Decision_Map is
                           others      => <>);
 
                   SCO        : SCO_Id;
+                  Tag        : SC_Tag;
                   Branch_SCO : SCO_Id := No_SCO_Id;
                   --  Condition or Statement SCO associated with BB.To_PC, for
                   --  statistics purposes.
@@ -1456,9 +1475,34 @@ package body Decision_Map is
                   --  Note that no two condition SCOs may be associated with
                   --  a given PC.
 
+                  procedure Report_Non_Traceable (Reason : String);
+                  --  Emit a diagnostic for a non-traceable
+                  --  conditional branch instruction at PC.
+
+                  --------------------------
+                  -- Report_Non_Traceable --
+                  --------------------------
+
+                  procedure Report_Non_Traceable (Reason : String) is
+                  begin
+                     Context.Stats.Non_Traceable :=
+                       Context.Stats.Non_Traceable + 1;
+
+                     Report
+                       ("non-traceable: " & Reason,
+                        PC   => BB.To_PC,
+                        Sloc => First_Sloc (Branch_SCO),
+                        Tag  => Tag,
+                        Kind => Warning);
+                  end Report_Non_Traceable;
+
+               --  Start of processing for Analyze_Branch
+
                begin
                   for Tsloc of Tslocs loop
                      SCO := Sloc_To_SCO (Tsloc.Sloc);
+                     Tag := Tsloc.Tag;
+
                      if Flag_Cond then
                         if Branch = Br_Jmp or else Branch = Br_Ret then
                            if SCO /= No_SCO_Id
@@ -1480,11 +1524,9 @@ package body Decision_Map is
                               if Branch_SCO /= No_SCO_Id
                                 and then Kind (Branch_SCO) = Condition
                               then
-                                    Report
-                                      (Exec, BB.To_PC,
-                                       "multiple conditions for conditional "
-                                       & "branch",
-                                       Kind => Warning);
+                                 Report_Non_Traceable
+                                   ("multiple conditions for conditional "
+                                    & "branch");
                               end if;
                               Branch_SCO := SCO;
                            end if;
@@ -1493,11 +1535,9 @@ package body Decision_Map is
                            --  Warn if conditional call or conditional return
                            --  (such combinations are not supported).
 
-                           Report
-                             (Exec, BB.To_PC,
-                              "unexpected conditional branch of type "
-                              & Branch'Img,
-                              Kind => Warning);
+                           Report_Non_Traceable
+                             ("unexpected conditional branch of type "
+                              & Branch'Img);
                         end if;
                      end if;
 
@@ -1523,11 +1563,20 @@ package body Decision_Map is
                      if Flag_Cond then
                         declare
                            CBK : Cond_Branch_Kind;
+
                         begin
                            if Branch_SCO = No_SCO_Id then
                               CBK := None;
+                              Report_Non_Traceable ("no SCO");
+
                            elsif BB.Condition = No_SCO_Id then
                               CBK := Statement;
+
+                              if S_Kind (Branch_SCO) /= For_Loop_Statement then
+                                 Report_Non_Traceable
+                                   ("cond branch for "
+                                    & S_Kind (Branch_SCO)'Img);
+                              end if;
                            else
                               declare
                                  CBI : constant Cond_Branch_Info :=
@@ -1541,6 +1590,16 @@ package body Decision_Map is
                                     CBK := Check;
                                  else
                                     CBK := Condition;
+
+                                    for J in CBI.Edges'Range loop
+                                       if CBI.Edges (J).Next_Condition
+                                         = Index (BB.Condition)
+                                       then
+                                          Report_Non_Traceable
+                                            (J'Img
+                                             & " edge remains in condition");
+                                       end if;
+                                    end loop;
                                  end if;
                               end;
                            end if;
@@ -1550,7 +1609,7 @@ package body Decision_Map is
                         end;
                      end if;
                   end if;
-               end;
+               end Analyze_Branch;
             end if;
 
             PC := PC + Pc_Type (Insn_Len);
@@ -1578,17 +1637,17 @@ package body Decision_Map is
 
       if Branch_Stats then
          declare
-            S : constant String :=
-                  "Branch statistics for " & Get_Filename (Exec.all)
-                                           & ":" & Name.all;
             First : Boolean;
             Count : Natural;
          begin
-            Put_Line (S);
-            Put_Line ((S'Range => '-'));
-            New_Line;
+            --  Add blank lines if diagnosis about non traceable cond branches
+            --  have been emitted.
 
-            Put_Line ("Summary by branch kind:");
+            if Context.Stats.Non_Traceable > 0 then
+               New_Line;
+            end if;
+
+            Put_Line ("Summary by branch kind", '-');
             for J in Context.Stats.Branch_Counts'Range (1) loop
                First := True;
                for K in Context.Stats.Branch_Counts'Range (2) loop
@@ -1598,7 +1657,7 @@ package body Decision_Map is
                      if First then
                         Put_Line ("  "
                                   & (case J is
-                                       when Br_None => "--not a branch-- ",
+                                       when Br_None => "not a branch     ",
                                        when Br_Call => "subprogram call  ",
                                        when Br_Ret  => "subprogram return",
                                        when Br_Jmp  => "simple branch    "));
@@ -1608,9 +1667,8 @@ package body Decision_Map is
                      Put ("    " & K'Img & Count'Img);
                      if Context.Stats.Branch_Counts (J, K, True) > 0 then
                         Put
-                          (" (" & Ada.Strings.Fixed.Trim
-                             (Context.Stats.Branch_Counts (J, K, True)'Img,
-                              Ada.Strings.Both)
+                          (" ("
+                           & Img (Context.Stats.Branch_Counts (J, K, True))
                            & " conditional)");
                      end if;
                      New_Line;
@@ -1620,13 +1678,13 @@ package body Decision_Map is
             end loop;
             New_Line;
 
-            Put_Line ("Conditional branches:");
+            Put_Line ("Conditional branches", '-');
             for J in Context.Stats.Cond_Branch_Counts'Range loop
                if Context.Stats.Cond_Branch_Counts (J) > 0 then
                   Put_Line
                     (" "
                      & (case J is
-                       when None      => "non-traceable",
+                       when None      => "no SCO       ",
                        when Statement => "statement    ",
                        when Condition => "condition    ",
                        when Check     => "runtime check")
@@ -1634,6 +1692,10 @@ package body Decision_Map is
                end if;
             end loop;
             New_Line;
+
+            Put_Line
+              (Img (Context.Stats.Non_Traceable)
+               & " non-traceable conditional branches reported");
          end;
       end if;
    end Analyze_Routine;
