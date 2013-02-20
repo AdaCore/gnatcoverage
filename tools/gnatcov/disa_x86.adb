@@ -172,7 +172,7 @@ package body Disa_X86 is
       --  Name of the operation
 
       Dst, Src : Code_Type;
-      --  Destination and source operands (C_None if absent).
+      --  Destination and source operands (C_None if absent)
       Imm : Width_Type;
       --  Size of the last (immediate) operand if there is an immediate *and*
       --  destination and source operands, W_None otherwise.
@@ -385,118 +385,118 @@ package body Disa_X86 is
       16#9f#        => ("lahf            ", C_None, C_None, W_None),
 
       --  A0-AF
-      16#A0#        => ("mov             ", C_Reg_Al, C_Ob, W_None),
-      16#A1#        => ("mov             ", C_Reg_Ax, C_Ov, W_None),
-      16#A2#        => ("mov             ", C_Ob, C_Reg_Al, W_None),
-      16#A3#        => ("mov             ", C_Ov, C_Reg_Ax, W_None),
+      16#a0#        => ("mov             ", C_Reg_Al, C_Ob, W_None),
+      16#a1#        => ("mov             ", C_Reg_Ax, C_Ov, W_None),
+      16#a2#        => ("mov             ", C_Ob, C_Reg_Al, W_None),
+      16#a3#        => ("mov             ", C_Ov, C_Reg_Ax, W_None),
 
-      16#A4#        => ("movs            ", C_Xb, C_Yb, W_None),
-      16#A5#        => ("movs            ", C_Xv, C_Yv, W_None),
-      16#A6#        => ("cmps            ", C_Xb, C_Yb, W_None),
-      16#A7#        => ("cmps            ", C_Xv, C_Yv, W_None),
+      16#a4#        => ("movs            ", C_Xb, C_Yb, W_None),
+      16#a5#        => ("movs            ", C_Xv, C_Yv, W_None),
+      16#a6#        => ("cmps            ", C_Xb, C_Yb, W_None),
+      16#a7#        => ("cmps            ", C_Xv, C_Yv, W_None),
 
-      16#A8#        => ("test            ", C_Reg_Al, C_Ib, W_None),
-      16#A9#        => ("test            ", C_Reg_Ax, C_Iz, W_None),
-      16#Aa#        => ("stos            ", C_Yb, C_Reg_Al, W_None),
-      16#Ab#        => ("stos            ", C_Yv, C_Reg_Ax, W_None),
-      16#Ac#        => ("lods            ", C_Reg_Al, C_Xb, W_None),
-      16#Ad#        => ("lods            ", C_Reg_Ax, C_Xv, W_None),
+      16#a8#        => ("test            ", C_Reg_Al, C_Ib, W_None),
+      16#a9#        => ("test            ", C_Reg_Ax, C_Iz, W_None),
+      16#aa#        => ("stos            ", C_Yb, C_Reg_Al, W_None),
+      16#ab#        => ("stos            ", C_Yv, C_Reg_Ax, W_None),
+      16#ac#        => ("lods            ", C_Reg_Al, C_Xb, W_None),
+      16#ad#        => ("lods            ", C_Reg_Ax, C_Xv, W_None),
       --  FIXME: Xb or Yb?
-      16#Ae#        => ("scas            ", C_Reg_Al, C_Xb, W_None),
-      16#Af#        => ("scas            ", C_Reg_Ax, C_Xv, W_None),
+      16#ae#        => ("scas            ", C_Reg_Al, C_Xb, W_None),
+      16#af#        => ("scas            ", C_Reg_Ax, C_Xv, W_None),
 
       --  B0-BF
-      16#B0#        => ("mov             ", C_Reg_Al, C_Ib, W_None),
-      16#B1#        => ("mov             ", C_Reg_Cl, C_Ib, W_None),
-      16#B2#        => ("mov             ", C_Reg_Dl, C_Ib, W_None),
-      16#B3#        => ("mov             ", C_Reg_Bl, C_Ib, W_None),
-      16#B4#        => ("mov             ", C_Reg_Ah, C_Ib, W_None),
-      16#B5#        => ("mov             ", C_Reg_Ch, C_Ib, W_None),
-      16#B6#        => ("mov             ", C_Reg_Dh, C_Ib, W_None),
-      16#B7#        => ("mov             ", C_Reg_Bh, C_Ib, W_None),
-      16#B8#        => ("mov             ", C_Reg_Ax, C_Iv, W_None),
-      16#B9#        => ("mov             ", C_Reg_Cx, C_Iv, W_None),
-      16#Ba#        => ("mov             ", C_Reg_Dx, C_Iv, W_None),
-      16#Bb#        => ("mov             ", C_Reg_Bx, C_Iv, W_None),
-      16#Bc#        => ("mov             ", C_Reg_Sp, C_Iv, W_None),
-      16#Bd#        => ("mov             ", C_Reg_Bp, C_Iv, W_None),
-      16#Be#        => ("mov             ", C_Reg_Si, C_Iv, W_None),
-      16#Bf#        => ("mov             ", C_Reg_Di, C_Iv, W_None),
+      16#b0#        => ("mov             ", C_Reg_Al, C_Ib, W_None),
+      16#b1#        => ("mov             ", C_Reg_Cl, C_Ib, W_None),
+      16#b2#        => ("mov             ", C_Reg_Dl, C_Ib, W_None),
+      16#b3#        => ("mov             ", C_Reg_Bl, C_Ib, W_None),
+      16#b4#        => ("mov             ", C_Reg_Ah, C_Ib, W_None),
+      16#b5#        => ("mov             ", C_Reg_Ch, C_Ib, W_None),
+      16#b6#        => ("mov             ", C_Reg_Dh, C_Ib, W_None),
+      16#b7#        => ("mov             ", C_Reg_Bh, C_Ib, W_None),
+      16#b8#        => ("mov             ", C_Reg_Ax, C_Iv, W_None),
+      16#b9#        => ("mov             ", C_Reg_Cx, C_Iv, W_None),
+      16#ba#        => ("mov             ", C_Reg_Dx, C_Iv, W_None),
+      16#bb#        => ("mov             ", C_Reg_Bx, C_Iv, W_None),
+      16#bc#        => ("mov             ", C_Reg_Sp, C_Iv, W_None),
+      16#bd#        => ("mov             ", C_Reg_Bp, C_Iv, W_None),
+      16#be#        => ("mov             ", C_Reg_Si, C_Iv, W_None),
+      16#bf#        => ("mov             ", C_Reg_Di, C_Iv, W_None),
 
       --  C0-CF
-      16#C0#        => ("2               ", C_Eb, C_Ib, W_None),
-      16#C1#        => ("2               ", C_Ev, C_Ib, W_None),
+      16#c0#        => ("2               ", C_Eb, C_Ib, W_None),
+      16#c1#        => ("2               ", C_Ev, C_Ib, W_None),
 
-      16#C2#        => ("ret             ", C_Iw, C_None, W_None),
-      16#C3#        => ("ret             ", C_None, C_None, W_None),
-      16#C4#        => ("les             ", C_Gz, C_Mp, W_None),
-      16#C5#        => ("lds             ", C_Gz, C_Mp, W_None),
-      16#C6#        => ("mov             ", C_Eb, C_Ib, W_None),
-      16#C7#        => ("mov             ", C_Ev, C_Iz, W_None),
+      16#c2#        => ("ret             ", C_Iw, C_None, W_None),
+      16#c3#        => ("ret             ", C_None, C_None, W_None),
+      16#c4#        => ("les             ", C_Gz, C_Mp, W_None),
+      16#c5#        => ("lds             ", C_Gz, C_Mp, W_None),
+      16#c6#        => ("mov             ", C_Eb, C_Ib, W_None),
+      16#c7#        => ("mov             ", C_Ev, C_Iz, W_None),
 
-      16#C8#        => ("enter           ", C_Iw, C_Ib, W_None),
-      16#C9#        => ("leave           ", C_None, C_None, W_None),
-      16#Ca#        => ("retf            ", C_Iw, C_None, W_None),
-      16#Cb#        => ("retf            ", C_None, C_None, W_None),
-      16#Cc#        => ("int3            ", C_None, C_None, W_None),
-      16#Cd#        => ("int             ", C_Ib, C_None, W_None),
-      16#Ce#        => ("into            ", C_None, C_None, W_None),
-      16#Cf#        => ("iret            ", C_None, C_None, W_None),
+      16#c8#        => ("enter           ", C_Iw, C_Ib, W_None),
+      16#c9#        => ("leave           ", C_None, C_None, W_None),
+      16#ca#        => ("retf            ", C_Iw, C_None, W_None),
+      16#cb#        => ("retf            ", C_None, C_None, W_None),
+      16#cc#        => ("int3            ", C_None, C_None, W_None),
+      16#cd#        => ("int             ", C_Ib, C_None, W_None),
+      16#ce#        => ("into            ", C_None, C_None, W_None),
+      16#cf#        => ("iret            ", C_None, C_None, W_None),
 
       --  D0-DF
-      16#D0#        => ("2               ", C_Eb, C_Cst_1, W_None),
-      16#D1#        => ("2               ", C_Ev, C_Cst_1, W_None),
-      16#D2#        => ("2               ", C_Eb, C_Reg_Cl, W_None),
-      16#D3#        => ("2               ", C_Ev, C_Reg_Cl, W_None),
-      16#D4#        => ("aam             ", C_Ib, C_None, W_None),
-      16#D5#        => ("aad             ", C_Ib, C_None, W_None),
-      16#D6#        => ("                ", C_None, C_None, W_None),
-      16#D7#        => ("xlat            ", C_None, C_None, W_None),
-      16#D8#        => ("ESC             ", C_M, C_None, W_None),
-      16#D9#        => ("ESC             ", C_M, C_None, W_None),
-      16#Da#        => ("ESC             ", C_M, C_None, W_None),
-      16#Db#        => ("ESC             ", C_M, C_None, W_None),
-      16#Dc#        => ("ESC             ", C_M, C_None, W_None),
-      16#Dd#        => ("ESC             ", C_M, C_None, W_None),
-      16#De#        => ("ESC             ", C_M, C_None, W_None),
-      16#Df#        => ("ESC             ", C_M, C_None, W_None),
+      16#d0#        => ("2               ", C_Eb, C_Cst_1, W_None),
+      16#d1#        => ("2               ", C_Ev, C_Cst_1, W_None),
+      16#d2#        => ("2               ", C_Eb, C_Reg_Cl, W_None),
+      16#d3#        => ("2               ", C_Ev, C_Reg_Cl, W_None),
+      16#d4#        => ("aam             ", C_Ib, C_None, W_None),
+      16#d5#        => ("aad             ", C_Ib, C_None, W_None),
+      16#d6#        => ("                ", C_None, C_None, W_None),
+      16#d7#        => ("xlat            ", C_None, C_None, W_None),
+      16#d8#        => ("ESC             ", C_M, C_None, W_None),
+      16#d9#        => ("ESC             ", C_M, C_None, W_None),
+      16#da#        => ("ESC             ", C_M, C_None, W_None),
+      16#db#        => ("ESC             ", C_M, C_None, W_None),
+      16#dc#        => ("ESC             ", C_M, C_None, W_None),
+      16#dd#        => ("ESC             ", C_M, C_None, W_None),
+      16#de#        => ("ESC             ", C_M, C_None, W_None),
+      16#df#        => ("ESC             ", C_M, C_None, W_None),
 
       --  E0-EF
-      16#E0#        => ("loopne          ", C_Jb, C_None, W_None),
-      16#E1#        => ("loope           ", C_Jb, C_None, W_None),
-      16#E2#        => ("loop            ", C_Jb, C_None, W_None),
-      16#E3#        => ("jrcxz           ", C_Jb, C_None, W_None),
-      16#E4#        => ("in              ", C_Reg_Al, C_Ib, W_None),
-      16#E5#        => ("in              ", C_Reg_Ax, C_Ib, W_None),
-      16#E6#        => ("out             ", C_Ib, C_Reg_Al, W_None),
-      16#E7#        => ("out             ", C_Ib, C_Reg_Ax, W_None),
+      16#e0#        => ("loopne          ", C_Jb, C_None, W_None),
+      16#e1#        => ("loope           ", C_Jb, C_None, W_None),
+      16#e2#        => ("loop            ", C_Jb, C_None, W_None),
+      16#e3#        => ("jrcxz           ", C_Jb, C_None, W_None),
+      16#e4#        => ("in              ", C_Reg_Al, C_Ib, W_None),
+      16#e5#        => ("in              ", C_Reg_Ax, C_Ib, W_None),
+      16#e6#        => ("out             ", C_Ib, C_Reg_Al, W_None),
+      16#e7#        => ("out             ", C_Ib, C_Reg_Ax, W_None),
 
-      16#E8#        => ("call            ", C_Jz, C_None, W_None),
-      16#E9#        => ("jmp             ", C_Jz, C_None, W_None),
-      16#Ea#        => ("jmpf            ", C_Ap, C_None, W_None),
-      16#Eb#        => ("jmp             ", C_Jb, C_None, W_None),
-      16#Ec#        => ("in              ", C_Reg_Al, C_Reg_Dx, W_None),
-      16#Ed#        => ("in              ", C_Reg_Ax, C_Reg_Dx, W_None),
-      16#Ee#        => ("out             ", C_Reg_Dx, C_Reg_Al, W_None),
-      16#Ef#        => ("out             ", C_Reg_Dx, C_Reg_Ax, W_None),
+      16#e8#        => ("call            ", C_Jz, C_None, W_None),
+      16#e9#        => ("jmp             ", C_Jz, C_None, W_None),
+      16#ea#        => ("jmpf            ", C_Ap, C_None, W_None),
+      16#eb#        => ("jmp             ", C_Jb, C_None, W_None),
+      16#ec#        => ("in              ", C_Reg_Al, C_Reg_Dx, W_None),
+      16#ed#        => ("in              ", C_Reg_Ax, C_Reg_Dx, W_None),
+      16#ee#        => ("out             ", C_Reg_Dx, C_Reg_Al, W_None),
+      16#ef#        => ("out             ", C_Reg_Dx, C_Reg_Ax, W_None),
 
       --  F0-FF
-      16#F0#        => ("lock            ", C_Lock, C_None, W_None),
-      16#F1#        => ("                ", C_None, C_None, W_None),
-      16#F2#        => ("repne           ", C_Prefix_Rep, C_None, W_None),
-      16#F3#        => ("rep             ", C_Prefix_Rep, C_None, W_None),
-      16#F4#        => ("hlt             ", C_None, C_None, W_None),
-      16#F5#        => ("cmc             ", C_None, C_None, W_None),
-      16#F6#        => ("3               ", C_Eb, C_None, W_None),
-      16#F7#        => ("3               ", C_Ev, C_None, W_None),
-      16#F8#        => ("clc             ", C_None, C_None, W_None),
-      16#F9#        => ("stc             ", C_None, C_None, W_None),
-      16#Fa#        => ("cli             ", C_None, C_None, W_None),
-      16#Fb#        => ("sti             ", C_None, C_None, W_None),
-      16#Fc#        => ("cld             ", C_None, C_None, W_None),
-      16#Fd#        => ("std             ", C_None, C_None, W_None),
-      16#Fe#        => ("4               ", C_None, C_None, W_None),
-      16#Ff#        => ("5               ", C_None, C_None, W_None));
+      16#f0#        => ("lock            ", C_Lock, C_None, W_None),
+      16#f1#        => ("                ", C_None, C_None, W_None),
+      16#f2#        => ("repne           ", C_Prefix_Rep, C_None, W_None),
+      16#f3#        => ("rep             ", C_Prefix_Rep, C_None, W_None),
+      16#f4#        => ("hlt             ", C_None, C_None, W_None),
+      16#f5#        => ("cmc             ", C_None, C_None, W_None),
+      16#f6#        => ("3               ", C_Eb, C_None, W_None),
+      16#f7#        => ("3               ", C_Ev, C_None, W_None),
+      16#f8#        => ("clc             ", C_None, C_None, W_None),
+      16#f9#        => ("stc             ", C_None, C_None, W_None),
+      16#fa#        => ("cli             ", C_None, C_None, W_None),
+      16#fb#        => ("sti             ", C_None, C_None, W_None),
+      16#fc#        => ("cld             ", C_None, C_None, W_None),
+      16#fd#        => ("std             ", C_None, C_None, W_None),
+      16#fe#        => ("4               ", C_None, C_None, W_None),
+      16#ff#        => ("5               ", C_None, C_None, W_None));
 
    Insn_Desc_0F : constant Insn_Desc_Array_Type :=
      (
@@ -530,10 +530,10 @@ package body Disa_X86 is
       16#21#        => ("mov             ", C_Rd, C_Dd, W_None),
       16#22#        => ("mov             ", C_Cd, C_Rd, W_None),
       16#23#        => ("mov             ", C_Dd, C_Rd, W_None),
-      --  The 16#25# slot is reserved.
+      --  The 16#25# slot is reserved
       --  The 16#24# and 16#26# slots is a MOV for test registers. Not
       --  documented.
-      --  The 16#27# slot is reserved.
+      --  The 16#27# slot is reserved
       16#28#        => ("movaps          ", C_Vps, C_Wps, W_None),
       16#29#        => ("movaps          ", C_Wps, C_Vps, W_None),
       16#2a#        => ("cvtpi2ps        ", C_Vps, C_Qq, W_None),
@@ -549,7 +549,7 @@ package body Disa_X86 is
       16#33#        => ("rdpmc           ", C_None, C_None, W_None),
       16#34#        => ("sysenter        ", C_None, C_None, W_None),
       16#35#        => ("sysexit         ", C_None, C_None, W_None),
-      --  The 16#36#-16#3f# slot are reserved.
+      --  The 16#36#-16#3f# slot are reserved
 
       16#40#        => ("cmovo           ", C_Gv, C_Ev, W_None),
       16#41#        => ("cmovno          ", C_Gv, C_Ev, W_None),
@@ -602,7 +602,7 @@ package body Disa_X86 is
       16#6f#        => ("movq            ", C_Pq, C_Qq, W_None),
 
       16#70#        => ("pshufw          ", C_Pq, C_Qq, W_8),
-      --  TODO??? 12/13/14 extended opcodes forms.
+      --  TODO??? 12/13/14 extended opcodes forms
       16#74#        => ("pcmpeqb         ", C_Pq, C_Qq, W_None),
       16#75#        => ("pcmpeqw         ", C_Pq, C_Qq, W_None),
       16#76#        => ("pcmepeqd        ", C_Pq, C_Qq, W_None),
@@ -647,19 +647,19 @@ package body Disa_X86 is
       2#1001_1110#  => ("setle           ", C_Eb, C_None, W_None),
       2#1001_1111#  => ("setjg           ", C_Eb, C_None, W_None),
 
-      16#A4#        => ("shld            ", C_Ev, C_Gv_Ib, W_None),
-      16#A5#        => ("shld            ", C_Ev, C_Gv_Cl, W_None),
-      16#Ac#        => ("shrd            ", C_Ev, C_Gv_Ib, W_None),
-      16#Ad#        => ("shrd            ", C_Ev, C_Gv_Cl, W_None),
-      16#Af#        => ("imul            ", C_Gv, C_Ev, W_None),
+      16#a4#        => ("shld            ", C_Ev, C_Gv_Ib, W_None),
+      16#a5#        => ("shld            ", C_Ev, C_Gv_Cl, W_None),
+      16#ac#        => ("shrd            ", C_Ev, C_Gv_Ib, W_None),
+      16#ad#        => ("shrd            ", C_Ev, C_Gv_Cl, W_None),
+      16#af#        => ("imul            ", C_Gv, C_Ev, W_None),
 
-      16#B6#        => ("movzx           ", C_Gv, C_Eb, W_None),
-      16#B7#        => ("movzx           ", C_Gv, C_Ew, W_None),
-      16#BB#        => ("btc             ", C_Ev, C_Gv, W_None),
-      16#BC#        => ("bsf             ", C_Gv, C_Ev, W_None),
-      16#BD#        => ("bsr             ", C_Gv, C_Ev, W_None),
-      16#BE#        => ("movsx           ", C_Gv, C_Eb, W_None),
-      16#BF#        => ("movsx           ", C_Gv, C_Ew, W_None),
+      16#b6#        => ("movzx           ", C_Gv, C_Eb, W_None),
+      16#b7#        => ("movzx           ", C_Gv, C_Ew, W_None),
+      16#bb#        => ("btc             ", C_Ev, C_Gv, W_None),
+      16#bc#        => ("bsf             ", C_Gv, C_Ev, W_None),
+      16#bd#        => ("bsr             ", C_Gv, C_Ev, W_None),
+      16#be#        => ("movsx           ", C_Gv, C_Eb, W_None),
+      16#bf#        => ("movsx           ", C_Gv, C_Ew, W_None),
 
       16#c0#        => ("xadd            ", C_Eb, C_Gb, W_None),
       16#c1#        => ("xadd            ", C_Ev, C_Gv, W_None),
@@ -668,7 +668,7 @@ package body Disa_X86 is
       16#c4#        => ("pinsrw          ", C_Pw, C_Ew, W_8),
       16#c5#        => ("pextrw          ", C_Gw, C_Pw, W_8),
       16#c6#        => ("shufps          ", C_Vps, C_Wps, W_8),
-      --  TODO??? 9 extended opcodes forms.
+      --  TODO??? 9 extended opcodes forms
       16#c8#        => ("bswap           ", C_Reg_Ax, C_None, W_None),
       16#c9#        => ("bswap           ", C_Reg_Cx, C_None, W_None),
       16#ca#        => ("bswap           ", C_Reg_Dx, C_None, W_None),
@@ -678,13 +678,13 @@ package body Disa_X86 is
       16#ce#        => ("bswap           ", C_Reg_Si, C_None, W_None),
       16#cf#        => ("bswap           ", C_Reg_Di, C_None, W_None),
 
-      --  The 16#d0# slot is reserved.
+      --  The 16#d0# slot is reserved
       16#d1#        => ("psrlw           ", C_Pq, C_Qq, W_None),
       16#d2#        => ("psrld           ", C_Pq, C_Qq, W_None),
       16#d3#        => ("psrlq           ", C_Pq, C_Qq, W_None),
       16#d4#        => ("paddq           ", C_Pq, C_Qq, W_None),
       16#d5#        => ("pmullw          ", C_Pq, C_Qq, W_None),
-      --  The 16#d6# slot is reserved.
+      --  The 16#d6# slot is reserved
       16#d7#        => ("pmovmskb        ", C_Gd, C_Pq, W_None),
       16#d8#        => ("psubusb         ", C_Pq, C_Qq, W_None),
       16#d9#        => ("psubusw         ", C_Pq, C_Qq, W_None),
@@ -701,7 +701,7 @@ package body Disa_X86 is
       16#e3#        => ("pavgw           ", C_Pq, C_Qq, W_None),
       16#e4#        => ("pmulhuw         ", C_Pq, C_Qq, W_None),
       16#e5#        => ("pmulhw          ", C_Pq, C_Qq, W_None),
-      --  The 16#e6# slot is reserved.
+      --  The 16#e6# slot is reserved
       16#e7#        => ("movntq          ", C_Mq, C_Vq, W_None),
       16#e8#        => ("psubsb          ", C_Pq, C_Qq, W_None),
       16#e9#        => ("psubsw          ", C_Pq, C_Qq, W_None),
@@ -712,7 +712,7 @@ package body Disa_X86 is
       16#ee#        => ("pmaxsw          ", C_Pq, C_Qq, W_None),
       16#ef#        => ("pxor            ", C_Pq, C_Qq, W_None),
 
-      --  The 16#f0# slot is reserved.
+      --  The 16#f0# slot is reserved
       16#f1#        => ("psllw           ", C_Pq, C_Qq, W_None),
       16#f2#        => ("pslld           ", C_Pq, C_Qq, W_None),
       16#f3#        => ("psllq           ", C_Pq, C_Qq, W_None),
@@ -727,7 +727,7 @@ package body Disa_X86 is
       16#fc#        => ("paddb           ", C_Pq, C_Qq, W_None),
       16#fd#        => ("paddw           ", C_Pq, C_Qq, W_None),
       16#fe#        => ("paddd           ", C_Pq, C_Qq, W_None),
-      --  The 16#ff# slot is reserved.
+      --  The 16#ff# slot is reserved
 
       others       =>  ("                ", C_None, C_None, W_None));
 
@@ -753,7 +753,7 @@ package body Disa_X86 is
 
       16#50#        => ("movmskpd        ", C_Gd, C_Vpd, W_None),
       16#51#        => ("sqrtpd          ", C_Vpd, C_Wpd, W_None),
-      --  The 16#52#-16#63# slots are reserved.
+      --  The 16#52#-16#63# slots are reserved
       16#54#        => ("andpd           ", C_Vpd, C_Wpd, W_None),
       16#55#        => ("andnpd          ", C_Vpd, C_Wpd, W_None),
       16#56#        => ("orpdpd          ", C_Vpd, C_Wpd, W_None),
@@ -785,11 +785,11 @@ package body Disa_X86 is
       16#6f#        => ("movdqa          ", C_Vdq, C_Wdq, W_None),
 
       16#70#        => ("pshufd          ", C_Vdq, C_Wdq, W_8),
-      --  TODO??? 12/13/14 extended opcodes forms.
+      --  TODO??? 12/13/14 extended opcodes forms
       16#74#        => ("pcmpeqb         ", C_Vdq, C_Wdq, W_8),
       16#75#        => ("pcmpeqw         ", C_Vdq, C_Wdq, W_8),
       16#76#        => ("pcmpeqd         ", C_Vdq, C_Wdq, W_8),
-      --  The 16#77#-16#7b# slots are reserved.
+      --  The 16#77#-16#7b# slots are reserved
       16#7c#        => ("haddpd          ", C_Vdq, C_Wdq, W_8),
       16#7d#        => ("hsubpd          ", C_Vdq, C_Wdq, W_8),
       16#7e#        => ("movd            ", C_Ed, C_Vd, W_8),
@@ -799,7 +799,7 @@ package body Disa_X86 is
       16#c4#        => ("pinsrw          ", C_Vw, C_Ew, W_8),
       16#c5#        => ("pextrw          ", C_Gw, C_Vw, W_8),
       16#c6#        => ("shufpd          ", C_Vpd, C_Wpd, W_8),
-      --  TODO??? 19 extended opcodes forms.
+      --  TODO??? 19 extended opcodes forms
 
       16#d0#        => ("addsubpd        ", C_Vpd, C_Wpd, W_None),
       16#d1#        => ("psrlw           ", C_Vdq, C_Wdq, W_None),
@@ -835,7 +835,7 @@ package body Disa_X86 is
       16#ee#        => ("pmaxsw          ", C_Vdq, C_Wdq, W_None),
       16#ef#        => ("pxor            ", C_Vdq, C_Wdq, W_None),
 
-      --  The 16#f0# slot is reserved.
+      --  The 16#f0# slot is reserved
       16#f1#        => ("psllw           ", C_Vdq, C_Wdq, W_None),
       16#f2#        => ("pslld           ", C_Vdq, C_Wdq, W_None),
       16#f3#        => ("psllq           ", C_Vdq, C_Wdq, W_None),
@@ -850,7 +850,7 @@ package body Disa_X86 is
       16#fc#        => ("paddb           ", C_Vdq, C_Wdq, W_None),
       16#fd#        => ("paddw           ", C_Vdq, C_Wdq, W_None),
       16#fe#        => ("paddd           ", C_Vdq, C_Wdq, W_None),
-      --  The 16#ff# slot is reserved.
+      --  The 16#ff# slot is reserved
 
       others        => ("                ", C_None, C_None, W_None));
 
@@ -869,18 +869,18 @@ package body Disa_X86 is
       16#58#        => ("addsd           ", C_Vsd, C_Wsd, W_None),
       16#59#        => ("mulsd           ", C_Vsd, C_Wsd, W_None),
       16#5a#        => ("cvtsd2ss        ", C_Vsd, C_Wsd, W_None),
-      --  The 16#5b# slot is reserved.
+      --  The 16#5b# slot is reserved
       16#5c#        => ("subsd           ", C_Vsd, C_Wsd, W_None),
       16#5d#        => ("minsd           ", C_Vsd, C_Wsd, W_None),
       16#5e#        => ("divsd           ", C_Vsd, C_Wsd, W_None),
       16#5f#        => ("maxsd           ", C_Vsd, C_Wsd, W_None),
 
       16#70#        => ("pshuflw         ", C_Vdq, C_Wdq, W_8),
-      --  TODO??? 12/13/14 extended opcodes forms.
-      --  The 16#74#-16#7b# slots are reserved.
+      --  TODO??? 12/13/14 extended opcodes forms
+      --  The 16#74#-16#7b# slots are reserved
       16#7c#        => ("haddps          ", C_Vps, C_Wps, W_None),
       16#7d#        => ("hsubps          ", C_Vps, C_Wps, W_None),
-      --  The 16#7e#-16#7f# slots are reserved.
+      --  The 16#7e#-16#7f# slots are reserved
 
       16#c2#        => ("cmpsd           ", C_Vsd, C_Wsd, W_8),
       16#d6#        => ("movdq2q         ", C_Pq, C_Vq, W_None),
@@ -894,21 +894,21 @@ package body Disa_X86 is
       16#10#        => ("movss           ", C_Vss, C_Wss, W_None),
       16#11#        => ("movss           ", C_Wss, C_Vss, W_None),
       16#13#        => ("movsldup        ", C_Vps, C_Wps, W_None),
-      --  The 16#14#-16#15# slots are reserved.
+      --  The 16#14#-16#15# slots are reserved
       16#16#        => ("movshdup        ", C_Vps, C_Wps, W_None),
-      --  The 16#17# slot is reserved.
-      --  TODO??? 16 extended opcodes forms.
-      --  The 16#19#-16#1f# slots are reserved.
+      --  The 16#17# slot is reserved
+      --  TODO??? 16 extended opcodes forms
+      --  The 16#19#-16#1f# slots are reserved
 
       16#2a#        => ("cvtsi2ss        ", C_Vss, C_Ed, W_None),
       16#2c#        => ("cvttss2si       ", C_Gd, C_Wss, W_None),
       16#2d#        => ("cvtss2si        ", C_Gd, C_Wss, W_None),
 
-      --  The 16#50# slot is reserved.
+      --  The 16#50# slot is reserved
       16#51#        => ("sqrtss          ", C_Vss, C_Wss, W_None),
       16#52#        => ("rsqrtss         ", C_Vss, C_Wss, W_None),
       16#53#        => ("rcpss           ", C_Vss, C_Wss, W_None),
-      --  The 16#54#-16#57# slots are reserved.
+      --  The 16#54#-16#57# slots are reserved
       16#58#        => ("addss           ", C_Vss, C_Wss, W_None),
       16#59#        => ("mulss           ", C_Vss, C_Wss, W_None),
       16#5a#        => ("cvtss2sd        ", C_Vsd, C_Wss, W_None),
@@ -921,8 +921,8 @@ package body Disa_X86 is
       16#6f#        => ("movdqu          ", C_Vdq, C_Wdq, W_None),
 
       16#70#        => ("pshufhw         ", C_Vdq, C_Wdq, W_8),
-      --  TODO??? 12/13/14 extended opcodes forms.
-      --  The 16#74#-16#7d# slots are reserved.
+      --  TODO??? 12/13/14 extended opcodes forms
+      --  The 16#74#-16#7d# slots are reserved
       16#7e#        => ("movq            ", C_Vq, C_Wq, W_None),
       16#7f#        => ("movdqu          ", C_Wdq, C_Vdq, W_None),
 
@@ -939,7 +939,7 @@ package body Disa_X86 is
    Group_Name_2 : constant Group_Name_Array_Type :=
      ("rol", "ror", "rcl", "rcr", "shl", "shr", "   ", "sar");
 
-   --  16#F7#
+   --  16#f7#
    Insn_Desc_G3 : constant Group_Desc_Array_Type :=
      (2#000# => ("test            ", C_Ib, C_Iz, W_None),
       2#010# => ("not             ", C_None, C_None, W_None),
@@ -1215,37 +1215,37 @@ package body Disa_X86 is
    type Width_Array_Type is array (Width_Type) of Character;
    Width_Char : constant Width_Array_Type :=
      (W_None => '-',
-      W_8 => 'b',
-      W_16 => 'w',
-      W_32 => 'l',
-      W_64 => 'q',
-      W_128 => 's');
+      W_8    => 'b',
+      W_16   => 'w',
+      W_32   => 'l',
+      W_64   => 'q',
+      W_128  => 's');
    type Width_Len_Type is array (Width_Type) of Pc_Type;
    Width_Len : constant Width_Len_Type :=
      (W_None => 0,
-      W_8 => 1,
-      W_16 => 2,
-      W_32 => 4,
-      W_64 => 8,
-      W_128 => 16);
+      W_8    => 1,
+      W_16   => 2,
+      W_32   => 4,
+      W_64   => 8,
+      W_128  => 16);
 
    type To_General_Type is array (Width_Type) of Reg_Class_Type;
    To_General : constant To_General_Type :=
-     (W_None   => R_None,
-      W_8      => R_8,
-      W_16     => R_16,
-      W_32     => R_32,
-      W_64     => R_None,
-      W_128    => R_None);
+     (W_None => R_None,
+      W_8    => R_8,
+      W_16   => R_16,
+      W_32   => R_32,
+      W_64   => R_None,
+      W_128  => R_None);
 
    type To_Z_Type is array (Width_Type) of Width_Type;
    To_Z : constant To_Z_Type :=
      (W_None => W_None,
-      W_8 => W_None,
-      W_16 => W_16,
-      W_32 => W_32,
-      W_64 => W_64,
-      W_128 => W_128);
+      W_8    => W_None,
+      W_16   => W_16,
+      W_32   => W_32,
+      W_64   => W_64,
+      W_128  => W_128);
 
    --  Bits extraction from byte functions
 
@@ -1330,10 +1330,10 @@ package body Disa_X86 is
       case Width is
          when W_8 =>
             V := Unsigned_32 (Mem (Off));
-            --  Sign extension.
+            --  Sign extension
 
             if V >= 16#80# then
-               V := 16#Ffff_Ff00# or V;
+               V := 16#ffff_ff00# or V;
             end if;
             return V;
 
@@ -1659,10 +1659,10 @@ package body Disa_X86 is
          if Offset = 0 then
             Decode_Val (Off_Orig, Width);
          else
-            Add_Byte (Byte (Shift_Right (V, 24) and 16#Ff#));
-            Add_Byte (Byte (Shift_Right (V, 16) and 16#Ff#));
-            Add_Byte (Byte (Shift_Right (V, 8) and 16#Ff#));
-            Add_Byte (Byte (Shift_Right (V, 0) and 16#Ff#));
+            Add_Byte (Byte (Shift_Right (V, 24) and 16#ff#));
+            Add_Byte (Byte (Shift_Right (V, 16) and 16#ff#));
+            Add_Byte (Byte (Shift_Right (V, 8) and 16#ff#));
+            Add_Byte (Byte (Shift_Right (V, 0) and 16#ff#));
          end if;
       end Decode_Disp;
 
@@ -2079,13 +2079,13 @@ package body Disa_X86 is
             when C_Prefix_Rep =>
                B1 := Mem (Off);
                Off := Off + 1;
-               if B1 = 16#0F# then
+               if B1 = 16#0f# then
                   B1 := Mem (Off);
                   Off := Off + 1;
                   case B is
-                     when 16#F2# =>
+                     when 16#f2# =>
                         Desc := Insn_Desc_F2_0F (B1);
-                     when 16#F3# =>
+                     when 16#f3# =>
                         Desc := Insn_Desc_F3_0F (B1);
                      when others =>
                         Desc.Name (1) := ' ';
@@ -2105,7 +2105,7 @@ package body Disa_X86 is
 
             when C_Prefix_Oper =>
                B1 := Mem (Off);
-               if B = 16#66# and then B1 = 16#0F# then
+               if B = 16#66# and then B1 = 16#0f# then
                   Off := Off + 1;
                   B1 := Mem (Off);
                   Off := Off + 1;
@@ -2159,7 +2159,7 @@ package body Disa_X86 is
             Desc := Insn_Desc_G3 (Ext_543 (B1));
             Name := Desc.Name;
 
-            if B = 16#F6# then
+            if B = 16#f6# then
                Src := Desc.Dst;
             else
                Src := Desc.Src;
@@ -2363,9 +2363,9 @@ package body Disa_X86 is
       B := Insn_Bin (Insn_Bin'First);
 
       case B is
-         when 16#70# .. 16#7F#
-           | 16#E0# .. 16#E2#
-           | 16#E3# =>
+         when 16#70# .. 16#7f#
+           | 16#e0# .. 16#e2#
+           | 16#e3# =>
             --  Jcc Jb / Loop Jb / jrcxz
             Branch     := Br_Jmp;
             Flag_Cond  := True;
@@ -2375,9 +2375,9 @@ package body Disa_X86 is
               FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
             return;
 
-         when 16#0F# =>
+         when 16#0f# =>
             B := Insn_Bin (Insn_Bin'First + 1);
-            if B in 16#80# .. 16#8F# then
+            if B in 16#80# .. 16#8f# then
                --  Jcc Jz
                Branch     := Br_Jmp;
                Flag_Cond  := True;
@@ -2389,17 +2389,17 @@ package body Disa_X86 is
             end if;
             return;
 
-         when 16#C2# --  ret
-           | 16#C3#
-           | 16#CA#  --  retf
-           | 16#CB#
-           | 16#CF# =>  -- iret
+         when 16#c2# --  ret
+           | 16#c3#
+           | 16#ca#  --  retf
+           | 16#cb#
+           | 16#cf# =>  -- iret
             Branch     := Br_Ret;
             Flag_Cond  := False;
             Flag_Indir := True;
             return;
 
-         when 16#E8# =>
+         when 16#e8# =>
             --  Call
             Branch     := Br_Call;
             Flag_Cond  := False;
@@ -2409,7 +2409,7 @@ package body Disa_X86 is
               FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
-         when 16#9A# =>
+         when 16#9a# =>
             --  Callf
             Branch     := Br_Call;
             Flag_Cond  := False;
@@ -2419,7 +2419,7 @@ package body Disa_X86 is
               Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
-         when 16#E9# =>
+         when 16#e9# =>
             --  jmp rel32
             Branch     := Br_Jmp;
             Flag_Cond  := False;
@@ -2429,7 +2429,7 @@ package body Disa_X86 is
               FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
-         when 16#EA# =>
+         when 16#ea# =>
             --  jmp ptr32
             Branch     := Br_Jmp;
             Flag_Cond  := False;
@@ -2439,7 +2439,7 @@ package body Disa_X86 is
               Decode_Val (Mem'Unrestricted_Access, 1, W_32);
             return;
 
-         when 16#EB# =>
+         when 16#eb# =>
             --  jmp rel8
             Branch     := Br_Jmp;
             Flag_Cond  := False;
@@ -2449,7 +2449,7 @@ package body Disa_X86 is
               FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
             return;
 
-         when 16#FF# =>
+         when 16#ff# =>
             B1 := Insn_Bin (Insn_Bin'First + 1);
             case Ext_543 (B1) is
                when 2#010# | 2#011# =>
