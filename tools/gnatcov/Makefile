@@ -123,6 +123,8 @@ ifeq ($(HOST_OS), linux)
 ADAPTER_SUBDIRS = trace_adapters/valgrind
 endif
 
+PARALLEL_BUILD=8
+
 .PHONY: default all adapters bin $(PGMNAME) $(ADAPTER_SUBDIRS)
 
 default: bin
@@ -134,7 +136,7 @@ bin: $(PGMNAME)
 all: bin adapters
 
 $(PGMNAME):
-	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
+	$(GNATMAKE) -j$(PARALLEL_BUILD) -Pgnatcov $(EXTRA_ADAFLAGS) $@
 
 $(ADAPTER_SUBDIRS):
 	$(MAKE) -C $@
@@ -145,7 +147,7 @@ $(ADAPTER_SUBDIRS):
 #######################
 
 ppc_genopc:
-	$(GNATMAKE) -Pgnatcov $(EXTRA_ADAFLAGS) $@
+	$(GNATMAKE) -j$(PARALLEL_BUILD) -Pgnatcov $(EXTRA_ADAFLAGS) $@
 
 ppc_disopc.ads: ppc_genopc ppc_disopc.tmpl
 	./ppc_genopc > $@
