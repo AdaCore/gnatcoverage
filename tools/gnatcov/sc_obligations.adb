@@ -2437,6 +2437,12 @@ package body SC_Obligations is
          end if;
       end if;
 
+      --  A fuzzy match is specified as never returning a condition
+
+      pragma Assert (not (Sloc.Column = 0
+                            and then SCO /= No_SCO_Id
+                            and then Kind (SCO) = Condition));
+
       return SCO;
    end Sloc_To_SCO;
 
