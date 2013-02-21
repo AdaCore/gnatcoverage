@@ -26,8 +26,14 @@ clean: clean.pdf clean.html
 	-rmdir $(BUILDDIR)
 
 copy.pdf:
+# The doc build constructs a few intermediate pdfs on the fly for
+# figures and we want the master doc only at the end. Extract the
+# name from the sphinx conf.py script, where we expect to have a
+# line like << master_doc = "gnatcov" or 'gnatcov' >> someplace.
 	-mkdir -p $(COPYDIR)
-	cp $(BUILDDIR)/pdf/*.pdf $(COPYDIR)
+	cp $(BUILDDIR)/pdf/$(shell sed -n -e \
+               "s/master_doc.*=[^'\"]*['\"]\([^'\"]*\).*/\1/p" conf.py).pdf \
+           $(COPYDIR)
 
 copy.html:
 	-mkdir -p $(COPYDIR)
