@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -80,7 +80,10 @@ package Elf_Files is
                              return Elf_Shdr_Acc;
 
    function Get_Section_Length (File : Elf_File; Index : Elf_Half)
-                               return Elf_Size;
+                               return Elf_Addr;
+
+   --  Extract and swap bytes (if necessary) a relocation entry
+   function Get_Rela (File : Elf_File; Addr : Address) return Elf_Rela;
 
    --  Extract and swap bytes (if necessary) a symbol entry.
    function Get_Sym (File : Elf_File; Addr : Address) return Elf_Sym;
@@ -90,20 +93,25 @@ package Elf_Files is
    procedure Load_Section (File : Elf_File;
                            Shdr : Elf_Shdr_Acc; Addr : Address);
 
-   type Elf_Strtab is array (Elf_Size range <>) of Character;
+   type Elf_Rela_Acc is access Elf_Rela;
+
+   type Elf_Strtab is array (Elf_Addr range <>) of Character;
    type Elf_Strtab_Acc is access Elf_Strtab;
 private
-   type Strtab_Fat_Type is array (Elf_Size) of Character;
+   type Strtab_Fat_Type is array (Elf_Addr) of Character;
    type Strtab_Fat_Acc is access all Strtab_Fat_Type;
 
    type Strtab_Type is record
       Base : Strtab_Fat_Acc;
-      Length : Elf_Size;
+      Length : Elf_Addr;
    end record;
 
    Null_Strtab : constant Strtab_Type := (null, 0);
 
    Nul : constant Character := Character'Val (0);
+
+   function To_Elf_Rela_Acc is new Ada.Unchecked_Conversion
+     (Address, Elf_Rela_Acc);
 
    function To_Strtab_Fat_Acc is new Ada.Unchecked_Conversion
      (Address, Strtab_Fat_Acc);

@@ -17,8 +17,8 @@
 ------------------------------------------------------------------------------
 with Swaps; use Swaps;
 
-package body Elf32 is
-   procedure Elf32_Ehdr_Swap (Ehdr : in out Elf32_Ehdr) is
+package body Elf64 is
+   procedure Elf64_Ehdr_Swap (Ehdr : in out Elf64_Ehdr) is
    begin
       Ehdr := (E_Ident => Ehdr.E_Ident,
                E_Type => Swap (Ehdr.E_Type),
@@ -34,9 +34,9 @@ package body Elf32 is
                E_Shentsize => Swap (Ehdr.E_Shentsize),
                E_Shnum => Swap (Ehdr.E_Shnum),
                E_Shstrndx => Swap (Ehdr.E_Shstrndx));
-   end Elf32_Ehdr_Swap;
+   end Elf64_Ehdr_Swap;
 
-   procedure Elf32_Shdr_Swap (Shdr : in out Elf32_Shdr) is
+   procedure Elf64_Shdr_Swap (Shdr : in out Elf64_Shdr) is
    begin
       Shdr := (Sh_Name => Swap (Shdr.Sh_Name),
                Sh_Type => Swap (Shdr.Sh_Type),
@@ -48,9 +48,9 @@ package body Elf32 is
                Sh_Info => Swap (Shdr.Sh_Info),
                Sh_Addralign => Swap (Shdr.Sh_Addralign),
                Sh_Entsize => Swap (Shdr.Sh_Entsize));
-   end Elf32_Shdr_Swap;
+   end Elf64_Shdr_Swap;
 
-   procedure Elf32_Sym_Swap (Sym : in out Elf32_Sym) is
+   procedure Elf64_Sym_Swap (Sym : in out Elf64_Sym) is
    begin
       Sym := (St_Name => Swap (Sym.St_Name),
               St_Value => Swap (Sym.St_Value),
@@ -58,42 +58,42 @@ package body Elf32 is
               St_Info => Sym.St_Info,
               St_Other => Sym.St_Other,
               St_Shndx => Swap (Sym.St_Shndx));
-   end Elf32_Sym_Swap;
+   end Elf64_Sym_Swap;
 
-   procedure Elf32_Rela_Swap (Rela : in out Elf32_Rela) is
+   procedure Elf64_Rela_Swap (Rela : in out Elf64_Rela) is
    begin
       Rela := (R_Offset => Swap (Rela.R_Offset),
                R_Info   => Swap (Rela.R_Info),
                R_Addend => Swap (Rela.R_Addend));
-   end Elf32_Rela_Swap;
+   end Elf64_Rela_Swap;
 
-   function Elf32_St_Bind (Info : Elf32_Uchar) return Elf32_Uchar is
+   function Elf64_St_Bind (Info : Elf64_Uchar) return Elf64_Uchar is
    begin
       return Shift_Right (Info, 4);
-   end Elf32_St_Bind;
+   end Elf64_St_Bind;
 
-   function Elf32_St_Type (Info : Elf32_Uchar) return Elf32_Uchar is
+   function Elf64_St_Type (Info : Elf64_Uchar) return Elf64_Uchar is
    begin
       return Info and 16#0F#;
-   end Elf32_St_Type;
+   end Elf64_St_Type;
 
-   function Elf32_St_Info (B, T : Elf32_Uchar) return Elf32_Uchar is
+   function Elf64_St_Info (B, T : Elf64_Uchar) return Elf64_Uchar is
    begin
       return Shift_Left (B, 4) or T;
-   end Elf32_St_Info;
+   end Elf64_St_Info;
 
-   function Elf32_R_Sym (I : Elf32_Word) return Elf32_Word is
+   function Elf64_R_Sym (I : Elf64_Xword) return Elf64_Word is
    begin
-      return Shift_Right (I, 8);
-   end Elf32_R_Sym;
+      return Elf64_Word (Shift_Right (I, 32));
+   end Elf64_R_Sym;
 
-   function Elf32_R_Type (I : Elf32_Word) return Elf32_Word is
+   function Elf64_R_Type (I : Elf64_Xword) return Elf64_Word is
    begin
-      return I and 16#Ff#;
-   end Elf32_R_Type;
+      return Elf64_Word (I and 16#ffff_ffff#);
+   end Elf64_R_Type;
 
-   function Elf32_R_Info (S, T : Elf32_Word) return Elf32_Word is
+   function Elf64_R_Info (S, T : Elf64_Word) return Elf64_Xword is
    begin
-      return Shift_Left (S, 8) or T;
-   end Elf32_R_Info;
-end Elf32;
+      return Shift_Left (Elf64_Xword (S), 32) or Elf64_Xword (T);
+   end Elf64_R_Info;
+end Elf64;

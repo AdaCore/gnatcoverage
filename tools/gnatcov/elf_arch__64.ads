@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2012, AdaCore                     --
+--                     Copyright (C) 2006-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,38 +16,39 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 with Elf_Common; use Elf_Common;
-with Elf32; use Elf32;
+with Elf64; use Elf64;
 
-package Elf_Arch32 is
-   subtype Elf_Ehdr is Elf32_Ehdr;
-   subtype Elf_Shdr is Elf32_Shdr;
-   subtype Elf_Sym is Elf32_Sym;
-   subtype Elf_Rel is Elf32_Rel;
-   subtype Elf_Rela is Elf32_Rela;
-   subtype Elf_Phdr is Elf32_Phdr;
-   subtype Elf_Addr is Elf32_Addr;
+package Elf_Arch is
+   subtype Elf_Ehdr is Elf64_Ehdr;
+   subtype Elf_Shdr is Elf64_Shdr;
+   subtype Elf_Sym is Elf64_Sym;
+   subtype Elf_Rel is Elf64_Rel;
+   subtype Elf_Rela is Elf64_Rela;
+   subtype Elf_Phdr is Elf64_Phdr;
+   subtype Elf_Addr is Elf64_Addr;
 
-   subtype Elf_Off is Elf32_Off;
-   subtype Elf_Size is Elf32_Word;
-   Elf_Ehdr_Size : constant Natural := Elf32_Ehdr_Size;
-   Elf_Shdr_Size : constant Natural := Elf32_Shdr_Size;
-   Elf_Phdr_Size : constant Natural := Elf32_Phdr_Size;
-   Elf_Sym_Size  : constant Natural := Elf32_Sym_Size;
-   Elf_Rela_Size : constant Natural := Elf32_Rela_Size;
+   subtype Elf_Off is Elf64_Off;
+   Elf_Ehdr_Size : constant Natural := Elf64_Ehdr_Size;
+   Elf_Shdr_Size : constant Natural := Elf64_Shdr_Size;
+   Elf_Phdr_Size : constant Natural := Elf64_Phdr_Size;
+   Elf_Sym_Size  : constant Natural := Elf64_Sym_Size;
+   Elf_Rela_Size : constant Natural := Elf64_Rela_Size;
 
-   Elf_Arch_Class : constant Elf_Uchar := ELFCLASS32;
+   Elf_Arch_Class : constant Elf_Uchar := ELFCLASS64;
 
    procedure Elf_Ehdr_Swap (Ehdr : in out Elf_Ehdr)
-     renames Elf32_Ehdr_Swap;
-   procedure Elf_Shdr_Swap (Ehdr : in out Elf_Shdr)
-     renames Elf32_Shdr_Swap;
-   procedure Elf_Sym_Swap (Ehdr : in out Elf_Sym)
-     renames Elf32_Sym_Swap;
+     renames Elf64_Ehdr_Swap;
+   procedure Elf_Shdr_Swap (Shdr : in out Elf_Shdr)
+     renames Elf64_Shdr_Swap;
+   procedure Elf_Rela_Swap (Rela : in out Elf_Rela)
+     renames Elf64_Rela_Swap;
+   procedure Elf_Sym_Swap (Sym : in out Elf_Sym)
+     renames Elf64_Sym_Swap;
 
-   function Elf_R_Sym (I : Elf_Word) return Elf_Word
-     renames Elf32_R_Sym;
-   function Elf_R_Type (I : Elf_Word) return Elf_Word
-     renames Elf32_R_Type;
-   function Elf_R_Info (S, T : Elf_Word) return Elf_Word
-     renames Elf32_R_Info;
-end Elf_Arch32;
+   function Elf_R_Sym (I : Elf_Xword) return Elf_Word
+     renames Elf64_R_Sym;
+   function Elf_R_Type (I : Elf_Xword) return Elf_Word
+     renames Elf64_R_Type;
+   function Elf_R_Info (S, T : Elf_Word) return Elf_Xword
+     renames Elf64_R_Info;
+end Elf_Arch;

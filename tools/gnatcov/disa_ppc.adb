@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -319,12 +319,12 @@ package body Disa_Ppc is
                      --  Test AA field
 
                      if (W and 2) = 0 then
-                        Val := Val + Pc;
+                        Val := Val + Unsigned_32 (Pc);
                      end if;
 
                      Add ("0x");
                      Add (Hex_Image (Val));
-                     Sym.Symbolize (Val, Line, Line_Pos);
+                     Sym.Symbolize (Pc_Type (Val), Line, Line_Pos);
 
                   when F_BD =>
                      Val := Shift_Left (Val, 2);
@@ -338,11 +338,11 @@ package body Disa_Ppc is
                      --  Test AA field
 
                      if (W and 2) = 0 then
-                        Val := Val + Pc;
+                        Val := Val + Unsigned_32 (Pc);
                      end if;
                      Add ("0x");
                      Add (Hex_Image (Val));
-                     Sym.Symbolize (Val, Line, Line_Pos);
+                     Sym.Symbolize (Pc_Type (Val), Line, Line_Pos);
 
                   when F_CrfD | F_CrfS =>
                      Add ("cr");
@@ -370,7 +370,7 @@ package body Disa_Ppc is
    procedure Get_Insn_Properties
      (Self        : PPC_Disassembler;
       Insn_Bin    : Binary_Content;
-      Pc          : Unsigned_32;
+      Pc          : Pc_Type;
       Branch      : out Branch_Kind;
       Flag_Indir  : out Boolean;
       Flag_Cond   : out Boolean;
@@ -380,7 +380,7 @@ package body Disa_Ppc is
       Insn : constant Unsigned_32 := To_Insn (Insn_Bin);
 
       Opc, Xo, Bo : Unsigned_32;
-      D : Unsigned_32;
+      D : Pc_Type;
    begin
       Branch_Dest := (No_PC, No_PC);
       FT_Dest     := (No_PC, No_PC);
@@ -402,7 +402,7 @@ package body Disa_Ppc is
       if Opc = 18 then
          --  Opc = 18: b, ba, bl and bla
 
-         D := Shift_Left (Get_Signed_Field (F_LI, Insn), 2);
+         D := Pc_Type (Shift_Left (Get_Signed_Field (F_LI, Insn), 2));
          if Get_Field (F_AA, Insn) = 1 then
             Branch_Dest.Target := D;
          else
@@ -413,7 +413,7 @@ package body Disa_Ppc is
       elsif Opc = 16 then
          --  bcx
 
-         D := Shift_Left (Get_Signed_Field (F_BD, Insn), 2);
+         D := Pc_Type (Shift_Left (Get_Signed_Field (F_BD, Insn), 2));
          if Get_Field (F_AA, Insn) = 1 then
             Branch_Dest.Target := D;
          else

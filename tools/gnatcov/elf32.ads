@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2012, AdaCore                     --
+--                     Copyright (C) 2006-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -98,27 +98,11 @@ package Elf32 is
    end record;
    Elf32_Rela_Size : constant Natural := Elf32_Rela'Size / System.Storage_Unit;
 
+   procedure Elf32_Rela_Swap (Rela : in out Elf32_Rela);
+
    function Elf32_R_Sym (I : Elf32_Word) return Elf32_Word;
    function Elf32_R_Type (I : Elf32_Word) return Elf32_Word;
    function Elf32_R_Info (S, T : Elf32_Word) return Elf32_Word;
-
-   --  For i386
-   R_386_NONE : constant Elf32_Word := 0; -- none none
-   R_386_32   : constant Elf32_Word := 1; -- word32 S+A
-   R_386_PC32 : constant Elf32_Word := 2; -- word32 S+A-P
-
-   --  For sparc
-   R_SPARC_NONE    : constant Elf32_Word := 0; -- none
-   R_SPARC_32 :      constant Elf32_Word := 3; -- (S + A)
-   R_SPARC_WDISP30 : constant Elf32_Word := 7; -- (S + A - P) >> 2
-   R_SPARC_WDISP22 : constant Elf32_Word := 8; -- (S + A - P) >> 2
-   R_SPARC_HI22 :    constant Elf32_Word := 9; -- (S + A) >> 10
-   R_SPARC_LO10 :    constant Elf32_Word := 12; -- (S + A) & 0x3ff
-   R_SPARC_UA32 :    constant Elf32_Word := 23; -- (S + A)
-
-   --  For PPC.
-   R_PPC_NONE   : constant Elf32_Word := 0;
-   R_PPC_ADDR32 : constant Elf32_Word := 1; -- S + A
 
    type Elf32_Phdr is record
       P_Type   : Elf32_Word;

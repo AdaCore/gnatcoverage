@@ -39,7 +39,7 @@ with Slocs;          use Slocs;
 package Traces_Elf is
 
    type Binary_Content is
-     array (Elf_Arch.Elf_Size range <>) of Interfaces.Unsigned_8;
+     array (Elf_Arch.Elf_Addr range <>) of Interfaces.Unsigned_8;
    --  An array of byte, used to store ELF sections
 
    type Binary_Content_Acc is access Binary_Content;
@@ -323,12 +323,12 @@ private
       Addr_Size : Natural := 0;
 
       Debug_Str_Base : Address := Null_Address;
-      Debug_Str_Len : Elf_Size;
+      Debug_Str_Len : Elf_Addr;
       Debug_Strs : Binary_Content_Acc;
 
       --  .debug_lines contents
 
-      Lines_Len : Elf_Size := 0;
+      Lines_Len : Elf_Addr := 0;
       Lines : Binary_Content_Acc := null;
 
       --  Symbol table

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -25,7 +25,7 @@ package body Elf_Files is
 
    function Get_My_Data return Elf_Uchar;
    function Get_String
-     (Strtab : Elf_Strtab_Acc; Idx : Elf_Size) return String;
+     (Strtab : Elf_Strtab_Acc; Idx : Elf_Addr) return String;
 
    -----------------
    -- Get_My_Data --
@@ -260,7 +260,7 @@ package body Elf_Files is
    ------------------------
 
    function Get_Section_Length (File : Elf_File; Index : Elf_Half)
-                                      return Elf_Size is
+                                      return Elf_Addr is
    begin
       if Index >= File.Ehdr.E_Shnum then
          raise Constraint_Error;
@@ -276,9 +276,9 @@ package body Elf_Files is
    ----------------
 
    function Get_String
-     (Strtab : Elf_Strtab_Acc; Idx : Elf_Size) return String
+     (Strtab : Elf_Strtab_Acc; Idx : Elf_Addr) return String
    is
-      E : Elf_Size;
+      E : Elf_Addr;
    begin
       E := Idx;
       while Strtab (E) /= Nul loop
@@ -300,7 +300,7 @@ package body Elf_Files is
    is
    begin
       return Get_String (File.Sh_Strtab,
-                         Elf_Size (Get_Shdr (File, Index).Sh_Name));
+                         Elf_Addr (Get_Shdr (File, Index).Sh_Name));
    end Get_Shdr_Name;
 
    ----------------------
@@ -314,7 +314,7 @@ package body Elf_Files is
    begin
       for I in 1 .. File.Ehdr.E_Shnum - 1 loop
          Shdr := Get_Shdr (File, I);
-         if Get_String (File.Sh_Strtab, Elf_Size (Shdr.Sh_Name)) = Name then
+         if Get_String (File.Sh_Strtab, Elf_Addr (Shdr.Sh_Name)) = Name then
             return I;
          end if;
       end loop;
@@ -337,6 +337,20 @@ package body Elf_Files is
          return File.Shdr (I)'Access;
       end if;
    end Get_Shdr_By_Name;
+
+   --------------
+   -- Get_Rela --
+   --------------
+
+   function Get_Rela (File : Elf_File; Addr : Address) return Elf_Rela is
+      Res : Elf_Rela;
+   begin
+      Res := To_Elf_Rela_Acc (Addr).all;
+      if File.Need_Swap then
+         Elf_Rela_Swap (Res);
+      end if;
+      return Res;
+   end Get_Rela;
 
    -------------
    -- Get_Sym --

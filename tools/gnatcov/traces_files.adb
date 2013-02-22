@@ -260,8 +260,8 @@ package body Traces_Files is
          Swaps.Swap_16 (E32.Size);
       end if;
 
-      E := Trace_Entry'(First  => E32.Pc,
-                        Last   => E32.Pc + Pc_Type (E32.Size) - 1,
+      E := Trace_Entry'(First  => Pc_Type (E32.Pc),
+                        Last   => Pc_Type (E32.Pc) + Pc_Type (E32.Size) - 1,
                         Op     => E32.Op,
                         State  => Unknown);
    end Read_Trace_Entry;
@@ -600,9 +600,9 @@ package body Traces_Files is
          pragma Warnings (Off);
          --  Needs comment???
          if Pc_Type_Size = 4 then
-            E32 := (Pc => E.First,
+            E32 := (Pc   => Unsigned_32 (E.First),
                     Size => Unsigned_16 (E.Last - E.First + 1),
-                    Op => E.Op,
+                    Op   => E.Op,
                     Pad0 => 0);
          else
             raise Program_Error;

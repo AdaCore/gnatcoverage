@@ -1648,7 +1648,7 @@ package body Disa_X86 is
       begin
          L := Lo;
          V := Decode_Val (Mem'Unrestricted_Access, Off, Width) + Offset;
-         Sym.Symbolize (V, Line, Lo);
+         Sym.Symbolize (Pc_Type (V), Line, Lo);
          if L /= Lo then
             if V = 0 then
                return;
@@ -1675,7 +1675,7 @@ package body Disa_X86 is
          Disp_Off : constant Pc_Type := Off;
       begin
          Off := Off + Width_Len (Width);
-         Decode_Disp (Disp_Off, Width, Off);
+         Decode_Disp (Disp_Off, Width, Unsigned_32 (Off));
       end Decode_Disp_Rel;
 
       ----------------------
@@ -2372,7 +2372,8 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 2;
             Branch_Dest.Target :=
-              FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
+              FT_Dest.Target
+                + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_8));
             return;
 
          when 16#0f# =>
@@ -2385,7 +2386,7 @@ package body Disa_X86 is
                FT_Dest.Target := Pc + 6;
                Branch_Dest.Target :=
                  FT_Dest.Target
-                   + Decode_Val (Mem'Unrestricted_Access, 2, W_32);
+                   + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 2, W_32));
             end if;
             return;
 
@@ -2406,7 +2407,8 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+              FT_Dest.Target
+              + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32));
             return;
 
          when 16#9a# =>
@@ -2416,7 +2418,7 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+              Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32));
             return;
 
          when 16#e9# =>
@@ -2426,7 +2428,8 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+              FT_Dest.Target
+                + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32));
             return;
 
          when 16#ea# =>
@@ -2436,7 +2439,7 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              Decode_Val (Mem'Unrestricted_Access, 1, W_32);
+              Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32));
             return;
 
          when 16#eb# =>
@@ -2446,7 +2449,8 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 2;
             Branch_Dest.Target :=
-              FT_Dest.Target + Decode_Val (Mem'Unrestricted_Access, 1, W_8);
+              FT_Dest.Target
+              + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_8));
             return;
 
          when 16#ff# =>

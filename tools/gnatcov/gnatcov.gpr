@@ -1,6 +1,17 @@
 with "gnatcoll";
 project Gnatcov is
 
+   type Bits_Type is ("32", "64");
+   Bits : Bits_Type := external("ARCH", "32");
+
+   package Naming is
+      for Specification ("Elf_Arch") use "elf_arch__" & Bits & ".ads";
+   end Naming;
+
+   package Builder is
+      for Global_Configuration_Pragmas use "gnat.adc";
+   end Builder;
+
    package Compiler is
       for Default_Switches ("ada") use
         ("-gnat12",

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -19,6 +19,7 @@
 --  Package to handle traces at object/exec level
 
 with Ada.Containers.Ordered_Sets;
+with Elf_Arch;   use Elf_Arch;
 with Interfaces; use Interfaces;
 with System;     use System;
 
@@ -27,7 +28,7 @@ package Traces is
    Big_Endian_Host : constant Boolean := Default_Bit_Order = High_Order_First;
    --  Host order is determined by System.Default_Bit_Order
 
-   subtype Pc_Type is Unsigned_32;
+   subtype Pc_Type is Elf_Addr;
    No_PC : constant Pc_Type := 0;
 
    package PC_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);

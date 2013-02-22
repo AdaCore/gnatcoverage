@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -22,6 +22,11 @@ package body Swaps is
    -- Swap_16 --
    -------------
 
+   procedure Swap_16 (V : in out Integer_16) is
+   begin
+      Swap2 (V'Address);
+   end Swap_16;
+
    procedure Swap_16 (V : in out Unsigned_16) is
    begin
       Swap2 (V'Address);
@@ -31,6 +36,11 @@ package body Swaps is
    -- Swap_32 --
    -------------
 
+   procedure Swap_32 (V : in out Integer_32) is
+   begin
+      Swap4 (V'Address);
+   end Swap_32;
+
    procedure Swap_32 (V : in out Unsigned_32) is
    begin
       Swap4 (V'Address);
@@ -39,6 +49,11 @@ package body Swaps is
    -------------
    -- Swap_64 --
    -------------
+
+   procedure Swap_64 (V : in out Integer_64) is
+   begin
+      Swap8 (V'Address);
+   end Swap_64;
 
    procedure Swap_64 (V : in out Unsigned_64) is
    begin

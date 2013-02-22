@@ -32,7 +32,6 @@ with Disa_Common;       use Disa_Common;
 with Disassemblers;     use Disassemblers;
 with Dwarf;
 with Dwarf_Handling;    use Dwarf_Handling;
-with Elf32;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
@@ -65,11 +64,6 @@ package body Traces_Elf is
       Base : Address;
       Off  : in out Storage_Offset;
       Res  : out Unsigned_32);
-   procedure Read_Word4
-     (Exec : Exe_File_Type;
-      Base : Address;
-      Off  : in out Storage_Offset;
-      Res  : out Integer_32);
    procedure Read_Word2
      (Exec : Exe_File_Type;
       Base : Address;
@@ -116,8 +110,6 @@ package body Traces_Elf is
       Off  : in out Storage_Offset;
       Form : Unsigned_32);
 
-   function To_Elf_Word is new Ada.Unchecked_Conversion (Elf_Sword, Elf_Word);
-
    procedure Apply_Relocations
      (Exec    : in out Exe_File_Type;
       Sec_Rel : Elf_Half;
@@ -139,12 +131,12 @@ package body Traces_Elf is
    procedure Alloc_And_Load_Section
      (Exec    : Exe_File_Type;
       Sec     : Elf_Half;
-      Len     : out Elf_Size;
+      Len     : out Elf_Addr;
       Content : out Binary_Content_Acc);
    procedure Alloc_And_Load_Section
      (Exec    : Exe_File_Type;
       Sec     : Elf_Half;
-      Len     : out Elf_Size;
+      Len     : out Elf_Addr;
       Content : out Binary_Content_Acc;
       Base    : out Address);
    --  Allocate memory for section SEC of EXEC and read it.
@@ -495,23 +487,6 @@ package body Traces_Elf is
    end Read_Word4;
 
    ----------------
-   -- Read_Word4 --
-   ----------------
-
-   procedure Read_Word4 (Exec : Exe_File_Type;
-                         Base : Address;
-                         Off : in out Storage_Offset;
-                         Res : out Integer_32)
-   is
-      function To_Integer_32 is
-        new Ada.Unchecked_Conversion (Unsigned_32, Integer_32);
-      R : Unsigned_32;
-   begin
-      Read_Word4 (Exec, Base, Off, R);
-      Res := To_Integer_32 (R);
-   end Read_Word4;
-
-   ----------------
    -- Read_Word2 --
    ----------------
 
@@ -843,18 +818,17 @@ package body Traces_Elf is
       Sec_Rel : Elf_Half;
       Data    : in out Binary_Content)
    is
-      use Elf32;
-      Relocs_Len : Elf_Size;
+      Relocs_Len : Elf_Addr;
       Relocs : Binary_Content_Acc;
       Relocs_Base : Address;
 
-      Sym_Num : Elf32_Word;
+      Sym_Num : Unsigned_32;
       Sym : Elf_Sym;
 
       Shdr : Elf_Shdr_Acc;
       Off : Storage_Offset;
 
-      Offset : Elf_Word;
+      Offset : Elf_Addr;
       R : Elf_Rela;
    begin
       Shdr := Get_Shdr (Exec.Exe_File, Sec_Rel);
@@ -864,7 +838,7 @@ package body Traces_Elf is
       if Natural (Shdr.Sh_Entsize) /= Elf_Rela_Size then
          raise Program_Error;
       end if;
-      if Shdr.Sh_Size mod Elf32_Word (Elf_Rela_Size) /= 0 then
+      if Shdr.Sh_Size mod Pc_Type (Elf_Rela_Size) /= 0 then
          raise Program_Error;
       end if;
       Alloc_And_Load_Section (Exec, Sec_Rel, Relocs_Len, Relocs, Relocs_Base);
@@ -878,21 +852,23 @@ package body Traces_Elf is
       while Off < Storage_Offset (Relocs_Len) loop
          --  Read relocation entry
 
-         Read_Word4 (Exec, Relocs_Base, Off, R.R_Offset);
-         Read_Word4 (Exec, Relocs_Base, Off, R.R_Info);
-         Read_Word4 (Exec, Relocs_Base, Off, R.R_Addend);
+         R := Get_Rela
+           (Exec.Exe_File,
+            Relocs (Elf_Addr (Off) * Elf_Addr (Elf_Rela_Size))'Address);
+         Off := Off + Storage_Offset (Elf_Rela_Size);
 
          if R.R_Offset > Data'Last then
             raise Program_Error with "relocation offset beyond section size";
          end if;
 
-         Sym_Num := Elf32_R_Sym (R.R_Info);
-         if Sym_Num > Elf_Word (Exec.Nbr_Symbols) then
+         Sym_Num := Elf_R_Sym (R.R_Info);
+         if Sym_Num > Unsigned_32 (Exec.Nbr_Symbols) then
             raise Program_Error with "invalid symbol number in relocation";
          end if;
          Sym := Get_Sym
            (Exec.Exe_File,
-            Exec.Symtab (Sym_Num * Elf_Word (Elf_Sym_Size))'Address);
+            Exec.Symtab
+              (Elf_Addr (Sym_Num) * Elf_Addr (Elf_Sym_Size))'Address);
          if Elf_St_Type (Sym.St_Info) = STT_SECTION then
             Offset := Get_Shdr (Exec.Exe_File,
                                 Sym.St_Shndx).Sh_Addr;
@@ -908,7 +884,8 @@ package body Traces_Elf is
                      Write_Word4 (Exec,
                                   Data (0)'Address,
                                   Storage_Offset (R.R_Offset),
-                                  Offset + To_Elf_Word (R.R_Addend));
+                                  Unsigned_32 (Offset
+                                               + Elf_Addr (R.R_Addend)));
                   when R_PPC_NONE =>
                      null;
                   when others =>
@@ -920,7 +897,8 @@ package body Traces_Elf is
                      Write_Word4 (Exec,
                                   Data (0)'Address,
                                   Storage_Offset (R.R_Offset),
-                                  Offset + To_Elf_Word (R.R_Addend));
+                                  Unsigned_32 (Offset
+                                               + Elf_Addr (R.R_Addend)));
                   when others =>
                      raise Program_Error with "unhandled SPARC relocation";
                end case;
@@ -942,7 +920,7 @@ package body Traces_Elf is
    procedure Alloc_And_Load_Section
      (Exec    : Exe_File_Type;
       Sec     : Elf_Half;
-      Len     : out Elf_Size;
+      Len     : out Elf_Addr;
       Content : out Binary_Content_Acc)
    is
    begin
@@ -961,7 +939,7 @@ package body Traces_Elf is
    procedure Alloc_And_Load_Section
      (Exec    : Exe_File_Type;
       Sec     : Elf_Half;
-      Len     : out Elf_Size;
+      Len     : out Elf_Addr;
       Content : out Binary_Content_Acc;
       Base    : out Address)
    is
@@ -986,13 +964,13 @@ package body Traces_Elf is
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type) is
       use Dwarf;
 
-      Abbrev_Len : Elf_Size;
+      Abbrev_Len : Elf_Addr;
       Abbrevs : Binary_Content_Acc;
       Abbrev_Base : Address;
       Map : Abbrev_Map_Acc;
       Abbrev : Address;
 
-      Info_Len : Elf_Size;
+      Info_Len : Elf_Addr;
       Infos : Binary_Content_Acc;
       Base : Address;
       Off : Storage_Offset;
@@ -1229,7 +1207,7 @@ package body Traces_Elf is
 
    procedure Load_Symtab (Exec : in out Exe_File_Type) is
       Symtab_Shdr : Elf_Shdr_Acc;
-      Symtab_Len : Elf_Word;
+      Symtab_Len : Elf_Addr;
    begin
       if Exec.Nbr_Symbols /= 0 then
          --  Already loaded.
@@ -1249,7 +1227,7 @@ package body Traces_Elf is
          raise Program_Error with "invalid symbol table section";
       end if;
       if Symtab_Shdr.Sh_Size /= Symtab_Len
-        or else Symtab_Shdr.Sh_Size mod Elf_Word (Elf_Sym_Size) /= 0
+        or else Symtab_Shdr.Sh_Size mod Elf_Addr (Elf_Sym_Size) /= 0
       then
          raise Program_Error with "invalid symtab size";
       end if;
@@ -2329,7 +2307,7 @@ package body Traces_Elf is
       Do_Reloc : Boolean;
 
       Strtab_Idx : Elf_Half;
-      Strtab_Len : Elf_Size;
+      Strtab_Len : Elf_Addr;
       Strtabs : Binary_Content_Acc;
       ESym : Elf_Sym;
       Offset : Pc_Type;
@@ -2400,11 +2378,12 @@ package body Traces_Elf is
               (Kind        => Symbol_Addresses,
                First       => Offset + Pc_Type (ESym.St_Value),
                Last        => Offset + Pc_Type (ESym.St_Value
-                                                + ESym.St_Size - 1),
+                                                + Elf_Addr (ESym.St_Size) - 1),
                Parent      => Sections_Info (ESym.St_Shndx),
                Symbol_Name => new String'
                                 (Read_String
-                                   (Strtabs (ESym.St_Name)'Address)),
+                                   (Strtabs
+                                      (Elf_Addr (ESym.St_Name))'Address)),
                Symbol_Tag  => No_SC_Tag);
 
             Addresses_Containers.Insert
@@ -2918,12 +2897,12 @@ package body Traces_Elf is
       Sym : Addresses_Info_Acc;
       Cur_Sym : Addresses_Containers.Cursor;
 
-      Symtab_Len : Elf_Size;
+      Symtab_Len : Elf_Addr;
       Symtabs : Binary_Content_Acc;
       Symtab_Base : Address;
 
       Strtab_Idx : Elf_Half;
-      Strtab_Len : Elf_Size;
+      Strtab_Len : Elf_Addr;
       Strtabs : Binary_Content_Acc;
 
       A_Sym : Elf_Sym;
@@ -2987,7 +2966,7 @@ package body Traces_Elf is
          then
 
             Sym_Name := new String'
-              (Read_String (Strtabs (A_Sym.St_Name)'Address));
+              (Read_String (Strtabs (Elf_Addr (A_Sym.St_Name))'Address));
 
             if A_Sym.St_Size = 0 then
 
@@ -3016,7 +2995,7 @@ package body Traces_Elf is
                     (Kind        => Symbol_Addresses,
                      First       => Pc_Type (A_Sym.St_Value),
                      Last        => Pc_Type (A_Sym.St_Value
-                                               + A_Sym.St_Size - 1),
+                                               + Elf_Addr (A_Sym.St_Size) - 1),
                      Parent      => null,
                      Symbol_Name => Sym_Name,
                      Symbol_Tag  => No_SC_Tag),

@@ -32,6 +32,7 @@ with Aspects;       use Aspects;
 with Coverage.Tags; use Coverage, Coverage.Tags;
 with Diagnostics;   use Diagnostics;
 with Files_Table;   use Files_Table;
+with Interfaces;
 with Namet;         use Namet;
 with SCOs;
 with Snames;        use Snames;
@@ -1258,6 +1259,7 @@ package body SC_Obligations is
    is
       use SCOs;
       use type Pc_Type;
+      use type Interfaces.Unsigned_32;
 
       Line_Infos : constant Addresses_Containers.Set :=
         Get_Address_Infos (Exe.all, Line_Addresses, PC);

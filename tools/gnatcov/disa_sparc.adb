@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2012, AdaCore                     --
+--                     Copyright (C) 2006-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -388,9 +388,9 @@ package body Disa_Sparc is
          end if;
          Add_HT;
          Add ("0x");
-         V := Pc + Get_Field_Sext (F_Disp22, W) * 4;
+         V := Unsigned_32 (Pc) + Get_Field_Sext (F_Disp22, W) * 4;
          Add (Hex_Image (V));
-         Sym.Symbolize (V, Line, Line_Pos);
+         Sym.Symbolize (Pc_Type (V), Line, Line_Pos);
       end Add_Cond;
 
       --------------
@@ -636,13 +636,14 @@ package body Disa_Sparc is
             --  Call
 
             declare
-               Val : constant Unsigned_32 := Pc + Shift_Left (W, 2);
+               Val : constant Unsigned_32 := Unsigned_32 (Pc)
+                                             + Shift_Left (W, 2);
             begin
                Add ("call");
                Add_HT;
                Add ("0x");
                Add (Hex_Image (Val));
-               Sym.Symbolize (Val, Line, Line_Pos);
+               Sym.Symbolize (Pc_Type (Val), Line, Line_Pos);
             end;
 
          when 2#10# =>
@@ -786,7 +787,8 @@ package body Disa_Sparc is
                   --  [...] the branch is taken, causing a delayed, PC-relative
                   --  control transfer to the address
                   --  PC + (sign extnd (disp22) * 4)
-                  Branch_Dest.Target := Pc + Get_Field_Sext (F_Disp22, W) * 4;
+                  Branch_Dest.Target :=
+                     Pc + Pc_Type (Get_Field_Sext (F_Disp22, W)) * 4;
 
                   --  Sparc v7 spec:
                   --  If the branch is not taken, the annul bit field (a) is
@@ -841,7 +843,8 @@ package body Disa_Sparc is
             --  PC-relative control transfer to the address PC + (disp30 * 4).
             --  [...], therefore the delay slot instruction following the CALL
             --  instruction is always executed.
-            Branch_Dest.Target := Pc + Get_Field_Sext (F_Disp30, W) * 4;
+            Branch_Dest.Target :=
+               Pc + Pc_Type (Get_Field_Sext (F_Disp30, W)) * 4;
             Branch_Dest.Delay_Slot := Pc + 4;
             Branch := Br_Call;
             return;

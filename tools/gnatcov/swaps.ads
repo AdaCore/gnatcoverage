@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -21,12 +21,18 @@ with GNAT.Byte_Swapping; use GNAT.Byte_Swapping;
 
 package Swaps is
 
+   function Swap is new Swapped2 (Integer_16);
    function Swap is new Swapped2 (Unsigned_16);
+   function Swap is new Swapped4 (Integer_32);
    function Swap is new Swapped4 (Unsigned_32);
+   function Swap is new Swapped8 (Integer_64);
    function Swap is new Swapped8 (Unsigned_64);
 
+   procedure Swap_16 (V : in out Integer_16);
    procedure Swap_16 (V : in out Unsigned_16);
+   procedure Swap_32 (V : in out Integer_32);
    procedure Swap_32 (V : in out Unsigned_32);
    procedure Swap_64 (V : in out Unsigned_64);
+   procedure Swap_64 (V : in out Integer_64);
 
 end Swaps;

@@ -124,6 +124,7 @@ ADAPTER_SUBDIRS = trace_adapters/valgrind
 endif
 
 PARALLEL_BUILD=8
+ARCH=32
 
 .PHONY: default all adapters bin $(PGMNAME) $(ADAPTER_SUBDIRS)
 
@@ -136,7 +137,9 @@ bin: $(PGMNAME)
 all: bin adapters
 
 $(PGMNAME):
-	$(GNATMAKE) -j$(PARALLEL_BUILD) -Pgnatcov $(EXTRA_ADAFLAGS) $@
+	$(GNATMAKE) -Pgnatcov                           \
+		-j$(PARALLEL_BUILD)                     \
+		-XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
 
 $(ADAPTER_SUBDIRS):
 	$(MAKE) -C $@

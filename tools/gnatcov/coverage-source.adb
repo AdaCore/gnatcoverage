@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -21,7 +21,7 @@ with Ada.Containers.Ordered_Sets;
 
 with Interfaces;
 
-with Coverage.Tags;  use Coverage.Tags;
+with Coverage.Tags;     use Coverage.Tags;
 with Decision_Map;      use Decision_Map;
 with Diagnostics;       use Diagnostics;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -478,6 +478,7 @@ package body Coverage.Source is
       pragma Unreferenced (Subp_Name);
 
       use type Interfaces.Unsigned_32;
+      use type Interfaces.Unsigned_64;
 
       Exe        : Exe_File_Acc renames Subp_Info.Exec;
       PC         : Pc_Type;

@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2012, AdaCore                     --
+--                     Copyright (C) 2006-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -19,6 +19,8 @@ with Interfaces; use Interfaces;
 
 package Elf_Common is
    subtype Elf_Half  is Unsigned_16;
+   subtype Elf_Sxword is Integer_64;
+   subtype Elf_Xword  is Unsigned_64;
    subtype Elf_Sword is Integer_32;
    subtype Elf_Word  is Unsigned_32;
    subtype Elf_Uchar is Unsigned_8;
@@ -245,5 +247,25 @@ package Elf_Common is
    DT_VERNEEDNUM      : constant Elf_Word := 16#6fffffff#;
    DT_AUXILIARY       : constant Elf_Word := 16#7ffffffd#;
    DT_FILTER          : constant Elf_Word := 16#7fffffff#;
+
+   --  Relocation types
+
+   --  For i386
+   R_386_NONE : constant Elf_Word := 0; -- none none
+   R_386_32   : constant Elf_Word := 1; -- word32 S+A
+   R_386_PC32 : constant Elf_Word := 2; -- word32 S+A-P
+
+   --  For sparc
+   R_SPARC_NONE    : constant Elf_Word := 0; -- none
+   R_SPARC_32 :      constant Elf_Word := 3; -- (S + A)
+   R_SPARC_WDISP30 : constant Elf_Word := 7; -- (S + A - P) >> 2
+   R_SPARC_WDISP22 : constant Elf_Word := 8; -- (S + A - P) >> 2
+   R_SPARC_HI22 :    constant Elf_Word := 9; -- (S + A) >> 10
+   R_SPARC_LO10 :    constant Elf_Word := 12; -- (S + A) & 0x3ff
+   R_SPARC_UA32 :    constant Elf_Word := 23; -- (S + A)
+
+   --  For PPC.
+   R_PPC_NONE   : constant Elf_Word := 0;
+   R_PPC_ADDR32 : constant Elf_Word := 1; -- S + A
 
 end Elf_Common;
