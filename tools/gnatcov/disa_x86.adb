@@ -1970,8 +1970,10 @@ package body Disa_X86 is
                Decode_Modrm_Reg (Mem (Off_Modrm), R_8);
             when C_Ev =>
                Decode_Modrm_Mem (Off_Modrm, R);
-            when C_Ew =>
+            when C_Ed | C_Ew =>
                Decode_Modrm_Mem (Off_Modrm, R_32);
+            when C_Ep =>
+               Decode_Modrm_Mem (Off_Modrm, R);
             when C_Ev_Iz =>
                Decode_Imm (Off_Imm, To_Z (W));
                Add_Comma;
@@ -2091,7 +2093,7 @@ package body Disa_X86 is
             when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mdq
                | C_Mq | C_Ms =>
                return;
-            when C_Ev | C_Ew | C_Eb =>
+            when C_Eb | C_Ed | C_Ep | C_Ev | C_Ew =>
                return;
             when C_Yb | C_Yv | C_Xv | C_Xb | C_H | C_H0 | C_Cst_1 =>
                return;
