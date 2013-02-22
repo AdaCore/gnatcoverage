@@ -1348,10 +1348,10 @@ package body Disa_X86 is
       Off   : Pc_Type;
       Width : Width_Type)
      return Unsigned_32;
-   --  Decode values in instruction. Addresses are relative to
-   --  a certain PC and Mem is a function that reads one byte at
-   --  an offset from this PC, and Off is the offset of the value to
-   --  decode.
+   --  Decode an immediate (unsigned) value given its memory location and its
+   --  size.
+   --  Off is the immediate address and is relative to a certain PC. Mem is a
+   --  function that reads one byte at an offset from this PC.
 
    -------------
    -- Ext_210 --
@@ -1452,45 +1452,99 @@ package body Disa_X86 is
       function Mem (Off : Pc_Type) return Byte;
       --  The instruction memory, 0 based
 
+      ----------------------------
+      -- Basic output utilities --
+      ----------------------------
+
+      --  The following functions add basic elements (a character, an
+      --  instruction mnemonic, a byte, etc.) to the output line.
+
       procedure Add_Name (Name : String16);
       pragma Inline (Add_Name);
-      --  Add NAME to the line
 
       procedure Add_Char (C : Character);
       pragma Inline (Add_Char);
-      --  Add CHAR to the line
 
       procedure Add_String (Str : String);
-      --  Add STR to the line
-
       procedure Add_Byte (V : Byte);
-      --  Add BYTE to the line
-
       procedure Add_Comma;
+
       procedure Name_Align (Orig : Natural);
+      --  Pad the current line with blanks to align operands after the
+      --  instruction mnemonic.
+
       procedure Add_Reg (F : Bit_Field_3; R : Reg_Class_Type);
+      --  Add a register name to the output, given its 3-bit field
+      --  identificator and its register class.
+
       procedure Add_Reg_St (F : Bit_Field_3);
+      --  Add a coprocessor stack register name to the output
+
       procedure Add_Reg_Seg (F : Bit_Field_3);
+      --  Add a segment register name to the output
+
+      ------------------------------------
+      -- Instruction decoding utilities --
+      ------------------------------------
+
+      --  The following functions decode various instruction fields *and*
+      --  directly add them to the output line.
+
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type);
+      --  Add the value in the binary at the given "Off" offset of the given
+      --  "Width" to the output.
+
       procedure Decode_Imm (Off : in out Pc_Type; Width : Width_Type);
+      --  Add the value in the binary at the given "Off" offset of the given
+      --  "Width" to the output as an assembly immediate (with the "$0x"
+      --  prefix) and update "Off" to point to the first byte past the
+      --  immediate.
+
       procedure Decode_Disp (Off : Pc_Type;
                              Width : Width_Type;
                              Offset : Unsigned_32 := 0);
+      --  Add the displacement value of the given "Width" in the binary at the
+      --  address "Off" plus the given "Offset" to the output.
+
       procedure Decode_Disp_Rel (Off : in out Pc_Type;
                                  Width : Width_Type);
-      procedure Decode_Modrm_Reg (B : Byte; R : Reg_Class_Type);
+      --  Add the relative displacement in the binary at the address "Off" to
+      --  the output and update "Off" to point to the first byte past the
+      --  immediate.
+
       procedure Decode_Sib (Sib : Byte; B_Mod : Bit_Field_2);
+      --  Decode the displacement encoded in the given SIB byte given the
+      --  previous "mod" ModR/M field and add it to the output.
+
+      procedure Decode_Modrm_Reg (B : Byte; R : Reg_Class_Type);
+      --  Decode the given ModR/M byte "reg/opcode" field according to the
+      --  given register class and add the decoded operand to the output.
+
       procedure Decode_Modrm_Mem (Off : Pc_Type; R : Reg_Class_Type);
+      --  Decode the ModR/M byte at address "Off" in the binary according to
+      --  the given register class and add the decoded operand to the output.
+
       function Decode_Modrm_Len (Off : Pc_Type) return Pc_Type;
+      --  Return the byte length of the ModR/M+SIB+displacement bytes, if
+      --  present, given the address "Off" of the ModR/M byte.
+
       procedure Add_Operand (C : Code_Type;
                              Off_Modrm : Pc_Type;
                              Off_Imm : in out Pc_Type;
                              W : Width_Type);
+      --  Decode and add to the output the operand corresponding to the given
+      --  operand kind "C", given the address of the ModR/M byte, the
+      --  operand-size attribute and the address of the immediate value. Update
+      --  the address of the immediate value to point to the first byte after
+      --  it, if any.
+
       procedure Update_Length (C : Code_Type;
                                Off_Imm : in out Pc_Type;
                                W : Width_Type);
-      procedure Add_Opcode (Name : String16; Width : Width_Type);
+      --  Increment the given "Off_Imm" offset using the size of the operand
+      --  given its kind "C" and the operand-size attribute.
 
+      procedure Add_Opcode (Name : String16; Width : Width_Type);
       pragma Unreferenced (Add_Opcode);
       --  XXX
 
@@ -1719,7 +1773,6 @@ package body Disa_X86 is
       is
          L : Natural;
          V : Unsigned_32;
-         Off_Orig : constant Pc_Type := Off;
       begin
          L := Lo;
          V := Decode_Val (Mem'Unrestricted_Access, Off, Width) + Offset;
@@ -1732,13 +1785,29 @@ package body Disa_X86 is
          end if;
          Add_String ("0x");
          if Offset = 0 then
-            Decode_Val (Off_Orig, Width);
+            Decode_Val (Off, Width);
          else
             Add_Byte (Byte (Shift_Right (V, 24) and 16#ff#));
             Add_Byte (Byte (Shift_Right (V, 16) and 16#ff#));
             Add_Byte (Byte (Shift_Right (V, 8) and 16#ff#));
             Add_Byte (Byte (Shift_Right (V, 0) and 16#ff#));
          end if;
+         --  --  First try to display a symbol associated to the given
+         --  --  displacement.
+         --  L := Lo;
+         --  V := Decode_Val (Mem'Unrestricted_Access, Off, Width) + Offset;
+         --  Sym.Symbolize (Pc_Type (V), Line, Lo);
+
+         --  --  If the symbolizer wrote nothing, write the hexadecimal
+         --  --  displacement instead.
+
+         --  if L = Lo then
+         --     Add_String ("0x");
+         --     Decode_Val (Off_Orig, Width);
+         --  end if;
+
+         --  --  Prepare the addition for what is displaced.
+         --  Add_String (" + ");
       end Decode_Disp;
 
       ---------------------
@@ -1752,15 +1821,6 @@ package body Disa_X86 is
          Off := Off + Width_Len (Width);
          Decode_Disp (Disp_Off, Width, Unsigned_32 (Off));
       end Decode_Disp_Rel;
-
-      ----------------------
-      -- Decode_Modrm_Reg --
-      ----------------------
-
-      procedure Decode_Modrm_Reg (B : Byte; R : Reg_Class_Type) is
-      begin
-         Add_Reg (Ext_Modrm_Reg (B), R);
-      end Decode_Modrm_Reg;
 
       ----------------
       -- Decode_Sib --
@@ -1802,55 +1862,95 @@ package body Disa_X86 is
       end Decode_Sib;
 
       ----------------------
+      -- Decode_Modrm_Reg --
+      ----------------------
+
+      procedure Decode_Modrm_Reg (B : Byte; R : Reg_Class_Type) is
+      begin
+         Add_Reg (Ext_Modrm_Reg (B), R);
+      end Decode_Modrm_Reg;
+
+      ----------------------
       -- Decode_Modrm_Mem --
       ----------------------
 
       procedure Decode_Modrm_Mem (Off : Pc_Type; R : Reg_Class_Type)
       is
-         B : Byte;
+         B, Sib : Byte;
          B_Mod : Bit_Field_2;
          B_Rm : Bit_Field_3;
       begin
          B := Mem (Off);
          B_Mod := Ext_Modrm_Mod (B);
          B_Rm := Ext_Modrm_Rm (B);
+
+         --  First the "mod" field of the ModR/M byte, and then the "r/m" one
+         --  determine what the operand can be...
          case B_Mod is
-            when 2#11# =>
-               Add_Reg (B_Rm, R);
-            when 2#10# =>
+
+            ---------------------
+            -- A memory access --
+            ---------------------
+
+            when 2#00# =>
                if B_Rm = 2#100# then
-                  Decode_Disp (Off + 2, W_32);
-                  Decode_Sib (Mem (Off + 1), B_Mod);
-               else
+                  --  The address is encoded in the SIB byte
+                  Sib := Mem (Off + 1);
+                  if Ext_Sib_Base (Sib) = 2#101# then
+                     --  And in this case, there is also a 32-bit displacement
+                     --  with no base.
+                     Decode_Disp (Off + 2, W_32);
+                  end if;
+                  Decode_Sib (Sib, B_Mod);
+
+               elsif B_Rm = 2#101# then
+                  --  The address is the following 32-bit address
                   Decode_Disp (Off + 1, W_32);
+
+               else
+                  --  Otherwise, the address lies in a register
                   Add_Char ('(');
                   Add_Reg (B_Rm, R_32);
                   Add_Char (')');
                end if;
+
             when 2#01# =>
                if B_Rm = 2#100# then
+                  --  The address encoded in the SIB byte plus a 8-bit
+                  --  displacement.
                   Decode_Disp (Off + 2, W_8);
                   Decode_Sib (Mem (Off + 1), B_Mod);
+
                else
+                  --  Otherwise, the address is the content of a register plus
+                  --  a 8-bit displacement.
                   Decode_Disp (Off + 1, W_8);
                   Add_Char ('(');
                   Add_Reg (B_Rm, R_32);
                   Add_Char (')');
                end if;
-            when 2#00# =>
+
+            when 2#10# =>
                if B_Rm = 2#100# then
-                  B := Mem (Off + 1);
-                  if Ext_Sib_Base (B) = 2#101# then
-                     Decode_Disp (Off + 2, W_32);
-                  end if;
-                  Decode_Sib (B, B_Mod);
-               elsif B_Rm = 2#101# then
-                  Decode_Disp (Off + 1, W_32);
+                  --  The address is encoded in the SIB byte plus a 32-bit
+                  --  displacement.
+                  Decode_Disp (Off + 2, W_32);
+                  Decode_Sib (Mem (Off + 1), B_Mod);
                else
+                  --  Otherwise, the address is the content of a register plus
+                  --  a 32-bit displacement.
+                  Decode_Disp (Off + 1, W_32);
                   Add_Char ('(');
                   Add_Reg (B_Rm, R_32);
                   Add_Char (')');
                end if;
+
+            -----------------------
+            -- A register access --
+            -----------------------
+
+            when 2#11# =>
+               Add_Reg (B_Rm, R);
          end case;
       end Decode_Modrm_Mem;
 
@@ -1867,6 +1967,7 @@ package body Disa_X86 is
          B := Mem (Off);
          M_Mod := Ext_Modrm_Mod (B);
          M_Rm := Ext_Modrm_Rm (B);
+
          case M_Mod is
             when 2#11# =>
                --  Register
@@ -2198,6 +2299,11 @@ package body Disa_X86 is
          end case;
       end loop;
 
+      --  Do further lookup for special instruction groups (group 1, group 2,
+      --  ..., escape to coprocessor instructions), prepare invalid
+      --  instructions for output and export mnemonic and operands information
+      --  to the proper local variables.
+
       case Desc.Name (1) is
          when ' ' =>
             Name := "invalid*        ";
@@ -2292,6 +2398,9 @@ package body Disa_X86 is
             raise Program_Error with "disa_x86 unhandled name " & Desc.Name;
       end case;
 
+      --  Update the ModR/M byte offset and the immediate bytes sequence
+      --  offset.
+
       Off_Modrm := Off;
       if Src in Modrm_Code or else Dst in Modrm_Code then
          Off_Imm := Off_Modrm + Decode_Modrm_Len (Off_Modrm);
@@ -2300,6 +2409,9 @@ package body Disa_X86 is
       end if;
 
       if Line'Length > 0 then
+         --  If the caller expects a disassembly text output, append the
+         --  mnemonic and instruction operands.
+
          Add_Name (Name);
          Name_Align (Line'First);
 
@@ -2321,6 +2433,9 @@ package body Disa_X86 is
             Add_Operand (Dst, Off_Modrm, Off_Imm, W);
          end if;
       else
+         --  Otherwise, just put the offset of the first byte after the
+         --  instruction into "Off_Imm".
+
          case Imm is
             when W_None =>
                null;
