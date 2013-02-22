@@ -57,8 +57,12 @@ package body Disa_X86 is
       C_None,
 
       --  These are instruction prefixes, not really operands.
-      --  TODO: move them away.
-      C_Prefix_Seg,
+      C_Prefix_Cs,
+      C_Prefix_Ss,
+      C_Prefix_Ds,
+      C_Prefix_Es,
+      C_Prefix_Fs,
+      C_Prefix_Gs,
       C_Prefix_Rep,
       C_Prefix_Oper,
       C_Prefix_Addr,
@@ -231,6 +235,9 @@ package body Disa_X86 is
    subtype GPR_Code is Code_Type range C_Reg_Al .. C_Reg_Di;
    --  Subset of operand type that design a specific register
 
+   subtype Prefix_Seg_Code is Code_Type range C_Prefix_Cs .. C_Prefix_Gs;
+   --  Subset of operand type that design a segment-override prefix
+
    type Extra_Operand_Type is
      (Extra_None, Extra_8, Extra_Iz, Extra_Cl);
 
@@ -315,7 +322,7 @@ package body Disa_X86 is
       2#00_100_100# => ("and             ", C_Reg_Al, C_Ib, Extra_None),
       2#00_100_101# => ("and             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_100_110# => ("es              ", C_Prefix_Seg, C_None, Extra_None),
+      2#00_100_110# => ("                ", C_Prefix_Es, C_None, Extra_None),
       2#00_100_111# => ("daa             ", C_None, C_None, Extra_None),
 
       --  28-2F
@@ -326,7 +333,7 @@ package body Disa_X86 is
       2#00_101_100# => ("sub             ", C_Reg_Al, C_Ib, Extra_None),
       2#00_101_101# => ("sub             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_101_110# => ("cs              ", C_Prefix_Seg, C_None, Extra_None),
+      2#00_101_110# => ("                ", C_Prefix_Cs, C_None, Extra_None),
       2#00_101_111# => ("das             ", C_None, C_None, Extra_None),
 
       --  30-37
@@ -337,7 +344,7 @@ package body Disa_X86 is
       2#00_110_100# => ("xor             ", C_Reg_Al, C_Ib, Extra_None),
       2#00_110_101# => ("xor             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_110_110# => ("ss              ", C_Prefix_Seg, C_None, Extra_None),
+      2#00_110_110# => ("                ", C_Prefix_Ss, C_None, Extra_None),
       2#00_110_111# => ("aaa             ", C_None, C_None, Extra_None),
 
       --  28-2F
@@ -348,7 +355,7 @@ package body Disa_X86 is
       2#00_111_100# => ("cmp             ", C_Reg_Al, C_Ib, Extra_None),
       2#00_111_101# => ("cmp             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_111_110# => ("ds              ", C_Prefix_Seg, C_None, Extra_None),
+      2#00_111_110# => ("                ", C_Prefix_Ds, C_None, Extra_None),
       2#00_111_111# => ("aas             ", C_None, C_None, Extra_None),
 
       --  40-4F
@@ -394,8 +401,8 @@ package body Disa_X86 is
       16#61#        => ("popa            ", C_None, C_None, Extra_None),
       16#62#        => ("bound           ", C_Gv, C_Ma, Extra_None),
       16#63#        => ("arpl            ", C_Ew, C_Gw, Extra_None),
-      16#64#        => ("fs              ", C_Prefix_Seg, C_None, Extra_None),
-      16#65#        => ("gs              ", C_Prefix_Seg, C_None, Extra_None),
+      16#64#        => ("                ", C_Prefix_Fs, C_None, Extra_None),
+      16#65#        => ("                ", C_Prefix_Gs, C_None, Extra_None),
       16#66#        => ("oper            ", C_Prefix_Oper, C_None, Extra_None),
       16#67#        => ("addr            ", C_Prefix_Addr, C_None, Extra_None),
 
@@ -1347,6 +1354,17 @@ package body Disa_X86 is
    --  Turn a specific register operand kind into a 3-bit field suitable for
    --  the Add_Reg procedure.
 
+   type To_Register_Segment_Type is array (Prefix_Seg_Code) of Bit_Field_3;
+   To_Register_Segment : constant To_Register_Segment_Type :=
+     (C_Prefix_Cs => 2#001#,
+      C_Prefix_Ss => 2#010#,
+      C_Prefix_Ds => 2#011#,
+      C_Prefix_Es => 2#000#,
+      C_Prefix_Fs => 2#100#,
+      C_Prefix_Gs => 2#101#);
+   --  Turn a segment prefix operand kind into a 3-bit field suitable for the
+   --  Add_Reg_Seg procedure.
+
    --  Bits extraction from byte functions
 
    --  For a byte, MSB (most significant bit) is bit 7 while LSB (least
@@ -2226,6 +2244,7 @@ package body Disa_X86 is
       Desc     : Insn_Desc_Type;
       Name     : String16;
       W        : Width_Type := W_32;
+      Seg      : Code_Type := C_None;
       Src, Dst : Code_Type;
       Extra    : Extra_Operand_Type;
 
@@ -2297,6 +2316,9 @@ package body Disa_X86 is
             when C_Prefix_Addr =>
                --  TODO???
                raise Program_Error;
+
+            when C_Prefix_Cs .. C_Prefix_Gs =>
+               Seg := Desc.Dst;
 
             when others =>
                exit;
@@ -2433,6 +2455,16 @@ package body Disa_X86 is
                Add_Comma;
          end case;
          if Src /= C_None then
+            case Seg is
+               when C_Prefix_Cs | C_Prefix_Ss | C_Prefix_Ds
+                  | C_Prefix_Es | C_Prefix_Fs | C_Prefix_Gs =>
+                  Add_Reg_Seg (To_Register_Segment (Seg));
+                  Add_String (":");
+               when C_None =>
+                  null;
+               when others =>
+                  raise Program_Error;
+            end case;
             Add_Operand (Src, Off_Modrm, Off_Imm, W);
             Add_Comma;
          end if;
