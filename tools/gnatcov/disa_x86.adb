@@ -29,18 +29,35 @@ package body Disa_X86 is
    subtype Byte is Interfaces.Unsigned_8;
    type Bit_Field_2 is mod 2 ** 2;
    type Bit_Field_3 is mod 2 ** 3;
-   type Bit_Field_6 is mod 2 ** 6;
 
    type Width_Type is (W_None, W_8, W_16, W_32, W_64, W_128);
+   --  Width for operands, addresses and registers
+
    type Reg_Class_Type is
-      (R_None,
-       R_8, R_16, R_32,
-       R_Control, R_Debug,
-       R_MM, R_XMM);
-   subtype String16 is String (1 .. 16);
+     (R_None,
+      R_8, R_16, R_32,
+      R_Control, R_Debug,
+      R_MM, R_XMM);
+   --  Set of registers that can be simultaneously addressed:
+   --  - R_8:        AL,   CL,   DL,   BL,   AH,   CH,   DH,   BH
+   --  - R_16:       AX,   CX,   DX,   BX,   SP,   BP,   SI,   DI
+   --  - R_32:       EAX,  ECX,  EDX,  EBX,  ESP,  EBP,  ESI,  EDI
+   --  - R_Control:  CR0,  CR1,  CR2,  CR3,  CR4,  CR5,  CR6,  CR7
+   --  - R_Debug:    DR0,  DR1,  DR2,  DR3,  DR4,  DR5,  DR6,  DR7
+   --  - R_MM:       MM0,  MM1,  MM2,  MM3,  MM4,  MM5,  MM6,  MM7
+   --  - R_XMM:      XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7
+
+   --  The following codes describe the operand kinds used by instruction
+   --  descriptors. They indicate whether the ModR/M byte is required, the size
+   --  of operands, the involved register class, etc.
 
    type Code_Type is
-     (C_None,
+     (
+      --  This special value indicates that there is no operand.
+      C_None,
+
+      --  These are instruction prefixes, not really operands.
+      --  TODO: move them away.
       C_Prefix,
       C_Prefix_Seg,
       C_Prefix_Rep,
@@ -48,26 +65,52 @@ package body Disa_X86 is
       C_0F,
       C_Lock,
 
-      --  Start of Modrm
+      --------------------
+      -- Start of Modrm --
+      --------------------
+
+      --  The following operand types imply the presence of a
+      --  ModR/M byte after the opcode bytes sequence.
+
+      --  General-purpose register (GPR) in the "reg" field of the ModR/M byte
+
+      C_Gd,
+      C_Gw,
+      C_Gz,
+      C_Gb,
+      C_Gv,
+      C_Gv_Cl, --  TODO: remove it, there is now a third operand attribute
+
+      --  Either a GPR or a memory address in the "r/m" field of the ModR/M
+      --  byte.
 
       C_Eb,
       C_Ed,
       C_Ep,
       C_Ev,
-      C_Ev_Iz,
-      C_Ev_Ib,
+      C_Ev_Iz, --  TODO: remove it, there is now a third operand attribute
       C_Ew,
+
+      --  Control, Debug and general Registers in the "reg" field of the ModR/M
+      --  byte.
 
       C_Cd,
       C_Dd,
-      C_Rd,
+      C_Rd, --  The "mod" field may refer only to a GPR
+
+      --  Packed quadword MMX register in the "reg" field of the ModR/M byte
 
       C_Pd,
       C_Pq,
       C_Pw,
+
+      --  Packed quadword MMX register or a memory address
+
       C_Qd,
       C_Qdq,
       C_Qq,
+
+      --  128-bit XMM register in the "reg" field of the ModR/M byte
 
       C_Vd,
       C_Vdq,
@@ -79,6 +122,8 @@ package body Disa_X86 is
       C_Vss,
       C_Vw,
 
+      --  128-bit XMM register or a memory address
+
       C_Wdq,
       C_Wps,
       C_Wpd,
@@ -86,11 +131,23 @@ package body Disa_X86 is
       C_Wsd,
       C_Wss,
 
+      --  Coprocessor stack register
+
+      C_H0, --  st(0)
+      C_H,  --  st(X)
+
+      --  Memory reference to a floating point value
+
+      C_Mfs, --  Single-precision (32 bits)
+      C_Mfd, --  Double-precision (64 bits)
+      C_Mfe, --  Extended-precision (80 bits)
+
+      C_Sw, --  Segment register in the "reg" field of the ModR/M byte
+
+      --  Only memory operand ("mod" field of the ModR/M byte != 2#11#)
+
       C_Ma,
       C_Mp,
-      C_Mfs,
-      C_Mfd,
-      C_Mfe,
       C_Md,
       C_Mb,
       C_Mw,
@@ -101,17 +158,11 @@ package body Disa_X86 is
       C_Ms,
       C_M,
 
-      --  End of Modrm
+      ------------------
+      -- End of Modrm --
+      ------------------
 
-      C_Rv_Mw, --  FIXME???
-
-      C_Gd,
-      C_Gw,
-      C_Gz,
-      C_Gb,
-      C_Gv,
-      C_Gv_Ib,
-      C_Gv_Cl,
+      --  8-bit specific register
 
       C_Reg_Al,
       C_Reg_Cl,
@@ -121,6 +172,9 @@ package body Disa_X86 is
       C_Reg_Dh,
       C_Reg_Bh,
       C_Reg_Ah,
+
+      --  16-bit or 32-bit register, depending on the operand-size attribute
+
       C_Reg_Ax,
       C_Reg_Cx,
       C_Reg_Bx,
@@ -130,42 +184,58 @@ package body Disa_X86 is
       C_Reg_Si,
       C_Reg_Di,
 
-      C_Iv,
-      C_Ib,
-      C_Iz,
-      C_Iw,
-
-      C_Yb,
-      C_Yz,
-      C_Yv,
-
-      C_Xb,
-      C_Xz,
-      C_Xv,
-
-      C_Jb,
-      C_Jz,
-
-      C_Sw,
-      C_Ap,
-      C_Fv,
-
-      C_Ob,
-      C_Ov,
-
-      C_H0, --  st(0)
-      C_H,  --  st(X)
+      --  Segment register
 
       C_Reg_Es,
       C_Reg_Ss,
       C_Reg_Cs,
       C_Reg_Ds,
-      C_Cst_1
+
+      --  Immediate operand
+
+      C_Iv,
+      C_Ib,
+      C_Iz,
+      C_Iw,
+
+      --  Relative offset to be added to the instruction pointer register to
+      --  get the operand value.
+
+      C_Jb,
+      C_Jz,
+
+      --  Memory addressed by the DS:SI register pair
+
+      C_Xb,
+      C_Xz,
+      C_Xv,
+
+      --  Memory addressed by the ES:DI register pair
+
+      C_Yb,
+      C_Yz,
+      C_Yv,
+
+      C_Ap, --  Immediate far jump/call destination address
+      C_Fv, --  EFLAGS register
+
+      --  Immediate operand address
+      C_Ob,
+      C_Ov,
+
+      C_Cst_1 -- Immediate 1 operand
      );
 
    subtype Modrm_Code is Code_Type range C_Eb .. C_M;
+   --  Subset of operand types that imply a ModR/M byte after the opcode bytes
+   --  sequence.
 
-   --  Description for one instruction
+   -----------------------------
+   -- Opcodes decoding tables --
+   -----------------------------
+
+   subtype String16 is String (1 .. 16);
+   --  Instructions and groups labels, right-padded with spaces
 
    type Insn_Desc_Type is record
       Name : String16;
@@ -177,9 +247,16 @@ package body Disa_X86 is
       --  Size of the last (immediate) operand if there is an immediate *and*
       --  destination and source operands, W_None otherwise.
    end record;
+   --  Format description for one instruction or one instruction group
 
    type Insn_Desc_Array_Type is array (Byte) of Insn_Desc_Type;
+   --  Lookup table kind for one-byte and two-bytes opcode sequences
+
    type Group_Desc_Array_Type is array (Bit_Field_3) of Insn_Desc_Type;
+   --  Lookup table kind for ModR/M-extended opcodes
+
+   --  Lookup table for the first byte of opcode sequences
+
    Insn_Desc : constant Insn_Desc_Array_Type :=
      (
       --  00-07
@@ -321,7 +398,7 @@ package body Disa_X86 is
       16#68#        => ("push            ", C_Iz, C_None, W_None),
       16#69#        => ("imul            ", C_Gv, C_Ev_Iz, W_None),
       16#6a#        => ("push            ", C_Ib, C_None, W_None),
-      16#6b#        => ("imul            ", C_Gv, C_Ev_Ib, W_None),
+      16#6b#        => ("imul            ", C_Gv, C_Ev, W_8),
       16#6c#        => ("ins             ", C_Yb, C_Reg_Dx, W_None),
       16#6d#        => ("ins             ", C_Yz, C_Reg_Dx, W_None),
       16#6e#        => ("outs            ", C_Reg_Dx, C_Xb, W_None),
@@ -498,6 +575,10 @@ package body Disa_X86 is
       16#fe#        => ("4               ", C_None, C_None, W_None),
       16#ff#        => ("5               ", C_None, C_None, W_None));
 
+   --  Lookup table for two-bytes opcode sequences with no mandatory prefix.
+   --  The first byte of the opcode sequence is 16#0f# and this table is
+   --  indexed by its second byte.
+
    Insn_Desc_0F : constant Insn_Desc_Array_Type :=
      (
       16#00#        => ("6               ", C_None, C_None, W_None),
@@ -647,9 +728,9 @@ package body Disa_X86 is
       2#1001_1110#  => ("setle           ", C_Eb, C_None, W_None),
       2#1001_1111#  => ("setjg           ", C_Eb, C_None, W_None),
 
-      16#a4#        => ("shld            ", C_Ev, C_Gv_Ib, W_None),
+      16#a4#        => ("shld            ", C_Ev, C_Gv, W_8),
       16#a5#        => ("shld            ", C_Ev, C_Gv_Cl, W_None),
-      16#ac#        => ("shrd            ", C_Ev, C_Gv_Ib, W_None),
+      16#ac#        => ("shrd            ", C_Ev, C_Gv, W_8),
       16#ad#        => ("shrd            ", C_Ev, C_Gv_Cl, W_None),
       16#af#        => ("imul            ", C_Gv, C_Ev, W_None),
 
@@ -730,6 +811,10 @@ package body Disa_X86 is
       --  The 16#ff# slot is reserved
 
       others       =>  ("                ", C_None, C_None, W_None));
+
+   --  Lookup table for two-bytes opcode sequences with the 16#66# mandatory
+   --  prefix. The first byte of the opcode sequence is 16#0f# and this table
+   --  is indexed by its second byte.
 
    Insn_Desc_66_0F : constant Insn_Desc_Array_Type :=
      (
@@ -854,6 +939,10 @@ package body Disa_X86 is
 
       others        => ("                ", C_None, C_None, W_None));
 
+   --  Lookup table for two-bytes opcode sequences with the 16#f2# mandatory
+   --  prefix. The first byte of the opcode sequence is 16#0f# and this table
+   --  is indexed by its second byte.
+
    Insn_Desc_F2_0F : constant Insn_Desc_Array_Type :=
      (
       16#10#        => ("movsd           ", C_Vsd, C_Wsd, W_None),
@@ -888,6 +977,10 @@ package body Disa_X86 is
       16#f0#        => ("lddqu           ", C_Vdq, C_Mdq, W_None),
 
       others        => ("                ", C_None, C_None, W_None));
+
+   --  Lookup table for two-bytes opcode sequences with the 16#f3# mandatory
+   --  prefix. The first byte of the opcode sequence is 16#0f# and this table
+   --  is indexed by its second byte.
 
    Insn_Desc_F3_0F : constant Insn_Desc_Array_Type :=
      (
@@ -932,14 +1025,30 @@ package body Disa_X86 is
 
       others        => ("                ", C_None, C_None, W_None));
 
+   --  Mnemonics for the "group 1" and "group 2" of instructions. For these,
+   --  the mnemonic is determined by the "reg/opcode" 3-bit field of the ModR/M
+   --  byte, and the operand kinds are determined by the first byte of the
+   --  opcode sequence. (see the 16#80#-16#83# and  entries of the
+   --  corresponding lookup table).
+
    subtype String3 is String (1 .. 3);
    type Group_Name_Array_Type is array (Bit_Field_3) of String3;
+
+   --  The group 1 is used for the first opcode bytes from 16#80# to 16#83#
+
    Group_Name_1 : constant Group_Name_Array_Type :=
      ("add", "or ", "adc", "sbb", "and", "sub", "xor", "cmp");
+
+   --  The group 2 is used for the first opcode bytes 16#c0#, 16#c1#, 16#d0#,
+   --  16#d1#, 16#d2# and 16#d3#.
+
    Group_Name_2 : constant Group_Name_Array_Type :=
      ("rol", "ror", "rcl", "rcr", "shl", "shr", "   ", "sar");
 
-   --  16#f7#
+   --  Lookup tables for some "group"s of instructions
+
+   --  The group 3 is used for the first opcode bytes 16#f6# and 16#f7#
+
    Insn_Desc_G3 : constant Group_Desc_Array_Type :=
      (2#000# => ("test            ", C_Ib, C_Iz, W_None),
       2#010# => ("not             ", C_None, C_None, W_None),
@@ -950,10 +1059,14 @@ package body Disa_X86 is
       2#111# => ("idiv            ", C_Reg_Al, C_Reg_Ax, W_None),
       others => ("                ", C_None, C_None, W_None));
 
+   --  The group 4 is used for the first opcode byte 16#fe#
+
    Insn_Desc_G4 : constant Group_Desc_Array_Type :=
      (2#000# => ("inc             ", C_Eb, C_None, W_None),
       2#001# => ("dec             ", C_Eb, C_None, W_None),
       others => ("                ", C_None, C_None, W_None));
+
+   --  The group 5 is used for the first opcode byte 16#ff#
 
    Insn_Desc_G5 : constant Group_Desc_Array_Type :=
      (2#000# => ("inc             ", C_Ev, C_None, W_None),
@@ -965,9 +1078,11 @@ package body Disa_X86 is
       2#110# => ("push            ", C_Ev, C_None, W_None),
       2#111# => ("                ", C_None, C_None, W_None));
 
+   --  The group 6 is used for the second opcode byte 16#00#
+
    Insn_Desc_G6 : constant Group_Desc_Array_Type :=
-     (2#000# => ("sldt            ", C_Rv_Mw, C_None, W_None),
-      2#001# => ("str             ", C_Rv_Mw, C_None, W_None),
+     (2#000# => ("sldt            ", C_Ew, C_None, W_None),
+      2#001# => ("str             ", C_Ew, C_None, W_None),
       2#010# => ("lldt            ", C_Ew, C_None, W_None),
       2#011# => ("ltr             ", C_Ew, C_None, W_None),
       2#100# => ("verr            ", C_Ew, C_None, W_None),
@@ -975,29 +1090,30 @@ package body Disa_X86 is
       2#110# => ("                ", C_None, C_None, W_None),
       2#111# => ("                ", C_None, C_None, W_None));
 
+   --  The group 7 is used for the second opcode byte 16#01#
+
    Insn_Desc_G7 : constant Group_Desc_Array_Type :=
      (2#000# => ("sgdt            ", C_Ms, C_None, W_None),
       2#001# => ("sidt            ", C_Ms, C_None, W_None),
       2#010# => ("lgdt            ", C_Ms, C_None, W_None),
       2#011# => ("lidt            ", C_Ms, C_None, W_None),
-      2#100# => ("smsw            ", C_Rv_Mw, C_None, W_None),
+      2#100# => ("smsw            ", C_Ew, C_None, W_None),
       2#101# => ("                ", C_None, C_None, W_None),
       2#110# => ("lmsw            ", C_Ew, C_None, W_None),
       2#111# => ("invlpg          ", C_Mb, C_None, W_None));
 
-   type Esc_Desc_Array_Type is
+   --  Two-levels lookup table for escape to coprocessor instruction set, when
+   --  the ModR/M byte is inside the range from 16#00# to 16#bf# (included). It
+   --  is indexed first by the 3 least significant bits of the first opcode
+   --  byte, then by the "reg/opcode" 3-bit field of the ModR/M byte.
+
+   type Esc_Inside_Desc_Array_Type is
       array (Bit_Field_3, Bit_Field_3) of Insn_Desc_Type;
-   Insn_Desc_Esc : constant Esc_Desc_Array_Type :=
+
+   Insn_Desc_Esc_Before_Bf : constant Esc_Inside_Desc_Array_Type :=
      (
-      --  D8
-      (2#000# => ("fadd            ", C_Mfs, C_None, W_None),
-       2#001# => ("fmul            ", C_Mfs, C_None, W_None),
-       2#010# => ("fcom            ", C_Mfs, C_None, W_None),
-       2#011# => ("fcomp           ", C_Mfs, C_None, W_None),
-       2#100# => ("fsub            ", C_Mfs, C_None, W_None),
-       2#101# => ("fsubr           ", C_Mfs, C_None, W_None),
-       2#110# => ("fdiv            ", C_Mfs, C_None, W_None),
-       2#111# => ("fdivr           ", C_Mfs, C_None, W_None)),
+      --  D8: all slots are reserved
+      (others => ("                ", C_None, C_None, W_None)),
       --  D9
       (2#000# => ("fld             ", C_Mfs, C_None, W_None),
        2#001# => ("                ", C_None, C_None, W_None),
@@ -1062,154 +1178,105 @@ package body Disa_X86 is
        2#110# => ("fbstp           ", C_M, C_None, W_None),
        2#111# => ("fistp           ", C_Mq, C_None, W_None)));
 
-   type Sub_Esc_Desc_Array_Type is array (Bit_Field_6) of Insn_Desc_Type;
-   Insn_Desc_Esc_D9 : constant Sub_Esc_Desc_Array_Type :=
-     (16#00# => ("fld             ", C_H0, C_H, W_None),
-      16#01# => ("fld             ", C_H0, C_H, W_None),
-      16#02# => ("fld             ", C_H0, C_H, W_None),
-      16#03# => ("fld             ", C_H0, C_H, W_None),
-      16#04# => ("fld             ", C_H0, C_H, W_None),
-      16#05# => ("fld             ", C_H0, C_H, W_None),
-      16#06# => ("fld             ", C_H0, C_H, W_None),
-      16#07# => ("fld             ", C_H0, C_H, W_None),
-      16#08# => ("fxch            ", C_H0, C_H, W_None),
-      16#09# => ("fxch            ", C_H0, C_H, W_None),
-      16#0a# => ("fxch            ", C_H0, C_H, W_None),
-      16#0b# => ("fxch            ", C_H0, C_H, W_None),
-      16#0c# => ("fxch            ", C_H0, C_H, W_None),
-      16#0d# => ("fxch            ", C_H0, C_H, W_None),
-      16#0e# => ("fxch            ", C_H0, C_H, W_None),
-      16#0f# => ("fxch            ", C_H0, C_H, W_None),
+   --  Two-levels lookup table for escape to coprocessor instruction set, when
+   --  the ModR/M byte is outside the range from 16#00# to 16#bf# (included).
+   --  It is indexed first by the 3 least significant bits of the first opcode
+   --  byte, then by the ModR/M byte.
 
-      16#10# => ("fnop            ", C_None, C_None, W_None),
-      16#11# => ("                ", C_None, C_None, W_None),
-      16#12# => ("                ", C_None, C_None, W_None),
-      16#13# => ("                ", C_None, C_None, W_None),
-      16#14# => ("                ", C_None, C_None, W_None),
-      16#15# => ("                ", C_None, C_None, W_None),
-      16#16# => ("                ", C_None, C_None, W_None),
-      16#17# => ("                ", C_None, C_None, W_None),
-      16#18# => ("                ", C_None, C_None, W_None),
-      16#19# => ("                ", C_None, C_None, W_None),
-      16#1a# => ("                ", C_None, C_None, W_None),
-      16#1b# => ("                ", C_None, C_None, W_None),
-      16#1c# => ("                ", C_None, C_None, W_None),
-      16#1d# => ("                ", C_None, C_None, W_None),
-      16#1e# => ("                ", C_None, C_None, W_None),
-      16#1f# => ("                ", C_None, C_None, W_None),
+   type Esc_Outside_Modrm_Type is range 16#c0# .. 16#ff#;
+   type Esc_Outside_Desc_Array_Type is
+      array (Bit_Field_3, Esc_Outside_Modrm_Type) of Insn_Desc_Type;
 
-      16#20# => ("fchs            ", C_None, C_None, W_None),
-      16#21# => ("fabs            ", C_None, C_None, W_None),
-      16#22# => ("                ", C_None, C_None, W_None),
-      16#23# => ("                ", C_None, C_None, W_None),
-      16#24# => ("ftst            ", C_None, C_None, W_None),
-      16#25# => ("fxam            ", C_None, C_None, W_None),
-      16#26# => ("                ", C_None, C_None, W_None),
-      16#27# => ("                ", C_None, C_None, W_None),
-      16#28# => ("fld1            ", C_None, C_None, W_None),
-      16#29# => ("fldl2t          ", C_None, C_None, W_None),
-      16#2a# => ("fldl2e          ", C_None, C_None, W_None),
-      16#2b# => ("fldpi           ", C_None, C_None, W_None),
-      16#2c# => ("fldlg2          ", C_None, C_None, W_None),
-      16#2d# => ("fldln2          ", C_None, C_None, W_None),
-      16#2e# => ("fldlz           ", C_None, C_None, W_None),
-      16#2f# => ("                ", C_None, C_None, W_None),
-
-      16#30# => ("f2xm1           ", C_None, C_None, W_None),
-      16#31# => ("fyl2x           ", C_None, C_None, W_None),
-      16#32# => ("fptan           ", C_None, C_None, W_None),
-      16#33# => ("fpatan          ", C_None, C_None, W_None),
-      16#34# => ("fpxtract        ", C_None, C_None, W_None),
-      16#35# => ("fprem1          ", C_None, C_None, W_None),
-      16#36# => ("fdecstp         ", C_None, C_None, W_None),
-      16#37# => ("fincstp         ", C_None, C_None, W_None),
-      16#38# => ("fprem           ", C_None, C_None, W_None),
-      16#39# => ("fyl2xp1         ", C_None, C_None, W_None),
-      16#3a# => ("fsqrt           ", C_None, C_None, W_None),
-      16#3b# => ("fsincos         ", C_None, C_None, W_None),
-      16#3c# => ("frndint         ", C_None, C_None, W_None),
-      16#3d# => ("fscale          ", C_None, C_None, W_None),
-      16#3e# => ("fsin            ", C_None, C_None, W_None),
-      16#3f# => ("fcos            ", C_None, C_None, W_None));
-
-   Insn_Desc_Esc_DA : constant Sub_Esc_Desc_Array_Type :=
+   Insn_Desc_Esc_After_Bf : constant Esc_Outside_Desc_Array_Type :=
      (
-      16#00# .. 16#07# => ("fcmovb          ", C_H0, C_H, W_None),
-      16#08# .. 16#0f# => ("fcmove          ", C_H0, C_H, W_None),
-      16#10# .. 16#17# => ("fcmovbe         ", C_H0, C_H, W_None),
-      16#18# .. 16#1f# => ("fcmovu          ", C_H0, C_H, W_None),
-      16#29#           => ("fucompp         ", C_None, C_None, W_None),
-      others           => ("                ", C_None, C_None, W_None)
-     );
+      --  D8
+      (16#c0# .. 16#c7# => ("fadd            ", C_H0, C_H, W_None),
+       16#c8# .. 16#cf# => ("fmul            ", C_H0, C_H, W_None),
+       16#d0# .. 16#d7# => ("fcom            ", C_H0, C_H, W_None),
+       16#d8# .. 16#df# => ("fcomp           ", C_H0, C_H, W_None),
+       16#e0# .. 16#e7# => ("fsub            ", C_H0, C_H, W_None),
+       16#e8# .. 16#ef# => ("fsubr           ", C_H0, C_H, W_None),
+       16#f0# .. 16#f7# => ("fdiv            ", C_H0, C_H, W_None),
+       16#f8# .. 16#ff# => ("fdivr           ", C_H0, C_H, W_None)),
+      --  D9
+      (16#c0# .. 16#c7# => ("fld             ", C_H0, C_H, W_None),
+       16#c8# .. 16#cf# => ("fxch            ", C_H0, C_H, W_None),
+       16#d0#           => ("fnop            ", C_None, C_None, W_None),
 
-   Insn_Desc_Esc_DB : constant Sub_Esc_Desc_Array_Type :=
-     (
-      16#00# .. 16#07# => ("fcmovnb         ", C_H0, C_H, W_None),
-      16#08# .. 16#0f# => ("fcmovne         ", C_H0, C_H, W_None),
-      16#10# .. 16#17# => ("fcmovnbe        ", C_H0, C_H, W_None),
-      16#18# .. 16#1f# => ("fcmovnu         ", C_H0, C_H, W_None),
-      16#20# .. 16#27# => ("                ", C_None, C_None, W_None),
-      16#28# .. 16#2f# => ("fucomi          ", C_H0, C_H, W_None),
-      16#30# .. 16#37# => ("fcomi           ", C_H0, C_H, W_None),
-      16#38# .. 16#3f# => ("                ", C_None, C_None, W_None)
-     );
+       16#e0#           => ("fchs            ", C_None, C_None, W_None),
+       16#e1#           => ("fabs            ", C_None, C_None, W_None),
+       16#e4#           => ("ftst            ", C_None, C_None, W_None),
+       16#e5#           => ("fxam            ", C_None, C_None, W_None),
+       16#e8#           => ("fld1            ", C_None, C_None, W_None),
+       16#e9#           => ("fldl2t          ", C_None, C_None, W_None),
+       16#ea#           => ("fldl2e          ", C_None, C_None, W_None),
+       16#eb#           => ("fldpi           ", C_None, C_None, W_None),
+       16#ec#           => ("fldlg2          ", C_None, C_None, W_None),
+       16#ed#           => ("fldln2          ", C_None, C_None, W_None),
+       16#ee#           => ("fldlz           ", C_None, C_None, W_None),
 
-   Insn_Desc_Esc_DC : constant Sub_Esc_Desc_Array_Type :=
-     (
-      16#00# .. 16#07# => ("fadd            ", C_H0, C_H, W_None),
-      16#08# .. 16#0f# => ("fmul            ", C_H0, C_H, W_None),
-      16#10# .. 16#17# => ("                ", C_None, C_None, W_None),
-      16#18# .. 16#1f# => ("                ", C_None, C_None, W_None),
-      16#20# .. 16#27# => ("fsubr           ", C_H0, C_H, W_None),
-      16#28# .. 16#2f# => ("fsub            ", C_H0, C_H, W_None),
-      16#30# .. 16#37# => ("fdivr           ", C_H0, C_H, W_None),
-      16#38# .. 16#3f# => ("fdiv            ", C_H0, C_H, W_None)
-     );
+       16#f0#           => ("f2xm1           ", C_None, C_None, W_None),
+       16#f1#           => ("fyl2x           ", C_None, C_None, W_None),
+       16#f2#           => ("fptan           ", C_None, C_None, W_None),
+       16#f3#           => ("fpatan          ", C_None, C_None, W_None),
+       16#f4#           => ("fpxtract        ", C_None, C_None, W_None),
+       16#f5#           => ("fprem1          ", C_None, C_None, W_None),
+       16#f6#           => ("fdecstp         ", C_None, C_None, W_None),
+       16#f7#           => ("fincstp         ", C_None, C_None, W_None),
+       16#f8#           => ("fprem           ", C_None, C_None, W_None),
+       16#f9#           => ("fyl2xp1         ", C_None, C_None, W_None),
+       16#fa#           => ("fsqrt           ", C_None, C_None, W_None),
+       16#fb#           => ("fsincos         ", C_None, C_None, W_None),
+       16#fc#           => ("frndint         ", C_None, C_None, W_None),
+       16#fd#           => ("fscale          ", C_None, C_None, W_None),
+       16#fe#           => ("fsin            ", C_None, C_None, W_None),
+       16#ff#           => ("fcos            ", C_None, C_None, W_None),
 
-   Insn_Desc_Esc_DE : constant Sub_Esc_Desc_Array_Type :=
-     (
-      16#00# .. 16#07# => ("faddp           ", C_H0, C_H, W_None),
-      16#08# .. 16#0f# => ("fmulp           ", C_H0, C_H, W_None),
-      16#19#           => ("fcompp          ", C_None, C_None, W_None),
-      16#20# .. 16#27# => ("fsubrp          ", C_H0, C_H, W_None),
-      16#28# .. 16#2f# => ("fsubp           ", C_H0, C_H, W_None),
-      16#30# .. 16#37# => ("fdivrp          ", C_H0, C_H, W_None),
-      16#38# .. 16#3f# => ("fdivp           ", C_H0, C_H, W_None),
-      others           => ("                ", C_None, C_None, W_None)
-     );
-
-   Insn_Desc_Esc_DF : constant Sub_Esc_Desc_Array_Type :=
-     (
-      16#20#           => ("fstsw           ", C_Reg_Ax, C_None, W_None),
-      16#28# .. 16#2f# => ("fucomip         ", C_H0, C_H, W_None),
-      16#30# .. 16#37# => ("fcompip         ", C_H0, C_H, W_None),
-      others           => ("                ", C_None, C_None, W_None)
-     );
-
-   type Esc_Desc3_Array_Type is array (Bit_Field_3) of Insn_Desc_Type;
-   Insn_Desc_Esc_D8 : constant Esc_Desc3_Array_Type :=
-     (
-      0 => ("fadd            ", C_H0, C_H, W_None),
-      1 => ("fmul            ", C_H0, C_H, W_None),
-      2 => ("fcom            ", C_H0, C_H, W_None),
-      3 => ("fcomp           ", C_H0, C_H, W_None),
-      4 => ("fsub            ", C_H0, C_H, W_None),
-      5 => ("fsubr           ", C_H0, C_H, W_None),
-      6 => ("fdiv            ", C_H0, C_H, W_None),
-      7 => ("fdivr           ", C_H0, C_H, W_None)
-     );
-
-   Insn_Desc_Esc_DD : constant Esc_Desc3_Array_Type :=
-     (
-      0 => ("ffree           ", C_H, C_None, W_None),
-      1 => ("                ", C_None, C_None, W_None),
-      2 => ("fst             ", C_H, C_None, W_None),
-      3 => ("fstp            ", C_H, C_None, W_None),
-      4 => ("fucom           ", C_H, C_H0, W_None),
-      5 => ("fucomp          ", C_H, C_None, W_None),
-      6 => ("                ", C_None, C_None, W_None),
-      7 => ("                ", C_None, C_None, W_None)
-     );
+       others           => ("                ", C_None, C_None, W_None)),
+      --  DA
+      (16#c0# .. 16#c7# => ("fcmovb          ", C_H0, C_H, W_None),
+       16#c8# .. 16#cf# => ("fcmove          ", C_H0, C_H, W_None),
+       16#d0# .. 16#d7# => ("fcmovbe         ", C_H0, C_H, W_None),
+       16#d8# .. 16#df# => ("fcmovu          ", C_H0, C_H, W_None),
+       16#e9#           => ("fucompp         ", C_None, C_None, W_None),
+       others           => ("                ", C_None, C_None, W_None)),
+      --  DB
+      (16#c0# .. 16#c7# => ("fcmovnb         ", C_H0, C_H, W_None),
+       16#c8# .. 16#cf# => ("fcmovne         ", C_H0, C_H, W_None),
+       16#d0# .. 16#d7# => ("fcmovnbe        ", C_H0, C_H, W_None),
+       16#d8# .. 16#df# => ("fcmovnu         ", C_H0, C_H, W_None),
+       16#e8# .. 16#ef# => ("fucomi          ", C_H0, C_H, W_None),
+       16#f0# .. 16#f7# => ("fcomi           ", C_H0, C_H, W_None),
+       others           => ("                ", C_None, C_None, W_None)),
+      --  DC
+      (16#c0# .. 16#c7# => ("fadd            ", C_H0, C_H, W_None),
+       16#c8# .. 16#cf# => ("fmul            ", C_H0, C_H, W_None),
+       16#e0# .. 16#e7# => ("fsubr           ", C_H0, C_H, W_None),
+       16#e8# .. 16#ef# => ("fsub            ", C_H0, C_H, W_None),
+       16#f0# .. 16#f7# => ("fdivr           ", C_H0, C_H, W_None),
+       16#f8# .. 16#ff# => ("fdiv            ", C_H0, C_H, W_None),
+       others           => ("                ", C_None, C_None, W_None)),
+      --  DD
+      (16#c0# .. 16#c7# => ("ffree           ", C_H, C_None, W_None),
+       16#d0# .. 16#d7# => ("fst             ", C_H, C_None, W_None),
+       16#d8# .. 16#df# => ("fstp            ", C_H, C_None, W_None),
+       16#e0# .. 16#e7# => ("fucom           ", C_H, C_H0, W_None),
+       16#e8# .. 16#ef# => ("fucomp          ", C_H, C_None, W_None),
+       others           => ("                ", C_None, C_None, W_None)),
+      --  DE
+      (16#c0# .. 16#c7# => ("faddp           ", C_H0, C_H, W_None),
+       16#c8# .. 16#cf# => ("fmulp           ", C_H0, C_H, W_None),
+       16#d9#           => ("fcompp          ", C_None, C_None, W_None),
+       16#e0# .. 16#e7# => ("fsubrp          ", C_H0, C_H, W_None),
+       16#e8# .. 16#ef# => ("fsubp           ", C_H0, C_H, W_None),
+       16#f0# .. 16#f7# => ("fdivrp          ", C_H0, C_H, W_None),
+       16#f8# .. 16#ff# => ("fdivp           ", C_H0, C_H, W_None),
+       others           => ("                ", C_None, C_None, W_None)),
+      --  DF
+      (16#e0#           => ("fstsw           ", C_Reg_Ax, C_None, W_None),
+       16#e8# .. 16#ef# => ("fucomip         ", C_H0, C_H, W_None),
+       16#f0# .. 16#f7# => ("fcompip         ", C_H0, C_H, W_None),
+       others           => ("                ", C_None, C_None, W_None)));
 
    --  Standard widths of operations
 
@@ -1221,6 +1288,8 @@ package body Disa_X86 is
       W_32   => 'l',
       W_64   => 'q',
       W_128  => 's');
+   --  Turn an operand size into a character, for debugging purposes
+
    type Width_Len_Type is array (Width_Type) of Pc_Type;
    Width_Len : constant Width_Len_Type :=
      (W_None => 0,
@@ -1229,6 +1298,7 @@ package body Disa_X86 is
       W_32   => 4,
       W_64   => 8,
       W_128  => 16);
+   --  Turn an operand size into the corresponding number of bytes
 
    type To_General_Type is array (Width_Type) of Reg_Class_Type;
    To_General : constant To_General_Type :=
@@ -1238,6 +1308,8 @@ package body Disa_X86 is
       W_32   => R_32,
       W_64   => R_None,
       W_128  => R_None);
+   --  Turn an operand size into the corresponding general-purpose register
+   --  class (if any, R_None otherwise).
 
    type To_Z_Type is array (Width_Type) of Width_Type;
    To_Z : constant To_Z_Type :=
@@ -1245,8 +1317,10 @@ package body Disa_X86 is
       W_8    => W_None,
       W_16   => W_16,
       W_32   => W_32,
-      W_64   => W_64,
-      W_128  => W_128);
+      W_64   => W_None,
+      W_128  => W_None);
+   --  Turn an operand size to W_None if it is not a valid value for the
+   --  operand-size attribut.
 
    --  Bits extraction from byte functions
 
@@ -1348,11 +1422,11 @@ package body Disa_X86 is
               or Shift_Left (Unsigned_32 (Mem (Off + 1)), 8)
               or Shift_Left (Unsigned_32 (Mem (Off + 0)), 0);
 
+         when W_64 | W_128 =>
+            raise Program_Error with "unhandled 64/128bits decoding";
+
          when W_None =>
             raise Program_Error;
-
-         when others =>
-            raise Program_Error with "unhandled 64/128bits decoding";
       end case;
    end Decode_Val;
 
@@ -1892,20 +1966,12 @@ package body Disa_X86 is
                Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gv =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R);
-            when C_Gv_Ib =>
-               Decode_Imm (Off_Imm, W_8);
-               Add_Comma;
-               Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gb =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R_8);
             when C_Ev =>
                Decode_Modrm_Mem (Off_Modrm, R);
             when C_Ew =>
                Decode_Modrm_Mem (Off_Modrm, R_32);
-            when C_Ev_Ib =>
-               Decode_Imm (Off_Imm, W_8);
-               Add_Comma;
-               Decode_Modrm_Mem (Off_Modrm, R);
             when C_Ev_Iz =>
                Decode_Imm (Off_Imm, To_Z (W));
                Add_Comma;
@@ -2010,7 +2076,7 @@ package body Disa_X86 is
                return;
             when C_Gv | C_Gv_Cl | C_Gb =>
                return;
-            when C_Gv_Ib | C_Ev_Ib | C_Ib | C_Jb =>
+            when C_Ib | C_Jb =>
                Off_Imm := Off_Imm + 1;
             when C_Iw =>
                Off_Imm := Off_Imm + 2;
@@ -2199,10 +2265,20 @@ package body Disa_X86 is
             Imm  := Desc.Imm;
 
          when 'E' =>
-            Name (1) := 'E';
-            Src      := C_M;
-            Dst      := C_None;
-            Imm      := W_None;
+            B1 := Mem (Off);
+            if Ext_Modrm_Mod (B1) /= 2#11# then
+               Desc := Insn_Desc_Esc_Before_Bf
+                         (Bit_Field_3 (B and 2#111#),
+                          Ext_Modrm_Reg (B1));
+            else
+               Desc := Insn_Desc_Esc_After_Bf
+                         (Bit_Field_3 (B and 2#111#),
+                          Esc_Outside_Modrm_Type (B1));
+            end if;
+            Name := Desc.Name;
+            Dst  := Desc.Dst;
+            Src  := Desc.Src;
+            Imm  := Desc.Imm;
 
          when 'a' .. 'z' =>
             Name := Desc.Name;
@@ -2219,39 +2295,6 @@ package body Disa_X86 is
          Off_Imm := Off_Modrm + Decode_Modrm_Len (Off_Modrm);
       else
          Off_Imm := Off_Modrm;
-      end if;
-
-      if Name (1) = 'E' then
-         B1 := Mem (Off);
-         if Ext_Modrm_Mod (B1) /= 2#11# then
-            Desc := Insn_Desc_Esc
-                      (Bit_Field_3 (B and 2#111#), Ext_Modrm_Reg (B1));
-            Dst  := Desc.Dst;
-            Src  := C_None;
-            Name := Desc.Name;
-         else
-            case Bit_Field_3 (B and 2#111#) is
-               when 2#000# =>
-                  Desc := Insn_Desc_Esc_D8 (Ext_Modrm_Reg (B1));
-               when 2#001# =>
-                  Desc := Insn_Desc_Esc_D9 (Bit_Field_6 (B1 and 2#111111#));
-               when 2#010# =>
-                  Desc := Insn_Desc_Esc_DA (Bit_Field_6 (B1 and 2#111111#));
-               when 2#011# =>
-                  Desc := Insn_Desc_Esc_DB (Bit_Field_6 (B1 and 2#111111#));
-               when 2#100# =>
-                  Desc := Insn_Desc_Esc_DC (Bit_Field_6 (B1 and 2#111111#));
-               when 2#101# =>
-                  Desc := Insn_Desc_Esc_DD (Ext_Modrm_Reg (B1));
-               when 2#110# =>
-                  Desc := Insn_Desc_Esc_DE (Bit_Field_6 (B1 and 2#111111#));
-               when 2#111# =>
-                  Desc := Insn_Desc_Esc_DF (Bit_Field_6 (B1 and 2#111111#));
-            end case;
-            Dst := Desc.Dst;
-            Src := Desc.Src;
-            Name := Desc.Name;
-         end if;
       end if;
 
       if Line'Length > 0 then
