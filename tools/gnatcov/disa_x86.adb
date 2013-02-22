@@ -27,9 +27,9 @@ with Hex_Images; use Hex_Images;
 package body Disa_X86 is
 
    subtype Byte is Interfaces.Unsigned_8;
-   type Bf_2 is mod 2 ** 2;
-   type Bf_3 is mod 2 ** 3;
-   type Bf_6 is mod 2 ** 6;
+   type Bit_Field_2 is mod 2 ** 2;
+   type Bit_Field_3 is mod 2 ** 3;
+   type Bit_Field_6 is mod 2 ** 6;
 
    type Width_Type is (W_None, W_8, W_16, W_32, W_64, W_128);
    type Reg_Class_Type is
@@ -179,7 +179,7 @@ package body Disa_X86 is
    end record;
 
    type Insn_Desc_Array_Type is array (Byte) of Insn_Desc_Type;
-   type Group_Desc_Array_Type is array (Bf_3) of Insn_Desc_Type;
+   type Group_Desc_Array_Type is array (Bit_Field_3) of Insn_Desc_Type;
    Insn_Desc : constant Insn_Desc_Array_Type :=
      (
       --  00-07
@@ -933,7 +933,7 @@ package body Disa_X86 is
       others        => ("                ", C_None, C_None, W_None));
 
    subtype String3 is String (1 .. 3);
-   type Group_Name_Array_Type is array (Bf_3) of String3;
+   type Group_Name_Array_Type is array (Bit_Field_3) of String3;
    Group_Name_1 : constant Group_Name_Array_Type :=
      ("add", "or ", "adc", "sbb", "and", "sub", "xor", "cmp");
    Group_Name_2 : constant Group_Name_Array_Type :=
@@ -985,7 +985,8 @@ package body Disa_X86 is
       2#110# => ("lmsw            ", C_Ew, C_None, W_None),
       2#111# => ("invlpg          ", C_Mb, C_None, W_None));
 
-   type Esc_Desc_Array_Type is array (Bf_3, Bf_3) of Insn_Desc_Type;
+   type Esc_Desc_Array_Type is
+      array (Bit_Field_3, Bit_Field_3) of Insn_Desc_Type;
    Insn_Desc_Esc : constant Esc_Desc_Array_Type :=
      (
       --  D8
@@ -1061,7 +1062,7 @@ package body Disa_X86 is
        2#110# => ("fbstp           ", C_M, C_None, W_None),
        2#111# => ("fistp           ", C_Mq, C_None, W_None)));
 
-   type Sub_Esc_Desc_Array_Type is array (Bf_6) of Insn_Desc_Type;
+   type Sub_Esc_Desc_Array_Type is array (Bit_Field_6) of Insn_Desc_Type;
    Insn_Desc_Esc_D9 : constant Sub_Esc_Desc_Array_Type :=
      (16#00# => ("fld             ", C_H0, C_H, W_None),
       16#01# => ("fld             ", C_H0, C_H, W_None),
@@ -1185,7 +1186,7 @@ package body Disa_X86 is
       others           => ("                ", C_None, C_None, W_None)
      );
 
-   type Esc_Desc3_Array_Type is array (Bf_3) of Insn_Desc_Type;
+   type Esc_Desc3_Array_Type is array (Bit_Field_3) of Insn_Desc_Type;
    Insn_Desc_Esc_D8 : constant Esc_Desc3_Array_Type :=
      (
       0 => ("fadd            ", C_H0, C_H, W_None),
@@ -1252,15 +1253,15 @@ package body Disa_X86 is
    --  For a byte, MSB (most significant bit) is bit 7 while LSB (least
    --  significant bit) is bit 0.
 
-   function Ext_210 (B : Byte) return Bf_3;
+   function Ext_210 (B : Byte) return Bit_Field_3;
    pragma Inline (Ext_210);
    --  Extract bits 2, 1 and 0
 
-   function Ext_543 (B : Byte) return Bf_3;
+   function Ext_543 (B : Byte) return Bit_Field_3;
    pragma Inline (Ext_543);
    --  Extract bits 5-3 of byte B
 
-   function Ext_76 (B : Byte) return Bf_2;
+   function Ext_76 (B : Byte) return Bit_Field_2;
    pragma Inline (Ext_76);
    --  Extract bits 7-6 of byte B
 
@@ -1282,35 +1283,35 @@ package body Disa_X86 is
    -- Ext_210 --
    -------------
 
-   function Ext_210 (B : Byte) return Bf_3 is
+   function Ext_210 (B : Byte) return Bit_Field_3 is
    begin
-      return Bf_3 (B and 2#111#);
+      return Bit_Field_3 (B and 2#111#);
    end Ext_210;
 
    -------------
    -- Ext_543 --
    -------------
 
-   function Ext_543 (B : Byte) return Bf_3 is
+   function Ext_543 (B : Byte) return Bit_Field_3 is
    begin
-      return Bf_3 (Shift_Right (B, 3) and 2#111#);
+      return Bit_Field_3 (Shift_Right (B, 3) and 2#111#);
    end Ext_543;
 
    ------------
    -- Ext_76 --
    ------------
 
-   function Ext_76 (B : Byte) return Bf_2 is
+   function Ext_76 (B : Byte) return Bit_Field_2 is
    begin
-      return Bf_2 (Shift_Right (B, 6) and 2#11#);
+      return Bit_Field_2 (Shift_Right (B, 6) and 2#11#);
    end Ext_76;
 
-   function Ext_Modrm_Mod (B : Byte) return Bf_2 renames Ext_76;
-   function Ext_Modrm_Rm  (B : Byte) return Bf_3 renames Ext_210;
-   function Ext_Modrm_Reg (B : Byte) return Bf_3 renames Ext_543;
-   function Ext_Sib_Base  (B : Byte) return Bf_3 renames Ext_210;
-   function Ext_Sib_Index (B : Byte) return Bf_3 renames Ext_543;
-   function Ext_Sib_Scale (B : Byte) return Bf_2 renames Ext_76;
+   function Ext_Modrm_Mod (B : Byte) return Bit_Field_2 renames Ext_76;
+   function Ext_Modrm_Rm  (B : Byte) return Bit_Field_3 renames Ext_210;
+   function Ext_Modrm_Reg (B : Byte) return Bit_Field_3 renames Ext_543;
+   function Ext_Sib_Base  (B : Byte) return Bit_Field_3 renames Ext_210;
+   function Ext_Sib_Index (B : Byte) return Bit_Field_3 renames Ext_543;
+   function Ext_Sib_Scale (B : Byte) return Bit_Field_2 renames Ext_76;
 
    type Hex_Str is array (Natural range 0 .. 15) of Character;
    Hex_Digit : constant Hex_Str := "0123456789abcdef";
@@ -1393,9 +1394,9 @@ package body Disa_X86 is
 
       procedure Add_Comma;
       procedure Name_Align (Orig : Natural);
-      procedure Add_Reg (F : Bf_3; R : Reg_Class_Type);
-      procedure Add_Reg_St (F : Bf_3);
-      procedure Add_Reg_Seg (F : Bf_3);
+      procedure Add_Reg (F : Bit_Field_3; R : Reg_Class_Type);
+      procedure Add_Reg_St (F : Bit_Field_3);
+      procedure Add_Reg_Seg (F : Bit_Field_3);
       procedure Decode_Val (Off : Pc_Type; Width : Width_Type);
       procedure Decode_Imm (Off : in out Pc_Type; Width : Width_Type);
       procedure Decode_Disp (Off : Pc_Type;
@@ -1404,7 +1405,7 @@ package body Disa_X86 is
       procedure Decode_Disp_Rel (Off : in out Pc_Type;
                                  Width : Width_Type);
       procedure Decode_Modrm_Reg (B : Byte; R : Reg_Class_Type);
-      procedure Decode_Sib (Sib : Byte; B_Mod : Bf_2);
+      procedure Decode_Sib (Sib : Byte; B_Mod : Bit_Field_2);
       procedure Decode_Modrm_Mem (Off : Pc_Type; R : Reg_Class_Type);
       function Decode_Modrm_Len (Off : Pc_Type) return Pc_Type;
       procedure Add_Operand (C : Code_Type;
@@ -1508,7 +1509,7 @@ package body Disa_X86 is
       -- Add_Reg_St --
       ----------------
 
-      procedure Add_Reg_St (F : Bf_3) is
+      procedure Add_Reg_St (F : Bit_Field_3) is
       begin
          Add_String ("%st(");
          Add_Char (Hex_Digit (Natural (F)));
@@ -1519,7 +1520,7 @@ package body Disa_X86 is
       -- Add_Reg_Seg --
       -----------------
 
-      procedure Add_Reg_Seg (F : Bf_3) is
+      procedure Add_Reg_Seg (F : Bit_Field_3) is
       begin
          case F is
             when 2#000# =>
@@ -1545,10 +1546,10 @@ package body Disa_X86 is
       -- Add_Reg --
       -------------
 
-      procedure Add_Reg (F : Bf_3; R : Reg_Class_Type) is
-         type Reg_Name2_Array is array (Bf_3) of String (1 .. 2);
-         type Reg_Name3_Array is array (Bf_3) of String (1 .. 3);
-         type Reg_Name4_Array is array (Bf_3) of String (1 .. 4);
+      procedure Add_Reg (F : Bit_Field_3; R : Reg_Class_Type) is
+         type Reg_Name2_Array is array (Bit_Field_3) of String (1 .. 2);
+         type Reg_Name3_Array is array (Bit_Field_3) of String (1 .. 3);
+         type Reg_Name4_Array is array (Bit_Field_3) of String (1 .. 4);
          Regs_8 : constant Reg_Name2_Array :=
            ("al", "cl", "dl", "bl", "ah", "ch", "dh", "bh");
          Regs_16 : constant Reg_Name2_Array :=
@@ -1691,11 +1692,11 @@ package body Disa_X86 is
       -- Decode_Sib --
       ----------------
 
-      procedure Decode_Sib (Sib : Byte; B_Mod : Bf_2)
+      procedure Decode_Sib (Sib : Byte; B_Mod : Bit_Field_2)
       is
-         S : Bf_2;
-         I : Bf_3;
-         B : Bf_3;
+         S : Bit_Field_2;
+         I : Bit_Field_3;
+         B : Bit_Field_3;
       begin
          S := Ext_Sib_Scale (Sib);
          B := Ext_Sib_Base (Sib);
@@ -1733,8 +1734,8 @@ package body Disa_X86 is
       procedure Decode_Modrm_Mem (Off : Pc_Type; R : Reg_Class_Type)
       is
          B : Byte;
-         B_Mod : Bf_2;
-         B_Rm : Bf_3;
+         B_Mod : Bit_Field_2;
+         B_Rm : Bit_Field_3;
       begin
          B := Mem (Off);
          B_Mod := Ext_Modrm_Mod (B);
@@ -1786,8 +1787,8 @@ package body Disa_X86 is
       function Decode_Modrm_Len (Off : Pc_Type) return Pc_Type
       is
          B : Byte;
-         M_Mod : Bf_2;
-         M_Rm : Bf_3;
+         M_Mod : Bit_Field_2;
+         M_Rm : Bit_Field_3;
       begin
          B := Mem (Off);
          M_Mod := Ext_Modrm_Mod (B);
@@ -2223,28 +2224,29 @@ package body Disa_X86 is
       if Name (1) = 'E' then
          B1 := Mem (Off);
          if Ext_Modrm_Mod (B1) /= 2#11# then
-            Desc := Insn_Desc_Esc (Bf_3 (B and 2#111#), Ext_Modrm_Reg (B1));
+            Desc := Insn_Desc_Esc
+                      (Bit_Field_3 (B and 2#111#), Ext_Modrm_Reg (B1));
             Dst  := Desc.Dst;
             Src  := C_None;
             Name := Desc.Name;
          else
-            case Bf_3 (B and 2#111#) is
+            case Bit_Field_3 (B and 2#111#) is
                when 2#000# =>
                   Desc := Insn_Desc_Esc_D8 (Ext_Modrm_Reg (B1));
                when 2#001# =>
-                  Desc := Insn_Desc_Esc_D9 (Bf_6 (B1 and 2#111111#));
+                  Desc := Insn_Desc_Esc_D9 (Bit_Field_6 (B1 and 2#111111#));
                when 2#010# =>
-                  Desc := Insn_Desc_Esc_DA (Bf_6 (B1 and 2#111111#));
+                  Desc := Insn_Desc_Esc_DA (Bit_Field_6 (B1 and 2#111111#));
                when 2#011# =>
-                  Desc := Insn_Desc_Esc_DB (Bf_6 (B1 and 2#111111#));
+                  Desc := Insn_Desc_Esc_DB (Bit_Field_6 (B1 and 2#111111#));
                when 2#100# =>
-                  Desc := Insn_Desc_Esc_DC (Bf_6 (B1 and 2#111111#));
+                  Desc := Insn_Desc_Esc_DC (Bit_Field_6 (B1 and 2#111111#));
                when 2#101# =>
                   Desc := Insn_Desc_Esc_DD (Ext_Modrm_Reg (B1));
                when 2#110# =>
-                  Desc := Insn_Desc_Esc_DE (Bf_6 (B1 and 2#111111#));
+                  Desc := Insn_Desc_Esc_DE (Bit_Field_6 (B1 and 2#111111#));
                when 2#111# =>
-                  Desc := Insn_Desc_Esc_DF (Bf_6 (B1 and 2#111111#));
+                  Desc := Insn_Desc_Esc_DF (Bit_Field_6 (B1 and 2#111111#));
             end case;
             Dst := Desc.Dst;
             Src := Desc.Src;
