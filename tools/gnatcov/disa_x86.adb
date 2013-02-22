@@ -2280,6 +2280,13 @@ package body Disa_X86 is
                   B1 := Mem (Off);
                   Off := Off + 1;
                   Desc := Insn_Desc_66_0F (B1);
+
+                  --  When the 16#66# prefix is used but was not mandatory,
+                  --  this is a valid operand-size attribute toggling: turn
+                  --  back to the unprefixed two-bytes opcodes table.
+                  if Desc.Name (1) = ' ' then
+                     Desc := Insn_Desc_0F (B);
+                  end if;
                   exit;
                end if;
                W := W_16;
