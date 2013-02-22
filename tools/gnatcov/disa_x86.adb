@@ -228,6 +228,9 @@ package body Disa_X86 is
    --  Subset of operand types that imply a ModR/M byte after the opcode bytes
    --  sequence.
 
+   subtype GPR_Code is Code_Type range C_Reg_Al .. C_Reg_Di;
+   --  Subset of operand type that design a specific register
+
    type Extra_Operand_Type is
      (Extra_None, Extra_8, Extra_Iz, Extra_Cl);
 
@@ -1323,6 +1326,27 @@ package body Disa_X86 is
    --  Turn an operand size to W_None if it is not a valid value for the
    --  operand-size attribut.
 
+   type To_Register_Number_Type is array (GPR_Code) of Bit_Field_3;
+   To_Register_Number : constant To_Register_Number_Type :=
+     (C_Reg_Al => 2#000#,
+      C_Reg_Cl => 2#001#,
+      C_Reg_Dl => 2#010#,
+      C_Reg_Bl => 2#011#,
+      C_Reg_Ah => 2#100#,
+      C_Reg_Ch => 2#101#,
+      C_Reg_Dh => 2#110#,
+      C_Reg_Bh => 2#111#,
+      C_Reg_Ax => 2#000#,
+      C_Reg_Cx => 2#001#,
+      C_Reg_Dx => 2#010#,
+      C_Reg_Bx => 2#011#,
+      C_Reg_Sp => 2#100#,
+      C_Reg_Bp => 2#101#,
+      C_Reg_Si => 2#110#,
+      C_Reg_Di => 2#111#);
+   --  Turn a specific register operand kind into a 3-bit field suitable for
+   --  the Add_Reg procedure.
+
    --  Bits extraction from byte functions
 
    --  For a byte, MSB (most significant bit) is bit 7 while LSB (least
@@ -2022,32 +2046,12 @@ package body Disa_X86 is
          R : constant Reg_Class_Type := To_General (W);
       begin
          case C is
-            when C_Reg_Bp =>
-               Add_String ("%ebp");
-            when C_Reg_Ax =>
-               Add_String ("%eax");
-            when C_Reg_Dx =>
-               Add_String ("%edx");
-            when C_Reg_Cx =>
-               Add_String ("%ecx");
-            when C_Reg_Bx =>
-               Add_String ("%ebx");
-            when C_Reg_Si =>
-               Add_String ("%esi");
-            when C_Reg_Di =>
-               Add_String ("%edi");
-            when C_Reg_Sp =>
-               Add_String ("%esp");
-            when C_Reg_Al =>
-               Add_String ("%al");
-            when C_Reg_Bl =>
-               Add_String ("%bl");
-            when C_Reg_Cl =>
-               Add_String ("%cl");
-            when C_Reg_Dl =>
-               Add_String ("%dl");
-            when C_Reg_Ah =>
-               Add_String ("%ah");
+            when C_Reg_Al | C_Reg_Cl | C_Reg_Dl | C_Reg_Bl
+               | C_Reg_Ah | C_Reg_Ch | C_Reg_Dh | C_Reg_Bh =>
+               Add_Reg (To_Register_Number (C), R_8);
+            when C_Reg_Ax | C_Reg_Cx | C_Reg_Dx | C_Reg_Bx
+               | C_Reg_Sp | C_Reg_Bp | C_Reg_Si | C_Reg_Di =>
+               Add_Reg (To_Register_Number (C), R);
             when C_Reg_Cs =>
                Add_String ("%cs");
             when C_Reg_Ds =>
