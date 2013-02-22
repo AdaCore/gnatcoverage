@@ -58,10 +58,10 @@ package body Disa_X86 is
 
       --  These are instruction prefixes, not really operands.
       --  TODO: move them away.
-      C_Prefix,
       C_Prefix_Seg,
       C_Prefix_Rep,
       C_Prefix_Oper,
+      C_Prefix_Addr,
       C_0F,
       C_Lock,
 
@@ -393,7 +393,7 @@ package body Disa_X86 is
       16#64#        => ("fs              ", C_Prefix_Seg, C_None, W_None),
       16#65#        => ("gs              ", C_Prefix_Seg, C_None, W_None),
       16#66#        => ("oper            ", C_Prefix_Oper, C_None, W_None),
-      16#67#        => ("addr            ", C_Prefix, C_None, W_None),
+      16#67#        => ("addr            ", C_Prefix_Addr, C_None, W_None),
 
       16#68#        => ("push            ", C_Iz, C_None, W_None),
       16#69#        => ("imul            ", C_Gv, C_Ev_Iz, W_None),
@@ -2290,7 +2290,7 @@ package body Disa_X86 is
                Desc := Insn_Desc_0F (B);
                exit;
 
-            when C_Prefix =>
+            when C_Prefix_Addr =>
                --  TODO???
                raise Program_Error;
 
