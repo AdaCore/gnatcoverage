@@ -79,7 +79,6 @@ package body Disa_X86 is
       C_Gz,
       C_Gb,
       C_Gv,
-      C_Gv_Cl, --  TODO: remove it, there is now a third operand attribute
 
       --  Either a GPR or a memory address in the "r/m" field of the ModR/M
       --  byte.
@@ -88,7 +87,6 @@ package body Disa_X86 is
       C_Ed,
       C_Ep,
       C_Ev,
-      C_Ev_Iz, --  TODO: remove it, there is now a third operand attribute
       C_Ew,
 
       --  Control, Debug and general Registers in the "reg" field of the ModR/M
@@ -230,6 +228,9 @@ package body Disa_X86 is
    --  Subset of operand types that imply a ModR/M byte after the opcode bytes
    --  sequence.
 
+   type Extra_Operand_Type is
+     (Extra_None, Extra_8, Extra_Iz, Extra_Cl);
+
    -----------------------------
    -- Opcodes decoding tables --
    -----------------------------
@@ -243,9 +244,9 @@ package body Disa_X86 is
 
       Dst, Src : Code_Type;
       --  Destination and source operands (C_None if absent)
-      Imm : Width_Type;
-      --  Size of the last (immediate) operand if there is an immediate *and*
-      --  destination and source operands, W_None otherwise.
+      Extra : Extra_Operand_Type;
+      --  Kind of the last operand if there is an immediate/CL register *and*
+      --  destination and source operands, Extra_None otherwise.
    end record;
    --  Format description for one instruction or one instruction group
 
@@ -260,320 +261,320 @@ package body Disa_X86 is
    Insn_Desc : constant Insn_Desc_Array_Type :=
      (
       --  00-07
-      2#00_000_000# => ("add             ", C_Eb, C_Gb, W_None),
-      2#00_000_001# => ("add             ", C_Ev, C_Gv, W_None),
-      2#00_000_010# => ("add             ", C_Gb, C_Eb, W_None),
-      2#00_000_011# => ("add             ", C_Gv, C_Ev, W_None),
-      2#00_000_100# => ("add             ", C_Reg_Al, C_Ib, W_None),
-      2#00_000_101# => ("add             ", C_Reg_Ax, C_Iz, W_None),
+      2#00_000_000# => ("add             ", C_Eb, C_Gb, Extra_None),
+      2#00_000_001# => ("add             ", C_Ev, C_Gv, Extra_None),
+      2#00_000_010# => ("add             ", C_Gb, C_Eb, Extra_None),
+      2#00_000_011# => ("add             ", C_Gv, C_Ev, Extra_None),
+      2#00_000_100# => ("add             ", C_Reg_Al, C_Ib, Extra_None),
+      2#00_000_101# => ("add             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_000_110# => ("push            ", C_Reg_Es, C_None, W_None),
-      2#00_000_111# => ("pop             ", C_Reg_Es, C_None, W_None),
+      2#00_000_110# => ("push            ", C_Reg_Es, C_None, Extra_None),
+      2#00_000_111# => ("pop             ", C_Reg_Es, C_None, Extra_None),
 
       --  08-0F
-      2#00_001_000# => ("or              ", C_Eb, C_Gb, W_None),
-      2#00_001_001# => ("or              ", C_Ev, C_Gv, W_None),
-      2#00_001_010# => ("or              ", C_Gb, C_Eb, W_None),
-      2#00_001_011# => ("or              ", C_Gv, C_Ev, W_None),
-      2#00_001_100# => ("or              ", C_Reg_Al, C_Ib, W_None),
-      2#00_001_101# => ("or              ", C_Reg_Ax, C_Iz, W_None),
+      2#00_001_000# => ("or              ", C_Eb, C_Gb, Extra_None),
+      2#00_001_001# => ("or              ", C_Ev, C_Gv, Extra_None),
+      2#00_001_010# => ("or              ", C_Gb, C_Eb, Extra_None),
+      2#00_001_011# => ("or              ", C_Gv, C_Ev, Extra_None),
+      2#00_001_100# => ("or              ", C_Reg_Al, C_Ib, Extra_None),
+      2#00_001_101# => ("or              ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_001_110# => ("push            ", C_Reg_Cs, C_None, W_None),
-      2#00_001_111# => ("-               ", C_0F, C_None, W_None),
+      2#00_001_110# => ("push            ", C_Reg_Cs, C_None, Extra_None),
+      2#00_001_111# => ("-               ", C_0F, C_None, Extra_None),
 
       --  10-17
-      2#00_010_000# => ("adc             ", C_Eb, C_Gb, W_None),
-      2#00_010_001# => ("adc             ", C_Ev, C_Gv, W_None),
-      2#00_010_010# => ("adc             ", C_Gb, C_Eb, W_None),
-      2#00_010_011# => ("adc             ", C_Gv, C_Ev, W_None),
-      2#00_010_100# => ("adc             ", C_Reg_Al, C_Ib, W_None),
-      2#00_010_101# => ("adc             ", C_Reg_Ax, C_Iz, W_None),
+      2#00_010_000# => ("adc             ", C_Eb, C_Gb, Extra_None),
+      2#00_010_001# => ("adc             ", C_Ev, C_Gv, Extra_None),
+      2#00_010_010# => ("adc             ", C_Gb, C_Eb, Extra_None),
+      2#00_010_011# => ("adc             ", C_Gv, C_Ev, Extra_None),
+      2#00_010_100# => ("adc             ", C_Reg_Al, C_Ib, Extra_None),
+      2#00_010_101# => ("adc             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_010_110# => ("push            ", C_Reg_Ss, C_None, W_None),
-      2#00_010_111# => ("pop             ", C_Reg_Ss, C_None, W_None),
+      2#00_010_110# => ("push            ", C_Reg_Ss, C_None, Extra_None),
+      2#00_010_111# => ("pop             ", C_Reg_Ss, C_None, Extra_None),
 
       --  18-1F
-      2#00_011_000# => ("sbb             ", C_Eb, C_Gb, W_None),
-      2#00_011_001# => ("sbb             ", C_Ev, C_Gv, W_None),
-      2#00_011_010# => ("sbb             ", C_Gb, C_Eb, W_None),
-      2#00_011_011# => ("sbb             ", C_Gv, C_Ev, W_None),
-      2#00_011_100# => ("sbb             ", C_Reg_Al, C_Ib, W_None),
-      2#00_011_101# => ("sbb             ", C_Reg_Ax, C_Iz, W_None),
+      2#00_011_000# => ("sbb             ", C_Eb, C_Gb, Extra_None),
+      2#00_011_001# => ("sbb             ", C_Ev, C_Gv, Extra_None),
+      2#00_011_010# => ("sbb             ", C_Gb, C_Eb, Extra_None),
+      2#00_011_011# => ("sbb             ", C_Gv, C_Ev, Extra_None),
+      2#00_011_100# => ("sbb             ", C_Reg_Al, C_Ib, Extra_None),
+      2#00_011_101# => ("sbb             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_011_110# => ("push            ", C_Reg_Ds, C_None, W_None),
-      2#00_011_111# => ("pop             ", C_Reg_Ds, C_None, W_None),
+      2#00_011_110# => ("push            ", C_Reg_Ds, C_None, Extra_None),
+      2#00_011_111# => ("pop             ", C_Reg_Ds, C_None, Extra_None),
 
       --  20-27
-      2#00_100_000# => ("and             ", C_Eb, C_Gb, W_None),
-      2#00_100_001# => ("and             ", C_Ev, C_Gv, W_None),
-      2#00_100_010# => ("and             ", C_Gb, C_Eb, W_None),
-      2#00_100_011# => ("and             ", C_Gv, C_Ev, W_None),
-      2#00_100_100# => ("and             ", C_Reg_Al, C_Ib, W_None),
-      2#00_100_101# => ("and             ", C_Reg_Ax, C_Iz, W_None),
+      2#00_100_000# => ("and             ", C_Eb, C_Gb, Extra_None),
+      2#00_100_001# => ("and             ", C_Ev, C_Gv, Extra_None),
+      2#00_100_010# => ("and             ", C_Gb, C_Eb, Extra_None),
+      2#00_100_011# => ("and             ", C_Gv, C_Ev, Extra_None),
+      2#00_100_100# => ("and             ", C_Reg_Al, C_Ib, Extra_None),
+      2#00_100_101# => ("and             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_100_110# => ("es              ", C_Prefix_Seg, C_None, W_None),
-      2#00_100_111# => ("daa             ", C_None, C_None, W_None),
+      2#00_100_110# => ("es              ", C_Prefix_Seg, C_None, Extra_None),
+      2#00_100_111# => ("daa             ", C_None, C_None, Extra_None),
 
       --  28-2F
-      2#00_101_000# => ("sub             ", C_Eb, C_Gb, W_None),
-      2#00_101_001# => ("sub             ", C_Ev, C_Gv, W_None),
-      2#00_101_010# => ("sub             ", C_Gb, C_Eb, W_None),
-      2#00_101_011# => ("sub             ", C_Gv, C_Ev, W_None),
-      2#00_101_100# => ("sub             ", C_Reg_Al, C_Ib, W_None),
-      2#00_101_101# => ("sub             ", C_Reg_Ax, C_Iz, W_None),
+      2#00_101_000# => ("sub             ", C_Eb, C_Gb, Extra_None),
+      2#00_101_001# => ("sub             ", C_Ev, C_Gv, Extra_None),
+      2#00_101_010# => ("sub             ", C_Gb, C_Eb, Extra_None),
+      2#00_101_011# => ("sub             ", C_Gv, C_Ev, Extra_None),
+      2#00_101_100# => ("sub             ", C_Reg_Al, C_Ib, Extra_None),
+      2#00_101_101# => ("sub             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_101_110# => ("cs              ", C_Prefix_Seg, C_None, W_None),
-      2#00_101_111# => ("das             ", C_None, C_None, W_None),
+      2#00_101_110# => ("cs              ", C_Prefix_Seg, C_None, Extra_None),
+      2#00_101_111# => ("das             ", C_None, C_None, Extra_None),
 
       --  30-37
-      2#00_110_000# => ("xor             ", C_Eb, C_Gb, W_None),
-      2#00_110_001# => ("xor             ", C_Ev, C_Gv, W_None),
-      2#00_110_010# => ("xor             ", C_Gb, C_Eb, W_None),
-      2#00_110_011# => ("xor             ", C_Gv, C_Ev, W_None),
-      2#00_110_100# => ("xor             ", C_Reg_Al, C_Ib, W_None),
-      2#00_110_101# => ("xor             ", C_Reg_Ax, C_Iz, W_None),
+      2#00_110_000# => ("xor             ", C_Eb, C_Gb, Extra_None),
+      2#00_110_001# => ("xor             ", C_Ev, C_Gv, Extra_None),
+      2#00_110_010# => ("xor             ", C_Gb, C_Eb, Extra_None),
+      2#00_110_011# => ("xor             ", C_Gv, C_Ev, Extra_None),
+      2#00_110_100# => ("xor             ", C_Reg_Al, C_Ib, Extra_None),
+      2#00_110_101# => ("xor             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_110_110# => ("ss              ", C_Prefix_Seg, C_None, W_None),
-      2#00_110_111# => ("aaa             ", C_None, C_None, W_None),
+      2#00_110_110# => ("ss              ", C_Prefix_Seg, C_None, Extra_None),
+      2#00_110_111# => ("aaa             ", C_None, C_None, Extra_None),
 
       --  28-2F
-      2#00_111_000# => ("cmp             ", C_Eb, C_Gb, W_None),
-      2#00_111_001# => ("cmp             ", C_Ev, C_Gv, W_None),
-      2#00_111_010# => ("cmp             ", C_Gb, C_Eb, W_None),
-      2#00_111_011# => ("cmp             ", C_Gv, C_Ev, W_None),
-      2#00_111_100# => ("cmp             ", C_Reg_Al, C_Ib, W_None),
-      2#00_111_101# => ("cmp             ", C_Reg_Ax, C_Iz, W_None),
+      2#00_111_000# => ("cmp             ", C_Eb, C_Gb, Extra_None),
+      2#00_111_001# => ("cmp             ", C_Ev, C_Gv, Extra_None),
+      2#00_111_010# => ("cmp             ", C_Gb, C_Eb, Extra_None),
+      2#00_111_011# => ("cmp             ", C_Gv, C_Ev, Extra_None),
+      2#00_111_100# => ("cmp             ", C_Reg_Al, C_Ib, Extra_None),
+      2#00_111_101# => ("cmp             ", C_Reg_Ax, C_Iz, Extra_None),
 
-      2#00_111_110# => ("ds              ", C_Prefix_Seg, C_None, W_None),
-      2#00_111_111# => ("aas             ", C_None, C_None, W_None),
+      2#00_111_110# => ("ds              ", C_Prefix_Seg, C_None, Extra_None),
+      2#00_111_111# => ("aas             ", C_None, C_None, Extra_None),
 
       --  40-4F
-      16#40#        => ("inc             ", C_Reg_Ax, C_None, W_None),
-      16#41#        => ("inc             ", C_Reg_Cx, C_None, W_None),
-      16#42#        => ("inc             ", C_Reg_Dx, C_None, W_None),
-      16#43#        => ("inc             ", C_Reg_Bx, C_None, W_None),
-      16#44#        => ("inc             ", C_Reg_Sp, C_None, W_None),
-      16#45#        => ("inc             ", C_Reg_Bp, C_None, W_None),
-      16#46#        => ("inc             ", C_Reg_Si, C_None, W_None),
-      16#47#        => ("inc             ", C_Reg_Di, C_None, W_None),
+      16#40#        => ("inc             ", C_Reg_Ax, C_None, Extra_None),
+      16#41#        => ("inc             ", C_Reg_Cx, C_None, Extra_None),
+      16#42#        => ("inc             ", C_Reg_Dx, C_None, Extra_None),
+      16#43#        => ("inc             ", C_Reg_Bx, C_None, Extra_None),
+      16#44#        => ("inc             ", C_Reg_Sp, C_None, Extra_None),
+      16#45#        => ("inc             ", C_Reg_Bp, C_None, Extra_None),
+      16#46#        => ("inc             ", C_Reg_Si, C_None, Extra_None),
+      16#47#        => ("inc             ", C_Reg_Di, C_None, Extra_None),
 
-      16#48#        => ("dec             ", C_Reg_Ax, C_None, W_None),
-      16#49#        => ("dec             ", C_Reg_Cx, C_None, W_None),
-      16#4a#        => ("dec             ", C_Reg_Dx, C_None, W_None),
-      16#4b#        => ("dec             ", C_Reg_Bx, C_None, W_None),
-      16#4c#        => ("dec             ", C_Reg_Sp, C_None, W_None),
-      16#4d#        => ("dec             ", C_Reg_Bp, C_None, W_None),
-      16#4e#        => ("dec             ", C_Reg_Si, C_None, W_None),
-      16#4f#        => ("dec             ", C_Reg_Di, C_None, W_None),
+      16#48#        => ("dec             ", C_Reg_Ax, C_None, Extra_None),
+      16#49#        => ("dec             ", C_Reg_Cx, C_None, Extra_None),
+      16#4a#        => ("dec             ", C_Reg_Dx, C_None, Extra_None),
+      16#4b#        => ("dec             ", C_Reg_Bx, C_None, Extra_None),
+      16#4c#        => ("dec             ", C_Reg_Sp, C_None, Extra_None),
+      16#4d#        => ("dec             ", C_Reg_Bp, C_None, Extra_None),
+      16#4e#        => ("dec             ", C_Reg_Si, C_None, Extra_None),
+      16#4f#        => ("dec             ", C_Reg_Di, C_None, Extra_None),
 
       --  50-5F
-      16#50#        => ("push            ", C_Reg_Ax, C_None, W_None),
-      16#51#        => ("push            ", C_Reg_Cx, C_None, W_None),
-      16#52#        => ("push            ", C_Reg_Dx, C_None, W_None),
-      16#53#        => ("push            ", C_Reg_Bx, C_None, W_None),
-      16#54#        => ("push            ", C_Reg_Sp, C_None, W_None),
-      16#55#        => ("push            ", C_Reg_Bp, C_None, W_None),
-      16#56#        => ("push            ", C_Reg_Si, C_None, W_None),
-      16#57#        => ("push            ", C_Reg_Di, C_None, W_None),
+      16#50#        => ("push            ", C_Reg_Ax, C_None, Extra_None),
+      16#51#        => ("push            ", C_Reg_Cx, C_None, Extra_None),
+      16#52#        => ("push            ", C_Reg_Dx, C_None, Extra_None),
+      16#53#        => ("push            ", C_Reg_Bx, C_None, Extra_None),
+      16#54#        => ("push            ", C_Reg_Sp, C_None, Extra_None),
+      16#55#        => ("push            ", C_Reg_Bp, C_None, Extra_None),
+      16#56#        => ("push            ", C_Reg_Si, C_None, Extra_None),
+      16#57#        => ("push            ", C_Reg_Di, C_None, Extra_None),
 
-      16#58#        => ("pop             ", C_Reg_Ax, C_None, W_None),
-      16#59#        => ("pop             ", C_Reg_Cx, C_None, W_None),
-      16#5a#        => ("pop             ", C_Reg_Dx, C_None, W_None),
-      16#5b#        => ("pop             ", C_Reg_Bx, C_None, W_None),
-      16#5c#        => ("pop             ", C_Reg_Sp, C_None, W_None),
-      16#5d#        => ("pop             ", C_Reg_Bp, C_None, W_None),
-      16#5e#        => ("pop             ", C_Reg_Si, C_None, W_None),
-      16#5f#        => ("pop             ", C_Reg_Di, C_None, W_None),
+      16#58#        => ("pop             ", C_Reg_Ax, C_None, Extra_None),
+      16#59#        => ("pop             ", C_Reg_Cx, C_None, Extra_None),
+      16#5a#        => ("pop             ", C_Reg_Dx, C_None, Extra_None),
+      16#5b#        => ("pop             ", C_Reg_Bx, C_None, Extra_None),
+      16#5c#        => ("pop             ", C_Reg_Sp, C_None, Extra_None),
+      16#5d#        => ("pop             ", C_Reg_Bp, C_None, Extra_None),
+      16#5e#        => ("pop             ", C_Reg_Si, C_None, Extra_None),
+      16#5f#        => ("pop             ", C_Reg_Di, C_None, Extra_None),
 
       --  60-6F
-      16#60#        => ("pusha           ", C_None, C_None, W_None),
-      16#61#        => ("popa            ", C_None, C_None, W_None),
-      16#62#        => ("bound           ", C_Gv, C_Ma, W_None),
-      16#63#        => ("arpl            ", C_Ew, C_Gw, W_None),
-      16#64#        => ("fs              ", C_Prefix_Seg, C_None, W_None),
-      16#65#        => ("gs              ", C_Prefix_Seg, C_None, W_None),
-      16#66#        => ("oper            ", C_Prefix_Oper, C_None, W_None),
-      16#67#        => ("addr            ", C_Prefix_Addr, C_None, W_None),
+      16#60#        => ("pusha           ", C_None, C_None, Extra_None),
+      16#61#        => ("popa            ", C_None, C_None, Extra_None),
+      16#62#        => ("bound           ", C_Gv, C_Ma, Extra_None),
+      16#63#        => ("arpl            ", C_Ew, C_Gw, Extra_None),
+      16#64#        => ("fs              ", C_Prefix_Seg, C_None, Extra_None),
+      16#65#        => ("gs              ", C_Prefix_Seg, C_None, Extra_None),
+      16#66#        => ("oper            ", C_Prefix_Oper, C_None, Extra_None),
+      16#67#        => ("addr            ", C_Prefix_Addr, C_None, Extra_None),
 
-      16#68#        => ("push            ", C_Iz, C_None, W_None),
-      16#69#        => ("imul            ", C_Gv, C_Ev_Iz, W_None),
-      16#6a#        => ("push            ", C_Ib, C_None, W_None),
-      16#6b#        => ("imul            ", C_Gv, C_Ev, W_8),
-      16#6c#        => ("ins             ", C_Yb, C_Reg_Dx, W_None),
-      16#6d#        => ("ins             ", C_Yz, C_Reg_Dx, W_None),
-      16#6e#        => ("outs            ", C_Reg_Dx, C_Xb, W_None),
-      16#6f#        => ("outs            ", C_Reg_Dx, C_Xz, W_None),
+      16#68#        => ("push            ", C_Iz, C_None, Extra_None),
+      16#69#        => ("imul            ", C_Gv, C_Ev, Extra_Iz),
+      16#6a#        => ("push            ", C_Ib, C_None, Extra_None),
+      16#6b#        => ("imul            ", C_Gv, C_Ev, Extra_8),
+      16#6c#        => ("ins             ", C_Yb, C_Reg_Dx, Extra_None),
+      16#6d#        => ("ins             ", C_Yz, C_Reg_Dx, Extra_None),
+      16#6e#        => ("outs            ", C_Reg_Dx, C_Xb, Extra_None),
+      16#6f#        => ("outs            ", C_Reg_Dx, C_Xz, Extra_None),
 
       --  70-7F
-      2#0111_0000#  => ("jo              ", C_Jb, C_None, W_None),
-      2#0111_0001#  => ("jno             ", C_Jb, C_None, W_None),
-      2#0111_0010#  => ("jb              ", C_Jb, C_None, W_None),
-      2#0111_0011#  => ("jae             ", C_Jb, C_None, W_None),
-      2#0111_0100#  => ("je              ", C_Jb, C_None, W_None),
-      2#0111_0101#  => ("jne             ", C_Jb, C_None, W_None),
-      2#0111_0110#  => ("jbe             ", C_Jb, C_None, W_None),
-      2#0111_0111#  => ("ja              ", C_Jb, C_None, W_None),
-      2#0111_1000#  => ("js              ", C_Jb, C_None, W_None),
-      2#0111_1001#  => ("jns             ", C_Jb, C_None, W_None),
-      2#0111_1010#  => ("jp              ", C_Jb, C_None, W_None),
-      2#0111_1011#  => ("jnp             ", C_Jb, C_None, W_None),
-      2#0111_1100#  => ("jl              ", C_Jb, C_None, W_None),
-      2#0111_1101#  => ("jge             ", C_Jb, C_None, W_None),
-      2#0111_1110#  => ("jle             ", C_Jb, C_None, W_None),
-      2#0111_1111#  => ("jg              ", C_Jb, C_None, W_None),
+      2#0111_0000#  => ("jo              ", C_Jb, C_None, Extra_None),
+      2#0111_0001#  => ("jno             ", C_Jb, C_None, Extra_None),
+      2#0111_0010#  => ("jb              ", C_Jb, C_None, Extra_None),
+      2#0111_0011#  => ("jae             ", C_Jb, C_None, Extra_None),
+      2#0111_0100#  => ("je              ", C_Jb, C_None, Extra_None),
+      2#0111_0101#  => ("jne             ", C_Jb, C_None, Extra_None),
+      2#0111_0110#  => ("jbe             ", C_Jb, C_None, Extra_None),
+      2#0111_0111#  => ("ja              ", C_Jb, C_None, Extra_None),
+      2#0111_1000#  => ("js              ", C_Jb, C_None, Extra_None),
+      2#0111_1001#  => ("jns             ", C_Jb, C_None, Extra_None),
+      2#0111_1010#  => ("jp              ", C_Jb, C_None, Extra_None),
+      2#0111_1011#  => ("jnp             ", C_Jb, C_None, Extra_None),
+      2#0111_1100#  => ("jl              ", C_Jb, C_None, Extra_None),
+      2#0111_1101#  => ("jge             ", C_Jb, C_None, Extra_None),
+      2#0111_1110#  => ("jle             ", C_Jb, C_None, Extra_None),
+      2#0111_1111#  => ("jg              ", C_Jb, C_None, Extra_None),
 
       --  80-8F
-      2#1000_0000#  => ("1               ", C_Eb, C_Ib, W_None),
-      2#1000_0001#  => ("1               ", C_Ev, C_Iz, W_None),
-      2#1000_0010#  => ("1               ", C_Eb, C_Ib, W_None),
-      2#1000_0011#  => ("1               ", C_Ev, C_Ib, W_None),
+      2#1000_0000#  => ("1               ", C_Eb, C_Ib, Extra_None),
+      2#1000_0001#  => ("1               ", C_Ev, C_Iz, Extra_None),
+      2#1000_0010#  => ("1               ", C_Eb, C_Ib, Extra_None),
+      2#1000_0011#  => ("1               ", C_Ev, C_Ib, Extra_None),
 
-      2#1000_0100#  => ("test            ", C_Eb, C_Gb, W_None),
-      2#1000_0101#  => ("test            ", C_Ev, C_Gv, W_None),
-      2#1000_0110#  => ("xchg            ", C_Eb, C_Gb, W_None),
-      2#1000_0111#  => ("xchg            ", C_Eb, C_Gb, W_None),
+      2#1000_0100#  => ("test            ", C_Eb, C_Gb, Extra_None),
+      2#1000_0101#  => ("test            ", C_Ev, C_Gv, Extra_None),
+      2#1000_0110#  => ("xchg            ", C_Eb, C_Gb, Extra_None),
+      2#1000_0111#  => ("xchg            ", C_Eb, C_Gb, Extra_None),
 
-      2#1000_1000#  => ("mov             ", C_Eb, C_Gb, W_None),
-      2#1000_1001#  => ("mov             ", C_Ev, C_Gv, W_None),
-      2#1000_1010#  => ("mov             ", C_Gb, C_Eb, W_None),
-      2#1000_1011#  => ("mov             ", C_Gv, C_Ev, W_None),
-      2#1000_1100#  => ("mov             ", C_Ev, C_Sw, W_None),
-      2#1000_1101#  => ("lea             ", C_Gv, C_M, W_None),
-      2#1000_1110#  => ("mov             ", C_Sw, C_Ew, W_None),
-      2#1000_1111#  => ("pop             ", C_Ev, C_None, W_None),
+      2#1000_1000#  => ("mov             ", C_Eb, C_Gb, Extra_None),
+      2#1000_1001#  => ("mov             ", C_Ev, C_Gv, Extra_None),
+      2#1000_1010#  => ("mov             ", C_Gb, C_Eb, Extra_None),
+      2#1000_1011#  => ("mov             ", C_Gv, C_Ev, Extra_None),
+      2#1000_1100#  => ("mov             ", C_Ev, C_Sw, Extra_None),
+      2#1000_1101#  => ("lea             ", C_Gv, C_M, Extra_None),
+      2#1000_1110#  => ("mov             ", C_Sw, C_Ew, Extra_None),
+      2#1000_1111#  => ("pop             ", C_Ev, C_None, Extra_None),
 
       --  90-9F
-      2#1001_0000#  => ("nop             ", C_None, C_None, W_None),
-      16#91#        => ("xchg            ", C_Reg_Ax, C_Reg_Cx, W_None),
-      16#92#        => ("xchg            ", C_Reg_Ax, C_Reg_Dx, W_None),
-      16#93#        => ("xchg            ", C_Reg_Ax, C_Reg_Bx, W_None),
-      16#94#        => ("xchg            ", C_Reg_Ax, C_Reg_Sp, W_None),
-      16#95#        => ("xchg            ", C_Reg_Ax, C_Reg_Bp, W_None),
-      16#96#        => ("xchg            ", C_Reg_Ax, C_Reg_Si, W_None),
-      16#97#        => ("xchg            ", C_Reg_Ax, C_Reg_Di, W_None),
+      2#1001_0000#  => ("nop             ", C_None, C_None, Extra_None),
+      16#91#        => ("xchg            ", C_Reg_Ax, C_Reg_Cx, Extra_None),
+      16#92#        => ("xchg            ", C_Reg_Ax, C_Reg_Dx, Extra_None),
+      16#93#        => ("xchg            ", C_Reg_Ax, C_Reg_Bx, Extra_None),
+      16#94#        => ("xchg            ", C_Reg_Ax, C_Reg_Sp, Extra_None),
+      16#95#        => ("xchg            ", C_Reg_Ax, C_Reg_Bp, Extra_None),
+      16#96#        => ("xchg            ", C_Reg_Ax, C_Reg_Si, Extra_None),
+      16#97#        => ("xchg            ", C_Reg_Ax, C_Reg_Di, Extra_None),
 
-      16#98#        => ("cbw             ", C_None, C_None, W_None),
-      16#99#        => ("cwd             ", C_None, C_None, W_None),
-      16#9a#        => ("callf           ", C_Ap, C_None, W_None),
-      16#9b#        => ("fwait           ", C_None, C_None, W_None),
-      16#9c#        => ("pushf           ", C_Fv, C_None, W_None),
-      16#9d#        => ("popf            ", C_Fv, C_None, W_None),
-      16#9e#        => ("sahf            ", C_None, C_None, W_None),
-      16#9f#        => ("lahf            ", C_None, C_None, W_None),
+      16#98#        => ("cbw             ", C_None, C_None, Extra_None),
+      16#99#        => ("cwd             ", C_None, C_None, Extra_None),
+      16#9a#        => ("callf           ", C_Ap, C_None, Extra_None),
+      16#9b#        => ("fwait           ", C_None, C_None, Extra_None),
+      16#9c#        => ("pushf           ", C_Fv, C_None, Extra_None),
+      16#9d#        => ("popf            ", C_Fv, C_None, Extra_None),
+      16#9e#        => ("sahf            ", C_None, C_None, Extra_None),
+      16#9f#        => ("lahf            ", C_None, C_None, Extra_None),
 
       --  A0-AF
-      16#a0#        => ("mov             ", C_Reg_Al, C_Ob, W_None),
-      16#a1#        => ("mov             ", C_Reg_Ax, C_Ov, W_None),
-      16#a2#        => ("mov             ", C_Ob, C_Reg_Al, W_None),
-      16#a3#        => ("mov             ", C_Ov, C_Reg_Ax, W_None),
+      16#a0#        => ("mov             ", C_Reg_Al, C_Ob, Extra_None),
+      16#a1#        => ("mov             ", C_Reg_Ax, C_Ov, Extra_None),
+      16#a2#        => ("mov             ", C_Ob, C_Reg_Al, Extra_None),
+      16#a3#        => ("mov             ", C_Ov, C_Reg_Ax, Extra_None),
 
-      16#a4#        => ("movs            ", C_Xb, C_Yb, W_None),
-      16#a5#        => ("movs            ", C_Xv, C_Yv, W_None),
-      16#a6#        => ("cmps            ", C_Xb, C_Yb, W_None),
-      16#a7#        => ("cmps            ", C_Xv, C_Yv, W_None),
+      16#a4#        => ("movs            ", C_Xb, C_Yb, Extra_None),
+      16#a5#        => ("movs            ", C_Xv, C_Yv, Extra_None),
+      16#a6#        => ("cmps            ", C_Xb, C_Yb, Extra_None),
+      16#a7#        => ("cmps            ", C_Xv, C_Yv, Extra_None),
 
-      16#a8#        => ("test            ", C_Reg_Al, C_Ib, W_None),
-      16#a9#        => ("test            ", C_Reg_Ax, C_Iz, W_None),
-      16#aa#        => ("stos            ", C_Yb, C_Reg_Al, W_None),
-      16#ab#        => ("stos            ", C_Yv, C_Reg_Ax, W_None),
-      16#ac#        => ("lods            ", C_Reg_Al, C_Xb, W_None),
-      16#ad#        => ("lods            ", C_Reg_Ax, C_Xv, W_None),
+      16#a8#        => ("test            ", C_Reg_Al, C_Ib, Extra_None),
+      16#a9#        => ("test            ", C_Reg_Ax, C_Iz, Extra_None),
+      16#aa#        => ("stos            ", C_Yb, C_Reg_Al, Extra_None),
+      16#ab#        => ("stos            ", C_Yv, C_Reg_Ax, Extra_None),
+      16#ac#        => ("lods            ", C_Reg_Al, C_Xb, Extra_None),
+      16#ad#        => ("lods            ", C_Reg_Ax, C_Xv, Extra_None),
       --  FIXME: Xb or Yb?
-      16#ae#        => ("scas            ", C_Reg_Al, C_Xb, W_None),
-      16#af#        => ("scas            ", C_Reg_Ax, C_Xv, W_None),
+      16#ae#        => ("scas            ", C_Reg_Al, C_Xb, Extra_None),
+      16#af#        => ("scas            ", C_Reg_Ax, C_Xv, Extra_None),
 
       --  B0-BF
-      16#b0#        => ("mov             ", C_Reg_Al, C_Ib, W_None),
-      16#b1#        => ("mov             ", C_Reg_Cl, C_Ib, W_None),
-      16#b2#        => ("mov             ", C_Reg_Dl, C_Ib, W_None),
-      16#b3#        => ("mov             ", C_Reg_Bl, C_Ib, W_None),
-      16#b4#        => ("mov             ", C_Reg_Ah, C_Ib, W_None),
-      16#b5#        => ("mov             ", C_Reg_Ch, C_Ib, W_None),
-      16#b6#        => ("mov             ", C_Reg_Dh, C_Ib, W_None),
-      16#b7#        => ("mov             ", C_Reg_Bh, C_Ib, W_None),
-      16#b8#        => ("mov             ", C_Reg_Ax, C_Iv, W_None),
-      16#b9#        => ("mov             ", C_Reg_Cx, C_Iv, W_None),
-      16#ba#        => ("mov             ", C_Reg_Dx, C_Iv, W_None),
-      16#bb#        => ("mov             ", C_Reg_Bx, C_Iv, W_None),
-      16#bc#        => ("mov             ", C_Reg_Sp, C_Iv, W_None),
-      16#bd#        => ("mov             ", C_Reg_Bp, C_Iv, W_None),
-      16#be#        => ("mov             ", C_Reg_Si, C_Iv, W_None),
-      16#bf#        => ("mov             ", C_Reg_Di, C_Iv, W_None),
+      16#b0#        => ("mov             ", C_Reg_Al, C_Ib, Extra_None),
+      16#b1#        => ("mov             ", C_Reg_Cl, C_Ib, Extra_None),
+      16#b2#        => ("mov             ", C_Reg_Dl, C_Ib, Extra_None),
+      16#b3#        => ("mov             ", C_Reg_Bl, C_Ib, Extra_None),
+      16#b4#        => ("mov             ", C_Reg_Ah, C_Ib, Extra_None),
+      16#b5#        => ("mov             ", C_Reg_Ch, C_Ib, Extra_None),
+      16#b6#        => ("mov             ", C_Reg_Dh, C_Ib, Extra_None),
+      16#b7#        => ("mov             ", C_Reg_Bh, C_Ib, Extra_None),
+      16#b8#        => ("mov             ", C_Reg_Ax, C_Iv, Extra_None),
+      16#b9#        => ("mov             ", C_Reg_Cx, C_Iv, Extra_None),
+      16#ba#        => ("mov             ", C_Reg_Dx, C_Iv, Extra_None),
+      16#bb#        => ("mov             ", C_Reg_Bx, C_Iv, Extra_None),
+      16#bc#        => ("mov             ", C_Reg_Sp, C_Iv, Extra_None),
+      16#bd#        => ("mov             ", C_Reg_Bp, C_Iv, Extra_None),
+      16#be#        => ("mov             ", C_Reg_Si, C_Iv, Extra_None),
+      16#bf#        => ("mov             ", C_Reg_Di, C_Iv, Extra_None),
 
       --  C0-CF
-      16#c0#        => ("2               ", C_Eb, C_Ib, W_None),
-      16#c1#        => ("2               ", C_Ev, C_Ib, W_None),
+      16#c0#        => ("2               ", C_Eb, C_Ib, Extra_None),
+      16#c1#        => ("2               ", C_Ev, C_Ib, Extra_None),
 
-      16#c2#        => ("ret             ", C_Iw, C_None, W_None),
-      16#c3#        => ("ret             ", C_None, C_None, W_None),
-      16#c4#        => ("les             ", C_Gz, C_Mp, W_None),
-      16#c5#        => ("lds             ", C_Gz, C_Mp, W_None),
-      16#c6#        => ("mov             ", C_Eb, C_Ib, W_None),
-      16#c7#        => ("mov             ", C_Ev, C_Iz, W_None),
+      16#c2#        => ("ret             ", C_Iw, C_None, Extra_None),
+      16#c3#        => ("ret             ", C_None, C_None, Extra_None),
+      16#c4#        => ("les             ", C_Gz, C_Mp, Extra_None),
+      16#c5#        => ("lds             ", C_Gz, C_Mp, Extra_None),
+      16#c6#        => ("mov             ", C_Eb, C_Ib, Extra_None),
+      16#c7#        => ("mov             ", C_Ev, C_Iz, Extra_None),
 
-      16#c8#        => ("enter           ", C_Iw, C_Ib, W_None),
-      16#c9#        => ("leave           ", C_None, C_None, W_None),
-      16#ca#        => ("retf            ", C_Iw, C_None, W_None),
-      16#cb#        => ("retf            ", C_None, C_None, W_None),
-      16#cc#        => ("int3            ", C_None, C_None, W_None),
-      16#cd#        => ("int             ", C_Ib, C_None, W_None),
-      16#ce#        => ("into            ", C_None, C_None, W_None),
-      16#cf#        => ("iret            ", C_None, C_None, W_None),
+      16#c8#        => ("enter           ", C_Iw, C_Ib, Extra_None),
+      16#c9#        => ("leave           ", C_None, C_None, Extra_None),
+      16#ca#        => ("retf            ", C_Iw, C_None, Extra_None),
+      16#cb#        => ("retf            ", C_None, C_None, Extra_None),
+      16#cc#        => ("int3            ", C_None, C_None, Extra_None),
+      16#cd#        => ("int             ", C_Ib, C_None, Extra_None),
+      16#ce#        => ("into            ", C_None, C_None, Extra_None),
+      16#cf#        => ("iret            ", C_None, C_None, Extra_None),
 
       --  D0-DF
-      16#d0#        => ("2               ", C_Eb, C_Cst_1, W_None),
-      16#d1#        => ("2               ", C_Ev, C_Cst_1, W_None),
-      16#d2#        => ("2               ", C_Eb, C_Reg_Cl, W_None),
-      16#d3#        => ("2               ", C_Ev, C_Reg_Cl, W_None),
-      16#d4#        => ("aam             ", C_Ib, C_None, W_None),
-      16#d5#        => ("aad             ", C_Ib, C_None, W_None),
-      16#d6#        => ("                ", C_None, C_None, W_None),
-      16#d7#        => ("xlat            ", C_None, C_None, W_None),
-      16#d8#        => ("ESC             ", C_M, C_None, W_None),
-      16#d9#        => ("ESC             ", C_M, C_None, W_None),
-      16#da#        => ("ESC             ", C_M, C_None, W_None),
-      16#db#        => ("ESC             ", C_M, C_None, W_None),
-      16#dc#        => ("ESC             ", C_M, C_None, W_None),
-      16#dd#        => ("ESC             ", C_M, C_None, W_None),
-      16#de#        => ("ESC             ", C_M, C_None, W_None),
-      16#df#        => ("ESC             ", C_M, C_None, W_None),
+      16#d0#        => ("2               ", C_Eb, C_Cst_1, Extra_None),
+      16#d1#        => ("2               ", C_Ev, C_Cst_1, Extra_None),
+      16#d2#        => ("2               ", C_Eb, C_Reg_Cl, Extra_None),
+      16#d3#        => ("2               ", C_Ev, C_Reg_Cl, Extra_None),
+      16#d4#        => ("aam             ", C_Ib, C_None, Extra_None),
+      16#d5#        => ("aad             ", C_Ib, C_None, Extra_None),
+      16#d6#        => ("                ", C_None, C_None, Extra_None),
+      16#d7#        => ("xlat            ", C_None, C_None, Extra_None),
+      16#d8#        => ("ESC             ", C_M, C_None, Extra_None),
+      16#d9#        => ("ESC             ", C_M, C_None, Extra_None),
+      16#da#        => ("ESC             ", C_M, C_None, Extra_None),
+      16#db#        => ("ESC             ", C_M, C_None, Extra_None),
+      16#dc#        => ("ESC             ", C_M, C_None, Extra_None),
+      16#dd#        => ("ESC             ", C_M, C_None, Extra_None),
+      16#de#        => ("ESC             ", C_M, C_None, Extra_None),
+      16#df#        => ("ESC             ", C_M, C_None, Extra_None),
 
       --  E0-EF
-      16#e0#        => ("loopne          ", C_Jb, C_None, W_None),
-      16#e1#        => ("loope           ", C_Jb, C_None, W_None),
-      16#e2#        => ("loop            ", C_Jb, C_None, W_None),
-      16#e3#        => ("jrcxz           ", C_Jb, C_None, W_None),
-      16#e4#        => ("in              ", C_Reg_Al, C_Ib, W_None),
-      16#e5#        => ("in              ", C_Reg_Ax, C_Ib, W_None),
-      16#e6#        => ("out             ", C_Ib, C_Reg_Al, W_None),
-      16#e7#        => ("out             ", C_Ib, C_Reg_Ax, W_None),
+      16#e0#        => ("loopne          ", C_Jb, C_None, Extra_None),
+      16#e1#        => ("loope           ", C_Jb, C_None, Extra_None),
+      16#e2#        => ("loop            ", C_Jb, C_None, Extra_None),
+      16#e3#        => ("jrcxz           ", C_Jb, C_None, Extra_None),
+      16#e4#        => ("in              ", C_Reg_Al, C_Ib, Extra_None),
+      16#e5#        => ("in              ", C_Reg_Ax, C_Ib, Extra_None),
+      16#e6#        => ("out             ", C_Ib, C_Reg_Al, Extra_None),
+      16#e7#        => ("out             ", C_Ib, C_Reg_Ax, Extra_None),
 
-      16#e8#        => ("call            ", C_Jz, C_None, W_None),
-      16#e9#        => ("jmp             ", C_Jz, C_None, W_None),
-      16#ea#        => ("jmpf            ", C_Ap, C_None, W_None),
-      16#eb#        => ("jmp             ", C_Jb, C_None, W_None),
-      16#ec#        => ("in              ", C_Reg_Al, C_Reg_Dx, W_None),
-      16#ed#        => ("in              ", C_Reg_Ax, C_Reg_Dx, W_None),
-      16#ee#        => ("out             ", C_Reg_Dx, C_Reg_Al, W_None),
-      16#ef#        => ("out             ", C_Reg_Dx, C_Reg_Ax, W_None),
+      16#e8#        => ("call            ", C_Jz, C_None, Extra_None),
+      16#e9#        => ("jmp             ", C_Jz, C_None, Extra_None),
+      16#ea#        => ("jmpf            ", C_Ap, C_None, Extra_None),
+      16#eb#        => ("jmp             ", C_Jb, C_None, Extra_None),
+      16#ec#        => ("in              ", C_Reg_Al, C_Reg_Dx, Extra_None),
+      16#ed#        => ("in              ", C_Reg_Ax, C_Reg_Dx, Extra_None),
+      16#ee#        => ("out             ", C_Reg_Dx, C_Reg_Al, Extra_None),
+      16#ef#        => ("out             ", C_Reg_Dx, C_Reg_Ax, Extra_None),
 
       --  F0-FF
-      16#f0#        => ("lock            ", C_Lock, C_None, W_None),
-      16#f1#        => ("                ", C_None, C_None, W_None),
-      16#f2#        => ("repne           ", C_Prefix_Rep, C_None, W_None),
-      16#f3#        => ("rep             ", C_Prefix_Rep, C_None, W_None),
-      16#f4#        => ("hlt             ", C_None, C_None, W_None),
-      16#f5#        => ("cmc             ", C_None, C_None, W_None),
-      16#f6#        => ("3               ", C_Eb, C_None, W_None),
-      16#f7#        => ("3               ", C_Ev, C_None, W_None),
-      16#f8#        => ("clc             ", C_None, C_None, W_None),
-      16#f9#        => ("stc             ", C_None, C_None, W_None),
-      16#fa#        => ("cli             ", C_None, C_None, W_None),
-      16#fb#        => ("sti             ", C_None, C_None, W_None),
-      16#fc#        => ("cld             ", C_None, C_None, W_None),
-      16#fd#        => ("std             ", C_None, C_None, W_None),
-      16#fe#        => ("4               ", C_None, C_None, W_None),
-      16#ff#        => ("5               ", C_None, C_None, W_None));
+      16#f0#        => ("lock            ", C_Lock, C_None, Extra_None),
+      16#f1#        => ("                ", C_None, C_None, Extra_None),
+      16#f2#        => ("repne           ", C_Prefix_Rep, C_None, Extra_None),
+      16#f3#        => ("rep             ", C_Prefix_Rep, C_None, Extra_None),
+      16#f4#        => ("hlt             ", C_None, C_None, Extra_None),
+      16#f5#        => ("cmc             ", C_None, C_None, Extra_None),
+      16#f6#        => ("3               ", C_Eb, C_None, Extra_None),
+      16#f7#        => ("3               ", C_Ev, C_None, Extra_None),
+      16#f8#        => ("clc             ", C_None, C_None, Extra_None),
+      16#f9#        => ("stc             ", C_None, C_None, Extra_None),
+      16#fa#        => ("cli             ", C_None, C_None, Extra_None),
+      16#fb#        => ("sti             ", C_None, C_None, Extra_None),
+      16#fc#        => ("cld             ", C_None, C_None, Extra_None),
+      16#fd#        => ("std             ", C_None, C_None, Extra_None),
+      16#fe#        => ("4               ", C_None, C_None, Extra_None),
+      16#ff#        => ("5               ", C_None, C_None, Extra_None));
 
    --  Lookup table for two-bytes opcode sequences with no mandatory prefix.
    --  The first byte of the opcode sequence is 16#0f# and this table is
@@ -581,236 +582,236 @@ package body Disa_X86 is
 
    Insn_Desc_0F : constant Insn_Desc_Array_Type :=
      (
-      16#00#        => ("6               ", C_None, C_None, W_None),
-      16#01#        => ("7               ", C_None, C_None, W_None),
-      16#02#        => ("lar             ", C_Gv, C_Ew, W_None),
-      16#03#        => ("lsl             ", C_Gv, C_Ew, W_None),
-      16#04#        => ("                ", C_None, C_None, W_None),
-      16#05#        => ("syscall         ", C_None, C_None, W_None),
-      16#06#        => ("clts            ", C_None, C_None, W_None),
-      16#07#        => ("sysret          ", C_None, C_None, W_None),
-      16#08#        => ("invd            ", C_None, C_None, W_None),
-      16#09#        => ("wbinvd          ", C_None, C_None, W_None),
-      16#0a#        => ("                ", C_None, C_None, W_None),
-      16#0b#        => ("ud2             ", C_None, C_None, W_None),
-      16#0c#        => ("                ", C_None, C_None, W_None),
-      16#0d#        => ("nop             ", C_Ev, C_None, W_None),
-      16#0e#        => ("                ", C_None, C_None, W_None),
-      16#0f#        => ("                ", C_None, C_None, W_None),
+      16#00#        => ("6               ", C_None, C_None, Extra_None),
+      16#01#        => ("7               ", C_None, C_None, Extra_None),
+      16#02#        => ("lar             ", C_Gv, C_Ew, Extra_None),
+      16#03#        => ("lsl             ", C_Gv, C_Ew, Extra_None),
+      16#04#        => ("                ", C_None, C_None, Extra_None),
+      16#05#        => ("syscall         ", C_None, C_None, Extra_None),
+      16#06#        => ("clts            ", C_None, C_None, Extra_None),
+      16#07#        => ("sysret          ", C_None, C_None, Extra_None),
+      16#08#        => ("invd            ", C_None, C_None, Extra_None),
+      16#09#        => ("wbinvd          ", C_None, C_None, Extra_None),
+      16#0a#        => ("                ", C_None, C_None, Extra_None),
+      16#0b#        => ("ud2             ", C_None, C_None, Extra_None),
+      16#0c#        => ("                ", C_None, C_None, Extra_None),
+      16#0d#        => ("nop             ", C_Ev, C_None, Extra_None),
+      16#0e#        => ("                ", C_None, C_None, Extra_None),
+      16#0f#        => ("                ", C_None, C_None, Extra_None),
 
-      16#10#        => ("movups          ", C_Vps, C_Wps, W_None),
-      16#11#        => ("movups          ", C_Wps, C_Vps, W_None),
-      16#12#        => ("movlps          ", C_Vq, C_Mq, W_None),
-      16#13#        => ("movlps          ", C_Mq, C_Vq, W_None),
-      16#14#        => ("unpcklps        ", C_Vs, C_Wps, W_None),
-      16#15#        => ("unpckhps        ", C_Vs, C_Wps, W_None),
-      16#16#        => ("movhps          ", C_Vq, C_Mq, W_None),
-      16#17#        => ("movhps          ", C_Mq, C_Vps, W_None),
+      16#10#        => ("movups          ", C_Vps, C_Wps, Extra_None),
+      16#11#        => ("movups          ", C_Wps, C_Vps, Extra_None),
+      16#12#        => ("movlps          ", C_Vq, C_Mq, Extra_None),
+      16#13#        => ("movlps          ", C_Mq, C_Vq, Extra_None),
+      16#14#        => ("unpcklps        ", C_Vs, C_Wps, Extra_None),
+      16#15#        => ("unpckhps        ", C_Vs, C_Wps, Extra_None),
+      16#16#        => ("movhps          ", C_Vq, C_Mq, Extra_None),
+      16#17#        => ("movhps          ", C_Mq, C_Vps, Extra_None),
 
-      16#20#        => ("mov             ", C_Rd, C_Cd, W_None),
-      16#21#        => ("mov             ", C_Rd, C_Dd, W_None),
-      16#22#        => ("mov             ", C_Cd, C_Rd, W_None),
-      16#23#        => ("mov             ", C_Dd, C_Rd, W_None),
+      16#20#        => ("mov             ", C_Rd, C_Cd, Extra_None),
+      16#21#        => ("mov             ", C_Rd, C_Dd, Extra_None),
+      16#22#        => ("mov             ", C_Cd, C_Rd, Extra_None),
+      16#23#        => ("mov             ", C_Dd, C_Rd, Extra_None),
       --  The 16#25# slot is reserved
       --  The 16#24# and 16#26# slots is a MOV for test registers. Not
       --  documented.
       --  The 16#27# slot is reserved
-      16#28#        => ("movaps          ", C_Vps, C_Wps, W_None),
-      16#29#        => ("movaps          ", C_Wps, C_Vps, W_None),
-      16#2a#        => ("cvtpi2ps        ", C_Vps, C_Qq, W_None),
-      16#2b#        => ("movntps         ", C_Mps, C_Vps, W_None),
-      16#2c#        => ("cvttps2pi       ", C_Pq,  C_Wq, W_None),
-      16#2d#        => ("cvtps2pi        ", C_Pq,  C_Wq, W_None),
-      16#2e#        => ("ucomiss         ", C_Vss, C_Wss, W_None),
-      16#2f#        => ("comiss          ", C_Vps, C_Wps, W_None),
+      16#28#        => ("movaps          ", C_Vps, C_Wps, Extra_None),
+      16#29#        => ("movaps          ", C_Wps, C_Vps, Extra_None),
+      16#2a#        => ("cvtpi2ps        ", C_Vps, C_Qq, Extra_None),
+      16#2b#        => ("movntps         ", C_Mps, C_Vps, Extra_None),
+      16#2c#        => ("cvttps2pi       ", C_Pq,  C_Wq, Extra_None),
+      16#2d#        => ("cvtps2pi        ", C_Pq,  C_Wq, Extra_None),
+      16#2e#        => ("ucomiss         ", C_Vss, C_Wss, Extra_None),
+      16#2f#        => ("comiss          ", C_Vps, C_Wps, Extra_None),
 
-      16#30#        => ("wrmsr           ", C_None, C_None, W_None),
-      16#31#        => ("rdtsc           ", C_None, C_None, W_None),
-      16#32#        => ("rdmsr           ", C_None, C_None, W_None),
-      16#33#        => ("rdpmc           ", C_None, C_None, W_None),
-      16#34#        => ("sysenter        ", C_None, C_None, W_None),
-      16#35#        => ("sysexit         ", C_None, C_None, W_None),
+      16#30#        => ("wrmsr           ", C_None, C_None, Extra_None),
+      16#31#        => ("rdtsc           ", C_None, C_None, Extra_None),
+      16#32#        => ("rdmsr           ", C_None, C_None, Extra_None),
+      16#33#        => ("rdpmc           ", C_None, C_None, Extra_None),
+      16#34#        => ("sysenter        ", C_None, C_None, Extra_None),
+      16#35#        => ("sysexit         ", C_None, C_None, Extra_None),
       --  The 16#36#-16#3f# slot are reserved
 
-      16#40#        => ("cmovo           ", C_Gv, C_Ev, W_None),
-      16#41#        => ("cmovno          ", C_Gv, C_Ev, W_None),
-      16#42#        => ("cmovb           ", C_Gv, C_Ev, W_None),
-      16#43#        => ("cmovae          ", C_Gv, C_Ev, W_None),
-      16#44#        => ("cmove           ", C_Gv, C_Ev, W_None),
-      16#45#        => ("cmovne          ", C_Gv, C_Ev, W_None),
-      16#46#        => ("cmovbe          ", C_Gv, C_Ev, W_None),
-      16#47#        => ("cmova           ", C_Gv, C_Ev, W_None),
-      16#48#        => ("cmovs           ", C_Gv, C_Ev, W_None),
-      16#49#        => ("cmovns          ", C_Gv, C_Ev, W_None),
-      16#4a#        => ("cmovpe          ", C_Gv, C_Ev, W_None),
-      16#4b#        => ("cmovpo          ", C_Gv, C_Ev, W_None),
-      16#4c#        => ("cmovl           ", C_Gv, C_Ev, W_None),
-      16#4d#        => ("cmovge          ", C_Gv, C_Ev, W_None),
-      16#4e#        => ("cmovle          ", C_Gv, C_Ev, W_None),
-      16#4f#        => ("cmovg           ", C_Gv, C_Ev, W_None),
+      16#40#        => ("cmovo           ", C_Gv, C_Ev, Extra_None),
+      16#41#        => ("cmovno          ", C_Gv, C_Ev, Extra_None),
+      16#42#        => ("cmovb           ", C_Gv, C_Ev, Extra_None),
+      16#43#        => ("cmovae          ", C_Gv, C_Ev, Extra_None),
+      16#44#        => ("cmove           ", C_Gv, C_Ev, Extra_None),
+      16#45#        => ("cmovne          ", C_Gv, C_Ev, Extra_None),
+      16#46#        => ("cmovbe          ", C_Gv, C_Ev, Extra_None),
+      16#47#        => ("cmova           ", C_Gv, C_Ev, Extra_None),
+      16#48#        => ("cmovs           ", C_Gv, C_Ev, Extra_None),
+      16#49#        => ("cmovns          ", C_Gv, C_Ev, Extra_None),
+      16#4a#        => ("cmovpe          ", C_Gv, C_Ev, Extra_None),
+      16#4b#        => ("cmovpo          ", C_Gv, C_Ev, Extra_None),
+      16#4c#        => ("cmovl           ", C_Gv, C_Ev, Extra_None),
+      16#4d#        => ("cmovge          ", C_Gv, C_Ev, Extra_None),
+      16#4e#        => ("cmovle          ", C_Gv, C_Ev, Extra_None),
+      16#4f#        => ("cmovg           ", C_Gv, C_Ev, Extra_None),
 
-      16#50#        => ("movmskps        ", C_Gd, C_Vps, W_None),
-      16#51#        => ("sqrtps          ", C_Vps, C_Wps, W_None),
-      16#52#        => ("rsqrtps         ", C_Vps, C_Wps, W_None),
-      16#53#        => ("rcpps           ", C_Vps, C_Wps, W_None),
-      16#54#        => ("andps           ", C_Vps, C_Wps, W_None),
-      16#55#        => ("andnps          ", C_Vps, C_Wps, W_None),
-      16#56#        => ("orps            ", C_Vps, C_Wps, W_None),
-      16#57#        => ("xorps           ", C_Vps, C_Wps, W_None),
-      16#58#        => ("addps           ", C_Vps, C_Wps, W_None),
-      16#59#        => ("mulps           ", C_Vps, C_Wps, W_None),
-      16#5a#        => ("cvtps2pd        ", C_Vps, C_Wps, W_None),
-      16#5b#        => ("cvtdq2ps        ", C_Vps, C_Wps, W_None),
-      16#5c#        => ("subps           ", C_Vps, C_Wps, W_None),
-      16#5d#        => ("minps           ", C_Vps, C_Wps, W_None),
-      16#5e#        => ("divps           ", C_Vps, C_Wps, W_None),
-      16#5f#        => ("maxps           ", C_Vps, C_Wps, W_None),
+      16#50#        => ("movmskps        ", C_Gd, C_Vps, Extra_None),
+      16#51#        => ("sqrtps          ", C_Vps, C_Wps, Extra_None),
+      16#52#        => ("rsqrtps         ", C_Vps, C_Wps, Extra_None),
+      16#53#        => ("rcpps           ", C_Vps, C_Wps, Extra_None),
+      16#54#        => ("andps           ", C_Vps, C_Wps, Extra_None),
+      16#55#        => ("andnps          ", C_Vps, C_Wps, Extra_None),
+      16#56#        => ("orps            ", C_Vps, C_Wps, Extra_None),
+      16#57#        => ("xorps           ", C_Vps, C_Wps, Extra_None),
+      16#58#        => ("addps           ", C_Vps, C_Wps, Extra_None),
+      16#59#        => ("mulps           ", C_Vps, C_Wps, Extra_None),
+      16#5a#        => ("cvtps2pd        ", C_Vps, C_Wps, Extra_None),
+      16#5b#        => ("cvtdq2ps        ", C_Vps, C_Wps, Extra_None),
+      16#5c#        => ("subps           ", C_Vps, C_Wps, Extra_None),
+      16#5d#        => ("minps           ", C_Vps, C_Wps, Extra_None),
+      16#5e#        => ("divps           ", C_Vps, C_Wps, Extra_None),
+      16#5f#        => ("maxps           ", C_Vps, C_Wps, Extra_None),
 
-      16#60#        => ("punpcklbw       ", C_Pq, C_Qd, W_None),
-      16#61#        => ("punpcklwd       ", C_Pq, C_Qd, W_None),
-      16#62#        => ("punpckldq       ", C_Pq, C_Qd, W_None),
-      16#63#        => ("packsswb        ", C_Pq, C_Qq, W_None),
-      16#64#        => ("pcmpgtb         ", C_Pq, C_Qq, W_None),
-      16#65#        => ("pcmpgtw         ", C_Pq, C_Qq, W_None),
-      16#66#        => ("pcmpgtd         ", C_Pq, C_Qq, W_None),
-      16#67#        => ("packuswb        ", C_Pq, C_Qq, W_None),
-      16#68#        => ("punpckhbw       ", C_Pq, C_Qq, W_None),
-      16#69#        => ("punpckhwd       ", C_Pq, C_Qq, W_None),
-      16#6a#        => ("punpckhdq       ", C_Pq, C_Qq, W_None),
-      16#6b#        => ("packssdw        ", C_Pq, C_Qq, W_None),
+      16#60#        => ("punpcklbw       ", C_Pq, C_Qd, Extra_None),
+      16#61#        => ("punpcklwd       ", C_Pq, C_Qd, Extra_None),
+      16#62#        => ("punpckldq       ", C_Pq, C_Qd, Extra_None),
+      16#63#        => ("packsswb        ", C_Pq, C_Qq, Extra_None),
+      16#64#        => ("pcmpgtb         ", C_Pq, C_Qq, Extra_None),
+      16#65#        => ("pcmpgtw         ", C_Pq, C_Qq, Extra_None),
+      16#66#        => ("pcmpgtd         ", C_Pq, C_Qq, Extra_None),
+      16#67#        => ("packuswb        ", C_Pq, C_Qq, Extra_None),
+      16#68#        => ("punpckhbw       ", C_Pq, C_Qq, Extra_None),
+      16#69#        => ("punpckhwd       ", C_Pq, C_Qq, Extra_None),
+      16#6a#        => ("punpckhdq       ", C_Pq, C_Qq, Extra_None),
+      16#6b#        => ("packssdw        ", C_Pq, C_Qq, Extra_None),
       --  The 16#6c# and 16#6d# slots are reserved
-      16#6e#        => ("movd            ", C_Pq, C_Ed, W_None),
-      16#6f#        => ("movq            ", C_Pq, C_Qq, W_None),
+      16#6e#        => ("movd            ", C_Pq, C_Ed, Extra_None),
+      16#6f#        => ("movq            ", C_Pq, C_Qq, Extra_None),
 
-      16#70#        => ("pshufw          ", C_Pq, C_Qq, W_8),
+      16#70#        => ("pshufw          ", C_Pq, C_Qq, Extra_8),
       --  TODO??? 12/13/14 extended opcodes forms
-      16#74#        => ("pcmpeqb         ", C_Pq, C_Qq, W_None),
-      16#75#        => ("pcmpeqw         ", C_Pq, C_Qq, W_None),
-      16#76#        => ("pcmepeqd        ", C_Pq, C_Qq, W_None),
-      16#77#        => ("emms            ", C_None, C_None, W_None),
+      16#74#        => ("pcmpeqb         ", C_Pq, C_Qq, Extra_None),
+      16#75#        => ("pcmpeqw         ", C_Pq, C_Qq, Extra_None),
+      16#76#        => ("pcmepeqd        ", C_Pq, C_Qq, Extra_None),
+      16#77#        => ("emms            ", C_None, C_None, Extra_None),
       --  The 16#78#-16#7b# slots are reserved
-      16#7c#        => ("haddpd          ", C_Vpd, C_Wpd, W_None),
-      16#7d#        => ("hsubpd          ", C_Vpd, C_Wpd, W_None),
-      16#7e#        => ("movd            ", C_Ed, C_Pd, W_None),
-      16#7f#        => ("movq            ", C_Qq, C_Pq, W_None),
+      16#7c#        => ("haddpd          ", C_Vpd, C_Wpd, Extra_None),
+      16#7d#        => ("hsubpd          ", C_Vpd, C_Wpd, Extra_None),
+      16#7e#        => ("movd            ", C_Ed, C_Pd, Extra_None),
+      16#7f#        => ("movq            ", C_Qq, C_Pq, Extra_None),
 
-      2#1000_0000#  => ("jo              ", C_Jz, C_None, W_None),
-      2#1000_0001#  => ("jno             ", C_Jz, C_None, W_None),
-      2#1000_0010#  => ("jb              ", C_Jz, C_None, W_None),
-      2#1000_0011#  => ("jae             ", C_Jz, C_None, W_None),
-      2#1000_0100#  => ("je              ", C_Jz, C_None, W_None),
-      2#1000_0101#  => ("jne             ", C_Jz, C_None, W_None),
-      2#1000_0110#  => ("jbe             ", C_Jz, C_None, W_None),
-      2#1000_0111#  => ("ja              ", C_Jz, C_None, W_None),
-      2#1000_1000#  => ("js              ", C_Jz, C_None, W_None),
-      2#1000_1001#  => ("jns             ", C_Jz, C_None, W_None),
-      2#1000_1010#  => ("jp              ", C_Jz, C_None, W_None),
-      2#1000_1011#  => ("jnp             ", C_Jz, C_None, W_None),
-      2#1000_1100#  => ("jl              ", C_Jz, C_None, W_None),
-      2#1000_1101#  => ("jge             ", C_Jz, C_None, W_None),
-      2#1000_1110#  => ("jle             ", C_Jz, C_None, W_None),
-      2#1000_1111#  => ("jg              ", C_Jz, C_None, W_None),
+      2#1000_0000#  => ("jo              ", C_Jz, C_None, Extra_None),
+      2#1000_0001#  => ("jno             ", C_Jz, C_None, Extra_None),
+      2#1000_0010#  => ("jb              ", C_Jz, C_None, Extra_None),
+      2#1000_0011#  => ("jae             ", C_Jz, C_None, Extra_None),
+      2#1000_0100#  => ("je              ", C_Jz, C_None, Extra_None),
+      2#1000_0101#  => ("jne             ", C_Jz, C_None, Extra_None),
+      2#1000_0110#  => ("jbe             ", C_Jz, C_None, Extra_None),
+      2#1000_0111#  => ("ja              ", C_Jz, C_None, Extra_None),
+      2#1000_1000#  => ("js              ", C_Jz, C_None, Extra_None),
+      2#1000_1001#  => ("jns             ", C_Jz, C_None, Extra_None),
+      2#1000_1010#  => ("jp              ", C_Jz, C_None, Extra_None),
+      2#1000_1011#  => ("jnp             ", C_Jz, C_None, Extra_None),
+      2#1000_1100#  => ("jl              ", C_Jz, C_None, Extra_None),
+      2#1000_1101#  => ("jge             ", C_Jz, C_None, Extra_None),
+      2#1000_1110#  => ("jle             ", C_Jz, C_None, Extra_None),
+      2#1000_1111#  => ("jg              ", C_Jz, C_None, Extra_None),
 
-      2#1001_0000#  => ("seto            ", C_Eb, C_None, W_None),
-      2#1001_0001#  => ("setno           ", C_Eb, C_None, W_None),
-      2#1001_0010#  => ("setb            ", C_Eb, C_None, W_None),
-      2#1001_0011#  => ("setae           ", C_Eb, C_None, W_None),
-      2#1001_0100#  => ("sete            ", C_Eb, C_None, W_None),
-      2#1001_0101#  => ("setne           ", C_Eb, C_None, W_None),
-      2#1001_0110#  => ("setbe           ", C_Eb, C_None, W_None),
-      2#1001_0111#  => ("seta            ", C_Eb, C_None, W_None),
-      2#1001_1000#  => ("sets            ", C_Eb, C_None, W_None),
-      2#1001_1001#  => ("setns           ", C_Eb, C_None, W_None),
-      2#1001_1010#  => ("setp            ", C_Eb, C_None, W_None),
-      2#1001_1011#  => ("setnp           ", C_Eb, C_None, W_None),
-      2#1001_1100#  => ("setl            ", C_Eb, C_None, W_None),
-      2#1001_1101#  => ("setge           ", C_Eb, C_None, W_None),
-      2#1001_1110#  => ("setle           ", C_Eb, C_None, W_None),
-      2#1001_1111#  => ("setjg           ", C_Eb, C_None, W_None),
+      2#1001_0000#  => ("seto            ", C_Eb, C_None, Extra_None),
+      2#1001_0001#  => ("setno           ", C_Eb, C_None, Extra_None),
+      2#1001_0010#  => ("setb            ", C_Eb, C_None, Extra_None),
+      2#1001_0011#  => ("setae           ", C_Eb, C_None, Extra_None),
+      2#1001_0100#  => ("sete            ", C_Eb, C_None, Extra_None),
+      2#1001_0101#  => ("setne           ", C_Eb, C_None, Extra_None),
+      2#1001_0110#  => ("setbe           ", C_Eb, C_None, Extra_None),
+      2#1001_0111#  => ("seta            ", C_Eb, C_None, Extra_None),
+      2#1001_1000#  => ("sets            ", C_Eb, C_None, Extra_None),
+      2#1001_1001#  => ("setns           ", C_Eb, C_None, Extra_None),
+      2#1001_1010#  => ("setp            ", C_Eb, C_None, Extra_None),
+      2#1001_1011#  => ("setnp           ", C_Eb, C_None, Extra_None),
+      2#1001_1100#  => ("setl            ", C_Eb, C_None, Extra_None),
+      2#1001_1101#  => ("setge           ", C_Eb, C_None, Extra_None),
+      2#1001_1110#  => ("setle           ", C_Eb, C_None, Extra_None),
+      2#1001_1111#  => ("setjg           ", C_Eb, C_None, Extra_None),
 
-      16#a4#        => ("shld            ", C_Ev, C_Gv, W_8),
-      16#a5#        => ("shld            ", C_Ev, C_Gv_Cl, W_None),
-      16#ac#        => ("shrd            ", C_Ev, C_Gv, W_8),
-      16#ad#        => ("shrd            ", C_Ev, C_Gv_Cl, W_None),
-      16#af#        => ("imul            ", C_Gv, C_Ev, W_None),
+      16#a4#        => ("shld            ", C_Ev, C_Gv, Extra_8),
+      16#a5#        => ("shld            ", C_Ev, C_Gv, Extra_Cl),
+      16#ac#        => ("shrd            ", C_Ev, C_Gv, Extra_8),
+      16#ad#        => ("shrd            ", C_Ev, C_Gv, Extra_Cl),
+      16#af#        => ("imul            ", C_Gv, C_Ev, Extra_None),
 
-      16#b6#        => ("movzx           ", C_Gv, C_Eb, W_None),
-      16#b7#        => ("movzx           ", C_Gv, C_Ew, W_None),
-      16#bb#        => ("btc             ", C_Ev, C_Gv, W_None),
-      16#bc#        => ("bsf             ", C_Gv, C_Ev, W_None),
-      16#bd#        => ("bsr             ", C_Gv, C_Ev, W_None),
-      16#be#        => ("movsx           ", C_Gv, C_Eb, W_None),
-      16#bf#        => ("movsx           ", C_Gv, C_Ew, W_None),
+      16#b6#        => ("movzx           ", C_Gv, C_Eb, Extra_None),
+      16#b7#        => ("movzx           ", C_Gv, C_Ew, Extra_None),
+      16#bb#        => ("btc             ", C_Ev, C_Gv, Extra_None),
+      16#bc#        => ("bsf             ", C_Gv, C_Ev, Extra_None),
+      16#bd#        => ("bsr             ", C_Gv, C_Ev, Extra_None),
+      16#be#        => ("movsx           ", C_Gv, C_Eb, Extra_None),
+      16#bf#        => ("movsx           ", C_Gv, C_Ew, Extra_None),
 
-      16#c0#        => ("xadd            ", C_Eb, C_Gb, W_None),
-      16#c1#        => ("xadd            ", C_Ev, C_Gv, W_None),
-      16#c2#        => ("cmpps           ", C_Vps, C_Wps, W_8),
-      16#c3#        => ("movnti          ", C_Md, C_Gd, W_None),
-      16#c4#        => ("pinsrw          ", C_Pw, C_Ew, W_8),
-      16#c5#        => ("pextrw          ", C_Gw, C_Pw, W_8),
-      16#c6#        => ("shufps          ", C_Vps, C_Wps, W_8),
+      16#c0#        => ("xadd            ", C_Eb, C_Gb, Extra_None),
+      16#c1#        => ("xadd            ", C_Ev, C_Gv, Extra_None),
+      16#c2#        => ("cmpps           ", C_Vps, C_Wps, Extra_8),
+      16#c3#        => ("movnti          ", C_Md, C_Gd, Extra_None),
+      16#c4#        => ("pinsrw          ", C_Pw, C_Ew, Extra_8),
+      16#c5#        => ("pextrw          ", C_Gw, C_Pw, Extra_8),
+      16#c6#        => ("shufps          ", C_Vps, C_Wps, Extra_8),
       --  TODO??? 9 extended opcodes forms
-      16#c8#        => ("bswap           ", C_Reg_Ax, C_None, W_None),
-      16#c9#        => ("bswap           ", C_Reg_Cx, C_None, W_None),
-      16#ca#        => ("bswap           ", C_Reg_Dx, C_None, W_None),
-      16#cb#        => ("bswap           ", C_Reg_Bx, C_None, W_None),
-      16#cc#        => ("bswap           ", C_Reg_Sp, C_None, W_None),
-      16#cd#        => ("bswap           ", C_Reg_Bp, C_None, W_None),
-      16#ce#        => ("bswap           ", C_Reg_Si, C_None, W_None),
-      16#cf#        => ("bswap           ", C_Reg_Di, C_None, W_None),
+      16#c8#        => ("bswap           ", C_Reg_Ax, C_None, Extra_None),
+      16#c9#        => ("bswap           ", C_Reg_Cx, C_None, Extra_None),
+      16#ca#        => ("bswap           ", C_Reg_Dx, C_None, Extra_None),
+      16#cb#        => ("bswap           ", C_Reg_Bx, C_None, Extra_None),
+      16#cc#        => ("bswap           ", C_Reg_Sp, C_None, Extra_None),
+      16#cd#        => ("bswap           ", C_Reg_Bp, C_None, Extra_None),
+      16#ce#        => ("bswap           ", C_Reg_Si, C_None, Extra_None),
+      16#cf#        => ("bswap           ", C_Reg_Di, C_None, Extra_None),
 
       --  The 16#d0# slot is reserved
-      16#d1#        => ("psrlw           ", C_Pq, C_Qq, W_None),
-      16#d2#        => ("psrld           ", C_Pq, C_Qq, W_None),
-      16#d3#        => ("psrlq           ", C_Pq, C_Qq, W_None),
-      16#d4#        => ("paddq           ", C_Pq, C_Qq, W_None),
-      16#d5#        => ("pmullw          ", C_Pq, C_Qq, W_None),
+      16#d1#        => ("psrlw           ", C_Pq, C_Qq, Extra_None),
+      16#d2#        => ("psrld           ", C_Pq, C_Qq, Extra_None),
+      16#d3#        => ("psrlq           ", C_Pq, C_Qq, Extra_None),
+      16#d4#        => ("paddq           ", C_Pq, C_Qq, Extra_None),
+      16#d5#        => ("pmullw          ", C_Pq, C_Qq, Extra_None),
       --  The 16#d6# slot is reserved
-      16#d7#        => ("pmovmskb        ", C_Gd, C_Pq, W_None),
-      16#d8#        => ("psubusb         ", C_Pq, C_Qq, W_None),
-      16#d9#        => ("psubusw         ", C_Pq, C_Qq, W_None),
-      16#da#        => ("pminub          ", C_Pq, C_Qq, W_None),
-      16#db#        => ("pand            ", C_Pq, C_Qq, W_None),
-      16#dc#        => ("paddusb         ", C_Pq, C_Qq, W_None),
-      16#dd#        => ("paddusw         ", C_Pq, C_Qq, W_None),
-      16#de#        => ("pmaxub          ", C_Pq, C_Qq, W_None),
-      16#df#        => ("pandn           ", C_Pq, C_Qq, W_None),
+      16#d7#        => ("pmovmskb        ", C_Gd, C_Pq, Extra_None),
+      16#d8#        => ("psubusb         ", C_Pq, C_Qq, Extra_None),
+      16#d9#        => ("psubusw         ", C_Pq, C_Qq, Extra_None),
+      16#da#        => ("pminub          ", C_Pq, C_Qq, Extra_None),
+      16#db#        => ("pand            ", C_Pq, C_Qq, Extra_None),
+      16#dc#        => ("paddusb         ", C_Pq, C_Qq, Extra_None),
+      16#dd#        => ("paddusw         ", C_Pq, C_Qq, Extra_None),
+      16#de#        => ("pmaxub          ", C_Pq, C_Qq, Extra_None),
+      16#df#        => ("pandn           ", C_Pq, C_Qq, Extra_None),
 
-      16#e0#        => ("pavgb           ", C_Pq, C_Qq, W_None),
-      16#e1#        => ("psraw           ", C_Pq, C_Qq, W_None),
-      16#e2#        => ("psrad           ", C_Pq, C_Qq, W_None),
-      16#e3#        => ("pavgw           ", C_Pq, C_Qq, W_None),
-      16#e4#        => ("pmulhuw         ", C_Pq, C_Qq, W_None),
-      16#e5#        => ("pmulhw          ", C_Pq, C_Qq, W_None),
+      16#e0#        => ("pavgb           ", C_Pq, C_Qq, Extra_None),
+      16#e1#        => ("psraw           ", C_Pq, C_Qq, Extra_None),
+      16#e2#        => ("psrad           ", C_Pq, C_Qq, Extra_None),
+      16#e3#        => ("pavgw           ", C_Pq, C_Qq, Extra_None),
+      16#e4#        => ("pmulhuw         ", C_Pq, C_Qq, Extra_None),
+      16#e5#        => ("pmulhw          ", C_Pq, C_Qq, Extra_None),
       --  The 16#e6# slot is reserved
-      16#e7#        => ("movntq          ", C_Mq, C_Vq, W_None),
-      16#e8#        => ("psubsb          ", C_Pq, C_Qq, W_None),
-      16#e9#        => ("psubsw          ", C_Pq, C_Qq, W_None),
-      16#ea#        => ("pminsw          ", C_Pq, C_Qq, W_None),
-      16#eb#        => ("por             ", C_Pq, C_Qq, W_None),
-      16#ec#        => ("paddsb          ", C_Pq, C_Qq, W_None),
-      16#ed#        => ("paddsw          ", C_Pq, C_Qq, W_None),
-      16#ee#        => ("pmaxsw          ", C_Pq, C_Qq, W_None),
-      16#ef#        => ("pxor            ", C_Pq, C_Qq, W_None),
+      16#e7#        => ("movntq          ", C_Mq, C_Vq, Extra_None),
+      16#e8#        => ("psubsb          ", C_Pq, C_Qq, Extra_None),
+      16#e9#        => ("psubsw          ", C_Pq, C_Qq, Extra_None),
+      16#ea#        => ("pminsw          ", C_Pq, C_Qq, Extra_None),
+      16#eb#        => ("por             ", C_Pq, C_Qq, Extra_None),
+      16#ec#        => ("paddsb          ", C_Pq, C_Qq, Extra_None),
+      16#ed#        => ("paddsw          ", C_Pq, C_Qq, Extra_None),
+      16#ee#        => ("pmaxsw          ", C_Pq, C_Qq, Extra_None),
+      16#ef#        => ("pxor            ", C_Pq, C_Qq, Extra_None),
 
       --  The 16#f0# slot is reserved
-      16#f1#        => ("psllw           ", C_Pq, C_Qq, W_None),
-      16#f2#        => ("pslld           ", C_Pq, C_Qq, W_None),
-      16#f3#        => ("psllq           ", C_Pq, C_Qq, W_None),
-      16#f4#        => ("pmuludq         ", C_Pq, C_Qq, W_None),
-      16#f5#        => ("pmaddwd         ", C_Pq, C_Qq, W_None),
-      16#f6#        => ("psadbw          ", C_Pq, C_Qq, W_None),
-      16#f7#        => ("maskmovq        ", C_Pq, C_Pq, W_None),
-      16#f8#        => ("psubb           ", C_Pq, C_Qq, W_None),
-      16#f9#        => ("psubw           ", C_Pq, C_Qq, W_None),
-      16#fa#        => ("psubd           ", C_Pq, C_Qq, W_None),
-      16#fb#        => ("psubq           ", C_Pq, C_Qq, W_None),
-      16#fc#        => ("paddb           ", C_Pq, C_Qq, W_None),
-      16#fd#        => ("paddw           ", C_Pq, C_Qq, W_None),
-      16#fe#        => ("paddd           ", C_Pq, C_Qq, W_None),
+      16#f1#        => ("psllw           ", C_Pq, C_Qq, Extra_None),
+      16#f2#        => ("pslld           ", C_Pq, C_Qq, Extra_None),
+      16#f3#        => ("psllq           ", C_Pq, C_Qq, Extra_None),
+      16#f4#        => ("pmuludq         ", C_Pq, C_Qq, Extra_None),
+      16#f5#        => ("pmaddwd         ", C_Pq, C_Qq, Extra_None),
+      16#f6#        => ("psadbw          ", C_Pq, C_Qq, Extra_None),
+      16#f7#        => ("maskmovq        ", C_Pq, C_Pq, Extra_None),
+      16#f8#        => ("psubb           ", C_Pq, C_Qq, Extra_None),
+      16#f9#        => ("psubw           ", C_Pq, C_Qq, Extra_None),
+      16#fa#        => ("psubd           ", C_Pq, C_Qq, Extra_None),
+      16#fb#        => ("psubq           ", C_Pq, C_Qq, Extra_None),
+      16#fc#        => ("paddb           ", C_Pq, C_Qq, Extra_None),
+      16#fd#        => ("paddw           ", C_Pq, C_Qq, Extra_None),
+      16#fe#        => ("paddd           ", C_Pq, C_Qq, Extra_None),
       --  The 16#ff# slot is reserved
 
-      others       =>  ("                ", C_None, C_None, W_None));
+      others       =>  ("                ", C_None, C_None, Extra_None));
 
    --  Lookup table for two-bytes opcode sequences with the 16#66# mandatory
    --  prefix. The first byte of the opcode sequence is 16#0f# and this table
@@ -818,126 +819,126 @@ package body Disa_X86 is
 
    Insn_Desc_66_0F : constant Insn_Desc_Array_Type :=
      (
-      16#10#        => ("movupd          ", C_Pq, C_Qq, W_None),
-      16#11#        => ("movupd          ", C_Wpd, C_Vpd, W_None),
-      16#12#        => ("movlpd          ", C_Vq, C_Mq, W_None),
-      16#13#        => ("movlpd          ", C_Mq, C_Vq, W_None),
-      16#14#        => ("unpcklpd        ", C_Vpd, C_Wpd, W_None),
-      16#15#        => ("unpckhpd        ", C_Vpd, C_Wpd, W_None),
-      16#16#        => ("movhpd          ", C_Vq, C_Mq, W_None),
-      16#17#        => ("movhpd          ", C_Mq, C_Vpd, W_None),
+      16#10#        => ("movupd          ", C_Pq, C_Qq, Extra_None),
+      16#11#        => ("movupd          ", C_Wpd, C_Vpd, Extra_None),
+      16#12#        => ("movlpd          ", C_Vq, C_Mq, Extra_None),
+      16#13#        => ("movlpd          ", C_Mq, C_Vq, Extra_None),
+      16#14#        => ("unpcklpd        ", C_Vpd, C_Wpd, Extra_None),
+      16#15#        => ("unpckhpd        ", C_Vpd, C_Wpd, Extra_None),
+      16#16#        => ("movhpd          ", C_Vq, C_Mq, Extra_None),
+      16#17#        => ("movhpd          ", C_Mq, C_Vpd, Extra_None),
 
-      16#28#        => ("movapd          ", C_Vpd, C_Wpd, W_None),
-      16#29#        => ("movapd          ", C_Wpd, C_Vpd, W_None),
-      16#2a#        => ("cvtpi2pd        ", C_Vpd, C_Qd, W_None),
-      16#2b#        => ("movntpd         ", C_Mpd, C_Vpd, W_None),
-      16#2c#        => ("cvttpd2pi       ", C_Pq, C_Wpd, W_None),
-      16#2d#        => ("cptpd2pi        ", C_Pq, C_Wpd, W_None),
-      16#2e#        => ("ucomisd         ", C_Vsd, C_Wsd, W_None),
-      16#2f#        => ("comisd          ", C_Vsd, C_Wsd, W_None),
+      16#28#        => ("movapd          ", C_Vpd, C_Wpd, Extra_None),
+      16#29#        => ("movapd          ", C_Wpd, C_Vpd, Extra_None),
+      16#2a#        => ("cvtpi2pd        ", C_Vpd, C_Qd, Extra_None),
+      16#2b#        => ("movntpd         ", C_Mpd, C_Vpd, Extra_None),
+      16#2c#        => ("cvttpd2pi       ", C_Pq, C_Wpd, Extra_None),
+      16#2d#        => ("cptpd2pi        ", C_Pq, C_Wpd, Extra_None),
+      16#2e#        => ("ucomisd         ", C_Vsd, C_Wsd, Extra_None),
+      16#2f#        => ("comisd          ", C_Vsd, C_Wsd, Extra_None),
 
-      16#50#        => ("movmskpd        ", C_Gd, C_Vpd, W_None),
-      16#51#        => ("sqrtpd          ", C_Vpd, C_Wpd, W_None),
+      16#50#        => ("movmskpd        ", C_Gd, C_Vpd, Extra_None),
+      16#51#        => ("sqrtpd          ", C_Vpd, C_Wpd, Extra_None),
       --  The 16#52#-16#63# slots are reserved
-      16#54#        => ("andpd           ", C_Vpd, C_Wpd, W_None),
-      16#55#        => ("andnpd          ", C_Vpd, C_Wpd, W_None),
-      16#56#        => ("orpdpd          ", C_Vpd, C_Wpd, W_None),
-      16#57#        => ("xorpd           ", C_Vpd, C_Wpd, W_None),
-      16#58#        => ("addpd           ", C_Vpd, C_Wpd, W_None),
-      16#59#        => ("mulpd           ", C_Vpd, C_Wpd, W_None),
-      16#5a#        => ("cvtp2ps         ", C_Vpd, C_Wpd, W_None),
-      16#5b#        => ("cvtps2dq        ", C_Vdq, C_Wps, W_None),
-      16#5c#        => ("subpd           ", C_Vpd, C_Wpd, W_None),
-      16#5d#        => ("minpd           ", C_Vpd, C_Wpd, W_None),
-      16#5e#        => ("divpd           ", C_Vpd, C_Wpd, W_None),
-      16#5f#        => ("maxpd           ", C_Vpd, C_Wpd, W_None),
+      16#54#        => ("andpd           ", C_Vpd, C_Wpd, Extra_None),
+      16#55#        => ("andnpd          ", C_Vpd, C_Wpd, Extra_None),
+      16#56#        => ("orpdpd          ", C_Vpd, C_Wpd, Extra_None),
+      16#57#        => ("xorpd           ", C_Vpd, C_Wpd, Extra_None),
+      16#58#        => ("addpd           ", C_Vpd, C_Wpd, Extra_None),
+      16#59#        => ("mulpd           ", C_Vpd, C_Wpd, Extra_None),
+      16#5a#        => ("cvtp2ps         ", C_Vpd, C_Wpd, Extra_None),
+      16#5b#        => ("cvtps2dq        ", C_Vdq, C_Wps, Extra_None),
+      16#5c#        => ("subpd           ", C_Vpd, C_Wpd, Extra_None),
+      16#5d#        => ("minpd           ", C_Vpd, C_Wpd, Extra_None),
+      16#5e#        => ("divpd           ", C_Vpd, C_Wpd, Extra_None),
+      16#5f#        => ("maxpd           ", C_Vpd, C_Wpd, Extra_None),
 
-      16#60#        => ("punpcklbw       ", C_Vdq, C_Wdq, W_None),
-      16#61#        => ("punpcklwd       ", C_Vdq, C_Wdq, W_None),
-      16#62#        => ("punpckldq       ", C_Vdq, C_Wdq, W_None),
-      16#63#        => ("packsswb        ", C_Vdq, C_Wdq, W_None),
-      16#64#        => ("pcmpgtb         ", C_Vdq, C_Wdq, W_None),
-      16#65#        => ("pcmpgtw         ", C_Vdq, C_Wdq, W_None),
-      16#66#        => ("pcmpgtd         ", C_Vdq, C_Wdq, W_None),
-      16#67#        => ("packuswb        ", C_Vdq, C_Wdq, W_None),
-      16#68#        => ("punpckhbw       ", C_Vdq, C_Qdq, W_None),
-      16#69#        => ("punpckhwd       ", C_Vdq, C_Qdq, W_None),
-      16#6a#        => ("punpckhdq       ", C_Vdq, C_Qdq, W_None),
-      16#6b#        => ("packssdw        ", C_Vdq, C_Qdq, W_None),
-      16#6c#        => ("punpcklqdq      ", C_Vdq, C_Wdq, W_None),
-      16#6d#        => ("punpckhqd       ", C_Vdq, C_Wdq, W_None),
-      16#6e#        => ("movd            ", C_Vd, C_Ed, W_None),
-      16#6f#        => ("movdqa          ", C_Vdq, C_Wdq, W_None),
+      16#60#        => ("punpcklbw       ", C_Vdq, C_Wdq, Extra_None),
+      16#61#        => ("punpcklwd       ", C_Vdq, C_Wdq, Extra_None),
+      16#62#        => ("punpckldq       ", C_Vdq, C_Wdq, Extra_None),
+      16#63#        => ("packsswb        ", C_Vdq, C_Wdq, Extra_None),
+      16#64#        => ("pcmpgtb         ", C_Vdq, C_Wdq, Extra_None),
+      16#65#        => ("pcmpgtw         ", C_Vdq, C_Wdq, Extra_None),
+      16#66#        => ("pcmpgtd         ", C_Vdq, C_Wdq, Extra_None),
+      16#67#        => ("packuswb        ", C_Vdq, C_Wdq, Extra_None),
+      16#68#        => ("punpckhbw       ", C_Vdq, C_Qdq, Extra_None),
+      16#69#        => ("punpckhwd       ", C_Vdq, C_Qdq, Extra_None),
+      16#6a#        => ("punpckhdq       ", C_Vdq, C_Qdq, Extra_None),
+      16#6b#        => ("packssdw        ", C_Vdq, C_Qdq, Extra_None),
+      16#6c#        => ("punpcklqdq      ", C_Vdq, C_Wdq, Extra_None),
+      16#6d#        => ("punpckhqd       ", C_Vdq, C_Wdq, Extra_None),
+      16#6e#        => ("movd            ", C_Vd, C_Ed, Extra_None),
+      16#6f#        => ("movdqa          ", C_Vdq, C_Wdq, Extra_None),
 
-      16#70#        => ("pshufd          ", C_Vdq, C_Wdq, W_8),
+      16#70#        => ("pshufd          ", C_Vdq, C_Wdq, Extra_8),
       --  TODO??? 12/13/14 extended opcodes forms
-      16#74#        => ("pcmpeqb         ", C_Vdq, C_Wdq, W_8),
-      16#75#        => ("pcmpeqw         ", C_Vdq, C_Wdq, W_8),
-      16#76#        => ("pcmpeqd         ", C_Vdq, C_Wdq, W_8),
+      16#74#        => ("pcmpeqb         ", C_Vdq, C_Wdq, Extra_8),
+      16#75#        => ("pcmpeqw         ", C_Vdq, C_Wdq, Extra_8),
+      16#76#        => ("pcmpeqd         ", C_Vdq, C_Wdq, Extra_8),
       --  The 16#77#-16#7b# slots are reserved
-      16#7c#        => ("haddpd          ", C_Vdq, C_Wdq, W_8),
-      16#7d#        => ("hsubpd          ", C_Vdq, C_Wdq, W_8),
-      16#7e#        => ("movd            ", C_Ed, C_Vd, W_8),
-      16#7f#        => ("movdqa          ", C_Wdq, C_Vdq, W_8),
+      16#7c#        => ("haddpd          ", C_Vdq, C_Wdq, Extra_8),
+      16#7d#        => ("hsubpd          ", C_Vdq, C_Wdq, Extra_8),
+      16#7e#        => ("movd            ", C_Ed, C_Vd, Extra_8),
+      16#7f#        => ("movdqa          ", C_Wdq, C_Vdq, Extra_8),
 
-      16#c2#        => ("cmpps           ", C_Vpd, C_Wpd, W_8),
-      16#c4#        => ("pinsrw          ", C_Vw, C_Ew, W_8),
-      16#c5#        => ("pextrw          ", C_Gw, C_Vw, W_8),
-      16#c6#        => ("shufpd          ", C_Vpd, C_Wpd, W_8),
+      16#c2#        => ("cmpps           ", C_Vpd, C_Wpd, Extra_8),
+      16#c4#        => ("pinsrw          ", C_Vw, C_Ew, Extra_8),
+      16#c5#        => ("pextrw          ", C_Gw, C_Vw, Extra_8),
+      16#c6#        => ("shufpd          ", C_Vpd, C_Wpd, Extra_8),
       --  TODO??? 19 extended opcodes forms
 
-      16#d0#        => ("addsubpd        ", C_Vpd, C_Wpd, W_None),
-      16#d1#        => ("psrlw           ", C_Vdq, C_Wdq, W_None),
-      16#d2#        => ("psrld           ", C_Vdq, C_Wdq, W_None),
-      16#d3#        => ("psrlq           ", C_Vdq, C_Wdq, W_None),
-      16#d4#        => ("paddq           ", C_Vdq, C_Wdq, W_None),
-      16#d5#        => ("pmullw          ", C_Vdq, C_Wdq, W_None),
-      16#d6#        => ("movq            ", C_Wq, C_Vq, W_None),
-      16#d7#        => ("pmovmskb        ", C_Gd, C_Vdq, W_None),
-      16#d8#        => ("psubusb         ", C_Vdq, C_Wdq, W_None),
-      16#d9#        => ("psubusw         ", C_Vdq, C_Wdq, W_None),
-      16#da#        => ("pminub          ", C_Vdq, C_Wdq, W_None),
-      16#db#        => ("pand            ", C_Vdq, C_Wdq, W_None),
-      16#dc#        => ("paddusb         ", C_Vdq, C_Wdq, W_None),
-      16#dd#        => ("paddusw         ", C_Vdq, C_Wdq, W_None),
-      16#de#        => ("pmaxub          ", C_Vdq, C_Wdq, W_None),
-      16#df#        => ("pandn           ", C_Vdq, C_Wdq, W_None),
+      16#d0#        => ("addsubpd        ", C_Vpd, C_Wpd, Extra_None),
+      16#d1#        => ("psrlw           ", C_Vdq, C_Wdq, Extra_None),
+      16#d2#        => ("psrld           ", C_Vdq, C_Wdq, Extra_None),
+      16#d3#        => ("psrlq           ", C_Vdq, C_Wdq, Extra_None),
+      16#d4#        => ("paddq           ", C_Vdq, C_Wdq, Extra_None),
+      16#d5#        => ("pmullw          ", C_Vdq, C_Wdq, Extra_None),
+      16#d6#        => ("movq            ", C_Wq, C_Vq, Extra_None),
+      16#d7#        => ("pmovmskb        ", C_Gd, C_Vdq, Extra_None),
+      16#d8#        => ("psubusb         ", C_Vdq, C_Wdq, Extra_None),
+      16#d9#        => ("psubusw         ", C_Vdq, C_Wdq, Extra_None),
+      16#da#        => ("pminub          ", C_Vdq, C_Wdq, Extra_None),
+      16#db#        => ("pand            ", C_Vdq, C_Wdq, Extra_None),
+      16#dc#        => ("paddusb         ", C_Vdq, C_Wdq, Extra_None),
+      16#dd#        => ("paddusw         ", C_Vdq, C_Wdq, Extra_None),
+      16#de#        => ("pmaxub          ", C_Vdq, C_Wdq, Extra_None),
+      16#df#        => ("pandn           ", C_Vdq, C_Wdq, Extra_None),
 
-      16#e0#        => ("pavgb           ", C_Vdq, C_Wdq, W_None),
-      16#e1#        => ("psraw           ", C_Vdq, C_Wdq, W_None),
-      16#e2#        => ("psrad           ", C_Vdq, C_Wdq, W_None),
-      16#e3#        => ("pavgw           ", C_Vdq, C_Wdq, W_None),
-      16#e4#        => ("pmulhuw         ", C_Vdq, C_Wdq, W_None),
-      16#e5#        => ("pmulhw          ", C_Vdq, C_Wdq, W_None),
-      16#e6#        => ("cvttpd2dq       ", C_Vdq, C_Wdq, W_None),
-      16#e7#        => ("movntdq         ", C_Vdq, C_Wdq, W_None),
-      16#e8#        => ("psubsb          ", C_Vdq, C_Wdq, W_None),
-      16#e9#        => ("psubsw          ", C_Vdq, C_Wdq, W_None),
-      16#ea#        => ("pminsw          ", C_Vdq, C_Wdq, W_None),
-      16#eb#        => ("por             ", C_Vdq, C_Wdq, W_None),
-      16#ec#        => ("paddsb          ", C_Vdq, C_Wdq, W_None),
-      16#ed#        => ("paddsw          ", C_Vdq, C_Wdq, W_None),
-      16#ee#        => ("pmaxsw          ", C_Vdq, C_Wdq, W_None),
-      16#ef#        => ("pxor            ", C_Vdq, C_Wdq, W_None),
+      16#e0#        => ("pavgb           ", C_Vdq, C_Wdq, Extra_None),
+      16#e1#        => ("psraw           ", C_Vdq, C_Wdq, Extra_None),
+      16#e2#        => ("psrad           ", C_Vdq, C_Wdq, Extra_None),
+      16#e3#        => ("pavgw           ", C_Vdq, C_Wdq, Extra_None),
+      16#e4#        => ("pmulhuw         ", C_Vdq, C_Wdq, Extra_None),
+      16#e5#        => ("pmulhw          ", C_Vdq, C_Wdq, Extra_None),
+      16#e6#        => ("cvttpd2dq       ", C_Vdq, C_Wdq, Extra_None),
+      16#e7#        => ("movntdq         ", C_Vdq, C_Wdq, Extra_None),
+      16#e8#        => ("psubsb          ", C_Vdq, C_Wdq, Extra_None),
+      16#e9#        => ("psubsw          ", C_Vdq, C_Wdq, Extra_None),
+      16#ea#        => ("pminsw          ", C_Vdq, C_Wdq, Extra_None),
+      16#eb#        => ("por             ", C_Vdq, C_Wdq, Extra_None),
+      16#ec#        => ("paddsb          ", C_Vdq, C_Wdq, Extra_None),
+      16#ed#        => ("paddsw          ", C_Vdq, C_Wdq, Extra_None),
+      16#ee#        => ("pmaxsw          ", C_Vdq, C_Wdq, Extra_None),
+      16#ef#        => ("pxor            ", C_Vdq, C_Wdq, Extra_None),
 
       --  The 16#f0# slot is reserved
-      16#f1#        => ("psllw           ", C_Vdq, C_Wdq, W_None),
-      16#f2#        => ("pslld           ", C_Vdq, C_Wdq, W_None),
-      16#f3#        => ("psllq           ", C_Vdq, C_Wdq, W_None),
-      16#f4#        => ("pmuludq         ", C_Vdq, C_Wdq, W_None),
-      16#f5#        => ("pmaddwd         ", C_Vdq, C_Wdq, W_None),
-      16#f6#        => ("psadbw          ", C_Vdq, C_Wdq, W_None),
-      16#f7#        => ("maskmovq        ", C_Vdq, C_Wdq, W_None),
-      16#f8#        => ("psubb           ", C_Vdq, C_Wdq, W_None),
-      16#f9#        => ("psubw           ", C_Vdq, C_Wdq, W_None),
-      16#fa#        => ("psubd           ", C_Vdq, C_Wdq, W_None),
-      16#fb#        => ("psubq           ", C_Vdq, C_Wdq, W_None),
-      16#fc#        => ("paddb           ", C_Vdq, C_Wdq, W_None),
-      16#fd#        => ("paddw           ", C_Vdq, C_Wdq, W_None),
-      16#fe#        => ("paddd           ", C_Vdq, C_Wdq, W_None),
+      16#f1#        => ("psllw           ", C_Vdq, C_Wdq, Extra_None),
+      16#f2#        => ("pslld           ", C_Vdq, C_Wdq, Extra_None),
+      16#f3#        => ("psllq           ", C_Vdq, C_Wdq, Extra_None),
+      16#f4#        => ("pmuludq         ", C_Vdq, C_Wdq, Extra_None),
+      16#f5#        => ("pmaddwd         ", C_Vdq, C_Wdq, Extra_None),
+      16#f6#        => ("psadbw          ", C_Vdq, C_Wdq, Extra_None),
+      16#f7#        => ("maskmovq        ", C_Vdq, C_Wdq, Extra_None),
+      16#f8#        => ("psubb           ", C_Vdq, C_Wdq, Extra_None),
+      16#f9#        => ("psubw           ", C_Vdq, C_Wdq, Extra_None),
+      16#fa#        => ("psubd           ", C_Vdq, C_Wdq, Extra_None),
+      16#fb#        => ("psubq           ", C_Vdq, C_Wdq, Extra_None),
+      16#fc#        => ("paddb           ", C_Vdq, C_Wdq, Extra_None),
+      16#fd#        => ("paddw           ", C_Vdq, C_Wdq, Extra_None),
+      16#fe#        => ("paddd           ", C_Vdq, C_Wdq, Extra_None),
       --  The 16#ff# slot is reserved
 
-      others        => ("                ", C_None, C_None, W_None));
+      others        => ("                ", C_None, C_None, Extra_None));
 
    --  Lookup table for two-bytes opcode sequences with the 16#f2# mandatory
    --  prefix. The first byte of the opcode sequence is 16#0f# and this table
@@ -945,38 +946,38 @@ package body Disa_X86 is
 
    Insn_Desc_F2_0F : constant Insn_Desc_Array_Type :=
      (
-      16#10#        => ("movsd           ", C_Vsd, C_Wsd, W_None),
-      16#11#        => ("movsd           ", C_Vsd, C_Wsd, W_None),
-      16#12#        => ("movddup         ", C_Vq, C_Wq, W_None),
-      16#1a#        => ("cvtsi2sd        ", C_Vsd, C_Ed, W_None),
-      16#1c#        => ("cvttsd2si       ", C_Gd, C_Wsd, W_None),
-      16#1d#        => ("cvtsd2si        ", C_Gd, C_Wsd, W_None),
+      16#10#        => ("movsd           ", C_Vsd, C_Wsd, Extra_None),
+      16#11#        => ("movsd           ", C_Vsd, C_Wsd, Extra_None),
+      16#12#        => ("movddup         ", C_Vq, C_Wq, Extra_None),
+      16#1a#        => ("cvtsi2sd        ", C_Vsd, C_Ed, Extra_None),
+      16#1c#        => ("cvttsd2si       ", C_Gd, C_Wsd, Extra_None),
+      16#1d#        => ("cvtsd2si        ", C_Gd, C_Wsd, Extra_None),
 
       --  Here...
-      16#52#        => ("sqrtsdsi        ", C_Vsd, C_Wsd, W_None),
+      16#52#        => ("sqrtsdsi        ", C_Vsd, C_Wsd, Extra_None),
       --  ... and here, a lot of slots are reserved.
-      16#58#        => ("addsd           ", C_Vsd, C_Wsd, W_None),
-      16#59#        => ("mulsd           ", C_Vsd, C_Wsd, W_None),
-      16#5a#        => ("cvtsd2ss        ", C_Vsd, C_Wsd, W_None),
+      16#58#        => ("addsd           ", C_Vsd, C_Wsd, Extra_None),
+      16#59#        => ("mulsd           ", C_Vsd, C_Wsd, Extra_None),
+      16#5a#        => ("cvtsd2ss        ", C_Vsd, C_Wsd, Extra_None),
       --  The 16#5b# slot is reserved
-      16#5c#        => ("subsd           ", C_Vsd, C_Wsd, W_None),
-      16#5d#        => ("minsd           ", C_Vsd, C_Wsd, W_None),
-      16#5e#        => ("divsd           ", C_Vsd, C_Wsd, W_None),
-      16#5f#        => ("maxsd           ", C_Vsd, C_Wsd, W_None),
+      16#5c#        => ("subsd           ", C_Vsd, C_Wsd, Extra_None),
+      16#5d#        => ("minsd           ", C_Vsd, C_Wsd, Extra_None),
+      16#5e#        => ("divsd           ", C_Vsd, C_Wsd, Extra_None),
+      16#5f#        => ("maxsd           ", C_Vsd, C_Wsd, Extra_None),
 
-      16#70#        => ("pshuflw         ", C_Vdq, C_Wdq, W_8),
+      16#70#        => ("pshuflw         ", C_Vdq, C_Wdq, Extra_8),
       --  TODO??? 12/13/14 extended opcodes forms
       --  The 16#74#-16#7b# slots are reserved
-      16#7c#        => ("haddps          ", C_Vps, C_Wps, W_None),
-      16#7d#        => ("hsubps          ", C_Vps, C_Wps, W_None),
+      16#7c#        => ("haddps          ", C_Vps, C_Wps, Extra_None),
+      16#7d#        => ("hsubps          ", C_Vps, C_Wps, Extra_None),
       --  The 16#7e#-16#7f# slots are reserved
 
-      16#c2#        => ("cmpsd           ", C_Vsd, C_Wsd, W_8),
-      16#d6#        => ("movdq2q         ", C_Pq, C_Vq, W_None),
-      16#e6#        => ("cvtpd2dq        ", C_Vdq, C_Wdq, W_None),
-      16#f0#        => ("lddqu           ", C_Vdq, C_Mdq, W_None),
+      16#c2#        => ("cmpsd           ", C_Vsd, C_Wsd, Extra_8),
+      16#d6#        => ("movdq2q         ", C_Pq, C_Vq, Extra_None),
+      16#e6#        => ("cvtpd2dq        ", C_Vdq, C_Wdq, Extra_None),
+      16#f0#        => ("lddqu           ", C_Vdq, C_Mdq, Extra_None),
 
-      others        => ("                ", C_None, C_None, W_None));
+      others        => ("                ", C_None, C_None, Extra_None));
 
    --  Lookup table for two-bytes opcode sequences with the 16#f3# mandatory
    --  prefix. The first byte of the opcode sequence is 16#0f# and this table
@@ -984,46 +985,46 @@ package body Disa_X86 is
 
    Insn_Desc_F3_0F : constant Insn_Desc_Array_Type :=
      (
-      16#10#        => ("movss           ", C_Vss, C_Wss, W_None),
-      16#11#        => ("movss           ", C_Wss, C_Vss, W_None),
-      16#13#        => ("movsldup        ", C_Vps, C_Wps, W_None),
+      16#10#        => ("movss           ", C_Vss, C_Wss, Extra_None),
+      16#11#        => ("movss           ", C_Wss, C_Vss, Extra_None),
+      16#13#        => ("movsldup        ", C_Vps, C_Wps, Extra_None),
       --  The 16#14#-16#15# slots are reserved
-      16#16#        => ("movshdup        ", C_Vps, C_Wps, W_None),
+      16#16#        => ("movshdup        ", C_Vps, C_Wps, Extra_None),
       --  The 16#17# slot is reserved
       --  TODO??? 16 extended opcodes forms
       --  The 16#19#-16#1f# slots are reserved
 
-      16#2a#        => ("cvtsi2ss        ", C_Vss, C_Ed, W_None),
-      16#2c#        => ("cvttss2si       ", C_Gd, C_Wss, W_None),
-      16#2d#        => ("cvtss2si        ", C_Gd, C_Wss, W_None),
+      16#2a#        => ("cvtsi2ss        ", C_Vss, C_Ed, Extra_None),
+      16#2c#        => ("cvttss2si       ", C_Gd, C_Wss, Extra_None),
+      16#2d#        => ("cvtss2si        ", C_Gd, C_Wss, Extra_None),
 
       --  The 16#50# slot is reserved
-      16#51#        => ("sqrtss          ", C_Vss, C_Wss, W_None),
-      16#52#        => ("rsqrtss         ", C_Vss, C_Wss, W_None),
-      16#53#        => ("rcpss           ", C_Vss, C_Wss, W_None),
+      16#51#        => ("sqrtss          ", C_Vss, C_Wss, Extra_None),
+      16#52#        => ("rsqrtss         ", C_Vss, C_Wss, Extra_None),
+      16#53#        => ("rcpss           ", C_Vss, C_Wss, Extra_None),
       --  The 16#54#-16#57# slots are reserved
-      16#58#        => ("addss           ", C_Vss, C_Wss, W_None),
-      16#59#        => ("mulss           ", C_Vss, C_Wss, W_None),
-      16#5a#        => ("cvtss2sd        ", C_Vsd, C_Wss, W_None),
-      16#5b#        => ("cvttps2dq       ", C_Vdq, C_Wps, W_None),
-      16#5c#        => ("subss           ", C_Vss, C_Wss, W_None),
-      16#5d#        => ("minss           ", C_Vss, C_Wss, W_None),
-      16#5e#        => ("divss           ", C_Vss, C_Wss, W_None),
-      16#5f#        => ("maxss           ", C_Vss, C_Wss, W_None),
+      16#58#        => ("addss           ", C_Vss, C_Wss, Extra_None),
+      16#59#        => ("mulss           ", C_Vss, C_Wss, Extra_None),
+      16#5a#        => ("cvtss2sd        ", C_Vsd, C_Wss, Extra_None),
+      16#5b#        => ("cvttps2dq       ", C_Vdq, C_Wps, Extra_None),
+      16#5c#        => ("subss           ", C_Vss, C_Wss, Extra_None),
+      16#5d#        => ("minss           ", C_Vss, C_Wss, Extra_None),
+      16#5e#        => ("divss           ", C_Vss, C_Wss, Extra_None),
+      16#5f#        => ("maxss           ", C_Vss, C_Wss, Extra_None),
 
-      16#6f#        => ("movdqu          ", C_Vdq, C_Wdq, W_None),
+      16#6f#        => ("movdqu          ", C_Vdq, C_Wdq, Extra_None),
 
-      16#70#        => ("pshufhw         ", C_Vdq, C_Wdq, W_8),
+      16#70#        => ("pshufhw         ", C_Vdq, C_Wdq, Extra_8),
       --  TODO??? 12/13/14 extended opcodes forms
       --  The 16#74#-16#7d# slots are reserved
-      16#7e#        => ("movq            ", C_Vq, C_Wq, W_None),
-      16#7f#        => ("movdqu          ", C_Wdq, C_Vdq, W_None),
+      16#7e#        => ("movq            ", C_Vq, C_Wq, Extra_None),
+      16#7f#        => ("movdqu          ", C_Wdq, C_Vdq, Extra_None),
 
-      16#c2#        => ("cmpss           ", C_Vss, C_Wss, W_8),
-      16#d6#        => ("movq2dq         ", C_Vdq, C_Qq, W_None),
-      16#e6#        => ("cvtdq2pd        ", C_Vpd, C_Wq, W_None),
+      16#c2#        => ("cmpss           ", C_Vss, C_Wss, Extra_8),
+      16#d6#        => ("movq2dq         ", C_Vdq, C_Qq, Extra_None),
+      16#e6#        => ("cvtdq2pd        ", C_Vpd, C_Wq, Extra_None),
 
-      others        => ("                ", C_None, C_None, W_None));
+      others        => ("                ", C_None, C_None, Extra_None));
 
    --  Mnemonics for the "group 1" and "group 2" of instructions. For these,
    --  the mnemonic is determined by the "reg/opcode" 3-bit field of the ModR/M
@@ -1050,57 +1051,57 @@ package body Disa_X86 is
    --  The group 3 is used for the first opcode bytes 16#f6# and 16#f7#
 
    Insn_Desc_G3 : constant Group_Desc_Array_Type :=
-     (2#000# => ("test            ", C_Ib, C_Iz, W_None),
-      2#010# => ("not             ", C_None, C_None, W_None),
-      2#011# => ("neg             ", C_None, C_None, W_None),
-      2#100# => ("mul             ", C_Reg_Al, C_Reg_Ax, W_None),
-      2#101# => ("imul            ", C_Reg_Al, C_Reg_Ax, W_None),
-      2#110# => ("div             ", C_Reg_Al, C_Reg_Ax, W_None),
-      2#111# => ("idiv            ", C_Reg_Al, C_Reg_Ax, W_None),
-      others => ("                ", C_None, C_None, W_None));
+     (2#000# => ("test            ", C_Ib, C_Iz, Extra_None),
+      2#010# => ("not             ", C_None, C_None, Extra_None),
+      2#011# => ("neg             ", C_None, C_None, Extra_None),
+      2#100# => ("mul             ", C_Reg_Al, C_Reg_Ax, Extra_None),
+      2#101# => ("imul            ", C_Reg_Al, C_Reg_Ax, Extra_None),
+      2#110# => ("div             ", C_Reg_Al, C_Reg_Ax, Extra_None),
+      2#111# => ("idiv            ", C_Reg_Al, C_Reg_Ax, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
 
    --  The group 4 is used for the first opcode byte 16#fe#
 
    Insn_Desc_G4 : constant Group_Desc_Array_Type :=
-     (2#000# => ("inc             ", C_Eb, C_None, W_None),
-      2#001# => ("dec             ", C_Eb, C_None, W_None),
-      others => ("                ", C_None, C_None, W_None));
+     (2#000# => ("inc             ", C_Eb, C_None, Extra_None),
+      2#001# => ("dec             ", C_Eb, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
 
    --  The group 5 is used for the first opcode byte 16#ff#
 
    Insn_Desc_G5 : constant Group_Desc_Array_Type :=
-     (2#000# => ("inc             ", C_Ev, C_None, W_None),
-      2#001# => ("dec             ", C_Ev, C_None, W_None),
-      2#010# => ("call            ", C_Ev, C_None, W_None),
-      2#011# => ("callf           ", C_Ep, C_None, W_None),
-      2#100# => ("jmp             ", C_Ev, C_None, W_None),
-      2#101# => ("jmpf            ", C_Ep, C_None, W_None),
-      2#110# => ("push            ", C_Ev, C_None, W_None),
-      2#111# => ("                ", C_None, C_None, W_None));
+     (2#000# => ("inc             ", C_Ev, C_None, Extra_None),
+      2#001# => ("dec             ", C_Ev, C_None, Extra_None),
+      2#010# => ("call            ", C_Ev, C_None, Extra_None),
+      2#011# => ("callf           ", C_Ep, C_None, Extra_None),
+      2#100# => ("jmp             ", C_Ev, C_None, Extra_None),
+      2#101# => ("jmpf            ", C_Ep, C_None, Extra_None),
+      2#110# => ("push            ", C_Ev, C_None, Extra_None),
+      2#111# => ("                ", C_None, C_None, Extra_None));
 
    --  The group 6 is used for the second opcode byte 16#00#
 
    Insn_Desc_G6 : constant Group_Desc_Array_Type :=
-     (2#000# => ("sldt            ", C_Ew, C_None, W_None),
-      2#001# => ("str             ", C_Ew, C_None, W_None),
-      2#010# => ("lldt            ", C_Ew, C_None, W_None),
-      2#011# => ("ltr             ", C_Ew, C_None, W_None),
-      2#100# => ("verr            ", C_Ew, C_None, W_None),
-      2#101# => ("verw            ", C_Ew, C_None, W_None),
-      2#110# => ("                ", C_None, C_None, W_None),
-      2#111# => ("                ", C_None, C_None, W_None));
+     (2#000# => ("sldt            ", C_Ew, C_None, Extra_None),
+      2#001# => ("str             ", C_Ew, C_None, Extra_None),
+      2#010# => ("lldt            ", C_Ew, C_None, Extra_None),
+      2#011# => ("ltr             ", C_Ew, C_None, Extra_None),
+      2#100# => ("verr            ", C_Ew, C_None, Extra_None),
+      2#101# => ("verw            ", C_Ew, C_None, Extra_None),
+      2#110# => ("                ", C_None, C_None, Extra_None),
+      2#111# => ("                ", C_None, C_None, Extra_None));
 
    --  The group 7 is used for the second opcode byte 16#01#
 
    Insn_Desc_G7 : constant Group_Desc_Array_Type :=
-     (2#000# => ("sgdt            ", C_Ms, C_None, W_None),
-      2#001# => ("sidt            ", C_Ms, C_None, W_None),
-      2#010# => ("lgdt            ", C_Ms, C_None, W_None),
-      2#011# => ("lidt            ", C_Ms, C_None, W_None),
-      2#100# => ("smsw            ", C_Ew, C_None, W_None),
-      2#101# => ("                ", C_None, C_None, W_None),
-      2#110# => ("lmsw            ", C_Ew, C_None, W_None),
-      2#111# => ("invlpg          ", C_Mb, C_None, W_None));
+     (2#000# => ("sgdt            ", C_Ms, C_None, Extra_None),
+      2#001# => ("sidt            ", C_Ms, C_None, Extra_None),
+      2#010# => ("lgdt            ", C_Ms, C_None, Extra_None),
+      2#011# => ("lidt            ", C_Ms, C_None, Extra_None),
+      2#100# => ("smsw            ", C_Ew, C_None, Extra_None),
+      2#101# => ("                ", C_None, C_None, Extra_None),
+      2#110# => ("lmsw            ", C_Ew, C_None, Extra_None),
+      2#111# => ("invlpg          ", C_Mb, C_None, Extra_None));
 
    --  Two-levels lookup table for escape to coprocessor instruction set, when
    --  the ModR/M byte is inside the range from 16#00# to 16#bf# (included). It
@@ -1113,70 +1114,70 @@ package body Disa_X86 is
    Insn_Desc_Esc_Before_Bf : constant Esc_Inside_Desc_Array_Type :=
      (
       --  D8: all slots are reserved
-      (others => ("                ", C_None, C_None, W_None)),
+      (others => ("                ", C_None, C_None, Extra_None)),
       --  D9
-      (2#000# => ("fld             ", C_Mfs, C_None, W_None),
-       2#001# => ("                ", C_None, C_None, W_None),
-       2#010# => ("fst             ", C_Mfs, C_None, W_None),
-       2#011# => ("fstp            ", C_Mfs, C_None, W_None),
-       2#100# => ("fldenv          ", C_M, C_None, W_None),
-       2#101# => ("fldcw           ", C_Mfs, C_None, W_None),
-       2#110# => ("fstenv          ", C_Mfs, C_None, W_None),
-       2#111# => ("fstcw           ", C_Mfs, C_None, W_None)),
+      (2#000# => ("fld             ", C_Mfs, C_None, Extra_None),
+       2#001# => ("                ", C_None, C_None, Extra_None),
+       2#010# => ("fst             ", C_Mfs, C_None, Extra_None),
+       2#011# => ("fstp            ", C_Mfs, C_None, Extra_None),
+       2#100# => ("fldenv          ", C_M, C_None, Extra_None),
+       2#101# => ("fldcw           ", C_Mfs, C_None, Extra_None),
+       2#110# => ("fstenv          ", C_Mfs, C_None, Extra_None),
+       2#111# => ("fstcw           ", C_Mfs, C_None, Extra_None)),
       --  DA
-      (2#000# => ("fiadd           ", C_Md, C_None, W_None),
-       2#001# => ("fimul           ", C_Md, C_None, W_None),
-       2#010# => ("ficom           ", C_Md, C_None, W_None),
-       2#011# => ("ficomp          ", C_Md, C_None, W_None),
-       2#100# => ("fisub           ", C_Md, C_None, W_None),
-       2#101# => ("fisubr          ", C_Md, C_None, W_None),
-       2#110# => ("fidiv           ", C_Md, C_None, W_None),
-       2#111# => ("fidivr          ", C_Md, C_None, W_None)),
+      (2#000# => ("fiadd           ", C_Md, C_None, Extra_None),
+       2#001# => ("fimul           ", C_Md, C_None, Extra_None),
+       2#010# => ("ficom           ", C_Md, C_None, Extra_None),
+       2#011# => ("ficomp          ", C_Md, C_None, Extra_None),
+       2#100# => ("fisub           ", C_Md, C_None, Extra_None),
+       2#101# => ("fisubr          ", C_Md, C_None, Extra_None),
+       2#110# => ("fidiv           ", C_Md, C_None, Extra_None),
+       2#111# => ("fidivr          ", C_Md, C_None, Extra_None)),
       --  DB
-      (2#000# => ("fild            ", C_Md, C_None, W_None),
-       2#001# => ("fisttp          ", C_Md, C_None, W_None),
-       2#010# => ("fist            ", C_Md, C_None, W_None),
-       2#011# => ("fistp           ", C_Md, C_None, W_None),
-       2#100# => ("                ", C_None, C_None, W_None),
-       2#101# => ("fld             ", C_Mfe, C_None, W_None),
-       2#110# => ("                ", C_None, C_None, W_None),
-       2#111# => ("fstp            ", C_Mfe, C_None, W_None)),
+      (2#000# => ("fild            ", C_Md, C_None, Extra_None),
+       2#001# => ("fisttp          ", C_Md, C_None, Extra_None),
+       2#010# => ("fist            ", C_Md, C_None, Extra_None),
+       2#011# => ("fistp           ", C_Md, C_None, Extra_None),
+       2#100# => ("                ", C_None, C_None, Extra_None),
+       2#101# => ("fld             ", C_Mfe, C_None, Extra_None),
+       2#110# => ("                ", C_None, C_None, Extra_None),
+       2#111# => ("fstp            ", C_Mfe, C_None, Extra_None)),
       --  DC
-      (2#000# => ("fadd            ", C_Mfd, C_None, W_None),
-       2#001# => ("fmul            ", C_Mfd, C_None, W_None),
-       2#010# => ("fcom            ", C_Mfd, C_None, W_None),
-       2#011# => ("fcomp           ", C_Mfd, C_None, W_None),
-       2#100# => ("fsub            ", C_Mfd, C_None, W_None),
-       2#101# => ("fsubr           ", C_Mfd, C_None, W_None),
-       2#110# => ("fdiv            ", C_Mfd, C_None, W_None),
-       2#111# => ("fdivr           ", C_Mfd, C_None, W_None)),
+      (2#000# => ("fadd            ", C_Mfd, C_None, Extra_None),
+       2#001# => ("fmul            ", C_Mfd, C_None, Extra_None),
+       2#010# => ("fcom            ", C_Mfd, C_None, Extra_None),
+       2#011# => ("fcomp           ", C_Mfd, C_None, Extra_None),
+       2#100# => ("fsub            ", C_Mfd, C_None, Extra_None),
+       2#101# => ("fsubr           ", C_Mfd, C_None, Extra_None),
+       2#110# => ("fdiv            ", C_Mfd, C_None, Extra_None),
+       2#111# => ("fdivr           ", C_Mfd, C_None, Extra_None)),
       --  DD
-      (2#000# => ("fld             ", C_Mfd, C_None, W_None),
-       2#001# => ("fisttp          ", C_Mq, C_None, W_None),
-       2#010# => ("fst             ", C_Mfd, C_None, W_None),
-       2#011# => ("fstp            ", C_Mfd, C_None, W_None),
-       2#100# => ("frstor          ", C_M, C_None, W_None),
-       2#101# => ("                ", C_None, C_None, W_None),
-       2#110# => ("fsave           ", C_M, C_None, W_None),
-       2#111# => ("fstsw           ", C_M, C_None, W_None)),
+      (2#000# => ("fld             ", C_Mfd, C_None, Extra_None),
+       2#001# => ("fisttp          ", C_Mq, C_None, Extra_None),
+       2#010# => ("fst             ", C_Mfd, C_None, Extra_None),
+       2#011# => ("fstp            ", C_Mfd, C_None, Extra_None),
+       2#100# => ("frstor          ", C_M, C_None, Extra_None),
+       2#101# => ("                ", C_None, C_None, Extra_None),
+       2#110# => ("fsave           ", C_M, C_None, Extra_None),
+       2#111# => ("fstsw           ", C_M, C_None, Extra_None)),
       --  DE
-      (2#000# => ("fiadd           ", C_Mw, C_None, W_None),
-       2#001# => ("fimul           ", C_Mw, C_None, W_None),
-       2#010# => ("ficom           ", C_Mw, C_None, W_None),
-       2#011# => ("ficomp          ", C_Mw, C_None, W_None),
-       2#100# => ("fisub           ", C_Mw, C_None, W_None),
-       2#101# => ("fisubr          ", C_Mw, C_None, W_None),
-       2#110# => ("fidiv           ", C_Mw, C_None, W_None),
-       2#111# => ("fidivr          ", C_Mw, C_None, W_None)),
+      (2#000# => ("fiadd           ", C_Mw, C_None, Extra_None),
+       2#001# => ("fimul           ", C_Mw, C_None, Extra_None),
+       2#010# => ("ficom           ", C_Mw, C_None, Extra_None),
+       2#011# => ("ficomp          ", C_Mw, C_None, Extra_None),
+       2#100# => ("fisub           ", C_Mw, C_None, Extra_None),
+       2#101# => ("fisubr          ", C_Mw, C_None, Extra_None),
+       2#110# => ("fidiv           ", C_Mw, C_None, Extra_None),
+       2#111# => ("fidivr          ", C_Mw, C_None, Extra_None)),
       --  DF
-      (2#000# => ("fild            ", C_Md, C_None, W_None),
-       2#001# => ("fisttp          ", C_Md, C_None, W_None),
-       2#010# => ("fist            ", C_Md, C_None, W_None),
-       2#011# => ("fistp           ", C_Md, C_None, W_None),
-       2#100# => ("fbld            ", C_M, C_None, W_None),
-       2#101# => ("fild            ", C_Mq, C_None, W_None),
-       2#110# => ("fbstp           ", C_M, C_None, W_None),
-       2#111# => ("fistp           ", C_Mq, C_None, W_None)));
+      (2#000# => ("fild            ", C_Md, C_None, Extra_None),
+       2#001# => ("fisttp          ", C_Md, C_None, Extra_None),
+       2#010# => ("fist            ", C_Md, C_None, Extra_None),
+       2#011# => ("fistp           ", C_Md, C_None, Extra_None),
+       2#100# => ("fbld            ", C_M, C_None, Extra_None),
+       2#101# => ("fild            ", C_Mq, C_None, Extra_None),
+       2#110# => ("fbstp           ", C_M, C_None, Extra_None),
+       2#111# => ("fistp           ", C_Mq, C_None, Extra_None)));
 
    --  Two-levels lookup table for escape to coprocessor instruction set, when
    --  the ModR/M byte is outside the range from 16#00# to 16#bf# (included).
@@ -1190,93 +1191,93 @@ package body Disa_X86 is
    Insn_Desc_Esc_After_Bf : constant Esc_Outside_Desc_Array_Type :=
      (
       --  D8
-      (16#c0# .. 16#c7# => ("fadd            ", C_H0, C_H, W_None),
-       16#c8# .. 16#cf# => ("fmul            ", C_H0, C_H, W_None),
-       16#d0# .. 16#d7# => ("fcom            ", C_H0, C_H, W_None),
-       16#d8# .. 16#df# => ("fcomp           ", C_H0, C_H, W_None),
-       16#e0# .. 16#e7# => ("fsub            ", C_H0, C_H, W_None),
-       16#e8# .. 16#ef# => ("fsubr           ", C_H0, C_H, W_None),
-       16#f0# .. 16#f7# => ("fdiv            ", C_H0, C_H, W_None),
-       16#f8# .. 16#ff# => ("fdivr           ", C_H0, C_H, W_None)),
+      (16#c0# .. 16#c7# => ("fadd            ", C_H0, C_H, Extra_None),
+       16#c8# .. 16#cf# => ("fmul            ", C_H0, C_H, Extra_None),
+       16#d0# .. 16#d7# => ("fcom            ", C_H0, C_H, Extra_None),
+       16#d8# .. 16#df# => ("fcomp           ", C_H0, C_H, Extra_None),
+       16#e0# .. 16#e7# => ("fsub            ", C_H0, C_H, Extra_None),
+       16#e8# .. 16#ef# => ("fsubr           ", C_H0, C_H, Extra_None),
+       16#f0# .. 16#f7# => ("fdiv            ", C_H0, C_H, Extra_None),
+       16#f8# .. 16#ff# => ("fdivr           ", C_H0, C_H, Extra_None)),
       --  D9
-      (16#c0# .. 16#c7# => ("fld             ", C_H0, C_H, W_None),
-       16#c8# .. 16#cf# => ("fxch            ", C_H0, C_H, W_None),
-       16#d0#           => ("fnop            ", C_None, C_None, W_None),
+      (16#c0# .. 16#c7# => ("fld             ", C_H0, C_H, Extra_None),
+       16#c8# .. 16#cf# => ("fxch            ", C_H0, C_H, Extra_None),
+       16#d0#           => ("fnop            ", C_None, C_None, Extra_None),
 
-       16#e0#           => ("fchs            ", C_None, C_None, W_None),
-       16#e1#           => ("fabs            ", C_None, C_None, W_None),
-       16#e4#           => ("ftst            ", C_None, C_None, W_None),
-       16#e5#           => ("fxam            ", C_None, C_None, W_None),
-       16#e8#           => ("fld1            ", C_None, C_None, W_None),
-       16#e9#           => ("fldl2t          ", C_None, C_None, W_None),
-       16#ea#           => ("fldl2e          ", C_None, C_None, W_None),
-       16#eb#           => ("fldpi           ", C_None, C_None, W_None),
-       16#ec#           => ("fldlg2          ", C_None, C_None, W_None),
-       16#ed#           => ("fldln2          ", C_None, C_None, W_None),
-       16#ee#           => ("fldlz           ", C_None, C_None, W_None),
+       16#e0#           => ("fchs            ", C_None, C_None, Extra_None),
+       16#e1#           => ("fabs            ", C_None, C_None, Extra_None),
+       16#e4#           => ("ftst            ", C_None, C_None, Extra_None),
+       16#e5#           => ("fxam            ", C_None, C_None, Extra_None),
+       16#e8#           => ("fld1            ", C_None, C_None, Extra_None),
+       16#e9#           => ("fldl2t          ", C_None, C_None, Extra_None),
+       16#ea#           => ("fldl2e          ", C_None, C_None, Extra_None),
+       16#eb#           => ("fldpi           ", C_None, C_None, Extra_None),
+       16#ec#           => ("fldlg2          ", C_None, C_None, Extra_None),
+       16#ed#           => ("fldln2          ", C_None, C_None, Extra_None),
+       16#ee#           => ("fldlz           ", C_None, C_None, Extra_None),
 
-       16#f0#           => ("f2xm1           ", C_None, C_None, W_None),
-       16#f1#           => ("fyl2x           ", C_None, C_None, W_None),
-       16#f2#           => ("fptan           ", C_None, C_None, W_None),
-       16#f3#           => ("fpatan          ", C_None, C_None, W_None),
-       16#f4#           => ("fpxtract        ", C_None, C_None, W_None),
-       16#f5#           => ("fprem1          ", C_None, C_None, W_None),
-       16#f6#           => ("fdecstp         ", C_None, C_None, W_None),
-       16#f7#           => ("fincstp         ", C_None, C_None, W_None),
-       16#f8#           => ("fprem           ", C_None, C_None, W_None),
-       16#f9#           => ("fyl2xp1         ", C_None, C_None, W_None),
-       16#fa#           => ("fsqrt           ", C_None, C_None, W_None),
-       16#fb#           => ("fsincos         ", C_None, C_None, W_None),
-       16#fc#           => ("frndint         ", C_None, C_None, W_None),
-       16#fd#           => ("fscale          ", C_None, C_None, W_None),
-       16#fe#           => ("fsin            ", C_None, C_None, W_None),
-       16#ff#           => ("fcos            ", C_None, C_None, W_None),
+       16#f0#           => ("f2xm1           ", C_None, C_None, Extra_None),
+       16#f1#           => ("fyl2x           ", C_None, C_None, Extra_None),
+       16#f2#           => ("fptan           ", C_None, C_None, Extra_None),
+       16#f3#           => ("fpatan          ", C_None, C_None, Extra_None),
+       16#f4#           => ("fpxtract        ", C_None, C_None, Extra_None),
+       16#f5#           => ("fprem1          ", C_None, C_None, Extra_None),
+       16#f6#           => ("fdecstp         ", C_None, C_None, Extra_None),
+       16#f7#           => ("fincstp         ", C_None, C_None, Extra_None),
+       16#f8#           => ("fprem           ", C_None, C_None, Extra_None),
+       16#f9#           => ("fyl2xp1         ", C_None, C_None, Extra_None),
+       16#fa#           => ("fsqrt           ", C_None, C_None, Extra_None),
+       16#fb#           => ("fsincos         ", C_None, C_None, Extra_None),
+       16#fc#           => ("frndint         ", C_None, C_None, Extra_None),
+       16#fd#           => ("fscale          ", C_None, C_None, Extra_None),
+       16#fe#           => ("fsin            ", C_None, C_None, Extra_None),
+       16#ff#           => ("fcos            ", C_None, C_None, Extra_None),
 
-       others           => ("                ", C_None, C_None, W_None)),
+       others           => ("                ", C_None, C_None, Extra_None)),
       --  DA
-      (16#c0# .. 16#c7# => ("fcmovb          ", C_H0, C_H, W_None),
-       16#c8# .. 16#cf# => ("fcmove          ", C_H0, C_H, W_None),
-       16#d0# .. 16#d7# => ("fcmovbe         ", C_H0, C_H, W_None),
-       16#d8# .. 16#df# => ("fcmovu          ", C_H0, C_H, W_None),
-       16#e9#           => ("fucompp         ", C_None, C_None, W_None),
-       others           => ("                ", C_None, C_None, W_None)),
+      (16#c0# .. 16#c7# => ("fcmovb          ", C_H0, C_H, Extra_None),
+       16#c8# .. 16#cf# => ("fcmove          ", C_H0, C_H, Extra_None),
+       16#d0# .. 16#d7# => ("fcmovbe         ", C_H0, C_H, Extra_None),
+       16#d8# .. 16#df# => ("fcmovu          ", C_H0, C_H, Extra_None),
+       16#e9#           => ("fucompp         ", C_None, C_None, Extra_None),
+       others           => ("                ", C_None, C_None, Extra_None)),
       --  DB
-      (16#c0# .. 16#c7# => ("fcmovnb         ", C_H0, C_H, W_None),
-       16#c8# .. 16#cf# => ("fcmovne         ", C_H0, C_H, W_None),
-       16#d0# .. 16#d7# => ("fcmovnbe        ", C_H0, C_H, W_None),
-       16#d8# .. 16#df# => ("fcmovnu         ", C_H0, C_H, W_None),
-       16#e8# .. 16#ef# => ("fucomi          ", C_H0, C_H, W_None),
-       16#f0# .. 16#f7# => ("fcomi           ", C_H0, C_H, W_None),
-       others           => ("                ", C_None, C_None, W_None)),
+      (16#c0# .. 16#c7# => ("fcmovnb         ", C_H0, C_H, Extra_None),
+       16#c8# .. 16#cf# => ("fcmovne         ", C_H0, C_H, Extra_None),
+       16#d0# .. 16#d7# => ("fcmovnbe        ", C_H0, C_H, Extra_None),
+       16#d8# .. 16#df# => ("fcmovnu         ", C_H0, C_H, Extra_None),
+       16#e8# .. 16#ef# => ("fucomi          ", C_H0, C_H, Extra_None),
+       16#f0# .. 16#f7# => ("fcomi           ", C_H0, C_H, Extra_None),
+       others           => ("                ", C_None, C_None, Extra_None)),
       --  DC
-      (16#c0# .. 16#c7# => ("fadd            ", C_H0, C_H, W_None),
-       16#c8# .. 16#cf# => ("fmul            ", C_H0, C_H, W_None),
-       16#e0# .. 16#e7# => ("fsubr           ", C_H0, C_H, W_None),
-       16#e8# .. 16#ef# => ("fsub            ", C_H0, C_H, W_None),
-       16#f0# .. 16#f7# => ("fdivr           ", C_H0, C_H, W_None),
-       16#f8# .. 16#ff# => ("fdiv            ", C_H0, C_H, W_None),
-       others           => ("                ", C_None, C_None, W_None)),
+      (16#c0# .. 16#c7# => ("fadd            ", C_H0, C_H, Extra_None),
+       16#c8# .. 16#cf# => ("fmul            ", C_H0, C_H, Extra_None),
+       16#e0# .. 16#e7# => ("fsubr           ", C_H0, C_H, Extra_None),
+       16#e8# .. 16#ef# => ("fsub            ", C_H0, C_H, Extra_None),
+       16#f0# .. 16#f7# => ("fdivr           ", C_H0, C_H, Extra_None),
+       16#f8# .. 16#ff# => ("fdiv            ", C_H0, C_H, Extra_None),
+       others           => ("                ", C_None, C_None, Extra_None)),
       --  DD
-      (16#c0# .. 16#c7# => ("ffree           ", C_H, C_None, W_None),
-       16#d0# .. 16#d7# => ("fst             ", C_H, C_None, W_None),
-       16#d8# .. 16#df# => ("fstp            ", C_H, C_None, W_None),
-       16#e0# .. 16#e7# => ("fucom           ", C_H, C_H0, W_None),
-       16#e8# .. 16#ef# => ("fucomp          ", C_H, C_None, W_None),
-       others           => ("                ", C_None, C_None, W_None)),
+      (16#c0# .. 16#c7# => ("ffree           ", C_H, C_None, Extra_None),
+       16#d0# .. 16#d7# => ("fst             ", C_H, C_None, Extra_None),
+       16#d8# .. 16#df# => ("fstp            ", C_H, C_None, Extra_None),
+       16#e0# .. 16#e7# => ("fucom           ", C_H, C_H0, Extra_None),
+       16#e8# .. 16#ef# => ("fucomp          ", C_H, C_None, Extra_None),
+       others           => ("                ", C_None, C_None, Extra_None)),
       --  DE
-      (16#c0# .. 16#c7# => ("faddp           ", C_H0, C_H, W_None),
-       16#c8# .. 16#cf# => ("fmulp           ", C_H0, C_H, W_None),
-       16#d9#           => ("fcompp          ", C_None, C_None, W_None),
-       16#e0# .. 16#e7# => ("fsubrp          ", C_H0, C_H, W_None),
-       16#e8# .. 16#ef# => ("fsubp           ", C_H0, C_H, W_None),
-       16#f0# .. 16#f7# => ("fdivrp          ", C_H0, C_H, W_None),
-       16#f8# .. 16#ff# => ("fdivp           ", C_H0, C_H, W_None),
-       others           => ("                ", C_None, C_None, W_None)),
+      (16#c0# .. 16#c7# => ("faddp           ", C_H0, C_H, Extra_None),
+       16#c8# .. 16#cf# => ("fmulp           ", C_H0, C_H, Extra_None),
+       16#d9#           => ("fcompp          ", C_None, C_None, Extra_None),
+       16#e0# .. 16#e7# => ("fsubrp          ", C_H0, C_H, Extra_None),
+       16#e8# .. 16#ef# => ("fsubp           ", C_H0, C_H, Extra_None),
+       16#f0# .. 16#f7# => ("fdivrp          ", C_H0, C_H, Extra_None),
+       16#f8# .. 16#ff# => ("fdivp           ", C_H0, C_H, Extra_None),
+       others           => ("                ", C_None, C_None, Extra_None)),
       --  DF
-      (16#e0#           => ("fstsw           ", C_Reg_Ax, C_None, W_None),
-       16#e8# .. 16#ef# => ("fucomip         ", C_H0, C_H, W_None),
-       16#f0# .. 16#f7# => ("fcompip         ", C_H0, C_H, W_None),
-       others           => ("                ", C_None, C_None, W_None)));
+      (16#e0#           => ("fstsw           ", C_Reg_Ax, C_None, Extra_None),
+       16#e8# .. 16#ef# => ("fucomip         ", C_H0, C_H, Extra_None),
+       16#f0# .. 16#f7# => ("fcompip         ", C_H0, C_H, Extra_None),
+       others           => ("                ", C_None, C_None, Extra_None)));
 
    --  Standard widths of operations
 
@@ -2061,10 +2062,6 @@ package body Disa_X86 is
                Decode_Imm (Off_Imm, W_16);
                Add_Comma;
                Decode_Imm (Off2, W_32);  -- FIXME
-            when C_Gv_Cl =>
-               Add_String ("%cl");
-               Add_Comma;
-               Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gv =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gb =>
@@ -2074,10 +2071,6 @@ package body Disa_X86 is
             when C_Ed | C_Ew =>
                Decode_Modrm_Mem (Off_Modrm, R_32);
             when C_Ep =>
-               Decode_Modrm_Mem (Off_Modrm, R);
-            when C_Ev_Iz =>
-               Decode_Imm (Off_Imm, To_Z (W));
-               Add_Comma;
                Decode_Modrm_Mem (Off_Modrm, R);
             when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mq
                | C_Mdq | C_Ms =>
@@ -2177,13 +2170,13 @@ package body Disa_X86 is
               | C_Reg_Ss
               | C_Reg_Cs =>
                return;
-            when C_Gv | C_Gv_Cl | C_Gb =>
+            when C_Gv | C_Gb =>
                return;
             when C_Ib | C_Jb =>
                Off_Imm := Off_Imm + 1;
             when C_Iw =>
                Off_Imm := Off_Imm + 2;
-            when C_Iz | C_Ev_Iz | C_Jz =>
+            when C_Iz | C_Jz =>
                Off_Imm := Off_Imm + Width_Len (To_Z (W));
             when C_Iv =>
                Off_Imm := Off_Imm + Width_Len (W);
@@ -2230,7 +2223,7 @@ package body Disa_X86 is
       Name     : String16;
       W        : Width_Type := W_32;
       Src, Dst : Code_Type;
-      Imm      : Width_Type;
+      Extra    : Extra_Operand_Type;
 
    --  Start of processing for Disassemble_Insn
 
@@ -2313,10 +2306,10 @@ package body Disa_X86 is
 
       case Desc.Name (1) is
          when ' ' =>
-            Name := "invalid*        ";
-            Src  := C_None;
-            Dst  := C_None;
-            Imm  := W_None;
+            Name  := "invalid*        ";
+            Src   := C_None;
+            Dst   := C_None;
+            Extra := Extra_None;
 
          when '1' =>
             B1 := Mem (Off);
@@ -2324,7 +2317,7 @@ package body Disa_X86 is
             Name (4)      := ' ';
             Src           := Desc.Src;
             Dst           := Desc.Dst;
-            Imm           := Desc.Imm;
+            Extra         := Desc.Extra;
 
          when '2' =>
             B1 := Mem (Off);
@@ -2332,14 +2325,14 @@ package body Disa_X86 is
             Name (4)      := ' ';
             Src           := Desc.Src;
             Dst           := Desc.Dst;
-            Imm           := Desc.Imm;
+            Extra         := Desc.Extra;
 
          when '3' =>
-            B1   := Mem (Off);
-            Dst  := Desc.Dst;
-            Imm  := Desc.Imm;
-            Desc := Insn_Desc_G3 (Ext_543 (B1));
-            Name := Desc.Name;
+            B1    := Mem (Off);
+            Dst   := Desc.Dst;
+            Extra := Desc.Extra;
+            Desc  := Insn_Desc_G3 (Ext_543 (B1));
+            Name  := Desc.Name;
 
             if B = 16#f6# then
                Src := Desc.Dst;
@@ -2348,36 +2341,36 @@ package body Disa_X86 is
             end if;
 
          when '4' =>
-            B1   := Mem (Off);
-            Desc := Insn_Desc_G4 (Ext_543 (B1));
-            Name := Desc.Name;
-            Src  := Desc.Src;
-            Dst  := Desc.Dst;
-            Imm  := Desc.Imm;
+            B1    := Mem (Off);
+            Desc  := Insn_Desc_G4 (Ext_543 (B1));
+            Name  := Desc.Name;
+            Src   := Desc.Src;
+            Dst   := Desc.Dst;
+            Extra := Desc.Extra;
 
          when '5' =>
-            B1   := Mem (Off);
-            Desc := Insn_Desc_G5 (Ext_543 (B1));
-            Name := Desc.Name;
-            Src  := Desc.Src;
-            Dst  := Desc.Dst;
-            Imm  := Desc.Imm;
+            B1    := Mem (Off);
+            Desc  := Insn_Desc_G5 (Ext_543 (B1));
+            Name  := Desc.Name;
+            Src   := Desc.Src;
+            Dst   := Desc.Dst;
+            Extra := Desc.Extra;
 
          when '6' =>
-            B1   := Mem (Off);
-            Desc := Insn_Desc_G6 (Ext_543 (B1));
-            Name := Desc.Name;
-            Src  := Desc.Src;
-            Dst  := Desc.Dst;
-            Imm  := Desc.Imm;
+            B1    := Mem (Off);
+            Desc  := Insn_Desc_G6 (Ext_543 (B1));
+            Name  := Desc.Name;
+            Src   := Desc.Src;
+            Dst   := Desc.Dst;
+            Extra := Desc.Extra;
 
          when '7' =>
             B1 := Mem (Off);
-            Desc := Insn_Desc_G7 (Ext_543 (B1));
-            Name := Desc.Name;
-            Src  := Desc.Src;
-            Dst  := Desc.Dst;
-            Imm  := Desc.Imm;
+            Desc  := Insn_Desc_G7 (Ext_543 (B1));
+            Name  := Desc.Name;
+            Src   := Desc.Src;
+            Dst   := Desc.Dst;
+            Extra := Desc.Extra;
 
          when 'E' =>
             B1 := Mem (Off);
@@ -2390,16 +2383,16 @@ package body Disa_X86 is
                          (Bit_Field_3 (B and 2#111#),
                           Esc_Outside_Modrm_Type (B1));
             end if;
-            Name := Desc.Name;
-            Dst  := Desc.Dst;
-            Src  := Desc.Src;
-            Imm  := Desc.Imm;
+            Name  := Desc.Name;
+            Dst   := Desc.Dst;
+            Src   := Desc.Src;
+            Extra := Desc.Extra;
 
          when 'a' .. 'z' =>
-            Name := Desc.Name;
-            Src  := Desc.Src;
-            Dst  := Desc.Dst;
-            Imm  := Desc.Imm;
+            Name  := Desc.Name;
+            Src   := Desc.Src;
+            Dst   := Desc.Dst;
+            Extra := Desc.Extra;
 
          when others =>
             raise Program_Error with "disa_x86 unhandled name " & Desc.Name;
@@ -2422,15 +2415,18 @@ package body Disa_X86 is
          Add_Name (Name);
          Name_Align (Line'First);
 
-         case Imm is
-            when W_None =>
+         case Extra is
+            when Extra_None =>
                null;
-            when W_8 =>
+            when Extra_8 =>
                Add_Operand (C_Ib, Off_Modrm, Off_Imm, W_8);
                Add_Comma;
-            when others =>
-               raise Program_Error
-                  with "disa_x86 unhandled third operand type";
+            when Extra_Iz =>
+               Add_Operand (C_Iz, Off_Modrm, Off_Imm, To_Z (W));
+               Add_Comma;
+            when Extra_Cl =>
+               Add_Reg (2#001#, R_8);
+               Add_Comma;
          end case;
          if Src /= C_None then
             Add_Operand (Src, Off_Modrm, Off_Imm, W);
@@ -2443,14 +2439,13 @@ package body Disa_X86 is
          --  Otherwise, just put the offset of the first byte after the
          --  instruction into "Off_Imm".
 
-         case Imm is
-            when W_None =>
+         case Extra is
+            when Extra_None | Extra_Cl =>
                null;
-            when W_8 =>
+            when Extra_8 =>
                Update_Length (C_Ib, Off_Imm, W_8);
-            when others =>
-               raise Program_Error
-                  with "disa_x86 unhandled third operand type";
+            when Extra_Iz =>
+               Update_Length (C_Iz, Off_Imm, To_Z (W));
          end case;
          if Src /= C_None then
             Update_Length (Src, Off_Imm, W);
