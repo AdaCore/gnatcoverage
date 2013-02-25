@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Elf_Files;  use Elf_Files;
-with Elf_Arch32; use Elf_Arch32;
+with Elf_Arch;   use Elf_Arch;
 with Elf_Common; use Elf_Common;
 with Interfaces; use Interfaces;
 with Swaps;      use Swaps;

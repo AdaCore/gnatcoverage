@@ -9,6 +9,8 @@ MAKEINFO=makeinfo
 exeext=
 .PHONY: force
 
+ARCH=32
+
 # Files for libexec/gnatcoverage include binary executables
 # (which need to be built first), and a python script.
 
@@ -27,7 +29,7 @@ DOCFORMATS=pdf html
 all: $(EXENAMES)
 
 $(EXENAMES): force
-	$(GNATMAKE) -Pnexus $(EXTRA_ADAFLAGS) $@
+	$(GNATMAKE) -Pnexus -XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
 
 GNAT_SOURCE_DIR=../gnat_src
 ADA_GEN_SUBDIR=gnat

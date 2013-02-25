@@ -44,7 +44,7 @@ with Isys2nex;  use Isys2nex;
 with Elf_Files;    use Elf_Files;
 with Elf_Common;   use Elf_Common;
 with Elf32;        use Elf32;
-with Elf_Arch32;   use Elf_Arch32;
+with Elf_Arch;     use Elf_Arch;
 with Swaps;        use Swaps;
 with Traces;       use Traces;
 with Qemu_Traces;  use Qemu_Traces;
@@ -71,7 +71,7 @@ procedure Nexus_Trace_Gen is
    Entry_Point      : Elf32_Addr;
    Text_Shdr_Idx    : Elf_Half;
    Text_Shdr_Ptr    : Elf_Shdr_Acc;
-   Text_Section_Len : Elf_Size;
+   Text_Section_Len : Elf_Addr;
    Text_First_Addr  : Unsigned_32;
 
    type Insns_Array is array (Positive range <>) of Unsigned_32;

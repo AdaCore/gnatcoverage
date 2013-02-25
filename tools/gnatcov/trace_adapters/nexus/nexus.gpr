@@ -1,5 +1,6 @@
+with "../../gnatcov";
+
 project Nexus is
-   for Source_Dirs use (".", "../..");
 
    for Main use ("nexus_trace_gen.adb", "isys_drv.adb");
 
