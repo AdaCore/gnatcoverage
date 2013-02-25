@@ -73,7 +73,7 @@ package Elf64 is
       St_Other : Elf64_Uchar;
       St_Shndx : Elf64_Half;
       St_Value : Elf64_Addr;
-      St_Size  : Elf64_Word;
+      St_Size  : Elf64_Xword;
    end record;
    Elf64_Sym_Size : constant Natural := Elf64_Sym'Size / System.Storage_Unit;
 
