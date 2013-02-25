@@ -2088,14 +2088,16 @@ package body Disa_X86 is
                Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gb =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R_8);
+            when C_Gz =>
+               Decode_Modrm_Reg (Mem (Off_Modrm), To_General (To_Z (W)));
             when C_Ev =>
                Decode_Modrm_Mem (Off_Modrm, R);
             when C_Ed | C_Ew =>
                Decode_Modrm_Mem (Off_Modrm, R_32);
             when C_Ep =>
                Decode_Modrm_Mem (Off_Modrm, R);
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mq
-               | C_Mdq | C_Ms =>
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mp | C_Mpd | C_Mps
+               | C_Mq | C_Mdq | C_Ms =>
                Decode_Modrm_Mem (Off_Modrm, R_None);
             when C_Eb | C_Mb =>
                Decode_Modrm_Mem (Off_Modrm, R_8);
@@ -2192,7 +2194,7 @@ package body Disa_X86 is
               | C_Reg_Ss
               | C_Reg_Cs =>
                return;
-            when C_Gv | C_Gb =>
+            when C_Gv | C_Gb | C_Gz =>
                return;
             when C_Ib | C_Jb =>
                Off_Imm := Off_Imm + 1;
@@ -2206,8 +2208,8 @@ package body Disa_X86 is
                Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
             when C_Ap =>
                Off_Imm := Off_Imm + 4 + 2; -- FIXME: oper16
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mpd | C_Mps | C_Mdq
-               | C_Mq | C_Ms =>
+            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mp | C_Mpd | C_Mps
+               | C_Mdq | C_Mq | C_Ms =>
                return;
             when C_Eb | C_Ed | C_Ep | C_Ev | C_Ew =>
                return;
