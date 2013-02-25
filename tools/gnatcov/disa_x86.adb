@@ -2239,7 +2239,8 @@ package body Disa_X86 is
       Off_Modrm : Pc_Type;
       Off_Imm   : Pc_Type;
 
-      B, B1 : Byte;
+      B, B1     : Byte;
+      Use_Modrm : Boolean := False;
 
       Desc     : Insn_Desc_Type;
       Name     : String16;
@@ -2400,6 +2401,7 @@ package body Disa_X86 is
 
          when 'E' =>
             B1 := Mem (Off);
+            Use_Modrm := True;
             if Ext_Modrm_Mod (B1) /= 2#11# then
                Desc := Insn_Desc_Esc_Before_Bf
                          (Bit_Field_3 (B and 2#111#),
@@ -2428,7 +2430,7 @@ package body Disa_X86 is
       --  offset.
 
       Off_Modrm := Off;
-      if Src in Modrm_Code or else Dst in Modrm_Code then
+      if Use_Modrm or else Src in Modrm_Code or else Dst in Modrm_Code then
          Off_Imm := Off_Modrm + Decode_Modrm_Len (Off_Modrm);
       else
          Off_Imm := Off_Modrm;
