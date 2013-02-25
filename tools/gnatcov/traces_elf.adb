@@ -854,7 +854,7 @@ package body Traces_Elf is
 
          R := Get_Rela
            (Exec.Exe_File,
-            Relocs (Elf_Addr (Off) * Elf_Addr (Elf_Rela_Size))'Address);
+            Relocs (Elf_Addr (Off))'Address);
          Off := Off + Storage_Offset (Elf_Rela_Size);
 
          if R.R_Offset > Data'Last then
