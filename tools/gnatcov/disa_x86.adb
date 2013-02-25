@@ -2115,7 +2115,7 @@ package body Disa_X86 is
                Decode_Imm (Off_Imm, W_32); --  FIXME: oper16
             when C_Yb =>
                Add_String ("%es:(%edi)");
-            when C_Yv =>
+            when C_Yv | C_Yz =>
                Add_String ("%es:(");
                Add_Reg (7, R);
                Add_Char (')');
@@ -2211,7 +2211,7 @@ package body Disa_X86 is
                return;
             when C_Eb | C_Ed | C_Ep | C_Ev | C_Ew =>
                return;
-            when C_Yb | C_Yv | C_Xv | C_Xb | C_H | C_H0 | C_Cst_1 =>
+            when C_Yb | C_Yv | C_Yz | C_Xv | C_Xb | C_H | C_H0 | C_Cst_1 =>
                return;
             when C_Sw =>
                return;
