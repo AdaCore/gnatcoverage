@@ -1657,7 +1657,7 @@ package body Disa_X86 is
       procedure Name_Align (Orig : Natural) is
       begin
          Add_Char (' ');
-         while Lo - Orig < 16 loop
+         while Lo - Orig < 8 loop
             Add_Char (' ');
          end loop;
       end Name_Align;

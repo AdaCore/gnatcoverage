@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -84,21 +84,30 @@ package body Traces_Disa is
       Insn  : Binary_Content;
       Sym   : Symbolizer'Class)
    is
+      Off : Pc_Type := Addr;
+      Last_Line_Byte : Pc_Type;
    begin
-      Put (Hex_Image (Addr));
-      Put (' ');
-      Disp_State_Char (State);
-      Put (":  ");
-      for I in Insn'Range loop
-         Put (Hex_Image (Insn (I)));
+      while Off <= Insn'Last loop
+         Put ("  ");
+         Put (Hex_Image (Off));
          Put (' ');
+         Disp_State_Char (State);
+         Put (":  ");
+         for I in Off .. (Off + 7) loop
+            Put (Hex_Image (Insn (I)));
+            Put (' ');
+            Last_Line_Byte := I;
+            exit when I >= Insn'Last;
+         end loop;
+         for I in Last_Line_Byte .. (Off + 7) loop
+            Put ("   ");
+         end loop;
+         if Off = Addr then
+            Put (Disassemble (Insn, Addr, Sym));
+         end if;
+         New_Line;
+         Off := Off + 8;
       end loop;
-      for I in Insn'Length .. 4 loop
-         Put ("   ");
-      end loop;
-      Put ("  ");
-      Put (Disassemble (Insn, Addr, Sym));
-      New_Line;
    end Textio_Disassemble_Cb;
 
    -------------------
