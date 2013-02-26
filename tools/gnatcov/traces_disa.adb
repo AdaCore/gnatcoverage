@@ -85,27 +85,43 @@ package body Traces_Disa is
       Sym   : Symbolizer'Class)
    is
       Off : Pc_Type := Addr;
-      Last_Line_Byte : Pc_Type;
+      I : Pc_Type;
    begin
-      while Off <= Insn'Last loop
+
+      while
+         --  Make sure we process each byte of the given instruction.
+         Off <= Insn'Last
+         and then Off >= Addr --  And handle overflow
+      loop
+         --  Each dump line must start with indentation, the memory address
+         --  of the first byte we are dumping and the state char.
          Put ("  ");
          Put (Hex_Image (Off));
          Put (' ');
          Disp_State_Char (State);
          Put (":  ");
-         for I in Off .. (Off + 7) loop
-            Put (Hex_Image (Insn (I)));
+
+         --  There must not be more than 8 bytes on each line, and the
+         --  disassembly must appear on the first line.
+
+         I := 0;
+         while I < 7 and then I < Insn'Length loop
+            Put (Hex_Image (Insn (Off + I)));
             Put (' ');
-            Last_Line_Byte := I;
-            exit when I >= Insn'Last;
+            I := I + 1;
          end loop;
-         for I in Last_Line_Byte .. (Off + 7) loop
+
+         --  Pad "missing" bytes with spaces
+         for P in I .. 8 loop
             Put ("   ");
          end loop;
+
+         --  And display the disassembly only in the first line
          if Off = Addr then
             Put (Disassemble (Insn, Addr, Sym));
          end if;
          New_Line;
+
          Off := Off + 8;
       end loop;
    end Textio_Disassemble_Cb;
