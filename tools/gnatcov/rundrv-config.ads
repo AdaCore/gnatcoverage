@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -159,6 +159,16 @@ private package Rundrv.Config is
                                        new String'("%exe"))
       ),
       (Target => new String'("i686-pc-linux-gnu"),
+       Setup_Command => null,
+       Setup_Options => null,
+       Run_Command => new String'("%valgrind"),
+       Run_Options => new String_List'(new String'("%set_valgrind_env"),
+                                       new String'("--quiet"),
+                                       new String'("--tool=coverage"),
+                                       new String'("--cov-exec-file=%trace"),
+                                       new String'("%exe"))
+      ),
+      (Target => new String'("x86_64-pc-linux-gnu"),
        Setup_Command => null,
        Setup_Options => null,
        Run_Command => new String'("%valgrind"),
