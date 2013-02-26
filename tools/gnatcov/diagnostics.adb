@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Directories;         use Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
 
 with Coverage.Tags; use Coverage.Tags;
@@ -79,7 +80,8 @@ package body Diagnostics is
          use type Pc_Type;
       begin
          if M.PC /= 0 then
-            return " @" & Hex_Image (M.PC);
+            return Ada.Directories.Simple_Name (M.Exe.Get_Filename)
+              & "@" & Hex_Image (M.PC);
          else
             return "";
          end if;
@@ -154,7 +156,12 @@ package body Diagnostics is
       Kind : Report_Kind := Error)
    is
    begin
-      Report (Msg, PC => PC, Sloc => Get_Sloc (Exe.all, PC), Kind => Kind);
+      Report
+        (Msg,
+         Exe  => Exe,
+         PC   => PC,
+         Sloc => Get_Sloc (Exe.all, PC),
+         Kind => Kind);
    end Report;
 
    procedure Report
@@ -187,6 +194,7 @@ package body Diagnostics is
 
    procedure Report
      (Msg  : String;
+      Exe  : Exe_File_Acc    := null;
       PC   : Pc_Type         := No_PC;
       Sloc : Source_Location := No_Location;
       SCO  : SCO_Id          := No_SCO_Id;
@@ -195,6 +203,7 @@ package body Diagnostics is
    is
       M : constant Message :=
             (Kind => Kind,
+             Exe  => Exe,
              PC   => PC,
              Sloc => Sloc,
              SCO  => SCO,

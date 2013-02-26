@@ -1129,8 +1129,7 @@ package body Decision_Map is
          --  disabled in the case of multiple statements occurring on the same
          --  line.
 
-         Next_PC_SCO :=
-           Enclosing_Statement (Sloc_To_SCO (Next_PC_Sloc));
+         Next_PC_SCO := Enclosing_Statement (Sloc_To_SCO (Next_PC_Sloc));
 
          if Next_PC_SCO /= No_SCO_Id
            and then not Is_Multistatement_Line (Next_PC_Sloc)
@@ -1490,6 +1489,7 @@ package body Decision_Map is
 
                      Report
                        ("non-traceable: " & Reason,
+                        Exe  => Exec,
                         PC   => BB.To_PC,
                         Sloc => First_Sloc (Branch_SCO),
                         Tag  => Tag,
