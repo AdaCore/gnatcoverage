@@ -11,5 +11,6 @@ end;
 --  /eval/ l- ## s-
 
 --# passor.adb
+--  /decl/ l- ## s-
 --  /eval/ l- ## s-
 --  /stmt/ l- ## s-

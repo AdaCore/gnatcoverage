@@ -9,5 +9,6 @@ end;
 --  /eval/ l- ## s-
 
 --# passand.adb
+--  /decl/ l- ## s-
 --  /eval/ l- ## s-
 --  /stmt/ l- ## s-
