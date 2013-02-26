@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Interfaces; use Interfaces;
+with Qemu_Traces_Entries;
 
 package Qemu_Traces is
 
@@ -178,20 +179,10 @@ package Qemu_Traces is
    --  executions and branch outcomes in the relevant cases, as directed by
    --  the simulator decision map input.
 
-   type Trace_Entry64 is record
-      Pc   : Unsigned_64;
-      Size : Unsigned_16;
-      Op   : Unsigned_8;
-      Pad0 : Unsigned_8;
-      Pad1 : Unsigned_32;
-   end record;
+   --  32 and 64-bit trace entries are specified in the
+   --  qemu_traces-entries__{32, 64}.ads sources.
 
-   type Trace_Entry32 is record
-      Pc   : Unsigned_32;
-      Size : Unsigned_16;
-      Op   : Unsigned_8;
-      Pad0 : Unsigned_8;
-   end record;
+   use type Qemu_Traces_Entries.Trace_Entry;
 
    --  Size is the size of the trace (all the instructions) in bytes.
 

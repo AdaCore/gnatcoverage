@@ -26,6 +26,7 @@ with System;
 
 with Hex_Images; use Hex_Images;
 with Outputs;    use Outputs;
+with Qemu_Traces_Entries;
 with Swaps;
 with Traces;     use Traces;
 
@@ -49,8 +50,8 @@ package body Traces_Files is
    Trace_Info_Header_Size : constant Natural :=
                               Trace_Info_Header'Size / System.Storage_Unit;
 
-   E32_Size : constant Natural := Trace_Entry32'Size / System.Storage_Unit;
-   E64_Size : constant Natural := Trace_Entry64'Size / System.Storage_Unit;
+   Trace_Entry_Size : constant Natural :=
+      Qemu_Traces_Entries.Trace_Entry'Size / System.Storage_Unit;
 
    procedure Check_Header (Desc : in out Trace_File_Descriptor;
                           Hdr : Trace_Header);
@@ -228,16 +229,19 @@ package body Traces_Files is
       Eof        : out Boolean;
       E          : out Trace_Entry)
    is
-      E32 : Trace_Entry32;
+      Ent : Qemu_Traces_Entries.Trace_Entry;
       Res : Integer;
    begin
-      if Desc.Sizeof_Target_Pc /= 4 then
-         raise Bad_File_Format with "only 4 bytes pc are handled";
+      if Desc.Sizeof_Target_Pc /= Pc_Type_Size then
+         raise Bad_File_Format with
+            "only "
+            & Unsigned_8'Image (Pc_Type_Size)
+            & " bytes pc are handled";
       end if;
 
       --  Read an entry
 
-      Res := Read (Desc.Fd, E32'Address, E32_Size);
+      Res := Read (Desc.Fd, Ent'Address, Trace_Entry_Size);
 
       --  Check result
 
@@ -248,7 +252,7 @@ package body Traces_Files is
          Eof := False;
       end if;
 
-      if Res /= E32_Size then
+      if Res /= Trace_Entry_Size then
          Close (Desc.Fd);
          raise Bad_File_Format with "file truncated";
       end if;
@@ -256,13 +260,13 @@ package body Traces_Files is
       --  Basic checks
 
       if Desc.Big_Endian /= Big_Endian_Host then
-         Swaps.Swap_32 (E32.Pc);
-         Swaps.Swap_16 (E32.Size);
+         Qemu_Traces_Entries.Swap_Pc (Ent.Pc);
+         Swaps.Swap_16 (Ent.Size);
       end if;
 
-      E := Trace_Entry'(First  => Pc_Type (E32.Pc),
-                        Last   => Pc_Type (E32.Pc) + Pc_Type (E32.Size) - 1,
-                        Op     => E32.Op,
+      E := Trace_Entry'(First  => Pc_Type (Ent.Pc),
+                        Last   => Pc_Type (Ent.Pc) + Pc_Type (Ent.Size) - 1,
+                        Op     => Ent.Op,
                         State  => Unknown);
    end Read_Trace_Entry;
 
@@ -571,8 +575,7 @@ package body Traces_Files is
       Hdr : constant Trace_Header := Make_Trace_Header (Kind);
 
       E        : Trace_Entry;
-      E32      : Trace_Entry32;
-      E64      : Trace_Entry64;
+      Ent      : Qemu_Traces_Entries.Trace_Entry;
       Addr     : System.Address;
       Res_Size : Natural;
       Cur      : Entry_Iterator;
@@ -581,33 +584,17 @@ package body Traces_Files is
          raise Write_Error with "failed to write header";
       end if;
 
-      pragma Warnings (Off);
-      --  Needs comment???
-
-      if Pc_Type_Size = 4 then
-         Addr := E32'Address;
-         Res_Size := E32_Size;
-      else
-         Addr := E64'Address;
-         Res_Size := E64_Size;
-      end if;
-      pragma Warnings (On);
+      Addr := Ent'Address;
+      Res_Size := Trace_Entry_Size;
 
       Init (Base, Cur, 0);
       Get_Next_Trace (E, Cur);
       while E /= Bad_Trace loop
 
-         pragma Warnings (Off);
-         --  Needs comment???
-         if Pc_Type_Size = 4 then
-            E32 := (Pc   => Unsigned_32 (E.First),
-                    Size => Unsigned_16 (E.Last - E.First + 1),
-                    Op   => E.Op,
-                    Pad0 => 0);
-         else
-            raise Program_Error;
-         end if;
-         pragma Warnings (On);
+         Ent := (Pc     => E.First,
+                 Size   => Unsigned_16 (E.Last - E.First + 1),
+                 Op     => E.Op,
+                 others => <>);
 
          if Write (Fd, Addr, Res_Size) /= Res_Size then
             raise Write_Error with "failed to write entry";

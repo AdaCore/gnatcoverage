@@ -6,6 +6,8 @@ project Gnatcov is
 
    package Naming is
       for Specification ("Elf_Arch") use "elf_arch__" & Bits & ".ads";
+      for Specification ("Qemu_Traces_Entries")
+         use"qemu_traces_entries__" & Bits & ".ads";
    end Naming;
 
    package Builder is
@@ -33,4 +35,3 @@ project Gnatcov is
    for Main use ("gnatcov.adb", "ppc_genopc.adb");
 
 end Gnatcov;
-
