@@ -4,7 +4,7 @@
 /*--------------------------------------------------------------------*/
 
 /*
-   Copyright (C) 2012, AdaCore
+   Copyright (C) 2013, AdaCore
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -51,6 +51,7 @@
 #define EM_S370        9        /* Amdahl */
 #define EM_MIPS_RS4_BE 10       /* MIPS R4000 big-endian */
 #define EM_RS6000      11       /* RS6000 */
+#define EM_X86_64      62       /* AMD x86-64 architecture */
 
 #if defined(VGP_x86_linux)
 #  define ELF_MACHINE      EM_386
@@ -161,16 +162,34 @@ void tracefile_history_for_te_search(struct trace_entry *te)
 
 static void trace_flush(void)
 {
-    struct trace_entry32 te;
+    struct trace_entry32 e32;
+    struct trace_entry64 e64;
     struct trace_entry *ret;
+
+    unsigned int ent_sz;
+    void *ent;
+
+    if (sizeof(HWord) == 4) {
+        ent_sz = sizeof(e32);
+        ent = &e32;
+    } else {
+        ent_sz = sizeof(e64);
+        ent = &e64;
+    }
 
     for (ret = te_list_head; ret != NULL; ret = ret->next) {
         /* Write trace entries with non-null op */
         if (ret->op != 0) {
-            te.pc = ret->pc;
-            te.size = ret->size;
-            te.op = ret->op;
-            VG_(write)(tracefile, &te, sizeof (te));
+            if (sizeof (HWord) == 4) {
+                e32.pc = ret->pc;
+                e32.size = ret->size;
+                e32.op = ret->op;
+            } else {
+                e64.pc = ret->pc;
+                e64.size = ret->size;
+                e64.op = ret->op;
+            }
+            VG_(write)(tracefile, ent, ent_sz);
         }
     }
 }

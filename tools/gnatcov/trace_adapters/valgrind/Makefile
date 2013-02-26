@@ -1,14 +1,18 @@
 
 MKDIR=mkdir -p
 
+ARCH=$(shell uname -r | cut -d - -f 3)
+
 VALGRIND_DIR=$(shell dirname `which valgrind`)
 VALGRIND_INCLUDE=$(VALGRIND_DIR)/../include/valgrind
 VALGRIND_LIBS=$(VALGRIND_DIR)/../lib/valgrind
 
 CPP_FLAGS=-I. -I$(VALGRIND_INCLUDE) \
-          -DVGA_x86=1 -DVGO_linux=1 -DVGP_x86_linux=1 -DVGPV_x86_linux_vanilla=1
+          -DVGA_$(ARCH)=1 -DVGO_linux=1 \
+          -DVGP_$(ARCH)_linux=1 -DVGPV_$(ARCH)_linux_vanilla=1
 
-CFLAGS=-mpreferred-stack-boundary=2 -O2 -g \
+# TODO: where did the -mpreferred-stack-boundary=2 option come from?
+CFLAGS=-O2 -g \
        -fno-strict-aliasing -fno-builtin  -fno-stack-protector \
        -Wall -Wmissing-prototypes -Wshadow -Wpointer-arith -Wstrict-prototypes \
        -Wmissing-declarations -Wno-format-zero-length \
@@ -16,10 +20,10 @@ CFLAGS=-mpreferred-stack-boundary=2 -O2 -g \
 
 LDFLAGS=-static -nodefaultlibs -nostartfiles -u _start -Wl,--build-id=none
 
-LIBS=$(VALGRIND_LIBS)/libcoregrind-x86-linux.a \
-     $(VALGRIND_LIBS)/libvex-x86-linux.a -lgcc
+LIBS=$(VALGRIND_LIBS)/libcoregrind-$(ARCH)-linux.a \
+     $(VALGRIND_LIBS)/libvex-$(ARCH)-linux.a -lgcc
 
-COVERAGE_TOOL=coverage-x86-linux
+COVERAGE_TOOL=coverage-$(ARCH)-linux
 
 all: $(COVERAGE_TOOL)
 
