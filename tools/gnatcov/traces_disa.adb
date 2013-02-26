@@ -20,6 +20,7 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Interfaces; use Interfaces;
 with Hex_Images; use Hex_Images;
 with Elf_Disassemblers; use Elf_Disassemblers;
+with Switches;
 with Traces_Files;
 
 package body Traces_Disa is
@@ -87,43 +88,62 @@ package body Traces_Disa is
       Off : Pc_Type := Addr;
       I : Pc_Type;
    begin
+      if Switches.Debug_Break_Long_Instructions then
+         while
+            --  Make sure we process each byte of the given instruction.
+            Off <= Insn'Last
+            and then Off >= Addr --  And handle overflow
+         loop
+            --  Each dump line must start with indentation, the memory address
+            --  of the first byte we are dumping and the state char.
+            Put ("  ");
+            Put (Hex_Image (Off));
+            Put (' ');
+            Disp_State_Char (State);
+            Put (":  ");
 
-      while
-         --  Make sure we process each byte of the given instruction.
-         Off <= Insn'Last
-         and then Off >= Addr --  And handle overflow
-      loop
-         --  Each dump line must start with indentation, the memory address
-         --  of the first byte we are dumping and the state char.
-         Put ("  ");
-         Put (Hex_Image (Off));
+            --  There must not be more than 8 bytes on each line, and the
+            --  disassembly must appear on the first line.
+
+            I := 0;
+            while I < 7 and then (Addr - Off) + I < Insn'Length loop
+               Put (Hex_Image (Insn (Off + I)));
+               Put (' ');
+               I := I + 1;
+            end loop;
+
+            --  Pad "missing" bytes with spaces
+            for P in I .. 8 loop
+               Put ("   ");
+            end loop;
+
+            --  And display the disassembly only in the first line
+            if Off = Addr then
+               Put (Disassemble (Insn, Addr, Sym));
+            end if;
+            New_Line;
+
+            Off := Off + 8;
+         end loop;
+
+      else
+         Put (Hex_Image (Addr));
          Put (' ');
          Disp_State_Char (State);
          Put (":  ");
-
-         --  There must not be more than 8 bytes on each line, and the
-         --  disassembly must appear on the first line.
-
-         I := 0;
-         while I < 7 and then I < Insn'Length loop
-            Put (Hex_Image (Insn (Off + I)));
+         for I in Insn'Range loop
+            Put (Hex_Image (Insn (I)));
             Put (' ');
-            I := I + 1;
          end loop;
-
-         --  Pad "missing" bytes with spaces
-         for P in I .. 8 loop
-            Put ("   ");
+         for I in Insn'Length .. 4 loop
+            Put (' ');
          end loop;
-
-         --  And display the disassembly only in the first line
-         if Off = Addr then
-            Put (Disassemble (Insn, Addr, Sym));
-         end if;
+         Put ("  ");
+         Put (Disassemble (Insn, Addr, Sym));
          New_Line;
+         return;
+      end if;
 
-         Off := Off + 8;
-      end loop;
    end Textio_Disassemble_Cb;
 
    -------------------

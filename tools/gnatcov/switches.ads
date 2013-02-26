@@ -56,6 +56,10 @@ package Switches is
    --  -di
    --  Exemption pragmas have no effect.
 
+   Debug_Break_Long_Instructions : Boolean := False;
+   --  --debug-break-long-instructions
+   --  Break long instructions in disassemblies, a la objdump.
+
    -------------------------
    -- Sources of switches --
    -------------------------
