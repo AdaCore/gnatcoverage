@@ -136,7 +136,7 @@ package body Traces_Disa is
             Put (' ');
          end loop;
          for I in Insn'Length .. 4 loop
-            Put (' ');
+            Put ("  ");
          end loop;
          Put ("  ");
          Put (Disassemble (Insn, Addr, Sym));
