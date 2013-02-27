@@ -1,24 +1,25 @@
 
 MKDIR=mkdir -p
 
-#
+# Translation from `uname -m` to a suitable value for valgrind
 ARCH_i386 = x86
 ARCH_i486 = x86
 ARCH_i586 = x86
 ARCH_i686 = x86
 ARCH_x86_64 = amd64
-ARCH_adm64 = amd64
+ARCH_amd64 = amd64
 
 DISTRIB_ARCH=$(shell uname -m)
-ARCH=$(ARCH_$(DISTRIB_ARCH))
+VALGRIND_ARCH=$(ARCH_$(DISTRIB_ARCH))
 
 VALGRIND_DIR=$(shell dirname `which valgrind`)
 VALGRIND_INCLUDE=$(VALGRIND_DIR)/../include/valgrind
 VALGRIND_LIBS=$(VALGRIND_DIR)/../lib/valgrind
 
 CPP_FLAGS=-I. -I$(VALGRIND_INCLUDE) \
-          -DVGA_$(ARCH)=1 -DVGO_linux=1 \
-          -DVGP_$(ARCH)_linux=1 -DVGPV_$(ARCH)_linux_vanilla=1
+          -DVGA_$(VALGRIND_ARCH)=1 -DVGO_linux=1 \
+          -DVGP_$(VALGRIND_ARCH)_linux=1 \
+          -DVGPV_$(VALGRIND_ARCH)_linux_vanilla=1
 
 # TODO: where did the -mpreferred-stack-boundary=2 option come from?
 CFLAGS=-O2 -g \
@@ -29,10 +30,10 @@ CFLAGS=-O2 -g \
 
 LDFLAGS=-static -nodefaultlibs -nostartfiles -u _start -Wl,--build-id=none
 
-LIBS=$(VALGRIND_LIBS)/libcoregrind-$(ARCH)-linux.a \
-     $(VALGRIND_LIBS)/libvex-$(ARCH)-linux.a -lgcc
+LIBS=$(VALGRIND_LIBS)/libcoregrind-$(VALGRIND_ARCH)-linux.a \
+     $(VALGRIND_LIBS)/libvex-$(VALGRIND_ARCH)-linux.a -lgcc
 
-COVERAGE_TOOL=coverage-$(ARCH)-linux
+COVERAGE_TOOL=coverage-$(VALGRIND_ARCH)-linux
 
 all: $(COVERAGE_TOOL)
 
