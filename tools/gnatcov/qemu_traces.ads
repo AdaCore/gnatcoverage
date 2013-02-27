@@ -17,7 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Interfaces; use Interfaces;
-with Qemu_Traces_Entries;
+with Swaps;      use Swaps;
 
 package Qemu_Traces is
 
@@ -179,10 +179,29 @@ package Qemu_Traces is
    --  executions and branch outcomes in the relevant cases, as directed by
    --  the simulator decision map input.
 
-   --  32 and 64-bit trace entries are specified in the
-   --  qemu_traces-entries__{32, 64}.ads sources.
+   type Trace_Entry32 is record
+      Pc   : Unsigned_32;
+      Size : Unsigned_16;
+      Op   : Unsigned_8;
 
-   use type Qemu_Traces_Entries.Trace_Entry;
+      --  Padding is here only to make the size of a Trace_Entry a multiple of
+      --  4 bytes, for efficiency purposes.
+      Pad0 : Unsigned_8 := 0;
+   end record;
+
+   type Trace_Entry64 is record
+      Pc   : Unsigned_64;
+      Size : Unsigned_16;
+      Op   : Unsigned_8;
+
+      --  Padding is here only to make the size of a Trace_Entry a multiple of
+      --  8 bytes, for efficiency purposes.
+      Pad0 : Unsigned_8  := 0;
+      Pad1 : Unsigned_32 := 0;
+   end record;
+
+   procedure Swap_Pc (V : in out Unsigned_32) renames Swaps.Swap_32;
+   procedure Swap_Pc (V : in out Unsigned_64) renames Swaps.Swap_64;
 
    --  Size is the size of the trace (all the instructions) in bytes.
 

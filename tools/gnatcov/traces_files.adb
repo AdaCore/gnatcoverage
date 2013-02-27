@@ -260,7 +260,7 @@ package body Traces_Files is
       --  Basic checks
 
       if Desc.Big_Endian /= Big_Endian_Host then
-         Qemu_Traces_Entries.Swap_Pc (Ent.Pc);
+         Qemu_Traces.Swap_Pc (Ent.Pc);
          Swaps.Swap_16 (Ent.Size);
       end if;
 

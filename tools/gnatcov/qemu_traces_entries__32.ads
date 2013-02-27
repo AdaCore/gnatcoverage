@@ -16,24 +16,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Interfaces; use Interfaces;
-with Swaps;      use Swaps;
+with Qemu_Traces;
 
 package Qemu_Traces_Entries is
 
-   --  Trace entry for 32-bit programs. See qemu_traces.ads for details about
-   --  qemu traces.
+   --  Trace entry when gnatcov is built to handle 32-bit programs.
 
-   type Trace_Entry is record
-      Pc   : Unsigned_32;
-      Size : Unsigned_16;
-      Op   : Unsigned_8;
-
-      --  Padding is here only to make the size of a Trace_Entry a multiple of
-      --  4 bytes, for efficiency purposes.
-      Pad0 : Unsigned_8 := 0;
-   end record;
-
-   procedure Swap_Pc (V : in out Unsigned_32) renames Swaps.Swap_32;
+   subtype Trace_Entry is Qemu_Traces.Trace_Entry32;
 
 end Qemu_Traces_Entries;
