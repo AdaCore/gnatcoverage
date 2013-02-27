@@ -476,11 +476,15 @@ class TestSuite:
         """Generator for MainLoop, producing a sequence of testcases to be
         executed, updating self.run_list and self.dead_list on the fly."""
 
-        # The "./" prefixes are useful to allow matching against user
-        # provided testname filters starting with "./" as well.
+        # If we have a testcase filter starting designating a directory, no
+        # point in searching elsewhere.
 
+        roots = (
+            (self.tc_filter,) if os.path.isdir(self.tc_filter)
+            else ("Qualif/", "tests/")
+            )
         return (
-            tc for root in ("./Qualif", "./tests")
+            tc for root in roots
             for tc in self.__next_testcase_from (root)
             )
 
