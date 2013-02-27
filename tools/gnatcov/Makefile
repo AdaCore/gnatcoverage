@@ -115,22 +115,29 @@ endif
 
 # Determine the set of ADAPTER_SUBDIRS of relevance on our host OS
 
-ADAPTER_SUBDIRS =
+NEXUS_SUBDIR = trace_adapters/nexus
+VALGRIND_SUBDIR = trace_adapters/valgrind
+
+ALL_ADAPTER_SUBDIRS = $(VALGRIND_SUBDIR) $(NEXUS_SUBDIR)
+
+HOST_ADAPTER_SUBDIRS =
 ifeq ($(HOST_OS), windows)
-ADAPTER_SUBDIRS = trace_adapters/nexus
+HOST_ADAPTER_SUBDIRS = $(NEXUS_SUBDIR)
 endif
 ifeq ($(HOST_OS), linux)
-ADAPTER_SUBDIRS = trace_adapters/valgrind
+HOST_ADAPTER_SUBDIRS = $(VALGRIND_SUBDIR)
 endif
 
 PARALLEL_BUILD=8
 ARCH=32
 
-.PHONY: default all adapters bin $(PGMNAME) $(ADAPTER_SUBDIRS)
+.PHONY: default all adapters bin $(PGMNAME) $(ALL_ADAPTER_SUBDIRS)
 
 default: bin
 
-adapters: $(ADAPTER_SUBDIRS)
+adapters: $(HOST_ADAPTER_SUBDIRS)
+
+all-adapters: $(ALL_ADAPTER_SUBDIRS)
 
 bin: $(PGMNAME)
 
@@ -141,7 +148,7 @@ $(PGMNAME):
 		-j$(PARALLEL_BUILD)                     \
 		-XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
 
-$(ADAPTER_SUBDIRS):
+$(ALL_ADAPTER_SUBDIRS):
 	$(MAKE) -C $@
 
 
@@ -214,7 +221,7 @@ clean-doc-build:
 	make -C $(UMAN_DOCDIR) clean
 
 clean-adapters:
-	for dir in $(ADAPTER_SUBDIRS); do \
+	for dir in $(ALL_ADAPTER_SUBDIRS); do \
 	  $(MAKE) -C $$dir clean; \
 	done
 
@@ -245,7 +252,7 @@ install-doc: $(foreach fmt, $(DOCFORMATS), install-doc.$(fmt))
 install: install-bin install-examples install-doc
 
 install-adapters:
-	for dir in $(ADAPTER_SUBDIRS); do \
+	for dir in $(HOST_ADAPTER_SUBDIRS); do \
 	  $(MAKE) -C $$dir \
                PREFIX=$(PREFIX) \
                $(INSTALL_ADAPTERS_VARS_$(HOST_OS)) \
