@@ -200,7 +200,7 @@ begin
    Chk_Exe ("Error Opening");
    Ehdr := Get_Ehdr (Executable_File);
    Chk_Exe ("Error reading file header");
-   Entry_Point := Ehdr.E_Entry;
+   Entry_Point := Unsigned_32 (Ehdr.E_Entry);
    --  Open the executable ELF file, get the ELF header from
    --  it, and read the entry point of the program.
    --  For now, we are presuming the OCD trace data starts
@@ -213,7 +213,7 @@ begin
    Chk_Exe ("Error finding "".text"" section");
    Text_Shdr_Ptr := Get_Shdr (Executable_File, Text_Shdr_Idx);
    Chk_Exe ("Error getting "".text"" section header");
-   Text_First_Addr  := Text_Shdr_Ptr.Sh_Addr;
+   Text_First_Addr  := Unsigned_32 (Text_Shdr_Ptr.Sh_Addr);
    Text_Section_Len := Text_Shdr_Ptr.Sh_Size;
    if Text_Section_Len < 4 then
       Close_File (Executable_File);
