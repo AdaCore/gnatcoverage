@@ -738,7 +738,7 @@ package body Decision_Map is
 
                   Report
                     (Exe, Cond_Branch_PC,
-                     Edge_Name & " destination unexpectedly out of condition");
+                     Edge_Name & " destination unexpectedly out of decision");
 
                elsif Outcome_Origin /= Unknown then
                   --  If there is only one outcome edge (and the other is a
@@ -813,6 +813,9 @@ package body Decision_Map is
 
          --  Look for a previous edge with the same destination
 
+         --  Label_From_Other was already called at the beginning of
+         --  Label_Destination, is this redundant???
+
          if Edge_Info.Dest_Kind = Unknown then
             Label_From_Other (Cond_Branch_PC, CBI, Edge);
          end if;
@@ -820,7 +823,6 @@ package body Decision_Map is
          --  Destination may still be unlabeled at this point, which is not
          --  a problem if we can label it later on by inference from the
          --  opposite edge.
-
       end Label_Destination;
 
       ------------------------
