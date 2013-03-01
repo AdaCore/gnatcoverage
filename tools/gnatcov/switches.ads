@@ -47,6 +47,10 @@ package Switches is
    -- Debugging switches (-d?) --
    ------------------------------
 
+   Debug_Break_Long_Instructions : Boolean := False;
+   --  -db
+   --  Break long instructions in disassemblies, a la objdump.
+
    Debug_Full_History : Boolean := False;
    --  -dh
    --  Keep full historical traces for MC/DC even for decisions that do not
@@ -55,10 +59,6 @@ package Switches is
    Debug_Ignore_Exemptions : Boolean := False;
    --  -di
    --  Exemption pragmas have no effect.
-
-   Debug_Break_Long_Instructions : Boolean := False;
-   --  --debug-break-long-instructions
-   --  Break long instructions in disassemblies, a la objdump.
 
    -------------------------
    -- Sources of switches --

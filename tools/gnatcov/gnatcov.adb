@@ -176,7 +176,6 @@ procedure GNATcov is
       P (" disassemble EXEs");
       P (" disassemble-raw EXEs");
       P ("   Disassemble executables");
-      P ("   --debug-break-long-instructions   Produce readable disassembly");
       New_Line;
    end Usage_Dump;
 
@@ -210,8 +209,6 @@ procedure GNATcov is
    Verbose_Option_Short      : constant String := "-v";
    Eargs_Option              : constant String := "-eargs";
    Stats_Option              : constant String := "--stats";
-   Debug_Break_Long_Instructions_Option : constant String :=
-      "--debug-break-long-instructions";
 
    --  Undocumented (maintenance only) options
 
@@ -462,6 +459,8 @@ procedure GNATcov is
 
                         while Pos <= Arg'Last loop
                            case Arg (Pos) is
+                           when 'b' =>
+                              Switches.Debug_Break_Long_Instructions := True;
                            when 'h' =>
                               Switches.Debug_Full_History       := True;
                            when 'i' =>
@@ -780,11 +779,6 @@ procedure GNATcov is
 
                      elsif Common_Switch then
                         null;
-
-                     elsif Arg = Debug_Break_Long_Instructions_Option then
-                        Check_Option (Arg, Command,
-                           (1 => Cmd_Disassemble, 2 => Cmd_Disassemble_Raw));
-                        Debug_Break_Long_Instructions := True;
 
                      elsif Arg (1) = '-' then
                         Fatal_Error ("unknown option: " & Arg);
