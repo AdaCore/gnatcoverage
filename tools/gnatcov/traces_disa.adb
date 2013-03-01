@@ -106,7 +106,7 @@ package body Traces_Disa is
             --  disassembly must appear on the first line.
 
             I := 0;
-            while I < 7 and then (Addr - Off) + I < Insn'Length loop
+            while I < 8 and then (Addr - Off) + I < Insn'Length loop
                Put (Hex_Image (Insn (Off + I)));
                Put (' ');
                I := I + 1;
