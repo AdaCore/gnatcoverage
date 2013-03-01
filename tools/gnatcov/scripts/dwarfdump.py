@@ -10,7 +10,7 @@ def get_dwarf(exe):
   for l in outs.split('\n'):
     m = re.match ("([0-9a-f]+)-[0-9a-f]+ line (.*)", l)
     if m:
-      addr, line = m.group(1), m.group(2)
+      addr, line = int(m.group(1), 16), m.group(2)
       if not addr in line_info:
         line_info[addr] = []
       if not line in line_info[addr]:
@@ -23,9 +23,9 @@ def do_dump(line_info, cmd):
   outs, errs = proc.communicate()
   linfo = []
   for l in outs.split('\n'):
-    m = re.match("( *[0-9a-f]+):", l)
+    m = re.match(" *([0-9a-f]+):", l)
     if m:
-      a =  m.group(1).replace (' ', '0')
+      a =  int (m.group(1), 16)
       if a in line_info:
         this_linfo = line_info[a]
         if this_linfo != linfo:
