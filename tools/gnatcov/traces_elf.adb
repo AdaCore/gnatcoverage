@@ -69,6 +69,11 @@ package body Traces_Elf is
       Base : Address;
       Off  : in out Storage_Offset;
       Res  : out Unsigned_16);
+   procedure Write_Word8
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Val  : Unsigned_64);
    procedure Write_Word4
      (Exec : Exe_File_Type;
       Base : Address;
@@ -505,6 +510,24 @@ package body Traces_Elf is
    end Read_Word2;
 
    -----------------
+   -- Write_Word8 --
+   -----------------
+
+   procedure Write_Word8
+     (Exec : Exe_File_Type;
+      Base : Address;
+      Off  : in out Storage_Offset;
+      Val  : Unsigned_64)
+   is
+   begin
+      if Exec.Is_Big_Endian then
+         Write_Word8_Be (Base, Off, Val);
+      else
+         Write_Word8_Le (Base, Off, Val);
+      end if;
+   end Write_Word8;
+
+   -----------------
    -- Write_Word4 --
    -----------------
 
@@ -831,6 +854,22 @@ package body Traces_Elf is
       Offset : Elf_Addr;
       R : Elf_Rela;
    begin
+      --  The only sections on which we have to apply relocations are the
+      --  .debug_info and the .debug_line sections. These sections seem to have
+      --  relocations in object code files only (before linking). In these,
+      --  sections do not have their address assigned yet, and thus we can
+      --  consider that they are located at 0x0.
+
+      --  We noticed that in these cases (relocations for debug sections in
+      --  object code files), the symbols targetted by the relocations are
+      --  sections themselves, and they do not have any addend (.rel.*
+      --  relocation sections).
+
+      --  So in this particular configuration, there is no need to relocate
+      --  debug sections since it would only add section addresses (= 0) to
+      --  the offsets already present in the debug sections. Thus, we do not
+      --  handle relocation sections without addend.
+
       Shdr := Get_Shdr (Exec.Exe_File, Sec_Rel);
       if Shdr.Sh_Type /= SHT_RELA then
          raise Program_Error;
@@ -878,6 +917,30 @@ package body Traces_Elf is
          end if;
 
          case Exec.Exe_Machine is
+            when EM_X86_64 =>
+               case Elf_R_Type (R.R_Info) is
+                  when R_X86_64_NONE =>
+                     null;
+                  when R_X86_64_64 =>
+                     Write_Word8 (Exec,
+                                  Data (0)'Address,
+                                  Storage_Offset (R.R_Offset),
+                                  Offset + Elf_Addr (R.R_Addend));
+                  when R_X86_64_32 =>
+                     Write_Word4 (Exec,
+                                  Data (0)'Address,
+                                  Storage_Offset (R.R_Offset),
+                                  Unsigned_32 (Offset
+                                               + Elf_Addr (R.R_Addend)));
+                  when others =>
+                     Write_Word8 (Exec,
+                                  Data (0)'Address,
+                                  Storage_Offset (R.R_Offset),
+                                  Offset + Elf_Addr (R.R_Addend));
+                     raise Program_Error with
+                        ("unhandled x86_64 relocation, reloc is "
+                         & Elf_Word'Image (Elf_R_Type (R.R_Info)));
+               end case;
             when EM_PPC =>
                case Elf_R_Type (R.R_Info) is
                   when R_PPC_ADDR32 =>

@@ -255,6 +255,11 @@ package Elf_Common is
    R_386_32   : constant Elf_Word := 1; -- word32 S+A
    R_386_PC32 : constant Elf_Word := 2; -- word32 S+A-P
 
+   --  For x86_64
+   R_X86_64_NONE : constant Elf_Word := 0; --  none none
+   R_X86_64_64   : constant Elf_Word := 1; --  word64 S+A
+   R_X86_64_32   : constant Elf_Word := 10; --  word32 S+A
+
    --  For sparc
    R_SPARC_NONE    : constant Elf_Word := 0; -- none
    R_SPARC_32 :      constant Elf_Word := 3; -- (S + A)

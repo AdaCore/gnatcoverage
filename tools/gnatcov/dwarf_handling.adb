@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2012, AdaCore                     --
+--                     Copyright (C) 2006-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -357,5 +357,39 @@ package body Dwarf_Handling is
       Write_Byte (Base + Off + 3, B3);
       Off := Off + 4;
    end Write_Word4_Be;
+
+   --------------------
+   -- Write_Word8_Le --
+   --------------------
+
+   procedure Write_Word8_Le (Base : Address;
+                             Off : in out Storage_Offset;
+                             Val : Unsigned_64)
+   is
+      B : Unsigned_8;
+   begin
+      for I in 0 .. 7 loop
+         B := Unsigned_8 (Shift_Right (Val, 8 * I) and 16#ff#);
+         Write_Byte (Base + Off + Storage_Offset (I), B);
+      end loop;
+      Off := Off + 8;
+   end Write_Word8_Le;
+
+   --------------------
+   -- Write_Word8_Be --
+   --------------------
+
+   procedure Write_Word8_Be (Base : Address;
+                             Off : in out Storage_Offset;
+                             Val : Unsigned_64)
+   is
+      B : Unsigned_8;
+   begin
+      for I in 0 .. 7 loop
+         B := Unsigned_8 (Shift_Right (Val, 64 - 8 * I - 8) and 16#ff#);
+         Write_Byte (Base + Off + Storage_Offset (I), B);
+      end loop;
+      Off := Off + 8;
+   end Write_Word8_Be;
 
 end Dwarf_Handling;

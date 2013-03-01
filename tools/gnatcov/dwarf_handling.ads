@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2006-2012, AdaCore                     --
+--                     Copyright (C) 2006-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -76,5 +76,13 @@ package Dwarf_Handling is
    procedure Write_Word4_Be (Base : Address;
                              Off : in out Storage_Offset;
                              Val : Unsigned_32);
+
+   procedure Write_Word8_Le (Base : Address;
+                             Off : in out Storage_Offset;
+                             Val : Unsigned_64);
+
+   procedure Write_Word8_Be (Base : Address;
+                             Off : in out Storage_Offset;
+                             Val : Unsigned_64);
 
 end Dwarf_Handling;
