@@ -2451,14 +2451,17 @@ package body Disa_X86 is
                   --  this is a valid operand-size attribute toggling: turn
                   --  back to the unprefixed two-bytes opcodes table.
                   if Desc.Name (1) = ' ' then
-                     Desc := Insn_Desc_0F (B);
+                     --  Do not lookup ourself but let the current loop handle
+                     --  that, so that the prefix is just ignored (there may be
+                     --  more to do than simply performing some table lookup,
+                     --  for example doing some 64bit specific processing).
+                     Off := Off - 2;
+                  else
+                     exit;
                   end if;
-                  exit;
-               end if;
-
-               --  Do not switch to 16-bit operand if REX.W (64-bit operand) is
-               --  enabled.
-               if W = W_32 then
+               elsif W = W_32 then
+                  --  Do not switch to 16-bit operand if REX.W (64-bit operand)
+                  --  is enabled.
                   W := W_16;
                end if;
 
