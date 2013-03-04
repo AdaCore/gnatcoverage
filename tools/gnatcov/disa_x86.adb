@@ -1398,9 +1398,10 @@ package body Disa_X86 is
    type Mem_Read is access function (Off : Pc_Type) return Byte;
 
    function Decode_Val
-     (Mem   : Mem_Read;
-      Off   : Pc_Type;
-      Width : Width_Type)
+     (Mem            : Mem_Read;
+      Off            : Pc_Type;
+      Width          : Width_Type;
+      Sign_Extend    : Boolean)
      return Unsigned_64;
    --  Decode an immediate (unsigned) value given its memory location and its
    --  size.
@@ -1491,35 +1492,56 @@ package body Disa_X86 is
    ----------------
 
    function Decode_Val
-     (Mem   : Mem_Read;
-      Off   : Pc_Type;
-      Width : Width_Type)
+     (Mem         : Mem_Read;
+      Off         : Pc_Type;
+      Width       : Width_Type;
+      Sign_Extend : Boolean)
      return Unsigned_64
    is
+      Is_64bit : constant Boolean := Machine = Elf_Common.EM_X86_64;
+      Is_Negative : Boolean;
       V : Unsigned_64;
+
+      subtype Sign_Extension_Width_Type is Width_Type range W_8 .. W_64;
+      type Sign_Extension_Type is
+         array (Boolean, Sign_Extension_Width_Type) of Unsigned_64;
+      Sign_Extension : constant Sign_Extension_Type :=
+        (
+           (16#0000_0000_ffff_ff00#,
+            16#0000_0000_ffff_0000#,
+            16#0000_0000_0000_0000#,
+            16#0000_0000_0000_0000#),
+            --  32 bits
+
+           (16#ffff_ffff_ffff_ff00#,
+            16#ffff_ffff_ffff_0000#,
+            16#ffff_ffff_0000_0000#,
+            16#0000_0000_0000_0000#)
+            --  64 bits
+        );
    begin
+      --  For each size, once the value is read from memory, sign extend if
+      --  needed.
+
       case Width is
          when W_8 =>
             V := Unsigned_64 (Mem (Off));
-            --  Sign extension
-
-            if V >= 16#80# then
-               V := 16#ffff_ff00# or V;
-            end if;
-            return V;
+            Is_Negative := Sign_Extend and then V >= 16#80#;
 
          when W_16 =>
-            return Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
+            V := Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
               or Unsigned_64 (Mem (Off));
+            Is_Negative := Sign_Extend and then V >= 16#8000#;
 
          when W_32 =>
-            return Shift_Left (Unsigned_64 (Mem (Off + 3)), 24)
+            V := Shift_Left (Unsigned_64 (Mem (Off + 3)), 24)
               or Shift_Left (Unsigned_64 (Mem (Off + 2)), 16)
               or Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
               or Shift_Left (Unsigned_64 (Mem (Off + 0)), 0);
+            Is_Negative := Sign_Extend and then V >= 16#8000_0000#;
 
          when W_64 =>
-            return Shift_Left (Unsigned_64 (Mem (Off + 7)), 56)
+            V := Shift_Left (Unsigned_64 (Mem (Off + 7)), 56)
               or Shift_Left (Unsigned_64 (Mem (Off + 6)), 48)
               or Shift_Left (Unsigned_64 (Mem (Off + 5)), 40)
               or Shift_Left (Unsigned_64 (Mem (Off + 4)), 32)
@@ -1527,6 +1549,7 @@ package body Disa_X86 is
               or Shift_Left (Unsigned_64 (Mem (Off + 2)), 16)
               or Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
               or Shift_Left (Unsigned_64 (Mem (Off + 0)), 0);
+            Is_Negative := Sign_Extend and then V >= 16#8000_0000_0000_0000#;
 
          when W_128 =>
             raise Program_Error with "unhandled 128bits decoding";
@@ -1534,6 +1557,12 @@ package body Disa_X86 is
          when W_None =>
             raise Program_Error;
       end case;
+
+      if Is_Negative then
+         V := Sign_Extension (Is_64bit, Width) or V;
+      end if;
+
+      return V;
    end Decode_Val;
 
    ----------------------
@@ -1919,12 +1948,17 @@ package body Disa_X86 is
                              Offset : Unsigned_32 := 0)
       is
          L : Natural;
-         V : Unsigned_32;
+         V : Unsigned_64;
       begin
          --  Note that even in 64bit, there is no 64-bit displacements
          L := Lo;
-         V := Unsigned_32 (Decode_Val (Mem'Unrestricted_Access, Off, Width))
-              + Offset;
+         V := Decode_Val (Mem'Unrestricted_Access, Off, Width, True)
+               + Unsigned_64 (Offset);
+         if not Is_64bit then
+            --  If Pc_Type is only 32-bit wide, truncate V so that it  can fit
+            --  in it.
+            V := V and 16#ffff_ffff#;
+         end if;
          Sym.Symbolize (Pc_Type (V), Line, Lo);
          if L /= Lo then
             if V = 0 then
@@ -1936,27 +1970,17 @@ package body Disa_X86 is
          if Offset = 0 then
             Decode_Val (Off, Width);
          else
+            if Is_64bit then
+               Add_Byte (Byte (Shift_Right (V, 56) and 16#ff#));
+               Add_Byte (Byte (Shift_Right (V, 48) and 16#ff#));
+               Add_Byte (Byte (Shift_Right (V, 40) and 16#ff#));
+               Add_Byte (Byte (Shift_Right (V, 32) and 16#ff#));
+            end if;
             Add_Byte (Byte (Shift_Right (V, 24) and 16#ff#));
             Add_Byte (Byte (Shift_Right (V, 16) and 16#ff#));
             Add_Byte (Byte (Shift_Right (V, 8) and 16#ff#));
             Add_Byte (Byte (Shift_Right (V, 0) and 16#ff#));
          end if;
-         --  --  First try to display a symbol associated to the given
-         --  --  displacement.
-         --  L := Lo;
-         --  V := Decode_Val (Mem'Unrestricted_Access, Off, Width) + Offset;
-         --  Sym.Symbolize (Pc_Type (V), Line, Lo);
-
-         --  --  If the symbolizer wrote nothing, write the hexadecimal
-         --  --  displacement instead.
-
-         --  if L = Lo then
-         --     Add_String ("0x");
-         --     Decode_Val (Off_Orig, Width);
-         --  end if;
-
-         --  --  Prepare the addition for what is displaced.
-         --  Add_String (" + ");
       end Decode_Disp;
 
       ---------------------
@@ -2784,7 +2808,7 @@ package body Disa_X86 is
             FT_Dest.Target := Pc + 2;
             Branch_Dest.Target :=
               FT_Dest.Target
-                + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_8));
+                + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
             return;
 
          when 16#0f# =>
@@ -2796,8 +2820,8 @@ package body Disa_X86 is
                Flag_Indir := False;
                FT_Dest.Target := Pc + 6;
                Branch_Dest.Target :=
-                 FT_Dest.Target
-                   + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 2, W_32));
+                 FT_Dest.Target + Pc_Type
+                    (Decode_Val (Mem'Unrestricted_Access, 2, W_32, True));
             end if;
             return;
 
@@ -2819,18 +2843,18 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              FT_Dest.Target
-              + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32));
+              FT_Dest.Target +
+               Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
             return;
 
          when 16#9a# =>
-            --  Callf
+            --  Callf, doesn't exist in 64-bit
             Branch     := Br_Call;
             Flag_Cond  := False;
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32));
+              Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32, False));
             return;
 
          when 16#e9# =>
@@ -2840,18 +2864,18 @@ package body Disa_X86 is
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              FT_Dest.Target
-                + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32));
+              FT_Dest.Target + Pc_Type
+                 (Decode_Val (Mem'Unrestricted_Access, 1, W_32, True));
             return;
 
          when 16#ea# =>
-            --  jmp ptr32
+            --  jmp ptr32, doesn't exist in 64-bit
             Branch     := Br_Jmp;
             Flag_Cond  := False;
             Flag_Indir := False;
             FT_Dest.Target := Pc + 5;
             Branch_Dest.Target :=
-              Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32));
+              Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_32, False));
             return;
 
          when 16#eb# =>
@@ -2862,7 +2886,7 @@ package body Disa_X86 is
             FT_Dest.Target := Pc + 2;
             Branch_Dest.Target :=
               FT_Dest.Target
-              + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_8));
+              + Pc_Type (Decode_Val (Mem'Unrestricted_Access, 1, W_8, True));
             return;
 
          when 16#ff# =>
