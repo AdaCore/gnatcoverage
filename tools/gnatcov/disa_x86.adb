@@ -20,6 +20,7 @@
 --  A.1 and chapter 2 ("Instruction format") in volume 2A.
 --  These manuals can be found at http://www.intel.com/product/manuals/
 
+with Elf_Common;
 with Interfaces; use Interfaces;
 with Outputs;    use Outputs;
 with Hex_Images; use Hex_Images;
@@ -27,15 +28,17 @@ with Hex_Images; use Hex_Images;
 package body Disa_X86 is
 
    subtype Byte is Interfaces.Unsigned_8;
+   type Bit is mod 2;
    type Bit_Field_2 is mod 2 ** 2;
    type Bit_Field_3 is mod 2 ** 3;
+   type Bit_Field_4 is mod 2 ** 4;
 
    type Width_Type is (W_None, W_8, W_16, W_32, W_64, W_128);
    --  Width for operands, addresses and registers
 
    type Reg_Class_Type is
      (R_None,
-      R_8, R_16, R_32,
+      R_8, R_16, R_32, R_64,
       R_Control, R_Debug,
       R_MM, R_XMM);
    --  Set of registers that can be simultaneously addressed:
@@ -175,7 +178,8 @@ package body Disa_X86 is
       C_Reg_Bh,
       C_Reg_Ah,
 
-      --  16-bit or 32-bit register, depending on the operand-size attribute
+      --  16-bit, 32-bit or 64-bit register, depending on the operand-size
+      --  attribute and on the presence of a REX prefix.
 
       C_Reg_Ax,
       C_Reg_Cx,
@@ -259,6 +263,8 @@ package body Disa_X86 is
       --  destination and source operands, Extra_None otherwise.
    end record;
    --  Format description for one instruction or one instruction group
+
+   --  TODO: fix tables for 64-bit mode, keeping the 32-bit compatibility
 
    type Insn_Desc_Array_Type is array (Byte) of Insn_Desc_Type;
    --  Lookup table kind for one-byte and two-bytes opcode sequences
@@ -1317,7 +1323,7 @@ package body Disa_X86 is
       W_8    => R_8,
       W_16   => R_16,
       W_32   => R_32,
-      W_64   => R_None,
+      W_64   => R_64,
       W_128  => R_None);
    --  Turn an operand size into the corresponding general-purpose register
    --  class (if any, R_None otherwise).
@@ -1328,7 +1334,7 @@ package body Disa_X86 is
       W_8    => W_None,
       W_16   => W_16,
       W_32   => W_32,
-      W_64   => W_None,
+      W_64   => W_32,
       W_128  => W_None);
    --  Turn an operand size to W_None if it is not a valid value for the
    --  operand-size attribut.
@@ -1370,6 +1376,11 @@ package body Disa_X86 is
    --  For a byte, MSB (most significant bit) is bit 7 while LSB (least
    --  significant bit) is bit 0.
 
+   function Ext_0 (B : Byte) return Bit;
+   function Ext_1 (B : Byte) return Bit;
+   function Ext_2 (B : Byte) return Bit;
+   function Ext_3 (B : Byte) return Bit;
+
    function Ext_210 (B : Byte) return Bit_Field_3;
    pragma Inline (Ext_210);
    --  Extract bits 2, 1 and 0
@@ -1390,11 +1401,47 @@ package body Disa_X86 is
      (Mem   : Mem_Read;
       Off   : Pc_Type;
       Width : Width_Type)
-     return Unsigned_32;
+     return Unsigned_64;
    --  Decode an immediate (unsigned) value given its memory location and its
    --  size.
    --  Off is the immediate address and is relative to a certain PC. Mem is a
    --  function that reads one byte at an offset from this PC.
+
+   -----------
+   -- Ext_0 --
+   -----------
+
+   function Ext_0 (B : Byte) return Bit is
+   begin
+      return Bit (B and 1);
+   end Ext_0;
+
+   -----------
+   -- Ext_1 --
+   -----------
+
+   function Ext_1 (B : Byte) return Bit is
+   begin
+      return Bit (Shift_Right (B, 1) and 1);
+   end Ext_1;
+
+   -----------
+   -- Ext_2 --
+   -----------
+
+   function Ext_2 (B : Byte) return Bit is
+   begin
+      return Bit (Shift_Right (B, 2) and 1);
+   end Ext_2;
+
+   -----------
+   -- Ext_3 --
+   -----------
+
+   function Ext_3 (B : Byte) return Bit is
+   begin
+      return Bit (Shift_Right (B, 3) and 1);
+   end Ext_3;
 
    -------------
    -- Ext_210 --
@@ -1426,9 +1473,15 @@ package body Disa_X86 is
    function Ext_Modrm_Mod (B : Byte) return Bit_Field_2 renames Ext_76;
    function Ext_Modrm_Rm  (B : Byte) return Bit_Field_3 renames Ext_210;
    function Ext_Modrm_Reg (B : Byte) return Bit_Field_3 renames Ext_543;
+
    function Ext_Sib_Base  (B : Byte) return Bit_Field_3 renames Ext_210;
    function Ext_Sib_Index (B : Byte) return Bit_Field_3 renames Ext_543;
    function Ext_Sib_Scale (B : Byte) return Bit_Field_2 renames Ext_76;
+
+   function Ext_Rex_B     (B : Byte) return Bit renames Ext_0;
+   function Ext_Rex_X     (B : Byte) return Bit renames Ext_1;
+   function Ext_Rex_R     (B : Byte) return Bit renames Ext_2;
+   function Ext_Rex_W     (B : Byte) return Bit renames Ext_3;
 
    type Hex_Str is array (Natural range 0 .. 15) of Character;
    Hex_Digit : constant Hex_Str := "0123456789abcdef";
@@ -1441,13 +1494,13 @@ package body Disa_X86 is
      (Mem   : Mem_Read;
       Off   : Pc_Type;
       Width : Width_Type)
-     return Unsigned_32
+     return Unsigned_64
    is
-      V : Unsigned_32;
+      V : Unsigned_64;
    begin
       case Width is
          when W_8 =>
-            V := Unsigned_32 (Mem (Off));
+            V := Unsigned_64 (Mem (Off));
             --  Sign extension
 
             if V >= 16#80# then
@@ -1456,17 +1509,27 @@ package body Disa_X86 is
             return V;
 
          when W_16 =>
-            return Shift_Left (Unsigned_32 (Mem (Off + 1)), 8)
-              or Unsigned_32 (Mem (Off));
+            return Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
+              or Unsigned_64 (Mem (Off));
 
          when W_32 =>
-            return  Shift_Left (Unsigned_32 (Mem (Off + 3)), 24)
-              or Shift_Left (Unsigned_32 (Mem (Off + 2)), 16)
-              or Shift_Left (Unsigned_32 (Mem (Off + 1)), 8)
-              or Shift_Left (Unsigned_32 (Mem (Off + 0)), 0);
+            return Shift_Left (Unsigned_64 (Mem (Off + 3)), 24)
+              or Shift_Left (Unsigned_64 (Mem (Off + 2)), 16)
+              or Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
+              or Shift_Left (Unsigned_64 (Mem (Off + 0)), 0);
 
-         when W_64 | W_128 =>
-            raise Program_Error with "unhandled 64/128bits decoding";
+         when W_64 =>
+            return Shift_Left (Unsigned_64 (Mem (Off + 7)), 56)
+              or Shift_Left (Unsigned_64 (Mem (Off + 6)), 48)
+              or Shift_Left (Unsigned_64 (Mem (Off + 5)), 40)
+              or Shift_Left (Unsigned_64 (Mem (Off + 4)), 32)
+              or Shift_Left (Unsigned_64 (Mem (Off + 3)), 24)
+              or Shift_Left (Unsigned_64 (Mem (Off + 2)), 16)
+              or Shift_Left (Unsigned_64 (Mem (Off + 1)), 8)
+              or Shift_Left (Unsigned_64 (Mem (Off + 0)), 0);
+
+         when W_128 =>
+            raise Program_Error with "unhandled 128bits decoding";
 
          when W_None =>
             raise Program_Error;
@@ -1489,11 +1552,23 @@ package body Disa_X86 is
       pragma Unreferenced (Self);
       pragma Unreferenced (Pc);
 
+      Is_64bit   : constant Boolean := Machine = Elf_Common.EM_X86_64;
+      Rex_Prefix : Byte             := 0;
+
       Lo : Natural;
       --  Index in LINE of the next character to be written
 
       function Mem (Off : Pc_Type) return Byte;
       --  The instruction memory, 0 based
+
+      function Reg_With_Rex (R : Reg_Class_Type) return Reg_Class_Type;
+      --  Return R_64 if there is a REX prefix and if R is R_32. Return R
+      --  otherwise.
+
+      function Reg_With_Rex (Rex_Prefix : Bit; Reg : Bit_Field_3)
+         return Bit_Field_4;
+      --  Combine the given REX prefix bit and the given 3-bit register number
+      --  into an "extended" 4-bit register number.
 
       ----------------------------
       -- Basic output utilities --
@@ -1516,7 +1591,7 @@ package body Disa_X86 is
       --  Pad the current line with blanks to align operands after the
       --  instruction mnemonic.
 
-      procedure Add_Reg (F : Bit_Field_3; R : Reg_Class_Type);
+      procedure Add_Reg (F : Bit_Field_4; R : Reg_Class_Type);
       --  Add a register name to the output, given its 3-bit field
       --  identificator and its register class.
 
@@ -1717,39 +1792,51 @@ package body Disa_X86 is
       -- Add_Reg --
       -------------
 
-      procedure Add_Reg (F : Bit_Field_3; R : Reg_Class_Type) is
-         type Reg_Name2_Array is array (Bit_Field_3) of String (1 .. 2);
-         type Reg_Name3_Array is array (Bit_Field_3) of String (1 .. 3);
-         type Reg_Name4_Array is array (Bit_Field_3) of String (1 .. 4);
+      procedure Add_Reg (F : Bit_Field_4; R : Reg_Class_Type) is
+         type Reg_Name2_Array    is array (Bit_Field_3) of String (1 .. 2);
+         type Reg_Name3_Array    is array (Bit_Field_3) of String (1 .. 3);
+         type Reg_Name3_Array_16 is array (Bit_Field_4) of String (1 .. 3);
+         type Reg_Name4_Array_16 is array (Bit_Field_4) of String (1 .. 4);
+         type Reg_Name5_Array    is array (Bit_Field_4) of String (1 .. 5);
          Regs_8 : constant Reg_Name2_Array :=
            ("al", "cl", "dl", "bl", "ah", "ch", "dh", "bh");
          Regs_16 : constant Reg_Name2_Array :=
            ("ax", "cx", "dx", "bx", "sp", "bp", "si", "di");
          Regs_32 : constant Reg_Name3_Array :=
            ("eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi");
-         Regs_Control : constant Reg_Name3_Array :=
-           ("cr0", "cr1", "cr2", "cr3", "cr4", "cr5", "cr6", "cr7");
-         Regs_Debug : constant Reg_Name3_Array :=
-           ("dr0", "dr1", "dr2", "dr3", "dr4", "dr5", "dr6", "dr7");
+         Regs_64 : constant Reg_Name3_Array_16 :=
+           ("rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
+            "r8 ", "r9 ", "r10", "r11", "r12", "r13", "r14", "r15");
+         Regs_Control : constant Reg_Name4_Array_16 :=
+           ("cr0 ", "cr1 ", "cr2 ", "cr3 ", "cr4 ", "cr5 ", "cr6 ", "cr7 ",
+            "cr8 ", "cr9 ", "cr10", "cr11", "cr12", "cr13", "cr14", "cr15");
+         Regs_Debug : constant Reg_Name4_Array_16 :=
+           ("dr0 ", "dr1 ", "dr2 ", "dr3 ", "dr4 ", "dr5 ", "dr6 ", "dr7 ",
+            "dr8 ", "dr9 ", "dr10", "dr11", "dr12", "dr13", "dr14", "dr15");
          Regs_MM : constant Reg_Name3_Array :=
            ("mm0", "mm1", "mm2", "mm3", "mm4", "mm5", "mm6", "mm7");
-         Regs_XMM : constant Reg_Name4_Array :=
-           ("xmm0", "xmm1", "xmm2", "xmm3", "xmm4", "xmm5", "xmm6", "xmm7");
+         Regs_XMM : constant Reg_Name5_Array :=
+           ("xmm0 ", "xmm1 ", "xmm2 ", "xmm3 ", "xmm4 ", "xmm5 ", "xmm6 ",
+            "xmm7 ",
+            "xmm8 ", "xmm9 ", "xmm10", "xmm12", "xmm13", "xmm14", "xmm15",
+            "xmm16");
       begin
          Add_Char ('%');
          case R is
             when R_8 =>
-               Add_String (Regs_8 (F));
+               Add_String (Regs_8 (Bit_Field_3 (F)));
             when R_16 =>
-               Add_String (Regs_16 (F));
+               Add_String (Regs_16 (Bit_Field_3 (F)));
             when R_32 =>
-               Add_String (Regs_32 (F));
+               Add_String (Regs_32 (Bit_Field_3 (F)));
+            when R_64 =>
+               Add_String (Regs_64 (F));
             when R_Control =>
                Add_String (Regs_Control (F));
             when R_Debug =>
                Add_String (Regs_Debug (F));
             when R_MM =>
-               Add_String (Regs_MM (F));
+               Add_String (Regs_MM (Bit_Field_3 (F)));
             when R_XMM =>
                Add_String (Regs_XMM (F));
             when R_None =>
@@ -1769,6 +1856,29 @@ package body Disa_X86 is
          return Insn_Bin (Off);
       end Mem;
 
+      ------------------
+      -- Reg_With_Rex --
+      ------------------
+
+      function Reg_With_Rex (R : Reg_Class_Type) return Reg_Class_Type is
+      begin
+         if Rex_Prefix /= 0 and then R = R_32 then
+            return R_64;
+         else
+            return R;
+         end if;
+      end Reg_With_Rex;
+
+      ------------------
+      -- Reg_With_Rex --
+      ------------------
+
+      function Reg_With_Rex (Rex_Prefix : Bit; Reg : Bit_Field_3)
+         return Bit_Field_4 is
+      begin
+         return Bit_Field_4 (Rex_Prefix) * 8 + Bit_Field_4 (Reg);
+      end Reg_With_Rex;
+
       ----------------
       -- Decode_Val --
       ----------------
@@ -1783,6 +1893,15 @@ package body Disa_X86 is
                Add_Byte (Mem (Off + 1));
                Add_Byte (Mem (Off));
             when W_32 =>
+               Add_Byte (Mem (Off + 3));
+               Add_Byte (Mem (Off + 2));
+               Add_Byte (Mem (Off + 1));
+               Add_Byte (Mem (Off + 0));
+            when W_64 =>
+               Add_Byte (Mem (Off + 7));
+               Add_Byte (Mem (Off + 6));
+               Add_Byte (Mem (Off + 5));
+               Add_Byte (Mem (Off + 4));
                Add_Byte (Mem (Off + 3));
                Add_Byte (Mem (Off + 2));
                Add_Byte (Mem (Off + 1));
@@ -1817,8 +1936,10 @@ package body Disa_X86 is
          L : Natural;
          V : Unsigned_32;
       begin
+         --  Note that even in 64bit, there is no 64-bit displacements
          L := Lo;
-         V := Decode_Val (Mem'Unrestricted_Access, Off, Width) + Offset;
+         V := Unsigned_32 (Decode_Val (Mem'Unrestricted_Access, Off, Width))
+              + Offset;
          Sym.Symbolize (Pc_Type (V), Line, Lo);
          if L /= Lo then
             if V = 0 then
@@ -1874,21 +1995,32 @@ package body Disa_X86 is
          S : Bit_Field_2;
          I : Bit_Field_3;
          B : Bit_Field_3;
+
+         Reg_Addr_Class : Reg_Class_Type;
+         Base_Ext       : constant Bit := Ext_Rex_B (Rex_Prefix);
+         Index_Ext      : constant Bit := Ext_Rex_X (Rex_Prefix);
       begin
          S := Ext_Sib_Scale (Sib);
          B := Ext_Sib_Base (Sib);
          I := Ext_Sib_Index (Sib);
+
+         if Is_64bit then
+            Reg_Addr_Class := R_64;
+         else
+            Reg_Addr_Class := R_32;
+         end if;
+
          Add_Char ('(');
          if not (B = 2#101# and then B_Mod = 0) then
             --  Base
-            Add_Reg (B, R_32);
+            Add_Reg (Reg_With_Rex (Base_Ext, B), Reg_Addr_Class);
             if I /= 2#100# then
                Add_Char (',');
             end if;
          end if;
          if I /= 2#100# then
             --  Index
-            Add_Reg (I, R_32);
+            Add_Reg (Reg_With_Rex (Index_Ext, I), Reg_Addr_Class);
             --  Scale
             case S is
                when 2#00# =>
@@ -1909,8 +2041,10 @@ package body Disa_X86 is
       ----------------------
 
       procedure Decode_Modrm_Reg (B : Byte; R : Reg_Class_Type) is
+         B_Reg   : constant Bit_Field_3 := Ext_Modrm_Reg (B);
+         Reg_Ext : constant Bit         := Ext_Rex_R (Rex_Prefix);
       begin
-         Add_Reg (Ext_Modrm_Reg (B), R);
+         Add_Reg (Reg_With_Rex (Reg_Ext, B_Reg), R);
       end Decode_Modrm_Reg;
 
       ----------------------
@@ -1919,13 +2053,22 @@ package body Disa_X86 is
 
       procedure Decode_Modrm_Mem (Off : Pc_Type; R : Reg_Class_Type)
       is
-         B, Sib : Byte;
-         B_Mod : Bit_Field_2;
-         B_Rm : Bit_Field_3;
+         B, Sib         : Byte;
+         B_Mod          : Bit_Field_2;
+         B_Rm           : Bit_Field_3;
+
+         Reg_Addr_Class : Reg_Class_Type;
+         Reg_Ext        : constant Bit := Ext_Rex_B (Rex_Prefix);
       begin
          B := Mem (Off);
          B_Mod := Ext_Modrm_Mod (B);
          B_Rm := Ext_Modrm_Rm (B);
+
+         if Is_64bit then
+            Reg_Addr_Class := R_64;
+         else
+            Reg_Addr_Class := R_32;
+         end if;
 
          --  First the "mod" field of the ModR/M byte, and then the "r/m" one
          --  determine what the operand can be...
@@ -1940,20 +2083,26 @@ package body Disa_X86 is
                   --  The address is encoded in the SIB byte
                   Sib := Mem (Off + 1);
                   if Ext_Sib_Base (Sib) = 2#101# then
-                     --  And in this case, there is also a 32-bit displacement
-                     --  with no base.
+                     --  And in this case, there is also a 32-bit
+                     --  displacement with no base.
                      Decode_Disp (Off + 2, W_32);
                   end if;
                   Decode_Sib (Sib, B_Mod);
 
                elsif B_Rm = 2#101# then
-                  --  The address is the following 32-bit address
+                  --  In 32-bit mode, the address is the following 32-bit
+                  --  address...
                   Decode_Disp (Off + 1, W_32);
+
+                  --  In 64-bit mode, we also add RIP to it
+                  if Is_64bit then
+                     Add_String ("(%rip)");
+                  end if;
 
                else
                   --  Otherwise, the address lies in a register
                   Add_Char ('(');
-                  Add_Reg (B_Rm, R_32);
+                  Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_Addr_Class);
                   Add_Char (')');
                end if;
 
@@ -1969,7 +2118,7 @@ package body Disa_X86 is
                   --  a 8-bit displacement.
                   Decode_Disp (Off + 1, W_8);
                   Add_Char ('(');
-                  Add_Reg (B_Rm, R_32);
+                  Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_Addr_Class);
                   Add_Char (')');
                end if;
 
@@ -1984,7 +2133,7 @@ package body Disa_X86 is
                   --  a 32-bit displacement.
                   Decode_Disp (Off + 1, W_32);
                   Add_Char ('(');
-                  Add_Reg (B_Rm, R_32);
+                  Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_Addr_Class);
                   Add_Char (')');
                end if;
 
@@ -1993,7 +2142,7 @@ package body Disa_X86 is
             -----------------------
 
             when 2#11# =>
-               Add_Reg (B_Rm, R);
+               Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_With_Rex (R));
          end case;
       end Decode_Modrm_Mem;
 
@@ -2061,15 +2210,16 @@ package body Disa_X86 is
                              W : Width_Type)
       is
          Off2 : Pc_Type;
-         R : constant Reg_Class_Type := To_General (W);
+         R       : constant Reg_Class_Type := To_General (W);
+         Reg_Ext : constant Bit            := Ext_Rex_B (Rex_Prefix);
       begin
          case C is
             when C_Reg_Al | C_Reg_Cl | C_Reg_Dl | C_Reg_Bl
                | C_Reg_Ah | C_Reg_Ch | C_Reg_Dh | C_Reg_Bh =>
-               Add_Reg (To_Register_Number (C), R_8);
+               Add_Reg (Reg_With_Rex (0, To_Register_Number (C)), R_8);
             when C_Reg_Ax | C_Reg_Cx | C_Reg_Dx | C_Reg_Bx
                | C_Reg_Sp | C_Reg_Bp | C_Reg_Si | C_Reg_Di =>
-               Add_Reg (To_Register_Number (C), R);
+               Add_Reg (Reg_With_Rex (Reg_Ext, To_Register_Number (C)), R);
             when C_Reg_Cs =>
                Add_String ("%cs");
             when C_Reg_Ds =>
@@ -2244,12 +2394,12 @@ package body Disa_X86 is
       B, B1     : Byte;
       Use_Modrm : Boolean := False;
 
-      Desc     : Insn_Desc_Type;
-      Name     : String16;
-      W        : Width_Type := W_32;
-      Seg      : Code_Type := C_None;
-      Src, Dst : Code_Type;
-      Extra    : Extra_Operand_Type;
+      Desc      : Insn_Desc_Type;
+      Name      : String16;
+      W         : Width_Type := W_32;
+      Seg       : Code_Type := C_None;
+      Src, Dst  : Code_Type;
+      Extra     : Extra_Operand_Type;
 
    --  Start of processing for Disassemble_Insn
 
@@ -2308,12 +2458,26 @@ package body Disa_X86 is
                   end if;
                   exit;
                end if;
-               W := W_16;
+
+               --  Do not switch to 16-bit operand if REX.W (64-bit operand) is
+               --  enabled.
+               if W = W_32 then
+                  W := W_16;
+               end if;
 
             when C_0F =>
                B := Mem (Off);
                Off := Off + 1;
-               Desc := Insn_Desc_0F (B);
+
+               if Is_64bit and then B = 16#1f# then
+                  Desc := (Name  => "nop             ",
+                           Src   => C_None,
+                           Dst   => C_Ev,
+                           Extra => Extra_None);
+               else
+                  Desc := Insn_Desc_0F (B);
+               end if;
+
                exit;
 
             when C_Prefix_Addr =>
@@ -2324,7 +2488,29 @@ package body Disa_X86 is
                Seg := Desc.Dst;
 
             when others =>
-               exit;
+               if Is_64bit then
+                  --  x86_64 particularities are handled here not to disturb
+                  --  32-bit disassemblies.
+
+                  if (B and 16#f0#) = 16#40# then
+                     --  Handle the REX prefix
+
+                     Rex_Prefix := B;
+                     if Ext_Rex_W (Rex_Prefix) = 1 then
+                        W := W_64;
+                     end if;
+
+                  elsif (B and 16#f0#) = 16#50# then
+                     --  Force 64-bit GPR for PUSH/POP
+                     W := W_64;
+                     exit;
+
+                  else
+                     exit;
+                  end if;
+               else
+                  exit;
+               end if;
          end case;
       end loop;
 
