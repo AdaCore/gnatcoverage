@@ -922,21 +922,31 @@ package body Traces_Elf is
                   when R_X86_64_NONE =>
                      null;
                   when R_X86_64_64 =>
+                     --  When compiled in 64-bit mode, Elf_Addr is a subtype of
+                     --  Unsigned_64, so the following conversion is redundant.
+                     --  However, is is needed when compiling in 32-bit mode,
+                     --  in which Elf_Addr is a subtype of Unsigned_32.
+
+                     pragma Warnings (Off);
                      Write_Word8 (Exec,
                                   Data (0)'Address,
                                   Storage_Offset (R.R_Offset),
-                                  Offset + Elf_Addr (R.R_Addend));
+                                  Unsigned_64 (Offset
+                                               + Elf_Addr (R.R_Addend)));
+                     pragma Warnings (On);
                   when R_X86_64_32 =>
+                     --  There is no need to disable the warnings for the
+                     --  following conversion to Unsigned_32 even in 32-bit
+                     --  mode since it is considered by the compiler as a
+                     --  "disambiguation mean" between the unsigned/signed
+                     --  Write_Word4 functions.
+
                      Write_Word4 (Exec,
                                   Data (0)'Address,
                                   Storage_Offset (R.R_Offset),
                                   Unsigned_32 (Offset
                                                + Elf_Addr (R.R_Addend)));
                   when others =>
-                     Write_Word8 (Exec,
-                                  Data (0)'Address,
-                                  Storage_Offset (R.R_Offset),
-                                  Offset + Elf_Addr (R.R_Addend));
                      raise Program_Error with
                         ("unhandled x86_64 relocation, reloc is "
                          & Elf_Word'Image (Elf_R_Type (R.R_Info)));
