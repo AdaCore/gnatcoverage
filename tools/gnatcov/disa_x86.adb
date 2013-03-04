@@ -2502,6 +2502,15 @@ package body Disa_X86 is
                      W := W_64;
                      exit;
 
+                  elsif B = 16#63# then
+                     --  ARPL/MOVSXD is one of the few opcodes  that is
+                     --  valid and different instructions in 32/64bit
+                     Desc := (Name  => "movsxd          ",
+                              Dst   => C_Ev,
+                              Src   => C_Gv,
+                              Extra => Extra_None);
+                     exit;
+
                   else
                      exit;
                   end if;
