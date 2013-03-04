@@ -1577,7 +1577,7 @@ package body Disa_X86 is
       --  The following functions add basic elements (a character, an
       --  instruction mnemonic, a byte, etc.) to the output line.
 
-      procedure Add_Name (Name : String16);
+      procedure Add_Name (Name : String);
       pragma Inline (Add_Name);
 
       procedure Add_Char (C : Character);
@@ -1708,7 +1708,7 @@ package body Disa_X86 is
       -- Add_Name --
       --------------
 
-      procedure Add_Name (Name : String16) is
+      procedure Add_Name (Name : String) is
       begin
          for I in Name'Range loop
             exit when Name (I) = ' ';
@@ -1793,17 +1793,19 @@ package body Disa_X86 is
       -------------
 
       procedure Add_Reg (F : Bit_Field_4; R : Reg_Class_Type) is
-         type Reg_Name2_Array    is array (Bit_Field_3) of String (1 .. 2);
          type Reg_Name3_Array    is array (Bit_Field_3) of String (1 .. 3);
          type Reg_Name3_Array_16 is array (Bit_Field_4) of String (1 .. 3);
          type Reg_Name4_Array_16 is array (Bit_Field_4) of String (1 .. 4);
          type Reg_Name5_Array    is array (Bit_Field_4) of String (1 .. 5);
-         Regs_8 : constant Reg_Name2_Array :=
-           ("al", "cl", "dl", "bl", "ah", "ch", "dh", "bh");
-         Regs_16 : constant Reg_Name2_Array :=
-           ("ax", "cx", "dx", "bx", "sp", "bp", "si", "di");
-         Regs_32 : constant Reg_Name3_Array :=
-           ("eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi");
+         Regs_8 : constant Reg_Name4_Array_16 :=
+           ("al  ", "cl  ", "dl  ", "bl  ", "ah  ", "ch  ", "dh  ", "bh  ",
+            "r8b ", "r9b ", "r10b", "r11b", "r12b", "r13b", "r14b", "r15b");
+         Regs_16 : constant Reg_Name4_Array_16 :=
+           ("ax  ", "cx  ", "dx  ", "bx  ", "sp  ", "bp  ", "si  ", "di  ",
+            "r8w ", "r9w ", "r10w", "r11w", "r12w", "r13w", "r14w", "r15w");
+         Regs_32 : constant Reg_Name4_Array_16 :=
+           ("eax ", "ecx ", "edx ", "ebx ", "esp ", "ebp ", "esi ", "edi ",
+            "r8d ", "r9d ", "r10d", "r11d", "r12d", "r13d", "r14d", "r15d");
          Regs_64 : constant Reg_Name3_Array_16 :=
            ("rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi",
             "r8 ", "r9 ", "r10", "r11", "r12", "r13", "r14", "r15");
@@ -1824,21 +1826,21 @@ package body Disa_X86 is
          Add_Char ('%');
          case R is
             when R_8 =>
-               Add_String (Regs_8 (Bit_Field_3 (F)));
+               Add_Name (Regs_8 (F));
             when R_16 =>
-               Add_String (Regs_16 (Bit_Field_3 (F)));
+               Add_Name (Regs_16 (F));
             when R_32 =>
-               Add_String (Regs_32 (Bit_Field_3 (F)));
+               Add_Name (Regs_32 (F));
             when R_64 =>
-               Add_String (Regs_64 (F));
+               Add_Name (Regs_64 (F));
             when R_Control =>
-               Add_String (Regs_Control (F));
+               Add_Name (Regs_Control (F));
             when R_Debug =>
-               Add_String (Regs_Debug (F));
+               Add_Name (Regs_Debug (F));
             when R_MM =>
-               Add_String (Regs_MM (Bit_Field_3 (F)));
+               Add_Name (Regs_MM (Bit_Field_3 (F)));
             when R_XMM =>
-               Add_String (Regs_XMM (F));
+               Add_Name (Regs_XMM (F));
             when R_None =>
                raise Program_Error;
          end case;
