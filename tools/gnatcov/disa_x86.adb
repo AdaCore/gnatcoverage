@@ -2734,7 +2734,10 @@ package body Disa_X86 is
    is
       pragma Unreferenced (Self);
 
-      B, B1 : Byte;
+      Is_64bit   : constant Boolean := Machine = Elf_Common.EM_X86_64;
+
+      Opcode_Off : Pc_Type := 0;
+      B, B1      : Byte;
 
       function Mem (Off : Pc_Type) return Byte;
 
@@ -2744,10 +2747,10 @@ package body Disa_X86 is
 
       function Mem (Off : Pc_Type) return Byte is
       begin
-         if Off > Insn_Bin'Length  then
+         if Opcode_Off + Off > Insn_Bin'Length  then
             raise Bad_Memory;
          end if;
-         return Insn_Bin (Insn_Bin'First + Off);
+         return Insn_Bin (Insn_Bin'First + Opcode_Off + Off);
       end Mem;
 
    --  Start of processing for Get_Insn_Properties
@@ -2760,6 +2763,13 @@ package body Disa_X86 is
       Branch      := Br_None;
 
       B := Insn_Bin (Insn_Bin'First);
+
+      --  Discard the REX prefix, if any, in 64-bit mode
+
+      if Is_64bit and then (B and 16#f0#) = 16#40# then
+         Opcode_Off := Opcode_Off + 1;
+         B := Insn_Bin (Insn_Bin'First);
+      end if;
 
       case B is
          when 16#70# .. 16#7f#
@@ -2800,7 +2810,8 @@ package body Disa_X86 is
             return;
 
          when 16#e8# =>
-            --  Call
+            --  Call near, relative (32-bit offset in both 32-bit and 64-bit
+            --  mode).
             Branch     := Br_Call;
             Flag_Cond  := False;
             Flag_Indir := False;
