@@ -2428,12 +2428,14 @@ package body Disa_X86 is
                         Desc.Dst := C_None;
                         Desc.Src := C_None;
                   end case;
+                  exit;
                else
+                  --  If this is a true "rep" prefix, output it and continue
+                  --  the loop in order to handle any other prefix.
                   Add_Name (Desc.Name);
                   Add_Char (' ');
-                  Desc := Insn_Desc (B1);
+                  Off := Off - 1;
                end if;
-               exit;
 
             when C_Lock =>
                Add_Name (Desc.Name);
