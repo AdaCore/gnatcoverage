@@ -2266,7 +2266,15 @@ package body Disa_X86 is
             when C_Jb =>
                Decode_Disp_Rel (Off_Imm, W_8);
             when C_Ov | C_Ob =>
-               Decode_Imm (Off_Imm, W_32); --  FIXME: oper16
+               --  FIXME: the address-size override prefix (0x67) is supposed
+               --  to switch between a 16/32-bit addressing scheme, depending
+               --  on the architecture. We do not handle it since its usage is
+               --  very rare: does it support worth it?
+               if Is_64bit then
+                  Decode_Imm (Off_Imm, W_64);
+               else
+                  Decode_Imm (Off_Imm, W_32);
+               end if;
             when C_Yb =>
                Add_String ("%es:(%edi)");
             when C_Yv | C_Yz =>
@@ -2357,7 +2365,11 @@ package body Disa_X86 is
             when C_Iv =>
                Off_Imm := Off_Imm + Width_Len (W);
             when C_Ov | C_Ob =>
-               Off_Imm := Off_Imm + Width_Len (W_32); -- FIXME: oper16
+               if Is_64bit then
+                  Off_Imm := Off_Imm + Width_Len (W_64);
+               else
+                  Off_Imm := Off_Imm + Width_Len (W_32);
+               end if;
             when C_Ap =>
                Off_Imm := Off_Imm + 4 + 2; -- FIXME: oper16
             when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mp | C_Mpd | C_Mps
