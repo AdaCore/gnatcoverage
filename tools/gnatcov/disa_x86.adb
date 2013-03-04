@@ -1561,10 +1561,6 @@ package body Disa_X86 is
       function Mem (Off : Pc_Type) return Byte;
       --  The instruction memory, 0 based
 
-      function Reg_With_Rex (R : Reg_Class_Type) return Reg_Class_Type;
-      --  Return R_64 if there is a REX prefix and if R is R_32. Return R
-      --  otherwise.
-
       function Reg_With_Rex (Rex_Prefix : Bit; Reg : Bit_Field_3)
          return Bit_Field_4;
       --  Combine the given REX prefix bit and the given 3-bit register number
@@ -1862,19 +1858,6 @@ package body Disa_X86 is
       -- Reg_With_Rex --
       ------------------
 
-      function Reg_With_Rex (R : Reg_Class_Type) return Reg_Class_Type is
-      begin
-         if Rex_Prefix /= 0 and then R = R_32 then
-            return R_64;
-         else
-            return R;
-         end if;
-      end Reg_With_Rex;
-
-      ------------------
-      -- Reg_With_Rex --
-      ------------------
-
       function Reg_With_Rex (Rex_Prefix : Bit; Reg : Bit_Field_3)
          return Bit_Field_4 is
       begin
@@ -2144,7 +2127,7 @@ package body Disa_X86 is
             -----------------------
 
             when 2#11# =>
-               Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), Reg_With_Rex (R));
+               Add_Reg (Reg_With_Rex (Reg_Ext, B_Rm), R);
          end case;
       end Decode_Modrm_Mem;
 
