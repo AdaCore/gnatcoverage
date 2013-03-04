@@ -2074,7 +2074,7 @@ package body Traces_Elf is
          exit when Trace.First > Section'Last;
 
          case Machine is
-            when EM_386 =>
+            when EM_386 | EM_X86_64 =>
                declare
                   Last_Pc : Pc_Type;
                   Next_Pc : Pc_Type;
