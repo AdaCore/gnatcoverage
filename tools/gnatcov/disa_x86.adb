@@ -2470,7 +2470,7 @@ package body Disa_X86 is
                Off := Off + 1;
 
                if Is_64bit and then B = 16#1f# then
-                  Desc := (Name  => "nop             ",
+                  Desc := (Name  => "nopl            ",
                            Src   => C_None,
                            Dst   => C_Ev,
                            Extra => Extra_None);
