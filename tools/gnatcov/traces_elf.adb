@@ -28,7 +28,6 @@ with GNAT.OS_Lib;
 
 with Coverage.Object;   use Coverage.Object;
 with Coverage.Tags;     use Coverage.Tags;
-with Disa_Common;       use Disa_Common;
 with Disassemblers;     use Disassemblers;
 with Dwarf;
 with Dwarf_Handling;    use Dwarf_Handling;
@@ -2064,6 +2063,25 @@ package body Traces_Elf is
       It    : Entry_Iterator;
       Trace : Trace_Entry;
 
+      Last_Pc_1, Last_Pc_2             : Pc_Type;
+      Last_Insn_1_Len, Last_Insn_2_Len : Pc_Type;
+      --  Addresses and length of the (respectively) penultimate and last
+      --  instructions of the current trace entry.
+
+      Is_Cond        : Boolean;
+      First_Cond_Pc  : Pc_Type;
+      First_Cond_Len : Pc_Type;
+      Cond_State     : Insn_State;
+
+      Next_Pc        : Pc_Type;
+      --  Temporary instruction address, used only when looking for last
+      --  instructions.
+
+      Branch               : Branch_Kind;
+      Flag_Indir           : Boolean;
+      Branch_Dest, FT_Dest : Dest;
+      --  Unused, but mandatory arguments when getting instructions properties
+
    --  Start of processing for Set_Insn_State
 
    begin
@@ -2071,294 +2089,104 @@ package body Traces_Elf is
       Get_Next_Trace (Trace, It);
 
       while Trace /= Bad_Trace loop
-         exit when Trace.First > Section'Last;
 
-         case Machine is
-            when EM_386 | EM_X86_64 =>
-               declare
-                  Last_Pc : Pc_Type;
-                  Next_Pc : Pc_Type;
-                  Len : Natural;
+         --  First, search the two last instructions (two to handle the delay
+         --  slot if needed).
 
-                  New_State : Insn_State;
-               begin
+         Last_Pc_1 := No_PC;
+         Last_Pc_2 := Trace.First;
+         loop
+            Last_Insn_2_Len := Pc_Type
+              (Disa_For_Machine (Machine).Get_Insn_Length
+                (Section (Last_Pc_2 .. Trace.Last)));
+            Next_Pc := Last_Pc_2 + Last_Insn_2_Len;
+            exit when Next_Pc = Trace.Last + 1;
 
-                  --  First search the last instruction.
+            --  Crash if something got wrong... We should arrive right after
+            --  the end of the trace entry instructions range.
 
-                  Last_Pc := Trace.First;
-                  loop
-                     Len := Disa_For_Machine (Machine).Get_Insn_Length
-                       (Section (Last_Pc .. Trace.Last));
-                     Next_Pc := Last_Pc + Pc_Type (Len);
-                     exit when Next_Pc = Trace.Last + 1;
+            if Next_Pc > Trace.Last then
+               raise Program_Error;
+            end if;
+            Last_Pc_1 := Last_Pc_2;
+            Last_Insn_1_Len := Last_Insn_2_Len;
+            Last_Pc_2 := Next_Pc;
+         end loop;
 
-                     --  Crash if something got wrong...
+         --  Then take (into First_Cond_Pc and First_Cond_Len) the first
+         --  conditionally executed instruction of these two.
 
-                     if Next_Pc > Trace.Last then
-                        raise Program_Error;
-                     end if;
+         --  Note: if there is no delay slot (like in x86* or in PowerPC), the
+         --  penultimate instruction will not be a conditionnal one anyway:
+         --  traces are basic blocks or splitted ones, so there is at most one
+         --  conditionnal expression per trace, and if there is one, it is at
+         --  the end of the trace.
 
-                     Last_Pc := Next_Pc;
-                  end loop;
+         First_Cond_Pc := No_PC;
+         if Last_Pc_1 /= No_PC then
+            Disa_For_Machine (Machine).Get_Insn_Properties
+              (Section (Last_Pc_1 .. Last_Pc_1 + Last_Insn_1_Len - 1),
+               Last_Pc_1,
+               Branch,
+               Flag_Indir,
+               Is_Cond,
+               Branch_Dest, FT_Dest);
+            if Is_Cond then
+               First_Cond_Pc := Last_Pc_1;
+               First_Cond_Len := Last_Insn_1_Len;
+            end if;
+         end if;
+         if First_Cond_Pc = No_PC then
+            Disa_For_Machine (Machine).Get_Insn_Properties
+              (Section (Last_Pc_2 .. Last_Pc_2 + Last_Insn_2_Len - 1),
+               Last_Pc_2,
+               Branch,
+               Flag_Indir,
+               Is_Cond,
+               Branch_Dest, FT_Dest);
+            First_Cond_Pc := Last_Pc_2;
+            First_Cond_Len := Last_Insn_2_Len;
+         end if;
 
-                  if Section (Last_Pc) in 16#70# .. 16#7F#
-                    or else (Section (Last_Pc) = 16#0F#
-                             and then
-                             Section (Last_Pc + 1) in 16#80# .. 16#8F#)
-                  then
-                     --  Jcc
-                     if Last_Pc > Trace.First then
-                        Split_Trace (Base, It, Last_Pc - 1,
-                                     Coverage_State (Covered));
-                     end if;
-                     case Trace.Op and 3 is
-                        when 1 =>
-                           New_State := Branch_Taken;
-                        when 2 =>
-                           New_State := Fallthrough_Taken;
-                        when 3 =>
-                           New_State := Both_Taken;
-                        when others =>
-                           --  The last instruction is a branch; the trace
-                           --  should say if it has been taken or not.
-                           --  So Trace.Op shall not be null.
-                           --  If the case of instruction coverage, we may
-                           --  however ignore this error.
-                           if Enabled (Insn) then
-                              New_State := Covered;
-                           else
-                              Outputs.Fatal_Error
-                                ("trace at PC=" & Hex_Image (Last_Pc)
-                                 & ": incomplete branch coverage information");
-                           end if;
-                     end case;
-                  else
-                     New_State := Covered;
-                  end if;
-                  Update_State (Base, It, Coverage_State (New_State));
-               end;
+         --  Tag the code before the first branch as covered, and split the
+         --  condition away if needed: unconditionnal and conditionnal
+         --  instructions can have a different coverage states.
 
-            when EM_PPC =>
-               declare
-                  procedure Update_Or_Split (Next_State : Insn_State);
+         if Is_Cond and then First_Cond_Pc > Trace.First then
+            Split_Trace
+              (Base, It, First_Cond_Pc - 1, Coverage_State (Covered));
+         else
+            Update_State (Base, It, Coverage_State (Covered));
+         end if;
 
-                  Insn_Bin : Binary_Content renames Section (Trace.Last - 3
-                                                          .. Trace.Last);
+         --  If there is a conditionnal instruction at all, compute its state
 
-                  Branch      : Branch_Kind;
-                  Flag_Indir  : Boolean;
-                  Flag_Cond   : Boolean;
-                  Branch_Dest : Dest;
-                  FT_Dest     : Dest;
+         if Is_Cond then
+            case Trace.Op and 2#111# is
+               when 0 => Cond_State := Covered;
+               when 1 => Cond_State := Branch_Taken;
+               when 2 => Cond_State := Fallthrough_Taken;
+               when 3 => Cond_State := Both_Taken;
+               when others =>
+                  raise Program_Error with
+                    ("Invalid flags combination: "
+                     & Unsigned_8'Image (Trace.Op));
+            end case;
+            Update_State (Base, It, Coverage_State (Cond_State));
 
-                  Op : constant Unsigned_8 := Trace.Op and 3;
-                  Trace_Len : constant Pc_Type := Trace.Last - Trace.First + 1;
+            --  And if the conditionnal was the penultimate instruction of the
+            --  original trace, split it again to tag the last instruction as
+            --  covered: when there is a delay slot, there cannot be two
+            --  consecutive branch instructions.
 
-                  ---------------------
-                  -- Update_Or_Split --
-                  ---------------------
-
-                  procedure Update_Or_Split (Next_State : Insn_State) is
-                  begin
-                     if Trace_Len > 4 then
-                        Split_Trace (Base, It, Trace.Last - 4,
-                                     Coverage_State (Covered));
-                     end if;
-                     Update_State (Base, It, Coverage_State (Next_State));
-                  end Update_Or_Split;
-
-               begin
-                  --  Instructions length is 4
-
-                  if Trace_Len < 4 then
-                     raise Program_Error;
-                  end if;
-
-                  Disa_For_Machine (Machine).Get_Insn_Properties
-                    (Insn_Bin    => Insn_Bin,
-                     Pc          => Insn_Bin'First, -- ???
-                     Branch      => Branch,
-                     Flag_Indir  => Flag_Indir,
-                     Flag_Cond   => Flag_Cond,
-                     Branch_Dest => Branch_Dest,
-                     FT_Dest     => FT_Dest);
-
-                  if Flag_Cond then
-                     case Op is
-                        when 1 =>
-                           Update_Or_Split (Branch_Taken);
-                        when 2 =>
-                           Update_Or_Split (Fallthrough_Taken);
-                        when 3 =>
-                           Update_Or_Split (Both_Taken);
-                        when others =>
-                           raise Program_Error;
-                     end case;
-
-                  else
-                     --  Any other case than a conditional branch:
-                     --  * either a unconditional
-                     --  branch (Opc = 18: b, ba, bl and bla);
-                     --  * or a branch conditional with BO=1x1xx
-                     --  (branch always);
-                     --  * or not a branch. This last case
-                     --  may happen when a trace entry has been
-                     --  split; in such a case, the ???.
-                     Update_State (Base, It, Coverage_State (Covered));
-                  end if;
-               end;
-
-            when EM_SPARC =>
-               declare
-                  Op : constant Unsigned_8 := Trace.Op and 3;
-                  Pc1 : Pc_Type;
-                  Trace_Len : constant Pc_Type := Trace.Last - Trace.First + 1;
-                  Nstate : Insn_State;
-
-                  type Br_Kind is (Br_None,
-                                   Br_Cond, Br_Cond_A,
-                                   Br_Always, Br_Always_A,
-                                   Br_Never, Br_Never_A,
-                                   Br_Trap, Br_Call, Br_Jmpl, Br_Rett);
-
-                  function Get_Br (Insn : Unsigned_32) return Br_Kind;
-                  --  Needs comment???
-
-                  Br1, Br2, Br : Br_Kind;
-
-                  ------------
-                  -- Get_Br --
-                  ------------
-
-                  function Get_Br (Insn : Unsigned_32) return Br_Kind is
-                  begin
-                     --  Extract OP.
-                     case Shift_Right (Insn, 30) is
-
-                        when 0 =>
-                           --  Format 2.  Extract OP2.
-                           case Shift_Right (Insn, 22) and 7 is
-                              --  BIcc, FBfcc or CBcc
-                              when 2#010# | 2#110# | 2#111# =>
-                                 --  Extract a & cond.
-                                 case Shift_Right (Insn, 25) and 31 is
-                                    when 0 =>
-                                       return Br_Never;
-                                    when 16 =>
-                                       return Br_Never_A;
-                                    when 8 =>
-                                       return Br_Always;
-                                    when 24 =>
-                                       return Br_Always_A;
-                                    when 1 .. 7 | 9 .. 15 =>
-                                       return Br_Cond;
-                                    when 17 .. 23 | 25 .. 31 =>
-                                       return Br_Cond_A;
-                                    when others =>
-                                       raise Program_Error;
-                                 end case;
-
-                              when others =>
-                                 return Br_None;
-                           end case;
-
-                        when 1 =>
-                           return Br_Call;
-
-                        when 2 =>
-                           --  Extract OP3.
-                           case Shift_Right (Insn, 19) and 2#111_111# is
-                              when 2#111000# =>
-                                 return Br_Jmpl;
-
-                              when 2#111001# =>
-                                 return Br_Rett;
-
-                              when 2#111_010# =>
-                                 return Br_Trap;
-
-                              when others =>
-                                 return Br_None;
-                           end case;
-
-                        when others =>
-                           return Br_None;
-                     end case;
-                  end Get_Br;
-
-               begin
-                  --  Instructions length is 4
-
-                  if Trace_Len < 4 then
-                     raise Program_Error;
-                  end if;
-
-                  --  Extract last two instructions
-
-                  if Trace_Len > 7 then
-                     Br1 := Get_Br
-                              (To_Big_Endian_U32 (Section (Trace.Last - 7
-                                                        .. Trace.Last - 4)));
-                  else
-                     Br1 := Br_None;
-                  end if;
-
-                  Br2 := Get_Br
-                           (To_Big_Endian_U32 (Section (Trace.Last - 3
-                                                     .. Trace.Last)));
-
-                  --  Code until the first branch is covered
-
-                  if Br1 = Br_None then
-                     Pc1 := Trace.Last - 4;
-                     Br := Br2;
-                  else
-                     Pc1 := Trace.Last - 8;
-                     Br := Br1;
-                  end if;
-
-                  if Pc1 + 1 > Trace.First then
-                     Split_Trace (Base, It, Pc1, Coverage_State (Covered));
-                  end if;
-
-                  --  Compute the state of the last and previous insn
-
-                  case Br is
-                     when Br_Cond | Br_Cond_A =>
-                        case Op is
-                           when 0 => Nstate := Covered;
-                           when 1 => Nstate := Branch_Taken;
-                           when 2 => Nstate := Fallthrough_Taken;
-                           when 3 => Nstate := Both_Taken;
-
-                           when others =>
-                              raise Program_Error;
-
-                        end case;
-
-                     when Br_Always | Br_Always_A | Br_Never | Br_Never_A =>
-                        Nstate := Covered;
-
-                     when Br_None | Br_Call | Br_Trap | Br_Jmpl | Br_Rett =>
-                        Nstate := Covered;
-                  end case;
-
-                  --  Branch instruction state
-
-                  if Br1 = Br_None then
-                     Update_State (Base, It, Coverage_State (Nstate));
-
-                  else
-                     Split_Trace (Base, It, Pc1 + 4, Coverage_State (Nstate));
-
-                     --  FIXME: is it sure???
-                     Update_State (Base, It, Coverage_State (Covered));
-                  end if;
-               end;
-
-            when others =>
-               exit;
-         end case;
+            if First_Cond_Pc = Last_Pc_1 then
+               Split_Trace
+                 (Base, It,
+                  First_Cond_Pc + First_Cond_Len - 1,
+                  Coverage_State (Cond_State));
+               Update_State (Base, It, Coverage_State (Covered));
+            end if;
+         end if;
 
          Get_Next_Trace (Trace, It);
       end loop;
