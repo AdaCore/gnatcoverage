@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -27,6 +27,7 @@ package Commands is
       Cmd_Coverage,
       Cmd_Disp_Routines,
       Cmd_Map_Routines,
+      Cmd_Check_SCOs,
       Cmd_Dump_Trace,
       Cmd_Dump_Trace_Raw,
       Cmd_Dump_Trace_Base,

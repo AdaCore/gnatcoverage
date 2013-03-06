@@ -30,6 +30,7 @@ with Annotations.Html;
 with Annotations.Xcov;
 with Annotations.Xml;
 with Annotations.Report;
+with Check_SCOs;
 with Commands;          use Commands;
 with Coverage;          use Coverage;
 with Coverage.Source;   use Coverage.Source;
@@ -153,6 +154,9 @@ procedure GNATcov is
       procedure P (S : String) renames Put_Line;
    begin
       P ("Debugging commands:");
+      New_Line;
+      P (" check-scos");
+      P ("   Parse and load SCOs files to check them");
       New_Line;
       P (" dump-trace FILES");
       P ("   Display of trace files, slided if necessary");
@@ -828,6 +832,9 @@ procedure GNATcov is
                            end if;
                            Inputs.Add_Input (Exe_Inputs, Arg);
 
+                        when Cmd_Check_SCOs =>
+                           Inputs.Add_Input (ALIs_Inputs, Arg);
+
                         when Cmd_Dump_Trace_Asm =>
                            if Inputs.Length (Exe_Inputs) < 1 then
                               Inputs.Add_Input (Exe_Inputs, Arg);
@@ -1083,6 +1090,11 @@ begin
             end if;
             return;
          end;
+
+      when Cmd_Check_SCOs =>
+         Inputs.Iterate (ALIs_Inputs, Check_SCOs.Check_SCO_Syntax'Access);
+         Load_All_SCOs (Check_SCOs => True);
+         return;
 
       when Cmd_Dump_Trace =>
          Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);

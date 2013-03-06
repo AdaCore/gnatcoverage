@@ -1,4 +1,6 @@
 get_scos.ads
 get_scos.adb
+put_scos.ads
+put_scos.adb
 scos.ads
 scos.adb
