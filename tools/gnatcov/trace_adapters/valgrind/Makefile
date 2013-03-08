@@ -1,16 +1,6 @@
+include ../../architecture.mk
 
 MKDIR=mkdir -p
-
-# Translation from `uname -m` to a suitable value for valgrind
-ARCH_i386 = x86
-ARCH_i486 = x86
-ARCH_i586 = x86
-ARCH_i686 = x86
-ARCH_x86_64 = amd64
-ARCH_amd64 = amd64
-
-DISTRIB_ARCH=$(shell uname -m)
-VALGRIND_ARCH=$(ARCH_$(DISTRIB_ARCH))
 
 VALGRIND_DIR=$(shell dirname `which valgrind`)
 VALGRIND_INCLUDE=$(VALGRIND_DIR)/../include/valgrind

@@ -128,8 +128,9 @@ ifeq ($(HOST_OS), linux)
 HOST_ADAPTER_SUBDIRS = $(VALGRIND_SUBDIR)
 endif
 
+include architecture.mk
+
 PARALLEL_BUILD=0
-ARCH=32
 
 .PHONY: default all adapters bin $(PGMNAME) $(ALL_ADAPTER_SUBDIRS)
 
@@ -146,7 +147,7 @@ all: bin adapters
 $(PGMNAME):
 	$(GNATMAKE) -Pgnatcov                           \
 		-j$(PARALLEL_BUILD)                     \
-		-XARCH=$(ARCH) $(EXTRA_ADAFLAGS) $@
+		-XARCH=$(BITS_ARCH) $(EXTRA_ADAFLAGS) $@
 
 $(ALL_ADAPTER_SUBDIRS):
 	$(MAKE) -C $@
