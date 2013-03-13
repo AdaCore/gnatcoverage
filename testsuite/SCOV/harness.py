@@ -38,6 +38,7 @@ class HarnessMonitor:
     def __count_match_on (self, reported, expected):
         reported.nmatches += 1
         expected.nmatches += 1
+        thistest.n_failed -= 1
 
     def run (self):
 
@@ -55,8 +56,6 @@ class HarnessMonitor:
         [self.__count_match_on (reported, expected)
          for reported in self.reported_diags for expected in self.expected_diags
          if expected.text in reported.text]
-
-        thistest.n_failed -= len (self.expected_diags)
 
         [thistest.fail_if (
                 expected.nmatches != 1,
