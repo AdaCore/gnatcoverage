@@ -210,6 +210,12 @@ def gprfor(
 # -- exename_for, tracename_for, dmapname_for --
 # ----------------------------------------------
 
+# Abstract away the possible presence of extensions at the end of executable
+# names depending on the target, e.g. ".out" for vxworks.
+
+# PGNNAME is a program name, in the main subprogram name sense. An empty
+# PGMNAME is allowed, in which case the functions return only the extensions.
+
 def exename_for (pgmname):
     return (pgmname + thistest.tinfo.exeext) if thistest.tinfo else pgmname
 
@@ -218,6 +224,16 @@ def tracename_for (pgmname):
 
 def dmapname_for (pgmname):
     return exename_for (pgmname) + ".dmap"
+
+# ----------------
+# -- exepath_to --
+# ----------------
+
+def exepath_to (pgmname):
+    """Return the absolute path to the executable file expected
+    in the current directory for a main subprogram PGMNAME."""
+
+    return os.path.abspath(exename_for(pgmname))
 
 # --------------------
 # -- maybe_valgrind --
