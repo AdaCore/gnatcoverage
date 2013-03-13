@@ -311,10 +311,9 @@ class TestCase:
 
             # First, run the test for each driver, individually.
             [self.register_qde_for (
-                    SCOV_helper(drivers=[driver],
-                                xfile=driver, category=self.category,
+                    SCOV_helper(self, drivers=[driver],
+                                xfile=driver,
                                 xcovlevel=covlevel, covctl=covcontrol,
-                                extracargs=self.extracargs,
                                 subdirhint=subdirhint)
                     ).run()
              for covlevel in self.xcovlevels
@@ -322,10 +321,9 @@ class TestCase:
 
             # Next, run applicable consolidation tests.
             [self.register_qde_for (
-                    SCOV_helper(drivers=self.__drivers_from(cspec),
-                                xfile=cspec, category=self.category,
+                    SCOV_helper(self, drivers=self.__drivers_from(cspec),
+                                xfile=cspec,
                                 xcovlevel=covlevel, covctl=covcontrol,
-                                extracargs=self.extracargs,
                                 subdirhint=subdirhint)
                     ).run()
              for covlevel in self.xcovlevels

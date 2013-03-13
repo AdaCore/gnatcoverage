@@ -305,12 +305,11 @@ class SCOV_helper:
     # -- __init__ --
     # --------------
     def __init__(
-        self, drivers, xfile, category,
-        xcovlevel, covctl,
-        extracargs, subdirhint=""
+        self, testcase, drivers, xfile,
+        xcovlevel, covctl, subdirhint=""
         ):
+        self.testcase = testcase
         self.drivers = [os.path.basename(d) for d in drivers]
-        self.category = category
         self.xcovlevel = xcovlevel
         self.covctl = covctl
 
@@ -330,7 +329,7 @@ class SCOV_helper:
             CAT.decision: "dc_",
             CAT.mcdc:     "mc_"
             }
-        self.wdbase  = wdbase_for [self.category] + subdirhint
+        self.wdbase  = wdbase_for [self.testcase.category] + subdirhint
 
         # Compute the gnatcov coverage specific extra options that we'll have
         # to pass. We need these early for Xnote expansions.
@@ -339,7 +338,7 @@ class SCOV_helper:
             '--level='+self.xcovlevel
             ] + (to_list (self.covctl.covoptions) if self.covctl else [])
 
-        self.extracargs = to_list (extracargs)
+        self.extracargs = to_list (self.testcase.extracargs)
 
         # { sourcename -> KnoteDict } dictionaries of emitted/expected
         # line/report notes. We'll extract emitted notes from reports when we
@@ -695,8 +694,8 @@ class SCOV_helper:
             }
 
         stricter_level = (
-            self.category and
-            strength [self.xcovlevel] > strength [self.category]
+            self.testcase.category and
+            strength [self.xcovlevel] > strength [self.testcase.category]
             )
 
         # For tests without a category, we will pick the relevant note
@@ -710,7 +709,7 @@ class SCOV_helper:
             }
 
         relevance_cat = (
-            self.category if self.category
+            self.testcase.category if self.testcase.category
             else strictest_cat_for[self.xcovlevel])
 
         # Setup our report and line discharging configurations (kinds of
@@ -798,7 +797,8 @@ class SCOV_helper:
                % (os.path.relpath (os.getcwd(), thistest.homedir),
                   str([no_ext(main) for main in self.drivers]),
                   self.xfile,
-                  self.category.name if self.category else "generic",
+                  self.testcase.category.name if self.testcase.category
+                  else "generic",
                   ' '.join (self.covoptions)),
                char='*').display()
 
