@@ -210,6 +210,10 @@ class TestCase:
 
     def __init__(self, extradrivers="", extracargs="", category=CAT.auto):
 
+        # By default, these test cases expect no error from subprocesses (xrun,
+        # xcov, etc.)
+        self.expect_failures = False
+
         # Step 1: Compute the list of drivers and consolidation specs
         #         to exercise
         # -----------------------------------------------------------

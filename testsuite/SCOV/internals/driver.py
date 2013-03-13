@@ -548,9 +548,16 @@ class SCOV_helper:
 
         ofile="xcov_run_%s.out" % main
 
+        # Some execution engines (e.g. valgrind) do not let us distinguish
+        # executed program errors from engine errors. Because of them, we
+        # ignore here any kind of execution error for tests expected to trigger
+        # failures (such as harness tests), assuming that they will perform
+        # further checks that are bound to fail if the execution doesn't
+        # proceed as expected somehow (e.g. not producing a trace).
+
         xrun([self.awdir_for(main)+exename_for(main),
               "--level=%s" % self.xcovlevel] + self.scoptions,
-             out=ofile)
+             out=ofile, register_failure=not self.testcase.expect_failures)
 
         thistest.fail_if (
             match ("!!! EXCEPTION RAISED !!!", ofile),

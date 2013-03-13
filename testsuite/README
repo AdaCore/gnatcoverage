@@ -159,7 +159,9 @@ This settled, we have:
  ----
    tc.py      : TestCase class for source coverage tests
 
-   report.py  : Format checker for qualified reports, 
+   htc.py     : HarnessTestCase class for harness self tests
+
+   report.py  : Format checker for qualified reports,
 
    map.py     : MapChecker class for gnatcov map-routines tests
 

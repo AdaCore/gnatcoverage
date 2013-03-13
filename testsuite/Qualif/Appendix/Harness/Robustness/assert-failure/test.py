@@ -1,16 +1,12 @@
-from SCOV.tc import *
+from SCOV.htc import *
 from SCOV.tctl import CAT
 
-TestCase(category=CAT.stmt).run()
-
-from SCOV.harness import *
-
-HarnessMonitor (
+HarnessTestCase(
     expected_diags = [
         HarnessDiagnostic (
             text = "exception raised while running 'test_afail'"
             )
-        ]
-    ).run ()
+        ],
+    category=CAT.stmt).run()
 
 thistest.result()
