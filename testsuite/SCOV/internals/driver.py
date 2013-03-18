@@ -560,8 +560,11 @@ class SCOV_helper:
              out=ofile, register_failure=not self.testcase.expect_failures)
 
         thistest.fail_if (
-            match ("!!! EXCEPTION RAISED !!!", ofile),
-            "exception raised while running '%s'." % main);
+            match (
+                "(!!! EXCEPTION RAISED !!!"
+                "|raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ explicit raise)",
+                ofile),
+            "exception raised while running '%s'." % main)
 
     # -------------------------
     # -- gen_one_xcov_report --
