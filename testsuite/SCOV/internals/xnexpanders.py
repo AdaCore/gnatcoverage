@@ -49,14 +49,18 @@ from SUITE.cutils import Identifier
 #     cov_level_list := cov_level_choice [cov_level_list]
 #     cov_level_test := cov_level_list "=>"
 
-#     lx_lnote_list := lx_lnote_choice [";" lx_lnote_list]
+#     lx_lnote_list := lx_lnote_choice ["," lx_lnote_list]
 #     lx_lnote_choice := [cov_level_test] [weak_mark] lx_lnote
 #     lx_lnote := <l-|l!|l+|l*|l#|l0>
 
-#     lx_rnote_list := lx_rnote_choice [lx_rnote_list]
+#     lx_rnote_list := lx_rnote_choice [rnote_sep lx_rnote_list]
 #     lx_rnote_choice := [cov_level_test] [weak_mark] lx_rnote
 #     lx_rnote_kind = <s-|s!|dT-|dF-|d!|eT-|eF-|oT-|oF-|c!|x0|x+>
 #     lx_rnote := lx_rnote_kind[:"TEXT"][@(STAG)]
+
+#     rnote_sep is selected to be '#' if any # is found on the line,
+#                              or ',' if any , is found on the line,
+#     crude but good enough so far.
 
 # The start of the SCOV data is identified as the first comment whose syntax
 # matches a "sources" line.  Any comment before then is assumed to be a normal
@@ -87,6 +91,53 @@ from SUITE.cutils import Identifier
 #
 # --  /blu/ l- ## s-
 # -- =/blu/ l- ## c!:"A"
+
+# RNOTE SUBTEXT FOCUS/SPECIALIZATION (:"TEXT" extensions)
+# -------------------------------------------------------
+
+# The optional :"TEXT" part in a rnote lets users state that some diagnostic
+# is expected to designate a particular piece of a source line. This is most
+# typically useful for c! expectations on lines where there are multiple
+# conditions, and users want to state the particular condition on which a c!
+# diagnostic is expected.
+#
+# For example, with a piece of functional code like
+#
+#     if A and then B then -- # eval
+#
+# An mcdc test driver which exercises A correctly and not B can state
+# expectations like:
+#
+#  -- /eval/ l! ## c!:"B"
+#
+# The quoted "TEXT" is interpreted as designating the corresponding section of
+# each source line matched by the LRE, in a case-sensitive manner. For example,
+# "Operand_A" in :
+#
+#  -- /eval/ l! ## c!:"Operand_A"
+#
+# will designate columns 4 to 11 on line 3 and columns 15 to 22 on line 9
+#
+#        4      11
+# ...    v       v
+#  3: if Operand_A and then Operand_B then -- # eval
+#  ...
+#  9: X := K or else Operand_A;     -- # eval
+#                    ^       ^
+#                    15     22
+#
+# The special form "(TEXT*)" is also recognized to designate the full text
+# included in the outer parens plus the parens themselves. This is useful
+# to designate complete parenthesised operands in situations like:
+#
+#   if (x < 12) && (y > 30)  // # eval
+#
+# As the slocs designated by gnatcov are not necessarily the start of the
+# conditions but could point at the root expression operators instead.
+#
+# In this example, gnatcov could well point at '<' or '>' to designate a
+# partially covered condition, and specifying c!:"x" or c!:"y" wouldn't
+# work. c!:"(x*)" and c!:"(y*)" could be used instead.
 
 # CONTINUATION LINES (CONT lines)
 # -------------------------------

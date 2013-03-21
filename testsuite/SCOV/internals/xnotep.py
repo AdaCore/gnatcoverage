@@ -75,15 +75,69 @@ class _XnoteP_segment:
         self.notep = notep
         self.stext = stext
 
+    # For operands like "(bla > 3)" or "(bla(x, y) < 12)", a specified segment
+    # subtext of the form "(bla*)" designates the entire operand, outer parens
+    # included.
+
+    # Compute the extended segment end for a provided BM (base match) object,
+    # matching the base specified subtext in TLINE, opening paren included and
+    # up to the '*' character.
+
+    def __extended_segend_for(self, tline, bm):
+
+        # Start with the end of the base match. Operate in string index units
+        # first:
+
+        segend = bm.end()-1
+
+        # Fetch characters up to the first closing paren that is not
+        # closing an inner one. Guard against the case where this paren is
+        # not on the line.
+
+        linend = len(tline.text)-1
+        pnest = 0
+
+        while segend <= linend and pnest >= 0:
+            c = tline.text[segend]
+            if c == '(':
+                pnest += 1
+            elif c == ')':
+                pnest -= 1
+            segend += 1
+
+        # Unless we have hit the end of line early, the loop above has moved
+        # segend one past the closing paren. This is exactly what we need to
+        # return in sloc units, starting at 1 unlike array indexes.
+
+        return segend
+
     def instanciate_over(self, tline, block, kind):
 
         thisni = Xnote (xnp=self.notep, block=block, kind=kind)
 
-        # Register matches for Segments corresponding to all the instances
-        # of the subtext we find, then error out if too few or too many.
+        # Register matches for Segments corresponding to all the instances of
+        # the subtext we find, possibly extended.  Error out if too few or too
+        # many.
 
-        [thisni.register_match (Segment (tline.lno, m.start()+1, m.end()))
-         for m in re.finditer (self.stext, tline.text)]
+        # Compute a base subtext to start from and whether we should extend or
+        # not. If we should, include the opening paren as part of the base, escaped
+        # as we're going to use RE services to test for multiple occurrences.
+
+        if self.stext.startswith ('(') and self.stext.endswith ('*)'):
+            base = '\\'+self.stext[0:-2]
+            extend = True
+        else:
+            base = self.stext
+            extend = False
+
+        [thisni.register_match (
+                Segment (
+                    tline.lno, bm.start()+1,
+                    self.__extended_segend_for (bm = bm, tline = tline)
+                    if extend else bm.end()
+                    )
+                )
+         for bm in re.finditer (pattern=base, string=tline.text)]
 
         thistest.stop_if (
             thisni.nmatches == 0, FatalError (
