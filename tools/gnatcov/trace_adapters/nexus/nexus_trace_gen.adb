@@ -26,6 +26,28 @@
 --  Checking of errors from arguments or inputs is not thorough since this
 --  is not a user-run program.
 --
+--  The program requires arguments on the command line naming the
+--  processor, the executable file, the nexus trace file (aka the
+--  On Chip Debug file), a history file name (or the argument
+--  "--nohist") and the name of the initialized qemu trace
+--  file which is to be filled in. Optionally, the command line
+--  can specify one or 2 executable file addresses that are used
+--  for anchoring branch trace messages. When an address is specified
+--  using "--start=XXXX", the address indicates the value of the PC
+--  at the beginning of the stream of Nexus messages.  When an address
+--  is specified using "iac[0123]=XXX", it indicates that the indicated
+--  Instruction Address Compare register has been give the adddress
+--  provided and that it is set as a trigger register in the processor
+--  nexus unit to enable program trace messages. This means that when
+--  a watchpoint is seen for the chosen IAC, the anchor for the
+--  subsequent branch trace message is the address programmed into the
+--  IAC. If no "--start" argument is provided, the stream of branch
+--  messages is processed until a sync message is seen which provides
+--  a full address.  ****WARNING*** the last sentence is false for
+--  now: the presumed starting point now is the entry point of the
+--  executable. That will remain true until symbol name interpretation
+--  is implemented and "--start=_start" can be understood.
+--
 --  Currently this works only for 32 bit PowerPC Book E processors and
 --  presumtption of that constraint is hard-coded in, in many places
 --  (particularly the 32 bit word size, machine code of 20, swap to
@@ -38,6 +60,8 @@ with Ada.Exceptions;   use Ada.Exceptions;
 with GNAT.OS_Lib;      use GNAT.OS_Lib;
 with System;           use System;
 
+with System.Storage_Elements; use System.Storage_Elements;
+
 with Nexus_Rep; use Nexus_Rep;
 with Isys2nex;  use Isys2nex;
 
@@ -49,12 +73,20 @@ with Swaps;        use Swaps;
 with Traces;       use Traces;
 with Qemu_Traces;  use Qemu_Traces;
 with Traces_Files; use Traces_Files;
+with Strings;      use Strings;
 
 procedure Nexus_Trace_Gen is
 
-   Usage : constant String :=
-     "usage: Nexus_Trace_Gen"
-       & " proc_id binary_file ocd_file [hist_file] trace_file";
+   procedure Usage;
+
+   procedure Usage is
+      procedure P (S : String) renames Put_Line;
+   begin
+      P ("usage: Nexus_Trace_Gen proc_id binary_file ocd_file" &
+           " --nohist|hist_file trace_file");
+      P ("  [--start=(symbol_name|Address)]");
+      P ("  [--iac{0123}=(symbol_name|Address)]");
+   end Usage;
 
    type String_Ptr is access String;
 
@@ -73,6 +105,23 @@ procedure Nexus_Trace_Gen is
    Text_Shdr_Ptr    : Elf_Shdr_Acc;
    Text_Section_Len : Elf_Addr;
    Text_First_Addr  : Unsigned_32;
+   --  Exe_Sym          : Elf_Sym;
+
+   type Watchpoint_T is mod 2 ** 8;
+   Watchpoint_Seen : Watchpoint_T;
+
+   Arg_Index             : Positive;
+   VSI                   : Positive;
+   J                     : Positive;
+   New_IAC               : Boolean;
+   Under_OK              : Boolean;
+   Trace_Start_Specified : Boolean := False;
+   Trace_Start_Address   : Unsigned_32;
+   IAC_Number            : Watchpoint_T;
+   IAC_Specified         : Boolean := False;
+   IAC_Address           : Unsigned_32;
+   Looking_For_Sync      : Boolean;
+   --  Vars used for trace start address options procesing and use.
 
    type Insns_Array is array (Positive range <>) of Unsigned_32;
    Insns_Ptr        : access Insns_Array;
@@ -122,6 +171,158 @@ procedure Nexus_Trace_Gen is
       end if;
    end Chk_Exe;
 
+   function Exe_Address_From_Arg (Arg : String) return Unsigned_32;
+   --  Some command line options can specify an address from the
+   --  executable. The address can be given either by a symbol name,
+   --  or a hexadecimal value using either the C 0xHHHH syntax or
+   --  the Ada 16#HHHH# syntax. A symbol name cannot have "0x" or
+   --  "16#" as a proper prefix.
+   --
+   --  If a valid address is not found, a message will be output to
+   --  Standard_Error and a Constraint_Error will be raised.
+   --
+   --  Presumes "Executable_File" has been opened, "Ehdr" retrieved and
+   --  Section Headers loaded.
+
+   function Exe_Address_From_Arg (Arg : String) return Unsigned_32 is
+      A : Unsigned_32 := 0;
+      Invalid_Insn_Addr : constant Unsigned_32 := 1;
+
+      function Lookup_Sym_Value (S : String) return Unsigned_32;
+
+      function Lookup_Sym_Value (S : String) return Unsigned_32 is
+         Sym : Elf_Sym;
+         N_Syms  : Natural;
+         N_Bytes : Natural;
+         Str_Idx : Natural;
+         K       : Natural;
+         Symtab_Shdr_Idx : Elf_Half;
+         Symtab_Shdr_Ptr : Elf_Shdr_Acc;
+         type Sym_Array_T is array (Positive range <>) of Elf_Sym;
+         type Sym_Array_Ptr_T is access all Sym_Array_T;
+         Sym_Array_Ptr : Sym_Array_Ptr_T;
+         Strtab_Shdr_Idx : Elf_Half;
+         Strtab_Shdr_Ptr : Elf_Shdr_Acc;
+         type String_Table_T is array (Natural range <>) of Character;
+         type String_Table_Ptr_T is access all String_Table_T;
+         String_Table_Ptr : String_Table_Ptr_T;
+      begin
+         Symtab_Shdr_Idx := Get_Shdr_By_Name (Executable_File, ".symtab");
+         Chk_Exe ("Error finding "".symtab"" section");
+         Symtab_Shdr_Ptr := Get_Shdr (Executable_File, Symtab_Shdr_Idx);
+         Chk_Exe ("Error getting "".symtab"" section header");
+         N_Syms :=
+           Natural (Symtab_Shdr_Ptr.Sh_Size / Symtab_Shdr_Ptr.Sh_Entsize);
+         if N_Syms = 0 then
+            Put_Line (Standard_Error, "Symbol table is empty.");
+            raise Constraint_Error;
+         end if;
+         Sym_Array_Ptr := new Sym_Array_T (1 .. N_Syms);
+         Load_Section (Executable_File, Symtab_Shdr_Idx,
+                       Sym_Array_Ptr (Sym_Array_Ptr'First)'Address);
+         Chk_Exe ("Error loading symbol table");
+         --  Load the symbol table
+
+         Strtab_Shdr_Idx := Elf_Half (Symtab_Shdr_Ptr.Sh_Link);
+         Strtab_Shdr_Ptr := Get_Shdr (Executable_File, Strtab_Shdr_Idx);
+         Chk_Exe ("Error getting symbol table strings section header");
+         N_Bytes := Natural (Strtab_Shdr_Ptr.Sh_Size);
+         if N_Bytes = 0 then
+            Put_Line (Standard_Error, "Symbols string table is empty.");
+            raise Constraint_Error;
+         end if;
+         String_Table_Ptr := new String_Table_T (0 .. N_Bytes - 1);
+         Load_Section (Executable_File, Strtab_Shdr_Idx,
+                       String_Table_Ptr (String_Table_Ptr'First)'Address);
+         Chk_Exe ("Error loading symbols string table");
+         --  Load the string table
+
+         for J in Sym_Array_Ptr'Range loop
+            Sym := Get_Sym (Executable_File, Sym_Array_Ptr (J)'Address);
+            Str_Idx := Natural (Sym.St_Name);
+            if Str_Idx > String_Table_Ptr'Last then
+               Put_Line (Standard_Error, "String table index too large");
+               raise Constraint_Error;
+            end if;
+            K := S'First;
+            loop
+               exit when S (K) /= String_Table_Ptr (Str_Idx);
+               Str_Idx := Str_Idx + 1;
+               if K = S'Last then
+                  if Character'Pos (String_Table_Ptr (Str_Idx)) = 0 then
+                     return Sym.St_Value;
+                  else
+                     exit;
+                  end if;
+               end if;
+               K := K + 1;
+            end loop;
+
+         end loop;
+
+         Put_Line (Standard_Error, "Symbol " & S & "not found");
+         raise Constraint_Error;
+      end Lookup_Sym_Value;
+
+   begin
+      if Arg'Length > 2 and Has_Prefix (Arg, "0x") then
+         J := Arg'First + 2;
+         while J <= Arg'Last loop
+            A := A * 16;
+            if Arg (J) in '0' .. '9' then
+               A := A + (Character'Pos (Arg (J)) - Character'Pos ('0'));
+            elsif Arg (J) in 'a' .. 'f' then
+               A := A + (Character'Pos (Arg (J)) - Character'Pos ('a') + 10);
+            elsif Arg (J) in 'A' .. 'F' then
+               A := A + (Character'Pos (Arg (J)) - Character'Pos ('A') + 10);
+            else
+               Put_Line (Standard_Error, "Invalid Adress: " & Arg);
+               raise Constraint_Error;
+            end if;
+            J := J + 1;
+         end loop;
+         return A;
+      elsif Arg'Length > 3 and Has_Prefix (Arg, "16#") then
+         J := Arg'First + 3;
+         Under_OK := False;
+         while J <= Arg'Last loop
+            if J = Arg'Last and then Arg (J) = '#' then
+               return A;
+            end if;
+            if J = Arg'Last then
+               Put_Line (Standard_Error, "Malformed Address: " & Arg);
+               raise Constraint_Error;
+            end if;
+            A := A * 16;
+            if Arg (J) in '0' .. '9' then
+               A := A + (Character'Pos (Arg (J)) - Character'Pos ('0'));
+               Under_OK := True;
+            elsif Arg (J) in 'a' .. 'f' then
+               A := A + (Character'Pos (Arg (J)) - Character'Pos ('a') + 10);
+               Under_OK := True;
+            elsif Arg (J) in 'A' .. 'F' then
+               A := A + (Character'Pos (Arg (J)) - Character'Pos ('A') + 10);
+               Under_OK := True;
+            elsif Arg (J) = '_' then
+               if not Under_OK or else J + 1 = Arg'Last then
+                  Put_Line (Standard_Error, "Malformed Address: " & Arg);
+                  raise Constraint_Error;
+               end if;
+               Under_OK := False;
+               A := A / 16;
+            else
+               Put_Line (Standard_Error, "Invalid Adress: " & Arg);
+               raise Constraint_Error;
+            end if;
+            J := J + 1;
+         end loop;
+         return A;
+      else
+         --  In the symbol name case.... look up in Executable
+         return Lookup_Sym_Value (Arg);
+      end if;
+   end Exe_Address_From_Arg;
+
    function To_Hex_Word_Str (Val : Unsigned_32) return String;
    function To_Hex_Word_Str (Val : Unsigned_32) return String is
       S   : String (1 .. 13) := "16#0000_0000#";
@@ -165,8 +366,8 @@ procedure Nexus_Trace_Gen is
 
 begin
 
-   if Argument_Count /= 4 and then Argument_Count /= 5 then
-      Put_Line (Standard_Error, Usage);
+   if Argument_Count < 5 or else Argument_Count > 7 then
+      Usage;
       Set_Exit_Status (1);
       return;
    end if;
@@ -174,15 +375,93 @@ begin
    Processor_ID := new String'(Argument (1));
    Executable_Filename := new String'(Argument (2));
    OCD_Filename := new String'(Argument (3));
-   if Argument_Count = 4 then
+   if Argument (4) = "--nohist" then
       Histfile_Path := new String'("");
-      Tracefile_Path := new String'(Argument (4));
       Do_History := False;
    else
       Histfile_Path := new String'(Argument (4));
-      Tracefile_Path := new String'(Argument (5));
       Do_History := True;
    end if;
+
+   Tracefile_Path := new String'(Argument (5));
+
+   Open_File (Executable_File, Executable_Filename.all);
+   Chk_Exe ("Error Opening");
+   Ehdr := Get_Ehdr (Executable_File);
+   Chk_Exe ("Error reading file header");
+   Load_Shdr (Executable_File);
+   Chk_Exe ("Error retrieving section headers");
+   --  Open the executable file early. It may be needed if starting
+   --  addresses are passed through options, and are expressed
+   --  symbolicaly.
+
+   Arg_Index := 6;
+   Looking_For_Sync := True;
+   --  By default, at the beginning of proceesing the branch trace messages,
+   --  the messages will be skipped until a sync message shows up specifying
+   --  a full address. If "--start" is specified, then the starting address
+   --  is known, and Looking_For_Sync is set False.
+
+   New_IAC := False;
+   while Arg_Index <= Argument_Count loop
+      VSI := Argument (Arg_Index)'First;
+      if Has_Prefix (Argument (Arg_Index), "--start=") then
+         if Trace_Start_Specified then
+            Put_Line (Standard_Error, """--start"" specified twice.");
+            Set_Exit_Status (1);
+            return;
+         end if;
+         Trace_Start_Specified := True;
+         Looking_For_Sync := False;
+         VSI := VSI + 8;
+         Trace_Start_Address := Exe_Address_From_Arg
+           (Argument (Arg_Index) (VSI .. Argument (Arg_Index)'Last));
+
+         Put_Line (To_Hex_Word_Str (Trace_Start_Address));
+         raise Program_Error;
+
+      elsif Has_Prefix (Argument (Arg_Index), "-iac0=") then
+         VSI := VSI + 5;
+         New_IAC := True;
+         IAC_Number := 0;
+      elsif Has_Prefix (Argument (Arg_Index), "-iac1=") then
+         VSI := VSI + 5;
+         New_IAC := True;
+         IAC_Number := 1;
+      elsif Has_Prefix (Argument (Arg_Index), "-iac2=") then
+         VSI := VSI + 5;
+         New_IAC := True;
+         IAC_Number := 2;
+      elsif Has_Prefix (Argument (Arg_Index), "-iac3=") then
+         VSI := VSI + 5;
+         New_IAC := True;
+         IAC_Number := 3;
+      else
+         Put_Line (Standard_Error, "Unknown option: " & Argument (Arg_Index));
+         Set_Exit_Status (1);
+         return;
+      end if;
+      if New_IAC then
+         if IAC_Specified then
+            Put_Line (Standard_Error, "Only one IAC value may be specified.");
+            Set_Exit_Status (1);
+            return;
+         end if;
+         IAC_Specified := True;
+         IAC_Address := Exe_Address_From_Arg
+           (Argument (Arg_Index) (VSI .. Argument (Arg_Index)'Last));
+      end if;
+      Arg_Index := Arg_Index + 1;
+   end loop;
+
+   if Looking_For_Sync then
+      Entry_Point := Unsigned_32 (Ehdr.E_Entry);
+      Trace_Start_Address := Entry_Point;
+      Looking_For_Sync := False;
+   end if;
+   --  This implements the TEMPORARY default of starting
+   --  at the entry point.  When "--start=_start" is handled
+   --  this goes away.
 
    if Processor_ID.all = "5634" then
       ICNT_Adj := 0;
@@ -190,25 +469,11 @@ begin
       ICNT_Adj := 1;
    else
       Put_Line (Standard_Error, "Unrecognized Processor ID (procid).");
-      Put_Line (Standard_Error, Usage);
+      Usage;
       Set_Exit_Status (1);
       return;
    end if;
 
-   Open_File (Executable_File, Executable_Filename.all);
-
-   Chk_Exe ("Error Opening");
-   Ehdr := Get_Ehdr (Executable_File);
-   Chk_Exe ("Error reading file header");
-   Entry_Point := Unsigned_32 (Ehdr.E_Entry);
-   --  Open the executable ELF file, get the ELF header from
-   --  it, and read the entry point of the program.
-   --  For now, we are presuming the OCD trace data starts
-   --  from the entry point (not explicit in the trace output),
-   --  though that could change with the use of triggers.
-
-   Load_Shdr (Executable_File);
-   Chk_Exe ("Error retrieving section headers");
    Text_Shdr_Idx := Get_Shdr_By_Name (Executable_File, ".text");
    Chk_Exe ("Error finding "".text"" section");
    Text_Shdr_Ptr := Get_Shdr (Executable_File, Text_Shdr_Idx);
@@ -372,15 +637,23 @@ begin
       raise Program_Error with "Empty Nexus message list";
    end if;
 
-   Nexus_Msg := Nexus_Msg_List_Elem.Message;
-   if Nexus_Msg.Tcode /= Debug_Status then
-      raise Program_Error with "Expected first Nexus message to be Status";
-   elsif Nexus_Msg.Debug_Status_V.STATUS /= 0 then
-      raise Program_Error with "Expected initial Status value to be 0";
-   end if;
+   --  Nexus_Msg := Nexus_Msg_List_Elem.Message;
+   --  if Nexus_Msg.Tcode /= Debug_Status then
+   --     raise Program_Error with "Expected first Nexus message to be Status";
+   --  elsif Nexus_Msg.Debug_Status_V.STATUS /= 0 then
+   --     raise Program_Error with "Expected initial Status value to be 0";
+   --  end if;
+   --
+   --  Commented out during change to handle start addresses (help
+   --  supporting users providing trace files themselves rather than
+   --  python program called from 'gnatcov run'). Might serve a purpose
+   --  still (after HW trigger e.g.)????
 
-   Block_Begin_Idx := Positive (Entry_Point - Text_First_Addr) / 4 + 1;
-   At_Trace_Start := True;
+   if not Looking_For_Sync then
+      Block_Begin_Idx :=
+        Positive (Trace_Start_Address - Text_First_Addr) / 4 + 1;
+   end if;
+   At_Trace_Start := not Looking_For_Sync;
    --  I-CNT from first Program Trace Message after the start of trace
    --  is 1 less than other cases. Flag that we are at the start of the
    --  trace, and at the end of the loop check that it is turned off
@@ -399,7 +672,7 @@ begin
             raise Program_Error with "Unexpected TCODE";
 
          when Ownership_Trace_Message                      =>
-            raise Program_Error with "Unexpected TCODE";
+            raise Program_Error with "Unexpected Ownership Trace TCODE";
 
          when Prog_Trace_Direct_Branch_Message             =>
             N_Insns := Positive
@@ -583,15 +856,25 @@ begin
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
          when Data_Trace_Data_Write_Message                =>
-            raise Program_Error with "Unexpected TCODE";
+            raise Program_Error with "Unexpected Data Trace TCODE";
 
          when Data_Trace_Data_Read_Message                 =>
-            raise Program_Error with "Unexpected TCODE";
+            raise Program_Error with "Unexpected Data Trace TCODE";
 
          when Error_Message                                =>
-            raise Program_Error with "Unexpected TCODE";
+            raise Program_Error with "Unexpected Error Message TCODE";
 
          when Prog_Trace_Direct_Branch_Message_Sync        =>
+            if Looking_For_Sync then
+               New_Addr := Unsigned_32
+                 (Nexus_Msg.Prog_Trace_Direct_Branch_Message_Sync_V.F_ADDR);
+               Block_Begin_Idx :=
+                 Positive (New_Addr - Text_First_Addr) / 4 + 1;
+               Last_Indirect_Or_Sync_Addr := New_Addr;
+               Looking_For_Sync := False;
+               goto Continue_Waiting_For_Sync;
+            end if;
+
             N_Insns := Positive
               (Nexus_Msg.Prog_Trace_Direct_Branch_Message_Sync_V.I_CNT
                + ICNT_Adj);
@@ -671,24 +954,39 @@ begin
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
          when Prog_Trace_Indirect_Branch_Message_Sync      =>
-            null;
+            raise Program_Error with "Oops Indirect Br w Sync";
+
          when Data_Trace_Data_Write_Message_Sync           =>
-            raise Program_Error with "Unexpected TCODE";
+            raise Program_Error with "Unexpected Data Trace TCODE";
 
          when Data_Trace_Data_Read_Message_Sync            =>
-            raise Program_Error with "Unexpected TCODE";
+            raise Program_Error with "Unexpected Data Trace TCODE";
 
          when Watchpoint_Message                           =>
-            exit;
+            Watchpoint_Seen :=
+              Watchpoint_T (Nexus_Msg.Watchpoint_Message_V.WPHIT);
+            if IAC_Specified and then Watchpoint_Seen = IAC_Number then
+               New_Addr := IAC_Address;
+               Block_Begin_Idx :=
+                 Positive (New_Addr - Text_First_Addr) / 4 + 1;
+               Last_Indirect_Or_Sync_Addr := New_Addr;
+               Looking_For_Sync := False;
+               goto Continue_Waiting_For_Sync;
+            end if;
+            --  The Branch Message Trace trigger also serves purpose
+            --  if initial sync message.
+
          when Resource_Full_Message                        =>
-            raise Program_Error with "Unexpected TCODE";
+            raise Program_Error with "Resource Full Message received";
 
          when Prog_Trace_Indirect_Branch_Hist_Message      =>
-            null;
+            raise Program_Error with "Unexpected Branch History TCODE";
          when Prog_Trace_Indirect_Branch_Hist_Message_Sync =>
-            null;
+            raise Program_Error with "Unexpected Branch History TCODE";
+
          when Prog_Trace_Program_Correlation_Message       =>
-            raise Program_Error with "Unexpected TCODE";
+            exit;
+            --  ??? choice for ending nexus processing ???
 
          when  1 | 7 | 9 | 10 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23
             |  24 | 25 | 26 | 30 | 31 | 32 =>
@@ -698,6 +996,7 @@ begin
       if At_Trace_Start then
          raise Program_Error with "Trace Start not cleared";
       end if;
+      <<Continue_Waiting_For_Sync>> null;
    end loop;
 
    --  Loop over Insn_Flags, calculating basic blocks and writing

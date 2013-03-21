@@ -75,7 +75,7 @@ procedure isys_drv is
 
    Trace_Conversion_Path : String :=
     Normalize_Pathname ("Nexus_Trace_Gen", Execs_Dir);
-   Trace_Conv_Args : Argument_List (1 .. 5);
+   Trace_Conv_Args : Argument_List (1 .. 6);
 
    Success, C_Success : Boolean;
    --  Used by various procedures to report/calculate success.
@@ -158,7 +158,7 @@ begin
       Tracefile_Path := new String'
         (Normalize_Pathname (Argument (3) (S_Idx2 + 1 .. Argument (3)'Last)));
    else
-      Histfile_Path := new String'("");
+      Histfile_Path := new String'("--nohist");
       Tracefile_Path := new String'(Argument (3));
    end if;
 
@@ -204,9 +204,8 @@ begin
    Trace_Conv_Args (2) := Executable_Path;
    Trace_Conv_Args (3) := new String'(Workspace_Dir & '\' & "nexus_trace.bin");
    Trace_Conv_Args (4) := Histfile_Path;
-   --  ??? Empty string doesn't get through to trace conversion program.
-   --  Compensating on the other end using arg count.
    Trace_Conv_Args (5) := Tracefile_Path;
+   Trace_Conv_Args (6) := new String'("--start=_start");
    Spawn (Trace_Conversion_Path, Trace_Conv_Args, Success);
    if not Success then
       Put_Line (Standard_Error, "Error from trace conversion.");

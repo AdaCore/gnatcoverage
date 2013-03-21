@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -123,7 +123,7 @@ package Nexus_Rep is
       DATA_Hi : Nexus_Packet_T;
    end record;
    type Data_Trace_Data_Read_Message_Sync_Rec is record
-      DSZ        : Nexus_Packet_T;
+      DSZ     : Nexus_Packet_T;
       F_ADDR  : Nexus_Packet_T;
       DATA_Lo : Nexus_Packet_T;
       DATA_Hi : Nexus_Packet_T;
