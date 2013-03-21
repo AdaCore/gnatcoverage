@@ -213,6 +213,18 @@ from SUITE.cutils import Identifier
 # emitted STAG at all, absence of an option in a CTL list means that it
 # doesn't matter whether this option is actually passed or not. '!' is there
 # for cases where we need to state dependency on option absence.
+#
+# The user control values are taken as regular expressions against which
+# the actual arguments are matched. This is convenient for sections conditioned
+# on --level for instance, where mcdc and uc_mcdc are most often identical
+# and really deserve common treatment.
+#
+# --%cov: --level=stmt
+# ...
+# --%cov: --level=stmt+decision
+# ...
+# --%cov: --level=stmt+(uc_)?mcdc
+# ...
 
 # "%cancel:" means "forget the current group", IOW, "ignore anything emitted
 # for the corresponding sources" if all the previous conditions are met. This
@@ -930,7 +942,8 @@ class XnotesExpander:
             else:
                 invert = False
 
-            optin = oseq in self.ctls[key]
+            optin = re.search (
+                pattern = oseq, string = self.ctls[key]) != None
 
             this_val &= not optin if invert else optin
 
