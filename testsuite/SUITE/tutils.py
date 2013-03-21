@@ -18,6 +18,7 @@ from SUITE.qdata import QLANGUAGES
 # Then mind our own buisness
 
 from SUITE.cutils import *
+from gnatpython.fileutils import unixpath
 
 VALGRIND  = 'valgrind' + env.host.os.exeext
 
@@ -225,15 +226,25 @@ def tracename_for (pgmname):
 def dmapname_for (pgmname):
     return exename_for (pgmname) + ".dmap"
 
-# ----------------
-# -- exepath_to --
-# ----------------
+# -----------------------------
+# -- exepath_to, unixpath_to --
+# -----------------------------
+
+# Those two are very similar. The unix version is mostly useful on Windows for
+# tests that are going to search for exe filenames in outputs using regular
+# expressions, where backslashes as directory separators introduce confusion.
 
 def exepath_to (pgmname):
     """Return the absolute path to the executable file expected
     in the current directory for a main subprogram PGMNAME."""
 
     return os.path.abspath(exename_for(pgmname))
+
+def unixpath_to (pgmname):
+    """Return the absolute path to the executable file expected in the
+    current directory for a main subprogram PGMNAME, unixified."""
+
+    return unixpath(os.path.abspath(exename_for(pgmname)))
 
 # --------------------
 # -- maybe_valgrind --
