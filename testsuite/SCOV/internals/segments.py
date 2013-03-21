@@ -70,7 +70,7 @@ class Section:
     #  l1 -> 7: end if;
     #               ^
     #               c1
-    #  3:1-7:6
+    #  3:1-7:5
 
     def __init__ (self, l0, c0, l1, c1):
         self.sp0 = Spoint (line = l0, col = c0)
@@ -108,8 +108,7 @@ def Segment_from(text):
     return Segment (
         lno = int(topitems[0]), clo = int(subitems[0]), chi = int(subitems[1]))
 
-# A Line is a Segment spanning for first to last column (arbitrary upper
-# bound hardcoded at this stage).
+# A Line is a Segment spanning from first to last column
 
 class Line (Segment):
     def __init__ (self, lno):
