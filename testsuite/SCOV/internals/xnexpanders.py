@@ -176,8 +176,13 @@ from SUITE.cutils import Identifier
 # %cov: ... is similar, against the gnatcov coverage specific options for the
 # test instead of the compilation flags.
 #
-# When a lx line is grabbed, it replaces whatever was previously recorded for
-# the selecting regexp (lre) it holds, if anything.
+# When some of the conditions don't match, lx lines are ignored until
+# the decision to start grabbing again triggers from a subsequent CTL line.
+#
+# The CTL lines are just grabbing/not-grabbing frontiers. They don't influence
+# the current state of the expectation group otherwise. In particular, the set
+# of already recognized LREs remains the same so an overriding indication is
+# required if you wish an alternate specification.
 #
 # Here is a simple example:
 #
