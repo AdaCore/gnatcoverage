@@ -417,9 +417,6 @@ begin
          Trace_Start_Address := Exe_Address_From_Arg
            (Argument (Arg_Index) (VSI .. Argument (Arg_Index)'Last));
 
-         Put_Line (To_Hex_Word_Str (Trace_Start_Address));
-         raise Program_Error;
-
       elsif Has_Prefix (Argument (Arg_Index), "-iac0=") then
          VSI := VSI + 5;
          New_IAC := True;
@@ -669,7 +666,8 @@ begin
       Nexus_Msg := Nexus_Msg_List_Elem.Message;
       case Nexus_Msg.Tcode is
          when Debug_Status                                 =>
-            raise Program_Error with "Unexpected TCODE";
+            null;
+            --  raise Program_Error with "Unexpected TCODE";
 
          when Ownership_Trace_Message                      =>
             raise Program_Error with "Unexpected Ownership Trace TCODE";
