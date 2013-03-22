@@ -644,6 +644,9 @@ class TestSuite:
         if mopt.gprmode:
             testcase_cmd.append('--gprmode')
 
+        if mopt.do_post_run_cleanups:
+            testcase_cmd.append('--post-run-cleanup')
+
         # If we have a kernel argument, resolve to fullpath now, providing
         # straightforward visibility to local test.py instances downtree.
 
@@ -793,6 +796,10 @@ class TestSuite:
                      metavar='N', default=1, help='Allow N jobs at once')
         m.add_option("--old-res", dest="old_res", type="string",
                         help="Old testsuite.res file")
+
+        m.add_option('--post-run-cleanups', dest='do_post_run_cleanups',
+                     action='store_true', default=False,
+                     help='request post-run cleanup of temporary artifacts')
 
         # cargs family: a common, language agnostic, one + one for each
         # language we support. Iterations on cargs wrt languages will be
