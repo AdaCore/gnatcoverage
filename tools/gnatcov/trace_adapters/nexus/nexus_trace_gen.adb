@@ -43,10 +43,7 @@
 --  subsequent branch trace message is the address programmed into the
 --  IAC. If no "--start" argument is provided, the stream of branch
 --  messages is processed until a sync message is seen which provides
---  a full address.  ****WARNING*** the last sentence is false for
---  now: the presumed starting point now is the entry point of the
---  executable. That will remain true until symbol name interpretation
---  is implemented and "--start=_start" can be understood.
+--  a full address.
 --
 --  Currently this works only for 32 bit PowerPC Book E processors and
 --  presumtption of that constraint is hard-coded in, in many places
@@ -100,7 +97,6 @@ procedure Nexus_Trace_Gen is
 
    Executable_File  : Elf_File;
    Ehdr             : Elf_Ehdr;
-   Entry_Point      : Elf32_Addr;
    Text_Shdr_Idx    : Elf_Half;
    Text_Shdr_Ptr    : Elf_Shdr_Acc;
    Text_Section_Len : Elf_Addr;
@@ -451,15 +447,6 @@ begin
       Arg_Index := Arg_Index + 1;
    end loop;
 
-   if Looking_For_Sync then
-      Entry_Point := Unsigned_32 (Ehdr.E_Entry);
-      Trace_Start_Address := Entry_Point;
-      Looking_For_Sync := False;
-   end if;
-   --  This implements the TEMPORARY default of starting
-   --  at the entry point.  When "--start=_start" is handled
-   --  this goes away.
-
    if Processor_ID.all = "5634" then
       ICNT_Adj := 0;
    elsif Processor_ID.all = "5554" then
@@ -580,9 +567,6 @@ begin
 
    end if;
 
-   --  Put_Line (To_Hex_Word_Str (Entry_Point));
-   --  Put_Line (To_Hex_Word_Str (Text_First_Addr));
-
    --  Open the trace file and set things up to write trace entries.
    --  In the case of 'Flat' traces, nothing will be written until
    --  all of the Nexus data is processed, which fills in the
@@ -667,7 +651,6 @@ begin
       case Nexus_Msg.Tcode is
          when Debug_Status                                 =>
             null;
-            --  raise Program_Error with "Unexpected TCODE";
 
          when Ownership_Trace_Message                      =>
             raise Program_Error with "Unexpected Ownership Trace TCODE";
