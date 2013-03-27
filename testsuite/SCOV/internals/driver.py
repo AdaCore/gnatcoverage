@@ -308,9 +308,21 @@ class SCOV_helper:
         self, testcase, drivers, xfile,
         xcovlevel, covctl, subdirhint=""
         ):
+
+        # The TESTCASE object that delegates the hard work to us :-)
         self.testcase = testcase
+
+        # The set of DRIVER sources that we are to exercise. We use this
+        # as a precise approximation of a set of main subprogram or local
+        # executable names so care about basenames only:
         self.drivers = [os.path.basename(d) for d in drivers]
+
+        # The "--level" argument we ought to use on gnatcov command lines:
         self.xcovlevel = xcovlevel
+
+        # The CovControl object that controls aspects of our coverage
+        # testing operations (project file dependencies, units for which
+        # we expect reports to be produced, ...)
         self.covctl = covctl
 
         # Internal attributes: Directory where the instantiation takes place,
@@ -321,7 +333,9 @@ class SCOV_helper:
         self.xfile   = xfile
 
         # Reflect the test category in the base prefix of the working
-        # directory name, required for multi-category testcases.
+        # directory name, required for multi-category testcases. Then account
+        # for a SUBDIRHINT part so callers for a single testcase can get
+        # different temp dirs for a sequence of tests of identical categories.
 
         wdbase_for = {
             None:         "tmp_",

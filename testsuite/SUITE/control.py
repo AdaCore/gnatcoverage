@@ -136,18 +136,24 @@ class BUILDER:
 # == libsupport considerations ==
 # ===============================
 
-# We rely on our support lib to provide a common last chance handler
-# in every configuration where this makes sense, in particular with
-# ZFP and Ravenscar RTS libraries.
+# We rely on our support lib to provide a common last chance handler in every
+# configuration where this makes sense, in particular with ZFP and Ravenscar
+# RTS libraries.
+#
+# * ZFP profiles because some of these don't provide a handler at all.
+#
+# * Ravenscar because some handlers fallthrough to a infinite idle loop,
+#   unfriendly wrt testcase termination in automated nightly executions.
+#
+# In addition, providing our last chance handler ensures we get consistent
+# output on unexpected exception, on any target configuration.
+#
+# We can't override "last chance" handling and don't really need to for full
+# runtimes (which terminate on exceptions), native or cross.
 
 # This function controls whether we build the library and link with it
 
 def need_libsupport ():
-    # We need the libsupport to get stable last chance handling for
-    # zfp and ravenscar runtimes. We can't have a last chance handler
-    # and don't really need one for full runtimes (which terminate on
-    # exceptions, unlike ravenscar), native or cross.
-
     return re.search ("zfp|ravenscar", env.main_options.RTS)
 
 # ==========================
