@@ -17,7 +17,7 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Plans
 
 .. qmlink::
 
-   Documentation Introduction
-   Tool Qualification Plan
-   Software Configuration Management Hints
-   Software Quality Assurance Plan
+   Documentation_Introduction
+   Tool_Qualification_Plan
+   Software_Configuration_Management_Hints
+   Software_Quality_Assurance_Plan

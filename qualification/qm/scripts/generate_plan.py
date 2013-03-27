@@ -1,3 +1,4 @@
-from qm import *
+import generate_doc
 
-Activity.execute_all(False)
+generate_doc.generate_pdf('plans', 'release/pdf')
+generate_doc.generate_html('plans', 'release/plans_html')

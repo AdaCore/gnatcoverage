@@ -1,0 +1,10 @@
+{
+  "content-kind": "container",
+  "signature": {
+    "default:///plans/content.rst": "c7c02d82a3b9957f067e8c868be0f74eca810420",
+    "default:///plans/conf.py": "6609ac07812cfac9648ba84efac47697c99c8bf2"
+  },
+  "location": "default:///plans",
+  "dependencies": [
+  ]
+}

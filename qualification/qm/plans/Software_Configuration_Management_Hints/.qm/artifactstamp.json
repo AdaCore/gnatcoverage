@@ -1,0 +1,9 @@
+{
+  "content-kind": "container",
+  "signature": {
+    "default:///plans/Software_Configuration_Management_Hints/content.rst": "fa8e4e94385f229e9bbbffc76ebc84b8a2b939b4"
+  },
+  "location": "default:///plans/Software_Configuration_Management_Hints",
+  "dependencies": [
+  ]
+}

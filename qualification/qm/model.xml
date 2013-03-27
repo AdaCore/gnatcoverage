@@ -1,0 +1,69 @@
+<project name="GNATCoverage" scripts="qm_plugins">
+
+  <artifact_class name="Environment" role="artifact">
+    <location_content mime="text/x-python"/>
+  </artifact_class>
+
+  <artifact_class name="Chapter" role="document">
+    <location_container>
+      <content name="content" location="content.rst" mime="text/x-rst"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="Document" role="document">
+    <location_container>
+      <content name="content" location="content.rst" mime="text/x-rst"/>
+      <content name="config" location="conf.py" mime="text/x-python"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="PDF" role="pdf">
+    <location_content mime="application/pdf"/>
+  </artifact_class>
+
+  <link_definition kind="dependency" name="ENV_PDF">
+    <from class="Environment"/>
+    <to class="PDF"/>
+  </link_definition>
+
+  <link_definition kind="dependency" name="DOC_PDF">
+    <from class="Document"/>
+    <to class="PDF"/>
+  </link_definition>
+
+  <artifact_factory class="Environment">
+    <on_location pattern="default:///env.py" type="content"/>
+    <creates name="environment"/>
+  </artifact_factory>
+
+  <artifact_factory class="Chapter">
+    <on_location relative_class="Chapter"
+                 pattern="$relative.location/*/content.rst"
+                 type="content"/>
+    <on_location relative_class="Document"
+                 pattern="$relative.location/*/content.rst"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename"/>
+  </artifact_factory>
+
+  <artifact_factory class="Document">
+    <on_location pattern="default:///*/conf.py"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename"/>
+  </artifact_factory>
+
+  <artifact_factory class="PDF">
+    <on_location relative_class="Document"
+                 pattern="default:///release/pdf/$relative.name.pdf"
+                 type="content"/>
+    <creates name="$location.basename">
+      <link_constructor implements="ENV_PDF">
+        <from instance="environment"/>
+      </link_constructor>
+      <link_constructor implements="DOC_PDF">
+        <from instance="$relative"/>
+      </link_constructor>
+    </creates>
+  </artifact_factory>
+
+</project>
