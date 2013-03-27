@@ -36,7 +36,7 @@ from SUITE.gprutils import gprcov_for
 
 from gnatpython.fileutils import ls
 
-from internals.driver import SCOV_helper
+from internals.driver import SCOV_helper, WdirControl
 
 from SCOV.tctl import CAT
 
@@ -133,6 +133,10 @@ class CovControl:
 
 class TestCase:
 
+    # ==========================
+    # == Helpers for __init__ ==
+    # ==========================
+
     def __expand_drivers(self, patterns):
         """Add to the list of drivers to exercize the set of files
         corresponding to every glob pattern in PATTERNS."""
@@ -208,6 +212,10 @@ class TestCase:
 
         return [drv for drv in self.all_drivers if re.search (drv_expr, drv)]
 
+    # ==============
+    # == __init__ ==
+    # ==============
+
     def __init__(self, extradrivers="", extracargs="", category=CAT.auto):
 
         # By default, these test cases expect no error from subprocesses (xrun,
@@ -255,28 +263,6 @@ class TestCase:
         self.category = (
             self.__category_from_dir() if category == CAT.auto else category)
 
-        # - Set of xcovlevel values to exercise:
-
-        # If we have an explicit level query, use that. Fallback to defaults
-        # otherwise. When there are multiple levels for a category, e.g. mcdc
-        # variants, pick the first one only in qualification mode.
-
-        default_xcovlevels_for = {
-            # Tests without categories should be ready for anything.
-            # Exercise with the strictest possible mode:
-            None: ["stmt+mcdc"],
-
-            CAT.stmt:     ["stmt"],
-            CAT.decision: ["stmt+decision"],
-            CAT.mcdc:     ["stmt+uc_mcdc", "stmt+mcdc"]}
-
-        if thistest.options.xcov_level:
-            self.xcovlevels = [thistest.options.xcov_level]
-        else:
-            defaults = default_xcovlevels_for [self.category]
-            self.xcovlevels = (
-                [defaults[0]] if thistest.options.qualif_level else defaults)
-
         # - extra compilation arguments, added to what --cargs was provided to
         #   the testsuite command line:
 
@@ -287,11 +273,34 @@ class TestCase:
 
         self.qdata = Qdata(tcid=TEST_DIR)
 
-    # ---------------------
-    # -- run and helpers --
-    # ---------------------
+    # =====================
+    # == Helpers for run ==
+    # =====================
 
-    def register_qde_for (self, drvo):
+    def __xcovlevels (self):
+        """Compute the list of --level values to exercise"""
+
+        # If we have an explicit level query, use that. Fallback to defaults
+        # otherwise. When there are multiple levels for a category, e.g. mcdc
+        # variants, pick the first one only in qualification mode.
+
+        if thistest.options.xcov_level:
+            return [thistest.options.xcov_level]
+
+        default_xcovlevels_for = {
+            # Tests without categories should be ready for anything.
+            # Exercise with the strictest possible mode:
+            None: ["stmt+mcdc"],
+
+            CAT.stmt:     ["stmt"],
+            CAT.decision: ["stmt+decision"],
+            CAT.mcdc:     ["stmt+mcdc", "stmt+uc_mcdc"]}
+
+        defaults = default_xcovlevels_for [self.category]
+        return (
+            [defaults[0]] if thistest.options.qualif_level else defaults)
+
+    def __register_qde_for (self, drvo):
         """Register a qualif data entry for driver object DRVO, about to
         be executed"""
 
@@ -300,6 +309,61 @@ class TestCase:
                      drivers=drvo.drivers, xrnotes=drvo.xrnotes)
             )
         return drvo
+
+    # Base prefix for Working directories, per --level. Shared across
+    # runs for multiples levels:
+
+    _wdbase_for = {
+        "stmt":          "st_",
+        "stmt+decision": "dc_",
+        "stmt+mcdc":     "mc_",
+        "stmt+uc_mcdc":  "uc_"
+        }
+
+    def __run_one_covlevel(self, covlevel, covcontrol, subdirhint):
+        """Run this testcase individual drivers and consolidation tests
+        with --level=COVLEVEL, using the provided COVCONTROL parameters and
+        requesting SUBDIRHINT to be part of temp dir names."""
+
+        # Compute the Working directory base for this level, then
+        # run the test for each indivdual driver:
+
+        this_wdbase = self._wdbase_for [covlevel]
+
+        wdctl = WdirControl (
+            wdbase = this_wdbase, bdbase = self._available_bdbase,
+            subdirhint = subdirhint)
+
+        [self.__register_qde_for (
+                SCOV_helper(self, drivers=[driver],
+                            xfile=driver,
+                            xcovlevel=covlevel, covctl=covcontrol,
+                            wdctl=wdctl)
+                ).run()
+         for driver in self.all_drivers]
+
+        # Now we have a common binary dir prefix to reuse
+
+        if not self._available_bdbase:
+            self._available_bdbase = this_wdbase
+
+        # Next, run applicable consolidation tests.
+
+        wdctl = WdirControl (
+            wdbase = this_wdbase, bdbase = self._available_bdbase,
+            subdirhint = subdirhint)
+
+        [self.__register_qde_for (
+                SCOV_helper(self, drivers=self.__drivers_from(cspec),
+                            xfile=cspec,
+                            xcovlevel=covlevel, covctl=covcontrol,
+                            wdctl=wdctl)
+                ).run()
+         for cspec in self.all_cspecs]
+
+    # =========
+    # == run ==
+    # =========
 
     def run(self, covcontrol = None, subdirhint = ""):
         """Execute this testcase, using coverage configuration
@@ -313,25 +377,17 @@ class TestCase:
 
         try:
 
-            # First, run the test for each driver, individually.
-            [self.register_qde_for (
-                    SCOV_helper(self, drivers=[driver],
-                                xfile=driver,
-                                xcovlevel=covlevel, covctl=covcontrol,
-                                subdirhint=subdirhint)
-                    ).run()
-             for covlevel in self.xcovlevels
-             for driver in self.all_drivers]
+            # Run the set of drivers and consolidation tests for each
+            # appropriate xcovlevel. Arrange to reuse the binary subdir of the
+            # first run in subsequent ones. For single-level runs, having
+            # the binaries together with the other artifacts is convenient.
 
-            # Next, run applicable consolidation tests.
-            [self.register_qde_for (
-                    SCOV_helper(self, drivers=self.__drivers_from(cspec),
-                                xfile=cspec,
-                                xcovlevel=covlevel, covctl=covcontrol,
-                                subdirhint=subdirhint)
-                    ).run()
-             for covlevel in self.xcovlevels
-             for cspec in self.all_cspecs]
+            self._available_bdbase = None
+
+            [self.__run_one_covlevel (
+                    covlevel=covlevel, covcontrol=covcontrol,
+                    subdirhint=subdirhint)
+             for covlevel in self.__xcovlevels()]
 
         finally:
 

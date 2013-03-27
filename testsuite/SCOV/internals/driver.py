@@ -44,6 +44,92 @@ from . xnexpanders import XnotesExpander
 from . lnexpanders import LnotesExpander
 from . rnexpanders import RnotesExpander
 
+# =================
+# == WdirControl ==
+# =================
+
+# Some testcases run for multiple categories in a row. We arrange for
+# each run to execute in a different subdir to prevent mixups.
+#
+# Still, we sometimes want to reuse the binary programs and ALI files of one
+# run for another, only re-executing gnatcov run and gnatcov coverage to
+# produce traces and reports in a separate subdir for a different --level.
+#
+# The typical situation is testcases of the mcdc category running
+# --level=stmt+mcdc first followed by --level=stmt+uc_mcdc.
+
+# Essentially, each testcase associates with two main subdirectory families:
+#
+# * Working subdirectories, where it will execute programs to
+#   produce traces, execute gnatcov coverage to produce reports, match
+#   reports against expectations, etc.
+#
+# * Binary subdirectories, where the binary programs to execute and
+#   their ALIs are to be found.
+#
+# In the aforementioned situations (mcdc/uc_mcdc), the Working subdir of one
+# variant may be used as the Binary subdir of another one.
+
+# This class is here to let TestCase objects tell our SCOV_Helper about the
+# base prefixes to use for Working and Binary directories, with a possible
+# extra piece to account for in both of them.
+
+# These are prefixes only. Different subdirs are created for each individual
+# driver that participates in a testcase.  To illustrate, consider a testcase
+# of "mcdc" category with two drivers and a consolidation spec:
+#
+#    test_drv1.adb
+#    test_drv2.adb
+#    cons_drv12.txt
+#
+# Assume this will be running for --level=stmt+mcdc and --level=stmt+uc_mcdc.
+# We might arrange to have:
+#
+# * for --level=stmt+mcdc, working dir base = "mc_", bin dir base = "mc_"
+#   which will produce:
+#
+#        mc_drv1/  binary programs and ALIs for drv1
+#                  traces and reports for drv1
+#
+#        mc_drv2/  binary programs and ALIs for drv2
+#                  traces and reports for drv2
+#
+#        mc_drv12/ traces and reports for drv12, using
+#                  binaries from mc_drv1 and mc_drv2
+#
+# * for --level=stmt+uc_mcdc, working dir base = "uc_", bin dir base = "mc_"
+#   which will produce:
+#
+#        uc_drv1/  traces and reports for drv1,
+#                  reusing binary programs and ALIs from mc_drv1
+#
+#        uc_drv2/  traces and reports for drv2,
+#                  reusing binary programs and ALIs from mc_drv2
+#
+#        uc_drv12/ traces and reports for drv12, using
+#                  binaries from mc_drv1 and mc_drv2
+#
+# We could also go for an alternate scheme where we build in a build only
+# directory first, then point the runs for each criterion there. This is for
+# the TestCase implementation to decide.
+
+class WdirControl:
+
+    def __init__ (self, wdbase, bdbase, subdirhint):
+
+        # WDBASE is the base prefix to use for testcase Working directory.
+        # BDBASE is the base prefix to use for testcase Binary directory.
+        # Fallback to WDBASE when not provided.
+
+        # REUSE_BIN indicates when we should reuse binaries from BDBASE, when
+        # it was provided explicitly. Account for an extra SUBDIRHINT in both
+        # bases.
+
+        self.wdbase = wdbase + subdirhint
+
+        self.reuse_bin = bdbase is not None
+        self.bdbase = (bdbase + subdirhint) if self.reuse_bin else self.wdbase
+
 # ======================================
 # == SCOV_helper and internal helpers ==
 # ======================================
@@ -306,7 +392,7 @@ class SCOV_helper:
     # --------------
     def __init__(
         self, testcase, drivers, xfile,
-        xcovlevel, covctl, subdirhint=""
+        xcovlevel, covctl, wdctl
         ):
 
         # The TESTCASE object that delegates the hard work to us :-)
@@ -332,18 +418,9 @@ class SCOV_helper:
         self.homedir = os.getcwd()+"/"
         self.xfile   = xfile
 
-        # Reflect the test category in the base prefix of the working
-        # directory name, required for multi-category testcases. Then account
-        # for a SUBDIRHINT part so callers for a single testcase can get
-        # different temp dirs for a sequence of tests of identical categories.
-
-        wdbase_for = {
-            None:         "tmp_",
-            CAT.stmt:     "st_",
-            CAT.decision: "dc_",
-            CAT.mcdc:     "mc_"
-            }
-        self.wdbase  = wdbase_for [self.testcase.category] + subdirhint
+        # The WdirControl object telling about the Working and Binary
+        # subdir prefixes we are to use:
+        self.wdctl = wdctl
 
         # Compute the gnatcov coverage specific extra options that we'll have
         # to pass. We need these early for Xnote expansions.
@@ -395,10 +472,10 @@ class SCOV_helper:
         # Whatever the kind of test we are (single or consolidation), we
         # expect every ALI file of interest to be associated with at least
         # one single test, and to be present in the "obj" subdirectory of
-        # the associated working dir.
+        # the associated binary dir.
 
-        # Compute the local path from single test workdir and iterate over
-        # working dir for all our drivers until we find. There might actually
+        # Compute the local path from single test bindir and iterate over
+        # binary dir for all our drivers until we find. There might actually
         # be several instances in the consolidation case. We assume they are
         # all identical, and they should be for typical situations where the
         # same sources were exercised by multiple drivers:
@@ -406,7 +483,7 @@ class SCOV_helper:
         lang_info = language_info(source)
         lali="obj/"+os.path.basename(no_ext(source) + lang_info.scos_ext)
         for main in self.drivers:
-            tloc=self.awdir_for(no_ext(main))+lali
+            tloc=self.abdir_for(no_ext(main))+lali
             if os.path.exists(tloc):
                 return tloc
 
@@ -470,9 +547,10 @@ class SCOV_helper:
         # For single tests (no consolidation), we first need to build,
         # producing the binary to execute and the ALIs files, then to gnatcov
         # run to get an execution trace.  All these we already have for
-        # consolidation tests.
+        # consolidation tests, and there's actually no need to build if we
+        # were provided a bin directory to reuse:
 
-        if self.singletest():
+        if self.singletest() and not self.wdctl.reuse_bin:
             gprbuild (self.gpr, extracargs=self.extracargs)
 
         # Compute the gnatcov command line argument we'll pass to convey
@@ -520,17 +598,35 @@ class SCOV_helper:
     # well, and need access to each of the single directories to retrieve
     # execution traces and binaries.
 
-    def rwdir_for(self,main):
-        """Relative path to Working Directory for single MAIN."""
+    def rdir_for(self, base, main):
+        """Relative path to Working or Binary Directory for single MAIN."""
 
         # Strip a possible "test_" prefix. This allows shortening pathnames
         # and the prefix is pointless in providing a unique temp dir.
 
-        return self.wdbase + main.replace ("test_", "", 1) + "/"
+        return base + main.replace ("test_", "", 1) + "/"
+
+    def rwdir_for(self,main):
+        """Relative path to Working Directory for single MAIN."""
+
+        return self.rdir_for (base = self.wdctl.wdbase, main = main)
+
+    def rbdir_for(self,main):
+        """Relative path to Binary Directory for single MAIN."""
+
+        return self.rdir_for (base = self.wdctl.bdbase, main = main)
+
+    def adir_for(self, rdir):
+        """Absolute path from relative dir."""
+        return self.homedir + rdir
 
     def awdir_for(self,main):
         """Absolute path to Working Directory for single MAIN."""
-        return self.homedir + self.rwdir_for(main)
+        return self.adir_for (self.rwdir_for(main))
+
+    def abdir_for(self,main):
+        """Absolute path to Binary Directory for single MAIN."""
+        return self.adir_for (self.rbdir_for(main))
 
     def rwdir(self):
         """Relative path to Working Directory for current instance."""
@@ -548,7 +644,7 @@ class SCOV_helper:
 
     def awdir(self):
         """Absolute path to Working Directory for current instance."""
-        return self.homedir+self.rwdir()
+        return self.adir_for (self.rwdir())
 
     # --------------
     # -- xcov_run --
@@ -569,7 +665,7 @@ class SCOV_helper:
         # further checks that are bound to fail if the execution doesn't
         # proceed as expected somehow (e.g. not producing a trace).
 
-        xrun([self.awdir_for(main)+exename_for(main),
+        xrun([self.abdir_for(main)+exename_for(main),
               "--level=%s" % self.xcovlevel] + self.scoptions,
              out=ofile, register_failure=not self.testcase.expect_failures)
 

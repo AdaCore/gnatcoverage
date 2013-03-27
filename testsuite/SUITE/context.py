@@ -254,7 +254,7 @@ class Test (object):
 
         if self.n_failed == 0 and thistest.options.do_post_run_cleanups:
             [rm (gp, recursive=True)
-             for gp in ('tmp_*', 'st_*', 'dc_*', 'mc_*', 'obj', 'obj_*',
+             for gp in ('tmp_*', 'st_*', 'dc_*', 'mc_*', 'uc_*', 'obj', 'obj_*',
                         '[0-9]', '*.adb.*', 'test.py.log')
              ]
 
