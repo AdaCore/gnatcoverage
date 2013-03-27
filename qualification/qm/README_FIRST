@@ -19,3 +19,6 @@ To run the QM:
     qmachine model.xml -l scripts/generate_plan.py
 
     The documentation will be generated in the release folder
+
+Important Note:
+In order to generate the PDF, you will need make, and LaTeX installed.
