@@ -1,0 +1,21 @@
+To run the QM:
+
+* Download a recent wavefront (synchronize with the QM team for that)
+* Unzip it (if on Windows) or untar it (on Unix). The created directory will be
+  denoted by <qmachine_prefix>. You can safely move it to any convenient
+  location.
+* Make sure the bin directory is in your PATH:
+  on unix: export PATH=<qmachine_prefix>/bin:$PATH
+  on windows: right click on start menu->computer, select properties,
+   select advanced properties, environment variables, update the PATH definition
+   or define it to <qmachine_prefix>\bin;%PATH%
+* In the directory containing this README file, using the command line:
+  - To run the qmachine with the GUI:
+
+    qmachine model.xml
+
+  - To generate the documentation (html and pdf)
+
+    qmachine model.xml -l scripts/generate_plan.py
+
+    The documentation will be generated in the release folder
