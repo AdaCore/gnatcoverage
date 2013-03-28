@@ -50,6 +50,7 @@
 --  (particularly the 32 bit word size, machine code of 20, swap to
 --  little endian host).
 
+with Ada.Unchecked_Deallocation;
 with Ada.Command_Line; use Ada.Command_Line;
 with Text_IO;          use Text_IO;
 with Interfaces;       use Interfaces;
@@ -196,11 +197,15 @@ procedure Nexus_Trace_Gen is
          Symtab_Shdr_Ptr : Elf_Shdr_Acc;
          type Sym_Array_T is array (Positive range <>) of Elf_Sym;
          type Sym_Array_Ptr_T is access all Sym_Array_T;
+         procedure Free is
+           new Ada.Unchecked_Deallocation (Sym_Array_T, Sym_Array_Ptr_T);
          Sym_Array_Ptr : Sym_Array_Ptr_T;
          Strtab_Shdr_Idx : Elf_Half;
          Strtab_Shdr_Ptr : Elf_Shdr_Acc;
          type String_Table_T is array (Natural range <>) of Character;
          type String_Table_Ptr_T is access all String_Table_T;
+         procedure Free is
+           new Ada.Unchecked_Deallocation (String_Table_T, String_Table_Ptr_T);
          String_Table_Ptr : String_Table_Ptr_T;
       begin
          Symtab_Shdr_Idx := Get_Shdr_By_Name (Executable_File, ".symtab");
@@ -246,6 +251,8 @@ procedure Nexus_Trace_Gen is
                Str_Idx := Str_Idx + 1;
                if K = S'Last then
                   if Character'Pos (String_Table_Ptr (Str_Idx)) = 0 then
+                     Free (Sym_Array_Ptr);
+                     Free (String_Table_Ptr);
                      return Sym.St_Value;
                   else
                      exit;
@@ -256,7 +263,7 @@ procedure Nexus_Trace_Gen is
 
          end loop;
 
-         Put_Line (Standard_Error, "Symbol " & S & "not found");
+         Put_Line (Standard_Error, "Symbol """ & S & """ not found");
          raise Constraint_Error;
       end Lookup_Sym_Value;
 
@@ -644,7 +651,11 @@ begin
       --  Put_Line ("Block starting address: " & To_Hex_Word_Str (New_Addr));
       Nexus_Msg_List_Elem := Nexus_Msg_List_Elem.Next;
       if Nexus_Msg_List_Elem = null then
-         raise Program_Error with "Unexpected end of message list";
+         exit;
+         --  Nexus messages can simply run out id iSystem buffer
+         --  fills. The other case for end of processing is when
+         --  a breakpoint is hit.... that results in a
+         --  correlation message which is handled below.
       end if;
 
       Nexus_Msg := Nexus_Msg_List_Elem.Message;
@@ -670,7 +681,7 @@ begin
             loop
                Insn_Flags (Insn_Idx).Been_Executed := True;
                if Insn_Idx = Block_End_Idx then
-                  --  The last instruction should b a branch taken.
+                  --  The last instruction should be a branch taken.
                   if not Insn_Flags (Insn_Idx).Is_Branch then
                      raise Program_Error with "End of block not a branch";
                   end if;
@@ -798,7 +809,7 @@ begin
 
                   exit;
                elsif Insn_Flags (Insn_Idx).Is_Branch then
-                  --  As in the direct Branch case, there can be braches
+                  --  As in the direct Branch case, there can be branches
                   --  not taken since the last message.
                   Insn_Flags (Insn_Idx).Br_Not_Taken := True;
 
@@ -935,7 +946,93 @@ begin
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
          when Prog_Trace_Indirect_Branch_Message_Sync      =>
-            raise Program_Error with "Oops Indirect Br w Sync";
+            if Looking_For_Sync then
+               New_Addr := Unsigned_32
+                 (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.F_ADDR);
+               Block_Begin_Idx :=
+                 Positive (New_Addr - Text_First_Addr) / 4 + 1;
+               Last_Indirect_Or_Sync_Addr := New_Addr;
+               Looking_For_Sync := False;
+               goto Continue_Waiting_For_Sync;
+            end if;
+
+            N_Insns := Positive
+              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.I_CNT
+               + ICNT_Adj);
+            if At_Trace_Start then
+               N_Insns := N_Insns + 1;
+               At_Trace_Start := False;
+            end if;
+            Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
+            Insn_Idx := Block_Begin_Idx;
+            if Do_History and then Insn_Flags (Insn_Idx).Historical then
+               Writing_Trace := True;
+               Trace_Start_Idx := Insn_Idx;
+            else
+               Writing_Trace := False;
+            end if;
+
+            loop
+               Insn_Flags (Insn_Idx).Been_Executed := True;
+               if Insn_Idx = Block_End_Idx then
+                  if not Insn_Flags (Insn_Idx).Is_Branch then
+                     raise Program_Error with "End of block not a branch";
+                  end if;
+                  Insn_Flags (Insn_Idx).Br_Taken := True;
+                  if Writing_Trace then
+                     Entry32.Pc :=
+                       Unsigned_32 ((Trace_Start_Idx - Insn_Flags'First) * 4)
+                       + Text_First_Addr;
+                     Entry32.Size :=
+                       Unsigned_16 ((Insn_Idx - Trace_Start_Idx + 1) * 4);
+                     Entry32.Op := Trace_Op_Br0;
+                     Entry32.Pad0 := 0;
+                     if
+                       Write (Trace_FD, Entry32'Address, E32_Size) /= E32_Size
+                     then
+                        Close (Trace_FD);
+                        raise Program_Error
+                          with "Error writing trace entry.";
+                     end if;
+                  end if;
+
+                  exit;
+               elsif Insn_Flags (Insn_Idx).Is_Branch then
+                  Insn_Flags (Insn_Idx).Br_Not_Taken := True;
+
+                  if Writing_Trace then
+                     Entry32.Pc :=
+                       Unsigned_32 ((Trace_Start_Idx - Insn_Flags'First) * 4)
+                       + Text_First_Addr;
+                     Entry32.Size :=
+                       Unsigned_16 ((Insn_Idx - Trace_Start_Idx + 1) * 4);
+                     Entry32.Op := Trace_Op_Br1;
+                     Entry32.Pad0 := 0;
+                     if
+                       Write (Trace_FD, Entry32'Address, E32_Size) /= E32_Size
+                     then
+                        Close (Trace_FD);
+                        raise Program_Error
+                          with "Error writing trace entry.";
+                     end if;
+                  end if;
+                  if
+                    Do_History and then Insn_Flags (Insn_Idx + 1).Historical
+                  then
+                     Writing_Trace := True;
+                     Trace_Start_Idx := Insn_Idx + 1;
+                  else
+                     Writing_Trace := False;
+                  end if;
+               end if;
+               Insn_Idx := Insn_Idx + 1;
+            end loop;
+
+            --  In Sync messages, the full address is provided.
+            New_Addr := Unsigned_32
+              (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.F_ADDR);
+            Block_Begin_Idx := Positive (New_Addr - Text_First_Addr) / 4 + 1;
+            Last_Indirect_Or_Sync_Addr := New_Addr;
 
          when Data_Trace_Data_Write_Message_Sync           =>
             raise Program_Error with "Unexpected Data Trace TCODE";
