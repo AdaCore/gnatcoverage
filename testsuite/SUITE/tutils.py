@@ -125,7 +125,7 @@ def gprbuild(project, extracargs=None, gargs=None, largs=None):
 # -- gprfor --
 # ------------
 def gprfor(
-    mains, prjid="gen", srcdirs="src",
+    mains, prjid="gen", srcdirs="src", exedir=".",
     main_cargs=None, langs=None, deps=(), extra=""
     ):
     """Generate a simple PRJID.gpr project file to build executables for each
@@ -199,6 +199,8 @@ def gprfor(
         'prjname': prjid,
         'extends': ('extends "%s"' % basegpr) if basegpr else "",
         'srcdirs': srcdirs,
+        'exedir': exedir,
+        'objdir': exedir+"/obj",
         'compswitches': compswitches,
         'languages' : languages,
         'gprmains': gprmains,

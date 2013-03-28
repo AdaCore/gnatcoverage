@@ -539,6 +539,7 @@ class SCOV_helper:
             mains = self.drivers, prjid="gen",
             srcdirs = [
                 "../"*n + "src" for n in range (1, this_depth)],
+            exedir = self.abdir(),
             main_cargs = "-fno-inline",
             langs = ["Ada", "C"],
             deps = self.covctl.deps if self.covctl else (),
@@ -628,23 +629,32 @@ class SCOV_helper:
         """Absolute path to Binary Directory for single MAIN."""
         return self.adir_for (self.rbdir_for(main))
 
-    def rwdir(self):
-        """Relative path to Working Directory for current instance."""
+    def main(self):
 
         # For a single test, discriminate with driver basename. For a
         # consolidation test, discriminate with the expectation file basename.
         # We need the latter to allow multiple consolidation scenarii for a
         # testcase.
 
-        if self.singletest():
-            return self.rwdir_for(no_ext(self.drivers[0]))
-        else:
-            return self.rwdir_for(
-                os.path.basename(no_ext(self.xfile)))
+        return (
+            no_ext(self.drivers[0]) if self.singletest()
+            else os.path.basename(no_ext(self.xfile)))
+
+    def rwdir(self):
+        """Relative path to Working Directory for current instance."""
+        return self.rwdir_for(self.main())
 
     def awdir(self):
         """Absolute path to Working Directory for current instance."""
         return self.adir_for (self.rwdir())
+
+    def rbdir(self):
+        """Relative path to Working Directory for current instance."""
+        return self.rbdir_for(self.main())
+
+    def abdir(self):
+        """Absolute path to Working Directory for current instance."""
+        return self.adir_for (self.rbdir())
 
     # --------------
     # -- xcov_run --

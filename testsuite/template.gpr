@@ -8,8 +8,8 @@
 project %(prjname)s %(extends)s is
 
 for Source_Dirs use (%(srcdirs)s);
-for Object_Dir use "obj";
-for Exec_Dir use ".";
+for Exec_Dir use "%(exedir)s";
+for Object_Dir use "%(objdir)s";
 
 for Languages use (%(languages)s);
 
