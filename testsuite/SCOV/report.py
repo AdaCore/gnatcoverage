@@ -2,9 +2,15 @@
 # **                           REPORT format checker                       **
 # ***************************************************************************
 
-# This module exposes the ReportChecker class.
-
-# Dev in progress. Still pretty crude ...
+# This module exposes the ReportChecker class. Goal is to check conformance
+# of actual source coverage reports to requirements.
+#
+# Intended mode of use is like:
+#
+#   tc = SCOV.TestCase (category=None)
+#   tc.run ()
+#
+#   ReportChecker(tc).run()
 
 # ***************************************************************************
 
@@ -149,9 +155,19 @@ all_crit = ["STMT", "DECISION", "MCDC"]
 crit_for = {
     "stmt":          ["STMT"],
     "stmt+decision": ["STMT", "DECISION"],
-    "stmt+mcdc":     ["STMT", "DECISION", "MCDC"]
+    "stmt+mcdc":     ["STMT", "DECISION", "MCDC"],
+    "stmt+uc_mcdc":  ["STMT", "DECISION", "MCDC"]
 }
 
+# Base prefix of the working subdirectory for each xcovlevel.  ??? This is
+# relying too much on knowledge about how the testuite driver works ...
+
+xcovlevel_from = {
+    "sc_" : "stmt",
+    "dc_" : "stmt+decision",
+    "mc_" : "stmt+mcdc",
+    "uc_" : "stmt+uc_mcdc"
+}
 
 class ReportChecker:
 
@@ -319,15 +335,11 @@ class ReportChecker:
 
         self.__setup_expectations(
             ntraces   = len(qde.drivers),
-            xcovlevel = self.tc.xcovlevels[-1],
+            xcovlevel = xcovlevel_from[os.path.basename(qde.wdir)[0:3]],
             xregions  = xregions
             )
 
-        # ??? This is relying too much on knowledge about how
-        # the testuite driver works ...
-
-        tmpdir = "tmp_" + no_ext(os.path.basename(qde.xfile)).replace ("test_", "", 1)
-        reports = ls (os.path.join (tmpdir, "test.rep"))
+        reports = ls (os.path.join (qde.wdir, "test.rep"))
 
         thistest.fail_if (
             len (reports) != 1, "expected 1 report, found %d" % len (reports))
