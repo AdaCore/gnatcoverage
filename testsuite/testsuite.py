@@ -419,6 +419,17 @@ class TestSuite:
         m = re.search ("(\d\.[01]\.[0123](?:rc)?)/?$", self.options.toolchain)
         return [m.group(1)] if m else []
 
+    def __generate_group (self, dirname, group_py):
+        """Helper for the "test.py" research: generate a tree of testcases for
+        the given "group.py" located in "dirname". Return whethet generation
+        was successful."""
+
+        group_py_path = os.path.join(dirname, group_py)
+        return Run(
+            ['/usr/bin/env', 'python', group_py_path],
+            timeout=20
+        ).status == 0
+
     # ---------------------
     # -- __next_testcase --
     # ---------------------
@@ -438,6 +449,7 @@ class TestSuite:
                 )
 
         test_py = "test.py"
+        group_py = "group.py"
 
         for (dirname, subdirs, files) in os.walk(
             top=root, topdown=True, followlinks=True
@@ -447,6 +459,18 @@ class TestSuite:
             # our filtering patterns:
 
             dirname =  dirname.replace ('\\', '/')
+
+            # If there is some testcases generation to do in this dir, first do
+            # it, and then continue to look for tests.
+            # TODO: look for a way to remove generated files that failed tests
+            # do not rely on.
+
+            if group_py in files:
+                if not self.__generate_group (dirname, group_py):
+                    # TODO: Generation may fail in the middle of outputting
+                    # "test.py" files, thus we should prevent `os.walk` from
+                    # going through subdirectories...
+                    continue
 
             # If there is not test to execute in this dir or the dir name
             # doesn't match the filter current filter, continue with the next
