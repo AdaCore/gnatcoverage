@@ -25,13 +25,28 @@
 
 --  This package defines tables used to store Source Coverage Obligations. It
 --  is used by Par_SCO to build the SCO information before writing it out to
---  the ALI file, and by Get_SCO to read from the ALI file.
+--  the ALI file, and by Get_SCO/Put_SCO to read and write the text form that
+--  is used in the ALI file.
 
 with Types; use Types;
 
 with GNAT.Table;
 
 package SCOs is
+
+   --  SCO information can exist in one of two forms. In the ALI file, it is
+   --  represented using a text format that is described in this specification.
+   --  Internally it is stored using two tables SCO_Table and SCO_Unit_Table,
+   --  which are also defined in this unit.
+
+   --  Par_SCO is part of the compiler. It scans the parsed source tree and
+   --  populates the internal tables.
+
+   --  Get_SCO reads the text lines in ALI format and populates the internal
+   --  tables with corresponding information.
+
+   --  Put_SCO reads the internal tables and generates text lines in the ALI
+   --  format.
 
    --------------------
    -- SCO ALI Format --
@@ -81,11 +96,6 @@ package SCOs is
    --      object_declaration
    --      renaming_declaration
    --      generic_instantiation
-
-   --      ??? is this list complete ???
-
-   --    ??? what is the exact story on complex statements such as blocks ???
-   --    ??? are the simple statements inside sufficient ???
 
    --  Statement lines
 
@@ -276,21 +286,41 @@ package SCOs is
    --  field is an identifier supplied when an entry is built (e.g. in the
    --  compiler this is the Unit_Number_Type value.
 
-   type Unit_Index is new Int;
+   type SCO_Unit_Index is new Int;
    --  Used to index values in this table. Values start at 1 and are assigned
    --  sequentially as entries are constructed.
 
    type SCO_Unit_Table_Entry is record
-      Info : Int;
+      File_Name : String_Ptr;
+      --  Pointer to file name in ALI file
+
+      Dep_Num : Nat;
+      --  Dependency number in ALI file
+
       From : Nat;
-      To   : Nat;
+      --  Starting index in SCO_Table of SCO information for this unit
+
+      To : Nat;
+      --  Ending index in SCO_Table of SCO information for this unit
    end record;
 
    package SCO_Unit_Table is new GNAT.Table (
      Table_Component_Type => SCO_Unit_Table_Entry,
-     Table_Index_Type     => Unit_Index,
+     Table_Index_Type     => SCO_Unit_Index,
      Table_Low_Bound      => 0,
      Table_Initial        => 20,
      Table_Increment      => 200);
+
+   -----------------
+   -- Subprograms --
+   -----------------
+
+   procedure Add_SCO
+     (From : Source_Location := No_Location;
+      To   : Source_Location := No_Location;
+      C1   : Character       := ' ';
+      C2   : Character       := ' ';
+      Last : Boolean         := False);
+   --  Adds one entry to SCO table with given field values
 
 end SCOs;
