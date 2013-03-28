@@ -2,11 +2,11 @@
 --                                                                          --
 --                         GNAT COMPILER COMPONENTS                         --
 --                                                                          --
---                             G E T _ S C O S                              --
+--                             G E T _ S C O S                               --
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2009-2011, Free Software Foundation, Inc.         --
+--             Copyright (C) 2009, Free Software Foundation, Inc.           --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -23,36 +23,20 @@
 --                                                                          --
 ------------------------------------------------------------------------------
 
---  This package contains the function used to read SCO information from an ALI
---  file and populate the tables defined in package SCOs with the result.
+--  This package contains the routines used to deal with generation and output
+--  of Soure Coverage Obligations (SCO's) used for coverage analysis purposes.
+
+with Types; use Types;
 
 generic
-   --  These subprograms provide access to the ALI file. Locating, opening and
-   --  providing access to the ALI file is the callers' responsibility.
-
-   with function Getc return Character is <>;
-   --  Get next character, positioning the ALI file ready to read the following
-   --  character (equivalent to calling Nextc, then Skipc). If the end of file
-   --  is encountered, the value Types.EOF is returned.
-
-   with function Nextc return Character is <>;
-   --  Look at the next character, and return it, leaving the position of the
-   --  file unchanged, so that a subsequent call to Getc or Nextc will return
-   --  this same character. If the file is positioned at the end of file, then
-   --  Types.EOF is returned.
-
-   with procedure Skipc is <>;
-   --  Skip past the current character (which typically was read with Nextc),
-   --  and position to the next character, which will be returned by the next
-   --  call to Getc or Nextc.
-
-procedure Get_SCOs;
---  Load SCO information from ALI file text format into internal SCO tables
---  (SCOs.SCO_Table and SCOs.SCO_Unit_Table). On entry the input file is
---  positioned to the initial 'C' of the first SCO line in the ALI file.
---  On return, the file is positioned either to the end of file, or to the
---  first character of the line following the SCO information (which will
---  never start with a 'C').
---
---  If a format error is detected in the input, then an exception is raised
---  (Ada.IO_Exceptions.Data_Error), with the file positioned to the error.
+   with function Getc return Character;
+   with function Nextc return Character;
+procedure Get_SCOS (U : Unit_Number_Type);
+--  Load SCO information for given unit into SCOs tables. Getc gets the next
+--  character from the ALI file, consuming it. It returns 16#1A# to mark the
+--  end of file. Nextc looks at the next character without consuming it. The
+--  procedure is called with Getc ready to read the C in the first column of
+--  the first line of the SCO information for a unit in the ALI file. Reading
+--  stops on encountering either the end of file, or a non-blank line starting
+--  with a character other than C. On return, Getc would read either this end
+--  of file character or the character other than C.
