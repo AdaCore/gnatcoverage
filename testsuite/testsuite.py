@@ -503,10 +503,34 @@ class TestSuite:
         # If we have a testcase filter starting designating a directory, no
         # point in searching elsewhere.
 
-        roots = (
-            (self.tc_filter,) if os.path.isdir(self.tc_filter)
-            else ("Qualif/", "tests/")
-            )
+        if os.path.isdir(self.tc_filter):
+            # If we start in a nested directory, make sure upper generations
+            # are done anyway.
+
+            # First generate the list of nested directories in which we have
+            # to look for "group.py" first.
+            inter_dirs = []
+            current_dir = self.tc_filter
+            while True:
+                current_dir, _ = os.path.split(current_dir)
+                if current_dir:
+                    inter_dirs.append(current_dir)
+                else:
+                    break
+
+            # Then handle the topmost directories first, so that generated
+            # 'group.py' are handled, too.
+            group_py = 'group.py'
+            for inter_dir in reversed(inter_dirs):
+                if group_py in os.listdir(inter_dir):
+                    if not self.__generate_group(inter_dir, group_py):
+                        # TODO: complain if generation fails.
+                        continue
+
+            roots = (self.tc_filter, )
+        else:
+            roots = ("Qualif/", "tests/")
+
         return (
             tc for root in roots
             for tc in self.__next_testcase_from (root)
