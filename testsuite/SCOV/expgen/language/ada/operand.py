@@ -16,11 +16,6 @@ import SCOV.expgen.operand as operand
 INTEGER = ([], 'Integer')
 STRING = ([], 'String')
 
-STRING_ACCESS = (
-    ['type String_Access is access all String;'], # Type declaration
-    'String_Access'
-)
-
 BOOLEAN_SUBTYPE = (
     ['subtype Bool_Subtype is Boolean;'], # Type declaration
     'Bool_Subtype' # Type usage
@@ -43,9 +38,9 @@ SLOC_RECORD = (
 
 TWO_STRINGS = (
     [ # Type declaration
-        'type Two_Strings is record',
-        '    First : String_Access;',
-        '    Second : String_Access;',
+        'type Two_Strings (L1, L2 : Integer) is record',
+        '    First : String (1 .. L1);',
+        '    Second : String (1 .. L2);',
         'end record;',
     ],
     'Two_Strings' # Type usage
@@ -106,17 +101,17 @@ class StringConcatenation(operand.LanguageSpecific):
     Compare the concatenation of two strings with a litteral string.
     '''
     LANGUAGE    = 'Ada'
-    USED_TYPES  = (STRING, STRING_ACCESS, TWO_STRINGS, )
+    USED_TYPES  = (STRING, TWO_STRINGS, )
     PARAM_TYPE  = TWO_STRINGS
     FORMAT      = (
-        '({formal_name}.Second.all & {formal_name}.First.all)'
+        '({formal_name}.Second & {formal_name}.First)'
         ' = "Hello, world!"'
     )
     ACTUALS     = {
-        False:  '(Second => new String\'("I beg you"),'
-                ' First =>  new String\'("pardon?"))',
-        True:   '(Second => new String\'("Hello, "),'
-                ' First =>  new String\'("world!"))',
+        False:  '(Second => "I beg you", L2 => 9,'
+                ' First =>  "pardon?",   L1 => 7)',
+        True:   '(Second => "Hello, ",   L2 => 7,'
+                ' First =>  "world!",    L1 => 6)',
     }
 
 class StringSlice(operand.LanguageSpecific):
