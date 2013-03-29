@@ -72,6 +72,7 @@ Not = namedtuple('not_expr', 'expr')
 
 # Statements
 If      = namedtuple('if_stmt',      'condition true_stmt false_stmt')
+While   = namedtuple('while_stmt',   'condition stmt')
 Return  = namedtuple('return_stmt',  'expr')
 Assign  = namedtuple('assign',       'variable expr')
 

@@ -40,6 +40,7 @@ operand_kinds = [
 contexts = [
     context.Call(),
     context.If(),
+    context.While(),
     context.Return(),
 
     # Ada-specific contexts

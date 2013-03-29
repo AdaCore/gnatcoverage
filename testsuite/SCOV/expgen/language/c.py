@@ -350,6 +350,17 @@ class Language(language.Language):
             self.handle(stmt.false_stmt)
         self.write('}'); self.newline()
 
+    def handle_while_stmt(self, stmt):
+        self.write('while (')
+        with self.indent():
+            self.handle(stmt.condition)
+        self.write(')'); self.newline()
+
+        self.write('{'); self.newline()
+        with self.indent(self.INDENT):
+            self.handle(stmt.stmt)
+        self.write('}'); self.newline()
+
     def handle_return_stmt(self, stmt):
         self.write('return ')
         with self.indent():

@@ -48,6 +48,11 @@ class LanguageSpecific(Context):
         )
 
 
+# Tag for statements whose execution depends on the outcome of the decision
+# expression.
+ON_TRUE_TAG = ast.Tag('on-true', None, None)
+ON_FALSE_TAG = ast.Tag('on-false', None, None)
+
 class Call(Context):
     '''
     The decision expression is used as a parameter for a call to an "identity"
@@ -75,26 +80,46 @@ class Call(Context):
 
 
 class If(Context):
+    '''
+    The decision expression is used as the controlling expression for an IF
+    statement.
+    '''
 
     TAG_CONTEXT = ast.TagTypes.DECISION
-    ON_TRUE_TAG = ast.Tag('on-true', None, None)
-    ON_FALSE_TAG = ast.Tag('on-false', None, None)
 
     def get_program(self, condition):
-        return ast.Program(
-            [],
+        return ast.Program([], # No local variable
+            [ast.If(
+                condition,
+                ast.TaggedNode(ON_TRUE_TAG,
+                    ast.Return(ast.LitteralBoolean(True))
+                ),
+                ast.TaggedNode(ON_FALSE_TAG,
+                    ast.Return(ast.LitteralBoolean(False))
+                )
+            )]
+        )
+
+class While(Context):
+    '''
+    The decision expression is used as the controlling expression for a WHILE
+    statement.
+    '''
+
+    TAG_CONTEXT = ast.TagTypes.DECISION
+
+    def get_program(self, condition):
+        return ast.Program([], # No local variable
             [
-                ast.If(
+                ast.While(
                     condition,
-                    ast.TaggedNode(
-                        self.ON_TRUE_TAG,
+                    ast.TaggedNode(ON_TRUE_TAG,
                         ast.Return(ast.LitteralBoolean(True))
-                    ),
-                    ast.TaggedNode(
-                        self.ON_FALSE_TAG,
-                        ast.Return(ast.LitteralBoolean(False))
                     )
                 ),
+                ast.TaggedNode(ON_FALSE_TAG,
+                    ast.Return(ast.LitteralBoolean(False))
+                )
             ]
         )
 
