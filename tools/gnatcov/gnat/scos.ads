@@ -272,17 +272,23 @@ package SCOs is
 
    --  This table keeps track of the units and the corresponding starting and
    --  ending indexes (From, To) in the SCO table. Note that entry zero is
-   --  unused, it is for convenience in calling the sort routine.
+   --  unused, it is for convenience in calling the sort routine. The Info
+   --  field is an identifier supplied when an entry is built (e.g. in the
+   --  compiler this is the Unit_Number_Type value.
+
+   type Unit_Index is new Int;
+   --  Used to index values in this table. Values start at 1 and are assigned
+   --  sequentially as entries are constructed.
 
    type SCO_Unit_Table_Entry is record
-      Unit : Unit_Number_Type;
+      Info : Int;
       From : Nat;
       To   : Nat;
    end record;
 
    package SCO_Unit_Table is new GNAT.Table (
      Table_Component_Type => SCO_Unit_Table_Entry,
-     Table_Index_Type     => Int,
+     Table_Index_Type     => Unit_Index,
      Table_Low_Bound      => 0,
      Table_Initial        => 20,
      Table_Increment      => 200);
