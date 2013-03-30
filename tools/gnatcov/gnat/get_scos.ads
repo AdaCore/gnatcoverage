@@ -29,9 +29,9 @@
 with SCOs;  use SCOs;
 with Types; use Types;
 generic
-   with function Getc return Character;
-   with function Nextc return Character;
-function Get_SCOS (Info : Int := 0) return Unit_Index;
+   with function Getc return Character is <>;
+   with function Nextc return Character is <>;
+function Get_SCOs (Info : Int := 0) return Unit_Index;
 --  Load SCO information for given unit into SCOs tables. Getc gets the next
 --  character from the ALI file, consuming it. It returns 16#1A# to mark the
 --  end of file. Nextc looks at the next character without consuming it. The
