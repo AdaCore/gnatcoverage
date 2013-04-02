@@ -121,6 +121,9 @@ QLEVEL_INFO = {
         xcovlevel = "stmt")
     }
 
+class GenerationError(Exception):
+    pass
+
 # ===============================
 # == Compilation Flags Control ==
 # ===============================
@@ -425,10 +428,13 @@ class TestSuite:
         was successful."""
 
         group_py_path = os.path.join(dirname, group_py)
-        return Run(
+        failure = Run(
             ['/usr/bin/env', 'python', group_py_path],
             timeout=20
-        ).status == 0
+        ).status != 0
+
+        if failure:
+            raise GenerationError(group_py_path)
 
     # ---------------------
     # -- __next_testcase --
@@ -466,11 +472,7 @@ class TestSuite:
             # do not rely on.
 
             if group_py in files:
-                if not self.__generate_group (dirname, group_py):
-                    # TODO: Generation may fail in the middle of outputting
-                    # "test.py" files, thus we should prevent `os.walk` from
-                    # going through subdirectories...
-                    continue
+                self.__generate_group (dirname, group_py)
 
             # If there is not test to execute in this dir or the dir name
             # doesn't match the filter current filter, continue with the next
@@ -523,9 +525,7 @@ class TestSuite:
             group_py = 'group.py'
             for inter_dir in reversed(inter_dirs):
                 if group_py in os.listdir(inter_dir):
-                    if not self.__generate_group(inter_dir, group_py):
-                        # TODO: complain if generation fails.
-                        continue
+                    self.__generate_group(inter_dir, group_py)
 
             roots = (self.tc_filter, )
         else:
@@ -563,6 +563,10 @@ class TestSuite:
                 self.run_testcase, self.collect_result,
                 self.options.jobs
                 )
+
+        except GenerationError as e:
+            logging.error('Generation failed: {}'.format(e))
+            sys.exit(1)
 
         except Exception as e:
             logging.info("Mainloop stopped on exception occurrence")
