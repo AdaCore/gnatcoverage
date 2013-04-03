@@ -82,8 +82,7 @@ procedure Nexus_Trace_Gen is
    begin
       P ("usage: Nexus_Trace_Gen proc_id binary_file ocd_file" &
            " --nohist|hist_file trace_file");
-      P ("  [--start=(symbol_name|Address)]");
-      P ("  [--iac{0123}=(symbol_name|Address)]");
+      P ("  PT_Start_IAC_# PT_Start_Addr never|PT_Stop_IAC");
    end Usage;
 
    type String_Ptr is access String;
@@ -107,27 +106,60 @@ procedure Nexus_Trace_Gen is
    type Watchpoint_T is mod 2 ** 8;
    Watchpoint_Seen : Watchpoint_T;
 
-   Arg_Index             : Positive;
-   VSI                   : Positive;
-   J                     : Positive;
-   New_IAC               : Boolean;
-   Under_OK              : Boolean;
-   Trace_Start_Specified : Boolean := False;
-   Trace_Start_Address   : Unsigned_32;
-   IAC_Number            : Watchpoint_T;
-   IAC_Specified         : Boolean := False;
-   IAC_Address           : Unsigned_32;
-   Looking_For_Sync      : Boolean;
+   J                 : Positive;
+   Under_OK          : Boolean;
+   PT_Start_IAC_Bit  : Watchpoint_T;
+   PT_Stop_IAC_Bit   : Watchpoint_T;
+   PT_Start_Address  : Unsigned_32;
+   PT_Running        : Boolean;
    --  Vars used for trace start address options procesing and use.
 
    type Insns_Array is array (Positive range <>) of Unsigned_32;
    Insns_Ptr        : access Insns_Array;
    N_Insns          : Positive;
-   ICNT_Adj         : Nexus_Packet_T;
-   --  Different implementation of Nexus count instructions
-   --  differently. ICNT_Adj is added to the ICNT value in
-   --  Branch Trace messages to land on the branch instruction.
-   --  Now, it is known to be 0 for MPC5634 and 1 for MPC5554.
+
+   EV_Code : Nexus_Packet_T;
+
+   ICNT_Adj_Val     : Nexus_Packet_T;
+   ICNT_Proc_Adj    : Nexus_Packet_T;
+   function ICNT_Adj return Nexus_Packet_T;
+   --  The Insrtruction Count value returned in various BT messages needs
+   --  some adjustement to consistently include all the intrsuctions since
+   --  that last BT message (or since PT is started).
+   --
+   --  One source of difference between the value returned and the value
+   --  desired, is differences in implementations of Nexus modules. E.g. the
+   --  value returned by the module on the 5554 is one short (as if the
+   --  branch instruction is not counted), whereas the value returned by
+   --  the 5634 module is the desired count. The variable ICNT_Proc_Adj is
+   --  set to the processor specific adjustment that is needed.
+   --
+   --  The processor specific adjustment is always needed, but other
+   --  adjustments result from dynamic events, and only apply to the
+   --  next BT message that occurs. ICNT_Adj_Val is the actual value
+   --  that should be applied to the next BT message, and it is the
+   --  value that is returned by the function ICNT_Adj. ICNT_Adj also
+   --  resets ICNT_Adj_Val to ICNT_Proc_Adj.
+   --
+   --  Thus, the events that require changes to the adjustment value
+   --  modify ICNT_Adj_Val, and the function ICNT_Adj is called during
+   --  BT message processing to get the adjustment needed.
+   --
+   --  One dynamic event is the startup of PT message generation,
+   --  either when the CPU starts (if DC1 enabling is used -- not allowed
+   --  at this point) or when the watchpoint programmed into the Watchpoint
+   --  Trigger register is hit -- this is discovered in Watchpoint Message
+   --  processing. The ICNT in the initial BTM after this is one to low.
+   --
+   --  The other dynamic event is overflow of the instruction counter between
+   --  BT messages. This is indicated by a Resource Full message.
+
+   function ICNT_Adj return Nexus_Packet_T is
+      R : Nexus_Packet_T := ICNT_Adj_Val;
+   begin
+      ICNT_Adj_Val := ICNT_Proc_Adj;
+      return R;
+   end ICNT_Adj;
 
    type Insn_Flags_T is record
       Been_Executed : Boolean;
@@ -156,8 +188,6 @@ procedure Nexus_Trace_Gen is
    Nexus_Msg_List_Elem : Nexus_Message_List_Elem_Ptr_T;
    Nexus_Msg           : Nexus_Message_Rec_Ptr_T;
    Message_List        : Nexus_Message_List_T;
-
-   At_Trace_Start : Boolean;
 
    Exe_Exception : exception;
    procedure Chk_Exe (Msg : String);
@@ -369,11 +399,14 @@ procedure Nexus_Trace_Gen is
 
 begin
 
-   if Argument_Count < 5 or else Argument_Count > 7 then
+   if Argument_Count /= 8 then
       Usage;
       Set_Exit_Status (1);
       return;
    end if;
+   for K in 1 .. Argument_Count loop
+      Put_Line (Argument (K));
+   end loop;
 
    Processor_ID := new String'(Argument (1));
    Executable_Filename := new String'(Argument (2));
@@ -394,76 +427,54 @@ begin
    Chk_Exe ("Error reading file header");
    Load_Shdr (Executable_File);
    Chk_Exe ("Error retrieving section headers");
-   --  Open the executable file early. It may be needed if starting
-   --  addresses are passed through options, and are expressed
-   --  symbolicaly.
+   --  Open the executable file before processing of PT_Start_Addr, in
+   --  case a symbol name is used for the address, which requires
+   --  processing of the executable.
 
-   Arg_Index := 6;
-   Looking_For_Sync := True;
-   --  By default, at the beginning of proceesing the branch trace messages,
-   --  the messages will be skipped until a sync message shows up specifying
-   --  a full address. If "--start" is specified, then the starting address
-   --  is known, and Looking_For_Sync is set False.
+   if Argument (6) = "1" then
+      PT_Start_IAC_Bit := 1;
+   elsif Argument (6) = "2" then
+      PT_Start_IAC_Bit := 2;
+   elsif Argument (6) = "3" then
+      PT_Start_IAC_Bit := 4;
+   elsif Argument (6) = "4" then
+      PT_Start_IAC_Bit := 8;
+   else
+      Put_Line (Standard_Error, "PT_Start_IAC out of range 1 .. 4");
+      Set_Exit_Status (1);
+      return;
+   end if;
 
-   New_IAC := False;
-   while Arg_Index <= Argument_Count loop
-      VSI := Argument (Arg_Index)'First;
-      if Has_Prefix (Argument (Arg_Index), "--start=") then
-         if Trace_Start_Specified then
-            Put_Line (Standard_Error, """--start"" specified twice.");
-            Set_Exit_Status (1);
-            return;
-         end if;
-         Trace_Start_Specified := True;
-         Looking_For_Sync := False;
-         VSI := VSI + 8;
-         Trace_Start_Address := Exe_Address_From_Arg
-           (Argument (Arg_Index) (VSI .. Argument (Arg_Index)'Last));
+   PT_Start_Address := Exe_Address_From_Arg (Argument (7));
 
-      elsif Has_Prefix (Argument (Arg_Index), "-iac0=") then
-         VSI := VSI + 5;
-         New_IAC := True;
-         IAC_Number := 0;
-      elsif Has_Prefix (Argument (Arg_Index), "-iac1=") then
-         VSI := VSI + 5;
-         New_IAC := True;
-         IAC_Number := 1;
-      elsif Has_Prefix (Argument (Arg_Index), "-iac2=") then
-         VSI := VSI + 5;
-         New_IAC := True;
-         IAC_Number := 2;
-      elsif Has_Prefix (Argument (Arg_Index), "-iac3=") then
-         VSI := VSI + 5;
-         New_IAC := True;
-         IAC_Number := 3;
-      else
-         Put_Line (Standard_Error, "Unknown option: " & Argument (Arg_Index));
-         Set_Exit_Status (1);
-         return;
-      end if;
-      if New_IAC then
-         if IAC_Specified then
-            Put_Line (Standard_Error, "Only one IAC value may be specified.");
-            Set_Exit_Status (1);
-            return;
-         end if;
-         IAC_Specified := True;
-         IAC_Address := Exe_Address_From_Arg
-           (Argument (Arg_Index) (VSI .. Argument (Arg_Index)'Last));
-      end if;
-      Arg_Index := Arg_Index + 1;
-   end loop;
+   if Argument (8) = "never" then
+      PT_Stop_IAC_Bit := 0;
+   elsif Argument (8) = "1" then
+      PT_Stop_IAC_Bit := 1;
+   elsif Argument (8) = "2" then
+      PT_Stop_IAC_Bit := 2;
+   elsif Argument (8) = "3" then
+      PT_Stop_IAC_Bit := 4;
+   elsif Argument (8) = "4" then
+      PT_Stop_IAC_Bit := 8;
+   else
+      Put_Line (Standard_Error,
+                "PT_Stop_IAC must be 'never' or in range 1 .. 4");
+      Set_Exit_Status (1);
+      return;
+   end if;
 
    if Processor_ID.all = "5634" then
-      ICNT_Adj := 0;
+      ICNT_Proc_Adj := 0;
    elsif Processor_ID.all = "5554" then
-      ICNT_Adj := 1;
+      ICNT_Proc_Adj := 1;
    else
       Put_Line (Standard_Error, "Unrecognized Processor ID (procid).");
       Usage;
       Set_Exit_Status (1);
       return;
    end if;
+   ICNT_Adj_Val := ICNT_Proc_Adj;
 
    Text_Shdr_Idx := Get_Shdr_By_Name (Executable_File, ".text");
    Chk_Exe ("Error finding "".text"" section");
@@ -625,46 +636,65 @@ begin
       raise Program_Error with "Empty Nexus message list";
    end if;
 
-   --  Nexus_Msg := Nexus_Msg_List_Elem.Message;
-   --  if Nexus_Msg.Tcode /= Debug_Status then
-   --     raise Program_Error with "Expected first Nexus message to be Status";
-   --  elsif Nexus_Msg.Debug_Status_V.STATUS /= 0 then
-   --     raise Program_Error with "Expected initial Status value to be 0";
-   --  end if;
-   --
-   --  Commented out during change to handle start addresses (help
-   --  supporting users providing trace files themselves rather than
-   --  python program called from 'gnatcov run'). Might serve a purpose
-   --  still (after HW trigger e.g.)????
+   PT_Running := False;
 
-   if not Looking_For_Sync then
-      Block_Begin_Idx :=
-        Positive (Trace_Start_Address - Text_First_Addr) / 4 + 1;
-   end if;
-   At_Trace_Start := not Looking_For_Sync;
-   --  I-CNT from first Program Trace Message after the start of trace
-   --  is 1 less than other cases. Flag that we are at the start of the
-   --  trace, and at the end of the loop check that it is turned off
-   --  (i.e. processing of first subquent message should make false).
    loop
-      New_Addr := Text_First_Addr + Unsigned_32 (Block_Begin_Idx - 1) * 4;
-      --  Put_Line ("Block starting address: " & To_Hex_Word_Str (New_Addr));
-      Nexus_Msg_List_Elem := Nexus_Msg_List_Elem.Next;
-      if Nexus_Msg_List_Elem = null then
-         exit;
-         --  Nexus messages can simply run out id iSystem buffer
-         --  fills. The other case for end of processing is when
-         --  a breakpoint is hit.... that results in a
-         --  correlation message which is handled below.
-      end if;
-
       Nexus_Msg := Nexus_Msg_List_Elem.Message;
       case Nexus_Msg.Tcode is
-         when Debug_Status                                 =>
-            null;
+         when Watchpoint_Message                           =>
+            --  Processing needed for WPs that are used for the start
+            --  and stop of PT message generation. The transition from
+            --  stopped state to running state needs to be handled since
+            --  the instruction count for the subsequent BTM can differ
+            --  if the WP addr is between branches.
+            Watchpoint_Seen :=
+              Watchpoint_T (Nexus_Msg.Watchpoint_Message_V.WPHIT);
+            if (Watchpoint_Seen and PT_Start_IAC_Bit) /= 0 then
+               if (Watchpoint_Seen and PT_Stop_IAC_Bit) /= 0 then
+                  raise Program_Error with
+                    "Cannot handle simultaneous Start and Stop WP msg";
+               end if;
+               if not PT_Running then
+                  PT_Running := True;
+                  Block_Begin_Idx :=
+                    Integer (PT_Start_Address - Text_First_Addr) / 4 + 1;
+                  ICNT_Adj_Val := ICNT_Proc_Adj + 1;
+                  --  ICNT_Adj_Val := ICNT_Proc_Adj;
+               end if;
+            elsif (Watchpoint_Seen and PT_Stop_IAC_Bit) /= 0 then
+               PT_Running := False;
+            end if;
 
-         when Ownership_Trace_Message                      =>
-            raise Program_Error with "Unexpected Ownership Trace TCODE";
+         when Resource_Full_Message                        =>
+            --  An RCODE of 0 indicates that the Instruction count
+            --  has wrapped around and another 255 needs to be added
+            --  to the I_CNT value returned by the next BTM.
+            if Nexus_Msg.Resource_Full_Message_V.RCODE = 0 then
+               ICNT_Adj_Val := ICNT_Adj_Val + 255;
+            else
+               raise Program_Error with
+                 "Resource Full Message unexpected RCODE received";
+            end if;
+
+         when Prog_Trace_Program_Correlation_Message       =>
+            --  There are 2 expected events that generate Program Correlation
+            --  messages: a breakpoint is set to end execution; the PT
+            --  stop watchpoint is hit.
+            EV_Code :=
+              Nexus_Msg.Prog_Trace_Program_Correlation_Message_V.EVCODE;
+            if EV_Code = 4 then
+               if PT_Running then
+                  raise Program_Error with
+                    "Correlation message EVCODE of 4 while PT running";
+               end if;
+               --  Capture trace since... ???
+            elsif EV_Code = 0 then
+               --  BP
+               exit;
+            else
+               raise Program_Error with
+                 "Correlation message with unxpected EVCODE";
+            end if;
 
          when Prog_Trace_Direct_Branch_Message             =>
             N_Insns := Positive
@@ -847,33 +877,10 @@ begin
             Block_Begin_Idx := Positive (New_Addr - Text_First_Addr) / 4 + 1;
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
-         when Data_Trace_Data_Write_Message                =>
-            raise Program_Error with "Unexpected Data Trace TCODE";
-
-         when Data_Trace_Data_Read_Message                 =>
-            raise Program_Error with "Unexpected Data Trace TCODE";
-
-         when Error_Message                                =>
-            raise Program_Error with "Unexpected Error Message TCODE";
-
          when Prog_Trace_Direct_Branch_Message_Sync        =>
-            if Looking_For_Sync then
-               New_Addr := Unsigned_32
-                 (Nexus_Msg.Prog_Trace_Direct_Branch_Message_Sync_V.F_ADDR);
-               Block_Begin_Idx :=
-                 Positive (New_Addr - Text_First_Addr) / 4 + 1;
-               Last_Indirect_Or_Sync_Addr := New_Addr;
-               Looking_For_Sync := False;
-               goto Continue_Waiting_For_Sync;
-            end if;
-
             N_Insns := Positive
               (Nexus_Msg.Prog_Trace_Direct_Branch_Message_Sync_V.I_CNT
                + ICNT_Adj);
-            if At_Trace_Start then
-               N_Insns := N_Insns + 1;
-               At_Trace_Start := False;
-            end if;
             Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
             Insn_Idx := Block_Begin_Idx;
             if Do_History and then Insn_Flags (Insn_Idx).Historical then
@@ -946,23 +953,9 @@ begin
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
          when Prog_Trace_Indirect_Branch_Message_Sync      =>
-            if Looking_For_Sync then
-               New_Addr := Unsigned_32
-                 (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.F_ADDR);
-               Block_Begin_Idx :=
-                 Positive (New_Addr - Text_First_Addr) / 4 + 1;
-               Last_Indirect_Or_Sync_Addr := New_Addr;
-               Looking_For_Sync := False;
-               goto Continue_Waiting_For_Sync;
-            end if;
-
             N_Insns := Positive
               (Nexus_Msg.Prog_Trace_Indirect_Branch_Message_Sync_V.I_CNT
                + ICNT_Adj);
-            if At_Trace_Start then
-               N_Insns := N_Insns + 1;
-               At_Trace_Start := False;
-            end if;
             Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
             Insn_Idx := Block_Begin_Idx;
             if Do_History and then Insn_Flags (Insn_Idx).Historical then
@@ -1034,47 +1027,39 @@ begin
             Block_Begin_Idx := Positive (New_Addr - Text_First_Addr) / 4 + 1;
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
+         when Debug_Status                                 =>
+            null;
+
+         when Data_Trace_Data_Write_Message                =>
+            raise Program_Error with "Unexpected Data Trace TCODE";
+
+         when Data_Trace_Data_Read_Message                 =>
+            raise Program_Error with "Unexpected Data Trace TCODE";
+
+         when Error_Message                                =>
+            raise Program_Error with "Unexpected Error Message TCODE";
+
+         when Ownership_Trace_Message                      =>
+            raise Program_Error with "Unexpected Ownership Trace TCODE";
+
          when Data_Trace_Data_Write_Message_Sync           =>
             raise Program_Error with "Unexpected Data Trace TCODE";
 
          when Data_Trace_Data_Read_Message_Sync            =>
             raise Program_Error with "Unexpected Data Trace TCODE";
 
-         when Watchpoint_Message                           =>
-            Watchpoint_Seen :=
-              Watchpoint_T (Nexus_Msg.Watchpoint_Message_V.WPHIT);
-            if IAC_Specified and then Watchpoint_Seen = IAC_Number then
-               New_Addr := IAC_Address;
-               Block_Begin_Idx :=
-                 Positive (New_Addr - Text_First_Addr) / 4 + 1;
-               Last_Indirect_Or_Sync_Addr := New_Addr;
-               Looking_For_Sync := False;
-               goto Continue_Waiting_For_Sync;
-            end if;
-            --  The Branch Message Trace trigger also serves purpose
-            --  if initial sync message.
-
-         when Resource_Full_Message                        =>
-            raise Program_Error with "Resource Full Message received";
-
          when Prog_Trace_Indirect_Branch_Hist_Message      =>
             raise Program_Error with "Unexpected Branch History TCODE";
          when Prog_Trace_Indirect_Branch_Hist_Message_Sync =>
             raise Program_Error with "Unexpected Branch History TCODE";
-
-         when Prog_Trace_Program_Correlation_Message       =>
-            exit;
-            --  ??? choice for ending nexus processing ???
 
          when  1 | 7 | 9 | 10 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23
             |  24 | 25 | 26 | 30 | 31 | 32 =>
             raise Program_Error with "Invalid TCODE";
 
       end case;
-      if At_Trace_Start then
-         raise Program_Error with "Trace Start not cleared";
-      end if;
-      <<Continue_Waiting_For_Sync>> null;
+      Nexus_Msg_List_Elem := Nexus_Msg_List_Elem.Next;
+      exit when Nexus_Msg_List_Elem = null;
    end loop;
 
    --  Loop over Insn_Flags, calculating basic blocks and writing
