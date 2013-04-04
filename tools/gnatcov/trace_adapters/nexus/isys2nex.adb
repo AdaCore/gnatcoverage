@@ -178,7 +178,13 @@ package body Isys2nex is
                  (4, 4, Nexus_Msg.Watchpoint_Message_V.WPHIT, Actual_N_Bits);
 
             when Resource_Full_Message =>
-               raise Isys2nex_Error with "Unhandled TCODE: Resource Full";
+               Fill_Packet
+                 (4, 4, Nexus_Msg.Resource_Full_Message_V.RCODE,
+                  Actual_N_Bits);
+               Fill_Packet
+                 (1, 32, Nexus_Msg.Resource_Full_Message_V.RDATA,
+                  Actual_N_Bits);
+
             when Prog_Trace_Indirect_Branch_Hist_Message =>
                raise Isys2nex_Error with
                  "Unhandled TCODE: Indirect Branch Hist";
