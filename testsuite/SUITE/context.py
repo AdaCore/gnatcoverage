@@ -18,7 +18,9 @@ from gnatpython.fileutils import cd, rm, which, diff, touch, mkdir, ls, find
 
 import os, re, sys
 
+from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, LANGINFO, target_info
+
 from SUITE.cutils import ndirs_in
 from SUITE.qdata import QLANGUAGES
 
@@ -287,6 +289,8 @@ class Test (object):
                         action='store_true', default=False,
                         help='do best effort post-run cleanup of temp artifacts')
 
+        # --cargs[:<lang>] family
+
         [main.add_option (
                 '--cargs:%s' % lang, dest=self.__cargs_optvar_for (lang),
                 metavar='CARGS_%s' % lang, default="",
@@ -301,6 +305,14 @@ class Test (object):
             help=('Additional arguments to pass to the compiler '
                   'when building the test programs.')
             )
+
+        # --gnatcov-<cmd> family
+
+        [main.add_option(
+                '--gnatcov-%s' % cmd, dest='gnatcov_%s' % cmd,
+                default=None, help='program to use instead of "gnatcov %s"' % cmd,
+                metavar="...")
+         for cmd in control.GNATCOV_COMMANDS]
 
         main.add_option('--xcov-level', dest='xcov_level',
                         help='Force the --level argument passed to xcov '

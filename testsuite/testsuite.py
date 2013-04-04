@@ -699,11 +699,8 @@ class TestSuite:
         if mopt.do_post_run_cleanups:
             testcase_cmd.append('--post-run-cleanup')
 
-        # If we have a kernel argument, resolve to fullpath now, providing
-        # straightforward visibility to local test.py instances downtree.
-
         if mopt.kernel:
-            testcase_cmd.append('--kernel=%s' % os.path.abspath (mopt.kernel))
+            testcase_cmd.append('--kernel=%s' % mopt.kernel)
 
         if mopt.toolchain:
             testcase_cmd.append (
@@ -713,6 +710,13 @@ class TestSuite:
         testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
         test.start_time = time.time()
+
+        # --gnatcov-<cmd> family, per the "gnatcov_<cmd>" variables
+
+        [testcase_cmd.append(
+                '--gnatcov-%s=%s' % (cmd, mopt.__dict__["gnatcov_%s" % cmd]))
+         for cmd in control.GNATCOV_COMMANDS
+         if mopt.__dict__["gnatcov_%s" % cmd] is not None]
 
         return Run(testcase_cmd, output=diff, bg=True,
                    timeout=int(timeout) + DEFAULT_TIMEOUT)
@@ -853,8 +857,8 @@ class TestSuite:
                      action='store_true', default=False,
                      help='request post-run cleanup of temporary artifacts')
 
-        # cargs family: a common, language agnostic, one + one for each
-        # language we support. Iterations on cargs wrt languages will be
+        # --cargs[:<lang>] family: a common, language agnostic, one + one for
+        # each language we support. Iterations on cargs wrt languages will be
         # performed using explicit references to the attribute dictionary of
         # m.options. Provide a default to allow straight access from such
         # iterations, without having to test.
@@ -891,6 +895,19 @@ class TestSuite:
         m.add_option(
             '--toolchain', dest='toolchain', metavar='TOOLCHAIN',
             default="", help='Use toolchain in the provided path value')
+
+        # --gnatcov-<cmd> family
+
+        [m.add_option(
+                '--gnatcov-%s' % cmd, dest='gnatcov_%s' % cmd,
+                default=None, help='use CMD instead of "gnatcov %s"' % cmd,
+                metavar="CMD")
+         for cmd in control.GNATCOV_COMMANDS]
+
+        # Parse what options we do have on our command line, then perform a
+        # couple of validity checks and compute bits of internal state for
+        # later use:
+
         m.parse_args()
 
         self.enable_valgrind = (
@@ -911,6 +928,18 @@ class TestSuite:
          for opt in ("cargs%s" % ext
                      for ext in [""] + ["_%s" % lang for lang in QLANGUAGES])
          if m.options.__dict__[opt] == None]
+
+        # For paths that need to be passed to test.py downtree, resolve them
+        # to full path now while we have visibility on where relative paths
+        # lead.
+
+        if m.options.kernel:
+            m.options.kernel = os.path.abspath (m.options.kernel)
+
+        [m.options.__dict__.__setitem__ (
+                "gnatcov_%s" % cmd, os.path.abspath (m.options.__dict__["gnatcov_%s" % cmd]))
+         for cmd in control.GNATCOV_COMMANDS
+         if m.options.__dict__ ["gnatcov_%s" % cmd] is not None]
 
         return m.options
 

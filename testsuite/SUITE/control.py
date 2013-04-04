@@ -180,3 +180,18 @@ def target_info (target=None):
     return (
         TARGETINFO [target] if target in TARGETINFO
         else TARGETINFO["default"])
+
+# =================================
+# == Shared command line options ==
+# =================================
+
+# Shared options are those allowed at the testsuite.py level which need to be
+# passed down to individual test.py. This needs to be expanded.
+
+# Allowed <cmd> for the --gnatcov-<cmd> family, those that the
+# tests might use.
+
+GNATCOV_COMMANDS = (
+    'run', 'coverage', 'map-routines', 'disp-routines', 'dump-trace'
+    )
+

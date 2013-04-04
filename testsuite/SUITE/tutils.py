@@ -270,13 +270,17 @@ def xcov(args, out=None, inp=None, register_failure=True):
     if register_failure is True. Return the process status descriptor. ARGS
     may be a list or a whitespace separated string."""
 
-    # make ARGS a list from whatever it is, to allow unified processing
+    # Make ARGS a list from whatever it is, to allow unified processing.
+    # Then fetch the requested command, always first:
+
     args = to_list (args)
+    covcmd = args[0]
+    covargs = args[1:]
 
     if thistest.options.trace_dir is not None:
         # Bootstrap - run xcov under xcov
 
-        if len (args) > 0 and args[0] == 'coverage':
+        if covcmd == 'coverage':
             thistest.current_test_index += 1
             args = ['run', '-t', 'i686-pc-linux-gnu',
                     '-o', os.path.join(thistest.options.trace_dir,
@@ -284,17 +288,28 @@ def xcov(args, out=None, inp=None, register_failure=True):
                                        + '.trace'),
                     which(XCOV), '-eargs'] + args
 
-    # Execute, check status, raise on error and return otherwise
+    # Determine which program we are actually going launch. This is
+    # "gntcov <cmd>" unless we are to execute some designated program
+    # for this:
+    cmdopt = 'gnatcov_%s' % covcmd
+    covpgm = (
+        [thistest.options.__dict__ [cmdopt]]
+        if thistest.options.__dict__ [cmdopt] else maybe_valgrind([XCOV]) + [covcmd]
+        )
+
+    # Execute, check status, raise on error and return otherwise.
 
     # The gprvar options are only needed for the "libsupport" part of our
-    # projects, pointless wrt coverage run or analysis activities.
+    # projects. They are pointless wrt coverage run or analysis activities
+    # so we don't include them here.
 
-    p = Run(maybe_valgrind([XCOV]) + args,
+    p = Run(covpgm + covargs,
             output=out, input=inp, timeout=thistest.options.timeout)
 
     thistest.stop_if(
         register_failure and p.status != 0,
-        FatalError('"%s ' % XCOV + ' '.join(args) + '" exit in error', out))
+        FatalError('"%s ' % ' '.join(covpgm + covargs) + '" exit in error', out))
+
     return p
 
 # ----------
