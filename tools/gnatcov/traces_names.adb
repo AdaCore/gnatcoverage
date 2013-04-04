@@ -37,7 +37,7 @@ package body Traces_Names is
       Element_Type => String_Access);
 
    type Routine_Tag_Provider_Type is new Tag_Provider_Type with record
-      Routine_Tags    : Routine_Tag_Vectors.Vector;
+      Routine_Tags : Routine_Tag_Vectors.Vector;
    end record;
 
    overriding function Get_Slocs_And_Tags
