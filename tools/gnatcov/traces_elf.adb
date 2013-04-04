@@ -840,18 +840,19 @@ package body Traces_Elf is
       Sec_Rel : Elf_Half;
       Data    : in out Binary_Content)
    is
-      Relocs_Len : Elf_Addr;
-      Relocs : Binary_Content_Acc;
+      Relocs_Len  : Elf_Addr;
+      Relocs      : Binary_Content_Acc;
       Relocs_Base : Address;
 
       Sym_Num : Unsigned_32;
-      Sym : Elf_Sym;
+      Sym     : Elf_Sym;
 
       Shdr : Elf_Shdr_Acc;
-      Off : Storage_Offset;
+      Off  : Storage_Offset;
 
       Offset : Elf_Addr;
-      R : Elf_Rela;
+      R      : Elf_Rela;
+
    begin
       --  The only sections on which we have to apply relocations are the
       --  .debug_info and the .debug_line sections. These sections seem to have
