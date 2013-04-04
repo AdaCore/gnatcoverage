@@ -2790,9 +2790,9 @@ package body Traces_Elf is
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
         (Addresses_Info, Addresses_Info_Acc);
 
-      Shdr : Elf_Shdr_Acc;
-      Last : Pc_Type;
-      Addr : Pc_Type;
+      Shdr   : Elf_Shdr_Acc;
+      Last   : Pc_Type;
+      Addr   : Pc_Type;
       Offset : Pc_Type;
 
       Sym : Addresses_Info_Acc;
@@ -3035,7 +3035,6 @@ package body Traces_Elf is
       Exclude : Boolean;
       Strict  : Boolean := False)
    is
-
       procedure Add_Symbol (Sym : Addresses_Info_Acc);
       --  Acknowledge one SYMbol from scan on FILE, adding to or
       --  removing from the routines database depending on EXCLUDE.
