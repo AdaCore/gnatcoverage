@@ -289,12 +289,13 @@ def xcov(args, out=None, inp=None, register_failure=True):
                     which(XCOV), '-eargs'] + args
 
     # Determine which program we are actually going launch. This is
-    # "gntcov <cmd>" unless we are to execute some designated program
+    # "gnatcov <cmd>" unless we are to execute some designated program
     # for this:
-    cmdopt = 'gnatcov_%s' % covcmd
+
+    covpgm = thistest.options.__dict__.get ('gnatcov_%s' % covcmd, None)
     covpgm = (
-        [thistest.options.__dict__ [cmdopt]]
-        if thistest.options.__dict__ [cmdopt] else maybe_valgrind([XCOV]) + [covcmd]
+        [covpgm] if covpgm is not None
+        else maybe_valgrind([XCOV]) + [covcmd]
         )
 
     # Execute, check status, raise on error and return otherwise.
