@@ -1037,7 +1037,7 @@ begin
          begin
             Check_Argument_Available (Obj_Inputs, "EXEC", Command);
             Inputs.Iterate (Obj_Inputs, Read_Routine_Name'Access);
-            Traces_Names.Disp_All_Routines;
+            Traces_Names.Disp_All_Covered_Routines;
             return;
          end;
 
@@ -1314,11 +1314,14 @@ begin
          if Object_Coverage_Enabled then
             if Inputs.Length (Routines_Inputs) /= 0 then
                Inputs.Iterate (Routines_Inputs,
-                               Traces_Names.Add_Routine_Name'Access);
+                               Traces_Names.Add_Covered_Routine'Access);
             elsif Inputs.Length (Trace_Inputs) > 1 then
                Fatal_Error ("routine list required"
                             & " when reading multiple trace files");
             end if;
+            --  If no routines were given on the command line, we'll add them
+            --  when processing the list of symbols from the only executable
+            --  file (using Read_Routines_Names, see below).
 
          else
             if Inputs.Length (Routines_Inputs) /= 0 then
@@ -1424,6 +1427,7 @@ begin
                   Read_Routine_Names (Exe_File, Exclude => False);
                end if;
 
+               Build_Debug_Compile_Units (Exe_File.all);
                Load_Code_And_Traces (Exe_File, Base'Access);
             end Process_Trace_For_Obj_Coverage;
 
@@ -1438,6 +1442,7 @@ begin
 
                Exe_File                : Exe_File_Acc;
                Current_Sym             : Addresses_Info_Acc;
+               Current_Subp_Key        : Subprogram_Key;
                Current_Subp_Info       : aliased Subprogram_Info;
                Current_Subp_Info_Valid : Boolean;
                E                       : Trace_Entry;
@@ -1459,8 +1464,10 @@ begin
 
                Decision_Map.Analyze (Exe_File);
 
-               --  Read the load address.
+               --  Read the load address
                Read_Loadaddr_Trace_Entry (Desc, Trace_File.Trace, Offset);
+
+               --  Iterate on trace entries
 
                loop
                   Read_Trace_Entry (Desc, Eof, E);
@@ -1470,6 +1477,11 @@ begin
                      Fatal_Error
                        ("Unexpected 'loadaddr' special trace entry");
                   end if;
+
+                  --  Skip everything until the first trace entry after
+                  --  "Offset", and remove "Offset" from the bounds of the
+                  --  remainder.
+
                   if Offset /= 0 then
                      if E.First < Offset then
                         goto Skip;
@@ -1479,6 +1491,8 @@ begin
                      end if;
                   end if;
 
+                  --  Get the symbol the trace entry is in
+
                   if Current_Sym = null
                     or else
                     E.First not in Current_Sym.First .. Current_Sym.Last
@@ -1486,18 +1500,25 @@ begin
                      Current_Sym :=
                        Get_Address_Info
                          (Exe_File.all, Symbol_Addresses, E.First);
-                     Current_Subp_Info_Valid :=
-                       Current_Sym /= null and then
-                         Is_In (Current_Sym.Symbol_Name);
+
+                     if Current_Sym = null then
+                        Current_Subp_Info_Valid := False;
+                     else
+                        Key_From_Symbol
+                          (Exe_File, Current_Sym, Current_Subp_Key);
+                        Current_Subp_Info_Valid :=
+                           Is_In (Current_Subp_Key);
+                     end if;
+
                      if Current_Subp_Info_Valid then
                         Current_Subp_Info :=
-                          Get_Subp_Info (Current_Sym.Symbol_Name);
+                          Get_Subp_Info (Current_Subp_Key);
                      end if;
                   end if;
 
                   if Current_Subp_Info_Valid then
                      Compute_Source_Coverage
-                       (Current_Sym.Symbol_Name, Current_Subp_Info, E);
+                       (Current_Subp_Key, Current_Subp_Info, E);
                   end if;
 
                   << Skip >> null;

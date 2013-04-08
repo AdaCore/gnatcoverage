@@ -189,8 +189,9 @@ package Traces_Elf is
             Subprogram_CU   : CU_Id;
 
          when Symbol_Addresses =>
-            Symbol_Name : String_Access;
-            Symbol_Tag  : SC_Tag;
+            Symbol_Name   : String_Access;
+            Symbol_Tag    : SC_Tag := No_SC_Tag;
+            Symbol_Origin : Natural := 0;
 
          when Line_Addresses =>
             Sloc : Source_Location := No_Location;
@@ -235,6 +236,13 @@ package Traces_Elf is
    --  Same as Get_Slocs, but returning a unique source location, with a
    --  non-empty range.
 
+   procedure Get_Compile_Unit
+     (Exec : Exe_File_Type;
+      PC   : Pc_Type;
+      CU_Filename, CU_Directory : out String_Access);
+   --  Retrieve the filename/compilation directory of the compile unit that
+   --  match the PC address, or set CU_* to null if no one matches.
+
    procedure Scan_Symbols_From
      (File   : Exe_File_Acc;
       Sym_Cb : access procedure (Sym : Addresses_Info_Acc);
@@ -257,8 +265,8 @@ package Traces_Elf is
       Exclude : Boolean;
       Strict  : Boolean := False);
    --  Add (or remove if EXCLUDE is true) routines read from an ELF image to
-   --  the routines database. Honor STRICT as in Scan_Symbols_From and emit
-   --  error about symbols defined twice on standard error as well.
+   --  the routine names to be covered. Honor STRICT as in Scan_Symbols_From
+   --  and emit error about symbols defined twice on standard error as well.
 
    procedure Routine_Names_From_Lines
      (Exec     : Exe_File_Acc;
@@ -292,6 +300,8 @@ private
       Compile_Unit_Filename : String_Access;
       Compilation_Directory : String_Access;
       Stmt_List             : Interfaces.Unsigned_32;
+      Pc_Low                : Pc_Type;
+      Pc_High               : Pc_Type;
    end record;
 
    package Compile_Unit_Lists is new Ada.Containers.Doubly_Linked_Lists

@@ -533,6 +533,19 @@ for example, want to consolidate results from different programs testing
 entirely disjoint units. The only technical requirement is that the object
 code be identical for all the overlapping symbols, which |gcp| verifies.
 
+Two symbols are considered overlapping if both of the following conditions are
+met:
+
+- The symbol names must be identical
+- The symbols associated debug information must indicate that they come from
+  the same compile unit. If a symbol leaks such information, it never overlaps
+  with another symbol.
+
+Moreover, |gcvcov| will reject consolidation were two symbols overlaps, but are
+different anyway: this can happen, for example, if they come from the same
+compile unit but were compiled with different flags (e.g. different
+optimization levels).
+
 The set of traces involved in a computation is visible in various places:
 
 - In the *Assessment Context* section of :option:`=report` outputs, where

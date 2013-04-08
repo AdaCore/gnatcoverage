@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -36,17 +36,17 @@ package body Traces_Dump is
       use Traces_Disa;
 
       procedure Process_One
-        (Name : String_Access;
+        (Key  : Subprogram_Key;
          Info : in out Subprogram_Info);
       --  Display traces for one routine
 
       procedure Process_One
-        (Name : String_Access;
+        (Key  : Subprogram_Key;
          Info : in out Subprogram_Info)
       is
          use Hex_Images;
       begin
-         Put (Name.all);
+         Put (Key.Name.all);
 
          if Info.Traces /= null then
             Put (' ');
@@ -113,24 +113,25 @@ package body Traces_Dump is
       use Traces_Disa;
 
       procedure Process_One
-        (Name : String_Access;
+        (Key  : Subprogram_Key;
          Info : in out Subprogram_Info);
       --  Report information for the given routine
 
       procedure Process_One
-        (Name : String_Access;
+        (Key  : Subprogram_Key;
          Info : in out Subprogram_Info)
       is
          Routine_State : constant Line_State :=
                            Compute_Routine_State (Info.Insns, Info.Traces);
       begin
          if Info.Insns = null then
-            Put_Line (Report.all, Name.all & " not found in executable(s)");
+            Put_Line
+              (Report.all, Key.Name.all & " not found in executable(s)");
 
          elsif Routine_State /= Covered
            and then Routine_State /= No_Code
          then
-            Put (Report.all, Name.all & " not fully covered : ");
+            Put (Report.all, Key.Name.all & " not fully covered : ");
             Put (Report.all, State_Char (Routine_State));
             New_Line (Report.all);
          end if;

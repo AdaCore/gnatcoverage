@@ -194,6 +194,7 @@ package body Decision_Map is
       Sec    : Addresses_Info_Acc;
 
       First_Symbol_Occurrence : Boolean;
+      Subp_Key                : Subprogram_Key;
       Subp_Info               : Subprogram_Info;
    begin
       Build_Debug_Lines (Exe_File.all);
@@ -209,12 +210,16 @@ package body Decision_Map is
          Next_Iterator (Sym_It, Sym);
          exit when Sym = null;
 
-         if Is_In (Sym.Symbol_Name) then
+         --  Only process symbols we are interested in
+
+         if Is_Covered_Routine (Sym.Symbol_Name.all) then
             Sec := Sym.Parent;
             Load_Section_Content (Exe_File.all, Sec);
 
+            Key_From_Symbol (Exe_File, Sym, Subp_Key);
+
             Add_Code
-              (Sym.Symbol_Name,
+              (Subp_Key,
                Exe_File,
                Sec.Section_Content (Sym.First .. Sym.Last),
                First_Symbol_Occurrence,

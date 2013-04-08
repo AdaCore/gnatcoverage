@@ -1209,7 +1209,9 @@ package body Traces_Elf is
                   Exec.Compile_Units.Append
                     (Compile_Unit_Desc'(Unit_Filename,
                                         Compilation_Dir,
-                                        At_Stmt_List));
+                                        At_Stmt_List,
+                                        Pc_Type (At_Low_Pc),
+                                        Pc_Type (At_High_Pc)));
 
                   if At_Ranges /= No_Ranges then
                      Cu_Base_Pc := 0;
@@ -1904,6 +1906,34 @@ package body Traces_Elf is
       return Result (Result'First .. Last);
    end Get_Slocs;
 
+   ----------------------
+   -- Get_Compile_Unit --
+   ----------------------
+
+   procedure Get_Compile_Unit
+     (Exec : Exe_File_Type;
+      PC   : Pc_Type;
+      CU_Filename, CU_Directory : out String_Access)
+   is
+      use Compile_Unit_Lists;
+      Cu : Compile_Unit_Desc;
+      Cur : Cursor;
+   begin
+      CU_Filename := null;
+      CU_Directory := null;
+
+      Cur := Exec.Compile_Units.First;
+      while Has_Element (Cur) loop
+         Cu := Element (Cur);
+         if PC in Cu.Pc_Low .. Cu.Pc_High then
+            CU_Filename := Cu.Compile_Unit_Filename;
+            CU_Directory := Cu.Compilation_Directory;
+            exit;
+         end if;
+         Next (Cur);
+      end loop;
+   end Get_Compile_Unit;
+
    --------------------------
    -- Load_Section_Content --
    --------------------------
@@ -1934,6 +1964,7 @@ package body Traces_Elf is
       Sym : Addresses_Info_Acc;
       Sec : Addresses_Info_Acc;
 
+      Subp_Key                  : Traces_Names.Subprogram_Key;
    begin
       if Is_Empty (Exec.Desc_Sets (Symbol_Addresses)) then
          return;
@@ -1945,25 +1976,31 @@ package body Traces_Elf is
       while Cur /= No_Element loop
          Sym := Element (Cur);
 
-         --  Be sure the section is loaded
+         --  If the symbol is not to be covered, skip it
+         if Traces_Names.Is_Covered_Routine (Sym.Symbol_Name.all) then
+            --  Be sure the section is loaded
 
-         Sec := Sym.Parent;
-         Load_Section_Content (Exec.all, Sec);
+            Sec := Sym.Parent;
+            Load_Section_Content (Exec.all, Sec);
 
-         --  Add the code and trace information to the symbol's entry in the
-         --  routines database.
+            --  Add the code and trace information to the symbol's entry in the
+            --  routines database.
 
-         begin
-            Traces_Names.Add_Code_And_Traces
-              (Sym.Symbol_Name,
-               Exec,
-               Sec.Section_Content (Sym.First .. Sym.Last),
-               Base);
-         exception
-            when others =>
-               Disp_Address (Sym);
-               raise;
-         end;
+            Traces_Names.Key_From_Symbol (Exec, Sym, Subp_Key);
+            Traces_Names.Add_Routine (Subp_Key, Exec, Sym.Symbol_Tag);
+
+            begin
+               Traces_Names.Add_Code_And_Traces
+                 (Subp_Key,
+                  Exec,
+                  Sec.Section_Content (Sym.First .. Sym.Last),
+                  Base);
+            exception
+               when others =>
+                  Disp_Address (Sym);
+                  raise;
+            end;
+         end if;
 
          Next (Cur);
       end loop;
@@ -2277,16 +2314,17 @@ package body Traces_Elf is
             end if;
 
             Sym := new Addresses_Info'
-              (Kind        => Symbol_Addresses,
-               First       => Offset + Pc_Type (ESym.St_Value),
-               Last        => Offset + Pc_Type (ESym.St_Value
-                                                + Elf_Addr (ESym.St_Size) - 1),
-               Parent      => Sections_Info (ESym.St_Shndx),
-               Symbol_Name => new String'
+              (Kind          => Symbol_Addresses,
+               First         => Offset + Pc_Type (ESym.St_Value),
+               Last          => Offset + Pc_Type
+                                           (ESym.St_Value
+                                            + Elf_Addr (ESym.St_Size) - 1),
+               Parent        => Sections_Info (ESym.St_Shndx),
+               Symbol_Name   => new String'
                                 (Read_String
                                    (Strtabs
                                       (Elf_Addr (ESym.St_Name))'Address)),
-               Symbol_Tag  => No_SC_Tag);
+               others        => <>);
 
             Addresses_Containers.Insert
               (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
@@ -2461,7 +2499,7 @@ package body Traces_Elf is
       use Traces_Names;
 
       procedure Build_Source_Lines_For_Routine
-        (Name : String_Access;
+        (Key  : Subprogram_Key;
          Info : in out Subprogram_Info);
       --  Build source line information from debug information for the given
       --  routine.
@@ -2471,10 +2509,10 @@ package body Traces_Elf is
       ------------------------------------
 
       procedure Build_Source_Lines_For_Routine
-        (Name : String_Access;
+        (Key  : Subprogram_Key;
          Info : in out Subprogram_Info)
       is
-         pragma Unreferenced (Name);
+         pragma Unreferenced (Key);
       begin
          if Info.Exec /= null and then Info.Insns /= null then
             Tag_Provider.Enter_Routine (Info);
@@ -2498,7 +2536,7 @@ package body Traces_Elf is
       use Traces_Names;
 
       procedure Build_Routine_Insn_State
-        (Name : String_Access;
+        (Key  : Subprogram_Key;
          Info : in out Subprogram_Info);
       --  Set trace state for the given routine
 
@@ -2507,10 +2545,10 @@ package body Traces_Elf is
       ------------------------------
 
       procedure Build_Routine_Insn_State
-        (Name : String_Access;
+        (Key  : Subprogram_Key;
          Info : in out Subprogram_Info)
       is
-         pragma Unreferenced (Name);
+         pragma Unreferenced (Key);
       begin
          if Info.Insns /= null then
             Set_Insn_State (Info.Traces.all, Info.Insns.all);
@@ -2900,7 +2938,7 @@ package body Traces_Elf is
                                                + Elf_Addr (A_Sym.St_Size) - 1),
                      Parent      => null,
                      Symbol_Name => Sym_Name,
-                     Symbol_Tag  => No_SC_Tag),
+                     others      => <>),
                   Cur, Ok);
 
                if not Ok then
@@ -3045,24 +3083,26 @@ package body Traces_Elf is
       ----------------
 
       procedure Add_Symbol (Sym : Addresses_Info_Acc) is
-         use Traces_Names;
       begin
          if Exclude then
-            Remove_Routine_Name (Sym.Symbol_Name);
+            Traces_Names.Remove_Covered_Routine (Sym.Symbol_Name.all);
          else
-            begin
-               Add_Routine_Name (Name => Sym.Symbol_Name,
-                                 Exec => File,
-                                 Tag  => Sym.Symbol_Tag);
-               Sym.Symbol_Name := null;
-            exception
-               when Constraint_Error =>
-                  --  TODO: improve error message???
-                  Put_Line (Standard_Error,
-                            "symbol " & Sym.Symbol_Name.all
-                              & " is defined twice in " &
-                              Get_Filename (File.Exe_File));
-            end;
+            --  Read_Routine_Names is called only when the following two
+            --  conditions are met:
+            --  - there is only one executable
+            --  - no list of symbols is provided
+            --  In this specific situation (when reading the list of symbols
+            --  from the executable), we *have to* avoid adding the same symbol
+            --  name twice.
+            --
+            if not Traces_Names.Is_Covered_Routine (Sym.Symbol_Name.all) then
+               Traces_Names.Add_Covered_Routine (Sym.Symbol_Name.all);
+            end if;
+
+            --  Scan_Symbols_From is going to free this instance of Sym, so
+            --  take the ownership of the Symbol_Name string.
+            --
+            Sym.Symbol_Name := null;
          end if;
       end Add_Symbol;
 
@@ -3143,6 +3183,8 @@ package body Traces_Elf is
          Line_Cursor := Floor (Line_Table, Line_Addr);
          Free (Line_Addr);
       end Skip_Symbol;
+
+      Subp_Key : Subprogram_Key;
 
    --  Start of processing for Routine_Names_From_Lines
 
@@ -3239,9 +3281,17 @@ package body Traces_Elf is
                --  is selected and not already included:
 
                if Select_Symbol then
-                  if not Is_In (Symbol.Symbol_Name) then
-                     Add_Routine_Name
-                       (Symbol.Symbol_Name, Exec, Symbol.Symbol_Tag);
+                  --  There can be symbols that have the same name, but that
+                  --  are different anyway.
+
+                  if not Is_Covered_Routine (Symbol.Symbol_Name.all) then
+                     Add_Covered_Routine (Symbol.Symbol_Name.all);
+                  end if;
+
+                  Key_From_Symbol (Exec, Symbol, Subp_Key);
+                  if not Is_In (Subp_Key) then
+                     Add_Routine (Subp_Key, Exec, Symbol.Symbol_Tag);
+                     Symbol.Symbol_Origin := Subp_Key.Origin;
                   end if;
 
                   Skip_Symbol (Symbol);

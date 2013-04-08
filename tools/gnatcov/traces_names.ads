@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -28,18 +28,31 @@ with Traces_Elf;    use Traces_Elf;
 
 package Traces_Names is
 
-   procedure Add_Routine_Name
-     (Name : String_Access;
-      Exec : Exe_File_Acc;
-      Tag  : out SC_Tag);
-   --  Add a routine name to the database, and allocate an associated
-   --  Subprogram_Info record (see below). Constraint_Error is raised if
-   --  the name already exists. Returns the assigned routine tag.
+   procedure Add_Covered_Routine (Name : String);
+   --  Add a routine name to be covered.
 
-   procedure Add_Routine_Name (Name : String);
-   --  Same as Add_Routine_Name, but to be used when adding a routine name
-   --  from a routine list instead of an exec file. An error is printed if
-   --  the name already exists.
+   function Is_Covered_Routine (Name : String) return Boolean;
+   --  Return if a routine name is to be covered.
+
+   procedure Remove_Covered_Routine (Name : String);
+   --  Remove a routine name to be covered.
+
+   function Format_CU
+     (CU_Filename, CU_Directory : String_Access) return String_Access;
+   --  Format a Compilation Unit string suitable for Subprogram_Key
+
+   type Subprogram_Key is record
+      Name         : String_Access;
+      Compile_Unit : String_Access;
+      --  Identify a subprogram in a unique way, even for homonymous symbols.
+      --  If there is no debug information, Compile_Unit must be null.
+
+      Origin       : Natural := 0;
+      --  If Compile_Unit is null, this member make a difference between
+      --  similar homonym symbols. Setting this member is done when calling
+      --  Add_Routine. The caller should preserve its value somewhere in order
+      --  to get back the added routine from the Routines map.
+   end record;
 
    --  Information recorded about each subprogram in the routines database
 
@@ -63,17 +76,28 @@ package Traces_Names is
       --  tagging.
    end record;
 
-   procedure Remove_Routine_Name (Name : String_Access);
-   --  Remove a routine from the database
+   procedure Add_Routine
+     (Key  : in out Subprogram_Key;
+      Exec : Exe_File_Acc;
+      Tag  : out SC_Tag);
+   --  Create a Subprogram_Info entry for the given Subprogram_Key in the
+   --  routines database if it doesn't exist. Key.Origin member is updated if
+   --  there is no associated Compile_Unit. Returns the assigned routine tag.
 
-   function Is_In (Name : String_Access) return Boolean;
-   --  Return True iff Name has been included into the routine database
+   function Is_In (Key : Subprogram_Key) return Boolean;
+   --  Return True iff Key has been included into the routine database
 
-   function Get_Subp_Info (Name : String_Access) return Subprogram_Info;
-   --  Return subprogram info for Name
+   function Get_Subp_Info (Key : Subprogram_Key) return Subprogram_Info;
+   --  Return subprogram info for some routine.
+
+   procedure Key_From_Symbol
+     (Exec : Exe_File_Acc;
+      Sym  : Addresses_Info_Acc;
+      Key  : out Subprogram_Key);
+   --  Format a "Key" for the "Sym" symbol in the "Exec" binary file.
 
    procedure Iterate
-     (Proc : access procedure (Subp_Name : String_Access;
+     (Proc : access procedure (Subp_Key  : Subprogram_Key;
                                Subp_Info : in out Subprogram_Info));
    --  Execute Proc for each routine in the database
 
@@ -83,33 +107,36 @@ package Traces_Names is
    --  * one name per line
    --  * no blanks allowed.
 
+   procedure Disp_All_Covered_Routines;
+   --  Display the list of covered routines (on standard output).
+
    procedure Disp_All_Routines;
    --  Display the list of routines (on standard output).
 
    procedure Add_Code
-     (Routine_Name : String_Access;
+     (Subp_Key     : Subprogram_Key;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
       First_Code   : out Boolean;
       Subp_Info    : out Subprogram_Info);
-   --  Add code for Routine_Name from Exec with the given contents. Updates the
+   --  Add code for Subp_Key from Exec with the given contents. Updates the
    --  offset to be added to traces relative to Exec for this routine to rebase
-   --  them for the recorded code chunk stored in the routines database.
-   --  If this was the first time code was seen for this routine, First_Code
-   --  is set true. The entry from the routine names table (Subp_Info) is
+   --  them for the recorded code chunk stored in the routines database.  If
+   --  this was the first time code was seen for this routine, First_Code is
+   --  set true. The entry from the routine names table (Subp_Info) is
    --  returned.
 
    procedure Add_Code_And_Traces
-     (Routine_Name : String_Access;
+     (Subp_Key     : Subprogram_Key;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
       Base         : access Traces_Base);
-   --  Add code for the named routine to its record
+   --  Add code for the Subp_Key routine to its record
    --
    --  Optionally also add a set of execution traces (if Base is not null)
    --
    --  Parameters:
-   --  * Routine_Name: name of the routine to consider;
+   --  * Subp_Key: key of the routine to consider;
    --  * Exec: handle to the executable that generated the execution traces
    --  that we consider.
    --  * Content: slice of the binary content of Exec's .text section that
@@ -147,5 +174,4 @@ package Traces_Names is
    Consolidation_Error : exception;
    --  Raised if consolidation is not possible (eg different code for a
    --  function).
-
 end Traces_Names;

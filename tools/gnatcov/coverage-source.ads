@@ -2,7 +2,7 @@
 --                                                                          --
 --                               GNATcoverage                               --
 --                                                                          --
---                     Copyright (C) 2009-2012, AdaCore                     --
+--                     Copyright (C) 2009-2013, AdaCore                     --
 --                                                                          --
 -- GNATcoverage is free software; you can redistribute it and/or modify it  --
 -- under terms of the GNU General Public License as published by the  Free  --
@@ -16,8 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with GNAT.Strings; use GNAT.Strings;
-
 with Files_Table;    use Files_Table;
 with Traces;         use Traces;
 with Traces_Names;   use Traces_Names;
@@ -30,7 +28,7 @@ package Coverage.Source is
    --  Initialize source coverage information vector once SCOs have been loaded
 
    procedure Compute_Source_Coverage
-     (Subp_Name : String_Access;
+     (Subp_Key  : Subprogram_Key;
       Subp_Info : Subprogram_Info;
       T         : Trace_Entry);
    --  Analyze traces for the given subprogram to determine the coverage state

@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 
 with Ada.Text_IO; use Ada.Text_IO;
@@ -31,6 +32,11 @@ with Strings;         use Strings;
 with Switches;        use Switches;
 
 package body Traces_Names is
+
+   package Routine_Name_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => String_Access,
+      "<"          => "<",
+      "="          => "=");
 
    package Routine_Tag_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Valid_SC_Tag,
@@ -53,48 +59,207 @@ package body Traces_Names is
      (Name => "routine", T => Routine_Tag_Provider_Type);
    pragma Unreferenced (R);
 
+   function "<" (Key1, Key2 : Subprogram_Key) return Boolean;
    function Equal (L, R : Subprogram_Info) return Boolean;
    --  Needs comment???
 
-   package Names_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => String_Access,
+   package Routines_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Subprogram_Key,
       Element_Type => Subprogram_Info,
       "<"          => "<",
       "="          => Equal);
 
-   Names : Names_Maps.Map;
-   --  Needs comments???
-   --  Needs to be available to clients of this unit???
+   Routines : Routines_Maps.Map;
+   --  Each item stores coverage information for one (consolidated) routine.
+
+   Covered_Routine_Names : Routine_Name_Sets.Set;
+   --  Set of routine names to be covered. It is only used to filter the
+   --  creation of Subprogram_Info entries when processing traces/ELF files.
+
+   Origin_Generator : Natural := 1;
+   --  Counter for Subprogram_Key.Origin. Each time a routine has no
+   --  Compile_Unit, its tag is set to the generator, and the generator is
+   --  increased.
+
+   -------------------------
+   -- Add_Covered_Routine --
+   -------------------------
+
+   procedure Add_Covered_Routine (Name : String)
+   is
+   begin
+      Covered_Routine_Names.Insert (new String'(Name));
+   end Add_Covered_Routine;
+
+   ------------------------
+   -- Is_Covered_Routine --
+   ------------------------
+
+   function Is_Covered_Routine (Name : String) return Boolean
+   is
+      use Routine_Name_Sets;
+      Name_Aliased : aliased String := Name;
+      Name_Access  : constant String_Access := Name_Aliased'Unchecked_Access;
+   begin
+      return Covered_Routine_Names.Find (Name_Access) /= No_Element;
+   end Is_Covered_Routine;
+
+   -------------------------
+   -- Remove_Routine_Name --
+   -------------------------
+
+   procedure Remove_Covered_Routine (Name : String)
+   is
+      Name_Aliased : aliased String := Name;
+      Name_Access  : constant String_Access := Name_Aliased'Unchecked_Access;
+   begin
+      Covered_Routine_Names.Exclude (Name_Access);
+   end Remove_Covered_Routine;
+
+   ---------------
+   -- Format_CU --
+   ---------------
+
+   function Format_CU
+     (CU_Filename, CU_Directory : String_Access) return String_Access
+   is
+   begin
+      if CU_Filename = null then
+         return null;
+      elsif CU_Directory = null then
+         return new String'(CU_Filename.all);
+      else
+         return new String'(CU_Filename.all & "/" & CU_Directory.all);
+      end if;
+   end Format_CU;
+
+   -----------------
+   -- Add_Routine --
+   -----------------
+
+   procedure Add_Routine
+     (Key  : in out Subprogram_Key;
+      Exec : Exe_File_Acc;
+      Tag  : out SC_Tag)
+   is
+      use Routines_Maps;
+      TP  : Tag_Provider_Access renames Tag_Provider;
+      Cur : Cursor;
+   begin
+      --  If the routine has no compile unit, it must not be consolidated, so
+      --  it is made unique using its Origin member.
+      if Key.Compile_Unit = null then
+         Key.Origin := Origin_Generator;
+         Origin_Generator := Origin_Generator + 1;
+      else
+         Key.Origin := 0;
+      end if;
+
+      --  Insert a new subprogram info entry if there is no such one for the
+      --  given key. Such a subprogram already exist when we are consolidating
+      --  a symbol.
+
+      Cur := Routines.Find (Key);
+      if Cur = No_Element then
+         --  If doing routine-based separated coverage analysis, record name in
+         --  routine tags table.
+
+         if TP.all in Routine_Tag_Provider_Type'Class then
+            declare
+               RTags : Routine_Tag_Vectors.Vector
+                  renames Routine_Tag_Provider_Type (TP.all).Routine_Tags;
+            begin
+               RTags.Append (Key.Name);
+               Tag := RTags.Last_Index;
+            end;
+         else
+            Tag := No_SC_Tag;
+         end if;
+
+         Routines.Insert
+           (Key,
+            Subprogram_Info'(Exec        => Exec,
+                             Insns       => null,
+                             Traces      => null,
+                             Offset      => 0,
+                             Routine_Tag => Tag));
+      else
+         --  If doing routine-based separated coverage analysis, take the tag
+         --  of the consolidated subprogram.
+
+         Tag := Element (Cur).Routine_Tag;
+      end if;
+
+      if Verbose and then Tag /= No_SC_Tag then
+         Put_Line ("Routine tag" & Tag'Img & ": "  & Key.Name.all);
+      end if;
+   end Add_Routine;
+
+   -------------------
+   -- Get_Subp_Info --
+   -------------------
+
+   function Get_Subp_Info (Key : Subprogram_Key) return Subprogram_Info is
+   begin
+      return Routines_Maps.Element (Routines.Find (Key));
+   end Get_Subp_Info;
+
+   ---------------------
+   -- Key_From_Symbol --
+   ---------------------
+
+   procedure Key_From_Symbol
+     (Exec : Exe_File_Acc;
+      Sym  : Addresses_Info_Acc;
+      Key  : out Subprogram_Key)
+   is
+      CU_Filename, CU_Directory : String_Access;
+   begin
+      Get_Compile_Unit (Exec.all, Sym.First, CU_Filename, CU_Directory);
+      Key :=
+        (Name => Sym.Symbol_Name,
+         Compile_Unit => Format_CU (CU_Filename, CU_Directory),
+         Origin => Sym.Symbol_Origin);
+   end Key_From_Symbol;
+
+   -----------
+   -- Is_In --
+   -----------
+
+   function Is_In (Key : Subprogram_Key) return Boolean is
+      use Routines_Maps;
+   begin
+      return Routines.Find (Key) /= No_Element;
+   end Is_In;
 
    --------------
    -- Add_Code --
    --------------
 
    procedure Add_Code
-     (Routine_Name : String_Access;
+     (Subp_Key     : Subprogram_Key;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
       First_Code   : out Boolean;
       Subp_Info    : out Subprogram_Info)
    is
-      use Names_Maps;
+      use Routines_Maps;
       use Interfaces;
 
       procedure Update
-        (Subp_Name : String_Access;
+        (Subp_Key  : Subprogram_Key;
          Subp_Info : in out Subprogram_Info);
-      --  Update the subprogram info of the routine whose name is Key
-      --  in the name table
+      --  Update the subprogram info of the routine identified by Key in the
+      --  name table.
 
       ------------
       -- Update --
       ------------
 
       procedure Update
-        (Subp_Name : String_Access;
+        (Subp_Key  : Subprogram_Key;
          Subp_Info : in out Subprogram_Info)
       is
-         pragma Unreferenced (Subp_Name);
       begin
          --  First, check if a trace base has already been added to the
          --  subprogram info; if so, check that it does not conflict with the
@@ -120,7 +285,7 @@ package body Traces_Names is
             if Content'Length /= Subp_Info.Insns.all'Length then
                Put_Line (Standard_Error,
                          "error: different function size for "
-                           & Routine_Name.all);
+                           & Subp_Key.Name.all);
                Put_Line (Standard_Error,
                          " (reference is " & Get_Filename (Subp_Info.Exec.all)
                            & ", file is " & Get_Filename (Exec.all) & ")");
@@ -133,14 +298,14 @@ package body Traces_Names is
          Add_Code.Subp_Info := Subp_Info;
       end Update;
 
-      Cur : constant Cursor := Names.Find (Routine_Name);
+      Cur : constant Cursor := Routines.Find (Subp_Key);
 
    --  Start of processing for Add_Code
 
    begin
       First_Code := False;
       if Has_Element (Cur) then
-         Names.Update_Element (Cur, Update'Access);
+         Routines.Update_Element (Cur, Update'Access);
       end if;
    end Add_Code;
 
@@ -149,29 +314,29 @@ package body Traces_Names is
    -------------------------
 
    procedure Add_Code_And_Traces
-     (Routine_Name : String_Access;
+     (Subp_Key     : Subprogram_Key;
       Exec         : Exe_File_Acc;
       Content      : Binary_Content;
       Base         : access Traces_Base)
    is
-      use Names_Maps;
+      use Routines_Maps;
       use Interfaces;
 
       procedure Update
-        (Subp_Name : String_Access;
+        (Subp_Key  : Subprogram_Key;
          Subp_Info : in out Subprogram_Info);
-      --  Update the subprogram info of the routine whose name is Key
-      --  in the name table
+      --  Update the subprogram info of the routine identified by Key in the
+      --  name table.
 
       ------------
       -- Update --
       ------------
 
       procedure Update
-        (Subp_Name : String_Access;
+        (Subp_Key  : Subprogram_Key;
          Subp_Info : in out Subprogram_Info)
       is
-         pragma Unreferenced (Subp_Name);
+         pragma Unreferenced (Subp_Key);
          Trace_Cursor : Entry_Iterator;
          Trace        : Trace_Entry;
 
@@ -238,67 +403,26 @@ package body Traces_Names is
    --  Start of processing for Add_Code_And_Traces
 
    begin
-      Add_Code (Routine_Name, Exec, Content, First_Code, Subp_Info);
-      Cur := Names.Find (Routine_Name);
+      Add_Code (Subp_Key, Exec, Content, First_Code, Subp_Info);
+      Cur := Routines.Find (Subp_Key);
       if Has_Element (Cur) then
-         Names.Update_Element (Cur, Update'Access);
+         Routines.Update_Element (Cur, Update'Access);
       end if;
    end Add_Code_And_Traces;
 
-   ----------------------
-   -- Add_Routine_Name --
-   ----------------------
+   -------------
+   -- Iterate --
+   -------------
 
-   procedure Add_Routine_Name
-     (Name : String_Access;
-      Exec : Exe_File_Acc;
-      Tag  : out SC_Tag)
+   procedure Iterate
+     (Proc : access procedure (Subp_Key  : Subprogram_Key;
+                               Subp_Info : in out Subprogram_Info))
    is
-      TP : Tag_Provider_Access renames Tag_Provider;
-
    begin
-      --  If doing routine-based separated coverage analysis, record name
-      --  in routine tags table.
-
-      if TP.all in Routine_Tag_Provider_Type'Class then
-         declare
-            RTags : Routine_Tag_Vectors.Vector
-              renames Routine_Tag_Provider_Type (TP.all).Routine_Tags;
-         begin
-            RTags.Append (Name);
-            Tag := RTags.Last_Index;
-         end;
-
-      else
-         Tag := No_SC_Tag;
-      end if;
-
-      --  Create names table entry
-
-      Names.Insert (Name,
-                    Subprogram_Info'(Exec        => Exec,
-                                     Insns       => null,
-                                     Traces      => null,
-                                     Offset      => 0,
-                                     Routine_Tag => Tag));
-
-      if Verbose and then Tag /= No_SC_Tag then
-         Put_Line ("Routine tag" & Tag'Img & ": " & Name.all);
-      end if;
-   end Add_Routine_Name;
-
-   procedure Add_Routine_Name (Name : String) is
-      Element    : constant String_Access := new String'(Name);
-      Cur        : constant Names_Maps.Cursor := Names.Find (Element);
-      Unused_Tag : SC_Tag;
-      pragma Unreferenced (Unused_Tag);
-   begin
-      if Names_Maps.Has_Element (Cur) then
-         Error ("symbol " & Name & " is already defined");
-      else
-         Add_Routine_Name (Element, null, Unused_Tag);
-      end if;
-   end Add_Routine_Name;
+      for Cur in Routines.Iterate loop
+         Routines.Update_Element (Cur, Proc);
+      end loop;
+   end Iterate;
 
    ---------------------------
    -- Compute_Routine_State --
@@ -356,15 +480,83 @@ package body Traces_Names is
 
    procedure Disp_All_Routines
    is
-      use Names_Maps;
+      use Routines_Maps;
       Cur : Cursor;
    begin
-      Cur := Names.First;
+      Cur := Routines.First;
       while Has_Element (Cur) loop
-         Put_Line (Key (Cur).all);
+         Put_Line (Key (Cur).Name.all);
          Next (Cur);
       end loop;
    end Disp_All_Routines;
+
+   -------------------------------
+   -- Disp_All_Covered_Routines --
+   -------------------------------
+
+   procedure Disp_All_Covered_Routines
+   is
+      use Routine_Name_Sets;
+      Cur : Cursor;
+   begin
+      Cur := Covered_Routine_Names.First;
+      while Has_Element (Cur) loop
+         Put_Line (Element (Cur).all);
+         Next (Cur);
+      end loop;
+   end Disp_All_Covered_Routines;
+
+   ---------
+   -- "<" --
+   -- ------
+
+   function "<" (Key1, Key2 : Subprogram_Key) return Boolean
+   is
+      function "<" (S1, S2 : String_Access) return Boolean;
+      --  Return if S1 < S2, given that S1 and S2 can be null.
+
+      ---------
+      -- "<" --
+      ---------
+
+      function "<" (S1, S2 : String_Access) return Boolean
+      is
+      begin
+         --  A null string is always considered "smaller" than a non-null one
+
+         if S1 = null then
+            return S2 /= null;
+         elsif S2 = null then
+            return False;
+         else
+            return S1.all < S2.all;
+         end if;
+      end "<";
+   begin
+      --  Remainder: the Name field is never null, but the Compile_Unit can be
+      --  null.
+
+      if Key1.Name.all < Key2.Name.all then
+         return True;
+
+      elsif Key1.Name.all /= Key2.Name.all then
+         --  In this case, Key1.Name > Key2.Name
+
+         return False;
+
+      elsif Key1.Compile_Unit < Key2.Compile_Unit then
+         return True;
+
+      elsif Key1.Compile_Unit /= Key2.Compile_Unit then
+         --  In this case, Key1.Compile_Unit > Key2.Compile_Unit
+
+         return False;
+
+      else
+         return Key1.Origin < Key2.Origin;
+      end if;
+
+   end "<";
 
    -----------
    -- Equal --
@@ -376,15 +568,6 @@ package body Traces_Names is
    begin
       return False;
    end Equal;
-
-   -------------------
-   -- Get_Subp_Info --
-   -------------------
-
-   function Get_Subp_Info (Name : String_Access) return Subprogram_Info is
-   begin
-      return Names_Maps.Element (Names.Find (Name));
-   end Get_Subp_Info;
 
    ------------------------
    -- Get_Slocs_And_Tags --
@@ -403,51 +586,6 @@ package body Traces_Names is
       return Get_Slocs_With_Tag (Exe, PC, TP.Current_Routine.Routine_Tag);
    end Get_Slocs_And_Tags;
 
-   -----------
-   -- Is_In --
-   -----------
-
-   function Is_In (Name : String_Access) return Boolean is
-      use Names_Maps;
-   begin
-      return Names.Find (Name) /= No_Element;
-   end Is_In;
-
-   -------------
-   -- Iterate --
-   -------------
-
-   procedure Iterate
-     (Proc : access procedure (Subp_Name : String_Access;
-                               Subp_Info : in out Subprogram_Info))
-   is
-   begin
-      for Cur in Names.Iterate loop
-         Names.Update_Element (Cur, Proc);
-      end loop;
-   end Iterate;
-
-   ----------------------------------
-   -- Read_Routine_Names_From_Text --
-   ----------------------------------
-
-   procedure Read_Routine_Names_From_Text (Filename : String) is
-   begin
-      Read_List_From_File (Filename, Add_Routine_Name'Access);
-   exception
-      when Name_Error | Status_Error =>
-         Fatal_Error ("cannot open routine list: " & Filename);
-   end Read_Routine_Names_From_Text;
-
-   -------------------------
-   -- Remove_Routine_Name --
-   -------------------------
-
-   procedure Remove_Routine_Name (Name : String_Access) is
-   begin
-      Names.Exclude (Name);
-   end Remove_Routine_Name;
-
    --------------
    -- Tag_Name --
    --------------
@@ -459,5 +597,17 @@ package body Traces_Names is
    begin
       return TP.Routine_Tags.Element (Tag).all;
    end Tag_Name;
+
+   ----------------------------------
+   -- Read_Routine_Names_From_Text --
+   ----------------------------------
+
+   procedure Read_Routine_Names_From_Text (Filename : String) is
+   begin
+      Read_List_From_File (Filename, Add_Covered_Routine'Access);
+   exception
+      when Name_Error | Status_Error =>
+         Fatal_Error ("cannot open routine list: " & Filename);
+   end Read_Routine_Names_From_Text;
 
 end Traces_Names;

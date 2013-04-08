@@ -471,11 +471,11 @@ package body Coverage.Source is
    -----------------------------
 
    procedure Compute_Source_Coverage
-     (Subp_Name : String_Access;
+     (Subp_Key  : Subprogram_Key;
       Subp_Info : Subprogram_Info;
       T         : Trace_Entry)
    is
-      pragma Unreferenced (Subp_Name);
+      pragma Unreferenced (Subp_Key);
 
       use type Interfaces.Unsigned_32;
       use type Interfaces.Unsigned_64;
