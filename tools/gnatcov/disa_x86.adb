@@ -2784,9 +2784,11 @@ package body Disa_X86 is
    begin
       --  Make sure OUT parameters have a valid value
 
+      Branch      := Br_None;
+      Flag_Indir  := False;
+      Flag_Cond   := False;
       Branch_Dest := (No_PC, No_PC);
       FT_Dest     := (No_PC, No_PC);
-      Branch      := Br_None;
 
       B := Insn_Bin (Insn_Bin'First);
 
