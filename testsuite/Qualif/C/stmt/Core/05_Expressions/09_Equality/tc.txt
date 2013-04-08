@@ -1,0 +1,1 @@
+Check SC of equality tests as statements

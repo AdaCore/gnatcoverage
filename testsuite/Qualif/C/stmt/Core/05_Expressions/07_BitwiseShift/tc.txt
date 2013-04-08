@@ -1,0 +1,1 @@
+Check SC of bitwise shifts as statements

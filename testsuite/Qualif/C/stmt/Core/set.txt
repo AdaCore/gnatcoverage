@@ -1,0 +1,12 @@
+Core expectations for Statement Coverage (SC) assessments. All the other SC
+related sections rely on this one.
+
+To ensure coverage of all the relevant language constructs, we decompose the
+material further in accordance with a few sections of the chapter 6 “Language”
+of the C99 ISO standard:
+
+%(subset-index)s
+
+Other sections of this chapter do not describe C language constructs, or
+describe ones that cannot be covered (e.g. Constant expressions), and are
+thus not included.

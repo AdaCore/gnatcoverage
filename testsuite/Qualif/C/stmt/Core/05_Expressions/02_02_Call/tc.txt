@@ -1,0 +1,1 @@
+Check SC of function calls as statements

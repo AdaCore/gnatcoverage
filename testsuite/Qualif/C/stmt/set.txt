@@ -1,2 +1,9 @@
 Statement Coverage (SC) TORs and Testcases for C
 
+.. index::
+   pair: C; STATEMENT Coverage
+   single: Requirements; C STATEMENT Coverage
+
+This is split in several parts:
+
+%(subset-index)s

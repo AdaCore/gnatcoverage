@@ -1,0 +1,1 @@
+Check SC of access to union or structure members as statements
