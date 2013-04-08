@@ -62,8 +62,7 @@ def gprbuild_cargs_with (thiscargs):
         FatalError("CARGS requested for qualification test. Forbidden."))
 
     all_cargs = ["-cargs"] + (
-        to_list(BUILDER.COMMON_CARGS)
-        + to_list (thistest.suite_cargs_for (lang=None))
+        to_list (thistest.suite_cargs_for (lang=None))
         + to_list (thiscargs)
         )
 
@@ -179,19 +178,31 @@ def gprfor(
     baseref = (
         (basegpr.split('/')[-1] + ".") if basegpr else "")
 
-    # If we have specific flags for the mains, append them. This is
-    # typically something like
+    # Generate compilation switches:
     #
-    #  for Switches("test_blob.adb") use
-    #    Compiler'Default_Switches("Ada") & ("-fno-inline")
+    # - For each language, add BUILDER.COMMON_CARGS as default switches.
+    #
+    # - If we have specific flags for the mains, append them. This is
+    #   typically something like:
+    #
+    #    for Switches("test_blob.adb") use
+    #      Compiler'Default_Switches("Ada") & ("-fno-inline")
 
-    compswitches = '\n'.join (
-        ['for Switches("%s") use \n'
-         '  Compiler\'Default_Switches ("%s") & (%s);' % (
-                main, language_info(main).name, ','.join(
-                    ['"%s"' % carg for carg in to_list(main_cargs)]))
-         for main in mains]
-        ) + '\n'
+    default_switches = ', '.join(
+        ['"%s"' % switch for switch in to_list (BUILDER.COMMON_CARGS)])
+    compswitches = (
+        '\n'.join (
+            ['for Default_Switches ("%s") use (%s);' % (
+                    language, default_switches)
+             for language in languages_l]) + '\n' +
+        '\n'.join (
+            ['for Switches("%s") use \n'
+             '  Compiler\'Default_Switches ("%s") & (%s);' % (
+                    main, language_info(main).name, ','.join(
+                        ['"%s"' % carg for carg in to_list(main_cargs)]))
+             for main in mains]
+            ) + '\n'
+        )
 
     # Now instanciate, dump the contents into the target gpr file and return
 

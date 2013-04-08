@@ -157,6 +157,9 @@ class GenerationError(Exception):
 #        template.gpr
 #        % Switches (main) += "-fno-inline" as needed
 #             |
+#             o <--- SUITE.control.BUILD.COMMON_CARGS
+#             |      (-g -fdump-scos ...)
+#             |
 #             |   direct calls to gprbuild() from test.py,
 #             |   or via TestCase(extracargs)
 #             |       |
@@ -165,9 +168,6 @@ class GenerationError(Exception):
 #                     |               |
 #                     o----> ADD <----o
 #                             |
-#  SUITE.control.             v
-#  BUILD.COMMON_CARGS   ---> ADD
-#  (-g -fdump-scos ...)       |
 #                             v
 #     run "gprbuild -Pgpr --cargs=... [-cargs:Ada=<>] [-cargs:C=<>]
 
