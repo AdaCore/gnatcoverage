@@ -1037,7 +1037,7 @@ begin
          begin
             Check_Argument_Available (Obj_Inputs, "EXEC", Command);
             Inputs.Iterate (Obj_Inputs, Read_Routine_Name'Access);
-            Traces_Names.Disp_All_Covered_Routines;
+            Traces_Names.Disp_All_Routines_Of_Interest;
             return;
          end;
 
@@ -1312,13 +1312,15 @@ begin
          --  Load routines from command line
 
          if Object_Coverage_Enabled then
+
             if Inputs.Length (Routines_Inputs) /= 0 then
                Inputs.Iterate (Routines_Inputs,
-                               Traces_Names.Add_Covered_Routine'Access);
+                               Traces_Names.Add_Routine_Of_Interest'Access);
             elsif Inputs.Length (Trace_Inputs) > 1 then
                Fatal_Error ("routine list required"
                             & " when reading multiple trace files");
             end if;
+
             --  If no routines were given on the command line, we'll add them
             --  when processing the list of symbols from the only executable
             --  file (using Read_Routines_Names, see below).

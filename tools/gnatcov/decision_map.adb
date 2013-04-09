@@ -212,7 +212,7 @@ package body Decision_Map is
 
          --  Only process symbols we are interested in
 
-         if Is_Covered_Routine (Sym.Symbol_Name.all) then
+         if Is_Routine_Of_Interest (Sym.Symbol_Name.all) then
             Sec := Sym.Parent;
             Load_Section_Content (Exe_File.all, Sec);
 

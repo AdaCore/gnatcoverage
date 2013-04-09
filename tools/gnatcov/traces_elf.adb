@@ -1964,7 +1964,7 @@ package body Traces_Elf is
       Sym : Addresses_Info_Acc;
       Sec : Addresses_Info_Acc;
 
-      Subp_Key                  : Traces_Names.Subprogram_Key;
+      Subp_Key : Traces_Names.Subprogram_Key;
    begin
       if Is_Empty (Exec.Desc_Sets (Symbol_Addresses)) then
          return;
@@ -1977,7 +1977,9 @@ package body Traces_Elf is
          Sym := Element (Cur);
 
          --  If the symbol is not to be covered, skip it
-         if Traces_Names.Is_Covered_Routine (Sym.Symbol_Name.all) then
+
+         if Traces_Names.Is_Routine_Of_Interest (Sym.Symbol_Name.all) then
+
             --  Be sure the section is loaded
 
             Sec := Sym.Parent;
@@ -3085,7 +3087,7 @@ package body Traces_Elf is
       procedure Add_Symbol (Sym : Addresses_Info_Acc) is
       begin
          if Exclude then
-            Traces_Names.Remove_Covered_Routine (Sym.Symbol_Name.all);
+            Traces_Names.Remove_Routine_Of_Interest (Sym.Symbol_Name.all);
          else
             --  Read_Routine_Names is called only when the following two
             --  conditions are met:
@@ -3095,8 +3097,10 @@ package body Traces_Elf is
             --  from the executable), we *have to* avoid adding the same symbol
             --  name twice.
             --
-            if not Traces_Names.Is_Covered_Routine (Sym.Symbol_Name.all) then
-               Traces_Names.Add_Covered_Routine (Sym.Symbol_Name.all);
+            if not Traces_Names.Is_Routine_Of_Interest
+               (Sym.Symbol_Name.all)
+            then
+               Traces_Names.Add_Routine_Of_Interest (Sym.Symbol_Name.all);
             end if;
 
             --  Scan_Symbols_From is going to free this instance of Sym, so
@@ -3281,11 +3285,12 @@ package body Traces_Elf is
                --  is selected and not already included:
 
                if Select_Symbol then
+
                   --  There can be symbols that have the same name, but that
                   --  are different anyway.
 
-                  if not Is_Covered_Routine (Symbol.Symbol_Name.all) then
-                     Add_Covered_Routine (Symbol.Symbol_Name.all);
+                  if not Is_Routine_Of_Interest (Symbol.Symbol_Name.all) then
+                     Add_Routine_Of_Interest (Symbol.Symbol_Name.all);
                   end if;
 
                   Key_From_Symbol (Exec, Symbol, Subp_Key);

@@ -72,49 +72,48 @@ package body Traces_Names is
    Routines : Routines_Maps.Map;
    --  Each item stores coverage information for one (consolidated) routine.
 
-   Covered_Routine_Names : Routine_Name_Sets.Set;
-   --  Set of routine names to be covered. It is only used to filter the
-   --  creation of Subprogram_Info entries when processing traces/ELF files.
+   Routines_Of_Interest : Routine_Name_Sets.Set;
+   --  Set of routine names that will be suject to coverage. It is only used to
+   --  filter the creation of Subprogram_Info entries when processing
+   --  traces/ELF files.
 
-   Origin_Generator : Natural := 1;
-   --  Counter for Subprogram_Key.Origin. Each time a routine has no
-   --  Compile_Unit, its tag is set to the generator, and the generator is
-   --  increased.
+   Next_Origin : Natural := 1;
+   --  Counter for Subprogram_Key.Origin
 
-   -------------------------
-   -- Add_Covered_Routine --
-   -------------------------
+   -----------------------------
+   -- Add_Routine_Of_Interest --
+   -----------------------------
 
-   procedure Add_Covered_Routine (Name : String)
+   procedure Add_Routine_Of_Interest (Name : String)
    is
    begin
-      Covered_Routine_Names.Insert (new String'(Name));
-   end Add_Covered_Routine;
+      Routines_Of_Interest.Insert (new String'(Name));
+   end Add_Routine_Of_Interest;
 
-   ------------------------
-   -- Is_Covered_Routine --
-   ------------------------
+   ----------------------------
+   -- Is_Routine_Of_Interest --
+   ----------------------------
 
-   function Is_Covered_Routine (Name : String) return Boolean
+   function Is_Routine_Of_Interest (Name : String) return Boolean
    is
       use Routine_Name_Sets;
       Name_Aliased : aliased String := Name;
       Name_Access  : constant String_Access := Name_Aliased'Unchecked_Access;
    begin
-      return Covered_Routine_Names.Find (Name_Access) /= No_Element;
-   end Is_Covered_Routine;
+      return Routines_Of_Interest.Find (Name_Access) /= No_Element;
+   end Is_Routine_Of_Interest;
 
-   -------------------------
-   -- Remove_Routine_Name --
-   -------------------------
+   --------------------------------
+   -- Remove_Routine_Of_Interest --
+   --------------------------------
 
-   procedure Remove_Covered_Routine (Name : String)
+   procedure Remove_Routine_Of_Interest (Name : String)
    is
       Name_Aliased : aliased String := Name;
       Name_Access  : constant String_Access := Name_Aliased'Unchecked_Access;
    begin
-      Covered_Routine_Names.Exclude (Name_Access);
-   end Remove_Covered_Routine;
+      Routines_Of_Interest.Exclude (Name_Access);
+   end Remove_Routine_Of_Interest;
 
    ---------------
    -- Format_CU --
@@ -148,9 +147,10 @@ package body Traces_Names is
    begin
       --  If the routine has no compile unit, it must not be consolidated, so
       --  it is made unique using its Origin member.
+
       if Key.Compile_Unit = null then
-         Key.Origin := Origin_Generator;
-         Origin_Generator := Origin_Generator + 1;
+         Key.Origin := Next_Origin;
+         Next_Origin := Next_Origin + 1;
       else
          Key.Origin := 0;
       end if;
@@ -161,6 +161,7 @@ package body Traces_Names is
 
       Cur := Routines.Find (Key);
       if Cur = No_Element then
+
          --  If doing routine-based separated coverage analysis, record name in
          --  routine tags table.
 
@@ -490,21 +491,21 @@ package body Traces_Names is
       end loop;
    end Disp_All_Routines;
 
-   -------------------------------
-   -- Disp_All_Covered_Routines --
-   -------------------------------
+   -----------------------------------
+   -- Disp_All_Routines_Of_Interest --
+   -----------------------------------
 
-   procedure Disp_All_Covered_Routines
+   procedure Disp_All_Routines_Of_Interest
    is
       use Routine_Name_Sets;
       Cur : Cursor;
    begin
-      Cur := Covered_Routine_Names.First;
+      Cur := Routines_Of_Interest.First;
       while Has_Element (Cur) loop
          Put_Line (Element (Cur).all);
          Next (Cur);
       end loop;
-   end Disp_All_Covered_Routines;
+   end Disp_All_Routines_Of_Interest;
 
    ---------
    -- "<" --
@@ -533,7 +534,7 @@ package body Traces_Names is
          end if;
       end "<";
    begin
-      --  Remainder: the Name field is never null, but the Compile_Unit can be
+      --  Reminder: the Name field is never null, but the Compile_Unit can be
       --  null.
 
       if Key1.Name.all < Key2.Name.all then
@@ -604,7 +605,7 @@ package body Traces_Names is
 
    procedure Read_Routine_Names_From_Text (Filename : String) is
    begin
-      Read_List_From_File (Filename, Add_Covered_Routine'Access);
+      Read_List_From_File (Filename, Add_Routine_Of_Interest'Access);
    exception
       when Name_Error | Status_Error =>
          Fatal_Error ("cannot open routine list: " & Filename);

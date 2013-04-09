@@ -28,14 +28,14 @@ with Traces_Elf;    use Traces_Elf;
 
 package Traces_Names is
 
-   procedure Add_Covered_Routine (Name : String);
-   --  Add a routine name to be covered.
+   procedure Add_Routine_Of_Interest (Name : String);
+   --  Add a routine name that will be suject to coverage
 
-   function Is_Covered_Routine (Name : String) return Boolean;
-   --  Return if a routine name is to be covered.
+   function Is_Routine_Of_Interest (Name : String) return Boolean;
+   --  Return if a routine name will be suject to coverage
 
-   procedure Remove_Covered_Routine (Name : String);
-   --  Remove a routine name to be covered.
+   procedure Remove_Routine_Of_Interest (Name : String);
+   --  Remove a routine name so it will not be suject to coverage
 
    function Format_CU
      (CU_Filename, CU_Directory : String_Access) return String_Access;
@@ -107,8 +107,9 @@ package Traces_Names is
    --  * one name per line
    --  * no blanks allowed.
 
-   procedure Disp_All_Covered_Routines;
-   --  Display the list of covered routines (on standard output).
+   procedure Disp_All_Routines_Of_Interest;
+   --  Display the list of routines that will be suject to coverage (on
+   --  standard output).
 
    procedure Disp_All_Routines;
    --  Display the list of routines (on standard output).
