@@ -133,7 +133,7 @@ package Nexus_Rep is
    end record;
    type Resource_Full_Message_Rec is record
       RCODE : Nexus_Packet_T;
-      HIST  : Nexus_Packet_T;
+      RDATA : Nexus_Packet_T;
    end record;
    type Prog_Trace_Indirect_Branch_Hist_Message_Rec is record
       I_CNT  : Nexus_Packet_T;
