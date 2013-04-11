@@ -10,6 +10,7 @@ main (void)
 //# dofor.c
 //  /body/      l+ ## 0
 //  /goto-in/   l+ ## 0
+//  /pre-for/   l- ## s-
 //  /eval/      l- ## s-
 //  /for/       l+ ## 0
 //  /goto-out/  l+ ## 0

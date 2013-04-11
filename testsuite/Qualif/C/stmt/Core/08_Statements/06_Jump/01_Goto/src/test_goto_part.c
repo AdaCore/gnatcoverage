@@ -3,7 +3,7 @@
 int
 main (void)
 {
-  dogoto (0);
+  dogoto (0, 0);
   return 0;
 }
 

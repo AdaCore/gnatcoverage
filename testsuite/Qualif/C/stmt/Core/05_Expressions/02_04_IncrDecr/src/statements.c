@@ -1,15 +1,14 @@
 #include "statements.h"
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
-  int a = 0;    // # statements-aux-all
-
-  a++;          // # statements-all
+  arg++;        // # statements-all
   if (full)     // # statements-aux-all
-    a++;        // # statements-cond
+    arg++;      // # statements-cond
 
-  a--;          // # statements-all
+  arg--;        // # statements-all
   if (full)     // # statements-aux-all
-    a--;        // # statements-cond
+    arg--;      // # statements-cond
+  return arg;   // # statements-aux-all
 }

@@ -6,6 +6,6 @@
    Auxillary "statement-aux-all" tagged statements are executed if and only if
    "statement-all" are executed, and "statement-aux-cond" ones are too iff.
    "statement-cond" ones are executed.*/
-void run_statements (int full);
+int run_statements (int full, int arg);
 
 #endif

@@ -1,22 +1,23 @@
 #include "docontinue.h"
 
-void docontinue (int limit)
+int
+docontinue (int limit, int arg)
 {
-  int a = 0;                    // # body
-
   do
     {
-      ++a;                      // # while
-      if (a > limit)            // # while
+      ++arg;                        // # while
+      if (arg > limit)              // # while
         {
-          a += 2;               // # continue-soft
-          continue;             // # continue-soft
+          arg += 2;                 // # continue-soft
+          continue;                 // # continue-soft
         }
-      if (a >= 10)              // # while
+      if (arg >= 10)                // # while
         {
-          a += 3;               // # continue-hard
-          continue;             // # continue-hard
+          arg += 3;                 // # continue-hard
+          continue;                 // # continue-hard
         }
-      ++a;                      // # not-continue
-    } while (0 < a && a <= 10); // # eval
+      ++arg;                        // # not-continue
+    } while (0 < arg && arg <= 10); // # eval
+
+  return arg;                       // # body
 }

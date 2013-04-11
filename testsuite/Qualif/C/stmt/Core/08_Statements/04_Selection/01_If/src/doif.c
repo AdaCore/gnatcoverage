@@ -1,4 +1,3 @@
-
 #include "doif.h"
 
 void doif (int cond, int * xstatus)
@@ -9,4 +8,3 @@ void doif (int cond, int * xstatus)
   else
     *xstatus |= XST_ELSE; // # else
 }
-

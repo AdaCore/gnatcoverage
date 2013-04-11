@@ -3,7 +3,7 @@
 int
 main (void)
 {
-  docontinue (5);
+  docontinue (5, 0);
   return 0;
 }
 

@@ -1,6 +1,7 @@
 #ifndef DOGOTO_H
 # define DOGOTO_H
 
-void dogoto (int full);
+int
+dogoto (int full, int arg);
 
 #endif

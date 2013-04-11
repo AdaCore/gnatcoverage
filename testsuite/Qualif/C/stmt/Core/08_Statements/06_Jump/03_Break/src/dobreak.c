@@ -1,17 +1,24 @@
 #include "dobreak.h"
 
-void
-dobreak (int limit)
+int
+dobreak (int limit, int arg)
 {
-  int a = 0;            // # body
   int loop = 1;         // # body
 
   do
     {
-      ++a;              // # while
-      if (a > limit)    // # while
-        break;          // # break-soft
-      if (a > 10)       // # while
-        break;          // # break-hard
-    } while (loop);     // # body
+      ++arg;            // # while
+      if (arg > limit)  // # while
+        {
+          --arg;        // # break-soft
+          break;        // # break-soft
+        }
+      if (arg > 10)     // # while
+        {
+          --arg;        // # break-hard
+          break;        // # break-hard
+        }
+    } while (++loop);   // # body
+
+  return arg;           // # body
 }

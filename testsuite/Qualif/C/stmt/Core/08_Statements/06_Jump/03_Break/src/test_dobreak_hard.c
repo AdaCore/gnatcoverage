@@ -3,7 +3,7 @@
 int
 main (void)
 {
-  dobreak (11);
+  dobreak (11, 0);
   return 0;
 }
 

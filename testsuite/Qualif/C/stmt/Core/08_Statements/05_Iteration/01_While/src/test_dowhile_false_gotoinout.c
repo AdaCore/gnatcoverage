@@ -8,8 +8,9 @@ main (void)
 }
 
 //# dowhile.c
-//  /body/      l+ ## 0
-//  /goto-in/   l+ ## 0
-//  /eval/      l- ## s-
-//  /while/     l+ ## 0
-//  /goto-out/  l+ ## 0
+//  /body/          l+ ## 0
+//  /goto-in/       l+ ## 0
+//  /eval/          l- ## s-
+//  /while-eval/    l- ## s-
+//  /while-in/      l+ ## 0
+//  /goto-out/      l+ ## 0

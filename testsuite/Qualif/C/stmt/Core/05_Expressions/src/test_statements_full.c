@@ -3,7 +3,7 @@
 int
 main (void)
 {
-  run_statements (1);
+  run_statements (1, 0);
   return 0;
 }
 

@@ -1,24 +1,28 @@
 #include "statements.h"
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
   {
-    int a = 0;          // # statements-all
-
     if (!full)          // # statements-aux-all
-      goto middle;      // # statements-not-cond
-    a += 1;             // # statements-cond
+      {
+        --arg;          // # statements-not-cond
+        goto middle;    // # statements-not-cond
+      }
+    ++arg;              // # statements-cond
   }
 
 middle:
   if (!full)            // # statements-aux-all
-    goto end;           // # statements-not-cond
+    {
+      --arg;            // # statements-not-cond
+      goto end;         // # statements-not-cond
+    }
+
   {
-    int a = 0;          // # statements-cond
-    a += 1;             // # statements-cond
+    ++arg;              // # statements-cond
   }
 
 end:
-  ;
+  return arg;           // # statements-aux-all
 }

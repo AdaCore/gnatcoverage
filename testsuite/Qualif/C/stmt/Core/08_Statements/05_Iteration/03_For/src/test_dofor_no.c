@@ -1,10 +1,10 @@
 #include "dofor.h"
 
+int cov = 0;
+
 int
 main (void)
 {
-  int cov = 0;
-
   /* Never call "doif", but reference it anyway so that it is included by the
      linker (gnatcov will not cover it otherwise).  */
   if (cov)
@@ -15,6 +15,7 @@ main (void)
 //# dofor.c
 //  /body/      l- ## s-
 //  /goto-in/   l- ## s-
+//  /pre-for/   l- ## s-
 //  /eval/      l- ## s-
 //  /for/       l- ## s-
 //  /goto-out/  l- ## s-

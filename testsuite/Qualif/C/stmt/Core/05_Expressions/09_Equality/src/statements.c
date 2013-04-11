@@ -1,25 +1,15 @@
 #include "statements.h"
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
-  int a = 0;        // # statements-aux-all
-
-  a == 0;           // # statements-all
+  ++arg == 0;       // # statements-all
   if (full)         // # statements-aux-all
-    {
-      a == 0;       // # statements-cond
-      /* The following statement is needed so that the previous statement is
-         considered as covered even if it generates no code.  */
-      a += 1;       // # statements-aux-cond
-    }
+    ++arg == 0;     // # statements-cond
 
-  a != 0;           // # statements-all
+  ++arg != 0;       // # statements-all
   if (full)         // # statements-aux-all
-    {
-      a != 0;       // # statements-cond
-      /* The following statement is needed so that the previous statement is
-         considered as covered even if it generates no code.  */
-      a += 1;       // # statements-aux-cond
-    }
+    ++arg != 0;     // # statements-cond
+
+  return arg;       // # statements-aux-all
 }

@@ -1,17 +1,19 @@
 #include "statements.h"
 
-static int
-zero (void)
+int
+num (int *arg)
 {
-  return 0;     // # statements-aux-all
+  return ++*arg;            // # statements-aux-all
 }
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
-  int a[1];     // # statements-aux-all
+  int a[2] = { 0, 1, 2 };   // # statements-aux-all
 
-  a[zero ()];   // # statements-all
-  if (full)     // # statements-aux-all
-    a[zero ()]; // # statements-cond
+  a[num (&arg)];            // # statements-all
+  if (full)                 // # statements-aux-all
+    a[num (&arg)];          // # statements-cond
+
+  return arg;               // # statements-aux-all
 }

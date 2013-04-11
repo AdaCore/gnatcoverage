@@ -1,33 +1,33 @@
 #include "statements.h"
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
-  int a = 0;        // # statements-aux-all
-
-  a   = 0;          // # statements-all
-  a  *= 2;          // # statements-all
-  a  /= 1;          // # statements-all
-  a  %= 2;          // # statements-all
-  a  += 1;          // # statements-all
-  a  -= 1;          // # statements-all
-  a >>= 1;          // # statements-all
-  a <<= 1;          // # statements-all
-  a  &= 1;          // # statements-all
-  a  ^= 1;          // # statements-all
-  a  |= 1;          // # statements-all
-  if (full)         // # statements-aux-all
+  arg   = arg + 1;      // # statements-all
+  arg  *= 2;            // # statements-all
+  arg  /= 1;            // # statements-all
+  arg  %= 0xff;         // # statements-all
+  arg  += 1;            // # statements-all
+  arg  -= 1;            // # statements-all
+  arg <<= 1;            // # statements-all
+  arg >>= 1;            // # statements-all
+  arg  &= 0xff;         // # statements-all
+  arg  ^= 1;            // # statements-all
+  arg  |= 1;            // # statements-all
+  if (full)             // # statements-aux-all
     {
-      a   = 0;      // # statements-cond
-      a  *= 2;      // # statements-cond
-      a  /= 1;      // # statements-cond
-      a  %= 2;      // # statements-cond
-      a  += 1;      // # statements-cond
-      a  -= 1;      // # statements-cond
-      a >>= 1;      // # statements-cond
-      a <<= 1;      // # statements-cond
-      a  &= 1;      // # statements-cond
-      a  ^= 1;      // # statements-cond
-      a  |= 1;      // # statements-cond
+      arg   = arg + 1;  // # statements-cond
+      arg  *= 2;        // # statements-cond
+      arg  /= 1;        // # statements-cond
+      arg  %= 0xff;     // # statements-cond
+      arg  += 1;        // # statements-cond
+      arg  -= 1;        // # statements-cond
+      arg <<= 1;        // # statements-cond
+      arg >>= 1;        // # statements-cond
+      arg  &= 0xff;     // # statements-cond
+      arg  ^= 1;        // # statements-cond
+      arg  |= 1;        // # statements-cond
     }
+
+  return arg;       // # statements-aux-all
 }

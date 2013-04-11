@@ -1,14 +1,17 @@
 #include "statements.h"
 
 static void
-nop (void)
+nop (int *arg)
 {
+  ++*arg;       // # statements-aux-all
 }
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
-  nop ();   // # statements-all
-  if (full) // # statements-aux-all
-    nop (); // # statements-cond
+  nop (&arg);   // # statements-all
+  if (full)     // # statements-aux-all
+    nop (&arg); // # statements-cond
+
+  return arg;   // # statements-aux-all
 }

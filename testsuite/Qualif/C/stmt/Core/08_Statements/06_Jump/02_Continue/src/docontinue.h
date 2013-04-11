@@ -1,6 +1,7 @@
 #ifndef DOCONTINUE_H
 # define DOCONTINUE_H
 
-void docontinue (int limit);
+int
+docontinue (int limit, int arg);
 
 #endif

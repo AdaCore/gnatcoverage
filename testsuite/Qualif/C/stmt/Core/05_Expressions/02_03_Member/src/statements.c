@@ -5,29 +5,40 @@ struct foo
   int bar;
 };
 
-static struct foo foo_object = { 1 };
-
-static struct foo
-get_foo (void)
+static struct foo foo_objects[5] =
 {
-  return foo_object;    // # statements-aux-all
+  { 1 },
+  { 2 },
+  { 3 },
+  { 4 },
+  { 5 },
+};
+
+struct foo
+get_foo (int arg)
+{
+  foo_objects[arg].bar += 1;    // # statements-aux-all
+  return foo_objects[arg];      // # statements-aux-all
 }
 
-static struct foo *
-get_foo_p (void)
+struct foo *
+get_foo_p (int arg)
 {
-  return &foo_object;   // # statements-aux-all
+  foo_objects[arg].bar += 1;    // # statements-aux-all
+  return &foo_objects[arg];     // # statements-aux-all
 }
 
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
-  get_foo ().bar;       // # statements-all
-  if (full)             // # statements-aux-all
-    get_foo ().bar;     // # statements-cond
+  get_foo (++arg).bar;          // # statements-all
+  if (full)                     // # statements-aux-all
+    get_foo (++arg).bar;        // # statements-cond
 
-  get_foo_p ()->bar;    // # statements-all
-  if (full)             // # statements-aux-all
-    get_foo_p ()->bar;  // # statements-cond
+  get_foo_p (++arg)->bar;       // # statements-all
+  if (full)                     // # statements-aux-all
+    get_foo_p (++arg)->bar;     // # statements-cond
+
+  return arg;                   // # statements-aux-all
 }

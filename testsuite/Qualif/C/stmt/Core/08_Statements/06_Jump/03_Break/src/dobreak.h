@@ -1,6 +1,7 @@
 #ifndef DOBREAK_H
 # define DOBREAK_H
 
-void dobreak (int limit);
+int
+dobreak (int limit, int arg);
 
 #endif

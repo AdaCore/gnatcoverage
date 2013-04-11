@@ -1,19 +1,18 @@
 #include "statements.h"
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
   if (full)             // # statements-aux-all
     {
       goto compound_in; // # statements-cond
 
       {
-        full = 0;
+        arg = 1;
 
 compound_in: ;
-        int a = 0;      // # statements-cond
-
-        a += 1;         // # statements-cond
+        ++arg;          // # statements-cond
       }
     }
+  return arg;           // # statements-aux-all
 }

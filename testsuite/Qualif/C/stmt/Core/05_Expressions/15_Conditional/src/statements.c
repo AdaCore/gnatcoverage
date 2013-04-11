@@ -1,28 +1,28 @@
 #include "statements.h"
 
 static int
-zero (void)
+incr (int *arg)
 {
-  return 0;                     // # statements-aux-all
+  return ++*arg;                        // # statements-aux-all
 }
 
 static int
-one (void)
+decr (int *arg)
 {
-  return 1;                     // # statements-aux-all
+  return --*arg;                        // # statements-aux-all
 }
 
-void
-run_statements (int full)
+int
+run_statements (int full, int arg)
 {
-  int a = 0;                    // # statements-aux-all
-
   /* Call zero and one so that they are covered iff. statements-aux-all must be
      covered.  */
-  zero ();                      // # statements-aux-all
-  one ();                       // # statements-aux-all
+  incr (&arg);                          // # statements-aux-all
+  decr (&arg);                          // # statements-aux-all
 
-  full ? zero () : one ();      // # statements-all
-  if (full)                     // # statements-aux-all
-    full ? zero () : one ();    // # statements-cond
+  full ? incr (&arg) : decr (&arg);     // # statements-all
+  if (full)                             // # statements-aux-all
+    full ? incr (&arg) : decr (&arg);   // # statements-cond
+
+  return arg;                           // # statements-aux-all
 }
