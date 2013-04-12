@@ -1,6 +1,6 @@
 #include "dowhile.h"
 
-void
+int
 dowhile (int start, int behavior)
 {
   int a = start;                // # body
@@ -25,5 +25,5 @@ in_while:
     } while (a < 10);           // # eval
 
 out_while:
-  ;
+  return a;                     // # body
 }

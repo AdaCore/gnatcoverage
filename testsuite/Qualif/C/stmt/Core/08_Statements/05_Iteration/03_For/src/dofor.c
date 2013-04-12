@@ -1,6 +1,6 @@
 #include "dofor.h"
 
-void
+int
 dofor (int start, int behavior)
 {
   int a = start;                // # body
@@ -24,5 +24,5 @@ in_for:
     }
 
 out_for:
-  ;
+  return a;
 }
