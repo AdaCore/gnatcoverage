@@ -1,24 +1,16 @@
 # run this to remove most temp artifacts created
 # by the testsuite execution or ongoing development.
 
-LIST=""
-LIST="$LIST $(find -type d -name 'tmp_*')"
-LIST="$LIST $(find -type d -name 'st_*')"
-LIST="$LIST $(find -type d -name 'dc_*')"
-LIST="$LIST $(find -type d -name 'mc_*')"
-LIST="$LIST $(find -type d -name '[0-9]')"
-rm -rf $LIST
+rm -rf $(find -type d -name 'tmp_*')
+rm -rf $(find -type d -name 'st_*')
+rm -rf $(find -type d -name 'dc_*')
+rm -rf $(find -type d -name 'mc_*')
+rm -rf $(find -type d -name 'uc_*')
+rm -rf $(find -type d -name '[0-9]')
 
-LIST=""
-LIST="$LIST $(find -type d -name 'obj')"
-LIST="$LIST $(find -type d -name 'obj_*')"
-rm -rf $LIST
+rm -rf $(find -type d -name 'obj')
+rm -rf $(find -type d -name 'obj_*')
 
-LIST=""
-LIST="$LIST $(find -type f -name 'test.py.???')"
-LIST="$LIST $(find -type f -name '*~')"
-LIST="$LIST $(find -type f -name '*.adb.*')"
-rm -rf $(ls $LIST | grep -v svn)
-
-
-
+rm -rf $(find -type f -name '*~')
+rm -rf $(find -type f -name 'test.py.???' | grep -v svn)
+rm -rf $(find -type f -name '*.adb.*' | grep -v svn)
