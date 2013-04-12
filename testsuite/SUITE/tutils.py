@@ -48,28 +48,35 @@ def gprbuild_gargs_with (thisgargs):
 # -- gprbuild_cargs_with --
 # -------------------------
 
-def gprbuild_cargs_with (thiscargs):
+def gprbuild_cargs_with (thiscargs, suitecargs=True):
     """Compute and return all the cargs arguments to pass on gprbuild
        invocations, including language agnostic and language specific ones
-       (-cargs and -cargs:<lang>). Account for specific requests in
-       THISCARGS."""
+       (-cargs and -cargs:<lang>) when SUITECARGS is true. Account for
+       specific requests in THISCARGS."""
 
     # To make sure we have a clear view of what options are used for a
     # qualification run, qualification tests are not allowed to state
     # compilation flags of their own
 
-    thistest.stop_if (thiscargs and thistest.options.qualif_level,
+    thistest.stop_if (
+        thistest.options.qualif_level and (not suitecargs or thiscargs),
         FatalError("CARGS requested for qualification test. Forbidden."))
 
-    all_cargs = ["-cargs"] + (
-        to_list (thistest.suite_cargs_for (lang=None))
-        + to_list (thiscargs)
-        )
+    all_cargs = []
 
-    [all_cargs.extend (
-            ["-cargs:%s" % lang] + to_list (thistest.suite_cargs_for (lang)))
-     for lang in QLANGUAGES
-     ]
+    # If we are requested to include the testsuite level compilation args,
+    # do so, then append the flags requested for this specific invocation:
+
+    if suitecargs:
+        all_cargs.extend (to_list(thistest.suite_cargs_for (lang=None)))
+        [all_cargs.extend (
+                ["-cargs:%s" % lang] + to_list (thistest.suite_cargs_for (lang)))
+         for lang in QLANGUAGES]
+
+    all_cargs.extend (to_list (thiscargs))
+
+    if all_cargs:
+        all_cargs.insert (0, '-cargs')
 
     return all_cargs
 
@@ -91,11 +98,13 @@ def gprbuild_largs_with (thislargs):
 # -- gprbuild --
 # --------------
 
-def gprbuild(project, extracargs=None, gargs=None, largs=None):
+def gprbuild(
+    project, extracargs=None, gargs=None, largs=None, suitecargs=True):
+
     """Cleanup & build the provided PROJECT file using gprbuild, passing
     GARGS/CARGS/LARGS as gprbuild/cargs/largs command-line switches, in
-    addition to the switches required by the infrastructure or provided on
-    the testsuite commandline for the --cargs family.
+    addition to the switches required by the infrastructure or provided on the
+    testsuite commandline for the --cargs family when SUITECARGS is true.
 
     The *ARGS arguments may be either: None, a string containing
     a space-separated list of options, or a list of options."""
@@ -105,7 +114,8 @@ def gprbuild(project, extracargs=None, gargs=None, largs=None):
 
     all_gargs = gprbuild_gargs_with (thisgargs=gargs)
     all_largs = gprbuild_largs_with (thislargs=largs)
-    all_cargs = gprbuild_cargs_with (thiscargs=extracargs)
+    all_cargs = gprbuild_cargs_with (
+        thiscargs=extracargs, suitecargs=suitecargs)
 
     # Now cleanup, do build and check status
 
