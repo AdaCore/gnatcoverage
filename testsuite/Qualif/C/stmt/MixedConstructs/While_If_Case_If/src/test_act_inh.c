@@ -14,8 +14,8 @@ main (void)
   s1.value = 5;                 /* in range */
   sensor_init (5, 15, &s2);
   s2.value = 1;                 /* < low bound */
-  sensor_init (5, 15, &s2);
-  s2.value = 45;                /* > high bound */
+  sensor_init (5, 15, &s3);
+  s3.value = 45;                /* > high bound */
 
   slist_init (&l);
   slist_prepend (&s1, &l);
