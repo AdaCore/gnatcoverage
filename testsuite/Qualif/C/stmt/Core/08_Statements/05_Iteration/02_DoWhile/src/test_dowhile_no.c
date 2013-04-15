@@ -1,10 +1,10 @@
 #include "dowhile.h"
 
+int cov = 0;
+
 int
 main (void)
 {
-  int cov = 0;
-
   /* Never call "doif", but reference it anyway so that it is included by the
      linker (gnatcov will not cover it otherwise).  */
   if (cov)
