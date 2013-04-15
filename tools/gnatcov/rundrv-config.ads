@@ -158,17 +158,7 @@ private package Rundrv.Config is
                                        new String'("%trace"),
                                        new String'("%exe"))
       ),
-      (Target => new String'("i686-pc-linux-gnu"),
-       Setup_Command => null,
-       Setup_Options => null,
-       Run_Command => new String'("%valgrind"),
-       Run_Options => new String_List'(new String'("%set_valgrind_env"),
-                                       new String'("--quiet"),
-                                       new String'("--tool=coverage"),
-                                       new String'("--cov-exec-file=%trace"),
-                                       new String'("%exe"))
-      ),
-      (Target => new String'("x86_64-pc-linux-gnu"),
+      (Target => new String'("(i686|x86_64).*linux"),
        Setup_Command => null,
        Setup_Options => null,
        Run_Command => new String'("%valgrind"),

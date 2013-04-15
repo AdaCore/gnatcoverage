@@ -24,6 +24,7 @@ with Ada.Directories;  use Ada.Directories;
 with Interfaces;
 
 with GNAT.OS_Lib;
+with GNAT.Regpat;  use GNAT.Regpat;
 
 with Qemu_Traces;
 with Switches;     use Switches;
@@ -139,7 +140,9 @@ package body Rundrv is
             end loop;
 
             for I in Drivers'Range loop
-               if Drivers (I).Target.all = Resolved_Target.all then
+               if Match (Expression => Drivers (I).Target.all,
+                         Data => Resolved_Target.all)
+               then
                   return Drivers (I)'Access;
                end if;
             end loop;
