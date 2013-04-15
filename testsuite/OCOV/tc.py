@@ -28,6 +28,7 @@ class TestCase(object):
         extra_sourcedirs=[],
         level='branch', annotate='asm',
         extra_xcov_args=[],
+        suitecargs=True,
     ):
         self.test_drivers = test_drivers
         self.coverage_expectations = coverage_expectations
@@ -35,6 +36,7 @@ class TestCase(object):
         self.level = level
         self.annotate = annotate
         self.extra_xcov_args = extra_xcov_args
+        self.suitecargs = suitecargs
 
     def run(self, register_failure=True):
         '''
@@ -110,7 +112,7 @@ class TestCase(object):
         end {};
     '''.format(test_driver))
 
-        gprbuild(project_file)
+        gprbuild(project_file, suitecargs=self.suitecargs)
 
     def _run(self, test_driver):
         xrun(unixpath_to(test_driver))
