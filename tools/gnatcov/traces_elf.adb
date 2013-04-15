@@ -16,7 +16,6 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Vectors;
 with Ada.Unchecked_Conversion;
 
 with Ada.Directories; use Ada.Directories;
@@ -294,7 +293,7 @@ package body Traces_Elf is
    ----------------------------
 
    procedure Disp_Compilation_Units (Exec : Exe_File_Type) is
-      use Compile_Unit_Lists;
+      use Compile_Unit_Vectors;
       Cu : Compile_Unit_Desc;
       Cur : Cursor;
    begin
@@ -1036,6 +1035,7 @@ package body Traces_Elf is
 
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type) is
       use Dwarf;
+      use Compile_Unit_Vectors;
 
       Abbrev_Len : Elf_Addr;
       Abbrevs : Binary_Content_Acc;
@@ -1075,6 +1075,7 @@ package body Traces_Elf is
       Current_Sec     : Addresses_Info_Acc;
       Current_Subprg  : Addresses_Info_Acc;
       Current_CU      : CU_Id := No_CU_Id;
+      Current_DIE_CU  : DIE_CU_Id := No_DIE_CU_Id;
       Compilation_Dir : String_Access;
       Unit_Filename   : String_Access;
       Subprg_Low      : Pc_Type;
@@ -1212,6 +1213,7 @@ package body Traces_Elf is
                                         At_Stmt_List,
                                         Pc_Type (At_Low_Pc),
                                         Pc_Type (At_High_Pc)));
+                  Current_DIE_CU := DIE_CU_Id (Exec.Compile_Units.Length);
 
                   if At_Ranges /= No_Ranges then
                      Cu_Base_Pc := 0;
@@ -1248,13 +1250,15 @@ package body Traces_Elf is
 
                      Current_Subprg :=
                        new Addresses_Info'
-                       (Kind            => Subprogram_Addresses,
-                        First           => Subprg_Low,
-                        Last            =>
+                       (Kind              => Subprogram_Addresses,
+                        First             => Subprg_Low,
+                        Last              =>
                           Exec.Exe_Text_Start + Pc_Type (At_High_Pc - 1),
-                        Parent          => Current_Sec,
-                        Subprogram_Name => new String'(Read_String (At_Name)),
-                        Subprogram_CU   => Current_CU);
+                        Parent            => Current_Sec,
+                        Subprogram_Name   =>
+                          new String'(Read_String (At_Name)),
+                        Subprogram_CU     => Current_CU,
+                        Subprogram_DIE_CU => Current_DIE_CU);
                      Exec.Desc_Sets (Subprogram_Addresses).
                        Insert (Current_Subprg);
                   end if;
@@ -1915,23 +1919,21 @@ package body Traces_Elf is
       PC   : Pc_Type;
       CU_Filename, CU_Directory : out String_Access)
    is
-      use Compile_Unit_Lists;
-      Cu : Compile_Unit_Desc;
-      Cur : Cursor;
+      use Compile_Unit_Vectors;
+      Subp_Info : constant Addresses_Info_Acc :=
+         Get_Address_Info (Exec, Subprogram_Addresses, PC);
+      CU        : Compile_Unit_Desc;
    begin
-      CU_Filename := null;
-      CU_Directory := null;
-
-      Cur := Exec.Compile_Units.First;
-      while Has_Element (Cur) loop
-         Cu := Element (Cur);
-         if PC in Cu.Pc_Low .. (Cu.Pc_High - 1) then
-            CU_Filename := Cu.Compile_Unit_Filename;
-            CU_Directory := Cu.Compilation_Directory;
-            exit;
-         end if;
-         Next (Cur);
-      end loop;
+      if Subp_Info = null
+         or else Subp_Info.all.Subprogram_DIE_CU = No_DIE_CU_Id
+      then
+         CU_Filename := null;
+         CU_Directory := null;
+      else
+         CU := Exec.Compile_Units.Element (Subp_Info.all.Subprogram_DIE_CU);
+         CU_Filename := CU.Compile_Unit_Filename;
+         CU_Directory := CU.Compilation_Directory;
+      end if;
    end Get_Compile_Unit;
 
    --------------------------

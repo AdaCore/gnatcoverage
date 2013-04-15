@@ -16,8 +16,8 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Ordered_Sets;
+with Ada.Containers.Vectors;
 with Ada.Unchecked_Deallocation;
 
 with Interfaces; use Interfaces;
@@ -162,6 +162,11 @@ package Traces_Elf is
    package Addresses_Containers is new Ada.Containers.Ordered_Sets
      (Element_Type => Addresses_Info_Acc);
 
+   type DIE_CU_Id is new Natural;
+   No_DIE_CU_Id : constant DIE_CU_Id := 0;
+   subtype Valid_DIE_CU_Id is
+      DIE_CU_Id range No_DIE_CU_Id + 1 ..  DIE_CU_Id'Last;
+
    type Addresses_Info (Kind : Addresses_Kind := Section_Addresses) is record
       --  Range of the info
 
@@ -185,8 +190,12 @@ package Traces_Elf is
             Section_Content : Binary_Content_Acc;
 
          when Subprogram_Addresses =>
-            Subprogram_Name : String_Access;
-            Subprogram_CU   : CU_Id;
+            Subprogram_Name   : String_Access;
+            Subprogram_CU     : CU_Id;
+            --  Compilation Unit (Ada meaning) for SCOs
+
+            Subprogram_DIE_CU : DIE_CU_Id;
+            --  Compilation Unit (DWARF meaning) for consolidation
 
          when Symbol_Addresses =>
             Symbol_Name   : String_Access;
@@ -304,8 +313,9 @@ private
       Pc_High               : Pc_Type;
    end record;
 
-   package Compile_Unit_Lists is new Ada.Containers.Doubly_Linked_Lists
-     (Element_Type => Compile_Unit_Desc);
+   package Compile_Unit_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Valid_DIE_CU_Id,
+      Element_Type => Compile_Unit_Desc);
 
    type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
 
@@ -346,7 +356,7 @@ private
       Symtab : Binary_Content_Acc := null;
       Nbr_Symbols : Natural := 0;
 
-      Compile_Units : Compile_Unit_Lists.List;
+      Compile_Units : Compile_Unit_Vectors.Vector;
       --  Compilation units
 
       Desc_Sets : Desc_Sets_Type;
