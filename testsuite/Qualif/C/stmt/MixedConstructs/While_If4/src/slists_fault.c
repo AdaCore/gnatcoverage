@@ -1,6 +1,5 @@
 #include "slists_fault.h"
-
-#include <stdlib.h>
+#include "support.h"
 
 void
 slist_control (struct sensor_list *l, bool active_only,

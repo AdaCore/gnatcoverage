@@ -1,6 +1,5 @@
 #include "slists_forall.h"
-
-#include <stdlib.h>
+#include "support.h"
 
 void
 slist_forall_in (struct sensor_list *l, enum sensor_op op, bool active_only)

@@ -1,8 +1,7 @@
 #include "sensors.h"
 #include "slists.h"
 #include "slists_forall.h"
-
-#include <assert.h>
+#include "support.h"
 
 int
 main (void)

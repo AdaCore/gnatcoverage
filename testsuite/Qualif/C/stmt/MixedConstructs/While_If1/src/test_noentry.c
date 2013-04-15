@@ -1,8 +1,7 @@
 #include "sensors.h"
 #include "slists.h"
 #include "slists_count.h"
-
-#include <assert.h>
+#include "support.h"
 
 /* Call "slist_count_in" with an empty list. The WHILE loop is never
    entered.  */

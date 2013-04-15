@@ -1,8 +1,5 @@
 #include "sensors_status.h"
-
-#include <assert.h>
-#include <stdbool.h>
-#include <stdlib.h>
+#include "support.h"
 
 enum sensor_status
 sensor_get_status (struct sensor *s)
@@ -33,7 +30,7 @@ sensor_get_status (struct sensor *s)
                   break;                            // # SO_broken
                 default:
                   assert (false);                   // # SO_PE
-                  break;
+                  break;                            // # SO_unreachable
                 }
             }
           ++i;                                      // # SO_iter

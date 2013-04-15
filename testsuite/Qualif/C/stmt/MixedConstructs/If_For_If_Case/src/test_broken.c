@@ -1,7 +1,6 @@
 #include "sensors.h"
 #include "sensors_status.h"
-
-#include <assert.h>
+#include "support.h"
 
 int
 main (void)
@@ -29,16 +28,17 @@ main (void)
    SENSOR_BROKEN.  */
 
 //# sensors_status.c
-//  /SO_t0/         l+ ## 0
-//  /SO_undecide/   l- ## s-
-//  /SO_decide/     l+ ## 0
-//  /SO_init/       l+ ## 0
-//  /SO_loop/       l+ ## 0
-//  /SO_tfaultLB/   l+ ## 0
-//  /SO_tfaultUB/   l+ ## 0
-//  /SO_fault/      l+ ## 0
-//  /SO_check/      l+ ## 0
-//  /SO_broken/     l+ ## 0
-//  /SO_PE/         l- ## s-
-//  /SO_iter/       l+ ## 0
-//  /SO_ret/        l+ ## 0
+//  /SO_t0/             l+ ## 0
+//  /SO_undecide/       l- ## s-
+//  /SO_decide/         l+ ## 0
+//  /SO_init/           l+ ## 0
+//  /SO_loop/           l+ ## 0
+//  /SO_tfaultLB/       l+ ## 0
+//  /SO_tfaultUB/       l+ ## 0
+//  /SO_fault/          l+ ## 0
+//  /SO_check/          l+ ## 0
+//  /SO_broken/         l+ ## 0
+//  /SO_PE/             l- ## s-
+//  /SO_unreachable/    ~l- ## ~s-
+//  /SO_iter/           l+ ## 0
+//  /SO_ret/            l+ ## 0

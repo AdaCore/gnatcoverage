@@ -1,7 +1,6 @@
 #include "slists.h"
 #include "simple_pools.h"
-
-#include <stdlib.h>
+#include "support.h"
 
 void
 slist_init (struct sensor_list *l)

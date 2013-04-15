@@ -1,6 +1,5 @@
 #include "slists_count.h"
-
-#include <stdlib.h>
+#include "support.h"
 
 void
 slist_count_in (struct sensor_list *l,
