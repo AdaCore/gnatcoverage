@@ -1925,7 +1925,7 @@ package body Traces_Elf is
       Cur := Exec.Compile_Units.First;
       while Has_Element (Cur) loop
          Cu := Element (Cur);
-         if PC in Cu.Pc_Low .. Cu.Pc_High then
+         if PC in Cu.Pc_Low .. (Cu.Pc_High - 1) then
             CU_Filename := Cu.Compile_Unit_Filename;
             CU_Directory := Cu.Compilation_Directory;
             exit;
