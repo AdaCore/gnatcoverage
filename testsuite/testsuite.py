@@ -483,10 +483,13 @@ class TestSuite:
             top = idirs.pop(), topdown = True, followlinks=True
             ):
 
-            # Unixify the directory name early, to match expectations in
-            # our filtering patterns:
+            # Unixify the directory name early and make sure that we have at
+            # least a trailing '/' to match expectations in our filtering
+            # patterns. Trailing slashes in filters are useful to disambiguate
+            # multiple subdirs with a common prefix at the same level, for
+            # example to focus on "Qualif/C/" vs "Qualif/Common".
 
-            dirname =  dirname.replace ('\\', '/')
+            dirname = dirname.replace ('\\', '/') + '/'
 
             # If there is some testcases generation to do in this dir, first do
             # it, and then continue to look for tests.
@@ -515,7 +518,7 @@ class TestSuite:
             # Otherwise, instantiate a Testcase object and proceed:
 
             tc = TestCase (
-                filename  = dirname + "/" + test_py,
+                filename  = dirname + test_py,
                 trace_dir = self.trace_dir
                 )
             tc.parseopt(self.discriminants)
