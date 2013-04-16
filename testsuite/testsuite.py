@@ -457,8 +457,30 @@ class TestSuite:
         test_py = "test.py"
         group_py = "group.py"
 
+        # If there are multiple subdirs to traverse before reaching the root
+        # starting point of our search, we need to check if any of them holds
+        # a group generation request.
+
+        # We will start at the first intermediate subdir then walk straight
+        # through each component before searching tests for real. We maintain
+        # a stack-list of remaining intermediate subdirs for this purpose,
+        # assuming the root we're provided with is a unix style kind of path.
+
+        # For a root like          ...      we first construct:
+        #
+        #   a/b/c  (relative)               idirs = ['a', 'b', 'c']
+        #   /x/y/z (absolute)               idirs = ['/x', 'y', 'z']
+        #
+        # Then reverse so we can pop() entries in sequence:
+
+        idirs = root.strip('/').split('/')
+        if root[0] == '/':
+            idirs[0] = '/' + idirs[0]
+
+        idirs = [idir for idir in reversed (idirs)]
+
         for (dirname, subdirs, files) in os.walk(
-            top=root, topdown=True, followlinks=True
+            top = idirs.pop(), topdown = True, followlinks=True
             ):
 
             # Unixify the directory name early, to match expectations in
@@ -473,6 +495,12 @@ class TestSuite:
 
             if group_py in files:
                 self.__generate_group (dirname, group_py)
+
+            # Walk straight to the next intermediate dir entry, if any.
+
+            if idirs:
+                subdirs[:] = [idirs.pop()]
+                continue
 
             # If there is not test to execute in this dir or the dir name
             # doesn't match the filter current filter, continue with the next
@@ -502,31 +530,10 @@ class TestSuite:
         """Generator for MainLoop, producing a sequence of testcases to be
         executed, updating self.run_list and self.dead_list on the fly."""
 
-        # If we have a testcase filter starting designating a directory, no
-        # point in searching elsewhere.
+        # If we have a testcase filter designating a directly accessible
+        # directory, no point in searching elsewhere:
 
         if os.path.isdir(self.tc_filter):
-            # If we start in a nested directory, make sure upper generations
-            # are done anyway.
-
-            # First generate the list of nested directories in which we have
-            # to look for "group.py" first.
-            inter_dirs = []
-            current_dir = self.tc_filter
-            while True:
-                current_dir, _ = os.path.split(current_dir)
-                if current_dir:
-                    inter_dirs.append(current_dir)
-                else:
-                    break
-
-            # Then handle the topmost directories first, so that generated
-            # 'group.py' are handled, too.
-            group_py = 'group.py'
-            for inter_dir in reversed(inter_dirs):
-                if group_py in os.listdir(inter_dir):
-                    self.__generate_group(inter_dir, group_py)
-
             roots = (self.tc_filter, )
         else:
             roots = ("Qualif/", "tests/")
