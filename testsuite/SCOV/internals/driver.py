@@ -682,7 +682,7 @@ class SCOV_helper:
         thistest.fail_if (
             match (
                 "(!!! EXCEPTION RAISED !!!"
-                "|raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ explicit raise)",
+                "|raised [A-Z_]+ : [-._a-zA-Z]+:[0-9]+ \w+)",
                 ofile),
             "exception raised while running '%s'." % main)
 
