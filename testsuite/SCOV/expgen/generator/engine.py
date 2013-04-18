@@ -91,9 +91,11 @@ def generate_topology(topo_dir, env):
                 )
             topo = topology.Topology(drv_topo)
 
-    # Check that there is at least one test driver.
+    # If we happen to get here for subdirectories that are not aimed at
+    # hosting a topology, there is just nothing to generate.
+    # ??? We might want to tighten our callers and make this an error.
     if topo is None:
-        raise GenerationError(topo_dir, 'There is no driver here')
+        return
 
     # Now we have the topology and the truth vectors, we can generate
     # everything else.

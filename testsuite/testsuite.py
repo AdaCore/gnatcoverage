@@ -123,9 +123,6 @@ QLEVEL_INFO = {
         xcovlevel = "stmt")
     }
 
-class GenerationError(Exception):
-    pass
-
 # ===============================
 # == Compilation Flags Control ==
 # ===============================
@@ -430,13 +427,16 @@ class TestSuite:
         was successful."""
 
         group_py_path = os.path.join(dirname, group_py)
-        failure = Run(
-            ['/usr/bin/env', 'python', group_py_path],
-            timeout=20
-        ).status != 0
+        p = Run(
+            [sys.executable, group_py_path],
+            timeout=20)
 
-        if failure:
-            raise GenerationError(group_py_path)
+        if p.status != 0:
+            raise FatalError(
+                '\n'.join (
+                    ['Test instance generation failed (%s)' % group_py_path,
+                     p.out])
+                )
 
     # ---------------------
     # -- __next_testcase --
