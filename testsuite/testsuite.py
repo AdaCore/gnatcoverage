@@ -28,6 +28,7 @@ from gnatpython.reports import ReportDiff
 
 from glob import glob
 
+import traceback
 import time
 import logging, os, re, sys
 
@@ -39,6 +40,7 @@ from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
 
 from SUITE import control
 from SUITE.control import BUILDER, XCOV
+from SUITE.vtree import Dir, DirTree
 
 DEFAULT_TIMEOUT = 600
 
@@ -457,6 +459,12 @@ class TestSuite:
         test_py = "test.py"
         group_py = "group.py"
 
+        # Build a Directory Tree Object abstraction for this walk, which we
+        # will use to maintain properties regarding the path leading to each
+        # node.
+
+        this_dto = DirTree ()
+
         # If there are multiple subdirs to traverse before reaching the root
         # starting point of our search, we need to check if any of them holds
         # a group generation request.
@@ -491,6 +499,26 @@ class TestSuite:
 
             dirname = dirname.replace ('\\', '/') + '/'
 
+            # Build the Directory object abstraction for this subdir, map
+            # it into our Directory Tree object and update our path-related
+            # attributes of interest:
+
+            diro = this_dto.topdown_map (dirname, subdirs, files)
+
+            # For each node, we maintain a list of 'extra.opt' files
+            # available uptree, useful to implement shared test control
+            # for entire subtrees:
+
+            diro.extraopt_uptree = (
+                [] if diro.pdo is None
+                else (
+                    diro.pdo.extraopt_uptree + [
+                        os.path.join(diro.pdo.fspath, 'extra.opt')]
+                    ) if 'extra.opt' in diro.pdo.files
+                else \
+                    diro.pdo.extraopt_uptree
+                )
+
             # If there is some testcases generation to do in this dir, first do
             # it, and then continue to look for tests.
             # TODO: look for a way to remove generated files that failed tests
@@ -518,10 +546,11 @@ class TestSuite:
             # Otherwise, instantiate a Testcase object and proceed:
 
             tc = TestCase (
+                diro = diro,
                 filename  = dirname + test_py,
                 trace_dir = self.trace_dir
                 )
-            tc.parseopt(self.discriminants)
+            tc.parseopt(suite_discriminants = self.discriminants)
 
             if tc.killcmd:
                 self.dead_list.append(tc)
@@ -634,7 +663,7 @@ class TestSuite:
         """MainLoop hook to run a single non-dead TEST instance. If limit is
         not set, run rlimit with DEFAULT_TIMEOUT"""
 
-        logging.debug("Running " + test.testdir)
+        logging.debug("Running " + test.diro.fspath)
         timeout = test.getopt('limit')
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
@@ -997,10 +1026,13 @@ class TestCase(object):
     # Index to assign to the next instance of this class
     index = 0
 
-    def __init__(self, filename, trace_dir=None):
-        """Create a new TestCase for the given filename. If trace_dir
-        is specified, save the bootstrap traces there."""
-        self.testdir      = os.path.dirname(filename)
+    def __init__(self, diro, filename, trace_dir=None):
+        """Create a new TestCase for the given FILENAME, within the DIRO
+        directory object. If TRACE_DIR is specified, save the bootstrap traces
+        there."""
+
+        self.diro         = diro
+        self.testdir      = self.diro.fspath
         self.filename     = filename
         self.expected_out = None
         self.opt          = None
@@ -1017,29 +1049,50 @@ class TestCase(object):
     # -- Testcase options and status --
     # ---------------------------------
 
-    def __try_killcmd (self, cmd):
-        """See if CMD applies to this testcase according to test.opt.
-        Set self.cmd to the corresponding text for GAIA reports."""
-        value = self.opt.get_value (cmd)
+    def __try_killcmd(self, cmd, opt):
+        """See if the killing command CMD applies to this testcase according
+        to the provided set of parsed OPTions. Set self.killcmd to the
+        corresponding text for GAIA reports."""
+
+        value = opt.get_value (cmd)
         self.killcmd = (
             None if value is None
             else "%s:%s" % (cmd, value)
             )
 
-    def parseopt(self, tags):
-        """Parse the test.opt with the given tags"""
-        test_opt = os.path.join(self.testdir, 'test.opt')
+    def __trykill_from(self, opt):
+        """See if the provided OPTions parsed for our discriminants
+        trigger a DEAD or SKIP for this test. Set killcmd accordingly."""
 
+        [self.__try_killcmd (cmd=cmd, opt=opt)
+         for cmd in ('DEAD', 'SKIP') if not self.killcmd]
+
+
+    def parseopt(self, suite_discriminants):
+        """Parse the local test.opt + possible extra.opt uptree in
+        accordance with the provided SUITE_DISCRIMINANTS + the test
+        specific discriminants, if any."""
+
+        tags = suite_discriminants + self.discriminants()
+
+        test_opt = os.path.join(self.testdir, 'test.opt')
         self.opt = (
             OptFileParse(tags, test_opt) if os.path.exists(test_opt)
             else None
             )
-
         self.expected_out = self.getopt('out', 'test.out')
 
+        # Determine whether anything kills this test for the provided set
+        # of discriminants. Check the local test.opt first, then possible
+        # instances of extra.opt uptree:
+
         self.killcmd = None
+
         if self.opt:
-            [self.__try_killcmd (c) for c in ('DEAD', 'SKIP') if not self.killcmd]
+            self.__trykill_from(self.opt)
+
+        [self.__trykill_from (OptFileParse(tags, extraopt))
+         for extraopt in self.diro.extraopt_uptree if not self.killcmd]
 
     def getopt(self, key, default=None):
         """Get the value extracted from test.opt that correspond to key
@@ -1049,6 +1102,23 @@ class TestCase(object):
             self.opt.get_value(key, default_value=default) if self.opt
             else default
             )
+
+    # --------------------------------------
+    # -- Testscase specific discriminants --
+    # --------------------------------------
+
+    def discriminants (self):
+        """List of discriminants for this particular test. Might
+        include LANG_<lang> if path to test contains /<lang>/ for any
+        of the languages we know about."""
+
+        discs = []
+
+        lang = self.lang()
+        if lang:
+            discs.append ('LANG_%s' % lang.upper())
+
+        return discs
 
     # ---------------------------
     # -- Testcase output files --
@@ -1102,7 +1172,7 @@ class TestCase(object):
     def lang(self):
         """The language specific subtree SELF pertains to"""
         for lang in QLANGUAGES:
-            if self.testdir.find ("%s/%s/" % (QROOTDIR, lang)) != -1:
+            if self.testdir.find ("/%s/" % lang) != -1:
                 return lang
         return None
 

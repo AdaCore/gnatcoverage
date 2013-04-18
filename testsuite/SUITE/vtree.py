@@ -1,37 +1,43 @@
-# !! BIG CHANTIER HERE !!
+# ****************************************************************************
+# *                              VIRTUAL TREES                               *
+# ****************************************************************************
 
-# LibExp/AndXY/Ada/Var/IfElse
-#                  /Aggregates/IfElse
+# Abstractions to allow the construction of internal representations
+# of directory trees, with objects to represent directory nodes and their
+# parentship connections.
 #
-#             /C/Var/IfElse
-
-# Qualif/Ada/decision/Robustness
-#                    /Expressions -> /path/to/LibExp (Ada, decision)
+# The most basic abstractions are the Dir and the DirTree class.
 #
-#           /mcdc/Robustness
-#                /Expressions -> /path/to/LibExp (Ada, mcdc)
-#                             ^^
-#                             vlink, textfile which designates
-#                             the root of a tree to map here.
+# Dir instances represent directories. DirTree instances represent Directory
+# Trees. (eh :)
 #
-#                             maps the LibExp subdir as a subir
-#                             from the vlink location:
+# Mapping Dir objects into a directory tree during a topdown walk sets
+# up references to parent directory objects, which then allows all sorts of
+# useful computations.
 #
-#                               Expressions/LibExp/AndXY/...
-#                                           ^       /...
-#                                           As if the LibExp root
-#                                           had been here
-
-# category enforcement ?
-#   testsuite argument passed down ?
-
-# language filtering ?
-#   consider matching langsubdir only + bridgeover ?
-#   -> Qualif/Ada/mcdc/Expressions/AndXY/IfElse
-#                      ^          ^
-#                      LibExp     /Ada/
-#                      plugged    bridged-over
-#                      here       here
+# This file also includes a few other classes to allow the construction
+# of virtual directory trees from links to shared filesystem subdirs, e.g.
+#
+# On the filesystem, from something like:
+#
+#   lib/chapter1
+#      /chapter2
+#      ...
+#
+#   sectionA/
+#        link_to_lib/
+#   sectionB/
+#        link_to_lib/
+#
+# build a *virtual* directory tree like:
+#
+#   sectionA/lib/chapter1
+#               /chapter2
+#
+#   sectionB/lib/chapter1
+#               /chapter2
+#
+# This second part is still work in progress.
 
 import json
 import os, re
@@ -113,23 +119,21 @@ dirProcess, dirSkip, dirCutPre, dirCutPost = range (4)
 # dirSkip:    skip processing for this node, walk children nevertheless
 
 class DirTree:
-    def __init__(self, rooto):
+
+    def __init__(self, rooto=None):
+
         self.rooto = rooto
 
-class DirTree_towalk:
+        # { fspath -> dir-object }
+        self.dirmap = OrderedDict()
 
-    def __init__(self):
-        pass
-
-    # ------------------------------------------------------------
-    # -- Tree walking facilities, once we're past the first doc --
-    # -- generation pass, all the parent children links are set --
-    # ------------------------------------------------------------
+        # { dto -> [DirLink objects for link files dto] }
+        self.linkmap = {}
 
     # Local facilities. Beware that walks are used to compute directory
     # object attributes, so these can't be relied upon.
 
-    class WalkInfo:
+    class _WalkInfo:
         def __init__(self, pathi, ctl, mode, data):
             self.ctl   = ctl
             self.mode  = mode
@@ -160,34 +164,11 @@ class DirTree_towalk:
 
     # Exposed facilities.
 
-    def walk(self, mode, process, data=None, ctl=None):
+    # -----------------
+    # -- topdown_map --
+    # -----------------
 
-        if ctl is None: ctl = self.__default_ctl
-
-        wi=DirTree.WalkInfo (
-            pathi=PathInfo(), mode=mode, ctl=ctl, data=data)
-
-        self._walk_from (diro=diro, wi=wi)
-
-        [process (diro, data) for diro in wi.nodeq]
-
-        return wi.nodeq
-
-# Compute the tree of directory objects found at a provided root,
-# witout following links.
-
-class DirTree_frompath (DirTree):
-
-    def __init__(self, rootp):
-
-        self.rootp = os.path.abspath(rootp)
-
-        DirTree.__init__(self, rooto=None)
-
-        self.dirmap = None   # fspath -> dir-object dictionary
-        self.linkmap = None
-
-    def __topdown_map(self, dirname, subdirs, files):
+    def topdown_map(self, dirname, subdirs, files):
 
         # Map directory DIRNAME into our dictionary and set up links to/from
         # its parent directory, if any. We're called along a topdown walk, so
@@ -206,6 +187,7 @@ class DirTree_frompath (DirTree):
 
         # Map a new object for this dir ...
 
+        dirname = dirname.rstrip('/')
         diro = Dir (fspath=dirname, subdirs=subdirs, files=files)
         self.dirmap[dirname] = diro
 
@@ -230,13 +212,84 @@ class DirTree_frompath (DirTree):
 
         return diro
 
+    # ----------
+    # -- walk --
+    # ----------
+
+    def walk(self, mode, process, data=None, ctl=None):
+
+        if ctl is None: ctl = self.__default_ctl
+
+        wi=DirTree._WalkInfo (
+            pathi=PathInfo(), mode=mode, ctl=ctl, data=data)
+
+        self._walk_from (diro=self.rooto, wi=wi)
+
+        [process (diro, data) for diro in wi.nodeq]
+
+        return wi.nodeq
+
+
+# *************************************************
+# * Processing directory links - Work in progress *
+# *************************************************
+
+# !! BIG CHANTIER HERE !!
+
+# LibExp/AndXY/Ada/Var/IfElse
+#                  /Aggregates/IfElse
+#
+#             /C/Var/IfElse
+
+# Qualif/Ada/decision/Robustness
+#                    /Expressions -> /path/to/LibExp (Ada, decision)
+#
+#           /mcdc/Robustness
+#                /Expressions -> /path/to/LibExp (Ada, mcdc)
+#                             ^^
+#                             vlink, textfile which designates
+#                             the root of a tree to map here.
+#
+#                             maps the LibExp subdir as a subir
+#                             from the vlink location:
+#
+#                               Expressions/LibExp/AndXY/...
+#                                           ^       /...
+#                                           As if the LibExp root
+#                                           had been here
+
+# category enforcement ?
+#   testsuite argument passed down ?
+
+# language filtering ?
+#   consider matching langsubdir only + bridgeover ?
+#   -> Qualif/Ada/mcdc/Expressions/AndXY/IfElse
+#                      ^          ^
+#                      LibExp     /Ada/
+#                      plugged    bridged-over
+#                      here       here
+
+# ======================
+# == DirTree_frompath ==
+# ======================
+
+# Compute the tree of directory objects found at a provided root, witout
+# following links.
+
+# Helper for each subtree to be constructed and hooked when following links,
+# job of DirTree_withlinks
+
+class DirTree_frompath (DirTree):
+
+    def __init__(self, rootp):
+        self.rootp = os.path.abspath(rootp)
+        DirTree.__init__(self, rooto=None)
+
     # fetching Dir objects
 
     def _fsnodes (self):
-        self.dirmap = OrderedDict()
-        self.linkmap = {}
         return (
-            self.__topdown_map (dirname, subdirs, files)
+            self.topdown_map (dirname, subdirs, files)
             for (dirname, subdirs, files) in os.walk(self.rootp)
             )
 
@@ -252,14 +305,14 @@ class DirTree_frompath (DirTree):
                 )
             if dirfilter (diro))
 
-    # { dto -> [DirLink objects for link files found in dto] }
-
+# =======================
+# == DirTree_withlinks ==
+# =======================
 
 class DirTree_withlinks (DirTree):
 
     def __init__(self, rootp):
         self.rootp = os.path.abspath(rootp)
-
         DirTree.__init__(self, rooto=None)
 
     def __resolve(self, dl):
@@ -282,7 +335,7 @@ class DirTree_withlinks (DirTree):
         rootq = [
             (subdir, None) for subdir in (
                 [dtl.fstarget for dtl in startlinks]
-                if startlinks else [rootp])
+                if startlinks else [self.rootp])
             ]
 
         while rootq:
@@ -297,18 +350,25 @@ class DirTree_withlinks (DirTree):
             [rootq.append((self.__resolve(dl), diro))
              for diro in dt.linkmap for dl in dt.linkmap[diro]]
 
-# construct the virtual tree incrementally, by requesting all the
-# reachable testcases.
 
-def process_tc (fspath):
-    print fspath
+# *************************************
+# * experimental feature demonstrator *
+# *************************************
 
-dt = DirTree_withlinks (rootp='.')
-[process_tc (dir.fspath) for dir in
- dt.dirs(dirfilter=lambda diro: 'test.py' in diro.files)]
+if __name__ == '__main__':
 
-print "================================"
+    # construct a virtual tree incrementally
+    # by requesting all the reachable testcases.
 
-[process_tc (dir.fspath) for dir in
- dt.dirs(dirfilter=lambda diro: 'test.py' in diro.files)]
+    def process_tc (fspath):
+        print fspath
+
+    dt = DirTree_withlinks (rootp='.')
+    [process_tc (dir.fspath) for dir in
+     dt.dirs(dirfilter=lambda diro: 'test.py' in diro.files)]
+
+    print "================================"
+
+    [process_tc (dir.fspath) for dir in
+     dt.dirs(dirfilter=lambda diro: 'test.py' in diro.files)]
 
