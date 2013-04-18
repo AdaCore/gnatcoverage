@@ -603,10 +603,6 @@ class TestSuite:
                 self.options.jobs
                 )
 
-        except GenerationError as e:
-            logging.error('Generation failed: {}'.format(e))
-            sys.exit(1)
-
         except Exception as e:
             logging.info("Mainloop stopped on exception occurrence")
             logging.info(e.__str__())
