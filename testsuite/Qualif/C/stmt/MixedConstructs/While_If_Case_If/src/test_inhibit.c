@@ -14,10 +14,10 @@ main (void)
   s1.active = true;
   sensor_init (5, 15, &s2);
   s2.value = 1;                 /* < low bound */
-  s1.active = true;
-  sensor_init (5, 15, &s2);
-  s2.value = 45;                /* > high bound */
-  s1.active = true;
+  s2.active = true;
+  sensor_init (5, 15, &s3);
+  s3.value = 45;                /* > high bound */
+  s3.active = true;
 
   slist_init (&l);
   slist_prepend (&s1, &l);
