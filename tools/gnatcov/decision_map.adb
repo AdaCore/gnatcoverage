@@ -877,12 +877,17 @@ package body Decision_Map is
       begin
          if This_CBE.Origin /= Unknown
            or else This_CBE.Dest_Kind = Condition
+           or else This_CBE.Dest_Kind = Raise_Exception
          then
             --  This_CBE is already labeled (either known origin, or unknown
-            --  origin but known to remain in the same condition).
+            --  origin but known to be part of a runtime check or remain in
+            --  the same condition): nothing to do.
 
             return;
          end if;
+
+         --  Here when This_CBE is either Unknown or Outcome, and has Unknown
+         --  Origin.
 
          if Opposite_CBE.Dest_Kind = Raise_Exception then
             --  Opposite branch is for a compiler-generated check, so this one
