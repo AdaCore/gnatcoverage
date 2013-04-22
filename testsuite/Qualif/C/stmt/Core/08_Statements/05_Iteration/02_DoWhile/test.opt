@@ -1,1 +1,1 @@
-CARGS_01 XFAIL [M411-031] At -O1, the DWARF sloc information is not accurate
+CARGS_O1 XFAIL [M411-031] At -O1, the DWARF sloc information is not accurate
