@@ -117,7 +117,7 @@
 # xBlock0  : exempted block, 0 deviations (=report)
 # xBlock1  : exempted block, >0 deviations (=report)
 
-# Tansient kinds: these may be used in expectations and should always be
+# Transient kinds: these may be used in expectations and should always be
 # subject to substitution rules mapping them to other kinds. No emitted note
 # will ever match them. These are useful for shared drivers when the actual
 # kind of expectation depends on the functional code.
