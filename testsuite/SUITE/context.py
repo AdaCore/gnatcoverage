@@ -21,7 +21,7 @@ import os, re, sys
 from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, LANGINFO, target_info
 
-from SUITE.cutils import ndirs_in
+from SUITE.cutils import ndirs_in, lines_of
 from SUITE.qdata import QLANGUAGES
 
 # This module is loaded as part of a Run operation for a test.py
@@ -327,11 +327,24 @@ class Test (object):
 
         main.add_option('--toolchain', dest='toolchain', default="")
 
+        main.add_option('--tags', dest='tags', default="")
+
         main.parse_args()
         if main.options.report_file is None:
             # This is a required "option" which is a bit self-contradictory,
             # but it's easy to do it that way.
             main.error("The report file must be specified with --report-file")
+
+        # Get our tags set as a list. Fetch contents from file if needed
+        # first:
+
+        if main.options.tags and main.options.tags.startswith('@'):
+            main.options.tags = ' '.join(
+                lines_of (main.options.tags[1:])
+                )
+        if main.options.tags:
+            main.options.tags = main.options.tags.split()
+
         return main.options
 
     def __cargs_optvar_for (self, lang):

@@ -446,7 +446,8 @@ class SCOV_helper:
         xnotes = XnotesExpander (
             xfile=xfile, xcov_level=xcovlevel,
             ctl_cov   = self.covoptions,
-            ctl_cargs = gprbuild_cargs_with (thiscargs=self.extracargs)
+            ctl_cargs = gprbuild_cargs_with (thiscargs=self.extracargs),
+            ctl_tags  = thistest.options.tags
             )
         self.xlnotes = xnotes.xlnotes
         self.xrnotes = xnotes.xrnotes

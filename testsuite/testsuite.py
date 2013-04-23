@@ -34,7 +34,7 @@ import logging, os, re, sys
 
 from SUITE import cutils
 from SUITE.cutils import contents_of, re_filter, clear, to_list, FatalError
-from SUITE.cutils import version
+from SUITE.cutils import version, list_to_tmp
 
 from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
 
@@ -744,7 +744,7 @@ class TestSuite:
 
         testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
-        test.start_time = time.time()
+        testcase_cmd.append('--tags=@%s' % list_to_tmp(self.discriminants))
 
         # --gnatcov-<cmd> family, per the "gnatcov_<cmd>" variables
 
@@ -752,6 +752,8 @@ class TestSuite:
                 '--gnatcov-%s=%s' % (cmd, mopt.__dict__["gnatcov_%s" % cmd]))
          for cmd in control.GNATCOV_COMMANDS
          if mopt.__dict__["gnatcov_%s" % cmd] is not None]
+
+        test.start_time = time.time()
 
         return Run(testcase_cmd, output=diff, bg=True,
                    timeout=int(timeout) + DEFAULT_TIMEOUT)

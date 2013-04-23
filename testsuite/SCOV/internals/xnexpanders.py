@@ -35,7 +35,7 @@ from SUITE.cutils import Identifier
 
 #     ctl := "-- " arg_ctl__list
 #     arg_ctl__list := arg_ctl ["## " arg_ctl__list]
-#     arg_ctl := "%"<cargs|cov|cancel>":" optgroup__list
+#     arg_ctl := "%"<cargs|cov|tags|cancel>":" optgroup__list
 #     optgroup__list := optgroup ["," optgroup__list]
 #     optgroup := ["!"]<option sequence like "-gnatp" or "-S routines">
 
@@ -167,6 +167,7 @@ from SUITE.cutils import Identifier
 
 # CONDITIONAL EXPECTATIONS WITHIN A GROUP (CTL lines)
 # ---------------------------------------------------
+#
 # %cargs: opt1[, opt2, ... optn] means: from now on, only grab the next-coming
 # lx lines if opt1 (and opt2 and ... up to optn) are part of the compilation
 # options for the test. A '!' at the beginning of an option inverts the logic
@@ -174,7 +175,9 @@ from SUITE.cutils import Identifier
 # of the compilation args for the test.
 #
 # %cov: ... is similar, against the gnatcov coverage specific options for the
-# test instead of the compilation flags.
+# test instead of the compilation flags. %tags: ... also is similar, against
+# the testsuite discriminants, of particular interest for a possible toolchain
+# indication.
 #
 # When some of the conditions don't match, lx lines are ignored until
 # the decision to start grabbing again triggers from a subsequent CTL line.
@@ -612,7 +615,10 @@ class XnotesExpander:
     #   |
     #   >  g.close () for all parsed groups
 
-    def __init__(self, xfile, xcov_level, ctl_cov, ctl_cargs):
+    def __init__(
+        self, xfile, xcov_level,
+        ctl_cov, ctl_cargs, ctl_tags
+        ):
 
         # XFILE is the name of the file from which coverage expectations
         # are to be extracted.
@@ -625,13 +631,15 @@ class XnotesExpander:
 
         self.xcov_level = xcov_level
 
-        # CTL_CARGS and CTL_COV are the reference controls for CTL lines -
-        # compilation options and specific options to gnatcov coverage that we
-        # are going to use:
+        # CTL_CARGS, CTL_COV, and CTL_TAGS are the reference controls for CTL
+        # lines - compilation options and specific options to gnatcov coverage
+        # that we are going to use, plus the relevant set of discriminants for
+        # the current run:
 
         self.ctls = {
             "%cargs": ' '.join (ctl_cargs),
-            "%cov"  : ' '.join (ctl_cov)
+            "%cov"  : ' '.join (ctl_cov),
+            "%tags" : ' '.join (ctl_tags)
             }
 
         # And these are the dictionaries we expose:
@@ -906,7 +914,9 @@ class XnotesExpander:
 
     def __eval_ctl_update_from (self, part):
         """PART is a piece of CTL line for a single specific key, such as
-        "%cov: -S instance, --level=stmt", "%cargs: !-gnatn", or "%cancel:".
+        "%cov: -S instance, --level=stmt", "%cargs: !-gnatn", "%tags: 7.0.3"
+        or "%cancel:".
+
         If this is "%cancel:", return None to reflect the nullification intent
         for the control. Otherwise, evaluate and return whether all the
         elements are in our current CTL references (set of actual coverage or
