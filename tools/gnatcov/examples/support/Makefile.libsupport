@@ -8,9 +8,14 @@ LIBSUPPORT_CFLAGS=-fdump-scos -fpreserve-control-flow -g
 
 LIBSUPPORT_ARCHIVE = $(LIBSUPPORT_DIR)/libsupport.a
 
-all: $(LIBSUPPORT_DIR) $(LIBSUPPORT_ARCHIVE)
-     
-$(LIBSUPPORT_DIR):
+all: $(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR) $(LIBSUPPORT_ARCHIVE)
+
+# In addition to the library where the constructed library should go, make
+# sure the target specific support source dir exists.  It might legitimately
+# be empty when the RTSes for target all have what we need, and might not be
+# in our SCM system in this case:
+
+$(SUPPORT_TARGET_SRC_DIR) $(LIBSUPPORT_DIR):
 	mkdir -p $@
 
 $(LIBSUPPORT_ARCHIVE): force

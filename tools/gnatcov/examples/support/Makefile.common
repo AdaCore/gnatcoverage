@@ -34,6 +34,11 @@ LIBSUPPORT_DIR = $(SUPPORT_DIR)/lib/$(TARGET)
 
 SUPPORT_SRC_DIR = $(SUPPORT_DIR)/src
 
+# The target specific source dir to include in our lib build. While this might
+# be empty, this will be referenced by project files unconditionally.
+
+SUPPORT_TARGET_SRC_DIR = $(SUPPORT_DIR)/src/$(TARGET)
+
 # =======================================================
 # CROSS toolchain prefix and target related arguments to
 # gprbuild:
