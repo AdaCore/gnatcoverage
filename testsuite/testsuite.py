@@ -170,10 +170,9 @@ QLEVEL_INFO = {
 #
 #     gprfor ()
 #        template.gpr
-#        % Switches (main) += "-fno-inline" as needed
-#             |
-#             o <--- SUITE.control.BUILD.COMMON_CARGS
-#             |      (-g -fdump-scos ...)
+#        % Switches (main)   += "-fno-inline" as needed
+#        % Switches (<lang>) += SUITE.control.BUILD.COMMON_CARGS
+#             |                 (-g -fdump-scos ...)
 #             |
 #             |   direct calls to gprbuild() from test.py,
 #             |   or via TestCase(extracargs)
@@ -1018,7 +1017,9 @@ class TestSuite:
             m.options.kernel = os.path.abspath (m.options.kernel)
 
         [m.options.__dict__.__setitem__ (
-                "gnatcov_%s" % cmd, os.path.abspath (m.options.__dict__["gnatcov_%s" % cmd]))
+                "gnatcov_%s" % cmd, os.path.abspath (
+                    m.options.__dict__["gnatcov_%s" % cmd])
+                )
          for cmd in control.GNATCOV_COMMANDS
          if m.options.__dict__ ["gnatcov_%s" % cmd] is not None]
 
