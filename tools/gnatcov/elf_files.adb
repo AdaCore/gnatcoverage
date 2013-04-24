@@ -21,6 +21,8 @@ with Ada.Unchecked_Deallocation;
 
 with Interfaces; use Interfaces;
 
+with Strings; use Strings;
+
 package body Elf_Files is
 
    function Get_My_Data return Elf_Uchar;
@@ -77,7 +79,7 @@ package body Elf_Files is
             File.Filename := new String'(Basename);
          else
             File.Status := Status_Open_Failure;
-            raise Error;
+            raise Error with File.Filename.all & ": not found";
          end if;
       end loop;
 
@@ -87,7 +89,7 @@ package body Elf_Files is
          File.Status := Status_Read_Error;
          Close (File.Fd);
          File.Fd := Invalid_FD;
-         raise Error;
+         raise Error with File.Filename.all & ": failed to read ELF header";
       end if;
 
       if File.Ehdr.E_Ident (EI_MAG0) /= ELFMAG0
@@ -98,7 +100,20 @@ package body Elf_Files is
          File.Status := Status_Bad_Magic;
          Close (File.Fd);
          File.Fd := Invalid_FD;
-         raise Error;
+
+         --  Specialize error message for the case where the user passed a
+         --  trace file instead of an ELF file.
+
+         if Has_Suffix (File.Filename.all, ".trace") then
+            --  Should we instead get the executable name from the trace file
+            --  and retry???
+
+            raise Error with
+              File.Filename.all & ": ELF file expected, found a trace file";
+
+         else
+            raise Error with File.Filename.all & ": bad ELF magic";
+         end if;
       end if;
 
       if File.Ehdr.E_Ident (EI_CLASS) /= Elf_Arch_Class
@@ -107,7 +122,7 @@ package body Elf_Files is
          File.Status := Status_Bad_Class;
          Close (File.Fd);
          File.Fd := Invalid_FD;
-         raise Error;
+         raise Error with "unexpected ELF class or version";
       end if;
 
       File.Need_Swap := File.Ehdr.E_Ident (EI_DATA) /= My_Data;

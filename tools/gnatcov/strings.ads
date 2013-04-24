@@ -41,6 +41,9 @@ package Strings is
    function Has_Prefix (S : String; Prefix : String) return Boolean;
    --  True if S starts with Prefix
 
+   function Has_Suffix (S : String; Suffix : String) return Boolean;
+   --  True if S ends with Suffix
+
 private
    pragma Inline (Hash);
    pragma Inline (Equal);
