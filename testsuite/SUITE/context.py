@@ -169,7 +169,18 @@ class Test (object):
             # quiet mode for performance (less io) otherwise.
             '-v' if self.options.qualif_level else '-q',
 
-            '--config=%s' % os.path.join (ROOT_DIR, BUILDER.SUITE_CGPR)]
+            # gprconfig base, selecting runtime
+            '--config=%s' % os.path.join (ROOT_DIR, BUILDER.SUITE_CGPR)
+            ]
+        
+        # In qualification mode, we expect the toplevel testsuite driver to
+        # have dumped a level-tailored configuration pragma file for Ada,
+        # e.g. to enforce Restrictions required to be honored at this level.
+
+        if self.options.qualif_level:
+            self.gprconfoptions.append (
+                '-gnatec=%s/gnat.%s' % (ROOT_DIR, self.options.qualif_level)
+                )
 
         self.gprvaroptions = [
             '-XTARGET=%s' % env.target.triplet]

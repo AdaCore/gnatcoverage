@@ -74,11 +74,14 @@ DEFAULT_TIMEOUT = 600
 #
 #   * For criteria with variants (e.g. unique-cause and masking mcdc),
 #     exercise only the default one.
+#
+#   * A level-specific set of GNAT configuration pragmas applies to all
+#     compilations.
 
 # A dictionary of information of interest for each qualification level:
 
 class QlevelInfo:
-    def __init__(self, levelid, subtrees, xcovlevel):
+    def __init__(self, levelid, subtrees, xcovlevel, pragmas):
         self.levelid   = levelid   # string identifier
 
         # regexp of directory subtrees: testdirs that match this
@@ -88,6 +91,9 @@ class QlevelInfo:
         # --level argument to pass to xcov when running such tests when in
         # qualification mode
         self.xcovlevel = xcovlevel
+
+        # Configuration pragmas (e.g. restrictions) to apply at this level
+        self.pragmas = pragmas
 
 RE_QCOMMON="(Common|Appendix)"
 RE_QLANG="(%s)" % '|'.join (QLANGUAGES)
@@ -110,17 +116,27 @@ QLEVEL_INFO = {
     "doA" : QlevelInfo (
         levelid   = "doA",
         subtrees  = RE_SUBTREE (re_crit="stmt|decision|mcdc"),
-        xcovlevel = "stmt+mcdc"),
+        xcovlevel = "stmt+mcdc",
+        
+        # At level A, the need to perform MCDC and to process decisions in
+        # expression relies on the use of short-circuit operators only:
+        pragmas   = [
+            "pragma Restrictions (No_Direct_Boolean_Operators);"]
+        ),
 
     "doB" : QlevelInfo (
         levelid   = "doB",
         subtrees  = RE_SUBTREE (re_crit="stmt|decision"),
-        xcovlevel = "stmt+decision"),
+        xcovlevel = "stmt+decision",
+        pragmas   = []
+        ),
 
     "doC" : QlevelInfo (
         levelid   = "doC",
         subtrees  = RE_SUBTREE (re_crit="stmt"),
-        xcovlevel = "stmt")
+        xcovlevel = "stmt",
+        pragmas   = []
+        )
     }
 
 # ===============================
@@ -296,11 +312,39 @@ class TestSuite:
 
         self.qdreg = QDregistry()
 
+        # Setup configuration files for Restrictions control
+
+        self.__setup_control_pragmas()
+
         # Initialize counter of consecutive failures, to stop the run
         # when it is visibly useless to keep going
 
         self.n_consecutive_failures = 0
 
+    # ---------------------
+    # -- control pragmas --
+    # ---------------------
+
+    def __setup_control_pragmas (self):
+        """Dump the configuration files that tests expect to
+           find depending on our execution mode."""
+
+        # At this stage, tests expect a gnat.<dolevel> file for any
+        # qualification run.
+
+        dolevel = self.options.qualif_level
+
+        if not dolevel:
+            return
+        
+        f = open ("gnat.%s" % dolevel, 'w')
+        f.write (
+            '\n'.join (
+                ["--  pragmas for a gnatcov %s qualification run" % dolevel]
+                + QLEVEL_INFO[dolevel].pragmas) + '\n'
+            )
+        f.close()
+        
     # -----------------------------------
     # -- Early comments about this run --
     # -----------------------------------
