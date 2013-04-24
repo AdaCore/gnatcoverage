@@ -8,6 +8,7 @@ import re
 import struct
 import subprocess
 
+import bddinfo
 import slocinfo
 
 COLOR_JUMP                  = '"#000000"'
@@ -284,6 +285,10 @@ if __name__ == '__main__':
         help='Only print basename in source locations'
     )
     parser.add_argument(
+        '-B', '--bdd', dest='scos',
+        help='Use SCOS to display the binary decision diagram (BDD)'
+    )
+    parser.add_argument(
         'program', type=parse_program,
         help='The program to analyse'
     )
@@ -303,33 +308,124 @@ if __name__ == '__main__':
         sloc_info, vars(args)['sloc-range']
     )
 
+    # Load the BDD if asked to. Reminder: this is a map:
+    #   branch instruction adresss -> branch info (associated condition and
+    #   edges info).
+    bdd_info = (
+        bddinfo.get_bdd_info(args.program.filename, args.scos)
+        if args.scos is not None else
+        {}
+    )
+
+    # Use the BDD, and especially its EXCEPTION edges info to remove successors
+    # of basic blocks that raise an exception.
+    for pc, basic_block in decision_cfg.items():
+        last_insn = basic_block[-1]
+        try:
+            branch_info = bdd_info[last_insn.pc]
+        except KeyError:
+            continue
+
+        def check_edge(edge_info, dest_pc):
+            if isinstance(edge_info.dest_kind, bddinfo.DestRaiseException):
+                try:
+                    next_basic_block = decision_cfg[dest_pc]
+                except KeyError:
+                    pass
+                else:
+                    next_basic_block[-1].successors = []
+
+        check_edge(branch_info.edge_fallthrough, last_insn.successors[0])
+        check_edge(branch_info.edge_branch, last_insn.successors[1])
+
+    # Mapping: condition SCO number -> list of dot nodes. Used to sort basic
+    # blocks per decision. Basic blocks that are not associated to any
+    # condition are filed under the None list. When the BDD is not loaded,
+    # everything goes to the None list (this is automatic, since the BDD is
+    # empty, then).
+    by_condition = collections.defaultdict(list)
+    condition_sloc_ranges = {}
+    # List of dot edges.
+    edges = []
+
     # At the end, (destinations - nodes) will be the set of jump/branches
     # destinations that are out of the decision.
     destinations = set()
     nodes = set()
 
-    f = args.output
-    f.write('digraph cfg {\n')
-    f.write('    graph [splines=ortho]\n')
-
     def pc_to_name(pc):
         return 'bb_{:x}'.format(pc)
 
-    def add_edge(from_, to, color):
-        f.write('    {} -> {} [color={}];\n'.format(
-            pc_to_name(from_), pc_to_name(to), color
+    def get_bb_condition(basic_block):
+        """Return the condition the basic block belongs to or None if there is
+        no such condition. Return also the branch info corresponding to the
+        ending branch instruction, if any.
+        """
+        visited_pc = {basic_block[0].pc}
+
+        def helper(basic_block):
+            last_insn = basic_block[-1]
+            try:
+                branch_info = bdd_info[last_insn.pc]
+            except KeyError:
+                # Return the condition of the next basic block, if there is
+                # only one successor.
+                if len(last_insn.successors) == 1:
+                    # But do not recurse endlessly.
+                    next_pc = last_insn.successors[0]
+                    if next_pc not in visited_pc:
+                        visited_pc.add(next_pc)
+                        try:
+                            next_basic_block = decision_cfg[next_pc]
+                        except KeyError:
+                            pass
+                        else:
+                            return get_bb_condition(next_basic_block)[0], None
+                # By default, return that we got nothing.
+                return None, None
+            else:
+                return (branch_info.cond_sco_no, branch_info)
+
+        return helper(basic_block)
+
+    def format_edge_info(edge_info, condition):
+        result = []
+
+        if edge_info.cond_eval is not None:
+            result.append('Cond #{} is {}'.format(
+                condition, edge_info.cond_eval
+            ))
+
+        dest_kind = edge_info.dest_kind
+        if isinstance(dest_kind, bddinfo.DestOutcome):
+            result.append('Outcome {}'.format(dest_kind.value))
+        elif isinstance(dest_kind, bddinfo.DestRaiseException):
+            result.append('EXCEPTION')
+        elif isinstance(dest_kind, bddinfo.DestUnknown):
+            result.append('???')
+
+        return result or None
+
+    def format_label(lines):
+        label = ''.join('{}\n'.format(line) for line in lines)
+        label = label.replace('\\', '\\\\').replace('"', '\\"')
+        label = label.replace('\n', '\\l')
+        return label
+
+    def add_edge(from_, to, label, color):
+        edges.append('    {} -> {} [{}color={}];'.format(
+            pc_to_name(from_), pc_to_name(to),
+            'label="{}", '.format(format_label(label)) if label else '',
+            color
         ))
         destinations.add(to)
 
-    def add_node(pc, label_lines, shape='box'):
-        label = ''.join('{}\n'.format(line) for line in label_lines)
-        label = label.replace('\\', '\\\\').replace('"', '\\"')
-        label = label.replace('\n', '\\l')
-        f.write(
+    def add_node(pc, condition, label, shape='box'):
+        by_condition[condition].append(
             '    {} [shape={}, fontname=monospace, label="{}"];\n'.format(
                 pc_to_name(pc),
                 shape,
-                label,
+                format_label(label),
             )
         )
         nodes.add(pc)
@@ -347,34 +443,74 @@ if __name__ == '__main__':
                 insn.pc, insn.mnemonic,
                 ' {}'.format(insn.operands) if insn.operands else ''
             ))
-        add_node(pc, label)
+
+        # Add the box to the correct condition cluster subgraph.
+        condition, branch_info = get_bb_condition(basic_block)
+        if branch_info is None:
+            label_fallthrough = label_branch = None
+        else:
+            condition_sloc_ranges[condition] = branch_info.cond_sloc_range
+            label_fallthrough = format_edge_info(
+                branch_info.edge_fallthrough, condition
+            )
+            label_branch = format_edge_info(
+                branch_info.edge_branch, condition
+            )
+        add_node(pc, condition, label)
 
         # Then add outgoing edges for it.
         successors = basic_block[-1].successors
         if len(successors) == 1:
             # This is an unconditionnal jump (or a mere fallthrough).
-            add_edge(pc, successors[0], COLOR_JUMP)
+            add_edge(pc, successors[0], None, COLOR_JUMP)
         elif len(successors) == 2:
             # This is a branch: the first one is the fallthrough, the second
             # one is the branch destination.
-            add_edge(pc, successors[0], COLOR_BRANCH_FALLTHROUGH)
-            add_edge(pc, successors[1], COLOR_BRANCH_TAKEN)
+            add_edge(
+                pc, successors[0],
+                label_fallthrough, COLOR_BRANCH_FALLTHROUGH
+            )
+            add_edge(
+                pc, successors[1],
+                label_branch, COLOR_BRANCH_TAKEN
+            )
 
     for insn in outside_insns.values():
         label = []
         for sloc in insn.slocs:
             label.append(slocinfo.format_sloc(sloc, args.basename))
         label.append('  {:#0x}'.format(insn.pc))
-        add_node(insn.pc, label, shape='ellipse')
+        add_node(insn.pc, None, label, shape='ellipse')
 
         for pc in insn.successors:
-            add_edge(insn.pc, pc, COLOR_OUTSIDE_JUMP)
+            add_edge(insn.pc, pc, None, COLOR_OUTSIDE_JUMP)
 
     for out_dest in (destinations - nodes):
         label = []
         for sloc in sloc_info.get(out_dest, []):
             label.append(slocinfo.format_sloc(sloc, args.basename))
         label.append('  {:#0x}'.format(out_dest))
-        add_node(out_dest, label, 'ellipse')
+        add_node(out_dest, None, label, 'ellipse')
+
+    f = args.output
+    f.write('digraph cfg {\n')
+    f.write('    graph [splines=ortho]\n')
+
+    for sco_no, nodes in by_condition.items():
+        if sco_no is not None:
+            f.write('subgraph cluster_condition_{} {{\n'.format(sco_no))
+
+        # TODO: add a label for the subgraph...
+
+        for node in nodes:
+            f.write(node)
+            f.write('\n')
+
+        if sco_no is not None:
+            f.write('}\n')
+
+    for edge in edges:
+        f.write(edge)
+        f.write('\n')
 
     f.write('}\n')
