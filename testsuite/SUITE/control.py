@@ -61,6 +61,9 @@ LANGINFO = {
                      comment='--')
     }
 
+KNOWN_LANGUAGES = [li.name for li in LANGINFO.values() if li.scos_ext]
+# list of languages that gnatcov supports
+
 def language_info(source_filename):
     """Return the LangInfo associated to a given source filename.
     The language is determined based on the filename extension.

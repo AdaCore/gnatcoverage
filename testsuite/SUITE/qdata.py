@@ -21,7 +21,7 @@ from SUITE.control import LANGINFO, XCOV
 
 from SCOV.internals.cnotes import *
 
-QLANGUAGES = [li.name for li in LANGINFO.values() if li.scos_ext]
+QLANGUAGES = ["Ada"]
 # list of languages we support qualification tests for
 
 QROOTDIR="Qualif"

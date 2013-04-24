@@ -22,7 +22,7 @@ from SUITE import control
 from SUITE.control import GPRCLEAN, BUILDER, LANGINFO, target_info
 
 from SUITE.cutils import ndirs_in, lines_of
-from SUITE.qdata import QLANGUAGES
+from SUITE.control import KNOWN_LANGUAGES
 
 # This module is loaded as part of a Run operation for a test.py
 # file found and launched by the toplevel driver
@@ -308,7 +308,7 @@ class Test (object):
                 help=('Additional arguments to pass to the %s compiler '
                       'when building the test programs.' % lang)
                 )
-         for lang in QLANGUAGES]
+         for lang in KNOWN_LANGUAGES]
 
         main.add_option(
             '--cargs', dest=self.__cargs_optvar_for(lang=None),

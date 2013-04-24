@@ -11,9 +11,9 @@
 # Expose a few other items as a test util-facilities as well
 
 from SUITE import control
-from SUITE.control import BUILDER, XCOV, LANGINFO, language_info, need_libsupport
+from SUITE.control import LANGINFO, language_info, KNOWN_LANGUAGES
+from SUITE.control import BUILDER, XCOV, need_libsupport
 from SUITE.context import *
-from SUITE.qdata import QLANGUAGES
 
 # Then mind our own buisness
 
@@ -71,7 +71,7 @@ def gprbuild_cargs_with (thiscargs, suitecargs=True):
         all_cargs.extend (to_list(thistest.suite_cargs_for (lang=None)))
         [all_cargs.extend (
                 ["-cargs:%s" % lang] + to_list (thistest.suite_cargs_for (lang)))
-         for lang in QLANGUAGES]
+         for lang in KNOWN_LANGUAGES]
 
     all_cargs.extend (to_list (thiscargs))
 

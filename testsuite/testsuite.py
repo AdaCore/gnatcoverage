@@ -39,7 +39,7 @@ from SUITE.cutils import version, list_to_tmp
 from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
 
 from SUITE import control
-from SUITE.control import BUILDER, XCOV
+from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES
 from SUITE.vtree import Dir, DirTree
 
 DEFAULT_TIMEOUT = 600
@@ -410,7 +410,7 @@ class TestSuite:
         allopts = ' '.join (
             [self.env.main_options.__dict__[opt] for opt in
              ("cargs" + ext
-              for ext in [""] + ["_%s" % l for l in QLANGUAGES])]
+              for ext in [""] + ["_%s" % l for l in KNOWN_LANGUAGES])]
             )
         return ["CARGS_%s" % arg.lstrip('-') for arg in allopts.split()]
 
@@ -765,7 +765,7 @@ class TestSuite:
                     "args" : mopt.__dict__ ["cargs_" + lang]
                     }
                 )
-         for lang in QLANGUAGES]
+         for lang in KNOWN_LANGUAGES]
 
         testcase_cmd.append('--cargs=%s' % mopt.cargs)
 
@@ -953,7 +953,7 @@ class TestSuite:
                 '--cargs:%s' % lang, dest='cargs_%s' % lang,
                 default="", help='cargs specific to %s tests' % lang,
                 metavar="...")
-         for lang in QLANGUAGES]
+         for lang in KNOWN_LANGUAGES]
 
         m.add_option('--qualif-level', dest='qualif_level',
                      type="choice", choices=QLEVEL_INFO.keys(),
@@ -1007,7 +1007,7 @@ class TestSuite:
 
         [m.options.__dict__.__setitem__ (opt, "")
          for opt in ("cargs%s" % ext
-                     for ext in [""] + ["_%s" % lang for lang in QLANGUAGES])
+                     for ext in [""] + ["_%s" % lang for lang in KNOWN_LANGUAGES])
          if m.options.__dict__[opt] == None]
 
         # For paths that need to be passed to test.py downtree, resolve them
@@ -1213,7 +1213,7 @@ class TestCase(object):
 
     def lang(self):
         """The language specific subtree SELF pertains to"""
-        for lang in QLANGUAGES:
+        for lang in KNOWN_LANGUAGES:
             if self.testdir.find ("/%s/" % lang) != -1:
                 return lang
         return None
