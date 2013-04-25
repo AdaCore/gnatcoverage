@@ -65,8 +65,9 @@ def parse_edge_info(raw_cond_eval, raw_dest_kind):
         sco_no = int(dest_chunks[1][1:-1])
         dest_kind = DestCondition(sco_no)
     elif kind == 'OUTCOME':
-        # raw_dest_kind is like 'CONDITION (12)': remove parents
+        # raw_dest_kind is like 'OUTCOME (TRUE)': remove parents
         value = {
+            'UNKNOWN': None,
             'FALSE': False,
             'TRUE': True,
         }[dest_chunks[1][1:-1]]

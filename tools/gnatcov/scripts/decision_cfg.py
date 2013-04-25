@@ -398,7 +398,9 @@ if __name__ == '__main__':
 
         dest_kind = edge_info.dest_kind
         if isinstance(dest_kind, bddinfo.DestOutcome):
-            result.append('Outcome {}'.format(dest_kind.value))
+            result.append('Outcome {}'.format(
+                '???' if dest_kind.value is None else dest_kind.value
+            ))
         elif isinstance(dest_kind, bddinfo.DestRaiseException):
             result.append('EXCEPTION')
         elif isinstance(dest_kind, bddinfo.DestUnknown):
