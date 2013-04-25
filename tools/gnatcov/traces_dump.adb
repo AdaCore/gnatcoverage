@@ -46,7 +46,7 @@ package body Traces_Dump is
       is
          use Hex_Images;
       begin
-         Put (Key.Name.all);
+         Put (Key_To_Name (Key).all);
 
          if Info.Traces /= null then
             Put (' ');
@@ -126,12 +126,15 @@ package body Traces_Dump is
       begin
          if Info.Insns = null then
             Put_Line
-              (Report.all, Key.Name.all & " not found in executable(s)");
+              (Report.all,
+               Key_To_Name (Key).all & " not found in executable(s)");
 
          elsif Routine_State /= Covered
            and then Routine_State /= No_Code
          then
-            Put (Report.all, Key.Name.all & " not fully covered : ");
+            Put
+              (Report.all,
+               Key_To_Name (Key).all & " not fully covered : ");
             Put (Report.all, State_Char (Routine_State));
             New_Line (Report.all);
          end if;

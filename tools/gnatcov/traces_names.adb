@@ -24,23 +24,34 @@ with Ada.Text_IO; use Ada.Text_IO;
 
 with Interfaces;
 
-with Coverage.Object; use Coverage.Object;
-with Coverage.Tags;   use Coverage.Tags;
-with Inputs;          use Inputs;
-with Outputs;         use Outputs;
-with Strings;         use Strings;
-with Switches;        use Switches;
+with System;      use System;
+
+with GNAT.Strings;  use GNAT.Strings;
+
+with Coverage.Object;  use Coverage.Object;
+with Coverage.Tags;    use Coverage.Tags;
+with Inputs;           use Inputs;
+with Outputs;          use Outputs;
+with Switches;         use Switches;
 
 package body Traces_Names is
 
+   function "<" (S1, S2 : Symbol) return Boolean;
+   function "<" (Key1, Key2 : Subprogram_Key) return Boolean;
+   function Equal (L, R : Subprogram_Info) return Boolean;
+
+   function Format_CU
+     (CU_Filename, CU_Directory : String_Access) return Symbol;
+   --  Format a Compilation Unit symbol suitable for Subprogram_Key
+
    package Routine_Name_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => String_Access,
+     (Element_Type => Symbol,
       "<"          => "<",
       "="          => "=");
 
    package Routine_Tag_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Valid_SC_Tag,
-      Element_Type => String_Access);
+      Element_Type => Cst_String_Access);
 
    type Routine_Tag_Provider_Type is new Tag_Provider_Type with record
       Routine_Tags : Routine_Tag_Vectors.Vector;
@@ -59,15 +70,16 @@ package body Traces_Names is
      (Name => "routine", T => Routine_Tag_Provider_Type);
    pragma Unreferenced (R);
 
-   function "<" (Key1, Key2 : Subprogram_Key) return Boolean;
-   function Equal (L, R : Subprogram_Info) return Boolean;
-   --  Needs comment???
-
    package Routines_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Subprogram_Key,
       Element_Type => Subprogram_Info,
       "<"          => "<",
       "="          => Equal);
+
+   Strings : constant Symbol_Table_Access := Allocate;
+   --  String table, used both to reduce memory consumption and to make string
+   --  comparison very efficient. Since this table is going to be used during
+   --  the whole execution of gnatcov, it won't be free'd.
 
    Routines : Routines_Maps.Map;
    --  Each item stores coverage information for one (consolidated) routine.
@@ -80,6 +92,16 @@ package body Traces_Names is
    Next_Origin : Natural := 1;
    --  Counter for Subprogram_Key.Origin
 
+   -----------------
+   -- Key_To_Name --
+   -----------------
+
+   function Key_To_Name (Key : Subprogram_Key) return Cst_String_Access
+   is
+   begin
+      return Get (Key.Name);
+   end Key_To_Name;
+
    -----------------------------
    -- Add_Routine_Of_Interest --
    -----------------------------
@@ -87,7 +109,7 @@ package body Traces_Names is
    procedure Add_Routine_Of_Interest (Name : String)
    is
    begin
-      Routines_Of_Interest.Insert (new String'(Name));
+      Routines_Of_Interest.Insert (Find (Strings, Name));
    end Add_Routine_Of_Interest;
 
    ----------------------------
@@ -97,10 +119,9 @@ package body Traces_Names is
    function Is_Routine_Of_Interest (Name : String) return Boolean
    is
       use Routine_Name_Sets;
-      Name_Aliased : aliased String := Name;
-      Name_Access  : constant String_Access := Name_Aliased'Unchecked_Access;
+      Name_Symbol : constant Symbol := Find (Strings, Name);
    begin
-      return Routines_Of_Interest.Find (Name_Access) /= No_Element;
+      return Routines_Of_Interest.Find (Name_Symbol) /= No_Element;
    end Is_Routine_Of_Interest;
 
    --------------------------------
@@ -109,10 +130,9 @@ package body Traces_Names is
 
    procedure Remove_Routine_Of_Interest (Name : String)
    is
-      Name_Aliased : aliased String := Name;
-      Name_Access  : constant String_Access := Name_Aliased'Unchecked_Access;
+      Name_Symbol : constant Symbol := Find (Strings, Name);
    begin
-      Routines_Of_Interest.Exclude (Name_Access);
+      Routines_Of_Interest.Exclude (Name_Symbol);
    end Remove_Routine_Of_Interest;
 
    ---------------
@@ -120,15 +140,15 @@ package body Traces_Names is
    ---------------
 
    function Format_CU
-     (CU_Filename, CU_Directory : String_Access) return String_Access
+     (CU_Filename, CU_Directory : String_Access) return Symbol
    is
    begin
       if CU_Filename = null then
-         return null;
+         return No_Symbol;
       elsif CU_Directory = null then
-         return new String'(CU_Filename.all);
+         return Find (Strings, CU_Filename.all);
       else
-         return new String'(CU_Filename.all & "/" & CU_Directory.all);
+         return Find (Strings, CU_Filename.all & "/" & CU_Directory.all);
       end if;
    end Format_CU;
 
@@ -148,7 +168,7 @@ package body Traces_Names is
       --  If the routine has no compile unit, it must not be consolidated, so
       --  it is made unique using its Origin member.
 
-      if Key.Compile_Unit = null then
+      if Key.Compile_Unit = No_Symbol then
          Key.Origin := Next_Origin;
          Next_Origin := Next_Origin + 1;
       else
@@ -170,7 +190,7 @@ package body Traces_Names is
                RTags : Routine_Tag_Vectors.Vector
                   renames Routine_Tag_Provider_Type (TP.all).Routine_Tags;
             begin
-               RTags.Append (Key.Name);
+               RTags.Append (Key_To_Name (Key));
                Tag := RTags.Last_Index;
             end;
          else
@@ -192,7 +212,7 @@ package body Traces_Names is
       end if;
 
       if Verbose and then Tag /= No_SC_Tag then
-         Put_Line ("Routine tag" & Tag'Img & ": "  & Key.Name.all);
+         Put_Line ("Routine tag" & Tag'Img & ": "  & Key_To_Name (Key).all);
       end if;
    end Add_Routine;
 
@@ -218,7 +238,7 @@ package body Traces_Names is
    begin
       Get_Compile_Unit (Exec.all, Sym.First, CU_Filename, CU_Directory);
       Key :=
-        (Name => Sym.Symbol_Name,
+        (Name => Find (Strings, Sym.Symbol_Name.all),
          Compile_Unit => Format_CU (CU_Filename, CU_Directory),
          Origin => Sym.Symbol_Origin);
    end Key_From_Symbol;
@@ -286,7 +306,7 @@ package body Traces_Names is
             if Content'Length /= Subp_Info.Insns.all'Length then
                Put_Line (Standard_Error,
                          "error: different function size for "
-                           & Subp_Key.Name.all);
+                           & Key_To_Name (Subp_Key).all);
                Put_Line (Standard_Error,
                          " (reference is " & Get_Filename (Subp_Info.Exec.all)
                            & ", file is " & Get_Filename (Exec.all) & ")");
@@ -486,7 +506,7 @@ package body Traces_Names is
    begin
       Cur := Routines.First;
       while Has_Element (Cur) loop
-         Put_Line (Key (Cur).Name.all);
+         Put_Line (Key_To_Name (Key (Cur)).all);
          Next (Cur);
       end loop;
    end Disp_All_Routines;
@@ -502,10 +522,19 @@ package body Traces_Names is
    begin
       Cur := Routines_Of_Interest.First;
       while Has_Element (Cur) loop
-         Put_Line (Element (Cur).all);
+         Put_Line (Get (Element (Cur)).all);
          Next (Cur);
       end loop;
    end Disp_All_Routines_Of_Interest;
+
+   ---------
+   -- "<" --
+   ---------
+
+   function "<" (S1, S2 : Symbol) return Boolean is
+   begin
+      return Get (S1).all'Address < Get (S2).all'Address;
+   end "<";
 
    ---------
    -- "<" --
@@ -513,50 +542,22 @@ package body Traces_Names is
 
    function "<" (Key1, Key2 : Subprogram_Key) return Boolean
    is
-      function "<" (S1, S2 : String_Access) return Boolean;
-      --  Return if S1 < S2, given that S1 and S2 can be null.
-
-      ---------
-      -- "<" --
-      ---------
-
-      function "<" (S1, S2 : String_Access) return Boolean
-      is
-      begin
-         --  A null string is always considered "smaller" than a non-null one
-
-         if S1 = null then
-            return S2 /= null;
-         elsif S2 = null then
-            return False;
-         else
-            return S1.all < S2.all;
-         end if;
-      end "<";
    begin
-      --  Reminder: the Name field is never null, but the Compile_Unit can be
-      --  null.
-
-      if Key1.Name.all < Key2.Name.all then
+      if Key1.Name < Key2.Name then
          return True;
 
-      elsif Key1.Name.all /= Key2.Name.all then
-         --  In this case, Key1.Name > Key2.Name
-
-         return False;
-
-      elsif Key1.Compile_Unit < Key2.Compile_Unit then
-         return True;
-
-      elsif Key1.Compile_Unit /= Key2.Compile_Unit then
-         --  In this case, Key1.Compile_Unit > Key2.Compile_Unit
-
-         return False;
+      elsif Key1.Name = Key2.Name then
+         if Key1.Compile_Unit < Key2.Compile_Unit then
+            return True;
+         elsif Key1.Compile_Unit = Key2.Compile_Unit then
+            return Key1.Origin < Key2.Origin;
+         else
+            return False;
+         end if;
 
       else
-         return Key1.Origin < Key2.Origin;
+         return False;
       end if;
-
    end "<";
 
    -----------

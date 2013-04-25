@@ -18,7 +18,8 @@
 
 --  Management of the routines database
 
-with GNAT.Strings;  use GNAT.Strings;
+with GNATCOLL.Symbols; use GNATCOLL.Symbols;
+with GNATCOLL.Utils;   use GNATCOLL.Utils;
 
 with Coverage;      use Coverage;
 with Traces;        use Traces;
@@ -37,13 +38,9 @@ package Traces_Names is
    procedure Remove_Routine_Of_Interest (Name : String);
    --  Remove a routine name so it will not be suject to coverage
 
-   function Format_CU
-     (CU_Filename, CU_Directory : String_Access) return String_Access;
-   --  Format a Compilation Unit string suitable for Subprogram_Key
-
    type Subprogram_Key is record
-      Name         : String_Access;
-      Compile_Unit : String_Access;
+      Name         : Symbol;
+      Compile_Unit : Symbol;
       --  Identify a subprogram in a unique way, even for homonymous symbols.
       --  If there is no debug information, Compile_Unit must be null.
 
@@ -75,6 +72,10 @@ package Traces_Names is
       --  Routine tag used when doing source coverage analysis with per-routine
       --  tagging.
    end record;
+
+   function Key_To_Name (Key : Subprogram_Key) return Cst_String_Access;
+   --  Return the symbol name associated to a key. The called must not be
+   --  deallocated.
 
    procedure Add_Routine
      (Key  : in out Subprogram_Key;
