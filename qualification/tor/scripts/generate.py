@@ -7,6 +7,8 @@ import re
 import sys
 import json
 
+from gnatpython.fileutils import mkdir
+
 DOC_DIR = "source"
 ROOT_DIR = "../../../testsuite/Qualif"
 
@@ -837,8 +839,16 @@ icLink, icNid, icBrief = range (3)
 class DocGenerator(object):
 
     def __init__(self, root_dir, doc_dir):
+
+        # Root of the directory tree where the qualification artifacts
+        # are to be found:
         self.root_dir = os.path.abspath(root_dir)
+
+        # Root of the directory tree where the generated document sources
+        # are to be produced:
         self.doc_dir = os.path.abspath(doc_dir)
+        mkdir (self.doc_dir)
+
         self.resource_list = set([])
 
         # current output file descriptor, while walking the tor/tc tree
