@@ -27,6 +27,7 @@ abstract project Common is
 
    type Board_Type is 
    ( "iSystem-5554",
+     "iSystem-5634",
      "unspecified"
    );
    Board : Board_Type := external ("BOARD", "unspecified");
