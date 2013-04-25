@@ -12,7 +12,7 @@ expected_diags = [
 if not thistest.options.qualif_level:
     expected_diags.append (
         HarnessDiagnostic (
-            text = "Missing expected sNoCov mark at line 3")
+            text = "Missing expected lNoCov mark at line 3")
         )
 
 HarnessTestCase(
