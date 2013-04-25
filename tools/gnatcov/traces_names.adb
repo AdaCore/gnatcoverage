@@ -238,9 +238,9 @@ package body Traces_Names is
    begin
       Get_Compile_Unit (Exec.all, Sym.First, CU_Filename, CU_Directory);
       Key :=
-        (Name => Find (Strings, Sym.Symbol_Name.all),
+        (Name         => Find (Strings, Sym.Symbol_Name.all),
          Compile_Unit => Format_CU (CU_Filename, CU_Directory),
-         Origin => Sym.Symbol_Origin);
+         Origin       => Sym.Symbol_Origin);
    end Key_From_Symbol;
 
    -----------
