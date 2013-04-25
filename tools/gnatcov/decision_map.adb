@@ -900,7 +900,8 @@ package body Decision_Map is
             --  Opposite branch is associated with a known valuation of the
             --  condition, so this edge must have the opposite valuation. If
             --  that opposite valuation determines a known outcome, check that
-            --  this edge has a consistent destination before setting origin.
+            --  this edge does not have an inconsistent destination before
+            --  setting origin.
 
             declare
                Candidate_Val     : constant Boolean :=
@@ -909,9 +910,8 @@ package body Decision_Map is
                                      Outcome (CBI.Condition, Candidate_Val);
             begin
                if Candidate_Outcome = Unknown
-                    or else Known_Outcome (To_Boolean (Candidate_Outcome)).
-                              Is_Empty
-                    or else Known_Outcome (To_Boolean (Candidate_Outcome)).
+                 or else not Known_Outcome
+                                (not To_Boolean (Candidate_Outcome)).
                               Contains (CBI.Edges (Edge).Destination)
                then
                   Set_Known_Origin
@@ -1123,10 +1123,15 @@ package body Decision_Map is
          --  Statement at Next_PC
 
          SCO_For_Jump, D_SCO_For_Jump : SCO_Id;
-         --  SCO for the jump instruction at the end of BB
+         --  Statement and decision SCOs for jump instruction at end of BB
 
          D_SCO : constant SCO_Id := Enclosing_Decision (CBI.Condition);
-         --  SCO for the decision
+         S_SCO : constant SCO_Id := Enclosing_Statement (D_SCO);
+         --  SCOs for the decision being evaluated, and its enclosing statement
+
+         In_Same_Statement : Boolean;
+         --  True if branching into code that is part of the same statement
+         --  as the condition being evaluated.
 
       begin
          <<Follow_Jump>>
@@ -1178,8 +1183,15 @@ package body Decision_Map is
             end;
          end if;
 
-         --  Continue tracing object control flow: find SCOs for jump at end
-         --  of basic block.
+         --  Determine whether the jump remains the current statement
+
+         In_Same_Statement :=
+           S_SCO /= No_SCO_Id
+           and then Next_PC_SCO /= No_SCO_Id
+           and then S_SCO = Enclosing_Statement (Next_PC_SCO);
+
+         --  Here if we remain within the current decision: continue tracing
+         --  object control flow: find SCOs for jump at end of basic block.
 
          --  Condition or Statement
 
@@ -1204,7 +1216,12 @@ package body Decision_Map is
 
          case BB.Branch is
             when Br_Jmp =>
-               if BB.Cond then
+               if not In_Same_Statement then
+                  --  Branching out of the current statement: outcome reached
+
+                  return;
+
+               elsif BB.Cond then
                   if BB.Condition /= No_SCO_Id
                     and then Enclosing_Decision (BB.Condition) = D_Occ.Decision
                   then
