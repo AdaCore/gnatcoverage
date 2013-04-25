@@ -2395,7 +2395,15 @@ package body SC_Obligations is
          SCO := Element (Cur);
       end if;
 
-      while SCO /= No_SCO_Id loop
+      --  Climb up the SCO tree until an adequate match is found
+
+      Climb_SCO_Tree : while SCO /= No_SCO_Id loop
+         Climb_Operators :
+         while SCO /= No_SCO_Id and then Kind (SCO) = Operator loop
+            SCO := Parent (SCO);
+            exit Climb_SCO_Tree when SCO = No_SCO_Id;
+         end loop Climb_Operators;
+
          declare
             SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
          begin
@@ -2403,7 +2411,7 @@ package body SC_Obligations is
                --  For a fuzzy match, never return a decision/condition SCO,
                --  always go up to the enclosing statement.
 
-               exit when
+               exit Climb_SCO_Tree when
                  Sloc.Source_File = SCOD.Sloc_Range.First_Sloc.Source_File
                  and then Sloc.Line in SCOD.Sloc_Range.First_Sloc.Line
                                     .. SCOD.Sloc_Range.Last_Sloc.Line
@@ -2411,17 +2419,18 @@ package body SC_Obligations is
                              or else
                            (Include_Decisions and then SCOD.Kind = Decision));
             else
-               exit when
+               --  Do not return a decision, even with exact match, if
+               --  Include_Decisions is False
+
+               exit Climb_SCO_Tree when
                  SCOD.Sloc_Range.First_Sloc <= Sloc
-                   and then Sloc <= SCOD.Sloc_Range.Last_Sloc;
+                 and then Sloc <= SCOD.Sloc_Range.Last_Sloc
+                 and then (SCOD.Kind /= Decision or else Include_Decisions);
             end if;
          end;
 
          SCO := Parent (SCO);
-         while SCO /= No_SCO_Id and then Kind (SCO) = Operator loop
-            SCO := Parent (SCO);
-         end loop;
-      end loop;
+      end loop Climb_SCO_Tree;
 
       --  Check for decision (exact match only)
 
@@ -2431,7 +2440,9 @@ package body SC_Obligations is
       then
          Cur := D_Sloc_To_SCO_Map.Find
            ((First_Sloc => Sloc, Last_Sloc => No_Location));
-         if Cur /= No_Element then
+         if Cur = No_Element then
+            SCO := No_SCO_Id;
+         else
             pragma Assert
               (SCO = No_SCO_Id
                  or else SCO = Enclosing_Statement (Element (Cur)));
