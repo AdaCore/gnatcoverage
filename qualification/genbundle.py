@@ -198,6 +198,10 @@ class QMAT:
     def build_str (self):
         announce ("building STR")
 
+        # Building the STR document first involves running the testsuite in
+        # qualif mode (--qualif-level), producing REST from results dropped by
+        # each testcase execution:
+
         os.chdir (os.path.join (self.repodir, "testsuite"))
 
         orisupport = os.path.join (
@@ -218,16 +222,15 @@ class QMAT:
         if self.o.cargs_ada:
             all_cargs.append ('--cargs:Ada="%s"' % self.o.cargs_ada)
 
-        # ??? How would we go about passing multiple options in a single
-        # qualif-cargs here ? quotes get through, as part of the option text,
-        # as well ...
-
         re_tests_args = (
             [] if self.o.re_tests is None else [self.o.re_tests])
 
         run_list (
             base_cmd.split() + all_cargs + re_tests_args
             )
+
+        # Then resort to sphinx to produce the document from REST, in the
+        # requested output format:
 
         os.chdir (os.path.join (self.repodir, "testsuite", "qreport"))
         run ("make %s" % sphinx_target_for[self.o.docformat])
@@ -240,24 +243,16 @@ class QMAT:
 
     def build_plans (self):
         announce ("building PLANS")
+        
+        # The plans are managed as QM data
 
-        if self.o.use_qm:
-            os.chdir (
-                os.path.join (self.repodir, "qualification", "plans"))
-            run ("qm_server -l scripts/generate_plan.py -p 0 .")
+        os.chdir (
+            os.path.join (self.repodir, "qualification", "qm")
+            )
+        run ("qmachine model.xml -l scripts/generate_plans_%s.py" \
+                 % self.o.docformat)
 
-            shutil.move (
-                os.path.join (
-                    self.repodir, "qualification", "qm", "plans", "html"),
-                os.path.join (self.itemsdir, "PLANS"))
-
-        else:
-            os.chdir (os.path.join (self.repodir, "qualification", "plans"))
-            run ("tar xzf html.tar.gz")
-
-            shutil.move (
-                os.path.join (self.repodir, "qualification", "plans", "html"),
-                os.path.join (self.itemsdir, "PLANS"))
+        self.__latch_part (partname="PLANS")
 
     # ----------------
     # -- build_pack --
@@ -314,12 +309,6 @@ if __name__ == "__main__":
         "--reuse", dest="reuse", action="store_true", default=False,
         help = (
             "Reuse the provided root dir.")
-        )
-    op.add_option (
-        "--use-qm", dest="use_qm", action="store_true", default=False,
-        help = (
-            "Whether we should use the QM to build the QM managed documents." 
-            "Fetch a static version from the SCM tree otherwise.")
         )
     op.add_option (
         "--docformat", dest="docformat", default="html",
