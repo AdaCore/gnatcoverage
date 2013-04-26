@@ -1,6 +1,6 @@
 import os.path
 import qm
-import qmrest.pdfgenerator
+import qm.rest.pdfgenerator
 
 def get_userconf():
        # retrieve the author from the environment data artifact
@@ -12,18 +12,18 @@ def get_userconf():
 
        return author
 
-class GenPDF(qmrest.pdfgenerator.SphinxGeneratePdf):
+class GenPDF(qm.rest.pdfgenerator.SphinxGeneratePdf):
     def userconf(self):
         # use method from super just to retrieve the 'extras' field
-        [ author, version, extras ] = qmrest.pdfgenerator.SphinxGeneratePdf.userconf (self)
+        [ author, version, extras ] = qm.rest.pdfgenerator.SphinxGeneratePdf.userconf (self)
         author = get_userconf()
 
         return [author, version, extras]
 
-class GenHTML(qmrest.pdfgenerator.SphinxGenerateHtml):
+class GenHTML(qm.rest.pdfgenerator.SphinxGenerateHtml):
     def userconf(self):
         # use method from super just to retrieve the 'extras' field
-        [ author, version, extras ] = qmrest.pdfgenerator.SphinxGenerateHtml.userconf (self)
+        [ author, version, extras ] = qm.rest.pdfgenerator.SphinxGenerateHtml.userconf (self)
         author = get_userconf()
 
         return [author, version, extras]
