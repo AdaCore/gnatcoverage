@@ -180,6 +180,8 @@ package body Traces_Elf is
          end if;
       end Names_Lt;
 
+   --  Start of processing for "<"
+
    begin
       if L.First < R.First then
          return True;
@@ -2027,10 +2029,19 @@ package body Traces_Elf is
 
       Init_Line_State : Line_State;
 
+      PC_Addr : aliased Addresses_Info (Line_Addresses);
+
    begin
+      PC_Addr.First := Section'First;
+      PC_Addr.Last  := Section'First;
+
+      --  Find line info with highest start address that is no greater than
+      --  Section'First.
+
+      Cur := Exec.Desc_Sets (Line_Addresses).Floor (PC_Addr'Unchecked_Access);
+
       --  Iterate on lines
 
-      Cur := First (Exec.Desc_Sets (Line_Addresses));
       while Cur /= No_Element loop
          Line := Element (Cur);
 
