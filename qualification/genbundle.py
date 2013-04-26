@@ -318,7 +318,7 @@ if __name__ == "__main__":
 
     exit_if (
         not options.reuse and os.path.exists (options.rootdir),
-        "Unless for a reuse (-y), root dir (-r, %s) must not exist already" \
+        "Without --reuse, the --root dir (%s) must not exist already" \
             % options.rootdir
         )
 
@@ -359,7 +359,7 @@ if __name__ == "__main__":
 
     if not options.reuse:
         qmat.setup_basedirs()
-        qmat.clone_sources()
+        qmat.clone_master_repo()
 
     qmat.switch_to_branch()
 
