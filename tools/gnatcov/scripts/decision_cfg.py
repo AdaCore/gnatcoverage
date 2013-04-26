@@ -327,6 +327,11 @@ if __name__ == '__main__':
             continue
 
         def check_edge(edge_info, dest_pc):
+            if edge_info is None:
+                # gnatcov could not get any information about this branch:
+                # nothing to do.
+                return
+
             if isinstance(edge_info.dest_kind, bddinfo.DestRaiseException):
                 try:
                     next_basic_block = decision_cfg[dest_pc]
@@ -389,6 +394,9 @@ if __name__ == '__main__':
         return helper(basic_block)
 
     def format_edge_info(edge_info, condition):
+        if edge_info is None:
+            return ['???']
+
         result = []
 
         if edge_info.cond_eval is not None:

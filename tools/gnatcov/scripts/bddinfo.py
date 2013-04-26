@@ -131,8 +131,16 @@ def get_bdd_info(exe_filename, scos):
             )
             continue
 
+    def get_edge_info(pc):
+        try:
+            return edge_infos[pc]
+        except KeyError:
+            # When gnatcov has trouble with its branch analysis, its output can
+            # lack some edge info.
+            return None, None
+
     return {
-        pc: BranchInfo(cond_sco_no, cond_sloc_range, *edge_infos[pc])
+        pc: BranchInfo(cond_sco_no, cond_sloc_range, *get_edge_info(pc))
         for pc, (cond_sco_no, cond_sloc_range) in cond_sco_nos.items()
     }
 
