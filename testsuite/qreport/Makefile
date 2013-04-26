@@ -11,7 +11,7 @@ SRCDIR      = source
 # Internal variables.
 ALLSPHINXOPTS   = -d $(BLDDIR)/doctrees $(SPHINXOPTS) $(SRCDIR)
 
-.PHONY: clean html
+.PHONY: clean html latexpdf
 
 all: html
 
@@ -23,3 +23,8 @@ html:
 	@echo
 	@echo "Build finished. The HTML pages are in $(BLDDIR)/html."
 
+latexpdf:
+	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BLDDIR)/latexpdf
+	@echo "Running LaTeX files through pdflatex..."
+	make -C $(BLDDIR)/latexpdf all-pdf
+	@echo "pdflatex finished; the PDF files are in $(BLDDIR)/latex."
