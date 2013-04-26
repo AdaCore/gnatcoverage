@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 # Usage: dwarfdump.py objdump -Dr <exe>
 # Annotates the output of objdump with sloc info from exe
