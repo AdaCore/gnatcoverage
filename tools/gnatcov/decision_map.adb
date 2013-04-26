@@ -65,6 +65,13 @@ package body Decision_Map is
    --  The decision occurrence map lists all object code occurrences of each
    --  source decision (identified by its SCO_Id).
 
+   package SCO_Sets is new Ada.Containers.Ordered_Sets (SCO_Id);
+   use type SCO_Sets.Set;
+
+   package Statement_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Pc_Type,
+      Element_Type => SCO_Sets.Set);
+
    --  A basic block in object code
 
    type Basic_Block is record
@@ -86,6 +93,9 @@ package body Decision_Map is
 
       Condition   : SCO_Id := No_SCO_Id;
       --  If this is a conditional branch testing a condition, identifies it
+
+      Statements : Statement_Maps.Map;
+      --  Statement SCOs associated with each PC range within the basic block
    end record;
 
    No_Basic_Block : constant Basic_Block := (others => <>);
@@ -746,12 +756,10 @@ package body Decision_Map is
                      Edge_Name & " destination unexpectedly out of decision");
 
                elsif Outcome_Origin /= Unknown then
-                  --  If there is only one outcome edge (and the other is a
-                  --  condition), then Outcome_Origin is the valuation of the
-                  --  condition that causes it to be taken.
-
                   Set_Known_Origin
                     (Cond_Branch_PC, CBI, Edge, To_Boolean (Outcome_Origin));
+                  Known_Outcome (To_Boolean (Edge_Info.Outcome)).
+                    Include (Edge_Info.Destination);
 
                else
                   --  In the case of a decision with only one condition (but
@@ -1129,9 +1137,9 @@ package body Decision_Map is
          S_SCO : constant SCO_Id := Enclosing_Statement (D_SCO);
          --  SCOs for the decision being evaluated, and its enclosing statement
 
-         In_Same_Statement : Boolean;
-         --  True if branching into code that is part of the same statement
-         --  as the condition being evaluated.
+         Leaves_Statement : Boolean := False;
+         --  True if the edge is known to branch to code that has a different
+         --  statement SCO than the condition being evaluated.
 
       begin
          <<Follow_Jump>>
@@ -1146,7 +1154,17 @@ package body Decision_Map is
          --  disabled in the case of multiple statements occurring on the same
          --  line.
 
-         Next_PC_SCO := Enclosing_Statement (Sloc_To_SCO (Next_PC_Sloc));
+         declare
+            use Statement_Maps;
+            Cur : constant Statement_Maps.Cursor :=
+                    BB.Statements.Ceiling (Next_PC);
+         begin
+            if Cur /= No_Element then
+               Next_PC_SCO := Element (Cur).First_Element;
+            else
+               Next_PC_SCO := No_SCO_Id;
+            end if;
+         end;
 
          if Next_PC_SCO /= No_SCO_Id
            and then not Is_Multistatement_Line (Next_PC_Sloc)
@@ -1183,12 +1201,14 @@ package body Decision_Map is
             end;
          end if;
 
-         --  Determine whether the jump remains the current statement
+         --  Determine whether the jump is known to branch to another statement
 
-         In_Same_Statement :=
-           S_SCO /= No_SCO_Id
-           and then Next_PC_SCO /= No_SCO_Id
-           and then S_SCO = Enclosing_Statement (Next_PC_SCO);
+         Leaves_Statement :=
+           Leaves_Statement
+             or else
+               (S_SCO /= No_SCO_Id
+                  and then Next_PC_SCO /= No_SCO_Id
+                  and then S_SCO /= Enclosing_Statement (Next_PC_SCO));
 
          --  Here if we remain within the current decision: continue tracing
          --  object control flow: find SCOs for jump at end of basic block.
@@ -1216,14 +1236,10 @@ package body Decision_Map is
 
          case BB.Branch is
             when Br_Jmp =>
-               if not In_Same_Statement then
-                  --  Branching out of the current statement: outcome reached
-
-                  return;
-
-               elsif BB.Cond then
+               if BB.Cond then
                   if BB.Condition /= No_SCO_Id
                     and then Enclosing_Decision (BB.Condition) = D_Occ.Decision
+                    and then not Leaves_Statement
                   then
                      --  Edge proceeds to evaluate a condition in the current
                      --  decision.
@@ -1385,10 +1401,31 @@ package body Decision_Map is
       Insn_Len : Natural;
 
       Current_Basic_Block_Start : Pc_Type;
+      --  Start of current basic block
+
+      Current_Basic_Block_S_Map : Statement_Maps.Map;
+      --  Statements map of current basic block
+
+      Prev_Insn_S_SCOs, Cur_Insn_S_SCOs : SCO_Sets.Set;
+      --  Statement SCOs of the previous and current instructions
+
       Context : Cond_Branch_Context;
+
+      procedure New_Basic_Block;
+      --  Reset state to start processing a new basic block
 
       procedure Put_Line (S : String; Underline : Character);
       --  Output S, underline with the given character
+
+      ---------------------
+      -- New_Basic_Block --
+      ---------------------
+
+      procedure New_Basic_Block is
+      begin
+         Current_Basic_Block_Start := PC;
+         Current_Basic_Block_S_Map := Statement_Maps.Empty_Map;
+      end New_Basic_Block;
 
       --------------
       -- Put_Line --
@@ -1416,7 +1453,9 @@ package body Decision_Map is
       --  Iterate over instructions, looking for conditional branches
 
       PC := Insns'First;
-      Current_Basic_Block_Start := PC;
+      New_Basic_Block;
+      Prev_Insn_S_SCOs.Clear;
+
       while PC < Insns'Last loop
          Insn_Len :=
            Disa_For_Machine (Machine).
@@ -1437,19 +1476,31 @@ package body Decision_Map is
             --  Properties of Insn
 
          begin
-            --  Find slocs for this PC, and mark all corresponding
-            --  statement SCOs as having code.
+            --  Find lines for this PC, and mark all corresponding statement
+            --  SCOs as having code.
 
+            Cur_Insn_S_SCOs.Clear;
             for Tsloc of Tslocs loop
                LI := Get_Line (Tsloc.Sloc);
                if LI /= null then
                   for SCO of LI.SCOs loop
                      if Kind (SCO) = Statement then
                         Set_Basic_Block_Has_Code (SCO, Tsloc.Tag);
+                        Cur_Insn_S_SCOs.Include (SCO);
                      end if;
                   end loop;
                end if;
             end loop;
+
+            --  If this instruction has a distinct set of statements from the
+            --  previous one, add an entry to the statements map.
+
+            if not Cur_Insn_S_SCOs.Is_Empty
+              and then Prev_Insn_S_SCOs /= Cur_Insn_S_SCOs
+            then
+               Current_Basic_Block_S_Map.Insert (PC, Cur_Insn_S_SCOs);
+               Prev_Insn_S_SCOs := Cur_Insn_S_SCOs;
+            end if;
 
             --  Disassemble instruction
 
@@ -1490,6 +1541,7 @@ package body Decision_Map is
                           Branch_Dest => Branch_Dest,
                           Branch      => Branch,
                           Cond        => Flag_Cond,
+                          Statements  => Current_Basic_Block_S_Map,
                           others      => <>);
 
                   SCO        : SCO_Id;
@@ -1648,7 +1700,7 @@ package body Decision_Map is
             exit when PC = 0;
 
             if Branch /= Br_None then
-               Current_Basic_Block_Start := PC;
+               New_Basic_Block;
             end if;
          end;
       end loop;
