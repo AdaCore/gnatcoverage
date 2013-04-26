@@ -77,6 +77,9 @@ DEFAULT_TIMEOUT = 600
 #
 #   * A level-specific set of GNAT configuration pragmas applies to all
 #     compilations.
+#
+#   * Tests only are only run with --annotate=report, not --annotate=xcov,
+#     as only the former is claimed to be qualified.
 
 # A dictionary of information of interest for each qualification level:
 
