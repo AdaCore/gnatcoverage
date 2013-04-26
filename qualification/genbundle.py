@@ -7,6 +7,10 @@ from datetime import date
 
 import optparse, sys, os.path, shutil
 
+# =======================================================================
+# ==                         MISC UTILITY FUNCTIONS                    ==
+# =======================================================================
+
 class Error (Exception):
     def __init__(self):
         pass
@@ -43,6 +47,10 @@ def run (s, out=None, env=None):
 
 def announce (s):
     print "=========== " + s
+
+# =======================================================================
+# ==              QUALIF MATERIAL GENERATION HELPER CLASS              ==
+# =======================================================================
 
 sphinx_target_for = {
     "html": "html",
@@ -128,7 +136,7 @@ class QMAT:
 
         sphinx_target = sphinx_target_for[self.docformat]
 
-        run ("make %(vars)s clean generate %(fmt)s " % {
+        run ("make %(vars)s clean genrest %(fmt)s " % {
                 "vars": make_vars,
                 "fmt" : sphinx_target }
              )
@@ -235,6 +243,10 @@ class QMAT:
 
         run ("zip -q -r %(packname)s.zip %(packname)s" % {
                 "packname": self.pname})
+
+# =======================================================================
+# ==                          MAIN SCRIPT BODY                         ==
+# =======================================================================
 
 valid_docformats = ('html', 'pdf')
 valid_parts      = ('tor', 'str', 'plans')

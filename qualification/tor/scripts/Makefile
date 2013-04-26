@@ -19,8 +19,8 @@ all: clean generate html
 archive:
 	tar czf ${HOME}/html.tar.gz build/html
 
-generate:
-	./generate.py $(CHAPTERS)
+genrest:
+	./genrest.py $(CHAPTERS)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
