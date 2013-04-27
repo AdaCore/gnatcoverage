@@ -189,7 +189,7 @@ class QMAT:
                 "fmt" : sphinx_target_for[self.o.docformat]}
              )
 
-        self__latch_part (partname="TOR")
+        self.__latch_part (partname="TOR")
 
     # ---------------
     # -- build_str --
@@ -319,7 +319,6 @@ if __name__ == "__main__":
         )
     op.add_option (
         "--parts", dest="parts", default=None,
-        type='choice', choices=valid_parts,
         help = (
             "A comma separated list of the parts of the qualkit that "
             "are to be generated, subset of %s." % valid_parts.__str__())
@@ -382,7 +381,7 @@ if __name__ == "__main__":
     # Settle on the set of documents we are to produce:
 
     options.parts = (
-        () if not options.parts
+        valid_parts if not options.parts
         else options.parts.split(',')
         )
 
