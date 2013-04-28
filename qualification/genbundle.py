@@ -1,7 +1,7 @@
 #!python
 
 from gnatpython.ex import Run
-from gnatpython.fileutils import cp, mv, rm
+from gnatpython.fileutils import cp, mv, rm, mkdir
 
 from datetime import date
 
@@ -54,7 +54,7 @@ def remove (path):
     if os.path.exists (path):
         rm (local_name, recursive=True)
         mv (path, local_name)
-        rm (local_name, recursive=True)        
+        rm (local_name, recursive=True)
 
 # =======================================================================
 # ==              QUALIF MATERIAL GENERATION HELPER CLASS              ==
@@ -90,13 +90,8 @@ class QMAT:
 
         announce ("setting up working dirs from %s" % self.rootdir)
 
-        os.mkdir (self.rootdir)
-        fail_if (
-            not os.path.isdir(self.rootdir),
-            "creation of root dir '%s' failed somehow" % self.rootdir
-            )
-
-        os.mkdir (self.itemsdir)
+        mkdir (self.rootdir)
+        mkdir (self.itemsdir)
 
 
     # -----------------------
@@ -128,39 +123,44 @@ class QMAT:
     # html builds are voluminous and tree-ish. Other builds might produce
     # secondary pieces we don't need (e.g. latex sources & stuff) and we
     # only care about the final file at the end.
-        
+
     # For tree builds, we just rename the whole sphinx build tree as our
     # result. For other builds, we use a wildcard copy so the actual file
     # name doesn't matter:
 
-    def __latch_part (self, partname):
+    def __latch_into (self, dir, partname, toplevel):
+
+        this_target_is_tree = (self.o.docformat == 'html')
 
         this_target_suffix = (
-            'tree' if self.o.docformat == 'html' else ''
+            '' if this_target_is_tree else '.%s' % self.o.docformat)
+
+        this_target = (
+            dir if toplevel and this_target_is_tree
+            else os.path.join (
+                dir, "%(part)s%(suffix)s" % {
+                    "part": partname,
+                    "suffix": this_target_suffix }
+                )
             )
-        this_target = os.path.join (
-            self.itemsdir, "%(part)s.%(fmt)s%(suffix)s" % {
-                "part": partname,
-                "fmt": self.o.docformat,
-                "suffix": this_target_suffix }
-            )
+
         this_build_subdir = os.path.join (
-            "build", sphinx_target_for[self.o.docformat]
-            )
+            "build", sphinx_target_for[self.o.docformat])
 
         # Delete an old version of latched results that might
         # already be there if we're running with --reuse.
         remove (this_target)
 
-        if this_target_suffix == 'tree':
+        if this_target_is_tree:
             mv (this_build_subdir,
                 this_target)
         else:
             cp (this_build_subdir + "/*.%s" % self.o.docformat,
                 this_target)
 
-        print "%s %s availalable in %s" % (
-            self.o.docformat, partname, this_target
+        print "%s %s available in %s %s" % (
+            self.o.docformat, partname,
+            this_target, "(toplevel)" if toplevel else ""
             )
 
     # ---------------
@@ -184,12 +184,15 @@ class QMAT:
             "CHAPTERS='%s'" % self.o.re_chapters if self.o.re_chapters else ""
             )
 
-        run ("make %(vars)s clean genrest %(fmt)s " % {
+        run ("make %(vars)s clean genrest" % {"vars": make_vars})
+
+        run ("make %(vars)s %(fmt)s " % {
                 "vars": make_vars,
                 "fmt" : sphinx_target_for[self.o.docformat]}
              )
 
-        self.__latch_part (partname="TOR")
+        self.__latch_into (
+            dir=self.itemsdir, partname="TOR", toplevel=False)
 
     # ---------------
     # -- build_str --
@@ -204,11 +207,11 @@ class QMAT:
 
         os.chdir (os.path.join (self.repodir, "testsuite"))
 
-        orisupport = os.path.join (
-            "..", "tools", "gnatcov", "examples", "support")
-
-        if os.path.exists (orisupport):
-            shutil.move (orisupport, "support")
+        if not os.path.exists ("support"):
+            orisupport = os.path.join (
+                "..", "tools", "gnatcov", "examples", "support")
+            if os.path.exists (orisupport):
+                shutil.move (orisupport, "support")
 
         base_cmd = (
             "python testsuite.py "
@@ -235,7 +238,8 @@ class QMAT:
         os.chdir (os.path.join (self.repodir, "testsuite", "qreport"))
         run ("make %s" % sphinx_target_for[self.o.docformat])
 
-        self.__latch_part (partname="STR")
+        self.__latch_into (
+            dir=self.itemsdir, partname="STR", toplevel=False)
 
     # -----------------
     # -- build_plans --
@@ -243,7 +247,7 @@ class QMAT:
 
     def build_plans (self):
         announce ("building PLANS")
-        
+
         # The plans are managed as QM data
 
         os.chdir (
@@ -252,7 +256,8 @@ class QMAT:
         run ("qmachine model.xml -l scripts/generate_plans_%s.py" \
                  % self.o.docformat)
 
-        self.__latch_part (partname="PLANS")
+        self.__latch_into (
+            dir=self.itemsdir, partname="PLANS", toplevel=False)
 
     # ----------------
     # -- build_pack --
@@ -262,15 +267,18 @@ class QMAT:
         announce ("building INDEX")
 
         os.chdir (os.path.join (self.repodir, "qualification", "index"))
-        run ("make html")
+
+        sphinx_target = sphinx_target_for[self.o.docformat]
+
+        cp ("source/index_%s_rst" % self.o.docformat, "source/index.rst")
+        run ("make %s" % sphinx_target)
 
         packroot = os.path.join (self.rootdir, self.o.pname)
+        remove (packroot)
+        mkdir (packroot)
 
-        fail_if (
-            os.path.exists (packroot), "%s exists already !!" % packroot
-            )
-
-        shutil.move (os.path.join ("build", "html"), packroot)
+        self.__latch_into (
+            dir=packroot, partname=self.o.pname, toplevel=True)
         shutil.move (self.itemsdir, packroot)
 
         os.chdir (self.rootdir)
@@ -360,8 +368,8 @@ if __name__ == "__main__":
         )
 
     exit_if (
-        options.pname and options.parts,
-        ("No archive (--pname) may be generated with " 
+        options.pname and options.parts and not options.reuse,
+        ("No archive (--pname) may be generated with "
          "only parts of the kit (--parts).")
         )
 
@@ -375,8 +383,8 @@ if __name__ == "__main__":
 
     if not options.parts and not options.pname:
         today = date.today()
-        options.pname = "GNATCOV-QMAT-%4d-%02d-%02d" % (
-            today.year, today.month, today.day)
+        options.pname = "GNATCOV-QMAT-%s-%4d-%02d-%02d" % (
+            options.docformat.upper(), today.year, today.month, today.day)
 
     # Settle on the set of documents we are to produce:
 
@@ -391,14 +399,12 @@ if __name__ == "__main__":
                 % (part, valid_parts.__str__())
             )
      for part in options.parts]
-         
+
     qmat = QMAT (options=options)
 
-    # Unless we are instructed to reuse the provided root dir,
-    # set it up:
+    qmat.setup_basedirs()
 
     if not options.reuse:
-        qmat.setup_basedirs()
         qmat.clone_master_repo()
 
     qmat.switch_to_branch()
@@ -413,7 +419,7 @@ if __name__ == "__main__":
 
     if 'plans' in options.parts:
         qmat.build_plans()
-        
+
     # If we have a package to produce, do so:
 
     if options.pname:
