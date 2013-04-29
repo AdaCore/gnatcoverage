@@ -53,7 +53,8 @@ class Arch(object):
     def get_insn_properties(insn):
         """Return (Arch.JUMP, <jump addr>) for unconditionnal jump
         instructions, (Arch.BRANCH, <branch addr>) for conditionnal branch
-        instructions and (None, None) for all other instructions.
+        instructions and (None, None) for all other instructions. When the
+        destination address in unknown, None can be returned instead.
         """
         raise NotImplementedError()
 
@@ -89,7 +90,7 @@ OBJDUMP_INSN = re.compile(
     '^[ ]*(?P<pc>[0-9a-f]+):'
     '\t[0-9a-f ]+\t'
     '(?P<mnemonic>[^ ]+)'
-    '(?:[ ]+(?P<operands>.+))?$'
+    '(?:[ ]+(?P<operands>.+))?\n$'
 )
 
 def parse_program(string):
@@ -194,8 +195,10 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
     get_insn_properties = program.arch.get_insn_properties
 
     # Let objdump disassemble the program for us...
+    args = [program.arch.get_tool('objdump'), '-d', program.filename]
+    print('Disassembling: {}'.format(args))
     proc = subprocess.Popen(
-        [program.arch.get_tool('objdump'), '-d', program.filename],
+        args,
         stdin=open(os.devnull, 'rb'), stdout=subprocess.PIPE
     )
 
@@ -259,16 +262,19 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
         # break some other basic block.
         insn_type, dest = get_insn_properties(insn)
         if insn_type is not None:
-            dest_slocs = sloc_info.get(dest, [])
             insn.add_successor(dest, end_basic_block=True)
 
-            # Remember the jump/branch destination must start a basic block
-            # only in the case it is inside the decision.
-            if slocs_match_range(dest_slocs, decision_sloc_range):
-                basic_block_starters.add(dest)
-                # If the current instruction is outside, remember it anyway.
-                if not sloc_in_decision:
-                    add_outside(insn, dest)
+            if dest is not None:
+                dest_slocs = sloc_info.get(dest, [])
+
+                # Remember the jump/branch destination must start a basic block
+                # only in the case it is inside the decision.
+                if slocs_match_range(dest_slocs, decision_sloc_range):
+                    basic_block_starters.add(dest)
+                    # If the current instruction is outside, remember it
+                    # anyway.
+                    if not sloc_in_decision:
+                        add_outside(insn, dest)
 
         # Update "last_*" information for the next iteration.
         last_instruction_can_fallthrough = insn_type is not Arch.JUMP
@@ -390,8 +396,11 @@ if __name__ == '__main__':
     destinations = set()
     nodes = set()
 
-    def pc_to_name(pc):
-        return 'bb_{:x}'.format(pc)
+    def pc_to_name(pc, unknown=False):
+        if unknown:
+            return 'bb_{:x}_unknown_dest'.format(pc)
+        else:
+            return 'bb_{:x}'.format(pc)
 
     def get_bb_condition(basic_block):
         """Return the condition the basic block belongs to or None if there is
@@ -455,17 +464,23 @@ if __name__ == '__main__':
         return label
 
     def add_edge(from_, to, label, color):
+        # Handle nicely unknown branch destinations.
+        if to is None:
+            to_name = pc_to_name(from_, unknown=True)
+            add_node(pc, None, ['???'], shape='ellipse', unknown=True)
+        else:
+            to_name = pc_to_name(to)
+            destinations.add(to)
         edges.append('    {} -> {} [{}color={}];'.format(
-            pc_to_name(from_), pc_to_name(to),
+            pc_to_name(from_), to_name,
             'label="{}", '.format(format_label(label)) if label else '',
             color
         ))
-        destinations.add(to)
 
-    def add_node(pc, condition, label, shape='box'):
+    def add_node(pc, condition, label, shape='box', unknown=False):
         by_condition[condition].append(
             '    {} [shape={}, fontname=monospace, label="{}"];\n'.format(
-                pc_to_name(pc),
+                pc_to_name(pc, unknown),
                 shape,
                 format_label(label),
             )
