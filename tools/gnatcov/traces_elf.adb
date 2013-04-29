@@ -2032,13 +2032,14 @@ package body Traces_Elf is
       PC_Addr : aliased Addresses_Info (Line_Addresses);
 
    begin
-      PC_Addr.First := Section'First;
-      PC_Addr.Last  := Section'First;
+      PC_Addr.First := Section'First - 1;
+      PC_Addr.Last  := Section'First - 1;
 
-      --  Find line info with highest start address that is no greater than
-      --  Section'First.
+      --  Find line info with lowest start address that is strictly greater
+      --  than Section'First - 1.
 
-      Cur := Exec.Desc_Sets (Line_Addresses).Floor (PC_Addr'Unchecked_Access);
+      Cur := Exec.Desc_Sets (Line_Addresses).
+               Ceiling (PC_Addr'Unchecked_Access);
 
       --  Iterate on lines
 
