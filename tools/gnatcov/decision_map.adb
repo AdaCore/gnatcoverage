@@ -1456,7 +1456,7 @@ package body Decision_Map is
       New_Basic_Block;
       Prev_Insn_S_SCOs.Clear;
 
-      while PC < Insns'Last loop
+      while PC <= Insns'Last loop
          Insn_Len :=
            Disa_For_Machine (Machine).
              Get_Insn_Length (Insns (PC .. Insns'Last));
