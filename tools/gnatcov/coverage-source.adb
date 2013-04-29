@@ -49,7 +49,7 @@ package body Coverage.Source is
 
    type Line_States is array (Coverage_Level) of Line_State;
 
-   type Source_Coverage_Info (Kind  : SCO_Kind := Statement) is record
+   type Source_Coverage_Info (Kind  : SCO_Kind := Statement) is limited record
       Tag : SC_Tag := No_SC_Tag;
       --  Tag identifying one among multiple coverage analyses being performed
       --  for a given SCO.
@@ -81,10 +81,11 @@ package body Coverage.Source is
             null;
       end case;
    end record;
+   type Source_Coverage_Info_Access is access Source_Coverage_Info;
 
    package SCI_Vectors is new Ada.Containers.Vectors
        (Index_Type   => Natural,
-        Element_Type => Source_Coverage_Info);
+        Element_Type => Source_Coverage_Info_Access);
 
    package SCI_Vector_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Valid_SCO_Id,
@@ -93,7 +94,12 @@ package body Coverage.Source is
 
    SCI_Vector : SCI_Vector_Vectors.Vector;
 
-   function Get_SCI (SCO : SCO_Id; Tag : SC_Tag) return Source_Coverage_Info;
+   Default_SCIs : array (SCO_Kind) of Source_Coverage_Info_Access;
+   --  Default SCI structures returned by Get_SCI when no specific one has
+   --  been allocated for a given SCO.
+
+   function Get_SCI
+     (SCO : SCO_Id; Tag : SC_Tag) return Source_Coverage_Info_Access;
    --  Return the SCI for the given SCO and tag
 
    procedure Update_SCI
@@ -189,13 +195,7 @@ package body Coverage.Source is
             procedure Ensure_SCI (SCIV : in out SCI_Vectors.Vector) is
             begin
                if SCIV.Length = 0 then
-                  declare
-                     New_SCI : Source_Coverage_Info (Kind => Kind (SCO));
-                     pragma Unmodified (New_SCI);
-                     --  Used for default initialization
-                  begin
-                     SCIV.Append (New_SCI);
-                  end;
+                  SCIV.Append (new Source_Coverage_Info (Kind => Kind (SCO)));
                end if;
             end Ensure_SCI;
 
@@ -365,7 +365,7 @@ package body Coverage.Source is
                            SCO,
                            SCI.Tag,
                            MCDC_Level,
-                           Compute_MCDC_State (SCO, SCI));
+                           Compute_MCDC_State (SCO, SCI.all));
 
                      elsif SCO_State /= No_Code then
 
@@ -984,11 +984,9 @@ package body Coverage.Source is
    -- Get_SCI --
    -------------
 
-   function Get_SCI (SCO : SCO_Id; Tag : SC_Tag) return Source_Coverage_Info is
-      Default_SCI : Source_Coverage_Info (Kind => Kind (SCO));
-      pragma Warnings (Off, Default_SCI);
-      --  Used for default initialization value
-
+   function Get_SCI
+     (SCO : SCO_Id; Tag : SC_Tag) return Source_Coverage_Info_Access
+   is
    begin
       if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
          for SCI of SCI_Vector.Element (SCO) loop
@@ -997,7 +995,7 @@ package body Coverage.Source is
             end if;
          end loop;
       end if;
-      return Default_SCI;
+      return Default_SCIs (Kind (SCO));
    end Get_SCI;
 
    --------------------
@@ -1023,6 +1021,10 @@ package body Coverage.Source is
 
    begin
       SC_Obligations.Iterate (Add_SCI'Access);
+
+      for K in Default_SCIs'Range loop
+         Default_SCIs (K) := new Source_Coverage_Info (Kind => K);
+      end loop;
    end Initialize_SCI;
 
    --------------------------------
@@ -1122,8 +1124,21 @@ package body Coverage.Source is
       Tag     : SC_Tag;
       Process : access procedure (SCI : in out Source_Coverage_Info))
    is
+      procedure Deref_Process (SCIA : in out Source_Coverage_Info_Access);
+      --  Call Process (SCIA.all)
+
       procedure Update_SCIV (SCIV : in out SCI_Vectors.Vector);
       --  Call Process on the relevant element of SCIV
+
+      -------------------
+      -- Deref_Process --
+      -------------------
+
+      procedure Deref_Process (SCIA : in out Source_Coverage_Info_Access) is
+         pragma Unmodified (SCIA);
+      begin
+         Process (SCIA.all);
+      end Deref_Process;
 
       -----------------
       -- Update_SCIV --
@@ -1133,7 +1148,7 @@ package body Coverage.Source is
       begin
          for Cur in SCIV.Iterate loop
             if SCI_Vectors.Element (Cur).Tag = Tag then
-               SCIV.Update_Element (Cur, Process);
+               SCIV.Update_Element (Cur, Deref_Process'Access);
                return;
             end if;
          end loop;
@@ -1141,10 +1156,11 @@ package body Coverage.Source is
          --  Here if no SCI exists yet for this SCO and tag
 
          declare
-            New_SCI : Source_Coverage_Info (Kind (SCO));
+            New_SCI : constant Source_Coverage_Info_Access :=
+                        new Source_Coverage_Info (Kind (SCO));
          begin
             New_SCI.Tag := Tag;
-            Process (New_SCI);
+            Process (New_SCI.all);
             SCIV.Append (New_SCI);
          end;
       end Update_SCIV;
