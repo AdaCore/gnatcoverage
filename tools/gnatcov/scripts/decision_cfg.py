@@ -24,7 +24,7 @@ SlocRange = collections.namedtuple('SlocRange',
     ' start_line start_column'
     ' end_line end_column'
 )
-Program = collections.namedtuple('Program', 'filename jumps branches')
+Program = collections.namedtuple('Program', 'filename arch')
 # A program is the `filename` ELF file, and when disassembled, it can contain
 # the inconditional `jumps` instructions and the `branches` instructions.
 
@@ -34,17 +34,55 @@ ARCH_STRUCT = {
     1: struct.Struct('<H'),
     2: struct.Struct('>H'),
     }
-ARCH_X86 = (
-    'jmp jmpl'.split(),
-    'ja jae jb jbe jc jcxz jecxz je jg jge jl jle jna jnae jnb jnbe jnc'
-    ' jne jng jnge jnl jnle jno jnp jns jnz jo jp jpe jpo js jz'.split()
 
-)
+class Arch(object):
+    JUMP = 'jump'
+    BRANCH = 'branch'
+
+    # To be filled by the cross-compile toolchain prefix (if any).
+    PREFIX = None
+
+    @classmethod
+    def get_tool(cls, name):
+        if cls.PREFIX:
+            return '{}-{}'.format(cls.PREFIX, name)
+        else:
+            return name
+
+    @staticmethod
+    def get_insn_properties(insn):
+        """Return (Arch.JUMP, <jump addr>) for unconditionnal jump
+        instructions, (Arch.BRANCH, <branch addr>) for conditionnal branch
+        instructions and (None, None) for all other instructions.
+        """
+        raise NotImplementedError()
+
+class ArchX86(Arch):
+    JUMPS = set('jmp jmpl'.split())
+    BRANCHES = set(
+        'ja jae jb jbe jc jcxz jecxz je jg jge jl jle jna jnae jnb jnbe jnc'
+        ' jne jng jnge jnl jnle jno jnp jns jnz jo jp jpe jpo js jz'.split()
+    )
+
+    @staticmethod
+    def get_insn_dest(insn):
+        return int(insn.operands.split()[0], 16)
+
+    @staticmethod
+    def get_insn_properties(insn):
+        if insn.mnemonic in ArchX86.JUMPS:
+            return (Arch.JUMP, ArchX86.get_insn_dest(insn))
+        elif insn.mnemonic in ArchX86.BRANCHES:
+            return (Arch.BRANCH, ArchX86.get_insn_dest(insn))
+        else:
+            return (None, None)
+
+
 ARCHITECTURES = {
     # x86
-    3:  ARCH_X86,
+    3:  ArchX86,
     # x86_64
-    62: ARCH_X86,
+    62: ArchX86,
 }
 
 OBJDUMP_INSN = re.compile(
@@ -73,7 +111,7 @@ def parse_program(string):
         # Here is the e_machine field!
         elf_machine,  = arch_struct.unpack(f.read(2))
         try:
-            jumps, branches = ARCHITECTURES[elf_machine]
+            arch = ARCHITECTURES[elf_machine]
         except:
             raise argparse.ArgumentTypeError(
                 '{}: unhandled architecture ({})'.format(
@@ -81,7 +119,7 @@ def parse_program(string):
                 )
             )
         else:
-            return Program(string, jumps, branches)
+            return Program(string, arch)
 
 def parse_sloc_range(string):
     m = SLOC_RANGE.match(string)
@@ -131,12 +169,6 @@ class Insn:
         self.successors = []
         self.ends_basic_block = False
 
-    def get_jump_dest(self):
-        """Parse operands to get the destination address of this instruction.
-        Must be called on jump and branch instructions only.
-        """
-        return int(self.operands.split()[0], 16)
-
     def add_successor(self, pc, end_basic_block=False, first=False):
         if first:
             self.successors.insert(0, pc)
@@ -159,11 +191,11 @@ OutsideInsn = collections.namedtuple('OutsideInsn', 'pc successors slocs')
 
 
 def get_decision_cfg(program, sloc_info, decision_sloc_range):
-    jumps_and_branches = set(program.jumps + program.branches)
+    get_insn_properties = program.arch.get_insn_properties
 
     # Let objdump disassemble the program for us...
     proc = subprocess.Popen(
-        ['objdump', '-d', program.filename],
+        [program.arch.get_tool('objdump'), '-d', program.filename],
         stdin=open(os.devnull, 'rb'), stdout=subprocess.PIPE
     )
 
@@ -225,8 +257,8 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
 
         # If this is a jump/branch, it ends its own basic block and it must
         # break some other basic block.
-        if insn.mnemonic in jumps_and_branches:
-            dest = insn.get_jump_dest()
+        insn_type, dest = get_insn_properties(insn)
+        if insn_type is not None:
             dest_slocs = sloc_info.get(dest, [])
             insn.add_successor(dest, end_basic_block=True)
 
@@ -239,7 +271,7 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
                     add_outside(insn, dest)
 
         # Update "last_*" information for the next iteration.
-        last_instruction_can_fallthrough = insn.mnemonic not in program.jumps
+        last_instruction_can_fallthrough = insn_type is not Arch.JUMP
         last_instruction_in_decision = sloc_in_decision
         last_instruction = insn
 
