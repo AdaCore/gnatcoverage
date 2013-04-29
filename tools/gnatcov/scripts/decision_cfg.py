@@ -78,10 +78,60 @@ class ArchX86(Arch):
         else:
             return (None, None)
 
+class ArchPPC32(Arch):
+    PREFIX = 'powerpc-elf'
+
+    # Mnemonic tables: mnemonic -> index of operand that contain the address,
+    # or None (for instance, for a register).
+    JUMPS = {
+        'b': None,
+        'ba': 0,
+    }
+    # bl and blr return from subroutine: not jump/branch instructions.
+    @staticmethod
+    def get_insn_dest(operand):
+        return int(operand.split()[0], 16)
+
+    @staticmethod
+    def get_insn_properties(insn):
+        if not insn.mnemonic.startswith('b'):
+            return (None, None)
+
+        # Strip prediction any hint.
+        mnemonic = insn.mnemonic.rstrip('+-')
+
+        # Branch can go to an absolute address, to the link register or to the
+        # control register.
+        dest_in_reg = False
+        return_from_subroutine = False
+        if mnemonic.endswith('l') or mnemonic.endswith('la'):
+            # Branch and Link (call)
+            return (None, None)
+        elif mnemonic.endswith('lr'):
+            # To Link Register (return)
+            return (None, None)
+        elif mnemonic.endswith('ctr'):
+            # To ConTrol Register (destination known at runtime)
+            return (Arch.BRANCH, None)
+        elif mnemonic.endswith('a'):
+            mnemonic = mnemonic[:-1]
+
+        operands = insn.operands.split(',')
+        if ' ' in operands[0]:
+            dest = ArchPPC32.get_insn_dest(operands[0])
+        else:
+            dest = ArchPPC32.get_insn_dest(operands[1])
+
+        return (
+            Arch.BRANCH if mnemonic != 'b' else Arch.JUMP,
+            dest
+        )
 
 ARCHITECTURES = {
     # x86
     3:  ArchX86,
+    # PowerPC 32bit
+    20: ArchPPC32,
     # x86_64
     62: ArchX86,
 }
