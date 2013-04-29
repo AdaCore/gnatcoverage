@@ -2032,6 +2032,8 @@ package body Traces_Elf is
       PC_Addr : aliased Addresses_Info (Line_Addresses);
 
    begin
+      --  Note: the following assumes that Section'First is non-zero
+
       PC_Addr.First := Section'First - 1;
       PC_Addr.Last  := Section'First - 1;
 
