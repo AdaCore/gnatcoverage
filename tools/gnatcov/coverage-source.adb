@@ -182,8 +182,8 @@ package body Coverage.Source is
 
       for J in Line_Info.SCOs.First_Index .. Line_Info.SCOs.Last_Index loop
          SCOs_Of_Line : declare
-            SCO         : constant SCO_Id := Line_Info.SCOs.Element (J);
-            SCO_State   : Line_State := No_Code;
+            SCO       : constant SCO_Id := Line_Info.SCOs.Element (J);
+            SCO_State : Line_State := No_Code;
 
             procedure Ensure_SCI (SCIV : in out SCI_Vectors.Vector);
             --  If SCIV is empty, add a SCI with no tag
