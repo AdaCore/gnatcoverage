@@ -1089,15 +1089,28 @@ package body SC_Obligations is
       Dom_SCO : out SCO_Id;
       Dom_Val : out Boolean)
    is
-      SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
-   begin
-      Dom_SCO := SCOD.Dominant;
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Dom_SCO and Dom_Val
 
-      if Dom_SCO /= No_SCO_Id and then Kind (Dom_SCO) = Decision then
-         Dom_Val := To_Boolean (SCOD.Dominant_Value);
-      else
-         Dom_Val := False;
-      end if;
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Dom_SCO := SCOD.Dominant;
+
+         if Dom_SCO /= No_SCO_Id and then Kind (Dom_SCO) = Decision then
+            Dom_Val := To_Boolean (SCOD.Dominant_Value);
+         else
+            Dom_Val := False;
+         end if;
+      end Q;
+
+   --  Start of processing for Dominant
+
+   begin
+      SCO_Vector.Query_Element (SCO, Q'Access);
    end Dominant;
 
    -------------------
@@ -1172,12 +1185,36 @@ package body SC_Obligations is
    ---------------
 
    function Enclosing (What : SCO_Kind; SCO : SCO_Id) return SCO_Id is
-      P_SCO : SCO_Id := SCO;
+      Cur_SCO : SCO_Id := SCO;
+      --  Current SCO
+
+      Kind  : SCO_Kind;
+      P_SCO : SCO_Id;
+      --  Kind and Parent of Cur_SCO
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Kind and P_SCO
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Kind  := SCOD.Kind;
+         P_SCO := SCOD.Parent;
+      end Q;
+
+   --  Start of processing for Enclosing
+
    begin
-      while not (P_SCO = No_SCO_Id or else Kind (P_SCO) = What) loop
-         P_SCO := Parent (P_SCO);
+      loop
+         exit when Cur_SCO = No_SCO_Id;
+         SCO_Vector.Query_Element (Cur_SCO, Q'Access);
+         exit when Kind = What;
+         Cur_SCO := P_SCO;
       end loop;
-      return P_SCO;
+      return Cur_SCO;
    end Enclosing;
 
    ------------------------
@@ -1222,8 +1259,25 @@ package body SC_Obligations is
    ----------------
 
    function First_Sloc (SCO : SCO_Id) return Source_Location is
+      Result : Source_Location;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Result := SCOD.Sloc_Range.First_Sloc;
+      end Q;
+
+   --  Start of processing for First_Sloc
+
    begin
-      return SCO_Vector.Element (SCO).Sloc_Range.First_Sloc;
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
    end First_Sloc;
 
    ----------------
@@ -1358,9 +1412,10 @@ package body SC_Obligations is
                                              Last_Sloc  => No_Location));
       SCO      : SCO_Id;
       SCOD     : SCO_Descriptor;
+
    begin
       while Position /= No_Element loop
-         SCO := Element (Position);
+         SCO  := Element (Position);
          SCOD := SCO_Vector.Element (SCO);
 
          if Sloc_End < SCOD.Sloc_Range.First_Sloc then
@@ -1517,28 +1572,31 @@ package body SC_Obligations is
    -------------------
 
    function Is_Expression (SCO : SCO_Id) return Boolean is
-      S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
-      SCOD  : SCO_Descriptor renames SCO_Vector.Element (SCO);
-   begin
-      pragma Assert (Kind (SCO) = Decision);
+      D_Kind : Decision_Kind;
+      Result : Boolean;
 
-      --  Check for expression outside of control structure
+      procedure Get_D_Kind (SCOD : SCO_Descriptor);
+      --  Set D_Kind to SCOD.D_Kind
 
-      if SCOD.D_Kind = Expression then
-         return True;
-      end if;
+      procedure Check_Pragma_Assert_PPC (S_SCOD : SCO_Descriptor);
+      --  Set Result to True if SCOD is a pragma Assert/Check/Pre/Post
 
-      --  Check for pragma Assert/Check/Pre/Post
+      ----------------
+      -- Get_D_Kind --
+      ----------------
 
-      if S_SCO = No_SCO_Id then
-         return False;
-      end if;
-
-      declare
-         S_SCOD : SCO_Descriptor renames SCO_Vector.Element (S_SCO);
+      procedure Get_D_Kind (SCOD : SCO_Descriptor) is
       begin
-         return SCOD.D_Kind = Pragma_Decision
-           and then (S_SCOD.S_Kind = Pragma_Statement
+         D_Kind := SCOD.D_Kind;
+      end Get_D_Kind;
+
+      -----------------------------
+      -- Check_Pragma_Assert_PPC --
+      -----------------------------
+
+      procedure Check_Pragma_Assert_PPC (S_SCOD : SCO_Descriptor) is
+      begin
+         Result :=  (S_SCOD.S_Kind = Pragma_Statement
                        or else
                      S_SCOD.S_Kind = Disabled_Pragma_Statement)
            and then (S_SCOD.Pragma_Name = Pragma_Assert
@@ -1548,6 +1606,34 @@ package body SC_Obligations is
                      S_SCOD.Pragma_Name = Pragma_Precondition
                        or else
                      S_SCOD.Pragma_Name = Pragma_Postcondition);
+      end Check_Pragma_Assert_PPC;
+
+   --  Start of processing for Is_Expression
+
+   begin
+      pragma Assert (Kind (SCO) = Decision);
+
+      --  Check for expression outside of control structure
+
+      SCO_Vector.Query_Element (SCO, Get_D_Kind'Access);
+      if D_Kind = Expression then
+         return True;
+      end if;
+
+      --  Check for pragma Assert/Check/Pre/Post
+
+      if D_Kind /= Pragma_Decision then
+         return False;
+      end if;
+
+      declare
+         S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
+      begin
+         if S_SCO = No_SCO_Id then
+            return False;
+         end if;
+         SCO_Vector.Query_Element (S_SCO, Check_Pragma_Assert_PPC'Access);
+         return Result;
       end;
    end Is_Expression;
 
@@ -1556,11 +1642,23 @@ package body SC_Obligations is
    -----------------------------
 
    function Is_Pragma_Annotate_Xcov (SCO : SCO_Id) return Boolean is
-      SCOD : SCO_Descriptor renames SCO_Vector.Element (SCO);
+      Result : Boolean;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Result := SCOD.S_Kind = Pragma_Statement
+           and then ALI_Annotations.Contains (SCOD.Sloc_Range.First_Sloc);
+      end Q;
+
+   --  Start of processing for Is_Pragma_Annotate_Xcov
+
    begin
       pragma Assert (Kind (SCO) = Statement);
-      return SCOD.S_Kind = Pragma_Statement
-        and then ALI_Annotations.Contains (SCOD.Sloc_Range.First_Sloc);
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
    end Is_Pragma_Annotate_Xcov;
 
    ----------------------------------
@@ -1595,8 +1693,25 @@ package body SC_Obligations is
    ----------
 
    function Kind (SCO : SCO_Id) return SCO_Kind is
+      Result : SCO_Kind;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result to SCOD.Kind
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Result := SCOD.Kind;
+      end Q;
+
+   --  Start of processing for Kind
+
    begin
-      return SCO_Vector.Element (SCO).Kind;
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
    end Kind;
 
    ---------------------
@@ -1651,10 +1766,14 @@ package body SC_Obligations is
       Last_SCO_Upon_Entry      : constant SCO_Id  := SCO_Vector.Last_Index;
       Last_Instance_Upon_Entry : constant Inst_Id := Inst_Vector.Last_Index;
 
-      Deps : SFI_Vector;
+      Deps      : SFI_Vector;
+      --  Dependencies of this compilation unit
+
       ALI_Index : constant Source_File_Index :=
                              Load_ALI (ALI_Filename, Deps, With_SCOs => True);
-      --  This updates the last SCO and instance identifiers
+      --  Load ALI file and update the last SCO and instance indices
+
+      Deps_Present : constant Boolean := not Deps.Is_Empty;
 
    begin
       if ALI_Index = No_Source_File then
@@ -1681,8 +1800,16 @@ package body SC_Obligations is
             begin
                pragma Assert (Cur_SCO_Entry in SCOUE.From .. SCOUE.To);
                Last_Entry_In_Cur_Unit := SCOUE.To;
-               Cur_Source_File := Get_Index_From_Simple_Name
-                 (SCOUE.File_Name.all);
+
+               if Deps_Present then
+                  Cur_Source_File := Deps.Element (SCOUE.Dep_Num);
+
+               else
+                  --  For C, the GLI file does not provide a proper deps table
+
+                  Cur_Source_File := Get_Index_From_Simple_Name
+                    (SCOUE.File_Name.all);
+               end if;
             end;
          end if;
 
@@ -1694,11 +1821,6 @@ package body SC_Obligations is
             function Make_Condition_Value return Tristate;
             --  Map condition value code (t/f/c) in SCOE.C2 to Tristate
 
-            function Make_Sloc
-              (SCO_Source_Loc : SCOs.Source_Location) return Source_Location;
-            --  Build a Slocs.Source_Location record from the low-level
-            --  SCO Sloc info.
-
             function New_Operator_SCO (Kind : Operator_Kind) return SCO_Id;
             --  Allocate a new SCO for an operator
 
@@ -1708,6 +1830,33 @@ package body SC_Obligations is
             procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor);
             --  Update the slocs of a decision SCOD from those of the condition
             --  in the current SCOE.
+
+            function Make_Sloc
+              (SCO_Source_Loc : SCOs.Source_Location) return Source_Location;
+            --  Build a Slocs.Source_Location record from the low-level
+            --  SCO Sloc info.
+
+            ---------------
+            -- Make_Sloc --
+            ---------------
+
+            function Make_Sloc
+              (SCO_Source_Loc : SCOs.Source_Location) return Source_Location
+            is
+            begin
+               if SCO_Source_Loc = SCOs.No_Source_Location then
+                  return Source_Location'
+                    (Source_File => No_Source_File, others => <>);
+               end if;
+
+               return
+                 (Source_File => Cur_Source_File,
+                  Line        => Natural (SCO_Source_Loc.Line),
+                  Column      => Natural (SCO_Source_Loc.Col));
+            end Make_Sloc;
+
+            From_Sloc : constant Source_Location := Make_Sloc (SCOE.From);
+            To_Sloc   : constant Source_Location := Make_Sloc (SCOE.To);
 
             --------------------------
             -- Make_Condition_Value --
@@ -1725,25 +1874,6 @@ package body SC_Obligations is
                end case;
             end Make_Condition_Value;
 
-            ---------------
-            -- Make_Sloc --
-            ---------------
-
-            function Make_Sloc
-              (SCO_Source_Loc : SCOs.Source_Location) return Source_Location
-            is
-            begin
-               if SCO_Source_Loc = SCOs.No_Source_Location then
-                  return Source_Location'
-                    (Source_File => No_Source_File, others => <>);
-               end if;
-
-               return Source_Location'
-                 (Source_File => Cur_Source_File,
-                  Line        => Natural (SCO_Source_Loc.Line),
-                  Column      => Natural (SCO_Source_Loc.Col));
-            end Make_Sloc;
-
             ----------------------
             -- New_Operator_SCO --
             ----------------------
@@ -1755,8 +1885,8 @@ package body SC_Obligations is
                  (SCO_Descriptor'(Kind       => Operator,
                                   Origin     => ALI_Index,
                                   Sloc_Range =>
-                                    (First_Sloc => Make_Sloc (SCOE.From),
-                                     Last_Sloc  => Make_Sloc (SCOE.To)),
+                                    (First_Sloc => From_Sloc,
+                                     Last_Sloc  => To_Sloc),
                                   Op_Kind    => Kind,
                                   others     => <>));
 
@@ -1778,9 +1908,6 @@ package body SC_Obligations is
             --------------------------
 
             procedure Update_Decision_Sloc (SCOD : in out SCO_Descriptor) is
-               From_Sloc : constant Source_Location := Make_Sloc (SCOE.From);
-               To_Sloc   : constant Source_Location := Make_Sloc (SCOE.To);
-
             begin
                if SCOD.Sloc_Range.First_Sloc = No_Location then
                   SCOD.Sloc_Range.First_Sloc := From_Sloc;
@@ -1813,17 +1940,17 @@ package body SC_Obligations is
                   else
                      case SCOE.C2 is
                         when 'S' =>
-                           Dom_Sloc := Make_Sloc (SCOE.From);
+                           Dom_Sloc := From_Sloc;
                            Dom_Val  := Unknown;
 
                         when 'T' | 'F' =>
-                           Dom_Sloc := Make_Sloc (SCOE.From);
+                           Dom_Sloc := From_Sloc;
                            Dom_Val  := To_Tristate (SCOE.C2 = 'T');
 
                         when 'E' =>
                            Current_Handler_Range :=
-                             (First_Sloc => Make_Sloc (SCOE.From),
-                              Last_Sloc  => Make_Sloc (SCOE.To));
+                             (First_Sloc => From_Sloc,
+                              Last_Sloc  => To_Sloc);
 
                         when others =>
                            raise Program_Error;
@@ -1848,8 +1975,8 @@ package body SC_Obligations is
                     (SCO_Descriptor'(Kind                 => Statement,
                                      Origin               => ALI_Index,
                                      Sloc_Range           =>
-                                       (First_Sloc => Make_Sloc (SCOE.From),
-                                        Last_Sloc  => Make_Sloc (SCOE.To)),
+                                       (First_Sloc => From_Sloc,
+                                        Last_Sloc  => To_Sloc),
                                      S_Kind               =>
                                        To_Statement_Kind (SCOE.C2),
                                      Dominant             => Dom_SCO,
@@ -1877,8 +2004,7 @@ package body SC_Obligations is
                   SCO_Vector.Append
                     (SCO_Descriptor'(Kind                => Decision,
                                      Origin              => ALI_Index,
-                                     Control_Location    =>
-                                       Make_Sloc (SCOE.From),
+                                     Control_Location    => From_Sloc,
                                      D_Kind              =>
                                        To_Decision_Kind (SCOE.C1),
                                      Last_Cond_Index     => 0,
@@ -1907,8 +2033,8 @@ package body SC_Obligations is
                     (SCO_Descriptor'(Kind       => Condition,
                                      Origin     => ALI_Index,
                                      Sloc_Range =>
-                                     (First_Sloc => Make_Sloc (SCOE.From),
-                                      Last_Sloc  => Make_Sloc (SCOE.To)),
+                                       (First_Sloc => From_Sloc,
+                                        Last_Sloc  => To_Sloc),
                                      Value      => Make_Condition_Value,
                                      Index      => Current_Condition_Index,
                                      others     => <>));
