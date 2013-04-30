@@ -30,6 +30,23 @@ with Switches;    use Switches;
 
 package body ALI_Files is
 
+   -----------------------------------------------
+   -- Regular expressions for ALI files parsing --
+   -----------------------------------------------
+
+   D_Regexp  : constant String := "([^\t ]*)[\t ]";
+   D_Matcher : constant Pattern_Matcher := Compile (D_Regexp);
+
+   N_Regexp  : constant String :=
+     "A([0-9]*):([0-9]*) xcov " & "([^ ]*)( ""(.*)"")?";
+   N_Matcher : constant Pattern_Matcher := Compile (N_Regexp);
+
+   U_Regexp  : constant String := "[^\t ]*[\t ]+([^\t ]*)[\t ]";
+   U_Matcher : constant Pattern_Matcher := Compile (U_Regexp);
+
+   V_Regexp  : constant String := "^V ""(.*)""$";
+   V_Matcher : constant Pattern_Matcher := Compile (V_Regexp);
+
    --------------
    -- Load_ALI --
    --------------
@@ -227,8 +244,6 @@ package body ALI_Files is
          use Ada.Strings.Unbounded;
 
          V_Line    : constant String := Get_Stripped_Line (ALI_File);
-         V_Regexp  : constant String := "^V ""(.*)""$";
-         V_Matcher : constant Pattern_Matcher := Compile (V_Regexp);
 
          Error_Msg : Unbounded_String;
       begin
@@ -284,33 +299,19 @@ package body ALI_Files is
                end if;
 
             when 'U' =>
-               declare
-                  U_Regexp  : constant String := "[^\t ]*[\t ]+([^\t ]*)[\t ]";
-                  U_Matcher : constant Pattern_Matcher := Compile (U_Regexp);
-               begin
-                  Match (U_Matcher, Line (3 .. Line'Last), Matches);
-                  if Matches (0) /= No_Match then
-                     Current_Unit := Get_Index_From_Simple_Name (Match (1));
-                  end if;
-               end;
+               Match (U_Matcher, Line (3 .. Line'Last), Matches);
+               if Matches (0) /= No_Match then
+                  Current_Unit := Get_Index_From_Simple_Name (Match (1));
+               end if;
 
             when 'D' =>
-               declare
-                  D_Regexp  : constant String := "([^\t ]*)[\t ]";
-                  D_Matcher : constant Pattern_Matcher := Compile (D_Regexp);
-               begin
-                  Match (D_Matcher, Line (3 .. Line'Last), Matches);
-                  if Matches (0) /= No_Match then
-                     Deps.Append (Get_Index_From_Simple_Name (Match (1)));
-                  end if;
-               end;
+               Match (D_Matcher, Line (3 .. Line'Last), Matches);
+               if Matches (0) /= No_Match then
+                  Deps.Append (Get_Index_From_Simple_Name (Match (1)));
+               end if;
 
             when 'N' =>
                declare
-                  N_Regexp  : constant String :=
-                                "A([0-9]*):([0-9]*) xcov "
-                                  & "([^ ]*)( ""(.*)"")?";
-                  N_Matcher : constant Pattern_Matcher := Compile (N_Regexp);
                   Annotation : ALI_Annotation;
                   Valid      : Boolean;
                   Sloc       : Source_Location;
