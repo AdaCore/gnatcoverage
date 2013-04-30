@@ -1526,14 +1526,14 @@ package body Traces_Elf is
       Off, Sec_Off, Tag_Off : Storage_Offset;
       Aoff                  : Storage_Offset;
 
-      Len : Unsigned_32;
-      Ver : Unsigned_16;
+      Len        : Unsigned_32;
+      Ver        : Unsigned_16;
       Abbrev_Off : Unsigned_32;
-      Ptr_Sz : Unsigned_8;
-      Last : Storage_Offset;
-      Num : Unsigned_32;
+      Ptr_Sz     : Unsigned_8;
+      Last       : Storage_Offset;
+      Num        : Unsigned_32;
 
-      Tag : Unsigned_32;
+      Tag  : Unsigned_32;
       Name : Unsigned_32;
       Form : Unsigned_32;
 
@@ -2614,10 +2614,10 @@ package body Traces_Elf is
    ---------------------
 
    procedure Build_Sections (Exec : in out Elf_Exe_File_Type) is
-      Shdr : Elf_Shdr_Acc;
-      Addr : Pc_Type;
-      Last : Pc_Type;
-      Offset : Pc_Type;
+      Shdr     : Elf_Shdr_Acc;
+      Addr     : Pc_Type;
+      Last     : Pc_Type;
+      Offset   : Pc_Type;
       Do_Reloc : Boolean;
    begin
       --  Return now if already built
@@ -2724,7 +2724,7 @@ package body Traces_Elf is
       PC   : Pc_Type) return Source_Location
    is
       SL : constant Source_Locations :=
-        Get_Slocs (Set, PC, Non_Empty_Only => True);
+         Get_Slocs (Set, PC, Non_Empty_Only => True);
    begin
       if SL'Length = 0 then
          return Slocs.No_Location;

@@ -131,11 +131,11 @@ package Traces_Elf is
    --  Section. Set Last_Executed to the last PC executed (i.e. the PC for the
    --  last byte of the last executed instruction).
 
-   --  Read dwarfs info to build compile_units/subprograms lists.
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type'Class);
+   --  Read DWARF info to build compile_units/subprograms lists
 
    procedure Build_Symbols (Exec : in out Exe_File_Type) is abstract;
-   --  Read symbol table.
+   --  Read symbol table
 
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type'Class);
    --  Read dwarfs info to build lines list
