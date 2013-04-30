@@ -186,6 +186,7 @@ procedure GNATcov is
       P (" dump-symbols EXEs");
       P (" dump-compile-units EXEs");
       P (" dump-subprograms EXEs");
+      P (" dump-inlined-subprograms EXEs");
       P (" dump-lines EXEs");
       P ("   Dump info from executable files");
       New_Line;
@@ -849,6 +850,7 @@ procedure GNATcov is
                            | Cmd_Dump_Symbols
                            | Cmd_Dump_Compile_Units
                            | Cmd_Dump_Subprograms
+                           | Cmd_Dump_Inlined_Subprograms
                            | Cmd_Dump_Lines
                            | Cmd_Disassemble_Raw
                            | Cmd_Disassemble =>
@@ -1206,6 +1208,7 @@ begin
       when Cmd_Dump_Sections
         | Cmd_Dump_Symbols
         | Cmd_Dump_Subprograms
+        | Cmd_Dump_Inlined_Subprograms
         | Cmd_Dump_Lines =>
          declare
             procedure Dump_Exec (Exec_File_Name : String);
@@ -1233,6 +1236,10 @@ begin
                   when Cmd_Dump_Subprograms =>
                      Build_Debug_Compile_Units (Exec);
                      To_Display := Subprogram_Addresses;
+
+                  when Cmd_Dump_Inlined_Subprograms =>
+                     Build_Debug_Lines (Exec);
+                     To_Display := Inlined_Subprogram_Addresses;
 
                   when Cmd_Dump_Lines =>
                      Build_Debug_Lines (Exec);

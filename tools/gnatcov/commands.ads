@@ -36,6 +36,7 @@ package Commands is
       Cmd_Dump_Symbols,
       Cmd_Dump_Compile_Units,
       Cmd_Dump_Subprograms,
+      Cmd_Dump_Inlined_Subprograms,
       Cmd_Dump_Lines,
       Cmd_Disassemble_Raw,
       Cmd_Disassemble,

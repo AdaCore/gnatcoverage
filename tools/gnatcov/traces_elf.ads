@@ -99,8 +99,8 @@ package Traces_Elf is
      (Base : in out Traces_Base; Section : Binary_Content);
    --  Comment needed???
 
-   --  Read dwarfs info to build compile_units/subprograms lists.
    procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type);
+   --  Read dwarfs info to build compile_units/subprograms lists.
 
    procedure Build_Symbols (Exec : Exe_File_Acc);
    --  Read ELF symbol table.
@@ -123,6 +123,7 @@ package Traces_Elf is
    type Addresses_Kind is
      (Section_Addresses,
       Subprogram_Addresses,
+      Inlined_Subprogram_Addresses,
       Symbol_Addresses,
       Line_Addresses);
 
@@ -181,6 +182,7 @@ package Traces_Elf is
       --    Parent of a symbol is a section.
       --    Parent of a CU is a section.
       --    Parent of a subprogram is a section as well
+      --    Parent of an inlined subprogram is a section as well
       --    Parent of a line is a subprogram or a CU.
 
       case Kind is
@@ -196,6 +198,9 @@ package Traces_Elf is
 
             Subprogram_DIE_CU : DIE_CU_Id;
             --  Compilation Unit (DWARF meaning) for consolidation
+
+         when Inlined_Subprogram_Addresses =>
+            Call_Sloc : Source_Location := No_Location;
 
          when Symbol_Addresses =>
             Symbol_Name   : String_Access;
@@ -233,11 +238,14 @@ package Traces_Elf is
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
    function Get_Slocs
-     (Exec      : Exe_File_Type;
-      PC        : Pc_Type;
-      Last_Only : Boolean := False) return Source_Locations;
+     (Exec       : Exe_File_Type;
+      PC         : Pc_Type;
+      Last_Only  : Boolean := False;
+      No_Inlined : Boolean := False) return Source_Locations;
    --  Use Exec's debug_lines information to determine the slocs for the
-   --  instruction at PC.
+   --  instruction at PC. If No_Inline, the result doesn't include information
+   --  about inlined subprograms (thus, there is no sloc corresponding to the
+   --  caller).
 
    function Get_Sloc
      (Exec : Exe_File_Type;

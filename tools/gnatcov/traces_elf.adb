@@ -121,16 +121,6 @@ package body Traces_Elf is
    --  This procedure should only be called to relocate dwarf debug sections,
    --  and therefore handles only a small subset of the relocations.
 
-   procedure Read_Debug_Lines
-     (Exec                  : in out Exe_File_Type;
-      Stmt_List_Offset      : Unsigned_32;
-      Compilation_Directory : String_Access);
-   --  Read the debug lines of a compilation unit.
-   --  Stmt_List_Offset is the offset of a stmt list from the beginning of the
-   --  .debug_line section of Exec; Compilation_Directory is the value of
-   --  DW_AT_comp_dir for the compilation unit, or null if this attribute is
-   --  not specified.
-
    procedure Alloc_And_Load_Section
      (Exec    : Exe_File_Type;
       Sec     : Elf_Half;
@@ -145,6 +135,52 @@ package body Traces_Elf is
    --  Allocate memory for section SEC of EXEC and read it.
    --  LEN is the length of the section, CONTENT is its binary content.
    --  The low bound of CONTENT is 0.
+
+   type Inlined_Subprogram_Raw is record
+      First, Last        : Traces.Pc_Type;
+      --  Range of addresses of the inlined subprogram
+
+      Stmt_List_Offset   : Unsigned_32;
+      --  Offset into the .debug_line section for the corresponding compile
+      --  unit.
+
+      Section            : Addresses_Info_Acc;
+      --  "Parent" section of the corresponding Inlined_Subprogram_Addresses
+
+      File, Line, Column : Natural;
+      --  File is an offset in the filenames table for the line information
+      --  table at Stmt_List_offset. Line and Colum do not need to be decoded.
+   end record;
+
+   package Inlined_Subprogram_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Inlined_Subprogram_Raw);
+
+   procedure Build_Debug_Compile_Units
+     (Exec                : in out Exe_File_Type;
+      Inlined_Subprograms : in out Inlined_Subprogram_Vectors.Vector);
+   --  Read DWARF info to build compile_units/subprograms lists. Also fill
+   --  Inlined_Subprograms with raw SLOC information about call sites that
+   --  caused inlining.
+   --  "Raw" means here: file, line and column info are identifiers get from
+   --  DWARF info itself, but they need some context (from .debug_line section)
+   --  in order to be turned into Source_Location values.
+   --  It is up to Read_Debug_Lines to resolve those SLOCs and then to fill
+   --  Exec.Desc_Sets (Inlined_Subroutines_Addresses).
+
+   procedure Read_Debug_Lines
+     (Exec                  : in out Exe_File_Type;
+      Stmt_List_Offset      : Unsigned_32;
+      Compilation_Directory : String_Access;
+      Inlined_Subprograms   : in out Inlined_Subprogram_Vectors.Vector);
+   --  Read the debug lines of a compilation unit and add corresponding inlined
+   --  subprograms addresses ranges.
+   --  Stmt_List_Offset is the offset of a stmt list from the beginning of the
+   --  .debug_line section of Exec; Compilation_Directory is the value of
+   --  DW_AT_comp_dir for the compilation unit, or null if this attribute is
+   --  not specified.
+   --  Inlined_Subprogram are entries with raw info (DWARF references for
+   --  filenames, ...).
 
    procedure Load_Symtab (Exec : in out Exe_File_Type);
    --  Load the symbol table (but not the string table) if not already
@@ -198,6 +234,9 @@ package body Traces_Elf is
          when Subprogram_Addresses =>
             return Names_Lt (L.Subprogram_Name, R.Subprogram_Name);
 
+         when Inlined_Subprogram_Addresses =>
+            return L.Call_Sloc < R.Call_Sloc;
+
          when Symbol_Addresses =>
             return Names_Lt (L.Symbol_Name, R.Symbol_Name);
 
@@ -244,6 +283,13 @@ package body Traces_Elf is
 
          when Subprogram_Addresses =>
             return Range_Img & " subprogram " & El.Subprogram_Name.all;
+
+         when Inlined_Subprogram_Addresses =>
+            return Range_Img & " inlined subprogram line "
+              & Get_Full_Name (El.Call_Sloc.Source_File) & ':'
+              & Sloc_Image
+                 (Line   => El.Call_Sloc.Line,
+                  Column => El.Call_Sloc.Column);
 
          when Symbol_Addresses =>
             return Range_Img & " symbol for " & El.Symbol_Name.all;
@@ -1035,7 +1081,10 @@ package body Traces_Elf is
    -- Build_Debug_Compile_Units --
    -------------------------------
 
-   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type) is
+   procedure Build_Debug_Compile_Units
+     (Exec                : in out Exe_File_Type;
+      Inlined_Subprograms : in out Inlined_Subprogram_Vectors.Vector)
+   is
       use Dwarf;
       use Compile_Unit_Vectors;
 
@@ -1064,23 +1113,27 @@ package body Traces_Elf is
 
       Level : Unsigned_8;
 
-      At_Sib       : Unsigned_64 := 0;
-      At_Stmt_List : Unsigned_32 := No_Stmt_List;
-      At_Ranges    : Unsigned_32 := No_Ranges;
-      At_Low_Pc    : Unsigned_64 := 0;
-      At_High_Pc   : Unsigned_64 := 0;
-      At_Lang      : Unsigned_64 := 0;
-      At_Name      : Address := Null_Address;
-      At_Comp_Dir  : Address := Null_Address;
-      Cu_Base_Pc   : Unsigned_64;
+      At_Sib         : Unsigned_64 := 0;
+      At_Stmt_List   : Unsigned_32 := No_Stmt_List;
+      At_Ranges      : Unsigned_32 := No_Ranges;
+      At_Low_Pc      : Unsigned_64 := 0;
+      At_High_Pc     : Unsigned_64 := 0;
+      At_Lang        : Unsigned_64 := 0;
+      At_Call_File   : Unsigned_32 := 0;
+      At_Call_Line   : Unsigned_32 := 0;
+      At_Call_Column : Unsigned_32 := 0;
+      At_Name        : Address := Null_Address;
+      At_Comp_Dir    : Address := Null_Address;
+      Cu_Base_Pc     : Unsigned_64;
 
-      Current_Sec     : Addresses_Info_Acc;
-      Current_Subprg  : Addresses_Info_Acc;
-      Current_CU      : CU_Id := No_CU_Id;
-      Current_DIE_CU  : DIE_CU_Id := No_DIE_CU_Id;
-      Compilation_Dir : String_Access;
-      Unit_Filename   : String_Access;
-      Subprg_Low      : Pc_Type;
+      Current_Sec       : Addresses_Info_Acc;
+      Current_Subprg    : Addresses_Info_Acc;
+      Current_CU        : CU_Id := No_CU_Id;
+      Current_DIE_CU    : DIE_CU_Id := No_DIE_CU_Id;
+      Current_Stmt_List : Unsigned_32 := No_Stmt_List;
+      Compilation_Dir   : String_Access;
+      Unit_Filename     : String_Access;
+      Subprg_Low        : Pc_Type;
 
    begin
       --  Return now if already loaded
@@ -1194,6 +1247,15 @@ package body Traces_Elf is
                      end if;
                   when DW_AT_language =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Lang);
+                  when DW_AT_call_file =>
+                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
+                                          At_Call_File);
+                  when DW_AT_call_line =>
+                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
+                                          At_Call_Line);
+                  when DW_AT_call_column =>
+                     Read_Dwarf_Form_U32 (Exec, Base, Off, Form,
+                                          At_Call_Column);
                   when others =>
                      Skip_Dwarf_Form (Exec, Base, Off, Form);
                end case;
@@ -1229,6 +1291,7 @@ package body Traces_Elf is
                   end if;
 
                   At_Lang := 0;
+                  Current_Stmt_List := At_Stmt_List;
                   At_Stmt_List := No_Stmt_List;
 
                when DW_TAG_subprogram =>
@@ -1265,12 +1328,29 @@ package body Traces_Elf is
                        Insert (Current_Subprg);
                   end if;
 
+               when DW_TAG_inlined_subroutine =>
+                  if At_High_Pc > At_Low_Pc then
+                     --  TODO: handle address ranges
+
+                     Inlined_Subprograms.Append
+                       ((First            => Pc_Type (At_High_Pc),
+                         Last             => Pc_Type (At_Low_Pc),
+                         Stmt_List_Offset => Current_Stmt_List,
+                         Section          => Current_Sec,
+                         File             => Natural (At_Call_File),
+                         Line             => Natural (At_Call_Line),
+                         Column           => Natural (At_Call_Column)));
+                  end if;
+
                when others =>
                   null;
             end case;
             At_Low_Pc := 0;
             At_High_Pc := 0;
             At_Ranges := No_Ranges;
+            At_Call_File := 0;
+            At_Call_Line := 0;
+            At_Call_Column := 0;
 
             At_Name := Null_Address;
             At_Comp_Dir := Null_Address;
@@ -1280,6 +1360,19 @@ package body Traces_Elf is
 
       Free (Infos);
       Free (Abbrevs);
+   end Build_Debug_Compile_Units;
+
+   -------------------------------
+   -- Build_Debug_Compile_Units --
+   -------------------------------
+
+   procedure Build_Debug_Compile_Units (Exec : in out Exe_File_Type) is
+      Inlined_Subprograms : Inlined_Subprogram_Vectors.Vector;
+   begin
+      --  Regurarly build debug compile units, but discard inlined subprogram
+      --  information.
+
+      Build_Debug_Compile_Units (Exec, Inlined_Subprograms);
    end Build_Debug_Compile_Units;
 
    -----------------
@@ -1327,7 +1420,8 @@ package body Traces_Elf is
    procedure Read_Debug_Lines
      (Exec                  : in out Exe_File_Type;
       Stmt_List_Offset      : Unsigned_32;
-      Compilation_Directory : String_Access)
+      Compilation_Directory : String_Access;
+      Inlined_Subprograms   : in out Inlined_Subprogram_Vectors.Vector)
    is
       use Dwarf;
       Base : Address;
@@ -1705,6 +1799,24 @@ package body Traces_Elf is
          raise Program_Error with "missing end_of_sequence";
       end if;
 
+      --  Add corresponding inlined subprogram addresses ranges
+
+      for Inlined_Subp of Inlined_Subprograms loop
+         if Inlined_Subp.Stmt_List_Offset = Stmt_List_Offset then
+            Exec.Desc_Sets (Inlined_Subprogram_Addresses).Insert
+              (new Addresses_Info'
+                 (Kind => Inlined_Subprogram_Addresses,
+                  First => Inlined_Subp.First,
+                  Last => Inlined_Subp.Last,
+                  Parent => Inlined_Subp.Section,
+                  Call_Sloc =>
+                    (Source_File => Get_Index_From_Full_Name
+                       (Filenames.Element (Inlined_Subp.File).all),
+                     Line => Inlined_Subp.Line,
+                     Column => Inlined_Subp.Column)));
+         end if;
+      end loop;
+
       Free (Opc_Length);
    end Read_Debug_Lines;
 
@@ -1737,6 +1849,8 @@ package body Traces_Elf is
       Subprg     : Addresses_Info_Acc;
       Sec        : Addresses_Info_Acc;
 
+      Inlined_Subprograms : Inlined_Subprogram_Vectors.Vector;
+
    --  Start of processing for Build_Debug_Lines
 
    begin
@@ -1748,12 +1862,13 @@ package body Traces_Elf is
 
       --  Be sure compile units are loaded
 
-      Build_Debug_Compile_Units (Exec);
+      Build_Debug_Compile_Units (Exec, Inlined_Subprograms);
 
       --  Read all .debug_line
 
       for Cu of Exec.Compile_Units loop
-         Read_Debug_Lines (Exec, Cu.Stmt_List, Cu.Compilation_Directory);
+         Read_Debug_Lines
+           (Exec, Cu.Stmt_List, Cu.Compilation_Directory, Inlined_Subprograms);
       end loop;
 
       --  Set Parent links
@@ -1871,7 +1986,7 @@ package body Traces_Elf is
       PC   : Pc_Type) return Source_Location
    is
       SL : constant Source_Locations :=
-             Get_Slocs (Exec, PC, Last_Only => True);
+             Get_Slocs (Exec, PC, Last_Only => True, No_Inlined => True);
    begin
       if SL'Length = 0 then
          return Slocs.No_Location;
@@ -1887,15 +2002,22 @@ package body Traces_Elf is
    ---------------
 
    function Get_Slocs
-     (Exec      : Exe_File_Type;
-      PC        : Pc_Type;
-      Last_Only : Boolean := False) return Source_Locations
+     (Exec       : Exe_File_Type;
+      PC         : Pc_Type;
+      Last_Only  : Boolean := False;
+      No_Inlined : Boolean := False) return Source_Locations
    is
       use Addresses_Containers;
 
       Line_Infos : constant Addresses_Containers.Set :=
-                           Get_Address_Infos (Exec, Line_Addresses, PC);
-      Result     : Source_Locations (1 .. Natural (Line_Infos.Length));
+         Get_Address_Infos (Exec, Line_Addresses, PC);
+      Inlined_Subps : constant Addresses_Containers.Set :=
+         Get_Address_Infos (Exec, Inlined_Subprogram_Addresses, PC);
+      Max_Length : constant Natural :=
+        (Natural (Line_Infos.Length)
+         + Natural (Inlined_Subps.Length));
+
+      Result     : Source_Locations (1 .. Max_Length);
       Last       : Natural := Result'First - 1;
 
    begin
@@ -1908,6 +2030,13 @@ package body Traces_Elf is
             Result (Last) := Addr_Info.Sloc;
          end if;
       end loop;
+
+      if not No_Inlined then
+         for Addr_Info of Inlined_Subps loop
+            Last := Last + 1;
+            Result (Last) := Addr_Info.Call_Sloc;
+         end loop;
+      end if;
 
       return Result (Result'First .. Last);
    end Get_Slocs;
