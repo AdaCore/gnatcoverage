@@ -121,6 +121,17 @@ procedure GNATcov is
       P (" scan-objects {FILES}");
       P ("   Scan object FILES for empty symbols or orphan regions");
       New_Line;
+      P (" convert --trace-source=SOURCE_ID --exec=EXECUTABLE");
+      P ("  --input=INPUT_TRACE [OPTIONS]");
+      P ("     SOURCE_ID specifies source of trace data (e.g. iSystem-5634)");
+      P ("     EXECUTABLE is name of executable which generated data");
+      P ("     INPUT_TRACE is file containing trace data to be converted");
+      P ("  --output=OUTPUT_TRACE file to place converted trace into");
+      P ("  --hw-trigger-traces=START_ID,START_ADDR,STOP_ID");
+      P ("     identity of start and stop triggers, and address for start");
+      P ("  --level=.... same as for 'run' command");
+      P ("  --scos=...   same as for 'run' command");
+      New_Line;
       P (" coverage OPTIONS TRACE_FILES");
       P ("   Generate coverage report");
       P ("   -c LEVEL --level=LEVEL     Specify coverage levels");
