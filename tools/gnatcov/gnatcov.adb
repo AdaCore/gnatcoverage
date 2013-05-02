@@ -32,6 +32,7 @@ with Annotations.Xml;
 with Annotations.Report;
 with Check_SCOs;
 with Commands;          use Commands;
+with Convert;
 with Coverage;          use Coverage;
 with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
@@ -203,8 +204,11 @@ procedure GNATcov is
    Recursive_Option          : constant String := "--recursive";
    Trace_Option              : constant String := "--trace=";
    Trace_Option_Short        : constant String := "-T";
+   Trace_Source_Option       : constant String := "--trace-source=";
    Target_Option             : constant String := "--target=";
    Target_Option_Short       : constant String := "-t";
+   HW_Trigger_Traces_Option  : constant String := "--hw-trigger-traces=";
+   Input_Option              : constant String := "--input=";
    Output_Option             : constant String := "--output=";
    Output_Option_Short       : constant String := "-o";
    Separate_Option_Short     : constant String := "-S";
@@ -579,7 +583,8 @@ procedure GNATcov is
 
                      elsif Has_Prefix (Arg, Output_Option) then
                         Check_Option (Arg, Command, (1 => Cmd_Run,
-                                                     2 => Cmd_Coverage));
+                                                     2 => Cmd_Coverage,
+                                                     3 => Cmd_Convert));
                         Output := new String'(Option_Parameter (Arg));
 
                      elsif Has_Prefix (Arg, Projects_Option) then
@@ -611,7 +616,8 @@ procedure GNATcov is
 
                      elsif Has_Prefix (Arg, Coverage_Option) then
                         Check_Option (Arg, Command, (1 => Cmd_Coverage,
-                                                     2 => Cmd_Run));
+                                                     2 => Cmd_Run,
+                                                     3 => Cmd_Convert));
                         begin
                            Set_Coverage_Levels (Option_Parameter (Arg));
                         exception
@@ -625,7 +631,8 @@ procedure GNATcov is
                      then
                         Check_Option (Arg, Command, (1 => Cmd_Map_Routines,
                                                      2 => Cmd_Coverage,
-                                                     3 => Cmd_Run));
+                                                     3 => Cmd_Run,
+                                                     4 => Cmd_Convert));
                         Inputs.Add_Input
                           (ALIs_Inputs, Option_Parameter (Arg));
 
@@ -658,7 +665,8 @@ procedure GNATcov is
                                           "@" & Option_Parameter (Arg));
 
                      elsif Has_Prefix (Arg, Exec_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Coverage));
+                        Check_Option (Arg, Command, (1 => Cmd_Coverage,
+                                                     2 => Cmd_Convert));
                         Opt_Exe_Name := new String'(Option_Parameter (Arg));
 
                      elsif Arg = "--all-decisions" then
@@ -759,6 +767,20 @@ procedure GNATcov is
                         Inputs.Add_Input
                           (Trace_Inputs, Option_Parameter (Arg));
 
+                     elsif Has_Prefix (Arg, Trace_Source_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Convert));
+                        Convert.Set_Trace_Source (Option_Parameter (Arg));
+
+                     elsif Has_Prefix (Arg, HW_Trigger_Traces_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Convert));
+                        Convert.HW_Trigger_Arg :=
+                          new String'(Option_Parameter (Arg));
+
+                     elsif Has_Prefix (Arg, Input_Option) then
+                        Check_Option (Arg, Command, (1 => Cmd_Convert));
+                        Convert.Input_Arg :=
+                          new String'(Option_Parameter (Arg));
+
                      elsif Arg = "--exclude" then
                         Inputs.Add_Input (Obj_Inputs, Arg);
 
@@ -841,6 +863,10 @@ procedure GNATcov is
                            else
                               Inputs.Add_Input (Trace_Inputs, Arg);
                            end if;
+
+                        when Cmd_Convert =>
+                           null;
+
                         end case;
                      end if;
                end case;
@@ -1607,6 +1633,25 @@ begin
             end Run;
          begin
             Inputs.Iterate (Exe_Inputs, Run'Access);
+         end;
+
+      when Cmd_Convert =>
+         declare
+            Histmap : String_Access := null;
+         begin
+            if MCDC_Coverage_Enabled then
+               if Length (ALIs_Inputs) = 0 then
+                  Warn ("No SCOs specified for MC/DC level");
+
+               else
+                  Histmap := new String'(Opt_Exe_Name.all & ".dmap");
+                  Load_All_SCOs (Check_SCOs => False);
+                  Build_Decision_Map (Opt_Exe_Name.all, Text_Start,
+                                      Histmap.all);
+               end if;
+            end if;
+
+            Convert.Run_Convert (Opt_Exe_Name, Output, Histmap);
          end;
    end case;
 

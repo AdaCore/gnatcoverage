@@ -40,7 +40,8 @@ package Commands is
       Cmd_Disassemble_Raw,
       Cmd_Disassemble,
       Cmd_Run,
-      Cmd_Scan_Objects
+      Cmd_Scan_Objects,
+      Cmd_Convert
      );
 
    function To_Command (Opt_String : String) return Command_Type;

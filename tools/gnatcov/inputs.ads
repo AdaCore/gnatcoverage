@@ -38,7 +38,7 @@ package Inputs is
    --  cannot be opened.
 
    type Inputs_Type is private;
-   --  Input lists. Can be used to accumulate the argument given on
+   --  Input lists. Can be used to accumulate the arguments given on
    --  a command line.
 
    procedure Add_Input (Inputs : in out Inputs_Type; Name : String);
