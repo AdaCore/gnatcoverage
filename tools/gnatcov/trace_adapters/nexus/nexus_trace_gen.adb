@@ -30,27 +30,23 @@
 --  processor, the executable file, the nexus trace file (aka the
 --  On Chip Debug file), a history file name (or the argument
 --  "--nohist") and the name of the initialized qemu trace
---  file which is to be filled in. Optionally, the command line
---  can specify one or 2 executable file addresses that are used
---  for anchoring branch trace messages. When an address is specified
---  using "--start=XXXX", the address indicates the value of the PC
---  at the beginning of the stream of Nexus messages.  When an address
---  is specified using "iac[0123]=XXX", it indicates that the indicated
---  Instruction Address Compare register has been give the adddress
---  provided and that it is set as a trigger register in the processor
---  nexus unit to enable program trace messages. This means that when
---  a watchpoint is seen for the chosen IAC, the anchor for the
---  subsequent branch trace message is the address programmed into the
---  IAC. If no "--start" argument is provided, the stream of branch
---  messages is processed until a sync message is seen which provides
---  a full address.
+--  file which is to be filled in. Also, there are arguments
+--  that describe the HW trigger settings that were used when
+--  the traces were generated. These are the IAC register that
+--  was used for the start trigger, the address set in that IAC
+--  register, and the IAC register used for the stop tirgger or
+--  the constant '0' if no stop trigger was set. This trigger information
+--  is used for anchoring BTMs as Nexus tracing is turned on and
+--  off by the triggers.
 --
 --  Currently this works only for 32 bit PowerPC Book E processors and
---  presumtption of that constraint is hard-coded in, in many places
+--  presumption of that constraint is hard-coded in, in many places
 --  (particularly the 32 bit word size, machine code of 20, swap to
 --  little endian host).
 
 with Ada.Unchecked_Deallocation;
+with Ada.Characters.Handling; use Ada.Characters.Handling;
+
 with Ada.Command_Line; use Ada.Command_Line;
 with Text_IO;          use Text_IO;
 with Interfaces;       use Interfaces;
@@ -404,9 +400,6 @@ begin
       Set_Exit_Status (1);
       return;
    end if;
-   for K in 1 .. Argument_Count loop
-      Put_Line (Argument (K));
-   end loop;
 
    Processor_ID := new String'(Argument (1));
    Executable_Filename := new String'(Argument (2));
@@ -431,13 +424,13 @@ begin
    --  case a symbol name is used for the address, which requires
    --  processing of the executable.
 
-   if Argument (6) = "1" then
+   if To_Upper (Argument (6)) = "IAC1" then
       PT_Start_IAC_Bit := 1;
-   elsif Argument (6) = "2" then
+   elsif To_Upper (Argument (6)) = "IAC2" then
       PT_Start_IAC_Bit := 2;
-   elsif Argument (6) = "3" then
+   elsif To_Upper (Argument (6)) = "IAC3" then
       PT_Start_IAC_Bit := 4;
-   elsif Argument (6) = "4" then
+   elsif To_Upper (Argument (6)) = "IAC4" then
       PT_Start_IAC_Bit := 8;
    else
       Put_Line (Standard_Error, "PT_Start_IAC out of range 1 .. 4");
@@ -447,15 +440,15 @@ begin
 
    PT_Start_Address := Exe_Address_From_Arg (Argument (7));
 
-   if Argument (8) = "never" then
+   if Argument (8) = "0" then
       PT_Stop_IAC_Bit := 0;
-   elsif Argument (8) = "1" then
+   elsif To_Upper (Argument (8)) = "IAC1" then
       PT_Stop_IAC_Bit := 1;
-   elsif Argument (8) = "2" then
+   elsif To_Upper (Argument (8)) = "IAC2" then
       PT_Stop_IAC_Bit := 2;
-   elsif Argument (8) = "3" then
+   elsif To_Upper (Argument (8)) = "IAC3" then
       PT_Stop_IAC_Bit := 4;
-   elsif Argument (8) = "4" then
+   elsif To_Upper (Argument (8)) = "IAC4" then
       PT_Stop_IAC_Bit := 8;
    else
       Put_Line (Standard_Error,

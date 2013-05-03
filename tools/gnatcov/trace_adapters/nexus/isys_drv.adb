@@ -232,9 +232,9 @@ begin
       end if;
       Trace_Conv_Args (3) :=
         new String'(Workspace_Dir.all & '\' & "nexus_trace.bin");
-      Trace_Conv_Args (6) := new String'("1");
+      Trace_Conv_Args (6) := new String'("IAC1");
       Trace_Conv_Args (7) := new String'("main");
-      Trace_Conv_Args (8) := new String'("2");
+      Trace_Conv_Args (8) := new String'("IAC2");
 
    else
       Trace_Conv_Args (3) := new String'(Argument (4));
