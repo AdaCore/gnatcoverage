@@ -512,13 +512,14 @@ package body Project is
          Fatal_Error ("only one root project can be specified");
       end if;
 
+      --  Allow activation of GNATcoll debug traces via configuration file,
+      --  prior to initializing the project subsystem.
+
+      GNATCOLL.Traces.Parse_Config_File (Filename => No_File);
+
       pragma Assert (Env = null);
       Initialize (Target);
       pragma Assert (Env /= null);
-
-      --  Allow activation of GNATcoll debug traces via configuration file
-
-      GNATCOLL.Traces.Parse_Config_File (Filename => No_File);
 
       Prj_Tree := new Project_Tree;
       Prj_Tree.Load
