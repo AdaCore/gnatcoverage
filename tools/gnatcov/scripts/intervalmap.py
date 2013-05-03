@@ -140,6 +140,16 @@ class IntervalMap(object):
 
         return self.values[start_bound]
 
+    def __contains__(self, key):
+        """Return if `key` belongs to some covered interval.
+        """
+        try:
+            self[key]
+        except KeyError:
+            return False
+        else:
+            return True
+
     def get(self, key, default=None):
         """Return the value associated to the interval that contains `key`, or
         `default` if there is no such interval.
@@ -162,8 +172,8 @@ class IntervalMap(object):
                 # If this happens, `bound` doesn't start an interval.
                 continue
             interval = (bound, self.bounds[i + 1])
-            lulz = (interval, value)
-            yield lulz
+            item = (interval, value)
+            yield item
 
     def __repr__(self):
         return '{{{}}}'.format(', '.join(

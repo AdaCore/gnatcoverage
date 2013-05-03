@@ -10,11 +10,14 @@ import subprocess
 
 import bddinfo
 import slocinfo
+import traceinfo
 
 COLOR_JUMP                  = '"#000000"'
 COLOR_BRANCH_FALLTHROUGH    = '"#c00000"'
 COLOR_BRANCH_TAKEN          = '"#00c000"'
 COLOR_OUTSIDE_JUMP          = '"#a0a0a0"'
+COLOR_COVERED               = '"#008000"'
+COLOR_NOT_COVERED           = '"#a00000"'
 
 SLOC_RANGE = re.compile(
     '^([^:]*):(\d+):(\d+)-(\d+):(\d+)$'
@@ -33,7 +36,7 @@ Program = collections.namedtuple('Program', 'filename arch')
 ARCH_STRUCT = {
     1: struct.Struct('<H'),
     2: struct.Struct('>H'),
-    }
+}
 
 class Arch(object):
     JUMP = 'jump'
@@ -377,6 +380,10 @@ if __name__ == '__main__':
         help='Use SCOS to display the binary decision diagram (BDD)'
     )
     parser.add_argument(
+        '-t', '--traces', dest='traces',
+        help='Use a set of traces to hilight executed instructions'
+    )
+    parser.add_argument(
         'program', type=parse_program,
         help='The program to analyse'
     )
@@ -403,6 +410,13 @@ if __name__ == '__main__':
         bddinfo.get_bdd_info(args.program.filename, args.scos)
         if args.scos is not None else
         {}
+    )
+
+    # Load traces if asked to.
+    trace_info = (
+        traceinfo.get_trace_info(args.traces)
+        if args.traces is not None else
+        None
     )
 
     # Use the BDD, and especially its EXCEPTION edges info to remove successors
@@ -507,32 +521,54 @@ if __name__ == '__main__':
 
         return result or None
 
-    def format_label(lines):
+    def format_text_label(lines):
         label = ''.join('{}\n'.format(line) for line in lines)
         label = label.replace('\\', '\\\\').replace('"', '\\"')
         label = label.replace('\n', '\\l')
-        return label
+        return '"{}"'.format(label)
+
+    def html_escape(line):
+        for char, escape in (
+            ('&', 'amp'),
+            ('<', 'lt'), ('>', 'gt')
+        ):
+            line = line.replace(char, '&{};'.format(escape))
+        return line
+
+    def html_color(line, color=None):
+        if color:
+            return '<FONT COLOR={}>{}</FONT>'.format(
+                color, html_escape(line)
+            )
+        else:
+            return html_escape(line)
+
+    def format_html_label(lines):
+        label = ''.join('{}<BR ALIGN="left"/>'.format(line) for line in lines)
+        return '<{}>'.format(label)
 
     def add_edge(from_, to, label, color):
         # Handle nicely unknown branch destinations.
         if to is None:
             to_name = pc_to_name(from_, unknown=True)
-            add_node(pc, None, ['???'], shape='ellipse', unknown=True)
+            add_node(
+                pc, None,
+                format_text_label(['???']),
+                shape='ellipse', unknown=True
+            )
         else:
             to_name = pc_to_name(to)
             destinations.add(to)
         edges.append('    {} -> {} [{}color={}];'.format(
             pc_to_name(from_), to_name,
-            'label="{}", '.format(format_label(label)) if label else '',
+            'label={}, '.format(format_text_label(label)) if label else '',
             color
         ))
 
     def add_node(pc, condition, label, shape='box', unknown=False):
         by_condition[condition].append(
-            '    {} [shape={}, fontname=monospace, label="{}"];\n'.format(
-                pc_to_name(pc, unknown),
-                shape,
-                format_label(label),
+            '    {} [shape={}, fontname=monospace, label={}];\n'.format(
+                pc_to_name(pc, unknown), shape, label
             )
         )
         nodes.add(pc)
@@ -546,10 +582,18 @@ if __name__ == '__main__':
                 for sloc in insn.slocs:
                     label.append(slocinfo.format_sloc(sloc, args.basename))
                 last_slocs = insn.slocs
-            label.append('  {:x} {:<8}{}'.format(
+            if trace_info:
+                color = (
+                    COLOR_COVERED
+                    if insn.pc in trace_info else
+                    COLOR_NOT_COVERED
+                )
+            else:
+                color = None
+            label.append(html_color('  {:x} {:<8}{}'.format(
                 insn.pc, insn.mnemonic,
                 ' {}'.format(insn.operands) if insn.operands else ''
-            ))
+            ), color))
 
         # Add the box to the correct condition cluster subgraph.
         condition, branch_info = get_bb_condition(basic_block)
@@ -563,7 +607,7 @@ if __name__ == '__main__':
             label_branch = format_edge_info(
                 branch_info.edge_branch, condition
             )
-        add_node(pc, condition, label)
+        add_node(pc, condition, format_html_label(label))
 
         # Then add outgoing edges for it.
         successors = basic_block[-1].successors
@@ -587,7 +631,7 @@ if __name__ == '__main__':
         for sloc in insn.slocs:
             label.append(slocinfo.format_sloc(sloc, args.basename))
         label.append('  {:#0x}'.format(insn.pc))
-        add_node(insn.pc, None, label, shape='ellipse')
+        add_node(insn.pc, None, format_text_label(label), shape='ellipse')
 
         for pc in insn.successors:
             add_edge(insn.pc, pc, None, COLOR_OUTSIDE_JUMP)
@@ -597,7 +641,7 @@ if __name__ == '__main__':
         for sloc in sloc_info.get(out_dest, []):
             label.append(slocinfo.format_sloc(sloc, args.basename))
         label.append('  {:#0x}'.format(out_dest))
-        add_node(out_dest, None, label, 'ellipse')
+        add_node(out_dest, None, format_text_label(label), 'ellipse')
 
     f = args.output
     f.write('digraph cfg {\n')
