@@ -1,5 +1,10 @@
 <project name="GNATCoverage" scripts="qm_plugins">
 
+  <repository name="testsuite" class="fs" root="../../testsuite/"/>
+  <repository name="plans" class="fs" root="./"/>
+
+<!-- PLANS -->
+
   <artifact_class name="Environment" role="artifact">
     <location_content mime="text/x-python"/>
   </artifact_class>
@@ -13,6 +18,7 @@
   <artifact_class name="Document" role="document">
     <location_container>
       <content name="content" location="content.rst" mime="text/x-rst"/>
+      <content name="qualif_content" location="content.txt" mime="text/x-rst"/>
       <content name="config" location="conf.py" mime="text/x-python"/>
     </location_container>
   </artifact_class>
@@ -32,7 +38,7 @@
   </link_definition>
 
   <artifact_factory class="Environment">
-    <on_location pattern="default:///env.py" type="content"/>
+    <on_location pattern="plans:///env.py" type="content"/>
     <creates name="environment"/>
   </artifact_factory>
 
@@ -47,14 +53,20 @@
   </artifact_factory>
 
   <artifact_factory class="Document">
-    <on_location pattern="default:///*/conf.py"
+    <on_location pattern="plans:///*/conf.py"
                  type="content"/>
     <creates location="$location.container" name="$location.basename"/>
   </artifact_factory>
 
+  <artifact_factory class="Document">
+    <on_location pattern="testsuite:///Qualif/content.txt"
+                 type="content"/>
+    <creates location="$location.container" name="Qualification document"/>
+  </artifact_factory>
+
   <artifact_factory class="PDF">
     <on_location relative_class="Document"
-                 pattern="default:///release/pdf/$relative.name.pdf"
+                 pattern="plans:///release/pdf/$relative.name.pdf"
                  type="content"/>
     <creates name="$location.basename">
       <link_constructor implements="ENV_PDF">
@@ -64,6 +76,154 @@
         <from instance="$relative"/>
       </link_constructor>
     </creates>
+  </artifact_factory>
+
+<!-- TESTSUITE -->
+
+  <artifact_class name="All_Req" role="tor" abstract="true"/>
+
+  <artifact_class name="All_TC" role="testcase" abstract="true"/>
+
+  <artifact_class name="Req_Set" role="set">
+    <location_container>
+       <content name="set_content" location="set.txt" mime="text/plain"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="Req" inherits="All_Req">
+    <location_container>
+       <content name="requirement" location="req.txt" mime="text/plain"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="Harness_Req_Set" role="settest">
+    <location_container>
+       <content name="htc_set_content" location="hset.txt" mime="text/plain"/>
+       <content name="appendix" location="app.txt" mime="text/plain"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="Harness_Req" role="tor">
+    <location_container>
+       <content name="requirement" location="hreq.txt" mime="text/plain"/>
+    </location_container>
+  </artifact_class>
+
+
+  <artifact_class name="TC_Set" role="settest">
+    <location_container>
+       <content name="tc_set_content" location="set.txt" mime="text/plain"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="TC" inherits="All_TC">
+    <location_container>
+       <content name="tc_content" location="tc.txt" mime="text/plain"/>
+       <content name="ada_sources" location="src/*ad[bs]" mime="text/x-ada"/>
+       <content name="c_sources" location="src/*.c" mime="text/x-c"/>
+       <content name="h_sources" location="src/*.h" mime="text/x-h"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="Harness_TC" inherits="All_TC">
+    <location_container>
+       <content name="htc_content" location="htc.txt" mime="text/plain"/>
+       <content name="sources" location="src/*ad[bs]" mime="text/x-ada"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="TR" role="result">
+    <location_container>
+       <content name="tr_content" location="test.py.out" mime="text/plain"/>
+       <content name="tr_err" location="test.py.err" mime="text/plain"/>
+       <content name="generated_rest" location="*.rst" mime="text/x-rst"/>
+    </location_container>
+  </artifact_class>
+
+  <link_definition kind="dependency" name="TC_TR">
+    <from class="All_TC"/>
+    <to class="TR"/>
+  </link_definition>
+
+  <artifact_factory class="Req_Set">
+    <on_location relative_instance="/Qualification document"
+                 pattern="$relative.location/set.txt"
+                 type="content"/>
+    <on_location relative_class="Req_Set"
+                 pattern="$relative.location/*/set.txt"
+                 type="content"/>
+    <creates location="$location.container" name="$subst($location.basename,(.*),\1)"/>
+  </artifact_factory>
+
+  <artifact_factory class="Req">
+    <on_location relative_class="Req_Set"
+                 pattern="$relative.location/*/req.txt"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename"/>
+  </artifact_factory>
+
+  <artifact_factory class="Harness_Req_Set">
+    <on_location relative_instance="/Qualification document"
+                 pattern="$relative.location/Appendix/hset.txt"
+                 type="content"/>
+    <on_location relative_class="Harness_Req_Set"
+                 pattern="$relative.location/*/app.txt"
+                 type="content"/>
+    <creates location="$location.container" name="$subst($location.basename,(.*),\1)"/>
+  </artifact_factory>
+
+  <artifact_factory class="Harness_Req">
+    <on_location relative_class="Harness_Req_Set"
+                 pattern="$relative.location/*/hreq.txt"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename"/>
+  </artifact_factory>
+
+  <artifact_factory class="TC_Set">
+    <on_location relative_class="Req"
+                 pattern="$relative.location/*/set.txt"
+                 type="content"/>
+    <on_location relative_class="TC_Set"
+                 pattern="$relative.location/*/set.txt"
+                 type="content"/>
+    <creates location="$location.container" name="$subst($location.basename,(.*),\1)"/>
+  </artifact_factory>
+
+  <artifact_factory class="TC">
+    <on_location relative_class="TC_Set"
+                 pattern="$relative.location/*/tc.txt"
+                 type="content"/>
+    <on_location relative_class="Req"
+                 pattern="$relative.location/*/tc.txt"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename"/>
+  </artifact_factory>
+
+ <artifact_factory class="Harness_TC">
+    <on_location relative_class="Harness_Req"
+                 pattern="$relative.location/*/htc.txt"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename"/>
+  </artifact_factory>
+
+  <artifact_factory class="TR">
+    <on_location relative_class="TC"
+                 pattern="$relative.location/test.py"
+                 type="content"/>
+   <on_location relative_class="Harness_TC"
+                 pattern="$relative.location/test.py"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename">
+      <link_constructor implements="TC_TR">
+        <from instance="$relative"/>
+      </link_constructor>
+   </creates>
+  </artifact_factory>
+
+  <artifact_factory class="TR">
+    <on_location pattern="testsuite:///qreport/source/"
+                 type="container"/>
+    <creates name="qreport"/>
   </artifact_factory>
 
 </project>
