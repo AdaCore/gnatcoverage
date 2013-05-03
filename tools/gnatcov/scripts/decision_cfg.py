@@ -12,12 +12,15 @@ import bddinfo
 import slocinfo
 import traceinfo
 
-COLOR_JUMP                  = '"#000000"'
-COLOR_BRANCH_FALLTHROUGH    = '"#c00000"'
-COLOR_BRANCH_TAKEN          = '"#00c000"'
-COLOR_OUTSIDE_JUMP          = '"#a0a0a0"'
+JUMP, FALLTHROUGH, BRANCH = range(3)
+
+STYLE_NONE                  = 'solid'
+STYLE_BRANCH_FALLTHROUGH    = 'dashed'
+STYLE_BRANCH_TAKEN          = 'dotted'
+COLOR_OUTSIDE               = '"#a0a0a0"'
 COLOR_COVERED               = '"#008000"'
 COLOR_NOT_COVERED           = '"#a00000"'
+COLOR_NONE                  = '"#000000"'
 
 SLOC_RANGE = re.compile(
     '^([^:]*):(\d+):(\d+)-(\d+):(\d+)$'
@@ -225,6 +228,7 @@ class Insn:
     its execution successors."""
     def __init__(self, pc, mnemonic, operands, slocs=None):
         self.pc = pc
+        self.next_pc = None
         self.mnemonic = mnemonic
         self.operands = operands
         self.slocs = slocs
@@ -301,6 +305,8 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
             pc, m.group('mnemonic'), m.group('operands'),
             sloc_info.get(pc, [])
         )
+        if instructions:
+            instructions[-1].next_pc = pc
         sloc_in_decision = slocs_match_range(insn.slocs, decision_sloc_range)
 
         # This instruction is the successor of the previous instruction.
@@ -423,11 +429,12 @@ if __name__ == '__main__':
     )
 
     # Load traces if asked to.
-    trace_info = (
+    executed_insns, leave_flags = (
         traceinfo.get_trace_info(args.traces)
         if args.traces is not None else
-        None
+        (None, None)
     )
+    trace_info = executed_insns is not None
 
     # Use the BDD, and especially its EXCEPTION edges info to remove successors
     # of basic blocks that raise an exception.
@@ -531,6 +538,24 @@ if __name__ == '__main__':
 
         return result or None
 
+    def format_edge_color(branch_insn, kind):
+        if trace_info:
+            if kind == JUMP:
+                covered = branch_insn.pc in executed_insns
+            else:
+                try:
+                    flags = leave_flags[branch_insn.next_pc]
+                except KeyError:
+                    covered = False
+                else:
+                    covered = (
+                        (kind == FALLTHROUGH and flags.fallthrough)
+                        or (kind == BRANCH and flags.branch)
+                    )
+        else:
+            covered = False
+        return COLOR_COVERED if covered else COLOR_NOT_COVERED
+
     def format_text_label(lines):
         label = ''.join('{}\n'.format(line) for line in lines)
         label = label.replace('\\', '\\\\').replace('"', '\\"')
@@ -557,7 +582,7 @@ if __name__ == '__main__':
         label = ''.join('{}<BR ALIGN="left"/>'.format(line) for line in lines)
         return '<{}>'.format(label)
 
-    def add_edge(from_, to, label, color):
+    def add_edge(from_, to, label, color=COLOR_NONE, style=STYLE_NONE):
         # Handle nicely unknown branch destinations.
         if to is None:
             to_name = pc_to_name(from_, unknown=True)
@@ -569,10 +594,10 @@ if __name__ == '__main__':
         else:
             to_name = pc_to_name(to)
             destinations.add(to)
-        edges.append('    {} -> {} [{}color={}];'.format(
+        edges.append('    {} -> {} [{}color={},style={},penwidth=3];'.format(
             pc_to_name(from_), to_name,
             'label={}, '.format(format_text_label(label)) if label else '',
-            color
+            color, style
         ))
 
     def add_node(pc, condition, label, shape='box', unknown=False):
@@ -595,7 +620,7 @@ if __name__ == '__main__':
             if trace_info:
                 color = (
                     COLOR_COVERED
-                    if insn.pc in trace_info else
+                    if insn.pc in executed_insns else
                     COLOR_NOT_COVERED
                 )
             else:
@@ -623,17 +648,24 @@ if __name__ == '__main__':
         successors = basic_block[-1].successors
         if len(successors) == 1:
             # This is an unconditionnal jump (or a mere fallthrough).
-            add_edge(pc, successors[0], None, COLOR_JUMP)
+            add_edge(
+                pc, successors[0], None,
+                format_edge_color(basic_block[-1], JUMP)
+            )
         elif len(successors) == 2:
             # This is a branch: the first one is the fallthrough, the second
             # one is the branch destination.
             add_edge(
                 pc, successors[0],
-                label_fallthrough, COLOR_BRANCH_FALLTHROUGH
+                label_fallthrough,
+                format_edge_color(basic_block[-1], FALLTHROUGH),
+                STYLE_BRANCH_FALLTHROUGH
             )
             add_edge(
                 pc, successors[1],
-                label_branch, COLOR_BRANCH_TAKEN
+                label_branch,
+                format_edge_color(basic_block[-1], BRANCH),
+                STYLE_BRANCH_TAKEN
             )
 
     for insn in outside_insns.values():
@@ -644,7 +676,7 @@ if __name__ == '__main__':
         add_node(insn.pc, None, format_text_label(label), shape='ellipse')
 
         for pc in insn.successors:
-            add_edge(insn.pc, pc, None, COLOR_OUTSIDE_JUMP)
+            add_edge(insn.pc, pc, None, COLOR_OUTSIDE)
 
     for out_dest in (destinations - nodes):
         label = []
