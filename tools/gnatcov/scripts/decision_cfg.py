@@ -64,7 +64,7 @@ class Arch(object):
 
 class ArchX86(Arch):
     RETS = set('ret retl retq'.split())
-    JUMPS = set('jmp jmpl'.split())
+    JUMPS = set('jmp jmpl jmpq'.split())
     BRANCHES = set(
         'ja jae jb jbe jc jcxz jecxz je jg jge jl jle jna jnae jnb jnbe jnc'
         ' jne jng jnge jnl jnle jno jnp jns jnz jo jp jpe jpo js jz'.split()
@@ -72,7 +72,11 @@ class ArchX86(Arch):
 
     @staticmethod
     def get_insn_dest(insn):
-        return int(insn.operands.split()[0], 16)
+        if insn.operands.startswith('*'):
+            # TODO: handle rip-relative jumps
+            return None
+        else:
+            return int(insn.operands.split()[0], 16)
 
     @staticmethod
     def get_insn_properties(insn):
