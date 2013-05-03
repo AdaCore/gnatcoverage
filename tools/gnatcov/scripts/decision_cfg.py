@@ -39,6 +39,7 @@ ARCH_STRUCT = {
 }
 
 class Arch(object):
+    RET = 'ret'
     JUMP = 'jump'
     BRANCH = 'branch'
 
@@ -62,6 +63,7 @@ class Arch(object):
         raise NotImplementedError()
 
 class ArchX86(Arch):
+    RETS = set('ret retl retq'.split())
     JUMPS = set('jmp jmpl'.split())
     BRANCHES = set(
         'ja jae jb jbe jc jcxz jecxz je jg jge jl jle jna jnae jnb jnbe jnc'
@@ -74,7 +76,9 @@ class ArchX86(Arch):
 
     @staticmethod
     def get_insn_properties(insn):
-        if insn.mnemonic in ArchX86.JUMPS:
+        if insn.mnemonic in ArchX86.RETS:
+            return (Arch.RET, None)
+        elif insn.mnemonic in ArchX86.JUMPS:
             return (Arch.JUMP, ArchX86.get_insn_dest(insn))
         elif insn.mnemonic in ArchX86.BRANCHES:
             return (Arch.BRANCH, ArchX86.get_insn_dest(insn))
@@ -112,7 +116,7 @@ class ArchPPC32(Arch):
             return (None, None)
         elif mnemonic.endswith('lr'):
             # To Link Register (return)
-            return (None, None)
+            return (Arch.RET, None)
         elif mnemonic.endswith('ctr'):
             # To ConTrol Register (destination known at runtime)
             return (Arch.BRANCH, None)
@@ -330,7 +334,9 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
                         add_outside(insn, dest)
 
         # Update "last_*" information for the next iteration.
-        last_instruction_can_fallthrough = insn_type is not Arch.JUMP
+        last_instruction_can_fallthrough = (
+            insn_type not in (Arch.RET, Arch.JUMP)
+        )
         last_instruction_in_decision = sloc_in_decision
         last_instruction = insn
 
