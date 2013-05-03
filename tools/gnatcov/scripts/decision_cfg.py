@@ -476,7 +476,7 @@ if __name__ == '__main__':
                         except KeyError:
                             pass
                         else:
-                            return get_bb_condition(next_basic_block)[0], None
+                            return helper(next_basic_block)[0], None
                 # By default, return that we got nothing.
                 return None, None
             else:
