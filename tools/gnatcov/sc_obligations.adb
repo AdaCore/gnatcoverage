@@ -993,14 +993,8 @@ package body SC_Obligations is
      (Key_Type     => Source_Location_Range,
       Element_Type => SCO_Id);
 
-   Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
-   --  Map of statement and condition SCOs
-
-   D_Sloc_To_SCO_Map : Sloc_To_SCO_Maps.Map;
-   --  Map of decision SCOs
-
-   Operator_Map : Sloc_To_SCO_Maps.Map;
-   --  Map of operator SCOs
+   Sloc_To_SCO_Map : array (SCO_Kind) of Sloc_To_SCO_Maps.Map;
+   --  Maps for statement, decision, condition, and operator SCOs
 
    -----------------
    -- Add_Address --
@@ -1404,44 +1398,60 @@ package body SC_Obligations is
      (Sloc_Begin : Source_Location;
       Sloc_End   : Source_Location) return Boolean
    is
-      use Sloc_To_SCO_Maps;
+      function Has_SCO (Kind : SCO_Kind) return Boolean;
+      --  Return if there is at least one SCO of the given Kind whose range has
+      --  a non-null intersection with Sloc_Begin .. Sloc_End.
 
-      Position : Cursor :=
-                   Sloc_To_SCO_Map.Floor
-                     (Source_Location_Range'(First_Sloc => Sloc_End,
-                                             Last_Sloc  => No_Location));
-      SCO      : SCO_Id;
-      SCOD     : SCO_Descriptor;
+      -------------
+      -- Has_SCO --
+      -------------
+
+      function Has_SCO (Kind : SCO_Kind) return Boolean
+      is
+         use Sloc_To_SCO_Maps;
+
+         Position : Cursor :=
+                      Sloc_To_SCO_Map (Kind).Floor
+                        (Source_Location_Range'(First_Sloc => Sloc_End,
+                                                Last_Sloc  => No_Location));
+         SCO      : SCO_Id;
+         SCOD     : SCO_Descriptor;
+
+      begin
+         while Position /= No_Element loop
+            SCO  := Element (Position);
+            SCOD := SCO_Vector.Element (SCO);
+
+            if Sloc_End < SCOD.Sloc_Range.First_Sloc then
+               --  Negative match, and no chance to have a positive match in
+               --  the next SCOs: they all have a higher First_Sloc.
+
+               return False;
+
+            elsif SCOD.Sloc_Range.Last_Sloc < Sloc_Begin then
+               --  Negative match, but we may reach a positive match in the
+               --  next SCO. Continue.
+
+               null;
+
+            else
+               --  The two possible negative matches have been dealt with
+               --  earlier.  We have a positive match.
+
+               return True;
+
+            end if;
+
+            Next (Position);
+         end loop;
+
+         return False;
+      end Has_SCO;
+
+   --  Start of processing for Has_SCO
 
    begin
-      while Position /= No_Element loop
-         SCO  := Element (Position);
-         SCOD := SCO_Vector.Element (SCO);
-
-         if Sloc_End < SCOD.Sloc_Range.First_Sloc then
-            --  Negative match, and no chance to have a positive match in the
-            --  next SCOs: they all have a higher First_Sloc.
-
-            return False;
-
-         elsif SCOD.Sloc_Range.Last_Sloc < Sloc_Begin then
-            --  Negative match, but we may reach a positive match in the next
-            --  SCO. Continue.
-
-            null;
-
-         else
-            --  The two possible negative matches have been dealt with earlier.
-            --  We have a positive match.
-
-            return True;
-
-         end if;
-
-         Next (Position);
-      end loop;
-
-      return False;
+      return Has_SCO (Statement) or else Has_SCO (Condition);
    end Has_SCO;
 
    -----------
@@ -2124,6 +2134,9 @@ package body SC_Obligations is
             ------------------------
 
             procedure Process_Descriptor (SCOD : in out SCO_Descriptor) is
+               Sloc_Range : Source_Location_Range := SCOD.Sloc_Range;
+               --  Map Sloc_range to the SCO. By default, this range is the one
+               --  associated to the SCOD.
             begin
                First := SCO_Vector.Element (SCO).Sloc_Range.First_Sloc;
                Enclosing_SCO := Sloc_To_SCO (First);
@@ -2151,17 +2164,9 @@ package body SC_Obligations is
                                     Kind (Enclosing_SCO) /= Decision);
                      SCOD.Parent := Enclosing_SCO;
 
-                     --  Decisions are not included in the main sloc map,
-                     --  (their conditions are), but they are recorded in a
-                     --  separate D_Sloc_To_SCO_Map.
-
                      if SCOD.Control_Location /= No_Location then
-                        D_Sloc_To_SCO_Map.Insert
-                          ((SCOD.Control_Location, No_Location), SCO);
-                     else
-                        D_Sloc_To_SCO_Map.Insert (SCOD.Sloc_Range, SCO);
+                        Sloc_Range := (SCOD.Control_Location, No_Location);
                      end if;
-                     First := No_Location;
 
                      for L in SCOD.Sloc_Range.First_Sloc.Line
                            .. SCOD.Sloc_Range.Last_Sloc.Line
@@ -2196,31 +2201,21 @@ package body SC_Obligations is
                           (SCOD.Sloc_Range.First_Sloc.Source_File, L, SCO);
                      end loop;
 
-                  when Condition =>
+                  when Condition | Operator =>
                      --  Parent is already set to the enclosing decision or
                      --  operator.
 
                      null;
 
-                  when Operator =>
-                     --  Parent is already set to the enclosing decision or
-                     --  operator, and sloc is recorded in the operator map,
-                     --  not in the general SCO map.
-
-                     Operator_Map.Insert (SCOD.Sloc_Range, SCO);
-                     First := No_Location;
-
                end case;
 
-               if First /= No_Location then
-                  Sloc_To_SCO_Map.Insert (SCOD.Sloc_Range, SCO);
+               Sloc_To_SCO_Map (SCOD.Kind).Insert (Sloc_Range, SCO);
 
-                  --  Note: we used to handle Constraint_Error here to account
-                  --  for old compilers that generated junk SCOs with the same
-                  --  source locations. These bugs have now been fixed, so the
-                  --  work-around was removed, and if this happened again we'd
-                  --  propagate the exception.
-               end if;
+               --  Note: we used to handle Constraint_Error here to account for
+               --  old compilers that generated junk SCOs with the same source
+               --  locations. These bugs have now been fixed, so the
+               --  work-around was removed, and if this happened again we'd
+               --  propagate the exception.
             end Process_Descriptor;
 
          begin
@@ -2268,7 +2263,7 @@ package body SC_Obligations is
                      --  Case of >T / >F: dominant SCO is a decision
 
                      Dom_Sloc_SCO :=
-                       D_Sloc_To_SCO_Map.Element
+                       Sloc_To_SCO_Map (Decision).Element
                          ((SCOD.Dominant_Sloc, No_Location));
                      pragma Assert (Kind (Dom_Sloc_SCO) = Decision);
                   end if;
@@ -2486,15 +2481,16 @@ package body SC_Obligations is
    is
       use Sloc_To_SCO_Maps;
 
-      L_Sloc : Source_Location := Sloc;
-      Cur    : Cursor;
-      SCO    : SCO_Id;
+      L_Sloc   : Source_Location := Sloc;
+      Cur      : Cursor;
+      SCO      : SCO_Id;
+      SCO_Sloc : Source_Location_Range;
 
    begin
       --  If looking up the sloc of a NOT operator, return SCO of innermost
       --  operand, if it is a condition.
 
-      Cur := Operator_Map.Find ((Sloc, No_Location));
+      Cur := Sloc_To_SCO_Map (Operator).Find ((Sloc, No_Location));
       if Cur /= No_Element then
          SCO := Element (Cur);
          while Kind (SCO) = Operator and then Op_Kind (SCO) = Op_Not loop
@@ -2514,10 +2510,23 @@ package body SC_Obligations is
          L_Sloc.Column := Natural'Last;
       end if;
 
-      Cur := Sloc_To_SCO_Map.Floor
-               ((First_Sloc => L_Sloc, Last_Sloc => No_Location));
+      --  Get the innermost condition or statement SCO. To do this, get the
+      --  Floor of the sloc range to condition *and* statement SCO maps
+      --  combined.
 
+      Cur := Sloc_To_SCO_Map (Condition).Floor
+               ((First_Sloc => L_Sloc, Last_Sloc => No_Location));
       if Cur /= No_Element then
+         SCO := Element (Cur);
+         SCO_Sloc := Key (Cur);
+      end if;
+
+      Cur := Sloc_To_SCO_Map (Statement).Floor
+               ((First_Sloc => L_Sloc, Last_Sloc => No_Location));
+      if Cur /= No_Element
+            and then
+         (SCO = No_SCO_Id or else SCO_Sloc < Key (Cur))
+      then
          SCO := Element (Cur);
       end if;
 
@@ -2564,7 +2573,7 @@ package body SC_Obligations is
            and then
          (SCO = No_SCO_Id or else Kind (SCO) = Statement)
       then
-         Cur := D_Sloc_To_SCO_Map.Find
+         Cur := Sloc_To_SCO_Map (Decision).Find
            ((First_Sloc => Sloc, Last_Sloc => No_Location));
          if Cur = No_Element then
             SCO := No_SCO_Id;
