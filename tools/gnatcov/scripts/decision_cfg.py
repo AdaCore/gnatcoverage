@@ -17,7 +17,6 @@ JUMP, FALLTHROUGH, BRANCH = range(3)
 STYLE_NONE                  = 'solid'
 STYLE_BRANCH_FALLTHROUGH    = 'dashed'
 STYLE_BRANCH_TAKEN          = 'dotted'
-COLOR_OUTSIDE               = '"#a0a0a0"'
 COLOR_COVERED               = '"#008000"'
 COLOR_NOT_COVERED           = '"#a00000"'
 COLOR_NONE                  = '"#000000"'
@@ -251,10 +250,6 @@ class Insn:
             self.pc, self.mnemonic, self.operands
         )
 
-# An instruction that is the successor or that have as a successor an
-# instruction that is inside the wanted decision.
-OutsideInsn = collections.namedtuple('OutsideInsn', 'pc successors slocs')
-
 
 def get_decision_cfg(program, sloc_info, decision_sloc_range):
     get_insn_properties = program.arch.get_insn_properties
@@ -281,14 +276,6 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
     last_instruction_in_decision = False
     last_instruction = None
 
-    def add_outside(insn, successor):
-        try:
-            outside = outside_instructions[insn.pc]
-        except KeyError:
-            outside = OutsideInsn(insn.pc, [], insn.slocs)
-            outside_instructions[insn.pc] = outside
-        outside.successors.append(successor)
-
     while True:
         # Read as many lines as possible from objdump
         line = proc.stdout.readline().decode('ascii')
@@ -305,18 +292,17 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
             pc, m.group('mnemonic'), m.group('operands'),
             sloc_info.get(pc, [])
         )
-        if instructions:
-            instructions[-1].next_pc = pc
+        if last_instruction:
+            last_instruction.next_pc = pc
         sloc_in_decision = slocs_match_range(insn.slocs, decision_sloc_range)
 
         # This instruction is the successor of the previous instruction.
         if last_instruction_can_fallthrough:
-            if last_instruction_in_decision:
-                instructions[-1].add_successor(insn.pc, first=True)
-            elif sloc_in_decision:
+            last_instruction.add_successor(insn.pc, first=True)
+            if sloc_in_decision and not last_instruction_in_decision:
                 # Here, the previous instruction was not in the decision, but
                 # we are interested in it anyway.
-                add_outside(last_instruction, insn.pc)
+                outside_instructions[last_instruction.pc] = last_instruction
 
         # Add this instruction if it belongs to the decision.
         if sloc_in_decision:
@@ -341,7 +327,7 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
                     # If the current instruction is outside, remember it
                     # anyway.
                     if not sloc_in_decision:
-                        add_outside(insn, dest)
+                        outside_instructions[insn.pc] = insn
 
         # Update "last_*" information for the next iteration.
         last_instruction_can_fallthrough = (
@@ -608,6 +594,30 @@ if __name__ == '__main__':
         )
         nodes.add(pc)
 
+    def process_successor_edges(from_pc, insn):
+        successors = insn.successors
+        if len(successors) == 1:
+            # This is an unconditionnal jump (or a mere fallthrough).
+            add_edge(
+                from_pc, successors[0], None,
+                format_edge_color(insn, JUMP)
+            )
+        elif len(successors) == 2:
+            # This is a branch: the first one is the fallthrough, the second
+            # one is the branch destination.
+            add_edge(
+                from_pc, successors[0],
+                label_fallthrough,
+                format_edge_color(insn, FALLTHROUGH),
+                STYLE_BRANCH_FALLTHROUGH
+            )
+            add_edge(
+                from_pc, successors[1],
+                label_branch,
+                format_edge_color(insn, BRANCH),
+                STYLE_BRANCH_TAKEN
+            )
+
     for pc, basic_block in decision_cfg.items():
         # Draw the box for the basic block.
         label = []
@@ -645,28 +655,7 @@ if __name__ == '__main__':
         add_node(pc, condition, format_html_label(label))
 
         # Then add outgoing edges for it.
-        successors = basic_block[-1].successors
-        if len(successors) == 1:
-            # This is an unconditionnal jump (or a mere fallthrough).
-            add_edge(
-                pc, successors[0], None,
-                format_edge_color(basic_block[-1], JUMP)
-            )
-        elif len(successors) == 2:
-            # This is a branch: the first one is the fallthrough, the second
-            # one is the branch destination.
-            add_edge(
-                pc, successors[0],
-                label_fallthrough,
-                format_edge_color(basic_block[-1], FALLTHROUGH),
-                STYLE_BRANCH_FALLTHROUGH
-            )
-            add_edge(
-                pc, successors[1],
-                label_branch,
-                format_edge_color(basic_block[-1], BRANCH),
-                STYLE_BRANCH_TAKEN
-            )
+        process_successor_edges(pc, basic_block[-1])
 
     for insn in outside_insns.values():
         label = []
@@ -674,9 +663,7 @@ if __name__ == '__main__':
             label.append(slocinfo.format_sloc(sloc, args.basename))
         label.append('  {:#0x}'.format(insn.pc))
         add_node(insn.pc, None, format_text_label(label), shape='ellipse')
-
-        for pc in insn.successors:
-            add_edge(insn.pc, pc, None, COLOR_OUTSIDE)
+        process_successor_edges(insn.pc, insn)
 
     for out_dest in (destinations - nodes):
         label = []
