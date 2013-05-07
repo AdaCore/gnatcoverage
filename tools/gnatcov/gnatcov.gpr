@@ -32,6 +32,7 @@ project Gnatcov is
    end Compiler;
 
    for Source_Dirs use (".", "gnat");
+   for Object_Dir use "obj" & Bits;
    for Main use ("gnatcov.adb", "ppc_genopc.adb");
 
 end Gnatcov;

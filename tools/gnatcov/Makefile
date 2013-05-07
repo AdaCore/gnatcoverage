@@ -67,6 +67,7 @@ MKDIR=mkdir -p
 
 # Binary program name
 PGMNAME=gnatcov
+PGMPATH=obj$(BITS_ARCH)/$(PGMNAME)
 
 # Directory name in the install tree
 DIRNAME=gnatcoverage
@@ -135,7 +136,7 @@ include architecture.mk
 
 PARALLEL_BUILD=0
 
-.PHONY: default all adapters bin $(PGMNAME) $(ALL_ADAPTER_SUBDIRS)
+.PHONY: default all adapters bin $(PGMPATH) $(ALL_ADAPTER_SUBDIRS)
 
 default: bin
 
@@ -143,12 +144,12 @@ adapters: $(HOST_ADAPTER_SUBDIRS)
 
 all-adapters: $(ALL_ADAPTER_SUBDIRS)
 
-bin: $(PGMNAME)
+bin: $(PGMPATH)
 
 all: bin adapters
 
-$(PGMNAME):
-	$(GNATMAKE) -Pgnatcov                           \
+$(PGMPATH):
+	$(GNATMAKE) -Pgnatcov -p                        \
 		-j$(PARALLEL_BUILD)                     \
 		-XARCH=$(BITS_ARCH) $(EXTRA_ADAFLAGS) $@
 
@@ -214,7 +215,7 @@ doc: $(foreach fmt, $(DOCFORMATS), doc.$(fmt)) clean-doc-build
 .PHONY: clean-bin clean-doc clean-doc-copy clean-doc-build clean clean-adapters
 
 clean-bin:
-	$(RM) *.o *.ali $(PGMNAME) b~*
+	$(RM) *.o *.ali $(PGMNAME) b~* obj*/
 
 clean-doc-copy.%:
 	   $(RM) -r doc/$*
@@ -241,7 +242,7 @@ clean: clean-bin clean-doc clean-adapters
 
 install-bin:
 	$(MKDIR) $(PREFIX)/bin
-	$(CP) $(PGMNAME)$(exeext) $(PREFIX)/bin/$(PGMNAME)$(BITS_ARCH)$(exeext)
+	$(CP) $(PGMPATH)$(exeext) $(PREFIX)/bin/$(PGMNAME)$(BITS_ARCH)$(exeext)
 	cd $(PREFIX)/bin && $(RM) $(PGMNAME)$(exeext) && $(LN_S) $(PGMNAME)$(BITS_ARCH)$(exeext) $(PGMNAME)$(exeext)
 
 install-examples:
