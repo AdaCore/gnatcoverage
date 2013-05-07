@@ -977,7 +977,7 @@ class TestSuite:
                      help='Explicit --RTS to use for builds, if any.' \
                           'Assume full profile otherwise.')
         # defaulting to "" instead of None lets us perform RE searches
-        # inconditionally
+        # unconditionally
 
         m.add_option('--kernel', dest='kernel', metavar='KERNEL',
                      help='KERNEL to pass to gnatcov run in addition to exe')
