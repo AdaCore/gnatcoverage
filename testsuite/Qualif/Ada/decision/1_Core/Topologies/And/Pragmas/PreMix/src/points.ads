@@ -1,3 +1,5 @@
+pragma Check_Policy (Precondition, On);
+
 package Points is
    type Point is record
       X, Y : Integer;
