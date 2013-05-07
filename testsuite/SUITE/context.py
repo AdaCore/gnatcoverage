@@ -331,8 +331,8 @@ class Test (object):
                              'when that normally happens.')
         main.add_option('--board', dest='board', metavar='BOARD',
                         help='Specific target board to exercize')
-        main.add_option('--RTS', dest='RTS', metavar='RTS',
-                     help='--RTS option to pass to gprbuild.')
+        main.add_option('--RTS', dest='RTS', metavar='RTS', default="",
+                     help='--RTS option to pass to gprbuild, if any.')
         main.add_option('--kernel', dest='kernel', metavar='KERNEL',
                      help='KERNEL to pass to gnatcov run in addition to exe')
 

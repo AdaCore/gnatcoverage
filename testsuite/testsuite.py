@@ -451,7 +451,7 @@ class TestSuite:
         elif re.search ("ravenscar", self.env.main_options.RTS):
             return ["RTS_RAVENSCAR", "RTS_RAVENSCAR_FULL"]
 
-        # ex --RTS=native or --RTS=kernel
+        # ex --RTS=native or --RTS=kernel, or no --RTS at all
 
         else:
             return ["RTS_FULL"]
@@ -788,7 +788,8 @@ class TestSuite:
                 '--toolchain=%s' % self.__toolchain_discriminants()[0]
                 )
 
-        testcase_cmd.append('--RTS=%s' % mopt.RTS)
+        if mopt.RTS:
+            testcase_cmd.append('--RTS=%s' % mopt.RTS)
 
         testcase_cmd.append('--tags=@%s' % list_to_tmp(self.discriminants))
 
@@ -971,8 +972,13 @@ class TestSuite:
                      'Note that it disables the use of valgrind.')
         m.add_option('--board', dest='board', metavar='BOARD',
                      help='Specific target board to exercize.')
-        m.add_option('--RTS', dest='RTS', metavar='RTS',
-                     help='RTS library to use, mandatory for BSP support')
+
+        m.add_option('--RTS', dest='RTS', metavar='RTS', default="",
+                     help='Explicit --RTS to use for builds, if any.' \
+                          'Assume full profile otherwise.')
+        # defaulting to "" instead of None lets us perform RE searches
+        # inconditionally
+
         m.add_option('--kernel', dest='kernel', metavar='KERNEL',
                      help='KERNEL to pass to gnatcov run in addition to exe')
         m.add_option(
@@ -995,9 +1001,6 @@ class TestSuite:
 
         self.enable_valgrind = (
             m.options.enable_valgrind and m.options.bootstrap_scos == None)
-
-        if not m.options.RTS:
-            m.error ("RTS argument missing, mandatory for BSP selection")
 
         # Determine the test filtering regexp
 

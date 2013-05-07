@@ -127,11 +127,14 @@ class BUILDER:
 
         rm (BUILDER.SUITE_CGPR)
 
+        extraopts = []
+        if toplev_options.RTS:
+            extraopts.append ('--RTS=%s' % toplev_options.RTS)
+
         Run ([GPRBUILD, '-P', tempgpr.name,
-              '--RTS=%s' % toplev_options.RTS,
               '--target=%s' % env.target.triplet,
-              '--autoconf=%s' % BUILDER.SUITE_CGPR]
-             )
+              '--autoconf=%s' % BUILDER.SUITE_CGPR
+              ] + extraopts)
 
         rm (tempgpr.name)
 
