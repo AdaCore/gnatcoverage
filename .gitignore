@@ -1,1 +1,8 @@
-*.pyc*.pyc*.pyc*.pyc*.pyc*.pyc*.pyc*.pyc*.pyc
+mc_*
+uc_*
+dc_*
+st_*
+tmp_*
+test.py.*
+*.pyc
+*.pkl
