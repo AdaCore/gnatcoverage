@@ -120,7 +120,7 @@ QLEVEL_INFO = {
         levelid   = "doA",
         subtrees  = RE_SUBTREE (re_crit="stmt|decision|mcdc"),
         xcovlevel = "stmt+mcdc",
-        
+
         # At level A, the need to perform MCDC and to process decisions in
         # expression relies on the use of short-circuit operators only:
         pragmas   = [
@@ -338,7 +338,7 @@ class TestSuite:
 
         if not dolevel:
             return
-        
+
         f = open ("gnat.%s" % dolevel, 'w')
         f.write (
             '\n'.join (
@@ -346,7 +346,7 @@ class TestSuite:
                 + QLEVEL_INFO[dolevel].pragmas) + '\n'
             )
         f.close()
-        
+
     # -----------------------------------
     # -- Early comments about this run --
     # -----------------------------------
