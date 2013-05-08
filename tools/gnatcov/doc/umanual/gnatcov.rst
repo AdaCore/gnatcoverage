@@ -8,5 +8,6 @@ GNATcoverage User's Guide  [|release|]
    getting_started
    run
    coverage
+   convert
    appendix
    glossary
