@@ -62,7 +62,7 @@ used is built around the 4 Instruction Address Compare registers on the 5634
 (IAC1 - IAC4). These registers can be used to cause watchpoint events
 when the PC attains specified values. In the basic usage, an address is set
 in one of the IAC registers and a watchpoint occurs when the PC matches the
-value set in the IAC. In the Nexus module, and IAC watchpoint event can be
+value set in the IAC. In the Nexus module, an IAC watchpoint event can be
 set to ``start`` or to ``stop`` the production of Nexus Program Trace messages.
 That is the method of controlling Nexus Program Trace messages that is understood
 by |gcvcnv|, and |gcvcnv| must be told specific settings of the Analyzer that were
@@ -72,10 +72,11 @@ the IAC used for the ``stop`` trigger. The address in the ``stop`` trigger isn't
 needed, and the ``stop`` trigger can be left out completely. A brief mention of
 a couple examples:
 
-* A large program with a busy loop in the middle of it is being run. To prevent
+* A program continually runs a loop where it receives a command and dispatches
+  based on that command. The command input is implemented as a busy loop. To prevent
   a very large output of useless data from the busy loop, IAC1 is used as the
-  `` start`` trigger, with the address set to the end of the busy loop, and IAC2
-  is set as the ``stop`` trigger, with its contents set to the begining of the
+  ``start`` trigger, with the address set to the end of the busy loop, and IAC2
+  is set as the ``stop`` trigger, with its contents set to the beginning of the
   busy loop.
 
 * For coverage from unit testing, small programs are run completely through. For
@@ -83,6 +84,29 @@ a couple examples:
   trigger is needed, as a breakpoint is set upon exit from ``main``.
 
 
-In the GUI, the hammer
-with a sheet of paper icon brings up the ``Analyzer Configuration List`` dialog, and
-hammer plus Trace icon brings up the ``Analyzer Configuration`` dialog.
+In the GUI, the hammer with a sheet of paper icon brings up the
+``Analyzer Configuration List`` dialog, and the hammer plus Trace icon brings up the
+``Analyzer Configuration`` dialog. A recipe is provided here for creating a configuration
+that will work for many situations.
+
+* Open the ``Analyzer Configuration List`` dialog, choose New->Trace and choose
+  a name for your configuration.  This will bring up a trigger configuration window.
+
+* The first, ``Recorder`` tab is used to set values for 4 properites (click on
+  the initial values for the first 3 to see that they are drop down lists).
+  For ``Start``, ``Buffer Size`` and ``Trigger Position`` choose ``Immediately``,
+  ``1 GB`` (+/-) and ``Begin``. Do not check ``Break On Trigger``.
+
+* Select the ``MP5634M`` tab, and check ``Enabled``. IAC1 and IAC2 will be used
+  for the ``start`` and ``stop`` triggers, so check them and enter addresses.
+  In the ``Record`` box, only ``Program`` should be selected, and for ``Start`` and
+  ``Stop``, IAC1 and IAC2 should be chosen. ``Type`` needs to be
+  ``Individual Branch Messages``, and ``Watchpoints`` should be ``All``.
+  Click ``OK``.
+
+* Back at the ``Analyzer Configuration`` window, the new configurataion will
+  be shown to be the active one with a red arrow on the left. Check both
+  ``Start Analyzer when CPU starts`` and ``Stop Analyzer when CPU stops``.
+  The first is a minor convenience, saving the step of starting the Analyzer
+  before doing ``start`` from winIDEA.
+  

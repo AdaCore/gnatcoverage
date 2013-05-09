@@ -46,12 +46,12 @@ The general interface synopsis is available from ``gnatcov`` ``--help``, as foll
   file and appending ``.trace``. 
 
 :option:`--hw-trigger-traces` :
-  For Nexus units that support the Class 4 HW Watchpoint Trigger feature,
+  For Nexus modules that support the Class 4 HW Watchpoint Trigger feature,
   the generation of program trace data can be started and stopped
-  in response to watchpoint events. When that mechanism is used, in order
-  to interpret the branch trace messages, information about how the triggers were
+  in response to watchpoint events. When this mechanism is used, in order
+  to interpret the Nexus traces, information about how the triggers were
   set during the run of the executable needs to be provided. For the ``iSystem-5634``
-  ``trace-source``, |gcvcnv| allows the use of the Instruction Address
+  trace-source, |gcvcnv| allows the use of the Instruction Address
   Compare registers for the ``start/stop`` watchpoints. ``START_ID``
   is one of ``IAC1``, ``IAC2``, ``IAC3``, or ``IAC4``, and ``START_ADDR``
   is the address set in the IAC identified by ``START_ID``. The address
@@ -65,8 +65,3 @@ The general interface synopsis is available from ``gnatcov`` ``--help``, as foll
 
 :option:`--scos` :
   This is used in an identical manner as for |gcvrun|.
-
-See section :ref:`sunits` for extra details and use examples about the
-various switches used to specify units of interest for source coverage.
-Note that as :option:`--level`, in the case of |gcvrun| these options are
-useful only in the case of MCDC analysis.
