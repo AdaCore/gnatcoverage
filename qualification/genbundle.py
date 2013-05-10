@@ -49,10 +49,21 @@ def announce (s):
     print "=========== " + s
 
 def remove (path):
+    """Delete the file or directory subtree designated by PATH"""
+
+    # To prevent big damage if the input PATH happens to have been
+    # miscomputed, we first attempt to move it locally, then remove the local
+    # instance. The absence of computation on this local name makes it a tad
+    # safer to manipulate.
 
     local_name = "./old_stuff_to_be_removed"
+
+    # Start by removing the current local instance, in case the
+    # previous removal failed or was interrupted somehow
+
+    rm (local_name, recursive=True)
+
     if os.path.exists (path):
-        rm (local_name, recursive=True)
         mv (path, local_name)
         rm (local_name, recursive=True)
 
