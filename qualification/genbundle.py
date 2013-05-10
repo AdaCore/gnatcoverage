@@ -305,6 +305,13 @@ class QMAT:
 
         os.chdir (os.path.join (self.repodir, "qualification", "index"))
 
+        # We have distinct index sources for each docformat, that designate
+        # each part with the appropriate location and extension (links pointing
+        # to ITEMS/<part>/index.html or to ITEMS/<part>.pdf for example)
+
+        # Rename the one we need and generate our index from there. This will
+        # be doing cross document referencing.
+
         sphinx_target = sphinx_target_for[self.o.docformat]
 
         cp ("source/index_%s_rst" % self.o.docformat, "source/index.rst")
@@ -466,6 +473,9 @@ if __name__ == "__main__":
         'str' in options.parts and not options.dolevel,
         ("Producing STR requires an explicit dolevel (--dolevel).")
         )
+
+    # Instanciate our helper and proceed with the base
+    # directory setup:
 
     qmat = QMAT (options=options)
 
