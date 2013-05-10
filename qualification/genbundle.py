@@ -373,11 +373,6 @@ if __name__ == "__main__":
          "only parts of the kit (--parts).")
         )
 
-    exit_if (
-        not options.dolevel,
-        ("An explicit dolevel must be provided (--dolevel).")
-        )
-
     # If we are generating a full kit, we need to produce an archive.
     # Pick a default name if none was specified:
 
@@ -399,6 +394,11 @@ if __name__ == "__main__":
                 % (part, valid_parts.__str__())
             )
      for part in options.parts]
+
+    exit_if (
+        'str' in options.parts and not options.dolevel,
+        ("Producing STR requires an explicit dolevel (--dolevel).")
+        )
 
     qmat = QMAT (options=options)
 
@@ -424,4 +424,3 @@ if __name__ == "__main__":
 
     if options.pname:
         qmat.build_pack()
-
