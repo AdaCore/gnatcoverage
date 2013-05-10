@@ -76,7 +76,7 @@ sphinx_target_for = {
     "pdf" : "latexpdf"
     }
 
-# The master GIT repo we will be cloning to get our artifacts
+# The master GIT repo where our source artifacts reside
 GIT_MASTER = "ssh://git.eu.adacore.com/scmrepos/git/gnatcoverage"
 
 # The subdir name for this clone, relative to --root
@@ -88,7 +88,8 @@ class QMAT:
 
         self.o = options
 
-        self.rootdir =  os.path.abspath (options.rootdir)
+        self.rootdir =  os.path.abspath (
+            options.rootdir if options.rootdir else options.workdir)
         self.itemsdir = os.path.join (self.rootdir, "ITEMS")
 
         self.repodir = os.path.join (self.rootdir, GIT_CLONE_SUBDIR)
@@ -105,15 +106,40 @@ class QMAT:
         mkdir (self.itemsdir)
 
 
-    # -----------------------
-    # -- clone_master_repo --
-    # -----------------------
+    # ----------------
+    # -- git_update --
+    # ----------------
 
-    def clone_master_repo (self):
-        announce ("cloning master git repository")
+    def git_update (self):
+
+        # If we're requested to pull/update only, do so
+
+        if self.o.gitpull:
+            announce ("updating git clone from origin")
+
+            os.chdir(self.repodir)
+            run ("git pull --rebase origin")
+            return
+
+        # If we're requested to reuse an existing clone, do so
+
+        if self.o.gitreuse:
+            announce ("reusing existing git clone")
+            return
+
+        # Otherwise, get a fresh clone.
 
         os.chdir(self.rootdir)
-        run ("git clone %s %s" % (GIT_MASTER, GIT_CLONE_SUBDIR))
+
+        gitref = (
+            self.o.gitsource if self.o.gitsource
+            else GIT_MASTER
+            )
+
+        announce ("cloning git repository from %s" % gitref)
+
+        remove (GIT_CLONE_SUBDIR)
+        run ("git clone %s %s" % (gitref, GIT_CLONE_SUBDIR))
 
     # ----------------------
     # -- switch_to_branch --
@@ -126,7 +152,7 @@ class QMAT:
         run ("git checkout %s" % self.o.branchname)
 
     # ----------------
-    # -- latch_part --
+    # -- latch_into --
     # ----------------
 
     # Helper for the various build_ methods below.
@@ -159,7 +185,7 @@ class QMAT:
             "build", sphinx_target_for[self.o.docformat])
 
         # Delete an old version of latched results that might
-        # already be there if we're running with --reuse.
+        # already be there if we're running with --work-dir.
         remove (this_target)
 
         if this_target_is_tree:
@@ -308,12 +334,40 @@ valid_dolevels   = ('doA', 'doB', 'doC')
 if __name__ == "__main__":
 
     op = optparse.OptionParser(usage="%prog <options>")
+
     op.add_option (
         "--root-dir", dest="rootdir",
         help=(
-            "Name of a directory where the kit construction will take place. "
+            "Name of a directory where a from-scratch kit construction will take place. "
             "Must not exist already.")
         )
+    op.add_option (
+        "--work-dir", dest="workdir",
+        help=(
+            "Name of a directory from where a previous kit construction will resume. "
+            "Must exist already.")
+        )
+
+    op.add_option (
+        "--git-source", dest="gitsource", default=None,
+        help=(
+            "Git repo we should be cloning to get our source artifacts. "
+            "!! This overrides whatever is in a --work-dir already !!"
+            )
+        )
+    op.add_option (
+        "--git-pull", dest="gitpull", action="store_true", default=False,
+        help=(
+            "Pull commits from current origin in the git clone setup in work-dir. "
+            )
+        )
+    op.add_option (
+        "--git-reuse", dest="gitreuse", action="store_true", default=False,
+        help=(
+            "Reuse current git clone setup in work-dir, as-is. "
+            )
+        )
+
     op.add_option (
         "--package-name", dest="pname",
         help=(
@@ -324,11 +378,6 @@ if __name__ == "__main__":
     op.add_option ("-t", "--re_tests", dest="re_tests")
     op.add_option ("-c", "--re_chapters", dest="re_chapters")
 
-    op.add_option (
-        "--reuse", dest="reuse", action="store_true", default=False,
-        help = (
-            "Reuse the provided root dir.")
-        )
     op.add_option (
         "--docformat", dest="docformat", default="html",
         type='choice', choices=valid_docformats,
@@ -367,19 +416,26 @@ if __name__ == "__main__":
 
     (options, args) = op.parse_args()
 
+    # work dir vs root dir.
+
     exit_if (
-        not options.rootdir,
-        "A root work dir must be specified (--root)"
+        not options.workdir and not options.rootdir,
+        "A root work dir must be specified (--root-dir or --work-dir)"
         )
 
     exit_if (
-        not options.reuse and os.path.exists (options.rootdir),
-        "Without --reuse, the --root dir (%s) must not exist already" \
+        options.workdir and options.rootdir,
+        "--root-dir and --work-dir may not be combined together."
+        )
+
+    exit_if (
+        options.rootdir and os.path.exists (options.rootdir),
+        "The --root-dir location (%s) must not exist already" \
             % options.rootdir
         )
 
     exit_if (
-        options.pname and options.parts and not options.reuse,
+        options.pname and options.parts,
         ("No archive (--pname) may be generated with "
          "only parts of the kit (--parts).")
         )
@@ -415,8 +471,11 @@ if __name__ == "__main__":
 
     qmat.setup_basedirs()
 
-    if not options.reuse:
-        qmat.clone_master_repo()
+    exit_if (
+        options.gitpull and options.gitsource,
+        "Specifying git source is incompatible with request to pull from current origin"
+        )
+    qmat.git_update()
 
     qmat.switch_to_branch()
 
