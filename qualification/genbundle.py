@@ -1,5 +1,78 @@
 #!python
 
+# *****************************************************************************
+
+# This is a helper script aimed at the production and packaging of the
+# GNATcoverage qualification material documents. There are three major
+# documents of interest:
+#
+# * PLANS: the GNATcoverage "Tool Qualification Plan" document, produced
+#          from
+#
+# * TOR  : the GNATcoverage "Tool Operational Requirements" document,
+#          tree of requirements and accompanying testcase descriptions
+#
+# * STR  : the GNATcoverage "Software Test Results" report, summary of
+#          a qualification testsuite execution for a specific configuration
+#          (this target, these tool versions with such options, producing
+#          such and such testsuite results)
+#
+# All the artifacts required to produce these documents are hosted in a GIT
+# repository. This ought to be the AdaCore main "gnatcoverage" repository for
+# material to be delivered.
+#
+# The three documents may be produced in either html or pdf format. Most of
+# the time, this is achieved by using Sphinx on generated REST.
+#
+# Packaging essentially consists in setting up a subdir where each document
+# has a dedicated place, building a toplevel index and creating a zip archive.
+#
+# ---
+#
+# An execution of this script typically proceeds with the following steps:
+#
+# 1) set up a git clone of the repo where the artifacts are located
+#
+# 2) build whatever is requested (plans, str, tor) from those artifacts,
+#    producing the html or pdf document of interest + stuff we don't care
+#    about (e.g. intermediate latex sources for rest->pdf),
+#
+# 3) move or copy the final documents in an ITEMS subdir, then maybe build
+#    an index linking to the set of available items.
+#
+# Everything takes place in a "root" or "work" directory, specified with
+# --root-dir or --work-dir.
+#
+# --root-dir means "use this location, making sure we're starting from
+#            scratch"  where starting from scratch is enforced by checking
+#            that the designated dir doesn't exist when we start.
+#
+# This should be used for the final production of material to be delivered,
+# and the artifacts repo should be the main AdaCore repo.
+#
+# --work-dir means "use this location, as is". The designated dir might exist
+#            already, have remnants of previous builds etc.
+#
+# This is useful in development mode when elaborating this or that document
+# parts. Needs to be used with care and a minimum understanding of what the
+# script does internally: this script is intended to be no more than a simple
+# wrapper around lower level operations for each document; it is not designed
+# to guarantee 100% accurate results in all situations where you restart,
+# after an arbitrary number of stops at arbitrary points. Remnants of previous
+# builds can cause surprising results with sphinx, for example, and restarting
+# from a clean root is the simplest option at times.
+#
+# With --work-dir, the target dir might already have a clone setup. By
+# default, a selected git source is re-cloned there. --git-reuse and
+# --git-pull provide alternate options.
+#
+# When cloning in a work dir that doesn't have a clone already, or when
+# re-cloning when neither --git-reuse not --git-pull is requested,
+# --git-source lets you state which repo is to be cloned. In absence of an
+# explicit source, the main AdaCore git repo for GNATcoverage is selected.
+
+# *****************************************************************************
+
 from gnatpython.ex import Run
 from gnatpython.fileutils import cp, mv, rm, mkdir
 
