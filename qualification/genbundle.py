@@ -124,21 +124,28 @@ def announce (s):
 def remove (path):
     """Delete the file or directory subtree designated by PATH"""
 
-    # To prevent big damage if the input PATH happens to have been
+    # To prevent big damage if the input PATH argument happens to have been
     # miscomputed, we first attempt to move it locally, then remove the local
     # instance. The absence of computation on this local name makes it a tad
-    # safer to manipulate.
+    # safer to manipulate and the attempt to move locally would fail for
+    # obviously bogus arguments such as anything leading to a parent of the
+    # current dir (e.g. "/", or ...).
 
     local_name = "./old_stuff_to_be_removed"
 
-    # Start by removing the current local instance, in case the
-    # previous removal failed or was interrupted somehow
+    # Note that what we have to remove maybe be a regular filee or an entire
+    # directory subtree and that rm("recursive=True") is not guaranteed to
+    # work for regular files.
 
-    rm (local_name, recursive=True)
+    # Start by removing the current local instance, in case the previous
+    # removal failed or was interrupted somehow.
+
+    if os.path.exists (local_name):
+        rm (local_name, recursive=os.path.isdir(local_name))
 
     if os.path.exists (path):
         mv (path, local_name)
-        rm (local_name, recursive=True)
+        rm (local_name, recursive=os.path.isdir(local_name))
 
 # =======================================================================
 # ==              QUALIF MATERIAL GENERATION HELPER CLASS              ==
