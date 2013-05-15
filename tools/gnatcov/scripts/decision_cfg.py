@@ -40,7 +40,26 @@ ARCH_STRUCT = {
     2: struct.Struct('>H'),
 }
 
+OBJDUMP_INSN = re.compile(
+    '^[ ]*(?P<pc>[0-9a-f]+):'
+    '\t[0-9a-f ]+\t'
+    '(?P<mnemonic>[^ ]+)'
+    '(?:[ ]+(?P<operands>.+))?\n$'
+)
+
+OBJDUMP_DEST = re.compile('^(?P<pc>[0-9a-f]+) <(?P<symbol>[^>]+)>$')
+
+def does_raise_exception(symbol):
+    """Return if `symbol` is used to raise an exception."""
+    if symbol is None:
+        return False
+    return (
+        symbol in ('__gnat_last_chance_handler', '__gnat_raise_exception')
+        or symbol.startswith('__gnat_rcheck_')
+    )
+
 class Arch(object):
+    CALL = 'call'
     RET = 'ret'
     JUMP = 'jump'
     BRANCH = 'branch'
@@ -65,6 +84,7 @@ class Arch(object):
         raise NotImplementedError()
 
 class ArchX86(Arch):
+    CALLS = set('call callq'.split())
     RETS = set('ret retl retq'.split())
     JUMPS = set('jmp jmpl jmpq'.split())
     BRANCHES = set(
@@ -76,20 +96,30 @@ class ArchX86(Arch):
     def get_insn_dest(insn):
         if insn.operands.startswith('*'):
             # TODO: handle rip-relative jumps
-            return None
+            return (None, None)
         else:
-            return int(insn.operands.split()[0], 16)
+            m = OBJDUMP_DEST.match(insn.operands)
+            if m:
+                return (
+                    int(m.group('pc'), 16),
+                    m.group('symbol')
+                )
+            else:
+                return (None, None)
 
     @staticmethod
     def get_insn_properties(insn):
         if insn.mnemonic in ArchX86.RETS:
-            return (Arch.RET, None)
+            return (Arch.RET, None, None)
         elif insn.mnemonic in ArchX86.JUMPS:
-            return (Arch.JUMP, ArchX86.get_insn_dest(insn))
+            return (Arch.JUMP, ) + ArchX86.get_insn_dest(insn)
         elif insn.mnemonic in ArchX86.BRANCHES:
-            return (Arch.BRANCH, ArchX86.get_insn_dest(insn))
+            return (Arch.BRANCH, ) + ArchX86.get_insn_dest(insn)
+        elif insn.mnemonic in ArchX86.CALLS:
+            _, symbol = ArchX86.get_insn_dest(insn)
+            return (Arch.CALL, None, symbol)
         else:
-            return (None, None)
+            return (None, None, None)
 
 class ArchPPC32(Arch):
     PREFIX = 'powerpc-elf'
@@ -103,12 +133,19 @@ class ArchPPC32(Arch):
     # bl and blr return from subroutine: not jump/branch instructions.
     @staticmethod
     def get_insn_dest(operand):
-        return int(operand.split()[0], 16)
+        m = OBJDUMP_DEST.match(operand)
+        if m:
+            return (
+                int(m.group('pc'), 16),
+                m.group('symbol')
+            )
+        else:
+            return (None, None)
 
     @staticmethod
     def get_insn_properties(insn):
         if not insn.mnemonic.startswith('b'):
-            return (None, None)
+            return (None, None, None)
 
         # Strip prediction any hint.
         mnemonic = insn.mnemonic.rstrip('+-')
@@ -119,25 +156,26 @@ class ArchPPC32(Arch):
         return_from_subroutine = False
         if mnemonic.endswith('l') or mnemonic.endswith('la'):
             # Branch and Link (call)
-            return (None, None)
+            _, symbol = ArchPPC32.get_insn_dest(insn.operands.split(',')[0])
+            return (None, None, symbol)
         elif mnemonic.endswith('lr'):
             # To Link Register (return)
-            return (Arch.RET, None)
+            return (Arch.RET, None, None)
         elif mnemonic.endswith('ctr'):
             # To ConTrol Register (destination known at runtime)
-            return (Arch.BRANCH, None)
+            return (Arch.BRANCH, None, None)
         elif mnemonic.endswith('a'):
             mnemonic = mnemonic[:-1]
 
         operands = insn.operands.split(',')
         if ' ' in operands[0]:
-            dest = ArchPPC32.get_insn_dest(operands[0])
+            pc, symbol = ArchPPC32.get_insn_dest(operands[0])
         else:
-            dest = ArchPPC32.get_insn_dest(operands[1])
+            pc, symbol = ArchPPC32.get_insn_dest(operands[1])
 
         return (
             Arch.BRANCH if mnemonic != 'b' else Arch.JUMP,
-            dest
+            pc, symbol
         )
 
 ARCHITECTURES = {
@@ -148,13 +186,6 @@ ARCHITECTURES = {
     # x86_64
     62: ArchX86,
 }
-
-OBJDUMP_INSN = re.compile(
-    '^[ ]*(?P<pc>[0-9a-f]+):'
-    '\t[0-9a-f ]+\t'
-    '(?P<mnemonic>[^ ]+)'
-    '(?:[ ]+(?P<operands>.+))?\n$'
-)
 
 def parse_program(string):
     """Check that `string` is a valid ELF and get the architecture from it.
@@ -313,8 +344,9 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
 
         # If this is a jump/branch, it ends its own basic block and it must
         # break some other basic block.
-        insn_type, dest = get_insn_properties(insn)
-        if insn_type is not None:
+        insn_type, dest, dest_symbol = get_insn_properties(insn)
+        raise_exception = does_raise_exception(dest_symbol)
+        if insn_type in (Arch.JUMP, Arch.BRANCH):
             insn.add_successor(dest, end_basic_block=True)
 
             if dest is not None:
@@ -328,10 +360,13 @@ def get_decision_cfg(program, sloc_info, decision_sloc_range):
                     # anyway.
                     if not sloc_in_decision:
                         outside_instructions[insn.pc] = insn
+        elif insn_type == Arch.RET or raise_exception:
+            insn.end_basic_block()
 
         # Update "last_*" information for the next iteration.
         last_instruction_can_fallthrough = (
             insn_type not in (Arch.RET, Arch.JUMP)
+            and not raise_exception
         )
         last_instruction_in_decision = sloc_in_decision
         last_instruction = insn
