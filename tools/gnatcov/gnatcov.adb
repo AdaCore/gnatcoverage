@@ -19,8 +19,9 @@
 with Interfaces;
 
 with Ada.Command_Line;
-with Ada.Text_IO;    use Ada.Text_IO;
 with Ada.Containers; use Ada.Containers;
+with Ada.Exceptions;
+with Ada.Text_IO;    use Ada.Text_IO;
 
 with GNAT.Strings;      use GNAT.Strings;
 
@@ -1416,11 +1417,10 @@ begin
                   Open_Exec (Exe_Name.all, Text_Start, Exe_File);
                end return;
             exception
-               when Elf_Files.Error =>
-                  Fatal_Error ("cannot open ELF file "
-                               & Exe_Name.all
-                               & " for trace file "
-                               & Trace_File_Name);
+               when E : Elf_Files.Error =>
+                  Fatal_Error ("cannot open ELF file " & Exe_Name.all
+                               & " for trace file " & Trace_File_Name & ": "
+                               & Ada.Exceptions.Exception_Message (E));
                   raise;
             end Open_Exec;
 
