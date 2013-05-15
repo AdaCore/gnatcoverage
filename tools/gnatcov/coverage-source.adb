@@ -30,6 +30,7 @@ with Slocs;             use Slocs;
 with Strings;           use Strings;
 with Switches;          use Switches;
 with Traces_Elf;        use Traces_Elf;
+with Types;
 
 package body Coverage.Source is
 
@@ -66,7 +67,11 @@ package body Coverage.Source is
             --  basic block.
 
             Executed : Boolean := False;
-            --  Set True when the statement has been executed
+            --  Set True when the statement is known to have been executed
+
+            Line_Executed : Boolean := False;
+            --  Set True when some code on a line intersected by the statement
+            --  has been executed.
 
          when Decision =>
             Outcome_Taken : Outcome_Taken_Type := (others => False);
@@ -232,15 +237,19 @@ package body Coverage.Source is
                      null;
 
                   elsif SCI.Executed then
+                     SCO_State := Covered;
+
+                  elsif SCI.Line_Executed then
                      if Is_Multistatement_Line (Line_Info.all) then
+
                         --  There is more than one statement SCO for this line.
-                        --  Statements do not have full column numbers in debug
-                        --  information, which prevents discriminating between
-                        --  multiple statement SCOs on the same line. We
-                        --  therefore conservatively mark this SCO (and hence
-                        --  the complete line) as partially, rather than fully,
-                        --  covered, and we report a coverage violation on the
-                        --  first SCO on the line.
+                        --  When statements do not have full column numbers in
+                        --  debug information, one cannot discriminate between
+                        --  code for multiple statement SCOs on the same line.
+                        --  We therefore conservatively mark each SCO (and
+                        --  hence the complete line) as partially, rather than
+                        --  fully, covered, and we report a coverage violation
+                        --  on the first SCO on the line.
 
                         if not Multiple_Statements_Reported then
                            Multiple_Statements_Reported := True;
@@ -253,6 +262,9 @@ package body Coverage.Source is
                         SCO_State := Partially_Covered;
 
                      else
+                        --  There is just one statement for this line, so we
+                        --  know for certain that it has been executed.
+
                         SCO_State := Covered;
 
                      end if;
@@ -486,23 +498,37 @@ package body Coverage.Source is
       SCO, S_SCO : SCO_Id;
       Tag        : SC_Tag;
 
-      procedure Discharge_SCO (SCO : SCO_Id; Empty_Range : Boolean);
+      procedure Discharge_SCO
+        (SCO         : SCO_Id;
+         Tsloc       : Tagged_Sloc;
+         Empty_Range : Boolean);
       --  Discharge the coverage obligation denoted by SCO using the current
-      --  execution trace for an instruction at PC. Empty_Range is True if
-      --  the sloc for PC that is associated with SCO has an empty PC range.
+      --  execution trace for an instruction at PC, with the given tagged
+      --  sloc. Empty_Range is True if the sloc for PC that is associated with
+      --  SCO has an empty PC range. Precise is True if the Sloc has column
+      --  information, False if it has only line information.
 
       -------------------
       -- Discharge_SCO --
       -------------------
 
-      procedure Discharge_SCO (SCO : SCO_Id; Empty_Range : Boolean) is
+      procedure Discharge_SCO
+        (SCO         : SCO_Id;
+         Tsloc       : Tagged_Sloc;
+         Empty_Range : Boolean)
+      is
          Propagating, No_Propagation : Boolean;
 
          Dom_SCO : SCO_Id;
          Dom_Val : Boolean;
 
+         Line_Executed : Boolean;
+         --  Set True if we are discharging from a trace with imprecise sloc
+         --  that has line information only (column unknown).
+
          procedure Set_Executed (SCI : in out Source_Coverage_Info);
-         --  Set Executed to True
+         --  Set Executed (if Line_Executed is False) or Line_Executed (if it
+         --  is True) to True.
 
          procedure Set_Outcome_Taken (SCI : in out Source_Coverage_Info);
          --  Set SCI.Outcome_Taken (Dom_Val) to True
@@ -513,7 +539,11 @@ package body Coverage.Source is
 
          procedure Set_Executed (SCI : in out Source_Coverage_Info) is
          begin
-            SCI.Executed := True;
+            if Line_Executed then
+               SCI.Line_Executed := True;
+            else
+               SCI.Executed := True;
+            end if;
          end Set_Executed;
 
          -----------------------
@@ -553,6 +583,23 @@ package body Coverage.Source is
 
                             & (if Propagating then " (propagating)" else ""),
                     Kind => Notice);
+
+               --  If we are discharging a SCO from an imprecise sloc within
+               --  its line range, only mark it Line_Executed (else we
+               --  are propagating, and execution is certain even if the
+               --  originating trace is imprecise).
+
+               declare
+                  use Types;
+
+                  S_SCO_First : constant Source_Location := First_Sloc (S_SCO);
+                  S_SCO_Last  : constant Source_Location := Last_Sloc (S_SCO);
+               begin
+                  Line_Executed := Tsloc.Sloc.Column = 0
+                    and then Tsloc.Sloc.Source_File = S_SCO_First.Source_File
+                    and then Tsloc.Sloc.Line
+                               in S_SCO_First.Line .. S_SCO_Last.Line;
+               end;
 
                Update_SCI (S_SCO, Tag, Set_Executed'Access);
             end if;
@@ -849,7 +896,10 @@ package body Coverage.Source is
                --  All but the last sloc in SL correspond to an empty PC range
 
                if SCO /= No_SCO_Id then
-                  Discharge_SCO (SCO, Empty_Range => J < SL'Last);
+                  Discharge_SCO
+                    (SCO,
+                     Empty_Range => J < SL'Last,
+                     Tsloc       => SL (J));
                end if;
             end loop;
          end;
