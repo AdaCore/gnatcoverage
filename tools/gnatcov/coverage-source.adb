@@ -265,6 +265,7 @@ package body Coverage.Source is
                         --  There is just one statement for this line, so we
                         --  know for certain that it has been executed.
 
+                        SCI.Executed := True;
                         SCO_State := Covered;
 
                      end if;
@@ -354,12 +355,20 @@ package body Coverage.Source is
                      --  enclosing statement then we always report the coverage
                      --  status.
 
-                     if Enclosing_Statement (SCO) = No_SCO_Id
-                          or else
-                        Get_SCI (Enclosing_Statement (SCO), SCI.Tag).Executed
-                     then
-                        Report_Violation (SCO, SCI.Tag, "never evaluated");
-                     end if;
+                     declare
+                        S_SCO : constant SCO_Id := Enclosing_Statement (SCO);
+                        S_SCI : constant Source_Coverage_Info_Access :=
+                          (if S_SCO = No_SCO_Id
+                             then null
+                             else Get_SCI (S_SCO, SCI.Tag));
+                     begin
+                        if S_SCI = null
+                          or else S_SCI.Executed
+                          or else S_SCI.Line_Executed
+                        then
+                           Report_Violation (SCO, SCI.Tag, "never evaluated");
+                        end if;
+                     end;
                      SCO_State := Not_Covered;
                   end if;
 
