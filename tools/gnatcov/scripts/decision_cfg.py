@@ -409,6 +409,11 @@ if __name__ == '__main__':
         help='File to output the dot graph to (default: stdout)'
     )
     parser.add_argument(
+        '-T', '--format', default=None,
+        help='If given, call dot to produce the actual output passing it'
+        ' this argument'
+    )
+    parser.add_argument(
         '-b', '--basename', action='store_true',
         help='Only print basename in source locations'
     )
@@ -433,6 +438,19 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
+
+
+    # If asked to, start dot to format the output.
+    if args.format:
+        with open(os.devnull, 'wb') as devnull:
+            dot_process = subprocess.Popen(
+                ['dot', '-T{}'.format(args.format), '-o', args.output.name],
+                stdin=subprocess.PIPE, stdout=devnull
+            )
+        args.output.close()
+        f = dot_process.stdin
+    else:
+        f = args.output
 
     sloc_info = slocinfo.get_sloc_info(args.program.filename)
     decision_cfg, outside_insns = get_decision_cfg(
@@ -707,7 +725,6 @@ if __name__ == '__main__':
         label.append('  {:#0x}'.format(out_dest))
         add_node(out_dest, None, format_text_label(label), 'ellipse')
 
-    f = args.output
     f.write('digraph cfg {\n')
     f.write('    graph [splines=ortho]\n')
 
@@ -729,3 +746,4 @@ if __name__ == '__main__':
         f.write('\n')
 
     f.write('}\n')
+    f.close()
