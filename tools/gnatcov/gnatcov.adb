@@ -546,15 +546,23 @@ procedure GNATcov is
                      elsif Has_Prefix (Arg, Subdirs_Option) then
                         Set_Subdirs (Option_Parameter (Arg));
 
+                     elsif Arg = Target_Option_Short then
+                        Target := new String'(Next_Arg ("target"));
+
+                     elsif Has_Prefix (Arg, Target_Option) then
+                        Target := new String'(Option_Parameter (Arg));
+
                      elsif Common_Switch then
                         null;
                      end if;
 
                   when Command_Line_2 | Project =>
                      if Arg = Root_Project_Option
+                       or else Arg = Target_Option_Short
                        or else Has_Prefix (Arg, Root_Project_Option)
                        or else Has_Prefix (Arg, Scenario_Var_Option)
                        or else Has_Prefix (Arg, Subdirs_Option)
+                       or else Has_Prefix (Arg, Target_Option)
                      then
                         --  Ignore in command line pass 2, reject in project
 
@@ -565,7 +573,9 @@ procedure GNATcov is
 
                         --  Ignore next argument as well if appropriate
 
-                        if Arg = Root_Project_Option then
+                        if Arg = Root_Project_Option
+                          or else Arg = Target_Option_Short
+                        then
                            Arg_Index := Arg_Index + 1;
                         end if;
 
@@ -581,12 +591,6 @@ procedure GNATcov is
 
                         Eargs := Rest_Of_Command_Line;
                         return;
-
-                     elsif Arg = Target_Option_Short then
-                        Target := new String'(Next_Arg ("target"));
-
-                     elsif Has_Prefix (Arg, Target_Option) then
-                        Target := new String'(Option_Parameter (Arg));
 
                      elsif Arg = Output_Option_Short then
                         Check_Option (Arg, Command, (1 => Cmd_Run,
