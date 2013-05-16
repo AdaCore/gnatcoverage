@@ -8,5 +8,5 @@ begin
 end;
 
 --# andnot.adb
---  /doAndNot/  l- ## s-:"Not_B .= not B",s-:"E .= A "
+--  /doAndNot/  l- ## s-:"Not_B .=",s-:"E .="
 --  /decl/     ~l- ## ~s-
