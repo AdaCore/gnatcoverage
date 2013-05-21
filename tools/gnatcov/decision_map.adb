@@ -114,7 +114,7 @@ package body Decision_Map is
    --  Return whether Name corresponds to a finalizer symbol name
 
    Finalizer_Symbol_Pattern : constant Regexp := Compile
-     (".*__[A-Z](_?[a-z0-9]+)*___finalizer\.[0-9]+");
+     (".*___finalizer\.[0-9]+");
 
    package Pc_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
@@ -625,6 +625,12 @@ package body Decision_Map is
       --  Identify destination kind of each edge of CBI using information local
       --  to CBI.
 
+      procedure Fixup_Finalizer_Edges
+        (CB_Loc : Cond_Branch_Loc;
+         CBI    : in out Cond_Branch_Info);
+      --  Fix up edges not to be unknown outcomes when they are post-dominated
+      --  by calls to finalizers.
+
       procedure Report_Unlabeled_Destinations
         (CB_Loc : Cond_Branch_Loc;
          CBI    : in out Cond_Branch_Info);
@@ -1020,6 +1026,32 @@ package body Decision_Map is
          end if;
       end Record_Known_Destination;
 
+      ---------------------------
+      -- Fixup_Finalizer_Edges --
+      ---------------------------
+
+      procedure Fixup_Finalizer_Edges
+        (CB_Loc : Cond_Branch_Loc;
+         CBI    : in out Cond_Branch_Info)
+      is
+         pragma Unreferenced (CB_Loc);
+      begin
+         for Kind in Edge_Kind loop
+            declare
+               Edge : Cond_Edge_Info renames CBI.Edges (Kind);
+            begin
+               if Edge.Dest_Kind = Outcome
+                    and then
+                  Edge.Outcome = Unknown
+                    and then
+                  Edge.Reaches_Finalizer
+               then
+                  Edge.Dest_Kind := Raise_Exception;
+               end if;
+            end;
+         end loop;
+      end Fixup_Finalizer_Edges;
+
       -----------------------------------
       -- Report_Unlabeled_Destinations --
       -----------------------------------
@@ -1360,14 +1392,17 @@ package body Decision_Map is
                      Edge_Info.Outcome   := False;
 
                   --  Edges that are post-dominated by calls to finalizers are
-                  --  outcomes: generated procedures that call finalizers for
-                  --  some block are never called inside a decision.  Thus, if
-                  --  we come across one, we know the decision evaluation is
-                  --  over.
+                  --  outcomes or exceptions: generated procedures that call
+                  --  finalizers for some block are never called inside a
+                  --  decision. Thus, if we come across one, we know the
+                  --  decision evaluation is over. For now, me tag this edge as
+                  --  an unknown outcome, but we might realize later (in
+                  --  Fixup_Finalizer_Edges) that this is an exception edge.
 
                   elsif Is_Finalizer_Symbol (Sym_Name) then
-                     Edge_Info.Dest_Kind := Outcome;
-                     Edge_Info.Outcome   := Unknown;
+                     Edge_Info.Dest_Kind         := Outcome;
+                     Edge_Info.Outcome           := Unknown;
+                     Edge_Info.Reaches_Finalizer := True;
 
                   --  Else assume call returns, continue tracing at next PC
 
@@ -1420,6 +1455,23 @@ package body Decision_Map is
                Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
             end;
          end loop;
+      end loop;
+
+      --  Use finalizer tags to fix up edges that have been incorrectly tagged
+      --  as outcomes.
+
+      for J in D_Occ.Conditional_Branches.First_Index
+            .. D_Occ.Conditional_Branches.Last_Index
+      loop
+         declare
+            use Cond_Branch_Maps;
+            Cur : constant Cond_Branch_Maps.Cursor :=
+                    Cond_Branch_Map.Find
+                      ((Exe, D_Occ.Conditional_Branches.Element (J)));
+         begin
+            Cond_Branch_Map.Update_Element
+              (Cur, Fixup_Finalizer_Edges'Access);
+         end;
       end loop;
 
       --  Report remaining unlabeled destinations

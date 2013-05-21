@@ -64,28 +64,32 @@ package Decision_Map is
    --  control flow graph.
 
    type Cond_Edge_Info is record
-      Origin         : Tristate := Unknown;
+      Origin            : Tristate := Unknown;
       --  If not Unknown, indicate which value of the tested condition causes
       --  this edge to be taken.
 
-      Destination    : Dest;
+      Destination       : Dest;
       --  Edge destination (note: meaningless, and set to (No_PC, No_PC), if
       --  the cond branch instruction for the edge is a conditional return).
 
-      Dest_Kind      : Edge_Dest_Kind := Unknown;
+      Dest_Kind         : Edge_Dest_Kind := Unknown;
       --  Edge destination classification, if known
 
-      Op_SCO         : SCO_Id := No_SCO_Id;
+      Op_SCO            : SCO_Id := No_SCO_Id;
       --  For an edge that corresponds to the shortcut case of an operator,
       --  reference to the operator SCO.
 
-      Next_Condition : Any_Condition_Index := No_Condition_Index;
+      Next_Condition    : Any_Condition_Index := No_Condition_Index;
       --  For the case where Dest_Kind is Condition, index within decision of
       --  the next tested condition.
 
-      Outcome        : Tristate := Unknown;
+      Outcome           : Tristate := Unknown;
       --  For the case where Dest_Kind is Outcome, corresponding valuation of
       --  the decision, if known.
+
+      Reaches_Finalizer : Boolean := False;
+      --  Set to True when an edge always falls through to a call to a
+      --  finalizer.
    end record;
 
    --  Cond_Branch_Info is the information associated with each conditional
