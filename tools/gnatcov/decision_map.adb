@@ -21,6 +21,7 @@ with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.Strings; use GNAT.Strings;
+with GNAT.Regexp;  use GNAT.Regexp;
 
 with Interfaces; use Interfaces;
 
@@ -82,19 +83,25 @@ package body Decision_Map is
 
       --  Properties of the branch instruction at the end of the basic block:
 
-      Branch_Dest : Dest := (Target => No_PC, Delay_Slot => No_PC);
+      Branch_Dest            : Dest := (Target => No_PC, Delay_Slot => No_PC);
       --  Destination
 
-      Branch      : Branch_Kind := Br_None;
+      Branch                 : Branch_Kind := Br_None;
       --  Branch kind
 
-      Cond        : Boolean;
+      Cond                   : Boolean;
       --  True if conditional branch
 
-      Condition   : SCO_Id := No_SCO_Id;
+      Condition              : SCO_Id := No_SCO_Id;
       --  If this is a conditional branch testing a condition, identifies it
 
-      Statements : Statement_Maps.Map;
+      Excluded_From_Decision : Boolean;
+      --  True when there is no doubt that this basic block is *not* part of a
+      --  decision (nor a condition, hence). This is the case for basic blocks
+      --  that contain a call to a finalizer and for the basic blocks that
+      --  follow them until the next conditional branch.
+
+      Statements             : Statement_Maps.Map;
       --  Statement SCOs associated with each PC range within the basic block
    end record;
 
@@ -102,6 +109,14 @@ package body Decision_Map is
 
    function "<" (L, R : Basic_Block) return Boolean;
    --  Order by From
+
+   function Is_Finalizer_Symbol (Name : String_Access) return Boolean;
+   --  Return whether Name corresponds to a finalizer symbol name
+
+   Finalizer_Symbol_Pattern : constant Regexp := Compile
+     (".*__[A-Z](_?[a-z0-9]+)*___finalizer\.[0-9]+");
+
+   package Pc_Sets is new Ada.Containers.Ordered_Sets (Pc_Type);
 
    package Basic_Block_Sets is new Ada.Containers.Ordered_Sets (Basic_Block);
 
@@ -193,6 +208,21 @@ package body Decision_Map is
       return To_Integer (L.Exe.all'Address) < To_Integer (R.Exe.all'Address)
         or else (L.Exe = R.Exe and then L.PC < R.PC);
    end "<";
+
+   -------------------------
+   -- Is_Finalizer_Symbol --
+   -------------------------
+
+   function Is_Finalizer_Symbol (Name : String_Access) return Boolean is
+      Result : Boolean;
+   begin
+      if Name = null then
+         return False;
+      else
+         Result := Match (Name.all, Finalizer_Symbol_Pattern);
+         return Result;
+      end if;
+   end Is_Finalizer_Symbol;
 
    -------------
    -- Analyze --
@@ -1120,8 +1150,10 @@ package body Decision_Map is
          Edge_Info : in out Cond_Edge_Info)
       is
          pragma Unreferenced (Edge);
-         Unconditional_Branch : Pc_Type := No_PC;
-         --  First unconditional branch traced, used to avoid infinite loops
+
+         Visited_BB : Pc_Sets.Set;
+         --  Set of BB.To_Pc for all visited basic blocks, used to avoid
+         --  infinite loops.
 
          Next_PC : Pc_Type := Edge_Info.Destination.Target;
          BB      : Basic_Block;
@@ -1141,9 +1173,40 @@ package body Decision_Map is
          --  True if the edge is known to branch to code that has a different
          --  statement SCO than the condition being evaluated.
 
+         function Is_Visited_BB (Pc : Pc_Type) return Boolean;
+         --  Return if the given address starts an already visited basic block
+
+         -------------------
+         -- Is_Visited_BB --
+         -------------------
+
+         function Is_Visited_BB (Pc : Pc_Type) return Boolean
+         is
+            use Pc_Sets;
+         begin
+            return Visited_BB.Find (Pc) /= Pc_Sets.No_Element;
+         end Is_Visited_BB;
+
       begin
          <<Follow_Jump>>
+
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
+         if BB = No_Basic_Block then
+            --  This should *never* happen: we are walking through the CFG of
+            --  the current routine, so all jumps must target an existing basic
+            --  block.
+
+            raise Program_Error with
+              "Cannot find a basic block for the instruction at "
+              & Hex_Image (Next_PC);
+
+         elsif Is_Visited_BB (BB.From) then
+            --  Stop when coming across an already visited basic block, in
+            --  order to avoid infinite loops.
+
+            return;
+         end if;
+         Visited_BB.Insert (BB.From);
 
          Next_PC_Sloc := Get_Sloc (Exe.all, Next_PC);
 
@@ -1248,22 +1311,11 @@ package body Decision_Map is
                      Edge_Info.Next_Condition := Index (BB.Condition);
                   end if;
 
-               elsif BB.To_PC /= Unconditional_Branch
-                       and then
-                     (SCO_For_Jump = CBI.Condition
-                        or else
-                      SCO_For_Jump = Enclosing_Statement (CBI.Condition))
-               then
-
-                  --  Make sure we won't follow the same unconditional branch
-                  --  twice. Note that we follow unconditional jumps only when
-                  --  they remain within the current condition (or its
-                  --  enclosing statement, because some intermediate insns
-                  --  might be decorated with just the statement sloc).
-
-                  if Unconditional_Branch = No_PC then
-                     Unconditional_Branch := BB.To_PC;
-                  end if;
+               else
+                  --  Note that we follow unconditional jumps only when they
+                  --  remain within the current condition (or its enclosing
+                  --  statement, because some intermediate insns might be
+                  --  decorated with just the statement sloc).
 
                   Next_PC := BB.Branch_Dest.Target;
                   goto Follow_Jump;
@@ -1306,6 +1358,16 @@ package body Decision_Map is
                   then
                      Edge_Info.Dest_Kind := Outcome;
                      Edge_Info.Outcome   := False;
+
+                  --  Edges that are post-dominated by calls to finalizers are
+                  --  outcomes: generated procedures that call finalizers for
+                  --  some block are never called inside a decision.  Thus, if
+                  --  we come across one, we know the decision evaluation is
+                  --  over.
+
+                  elsif Is_Finalizer_Symbol (Sym_Name) then
+                     Edge_Info.Dest_Kind := Outcome;
+                     Edge_Info.Outcome   := Unknown;
 
                   --  Else assume call returns, continue tracing at next PC
 
@@ -1448,6 +1510,17 @@ package body Decision_Map is
 
       Subp_Name : constant String := Get_Filename (Exec.all) & ":" & Name.all;
 
+      Call_Excluded : Boolean := False;
+      --  True for a call to a generated procedure that calls finalizers for
+      --  some block.
+
+      Next_Branch_Excluded : Boolean := False;
+      --  True for the conditional branch instruction that follows this kind of
+      --  call.
+
+      --  These two flags enable to prevent some finalisation-related basic
+      --  blocks from being considered as being part of a decision.
+
    --  Start of processing for Analyze_Routine
 
    begin
@@ -1521,6 +1594,36 @@ package body Decision_Map is
                Branch_Dest => Branch_Dest,
                FT_Dest     => FT_Dest);
 
+            --  Update decision exclusion flags for this basic block
+
+            --  We expect the next control flow instruction to be a conditional
+            --  branch. Reset decision exclusion flags if this is not the case
+            --  (i.e. we do not match the expectded pattern: finalization at
+            --  the end of a decision).
+
+            Next_Branch_Excluded :=
+               Next_Branch_Excluded and then
+                  (Branch = Br_None
+                     or else
+                   (Branch = Br_Jmp and then Flag_Cond));
+
+            Call_Excluded := False;
+            if Branch = Br_Call then
+               declare
+                  Called_Sym : constant Addresses_Info_Acc :=
+                    Get_Symbol (Exec.all, Branch_Dest.Target);
+                  Sym_Name : String_Access;
+               begin
+                  if Called_Sym /= null then
+                     Sym_Name := Called_Sym.Symbol_Name;
+                  else
+                     Sym_Name := null;
+                  end if;
+
+                  Call_Excluded := Is_Finalizer_Symbol (Sym_Name);
+               end;
+            end if;
+
             --  If both edges have the same delay slot address, then said delay
             --  slot is always executed, whether or not we branch, so we
             --  ignore it for the purpose of edge destination equivalence.
@@ -1543,13 +1646,15 @@ package body Decision_Map is
             if Branch /= Br_None then
                Analyze_Branch : declare
                   BB : Basic_Block :=
-                         (From        => Current_Basic_Block_Start,
-                          To_PC       => Insn'First,
-                          To          => Insn'Last,
-                          Branch_Dest => Branch_Dest,
-                          Branch      => Branch,
-                          Cond        => Flag_Cond,
-                          Statements  => Current_Basic_Block_S_Map,
+                         (From                   => Current_Basic_Block_Start,
+                          To_PC                  => Insn'First,
+                          To                     => Insn'Last,
+                          Branch_Dest            => Branch_Dest,
+                          Branch                 => Branch,
+                          Cond                   => Flag_Cond,
+                          Statements             => Current_Basic_Block_S_Map,
+                          Excluded_From_Decision =>
+                             Call_Excluded or Next_Branch_Excluded,
                           others      => <>);
 
                   SCO        : SCO_Id;
@@ -1592,7 +1697,7 @@ package body Decision_Map is
                      SCO := Sloc_To_SCO (Tsloc.Sloc);
                      Tag := Tsloc.Tag;
 
-                     if Flag_Cond then
+                     if Flag_Cond and then not BB.Excluded_From_Decision then
                         if Branch = Br_Jmp or else Branch = Br_Ret then
                            if SCO /= No_SCO_Id
                                 and then Kind (SCO) = Condition
@@ -1700,6 +1805,14 @@ package body Decision_Map is
                   end if;
                end Analyze_Branch;
             end if;
+
+            --  Propagate the flag (when True) to the next instruction unless
+            --  it is a branch (i.e. until the end of the next basic block).
+
+            Next_Branch_Excluded :=
+               (Next_Branch_Excluded and then Branch = Br_None)
+                  or else
+               Call_Excluded;
 
             PC := PC + Pc_Type (Insn_Len);
 
