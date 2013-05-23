@@ -1316,6 +1316,14 @@ package body Decision_Map is
                   end if;
                end;
 
+            when Br_Ret =>
+
+               --  Edge returning from the current function can only be an
+               --  outcome.
+
+               Edge_Info.Dest_Kind := Outcome;
+               return;
+
             when others =>
                null;
          end case;
