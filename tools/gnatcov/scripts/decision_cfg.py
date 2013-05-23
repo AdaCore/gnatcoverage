@@ -156,8 +156,12 @@ class ArchPPC32(Arch):
         return_from_subroutine = False
         if mnemonic.endswith('l') or mnemonic.endswith('la'):
             # Branch and Link (call)
-            _, symbol = ArchPPC32.get_insn_dest(insn.operands.split(',')[0])
-            return (None, None, symbol)
+            if 'ctr' in mnemonic:
+                # To ConTrol Register (destination known at runtime)
+                symbol = None
+            else:
+                _, symbol = ArchPPC32.get_insn_dest(insn.operands.split(',')[0])
+            return (Arch.CALL, None, symbol)
         elif mnemonic.endswith('lr'):
             # To Link Register (return)
             return (Arch.RET, None, None)
