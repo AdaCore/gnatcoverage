@@ -611,7 +611,8 @@ procedure GNATcov is
                         Switches.Recursive_Projects := True;
 
                      elsif Has_Prefix (Arg, Tag_Option) then
-                        Check_Option (Arg, Command, (1 => Cmd_Run));
+                        Check_Option (Arg, Command, (1 => Cmd_Run,
+                                                     2 => Cmd_Convert));
                         Tag := new String'(Option_Parameter (Arg));
 
                      elsif Has_Prefix (Arg, Kernel_Option) then
@@ -1666,7 +1667,7 @@ begin
                end if;
             end if;
 
-            Convert.Run_Convert (Opt_Exe_Name, Output, Histmap);
+            Convert.Run_Convert (Opt_Exe_Name, Output, Histmap, Tag);
          end;
    end case;
 

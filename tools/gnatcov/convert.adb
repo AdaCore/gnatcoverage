@@ -18,6 +18,14 @@
 
 with Outputs; use Outputs;
 
+with Ada.Unchecked_Conversion;
+
+with Qemu_Traces;
+with Interfaces;
+
+with Traces_Files; use Traces_Files;
+with GNAT.Strings;
+
 package body Convert is
 
    procedure Set_Trace_Source (Arg : String) is
@@ -31,7 +39,8 @@ package body Convert is
 
    procedure Run_Convert (Exe_Name : String_Access;
                           Output   : String_Access;
-                          Histmap  : String_Access) is
+                          Histmap  : String_Access;
+                          Tag      : String_Access) is
       Prg                : String_Access;
       Opts               : String_List_Access;
       Success            : Boolean;
@@ -102,6 +111,38 @@ package body Convert is
          else
             Trace_Output := Output;
          end if;
+
+         --  Create the trace file
+
+         declare
+            use Qemu_Traces;
+            use Interfaces;
+            Trace_File : Trace_File_Type;
+            Date_Info  : Trace_Info_Date;
+            Date       : constant OS_Time := Current_Time;
+            subtype String_8 is String (1 .. 8);
+            function Date_Info_To_Str is new Ada.Unchecked_Conversion
+              (Trace_Info_Date, String_8);
+         begin
+            Create_Trace_File (Info, Trace_File);
+            Date_Info :=
+              Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
+                               Month => Unsigned_8  (GM_Month (Date)),
+                               Day   => Unsigned_8  (GM_Day (Date)),
+                               Hour  => Unsigned_8  (GM_Hour (Date)),
+                               Min   => Unsigned_8  (GM_Minute (Date)),
+                               Sec   => Unsigned_8  (GM_Second (Date)),
+                               Pad   => 0);
+            Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
+            Append_Info (Trace_File, Exec_File_Name, Exe_Name.all);
+
+            if GNAT.Strings."/=" (Tag, null) then
+               Append_Info (Trace_File, User_Data, Tag.all);
+            end if;
+
+            Write_Trace_File (Trace_Output.all, Trace_File);
+            Free (Trace_File);
+         end;
 
          if Histmap = null then
             Trace_Arg := Trace_Output;

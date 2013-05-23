@@ -35,6 +35,7 @@ package Convert is
 
    procedure Run_Convert (Exe_Name : String_Access;
                           Output   : String_Access;
-                          Histmap  : String_Access);
+                          Histmap  : String_Access;
+                          Tag      : String_Access);
 
 end Convert;

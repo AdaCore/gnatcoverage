@@ -113,6 +113,7 @@ procedure Nexus_Trace_Gen is
    type Insns_Array is array (Positive range <>) of Unsigned_32;
    Insns_Ptr        : access Insns_Array;
    N_Insns          : Positive;
+   Insn_Count       : Natural;
 
    EV_Code : Nexus_Packet_T;
 
@@ -401,6 +402,11 @@ begin
       return;
    end if;
 
+   for J in 1 .. Argument_Count - 1 loop
+      Put (Argument (J) & ' ');
+   end loop;
+   Put_Line (Argument (Argument_Count));
+
    Processor_ID := new String'(Argument (1));
    Executable_Filename := new String'(Argument (2));
    OCD_Filename := new String'(Argument (3));
@@ -687,86 +693,93 @@ begin
                --  the last BTM. Here, we mark those instructions as
                --  executed.
 
-               N_Insns := Positive
-                 (Nexus_Msg.Prog_Trace_Direct_Branch_Message_V.I_CNT
+               Insn_Count := Natural
+                 (Nexus_Msg.Prog_Trace_Program_Correlation_Message_V.I_CNT
                   + ICNT_Adj);
-               Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
-               Insn_Idx := Block_Begin_Idx;
-               if Do_History and then Insn_Flags (Insn_Idx).Historical then
-                  Writing_Trace := True;
-                  Trace_Start_Idx := Insn_Idx;
-               else
-                  Writing_Trace := False;
-               end if;
 
-               loop
-                  Insn_Flags (Insn_Idx).Been_Executed := True;
-                  if Insn_Idx = Block_End_Idx then
-                     --  The last instruction should be a branch taken.
-                     if not Insn_Flags (Insn_Idx).Is_Branch then
-                        raise Program_Error with "End of block not a branch";
-                     end if;
-                     Insn_Flags (Insn_Idx).Br_Taken := True;
-                     if Writing_Trace then
-                        Entry32.Pc :=
-                          Unsigned_32 ((Trace_Start_Idx - Insn_Flags'First)
-                                       * 4) + Text_First_Addr;
-                        Entry32.Size :=
-                          Unsigned_16 ((Insn_Idx - Trace_Start_Idx + 1) * 4);
-                        Entry32.Op := Trace_Op_Br0;
-                        Entry32.Pad0 := 0;
-                        if
-                          Write (Trace_FD, Entry32'Address, E32_Size)
-                          /= E32_Size
-                        then
-                           Close (Trace_FD);
-                           raise Program_Error
-                             with "Error writing trace entry.";
-                        end if;
-                     end if;
-
-                     exit;
-                  elsif Insn_Flags (Insn_Idx).Is_Branch then
-                     --  A branch may appear in the middle of the I_CNT
-                     --  instructions since the last message. That is a
-                     --  branch that was not taken.
-                     Insn_Flags (Insn_Idx).Br_Not_Taken := True;
-
-                     if Writing_Trace then
-                        Entry32.Pc :=
-                          Unsigned_32 ((Trace_Start_Idx - Insn_Flags'First)
-                                       * 4) + Text_First_Addr;
-                        Entry32.Size :=
-                          Unsigned_16 ((Insn_Idx - Trace_Start_Idx + 1) * 4);
-                        Entry32.Op := Trace_Op_Br1;
-                        Entry32.Pad0 := 0;
-                        if
-                          Write (Trace_FD, Entry32'Address, E32_Size)
-                          /= E32_Size
-                        then
-                           Close (Trace_FD);
-                           raise Program_Error
-                             with "Error writing trace entry.";
-                        end if;
-                     end if;
-                     if
-                       Do_History and then Insn_Flags (Insn_Idx + 1).Historical
-                     then
-                        Writing_Trace := True;
-                        Trace_Start_Idx := Insn_Idx + 1;
-                     else
-                        Writing_Trace := False;
-                     end if;
+               if Insn_Count > 0 then
+                  N_Insns := Positive (Insn_Count);
+                  Block_End_Idx := Block_Begin_Idx + N_Insns - 1;
+                  Insn_Idx := Block_Begin_Idx;
+                  if Do_History and then Insn_Flags (Insn_Idx).Historical then
+                     Writing_Trace := True;
+                     Trace_Start_Idx := Insn_Idx;
+                  else
+                     Writing_Trace := False;
                   end if;
-                  Insn_Idx := Insn_Idx + 1;
-               end loop;
-               --  If BP, then exit below.
-               --  If Stop trigger, then Block_Begin_Index will be
-               --  calculated, when/if Start trigger is seen.
 
-               if EV_Code = 0 then
-                  --  BP
-                  exit;
+                  loop
+                     Insn_Flags (Insn_Idx).Been_Executed := True;
+                     if Insn_Idx = Block_End_Idx then
+                        --  The last instruction should be a branch taken.
+                        if not Insn_Flags (Insn_Idx).Is_Branch then
+                           raise Program_Error with "End of blk not a branch";
+                        end if;
+                        Insn_Flags (Insn_Idx).Br_Taken := True;
+                        if Writing_Trace then
+                           Entry32.Pc :=
+                             Unsigned_32 ((Trace_Start_Idx - Insn_Flags'First)
+                                          * 4) + Text_First_Addr;
+                           Entry32.Size :=
+                             Unsigned_16 ((Insn_Idx - Trace_Start_Idx + 1)
+                                          * 4);
+                           Entry32.Op := Trace_Op_Br0;
+                           Entry32.Pad0 := 0;
+                           if
+                             Write (Trace_FD, Entry32'Address, E32_Size)
+                             /= E32_Size
+                           then
+                              Close (Trace_FD);
+                              raise Program_Error
+                                with "Error writing trace entry.";
+                           end if;
+                        end if;
+
+                        exit;
+                     elsif Insn_Flags (Insn_Idx).Is_Branch then
+                        --  A branch may appear in the middle of the I_CNT
+                        --  instructions since the last message. That is a
+                        --  branch that was not taken.
+                        Insn_Flags (Insn_Idx).Br_Not_Taken := True;
+
+                        if Writing_Trace then
+                           Entry32.Pc :=
+                             Unsigned_32 ((Trace_Start_Idx - Insn_Flags'First)
+                                          * 4) + Text_First_Addr;
+                           Entry32.Size :=
+                             Unsigned_16 ((Insn_Idx - Trace_Start_Idx + 1)
+                                          * 4);
+                           Entry32.Op := Trace_Op_Br1;
+                           Entry32.Pad0 := 0;
+                           if
+                             Write (Trace_FD, Entry32'Address, E32_Size)
+                             /= E32_Size
+                           then
+                              Close (Trace_FD);
+                              raise Program_Error
+                                with "Error writing trace entry.";
+                           end if;
+                        end if;
+                        if
+                          Do_History and then
+                          Insn_Flags (Insn_Idx + 1).Historical
+                        then
+                           Writing_Trace := True;
+                           Trace_Start_Idx := Insn_Idx + 1;
+                        else
+                           Writing_Trace := False;
+                        end if;
+                     end if;
+                     Insn_Idx := Insn_Idx + 1;
+                  end loop;
+                  --  If BP, then exit below.
+                  --  If Stop trigger, then Block_Begin_Index will be
+                  --  calculated, when/if Start trigger is seen.
+
+                  if EV_Code = 0 then
+                     --  BP
+                     exit;
+                  end if;
                end if;
             else
                raise Program_Error with
