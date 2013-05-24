@@ -58,21 +58,26 @@ def does_raise_exception(symbol):
         or symbol.startswith('__gnat_rcheck_')
     )
 
+class Toolchain(object):
+    """Manage access to toolchain programs."""
+
+    def __init__(self, prefix=None):
+        self.prefix = prefix
+        self.objdump = self.get('objdump')
+
+    def get(self, program):
+        """Return the program name including the toolchain prefix."""
+        return (
+            '{}-{}'.format(self.prefix, program)
+            if self.prefix else
+            program
+        )
+
 class Arch(object):
     CALL = 'call'
     RET = 'ret'
     JUMP = 'jump'
     BRANCH = 'branch'
-
-    # To be filled by the cross-compile toolchain prefix (if any).
-    PREFIX = None
-
-    @classmethod
-    def get_tool(cls, name):
-        if cls.PREFIX:
-            return '{}-{}'.format(cls.PREFIX, name)
-        else:
-            return name
 
     @staticmethod
     def get_insn_properties(insn):
@@ -122,8 +127,6 @@ class ArchX86(Arch):
             return (None, None, None)
 
 class ArchPPC32(Arch):
-    PREFIX = 'powerpc-elf'
-
     # Mnemonic tables: mnemonic -> index of operand that contain the address,
     # or None (for instance, for a register).
     JUMPS = {
@@ -190,6 +193,24 @@ ARCHITECTURES = {
     # x86_64
     62: ArchX86,
 }
+
+def which(program):
+    """Return whether `program` is in the PATH."""
+    with open(os.devnull, 'rb+') as devnull:
+        proc = subprocess.Popen(
+            ['which', program], stdin=devnull, stdout=devnull
+        )
+        proc.wait()
+        return proc.returncode == 0
+
+def parse_target(string):
+    """Check `string` is a valid toolchain prefix and return toolchain."""
+    toolchain = Toolchain(string)
+    if not which(toolchain.objdump):
+        raise argparse.ArgumentTypeError(
+            'No {} found'.format(toolchain.objdump)
+        )
+    return toolchain
 
 def parse_program(string):
     """Check that `string` is a valid ELF and get the architecture from it.
@@ -286,11 +307,11 @@ class Insn:
         )
 
 
-def get_decision_cfg(program, sloc_info, decision_sloc_range):
+def get_decision_cfg(program, toolchain, sloc_info, decision_sloc_range):
     get_insn_properties = program.arch.get_insn_properties
 
     # Let objdump disassemble the program for us...
-    args = [program.arch.get_tool('objdump'), '-d', program.filename]
+    args = [toolchain.objdump, '-d', program.filename]
     print('Disassembling: {}'.format(args))
     proc = subprocess.Popen(
         args,
@@ -413,6 +434,13 @@ if __name__ == '__main__':
         help='File to output the dot graph to (default: stdout)'
     )
     parser.add_argument(
+        '--target', dest='toolchain', type=parse_target, default=None,
+        help=(
+            'Prefix used to reach the toolchain'
+            ' (example: powerpc-elf for powerpc-elf-objdump)'
+        )
+    )
+    parser.add_argument(
         '-T', '--format', default=None,
         help='If given, call dot to produce the actual output passing it'
         ' this argument'
@@ -458,7 +486,7 @@ if __name__ == '__main__':
 
     sloc_info = slocinfo.get_sloc_info(args.program.filename)
     decision_cfg, outside_insns = get_decision_cfg(
-        args.program,
+        args.program, args.toolchain,
         sloc_info, vars(args)['sloc-range']
     )
 
