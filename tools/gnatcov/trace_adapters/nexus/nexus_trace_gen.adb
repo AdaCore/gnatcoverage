@@ -100,7 +100,7 @@ procedure Nexus_Trace_Gen is
    --  Exe_Sym          : Elf_Sym;
 
    type Watchpoint_T is mod 2 ** 8;
-   Watchpoint_Seen : Watchpoint_T;
+   Watchpoints_Seen : Watchpoint_T;
 
    J                 : Positive;
    Under_OK          : Boolean;
@@ -396,12 +396,6 @@ procedure Nexus_Trace_Gen is
 
 begin
 
-   if Argument_Count /= 8 then
-      Usage;
-      Set_Exit_Status (1);
-      return;
-   end if;
-
    for J in 1 .. Argument_Count - 1 loop
       Put (Argument (J) & ' ');
    end loop;
@@ -646,10 +640,10 @@ begin
             --  stopped state to running state needs to be handled since
             --  the instruction count for the subsequent BTM can differ
             --  if the WP addr is between branches.
-            Watchpoint_Seen :=
+            Watchpoints_Seen :=
               Watchpoint_T (Nexus_Msg.Watchpoint_Message_V.WPHIT);
-            if (Watchpoint_Seen and PT_Start_IAC_Bit) /= 0 then
-               if (Watchpoint_Seen and PT_Stop_IAC_Bit) /= 0 then
+            if (Watchpoints_Seen and PT_Start_IAC_Bit) /= 0 then
+               if (Watchpoints_Seen and PT_Stop_IAC_Bit) /= 0 then
                   raise Program_Error with
                     "Cannot handle simultaneous Start and Stop WP msg";
                end if;
@@ -660,7 +654,7 @@ begin
                   ICNT_Adj_Val := ICNT_Proc_Adj + 1;
                   --  ICNT_Adj_Val := ICNT_Proc_Adj;
                end if;
-            elsif (Watchpoint_Seen and PT_Stop_IAC_Bit) /= 0 then
+            elsif (Watchpoints_Seen and PT_Stop_IAC_Bit) /= 0 then
                PT_Running := False;
             end if;
 

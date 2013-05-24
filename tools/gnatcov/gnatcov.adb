@@ -130,6 +130,7 @@ procedure GNATcov is
       P ("  --output=OUTPUT_TRACE file to place converted trace into");
       P ("  --hw-trigger-traces=START_ID,START_ADDR,STOP_ID");
       P ("     identity of start and stop triggers, and address for start");
+      P ("  --tag=TAG put TAG into trace file");
       P ("  --level=.... same as for 'run' command");
       P ("  --scos=...   same as for 'run' command");
       New_Line;
