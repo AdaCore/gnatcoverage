@@ -64,7 +64,6 @@ GNATMAKE=gnatmake
 RM=rm -f
 CP=cp -pf
 MKDIR=mkdir -p
-exeext=
 
 # Binary program name
 PGMNAME=gnatcov
@@ -83,9 +82,13 @@ UNAME=$(shell uname -s)
 
 ifneq (,$(filter MINGW% CYGW%, $(UNAME)))
 HOST_OS=windows
+LN_S=$(CP)
+exeext=.exe
 endif
 ifneq (,$(filter Linux, $(UNAME)))
 HOST_OS=linux
+LN_S=ln -sf
+exeext=
 endif
 
 #####################################################################
@@ -238,7 +241,8 @@ clean: clean-bin clean-doc clean-adapters
 
 install-bin:
 	$(MKDIR) $(PREFIX)/bin
-	$(CP) $(PGMNAME)$(exeext) $(PREFIX)/bin
+	$(CP) $(PGMNAME)$(exeext) $(PREFIX)/bin/$(PGMNAME)$(BITS_ARCH)$(exeext)
+	cd $(PREFIX)/bin && $(RM) $(PGMNAME)$(exeext) && $(LN_S) $(PGMNAME)$(BITS_ARCH)$(exeext) $(PGMNAME)$(exeext)
 
 install-examples:
 	$(MKDIR) $(PREFIX)/share/examples/$(DIRNAME)
