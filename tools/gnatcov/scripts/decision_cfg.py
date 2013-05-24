@@ -162,6 +162,9 @@ class ArchPPC32(Arch):
             if 'ctr' in mnemonic:
                 # To ConTrol Register (destination known at runtime)
                 symbol = None
+            elif mnemonic.startswith('blr'):
+                # To Link Register (anyway this is a call, *not* a return)
+                symbol = None
             else:
                 _, symbol = ArchPPC32.get_insn_dest(insn.operands.split(',')[0])
             return (Arch.CALL, None, symbol)
