@@ -56,8 +56,11 @@ package Project is
    --  defined by the project through the Units, Units_List, Exclude_Units, and
    --  Exclude_Units_List attributes is used.
 
-   function Switches_From_Project (Op : String) return String_List_Access;
+   function Switches (Op : String) return String_List_Access;
    --  Return a list of gnatcov switches defined by the root project. Caller
    --  is responsible for deallocation.
+
+   function Output_Dir return String;
+   --  Return the output directory of the root project
 
 end Project;

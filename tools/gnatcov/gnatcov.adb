@@ -296,16 +296,16 @@ procedure GNATcov is
    ------------------------
 
    procedure Parse_Command_Line is
-      type Pass_Type is (Command_Line_1, Project, Command_Line_2);
+      type Pass_Type is (Command_Line_1, Root_Prj, Command_Line_2);
 
       procedure Process_Switches
         (S     : Switches_Source'Class;
          First : Natural;
          Pass  : Pass_Type);
       --  Process switches from S starting at index First. Pass Command_Line_1
-      --  is the initial scan for the root project, pass Project is for default
-      --  switches from the root project, and pass Command_Line_2 is for the
-      --  normal processing of the remainder of the command line.
+      --  is the initial scan for the root project, pass Root_Prj is for
+      --  default switches from the root project, and pass Command_Line_2 is
+      --  for the normal processing of the remainder of the command line.
 
       ----------------------
       -- Process_Switches --
@@ -345,8 +345,8 @@ procedure GNATcov is
          --  Return the rest of the command line in a string list
 
          procedure Set_Root_Project (Prj_Name : String);
-         --  Use the named project file as root project. No-op during pass
-         --  Command_Line_2, fatal error if encountered during pass Project.
+         --  Use the named project file as root project. No-op during
+         --  Command_Line_2, fatal error if encountered during Root_Prj.
 
          -----------------------------
          -- Check_Annotation_Format --
@@ -557,7 +557,7 @@ procedure GNATcov is
                         null;
                      end if;
 
-                  when Command_Line_2 | Project =>
+                  when Command_Line_2 | Root_Prj =>
                      if Arg = Root_Project_Option
                        or else Arg = Target_Option_Short
                        or else Has_Prefix (Arg, Root_Project_Option)
@@ -567,7 +567,7 @@ procedure GNATcov is
                      then
                         --  Ignore in command line pass 2, reject in project
 
-                        if Pass = Project then
+                        if Pass = Root_Prj then
                            Fatal_Error
                              (Arg & " may not be specified in a project");
                         end if;
@@ -922,7 +922,8 @@ procedure GNATcov is
 
       if Root_Project /= null then
          Compute_Project_View;
-         declare
+
+         Switches_From_Project : declare
             procedure Get_Switches_From_Project (Index : String);
             --  Get switches from project with indicated index
 
@@ -932,18 +933,20 @@ procedure GNATcov is
 
             procedure Get_Switches_From_Project (Index : String) is
                Project_Switches : String_List_Access :=
-                                    Switches_From_Project (Index);
+                                    Project.Switches (Index);
             begin
                if Project_Switches /= null then
                   declare
                      Project_Src : String_List_Switches_Source
                        (Project_Switches.all'Access);
                   begin
-                     Process_Switches (Project_Src, 1, Project);
+                     Process_Switches (Project_Src, 1, Root_Prj);
                      Free (Project_Switches);
                   end;
                end if;
             end Get_Switches_From_Project;
+
+         --  Start of processing for Switches_From_Project
 
          begin
             --  First get common switches...
@@ -953,7 +956,14 @@ procedure GNATcov is
             --  ... then get command-specific switches
 
             Get_Switches_From_Project (To_Switch (Command));
-         end;
+         end Switches_From_Project;
+
+         --  Set default output dir from project if not defined from project
+         --  switches (can be overridden later on in pass Command_Line_2).
+
+         if not Outputs.Output_Dir_Defined then
+            Outputs.Set_Output_Dir (Project.Output_Dir);
+         end if;
       end if;
 
       --  Second command line scan: process remainder of options

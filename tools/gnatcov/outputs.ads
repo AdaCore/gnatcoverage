@@ -48,15 +48,18 @@ package Outputs is
    --  Cause Xcov to terminate. exit status OK
 
    -----------------------
-   -- Annotated sources --
+   -- Output management --
    -----------------------
+
+   function Output_Dir_Defined return Boolean;
+   --  True if the output directory has been set
 
    procedure Set_Output_Dir (Output_Dir : String);
    --  Set the path to the directory where report files will be stored.
-   --  This procedure shall be called at most once, and before any use of
-   --  Create_Output_File (presumably when parsing xcov's options).
-   --  If it is not called, it will be assumed that the output dir is
-   --  the current dir.
+   --  This procedure shall be called before any use of Create_Output_File
+   --  (presumably when parsing xcov's options). The default output dir is
+   --  the root project's object directory if using a project, or the current
+   --  directory if not.
 
    procedure Create_Output_File
      (File      : out File_Type;

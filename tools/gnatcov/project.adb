@@ -530,6 +530,15 @@ package body Project is
          Errors            => Outputs.Warning_Or_Error'Access);
    end Load_Root_Project;
 
+   ----------------
+   -- Output_Dir --
+   ----------------
+
+   function Output_Dir return String is
+   begin
+      return +Prj_Tree.Root_Project.Object_Dir.Full_Name;
+   end Output_Dir;
+
    -----------------------------
    -- Report_Units_Without_LI --
    -----------------------------
@@ -549,15 +558,15 @@ package body Project is
       end loop;
    end Report_Units_Without_LI;
 
-   ---------------------------
-   -- Switches_From_Project --
-   ---------------------------
+   --------------
+   -- Switches --
+   --------------
 
-   function Switches_From_Project (Op : String) return String_List_Access is
+   function Switches (Op : String) return String_List_Access is
    begin
       return Attribute_Value
         (Prj_Tree.Root_Project, +Switches, Index => Op);
-   end Switches_From_Project;
+   end Switches;
 
    -----------------
    -- Set_Subdirs --

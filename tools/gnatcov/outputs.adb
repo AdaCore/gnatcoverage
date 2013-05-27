@@ -95,13 +95,19 @@ package body Outputs is
       raise Xcov_Exit_Exc;
    end Normal_Exit;
 
+   ------------------------
+   -- Output_Dir_Defined --
+   ------------------------
+
+   function Output_Dir_Defined return Boolean is (Report_Output_Dir /= null);
+
    ---------------------
    --  Set_Output_Dir --
    ---------------------
 
    procedure Set_Output_Dir (Output_Dir : String) is
    begin
-      pragma Assert (Report_Output_Dir = null);
+      Free (Report_Output_Dir);
 
       if not Is_Directory (Output_Dir) then
          Fatal_Error
