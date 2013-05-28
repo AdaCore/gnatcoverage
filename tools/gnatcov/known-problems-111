@@ -15,6 +15,7 @@ KP-111-M105-005 Spurious gnatcov complaint on coverage -P<space><gpr>
               -P and the project file name on the command line.
 
   Status:     This was fixed in 1.2 on 2013-01-05
+                         and in 1.1.2 on 2013-05-28
 
   Workaround: Remove the spaces between -P and the project file name.
 
