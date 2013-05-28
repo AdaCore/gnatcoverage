@@ -151,7 +151,7 @@ all: bin adapters
 $(PGMPATH):
 	$(GNATMAKE) -Pgnatcov -p                        \
 		-j$(PARALLEL_BUILD)                     \
-		-XARCH=$(BITS_ARCH) $(EXTRA_ADAFLAGS) $@
+		-XARCH=$(BITS_ARCH) $(EXTRA_ADAFLAGS) $(PGMNAME)
 
 $(ALL_ADAPTER_SUBDIRS):
 	$(MAKE) -C $@
