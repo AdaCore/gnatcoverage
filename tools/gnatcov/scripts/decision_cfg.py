@@ -474,6 +474,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # Create the default toolchain only when needed, since it may raise an
+    # exception when some tool is not available.
+    if args.toolchain is None:
+        args.toolchain = parse_target(None)
 
     # If asked to, start dot to format the output.
     if args.format:
