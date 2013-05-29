@@ -12,41 +12,14 @@ critera queried via the :option:`--level` command line option. The general
 interface synopsis is available from |gcv| :option:`--help`::
 
  gnatcov coverage OPTIONS TRACE_FILES
-   Generate coverage report
-   -c LEVEL --level=LEVEL      Specify coverage levels
-      LEVEL is one of branch|insn|stmt|stmt+decision|stmt+mcdc|stmt+uc_mcdc
-   -a FORM  --annotate=FORM    Generate a FORM report
-      FORM is one of asm,xcov,html,xcov+,html+,report
-   --routines=<ROUTINE|@FILE>  Add ROUTINE, or all routine listed
-                               in FILE to the list of routines
-   -t TARGET  --target=TARGET   Set the target
-       targets: powerpc-elf leon-elf leon3-elf powerpc-wrs-vxworks
-   -P<ROOT-PROJECT>            Use the indicated root project
-   --projects=<PROJECT|@LISTFILE>
-                               Consider the SCOs for units of interest in
-                               PROJECT, or each project listed in LISTFILE
-                               (requires -P)
-   --recursive                 Also consider units from any imported project
-   --units=<UNIT|@LISTFILE>    Consider the SCOs for the indicated UNIT, or
-                               each unit listed in LISTFILE (requires -P)
-   --subdirs=<SUBDIR>          When using -P, look for ALI files in the
-                               provided SUBDIR of projects' build directory.
-   -t TARGET --target=TARGET   When using -P, state the target
-                               prefix of the cross toolchain used
-                               to build the analyzed pograms.
-   --alis=<FILE|@LISTFILE>
-   --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from
-                               FILE for this operation; or do that
-                               for each file listed in LISTFILE
-   --output-dir=DIR            Put the =html|xcov outputs into DIR
-   -o FILE                     Put the =report output into FILE
-   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in
-                               LISTFILE to the list of traces
+
+The available options are as follows:
 
 :option:`-c`, :option:`--level` |marg| :
-   Tell the set of coverage criteria to be assessed. The possible values
-   are split in two categories, one for source coverage and one for
-   object coverage.
+   Tell the set of coverage criteria to be assessed. The possible values are
+   :option:`branch` and :option:`insn` for object coverage analysis, and
+   :option:`stmt`, :option:`stmt+decicion` and :option:`stmt+mcdc` for source
+   coverage analysis.
 
 :option:`-a`, :option:`--annotate` |marg| :
    Request a specific output report format.  All the criteria support
@@ -60,12 +33,6 @@ interface synopsis is available from |gcv| :option:`--help`::
    output in the provided filname instead of standard output by default. This
    is just ignored for other output formats.
 
-:option:`-t`, :option:`--target` :
-  The target architecture/board/abi that the analyzed program was built for.
-  This corresponds to the target prefix of your compilation toolchain,
-  for example ``powerpc-elf`` or ``leon-elf``. By default, |gcv| assumes
-  this is the same as its host environment.
-
 .. _cov-outdir:
 
 :option:`--output-dir` :
@@ -75,6 +42,14 @@ interface synopsis is available from |gcv| :option:`--help`::
    projects, and the current directory if not. The directory must exist prior
    to invoking |gcv|.
 
+:option:`-t`, :option:`--target` :
+  The target architecture/board/abi that the analyzed program was built for.
+  This corresponds to the target prefix of your compilation toolchain,
+  for example ``powerpc-elf`` or ``leon-elf``. By default, |gcv| assumes
+  this is the same as its host environment. Stating this properly is required
+  for correct processing of project files with the :option:`-P` family of
+  options.
+  
 :option:`-T`, :option:`--trace` |marg|, |rarg| :
    Provide the set of execution traces for which a report is to be
    produced. When multiple traces are provided, |gcv| produces a consolidated
@@ -91,21 +66,24 @@ interface synopsis is available from |gcv| :option:`--help`::
    extra details and use examples.
 
 :option:`-P`:
-   Use indicated project file as the root project. Default options are taken
-   from this project. All projects listed in --projects switches must be
-   imported by the root project.
+   Use the indicated project file as the root project to select the units of
+   interest for this analysis and find default options. Default options are
+   taken only from this project. In absence of :option:`--recursive` and
+   :option:`--projects`, the units of interest are those designated by this
+   project only.
 
 :option:`--projects`, |rarg|:
-   When using project files, consider units of interest from the given
-   projects.
+   When using :option:`-P`, use the provided projects to select units of
+   interest. These projects must all be part of the import transitive closure
+   reachable from the root project designated by :option:`-P`.
 
-:option:`--recursive`:
-   When using project files to identify units of interest for source coverage,
-   also consider imported projects.
+:option:`--recursive`:      
+   In addition to those designated by :option:`-P` / :option:`--projects`,
+   consider units from any transtively imported project.
 
 :option:`--units`, |rarg|:
    When using project files, override the list of units of interest for
-   source coverage.
+   source coverage with those provided.
 
 :option:`--subdirs`:
    When using project files, look for :term:`Library Information files` in the
@@ -113,10 +91,10 @@ interface synopsis is available from |gcv| :option:`--help`::
 
 :option:`--scos`, |rarg|:
    For source coverage analysis specifically, provide the set of
-   :term:`Library Information files` from which SCOs should be loaded. This
-   low-level switch effectively overrides the selection of units of interest
-   for source coverage, in particular bypassing project-based unit selection
-   based on switches :option:`--projects` and :option:`--units`.
+   :term:`Library Information files` from which Source Coverage Obligations
+   (SCOs) should be loaded. This low-level switch effectively overrides the
+   project based units of interest selection by the :option:`-P` family
+   of options.
 
 :option:`--alis`, |rarg|:
     Similar to :option:`--scos` in primary intent: provide set of
@@ -125,14 +103,20 @@ interface synopsis is available from |gcv| :option:`--help`::
     items and don't require Source Coverage Obligations, in particular
     for gathering exemption regions applicable to object level criteria.
 
-See section :ref:`sunits` for extra details and use examples about the
-various switches used to specify units of interest for source coverage.
+A lot of options are available to control the set of units for which coverage
+is to be assessed. They may be combined in multiple ways and attributed within
+the project files are available to refine the set of units to include or
+exclude from each designated project. See :ref:`using-gpr` for a general
+overview of how the project file facilities operate and :ref:`sunits` for
+extra details and examples of use.
 
 Elements on the command line that are not tied to a particular option are
-considered as trace file arguments. :option:`--trace` is marked mandatory only
-to indicate that at least one trace file is required, which may but need not
-be introduced with :option:`-T` or :option:`--trace`. Here are a few examples
-of valid command lines::
+considered as trace file arguments. At least one trace file is required for
+the `coverage` command to operate, which may but need not be introduced with
+:option:`-T` or :option:`--trace`.
+
+Here are a few examples of valid command lines to illustrate. Other examples
+will be exposed along the course of the following sections::
 
   gnatcov coverage --level=stmt --scos=@alis --annotate=report --trace=prog.trace
   #                      (a)         (b)              (c)            (d)
@@ -147,4 +131,11 @@ of valid command lines::
 
   gnatcov coverage --level=stmt+decision --scos=@alis --annotate=html @mytraces
   # Same report, with t1 and t2 listed in the "mytraces" text file
+
+  gnatcov coverage --level=stmt -Papp.gpr --annotate=html @mytraces
+  # Same kind of report, focused on source units owned by the "app.gpr" only
+
+  gnatcov coverage --level=stmt -Papp.gpr --recursive --annotate=html @mytraces
+  # Likewise, considering all the projects transitively imported by app.gpr
+
 

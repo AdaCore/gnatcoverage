@@ -292,11 +292,12 @@ might be emitted together for each criterion:
                       | ``condition has no independent influence pair``
 
 
-When multiple violations apply someplace, the most salliant diagnostic is
-emitted alone. For instance, if an Ada statement like ``X := A and then B;``
-is not covered at all, a ``statement not executed`` violation is emitted
-alone, even if we're assessing for, say, :option:`--level=stmt+decision` ;
-|gcv| emits no decision oriented violation in this case.
+When multiple violations apply someplace, only the most basic diagnostic is
+emitted, not the more precise ones corresponding to stricter criteria. For
+instance, if an Ada statement like ``X := A and then B;`` is not covered at
+all, a ``statement not executed`` violation is always emitted alone, even when
+assessing :option:`--level=stmt+mcdc` and we also have improper decision and
+conditions coverage.
 
 Here is an output excerpt for our example with :option:`--level=stmt+mcdc`,
 producing one subsection for each of the three criteria requested at that
@@ -560,8 +561,8 @@ VIOLATIONS`` part, as only this criterion was to be analyzed per the
 Decision Coverage analysis (:option:`--level=stmt+decision`)
 ============================================================
 
-|gcv| performs combined Statement and Decision Coverage assessments
-with the :option:`--level=stmt+decision` command line option.
+with the :option:`--level=stmt+decision` command line option, |gcv| performs
+combined Statement and Decision Coverage assessments.
 
 In this context, we consider to be :dfn:`decisions` all the Boolean
 expressions used to influence the control flow via explicit constructs in the

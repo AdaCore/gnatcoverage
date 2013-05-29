@@ -12,30 +12,27 @@ machine and produce execution traces. The general interface synopsis is
 available from ``gnatcov`` ``--help``, as follows::
 
    run [OPTIONS] [EXE] [-eargs EARGS...]
-     Options are:
-     -t TARGET  --target=TARGET   Select the execution target
-                                  for programs built with a cross
-                                  toolchain.
-     -v --verbose                 Be verbose
-     -T TAG  --tag=TAG            Put TAG in tracefile
-     -o FILE  --output=FILE       Write traces to FILE
-     -eargs EARGS                 Pass the provided EARGS to the
-                                  low-level emulator. First earg is
-                                  picked as the EXE program to run if
-                                  not provided explicitly.
-     --kernel=FILE                Specify which kernel to use
-     --level=CRIT                 Assume CRIT as the strictest future
-                                  analysis criterion.
-     -P, --projects, --units,     Designate units of interest when
-     --recursive, --scos          mcdc coverage analysis is intended
-                                  later on. See "coverage" options.
-  
+
 :option:`EXE`:
   The executable program to be emulated. This provided name is stored in
   the output trace header, where it is retrieved later by |gcvcov| for
   analysis purposes. Relative paths will be considered relative to the
   location where |gcvcov| is launched. When :ref:`eargs <eargs>` are passed,
   the executable may be provided there instead.
+
+.. _eargs:
+:option:`-eargs` :
+  Pass what follows to the low-level machine simulator that eventually
+  executes the program. If the executable program to run is not provided
+  elsewhere on the command line, the first earg is used for this purpose.
+
+Then the available :option:`[OPTIONS]` are:
+
+:option:`--kernel` :
+  Tell the underlying emulator that the executable program actually
+  is a module to be loaded on top of the provided kernel binary. This is
+  typically for VxWorks kinds of targets, where the kernel is a tailored
+  version built to include GNATemulator support.
 
 :option:`-t`, :option:`--target` :
   The target architecture/board/abi that your program was built for. This
@@ -59,18 +56,6 @@ available from ``gnatcov`` ``--help``, as follows::
   Store the provided string argument verbatim as a trace tag attribute in the
   output trace header.  The tag so associated with a trace can be retrieved
   from trace dumps and is output as part of some analysis reports.
-
-.. _eargs:
-:option:`-eargs` :
-  Pass what follows to the low-level machine simulator that eventually
-  executes the program. If the executable program to run is not provided
-  elsewhere on the command line, the first earg is used for this purpose.
-
-:option:`--kernel` :
-  Tell the underlying emulator that the executable program actually
-  is a module to be loaded on top of the provided kernel binary. This is
-  typically for VxWorks kinds of targets, where the kernel is a tailored
-  version built to include GNATemulator support.
 
 :option:`--level` :
   Convey the most precise kind of analysis that is intended from the produced
