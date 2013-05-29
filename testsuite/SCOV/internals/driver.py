@@ -696,11 +696,14 @@ class SCOV_helper:
         of ALIS. The command output is saved in a file named FORMAT.out."""
 
         # Latch standard output in a file and check contents on return.
+        # Request report output in current directory always, so we don't
+        # have to wonder about what arbitrary object dir might have been
+        # defined in whatever project file might be involved.
 
         ofile = format+".out"
         p = xcov (
             args = ['coverage',
-                    '--annotate='+format, "@"+traces
+                    '--output-dir=.', '--annotate='+format, "@"+traces
                     ] + (self.scoptions + self.covoptions
                          + to_list(options)),
             out = ofile)
