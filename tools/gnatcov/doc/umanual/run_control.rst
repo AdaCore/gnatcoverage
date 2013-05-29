@@ -1,9 +1,6 @@
-**************************
-Trace Contents and Control
-**************************
-
-Trace file contents
-===================
+*******************
+Trace File Contents
+*******************
 
 A trace file essentially consists in
 
@@ -14,10 +11,9 @@ A trace file essentially consists in
 * The machine execution trace entries (roughly, one per execution basic block,
   with information on the branch decision at the end)
 
-The precise structure is described in the ``qemu_traces.ads`` unit of the
-gnatcov sources. gnatcov offers a :option:`dump-trace` option to display
-the contents of trace files passed as arguments, displaying tags passed to
-|gcvrun| amongst other things. For example::
+|gcv| offers a :option:`dump-trace` option to display the contents of trace
+files passed as arguments, displaying tags passed to |gcvrun| amongst other
+things. For example::
 
    gnatcov dump-trace test_divmod2.trace
 
@@ -41,10 +37,10 @@ the contents of trace files passed as arguments, displaying tags passed to
    fff006bc-fff006bf ?: 12 --t- block
    [...]
 
-Indeed, prior to the execution traces per-se (list of executed instruction
-blocks past the ``Traces:`` label), we see a few information entries aimed at
-helping |gcp| and users on various accounts. Each entry has a tag identifying
-it's kind, then some associated data dependent on the kind. Our example above
+Prior to the execution traces per-se (list of executed instruction blocks past
+the ``Traces:`` label), we see a few information entries aimed at helping
+|gcp| and users on various accounts. Each entry has a tag identifying it's
+kind, then some associated data dependent on the kind. Our example above
 features the following information entries:
 
 ``DATE_TIME`` :
@@ -60,19 +56,24 @@ features the following information entries:
   User string tag for this trace, when one was passed with :option:`-T`
   to |gcvrun|.
 
+The precise structure is described in the ``qemu_traces.ads`` unit of the
+gnatcov sources. 
+
 .. _trace-control:
 
+**********************
 Trace control for MCDC
-======================
+**********************
 
-MCDC analysis using execution traces requires specific care to make
-sure that assessments are both accurate and efficient.
-With |gcp|, this is achieved by the combination of two indications passed
-to |gcvrun|:
+MCDC analysis using execution traces requires specific care to make sure that
+assessments are both accurate and efficient. In particular, branch history
+collection (chronological record of the directions taken at conditional branch
+points in the machine code) needs to be turned on for decisions that require
+it, which is achieved by the combination of two indications passed to
+|gcvrun|:
 
 * :option:`--level=stmt+mcdc` to activate the collection of object branch
-  histories, chronological record of the directions taken at conditional
-  branch points in the machine code,
+  histories,
 
 * command line switches specifying what units will be subject to MCDC
   analysis, asking |gcv| to focus the branch history collections
@@ -80,8 +81,6 @@ to |gcvrun|:
   This indication can be given either using project files, or using
   the low-level :option:`--scos` switch (see section :ref:`sunits`).
 
-MCDC assessment can be performed accurately only if branch history is turned
-on for decisions that require it, which |gcv| knows to determine from SCOs.
 With :option:`--level=stmt+mcdc` and in the absence of any explicit
 selection of relevant units using one of the available methods, history is
 activated for all the object conditional branch instructions, resulting in

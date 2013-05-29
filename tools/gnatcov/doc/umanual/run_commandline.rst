@@ -13,18 +13,22 @@ available from ``gnatcov`` ``--help``, as follows::
 
    run [OPTIONS] [EXE] [-eargs EARGS...]
      Options are:
-     -t TARGET  --target=TARGET   Set the target
-       targets: powerpc-elf leon-elf leon3-elf powerpc-wrs-vxworks
+     -t TARGET  --target=TARGET   Select the execution target
+                                  for programs built with a cross
+                                  toolchain.
      -v --verbose                 Be verbose
      -T TAG  --tag=TAG            Put TAG in tracefile
      -o FILE  --output=FILE       Write traces to FILE
-     --level=CRIT                 Assume CRIT as the strictest future
-                                  analysis criterion
-     --scos=FILE                  Add FILE to the set of SCOS
-     -eargs EARGS                 Pass EARGS to the low-level emulator
-                                  First earg is picked as the EXE program
-                                  to run if not provided explicitly
+     -eargs EARGS                 Pass the provided EARGS to the
+                                  low-level emulator. First earg is
+                                  picked as the EXE program to run if
+                                  not provided explicitly.
      --kernel=FILE                Specify which kernel to use
+     --level=CRIT                 Assume CRIT as the strictest future
+                                  analysis criterion.
+     -P, --projects, --units,     Designate units of interest when
+     --recursive, --scos          mcdc coverage analysis is intended
+                                  later on. See "coverage" options.
   
 :option:`EXE`:
   The executable program to be emulated. This provided name is stored in
@@ -56,49 +60,6 @@ available from ``gnatcov`` ``--help``, as follows::
   output trace header.  The tag so associated with a trace can be retrieved
   from trace dumps and is output as part of some analysis reports.
 
-:option:`--level` :
-  Convey the kind of analysis that is intended from the produced traces later
-  on. This is actually only useful for MCDC analysis, combined with
-  :option:`--scos`.  See the :ref:`trace-control` section of this chapter for
-  additional details.
-
-:option:`-P` :
-   Use indicated project file as the root project for operations that need
-   locating information about units to analyze. Default options are taken from
-   this project, and all the projects listed in :option:`--projects` switches
-   must be imported by the root project.
- 
-:option:`--projects`, |rarg| :
-   Within the dependency closure of the root project designated by :option:`-P`,
-   designate projects on which to focus in particular.
-
-:option:`--recursive` : 
-   When using :option:`-P` and :option:`--projects` to control operations,
-   consider the dependency closure of all the designated projects.
-
-   See the :ref:`using-gpr` section for extra details and use examples of
-   :option:`--P`, :option:`--projects` and :option:`--recursive`.
-
-:option:`--units`, |rarg| :
-   When using project files, override the list of units of interest for
-   source coverage.
-
-:option:`--subdirs` :
-   When using project files, look for :term:`Library Information files` in the
-   indicated subdirectory of each project's object directory.
-
-:option:`--scos`, |rarg| :
-   For source coverage analysis specifically, provide the set of Library
-   Information files from which SCOs should be loaded. This low-level switch
-   effectively overrides the selection of units of interest for source
-   coverage, in particular bypassing project-based unit selection based on
-   switches :option:`-P` and :option:`--units`.
-
-See section :ref:`sunits` for extra details and use examples about the
-various switches used to specify units of interest for source coverage.
-Note that as :option:`--level`, in the case of |gcvrun| these options are
-useful only in the case of MCDC analysis.
-
 .. _eargs:
 :option:`-eargs` :
   Pass what follows to the low-level machine simulator that eventually
@@ -110,6 +71,12 @@ useful only in the case of MCDC analysis.
   is a module to be loaded on top of the provided kernel binary. This is
   typically for VxWorks kinds of targets, where the kernel is a tailored
   version built to include GNATemulator support.
+
+:option:`--level` :
+  Convey the most precise kind of analysis that is intended from the produced
+  traces later on. This defaults to `stmt+decision` and is best combined with
+  :option:`-P` or :option:`--scos` for efficiency when set to `stmt+mcdc`. See
+  the :ref:`trace-control` section of this chapter for additional details.
 
 When |gem| is available on your PATH as `<target>-gnatemu` (`<target>` is the
 value provided as the :option:`--target` argument), |gcp| uses it to
@@ -149,3 +116,44 @@ Here are a few examples of valid command lines. The simplest possible first::
   # Where supported, run "myprog" in the native environment through an
   # instrumentation layer to produce the execution trace. Pass arg1 and arg2
   # as command line arguments to "myprog".
+
+When MCDC analysis is intended, as indicated with :option:`--level=stmt+mcdc`,
+a few options are available to designate the source units of interest,
+allowing optimal trace generation for more efficient processing:
+
+:option:`-P` :
+   Use indicated project file as the root project for operations that need
+   locating information about units to analyze. Default options are taken from
+   this project, and all the projects listed in :option:`--projects` switches
+   must be imported by the root project.
+ 
+:option:`--projects`, |rarg| :
+   Within the dependency closure of the root project designated by :option:`-P`,
+   designate projects on which to focus in particular.
+
+:option:`--recursive` : 
+   When using :option:`-P` and :option:`--projects` to control operations,
+   consider the dependency closure of all the designated projects.
+
+   See the :ref:`using-gpr` section for extra details and use examples of
+   :option:`--P`, :option:`--projects` and :option:`--recursive`.
+
+:option:`--units`, |rarg| :
+   When using project files, override the list of units of interest for
+   source coverage.
+
+:option:`--subdirs` :
+   When using project files, look for :term:`Library Information files` in the
+   indicated subdirectory of each project's object directory.
+
+:option:`--scos`, |rarg| :
+   For source coverage analysis specifically, provide the set of Library
+   Information files from which SCOs should be loaded. This low-level switch
+   effectively overrides the selection of units of interest for source
+   coverage, in particular bypassing project-based unit selection based on
+   switches :option:`-P` and :option:`--units`.
+
+See :ref:`trace-control` for more details on the influence of these
+options, and :ref:`sunits` for extra information and examples describing
+their use.
+

@@ -152,6 +152,12 @@ procedure GNATcov is
       P ("   --projects=<GPR|@LISTFILE>  Focus on specific projects within");
       P ("                               the transitive closure reachable");
       P ("                               from the root designated by -P");
+      P ("   -t TARGET --target=TARGET   When using -P, state the target");
+      P ("                               prefix of the cross toolchain used");
+      P ("                               to build the analyzed pograms.");
+      P ("   --subdirs=<SUBDIR>          When using -P, look for ALI files");
+      P ("                               in the provided SUBDIR of projects'");
+      P ("                               build directory.");
       P ("   -o FILE --output=FILE       Put the report|asm output into FILE");
       P ("   -T|--trace <FILE|@LISTFILE> Add FILE or all the files listed in");
       P ("                               LISTFILE to the list of traces");

@@ -19,6 +19,8 @@ interface synopsis is available from |gcv| :option:`--help`::
       FORM is one of asm,xcov,html,xcov+,html+,report
    --routines=<ROUTINE|@FILE>  Add ROUTINE, or all routine listed
                                in FILE to the list of routines
+   -t TARGET  --target=TARGET   Set the target
+       targets: powerpc-elf leon-elf leon3-elf powerpc-wrs-vxworks
    -P<ROOT-PROJECT>            Use the indicated root project
    --projects=<PROJECT|@LISTFILE>
                                Consider the SCOs for units of interest in
@@ -27,8 +29,11 @@ interface synopsis is available from |gcv| :option:`--help`::
    --recursive                 Also consider units from any imported project
    --units=<UNIT|@LISTFILE>    Consider the SCOs for the indicated UNIT, or
                                each unit listed in LISTFILE (requires -P)
-   --subdirs=<SUBDIR>          Look for ALI files in the given SUBDIR of
-                               projects' build directory (when using -P)
+   --subdirs=<SUBDIR>          When using -P, look for ALI files in the
+                               provided SUBDIR of projects' build directory.
+   -t TARGET --target=TARGET   When using -P, state the target
+                               prefix of the cross toolchain used
+                               to build the analyzed pograms.
    --alis=<FILE|@LISTFILE>
    --scos=<FILE|@LISTFILE>     Load SCOs and exemption info from
                                FILE for this operation; or do that
@@ -54,6 +59,12 @@ interface synopsis is available from |gcv| :option:`--help`::
    Request that the synthetic report produced by ``--annotate=report`` be
    output in the provided filname instead of standard output by default. This
    is just ignored for other output formats.
+
+:option:`-t`, :option:`--target` :
+  The target architecture/board/abi that the analyzed program was built for.
+  This corresponds to the target prefix of your compilation toolchain,
+  for example ``powerpc-elf`` or ``leon-elf``. By default, |gcv| assumes
+  this is the same as its host environment.
 
 .. _cov-outdir:
 
@@ -91,8 +102,6 @@ interface synopsis is available from |gcv| :option:`--help`::
 :option:`--recursive`:
    When using project files to identify units of interest for source coverage,
    also consider imported projects.
-
-   See section :ref:`sunits` for extra details and use examples.
 
 :option:`--units`, |rarg|:
    When using project files, override the list of units of interest for

@@ -300,7 +300,9 @@ package body Rundrv is
 
    begin
       P ("run [OPTIONS] [EXE] [-eargs EARGS...]");
-      P ("  -t TARGET  --target=TARGET   Set the execution target");
+      P ("  -t TARGET  --target=TARGET   Select the execution target");
+      P ("                               for programs built with a cross");
+      P ("                               toolchain.");
       P (Indent & "    targets: A prefix to a version of gnatemu on PATH, or");
 
       Driver_Idx := Drivers'First;
@@ -322,19 +324,23 @@ package body Rundrv is
             Put (' ' & Drivers (Driver_Idx).Target.all);
          end loop;
       end loop;
+
       --  Perhaps there is a library function suitable for doing
       --  the line filling that is done by hand here. ???
 
       P ("  -v --verbose                 Be verbose");
       P ("  -T TAG  --tag=TAG            Put TAG in tracefile");
       P ("  -o FILE  --output=FILE       Write traces to FILE");
-      P ("  -eargs EARGS                 " &
-           "Pass EARGS to the low-level emulator.");
-      P ("                               " &
-           "First earg is picked as the EXE program");
-      P ("                               " &
-           "to run if not provided explicitly.");
+      P ("  -eargs EARGS                 Pass the provided EARGS to the");
+      P ("                               low-level emulator. First earg is");
+      P ("                               picked as the EXE program to run if");
+      P ("                               not provided explicitly.");
       P ("  --kernel=FILE                Specify which kernel to use");
+      P ("  --level=CRIT                 Assume CRIT as the strictest future");
+      P ("                               analysis criterion.");
+      P ("  -P, --projects, --units,     Designate units of interest when");
+      P ("  --recursive, --scos          mcdc coverage analysis is intended");
+      P ("                               later on. See ""coverage"" options.");
    end Help;
 
    -----------------
