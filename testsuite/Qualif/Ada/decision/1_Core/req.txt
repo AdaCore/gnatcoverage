@@ -3,24 +3,16 @@ Core expectations for Decision Coverage
 
 %(req-headline)s
 
-Decision Coverage (DC) assessements are all governed by a base requirement
-which settles the notion of *decision*:
+A *decision* is defined to be any Boolean expression that directly controls
+the behavior of IF, WHILE and EXIT-WHEN control-flow constructs. Only the
+expression as a whole is considered a decision; subexpressions are not
+decisions on their own.  The types involved need not be restricted to the
+standard Boolean type; they may subtypes or types derived from the Ada
+fundamental type.
 
-* The tool shall recognize as decisions any *simple* or *complex* Boolean
-  expression that directly controls the behavior of IF, WHILE and EXIT-WHEN
-  control-flow constructs.  Only the expression as a whole is considered a
-  decision; subexpressions are not decisions on their own.
-
-* *Simple* expressions are Boolean atoms such as a lone Boolean variable or a
-  function call, possibly negated. *Complex* expressions are those that
-  feature at least two Boolean atoms combined with AND-THEN or OR-ELSE
-  short-circuit operators.
-
-* The Boolean atoms in a decision are called *conditions*.  The types involved
-  need not be restricted to the standard Boolean type; they may subtypes or
-  types derived from the Ada fundamental type.
-
-In this context, the following set of rules shall be obeyed:
+In this context, and in addition to the rules governing Statement Coverage,
+the following set of extra rules shall be obeyed for Decision Coverage (DC)
+assessements:
 
 ======  ======================================================================
 Rule #  Description
@@ -47,7 +39,7 @@ Rule #  Description
 
 %(tstrategy-headline)s
 
-We validate all the rules thanks to three main subsets of testcases:
+We validate all the DC rules thanks to three main subsets of testcases:
 
 %(subset-index)s
 
