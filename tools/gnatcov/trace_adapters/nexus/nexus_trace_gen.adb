@@ -396,10 +396,11 @@ procedure Nexus_Trace_Gen is
 
 begin
 
-   for J in 1 .. Argument_Count - 1 loop
-      Put (Argument (J) & ' ');
-   end loop;
-   Put_Line (Argument (Argument_Count));
+   if Argument_Count /= 8 then
+      Usage;
+      Set_Exit_Status (1);
+      return;
+   end if;
 
    Processor_ID := new String'(Argument (1));
    Executable_Filename := new String'(Argument (2));
@@ -1112,7 +1113,8 @@ begin
             Last_Indirect_Or_Sync_Addr := New_Addr;
 
          when Debug_Status                                 =>
-            null;
+            exit when (Nexus_Msg.Debug_Status_V.STATUS and 16#80#) /= 0;
+            --  Processor entered Debug mode.
 
          when Data_Trace_Data_Write_Message                =>
             raise Program_Error with "Unexpected Data Trace TCODE";
