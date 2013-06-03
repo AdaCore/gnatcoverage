@@ -1,6 +1,7 @@
 # run this to remove most temp artifacts created
 # by the testsuite execution or ongoing development.
 
+rm -rf $(find -type d -name 'isyswspace')
 rm -rf $(find -type d -name 'tmp_*')
 rm -rf $(find -type d -name 'st_*')
 rm -rf $(find -type d -name 'dc_*')
