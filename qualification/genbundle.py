@@ -425,14 +425,14 @@ if __name__ == "__main__":
     op.add_option (
         "--root-dir", dest="rootdir",
         help=(
-            "Name of a directory where a from-scratch kit construction will take place. "
-            "Must not exist already.")
+            "Name of a directory where a from-scratch kit construction "
+            "will take place. Must not exist already.")
         )
     op.add_option (
         "--work-dir", dest="workdir",
         help=(
-            "Name of a directory from where a previous kit construction will resume. "
-            "Must exist already.")
+            "Name of a directory from where a previous kit construction "
+            "will resume. Must exist already.")
         )
 
     op.add_option (
@@ -445,7 +445,8 @@ if __name__ == "__main__":
     op.add_option (
         "--git-pull", dest="gitpull", action="store_true", default=False,
         help=(
-            "Pull commits from current origin in the git clone setup in work-dir. "
+            "Pull commits from current origin in the git clone setup "
+            "in work-dir."
             )
         )
     op.add_option (
