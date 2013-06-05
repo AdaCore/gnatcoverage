@@ -297,14 +297,12 @@ class QMAT:
                 self.repodir, "qualification", "tor", "scripts")
             )
 
-        make_vars = (
-            "CHAPTERS='%s'" % self.o.re_chapters if self.o.re_chapters else ""
-            )
+        run ("make clean")
+        
+        run_list (
+            ['python', 'genrest.py', '--dolevel=%s' % self.o.dolevel])
 
-        run ("make %(vars)s clean genrest" % {"vars": make_vars})
-
-        run ("make %(vars)s %(fmt)s " % {
-                "vars": make_vars,
+        run ("make %(fmt)s " % {
                 "fmt" : sphinx_target_for[self.o.docformat]}
              )
 
@@ -553,6 +551,11 @@ if __name__ == "__main__":
     exit_if (
         'str' in options.parts and not options.dolevel,
         ("Producing STR requires an explicit dolevel (--dolevel).")
+        )
+
+    exit_if (
+        'tor' in options.parts and not options.dolevel,
+        ("Producing TOR requires an explicit dolevel (--dolevel).")
         )
 
     # Instanciate our helper and proceed with the base

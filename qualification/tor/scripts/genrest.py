@@ -6,6 +6,7 @@ import glob
 import re
 import sys
 import json
+import optparse
 
 from gnatpython.fileutils import mkdir
 
@@ -55,6 +56,10 @@ def warn(text):
 def warn_if(cond, text):
     if cond: warn(text)
 
+def exit_if (p, msg):
+    if p:
+        print msg
+        sys.exit(1)
 
 # **************************
 # ** TestCase abstraction **
@@ -838,7 +843,10 @@ icLink, icNid, icBrief = range (3)
 
 class DocGenerator(object):
 
-    def __init__(self, root_dir, doc_dir):
+    def __init__(self, root_dir, doc_dir, options):
+
+        # Command line options
+        self.o = options
 
         # Root of the directory tree where the qualification artifacts
         # are to be found:
@@ -1261,22 +1269,66 @@ class DocGenerator(object):
     # -- checking tree consistency along the way --
     # ---------------------------------------------
 
-    def generate_all(self, chapdirs):
+    def generate_all(self):
 
-        ref_chapdirs = ["OpEnviron", "Appendix", "Common", "Ada"]
+        # Compute the set of subdirs/chapters our document ought to include.
+        # This is the explicit list when one was provided, and a set of common
+        # subdirs + those of relevance for the requested criterion otherwise.
 
-        # [Re]generate only the requested chapters, when specified,
-        # everything otherwise
+        crit_subdirs_for = {
+            'doC': ["stmt"],
+            'doB': ["stmt", "decision"],
+            'doA': ["stmt", "decision", "mcdc"]
+            }
 
-        self.dirtree = self.root_dirtree (
-            ref_chapdirs if chapdirs is None else chapdirs)
+        this_subdirs = (
+            self.o.chapdirs.split(',') if self.o.chapdirs
+            else (
+                ["OpEnviron", "Appendix", "Common"]
+                + ["Ada/%s" % csd for csd in crit_subdirs_for[self.o.dolevel]]
+                )
+            )
+
+        self.dirtree = self.root_dirtree (this_subdirs)
 
         self.generate_chapters()
         self.generate_resources()
 
 # The main of the script
-if __name__ == "__main__":
-    mygen = DocGenerator(ROOT_DIR, DOC_DIR)
 
-    mygen.generate_all(
-        chapdirs = sys.argv[1:] if len (sys.argv) > 1 else None)
+valid_dolevels   = ('doA', 'doB', 'doC')
+
+if __name__ == "__main__":
+
+    op = optparse.OptionParser(usage="%prog <options>")
+
+    op.add_option (
+        "--dolevel", dest="dolevel", default=None,
+        type='choice', choices=valid_dolevels,
+        help = (
+            "Target DO178 qualification level."
+            ))
+
+    op.add_option (
+        "--chapdirs", dest="chapdirs", default=None,
+        help = (
+            "Comma separated list of chapter directories to consider"
+            ))
+
+    (options, args) = op.parse_args()
+
+    exit_if (
+        not options.chapdirs and not options.dolevel,
+        "A DO level or a set of chapter dirs must be specified"
+        )
+
+    exit_if (
+        options.chapdirs and options.dolevel,
+        "A DO level may not be specified together with an explicit "
+        "set of chapter dirs."
+        )
+
+    mygen = DocGenerator(
+        root_dir=ROOT_DIR, doc_dir=DOC_DIR, options=options)
+
+    mygen.generate_all()
