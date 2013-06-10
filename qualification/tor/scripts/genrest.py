@@ -10,8 +10,17 @@ import optparse
 
 from gnatpython.fileutils import mkdir
 
-DOC_DIR = "source"
-ROOT_DIR = "../../../testsuite/Qualif"
+# Relative to where this script reside, path to ...
+
+# The root of the directory tree mapping qualification artifacts
+# (requirements, testcases, ...):
+
+RST_ROOTDIR = "source"
+
+# The root of the directory where the REST documents describing
+# these artifacts will reside:
+
+ART_ROOTDIR = "../../../testsuite/Qualif"
 
 # **********************
 # ** Helper functions **
@@ -80,7 +89,7 @@ class TestCase:
     def parent_globbing(self, dir, pattern, include_start_dir=True):
         """Look for src/[pattern] files in dir and its parents directory
         up to document root directory"""
-        head = os.path.relpath(dir, self.dgen.root_dir)
+        head = os.path.relpath(dir, self.dgen.art_rootdir)
         tail = ''
         if not include_start_dir:
             head, tail = os.path.split(head)
@@ -88,7 +97,7 @@ class TestCase:
         while len(head) > 0:
             files |= set(
                 glob.glob(
-                    os.path.join(self.dgen.root_dir, head, 'src', pattern))
+                    os.path.join(self.dgen.art_rootdir, head, 'src', pattern))
                 )
             head, tail = os.path.split(head)
         return files
@@ -208,10 +217,24 @@ class PathInfo:
 # ** Node Set abstraction **
 # **************************
 
-# Used to compute common attributes (such as all_req etc) on a set of nodes
-
 class NodeSet:
+    
+    """Node Set abstraction, used to compute composite attributes
+    for a set of nodes. We compute two categories of composite attributes:
+    
+    * The "some_" attributes tell whether some (at least one) node in set has
+    such or such characteristic. These are updated as nodes are added to the
+    set, via the "register_one" method.
+
+    * The "all_" attributes tell whether all the nodes in the set has such or
+    such characteristic. These are computed from the current "some_" values
+    when the "sync" method is called,
+    """
+
     def __init__(self, diros=()):
+        """Initialize the some_ attributes for SELF, then register
+        each directory object in the DIROS sequence and sync() to update
+        the all_ attributes from there."""
 
         self.some_reqgroup    = False
         self.some_notreqgroup = False
@@ -249,6 +272,9 @@ class NodeSet:
         self.sync()
 
     def register_one (self, diro):
+        """Add one directory object to this set, updating the
+        some_ attributes accordingly."""
+
         self.some_req    |= diro.req
         self.some_tc     |= diro.tc
         self.some_set    |= diro.set
@@ -287,6 +313,9 @@ class NodeSet:
         self.diros.append (diro)
 
     def sync(self):
+        """Compute the all_ attributes of this set from what we know of the
+        current elements in the set. All the all_ attributes are set to False
+        on empty sets."""
 
         # Beware of queries over empty sets. All the some_ attributes
         # start False, so the all_ attributes would turn true if we're
@@ -798,8 +827,31 @@ class DirTree_FromPath (DirTree):
     # -- -----------------------------------------------------------
 
     def __do_bridge_over(self, diro):
+        """Arrange for DIRO to disappear from the dir tree structure
+        it is in."""
 
         print "======== Bridging over " + diro.root
+
+        # Remove this diro from the list of children of its parent,
+        # and update each of this diro's children to have its parent
+        # as a new parent instead of this diro itself.
+
+        # Turn:
+        #                  P          <----- PARENT
+        #                  |
+        #                 DIRO        <----- TO VANISH
+        #                  |
+        #            +---+---+---+
+        #            |   |   |   |
+        #           c1   c2  c3 c4    <---- CHILDREN
+        #
+        # into:
+        #
+        #                  P          <----- PARENT
+        #                  |
+        #            +---+---+---+
+        #            |   |   |   |
+        #           c1   c2  c3  c4   <---- CHILDREN
 
         diro.pdo.subdos.remove(diro)
 
@@ -811,11 +863,18 @@ class DirTree_FromPath (DirTree):
             subdo.sname = '.'.join ([diro.sname, subdo.sname])
 
     def __decide_cross_over (self, diro, pathi, wi):
+        """Add DIRO to WI.tobridge if DIRO ought to be removed from the
+        tree."""
 
         if diro.set and os.path.getsize (diro.dfile(path=True)) == 0:
             wi.tobridge.append (diro)
 
     def do_cross_overs(self):
+        """Remove (bridge links over) intermediate nodes that should not
+        produce intermediate layers in the final document."""
+
+        # Collect the set of nodes to remove first, then remove each one in
+        # turn. Removing while we're walking the tree is, mm, hazardous.
 
         class WalkInfo:
             def __init__(self):
@@ -843,19 +902,19 @@ icLink, icNid, icBrief = range (3)
 
 class DocGenerator(object):
 
-    def __init__(self, root_dir, doc_dir, options):
+    def __init__(self, art_rootdir, rst_rootdir, options):
 
         # Command line options
         self.o = options
 
         # Root of the directory tree where the qualification artifacts
         # are to be found:
-        self.root_dir = os.path.abspath(root_dir)
+        self.art_rootdir = os.path.abspath(art_rootdir)
 
         # Root of the directory tree where the generated document sources
         # are to be produced:
-        self.doc_dir = os.path.abspath(doc_dir)
-        mkdir (self.doc_dir)
+        self.rst_rootdir = os.path.abspath(rst_rootdir)
+        mkdir (self.rst_rootdir)
 
         self.resource_list = set([])
 
@@ -866,11 +925,11 @@ class DocGenerator(object):
         self.resource_list |= rset
 
     def docpath_to(self, filename):
-        return os.path.join(self.doc_dir, filename)
+        return os.path.join(self.rst_rootdir, filename)
 
     def file2docfile(self, filename):
         """Return the associated filename for a given path"""
-        docfile = os.path.relpath(filename, self.root_dir)
+        docfile = os.path.relpath(filename, self.art_rootdir)
         # If we are at the root directory then return our documentation
         # entry point.
         if docfile == ".":
@@ -882,7 +941,7 @@ class DocGenerator(object):
     def ref(self, name):
         """Transform string NAME into another string suitable to be used as
         index name"""
-        result = os.path.relpath(name, self.root_dir)
+        result = os.path.relpath(name, self.art_rootdir)
         return result.replace('/', '_').replace('\\', '_').replace('.', '_')
 
     # ---------------------------------------------
@@ -967,12 +1026,12 @@ class DocGenerator(object):
     # -- Tailored directory tree instance --
     # --------------------------------------
 
-    def root_dirtree(self, chapdirs):
+    def art_dirtree_for(self, chapdirs):
 
-        dirtree = DirTree_FromPath(rootp=self.root_dir)
+        dirtree = DirTree_FromPath(rootp=self.art_rootdir)
 
         dirtree.rprune (
-            [os.path.join (self.root_dir, dir) for dir in chapdirs])
+            [os.path.join (self.art_rootdir, dir) for dir in chapdirs])
 
         dirtree.check_consistency()
         dirtree.sort ()
@@ -1014,26 +1073,47 @@ class DocGenerator(object):
 
     def generate_chapters(self):
 
-        self.dirtree.walk (mode=topdown, process=self.__gen_doc_contents)
+        self.art_dirtree.walk (mode=topdown, process=self.__gen_doc_contents)
 
     # ---------------------------
     # -- generate index tables --
     # ---------------------------
 
-    # To be refined ...
+    # Most index tables obey a common construction process, where some table
+    # header is produced and a set of lines are added, corresponding to
+    # subdirectories of where the table is produced. The general construction
+    # process is driven by the "index_table" method, which performs a walk of
+    # of the local subdirtree controled by callbacks to decide which dir/lines
+    # are added and using what style.
 
     class WalkInfo:
+        """Class of an object carried over the whole tree walk, to help
+        control the overall table construction process."""
+
         def __init__ (self, rootp, emphctl):
+
+            # root path from which the tree walk starts
             self.rootp = rootp
+
+            # line emphasis control callback
             self.emphctl = emphctl
 
+            # max depth reached during the tree walk
             self.topdepth = sys.maxint
 
+            # text outcome of the tree walk, the table body
             self.text = None
 
+            # Node (Line) Set reached by the walk. Attributes of this will
+            # help compute the table headers, in particular column titles
+            # tailored from the set of nodes/lines that the table includes:
             self.lset = NodeSet()
 
-    def __maybe_addline_for (self, diro, pathi, wi):
+    def __addline_for (self, diro, pathi, wi):
+        """Reached directory object DIRO during the tree walk, with specific
+        path info PATHI and overall walk info state in WI. Update the relevant
+        walk info attributes (e.g. topdepth), then compute and add the table
+        text line for this entry."""
 
         if pathi.depth < wi.topdepth:
             wi.topdepth = pathi.depth
@@ -1045,6 +1125,9 @@ class DocGenerator(object):
         toblank = re.search (".*?(\n[ \t]*\n)", dtext, re.DOTALL)
         sumtext = (toblank.group(0) if toblank else dtext).replace ('\n', ' ')
 
+        # Compute the link and the entry text, then apply the emphasis
+        # control if we have any:
+
         linktext = ':doc:`%s <%s>`' % (
             diro.kind.image, self.ref(diro.root))
 
@@ -1055,7 +1138,8 @@ class DocGenerator(object):
             sumtext = wi.emphctl(sumtext.strip(), diro, pathi)
             entrytext = wi.emphctl(entrytext.strip(), diro, pathi)
 
-        # Then append the whole entry
+        # Then append the whole entry and update the node set
+        # covered by the walk:
 
         wi.text.append (
             '   %s#%s#%s' % (linktext, entrytext, sumtext))
@@ -1074,7 +1158,7 @@ class DocGenerator(object):
         wi.text = []
 
         local_dirtree.walk (
-            mode=topdown, process=self.__maybe_addline_for,
+            mode=topdown, process=self.__addline_for,
             ctl=nodectl, data=wi)
 
         # sync the line attributes and pick defaults for each column header
@@ -1210,7 +1294,7 @@ class DocGenerator(object):
 
         wi = WalkInfo()
 
-        self.dirtree.walk (
+        self.art_dirtree.walk (
             mode=topdown, process=self.__gen_index_contents,
             data=wi, ctl = lambda diro, pathi, wi:
                 (dirSkip if pathi.depth == 0 else dirCutPost)
@@ -1289,7 +1373,7 @@ class DocGenerator(object):
                 )
             )
 
-        self.dirtree = self.root_dirtree (this_subdirs)
+        self.art_dirtree = self.art_dirtree_for (this_subdirs)
 
         self.generate_chapters()
         self.generate_resources()
@@ -1329,6 +1413,6 @@ if __name__ == "__main__":
         )
 
     mygen = DocGenerator(
-        root_dir=ROOT_DIR, doc_dir=DOC_DIR, options=options)
+        art_rootdir=ART_ROOTDIR, rst_rootdir=RST_ROOTDIR, options=options)
 
     mygen.generate_all()
