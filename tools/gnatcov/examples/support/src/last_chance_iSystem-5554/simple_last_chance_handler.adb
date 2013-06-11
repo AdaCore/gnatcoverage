@@ -30,7 +30,7 @@ package body Simple_Last_Chance_Handler is
       pragma Import (C, C_Abort, "abort");
       pragma No_Return (C_Abort);
    begin
-      Last_Chance_Called := 1;
+      Unexpected_Last_Chance_Call := 1;
 
       --  No return procedure.
       C_Abort;

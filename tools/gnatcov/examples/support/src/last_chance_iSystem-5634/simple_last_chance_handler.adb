@@ -2,7 +2,7 @@
 --                                                                          --
 --                              Couverture                                  --
 --                                                                          --
---                     Copyright (C) 2008-2012, AdaCore                     --
+--                     Copyright (C) 2008-2013, AdaCore                     --
 --                                                                          --
 -- Couverture is free software; you can redistribute it  and/or modify it   --
 -- under terms of the GNU General Public License as published by the Free   --
@@ -30,7 +30,7 @@ package body Simple_Last_Chance_Handler is
       pragma Import (C, C_Abort, "abort");
       pragma No_Return (C_Abort);
    begin
-      Last_Chance_Called := 1;
+      Unexpected_Last_Chance_Call := 1;
 
       --  No return procedure.
       C_Abort;

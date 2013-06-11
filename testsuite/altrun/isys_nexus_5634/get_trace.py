@@ -1,3 +1,4 @@
+import time
 import sys
 executable = sys.argv [1]
 
@@ -44,6 +45,16 @@ traceDoc.start ()
 executer.runUntilAddress (0, isyminfo.getAddress () )
 executer.waitUntilStopped ()
 
+isyminfo = dbg.getSymbolInfo (ic.IConnectDebug.fMonitor |
+                              ic.IConnectDebug.gafExpression, '__gnat_unexpected_last_chance_call')
+varType = ic.SType()
+varType.m_byBitSize = 32
+varType.m_byType = ic.SType.tSigned
+last_chance = dbg.readValue (ic.IConnectDebug.fMonitor, isyminfo.getMemArea (), isyminfo.getAddress (), varType)
+#print 'LAST CHANCE VALUE'
+if last_chance.getInt() != 0:
+   print '!!! EXCEPTION RAISED !!!'
+
 traceDoc.waitUntilLoaded (0, 100)
 formatter = ic.CTraceBinExportFormat ()
 formatter.setTraceItemFlags (0)
@@ -52,5 +63,6 @@ formatter.setHeader (False) \
 exportCfg = ic.CTraceExportConfig ()
 exportCfg.setFileName ('nexus_trace.bin').setFormatter (formatter)
 traceDoc.exportData (exportCfg)
+time.sleep (6.0)
 
 cmgr.disconnect (ic.IConnect.dfCloseServerUnconditional | ic.IConnect.dfCloseAutoSaveNone)
