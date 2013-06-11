@@ -1421,7 +1421,8 @@ class DocGenerator(object):
             self.o.chapdirs.split(',') if self.o.chapdirs
             else (
                 ["OpEnviron", "Appendix", "Common"]
-                + ["Ada/%s" % csd for csd in crit_subdirs_for[self.o.dolevel]]
+                + [os.path.join ("Ada", csd)
+                   for csd in crit_subdirs_for[self.o.dolevel]]
                 )
             )
 
