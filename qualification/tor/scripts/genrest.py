@@ -10,6 +10,38 @@ import optparse
 
 from gnatpython.fileutils import mkdir
 
+# *****************************************************************************
+# **                            GENERAL DESCRIPTION                          **
+# *****************************************************************************
+
+# This file implements the core of the GNATcoverage TOR document production,
+# generating sphinx-REST from artifacts held within our testsuite/Qualif
+# filesystem tree.
+
+# Except on rare occasions, each directory in this tree represents some TOR
+# related entity: requirement, testcase, appendix material, or groups of such,
+# possibly nested (groups may hold direct artifacts or further intermediate
+# groups).
+#
+# The general structure is very hierarchical, going from requirement
+# groups (REQG kind) to requirements (REQ kind), to testcases (TC kind)
+# possibly via testcase groups (TCG kind).
+#
+# Very roughly, our processing here first constructs an internal tree
+# datastructure representing the directory tree, where each node holds
+# attributes qualifying its nature (e.g. "this node/directory holds a
+# testcase"). This is determined from two elements:
+#
+# * The presence in the directory of some text file:
+#   - tc.txt for a testcase,
+#   - req.txt for a requirement,
+#   - set.txt for a group
+#
+# * For groups, the node is further qualified by looking at the set of
+#   children of the node. Despite the possibility to nest groups within
+#   groups, mixing a testcase artifacts at the same level as requirement
+#   artifacts is disallowed.
+
 # Relative to where this script reside, path to ...
 
 # The root of the directory tree mapping qualification artifacts
@@ -204,10 +236,10 @@ class TestCase:
 # ** Path Info abstraction **
 # ***************************
 
-# Holds info about the path to the current node when walking
-# a directory tree
-
 class PathInfo:
+    """Holds info about the path to the current node when walking
+    a directory tree"""
+
     def __init__(self):
         self.n_req = 0  # Number of requirement expressions so far
         self.n_tc = 0   # Number of tc nodes so far
@@ -491,6 +523,8 @@ class Dir:
             else dcl.INTRO)
 
     def dfile(self, path=False):
+        """Name of the text file which holds the meat of this dir/artifact"""
+
         base = (
             'tc.txt'   if self.tc else
             'set.txt'  if self.set else
@@ -1047,6 +1081,9 @@ class DocGenerator(object):
         }
 
     def __gen_doc_contents (self, diro, pathi, wi):
+        """Generate the RST file for the DIRO artifact/directory-object, as
+        part of a dirtree walk carrying a general DirTree.WalkInfo object WI
+        and path info PATHI"""
 
         self.ofd = open(
             self.docpath_to (self.file2docfile(diro.root)), 'w')
@@ -1080,7 +1117,7 @@ class DocGenerator(object):
     # ---------------------------
 
     # Most index tables obey a common construction process, where some table
-    # header is produced and a set of lines are added, corresponding to
+    # header is produced and a set of lines is added, corresponding to
     # subdirectories of where the table is produced. The general construction
     # process is driven by the "index_table" method, which performs a walk of
     # of the local subdirtree controled by callbacks to decide which dir/lines
@@ -1147,6 +1184,7 @@ class DocGenerator(object):
         wi.lset.register_one (diro=diro)
 
     def index_table(self, rooto, nodectl, emphctl, tblhdr):
+        """Common helper to index table constructors."""
 
         local_dirtree = DirTree (roots=[rooto])
 
@@ -1212,6 +1250,13 @@ class DocGenerator(object):
         return wi
 
     def tc_index(self, diro):
+        """Produce an index table referencing all the testcases reachable
+        downtree from directory DIRO, including lines for all the intermediate
+        artifacts that need to be traversed to reach the testcases
+        (requirements, groups, whatever). No line is included for the DIRO
+        directory itself. Lines for groups at depth 1 are bold. Lines for
+        deeper groups are italic."""
+
         return self.index_table (
             rooto   = diro,
             tblhdr  = {},
@@ -1225,6 +1270,10 @@ class DocGenerator(object):
             ).text
 
     def subset_index(self, diro):
+        """Produce an index table referencing all the requirements or groups
+        reachable first from DIRO and only these. No line is included for DIRO
+        itself or for any element deeper than those first reached."""
+
         return self.index_table (
             rooto   = diro,
             tblhdr  = {},
@@ -1235,6 +1284,9 @@ class DocGenerator(object):
             ).text
 
     def app_index(self, diro):
+        """Produce an index table referencing all the appendix artifacts
+        reachable from DIRO and only these."""
+        
         return self.index_table (
             rooto   = diro,
             tblhdr  = {},
