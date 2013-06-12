@@ -215,7 +215,7 @@ doc: $(foreach fmt, $(DOCFORMATS), doc.$(fmt)) clean-doc-build
 .PHONY: clean-bin clean-doc clean-doc-copy clean-doc-build clean clean-adapters
 
 clean-bin:
-	$(RM) *.o *.ali $(PGMNAME) b~* obj*/
+	$(RM) *.o *.ali $(PGMNAME) b~* obj*/*
 
 clean-doc-copy.%:
 	   $(RM) -r doc/$*
