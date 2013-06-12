@@ -24,8 +24,6 @@ with Ada.Text_IO; use Ada.Text_IO;
 
 with Interfaces;
 
-with System;      use System;
-
 with GNAT.Strings;  use GNAT.Strings;
 
 with Coverage.Object;  use Coverage.Object;
@@ -33,10 +31,10 @@ with Coverage.Tags;    use Coverage.Tags;
 with Inputs;           use Inputs;
 with Outputs;          use Outputs;
 with Switches;         use Switches;
+with Symbols;          use Symbols;
 
 package body Traces_Names is
 
-   function "<" (S1, S2 : Symbol) return Boolean;
    function "<" (Key1, Key2 : Subprogram_Key) return Boolean;
    function Equal (L, R : Subprogram_Info) return Boolean;
 
@@ -76,11 +74,6 @@ package body Traces_Names is
       "<"          => "<",
       "="          => Equal);
 
-   Strings : constant Symbol_Table_Access := Allocate;
-   --  String table, used both to reduce memory consumption and to make string
-   --  comparison very efficient. Since this table is going to be used during
-   --  the whole execution of gnatcov, it won't be free'd.
-
    Routines : Routines_Maps.Map;
    --  Each item stores coverage information for one (consolidated) routine.
 
@@ -99,7 +92,7 @@ package body Traces_Names is
    function Key_To_Name (Key : Subprogram_Key) return Cst_String_Access
    is
    begin
-      return Get (Key.Name);
+      return To_String (Key.Name);
    end Key_To_Name;
 
    -----------------------------
@@ -109,7 +102,7 @@ package body Traces_Names is
    procedure Add_Routine_Of_Interest (Name : String)
    is
    begin
-      Routines_Of_Interest.Insert (Find (Strings, Name));
+      Routines_Of_Interest.Insert (To_Symbol (Name));
    end Add_Routine_Of_Interest;
 
    ----------------------------
@@ -119,7 +112,7 @@ package body Traces_Names is
    function Is_Routine_Of_Interest (Name : String) return Boolean
    is
       use Routine_Name_Sets;
-      Name_Symbol : constant Symbol := Find (Strings, Name);
+      Name_Symbol : constant Symbol := To_Symbol (Name);
    begin
       return Routines_Of_Interest.Find (Name_Symbol) /= No_Element;
    end Is_Routine_Of_Interest;
@@ -130,7 +123,7 @@ package body Traces_Names is
 
    procedure Remove_Routine_Of_Interest (Name : String)
    is
-      Name_Symbol : constant Symbol := Find (Strings, Name);
+      Name_Symbol : constant Symbol := To_Symbol (Name);
    begin
       Routines_Of_Interest.Exclude (Name_Symbol);
    end Remove_Routine_Of_Interest;
@@ -146,9 +139,9 @@ package body Traces_Names is
       if CU_Filename = null then
          return No_Symbol;
       elsif CU_Directory = null then
-         return Find (Strings, CU_Filename.all);
+         return To_Symbol (CU_Filename.all);
       else
-         return Find (Strings, CU_Filename.all & "/" & CU_Directory.all);
+         return To_Symbol (CU_Filename.all & "/" & CU_Directory.all);
       end if;
    end Format_CU;
 
@@ -238,7 +231,7 @@ package body Traces_Names is
    begin
       Get_Compile_Unit (Exec.all, Sym.First, CU_Filename, CU_Directory);
       Key :=
-        (Name         => Find (Strings, Sym.Symbol_Name.all),
+        (Name         => To_Symbol (Sym.Symbol_Name.all),
          Compile_Unit => Format_CU (CU_Filename, CU_Directory),
          Origin       => Sym.Symbol_Origin);
    end Key_From_Symbol;
@@ -526,15 +519,6 @@ package body Traces_Names is
          Next (Cur);
       end loop;
    end Disp_All_Routines_Of_Interest;
-
-   ---------
-   -- "<" --
-   ---------
-
-   function "<" (S1, S2 : Symbol) return Boolean is
-   begin
-      return Get (S1).all'Address < Get (S2).all'Address;
-   end "<";
 
    ---------
    -- "<" --
