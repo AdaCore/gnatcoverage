@@ -1223,6 +1223,7 @@ class DocGenerator(object):
 
         wi.text = [
             "",
+            '.. tabularcolumns:: |l|l|p{0.70\linewidth}|',
             '.. csv-table::',
             '   :delim: #',
             '   :widths: 2, 20, 70'
