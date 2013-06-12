@@ -568,6 +568,13 @@ class SCOV_helper:
             else ["--scos=@%s" % list_to_file(self.ali_list(), "alis.list")]
             )
 
+        # Remember which of these indicate the use of project files, which
+        # might influence default output dirs for example.
+
+        self.gproptions = [
+            opt for opt in self.scoptions if opt.startswith ("-P")
+            ]
+
         # Do gnatcov run now unless we're consolidating.  We'll just reuse
         # traces from previous executions in the latter case.
 
@@ -695,18 +702,27 @@ class SCOV_helper:
         particulat FORMAT, from a provided list of TRACES over a provided list
         of ALIS. The command output is saved in a file named FORMAT.out."""
 
-        # Latch standard output in a file and check contents on return.
-        # Request report output in current directory always, so we don't
-        # have to wonder about what arbitrary object dir might have been
-        # defined in whatever project file might be involved.
+        # Compute the set of arguments we are to pass to gnatcov coverage.
+
+        # When project files are used, force report output in the current
+        # directory where it would be without a project file, and which the
+        # project file might arbitrarily redirect otherwise. Doing this
+        # conditionally prevents the gratuitous addition of command line
+        # options which might be absent from the tool qualified interface
+        # descriptions.
+
+        covargs = [
+            '--annotate='+format, "@"+traces
+            ] + (self.scoptions + self.covoptions + to_list(options))
+
+        if self.gproptions:
+            covargs.append ('--output-dir=.')
+
+        # Run, latching standard output in a file so we can check contents on
+        # return.
 
         ofile = format+".out"
-        p = xcov (
-            args = ['coverage',
-                    '--output-dir=.', '--annotate='+format, "@"+traces
-                    ] + (self.scoptions + self.covoptions
-                         + to_list(options)),
-            out = ofile)
+        p = xcov (args = ['coverage'] + covargs, out = ofile)
 
         # Standard output might typically contain labeling warnings issued
         # by the static analysis phase, or error messages issued when a trace
