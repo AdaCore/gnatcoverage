@@ -333,28 +333,28 @@ private
       Sec_Debug_Str      : Elf_Half := SHN_UNDEF;
       Sec_Debug_Ranges   : Elf_Half := SHN_UNDEF;
 
-      Exe_File : Elf_Files.Elf_File;
+      Exe_File       : Elf_Files.Elf_File;
       Exe_Text_Start : Elf_Addr;
-      Exe_Machine : Elf_Half;
-      Is_Big_Endian : Boolean;
+      Exe_Machine    : Elf_Half;
+      Is_Big_Endian  : Boolean;
 
       --  FIXME
       --  What is there to fix???
       Addr_Size : Natural := 0;
 
       Debug_Str_Base : Address := Null_Address;
-      Debug_Str_Len : Elf_Addr;
-      Debug_Strs : Binary_Content_Acc;
+      Debug_Str_Len  : Elf_Addr;
+      Debug_Strs     : Binary_Content_Acc;
 
       --  .debug_lines contents
 
       Lines_Len : Elf_Addr := 0;
-      Lines : Binary_Content_Acc := null;
+      Lines     : Binary_Content_Acc := null;
 
       --  Symbol table
 
-      Symtab : Binary_Content_Acc := null;
-      Nbr_Symbols : Natural := 0;
+      Symtab       : Binary_Content_Acc := null;
+      Nbr_Symbols  : Natural := 0;
 
       Compile_Units : Compile_Unit_Vectors.Vector;
       --  Compilation units
