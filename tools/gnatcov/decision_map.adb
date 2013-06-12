@@ -2233,6 +2233,13 @@ package body Decision_Map is
                Branch_Dest => Branch_Dest,
                FT_Dest     => FT_Dest);
 
+            --  Use debug information to complete properties
+
+            if Branch = Br_Call and then Flag_Indir then
+               Branch_Dest.Target := Get_Call_Target
+                 (Exec.all, PC, Pc_Type (Insn_Len));
+            end if;
+
             --  If both edges have the same delay slot address, then said delay
             --  slot is always executed, whether or not we branch, so we
             --  ignore it for the purpose of edge destination equivalence.

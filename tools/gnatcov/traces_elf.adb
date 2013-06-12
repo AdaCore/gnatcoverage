@@ -18,8 +18,9 @@
 
 with Ada.Unchecked_Conversion;
 
-with Ada.Directories; use Ada.Directories;
-with Ada.Text_IO;     use Ada.Text_IO;
+with Ada.Directories;   use Ada.Directories;
+with Ada.Strings.Fixed; use Ada.Strings.Fixed;
+with Ada.Text_IO;       use Ada.Text_IO;
 
 with System.Storage_Elements; use System.Storage_Elements;
 
@@ -1048,7 +1049,7 @@ package body Traces_Elf is
       Info_Len : Elf_Addr;
       Infos : Binary_Content_Acc;
       Base : Address;
-      Off : Storage_Offset;
+      Off, Sec_Off, Tag_Off : Storage_Offset;
       Aoff : Storage_Offset;
 
       Len : Unsigned_32;
@@ -1064,15 +1065,17 @@ package body Traces_Elf is
 
       Level : Unsigned_8;
 
-      At_Sib       : Unsigned_64 := 0;
-      At_Stmt_List : Unsigned_32 := No_Stmt_List;
-      At_Ranges    : Unsigned_32 := No_Ranges;
-      At_Low_Pc    : Unsigned_64 := 0;
-      At_High_Pc   : Unsigned_64 := 0;
-      At_Lang      : Unsigned_64 := 0;
-      At_Name      : Address := Null_Address;
-      At_Comp_Dir  : Address := Null_Address;
-      Cu_Base_Pc   : Unsigned_64;
+      At_Sib             : Unsigned_64 := 0;
+      At_Stmt_List       : Unsigned_32 := No_Stmt_List;
+      At_Ranges          : Unsigned_32 := No_Ranges;
+      At_Low_Pc          : Unsigned_64 := 0;
+      At_High_Pc         : Unsigned_64 := 0;
+      At_Lang            : Unsigned_64 := 0;
+      At_Name            : Address := Null_Address;
+      At_Comp_Dir        : Address := Null_Address;
+      At_Linkage_Name    : Address := Null_Address;
+      At_Abstract_Origin : Unsigned_64 := 0;
+      Cu_Base_Pc         : Unsigned_64;
 
       Current_Sec     : Addresses_Info_Acc;
       Current_Subprg  : Addresses_Info_Acc;
@@ -1081,6 +1084,27 @@ package body Traces_Elf is
       Compilation_Dir : String_Access;
       Unit_Filename   : String_Access;
       Subprg_Low      : Pc_Type;
+
+      --  The generation of the mapping: call site -> target function (for
+      --  indirect calls) is done in two steps: first accumulate information as
+      --  tags and attributes comes from the debug information, then bind data
+      --  into Exec.
+
+      package Subprg_DIE_To_PC_Maps is new Ada.Containers.Ordered_Maps
+        (Key_Type     => Storage_Offset,
+         Element_Type => Pc_Type);
+
+      type Call_Target is record
+         To_PC             : Pc_Type;
+         Target_Subprg_Tag : Storage_Offset;
+      end record;
+
+      package Call_Site_To_Target_Maps is new Ada.Containers.Vectors
+        (Index_Type   => Natural,
+         Element_Type => Call_Target);
+
+      Subprg_To_PC : Subprg_DIE_To_PC_Maps.Map;
+      Call_Site_To_Target : Call_Site_To_Target_Maps.Vector;
 
    begin
       --  Return now if already loaded
@@ -1107,6 +1131,10 @@ package body Traces_Elf is
       Alloc_And_Load_Section (Exec, Exec.Sec_Debug_Info, Info_Len,
                               Infos, Base);
 
+      --  Load symbols
+
+      Build_Symbols (Exec'Unchecked_Access);
+
       if Exec.Sec_Debug_Info_Rel /= SHN_UNDEF then
          Apply_Relocations (Exec, Exec.Sec_Debug_Info_Rel, Infos.all);
       end if;
@@ -1116,6 +1144,7 @@ package body Traces_Elf is
          --  Read .debug_info header:
          --    Length, version, offset in .debug_abbrev, pointer size.
 
+         Sec_Off := Off;
          Read_Word4 (Exec, Base, Off, Len);
          Last := Off + Storage_Offset (Len);
          Read_Word2 (Exec, Base, Off, Ver);
@@ -1134,6 +1163,7 @@ package body Traces_Elf is
          loop
          <<Again>>
             exit when Off >= Last;
+            Tag_Off := Off;
             Read_ULEB128 (Base, Off, Num);
             if Num = 0 then
                Level := Level - 1;
@@ -1178,6 +1208,9 @@ package body Traces_Elf is
                   when DW_AT_comp_dir =>
                      Read_Dwarf_Form_String (Exec, Base, Off, Form,
                                              At_Comp_Dir);
+                  when DW_AT_MIPS_linkage_name | DW_AT_linkage_name =>
+                     Read_Dwarf_Form_String (Exec, Base, Off, Form,
+                                             At_Linkage_Name);
                   when DW_AT_stmt_list =>
                      Read_Dwarf_Form_U32 (Exec, Base, Off, Form, At_Stmt_List);
                   when DW_AT_ranges =>
@@ -1194,6 +1227,15 @@ package body Traces_Elf is
                      end if;
                   when DW_AT_language =>
                      Read_Dwarf_Form_U64 (Exec, Base, Off, Form, At_Lang);
+                  when DW_AT_abstract_origin =>
+                     Read_Dwarf_Form_U64 (Exec, Base, Off, Form,
+                                          At_Abstract_Origin);
+
+                     --  References to other DIEs are relative to the beginning
+                     --  of the current compile unit.
+
+                     At_Abstract_Origin :=
+                        Unsigned_64 (Sec_Off) + At_Abstract_Origin;
                   when others =>
                      Skip_Dwarf_Form (Exec, Base, Off, Form);
                end case;
@@ -1233,7 +1275,7 @@ package body Traces_Elf is
 
                when DW_TAG_subprogram =>
                   if At_High_Pc > At_Low_Pc then
-                     --  Don't care about missing subprograms
+                     --  This subprogram is present in this compile unit
 
                      Subprg_Low := Exec.Exe_Text_Start + Pc_Type (At_Low_Pc);
                      if Current_Sec = null
@@ -1263,6 +1305,44 @@ package body Traces_Elf is
                         Subprogram_DIE_CU => Current_DIE_CU);
                      Exec.Desc_Sets (Subprogram_Addresses).
                        Insert (Current_Subprg);
+                     Subprg_To_PC.Insert (Tag_Off, Pc_Type (At_Low_Pc));
+
+                  elsif At_Linkage_Name /= Null_Address
+                           or else
+                        At_Name /= Null_Address
+                  then
+                     --  Missing subprograms can be referenced by call sites:
+                     --  collect their addresses.
+
+                     if At_Linkage_Name = Null_Address then
+                        At_Linkage_Name := At_Name;
+                     end if;
+
+                     --  We assume that the symbol referenced by the name
+                     --  attribute is present in the symbol table as a
+                     --  STB_GLOBAL symbol.
+
+                     declare
+                        use Symbol_To_PC_Maps;
+                        Subprg_Sym : constant Symbol := To_Symbol
+                          (Read_String (At_Linkage_Name));
+                        Cur : constant Symbol_To_PC_Maps.Cursor :=
+                           Exec.Symbol_To_PC.Find (Subprg_Sym);
+                     begin
+                        --  Sometimes, subprogram DIES references a symbol that
+                        --  is not present. In these case, just ignore them.
+                        if Cur /= Symbol_To_PC_Maps.No_Element then
+                           Subprg_To_PC.Insert
+                             (Tag_Off, Symbol_To_PC_Maps.Element (Cur));
+                        end if;
+                     end;
+                  end if;
+
+               when DW_TAG_GNU_call_site =>
+                  if At_Low_Pc /= 0 and then At_Abstract_Origin /= 0 then
+                     Call_Site_To_Target.Append
+                       ((Pc_Type (At_Low_Pc),
+                        Storage_Offset (At_Abstract_Origin)));
                   end if;
 
                when others =>
@@ -1271,15 +1351,33 @@ package body Traces_Elf is
             At_Low_Pc := 0;
             At_High_Pc := 0;
             At_Ranges := No_Ranges;
+            At_Abstract_Origin := 0;
 
             At_Name := Null_Address;
             At_Comp_Dir := Null_Address;
+            At_Linkage_Name := Null_Address;
          end loop;
          Free (Map);
       end loop;
 
       Free (Infos);
       Free (Abbrevs);
+
+      --  Fill the map: call site -> target function, using accumulated
+      --  information.
+
+      for Call_To_Target of Call_Site_To_Target loop
+         declare
+            use Subprg_DIE_To_PC_Maps;
+            Cur : constant Subprg_DIE_To_PC_Maps.Cursor :=
+               Subprg_To_PC.Find (Call_To_Target.Target_Subprg_Tag);
+         begin
+            if Cur /= Subprg_DIE_To_PC_Maps.No_Element then
+               Exec.Call_Site_To_Target.Insert
+                 (Call_To_Target.To_PC, Subprg_DIE_To_PC_Maps.Element (Cur));
+            end if;
+         end;
+      end loop;
    end Build_Debug_Compile_Units;
 
    -----------------
@@ -1912,6 +2010,25 @@ package body Traces_Elf is
       return Result (Result'First .. Last);
    end Get_Slocs;
 
+   ---------------------
+   -- Get_Call_Target --
+   ---------------------
+
+   function Get_Call_Target
+     (Exec     : Exe_File_Type;
+      PC       : Pc_Type;
+      Call_Len : Pc_Type) return Pc_Type
+   is
+      use Call_Site_To_Target_Maps;
+      Cur : constant Cursor := Exec.Call_Site_To_Target.Find (PC + Call_Len);
+   begin
+      if Cur = No_Element then
+         return No_PC;
+      else
+         return Element (Cur);
+      end if;
+   end Get_Call_Target;
+
    ----------------------
    -- Get_Compile_Unit --
    ----------------------
@@ -2346,6 +2463,30 @@ package body Traces_Elf is
 
             Addresses_Containers.Insert
               (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
+         end if;
+
+         --  We might need to resolve function symbols even when they belong to
+         --  no section (external) in the current compile unit.
+
+         if (Sym_Type = STT_FUNC or else Sym_Type = STT_NOTYPE)
+              and then
+            Elf_St_Bind (ESym.St_Info) = STB_GLOBAL
+         then
+            declare
+               Name     : constant String := Read_String
+                 (Strtabs (Elf_Addr (ESym.St_Name))'Address);
+               At_Index : Natural := Index (Name, "@@", Name'First);
+            begin
+               --  If there is a "@@" pattern and if it does not start the
+               --  symbol name, strip it and the right part of the symbol name.
+
+               if At_Index = 1 or else At_Index = 0 then
+                  At_Index := Name'Last + 1;
+               end if;
+               Exec.Symbol_To_PC.Insert
+                 (To_Symbol (Name (1 .. At_Index - 1)),
+                  Offset + Pc_Type (ESym.St_Value));
+            end;
          end if;
       end loop;
 

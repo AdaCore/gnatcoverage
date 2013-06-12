@@ -79,6 +79,7 @@ package Dwarf is
    DW_TAG_imported_unit            : constant := 16#3d#;
    DW_TAG_mutable_type             : constant := 16#3e#;
    DW_TAG_lo_user                  : constant := 16#4080#;
+   DW_TAG_GNU_call_site            : constant := 16#4109#;
    DW_TAG_hi_user                  : constant := 16#Ffff#;
 
    DW_CHILDREN_no      : constant := 16#0#;
@@ -156,7 +157,9 @@ package Dwarf is
    DW_AT_call_file            : constant := 16#58#; -- constant
    DW_AT_call_line            : constant := 16#59#; -- constant
    DW_AT_description          : constant := 16#5a#; -- string
+   DW_AT_linkage_name         : constant := 16#6e#; -- string
    DW_AT_lo_user              : constant := 16#2000#; -- ---
+   DW_AT_MIPS_linkage_name    : constant := 16#2007#; -- string
    DW_AT_hi_user              : constant := 16#3fff#; -- ---
 
    DW_FORM_addr      : constant := 16#01#; -- address

@@ -16,6 +16,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
 with Ada.Unchecked_Deallocation;
@@ -24,7 +25,8 @@ with Interfaces; use Interfaces;
 
 with System; use System;
 
-with GNAT.Strings; use GNAT.Strings;
+with GNAT.Strings;     use GNAT.Strings;
+with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 
 with Coverage;       use Coverage;
 with Disa_Symbolize; use Disa_Symbolize;
@@ -35,6 +37,7 @@ with Traces;         use Traces;
 with Traces_Dbase;   use Traces_Dbase;
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
+with Symbols;        use Symbols;
 
 package Traces_Elf is
 
@@ -245,6 +248,15 @@ package Traces_Elf is
    --  Same as Get_Slocs, but returning a unique source location, with a
    --  non-empty range.
 
+   function Get_Call_Target
+     (Exec     : Exe_File_Type;
+      PC       : Pc_Type;
+      Call_Len : Pc_Type) return Pc_Type;
+   --  Return the target address of a call instruction from the debug
+   --  information, or No_PC if there is no such information. PC must be the
+   --  address of the first byte of the call instruction, and Call_Len its
+   --  length.
+
    procedure Get_Compile_Unit
      (Exec : Exe_File_Type;
       PC   : Pc_Type;
@@ -317,6 +329,14 @@ private
      (Index_Type   => Valid_DIE_CU_Id,
       Element_Type => Compile_Unit_Desc);
 
+   package Call_Site_To_Target_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Pc_Type,
+      Element_Type => Pc_Type);
+
+   package Symbol_To_PC_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Symbol,
+      Element_Type => Pc_Type);
+
    type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
 
    subtype Sloc_Set is Sloc_Sets.Set;
@@ -355,9 +375,12 @@ private
 
       Symtab       : Binary_Content_Acc := null;
       Nbr_Symbols  : Natural := 0;
+      Symbol_To_PC : Symbol_To_PC_Maps.Map;
 
       Compile_Units : Compile_Unit_Vectors.Vector;
       --  Compilation units
+
+      Call_Site_To_Target : Call_Site_To_Target_Maps.Map;
 
       Desc_Sets : Desc_Sets_Type;
       --  Address descriptor sets
