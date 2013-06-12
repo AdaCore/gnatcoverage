@@ -310,15 +310,17 @@ class QMAT:
             dir=self.itemsdir, partname="TOR", toplevel=False)
 
     # ---------------
-    # -- build_str --
+    # -- run_tests --
     # ---------------
 
-    def build_str (self):
-        announce ("building STR")
+    def run_tests (self):
+        announce ("    running tests")
 
-        # Building the STR document first involves running the testsuite in
-        # qualif mode (--qualif-level), producing REST from results dropped by
-        # each testcase execution:
+        # This function runs the test cases, as part of the build_str
+        # functionality.
+
+        # Running the testsuite in qualif mode (--qualif-level),
+        # producing REST from results dropped by each testcase execution:
 
         os.chdir (os.path.join (self.repodir, "testsuite"))
 
@@ -347,11 +349,34 @@ class QMAT:
             base_cmd.split() + all_cargs + re_tests_args
             )
 
+    # ---------------
+    # -- build_str --
+    # ---------------
+
+    def build_str (self):
+        announce ("building STR")
+
+        # Building the STR document first involves running the testsuite
+        # (unless the --results-dir option was specified, indicating that
+        # the test execution already occurred), and then uses to sphinx
+        # to produce the document from REST.
+
+        if self.o.resultsdir is None:
+            self.run_tests ()
+
         # Then resort to sphinx to produce the document from REST, in the
         # requested output format:
 
         os.chdir (os.path.join (self.repodir, "testsuite", "qreport"))
-        run ("make %s" % sphinx_target_for[self.o.docformat])
+
+        # If --results-dir was specified, then pass the directory containing
+        # the test results to the makefile.
+        if self.o.resultsdir is not None:
+            run ("make %s SRCDIR=%s" % (sphinx_target_for[self.o.docformat], 
+              self.o.resultsdir
+            ))
+        else:
+            run ("make %s" % sphinx_target_for[self.o.docformat]) 
 
         self.__latch_into (
             dir=self.itemsdir, partname="STR", toplevel=False)
@@ -498,6 +523,12 @@ if __name__ == "__main__":
         "--cargs:Ada", dest="cargs_ada",
         help = (
             "Ada specific compilation flags (-gnatp, -gnatn, ...)")
+        )
+    op.add_option (
+        "--results-dir", dest="resultsdir", default=None,
+        help = (
+            "Name of a directory containing results (in .rst form) from"
+            "a previous test execution run.")
         )
 
     (options, args) = op.parse_args()
