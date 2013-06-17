@@ -66,11 +66,12 @@ package body Disa_X86 is
       C_Prefix_Es,
       C_Prefix_Fs,
       C_Prefix_Gs,
+      C_Prefix_Lock,
       C_Prefix_Rep,
+      C_Prefix_Repne,
       C_Prefix_Oper,
       C_Prefix_Addr,
       C_0F,
-      C_Lock,
 
       --------------------
       -- Start of Modrm --
@@ -86,6 +87,7 @@ package body Disa_X86 is
       C_Gz,
       C_Gb,
       C_Gv,
+      C_Gy,
 
       --  Either a GPR or a memory address in the "r/m" field of the ModR/M
       --  byte.
@@ -95,6 +97,7 @@ package body Disa_X86 is
       C_Ep,
       C_Ev,
       C_Ew,
+      C_Ey,
 
       --  Control, Debug and general Registers in the "reg" field of the ModR/M
       --  byte.
@@ -102,6 +105,11 @@ package body Disa_X86 is
       C_Cd,
       C_Dd,
       C_Rd, --  The "mod" field may refer only to a GPR
+      C_Rv,
+
+      --  Packed quadword MMX register in the "R/M" field of the ModR/M byte
+
+      C_Nq,
 
       --  Packed quadword MMX register in the "reg" field of the ModR/M byte
 
@@ -126,6 +134,8 @@ package body Disa_X86 is
       C_Vsd,
       C_Vss,
       C_Vw,
+      C_Vy,
+      C_Vx,
 
       --  128-bit XMM register or a memory address
 
@@ -135,6 +145,7 @@ package body Disa_X86 is
       C_Wq,
       C_Wsd,
       C_Wss,
+      C_Wx,
 
       --  Coprocessor stack register
 
@@ -149,6 +160,13 @@ package body Disa_X86 is
 
       C_Sw, --  Segment register in the "reg" field of the ModR/M byte
 
+      C_Ux, --  XMM register in the "R/M" field of the ModR/M byte
+
+      --  Memory-only or register operand (some SSE instructions have the same
+      --  encoding).
+
+      C_Mq_Uq,
+
       --  Only memory operand ("mod" field of the ModR/M byte != 2#11#)
 
       C_Ma,
@@ -161,6 +179,8 @@ package body Disa_X86 is
       C_Mdq,
       C_Mq,
       C_Ms,
+      C_Msd,
+      C_Mss,
       C_M,
 
       ------------------
@@ -192,10 +212,16 @@ package body Disa_X86 is
 
       --  Segment register
 
-      C_Reg_Es,
-      C_Reg_Ss,
       C_Reg_Cs,
       C_Reg_Ds,
+      C_Reg_Es,
+      C_Reg_Fs,
+      C_Reg_Gs,
+      C_Reg_Ss,
+
+      --  Predefined set of registers.  Used by the MONITOR instruction.
+
+      C_Regs_Eax_Ecx_Edx,
 
       --  Immediate operand
 
@@ -264,13 +290,18 @@ package body Disa_X86 is
    end record;
    --  Format description for one instruction or one instruction group
 
+   Invalid_Desc : constant Insn_Desc_Type :=
+     ("invalid*        ", C_None, C_None, Extra_None);
+
    --  TODO: fix tables for 64-bit mode, keeping the 32-bit compatibility
 
    type Insn_Desc_Array_Type is array (Byte) of Insn_Desc_Type;
    --  Lookup table kind for one-byte and two-bytes opcode sequences
 
    type Group_Desc_Array_Type is array (Bit_Field_3) of Insn_Desc_Type;
-   --  Lookup table kind for ModR/M-extended opcodes
+   type Sub_Group_Desc_Array_Type is array (Bit_Field_3) of Insn_Desc_Type;
+   --  Lookup table kind for ModR/M-extended opcodes (on the "register" field
+   --  and on the "R/M" byte).
 
    --  Lookup table for the first byte of opcode sequences
 
@@ -575,9 +606,10 @@ package body Disa_X86 is
       16#ef#        => ("out             ", C_Reg_Dx, C_Reg_Ax, Extra_None),
 
       --  F0-FF
-      16#f0#        => ("lock            ", C_Lock, C_None, Extra_None),
+      16#f0#        => ("lock            ", C_Prefix_Lock, C_None, Extra_None),
       16#f1#        => ("                ", C_None, C_None, Extra_None),
-      16#f2#        => ("repne           ", C_Prefix_Rep, C_None, Extra_None),
+      16#f2#        =>
+        ("repne           ", C_Prefix_Repne, C_None, Extra_None),
       16#f3#        => ("rep             ", C_Prefix_Rep, C_None, Extra_None),
       16#f4#        => ("hlt             ", C_None, C_None, Extra_None),
       16#f5#        => ("cmc             ", C_None, C_None, Extra_None),
@@ -617,12 +649,14 @@ package body Disa_X86 is
 
       16#10#        => ("movups          ", C_Vps, C_Wps, Extra_None),
       16#11#        => ("movups          ", C_Wps, C_Vps, Extra_None),
-      16#12#        => ("movlps          ", C_Vq, C_Mq, Extra_None),
+      16#12#        => ("movlps          ", C_Vq, C_Mq_Uq, Extra_None),
       16#13#        => ("movlps          ", C_Mq, C_Vq, Extra_None),
       16#14#        => ("unpcklps        ", C_Vs, C_Wps, Extra_None),
       16#15#        => ("unpckhps        ", C_Vs, C_Wps, Extra_None),
-      16#16#        => ("movhps          ", C_Vq, C_Mq, Extra_None),
+      16#16#        => ("movhps          ", C_Vq, C_Mq_Uq, Extra_None),
       16#17#        => ("movhps          ", C_Mq, C_Vps, Extra_None),
+      16#18#        => ("16              ", C_None, C_None, Extra_None),
+      16#1f#        => ("nop             ", C_Ev, C_None, Extra_None),
 
       16#20#        => ("mov             ", C_Rd, C_Cd, Extra_None),
       16#21#        => ("mov             ", C_Rd, C_Dd, Extra_None),
@@ -636,10 +670,10 @@ package body Disa_X86 is
       16#29#        => ("movaps          ", C_Wps, C_Vps, Extra_None),
       16#2a#        => ("cvtpi2ps        ", C_Vps, C_Qq, Extra_None),
       16#2b#        => ("movntps         ", C_Mps, C_Vps, Extra_None),
-      16#2c#        => ("cvttps2pi       ", C_Pq,  C_Wq, Extra_None),
-      16#2d#        => ("cvtps2pi        ", C_Pq,  C_Wq, Extra_None),
+      16#2c#        => ("cvttps2pi       ", C_Pq,  C_Wps, Extra_None),
+      16#2d#        => ("cvtps2pi        ", C_Pq,  C_Wps, Extra_None),
       16#2e#        => ("ucomiss         ", C_Vss, C_Wss, Extra_None),
-      16#2f#        => ("comiss          ", C_Vps, C_Wps, Extra_None),
+      16#2f#        => ("comiss          ", C_Vss, C_Wss, Extra_None),
 
       16#30#        => ("wrmsr           ", C_None, C_None, Extra_None),
       16#31#        => ("rdtsc           ", C_None, C_None, Extra_None),
@@ -647,7 +681,8 @@ package body Disa_X86 is
       16#33#        => ("rdpmc           ", C_None, C_None, Extra_None),
       16#34#        => ("sysenter        ", C_None, C_None, Extra_None),
       16#35#        => ("sysexit         ", C_None, C_None, Extra_None),
-      --  The 16#36#-16#3f# slot are reserved
+      16#37#        => ("getsec          ", C_None, C_None, Extra_None),
+      --  The 16#36# and 16#38-16#3f# slots are reserved
 
       16#40#        => ("cmovo           ", C_Gv, C_Ev, Extra_None),
       16#41#        => ("cmovno          ", C_Gv, C_Ev, Extra_None),
@@ -700,12 +735,16 @@ package body Disa_X86 is
       16#6f#        => ("movq            ", C_Pq, C_Qq, Extra_None),
 
       16#70#        => ("pshufw          ", C_Pq, C_Qq, Extra_8),
-      --  TODO??? 12/13/14 extended opcodes forms
+      16#71#        => ("12              ", C_None, C_None, Extra_None),
+      16#72#        => ("13              ", C_None, C_None, Extra_None),
+      16#73#        => ("14              ", C_None, C_None, Extra_None),
       16#74#        => ("pcmpeqb         ", C_Pq, C_Qq, Extra_None),
       16#75#        => ("pcmpeqw         ", C_Pq, C_Qq, Extra_None),
       16#76#        => ("pcmepeqd        ", C_Pq, C_Qq, Extra_None),
       16#77#        => ("emms            ", C_None, C_None, Extra_None),
-      --  The 16#78#-16#7b# slots are reserved
+      16#78#        => ("vmread          ", C_Ey, C_Gy, Extra_None),
+      16#79#        => ("vmwrite         ", C_Gy, C_Ey, Extra_None),
+      --  The 16#7a#-16#7b# slots are reserved
       16#7c#        => ("haddpd          ", C_Vpd, C_Wpd, Extra_None),
       16#7d#        => ("hsubpd          ", C_Vpd, C_Wpd, Extra_None),
       16#7e#        => ("movd            ", C_Ed, C_Pd, Extra_None),
@@ -745,14 +784,31 @@ package body Disa_X86 is
       2#1001_1110#  => ("setle           ", C_Eb, C_None, Extra_None),
       2#1001_1111#  => ("setjg           ", C_Eb, C_None, Extra_None),
 
+      16#a0#        => ("push            ", C_Reg_Fs, C_None, Extra_None),
+      16#a1#        => ("pop             ", C_Reg_Fs, C_None, Extra_None),
+      16#a2#        => ("cpuid           ", C_None, C_None, Extra_None),
+      16#a3#        => ("bt              ", C_Ev, C_Gv, Extra_None),
       16#a4#        => ("shld            ", C_Ev, C_Gv, Extra_8),
       16#a5#        => ("shld            ", C_Ev, C_Gv, Extra_Cl),
+      16#a8#        => ("push            ", C_Reg_Gs, C_None, Extra_None),
+      16#a9#        => ("pop             ", C_Reg_Gs, C_None, Extra_None),
+      16#aa#        => ("rsm             ", C_None, C_None, Extra_None),
+      16#ab#        => ("bts             ", C_Ev, C_Gv, Extra_None),
       16#ac#        => ("shrd            ", C_Ev, C_Gv, Extra_8),
       16#ad#        => ("shrd            ", C_Ev, C_Gv, Extra_Cl),
+      16#ae#        => ("15              ", C_None, C_None, Extra_None),
       16#af#        => ("imul            ", C_Gv, C_Ev, Extra_None),
 
+      16#b0#        => ("cmpxchg         ", C_Eb, C_Gb, Extra_None),
+      16#b1#        => ("cmpxchg         ", C_Ev, C_Gv, Extra_None),
+      16#b2#        => ("lss             ", C_Gv, C_Mp, Extra_None),
+      16#b3#        => ("btr             ", C_Ev, C_Gv, Extra_None),
+      16#b4#        => ("lfs             ", C_Gv, C_Mp, Extra_None),
+      16#b5#        => ("lgs             ", C_Gv, C_Mp, Extra_None),
       16#b6#        => ("movzx           ", C_Gv, C_Eb, Extra_None),
       16#b7#        => ("movzx           ", C_Gv, C_Ew, Extra_None),
+      16#b9#        => ("ud2             ", C_None, C_None, Extra_None),
+      16#ba#        => ("8               ", C_None, C_None, Extra_None),
       16#bb#        => ("btc             ", C_Ev, C_Gv, Extra_None),
       16#bc#        => ("bsf             ", C_Gv, C_Ev, Extra_None),
       16#bd#        => ("bsr             ", C_Gv, C_Ev, Extra_None),
@@ -766,7 +822,7 @@ package body Disa_X86 is
       16#c4#        => ("pinsrw          ", C_Pw, C_Ew, Extra_8),
       16#c5#        => ("pextrw          ", C_Gw, C_Pw, Extra_8),
       16#c6#        => ("shufps          ", C_Vps, C_Wps, Extra_8),
-      --  TODO??? 9 extended opcodes forms
+      16#c7#        => ("9               ", C_None, C_None, Extra_None),
       16#c8#        => ("bswap           ", C_Reg_Ax, C_None, Extra_None),
       16#c9#        => ("bswap           ", C_Reg_Cx, C_None, Extra_None),
       16#ca#        => ("bswap           ", C_Reg_Dx, C_None, Extra_None),
@@ -783,7 +839,7 @@ package body Disa_X86 is
       16#d4#        => ("paddq           ", C_Pq, C_Qq, Extra_None),
       16#d5#        => ("pmullw          ", C_Pq, C_Qq, Extra_None),
       --  The 16#d6# slot is reserved
-      16#d7#        => ("pmovmskb        ", C_Gd, C_Pq, Extra_None),
+      16#d7#        => ("pmovmskb        ", C_Gd, C_Nq, Extra_None),
       16#d8#        => ("psubusb         ", C_Pq, C_Qq, Extra_None),
       16#d9#        => ("psubusw         ", C_Pq, C_Qq, Extra_None),
       16#da#        => ("pminub          ", C_Pq, C_Qq, Extra_None),
@@ -817,7 +873,7 @@ package body Disa_X86 is
       16#f4#        => ("pmuludq         ", C_Pq, C_Qq, Extra_None),
       16#f5#        => ("pmaddwd         ", C_Pq, C_Qq, Extra_None),
       16#f6#        => ("psadbw          ", C_Pq, C_Qq, Extra_None),
-      16#f7#        => ("maskmovq        ", C_Pq, C_Pq, Extra_None),
+      16#f7#        => ("maskmovq        ", C_Pq, C_Nq, Extra_None),
       16#f8#        => ("psubb           ", C_Pq, C_Qq, Extra_None),
       16#f9#        => ("psubw           ", C_Pq, C_Qq, Extra_None),
       16#fa#        => ("psubd           ", C_Pq, C_Qq, Extra_None),
@@ -841,7 +897,7 @@ package body Disa_X86 is
       16#13#        => ("movlpd          ", C_Mq, C_Vq, Extra_None),
       16#14#        => ("unpcklpd        ", C_Vpd, C_Wpd, Extra_None),
       16#15#        => ("unpckhpd        ", C_Vpd, C_Wpd, Extra_None),
-      16#16#        => ("movhpd          ", C_Vq, C_Mq, Extra_None),
+      16#16#        => ("movhpd          ", C_Vdq, C_Mq, Extra_None),
       16#17#        => ("movhpd          ", C_Mq, C_Vpd, Extra_None),
 
       16#28#        => ("movapd          ", C_Vpd, C_Wpd, Extra_None),
@@ -849,7 +905,7 @@ package body Disa_X86 is
       16#2a#        => ("cvtpi2pd        ", C_Vpd, C_Qd, Extra_None),
       16#2b#        => ("movntpd         ", C_Mpd, C_Vpd, Extra_None),
       16#2c#        => ("cvttpd2pi       ", C_Pq, C_Wpd, Extra_None),
-      16#2d#        => ("cptpd2pi        ", C_Pq, C_Wpd, Extra_None),
+      16#2d#        => ("cvtpd2pi        ", C_Pq, C_Wpd, Extra_None),
       16#2e#        => ("ucomisd         ", C_Vsd, C_Wsd, Extra_None),
       16#2f#        => ("comisd          ", C_Vsd, C_Wsd, Extra_None),
 
@@ -887,15 +943,17 @@ package body Disa_X86 is
       16#6f#        => ("movdqa          ", C_Vdq, C_Wdq, Extra_None),
 
       16#70#        => ("pshufd          ", C_Vdq, C_Wdq, Extra_8),
-      --  TODO??? 12/13/14 extended opcodes forms
-      16#74#        => ("pcmpeqb         ", C_Vdq, C_Wdq, Extra_8),
-      16#75#        => ("pcmpeqw         ", C_Vdq, C_Wdq, Extra_8),
-      16#76#        => ("pcmpeqd         ", C_Vdq, C_Wdq, Extra_8),
+      16#71#        => ("12              ", C_None, C_None, Extra_None),
+      16#72#        => ("13              ", C_None, C_None, Extra_None),
+      16#73#        => ("14              ", C_None, C_None, Extra_None),
+      16#74#        => ("pcmpeqb         ", C_Vdq, C_Wdq, Extra_None),
+      16#75#        => ("pcmpeqw         ", C_Vdq, C_Wdq, Extra_None),
+      16#76#        => ("pcmpeqd         ", C_Vdq, C_Wdq, Extra_None),
       --  The 16#77#-16#7b# slots are reserved
-      16#7c#        => ("haddpd          ", C_Vdq, C_Wdq, Extra_8),
-      16#7d#        => ("hsubpd          ", C_Vdq, C_Wdq, Extra_8),
-      16#7e#        => ("movd            ", C_Ed, C_Vd, Extra_8),
-      16#7f#        => ("movdqa          ", C_Wdq, C_Vdq, Extra_8),
+      16#7c#        => ("haddpd          ", C_Vdq, C_Wdq, Extra_None),
+      16#7d#        => ("hsubpd          ", C_Vdq, C_Wdq, Extra_None),
+      16#7e#        => ("movd            ", C_Ey, C_Vy, Extra_None),
+      16#7f#        => ("movdqa          ", C_Wdq, C_Vdq, Extra_None),
 
       16#c2#        => ("cmpps           ", C_Vpd, C_Wpd, Extra_8),
       16#c4#        => ("pinsrw          ", C_Vw, C_Ew, Extra_8),
@@ -964,13 +1022,15 @@ package body Disa_X86 is
      (
       16#10#        => ("movsd           ", C_Vsd, C_Wsd, Extra_None),
       16#11#        => ("movsd           ", C_Vsd, C_Wsd, Extra_None),
-      16#12#        => ("movddup         ", C_Vq, C_Wq, Extra_None),
-      16#1a#        => ("cvtsi2sd        ", C_Vsd, C_Ed, Extra_None),
-      16#1c#        => ("cvttsd2si       ", C_Gd, C_Wsd, Extra_None),
-      16#1d#        => ("cvtsd2si        ", C_Gd, C_Wsd, Extra_None),
+      16#12#        => ("movddup         ", C_Vx, C_Wx, Extra_None),
+
+      16#2a#        => ("cvtsi2sd        ", C_Vsd, C_Ey, Extra_None),
+      16#2b#        => ("movntsd         ", C_Msd, C_Vsd, Extra_None),
+      16#2c#        => ("cvttsd2si       ", C_Gy, C_Wsd, Extra_None),
+      16#2d#        => ("cvtsd2si        ", C_Gy, C_Wsd, Extra_None),
 
       --  Here...
-      16#52#        => ("sqrtsdsi        ", C_Vsd, C_Wsd, Extra_None),
+      16#51#        => ("sqrtsd          ", C_Vsd, C_Wsd, Extra_None),
       --  ... and here, a lot of slots are reserved.
       16#58#        => ("addsd           ", C_Vsd, C_Wsd, Extra_None),
       16#59#        => ("mulsd           ", C_Vsd, C_Wsd, Extra_None),
@@ -989,6 +1049,7 @@ package body Disa_X86 is
       --  The 16#7e#-16#7f# slots are reserved
 
       16#c2#        => ("cmpsd           ", C_Vsd, C_Wsd, Extra_8),
+      16#d0#        => ("addsubpd        ", C_Vps, C_Wps, Extra_None),
       16#d6#        => ("movdq2q         ", C_Pq, C_Vq, Extra_None),
       16#e6#        => ("cvtpd2dq        ", C_Vdq, C_Wdq, Extra_None),
       16#f0#        => ("lddqu           ", C_Vdq, C_Mdq, Extra_None),
@@ -1003,16 +1064,17 @@ package body Disa_X86 is
      (
       16#10#        => ("movss           ", C_Vss, C_Wss, Extra_None),
       16#11#        => ("movss           ", C_Wss, C_Vss, Extra_None),
-      16#13#        => ("movsldup        ", C_Vps, C_Wps, Extra_None),
+      16#12#        => ("movsldup        ", C_Vx, C_Wx, Extra_None),
       --  The 16#14#-16#15# slots are reserved
       16#16#        => ("movshdup        ", C_Vps, C_Wps, Extra_None),
       --  The 16#17# slot is reserved
       --  TODO??? 16 extended opcodes forms
       --  The 16#19#-16#1f# slots are reserved
 
-      16#2a#        => ("cvtsi2ss        ", C_Vss, C_Ed, Extra_None),
-      16#2c#        => ("cvttss2si       ", C_Gd, C_Wss, Extra_None),
-      16#2d#        => ("cvtss2si        ", C_Gd, C_Wss, Extra_None),
+      16#2a#        => ("cvtsi2ss        ", C_Vss, C_Ey, Extra_None),
+      16#2b#        => ("movntss         ", C_Mss, C_Vss, Extra_None),
+      16#2c#        => ("cvttss2si       ", C_Gy, C_Wss, Extra_None),
+      16#2d#        => ("cvtss2si        ", C_Gy, C_Wss, Extra_None),
 
       --  The 16#50# slot is reserved
       16#51#        => ("sqrtss          ", C_Vss, C_Wss, Extra_None),
@@ -1035,6 +1097,11 @@ package body Disa_X86 is
       --  The 16#74#-16#7d# slots are reserved
       16#7e#        => ("movq            ", C_Vq, C_Wq, Extra_None),
       16#7f#        => ("movdqu          ", C_Wdq, C_Vdq, Extra_None),
+
+      16#b8#        => ("popcnt          ", C_Gv, C_Ev, Extra_None),
+      --  TODO??? 8 extended opcodes forms
+      16#bc#        => ("tzcnt           ", C_Gv, C_Ev, Extra_None),
+      16#bd#        => ("lzcnt           ", C_Gv, C_Ev, Extra_None),
 
       16#c2#        => ("cmpss           ", C_Vss, C_Wss, Extra_8),
       16#d6#        => ("movq2dq         ", C_Vdq, C_Qq, Extra_None),
@@ -1119,6 +1186,122 @@ package body Disa_X86 is
       2#110# => ("lmsw            ", C_Ew, C_None, Extra_None),
       2#111# => ("invlpg          ", C_Mb, C_None, Extra_None));
 
+   Insn_Desc_G7_000_mod11 : constant Sub_Group_Desc_Array_Type :=
+     (2#001# => ("vmcall          ", C_None, C_None, Extra_None),
+      2#010# => ("vmlaunch        ", C_None, C_None, Extra_None),
+      2#011# => ("vmresume        ", C_None, C_None, Extra_None),
+      2#100# => ("vmxoff          ", C_None, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   Insn_Desc_G7_001_mod11 : constant Sub_Group_Desc_Array_Type :=
+     (2#000# => ("monitor         ", C_None, C_None, Extra_None),
+      2#001# => ("mwait           ", C_None, C_None, Extra_None),
+      2#010# => ("clac            ", C_None, C_None, Extra_None),
+      2#011# => ("stac            ", C_None, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   Insn_Desc_G7_010_mod11 : constant Sub_Group_Desc_Array_Type :=
+     (2#000# => ("xgetbv          ", C_None, C_None, Extra_None),
+      2#001# => ("xsetbv          ", C_None, C_None, Extra_None),
+      2#100# => ("vmfunc          ", C_None, C_None, Extra_None),
+      2#101# => ("xend            ", C_None, C_None, Extra_None),
+      2#110# => ("xtest           ", C_None, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   --  The group 8 is used for the second opcode byte 16#ba#
+
+   Insn_Desc_G8 : constant Group_Desc_Array_Type :=
+     (2#100# => ("bt              ", C_Ev, C_Ib, Extra_None),
+      2#101# => ("bts             ", C_Ev, C_Ib, Extra_None),
+      2#110# => ("btr             ", C_Ev, C_Ib, Extra_None),
+      2#111# => ("btc             ", C_Ev, C_Ib, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   --  The group 9 is used for the second opcode byte 16#c7#
+   --
+   Insn_Desc_G9_mem : constant Group_Desc_Array_Type :=
+     (2#001# => ("cmpxch8b        ", C_Mq, C_None, Extra_None),
+      2#110# => ("vmptrld         ", C_Mq, C_None, Extra_None),
+      2#111# => ("vmptrst         ", C_Mq, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   Insn_Desc_G9_mem_66 : constant Group_Desc_Array_Type :=
+     (2#110# => ("vmclear         ", C_Mq, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   Insn_Desc_G9_mem_F3 : constant Group_Desc_Array_Type :=
+     (2#110# => ("vmxon           ", C_Mq, C_None, Extra_None),
+      2#111# => ("vmptrst         ", C_Mq, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   Insn_Desc_G9_mod11 : constant Group_Desc_Array_Type :=
+     (2#110# => ("rdrand          ", C_Rv, C_None, Extra_None),
+      2#111# => ("rdseed          ", C_Rv, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   --  Groups 12-14 are used only with a "mod" ModR/M byte field equal to "11"
+
+   type Groups_12_13_14_Desc_Array_Type is
+      array (Character range '2' .. '4', Bit_Field_3)
+      of Insn_Desc_Type;
+
+   Insn_Desc_G12_13_14_mod11 : constant Groups_12_13_14_Desc_Array_Type :=
+     ('2' =>
+        (2#010# => ("psrlw           ", C_Nq, C_Ib, Extra_None),
+         2#100# => ("psraw           ", C_Nq, C_Ib, Extra_None),
+         2#110# => ("psllw           ", C_Nq, C_Ib, Extra_None),
+         others => ("                ", C_None, C_None, Extra_None)),
+      '3' =>
+        (2#010# => ("psrld           ", C_Nq, C_Ib, Extra_None),
+         2#100# => ("psrad           ", C_Nq, C_Ib, Extra_None),
+         2#110# => ("pslld           ", C_Nq, C_Ib, Extra_None),
+         others => ("                ", C_None, C_None, Extra_None)),
+      '4' =>
+        (2#010# => ("psrlq           ", C_Nq, C_Ib, Extra_None),
+         2#110# => ("psllq           ", C_Nq, C_Ib, Extra_None),
+         others => ("                ", C_None, C_None, Extra_None)));
+
+   Insn_Desc_G12_13_14_mod11_66 : constant Groups_12_13_14_Desc_Array_Type :=
+     ('2' =>
+        (2#010# => ("psrlw           ", C_Ux, C_Ib, Extra_None),
+         2#100# => ("psraw           ", C_Ux, C_Ib, Extra_None),
+         2#110# => ("psllw           ", C_Ux, C_Ib, Extra_None),
+         others => ("                ", C_None, C_None, Extra_None)),
+      '3' =>
+        (2#010# => ("psrld           ", C_Ux, C_Ib, Extra_None),
+         2#100# => ("psrad           ", C_Ux, C_Ib, Extra_None),
+         2#110# => ("pslld           ", C_Ux, C_Ib, Extra_None),
+         others => ("                ", C_None, C_None, Extra_None)),
+      '4' =>
+        (2#010# => ("psrlq           ", C_Ux, C_Ib, Extra_None),
+         2#011# => ("psrldq          ", C_Ux, C_Ib, Extra_None),
+         2#110# => ("psllq           ", C_Ux, C_Ib, Extra_None),
+         2#111# => ("pslldq          ", C_Ux, C_Ib, Extra_None),
+         others => ("                ", C_None, C_None, Extra_None)));
+
+   Insn_Desc_G15 : constant Group_Desc_Array_Type :=
+     (2#000# => ("fxsave          ", C_M, C_None, Extra_None),
+      2#001# => ("fxrstor         ", C_M, C_None, Extra_None),
+      2#010# => ("ldmxcsr         ", C_Md, C_None, Extra_None),
+      2#011# => ("stmxcsr         ", C_Md, C_None, Extra_None),
+      2#100# => ("xsave           ", C_M, C_None, Extra_None),
+      2#101# => ("xrstor          ", C_M, C_None, Extra_None),
+      2#110# => ("xsaveopt        ", C_M, C_None, Extra_None),
+      2#111# => ("clflush         ", C_Mb, C_None, Extra_None));
+
+   Insn_Desc_G15_mod11 : constant Group_Desc_Array_Type :=
+     (2#101# => ("lfence          ", C_None, C_None, Extra_None),
+      2#110# => ("mfence          ", C_None, C_None, Extra_None),
+      2#111# => ("sfence          ", C_None, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
+   Insn_Desc_G16 : constant Group_Desc_Array_Type :=
+     (2#000# => ("prefetchnta     ", C_M, C_None, Extra_None),
+      2#001# => ("prefetcht0      ", C_M, C_None, Extra_None),
+      2#010# => ("prefetcht1      ", C_M, C_None, Extra_None),
+      2#011# => ("prefetcht2      ", C_M, C_None, Extra_None),
+      others => ("                ", C_None, C_None, Extra_None));
+
    --  Two-levels lookup table for escape to coprocessor instruction set, when
    --  the ModR/M byte is inside the range from 16#00# to 16#bf# (included). It
    --  is indexed first by the 3 least significant bits of the first opcode
@@ -1129,8 +1312,15 @@ package body Disa_X86 is
 
    Insn_Desc_Esc_Before_Bf : constant Esc_Inside_Desc_Array_Type :=
      (
-      --  D8: all slots are reserved
-      (others => ("                ", C_None, C_None, Extra_None)),
+      --  D8
+      (2#000# => ("fadd            ", C_Mfs, C_None, Extra_None),
+       2#001# => ("fmul            ", C_Mfs, C_None, Extra_None),
+       2#010# => ("fcom            ", C_Mfs, C_None, Extra_None),
+       2#011# => ("fcomp           ", C_Mfs, C_None, Extra_None),
+       2#100# => ("fsub            ", C_Mfs, C_None, Extra_None),
+       2#101# => ("fsubr           ", C_Mfs, C_None, Extra_None),
+       2#110# => ("fdiv            ", C_Mfs, C_None, Extra_None),
+       2#111# => ("fdivr           ", C_Mfs, C_None, Extra_None)),
       --  D9
       (2#000# => ("fld             ", C_Mfs, C_None, Extra_None),
        2#001# => ("                ", C_None, C_None, Extra_None),
@@ -2218,7 +2408,6 @@ package body Disa_X86 is
                              Off_Imm : in out Pc_Type;
                              W : Width_Type)
       is
-         Off2 : Pc_Type;
          R       : constant Reg_Class_Type := To_General (W);
          Reg_Ext : constant Bit            := Ext_Rex_B (Rex_Prefix);
       begin
@@ -2235,28 +2424,55 @@ package body Disa_X86 is
                Add_String ("%ds");
             when C_Reg_Es =>
                Add_String ("%es");
+            when C_Reg_Fs =>
+               Add_String ("%fs");
+            when C_Reg_Gs =>
+               Add_String ("%gs");
             when C_Reg_Ss =>
                Add_String ("%ss");
+            when C_Regs_Eax_Ecx_Edx =>
+               Add_String ("%eax, %ecx, %edx");
             when C_Ap =>
-               Off2 := Off_Imm;
-               Off_Imm := Off_Imm + 4;  -- FIXME
-               Decode_Imm (Off_Imm, W_16);
-               Add_Comma;
-               Decode_Imm (Off2, W_32);  -- FIXME
+               declare
+                  Off_Seg : Pc_Type := Off_Imm + Width_Len (W);
+               begin
+                  --  First decode the segment selector (located at the end of
+                  --  the instruction), then extract the called procedure
+                  --  address.
+
+                  Decode_Imm (Off_Seg, W_16);
+                  Add_Comma;
+                  Decode_Imm (Off_Imm, W);
+
+                  --  The end of the instruction is the end of the segment
+                  --  selector.
+
+                  Off_Imm := Off_Seg;
+               end;
             when C_Gv =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R);
             when C_Gb =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R_8);
+            when C_Gw =>
+               Decode_Modrm_Reg (Mem (Off_Modrm), R_16);
+            when C_Gd =>
+               Decode_Modrm_Reg (Mem (Off_Modrm), R_32);
+            when C_Gy =>
+               if W = W_16 then
+                  Decode_Modrm_Reg (Mem (Off_Modrm), R_64);
+               else
+                  Decode_Modrm_Reg (Mem (Off_Modrm), R_32);
+               end if;
             when C_Gz =>
                Decode_Modrm_Reg (Mem (Off_Modrm), To_General (To_Z (W)));
-            when C_Ev =>
+            when C_Ep | C_Ev | C_Ey =>
                Decode_Modrm_Mem (Off_Modrm, R);
             when C_Ed | C_Ew =>
                Decode_Modrm_Mem (Off_Modrm, R_32);
-            when C_Ep =>
-               Decode_Modrm_Mem (Off_Modrm, R);
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mp | C_Mpd | C_Mps
-               | C_Mq | C_Mdq | C_Ms =>
+            when C_Mq_Uq =>
+               Decode_Modrm_Mem (Off_Modrm, R_XMM);
+            when C_M | C_Ma | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mw | C_Mp
+               | C_Mpd | C_Mps | C_Mq | C_Mdq | C_Ms | C_Msd | C_Mss =>
                Decode_Modrm_Mem (Off_Modrm, R_None);
             when C_Eb | C_Mb =>
                Decode_Modrm_Mem (Off_Modrm, R_8);
@@ -2292,6 +2508,14 @@ package body Disa_X86 is
                Add_String ("%ds:(");
                Add_Reg (6, R);
                Add_Char (')');
+            when C_Xz =>
+               Add_String ("%ds:(");
+               if W = W_16 then
+                  Add_Reg (6, R_16);
+               else
+                  Add_Reg (6, R_32);
+               end if;
+               Add_Char (')');
             when C_Xb =>
                Add_String ("%ds:(%esi)");
             when C_H =>
@@ -2311,17 +2535,23 @@ package body Disa_X86 is
                Decode_Modrm_Reg (Mem (Off_Modrm), R_Debug);
             when C_Rd =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R_32);
+            when C_Rv =>
+               Decode_Modrm_Mem (Off_Modrm, To_General (W));
 
+            when C_Nq =>
+               Add_Reg (Bit_Field_4 (Ext_210 (Mem (Off_Modrm))), R_MM);
+            when C_Ux =>
+               Add_Reg (Bit_Field_4 (Ext_210 (Mem (Off_Modrm))), R_XMM);
             when C_Pd | C_Pq | C_Pw =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R_MM);
             when C_Qd | C_Qdq | C_Qq =>
                Decode_Modrm_Mem (Off_Modrm, R_MM);
 
             when C_Vd | C_Vdq | C_Vps | C_Vpd | C_Vq | C_Vs | C_Vsd | C_Vss
-               | C_Vw =>
+               | C_Vw | C_Vy | C_Vx =>
                Decode_Modrm_Reg (Mem (Off_Modrm), R_XMM);
 
-            when C_Wdq | C_Wps | C_Wpd | C_Wq | C_Wsd | C_Wss =>
+            when C_Wdq | C_Wps | C_Wpd | C_Wq | C_Wsd | C_Wss | C_Wx =>
                Decode_Modrm_Mem (Off_Modrm, R_XMM);
 
             when others =>
@@ -2356,12 +2586,16 @@ package body Disa_X86 is
               | C_Reg_Ch
               | C_Reg_Dh =>
                return;
-            when C_Reg_Es
+            when C_Reg_Cs
               | C_Reg_Ds
-              | C_Reg_Ss
-              | C_Reg_Cs =>
+              | C_Reg_Es
+              | C_Reg_Fs
+              | C_Reg_Gs
+              | C_Reg_Ss =>
                return;
-            when C_Gv | C_Gb | C_Gz =>
+            when C_Regs_Eax_Ecx_Edx =>
+               return;
+            when C_Gv | C_Gb | C_Gd | C_Gw | C_Gy | C_Gz =>
                return;
             when C_Ib | C_Jb =>
                Off_Imm := Off_Imm + 1;
@@ -2378,28 +2612,35 @@ package body Disa_X86 is
                   Off_Imm := Off_Imm + Width_Len (W_32);
                end if;
             when C_Ap =>
-               Off_Imm := Off_Imm + 4 + 2; -- FIXME: oper16
-            when C_M | C_Mfs | C_Mfd | C_Mfe | C_Md | C_Mp | C_Mpd | C_Mps
-               | C_Mdq | C_Mq | C_Ms =>
+               if W = W_32 then
+                  Off_Imm := Off_Imm + 4 + 2;
+               else
+                  Off_Imm := Off_Imm + 2 + 2;
+               end if;
+            when C_Mq_Uq =>
                return;
-            when C_Eb | C_Ed | C_Ep | C_Ev | C_Ew =>
+            when C_M | C_Ma | C_Mfs | C_Mfd | C_Mfe | C_Mb | C_Md | C_Mw
+               | C_Mp | C_Mpd | C_Mps | C_Mdq | C_Mq | C_Ms | C_Msd | C_Mss =>
                return;
-            when C_Yb | C_Yv | C_Yz | C_Xv | C_Xb | C_H | C_H0 | C_Cst_1 =>
+            when C_Eb | C_Ed | C_Ep | C_Ev | C_Ew | C_Ey =>
+               return;
+            when C_Yb | C_Yv | C_Yz | C_Xv | C_Xz | C_Xb | C_H | C_H0
+               | C_Cst_1 =>
                return;
             when C_Sw =>
                return;
             when C_Fv =>
                return;
 
-            when C_Cd | C_Dd | C_Rd =>
+            when C_Cd | C_Dd | C_Rd | C_Rv =>
                return;
 
-            when C_Pd | C_Pq | C_Pw | C_Qd | C_Qdq | C_Qq =>
+            when C_Nq | C_Ux | C_Pd | C_Pq | C_Pw | C_Qd | C_Qdq | C_Qq =>
                return;
             when C_Vd | C_Vdq | C_Vps | C_Vpd | C_Vq | C_Vs | C_Vsd | C_Vss
-               | C_Vw =>
+               | C_Vw | C_Vy | C_Vx =>
                return;
-            when C_Wdq | C_Wps | C_Wpd | C_Wq | C_Wsd | C_Wss =>
+            when C_Wdq | C_Wps | C_Wpd | C_Wq | C_Wsd | C_Wss | C_Wx =>
                return;
 
             when others =>
@@ -2408,19 +2649,26 @@ package body Disa_X86 is
          end case;
       end Update_Length;
 
-      Off       : Pc_Type;
-      Off_Modrm : Pc_Type;
-      Off_Imm   : Pc_Type;
+      Off             : Pc_Type;
+      Off_Modrm       : Pc_Type;
+      Off_Imm         : Pc_Type;
 
-      B, B1     : Byte;
-      Use_Modrm : Boolean := False;
+      B, B1           : Byte;
+      Prefix_Lock     : Boolean := False;
+      Prefix_Oper     : Boolean := False;
+      Mandatory_Oper  : Boolean := False;
+      Prefix_Repne    : Boolean := False;
+      Mandatory_Repne : Boolean := False;
+      Prefix_Rep      : Boolean := False;
+      Mandatory_Rep   : Boolean := False;
+      Use_Modrm       : Boolean := False;
 
-      Desc      : Insn_Desc_Type;
-      Name      : String16;
-      W         : Width_Type := W_32;
-      Seg       : Code_Type := C_None;
-      Src, Dst  : Code_Type;
-      Extra     : Extra_Operand_Type;
+      Desc            : Insn_Desc_Type;
+      Name            : String16;
+      W               : Width_Type := W_32;
+      Seg             : Code_Type := C_None;
+      Src, Dst        : Code_Type;
+      Extra           : Extra_Operand_Type;
 
    --  Start of processing for Disassemble_Insn
 
@@ -2436,79 +2684,51 @@ package body Disa_X86 is
          Off := Off + 1;
 
          case Desc.Dst is
-            when C_Prefix_Rep =>
-               B1 := Mem (Off);
-               Off := Off + 1;
-               if B1 = 16#0f# then
-                  B1 := Mem (Off);
-                  Off := Off + 1;
-                  case B is
-                     when 16#f2# =>
-                        Desc := Insn_Desc_F2_0F (B1);
-                     when 16#f3# =>
-                        Desc := Insn_Desc_F3_0F (B1);
-                     when others =>
-                        Desc.Name (1) := ' ';
-                        Desc.Dst := C_None;
-                        Desc.Src := C_None;
-                  end case;
-                  exit;
-               else
-                  --  If this is a true "rep" prefix, output it and continue
-                  --  the loop in order to handle any other prefix.
-                  Add_Name (Desc.Name);
-                  Add_Char (' ');
-                  Off := Off - 1;
-               end if;
 
-            when C_Lock =>
-               Add_Name (Desc.Name);
-               Add_Char (' ');
+            --  Consume prefixes and enable corresponding flags
 
+            when C_Prefix_Lock =>
+               Prefix_Lock := True;
             when C_Prefix_Oper =>
-               B1 := Mem (Off);
-               if B = 16#66# and then B1 = 16#0f# then
-                  Off := Off + 1;
-                  B1 := Mem (Off);
-                  Off := Off + 1;
-                  Desc := Insn_Desc_66_0F (B1);
-
-                  --  When the 16#66# prefix is used but was not mandatory,
-                  --  this is a valid operand-size attribute toggling: turn
-                  --  back to the unprefixed two-bytes opcodes table.
-                  if Desc.Name (1) = ' ' then
-                     --  Do not lookup ourself but let the current loop handle
-                     --  that, so that the prefix is just ignored (there may be
-                     --  more to do than simply performing some table lookup,
-                     --  for example doing some 64bit specific processing).
-                     Off := Off - 2;
-                  else
-                     exit;
-                  end if;
-               elsif W = W_32 then
-                  --  Do not switch to 16-bit operand if REX.W (64-bit operand)
-                  --  is enabled.
-                  W := W_16;
-               end if;
+               Prefix_Oper := True;
+            when C_Prefix_Addr =>
+               raise Program_Error; --  TODO???
+            when C_Prefix_Rep =>
+               Prefix_Rep := True;
+            when C_Prefix_Repne =>
+               Prefix_Repne := True;
 
             when C_0F =>
-               B := Mem (Off);
+               --  Switch the the 2-byte opcodes
+
+               B   := Mem (Off);
                Off := Off + 1;
 
-               if Is_64bit and then B = 16#1f# then
-                  Desc := (Name  => "nopl            ",
-                           Src   => C_None,
-                           Dst   => C_Ev,
-                           Extra => Extra_None);
+               --  Use another lookup table for mandatory prefixes... except
+               --  when the slot is empty.
+
+               if Prefix_Oper
+                     and then
+                  Insn_Desc_66_0F (B).Name (1) /= ' '
+               then
+                  Desc := Insn_Desc_66_0F (B);
+                  Mandatory_Oper := True;
+               elsif Prefix_Repne
+                        and then
+                     Insn_Desc_F2_0F (B).Name (1) /= ' '
+               then
+                  Desc := Insn_Desc_F2_0F (B);
+                  Mandatory_Repne := True;
+               elsif Prefix_Rep
+                        and then
+                     Insn_Desc_F3_0F (B).Name (1) /= ' '
+               then
+                  Desc := Insn_Desc_F3_0F (B);
+                  Mandatory_Rep := True;
                else
                   Desc := Insn_Desc_0F (B);
                end if;
-
                exit;
-
-            when C_Prefix_Addr =>
-               --  TODO???
-               raise Program_Error;
 
             when C_Prefix_Cs .. C_Prefix_Gs =>
                Seg := Desc.Dst;
@@ -2516,10 +2736,10 @@ package body Disa_X86 is
             when others =>
                if Is_64bit then
                   --  x86_64 particularities are handled here not to disturb
-                  --  32-bit disassemblies.
+                  --  32-bit disassembling.
 
                   if (B and 16#f0#) = 16#40# then
-                     --  Handle the REX prefix
+                     --  Handle the REX prefixes
 
                      Rex_Prefix := B;
                      if Ext_Rex_W (Rex_Prefix) = 1 then
@@ -2540,6 +2760,8 @@ package body Disa_X86 is
                               Extra => Extra_None);
                      exit;
 
+                  --  For all other cases, just follow the regular decoding
+
                   else
                      exit;
                   end if;
@@ -2549,6 +2771,24 @@ package body Disa_X86 is
          end case;
       end loop;
 
+      --  Process prefixes that are not mandatory
+
+      if Prefix_Lock then
+         Add_Name ("lock            ");
+         Add_Char (' ');
+      end if;
+      if Prefix_Oper and then not Mandatory_Oper and then W = W_32 then
+         W := W_16;
+      end if;
+      if Prefix_Rep and then not Mandatory_Rep then
+         Add_Name ("rep             ");
+         Add_Char (' ');
+      end if;
+      if Prefix_Repne and then not Mandatory_Repne then
+         Add_Name ("repne           ");
+         Add_Char (' ');
+      end if;
+
       --  Do further lookup for special instruction groups (group 1, group 2,
       --  ..., escape to coprocessor instructions), prepare invalid
       --  instructions for output and export mnemonic and operands information
@@ -2556,71 +2796,122 @@ package body Disa_X86 is
 
       case Desc.Name (1) is
          when ' ' =>
-            Name  := "invalid*        ";
-            Src   := C_None;
-            Dst   := C_None;
-            Extra := Extra_None;
+            null;
 
          when '1' =>
             B1 := Mem (Off);
-            Name (1 .. 3) := Group_Name_1 (Ext_543 (B1));
-            Name (4)      := ' ';
-            Src           := Desc.Src;
-            Dst           := Desc.Dst;
-            Extra         := Desc.Extra;
+            case Desc.Name (2) is
+               when ' ' =>
+                  Desc.Name (1 .. 3) := Group_Name_1 (Ext_543 (B1));
+                  Desc.Name (4)      := ' ';
+
+               when '2' .. '4' =>
+                  if Ext_76 (B1) = 2#11# then
+                     if Prefix_Oper then
+                        Desc := Insn_Desc_G12_13_14_mod11_66
+                          (Desc.Name (2), Ext_543 (B1));
+                     else
+                        Desc := Insn_Desc_G12_13_14_mod11
+                          (Desc.Name (2), Ext_543 (B1));
+                     end if;
+                  else
+                     Desc := Invalid_Desc;
+                  end if;
+
+               when '5' =>
+                  if Ext_76 (B1) = 2#11# then
+                     Desc := Insn_Desc_G15_mod11 (Ext_543 (B1));
+                  else
+                     Desc := Insn_Desc_G15 (Ext_543 (B1));
+                  end if;
+
+               when '6' =>
+                  Desc := Insn_Desc_G16 (Ext_543 (B1));
+
+               when others =>
+                  raise Program_Error;
+
+            end case;
+            Use_Modrm     := True;
 
          when '2' =>
             B1 := Mem (Off);
-            Name (1 .. 3) := Group_Name_2 (Ext_543 (B1));
-            Name (4)      := ' ';
-            Src           := Desc.Src;
-            Dst           := Desc.Dst;
-            Extra         := Desc.Extra;
+            Desc.Name (1 .. 3) := Group_Name_2 (Ext_543 (B1));
+            Desc.Name (4)      := ' ';
+            Use_Modrm     := True;
 
          when '3' =>
-            B1    := Mem (Off);
-            Dst   := Desc.Dst;
-            Extra := Desc.Extra;
-            Desc  := Insn_Desc_G3 (Ext_543 (B1));
-            Name  := Desc.Name;
+            B1 := Mem (Off);
 
+            --  The instruction inherits its "group" destination.  The first
+            --  byte (F6/F7) determines what (instruction dest/src) will be the
+            --  src.
+
+            Dst  := Desc.Dst;
+            Desc := Insn_Desc_G3 (Ext_543 (B1));
             if B = 16#f6# then
-               Src := Desc.Dst;
-            else
-               Src := Desc.Src;
+               Desc.Src := Desc.Dst;
             end if;
+            Desc.Dst := Dst;
+
+            Use_Modrm := True;
 
          when '4' =>
-            B1    := Mem (Off);
-            Desc  := Insn_Desc_G4 (Ext_543 (B1));
-            Name  := Desc.Name;
-            Src   := Desc.Src;
-            Dst   := Desc.Dst;
-            Extra := Desc.Extra;
+            B1        := Mem (Off);
+            Desc      := Insn_Desc_G4 (Ext_543 (B1));
+            Use_Modrm := True;
 
          when '5' =>
-            B1    := Mem (Off);
-            Desc  := Insn_Desc_G5 (Ext_543 (B1));
-            Name  := Desc.Name;
-            Src   := Desc.Src;
-            Dst   := Desc.Dst;
-            Extra := Desc.Extra;
+            B1        := Mem (Off);
+            Desc      := Insn_Desc_G5 (Ext_543 (B1));
+            Use_Modrm := True;
 
          when '6' =>
-            B1    := Mem (Off);
-            Desc  := Insn_Desc_G6 (Ext_543 (B1));
-            Name  := Desc.Name;
-            Src   := Desc.Src;
-            Dst   := Desc.Dst;
-            Extra := Desc.Extra;
+            B1        := Mem (Off);
+            Desc      := Insn_Desc_G6 (Ext_543 (B1));
+            Use_Modrm := True;
 
          when '7' =>
             B1 := Mem (Off);
-            Desc  := Insn_Desc_G7 (Ext_543 (B1));
-            Name  := Desc.Name;
-            Src   := Desc.Src;
-            Dst   := Desc.Dst;
-            Extra := Desc.Extra;
+            if Ext_76 (B1) = 2#11#
+                 and then
+               2#000# <= Ext_543 (B1) and then Ext_543 (B1) <= 2#010#
+            then
+               case Ext_543 (B1) is
+                  when 2#000# =>
+                     Desc := Insn_Desc_G7_000_mod11 (Ext_210 (B1));
+                  when 2#001# =>
+                     Desc := Insn_Desc_G7_001_mod11 (Ext_210 (B1));
+                  when 2#010# =>
+                     Desc := Insn_Desc_G7_010_mod11 (Ext_210 (B1));
+                  when others =>
+                     --  Thanks to the enclosing IF statement, excecution flow
+                     --  cannot end up here.
+
+                     raise Program_Error;
+               end case;
+            else
+               Desc := Insn_Desc_G7 (Ext_543 (B1));
+            end if;
+            Use_Modrm := True;
+
+         when '8' =>
+            B1        := Mem (Off);
+            Desc      := Insn_Desc_G8 (Ext_543 (B1));
+            Use_Modrm := True;
+
+         when '9' =>
+            B1        := Mem (Off);
+            if Ext_76 (B1) = 2#11# then
+               Desc := Insn_Desc_G9_mod11 (Ext_543 (B1));
+            elsif Prefix_Oper then
+               Desc := Insn_Desc_G9_mem_66 (Ext_543 (B1));
+            elsif Prefix_Rep then
+               Desc := Insn_Desc_G9_mem_F3 (Ext_543 (B1));
+            else
+               Desc := Insn_Desc_G9_mem (Ext_543 (B1));
+            end if;
+            Use_Modrm := True;
 
          when 'E' =>
             B1 := Mem (Off);
@@ -2634,20 +2925,23 @@ package body Disa_X86 is
                          (Bit_Field_3 (B and 2#111#),
                           Esc_Outside_Modrm_Type (B1));
             end if;
-            Name  := Desc.Name;
-            Dst   := Desc.Dst;
-            Src   := Desc.Src;
-            Extra := Desc.Extra;
+            Use_Modrm := True;
 
          when 'a' .. 'z' =>
-            Name  := Desc.Name;
-            Src   := Desc.Src;
-            Dst   := Desc.Dst;
-            Extra := Desc.Extra;
+            null;
 
          when others =>
             raise Program_Error with "disa_x86 unhandled name " & Desc.Name;
       end case;
+
+      if Desc.Name (1) = ' ' then
+         Desc := Invalid_Desc;
+      end if;
+
+      Name  := Desc.Name;
+      Src   := Desc.Src;
+      Dst   := Desc.Dst;
+      Extra := Desc.Extra;
 
       --  Update the ModR/M byte offset and the immediate bytes sequence
       --  offset.
