@@ -1,4 +1,4 @@
-with "gnatcoll";
+with "gnat_util", "gnatcoll";
 project Gnatcov is
 
    type Bits_Type is ("32", "64");
