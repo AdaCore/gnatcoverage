@@ -707,10 +707,6 @@ begin
                      Insn_Flags (Insn_Idx).Been_Executed := True;
                      if Insn_Idx = Block_End_Idx then
                         --  The last instruction should be a branch taken.
-                        if not Insn_Flags (Insn_Idx).Is_Branch then
-                           raise Program_Error with "End of blk not a branch";
-                        end if;
-                        Insn_Flags (Insn_Idx).Br_Taken := True;
                         if Writing_Trace then
                            Entry32.Pc :=
                              Unsigned_32 ((Trace_Start_Idx - Insn_Flags'First)
@@ -718,7 +714,6 @@ begin
                            Entry32.Size :=
                              Unsigned_16 ((Insn_Idx - Trace_Start_Idx + 1)
                                           * 4);
-                           Entry32.Op := Trace_Op_Br0;
                            Entry32.Pad0 := 0;
                            if
                              Write (Trace_FD, Entry32'Address, E32_Size)
