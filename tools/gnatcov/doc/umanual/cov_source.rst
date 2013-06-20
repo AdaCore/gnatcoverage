@@ -561,31 +561,38 @@ VIOLATIONS`` part, as only this criterion was to be analyzed per the
 Decision Coverage analysis (:option:`--level=stmt+decision`)
 ============================================================
 
-with the :option:`--level=stmt+decision` command line option, |gcv| performs
+With the :option:`--level=stmt+decision` command line option, |gcv| performs
 combined Statement and Decision Coverage assessments.
 
-In this context, we consider to be :dfn:`decisions` all the Boolean
-expressions used to influence the control flow via explicit constructs in the
-source program, such as ``if`` statements or ``while`` loops. For proper
-operation, only short-circuit operators are allowed to combine operands;
-``and-then`` or ``or-else`` in Ada, ``&&`` or ``||`` in C.  With the |gnat|
-compilers, this can be enforced with a `No_Direct_Boolean_Operator`
-restriction pragma for Ada.
-
-The types involved in decisions need not be restricted to the standard Boolean
-type when one is defined by the language; For Ada, typically, they may
-subtypes or types derived from the fundamental Boolean type.
+In this context, we consider to be a :dfn:`decision` any Boolean
+expression used to influence the control flow via explicit constructs in the
+source program, such as ``if`` statements or ``while`` loops. The types
+involved in decisions need not be restricted to the standard Boolean type when
+one is defined by the language; For Ada, typically, they may subtypes or types
+derived from the fundamental Boolean type.
 
 A decision is said :dfn:`fully covered`, or just :dfn:`covered`, as soon as it
 has been evaluated at least once True and once False during the program
-execution. If only one or none of these two possible outcomes was exercised,
-the decision is said :dfn:`partially covered`.  The case where none of the
-possible outcomes was exercised happens when the enclosing statement was not
-executed at all, or when all the attempted evaluations were interrupted
-e.g. because of exceptions.
+execution. If only one of these two possible outcomes was exercised, the
+decision is said :dfn:`partially covered`.
 
-The following table summarizes the meaning of the :option:`=xcov` and
-:option:`=html` annotations:
+A decision is also said :dfn:`partially covered` when none of the possible
+outcomes was exercised, which happens when the enclosing statement was not
+executed at all or when all the attempted evaluations were interrupted
+e.g. because of exceptions. In the former case, when a decision is part of a
+statement and the statement is not executed at all, only the statement level
+violation is reported. The nested decision level violations are implicit in
+this case and diagnosing them as well would only add redundancy.
+
+The :option:`=report` synthetic output lists the statement and decision
+coverage violations in the ``STMT`` and ``DECISION`` coverage report section
+respectively.
+
+For the :option:`=xcov` and :option:`=html` annotated-source oriented formats,
+the single annotation produced on each source line combines the statement and
+decision coverage indications. The following table summarizes the meaning of
+the possible annotations:
+
 
 .. tabularcolumns:: cl
 .. csv-table::
@@ -598,19 +605,10 @@ The following table summarizes the meaning of the :option:`=xcov` and
    ``+`` | All the statements and decisions on the line are covered
 
 
-When a trailing `+` is added the annotation format passed to
-:option:`--annotate` (:option:`=xcov+` or :option:`=html+`), a precise
+When a trailing `+` is added to the format passed
+to :option:`--annotate` (:option:`=xcov+` or :option:`=html+`), a precise
 description of the actual violations is available for each line in addition to
 the annotation.
-
-The :option:`=report` synthetic output lists the statement and decision
-coverage violations, in the ``STMT`` and ``DECISION`` coverage report section
-respectively.
-
-Whatever the format, when a decision is part of a statement and the statement
-is uncovered, only the statement level violation is reported. The nested
-decision level violations are implicit in this case and diagnosing them as
-well would only add redundancy.
 
 Example program and assessments
 -------------------------------
@@ -623,8 +621,9 @@ spec and body stored in source files named ``divmod.ads`` and ``divmod.adb``:
    procedure Divmod
      (X, Y : Integer; Value : out Integer;
       Divides : out Boolean; Tell : Boolean);
-   --  Compute X / Y into VALUE and set DIVIDES to indicate whether
-   --  Y divides X. Output a note to this effect when requested to TELL.
+   --  Compute X / Y into VALUE and set DIVIDES to indicate
+   --  whether  Y divides X. Output a note to this effect when
+   --  requested to TELL.
 
    procedure Divmod
      (X, Y : Integer; Value : out Integer;
@@ -633,7 +632,7 @@ spec and body stored in source files named ``divmod.ads`` and ``divmod.adb``:
       if X mod Y = 0 then
          Divides := True;
          if Tell then
-            Put_Line (Integer'Image (Y) & " divides " & Integer'Image (X));
+            Put_Line (Integer'Image(Y) & " divides " & Integer'Image(X));
          end if;
       else
          Divides := False;
@@ -770,7 +769,7 @@ the list of units on which MCDC analysis will be performed to |gcvrun|.
 See the :ref:`trace-control` section for more details on this aspect of
 the procedure.
 
-Compared to Decision Coverage, MCDC analysis incurs two important
+Compared to Decision Coverage, MCDC analysis incurs three important
 differences:
 
 * For each decision in the sources of interest, testing shall demonstrate the
@@ -779,16 +778,16 @@ differences:
   follows). The Boolean operands are called :term:`conditions` in the DO-178
   literature.
 
-* We also treat as decisions all the Boolean expressions that involve at least
-  two operands (which we call :term:`complex Boolean expressions`), not only
-  when used to direct some conditional control-flow oriented statement. For
-  example, we consider that the code excerpt below features two expressions
-  subject to MCDC analysis: ``A and then not B``, as a complex Boolean
-  expression with two operands, and the simple ``Y`` expression that controls
-  the ``if`` statement::
+* Only short-circuit operators are allowed to combine operands; ``and-then``
+  or ``or-else`` in Ada, ``&&`` or ``||`` in C.  |gnat| compilers offer the
+  ``No_Direct_Boolean_Operator`` restriction to enforce this for Ada.  Boolean
+  expressions with more than one operands are called :term:`complex Boolean
+  expressions` in the remainder of this chapter.
 
-    X := A and then not B;
-    if Y then [...]
+* In addition to any expression that pilots an explicit control-flow
+  construct, we treat as decisions all the complex Boolean expressions in non
+  control-flow contexts, for example on the right hand side of an assignment
+  as in ``X := A and then B;``
 
 Output-wise, the source annotations for the :option:`=xcov` or :option:`=html`
 formats are the same as for decision coverage, with condition specific cases
