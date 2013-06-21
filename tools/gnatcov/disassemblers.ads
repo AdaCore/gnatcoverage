@@ -18,6 +18,8 @@
 
 --  Abstract support for disassembly engines
 
+with Ada.Exceptions;        use Ada.Exceptions;
+
 with Traces;         use Traces;
 with Traces_Elf;     use Traces_Elf;
 with Disa_Symbolize; use Disa_Symbolize;
@@ -73,5 +75,12 @@ package Disassemblers is
    --  Note: Delay_Slot needs to be set even if the case of a fallthrough
    --  destination, where the Target will be the next sequential instruction
    --  after the delay slot.
+
+   procedure Abort_Disassembler_Error
+     (PC       : Pc_Type;
+      Insn_Bin : Binary_Content;
+      Exn      : Exception_Occurrence);
+   --  Print an error message suitable for disassembler error reports, giving
+   --  enough context information to investigate and debug disassembly issues.
 
 end Disassemblers;

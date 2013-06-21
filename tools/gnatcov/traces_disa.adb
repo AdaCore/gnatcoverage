@@ -17,8 +17,10 @@
 ------------------------------------------------------------------------------
 
 with Ada.Text_IO; use Ada.Text_IO;
-with Interfaces; use Interfaces;
-with Hex_Images; use Hex_Images;
+
+with Disassemblers;     use Disassemblers;
+with Interfaces;        use Interfaces;
+with Hex_Images;        use Hex_Images;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Switches;
 with Traces_Files;
@@ -170,6 +172,14 @@ package body Traces_Disa is
          --  Handle wrap around.
          exit when Pc = 0;
       end loop;
+   exception
+      --  Catch everything except Program_Errors, since Get_Insn_Length may
+      --  have already caught one and aborted.
+
+      when Program_Error =>
+         raise;
+      when Error : others =>
+         Abort_Disassembler_Error (Pc, Insns (Pc .. Insns'Last), Error);
    end For_Each_Insn;
 
    -------------------------

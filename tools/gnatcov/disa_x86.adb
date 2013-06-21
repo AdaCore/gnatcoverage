@@ -27,6 +27,8 @@ with Hex_Images; use Hex_Images;
 
 package body Disa_X86 is
 
+   Invalid_Insn, Unhandled_Insn : exception;
+
    subtype Byte is Interfaces.Unsigned_8;
    type Bit is mod 2;
    type Bit_Field_2 is mod 2 ** 2;
@@ -1742,10 +1744,10 @@ package body Disa_X86 is
             Is_Negative := Sign_Extend and then V >= 16#8000_0000_0000_0000#;
 
          when W_128 =>
-            raise Program_Error with "unhandled 128bits decoding";
+            raise Invalid_Insn with "unhandled 128bits decoding";
 
          when W_None =>
-            raise Program_Error;
+            raise Invalid_Insn;
       end case;
 
       if Is_Negative then
@@ -1769,7 +1771,6 @@ package body Disa_X86 is
       Sym      : Symbolizer'Class)
    is
       pragma Unreferenced (Self);
-      pragma Unreferenced (Pc);
 
       Is_64bit   : constant Boolean := Machine = Elf_Common.EM_X86_64;
       Rex_Prefix : Byte             := 0;
@@ -2057,7 +2058,7 @@ package body Disa_X86 is
             when R_XMM =>
                Add_Name (Regs_XMM (F));
             when R_None =>
-               raise Program_Error;
+               raise Invalid_Insn;
          end case;
       end Add_Reg;
 
@@ -2111,9 +2112,9 @@ package body Disa_X86 is
                Add_Byte (Mem (Off + 1));
                Add_Byte (Mem (Off + 0));
             when W_None =>
-               raise Program_Error;
+               raise Invalid_Insn;
             when others =>
-               raise Program_Error with "unhandled 64/128 bits decoding";
+               raise Invalid_Insn with "unhandled 64/128 bits decoding";
          end case;
       end Decode_Val;
 
@@ -2555,7 +2556,7 @@ package body Disa_X86 is
                Decode_Modrm_Mem (Off_Modrm, R_XMM);
 
             when others =>
-               raise Program_Error with
+               raise Invalid_Insn with
                  "operand: unhandled x86 code_type " & Code_Type'Image (C);
          end case;
       end Add_Operand;
@@ -2644,7 +2645,7 @@ package body Disa_X86 is
                return;
 
             when others =>
-               raise Program_Error with
+               raise Invalid_Insn with
                  "length: unhandled x86 code_type " & Code_Type'Image (C);
          end case;
       end Update_Length;
@@ -2692,7 +2693,7 @@ package body Disa_X86 is
             when C_Prefix_Oper =>
                Prefix_Oper := True;
             when C_Prefix_Addr =>
-               raise Program_Error; --  TODO???
+               raise Unhandled_Insn; --  TODO???
             when C_Prefix_Rep =>
                Prefix_Rep := True;
             when C_Prefix_Repne =>
@@ -2829,7 +2830,7 @@ package body Disa_X86 is
                   Desc := Insn_Desc_G16 (Ext_543 (B1));
 
                when others =>
-                  raise Program_Error;
+                  raise Invalid_Insn;
 
             end case;
             Use_Modrm     := True;
@@ -2888,7 +2889,7 @@ package body Disa_X86 is
                      --  Thanks to the enclosing IF statement, excecution flow
                      --  cannot end up here.
 
-                     raise Program_Error;
+                     raise Invalid_Insn;
                end case;
             else
                Desc := Insn_Desc_G7 (Ext_543 (B1));
@@ -2931,7 +2932,7 @@ package body Disa_X86 is
             null;
 
          when others =>
-            raise Program_Error with "disa_x86 unhandled name " & Desc.Name;
+            raise Invalid_Insn with "disa_x86 unhandled name " & Desc.Name;
       end case;
 
       if Desc.Name (1) = ' ' then
@@ -2982,7 +2983,7 @@ package body Disa_X86 is
                when C_None =>
                   null;
                when others =>
-                  raise Program_Error;
+                  raise Invalid_Insn;
             end case;
             Add_Operand (Src, Off_Modrm, Off_Imm, W);
             Add_Comma;
@@ -3018,6 +3019,8 @@ package body Disa_X86 is
          Add_String ("[truncated]");
          Line_Pos := Lo;
          Insn_Len := Insn_Bin'Length;
+      when Error : others =>
+         Abort_Disassembler_Error (Pc, Insn_Bin, Error);
    end Disassemble_Insn;
 
    ---------------------
