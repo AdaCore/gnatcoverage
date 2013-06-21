@@ -285,7 +285,7 @@ def maybe_valgrind(command):
 # ----------
 # -- xcov --
 # ----------
-def xcov(args, out=None, inp=None, register_failure=True):
+def xcov(args, out=None, err=None, inp=None, register_failure=True):
     """Run xcov with arguments ARGS, timeout control, valgrind control if
     available and enabled, output directed to OUT and failure registration
     if register_failure is True. Return the process status descriptor. ARGS
@@ -326,7 +326,7 @@ def xcov(args, out=None, inp=None, register_failure=True):
     # so we don't include them here.
 
     p = Run(covpgm + covargs,
-            output=out, input=inp, timeout=thistest.options.timeout)
+            output=out, error=err, input=inp, timeout=thistest.options.timeout)
 
     thistest.stop_if(
         register_failure and p.status != 0,
