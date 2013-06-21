@@ -7,21 +7,15 @@
 |gcvcnv| command line
 **********************
 
-|gcvcnv| converts trace data from foreign sources to the format used by |gcvcov|.
-The general interface synopsis is available from ``gnatcov`` ``--help``, as follows::
+|gcvcnv| converts trace data from foreign sources to the format used by
+|gcvcov|.  The general interface synopsis is available from ``gnatcov``
+``--help``::
 
+   gnatcov convert --trace-source=SOURCE_ID --exec=EXECUTABLE
+     --input=INPUT_TRACE [OPTIONS]
 
-   convert --trace-source=SOURCE_ID --exec=EXECUTABLE
-    --input=INPUT_TRACE [OPTIONS]
-       SOURCE_ID specifies source of trace data (e.g. iSystem-5634)
-       EXECUTABLE is name of executable which generated data
-       INPUT_TRACE is file containing trace data to be converted
-    --output=OUTPUT_TRACE file to place converted trace into
-    --hw-trigger-traces=START_ID,START_ADDR,STOP_ID
-       identity of start and stop triggers, and address for start
-    --level=.... same as for 'run' command
-    --scos=...   same as for 'run' command
-  
+Details about the available options follow:
+
 :option:`--trace-source` :
   An identifier of the source of the input trace data is provided using
   this option.  The input source effects which other options are required.
