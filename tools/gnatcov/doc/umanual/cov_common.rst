@@ -149,9 +149,7 @@ our object and source level experiments::
 Now we verify that |gcp| correctly reports full object coverage, as expected::
 
    gnatcov coverage --level=branch --annotate=xcov test_orand.trace
-
-   # yields orand.adb.xcov:
-
+   ...
    100% of 3 lines covered
    Coverage level: branch
 
@@ -165,7 +163,7 @@ this correctly as well. Using :option:`=xcov+` to see the reason for partial
 coverage attached to line 3, we indeed get::
 
    gnatcov coverage --level=stmt+mcdc --scos=@alis --annotate=xcov+ test_orand.trace
-
+   ...
    0% of 1 lines covered
    Coverage level: stmt+mcdc
 
@@ -217,12 +215,11 @@ happens to be False:
       pragma Annotate (Xcov, Exempt_Off);
    end Eassert;
 
-We declare a coverage exemption region to state that coverage violations
-are expected and not to be considered as a testing campaign deficiency.
-
-Indeed, in nominal circumstances, we expect that we never reach here with
-``T`` False, so the inner ``raise`` statement is never executed and the ``not
-T`` decision controlling the ``if`` is only exercised one way.
+We declare an exemption region to state that coverage violations are expected
+and not to be considered as a testing campaign deficiency.  Indeed, we expect
+never to reach here with ``T`` False in nominal circumstances, so the inner
+``raise`` statement is never executed and the ``not T`` decision controlling
+the ``if`` is only exercised one way.
 
 
 **Reporting about exempted regions**
@@ -233,14 +230,6 @@ synthetic text reports, for both source and object coverage metrics.
 In annotated source reports, a ``#`` or ``*`` caracter annotates all the
 exempted lines, depending on whether 0 or at least 1 violation was exempted
 over the whole section, respectively.
-
-In synthetic text reports, a single indication is emitted for each exempted
-region as a whole, and the indications for all the regions are grouped in a
-separate report section, only present if there are exemption regions in the
-analysis scope. This *Exempted Regions* section lists and counts the exempted
-regions, displaying for each the source location span, the number of actually
-exempted violations in the region, and the exemption justification text.
-
 For our ``Eassert`` example above, a typical :option:`=xcov` output
 for :option:`stmt+decision` coverage for would be::
 
@@ -257,27 +246,22 @@ for :option:`stmt+decision` coverage for would be::
   13 .: end Eassert;
 
 The whole block is marked with ``*`` annotations to indicate that some
-violations were actually exempted; 2 violations in this case: the statement
-coverage violation for the ``raise`` and the decision coverage violation
-for the ``if`` control.
+violations were actually exempted; 2 in this case: the statement coverage
+violation for the ``raise`` and the decision coverage violation for the ``if``
+control.
 
-The corresponding :option:`=report` excerpt below provides another view of
-this, with the count of actually exempted violations::
+In synthetic text reports, a single indication is emitted for each exempted
+region as a whole, and the indications for all the regions are grouped in a
+separate *Exempted Regions* report section, only present if there are
+exemption regions in the analysis scope. This section lists the exempted
+regions, displaying for each the source location span, the number of actually
+exempted violations in the region, and the exemption justification text. It
+also includes a total count of the number of exempted regions at the end.
 
-   =========================================
-   == 2. NON-EXEMPTED COVERAGE VIOLATIONS ==
-   =========================================
+The corresponding :option:`=report` excerpt below illustrates
+this for the ``Eassert`` example::
 
-   2.1. STMT COVERAGE
-   ------------------
-
-   No violation.
-
-   2.2. DECISION COVERAGE
-   ----------------------
-
-   No violation.
-
+   ...
    =========================
    == 3. EXEMPTED REGIONS ==
    =========================
@@ -295,14 +279,10 @@ this, with the count of actually exempted violations::
    No non-exempted DECISION violation.
    1 exempted region.
 
-We can notice here a few extra details here:
-
-* The *Coverage Violations* section is renamed to convey
-  that it contains "NON-EXEMPTED" violations only.
-
-* The *Analysis Summary* counters are adjusted in a similar manner
-  and the number of exempted regions is added to the list of counters
-  in this section.
+The *Coverage Violations* section is renamed to convey that it contains
+"NON-EXEMPTED" violations only, and the *Analysis Summary* counters are
+adjusted in a similar manner. The number of exempted regions is added to
+the list of counters in this section.
 
 If the executed tests actually trigger an assertion failure, there is no
 coverage violation to be exempted any more and this translates as visible
@@ -341,9 +321,9 @@ level criteria analyzed over the annotated regions.
 
 In the example above, we would have used similar exemption annotations to deal
 with expected object instruction and branch coverage failures in Eassert, as
-the conditional branch instruction used to implement the ``if`` statement
-is expected to remain partially covered, as well as the sequence of machine
-instructions triggerring the Ada exception raise.
+the conditional branch used to implement the ``if`` statement is expected to
+remain partially covered, as well as the sequence of machine instructions
+triggerring the Ada exception raise.
 
 As for Source Coverage Obligations for source level criteria, information
 about the declared exemption regions is located in the :term:`Library
@@ -371,10 +351,10 @@ specified, via :ref:`--scos` or project files for source coverage, or via
 :ref:`--routines <oroutines>` for object coverage.
 
 A typical case where consolidation is useful is when some part of an
-application depends on external inputs and several executions with different
-input sets are required to exercise different scenarii in the application
-program. |gcp| supports this kind of use just fine, where the execution traces
-to consolidate are obtained from the same executable.
+application depends on external inputs and several executions are required to
+exercise different scenarii in the application program. |gcp| supports this
+kind of use just fine, where the execution traces to consolidate are obtained
+from the same executable.
 
 |gcp| supports another kind of situation as well, where consolidation is
 queried to compute the coverage achieved by different executables with
@@ -491,17 +471,14 @@ everything except the parts specific to *safe* situations.  The combination of
 the two drivers was intended to achieve a pretty complete testing of the
 provided functionality, and the corresponding coverage can be computed thanks
 to the |gcp| consolidation facility, by simply providing the two execution
-traces to |gcvcov|::
+traces to |gcvcov|, which indeed yields full statement coverage of the
+Commands package body::
 
-  gnatcov coverage --level=stmt --scos=commands.ali --annotate=xcov
-     test_cmd_safe.trace test_cmd_unsafe.trace
-
-Which indeed yields full statement coverage of the Commands package body:
+  gnatcov coverage [...] test_cmd_safe.trace test_cmd_unsafe.trace
+  ...
 
 .. code-block:: ada
 
- 100% of 7 lines covered, Coverage level: stmt
- ...
    6 .:    procedure Stat (Safe : Boolean) is
    7 .:    begin
    8 +:       if Safe then

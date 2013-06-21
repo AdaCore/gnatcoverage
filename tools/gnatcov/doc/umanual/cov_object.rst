@@ -121,7 +121,7 @@ case. Conversely, a ``+`` means that the instruction is *fully covered* with
 respect to the analyzed criterion, with a meaning which depends on both the
 criterion and the kind of instruction -- typically, whether the instruction
 is a conditional branch and whether we are doing mere instruction or object
-branch coverage nalaysis.
+branch coverage analysis.
 
 Other annotations, conveying *partial coverage*, might show up as well, also
 depending on the criterion and kind of instruction. More details on the
@@ -156,7 +156,7 @@ in the :ref:`selected output directory <cov-outdir>`.
 
 The annotations are visible at the beginning of every source line, as a
 single character which synthesizes the coverage status of all the machine
-instructions generated for this line. The following table povides a uniform
+instructions generated for this line. The following table provides a uniform
 description of this synthesis for all the object level criteria:
 
 .. tabularcolumns:: cl
@@ -180,6 +180,7 @@ obtained for our Assert unit:
  
  examples/src/assert.adb:
  75% of 4 lines covered
+
  Coverage level: insn
    1 +: procedure Assert (T : Boolean) is
    2 .: begin
@@ -522,10 +523,10 @@ annotated source result. The command actually produces an ``intops.adb.xcov``
 report as well because the object code of Test_Inc0 also contains inlined
 code coming from the other unit.
 
-For generic units, |gcp| aggregates information for all the instances on the
-common generic source, so each line annotation is sort of a super synthesis of
-the coverage achieved for all the instructions attached to this line through
-all the generic instances.
+For generic units, information for all the instances is aggregated on the
+generic source, so each line annotation is a super synthesis of the coverage
+achieved for all the instructions attached to this line through all the
+instances.
 
 Let us consider the generic Ada unit below to illustrate:
 
@@ -587,21 +588,24 @@ and on)::
    posi__pos_t1__count +: 1ac-1e7
    1ac +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
    1b0 +:  40 9d 00 24      ble-   cr7,0x1d4 <posi__pos_t1__count+0000003c>
-   1b4 +:  3c 00 00 00      lis    r0,0x0000        -
-   ...                                              - cond branch not taken
-   1d4 +:  60 00 00 00      ori    r0,r0,0x0000  <--o
+   1b4 +:  3c 00 00 00      lis    r0,0x0000  | cond branch not taken,
+   ...                                        | fallthrough down to 1d4
+   ...                                        v
+   1d4 +:  60 00 00 00      ori    r0,r0,0x0000
    ...
 
    posi__pos_t2__count !: 1fc-237
    1fc +:  2f 80 00 00      cmpiw  cr7,r0,0x0000
    200 +:  40 9d 00 24      ble-   cr7,0x224 <posi__pos_t2__count+0000003c>
-   204 -:  3c 00 00 00      lis    r0,0x0000        |
-   ...                                              | cond branch taken
-   224 +:  60 00 00 00      ori    r0,r0,0x0000 <---o
+   204 -:  3c 00 00 00      lis    r0,0x0000  | cond branch taken,
+   ...                                        | skip everything up to 224
+   ...                                        v
+   224 +:  60 00 00 00      ori    r0,r0,0x0000 
    ...
 
-This yields a partial coverage annotation for the corresponding source line in
-the :option:`=xcov` output (``!`` on line 10):
+The presence of uncovered instructions yields a partial coverage annotation
+for the corresponding source line in the :option:`=xcov` output (``!`` on line
+10):
 
 .. code-block:: ada
 
@@ -649,12 +653,11 @@ issued for performance or target ABI considerations. Empty symbols most often
 result from low level assembly programmed parts missing the assembly
 directives aimed at populating the symbol table flags and fields.
 
-Both cases are typically harmless and easy to deal with once identified and
-analyzed, so information about them is only emitted on demand and not by
-default in every coverage report for any object level criterion. |gcv|
-provides the :option:`scan-objects` command to help there, which expects the
-set of object files to examine on the command line, as a sequence of either
-object file or :term:`@listfile argument`, and reports about the two kinds
-of situations described above.
+Both cases are typically harmless and easy to deal with once identified, so
+information about them is only emitted on explicit request, not by default.
+|gcv| provides the :option:`scan-objects` command for this purpose, which
+expects the set of object files to examine on the command line, as a sequence
+of either object file or :term:`@listfile argument`, and reports about the two
+kinds of situations described above.
 
 
