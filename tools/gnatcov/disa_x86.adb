@@ -1744,7 +1744,7 @@ package body Disa_X86 is
             Is_Negative := Sign_Extend and then V >= 16#8000_0000_0000_0000#;
 
          when W_128 =>
-            raise Invalid_Insn with "unhandled 128bits decoding";
+            raise Invalid_Insn with "invalid 128-bit immediate decoding";
 
          when W_None =>
             raise Invalid_Insn;
@@ -2114,7 +2114,7 @@ package body Disa_X86 is
             when W_None =>
                raise Invalid_Insn;
             when others =>
-               raise Invalid_Insn with "unhandled 64/128 bits decoding";
+               raise Invalid_Insn with "invalid 128-bit immediate decoding";
          end case;
       end Decode_Val;
 
@@ -2557,7 +2557,7 @@ package body Disa_X86 is
 
             when others =>
                raise Invalid_Insn with
-                 "operand: unhandled x86 code_type " & Code_Type'Image (C);
+                 "invalid code type for an operand: " & Code_Type'Image (C);
          end case;
       end Add_Operand;
 
@@ -2646,7 +2646,7 @@ package body Disa_X86 is
 
             when others =>
                raise Invalid_Insn with
-                 "length: unhandled x86 code_type " & Code_Type'Image (C);
+                 "invalid code type for an operand: " & Code_Type'Image (C);
          end case;
       end Update_Length;
 
@@ -2932,7 +2932,7 @@ package body Disa_X86 is
             null;
 
          when others =>
-            raise Invalid_Insn with "disa_x86 unhandled name " & Desc.Name;
+            raise Invalid_Insn with "invalid instruction name: " & Desc.Name;
       end case;
 
       if Desc.Name (1) = ' ' then
