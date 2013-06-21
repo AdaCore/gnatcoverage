@@ -325,8 +325,19 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
     # projects. They are pointless wrt coverage run or analysis activities
     # so we don't include them here.
 
-    p = Run(covpgm + covargs,
-            output=out, error=err, input=inp, timeout=thistest.options.timeout)
+    # If input(inp)/output(out)/error(err) are not given, we want to use Run
+    # defaults values: do not add them to kwargs if they are None.
+
+    kwargs = {}
+    for key, value in {
+        'input': inp,
+        'output': out,
+        'error': err,
+    }.items():
+        if value:
+            kwargs[key] = value
+
+    p = Run(covpgm + covargs, timeout=thistest.options.timeout, **kwargs)
 
     thistest.stop_if(
         register_failure and p.status != 0,
