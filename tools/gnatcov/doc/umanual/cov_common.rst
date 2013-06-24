@@ -362,7 +362,7 @@ possibly overlapping symbols. This is typically useful with unit testing
 campains, when different programs are built to exercise differents aspects of
 a common application part.
 
-**Example**
+**Introductory Example**
 
 We will consider achieving statement coverage of the following example Ada
 units to illustrate:
@@ -502,26 +502,40 @@ representation:
   Overlapping executables
   
 The example analysis focused on the Commands unit for a source coverage
-criterion. Of course, the other units could have been included in the analysis
-as well, even though not overlapping between the different executables.
+criterion. The other units may be included in the analysis as well, even
+though not overlapping between the different executables. Note that
+consolidation actually doesn't *require* overlapping: users might well, for
+example, consolidate results from different programs testing entirely disjoint
+sets of units.
 
-Consolidation actually doesn't *require* any overlapping. You might as well,
-for example, want to consolidate results from different programs testing
-entirely disjoint units. The only technical requirement is that the object
-code be identical for all the overlapping symbols, which |gcp| verifies.
+More generally, for object or source level criteria, |gcv| computes the
+coverage achieved for the full set of routines or source units declared to be
+of interest amongst those exposed by the union of the exercised executables,
+as designated by the set of consolidated traces; and on symbols found to
+overlap across executables, |gcv| computes the *combined* coverage achieved by
+all the executions. 
 
-Two symbols are considered overlapping if both of the following conditions are
-met:
+For the purpose of computing combined coverage achievements, two symbols are
+considered overlapping when all the following conditions are met:
 
-- The symbol names must be identical
-- The symbols associated debug information must indicate that they come from
-  the same compile unit. If a symbol leaks such information, it never overlaps
-  with another symbol.
+* Both symbols have identical object level symbol names,
 
-Moreover, |gcvcov| will reject consolidation were two symbols overlaps, but are
-different anyway: this can happen, for example, if they come from the same
-compile unit but were compiled with different flags (e.g. different
-optimization levels).
+* Both symbols have DWARF debug information attached to them,
+
+* According to this debug information, both symbols originate from the same
+  compilation unit, denoted by the full path of the corresponding source file.
+
+By construction, a symbol missing debug information is never considered
+overlapping with any other symbol. Whatever coverage is achieved on such a
+symbol never gets combined with anything else and the only kind of report
+where the symbol coverage is exposed is the :option:`=asm` assembly output for
+object level criteria.
+
+Moreover, for object level coverage criteria, |gcvcov| will issue a
+consolidation error when two symbols are found to overlap but have
+structurally different machine code, which happens for example when the same
+unit is compiled with different different optimization levels for
+different executables.
 
 The set of traces involved in a computation is visible in various places:
 
@@ -529,15 +543,9 @@ The set of traces involved in a computation is visible in various places:
   the command line is quoted and detailed information about each trace is
   provided (trace file name, timestamp, tag, ...)
 
-- In the :option:`html` index header, where the list of trace names and tags
+- In the :option:`=html` index page, where the list of trace names and tags
   used to produce the report is provided.
 
-All the principles we have described so far apply to consolidated *object*
-coverage analysis as well, and the only process differences are the general
-source/object coverage ones. In particular, the focus of the analysis needs to
-be specified with :ref:`--routines <oroutines>` instead of :ref:`--scos
-<sunits>`, providing object level symbol names instead of source level unit
-names.
 
 .. _using-gpr:
 
@@ -549,7 +557,7 @@ applications, for the benefit of the tools intervening at various stages of
 development, from the IDE to build and analysis tools.
 
 |gcp| takes full advantage of GNAT projects for various aspects of the
-coverage analysis activity. Project files serve three major purpose for |gcp|:
+coverage analysis activity, in particular:
 
 1. Specify default switches for the various |gcv| commands,
 
