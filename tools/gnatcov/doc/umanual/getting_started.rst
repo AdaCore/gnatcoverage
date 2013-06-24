@@ -18,10 +18,16 @@ decision, or mcdc coverage for the source level, and instruction or branch
 coverage for the object level. Once your application is built, a typical
 analysis proceeds in two steps:
 
-1) Use |gcvrun| to run your application within the instrumented environment,
-   producing <yourapp.trace>::
+1) Arrange to produce an execution trace that |gcv| can process, using either
+   |gcvcnv| to convert a trace obtained through a hardware probe, like::
+
+     gnatcov convert <probe-output> -o <yourapp.trace>
+
+   Or |gcvrun| to run your application within an instrumented environment, like::
 
      gnatcov run <yourapp> [--target=<target>] [--kernel=<kernel>]
+     (implicit -o <yourapp.trace> in this case)
+
 
 2) Use |gcvcov| to produce a coverage report from the execution trace, like::
 
@@ -34,19 +40,25 @@ Very briefly here:
 - :option:`--target` selects the execution environment that will know how to
   produce execution traces, such as <target>-gnatemu for emulated
   configurations.  Not providing this option requests instrumented execution
-  on the native platform, using very system specific means available in only
-  few configurations.
+  on the native platform, supported for example on x86 or x86_64 Linux using
+  an instrumented version of `valgrind`.
 
 - :option:`--kernel` is necessary for cross configurations where an operating
-  system kernel such as VxWorks is required to load and launch your applicative
-  modules on top of the bare machine execution environment. 
+  system kernel is needed to load and launch your applicative modules on top
+  of the bare machine execution environment. This is typically required for
+  VxWorks targets, supported on top of |gem| and where the provided kernel
+  needs to have been augmented with a |gcp| dedicated module to help identify
+  the address at which your programs are loaded.
 
 - :option:`--level` specifies the coverage criterion to be assessed
   (:option:`=stmt`, :option:`=stmt+decision`, or :option:`=stmt+mcdc` for
-  source levels; :option:`=insn` or :option:`=branch` for object levels)
+  source coverage criteria; :option:`=insn` or :option:`=branch` for object coverage
+  crtieria)
 
 - :option:`--annotate` specifies the desired output report format
-  (synthetic list of coverage violations, text or html annotated sources, ...)
+  (:option:`=report` for a synthetic list of coverage violations, :option:`=xcov`
+  for annotated sources in text format, :option:`=html` for annotated sources in
+  in html format, with colors and a toplevel index, ...)
 
 - :option:`--scos` is specific to the source level criteria, to convey the so
   called `Source Coverage Obligations` (statements, decisions, ...) to be
@@ -139,7 +151,7 @@ project file::
 First, we build with this command line::
 
    gprbuild -p --target=powerpc-elf --RTS=powerpc-elf/zfp-prep -Pops.gpr test_inc.adb
-    -cargs:Ada -fdump-scos -gnata -cargs -g -fpreserve-control-flow
+    -cargs:Ada -gnata -cargs -g -fpreserve-control-flow -fdump-scos
 
 In this particular case:
 
@@ -166,7 +178,7 @@ instrumented execution environment, via GNATemulator, to obtain a
   gnatcov run --target=powerpc-elf obj/test_inc
 
 Now, we can analyse the coverage achieved by this execution using
-|gcvcov|, for example with the following command line::
+|gcvcov|, for example with::
 
   gnatcov coverage --level=stmt --annotate=xcov test_inc.trace -Pops.gpr
 
