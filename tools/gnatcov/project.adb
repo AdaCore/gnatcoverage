@@ -308,7 +308,8 @@ package body Project is
          --  Start of processing for Enumerate_Project
 
          begin
-            Project.Library_Files (List => Lib_Info);
+            Project.Library_Files
+              (List => Lib_Info, ALI_Ext => "^.*\.[ag]li$");
 
             if Override_Units_Map.Is_Empty then
                List_From_Project
@@ -404,6 +405,16 @@ package body Project is
    procedure Initialize (Target : GNAT.Strings.String_Access) is
    begin
       Initialize (Env);
+
+      --  Prepare for C units handling (by default, only Ada units are handled
+      --  in projects).
+
+      Register_Default_Language_Extension
+        (Self                => Env.all,
+         Language_Name       => "C",
+         Default_Spec_Suffix => ".h",
+         Default_Body_Suffix => ".c");
+
       for A in Attribute'Range loop
          declare
             Err : constant String :=
