@@ -37,6 +37,14 @@ def lines_of(filename):
         contents = fd.readlines()
     return contents
 
+# --------------
+# -- set_from --
+# --------------
+def set_from(filename):
+    """Return contents of file FILENAME as a set of words."""
+    with open(filename) as fd:
+        return set(fd.read().split())
+
 # -------------
 # -- to_list --
 # -------------
