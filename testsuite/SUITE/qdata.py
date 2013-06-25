@@ -3,12 +3,9 @@
 # ****************************************************************************
 
 # This module exposes the testsuite qualification data management facilities,
-# aimed at the production of a test-results report at the end of the testsuite
-# execution.
+# aimed at the production of a test-results report post testsuite execution.
 #
-# Testcases dump Qdata instances when they execute. The testsuite driver
-# retrieves and accumulates them on the fly, then produces a report from the
-# complete set at the end.
+# Testcases dump Qdata instances when they execute.
 
 # ****************************************************************************
 
@@ -32,11 +29,21 @@ QROOTDIR="Qualif"
 # -- qdaf_in --
 # -------------
 
-QDATA_PKFILE = "tc.pkl"
+QUALDATA_FILE = "tc.pkl"
 
 def qdaf_in(dir):
     """Filename for qualification data to be pickled in DIR"""
-    return os.path.join (dir, QDATA_PKFILE)
+    return os.path.join (dir, QUALDATA_FILE)
+
+# -------------
+# -- stdf_in --
+# -------------
+
+STATUSDATA_FILE = "tcstatus.json"
+
+def stdf_in(dir):
+    """Filename for execution status data to be picked up DIR"""
+    return os.path.join (dir, STATUSDATA_FILE)
 
 # ================================================================
 # == Qualification Data classes, filled and dumped by testcases ==

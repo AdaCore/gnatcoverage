@@ -17,26 +17,26 @@ See ./testsuite.py -h for more help
 
 # ***************************************************************************
 
-from gnatpython.env import Env, getenv, putenv
+from gnatpython.env import Env
 from gnatpython.ex import Run
-from gnatpython.fileutils import mkdir, rm, ln, which, unixpath
+from gnatpython.fileutils import mkdir, rm, ln, which
 from gnatpython.main import Main
 from gnatpython.mainloop import MainLoop
-
 from gnatpython.optfileparser import OptFileParse
 from gnatpython.reports import ReportDiff
 
 from glob import glob
 
 import traceback
-import time
+import time, json
 import logging, os, re, sys
 
 from SUITE import cutils
-from SUITE.cutils import contents_of, re_filter, clear, to_list, FatalError
+from SUITE.cutils import contents_of, FatalError
 from SUITE.cutils import version, list_to_tmp
 
-from SUITE.qdata import QDregistry, QDreport, qdaf_in, QLANGUAGES, QROOTDIR
+from SUITE.qdata import QDregistry, QDreport, stdf_in, qdaf_in
+from SUITE.qdata import QLANGUAGES, QROOTDIR
 
 from SUITE import control
 from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES
@@ -809,97 +809,55 @@ class TestSuite:
     # -- collect_result --
     # --------------------
 
-    def collect_result(self, test, _process, _job_info):
-        """MainLoop hook to collect results for a non-dead TEST instance."""
+    def __log_results_for(self, test):
+        """Internal helper for collect_result."""
 
         # Several things to do once a test has run:
-        # - logging (to stdout) the general test status,
-        # - append a status summary to the "output/results" file,
-        #   for our nightly infrastructure,
-        # - see if there's a testcase object pickled around,
-        #   to fetch back for the generation of a qualification
-        #   test-results aggregate report.
 
-        test.end_time = time.time()
-
-        # Compute a few useful facts: Whether the test passed or failed,
-        # if it was xfailed, with what comment, what was the error log when
-        # the test failed, ...
-
-        # Compute the actual execution status, what really happened whatever
-        # what was expected;
-
-        outf = test.outf()
-        success = (
-            cutils.match("==== PASSED ==================", outf)
-            if os.path.exists(outf) else False)
-
-        # If the execution failed, arrange to get a link to the err log
+        # 1) If the execution failed, arrange to get a link to the err log
         # where the infrastructure expects it (typically not in the test
         # dedicated subdirectory where the original log resides)
 
-        if not success:
+        if not test.passed:
             odiff = self.odiff_for(test)
             cutils.clear (odiff)
             ln(test.diff(), odiff)
 
-        # Compute the status of this test (OK, UOK, FAILED, XFAIL) from
-        # the combination of its execution success and a possible failure
-        # expectation
-
-        xfail_comment = test.getopt('xfail', None)
-        xfail = xfail_comment is not None
-
-        failed_comment = test.getopt('failed', None)
-
-        comment = xfail_comment if xfail_comment else failed_comment
-
-        status_dict = {
-            # XFAIL?   PASSED? => status   PASSED? => status
-              True:    {True:    'UOK',    False:    'OK'},
-              False:   {True:    'XFAIL',  False:    'FAILED'}}
-
-        status = status_dict[success][xfail]
-
-        # Now log and populate "results" file
-
-        # File the test status + possible comment on failure
+        # 2) log and populate the "results" file for gaia: file the test
+        # status + possible comment on failure
 
         self.__push_results ([
                 ''.join (
-                    ["%s:%s" % (test.rname(), status),
-                     ":%s" % comment.strip('"') if not success and comment
+                    ["%s:%s" % (test.rname(), test.status),
+                     ":%s" % test.comment.strip('"') if (
+                            not test.passed and test.comment)
                      else ""]
                     )
              ])
 
-        # Log status as needed. All tests are logged in !quiet mode.
-        # Real failures are always logged.
+        # 3) Log the execution status as needed on stdout. All tests are
+        # logged in !quiet mode.  Real failures are always logged.
 
         dsec = test.end_time - test.start_time
 
-        if (not self.options.quiet) or (not success and not xfail):
+        if (not self.options.quiet) or (not test.passed and not test.xfail):
             logging.info (
                 "%-68s %s - %s %s" % (
                     test.filename,
                     "%02d m %02d s" % (dsec / 60, dsec % 60),
-                    status, "(%s)" % comment if comment else "")
+                    test.status, "(%s)" % test.comment if test.comment else "")
                 )
 
         # Dump errlog on unexpected failure
 
-        if self.options.diffs and not success and not xfail:
+        if self.options.diffs and not test.passed and not test.xfail:
             logging.info("Error log:\n" + contents_of (test.diff()))
 
-        # Check if we have a qualification data instance pickled around,
-        # and register it for later test-results production
+    def __check_stop_after(self, test):
+        """Internal helper for collect_result. Check if we need to stop the
+        whole testsuite run after the execution of TEST."""
 
-        self.qdreg.check_qdata (
-            qdaf=test.qdaf(), status=status, comment=comment)
-
-        # Check if we need to stop the Suite as a whole
-
-        if status == 'FAILED':
+        if test.status == 'FAILED':
             self.n_consecutive_failures += 1
         else:
             self.n_consecutive_failures = 0
@@ -908,6 +866,17 @@ class TestSuite:
             raise FatalError (
                 "Stopped after %d consecutive failures"
                 % self.n_consecutive_failures)
+
+    def collect_result(self, test, _process, _job_info):
+        """MainLoop hook to collect results for a non-dead TEST instance."""
+
+        test.end_time = time.time()
+
+        test.compute_status()
+        test.latch_status()
+
+        self.__log_results_for(test)
+        self.__check_stop_after(test)
 
     def odiff_for(self, test):
         """Returns path to diff file in the suite output directory.  This file
@@ -1152,6 +1121,53 @@ class TestCase(object):
             else default
             )
 
+    def compute_status(self):
+        """Compute self.(passed, xfail, status, comment) where *passed* is
+        the bare execution status, *xfail* tells whether there is an XFAIL
+        moderator in test.opt for this test, *comment* is the associated
+        test.opt comment, and *status* is the gaia OK/UOK/XFAIL/FAILED
+        indication."""
+
+        outf = self.outf()
+        self.passed = (
+            cutils.match("==== PASSED ==================", outf)
+            if os.path.exists(outf) else False)
+
+        # Compute the status of this test from the combination of its
+        # execution success and a possible failure expectation. Retrieve the
+        # relevant test.opt comment along tha way:
+
+        xfail_comment = self.getopt('xfail', None)
+        failed_comment = self.getopt('failed', None)
+
+        self.comment = (
+            xfail_comment if xfail_comment
+            else failed_comment if failed_comment
+            else "" )
+
+        self.xfail = xfail_comment is not None
+        status_dict = {
+            # PASSED?   XFAIL? => status   XFAIL? => status
+              True:    {True:    'UOK',    False:    'OK'},
+              False:   {True:    'XFAIL',  False:    'FAILED'}}
+
+        self.status = status_dict[self.passed][self.xfail]
+
+    def latch_status(self):
+        with open (self.stdf(), 'w') as f:
+            f.write (json.dumps(
+                    { 'passed' : self.passed,
+                      'xfail'  : self.xfail,
+                      'status' : self.status,
+                      'comment': self.comment }
+                    ))        
+
+    def latched_status(self):
+        stdf = self.stdf()
+        return (
+            json.reads(contents_of(stdf)) if os.path.exists(stdf)
+            else None)
+
     # --------------------------------------
     # -- Testscase specific discriminants --
     # --------------------------------------
@@ -1191,6 +1207,9 @@ class TestCase(object):
 
     def qdaf(self):
         return qdaf_in(self.testdir)
+
+    def stdf(self):
+        return stdf_in(self.testdir)
 
     # -----------------------------
     # -- Testcase identification --
