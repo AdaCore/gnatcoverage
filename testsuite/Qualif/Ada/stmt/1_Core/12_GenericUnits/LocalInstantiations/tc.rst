@@ -8,3 +8,4 @@ as covered. This test case does not check that the code of generic unit is
 reported as uncovered if the unit is not instantiated or if the instantiation
 is not executed/elaborated, because for unused generics in some cases no
 coverage information is generated.
+

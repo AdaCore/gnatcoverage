@@ -12,3 +12,4 @@ connection with the place of the object declaration.
 Exercise variant record declarations for which distinct variants trigger
 execution of distinct sequences of statements and check that only the code
 associated to the chosen variants is reported as covered.
+

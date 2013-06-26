@@ -16,3 +16,4 @@ that
 
 Check exception handlers with explicit exception names and including the
 "others" choice.
+

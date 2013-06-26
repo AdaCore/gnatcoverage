@@ -19,6 +19,12 @@ For the other cases, we exercise combinations of situations where each
 decision evaluates
 
 * True only,
-* False only, 
+* False only,
 * both True and False, demonstrating independance of one/some/all of it's
   conditions.
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+

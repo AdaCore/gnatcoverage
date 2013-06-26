@@ -7,3 +7,4 @@ nested blocks therein.
 "with" a package known to feature straight elaboration code only and verify
 that nothing is reported uncovered for this body. Arrange to have a local
 block there, to check that nested statements are handled as well.
+

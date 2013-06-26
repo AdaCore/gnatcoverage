@@ -12,7 +12,7 @@ For every variant, check a variety of situations where
 
 * No exception gets raised at all
 
-* An exception gets raised as part of all the evaluation attempts, 
+* An exception gets raised as part of all the evaluation attempts,
   on the first or the last operand evaluation,
 
 * An exception would be raised by one operand but is not because of

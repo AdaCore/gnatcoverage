@@ -14,3 +14,4 @@ We implement a double testing strategy, with:
 # Decision coverage oriented scenarii, exercising DC possibilities (such
   or such decision True only, False only, or both True and False) and
   combinations of such.
+

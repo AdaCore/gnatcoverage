@@ -4,3 +4,4 @@ Check MCDC on ``A and then Call (B or else C)``, where the nested decision may b
 Check MCDC on ``A and then Call (B or else C)``, where the nested decision may be
 unevaluated because of short-circuit semantics from A False at the outer
 level.
+

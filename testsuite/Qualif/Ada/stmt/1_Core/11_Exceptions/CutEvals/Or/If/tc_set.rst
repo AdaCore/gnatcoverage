@@ -2,3 +2,9 @@ SC testcases for ``if A or else B`` where operand evaluations might raise except
 ===================================================================================
 
 SC testcases for ``if A or else B`` where operand evaluations might raise exception
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
