@@ -7,7 +7,12 @@ All the other SC related sections rely on this one.
 To ensure coverage of all the relevant language constructs, we decompose the
 material further in accordance with the Ada Reference Manual (ARM):
 
-%(subset-index)s
+
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
 
 A few chapters are not included for the following reasons:
 

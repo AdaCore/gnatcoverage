@@ -13,6 +13,11 @@ demonstrate that the tool knows to distinguish internal tests aimed at
 computing a condition value versus tests aimed at computing the decision from
 the condition values.
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 
 

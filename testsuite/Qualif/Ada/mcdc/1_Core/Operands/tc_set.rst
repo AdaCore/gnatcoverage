@@ -11,5 +11,10 @@ cases known to require internal comparisons, to demonstrate that the tool
 knows to distinguish internal tests from those representative of each
 condition valuation.
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 

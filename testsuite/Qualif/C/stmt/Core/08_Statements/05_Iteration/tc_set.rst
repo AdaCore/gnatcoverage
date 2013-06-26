@@ -6,9 +6,18 @@ SC expectations regarding section 8.5: Iteration statements
 This sub-section of the stantard describes several “loop” statements that
 execute nested statements until a condition is met.
 
-%(subset-index)s
 
-%(tstrategy-headline)s
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
+
+
+Testing Strategy
+----------------
+
+
 
 Each kind of loop has pecularities, but they are exercised following a common
 strategy:
@@ -22,4 +31,9 @@ strategy:
     escape out of it, with a controlling condition that evaluates to both true
     and false
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+

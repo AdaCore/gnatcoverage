@@ -3,15 +3,28 @@ SC expectations regarding subprogram overridings
 
 SC expectations regarding subprogram overridings
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 Overriding subprograms shall be recognized as distinct from the one they
 redefine. Exercising either one shall not influence coverage results for the
 other.
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 This requirement is validated by the following set of testcases:
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 

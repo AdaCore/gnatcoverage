@@ -3,7 +3,11 @@ Describe the tool output report format and check compliance to it
 
 Describe the tool output report format and check compliance to it
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 The tool qualified output is the synthetic report produced by the
 --annotate=report command line option. The output report shall:
@@ -57,12 +61,21 @@ The tool qualified output is the synthetic report produced by the
   
   * A single synthetic line providing the count of exempted regions.
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 We provide testcases to check that the reports produced by the tool satisfy
 the requirements in a range of different situations:
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 
 In each of these testcases, we validate the presence and structure of all the
 expected sections and items in the "Assessment Context" part. We don't verify

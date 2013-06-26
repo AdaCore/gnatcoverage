@@ -6,9 +6,18 @@ SC expectations regarding section 8.6: Jump statements
 This sub-section of the standard describes several “jump” statements that
 affects the execution flow when evaluated.
 
-%(subset-index)s
 
-%(tstrategy-headline)s
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
+
+
+Testing Strategy
+----------------
+
+
 
 Each kind of “jump” statement has pecularities, but they are exercised
 following a common strategy:

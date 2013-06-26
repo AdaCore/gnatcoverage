@@ -8,4 +8,9 @@ typically when evaluation of a sub-decision is short-circuited.
 We verify that ``decision never evaluated`` diagnostics are emitted 
 instead of statement coverage violations.
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+

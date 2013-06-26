@@ -3,7 +3,11 @@ SC expectations regarding If statements (ARM 5.3)
 
 SC expectations regarding If statements (ARM 5.3)
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 An IF statement comprises an IF *branch*, zero or more ELSIF branches and zero
 or one ELSE branch. IF and ELSIF branches feature a control expression and all
@@ -14,7 +18,11 @@ evaluates True.
 In addition to the common requirements that apply to the nested statements,
 IF and ELSIF branches that are never reached shall be reported uncovered.
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 We verify all the aspects of this requirement over
 
@@ -26,4 +34,9 @@ We verify all the aspects of this requirement over
 
 All through a panel of branch selection schemes:
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+

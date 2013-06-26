@@ -20,7 +20,12 @@ For every variant, check a variety of situations where
 
 * An exception is raised by some evaluation but not others
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 
 
 

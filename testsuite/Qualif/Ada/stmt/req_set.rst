@@ -9,4 +9,9 @@ Statement Coverage (SC) TORs and Testcases for Ada
 
 This is split in several parts:
 
-%(subset-index)s
+
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+

@@ -6,9 +6,18 @@ SC expectations regarding section 8.4: Selection statements
 This sub-section of the standard describes several “conditionnal” structures
 that execute different statements depending on the value of some expression.
 
-%(subset-index)s
 
-%(tstrategy-headline)s
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
+
+
+Testing Strategy
+----------------
+
+
 
 Each kind of selection instruction has its pecularities, but they are exercised
 following a common strategy:
@@ -19,4 +28,9 @@ following a common strategy:
     is executed
 -   do the same with multiple branches executed in the same test driver
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+

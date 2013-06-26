@@ -4,7 +4,11 @@ Core expectations for Decision Coverage
 Core expectations for Decision Coverage
 (DC) assessments. All the other DC related sections rely on this one.
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 A *decision* is defined to be any Boolean expression that directly controls
 the behavior of IF, WHILE and EXIT-WHEN control-flow constructs. Only the
@@ -40,11 +44,20 @@ Rule #  Description
         context where they might appear.
 ======  ======================================================================
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 We validate all the DC rules thanks to three main subsets of testcases:
 
-%(subset-index)s
+
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
 
 Rules #1 to 3 are validated by variations exercised in every individual
 testcase, where we consistently check each decision of interest in multiple

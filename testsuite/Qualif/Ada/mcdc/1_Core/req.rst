@@ -4,7 +4,11 @@ Core expectations for MCDC assessments.
 Core expectations for MCDC assessments.
 All the other sub-sections rely on this one.
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 Compared to Decision Coverage, MCDC assessements enlarges the set of
 expressions that shall be processed as decisions and introduces rules
@@ -46,12 +50,21 @@ Rule #  Description
         particular condition source location.
 ======  =====================================================================
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 The testing strategy is similar to the one chosen for the DC core requirement,
 with the following set of testcases:
 
-%(subset-index)s
+
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
 
 Rules 1 to 3c are validated by variations exercised in every individual
 testcase, where we consistenly check each decision of interest in multiple

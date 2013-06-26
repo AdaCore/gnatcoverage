@@ -3,16 +3,29 @@ DC expectations regarding exemption regions.
 
 DC expectations regarding exemption regions.
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 Exemption regions shall operate over decision coverage violations as they do
 for statement coverage violations.
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 Check proper behavior on decisions placed in a restricted set of possible
 contexts, to validate that the exemption facility works for decision coverage
 violations specifically. Proper behavior over context variations is deemed
 validated by the statement coverage testcases.
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+

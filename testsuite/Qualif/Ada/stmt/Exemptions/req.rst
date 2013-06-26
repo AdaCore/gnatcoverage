@@ -3,7 +3,11 @@ SC expectations regarding exemption regions.
 
 SC expectations regarding exemption regions.
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 Proper behavior of the Coverage Exemptions facility translates into
 the following set of rules:
@@ -29,13 +33,22 @@ Rule # Description
        such in all the contexts where they may appear.
 ====== ======================================================================
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 We validate all the aspects of this requirement with a set of testcases,
 subdivided in sections according to point #5 - demonstrate ability to exempt
 various groups of syntactic constructs:
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 
 Each test features some mix of exempted regions and regular code, exercised in
 multiple manners to cover well identified sections of the program. All the

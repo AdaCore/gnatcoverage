@@ -4,13 +4,21 @@ MCDC expectations regarding the combination of multiple
 MCDC expectations regarding the combination of multiple
 execution traces together.
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 When the coverage achieved by multiple execution traces is evaluated, an mcdc
 violation shall only be reported when it would have been for all the traces
 individually.
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 We exercise consolidation of traces obtained for single vector invocations
 over a range of basic decisions.
@@ -22,4 +30,9 @@ without repetitions.
 We operate similarily for decisions with three operands, except we aggregate
 inputs that differ only on non-evaluated conditions.
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+

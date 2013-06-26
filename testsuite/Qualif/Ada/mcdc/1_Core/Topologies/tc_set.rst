@@ -10,5 +10,10 @@ placed in a variety of program contexts.  MCDC is equivalent to DC for
 decisions with only one condition so we have no testcase for such decisions
 here.
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 

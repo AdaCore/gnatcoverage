@@ -3,7 +3,11 @@ SC expectations regarding ARM chap. 11 : Exceptions
 
 SC expectations regarding ARM chap. 11 : Exceptions
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 Statement Coverage shall be assessed correctly for Ada exceptions mechanism as
 described in Chapter 11 "Exceptions" of the Ada Reference Manual. In
@@ -27,7 +31,11 @@ particular:
   exception handlers.
 
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 We validate all those requirements through a set of testcases that resort to
 implicit or explicit exceptions for flow-control transfer purposes. All these
@@ -44,5 +52,10 @@ involve:
 * With one or more candidate handlers at different levels of nesting, always
   within a single body.
  
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 

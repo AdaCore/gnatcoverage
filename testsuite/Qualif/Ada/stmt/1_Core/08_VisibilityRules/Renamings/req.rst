@@ -3,7 +3,11 @@ SC expectations regarding Renaming declarations (ARM 8.5)
 
 SC expectations regarding Renaming declarations (ARM 8.5)
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 * Renaming declarations shall be recognized and processed as regular object
   declarations,
@@ -11,9 +15,18 @@ SC expectations regarding Renaming declarations (ARM 8.5)
 * Coverage achieved through package or subprogram renamings shall be
   as if achieved through the renamed entity.
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 We exercise the following set of testcases:
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 

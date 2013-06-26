@@ -3,7 +3,11 @@ SC expectations regarding Loop statements (ARM 5.5)
 
 SC expectations regarding Loop statements (ARM 5.5)
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 LOOP statements feature a mandatory loop *header* that introduces the
 control-flow iteration scheme, and an optional set of exit statements.
@@ -11,7 +15,11 @@ control-flow iteration scheme, and an optional set of exit statements.
 In addition to the common requirements that apply to the nested statements,
 For or While loop headers that are never reached shall be reported uncovered.
 
-%(tstrategy-headline)s
+
+Testing Strategy
+----------------
+
+
 
 We verify all the aspects of this requirement over
 
@@ -25,5 +33,10 @@ We verify all the aspects of this requirement over
 
 All through a panel of iteration schemes:
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 

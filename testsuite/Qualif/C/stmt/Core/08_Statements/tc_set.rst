@@ -6,7 +6,12 @@ SC expectations reguarding section 8: Statements and blocks
 Specific requirements apply to each possible kind of statement/block of
 statements:
 
-%(subset-index)s
+
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
 
 Some sub-sections are not included:
 

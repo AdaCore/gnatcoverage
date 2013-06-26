@@ -9,5 +9,10 @@ The document is part of the GNATcoverage qualification material;
 the language-specific chapters that apply will depend on the qualification
 objectives.
 
-%(toplevel-index)s
+
+.. qmlink:: ToplevelIndexImporter
+
+   *
+
+
 

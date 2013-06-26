@@ -14,5 +14,10 @@ an exception in a panel of cases, checking that
 * exception occurrences don't influence the coverage achieved by otherwise
   successful evaluations.
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 

@@ -6,5 +6,10 @@ SC expectations regarding ARM chap. 8 : Visibility Rules
 There are only very few chapter 8 items relevant to SC assessements, for
 which we provide subsidiary requirements:
 
-%(subset-index)s
+
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
 

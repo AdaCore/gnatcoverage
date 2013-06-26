@@ -9,4 +9,8 @@ value, negated, two or more combined with and-then or or-else, ...), each
 placed in a variety of program contexts. We distinguish explicit control-flow
 constructs from other contexts.
 
-%(tc-index)s
+
+.. qmlink:: TCIndexImporter
+
+   *
+

@@ -9,4 +9,9 @@ Source coverage TORs and Testcases for Ada
 This is split in several parts, one per target coverage criterion of
 relevance:
 
-%(subset-index)s
+
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+

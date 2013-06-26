@@ -4,13 +4,26 @@ SC expectations regarding the combination of multiple
 SC expectations regarding the combination of multiple
 execution traces together.
 
-%(req-headline)s
+
+Requirement(s)
+--------------
+
+
 
 When the coverage achieved by multiple execution traces is evaluated, a
 statement coverage violation shall only be reported when it would have been
 for all the traces individually.
 
-%(tstrategy-headline)s
 
-%(tc-index)s
+Testing Strategy
+----------------
+
+
+
+
+.. qmlink:: TCIndexImporter
+
+   *
+
+
 
