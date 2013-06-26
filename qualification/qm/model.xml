@@ -12,14 +12,14 @@
 
  <artifact_class name="Root_Document" role="document">
     <location_container>
-      <content name="content" location="content.rst" mime="text/x-rst"/>
-      <content name="config" location="conf.py" mime="text/x-python"/>
+      <resource name="content" location="content.rst" mime="text/x-rst"/>
+      <resource name="config" location="conf.py" mime="text/x-python"/>
     </location_container>
   </artifact_class>
 
   <artifact_class name="Chapter" role="document">
     <location_container>
-      <content name="content" location="content.rst" mime="text/x-rst"/>
+      <resource name="content" location="content.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
@@ -89,7 +89,7 @@
 
   <artifact_class name="Appendix" inherits="Chapter">
     <location_container>
-      <content name="app" location="app.rst" mime="text/x-rst"/>
+      <resource name="app" location="app.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
@@ -105,36 +105,36 @@
 
   <artifact_class name="Req_Set" role="set">
     <location_container>
-       <content name="set_content" location="req_set.rst" mime="text/x-rst"/>
+       <resource name="set_content" location="req_set.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
   <artifact_class name="Req" role="tor">
     <location_container>
-       <content name="requirement" location="req.rst" mime="text/x-rst"/>
+       <resource name="requirement" location="req.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
   <artifact_class name="TC_Set" role="settest">
     <location_container>
-       <content name="tc_set_content" location="tc_set.rst" mime="text/x-rst"/>
+       <resource name="tc_set_content" location="tc_set.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
   <artifact_class name="TC" role="testcase">
     <location_container>
-       <content name="tc_content" location="tc.rst" mime="text/x-rst"/>
-       <content name="ada_sources" location="src/*ad[bs]" mime="text/x-ada"/>
-       <content name="c_sources" location="src/*.c" mime="text/x-c"/>
-       <content name="h_sources" location="src/*.h" mime="text/x-h"/>
+       <resource name="tc_content" location="tc.rst" mime="text/x-rst"/>
+       <resource name="ada_sources" location="src/*ad[bs]" mime="text/x-ada"/>
+       <resource name="c_sources" location="src/*.c" mime="text/x-c"/>
+       <resource name="h_sources" location="src/*.h" mime="text/x-h"/>
     </location_container>
   </artifact_class>
 
   <artifact_class name="TR" role="result">
     <location_container>
-       <content name="tr_content" location="test.py.out" mime="text/plain"/>
-       <content name="tr_err" location="test.py.err" mime="text/plain"/>
-       <content name="generated_rest" location="[^tc]*.rst" mime="text/x-rst"/>
+       <resource name="tr_content" location="test.py.out" mime="text/plain"/>
+       <resource name="tr_err" location="test.py.err" mime="text/plain"/>
+       <resource name="generated_rest" location="[^tc]*.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
