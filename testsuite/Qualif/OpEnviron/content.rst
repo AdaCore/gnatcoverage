@@ -17,7 +17,7 @@ rules that always apply:
 
    2 (Base compilation flags) | "All the applicative code shall be compiled
    with the ``-g -fpreserve-control-flow`` command-line options, together with
-   ``-gnateS`` for Ada sources." 
+   ``-gnateS`` for Ada sources."
 
    3 (Optimization flags) | "Up to GNAT Pro 6.4.2, -O0 is the only supported
    level. Later releases will support -O1, with or without inlining. -O2 or
@@ -38,3 +38,4 @@ In any case, the tool behavior correctness for a particular combination of
 versions and command-line options shall be verified by a complete testsuite
 run configured for the target qualification level, producing a *Software Test
 Results* report clear of any test failure.
+

@@ -1,7 +1,0 @@
-{ "OpEnviron": 1,
-  "Ada": 2,
-  "C": 3,
-  "Common": 4,
-  "Appendix": 100
-}
-
