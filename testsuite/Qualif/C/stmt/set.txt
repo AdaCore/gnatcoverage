@@ -1,4 +1,7 @@
 Statement Coverage (SC) TORs and Testcases for C
+================================================
+
+Statement Coverage (SC) TORs and Testcases for C
 
 .. index::
    pair: C; STATEMENT Coverage

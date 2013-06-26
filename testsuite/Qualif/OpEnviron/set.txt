@@ -1,4 +1,7 @@
 Operational Environment
+=======================
+
+Operational Environment
 
 The correctness of source coverage assessments performed by the tool depends
 on a few external rules that shall be obeyed. First comes a set of general

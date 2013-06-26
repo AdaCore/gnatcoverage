@@ -1,1 +1,0 @@
-Check SC with simple subprogram overridings

@@ -1,2 +1,0 @@
-Check MCDC on ``(A and then B) or else C``
-used to control an If statement.

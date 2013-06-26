@@ -1,0 +1,22 @@
+DC expectations regarding the combination of multiple
+=====================================================
+
+DC expectations regarding the combination of multiple
+execution traces together.
+
+%(req-headline)s
+
+When the coverage achieved by multiple execution traces is evaluated, a
+decision coverage violation shall only be reported when it would have been for
+all the traces individually.
+
+%(tstrategy-headline)s
+
+We exercise consolidation of traces obtained for single vector invocations
+over a range of basic decisions.
+
+For each decision, first run with every possible relevant input vector
+independently, then check all the possible combinations of those input
+vectors without repetitions.
+
+%(tc-index)s

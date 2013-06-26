@@ -1,0 +1,10 @@
+Check that the tool properly distinguishes independant simple nested
+====================================================================
+
+Check that the tool properly distinguishes independant simple nested
+constructs. Exercise a simple If statement, without an Else or Elsif part,
+nested within another one, with both Ifs controlled by independant conditions.
+
+Check all the possible combinations of True-only/False-only/both valuations of
+the outer and inner conditions.
+

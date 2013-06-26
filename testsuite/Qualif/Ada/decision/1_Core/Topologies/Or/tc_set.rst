@@ -1,0 +1,5 @@
+Check DC on a decision of the form ``A or else
+==============================================
+
+Check DC on a decision of the form ``A or else
+B`` in various contexts.

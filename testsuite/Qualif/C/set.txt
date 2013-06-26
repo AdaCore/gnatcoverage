@@ -1,4 +1,7 @@
 Source coverage TORs and Testcases for C
+========================================
+
+Source coverage TORs and Testcases for C
 
 .. index::
    single: C; Toplevel Requirement Group

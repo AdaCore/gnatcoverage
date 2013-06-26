@@ -1,0 +1,5 @@
+Check SC with a subprogram inlined in two other ones, each exercising
+=====================================================================
+
+Check SC with a subprogram inlined in two other ones, each exercising
+a distinct part of the inlined body.

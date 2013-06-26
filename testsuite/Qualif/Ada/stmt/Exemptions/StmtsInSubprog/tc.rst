@@ -1,0 +1,10 @@
+Check processing of exemptions applying to a mix of statements and
+==================================================================
+
+Check processing of exemptions applying to a mix of statements and
+declarations in several regions of a single subprogram body.
+
+Exercise a subprogram featuring non-exempted code and several disjoint
+exemption regions, in both the toplevel sequence of statements and a local
+exception handler.
+

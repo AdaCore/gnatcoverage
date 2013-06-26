@@ -1,0 +1,10 @@
+Exercise a toplevel If statement with an else sequence embedding a For loop,
+============================================================================
+
+Exercise a toplevel If statement with an else sequence embedding a For loop,
+whose body features an inner If statement that controls access to a Case
+statement eventually.
+
+Check variations over the outer If control, the For loop entry, the inner If
+control, and the possible Case selections, first independently from each other
+and then combined together.

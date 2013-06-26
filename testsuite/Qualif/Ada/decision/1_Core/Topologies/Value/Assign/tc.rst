@@ -1,0 +1,7 @@
+Check DC on a standalone Boolean variable ``B`` used as the right hand side of
+==============================================================================
+
+Check DC on a standalone Boolean variable ``B`` used as the right hand side of
+an assignment statement.
+
+

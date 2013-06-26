@@ -1,1 +1,0 @@
-Check SC of cast operations as statements

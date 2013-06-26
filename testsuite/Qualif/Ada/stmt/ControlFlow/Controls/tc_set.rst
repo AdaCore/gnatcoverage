@@ -1,0 +1,6 @@
+Check that various forms of control-flow transfers are handled properly.
+========================================================================
+
+Check that various forms of control-flow transfers are handled properly.
+
+%(tc-index)s

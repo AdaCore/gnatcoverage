@@ -1,0 +1,18 @@
+DC expectations with respect to potentially confusing constructs,
+=================================================================
+
+DC expectations with respect to potentially confusing constructs,
+e.g. decisions spanning multiple lines.
+
+%(req-headline)s
+
+The Core Decision Coverage requirements shall remain satisfied in presence of
+constructs that could fool simple minded analyzers.
+
+%(tstrategy-headline)s
+
+Check a panel of cases where code construct particularities could concievably
+cause inaccuracies or errors in coverage diagnostics if the tool were to
+implement too simple analysis schemes:
+
+%(tc-index)s

@@ -1,0 +1,6 @@
+Check MCDC on a 4 operands decision with two of them strongly coupled such that
+===============================================================================
+
+Check MCDC on a 4 operands decision with two of them strongly coupled such that
+masking mcdc remains achievable thanks to shortcircuit semantics.
+

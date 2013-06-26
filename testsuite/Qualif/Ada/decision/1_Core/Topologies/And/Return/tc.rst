@@ -1,0 +1,4 @@
+Check DC on ``A and then B`` used as a Return statement value.
+==============================================================
+
+Check DC on ``A and then B`` used as a Return statement value.

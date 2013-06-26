@@ -1,0 +1,8 @@
+Check output report compliance to expectations on a case involving a multiple
+=============================================================================
+
+Check output report compliance to expectations on a case involving a multiple
+traces and expected violations.
+
+Proceed by exercising a single functional unit in multiple different ways,
+still known to incur improper coverage of the most basic criterion overall.
