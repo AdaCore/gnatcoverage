@@ -174,6 +174,14 @@ class QMAT:
 
         self.repodir = os.path.join (self.rootdir, GIT_CLONE_SUBDIR)
 
+        # Where the testsuite tree is to be found, to run the
+        # tests if needed, then to fetch results from (whether we
+        # run the tests ourselves or rely on a prior run)
+
+        self.testsuite_dir = (
+            self.o.testsuite_dir if self.o.testsuite_dir
+            else os.path.join (self.repodir, "testsuite"))
+
     # --------------------
     # -- setup_basedirs --
     # --------------------
@@ -298,7 +306,7 @@ class QMAT:
             )
 
         run ("make clean")
-        
+
         run_list (
             ['python', 'genrest.py', '--dolevel=%s' % self.o.dolevel])
 
@@ -314,15 +322,16 @@ class QMAT:
     # ---------------
 
     def run_tests (self):
-        announce ("    running tests")
 
-        # This function runs the test cases, as part of the build_str
-        # functionality.
+        # Run the test cases as part of the build_str functionality.
 
-        # Running the testsuite in qualif mode (--qualif-level),
-        # producing REST from results dropped by each testcase execution:
+        announce ("running tests")
 
-        os.chdir (os.path.join (self.repodir, "testsuite"))
+        os.chdir (self.testsuite_dir)
+
+        # Setup the testsuite "support" directory, then launch the toplevel
+        # suite driver with the requested set of flags and in qualif mode for
+        # the level we ought to satisfy:
 
         if not os.path.exists ("support"):
             orisupport = os.path.join (
@@ -330,23 +339,9 @@ class QMAT:
             if os.path.exists (orisupport):
                 shutil.move (orisupport, "support")
 
-        base_cmd = (
-            "python testsuite.py "
-            "--target=ppc-elf --RTS=powerpc-elf/zfp-prep "
-            "--qualif-level=%s -j4" % self.o.dolevel
-            )
-
-        all_cargs = []
-        if self.o.cargs:
-            all_cargs.append ('--cargs=%s' % self.o.cargs)
-        if self.o.cargs_ada:
-            all_cargs.append ('--cargs:Ada="%s"' % self.o.cargs_ada)
-
-        re_tests_args = (
-            [] if self.o.re_tests is None else [self.o.re_tests])
-
         run_list (
-            base_cmd.split() + all_cargs + re_tests_args
+            ("python testsuite.py --qualif-level=%s " % self.o.dolevel
+             + self.o.runtests_flags).strip().split()
             )
 
     # ---------------
@@ -356,27 +351,26 @@ class QMAT:
     def build_str (self):
         announce ("building STR")
 
-        # Building the STR document first involves running the testsuite
-        # (unless the --results-dir option was specified, indicating that
-        # the test execution already occurred), and then uses to sphinx
-        # to produce the document from REST.
+        # First run the tests if we are requested to do so:
 
-        if self.o.resultsdir is None:
+        if self.o.runtests:
             self.run_tests ()
 
-        # Then resort to sphinx to produce the document from REST, in the
-        # requested output format:
+        # Produce REST from the tests results dropped by testsuite run.  If we
+        # did not launch one just above, expect results to be available from a
+        # previous run.
 
-        os.chdir (os.path.join (self.repodir, "testsuite", "qreport"))
+        os.chdir (os.path.join (self.repodir, "qualification", "str"))
 
-        # If --results-dir was specified, then pass the directory containing
-        # the test results to the makefile.
-        if self.o.resultsdir is not None:
-            run ("make %s SRCDIR=%s" % (sphinx_target_for[self.o.docformat], 
-              self.o.resultsdir
-            ))
-        else:
-            run ("make %s" % sphinx_target_for[self.o.docformat]) 
+        run_list (
+            ['python', 'genrest.py',
+             '--testsuite-dir=%s' % self.testsuite_dir,
+             '--dolevel=%s' % self.o.dolevel]
+            )
+
+        # Then invoke sphinx to produce the report in the requested format:
+
+        run ("make %s" % sphinx_target_for[self.o.docformat])
 
         self.__latch_into (
             dir=self.itemsdir, partname="STR", toplevel=False)
@@ -478,6 +472,11 @@ if __name__ == "__main__":
             "Reuse current git clone setup in work-dir, as-is. "
             )
         )
+    op.add_option (
+        "--branch", dest="branchname", default="opendo",
+        help = (
+            "The git branch we shall produce the material from.")
+        )
 
     op.add_option (
         "--package-name", dest="pname",
@@ -486,9 +485,6 @@ if __name__ == "__main__":
             "items bundled together. Ignored if the set of constructed items "
             "is specified explicitly.")
         )
-    op.add_option ("-t", "--re_tests", dest="re_tests")
-    op.add_option ("-c", "--re_chapters", dest="re_chapters")
-
     op.add_option (
         "--docformat", dest="docformat", default="html",
         type='choice', choices=valid_docformats,
@@ -502,11 +498,7 @@ if __name__ == "__main__":
             "A comma separated list of the parts of the qualkit that "
             "are to be generated, subset of %s." % valid_parts.__str__())
         )
-    op.add_option (
-        "--branch", dest="branchname", default="opendo",
-        help = (
-            "The git branch we shall produce the material from.")
-        )
+
     op.add_option (
         "--dolevel", dest="dolevel", default=None,
         type='choice', choices=valid_dolevels,
@@ -514,21 +506,27 @@ if __name__ == "__main__":
             "Target DO178 qualification level. One of %s." \
                 % valid_dolevels.__str__())
         )
+
     op.add_option (
-        "--cargs", dest="cargs",
+        "--testsuite-dir", dest="testsuite_dir", default=None,
         help = (
-            "Language agnostic compilation flags (-O0, -O1, ...)")
+            "Name of a directory where the testsuite was run or is to be "
+            "run if --runtests. Defaults to the git clone testsuite subdir.")
         )
     op.add_option (
-        "--cargs:Ada", dest="cargs_ada",
-        help = (
-            "Ada specific compilation flags (-gnatp, -gnatn, ...)")
+        "--runtests", dest="runtests", action="store_true", default=None,
+        help=(
+            "Run the tests prior to fetching results from testsuite-dir."
+            "Pass the option value as arguments to the testsuite toplevel "
+            "driver, useful e.g. for --target, or -j."
+            )
         )
     op.add_option (
-        "--results-dir", dest="resultsdir", default=None,
-        help = (
-            "Name of a directory containing results (in .rst form) from"
-            "a previous test execution run.")
+        "--runtests-flags", dest="runtests_flags", default="",
+        help=(
+            "With --runtests, pass the option value as arguments to the "
+            "testsuite toplevel driver, useful e.g. for --target, or -j."
+            )
         )
 
     (options, args) = op.parse_args()

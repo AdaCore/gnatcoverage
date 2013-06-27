@@ -28,15 +28,16 @@ from gnatpython.reports import ReportDiff
 from glob import glob
 
 import traceback
-import time, json
+import time, pickle
 import logging, os, re, sys
 
 from SUITE import cutils
 from SUITE.cutils import contents_of, FatalError
 from SUITE.cutils import version, list_to_tmp
 
-from SUITE.qdata import QDregistry, QDreport, stdf_in, qdaf_in
+from SUITE.qdata import stdf_in, qdaf_in
 from SUITE.qdata import QLANGUAGES, QROOTDIR
+from SUITE.qdata import QSTRBOX_DIR, QSTRBOX_FILE, STRbox_Data
 
 from SUITE import control
 from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES
@@ -231,6 +232,19 @@ class TestSuite:
         self.__push_log (
             textlist = textlist, filename = 'results')
 
+    # -------------------------------
+    # -- STR production facilities --
+    # -------------------------------
+
+    def __init_strbox (self):
+        """Initialize the directory where the STR production artifacts
+        will be dropped."""
+        self.strbox_dir = os.path.join (os.getcwd(), QSTRBOX_DIR)
+        mkdir(self.strbox_dir)
+
+        [open(f, 'w').close()
+         for f in (QSTRBOX_FILE,)]
+
     # ------------------------
     # -- Object constructor --
     # ------------------------
@@ -269,15 +283,25 @@ class TestSuite:
         else:
             self.trace_dir = None
 
-        # Generate the discs list for test.opt parsing, and dump the list in a
-        # file we can then use that file to determine which discriminants were
-        # set during a particular run:
+        # Generate the discs list for test.opt parsing, and dump the list in
+        # a file that we can then to determine which discriminants were set
+        # during a particular run:
 
         self.discriminants = self.__discriminants()
         self.__push_log (
             textlist = [" ".join(self.discriminants)],
             filename = "discs"
             )
+
+        # Setup the STR box
+
+        self.__init_strbox()
+
+        STRbox_Data(
+            target=self.env.target,
+            suite_cmdline=" ".join(sys.argv),
+            suite_options=self.options
+            ).drop_to(QSTRBOX_FILE)
 
         # Dump useful comments about this run for starters
 
@@ -307,12 +331,6 @@ class TestSuite:
                 raise FatalError (
                     ("Problem during libsupport construction. %s:\n" % logfile)
                     + contents_of (logfile))
-
-        # Instanciate what we'll need to produce a qualfication report.
-        # Do that always, even if not running for qualif. The registry will
-        # just happen to be empty if we're not running for qualif.
-
-        self.qdreg = QDregistry()
 
         # Setup configuration files for Restrictions control
 
@@ -1147,7 +1165,7 @@ class TestCase(object):
 
         self.xfail = xfail_comment is not None
         status_dict = {
-            # PASSED?   XFAIL? => status   XFAIL? => status
+            # PASSED?   XFAIL => status    !XFAIL => status
               True:    {True:    'UOK',    False:    'OK'},
               False:   {True:    'XFAIL',  False:    'FAILED'}}
 
@@ -1155,18 +1173,20 @@ class TestCase(object):
 
     def latch_status(self):
         with open (self.stdf(), 'w') as f:
-            f.write (json.dumps(
-                    { 'passed' : self.passed,
-                      'xfail'  : self.xfail,
-                      'status' : self.status,
-                      'comment': self.comment }
-                    ))        
+            pickle.dump (
+                { 'passed' : self.passed,
+                  'xfail'  : self.xfail,
+                  'status' : self.status,
+                  'comment': self.comment }
+                , f)
 
     def latched_status(self):
         stdf = self.stdf()
-        return (
-            json.reads(contents_of(stdf)) if os.path.exists(stdf)
-            else None)
+        if not os.path.exists(stdf):
+            return None
+
+        with open (stdf, 'r') as f:
+            return pickle.load (stdf)
 
     # --------------------------------------
     # -- Testscase specific discriminants --
@@ -1274,8 +1294,5 @@ def _quoted_argv():
 # Instanciate and run a TestSuite object ...
 
 if __name__ == "__main__":
-    suite = TestSuite()
-    suite.run()
+    TestSuite().run()
 
-    if suite.options.qualif_level:
-        QDreport(options=suite.options, qdreg=suite.qdreg)
