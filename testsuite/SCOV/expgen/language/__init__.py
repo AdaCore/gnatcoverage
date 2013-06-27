@@ -251,13 +251,28 @@ class Language(object):
 
     def handle_language_specific_context(self, xcontext):
         self.check_language(xcontext)
-        decision_expr, remaining_tag = self.format_tree(xcontext.decision_expr)
         for line in xcontext.format:
-            if '{decision_expr}' in line:
-                line = line.format(decision_expr=decision_expr)
-                if remaining_tag:
-                    self.add_tag(remaining_tag)
-            self.write(line)
+            try:
+                index = line.index('{decision_expr}')
+            except ValueError:
+                self.write(line)
+            else:
+                # Write the text before the decision expression placeholder
+                # formatting so that indentation is correctly set during the
+                # formatting.
+                first_half, second_half = line[:index], line[index:]
+                self.write(first_half)
+
+                with self.indent(self.INDENT):
+                    decision_expr, remaining_tag = self.format_tree(
+                        xcontext.decision_expr
+                    )
+                    second_half = second_half.format(
+                        decision_expr=decision_expr
+                    )
+                    if remaining_tag:
+                        self.add_tag(remaining_tag)
+                    self.write(second_half)
             self.newline()
 
     def _filter_nodes(self, specific_class, node_kinds):
