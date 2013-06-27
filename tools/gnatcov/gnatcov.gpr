@@ -4,6 +4,12 @@ project Gnatcov is
    type Bits_Type is ("32", "64");
    Bits : Bits_Type := external("ARCH", "32");
 
+   --  Build mode. Default to "dev" to make it shorter for developers.
+   --  The other modes are for nightly scripts and are better made explicit
+   --- anyway:
+   type Build_Mode_Type is ("dev", "prod", "boot");
+   Build_Mode : Build_Mode_Type := external("BUILD_MODE", "dev");
+
    package Naming is
       for Specification ("Elf_Arch") use "elf_arch__" & Bits & ".ads";
       for Specification ("Qemu_Traces_Entries")
@@ -15,20 +21,29 @@ project Gnatcov is
    end Builder;
 
    package Compiler is
-      for Default_Switches ("ada") use
-        ("-gnat12",
-
-         "-gnatwae",
-         "-gnatyg",
-
-         "-gnata",
-
-         "-g",
-         "-O1",
-         "-gnateS",
-         "-fpreserve-control-flow");
 
       for Switches ("ppc_genopc.adb") use ("-g", "-gnat12");
+
+      common_switches := 
+         ("-gnat12", "-gnatwae", "-gnatyg", "-gnata", "-g");
+
+      mode_switches := ();
+
+      case Build_Mode is
+         when "dev" =>
+            mode_switches := ("-O0");
+
+         when "prod" =>
+            mode_switches := ("-O2");
+
+         when "boot" =>
+            mode_switches := ("-O1", "-fdump-scos", "-fpreserve-control-flow");
+
+       end case;
+
+       for Default_Switches ("ada")
+          use common_switches & mode_switches;
+
    end Compiler;
 
    for Source_Dirs use (".");

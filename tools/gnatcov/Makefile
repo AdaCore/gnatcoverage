@@ -135,6 +135,7 @@ endif
 include architecture.mk
 
 PARALLEL_BUILD=0
+BUILD_MODE=dev
 
 .PHONY: default all adapters bin $(PGMPATH) $(ALL_ADAPTER_SUBDIRS)
 
@@ -149,9 +150,9 @@ bin: $(PGMPATH)
 all: bin adapters
 
 $(PGMPATH):
-	$(GNATMAKE) -Pgnatcov -p                        \
-		-j$(PARALLEL_BUILD)                     \
-		-XARCH=$(BITS_ARCH) $(EXTRA_ADAFLAGS) $(PGMNAME)
+	$(GNATMAKE) -Pgnatcov -p -j$(PARALLEL_BUILD) \
+	-XARCH=$(BITS_ARCH) -XBUILD_MODE=$(BUILD_MODE) \
+	$(EXTRA_ADAFLAGS) $(PGMNAME)
 
 $(ALL_ADAPTER_SUBDIRS):
 	$(MAKE) -C $@
