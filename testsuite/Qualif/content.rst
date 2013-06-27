@@ -1,12 +1,14 @@
 Tool Operational Requirements
 =============================
 
-This is the root of the "Tool Operational Requirements" and "Testcases"
-hierarchy that constitutes part of the GNATcoverage qualification material.
+This document is a hierarchically organized set of "Tool Operational
+Requirements" and "Testcases", consisting of several top-level chapters as
+summarized in the table below.
 
-This is decomposed in several toplevel chapters, summarized in the table
-below. The language specific chapters that apply depend on your qualification
+The document is part of the GNATcoverage qualification material;
+the language-specific chapters that apply will depend on the qualification
 objectives.
+
 
 .. qmlink:: ToplevelIndexImporter
 

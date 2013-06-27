@@ -12,6 +12,7 @@ relevance:
 
 .. qmlink:: SubsetIndexImporter
 
-   *
-
+   stmt
+   decision
+   mcdc
 
