@@ -482,7 +482,7 @@ class SCOV_helper:
         # same sources were exercised by multiple drivers:
 
         lang_info = language_info(source)
-        lali="obj/"+os.path.basename(no_ext(source) + lang_info.scos_ext)
+        lali="obj/"+lang_info.scofile_for(os.path.basename(source))
         for main in self.drivers:
             tloc=self.abdir_for(no_ext(main))+lali
             if os.path.exists(tloc):

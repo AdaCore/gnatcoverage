@@ -7,6 +7,8 @@ from gnatpython.ex import Run
 from gnatpython.fileutils import rm
 import os.path, re
 
+from SUITE.cutils import no_ext
+
 env = Env()
 
 # Append .exe on windows for native tools
@@ -27,41 +29,39 @@ class LangInfo:
            A list of extensions used for filenames of that language.
            Eg: [".ads", ".adb"] for GNAT, or [".h", ".c"] for C.
 
-        scos_ext:
-           The extension used for filenames that contain the SCOs used by
-           xcov. For instance, in Ada, that would be ".ali".
-
         comment:
            The comment marker used by that language to specify the start of a
            comment that runs until the end of the current line.  For instance,
            in Ada, it would be '--'.
+
+        scofile_for:
+           A function which returns the name of the file where SCOs can
+           be found for a given SOURCE file name. This is, for example,
+           "x.ali" for "x.adb" in Ada or "t.c.gli" for "t.c" in C.
     """
-    def __init__(self, name, src_ext, scos_ext, comment):
-        # The parameters have the same meaning as the class'
-        # attributes, with the following exceptions:
-        #     src_ext: If only one filename extension is being used,
-        #         it is acceptable to pass it directly, rather than
-        #         passing a single-element list.  This constructor
-        #         will automatically make the translation.
-        if not isinstance(src_ext, list):
-            src_ext = [src_ext]
+    def __init__(self, name, src_ext, comment, scofile_for):
         self.name = name
         self.src_ext = src_ext
-        self.scos_ext = scos_ext
         self.comment = comment
+        self.scofile_for = scofile_for
 
 # A dictionary mapping a LangInfo instance to each known language.
 
 LANGINFO = {
-    "Ada":  LangInfo(name="Ada", src_ext=[".ads", ".adb"], scos_ext=".ali",
-                     comment='--'),
-    "C":    LangInfo(name="C", src_ext=[".h", ".c"], scos_ext=".gli",
-                     comment='//'),
-    "Cons": LangInfo(name="Consolidation", src_ext=".txt", scos_ext=None,
-                     comment='--')
+    "Ada": LangInfo(
+        name="Ada", src_ext=[".ads", ".adb"], comment='--',
+        scofile_for=lambda source: (no_ext(source)+'.ali')),
+
+    "C": LangInfo(
+        name="C", src_ext=[".h", ".c"],  comment='//',
+        scofile_for=lambda source: (source+'.gli')),
+
+    "Cons": LangInfo(
+        name="Consolidation", src_ext=[".txt"], comment='--',
+        scofile_for=None)
     }
 
-KNOWN_LANGUAGES = [li.name for li in LANGINFO.values() if li.scos_ext]
+KNOWN_LANGUAGES = [li.name for li in LANGINFO.values() if li.scofile_for]
 # list of languages that gnatcov supports
 
 def language_info(source_filename):
