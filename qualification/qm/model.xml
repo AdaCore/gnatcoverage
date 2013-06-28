@@ -82,7 +82,7 @@
 
   <artifact_factory name="Intro" class="Chapter">
     <on_location relative_instance="/TOR_Doc"
-                 pattern="$relative.location/OpEnviron/content.rst"
+                 pattern="$relative.location/*/content.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename"/>
   </artifact_factory>
@@ -93,7 +93,7 @@
     </location_container>
   </artifact_class>
 
-  <artifact_factory class="Appendix">
+  <artifact_factory class="Appendix" overrides="Intro">
     <on_location relative_class="Appendix"
                  pattern="$relative.location/*/app.rst"
                  type="content"/>
