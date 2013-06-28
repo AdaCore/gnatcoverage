@@ -685,23 +685,31 @@ package body Annotations.Xml is
 
    function To_Xml_String (S : String) return String is
 
+      type Cst_String_Access is access constant String;
+
       type Xml_Special_Character is record
          Char : Character;
          --  Special character
 
-         Xml_Representation : String_Access;
+         Xml_Representation : Cst_String_Access;
          --  Xml Representation of Char
       end record;
 
       type Xml_Special_Character_Mapping is
         array (Natural range <>) of Xml_Special_Character;
 
+      Entity_Quot : aliased constant String := "&quot;";
+      Entity_Apos : aliased constant String := "&apos;";
+      Entity_Gt   : aliased constant String := "&gt;";
+      Entity_Lt   : aliased constant String := "&lt;";
+      Entity_Amp  : aliased constant String := "&amp;";
+
       Char_Map : constant Xml_Special_Character_Mapping :=
-        (('"', new String'("&quot;")),
-         (''', new String'("&apos;")),
-         ('>', new String'("&gt;")),
-         ('<', new String'("&lt;")),
-         ('&', new String'("&amp;")));
+        (('"', Entity_Quot'Access),
+         (''', Entity_Apos'Access),
+         ('>', Entity_Gt'Access),
+         ('<', Entity_Lt'Access),
+         ('&', Entity_Amp'Access));
 
       function Xml_Length (S : String) return Natural;
       --  Return the length of the string after conversion
