@@ -131,7 +131,7 @@ def version(tool, nlines=1):
     # test failures anyway.
 
     if not which(tool):
-        return tool + " unavailable"
+        return "N/A"
 
     # --version often dumps more than the version number on a line. A
     # copyright notice is typically found there as well. Our heuristic
