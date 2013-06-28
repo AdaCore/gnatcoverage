@@ -8,7 +8,9 @@ import re
 
 def class_to_string(a):
     d = {'Req_Set': 'rqg',
-         'Req': 'rq'}
+         'Req': 'rq',
+         'TC': 'tc',
+         'TC_Set': 'tcg'}
     if 'Appendix' in a.full_name:
         return 'app'
     elif a.name == 'OpEnviron':
@@ -50,7 +52,12 @@ class TCIndexImporter(ArtifactImporter):
             headers=["(*)", "Chapter", "Description"],
             widths=[2, 20, 70])
 
-        links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
+        links = []
+        for a in artifacts:
+            if a.__class__.__name__ == 'TC':
+                links.append((a, TestCaseImporter()))
+            else:
+                links.append((a, qm.rest.DefaultImporter()))
 
         output += toctree(['/%s/content' % artifact_hash(*l)
                            for l in links if
@@ -120,9 +127,10 @@ class TestCaseImporter(ArtifactImporter):
 
         for key in ("ada_sources", "c_sources", "h_sources"):
 
-            result += subsection(key.replace('_', ' '))
-            result += generic_list([k.basename for k in
-                                    artifact.contents(key)])
+            if len(artifact.contents(key)) > 0:
+                result += subsection(key.replace('_', ' '))
+                result += generic_list([k.basename for k in
+                                        artifact.contents(key)])
 
         return result
 
