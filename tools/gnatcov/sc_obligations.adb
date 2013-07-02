@@ -1855,8 +1855,7 @@ package body SC_Obligations is
             is
             begin
                if SCO_Source_Loc = SCOs.No_Source_Location then
-                  return Source_Location'
-                    (Source_File => No_Source_File, others => <>);
+                  return No_Location;
                end if;
 
                return
