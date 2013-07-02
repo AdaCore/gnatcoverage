@@ -1,5 +1,5 @@
 {"gnat"                 : "powerpc-elf",
- "version"              : "6.4.2",
+ "version"              : "7.0.3",
  "switches"             : ["-O1 -fpreserve-control-flow"],
  "coding standard"      : "",
- "project_full"         : "Adiru"}
+ "project_full"         : "SomeProject"}
