@@ -44,26 +44,26 @@ package body Null_Statements is
 
    procedure Set_Max (Res : out Integer; I, J : Integer) is
    begin
-      Res := I;           -- # max
+      Res := I;           -- # maxfirst
 
-      if Res > J then     -- # max
+      if Res > J then     -- # maxfirst
          goto Fin;        -- # maxif
       end if;
 
-      Res := J;           -- # amaxskip
+      Res := J;           -- # maxskip
 
       <<Fin>> null;       -- # maxnull
    end Set_Max;
 
    procedure Set_Min (Res : out Integer; I, J : Integer) is
    begin
-      Res := I;           -- # min
+      Res := I;           -- # minfirst
 
-      if Res < J then     -- # min
-         goto Fin;        -- # aminif
+      if Res < J then     -- # minfirst
+         goto Fin;        -- # minif
       end if;
 
-      Res := J;           -- # aminskip
+      Res := J;           -- # minskip
 
       <<Fin>> null;       -- # minnull
    end Set_Min;

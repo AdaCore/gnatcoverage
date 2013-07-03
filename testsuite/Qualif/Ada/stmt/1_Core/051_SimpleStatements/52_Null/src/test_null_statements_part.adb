@@ -38,11 +38,11 @@ end Test_Null_Statements_Part;
 -- /case1fun/     l- ## s-
 -- /case2fun/     l+ ## 0
 -- /casenullfun/  l- ## s-
--- /max/          l+ ## 0
+-- /maxfirst/     l+ ## 0
 -- /maxif/        l+ ## 0
--- /amaxskip/     l- ## s-
+-- /maxskip/      l- ## s-
 -- /maxnull/      l+ ## 0
--- /min/          l- ## s-
--- /aminif/       l- ## s-
--- /aminskip/     l- ## s-
+-- /minfirst/     l- ## s-
+-- /minif/        l- ## s-
+-- /minskip/      l- ## s-
 -- /minnull/      l- ## s-
