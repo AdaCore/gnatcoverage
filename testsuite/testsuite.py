@@ -33,11 +33,11 @@ import logging, os, re, sys
 
 from SUITE import cutils
 from SUITE.cutils import contents_of, FatalError
-from SUITE.cutils import version, list_to_tmp
+from SUITE.cutils import version, list_to_tmp, dump_to
 
 from SUITE.qdata import stdf_in, qdaf_in
 from SUITE.qdata import QLANGUAGES, QROOTDIR
-from SUITE.qdata import QSTRBOX_DIR, QSTRBOX_FILE, STRbox_Data
+from SUITE.qdata import QSTRBOX_DIR, SUITEDATA_FILE, SUITEdata
 
 from SUITE import control
 from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES
@@ -243,7 +243,7 @@ class TestSuite:
         mkdir(self.strbox_dir)
 
         [open(f, 'w').close()
-         for f in (QSTRBOX_FILE,)]
+         for f in (SUITEDATA_FILE,)]
 
     # ------------------------
     # -- Object constructor --
@@ -293,15 +293,17 @@ class TestSuite:
             filename = "discs"
             )
 
-        # Setup the STR box
+        # Setup the STR box and dump the suite data file
 
         self.__init_strbox()
-
-        STRbox_Data(
-            target=self.env.target,
-            suite_cmdline=" ".join(sys.argv),
-            suite_options=self.options
-            ).drop_to(QSTRBOX_FILE)
+        dump_to (
+            SUITEDATA_FILE,
+            SUITEdata(
+                target=self.env.target,
+                cmdline=" ".join(sys.argv),
+                options=self.options
+                )
+            )
 
         # Dump useful comments about this run for starters
 

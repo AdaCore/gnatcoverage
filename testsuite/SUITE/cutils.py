@@ -162,6 +162,23 @@ def ndirs_in(path):
 
     return nsplits
 
+# =================================
+# == Dumping and loading objects ==
+# =================================
+
+# Common place to decide on the use of json or pickle,
+# factorize decisions wrt dumps within existing files etc.
+
+import pickle
+
+def dump_to(filename, o):
+    with open (filename, 'w') as f:
+        pickle.dump (o, f)
+
+def load_from(filename):
+    with open (filename) as f:
+        return pickle.load (f)
+
 # ==========
 # == Wdir ==
 # ==========

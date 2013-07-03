@@ -8,14 +8,14 @@
 
 # *****************************************************************************
 
-import sys, os, pickle, re, optparse
+import sys, os, re, optparse
 from gnatpython.env import Env
 
 # The testsuite dir corresponding to this local "qualification" dir. This is
 # where we fetch common python source dirs. This might be different from where
 # the actual testsuite results could be found, as provided through
 # --testsuite-dir, though the two should be consistent wrt the python script
-# sources (e.g. the strbox object must match)
+# sources (e.g. the SUITEdata structure must match)
 
 LOCAL_TESTSUITE_DIR=os.path.abspath("../../testsuite")
 
@@ -23,8 +23,8 @@ sys.path.append(LOCAL_TESTSUITE_DIR)
 
 from SUITE.qdata import qdaf_in, stdf_in
 from SUITE.qdata import QUALDATA_FILE, QLANGUAGES, QROOTDIR
-from SUITE.qdata import QSTRBOX_FILE
-from SUITE.cutils import to_list
+from SUITE.qdata import SUITEDATA_FILE
+from SUITE.cutils import to_list, load_from
 from SUITE.control import LANGINFO, XCOV
 
 from SCOV.internals.cnotes import *
@@ -91,13 +91,8 @@ class QDregistry_from:
 
         print "loading from %s" % dirname
 
-        qdf = qdaf_in (dirname)
-        with open (qdf) as f:
-            qda = pickle.load (f)
-            
-        stdf = stdf_in (dirname)
-        with open (stdf) as f:
-            std = pickle.load (f)
+        qda = load_from (qdaf_in (dirname))
+        std = load_from (stdf_in (dirname))
 
         qda.status = std['status']
         qda.comment = std['comment']
@@ -510,15 +505,13 @@ class QDreport:
         
         # Fetch the testsuite execution context
 
-        with open (
-            os.path.join (self.o.testsuite_dir, QSTRBOX_FILE), 'r'
-            ) as f:
-            self.strbox = pickle.load (f)
+        self.suitedata = load_from (
+            os.path.join (self.o.testsuite_dir, SUITEDATA_FILE))
 
         # Pick the testsuite dolevel if none was provided. Check
         # consistency otherwise:
 
-        suite_dolevel = self.strbox.suite_options.qualif_level
+        suite_dolevel = self.suitedata.options.qualif_level
         
         fail_if (
             not suite_dolevel,            
@@ -844,13 +837,13 @@ class QDreport:
         # - LANGINFO.cargs (e.g. -gnateS for Ada, -fdump-scos for C)
         # - --cargs family
 
-        suite_options = self.strbox.suite_options.__dict__
+        suite_options = self.suitedata.options.__dict__
 
         csv_contents = []
 
         csv_contents.append(
             {item : "testsuite execution command line",
-             value: self.strbox.suite_cmdline
+             value: self.suitedata.cmdline
              })
 
         csv_contents.append(
@@ -886,8 +879,8 @@ class QDreport:
         v2 = Column (
             htext = "", legend = None)
 
-        gnatpro = self.strbox.target.triplet + "-gcc"
-        gnatemu = self.strbox.target.triplet + "-gnatemu"
+        gnatpro = self.suitedata.target.triplet + "-gcc"
+        gnatemu = self.suitedata.target.triplet + "-gnatemu"
         gnatcov = XCOV
 
         CSVtable (

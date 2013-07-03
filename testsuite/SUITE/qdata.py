@@ -5,13 +5,22 @@
 # This module exposes the testsuite qualification data management facilities,
 # aimed at the production of a test-results report post testsuite execution.
 #
-# Testcases dump Qdata instances when they execute. The toplevel driver dumps
-# the overall execution status, accounting for the test success combined with
-# test.opt related info.
-
+# For each testcase,
+#
+# * The testcase execution dumps a Qdata instance which holds details of what
+#   expectations the test had and how they were satisfied.
+#
+# * The toplevel driver dumps the overall testcase execution status,
+#   accounting for the test success combined with test.opt related info.
+#
+# The toplevel driver also dumps global information about the testsuite
+# run as a whole, such as the command line options received etc. This is
+# encapsulated as the SUITEdata class in this file.
+#
 # ****************************************************************************
 
 import os, sys, pickle, re
+from SUITE.cutils import dump_to
 
 QLANGUAGES = ["Ada"]
 # list of languages we support qualification tests for
@@ -20,53 +29,28 @@ QROOTDIR="Qualif"
 # String that identifies a qualification test at the beginning of it's
 # sub-directory name relative to the testsuite root
 
-# -----------------
-# -- STRbox_Data --
-# -----------------
+STREXT=".dump"
+# Extension of datafiles dumped for the purpose of the STR document
+# production
+
+# ==========================
+# == SUITEdata facilities ==
+# ==========================
 
 QSTRBOX_DIR="_strbox"
 # Name of a directory where data aimed at the STR production engine will
 # be dropped by the testsuite execution driver
 
-QSTRBOX_FILE=os.path.join (QSTRBOX_DIR, "run.pkl")
+SUITEDATA_FILE=os.path.join (QSTRBOX_DIR, "suite"+STREXT)
 # Name of a file, relative to the testsuite toplevel directory, where the
 # testsuite data of use for the STR production will be made available.
 
-class STRbox_Data:
+class SUITEdata:
 
-    def __init__ (
-        self, target=None,
-        suite_cmdline=None, suite_options=None
-        ):
+    def __init__ (self, target=None, cmdline=None, options=None):
         self.target = target
-        self.suite_cmdline = suite_cmdline
-        self.suite_options = suite_options
-
-    def drop_to(self, filename):
-        with open (filename, 'w') as f:
-            pickle.dump (self, f)
-
-# -------------
-# -- qdaf_in --
-# -------------
-
-QUALDATA_FILE = "tc.pkl"
-
-def qdaf_in(dir):
-    """Filename for qualification data to be pickled in DIR for a testcase.
-    This hosts instances of objects representing test executions, each holding
-    dictionaries of expected notes together with their dischargers."""
-    return os.path.join (dir, QUALDATA_FILE)
-
-# -------------
-# -- stdf_in --
-# -------------
-
-STATUSDATA_FILE = "tcs.pkl"
-
-def stdf_in(dir):
-    """Filename for execution status data to be picked up DIR"""
-    return os.path.join (dir, STATUSDATA_FILE)
+        self.cmdline = cmdline
+        self.options = options
 
 # ================================================================
 # == Qualification Data classes, filled and dumped by testcases ==
@@ -101,5 +85,27 @@ class Qdata:
         self.entries.append (ob)
 
     def flush(self):
-        with open(qdaf_in("."), "w") as fd:
-            pickle.dump(self, fd)
+        dump_to (qdaf_in("."), o=self)
+
+# -------------
+# -- qdaf_in --
+# -------------
+
+QUALDATA_FILE = "tc"+STREXT
+
+def qdaf_in(dir):
+    """Filename for qualification data to be pickled in DIR for a testcase.
+    This hosts instances of objects representing test executions, each holding
+    dictionaries of expected notes together with their dischargers."""
+    return os.path.join (dir, QUALDATA_FILE)
+
+# -------------
+# -- stdf_in --
+# -------------
+
+STATUSDATA_FILE = "tcs"+STREXT
+
+def stdf_in(dir):
+    """Filename for execution status data to be picked up DIR"""
+    return os.path.join (dir, STATUSDATA_FILE)
+
