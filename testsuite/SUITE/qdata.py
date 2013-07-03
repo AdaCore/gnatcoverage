@@ -5,17 +5,19 @@
 # This module exposes the testsuite qualification data management facilities,
 # aimed at the production of a test-results report post testsuite execution.
 #
-# For each testcase,
+# For each testcase:
 #
-# * The testcase execution dumps a Qdata instance which holds details of what
-#   expectations the test had and how they were satisfied.
+# * The testcase execution dumps a Qdata instance which holds details of
+#   what expectations the test had and how they were satisfied.
 #
-# * The toplevel driver dumps the overall testcase execution status,
-#   accounting for the test success combined with test.opt related info.
+# * The toplevel driver dumps a TC_status instance which holds the overall
+#   testcase execution status, accounting for the test success combined with
+#   test.opt related info.
 #
-# The toplevel driver also dumps global information about the testsuite
-# run as a whole, such as the command line options received etc. This is
-# encapsulated as the SUITEdata class in this file.
+# The toplevel driver also dumps a SUITE_context instance which holds global
+# information about the testsuite run as a whole, such as the command line
+# options received etc. This is encapsulated as the SUITEdata class in this
+# file.
 #
 # ****************************************************************************
 
@@ -34,19 +36,19 @@ STREXT=".dump"
 # Extension of datafiles dumped for the purpose of the STR document
 # production
 
-# ==========================
-# == SUITEdata facilities ==
-# ==========================
-
 QSTRBOX_DIR="_strbox"
-# Name of a directory where data aimed at the STR production engine will
-# be dropped by the testsuite execution driver
+# Name of a directory where context data aimed at the STR production engine
+# will be dropped by the testsuite execution driver
 
-SUITEDATA_FILE=os.path.join (QSTRBOX_DIR, "suite"+STREXT)
+# ==============================
+# == SUITE_context facilities ==
+# ==============================
+
+CTXDATA_FILE=os.path.join (QSTRBOX_DIR, "suite"+STREXT)
 # Name of a file, relative to the testsuite toplevel directory, where the
 # testsuite data of use for the STR production will be made available.
 
-class SUITEdata:
+class SUITE_context:
 
     def __init__ (
         self, treeref=None,target=None, cmdline=None, options=None
@@ -55,6 +57,22 @@ class SUITEdata:
         self.target = target
         self.cmdline = cmdline
         self.options = options
+
+# ===============================
+# == Testcase execution status ==
+# ===============================
+
+# Dumped for each testcase by the toplevel testsuite driver
+
+class TC_status:
+
+    def __init__ (
+        self, passed=None, xfail=None, status=None, comment=None
+        ):
+        self.passed = passed
+        self.xfail = xfail
+        self.status = status
+        self.comment = comment
 
 # ================================================================
 # == Qualification Data classes, filled and dumped by testcases ==

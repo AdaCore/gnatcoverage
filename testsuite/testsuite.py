@@ -37,7 +37,7 @@ from SUITE.cutils import version, list_to_tmp, dump_to
 
 from SUITE.qdata import stdf_in, qdaf_in, treeref_at
 from SUITE.qdata import QLANGUAGES, QROOTDIR
-from SUITE.qdata import QSTRBOX_DIR, SUITEDATA_FILE, SUITEdata
+from SUITE.qdata import QSTRBOX_DIR, CTXDATA_FILE, SUITE_context, TC_status
 
 from SUITE import control
 from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES
@@ -242,9 +242,6 @@ class TestSuite:
         self.strbox_dir = os.path.join (os.getcwd(), QSTRBOX_DIR)
         mkdir(self.strbox_dir)
 
-        [open(f, 'w').close()
-         for f in (SUITEDATA_FILE,)]
-
     # ------------------------
     # -- Object constructor --
     # ------------------------
@@ -296,7 +293,6 @@ class TestSuite:
         # Setup the STR box and dump the suite data file, for qualification
         # runs. Note that we must be in a revision controlled tree in this
         # case, so we can fetch a local reference for consistency comparisons.
-
         if self.options.qualif_level:
             self.__init_strbox()
             dump_to (
@@ -896,7 +892,9 @@ class TestSuite:
         test.end_time = time.time()
 
         test.compute_status()
-        test.latch_status()
+
+        if self.options.qualif_level:
+            test.latch_status()
 
         self.__log_results_for(test)
         self.__check_stop_after(test)
@@ -1177,21 +1175,17 @@ class TestCase(object):
         self.status = status_dict[self.passed][self.xfail]
 
     def latch_status(self):
-        with open (self.stdf(), 'w') as f:
-            pickle.dump (
-                { 'passed' : self.passed,
-                  'xfail'  : self.xfail,
-                  'status' : self.status,
-                  'comment': self.comment }
-                , f)
-
+        dump_to (
+            self.stdf(),
+            o = TC_status (
+                passed=self.passed,
+                xfail=self.xfail,
+                status=self.status,
+                comment=self.comment)
+            )
+        
     def latched_status(self):
-        stdf = self.stdf()
-        if not os.path.exists(stdf):
-            return None
-
-        with open (stdf, 'r') as f:
-            return pickle.load (stdf)
+        return load_from (self.stdf())
 
     # --------------------------------------
     # -- Testscase specific discriminants --

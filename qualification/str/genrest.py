@@ -15,14 +15,14 @@ from gnatpython.env import Env
 # where we fetch common python source dirs. This might be different from where
 # the actual testsuite results could be found, as provided through
 # --testsuite-dir, though the two should be consistent wrt the python script
-# sources (e.g. the SUITEdata structure must match)
+# sources (e.g. the CTXdata structure must match)
 
 LOCAL_TESTSUITE_DIR=os.path.abspath("../../testsuite")
 sys.path.append(LOCAL_TESTSUITE_DIR)
 
 from SUITE.qdata import qdaf_in, stdf_in
 from SUITE.qdata import QUALDATA_FILE, QLANGUAGES, QROOTDIR
-from SUITE.qdata import SUITEDATA_FILE
+from SUITE.qdata import CTXDATA_FILE
 from SUITE.cutils import to_list, load_from
 from SUITE.control import LANGINFO, XCOV
 
@@ -93,8 +93,8 @@ class QDregistry_from:
         qda = load_from (qdaf_in (dirname))
         std = load_from (stdf_in (dirname))
 
-        qda.status = std['status']
-        qda.comment = std['comment']
+        qda.status = std.status
+        qda.comment = std.comment
         
         self.qdl.append (qda)
 
@@ -505,7 +505,7 @@ class QDreport:
         # Fetch the testsuite execution context
 
         self.suitedata = load_from (
-            os.path.join (self.o.testsuite_dir, SUITEDATA_FILE))
+            os.path.join (self.o.testsuite_dir, CTXDATA_FILE))
 
         # Pick the testsuite dolevel if none was provided. Check
         # consistency otherwise:
