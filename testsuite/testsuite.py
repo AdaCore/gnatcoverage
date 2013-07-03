@@ -35,7 +35,7 @@ from SUITE import cutils
 from SUITE.cutils import contents_of, FatalError
 from SUITE.cutils import version, list_to_tmp, dump_to
 
-from SUITE.qdata import stdf_in, qdaf_in
+from SUITE.qdata import stdf_in, qdaf_in, treeref_at
 from SUITE.qdata import QLANGUAGES, QROOTDIR
 from SUITE.qdata import QSTRBOX_DIR, SUITEDATA_FILE, SUITEdata
 
@@ -293,17 +293,20 @@ class TestSuite:
             filename = "discs"
             )
 
-        # Setup the STR box and dump the suite data file
+        # Setup the STR box and dump the suite data file, for qualification
+        # runs. Note that we must be in a revision controlled tree in this
+        # case, so we can fetch a local reference for consistency comparisons.
 
-        self.__init_strbox()
-        dump_to (
-            SUITEDATA_FILE,
-            SUITEdata(
-                target=self.env.target,
-                cmdline=" ".join(sys.argv),
-                options=self.options
+        if self.options.qualif_level:
+            self.__init_strbox()
+            dump_to (
+                CTXDATA_FILE,
+                SUITE_context(
+                    treeref=treeref_at("."),
+                    target=self.env.target,
+                    cmdline=" ".join(sys.argv),
+                    options=self.options)
                 )
-            )
 
         # Dump useful comments about this run for starters
 

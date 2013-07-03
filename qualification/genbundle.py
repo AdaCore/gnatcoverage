@@ -80,6 +80,12 @@ from datetime import date
 
 import optparse, sys, os.path, shutil
 
+LOCAL_TESTSUITE_DIR=os.path.abspath("../testsuite")
+sys.path.append(LOCAL_TESTSUITE_DIR)
+
+from SUITE.qdata import CTXDATA_FILE, treeref_at
+from SUITE.cutils import load_from
+
 # =======================================================================
 # ==                         MISC UTILITY FUNCTIONS                    ==
 # =======================================================================
@@ -351,6 +357,30 @@ class QMAT:
     def build_str (self):
         announce ("building STR")
 
+        # Unless in devmode, check consistency of the testsuite tree ref
+        # against here. Check that this dir ref matches that of ...
+        #
+        # * The testsuite dir where we are going to run the tests when
+        #   requested so,
+        #
+        # * The testsuite dir where the tests were run otherwise, part of the
+        #   context data dumped by the testsuite execution driver.
+
+        local_treeref = treeref_at(".")
+
+        if self.o.runtests:
+            suite_treeref = treeref_at(self.testsuite_dir)
+        else:
+            suitedata = load_from (
+                os.path.join (self.testsuite_dir, CTXDATA_FILE))
+            suite_treeref = suitedata.treeref
+
+        fail_if (
+            not self.o.devmode and local_treeref != suite_treeref,
+            "local tree ref (%s) mismatches testsuite tree ref (%s)" % (
+                local_treeref, suite_treeref)
+            )
+
         # First run the tests if we are requested to do so:
 
         if self.o.runtests:
@@ -529,6 +559,13 @@ if __name__ == "__main__":
             )
         )
 
+    op.add_option (
+        "--devmode", dest="devmode", action="store_true", default=False,
+        help = (
+            "State that we're in ongoing development mode, relaxing internal "
+            "consistency checks.")
+        )
+
     (options, args) = op.parse_args()
 
     # work dir vs root dir.
@@ -562,6 +599,13 @@ if __name__ == "__main__":
         today = date.today()
         options.pname = "GNATCOV-QMAT-%s-%4d-%02d-%02d" % (
             options.docformat.upper(), today.year, today.month, today.day)
+
+    # Refuse generating a package in devmode.
+
+    exit_if (
+        options.pname and options.devmode,
+        "Producing a packaged kit is disallowed in devmode."
+        )
 
     # Settle on the set of documents we are to produce:
 

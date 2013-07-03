@@ -20,7 +20,8 @@
 # ****************************************************************************
 
 import os, sys, pickle, re
-from SUITE.cutils import dump_to
+from SUITE.cutils import dump_to, output_of
+from gnatpython.ex import Run
 
 QLANGUAGES = ["Ada"]
 # list of languages we support qualification tests for
@@ -47,7 +48,10 @@ SUITEDATA_FILE=os.path.join (QSTRBOX_DIR, "suite"+STREXT)
 
 class SUITEdata:
 
-    def __init__ (self, target=None, cmdline=None, options=None):
+    def __init__ (
+        self, treeref=None,target=None, cmdline=None, options=None
+        ):
+        self.treeref = treeref
         self.target = target
         self.cmdline = cmdline
         self.options = options
@@ -108,4 +112,19 @@ STATUSDATA_FILE = "tcs"+STREXT
 def stdf_in(dir):
     """Filename for execution status data to be picked up DIR"""
     return os.path.join (dir, STATUSDATA_FILE)
+
+# ----------------
+# -- treeref_at --
+# ----------------
+
+def treeref_at(dirname):
+    """A string representative of where the DIRNAME directory originates from
+    (e.g. svn rev or git commit), to be used for consistency checks when
+    multiple operations are done separately but should work over synchronized
+    directory trees."""
+
+    # Assuming git, sha1 for the HEAD reference
+
+    return output_of (
+        "git rev-parse HEAD", dir=dirname).rstrip('\n')
 

@@ -18,7 +18,6 @@ from gnatpython.env import Env
 # sources (e.g. the SUITEdata structure must match)
 
 LOCAL_TESTSUITE_DIR=os.path.abspath("../../testsuite")
-
 sys.path.append(LOCAL_TESTSUITE_DIR)
 
 from SUITE.qdata import qdaf_in, stdf_in

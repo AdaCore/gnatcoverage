@@ -162,6 +162,20 @@ def ndirs_in(path):
 
     return nsplits
 
+# ---------------
+# -- output_of --
+# ---------------
+def output_of(cmd, dir=None):
+    """Execute CMD and return it's output, switching to DIR before
+    if not None, and switching back to the original cwd as needed."""
+
+    cwd = os.getcwd()
+    if dir is not None:
+        cd (dir)
+    output = Run (cmd.split()).out
+    cd (cwd)
+    return output
+
 # =================================
 # == Dumping and loading objects ==
 # =================================
