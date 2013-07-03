@@ -12,7 +12,8 @@
 ``--help``::
 
    gnatcov convert --trace-source=SOURCE_ID --exec=EXECUTABLE
-     --input=INPUT_TRACE [OPTIONS]
+     --input=INPUT_TRACE --hw-trigger-traces=START_ID,START_ADDR,STOP_ID
+     [OPTIONS]
 
 Details about the available options follow:
 
