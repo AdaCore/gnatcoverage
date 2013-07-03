@@ -1,112 +1,122 @@
-**************************
-Nexus Traces from MPC5634M
-**************************
+.. _GeneratingCoverageInformationFromNexusTraces:
+
+*************************************************************
+Generating Coverage Information from Nexus Traces on MPC5634M
+*************************************************************
 
 Nexus realtime Program Trace data can be produced while running an executable
 on a processor supporting the needed combination of Nexus capabilites. Such
-data can be imported into |gcp| by running |gcvcnv| on the collected
-Nexus trace data, producing a trace file suitable for input to |gcvcov|.
+data can be processed by |gcp| in two steps:
+
+ * Invoke |gcvcnv| on the Nexus trace data file, producing an intermediate file
+ * Invoke |gcvcov| on this intermediate file
 
 Currently, the freescale MPC5634M SOC is supported as a source of Nexus data,
 using iSystem tools to interface with the processor and to produce a file
 containing Nexus data.
 
-winIDEA Analyzer Settings
-=========================
+The iSystem winIDEA software can be used to control program loading and execution
+on target 5634 hardware, and, through the Analyzer tool, to configure and execute
+Program Trace data collection and output. winIDEA is a GUI, and the information
+in this section describes the user interaction with the GUI. winIDEA APIs are
+provided for several languages (including Python and C++), and these are useful
+when not working in interactive mode. 
 
-The iSystem program that is used for control of the loading and executing
-programs on target 5634 HW is winIDEA. WinIDEA is also used for configuring
-and executing Pogram Trace data collection and output, through the Analyzer
-tool. WinIDEA is a GUI, and the directions provided here describe interaction
-with the GUI, but there are winIDEA APIs provided for various languages including
-python and C++, which are useful when not working in the experimental interactive
-mode.
+winIDEA runs on a host computer that is connected via USB to iSystem hardware
+(the "Blue Box"), which in turn is connected to a Mictor connector on the target
+5634 processor through a Nexus cable.
 
-WinIDEA runs on a host computer, which is connected via USB to iSystem HW
-(the Blue Box), which is connected to a Mictor connector on the target system
-(with the 5634 processor) through a Nexus cable.
+While the program and analyzer are running, Program Trace data and other Nexus data
+are sent over the processor's Nexus interface to the Blue Box, where it is annotated
+and buffered. (The buffering is shared between memory on the Blue Box and resources
+on the host computer; this affects how to configure the Analyzer). 
+ 
+The Analyzer can stop as a result of any of several conditions; e.g. when the program
+halts upon encountering a breakpoint, or when some condition set in the Analyzer
+configuration is met.
 
-For our discussion here, we will presume that the executable has been loaded
-onto the system containing the 5634, that the CPU has been reset and is
-held in reset until the ``run`` command is given by winIDEA. Before ``run``
-is executed, the Analyzer is configured and started. While the program is
-running, Program Trace data and other Nexus data is sent over the processor's
-Nexus interface to the Blue Box, where it is annotated and buffered (actually,
-the buffering is shared between memory on the Blue Box, and resources on
-the host computer, which can be helpful to understand when configuring the
-Analyzer). The Analyzer can then stop due to any of several conditions; e.g.
-when the program halts upon encountering a breakpoint, or when some condition set
-in the Analyzer configuration is met.
+Once the Analyzer has stopped, it should not be used to collect additional data in the
+same buffer (the trace data will be inaccurate if there are gaps in its collection).
+The Nexus data collected can be written to a file suitable for |gcvcnv| using the Analyzer's
+``export`` function.
 
-After trace data is collected and the Analyzer has stopped, it can be instructed
-to write data out to a file on the host system. The analyzer ``export`` function
-(icon looks a diskette with a green arrow) is used to write out the file. There
-are many choices for what to include in the file, but the proper choices for
-use as input to |gcvcnv| are simple. In the window that pops up for ``export``,
-specify the file desired and choose ``Binary`` from the dropdwon list for ``Format``.
-Hit the ``Options...`` button, which will bring up another window. In that window,
-the only option to include is ``On Chip Data``. OK that choice, and back in the
-``export`` window choose ``Entire Session`` for the ``Time Scope``. Clicking
-``OK`` will write the file, which can take a very long time for large trace
-collections.
+Nexus Program Trace Data: the Hardware Perspective
+==================================================
 
-The Analyzer is configured using the ``Analyzer Configuration`` dialogs.
-Some background about the Nexus module on the 5634 is helpful. There are 2
-options for controlling when Nexus Program Trace Data is output while the
-CPU is running. There is a bit in a control register in the Nexus Module
-which, when set, causes Nexus data to be produced whenever the CPU is running.
-If that bit is not set, an alternative method of controlling Nexus message
-generation is available. That method is the use of Watchpoint Triggers. Not all
-of the flexibility of Watchpoint Triggers is supported by |gcp|, but what is
-used is built around the 4 Instruction Address Compare registers on the 5634
-(IAC1 - IAC4). These registers can be used to cause watchpoint events
-when the PC attains specified values. In the basic usage, an address is set
-in one of the IAC registers and a watchpoint occurs when the PC matches the
-value set in the IAC. In the Nexus module, an IAC watchpoint event can be
-set to ``start`` or to ``stop`` the production of Nexus Program Trace messages.
-That is the method of controlling Nexus Program Trace messages that is understood
-by |gcvcnv|, and |gcvcnv| must be told specific settings of the Analyzer that were
-used when the program was run by winIDEA. In particular, the IAC that was used
-for the ``start`` trigger, the address that was in the ``start`` trigger IAC, and
-the IAC used for the ``stop`` trigger. The address in the ``stop`` trigger isn't
-needed, and the ``stop`` trigger can be left out completely. A brief mention of
-a couple examples:
+The 5634 hardware supplies two options for controlling when Nexus Program Trace Data
+is output while the CPU is running:
 
-* A program continually runs a loop where it receives a command and dispatches
-  based on that command. The command input is implemented as a busy loop. To prevent
-  a very large output of useless data from the busy loop, IAC1 is used as the
-  ``start`` trigger, with the address set to the end of the busy loop, and IAC2
-  is set as the ``stop`` trigger, with its contents set to the beginning of the
-  busy loop.
+  * A bit in a control register in the Nexus Module
+ 
+    When this bit is set, Nexus data will be produced whenever the CPU is running.
 
-* For coverage from unit testing, small programs are run completely through. For
-  this, ``start`` can be set at the entry point for ``main``, and no ``stop``
-  trigger is needed, as a breakpoint is set upon exit from ``main``.
+  * Watchpoint triggers
+ 
+    If the control register bit is not set, Watchpoint Triggers may be used to generate trace data.
+    Not all of the functionality of Watchpoint Triggers is supported by |gcp|, but what is used
+    is built around the four Instruction Address Compare registers on the 5634 (IAC1 - IAC4).
+    These registers can be used to cause watchpoint events when the PC attains specified values.
+    In the basic usage, an address is set in one of the IAC registers and a watchpoint occurs when
+    the PC matches the value set in the IAC. In the Nexus module, an IAC watchpoint event can be set
+    to ``start`` or to ``stop`` the production of Nexus Program Trace messages. 
+ 
+Configuring the winIDEA Analyzer
+================================
+
+The Watchpoint Triggers functionality of the 5634 is the (only) option supported by |gcp|.
+The Analyzer must be configured accordingly, and options to the |gcvcnv| command reflect the
+trigger settings that were set by the Analyzer when the trace data was collected: 
+
+   * the IAC that was used for the ``start`` trigger, 
+   * the address that was in the ``start`` trigger IAC, 
+   * the IAC used for the ``stop`` trigger. 
+ 
+The address in the ``stop`` trigger is not needed, and the ``stop`` trigger can be omitted completely. 
+ 
+Here are two examples:
+
+   * A program continually runs a loop where it receives a command and dispatches based on that command.
+     The command input is implemented as a busy loop. To prevent a very large output of useless data from
+     the busy loop, IAC1 is used as the ``start`` trigger, with the address set to the end of the busy loop,
+     and IAC2 is set as the ``stop`` trigger, with its contents set to the beginning of the busy loop.
+
+   * For coverage from unit testing, small programs are run to completion. In this scenario, ``start`` can be
+     set at the entry point for ``main``. No ``stop`` trigger is needed, since a breakpoint is set upon exit
+     from ``main``.
+
+In the GUI, the hammer with a sheet of paper icon brings up the ``Analyzer Configuration List`` dialog,
+and the hammer plus Trace icon brings up the ``Analyzer Configuration`` dialog. The following steps will
+create a configuration that will be applicable across a wide range of test execution scenarios:
+
+    * Open the ``Analyzer Configuration List`` dialog, choose New->Trace and choose a name for your configuration.
+      This will bring up a trigger configuration window.
+    
+    * The first, ``Recorder`` tab is used to set values for four properites (click on the initial values for
+      the first three to see that they are drop down lists). For ``Start``, ``Buffer Size`` and ``Trigger Position``
+      choose ``Immediately``, ``1 GB`` (+/-) and ``Begin``. Do not check ``Break On Trigger``.
+
+    * Select the ``MP5634M`` tab, and check ``Enabled``. IAC1 and IAC2 will be used for the ``start`` and
+      ``stop`` triggers; check them and enter addresses. In the ``Record`` box, only ``Program`` should be
+      selected, and for ``Start`` and ``Stop``, IAC1 and IAC2 should be chosen. ``Type`` needs to be
+      ``Individual Branch Messages``, and Watchpoints should be ``All``. Click ``OK``.
+    
+    * Back at the ``Analyzer Configuration`` window, the new configurataion will be shown to be the active one
+      with a red arrow on the left. Check both ``Start Analyzer when CPU starts`` and
+      ``Stop Analyzer when CPU stops``. The first is a minor convenience, making it unnecessary to explicitly
+      start the Analyzer before performing the ``start`` from winIDEA.
 
 
-In the GUI, the hammer with a sheet of paper icon brings up the
-``Analyzer Configuration List`` dialog, and the hammer plus Trace icon brings up the
-``Analyzer Configuration`` dialog. A recipe is provided here for creating a configuration
-that will work for many situations.
+Exporting the Trace Data
+========================
 
-* Open the ``Analyzer Configuration List`` dialog, choose New->Trace and choose
-  a name for your configuration.  This will bring up a trigger configuration window.
+To set the relevant arguments for the ``export`` command (whose icon looks like a diskette with a
+green arrow):
 
-* The first, ``Recorder`` tab is used to set values for 4 properites (click on
-  the initial values for the first 3 to see that they are drop down lists).
-  For ``Start``, ``Buffer Size`` and ``Trigger Position`` choose ``Immediately``,
-  ``1 GB`` (+/-) and ``Begin``. Do not check ``Break On Trigger``.
+ * In the window that pops up for ``export``, specify the file desired and choose ``Binary`` from
+   the dropdown list for ``Format``;
 
-* Select the ``MP5634M`` tab, and check ``Enabled``. IAC1 and IAC2 will be used
-  for the ``start`` and ``stop`` triggers, so check them and enter addresses.
-  In the ``Record`` box, only ``Program`` should be selected, and for ``Start`` and
-  ``Stop``, IAC1 and IAC2 should be chosen. ``Type`` needs to be
-  ``Individual Branch Messages``, and ``Watchpoints`` should be ``All``.
-  Click ``OK``.
+ * Select ``Options...``, and in the resulting window, choose only ``On Chip Data``;
 
-* Back at the ``Analyzer Configuration`` window, the new configurataion will
-  be shown to be the active one with a red arrow on the left. Check both
-  ``Start Analyzer when CPU starts`` and ``Stop Analyzer when CPU stops``.
-  The first is a minor convenience, saving the step of starting the Analyzer
-  before doing ``start`` from winIDEA.
-  
+ * In the ``export`` window choose ``Entire Session`` for the ``Time Scope``;
+
+ * Clicking ``OK`` will write the file; this may take a long time for large trace collections.
