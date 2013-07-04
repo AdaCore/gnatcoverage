@@ -8,7 +8,7 @@
 
 # *****************************************************************************
 
-import sys, os, re, optparse
+import sys, os, re, optparse, collections
 from gnatpython.env import Env
 
 # The testsuite dir corresponding to this local "qualification" dir. This is
@@ -275,6 +275,44 @@ class TextCell:
 
     def img(self, details=False):
         return "%s" % self.text
+
+# Cell to hold a TC id in a context where the language
+# and test category are explicit by some other means
+# -----------------------------------------------------
+
+class TcidCell:
+    def __init__(self, text):
+        self.text = text
+
+    def img(self, details=False):
+
+        # Arrange to strip:
+        #
+        # * The common leading part that can be inferred from the tc
+        #   language and category. Qualif/Ada/stmt, for example, is just
+        #   redundant within the STATEMENT section for Ada.
+        #
+        # * The <digits>_ sequences at the beginning of subdir names,
+        #   introduced for sorting purposes and not displayed in the TOR
+        #   hierarchy.
+
+        # For example:
+        # Qualif/Ada/stmt/1_Core/11_Exceptions -> Core/Exceptions
+
+        # Ordered dict of { re_toreplace -> what_to_replace_with }
+        # Applied in sequence and the order matters.
+        
+        re_strip = collections.OrderedDict (
+            ((QROOTDIR + "/", ""),
+             ("(Ada|C)/(stmt|decision|mcdc)/", ""),
+             ("^[0-9]+_", ""),
+             ("/[0-9]+_", "/"))
+            )
+        img=self.text
+        for r in re_strip:
+            img = re.sub(pattern=r, repl=re_strip[r], string=img)
+
+        return img
 
 # Cell to hold a qualification status
 # -----------------------------------
@@ -608,7 +646,7 @@ class QDreport:
     # testcase qualification data with a dictionary of it's execution summary
     # cells (one for each column). Something like:
     #
-    # { qd -> { colid.tc: TextCell(qd.tcid),
+    # { qd -> { colid.tc: TcidCell(qd.tcid),
     #           colid.nov: CountersCell(),
     #           ...
     #           colid.sta: QstatusCell(qd.status)
@@ -630,7 +668,7 @@ class QDreport:
         # for one testcase
 
         this_tcdata = dict (
-            [(colid.tc, TextCell (qd.tcid))]
+            [(colid.tc, TcidCell (qd.tcid))]
             + [(key, CountersCell()) for key in viocnt_columns]
             + [(colid.sta, QstatusCell(qd.status))]
             )
@@ -661,7 +699,12 @@ class QDreport:
     # =========== ======== ======== ... =======
 
     def tcdict_for(self, qd):
+
+        # Arrange to provide details on the expected versus satisfied
+        # violation counts only when the test has failed somehow:
+
         details = column_for[qd.status] != colid.passed
+
         return dict(
             [(col, "%s" % self.tcdata[qd][col].img(details))
              for col in self.tcdata[qd]])
