@@ -33,7 +33,7 @@ package body Convert is
       if Arg = "iSystem-5634" then
          Trace_Source := Isystem_5634;
       else
-         Fatal_Error (Arg & "is not a known Trace Source.");
+         Fatal_Error (Arg & " is not a known Trace Source.");
       end if;
    end Set_Trace_Source;
 

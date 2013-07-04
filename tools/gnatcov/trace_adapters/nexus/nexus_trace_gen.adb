@@ -514,6 +514,21 @@ begin
    --  opcode = 19) will cause a change in flow, and will generate
    --  NEXUS program trace messages.
 
+   Insn_Idx := Integer (PT_Start_Address - Text_First_Addr) / 4 + 1;
+   if Insn_Flags (Insn_Idx).Is_Branch then
+      Put_Line (Standard_Error,
+                "Start Trigger instruction is a branch instruction.");
+      Put_Line (Standard_Error,
+                "Nexus Program trace data must be generated with");
+      Put_Line (Standard_Error, "non-branch instruction for Start Trigger.");
+      Set_Exit_Status (1);
+      return;
+   end if;
+   --  If branch is used for start trigger, the first instruction
+   --  in the next Branch Trace message would be the target of the
+   --  branch. Perhaps that could be calculated for direct branches,
+   --  but for now, all branches are disallowed for start trigger.
+
    --  If doing History traces, read the addresses that are "interesting"
    --  from the history file. For each such address, mark all instructions
    --  in the same basic block (go backwards over all non-branches, and
