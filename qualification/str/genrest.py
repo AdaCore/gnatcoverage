@@ -878,9 +878,21 @@ class QDreport:
         v2 = Column (
             htext = "", legend = None)
 
-        gnatpro = self.suitedata.target.triplet + "-gcc"
-        gnatemu = self.suitedata.target.triplet + "-gnatemu"
-        gnatcov = XCOV
+        def host_string_from(host):
+            """Return a textual version of the relevant info in HOST,
+            a Env().host kind of object."""
+            return '-'.join (
+                (host.os.name, host.os.kernel_version+'/'+host.os.version))
+        
+        def time_string_from(stamp):
+            """Return a textual version of the timestamp in STAMP,
+            a time.localtime() kind of object."""
+
+            return time.strftime ("%a %b %d, %Y. %H:%M", stamp)
+
+        suite_gnatpro = self.suitedata.gnatpro
+        suite_gnatcov = self.suitedata.gnatcov
+        suite_gnatemu = self.suitedata.gnatemu
 
         CSVtable (
             title = None, text = None,
@@ -889,21 +901,24 @@ class QDreport:
             delim = '|',
             contents = [
                 {item : "report timestamp & host system",
-                 v1: time.strftime ("%a %b %d, %Y. %H:%M", time.localtime()),
-                 v2: ' '.join (
-                        (platform.system(), platform.release()))
+                 v1: time_string_from (time.localtime()),
+                 v2: host_string_from(Env().host)
+                 },
+                {item : "testsuite execution timestamp & host system",
+                 v1: time_string_from (self.suitedata.runstamp),
+                 v2: host_string_from (self.suitedata.host)
                  },
                 {item : "GNAT Pro executable & version",
-                 v1: gnatpro,
-                 v2: version(gnatpro)
+                 v1: suite_gnatpro.exename,
+                 v2: suite_gnatpro.version
                  },
                 {item : "GNATcov executable & version",
-                 v1: gnatcov,
-                 v2: version (gnatcov)
+                 v1: suite_gnatcov.exename,
+                 v2: suite_gnatcov.version
                  },
                 {item : "GNATemu executable & version",
-                 v1: gnatemu,
-                 v2: version(gnatemu)
+                 v1: suite_gnatemu.exename,
+                 v2: suite_gnatemu.version
                  }
                 ]
             ).dump_to (self.rstf)

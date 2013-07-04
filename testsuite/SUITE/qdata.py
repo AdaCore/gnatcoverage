@@ -22,7 +22,7 @@
 # ****************************************************************************
 
 import os, sys, pickle, re
-from SUITE.cutils import dump_to, output_of
+from SUITE.cutils import dump_to, output_of, version
 from gnatpython.ex import Run
 
 QLANGUAGES = ["Ada"]
@@ -48,15 +48,45 @@ CTXDATA_FILE=os.path.join (QSTRBOX_DIR, "suite"+STREXT)
 # Name of a file, relative to the testsuite toplevel directory, where the
 # testsuite data of use for the STR production will be made available.
 
+class TOOL_info:
+    """Representative data for a tool to be described as part of the testsuite
+    execution context in a STR report."""
+
+    def __init__(self, exename):
+        self.exename = exename
+        self.version = version (exename)
+
 class SUITE_context:
+    """Testsuite context data to be dumped by the topevel testsuite driver
+    for use by the STR production engine."""
 
     def __init__ (
-        self, treeref=None,target=None, cmdline=None, options=None
+        self, treeref,
+        runstamp, host, target, cmdline, options,
+        gnatpro, gnatemu, gnatcov
         ):
-        self.treeref = treeref
-        self.target = target
-        self.cmdline = cmdline
-        self.options = options
+        
+        # time.locatime() at which the testuite run was launched
+        self.runstamp = runstamp
+        
+        # scm identifier of the testsuite directory tree when the
+        # run was launched
+        self.treeref  = treeref
+
+        # Command line passed to the toplevel testsuite driver
+        self.cmdline  = cmdline
+
+        # Corresponding optparse options record
+        self.options  = options
+
+        # Env().target & Env().host for the testuite driver
+        self.target   = target
+        self.host     = host
+
+        # Representative rtool description instances
+        self.gnatpro = gnatpro
+        self.gnatemu = gnatemu
+        self.gnatcov = gnatcov
 
 # ===============================
 # == Testcase execution status ==

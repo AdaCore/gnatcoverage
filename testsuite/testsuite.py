@@ -28,7 +28,7 @@ from gnatpython.reports import ReportDiff
 from glob import glob
 
 import traceback
-import time, pickle
+import time
 import logging, os, re, sys
 
 from SUITE import cutils
@@ -37,7 +37,8 @@ from SUITE.cutils import version, list_to_tmp, dump_to
 
 from SUITE.qdata import stdf_in, qdaf_in, treeref_at
 from SUITE.qdata import QLANGUAGES, QROOTDIR
-from SUITE.qdata import QSTRBOX_DIR, CTXDATA_FILE, SUITE_context, TC_status
+from SUITE.qdata import QSTRBOX_DIR, CTXDATA_FILE
+from SUITE.qdata import SUITE_context, TC_status, TOOL_info
 
 from SUITE import control
 from SUITE.control import BUILDER, XCOV, KNOWN_LANGUAGES
@@ -243,6 +244,13 @@ class TestSuite:
         mkdir(self.strbox_dir)
 
     # ------------------------
+    # -- Commong facilities --
+    # ------------------------
+        
+    def __target_prefix (self):
+        return self.env.target.triplet+'-' if self.options.target else ""
+
+    # ------------------------
     # -- Object constructor --
     # ------------------------
 
@@ -295,13 +303,22 @@ class TestSuite:
         # case, so we can fetch a local reference for consistency comparisons.
         if self.options.qualif_level:
             self.__init_strbox()
+            
+            tprefix = self.__target_prefix()
+
             dump_to (
                 CTXDATA_FILE,
                 SUITE_context(
-                    treeref=treeref_at("."),
-                    target=self.env.target,
-                    cmdline=" ".join(sys.argv),
-                    options=self.options)
+                    runstamp = time.localtime(),
+                    treeref  = treeref_at("."),
+                    cmdline  = " ".join(sys.argv),
+                    options  = self.options,
+                    host     = self.env.host,
+                    target   = self.env.target,
+                    gnatpro  = TOOL_info (tprefix+"gcc"),
+                    gnatemu  = TOOL_info (tprefix+"gnatemu"),
+                    gnatcov  = TOOL_info ("gnatcov")
+                    )
                 )
 
         # Dump useful comments about this run for starters
@@ -375,10 +392,7 @@ class TestSuite:
 
     def __versions_comment (self):
 
-        prefix = (
-            self.env.target.triplet + '-'
-            ) if self.env.main_options.target else ""
-
+        prefix = self.__target_prefix()
         all_versions = [
             version ("gnatcov") + ", " + version (prefix+"gnatls")
             ]
