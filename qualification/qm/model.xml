@@ -124,7 +124,20 @@
   <artifact_class name="TC" role="testcase">
     <location_container>
        <resource name="tc_content" location="tc.rst" mime="text/x-rst"/>
-       <resource name="ada_sources" location="src/*ad[bs]" mime="text/x-ada"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="TC_Sources" role="sources" abstract="true"/>
+
+  <artifact_class name="Ada_Sources" role="ada" inherits="TC_Sources">
+    <location_container>
+       <resource name="spec_sources" location="*.ads" mime="text/x-ada"/>
+       <resource name="body_sources" location="*.adb" mime="text/x-ada"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="C_Sources" role="C" inherits="TC_Sources">
+    <location_container>
        <resource name="c_sources" location="src/*.c" mime="text/x-c"/>
        <resource name="h_sources" location="src/*.h" mime="text/x-h"/>
     </location_container>
@@ -217,6 +230,26 @@
           <from instance="$relative"/>
       </link_constructor>
     </creates>
+  </artifact_factory>
+
+  <artifact_factory class="Ada_Sources">
+    <on_location relative_class="TC_Set"
+                 pattern="$relative.location/src/*.adb"
+                 type="content"/>
+    <on_location relative_class="TC"
+                 pattern="$relative.location/src/*.adb"
+                 type="content"/>
+    <creates location="$location.container" name="$subst($relative.name,(.*),\1_Ada)"/>
+  </artifact_factory>
+
+  <artifact_factory class="C_Sources">
+    <on_location relative_class="TC_Set"
+                 pattern="$relative.location/src/*.c"
+                 type="content"/>
+    <on_location relative_class="TC"
+                 pattern="$relative.location/src/*.c"
+                 type="content"/>
+    <creates location="$location.container" name="$subst($relative.name,(.*),\1_C)"/>
   </artifact_factory>
 
 
