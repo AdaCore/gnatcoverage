@@ -70,7 +70,52 @@
 # re-cloning when neither --git-reuse not --git-pull is requested,
 # --git-source lets you state which repo is to be cloned. In absence of an
 # explicit source, the main AdaCore git repo for GNATcoverage is selected.
-
+#
+# ---
+#
+# Example development sequence:
+#
+# Setting up a root dir from a clone of a local repo, switching to
+# the "dev-str" working branch, building plans in html format for starters:
+#
+#   python genbundle.py
+#     --root-dir=$HOME/myqmat
+#     --git-source=$HOME/gnatcoverage --branch=dev-str
+#     --parts=plans
+#
+# Testing plans regeneration after local commit:
+#
+#   python genbundle.py
+#      --work-dir=$HOME/myqmat
+#      --git-pull --branch=dev-str
+#      --parts=plans
+#
+# Testing STR production, running a subset of the tests, using
+# the local testsuite and compiler on path:
+#
+#   python genbundle.py
+#     --work-dir=$HOME/myqmat
+#     --git-pull --branch=dev-str
+#     --parts=str
+#     --runtests --runtests-flags="--target... --RTS... stmt/Robustness -j4"
+#     --dolevel=doB
+#
+# This example uses --runtests without specifying a testsuite-dir, so
+# the testsuite run takes place within the cloned tree in $HOME/myqmat.
+#
+# Testing another STR production after local commits, using previous testsuite
+# results at a designated place:
+#
+#   python genbundle.py
+#     --work-dir=$HOME/myqmat
+#     --git-pull --branch=dev-str
+#     --parts=str
+#     --testsuite-dir=$HOME/gnatcoverage/testsuite
+#     --dolevel=doB
+#
+# Note that the designated testsuite dir in this example is NOT the one
+# populated by the --runtests example before.
+#
 # *****************************************************************************
 
 from gnatpython.ex import Run
