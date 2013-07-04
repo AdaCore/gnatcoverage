@@ -99,6 +99,12 @@ create a configuration that will be applicable across a wide range of test execu
       ``stop`` triggers; check them and enter addresses. In the ``Record`` box, only ``Program`` should be
       selected, and for ``Start`` and ``Stop``, IAC1 and IAC2 should be chosen. ``Type`` needs to be
       ``Individual Branch Messages``, and Watchpoints should be ``All``. Click ``OK``.
+
+        *Note*: The address set for the Start Trigger should not contain
+        a branch instruction, since such a trigger may cause the Analyzer to
+        lose the context for interpreting some Nexus messages.
+        |gcvcnv| will generate an error message when it is passed a start
+        trigger address for a branch instruction.
     
     * Back at the ``Analyzer Configuration`` window, the new configurataion will be shown to be the active one
       with a red arrow on the left. Check both ``Start Analyzer when CPU starts`` and
