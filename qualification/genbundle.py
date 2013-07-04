@@ -119,7 +119,7 @@
 # *****************************************************************************
 
 from gnatpython.ex import Run
-from gnatpython.fileutils import cp, mv, rm, mkdir
+from gnatpython.fileutils import cp, mv, rm, mkdir, cd, ln
 
 from datetime import date
 
@@ -388,7 +388,7 @@ class QMAT:
             orisupport = os.path.join (
                 "..", "tools", "gnatcov", "examples", "support")
             if os.path.exists (orisupport):
-                shutil.move (orisupport, "support")
+                cp (source=orisupport, target="support", recursive=True)
 
         run_list (
             ("python testsuite.py --qualif-level=%s " % self.o.dolevel
