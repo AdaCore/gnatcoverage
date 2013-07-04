@@ -2,7 +2,7 @@
 
   <repository name="plans" class="fs" root="./plans"/>
   <repository name="tor" class="fs" root="../../testsuite/Qualif"/>
-  <repository name="report" class="fs" root="../../testsuite/qreport"/>
+  <repository name="report" class="fs" root="../str"/>
 
 <!-- PLANS -->
 
