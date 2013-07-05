@@ -23,6 +23,7 @@ def is_test(a):
     from qm import TC, TC_Set
     return isinstance(a, TC) or isinstance(a, TC_Set)
 
+
 def is_source(a):
     from qm import TC_Sources
     return isinstance(a, TC_Sources)
@@ -68,11 +69,11 @@ class TCIndexImporter(ArtifactImporter):
         html_table = writer.csv_table(
             html_items,
             headers=["", "TestCases", "Description"],
-            widths=[2, 20, 70])
+            widths=[3, 25, 65])
         pdf_table = writer.csv_table(
             pdf_items,
             headers=["", "TestCases", "Description"],
-            widths=[2, 20, 70])
+            widths=[3, 25, 65])
         output += writer.only(html_table, "html")
         output += writer.only(pdf_table, "latex")
 
@@ -114,7 +115,7 @@ class ToplevelIndexImporter(ArtifactImporter):
         output = writer.csv_table(
             items,
             headers=["", "Chapter", "Description"],
-            widths=[2, 20, 70])
+            widths=[3, 25, 65])
 
         links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
 
@@ -144,22 +145,21 @@ class SubsetIndexImporter(ArtifactImporter):
         # in the html, the title is adapted to the content of the table
         header = ("Requirements and Groups" if (req > 0 and reqg > 0) else
                   ("Requirements Group" if (req == 0 and reqg == 1) else
-                  ("Requirements Groups" if (req == 0 and reqg > 1) else
-                  ("Requirement" if (req == 1 and reqg == 0) else
-                  ("Requirements" if (req > 1 and reqg == 0) else
-                  "")))))
+                   ("Requirements Groups" if (req == 0 and reqg > 1) else
+                    ("Requirement" if (req == 1 and reqg == 0) else
+                     ("Requirements" if (req > 1 and reqg == 0) else
+                      "")))))
 
         html_output = writer.csv_table(
             items,
             headers=["", "%s" % header, "Description"],
-            widths=[2, 20, 70])
+            widths=[3, 25, 65])
 
         # for latex, all the tables keep the same title
         latex_output = writer.csv_table(
             items,
             headers=["", "Requirements or Groups", "Description"],
-            widths=[2, 20, 70],
-            latex_format="|l|l|p{10cm}|")
+            widths=[3, 25, 65])
 
         output = writer.only(html_output, "html")
         output += writer.only(latex_output, "latex")
