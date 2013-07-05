@@ -220,10 +220,12 @@ column_for = {
 # -- Useful sets of column ids --
 # -------------------------------
 
-# Violation counters
-viocnt_columns = (
-    colid.nov, colid.igv, colid.scv, colid.dcv, colid.mcv, colid.xbv
-    )
+# Violation counters we care about for each possible do-level
+viocnt_columns_for = {
+    'doA': (colid.nov, colid.igv, colid.scv, colid.dcv, colid.mcv, colid.xbv),
+    'doB': (colid.nov, colid.igv, colid.scv, colid.dcv, colid.xbv),
+    'doC': (colid.nov, colid.igv, colid.scv, colid.xbv)
+}
 
 # Status counters
 stacnt_columns = (colid.passed, colid.failed)
@@ -565,6 +567,11 @@ class QDreport:
                     self.o.dolevel, suite_dolevel)
                 )
 
+        # Setup the list of violation counters we care about wrt the
+        # targetted do-level:
+            
+        self.viocnt_columns = viocnt_columns_for[self.o.dolevel]
+            
         # Fetch the test results:
 
         qdreg = QDregistry_from(testsuite_dir=self.o.testsuite_dir)
@@ -655,7 +662,7 @@ class QDreport:
     # }
 
     def tccolumns(self):
-        return (colid.tc,) + viocnt_columns + (colid.sta,)
+        return (colid.tc,) + self.viocnt_columns + (colid.sta,)
 
     def count(self, note, cell):
         cell.expected += 1
@@ -669,7 +676,7 @@ class QDreport:
 
         this_tcdata = dict (
             [(colid.tc, TcidCell (qd.tcid))]
-            + [(key, CountersCell()) for key in viocnt_columns]
+            + [(key, CountersCell()) for key in self.viocnt_columns]
             + [(colid.sta, QstatusCell(qd.status))]
             )
 
@@ -756,7 +763,7 @@ class QDreport:
     # =========  ======= ======= ======= === === ...
 
     def sumcolumns(self):
-        return (colid.cat,) + stacnt_columns + (colid.ovsta,) + viocnt_columns
+        return (colid.cat,) + stacnt_columns + (colid.ovsta,) + self.viocnt_columns
 
     def init_data_for(self, catid):
 
@@ -767,12 +774,12 @@ class QDreport:
         return dict (
             [(colid.cat, TextCell(catid))]
             + [(col, IntCell()) for col in stacnt_columns]
-            + [(col, CountersCell()) for col in viocnt_columns]
+            + [(col, CountersCell()) for col in self.viocnt_columns]
             )
 
     def do_sum(self, qd, catsum):
         [catsum[key].augment_by(self.tcdata[qd][key])
-         for key in viocnt_columns]
+         for key in self.viocnt_columns]
         catsum[column_for[qd.status]].value += 1
 
     def sumdata_for(self, cat, totsum):
