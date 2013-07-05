@@ -24,10 +24,10 @@ def is_test(a):
     return a.__class__.__name__ in ("TC", "TC_Set")
 
 def is_c_source(a):
-    return a.__class__.__name__ in ("C_Sources")
+    return a.__class__.__name__ == "C_Sources"
 
 def is_ada_source(a):
-    return a.__class__.__name__ in ("Ada_Sources")
+    return a.__class__.__name__ == "Ada_Sources"
 
 def is_source(a):
     return (is_ada_source(a) or is_c_source(a))
