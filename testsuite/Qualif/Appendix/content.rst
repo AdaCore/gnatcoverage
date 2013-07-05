@@ -5,4 +5,15 @@ Appendix
 
 This is split as the following set of sections:
 
-%(app-index)s
+.. qmlink:: ToplevelIndexImporter
+
+   Harness
+   Reqindex
+
+Harness Test Cases
+-------------------
+
+.. qmlink:: TestCasesImporter
+
+   *
+

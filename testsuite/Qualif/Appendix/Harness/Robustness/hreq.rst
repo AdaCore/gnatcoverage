@@ -1,4 +1,5 @@
 Sanity check the harness FAILure detection capability.
+======================================================
 
 By construction, the set of tool qualification testcases are expected to all
 PASS. This section is to sanity-check the harness operation with a specific
@@ -6,7 +7,9 @@ requirement and set of testcases expected to FAIL. This is not a GNATcoverage
 tool requirement per se and is *not* meant as full fledged qualification
 material for the harness.
 
-%(req-headline)s
+Requirement(s)
+--------------
+
 
 The test harness shall comply to the following requirements:
 
@@ -22,7 +25,12 @@ The test harness shall comply to the following requirements:
 * Presence in the output report of violations not applicable to the test
   category shall be ignored
 
-%(tstrategy-headline)s
 
-%(tc-index)s
+Testing Strategy
+----------------
+
+.. qmlink:: TCIndexImporter
+
+   *
+
 

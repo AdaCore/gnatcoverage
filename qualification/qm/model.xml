@@ -103,29 +103,41 @@
     <creates location="$location.container" name="$location.basename"/>
   </artifact_factory>
 
-  <artifact_class name="Req_Set" role="set">
+  <artifact_class name="Req_Set" role="set" abstract="true">
     <location_container>
-       <resource name="set_content" location="req_set.rst" mime="text/x-rst"/>
+       <resource name="set_content" location="*req_set.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
-  <artifact_class name="Req" role="tor">
+  <artifact_class name="TORReq_Set" inherits="Req_Set"/>
+  <artifact_class name="HReq_Set" inherits="Req_Set"/>
+
+  <artifact_class name="Req" role="tor" abstract="true">
     <location_container>
-       <resource name="requirement" location="req.rst" mime="text/x-rst"/>
+       <resource name="requirement" location="*req.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
-  <artifact_class name="TC_Set" role="settest">
+  <artifact_class name="TORReq" inherits="Req"/>
+  <artifact_class name="HReq" inherits="Req"/>
+
+  <artifact_class name="TC_Set" role="settest" abstract="true">
     <location_container>
-       <resource name="tc_set_content" location="tc_set.rst" mime="text/x-rst"/>
+       <resource name="tc_set_content" location="*tc_set.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
-  <artifact_class name="TC" role="testcase">
+  <artifact_class name="TORTC_Set" inherits="TC_Set"/>
+  <artifact_class name="HTC_Set" inherits="TC_Set"/>
+
+  <artifact_class name="TC" role="testcase" abstract="true">
     <location_container>
-       <resource name="tc_content" location="tc.rst" mime="text/x-rst"/>
+       <resource name="tc_content" location="*tc.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
+
+  <artifact_class name="TORTC"  inherits="TC"/>
+  <artifact_class name="HTC" inherits="TC"/>
 
   <artifact_class name="TC_Sources" role="sources" abstract="true"/>
 
@@ -161,42 +173,48 @@
     <to class="TR"/>
   </link_definition>
 
-  <artifact_factory class="Req_Set">
+  <artifact_factory class="TORReq_Set">
     <on_location relative_instance="/TOR_Doc"
                  pattern="$relative.location/*/req_set.rst"
                  type="content"/>
-    <on_location relative_class="Req_Set"
+    <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/req_set.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename"/>
   </artifact_factory>
 
-  <artifact_factory class="Req">
+  <artifact_factory class="TORReq">
     <on_location relative_instance="/TOR_Doc"
                  pattern="$relative.location/*/req.rst"
                  type="content"/>
-    <on_location relative_class="Req_Set"
+    <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/req.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename"/>
   </artifact_factory>
 
-  <artifact_factory class="TC_Set">
-    <on_location relative_class="Req"
+  <artifact_factory class="HReq">
+    <on_location relative_class="Appendix"
+                 pattern="$relative.location/*/hreq.rst"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename"/>
+  </artifact_factory>
+
+  <artifact_factory class="TORTC_Set">
+    <on_location relative_class="TORReq"
                  pattern="$relative.location/*/tc_set.rst"
                  type="content"/>
-    <on_location relative_class="Req_Set"
+    <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/tc_set.rst"
                  type="content"/>
-    <on_location relative_class="TC_Set"
+    <on_location relative_class="TORTC_Set"
                  pattern="$relative.location/*/tc_set.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename"/>
   </artifact_factory>
 
-
-  <artifact_factory class="TC">
-    <on_location relative_class="Req"
+  <artifact_factory class="TORTC">
+    <on_location relative_class="TORReq"
                  pattern="$relative.location/*/tc.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename">
@@ -206,11 +224,19 @@
     </creates>
   </artifact_factory>
 
-  <artifact_factory class="TC">
-    <on_location relative_class="Req_Set"
+  <artifact_factory class="HTC">
+    <on_location relative_class="HReq"
+                 pattern="$relative.location/*/htc.rst"
+                 type="content"/>
+    <creates location="$location.container" name="$location.basename"/>
+  </artifact_factory>
+
+
+  <artifact_factory class="TORTC">
+    <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/tc.rst"
                  type="content"/>
-    <on_location relative_class="TC_Set"
+    <on_location relative_class="TORTC_Set"
                  pattern="$relative.location/*/tc.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename">
@@ -221,8 +247,8 @@
   </artifact_factory>
 
 
-  <artifact_factory class="TC">
-    <on_location relative_class="Req"
+  <artifact_factory class="TORTC">
+    <on_location relative_class="TORReq"
                  pattern="$relative.location/*/tc.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename">

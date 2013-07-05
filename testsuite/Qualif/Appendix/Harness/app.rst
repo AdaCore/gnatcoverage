@@ -274,7 +274,7 @@ several factors:
   expected outcomes.
 
 ------------------------
-Test evaluation criteria 
+Test evaluation criteria
 ------------------------
 
 A test either PASSes of FAILs. A test passes if and only if it runs to
@@ -419,21 +419,20 @@ The TOR description in ``req.txt`` must obey a few guidelines:
   ancestor artifacts;
 
 * The TOR body, following the brief, should start with
-  ``
-Requirement(s)
---------------
 
-`` to ensure a consistent style in the final
+   ``Requirement(s)
+   --------------``
+
+  to ensure a consistent style in the final
   documentation.
 
 * When a TOR is validated by several testcases, the TOR body shall be
   followed by a "Testing Strategy" section, providing a general description of
   how distinct aspects of the requirement are fullfilled by testcases. This
-  section should start with ``
-Testing Strategy
-----------------
+  section should start with
 
-``.
+   ``Testing Strategy
+   ----------------``
 
 * When you wish to include a synthetic summary of sub-artifacts in the
   description, consider using the automatic
@@ -585,20 +584,14 @@ production of sub-artifact index tables where each line features
 
 We support two kinds of indexes, subsituted anywhere they appear in the text:
 
-* ``
-.. qmlink:: SubsetIndexImporter
+* ``qmlink:: SubsetIndexImporter``
 
-   *
-
-``, index of sub-requirements or sub-sets of artifacts,
+  index of sub-requirements or sub-sets of artifacts,
   stopping at the first level of nesting.
 
-* ``
-.. qmlink:: TCIndexImporter
+* ``qmlink:: TCIndexImporter``
 
-   *
-
-``, index of testcase leaves downtree, including briefs
+  index of testcase leaves downtree, including briefs
   of intermediate containers (logical sets) if any.
 
 This mechanism has several advantages:
@@ -697,4 +690,13 @@ scenario expectations and reports.
 
 This is all performed in a separate subdirectory called
 ``tmp_cons_<scenario_id>``.
+
+
+
+
+.. qmlink:: SubsetIndexImporter
+
+   *
+
+
 

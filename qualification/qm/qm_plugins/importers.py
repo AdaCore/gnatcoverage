@@ -5,10 +5,15 @@ import re
 
 
 def class_to_string(a):
-    d = {'Req_Set': 'rqg',
-         'Req': 'rq',
-         'TC': 'tc',
-         'TC_Set': 'tcg'}
+
+    d = {'TORReq_Set': 'rqg',
+         'HReq_Set': 'rqg',
+         'TORReq': 'rq',
+         'HReq': 'rq',
+         'TORTC': 'tc',
+         'HTC': 'tc',
+         'TORTC_Set': 'tcg',
+         'HTC_Set': 'tcg'}
     if 'Appendix' in a.full_name:
         return 'app'
     elif a.name == 'OpEnviron':
@@ -112,10 +117,12 @@ class ToplevelIndexImporter(ArtifactImporter):
                               "``..`` " + suba.name,
                               writer.qmref(suba.full_name)])
 
-        output = writer.csv_table(
+        html_table = writer.csv_table(
             items,
             headers=["", "Chapter", "Description"],
             widths=[3, 25, 65])
+
+        output = writer.only(html_table, "html")
 
         links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
 
