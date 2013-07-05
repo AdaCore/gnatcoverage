@@ -20,19 +20,23 @@ def class_to_string(a):
 
 
 def is_test(a):
-    return a.__class__.__name__ in ("TC", "TC_Set")
+    from qm import TC, TC_Set
+    return isinstance(a, TC) or isinstance(a, TC_Set)
 
 
 def is_c_source(a):
-    return a.__class__.__name__ == "C_Sources"
+    from qm import C_Sources
+    return isinstance(a, C_Sources)
 
 
 def is_ada_source(a):
-    return a.__class__.__name__ == "Ada_Sources"
+    from qm import Ada_Sources
+    return isinstance(a, Ada_Sources)
 
 
 def is_source(a):
-    return (is_ada_source(a) or is_c_source(a))
+    from qm import TC_Sources
+    return isinstance(a, TC_Sources)
 
 
 class TCIndexImporter(ArtifactImporter):
@@ -49,36 +53,39 @@ class TCIndexImporter(ArtifactImporter):
         return result
 
     def qmlink_to_rest(self, parent, artifacts):
-        items = []
-        relatives = []
-        short_class = ""
-        name = ""
+        from qm import TC
+        html_items = []
+        pdf_items = []
+        output = ''
+
         for a in artifacts:
-            relatives = self.get_recursive_relatives(a, 1)
-            short_class = class_to_string(a)
-            name = a.name
+            html_items.append([writer.strong(class_to_string(a)),
+                               writer.strong(a.name),
+                               writer.qmref(a.full_name)])
+            pdf_items.append([class_to_string(a),
+                              a.name,
+                              writer.qmref(a.full_name)])
+            for suba in self.get_recursive_relatives(a, 1):
+                # We do include in the table children artifacts only
+                # in html format.
+                html_items.append([class_to_string(suba),
+                                   "``..`` " + suba.name,
+                                   writer.qmref(suba.full_name)])
 
-            if relatives != []:
-                short_class = writer.strong(short_class)
-                name = writer.strong(name)
-
-            items.append([short_class,
-                          name,
-                          writer.qmref(a.full_name)])
-
-            for suba in relatives:
-                items.append([class_to_string(suba),
-                              "``..`` " + suba.name,
-                              writer.qmref(suba.full_name)])
-
-        output = writer.csv_table(
-            items,
+        html_table = writer.csv_table(
+            html_items,
             headers=["", "TestCases", "Description"],
             widths=[2, 20, 70])
+        pdf_table = writer.csv_table(
+            pdf_items,
+            headers=["", "TestCases", "Description"],
+            widths=[2, 20, 70])
+        output += writer.only(html_table, "html")
+        output += writer.only(pdf_table, "latex")
 
         links = []
         for a in artifacts:
-            if a.__class__.__name__ == 'TC':
+            if isinstance(a, TC):
                 links.append((a, TestCaseImporter()))
             else:
                 links.append((a, qm.rest.DefaultImporter()))
