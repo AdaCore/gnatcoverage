@@ -23,17 +23,6 @@ def is_test(a):
     from qm import TC, TC_Set
     return isinstance(a, TC) or isinstance(a, TC_Set)
 
-
-def is_c_source(a):
-    from qm import C_Sources
-    return isinstance(a, C_Sources)
-
-
-def is_ada_source(a):
-    from qm import Ada_Sources
-    return isinstance(a, Ada_Sources)
-
-
 def is_source(a):
     from qm import TC_Sources
     return isinstance(a, TC_Sources)
@@ -221,15 +210,17 @@ class SourceCodeImporter(ArtifactImporter):
 
     def to_rest(self, artifact):
 
+        from qm import Ada_Sources, C_Sources
+
         result = ""
 
-        if is_ada_source(artifact):
+        if isinstance(artifact, Ada_Sources):
 
             for key in artifact.contents_keys:
                 for item in artifact.contents(key):
                     result += writer.code_block(item.get_content(), "ada")
 
-        if is_c_source(artifact):
+        if isinstance(artifact, C_Sources):
 
             for key in artifact.contents_keys:
                 for item in artifact.contents(key):
@@ -263,6 +254,9 @@ class TestCasesImporter(ArtifactImporter):
         return result
 
     def qmlink_to_rest(self, parent, artifacts):
+
+        from qm import TC_Sources, TC
+
         items = []
         for a in artifacts:
             items += self.get_testcases(a)
@@ -270,11 +264,9 @@ class TestCasesImporter(ArtifactImporter):
 
         links = []
         for a in items:
-            if a.__class__.__name__ == 'TC':
+            if isinstance(a, TC):
                 links.append((a, TestCaseImporter()))
-            if a.__class__.__name__ == 'Ada_Sources':
-                links.append((a, SourceCodeImporter()))
-            if a.__class__.__name__ == 'C_Sources':
+            if isinstance(a, TC_Sources):
                 links.append((a, SourceCodeImporter()))
             else:
                 links.append((a, qm.rest.DefaultImporter()))
