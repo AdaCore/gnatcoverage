@@ -23,14 +23,18 @@ def class_to_string(a):
 def is_test(a):
     return a.__class__.__name__ in ("TC", "TC_Set")
 
+
 def is_c_source(a):
     return a.__class__.__name__ == "C_Sources"
+
 
 def is_ada_source(a):
     return a.__class__.__name__ == "Ada_Sources"
 
+
 def is_source(a):
     return (is_ada_source(a) or is_c_source(a))
+
 
 class TCIndexImporter(ArtifactImporter):
 
@@ -41,7 +45,7 @@ class TCIndexImporter(ArtifactImporter):
             if is_test(child):
                 result.append(child)
                 if depth > 1:
-                     result += self.get_recursive_relatives(child, depth - 1)
+                    result += self.get_recursive_relatives(child, depth - 1)
 
         return result
 
@@ -56,8 +60,8 @@ class TCIndexImporter(ArtifactImporter):
             name = a.name
 
             if relatives != []:
-                short_class = writer.strong (short_class)
-                name = writer.strong (name)
+                short_class = writer.strong(short_class)
+                name = writer.strong(name)
 
             items.append([short_class,
                           name,
@@ -81,9 +85,9 @@ class TCIndexImporter(ArtifactImporter):
                 links.append((a, qm.rest.DefaultImporter()))
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                           for l in links if
-                           not is_test(l[0]) or is_test(parent)],
-                          hidden=True)
+                                  for l in links if
+                                  not is_test(l[0]) or is_test(parent)],
+                                 hidden=True)
         return output, links
 
 
@@ -114,7 +118,8 @@ class ToplevelIndexImporter(ArtifactImporter):
         links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                           for l in links if not is_test(l[0])], hidden=True)
+                                  for l in links if not is_test(l[0])],
+                                 hidden=True)
         return output, links
 
 
@@ -145,22 +150,23 @@ class SubsetIndexImporter(ArtifactImporter):
 
         html_output = writer.csv_table(
             items,
-            headers = ["", "%s" % header, "Description"],
+            headers=["", "%s" % header, "Description"],
             widths=[2, 20, 70])
 
         # for latex, all the tables keep the same title
         latex_output = writer.csv_table(
             items,
-            headers = ["", "Requirements or Groups", "Description"],
-            widths=[2, 20, 70])
+            headers=["", "Requirements or Groups", "Description"],
+            latex_format="|l|l|L|")
 
-        output = writer.only (html_output, "html")
-        output += writer.only (latex_output, "latex")
+        output = writer.only(html_output, "html")
+        output += writer.only(latex_output, "latex")
 
         links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                           for l in links if not is_test(l[0])], hidden=True)
+                                  for l in links if not is_test(l[0])],
+                                 hidden=True)
 
         return output, links
 
@@ -171,8 +177,8 @@ class TestCaseImporter(ArtifactImporter):
         result = []
 
         for child in artifact.relatives:
-             if is_source(child):
-                 result += [child]
+            if is_source(child):
+                result += [child]
 
         if is_test(artifact.relative_to):
             result += self.get_sources(artifact.relative_to)
@@ -194,34 +200,36 @@ class TestCaseImporter(ArtifactImporter):
                                          (item.full_name, k.basename)
                                          for k in item.contents(key)]
 
-                    result += writer.only (writer.generic_list
-                                           (qmref_source_list),
-                                           "html")
-                    result += writer.only (writer.generic_list(basename_list),
-                                           "latex")
+                    result += writer.only(
+                        writer.generic_list(qmref_source_list),
+                        "html")
+                    result += writer.only(
+                        writer.generic_list(basename_list),
+                        "latex")
 
         return result
 
+
 class SourceCodeImporter(ArtifactImporter):
 
-     def to_rest (self, artifact):
+    def to_rest(self, artifact):
 
-         result = ""
-         content = ""
+        result = ""
+        content = ""
 
-         if is_ada_source(artifact):
-
-            for key in artifact.contents_keys:
-                for item in artifact.contents(key):
-                    result += writer.code_block (item.get_content(), "ada")
-
-         if is_c_source(artifact):
+        if is_ada_source(artifact):
 
             for key in artifact.contents_keys:
                 for item in artifact.contents(key):
-                    result += writer.code_block (item.get_content(), "c")
+                    result += writer.code_block(item.get_content(), "ada")
 
-         return result
+        if is_c_source(artifact):
+
+            for key in artifact.contents_keys:
+                for item in artifact.contents(key):
+                    result += writer.code_block(item.get_content(), "c")
+
+        return result
 
 
 class TestCasesImporter(ArtifactImporter):
@@ -266,6 +274,6 @@ class TestCasesImporter(ArtifactImporter):
                 links.append((a, qm.rest.DefaultImporter()))
 
         output = writer.toctree(['/%s/content' % artifact_hash(*l)
-                          for l in links], hidden=True)
+                                 for l in links], hidden=True)
 
         return output, links
