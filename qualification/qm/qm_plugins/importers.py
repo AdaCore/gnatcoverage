@@ -1,7 +1,6 @@
 import qm
 from qm.rest import ArtifactImporter, writer
 from qm.rest.pdfgenerator import artifact_hash
-import os
 import re
 
 
@@ -215,7 +214,6 @@ class SourceCodeImporter(ArtifactImporter):
     def to_rest(self, artifact):
 
         result = ""
-        content = ""
 
         if is_ada_source(artifact):
 
