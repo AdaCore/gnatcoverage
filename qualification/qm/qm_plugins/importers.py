@@ -48,6 +48,10 @@ class TCIndexImporter(ArtifactImporter):
         output = ''
 
         for a in artifacts:
+            # Don't put sources in the tables
+            if is_source(a):
+                continue
+
             html_items.append([writer.strong(class_to_string(a)),
                                writer.strong(a.name),
                                writer.qmref(a.full_name)])
@@ -76,6 +80,8 @@ class TCIndexImporter(ArtifactImporter):
         for a in artifacts:
             if isinstance(a, TC):
                 links.append((a, TestCaseImporter()))
+            elif is_source(a):
+                pass
             else:
                 links.append((a, qm.rest.DefaultImporter()))
 
@@ -218,12 +224,14 @@ class SourceCodeImporter(ArtifactImporter):
 
             for key in artifact.contents_keys:
                 for item in artifact.contents(key):
+                    result += writer.paragraph_title(item.basename)
                     result += writer.code_block(item.get_content(), "ada")
 
         if isinstance(artifact, C_Sources):
 
             for key in artifact.contents_keys:
                 for item in artifact.contents(key):
+                    result += writer.paragraph_title(item.basename)
                     result += writer.code_block(item.get_content(), "c")
 
         return result
