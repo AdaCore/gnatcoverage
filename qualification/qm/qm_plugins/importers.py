@@ -163,7 +163,8 @@ class SubsetIndexImporter(ArtifactImporter):
         latex_output = writer.csv_table(
             items,
             headers=["", "Requirements or Groups", "Description"],
-            latex_format="|l|l|L|")
+            widths=[2, 20, 70],
+            latex_format="|l|l|p{10cm}|")
 
         output = writer.only(html_output, "html")
         output += writer.only(latex_output, "latex")
