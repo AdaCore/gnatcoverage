@@ -71,9 +71,8 @@
 # --git-source lets you state which repo is to be cloned. In absence of an
 # explicit source, the main AdaCore git repo for GNATcoverage is selected.
 #
-# ---
-#
 # Example development sequence:
+# =============================
 #
 # Setting up a root dir from a clone of a local repo, switching to
 # the "dev-str" working branch, building plans in html format for starters:
@@ -115,6 +114,41 @@
 #
 # Note that the designated testsuite dir in this example is NOT the one
 # populated by the --runtests example before.
+#
+# Example kit production commands:
+# ================================
+#
+# Producing a packaged kit, with a toplevel index and a final .zip
+# archive is achieved by not restricting to specific parts, hence by
+# not passing --parts at all.
+#
+# A DO level has to be provided in this case, and variations are allowed
+# testsuite execution and results localization:
+#
+# Fetching tests results from a place where they have been run already:
+#
+#   python genbundle.py
+#     --root-dir=$HOME/myqmat
+#     --branch=<project-branch>
+#     --dolevel=doA
+#     --testsuite-dir=<...>
+#
+# Running the tests from the local clone this script creates:
+#
+#   python genbundle.py
+#     --root-dir=$HOME/myqmat
+#     --branch=<project-branch>
+#     --dolevel=doA
+#     --runtests --runtests-flags=<...>
+#
+# Running the tests hosted within the designated subdir:
+#
+#   python genbundle.py
+#     --root-dir=$HOME/myqmat
+#     --branch=<project-branch>
+#     --dolevel=doB
+#     --runtests --runtests-flags=<...>
+#     --testsuite-dir=<...>
 #
 # *****************************************************************************
 
