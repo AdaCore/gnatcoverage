@@ -919,6 +919,14 @@ class QDreport:
 
     def gen_suite_environ(self):
 
+        # We construct a table like
+        #
+        # Environment item | <data 1, no title> | <data 2, no title>
+        # -----------------------------------------------------------
+        # gnatpro exe name | gnatpro exe name   | gnatpro version
+        # & version        |                    |
+        # ...
+
         item = Column (
             htext = "Environment items", legend = None)
 
@@ -943,34 +951,45 @@ class QDreport:
         suite_gnatpro = self.suitedata.gnatpro
         suite_gnatcov = self.suitedata.gnatcov
         suite_gnatemu = self.suitedata.gnatemu
+        
+        # Base table entries, always there:
+
+        table_entries =  [
+            {item : "report timestamp & host system",
+             v1: time_string_from (time.localtime()),
+             v2: host_string_from(Env().host)
+             },
+            {item : "testsuite execution timestamp & host system",
+             v1: time_string_from (self.suitedata.runstamp),
+             v2: host_string_from (self.suitedata.host)
+             },
+            {item : "GNAT Pro executable & version",
+             v1: suite_gnatpro.exename,
+             v2: suite_gnatpro.version
+             },
+            {item : "GNATcov executable & version",
+             v1: suite_gnatcov.exename,
+             v2: suite_gnatcov.version
+             }
+            ]
+
+        # Add a gnatemu version, unless known to be irrelevant (native,
+        # or when a --board option is passed).
+
+        suite_options = self.suitedata.options
+        if suite_options.target and not suite_options.board:
+            table_entries.append (
+                {item : "GNATemu executable & version",
+                 v1: suite_gnatemu.exename,
+                 v2: suite_gnatemu.version}
+                )
 
         CSVtable (
             title = None, text = None,
             columns = (item, v1, v2),
             controls = [":widths: 25, 20, 55"],
             delim = '|',
-            contents = [
-                {item : "report timestamp & host system",
-                 v1: time_string_from (time.localtime()),
-                 v2: host_string_from(Env().host)
-                 },
-                {item : "testsuite execution timestamp & host system",
-                 v1: time_string_from (self.suitedata.runstamp),
-                 v2: host_string_from (self.suitedata.host)
-                 },
-                {item : "GNAT Pro executable & version",
-                 v1: suite_gnatpro.exename,
-                 v2: suite_gnatpro.version
-                 },
-                {item : "GNATcov executable & version",
-                 v1: suite_gnatcov.exename,
-                 v2: suite_gnatcov.version
-                 },
-                {item : "GNATemu executable & version",
-                 v1: suite_gnatemu.exename,
-                 v2: suite_gnatemu.version
-                 }
-                ]
+            contents = table_entries
             ).dump_to (self.rstf)
 
         # ??? qemu-system-ppc ???
