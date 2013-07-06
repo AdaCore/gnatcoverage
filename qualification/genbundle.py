@@ -157,7 +157,7 @@ from gnatpython.fileutils import cp, mv, rm, mkdir, cd, ln
 
 from datetime import date
 
-import optparse, sys, os.path, shutil
+import optparse, sys, os.path, shutil, re
 
 LOCAL_TESTSUITE_DIR=os.path.abspath("../testsuite")
 sys.path.append(LOCAL_TESTSUITE_DIR)
@@ -454,12 +454,26 @@ class QMAT:
                 os.path.join (self.testsuite_dir, CTXDATA_FILE))
             suite_treeref = suitedata.treeref
 
-        fail_if (
-            not self.o.devmode and local_treeref != suite_treeref,
-            "local tree ref (%s) mismatches testsuite tree ref (%s)" % (
-                local_treeref, suite_treeref)
-            )
+        if not self.o.devmode:
 
+            exit_if (
+                local_treeref != suite_treeref,
+                "local tree ref (%s) mismatches testsuite tree ref (%s)" % (
+                    local_treeref, suite_treeref)
+                )
+            exit_if (
+                self.o.xgnatpro and not re.search (
+                    pattern=self.o.xgnatpro, string=suitedata.gnatpro.version),
+                "gnatpro version \"%s\" doesn't match expectation \"%s\"" % (
+                    suitedata.gnatpro.version, self.o.xgnatpro)
+                )        
+            exit_if (
+                self.o.xgnatcov and not re.search (
+                    pattern=self.o.xgnatcov, string=suitedata.gnatcov.version),
+                "gnatcov version \"%s\" doesn't match expectation \"%s\"" % (
+                    suitedata.gnatpro.version, self.o.xgnatpro)
+                )
+        
         # First run the tests if we are requested to do so:
 
         if self.o.runtests:
@@ -643,6 +657,24 @@ if __name__ == "__main__":
         help = (
             "State that we're in ongoing development mode, relaxing internal "
             "consistency checks.")
+        )
+
+    op.add_option (
+        "--xgnatpro", dest="xgnatpro", default=None,
+        help = (
+            "Version we expect <target>-gcc -v to match. "
+            "Mandatory when producing a kit")
+        )
+    op.add_option (
+        "--xgnatcov", dest="xgnatcov", default=None,
+        help = (
+            "Version we expect gnatcov --version to match. "
+            "Mandatory when producing a kit")
+        )
+    op.add_option (
+        "--xgnatemu", dest="xgnatemu", default=None,
+        help = (
+            "Version we expect <target>-gnatcov --version to match.")
         )
 
     (options, args) = op.parse_args()
