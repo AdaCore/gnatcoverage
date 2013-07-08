@@ -396,14 +396,6 @@ def do(command):
 
     return contents_of(ofile)
 
-# -------------
-# -- compile --
-# -------------
-def compile(source, options):
-    """Compile SOURCE with the target compiler, passing OPTIONS on the
-    command line."""
-    do("%s-gcc -c %s %s"  % (env.target.triplet, options, source))
-
 # -----------
 # -- frame --
 # -----------

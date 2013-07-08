@@ -56,6 +56,10 @@ LANGINFO = {
         name="C", src_ext=[".h", ".c"],  comment='//',
         scofile_for=lambda source: (source+'.gli')),
 
+    "Asm": LangInfo(
+        name="Asm", src_ext=[".s"], comment='#',
+        scofile_for=None),
+
     "Cons": LangInfo(
         name="Consolidation", src_ext=[".txt"], comment='--',
         scofile_for=None)
