@@ -75,10 +75,12 @@ class TCIndexImporter(ArtifactImporter):
             html_items,
             headers=["", "TestCases", "Description"],
             widths=[3, 25, 65])
+
         pdf_table = writer.csv_table(
             pdf_items,
             headers=["", "TestCases", "Description"],
             widths=[3, 25, 65])
+
         output += writer.only(html_table, "html")
         output += writer.only(pdf_table, "latex")
 
@@ -108,27 +110,36 @@ class ToplevelIndexImporter(ArtifactImporter):
 
     def qmlink_to_rest(self, parent, artifacts):
         items = []
-        for a in artifacts:
-            items.append([writer.strong(class_to_string(a)),
-                          writer.strong(a.name),
-                          writer.qmref(a.full_name)])
-            for suba in a.relatives:
-                items.append([class_to_string(suba),
-                              "``..`` " + suba.name,
-                              writer.qmref(suba.full_name)])
+        html_top_index = ""
 
-        html_table = writer.csv_table(
+        for a in artifacts:
+
+            if a.full_name == "/TOR_Doc/Introduction":
+                for item in a.contents('content'):
+                    html_top_index += writer.paragraph (item.get_content())
+
+            else:
+                items.append([writer.strong(class_to_string(a)),
+                             writer.strong(a.name),
+                             writer.qmref(a.full_name)])
+                for suba in a.relatives:
+                    items.append([class_to_string(suba),
+                                 "``..`` " + suba.name,
+                                 writer.qmref(suba.full_name)])
+
+        html_top_index += writer.csv_table(
             items,
             headers=["", "Chapter", "Description"],
             widths=[3, 25, 65])
 
-        output = writer.only(html_table, "html")
+        output = writer.only(html_top_index, "html")
 
         links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                   for l in links if not is_test(l[0])],
                                  hidden=True)
+
         return output, links
 
 

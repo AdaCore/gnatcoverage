@@ -1,6 +1,7 @@
 Tool Operational Requirements
 =============================
 
+
 .. qmlink:: ToplevelIndexImporter
 
    Introduction
@@ -9,8 +10,6 @@ Tool Operational Requirements
    Common
    Appendix
 
-Test Cases
-----------
 
 .. qmlink:: TestCasesImporter
 
