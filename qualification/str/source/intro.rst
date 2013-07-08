@@ -7,7 +7,7 @@ This report features the following sections:
 
 .. csv-table::
    :header: "Section", "Brief description"
-   :widths: 20, 65
+   :widths: 40, 60
    :delim:  |
 
    :doc:`env` | "Tables describing the Operational Environment in which this
