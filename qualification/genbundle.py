@@ -2,6 +2,9 @@
 
 # *****************************************************************************
 
+# General principles
+# ==================
+#
 # This is a helper script aimed at the production and packaging of the
 # GNATcoverage qualification material documents. There are three major
 # documents of interest:
@@ -380,24 +383,13 @@ class QMAT:
     def build_tor (self):
         announce ("building TOR")
 
-        # Building the TOR documents involves generating REST
-        # from the artifacts in the testsuite/Qualif tree, then
-        # invoking sphinx to produce the document. This is all
-        # driven by a Makefile:
+        # The TORs are managed as QM data
 
         os.chdir (
-            os.path.join (
-                self.repodir, "qualification", "tor", "scripts")
+            os.path.join (self.repodir, "qualification", "qm")
             )
-
-        run ("make clean")
-
-        run_list (
-            ['python', 'genrest.py', '--dolevel=%s' % self.o.dolevel])
-
-        run ("make %(fmt)s " % {
-                "fmt" : sphinx_target_for[self.o.docformat]}
-             )
+        run ("qmachine model.xml -l scripts/generate_tor_%s.py" \
+                 % self.o.docformat)
 
         self.__latch_into (
             dir=self.itemsdir, partname="TOR", toplevel=False)
