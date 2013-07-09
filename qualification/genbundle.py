@@ -331,17 +331,40 @@ class QMAT:
     # -- latch_into --
     # ----------------
 
-    # Helper for the various build_ methods below.
+    # Helper for the various build_ methods below, to store the just built
+    # sphinx output for a provided PARTNAME (STR, PLANS, TOR) at a TOPLEVEL
+    # dir.
 
     # html builds are voluminous and tree-ish. Other builds might produce
     # secondary pieces we don't need (e.g. latex sources & stuff) and we
     # only care about the final file at the end.
 
     # For tree builds, we just rename the whole sphinx build tree as our
-    # result. For other builds, we use a wildcard copy so the actual file
-    # name doesn't matter:
+    # result. For example:
+    #
+    # build/html for PLANS gets renamed as <TOPLEVEL>/PLANS, a subdirectory
+    # where we expect index.html to be found.
 
-    def __latch_into (self, dir, partname, toplevel):
+    # For other builds, we use a wildcard copy so the actual file
+    # name doesn't matter. For example:
+    #
+    # build/pdf/TOR.pdf gets copied as <TOPLEVEL>/TOR.pdf
+
+    # Eventually, when all the parts are latched, we have something like :
+    #
+    #    <TOPLEVEL>/PLANS.pdf
+    #              /TOR.pdf
+    #              /STR.pdf
+    #
+    # for the pdf versions, and
+    #
+    #    <TOPLEVEL>/PLANS/index.html etc
+    #              /TOR/index.html etc
+    #              /STR/index.html etc
+    #
+    # for the html versions.
+
+   def __latch_into (self, dir, partname, toplevel):
 
         this_target_is_tree = (self.o.docformat == 'html')
 
