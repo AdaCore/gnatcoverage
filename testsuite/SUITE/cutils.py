@@ -183,14 +183,24 @@ def output_of(cmd, dir=None):
 # Common place to decide on the use of json or pickle,
 # factorize decisions wrt dumps within existing files etc.
 
+# ??? at this point, we use pickle for historical reasons where we only needed
+# to dump stuff immediatly reused aftwerwards in the same environment. Things
+# evolved so we are now sometimes using pickled data as an exchange means
+# between platforms, between trees expected to be version synchronized. Pickle
+# is not an appropriate format for this, so this is very fragile and should be
+# addressed differently at some point.
+
+# The best we can do until we have a better solution overall is to store/load
+# via files opened in binary mode.
+
 import pickle
 
 def dump_to(filename, o):
-    with open (filename, 'w') as f:
+    with open (filename, 'wb') as f:
         pickle.dump (o, f)
 
 def load_from(filename):
-    with open (filename) as f:
+    with open (filename, 'rb') as f:
         return pickle.load (f)
 
 # ==========
