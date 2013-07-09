@@ -481,14 +481,14 @@ class QMAT:
                     pattern=self.o.xgnatpro, string=suitedata.gnatpro.version),
                 "gnatpro version \"%s\" doesn't match expectation \"%s\"" % (
                     suitedata.gnatpro.version, self.o.xgnatpro)
-                )        
+                )
             exit_if (
                 self.o.xgnatcov and not re.search (
                     pattern=self.o.xgnatcov, string=suitedata.gnatcov.version),
                 "gnatcov version \"%s\" doesn't match expectation \"%s\"" % (
                     suitedata.gnatpro.version, self.o.xgnatpro)
                 )
-        
+
         # First run the tests if we are requested to do so:
 
         if self.o.runtests:
