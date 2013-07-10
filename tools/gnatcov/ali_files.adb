@@ -73,15 +73,6 @@ package body ALI_Files is
       Line  : String_Access;
       Index : Natural;
 
-      Preserve_Control_Flow_Seen : Boolean := False;
-      --  Set True if unit has been compiled with -fpreserve-control-flow
-
-      GNAT_eS_Seen               : Boolean := False;
-      --  Set True if unit has been compiled with -gnateS (or -fdump-scos)
-
-      Debug_Seen                 : Boolean := False;
-      --  Set True if unit has been compiled with -g
-
       Matches : Match_Array (0 .. 10);
       --  For regex matching
 
@@ -209,9 +200,23 @@ package body ALI_Files is
          C := Getc;
       end Skipc;
 
+      procedure Get_SCOs_From_ALI is new Get_SCOs;
+
+      --  Local variables
+
       Current_Unit : Source_File_Index := No_Source_File;
 
-      procedure Get_SCOs_From_ALI is new Get_SCOs;
+      No_Object                  : Boolean := False;
+      --  Set True if the P line contains the NO flag
+
+      Preserve_Control_Flow_Seen : Boolean := False;
+      --  Set True if unit has been compiled with -fpreserve-control-flow
+
+      GNAT_eS_Seen               : Boolean := False;
+      --  Set True if unit has been compiled with -gnateS (or -fdump-scos)
+
+      Debug_Seen                 : Boolean := False;
+      --  Set True if unit has been compiled with -g
 
       Expected_Annotation_Kind : ALI_Annotation_Kind;
       Expected_Annotation_Msg  : String_Access;
@@ -297,6 +302,32 @@ package body ALI_Files is
                elsif Line.all = "A -g" then
                   Debug_Seen := True;
                end if;
+
+            when 'P' =>
+               declare
+                  P_Start : Integer;
+               begin
+                  P_Start := 2;
+                  loop
+                     while P_Start <= Line'Last
+                       and then Line (P_Start) = ' '
+                     loop
+                        P_Start := P_Start + 1;
+                     end loop;
+                     exit when P_Start > Line'Last - 1;
+
+                     declare
+                        Param : constant String (1 .. 2) :=
+                                  Line (P_Start .. P_Start + 1);
+                     begin
+                        if Param = "NO" then
+                           No_Object := True;
+                        end if;
+                     end;
+
+                     P_Start := P_Start + 2;
+                  end loop;
+               end;
 
             when 'U' =>
                Match (U_Matcher, Line (3 .. Line'Last), Matches);
@@ -396,25 +427,33 @@ package body ALI_Files is
       end if;
 
       if With_SCOs then
-         if not Preserve_Control_Flow_Seen then
-            Put_Line
-              ("warning: " & ALI_Filename
-               & ": unit compiled without -fpreserve-control-flow");
+         if No_Object then
+            Put_Line ("warning: no object generated for " & ALI_Filename);
+
+         else
+            if not Preserve_Control_Flow_Seen then
+               Put_Line
+                 ("warning: " & ALI_Filename
+                  & ": unit compiled without -fpreserve-control-flow");
+            end if;
+
+            if not GNAT_eS_Seen then
+               Put_Line
+                 ("warning: " & ALI_Filename
+                  & ": unit compiled without SCO generation (-fdump-scos)");
+            end if;
+
+            if not Debug_Seen then
+               Put_Line
+                 ("warning: " & ALI_Filename
+                  & ": unit compiled without debug information (-g)");
+            end if;
          end if;
 
-         if not GNAT_eS_Seen then
-            Put_Line
-              ("warning: " & ALI_Filename
-               & ": unit compiled without SCO generation (-fdump-scos)");
-         end if;
-
-         if not Debug_Seen then
-            Put_Line
-              ("warning: " & ALI_Filename
-               & ": unit compiled without debug information (-g)");
-         end if;
-
-         if End_Of_File (ALI_File) or else not GNAT_eS_Seen then
+         if End_Of_File (ALI_File)
+           or else not GNAT_eS_Seen
+           or else No_Object
+         then
             --  No SCOs in this ALI
 
             ALI_Index := No_Source_File;
