@@ -4,12 +4,16 @@ Overall organization of the GNATcoverage qualification test harness
 Overview
 --------
 
-We qualify a well identified GNATcoverage/GNATemulator bundle to perform
+We qualify a well identified GNATcoverage bundle to perform
 structural coverage assessments in accordance with a qualified interface.
+
+Depending on the configuration, the tests execution is performed either
+through GNATemulator via "gnatcov run" or on a hardware board with specialized
+runner and an extra trace conversion step by "gnatcov convert".
 
 The qualification focuses on the ``--annotate=report`` text output of
 GNATcoverage, which exposes a list of violations with respect to a given
-coverage criterion, such as ``statement not covered at <file>:<line>:<col>``.
+coverage criterion, such as ``statement not executed at <file>:<line>:<col>``.
 
 To specify how the tool should behave and demonstrate that it produces
 reliable outputs, we provide:
@@ -223,7 +227,7 @@ that we expect a ``--annotate=xcov`` output with::
      10 .: end;
 
 The ``<expected report notes>`` (3rd) column indicates what we're expecting
-from the qualified output out of ``xcov --annotate=report`` :
+from the qualified output out of ``gnatcov --annotate=report`` :
 
 * ``statement not covered`` diagnostics for lines 4 and 8, stated by the
   ``s-`` expectations, and
@@ -383,224 +387,6 @@ criteria. In our example test of statement category, the ``0`` expectations
 are meant to convey that we expect no *statement coverage* violation on the
 lines and violations of stricter criteria there ought to be ignored.
 
----------------------------
-Test Development Guidelines
----------------------------
-
-A set of strict organizational rules is enforced to
-
-* Ensure global consistency and requirements to testcase traceability,
-
-* Allow automated execution of the tests, producing a ``test-results``
-  qualification report,
-
-* Allow the generation the TOR/TC description bundle, part of the tool
-  qualification data items.
-
-Language specific artifacts are hosted in the Qualif/<language> directory
-subtree, with sets grouping items related to each major coverage criterion.
-
-Tool Operational Requirements (TORs)
-************************************
-
-* A TOR maps to a physical folder in the repository where a ``req.txt`` file
-  resides. The folder name is the TOR identifier and the ``req.txt`` file
-  contains the TOR textual specification in ReST format.
-
-* Each TOR is validated by one or more testcases,
-
-* Each testcase or group materializes as a subdirectory, structured as
-  described in the following section.
-
-The TOR description in ``req.txt`` must obey a few guidelines:
-
-* The description should start with a brief paragraph summarizing the TOR
-  contents. This facilitates the automatic generation of index tables from
-  ancestor artifacts;
-
-* The TOR body, following the brief, should start with
-
-   ``Requirement(s)
-   --------------``
-
-  to ensure a consistent style in the final
-  documentation.
-
-* When a TOR is validated by several testcases, the TOR body shall be
-  followed by a "Testing Strategy" section, providing a general description of
-  how distinct aspects of the requirement are fullfilled by testcases. This
-  section should start with
-
-   ``Testing Strategy
-   ----------------``
-
-* When you wish to include a synthetic summary of sub-artifacts in the
-  description, consider using the automatic
-  :ref:`index-tables <harness-index-tables>` available for this purpose.
-
-Sub-TORs (TOR directories children of another one uptree) are not allowed.
-
-TOR Groups may be constituted, however, by way of intermediate subdirectories
-that feature a ``set.txt`` file containing a textual description of the group
-contents and intent. As for TOR descriptions, group descriptions should start
-with a brief summary paragraph for inclusion within automatically generated
-index tables uptree. The children of a TOR group may be TORs or TOR groups,
-not necessarily all the same.
-
-Test Cases
-**********
-
-Each test case associated with a TOR is held in a subdirectory of
-the TOR folder. The subdirectory name is the testcase identifier.
-
-Every testcase subdirectory shall contain a ``tc.txt`` file, which holds a
-textual description of the test case intent and organization. This should
-include at least a brief summary at the beginning, which will show up in
-:ref:`index tables <harness-index-tables>` generated for parent artifacts on
-request.
-
-When this is one of multiple test cases for a requirement, this description
-completes the general comments found in the TOR Testing Strategy notes.
-
-Every testcase has specific sources, always located in the ``src/``
-subdirectory of the testcase folder. Sources may be shared between test cases,
-for either functional or driver code, searched in ``src`` subdirectories of
-parent folders as needed.
-
-To contribute a test case for a TOR, developers have to
-
-* Create of a dedicated subdirectory in the TOR folder,
-
-* Provide ``tc.txt``, describing the testcase intent and organization,
-
-* Develop the test case specific sources, providing coverage expectations
-  and/or support for them as needed (see in the following text),
-
-* Provide a ``test.py`` to hook in the testsuite engine.
-
-Thanks to the simple source naming conventions and the in-source embedded
-expectations, the ``test.py`` contents is entirely generic and can simply be
-copied from one test case to the other.
-
-The presence of a this file is still useful to help the toplevel driver locate
-and launch testcase executions, as outlined in section
-:ref:`harness-assessment`.
-
-The :ref:`Testsuite Engine <harness-engine>` section explains how the
-testsuite engine locates and executes the applicable drivers for a test case.
-
-As for TORs, Testcase groups may be consistuted while sub-testcases (testcases
-children of a testcase, not of a group) are not allowed. The group
-construction devices and rules are similar: a subdirectory with a ``set.txt``
-file, at least a brief description as the first paragraph, Testcase or
-Testcase group children only.
-
-Illustrations
-*************
-
-Below is a sketch of the toplevel entries::
-
- Qualif/<lang>/stmt (requirement group)
-              .   /Core (requirement group)
-              .      ...
-              .   /Consolidation (requirement)
-              .   /Exemptions (requirement)
-              .   ...
-              .
-              /decision
-              .   <likewise>
-              .
-              /mcdc
-              .   <likewise>
-
-
-The toplevel directory for each criterion typically acts as a container for a
-set toplevel requirements for that criterion, so holds a general ``set.txt``
-description.
-
-To illustrate possible organisations downtree, here is first a sketch showing
-the set of files for couple of TORs and two standalone test cases associated
-with the first one::
-
- stmt/TOR_1/req.txt (with Testing Strategy notes)
-     .     .
-     .     /TC_1/tc.txt
-     .     .    /src/foo.adb
-     .     .        /test_foo_1.adb
-     .     .        /test_foo_2.adb
-     .     .
-     .     /TC_2/tc.txt
-     .          /src/bar.adb
-     .              /test_bar_1.adb
-     .              /test_bar_2.adb
-     .
-     /TOR_2/req.txt [...]
-     ...
-
-And now comes a sketch for a couple of test cases sharing driver or functional
-sources::
-
- stmt/TOR_7/req.txt
-     .     .
-     .     /src/test_foo_1.adb
-     .     .   /test_foo_2.adb
-     .     .
-     .     /TC_1/tc.txt
-     .     .    /src/foo.adb
-     .     .
-     .     /TC_2/tc.txt
-     .     .    /src/foo.adb
-     ...
-
- stmt/TOR_9/req.txt
-     .     .
-     .     /src/bar.adb
-     .     .
-     .     /TC_1/tc.txt
-     .     .    /src/test_bar_1.adb
-     .     .
-     .     /TC_2/tc.txt
-     .     .    /src/test_bar_1.adb
-     ...
-
-
-.. _harness-index-tables:
-
-Automatic index tables
-**********************
-
-In TOR or SET descriptions, two macros are available to automate the
-production of sub-artifact index tables where each line features
-
-* A brief indication of the kind of sub-artifact represented by the line (for
-  example ``tcg`` to denote Testcase Group). This text embeds a cross
-  reference link straight to the artifact contents, and a legend of the possible
-  values is provided in the root node of the whole TOR/TC hierarchy.
-
-* The subartifact identifier, name of the filesystem subdirectory where it resides,
-
-* A brief description of the subartifact, first paragraph of the associated
-  description text.
-
-We support two kinds of indexes, subsituted anywhere they appear in the text:
-
-* ``qmlink:: SubsetIndexImporter``
-
-  index of sub-requirements or sub-sets of artifacts,
-  stopping at the first level of nesting.
-
-* ``qmlink:: TCIndexImporter``
-
-  index of testcase leaves downtree, including briefs
-  of intermediate containers (logical sets) if any.
-
-This mechanism has several advantages:
-
-* The indexes are consistent with the actual tree contents, by construction
-
-* They offer an easy way to get a synthetic view of the material downtree,
-  with cross references allowing direct access to sub artifacts of interest
-
 
 More on expectations semantics
 ******************************
@@ -612,7 +398,7 @@ On this ground, the testsuite enforces stricter checks for '``!``' and
 '``-``' items than for '``+``':
 
 * For '``-``' or '``!``' items, there must be an exact match between the
-  stated expectations and results reported by xcov (in both output formats
+  stated expectations and results reported by gnatcov (in both output formats
   examined):
   every expectation must be found in the tool outputs, and every occurrence
   in the tool output must have a corresponding expectation.
@@ -632,71 +418,7 @@ Non-empty intersections between different filters are "allowed" as well but
 eventhough sometimes convenient, they most often correspond to mistakes. The
 sets of expected indications just accumulate.
 
-.. _harness-engine:
-
-----------------
-Testsuite Engine
-----------------
-
-Our testsuite automated execution is Python driven.
-
-For a list a infrastructure preriquisites to allow the tests to run, see the
-README file in the suite toplevel dir.
-
-Locating and executing Test Cases
-*********************************
-
-The testsuite engine, invoked from the qualification toplevel directory,
-searches for test cases, executes every one it finds, keeps track of
-passes/failures as it goes, and produces a synthetic report at the end.
-
-The engine uses the ``PATH`` environment variable to select the tools.
-
-It reports the corresponding versions, as well as the set of compilation
-command line options exercised.
-
-To locate test cases, the engine seeks executable ``test.py`` Python files,
-expected everywhere a ``tc.txt`` (testcase description) resides.
-
-For every test case, the execution first locates the applicable driver
-sources, selecting those from the ``src/`` subdirectory, if any, or searching
-uptree otherwise.
-
-In the latter case, functional sources are expected in ``src/`` and the
-engine searches uptree by name for corresponding ``test_`` candidates.
-
-For every ``test_<x>`` driver, the engine then ...
-
-* Builds the executable program (driver + functional code to exercise),
-
-* Executes the program with ``xcov run``, producing an execution trace,
-
-* Invokes ``xcov coverage`` to analyze the trace and produce coverage
-  reports,
-
-* Compares the outputs with the expectations stated in the driver sources,
-
-* Decides whether they match (test passes) or not (test fails) and report.
-
-All of this is performed in a separate subdirectory called ``tmp_test_<x>``.
-
-The engine then checks whether consolidation scenarii are to be exercised,
-either in the local ``src/`` subdirectory or uptree.
-
-For each consolidation scenario found, the engine consolidates the traces
-previously produced by all the drivers whose name matche the ``drivers``
-regexp (for example, ``.`` selects them all), compares the results with the
-scenario expectations and reports.
-
-This is all performed in a separate subdirectory called
-``tmp_cons_<scenario_id>``.
-
-
-
 
 .. qmlink:: SubsetIndexImporter
 
    *
-
-
-
