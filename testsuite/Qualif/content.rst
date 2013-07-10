@@ -1,5 +1,5 @@
 Tool Operational Requirements
-=============================
+############################# 
 
 
 .. qmlink:: ToplevelIndexImporter
@@ -8,11 +8,15 @@ Tool Operational Requirements
    OpEnviron
    Ada
    Common
-   Appendix
 
 
 .. qmlink:: TestCasesImporter
 
-   *
+      Ada
+      Common
 
+
+.. qmlink:: ToplevelIndexImporter
+
+   Appendix
 

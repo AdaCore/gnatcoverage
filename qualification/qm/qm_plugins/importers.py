@@ -301,7 +301,8 @@ class TestCasesImporter(ArtifactImporter):
                                       for l in links], hidden=True)
 
         # We don't include the tests sources in the pdf version
-        pdf_output = writer.toctree(['/%s/content' % artifact_hash(*l)
+        pdf_output = writer.section ('Test Cases') + '\n'
+        pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                      for l in links if not is_source(l[0])],
                                     hidden=True)
         output = writer.only(html_output, "html")
