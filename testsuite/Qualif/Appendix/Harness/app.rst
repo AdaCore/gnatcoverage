@@ -418,7 +418,3 @@ Non-empty intersections between different filters are "allowed" as well but
 eventhough sometimes convenient, they most often correspond to mistakes. The
 sets of expected indications just accumulate.
 
-
-.. qmlink:: SubsetIndexImporter
-
-   *
