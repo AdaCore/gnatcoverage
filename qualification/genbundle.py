@@ -81,14 +81,14 @@
 # the "dev-str" working branch, building plans in html format for starters:
 #
 #   python genbundle.py
-#     --root-dir=$HOME/myqmat
+#     --root-dir=$HOME/my-qmat
 #     --git-source=$HOME/gnatcoverage --branch=dev-str
 #     --parts=plans
 #
 # Testing plans regeneration after local commit:
 #
 #   python genbundle.py
-#      --work-dir=$HOME/myqmat
+#      --work-dir=$HOME/my-qmat
 #      --git-pull --branch=dev-str
 #      --parts=plans
 #
@@ -96,20 +96,20 @@
 # the local testsuite and compiler on path:
 #
 #   python genbundle.py
-#     --work-dir=$HOME/myqmat
+#     --work-dir=$HOME/my-qmat
 #     --git-pull --branch=dev-str
 #     --parts=str
 #     --runtests --runtests-flags="--target... --RTS... stmt/Robustness -j4"
 #     --dolevel=doB
 #
 # This example uses --runtests without specifying a testsuite-dir, so
-# the testsuite run takes place within the cloned tree in $HOME/myqmat.
+# the testsuite run takes place within the cloned tree in $HOME/my-qmat.
 #
 # Testing another STR production after local commits, using previous testsuite
 # results at a designated place:
 #
 #   python genbundle.py
-#     --work-dir=$HOME/myqmat
+#     --work-dir=$HOME/my-qmat
 #     --git-pull --branch=dev-str
 #     --parts=str
 #     --testsuite-dir=$HOME/gnatcoverage/testsuite
@@ -128,35 +128,79 @@
 # A DO level has to be provided in this case, and variations are allowed
 # testsuite execution and results localization:
 #
-# Fetching tests results from a place where they have been run already:
-#
-#   python genbundle.py
-#     --root-dir=$HOME/myqmat
-#     --branch=<project-branch>
-#     --dolevel=doA
-#     --testsuite-dir=<...>
-#
 # Running the tests from the local clone this script creates:
+# -----------------------------------------------------------
 #
 #   python genbundle.py
-#     --root-dir=$HOME/myqmat
+#     --root-dir=$HOME/my-qmat
 #     --branch=<project-branch>
 #     --dolevel=doA
 #     --runtests --runtests-flags=<...>
 #
 # Running the tests hosted within the designated subdir:
+# ------------------------------------------------------
 #
 #   python genbundle.py
-#     --root-dir=$HOME/myqmat
+#     --root-dir=$HOME/my-qmat
 #     --branch=<project-branch>
 #     --dolevel=doB
 #     --runtests --runtests-flags=<...>
 #     --testsuite-dir=<...>
 #
+# Fetching tests results from a place where they have been run already:
+# ---------------------------------------------------------------------
+#
+#   python genbundle.py
+#     --root-dir=$HOME/my-qmat
+#     --branch=<project-branch>
+#     --dolevel=doA
+#     --testsuite-dir=<...>
+#
+# !!! As of today, this is reading data files dumped by the testsuite
+# !!! execution in pickle format. This format is not designed to be shared
+# !!! across different environments, so isn't guaranteed to work when e.g. the
+# !!! suite ran on one machine and we're reading data from another. Even on a
+# !!! single machine, this isn't guaranteed to work across python versions.
+#
+# We provide the 'str-rst' part and the --str-dir option to circumvent this:
+#
+# Using a partially built (up to rst generation) STR report:
+# ----------------------------------------------------------
+#
+# The STR rest production must be done first, using the special "str-rst"
+# part on the machine where the testsuite ran, using the same version of
+# python. For example:
+#
+#   python genbundle.py
+#     --root-dir=$HOME/my-partial-qmat
+#     --branch=<project-branch>
+#     --dolevel=doA
+#     --testsuite-dir=<my-testsuite-dir>
+#     --parts=str-rst
+#
+# This should output something like:
+#
+#   =========== building STR, stopping after rst gen
+#   from : <...>/gnatcoverage-git-clone/qualification/str
+#   run  : python genrest.py --testsuite-dir=<my-testsuite-dir> --dolevel=doB
+#
+# Now on the machine where you are building the kit, retrieve the
+# rest-only STR subdir. For example using rsync:
+#
+#   rsync -r <testhost>: <...>/gnatcoverage-git-clone/qualification/str/ my-str
+#
+# Then produce your kit using the retrieved STR subdir:
+#
+#    python genbundle.py
+#       --root-dir=$HOME/my-qmat
+#       --branch=<project-branch>
+#       --dolevel=doB
+#       --str-dir=$HOME/my-str
+#
 # *****************************************************************************
 
 from gnatpython.ex import Run
-from gnatpython.fileutils import cp, mv, rm, mkdir, cd, ln
+from gnatpython.fileutils import cp, mv, rm, mkdir
 
 from datetime import date
 
@@ -190,21 +234,31 @@ def contents_of(filename):
     with open(filename) as fd:
         return fd.read()
 
-def run_list (cmd, out=None, env=None):
-    print "from : %s" % os.getcwd()
+def run_list (cmd, dir=None):
+    """Execute the provided CMD command-list (command name + arguments),
+    temporarily switching to the DIR directory unless None, dumping a .log
+    file tracking the command output in the directory where the command
+    executes."""
+
+    oriwd = os.getcwd()
+    print "from : %s" % oriwd
+
+    if dir:
+        print "hopat : %s" % dir
+        os.chdir (dir)
+
     print "run  : %s" % ' '.join(cmd)
 
-    if out == None:
-        out = cmd[0]+".log"
-
-    p = Run (cmd, output=out, env=env)
-
+    out = cmd[0]+".log"
+    p = Run (cmd, output=out, env=None)
     fail_if (
         p.status != 0, "execution failed\n"
         + "log was:\n" + contents_of(out))
 
-def run (s, out=None, env=None):
-    run_list (s.split())
+    os.chdir (oriwd)
+
+def run (s, dir=None):
+    run_list (s.split(), dir)
 
 def announce (s):
     print "=========== " + s
@@ -268,7 +322,8 @@ class QMAT:
 
         self.testsuite_dir = (
             self.o.testsuite_dir if self.o.testsuite_dir
-            else os.path.join (self.repodir, "testsuite"))
+            else os.path.join (self.repodir, "testsuite") if self.o.runtests
+            else None)
 
     # --------------------
     # -- setup_basedirs --
@@ -364,9 +419,11 @@ class QMAT:
     #
     # for the html versions.
 
-    def __latch_into (self, dir, partname, toplevel):
+    def __latch_into (self, dir, partname, toplevel, copy_from=None):
 
         this_target_is_tree = (self.o.docformat == 'html')
+
+        # Compute the target dir or file name of our copy:
 
         this_target_suffix = (
             '' if this_target_is_tree else '.%s' % self.o.docformat)
@@ -380,19 +437,37 @@ class QMAT:
                 )
             )
 
+        # Compute the source dir or file name for our copy:
+
+        # The local or provided source build subdir name, assuming a
+        # sphinx setup, with an html or pdf sub-subdir depending on the
+        # doc format:
+
         this_build_subdir = os.path.join (
-            "build", sphinx_target_for[self.o.docformat])
+            copy_from if copy_from is not None else "build",
+            sphinx_target_for[self.o.docformat]
+            )
+
+        this_source = (
+            this_build_subdir if this_target_is_tree
+            else this_build_subdir + "/*.%s" % self.o.docformat
+            )
 
         # Delete an old version of latched results that might
         # already be there if we're running with --work-dir.
+
         remove (this_target)
 
-        if this_target_is_tree:
-            mv (this_build_subdir,
-                this_target)
+        # Now proceed with the latch operation per se:
+
+        if not this_target_is_tree:
+            cp (this_source, this_target, recursive=False)
+
+        elif copy_from:
+            cp (this_source, this_target, recursive=True)
+
         else:
-            cp (this_build_subdir + "/*.%s" % self.o.docformat,
-                this_target)
+            mv (this_build_subdir, this_target)
 
         print "%s %s available in %s %s" % (
             self.o.docformat, partname,
@@ -422,9 +497,6 @@ class QMAT:
     # ---------------
 
     def run_tests (self):
-
-        # Run the test cases as part of the build_str functionality.
-
         announce ("running tests")
 
         os.chdir (self.testsuite_dir)
@@ -444,55 +516,77 @@ class QMAT:
              + self.o.runtests_flags).strip().split()
             )
 
-    # ---------------
-    # -- build_str --
-    # ---------------
+    # ---------------------------
+    # -- do_consistency_checks --
+    # ---------------------------
 
-    def build_str (self):
-        announce ("building STR")
+    def do_consistency_checks (self):
+        announce ("tree and version consistency check prior to STR production")
 
-        # Unless in devmode, check consistency of the testsuite tree ref
-        # against here. Check that this dir ref matches that of ...
+        # Check consistency of the testsuite tree ref against the clone
+        # from which we are producing documents. Check that the latter dir
+        # ref matches that of ...
         #
         # * The testsuite dir where we are going to run the tests when
         #   requested so,
         #
-        # * The testsuite dir where the tests were run otherwise, part of the
-        #   context data dumped by the testsuite execution driver.
+        # * The testsuite dir where the tests were run otherwise
 
-        local_treeref = treeref_at(".")
+        # Also check consistency of the tool versions used to execute the
+        # testsuite against expectations
+
+        local_treeref = treeref_at(self.repodir)
+
+        suite_treeref = None
+        suite_ctxdata = None
 
         if self.o.runtests:
             suite_treeref = treeref_at(self.testsuite_dir)
+
+        elif self.o.testsuite_dir:
+            suite_ctxdata = load_from (
+                os.path.join (self.o.testsuite_dir, CTXDATA_FILE))
+            suite_treeref = suite_ctxdata.treeref
+
+        elif self.o.str_dir:
+            suite_treeref = None # until we can do better ...
+            suite_ctxdata = None
+
+        if not suite_treeref:
+            print "info: unable to check tree consistency in this setup"
         else:
-            suitedata = load_from (
-                os.path.join (self.testsuite_dir, CTXDATA_FILE))
-            suite_treeref = suitedata.treeref
-
-        if not self.o.devmode:
-
             exit_if (
                 local_treeref != suite_treeref,
                 "local tree ref (%s) mismatches testsuite tree ref (%s)" % (
                     local_treeref, suite_treeref)
                 )
+
+        if not suite_ctxdata:
+            print "info: unable to check versions consistency in this setup"
+        else:
             exit_if (
                 self.o.xgnatpro and not re.search (
-                    pattern=self.o.xgnatpro, string=suitedata.gnatpro.version),
+                    pattern=self.o.xgnatpro,
+                    string=suite_ctxdata.gnatpro.version),
                 "gnatpro version \"%s\" doesn't match expectation \"%s\"" % (
-                    suitedata.gnatpro.version, self.o.xgnatpro)
+                    suite_ctxdata.gnatpro.version, self.o.xgnatpro)
                 )
             exit_if (
                 self.o.xgnatcov and not re.search (
-                    pattern=self.o.xgnatcov, string=suitedata.gnatcov.version),
+                    pattern=self.o.xgnatcov,
+                    string=suite_ctxdata.gnatcov.version),
                 "gnatcov version \"%s\" doesn't match expectation \"%s\"" % (
-                    suitedata.gnatpro.version, self.o.xgnatpro)
+                    suite_ctxdata.gnatpro.version, self.o.xgnatpro)
                 )
 
-        # First run the tests if we are requested to do so:
+    # ---------------
+    # -- build_str --
+    # ---------------
 
-        if self.o.runtests:
-            self.run_tests ()
+    def build_str (self, rst_only):
+        announce (
+            "building STR" + (", stopping after rst gen" if rst_only else "")
+            )
 
         # Produce REST from the tests results dropped by testsuite run.  If we
         # did not launch one just above, expect results to be available from a
@@ -506,7 +600,24 @@ class QMAT:
              '--dolevel=%s' % self.o.dolevel]
             )
 
+        if rst_only:
+            return
+
         # Then invoke sphinx to produce the report in the requested format:
+
+        run ("make %s" % sphinx_target_for[self.o.docformat])
+
+        self.__latch_into (
+            dir=self.itemsdir, partname="STR", toplevel=False)
+
+    # ------------------
+    # -- finalize_str --
+    # ------------------
+
+    def finalize_str (self):
+        announce ("finalizing STR at %s" % self.o.str_dir)
+
+        os.chdir (self.o.str_dir)
 
         run ("make %s" % sphinx_target_for[self.o.docformat])
 
@@ -570,7 +681,9 @@ class QMAT:
 # =======================================================================
 
 valid_docformats = ('html', 'pdf')
-valid_parts      = ('tor', 'str', 'plans')
+regular_parts    = ('tor', 'plans', 'str')
+special_parts    = ('str-rst',)
+valid_parts      = regular_parts + special_parts
 valid_dolevels   = ('doA', 'doB', 'doC')
 
 if __name__ == "__main__":
@@ -627,8 +740,8 @@ if __name__ == "__main__":
         "--docformat", dest="docformat", default="html",
         type='choice', choices=valid_docformats,
         help = (
-            "The format we need to produce for each document %s."
-            "One of %s." % (valid_parts.__str__(), valid_docformats.__str__()))
+            "The format we need to produce for each document. "
+            "One of %s." % valid_docformats.__str__())
         )
     op.add_option (
         "--parts", dest="parts", default=None,
@@ -665,6 +778,14 @@ if __name__ == "__main__":
             "With --runtests, pass the option value as arguments to the "
             "testsuite toplevel driver, useful e.g. for --target, or -j."
             )
+        )
+
+    op.add_option (
+        "--str-dir", dest="str_dir", default=None,
+        help = (
+            "Name of a directory where the STR report has been pre-built. "
+            "Expect this to designate a sphinx ready subdir, with a Makefile "
+            "and a populated source/ sub-sudir.")
         )
 
     op.add_option (
@@ -736,7 +857,7 @@ if __name__ == "__main__":
     # Settle on the set of documents we are to produce:
 
     options.parts = (
-        valid_parts if not options.parts
+        regular_parts if not options.parts
         else options.parts.split(',')
         )
 
@@ -757,6 +878,25 @@ if __name__ == "__main__":
         ("Producing TOR requires an explicit dolevel (--dolevel).")
         )
 
+    exit_if (
+        'str-rst' in options.parts and 'str' in options.parts,
+        ("Complete STR is incompatible with rest-only STR.")
+        )
+
+    exit_if (
+        'str-rst' in options.parts and options.str_dir,
+        ("Producing rest-only STR is incompatible with fetching "
+         "pre-built STR rest sources.")
+        )
+
+    # Make sure that directory options are absolute dirs, to
+    # facilitate switching back and forth from one to the other:
+
+    if options.testsuite_dir:
+        options.testsuite_dir = os.path.abspath (options.testsuite_dir)
+    if options.str_dir:
+        options.str_dir = os.path.abspath (options.str_dir)
+
     # Instanciate our helper and proceed with the base
     # directory setup:
 
@@ -766,7 +906,8 @@ if __name__ == "__main__":
 
     exit_if (
         options.gitpull and options.gitsource,
-        "Specifying git source is incompatible with request to pull from current origin"
+        "Specifying git source is incompatible with "
+        "request to pull from current origin"
         )
     qmat.git_update()
 
@@ -774,13 +915,45 @@ if __name__ == "__main__":
 
     # Produce each part we are requested to produce:
 
-    if 'tor' in options.parts:
+    do_str     = 'str' in options.parts
+    do_str_rst = 'str-rst' in options.parts
+    do_tor     = 'tor' in options.parts
+    do_plans   = 'plans' in options.parts
+
+    if do_tor:
         qmat.build_tor()
 
-    if 'str' in options.parts:
-        qmat.build_str()
+    if do_str or do_str_rst:
 
-    if 'plans' in options.parts:
+        # When producing str and not in dev mode, check that the tree we're
+        # producing documents from is consistent with the tree where the
+        # testsuite has/will run.
+
+        if not options.devmode:
+            qmat.do_consistency_checks()
+
+        # If we are provided with pre-computed report sources, just finalize
+        # from there:
+
+        if options.str_dir:
+            qmat.finalize_str()
+
+        # Otherwise ...
+
+        else:
+
+            # Run the tests if we are requested to do so:
+
+            if options.runtests:
+                qmat.run_tests ()
+
+            # Then build the STR from testsuite results (either the one
+            # we just ran, or one executed externally and designated by
+            # --testsuite-dir):
+
+            qmat.build_str(rst_only=do_str_rst)
+
+    if do_plans:
         qmat.build_plans()
 
     # If we have a package to produce, do so:
