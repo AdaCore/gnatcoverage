@@ -1573,6 +1573,35 @@ package body Decision_Map is
       --  These two flags enable to prevent some finalisation-related basic
       --  blocks from being considered as being part of a decision.
 
+      type Pending_Cond_Branch is record
+         Insn_First, Insn_Last : Pc_Type;
+         --  Conditional branch instruction PC range in Insns
+
+         Tag                   : SC_Tag;
+         C_SCO                 : SCO_Id;
+         --  SCO and sloc information for this instruction
+
+         Branch_Dest, FT_Dest  : Dest;
+         --  Machine properties for this conditional branch
+
+         BB_From               : Pc_Type;
+         --  Fisrt byte of the basic block that contain this instruction
+      end record;
+      --  Information needed to analyze a conditional branch
+
+      package Pending_Cond_Branch_Vectors is new Ada.Containers.Vectors
+        (Index_Type   => Natural,
+         Element_Type => Pending_Cond_Branch);
+      use Pending_Cond_Branch_Vectors;
+
+      Pending_Cond_Branches : Pending_Cond_Branch_Vectors.Vector;
+      --  Conditional branches analysis needs to access to all basic blocks.
+      --  Thus, it has to be done after having built basic blocks. Conditional
+      --  branches are stored in this vector as we discover them when building
+      --  basic blocks.
+
+      Cond_Branch_Cur       : Pending_Cond_Branch_Vectors.Cursor;
+
    --  Start of processing for Analyze_Routine
 
    begin
@@ -1697,7 +1726,7 @@ package body Decision_Map is
 
             if Branch /= Br_None then
                Analyze_Branch : declare
-                  BB : Basic_Block :=
+                  BB : constant Basic_Block :=
                          (From                   => Current_Basic_Block_Start,
                           To_PC                  => Insn'First,
                           To                     => Insn'Last,
@@ -1754,15 +1783,14 @@ package body Decision_Map is
                            if SCO /= No_SCO_Id
                                 and then Kind (SCO) = Condition
                            then
-                              Analyze_Conditional_Branch
-                                (Exec,
-                                 Insn        => Insn,
-                                 Tag         => Tsloc.Tag,
-                                 C_SCO       => SCO,
-                                 Branch_Dest => Branch_Dest,
-                                 FT_Dest     => FT_Dest,
-                                 Ctx         => Context,
-                                 BB          => BB);
+                              Pending_Cond_Branches.Append
+                                ((Insn_First  => Insn'First,
+                                  Insn_Last   => Insn'Last,
+                                  Tag         => Tsloc.Tag,
+                                  C_SCO       => SCO,
+                                  Branch_Dest => Branch_Dest,
+                                  FT_Dest     => FT_Dest,
+                                  BB_From     => BB.From));
 
                               --  Assumption: a given conditional branch
                               --  instruction tests at most 1 source condition.
@@ -1875,6 +1903,44 @@ package body Decision_Map is
             if Branch /= Br_None then
                New_Basic_Block;
             end if;
+         end;
+      end loop;
+
+      --  Analyze pending conditional branches
+
+      Cond_Branch_Cur := Pending_Cond_Branches.First;
+      while Cond_Branch_Cur /= Pending_Cond_Branch_Vectors.No_Element loop
+         declare
+            Cond_Branch : Pending_Cond_Branch renames
+               Element (Cond_Branch_Cur);
+
+            BB_Cur      : constant Basic_Block_Sets.Cursor :=
+               Context.Basic_Blocks.Find
+                 ((Cond_Branch.BB_From, others => <>));
+            BB          : Basic_Block := Basic_Block_Sets.Element (BB_Cur);
+            --  Given that this conditional branch has been found when building
+            --  basic blocks, there *must* be one and only one basic block for
+            --  it.
+
+         begin
+            Analyze_Conditional_Branch
+              (Exec        => Exec,
+               Insn        => Insns
+                                (Cond_Branch.Insn_First ..
+                                 Cond_Branch.Insn_Last),
+               Tag         => Cond_Branch.Tag,
+               C_SCO       => Cond_Branch.C_SCO,
+               Branch_Dest => Cond_Branch.Branch_Dest,
+               FT_Dest     => Cond_Branch.FT_Dest,
+               Ctx         => Context,
+               BB          => BB);
+
+            --  Update the basic block in the context: BB is an "out" argument
+            --  for Analyze_Conditional_Branch, so fields that are not part of
+            --  the key may have changed.
+
+            Context.Basic_Blocks.Replace_Element (BB_Cur, BB);
+            Cond_Branch_Cur := Next (Cond_Branch_Cur);
          end;
       end loop;
 
