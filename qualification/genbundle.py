@@ -364,7 +364,7 @@ class QMAT:
     #
     # for the html versions.
 
-   def __latch_into (self, dir, partname, toplevel):
+    def __latch_into (self, dir, partname, toplevel):
 
         this_target_is_tree = (self.o.docformat == 'html')
 
