@@ -30,8 +30,10 @@ with System.Storage_Elements;
 with Coverage.Source;   use Coverage.Source;
 with Coverage.Tags;     use Coverage.Tags;
 with Diagnostics;       use Diagnostics;
+with Elf_Common;
 with Elf_Disassemblers; use Elf_Disassemblers;
 with Execs_Dbase;       use Execs_Dbase;
+with Disa_Symbolize;
 with Files_Table;       use Files_Table;
 with Hex_Images;        use Hex_Images;
 with Qemu_Traces;
@@ -719,6 +721,9 @@ package body Decision_Map is
 
       Known_Destinations : Known_Destination_Maps.Map;
 
+      function Get_CBE (KD : Known_Destination) return Cond_Edge_Info;
+      --  Return the edge information associated to KD
+
       package Dest_Sets is new Ada.Containers.Ordered_Sets (Dest);
       Known_Outcome : array (Boolean) of Dest_Sets.Set;
       --  When set, each element of this array is a set of edge destinations
@@ -756,6 +761,15 @@ package body Decision_Map is
       --  Third pass of control flow analysis: if Edge is not qualified yet,
       --  but the another edge with the same destination is, copy its
       --  information.
+
+      function Label_From_BB
+        (Cond_Branch_PC : Pc_Type;
+         CBI            : Cond_Branch_Info;
+         Edge           : Edge_Kind) return Tristate;
+      --  Helper for the third pass of control flow analysis: Edge must be an
+      --  unknown outcome. If there is another edge that is a known outcome and
+      --  that points to some previous instruction in the same basic block,
+      --  return the value of its outcome. Return Unknown otherwise.
 
       procedure Set_Known_Origin
         (Cond_Branch_PC : Pc_Type;
@@ -795,6 +809,16 @@ package body Decision_Map is
                                (others => (others => False));
       --  For each valuation of each condition, indicates whether there is
       --  one edge corresponding to each possible valuation of the condition.
+
+      -------------
+      -- Get_CBE --
+      -------------
+
+      function Get_CBE (KD : Known_Destination) return Cond_Edge_Info is
+      begin
+         return Cond_Branch_Map.Element
+           ((Exe, KD.Cond_Branch_PC)).Edges (KD.Edge);
+      end Get_CBE;
 
       -----------------------
       -- Label_Destination --
@@ -1152,37 +1176,178 @@ package body Decision_Map is
          CBI            : in out Cond_Branch_Info;
          Edge           : Edge_Kind)
       is
-         pragma Unreferenced (Cond_Branch_PC);
-
          use Known_Destination_Maps;
          CBE : Cond_Edge_Info renames CBI.Edges (Edge);
-         Cur : constant Cursor :=
-                 Known_Destinations.Find (CBE.Destination);
-         KD  : Known_Destination;
+         Cur : constant Cursor := Known_Destinations.Find (CBE.Destination);
       begin
-         if CBE.Origin = Unknown and then Cur /= No_Element then
-            KD := Element (Cur);
+         if CBE.Origin = Unknown then
+
+            --  First of all, look for an edge that has the same destination
+
+            if Cur /= No_Element then
+               declare
+                  Other_CBE : Cond_Edge_Info renames Get_CBE (Element (Cur));
+               begin
+                  --  Assert consistency of dest kind, if known
+
+                  pragma Assert
+                    (CBE.Dest_Kind = Unknown
+                        or else
+                     CBE.Dest_Kind = Other_CBE.Dest_Kind);
+
+                  CBE.Dest_Kind      := Other_CBE.Dest_Kind;
+                  CBE.Outcome        := Other_CBE.Outcome;
+                  CBE.Next_Condition := Other_CBE.Next_Condition;
+               end;
+            end if;
+
+            --  Test whether to enable an additional heuristic for control-flow
+            --  topologies thare are specific to the use of stack manipulation
+            --  x87-FPU instructions:
+
+            --  This heuristic applies only for x86 prograns
+
+            if Get_Machine (Exe.all) /= Elf_Common.EM_386 then
+               return;
+            end if;
+
+            --  And it is used to label only edges that target a basic block
+            --  which starts with a x87-FPU instruction.
+
             declare
-               Other_CBE : Cond_Edge_Info renames
-                             Cond_Branch_Map.Element
-                               ((Exe, KD.Cond_Branch_PC)).Edges (KD.Edge);
+               BB       : constant Basic_Block := Find_Basic_Block
+                 (Ctx.Basic_Blocks, CBE.Destination.Target);
+               Sec      : constant Addresses_Info_Acc := Get_Address_Info
+                 (Exe.all, Section_Addresses, BB.From);
+               Line     : String (1 .. 1);
+               Line_Pos : Natural := 0;
+               Line_Len : Natural;
             begin
-               --  Assert consistency of dest kind, if known
+               Disa_For_Machine (Machine).Disassemble_Insn
+                 (Sec.Section_Content (BB.From .. BB.To),
+                  BB.From,
+                  Line,
+                  Line_Pos,
+                  Line_Len,
+                  Disa_Symbolize.Nul_Symbolizer);
 
-               if CBE.Dest_Kind /= Unknown then
-                  pragma Assert (CBE.Dest_Kind = Other_CBE.Dest_Kind);
-                  null;
+               --  x87-FPU instructions mnemonics are the ones starting with
+               --  "f".
+
+               if Line /= "f" then
+                  return;
                end if;
-
-               --  Copy edge destination information (but not edge origin,
-               --  as Other_CBE may be testing another condition).
-
-               CBE.Dest_Kind      := Other_CBE.Dest_Kind;
-               CBE.Outcome        := Other_CBE.Outcome;
-               CBE.Next_Condition := Other_CBE.Next_Condition;
             end;
+
+            --  Here, for the case of x87-FPU instructions only (see above): if
+            --  we still have an unqualified outcome, try to qualify it from
+            --  another edge branching somewhere before in the same basic
+            --  block.
+
+            if CBE.Dest_Kind = Outcome and then CBE.Outcome = Unknown then
+               declare
+                  Opposite_Edge : constant Edge_Kind :=
+                     Edge_Kind'Val (1 - Edge_Kind'Pos (Edge));
+                  CBE_Outcome : constant Tristate := Label_From_BB
+                    (Cond_Branch_PC, CBI, Edge);
+                  Opposite_Outcome : constant Tristate := Label_From_BB
+                    (Cond_Branch_PC, CBI, Opposite_Edge);
+               begin
+                  --  Accept the estimated outcome value only if the opposite
+                  --  one is different.
+
+                  if CBE_Outcome /= Opposite_Outcome then
+                     CBE.Outcome := CBE_Outcome;
+                  end if;
+               end;
+            end if;
          end if;
       end Label_From_Other;
+
+      -------------------
+      -- Label_From_BB --
+      -------------------
+
+      function Label_From_BB
+        (Cond_Branch_PC : Pc_Type;
+         CBI            : Cond_Branch_Info;
+         Edge           : Edge_Kind) return Tristate
+      is
+         use Known_Destination_Maps;
+         BB     : Basic_Block;
+         CBE    : Cond_Edge_Info renames CBI.Edges (Edge);
+         Cur    : Cursor;
+         Branch : Branch_Kind;
+      begin
+         --  First, look at the kind of the current conditional branch
+         --  instruction.
+
+         BB := Find_Basic_Block (Ctx.Basic_Blocks, Cond_Branch_PC);
+         if BB /= No_Basic_Block then
+            Branch := BB.Branch;
+         else
+            --  This should *never* happen: for every edge, there must be a
+            --  basic block whose last instruction is the origin of the
+            --  edge.
+
+            raise Program_Error with
+               "Cannot find a basic block for the branch instruction at "
+               & Hex_Image (Cond_Branch_PC);
+         end if;
+
+         --  If this branch is a conditional return, there is nothing to
+         --  infer: other returning edges are probably unrelated to this
+         --  one.
+
+         if Branch /= Br_Ret then
+            --  Otherwise, get for the basic block that contain CBE's
+            --  destination.
+
+            BB := Find_Basic_Block
+              (Ctx.Basic_Blocks, CBE.Destination.Target);
+            if BB /= No_Basic_Block then
+               --  Then look at edges whose destination is before CBE's in
+               --  the same basic block and with the same kind of
+               --  destination. Return the value of the outcome of the first
+               --  known one we met, if any.
+
+               Cur := Known_Destinations.Ceiling ((BB.From - 1, 0));
+               while Cur /= No_Element
+                        and then
+                     Key (Cur) < CBE.Destination
+               loop
+                  declare
+                     Other_CBE : Cond_Edge_Info renames
+                        Get_CBE (Element (Cur));
+                  begin
+                     if Other_CBE.Dest_Kind = Outcome
+                           and then
+                        Other_CBE.Outcome /= Unknown
+                     then
+                        return Other_CBE.Outcome;
+                     end if;
+                  end;
+                  Cur := Next (Cur);
+               end loop;
+
+            else
+               --  This should *never* happen: for every edge, there must
+               --  be a basic block that contain the destination of the
+               --  edge.
+
+               raise Program_Error with
+                  "Cannot find a basic block for the edge "
+                  & Hex_Image (Cond_Branch_PC)
+                  & " -> "
+                  & Hex_Image (CBE.Destination.Target);
+            end if;
+         end if;
+
+         --  If we could not deduce anything, return that we do not known what
+         --  outcome this edge is.
+
+         return Unknown;
+      end Label_From_BB;
 
       ------------------------------
       -- Record_Known_Destination --
