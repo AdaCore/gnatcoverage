@@ -76,15 +76,23 @@ class Toolchain(object):
 class Arch(object):
     CALL = 'call'
     RET = 'ret'
+    COND_RET = 'cond-ret'
     JUMP = 'jump'
     BRANCH = 'branch'
 
     @staticmethod
     def get_insn_properties(insn):
-        """Return (Arch.JUMP, <jump addr>) for unconditionnal jump
-        instructions, (Arch.BRANCH, <branch addr>) for conditionnal branch
-        instructions and (None, None) for all other instructions. When the
-        destination address in unknown, None can be returned instead.
+        """Return:
+            - (Arch.CALL, <subroutine addr>, <subroutine symbol>) for call
+              instructions
+            - (Arch.RET, None, None) for return instructions
+            - (Arch.COND_RET, None, None) for conditional return instructions
+            - (Arch.JUMP, <jump addr>, <symbol>) for unconditionnal jump
+              instructions
+            - (Arch.BRANCH, <branch addr>, <symbol>) for conditionnal branch
+              instructions
+            - (None, None, None) for all other instructions.
+        When the destination address in unknown, None can be returned instead.
         """
         raise NotImplementedError()
 
@@ -170,7 +178,10 @@ class ArchPPC32(Arch):
             return (Arch.CALL, None, symbol)
         elif mnemonic.endswith('lr'):
             # To Link Register (return)
-            return (Arch.RET, None, None)
+            if mnemonic != 'blr':
+                return (Arch.COND_RET, None, None)
+            else:
+                return (Arch.RET, None, None)
         elif mnemonic.endswith('ctr'):
             # To ConTrol Register (destination known at runtime)
             return (Arch.BRANCH, None, None)
@@ -374,7 +385,7 @@ def get_decision_cfg(program, toolchain, sloc_info, decision_sloc_range):
         # break some other basic block.
         insn_type, dest, dest_symbol = get_insn_properties(insn)
         raise_exception = does_raise_exception(dest_symbol)
-        if insn_type in (Arch.JUMP, Arch.BRANCH):
+        if insn_type in (Arch.JUMP, Arch.BRANCH, Arch.COND_RET):
             insn.add_successor(dest, end_basic_block=True)
 
             if dest is not None:
