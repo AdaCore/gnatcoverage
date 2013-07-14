@@ -10,10 +10,3 @@ This is split as the following set of sections:
    Harness
    Reqindex
 
-Harness Test Cases
--------------------
-
-.. qmlink:: TestCasesImporter
-
-   *
-
