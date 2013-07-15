@@ -3089,12 +3089,15 @@ package body Disa_X86 is
 
       B := Insn_Bin (Insn_Bin'First);
 
-      --  Discard the REX prefix, if any, in 64-bit mode
+      --  Discard any REX prefix in 64-bit mode and REP/REPNE ones
 
-      if Is_64bit and then (B and 16#f0#) = 16#40# then
+      while (Is_64bit and then (B and 16#f0#) = 16#40#)
+            or else
+         (B = 16#f2# or else B = 16#f3#)
+      loop
          Opcode_Off := Opcode_Off + 1;
-         B := Insn_Bin (Insn_Bin'First);
-      end if;
+         B := Insn_Bin (Insn_Bin'First + Opcode_Off);
+      end loop;
 
       case B is
          when 16#70# .. 16#7f#
