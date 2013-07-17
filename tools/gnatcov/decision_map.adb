@@ -1221,6 +1221,12 @@ package body Decision_Map is
 
       begin
          <<Follow_Jump>>
+         if Next_PC = 0 then
+            --  We cannot follow indirect jumps.  If we end up there, we can
+            --  only stop the analysis of the current edge.
+
+            return;
+         end if;
 
          BB := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
          if BB = No_Basic_Block then
