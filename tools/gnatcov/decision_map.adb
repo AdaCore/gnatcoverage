@@ -177,6 +177,26 @@ package body Decision_Map is
    --  Process one conditional branch instruction for the given condition SCO.
    --  Sets BB.Condition to C_SCO, if applicable.
 
+   procedure Skip_Constant_Conditions
+     (Cond    : in out SCO_Id;
+      Outcome : out Tristate;
+      Skipped : access SCO_Sets.Set);
+   --  Set Cond to the next runtime condition starting at Cond (included) and
+   --  Outcome to Unknown. If there is no runtime condition before reaching an
+   --  outcome, set Cond to No_SCO_Id and Outcome to the known outcome. Store
+   --  the SCO of skipped conditions in Skipped.
+
+   function Is_Expected_First_Condition
+     (Decision  : SCO_Id;
+      Condition : SCO_Id) return Boolean;
+   --  Return whether Condition can be the first condition to be evaluated at
+   --  runtime for Decision.
+
+   function Is_Last_Runtime_Condition
+     (D_Occ : Decision_Occurrence_Access) return Boolean;
+   --  Return whether the last condition seen after analyzing conditional
+   --  branches is the last one to be evaluated at runtime.
+
    procedure Analyze_Decision_Occurrence
      (Exe   : Exe_File_Acc;
       Ctx   : Cond_Branch_Context;
@@ -356,12 +376,28 @@ package body Decision_Map is
            (CI                   : Condition_Index;
             Report_If_Unexpected : Boolean := False) return Boolean
          is
-            Current_CI : Condition_Index renames DS_Top.Seen_Condition;
-            Last_CI    : Condition_Index renames DS_Top.Last_Cond_Index;
+            Current_CI  : Condition_Index renames DS_Top.Seen_Condition;
+            Last_CI     : Condition_Index renames DS_Top.Last_Cond_Index;
 
+            Next_Runtime_Cond   : SCO_Id;
+            Expected_Conditions : aliased SCO_Sets.Set;
+            Outcome             : Tristate;
          begin
-            if CI in Condition_Index'Max (Current_CI,     0)
-                  .. Condition_Index'Min (Current_CI + 1, Last_CI)
+
+            --  Look for the next CI that is evaluated at runtime and skipped
+            --  conditions.
+
+            Next_Runtime_Cond := Condition
+              (DS_Top.Decision,
+               Condition_Index'Min (Current_CI + 1, Last_CI));
+            Skip_Constant_Conditions
+              (Next_Runtime_Cond, Outcome, Expected_Conditions'Access);
+
+            if CI = Condition_Index'Max (Current_CI, 0)
+                  or else
+               CI = Index (Next_Runtime_Cond)
+                  or else
+               Expected_Conditions.Contains (Condition (DS_Top.Decision, CI))
             then
                return True;
             end if;
@@ -369,26 +405,30 @@ package body Decision_Map is
             if Report_If_Unexpected then
                declare
                   use Ada.Strings.Unbounded;
+                  use SCO_Sets;
 
                   Msg : Unbounded_String;
-                  Expect_Next_CI : Boolean;
+                  Cur : SCO_Sets.Cursor;
                begin
                   Msg := To_Unbounded_String
                     ("unexpected condition" & CI'Img & " (expected");
 
-                  Expect_Next_CI := Current_CI < DS_Top.Last_Cond_Index;
-
                   if Current_CI >= 0 then
-                     Append (Msg, Condition_Index'Image (Current_CI));
+                     Expected_Conditions.Include
+                       (Condition (DS_Top.Decision, Current_CI));
+                  end if;
+                  Expected_Conditions.Include (Next_Runtime_Cond);
 
-                     if Expect_Next_CI then
+                  Cur := Expected_Conditions.First;
+                  while Cur /= No_Element loop
+                     Append
+                       (Msg,
+                        Condition_Index'Image (Index (Element (Cur))));
+                     Cur := Next (Cur);
+                     if Cur /= No_Element then
                         Append (Msg, " or");
                      end if;
-                  end if;
-
-                  if Expect_Next_CI then
-                     Append (Msg, Condition_Index'Image (Current_CI + 1));
-                  end if;
+                  end loop;
 
                   Append (Msg, ") in decision " & Image (DS_Top.Decision));
 
@@ -443,11 +483,13 @@ package body Decision_Map is
                exit;
             end if;
 
-            --  If the condition being evaluated is the first one in its
-            --  decision, assume that we are starting a new nested (or
-            --  successive) evaluation.
+            --  If the condition being evaluated is one of the possible first
+            --  conditions in its decision, assume that we are starting a new
+            --  nested (or successive) evaluation.
 
-            exit when Cond_Index = 0;
+            exit when Is_Expected_First_Condition
+                        (D_SCO,
+                         Condition (D_SCO, Cond_Index));
 
             --  Otherwise pop completed evaluations from the stack until
             --  we find the relevant pending one.
@@ -520,6 +562,118 @@ package body Decision_Map is
                      others      => <>))));
       end Process_Condition;
    end Analyze_Conditional_Branch;
+
+   ------------------------------
+   -- Skip_Constant_Conditions --
+   ------------------------------
+
+   procedure Skip_Constant_Conditions
+     (Cond    : in out SCO_Id;
+      Outcome : out Tristate;
+      Skipped : access SCO_Sets.Set)
+   is
+      Next_Cond  : SCO_Id;
+      Cond_Value : Tristate;
+   begin
+      if Cond = No_SCO_Id then
+         Outcome := Unknown;
+         return;
+      end if;
+
+      loop
+         Cond_Value := SC_Obligations.Value (Cond);
+         if Cond_Value = Unknown then
+            --  We found a runtime condition
+
+            Outcome := Unknown;
+            return;
+
+         else
+            --  This is a constant condition: skip it
+
+            if Skipped /= null then
+               Skipped.Include (Cond);
+            end if;
+
+            Next_Cond := Next_Condition (Cond, To_Boolean (Cond_Value));
+            if Next_Cond = No_SCO_Id then
+               --  There is no successor: we have reached the outcome.
+
+               Outcome := SC_Obligations.Outcome
+                 (Cond,
+                  To_Boolean (Cond_Value));
+               Cond := No_SCO_Id;
+               return;
+
+            else
+               --  Continue by jumping to its (only) successor
+
+               Cond := Next_Cond;
+            end if;
+         end if;
+      end loop;
+   end Skip_Constant_Conditions;
+
+   ---------------------------------
+   -- Is_Expected_First_Condition --
+   ---------------------------------
+
+   function Is_Expected_First_Condition
+     (Decision  : SCO_Id;
+      Condition : SCO_Id) return Boolean
+   is
+      use SCO_Sets;
+
+      First_Condition           : SCO_Id :=
+        SC_Obligations.Condition (Decision, 0);
+      Outcome                   : Tristate;
+      Possible_First_Conditions : aliased SCO_Sets.Set;
+   begin
+      Skip_Constant_Conditions
+        (First_Condition, Outcome, Possible_First_Conditions'Access);
+      return Condition = First_Condition
+                or else
+             Possible_First_Conditions.Contains (Condition);
+   end Is_Expected_First_Condition;
+
+   -------------------------------
+   -- Is_Last_Runtime_Condition --
+   -------------------------------
+
+   function Is_Last_Runtime_Condition
+     (D_Occ : Decision_Occurrence_Access) return Boolean
+   is
+      CI_SCO  : SCO_Id;
+      Outcome : Tristate;
+   begin
+      --  If this is the last condition in the whole decision, so it is
+      --  obviously acceptable.
+
+      if D_Occ.Last_Cond_Index = D_Occ.Seen_Condition then
+         return True;
+      end if;
+
+      --  When the last conditions are constant, the last seen condition can be
+      --  different that the last decision condition. Return whether there is
+      --  at least one runtime condition between the last seen condition and
+      --  skipping constants conditions.
+
+      for Value in Boolean'Range loop
+         CI_SCO := Next_Condition
+           (Condition (D_Occ.Decision, D_Occ.Seen_Condition),
+            Value);
+         Skip_Constant_Conditions (CI_SCO, Outcome, null);
+         if CI_SCO /= No_SCO_Id then
+            return False;
+         end if;
+      end loop;
+
+      --  We reached the outcome by both original's condition outgoing
+      --  edges without meeting any runtime condition, thus the last seen
+      --  condition was the last runtime one.
+
+      return True;
+   end Is_Last_Runtime_Condition;
 
    ---------------------------------
    -- Analyze_Decision_Occurrence --
@@ -670,16 +824,37 @@ package body Decision_Map is
          begin
             for J in Boolean'Range loop
                declare
-                  Next_C : constant SCO_Id :=
-                             SC_Obligations.Next_Condition (CBI.Condition, J);
+                  use SCO_Sets;
+
+                  Next_Condition_SCO  : constant SCO_Id := Condition
+                    (D_Occ.Decision, Next_Condition);
+
+                  Next_C              : SCO_Id;
+                  Outcome             : Tristate;
+                  Possible_Successors : aliased SCO_Sets.Set;
                begin
-                  if Next_C /= No_SCO_Id
-                    and then Index (Next_C) = Next_Condition
+                  --  Go to the next condition with the J valuation for the
+                  --  current condition, and skip constant conditions if any.
+
+                  Next_C := SC_Obligations.Next_Condition (CBI.Condition, J);
+                  Skip_Constant_Conditions
+                    (Next_C, Outcome, Possible_Successors'Access);
+
+                  --  If there is a match between the resulting condition and
+                  --  the given Next_Condition, return the tried valuation.
+
+                  if (Next_C /= No_SCO_Id
+                        and then Index (Next_C) = Next_Condition)
+                     or else Possible_Successors.Contains (Next_Condition_SCO)
                   then
                      return To_Tristate (J);
                   end if;
                end;
             end loop;
+
+            --  If we end up here, no valuation enabled us to reach
+            --  Next_Condition.
+
             return Unknown;
          end Check_Possible_Successor;
 
@@ -1151,6 +1326,17 @@ package body Decision_Map is
          CBE.Origin  := To_Tristate (Origin);
          CBE.Outcome := Outcome (CBI.Condition, Origin);
 
+         if CBE.Outcome = Unknown then
+            --  The outcome may be reached after having skipped constant
+            --  conditions.
+
+            declare
+               Cond : SCO_Id := Next_Condition (CBI.Condition, Origin);
+            begin
+               Skip_Constant_Conditions (Cond, CBE.Outcome, Skipped => null);
+            end;
+         end if;
+
          if CBE.Outcome /= Unknown then
             CBE.Dest_Kind := Outcome;
 
@@ -1161,6 +1347,11 @@ package body Decision_Map is
 
          else
             Next_C_SCO := Next_Condition (CBI.Condition, Origin);
+            declare
+               Outcome : Tristate;
+            begin
+               Skip_Constant_Conditions (Next_C_SCO, Outcome, Skipped => null);
+            end;
             if Next_C_SCO /= No_SCO_Id then
                CBE.Dest_Kind := Condition;
                CBE.Next_Condition := Index (Next_C_SCO);
@@ -1435,10 +1626,10 @@ package body Decision_Map is
    --  Start of processing for Analyze_Decision_Occurrence
 
    begin
-      if D_Occ.Last_Cond_Index /= D_Occ.Seen_Condition then
+      if not Is_Last_Runtime_Condition (D_Occ) then
          --  Report PC of last seen condition in decision occurrence, if it is
-         --  not the final condition of the decision (indicates a decision
-         --  occurrence being flushed before it was completely seen).
+         --  not the final runtime condition of the decision (indicates a
+         --  decision occurrence being flushed before it was completely seen).
 
          Report (Exe, Last_Seen_Condition_PC,
                  "incomplete occurrence of " & Image (D_Occ.Decision));
@@ -1496,11 +1687,14 @@ package body Decision_Map is
          end;
       end loop;
 
-      --  Report conditions for which no edge provides a valuation
+      --  Report non-constant conditions for which no edge provides a valuation
 
       for J in Condition_Index'First .. D_Occ.Last_Cond_Index loop
          for Val in Boolean'Range loop
-            if not Has_Valuation (J, Val) then
+            if not Has_Valuation (J, Val)
+                  and then
+               Value (Condition (D_Occ.Decision, J)) = Unknown
+            then
 
                --  Static analysis failed???
 

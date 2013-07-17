@@ -182,6 +182,10 @@ package SC_Obligations is
    --  Outcome of decision if this condition has the given value, or Unknown
    --  if the value does not determine the decision outcome.
 
+   function Value (SCO : SCO_Id) return Tristate;
+   --  Value of the condition (True or False) if compile-time known. Unknown
+   --  otherwise.
+
    function Enclosing_Decision (SCO : SCO_Id) return SCO_Id;
    --  Enclosing decision (climbing up the expression tree through operator
    --  SCOs).

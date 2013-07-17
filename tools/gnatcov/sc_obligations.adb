@@ -2363,6 +2363,17 @@ package body SC_Obligations is
       end case;
    end Outcome;
 
+   -----------
+   -- Value --
+   -----------
+
+   function Value (SCO : SCO_Id) return Tristate is
+      SCOD : constant SCO_Descriptor := SCO_Vector.Element (SCO);
+   begin
+      pragma Assert (SCOD.Kind = Condition);
+      return SCOD.Value;
+   end Value;
+
    ------------
    -- Parent --
    ------------
