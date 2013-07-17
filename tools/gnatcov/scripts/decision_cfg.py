@@ -48,7 +48,7 @@ OBJDUMP_INSN = re.compile(
     '^[ ]*(?P<pc>[0-9a-f]+):'
     '\t[0-9a-f ]+\t'
     '(?P<mnemonic>[^ ]+)'
-    '(?:[ ]+(?P<operands>.+))?\n$'
+    '[ ]?(?:[ ]+(?P<operands>.+))?\n$'
 )
 
 OBJDUMP_DEST = re.compile('^(?P<pc>[0-9a-f]+) <(?P<symbol>[^>]+)>$')
@@ -139,13 +139,6 @@ class ArchX86(Arch):
             return (None, None, None)
 
 class ArchPPC32(Arch):
-    # Mnemonic tables: mnemonic -> index of operand that contain the address,
-    # or None (for instance, for a register).
-    JUMPS = {
-        'b': None,
-        'ba': 0,
-    }
-    # bl and blr return from subroutine: not jump/branch instructions.
     @staticmethod
     def get_insn_dest(operand):
         m = OBJDUMP_DEST.match(operand)
@@ -203,7 +196,43 @@ class ArchPPC32(Arch):
             pc, symbol
         )
 
+class ArchSPARC32(Arch):
+    @staticmethod
+    def get_insn_dest(operand):
+        m = OBJDUMP_DEST.match(operand)
+        if m:
+            return (
+                int(m.group('pc'), 16),
+                m.group('symbol')
+            )
+        else:
+            return (None, None)
+
+    @staticmethod
+    def get_insn_properties(insn):
+        if insn.mnemonic.startswith('b') and insn.mnemonic != 'b':
+            addr, symbol = ArchSPARC32.get_insn_dest(
+                insn.operands.split(',')[0]
+            )
+            return (Arch.BRANCH, addr, symbol)
+        elif insn.mnemonic in ('jmp', 'b'):
+            addr, symbol = ArchSPARC32.get_insn_dest(
+                insn.operands.split(',')[0]
+            )
+            return (Arch.JUMP, addr, symbol)
+        elif insn.mnemonic == 'call':
+            addr, symbol = ArchSPARC32.get_insn_dest(
+                insn.operands.split(',')[0]
+            )
+            return (Arch.CALL, addr, symbol)
+        elif insn.mnemonic == 'ret':
+            return (Arch.RET, None, None)
+        else:
+            return (None, None, None)
+
 ARCHITECTURES = {
+    # SPARC 32bit
+    2:  ArchSPARC32,
     # x86
     3:  ArchX86,
     # PowerPC 32bit
