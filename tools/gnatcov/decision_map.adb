@@ -1221,7 +1221,7 @@ package body Decision_Map is
 
       begin
          <<Follow_Jump>>
-         if Next_PC = 0 then
+         if Next_PC = No_PC then
             --  We cannot follow indirect jumps.  If we end up there, we can
             --  only stop the analysis of the current edge.
 
