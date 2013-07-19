@@ -80,7 +80,7 @@ class IntervalMap(object):
                 else:
                     # Example: [3;4[ is added to bounds [1;2;5;6]
                     pass
-                self.bounds.insert(start_insert_index, interval.stop)
+                self.bounds.insert(start_insert_index, interval.start)
 
         elif stop_insert_index > start_insert_index + 1:
             # Example: [2;4[ is added to bounds [1;3;5]
@@ -187,6 +187,26 @@ if __name__ == '__main__':
 
     m = IntervalMap()
 
+    def sanity_check():
+        """Check that the interval map is healthy (no buggy internal data)."""
+
+        # Bounds must be strictly increasing.
+        last_bound = None
+
+        # First bound must start an interval, and so does every bound that
+        # follow another bound that does not.
+        last_bound_starts_interval = False
+
+        for bound in m.bounds:
+            if last_bound is not None:
+                assert last_bound < bound
+
+            starts_interval = bound in m.values
+            assert last_bound_starts_interval or starts_interval
+
+            last_bound = bound
+            last_bound_starts_interval = starts_interval
+
     def add(low, high, value, exception_expected=None):
         print('Adding [{}; {}[: {}'.format(low, high, repr(value)))
         try:
@@ -204,6 +224,8 @@ if __name__ == '__main__':
             else:
                 print('  ', m)
                 print('  >>', m.bounds)
+
+        sanity_check()
 
     print('Empty interval map')
     print('  ', m)
