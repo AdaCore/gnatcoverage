@@ -10,6 +10,7 @@ import subprocess
 
 import bddinfo
 import slocinfo
+import syminfo
 import traceinfo
 
 JUMP, FALLTHROUGH, BRANCH = range(3)
@@ -268,6 +269,12 @@ def parse_sloc_range(string):
         int(end_line), int(end_column),
     )
 
+def parse_location(string):
+    if ':' in string:
+        return parse_sloc_range(string)
+    else:
+        return syminfo.Symbol(None, None, string)
+
 
 def slocs_match_range(slocs, sloc_range):
     """Return if any of the `slocs` match `sloc_range`."""
@@ -290,6 +297,32 @@ def slocs_match_range(slocs, sloc_range):
     # If there is no sloc, the associated instruction cannot be in the
     # decision.
     return False
+
+class Locations(object):
+    """Gather information about code matching criterias."""
+
+    def __init__(self, symbols, matched_symbols, matched_sloc_ranges):
+        self.symbols = symbols
+        self.matched_symbols = set(matched_symbols)
+        # TODO: matching slocs may be more efficient using an interval map. The
+        # only thing to do is to flatten the given list... (interval maps do
+        # not handle overlapping elements)
+        self.matched_sloc_ranges = matched_sloc_ranges
+
+    def match(self, slocs, address):
+        """Return if any sloc or the symbol corresponding to the
+        given address is matched by criterias.
+        """
+        try:
+            symbol = self.symbols[address].name
+        except KeyError:
+            symbol = None
+        if symbol in self.matched_symbols:
+            return True
+        for sloc_range in self.matched_sloc_ranges:
+            if slocs_match_range(slocs, sloc_range):
+                return True
+        return False
 
 
 class Insn:
@@ -321,7 +354,7 @@ class Insn:
         )
 
 
-def get_decision_cfg(program, toolchain, sloc_info, decision_sloc_range):
+def get_decision_cfg(program, toolchain, sloc_info, locations):
     get_insn_properties = program.arch.get_insn_properties
 
     # Let objdump disassemble the program for us...
@@ -364,7 +397,7 @@ def get_decision_cfg(program, toolchain, sloc_info, decision_sloc_range):
         )
         if last_instruction:
             last_instruction.next_pc = pc
-        sloc_in_decision = slocs_match_range(insn.slocs, decision_sloc_range)
+        sloc_in_decision = locations.match(insn.slocs, pc)
 
         # This instruction is the successor of the previous instruction.
         if last_instruction_can_fallthrough:
@@ -393,7 +426,7 @@ def get_decision_cfg(program, toolchain, sloc_info, decision_sloc_range):
 
                 # Remember the jump/branch destination must start a basic block
                 # only in the case it is inside the decision.
-                if slocs_match_range(dest_slocs, decision_sloc_range):
+                if locations.match(dest_slocs, dest):
                     basic_block_starters.add(dest)
                     # If the current instruction is outside, remember it
                     # anyway.
@@ -476,10 +509,11 @@ if __name__ == '__main__':
         help='The program to analyse'
     )
     parser.add_argument(
-        'sloc-range', type=parse_sloc_range,
+        'location', type=parse_location, nargs='+',
         help=(
-            'Source location range of the decision to analyse'
-            ' (example: 10:5-11:21)'
+            'Location of the decision to analyse.'
+            ' Can be a sloc range (example: 10:5-11:21)'
+            ' or a symbol name (example: ada__text_io__put_line__2)'
         )
     )
 
@@ -502,10 +536,24 @@ if __name__ == '__main__':
     else:
         f = args.output
 
+    sym_info = syminfo.get_sym_info(args.program.filename)
+    locations = Locations(sym_info,
+        [
+            loc.name
+            for loc in args.location
+            if isinstance(loc, syminfo.Symbol)
+        ],
+        [
+            loc
+            for loc in args.location
+            if isinstance(loc, SlocRange)
+        ]
+    )
+
     sloc_info = slocinfo.get_sloc_info(args.program.filename)
     decision_cfg, outside_insns = get_decision_cfg(
         args.program, args.toolchain,
-        sloc_info, vars(args)['sloc-range']
+        sloc_info, locations
     )
 
     # Load the BDD if asked to. Reminder: this is a map:
