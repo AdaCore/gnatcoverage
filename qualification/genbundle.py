@@ -448,10 +448,27 @@ class QMAT:
             sphinx_target_for[self.o.docformat]
             )
 
+        # We used to use a wildcard for the source name, but that didn't
+        # work because two different pdf files are generated in the same
+        # directory.  The following approach is "ugly", but also intended
+        # to be temporary!
+        if partname == 'TOR':
+            source_name = 'TOR_Doc'
+        elif partname == 'PLANS':
+            source_name = 'plans'
+        elif partname == 'STR':
+            source_name = 'GNATcoverage'
+        elif 'GNATCOV-QMAT-PDF' in partname:
+            source_name = 'GNATcoverageQualificationMaterial'
+        else:
+            source_name = partname
+
         this_source = (
             this_build_subdir if this_target_is_tree
-            else this_build_subdir + "/*.%s" % self.o.docformat
+            else os.path.join(this_build_subdir,
+            source_name + ".%s" % self.o.docformat)
             )
+
 
         # Delete an old version of latched results that might
         # already be there if we're running with --work-dir.
@@ -847,12 +864,14 @@ if __name__ == "__main__":
         options.pname = "GNATCOV-QMAT-%s-%4d-%02d-%02d" % (
             options.docformat.upper(), today.year, today.month, today.day)
 
+    # TBD : Temporarily relax this restriction, so we can see
+    #       what a packaged kit looks like.
     # Refuse generating a package in devmode.
 
-    exit_if (
-        options.pname and options.devmode,
-        "Producing a packaged kit is disallowed in devmode."
-        )
+   # exit_if (
+        #options.pname and options.devmode,
+        #"Producing a packaged kit is disallowed in devmode."
+        #)
 
     # Settle on the set of documents we are to produce:
 
