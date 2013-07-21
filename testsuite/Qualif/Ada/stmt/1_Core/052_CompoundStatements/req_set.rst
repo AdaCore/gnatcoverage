@@ -1,5 +1,5 @@
-SC expectations regarding ARM chap. 5 : Compound Statements (that contain
-=========================================================================
+SC expectations for ARM chap. 5 : Compound Statements
+=====================================================
 
 SC expectations regarding ARM chap. 5 : Compound Statements (that contain
 other statements)

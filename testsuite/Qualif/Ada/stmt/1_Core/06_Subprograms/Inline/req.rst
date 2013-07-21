@@ -1,5 +1,5 @@
-SC expectations regarding Inlining effects
-==========================================
+SC expectations for Inlining effects
+====================================
 
 SC expectations regarding Inlining effects
 

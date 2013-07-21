@@ -1,5 +1,5 @@
-SC expectations regarding ARM chap. 8 : Visibility Rules
-========================================================
+SC expectations for ARM chap. 8 : Visibility Rules
+==================================================
 
 SC expectations regarding ARM chap. 8 : Visibility Rules
 

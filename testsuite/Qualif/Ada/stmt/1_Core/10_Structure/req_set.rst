@@ -1,5 +1,5 @@
-SC expectations regarding ARM chap. 10 : Program Structure
-==========================================================
+SC expectations for ARM chap. 10 : Program Structure
+====================================================
 
 SC expectations regarding ARM chap. 10 : Program Structure
 

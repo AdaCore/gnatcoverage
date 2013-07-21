@@ -1,5 +1,5 @@
-SC expectations regarding ARM chap. 11 : Exceptions
-===================================================
+SC expectations for ARM chap. 11 : Exceptions
+=============================================
 
 SC expectations regarding ARM chap. 11 : Exceptions
 

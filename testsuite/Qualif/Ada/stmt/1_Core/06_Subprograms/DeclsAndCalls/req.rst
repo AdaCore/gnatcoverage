@@ -1,5 +1,5 @@
-SC expectations regarding subprogram declarations and calls
-===========================================================
+SC expectations for subprogram declarations and calls
+=====================================================
 
 SC expectations regarding subprogram declarations and calls
 

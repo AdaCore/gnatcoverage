@@ -1,5 +1,5 @@
-SC expectations for mixes of statement constructs, representative of real
-=========================================================================
+SC expectations for mixed statement constructs
+==============================================
 
 SC expectations for mixes of statement constructs, representative of real
 application code.

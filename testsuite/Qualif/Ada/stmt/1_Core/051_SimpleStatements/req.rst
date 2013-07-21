@@ -1,5 +1,5 @@
-SC expectations regarding ARM chap. 5 : Simple Statements (that do not contain other statements)
-================================================================================================
+SC expectations for ARM chap. 5 : Simple Statements
+===================================================
 
 SC expectations regarding ARM chap. 5 : Simple Statements (that do not contain other statements)
 

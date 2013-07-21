@@ -1,5 +1,5 @@
-SC expectations regarding Return statements
-===========================================
+SC expectations for Return statements
+=====================================
 
 SC expectations regarding Return statements
 

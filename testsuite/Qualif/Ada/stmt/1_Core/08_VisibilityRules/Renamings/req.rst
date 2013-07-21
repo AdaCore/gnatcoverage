@@ -1,5 +1,5 @@
-SC expectations regarding Renaming declarations (ARM 8.5)
-=========================================================
+SC expectations for Renaming declarations (ARM 8.5)
+===================================================
 
 SC expectations regarding Renaming declarations (ARM 8.5)
 

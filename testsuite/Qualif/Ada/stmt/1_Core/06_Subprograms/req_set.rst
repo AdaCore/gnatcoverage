@@ -1,5 +1,5 @@
-SC expectations regarding ARM chap. 6 : Subprograms
-===================================================
+SC expectations for ARM chap. 6 : Subprograms
+=============================================
 
 SC expectations regarding ARM chap. 6 : Subprograms
 

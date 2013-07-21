@@ -1,5 +1,5 @@
-SC expectations regarding ARM chap. 2 : Lexical Elements
-========================================================
+SC expectations for ARM chap. 2 : Lexical Elements
+==================================================
 
 SC expectations regarding ARM chap. 2 : Lexical Elements
 
