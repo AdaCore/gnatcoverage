@@ -1,5 +1,5 @@
-Exercise a three way if statement with three different
-======================================================
+Exercise a three way if statement with three different drivers
+==============================================================
 
 Exercise a three way if statement with three different
 drivers, each running into one of the three possible cases.

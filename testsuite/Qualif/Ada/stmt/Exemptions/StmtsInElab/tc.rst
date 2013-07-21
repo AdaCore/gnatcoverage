@@ -1,5 +1,5 @@
-Check processing of exemptions applying to groups of statements within a
-========================================================================
+exemptions applying to groups of statements within a package body elaboration sequence
+==============================================================================
 
 Check processing of exemptions applying to groups of statements within a
 package body elaboration sequence, in both a regular and a generic package.

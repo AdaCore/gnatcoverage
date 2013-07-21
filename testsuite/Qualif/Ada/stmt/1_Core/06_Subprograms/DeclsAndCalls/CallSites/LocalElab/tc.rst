@@ -1,4 +1,4 @@
-Check SC on a simple subprogram called from a local package elaboration body
-============================================================================
+simple subprogram called from a local package elaboration body
+==============================================================
 
 Check SC on a simple subprogram called from a local package elaboration body

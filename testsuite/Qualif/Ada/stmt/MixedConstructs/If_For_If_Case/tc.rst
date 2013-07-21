@@ -1,5 +1,5 @@
-Exercise a toplevel If statement with an else sequence embedding a For loop,
-============================================================================
+Exercise a toplevel If statement, whose Else sequence contains a For Loop, whose body contains an IF statement controlling access to a Case statement
+==============================================================================
 
 Exercise a toplevel If statement with an else sequence embedding a For loop,
 whose body features an inner If statement that controls access to a Case

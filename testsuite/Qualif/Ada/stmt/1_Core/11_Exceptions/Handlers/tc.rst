@@ -1,5 +1,5 @@
-Check SC correct recognition of alternate exception handlers for user
-=====================================================================
+alternate exception handlers for user-defined or language-standard exceptions
+=============================================================================
 
 Check SC correct recognition of alternate exception handlers for user
 defined or language standard exceptions

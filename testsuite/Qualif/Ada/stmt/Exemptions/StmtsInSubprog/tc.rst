@@ -1,5 +1,5 @@
-Check processing of exemptions applying to a mix of statements and
-==================================================================
+exemptions applying to a mix of statements and declarations in several regions of a single subprogram body
+==============================================================================
 
 Check processing of exemptions applying to a mix of statements and
 declarations in several regions of a single subprogram body.

@@ -1,5 +1,5 @@
-Check SC with block statements with/without declarative part or exception
-=========================================================================
+block statements with/without declarative part or exception handlers
+====================================================================
 
 Check SC with block statements with/without declarative part or exception
 handlers, containing or nested-within a variety of language constructs

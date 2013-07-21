@@ -1,5 +1,5 @@
-Check SC within a panel of nested subprograms reached through a variety of
-==========================================================================
+Panel of nested subprograms reached through a variety of call mechanisms
+========================================================================
 
 Check SC within a panel of nested subprograms reached through a variety of
 call mechanisms

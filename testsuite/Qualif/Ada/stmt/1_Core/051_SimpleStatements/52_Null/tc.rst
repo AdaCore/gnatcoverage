@@ -1,5 +1,5 @@
-Check SC of Null statements (ARM 5.2)
-=====================================
+Null statements (ARM 5.2)
+=========================
 
 Check SC of Null statements (ARM 5.2)
 

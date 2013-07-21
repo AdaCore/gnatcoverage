@@ -1,5 +1,5 @@
-Check that package or subprogram renamings are handled correctly
-================================================================
+package and subprogram renamings
+================================
 
 Check that package or subprogram renamings are handled correctly
 

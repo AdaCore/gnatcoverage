@@ -1,5 +1,5 @@
-Check SC with complex overridings for tagged types
-==================================================
+complex overridings for tagged types
+====================================
 
 Check SC with complex overridings for tagged types
 

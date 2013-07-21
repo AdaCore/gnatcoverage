@@ -1,5 +1,5 @@
-Check SC of active pragmas
-==========================
+active pragmas
+==============
 
 Check SC of active pragmas
 

@@ -1,8 +1,8 @@
-SC testcases for ``return A and then B`` where operand evaluations might raise
+Check SC for "return A and then B", where operand evaluations might raise an exception
 ==============================================================================
 
 SC testcases for ``return A and then B`` where operand evaluations might raise
-exception
+an exception
 
 .. qmlink:: TCIndexImporter
 

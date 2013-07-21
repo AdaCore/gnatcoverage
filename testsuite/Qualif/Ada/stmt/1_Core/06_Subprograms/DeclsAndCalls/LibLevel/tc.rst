@@ -1,5 +1,5 @@
-Check SC within a panel of library level subprograms reached through
-====================================================================
+Panel of library level subprograms reached through a variety of call mechanisms
+===============================================================================
 
 Check SC within a panel of library level subprograms reached through
 a variety of call mechanisms

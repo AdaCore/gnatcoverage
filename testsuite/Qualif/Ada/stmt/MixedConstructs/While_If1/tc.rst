@@ -1,5 +1,5 @@
-Exercise a simple If statement within a While loop.
-===================================================
+Exercise a simple If statement within a While loop
+==================================================
 
 Exercise a simple If statement within a While loop.
 

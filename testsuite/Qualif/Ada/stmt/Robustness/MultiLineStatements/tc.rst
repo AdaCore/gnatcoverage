@@ -1,5 +1,5 @@
-Check that statements spanning multiple lines are handled properly.
-===================================================================
+statements spanning multiple lines
+==================================
 
 Check that statements spanning multiple lines are handled properly.
 

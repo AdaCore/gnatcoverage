@@ -1,5 +1,5 @@
-Check SC with LOOP statements that don't even start an iteration over
-=====================================================================
+LOOP statements that don't start an iteration
+=============================================
 
 Check SC with LOOP statements that don't even start an iteration over
 the nested sequence, guarded out by the header control expression

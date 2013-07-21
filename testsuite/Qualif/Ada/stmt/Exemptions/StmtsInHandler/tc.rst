@@ -1,5 +1,5 @@
-Check processing of exemptions applying to groups of statements within local
-============================================================================
+exemptions applying to groups of statements within local exception handlers
+===========================================================================
 
 Check processing of exemptions applying to groups of statements within local
 exception handlers.

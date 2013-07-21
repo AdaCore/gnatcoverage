@@ -1,4 +1,4 @@
-Check SC of sequences potentially skipped by exceptions that propagate through
+sequences potentially skipped by exceptions that propagate through multiple levels of block nesting
 ==============================================================================
 
 Check SC of sequences potentially skipped by exceptions that propagate through

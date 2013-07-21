@@ -1,5 +1,5 @@
-Check the correctness of SC assessments for subprograms declared in various package regions
-===========================================================================================
+subprograms declared in various package regions
+===============================================
 
 Check the correctness of SC assessments for subprograms declared in various package regions
 

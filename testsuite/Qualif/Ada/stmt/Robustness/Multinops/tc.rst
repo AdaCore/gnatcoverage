@@ -1,5 +1,5 @@
-Check that sequences of multiple nop statements (e.g. null or pragma) are
-=========================================================================
+sequences of multiple nop statements (e.g. null or pragma)
+==========================================================
 
 Check that sequences of multiple nop statements (e.g. null or pragma) are
 handled properly.

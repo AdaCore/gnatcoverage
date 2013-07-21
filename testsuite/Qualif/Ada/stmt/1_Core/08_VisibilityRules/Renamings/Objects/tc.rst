@@ -1,5 +1,5 @@
-Check that object renamings are handled correctly
-=================================================
+object renamings
+================
 
 Check that object renamings are handled correctly
 

@@ -1,5 +1,5 @@
-Check processing of exemptions applying to groups of entire subprograms.
-========================================================================
+exemptions applying to groups of entire subprograms
+===================================================
 
 Check processing of exemptions applying to groups of entire subprograms.
 
