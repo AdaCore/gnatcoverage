@@ -1,5 +1,5 @@
-DC expectations for mixes of statement and decision constructs representative
-=============================================================================
+DC expectations for mixed statement and decision constructs
+===========================================================
 
 DC expectations for mixes of statement and decision constructs representative
 of real application code.

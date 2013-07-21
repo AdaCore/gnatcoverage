@@ -1,5 +1,5 @@
-DC expectations regarding exemption regions.
-============================================
+DC expectations for exemption regions
+=====================================
 
 DC expectations regarding exemption regions.
 

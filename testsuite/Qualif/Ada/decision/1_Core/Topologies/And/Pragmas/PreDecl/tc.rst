@@ -1,5 +1,5 @@
-Check DC on ``A and then B`` as a Precondition attached to a subprogram
-=======================================================================
+"A and then B", as a Precondition attached to a subprogram declaration
+======================================================================
 
 Check DC on ``A and then B`` as a Precondition attached to a subprogram
 declaration.

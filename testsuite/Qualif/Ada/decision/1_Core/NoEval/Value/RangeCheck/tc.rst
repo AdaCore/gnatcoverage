@@ -1,5 +1,5 @@
-Check DC on ``if A`` where A involves a range check that
-========================================================
+"if A", where "A" involves a range check that may fail at run-time
+==================================================================
 
 Check DC on ``if A`` where A involves a range check that
 may fail at run-time.

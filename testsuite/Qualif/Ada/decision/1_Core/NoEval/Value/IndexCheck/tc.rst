@@ -1,5 +1,5 @@
-Check DC on ``if A`` where A involves an index check that
-=========================================================
+"if A", where "A" involves an index check that may fail at run-time
+===================================================================
 
 Check DC on ``if A`` where A involves an index check that
 may fail at run-time.

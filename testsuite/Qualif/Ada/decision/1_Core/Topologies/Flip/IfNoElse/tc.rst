@@ -1,5 +1,5 @@
-Check DC on ``not V`` used to control an IF statement without an Else or Elsif
-==============================================================================
+"not V", used to control an IF statement without an Else or Elsif
+=================================================================
 
 Check DC on ``not V`` used to control an IF statement without an Else or Elsif
 part.

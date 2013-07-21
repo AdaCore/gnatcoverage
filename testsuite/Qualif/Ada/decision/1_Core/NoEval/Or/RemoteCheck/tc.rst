@@ -1,5 +1,5 @@
-Check DC on ``if A or else B`` where both conditions are a function call that
-=============================================================================
+"if A or else B", where both conditions are a function call that may raise an exception at run-time
+==============================================================================
 
 Check DC on ``if A or else B`` where both conditions are a function call that
 may raise an exception at run-time.

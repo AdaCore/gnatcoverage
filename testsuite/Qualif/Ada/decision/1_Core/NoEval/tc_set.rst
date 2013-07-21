@@ -1,5 +1,5 @@
-Check the correctness of DC assessments on decisions that are not entirely evaluated (don't yield
-=================================================================================================
+Decisions that are not entirely evaluated (i.e., interruption by exception occurrence)
+==============================================================================
 
 Check the correctness of DC assessments on decisions that are not entirely evaluated (don't yield
 an outcome) even though the statement they control is executed, typically when

@@ -1,5 +1,5 @@
-DC expectations with respect to potentially confusing constructs,
-=================================================================
+DC expectations for complicated constructs
+==========================================
 
 DC expectations with respect to potentially confusing constructs,
 e.g. decisions spanning multiple lines.
