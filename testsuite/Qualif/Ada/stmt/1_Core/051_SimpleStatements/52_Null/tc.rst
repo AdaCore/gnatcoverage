@@ -9,8 +9,8 @@ Check various code fragments that contain null statements such as:
 
 * null procedure;
 
-* last statement in a sequence, with a label attached to it used to skip
-  earlier statements in the sequence.
+* last statement in a sequence, with a label attached to it (used for
+  a control transfer to skip earlier statements in the sequence).
 
 Check that only those null statements that are not executed are reported as
 uncovered.

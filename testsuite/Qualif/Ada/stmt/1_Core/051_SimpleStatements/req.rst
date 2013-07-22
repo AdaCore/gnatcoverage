@@ -7,7 +7,8 @@ Requirement(s)
 
 
 
-A simple statement (i.e., does not contain other statements) shall be reported as uncovered if it is not executed.
+A simple statement (i.e., one that does not contain other statements)
+shall be reported as uncovered if it is not executed.
 
 
 Testing Strategy
@@ -15,8 +16,8 @@ Testing Strategy
 
 
 
-We exercise every possible kind of simple statement, as defined by the ARM,
-in a variety of situations by way of the following set of testcases:
+The following testcases exercise each kind of simple statement
+in a variety of situations:
 
 
 .. qmlink:: TCIndexImporter
