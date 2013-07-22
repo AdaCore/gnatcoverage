@@ -16,8 +16,8 @@ Testing Strategy
 
 
 
-We exercise test programs for all the ARM chapter 3 elements of relevance from
-a structural coverage analysis perspective:
+Test programs are provided for all the ARM chapter 3 elements that are relevant
+to structural coverage analysis:
 
 
 .. qmlink:: TCIndexImporter
@@ -27,6 +27,6 @@ a structural coverage analysis perspective:
 
 
 For object declarations, we distinguish cases that might involve dynamic stack
-or heap allocations as these require run-time library support that some
-execution environments don't provide.
+or heap allocations, since these require run-time library support that
+might not be provided by some execution environments.
 
