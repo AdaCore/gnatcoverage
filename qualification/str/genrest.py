@@ -801,7 +801,7 @@ class QDreport:
 
         thissum.__setitem__ (
             colid.ovsta, TextCell (
-                "%s" % "OK" if thissum[colid.failed].value == 0 else "BING"))
+                "%s" % "OK" if thissum[colid.failed].value == 0 else "NOT OK"))
 
         [self.do_sum (qd=qd, catsum=totsum) for qd in cat.qdl]
 
@@ -830,7 +830,7 @@ class QDreport:
 
         totsum.__setitem__ (
             colid.ovsta, TextCell (
-                "%s" % "OK" if totsum[colid.failed].value == 0 else "BING"))
+                "%s" % "OK" if totsum[colid.failed].value == 0 else "NOT OK"))
 
         return catsums + [totsum]
 
