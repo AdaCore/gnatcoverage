@@ -1,10 +1,10 @@
 Core expectations for Statement Coverage (SC) assessments
 =========================================================
 
-All the other SC related sections rely on this one.
+All the other SC-related sections rely on this one.
 
 To ensure coverage of all the relevant language constructs, we decompose the
-material further in accordance with the Ada Reference Manual (ARM):
+material further based on the organization of the Ada Reference Manual (ARM):
 
 
 .. qmlink:: SubsetIndexImporter
@@ -13,7 +13,7 @@ material further in accordance with the Ada Reference Manual (ARM):
 
 
 
-A few chapters are not included for the following reasons:
+Several chapters are not included for the following reasons:
 
 .. csv-table::
    :header: "Chapter", "Not included because ..."
@@ -28,6 +28,6 @@ A few chapters are not included for the following reasons:
    qualified is based on Zero Foot Print run-time, which does not support any
    construct described in this chapter"
    ARM chap. 13 : Representation Issues | "Constructs described in this
-   chapter do not result in executable code so they are of no interest for
+   chapter do not result in executable code and thus are not relevant to
    coverage analysis."
 
