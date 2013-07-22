@@ -1,5 +1,5 @@
 Assignment statements (ARM 5.1)
-===============================
+================================
 
 Check SC of Assignment statements (ARM 5.1)
 

@@ -1,5 +1,5 @@
 Check MCDC on a decision of the form ``(A and then B) or else C``, known to feature a
-=====================================================================================
+======================================================================================
 
 Check MCDC on a decision of the form ``(A and then B) or else C``, known to feature a
 BDD diamond, with all the meaningful combination of inputs.

@@ -1,5 +1,5 @@
 Exercise two distinct decisions used as subprogram actuals.
-===========================================================
+============================================================
 
 Exercise two distinct decisions used as subprogram actuals.
 

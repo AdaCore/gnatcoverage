@@ -1,5 +1,5 @@
 Expectations on a case where no violation or exempted region is expected
-========================================================================
+=========================================================================
 
 Check output report compliance to expectations on a case where no violation or
 exempted region is expected.

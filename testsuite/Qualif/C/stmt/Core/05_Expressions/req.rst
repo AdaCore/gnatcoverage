@@ -1,5 +1,5 @@
 SC expectations for chapter 6, section 5: Expressions
-=====================================================
+======================================================
 
 SC expectations regarding chapter 6, section 5: Expressions
 

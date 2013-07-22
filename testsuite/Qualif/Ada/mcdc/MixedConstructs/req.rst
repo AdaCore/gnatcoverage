@@ -1,5 +1,5 @@
 MCDC expectations for mixes of various statement and decision constructs
-========================================================================
+=========================================================================
 
 MCDC expectations for mixes of various statement and decision constructs
 representative of real application code.

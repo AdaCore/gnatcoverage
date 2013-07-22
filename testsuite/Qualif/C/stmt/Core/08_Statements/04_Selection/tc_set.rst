@@ -1,5 +1,5 @@
 SC expectations regarding section 8.4: Selection statements
-===========================================================
+============================================================
 
 SC expectations regarding section 8.4: Selection statements
 

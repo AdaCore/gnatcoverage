@@ -1,5 +1,5 @@
 exemptions applying to groups of statements within the root sequence of a subprogram body
-==============================================================================
+==========================================================================================
 
 Check processing of exemptions applying to groups of statements within the
 root sequence of a subprogram body.

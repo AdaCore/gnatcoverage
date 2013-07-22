@@ -1,5 +1,5 @@
 SC expectations for the combination of multiple execution traces
-================================================================
+=================================================================
 
 SC expectations regarding the combination of multiple
 execution traces together.

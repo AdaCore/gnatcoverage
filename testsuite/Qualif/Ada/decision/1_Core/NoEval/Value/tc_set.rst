@@ -1,5 +1,5 @@
 DC testcases for a decision of the form "A", simple expression
-==============================================================
+===============================================================
 
 DC testcases for a decision of the form ``A``, simple expression without
 negation.

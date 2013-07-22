@@ -1,5 +1,5 @@
 Exercise the use of an exemption region to exempt a functional precondition at beginning of subprogram body
-===============================================================================
+============================================================================================================
 
 Exercise the use of an exemption region to exempt a functional precondition
 expressed manually (explicit check) at the beginning of a subprogram body.

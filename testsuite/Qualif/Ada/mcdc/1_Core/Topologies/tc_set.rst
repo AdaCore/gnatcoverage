@@ -1,5 +1,5 @@
 Check the correctness of MCDC assessments on expressions of arbitrary topology
-==============================================================================
+===============================================================================
 
 Check the correctness of MCDC assessments on expressions of arbitrary topology
 everywhere they might appear.

@@ -1,5 +1,5 @@
 Variant Parts in record type declarations
-=========================================
+==========================================
 
 Check SC related to Variant Parts in record type declarations
 

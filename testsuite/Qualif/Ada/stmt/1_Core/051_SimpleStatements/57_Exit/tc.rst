@@ -1,5 +1,5 @@
 loop Exit statements (ARM 5.7)
-==============================
+===============================
 
 Check SC of loop Exit statements (ARM 5.7)
 

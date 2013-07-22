@@ -1,5 +1,5 @@
 local instantiation
-===================
+====================
 
 Check that in case of a local instantiation the code of the generic unit is
 not reported as covered if the instantiation is not executed or elaborated.

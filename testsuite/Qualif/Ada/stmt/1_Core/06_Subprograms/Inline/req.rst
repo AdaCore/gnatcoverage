@@ -1,5 +1,5 @@
 SC expectations for Inlining effects
-====================================
+=====================================
 
 
 Requirement(s)

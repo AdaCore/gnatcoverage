@@ -1,5 +1,5 @@
 Check SC with expressions that can fail to evaluate because of exceptions
-=========================================================================
+==========================================================================
 
 Check the effects of an expression evaluation interrupted by an exception
 raise, for a set of expressions and a set of possible exception origins, as

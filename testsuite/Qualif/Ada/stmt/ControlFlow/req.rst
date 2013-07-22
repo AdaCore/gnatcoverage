@@ -1,5 +1,5 @@
 SC expectations for statement sequences and control-flow transfers
-==================================================================
+===================================================================
 
 SC expectations focused on statement sequences and control-flow transfers.
 

@@ -1,5 +1,5 @@
 package elaboration statements
-==============================
+===============================
 
 Check SC for package elaboration
 

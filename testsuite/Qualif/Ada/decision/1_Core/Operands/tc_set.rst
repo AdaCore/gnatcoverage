@@ -1,5 +1,5 @@
 Decisions featuring various forms of conditions, not just Boolean variables
-===========================================================================
+============================================================================
 
 Check the correctness of DC assessments on decisions featuring various possible forms
 of conditions, not only Boolean variables.

@@ -1,5 +1,5 @@
 Exercise the use of an exemption region to exempt a functional precondition
-===========================================================================
+============================================================================
 
 Exercise the use of an exemption region to exempt a functional precondition
 expressed in a subprogram declarative part.

@@ -1,5 +1,5 @@
 Standalone Boolean variable "B", used to control an IF statement without an Else or Elsif part
-==============================================================================
+===============================================================================================
 
 Check DC on a standalone Boolean variable ``B`` used to control an IF statement without an Else or Elsif part.
 

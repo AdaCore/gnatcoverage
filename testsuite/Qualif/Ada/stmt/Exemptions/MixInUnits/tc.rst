@@ -1,5 +1,5 @@
 exemptions applying to a mix of statements and declarations in several units
-============================================================================
+=============================================================================
 
 Check processing of exemptions applying to a mix of statements and
 declarations in several units.

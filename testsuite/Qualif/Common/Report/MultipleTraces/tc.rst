@@ -1,5 +1,5 @@
 Expectations on a case involving multiple traces and expected violations
-========================================================================
+=========================================================================
 
 Check output report compliance to expectations on a case involving multiple
 traces and expected violations.

@@ -1,5 +1,5 @@
 Core expectations for Statement Coverage (SC) assessments
-=========================================================
+==========================================================
 
 All the other SC-related sections rely on this one.
 

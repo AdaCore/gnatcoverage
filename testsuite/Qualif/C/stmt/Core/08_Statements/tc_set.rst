@@ -1,5 +1,5 @@
 SC expectations reguarding section 8: Statements and blocks
-===========================================================
+============================================================
 
 SC expectations reguarding section 8: Statements and blocks
 

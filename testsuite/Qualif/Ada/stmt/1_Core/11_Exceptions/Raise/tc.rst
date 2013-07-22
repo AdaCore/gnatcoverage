@@ -1,5 +1,5 @@
 multiple kinds of raise operations, implicit or explicit
-========================================================
+=========================================================
 
 Check SC for multiple kinds of raise operations, implicit or explicit,
 for language- or user-defined exceptions in various program contexts.

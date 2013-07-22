@@ -1,5 +1,5 @@
 Recognize statements in package elaboration bodies and nested blocks therein
-============================================================================
+=============================================================================
 
 Check that statements are recognized in package elaboration bodies and
 nested blocks therein.

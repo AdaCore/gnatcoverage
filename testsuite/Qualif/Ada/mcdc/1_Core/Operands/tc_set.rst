@@ -1,5 +1,5 @@
 Check the correctness of MCDC assessments on decisions featuring all the possible forms
-=======================================================================================
+========================================================================================
 
 Check the correctness of MCDC assessments on decisions featuring all the possible forms
 of conditions, not only Boolean variables.

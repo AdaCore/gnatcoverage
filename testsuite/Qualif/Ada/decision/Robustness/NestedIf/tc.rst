@@ -1,5 +1,5 @@
 Proper recognition of independent simple nested constructs
-==========================================================
+===========================================================
 
 Check that the tool properly distinguishes independant simple nested
 constructs. Exercise a simple If statement, without an Else or Elsif part,

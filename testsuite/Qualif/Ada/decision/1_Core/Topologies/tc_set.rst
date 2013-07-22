@@ -1,5 +1,5 @@
 Expressions of various topologies everywhere they may appear
-============================================================
+=============================================================
 
 Check the correctness of DC assessments on expressions of various topologies everywhere they
 might appear.

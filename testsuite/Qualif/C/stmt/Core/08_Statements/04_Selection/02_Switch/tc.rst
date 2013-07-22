@@ -1,5 +1,5 @@
 Exercise a simple SWITCH statement
-==================================
+===================================
 
 Exercise a simple SWITCH statement
 

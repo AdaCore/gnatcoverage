@@ -1,5 +1,5 @@
 Decision Coverage (DC) TORs and Testcases for Ada
-=================================================
+==================================================
 
 Decision Coverage (DC) TORs and Testcases for Ada
 

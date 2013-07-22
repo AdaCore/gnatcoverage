@@ -1,5 +1,5 @@
 Object Declarations involving heap or stack dynamic allocation
-==============================================================
+===============================================================
 
 Check SC of Object Declarations involving heap or stack dynamic allocation
 

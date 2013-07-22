@@ -1,5 +1,5 @@
 SC expectations for ARM chap. 6 : Subprograms
-=============================================
+==============================================
 
 
 This is partitioned into several categories:

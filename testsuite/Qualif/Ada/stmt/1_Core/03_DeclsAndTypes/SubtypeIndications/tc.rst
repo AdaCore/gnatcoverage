@@ -1,5 +1,5 @@
 Subtype Indications
-===================
+====================
 
 Check SC of Subtype Indications
 

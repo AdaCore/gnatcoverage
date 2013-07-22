@@ -1,5 +1,5 @@
 Recognize statements in subprogram bodies and nested blocks therein
-===================================================================
+====================================================================
 
 Check that statements are recognized in subprogram bodies and nested blocks
 therein.
