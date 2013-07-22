@@ -1,8 +1,6 @@
 SC expectations for Loop statements (ARM 5.5)
 =============================================
 
-SC expectations regarding Loop statements (ARM 5.5)
-
 
 Requirement(s)
 --------------

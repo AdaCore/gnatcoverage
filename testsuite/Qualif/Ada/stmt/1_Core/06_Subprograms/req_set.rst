@@ -1,7 +1,6 @@
 SC expectations for ARM chap. 6 : Subprograms
 =============================================
 
-SC expectations regarding ARM chap. 6 : Subprograms
 
 This is split as a set of requirements:
 

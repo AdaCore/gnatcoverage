@@ -1,8 +1,6 @@
 SC expectations for ARM chap. 3 : Declarations and Types
 ========================================================
 
-SC expectations regarding ARM chap. 3 : Declarations and Types
-
 
 Requirement(s)
 --------------

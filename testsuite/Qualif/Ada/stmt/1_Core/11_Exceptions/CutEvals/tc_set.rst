@@ -1,8 +1,6 @@
 Check SC with expressions that can fail to evaluate because of exceptions
 =========================================================================
 
-Check SC with expressions that can fail to evaluate because of exceptions
-
 Check the effects of an expression evaluation interruption by an exception
 raise, for a set of expressions and a set of possible exception origins, as
 part of a simple statement or of the control expression in compound

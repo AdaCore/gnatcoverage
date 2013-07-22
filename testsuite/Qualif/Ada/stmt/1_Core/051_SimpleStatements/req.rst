@@ -1,15 +1,13 @@
 SC expectations for ARM chap. 5 : Simple Statements
 ===================================================
 
-SC expectations regarding ARM chap. 5 : Simple Statements (that do not contain other statements)
-
 
 Requirement(s)
 --------------
 
 
 
-A simple statement shall be reported as uncovered if it is not executed.
+A simple statement (i.e., does not contain other statements) shall be reported as uncovered if it is not executed.
 
 
 Testing Strategy

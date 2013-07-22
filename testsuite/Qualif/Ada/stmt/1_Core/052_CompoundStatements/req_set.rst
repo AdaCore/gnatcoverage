@@ -1,9 +1,6 @@
 SC expectations for ARM chap. 5 : Compound Statements
 =====================================================
 
-SC expectations regarding ARM chap. 5 : Compound Statements (that contain
-other statements)
-
 By construction all the SC requirements apply to all the statements nested in
 compound ones. Specific requirements apply to each possible kind of compound
 statement, as identified by the ARM standard:

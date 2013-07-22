@@ -1,8 +1,6 @@
 SC expectations for If statements (ARM 5.3)
 ===========================================
 
-SC expectations regarding If statements (ARM 5.3)
-
 
 Requirement(s)
 --------------

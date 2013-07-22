@@ -1,8 +1,6 @@
 SC expectations for Block statements (ARM 5.6)
 ==============================================
 
-SC expectations regarding Block statements (ARM 5.6)
-
 
 Requirement(s)
 --------------

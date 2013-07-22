@@ -1,8 +1,6 @@
 SC expectations for Case statements (ARM 5.4)
 =============================================
 
-SC expectations regarding Case statements (ARM 5.4)
-
 
 Requirement(s)
 --------------

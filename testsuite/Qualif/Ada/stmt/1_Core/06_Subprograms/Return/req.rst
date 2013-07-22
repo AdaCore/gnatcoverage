@@ -1,8 +1,6 @@
 SC expectations for Return statements
 =====================================
 
-SC expectations regarding Return statements
-
 
 Requirement(s)
 --------------

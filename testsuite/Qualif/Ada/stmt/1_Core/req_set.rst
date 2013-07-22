@@ -1,7 +1,6 @@
 Core expectations for Statement Coverage (SC) assessments
 =========================================================
 
-Core expectations for Statement Coverage (SC) assessments.
 All the other SC related sections rely on this one.
 
 To ensure coverage of all the relevant language constructs, we decompose the

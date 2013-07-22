@@ -1,8 +1,6 @@
 Describe the tool output report format and check compliance to it
 =================================================================
 
-Describe the tool output report format and check compliance to it
-
 
 Requirement(s)
 --------------

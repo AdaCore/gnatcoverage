@@ -1,8 +1,6 @@
 SC expectations for ARM chap. 7 : Packages
 ==========================================
 
-SC expectations regarding ARM chap. 7 : Packages
-
 
 Requirement(s)
 --------------
