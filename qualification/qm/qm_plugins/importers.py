@@ -10,10 +10,8 @@ def class_to_string(a):
          'HReq_Set': 'rqg',
          'TORReq': 'rq',
          'HReq': 'rq',
-         'TORTC': 'tc',
-         'HTC': 'tc',
-         'TORTC_Set': 'tcg',
-         'HTC_Set': 'tcg'}
+         'TC': 'tc',
+         'TC_Set': 'tcg'}
     if 'Appendix' in a.full_name:
         return 'app'
     elif a.name == 'OpEnviron':
@@ -27,6 +25,14 @@ def class_to_string(a):
 def is_test(a):
     from qm import TC, TC_Set
     return isinstance(a, TC) or isinstance(a, TC_Set)
+
+def is_test_set(a):
+    from qm import TC_Set
+    return isinstance(a, TC_Set)
+
+def is_test_case(a):
+    from qm import TC
+    return isinstance(a, TC)
 
 
 def is_source(a):
@@ -86,7 +92,7 @@ class TCIndexImporter(ArtifactImporter):
 
         links = []
         for a in artifacts:
-            if isinstance(a, TC):
+            if is_test_case(a):
                 links.append((a, TestCaseImporter()))
             elif is_source(a):
                 pass
@@ -155,7 +161,7 @@ class SubsetIndexImporter(ArtifactImporter):
 
         for a in artifacts:
 
-            name = re.sub(r'[0-9]*_(.*)', r'\1', a.name)
+            name = a.name
             items.append([class_to_string(a),
                           name,
                           writer.qmref(a.full_name)])
@@ -281,7 +287,7 @@ class TestCasesImporter(ArtifactImporter):
 
     def qmlink_to_rest(self, parent, artifacts):
 
-        from qm import TC_Sources, TC
+        from qm import TC_Sources, TC, TC_Set
 
         items = []
         for a in artifacts:
@@ -290,9 +296,9 @@ class TestCasesImporter(ArtifactImporter):
 
         links = []
         for a in items:
-            if isinstance(a, TC):
+            if is_test_case (a):
                 links.append((a, TestCaseImporter()))
-            elif isinstance(a, TC_Sources):
+            elif is_source (a):
                 links.append((a, SourceCodeImporter()))
             else:
                 links.append((a, qm.rest.DefaultImporter()))
@@ -302,9 +308,33 @@ class TestCasesImporter(ArtifactImporter):
 
         # We don't include the tests sources in the pdf version
         pdf_output = writer.section ('Test Cases') + '\n'
-        pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                     for l in links if not is_source(l[0])],
-                                    hidden=True)
+
+
+        # stmt
+        links_stmt = [l for l in links  if not is_source(l[0]) and "stmt" in l[0].full_name]
+
+        if links_stmt:
+            pdf_output += writer.subsection ('Statement Coverage') + '\n'
+            pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
+                                         for l in links_stmt],
+                                         hidden=True)
+        # decision
+        links_dec = [l for l in links  if not is_source(l[0]) and "decision" in l[0].full_name]
+
+        if links_dec:
+            pdf_output += writer.subsection ('Decision Coverage') + '\n'
+            pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
+                                         for l in links_dec],
+                                         hidden=True)
+
+        links_mcdc = [l for l in links  if not is_source(l[0]) and "mcdc" in l[0].full_name]
+
+        if links_mcdc:
+            pdf_output += writer.subsection ('Modified Condition / Decision Coverage (MCDC)') + '\n'
+            pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
+                                         for l in links_mcdc],
+                                         hidden=True)
+
         output = writer.only(html_output, "html")
         output += writer.only(pdf_output, "latex")
 

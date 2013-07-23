@@ -121,23 +121,17 @@
   <artifact_class name="TORReq" inherits="Req"/>
   <artifact_class name="HReq" inherits="Req"/>
 
-  <artifact_class name="TC_Set" role="settest" abstract="true">
+  <artifact_class name="TC_Set" role="settest">
     <location_container>
-       <resource name="tc_set_content" location="*tc_set.rst" mime="text/x-rst"/>
+       <resource name="tc_set_content" location="tc_set.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
 
-  <artifact_class name="TORTC_Set" inherits="TC_Set"/>
-  <artifact_class name="HTC_Set" inherits="TC_Set"/>
-
-  <artifact_class name="TC" role="testcase" abstract="true">
+  <artifact_class name="TC" role="testcase">
     <location_container>
-       <resource name="tc_content" location="*tc.rst" mime="text/x-rst"/>
+       <resource name="tc_content" location="tc.rst" mime="text/x-rst"/>
     </location_container>
   </artifact_class>
-
-  <artifact_class name="TORTC"  inherits="TC"/>
-  <artifact_class name="HTC" inherits="TC"/>
 
   <artifact_class name="TC_Sources" role="sources" abstract="true"/>
 
@@ -180,7 +174,7 @@
     <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/req_set.rst"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename"/>
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
   </artifact_factory>
 
   <artifact_factory class="TORReq">
@@ -190,68 +184,59 @@
     <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/req.rst"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename"/>
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
   </artifact_factory>
 
   <artifact_factory class="HReq">
     <on_location relative_class="Appendix"
                  pattern="$relative.location/*/hreq.rst"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename"/>
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
   </artifact_factory>
 
-  <artifact_factory class="TORTC_Set">
+  <artifact_factory class="TC_Set">
     <on_location relative_class="TORReq"
                  pattern="$relative.location/*/tc_set.rst"
                  type="content"/>
     <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/tc_set.rst"
                  type="content"/>
-    <on_location relative_class="TORTC_Set"
+    <on_location relative_class="TC_Set"
                  pattern="$relative.location/*/tc_set.rst"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename"/>
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
   </artifact_factory>
 
-  <artifact_factory class="TORTC">
+  <artifact_factory class="TC">
     <on_location relative_class="TORReq"
                  pattern="$relative.location/*/tc.rst"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename">
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)">
        <link_constructor implements="TOR_TC">
           <from instance="$relative"/>
        </link_constructor>
     </creates>
   </artifact_factory>
 
-  <artifact_factory class="HTC">
-    <on_location relative_class="HReq"
-                 pattern="$relative.location/*/htc.rst"
-                 type="content"/>
-    <creates location="$location.container" name="$location.basename"/>
-  </artifact_factory>
-
-
-  <artifact_factory class="TORTC">
+  <artifact_factory class="TC">
     <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/tc.rst"
                  type="content"/>
-    <on_location relative_class="TORTC_Set"
+    <on_location relative_class="TC_Set"
                  pattern="$relative.location/*/tc.rst"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename">
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)">
       <link_constructor implements="TOR_TC">
           <from instance="$relative.relative"/>
       </link_constructor>
     </creates>
   </artifact_factory>
 
-
-  <artifact_factory class="TORTC">
+  <artifact_factory class="TC">
     <on_location relative_class="TORReq"
                  pattern="$relative.location/*/tc.rst"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename">
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)">
       <link_constructor implements="TOR_TC">
           <from instance="$relative"/>
       </link_constructor>
@@ -283,7 +268,7 @@
     <on_location relative_class="TC"
                  pattern="$relative.location/test.py.out"
                  type="content"/>
-    <creates location="$location.container" name="$location.basename">
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)">
       <link_constructor implements="TC_TR">
         <from instance="$relative"/>
       </link_constructor>
