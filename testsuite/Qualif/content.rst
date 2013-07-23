@@ -1,5 +1,5 @@
 Tool Operational Requirements
-############################# 
+#############################
 
 
 .. qmlink:: ToplevelIndexImporter
