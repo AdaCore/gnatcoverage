@@ -596,6 +596,8 @@ package body SC_Obligations is
                pragma Assert (BDD_Vector.Element (Dest).Kind /= Jump);
             end Patch_Jump;
 
+         --  Start of processing for Patch_Jumps
+
          begin
             case Node.Kind is
                when Jump =>
