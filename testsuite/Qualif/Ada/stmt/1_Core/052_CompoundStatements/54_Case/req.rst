@@ -7,9 +7,10 @@ Requirement(s)
 
 
 
-A CASE statement starts with a *header* that introduces the controling
-expression, followed by zero or more CASE alternatives and zero or one OTHERS
-alternative. Each alternative contains other statements.
+A CASE statement starts with a *header* that introduces the controlling
+expression, followed by zero or more CASE (**when**) alternatives
+and zero or one OTHERS
+alternative. Each alternative contains one or more statements.
 
 In addition to the common requirements that apply to the nested statements,
 CASE statement headers that are never reached shall be reported uncovered.

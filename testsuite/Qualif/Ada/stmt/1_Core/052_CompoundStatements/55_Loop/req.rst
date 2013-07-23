@@ -7,11 +7,12 @@ Requirement(s)
 
 
 
-LOOP statements feature a mandatory loop *header* that introduces the
-control-flow iteration scheme, and an optional set of exit statements.
+A LOOP statement contains a loop *header* that introduces the
+control-flow iteration scheme, and a loop body that may
+optionally include one or more EXIT statements.
 
 In addition to the common requirements that apply to the nested statements,
-For or While loop headers that are never reached shall be reported uncovered.
+FOR or WHILE loop headers that are never reached shall be reported uncovered.
 
 
 Testing Strategy
@@ -19,17 +20,17 @@ Testing Strategy
 
 
 
-We verify all the aspects of this requirement over
+We verify compliance with this requirement using
 
 * A variety of loop constructs (for, while, reverse, unconditional),
 
 * With and without exit statements for all variants, located at various places
   in the nested sequence (at the beginning, at the end, somewhere in between),
 
-* Within a variety of source contexts (regular function, procedure or package
-  elaboration bodies, generic instances)
+* Within a variety of source contexts (subprograms, package
+  bodies, generic instances)
 
-All through a panel of iteration schemes:
+The following table summatizes the testcases:
 
 
 .. qmlink:: TCIndexImporter
