@@ -1,6 +1,8 @@
 straightline statements in a big subprogram
 ===========================================
 
-Check that all/none of the straightline statements in a big subprogram are
-reported uncovered when the subprogram is called/not-called.
+Check that all of the straight-line statements in a long subprogram are
+reported as covered when the subprogram is called.
+Check that none of the straight-line statements in a long subprogram
+are repored as covered when the subprogram is not called.
 

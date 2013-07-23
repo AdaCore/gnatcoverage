@@ -1,11 +1,12 @@
 Exercise a toplevel If statement, whose Else sequence contains a For Loop, whose body contains an IF statement controlling access to a Case statement
 ======================================================================================================================================================
 
-Exercise a toplevel If statement with an else sequence embedding a For loop,
-whose body features an inner If statement that controls access to a Case
-statement eventually.
+Exercise a compound statement with deep nesting:
+a top-level If statement whose else clause contains
+a For loop, which in turn encloses an inner If statement that controls access
+to a Case statement.
 
-Check variations over the outer If control, the For loop entry, the inner If
-control, and the possible Case selections, first independently from each other
-and then combined together.
+Check various control paths through the outer If statement, the For loop
+entry, the inner If statement, and the possible Case alternatives;
+first independently from each other and then combined.
 
