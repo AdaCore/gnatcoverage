@@ -1,9 +1,10 @@
 sequences potentially skipped by exceptions that propagate through multiple levels of block nesting
 ==============================================================================
 
-Check SC of sequences potentially skipped by exceptions that propagate through
-multiple levels of block nesting within a subprogram body.
+Check SC of statement sequences potentially skipped by exceptions
+that propagate through multiple levels of block nesting within a
+subprogram body.
 
-Cases to check are restricted by ZFP limitation on exception propagation, so
+Because of the ZFP limitation on exception propagation,
 the only case to check is nested block statements.
 

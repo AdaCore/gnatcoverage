@@ -7,8 +7,8 @@ Requirement(s)
 
 
 
-The core SC requirements on statements and declarations shall be obeyed in all
-the possible context variations allowed by package related constructs.
+The core SC requirements for statements and declarations shall be obeyed in all
+context variations allowed by package-related constructs.
 
 
 Testing Strategy

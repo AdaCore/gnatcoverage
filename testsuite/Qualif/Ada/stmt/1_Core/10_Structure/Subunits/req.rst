@@ -7,7 +7,7 @@ Requirement(s)
 
 
 
-SC assessments shall operate in subunits as in regular units.
+SC assessments shall treat subunits as  regular units.
 
 
 Testing Strategy
@@ -15,7 +15,7 @@ Testing Strategy
 
 
 
-We perform a panel of basic statement coverage assessments within several
+We perform a variety of basic statement coverage assessments within several
 kinds of subunits (subprograms or packages), declared in various possible
 source contexts (visible or private part of package specs, package body,
 or subprogram declarative parts):

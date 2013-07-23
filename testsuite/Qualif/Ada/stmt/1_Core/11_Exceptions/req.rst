@@ -7,23 +7,23 @@ Requirement(s)
 
 
 
-Statement Coverage shall be assessed correctly for Ada exceptions mechanism as
-described in Chapter 11 "Exceptions" of the Ada Reference Manual. In
+Statement Coverage shall be assessed for Ada's exceptions mechanism as
+described in Chapter 11 of the Ada Reference Manual. In
 particular:
 
 * ``raise`` statements shall be reported uncovered when unreached,
 
-* The flow-control effects of implicit and explicit exception raises shall be
+* The control flow effects of implicit and explicit exception raises shall be
   handled correctly:
 
-  * statements that don't execute because of a raise shall be reported
-    uncovered,
+  * statements that do not execute because of a raise shall be reported
+    as uncovered,
 
-  * statements that only execute partially because of an expression
-    evaluation interrupted shall *not* be reported uncovered.
+  * statements that only execute partially because of an interrupted expression
+    evaluation shall *not* be reported as uncovered.
 
-* The tool shall support user defined exceptions as well as language
-  predefined ones,
+* Statement coverage requirements apply to both predefined and
+  user-defined exceptions.
 
 * The full set of core SC requirements apply to all the statements within
   exception handlers.
@@ -35,19 +35,18 @@ Testing Strategy
 
 
 
-We validate all those requirements through a set of testcases that resort to
-implicit or explicit exceptions for flow-control transfer purposes. All these
-tescases obey a common testing variation pattern all along; with checks that
-involve:
+We validate the requirements through a set of testcases that exercise
+implicit or explicit exceptions for purposes of control flow transfer.
+All the tescases follow a common pattern, involving:
 
-* Explicit ``raise`` statements executed or not, followed by other statements
+* Explicit ``raise`` statements, executed or not, followed by other statements
   or not
 
-* Variations of these in function, subprogram, or package elaboration bodies,
-  directly within the toplevel sequence of statements, within nested block,
-  conditional or loop statements,
+* Variations of these in subprograsm or package bodies,
+  directly within the top-level sequence of statements, and within nested
+  block, conditional or loop statements,
 
-* With one or more candidate handlers at different levels of nesting, always
+* With one or more candidate handlers at different levels of nesting,
   within a single body.
  
 

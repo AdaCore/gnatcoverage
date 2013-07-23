@@ -1,12 +1,12 @@
 Check SC with expressions that can fail to evaluate because of exceptions
 =========================================================================
 
-Check the effects of an expression evaluation interruption by an exception
+Check the effects of an expression evaluation interrupted by an exception
 raise, for a set of expressions and a set of possible exception origins, as
-part of a simple statement or of the control expression in compound
+part of a simple statement or in the control expression in compound
 statements.
 
-For every variant, check a variety of situations where
+For each variant, check a variety of situations where
 
 * No exception gets raised at all
 

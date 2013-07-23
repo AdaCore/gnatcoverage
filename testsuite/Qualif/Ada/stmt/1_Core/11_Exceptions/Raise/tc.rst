@@ -1,9 +1,9 @@
 multiple kinds of raise operations, implicit or explicit
 ========================================================
 
-Check SC with multiple kinds of raise operations, implicit or explicit,
-for language or user defined exceptions in various program contexts.
+Check SC for multiple kinds of raise operations, implicit or explicit,
+for language- or user-defined exceptions in various program contexts.
 
-Cases to check are restricted by ZFP limitation on exception propagation,
-intra subprogram only.
+Because of the ZFP limitation on exception propagation,
+the only case to check is within a given subprogram.
 
