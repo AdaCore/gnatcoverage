@@ -1,6 +1,6 @@
 Exercise a function where flow control is achieved with goto statements
 ========================================================================
 
-Exercise a function where flow control is achieved with goto
-statements to interrupt sequences.
+Check statement coverage in the presence of goto statements.
+
 

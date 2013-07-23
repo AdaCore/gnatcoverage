@@ -1,7 +1,7 @@
 local instantiation
 ====================
 
-Check that in case of a local instantiation the code of the generic unit is
+Check that, for a local instantiation, the code of the generic unit is
 not reported as covered if the instantiation is not executed or elaborated.
 Check that if a generic unit is not instantiated then its code is not reported
 as covered. This test case does not check that the code of generic unit is

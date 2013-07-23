@@ -7,5 +7,5 @@ Check cases where
 
 * The loop is not entered
 * The loop is entered and all the possible combinations of if controls
-  are checked
+  are used
 

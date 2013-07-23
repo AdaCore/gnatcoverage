@@ -9,7 +9,7 @@ Requirement(s)
 
 
 
-Proper behavior of the Coverage Exemptions facility translates into
+Proper behavior of the Coverage Exemptions facility involves
 the following set of rules:
 
 ====== ======================================================================
@@ -18,12 +18,12 @@ Rule # Description
 1      Exempted regions shall all be synthesized in a distinct section of
        the output report, with a single message per region.
 
-2      Each exemption message shall expose the range of source locations
+2      Each exemption message shall specify the range of source locations
        covered by the region declaration, and indicate whether 0 or more
        coverage violations were actually exempted within this range.
 
-3      Exemption regions shall not influence the diagnostics emitted on
-       constructs outside of them.
+3      Exemption regions shall not affect the diagnostics reported for
+       constructs outside of such regions.
 
 4      The report section dedicated to exemption regions shall not contain
        any other kind of information.
@@ -39,8 +39,9 @@ Testing Strategy
 
 
 
-We validate all the aspects of this requirement with a set of testcases,
-subdivided in sections according to point #5 - demonstrate ability to exempt
+The following set of testcases checks compliance with this requirement.
+The testcases are partitioned into sections
+according to point #5 - demonstrate ability to exempt
 various groups of syntactic constructs:
 
 
@@ -50,13 +51,12 @@ various groups of syntactic constructs:
 
 
 
-Each test features some mix of exempted regions and regular code, exercised in
-multiple manners to cover well identified sections of the program. All the
-other aspects of the requirement (rules #1 to #4) are validated by the fact
-that all the tests run as expected.
+Each test contains a combination of exempted regions and regular code,
+exercised in several ways to cover well-identified sections of the program.
+All the other aspects of the requirement (rules #1 to #4) are validated by
+demonstrating that all the tests run as expected.
 
-For every single stated expectation, exempted region or non-exempted
-violation, the testsuite driver checks if it appears in the report section
-expected for it's kind (in addition to the regular expected/reported match
-checks).
+For each stated expectation, exempted region, or non-exempted
+violation, the testsuite driver checks if it appears in the expected report
+section (in addition to its regular checks).
 

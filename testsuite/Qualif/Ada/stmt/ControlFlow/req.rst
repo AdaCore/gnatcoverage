@@ -1,7 +1,7 @@
 SC expectations for statement sequences and control-flow transfers
 ===================================================================
 
-SC expectations focused on statement sequences and control-flow transfers.
+SC expectations for statement sequences and control-flow transfers.
 
 
 Requirement(s)
@@ -9,13 +9,17 @@ Requirement(s)
 
 
 
-Statement coverage is assessed correctly for straightline sequences (basic
-blocks) of statements and combinations of such constructed with jump-like
+Statement coverage is assessed for straightline sequences (basic
+blocks) of statements, and combinations of such using jump-like
 control flow transfers (goto, return, raise, exit).
 
-If execution reaches the top of a basic block, no statement in the block is
-reported uncovered. Conversely, if execution doesn't reach the top of a basic
-block, all the statements in the block shall be reported uncovered.
+Check the following:
+
+* If execution reaches the top of a basic block, no statement in the
+  block is reported as uncovered. 
+
+* Inversely, if execution does not reach the top of a basic block, 
+  all the statements in the block shall be reported uncovered.
 
 
 Testing Strategy
@@ -23,8 +27,7 @@ Testing Strategy
 
 
 
-All the aspects of this requirement are validated by a the following set of
-testcases :
+The following set of testcases verifies compliance with this requirement:
  
 
 .. qmlink:: TCIndexImporter
