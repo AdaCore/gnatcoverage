@@ -1568,16 +1568,21 @@ package body Decision_Map is
 
       Subp_Name : constant String := Get_Filename (Exec.all) & ":" & Name.all;
 
+      --  The following two flags are used to exclude some basic blocks related
+      --  to the finalization of transient objects from consideration as part
+      --  of a decision.
+
       Call_Excluded : Boolean := False;
-      --  True for a call to a generated procedure that calls finalizers for
-      --  some block.
+      --  True for a call to a generated block finalizer
 
       Next_Branch_Excluded : Boolean := False;
-      --  True for the conditional branch instruction that follows this kind of
-      --  call.
+      --  True for the conditional branch instruction that follows a call to
+      --  a block finalizer (which distinguishes between the normal completion
+      --  and exception cases).
 
-      --  These two flags enable to prevent some finalisation-related basic
-      --  blocks from being considered as being part of a decision.
+      --  The following records describes a conditional branch instruction
+      --  found during the initial code scan, which needs to be analyzed later
+      --  on (see below for complete description of the two-pass scan).
 
       type Pending_Cond_Branch is record
          Insn_First, Insn_Last : Pc_Type;
@@ -1593,7 +1598,6 @@ package body Decision_Map is
          BB_From               : Pc_Type;
          --  Fisrt byte of the basic block that contain this instruction
       end record;
-      --  Information needed to analyze a conditional branch
 
       package Pending_Cond_Branch_Vectors is new Ada.Containers.Vectors
         (Index_Type   => Natural,
@@ -1601,12 +1605,15 @@ package body Decision_Map is
       use Pending_Cond_Branch_Vectors;
 
       Pending_Cond_Branches : Pending_Cond_Branch_Vectors.Vector;
-      --  Conditional branches analysis needs to access to all basic blocks.
-      --  Thus, it has to be done after having built basic blocks. Conditional
-      --  branches are stored in this vector as we discover them when building
-      --  basic blocks.
+      --  Conditional branches analysis needs to have information about all
+      --  basic blocks. All conditional branch instructions to be analyzed are
+      --  therefore queued in this vector while performing an initial code
+      --  scan (first pass), during which all basic blocks are identified.
+      --  They are actually processed after this scan is completed (second
+      --  pass).
 
       Cond_Branch_Cur       : Pending_Cond_Branch_Vectors.Cursor;
+      --  Needs comment???
 
    --  Start of processing for Analyze_Routine
 
@@ -1618,7 +1625,10 @@ package body Decision_Map is
          Put_Line ("Building decision map for " & Subp_Name);
       end if;
 
-      --  Iterate over instructions, looking for conditional branches
+      --  First pass: instruction scan
+
+      --  In this pass, we record all basic blocks, and we make a note of any
+      --  conditional branch instrcution that needs to be analyzed.
 
       PC := Insns'First;
       New_Basic_Block;
@@ -1912,7 +1922,7 @@ package body Decision_Map is
          end;
       end loop;
 
-      --  Analyze pending conditional branches
+      --  Second pass: analyze queued conditional branch instructions
 
       Cond_Branch_Cur := Pending_Cond_Branches.First;
       while Cond_Branch_Cur /= Pending_Cond_Branch_Vectors.No_Element loop
@@ -1924,9 +1934,9 @@ package body Decision_Map is
                Context.Basic_Blocks.Find
                  ((Cond_Branch.BB_From, others => <>));
             BB          : Basic_Block := Basic_Block_Sets.Element (BB_Cur);
-            --  Given that this conditional branch has been found when building
-            --  basic blocks, there *must* be one and only one basic block for
-            --  it.
+            --  This conditional branch has been found when building the list
+            --  of basic blocks, so we know there is exactly one basic block
+            --  ending with it.
 
          begin
             Analyze_Conditional_Branch
@@ -1966,8 +1976,8 @@ package body Decision_Map is
             First : Boolean;
             Count : Natural;
          begin
-            --  Add blank lines if diagnosis about non traceable cond branches
-            --  have been emitted.
+            --  Add blank lines if any diagnosis about non-traceable cond
+            --  branches has been emitted.
 
             if Context.Stats.Non_Traceable > 0 then
                New_Line;
@@ -2069,14 +2079,12 @@ package body Decision_Map is
    -- Build_Decision_Map --
    ------------------------
 
-   procedure Build_Decision_Map (Exec_Name    : String;
-                                 Text_Start   : Pc_Type;
-                                 Map_Filename : String)
+   procedure Build_Decision_Map
+     (Exec_Name    : String;
+      Text_Start   : Pc_Type;
+      Map_Filename : String)
    is
       Exec : Exe_File_Acc;
-
-   --  Start of processing for Build_Decision_Map
-
    begin
       Open_Exec (Exec_Name, Text_Start, Exec);
 
@@ -2096,8 +2104,10 @@ package body Decision_Map is
       PC           : Pc_Type) return Basic_Block
    is
       use Basic_Block_Sets;
+
       PC_Block : constant Basic_Block := (From => PC, others => <>);
-      Cur : constant Cursor := Basic_Blocks.Floor (PC_Block);
+      Cur      : constant Cursor := Basic_Blocks.Floor (PC_Block);
+
    begin
       if Cur /= No_Element and then PC <= Element (Cur).To then
          return Element (Cur);
