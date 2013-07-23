@@ -1,8 +1,8 @@
 Panel of library level subprograms reached through a variety of call mechanisms
 ===============================================================================
 
-Check SC within a panel of library level subprograms reached through
-a variety of call mechanisms
+Check SC for a variety of library-level subprograms reached through
+several call mechanisms
 
 Check:
 
@@ -11,13 +11,13 @@ Check:
 * Subprograms declared in library package specs, in the visible or the private
   part;
 
-* Subprograms declared at the toplevel in a library package body.
+* Subprograms declared at the top level in a library package body.
 
-Reached by way of:
+Reached through:
 
 * Ordinary calls by means of a call statement/function call expression;
 
-* Dynamic calls through access-to-subprogram value;
+* Dynamic calls through access-to-subprogram values;
 
 * Implicit calls as the result of evaluation of default initialization
   expressions.

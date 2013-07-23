@@ -7,7 +7,7 @@ Requirement(s)
 
 
 
-SC assessements for simple statements shall not be influenced by subprogram
+SC assessments for simple statements shall not be influenced by subprogram
 Inlining.
 
 

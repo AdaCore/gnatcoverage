@@ -1,6 +1,6 @@
 return statements in Function
 =============================
 
-Check SC with return statements in Function
+Check SC for return statements in functions
 
 

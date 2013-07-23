@@ -2,7 +2,7 @@ SC expectations for ARM chap. 6 : Subprograms
 =============================================
 
 
-This is split as a set of requirements:
+This is partitioned into several categories:
 
 
 .. qmlink:: SubsetIndexImporter
@@ -12,8 +12,8 @@ This is split as a set of requirements:
 
 
 While each requirement features a distinct testing strategy, a common scheme
-governs the organization; all the testcases arrange to have a mix of
-situations where from some subprograms:
+underlies the organization; all the testcases include a variety of
+situations, where from some subprograms:
 
 * Some but not all of the code executes,
 

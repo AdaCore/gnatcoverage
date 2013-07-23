@@ -7,8 +7,8 @@ Requirement(s)
 
 
 
-Overriding subprograms shall be recognized as distinct from the one they
-redefine. Exercising either one shall not influence coverage results for the
+An overriding subprogram shall be recognized as distinct from the one it
+overrides. Exercising either one shall not influence coverage results for the
 other.
 
 

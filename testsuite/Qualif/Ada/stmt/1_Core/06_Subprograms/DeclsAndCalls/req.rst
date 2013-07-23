@@ -7,8 +7,8 @@ Requirement(s)
 
 
 
-SC shall be assessed correctly within all possible kinds of subprograms,
-everywhere they might be declared and anyhow they might be reached.
+SC shall be assessed correctly within each kind of subprogram,
+wherever they are declared and however they are reached.
 
 
 Testing Strategy
@@ -16,8 +16,8 @@ Testing Strategy
 
 
 
-We verify all the aspects of this requirement with the following set of
-testcases:
+The following set of testcases is used to verify compliance
+with this requirement:
 
 
 .. qmlink:: TCIndexImporter
