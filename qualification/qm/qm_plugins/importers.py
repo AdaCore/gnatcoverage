@@ -292,7 +292,7 @@ class TestCasesImporter(ArtifactImporter):
         for a in items:
             if isinstance(a, TC):
                 links.append((a, TestCaseImporter()))
-            if isinstance(a, TC_Sources):
+            elif isinstance(a, TC_Sources):
                 links.append((a, SourceCodeImporter()))
             else:
                 links.append((a, qm.rest.DefaultImporter()))
