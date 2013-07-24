@@ -290,8 +290,7 @@ Internal Assertions for Program Tests
 
 The general process for every Program Test is to build the program, run it,
 produce the corresponding coverage results and check if they correspond to the
-expectations stated in the test driver source (see :ref:`Testsuite Engine
-<harness-engine>` for more details).
+expectations stated in the test driver source.
 
 The first possible cause of test FAILure is an unexpected execution
 interruption, for example from an uncaught exception occurrence in Ada.
