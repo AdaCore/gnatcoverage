@@ -334,6 +334,13 @@ class TestCasesImporter(ArtifactImporter):
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_mcdc],
                                          hidden=True)
+        links_rep = [l for l in links  if not is_source(l[0]) and "Report" in l[0].full_name]
+
+        if links_rep:
+            pdf_output += writer.subsection ('Language agnostics Test Cases') + '\n'
+            pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
+                                         for l in links_rep],
+                                         hidden=True)
 
         output = writer.only(html_output, "html")
         output += writer.only(pdf_output, "latex")
