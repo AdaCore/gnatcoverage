@@ -9,8 +9,8 @@ Requirement(s)
 
 
 
-Exemption regions shall operate over decision coverage violations as they do
-for statement coverage violations.
+Exemption regions shall apply to decision coverage violations as they do
+to statement coverage violations.
 
 
 Testing Strategy
@@ -18,9 +18,9 @@ Testing Strategy
 
 
 
-Check proper behavior on decisions placed in a restricted set of possible
+Check proper behavior for decisions placed in several possible
 contexts, to validate that the exemption facility works for decision coverage
-violations specifically. Proper behavior over context variations is deemed
+violations specifically. Proper behavior over contexts in general is deemed
 validated by the statement coverage testcases.
 
 

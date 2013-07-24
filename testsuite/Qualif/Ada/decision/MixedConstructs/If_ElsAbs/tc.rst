@@ -2,4 +2,4 @@ Exercise an If/Elsif construct with complex decisions/computations and the use o
 ======================================================================================================
 
 Exercise an If/Elsif construct involving complex decisions with computations
-and the use of a 'abs' operator in the Elsif part.
+and the use of an 'abs' operator in the Elsif part.

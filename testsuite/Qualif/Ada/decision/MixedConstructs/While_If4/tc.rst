@@ -1,7 +1,7 @@
 Exercise a three way If statement within a While loop
 ======================================================
 
-Exercise a three way If statement within a While loop.
+Exercise a three-way If statement within a While loop.
 
 Check cases where
 

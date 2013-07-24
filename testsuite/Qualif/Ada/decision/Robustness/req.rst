@@ -9,9 +9,9 @@ Requirement(s)
 --------------
 
 
+Decision Coverage assessment is correct in the pressence of code
+constructs that require sophisticated analysis by the coverage tool.
 
-The Core Decision Coverage requirements shall remain satisfied in presence of
-constructs that could fool simple minded analyzers.
 
 
 Testing Strategy
@@ -19,9 +19,9 @@ Testing Strategy
 
 
 
-Check a panel of cases where code construct particularities could concievably
-cause inaccuracies or errors in coverage diagnostics if the tool were to
-implement too simple analysis schemes:
+Check a variety of cases where simple analysis schemes could
+cause inaccuracies or errors in coverage diagnostics:
+
 
 
 .. qmlink:: TCIndexImporter

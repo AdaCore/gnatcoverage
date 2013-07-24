@@ -6,12 +6,12 @@ expressed manually (explicit check) at the beginning of a subprogram body.
 
 Check:
 
-* Situations where the precondition is always evaluated True
+* Situations where the precondition always evaluates to True
   (nominal case, exempted DC violation)
 
-* Situations where the precondition is evaluated only False
+* Situations where the precondition only evaluates to False
   (force error case, exempted DC violation)
 
-* Consolidation of the previous cases: precondition exercized both
+* Consolidation of the previous cases: precondition exercised both
   ways (no exempted violation)
  
