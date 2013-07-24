@@ -5,8 +5,7 @@ SC expectations for the combination of multiple
 execution traces.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -15,8 +14,7 @@ statement coverage violation shall only be reported when it would have been
 reported for all the traces individually.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

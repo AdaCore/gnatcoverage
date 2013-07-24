@@ -5,8 +5,7 @@ MCDC expectations for mixes of various statement and decision constructs
 representative of real application code.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -15,8 +14,7 @@ together, with arbitrary levels of syntactic nesting (such as loops within
 tests within subprograms etc).
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

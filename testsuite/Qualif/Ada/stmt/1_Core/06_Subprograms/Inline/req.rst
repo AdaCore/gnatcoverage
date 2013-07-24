@@ -2,8 +2,7 @@ SC expectations for Inlining effects
 =====================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -11,8 +10,7 @@ SC assessments for simple statements shall not be influenced by subprogram
 Inlining.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

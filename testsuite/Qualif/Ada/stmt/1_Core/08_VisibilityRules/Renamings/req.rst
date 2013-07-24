@@ -2,8 +2,7 @@ SC expectations for Renaming declarations (ARM 8.5)
 ====================================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -14,8 +13,7 @@ Requirement(s)
   as if achieved through the renamed entity.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

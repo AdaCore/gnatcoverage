@@ -4,8 +4,7 @@ DC expectations for exemption regions
 DC expectations regarding exemption regions.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -13,8 +12,7 @@ Exemption regions shall apply to decision coverage violations as they do
 to statement coverage violations.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

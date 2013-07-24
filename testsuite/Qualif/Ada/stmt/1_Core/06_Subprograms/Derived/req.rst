@@ -2,8 +2,7 @@ SC expectations for subprogram overridings
 ===========================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -12,8 +11,7 @@ overrides. Exercising either one shall not influence coverage results for the
 other.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

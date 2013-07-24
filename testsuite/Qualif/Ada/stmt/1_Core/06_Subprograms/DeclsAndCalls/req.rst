@@ -2,8 +2,7 @@ SC expectations for subprogram declarations and calls
 ======================================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -11,8 +10,7 @@ SC shall be assessed correctly within each kind of subprogram,
 wherever they are declared and however they are reached.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

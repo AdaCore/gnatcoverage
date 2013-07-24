@@ -14,8 +14,7 @@ that execute different statements depending on the value of some expression.
 
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

@@ -5,8 +5,7 @@ Core expectations for MCDC assessments.
 All the other sub-sections rely on this one.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -51,8 +50,7 @@ Rule #  Description
 ======  =====================================================================
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

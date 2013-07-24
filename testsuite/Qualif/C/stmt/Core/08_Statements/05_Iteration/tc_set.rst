@@ -14,8 +14,7 @@ execute nested statements until a condition is met.
 
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

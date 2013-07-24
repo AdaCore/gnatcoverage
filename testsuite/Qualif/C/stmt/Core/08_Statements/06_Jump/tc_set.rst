@@ -14,8 +14,7 @@ affects the execution flow when evaluated.
 
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

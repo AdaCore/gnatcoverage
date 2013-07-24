@@ -4,8 +4,7 @@ SC expectations for statement sequences and control-flow transfers
 SC expectations for statement sequences and control-flow transfers.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -22,8 +21,7 @@ Check the following:
   all the statements in the block shall be reported uncovered.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

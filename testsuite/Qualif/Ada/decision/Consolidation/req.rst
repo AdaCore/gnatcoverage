@@ -5,8 +5,7 @@ DC expectations regarding the combination of multiple
 execution traces.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -15,8 +14,7 @@ decision coverage violation shall only be reported when it would have been
 reported for each trace individually.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

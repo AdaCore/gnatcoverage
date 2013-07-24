@@ -2,16 +2,14 @@ SC expectations for Subunits (ARM 10.1.3)
 ==========================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
 SC assessments shall treat subunits as  regular units.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

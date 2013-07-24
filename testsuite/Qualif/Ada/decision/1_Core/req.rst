@@ -5,8 +5,7 @@ Core expectations for Decision Coverage
 (DC) assessments. All the other DC-related sections rely on this one.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -44,8 +43,7 @@ Rule #  Description
 ======  ======================================================================
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

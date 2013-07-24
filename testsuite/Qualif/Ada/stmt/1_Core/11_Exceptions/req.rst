@@ -2,8 +2,7 @@ SC expectations for ARM chap. 11 : Exceptions
 ==============================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -30,8 +29,7 @@ particular:
 
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

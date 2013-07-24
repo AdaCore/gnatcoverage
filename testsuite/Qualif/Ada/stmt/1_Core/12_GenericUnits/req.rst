@@ -2,8 +2,7 @@ SC expectations for ARM chap. 12 : Generic Units
 =================================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -14,8 +13,7 @@ or elaborated (a declaration or elaboration code in a generic package).
 In all other cases the code from a generic unit shall be reported as uncovered.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

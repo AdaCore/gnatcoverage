@@ -5,8 +5,7 @@ DC expectations with respect to potentially confusing constructs,
 e.g. decisions spanning multiple lines.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 Decision Coverage assessment is correct in the pressence of code
@@ -14,8 +13,7 @@ constructs that require sophisticated analysis by the coverage tool.
 
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

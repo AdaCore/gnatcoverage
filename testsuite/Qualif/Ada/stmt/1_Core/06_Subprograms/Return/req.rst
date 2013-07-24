@@ -2,8 +2,7 @@ SC expectations for Return statements
 ======================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -16,8 +15,7 @@ trigger.
   body that have not yet been executed shall be reported as uncovered.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

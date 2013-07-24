@@ -2,8 +2,7 @@ SC expectations for ARM chap. 7 : Packages
 ===========================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -11,8 +10,7 @@ The core SC requirements for statements and declarations shall be obeyed in all
 context variations allowed by package-related constructs.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

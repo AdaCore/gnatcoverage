@@ -237,7 +237,7 @@ class TestCaseImporter(ArtifactImporter):
     def to_rest(self, artifact):
 
         result = qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
-        result += writer.subsection("sources")
+        result += writer.directive('rubric', content=None, argument="Sources")
 
         for item in self.get_sources(artifact):
 

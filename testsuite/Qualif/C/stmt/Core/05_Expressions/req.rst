@@ -4,16 +4,14 @@ SC expectations for chapter 6, section 5: Expressions
 SC expectations regarding chapter 6, section 5: Expressions
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
 All C expressions can be used as a statement.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

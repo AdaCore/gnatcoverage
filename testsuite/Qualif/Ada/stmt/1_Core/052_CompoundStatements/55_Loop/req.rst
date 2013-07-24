@@ -2,8 +2,7 @@ SC expectations for Loop statements (ARM 5.5)
 ==============================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -15,8 +14,7 @@ In addition to the common requirements that apply to the nested statements,
 FOR or WHILE loop headers that are never reached shall be reported uncovered.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

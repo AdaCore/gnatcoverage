@@ -2,8 +2,7 @@ SC expectations for ARM chap. 3 : Declarations and Types
 =========================================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -11,8 +10,7 @@ Declarations that were never elaborated as part of the program execution shall
 be reported as uncovered.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

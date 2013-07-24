@@ -2,8 +2,7 @@ SC expectations for Block statements (ARM 5.6)
 ===============================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -13,8 +12,7 @@ the nested statements. No extra requirement applies to the block-specific
 syntactic elements.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

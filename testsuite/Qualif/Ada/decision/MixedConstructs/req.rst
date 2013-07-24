@@ -5,8 +5,7 @@ DC expectations for combinations of statement and decision constructs
 representative of application code.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 Correct coverage is reported for programs that use a combination of
@@ -14,8 +13,7 @@ Ada constructs, with arbitrary levels of syntactic nesting
 (such as loops within tests within subprograms).
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

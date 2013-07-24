@@ -2,8 +2,7 @@ Describe the tool output report format and check compliance to it
 ==================================================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -60,8 +59,7 @@ The tool qualified output is the synthetic report produced by the
   * A single synthetic line providing the count of exempted regions.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

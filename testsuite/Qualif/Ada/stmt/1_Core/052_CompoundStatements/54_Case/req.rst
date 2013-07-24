@@ -2,8 +2,7 @@ SC expectations for Case statements (ARM 5.4)
 ==============================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -16,8 +15,7 @@ In addition to the common requirements that apply to the nested statements,
 CASE statement headers that are never reached shall be reported uncovered.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

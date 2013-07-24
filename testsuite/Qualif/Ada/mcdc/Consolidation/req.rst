@@ -5,8 +5,7 @@ MCDC expectations regarding the combination of multiple
 execution traces together.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -15,8 +14,7 @@ violation shall only be reported when it would have been for all the traces
 individually.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

@@ -4,8 +4,7 @@ SC expectations for exemption regions
 SC expectations regarding exemption regions.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -34,8 +33,7 @@ Rule # Description
 ====== ======================================================================
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

@@ -4,8 +4,7 @@ MCDC expectations regarding exemption regions.
 MCDC expectations regarding exemption regions.
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -13,8 +12,7 @@ Exemption regions shall operate over MCDC violations as they do for statement
 coverage violations.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

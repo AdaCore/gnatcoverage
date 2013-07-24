@@ -2,8 +2,7 @@ SC expectations for Pragmas (ARM 2.8)
 ======================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -18,8 +17,7 @@ parts.
   shall be reported uncovered.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 

@@ -2,8 +2,7 @@ SC expectations for If statements (ARM 5.3)
 ============================================
 
 
-Requirement(s)
---------------
+.. rubric:: Requirement(s)
 
 
 
@@ -17,8 +16,7 @@ In addition to the common requirements that apply to the nested statements,
 IF and ELSIF branches that are never reached shall be reported uncovered.
 
 
-Testing Strategy
-----------------
+.. rubric:: Testing Strategy
 
 
 
