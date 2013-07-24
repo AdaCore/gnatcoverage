@@ -1,7 +1,7 @@
 Standalone Boolean variable "B", used as a declaration initializer
 ===================================================================
 
-Check DC on a standalone Boolean variable ``B`` used as a declaration
+Check DC for a standalone Boolean variable ``B`` used as a declaration
 initializer.
 
 
