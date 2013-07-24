@@ -7,17 +7,18 @@ To ensure coverage of all the relevant language constructs, we decompose the
 material further based on the organization of the Ada Reference Manual (ARM):
 
 
-.. qmlink:: SubsetIndexImporter
+.. qmlink:: SubsetIndexTable
 
    *
 
 
-
 Several chapters are not included for the following reasons:
+
+.. tabularcolumns:: |p{0.3\textwidth}|p{0.65\textwidth}|
 
 .. csv-table::
    :header: "Chapter", "Not included because ..."
-   :widths: 30, 60
+   :widths: 28, 65
    :delim:  |
 
    ARM chap. 1 : General                | No language construct described
@@ -30,4 +31,10 @@ Several chapters are not included for the following reasons:
    ARM chap. 13 : Representation Issues | "Constructs described in this
    chapter do not result in executable code and thus are not relevant to
    coverage analysis."
+
+
+
+.. qmlink:: SubsetIndexTocTree
+
+   *
 

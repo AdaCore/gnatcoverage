@@ -26,9 +26,11 @@ def is_test(a):
     from qm import TC, TC_Set
     return isinstance(a, TC) or isinstance(a, TC_Set)
 
+
 def is_test_set(a):
     from qm import TC_Set
     return isinstance(a, TC_Set)
+
 
 def is_test_case(a):
     from qm import TC
@@ -122,7 +124,7 @@ class ToplevelIndexImporter(ArtifactImporter):
 
             if a.full_name == "/TOR_Doc/Introduction":
                 for item in a.contents('content'):
-                    html_top_index += writer.paragraph (item.get_content())
+                    html_top_index += writer.paragraph(item.get_content())
 
             else:
                 items.append([writer.strong(class_to_string(a)),
@@ -149,7 +151,7 @@ class ToplevelIndexImporter(ArtifactImporter):
         return output, links
 
 
-class SubsetIndexImporter(ArtifactImporter):
+class SubsetIndexTable(ArtifactImporter):
 
     def qmlink_to_rest(self, parent, artifacts):
 
@@ -188,12 +190,33 @@ class SubsetIndexImporter(ArtifactImporter):
         output = writer.only(html_output, "html")
         output += writer.only(latex_output, "latex")
 
+        return output, []
+
+
+class SubsetIndexTocTree(ArtifactImporter):
+
+    def qmlink_to_rest(self, parent, artifacts):
+
+        links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
+
+        output = writer.toctree(['/%s/content' % artifact_hash(*l)
+                                 for l in links if not is_test(l[0])],
+                                hidden=True)
+
+        return output, links
+
+
+class SubsetIndexImporter(SubsetIndexTable):
+
+    def qmlink_to_rest(self, parent, artifacts):
+
+        output, links = SubsetIndexTable.qmlink_to_rest(self, parent, artifacts)
+
         links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                   for l in links if not is_test(l[0])],
                                  hidden=True)
-
         return output, links
 
 
@@ -296,9 +319,9 @@ class TestCasesImporter(ArtifactImporter):
 
         links = []
         for a in items:
-            if is_test_case (a):
+            if is_test_case(a):
                 links.append((a, TestCaseImporter()))
-            elif is_source (a):
+            elif is_source(a):
                 links.append((a, SourceCodeImporter()))
             else:
                 links.append((a, qm.rest.DefaultImporter()))
@@ -307,37 +330,42 @@ class TestCasesImporter(ArtifactImporter):
                                       for l in links], hidden=True)
 
         # We don't include the tests sources in the pdf version
-        pdf_output = writer.section ('Test Cases') + '\n'
-
+        pdf_output = writer.section('Test Cases') + '\n'
 
         # stmt
-        links_stmt = [l for l in links  if not is_source(l[0]) and "stmt" in l[0].full_name]
+        links_stmt = [l for l in links
+                      if not is_source(l[0]) and "stmt" in l[0].full_name]
 
         if links_stmt:
-            pdf_output += writer.subsection ('Statement Coverage') + '\n'
+            pdf_output += writer.subsection('Statement Coverage') + '\n'
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_stmt],
                                          hidden=True)
         # decision
-        links_dec = [l for l in links  if not is_source(l[0]) and "decision" in l[0].full_name]
+        links_dec = [l for l in links
+                     if not is_source(l[0]) and "decision" in l[0].full_name]
 
         if links_dec:
-            pdf_output += writer.subsection ('Decision Coverage') + '\n'
+            pdf_output += writer.subsection('Decision Coverage') + '\n'
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_dec],
                                          hidden=True)
 
-        links_mcdc = [l for l in links  if not is_source(l[0]) and "mcdc" in l[0].full_name]
+        links_mcdc = [l for l in links
+                      if not is_source(l[0]) and "mcdc" in l[0].full_name]
 
         if links_mcdc:
-            pdf_output += writer.subsection ('Modified Condition / Decision Coverage (MCDC)') + '\n'
+            pdf_output += writer.subsection('Modified Condition / \
+                                            Decision Coverage (MCDC)') + '\n'
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_mcdc],
                                          hidden=True)
-        links_rep = [l for l in links  if not is_source(l[0]) and "Report" in l[0].full_name]
+        links_rep = [l for l in links
+                     if not is_source(l[0]) and "Report" in l[0].full_name]
 
         if links_rep:
-            pdf_output += writer.subsection ('Language agnostics Test Cases') + '\n'
+            pdf_output += writer.subsection('Language agnostics \
+                                            Test Cases') + '\n'
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_rep],
                                          hidden=True)
