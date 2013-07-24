@@ -11,20 +11,3 @@ statement, as identified by the ARM:
    *
 
 
-
-
-Testing Strategy
-----------------
-
-
-
-Each subsidiary requirement features its own testing strategy. Here is
-a direct index of the corresponding testcases:
-
-
-.. qmlink:: TCIndexImporter
-
-   *
-
-
-
