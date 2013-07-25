@@ -364,7 +364,7 @@ class TestCasesImporter(ArtifactImporter):
                      if not is_source(l[0]) and "Report" in l[0].full_name]
 
         if links_rep:
-            pdf_output += writer.subsection('Language agnostics \
+            pdf_output += writer.subsection('Language-independent \
                                             Test Cases') + '\n'
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_rep],
