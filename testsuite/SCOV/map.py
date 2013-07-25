@@ -21,7 +21,7 @@ from SUITE.control import BUILDER, XCOV
 class MapChecker:
 
     def __init__(self, sources, options="",
-                 objects=None, alis=None, ensure_dcscos=True):
+                 execs=None, alis=None, ensure_dcscos=True):
 
         self.options = ' '.join ((
                 BUILDER.COMMON_CARGS, options))
@@ -29,12 +29,12 @@ class MapChecker:
         self.sources = to_list(sources)
         self.ensure_dcscos = ensure_dcscos
 
-        # Infer default list of objects and alis from list of sources
+        # Infer default list of executables and alis from list of sources
 
-        if objects != None:
-            self.objects = to_list(objects)
+        if execs != None:
+            self.execs = to_list(execs)
         else:
-            self.objects = [os.path.join("obj", "%s.o" % source.split('.')[0])
+            self.execs = [os.path.join("obj", source.split('.')[0])
                             for source in self.sources]
 
         if alis != None:
@@ -46,13 +46,13 @@ class MapChecker:
     def run(self):
 
         # Compile all the sources.  This method will not work if there are
-        # sources that are not in the "." directory, but since object files are
+        # sources that are not in the "." directory, but since executabes are
         # processed next, there will be an error if not all sources are
         # compiled.
 
         project = gprfor(
             self.sources, srcdirs=["."], main_cargs=self.options)
-        gprbuild(project, gargs=["-c"])
+        gprbuild(project, gargs=["-bargs", "-z"])
 
         # If requested, check at least one non statement SCO in alis
 
@@ -66,7 +66,7 @@ class MapChecker:
 
         mapoutput = do(
             "%s map-routines -v --scos=@%s %s"
-            % (XCOV, list_to_file(self.alis), " ".join(self.objects)))
+            % (XCOV, list_to_file(self.alis), " ".join(self.execs)))
 
         maperrors = [str(m) for m in
                      re.findall("(\*\*\*|\!\!\!)(.*)", mapoutput)]
