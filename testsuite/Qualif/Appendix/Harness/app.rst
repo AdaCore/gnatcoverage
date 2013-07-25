@@ -7,16 +7,16 @@ Overview
 We qualify a well identified GNATcoverage bundle to perform
 structural coverage assessments in accordance with a qualified interface.
 
-Depending on the configuration, the tests execution is performed either
-through GNATemulator via "gnatcov run" or on a hardware board with specialized
-runner and an extra trace conversion step by "gnatcov convert".
+Depending on the configuration, the tests' execution is performed either
+through GNATemulator via "gnatcov run", or on a hardware board with specialized
+runner and an extra trace conversion step via "gnatcov convert".
 
 The qualification focuses on the ``--annotate=report`` text output of
-GNATcoverage, which exposes a list of violations with respect to a given
+GNATcoverage, which provides a list of violations with respect to a given
 coverage criterion, such as ``statement not executed at <file>:<line>:<col>``.
 
-To specify how the tool should behave and demonstrate that it produces
-reliable outputs, we provide:
+To specify the tool's behavior and to demonstrate that it produces
+correct outputs, we provide:
 
 * An explicit description of the expected behavior as a set of *Tool
   Operational Requirements* (TORs) for nominal use conditions, and
@@ -24,29 +24,29 @@ reliable outputs, we provide:
 * A set of executable *Test Cases* (TCs) associated with each requirement,
   exercised to validate that the behavior indeed corresponds to expectations.
 
-We distinguish different categories of tool operational requirements, with
-expectations regarding:
+We distinguish among different categories of tool operational requirements,
+based on expectations regarding:
 
 * **Core coverage metrics**, for example to validate statement coverage
-  assessments on conditional constructs, loops, etc.  Testcases for this kind
-  of TORs typically exercise a piece of functional code in various ways, for
-  example by causing a Boolean expression to be evaluated just True or False,
+  assessments on conditional constructs, loops, etc.  Testcases for such
+  TORs typically exercise a piece of functional code in various ways, for
+  example by causing a Boolean expression to be evaluated only True or False,
   and verify that results are as expected in all the variations.  Programming
-  language reference manuals provide a significant contribution in identifying
-  the constructs of interest.
+  language reference manuals are a major source for identifying
+  the relevant constructs.
 
 * **General coverage analysis facilities**, for example the support for
   coverage exemptions or consolidation capabilities.
   In addition to validating the tool behavior with respect to the stated
   requirements, testcases in this category extend the set of exercised code
-  samples where mutliple language features are mixed together.
+  samples where mutliple language features are used in combination.
 
 * **The output report format**, part of the tool qualified interface.
-  In addition to dedicated testcases designed to verify that all the mandatory
-  pieces are there, part of these requirements are also implicitly validated
-  by the execution of all the coverage checking testcases in other categories,
-  where specific sections of the report are scanned to search for criteria
-  violation messages.
+  In addition to dedicated testcases designed to verify the presence of
+  all mandatory sections, some of these requirements are also implicitly
+  validated by the execution of all the coverage checking testcases in
+  other categories, where specific sections of the report are scanned to
+  search for criteria violation messages.
 
 -------------------
 TORs and Test Cases
@@ -60,12 +60,13 @@ Tool Operational Requirements
 
 TORs specify the tool expected behavior in nominal conditions of use.
 
-Each TOR comes with a set of Test Cases to validate it, and every TOR
-description comes with a Testing Strategy text describing how the tests are
+Each TOR has an associated set of Test Cases to validate compliance,
+and every TOR
+description includes Testing Strategy text documenting how the tests are
 organized to demonstrate that the tool complies with the requirement.
 
-Requirement and Testcase *Groups* are introduced to expose a general
-organisation constructed as a logical hierarchy.
+Requirement and Testcase *Groups* are used to help organize
+the TORs into a logical hierarchy.
 
 Test Cases
 **********
@@ -80,10 +81,9 @@ requirement. We support two categories of Tests:
   set of traces obtained for a given set of program tests, and match the
   analysis outcome against stated expectations as well.
 
-The sources for a program test always involve two categories of files:
+The source files for a program test fall into two categories:
 
-* Functional sources, code for which some coverage properties are to be
-  assessed,
+* Functional sources, for assessing some coverage properties,
 
 * Driver sources, which invoke the functional code in various ways and embed a
   description of the expected coverage outcome.
@@ -91,13 +91,13 @@ The sources for a program test always involve two categories of files:
 File names starting with ``test_`` identify driver sources. Multiple drivers
 may be used to exercise a single functional source.
 
-Consolidation scenarii are identified as ``cons_<scenario_id>.txt`` text
+Consolidation scenarios are identified as ``cons_<scenario_id>.txt`` text
 files.  Each specifies the set of drivers to consolidate followed by the
 corresponding coverage expectations.
 
 The following example illustrates a possible set of files involved for a
-fictive Test Case exercising an Ada function F which implements an ``and
-then`` evaluation. The test case features 4 tests, with three program tests
+hypothetical Test Case exercising an Ada function F which implements an ``and
+then`` evaluation. The test case features four tests, with three program tests
 and one consolidation scenario::
 
   andthen.adb          -- functional code, exposes
@@ -112,18 +112,17 @@ and one consolidation scenario::
   cons_andthen_all.adb -- consolidation spec for all the program tests,
                        -- with the corresponding expected coverage results
 
-As for requirements, Test Case *Groups* are introduced for organizational
+As with the requirements, Test Case *Groups* are introduced for organizational
 purposes as needed.
 
 Coverage Expectations
 *********************
 
-The description of expectations on coverage results is achieved with two
-devices:
+The expectations on coverage results are documented in two ways:
 
 * **In functional sources**, comments starting with ``-- #`` on lines for
-  which coverage expectations need to be specified. These provide ways to
-  refer to functional lines from ...
+  which coverage expectations need to be specified. These provide
+  a mechanism for referring to functional lines,
 
 * **In driver sources, at the end**, a sequence of:
 
@@ -162,7 +161,7 @@ In the optional sequence at the end of driver sources:
   ``dT-``   ``decision outcome True not covered``      decision coverage
   ``dF-``   ``decision outcome False not covered``     decision coverage
   ``d!``    ``one decision outcome not covered``       decision coverage
-  ``d-``    ``decision never eveluated``               decision coverage
+  ``d-``    ``decision never evaluated``               decision coverage
   ``eT-``   ``decision outcome True not covered``      mcdc coverage
   ``eF-``   ``decision outcome False not covered``     mcdc coverage
   ``c!``    ``condition influence not demonstrated``   mcdc coverage
@@ -178,8 +177,8 @@ In the optional sequence at the end of driver sources:
   ``c!:"B"`` to denote the second condition on a line with ``V := A and then
   B;``.
 
-Below is a simple example, with a functional ``in_range.adb`` Ada source
-first::
+The following example consists of functional code (``in_range.adb``)
+and a driver::
 
     1:  function In_Range (X , Min, Max : Integer) return Boolean is
     2:  begin
@@ -192,8 +191,8 @@ first::
     9:     end if;
    10:  end;
 
-Then a driver with expectations referencing the functional
-lines with markers::
+The driver code uses markers to specify its expectations for
+the referenced lines in the functional code::
 
       --  Exercise X > max only. Verify that the < min exit and the
       --  in-range case are reported uncovered.
@@ -233,9 +232,9 @@ from the qualified output out of ``gnatcov --annotate=report`` :
   ``s-`` expectations, and
 
 * No violation diagnostic for lines 3, 5, and 6, stated by the ``0``
-  expectations for the other lines where statements reside.
+  expectations for the other lines containing statements.
 
-Which would translate in an expected piece of report output such as::
+This will yield an expected section of the report output such as::
 
       2.1. NON-EXEMPTED VIOLATIONS
 
@@ -248,18 +247,19 @@ Which would translate in an expected piece of report output such as::
 Rationale
 *********
 
-The rationale for introducing the embedded expectations circuitry, instead of,
-for example, straight file comparisons with pre-recorded expected outputs, is
-threefold:
+There are several reasons
+for introducing the embedded expectations circuitry, instead of,
+for example, straight file comparisons with pre-recorded expected outputs:
 
-* It brings a lot of flexibility to accomodate minor changes in output
+* It makes it easier to accomodate minor changes in output
   formatting or line numbers in test cases, which facilitates maintenance;
 
 * It involves developers actively in the expectations specification
   process, which needs to be done very carefully.
 
-* It allows sharing sources across test cases in a very well controlled
-  manner, which lets us multiply the number of tests, hence the qualification
+* It allows sharing sources across test cases in a well controlled
+  manner. This increases the number of tests significantly, and thus
+  provides greater confidence in the qualification
   assessment strength, without causing an untractable growth of the testsuite
   complexity.
 
@@ -268,22 +268,22 @@ this output format is not part of the qualified interface) is motivated by
 several factors:
 
 * We need to assess the quality of these outputs during our development
-  testing campains, and leveraging the qualification testbase for this purpose
-  has clear maintenance benefits.  We don't produce those outputs during
-  qualification runs, however, to make sure that they don't interfere with the
+  testing campaigns, and leveraging the qualification testbase for this purpose
+  has clear maintenance benefits.  We do not produce those outputs during
+  qualification runs, however, and thus they do not interfere with the
   qualification results.
 
-* Having to fill them in reinforces the Test Case development rigor, as it
-  adds one element that test writers have to care about when specifying
-  expected outcomes.
+* The need to include this information reinforces the Test Case development
+  rigor, since it needs to be taken into account by test writers when they
+  specify expected outcomes.
 
 ------------------------
 Test evaluation criteria
 ------------------------
 
 A test either PASSes of FAILs. A test passes if and only if it runs to
-completion without hitting any cause of failure. We rely on a few concepts
-and mechanisms to validate our tests:
+completion without encountering any cause of failure. We rely on a few concepts
+and mechanisms to validate the tests:
 
 Internal Assertions for Program Tests
 *************************************
@@ -295,29 +295,29 @@ expectations stated in the test driver source.
 The first possible cause of test FAILure is an unexpected execution
 interruption, for example from an uncaught exception occurrence in Ada.
 
-We leverage this to enforce self validation of our testcases thanks to
-internal functional assertions, aborting execution as soon as one is not met,
-which provides extra confidence that what the test does corresponds to what
-was intended by its author.
+We use this mechanism to enforce self validation of the testcases through
+internal functional assertions, aborting execution as soon as one is not met.
+This provides extra confidence that the test's effect is as
+intended by its author.
 
 
 Match between actual coverage results and stated expectations
 *************************************************************
 
-After checking for internal assertions, our testsuite driver expects a strict
+After checking for internal assertions, the testsuite driver expects a strict
 one-to-one match between result expectations stated in testcases and the
-diagnostics emitted by the tool. On this account, a test PASSes only if:
+diagnostics emitted by the tool. Thus a test PASSes only if:
 
 * Every reported violation has been stated as expected, and
 
 * Every violation stated as expected has been reported.
 
-In other word, any violation reported but not expected or expected but not
+In other words, any violation reported but not expected or expected but not
 reported triggers a test FAILure.
 
 This makes the ``0`` expressions representative of positive coverage
 expectations in a context where the qualified output report does not
-materialize positive results explicitly.
+exhibit positive results explicitly.
 
 In the previous example, ``-- /XcmpMax/ l+ ## 0`` is a way to state that we
 expect the statement on line 5 (marked with "# XcmpMax") to be covered, and
@@ -327,12 +327,13 @@ expect 0 violation messages on that line, and any violation indication emitted
 for it (e.g. if the statement happened not to be covered) would cause the test
 to fail.
 
-When a single statement spans over multiple lines, we have situations where we
+When a single statement spans  multiple lines, we have situations where we
 need to specify expectations for all the lines while there's actually just a
 single real positive expectation (as there is only one statement). We use the
 ``0c`` expectation code in such cases, to indicate that we expect nothing to
-be reported for the line (and have testsuite engine check that), but that this
-is the continuation of another expectation stated earlier, so shouldn't be
+be reported for the line (and have the testsuite engine check that),
+but that this is the continuation of another expectation stated earlier,
+and thus should not be
 counted as a positive expectation in qualification test-results reports.
 
 
@@ -342,7 +343,7 @@ Test categories vs. execution level
 Each testcase is designed to validate a particular TOR, typically associated
 with a specific coverage criterion. We have testcases designed to validate
 aspects of Statement Coverage assessments, others aimed at Decision Coverage
-etc. We call *category* the particular criteria for which a testcase was
+etc. We call *category* the particular criterion for which a testcase was
 designed.
 
 Test categories determine the set of potential coverage violations relevant
@@ -384,7 +385,7 @@ In effect, ``0`` expectations need to be (and are) interpreted in accordance
 with the test category to prevent FAILures from violations of stricter
 criteria. In our example test of statement category, the ``0`` expectations
 are meant to convey that we expect no *statement coverage* violation on the
-lines and violations of stricter criteria there ought to be ignored.
+lines, and violations of stricter criteria there ought to be ignored.
 
 
 More on expectations semantics
@@ -393,7 +394,7 @@ More on expectations semantics
 The essential purpose of the qualification process is to make sure that
 improperly covered items are reported as such.
 
-On this ground, the testsuite enforces stricter checks for '``!``' and
+For this reason, the testsuite enforces stricter checks for '``!``' and
 '``-``' items than for '``+``':
 
 * For '``-``' or '``!``' items, there must be an exact match between the
@@ -402,18 +403,18 @@ On this ground, the testsuite enforces stricter checks for '``!``' and
   every expectation must be found in the tool outputs, and every occurrence
   in the tool output must have a corresponding expectation.
 
-  This makes sure that expectations are specified carefully and that the
-  tool reports exactly what we expect.
+  This ensures that expectations are specified carefully and that the
+  tool reports exactly what is expected.
 
 * For '``+``' items (.xcov outputs only), only the first of the previously
   described checks applies. Absence of an expectation statement for '``+``' on
-  a line doesn't cause a test failure.
+  a line does not cause a test failure.
 
 ``/regexp/`` filters that select no lines are allowed and act as a
 no-ops. This is useful in situations where a single driver is shared across
 different tests.
 
 Non-empty intersections between different filters are "allowed" as well but
-eventhough sometimes convenient, they most often correspond to mistakes. The
-sets of expected indications just accumulate.
+even though sometimes convenient, they most often correspond to mistakes. The
+sets of expected indications simply accumulate.
 
