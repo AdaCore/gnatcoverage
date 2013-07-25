@@ -1775,7 +1775,7 @@ package body Disa_X86 is
       Is_64bit   : constant Boolean := Machine = Elf_Common.EM_X86_64;
       Rex_Prefix : Byte             := 0;
 
-      Lo : Natural;
+      Lo : Natural := Line'First;
       --  Index in LINE of the next character to be written
 
       function Mem (Off : Pc_Type) return Byte;
@@ -1804,8 +1804,8 @@ package body Disa_X86 is
       procedure Add_Comma;
 
       procedure Name_Align (Orig : Natural);
-      --  Pad the current line with blanks to align operands after the
-      --  instruction mnemonic.
+      --  Pad the current line after the mnemonic with blanks to align operands
+      --  up to 8 columns after Orig, which is the mnemonic starting column.
 
       procedure Add_Reg (F : Bit_Field_4; R : Reg_Class_Type);
       --  Add a register name to the output, given its 3-bit field
@@ -1899,15 +1899,13 @@ package body Disa_X86 is
       ----------------
 
       procedure Add_String (Str : String) is
+         Added_Length : constant Natural := Natural'Min
+           (Str'Length,
+            Line'Last - Lo);
       begin
-         if Lo + Str'Length <= Line'Last then
-            Line (Lo .. Lo + Str'Length - 1) := Str;
-            Lo := Lo + Str'Length;
-         else
-            for I in Str'Range loop
-               Add_Char (Str (I));
-            end loop;
-         end if;
+         Line (Lo .. Lo + Added_Length - 1) :=
+            Str (Str'First .. Str'First + Added_Length - 1);
+         Lo := Lo + Added_Length;
       end Add_String;
 
       --------------
@@ -1948,9 +1946,7 @@ package body Disa_X86 is
       procedure Name_Align (Orig : Natural) is
       begin
          Add_Char (' ');
-         while Lo - Orig < 8 loop
-            Add_Char (' ');
-         end loop;
+         Add_String ((Lo .. Integer'Min (Orig + 8 - 1, Line'Last) => ' '));
       end Name_Align;
 
       ----------------
