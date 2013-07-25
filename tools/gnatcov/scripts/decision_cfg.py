@@ -30,6 +30,7 @@ SlocRange = collections.namedtuple('SlocRange',
     ' start_line start_column'
     ' end_line end_column'
 )
+AroundAddress = collections.namedtuple('AroundAddress', 'pc')
 Program = collections.namedtuple('Program', 'filename arch')
 # A program is the `filename` ELF file, and when disassembled, it can contain
 # the inconditional `jumps` instructions and the `branches` instructions.
@@ -269,12 +270,24 @@ def parse_sloc_range(string):
         int(end_line), int(end_column),
     )
 
+def parse_around_address(string):
+    pc_string = string[1:]
+    try:
+        pc = int(pc_string, 16)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            'Invalid hexadecimal address: {}'.format(pc_string)
+        )
+    else:
+        return AroundAddress(pc)
+
 def parse_location(string):
     if ':' in string:
         return parse_sloc_range(string)
+    elif string.startswith('@'):
+        return parse_around_address(string)
     else:
         return syminfo.Symbol(None, None, string)
-
 
 def slocs_match_range(slocs, sloc_range):
     """Return if any of the `slocs` match `sloc_range`."""
@@ -512,8 +525,9 @@ if __name__ == '__main__':
         'location', type=parse_location, nargs='+',
         help=(
             'Location of the decision to analyse.'
-            ' Can be a sloc range (example: 10:5-11:21)'
-            ' or a symbol name (example: ada__text_io__put_line__2)'
+            ' Can be a sloc range (example: 10:5-11:21),'
+            ' a symbol name (example: ada__text_io__put_line__2)'
+            ' or the symbol around some address (example: @0x0808f31a)'
         )
     )
 
@@ -537,18 +551,28 @@ if __name__ == '__main__':
         f = args.output
 
     sym_info = syminfo.get_sym_info(args.program.filename)
-    locations = Locations(sym_info,
-        [
-            loc.name
-            for loc in args.location
-            if isinstance(loc, syminfo.Symbol)
-        ],
-        [
-            loc
-            for loc in args.location
-            if isinstance(loc, SlocRange)
-        ]
-    )
+
+    # Build accepted locations
+    accepted_symbols = []
+    accepted_slocs = []
+    for loc in args.location:
+        if isinstance(loc, syminfo.Symbol):
+            accepted_symbols.append(loc.name)
+        elif isinstance(loc, SlocRange):
+            accepted_slocs.append(loc.name)
+        elif isinstance(loc, AroundAddress):
+            try:
+                symbol = sym_info[loc.pc]
+            except KeyError:
+                sys.stderr.write('No symbol around: {:#08x}\n'.format(loc.pc))
+                sys.exit(1)
+            accepted_symbols.append(symbol.name)
+        else:
+            # We are not supposed to end up here since args.location items come
+            # from arguments parsing.
+            assert False
+
+    locations = Locations(sym_info, accepted_symbols, accepted_slocs)
 
     sloc_info = slocinfo.get_sloc_info(args.program.filename)
     decision_cfg, outside_insns = get_decision_cfg(
