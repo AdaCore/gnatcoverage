@@ -67,3 +67,27 @@ def get_sym_info(exe_filename):
         sym_info[pc:pc + size] = Symbol(pc, size, m.group('name'))
 
     return sym_info
+
+
+if __name__ == '__main__':
+    import sys
+
+    binary = sys.argv[1]
+    address = int(sys.argv[2], 16)
+
+    sym_info = get_sym_info(binary)
+    try:
+        symbol = sym_info[address]
+    except KeyError:
+        print 'Not found'
+        sys.exit(1)
+    else:
+        print(
+            '{:#08x} is inside {}:'
+            ' {:#08x}-{:#08x}'
+            ' ({:#x}/{:#x} bytes)'.format(
+                address, symbol.name,
+                symbol.pc, symbol.pc + symbol.size,
+                address - symbol.pc, symbol.size
+            )
+        )
