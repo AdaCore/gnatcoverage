@@ -559,7 +559,7 @@ if __name__ == '__main__':
         if isinstance(loc, syminfo.Symbol):
             accepted_symbols.append(loc.name)
         elif isinstance(loc, SlocRange):
-            accepted_slocs.append(loc.name)
+            accepted_slocs.append(loc)
         elif isinstance(loc, AroundAddress):
             try:
                 symbol = sym_info[loc.pc]
