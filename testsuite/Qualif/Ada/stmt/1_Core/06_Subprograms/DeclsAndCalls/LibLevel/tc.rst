@@ -1,5 +1,5 @@
-Panel of library level subprograms reached through a variety of call mechanisms
-================================================================================
+Collection of library level subprograms reached through a variety of call mechanisms
+====================================================================================
 
 Check SC for a variety of library-level subprograms reached through
 several call mechanisms

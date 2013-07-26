@@ -27,7 +27,7 @@ We verify all the aspects of this requirement over
 * In a variety of source contexts (regular functions or procedures, generic
   instances, package elaboration body),
 
-All through a panel of alternative selection schemes:
+All through a collection of alternative selection schemes:
 
 
 .. qmlink:: TCIndexImporter

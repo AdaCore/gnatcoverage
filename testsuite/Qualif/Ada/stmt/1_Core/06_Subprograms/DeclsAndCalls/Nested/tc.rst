@@ -1,5 +1,5 @@
-Panel of nested subprograms reached through a variety of call mechanisms
-=========================================================================
+Collection of nested subprograms reached through a variety of call mechanisms
+=============================================================================
 
 Check SC for a variety of nested subprograms reached through several
 call mechanisms
