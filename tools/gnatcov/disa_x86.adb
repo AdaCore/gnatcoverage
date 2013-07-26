@@ -27,6 +27,8 @@ with Hex_Images; use Hex_Images;
 
 package body Disa_X86 is
 
+   Debug : constant Boolean := False;
+
    Invalid_Insn, Unhandled_Insn : exception;
 
    subtype Byte is Interfaces.Unsigned_8;
@@ -1957,9 +1959,13 @@ package body Disa_X86 is
          L : constant Natural := Lo;
       begin
          Add_Name (Name);
-         if False and Width /= W_None then
+
+         --  Debugging utility: add operand data size suffix to the mnemonic
+
+         if Debug and then Width /= W_None then
             Add_Char (Width_Char (Width));
          end if;
+
          Name_Align (L);
       end Add_Opcode;
 
