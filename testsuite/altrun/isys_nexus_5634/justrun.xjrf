@@ -8,7 +8,7 @@
       <VersionLow>1</VersionLow>
      </REG_HEADER>
      <REG_ROOT>
-      <RegVer>1258627072</RegVer>
+      <RegVer>1258704896</RegVer>
       <ColorSyntax>
        <ASMSyntaxFile></ASMSyntaxFile>
       </ColorSyntax>
@@ -25,10 +25,10 @@
       <VersionLow>1</VersionLow>
      </REG_HEADER>
      <REG_ROOT>
-      <RegVer>1258627072</RegVer>
+      <RegVer>1258704896</RegVer>
       <ANGUIData.0>
-       <Filetime type="B">JLONAOANCLFHMOAB</Filetime>
-       <GUID type="B">FFOIJOFDLBGFEHEPLMCGJJGGPCJIBEJH</GUID>
+       <Filetime type="B">MKGJKBGOKIIJMOAB</Filetime>
+       <GUID type="B">HMFBCKJFLOPDDHEDJCOMAJLCICINJJMK</GUID>
        <Docks>
         <ActiveTab>0</ActiveTab>
         <ID>-1</ID>
@@ -297,7 +297,7 @@
    </REG_HEADER>
    <REG_ROOT>
     <HServer>HASYST</HServer>
-    <RegVer>1258627072</RegVer>
+    <RegVer>1258704896</RegVer>
     <Desktop>
      <Workspace_Pane>0</Workspace_Pane>
      <Documents.0>
@@ -309,9 +309,6 @@
        <FileBarIndex>0</FileBarIndex>
        <RelativeFileName>justrun.trd</RelativeFileName>
       </Editor.0>
-      <EditorHistoryFile.0>
-       <RelativeFileName>..\tests\I401-009\wspace\justrun.trd</RelativeFileName>
-      </EditorHistoryFile.0>
      </Documents.0>
      <Progress>
       <b>0</b>
@@ -410,7 +407,7 @@
         </DockRect.1>
         <DockRect.2>
          <AreHorz>1</AreHorz>
-         <Percent>395</Percent>
+         <Percent>369</Percent>
          <strTypeOfWnd>View</strTypeOfWnd>
          <Type>10</Type>
          <TypeOfWnd>8</TypeOfWnd>
@@ -785,7 +782,7 @@
      <History>
      </History>
      <Info>
-      <winIDEA>Build 9.12.82</winIDEA>
+      <winIDEA>Build 9.12.101</winIDEA>
      </Info>
      <Options>
       <CASE>
@@ -885,6 +882,9 @@
       <R8C>
        <Compiler>0</Compiler>
       </R8C>
+      <RX>
+       <Compiler>0</Compiler>
+      </RX>
       <V850>
        <Compiler>0</Compiler>
        <PartialAddressDecoding>1</PartialAddressDecoding>
@@ -939,6 +939,7 @@
        <Config>
         <Architecture>0</Architecture>
         <AutoStart>0</AutoStart>
+        <ClearAllBPOnStop>0</ClearAllBPOnStop>
         <Port>5544</Port>
         <UseRTAccess>1</UseRTAccess>
        </Config>
@@ -954,7 +955,7 @@
     <VersionLow>1</VersionLow>
    </REG_HEADER>
    <REG_ROOT>
-    <RegVer>1258627072</RegVer>
+    <RegVer>1258704896</RegVer>
     <Project_Local>
      <Project.0>
       <DefaultTargetName>justrun - Debug</DefaultTargetName>
@@ -969,7 +970,7 @@
     <VersionLow>1</VersionLow>
    </REG_HEADER>
    <REG_ROOT>
-    <RegVer>1258627072</RegVer>
+    <RegVer>1258704896</RegVer>
     <HServerData>
      <Data>
       <Debug>
@@ -6052,7 +6053,7 @@
           <Instr.0>
            <__>
             <Address></Address>
-            <Use>1</Use>
+            <Use>0</Use>
            </__>
           </Instr.0>
           <Instr.1>
@@ -9001,12 +9002,12 @@
       </Trace>
      </Data>
      <HW>
-      <V_BUILD>82</V_BUILD>
+      <V_BUILD>101</V_BUILD>
       <V_BUILD_SUB>0</V_BUILD_SUB>
       <V_MAJOR>9</V_MAJOR>
       <V_Mfix>1</V_Mfix>
       <V_MINOR>12</V_MINOR>
-      <Version>151781540</Version>
+      <Version>151781578</Version>
       <BDM>
        <CPU>
         <CPU1>50</CPU1>

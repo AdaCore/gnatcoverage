@@ -63,6 +63,6 @@ formatter.setHeader (False) \
 exportCfg = ic.CTraceExportConfig ()
 exportCfg.setFileName ('nexus_trace.bin').setFormatter (formatter)
 traceDoc.exportData (exportCfg)
-time.sleep (6.0)
+time.sleep (10.0)
 
 cmgr.disconnect (ic.IConnect.dfCloseServerUnconditional | ic.IConnect.dfCloseAutoSaveNone)
