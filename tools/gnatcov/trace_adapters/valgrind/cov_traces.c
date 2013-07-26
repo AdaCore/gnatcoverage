@@ -297,7 +297,7 @@ static void read_map_file(const char *filename)
 
             histmap_entries[i] = ent.pc;
 #ifdef DEBUG
-            VG_(message)(Vg_FailMsg, "histmap_entries[%d] = 0x%08x;\n",
+            VG_(message)(Vg_DebugMsg, "histmap_entries[%d] = 0x%08x;\n",
                          i, ent.pc);
 #endif
 
