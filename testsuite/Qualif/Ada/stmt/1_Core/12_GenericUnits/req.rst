@@ -7,7 +7,7 @@ SC expectations for ARM chap. 12 : Generic Units
 
 
 The code of a generic unit shall be reported as covered only if the generic is
-instantiated, and the instantce is either called (a generic subprogram
+instantiated, and the instance is either called (a generic subprogram
 instantiation or a subprogram declared in an instance of a generic package)
 or elaborated (a declaration or elaboration code in a generic package).
 In all other cases the code from a generic unit shall be reported as uncovered.

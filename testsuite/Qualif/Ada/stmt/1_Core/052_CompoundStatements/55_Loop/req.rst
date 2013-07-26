@@ -28,7 +28,7 @@ We verify compliance with this requirement using
 * Within a variety of source contexts (subprograms, package
   bodies, generic instances)
 
-The following table summatizes the testcases:
+The following table summarizes the testcases:
 
 
 .. qmlink:: TCIndexImporter
