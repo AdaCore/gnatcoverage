@@ -1,6 +1,6 @@
 <project name="GNATCoverage" scripts="qm_plugins">
 
-  <repository name="plans" class="fs" root="./plans"/>
+  <repository name="default" class="fs" root="."/>
   <repository name="tor" class="fs" root="../../testsuite/Qualif"/>
   <repository name="report" class="fs" root="../str"/>
 
@@ -38,12 +38,12 @@
   </link_definition>
 
   <artifact_factory class="Environment">
-    <on_location pattern="env.py" type="content"/>
+    <on_location pattern="default:///env.py" type="content"/>
     <creates name="environment"/>
   </artifact_factory>
 
   <artifact_factory class="Root_Document">
-    <on_location pattern="plans:///conf.py"
+    <on_location pattern="default:///plans/conf.py"
                  type="content"/>
     <creates location="$location.container" name="plans"/>
   </artifact_factory>
