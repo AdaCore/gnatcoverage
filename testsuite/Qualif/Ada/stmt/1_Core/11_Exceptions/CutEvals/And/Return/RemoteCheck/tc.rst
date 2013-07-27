@@ -1,5 +1,5 @@
-"R := A and then B", where both conditions are a function call that may raise an exception
-===========================================================================================
+"R := A and then B", where both conditions are a function call that may raise an exception at run-time
+======================================================================================================
 
-Check SC for ``R := A and then B`` where each condition is a function call
-that may raise an exception.
+Check SC for ``R := A and then B`` where both condition are a function call
+that may raise an exception at run-time; ``R`` is an out parameter.

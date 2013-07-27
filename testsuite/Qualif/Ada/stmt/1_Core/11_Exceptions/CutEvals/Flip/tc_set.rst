@@ -2,7 +2,7 @@ Check SC for if/return "not A", where operand evaluations might raise an excepti
 ===================================================================================
 
 SC testcases for if/return ``not A`` where operand evaluation might raise
-an exception
+an exception.  "Return" is actually an assignment into an out parameter.
 
 .. qmlink:: TCIndexImporter
 

@@ -2,7 +2,7 @@ Check SC for if/return "A and then B", where operand evaluations might raise an 
 ==========================================================================================
 
 SC testcases for if/return ``A and then B`` where operand evaluations might
-raise an exception
+raise an exception.  "Return" is actually an assignment into an out parameter.
 
 .. qmlink:: TCIndexImporter
 
