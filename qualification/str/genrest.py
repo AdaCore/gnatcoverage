@@ -896,7 +896,7 @@ class QDreport:
              })
 
         csv_contents.append(
-            {item : "compiler switches - language agnostic",
+            {item : "compiler switches - language-independent",
              value: ' '.join (
                     (BUILDER.COMMON_CARGS, suite_options["cargs"]))
              })
