@@ -1903,7 +1903,7 @@ package body Disa_X86 is
       procedure Add_String (Str : String) is
          Added_Length : constant Natural := Natural'Min
            (Str'Length,
-            Line'Last - Lo);
+            Line'Last + 1 - Lo);
       begin
          Line (Lo .. Lo + Added_Length - 1) :=
             Str (Str'First .. Str'First + Added_Length - 1);
