@@ -11,7 +11,7 @@ import os
 import re
 
 from SUITE.cutils import match, to_list, list_to_file
-from SUITE.tutils import thistest, do, gprfor, gprbuild
+from SUITE.tutils import thistest, do, gprfor, gprbuild, exename_for
 
 from SUITE.control import BUILDER, XCOV
 
@@ -34,8 +34,10 @@ class MapChecker:
         if execs != None:
             self.execs = to_list(execs)
         else:
-            self.execs = [os.path.join("obj", source.split('.')[0])
-                            for source in self.sources]
+            self.execs = [
+                os.path.join("obj", exename_for (source.split('.')[0]))
+                for source in self.sources
+            ]
 
         if alis != None:
             self.alis = to_list(alis)
