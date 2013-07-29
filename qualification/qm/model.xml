@@ -13,7 +13,7 @@
  <artifact_class name="Root_Document" role="document">
     <location_container>
       <resource name="content" location="content.rst" mime="text/x-rst"/>
-      <resource name="config" location="conf.py" mime="text/x-python"/>
+      <resource name="config" location="qmconf.py" mime="text/x-python"/>
     </location_container>
   </artifact_class>
 
@@ -43,7 +43,7 @@
   </artifact_factory>
 
   <artifact_factory class="Root_Document">
-    <on_location pattern="default:///plans/conf.py"
+    <on_location pattern="default:///plans/qmconf.py"
                  type="content"/>
     <creates location="$location.container" name="plans"/>
   </artifact_factory>
@@ -75,7 +75,7 @@
 <!-- TOR -->
 
   <artifact_factory class="Root_Document">
-    <on_location pattern="tor:///conf.py"
+    <on_location pattern="tor:///qmconf.py"
                  type="content"/>
     <creates location="$location.container" name="TOR_Doc"/>
   </artifact_factory>
