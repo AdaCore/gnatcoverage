@@ -9,6 +9,7 @@ import struct
 import subprocess
 
 import bddinfo
+import intervalmap
 import slocinfo
 import syminfo
 import traceinfo
@@ -30,6 +31,7 @@ SlocRange = collections.namedtuple('SlocRange',
     ' start_line start_column'
     ' end_line end_column'
 )
+AddressRange = collections.namedtuple('AddressRange', 'low high')
 AroundAddress = collections.namedtuple('AroundAddress', 'pc')
 Program = collections.namedtuple('Program', 'filename arch')
 # A program is the `filename` ELF file, and when disassembled, it can contain
@@ -270,6 +272,27 @@ def parse_sloc_range(string):
         int(end_line), int(end_column),
     )
 
+def parse_address_range(string):
+    chunks = string.split('..')
+    if len(chunks) != 2:
+        raise argparse.ArgumentTypeError(
+            'Invalid address range: {}'.format(string)
+        )
+    low, high = chunks
+    try:
+        low = int(low, 16)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            'Invalid hexadecimal low address: {}'.format(low)
+        )
+    try:
+        high = int(high, 16)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            'Invalid hexadecimal high address: {}'.format(low)
+        )
+    return AddressRange(low, high)
+
 def parse_around_address(string):
     pc_string = string[1:]
     try:
@@ -286,6 +309,8 @@ def parse_location(string):
         return parse_sloc_range(string)
     elif string.startswith('@'):
         return parse_around_address(string)
+    elif '..' in string:
+        return parse_address_range(string)
     else:
         return syminfo.Symbol(None, None, string)
 
@@ -314,9 +339,17 @@ def slocs_match_range(slocs, sloc_range):
 class Locations(object):
     """Gather information about code matching criterias."""
 
-    def __init__(self, symbols, matched_symbols, matched_sloc_ranges):
+    def __init__(
+        self, symbols,
+        matched_symbols,
+        matched_addr_ranges,
+        matched_sloc_ranges
+    ):
         self.symbols = symbols
         self.matched_symbols = set(matched_symbols)
+        self.matched_addresses = intervalmap.IntervalMap()
+        for low, high in matched_addr_ranges:
+            self.matched_addresses[low:high] = True
         # TODO: matching slocs may be more efficient using an interval map. The
         # only thing to do is to flatten the given list... (interval maps do
         # not handle overlapping elements)
@@ -331,6 +364,8 @@ class Locations(object):
         except KeyError:
             symbol = None
         if symbol in self.matched_symbols:
+            return True
+        if address in self.matched_addresses:
             return True
         for sloc_range in self.matched_sloc_ranges:
             if slocs_match_range(slocs, sloc_range):
@@ -526,7 +561,8 @@ if __name__ == '__main__':
         help=(
             'Location of the decision to analyse.'
             ' Can be a sloc range (example: 10:5-11:21),'
-            ' a symbol name (example: ada__text_io__put_line__2)'
+            ' a symbol name (example: ada__text_io__put_line__2),'
+            ' an address range (example: 0x200..0x300)'
             ' or the symbol around some address (example: @0x0808f31a)'
         )
     )
@@ -560,9 +596,12 @@ if __name__ == '__main__':
     # Build accepted locations
     accepted_symbols = []
     accepted_slocs = []
+    accepted_addr_ranges = []
     for loc in args.location:
         if isinstance(loc, syminfo.Symbol):
             accepted_symbols.append(loc.name)
+        elif isinstance(loc, AddressRange):
+            accepted_addr_ranges.append(loc)
         elif isinstance(loc, SlocRange):
             accepted_slocs.append(loc)
         elif isinstance(loc, AroundAddress):
@@ -577,7 +616,12 @@ if __name__ == '__main__':
             # from arguments parsing.
             assert False
 
-    locations = Locations(sym_info, accepted_symbols, accepted_slocs)
+    locations = Locations(
+        sym_info,
+        accepted_symbols,
+        accepted_addr_ranges,
+        accepted_slocs
+    )
 
     sloc_info = slocinfo.get_sloc_info(args.program.filename)
     decision_cfg, outside_insns = get_decision_cfg(
