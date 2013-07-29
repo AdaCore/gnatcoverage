@@ -550,7 +550,12 @@ if __name__ == '__main__':
     else:
         f = args.output
 
-    sym_info = syminfo.get_sym_info(args.program.filename)
+    sym_info, overlap_syms = syminfo.get_sym_info(args.program.filename)
+
+    if overlap_syms:
+        sys.stderr.write('warning: some symbols overlap with others:\n')
+        for sym in overlap_syms:
+            sys.stderr.write('  - {}\n'.format(syminfo.format_symbol(sym)))
 
     # Build accepted locations
     accepted_symbols = []

@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import collections
@@ -37,11 +38,14 @@ def debug_interval(intval):
     print '---'
 
 def get_sym_info(exe_filename):
-    """Parse symbol info in `exe_filename` and return it as an interval map.
+    """Parse symbol info in `exe_filename` and return it as an interval map,
+    and the symbols could not be inserted in the interval map because of
+    address overlapping.
 
     The result maps from program counter to a symbol.
     """
     sym_info = intervalmap.IntervalMap()
+    overlap_syms = []
 
     # Let nm parse ELF and the symbol table for us.
     proc = subprocess.Popen(
@@ -64,9 +68,13 @@ def get_sym_info(exe_filename):
 
         pc = int(m.group('pc'), 16)
         size = int(m.group('size'), 16)
-        sym_info[pc:pc + size] = Symbol(pc, size, m.group('name'))
+        symbol = Symbol(pc, size, m.group('name'))
+        try:
+            sym_info[pc:pc + size] = symbol
+        except ValueError:
+            overlap_syms.append(symbol)
 
-    return sym_info
+    return sym_info, overlap_syms
 
 
 if __name__ == '__main__':
@@ -75,7 +83,11 @@ if __name__ == '__main__':
     binary = sys.argv[1]
     address = int(sys.argv[2], 16)
 
-    sym_info = get_sym_info(binary)
+    sym_info, overlap_syms = get_sym_info(binary)
+    if overlap_syms:
+        sys.stderr.write('warning: some symbols overlap with others:\n')
+        for sym in overlap_syms:
+            sys.stderr.write('  - {}\n'.format(syminfo.format_symbol(sym)))
     try:
         symbol = sym_info[address]
     except KeyError:
