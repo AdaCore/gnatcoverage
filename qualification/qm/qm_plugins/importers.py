@@ -38,8 +38,8 @@ def is_test_case(a):
 
 
 def is_source(a):
-    from qm import TC_Sources
-    return isinstance(a, TC_Sources)
+    from qm import Source_files
+    return isinstance(a, Source_files)
 
 
 class TCIndexImporter(ArtifactImporter):
@@ -210,7 +210,8 @@ class SubsetIndexImporter(SubsetIndexTable):
 
     def qmlink_to_rest(self, parent, artifacts):
 
-        output, links = SubsetIndexTable.qmlink_to_rest(self, parent, artifacts)
+        output, links = SubsetIndexTable.qmlink_to_rest(self,
+                                                        parent, artifacts)
 
         links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
 
@@ -229,7 +230,7 @@ class TestCaseImporter(ArtifactImporter):
             if is_source(child):
                 result += [child]
 
-        if is_test(artifact.relative_to):
+        if artifact.relative_to is not None:
             result += self.get_sources(artifact.relative_to)
 
         return result
@@ -310,7 +311,7 @@ class TestCasesImporter(ArtifactImporter):
 
     def qmlink_to_rest(self, parent, artifacts):
 
-        from qm import TC_Sources, TC, TC_Set
+        from qm import Source_files, TC, TC_Set
 
         items = []
         for a in artifacts:
