@@ -133,19 +133,19 @@
     </location_container>
   </artifact_class>
 
-  <artifact_class name="TC_Sources" role="sources" abstract="true"/>
+  <artifact_class name="Source_files" role="sources" abstract="true"/>
 
-  <artifact_class name="Ada_Sources" role="ada" inherits="TC_Sources">
+  <artifact_class name="Ada_Sources" role="ada" inherits="Source_files">
     <location_container>
        <resource name="spec_sources" location="*.ads" mime="text/x-ada"/>
        <resource name="body_sources" location="*.adb" mime="text/x-ada"/>
     </location_container>
   </artifact_class>
 
-  <artifact_class name="C_Sources" role="C" inherits="TC_Sources">
+  <artifact_class name="C_Sources" role="C" inherits="Source_files">
     <location_container>
-       <resource name="c_sources" location="src/*.c" mime="text/x-c"/>
-       <resource name="h_sources" location="src/*.h" mime="text/x-h"/>
+       <resource name="c_sources" location="*.c" mime="text/x-c"/>
+       <resource name="h_sources" location="*.h" mime="text/x-h"/>
     </location_container>
   </artifact_class>
 
@@ -244,21 +244,33 @@
   </artifact_factory>
 
   <artifact_factory class="Ada_Sources">
+    <on_location relative_class="Req"
+                 pattern="$relative.location/src/*.ad?"
+                 type="content"/>
+    <on_location relative_class="Req_Set"
+                 pattern="$relative.location/src/*.ad?"
+                 type="content"/>
     <on_location relative_class="TC_Set"
-                 pattern="$relative.location/src/*.adb"
+                 pattern="$relative.location/src/*.ad?"
                  type="content"/>
     <on_location relative_class="TC"
-                 pattern="$relative.location/src/*.adb"
+                 pattern="$relative.location/src/*.ad?"
                  type="content"/>
     <creates location="$location.container" name="$subst($relative.name,(.*),\1_Ada)"/>
   </artifact_factory>
 
   <artifact_factory class="C_Sources">
+    <on_location relative_class="Req"
+                 pattern="$relative.location/src/*.[ch]"
+                 type="content"/>
+    <on_location relative_class="Req_Set"
+                 pattern="$relative.location/src/*.[ch]"
+                 type="content"/>
     <on_location relative_class="TC_Set"
-                 pattern="$relative.location/src/*.c"
+                 pattern="$relative.location/src/*.[ch]"
                  type="content"/>
     <on_location relative_class="TC"
-                 pattern="$relative.location/src/*.c"
+                 pattern="$relative.location/src/*.[ch]"
                  type="content"/>
     <creates location="$location.container" name="$subst($relative.name,(.*),\1_C)"/>
   </artifact_factory>
