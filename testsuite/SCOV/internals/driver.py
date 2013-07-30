@@ -251,13 +251,18 @@ class _Xchecker:
     def try_sat_over(self, ekind, xn):
 
         # See if expected note XN is satisfied by one of the emitted notes of
-        # kind EKIND. Store to sat dictionary accordingly. Note that we only
-        # check for section inclusions here, so don't validate the correctness
-        # of exemption justifications at this stage.
+        # kind EKIND which was not used to satisfy a prior expectation. Store
+        # to sat dictionary accordingly.
+
+        # Note that we only check for section inclusions here, so don't
+        # validate the correctness of exemption justifications at this stage.
+
+        # Ensuring that an emitted note is not used to satify multiple
+        # expectations is stricter so the most correct in principle.
 
         for en in self.edict [ekind]:
 
-            if self.__discharges (en=en, xn=xn):
+            if not en.discharges and self.__discharges (en=en, xn=xn):
                 en.discharges = xn
                 xn.discharger = en
                 self.sat[xn.block].append(xn)
