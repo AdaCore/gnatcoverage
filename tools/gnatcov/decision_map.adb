@@ -2111,7 +2111,7 @@ package body Decision_Map is
                           Statements             => Current_Basic_Block_S_Map,
                           Excluded_From_Decision =>
                              Call_Excluded or Next_Branch_Excluded,
-                          others      => <>);
+                          others                 => <>);
 
                   SCO        : SCO_Id;
                   Tag        : SC_Tag;
