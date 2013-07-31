@@ -97,6 +97,18 @@ package body Decision_Map is
       Condition              : SCO_Id := No_SCO_Id;
       --  If this is a conditional branch testing a condition, identifies it
 
+      Branch_SCO             : SCO_Id := No_SCO_Id;
+      Branch_SCO_Tag         : SC_Tag := No_SC_Tag;
+      --  Condition or Statement SCO for To_PC, with corresponding tag, for
+      --  statistics purposes.
+
+      --  If multiple SCOs are associated with this PC:
+      --    - if one of them is a Condition, it is selected (in which case
+      --      BB.Branch_SCO = BB.Condition)
+      --    - else an arbitrary statement SCO is selected.
+
+      --  Note that no two condition SCOs may be associated with a given PC.
+
       Excluded_From_Decision : Boolean;
       --  True when there is no doubt that this basic block is *not* part of a
       --  decision (nor a condition, hence). This is the case for basic blocks
@@ -134,12 +146,13 @@ package body Decision_Map is
    --  statement SCO, statement kind. The third dimension discriminates
    --  between conditional and non-conditional branches.
 
-   type Cond_Branch_Kind is (None, Statement, Condition, Check);
+   type Cond_Branch_Kind is (None, Statement, Condition, Check, Cleanup);
    --  Statistics category for a conditional branch instruction:
    --    * no SCO
    --    * statement SCO
    --    * condition SCO, non-exception
    --    * condition SCO, exception
+   --    * cleanup actions after outcome has been determined
 
    type Cond_Branch_Count_Array is array (Cond_Branch_Kind) of Natural;
 
@@ -1904,6 +1917,12 @@ package body Decision_Map is
       procedure Put_Line (S : String; Underline : Character);
       --  Output S, underline with the given character
 
+      procedure Report_Non_Traceable
+        (BB     : Basic_Block;
+         Reason : String);
+      --  Emit a diagnostic for a non-traceable conditional branch instruction
+      --  at BB.To_PC.
+
       ---------------------
       -- New_Basic_Block --
       ---------------------
@@ -1924,6 +1943,27 @@ package body Decision_Map is
          Put_Line (String'(S'Range => Underline));
          New_Line;
       end Put_Line;
+
+      --------------------------
+      -- Report_Non_Traceable --
+      --------------------------
+
+      procedure Report_Non_Traceable
+        (BB     : Basic_Block;
+         Reason : String)
+      is
+      begin
+         Context.Stats.Non_Traceable :=
+           Context.Stats.Non_Traceable + 1;
+
+         Report
+           ("non-traceable: " & Reason,
+            Exe  => Exec,
+            PC   => BB.To_PC,
+            Sloc => First_Sloc (BB.Branch_SCO),
+            Tag  => BB.Branch_SCO_Tag,
+            Kind => Warning);
+      end Report_Non_Traceable;
 
       Subp_Name : constant String := Get_Filename (Exec.all) & ":" & Name.all;
 
@@ -2101,7 +2141,7 @@ package body Decision_Map is
 
             if Branch /= Br_None then
                Analyze_Branch : declare
-                  BB : constant Basic_Block :=
+                  BB : Basic_Block :=
                          (From                   => Current_Basic_Block_Start,
                           To_PC                  => Insn'First,
                           To                     => Insn'Last,
@@ -2113,38 +2153,11 @@ package body Decision_Map is
                              Call_Excluded or Next_Branch_Excluded,
                           others                 => <>);
 
-                  SCO        : SCO_Id;
-                  Tag        : SC_Tag;
-                  Branch_SCO : SCO_Id := No_SCO_Id;
-                  --  Condition or Statement SCO associated with BB.To_PC, for
-                  --  statistics purposes.
-                  --  If multiple SCOs are associated with this PC:
-                  --    - if one of them is a Condition, it is selected,
-                  --    - else an arbitrary statement SCO is selected.
-                  --  Note that no two condition SCOs may be associated with
-                  --  a given PC.
+                  SCO            : SCO_Id;
+                  Tag            : SC_Tag;
 
-                  procedure Report_Non_Traceable (Reason : String);
-                  --  Emit a diagnostic for a non-traceable
-                  --  conditional branch instruction at PC.
-
-                  --------------------------
-                  -- Report_Non_Traceable --
-                  --------------------------
-
-                  procedure Report_Non_Traceable (Reason : String) is
-                  begin
-                     Context.Stats.Non_Traceable :=
-                       Context.Stats.Non_Traceable + 1;
-
-                     Report
-                       ("non-traceable: " & Reason,
-                        Exe  => Exec,
-                        PC   => BB.To_PC,
-                        Sloc => First_Sloc (Branch_SCO),
-                        Tag  => Tag,
-                        Kind => Warning);
-                  end Report_Non_Traceable;
+                  Branch_SCO     : SCO_Id renames BB.Branch_SCO;
+                  Branch_SCO_Tag : SC_Tag renames BB.Branch_SCO_Tag;
 
                --  Start of processing for Analyze_Branch
 
@@ -2174,8 +2187,8 @@ package body Decision_Map is
                                 and then Kind (Branch_SCO) = Condition
                               then
                                  Report_Non_Traceable
-                                   ("multiple conditions for conditional "
-                                    & "branch");
+                                   (BB, "multiple conditions for conditional "
+                                        & "branch");
                               end if;
                               Branch_SCO := SCO;
                            end if;
@@ -2185,79 +2198,19 @@ package body Decision_Map is
                            --  (such combinations are not supported).
 
                            Report_Non_Traceable
-                             ("unexpected conditional branch of type "
-                              & Branch'Img);
+                             (BB, "unexpected conditional branch of type "
+                                  & Branch'Img);
                         end if;
                      end if;
 
                      if Branch_SCO = No_SCO_Id and then SCO /= No_SCO_Id then
-                        Branch_SCO := SCO;
+                        Branch_SCO     := SCO;
+                        Branch_SCO_Tag := Tag;
                      end if;
                   end loop;
 
                   Context.Basic_Blocks.Insert (BB);
 
-                  --  Update statistics
-
-                  if Branch_Stats then
-                     declare
-                        SK : constant Any_Statement_Kind :=
-                          S_Kind (Enclosing_Statement (Branch_SCO));
-                     begin
-                        Context.Stats.Branch_Counts (Branch, SK, Flag_Cond) :=
-                          Context.Stats.Branch_Counts (Branch, SK, Flag_Cond)
-                          + 1;
-                     end;
-
-                     if Flag_Cond then
-                        declare
-                           CBK : Cond_Branch_Kind;
-
-                        begin
-                           if Branch_SCO = No_SCO_Id then
-                              CBK := None;
-                              Report_Non_Traceable ("no SCO");
-
-                           elsif BB.Condition = No_SCO_Id then
-                              CBK := Statement;
-
-                              if S_Kind (Branch_SCO) /= For_Loop_Statement then
-                                 Report_Non_Traceable
-                                   ("cond branch for "
-                                    & S_Kind (Branch_SCO)'Img);
-                              end if;
-                           else
-                              declare
-                                 CBI : constant Cond_Branch_Info :=
-                                   Cond_Branch_Map.Element ((Exec, BB.To_PC));
-                              begin
-                                 if CBI.Edges (Decision_Map.Branch).Dest_Kind
-                                   = Raise_Exception
-                                   or else CBI.Edges (Fallthrough).Dest_Kind
-                                   = Raise_Exception
-                                 then
-                                    CBK := Check;
-                                 else
-                                    CBK := Condition;
-
-                                    for J in CBI.Edges'Range loop
-                                       if CBI.Edges (J).Next_Condition
-                                         = Index (BB.Condition)
-                                       then
-                                          Report_Non_Traceable
-                                            (J'Img
-                                             & " edge remains in condition");
-                                       end if;
-                                    end loop;
-                                 end if;
-                              end;
-                           end if;
-                           Context.Stats.Cond_Branch_Counts (CBK) :=
-                             Context.Stats.Cond_Branch_Counts (CBK) + 1;
-
-                        end;
-                     end if;
-                  end if;
                end Analyze_Branch;
             end if;
 
@@ -2328,9 +2281,76 @@ package body Decision_Map is
            (Exec, Context, Context.Decision_Stack.Element (J));
       end loop;
 
-      --  Report statistics
+      --  Statistics processing
 
       if Branch_Stats then
+
+         --  Update statistics
+
+         for BB of Context.Basic_Blocks loop
+            declare
+               SK : constant Any_Statement_Kind :=
+                 S_Kind (Enclosing_Statement (BB.Branch_SCO));
+            begin
+               Context.Stats.Branch_Counts (BB.Branch, SK, BB.Cond) :=
+                 Context.Stats.Branch_Counts (BB.Branch, SK, BB.Cond)
+                 + 1;
+            end;
+
+            if BB.Cond then
+               declare
+                  CBK : Cond_Branch_Kind;
+
+               begin
+                  if BB.Branch_SCO = No_SCO_Id then
+                     CBK := None;
+                     Report_Non_Traceable (BB, "no SCO");
+
+                  elsif BB.Condition = No_SCO_Id then
+                     CBK := Statement;
+
+                     if S_Kind (BB.Branch_SCO) /= For_Loop_Statement then
+                        Report_Non_Traceable
+                          (BB, "cond branch for "
+                           & S_Kind (BB.Branch_SCO)'Img);
+                     end if;
+
+                  elsif BB.Excluded_From_Decision then
+                     CBK := Cleanup;
+
+                  else
+                     declare
+                        CBI : constant Cond_Branch_Info :=
+                          Cond_Branch_Map.Element ((Exec, BB.To_PC));
+                     begin
+                        if CBI.Edges (Decision_Map.Branch).Dest_Kind
+                          = Raise_Exception
+                          or else CBI.Edges (Fallthrough).Dest_Kind
+                          = Raise_Exception
+                        then
+                           CBK := Check;
+
+                        else
+                           CBK := Condition;
+
+                           for J in CBI.Edges'Range loop
+                              if CBI.Edges (J).Next_Condition
+                                = Index (BB.Condition)
+                              then
+                                 Report_Non_Traceable
+                                   (BB, J'Img & " edge remains in condition");
+                              end if;
+                           end loop;
+                        end if;
+                     end;
+                  end if;
+
+                  Context.Stats.Cond_Branch_Counts (CBK) :=
+                    Context.Stats.Cond_Branch_Counts (CBK) + 1;
+               end;
+            end if;
+         end loop;
+
          declare
             First : Boolean;
             Count : Natural;
@@ -2382,7 +2402,8 @@ package body Decision_Map is
                        when None      => "no SCO       ",
                        when Statement => "statement    ",
                        when Condition => "condition    ",
-                       when Check     => "runtime check")
+                       when Check     => "runtime check",
+                       when Cleanup   => "cleanup")
                      & Context.Stats.Cond_Branch_Counts (J)'Img);
                end if;
             end loop;
