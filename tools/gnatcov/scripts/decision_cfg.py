@@ -897,11 +897,7 @@ if __name__ == '__main__':
         )
         nodes.add(pc)
 
-    def process_successor_edges(
-        from_pc, insn,
-        label_fallthrough,
-        label_branch
-    ):
+    def process_successor_edges(from_pc, insn, labels):
         def process_edge(kind, to_pc, label):
             uncoverable = (insn.pc, to_pc) in uncoverable_edges
             if args.keep_uncoverable_edges or not uncoverable:
@@ -918,8 +914,8 @@ if __name__ == '__main__':
         elif len(successors) == 2:
             # This is a branch: the first one is the fallthrough, the second
             # one is the branch destination.
-            process_edge(FALLTHROUGH, successors[0], label_fallthrough)
-            process_edge(BRANCH, successors[1], label_branch)
+            process_edge(FALLTHROUGH, successors[0], labels[0])
+            process_edge(BRANCH, successors[1], labels[1])
 
     for pc, basic_block in decision_cfg.items():
         # Draw the box for the basic block.
@@ -960,8 +956,7 @@ if __name__ == '__main__':
         # Then add outgoing edges for it.
         process_successor_edges(
             pc, basic_block[-1],
-            label_fallthrough,
-            label_branch
+            (label_fallthrough, label_branch)
         )
 
     for insn in outside_insns.values():
@@ -970,7 +965,7 @@ if __name__ == '__main__':
             label.append(slocinfo.format_sloc(sloc, args.basename))
         label.append('  {:#0x}'.format(insn.pc))
         add_node(insn.pc, None, format_text_label(label), shape='ellipse')
-        process_successor_edges(insn.pc, insn)
+        process_successor_edges(insn.pc, insn, (None, None))
 
     for out_dest in (destinations - nodes):
         label = []
