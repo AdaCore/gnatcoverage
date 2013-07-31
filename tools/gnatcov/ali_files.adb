@@ -212,8 +212,8 @@ package body ALI_Files is
       Preserve_Control_Flow_Seen : Boolean := False;
       --  Set True if unit has been compiled with -fpreserve-control-flow
 
-      GNAT_eS_Seen               : Boolean := False;
-      --  Set True if unit has been compiled with -gnateS (or -fdump-scos)
+      Dump_SCOs_Seen             : Boolean := False;
+      --  Set True if unit has been compiled with -fdump-scos (or -gnateS)
 
       Debug_Seen                 : Boolean := False;
       --  Set True if unit has been compiled with -g
@@ -293,11 +293,11 @@ package body ALI_Files is
                if Line.all = "A -fpreserve-control-flow" then
                   Preserve_Control_Flow_Seen := True;
 
-               elsif Line.all = "A -gnateS"
+               elsif Line.all = "A -fdump-scos"
                        or else
-                     Line.all = "A -fdump-scos"
+                     Line.all = "A -gnateS"
                then
-                  GNAT_eS_Seen := True;
+                  Dump_SCOs_Seen := True;
 
                elsif Line.all = "A -g" then
                   Debug_Seen := True;
@@ -437,7 +437,7 @@ package body ALI_Files is
                   & ": unit compiled without -fpreserve-control-flow");
             end if;
 
-            if not GNAT_eS_Seen then
+            if not Dump_SCOs_Seen then
                Put_Line
                  ("warning: " & ALI_Filename
                   & ": unit compiled without SCO generation (-fdump-scos)");
@@ -451,7 +451,7 @@ package body ALI_Files is
          end if;
 
          if End_Of_File (ALI_File)
-           or else not GNAT_eS_Seen
+           or else not Dump_SCOs_Seen
            or else No_Object
          then
             --  No SCOs in this ALI
