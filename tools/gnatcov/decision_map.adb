@@ -576,6 +576,7 @@ package body Decision_Map is
    is
       Next_Cond  : SCO_Id;
       Cond_Value : Tristate;
+
    begin
       if Cond = No_SCO_Id then
          Outcome := Unknown;
@@ -585,13 +586,14 @@ package body Decision_Map is
       loop
          Cond_Value := SC_Obligations.Value (Cond);
          if Cond_Value = Unknown then
-            --  We found a runtime condition
+
+            --  Condition tested at run time
 
             Outcome := Unknown;
             return;
 
          else
-            --  This is a constant condition: skip it
+            --  Condition with compile time known value: skip
 
             if Skipped /= null then
                Skipped.Include (Cond);
@@ -599,11 +601,11 @@ package body Decision_Map is
 
             Next_Cond := Next_Condition (Cond, To_Boolean (Cond_Value));
             if Next_Cond = No_SCO_Id then
-               --  There is no successor: we have reached the outcome.
+
+               --  No successor: outcome reached
 
                Outcome := SC_Obligations.Outcome
-                 (Cond,
-                  To_Boolean (Cond_Value));
+                 (Cond, To_Boolean (Cond_Value));
                Cond := No_SCO_Id;
                return;
 
@@ -630,6 +632,7 @@ package body Decision_Map is
         SC_Obligations.Condition (Decision, 0);
       Outcome                   : Tristate;
       Possible_First_Conditions : aliased SCO_Sets.Set;
+
    begin
       Skip_Constant_Conditions
         (First_Condition, Outcome, Possible_First_Conditions'Access);
@@ -949,8 +952,8 @@ package body Decision_Map is
                         Outcome_Seen := True;
 
                         if Edge_Info.Outcome /= Unknown then
-                           --  Case where we know what outcome is reached
-                           --  by this edge.
+                           --  Case where we know what outcome is reached by
+                           --  this edge.
 
                            if Candidate_Outcome = Edge_Info.Outcome then
                               Outcome_Origin := To_Tristate (J);
@@ -1182,7 +1185,7 @@ package body Decision_Map is
       begin
          if CBE.Origin = Unknown then
 
-            --  First of all, look for an edge that has the same destination
+            --  First look for an edge that has the same destination
 
             if Cur /= No_Element then
                declare
@@ -1203,15 +1206,13 @@ package body Decision_Map is
 
             --  Test whether to enable an additional heuristic for control-flow
             --  topologies thare are specific to the use of stack manipulation
-            --  x87-FPU instructions:
-
-            --  This heuristic applies only for x86 prograns
+            --  x87-FPU instructions (applies only for x86)...
 
             if Get_Machine (Exe.all) /= Elf_Common.EM_386 then
                return;
             end if;
 
-            --  And it is used to label only edges that target a basic block
+            --  ...and it is used to label only edges that target a basic block
             --  which starts with a x87-FPU instruction.
 
             declare
@@ -1231,8 +1232,7 @@ package body Decision_Map is
                   Line_Len,
                   Disa_Symbolize.Nul_Symbolizer);
 
-               --  x87-FPU instructions mnemonics are the ones starting with
-               --  "f".
+               --  x87-FPU instructions mnemonics are those starting with "f"
 
                if Line /= "f" then
                   return;
