@@ -21,7 +21,15 @@ STYLE_BRANCH_FALLTHROUGH    = 'dashed'
 STYLE_BRANCH_TAKEN          = 'dotted'
 COLOR_COVERED               = '"#008000"'
 COLOR_NOT_COVERED           = '"#a00000"'
+COLOR_UNCOVERABLE           = '"#c0c0c0"'
+COLOR_WARNING               = '"#ff8000"'
 COLOR_NONE                  = '"#000000"'
+
+STYLES = {
+    JUMP:        STYLE_NONE,
+    FALLTHROUGH: STYLE_BRANCH_FALLTHROUGH,
+    BRANCH:      STYLE_BRANCH_TAKEN,
+}
 
 SLOC_RANGE = re.compile(
     '^([^:]*):(\d+):(\d+)-(\d+):(\d+)$'
@@ -430,6 +438,27 @@ class Insn:
             self.pc, self.mnemonic, self.operands
         )
 
+class EdgesSet:
+
+    def __init__(self):
+        # Mapping: source PC -> set of destinations PC
+        self.edges = {}
+
+    def add(self, edge):
+        src, dest = edge
+        try:
+            dest_set = self.edges[src]
+        except KeyError:
+            dest_set = self.edges[src] = set()
+        dest_set.add(dest)
+
+    def __contains__(self, edge):
+        src, dest = edge
+        try:
+            return dest in self.edges[src]
+        except KeyError:
+            return False
+
 
 def get_decision_cfg(program, toolchain, sloc_info, locations):
     get_insn_properties = program.arch.get_insn_properties
@@ -446,12 +475,15 @@ def get_decision_cfg(program, toolchain, sloc_info, locations):
     # This list will contain the list of instructions we are interested in.
     instructions = []
     outside_instructions = {}
+    uncoverable_edges = EdgesSet()
     # And this will contain addresses of instructions that must start a basic
     # block.
     basic_block_starters = set()
     # True if and only if the last visited instruction can fallthrough the
     # current one.
     last_instruction_can_fallthrough = False
+    # True if the last visited instruction is supposed to raise an exception.
+    last_instruction_raises_exception = False
     # True if and only if the last visited instruction was inside the decision.
     last_instruction_in_decision = False
     last_instruction = None
@@ -491,10 +523,16 @@ def get_decision_cfg(program, toolchain, sloc_info, locations):
             # Out of the decision: end the previous basic block if needed.
             instructions[-1].end_basic_block()
 
+        if (
+            last_instruction_raises_exception and
+            (sloc_in_decision or last_instruction_in_decision)
+        ):
+            uncoverable_edges.add((last_instruction.pc, pc))
+
         # If this is a jump/branch, it ends its own basic block and it must
         # break some other basic block.
         insn_type, dest, dest_symbol = get_insn_properties(insn)
-        raise_exception = does_raise_exception(dest_symbol)
+        raises_exception = does_raise_exception(dest_symbol)
         if insn_type in (Arch.JUMP, Arch.BRANCH, Arch.COND_RET):
             insn.add_successor(dest, end_basic_block=True)
 
@@ -509,14 +547,14 @@ def get_decision_cfg(program, toolchain, sloc_info, locations):
                     # anyway.
                     if not sloc_in_decision:
                         outside_instructions[insn.pc] = insn
-        elif insn_type == Arch.RET or raise_exception:
+        elif insn_type == Arch.RET or raises_exception:
             insn.end_basic_block()
 
         # Update "last_*" information for the next iteration.
         last_instruction_can_fallthrough = (
             insn_type not in (Arch.RET, Arch.JUMP)
-            and not raise_exception
         )
+        last_instruction_raises_exception = raises_exception
         last_instruction_in_decision = sloc_in_decision
         last_instruction = insn
 
@@ -543,7 +581,7 @@ def get_decision_cfg(program, toolchain, sloc_info, locations):
         cfg[current_bb_pc] = current_bb
     # Now, dangling edges are jumps/branches destinations that are out of the
     # decision.
-    return cfg, outside_instructions
+    return cfg, uncoverable_edges, outside_instructions
 
 
 if __name__ == '__main__':
@@ -576,6 +614,12 @@ if __name__ == '__main__':
     parser.add_argument(
         '-B', '--bdd', dest='scos',
         help='Use SCOS to display the binary decision diagram (BDD)'
+    )
+    parser.add_argument(
+        '-k', '--keep-uncoverable-edges', dest='keep_uncoverable_edges',
+        action='store_true',
+        help='Do not strip edges that are supposed to be uncoverable due to'
+        ' exceptions'
     )
     parser.add_argument(
         '-t', '--traces', dest='traces',
@@ -653,7 +697,7 @@ if __name__ == '__main__':
     )
 
     sloc_info = slocinfo.get_sloc_info(args.program.filename)
-    decision_cfg, outside_insns = get_decision_cfg(
+    decision_cfg, uncoverable_edges, outside_insns = get_decision_cfg(
         args.program, args.toolchain,
         sloc_info, locations
     )
@@ -675,8 +719,8 @@ if __name__ == '__main__':
     )
     trace_info = executed_insns is not None
 
-    # Use the BDD, and especially its EXCEPTION edges info to remove successors
-    # of basic blocks that raise an exception.
+    # Use the BDD, and especially its EXCEPTION edges info to tag as
+    # uncoverable the successors of basic blocks that raise an exception.
     for pc, basic_block in decision_cfg.items():
         last_insn = basic_block[-1]
         try:
@@ -696,7 +740,9 @@ if __name__ == '__main__':
                 except KeyError:
                     pass
                 else:
-                    next_basic_block[-1].successors = []
+                    last_insn = next_basic_block[-1]
+                    for successor in last_insn.successors:
+                        uncoverable_edges.add((last_insn.pc, successor))
 
         check_edge(branch_info.edge_fallthrough, last_insn.successors[0])
         check_edge(branch_info.edge_branch, last_insn.successors[1])
@@ -777,7 +823,7 @@ if __name__ == '__main__':
 
         return result or None
 
-    def format_edge_color(branch_insn, kind):
+    def format_edge_color(branch_insn, kind, uncoverable):
         if trace_info:
             if kind == JUMP:
                 covered = branch_insn.pc in executed_insns
@@ -793,7 +839,11 @@ if __name__ == '__main__':
                     )
         else:
             covered = False
-        return COLOR_COVERED if covered else COLOR_NOT_COVERED
+        return (
+            (COLOR_WARNING if uncoverable else COLOR_COVERED)
+            if covered else
+            (COLOR_UNCOVERABLE if uncoverable else COLOR_NOT_COVERED)
+        )
 
     def format_text_label(lines):
         label = ''.join('{}\n'.format(line) for line in lines)
@@ -847,29 +897,29 @@ if __name__ == '__main__':
         )
         nodes.add(pc)
 
-    def process_successor_edges(from_pc, insn):
+    def process_successor_edges(
+        from_pc, insn,
+        label_fallthrough,
+        label_branch
+    ):
+        def process_edge(kind, to_pc, label):
+            uncoverable = (insn.pc, to_pc) in uncoverable_edges
+            if args.keep_uncoverable_edges or not uncoverable:
+                add_edge(
+                    from_pc, to_pc, label,
+                    format_edge_color(insn, kind, uncoverable),
+                    STYLES[kind]
+                )
+
         successors = insn.successors
         if len(successors) == 1:
             # This is an unconditionnal jump (or a mere fallthrough).
-            add_edge(
-                from_pc, successors[0], None,
-                format_edge_color(insn, JUMP)
-            )
+            process_edge(JUMP, successors[0], None)
         elif len(successors) == 2:
             # This is a branch: the first one is the fallthrough, the second
             # one is the branch destination.
-            add_edge(
-                from_pc, successors[0],
-                label_fallthrough,
-                format_edge_color(insn, FALLTHROUGH),
-                STYLE_BRANCH_FALLTHROUGH
-            )
-            add_edge(
-                from_pc, successors[1],
-                label_branch,
-                format_edge_color(insn, BRANCH),
-                STYLE_BRANCH_TAKEN
-            )
+            process_edge(FALLTHROUGH, successors[0], label_fallthrough)
+            process_edge(BRANCH, successors[1], label_branch)
 
     for pc, basic_block in decision_cfg.items():
         # Draw the box for the basic block.
@@ -908,7 +958,11 @@ if __name__ == '__main__':
         add_node(pc, condition, format_html_label(label))
 
         # Then add outgoing edges for it.
-        process_successor_edges(pc, basic_block[-1])
+        process_successor_edges(
+            pc, basic_block[-1],
+            label_fallthrough,
+            label_branch
+        )
 
     for insn in outside_insns.values():
         label = []
