@@ -667,6 +667,7 @@ class TestSuite:
 
         self.run_list = []
         self.dead_list = []
+        self.tally = {}
 
         self.tc_filter = (
             self.options.run_test if self.options.run_test
@@ -715,6 +716,9 @@ class TestSuite:
                 "%d tests executed, %d dead or skipped" % (
                     len(self.run_list), len (self.dead_list))
                 )
+            logging.info (
+              ", ".join ([ "%d %s" % (count, status)
+                           for (status, count) in self.tally.items()]))
 
         # Generate bootstrap results
         if self.options.bootstrap_scos != None:
@@ -880,6 +884,12 @@ class TestSuite:
                     "%02d m %02d s" % (dsec / 60, dsec % 60),
                     test.status, "(%s)" % test.comment if test.comment else "")
                 )
+
+        # Keep tally of executed tests by status
+
+        self.tally[test.status] = \
+          1 if test.status not in self.tally \
+          else self.tally[test.status] + 1
 
         # Dump errlog on unexpected failure
 
