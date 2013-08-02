@@ -2299,8 +2299,8 @@ package body SC_Obligations is
    is
       use BDD;
 
-      BDDN_Id   : constant BDD_Node_Id := SCO_Vector.Element (SCO).BDD_Node;
-      BDDN      : constant BDD_Node := BDD_Vector.Element (BDDN_Id);
+      BDDN_Id : constant BDD_Node_Id := SCO_Vector.Element (SCO).BDD_Node;
+      BDDN    : constant BDD_Node := BDD_Vector.Element (BDDN_Id);
    begin
       return BDDN.Dests (Value);
    end Next_BDD_Node;
