@@ -86,10 +86,6 @@ package Decision_Map is
       Outcome           : Tristate := Unknown;
       --  For the case where Dest_Kind is Outcome, corresponding valuation of
       --  the decision, if known.
-
-      Reaches_Finalizer : Boolean := False;
-      --  Set to True when an edge always falls through to a call to a
-      --  finalizer.
    end record;
 
    --  Cond_Branch_Info is the information associated with each conditional
@@ -102,6 +98,9 @@ package Decision_Map is
    type Decision_Occurrence_Access is access all Decision_Occurrence;
 
    type Cond_Branch_Info is record
+      Last_PC             : Pc_Type;
+      --  High bound of PC range for this instruction
+
       Decision_Occurrence : Decision_Occurrence_Access;
       --  The decision occurrence containing this conditional branch
 

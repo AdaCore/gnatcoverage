@@ -75,6 +75,12 @@ package body Decision_Map is
      (Key_Type     => Pc_Type,
       Element_Type => SCO_Sets.Set);
 
+   type Call_Kind is (Normal, Raise_Exception, Finalizer);
+   --  Classification of calls:
+   --    - normal calls to subprograms
+   --    - calls that are known to raise an exception
+   --    - calls to generated block finalizers / cleanup code
+
    --  A basic block in object code
 
    type Basic_Block is record
@@ -85,14 +91,18 @@ package body Decision_Map is
 
       --  Properties of the branch instruction at the end of the basic block:
 
-      Branch_Dest            : Dest := (Target => No_PC, Delay_Slot => No_PC);
-      --  Destination
+      Branch_Dest, FT_Dest   : Dest := (Target => No_PC, Delay_Slot => No_PC);
+      --  Branch and fallthrough destinations
 
       Branch                 : Branch_Kind := Br_None;
       --  Branch kind
 
       Cond                   : Boolean;
       --  True if conditional branch
+
+      Call                   : Call_Kind := Normal;
+      Called_Sym             : String_Access;
+      --  If Branch = Br_Call, information about the called subprogram
 
       Condition              : SCO_Id := No_SCO_Id;
       --  If this is a conditional branch testing a condition, identifies it
@@ -109,11 +119,12 @@ package body Decision_Map is
 
       --  Note that no two condition SCOs may be associated with a given PC.
 
-      Excluded_From_Decision : Boolean;
-      --  True when there is no doubt that this basic block is *not* part of a
-      --  decision (nor a condition, hence). This is the case for basic blocks
-      --  that contain a call to a finalizer and for the basic blocks that
-      --  follow them until the next conditional branch.
+      Outcome_Reached        : Tristate := Unknown;
+      --  Set True for basic blocks that are reached after the outcome of the
+      --  enclosing decision is determined: subsequent conditional branch
+      --  instructions in the decision occurrence must be excluded from
+      --  coverage analysis. Set False for basic blocks that are known to be
+      --  reachable while the outcome is not determined yet.
 
       Statements             : Statement_Maps.Map;
       --  Statement SCOs associated with each PC range within the basic block
@@ -124,7 +135,7 @@ package body Decision_Map is
    function "<" (L, R : Basic_Block) return Boolean;
    --  Order by From
 
-   function Is_Finalizer_Symbol (Name : String_Access) return Boolean;
+   function Is_Finalizer_Symbol (Name : String) return Boolean;
    --  Return whether Name corresponds to a finalizer symbol name
 
    Finalizer_Symbol_Pattern : constant Regexp := Compile
@@ -136,9 +147,12 @@ package body Decision_Map is
 
    function Find_Basic_Block
      (Basic_Blocks : Basic_Block_Sets.Set;
+      PC           : Pc_Type) return Basic_Block_Sets.Cursor;
+   function Find_Basic_Block
+     (Basic_Blocks : Basic_Block_Sets.Set;
       PC           : Pc_Type) return Basic_Block;
    --  Return the basic block containing PC from the given set, or
-   --  No_Basic_Block if none.
+   --  No_Element / No_Basic_Block if none.
 
    type Branch_Count_Array is
      array (Branch_Kind, Any_Statement_Kind, Boolean) of Natural;
@@ -192,6 +206,9 @@ package body Decision_Map is
    --  Process one conditional branch instruction for the given condition SCO.
    --  Sets BB.Condition to C_SCO, if applicable.
 
+   procedure Analyze_Call (Exe : Exe_File_Acc; BB : in out Basic_Block);
+   --  Set information about the call/ret instruction at the end of BB
+
    procedure Skip_Constant_Conditions
      (Cond    : in out SCO_Id;
       Outcome : out Tristate;
@@ -214,7 +231,7 @@ package body Decision_Map is
 
    procedure Analyze_Decision_Occurrence
      (Exe   : Exe_File_Acc;
-      Ctx   : Cond_Branch_Context;
+      Ctx   : in out Cond_Branch_Context;
       D_Occ : Decision_Occurrence_Access);
    --  Perform logical structure analysis of the given decision occurrence
 
@@ -243,21 +260,6 @@ package body Decision_Map is
       return To_Integer (L.Exe.all'Address) < To_Integer (R.Exe.all'Address)
         or else (L.Exe = R.Exe and then L.PC < R.PC);
    end "<";
-
-   -------------------------
-   -- Is_Finalizer_Symbol --
-   -------------------------
-
-   function Is_Finalizer_Symbol (Name : String_Access) return Boolean is
-      Result : Boolean;
-   begin
-      if Name = null then
-         return False;
-      else
-         Result := Match (Name.all, Finalizer_Symbol_Pattern);
-         return Result;
-      end if;
-   end Is_Finalizer_Symbol;
 
    -------------
    -- Analyze --
@@ -321,6 +323,52 @@ package body Decision_Map is
       end loop;
    end Analyze;
 
+   ------------------
+   -- Analyze_Call --
+   ------------------
+
+   procedure Analyze_Call (Exe : Exe_File_Acc; BB : in out Basic_Block) is
+      pragma Assert (BB.Branch = Br_Call);
+
+      Sym : constant Addresses_Info_Acc :=
+        Get_Symbol (Exe.all, BB.Branch_Dest.Target);
+
+   begin
+      if Sym /= null then
+         BB.Called_Sym := Sym.Symbol_Name;
+      end if;
+
+      if BB.Called_Sym = null then
+         return;
+      end if;
+
+      declare
+         Sym_Name : String renames BB.Called_Sym.all;
+
+      begin
+         if Sym_Name = "ada__exceptions__triggered_by_abort" then
+            BB.Call := Finalizer;
+
+         elsif Sym_Name = "__gnat_last_chance_handler"
+                 or else
+               Sym_Name = "system__assertions__raise_assert_failure"
+                 or else
+               Has_Prefix (Sym_Name, Prefix => "__gnat_rcheck_")
+         then
+            BB.Call := Raise_Exception;
+
+         elsif Is_Finalizer_Symbol (Sym_Name) then
+            BB.Call := Finalizer;
+         end if;
+      end;
+
+      --  If call is known to never return, clear out falltrhough destination
+
+      if BB.Call = Raise_Exception then
+         BB.FT_Dest := (No_PC, No_PC);
+      end if;
+   end Analyze_Call;
+
    --------------------------------
    -- Analyze_Conditional_Branch --
    --------------------------------
@@ -340,18 +388,6 @@ package body Decision_Map is
       D_SCO : constant SCO_Id := Enclosing_Decision (C_SCO);
 
    begin
-      --  Mark instruction address for full (historical) traces collection (for
-      --  MC/DC source coverage analysis) if required by decision structure
-      --  (presence of multiple paths) or if Debug_Full_History is set.
-
-      if Has_Diamond (D_SCO) or else Debug_Full_History then
-         Add_Entry
-           (Base  => Decision_Map_Base,
-            First => Insn'First,
-            Last  => Insn'Last,
-            Op    => 0);
-      end if;
-
       --  Record address in SCO descriptor
 
       Add_Address (C_SCO, Insn'First);
@@ -564,7 +600,8 @@ package body Decision_Map is
          Cond_Branch_Map.Insert
            ((Exec, Insn'First),
             Cond_Branch_Info'
-              (Decision_Occurrence => DS_Top,
+              (Last_PC             => Insn'Last,
+               Decision_Occurrence => DS_Top,
                Condition           => C_SCO,
                Edges               =>
                  (Branch      =>
@@ -699,7 +736,7 @@ package body Decision_Map is
 
    procedure Analyze_Decision_Occurrence
      (Exe   : Exe_File_Acc;
-      Ctx   : Cond_Branch_Context;
+      Ctx   : in out Cond_Branch_Context;
       D_Occ : Decision_Occurrence_Access)
    is
       Last_Seen_Condition_PC : constant Pc_Type :=
@@ -809,22 +846,39 @@ package body Decision_Map is
       --  Identify destination kind of each edge of CBI using information local
       --  to CBI.
 
-      procedure Fixup_Finalizer_Edges
-        (CB_Loc : Cond_Branch_Loc;
-         CBI    : in out Cond_Branch_Info);
-      --  Fix up edges not to be unknown outcomes when they are post-dominated
-      --  by calls to finalizers.
+      procedure Output_Cond_Branch
+        (Exe   : Exe_File_Acc;
+         CB_PC : Pc_Type);
+      --  Output decision map entry for the conditional branch instruction at
+      --  CB_PC in Exe. Report unlabeled destinations as we go. Remove the
+      --  instruction from the Cond_Branch_Map if not contributive to coverage
+      --  analysis.
 
-      procedure Report_Unlabeled_Destinations
-        (CB_Loc : Cond_Branch_Loc;
-         CBI    : in out Cond_Branch_Info);
-      --  Report remaining unqualified edges
+      function Decision_Of_Jump (Jump_PC : Pc_Type) return SCO_Id;
+      --  Return the SCO for the decision containing Jump_PC, if any
 
       Has_Valuation : array (Condition_Index'First .. D_Occ.Last_Cond_Index,
                              Boolean range False .. True) of Boolean :=
                                (others => (others => False));
       --  For each valuation of each condition, indicates whether there is
       --  one edge corresponding to each possible valuation of the condition.
+
+      ----------------------
+      -- Decision_Of_Jump --
+      ----------------------
+
+      function Decision_Of_Jump (Jump_PC : Pc_Type) return SCO_Id is
+         D_SCO_For_Jump : SCO_Id;
+      begin
+         D_SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Exe.all, Jump_PC),
+                                        Include_Decisions => True);
+         if D_SCO_For_Jump /= No_SCO_Id
+              and then Kind (D_SCO_For_Jump) = Condition
+         then
+            D_SCO_For_Jump := Enclosing_Decision (D_SCO_For_Jump);
+         end if;
+         return D_SCO_For_Jump;
+      end Decision_Of_Jump;
 
       -------------
       -- Get_CBE --
@@ -1098,12 +1152,131 @@ package body Decision_Map is
          CBI    : in out Cond_Branch_Info)
       is
          Cond_Branch_PC : Pc_Type renames CB_Loc.PC;
+
+         procedure Mark_Successors
+           (Dest_PC         : Pc_Type;
+            Outcome_Reached : Boolean);
+         --  Mark basic blocks within the decision that are reachable
+         --  from Dest_PC as having known/unknown outcome. If known, do so
+         --  recursively.
+
+         ---------------------
+         -- Mark_Successors --
+         ---------------------
+
+         procedure Mark_Successors
+           (Dest_PC         : Pc_Type;
+            Outcome_Reached : Boolean)
+         is
+            use Basic_Block_Sets;
+
+            Next_PC : Pc_Type;
+
+            Cur : Cursor;
+
+            BB       : Basic_Block;
+            BB_D_SCO : SCO_Id;
+
+         begin
+            Next_PC := Dest_PC;
+
+            <<Tail_Recurse>>
+            Cur := Find_Basic_Block (Ctx.Basic_Blocks, Next_PC);
+            if Cur = No_Element then
+               return;
+            end if;
+
+            BB := Element (Cur);
+            BB_D_SCO := Decision_Of_Jump (BB.To_PC);
+            if BB_D_SCO /= D_Occ.Decision then
+               return;
+            end if;
+
+            case BB.Outcome_Reached is
+               when Unknown =>
+                  BB.Outcome_Reached := To_Tristate (Outcome_Reached);
+                  Ctx.Basic_Blocks.Replace_Element (Cur, BB);
+
+                  --  Recurse on target if unconditional branch, or if
+                  --  outcome known.
+
+                  if Outcome_Reached or else not BB.Cond then
+                     Mark_Successors (BB.Branch_Dest.Target, Outcome_Reached);
+                  end if;
+
+                  --  Fallthrough is also excluded if branch is conditional,
+                  --  or if the branch is a call that returns.
+
+                  if (Outcome_Reached and then BB.Cond)
+                       or else
+                     (BB.Branch = Br_Call and then BB.Call /= Raise_Exception)
+                  then
+                     Next_PC := BB.FT_Dest.Target;
+                     goto Tail_Recurse;
+                  end if;
+
+               when True =>
+                  null;
+
+               when False =>
+                  if Outcome_Reached then
+                     Report (Exe, Cond_Branch_PC,
+                             "tried to exclude pre-outcome basic block",
+                             Kind => Error);
+                  end if;
+            end case;
+         end Mark_Successors;
+
+         Labeling_Complete : Boolean;
+
+      --  Start of processing for Label_Destinations
+
       begin
+         --  Skip branch if already identified as not contributing to the
+         --  decision outcome.
+
+         if CBI.Condition = No_SCO_Id then
+            return;
+         end if;
+
+         --  Skip branch if outcome is already known when we reach it
+
+         if Find_Basic_Block
+           (Ctx.Basic_Blocks, Cond_Branch_PC).Outcome_Reached = True
+         then
+            CBI.Condition := No_SCO_Id;
+            Report (Exe, Cond_Branch_PC,
+                    "skipping post-outcome branch", Kind => Notice);
+            return;
+         end if;
+
          --  Label each destination
 
+         Labeling_Complete := True;
          for Edge in Edge_Kind loop
-            Label_Destination (Cond_Branch_PC, CBI, Edge);
+            if CBI.Edges (Edge).Origin /= Unknown
+                 or else
+               CBI.Edges (Edge).Dest_Kind = Raise_Exception
+                 or else
+               (CBI.Edges (Edge).Dest_Kind = Condition
+                  and then
+                CBI.Edges (Edge).Next_Condition = Index (CBI.Condition))
+            then
+               --  Labeling already complete for this edge, nothing else to do
+
+               null;
+
+            else
+               Labeling_Complete := False;
+               Label_Destination (Cond_Branch_PC, CBI, Edge);
+            end if;
          end loop;
+
+         --  Return early if both edges are already labeled
+
+         if Labeling_Complete then
+            return;
+         end if;
 
          --  So far we have looked at each destination in isolation. Now try
          --  to further qualify each destination by deducing its properties
@@ -1117,6 +1290,24 @@ package body Decision_Map is
                  (Index (CBI.Condition), To_Boolean (CBI.Edges (Edge).Origin))
                    := True;
             end if;
+         end loop;
+
+         --  If either destination is now known to be an outcome, mark further
+         --  conditional branch instructions in the decision occurrence as
+         --  cleanup actions that play no role in outcome determination, else
+         --  mark successors as still contributing to the decision outcome.
+
+         --  Note: this is primarily targetting edges that correspond to
+         --  front-end generated cleanup code for controlled objects. For
+         --  back-end exception handling infrastructure, a different approach
+         --  is used: GIGI knows to set locations without column information on
+         --  those nodes, so that we do not attempt to associate the generated
+         --  conditional branch instructions with any source conditions.
+
+         for CBE of CBI.Edges loop
+            Mark_Successors
+              (CBE.Destination.Target,
+               Outcome_Reached => CBE.Dest_Kind = Outcome);
          end loop;
 
       end Label_Destinations;
@@ -1319,10 +1510,10 @@ package body Decision_Map is
             BB := Find_Basic_Block
               (Ctx.Basic_Blocks, CBE.Destination.Target);
             if BB /= No_Basic_Block then
-               --  Then look at edges whose destination is before CBE's in
-               --  the same basic block and with the same kind of
-               --  destination. Return the value of the outcome of the first
-               --  known one we met, if any.
+               --  Then look at edges whose destination is before CBEs in the
+               --  same basic block and with the same kind of destination.
+               --  Return the value of the outcome of the first known one
+               --  we met, if any.
 
                Cur := Known_Destinations.Ceiling ((BB.From - 1, 0));
                while Cur /= No_Element
@@ -1344,9 +1535,8 @@ package body Decision_Map is
                end loop;
 
             else
-               --  This should *never* happen: for every edge, there must
-               --  be a basic block that contain the destination of the
-               --  edge.
+               --  This should *never* happen: for every edge, there must be a
+               --  basic block that contain the destination of the edge.
 
                raise Program_Error with
                   "Cannot find a basic block for the edge "
@@ -1379,40 +1569,20 @@ package body Decision_Map is
          end if;
       end Record_Known_Destination;
 
-      ---------------------------
-      -- Fixup_Finalizer_Edges --
-      ---------------------------
+      ------------------------
+      -- Output_Cond_Branch --
+      ------------------------
 
-      procedure Fixup_Finalizer_Edges
-        (CB_Loc : Cond_Branch_Loc;
-         CBI    : in out Cond_Branch_Info)
+      procedure Output_Cond_Branch
+        (Exe   : Exe_File_Acc;
+         CB_PC : Pc_Type)
       is
-         pragma Unreferenced (CB_Loc);
-      begin
-         for Kind in Edge_Kind loop
-            declare
-               Edge : Cond_Edge_Info renames CBI.Edges (Kind);
-            begin
-               if Edge.Dest_Kind = Outcome
-                    and then
-                  Edge.Outcome = Unknown
-                    and then
-                  Edge.Reaches_Finalizer
-               then
-                  Edge.Dest_Kind := Raise_Exception;
-               end if;
-            end;
-         end loop;
-      end Fixup_Finalizer_Edges;
+         use Cond_Branch_Maps;
 
-      -----------------------------------
-      -- Report_Unlabeled_Destinations --
-      -----------------------------------
+         Cur : Cursor := Cond_Branch_Map.Find ((Exe, CB_PC));
 
-      procedure Report_Unlabeled_Destinations
-        (CB_Loc : Cond_Branch_Loc;
-         CBI    : in out Cond_Branch_Info)
-      is
+         CBI : Cond_Branch_Info renames Element (Cur);
+
          function Dest_Image
            (Edge      : Edge_Kind;
             Edge_Info : Cond_Edge_Info) return String;
@@ -1459,18 +1629,40 @@ package body Decision_Map is
               & " " & Edge_Info.Dest_Kind'Img & Additional_Info_Image;
          end Dest_Image;
 
-      --  Start of processing for Report_Unlabeled_Destinations
+      --  Start of processing for Output_Cond_Branch
 
       begin
-         for Edge in Edge_Kind loop
-            --  Finally report destinations we still can't label
+         if CBI.Condition = No_SCO_Id then
+            Report (Exe, CB_PC,
+                    "omitted non-contributive branch", Kind => Notice);
+            Cond_Branch_Map.Delete (Cur);
+            return;
+         end if;
 
+         --  Mark instruction address for full (historical) traces collection
+         --  (for MC/DC source coverage analysis) if required by decision
+         --  structure (presence of multiple paths) or if Debug_Full_History
+         --  is set.
+
+         if Has_Diamond (Enclosing_Decision (CBI.Condition))
+           or else Debug_Full_History
+         then
+            Add_Entry
+              (Base  => Decision_Map_Base,
+               First => CB_PC,
+               Last  => CBI.Last_PC,
+               Op    => 0);
+         end if;
+
+         --  Report remaining unlabeled destinations
+
+         for Edge in Edge_Kind loop
             if CBI.Edges (Edge).Dest_Kind = Unknown
                  or else
                (CBI.Edges (Edge).Dest_Kind = Outcome
                   and then CBI.Edges (Edge).Origin = Unknown)
             then
-               Report (Exe, CB_Loc.PC,
+               Report (Exe, CB_PC,
                        "unable to label " & Edge'Img
                        & " destination "
                        & Hex_Image (CBI.Edges (Edge).Destination.Target),
@@ -1479,12 +1671,12 @@ package body Decision_Map is
          end loop;
 
          Report
-           (Exe, CB_Loc.PC,
+           (Exe, CB_PC,
             Dest_Image (Branch, CBI.Edges (Branch))
             & " / "
             & Dest_Image (Fallthrough, CBI.Edges (Fallthrough)),
             Kind => Notice);
-      end Report_Unlabeled_Destinations;
+      end Output_Cond_Branch;
 
       ----------------------
       -- Set_Known_Origin --
@@ -1689,13 +1881,7 @@ package body Decision_Map is
 
          --  Decision
 
-         D_SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC),
-                                        Include_Decisions => True);
-         if D_SCO_For_Jump /= No_SCO_Id
-              and then Kind (D_SCO_For_Jump) = Condition
-         then
-            D_SCO_For_Jump := Enclosing_Decision (D_SCO_For_Jump);
-         end if;
+         D_SCO_For_Jump := Decision_Of_Jump (BB.To_PC);
 
          --  Note: there are cases (e.g. for Pre/Post aspects) where there
          --  is a decision SCO with no enslosing statement SCO, and we have
@@ -1729,64 +1915,41 @@ package body Decision_Map is
                end if;
 
             when Br_Call =>
-               declare
-                  Sym : constant Addresses_Info_Acc :=
-                          Get_Symbol (Exe.all, BB.Branch_Dest.Target);
-                  Sym_Name : String_Access;
-               begin
-                  if Sym /= null then
-                     Sym_Name := Sym.Symbol_Name;
-                  end if;
+               --  Edges that are post-dominated by calls to block finalizers
+               --  are outcomes: finalization of transient blocks only occurs
+               --  after a complete expression has been evaluated (or an
+               --  exception was raised).
 
-                  --  If the call's sloc is within the condition, and it is
-                  --  a call to a runtime routine raising an exception, then
-                  --  assume it is a check.
+               if BB.Call = Finalizer then
+                  Edge_Info.Dest_Kind := Outcome;
 
-                  if SCO_For_Jump = CBI.Condition
+               --  If the sloc of the call is within the condition, and it is
+               --  a call to a runtime routine raising an exception, then
+               --  assume that the conditional branch is for a run time check.
+
+               elsif SCO_For_Jump = CBI.Condition
                        and then
-                     Sym_Name /= null
-                       and then
-                     (Sym_Name.all = "__gnat_last_chance_handler"
-                        or else
-                      Has_Prefix (Sym_Name.all, Prefix => "__gnat_rcheck_"))
-                  then
-                     Edge_Info.Dest_Kind := Raise_Exception;
+                     BB.Call = Raise_Exception
+               then
+                  --  Special case of call to Raise_Assert_Failure in an
+                  --  Assert/PPC decision: False outcome.
 
-                  --  Call to Raise_Assert_Failure within the decision (with
-                  --  either a condition or a decision SCO), if if it is an
-                  --  assert or PPC): False outcome.
-
-                  elsif D_SCO_For_Jump = D_SCO
+                  if D_SCO_For_Jump = D_SCO
                     and then Is_Assertion (D_SCO)
-                    and then
-                      Sym_Name /= null
-                    and then
-                      Sym_Name.all = "system__assertions__raise_assert_failure"
+                    and then BB.Called_Sym.all
+                               = "system__assertions__raise_assert_failure"
                   then
                      Edge_Info.Dest_Kind := Outcome;
                      Edge_Info.Outcome   := False;
 
-                  --  Edges that are post-dominated by calls to finalizers are
-                  --  outcomes or exceptions: generated procedures that call
-                  --  finalizers for some block are never called inside a
-                  --  decision. Thus, if we come across one, we know the
-                  --  decision evaluation is over. For now, me tag this edge as
-                  --  an unknown outcome, but we might realize later (in
-                  --  Fixup_Finalizer_Edges) that this is an exception edge.
-
-                  elsif Is_Finalizer_Symbol (Sym_Name) then
-                     Edge_Info.Dest_Kind         := Outcome;
-                     Edge_Info.Outcome           := Unknown;
-                     Edge_Info.Reaches_Finalizer := True;
-
-                  --  Else assume call returns, continue tracing at next PC
-
                   else
-                     Next_PC := BB.To + 1;
-                     goto Follow_Jump;
-
+                     Edge_Info.Dest_Kind := Raise_Exception;
                   end if;
-               end;
+
+               elsif BB.Call = Normal then
+                  Next_PC := BB.To + 1;
+                  goto Follow_Jump;
+               end if;
 
             when Br_Ret =>
 
@@ -1804,11 +1967,11 @@ package body Decision_Map is
    --  Start of processing for Analyze_Decision_Occurrence
 
    begin
-      if not Is_Last_Runtime_Condition (D_Occ) then
-         --  Report PC of last seen condition in decision occurrence, if it is
-         --  not the final runtime condition of the decision (indicates a
-         --  decision occurrence being flushed before it was completely seen).
+      --  Detect and report incomplete occurrences (i.e. occurrence where the
+      --  last seen condition is not the last run-time-evaluated condition of
+      --  the decision). In this case we bail out.
 
+      if not Is_Last_Runtime_Condition (D_Occ) then
          Report (Exe, Last_Seen_Condition_PC,
                  "incomplete occurrence of " & Image (D_Occ.Decision));
          return;
@@ -1818,51 +1981,16 @@ package body Decision_Map is
       --  reuse known destinations identified by the first.
 
       for Pass in 1 .. 2 loop
-         for J in D_Occ.Conditional_Branches.First_Index
-               .. D_Occ.Conditional_Branches.Last_Index
-         loop
-            declare
-               use Cond_Branch_Maps;
-               Cur : constant Cond_Branch_Maps.Cursor :=
-                 Cond_Branch_Map.Find
-                   ((Exe, D_Occ.Conditional_Branches.Element (J)));
-            begin
-               Cond_Branch_Map.Update_Element (Cur, Label_Destinations'Access);
-            end;
+         for CB_PC of D_Occ.Conditional_Branches loop
+            Cond_Branch_Map.Update_Element
+              (Cond_Branch_Map.Find ((Exe, CB_PC)), Label_Destinations'Access);
          end loop;
       end loop;
 
-      --  Use finalizer tags to fix up edges that have been incorrectly tagged
-      --  as outcomes.
+      --  Generate decision map, reporting labeling failures as we go
 
-      for J in D_Occ.Conditional_Branches.First_Index
-            .. D_Occ.Conditional_Branches.Last_Index
-      loop
-         declare
-            use Cond_Branch_Maps;
-            Cur : constant Cond_Branch_Maps.Cursor :=
-                    Cond_Branch_Map.Find
-                      ((Exe, D_Occ.Conditional_Branches.Element (J)));
-         begin
-            Cond_Branch_Map.Update_Element
-              (Cur, Fixup_Finalizer_Edges'Access);
-         end;
-      end loop;
-
-      --  Report remaining unlabeled destinations
-
-      for J in D_Occ.Conditional_Branches.First_Index
-            .. D_Occ.Conditional_Branches.Last_Index
-      loop
-         declare
-            use Cond_Branch_Maps;
-            Cur : constant Cond_Branch_Maps.Cursor :=
-                    Cond_Branch_Map.Find
-                      ((Exe, D_Occ.Conditional_Branches.Element (J)));
-         begin
-            Cond_Branch_Map.Update_Element
-              (Cur, Report_Unlabeled_Destinations'Access);
-         end;
+      for CB_PC of D_Occ.Conditional_Branches loop
+         Output_Cond_Branch (Exe, CB_PC);
       end loop;
 
       --  Report non-constant conditions for which no edge provides a valuation
@@ -1873,8 +2001,8 @@ package body Decision_Map is
                   and then
                Value (Condition (D_Occ.Decision, J)) = Unknown
             then
-
-               --  Static analysis failed???
+               --  In non-verbose mode, maybe we should display this warning
+               --  only if D_Occ.Decision ends up not covered???
 
                Report (First_Sloc (Condition (D_Occ.Decision, J)),
                        Msg  => "condition lacks edge for " & Val'Img,
@@ -1967,18 +2095,6 @@ package body Decision_Map is
 
       Subp_Name : constant String := Get_Filename (Exec.all) & ":" & Name.all;
 
-      --  The following two flags are used to exclude some basic blocks related
-      --  to the finalization of transient objects from consideration as part
-      --  of a decision.
-
-      Call_Excluded : Boolean := False;
-      --  True for a call to a generated block finalizer
-
-      Next_Branch_Excluded : Boolean := False;
-      --  True for the conditional branch instruction that follows a call to
-      --  a block finalizer (which distinguishes between the normal completion
-      --  and exception cases).
-
       --  The following records describes a conditional branch instruction
       --  found during the initial code scan, which needs to be analyzed later
       --  on (see below for complete description of the two-pass scan).
@@ -1995,7 +2111,7 @@ package body Decision_Map is
          --  Machine properties for this conditional branch
 
          BB_From               : Pc_Type;
-         --  Fisrt byte of the basic block that contain this instruction
+         --  Fisrt PC of the basic block that contain this instruction
       end record;
 
       package Pending_Cond_Branch_Vectors is new Ada.Containers.Vectors
@@ -2010,9 +2126,6 @@ package body Decision_Map is
       --  scan (first pass), during which all basic blocks are identified.
       --  They are actually processed after this scan is completed (second
       --  pass).
-
-      Cond_Branch_Cur       : Pending_Cond_Branch_Vectors.Cursor;
-      --  Needs comment???
 
    --  Start of processing for Analyze_Routine
 
@@ -2090,36 +2203,6 @@ package body Decision_Map is
                Branch_Dest => Branch_Dest,
                FT_Dest     => FT_Dest);
 
-            --  Update decision exclusion flags for this basic block
-
-            --  We expect the next control flow instruction to be a conditional
-            --  branch. Reset decision exclusion flags if this is not the case
-            --  (i.e. we do not match the expectded pattern: finalization at
-            --  the end of a decision).
-
-            Next_Branch_Excluded :=
-               Next_Branch_Excluded and then
-                  (Branch = Br_None
-                     or else
-                   (Branch = Br_Jmp and then Flag_Cond));
-
-            Call_Excluded := False;
-            if Branch = Br_Call then
-               declare
-                  Called_Sym : constant Addresses_Info_Acc :=
-                    Get_Symbol (Exec.all, Branch_Dest.Target);
-                  Sym_Name : String_Access;
-               begin
-                  if Called_Sym /= null then
-                     Sym_Name := Called_Sym.Symbol_Name;
-                  else
-                     Sym_Name := null;
-                  end if;
-
-                  Call_Excluded := Is_Finalizer_Symbol (Sym_Name);
-               end;
-            end if;
-
             --  If both edges have the same delay slot address, then said delay
             --  slot is always executed, whether or not we branch, so we
             --  ignore it for the purpose of edge destination equivalence.
@@ -2146,11 +2229,10 @@ package body Decision_Map is
                           To_PC                  => Insn'First,
                           To                     => Insn'Last,
                           Branch_Dest            => Branch_Dest,
+                          FT_Dest                => FT_Dest,
                           Branch                 => Branch,
                           Cond                   => Flag_Cond,
                           Statements             => Current_Basic_Block_S_Map,
-                          Excluded_From_Decision =>
-                             Call_Excluded or Next_Branch_Excluded,
                           others                 => <>);
 
                   SCO            : SCO_Id;
@@ -2162,24 +2244,19 @@ package body Decision_Map is
                --  Start of processing for Analyze_Branch
 
                begin
+                  if Branch = Br_Call then
+                     Analyze_Call (Exec, BB);
+                  end if;
+
                   for Tsloc of Tslocs loop
                      SCO := Sloc_To_SCO (Tsloc.Sloc);
                      Tag := Tsloc.Tag;
 
-                     if Flag_Cond and then not BB.Excluded_From_Decision then
+                     if Flag_Cond then
                         if Branch = Br_Jmp or else Branch = Br_Ret then
                            if SCO /= No_SCO_Id
-                                and then Kind (SCO) = Condition
+                             and then Kind (SCO) = Condition
                            then
-                              Pending_Cond_Branches.Append
-                                ((Insn_First  => Insn'First,
-                                  Insn_Last   => Insn'Last,
-                                  Tag         => Tsloc.Tag,
-                                  C_SCO       => SCO,
-                                  Branch_Dest => Branch_Dest,
-                                  FT_Dest     => FT_Dest,
-                                  BB_From     => BB.From));
-
                               --  Assumption: a given conditional branch
                               --  instruction tests at most 1 source condition.
 
@@ -2188,9 +2265,20 @@ package body Decision_Map is
                               then
                                  Report_Non_Traceable
                                    (BB, "multiple conditions for conditional "
-                                        & "branch");
+                                    & "branch");
                               end if;
                               Branch_SCO := SCO;
+
+                              --  Queue for later processing
+
+                              Pending_Cond_Branches.Append
+                                ((Insn_First  => Insn'First,
+                                  Insn_Last   => Insn'Last,
+                                  Tag         => Tsloc.Tag,
+                                  C_SCO       => SCO,
+                                  Branch_Dest => Branch_Dest,
+                                  FT_Dest     => FT_Dest,
+                                  BB_From     => BB.From));
                            end if;
 
                         else
@@ -2199,7 +2287,7 @@ package body Decision_Map is
 
                            Report_Non_Traceable
                              (BB, "unexpected conditional branch of type "
-                                  & Branch'Img);
+                              & Branch'Img);
                         end if;
                      end if;
 
@@ -2213,14 +2301,6 @@ package body Decision_Map is
 
                end Analyze_Branch;
             end if;
-
-            --  Propagate the flag (when True) to the next instruction unless
-            --  it is a branch (i.e. until the end of the next basic block).
-
-            Next_Branch_Excluded :=
-               (Next_Branch_Excluded and then Branch = Br_None)
-                  or else
-               Call_Excluded;
 
             PC := PC + Pc_Type (Insn_Len);
 
@@ -2236,15 +2316,10 @@ package body Decision_Map is
 
       --  Second pass: analyze queued conditional branch instructions
 
-      Cond_Branch_Cur := Pending_Cond_Branches.First;
-      while Cond_Branch_Cur /= Pending_Cond_Branch_Vectors.No_Element loop
+      for Cond_Branch of Pending_Cond_Branches loop
          declare
-            Cond_Branch : Pending_Cond_Branch renames
-               Element (Cond_Branch_Cur);
-
             BB_Cur      : constant Basic_Block_Sets.Cursor :=
-               Context.Basic_Blocks.Find
-                 ((Cond_Branch.BB_From, others => <>));
+              Find_Basic_Block (Context.Basic_Blocks, Cond_Branch.BB_From);
             BB          : Basic_Block := Basic_Block_Sets.Element (BB_Cur);
             --  This conditional branch has been found when building the list
             --  of basic blocks, so we know there is exactly one basic block
@@ -2268,7 +2343,6 @@ package body Decision_Map is
             --  the key may have changed.
 
             Context.Basic_Blocks.Replace_Element (BB_Cur, BB);
-            Cond_Branch_Cur := Next (Cond_Branch_Cur);
          end;
       end loop;
 
@@ -2315,7 +2389,7 @@ package body Decision_Map is
                            & S_Kind (BB.Branch_SCO)'Img);
                      end if;
 
-                  elsif BB.Excluded_From_Decision then
+                  elsif BB.Outcome_Reached = True then
                      CBK := Cleanup;
 
                   else
@@ -2481,15 +2555,29 @@ package body Decision_Map is
 
    function Find_Basic_Block
      (Basic_Blocks : Basic_Block_Sets.Set;
+      PC           : Pc_Type) return Basic_Block_Sets.Cursor
+   is
+      use Basic_Block_Sets;
+
+      Cur : constant Cursor := Basic_Blocks.Floor ((From => PC, others => <>));
+
+   begin
+      if Cur /= No_Element and then PC <= Element (Cur).To then
+         return Cur;
+      else
+         return No_Element;
+      end if;
+   end Find_Basic_Block;
+
+   function Find_Basic_Block
+     (Basic_Blocks : Basic_Block_Sets.Set;
       PC           : Pc_Type) return Basic_Block
    is
       use Basic_Block_Sets;
 
-      PC_Block : constant Basic_Block := (From => PC, others => <>);
-      Cur      : constant Cursor := Basic_Blocks.Floor (PC_Block);
-
+      Cur : constant Cursor := Find_Basic_Block (Basic_Blocks, PC);
    begin
-      if Cur /= No_Element and then PC <= Element (Cur).To then
+      if Cur /= No_Element then
          return Element (Cur);
       else
          return No_Basic_Block;
@@ -2508,6 +2596,15 @@ package body Decision_Map is
                & " " & BB.Branch'Img & Cond_Char (BB.Cond) & " "
                & Hex_Image (BB.Branch_Dest.Target);
    end Image;
+
+   -------------------------
+   -- Is_Finalizer_Symbol --
+   -------------------------
+
+   function Is_Finalizer_Symbol (Name : String) return Boolean is
+   begin
+      return Match (Name, Finalizer_Symbol_Pattern);
+   end Is_Finalizer_Symbol;
 
    ---------------
    -- Write_Map --
