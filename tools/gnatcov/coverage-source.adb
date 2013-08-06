@@ -74,9 +74,15 @@ package body Coverage.Source is
             --  has been executed.
 
          when Decision =>
-            Outcome_Taken : Outcome_Taken_Type := (others => False);
+            Outcome_Taken, Known_Outcome_Taken : Outcome_Taken_Type :=
+                                                   (others => False);
             --  Each of these components is set True when the corresponding
-            --  outcome has been exercised.
+            --  outcome has been exercised. Outcome_Taken is set depending
+            --  on conditional branch instructions, and might be reverted
+            --  (if the decision has degraded origin). Known_Outcome_Taken
+            --  is set from dominance information, and is always accurate when
+            --  set (but may be unset for an outcome that does not dominate
+            --  any statement).
 
             Evaluations : Evaluation_Sets.Set;
             --  Set of all distinct evaluations of this decision (computed for
@@ -306,7 +312,6 @@ package body Coverage.Source is
                  and then (Enabled (Decision) or else MCDC_Coverage_Enabled)
                  and then Decision_Requires_Coverage (SCO)
                then
-
                   --  Compute decision coverage state for this decision. Note
                   --  that the decision coverage information is also included
                   --  in MC/DC coverage.
@@ -321,21 +326,43 @@ package body Coverage.Source is
                   then
                      SCO_State := Partially_Covered;
 
-                     --  Indicate which outcome has never been taken: if FALSE
-                     --  has been taken then this is outcome TRUE, else FALSE.
+                     declare
+                        Missing_Outcome : Tristate := Unknown;
+                     begin
+                        --  Indicate which outcome has never been taken: if
+                        --  FALSE has been taken then this is outcome TRUE,
+                        --  else FALSE.
 
-                     if Degraded_Origins (SCO) then
-                        Report_Violation
-                          (SCO, SCI.Tag, "not exercised in both directions");
+                        if Degraded_Origins (SCO) then
+                           --  Degraded origins: try to recover accurate
+                           --  information about the missing outcome through
+                           --  the dominance-based information.
 
-                     else
-                        Report_Violation
-                          (SCO,
-                           SCI.Tag,
-                           "outcome "
-                           & SCI.Outcome_Taken (False)'Img
-                           & " never exercised");
-                     end if;
+                           if SCI.Known_Outcome_Taken (False)
+                             /= SCI.Known_Outcome_Taken (True)
+                           then
+                              Missing_Outcome :=
+                                To_Tristate (SCI.Known_Outcome_Taken (False));
+                           end if;
+
+                        else
+                           Missing_Outcome :=
+                             To_Tristate (SCI.Outcome_Taken (False));
+                        end if;
+
+                        if Missing_Outcome = Unknown then
+                           Report_Violation
+                             (SCO, SCI.Tag,
+                              "not exercised in both directions");
+
+                        else
+                           Report_Violation
+                             (SCO,
+                              SCI.Tag,
+                              "outcome "
+                              & Missing_Outcome'Img & " never exercised");
+                        end if;
+                     end;
 
                   elsif Enclosing_Statement (SCO) = No_SCO_Id
                     or else Basic_Block_Has_Code
@@ -539,8 +566,8 @@ package body Coverage.Source is
          --  Set Executed (if Line_Executed is False) or Line_Executed (if it
          --  is True) to True.
 
-         procedure Set_Outcome_Taken (SCI : in out Source_Coverage_Info);
-         --  Set SCI.Outcome_Taken (Dom_Val) to True
+         procedure Set_Known_Outcome_Taken (SCI : in out Source_Coverage_Info);
+         --  Set SCI.Known_Outcome_Taken (Dom_Val) to True
 
          ------------------
          -- Set_Executed --
@@ -555,14 +582,16 @@ package body Coverage.Source is
             end if;
          end Set_Executed;
 
-         -----------------------
-         -- Set_Outcome_Taken --
-         -----------------------
+         -----------------------------
+         -- Set_Known_Outcome_Taken --
+         -----------------------------
 
-         procedure Set_Outcome_Taken (SCI : in out Source_Coverage_Info) is
+         procedure Set_Known_Outcome_Taken
+           (SCI : in out Source_Coverage_Info)
+         is
          begin
-            SCI.Outcome_Taken (Dom_Val) := True;
-         end Set_Outcome_Taken;
+            SCI.Known_Outcome_Taken (Dom_Val) := True;
+         end Set_Known_Outcome_Taken;
 
       --  Start of processing for Discharge_SCO
 
@@ -615,14 +644,14 @@ package body Coverage.Source is
 
             exit when not Propagating and No_Propagation;
 
-            --  Propagate back to beginning of basic block
+            --  Propagate back to beginning of basic block, and possibly
+            --  to upper decisions.
 
             Propagating := True;
 
             Dominant (S_SCO, Dom_SCO, Dom_Val);
             if Dom_SCO /= No_SCO_Id
                  and then Kind (Dom_SCO) = Decision
-                 and then not Degraded_Origins (Dom_SCO)
             then
                Report
                  (Msg  => "propagating from " & Image (S_SCO) & " to "
@@ -632,7 +661,7 @@ package body Coverage.Source is
                                else ", tag=" & Tag_Provider.Tag_Name (Tag)),
                   Kind => Notice);
 
-               Update_SCI (Dom_SCO, Tag, Set_Outcome_Taken'Access);
+               Update_SCI (Dom_SCO, Tag, Set_Known_Outcome_Taken'Access);
             end if;
 
             S_SCO := Enclosing_Statement (Dom_SCO);
