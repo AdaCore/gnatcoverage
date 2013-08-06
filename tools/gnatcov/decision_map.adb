@@ -1151,7 +1151,9 @@ package body Decision_Map is
         (CB_Loc : Cond_Branch_Loc;
          CBI    : in out Cond_Branch_Info)
       is
-         Cond_Branch_PC : Pc_Type renames CB_Loc.PC;
+         Cond_Branch_PC   : Pc_Type renames CB_Loc.PC;
+         Cond_Branch_Sloc : constant Source_Location :=
+                              Get_Sloc (Exe.all, Cond_Branch_PC);
 
          procedure Mark_Successors
            (Dest_PC         : Pc_Type;
@@ -1292,6 +1294,29 @@ package body Decision_Map is
             end if;
          end loop;
 
+         --  If both targets are still unlabeled, and have the same sloc as the
+         --  cond branch, treat as intra-condition jump. This pattern occurs
+         --  when the value of a condition is saved into a temporary, which
+         --  will be tested later on (e.g. after some cleanup actions have been
+         --  taken).
+
+         if CBI.Edges (Branch).Dest_Kind = Unknown
+              and then
+            Get_Sloc (Exe.all, CBI.Edges (Branch).Destination.Target)
+              = Cond_Branch_Sloc
+              and then
+            CBI.Edges (Fallthrough).Dest_Kind = Unknown
+              and then
+            Get_Sloc (Exe.all, CBI.Edges (Fallthrough).Destination.Target)
+              = Cond_Branch_Sloc
+         then
+            for Edge of CBI.Edges loop
+               Edge.Dest_Kind := Condition;
+               Edge.Next_Condition := Index (CBI.Condition);
+            end loop;
+            return;
+         end if;
+
          --  If either destination is now known to be an outcome, mark further
          --  conditional branch instructions in the decision occurrence as
          --  cleanup actions that play no role in outcome determination, else
@@ -1309,7 +1334,6 @@ package body Decision_Map is
               (CBE.Destination.Target,
                Outcome_Reached => CBE.Dest_Kind = Outcome);
          end loop;
-
       end Label_Destinations;
 
       -------------------------
