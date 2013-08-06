@@ -302,10 +302,12 @@ package body Decision_Map is
                First_Symbol_Occurrence,
                Subp_Info);
 
-            --  Build decision map for routine based on referenced instance
+            --  Process the reference instance of the routine
 
             if First_Symbol_Occurrence then
                Tag_Provider.Enter_Routine (Subp_Info);
+
+               --  Map routine instructions to SCOs
 
                Analyze_Routine
                  (Sym.Symbol_Name,
@@ -1656,7 +1658,11 @@ package body Decision_Map is
       --  Start of processing for Output_Cond_Branch
 
       begin
-         if CBI.Condition = No_SCO_Id then
+         if CBI.Condition = No_SCO_Id
+           or else (CBI.Edges (Branch).Origin = Unknown
+                      and then
+                    CBI.Edges (Fallthrough).Origin = Unknown)
+         then
             Report (Exe, CB_PC,
                     "omitted non-contributive branch", Kind => Notice);
             Cond_Branch_Map.Delete (Cur);
@@ -2337,6 +2343,15 @@ package body Decision_Map is
             end if;
          end;
       end loop;
+
+      --  All done if doing only statement coverage
+
+      if not (Branch_Stats
+                or else Enabled (Decision)
+                or else MCDC_Coverage_Enabled)
+      then
+         return;
+      end if;
 
       --  Second pass: analyze queued conditional branch instructions
 

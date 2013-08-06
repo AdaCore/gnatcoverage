@@ -876,6 +876,10 @@ procedure GNATcov is
                            Inputs.Add_Input (Exe_Inputs, Arg);
 
                         when Cmd_Map_Routines =>
+                           --  Set MC/DC coverage level in order to generate
+                           --  a complete decision map.
+
+                           Set_Coverage_Levels ("stmt+mcdc");
                            Inputs.Add_Input (Exe_Inputs, Arg);
 
                         when Cmd_Run =>
