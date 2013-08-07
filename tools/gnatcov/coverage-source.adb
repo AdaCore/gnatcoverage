@@ -92,11 +92,12 @@ package body Coverage.Source is
             null;
       end case;
    end record;
-   type Source_Coverage_Info_Access is access Source_Coverage_Info;
+   type Source_Coverage_Info_Access is access constant Source_Coverage_Info;
+   type RW_Source_Coverage_Info_Access is access Source_Coverage_Info;
 
    package SCI_Vectors is new Ada.Containers.Vectors
        (Index_Type   => Natural,
-        Element_Type => Source_Coverage_Info_Access);
+        Element_Type => RW_Source_Coverage_Info_Access);
 
    package SCI_Vector_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Valid_SCO_Id,
@@ -270,6 +271,8 @@ package body Coverage.Source is
                      else
                         --  There is just one statement for this line, so we
                         --  know for certain that it has been executed.
+                        --  Note: Ensure_SCI above guarantees that SCI is an
+                        --  actual specific SCI, not one of the default ones.
 
                         SCI.Executed := True;
                         SCO_State := Covered;
@@ -562,6 +565,12 @@ package body Coverage.Source is
          --  Set True if we are discharging from a trace with imprecise sloc
          --  that has line information only (column unknown).
 
+         Tag_Suffix : constant String :=
+                        (if Tag = No_SC_Tag
+                         then ""
+                         else ", tag=" & Tag_Provider.Tag_Name (Tag));
+         --  Suffix identifying tag for sloc in debug message
+
          procedure Set_Executed (SCI : in out Source_Coverage_Info);
          --  Set Executed (if Line_Executed is False) or Line_Executed (if it
          --  is True) to True.
@@ -601,7 +610,29 @@ package body Coverage.Source is
          S_SCO := Enclosing_Statement (SCO);
          Propagating := False;
          while S_SCO /= No_SCO_Id loop
-            exit when Get_SCI (S_SCO, Tag).Executed;
+
+            --  If we are discharging a SCO from an imprecise sloc within
+            --  its line range, only mark it Line_Executed (else we
+            --  are propagating, and execution is certain even if the
+            --  originating trace is imprecise).
+
+            declare
+               use Types;
+
+               S_SCO_First : constant Source_Location := First_Sloc (S_SCO);
+               S_SCO_Last  : constant Source_Location := Last_Sloc (S_SCO);
+
+               Cur_SCI     : constant Source_Coverage_Info_Access :=
+                               Get_SCI (S_SCO, Tag);
+            begin
+               Line_Executed := Tsloc.Sloc.Column = 0
+                 and then Tsloc.Sloc.Source_File = S_SCO_First.Source_File
+                 and then Tsloc.Sloc.Line
+               in S_SCO_First.Line .. S_SCO_Last.Line;
+
+               exit when Cur_SCI.Executed
+                 or else (Line_Executed and Cur_SCI.Line_Executed);
+            end;
 
             --  For pragma Pre/Postcondition, no propagation: the statement
             --  is never marked as executed by propagation, and marking it
@@ -614,51 +645,35 @@ package body Coverage.Source is
                --  Mark S_SCO as executed
 
                Report
-                 (Msg  => "marking " & Image (S_SCO) & " executed"
-                            & (if Tag = No_SC_Tag
-                               then ""
-                               else ", tag=" & Tag_Provider.Tag_Name (Tag))
-
+                 (Msg  => (if Line_Executed then "line " else "")
+                            & "executed" & Tag_Suffix
                             & (if Propagating then " (propagating)" else ""),
-                    Kind => Notice);
-
-               --  If we are discharging a SCO from an imprecise sloc within
-               --  its line range, only mark it Line_Executed (else we
-               --  are propagating, and execution is certain even if the
-               --  originating trace is imprecise).
-
-               declare
-                  use Types;
-
-                  S_SCO_First : constant Source_Location := First_Sloc (S_SCO);
-                  S_SCO_Last  : constant Source_Location := Last_Sloc (S_SCO);
-               begin
-                  Line_Executed := Tsloc.Sloc.Column = 0
-                    and then Tsloc.Sloc.Source_File = S_SCO_First.Source_File
-                    and then Tsloc.Sloc.Line
-                               in S_SCO_First.Line .. S_SCO_Last.Line;
-               end;
+                  SCO  => S_SCO,
+                  Exe  => Exe,
+                  PC   => PC,
+                  Kind => Notice);
 
                Update_SCI (S_SCO, Tag, Set_Executed'Access);
             end if;
 
             exit when not Propagating and No_Propagation;
 
-            --  Propagate back to beginning of basic block, and possibly
-            --  to upper decisions.
+            --  Propagate back to beginning of basic block, and possibly to
+            --  upper decisions.
 
             Propagating := True;
 
             Dominant (S_SCO, Dom_SCO, Dom_Val);
             if Dom_SCO /= No_SCO_Id
-                 and then Kind (Dom_SCO) = Decision
+              and then Kind (Dom_SCO) = Decision
+              and then not Get_SCI (Dom_SCO, Tag).Known_Outcome_Taken (Dom_Val)
             then
                Report
-                 (Msg  => "propagating from " & Image (S_SCO) & " to "
-                            & Image (Dom_SCO) & " outcome " & Dom_Val'Img
-                            & (if Tag = No_SC_Tag
-                               then ""
-                               else ", tag=" & Tag_Provider.Tag_Name (Tag)),
+                 (Msg  => "outcome " & Dom_Val'Img & " taken" & Tag_Suffix
+                            & " (propagating)",
+                  SCO  => Dom_SCO,
+                  Exe  => Exe,
+                  PC   => PC,
                   Kind => Notice);
 
                Update_SCI (Dom_SCO, Tag, Set_Known_Outcome_Taken'Access);
@@ -748,10 +763,16 @@ package body Coverage.Source is
 
                   SCI.Outcome_Taken (To_Boolean (CBE.Outcome)) := True;
 
-                  Report (Exe, PC,
-                    Msg  => "outcome " & CBE.Outcome'Img & " of "
-                            & Image (D_SCO) & " reached by " & E'Img,
-                    Kind => Notice);
+                  Report
+                    (Msg  => "outcome " & CBE.Outcome'Img
+                             & (if Degraded_Origins (D_SCO)
+                                then " (degraded)"
+                                else "")
+                             & " taken by " & E'Img,
+                     SCO  => D_SCO,
+                     Exe  => Exe,
+                     PC   => PC,
+                     Kind => Notice);
 
                   --  Processing full evaluation history is costly, and
                   --  requires full traces of conditional branches, so we
@@ -1079,7 +1100,7 @@ package body Coverage.Source is
       if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
          for SCI of SCI_Vector.Element (SCO) loop
             if SCI.Tag = Tag then
-               return SCI;
+               return Source_Coverage_Info_Access (SCI);
             end if;
          end loop;
       end if;
@@ -1111,7 +1132,10 @@ package body Coverage.Source is
       SC_Obligations.Iterate (Add_SCI'Access);
 
       for K in Default_SCIs'Range loop
-         Default_SCIs (K) := new Source_Coverage_Info (Kind => K);
+         Default_SCIs (K) :=
+           Source_Coverage_Info_Access
+             (RW_Source_Coverage_Info_Access'
+                (new Source_Coverage_Info (Kind => K)));
       end loop;
    end Initialize_SCI;
 
@@ -1212,7 +1236,7 @@ package body Coverage.Source is
       Tag     : SC_Tag;
       Process : access procedure (SCI : in out Source_Coverage_Info))
    is
-      procedure Deref_Process (SCIA : in out Source_Coverage_Info_Access);
+      procedure Deref_Process (SCIA : in out RW_Source_Coverage_Info_Access);
       --  Call Process (SCIA.all)
 
       procedure Update_SCIV (SCIV : in out SCI_Vectors.Vector);
@@ -1222,7 +1246,7 @@ package body Coverage.Source is
       -- Deref_Process --
       -------------------
 
-      procedure Deref_Process (SCIA : in out Source_Coverage_Info_Access) is
+      procedure Deref_Process (SCIA : in out RW_Source_Coverage_Info_Access) is
          pragma Unmodified (SCIA);
       begin
          Process (SCIA.all);
@@ -1244,7 +1268,7 @@ package body Coverage.Source is
          --  Here if no SCI exists yet for this SCO and tag
 
          declare
-            New_SCI : constant Source_Coverage_Info_Access :=
+            New_SCI : constant RW_Source_Coverage_Info_Access :=
                         new Source_Coverage_Info (Kind (SCO));
          begin
             New_SCI.Tag := Tag;
