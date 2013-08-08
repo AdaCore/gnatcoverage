@@ -3,4 +3,4 @@ Appendix
 
 .. qmlink:: ToplevelIndexImporter
 
-   Harness
+   *

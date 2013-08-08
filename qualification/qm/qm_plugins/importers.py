@@ -76,7 +76,7 @@ class TCIndexImporter(ArtifactImporter):
                 # We do include in the table children artifacts only
                 # in html format.
                 html_items.append([class_to_string(suba),
-                                   "``..`` " + suba.name,
+                                   "`..` %s" % suba.name,
                                    writer.qmref(suba.full_name)])
 
         html_table = writer.csv_table(
@@ -117,6 +117,9 @@ class AppIndexImporter(ArtifactImporter):
 class ToplevelIndexImporter(ArtifactImporter):
 
     def qmlink_to_rest(self, parent, artifacts):
+
+
+
         items = []
         html_top_index = ""
 
@@ -128,11 +131,27 @@ class ToplevelIndexImporter(ArtifactImporter):
 
             else:
                 items.append([writer.strong(class_to_string(a)),
-                             writer.strong(a.name),
-                             writer.qmref(a.full_name)])
-                for suba in a.relatives:
+                              writer.strong(a.name),
+                              writer.qmref(a.full_name)])
+
+                if a.name == "Ada":
+
+                    def key (a):
+                        d = {'stmt': 1, 'decision': 2, 'mcdc': 3}
+                        for k in d:
+                            if k in a.name:
+                                return d[k]
+
+                    selected = [k for k in a.relatives if not is_source(k)]
+                    selected.sort(key=key)
+
+                else:
+                   selected = a.relatives
+
+
+                for suba in selected:
                     items.append([class_to_string(suba),
-                                 "``..`` " + suba.name,
+                                 "`..` %s" % suba.name,
                                  writer.qmref(suba.full_name)])
 
         html_top_index += writer.csv_table(
