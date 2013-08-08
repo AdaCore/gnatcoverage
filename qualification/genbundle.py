@@ -864,14 +864,19 @@ if __name__ == "__main__":
         options.pname = "GNATCOV-QMAT-%s-%4d-%02d-%02d" % (
             options.docformat.upper(), today.year, today.month, today.day)
 
-    # TBD : Temporarily relax this restriction, so we can see
-    #       what a packaged kit looks like.
-    # Refuse generating a package in devmode.
+    # In principle, we should refuse to generate a package in devmode, as
+    # packages are presumably things to be delivered and devmode disconnects
+    # consistency checks. In practice, there are often last minute doc
+    # adjustments that need to get in and forcing to re-run the tests from
+    # the adjusted tree really is unfriendly. --devmode must still be provided
+    # explicitly so that assembling pieces from not-quite-consistent trees
+    # is acknowledged, with manual verification of the differences for packages
+    # to be delivered.
 
-   # exit_if (
-        #options.pname and options.devmode,
-        #"Producing a packaged kit is disallowed in devmode."
-        #)
+    # exit_if (
+    #    options.pname and options.devmode,
+    #    "Producing a packaged kit is disallowed in devmode."
+    #   )
 
     # Settle on the set of documents we are to produce:
 
