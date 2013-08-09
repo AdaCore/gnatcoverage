@@ -1,6 +1,8 @@
 GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirements
 #################################################################################
 
+.. rubric:: Authors
+
 .. csv-table:: **Authors**
    :delim: |
    :widths: 43, 30, 40
@@ -9,7 +11,8 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
    Matteo Bordin|AdaCore|bordin@adacore.com
    Olivier Hainque|AdaCore|hainque@adacore.com
 
-|
+.. rubric:: Revised  by
+
 .. csv-table:: **Revised by**
    :delim: |
    :widths: 40, 30, 40
@@ -19,6 +22,14 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
    Sheri Bernstein|AdaCore|bernstein@adacore.com
    Ben Brosgol|AdaCore|brosgol@adacore.com
 
+.. only:: html
+
+   Presentation
+   ============
+
+   This document is a hierarchically organized set of "Tool Operational
+   Requirements" and "Testcases", consisting of several top-level chapters.
+
 
 .. qmlink:: ToplevelIndexImporter
 
@@ -27,12 +38,17 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
    Ada
    Common
 
-|
 
 .. qmlink:: TestCasesImporter
 
       Ada
       Common
+
+
+.. only:: html
+
+   Appendix
+   ========
 
 
 .. qmlink:: ToplevelIndexImporter

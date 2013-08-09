@@ -125,39 +125,32 @@ class ToplevelIndexImporter(ArtifactImporter):
 
         for a in artifacts:
 
-            if a.full_name == "/TOR_Doc/Introduction":
-                for item in a.contents('content'):
-                    html_top_index += writer.paragraph(item.get_content())
+            items.append([writer.strong(a.name),
+                          writer.qmref(a.full_name)])
+
+            if a.name == "Ada":
+
+                def key (a):
+                    d = {'stmt': 1, 'decision': 2, 'mcdc': 3}
+                    for k in d:
+                        if k in a.name:
+                            return d[k]
+
+                selected = [k for k in a.relatives if not is_source(k)]
+                selected.sort(key=key)
 
             else:
-                items.append([writer.strong(class_to_string(a)),
-                              writer.strong(a.name),
-                              writer.qmref(a.full_name)])
-
-                if a.name == "Ada":
-
-                    def key (a):
-                        d = {'stmt': 1, 'decision': 2, 'mcdc': 3}
-                        for k in d:
-                            if k in a.name:
-                                return d[k]
-
-                    selected = [k for k in a.relatives if not is_source(k)]
-                    selected.sort(key=key)
-
-                else:
-                   selected = a.relatives
+               selected = a.relatives
 
 
-                for suba in selected:
-                    items.append([class_to_string(suba),
-                                 "`..` %s" % suba.name,
-                                 writer.qmref(suba.full_name)])
+            for suba in selected:
+                items.append(["`..` %s" % suba.name,
+                              writer.qmref(suba.full_name)])
 
         html_top_index += writer.csv_table(
             items,
-            headers=["", "Chapter", "Description"],
-            widths=[3, 25, 65])
+            headers=["Chapter", "Description"],
+            widths=[40, 60])
 
         output = writer.only(html_top_index, "html")
 
@@ -195,19 +188,10 @@ class SubsetIndexTable(ArtifactImporter):
                      ("Requirements" if (req > 1 and reqg == 0) else
                       "")))))
 
-        html_output = writer.csv_table(
+        output = writer.csv_table(
             items,
             headers=["", "%s" % header, "Description"],
             widths=[3, 25, 65])
-
-        # for latex, all the tables keep the same title
-        latex_output = writer.csv_table(
-            items,
-            headers=["", "Requirements or Groups", "Description"],
-            widths=[3, 25, 65])
-
-        output = writer.only(html_output, "html")
-        output += writer.only(latex_output, "latex")
 
         return output, []
 
