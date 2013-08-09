@@ -883,6 +883,7 @@ class QDreport:
 
         # Options might be coming from a variety of places:
         # - BUILDER.COMMON_CARGS (e.g. -fpreserve-control-flow),
+        # - BUILDER.TARG_CARGS_FOR(target) (e.g. -fno-strict-dwarf),
         # - LANGINFO.cargs (e.g. -gnateS for Ada, -fdump-scos for C)
         # - --cargs family
 
@@ -898,7 +899,9 @@ class QDreport:
         csv_contents.append(
             {item : "compiler switches - language-independent",
              value: ' '.join (
-                    (BUILDER.COMMON_CARGS, suite_options["cargs"]))
+                    BUILDER.COMMON_CARGS
+                    + BUILDER.TARG_CARGS_FOR(self.suitedata.target.triplet)
+                    ) + ' ' + suite_options["cargs"]
              })
 
         for lang in self.languages:

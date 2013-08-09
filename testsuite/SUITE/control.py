@@ -82,9 +82,17 @@ def language_info(source_filename):
 
 class BUILDER:
 
-    # Common compilation args, passed to all build invocations
+    # Common compilation args, passed to all build invocations.
 
-    COMMON_CARGS = " -g -fpreserve-control-flow -fdump-scos"
+    COMMON_CARGS = ["-g", "-fpreserve-control-flow", "-fdump-scos"]
+    
+    __TARGET_CARGS = {
+        'powerpc-wrs-vxworks': ["-gno-strict-dwarf"]
+        }
+    
+    @staticmethod
+    def TARG_CARGS_FOR(target):
+        return BUILDER.__TARGET_CARGS.get (target, [])
 
     # Base command for a build
 
