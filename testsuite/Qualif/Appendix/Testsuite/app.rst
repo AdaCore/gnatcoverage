@@ -1,8 +1,6 @@
-Overall organization of the GNATcoverage qualification test harness
-
---------
-Overview
---------
+---------------------
+Overview of Testsuite
+---------------------
 
 We qualify a well identified GNATcoverage bundle to perform
 structural coverage assessments in accordance with a qualified interface.
