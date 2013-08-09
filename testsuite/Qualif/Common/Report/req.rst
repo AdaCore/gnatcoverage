@@ -1,10 +1,7 @@
-Describe the tool output report format and check compliance to it
+Describes the tool output report format and check compliance to it
 ==================================================================
 
-
 .. rubric:: Requirement(s)
-
-
 
 The tool qualified output is the synthetic report produced by the
 --annotate=report command line option. The output report shall:
@@ -15,7 +12,7 @@ The tool qualified output is the synthetic report produced by the
 
 * Feature up to four sections in between: "Assessment Context", "Coverage
   violations", "Exempted Regions" (optionally), and "Analysis summary"
- 
+
 * The "Assessment Context" section shall summarize all the elements
   of relevance to characterize the reported assessment unambiguously:
 
@@ -55,7 +52,7 @@ The tool qualified output is the synthetic report produced by the
 
   * A single synthetic line for each coverage criterion assessed, with a count
     of the non-exempted violations of that particular criterion.
-  
+
   * A single synthetic line providing the count of exempted regions.
 
 
