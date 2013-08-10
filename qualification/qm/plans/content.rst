@@ -14,10 +14,12 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Plans
    :header: "Name", "Company", "Email"
 
    Cyrille Comar|AdaCore|comar@adacore.com
+   Sheri Bernstein|AdaCore|bernstein@adacore.com
+   Ben Brosgol|AdaCore|brosgol@adacore.com
 
 .. qmlink::
 
    Documentation_Introduction
    Tool_Qualification_Plan
-   Software_Configuration_Management_Hints
+   Software_Configuration_Management_Recommendations
    Software_Quality_Assurance_Plan
