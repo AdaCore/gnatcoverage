@@ -1,6 +1,6 @@
-=======================================
-Software Configuration Management Hints
-=======================================
+=================================================
+Software Configuration Management Recommendations
+=================================================
 
 The configuration management of qualification data is a responsibility of the applicant (see :qmref:`/plans/Tool_Qualification_Plan/User_Activities`). In this section we propose a possible approach for the configuration management of the GNATcoverage qualification data.
 
@@ -16,33 +16,41 @@ The configuration management of qualification data is a responsibility of the ap
    6|Software life cycle environment control is established|7.2.9|Only item 7.2.9b applies. Up to the applicant.
 
 
-Configuration management hints
-==============================
+Configuration management recommendations
+========================================
 
-In this section we report a set of hints for configuration management for the items up to the applicant as per the compliance matrix above.
+In this section we provide a set of recommendations for configuration management for the items that are the applicant's responsibility as per the compliance matrix above.
 
  * **Item 7.2.1:** The suggested configuration items are:
 
    #. The .zip package containing the .pdf files of the Plans (this document, plans.pdf), the Tool Operational Requirements and Test Cases and the test results.
    #. The GNAT Pro installer containing the tool executable object code, the GNAT Pro UG.
    #. The GNATemulator installer containing the tool executable object code.
-   #. The GNATcoverage installer containing the tool executable object code and the GNATcoverage RM.
+   #. The GNATcoverage installer containing the tool executable object code and the GNATcoverage User's Guide.
 
  * **Item 7.2.2f:** we suggest establishing traceability between configuration items above by considering the tool executable names and versions.
  * **Item 7.2.2g:** we suggest tracing all configuration items to the GNATcoverage qualification process.
- * **Items 7.2.4a, 7.2.4b and 7.2.7:** with respect to these items, we let the user deploy the most appropriate process depending on his own configuration management process and tools.
+ * **Items 7.2.4a, 7.2.4b and 7.2.7:** with respect to these items, we suggest that the user deploy the most appropriate process depending on their own configuration management process and tools.
  * **Item 7.2.9b:** since GNATcoverage is a verification tool, the configuration management process should comply with Control Category 2.
 
 Overview of AdaCore internal configuration management process
 =============================================================
 
-This section described the internal configuration management process at AdaCore and is neither related nor relevant to the configuration management process deployed by the applicant.
+This section describes the internal configuration management process at
+AdaCore and is provided for informational purposes only;
+it is not related to the configuration management process deployed by the
+applicant.
 
 Configuration Management Methods
 ********************************
 
-Configuration Management is technically implemented via a Subversion repository.
-The life cycle of each artifact is automatically tracked in the repository. Informal email-based discussions about a precise artifact are also tracked. Each major artifact (requirement, qualification reports, etc.) is associated to a unique ID which is referenced in each email discussing the evolution of that precise artifact. In this manner, it is fairly easy to reconstruct the whole evolution of an artifact a posteriori simply by looking at SVN commits and email referencing its ID in their subjects. The mechanism used to implement this tracking uses the Customer Management System deployed at AdaCore: such technology has been widely used for the last ten years.
+Configuration Management is technically implemented via a Subversion
+repository or a Git repository.
+The life cycle of each artifact is automatically tracked in the repository,
+and e-mail-based discussions about each artifact are also tracked.
+The mechanism used to implement this tracking uses the Customer Management
+System deployed at AdaCore: such technology has been widely used for more
+than ten years.
 
 Official baseline production
 ----------------------------
@@ -50,7 +58,7 @@ Official baselines are generated on a customer-specific delivery for a precise o
 
 Archiving
 ---------
-All repositories and mail servers are redounded with machines physically located in Paris (France) and New York (The United States). This increases our confidence on the durability of qualification data.
+All repositories and mail servers are mirrored with machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
 
 Activities
 **********
@@ -85,7 +93,7 @@ Quality Assurance Reports are atomically tracked exactly like any other textual 
 
 Open problems identification
 ----------------------------
-Open problems are tracked via emails. Each email is associated to a unique problem identified by a unique ID. Each problem is assigned to a single entity of the Development or Qualification team. The unique ID identify the open problem within a database which permits to track its evolution and status (open/closed). All emails are saved in a database and it is possible to query it to retrieve all mails related to a precise open problem.
+Open problems are tracked via emails. Each email is associated with a unique problem identified by a unique ID. Each problem is assigned with a single entity of the Development or Qualification team. The unique ID identifies the open problem within a database which permits its evolution and status (open/closed) to be tracked. All emails are saved in a database and it is possible to query it to retrieve all mails related to any open problem.
 
 
 
