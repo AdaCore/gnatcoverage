@@ -13,13 +13,13 @@ The purpose of this document is to describe the applicable processes to qualify 
 Definitions List
 ================
 
-.. rubric:: Environment
-
-The context on which GNATcoverage is used.
-
 .. rubric:: GNATcoverage
 
 A tool performing structural coverage analysis of Ada programs.
+
+.. rubric:: Operational Environment
+
+The environment in which GNATcoverage is used.
 
 .. rubric:: Qualification environment
 
@@ -31,7 +31,7 @@ A file containing the GNATcoverage output.
 
 .. rubric:: Test
 
-A part of a testcase which exercizes functional code in a precise manner, aimed at obtaining precise expected coverage results.
+A part of a testcase which exercises functional code in a precise manner, aimed at obtaining precise expected coverage results.
 
 .. rubric:: Testcase
 
@@ -39,7 +39,7 @@ A part of the testing strategy used to verify a given Tool Operational Requireme
 
 .. rubric:: Tool Operational Requirement (TOR)
 
-A TOR describes the expected behaviour of a tool from the point of view of the user.
+A TOR describes the expected behavior of a tool from the point of view of the user.
 
 .. rubric:: User environment
 
@@ -55,7 +55,9 @@ of Safety Critical Applications* - Ada User Journal, December 2009.
 
 .. rubric:: DO-178B and ED-12B
 
-EUROCAE : SOFTWARE CONSIDERATIONS IN AIRBORNE SYSTEMS AND EQUIPMENT CERTIFICATION
+RTCA DO-178B/EUROCAE ED-12B:
+*Software Considerations in Airborne Systems and Equipment Certification*;
+December 1992
 
 .. rubric:: ERTS2010
 
@@ -64,19 +66,20 @@ for Safety-Critical Applications* - ERTS2 2010
 
 .. rubric:: GNAT Pro UG
 
-AdaCore: GNAT Pro User Guide. Available as part of GNAT Pro documentation.
+AdaCore: *GNAT Pro User Guide*. Available as part of GNAT Pro documentation.
 
-.. rubric:: GNATcoverage RM
+.. rubric:: GNATcoverage UG
 
-AdaCore: GNATcoverage Reference Manual.
+AdaCore: *GNATcoverage User's Guide*. Available with the GNATcoverage product.
 
 .. rubric:: TOR document
 
-GNATcoverage Tool Operational Requirements and Testcases document
+AdaCore: *GNATcoverage Tool Operational Requirements*.
+Available with this qualification package (including  testcases)
 
 .. rubric:: STR report
 
-GNATcoverage Software Test Results report
-
+AdaCore: *GNATcoverage Software Test Results*.
+Available with this qualification package.
 
 
