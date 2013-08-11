@@ -2,27 +2,28 @@
 User Activities
 ===============
 
-In order to finalize the qualification of GNATcoverage, the final user needs to perform a set of activities, either in the scope of GNATcoverage qualification or GNATcoverage usage.
+In order to finalize the qualification of GNATcoverage, the user needs to perform a set of activities, both in the scope of GNATcoverage qualification and GNATcoverage usage.
 
 .. rubric:: GNATcoverage Qualification
 
 
 #. **Reference GNATcoverage in the PSAC.** The user needs to:
 
-   * identify GNATcoverage as a verification tool that needs to be qualified;
-   * identify the compilation options for GNAT Pro.
+   * identify GNATcoverage as a verification tool that needs to be qualified
+   * refer to qualification kit Plans document (i.e., this document)
 
-#. **Delivery Acceptance.** On delivery of GNATcoverage and its qualification kit, the user shall assess the representativeness of the verification environment with the operational environment.
+#. **Delivery Acceptance.** On delivery of GNATcoverage and its qualification kit, the user shall assess the representativeness of the qualification environment with the operational environment.
 
-#. **Configuration management of qualification data**. The user need to put under configuration management all qualification data, see :qmref:`/plans/Software_Configuration_Management_Hints` for some suggestions.
+#. **Configuration management of qualification data**. The user needs to place all qualification data under configuration management; see :qmref:`/plans/Software_Configuration_Management_Recommendations` for some suggestions.
 
 #. **Provide a tool qualification agreement**, see section 12.2.4 of DO-178B.
 
-#. **Update Environment Configuration Index.** The delivery file shall be included in the Environment Configuration Index; the Tests Results shall be included as well.
-#. **Update the Software Accomplishment Summary (SAS).** The SAS need to be updated:
+#. **Update Environment Configuration Index.** Refer to the GNATcoverage qualification kit for details associated with its environment configuration. 
 
-   * For objective of table A7, objective 5, 6, or 7 depending on the criticality level of the embedded application.
-   * For qualification status of GNATcoverage.
+#. **Update the Software Accomplishment Summary (SAS).** The SAS needs to be updated:
+
+   * for Table A-7 : achievement of objective 5, 6, or 7, depending on the criticality level of the embedded application
+   * for qualification status of GNATcoverage : refer to the Software Tests Results document of the qualification kit.
 
 .. rubric:: GNATcoverage usage
 
