@@ -18,6 +18,8 @@
 
 with Ada.Unchecked_Conversion;
 
+with Interfaces;
+
 with System; use System;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
@@ -54,6 +56,9 @@ package Elf_Files is
    function Get_Status (File : Elf_File) return Elf_File_Status;
 
    function Get_Filename (File : Elf_File) return String;
+   function Get_Size (File : Elf_File) return Long_Integer;
+   function Get_Time_Stamp (File : Elf_File) return OS_Time;
+   function Get_CRC32 (File : Elf_File) return Interfaces.Unsigned_32;
 
    --  Get ELF header.
    type Elf_Ehdr_Acc is access constant Elf_Ehdr;
@@ -134,7 +139,15 @@ private
       --  Name of the file.
       Filename : String_Access;
 
-      Fd : GNAT.OS_Lib.File_Descriptor;
+      Fd         : GNAT.OS_Lib.File_Descriptor;
+
+      --  A few characteristics for this file. They will be saved here as soon
+      --  as the file is open, since the ELF might be closed when they are
+      --  requested.
+
+      Size       : Long_Integer;
+      Time_Stamp : OS_Time;
+      CRC32      : Interfaces.Unsigned_32;
 
       --  Status, used to report errors.
       Status : Elf_File_Status;

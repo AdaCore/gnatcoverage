@@ -26,8 +26,10 @@ with Interfaces;
 with GNAT.OS_Lib;
 with GNAT.Regpat;  use GNAT.Regpat;
 
+with Execs_Dbase;
 with Qemu_Traces;
 with Switches;     use Switches;
+with Traces_Elf;
 with Traces_Files; use Traces_Files;
 
 with Rundrv.Config;   use Rundrv.Config;
@@ -195,14 +197,21 @@ package body Rundrv is
 
       declare
          use GNAT.OS_Lib;
-         use Qemu_Traces;
+
          use Interfaces;
+
+         use Execs_Dbase;
+         use Qemu_Traces;
+         use Traces_Elf;
+
+         Exec       : Exe_File_Acc;
          Trace_File : Trace_File_Type;
          Date_Info  : Trace_Info_Date;
          Date       : constant OS_Time := Current_Time;
          subtype String_8 is String (1 .. 8);
          function Date_Info_To_Str is new Ada.Unchecked_Conversion
            (Trace_Info_Date, String_8);
+
       begin
          Create_Trace_File (Info, Trace_File);
          Date_Info := Trace_Info_Date'(Year  => Unsigned_16 (GM_Year (Date)),
@@ -214,6 +223,20 @@ package body Rundrv is
                                        Pad   => 0);
          Append_Info (Trace_File, Date_Time, Date_Info_To_Str (Date_Info));
          Append_Info (Trace_File, Exec_File_Name, Exe_File);
+
+         Open_Exec (Exe_File, 0, Exec);
+         Append_Info
+           (Trace_File,
+            Exec_File_Size,
+            Long_Integer'Image (Get_Size (Exec.all)));
+         Append_Info
+           (Trace_File,
+            Exec_File_Time_Stamp,
+            Time_Stamp_Image (Get_Time_Stamp (Exec.all)));
+         Append_Info
+           (Trace_File,
+            Exec_File_CRC32,
+            Unsigned_32'Image (Get_CRC32 (Exec.all)));
 
          if GNAT.Strings."/=" (Tag, null) then
             Append_Info (Trace_File, User_Data, Tag.all);

@@ -21,9 +21,14 @@ with Ada.Unchecked_Deallocation;
 
 with Interfaces; use Interfaces;
 
+with GNAT.CRC32; use GNAT.CRC32;
+
 with Strings; use Strings;
 
 package body Elf_Files is
+
+   function Compute_CRC32 (File : Elf_File) return Unsigned_32;
+   --  Compute the CRC32 checksum for an open file and return it.
 
    function Get_My_Data return Elf_Uchar;
    function Get_String
@@ -57,13 +62,16 @@ package body Elf_Files is
    procedure Open_File (File : out Elf_File; Filename : String) is
       Basename : constant String := Ada.Directories.Simple_Name (Filename);
    begin
-      File := (Filename  => new String'(Filename),
-               Status    => Status_Ok,
-               Need_Swap => False,
-               Fd        => Invalid_FD,
-               Ehdr      => <>,
-               Shdr      => null,
-               Sh_Strtab => null);
+      File := (Filename   => new String'(Filename),
+               Status     => Status_Ok,
+               Need_Swap  => False,
+               Fd         => Invalid_FD,
+               Size       => 0,
+               Time_Stamp => Invalid_Time,
+               CRC32      => 0,
+               Ehdr       => <>,
+               Shdr       => null,
+               Sh_Strtab  => null);
 
       --  Open the file
 
@@ -82,6 +90,9 @@ package body Elf_Files is
             raise Error with File.Filename.all & ": not found";
          end if;
       end loop;
+
+      File.Size := File_Length (File.Fd);
+      File.Time_Stamp := File_Time_Stamp (File.Fd);
 
       --  Read the Ehdr
 
@@ -130,6 +141,8 @@ package body Elf_Files is
       if File.Need_Swap then
          Elf_Ehdr_Swap (File.Ehdr);
       end if;
+
+      File.CRC32 := Compute_CRC32 (File);
    end Open_File;
 
    ----------------
@@ -168,6 +181,33 @@ package body Elf_Files is
    begin
       return File.Filename.all;
    end Get_Filename;
+
+   --------------
+   -- Get_Size --
+   --------------
+
+   function Get_Size (File : Elf_File) return Long_Integer is
+   begin
+      return File.Size;
+   end Get_Size;
+
+   --------------------
+   -- Get_Time_Stamp --
+   --------------------
+
+   function Get_Time_Stamp (File : Elf_File) return OS_Time is
+   begin
+      return File.Time_Stamp;
+   end Get_Time_Stamp;
+
+   ---------------
+   -- Get_CRC32 --
+   ---------------
+
+   function Get_CRC32 (File : Elf_File) return Unsigned_32 is
+   begin
+      return File.CRC32;
+   end Get_CRC32;
 
    ---------------
    -- Load_Shdr --
@@ -380,5 +420,26 @@ package body Elf_Files is
       end if;
       return Res;
    end Get_Sym;
+
+   -------------------
+   -- Compute_CRC32 --
+   -------------------
+
+   function Compute_CRC32 (File : Elf_File) return Unsigned_32
+   is
+      C      : CRC32;
+      Buffer : String (Integer range 1 .. 2 ** 12);
+      Size   : Integer;
+   begin
+      Initialize (C);
+      loop
+         Size := Read (File.Fd, Buffer'Address, Buffer'Length);
+         exit when Size < 1;
+         Update (C, Buffer (1 .. Size));
+      end loop;
+
+      Lseek (File.Fd, 0, 0);
+      return Get_Value (C);
+   end Compute_CRC32;
 
 end Elf_Files;

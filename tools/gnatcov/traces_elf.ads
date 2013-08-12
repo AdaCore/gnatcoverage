@@ -25,6 +25,7 @@ with Interfaces; use Interfaces;
 
 with System; use System;
 
+with GNAT.OS_Lib;
 with GNAT.Strings;     use GNAT.Strings;
 with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 
@@ -35,6 +36,7 @@ with Elf_Common;     use Elf_Common;
 with Elf_Files;      use Elf_Files;
 with Traces;         use Traces;
 with Traces_Dbase;   use Traces_Dbase;
+with Traces_Files;   use Traces_Files;
 with SC_Obligations; use SC_Obligations;
 with Slocs;          use Slocs;
 with Symbols;        use Symbols;
@@ -80,6 +82,25 @@ package Traces_Elf is
 
    function Get_Machine (Exec : Exe_File_Type) return Interfaces.Unsigned_16;
    --  Get the machine type (ELF machine id)
+
+   function Get_Size (Exec : Exe_File_Type) return Long_Integer;
+   --  Get the size of the Exec file
+
+   function Get_Time_Stamp (Exec : Exe_File_Type) return GNAT.OS_Lib.OS_Time;
+   --  Get the time stamp of the Exec file
+
+   function Get_CRC32 (Exec : Exe_File_Type) return Unsigned_32;
+   --  Get the CRC32 checksum of the content of the Exec file
+
+   function Time_Stamp_Image (TS : GNAT.OS_Lib.OS_Time) return String;
+   --  Return a simple string representation of a timestamp
+
+   function Match_Trace_Executable
+     (Exec : Exe_File_Type; Trace_File : Trace_File_Type)
+     return String;
+   --  If the given executable file does not match the executable used to
+   --  produce the given trace file, return why. Return an empty string
+   --  otherwise.
 
    type Addresses_Info;
    type Addresses_Info_Acc is access all Addresses_Info;

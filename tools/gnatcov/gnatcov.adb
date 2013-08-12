@@ -1453,6 +1453,18 @@ begin
                end if;
                return Exe_File : Exe_File_Acc do
                   Open_Exec (Exe_Name.all, Text_Start, Exe_File);
+                  declare
+                     Mismatch_Reason : constant String :=
+                        Match_Trace_Executable (Exe_File.all, Trace_File);
+
+                  begin
+                     if Mismatch_Reason /= "" then
+                        Warn
+                          ("ELF file " & Exe_Name.all
+                           & " does not seem to match trace file "
+                           & Trace_File_Name & ": " & Mismatch_Reason);
+                     end if;
+                  end;
                end return;
             exception
                when E : Elf_Files.Error =>

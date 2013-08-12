@@ -129,7 +129,10 @@ package Qemu_Traces is
       Coverage_Options,
       User_Data,
       Date_Time,
-      Kernel_File_Name);
+      Kernel_File_Name,
+      Exec_File_Size,
+      Exec_File_Time_Stamp,
+      Exec_File_CRC32);
 
    type Trace_Info_Header is record
       Info_Kind   : Unsigned_32;
