@@ -43,9 +43,6 @@ package Diagnostics is
    package Message_Vectors is new Ada.Containers.Vectors
      (Index_Type => Natural, Element_Type => Message);
 
-   Detached_Messages : Message_Vectors.Vector;
-   --  Messages without an associated source line
-
    procedure Report
      (Exe  : Exe_File_Acc;
       PC   : Pc_Type;

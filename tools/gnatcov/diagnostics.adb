@@ -19,6 +19,7 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Unchecked_Deallocation;
 
 with Coverage.Tags; use Coverage.Tags;
 with Files_Table;   use Files_Table;
@@ -27,11 +28,15 @@ with Switches;      use Switches;
 
 package body Diagnostics is
 
-   procedure Store_Message (M : Message);
-   --  Attach M to the relevant Line_Info structure, if any
+   function Suppress_Message (M : Message) return Boolean;
+   --  Return whether the given message must be removed from reports
 
    procedure Output_Message (M : Message);
    --  Display M
+
+   function Store_Message (M : Message) return Boolean;
+   --  Attach M to the relevant Line_Info structure, if any. Return whether M
+   --  was actually stored somewhere (if not, it can be free'd).
 
    -----------
    -- Image --
@@ -201,7 +206,10 @@ package body Diagnostics is
       Tag  : SC_Tag          := No_SC_Tag;
       Kind : Report_Kind     := Error)
    is
-      M : constant Message :=
+      procedure Free_String is new Ada.Unchecked_Deallocation
+        (Object => String, Name => String_Access);
+
+      M : Message :=
             (Kind => Kind,
              Exe  => Exe,
              PC   => PC,
@@ -211,7 +219,9 @@ package body Diagnostics is
              Msg  => new String'(Msg));
    begin
       Output_Message (M);
-      Store_Message (M);
+      if not Store_Message (M) then
+         Free_String (M.Msg);
+      end if;
    end Report;
 
    --------------------
@@ -227,7 +237,7 @@ package body Diagnostics is
 
       if Verbose
            or else
-         (M.Kind > Notice and then M.SCO = No_SCO_Id)
+         (M.SCO = No_SCO_Id and then not Suppress_Message (M))
       then
          Put_Line (Image (M));
       end if;
@@ -237,14 +247,31 @@ package body Diagnostics is
    -- Store_Message --
    -------------------
 
-   procedure Store_Message (M : Message) is
-      LI : constant Line_Info_Access := Get_Line (M.Sloc);
+   function Store_Message (M : Message) return Boolean is
    begin
-      if LI = null then
-         Detached_Messages.Append (M);
-      else
-         LI.Messages.Append (M);
+      if Suppress_Message (M) then
+         return False;
       end if;
+
+      declare
+         LI : constant Line_Info_Access := Get_Line (M.Sloc);
+      begin
+         if LI /= null then
+            LI.Messages.Append (M);
+            return True;
+         else
+            return False;
+         end if;
+      end;
    end Store_Message;
+
+   ----------------------
+   -- Suppress_Message --
+   ----------------------
+
+   function Suppress_Message (M : Message) return Boolean is
+   begin
+      return M.Kind <= Notice;
+   end Suppress_Message;
 
 end Diagnostics;

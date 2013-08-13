@@ -269,9 +269,7 @@ package body Annotations is
       procedure Pretty_Print_Message (Position : Cursor) is
          M : Message renames Element (Position);
       begin
-         if M.Kind /= Notice then
-            Pretty_Print_Message (Pp, M);
-         end if;
+         Pretty_Print_Message (Pp, M);
       end Pretty_Print_Message;
 
    --  Start of processing for Disp_Messages
