@@ -78,7 +78,7 @@ package body Coverage.Source is
                                                    (others => False);
             --  Each of these components is set True when the corresponding
             --  outcome has been exercised. Outcome_Taken is set depending
-            --  on conditional branch instructions, and might be reverted
+            --  on conditional branch instructions, and might be reversed
             --  (if the decision has degraded origin). Known_Outcome_Taken
             --  is set from dominance information, and is always accurate when
             --  set (but may be unset for an outcome that does not dominate
