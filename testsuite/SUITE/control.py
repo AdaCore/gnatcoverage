@@ -84,15 +84,16 @@ class BUILDER:
 
     # Common compilation args, passed to all build invocations.
 
-    COMMON_CARGS = ["-g", "-fpreserve-control-flow", "-fdump-scos"]
-    
     __TARGET_CARGS = {
         'powerpc-wrs-vxworks': ["-gno-strict-dwarf"]
         }
     
     @staticmethod
-    def TARG_CARGS_FOR(target):
-        return BUILDER.__TARGET_CARGS.get (target, [])
+    def COMMON_CARGS():
+        return (
+            ["-g", "-fpreserve-control-flow", "-fdump-scos"]
+            + BUILDER.__TARGET_CARGS.get (Env().target.triplet, [])
+            )
 
     # Base command for a build
 

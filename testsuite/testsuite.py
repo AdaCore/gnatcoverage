@@ -178,8 +178,6 @@ QLEVEL_INFO = {
 #        % Switches (main)   += "-fno-inline" as needed
 #        % Switches (<lang>) += SUITE.control.BUILDER.COMMON_CARGS
 #             |                 (-g -fdump-scos ...)
-#             |               + SUITE.control.BUILDER.TARG_CARGS_FOR(target)
-#             |                 (-fno-strict-dwarf on vxworks ...)
 #             |
 #             |   direct calls to gprbuild() from test.py,
 #             |   or via TestCase(extracargs)

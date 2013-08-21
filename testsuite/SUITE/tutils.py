@@ -190,8 +190,7 @@ def gprfor(
 
     # Generate compilation switches:
     #
-    # - For each language, add BUILDER.COMMON_CARGS and the
-    #   COMMON.TARG_CARGS_FOR our target as default switches.
+    # - For each language, add BUILDER.COMMON_CARGS as default switches.
     #
     # - If we have specific flags for the mains, append them. This is
     #   typically something like:
@@ -200,8 +199,7 @@ def gprfor(
     #      Compiler'Default_Switches("Ada") & ("-fno-inline")
 
     default_switches = ', '.join(
-        ['"%s"' % switch for switch in
-         BUILDER.COMMON_CARGS + BUILDER.TARG_CARGS_FOR(env.target.triplet)]
+        ['"%s"' % switch for switch in BUILDER.COMMON_CARGS()]
         )
     compswitches = (
         '\n'.join (
