@@ -48,12 +48,13 @@ Very briefly here:
   of the bare machine execution environment. This is typically required for
   VxWorks targets, supported on top of |gem| and where the provided kernel
   needs to have been augmented with a |gcp| dedicated module to help identify
-  the address at which your programs are loaded.
+  the address at which your programs are loaded (please refer to the GNATemulator
+  documentation for this specific part of the process).
 
 - :option:`--level` specifies the coverage criterion to be assessed
   (:option:`=stmt`, :option:`=stmt+decision`, or :option:`=stmt+mcdc` for
-  source coverage criteria; :option:`=insn` or :option:`=branch` for object coverage
-  crtieria)
+  source coverage criteria; :option:`=insn` or :option:`=branch` for object
+  coverage crtieria)
 
 - :option:`--annotate` specifies the desired output report format
   (:option:`=report` for a synthetic list of coverage violations, :option:`=xcov`
@@ -77,11 +78,11 @@ Very briefly here:
   optional in this case. This conveys the set of object symbol names
   on which the analysis should focus, if any.
 
-For source coverage assessments, sources must be compiled with
-:option:`-g -fpreserve-control-flow -fdump-scos`.
-Optimization is supported up to :option:`-O1` and inlining is allowed.
-For backwards compatibility, for Ada :option:`-gnateS` can be used as
-a synonym of :option:`-fdump-scos`.
+For source coverage assessments, sources must be compiled with :option:`-g
+-fpreserve-control-flow -fdump-scos`, plus :option:`-gno-strict-dwarf`
+for VxWorks targets.  Optimization is supported up to :option:`-O1` and
+inlining is allowed.  For backwards compatibility, :option:`-gnateS`
+can be used as a synonym of :option:`-fdump-scos` for Ada.
 
 Object coverage analysis proceeds in a similar fashion, with different
 :option:`--level` option values. There is no `source` coverage obligation

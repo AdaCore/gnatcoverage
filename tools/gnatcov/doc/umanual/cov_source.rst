@@ -19,7 +19,8 @@ information produced by the |gpro| compilers, in the .ali or .gli
 
 SCO tables are produced by the :option:`-fdump-scos` compilation
 option. Accurate mapping of the execution traces back to source level
-obligations requires :option:`-g` :option:`-fpreserve-control-flow`. These
+obligations requires :option:`-g` :option:`-fpreserve-control-flow` in
+addition, as well as :option:`-gno-strict-dwarf` for VxWorks targets. These
 options must be used to compile the sources you wish to analyze later
 on. Optimization is supported up to :option:`-O1` with inlining.
 
@@ -53,8 +54,7 @@ Output report formats (:option:`--annotate`)
 ============================================
 
 Source coverage reports may be produced in various formats, as requested with
-the :option:`--annotate` command line argument of |gcvcov|. 
-
+the :option:`--annotate` command line argument of |gcvcov|.
 The :option:`xcov` and :option:`html` formats both produce a set of annotated
 source files, in the directory where |gcv| is launched unless overriden with a
 :ref:`--output-dir option <cov-outdir>`. The :option:`report` output consists
