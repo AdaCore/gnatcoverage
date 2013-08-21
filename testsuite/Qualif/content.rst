@@ -3,7 +3,7 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
 
 .. rubric:: Authors
 
-.. csv-table:: **Authors**
+.. csv-table::
    :delim: |
    :widths: 43, 30, 40
    :header: "Name", "Company", "Email"
@@ -13,7 +13,7 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
 
 .. rubric:: Revised  by
 
-.. csv-table:: **Revised by**
+.. csv-table::
    :delim: |
    :widths: 40, 30, 40
    :header: "Name", "Company", "Email"
