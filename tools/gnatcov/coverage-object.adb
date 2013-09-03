@@ -33,9 +33,9 @@ package body Coverage.Object is
          end loop;
       end if;
       if Enabled (Branch) then
-         Line.State (Branch) := State;
+         Line.State (Coverage_Level_To_Cell (Branch)) := State;
       else
-         Line.State (Insn) := State;
+         Line.State (Coverage_Level_To_Cell (Insn)) := State;
       end if;
    end Compute_Line_State;
 

@@ -1222,8 +1222,9 @@ package body Coverage.Source is
       Level : Coverage_Level;
       State : Line_State)
    is
+      Cell : constant Line_State_Cell := Coverage_Level_To_Cell (Level);
    begin
-      Update_State (Line.State (Level), SCO, Tag, Level, State);
+      Update_State (Line.State (Cell), SCO, Tag, Level, State);
    end Update_Line_State;
 
    ----------------

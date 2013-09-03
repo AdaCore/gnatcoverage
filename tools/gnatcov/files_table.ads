@@ -114,7 +114,22 @@ package Files_Table is
    package SCO_Id_Vectors is new Ada.Containers.Vectors
      (Index_Type => Natural, Element_Type => SCO_Id);
 
-   type Line_States is array (Coverage_Level) of Line_State;
+   type Line_State_Cell is (Cell_1, Cell_2);
+   Coverage_Level_To_Cell : constant
+      array (Coverage_Level) of Line_State_Cell :=
+     (Insn     => Cell_1,
+      Branch   => Cell_2,
+      Stmt     => Cell_1,
+      Decision => Cell_2,
+      MCDC     => Cell_2,
+      UC_MCDC  => Cell_2);
+   --  For one specific execution of GNATcov, we know that each line needs at
+   --  most only two states (insn, branch, stmt, stmt+decision, stmt+mcdc or
+   --  stmt+uc_mcdc). Thus, there is no need to store the state for all
+   --  coverage levels at the same time. This table is thus used to convert the
+   --  coverage level to the appropriate state "storage cell".
+
+   type Line_States is array (Line_State_Cell) of Line_State;
 
    --  The following Line_Info record is heavily used, thus its memory size is
    --  very important. That's why the three lists it contains are not
@@ -146,9 +161,6 @@ package Files_Table is
    type Line_Info is record
       --  Coverage information associated with a source line
 
-      State : Line_States := (others => No_Code);
-      --  Coverage state for each coverage level
-
       Obj_Infos : Object_Coverage_Info_Array_Acc;
       --  Detailed object coverage information for this line, null when empty
 
@@ -167,6 +179,11 @@ package Files_Table is
 
       Statement_Count : Integer := -1;
       --  Count of statement SCO on this line (-1 if not computed yet)
+
+      State : Line_States := (others => No_Code);
+      --  Coverage state for each available coverage level (see previous
+      --  comment block).
+
    end record;
 
    type Line_Info_Access is access Line_Info;
