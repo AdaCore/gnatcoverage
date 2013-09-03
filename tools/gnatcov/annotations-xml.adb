@@ -385,7 +385,7 @@ package body Annotations.Xml is
            & A ("SCO", Image (M.SCO, With_Sloc => False));
       end if;
 
-      Attributes := Attributes & A ("message", M.Msg.all);
+      Attributes := Attributes & A ("message", To_String (M.Msg));
       Pp.T ("message", To_String (Attributes));
    end Pretty_Print_Message;
 

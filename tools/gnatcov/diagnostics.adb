@@ -19,7 +19,6 @@
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Directories;         use Ada.Directories;
 with Ada.Text_IO;             use Ada.Text_IO;
-with Ada.Unchecked_Deallocation;
 
 with Coverage.Tags; use Coverage.Tags;
 with Files_Table;   use Files_Table;
@@ -34,9 +33,8 @@ package body Diagnostics is
    procedure Output_Message (M : Message);
    --  Display M
 
-   function Store_Message (M : Message) return Boolean;
-   --  Attach M to the relevant Line_Info structure, if any. Return whether M
-   --  was actually stored somewhere (if not, it can be free'd).
+   procedure Store_Message (M : Message);
+   --  Attach M to the relevant Line_Info structure, if any
 
    -----------
    -- Image --
@@ -132,12 +130,15 @@ package body Diagnostics is
          end if;
       end Tag_Image;
 
-      First : Natural := M.Msg'First;
+      use Ada.Strings.Unbounded;
+
+      Msg   : constant String := To_String (M.Msg);
+      First : Natural         := Msg'First;
 
    --  Start of processing for Image
 
    begin
-      if M.Msg (First) = '^' then
+      if Msg (First) = '^' then
          First := First + 1;
       end if;
 
@@ -147,7 +148,7 @@ package body Diagnostics is
         Sloc_Image        &
         " "               &
         Kind_Image        &
-        SCO_Image & M.Msg (First .. M.Msg'Last) & Tag_Image;
+        SCO_Image & Msg (First .. Msg'Last) & Tag_Image;
    end Image;
 
    ------------
@@ -206,22 +207,19 @@ package body Diagnostics is
       Tag  : SC_Tag          := No_SC_Tag;
       Kind : Report_Kind     := Error)
    is
-      procedure Free_String is new Ada.Unchecked_Deallocation
-        (Object => String, Name => String_Access);
+      use Ada.Strings.Unbounded;
 
-      M : Message :=
+      M : constant Message :=
             (Kind => Kind,
              Exe  => Exe,
              PC   => PC,
              Sloc => Sloc,
              SCO  => SCO,
              Tag  => Tag,
-             Msg  => new String'(Msg));
+             Msg  => To_Unbounded_String (Msg));
    begin
       Output_Message (M);
-      if not Store_Message (M) then
-         Free_String (M.Msg);
-      end if;
+      Store_Message (M);
    end Report;
 
    --------------------
@@ -247,22 +245,17 @@ package body Diagnostics is
    -- Store_Message --
    -------------------
 
-   function Store_Message (M : Message) return Boolean is
+   procedure Store_Message (M : Message) is
    begin
-      if Suppress_Message (M) then
-         return False;
+      if not Suppress_Message (M) then
+         declare
+            LI : constant Line_Info_Access := Get_Line (M.Sloc);
+         begin
+            if LI /= null then
+               LI.Messages.Append (M);
+            end if;
+         end;
       end if;
-
-      declare
-         LI : constant Line_Info_Access := Get_Line (M.Sloc);
-      begin
-         if LI /= null then
-            LI.Messages.Append (M);
-            return True;
-         else
-            return False;
-         end if;
-      end;
    end Store_Message;
 
    ----------------------

@@ -17,6 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
+with Ada.Strings.Unbounded;
 
 with Interfaces;
 
@@ -606,6 +607,7 @@ package body Annotations is
 
    function Message_Annotation (M : Message) return String is
       use Coverage, Coverage.Tags;
+      use Ada.Strings.Unbounded;
    begin
       if M.SCO /= No_SCO_Id then
          return To_Lower (SCO_Kind'Image (Kind (M.SCO)))
@@ -616,9 +618,9 @@ package body Annotations is
            & (if M.Tag = No_SC_Tag
               then ""
               else " (from " & Tag_Provider.Tag_Name (M.Tag) & ")")
-           & " " & M.Msg.all;
+           & " " & To_String (M.Msg);
       else
-         return Image (M.Sloc) & ": " & M.Msg.all;
+         return Image (M.Sloc) & ": " & To_String (M.Msg);
       end if;
    end Message_Annotation;
 

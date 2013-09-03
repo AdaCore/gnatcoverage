@@ -18,6 +18,7 @@
 
 with Ada.Characters.Handling; use Ada.Characters.Handling;
 with Ada.Command_Line;
+with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
 
 with GNAT.Time_Stamp;
@@ -407,13 +408,17 @@ package body Annotations.Report is
       --------------------
 
       procedure Output_Message (C : Message_Vectors.Cursor) is
+         use Ada.Strings.Unbounded;
+
          M     : Message renames Message_Vectors.Element (C);
-         First : Natural := M.Msg'First;
+         Msg   : constant String := To_String (M.Msg);
+         First : Natural         := Msg'First;
+
       begin
          if M.SCO /= No_SCO_Id then
             Put (Output.all, Image (First_Sloc (M.SCO)));
             Put (Output.all, ": ");
-            if M.Msg (First) = '^' then
+            if Msg (First) = '^' then
                First := First + 1;
             else
                Put
@@ -426,7 +431,7 @@ package body Annotations.Report is
             Put (Output.all, ": ");
          end if;
 
-         Put (Output.all, M.Msg (First .. M.Msg'Last));
+         Put (Output.all, Msg (First .. Msg'Last));
          if M.SCO /= No_SCO_Id and then M.Tag /= No_SC_Tag then
             Put (Output.all,
                  " (from " & Tag_Provider.Tag_Name (M.Tag) & ")");

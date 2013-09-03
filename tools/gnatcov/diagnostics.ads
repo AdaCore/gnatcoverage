@@ -17,8 +17,7 @@
 ------------------------------------------------------------------------------
 
 with Ada.Containers.Vectors;
-
-with GNAT.Strings; use GNAT.Strings;
+with Ada.Strings.Unbounded;
 
 with Coverage;       use Coverage;
 with SC_Obligations; use SC_Obligations;
@@ -37,7 +36,7 @@ package Diagnostics is
       Sloc : Source_Location;
       SCO  : SCO_Id;
       Tag  : SC_Tag;
-      Msg  : String_Access;
+      Msg  : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
    package Message_Vectors is new Ada.Containers.Vectors
