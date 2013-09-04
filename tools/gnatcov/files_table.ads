@@ -177,13 +177,13 @@ package Files_Table is
       --  If this line is covered by an exemption, this is set to the sloc of
       --  the Exempt_On annotation.
 
-      Statement_Count : Integer := -1;
-      --  Count of statement SCO on this line (-1 if not computed yet)
+      Is_Multistatement : Tristate := Unknown;
+      --  Whether there are more than one statement SCO on this line, or
+      --  Unonkwn if not computed yet.
 
       State : Line_States := (others => No_Code);
       --  Coverage state for each available coverage level (see previous
       --  comment block).
-
    end record;
 
    type Line_Info_Access is access Line_Info;

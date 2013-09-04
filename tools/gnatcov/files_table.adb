@@ -656,18 +656,23 @@ package body Files_Table is
       --  Count statements once, and then cache the result in
       --  LI.Statement_Count.
 
-      if LI.Statement_Count < 0 then
-         LI.Statement_Count := 0;
-         if LI.SCOs /= null then
-            for SCO of LI.SCOs.all loop
-               if Kind (SCO) = Statement then
-                  LI.Statement_Count := LI.Statement_Count + 1;
-               end if;
-            end loop;
-         end if;
+      if LI.Is_Multistatement = Unknown then
+         declare
+            Count : Natural := 0;
+         begin
+            Count := 0;
+            if LI.SCOs /= null then
+               for SCO of LI.SCOs.all loop
+                  if Kind (SCO) = Statement then
+                     Count := Count + 1;
+                  end if;
+               end loop;
+            end if;
+            LI.Is_Multistatement := To_Tristate (Count > 1);
+         end;
       end if;
 
-      return LI.Statement_Count > 1;
+      return To_Boolean (LI.Is_Multistatement);
    end Is_Multistatement_Line;
 
    ----------------------
