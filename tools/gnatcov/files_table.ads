@@ -109,9 +109,6 @@ package Files_Table is
 
       Exec : Exe_File_Acc;
       --  Exec from where the address range has been extracted
-
-      Next : Object_Coverage_Info_Acc;
-      --  Next element in the chain
    end record;
 
    package SCO_Id_Vectors is new Ada.Containers.Vectors
@@ -119,20 +116,47 @@ package Files_Table is
 
    type Line_States is array (Coverage_Level) of Line_State;
 
+   --  The following Line_Info record is heavily used, thus its memory size is
+   --  very important. That's why the three lists it contains are not
+   --  implemented using vectors, but using accesses to unconstraint arrays.
+   --  Those lists never contain a lot of items, so reallocating them at each
+   --  new item is acceptable.
+
+   type Object_Coverage_Info_Array is
+      array (Natural range <>) of Object_Coverage_Info;
+   type Object_Coverage_Info_Array_Acc is access Object_Coverage_Info_Array;
+
+   type SCO_Id_Array is array (Natural range <>) of SCO_Id;
+   type SCO_Id_Array_Acc is access SCO_Id_Array;
+
+   type Message_Array is array (Natural range <>) of Message;
+   type Message_Array_Acc is access Message_Array;
+
+   generic
+      type Index_Type is range <>;
+      type Element_Type is private;
+
+      type Resizeable_Array is array (Index_Type range <>) of Element_Type;
+      type Resizeable_Array_Access is access Resizeable_Array;
+   procedure Append_To_Array
+      (A : in out Resizeable_Array_Access;
+       E : Element_Type);
+   --  Resize an array in order to append an element to it
+
    type Line_Info is record
       --  Coverage information associated with a source line
 
       State : Line_States := (others => No_Code);
       --  Coverage state for each coverage level
 
-      Obj_First, Obj_Last : Object_Coverage_Info_Acc;
-      --  Detailed object coverage information for this line
+      Obj_Infos : Object_Coverage_Info_Array_Acc;
+      --  Detailed object coverage information for this line, null when empty
 
-      SCOs : SCO_Id_Vectors.Vector;
-      --  SCOs for this source line
+      SCOs : SCO_Id_Array_Acc;
+      --  SCOs for this source line, null when empty
 
-      Messages : Message_Vectors.Vector;
-      --  Various diagnostic messages attached to this line
+      Messages : Message_Array_Acc;
+      --  Various diagnostic messages attached to this line, null when empty
 
       Line_Cache : String_Access := null;
       --  Cached source line content

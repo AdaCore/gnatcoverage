@@ -25,14 +25,13 @@ package body Coverage.Object is
    ------------------------
 
    procedure Compute_Line_State (Line : Line_Info_Access) is
-      El : Object_Coverage_Info_Acc;
       State : Line_State := No_Code;
    begin
-      El := Line.Obj_First;
-      while El /= null loop
-         State := State * El.State;
-         El := El.Next;
-      end loop;
+      if Line.Obj_Infos /= null then
+         for El of Line.Obj_Infos.all loop
+            State := State * El.State;
+         end loop;
+      end if;
       if Enabled (Branch) then
          Line.State (Branch) := State;
       else

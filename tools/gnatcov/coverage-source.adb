@@ -181,7 +181,7 @@ package body Coverage.Source is
       --  Set True when a diagnosis has been emitted for multiple statements
 
    begin
-      if Line_Info.SCOs.Length = 0 then
+      if Line_Info.SCOs = null then
          --  No SCOs associated with this source line
 
          --  ??? Have a debug mode to warn if there is object code with
@@ -192,9 +192,8 @@ package body Coverage.Source is
 
       --  Examine each SCO associated with line
 
-      for J in Line_Info.SCOs.First_Index .. Line_Info.SCOs.Last_Index loop
+      for SCO of Line_Info.SCOs.all loop
          SCOs_Of_Line : declare
-            SCO       : constant SCO_Id := Line_Info.SCOs.Element (J);
             SCO_State : Line_State := No_Code;
 
             procedure Ensure_SCI (SCIV : in out SCI_Vectors.Vector);

@@ -2202,8 +2202,8 @@ package body Decision_Map is
             Cur_Insn_S_SCOs.Clear;
             for Tsloc of Tslocs loop
                LI := Get_Line (Tsloc.Sloc);
-               if LI /= null then
-                  for SCO of LI.SCOs loop
+               if LI /= null and then LI.SCOs /= null then
+                  for SCO of LI.SCOs.all loop
                      if Kind (SCO) = Statement then
                         Set_Basic_Block_Has_Code (SCO, Tsloc.Tag);
                         Cur_Insn_S_SCOs.Include (SCO);

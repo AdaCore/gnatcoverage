@@ -19,6 +19,7 @@
 with Ada.Containers.Hashed_Maps;
 with Ada.Characters.Handling;
 with Ada.Directories;
+with Ada.Unchecked_Deallocation;
 
 with Strings; use Strings;
 with Outputs;
@@ -77,6 +78,29 @@ package body Files_Table is
    First_Source_Search_Entry : Source_Search_Entry_Acc := null;
    Last_Source_Search_Entry  : Source_Search_Entry_Acc := null;
 
+   ---------------------
+   -- Append_To_Array --
+   ---------------------
+
+   procedure Append_To_Array
+      (A : in out Resizeable_Array_Access;
+       E : Element_Type)
+   is
+      procedure Free is new Ada.Unchecked_Deallocation
+        (Resizeable_Array, Resizeable_Array_Access);
+
+      New_A : Resizeable_Array_Access;
+
+   begin
+      if A = null then
+         A := new Resizeable_Array'(Index_Type'First => E);
+      else
+         New_A := new Resizeable_Array'(A.all & E);
+         Free (A);
+         A := New_A;
+      end if;
+   end Append_To_Array;
+
    ----------------------------------
    -- Add_Line_For_Object_Coverage --
    ----------------------------------
@@ -89,27 +113,24 @@ package body Files_Table is
       Base  : Traces_Base_Acc;
       Exec  : Exe_File_Acc)
    is
+      procedure Append_Obj is new Append_To_Array
+        (Natural, Object_Coverage_Info,
+         Object_Coverage_Info_Array,
+         Object_Coverage_Info_Array_Acc);
+
       FI   : constant File_Info_Access := Files_Table.Element (File);
       LI   : Line_Info_Access;
-      Info : constant Object_Coverage_Info_Acc :=
-               new Object_Coverage_Info'(State           => State,
-                                         Instruction_Set => Addrs,
-                                         Base            => Base,
-                                         Exec            => Exec,
-                                         Next            => null);
 
    begin
       FI.Has_Object_Coverage_Info := True;
       Expand_Line_Table (File, Line);
       LI := FI.Lines.Element (Line);
-
-      if LI.Obj_First = null then
-         LI.Obj_First := Info;
-      else
-         LI.Obj_Last.Next := Info;
-      end if;
-
-      LI.Obj_Last := Info;
+      Append_Obj
+        (LI.Obj_Infos,
+         (State           => State,
+          Instruction_Set => Addrs,
+          Base            => Base,
+          Exec            => Exec));
    end Add_Line_For_Object_Coverage;
 
    ----------------------------------
@@ -121,11 +142,16 @@ package body Files_Table is
       Line : Positive;
       SCO  : SCO_Id)
    is
+      procedure Append_SCO is new Append_To_Array
+        (Natural, SCO_Id,
+         SCO_Id_Array,
+         SCO_Id_Array_Acc);
+
       FI : constant File_Info_Access := Files_Table.Element (File);
    begin
       FI.Has_Source_Coverage_Info := True;
       Expand_Line_Table (File, Line);
-      FI.Lines.Element (Line).all.SCOs.Append (SCO);
+      Append_SCO (FI.Lines.Element (Line).all.SCOs, SCO);
    end Add_Line_For_Source_Coverage;
 
    -----------------------
@@ -632,11 +658,13 @@ package body Files_Table is
 
       if LI.Statement_Count < 0 then
          LI.Statement_Count := 0;
-         for J in LI.SCOs.First_Index .. LI.SCOs.Last_Index loop
-            if Kind (LI.SCOs.Element (J)) = Statement then
-               LI.Statement_Count := LI.Statement_Count + 1;
-            end if;
-         end loop;
+         if LI.SCOs /= null then
+            for SCO of LI.SCOs.all loop
+               if Kind (SCO) = Statement then
+                  LI.Statement_Count := LI.Statement_Count + 1;
+               end if;
+            end loop;
+         end if;
       end if;
 
       return LI.Statement_Count > 1;

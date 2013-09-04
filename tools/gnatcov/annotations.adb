@@ -180,73 +180,65 @@ package body Annotations is
       --  Local variables
 
       Instruction_Set : Addresses_Info_Acc;
-      Info            : Files_Table.Object_Coverage_Info_Acc;
       Sec_Info        : Addresses_Info_Acc;
       Ls              : constant Any_Line_State := Aggregated_State (LI);
       In_Symbol       : Boolean;
-      In_Insn_Set     : Boolean;
 
    --  Start of processing for Disp_Instruction_Sets
 
    begin
-      if Coverage.Object_Coverage_Enabled then
-         Info := LI.Obj_First;
+      if not Coverage.Object_Coverage_Enabled
+            or else
+         LI.Obj_Infos = null
+      then
+         return;
+      end if;
 
-         if Info /= null then
-            Pretty_Print_Start_Instruction_Set (Pp, Ls);
-            In_Insn_Set := True;
-         else
-            In_Insn_Set := False;
-         end if;
+      Pretty_Print_Start_Instruction_Set (Pp, Ls);
 
-         --  Iterate over each insn block for the source line
+      --  Iterate over each insn block for the source line
 
-         while Info /= null loop
-            Instruction_Set := Info.Instruction_Set;
-            declare
-               use Interfaces;
+      for Info of LI.Obj_Infos.all loop
+         Instruction_Set := Info.Instruction_Set;
+         declare
+            use Interfaces;
 
-               Label : constant String :=
-                 Get_Label (Info.Exec.all, Instruction_Set);
-               Symbol : constant Addresses_Info_Acc :=
-                 Get_Symbol (Info.Exec.all, Instruction_Set.First);
-            begin
-               if Label'Length > 0 and then Symbol /= null then
-                  In_Symbol := True;
-                  Pretty_Print_Start_Symbol
-                    (Pp,
-                     Symbol.Symbol_Name.all,
-                     Instruction_Set.First - Symbol.First,
-                     Info.State);
-               else
-                  In_Symbol := False;
-               end if;
-            end;
-
-            Sec_Info := Instruction_Set.Parent;
-
-            while Sec_Info /= null
-              and then Sec_Info.Kind /= Section_Addresses
-            loop
-               Sec_Info := Sec_Info.Parent;
-            end loop;
-
-            Disp_Assembly_Lines
-              (Sec_Info.Section_Content
-               (Instruction_Set.First .. Instruction_Set.Last),
-               Info.Base.all, Pretty_Print_Insn'Access, Info.Exec.all);
-
-            if In_Symbol then
-               Pretty_Print_End_Symbol (Pp);
+            Label : constant String :=
+              Get_Label (Info.Exec.all, Instruction_Set);
+            Symbol : constant Addresses_Info_Acc :=
+              Get_Symbol (Info.Exec.all, Instruction_Set.First);
+         begin
+            if Label'Length > 0 and then Symbol /= null then
+               In_Symbol := True;
+               Pretty_Print_Start_Symbol
+                 (Pp,
+                  Symbol.Symbol_Name.all,
+                  Instruction_Set.First - Symbol.First,
+                  Info.State);
+            else
+               In_Symbol := False;
             end if;
+         end;
 
-            Info := Info.Next;
+         Sec_Info := Instruction_Set.Parent;
+
+         while Sec_Info /= null
+           and then Sec_Info.Kind /= Section_Addresses
+         loop
+            Sec_Info := Sec_Info.Parent;
          end loop;
 
-         if In_Insn_Set then
-            Pretty_Print_End_Instruction_Set (Pp);
+         Disp_Assembly_Lines
+           (Sec_Info.Section_Content
+            (Instruction_Set.First .. Instruction_Set.Last),
+            Info.Base.all, Pretty_Print_Insn'Access, Info.Exec.all);
+
+         if In_Symbol then
+            Pretty_Print_End_Symbol (Pp);
          end if;
-      end if;
+      end loop;
+
+      Pretty_Print_End_Instruction_Set (Pp);
    end Disp_Instruction_Sets;
 
    -------------------
@@ -257,26 +249,12 @@ package body Annotations is
      (Pp : in out Pretty_Printer'Class;
       LI : Line_Info)
    is
-      use Message_Vectors;
-
-      procedure Pretty_Print_Message (Position : Cursor);
-      --  Let Pp print the message in the line's message vector at Position if
-      --  this message is an error or a warning.
-
-      --------------------------
-      -- Pretty_Print_Message --
-      --------------------------
-
-      procedure Pretty_Print_Message (Position : Cursor) is
-         M : Message renames Element (Position);
-      begin
-         Pretty_Print_Message (Pp, M);
-      end Pretty_Print_Message;
-
-   --  Start of processing for Disp_Messages
-
    begin
-      LI.Messages.Iterate (Pretty_Print_Message'Access);
+      if LI.Messages /= null then
+         for Message of LI.Messages.all loop
+            Pretty_Print_Message (Pp, Message);
+         end loop;
+      end if;
    end Disp_Messages;
 
    ---------------
@@ -288,21 +266,15 @@ package body Annotations is
       Line : Natural;
       LI   : Line_Info)
    is
-      use SCO_Id_Vectors;
+      use Coverage.Source;
 
-      procedure Process_One_SCO (Position : Cursor);
-      --  Let Pp display the SCO at Position (and this SCO's children)
+      SCO_State : Line_State;
+   begin
+      if not Coverage.Source_Coverage_Enabled or else LI.SCOs = null then
+         return;
+      end if;
 
-      ---------------------
-      -- Process_One_SCO --
-      ---------------------
-
-      procedure Process_One_SCO (Position : Cursor) is
-         use Coverage.Source;
-
-         SCO       : constant SCO_Id := Element (Position);
-         SCO_State : Line_State;
-      begin
+      for SCO of LI.SCOs.all loop
          --  Process a given SCO exactly once; to do so, only process a
          --  SCO when its first sloc is at the current line. Otherwise, it
          --  should have been processed earlier.
@@ -353,14 +325,7 @@ package body Annotations is
 
             end case;
          end if;
-      end Process_One_SCO;
-
-      --  Start of processing for Disp_SCOs
-
-   begin
-      if Coverage.Source_Coverage_Enabled then
-         LI.SCOs.Iterate (Process_One_SCO'Access);
-      end if;
+      end loop;
    end Disp_SCOs;
 
    ---------------------
@@ -435,23 +400,16 @@ package body Annotations is
             LI.Exemption := Get_Exemption (Sloc);
 
             if LI.Exemption = Slocs.No_Location then
-               declare
-                  C : SCO_Id_Vectors.Cursor := LI.SCOs.First;
-               begin
-                  Line_SCOs : while SCO_Id_Vectors.Has_Element (C) loop
-                     declare
-                        SCO : constant SCO_Id := SCO_Id_Vectors.Element (C);
-                     begin
-                        if Kind (SCO) = Statement
-                             and then Sloc < First_Sloc (SCO)
-                        then
-                           Sloc := First_Sloc (SCO);
-                           exit Line_SCOs;
-                        end if;
-                        SCO_Id_Vectors.Next (C);
-                     end;
-                  end loop Line_SCOs;
-               end;
+               if LI.SCOs /= null then
+                  for SCO of LI.SCOs.all loop
+                     if Kind (SCO) = Statement
+                          and then Sloc < First_Sloc (SCO)
+                     then
+                        Sloc := First_Sloc (SCO);
+                        exit;
+                     end if;
+                  end loop;
+               end if;
                LI.Exemption := Get_Exemption (Sloc);
             end if;
 

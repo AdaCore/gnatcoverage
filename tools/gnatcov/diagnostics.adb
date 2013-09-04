@@ -246,13 +246,16 @@ package body Diagnostics is
    -------------------
 
    procedure Store_Message (M : Message) is
+      procedure Append_Message is new Append_To_Array
+        (Natural, Message,
+         Message_Array, Message_Array_Acc);
    begin
       if not Suppress_Message (M) then
          declare
             LI : constant Line_Info_Access := Get_Line (M.Sloc);
          begin
             if LI /= null then
-               LI.Messages.Append (M);
+               Append_Message (LI.Messages, M);
             end if;
          end;
       end if;
