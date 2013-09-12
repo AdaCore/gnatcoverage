@@ -19,14 +19,16 @@ coverage for the object level. Once your application is built, a typical
 analysis proceeds in two steps:
 
 1) Arrange to produce an execution trace that |gcv| can process, using either
-   |gcvcnv| to convert a trace obtained through a hardware probe, like::
 
-     gnatcov convert <probe-output> -o <yourapp.trace>
-
-   Or |gcvrun| to run your application within an instrumented environment, like::
+   |gcvrun| to run your application within an instrumented environment,
+   like::
 
      gnatcov run <yourapp> [--target=<target>] [--kernel=<kernel>]
      (implicit -o <yourapp.trace> in this case)
+
+   or |gcvcnv| to convert a trace obtained through a hardware probe, like::
+
+     gnatcov convert <probe-output> -o <yourapp.trace>
 
 
 2) Use |gcvcov| to produce a coverage report from the execution trace, like::
@@ -40,8 +42,8 @@ Very briefly here:
 - :option:`--target` selects the execution environment that will know how to
   produce execution traces, such as <target>-gnatemu for emulated
   configurations.  Not providing this option requests instrumented execution
-  on the native platform, supported for example on x86 or x86_64 Linux using
-  an instrumented version of `valgrind`.
+  on the native platform, for example on x86 or x86_64 Linux using an
+  instrumented version of `valgrind`.
 
 - :option:`--kernel` is necessary for cross configurations where an operating
   system kernel is needed to load and launch your applicative modules on top
@@ -101,8 +103,8 @@ complete example sequence illustrating steps from compilation to coverage
 analysis of a very simple Ada program.
 
 
-Example session
-===============
+Example session, from sources to coverage analysis
+==================================================
 
 We start from the very basic Ada package below, with a spec and body in source
 files named ``ops.ads`` and ``ops.adb``, exposing a set of very basic
@@ -218,4 +220,14 @@ indeed never exercised by our driver.
 Focus on specific units, excluding the test driver from the analysis closure
 for example, can be achieved by adding a ``Coverage`` package to the project
 file or by using :option:`--scos=obj/ops.ali` instead of :option:`-P`.
+
+Target specific considerations
+==============================
+
+Even though most of the command line options and compilation requirements
+sketched earlier in this chapter are common to all the supported target
+configurations, a few specificities apply to only some of them. Each
+specificity is documented in the context of relevance in this manual, and the
+:ref:`target_specific_notes` appendix provides a summary of all the points
+grouped by target.
 

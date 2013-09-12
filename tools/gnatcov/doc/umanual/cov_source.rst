@@ -207,7 +207,6 @@ the output reports.
 
 Assessment Context
 ^^^^^^^^^^^^^^^^^^
-
 The *Assessment Context* report section exposes the following information
 items:
 

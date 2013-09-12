@@ -21,8 +21,8 @@ Sample html annotated source
 
 .. _target_specific_notes:
 
-Per target plaform points of note
-=================================
+Target specific points of note
+==============================
 
 The following list summarizes points of note for each target where some
 aspects of the build/execution/analysis process depart from the general
