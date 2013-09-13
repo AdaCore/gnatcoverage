@@ -637,13 +637,17 @@ procedure GNATcov is
                      elsif Arg = Coverage_Option_Short then
                         Check_Option (Arg, Command, (1 => Cmd_Coverage,
                                                      2 => Cmd_Run));
+                        declare
+                           Coverage_Level : constant String := Next_Arg
+                             ("coverage level");
                         begin
-                           Set_Coverage_Levels (Next_Arg ("coverage level"));
+                           Set_Coverage_Levels (Coverage_Level);
                         exception
                            when Constraint_Error =>
                               Fatal_Error
                                 ("bad parameter "
-                                 & Coverage_Option_Short & " " & Arg);
+                                 & Coverage_Option_Short & " "
+                                 & Coverage_Level);
                         end;
 
                      elsif Has_Prefix (Arg, Coverage_Option) then
