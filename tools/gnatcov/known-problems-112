@@ -8,6 +8,18 @@ The following is a listing of known problems in release 1.1.2. All these
 problems have been corrected in 1.2 wavefronts starting from date designated
 in the "Status" indication.
 
+KP-112-M627-058 Memory leak while producing html+ report
+
+  Problem:    gnatcov coverage leaks small amounts of memory while producing
+              the annotated source lines of html+ reports. This may lead to
+              system memory exhaustion for large reports, typcially with tens
+              of thousands of annotated lines to produce.
+
+  Status:     This was fixed in 1.2 on 2013-06-28
+
+  Workaround: Generate an alternate output format or focus the analysis
+              on a smaller set of program units.
+
 KP-112-M425-007 Extreme coverage computation time with large debug info
 
   Problem:    gnatcov coverage appears to be running an infinite active loop
