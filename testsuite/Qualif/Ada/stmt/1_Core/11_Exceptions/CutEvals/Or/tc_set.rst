@@ -1,8 +1,8 @@
-Check SC for if/return "A or else B", where operand evaluations might raise an exception
-=========================================================================================
+Check SC with evals of "A or else B" where operands might raise an exception
+============================================================================
 
-SC testcases for if/return ``A or else B`` where operand evaluations might
-raise an exception.  "Return" is actually an assignment into an out parameter.
+SC testcases for statements evaluating ``A or else B`` where each operand
+might raise an exception.
 
 .. qmlink:: TCIndexImporter
 
