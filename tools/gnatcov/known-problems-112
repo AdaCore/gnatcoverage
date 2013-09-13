@@ -1,0 +1,21 @@
+============================================
+Known problems in GNATcoverage version 1.1.2
+============================================
+
+Copyright (C) 2013, AdaCore
+
+The following is a listing of known problems in release 1.1.2. All these
+problems have been corrected in 1.2 wavefronts starting from date designated
+in the "Status" indication.
+
+KP-112-M425-007 Extreme coverage computation time with large debug info
+
+  Problem:    gnatcov coverage appears to be running an infinite active loop
+              while processing a trace associated with an executable featuring
+              a very large debug info section (hundreds of megabytes). The
+              process nevertheless converges after several hours.
+
+  Status:     This was fixed in 1.2 on 2013-04-26
+
+  Workaround: Wait long enough or run gnatcov coverage on a faster machine
+
