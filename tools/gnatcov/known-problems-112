@@ -8,6 +8,19 @@ The following is a listing of known problems in release 1.1.2. All these
 problems have been corrected in 1.2 wavefronts starting from date designated
 in the "Status" indication.
 
+KP-112-M704-044 gnatcov abort on .ali file for subunit
+
+  Problem:    gnatcov coverage aborts on with a "key already in map"
+              Constraint_Error when queried to process SCOs coming from a
+              subunit ALI file in addition to those for the corresponding
+              main unit.
+
+  Status:     This was fixed in 1.2 on 2013-07-10
+
+  Workaround: Arrange to exclude the subunit ALI file from the set passed
+              to gnatcov. ALIs for subunits are identifiable by the presence
+              of a "NO" keyword on the P line within the file.
+
 KP-112-M627-058 Memory leak while producing html+ report
 
   Problem:    gnatcov coverage leaks small amounts of memory while producing
