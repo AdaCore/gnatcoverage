@@ -8,6 +8,18 @@ The following is a listing of known problems in release 1.1.2. All these
 problems have been corrected in 1.2 wavefronts starting from date designated
 in the "Status" indication.
 
+KP-112-M711-039 Spurious complaint about missing branch for constant condition
+
+  Problem:    During decision or mcdc analysis, gnatcov complains about
+              missing conditional branches for conditions that happen to have
+              known at compile time values, such as a direct reference to a
+              constant identifier for example.
+
+  Status:     This was fixed in 1.2 on 2013-08-22
+
+  Workaround: Modify the source code so the problematic conditions aren't
+              known at compile time any more.
+
 KP-112-M704-044 gnatcov abort on .ali file for subunit
 
   Problem:    gnatcov coverage aborts on with a "key already in map"
