@@ -8,6 +8,18 @@ The following is a listing of known problems in release 1.1.2. All these
 problems have been corrected in 1.2 wavefronts starting from date designated
 in the "Status" indication.
 
+KP-112-M724-035 Spurious branch related warnings on controlled condition
+
+  Problem:    On x86-linux, for complex Ada constructs involving transient
+              controlled objects in conditions mixed with exception handlers,
+              gnatcov sometimes emits warnings about conditional branches
+              not reconviened against conditions.
+
+  Status:     This was fixed in 1.2 on 2013-08-07
+
+  Workaround: Simplify the code to extract the transient controlled object
+              creations out of the problematic decisions.
+
 KP-112-M711-039 Spurious complaint about missing branch for constant condition
 
   Problem:    During decision or mcdc analysis, gnatcov complains about
