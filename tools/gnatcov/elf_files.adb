@@ -28,11 +28,10 @@ with Strings; use Strings;
 package body Elf_Files is
 
    function Compute_CRC32 (File : Elf_File) return Unsigned_32;
-   --  Compute the CRC32 checksum for an open file and return it.
+   --  Compute and return the CRC32 of File
 
    function Get_My_Data return Elf_Uchar;
-   function Get_String
-     (Strtab : Elf_Strtab_Acc; Idx : Elf_Addr) return String;
+   function Get_String (Strtab : Elf_Strtab_Acc; Idx : Elf_Addr) return String;
 
    -----------------
    -- Get_My_Data --
@@ -425,8 +424,7 @@ package body Elf_Files is
    -- Compute_CRC32 --
    -------------------
 
-   function Compute_CRC32 (File : Elf_File) return Unsigned_32
-   is
+   function Compute_CRC32 (File : Elf_File) return Unsigned_32 is
       C      : CRC32;
       Buffer : String (Integer range 1 .. 2 ** 12);
       Size   : Integer;
