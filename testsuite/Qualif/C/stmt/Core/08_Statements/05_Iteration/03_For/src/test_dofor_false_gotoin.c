@@ -14,3 +14,4 @@ main (void)
 //  /eval/      l+ ## 0
 //  /for/       l+ ## 0
 //  /goto-out/  l- ## s-
+//  /return/    l+ ## 0

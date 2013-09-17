@@ -16,6 +16,7 @@ main (void)
 //  /body/      l- ## s-
 //  /goto-in/   l- ## s-
 //  /pre-for/   l- ## s-
-//  /eval/      l- ## s-
+//  /eval/      l- ## s-, s-
 //  /for/       l- ## s-
 //  /goto-out/  l- ## s-
+//  /return/    l- ## s-
