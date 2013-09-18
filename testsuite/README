@@ -81,6 +81,9 @@ For example:
 
 The optional ''regexp'' at the end instructs the driver to run only those
 tests whose relative path from the root to test.py matches the expression.
+If it designates a directly reachable path (possibly expressed as relative
+from testsuite.py), tests are searched only from there. The complete tree
+is searched otherwise.
 
 For more details on the available options:
 
