@@ -7,36 +7,12 @@ All the other sub-sections rely on this one.
 
 .. rubric:: Requirement(s)
 
+For MCDC assessments, the tool focuses on decisions used to influence
+control-flow languages constructs as well as on those with more than one
+condition anywhere they might appear. Only short circuit operators are
+allowed to combine conditions.
 
-
-Compared to Decision Coverage, MCDC assessements enlarges the set of
-expressions that shall be processed as decisions and introduces rules
-regarding the operands that consistute the expressions.
-
-We distinguish two categories of Boolean expressions for MCDC:
-
-* *Complex* expressions, that feature at least two Boolean operands
-  combined with AND-THEN or OR-ELSE short-circuit operators.
-
-* *Simple* expressions, that are not complex per the preceding definition.
-
-The types involved need not be restricted to the standard Boolean type; they
-may subtypes or types derived from the Ada fundamental type.
-
-In addition to any expression that directly influence control-flow constructs,
-the tool shall process any *complex* Boolean expression as a decision,
-regardless of the context where it apppears, for example on the right-hand
-side of an assignment, as part of an object declaration initializer, as a
-subprogram actual or within an active assertion pragma.
-
-The Boolean operands of the short-circuit operators in a decision are called
-*conditions*. Sub-decisions nesting becomes possible from the variety of
-contexts where an expression needs to be treated as a decision. For example,
-``if A and then Op (B or else C)`` has two decisions, one with two conditions
-(B and C) used as an actual in a function call to Op, and an outer one with
-two conditions as well (A and the function call itself).
-
-All the DC rules apply unchanged to the full set of decisions as defined
+All the DC rules apply unchanged to the full set of decisions considered
 here. Rule #3, about decisions evaluated both True and False, is complemented
 by an additional rule:
 
@@ -52,8 +28,6 @@ Rule #  Description
 
 .. rubric:: Testing Strategy
 
-
-
 The testing strategy is similar to the one chosen for the DC core requirement,
 with the following set of testcases:
 
@@ -61,8 +35,6 @@ with the following set of testcases:
 .. qmlink:: SubsetIndexImporter
 
    *
-
-
 
 Rules 1 to 3c are validated by variations exercised in every individual
 testcase, where we consistenly check each decision of interest in multiple

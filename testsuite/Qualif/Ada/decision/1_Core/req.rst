@@ -4,20 +4,15 @@ Core expectations for Decision Coverage
 Core expectations for Decision Coverage
 (DC) assessments. All the other DC-related sections rely on this one.
 
-
 .. rubric:: Requirement(s)
 
+For Decision Coverage assessments, the tool focuses on decisions used to
+influence control-flow language constructs. The types involved need not be
+restricted to the standard Boolean type; they may subtypes or types derived
+from Boolean.
 
-
-A *decision* is defined to be any Boolean expression that directly controls
-the behavior of IF, WHILE and EXIT-WHEN control-flow constructs. Only the
-expression as a whole is considered a decision; subexpressions are not
-decisions on their own.  The types involved need not be restricted to the
-standard Boolean type; they may subtypes or types derived from Boolean.
-
-In this context, and in addition to the rules governing Statement Coverage,
-the following set of extra rules shall be obeyed for Decision Coverage (DC)
-assessment:
+In this context, the following set of rules shall be obeyed on top of the
+requirements governing Statement Coverage:
 
 ======  ======================================================================
 Rule #  Description
@@ -39,12 +34,11 @@ Rule #  Description
         be reported as never evaluated.
 
 5       The tool shall be able to handle arbitrarily complex decisions in any
-        context where they might appear.
+        controlling context where they might appear.
 ======  ======================================================================
 
 
 .. rubric:: Testing Strategy
-
 
 
 We validate all the DC rules based on three main subsets of testcases:
