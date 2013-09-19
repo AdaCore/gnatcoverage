@@ -36,7 +36,7 @@ package body ALI_Files is
    -- Regular expressions for ALI files parsing --
    -----------------------------------------------
 
-   D_Regexp  : constant String := "([^\t ]*)[\t ]";
+   D_Regexp  : constant String := "(([^""\t ]+)|(""([^""]|"""")+""))[\t ]";
    D_Matcher : constant Pattern_Matcher := Compile (D_Regexp);
 
    N_Regexp  : constant String :=
@@ -48,6 +48,43 @@ package body ALI_Files is
 
    V_Regexp  : constant String := "^V ""(.*)""$";
    V_Matcher : constant Pattern_Matcher := Compile (V_Regexp);
+
+   function Unquote (Filename : String) return String;
+   --  If needed, unquote a filename, such as the ones that can be found on D
+   --  lines.
+
+   -------------
+   -- Unquote --
+   -------------
+
+   function Unquote (Filename : String) return String is
+      use Ada.Strings.Unbounded;
+
+      Result   : Unbounded_String;
+      In_Quote : Boolean := False;
+      --  True when we just met a double quote inside a quoted filename. False
+      --  otherwise.
+
+   begin
+      if Filename (Filename'First) /= '"' then
+         return Filename;
+      else
+         --  To unquote, just copy the string removing consecutive double
+         --  quotes.
+
+         for C of Filename (Filename'First + 1 .. Filename'Last - 1) loop
+            if C = '"' then
+               if not In_Quote then
+                  Append (Result, C);
+               end if;
+               In_Quote := not In_Quote;
+            else
+               Append (Result, C);
+            end if;
+         end loop;
+         return To_String (Result);
+      end if;
+   end Unquote;
 
    --------------
    -- Load_ALI --
@@ -363,7 +400,8 @@ package body ALI_Files is
             when 'D' =>
                Match (D_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
-                  Deps.Append (Get_Index_From_Generic_Name (Match (1)));
+                  Deps.Append (Get_Index_From_Generic_Name
+                    (Unquote (Match (1))));
                end if;
 
             when 'N' =>
