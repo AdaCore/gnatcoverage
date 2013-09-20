@@ -4,6 +4,7 @@ int
 dofor (int start, int behavior)
 {
   int a = start;                // # body
+  int i;                        // # body
 
   if (behavior & GOTO_IN)       // # body
     {
@@ -13,7 +14,7 @@ dofor (int start, int behavior)
 
   --a;                          // # pre-for
 
-  for (a = start; a < 10; ++a)  // # eval
+  for (i = start; i < 10; ++i)  // # eval
     {
 in_for:
       if (behavior & GOTO_OUT)  // # for
@@ -24,5 +25,5 @@ in_for:
     }
 
 out_for:
-  return a;                     // # return
+  return a + i;                 // # return
 }
