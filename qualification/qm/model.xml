@@ -1,4 +1,4 @@
-<project name="GNATCoverage" scripts="qm_plugins">
+<project name="GNATcoverage" scripts="qm_plugins">
 
   <repository name="default" class="fs" root="."/>
   <repository name="tor" class="fs" root="../../testsuite/Qualif"/>
