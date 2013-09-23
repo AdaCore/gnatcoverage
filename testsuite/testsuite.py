@@ -791,12 +791,7 @@ class TestSuite:
 
         # Pass cargs for all the tests, qualif family or not, qualif mode
         # or not.  Tests are not necessarily mono-language so we pass per
-        # language cargs as well. Enforce -gnat05 by default for Ada.
-
-        if not re.search (
-            "-gnat95|-gnat05|-gnat12", mopt.cargs_Ada
-            ):
-            mopt.cargs_Ada += " -gnat05"
+        # language cargs as well.
 
         [testcase_cmd.append(
                 '--cargs:%(lang)s=%(args)s' % {
@@ -1028,6 +1023,15 @@ class TestSuite:
          for opt in ("cargs%s" % ext
                      for ext in [""] + ["_%s" % lang for lang in KNOWN_LANGUAGES])
          if m.options.__dict__[opt] == None]
+
+        # Enforce a default -gnat<version> for Ada, so each test can expect an
+        # explicit setting to filter on. Doing this now ensures that the option
+        # will show up in the STR report if we're running for qualification.
+
+        if not re.search (
+            "-gnat95|-gnat05|-gnat12", m.options.cargs_Ada
+            ):
+            m.options.cargs_Ada += " -gnat05"
 
         # For paths that need to be passed to test.py downtree, resolve them
         # to full path now while we have visibility on where relative paths
