@@ -243,10 +243,10 @@ class TestSuite:
         self.strbox_dir = os.path.join (os.getcwd(), QSTRBOX_DIR)
         mkdir(self.strbox_dir)
 
-    # ------------------------
-    # -- Commong facilities --
-    # ------------------------
-        
+    # -----------------------
+    # -- Common facilities --
+    # -----------------------
+
     def __target_prefix (self):
         return self.env.target.triplet+'-' if self.options.target else ""
 
@@ -303,7 +303,7 @@ class TestSuite:
         # case, so we can fetch a local reference for consistency comparisons.
         if self.options.qualif_level:
             self.__init_strbox()
-            
+
             tprefix = self.__target_prefix()
 
             dump_to (
@@ -1211,7 +1211,7 @@ class TestCase(object):
                 status=self.status,
                 comment=self.comment)
             )
-        
+
     def latched_status(self):
         return load_from (self.stdf())
 
