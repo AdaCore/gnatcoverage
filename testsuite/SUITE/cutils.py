@@ -230,9 +230,11 @@ class Wdir:
 # to raise when processing has to stop
 
 class FatalError(Exception):
-    def __init__(self,comment,output=None):
-        if output != None:
-            comment += '. Output was:\n'+contents_of(output)
+    def __init__(self,comment,outfile=None,outstr=None):
+        if outfile != None:
+            comment += '. Output was:\n' + contents_of(outfile)
+        elif outstr != None:
+            comment += '. Output was:\n' + outstr
         self.comment = comment
 
     def __str__(self):

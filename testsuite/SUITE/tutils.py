@@ -342,7 +342,9 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
 
     thistest.stop_if(
         register_failure and p.status != 0,
-        FatalError('"%s ' % ' '.join(covpgm + covargs) + '" exit in error', out))
+        FatalError(
+            '"%s"' % ' '.join(covpgm + covargs) + ' exit in error',
+            outfile = out, outstr = p.out if not out else None))
 
     return p
 
