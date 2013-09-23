@@ -22,6 +22,8 @@ with Ada.Text_IO;             use Ada.Text_IO;
 
 with GNAT.Regpat; use GNAT.Regpat;
 
+with GNATCOLL.VFS;
+
 with Diagnostics; use Diagnostics;
 with Files_Table; use Files_Table;
 with Get_SCOs;
@@ -96,6 +98,11 @@ package body ALI_Files is
       function Check_Message (M1, M2 : String_Access) return Boolean;
       --  Return True if either M1 or M2 is null or designates an empty string,
       --  else return True if M1 and M2 designate identical strings.
+
+      function Get_Index_From_Generic_Name
+         (Name : String) return Source_File_Index;
+      --  Call Get_Index_From_Simple_Name or Get_Index_From_Full_Name depending
+      --  on whether Name is an absolute path. Return the result of this call.
 
       -------------------
       -- Check_Message --
@@ -201,6 +208,24 @@ package body ALI_Files is
       end Skipc;
 
       procedure Get_SCOs_From_ALI is new Get_SCOs;
+
+      ---------------------------------
+      -- Get_Index_From_Generic_Name --
+      ---------------------------------
+
+      function Get_Index_From_Generic_Name
+         (Name : String) return Source_File_Index
+      is
+         use GNATCOLL.VFS;
+
+         File_Name : constant Virtual_File := Create (+Name);
+      begin
+         if Is_Absolute_Path (File_Name) then
+            return Get_Index_From_Full_Name (Name);
+         else
+            return Get_Index_From_Simple_Name (Name);
+         end if;
+      end Get_Index_From_Generic_Name;
 
       --  Local variables
 
@@ -332,13 +357,13 @@ package body ALI_Files is
             when 'U' =>
                Match (U_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
-                  Current_Unit := Get_Index_From_Simple_Name (Match (1));
+                  Current_Unit := Get_Index_From_Generic_Name (Match (1));
                end if;
 
             when 'D' =>
                Match (D_Matcher, Line (3 .. Line'Last), Matches);
                if Matches (0) /= No_Match then
-                  Deps.Append (Get_Index_From_Simple_Name (Match (1)));
+                  Deps.Append (Get_Index_From_Generic_Name (Match (1)));
                end if;
 
             when 'N' =>
