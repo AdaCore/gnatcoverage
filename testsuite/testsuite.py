@@ -21,7 +21,7 @@ from gnatpython.env import Env
 from gnatpython.ex import Run
 from gnatpython.fileutils import mkdir, rm, ln, which
 from gnatpython.main import Main
-from gnatpython.mainloop import MainLoop
+from gnatpython.mainloop import MainLoop, add_mainloop_options
 from gnatpython.optfileparser import OptFileParse
 from gnatpython.reports import ReportDiff
 
@@ -680,7 +680,7 @@ class TestSuite:
             MainLoop(
                 self.__next_testcase (),
                 self.run_testcase, self.collect_result,
-                self.options.jobs
+                self.options.mainloop_jobs
                 )
 
         except Exception as e:
@@ -932,6 +932,7 @@ class TestSuite:
         """Parse command lines options"""
 
         m = Main(add_targets_options=True)
+        add_mainloop_options (m, extended_options=False)
         m.add_option('--quiet', dest='quiet', action='store_true',
                      default=False, help='Quiet mode. Display test failures only')
         m.add_option('--gprmode', dest='gprmode', action='store_true',
@@ -941,8 +942,6 @@ class TestSuite:
         m.add_option('--enable-valgrind', dest='enable_valgrind',
                      action='store_true', default=False,
                      help='enable the use of valgrind when running each test')
-        m.add_option('-j', '--jobs', dest='jobs', type='int',
-                     metavar='N', default=1, help='Allow N jobs at once')
         m.add_option("--old-res", dest="old_res", type="string",
                         help="Old testsuite.res file")
 
