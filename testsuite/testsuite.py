@@ -21,7 +21,8 @@ from gnatpython.env import Env
 from gnatpython.ex import Run
 from gnatpython.fileutils import mkdir, rm, ln, which
 from gnatpython.main import Main
-from gnatpython.mainloop import MainLoop, add_mainloop_options
+from gnatpython.mainloop import (MainLoop, add_mainloop_options,
+                                 SKIP_EXECUTION)
 from gnatpython.optfileparser import OptFileParse
 from gnatpython.reports import ReportDiff
 
@@ -33,7 +34,7 @@ import logging, os, re, sys
 
 from SUITE import cutils
 from SUITE.cutils import contents_of, FatalError
-from SUITE.cutils import version, list_to_tmp, dump_to
+from SUITE.cutils import version, list_to_tmp, dump_to, load_from
 
 from SUITE.qdata import stdf_in, qdaf_in, treeref_at
 from SUITE.qdata import QLANGUAGES, QROOTDIR
@@ -743,6 +744,19 @@ class TestSuite:
         not set, run rlimit with DEFAULT_TIMEOUT"""
 
         logging.debug("Running " + test.diro.fspath)
+
+        if self.env.main_options.skip_if_ok and test.has_previously_run():
+            # We still have the results for this testcase from
+            # a previous run, and the user asked us to re-use
+            # those results if the test was previously successful.
+            # Skip this testcase if so, allowing collect_result
+            # to collect the results from the previous run...
+            tcs = test.latched_status()
+            if tcs.status in ('OK', 'UOK'):
+                logging.debug("(reusing the previous run's result)")
+                test.start_time = time.time()
+                return SKIP_EXECUTION
+
         timeout = test.getopt('limit')
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
@@ -932,7 +946,7 @@ class TestSuite:
         """Parse command lines options"""
 
         m = Main(add_targets_options=True)
-        add_mainloop_options (m, extended_options=False)
+        add_mainloop_options (m, extended_options=True)
         m.add_option('--quiet', dest='quiet', action='store_true',
                      default=False, help='Quiet mode. Display test failures only')
         m.add_option('--gprmode', dest='gprmode', action='store_true',
@@ -1256,6 +1270,18 @@ class TestCase(object):
 
     def stdf(self):
         return stdf_in(self.testdir)
+
+    def has_previously_run(self):
+        """Return True iff this testcase looks like it's been run before.
+
+        REMARKS
+            This function does not check the testcase status at all.
+        """
+        # At a minimum, a testcase produces the following files which
+        # the testsuite uses to collect the results.
+        return (os.path.isfile(self.stdf())
+                and os.path.isfile(self.qdaf())
+                and os.path.isfile(self.outf()))
 
     # -----------------------------
     # -- Testcase identification --
