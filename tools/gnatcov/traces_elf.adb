@@ -534,7 +534,7 @@ package body Traces_Elf is
 
       elsif Trace_Exe_CRC32 /= "" and then Trace_Exe_CRC32 /= File_CRC32 then
          return
-            "ELF file CRC32 checksum is " & File_TS
+            "ELF file CRC32 checksum is " & File_CRC32
             & " but trace indicates " & Trace_Exe_CRC32;
 
       else
