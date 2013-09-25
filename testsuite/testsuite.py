@@ -304,6 +304,26 @@ class TestSuite:
             errors = None
         return errors
 
+    def __reuse_testcase_previous_run(self, test):
+        """Return True iff we should be reusing the the previous run's results.
+
+        This includes verifying that the testcase has in fact been
+        previously run, and that the various associated reports are
+        still available for re-use (see TestCase.has_previously_run).
+
+        PARAMETERS:
+            test: a TestCase object.
+        """
+        if not self.env.main_options.skip_if_ok:
+            # The user has not asked us to re-use any previous result...
+            return False
+
+        if not test.has_previously_run():
+            return False
+
+        tcs = test.latched_status()
+        return tcs.status in ('OK', 'UOK')
+
     # ------------------------
     # -- Object constructor --
     # ------------------------
@@ -810,17 +830,10 @@ class TestSuite:
 
         logging.debug("Running " + test.diro.fspath)
 
-        if self.env.main_options.skip_if_ok and test.has_previously_run():
-            # We still have the results for this testcase from
-            # a previous run, and the user asked us to re-use
-            # those results if the test was previously successful.
-            # Skip this testcase if so, allowing collect_result
-            # to collect the results from the previous run...
-            tcs = test.latched_status()
-            if tcs.status in ('OK', 'UOK'):
-                logging.debug("(reusing the previous run's result)")
-                test.start_time = time.time()
-                return SKIP_EXECUTION
+        if self.__reuse_testcase_previous_run(test):
+            logging.debug("(reusing the previous run's result)")
+            test.start_time = time.time()
+            return SKIP_EXECUTION
 
         timeout = test.getopt('limit')
         if timeout is None:
