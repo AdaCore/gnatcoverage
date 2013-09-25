@@ -19,7 +19,7 @@ See ./testsuite.py -h for more help
 
 from gnatpython.env import Env
 from gnatpython.ex import Run
-from gnatpython.fileutils import mkdir, rm, ln, which
+from gnatpython.fileutils import mkdir, rm, ln, which, cp
 from gnatpython.main import Main
 from gnatpython.mainloop import (MainLoop, add_mainloop_options,
                                  SKIP_EXECUTION)
@@ -319,6 +319,18 @@ class TestSuite:
             return False
 
         if not test.has_previously_run():
+            return False
+
+        # Make sure that the testing environment has not changed
+        # since this previous run.  Otherwise, it's not safe to re-use
+        # those results.
+        errors = self.__check_consistency_with_previous_runs(test.ctxf())
+        if errors is not None:
+            # Log of the reasons why the testcase results could not
+            # be reused. This may help future investigations.
+            logging.debug("Cannot re-use the previous run's results:")
+            for e in errors:
+                logging.debug(e)
             return False
 
         tcs = test.latched_status()
@@ -835,6 +847,10 @@ class TestSuite:
             test.start_time = time.time()
             return SKIP_EXECUTION
 
+        # Save a copy of the context data in case the user wants to
+        # re-run the testsuite with --skip-if-* later on.
+        cp(CTXDATA_FILE, test.ctxf())
+
         timeout = test.getopt('limit')
         if timeout is None:
             timeout = DEFAULT_TIMEOUT
@@ -1349,6 +1365,13 @@ class TestCase(object):
     def stdf(self):
         return stdf_in(self.testdir)
 
+    def ctxf(self):
+        """The file containing a SUITE_context describing the testcase run
+
+        (the file is in pickle format).
+        """
+        return os.path.join(self.testdir, 'ctx.dump')
+
     def has_previously_run(self):
         """Return True iff this testcase looks like it's been run before.
 
@@ -1359,6 +1382,7 @@ class TestCase(object):
         # the testsuite uses to collect the results.
         return (os.path.isfile(self.stdf())
                 and os.path.isfile(self.qdaf())
+                and os.path.isfile(self.ctxf())
                 and os.path.isfile(self.outf()))
 
     # -----------------------------
