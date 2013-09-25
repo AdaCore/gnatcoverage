@@ -251,6 +251,59 @@ class TestSuite:
     def __target_prefix (self):
         return self.env.target.triplet+'-' if self.options.target else ""
 
+    def __check_consistency_with_previous_runs(self):
+        """Check consistency between this run and the previous ones.
+
+        The purpose of this check is to verify that this testsuite run
+        is executed using the very same parameters, thus allowing us
+        to reuse the results from previous runs.
+
+        RETURN VALUE
+            A list of error messages, each message being a string
+            documenting an inconsistency.  Return None otherwise.
+        """
+        if not os.path.isfile(CTXDATA_FILE):
+            return ('  * Missing testsuite data file (%s)' % CTXDATA_FILE,)
+
+        ref_ctx = load_from(CTXDATA_FILE)
+        tprefix = self.__target_prefix()
+        gnatpro = TOOL_info(tprefix+"gcc")
+        gnatemu = TOOL_info(tprefix+"gnatemu")
+        gnatcov = TOOL_info("gnatcov")
+
+        errors = []
+        for check in (('host platform',
+                       self.env.host.platform, ref_ctx.host.platform),
+                      ('target platform',
+                       self.env.target.platform, ref_ctx.target.platform),
+                      ('gnatpro version',
+                       gnatpro.version, ref_ctx.gnatpro.version),
+                      ('gnatemu version',
+                       gnatemu.version, ref_ctx.gnatemu.version),
+                      ('gnatcov version',
+                       gnatcov.version, ref_ctx.gnatcov.version),
+                      ('--cargs option',
+                       self.options.cargs, ref_ctx.options.cargs),
+                     ):
+            (msg, new, expected) = check
+            if new != expected:
+                errors.append('  * %s mismatch: "%s" (expected "%s")'
+                              % (msg, new, expected))
+
+        for lang in KNOWN_LANGUAGES:
+            new = getattr(self.options, 'cargs_%s' % lang)
+            expected = getattr(ref_ctx.options, 'cargs_%s' % lang)
+            if new != expected:
+                errors.append('  * --cargs:%s option mismatch:'
+                              ' "%s" (expected "%s")'
+                              % (lang, new, expected))
+
+        if not errors:
+            # Return None instead of the empty list (the only reason
+            # for doing so is that it's a little more pythonic).
+            errors = None
+        return errors
+
     # ------------------------
     # -- Object constructor --
     # ------------------------
@@ -270,6 +323,18 @@ class TestSuite:
 
         self.env = Env()
         self.env.add_search_path('PYTHONPATH', os.getcwd())
+
+        # If trying to update a previous run by only re-running
+        # the testcases that failed in that previous run, make sure
+        # that this new run is consistent with the previous ones.
+        if self.options.skip_if_ok:
+            errors = self.__check_consistency_with_previous_runs()
+            if errors:
+                raise FatalError(
+                    'Cannot use --skip-if-ok'
+                    ' (incompatible testing environment)\n'
+                    'The following errors were detected:\n'
+                    + '\n'.join(errors))
 
         # Perform the environment adjustments required to run the compilation
         # toolchain properly:
