@@ -251,7 +251,7 @@ class TestSuite:
     def __target_prefix (self):
         return self.env.target.triplet+'-' if self.options.target else ""
 
-    def __check_consistency_with_previous_runs(self):
+    def __check_consistency_with_previous_runs(self, ctxdata_file):
         """Check consistency between this run and the previous ones.
 
         The purpose of this check is to verify that this testsuite run
@@ -262,10 +262,10 @@ class TestSuite:
             A list of error messages, each message being a string
             documenting an inconsistency.  Return None otherwise.
         """
-        if not os.path.isfile(CTXDATA_FILE):
-            return ('  * Missing testsuite data file (%s)' % CTXDATA_FILE,)
+        if not os.path.isfile(ctxdata_file):
+            return ('  * Missing testsuite data file (%s)' % ctxdata_file,)
 
-        ref_ctx = load_from(CTXDATA_FILE)
+        ref_ctx = load_from(ctxdata_file)
         tprefix = self.__target_prefix()
         gnatpro = TOOL_info(tprefix+"gcc")
         gnatemu = TOOL_info(tprefix+"gnatemu")
@@ -348,7 +348,7 @@ class TestSuite:
         # the testcases that failed in that previous run, make sure
         # that this new run is consistent with the previous ones.
         if self.options.skip_if_ok:
-            errors = self.__check_consistency_with_previous_runs()
+            errors = self.__check_consistency_with_previous_runs(CTXDATA_FILE)
             if errors:
                 raise FatalError(
                     'Cannot use --skip-if-ok'
