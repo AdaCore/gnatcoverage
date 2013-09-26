@@ -331,13 +331,12 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
     # defaults values: do not add them to kwargs if they are None.
 
     kwargs = {}
-    for key, value in {
-        'input': inp,
-        'output': out,
-        'error': err,
-    }.items():
-        if value:
-            kwargs[key] = value
+    [kwargs.__setitem__(key, value)
+     for (key, value) in  (
+            ('input', inp),
+            ('output', out),
+            ('error', err))
+     if value]
 
     p = Run(covpgm + covargs, timeout=thistest.options.timeout, **kwargs)
 
