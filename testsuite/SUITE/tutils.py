@@ -21,6 +21,7 @@ from SUITE.cutils import *
 from gnatpython.fileutils import unixpath
 
 VALGRIND  = 'valgrind' + env.host.os.exeext
+VALGRIND_LOG = 'valgrind.log'
 
 # -------------------------
 # -- gprbuild_gargs_with --
@@ -279,8 +280,8 @@ def maybe_valgrind(command):
     execution to proceed.
     """
     return (
-        ([VALGRIND, '-q'] + command) if thistest.options.enable_valgrind
-        else command
+        ([VALGRIND, '-q', '--log-file=%s' % VALGRIND_LOG] + command)
+        if thistest.options.enable_valgrind else command
         )
 
 # ----------
@@ -339,6 +340,14 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
             kwargs[key] = value
 
     p = Run(covpgm + covargs, timeout=thistest.options.timeout, **kwargs)
+
+    if thistest.options.enable_valgrind:
+        valgrind_log = contents_of (VALGRIND_LOG)
+        thistest.fail_if(
+            valgrind_log,
+            FatalError(
+                'VALGRIND log not empty\n'
+                + 'FROM "%s":\n%s' % (' '.join(covpgm + covargs), valgrind_log)))
 
     thistest.stop_if(
         register_failure and p.status != 0,
