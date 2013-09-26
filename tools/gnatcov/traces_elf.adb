@@ -1527,6 +1527,10 @@ package body Traces_Elf is
       Element_Type => String_Access,
       "=" => "=");
 
+   package File_Indices_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Source_File_Index);
+
    ----------------------
    -- Read_Debug_Lines --
    ----------------------
@@ -1584,6 +1588,9 @@ package body Traces_Elf is
       Nbr_Filenames : Unsigned_32;
       Dirnames      : Filenames_Vectors.Vector;
       Filenames     : Filenames_Vectors.Vector;
+
+      File_Indices  : File_Indices_Vectors.Vector;
+      --  Cached file indices for Filenames.
 
       Last_Line     : Addresses_Info_Acc := null;
 
@@ -1657,8 +1664,9 @@ package body Traces_Elf is
       procedure New_Source_Line is
          use Addresses_Containers;
 
-         Pos      : Cursor;
-         Inserted : Boolean;
+         Pos        : Cursor;
+         Inserted   : Boolean;
+         File_Index : Source_File_Index;
       begin
 
          --  Discard 0-relative entries in exec files, corresponding to
@@ -1673,6 +1681,16 @@ package body Traces_Elf is
          --  Note: Last will be updated by Close_Source_Line, and Parent is set
          --  later on by Build_Debug_Lines.
 
+         File_Index := File_Indices.Element (File);
+         if File_Index = No_Source_File then
+            --  Compute the file index for this source file if it's not cached
+            --  yet.
+
+            File_Index := Get_Index_From_Full_Name
+               (Filenames.Element (File).all);
+            File_Indices.Replace_Element (File, File_Index);
+         end if;
+
          Last_Line :=
            new Addresses_Info'
            (Kind    => Line_Addresses,
@@ -1680,8 +1698,7 @@ package body Traces_Elf is
             Last    => Exec.Exe_Text_Start + Pc,
             Parent  => null,
             Sloc    =>
-              (Source_File  => Get_Index_From_Full_Name
-               (Filenames_Vectors.Element (Filenames, File).all),
+              (Source_File  => File_Index,
                Line         => Natural (Line),
                Column       => Natural (Column)),
             Disc    => Disc,
@@ -1776,6 +1793,7 @@ package body Traces_Elf is
 
       Nbr_Filenames := 0;
       Filenames_Vectors.Clear (Filenames);
+      File_Indices.Clear;
       loop
          B := Read_Byte (Base + Off);
          exit when B = 0;
@@ -1803,6 +1821,12 @@ package body Traces_Elf is
 
             Filenames_Vectors.Append
               (Filenames, Build_Filename (Dir.all, Filename));
+
+            --  Do not get file index for this filename until necessary (see
+            --  the New_Source_Line procedure). This prevents file table
+            --  cluttering with unused filenames.
+
+            File_Indices.Append (No_Source_File);
          end;
 
          Read_ULEB128 (Base, Off, File_Time);
