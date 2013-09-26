@@ -848,8 +848,11 @@ class TestSuite:
             return SKIP_EXECUTION
 
         # Save a copy of the context data in case the user wants to
-        # re-run the testsuite with --skip-if-* later on.
-        cp(CTXDATA_FILE, test.ctxf())
+        # re-run the testsuite with --skip-if-* later on.  Since
+        # this context data is only generated when in Qualification
+        # mode, only make that copy when in that mode, too.
+        if self.options.qualif_level:
+            cp(CTXDATA_FILE, test.ctxf())
 
         timeout = test.getopt('limit')
         if timeout is None:
