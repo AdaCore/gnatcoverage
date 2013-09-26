@@ -21,7 +21,8 @@ with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Unchecked_Deallocation;
 
-with Strings; use Strings;
+with GNATCOLL.VFS; use GNATCOLL.VFS;
+
 with Outputs;
 
 package body Files_Table is
@@ -40,10 +41,10 @@ package body Files_Table is
    --  line as No_Code.
 
    package Filename_Maps is new Ada.Containers.Hashed_Maps
-     (Key_Type        => String_Access,
+     (Key_Type        => Virtual_File,
       Element_Type    => Source_File_Index,
-      Hash            => Hash,
-      Equivalent_Keys => Equal,
+      Hash            => Full_Name_Hash,
+      Equivalent_Keys => "=",
       "="             => "=");
 
    Simple_Name_Map : Filename_Maps.Map;
@@ -411,12 +412,14 @@ package body Files_Table is
    is
       use Filename_Maps;
 
+      Full_Path : constant Virtual_File := Create (+Full_Name);
+
       Cur  : Cursor;
       Res  : Source_File_Index;
       Info : File_Info_Access;
       Info_Simple : File_Info_Access;
    begin
-      Cur := Full_Name_Map.Find (Full_Name'Unrestricted_Access);
+      Cur := Full_Name_Map.Find (Full_Path);
 
       if Cur /= No_Element then
          Res := Element (Cur);
@@ -426,23 +429,23 @@ package body Files_Table is
       --  Here if full name not found, try again with simple name
 
       declare
-         Simple_Name : constant String :=
-                         Ada.Directories.Simple_Name (Full_Name);
+         Simple_Path : constant Virtual_File := Create (Base_Name (Full_Path));
       begin
-         Cur := Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
+         Cur := Simple_Name_Map.Find (Simple_Path);
 
          if Cur /= No_Element then
             Res := Element (Cur);
             Info_Simple := Files_Table.Element (Res);
 
             if Info_Simple.Full_Name = null then
-               Info_Simple.Full_Name := new String'(Full_Name);
-               Full_Name_Map.Insert (Info_Simple.Full_Name, Res);
+               Info_Simple.Full_Name :=
+                  new String'(+GNATCOLL.VFS.Full_Name (Full_Path));
+               Full_Name_Map.Insert (Full_Path, Res);
                return Res;
             else
-               if Info_Simple.Full_Name.all /= Full_Name then
+               if Create (+Info_Simple.Full_Name.all) /= Full_Path then
                   Put_Line ("Warning: same base name for files:");
-                  Put_Line ("  " & Full_Name);
+                  Put_Line ("  " & (+GNATCOLL.VFS.Full_Name (Full_Path)));
                   Put_Line ("  " & Info_Simple.Full_Name.all);
                end if;
             end if;
@@ -457,8 +460,10 @@ package body Files_Table is
          end if;
 
          Info := new File_Info'
-           (Full_Name                => new String'(Full_Name),
-            Simple_Name              => new String'(Simple_Name),
+           (Full_Name                =>
+               new String'(+GNATCOLL.VFS.Full_Name (Full_Path)),
+            Simple_Name              =>
+               new String'(+GNATCOLL.VFS.Full_Name (Simple_Path)),
             Has_Source               => True,
             Alias_Num                => 0,
             Lines                    => (Source_Line_Vectors.Empty_Vector
@@ -471,7 +476,7 @@ package body Files_Table is
          Res := Files_Table.Last_Index;
 
          if Info_Simple = null then
-            Simple_Name_Map.Insert (Info.Simple_Name, Res);
+            Simple_Name_Map.Insert (Simple_Path, Res);
          else
             --  Set Alias_Num.
             --  The entry in Simple_Name_Map has always the highest index.
@@ -485,7 +490,7 @@ package body Files_Table is
             Info_Simple.Alias_Num := Info.Alias_Num + 1;
          end if;
 
-         Full_Name_Map.Insert (Info.Full_Name, Res);
+         Full_Name_Map.Insert (Full_Path, Res);
 
          return Res;
       end;
@@ -501,8 +506,10 @@ package body Files_Table is
    is
       use Filename_Maps;
 
+      Simple_Path : constant Virtual_File := Create (+Simple_Name);
+
       Cur  : constant Cursor :=
-               Simple_Name_Map.Find (Simple_Name'Unrestricted_Access);
+               Simple_Name_Map.Find (Simple_Path);
       Res  : Source_File_Index;
       Info : File_Info_Access;
    begin
@@ -514,19 +521,21 @@ package body Files_Table is
          return No_Source_File;
       end if;
 
-      Info := new File_Info'(Simple_Name => new String'(Simple_Name),
-                             Full_Name  => null,
-                             Has_Source => True,
-                             Alias_Num  => 0,
-                             Lines      => (Source_Line_Vectors.Empty_Vector
-                                              with null record),
-                             Stats      => (others => 0),
+      Info := new File_Info'(Simple_Name              =>
+                                new String'(+Full_Name (Simple_Path)),
+                             Full_Name                => null,
+                             Has_Source               => True,
+                             Alias_Num                => 0,
+                             Lines                    =>
+                                (Source_Line_Vectors.Empty_Vector
+                                    with null record),
+                             Stats                    => (others => 0),
                              Has_Source_Coverage_Info => False,
                              Has_Object_Coverage_Info => False);
 
       Files_Table.Append (Info);
       Res := Files_Table.Last_Index;
-      Simple_Name_Map.Insert (Info.Simple_Name, Res);
+      Simple_Name_Map.Insert (Simple_Path, Res);
 
       return Res;
    end Get_Index_From_Simple_Name;
