@@ -70,7 +70,7 @@
 # --git-pull provide alternate options.
 #
 # When cloning in a work dir that doesn't have a clone already, or when
-# re-cloning when neither --git-reuse not --git-pull is requested,
+# re-cloning when neither --git-reuse nor --git-pull is requested,
 # --git-source lets you state which repo is to be cloned. In absence of an
 # explicit source, the main AdaCore git repo for GNATcoverage is selected.
 #
