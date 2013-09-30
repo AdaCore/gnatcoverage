@@ -346,13 +346,14 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
             valgrind_log,
             FatalError(
                 'VALGRIND log not empty\n'
-                + 'FROM "%s":\n%s' % (' '.join(covpgm + covargs), valgrind_log)))
+                + 'FROM "%s":\n%s' % (
+                    ' '.join(covpgm + covargs), valgrind_log)))
 
     thistest.stop_if(
         register_failure and p.status != 0,
         FatalError(
             '"%s"' % ' '.join(covpgm + covargs) + ' exit in error',
-            outfile = out, outstr = p.out if not out else None))
+            outfile = out, outstr = p.out))
 
     return p
 
