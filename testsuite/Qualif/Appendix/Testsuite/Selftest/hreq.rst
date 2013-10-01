@@ -10,7 +10,6 @@ material for the harness.
 Requirement(s)
 --------------
 
-
 The test harness shall comply to the following requirements:
 
 * A test that does not run to completion shall FAIL;
@@ -24,13 +23,4 @@ The test harness shall comply to the following requirements:
 
 * Presence in the output report of violations not applicable to the test
   category shall be ignored
-
-
-Testing Strategy
-----------------
-
-.. qmlink:: TCIndexImporter
-
-   *
-
 
