@@ -1,5 +1,5 @@
-Source coverage TORs and Testcases for Ada
-===========================================
+Source coverage TORs for Ada
+============================
 
 .. index::
    single: Ada; Toplevel Requirement Group

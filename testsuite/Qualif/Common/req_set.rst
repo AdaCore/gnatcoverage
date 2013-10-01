@@ -1,5 +1,5 @@
-Language-independent TORs and Testcases
-=======================================
+Language-independent TORs
+=========================
 
 
 .. qmlink:: SubsetIndexImporter
