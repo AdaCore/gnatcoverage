@@ -7,9 +7,7 @@ import re
 def class_to_string(a):
 
     d = {'TORReq_Set': 'rqg',
-         'HReq_Set': 'rqg',
          'TORReq': 'rq',
-         'HReq': 'rq',
          'TC': 'tc',
          'TC_Set': 'tcg'}
     if 'Appendix' in a.full_name:

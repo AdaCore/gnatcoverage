@@ -110,7 +110,6 @@
   </artifact_class>
 
   <artifact_class name="TORReq_Set" inherits="Req_Set"/>
-  <artifact_class name="HReq_Set" inherits="Req_Set"/>
 
   <artifact_class name="Req" role="tor" abstract="true">
     <location_container>
@@ -119,7 +118,6 @@
   </artifact_class>
 
   <artifact_class name="TORReq" inherits="Req"/>
-  <artifact_class name="HReq" inherits="Req"/>
 
   <artifact_class name="TC_Set" role="settest">
     <location_container>
@@ -183,13 +181,6 @@
                  type="content"/>
     <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/req.rst"
-                 type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
-  </artifact_factory>
-
-  <artifact_factory class="HReq">
-    <on_location relative_class="Appendix"
-                 pattern="$relative.location/*/hreq.rst"
                  type="content"/>
     <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
   </artifact_factory>
