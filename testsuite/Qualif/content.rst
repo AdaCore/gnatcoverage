@@ -24,8 +24,8 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
 
 .. only:: html
 
-   Presentation
-   ============
+   Main Contents
+   =============
 
    This document is part of the GNATcoverage qualification material, allowing
    the use of a well identified version of the tool to perform structural
