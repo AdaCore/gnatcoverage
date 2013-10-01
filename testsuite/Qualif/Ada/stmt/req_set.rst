@@ -1,5 +1,5 @@
-Statement Coverage (SC) TORs and Testcases for Ada
-===================================================
+Statement Coverage (SC) assessments
+===================================
 
 .. index::
    pair: Ada; STATEMENT Coverage
