@@ -7,7 +7,7 @@ rules that always apply:
 
 .. csv-table::
    :header: "Rule #", ""
-   :widths: 20, 65
+   :widths: 25, 60
    :delim:  |
 
    1 (Compiler version) | "The tool may only be used with a GNAT/GCC compiler
@@ -19,12 +19,11 @@ rules that always apply:
    level. Later releases will support -O1, with or without inlining. -O2 or
    individual optimization flags are not supported. For Ada, suppression of
    run-time checks with ``-gnatp`` is allowed, however not mandatory."
-   4 (Coding standard) | "For criteria involving decisions or conditions in
-   the DO-178B sense, binary Boolean operators shall be restricted to those
-   with short-circuit semantics. These are ``and then`` and ``or else`` in
-   Ada, with the rule enforced by the ``No_Direct_Boolean_Operator``
-   Restriction pragma in the GNAT Pro series of compilers."
-
+   4 (Coding standard) | "For DO-178B level A qualification, binary Boolean
+   operators shall be restricted to those with short-circuit semantics. These
+   are ``and then`` and ``or else`` in Ada, with the rule enforced by the
+   ``No_Direct_Boolean_Operator`` Restriction pragma in the GNAT Pro series
+   of compilers."
 
 Extra options are allowed when they are known not to influence code
 generation, as, for example, warning control options.
