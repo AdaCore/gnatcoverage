@@ -27,9 +27,10 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
    Presentation
    ============
 
-   This document is a hierarchically organized set of "Tool Operational
-   Requirements" and "Testcases", consisting of several top-level chapters.
-
+   This document is part of the GNATcoverage qualification material, allowing
+   the use of a well identified version of the tool to perform structural
+   coverage assessments in accordance with a qualified interface. It consists
+   in a set of top-level chapters accessible from the table below:
 
 .. qmlink:: ToplevelIndexImporter
 

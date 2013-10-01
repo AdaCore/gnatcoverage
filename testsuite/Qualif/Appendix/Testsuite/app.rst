@@ -1,76 +1,22 @@
----------------------
-Overview of Testsuite
----------------------
+Overview of the testsuite contents; How are Testcases structured
+****************************************************************
 
-We qualify a well identified GNATcoverage bundle to perform
-structural coverage assessments in accordance with a qualified interface.
+The GNATcoverage *testsuite* consists in the set of executable tests that
+implement Testcases, driven by an execution and control harness. Each test
+involves sources and a description of expected results.  Very broadly, the
+testsuite harness builds executables from the sources, executes the resulting
+programs, invokes GNATcoverage to perform some coverage analysis assessment
+and checks that the tool's output matches expectations.
 
 Depending on the configuration, the tests' execution is performed either
-through GNATemulator via "gnatcov run", or on a hardware board with specialized
-runner and an extra trace conversion step via "gnatcov convert".
+through GNATemulator via "gnatcov run", or on a hardware board with
+specialized runner and an extra trace conversion step via "gnatcov convert".
 
-The qualification focuses on the ``--annotate=report`` text output of
-GNATcoverage, which provides a list of violations with respect to a given
-coverage criterion, such as ``statement not executed at <file>:<line>:<col>``.
+Testcases
+=========
 
-To specify the tool's behavior and to demonstrate that it produces
-correct outputs, we provide:
-
-* An explicit description of the expected behavior as a set of *Tool
-  Operational Requirements* (TORs) for nominal use conditions, and
-
-* A set of executable *Test Cases* (TCs) associated with each requirement,
-  exercised to validate that the behavior indeed corresponds to expectations.
-
-We distinguish among different categories of tool operational requirements,
-based on expectations regarding:
-
-* **Core coverage metrics**, for example to validate statement coverage
-  assessments on conditional constructs, loops, etc.  Testcases for such
-  TORs typically exercise a piece of functional code in various ways, for
-  example by causing a Boolean expression to be evaluated only True or False,
-  and verify that results are as expected in all the variations.  Programming
-  language reference manuals are a major source for identifying
-  the relevant constructs.
-
-* **General coverage analysis facilities**, for example the support for
-  coverage exemptions or consolidation capabilities.
-  In addition to validating the tool behavior with respect to the stated
-  requirements, testcases in this category extend the set of exercised code
-  samples where mutliple language features are used in combination.
-
-* **The output report format**, part of the tool qualified interface.
-  In addition to dedicated testcases designed to verify the presence of
-  all mandatory sections, some of these requirements are also implicitly
-  validated by the execution of all the coverage checking testcases in
-  other categories, where specific sections of the report are scanned to
-  search for criteria violation messages.
-
--------------------
-TORs and Test Cases
--------------------
-
-Tool Operational Requirements and Test Cases are all collected and linked
-together as a tree.
-
-Tool Operational Requirements
-*****************************
-
-TORs specify the tool expected behavior in nominal conditions of use.
-
-Each TOR has an associated set of Test Cases to validate compliance,
-and every TOR
-description includes Testing Strategy text documenting how the tests are
-organized to demonstrate that the tool complies with the requirement.
-
-Requirement and Testcase *Groups* are used to help organize
-the TORs into a logical hierarchy.
-
-Test Cases
-**********
-
-A Test Case is set of Tests aimed at validating part or all of an operational
-requirement. We support two categories of Tests:
+A Testcase is set of tests aimed at validating part or all of an operational
+requirement. We support two categories of tests:
 
 * Program tests, which run a specific program, perform coverage analysis
   over it and match the analysis outcome against stated expectations,
@@ -110,11 +56,11 @@ and one consolidation scenario::
   cons_andthen_all.adb -- consolidation spec for all the program tests,
                        -- with the corresponding expected coverage results
 
-As with the requirements, Test Case *Groups* are introduced for organizational
+As with the requirements, *Testcase Groups* are introduced for organizational
 purposes as needed.
 
 Coverage Expectations
-*********************
+=====================
 
 The expectations on coverage results are documented in two ways:
 
@@ -243,11 +189,11 @@ This will yield an expected section of the report output such as::
 .. _harness-rationale:
 
 Rationale
-*********
+=========
 
-There are several reasons
-for introducing the embedded expectations circuitry, instead of,
-for example, straight file comparisons with pre-recorded expected outputs:
+There are several reasons for introducing the embedded expectations circuitry,
+instead of, for example, straight file comparisons with pre-recorded expected
+outputs:
 
 * It makes it easier to accomodate minor changes in output
   formatting or line numbers in test cases, which facilitates maintenance;
@@ -275,16 +221,15 @@ several factors:
   rigor, since it needs to be taken into account by test writers when they
   specify expected outcomes.
 
-------------------------
 Test evaluation criteria
-------------------------
+========================
 
 A test either PASSes of FAILs. A test passes if and only if it runs to
 completion without encountering any cause of failure. We rely on a few concepts
 and mechanisms to validate the tests:
 
 Internal Assertions for Program Tests
-*************************************
+-------------------------------------
 
 The general process for every Program Test is to build the program, run it,
 produce the corresponding coverage results and check if they correspond to the
@@ -300,7 +245,7 @@ intended by its author.
 
 
 Match between actual coverage results and stated expectations
-*************************************************************
+-------------------------------------------------------------
 
 After checking for internal assertions, the testsuite driver expects a strict
 one-to-one match between result expectations stated in testcases and the
@@ -336,7 +281,7 @@ counted as a positive expectation in qualification test-results reports.
 
 
 Test categories vs. execution level
-***********************************
+-----------------------------------
 
 Each testcase is designed to validate a particular TOR, typically associated
 with a specific coverage criterion. We have testcases designed to validate
@@ -387,7 +332,7 @@ lines, and violations of stricter criteria there ought to be ignored.
 
 
 More on expectations semantics
-******************************
+==============================
 
 The essential purpose of the qualification process is to make sure that
 improperly covered items are reported as such.
