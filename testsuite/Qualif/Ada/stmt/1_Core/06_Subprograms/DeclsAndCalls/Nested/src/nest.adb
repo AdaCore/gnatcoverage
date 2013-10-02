@@ -73,7 +73,7 @@ package body Nest is
       Op_Lfun : constant := 1;
       Op_Pfun : constant := 2;
       
-      type Trigger (Opc : Opcodes; Value : Integer; Cd : access Cdata) is
+      type Trigger (Opc : Opcodes; Value : Integer; Cd : access Cdata) is limited
 	 record
 	    case Opc is
 	       when 0 => null;
