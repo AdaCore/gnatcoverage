@@ -491,23 +491,30 @@ class QMAT:
             this_target, "(toplevel)" if toplevel else ""
             )
 
+    # ----------------
+    # -- __qm_build --
+    # ----------------
+
+    def __qm_build (self, part):
+
+        partname = part.upper()
+        announce ("building %s" % partname)
+
+        os.chdir (
+            os.path.join (self.repodir, "qualification", "qm")
+            )
+        run ("qmachine model.xml -l scripts/generate_%s_%s.py" \
+                 % (part, self.o.docformat))
+
+        self.__latch_into (
+                dir=self.itemsdir, partname=partname, toplevel=False)
+
     # ---------------
     # -- build_tor --
     # ---------------
 
     def build_tor (self):
-        announce ("building TOR")
-
-        # The TORs are managed as QM data
-
-        os.chdir (
-            os.path.join (self.repodir, "qualification", "qm")
-            )
-        run ("qmachine model.xml -l scripts/generate_tor_%s.py" \
-                 % self.o.docformat)
-
-        self.__latch_into (
-            dir=self.itemsdir, partname="TOR", toplevel=False)
+        self.__qm_build (part="tor")
 
     # ---------------
     # -- run_tests --
@@ -646,18 +653,7 @@ class QMAT:
     # -----------------
 
     def build_plans (self):
-        announce ("building PLANS")
-
-        # The plans are managed as QM data
-
-        os.chdir (
-            os.path.join (self.repodir, "qualification", "qm")
-            )
-        run ("qmachine model.xml -l scripts/generate_plans_%s.py" \
-                 % self.o.docformat)
-
-        self.__latch_into (
-            dir=self.itemsdir, partname="PLANS", toplevel=False)
+        self.__qm_build (part="plans")
 
     # ----------------
     # -- build_pack --
