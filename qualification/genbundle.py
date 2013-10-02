@@ -80,14 +80,15 @@
 # Setting up a root dir from a clone of a local repo, switching to
 # the "dev-str" working branch, building plans in html format for starters:
 #
-#   python genbundle.py
+#   python genbundle.py --docformat=html
 #     --root-dir=$HOME/my-qmat
 #     --git-source=$HOME/gnatcoverage --branch=dev-str
 #     --parts=plans
+#     --docformat=html
 #
 # Testing plans regeneration after local commit:
 #
-#   python genbundle.py
+#   python genbundle.py --docformat=html
 #      --work-dir=$HOME/my-qmat
 #      --git-pull --branch=dev-str
 #      --parts=plans
@@ -95,7 +96,7 @@
 # Testing STR production, running a subset of the tests, using
 # the local testsuite and compiler on path:
 #
-#   python genbundle.py
+#   python genbundle.py --docformat=html
 #     --work-dir=$HOME/my-qmat
 #     --git-pull --branch=dev-str
 #     --parts=str
@@ -108,7 +109,7 @@
 # Testing another STR production after local commits, using previous testsuite
 # results at a designated place:
 #
-#   python genbundle.py
+#   python genbundle.py --docformat=html
 #     --work-dir=$HOME/my-qmat
 #     --git-pull --branch=dev-str
 #     --parts=str
@@ -131,7 +132,7 @@
 # Running the tests from the local clone this script creates:
 # -----------------------------------------------------------
 #
-#   python genbundle.py
+#   python genbundle.py --docformat=html
 #     --root-dir=$HOME/my-qmat
 #     --branch=<project-branch>
 #     --dolevel=doA
@@ -140,7 +141,7 @@
 # Running the tests hosted within the designated subdir:
 # ------------------------------------------------------
 #
-#   python genbundle.py
+#   python genbundle.py --docformat=html
 #     --root-dir=$HOME/my-qmat
 #     --branch=<project-branch>
 #     --dolevel=doB
@@ -150,7 +151,7 @@
 # Fetching tests results from a place where they have been run already:
 # ---------------------------------------------------------------------
 #
-#   python genbundle.py
+#   python genbundle.py --docformat=html
 #     --root-dir=$HOME/my-qmat
 #     --branch=<project-branch>
 #     --dolevel=doA
@@ -171,7 +172,7 @@
 # part on the machine where the testsuite ran, using the same version of
 # python. For example:
 #
-#   python genbundle.py
+#   python genbundle.py --docformat=html
 #     --root-dir=$HOME/my-partial-qmat
 #     --branch=<project-branch>
 #     --dolevel=doA
@@ -191,7 +192,7 @@
 #
 # Then produce your kit using the retrieved STR subdir:
 #
-#    python genbundle.py
+#    python genbundle.py --docformat=html
 #       --root-dir=$HOME/my-qmat
 #       --branch=<project-branch>
 #       --dolevel=doB
@@ -750,11 +751,11 @@ if __name__ == "__main__":
             "is specified explicitly.")
         )
     op.add_option (
-        "--docformat", dest="docformat", default="html",
+        "--docformat", dest="docformat",
         type='choice', choices=valid_docformats,
         help = (
             "The format we need to produce for each document. "
-            "One of %s." % valid_docformats.__str__())
+            "One of %s. Mandatory." % valid_docformats.__str__())
         )
     op.add_option (
         "--parts", dest="parts", default=None,
@@ -850,6 +851,14 @@ if __name__ == "__main__":
         options.pname and options.parts,
         ("No archive (--pname) may be generated with "
          "only parts of the kit (--parts).")
+        )
+
+    # Generating docs can be pretty long. Better make sure the output format
+    # was intentionally stated
+
+    exit_if (
+        not options.docformat,
+        ("Please specify the desired output format (--docformat).")
         )
 
     # If we are generating a full kit, we need to produce an archive.
