@@ -13,8 +13,8 @@ operate, then the qualified interface as a set of *Tool Operational
 Requirements* validated by *Testcases*.
 
 The qualification focuses on the ``--annotate=report`` text output of
-GNATcoverage, which provides a list of violations with respect to a given
-coverage criterion, such as ``statement not executed at <file>:<line>:<col>``.
+GNATcoverage, which provides a list of statement, decision, or mcdc violations
+of relevance to the requested analysis.
 
 Organization Guidelines
 =======================
@@ -34,12 +34,10 @@ requirements for Ada `if`, `case`, `block` and `loop` statements are bundled
 together as the `CompoundStatements` group.
 
 The tool conformance to each requirement is validated by a set of
-**Testcases**, organized according to a **Testing Strategy** dedicated
-to this requirement and described together with it.
-
-Many requirements call for multiple testcases. As for requirements, sets of
-related testcases which share common grounds are constructed and referred to
-as **Testcase Groups**.
+**Testcases**, organized according to a **Testing Strategy** dedicated to this
+requirement and described together with it. Many requirements call for
+multiple testcases. As with requirements, sets of related testcases which share
+common grounds are composed and referred to as **Testcase Groups**.
 
 For each language and coverage criterion of relevance, we distinguish among
 different categories of requirements based on expectations regarding:
