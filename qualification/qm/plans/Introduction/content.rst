@@ -1,6 +1,6 @@
-==========================
-Documentation Introduction
-==========================
+============
+Introduction
+============
 
 This section contains an introduction to qualification material for GNATcoverage.
 
