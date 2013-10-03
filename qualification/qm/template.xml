@@ -166,23 +166,22 @@
   </link_definition>
 
   <artifact_factory class="TORReq_Set">
-    <on_location relative_instance="/TOR_Doc"
-                 pattern="$relative.location/*/req_set.rst"
-                 type="content"/>
+    %(langlevel_reqset_triggers)s
     <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/req_set.rst"
                  type="content"/>
     <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
   </artifact_factory>
 
+
   <artifact_factory class="TORReq">
-    <on_location relative_instance="/TOR_Doc"
+    <on_location relative_class="Chapter"
                  pattern="$relative.location/*/req.rst"
                  type="content"/>
     <on_location relative_class="TORReq_Set"
                  pattern="$relative.location/*/req.rst"
                  type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
+   <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)"/>
   </artifact_factory>
 
   <artifact_factory class="TC_Set">
@@ -208,6 +207,8 @@
        </link_constructor>
     </creates>
   </artifact_factory>
+
+  %(extra_block)s
 
   <artifact_factory class="TC">
     <on_location relative_class="TORReq_Set"
@@ -235,6 +236,9 @@
   </artifact_factory>
 
   <artifact_factory class="Ada_Sources">
+    <on_location relative_instance="/TOR_Doc/Ada"
+                 pattern="$relative.location/src/*.ad?"
+                 type="content"/>
     <on_location relative_class="Req"
                  pattern="$relative.location/src/*.ad?"
                  type="content"/>
