@@ -829,6 +829,14 @@ if __name__ == "__main__":
 
     (options, args) = op.parse_args()
 
+    # We are producing qualification material. Better know what we're
+    # aiming at:
+
+    exit_if (
+        not options.dolevel,
+        "Please specify an explicit dolevel (--dolevel)."
+        )
+
     # work dir vs root dir.
 
     exit_if (
@@ -896,16 +904,6 @@ if __name__ == "__main__":
                 % (part, valid_parts.__str__())
             )
      for part in options.parts]
-
-    exit_if (
-        'str' in options.parts and not options.dolevel,
-        ("Producing STR requires an explicit dolevel (--dolevel).")
-        )
-
-    exit_if (
-        'tor' in options.parts and not options.dolevel,
-        ("Producing TOR requires an explicit dolevel (--dolevel).")
-        )
 
     exit_if (
         'str-rst' in options.parts and 'str' in options.parts,
