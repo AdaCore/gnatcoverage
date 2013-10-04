@@ -549,12 +549,12 @@ class TestSuite:
 
     def __qualif_level_discriminants(self):
         """List of single discriminant (string) denoting our current
-        qualification mode, if any. This is ['QUALIF_LEVEL_XXX'] when invoked
+        qualification mode, if any. This is ['XXX'] when invoked
         with --qualif-level=XXX, [] otherwise"""
 
         return (
             [] if not self.env.main_options.qualif_level
-            else ["QUALIF_LEVEL_%s" % self.env.main_options.qualif_level]
+            else [self.env.main_options.qualif_level.upper()]
             )
 
     def __rts_discriminants(self):
