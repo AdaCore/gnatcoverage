@@ -1136,13 +1136,18 @@ class TestSuite:
          if m.options.__dict__[opt] == None]
 
         # Enforce a default -gnat<version> for Ada, so each test can expect an
-        # explicit setting to filter on. Doing this now ensures that the option
-        # will show up in the STR report if we're running for qualification.
+        # explicit setting to filter on. Expect an explicit one if we're
+        # running for qualification, making sure we know what target language
+        # we're qualifying for.
 
         if not re.search (
             "-gnat95|-gnat05|-gnat12", m.options.cargs_Ada
             ):
-            m.options.cargs_Ada += " -gnat05"
+            if m.options.qualif_level:
+                raise FatalError (
+                    "Missing -gnat<95|05|12> in cargs:Ada for qualification")
+            else:
+                m.options.cargs_Ada += " -gnat05"
 
         # For paths that need to be passed to test.py downtree, resolve them
         # to full path now while we have visibility on where relative paths
