@@ -1130,8 +1130,9 @@ class TestSuite:
         # downstream.
 
         [m.options.__dict__.__setitem__ (opt, "")
-         for opt in ("cargs%s" % ext
-                     for ext in [""] + ["_%s" % lang for lang in KNOWN_LANGUAGES])
+         for opt in (
+                "cargs%s" % ext
+                for ext in [""] + ["_%s" % lang for lang in KNOWN_LANGUAGES])
          if m.options.__dict__[opt] == None]
 
         # Enforce a default -gnat<version> for Ada, so each test can expect an
