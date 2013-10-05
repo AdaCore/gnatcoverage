@@ -496,49 +496,6 @@ class QMAT:
     # -- gen_qm_model --
     # ------------------
 
-    def __extra_model_block(self):
-        """Allow level specific local subsets of testcases."""
-
-        return '\n'.join(
-            ('<artifact_factory class="TC_Set">',
-             '  <on_location',
-             '     relative_class="TC_Set"',
-             '     pattern="$relative.location/%s/*/tc_set.rst"' % (
-                    self.o.dolevel),
-             '     type="content"',
-             '  />',
-             '  <creates ',
-             '     location="$location.container"',
-             '     name="$subst($location.basename,([0-9]+_)?(.*),\\2)"',
-             '  />',
-             '</artifact_factory>'))
-
-    def __reqset_triggers_for (self, lang, chapter):
-        return '\n'.join(
-            ('<on_location ',
-             '   relative_instance="/TOR_Doc/%s"' % lang,
-             '   pattern="$relative.location/%s/req_set.rst"' % chapter,
-             '   type="content"',
-             '/>'))
-
-    def __langlevel_reqset_triggers(self):
-        """Triggers so only the language/criterion sections of relevance
-           are included."""
-
-        languages = ['Ada']
-
-        chapters_for = {
-            'doC': ['stmt'],
-            'doB': ['stmt', 'decision'],
-            'doA': ['stmt', 'decision', 'mcdc']
-            }
-
-        return '\n'.join(
-            (self.__reqset_triggers_for(lang, chapter)
-             for lang in languages
-             for chapter in chapters_for[self.o.dolevel])
-            )
-
     def gen_qm_model (self):
         """Generate model.xml that __qm_build will use."""
 
@@ -548,14 +505,8 @@ class QMAT:
             os.path.join (self.repodir, "qualification", "qm")
             )
 
-        with open('model.xml', 'w') as f:
-            f.write(
-                contents_of("template.xml") % {
-                    'langlevel_reqset_triggers':
-                        self.__langlevel_reqset_triggers(),
-                    'extra_block':
-                        self.__extra_model_block() }
-                )
+        run (sys.executable + \
+                 " genmodel.py --dolevel=%s" % self.o.dolevel)
 
     # ----------------
     # -- __qm_build --
