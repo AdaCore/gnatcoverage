@@ -1,11 +1,11 @@
-with Support, Eval; use Support, Eval;
+with Support, Expr; use Support, Expr;
 
-procedure Test_Eval_0 is
+procedure Test_Expr_0 is
 begin
    Assert (True);
 end;
 
---# eval.adb
+--# expr.adb
 --  /__l!dT-/  l- ## s-
 --  /decl/    ~l- ## ~s-
 --  /eval/  l- ## s-

@@ -1,6 +1,6 @@
 with Support; use Support;
 
-package body Eval is
+package body Expr is
    function F (A, B, X : Boolean) return Boolean is
    begin
       if X then               -- # __l!dT-
@@ -12,7 +12,7 @@ package body Eval is
       end if;
    end;
 
-   function E_And (A, B : Boolean) return Boolean is
+   function F (A, B : Boolean) return Boolean is
    begin
       return F (A, B, Identity(False)); -- # retVal
    end;

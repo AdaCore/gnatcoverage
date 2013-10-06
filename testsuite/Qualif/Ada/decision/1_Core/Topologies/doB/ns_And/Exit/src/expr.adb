@@ -1,6 +1,6 @@
-package body Eval is
+package body Expr is
 
-   function E_And (A, B : Boolean) return Boolean is
+   function F (A, B : Boolean) return Boolean is
    begin
       loop
          exit when A and B; -- # eval :o/d:
