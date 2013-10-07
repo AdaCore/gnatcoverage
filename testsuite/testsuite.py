@@ -31,6 +31,7 @@ from glob import glob
 import traceback
 import time
 import logging, os, re, sys
+import optparse
 
 from SUITE import cutils
 from SUITE.cutils import contents_of, FatalError
@@ -345,8 +346,8 @@ class TestSuite:
         discriminants, compute lists of dead/non-dead tests, run gprconfig and
         build the support library for the whole series of tests to come"""
 
-        # Parse command lines options, also setting self.enable_valgrind
-        # to convey whether tests should be run under valgrind control:
+        # Parse command lines options, also setting self.enable_valgrind to
+        # convey whether tests should be run under valgrind control:
 
         self.options = self.__parse_options()
 
@@ -877,7 +878,7 @@ class TestSuite:
                         '--target', self.env.target.platform,
                         '--timeout', str(timeout)]
         if self.enable_valgrind:
-            testcase_cmd.append('--enable-valgrind')
+            testcase_cmd.append('--enable-valgrind=' + self.enable_valgrind)
         if self.trace_dir is not None:
             test_trace_dir = os.path.join(test.trace_dir, str(test.index))
             mkdir(test_trace_dir)
@@ -1051,8 +1052,11 @@ class TestSuite:
         m.add_option('--diffs', dest='diffs', action='store_true',
                      default=False, help='show diffs on stdout')
         m.add_option('--enable-valgrind', dest='enable_valgrind',
-                     action='store_true', default=False,
-                     help='enable the use of valgrind when running each test')
+                     choices='memcheck callgrind'.split(),
+                     default=None,
+                     help='enable the use of Valgrind when running each test.'
+                          ' The argument must be a Valgrind tool to use.'
+                          ' Supported tools: memcheck, callgrind.')
         m.add_option("--old-res", dest="old_res", type="string",
                         help="Old testsuite.res file")
 
@@ -1119,7 +1123,9 @@ class TestSuite:
         m.parse_args()
 
         self.enable_valgrind = (
-            m.options.enable_valgrind and m.options.bootstrap_scos == None)
+            None
+            if m.options.bootstrap_scos else
+            m.options.enable_valgrind)
 
         # Determine the test filtering regexp
 

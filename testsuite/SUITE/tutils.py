@@ -21,7 +21,9 @@ from SUITE.cutils import *
 from gnatpython.fileutils import unixpath
 
 VALGRIND  = 'valgrind' + env.host.os.exeext
-VALGRIND_LOG = 'valgrind.log'
+
+MEMCHECK_LOG = 'memcheck.log'
+CALLGRIND_LOG = 'callgrind-{}.log'
 
 # -------------------------
 # -- gprbuild_gargs_with --
@@ -275,14 +277,23 @@ def unixpath_to (pgmname):
 # -- maybe_valgrind --
 # --------------------
 def maybe_valgrind(command):
-    """Return the input COMMAND list, with 'valgrind -q' prepended if
-    valgrind is requested.  valgrind will have to be available for the
-    execution to proceed.
+    """Return the input COMMAND list, wrapped with valgrind or callgrind,
+    depending on the options.  If such a wrapper is added, valgrind will have
+    to be available for the execution to proceed.
     """
-    return (
-        ([VALGRIND, '-q', '--log-file=%s' % VALGRIND_LOG] + command)
-        if thistest.options.enable_valgrind else command
-        )
+    if not thistest.options.enable_valgrind:
+        prefix = []
+    if thistest.options.enable_valgrind == 'memcheck':
+        prefix = [VALGRIND, '-q', '--log-file=%s' % MEMCHECK_LOG]
+    elif thistest.options.enable_valgrind == 'callgrind':
+        log_file = CALLGRIND_LOG.format(thistest.create_callgrind_id())
+        prefix = [
+            VALGRIND, '-q', '--tool=callgrind',
+            '--callgrind-out-file=%s' % log_file]
+    else:
+        raise ValueError('Invalid Valgrind tool: {}'.format(
+            thistest.options.enable_valgrind))
+    return prefix + command
 
 # ----------
 # -- xcov --
@@ -340,14 +351,14 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
 
     p = Run(covpgm + covargs, timeout=thistest.options.timeout, **kwargs)
 
-    if thistest.options.enable_valgrind:
-        valgrind_log = contents_of (VALGRIND_LOG)
+    if thistest.options.enable_memcheck:
+        memcheck_log = contents_of (MEMCHECK_LOG)
         thistest.fail_if(
-            valgrind_log,
+            memcheck_log,
             FatalError(
-                'VALGRIND log not empty\n'
+                'MEMCHECK log not empty\n'
                 + 'FROM "%s":\n%s' % (
-                    ' '.join(covpgm + covargs), valgrind_log)))
+                    ' '.join(covpgm + covargs), memcheck_log)))
 
     thistest.stop_if(
         register_failure and p.status != 0,

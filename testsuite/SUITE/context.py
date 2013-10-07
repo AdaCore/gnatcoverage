@@ -197,6 +197,10 @@ class Test (object):
 
         self.gprmode = False
 
+        # Callgrind may be invoked more than once for each test. Memorize the
+        # number of times it has been used in order to generate multiple logs.
+        self.callgrind_count = 0
+
     # -------------
     # -- cleanup --
     # -------------
@@ -271,6 +275,15 @@ class Test (object):
                         '[0-9]', '*.adb.*', 'test.py.log')
              ]
 
+    # -------------------------
+    # -- create_callgrind_id --
+    # -------------------------
+
+    def create_callgrind_id(self):
+        """Return a test-unique ID to identify a callgrind run."""
+        self.callgrind_count += 1
+        return self.callgrind_count
+
 
     # -----------------------------
     # -- Test options management --
@@ -284,7 +297,8 @@ class Test (object):
         main.add_option('--gprmode', dest='gprmode',
                         action='store_true', default=False)
         main.add_option('--enable-valgrind', dest='enable_valgrind',
-                        action='store_true', default=False)
+                        action='store', choices='memcheck callgrind'.split(),
+                        default=None)
         main.add_option('--trace_dir', dest='trace_dir', metavar='DIR',
                         help='Traces location. No bootstrap if not specified.',
                         default=None)
