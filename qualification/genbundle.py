@@ -716,6 +716,7 @@ regular_parts    = ('tor', 'plans', 'str')
 special_parts    = ('str-rst',)
 valid_parts      = regular_parts + special_parts
 valid_dolevels   = ('doA', 'doB', 'doC')
+valid_xada       = ('95', '2005', '2012')
 
 def commandline():
     """Build and return an OptionParser instance for this script."""
@@ -843,6 +844,14 @@ def commandline():
         "--xgnatemu", dest="xgnatemu", default=None,
         help = (
             "Version we expect <target>-gnatcov --version to match.")
+        )
+
+    op.add_option (
+        "--xada", dest="xada", default=None, choices=valid_xada,
+        help = (
+            "Version of the Ada language we are qualifying for (%s)" % \
+                '|'.join(valid_xada)
+            )
         )
 
     return op
