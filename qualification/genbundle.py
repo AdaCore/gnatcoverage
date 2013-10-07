@@ -717,7 +717,8 @@ special_parts    = ('str-rst',)
 valid_parts      = regular_parts + special_parts
 valid_dolevels   = ('doA', 'doB', 'doC')
 
-if __name__ == "__main__":
+def commandline():
+    """Build and return an OptionParser instance for this script."""
 
     op = optparse.OptionParser(usage="%prog <options>")
 
@@ -844,14 +845,24 @@ if __name__ == "__main__":
             "Version we expect <target>-gnatcov --version to match.")
         )
 
-    (options, args) = op.parse_args()
+    return op
+
+def check_valid(options, args):
 
     # We are producing qualification material. Better know what we're
-    # aiming at:
+    # aiming at, always:
 
     exit_if (
         not options.dolevel,
         "Please specify an explicit dolevel (--dolevel)."
+        )
+
+    # Generating docs can be pretty long. Better make sure the output format
+    # was intentionally stated:
+
+    exit_if (
+        not options.docformat,
+        ("Please specify the desired output format (--docformat).")
         )
 
     # work dir vs root dir.
@@ -872,24 +883,22 @@ if __name__ == "__main__":
             % options.rootdir
         )
 
+    # Are we producing a kit ? A few extra things to check if so ...
+
+    kitp = not options.parts
+
+    # Producing an incomplete package is forbidden:
+
     exit_if (
-        options.pname and options.parts,
+        options.pname and not kitp,
         ("No archive (--pname) may be generated with "
          "only parts of the kit (--parts).")
-        )
-
-    # Generating docs can be pretty long. Better make sure the output format
-    # was intentionally stated
-
-    exit_if (
-        not options.docformat,
-        ("Please specify the desired output format (--docformat).")
         )
 
     # If we are generating a full kit, we need to produce an archive.
     # Pick a default name if none was specified:
 
-    if not options.parts and not options.pname:
+    if kitp and not options.pname:
         today = date.today()
         options.pname = "GNATCOV-QMAT-%s-%4d-%02d-%02d" % (
             options.docformat.upper(), today.year, today.month, today.day)
@@ -933,6 +942,20 @@ if __name__ == "__main__":
          "pre-built STR rest sources.")
         )
 
+    # GIT aspects:
+
+    exit_if (
+        options.gitpull and options.gitsource,
+        "Specifying git source is incompatible with "
+        "request to pull from current origin"
+        )
+
+if __name__ == "__main__":
+
+    (options, args) = commandline().parse_args()
+
+    check_valid (options, args)
+
     # Make sure that directory options are absolute dirs, to
     # facilitate switching back and forth from one to the other:
 
@@ -948,13 +971,7 @@ if __name__ == "__main__":
 
     qmat.setup_basedirs()
 
-    exit_if (
-        options.gitpull and options.gitsource,
-        "Specifying git source is incompatible with "
-        "request to pull from current origin"
-        )
     qmat.git_update()
-
     qmat.switch_to_branch()
 
     # Produce each part we are requested to produce, with a tailored
