@@ -11,7 +11,10 @@ import os
 import re
 
 from SUITE.cutils import match, to_list, list_to_file
-from SUITE.tutils import thistest, do, gprfor, gprbuild, exename_for
+from SUITE.tutils import (
+    thistest,
+    gprfor, gprbuild, exename_for,
+    do, maybe_valgrind)
 
 from SUITE.control import BUILDER, XCOV
 
@@ -65,9 +68,10 @@ class MapChecker:
 
         # Run xcov map-routines and check absence of errors
 
-        mapoutput = do(
-            "%s map-routines -v --scos=@%s %s"
-            % (XCOV, list_to_file(self.alis), " ".join(self.execs)))
+        mapoutput = do(maybe_valgrind([
+            XCOV, 'map-routines', '-v',
+            '--scos=@{}'.format(list_to_file(self.alis)),
+        ] + self.execs))
 
         maperrors = [str(m) for m in
                      re.findall("(\*\*\*|\!\!\!)(.*)", mapoutput)]
