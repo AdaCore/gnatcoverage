@@ -959,6 +959,13 @@ def check_valid(options, args):
         "request to pull from current origin"
         )
 
+    # -xada, -xgnatcov etc
+
+    # ??? We need access to the suite context data for these checks.
+    # We don't always have it handy and fixing this requires moving to
+    # a dump format amenable to data exchange across hosts and python
+    # versions. We use pickle today, which doesn't fit the bill.
+
 if __name__ == "__main__":
 
     (options, args) = commandline().parse_args()
