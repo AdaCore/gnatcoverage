@@ -1095,13 +1095,36 @@ package body Coverage.Source is
    function Get_SCI
      (SCO : SCO_Id; Tag : SC_Tag) return Source_Coverage_Info_Access
    is
+      Result : RW_Source_Coverage_Info_Access;
+
+      procedure Q (SCI : RW_Source_Coverage_Info_Access);
+      --  Set Result to SCI if SCI.Tag = Tag
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCI : RW_Source_Coverage_Info_Access) is
+      begin
+         if SCI.Tag = Tag then
+            Result := SCI;
+         end if;
+      end Q;
+
+   --  Start of processing for Get_SCI
+
    begin
       if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
-         for SCI of SCI_Vector.Element (SCO) loop
-            if SCI.Tag = Tag then
-               return Source_Coverage_Info_Access (SCI);
-            end if;
-         end loop;
+         declare
+            SCIV : SCI_Vectors.Vector renames SCI_Vector (SCO);
+         begin
+            for J in SCIV.First_Index .. SCIV.Last_Index loop
+               SCIV.Query_Element (J, Q'Access);
+               if Result /= null then
+                  return Source_Coverage_Info_Access (Result);
+               end if;
+            end loop;
+         end;
       end if;
       return Default_SCIs (Kind (SCO));
    end Get_SCI;

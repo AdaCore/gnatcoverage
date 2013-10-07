@@ -18,9 +18,8 @@
 
 --  Source locations
 
-with Ada.Strings.Fixed;
-with Ada.Strings.Unbounded;
 with Files_Table; use Files_Table;
+with Strings;     use Strings;
 
 package body Slocs is
 
@@ -82,36 +81,23 @@ package body Slocs is
      (Sloc : Source_Location;
       Ref  : Source_Location) return String
    is
-      use Ada.Strings;
-      use Ada.Strings.Fixed;
-      use Ada.Strings.Unbounded;
+      Show_File, Show_Line, Show_Column : Boolean;
 
-      Result : Unbounded_String;
-      Show_Line, Show_Column : Boolean;
    begin
       if Sloc = No_Location then
          return "<no loc>";
       end if;
 
-      if Sloc.Source_File /= Ref.Source_File then
-         Result := To_Unbounded_String
-           (Get_Simple_Name (Sloc.Source_File) & ":");
-         Show_Line   := True;
-         Show_Column := True;
-      else
-         Show_Line   := Sloc.Line /= Ref.Line;
-         Show_Column := Show_Line or else Sloc.Column /= Ref.Column;
-      end if;
+      Show_File   := Sloc.Source_File /= Ref.Source_File;
+      Show_Line   := Show_File or else Sloc.Line /= Ref.Line;
+      Show_Column := Show_Line or else Sloc.Column /= Ref.Column;
 
-      if Show_Line then
-         Result := Result & Trim (Sloc.Line'Img, Both) & ":";
-      end if;
-
-      if Show_Column then
-         Result := Result & Trim (Sloc.Column'Img, Both);
-      end if;
-
-      return To_String (Result);
+      return
+        (if Show_File then Get_Simple_Name (Sloc.Source_File) & ":" else "")
+        &
+        (if Show_Line then Img (Sloc.Line) & ":" else "")
+        &
+        (if Show_Column then Img (Sloc.Column) else "");
    end Abridged_Image;
 
    -----------
