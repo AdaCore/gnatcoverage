@@ -283,7 +283,7 @@ def maybe_valgrind(command):
     """
     if not thistest.options.enable_valgrind:
         prefix = []
-    if thistest.options.enable_valgrind == 'memcheck':
+    elif thistest.options.enable_valgrind == 'memcheck':
         prefix = [VALGRIND, '-q', '--log-file=%s' % MEMCHECK_LOG]
     elif thistest.options.enable_valgrind == 'callgrind':
         log_file = CALLGRIND_LOG.format(thistest.create_callgrind_id())
