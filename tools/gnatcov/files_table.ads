@@ -211,6 +211,9 @@ package Files_Table is
       Lines : Source_Lines;
       --  Source file to display in the reports
 
+      Sloc_To_SCO_Maps : Sloc_To_SCO_Map_Array_Acc;
+      --  Sloc -> SCO_Id indices for this file
+
       Stats : Stat_Array := (others => 0);
       --  Counters associated with the file (e.g total number of lines, number
       --  of lines that are covered).
@@ -249,6 +252,11 @@ package Files_Table is
    function Get_Line (Sloc : Source_Location) return String;
 
    --  Get line info (or text) at File:Index (or at Sloc)
+
+   function Sloc_To_SCO_Map
+     (Index : Source_File_Index;
+      Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map;
+   --  Return (allocating, if necessary) the requested map
 
    function End_Lex_Element (Sloc : Source_Location) return Source_Location;
    --  Assuming that Sloc points to the beginning of an Ada lexical element,

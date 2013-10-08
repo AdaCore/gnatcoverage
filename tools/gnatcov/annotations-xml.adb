@@ -596,10 +596,10 @@ package body Annotations.Xml is
       Current_Line_Sloc : Source_Location := Sloc_Start;
    begin
       Pp.ST ("src");
-      Current_Line_Sloc.Column := 0;
+      Current_Line_Sloc.L.Column := 0;
 
-      for Line_Num in Sloc_Start.Line .. Sloc_End.Line loop
-         Current_Line_Sloc.Line := Line_Num;
+      for Line_Num in Sloc_Start.L.Line .. Sloc_End.L.Line loop
+         Current_Line_Sloc.L.Line := Line_Num;
 
          declare
             Attributes : Unbounded_String :=
@@ -609,16 +609,20 @@ package body Annotations.Xml is
             Src_End    : Natural := Line'Last;
          begin
             if Sloc_Start /= Sloc_End then
-               if Line_Num = Sloc_Start.Line and Sloc_Start.Column > 1 then
-                  Src_Start := Natural'Min (Src_End, Sloc_Start.Column);
+               if Line_Num = Sloc_Start.L.Line
+                 and then Sloc_Start.L.Column > 1
+               then
+                  Src_Start := Natural'Min (Src_End, Sloc_Start.L.Column);
                   Attributes := Attributes
-                    & A ("column_begin", Img (Sloc_Start.Column));
+                    & A ("column_begin", Img (Sloc_Start.L.Column));
                end if;
 
-               if Line_Num = Sloc_End.Line and Sloc_End.Column /= 0 then
-                  Src_End := Natural'Min (Src_End, Sloc_End.Column);
+               if Line_Num = Sloc_End.L.Line
+                 and then Sloc_End.L.Column /= 0
+               then
+                  Src_End := Natural'Min (Src_End, Sloc_End.L.Column);
                   Attributes := Attributes
-                    & A ("column_end", Img (Sloc_Start.Column));
+                    & A ("column_end", Img (Sloc_Start.L.Column));
                end if;
 
                if Line'Length /= 0 then

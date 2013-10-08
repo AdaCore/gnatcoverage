@@ -251,7 +251,7 @@ package body Traces_Elf is
          when Line_Addresses =>
             return Range_Img & " line "
               & Get_Full_Name (El.Sloc.Source_File) & ':'
-              & Sloc_Image (Line => El.Sloc.Line, Column => El.Sloc.Column)
+              & Sloc_Image (Line => El.Sloc.L.Line, Column => El.Sloc.L.Column)
               & (if El.Disc /= 0 then " discriminator" & El.Disc'Img else "");
       end case;
    end Image;
@@ -1629,29 +1629,15 @@ package body Traces_Elf is
 
          if Last_Line.Last >= Last_Line.First then
             Last_Line.Is_Last := True;
-            declare
-               use Addresses_Containers;
 
-               procedure Set_Last (Cur : Cursor);
-               --  Set Last to Last_Line.Last
-
-               --------------
-               -- Set_Last --
-               --------------
-
-               procedure Set_Last (Cur : Cursor) is
-                  Info : constant Addresses_Info_Acc := Element (Cur);
-               begin
-                  if Info.Last < Info.First then
-                     pragma Assert (not Info.Is_Last);
-                     Info.Last := Last_Line.Last;
-                  end if;
-               end Set_Last;
-
-            begin
-               Get_Address_Infos (Exec, Line_Addresses, Last_Line.First).
-                 Iterate (Set_Last'Access);
-            end;
+            for Info of Get_Address_Infos
+              (Exec, Line_Addresses, Last_Line.First)
+            loop
+               if Info.Last < Info.First then
+                  pragma Assert (not Info.Is_Last);
+                  Info.Last := Last_Line.Last;
+               end if;
+            end loop;
          end if;
 
          Last_Line := null;
@@ -1699,8 +1685,8 @@ package body Traces_Elf is
             Parent  => null,
             Sloc    =>
               (Source_File  => File_Index,
-               Line         => Natural (Line),
-               Column       => Natural (Column)),
+               L => (Line   => Natural (Line),
+                     Column => Natural (Column))),
             Disc    => Disc,
             Is_Last => False);
 
@@ -2026,10 +2012,6 @@ package body Traces_Elf is
 
             Line.Parent := null;
          end if;
-
-         --  Insert into Sloc -> Line info
-
-         Exec.Known_Slocs.Include (Line.Sloc);
       end loop;
    end Build_Debug_Lines;
 
@@ -2124,9 +2106,9 @@ package body Traces_Elf is
    is
       use Addresses_Containers;
 
-      Line_Infos : constant Addresses_Containers.Set :=
+      Line_Infos : constant Addresses_Info_Arr :=
                            Get_Address_Infos (Exec, Line_Addresses, PC);
-      Result     : Source_Locations (1 .. Natural (Line_Infos.Length));
+      Result     : Source_Locations (1 .. Natural (Line_Infos'Length));
       Last       : Natural := Result'First - 1;
 
    begin
@@ -2318,7 +2300,12 @@ package body Traces_Elf is
             end if;
 
             Add_Line_For_Object_Coverage
-              (Source_File, Init_Line_State, Line.Sloc.Line, Line, Base, Exec);
+              (Source_File,
+               Init_Line_State,
+               Line.Sloc.L.Line,
+               Line,
+               Base,
+               Exec);
          end if;
          Next (Cur);
       end loop;
@@ -2640,13 +2627,13 @@ package body Traces_Elf is
    is
       use Addresses_Containers;
 
-      Addr_Infos : constant Addresses_Containers.Set :=
+      Addr_Infos : constant Addresses_Info_Arr :=
                      Get_Address_Infos (Exec, Kind, PC);
    begin
-      if Addr_Infos.Is_Empty then
+      if Addr_Infos'Length = 0 then
          return null;
       else
-         return Element (Addr_Infos.First);
+         return Addr_Infos (Addr_Infos'First);
       end if;
    end Get_Address_Info;
 
@@ -2654,36 +2641,94 @@ package body Traces_Elf is
    -- Get_Address_Infos --
    -----------------------
 
+   type AI_Cache_Entry is record
+      Last      : Addresses_Containers.Cursor;
+      Last_Exec : access constant Exe_File_Type;
+      Last_Info : Addresses_Info_Acc;
+   end record;
+
+   AI_Cache : array (Addresses_Kind) of AI_Cache_Entry;
+
    function Get_Address_Infos
      (Exec : Exe_File_Type;
       Kind : Addresses_Kind;
-      PC   : Pc_Type) return Addresses_Containers.Set
+      PC   : Pc_Type) return Addresses_Info_Arr
    is
       use Addresses_Containers;
-      Position : Cursor;
 
-      PC_Addr  : aliased Addresses_Info (Kind);
-      Result   : Addresses_Containers.Set;
+      Cache : AI_Cache_Entry renames AI_Cache (Kind);
+
+      Prev, Last : Cursor;
+
+      Count    : Natural := 0;
+
    begin
-      PC_Addr.First := PC;
-      PC_Addr.Last  := PC;
+      --  First check whether results for the last lookup still match
 
-      --  Note: we assume that type Addresses_Info provides adequate default
-      --  initialization so that setting First and Last only yields an element
-      --  that sorts higher than any element with the same PC and non-default
-      --  values for other fields (use of Floor below).
+      if Cache.Last /= No_Element
+           and then
+         Exec'Unchecked_Access = Cache.Last_Exec
+           and then
+         (PC in Cache.Last_Info.First .. Cache.Last_Info.Last
+          or else PC = Cache.Last_Info.First)
+      then
+         null;
 
-      Position := Exec.Desc_Sets (Kind).Floor (PC_Addr'Unchecked_Access);
+      else
+         Cache.Last := No_Element;
+      end if;
 
-      while Position /= No_Element
-        and then Element (Position).First <= PC
-        and then (Element (Position).First > Element (Position).Last
-                  or else Element (Position).Last >= PC)
+      if Cache.Last = No_Element then
+         --  Cache entry is stale, perform lookup again (note: the call to
+         --  Floor is costly).
+
+         declare
+            --  Note: we assume that type Addresses_Info provides adequate
+            --  default initialization so that setting First and Last only
+            --  yields an element that sorts higher than any element with the
+            --  same PC and non-default values for other fields (use of Floor
+            --  below).
+
+            PC_Addr  : aliased Addresses_Info (Kind);
+
+         begin
+            PC_Addr.First := PC;
+            PC_Addr.Last  := PC;
+            Cache.Last    := Exec.Desc_Sets (Kind).Floor
+              (PC_Addr'Unchecked_Access);
+         end;
+
+         if Cache.Last /= No_Element then
+            Cache.Last_Info := Element (Cache.Last);
+            Cache.Last_Exec := Exec'Unchecked_Access;
+         end if;
+      end if;
+
+      Last := Cache.Last;
+      Prev := Last;
+
       loop
-         Result.Insert (Element (Position));
-         Previous (Position);
+         exit when Prev = No_Element;
+
+         declare
+            Prev_Info : constant Addresses_Info_Acc := Element (Prev);
+         begin
+            exit when not (Prev_Info.First <= PC
+                           and then (Prev_Info.First > Prev_Info.Last
+                                     or else Prev_Info.Last >= PC));
+         end;
+
+         Count := Count + 1;
+         Previous (Prev);
       end loop;
-      return Result;
+
+      return Result : Addresses_Info_Arr (1 .. Count) do
+         while Count > 0 loop
+            Result (Count) := Element (Last);
+            Previous (Last);
+            Count := Count - 1;
+         end loop;
+      end return;
    end Get_Address_Infos;
 
    ----------------
@@ -3554,21 +3599,21 @@ package body Traces_Elf is
                if Sloc_Begin.Source_File = Sloc_End.Source_File
                  and then Sloc_Begin < Sloc_End
                then
-                  Sloc_End.Column := Natural'Last;
+                  Sloc_End.L.Column := Natural'Last;
                   Select_Symbol := Selected (Sloc_Begin, Sloc_End);
 
                else
                   declare
                      Sloc_End : Source_Location := Sloc_Begin;
                   begin
-                     Sloc_End.Column := Natural'Last;
+                     Sloc_End.L.Column := Natural'Last;
                      Select_Symbol := Selected (Sloc_Begin, Sloc_End);
                   end;
 
                   declare
                      Sloc_Begin : constant Source_Location := Sloc_End;
                   begin
-                     Sloc_End.Column := Natural'Last;
+                     Sloc_End.L.Column := Natural'Last;
                      Select_Symbol :=
                        Select_Symbol or else Selected (Sloc_Begin, Sloc_End);
                   end;

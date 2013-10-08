@@ -279,7 +279,7 @@ package body Annotations is
          --  SCO when its first sloc is at the current line. Otherwise, it
          --  should have been processed earlier.
 
-         if First_Sloc (SCO).Line = Line then
+         if First_Sloc (SCO).L.Line = Line then
             case Kind (SCO) is
                when Statement =>
                   if Coverage.Enabled (Coverage.Stmt) then
@@ -396,7 +396,7 @@ package body Annotations is
             --  Note that the first statement SCO for the line may be a
             --  multi-line statement starting on an earlier line).
 
-            Sloc := (File_Index, L, 0);
+            Sloc := (File_Index, (L, 0));
             LI.Exemption := Get_Exemption (Sloc);
 
             if LI.Exemption = Slocs.No_Location then
@@ -571,8 +571,8 @@ package body Annotations is
          return To_Lower (SCO_Kind'Image (Kind (M.SCO)))
            & " """ & SCO_Text (M.SCO) & '"'
            & " at "
-           & Img (First_Sloc (M.SCO).Line) & ":"
-           & Img (First_Sloc (M.SCO).Column)
+           & Img (First_Sloc (M.SCO).L.Line) & ":"
+           & Img (First_Sloc (M.SCO).L.Column)
            & (if M.Tag = No_SC_Tag
               then ""
               else " (from " & Tag_Provider.Tag_Name (M.Tag) & ")")
@@ -592,21 +592,21 @@ package body Annotations is
                      End_Lex_Element (Last_Sloc (SCO));
       Sloc_Bound : Source_Location;
       Line       : constant String := Get_Line (Sloc_Start);
-      Col_Start  : constant Natural := Sloc_Start.Column;
+      Col_Start  : constant Natural := Sloc_Start.L.Column;
       Col_End    : Natural;
    begin
-      if Line'Last < Sloc_Start.Column then
+      if Line'Last < Sloc_Start.L.Column then
          return "";
       end if;
 
       Sloc_Bound := Sloc_Start;
-      Sloc_Bound.Column := Sloc_Start.Column + Length;
+      Sloc_Bound.L.Column := Sloc_Start.L.Column + Length;
 
       if Sloc_Bound < Sloc_End then
-         Col_End := Natural'Min (Line'Last, Sloc_Bound.Column);
+         Col_End := Natural'Min (Line'Last, Sloc_Bound.L.Column);
          return Line (Col_Start .. Col_End) & "...";
       else
-         Col_End := Natural'Min (Line'Last, Sloc_End.Column);
+         Col_End := Natural'Min (Line'Last, Sloc_End.L.Column);
          return Line (Col_Start .. Col_End);
       end if;
    end SCO_Text;

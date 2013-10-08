@@ -283,7 +283,7 @@ package body Coverage.Source is
 
                      --  Generate violation message on first line of SCO
 
-                     if Line_Num = First_Sloc (SCO).Line then
+                     if Line_Num = First_Sloc (SCO).L.Line then
                         Report_Violation (SCO, SCI.Tag, "not executed");
                      end if;
                   end if;
@@ -291,7 +291,7 @@ package body Coverage.Source is
                   Update_Line_State (Line_Info, SCO, SCI.Tag, Stmt, SCO_State);
 
                elsif Kind (SCO) = Decision
-                 and then First_Sloc (SCO).Line /= Line_Num
+                 and then First_Sloc (SCO).L.Line /= Line_Num
                then
 
                   --  For a decision that spans multiple lines, SCO state is
@@ -624,10 +624,10 @@ package body Coverage.Source is
                Cur_SCI     : constant Source_Coverage_Info_Access :=
                                Get_SCI (S_SCO, Tag);
             begin
-               Line_Executed := Tsloc.Sloc.Column = 0
+               Line_Executed := Tsloc.Sloc.L.Column = 0
                  and then Tsloc.Sloc.Source_File = S_SCO_First.Source_File
-                 and then Tsloc.Sloc.Line
-               in S_SCO_First.Line .. S_SCO_Last.Line;
+                 and then Tsloc.Sloc.L.Line
+               in S_SCO_First.L.Line .. S_SCO_Last.L.Line;
 
                exit when Cur_SCI.Executed
                  or else (Line_Executed and Cur_SCI.Line_Executed);
@@ -1259,20 +1259,24 @@ package body Coverage.Source is
       Tag     : SC_Tag;
       Process : access procedure (SCI : in out Source_Coverage_Info))
    is
-      procedure Deref_Process (SCIA : in out RW_Source_Coverage_Info_Access);
-      --  Call Process (SCIA.all)
+      procedure Deref_Process (SCIA : RW_Source_Coverage_Info_Access);
+      --  Call Process (SCIA.all) and set Processed to True if SCIA.Tag = Tag
 
       procedure Update_SCIV (SCIV : in out SCI_Vectors.Vector);
       --  Call Process on the relevant element of SCIV
+
+      Processed : Boolean;
 
       -------------------
       -- Deref_Process --
       -------------------
 
-      procedure Deref_Process (SCIA : in out RW_Source_Coverage_Info_Access) is
-         pragma Unmodified (SCIA);
+      procedure Deref_Process (SCIA : RW_Source_Coverage_Info_Access) is
       begin
-         Process (SCIA.all);
+         if SCIA.Tag = Tag then
+            Process (SCIA.all);
+            Processed := True;
+         end if;
       end Deref_Process;
 
       -----------------
@@ -1281,9 +1285,10 @@ package body Coverage.Source is
 
       procedure Update_SCIV (SCIV : in out SCI_Vectors.Vector) is
       begin
-         for Cur in SCIV.Iterate loop
-            if SCI_Vectors.Element (Cur).Tag = Tag then
-               SCIV.Update_Element (Cur, Deref_Process'Access);
+         Processed := False;
+         for J in SCIV.First_Index .. SCIV.Last_Index loop
+            SCIV.Query_Element (J, Deref_Process'Access);
+            if Processed then
                return;
             end if;
          end loop;

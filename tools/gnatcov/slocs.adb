@@ -32,19 +32,13 @@ package body Slocs is
    -- "<" --
    ---------
 
-   function "<" (L, R : Source_Location) return Boolean is
+   function "<" (L, R : Local_Source_Location) return Boolean is
    begin
-      if L = No_Location then
+      if L = No_Local_Location then
          return False;
-      elsif R = No_Location then
-         return True;
-      end if;
 
-      if L.Source_File < R.Source_File then
+      elsif R = No_Local_Location then
          return True;
-
-      elsif L.Source_File > R.Source_File then
-         return False;
       end if;
 
       if L.Line < R.Line then
@@ -57,21 +51,40 @@ package body Slocs is
       return L.Column < R.Column;
    end "<";
 
-   function "<" (L, R : Source_Location_Range) return Boolean is
+   function "<" (L, R : Local_Source_Location_Range) return Boolean is
+     (L.First_Sloc < R.First_Sloc
+      or else
+        (L.First_Sloc = R.First_Sloc
+         and then
+         L.Last_Sloc < R.Last_Sloc));
+
+   function "<" (L, R : Source_Location) return Boolean is
    begin
-      return L.First_Sloc < R.First_Sloc
-               or else
-             (L.First_Sloc = R.First_Sloc and then L.Last_Sloc < R.Last_Sloc);
+      if L.Source_File = No_Source_File then
+         return False;
+
+      elsif R.Source_File = No_Source_File then
+         return True;
+
+      else
+         return (L.Source_File < R.Source_File
+                 or else (L.Source_File = R.Source_File and then L.L < R.L));
+      end if;
    end "<";
+
+   function "<" (L, R : Source_Location_Range) return Boolean is
+     (L.Source_File < R.Source_File
+      or else (L.Source_File = R.Source_File and then (L.R < R.R)));
 
    ----------
    -- "<=" --
    ----------
 
+   function "<=" (L, R : Local_Source_Location) return Boolean is
+     (L < R or else L = R);
+
    function "<=" (L, R : Source_Location) return Boolean is
-   begin
-      return L < R or else L = R;
-   end "<=";
+     (L < R or else L = R);
 
    --------------------
    -- Abridged_Image --
@@ -84,21 +97,30 @@ package body Slocs is
       Show_File, Show_Line, Show_Column : Boolean;
 
    begin
-      if Sloc = No_Location then
+      if Sloc.L = No_Local_Location then
          return "<no loc>";
       end if;
 
       Show_File   := Sloc.Source_File /= Ref.Source_File;
-      Show_Line   := Show_File or else Sloc.Line /= Ref.Line;
-      Show_Column := Show_Line or else Sloc.Column /= Ref.Column;
+      Show_Line   := Show_File
+                       or else Sloc.L.Line /= Ref.L.Line;
+      Show_Column := Show_Line
+                       or else Sloc.L.Column /= Ref.L.Column;
 
       return
         (if Show_File then Get_Simple_Name (Sloc.Source_File) & ":" else "")
         &
-        (if Show_Line then Img (Sloc.Line) & ":" else "")
+        (if Show_Line then Img (Sloc.L.Line) & ":" else "")
         &
-        (if Show_Column then Img (Sloc.Column) else "");
+        (if Show_Column then Img (Sloc.L.Column) else "");
    end Abridged_Image;
+
+   ----------------
+   -- First_Sloc --
+   ----------------
+
+   function First_Sloc (R : Source_Location_Range) return Source_Location is
+     (To_Sloc (R.Source_File, R.R.First_Sloc));
 
    -----------
    -- Image --
@@ -110,15 +132,64 @@ package body Slocs is
    end Image;
 
    function Image (Sloc_Range : Source_Location_Range) return String is
+      First_Sloc : constant Source_Location :=
+                     (Sloc_Range.Source_File, Sloc_Range.R.First_Sloc);
+      Last_Sloc  : constant Source_Location :=
+                     (Sloc_Range.Source_File, Sloc_Range.R.Last_Sloc);
    begin
-      if Sloc_Range.First_Sloc = Sloc_Range.Last_Sloc then
-         return Abridged_Image (Sloc_Range.First_Sloc, Ref => No_Location);
+      if Sloc_Range.R.First_Sloc = Sloc_Range.R.Last_Sloc then
+         return Abridged_Image (Sloc => First_Sloc, Ref  => No_Location);
       else
-         return Abridged_Image
-           (Sloc_Range.First_Sloc, Ref => No_Location)
-           & "-" & Abridged_Image
-                     (Sloc_Range.Last_Sloc, Ref => Sloc_Range.First_Sloc);
+         return Abridged_Image (Sloc => First_Sloc, Ref => No_Location)
+           & "-" & Abridged_Image (Sloc => Last_Sloc, Ref => First_Sloc);
       end if;
    end Image;
+
+   ---------------
+   -- Last_Sloc --
+   ---------------
+
+   function Last_Sloc (R : Source_Location_Range) return Source_Location is
+     (To_Sloc (R.Source_File, R.R.Last_Sloc));
+
+   --------------
+   -- To_Range --
+   --------------
+
+   function To_Range
+     (First_Sloc, Last_Sloc : Source_Location) return Source_Location_Range
+   is
+      Source_File : Source_File_Index;
+   begin
+      if First_Sloc.Source_File /= No_Source_File then
+         pragma Assert (Last_Sloc.Source_File = First_Sloc.Source_File
+                        or else
+                        Last_Sloc.Source_File = No_Source_File);
+         Source_File := First_Sloc.Source_File;
+      else
+         Source_File := Last_Sloc.Source_File;
+      end if;
+
+      return (Source_File => Source_File,
+              R           => (First_Sloc => First_Sloc.L,
+                              Last_Sloc  => Last_Sloc.L));
+   end To_Range;
+
+   -------------
+   -- To_Sloc --
+   -------------
+
+   function To_Sloc
+     (Source_File : Source_File_Index;
+      Local_Sloc  : Local_Source_Location) return Source_Location
+   is
+   begin
+      if Local_Sloc = No_Local_Location then
+         return No_Location;
+      else
+         pragma Assert (Source_File /= No_Source_File);
+         return (Source_File, Local_Sloc);
+      end if;
+   end To_Sloc;
 
 end Slocs;

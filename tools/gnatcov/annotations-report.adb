@@ -385,9 +385,7 @@ package body Annotations.Report is
          --  and justification.
 
          New_Line (Output.all);
-         Put (Output.all,
-           Image (Slocs.Source_Location_Range'
-                    (First_Sloc => Sloc, Last_Sloc => End_Sloc)));
+         Put (Output.all, Image (To_Range (Sloc, End_Sloc)));
          if End_Sloc = Slocs.No_Location then
             Put (Output.all, "-<eof>");
          end if;

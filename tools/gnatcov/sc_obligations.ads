@@ -18,8 +18,10 @@
 
 --  Source Coverage Obligations
 
-with Slocs;         use Slocs;
-with Traces;        use Traces;
+with Ada.Containers.Ordered_Maps;
+
+with Slocs;  use Slocs;
+with Traces; use Traces;
 
 package SC_Obligations is
 
@@ -227,5 +229,18 @@ package SC_Obligations is
    --  equivalent aspect.
 
    procedure Set_Degraded_Origins (SCO : SCO_Id; Val : Boolean := True);
+
+   --------------------------
+   -- Sloc -> SCO_Id index --
+   --------------------------
+
+   package Sloc_To_SCO_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Local_Source_Location_Range,
+      Element_Type => SCO_Id);
+
+   type Sloc_To_SCO_Map_Array is
+     array (SCO_Kind) of aliased Sloc_To_SCO_Maps.Map;
+   type Sloc_To_SCO_Map_Array_Acc is access all Sloc_To_SCO_Map_Array;
+   --  Maps for statement, decision, condition, and operator SCOs
 
 end SC_Obligations;

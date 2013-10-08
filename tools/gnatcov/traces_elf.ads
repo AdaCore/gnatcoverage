@@ -104,6 +104,7 @@ package Traces_Elf is
 
    type Addresses_Info;
    type Addresses_Info_Acc is access all Addresses_Info;
+   type Addresses_Info_Arr is array (Positive range <>) of Addresses_Info_Acc;
 
    procedure Build_Sections (Exec : in out Exe_File_Type);
    --  Build sections map for the current ELF file
@@ -247,7 +248,7 @@ package Traces_Elf is
    function Get_Address_Infos
      (Exec : Exe_File_Type;
       Kind : Addresses_Kind;
-      PC   : Pc_Type) return Addresses_Containers.Set;
+      PC   : Pc_Type) return Addresses_Info_Arr;
    --  Same as Get_Address_Info, but return a set of address infos if there
    --  are several matches.
 
@@ -360,8 +361,6 @@ private
 
    type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
 
-   subtype Sloc_Set is Sloc_Sets.Set;
-
    type Exe_File_Type is limited new Symbolizer with record
       --  Sections index
 
@@ -405,9 +404,6 @@ private
 
       Desc_Sets : Desc_Sets_Type;
       --  Address descriptor sets
-
-      Known_Slocs : Sloc_Set;
-      --  Slocs for which there is .debug_lines info
    end record;
 
    type Addresses_Iterator is limited record

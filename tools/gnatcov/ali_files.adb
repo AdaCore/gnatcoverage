@@ -414,8 +414,8 @@ package body ALI_Files is
                   if Matches (0) /= No_Match then
                      Sloc :=
                        (Source_File => Current_Unit,
-                        Line        => Integer'Value (Match (1)),
-                        Column      => Integer'Value (Match (2)));
+                        L           => (Line   => Integer'Value (Match (1)),
+                                        Column => Integer'Value (Match (2))));
 
                      Valid := True;
 

@@ -237,7 +237,7 @@ package body Files_Table is
 
       Lex    : Lex_Type;
       Line   : constant String := Get_Line (Sloc);
-      Column : Natural := Sloc.Column;
+      Column : Natural := Sloc.L.Column;
       Result : Source_Location := Sloc;
    begin
 
@@ -254,7 +254,7 @@ package body Files_Table is
         and then Line (Column + 1) = '-'
       then
          --  Comment; return the whole line
-         Result.Column := Line'Last;
+         Result.L.Column := Line'Last;
          return Result;
 
       elsif Column + 2 <= Line'Last
@@ -262,7 +262,7 @@ package body Files_Table is
         and then Line (Column + 2) = '''
       then
          --  Character literal; skip two character and return
-         Result.Column := Column + 2;
+         Result.L.Column := Column + 2;
          return Result;
 
       elsif Line (Column) = '"' then
@@ -280,7 +280,7 @@ package body Files_Table is
          Lex := Other;
       end if;
 
-      for J in Sloc.Column + 1 .. Line'Last loop
+      for J in Sloc.L.Column + 1 .. Line'Last loop
          case Lex is
             when String_Literal =>
                exit when Line (J) = '"';
@@ -300,7 +300,7 @@ package body Files_Table is
          Column := J;
       end loop;
 
-      Result.Column := Natural'Min (Column, Line'Last);
+      Result.L.Column := Natural'Min (Column, Line'Last);
       return Result;
    end End_Lex_Element;
 
@@ -469,6 +469,7 @@ package body Files_Table is
             Lines                    => (Source_Line_Vectors.Empty_Vector
                                            with null record),
             Stats                    => (others => 0),
+            Sloc_To_SCO_Maps         => null,
             Has_Source_Coverage_Info => False,
             Has_Object_Coverage_Info => False);
 
@@ -530,6 +531,7 @@ package body Files_Table is
                                 (Source_Line_Vectors.Empty_Vector
                                     with null record),
                              Stats                    => (others => 0),
+                             Sloc_To_SCO_Maps         => null,
                              Has_Source_Coverage_Info => False,
                              Has_Object_Coverage_Info => False);
 
@@ -550,7 +552,7 @@ package body Files_Table is
          return null;
       end if;
 
-      return Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
+      return Get_Line (Get_File (Sloc.Source_File), Sloc.L.Line);
    end Get_Line;
 
    function Get_Line
@@ -576,7 +578,7 @@ package body Files_Table is
          return "";
       end if;
 
-      return Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
+      return Get_Line (Get_File (Sloc.Source_File), Sloc.L.Line);
    end Get_Line;
 
    function Get_Line
@@ -651,7 +653,7 @@ package body Files_Table is
 
    function Is_Multistatement_Line (Sloc : Source_Location) return Boolean is
       LI : constant Line_Info_Access :=
-             Get_Line (Get_File (Sloc.Source_File), Sloc.Line);
+             Get_Line (Get_File (Sloc.Source_File), Sloc.L.Line);
    begin
       if LI = null then
          return False;
@@ -811,6 +813,22 @@ package body Files_Table is
 
       FI.Has_Source := Success;
    end Open;
+
+   ---------------------
+   -- Sloc_To_SCO_Map --
+   ---------------------
+
+   function Sloc_To_SCO_Map
+     (Index : Source_File_Index;
+      Kind  : SCO_Kind) return access Sloc_To_SCO_Maps.Map
+   is
+      FI : constant File_Info_Access := Get_File (Index);
+   begin
+      if FI.Sloc_To_SCO_Maps = null then
+         FI.Sloc_To_SCO_Maps := new Sloc_To_SCO_Map_Array;
+      end if;
+      return FI.Sloc_To_SCO_Maps (Kind)'Access;
+   end Sloc_To_SCO_Map;
 
    ----------------
    -- To_Display --
