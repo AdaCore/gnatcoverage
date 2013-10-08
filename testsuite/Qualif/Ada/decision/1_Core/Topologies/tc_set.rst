@@ -1,14 +1,10 @@
 Expressions of various topologies everywhere they may appear
 =============================================================
 
-Check the correctness of DC assessments on expressions of various topologies,
-everywhere they might appear.
-
-We exercise a suite of expression topologies over Boolean variables (single
-value, negated, two or more combined with and-then or or-else, ...), each
-placed in a variety of program contexts. We distinguish explicit control-flow
-constructs from other contexts.
-
+Check the correctness of DC assessments on expressions of various topologies
+(single value, negated, two or more combined with short-circuit or regular
+Boolean operators, ...)  in a range of control-flow contexts where they might
+appear.
 
 .. qmlink:: TCIndexImporter
 
