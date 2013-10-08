@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 
 import sys, optparse
 from gnatpython.ex import Run
