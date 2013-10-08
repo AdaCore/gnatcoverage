@@ -2620,10 +2620,10 @@ package body SC_Obligations is
    is
       use Sloc_To_SCO_Maps;
 
-      L_Sloc   : Source_Location := Sloc;
-      Cur      : Cursor;
-      SCO      : SCO_Id;
-      SCO_Sloc : Local_Source_Location_Range;
+      L_Sloc    : Source_Location := Sloc;
+      Cur, Prev : Cursor;
+      SCO       : SCO_Id;
+      SCO_Sloc  : Local_Source_Location_Range;
 
    begin
       --  If looking up the sloc of a NOT operator, return SCO of innermost
@@ -2650,16 +2650,43 @@ package body SC_Obligations is
          L_Sloc.L.Column := Natural'Last;
       end if;
 
-      --  Get the innermost condition or statement SCO. To do this, get the
-      --  Floor of the sloc range to condition *and* statement SCO maps
-      --  combined.
+      --  Get the innermost condition or statement SCO
+
+      --  This is complicated!
+
+      --  Two nested sloc ranges sort outermost first if the outer one
+      --  starts earlier than the inner one:
+
+      --     |--- outer ---|
+      --      |-- inner --|
+
+      --  but they sort innermost first if they start at the same sloc:
+
+      --    |-- inner --|
+      --    |--- outer ---|
+
+      --  So, in order to find the innermost range containing a given sloc,
+      --  we must first find the last one that starts at or before that sloc
+      --  (i.e. Floor (Sloc, No_Location)), and then look at the smallest
+      --  one that starts at the same point.
 
       Cur := Sloc_To_SCO_Map (L_Sloc.Source_File, Condition).Floor
         ((L_Sloc.L, No_Local_Location));
+
+      loop
+         Prev := Previous (Cur);
+         exit when Prev = No_Element
+           or else Key (Prev).First_Sloc /= Key (Cur).First_Sloc;
+         Cur := Prev;
+      end loop;
+
       if Cur /= No_Element then
          SCO := Element (Cur);
          SCO_Sloc := Key (Cur);
       end if;
+
+      --  Now we have a candidate condition SCO. Look for a better match
+      --  with a statement.
 
       Cur := Sloc_To_SCO_Map (L_Sloc.Source_File, Statement).Floor
         ((L_Sloc.L, No_Local_Location));
@@ -2730,7 +2757,6 @@ package body SC_Obligations is
       pragma Assert (not (Sloc.L.Column = 0
                             and then SCO /= No_SCO_Id
                             and then Kind (SCO) = Condition));
-
       return SCO;
    end Sloc_To_SCO;
 
