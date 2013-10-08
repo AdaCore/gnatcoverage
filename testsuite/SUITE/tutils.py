@@ -351,7 +351,7 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
 
     p = Run(covpgm + covargs, timeout=thistest.options.timeout, **kwargs)
 
-    if thistest.options.enable_memcheck:
+    if thistest.options.enable_valgrind == 'memcheck':
         memcheck_log = contents_of (MEMCHECK_LOG)
         thistest.fail_if(
             memcheck_log,
