@@ -6,3 +6,4 @@ tmp_*
 test.py.*
 *.pyc
 *.pkl
+*.dump
