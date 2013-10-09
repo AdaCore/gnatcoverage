@@ -1,6 +1,8 @@
 import qm
 from qm.rest import ArtifactImporter, writer
 from qm.rest.pdfgenerator import artifact_hash
+from itertools import izip_longest
+from collections import OrderedDict
 import re
 
 
@@ -18,6 +20,45 @@ def class_to_string(a):
         return d[a.__class__.__name__]
     else:
         return a.__class__.__name__
+
+
+def class_to_content_key(a):
+    """
+    Returns key name for content of various container
+    """
+
+    # keys in the model are dependant of the artifact class
+
+    d = {'TORReq_Set': 'set_content',
+         'TORReq': 'requirement',
+         }
+
+    if 'Appendix' in a.full_name:
+        return 'app'
+    elif a.name == 'OpEnviron':
+        # OpEnv only is content, not container
+        return None
+    elif a.__class__.__name__ in d:
+        return d[a.__class__.__name__]
+    else:
+        return None
+
+##############################################################
+# Tests on artifact class
+
+def is_req_or_reqset(a):
+    from qm import TORReq_Set, TORReq
+    return isinstance(a, TORReq_Set) or isinstance(a, TORReq)
+
+
+def is_req(a):
+    from qm import TORReq
+    return isinstance(a, TORReq)
+
+
+def is_reqset(a):
+    from qm import TORReq_Set
+    return isinstance(a, TORReq_Set)
 
 
 def is_test(a):
@@ -38,6 +79,42 @@ def is_test_case(a):
 def is_source(a):
     from qm import Source_files
     return isinstance(a, Source_files)
+
+
+def is_consolidation(a):
+    from qm import Conso_Sources
+
+    return isinstance(a, Conso_Sources)
+
+
+def is_helper(source_resource):
+
+
+    return not (is_test_driver(source_resource)
+                or is_functional_source(source_resource))
+
+
+def is_driver(source_resource):
+
+    # a resource named with  "test_" is necsseraly a 'driver'
+    return "test_" in source_resource.basename
+
+
+def is_functional(source_resource):
+
+    # a resource whom content contains "-- #" is
+    # a functional source.  In case of Ada Sources !!
+
+    content = source_resource.get_content()
+    is_func = False
+
+    for line in content.splitlines():
+        if "-- #" in line:
+            is_func = True
+            break
+    return is_func
+
+############################################################
 
 
 class TCIndexImporter(ArtifactImporter):
@@ -116,8 +193,6 @@ class ToplevelIndexImporter(ArtifactImporter):
 
     def qmlink_to_rest(self, parent, artifacts):
 
-
-
         items = []
         html_top_index = ""
 
@@ -128,7 +203,7 @@ class ToplevelIndexImporter(ArtifactImporter):
 
             if a.name == "Ada":
 
-                def key (a):
+                def key(a):
                     d = {'stmt': 1, 'decision': 2, 'mcdc': 3}
                     for k in d:
                         if k in a.name:
@@ -138,8 +213,7 @@ class ToplevelIndexImporter(ArtifactImporter):
                 selected.sort(key=key)
 
             else:
-               selected = a.relatives
-
+                selected = a.relatives
 
             for suba in selected:
                 items.append(["`..` %s" % suba.name,
@@ -224,7 +298,27 @@ class SubsetIndexImporter(SubsetIndexTable):
 
 class TestCaseImporter(ArtifactImporter):
 
+    def get_first_req_relative(self, artifact):
+        """
+        Returns the first parent which is a req
+        (and therefore the req that leads the TC)
+        """
+
+        parent = artifact.relative_to
+
+        if parent is None or is_req_or_reqset(parent):
+            return parent
+        else:
+            return self.get_first_req_relative(parent)
+
+
     def get_sources(self, artifact):
+        """
+        Returns all the sources an artifact TC needs to
+        list. It means its own sources and all thoses
+        of its parents
+        """
+
         result = []
 
         for child in artifact.relatives:
@@ -238,25 +332,121 @@ class TestCaseImporter(ArtifactImporter):
 
     def to_rest(self, artifact):
 
-        result = qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
+        result = ""
+
+        result += qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
+
+        # FYI : Olivier, here with those kind of lines you can introduce
+        # an index
+        # result += writer.directive('index', content= ...., argument= .. ?)
+        # using artifact.full_name to get the full and unique QM determination
+        # of the artifact
+        # if you actually need not the name but the reference in the document
+        # you can use  writer.qmref(artifact.full_name)
+
+        req_parent = self.get_first_req_relative(artifact)
+
+        if req_parent:
+        # Creates a retro-link to navigate backward in the pdf
+        # (from a TC to its requirement)
+            result += writer.paragraph("Requirement :")
+            result += writer.qmref(req_parent.full_name) + '\n\n'
+
+
+        # Managing the list of the sources
         result += writer.directive('rubric', content=None, argument="Sources")
 
+        driver_list = []
+        driver_list_qmref = []
+        func_list = []
+        func_list_qmref = []
+        helper_list = []
+        helper_list_qmref = []
+
+        consolidation_list = []
+        consolidation_list_qmref = []
+
         for item in self.get_sources(artifact):
+
+            if is_consolidation(item):
+
+                consolidation_list += [item.name]
+                consolidation_list_qmref += [writer.qmref
+                                             (item.full_name,
+                                              item.name)]
+
+                continue
 
             for key in item.contents_keys:
                 if len(item.contents(key)) > 0:
 
-                    basename_list = [k.basename for k in item.contents(key)]
-                    qmref_source_list = [writer.qmref
-                                         (item.full_name, k.basename)
-                                         for k in item.contents(key)]
+                    for resource in item.contents(key):
 
-                    result += writer.only(
-                        writer.generic_list(qmref_source_list),
-                        "html")
-                    result += writer.only(
-                        writer.generic_list(basename_list),
-                        "latex")
+                        if is_driver(resource):
+                            driver_list += [resource.basename]
+                            driver_list_qmref += [writer.qmref
+                                                  (item.full_name,
+                                                   resource.basename)]
+                            continue
+
+                        if is_functional(resource):
+                            func_list += [resource.basename]
+                            func_list_qmref += [writer.qmref
+                                                (item.full_name,
+                                                 resource.basename)]
+                            continue
+
+                        helper_list += [resource.basename]
+                        helper_list_qmref += [writer.qmref
+                                              (item.full_name,
+                                               resource.basename)]
+
+        driver_list.sort()
+        driver_list_qmref.sort()
+        func_list.sort()
+        func_list_qmref.sort()
+        helper_list.sort()
+        helper_list_qmref.sort()
+
+        headers = ["Functional", "Drivers", "Helpers"]
+
+        if consolidation_list:
+            headers += ["Consolidation"]
+            consolidation_list.sort()
+            consolidation_list_qmref.sort()
+
+            for_table_qmref = izip_longest(func_list_qmref,
+                                           driver_list_qmref,
+                                           helper_list_qmref,
+                                           consolidation_list_qmref,
+                                           fillvalue="")
+
+            for_table = izip_longest(func_list,
+                                     driver_list,
+                                     helper_list,
+                                     consolidation_list,
+                                     fillvalue="")
+        else:
+            for_table_qmref = izip_longest(func_list_qmref,
+                                           driver_list_qmref,
+                                           helper_list_qmref,
+                                           fillvalue="")
+
+            for_table = izip_longest(func_list,
+                                     driver_list,
+                                     helper_list,
+                                     fillvalue="")
+
+
+        html_content = writer.csv_table([k for k in for_table_qmref],
+                                        headers)
+
+        latex_content = writer.csv_table([k for k in for_table],
+                                         headers)
+
+        result += writer.only(html_content, "html")
+
+        result += writer.only(latex_content, "latex")
 
         return result
 
@@ -265,7 +455,7 @@ class SourceCodeImporter(ArtifactImporter):
 
     def to_rest(self, artifact):
 
-        from qm import Ada_Sources, C_Sources
+        from qm import Ada_Sources, C_Sources, Conso_Sources
 
         result = ""
 
@@ -283,10 +473,40 @@ class SourceCodeImporter(ArtifactImporter):
                     result += writer.paragraph_title(item.basename)
                     result += writer.code_block(item.get_content(), "c")
 
+        if isinstance(artifact, Conso_Sources):
+
+            result += writer.paragraph_title(artifact.name)
+            result += writer.code_block(artifact.location.get_content(), "bash")
+
         return result
 
 
 class TestCasesImporter(ArtifactImporter):
+
+    def header_of_first_parent_after_head(self, artifact, head):
+       """
+       Get the first line of the 'last' parent before the 'head' requirement
+       """
+
+       parent = artifact.relative_to
+       first_line = None
+
+       if parent is not None:
+
+          if parent.full_name.endswith(head):
+               for item in artifact.contents(class_to_content_key(artifact)):
+                   content = item.get_content()
+
+                   for line in content.splitlines():
+                       line = line.strip()
+                       if len(line) > 0:
+                           first_line = line
+                           break
+          else:
+              first_line = self.header_of_first_parent_after_head(parent, head)
+
+       return first_line
+
 
     def get_testcases(self, artifact):
         result = []
@@ -332,41 +552,98 @@ class TestCasesImporter(ArtifactImporter):
                                       for l in links], hidden=True)
 
         # We don't include the tests sources in the pdf version
-        pdf_output = writer.section('Test Cases') + '\n'
+        pdf_output = writer.section('Ada Test Cases') + '\n'
 
         # stmt
         links_stmt = [l for l in links
                       if not is_source(l[0]) and "stmt" in l[0].full_name]
 
         if links_stmt:
-            pdf_output += writer.subsection('Statement Coverage') + '\n'
-            pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                         for l in links_stmt],
-                                         hidden=True)
+
+            links_dict = OrderedDict()
+
+            for l in links_stmt:
+                first_line = self.header_of_first_parent_after_head(l[0], "stmt")
+
+                if first_line not in links_dict:
+                    links_dict[first_line] = []
+
+                links_dict[first_line].append(l)
+
+            pdf_output += writer.subsection('Statement Coverage (SC) \
+                                            assesments') + '\n'
+
+            for first_line in links_dict.keys():
+
+                pdf_output += writer.subsubsection(first_line) + '\n'
+
+                pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
+                                             for l in links_dict[first_line]],
+                                             hidden=True)
+
         # decision
         links_dec = [l for l in links
                      if not is_source(l[0]) and "decision" in l[0].full_name]
 
         if links_dec:
-            pdf_output += writer.subsection('Decision Coverage') + '\n'
-            pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                         for l in links_dec],
-                                         hidden=True)
+
+            links_dict = OrderedDict()
+
+            for l in links_dec:
+                first_line = self.header_of_first_parent_after_head(l[0], "decision")
+
+                if first_line not in links_dict:
+                    links_dict[first_line] = []
+
+                links_dict[first_line].append(l)
+
+
+            pdf_output += writer.raw ("\\newpage", "latex")
+            pdf_output += writer.subsection('Decision Coverage (DC) \
+                                            assesments') + '\n'
+
+            for first_line in links_dict.keys():
+
+                pdf_output += writer.subsubsection(first_line) + '\n'
+
+                pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
+                                             for l in links_dict[first_line]],
+                                             hidden=True)
+
 
         links_mcdc = [l for l in links
                       if not is_source(l[0]) and "mcdc" in l[0].full_name]
 
         if links_mcdc:
+
+            links_dict = OrderedDict()
+
+            for l in links_mcdc:
+                first_line = self.header_of_first_parent_after_head(l[0], "mcdc")
+
+                if first_line not in links_dict:
+                    links_dict[first_line] = []
+
+                links_dict[first_line].append(l)
+
+            pdf_output += writer.raw ("\\newpage", "latex")
             pdf_output += writer.subsection('Modified Condition / \
-                                            Decision Coverage (MCDC)') + '\n'
-            pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                         for l in links_mcdc],
-                                         hidden=True)
+                                            Decision Coverage (MCDC) \
+                                            assesments') + '\n'
+
+            for first_line in links_dict.keys():
+
+                pdf_output += writer.subsubsection(first_line) + '\n'
+
+                pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
+                                             for l in links_dict[first_line]],
+                                             hidden=True)
+
         links_rep = [l for l in links
                      if not is_source(l[0]) and "Report" in l[0].full_name]
 
         if links_rep:
-            pdf_output += writer.subsection('Language-independent \
+            pdf_output += writer.section('Language-independent \
                                             Test Cases') + '\n'
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_rep],

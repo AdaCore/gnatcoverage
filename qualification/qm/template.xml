@@ -4,7 +4,7 @@
   <repository name="tor" class="fs" root="../../testsuite/Qualif"/>
   <repository name="report" class="fs" root="../str"/>
 
-<!-- PLANS -->
+<!-- Common -->
 
   <artifact_class name="Environment" role="artifact">
     <location_content mime="text/x-python"/>
@@ -36,6 +36,8 @@
     <from class="Root_Document"/>
     <to class="PDF"/>
   </link_definition>
+
+<!-- PLANS -->
 
   <artifact_factory class="Environment">
     <on_location pattern="default:///env.py" type="content"/>
@@ -131,40 +133,10 @@
     </location_container>
   </artifact_class>
 
-  <artifact_class name="Source_files" role="sources" abstract="true"/>
-
-  <artifact_class name="Ada_Sources" role="ada" inherits="Source_files">
-    <location_container>
-       <resource name="spec_sources" location="*.ads" mime="text/x-ada"/>
-       <resource name="body_sources" location="*.adb" mime="text/x-ada"/>
-    </location_container>
-  </artifact_class>
-
-  <artifact_class name="C_Sources" role="C" inherits="Source_files">
-    <location_container>
-       <resource name="c_sources" location="*.c" mime="text/x-c"/>
-       <resource name="h_sources" location="*.h" mime="text/x-h"/>
-    </location_container>
-  </artifact_class>
-
-  <artifact_class name="TR" role="result">
-    <location_container>
-       <resource name="tr_content" location="test.py.out" mime="text/plain"/>
-       <resource name="tr_err" location="test.py.err" mime="text/plain"/>
-       <resource name="generated_rest" location="[^tc]*.rst" mime="text/x-rst"/>
-    </location_container>
-  </artifact_class>
-
   <link_definition kind="dependency" name="TOR_TC">
      <from class="Req"/>
      <to class="TC"/>
   </link_definition>
-
-  <link_definition kind="dependency" name="TC_TR">
-    <from class="TC"/>
-    <to class="TR"/>
-  </link_definition>
-
   <artifact_factory class="TORReq_Set">
     %(langlevel_reqset_triggers)s
     <on_location relative_class="TORReq_Set"
@@ -235,6 +207,26 @@
     </creates>
   </artifact_factory>
 
+  <artifact_class name="Source_files" role="sources" abstract="true"/>
+
+  <artifact_class name="Ada_Sources" role="ada" inherits="Source_files">
+    <location_container>
+       <resource name="spec_sources" location="*.ads" mime="text/x-ada"/>
+       <resource name="body_sources" location="*.adb" mime="text/x-ada"/>
+    </location_container>
+  </artifact_class>
+
+  <artifact_class name="Conso_Sources" role="consolidation" inherits="Source_files">
+    <location_content mime="text/plain"/>
+  </artifact_class>
+
+  <artifact_class name="C_Sources" role="C" inherits="Source_files">
+    <location_container>
+       <resource name="c_sources" location="*.c" mime="text/x-c"/>
+       <resource name="h_sources" location="*.h" mime="text/x-h"/>
+    </location_container>
+  </artifact_class>
+
   <artifact_factory class="Ada_Sources">
     <on_location relative_instance="/TOR/Ada"
                  pattern="$relative.location/src/*.ad?"
@@ -254,6 +246,25 @@
     <creates location="$location.container" name="$subst($relative.name,(.*),\1_Ada)"/>
   </artifact_factory>
 
+  <artifact_factory class="Conso_Sources">
+    <on_location relative_instance="/TOR/Ada"
+                 pattern="$relative.location/src/cons_*.txt"
+                 type="content"/>
+    <on_location relative_class="Req"
+                 pattern="$relative.location/src/cons_*.txt"
+                 type="content"/>
+    <on_location relative_class="Req_Set"
+                 pattern="$relative.location/src/cons_*.txt"
+                 type="content"/>
+    <on_location relative_class="TC_Set"
+                 pattern="$relative.location/src/cons_*.txt"
+                 type="content"/>
+    <on_location relative_class="TC"
+                 pattern="$relative.location/src/cons_*.txt"
+                 type="content"/>
+    <creates name="$location.basename"/>
+  </artifact_factory>
+
   <artifact_factory class="C_Sources">
     <on_location relative_class="Req"
                  pattern="$relative.location/src/*.[ch]"
@@ -270,6 +281,21 @@
     <creates location="$location.container" name="$subst($relative.name,(.*),\1_C)"/>
   </artifact_factory>
 
+
+<!-- STR ??-->
+
+  <artifact_class name="TR" role="result">
+    <location_container>
+       <resource name="tr_content" location="test.py.out" mime="text/plain"/>
+       <resource name="tr_err" location="test.py.err" mime="text/plain"/>
+       <resource name="generated_rest" location="[^tc]*.rst" mime="text/x-rst"/>
+    </location_container>
+  </artifact_class>
+
+  <link_definition kind="dependency" name="TC_TR">
+    <from class="TC"/>
+    <to class="TR"/>
+  </link_definition>
 
   <artifact_factory class="TR">
     <on_location relative_class="TC"
