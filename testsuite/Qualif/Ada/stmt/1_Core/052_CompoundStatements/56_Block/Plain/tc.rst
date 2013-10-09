@@ -1,5 +1,5 @@
 block statements with/without declarative part or exception handlers
-=====================================================================
+====================================================================
 
 Check SC for block statements: with/without declarative part or exception
 handlers, containing or nested within a variety of language constructs

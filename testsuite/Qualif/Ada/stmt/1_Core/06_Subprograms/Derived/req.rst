@@ -1,5 +1,5 @@
 SC expectations for subprogram overridings
-===========================================
+==========================================
 
 
 .. rubric:: Requirement(s)

@@ -1,5 +1,5 @@
 straightline statements in a big subprogram
-============================================
+===========================================
 
 Check that all of the straight-line statements in a long subprogram are
 reported as covered when the subprogram is called.

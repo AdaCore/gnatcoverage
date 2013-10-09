@@ -1,5 +1,5 @@
 DC expectations for combination of multiple execution traces
-=============================================================
+============================================================
 
 DC expectations regarding the combination of multiple
 execution traces.

@@ -1,5 +1,5 @@
 SC expectations for ARM chap. 12 : Generic Units
-=================================================
+================================================
 
 
 .. rubric:: Requirement(s)

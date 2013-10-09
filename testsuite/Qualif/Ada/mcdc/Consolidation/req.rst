@@ -1,5 +1,5 @@
 MCDC expectations regarding the combination of multiple
-========================================================
+=======================================================
 
 MCDC expectations regarding the combination of multiple
 execution traces together.

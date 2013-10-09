@@ -1,5 +1,5 @@
 SC expectations for ARM chap. 5 : Compound Statements
-======================================================
+=====================================================
 
 All the SC requirements apply to each statement nested in
 a compound statement. Specific requirements apply to each kind of compound

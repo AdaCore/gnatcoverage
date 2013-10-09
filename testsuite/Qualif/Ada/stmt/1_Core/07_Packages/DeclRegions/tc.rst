@@ -1,5 +1,5 @@
 subprograms declared in various package regions
-================================================
+===============================================
 
 Check the SC assessments for subprograms declared in various package regions
 

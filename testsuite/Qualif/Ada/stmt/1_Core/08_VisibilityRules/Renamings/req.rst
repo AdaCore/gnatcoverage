@@ -1,5 +1,5 @@
 SC expectations for Renaming declarations (ARM 8.5)
-====================================================
+===================================================
 
 
 .. rubric:: Requirement(s)

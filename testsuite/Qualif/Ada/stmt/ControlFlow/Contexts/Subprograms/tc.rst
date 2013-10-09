@@ -1,5 +1,5 @@
 Recognize statements in subprogram bodies and nested blocks therein
-====================================================================
+===================================================================
 
 Check statement coverage for statements in subprogram bodies and in
 nested blocks contained in subprogram bodies.

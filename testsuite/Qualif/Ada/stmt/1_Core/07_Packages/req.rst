@@ -1,5 +1,5 @@
 SC expectations for ARM chap. 7 : Packages
-===========================================
+==========================================
 
 
 .. rubric:: Requirement(s)

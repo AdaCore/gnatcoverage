@@ -1,5 +1,5 @@
 Core expectations for Decision Coverage
-========================================
+=======================================
 
 Core expectations for Decision Coverage
 (DC) assessments. All the other DC-related sections rely on this one.

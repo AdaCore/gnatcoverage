@@ -1,5 +1,5 @@
 SC expectations for ARM chap. 3 : Declarations and Types
-=========================================================
+========================================================
 
 
 .. rubric:: Requirement(s)

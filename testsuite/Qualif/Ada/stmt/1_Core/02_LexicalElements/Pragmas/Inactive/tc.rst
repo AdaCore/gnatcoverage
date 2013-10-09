@@ -1,5 +1,5 @@
 inactive pragmas
-=================
+================
 
 Check SC of inactive pragmas
 

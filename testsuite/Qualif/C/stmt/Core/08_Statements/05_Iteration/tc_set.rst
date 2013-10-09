@@ -1,5 +1,5 @@
 SC expectations regarding section 8.5: Iteration statements
-============================================================
+===========================================================
 
 SC expectations regarding section 8.5: Iteration statements
 

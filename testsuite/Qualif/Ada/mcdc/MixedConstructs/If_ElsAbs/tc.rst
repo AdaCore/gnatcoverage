@@ -1,5 +1,5 @@
 Exercise an If/Elsif construct involving complex decisions with computations
-=============================================================================
+============================================================================
 
 Exercise an If/Elsif construct involving complex decisions with computations
 and the use of a 'abs' operator in the Elsif part.

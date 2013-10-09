@@ -1,5 +1,5 @@
 SC expectations for Block statements (ARM 5.6)
-===============================================
+==============================================
 
 
 .. rubric:: Requirement(s)

@@ -1,5 +1,5 @@
 Recognize statements in package elaboration bodies and nested blocks therein
-=============================================================================
+============================================================================
 
 Check statement coverage for statements in package bodies and
 in nested blocks inside such bodies.

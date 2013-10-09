@@ -1,5 +1,5 @@
 exemptions applying to whole subprogram bodies
-===============================================
+==============================================
 
 Check processing of exemptions applying to entire subprogram bodies.
 

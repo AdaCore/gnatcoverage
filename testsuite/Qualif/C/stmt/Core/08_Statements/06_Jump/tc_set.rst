@@ -1,5 +1,5 @@
 SC expectations regarding section 8.6: Jump statements
-=======================================================
+======================================================
 
 SC expectations regarding section 8.6: Jump statements
 

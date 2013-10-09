@@ -1,5 +1,5 @@
 Discrete Subtype Definitions
-=============================
+============================
 
 Check SC of Discrete Subtype Definitions
 

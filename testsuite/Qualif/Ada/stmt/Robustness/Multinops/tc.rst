@@ -1,5 +1,5 @@
 sequences of multiple nop statements (e.g. null or pragma)
-===========================================================
+==========================================================
 
 Check that sequences of multiple "no-op" statements (constructs with
 no generated code, such as null statements or pragma) are

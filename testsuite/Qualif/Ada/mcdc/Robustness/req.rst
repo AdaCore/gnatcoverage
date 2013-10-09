@@ -1,5 +1,5 @@
 MCDC expectations with respect to potentially confusing constructs,
-====================================================================
+===================================================================
 
 MCDC expectations with respect to potentially confusing constructs,
 e.g. multiple decisions sharing a line.

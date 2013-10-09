@@ -1,5 +1,5 @@
 SC expectations for If statements (ARM 5.3)
-============================================
+===========================================
 
 
 .. rubric:: Requirement(s)

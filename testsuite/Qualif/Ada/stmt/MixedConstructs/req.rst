@@ -1,5 +1,5 @@
 SC expectations for mixed statement constructs
-===============================================
+==============================================
 
 SC expectations for code comprising different kinds of statements,
 representative of application code.

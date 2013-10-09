@@ -1,5 +1,5 @@
 Exercise a simple If statement nested in one of the possible selections of a
-=============================================================================
+============================================================================
 
 Exercise a simple If statement nested in one of the possible selections of a
 Case statement, itself conditioned by an outer If statement executed as part of

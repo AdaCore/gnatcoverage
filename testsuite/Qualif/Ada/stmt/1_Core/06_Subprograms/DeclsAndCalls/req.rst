@@ -1,5 +1,5 @@
 SC expectations for subprogram declarations and calls
-======================================================
+=====================================================
 
 
 .. rubric:: Requirement(s)

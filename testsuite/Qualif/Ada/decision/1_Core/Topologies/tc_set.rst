@@ -1,5 +1,5 @@
 Expressions of various topologies everywhere they may appear
-=============================================================
+============================================================
 
 Check the correctness of DC assessments on expressions of various topologies
 (single value, negated, two or more combined with short-circuit or regular
