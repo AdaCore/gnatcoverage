@@ -44,6 +44,8 @@ package Slocs is
    end record;
 
    function "<" (L, R : Local_Source_Location_Range) return Boolean;
+   --  Sort on lower bound first, then REVERSED on higher bound, so that
+   --  for two nested ranges, the innermost one always sorts higher.
 
    No_Local_Range : constant Local_Source_Location_Range :=
                       (No_Local_Location, No_Local_Location);
@@ -75,7 +77,6 @@ package Slocs is
                 (No_Source_File, No_Local_Range);
 
    function "<" (L, R : Source_Location_Range) return Boolean;
-   --  Lexicographic order
 
    function To_Sloc
      (Source_File : Source_File_Index;

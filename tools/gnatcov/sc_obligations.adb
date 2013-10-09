@@ -2621,7 +2621,7 @@ package body SC_Obligations is
       use Sloc_To_SCO_Maps;
 
       L_Sloc    : Source_Location := Sloc;
-      Cur, Prev : Cursor;
+      Cur       : Cursor;
       SCO       : SCO_Id;
       SCO_Sloc  : Local_Source_Location_Range;
 
@@ -2650,36 +2650,14 @@ package body SC_Obligations is
          L_Sloc.L.Column := Natural'Last;
       end if;
 
-      --  Get the innermost condition or statement SCO
-
-      --  This is complicated!
-
-      --  Two nested sloc ranges sort outermost first if the outer one
-      --  starts earlier than the inner one:
-
-      --     |--- outer ---|
-      --      |-- inner --|
-
-      --  but they sort innermost first if they start at the same sloc:
-
-      --    |-- inner --|
-      --    |--- outer ---|
-
-      --  So, in order to find the innermost range containing a given sloc,
-      --  we must first find the last one that starts at or before that sloc
-      --  (i.e. Floor (Sloc, No_Location)), and then look at the smallest
-      --  one that starts at the same point.
+      --  Get the innermost condition or statement SCO. This relies on the fact
+      --  that for nested sloc ranges, inner always sorts higher. So, in order
+      --  to find the innermost range containing a given sloc, we just find
+      --  the last one that starts no later than that sloc (i.e.
+      --  Floor (Sloc, Sloc)).
 
       Cur := Sloc_To_SCO_Map (L_Sloc.Source_File, Condition).Floor
-        ((L_Sloc.L, No_Local_Location));
-
-      loop
-         Prev := Previous (Cur);
-         exit when Prev = No_Element
-           or else Key (Prev).First_Sloc /= Key (Cur).First_Sloc;
-         Cur := Prev;
-      end loop;
-
+        ((L_Sloc.L, L_Sloc.L));
       if Cur /= No_Element then
          SCO := Element (Cur);
          SCO_Sloc := Key (Cur);
@@ -2689,7 +2667,7 @@ package body SC_Obligations is
       --  with a statement.
 
       Cur := Sloc_To_SCO_Map (L_Sloc.Source_File, Statement).Floor
-        ((L_Sloc.L, No_Local_Location));
+        ((L_Sloc.L, L_Sloc.L));
       if Cur /= No_Element
             and then
          (SCO = No_SCO_Id or else SCO_Sloc < Key (Cur))

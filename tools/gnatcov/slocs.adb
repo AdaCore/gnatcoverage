@@ -52,11 +52,17 @@ package body Slocs is
    end "<";
 
    function "<" (L, R : Local_Source_Location_Range) return Boolean is
+     --  Earlier sorts lower...
+
      (L.First_Sloc < R.First_Sloc
-      or else
-        (L.First_Sloc = R.First_Sloc
-         and then
-         L.Last_Sloc < R.Last_Sloc));
+       or else
+
+     --  For ranges starting at the same point, outer sorts lower: note
+     --  the intentionally reversed comparison on Last_Sloc.
+
+     (L.First_Sloc = R.First_Sloc
+        and then
+      not (L.Last_Sloc <= R.Last_Sloc)));
 
    function "<" (L, R : Source_Location) return Boolean is
    begin
@@ -74,7 +80,8 @@ package body Slocs is
 
    function "<" (L, R : Source_Location_Range) return Boolean is
      (L.Source_File < R.Source_File
-      or else (L.Source_File = R.Source_File and then (L.R < R.R)));
+       or else
+     (L.Source_File = R.Source_File and then (L.R < R.R)));
 
    ----------
    -- "<=" --
