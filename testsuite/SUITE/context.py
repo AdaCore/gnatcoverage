@@ -267,14 +267,6 @@ class Test (object):
         self.flush()
         self.report.close()
 
-        # Cleanup what we know we can, on request
-
-        if self.n_failed == 0 and thistest.options.do_post_run_cleanups:
-            [rm (gp, recursive=True)
-             for gp in ('tmp_*', 'st_*', 'dc_*', 'mc_*', 'uc_*', 'obj', 'obj_*',
-                        '[0-9]', '*.adb.*', 'test.py.log')
-             ]
-
     # -------------------------
     # -- create_callgrind_id --
     # -------------------------
@@ -309,10 +301,6 @@ class Test (object):
                         metavar='QUALIF_LEVEL',
                         help='The target qualification level when we are '
                              'running in qualification mode.')
-
-        main.add_option('--post-run-cleanups', dest='do_post_run_cleanups',
-                        action='store_true', default=False,
-                        help='do best effort post-run cleanup of temp artifacts')
 
         # --cargs[:<lang>] family
 

@@ -921,9 +921,6 @@ class TestSuite:
         if mopt.gprmode:
             testcase_cmd.append('--gprmode')
 
-        if mopt.do_post_run_cleanups:
-            testcase_cmd.append('--post-run-cleanup')
-
         if mopt.kernel:
             testcase_cmd.append('--kernel=%s' % mopt.kernel)
 
@@ -1018,7 +1015,9 @@ class TestSuite:
                 % self.n_consecutive_failures)
 
     def collect_result(self, test, _process, _job_info):
-        """MainLoop hook to collect results for a non-dead TEST instance."""
+        """MainLoop hook to collect results for a non-dead TEST instance
+        once it has run. Take the opportunity to perform post-run cleanups
+        on request if the test succeded."""
 
         test.end_time = time.time()
 
@@ -1030,6 +1029,9 @@ class TestSuite:
         self.__log_results_for(test)
         self.__check_stop_after(test)
 
+        if test.status != 'FAILED' and self.options.do_post_run_cleanups:
+            test.do_post_run_cleanups()
+        
     def odiff_for(self, test):
         """Returns path to diff file in the suite output directory.  This file
         is used to generate report and results files."""
@@ -1336,6 +1338,20 @@ class TestCase(object):
 
     def latched_status(self):
         return load_from (self.stdf())
+
+    def do_post_run_cleanups(self):
+        """Cleanup temporary artifacts from the testcase directory."""
+
+        # In principle, most of this is the spawned test.py responsibilty,
+        # because _it_ knows what it creates etc.  We have artifacts of our
+        # own though (dump files for qualif runs, for example), and removing
+        # these correctly can only be done from here. Doing the rest as well
+        # is just simpler and more efficient.
+
+        [rm (os.path.join(self.testdir, gp), recursive=True)
+         for gp in ('tmp_*', 'st_*', 'dc_*', 'mc_*', 'uc_*', 'obj', 'obj_*',
+                    '[0-9]', '*.adb.*', 'test.py.log', '*.dump')
+         ]
 
     # --------------------------------------
     # -- Testscase specific discriminants --
