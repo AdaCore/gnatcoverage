@@ -1100,6 +1100,9 @@ package body Coverage.Source is
       procedure Q (SCI : RW_Source_Coverage_Info_Access);
       --  Set Result to SCI if SCI.Tag = Tag
 
+      procedure QV (SCIV : SCI_Vectors.Vector);
+      --  Run Q for each element of SCIV, stopping if Result is set
+
       -------
       -- Q --
       -------
@@ -1111,22 +1114,29 @@ package body Coverage.Source is
          end if;
       end Q;
 
+      --------
+      -- QV --
+      --------
+
+      procedure QV (SCIV : SCI_Vectors.Vector) is
+      begin
+         for J in SCIV.First_Index .. SCIV.Last_Index loop
+            SCIV.Query_Element (J, Q'Access);
+            exit when Result /= null;
+         end loop;
+      end QV;
+
    --  Start of processing for Get_SCI
 
    begin
       if SCO in SCI_Vector.First_Index .. SCI_Vector.Last_Index then
-         declare
-            SCIV : SCI_Vectors.Vector renames SCI_Vector (SCO);
-         begin
-            for J in SCIV.First_Index .. SCIV.Last_Index loop
-               SCIV.Query_Element (J, Q'Access);
-               if Result /= null then
-                  return Source_Coverage_Info_Access (Result);
-               end if;
-            end loop;
-         end;
+         SCI_Vector.Query_Element (SCO, QV'Access);
       end if;
-      return Default_SCIs (Kind (SCO));
+
+      return
+        (if Result /= null
+         then Source_Coverage_Info_Access (Result)
+         else Default_SCIs (Kind (SCO)));
    end Get_SCI;
 
    --------------------
