@@ -45,7 +45,7 @@
   <artifact_factory class="Root_Document">
     <on_location pattern="default:///plans/qmconf.py"
                  type="content"/>
-    <creates location="$location.container" name="plans"/>
+    <creates location="$location.container" name="PLANS"/>
   </artifact_factory>
 
   <artifact_factory class="PDF">
@@ -66,7 +66,7 @@
     <on_location relative_factory="Plan_Chapters"
                  pattern="$relative.location/*/content.rst"
                  type="content"/>
-    <on_location relative_instance="/plans"
+    <on_location relative_instance="/PLANS"
                  pattern="$relative.location/*/content.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename"/>
@@ -77,11 +77,11 @@
   <artifact_factory class="Root_Document">
     <on_location pattern="tor:///qmconf.py"
                  type="content"/>
-    <creates location="$location.container" name="TOR_Doc"/>
+    <creates location="$location.container" name="TOR"/>
   </artifact_factory>
 
   <artifact_factory name="Intro" class="Chapter">
-    <on_location relative_instance="/TOR_Doc"
+    <on_location relative_instance="/TOR"
                  pattern="$relative.location/*/content.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename"/>
@@ -97,7 +97,7 @@
     <on_location relative_class="Appendix"
                  pattern="$relative.location/*/app.rst"
                  type="content"/>
-    <on_location relative_instance="/TOR_Doc"
+    <on_location relative_instance="/TOR"
                  pattern="$relative.location/Appendix/content.rst"
                  type="content"/>
     <creates location="$location.container" name="$location.basename"/>
@@ -236,7 +236,7 @@
   </artifact_factory>
 
   <artifact_factory class="Ada_Sources">
-    <on_location relative_instance="/TOR_Doc/Ada"
+    <on_location relative_instance="/TOR/Ada"
                  pattern="$relative.location/src/*.ad?"
                  type="content"/>
     <on_location relative_class="Req"
