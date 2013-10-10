@@ -290,6 +290,10 @@ def remove (path):
         mv (path, local_name)
         rm (local_name, recursive=os.path.isdir(local_name))
 
+def remote_in (path):
+    components = path.split(':')
+    return components[0] if len(components) > 1 else None
+
 # =======================================================================
 # ==              QUALIF MATERIAL GENERATION HELPER CLASS              ==
 # =======================================================================
@@ -799,11 +803,7 @@ def commandline():
         )
     op.add_option (
         "--runtests", dest="runtests", action="store_true", default=None,
-        help=(
-            "Run the tests prior to fetching results from testsuite-dir."
-            "Pass the option value as arguments to the testsuite toplevel "
-            "driver, useful e.g. for --target, or -j."
-            )
+        help="Run the tests prior to fetching results from testsuite-dir."
         )
     op.add_option (
         "--runtests-flags", dest="runtests_flags", default="",
@@ -892,6 +892,15 @@ def check_valid(options, args):
             % options.rootdir
         )
 
+    # We don't know how to run the tests remotely
+
+    print remote_in(options.testsuite_dir)
+    exit_if (
+        options.runtests and options.testsuite_dir
+        and remote_in (options.testsuite_dir),
+        "Running the tests on a remote testsuite dir is not supported."
+        )
+
     # Are we producing a kit ? A few extra things to check if so ...
 
     kitp = not options.parts
@@ -975,7 +984,7 @@ if __name__ == "__main__":
     # Make sure that directory options are absolute dirs, to
     # facilitate switching back and forth from one to the other:
 
-    if options.testsuite_dir:
+    if options.testsuite_dir and not remote_in (options.testsuite_dir):
         options.testsuite_dir = os.path.abspath (options.testsuite_dir)
     if options.str_dir:
         options.str_dir = os.path.abspath (options.str_dir)
