@@ -186,6 +186,9 @@ package body Decision_Map is
 
       Stats          : Branch_Statistics;
       --  Statistics on conditional branches in the routine being analyzed
+
+      Subprg         : Address_Info_Acc;
+      --  Info of enclosing subprogram
    end record;
 
    procedure Analyze_Routine
@@ -267,8 +270,8 @@ package body Decision_Map is
 
    procedure Analyze (Exe_File : Exe_File_Acc) is
       Sym_It : Addresses_Iterator;
-      Sym    : Addresses_Info_Acc;
-      Sec    : Addresses_Info_Acc;
+      Sym    : Address_Info_Acc;
+      Sec    : Address_Info_Acc;
 
       First_Symbol_Occurrence : Boolean;
       Subp_Key                : Subprogram_Key;
@@ -332,7 +335,7 @@ package body Decision_Map is
    procedure Analyze_Call (Exe : Exe_File_Acc; BB : in out Basic_Block) is
       pragma Assert (BB.Branch = Br_Call);
 
-      Sym : constant Addresses_Info_Acc :=
+      Sym : constant Address_Info_Acc :=
         Get_Symbol (Exe.all, BB.Branch_Dest.Target);
 
    begin
@@ -872,8 +875,9 @@ package body Decision_Map is
       function Decision_Of_Jump (Jump_PC : Pc_Type) return SCO_Id is
          D_SCO_For_Jump : SCO_Id;
       begin
-         D_SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Exe.all, Jump_PC),
-                                        Include_Decisions => True);
+         D_SCO_For_Jump :=
+           Sloc_To_SCO (Get_Sloc (Ctx.Subprg.Lines, Jump_PC),
+                        Include_Decisions => True);
          if D_SCO_For_Jump /= No_SCO_Id
               and then Kind (D_SCO_For_Jump) = Condition
          then
@@ -1155,7 +1159,7 @@ package body Decision_Map is
       is
          Cond_Branch_PC   : Pc_Type renames CB_Loc.PC;
          Cond_Branch_Sloc : constant Source_Location :=
-                              Get_Sloc (Exe.all, Cond_Branch_PC);
+                              Get_Sloc (Ctx.Subprg.Lines, Cond_Branch_PC);
 
          procedure Mark_Successors
            (Dest_PC         : Pc_Type;
@@ -1304,12 +1308,15 @@ package body Decision_Map is
 
          if CBI.Edges (Branch).Dest_Kind = Unknown
               and then
-            Get_Sloc (Exe.all, CBI.Edges (Branch).Destination.Target)
+            Get_Sloc
+              (Ctx.Subprg.Lines, CBI.Edges (Branch).Destination.Target)
               = Cond_Branch_Sloc
               and then
             CBI.Edges (Fallthrough).Dest_Kind = Unknown
               and then
-            Get_Sloc (Exe.all, CBI.Edges (Fallthrough).Destination.Target)
+            Get_Sloc
+              (Ctx.Subprg.Lines,
+               CBI.Edges (Fallthrough).Destination.Target)
               = Cond_Branch_Sloc
          then
             for Edge of CBI.Edges loop
@@ -1448,7 +1455,7 @@ package body Decision_Map is
             declare
                BB       : constant Basic_Block := Find_Basic_Block
                  (Ctx.Basic_Blocks, CBE.Destination.Target);
-               Sec      : constant Addresses_Info_Acc := Get_Address_Info
+               Sec      : constant Address_Info_Acc := Get_Address_Info
                  (Exe.all, Section_Addresses, BB.From);
                Line     : String (1 .. 1);
                Line_Pos : Natural := 0;
@@ -1837,7 +1844,7 @@ package body Decision_Map is
          end if;
          Visited_BB.Insert (BB.From);
 
-         Next_PC_Sloc := Get_Sloc (Exe.all, Next_PC);
+         Next_PC_Sloc := Get_Sloc (Ctx.Subprg.Lines, Next_PC);
 
          --  Check for exception or outcome using dominance information.
          --  Note that this relies on an accurate mapping of slocs to
@@ -1907,7 +1914,7 @@ package body Decision_Map is
 
          --  Condition or Statement
 
-         SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Exe.all, BB.To_PC));
+         SCO_For_Jump := Sloc_To_SCO (Get_Sloc (Ctx.Subprg.Lines, BB.To_PC));
 
          --  Decision
 
@@ -2167,10 +2174,13 @@ package body Decision_Map is
          Put_Line ("Building decision map for " & Subp_Name);
       end if;
 
+      Context.Subprg :=
+        Get_Address_Info (Exec.all, Subprogram_Addresses, Insns'First);
+
       --  First pass: instruction scan
 
       --  In this pass, we record all basic blocks, and we make a note of any
-      --  conditional branch instrcution that needs to be analyzed.
+      --  conditional branch instruction that needs to be analyzed.
 
       PC := Insns'First;
       New_Basic_Block;
@@ -2192,7 +2202,7 @@ package body Decision_Map is
             Branch_Dest : Dest;
             FT_Dest     : Dest;
             Tslocs      : constant Tagged_Slocs :=
-                            Tag_Provider.Get_Slocs_And_Tags (Exec, PC);
+                            Tag_Provider.Get_Slocs_And_Tags (PC);
             --  Properties of Insn
 
          begin

@@ -110,7 +110,7 @@ package body Files_Table is
      (File  : Source_File_Index;
       State : Line_State;
       Line  : Positive;
-      Addrs : Addresses_Info_Acc;
+      Addrs : Address_Info_Acc;
       Base  : Traces_Base_Acc;
       Exec  : Exe_File_Acc)
    is

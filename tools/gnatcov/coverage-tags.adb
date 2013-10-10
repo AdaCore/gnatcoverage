@@ -26,8 +26,14 @@ package body Coverage.Tags is
      (TP        : access Tag_Provider_Type;
       Subp_Info : Traces_Names.Subprogram_Info)
    is
+      Subprogram_Info : constant Address_Info_Acc :=
+                          Get_Address_Info
+                            (Exec => Subp_Info.Exec.all,
+                             Kind => Subprogram_Addresses,
+                             PC   => Subp_Info.Insns'First);
    begin
       TP.Current_Routine := Subp_Info;
+      TP.Current_Subp    := Subprogram_Info;
    end Enter_Routine;
 
    ------------------------
@@ -35,13 +41,11 @@ package body Coverage.Tags is
    ------------------------
 
    overriding function Get_Slocs_And_Tags
-     (TP  : access Default_Tag_Provider_Type;
-      Exe : Exe_File_Acc;
-      PC  : Pc_Type) return Tagged_Slocs
+     (TP : access Default_Tag_Provider_Type;
+      PC : Pc_Type) return Tagged_Slocs
    is
-      pragma Unreferenced (TP);
    begin
-      return Get_Slocs_With_Tag (Exe, PC, No_SC_Tag);
+      return Get_Slocs_With_Tag (TP.Current_Subp.Lines, PC, No_SC_Tag);
    end Get_Slocs_And_Tags;
 
    ------------------------
@@ -49,11 +53,11 @@ package body Coverage.Tags is
    ------------------------
 
    function Get_Slocs_With_Tag
-     (Exe : Exe_File_Acc;
+     (Set : Address_Info_Sets.Set;
       PC  : Pc_Type;
       Tag : SC_Tag) return Tagged_Slocs
    is
-      Slocs : constant Source_Locations := Get_Slocs (Exe.all, PC);
+      Slocs : constant Source_Locations := Get_Slocs (Set, PC);
    begin
       return Tslocs : Tagged_Slocs (Slocs'Range) do
          for J in Slocs'Range loop

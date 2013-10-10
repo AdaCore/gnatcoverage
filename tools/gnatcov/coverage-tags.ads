@@ -37,6 +37,7 @@ package Coverage.Tags is
 
    type Tag_Provider_Type is abstract tagged limited record
       Current_Routine : Subprogram_Info;
+      Current_Subp    : Address_Info_Acc;
    end record;
 
    type Tagged_Sloc is record
@@ -48,9 +49,8 @@ package Coverage.Tags is
    --  Note: must have the same index base subtype as Slocs.Source_Locations
 
    function Get_Slocs_And_Tags
-     (TP  : access Tag_Provider_Type;
-      Exe : Exe_File_Acc;
-      PC  : Pc_Type) return Tagged_Slocs is abstract;
+     (TP : access Tag_Provider_Type;
+      PC : Pc_Type) return Tagged_Slocs is abstract;
    --  Return a list of (sloc; tag) pairs for the given executable location.
    --  Note that for PC that is associatied with more than one sloc (i.e. more
    --  than one SCO), the relevant tag may be different for each sloc/SCO.
@@ -80,9 +80,8 @@ package Coverage.Tags is
    type Default_Tag_Provider_Type is new Tag_Provider_Type with private;
 
    overriding function Get_Slocs_And_Tags
-     (TP  : access Default_Tag_Provider_Type;
-      Exe : Exe_File_Acc;
-      PC  : Pc_Type) return Tagged_Slocs;
+     (TP : access Default_Tag_Provider_Type;
+      PC : Pc_Type) return Tagged_Slocs;
    --  Return all slocs for PC tagged with No_SC_Tag
 
    overriding function Tag_Name
@@ -98,7 +97,7 @@ package Coverage.Tags is
    ----------------------
 
    function Get_Slocs_With_Tag
-     (Exe : Exe_File_Acc;
+     (Set : Address_Info_Sets.Set;
       PC  : Pc_Type;
       Tag : SC_Tag) return Tagged_Slocs;
    --  Return all slocs for PC, tagged with Tag

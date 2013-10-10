@@ -93,7 +93,7 @@ package Traces_Names is
 
    procedure Key_From_Symbol
      (Exec : Exe_File_Acc;
-      Sym  : Addresses_Info_Acc;
+      Sym  : Address_Info_Acc;
       Key  : out Subprogram_Key);
    --  Format a "Key" for the "Sym" symbol in the "Exec" binary file.
 

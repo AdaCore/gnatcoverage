@@ -1256,7 +1256,7 @@ begin
             ---------------
 
             procedure Dump_Exec (Exec_File_Name : String) is
-               To_Display : Addresses_Kind;
+               To_Display : Address_Info_Kind;
             begin
                Open_File (Exec, Exec_File_Name, Text_Start);
                Build_Sections (Exec);
@@ -1530,7 +1530,7 @@ begin
                use Interfaces;
 
                Exe_File                : Exe_File_Acc;
-               Current_Sym             : Addresses_Info_Acc;
+               Current_Sym             : Address_Info_Acc;
                Current_Subp_Key        : Subprogram_Key;
                Current_Subp_Info       : aliased Subprogram_Info;
                Current_Subp_Info_Valid : Boolean;

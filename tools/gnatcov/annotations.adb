@@ -179,8 +179,8 @@ package body Annotations is
 
       --  Local variables
 
-      Instruction_Set : Addresses_Info_Acc;
-      Sec_Info        : Addresses_Info_Acc;
+      Instruction_Set : Address_Info_Acc;
+      Sec_Info        : Address_Info_Acc;
       Ls              : constant Any_Line_State := Aggregated_State (LI);
       In_Symbol       : Boolean;
 
@@ -203,9 +203,9 @@ package body Annotations is
          declare
             use Interfaces;
 
-            Label : constant String :=
+            Label  : constant String :=
               Get_Label (Info.Exec.all, Instruction_Set);
-            Symbol : constant Addresses_Info_Acc :=
+            Symbol : constant Address_Info_Acc :=
               Get_Symbol (Info.Exec.all, Instruction_Set.First);
          begin
             if Label'Length > 0 and then Symbol /= null then

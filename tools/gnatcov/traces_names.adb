@@ -56,9 +56,8 @@ package body Traces_Names is
    end record;
 
    overriding function Get_Slocs_And_Tags
-     (TP  : access Routine_Tag_Provider_Type;
-      Exe : Exe_File_Acc;
-      PC  : Pc_Type) return Tagged_Slocs;
+     (TP : access Routine_Tag_Provider_Type;
+      PC : Pc_Type) return Tagged_Slocs;
 
    overriding function Tag_Name
      (TP  : access Routine_Tag_Provider_Type;
@@ -224,7 +223,7 @@ package body Traces_Names is
 
    procedure Key_From_Symbol
      (Exec : Exe_File_Acc;
-      Sym  : Addresses_Info_Acc;
+      Sym  : Address_Info_Acc;
       Key  : out Subprogram_Key)
    is
       CU_Filename, CU_Directory : String_Access;
@@ -561,7 +560,6 @@ package body Traces_Names is
 
    overriding function Get_Slocs_And_Tags
      (TP  : access Routine_Tag_Provider_Type;
-      Exe : Exe_File_Acc;
       PC  : Pc_Type) return Tagged_Slocs
    is
       use type Pc_Type;
@@ -569,7 +567,8 @@ package body Traces_Names is
       pragma Assert
         (PC in TP.Current_Routine.Insns'First + TP.Current_Routine.Offset
             .. TP.Current_Routine.Insns'Last  + TP.Current_Routine.Offset);
-      return Get_Slocs_With_Tag (Exe, PC, TP.Current_Routine.Routine_Tag);
+      return Get_Slocs_With_Tag
+        (TP.Current_Subp.Lines, PC, TP.Current_Routine.Routine_Tag);
    end Get_Slocs_And_Tags;
 
    --------------

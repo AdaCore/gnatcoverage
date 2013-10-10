@@ -66,16 +66,13 @@ package body Slocs is
 
    function "<" (L, R : Source_Location) return Boolean is
    begin
-      if L.Source_File = No_Source_File then
-         return False;
+      --  Note: No_Source_Location must sort higher than any specific source
+      --  location, and No_Source_File sorts *lower* than any specific source
+      --  file index, so the comparison between L.Source_File and R.Source_File
+      --  is intentionally reversed.
 
-      elsif R.Source_File = No_Source_File then
-         return True;
-
-      else
-         return (L.Source_File < R.Source_File
-                 or else (L.Source_File = R.Source_File and then L.L < R.L));
-      end if;
+      return (L.Source_File > R.Source_File
+              or else (L.Source_File = R.Source_File and then L.L < R.L));
    end "<";
 
    function "<" (L, R : Source_Location_Range) return Boolean is

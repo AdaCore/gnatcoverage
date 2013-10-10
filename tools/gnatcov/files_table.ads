@@ -75,7 +75,7 @@ package Files_Table is
      (File  : Source_File_Index;
       State : Line_State;
       Line  : Positive;
-      Addrs : Addresses_Info_Acc;
+      Addrs : Address_Info_Acc;
       Base  : Traces_Base_Acc;
       Exec  : Exe_File_Acc);
    --  Add File:Line to set of known source lines, if it doesn't exist already.
@@ -101,7 +101,7 @@ package Files_Table is
       State : Line_State;
       --  Coverage of this instruction set
 
-      Instruction_Set : Addresses_Info_Acc;
+      Instruction_Set : Address_Info_Acc;
       --  Range of instruction handled by this record
 
       Base : Traces_Base_Acc;

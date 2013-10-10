@@ -38,7 +38,6 @@ with Snames;        use Snames;
 with Strings;       use Strings;
 with Switches;      use Switches;
 with Traces_Elf;    use Traces_Elf;
-with Traces_Names;  use Traces_Names;
 with Types;         use Types;
 
 package body SC_Obligations is
@@ -418,22 +417,15 @@ package body SC_Obligations is
    -- Instance coverage --
    -----------------------
 
-   type Instance_Tag_Provider_Type is new Tag_Provider_Type with record
-      Current_CU : CU_Id;
-   end record;
+   type Instance_Tag_Provider_Type is new Tag_Provider_Type with null record;
 
    overriding function Get_Slocs_And_Tags
-     (TP  : access Instance_Tag_Provider_Type;
-      Exe : Exe_File_Acc;
-      PC  : Pc_Type) return Tagged_Slocs;
+     (TP : access Instance_Tag_Provider_Type;
+      PC : Pc_Type) return Tagged_Slocs;
 
    overriding function Tag_Name
      (TP  : access Instance_Tag_Provider_Type;
       Tag : SC_Tag) return String;
-
-   overriding procedure Enter_Routine
-     (TP        : access Instance_Tag_Provider_Type;
-      Subp_Info : Subprogram_Info);
 
    package R is new Tag_Providers.Register_Factory
      (Name => "instance", T => Instance_Tag_Provider_Type);
@@ -1220,24 +1212,6 @@ package body SC_Obligations is
       return Enclosing (Statement, SCO);
    end Enclosing_Statement;
 
-   -------------------
-   -- Enter_Routine --
-   -------------------
-
-   overriding procedure Enter_Routine
-     (TP        : access Instance_Tag_Provider_Type;
-      Subp_Info : Subprogram_Info)
-   is
-      Subprogram_Info : constant Addresses_Info_Acc :=
-                          Get_Address_Info
-                            (Exec => Subp_Info.Exec.all,
-                             Kind => Subprogram_Addresses,
-                             PC   => Subp_Info.Insns'First);
-   begin
-      Tag_Provider_Type (TP.all)'Access.Enter_Routine (Subp_Info);
-      TP.Current_CU := Subprogram_Info.Subprogram_CU;
-   end Enter_Routine;
-
    ----------------
    -- First_Sloc --
    ----------------
@@ -1291,27 +1265,38 @@ package body SC_Obligations is
    -------------
 
    overriding function Get_Slocs_And_Tags
-     (TP  : access Instance_Tag_Provider_Type;
-      Exe : Exe_File_Acc;
-      PC  : Pc_Type) return Tagged_Slocs
+     (TP : access Instance_Tag_Provider_Type;
+      PC : Pc_Type) return Tagged_Slocs
    is
       use SCOs;
       use type Pc_Type;
       use type Interfaces.Unsigned_32;
 
-      Line_Infos : constant Addresses_Info_Arr :=
-        Get_Address_Infos (Exe.all, Line_Addresses, PC);
+      Line_Infos : constant Address_Info_Arr :=
+        Get_Address_Infos (TP.Current_Subp.Lines, Line_Addresses, PC);
 
       Tslocs : Tagged_Slocs (1 .. Integer (Line_Infos'Length));
       Last   : Natural := Tslocs'First - 1;
 
       Global_Instance_Index : Inst_Id;
+
+      CU  : CU_Id renames TP.Current_Subp.Subprogram_CU;
+      CUI : CU_Info;
+      Has_Instances : Boolean;
+
    begin
       pragma Assert
         (PC in TP.Current_Routine.Insns'First + TP.Current_Routine.Offset
             .. TP.Current_Routine.Insns'Last  + TP.Current_Routine.Offset);
 
-      for Line_Info of Get_Address_Infos (Exe.all, Line_Addresses, PC) loop
+      if CU /= No_CU_Id then
+         CUI := CU_Vector.Element (CU);
+         Has_Instances := CUI.First_Instance <= CUI.Last_Instance;
+      else
+         Has_Instances := False;
+      end if;
+
+      for Line_Info of Line_Infos loop
          if Line_Info.Last >= Line_Info.First then
             Last := Last + 1;
             Tslocs (Last).Sloc := Line_Info.Sloc;
@@ -1319,26 +1304,21 @@ package body SC_Obligations is
             --  Discriminator is an instance index if instance table is present
             --  (SCOs loaded) and not empty.
 
-            if Line_Info.Disc /= 0
-                 and then TP.Current_CU /= No_CU_Id
-                 and then CU_Vector (TP.Current_CU).First_Instance
-                       <= CU_Vector (TP.Current_CU).Last_Instance
-            then
+            if Has_Instances and then Line_Info.Disc /= 0 then
+
                --  Non-zero discriminator found: it is an instance index within
                --  the current compilation unit. Convert it to a global
                --  instance index, and cast to tag.
 
                Global_Instance_Index :=
-                 CU_Vector (TP.Current_CU).First_Instance
-                              + Inst_Id (Line_Info.Disc - 1);
+                 CUI.First_Instance + Inst_Id (Line_Info.Disc - 1);
 
                pragma Assert
-                 (Global_Instance_Index
-                    <= CU_Vector (TP.Current_CU).Last_Instance);
+                 (Global_Instance_Index <= CUI.Last_Instance);
 
                pragma Assert
                  (Inst_Vector.Element (Global_Instance_Index).Comp_Unit
-                    = TP.Current_CU);
+                    = TP.Current_Subp.Subprogram_CU);
 
                Tslocs (Last).Tag := Valid_SC_Tag (Global_Instance_Index);
             else

@@ -26,7 +26,7 @@ package Traces_Disa is
 
    --  Return the symbol for Addr followed by a colon (':').
    --  Return an empty string if none.
-   function Get_Label (Sym : Symbolizer'Class; Info : Addresses_Info_Acc)
+   function Get_Label (Sym : Symbolizer'Class; Info : Address_Info_Acc)
                       return String;
 
    type Disassemble_Cb is access procedure (Addr : Pc_Type;

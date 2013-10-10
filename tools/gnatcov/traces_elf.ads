@@ -102,16 +102,16 @@ package Traces_Elf is
    --  produce the given trace file, return why. Return an empty string
    --  otherwise.
 
-   type Addresses_Info;
-   type Addresses_Info_Acc is access all Addresses_Info;
-   type Addresses_Info_Arr is array (Positive range <>) of Addresses_Info_Acc;
+   type Address_Info;
+   type Address_Info_Acc is access all Address_Info;
+   type Address_Info_Arr is array (Positive range <>) of Address_Info_Acc;
 
    procedure Build_Sections (Exec : in out Exe_File_Type);
    --  Build sections map for the current ELF file
 
    procedure Load_Section_Content
      (Exec : Exe_File_Type;
-      Sec  : Addresses_Info_Acc);
+      Sec  : Address_Info_Acc);
    --  Load the content of a section
 
    procedure Load_Code_And_Traces
@@ -141,17 +141,17 @@ package Traces_Elf is
    --  If Base is not null, line state is initialized with object coverage
    --  status for each line.
 
-   procedure Disp_Address (El : Addresses_Info_Acc);
-   function Image (El : Addresses_Info_Acc) return String;
+   procedure Disp_Address (El : Address_Info_Acc);
+   function Image (El : Address_Info_Acc) return String;
    --  Display or return information about El (for debugging purposes)
 
-   type Addresses_Kind is
+   type Address_Info_Kind is
      (Section_Addresses,
       Subprogram_Addresses,
       Symbol_Addresses,
       Line_Addresses);
 
-   procedure Disp_Addresses (Exe : Exe_File_Type; Kind : Addresses_Kind);
+   procedure Disp_Addresses (Exe : Exe_File_Type; Kind : Address_Info_Kind);
    --  Display the list of addresses for items of the indicated Kind in Exe
 
    procedure Disp_Compilation_Units (Exec : Exe_File_Type);
@@ -170,34 +170,34 @@ package Traces_Elf is
 
    procedure Init_Iterator
      (Exe  : Exe_File_Type;
-      Kind : Addresses_Kind;
+      Kind : Address_Info_Kind;
       It   : out Addresses_Iterator);
 
    procedure Next_Iterator
      (It   : in out Addresses_Iterator;
-      Addr : out Addresses_Info_Acc);
+      Addr : out Address_Info_Acc);
 
-   function "<" (L, R : Addresses_Info_Acc) return Boolean;
-   --  Compare L and R by start address order in designated Addresses_Info
+   function "<" (L, R : Address_Info_Acc) return Boolean;
+   --  Compare L and R by start address order in designated Address_Info
    --  record. For records with the same start address, compare names (for
    --  sections, subprograms or symbols) or slocs (for sloc info), with unset
    --  (null / No_Location) values sorting higher than any specific set value.
    --  Note that the end address is not part of the comparison key.
 
-   package Addresses_Containers is new Ada.Containers.Ordered_Sets
-     (Element_Type => Addresses_Info_Acc);
+   package Address_Info_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Address_Info_Acc);
 
    type DIE_CU_Id is new Natural;
    No_DIE_CU_Id : constant DIE_CU_Id := 0;
    subtype Valid_DIE_CU_Id is
       DIE_CU_Id range No_DIE_CU_Id + 1 ..  DIE_CU_Id'Last;
 
-   type Addresses_Info (Kind : Addresses_Kind := Section_Addresses) is record
+   type Address_Info (Kind : Address_Info_Kind) is record
       --  Range of the info
 
       First, Last : Traces.Pc_Type;
 
-      Parent : Addresses_Info_Acc;
+      Parent : Address_Info_Acc;
 
       --  Note: this is NOT the parent node in the sense of the DWARF tree.
 
@@ -217,10 +217,13 @@ package Traces_Elf is
          when Subprogram_Addresses =>
             Subprogram_Name   : String_Access;
             Subprogram_CU     : CU_Id;
-            --  Compilation Unit (Ada meaning) for SCOs
+            --  Compilation Unit (in the LI file sense) for SCOs
 
             Subprogram_DIE_CU : DIE_CU_Id;
-            --  Compilation Unit (DWARF meaning) for consolidation
+            --  Compilation Unit (in the DWARF sense) for consolidation
+
+            Lines : aliased Address_Info_Sets.Set;
+            --  Line_Addresses info for this subprogram
 
          when Symbol_Addresses =>
             Symbol_Name   : String_Access;
@@ -240,33 +243,45 @@ package Traces_Elf is
 
    function Get_Address_Info
      (Exec : Exe_File_Type;
-      Kind : Addresses_Kind;
-      PC   : Pc_Type) return Addresses_Info_Acc;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Acc;
    --  Retrieve the descriptor of the given Kind whose range contains address
    --  PC in Exec.
 
    function Get_Address_Infos
      (Exec : Exe_File_Type;
-      Kind : Addresses_Kind;
-      PC   : Pc_Type) return Addresses_Info_Arr;
-   --  Same as Get_Address_Info, but return a set of address infos if there
-   --  are several matches.
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Arr;
+   --  Same as Get_Address_Info, but return an array of matches
+
+   function Get_Address_Info
+     (Set  : Address_Info_Sets.Set;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Acc;
+   --  Retrieve the descriptor from the given Set whose range contains address
+   --  PC in Exec.
+
+   function Get_Address_Infos
+     (Set  : Address_Info_Sets.Set;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Arr;
+   --  Same as Get_Address_Info, but return an array of matches
 
    function Get_Symbol
      (Exec : Exe_File_Type;
-      PC   : Pc_Type) return Addresses_Info_Acc;
+      PC   : Pc_Type) return Address_Info_Acc;
    --  Short-hand for Get_Address_Info (Exec, Symbol_Address, PC)
 
    function Get_Slocs
-     (Exec      : Exe_File_Type;
+     (Set       : Address_Info_Sets.Set;
       PC        : Pc_Type;
       Last_Only : Boolean := False) return Source_Locations;
    --  Use Exec's debug_lines information to determine the slocs for the
    --  instruction at PC.
 
    function Get_Sloc
-     (Exec : Exe_File_Type;
-      PC   : Pc_Type) return Source_Location;
+     (Set : Address_Info_Sets.Set;
+      PC  : Pc_Type) return Source_Location;
    --  Same as Get_Slocs, but returning a unique source location, with a
    --  non-empty range.
 
@@ -288,11 +303,11 @@ package Traces_Elf is
 
    procedure Scan_Symbols_From
      (File   : Exe_File_Acc;
-      Sym_Cb : access procedure (Sym : Addresses_Info_Acc);
+      Sym_Cb : access procedure (Sym : Address_Info_Acc);
       Strict : Boolean);
    procedure Scan_Symbols_From
      (Filename : String;
-      Sym_Cb   : access procedure (Sym : Addresses_Info_Acc);
+      Sym_Cb   : access procedure (Sym : Address_Info_Acc);
       Strict   : Boolean);
    --  Scan FILE/FILENAME for executable symbols, calling SYM_CB for each
    --  unless SYM_CB is null. If STRICT, emit warnings about empty symbols and
@@ -359,7 +374,10 @@ private
      (Key_Type     => Symbol,
       Element_Type => Pc_Type);
 
-   type Desc_Sets_Type is array (Addresses_Kind) of Addresses_Containers.Set;
+   type Desc_Sets_Type is
+     array (Address_Info_Kind range Section_Addresses .. Symbol_Addresses)
+     of aliased Address_Info_Sets.Set;
+   --  Note: line addresses are stored within the enclosing Symbol entry
 
    type Exe_File_Type is limited new Symbolizer with record
       --  Sections index
@@ -388,8 +406,9 @@ private
 
       --  .debug_lines contents
 
-      Lines_Len : Elf_Addr := 0;
-      Lines     : Binary_Content_Acc := null;
+      Lines_Len    : Elf_Addr := 0;
+      Lines        : Binary_Content_Acc := null;
+      Lines_Loaded : Boolean := False;
 
       --  Symbol table
 
@@ -407,7 +426,7 @@ private
    end record;
 
    type Addresses_Iterator is limited record
-      Cur : Addresses_Containers.Cursor;
+      Cur : Address_Info_Sets.Cursor;
    end record;
 
 end Traces_Elf;

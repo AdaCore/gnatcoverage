@@ -152,14 +152,17 @@ package body Traces_Elf is
 
    Empty_String_Acc : constant String_Access := new String'("");
 
-   procedure Free is
-     new Ada.Unchecked_Deallocation (Addresses_Info, Addresses_Info_Acc);
+   function Get_Desc_Set
+     (Exec : Exe_File_Type;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return access constant Address_Info_Sets.Set;
+   --  Return the Address_Info_Set of type Kind in Exec containing PC
 
    ---------
    -- "<" --
    ---------
 
-   function "<" (L, R : Addresses_Info_Acc) return Boolean is
+   function "<" (L, R : Address_Info_Acc) return Boolean is
       pragma Assert (L.Kind = R.Kind);
 
       function Names_Lt (LN, RN : String_Access) return Boolean;
@@ -210,7 +213,7 @@ package body Traces_Elf is
    -- Image --
    -----------
 
-   function Image (El : Addresses_Info_Acc) return String is
+   function Image (El : Address_Info_Acc) return String is
       Range_Img : constant String :=
                     Hex_Image (El.First) & '-' & Hex_Image (El.Last);
 
@@ -260,7 +263,7 @@ package body Traces_Elf is
    -- Disp_Address --
    ------------------
 
-   procedure Disp_Address (El : Addresses_Info_Acc) is
+   procedure Disp_Address (El : Address_Info_Acc) is
    begin
       Put_Line (Image (El));
    end Disp_Address;
@@ -269,8 +272,8 @@ package body Traces_Elf is
    -- Disp_Addresses --
    --------------------
 
-   procedure Disp_Addresses (Exe : Exe_File_Type; Kind : Addresses_Kind) is
-      use Addresses_Containers;
+   procedure Disp_Addresses (Exe : Exe_File_Type; Kind : Address_Info_Kind) is
+      use Address_Info_Sets;
 
       procedure Disp_Address (Cur : Cursor);
       --  Display item at Cur
@@ -287,7 +290,13 @@ package body Traces_Elf is
    --  Start of processing for Disp_Addresses
 
    begin
-      Exe.Desc_Sets (Kind).Iterate (Disp_Address'Access);
+      if Kind = Line_Addresses then
+         for Subp of Exe.Desc_Sets (Subprogram_Addresses) loop
+            Subp.Lines.Iterate (Disp_Address'Access);
+         end loop;
+      else
+         Exe.Desc_Sets (Kind).Iterate (Disp_Address'Access);
+      end if;
    end Disp_Addresses;
 
    ----------------------------
@@ -309,8 +318,8 @@ package body Traces_Elf is
    end Disp_Compilation_Units;
 
    procedure Insert
-     (Set : in out Addresses_Containers.Set;
-      El  : Addresses_Info_Acc) renames Addresses_Containers.Insert;
+     (Set : in out Address_Info_Sets.Set;
+      El  : Address_Info_Acc) renames Address_Info_Sets.Insert;
 
    ---------------
    -- Open_File --
@@ -458,6 +467,23 @@ package body Traces_Elf is
    begin
       return Get_CRC32 (Exec.Exe_File);
    end Get_CRC32;
+
+   ------------------
+   -- Get_Desc_Set --
+   ------------------
+
+   function Get_Desc_Set
+     (Exec : Exe_File_Type;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return access constant Address_Info_Sets.Set
+   is
+   begin
+      if Kind in Exec.Desc_Sets'Range then
+         return Exec.Desc_Sets (Kind)'Unchecked_Access;
+      else pragma Assert (Kind = Line_Addresses);
+         return Get_Address_Info (Exec, Subprogram_Addresses, PC).Lines'Access;
+      end if;
+   end Get_Desc_Set;
 
    ----------------------
    -- Time_Stamp_Image --
@@ -1186,8 +1212,8 @@ package body Traces_Elf is
       At_Abstract_Origin : Unsigned_64 := 0;
       Cu_Base_Pc         : Unsigned_64;
 
-      Current_Sec     : Addresses_Info_Acc;
-      Current_Subprg  : Addresses_Info_Acc;
+      Current_Sec     : Address_Info_Acc;
+      Current_Subprg  : Address_Info_Acc;
       Current_CU      : CU_Id := No_CU_Id;
       Current_DIE_CU  : DIE_CU_Id := No_DIE_CU_Id;
       Compilation_Dir : String_Access;
@@ -1402,7 +1428,7 @@ package body Traces_Elf is
                      end if;
 
                      Current_Subprg :=
-                       new Addresses_Info'
+                       new Address_Info'
                        (Kind              => Subprogram_Addresses,
                         First             => Subprg_Low,
                         Last              =>
@@ -1411,7 +1437,8 @@ package body Traces_Elf is
                         Subprogram_Name   =>
                           new String'(Read_String (At_Name)),
                         Subprogram_CU     => Current_CU,
-                        Subprogram_DIE_CU => Current_DIE_CU);
+                        Subprogram_DIE_CU => Current_DIE_CU,
+                        Lines             => Address_Info_Sets.Empty_Set);
                      Exec.Desc_Sets (Subprogram_Addresses).
                        Insert (Current_Subprg);
                      Subprg_To_PC.Insert (Tag_Off, Pc_Type (At_Low_Pc));
@@ -1438,8 +1465,9 @@ package body Traces_Elf is
                         Cur : constant Symbol_To_PC_Maps.Cursor :=
                            Exec.Symbol_To_PC.Find (Subprg_Sym);
                      begin
-                        --  Sometimes, subprogram DIES references a symbol that
+                        --  Sometimes, subprogram DIEs references a symbol that
                         --  is not present. In these case, just ignore them.
+
                         if Cur /= Symbol_To_PC_Maps.No_Element then
                            Subprg_To_PC.Insert
                              (Tag_Off, Symbol_To_PC_Maps.Element (Cur));
@@ -1592,7 +1620,16 @@ package body Traces_Elf is
       File_Indices  : File_Indices_Vectors.Vector;
       --  Cached file indices for Filenames.
 
-      Last_Line     : Addresses_Info_Acc := null;
+      Cur_Subprg,
+      Cur_Sec    : Address_Info_Sets.Cursor;
+      Subprg,
+      Sec        : Address_Info_Acc;
+      --  Current subprogram and section
+
+      procedure Set_Parents (PC : Pc_Type);
+      --  Set the current subprogram and section for PC
+
+      Last_Line     : Address_Info_Acc := null;
 
       procedure Reset_Lines;
       procedure New_Source_Line;
@@ -1631,7 +1668,7 @@ package body Traces_Elf is
             Last_Line.Is_Last := True;
 
             for Info of Get_Address_Infos
-              (Exec, Line_Addresses, Last_Line.First)
+              (Subprg.Lines, Line_Addresses, Last_Line.First)
             loop
                if Info.Last < Info.First then
                   pragma Assert (not Info.Is_Last);
@@ -1648,7 +1685,7 @@ package body Traces_Elf is
       ---------------------
 
       procedure New_Source_Line is
-         use Addresses_Containers;
+         use Address_Info_Sets;
 
          Pos        : Cursor;
          Inserted   : Boolean;
@@ -1664,8 +1701,7 @@ package body Traces_Elf is
 
          Close_Source_Line;
 
-         --  Note: Last will be updated by Close_Source_Line, and Parent is set
-         --  later on by Build_Debug_Lines.
+         --  Note: Last will be updated by Close_Source_Line
 
          File_Index := File_Indices.Element (File);
          if File_Index = No_Source_File then
@@ -1677,27 +1713,29 @@ package body Traces_Elf is
             File_Indices.Replace_Element (File, File_Index);
          end if;
 
-         Last_Line :=
-           new Addresses_Info'
-           (Kind    => Line_Addresses,
-            First   => Exec.Exe_Text_Start + Pc,
-            Last    => Exec.Exe_Text_Start + Pc,
-            Parent  => null,
-            Sloc    =>
-              (Source_File  => File_Index,
-               L => (Line   => Natural (Line),
-                     Column => Natural (Column))),
-            Disc    => Disc,
-            Is_Last => False);
+         Set_Parents (Exec.Exe_Text_Start + Pc);
+         if Subprg /= null then
+            Last_Line :=
+              new Address_Info'
+                (Kind    => Line_Addresses,
+                 First   => Exec.Exe_Text_Start + Pc,
+                 Last    => Exec.Exe_Text_Start + Pc,
+                 Parent  => (if Subprg /= null then Subprg else Sec),
+                 Sloc    =>
+                   (Source_File  => File_Index,
+                    L            => (Line   => Natural (Line),
+                                     Column => Natural (Column))),
+                 Disc    => Disc,
+                 Is_Last => False);
 
-         Exec.Desc_Sets (Line_Addresses).Insert (Last_Line, Pos, Inserted);
+            Subprg.Lines.Insert (Last_Line, Pos, Inserted);
+            if not Inserted then
 
-         if not Inserted then
+               --  An empty line has already been inserted at PC. Merge it with
+               --  current line.
 
-            --  An empty line has already been inserted at PC. Merge it with
-            --  current line.
-
-            Last_Line := Element (Pos);
+               Last_Line := Element (Pos);
+            end if;
          end if;
          Disc := 0;
       end New_Source_Line;
@@ -1715,6 +1753,51 @@ package body Traces_Elf is
          Column  := 0;
          Disc    := 0;
       end Reset_Lines;
+
+      -----------------
+      -- Set_Parents --
+      -----------------
+
+      procedure Set_Parents (PC : Pc_Type) is
+         use Address_Info_Sets;
+
+         procedure Set_Parent
+           (Kind  : Address_Info_Kind;
+            Cur   : in out Cursor;
+            Cache : in out Address_Info_Acc);
+
+         ----------------
+         -- Set_Parent --
+         ----------------
+
+         procedure Set_Parent
+           (Kind  : Address_Info_Kind;
+            Cur   : in out Cursor;
+            Cache : in out Address_Info_Acc)
+         is
+            PC_Addr : aliased Address_Info (Kind);
+         begin
+            if Cache = null or else PC < Cache.First then
+               PC_Addr.First := PC;
+               PC_Addr.Last  := PC;
+               Cur   := Exec.Desc_Sets (Kind).Floor (PC_Addr'Unchecked_Access);
+            end if;
+
+            if Cur = No_Element then
+               Cache := null;
+            else
+               while Cur /= No_Element loop
+                  Cache := Element (Cur);
+                  exit when PC in Cache.First .. Cache.Last;
+                  Next (Cur);
+               end loop;
+            end if;
+         end Set_Parent;
+
+      begin
+         Set_Parent (Section_Addresses,    Cur_Sec,    Sec);
+         Set_Parent (Subprogram_Addresses, Cur_Subprg, Subprg);
+      end Set_Parents;
 
    --  Start of processing for Read_Debug_Lines
 
@@ -1930,38 +2013,13 @@ package body Traces_Elf is
    -----------------------
 
    procedure Build_Debug_Lines (Exec : in out Exe_File_Type) is
-      use Addresses_Containers;
-
-      function Get_Element (Cur : Cursor) return Addresses_Info_Acc;
-      --  Return the element designated by Cur or null if cur doesn't
-      --  designate an element.
-
-      -----------------
-      -- Get_Element --
-      -----------------
-
-      function Get_Element (Cur : Cursor) return Addresses_Info_Acc is
-      begin
-         if Cur /= No_Element then
-            return Element (Cur);
-         else
-            return null;
-         end if;
-      end Get_Element;
-
-      Cur_Subprg : Cursor;
-      Cur_Sec    : Cursor;
-      Subprg     : Addresses_Info_Acc;
-      Sec        : Addresses_Info_Acc;
-
-   --  Start of processing for Build_Debug_Lines
-
    begin
       --  Return now if already loaded
 
-      if not Exec.Desc_Sets (Line_Addresses).Is_Empty then
+      if Exec.Lines_Loaded then
          return;
       end if;
+      Exec.Lines_Loaded := True;
 
       --  Be sure compile units are loaded
 
@@ -1971,47 +2029,6 @@ package body Traces_Elf is
 
       for Cu of Exec.Compile_Units loop
          Read_Debug_Lines (Exec, Cu.Stmt_List, Cu.Compilation_Directory);
-      end loop;
-
-      --  Set Parent links
-
-      Cur_Subprg := First (Exec.Desc_Sets (Subprogram_Addresses));
-      Subprg := Get_Element (Cur_Subprg);
-
-      Cur_Sec := First (Exec.Desc_Sets (Section_Addresses));
-      Sec := Get_Element (Cur_Sec);
-
-      for Line of Exec.Desc_Sets (Line_Addresses) loop
-
-         --  Be sure Subprg and Sec are correctly set
-
-         while Subprg /= null and then Subprg.Last < Line.First loop
-            Next (Cur_Subprg);
-            Subprg := Get_Element (Cur_Subprg);
-         end loop;
-
-         while Sec /= null and then Sec.Last < Line.First loop
-            Next (Cur_Sec);
-            Sec := Get_Element (Cur_Sec);
-         end loop;
-
-         if Subprg /= null
-           and then Line.First >= Subprg.First
-           and then Line.Last <= Subprg.Last
-         then
-            Line.Parent := Subprg;
-
-         elsif Sec /= null
-           and then Line.First >= Sec.First
-           and then Line.Last <= Sec.Last
-         then
-            Line.Parent := Sec;
-
-         else
-            --  Possible for discarded sections
-
-            Line.Parent := null;
-         end if;
       end loop;
    end Build_Debug_Lines;
 
@@ -2062,7 +2079,7 @@ package body Traces_Elf is
             end if;
 
             Insert (Exec.Desc_Sets (Section_Addresses),
-                    new Addresses_Info'
+                    new Address_Info'
                     (Kind            => Section_Addresses,
                      First           => Addr,
                      Last            => Last,
@@ -2080,11 +2097,11 @@ package body Traces_Elf is
    --------------
 
    function Get_Sloc
-     (Exec : Exe_File_Type;
+     (Set : Address_Info_Sets.Set;
       PC   : Pc_Type) return Source_Location
    is
       SL : constant Source_Locations :=
-             Get_Slocs (Exec, PC, Last_Only => True);
+             Get_Slocs (Set, PC, Last_Only => True);
    begin
       if SL'Length = 0 then
          return Slocs.No_Location;
@@ -2100,14 +2117,14 @@ package body Traces_Elf is
    ---------------
 
    function Get_Slocs
-     (Exec      : Exe_File_Type;
+     (Set       : Address_Info_Sets.Set;
       PC        : Pc_Type;
       Last_Only : Boolean := False) return Source_Locations
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
 
-      Line_Infos : constant Addresses_Info_Arr :=
-                           Get_Address_Infos (Exec, Line_Addresses, PC);
+      Line_Infos : constant Address_Info_Arr :=
+                           Get_Address_Infos (Set, Line_Addresses, PC);
       Result     : Source_Locations (1 .. Natural (Line_Infos'Length));
       Last       : Natural := Result'First - 1;
 
@@ -2154,7 +2171,7 @@ package body Traces_Elf is
       CU_Filename, CU_Directory : out String_Access)
    is
       use Compile_Unit_Vectors;
-      Subp_Info : constant Addresses_Info_Acc :=
+      Subp_Info : constant Address_Info_Acc :=
          Get_Address_Info (Exec, Subprogram_Addresses, PC);
       CU        : Compile_Unit_Desc;
    begin
@@ -2176,7 +2193,7 @@ package body Traces_Elf is
 
    procedure Load_Section_Content
      (Exec : Exe_File_Type;
-      Sec  : Addresses_Info_Acc)
+      Sec  : Address_Info_Acc)
    is
    begin
       if Sec.Section_Content = null then
@@ -2194,11 +2211,11 @@ package body Traces_Elf is
      (Exec : Exe_File_Acc;
       Base : access Traces_Base)
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
 
       Cur : Cursor;
-      Sym : Addresses_Info_Acc;
-      Sec : Addresses_Info_Acc;
+      Sym : Address_Info_Acc;
+      Sec : Address_Info_Acc;
 
       Subp_Key : Traces_Names.Subprogram_Key;
    begin
@@ -2253,60 +2270,60 @@ package body Traces_Elf is
       Base    : Traces_Base_Acc;
       Section : Binary_Content)
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
 
       Cur         : Cursor;
-      Line        : Addresses_Info_Acc;
+      Subprg      : Address_Info_Acc;
       Source_File : Source_File_Index := No_Source_File;
 
       Init_Line_State : Line_State;
 
-      PC_Addr : aliased Addresses_Info (Line_Addresses);
+      PC_Addr : aliased Address_Info (Subprogram_Addresses);
 
    begin
-      --  Note: the following assumes that Section'First is non-zero
+      PC_Addr.First := Section'First;
+      PC_Addr.Last  := Section'First;
 
-      PC_Addr.First := Section'First - 1;
-      PC_Addr.Last  := Section'First - 1;
+      --  Find subprogram at PC
 
-      --  Find line info with lowest start address that is strictly greater
-      --  than Section'First - 1.
-
-      Cur := Exec.Desc_Sets (Line_Addresses).
-               Ceiling (PC_Addr'Unchecked_Access);
+      Cur := Exec.Desc_Sets (Subprogram_Addresses)
+        .Floor (PC_Addr'Unchecked_Access);
 
       --  Iterate on lines
 
       while Cur /= No_Element loop
-         Line := Element (Cur);
+         Subprg := Element (Cur);
 
-         --  Only add lines that are in Section (i.e. whose First address is
-         --  in Section'Range).
+         --  Only consider subprograms that are in Section (i.e. whose First
+         --  address is in Section'Range).
 
-         exit when Line.First > Section'Last;
-         if Line.First >= Section'First then
+         exit when Subprg.First > Section'Last;
 
-            --  Get corresponding file (check previous file for speed-up)
+         for Line of Element (Cur).Lines loop
+            if Line.First >= Section'First then
 
-            if Line.Sloc.Source_File /= Source_File then
-               Source_File := Line.Sloc.Source_File;
+               --  Get corresponding file (check previous file for speed-up)
+
+               if Line.Sloc.Source_File /= Source_File then
+                  Source_File := Line.Sloc.Source_File;
+               end if;
+
+               if Base = null then
+                  Init_Line_State := No_Code;
+               else
+                  Init_Line_State :=
+                    Get_Line_State (Base.all, Line.First, Line.Last);
+               end if;
+
+               Add_Line_For_Object_Coverage
+                 (Source_File,
+                  Init_Line_State,
+                  Line.Sloc.L.Line,
+                  Line,
+                  Base,
+                  Exec);
             end if;
-
-            if Base = null then
-               Init_Line_State := No_Code;
-            else
-               Init_Line_State :=
-                 Get_Line_State (Base.all, Line.First, Line.Last);
-            end if;
-
-            Add_Line_For_Object_Coverage
-              (Source_File,
-               Init_Line_State,
-               Line.Sloc.L.Line,
-               Line,
-               Base,
-               Exec);
-         end if;
+         end loop;
          Next (Cur);
       end loop;
    end Build_Source_Lines_For_Section;
@@ -2318,7 +2335,7 @@ package body Traces_Elf is
    procedure Set_Insn_State
      (Base : in out Traces_Base; Section : Binary_Content)
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
 
       function Coverage_State (State : Insn_State) return Insn_State;
       --  Given the branch coverage state of an instruction, return the state
@@ -2490,12 +2507,12 @@ package body Traces_Elf is
    -------------------
 
    procedure Build_Symbols (Exec : Exe_File_Acc) is
-      use Addresses_Containers;
+      use Address_Info_Sets;
 
       type Addr_Info_Acc_Arr is array (0 .. Get_Shdr_Num (Exec.Exe_File))
-        of Addresses_Info_Acc;
+        of Address_Info_Acc;
       Sections_Info : Addr_Info_Acc_Arr := (others => null);
-      Sec : Addresses_Info_Acc;
+      Sec : Address_Info_Acc;
 
       Symtab_Base : Address;
       Do_Reloc : Boolean;
@@ -2507,7 +2524,7 @@ package body Traces_Elf is
       Offset : Pc_Type;
 
       Sym_Type : Unsigned_8;
-      Sym      : Addresses_Info_Acc;
+      Sym      : Address_Info_Acc;
 
       Cur : Cursor;
       Ok : Boolean;
@@ -2568,7 +2585,7 @@ package body Traces_Elf is
                  + Sections_Info (ESym.St_Shndx).First;
             end if;
 
-            Sym := new Addresses_Info'
+            Sym := new Address_Info'
               (Kind          => Symbol_Addresses,
                First         => Offset + Pc_Type (ESym.St_Value),
                Last          => Offset + Pc_Type
@@ -2581,7 +2598,7 @@ package body Traces_Elf is
                                       (Elf_Addr (ESym.St_Name))'Address)),
                others        => <>);
 
-            Addresses_Containers.Insert
+            Address_Info_Sets.Insert
               (Exec.Desc_Sets (Symbol_Addresses), Sym, Cur, Ok);
          end if;
 
@@ -2621,14 +2638,12 @@ package body Traces_Elf is
    ----------------------
 
    function Get_Address_Info
-     (Exec : Exe_File_Type;
-      Kind : Addresses_Kind;
-      PC   : Pc_Type) return Addresses_Info_Acc
+     (Set  : Address_Info_Sets.Set;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Acc
    is
-      use Addresses_Containers;
-
-      Addr_Infos : constant Addresses_Info_Arr :=
-                     Get_Address_Infos (Exec, Kind, PC);
+      Addr_Infos : constant Address_Info_Arr :=
+                     Get_Address_Infos (Set, Kind, PC);
    begin
       if Addr_Infos'Length = 0 then
          return null;
@@ -2637,37 +2652,43 @@ package body Traces_Elf is
       end if;
    end Get_Address_Info;
 
+   function Get_Address_Info
+     (Exec : Exe_File_Type;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Acc
+   is
+     (Get_Address_Info (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC));
+
    -----------------------
    -- Get_Address_Infos --
    -----------------------
 
    type AI_Cache_Entry is record
-      Last      : Addresses_Containers.Cursor;
-      Last_Exec : access constant Exe_File_Type;
-      Last_Info : Addresses_Info_Acc;
+      Last      : Address_Info_Sets.Cursor;
+      Last_Set  : access constant Address_Info_Sets.Set;
+      Last_Info : Address_Info_Acc;
    end record;
 
-   AI_Cache : array (Addresses_Kind) of AI_Cache_Entry;
+   AI_Cache : array (Address_Info_Kind) of AI_Cache_Entry;
 
    function Get_Address_Infos
-     (Exec : Exe_File_Type;
-      Kind : Addresses_Kind;
-      PC   : Pc_Type) return Addresses_Info_Arr
+     (Set  : Address_Info_Sets.Set;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Arr
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
 
       Cache : AI_Cache_Entry renames AI_Cache (Kind);
 
       Prev, Last : Cursor;
-
-      Count    : Natural := 0;
+      Count      : Natural := 0;
 
    begin
       --  First check whether results for the last lookup still match
 
       if Cache.Last /= No_Element
            and then
-         Exec'Unchecked_Access = Cache.Last_Exec
+         Set'Unchecked_Access = Cache.Last_Set
            and then
          (PC in Cache.Last_Info.First .. Cache.Last_Info.Last
           or else PC = Cache.Last_Info.First)
@@ -2683,24 +2704,23 @@ package body Traces_Elf is
          --  Floor is costly).
 
          declare
-            --  Note: we assume that type Addresses_Info provides adequate
+            --  Note: we assume that type Address_Info provides adequate
             --  default initialization so that setting First and Last only
             --  yields an element that sorts higher than any element with the
             --  same PC and non-default values for other fields (use of Floor
             --  below).
 
-            PC_Addr  : aliased Addresses_Info (Kind);
+            PC_Addr  : aliased Address_Info (Kind);
 
          begin
             PC_Addr.First := PC;
             PC_Addr.Last  := PC;
-            Cache.Last    := Exec.Desc_Sets (Kind).Floor
-              (PC_Addr'Unchecked_Access);
+            Cache.Last    := Set.Floor (PC_Addr'Unchecked_Access);
          end;
 
          if Cache.Last /= No_Element then
             Cache.Last_Info := Element (Cache.Last);
-            Cache.Last_Exec := Exec'Unchecked_Access;
+            Cache.Last_Set  := Set'Unchecked_Access;
          end if;
       end if;
 
@@ -2711,7 +2731,7 @@ package body Traces_Elf is
          exit when Prev = No_Element;
 
          declare
-            Prev_Info : constant Addresses_Info_Acc := Element (Prev);
+            Prev_Info : constant Address_Info_Acc := Element (Prev);
          begin
             exit when not (Prev_Info.First <= PC
                            and then (Prev_Info.First > Prev_Info.Last
@@ -2722,7 +2742,7 @@ package body Traces_Elf is
          Previous (Prev);
       end loop;
 
-      return Result : Addresses_Info_Arr (1 .. Count) do
+      return Result : Address_Info_Arr (1 .. Count) do
          while Count > 0 loop
             Result (Count) := Element (Last);
             Previous (Last);
@@ -2731,13 +2751,19 @@ package body Traces_Elf is
       end return;
    end Get_Address_Infos;
 
+   function Get_Address_Infos
+     (Exec : Exe_File_Type;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Arr is
+     (Get_Address_Infos (Get_Desc_Set (Exec, Kind, PC).all, Kind, PC));
+
    ----------------
    -- Get_Symbol --
    ----------------
 
    function Get_Symbol
      (Exec : Exe_File_Type;
-      PC   : Pc_Type) return Addresses_Info_Acc
+      PC   : Pc_Type) return Address_Info_Acc
    is
    begin
       return Get_Address_Info (Exec, Symbol_Addresses, PC);
@@ -2759,7 +2785,7 @@ package body Traces_Elf is
       procedure Add (Str : String);
       --  Add STR to the line
 
-      Symbol : constant Addresses_Info_Acc := Get_Symbol (Sym, Pc);
+      Symbol : constant Address_Info_Acc := Get_Symbol (Sym, Pc);
 
       ---------
       -- Add --
@@ -2806,10 +2832,10 @@ package body Traces_Elf is
 
    procedure Init_Iterator
      (Exe  : Exe_File_Type;
-      Kind : Addresses_Kind;
+      Kind : Address_Info_Kind;
       It   : out Addresses_Iterator)
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
    begin
       It.Cur := Exe.Desc_Sets (Kind).First;
    end Init_Iterator;
@@ -2819,9 +2845,9 @@ package body Traces_Elf is
    -------------------
 
    procedure Next_Iterator
-     (It : in out Addresses_Iterator; Addr : out Addresses_Info_Acc)
+     (It : in out Addresses_Iterator; Addr : out Address_Info_Acc)
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
    begin
       if It.Cur = No_Element then
          Addr := null;
@@ -2906,7 +2932,7 @@ package body Traces_Elf is
    --------------------------
 
    procedure Disassemble_File_Raw (File : in out Exe_File_Type) is
-      use Addresses_Containers;
+      use Address_Info_Sets;
 
       procedure Local_Disassembler (Cur : Cursor);
       --  Comment needed???
@@ -2918,7 +2944,7 @@ package body Traces_Elf is
       procedure Local_Disassembler (Cur : Cursor) is
          Pc       : Pc_Type;
          Insn_Len : Natural := 0;
-         Sec      : constant Addresses_Info_Acc := Element (Cur);
+         Sec      : constant Address_Info_Acc := Element (Cur);
          Insns    : Binary_Content_Acc;
          Line_Pos : Natural;
          Line     : String (1 .. 128);
@@ -2968,16 +2994,16 @@ package body Traces_Elf is
    ----------------------
 
    procedure Disassemble_File (File : in out Exe_File_Type) is
-      use Addresses_Containers;
+      use Address_Info_Sets;
       Cur : Cursor;
-      Sec : Addresses_Info_Acc;
+      Sec : Address_Info_Acc;
       Addr : Pc_Type;
 
       Cur_Subprg : Cursor;
-      Subprg : Addresses_Info_Acc;
+      Subprg : Address_Info_Acc;
 
       Cur_Symbol : Cursor;
-      Symbol : Addresses_Info_Acc;
+      Symbol : Address_Info_Acc;
 
       Last_Addr : Pc_Type;
    begin
@@ -3148,34 +3174,34 @@ package body Traces_Elf is
 
    procedure Scan_Symbols_From
      (File   : Exe_File_Acc;
-      Sym_Cb : access procedure (Sym : Addresses_Info_Acc);
+      Sym_Cb : access procedure (Sym : Address_Info_Acc);
       Strict : Boolean)
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
 
       Efile : Elf_File renames File.Exe_File;
       --  Corresponding Elf_File - as we do low level accesses
 
       Nbr_Shdr : constant Elf_Half := Get_Shdr_Num (Efile);
 
-      type Set_Acc is access Addresses_Containers.Set;
+      type Set_Acc is access Address_Info_Sets.Set;
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Addresses_Containers.Set, Set_Acc);
+        (Address_Info_Sets.Set, Set_Acc);
       type Set_Acc_Array is array (0 .. Nbr_Shdr) of Set_Acc;
 
       Shdr_Sets : Set_Acc_Array := (others => null);
       --  Addresses container for each relevant sections
 
       procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Addresses_Info, Addresses_Info_Acc);
+        (Address_Info, Address_Info_Acc);
 
       Shdr   : Elf_Shdr_Acc;
       Last   : Pc_Type;
       Addr   : Pc_Type;
       Offset : Pc_Type;
 
-      Sym : Addresses_Info_Acc;
-      Cur_Sym : Addresses_Containers.Cursor;
+      Sym : Address_Info_Acc;
+      Cur_Sym : Address_Info_Sets.Cursor;
 
       Symtab_Len : Elf_Addr;
       Symtabs : Binary_Content_Acc;
@@ -3189,7 +3215,7 @@ package body Traces_Elf is
       Sym_Name : String_Access;
 
       Sym_Type : Unsigned_8;
-      Cur : Addresses_Containers.Cursor;
+      Cur : Address_Info_Sets.Cursor;
       Ok : Boolean;
       Do_Reloc : Boolean;
    begin
@@ -3218,7 +3244,7 @@ package body Traces_Elf is
            and then (Shdr.Sh_Type = SHT_PROGBITS)
            and then Shdr.Sh_Size > 0
          then
-            Shdr_Sets (Idx) := new Addresses_Containers.Set;
+            Shdr_Sets (Idx) := new Address_Info_Sets.Set;
          end if;
       end loop;
 
@@ -3269,9 +3295,9 @@ package body Traces_Elf is
                --  Non-empy symbol. Latch into our local container for
                --  processing downstream.
 
-               Addresses_Containers.Insert
+               Address_Info_Sets.Insert
                  (Shdr_Sets (A_Sym.St_Shndx).all,
-                  new Addresses_Info'
+                  new Address_Info'
                     (Kind        => Symbol_Addresses,
                      First       => Pc_Type (A_Sym.St_Value),
                      Last        => Pc_Type (A_Sym.St_Value
@@ -3390,7 +3416,7 @@ package body Traces_Elf is
 
    procedure Scan_Symbols_From
      (Filename : String;
-      Sym_Cb   : access procedure (Sym : Addresses_Info_Acc);
+      Sym_Cb   : access procedure (Sym : Address_Info_Acc);
       Strict   : Boolean)
    is
       --  Bridge to the version working from an executable file descriptor
@@ -3414,7 +3440,7 @@ package body Traces_Elf is
       Exclude : Boolean;
       Strict  : Boolean := False)
    is
-      procedure Add_Symbol (Sym : Addresses_Info_Acc);
+      procedure Add_Symbol (Sym : Address_Info_Acc);
       --  Acknowledge one SYMbol from scan on FILE, adding to or
       --  removing from the routines database depending on EXCLUDE.
 
@@ -3422,7 +3448,7 @@ package body Traces_Elf is
       -- Add_Symbol --
       ----------------
 
-      procedure Add_Symbol (Sym : Addresses_Info_Acc) is
+      procedure Add_Symbol (Sym : Address_Info_Acc) is
       begin
          if Exclude then
             Traces_Names.Remove_Routine_Of_Interest (Sym.Symbol_Name.all);
@@ -3496,153 +3522,139 @@ package body Traces_Elf is
                    function (Sloc_Begin : Source_Location;
                              Sloc_End   : Source_Location) return Boolean)
    is
-      use Addresses_Containers;
+      use Address_Info_Sets;
       use Traces_Names;
 
-      Line_Table  : Set renames Exec.Desc_Sets (Line_Addresses);
       Line_Cursor : Cursor;
-
-      procedure Skip_Symbol (Symbol_Addr : Addresses_Info_Acc);
-      --  Skip Symbol in the line table; i.e change Line_Cursor to point to
-      --  the last line of this symbol.
-
-      -----------------
-      -- Skip_Symbol --
-      -----------------
-
-      procedure Skip_Symbol
-        (Symbol_Addr : Addresses_Info_Acc)
-      is
-         Line_Addr : Addresses_Info_Acc :=
-                       new Addresses_Info'(Kind    => Line_Addresses,
-                                           First   => Symbol_Addr.Last,
-                                           Last    => Symbol_Addr.Last,
-                                           Parent  => null,
-                                           Sloc    => Slocs.No_Location,
-                                           Disc    => 0,
-                                           Is_Last => False);
-      begin
-         Line_Cursor := Floor (Line_Table, Line_Addr);
-         Free (Line_Addr);
-      end Skip_Symbol;
+      Sym_End_Addr : aliased Address_Info (Line_Addresses);
 
       Subp_Key : Subprogram_Key;
 
-   --  Start of processing for Routine_Names_From_Lines
-
    begin
-      Line_Cursor := First (Line_Table);
-      while Has_Element (Line_Cursor) loop
-         declare
-            Line_Addr        : constant Addresses_Info_Acc :=
-                                 Element (Line_Cursor);
-            Sloc_Begin       : constant Source_Location := Line_Addr.Sloc;
-            Sloc_End         : Source_Location;
-            Next_Line_Cursor : Cursor;
-            Next_Line_Addr   : Addresses_Info_Acc;
-            Symbol           : Addresses_Info_Acc;
-            Select_Symbol    : Boolean;
-         begin
-            Symbol := Get_Address_Info (Exec.all,
-                                        Symbol_Addresses,
-                                        Line_Addr.First);
+      for Subprg of Exec.Desc_Sets (Subprogram_Addresses) loop
+         Line_Cursor := First (Subprg.Lines);
+         while Has_Element (Line_Cursor) loop
+            declare
+               Line_Addr        : constant Address_Info_Acc :=
+                 Element (Line_Cursor);
+               Sloc_Begin       : constant Source_Location := Line_Addr.Sloc;
+               Sloc_End         : Source_Location;
+               Next_Line_Cursor : Cursor;
+               Next_Line_Addr   : Address_Info_Acc;
+               Symbol           : Address_Info_Acc;
+               Select_Symbol    : Boolean;
+            begin
+               Symbol := Get_Address_Info (Exec.all,
+                                           Symbol_Addresses,
+                                           Line_Addr.First);
 
-            --  Because of code elimination, we may have lines that
-            --  correspond to no code; in which case Symbol can be
-            --  null.  In such a case, we just want to skip all lines
-            --  that that are associated to this null symbol.
+               --  Because of code elimination, we may have lines that
+               --  correspond to no code; in which case Symbol can be null. In
+               --  such a case, we just want to skip all lines that that are
+               --  associated to this null symbol.
 
-            if Symbol /= null then
-               Next_Line_Cursor := Next (Line_Cursor);
+               if Symbol /= null then
+                  Next_Line_Cursor := Next (Line_Cursor);
 
-               if Has_Element (Next_Line_Cursor) then
-                  --  Consider line range up to next line info if
-                  --  remaining within the same symbol.
+                  if Has_Element (Next_Line_Cursor) then
+                     --  Consider line range up to next line info if
+                     --  remaining within the same symbol.
 
-                  Next_Line_Addr := Element (Next_Line_Cursor);
+                     Next_Line_Addr := Element (Next_Line_Cursor);
 
-                  if Get_Address_Info
-                    (Exec.all, Symbol_Addresses, Next_Line_Addr.First) = Symbol
-                  then
-                     Sloc_End := Next_Line_Addr.Sloc;
+                     if Get_Symbol
+                       (Exec.all, Next_Line_Addr.First) = Symbol
+                     then
+                        Sloc_End := Next_Line_Addr.Sloc;
+                     else
+                        Sloc_End := Sloc_Begin;
+                     end if;
                   else
                      Sloc_End := Sloc_Begin;
                   end if;
-               else
-                  Sloc_End := Sloc_Begin;
-               end if;
 
-               --  Two different cases:
-               --
-               --  * if the two consecutive slocs are in the same source file,
-               --  we check if there is a SCO in this range. Not strictly
-               --  correct: consider the case when a function declared in a
-               --  package is inlined in an other function inside this same
-               --  package; in this case, the range defined by two consecutive
-               --  debug slocs may not correspond to anything relevant in the
-               --  source code. This should not matter much though. Inlining
-               --  causes other problems to statement coverage anyway. Plus,
-               --  the consequence of this error will just be to include a
-               --  routine in a package that contains SCO; that's certainly
-               --  fine as, in the source coverage case, the routine list is
-               --  mostly a way to select the source files to handle; if we
-               --  have some SCOs in the file in which a routine is defined, it
-               --  is certainly appropriate to add it to trace name database.
-               --
-               --  * if the two consecutive slocs are in a different source
-               --  file. in this case, it is never a good idea to consider
-               --  the range of these two slocs. Deal with them separately.
-               --
-               --  In any case, the whole last line is included in its range by
-               --  taking the maximum column number.
+                  --  Two different cases:
+                  --
+                  --  * if the two consecutive slocs are in the same source
+                  --  file, we check if there is a SCO in this range. Not
+                  --  strictly correct: consider the case when a function
+                  --  declared in a package is inlined in an other function
+                  --  inside this same package; in this case, the range defined
+                  --  by two consecutive debug slocs may not correspond to
+                  --  anything relevant in the source code. This should not
+                  --  matter much though. Inlining causes other problems to
+                  --  statement coverage anyway. Plus, the consequence of this
+                  --  error will just be to include a routine in a package that
+                  --  contains SCO; that's certainly fine as, in the source
+                  --  coverage case, the routine list is mostly a way to select
+                  --  the source files to handle; if we have some SCOs in
+                  --  the file in which a routine is defined, it is certainly
+                  --  appropriate to add it to trace name database.
+                  --
+                  --  * if the two consecutive slocs are in a different source
+                  --  file. in this case, it is never a good idea to consider
+                  --  the range of these two slocs. Deal with them separately.
+                  --
+                  --  In any case, the whole last line is included in its range
+                  --  by taking the maximum column number.
 
-               if Sloc_Begin.Source_File = Sloc_End.Source_File
-                 and then Sloc_Begin < Sloc_End
-               then
-                  Sloc_End.L.Column := Natural'Last;
-                  Select_Symbol := Selected (Sloc_Begin, Sloc_End);
-
-               else
-                  declare
-                     Sloc_End : Source_Location := Sloc_Begin;
-                  begin
+                  if Sloc_Begin.Source_File = Sloc_End.Source_File
+                    and then Sloc_Begin < Sloc_End
+                  then
                      Sloc_End.L.Column := Natural'Last;
                      Select_Symbol := Selected (Sloc_Begin, Sloc_End);
-                  end;
 
-                  declare
-                     Sloc_Begin : constant Source_Location := Sloc_End;
-                  begin
-                     Sloc_End.L.Column := Natural'Last;
-                     Select_Symbol :=
-                       Select_Symbol or else Selected (Sloc_Begin, Sloc_End);
-                  end;
-               end if;
+                  else
+                     declare
+                        Sloc_End : Source_Location := Sloc_Begin;
+                     begin
+                        Sloc_End.L.Column := Natural'Last;
+                        Select_Symbol := Selected (Sloc_Begin, Sloc_End);
+                     end;
 
-               --  Now, include the symbol to the routine table if it
-               --  is selected and not already included:
-
-               if Select_Symbol then
-
-                  --  There can be symbols that have the same name, but that
-                  --  are different anyway.
-
-                  if not Is_Routine_Of_Interest (Symbol.Symbol_Name.all) then
-                     Add_Routine_Of_Interest (Symbol.Symbol_Name.all);
+                     declare
+                        Sloc_Begin : constant Source_Location := Sloc_End;
+                     begin
+                        Sloc_End.L.Column := Natural'Last;
+                        Select_Symbol :=
+                          Select_Symbol
+                          or else Selected (Sloc_Begin, Sloc_End);
+                     end;
                   end if;
 
-                  Key_From_Symbol (Exec, Symbol, Subp_Key);
-                  if not Is_In (Subp_Key) then
-                     Add_Routine (Subp_Key, Exec, Symbol.Symbol_Tag);
-                     Symbol.Symbol_Origin := Subp_Key.Origin;
-                  end if;
+                  --  Now, include the symbol to the routine table if it
+                  --  is selected and not already included:
 
-                  Skip_Symbol (Symbol);
-                  exit when not Has_Element (Line_Cursor);
+                  if Select_Symbol then
+
+                     --  There can be symbols that have the same name, but that
+                     --  are different anyway.
+
+                     if not Is_Routine_Of_Interest
+                              (Symbol.Symbol_Name.all)
+                     then
+                        Add_Routine_Of_Interest (Symbol.Symbol_Name.all);
+                     end if;
+
+                     Key_From_Symbol (Exec, Symbol, Subp_Key);
+                     if not Is_In (Subp_Key) then
+                        Add_Routine (Subp_Key, Exec, Symbol.Symbol_Tag);
+                        Symbol.Symbol_Origin := Subp_Key.Origin;
+                     end if;
+
+                     --  Fast-forward to end of symbol
+
+                     Sym_End_Addr.First := Symbol.Last;
+                     Sym_End_Addr.Last  := Symbol.Last;
+                     Line_Cursor :=
+                       Subprg.Lines.Ceiling (Sym_End_Addr'Unchecked_Access);
+
+                     exit when not Has_Element (Line_Cursor);
+                  end if;
                end if;
-            end if;
-         end;
-         Next (Line_Cursor);
+            end;
+            Next (Line_Cursor);
+         end loop;
       end loop;
    end Routine_Names_From_Lines;
 

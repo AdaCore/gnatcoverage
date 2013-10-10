@@ -32,7 +32,7 @@ package body Traces_Disa is
    ---------------
 
    function Get_Label
-     (Sym : Symbolizer'Class; Info : Addresses_Info_Acc) return String
+     (Sym : Symbolizer'Class; Info : Address_Info_Acc) return String
    is
       Line : String (1 .. 64);
       Line_Pos : Natural;
@@ -242,7 +242,7 @@ package body Traces_Disa is
     (Exe : Exe_File_Type; Trace_Filename : String)
    is
       use Traces_Files;
-      Addr : Addresses_Info_Acc := null;
+      Addr : Address_Info_Acc := null;
 
       procedure Disp_Entry (E : Trace_Entry);
       --  Comment needed???
@@ -253,7 +253,7 @@ package body Traces_Disa is
 
       procedure Disp_Entry (E : Trace_Entry) is
          use Traces_Disa;
-         Sec : Addresses_Info_Acc;
+         Sec : Address_Info_Acc;
          Line : String (1 .. 128);
          Line_Pos : Natural := Line'First;
       begin

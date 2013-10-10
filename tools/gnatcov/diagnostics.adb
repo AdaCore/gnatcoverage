@@ -161,12 +161,14 @@ package body Diagnostics is
       Msg  : String;
       Kind : Report_Kind := Error)
    is
+      Subprg : constant Address_Info_Acc :=
+        Get_Address_Info (Exe.all, Subprogram_Addresses, PC);
    begin
       Report
         (Msg,
          Exe  => Exe,
          PC   => PC,
-         Sloc => Get_Sloc (Exe.all, PC),
+         Sloc => Get_Sloc (Subprg.Lines, PC),
          Kind => Kind);
    end Report;
 

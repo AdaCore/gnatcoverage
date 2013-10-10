@@ -945,7 +945,7 @@ package body Coverage.Source is
 
          declare
             SL : constant Tagged_Slocs :=
-                   Tag_Provider.Get_Slocs_And_Tags (Subp_Info.Exec, PC);
+                   Tag_Provider.Get_Slocs_And_Tags (PC);
          begin
             for J in SL'Range loop
                SCO := Sloc_To_SCO (SL (J).Sloc);
