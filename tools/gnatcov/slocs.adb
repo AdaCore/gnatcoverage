@@ -78,7 +78,7 @@ package body Slocs is
    function "<" (L, R : Source_Location_Range) return Boolean is
      (L.Source_File < R.Source_File
        or else
-     (L.Source_File = R.Source_File and then (L.R < R.R)));
+     (L.Source_File = R.Source_File and then (L.L < R.L)));
 
    ----------
    -- "<=" --
@@ -124,7 +124,7 @@ package body Slocs is
    ----------------
 
    function First_Sloc (R : Source_Location_Range) return Source_Location is
-     (To_Sloc (R.Source_File, R.R.First_Sloc));
+     (To_Sloc (R.Source_File, R.L.First_Sloc));
 
    -----------
    -- Image --
@@ -137,11 +137,11 @@ package body Slocs is
 
    function Image (Sloc_Range : Source_Location_Range) return String is
       First_Sloc : constant Source_Location :=
-                     (Sloc_Range.Source_File, Sloc_Range.R.First_Sloc);
+                     (Sloc_Range.Source_File, Sloc_Range.L.First_Sloc);
       Last_Sloc  : constant Source_Location :=
-                     (Sloc_Range.Source_File, Sloc_Range.R.Last_Sloc);
+                     (Sloc_Range.Source_File, Sloc_Range.L.Last_Sloc);
    begin
-      if Sloc_Range.R.First_Sloc = Sloc_Range.R.Last_Sloc then
+      if Sloc_Range.L.First_Sloc = Sloc_Range.L.Last_Sloc then
          return Abridged_Image (Sloc => First_Sloc, Ref  => No_Location);
       else
          return Abridged_Image (Sloc => First_Sloc, Ref => No_Location)
@@ -154,7 +154,7 @@ package body Slocs is
    ---------------
 
    function Last_Sloc (R : Source_Location_Range) return Source_Location is
-     (To_Sloc (R.Source_File, R.R.Last_Sloc));
+     (To_Sloc (R.Source_File, R.L.Last_Sloc));
 
    --------------
    -- To_Range --
@@ -175,7 +175,7 @@ package body Slocs is
       end if;
 
       return (Source_File => Source_File,
-              R           => (First_Sloc => First_Sloc.L,
+              L           => (First_Sloc => First_Sloc.L,
                               Last_Sloc  => Last_Sloc.L));
    end To_Range;
 

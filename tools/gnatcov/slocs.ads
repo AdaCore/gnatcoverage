@@ -70,7 +70,7 @@ package Slocs is
 
    type Source_Location_Range is record
       Source_File : Source_File_Index;
-      R           : Local_Source_Location_Range;
+      L           : Local_Source_Location_Range;
    end record;
 
    No_Range : constant Source_Location_Range :=

@@ -1023,26 +1023,38 @@ package body SC_Obligations is
    function Condition (SCO : SCO_Id; Index : Condition_Index) return SCO_Id is
       use BDD;
 
-      SCOD : SCO_Descriptor renames SCO_Vector (SCO);
+      First, Last : BDD_Node_Id;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set First and Last to the first and last BDD node ids of SCOD
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         First := SCOD.Decision_BDD.First_Node;
+         Last  := SCOD.Decision_BDD.Last_Node;
+      end Q;
+
       Current_Condition_Index : Any_Condition_Index := No_Condition_Index;
    begin
       --  Find J'th (0-based) condition in decision by scanning the BDD vector
 
-      for J in SCOD.Decision_BDD.First_Node
-            .. SCOD.Decision_BDD.Last_Node
-      loop
-         if BDD_Vector.Element (J).Kind = Condition then
-            Current_Condition_Index := Current_Condition_Index + 1;
-            if Current_Condition_Index = Index then
-               return C_SCO : constant SCO_Id :=
-                                BDD_Vector.Element (J).C_SCO
-               do
-                  pragma Assert (Enclosing_Decision (C_SCO) = SCO);
-                  pragma Assert (SC_Obligations.Index (C_SCO) = Index);
-                  null;
-               end return;
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      for J in First .. Last loop
+         declare
+            BDDN : BDD_Node renames BDD_Vector.Element (J);
+         begin
+            if BDDN.Kind = Condition then
+               Current_Condition_Index := Current_Condition_Index + 1;
+               if Current_Condition_Index = Index then
+                  return C_SCO : constant SCO_Id := BDDN.C_SCO
+                  do
+                     pragma Assert (Enclosing_Decision (C_SCO) = SCO);
+                     pragma Assert (SC_Obligations.Index (C_SCO) = Index);
+                     null;
+                  end return;
+               end if;
             end if;
-         end if;
+         end;
       end loop;
       raise Constraint_Error with "condition index out of range";
    end Condition;
@@ -1052,8 +1064,25 @@ package body SC_Obligations is
    ----------------------
 
    function Degraded_Origins (SCO : SCO_Id) return Boolean is
+      Result : Boolean;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result to SCOD.Degraded_Origins
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+      begin
+         Result := SCOD.Degraded_Origins;
+      end Q;
+
+   --  Start of processing for Degraded_Origins
+
    begin
-      return SCO_Vector (SCO).Degraded_Origins;
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
    end Degraded_Origins;
 
    --------------
@@ -1468,7 +1497,7 @@ package body SC_Obligations is
 
       function Sloc_Image (Sloc_Range : Source_Location_Range) return String is
       begin
-         if Sloc_Range.R.First_Sloc = No_Local_Location
+         if Sloc_Range.L.First_Sloc = No_Local_Location
            or else not With_Sloc
          then
             return "";
@@ -1952,14 +1981,14 @@ package body SC_Obligations is
                   SCOD.Sloc_Range.Source_File := Cur_Source_File;
                end if;
 
-               if SCOD.Sloc_Range.R.First_Sloc = No_Local_Location then
-                  SCOD.Sloc_Range.R.First_Sloc := From_Sloc;
+               if SCOD.Sloc_Range.L.First_Sloc = No_Local_Location then
+                  SCOD.Sloc_Range.L.First_Sloc := From_Sloc;
                end if;
 
-               if SCOD.Sloc_Range.R.Last_Sloc = No_Local_Location
-                 or else SCOD.Sloc_Range.R.Last_Sloc < To_Sloc
+               if SCOD.Sloc_Range.L.Last_Sloc = No_Local_Location
+                 or else SCOD.Sloc_Range.L.Last_Sloc < To_Sloc
                then
-                  SCOD.Sloc_Range.R.Last_Sloc := To_Sloc;
+                  SCOD.Sloc_Range.L.Last_Sloc := To_Sloc;
                end if;
             end Update_Decision_Sloc;
 
@@ -2198,8 +2227,8 @@ package body SC_Obligations is
                              To_Range (SCOD.Control_Location, No_Location);
                      end if;
 
-                     for L in SCOD.Sloc_Range.R.First_Sloc.Line
-                           .. SCOD.Sloc_Range.R.Last_Sloc.Line
+                     for L in SCOD.Sloc_Range.L.First_Sloc.Line
+                           .. SCOD.Sloc_Range.L.Last_Sloc.Line
                      loop
                         Add_Line_For_Source_Coverage
                           (SCOD.Sloc_Range.Source_File, L, SCO);
@@ -2221,8 +2250,8 @@ package body SC_Obligations is
                         return;
                      end if;
 
-                     for L in SCOD.Sloc_Range.R.First_Sloc.Line
-                           .. SCOD.Sloc_Range.R.Last_Sloc.Line
+                     for L in SCOD.Sloc_Range.L.First_Sloc.Line
+                           .. SCOD.Sloc_Range.L.Last_Sloc.Line
                      loop
                         Add_Line_For_Source_Coverage
                           (SCOD.Sloc_Range.Source_File, L, SCO);
@@ -2237,7 +2266,7 @@ package body SC_Obligations is
                end case;
 
                Sloc_To_SCO_Map (Sloc_Range.Source_File, SCOD.Kind).Insert
-                 (Sloc_Range.R, SCO);
+                 (Sloc_Range.L, SCO);
                --  Note: we used to handle Constraint_Error here to account for
                --  old compilers that generated junk SCOs with the same source
                --  locations. These bugs have now been fixed, so the
@@ -2441,10 +2470,26 @@ package body SC_Obligations is
    -----------
 
    function Value (SCO : SCO_Id) return Tristate is
-      SCOD : constant SCO_Descriptor := SCO_Vector (SCO);
+      Result : Tristate;
+
+      procedure Q (SCOD : SCO_Descriptor);
+      --  Set Result to SCOD.Value
+
+      -------
+      -- Q --
+      -------
+
+      procedure Q (SCOD : SCO_Descriptor) is
+         pragma Assert (SCOD.Kind = Condition);
+      begin
+         Result := SCOD.Value;
+      end Q;
+
+   --  Start of processing for Value
+
    begin
-      pragma Assert (SCOD.Kind = Condition);
-      return SCOD.Value;
+      SCO_Vector.Query_Element (SCO, Q'Access);
+      return Result;
    end Value;
 
    ------------
@@ -2665,26 +2710,43 @@ package body SC_Obligations is
          end loop Climb_Operators;
 
          declare
-            SCOD : SCO_Descriptor renames SCO_Vector (SCO);
+            Kind       : SCO_Kind;
+            Sloc_Range : Source_Location_Range;
+
+            procedure Q (SCOD : SCO_Descriptor);
+            --  Set Kind and Sloc_Range from SCOD
+
+            -------
+            -- Q --
+            -------
+
+            procedure Q (SCOD : SCO_Descriptor) is
+            begin
+               Kind       := SCOD.Kind;
+               Sloc_Range := SCOD.Sloc_Range;
+            end Q;
+
          begin
+            SCO_Vector.Query_Element (SCO, Q'Access);
+
             if Sloc.L.Column = 0 then
                --  For a fuzzy match, never return a decision/condition SCO,
                --  always go up to the enclosing statement.
 
                exit Climb_SCO_Tree when
-                 Sloc.L.Line in SCOD.Sloc_Range.R.First_Sloc.Line
-                             .. SCOD.Sloc_Range.R.Last_Sloc.Line
-                 and then (SCOD.Kind = Statement
+                 Sloc.L.Line in Sloc_Range.L.First_Sloc.Line
+                             .. Sloc_Range.L.Last_Sloc.Line
+                 and then (Kind = Statement
                              or else
-                           (Include_Decisions and then SCOD.Kind = Decision));
+                           (Include_Decisions and then Kind = Decision));
             else
                --  Do not return a decision, even with exact match, if
                --  Include_Decisions is False
 
                exit Climb_SCO_Tree when
-                 SCOD.Sloc_Range.R.First_Sloc <= Sloc.L
-                 and then Sloc.L <= SCOD.Sloc_Range.R.Last_Sloc
-                 and then (SCOD.Kind /= Decision or else Include_Decisions);
+                 Sloc_Range.L.First_Sloc <= Sloc.L
+                 and then Sloc.L <= Sloc_Range.L.Last_Sloc
+                 and then (Kind /= Decision or else Include_Decisions);
             end if;
          end;
 
