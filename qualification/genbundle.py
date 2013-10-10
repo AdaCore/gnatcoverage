@@ -454,7 +454,7 @@ class QMAT:
         # directory.  The following approach is "ugly", but also intended
         # to be temporary!
         if partname == 'TOR':
-            source_name = 'TOR_Doc'
+            source_name = 'TOR'
         elif partname == 'PLANS':
             source_name = 'plans'
         elif partname == 'STR':

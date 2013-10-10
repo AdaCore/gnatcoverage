@@ -32,7 +32,7 @@ def __extra_block_for(dolevel):
 def __reqset_triggers_for (lang, chapter):
     return '\n'.join(
         ('<on_location ',
-         '   relative_instance="/TOR_Doc/%s"' % lang,
+         '   relative_instance="/TOR/%s"' % lang,
          '   pattern="$relative.location/%s/req_set.rst"' % chapter,
          '   type="content"',
          '/>'))
