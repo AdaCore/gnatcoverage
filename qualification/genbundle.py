@@ -207,11 +207,13 @@ from datetime import date
 
 import optparse, sys, os.path, shutil, re
 
-LOCAL_TESTSUITE_DIR=os.path.abspath("../testsuite")
-sys.path.append(LOCAL_TESTSUITE_DIR)
+# This lets us access modules that the testuite
+# code features:
+MY_TESTSUITE_DIR=os.path.abspath("../testsuite")
+sys.path.append(MY_TESTSUITE_DIR)
 
 from SUITE.qdata import CTXDATA_FILE, treeref_at
-from SUITE.cutils import load_from
+from SUITE.cutils import load_from, contents_of
 
 # =======================================================================
 # ==                         MISC UTILITY FUNCTIONS                    ==
@@ -230,10 +232,6 @@ def exit_if (p, msg):
     if p:
         print msg
         sys.exit(1)
-
-def contents_of(filename):
-    with open(filename) as fd:
-        return fd.read()
 
 def run_list (cmd, dir=None):
     """Execute the provided CMD command-list (command name + arguments),
