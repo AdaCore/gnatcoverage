@@ -36,9 +36,9 @@
 #
 # 1) set up a git clone of the repo where the artifacts are located
 #
-# 2) build whatever is requested (plans, str, tor) from those artifacts,
-#    producing the html or pdf document of interest + stuff we don't care
-#    about (e.g. intermediate latex sources for rest->pdf),
+# 2) build whatever is requested (plans, str, tor) from those artifacts
+#    by default, producing the html or pdf document of interest + stuff
+#    we don't care about (e.g. intermediate latex sources for rest->pdf),
 #
 # 3) move or copy the final documents in an ITEMS subdir, then maybe build
 #    an index linking to the set of available items.
@@ -119,6 +119,15 @@
 # Note that the designated testsuite dir in this example is NOT the one
 # populated by the --runtests example before.
 #
+# Fetching remote testsuite results:
+# ==================================
+#
+# This is useful e.g. when a kit has to be produced someplace while the
+# testsuite has to run elsewhere.
+#
+# --testsuite-dir supports "remote access" prefixes like "[login@]hostname:"
+# for this purpose.
+#
 # Example kit production commands:
 # ================================
 #
@@ -138,8 +147,8 @@
 #     --dolevel=doA
 #     --runtests --runtests-flags=<...>
 #
-# Running the tests hosted within the designated subdir:
-# ------------------------------------------------------
+# Running the tests hosted within the designated local subdir:
+# ------------------------------------------------------------
 #
 #   python genbundle.py --docformat=html
 #     --root-dir=$HOME/my-qmat
@@ -147,6 +156,8 @@
 #     --dolevel=doB
 #     --runtests --runtests-flags=<...>
 #     --testsuite-dir=<...>
+#
+# Remote prefixes aren't supported in this case.
 #
 # Fetching tests results from a place where they have been run already:
 # ---------------------------------------------------------------------
@@ -156,47 +167,6 @@
 #     --branch=<project-branch>
 #     --dolevel=doA
 #     --testsuite-dir=<...>
-#
-# !!! As of today, this is reading data files dumped by the testsuite
-# !!! execution in pickle format. This format is not designed to be shared
-# !!! across different environments, so isn't guaranteed to work when e.g. the
-# !!! suite ran on one machine and we're reading data from another. Even on a
-# !!! single machine, this isn't guaranteed to work across python versions.
-#
-# We provide the 'str-rst' part and the --str-dir option to circumvent this:
-#
-# Using a partially built (up to rst generation) STR report:
-# ----------------------------------------------------------
-#
-# The STR rest production must be done first, using the special "str-rst"
-# part on the machine where the testsuite ran, using the same version of
-# python. For example:
-#
-#   python genbundle.py --docformat=html
-#     --root-dir=$HOME/my-partial-qmat
-#     --branch=<project-branch>
-#     --dolevel=doA
-#     --testsuite-dir=<my-testsuite-dir>
-#     --parts=str-rst
-#
-# This should output something like:
-#
-#   =========== building STR, stopping after rst gen
-#   from : <...>/gnatcoverage-git-clone/qualification/str
-#   run  : python genrest.py --testsuite-dir=<my-testsuite-dir> --dolevel=doB
-#
-# Now on the machine where you are building the kit, retrieve the
-# rest-only STR subdir. For example using rsync:
-#
-#   rsync -r <testhost>: <...>/gnatcoverage-git-clone/qualification/str/ my-str
-#
-# Then produce your kit using the retrieved STR subdir:
-#
-#    python genbundle.py --docformat=html
-#       --root-dir=$HOME/my-qmat
-#       --branch=<project-branch>
-#       --dolevel=doB
-#       --str-dir=$HOME/my-str
 #
 # *****************************************************************************
 
@@ -288,9 +258,15 @@ def remove (path):
         mv (path, local_name)
         rm (local_name, recursive=os.path.isdir(local_name))
 
-def remote_in (path):
+# testsuite dirs may include a [user@]remote-host: prefix
+
+def raccess_in (path):
     components = path.split(':')
     return components[0] if len(components) > 1 else None
+
+def rdir_in (path):
+    components = path.split(':')
+    return components[1] if len(components) > 1 else None
 
 # =======================================================================
 # ==              QUALIF MATERIAL GENERATION HELPER CLASS              ==
@@ -321,12 +297,19 @@ class QMAT:
 
         # Where the testsuite tree is to be found, to run the
         # tests if needed, then to fetch results from (whether we
-        # run the tests ourselves or rely on a prior run)
+        # run the tests ourselves or rely on a prior run). This
+        # might include a remote access specification:
 
         self.testsuite_dir = (
             self.o.testsuite_dir if self.o.testsuite_dir
             else os.path.join (self.repodir, "testsuite") if self.o.runtests
             else None)
+
+        # A local place where the testsuite tree may be found,
+        # possibly after remote syncing from testsuite_dir if that
+        # is non-local:
+
+        self.local_testsuite_dir = None
 
     # --------------------
     # -- setup_basedirs --
@@ -623,45 +606,64 @@ class QMAT:
                     suite_ctxdata.gnatpro.version, self.o.xgnatpro)
                 )
 
+    # ----------------------------
+    # -- localize_testsuite_dir --
+    # ----------------------------
+
+    def localize_testsuite_dir (self):
+        """If self.testsuite_dir is remote and we haven't fetched
+        a local copy yet, do so. Then memorize the local location for
+        future attempts."""
+
+        if self.local_testsuite_dir:
+            return
+
+        raccess = raccess_in (self.testsuite_dir)
+
+        if raccess:
+            rdir = rdir_in (self.testsuite_dir)
+            (login, rhost) = (
+                raccess.split('@') if '@' in raccess else (None, raccess)
+                )
+
+            self.local_testsuite_dir = "%s_testsuite" % rhost
+            run ("rsync -r --delete %s:%s/ %s" \
+                     % (raccess, rdir, self.local_testsuite_dir)
+                 )
+        else:
+            self.local_testsuite_dir = self.testsuite_dir
+
     # ---------------
     # -- build_str --
     # ---------------
 
-    def build_str (self, rst_only):
-        announce (
-            "building STR" + (", stopping after rst gen" if rst_only else "")
-            )
+    def build_str (self):
+        announce ("building STR")
+
+        os.chdir (self.rootdir)
 
         # Produce REST from the tests results dropped by testsuite run.  If we
         # did not launch one just above, expect results to be available from a
         # previous run.
 
-        os.chdir (os.path.join (self.repodir, "qualification", "str"))
+        raccess = raccess_in (self.testsuite_dir)
+        rdir = rdir_in (self.testsuite_dir)
 
-        run_list (
-            ['python', 'genrest.py',
-             '--testsuite-dir=%s' % self.testsuite_dir,
-             '--dolevel=%s' % self.o.dolevel]
+        mkstr_cmd = (
+            "(cd %(dir)s/STR && ./mkrest.sh %(level)s %(format)s)"
+            %  {"dir"   : self.testsuite_dir if not rdir else rdir,
+                "level" : self.o.dolevel,
+                "format": sphinx_target_for[self.o.docformat]}
             )
+        prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
+        run_list (prefix + [mkstr_cmd])
 
-        if rst_only:
-            return
+        # Make sure we have a local copy of the testsuite, then
+        # finalize and latch the report from there:
 
-        # Then invoke sphinx to produce the report in the requested format:
+        self.localize_testsuite_dir ()
 
-        run ("make %s" % sphinx_target_for[self.o.docformat])
-
-        self.__latch_into (
-            dir=self.itemsdir, partname="STR", toplevel=False)
-
-    # ------------------
-    # -- finalize_str --
-    # ------------------
-
-    def finalize_str (self):
-        announce ("finalizing STR at %s" % self.o.str_dir)
-
-        os.chdir (self.o.str_dir)
+        os.chdir (os.path.join (self.local_testsuite_dir, "STR"))
 
         run ("make %s" % sphinx_target_for[self.o.docformat])
 
@@ -715,8 +717,7 @@ class QMAT:
 
 valid_docformats = ('html', 'pdf')
 regular_parts    = ('tor', 'plans', 'str')
-special_parts    = ('str-rst',)
-valid_parts      = regular_parts + special_parts
+valid_parts      = regular_parts
 valid_dolevels   = ('doA', 'doB', 'doC')
 valid_xada       = ('95', '2005', '2012')
 
@@ -892,10 +893,9 @@ def check_valid(options, args):
 
     # We don't know how to run the tests remotely
 
-    print remote_in(options.testsuite_dir)
     exit_if (
         options.runtests and options.testsuite_dir
-        and remote_in (options.testsuite_dir),
+        and raccess_in (options.testsuite_dir),
         "Running the tests on a remote testsuite dir is not supported."
         )
 
@@ -982,7 +982,7 @@ if __name__ == "__main__":
     # Make sure that directory options are absolute dirs, to
     # facilitate switching back and forth from one to the other:
 
-    if options.testsuite_dir and not remote_in (options.testsuite_dir):
+    if options.testsuite_dir and not raccess_in (options.testsuite_dir):
         options.testsuite_dir = os.path.abspath (options.testsuite_dir)
     if options.str_dir:
         options.str_dir = os.path.abspath (options.str_dir)
@@ -1007,10 +1007,10 @@ if __name__ == "__main__":
     do_tor     = 'tor' in options.parts
     do_plans   = 'plans' in options.parts
 
-    if do_tor:
-        qmat.build_tor()
+    # Building the TOR might look into testsuite results to match
+    # TC artifacts against presence of test data dumps.
 
-    if do_str or do_str_rst:
+    if do_str:
 
         # When producing str and not in dev mode, check that the tree we're
         # producing documents from is consistent with the tree where the
@@ -1019,26 +1019,20 @@ if __name__ == "__main__":
         if not options.devmode:
             qmat.do_consistency_checks()
 
-        # If we are provided with pre-computed report sources, just finalize
-        # from there:
+        # Run the tests if we are requested to do so:
 
-        if options.str_dir:
-            qmat.finalize_str()
+        if options.runtests:
+            qmat.run_tests ()
 
-        # Otherwise ...
+        # Then build the STR from testsuite results (either the one
+        # we just ran, or one executed externally and designated by
+        # --testsuite-dir):
 
-        else:
+        qmat.build_str()
 
-            # Run the tests if we are requested to do so:
-
-            if options.runtests:
-                qmat.run_tests ()
-
-            # Then build the STR from testsuite results (either the one
-            # we just ran, or one executed externally and designated by
-            # --testsuite-dir):
-
-            qmat.build_str(rst_only=do_str_rst)
+    if do_tor:
+        qmat.localize_testsuite_dir()
+        qmat.build_tor()
 
     if do_plans:
         qmat.build_plans()
