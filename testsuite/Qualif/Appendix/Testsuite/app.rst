@@ -1,5 +1,5 @@
-Overview of the testsuite contents; How are Testcases structured
-****************************************************************
+Overview of the testsuite structure
+***********************************
 
 The GNATcoverage *testsuite* consists in the set of executable tests that
 implement Testcases, driven by an execution and control harness. Each test
