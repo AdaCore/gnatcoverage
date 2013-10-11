@@ -4,13 +4,9 @@
 # ***                  COUVERTURE TESTSUITE MAIN DRIVER                   ***
 # ***************************************************************************
 
-"""./testsuite.py [OPTIONS] [TEST_PATH]
+"""./testsuite.py [OPTIONS] [RE_TEST_PATH]
 
-Run the couverture testsuite
-
-To run tests whose relative path to test.py match a provided regexp
-   ./testsuite.py I401-009
-   ./testsuite.py ./tests/I4
+Run the GNATcoverage testsuite
 
 See ./testsuite.py -h for more help
 """
@@ -891,12 +887,10 @@ class TestSuite:
 
         mopt = self.env.main_options
 
-        qlevels = test.qualif_levels ()
-
         # In qualification mode, pass the target qualification level to
         # qualification tests and enforce the proper xcov-level
 
-        if mopt.qualif_level and qlevels:
+        if mopt.qualif_level and test.qualif_levels ():
             testcase_cmd.append('--qualif-level=%s' % mopt.qualif_level)
             testcase_cmd.append(
                 '--xcov-level=%s' % QLEVEL_INFO[mopt.qualif_level].xcovlevel)
