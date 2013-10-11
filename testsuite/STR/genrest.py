@@ -604,7 +604,8 @@ class QDreport:
                 name="REPORT Format", matcher="%s/Common/Report" % QROOTDIR),
 
             Category (
-                name="Harness Check", matcher="%s/Appendix/Harness" % QROOTDIR,
+                name="Testsuite Selftest",
+                matcher="%s/Appendix/Testsuite" % QROOTDIR,
                 internal=True),
 
             Category (
