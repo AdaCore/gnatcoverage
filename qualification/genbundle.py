@@ -407,12 +407,12 @@ class QMAT:
 
     def __latch_into (self, dir, partname, toplevel, copy_from=None):
 
-        this_target_is_tree = (self.o.docformat == 'html')
+        this_target_is_tree = (self.this_docformat == 'html')
 
         # Compute the target dir or file name of our copy:
 
         this_target_suffix = (
-            '' if this_target_is_tree else '.%s' % self.o.docformat)
+            '' if this_target_is_tree else '.%s' % self.this_docformat)
 
         this_target = (
             dir if toplevel and this_target_is_tree
@@ -431,7 +431,7 @@ class QMAT:
 
         this_build_subdir = os.path.join (
             copy_from if copy_from is not None else "build",
-            sphinx_target_for[self.o.docformat]
+            sphinx_target_for[self.this_docformat]
             )
 
         # We used to use a wildcard for the source name, but that didn't
@@ -452,7 +452,7 @@ class QMAT:
         this_source = (
             this_build_subdir if this_target_is_tree
             else os.path.join(this_build_subdir,
-            source_name + ".%s" % self.o.docformat)
+            source_name + ".%s" % self.this_docformat)
             )
 
 
@@ -473,7 +473,7 @@ class QMAT:
             mv (this_build_subdir, this_target)
 
         print "%s %s available in %s %s" % (
-            self.o.docformat, partname,
+            self.this_docformat, partname,
             this_target, "(toplevel)" if toplevel else ""
             )
 
@@ -501,13 +501,13 @@ class QMAT:
         """Build one PART of using the Qualifying Machine."""
 
         partname = part.upper()
-        announce ("building %s" % partname)
+        announce ("building %s %s" % (partname, self.this_docformat))
 
         os.chdir (
             os.path.join (self.repodir, "qualification", "qm")
             )
         run ("qmachine model.xml -l scripts/generate_%s_%s.py" \
-                 % (part, self.o.docformat))
+                 % (part, self.this_docformat))
 
         self.__latch_into (
                 dir=self.itemsdir, partname=partname, toplevel=False)
@@ -638,7 +638,7 @@ class QMAT:
     # ---------------
 
     def build_str (self):
-        announce ("building STR")
+        announce ("building %s STR" % self.this_docformat)
 
         os.chdir (self.rootdir)
 
@@ -653,7 +653,7 @@ class QMAT:
             "(cd %(dir)s/STR && ./mkrest.sh %(level)s %(format)s)"
             %  {"dir"   : self.testsuite_dir if not rdir else rdir,
                 "level" : self.o.dolevel,
-                "format": sphinx_target_for[self.o.docformat]}
+                "format": sphinx_target_for[self.this_docformat]}
             )
         prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
         run_list (prefix + [mkstr_cmd])
@@ -665,7 +665,7 @@ class QMAT:
 
         os.chdir (os.path.join (self.local_testsuite_dir, "STR"))
 
-        run ("make %s" % sphinx_target_for[self.o.docformat])
+        run ("make %s" % sphinx_target_for[self.this_docformat])
 
         self.__latch_into (
             dir=self.itemsdir, partname="STR", toplevel=False)
@@ -693,9 +693,9 @@ class QMAT:
         # Rename the one we need and generate our index from there. This will
         # be doing cross document referencing.
 
-        sphinx_target = sphinx_target_for[self.o.docformat]
+        sphinx_target = sphinx_target_for[self.this_docformat]
 
-        cp ("source/index_%s_rst" % self.o.docformat, "source/index.rst")
+        cp ("source/index_%s_rst" % self.this_docformat, "source/index.rst")
         run ("make %s" % sphinx_target)
 
         packroot = os.path.join (self.rootdir, self.o.pname)
@@ -710,6 +710,49 @@ class QMAT:
 
         run ("zip -q -r %(packname)s.zip %(packname)s" % {
                 "packname": self.o.pname})
+
+    # ---------------------
+    # -- build_as_needed --
+    # ---------------------
+
+    def do_str (self):
+        return 'str' in self.o.parts
+
+    def do_tor (self):
+        return 'tor' in self.o.parts
+
+    def do_plans (self):
+        return 'plans' in self.o.parts
+
+    def do_pack (self):
+        return self.o.pname
+
+    def build_as_needed (self, docformat):
+
+        self.this_docformat = docformat
+
+        # Build the STR from testsuite results (either one we just ran, or one
+        # executed externally and designated by --testsuite-dir):
+
+        if self.do_str():
+            self.build_str()
+            
+        # Build the TOR as needed, which might look into testsuite results to
+        # match TC artifacts against presence of test data dumps:
+            
+        if self.do_tor():
+            self.localize_testsuite_dir()
+            self.build_tor()
+
+        # Build the PLANS as needed:
+
+        if self.do_plans():
+            self.build_plans()
+
+        # Build a kit package as needed:
+
+        if self.do_pack():
+            qmat.build_pack()
 
 # =======================================================================
 # ==                          MAIN SCRIPT BODY                         ==
@@ -774,10 +817,11 @@ def commandline():
         )
     op.add_option (
         "--docformat", dest="docformat",
-        type='choice', choices=valid_docformats,
+        type='string', # choices=valid_docformats,
         help = (
             "The format we need to produce for each document. "
-            "One of %s. Mandatory." % valid_docformats.__str__())
+            "At least one of %s. Multiple values separated by ','." \
+                % valid_docformats.__str__())
         )
     op.add_option (
         "--parts", dest="parts", default=None,
@@ -973,6 +1017,7 @@ def check_valid(options, args):
     # a dump format amenable to data exchange across hosts and python
     # versions. We use pickle today, which doesn't fit the bill.
 
+
 if __name__ == "__main__":
 
     (options, args) = commandline().parse_args()
@@ -987,8 +1032,7 @@ if __name__ == "__main__":
     if options.str_dir:
         options.str_dir = os.path.abspath (options.str_dir)
 
-    # Instanciate our helper and proceed with the base
-    # directory setup:
+    # Instanciate our helper and proceed with the base directory setup:
 
     qmat = QMAT (options=options)
 
@@ -1002,15 +1046,9 @@ if __name__ == "__main__":
 
     qmat.gen_qm_model()
 
-    do_str     = 'str' in options.parts
-    do_str_rst = 'str-rst' in options.parts
-    do_tor     = 'tor' in options.parts
-    do_plans   = 'plans' in options.parts
+    # Start by running tests and perform consistency checks, once:
 
-    # Building the TOR might look into testsuite results to match
-    # TC artifacts against presence of test data dumps.
-
-    if do_str:
+    if qmat.do_str():
 
         # When producing str and not in dev mode, check that the tree we're
         # producing documents from is consistent with the tree where the
@@ -1024,20 +1062,7 @@ if __name__ == "__main__":
         if options.runtests:
             qmat.run_tests ()
 
-        # Then build the STR from testsuite results (either the one
-        # we just ran, or one executed externally and designated by
-        # --testsuite-dir):
+    # Now build the various documents for each requested format:
 
-        qmat.build_str()
-
-    if do_tor:
-        qmat.localize_testsuite_dir()
-        qmat.build_tor()
-
-    if do_plans:
-        qmat.build_plans()
-
-    # If we have a package to produce, do so:
-
-    if options.pname:
-        qmat.build_pack()
+    [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
+    
