@@ -1699,7 +1699,7 @@ begin
    end case;
 
    if Verbose then
-      pragma Debug (Perf_Counters.Display);
+      Perf_Counters.Display;
    end if;
 
 exception
