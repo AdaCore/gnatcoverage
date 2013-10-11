@@ -124,7 +124,7 @@ class colid:
     # Testcase description and status, for testcase table
 
     tc = Column (
-        htext="testcase", legend="Testcase id")
+        htext="testcase", legend="Testcase Identifier")
 
     sta = Column (
         htext="status", legend="Test execution status")
@@ -307,6 +307,7 @@ class TcidCell:
         re_strip = collections.OrderedDict (
             ((QROOTDIR + "/", ""),
              ("(Ada|C)/(stmt|decision|mcdc)/", ""),
+             ("Common/Report/", ""),
              ("^[0-9]+_", ""),
              ("/[0-9]+_", "/"))
             )
@@ -527,6 +528,13 @@ class Category:
         self.matcher  = matcher
         self.internal = internal
 
+        # Compute the QM testcase identifier prefix for this category.
+        # ??? yes, this kind of manual synchronization between what the
+        # QM produces in the TOR document vs what we display in the STR
+        # doc here for testcase identification is a pain.
+        
+        self.qmprefix = self.matcher.replace (QROOTDIR, "/TOR")
+
         self.qdl = []
 
     def trymatch(self, qda):
@@ -585,13 +593,13 @@ class QDreport:
 
         lang_categories = [
             (Category (
-                    lang=lang, name="%s - STATEMENT Coverage" % lang,
+                    lang=lang, name="%s STATEMENT Coverage" % lang,
                     matcher="%s/%s/stmt" % (QROOTDIR, lang)),
              Category (
-                    lang=lang, name="%s - DECISION Coverage" % lang,
+                    lang=lang, name="%s DECISION Coverage" % lang,
                     matcher="%s/%s/decision" % (QROOTDIR, lang)),
              Category (
-                    lang=lang, name="%s - MCDC Coverage" % lang,
+                    lang=lang, name="%s MCDC Coverage" % lang,
                     matcher="%s/%s/mcdc" % (QROOTDIR, lang))
              ) for lang in QLANGUAGES
             ]
@@ -601,7 +609,8 @@ class QDreport:
 
         other_categories = [
             Category (
-                name="REPORT Format", matcher="%s/Common/Report" % QROOTDIR),
+                name="REPORT Format", 
+                matcher="%s/Common/Report" % QROOTDIR),
 
             Category (
                 name="Testsuite Selftest",
@@ -729,17 +738,25 @@ class QDreport:
 
         RSTtable (
             title = None,
-            text = \
+            text = (
                 "The following tables list all the testcases that were "
                 "executed, with their execution status and a set of "
                 "expectation counters. '#' in the legend abbreviates "
-                "\"number of satisfied expectations for ...\".",
+                "\"number of satisfied expectations for ...\".\n\nThe set "
+                "of tables is partitioned according to language/coverage"
+                "-criterion associations described by section titles. The "
+                "text in square brackets at the end of each section title "
+                "is a common prefix to the Testcase Identifier column, just "
+                "not repeated on every line. These identifiers match those "
+                "used in the TOR document so can be used to lookup results "
+                "from testcase descriptions or vice-versa.\n"
+                ),
             columns = self.tccolumns(),
             contents = None,
             ).dump_to (self.rstf)
 
         [RSTtable (
-                title = "%s tests" % cat.name,
+                title = ("%s tests [ %s ]" % (cat.name, cat.qmprefix)),
                 text = None,
                 columns = self.tccolumns(),
                 contents = [self.tcdict_for(qd) for qd in cat.qdl]
