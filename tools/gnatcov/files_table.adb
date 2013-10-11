@@ -36,9 +36,6 @@ package body Files_Table is
    Files_Table : File_Vectors.Vector;
 
    procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive);
-   procedure Expand_Line_Table (File : Source_File_Index; Line : Positive);
-   --  If Line is not in File's line table, expand this table and mark the new
-   --  line as No_Code.
 
    package Filename_Maps is new Ada.Containers.Hashed_Maps
      (Key_Type        => Virtual_File,
@@ -309,10 +306,21 @@ package body Files_Table is
    -----------------------
 
    procedure Expand_Line_Table (FI : File_Info_Access; Line : Positive) is
+      New_Lines : Source_Line_Array_Acc;
+
    begin
-      while FI.Lines.Last_Index < Line loop
-         FI.Lines.Append
-           (new Line_Info'(State => (others => No_Code), others => <>));
+      if Line <= FI.Lines.Last_Index then
+         return;
+      end if;
+
+      New_Lines :=
+        new Source_Line_Array'
+          (FI.Lines.Last_Index + 1 .. Line =>
+             (State => (others => No_Code), others => <>));
+
+      FI.Lines.Reserve_Capacity (Ada.Containers.Count_Type (Line));
+      for J in New_Lines'Range loop
+         FI.Lines.Append (New_Lines (J)'Access);
       end loop;
    end Expand_Line_Table;
 

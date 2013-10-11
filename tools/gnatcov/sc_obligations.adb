@@ -1809,6 +1809,8 @@ package body SC_Obligations is
       Cur_Source_File        : Source_File_Index := No_Source_File;
       Cur_SCO_Unit           : SCO_Unit_Index;
       Last_Entry_In_Cur_Unit : Int;
+      Last_Entry_Last_Line   : Natural := 0;
+      --  Line number of high bound of sloc range of last processed entry
 
       Dom_SCO  : SCO_Id          := No_SCO_Id;
       Dom_Sloc : Source_Location := No_Location;
@@ -1841,6 +1843,22 @@ package body SC_Obligations is
 
       Deps_Present : constant Boolean := not Deps.Is_Empty;
 
+      procedure Prealloc_Lines;
+      --  Pre-allocate line table entries for Cur_Source_File to accomodate
+      --  Last_Entry_Last_Line (optimization only).
+
+      procedure Prealloc_Lines is
+      begin
+         if Cur_Source_File /= No_Source_File
+           and then Last_Entry_Last_Line > 0
+         then
+            Expand_Line_Table (Cur_Source_File, Last_Entry_Last_Line);
+            Last_Entry_Last_Line := 0;
+         end if;
+      end Prealloc_Lines;
+
+   --  Start of processing for Load_SCOs
+
    begin
       if ALI_Index = No_Source_File then
          return;
@@ -1856,6 +1874,12 @@ package body SC_Obligations is
         SCOs.SCO_Table.First .. SCOs.SCO_Table.Last
       loop
          if Cur_SCO_Entry > Last_Entry_In_Cur_Unit then
+            --  Prealloc line table entries for previous units
+
+            Prealloc_Lines;
+
+            --  Enter new unit
+
             Cur_SCO_Unit := Cur_SCO_Unit + 1;
             pragma Assert
               (Cur_SCO_Unit in SCOs.SCO_Unit_Table.First
@@ -1866,7 +1890,6 @@ package body SC_Obligations is
             begin
                pragma Assert (Cur_SCO_Entry in SCOUE.From .. SCOUE.To);
                Last_Entry_In_Cur_Unit := SCOUE.To;
-
                if Deps_Present then
                   Cur_Source_File := Deps.Element (SCOUE.Dep_Num);
 
@@ -1997,6 +2020,10 @@ package body SC_Obligations is
          --  Start of processing for Process_Entry
 
          begin
+            if To_Sloc.Line > Last_Entry_Last_Line then
+               Last_Entry_Last_Line := To_Sloc.Line;
+            end if;
+
             case SCOE.C1 is
                when '>' =>
                   --  Dominance marker: processed in conjunction with following
@@ -2174,6 +2201,10 @@ package body SC_Obligations is
                 Comp_Unit          => CU_Vector.Last_Index));
          end;
       end loop;
+
+      --  Prealloc line table entries for last unit
+
+      Prealloc_Lines;
 
       --  Build Sloc -> SCO index and set up Parent links
 

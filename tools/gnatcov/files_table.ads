@@ -71,6 +71,10 @@ package Files_Table is
    --  Add Prefix to the source search path. A file named "something" would
    --  be looked for in Prefix & "something".
 
+   procedure Expand_Line_Table (File : Source_File_Index; Line : Positive);
+   --  If Line is not in File's line table, expand this table and mark the new
+   --  line as No_Code.
+
    procedure Add_Line_For_Object_Coverage
      (File  : Source_File_Index;
       State : Line_State;
@@ -186,8 +190,7 @@ package Files_Table is
       --  comment block).
    end record;
 
-   type Line_Info_Access is access Line_Info;
-
+   type Line_Info_Access is access all Line_Info;
    Empty_Line_Info : constant Line_Info_Access;
 
    type Source_Lines is private;
@@ -299,6 +302,9 @@ private
       Element_Type => Line_Info_Access);
 
    type Source_Lines is new Source_Line_Vectors.Vector with null record;
+   type Source_Line_Array is array (Positive range <>) of aliased Line_Info;
+   type Source_Line_Array_Acc is access all Source_Line_Array;
 
    Empty_Line_Info : constant Line_Info_Access := new Line_Info;
+
 end Files_Table;
