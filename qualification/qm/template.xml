@@ -2,7 +2,6 @@
 
   <repository name="default" class="fs" root="."/>
   <repository name="tor" class="fs" root="../../testsuite/Qualif"/>
-  <repository name="report" class="fs" root="../str"/>
 
 <!-- Common -->
 
