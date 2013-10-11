@@ -34,6 +34,7 @@ with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Hex_Images;        use Hex_Images;
 with Outputs;
+with Perf_Counters;     use Perf_Counters;
 with Qemu_Traces;
 with Traces_Disa;
 with Traces_Lines;      use Traces_Lines;
@@ -2728,9 +2729,17 @@ package body Traces_Elf is
          (PC in Cache.Last_Info.First .. Cache.Last_Info.Last
           or else PC = Cache.Last_Info.First)
       then
-         null;
+         --  Cache hit
+
+         Bump (Addr_Map_Cache_Hit);
+
+         pragma Assert (Cache.Last = Find_Address_Info (Set, Kind, PC));
 
       else
+         --  Cache miss
+
+         Bump (Addr_Map_Cache_Miss);
+
          Cache.Last := No_Element;
       end if;
 

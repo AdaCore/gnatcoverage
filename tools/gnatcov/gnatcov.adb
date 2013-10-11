@@ -43,6 +43,7 @@ with Execs_Dbase;       use Execs_Dbase;
 with Files_Table;       use Files_Table;
 with Inputs;            use Inputs;
 with Outputs;           use Outputs;
+with Perf_Counters;
 with Project;           use Project;
 with Qemu_Traces;
 with Rundrv;
@@ -1065,21 +1066,14 @@ begin
    --  Now execute the specified command
 
    case Command is
-      when No_Command =>
+      when No_Command | Cmd_Help =>
          Usage;
-         return;
-
-      when Cmd_Help =>
-         Usage;
-         return;
 
       when Cmd_Help_Dump =>
          Usage_Dump;
-         return;
 
       when Cmd_Version =>
          Put_Line ("GNATcoverage " & Standard.Version.Xcov_Version);
-         return;
 
       when Cmd_Disp_Routines =>
          declare
@@ -1114,7 +1108,6 @@ begin
             Check_Argument_Available (Obj_Inputs, "EXEC", Command);
             Inputs.Iterate (Obj_Inputs, Read_Routine_Name'Access);
             Traces_Names.Disp_All_Routines_Of_Interest;
-            return;
          end;
 
       when Cmd_Scan_Objects =>
@@ -1164,23 +1157,19 @@ begin
             if Verbose then
                SC_Obligations.Report_SCOs_Without_Code;
             end if;
-            return;
          end;
 
       when Cmd_Check_SCOs =>
          Inputs.Iterate (ALIs_Inputs, Check_SCOs.Check_SCO_Syntax'Access);
          Load_All_SCOs (Check_SCOs => True);
-         return;
 
       when Cmd_Dump_Trace =>
          Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
          Inputs.Iterate (Trace_Inputs, Dump_Trace_File'Access);
-         return;
 
       when Cmd_Dump_Trace_Raw =>
          Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
          Inputs.Iterate (Trace_Inputs, Dump_Raw_Trace_File'Access);
-         return;
 
       when Cmd_Dump_Trace_Base =>
          declare
@@ -1203,7 +1192,6 @@ begin
             Check_Argument_Available (Trace_Inputs, "TRACEFILEs", Command);
             Inputs.Iterate (Trace_Inputs, Dump_Trace_Base'Access);
          end;
-         return;
 
       when Cmd_Dump_Trace_Asm =>
          declare
@@ -1240,7 +1228,6 @@ begin
             Inputs.Iterate (Exe_Inputs, Open_Exec'Access);
             Inputs.Iterate (Trace_Inputs, Dump_Trace'Access);
          end;
-         return;
 
       when Cmd_Dump_Sections
         | Cmd_Dump_Symbols
@@ -1280,8 +1267,7 @@ begin
                   when others =>
                      --  Never happens
 
-                     pragma Assert (False);
-                     return;
+                     raise Program_Error;
                end case;
 
                Disp_Addresses (Exec, To_Display);
@@ -1292,7 +1278,6 @@ begin
             Check_Argument_Available (Exe_Inputs, "EXECs", Command);
             Inputs.Iterate (Exe_Inputs, Dump_Exec'Access);
          end;
-         return;
 
       when Cmd_Dump_Compile_Units =>
          declare
@@ -1316,7 +1301,6 @@ begin
             Check_Argument_Available (Exe_Inputs, "EXECs", Command);
             Inputs.Iterate (Exe_Inputs, Dump_Compilation_Units'Access);
          end;
-         return;
 
       when Cmd_Disassemble_Raw =>
          declare
@@ -1338,7 +1322,6 @@ begin
             Check_Argument_Available (Exe_Inputs, "EXECs", Command);
             Inputs.Iterate (Exe_Inputs, Disassemble'Access);
          end;
-         return;
 
       when Cmd_Disassemble =>
          declare
@@ -1362,7 +1345,6 @@ begin
             Check_Argument_Available (Exe_Inputs, "EXECs", Command);
             Inputs.Iterate (Exe_Inputs, Disassemble'Access);
          end;
-         return;
 
       when Cmd_Coverage =>
 
@@ -1715,6 +1697,10 @@ begin
             Convert.Run_Convert (Opt_Exe_Name, Output, Histmap, Tag);
          end;
    end case;
+
+   if Verbose then
+      pragma Debug (Perf_Counters.Display);
+   end if;
 
 exception
    when Xcov_Exit_Exc =>

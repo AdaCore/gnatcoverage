@@ -24,6 +24,7 @@ with Ada.Unchecked_Deallocation;
 with GNATCOLL.VFS; use GNATCOLL.VFS;
 
 with Outputs;
+with Perf_Counters; use Perf_Counters;
 
 package body Files_Table is
 
@@ -317,6 +318,9 @@ package body Files_Table is
         new Source_Line_Array'
           (FI.Lines.Last_Index + 1 .. Line =>
              (State => (others => No_Code), others => <>));
+
+      Bump (Line_Table_Alloc);
+      Bump (Line_Table_Alloc_Size, How_Many => New_Lines'Length);
 
       FI.Lines.Reserve_Capacity (Ada.Containers.Count_Type (Line));
       for J in New_Lines'Range loop
