@@ -218,7 +218,7 @@ def run_list (cmd, dir=None):
 
     print "run  : %s" % ' '.join(cmd)
 
-    out = cmd[0]+".log"
+    out = os.path.basename(cmd[0])+".log"
     p = Run (cmd, output=out, env=None)
     fail_if (
         p.status != 0, "execution failed\n"
