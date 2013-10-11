@@ -646,7 +646,7 @@ class QMAT:
                 )
 
             self.local_testsuite_dir = "%s_testsuite" % rhost
-            run ("rsync -r --delete %s:%s/ %s" \
+            run ("rsync -rz --delete %s:%s/ %s" \
                      % (raccess, rdir, self.local_testsuite_dir)
                  )
         else:
