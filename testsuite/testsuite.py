@@ -396,6 +396,11 @@ class TestSuite:
         # Setup the STR box and dump the suite data file, for qualification
         # runs. Note that we must be in a revision controlled tree in this
         # case, so we can fetch a local reference for consistency comparisons.
+        #
+        # Dump the path to our python interpreter as well in this case, so the
+        # STR generation shell script can find and reuse it. Use a simplified
+        # format and location for this purpose (text, at toplevel).
+
         if self.options.qualif_level:
             self.__init_strbox()
 
@@ -415,6 +420,9 @@ class TestSuite:
                     gnatcov  = TOOL_info ("gnatcov")
                     )
                 )
+
+            with open ('python_bin.dump', 'w') as f:
+                f.write ('%s' % sys.executable)
 
         # Dump useful comments about this run for starters
 
