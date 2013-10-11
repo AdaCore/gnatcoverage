@@ -307,10 +307,4 @@
    </creates>
   </artifact_factory>
 
-  <artifact_factory class="TR">
-    <on_location pattern="report:///source/"
-                 type="container"/>
-    <creates name="qreport"/>
-  </artifact_factory>
-
 </project>
