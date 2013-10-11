@@ -1,3 +1,5 @@
+.. _testsuite-overview:
+
 Overview of the testsuite structure
 ***********************************
 

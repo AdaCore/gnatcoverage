@@ -37,7 +37,9 @@ The tool conformance to each requirement is validated by a set of
 **Testcases**, organized according to a **Testing Strategy** dedicated to this
 requirement and described together with it. Many requirements call for
 multiple testcases. As with requirements, sets of related testcases which share
-common grounds are composed and referred to as **Testcase Groups**.
+common grounds are composed and referred to as **Testcase Groups**. For a
+more detailed description of how testscase sources are organized, please refer
+to the :ref:`testsuite-overview` section of this material.
 
 For each language and coverage criterion of relevance, we distinguish among
 different categories of requirements based on expectations regarding:
