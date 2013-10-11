@@ -501,7 +501,7 @@ class QMAT:
         """Build one PART of using the Qualifying Machine."""
 
         partname = part.upper()
-        announce ("building %s %s" % (partname, self.this_docformat))
+        announce ("building %s %s" % (self.this_docformat, partname))
 
         os.chdir (
             os.path.join (self.repodir, "qualification", "qm")
@@ -517,6 +517,10 @@ class QMAT:
     # ---------------
 
     def build_tor (self):
+
+        # If we have a testsuite-dir, make sure we have a local access to it:
+
+        self.localize_testsuite_dir()
         self.__qm_build (part="tor")
 
     # ---------------
@@ -526,7 +530,10 @@ class QMAT:
     def run_tests (self):
         announce ("running tests")
 
-        os.chdir (self.testsuite_dir)
+        # Run early consistency checks before running the tests.
+        self.do_consistency_checks()
+
+        os.chdir (self.local_testsuite_dir)
 
         # Setup the testsuite "support" directory, then launch the toplevel
         # suite driver with the requested set of flags and in qualif mode for
@@ -548,7 +555,11 @@ class QMAT:
     # ---------------------------
 
     def do_consistency_checks (self):
-        announce ("tree and version consistency check prior to STR production")
+        announce ("tree and version consistency check")
+
+        if options.devmode:
+            print "devmode - checks skipped"
+            return
 
         # Check consistency of the testsuite tree ref against the clone
         # from which we are producing documents. Check that the latter dir
@@ -562,13 +573,18 @@ class QMAT:
         # Also check consistency of the tool versions used to execute the
         # testsuite against expectations
 
+        self.localize_testsuite_dir()
+
+        if not self.local_testsuite_dir:
+            print "info: no testsuite-dir, unable to check tree consistency"
+
         local_treeref = treeref_at(self.repodir)
 
         suite_treeref = None
         suite_ctxdata = None
 
         if self.o.runtests:
-            suite_treeref = treeref_at(self.testsuite_dir)
+            suite_treeref = treeref_at(self.local_testsuite_dir)
 
         elif self.o.testsuite_dir:
             suite_ctxdata = load_from (
@@ -614,6 +630,9 @@ class QMAT:
         """If self.testsuite_dir is remote and we haven't fetched
         a local copy yet, do so. Then memorize the local location for
         future attempts."""
+
+        if not self.testsuite_dir:
+            return
 
         if self.local_testsuite_dir:
             return
@@ -736,12 +755,6 @@ class QMAT:
 
         if self.do_str():
             self.build_str()
-
-        # If we have a testsuite-dir and will need it for local operations
-        # later on, make sure we have a local access to it:
-
-        if self.testsuite_dir and self.do_tor():
-            self.localize_testsuite_dir()
 
         # Build the TOR as needed, which might look into testsuite results to
         # match TC artifacts against presence of test data dumps:
@@ -1051,23 +1064,16 @@ if __name__ == "__main__":
 
     qmat.gen_qm_model()
 
-    # Start by running tests and perform consistency checks, once:
+    # Start by running tests if we're requested to do so.
 
-    if qmat.do_str():
-
-        # When producing str and not in dev mode, check that the tree we're
-        # producing documents from is consistent with the tree where the
-        # testsuite has/will run.
-
-        if not options.devmode:
-            qmat.do_consistency_checks()
-
-        # Run the tests if we are requested to do so:
-
-        if options.runtests:
-            qmat.run_tests ()
+    if options.runtests:
+        qmat.run_tests ()
 
     # Now build the various documents for each requested format:
 
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
 
+# localize_testsuite & consistency_checks across the board
+#
+# consistency_checks require a local testsuite. localize_testsuite()
+# can only run past build_str().
