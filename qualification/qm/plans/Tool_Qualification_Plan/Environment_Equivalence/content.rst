@@ -2,7 +2,7 @@
 Environment Equivalence
 =======================
 
-Qualification data is produced both in the qualification and in the user environments (see :qmref:`/plans/Tool_Qualification_Plan/User_Activities`). For the whole set of qualification material to be consistent, the qualification and user environments must therefore be equivalent. The equivalence of the following items is deemed sufficient to establish equivalence of environments:
+Qualification data is produced both in the qualification and in the user environments (see :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`). For the whole set of qualification material to be consistent, the qualification and user environments must therefore be equivalent. The equivalence of the following items is deemed sufficient to establish equivalence of environments:
 
 #. The GNAT Pro executable name, version number and host operating system
 #. The list of GNAT Pro compilation switches

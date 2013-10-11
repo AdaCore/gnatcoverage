@@ -441,7 +441,7 @@ class QMAT:
         if partname == 'TOR':
             source_name = 'TOR'
         elif partname == 'PLANS':
-            source_name = 'plans'
+            source_name = 'PLANS'
         elif partname == 'STR':
             source_name = 'GNATcoverage'
         elif 'GNATCOV-QMAT-PDF' in partname:

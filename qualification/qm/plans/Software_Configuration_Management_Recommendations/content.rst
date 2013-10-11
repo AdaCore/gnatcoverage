@@ -2,7 +2,7 @@
 Software Configuration Management Recommendations
 =================================================
 
-The configuration management of qualification data is a responsibility of the applicant (see :qmref:`/plans/Tool_Qualification_Plan/User_Activities`). In this section we propose a possible approach for the configuration management of the GNATcoverage qualification data.
+The configuration management of qualification data is a responsibility of the applicant (see :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`). In this section we propose a possible approach for the configuration management of the GNATcoverage qualification data.
 
 .. csv-table:: Compliance matrix for Table A-8
    :delim: |

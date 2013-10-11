@@ -14,7 +14,7 @@ In order to finalize the qualification of GNATcoverage, the user needs to perfor
 
 #. **Delivery Acceptance.** On delivery of GNATcoverage and its qualification kit, the user shall assess the representativeness of the qualification environment with the operational environment.
 
-#. **Configuration management of qualification data**. The user needs to place all qualification data under configuration management; see :qmref:`/plans/Software_Configuration_Management_Recommendations` for some suggestions.
+#. **Configuration management of qualification data**. The user needs to place all qualification data under configuration management; see :qmref:`/PLANS/Software_Configuration_Management_Recommendations` for some suggestions.
 
 #. **Provide a tool qualification agreement**, see section 12.2.4 of DO-178B.
 
