@@ -241,6 +241,13 @@ package Traces_Elf is
       end case;
    end record;
 
+   function Find_Address_Info
+     (Set  : Address_Info_Sets.Set;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Sets.Cursor;
+   pragma Inline (Find_Address_Info);
+   --  Find cursor for address set entry containing PC
+
    function Get_Address_Info
      (Exec : Exe_File_Type;
       Kind : Address_Info_Kind;

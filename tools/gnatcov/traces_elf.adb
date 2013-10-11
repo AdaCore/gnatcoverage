@@ -156,6 +156,7 @@ package body Traces_Elf is
      (Exec : Exe_File_Type;
       Kind : Address_Info_Kind;
       PC   : Pc_Type) return access constant Address_Info_Sets.Set;
+   pragma Inline (Get_Desc_Set);
    --  Return the Address_Info_Set of type Kind in Exec containing PC
 
    ---------
@@ -186,13 +187,30 @@ package body Traces_Elf is
    --  Start of processing for "<"
 
    begin
+      --  Lower start PC sorts lower
+
       if L.First < R.First then
          return True;
       elsif R.First < L.First then
          return False;
       end if;
 
-      --  Here if L.First = R.First
+      --  Shorter range sorts higher. Note that we use a modular subtraction
+      --  instead of a comparison on Last to account for empty ranges with
+      --  First = 0 (and Last = all-ones).
+
+      declare
+         L_Len : constant Pc_Type := L.Last - L.First + 1;
+         R_Len : constant Pc_Type := R.Last - R.First + 1;
+      begin
+         if R_Len < L_Len then
+            return True;
+         elsif L_Len < R_Len then
+            return False;
+         end if;
+      end;
+
+      --  Here if L.First = R.First and L.Last = R.Last
 
       case L.Kind is
          when Section_Addresses =>
@@ -422,6 +440,27 @@ package body Traces_Elf is
          Exec.Desc_Sets (J).Clear;
       end loop;
    end Close_File;
+
+   -----------------------
+   -- Find_Address_Info --
+   -----------------------
+
+   function Find_Address_Info
+     (Set  : Address_Info_Sets.Set;
+      Kind : Address_Info_Kind;
+      PC   : Pc_Type) return Address_Info_Sets.Cursor
+   is
+      PC_Addr : aliased Address_Info (Kind);
+   begin
+      --  Empty range with default values sorts higher than any empty range
+      --  with non-default values, and higher than any non-empty range,
+      --  starting at PC.
+
+      PC_Addr.First := PC;
+      PC_Addr.Last  := PC - 1;
+
+      return Set.Floor (PC_Addr'Unchecked_Access);
+   end Find_Address_Info;
 
    ------------------
    -- Get_Filename --
@@ -1775,12 +1814,9 @@ package body Traces_Elf is
             Cur   : in out Cursor;
             Cache : in out Address_Info_Acc)
          is
-            PC_Addr : aliased Address_Info (Kind);
          begin
             if Cache = null or else PC < Cache.First then
-               PC_Addr.First := PC;
-               PC_Addr.Last  := PC;
-               Cur   := Exec.Desc_Sets (Kind).Floor (PC_Addr'Unchecked_Access);
+               Cur := Find_Address_Info (Exec.Desc_Sets (Kind), Kind, PC);
             end if;
 
             if Cur = No_Element then
@@ -2278,16 +2314,13 @@ package body Traces_Elf is
 
       Init_Line_State : Line_State;
 
-      PC_Addr : aliased Address_Info (Subprogram_Addresses);
-
    begin
-      PC_Addr.First := Section'First;
-      PC_Addr.Last  := Section'First;
-
       --  Find subprogram at PC
 
-      Cur := Exec.Desc_Sets (Subprogram_Addresses)
-        .Floor (PC_Addr'Unchecked_Access);
+      Cur := Find_Address_Info
+        (Exec.Desc_Sets (Subprogram_Addresses),
+         Subprogram_Addresses,
+         Section'First);
 
       --  Iterate on lines
 
@@ -2315,13 +2348,15 @@ package body Traces_Elf is
                     Get_Line_State (Base.all, Line.First, Line.Last);
                end if;
 
-               Add_Line_For_Object_Coverage
-                 (Source_File,
-                  Init_Line_State,
-                  Line.Sloc.L.Line,
-                  Line,
-                  Base,
-                  Exec);
+               if Object_Coverage_Enabled then
+                  Add_Line_For_Object_Coverage
+                    (Source_File,
+                     Init_Line_State,
+                     Line.Sloc.L.Line,
+                     Line,
+                     Base,
+                     Exec);
+               end if;
             end if;
          end loop;
          Next (Cur);
@@ -2703,20 +2738,7 @@ package body Traces_Elf is
          --  Cache entry is stale, perform lookup again (note: the call to
          --  Floor is costly).
 
-         declare
-            --  Note: we assume that type Address_Info provides adequate
-            --  default initialization so that setting First and Last only
-            --  yields an element that sorts higher than any element with the
-            --  same PC and non-default values for other fields (use of Floor
-            --  below).
-
-            PC_Addr  : aliased Address_Info (Kind);
-
-         begin
-            PC_Addr.First := PC;
-            PC_Addr.Last  := PC;
-            Cache.Last    := Set.Floor (PC_Addr'Unchecked_Access);
-         end;
+         Cache.Last := Find_Address_Info (Set, Kind, PC);
 
          if Cache.Last /= No_Element then
             Cache.Last_Info := Element (Cache.Last);
@@ -2727,26 +2749,36 @@ package body Traces_Elf is
       Last := Cache.Last;
       Prev := Last;
 
+      --  Count elements to be included, scanning back until a non-empty range
+      --  is found.
+
       loop
          exit when Prev = No_Element;
 
          declare
             Prev_Info : constant Address_Info_Acc := Element (Prev);
          begin
-            exit when not (Prev_Info.First <= PC
-                           and then (Prev_Info.First > Prev_Info.Last
-                                     or else Prev_Info.Last >= PC));
+            --  Exit if Prev_Info does not include PC
+
+            exit when not (Prev_Info.Last >= PC or else Prev_Info.First = PC);
+
+            Count := Count + 1;
+
+            --  Exit if non-empty range found
+
+            exit when Prev_Info.First <= Prev_Info.Last;
          end;
 
-         Count := Count + 1;
          Previous (Prev);
       end loop;
 
       return Result : Address_Info_Arr (1 .. Count) do
-         while Count > 0 loop
+         while Count /= 0 loop
             Result (Count) := Element (Last);
-            Previous (Last);
             Count := Count - 1;
+
+            exit when Count = 0;
+            Previous (Last);
          end loop;
       end return;
    end Get_Address_Infos;
