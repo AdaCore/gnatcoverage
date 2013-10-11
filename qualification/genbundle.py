@@ -736,12 +736,17 @@ class QMAT:
 
         if self.do_str():
             self.build_str()
-            
+
+        # If we have a testsuite-dir and will need it for local operations
+        # later on, make sure we have a local access to it:
+
+        if self.testsuite_dir and self.do_tor():
+            self.localize_testsuite_dir()
+
         # Build the TOR as needed, which might look into testsuite results to
         # match TC artifacts against presence of test data dumps:
-            
+
         if self.do_tor():
-            self.localize_testsuite_dir()
             self.build_tor()
 
         # Build the PLANS as needed:
@@ -1065,4 +1070,4 @@ if __name__ == "__main__":
     # Now build the various documents for each requested format:
 
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
-    
+
