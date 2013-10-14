@@ -171,7 +171,7 @@
 # *****************************************************************************
 
 from gnatpython.ex import Run
-from gnatpython.fileutils import cp, mv, rm, mkdir
+from gnatpython.fileutils import cp, mv, rm, mkdir, ls
 
 from datetime import date
 
@@ -711,8 +711,8 @@ class QMAT:
         packdir = "%s-%s" % (self.o.pname, self.this_docformat)
         remove (packdir)
         mkdir (packdir)
-
-        shutil.move (self.itemsdir(), packdir)
+        
+        [shutil.move (item, packdir) for item in ls(self.itemsdir()+"/*")]
 
         run ("zip -q -r %(packdir)s.zip %(packdir)s" % {"packdir": packdir})
 
