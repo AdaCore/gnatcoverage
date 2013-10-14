@@ -41,9 +41,6 @@ A part of the testing strategy used to verify a given Tool Operational Requireme
 
 A TOR describes the expected behavior of a tool from the point of view of the user.
 
-.. rubric:: User environment
-
-The environment in which GNATcoverage is used.
 
 Referenced Documents
 ====================
