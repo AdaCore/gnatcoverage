@@ -41,9 +41,11 @@ package body Perf_Counters is
    begin
       --  Compute averages
 
-      Counters (Line_Table_Alloc_Avg_Size) :=
-        Counters (Line_Table_Alloc_Size)
-        / Counters (Line_Table_Alloc);
+      if Counters (Line_Table_Alloc) > 0 then
+         Counters (Line_Table_Alloc_Avg_Size) :=
+           Counters (Line_Table_Alloc_Size)
+           / Counters (Line_Table_Alloc);
+      end if;
 
       --  Compute maximum name and value lengths
 
