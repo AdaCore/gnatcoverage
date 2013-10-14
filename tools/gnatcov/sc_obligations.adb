@@ -2682,6 +2682,10 @@ package body SC_Obligations is
       SCO_Sloc  : Local_Source_Location_Range;
 
    begin
+      if Sloc.Source_File = No_Source_File then
+         return No_SCO_Id;
+      end if;
+
       --  If looking up the sloc of a NOT operator, return SCO of innermost
       --  operand, if it is a condition.
 
