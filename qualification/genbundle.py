@@ -285,13 +285,15 @@ GIT_CLONE_SUBDIR = "gnatcoverage-git-clone"
 
 class QMAT:
 
+    def itemsdir (self):
+        return os.path.join (self.rootdir, "%s" % self.this_docformat.upper())
+
     def __init__(self, options):
 
         self.o = options
 
         self.rootdir =  os.path.abspath (
             options.rootdir if options.rootdir else options.workdir)
-        self.itemsdir = os.path.join (self.rootdir, "ITEMS")
 
         self.repodir = os.path.join (self.rootdir, GIT_CLONE_SUBDIR)
 
@@ -311,16 +313,19 @@ class QMAT:
 
         self.local_testsuite_dir = None
 
+        # To be set prior to build_as_needed():
+
+        self.this_docformat = None
+
     # --------------------
-    # -- setup_basedirs --
+    # -- setup_workdir --
     # --------------------
 
-    def setup_basedirs (self):
+    def setup_workdir (self):
 
-        announce ("setting up working dirs from %s" % self.rootdir)
+        announce ("setting up working dir at %s" % self.rootdir)
 
         mkdir (self.rootdir)
-        mkdir (self.itemsdir)
 
 
     # ----------------
@@ -444,7 +449,7 @@ class QMAT:
             source_name = 'PLANS'
         elif partname == 'STR':
             source_name = 'GNATcoverage'
-        elif 'GNATCOV-QMAT-PDF' in partname:
+        elif 'GNATCOV-QMAT' in partname:
             source_name = 'GNATcoverageQualificationMaterial'
         else:
             source_name = partname
@@ -510,7 +515,7 @@ class QMAT:
                  % (part, self.this_docformat))
 
         self.__latch_into (
-                dir=self.itemsdir, partname=partname, toplevel=False)
+                dir=self.itemsdir(), partname=partname, toplevel=False)
 
     # ---------------
     # -- build_tor --
@@ -687,7 +692,7 @@ class QMAT:
         run ("make %s" % sphinx_target_for[self.this_docformat])
 
         self.__latch_into (
-            dir=self.itemsdir, partname="STR", toplevel=False)
+            dir=self.itemsdir(), partname="STR", toplevel=False)
 
     # -----------------
     # -- build_plans --
@@ -717,18 +722,19 @@ class QMAT:
         cp ("source/index_%s_rst" % self.this_docformat, "source/index.rst")
         run ("make %s" % sphinx_target)
 
-        packroot = os.path.join (self.rootdir, self.o.pname)
+        packdir = "%s-%s" % (self.o.pname, self.this_docformat)
+
+        packroot = os.path.join (self.rootdir, packdir)
         remove (packroot)
         mkdir (packroot)
 
         self.__latch_into (
-            dir=packroot, partname=self.o.pname, toplevel=True)
-        shutil.move (self.itemsdir, packroot)
+            dir=packroot, partname=packdir, toplevel=True)
+        shutil.move (self.itemsdir(), packroot)
 
         os.chdir (self.rootdir)
 
-        run ("zip -q -r %(packname)s.zip %(packname)s" % {
-                "packname": self.o.pname})
+        run ("zip -q -r %(packdir)s.zip %(packdir)s" % {"packdir": packdir})
 
     # ---------------------
     # -- build_as_needed --
@@ -749,6 +755,8 @@ class QMAT:
     def build_as_needed (self, docformat):
 
         self.this_docformat = docformat
+
+        mkdir (self.itemsdir())
 
         # Build the STR from testsuite results (either one we just ran, or one
         # executed externally and designated by --testsuite-dir):
@@ -978,8 +986,8 @@ def check_valid(options, args):
 
     if kitp and not options.pname:
         today = date.today()
-        options.pname = "GNATCOV-QMAT-%s-%4d-%02d-%02d" % (
-            options.docformat.upper(), today.year, today.month, today.day)
+        options.pname = "GNATCOV-QMAT-%4d-%02d-%02d" % (
+            today.year, today.month, today.day)
 
     # In principle, we should refuse to generate a package in devmode, as
     # packages are presumably things to be delivered and devmode disconnects
@@ -1054,8 +1062,7 @@ if __name__ == "__main__":
 
     qmat = QMAT (options=options)
 
-    qmat.setup_basedirs()
-
+    qmat.setup_workdir()
     qmat.git_update()
     qmat.switch_to_branch()
 
