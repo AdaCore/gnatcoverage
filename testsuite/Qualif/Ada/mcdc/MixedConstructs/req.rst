@@ -1,13 +1,7 @@
 MCDC expectations for mixes of various statement and decision constructs
 ========================================================================
 
-MCDC expectations for mixes of various statement and decision constructs
-representative of real application code.
-
-
 .. rubric:: Requirement(s)
-
-
 
 The Core requirements are honored on programs mixing arbitrary Ada constructs
 together, with arbitrary levels of syntactic nesting (such as loops within
@@ -15,8 +9,6 @@ tests within subprograms etc).
 
 
 .. rubric:: Testing Strategy
-
-
 
 We exercise multiple cases of functional code featuring a variety of
 constructs nested within each other (For, While, Case, If), and for every case

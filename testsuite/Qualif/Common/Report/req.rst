@@ -1,7 +1,7 @@
-Describes the tool output report format and check compliance to it
-==================================================================
+Output report format
+====================
 
-.. rubric:: Requirement(s)
+.. rubric:: Requirement
 
 The tool qualified output is the synthetic report produced by the
 --annotate=report command line option. The output report shall:

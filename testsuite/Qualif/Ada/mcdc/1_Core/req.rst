@@ -1,5 +1,5 @@
-Core expectations for MCDC assessments.
-=======================================
+Core MCDC requirements
+======================
 
 Core expectations for MCDC assessments.
 All the other sub-sections rely on this one.
