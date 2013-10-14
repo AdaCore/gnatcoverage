@@ -2758,36 +2758,26 @@ package body Traces_Elf is
       Last := Cache.Last;
       Prev := Last;
 
-      --  Count elements to be included, scanning back until a non-empty range
-      --  is found.
-
       loop
          exit when Prev = No_Element;
 
          declare
             Prev_Info : constant Address_Info_Acc := Element (Prev);
          begin
-            --  Exit if Prev_Info does not include PC
-
-            exit when not (Prev_Info.Last >= PC or else Prev_Info.First = PC);
-
-            Count := Count + 1;
-
-            --  Exit if non-empty range found
-
-            exit when Prev_Info.First <= Prev_Info.Last;
+            exit when not (Prev_Info.First <= PC
+                           and then (Prev_Info.First > Prev_Info.Last
+                                     or else Prev_Info.Last >= PC));
          end;
 
+         Count := Count + 1;
          Previous (Prev);
       end loop;
 
       return Result : Address_Info_Arr (1 .. Count) do
-         while Count /= 0 loop
+         while Count > 0 loop
             Result (Count) := Element (Last);
-            Count := Count - 1;
-
-            exit when Count = 0;
             Previous (Last);
+            Count := Count - 1;
          end loop;
       end return;
    end Get_Address_Infos;
