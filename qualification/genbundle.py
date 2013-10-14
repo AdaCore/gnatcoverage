@@ -449,8 +449,6 @@ class QMAT:
             source_name = 'PLANS'
         elif partname == 'STR':
             source_name = 'GNATcoverage'
-        elif 'GNATCOV-QMAT' in partname:
-            source_name = 'GNATcoverageQualificationMaterial'
         else:
             source_name = partname
 
@@ -706,33 +704,15 @@ class QMAT:
     # ----------------
 
     def build_pack (self):
-        announce ("building INDEX")
-
-        os.chdir (os.path.join (self.repodir, "qualification", "index"))
-
-        # We have distinct index sources for each docformat, that designate
-        # each part with the appropriate location and extension (links pointing
-        # to ITEMS/<part>/index.html or to ITEMS/<part>.pdf for example)
-
-        # Rename the one we need and generate our index from there. This will
-        # be doing cross document referencing.
-
-        sphinx_target = sphinx_target_for[self.this_docformat]
-
-        cp ("source/index_%s_rst" % self.this_docformat, "source/index.rst")
-        run ("make %s" % sphinx_target)
-
-        packdir = "%s-%s" % (self.o.pname, self.this_docformat)
-
-        packroot = os.path.join (self.rootdir, packdir)
-        remove (packroot)
-        mkdir (packroot)
-
-        self.__latch_into (
-            dir=packroot, partname=packdir, toplevel=True)
-        shutil.move (self.itemsdir(), packroot)
+        announce ("building %s package" % self.this_docformat)
 
         os.chdir (self.rootdir)
+
+        packdir = "%s-%s" % (self.o.pname, self.this_docformat)
+        remove (packdir)
+        mkdir (packdir)
+
+        shutil.move (self.itemsdir(), packdir)
 
         run ("zip -q -r %(packdir)s.zip %(packdir)s" % {"packdir": packdir})
 
