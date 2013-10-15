@@ -25,10 +25,6 @@ The environment in which GNATcoverage is used.
 
 The environment in which GNATcoverage is qualified.
 
-.. rubric:: Report
-
-A file containing the GNATcoverage output.
-
 .. rubric:: Test
 
 A part of a testcase which exercises functional code in a precise manner, aimed at obtaining precise expected coverage results.

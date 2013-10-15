@@ -17,7 +17,7 @@ Section **12.2.1** does not apply to verification tools.
    :delim: |
    :header: "Section", "Data", "Notes"
 
-   12.2.2 (Tool Operational Requirements)| Tool Operational Requirement document and Tests Results document|
+   12.2.2 (Tool Operational Requirements)| Tool Operational Requirement document (*TOR.pdf*) and Software Tests Results report (*STR.pdf*)|
    12.2.2 (Normal operational conditions)| `GNATcoverage Qualified Interface`_ |
 
 .. csv-table:: **Section 12.2.3**
