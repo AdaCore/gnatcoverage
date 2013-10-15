@@ -73,13 +73,13 @@ distribution (file *share/doc/gnatcoverage/pdf/gnatcov.pdf*).
 
 .. rubric:: TOR document
 
-AdaCore: *GNATcoverage Tool Operational Requirements*.
-Available with this qualification package (including  testcases)
+AdaCore: *GNATcoverage Tool Operational Requirements*,
+available with this qualification package (including  testcases)
 
 .. rubric:: STR report
 
-AdaCore: *GNATcoverage Software Test Results*.
-Available with this qualification package.
+AdaCore: *GNATcoverage Software Test Results*,
+available with this qualification package.
 
 
 Organization And Roles
