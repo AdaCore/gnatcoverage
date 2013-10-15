@@ -68,7 +68,7 @@ AdaCore: *GNAT Pro User Guide*, available as part of the GNAT Pro documentation
 
 .. rubric:: GNATcoverage UG
 
-AdaCore: *GNATcoverage User's Guide*,al Available with the GNATcoverage product
+AdaCore: *GNATcoverage User's Guide*, available with the GNATcoverage product
 distribution (file *share/doc/gnatcoverage/pdf/gnatcov.pdf*).
 
 .. rubric:: TOR document
