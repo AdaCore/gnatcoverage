@@ -281,10 +281,11 @@
   </artifact_factory>
 
 
-<!-- STR ??-->
+<!-- STR -->
 
   <artifact_class name="TR" role="result">
     <location_container>
+       <resource name="dump" location="*.dump" mime="text/plain"/>
        <resource name="tr_content" location="test.py.out" mime="text/plain"/>
        <resource name="tr_err" location="test.py.err" mime="text/plain"/>
        <resource name="generated_rest" location="[^tc]*.rst" mime="text/x-rst"/>
@@ -298,9 +299,9 @@
 
   <artifact_factory class="TR">
     <on_location relative_class="TC"
-                 pattern="$relative.location/test.py.out"
+                 pattern="$relative.location/tc.dump"
                  type="content"/>
-    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),\2)">
+    <creates location="$location.container" name="$subst($location.basename,([0-9]+_)?(.*),TR_\2)">
       <link_constructor implements="TC_TR">
         <from instance="$relative"/>
       </link_constructor>
