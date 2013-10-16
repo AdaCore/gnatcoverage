@@ -365,9 +365,9 @@ class Test (object):
         return "-cargs" + (':%s' % lang if lang else "")
 
     def suite_cargs_for (self, lang):
-        """String of options passed as --cargs[:LANG] to the testsuite driver. None if
-        no such option passed. LANG might be None, to fetch options passed as
-        --cargs."""
+        """String of options passed as --cargs[:LANG] to the testsuite
+        driver. None if no such option passed. LANG might be None, to fetch
+        options passed as --cargs."""
 
         return thistest.options.__dict__ [self.__cargs_optvar_for (lang)]
 
