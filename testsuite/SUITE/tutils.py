@@ -326,7 +326,7 @@ def xcov(args, out=None, err=None, inp=None, register_failure=True):
     # "gnatcov <cmd>" unless we are to execute some designated program
     # for this:
 
-    covpgm = thistest.options.__dict__.get ('gnatcov_%s' % covcmd, None)
+    covpgm = thistest.suite_covpgm_for (covcmd)
     covpgm = (
         [covpgm] if covpgm is not None
         else maybe_valgrind([XCOV]) + [covcmd]

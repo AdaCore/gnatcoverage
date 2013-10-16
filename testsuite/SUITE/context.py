@@ -371,6 +371,12 @@ class Test (object):
 
         return thistest.options.__dict__ [self.__cargs_optvar_for (lang)]
 
+    def suite_covpgm_for (self, cmd):
+        """Alternate program to launch in lieu of "gnatcov CMD", if any
+        specified with the --gnatcov-CMD= command line option. None otherwise."""
+
+        return thistest.options.__dict__.get ('gnatcov_%s' % cmd, None)
+
     def support_dir(self):
         return os.path.join (ROOT_DIR, 'support')
 
