@@ -192,7 +192,7 @@ package body Traces_Names is
          Routines.Insert
            (Key,
             Subprogram_Info'(Exec        => Exec,
-                             Insns       => null,
+                             Insns       => Invalid_Binary_Content,
                              Traces      => null,
                              Offset      => 0,
                              Routine_Tag => Tag));
@@ -278,8 +278,10 @@ package body Traces_Names is
          --  subprogram info; if so, check that it does not conflict with the
          --  one given in parameter.
 
-         if Subp_Info.Insns = null and then Content'Length > 0 then
-            Subp_Info.Insns := new Binary_Content'(Content);
+         if not Is_Loaded (Subp_Info.Insns) and then Length (Content) > 0 then
+            --  Subp_Info.Insns := new Binary_Content'(Content);
+            --  TODO??? Is a copy really needed?
+            Subp_Info.Insns := Content;
             Subp_Info.Exec := Exec;
             Subp_Info.Offset := 0;
             First_Code := True;
@@ -295,7 +297,7 @@ package body Traces_Names is
             --  different location. So far, we just make sure that the function
             --  has the same size in the two executables.
 
-            if Content'Length /= Subp_Info.Insns.all'Length then
+            if Length (Content) /= Length (Subp_Info.Insns) then
                Put_Line (Standard_Error,
                          "error: different function size for "
                            & Key_To_Name (Subp_Key).all);
@@ -305,7 +307,7 @@ package body Traces_Names is
                raise Consolidation_Error;
             end if;
 
-            Subp_Info.Offset := Subp_Info.Insns'First - Content'First;
+            Subp_Info.Offset := Subp_Info.Insns.First - Content.First;
          end if;
 
          Add_Code.Subp_Info := Subp_Info;
@@ -367,30 +369,30 @@ package body Traces_Names is
          --  parameter. Rebase the traces' addresses to the subprogram address
          --  range (i.e. Subp_Info.Insns'Range).
 
-         Init (Base.all, Trace_Cursor, Content'First);
+         Init (Base.all, Trace_Cursor, Content.First);
          Get_Next_Trace (Trace, Trace_Cursor);
 
          while Trace /= Bad_Trace loop
-            exit when Trace.First > Content'Last;
+            exit when Trace.First > Content.Last;
 
             --  Note, trace may span several routines
 
-            if Trace.Last >= Content'First then
+            if Trace.Last >= Content.First then
 
                --  Ceil
 
-               if Trace.First >= Content'First then
+               if Trace.First >= Content.First then
                   First := Trace.First + Subp_Info.Offset;
                else
-                  First := Subp_Info.Insns'First;
+                  First := Subp_Info.Insns.First;
                end if;
 
                --  Floor
 
-               if Trace.Last <= Content'Last then
+               if Trace.Last <= Content.Last then
                   Last := Trace.Last + Subp_Info.Offset;
                else
-                  Last := Subp_Info.Insns'Last;
+                  Last := Subp_Info.Insns.Last;
                end if;
 
                --  Consistency check
@@ -442,7 +444,7 @@ package body Traces_Names is
    ---------------------------
 
    function Compute_Routine_State
-     (Insns  : Binary_Content_Acc;
+     (Insns  : Binary_Content;
       Traces : Traces_Base_Acc) return Line_State
    is
       use type Interfaces.Unsigned_32;
@@ -453,7 +455,7 @@ package body Traces_Names is
       It    : Entry_Iterator;
       T     : Trace_Entry;
    begin
-      if Insns = null then
+      if not Is_Loaded (Insns) then
 
          --  The routine was not found in the executable
 
@@ -462,7 +464,7 @@ package body Traces_Names is
       else
          Init (Traces.all, It, 0);
 
-         Addr := Insns'First;
+         Addr := Insns.First;
 
          loop
             Get_Next_Trace (T, It);
@@ -475,7 +477,7 @@ package body Traces_Names is
             Addr := T.Last + 1;
          end loop;
 
-         if Addr < Insns'Last then
+         if Addr < Insns.Last then
             Update_Line_State (State, Insn_State'(Not_Covered));
          end if;
 
@@ -565,8 +567,8 @@ package body Traces_Names is
       use type Pc_Type;
    begin
       pragma Assert
-        (PC in TP.Current_Routine.Insns'First + TP.Current_Routine.Offset
-            .. TP.Current_Routine.Insns'Last  + TP.Current_Routine.Offset);
+        (PC in TP.Current_Routine.Insns.First + TP.Current_Routine.Offset
+            .. TP.Current_Routine.Insns.Last  + TP.Current_Routine.Offset);
       return Get_Slocs_With_Tag
         (TP.Current_Subp.Lines, PC, TP.Current_Routine.Routine_Tag);
    end Get_Slocs_And_Tags;

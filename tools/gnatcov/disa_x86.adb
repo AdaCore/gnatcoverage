@@ -2070,10 +2070,10 @@ package body Disa_X86 is
 
       function Mem (Off : Pc_Type) return Byte is
       begin
-         if Off not in Insn_Bin'Range then
+         if Off not in Insn_Bin.First .. Insn_Bin.Last then
             raise Bad_Memory;
          end if;
-         return Insn_Bin (Off);
+         return Get (Insn_Bin, Off);
       end Mem;
 
       ------------------
@@ -2676,7 +2676,7 @@ package body Disa_X86 is
    --  Start of processing for Disassemble_Insn
 
    begin
-      Off := Insn_Bin'First;
+      Off := Insn_Bin.First;
       Lo := Line'First;
 
       --  Read the first instruction byte and handle prefixes
@@ -3014,13 +3014,13 @@ package body Disa_X86 is
       end if;
 
       Line_Pos := Lo;
-      Insn_Len := Natural (Off_Imm - Insn_Bin'First);
+      Insn_Len := Natural (Off_Imm - Insn_Bin.First);
 
    exception
       when Bad_Memory =>
          Add_String ("[truncated]");
          Line_Pos := Lo;
-         Insn_Len := Insn_Bin'Length;
+         Insn_Len := Integer (Length (Insn_Bin));
       when Error : others =>
          Abort_Disassembler_Error (Pc, Insn_Bin, Error);
    end Disassemble_Insn;
@@ -3039,7 +3039,7 @@ package body Disa_X86 is
 
    begin
       Disassemble_Insn
-        (Self, Insn_Bin, Insn_Bin'First, Line, Line_Pos, Len, Nul_Symbolizer);
+        (Self, Insn_Bin, Insn_Bin.First, Line, Line_Pos, Len, Nul_Symbolizer);
       return Len;
    end Get_Insn_Length;
 
@@ -3072,10 +3072,10 @@ package body Disa_X86 is
 
       function Mem (Off : Pc_Type) return Byte is
       begin
-         if Opcode_Off + Off > Insn_Bin'Length  then
+         if Opcode_Off + Off > Length (Insn_Bin)  then
             raise Bad_Memory;
          end if;
-         return Insn_Bin (Insn_Bin'First + Opcode_Off + Off);
+         return Get (Insn_Bin, Insn_Bin.First + Opcode_Off + Off);
       end Mem;
 
    --  Start of processing for Get_Insn_Properties
@@ -3089,7 +3089,7 @@ package body Disa_X86 is
       Branch_Dest := (No_PC, No_PC);
       FT_Dest     := (No_PC, No_PC);
 
-      B := Insn_Bin (Insn_Bin'First);
+      B := Get (Insn_Bin, Insn_Bin.First);
 
       --  Discard any REX prefix in 64-bit mode and REP/REPNE ones
 
@@ -3098,7 +3098,7 @@ package body Disa_X86 is
          (B = 16#f2# or else B = 16#f3#)
       loop
          Opcode_Off := Opcode_Off + 1;
-         B := Insn_Bin (Insn_Bin'First + Opcode_Off);
+         B := Get (Insn_Bin, Insn_Bin.First + Opcode_Off);
       end loop;
 
       case B is
@@ -3116,7 +3116,7 @@ package body Disa_X86 is
             return;
 
          when 16#0f# =>
-            B := Insn_Bin (Insn_Bin'First + 1);
+            B := Get (Insn_Bin, Insn_Bin.First + 1);
             if B in 16#80# .. 16#8f# then
                --  Jcc Jz
                Branch     := Br_Jmp;
@@ -3194,7 +3194,7 @@ package body Disa_X86 is
             return;
 
          when 16#ff# =>
-            B1 := Insn_Bin (Insn_Bin'First + 1);
+            B1 := Get (Insn_Bin, Insn_Bin.First + 1);
             case Ext_543 (B1) is
                when 2#010# | 2#011# =>
                   --  call / callf, absolute indirect

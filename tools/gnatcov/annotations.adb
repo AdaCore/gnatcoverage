@@ -229,8 +229,9 @@ package body Annotations is
          end loop;
 
          Disp_Assembly_Lines
-           (Sec_Info.Section_Content
-            (Instruction_Set.First .. Instruction_Set.Last),
+           (Slice (Sec_Info.Section_Content,
+                   Instruction_Set.First,
+                   Instruction_Set.Last),
             Info.Base.all, Pretty_Print_Insn'Access, Info.Exec.all);
 
          if In_Symbol then

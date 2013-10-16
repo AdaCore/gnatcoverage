@@ -24,6 +24,8 @@ with System; use System;
 
 with GNAT.OS_Lib; use GNAT.OS_Lib;
 
+with GNATCOLL.Mmap; use GNATCOLL.Mmap;
+
 with Elf_Common; use Elf_Common;
 with Elf_Arch; use Elf_Arch;
 
@@ -60,13 +62,18 @@ package Elf_Files is
    function Get_Time_Stamp (File : Elf_File) return OS_Time;
    function Get_CRC32 (File : Elf_File) return Interfaces.Unsigned_32;
 
-   --  Get ELF header.
    type Elf_Ehdr_Acc is access constant Elf_Ehdr;
 
+   --  Get ELF header.
    function Get_Ehdr (File : Elf_File) return Elf_Ehdr;
 
-   --  Load internally Section header table and well as shdr string table.
    procedure Load_Shdr (File : in out Elf_File);
+   --  Load internally Section header table and well as shdr string table.
+
+   procedure Enable_Section_Relocation (File : in out Elf_File);
+   --  Reload the Section header table if needed to make it mutable. This will
+   --  enable one to relocate sections. The Section header table must already
+   --  be loaded.
 
    type Elf_Shdr_Acc is access all Elf_Shdr;
 
@@ -93,18 +100,26 @@ package Elf_Files is
    --  Extract and swap bytes (if necessary) a symbol entry.
    function Get_Sym (File : Elf_File; Addr : Address) return Elf_Sym;
 
-   --  Load a section in memory.  Only the file length bytes are loaded.
-   procedure Load_Section (File : Elf_File; Index : Elf_Half; Addr : Address);
-   procedure Load_Section (File : Elf_File;
-                           Shdr : Elf_Shdr_Acc; Addr : Address);
+   function Load_Section
+     (File : Elf_File; Index : Elf_Half) return Mapped_Region;
+   function Load_Section
+     (File : Elf_File; Shdr : Elf_Shdr_Acc) return Mapped_Region;
+   --  Load a section in memory. Only the file length bytes are loaded
+
+   procedure Make_Mutable
+     (File : Elf_File; Region : in out Mapped_Region);
+   --  Make some previously-mapped region mutable
 
    type Elf_Rela_Acc is access Elf_Rela;
 
-   type Elf_Strtab is array (Elf_Addr range <>) of Character;
+   type Elf_Strtab is array (Elf_Addr) of Character;
    type Elf_Strtab_Acc is access Elf_Strtab;
+
 private
    type Strtab_Fat_Type is array (Elf_Addr) of Character;
    type Strtab_Fat_Acc is access all Strtab_Fat_Type;
+
+   type Elf_Ehdr_Var_Acc is access all Elf_Ehdr;
 
    type Strtab_Type is record
       Base : Strtab_Fat_Acc;
@@ -114,6 +129,18 @@ private
    Null_Strtab : constant Strtab_Type := (null, 0);
 
    Nul : constant Character := Character'Val (0);
+
+   type Elf_Shdr_Arr is array (Elf_Half) of aliased Elf_Shdr;
+   type Elf_Shdr_Arr_Acc is access all Elf_Shdr_Arr;
+
+   function To_Elf_Shdr_Arr_Acc is new Ada.Unchecked_Conversion
+     (Address, Elf_Shdr_Arr_Acc);
+
+   function To_Elf_Strtab_Acc is new Ada.Unchecked_Conversion
+     (Address, Elf_Strtab_Acc);
+
+   function To_Elf_Ehdr_Var_Acc is new Ada.Unchecked_Conversion
+     (Address, Elf_Ehdr_Var_Acc);
 
    function To_Elf_Rela_Acc is new Ada.Unchecked_Conversion
      (Address, Elf_Rela_Acc);
@@ -131,33 +158,35 @@ private
    function To_Elf_Sym_Acc is new Ada.Unchecked_Conversion
      (Address, Elf_Sym_Acc);
 
-   type Elf_Shdr_Arr is array (Elf_Half range <>) of aliased Elf_Shdr;
-
-   type Elf_Shdr_Arr_Acc is access all Elf_Shdr_Arr;
-
    type Elf_File is record
-      --  Name of the file.
-      Filename : String_Access;
+      Filename         : String_Access;
+      --  Name of the file
 
-      Fd         : GNAT.OS_Lib.File_Descriptor;
+      Fd               : File_Descriptor;
+      File             : Mapped_File;
+      --  Access the ELF content. FD is open first, then File is open using FD.
 
       --  A few characteristics for this file. They will be saved here as soon
       --  as the file is open, since the ELF might be closed when they are
       --  requested.
 
-      Size       : Long_Integer;
-      Time_Stamp : OS_Time;
-      CRC32      : Interfaces.Unsigned_32;
+      Size             : Long_Integer;
+      Time_Stamp       : OS_Time;
+      CRC32            : Interfaces.Unsigned_32;
 
+      Status           : Elf_File_Status;
       --  Status, used to report errors.
-      Status : Elf_File_Status;
 
-      Need_Swap : Boolean;
+      Need_Swap        : Boolean;
+      --  Whether the endianess of the ELF is the same as the one on this
+      --  machine.
 
-      Ehdr : aliased Elf_Ehdr;
+      Ehdr_Map         : Mapped_Region;
+      Shdr_Map         : Mapped_Region;
+      Sh_Strtab_Map    : Mapped_Region;
 
-      Shdr : Elf_Shdr_Arr_Acc;
-
-      Sh_Strtab : Elf_Strtab_Acc;
+      Ehdr             : Elf_Ehdr_Var_Acc;
+      Shdr             : Elf_Shdr_Arr_Acc;
+      Sh_Strtab        : Elf_Strtab_Acc;
    end record;
 end Elf_Files;

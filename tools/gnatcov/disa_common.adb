@@ -16,8 +16,9 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
-with Swaps;  use Swaps;
-with Traces; use Traces;
+with Elf_Arch; use Elf_Arch;
+with Swaps;    use Swaps;
+with Traces;   use Traces;
 
 package body Disa_Common is
 
@@ -26,9 +27,11 @@ package body Disa_Common is
    -----------------------
 
    function To_Big_Endian_U32 (Bin : Binary_Content) return Unsigned_32 is
-      pragma Assert (Bin'Length = 4);
+      pragma Assert (Length (Bin) = 4);
 
-      Bin_Aligned : Binary_Content (1 .. 4) := Bin;
+      type Bin_U32 is array (Elf_Addr range 1 .. 4) of Unsigned_8;
+
+      Bin_Aligned : Bin_U32 := Bin_U32 (Bin.Content (0 .. 3));
       for Bin_Aligned'Alignment use Unsigned_32'Alignment;
 
       Result : Unsigned_32;

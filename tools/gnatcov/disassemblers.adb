@@ -52,13 +52,13 @@ package body Disassemblers is
    function Dump_Bin (Bin : Binary_Content; Size : Positive) return String
    is
       Dump : Unbounded_String;
-      I    : Elf_Arch.Elf_Addr := Bin'First;
+      I    : Elf_Arch.Elf_Addr := Bin.First;
    begin
-      while I <= Bin'Last and then Natural (I - Bin'First) < Size loop
-         if I > Bin'First then
+      while I <= Bin.Last and then Natural (I - Bin.First) < Size loop
+         if I > Bin.First then
             Append (Dump, " ");
          end if;
-         Append (Dump, Hex_Image (Bin (I)));
+         Append (Dump, Hex_Image (Get (Bin, I)));
          I := I + 1;
       end loop;
       if Length (Dump) = 0 then

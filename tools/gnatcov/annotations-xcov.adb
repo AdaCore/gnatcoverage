@@ -103,8 +103,8 @@ package body Annotations.Xcov is
    begin
       Put (Pp.Xcov_File, Hex_Image (Pc));
       Put (Pp.Xcov_File, ' ' & Insn_State_Char (State) & ":  ");
-      for I in Insn'Range loop
-         Put (Pp.Xcov_File, Hex_Image (Insn (I)));
+      for I in Insn.First .. Insn.Last loop
+         Put (Pp.Xcov_File, Hex_Image (Get (Insn, I)));
          Put (Pp.Xcov_File, " ");
       end loop;
       Put (Pp.Xcov_File, " ");

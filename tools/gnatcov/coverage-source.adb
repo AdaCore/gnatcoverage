@@ -938,7 +938,7 @@ package body Coverage.Source is
       while PC <= T.Last + Subp_Info.Offset loop
          Insn_Len :=
            Disa_For_Machine (Machine).
-           Get_Insn_Length (Subp_Info.Insns (PC .. Subp_Info.Insns'Last));
+           Get_Insn_Length (Slice (Subp_Info.Insns, PC, Subp_Info.Insns.Last));
 
          --  Discharge each SCO for source locations associated with this
          --  instruction.

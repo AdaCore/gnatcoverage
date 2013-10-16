@@ -297,7 +297,8 @@ package body Disa_Sparc is
       pragma Unreferenced (Self);
 
       W : constant Unsigned_32 :=
-        To_Big_Endian_U32 (Insn_Bin (Insn_Bin'First .. Insn_Bin'First + 3));
+        To_Big_Endian_U32
+          (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3));
 
       procedure Add (C : Character);
       pragma Inline (Add);
@@ -768,11 +769,12 @@ package body Disa_Sparc is
       FT_Dest     := (No_PC, No_PC);
       Branch      := Br_None;
 
-      if Insn_Bin'Length < 4 then
+      if Length (Insn_Bin) < 4 then
          raise Program_Error;
       end if;
 
-      W := To_Big_Endian_U32 (Insn_Bin (Insn_Bin'First .. Insn_Bin'First + 3));
+      W := To_Big_Endian_U32
+        (Slice (Insn_Bin, Insn_Bin.First, Insn_Bin.First + 3));
 
       Flag_Cond := False;
       Flag_Indir := False;

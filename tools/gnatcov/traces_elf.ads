@@ -19,7 +19,6 @@
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Ordered_Sets;
 with Ada.Containers.Vectors;
-with Ada.Unchecked_Deallocation;
 
 with Interfaces; use Interfaces;
 
@@ -27,6 +26,7 @@ with System; use System;
 
 with GNAT.OS_Lib;
 with GNAT.Strings;     use GNAT.Strings;
+with GNATCOLL.Mmap;    use GNATCOLL.Mmap;
 with GNATCOLL.Symbols; use GNATCOLL.Symbols;
 
 with Coverage;       use Coverage;
@@ -43,13 +43,44 @@ with Symbols;        use Symbols;
 
 package Traces_Elf is
 
-   type Binary_Content is
-     array (Elf_Arch.Elf_Addr range <>) of Interfaces.Unsigned_8;
+   type Binary_Content_Bytes is
+     array (Elf_Arch.Elf_Addr) of Interfaces.Unsigned_8;
+   type Binary_Content_Bytes_Acc is access Binary_Content_Bytes;
+   pragma No_Strict_Aliasing (Binary_Content_Bytes_Acc);
+
+   type Binary_Content is record
+      Content     : Binary_Content_Bytes_Acc;
+      First, Last : Elf_Arch.Elf_Addr;
+      --  Content is an unconstrained array, so we can set it to some memory
+      --  mapped content. Thus, we have to store bounds ourselves.
+   end record;
    --  An array of byte, used to store ELF sections
 
-   type Binary_Content_Acc is access Binary_Content;
-   procedure Free is new Ada.Unchecked_Deallocation
-     (Binary_Content, Binary_Content_Acc);
+   Invalid_Binary_Content : constant Binary_Content :=
+     (null, 0, 0);
+
+   procedure Relocate
+     (Bin_Cont  : in out Binary_Content;
+      New_First : Elf_Arch.Elf_Addr);
+   function Length (Bin_Cont : Binary_Content) return Elf_Arch.Elf_Addr;
+   function Is_Loaded (Bin_Cont : Binary_Content) return Boolean;
+   function Get
+     (Bin_Cont : Binary_Content;
+      Offset : Elf_Arch.Elf_Addr) return Interfaces.Unsigned_8;
+   function Slice
+     (Bin_Cont    : Binary_Content;
+      First, Last : Elf_Arch.Elf_Addr) return Binary_Content;
+   function Address_Of
+     (Bin_Cont : Binary_Content;
+      Offset : Elf_Arch.Elf_Addr) return System.Address;
+   --  Return the address of the Offset'th item in the binary content
+
+   pragma Inline (Relocate);
+   pragma Inline (Length);
+   pragma Inline (Is_Loaded);
+   pragma Inline (Get);
+   pragma Inline (Slice);
+   pragma Inline (Address_Of);
 
    type Exe_File_Type is limited new Symbolizer with private;
    type Exe_File_Acc is access all Exe_File_Type;
@@ -212,7 +243,8 @@ package Traces_Elf is
          when Section_Addresses =>
             Section_Name    : String_Access;
             Section_Index   : Elf_Common.Elf_Half;
-            Section_Content : Binary_Content_Acc;
+            Section_Content : Binary_Content;
+            Section_Region  : Mapped_Region;
 
          when Subprogram_Addresses =>
             Subprogram_Name   : String_Access;
@@ -389,46 +421,48 @@ private
    type Exe_File_Type is limited new Symbolizer with record
       --  Sections index
 
-      Sec_Symtab         : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Abbrev   : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Info     : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Info_Rel : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Line     : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Line_Rel : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Str      : Elf_Half := SHN_UNDEF;
-      Sec_Debug_Ranges   : Elf_Half := SHN_UNDEF;
+      Sec_Symtab          : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Abbrev    : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Info      : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Info_Rel  : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Line      : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Line_Rel  : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Str       : Elf_Half := SHN_UNDEF;
+      Sec_Debug_Ranges    : Elf_Half := SHN_UNDEF;
 
-      Exe_File       : Elf_Files.Elf_File;
-      Exe_Text_Start : Elf_Addr;
-      Exe_Machine    : Elf_Half;
-      Is_Big_Endian  : Boolean;
+      Exe_File            : Elf_Files.Elf_File;
+      Exe_Text_Start      : Elf_Addr;
+      Exe_Machine         : Elf_Half;
+      Is_Big_Endian       : Boolean;
 
       --  FIXME
       --  What is there to fix???
-      Addr_Size : Natural := 0;
+      Addr_Size           : Natural := 0;
 
-      Debug_Str_Base : Address := Null_Address;
-      Debug_Str_Len  : Elf_Addr;
-      Debug_Strs     : Binary_Content_Acc;
+      Debug_Str_Base      : Address := Null_Address;
+      Debug_Str_Len       : Elf_Addr;
+      Debug_Strs          : Binary_Content := Invalid_Binary_Content;
+      Debug_Strs_Region   : Mapped_Region := Invalid_Mapped_Region;
 
       --  .debug_lines contents
 
-      Lines_Len    : Elf_Addr := 0;
-      Lines        : Binary_Content_Acc := null;
-      Lines_Loaded : Boolean := False;
+      Lines_Len           : Elf_Addr := 0;
+      Lines               : Binary_Content := Invalid_Binary_Content;
+      Lines_Region        : Mapped_Region := Invalid_Mapped_Region;
 
       --  Symbol table
 
-      Symtab       : Binary_Content_Acc := null;
-      Nbr_Symbols  : Natural := 0;
-      Symbol_To_PC : Symbol_To_PC_Maps.Map;
+      Symtab              : Binary_Content := Invalid_Binary_Content;
+      Symtab_Region       : Mapped_Region := Invalid_Mapped_Region;
+      Nbr_Symbols         : Natural := 0;
+      Symbol_To_PC        : Symbol_To_PC_Maps.Map;
 
-      Compile_Units : Compile_Unit_Vectors.Vector;
+      Compile_Units       : Compile_Unit_Vectors.Vector;
       --  Compilation units
 
       Call_Site_To_Target : Call_Site_To_Target_Maps.Map;
 
-      Desc_Sets : Desc_Sets_Type;
+      Desc_Sets           : Desc_Sets_Type;
       --  Address descriptor sets
    end record;
 

@@ -374,8 +374,8 @@ package body Annotations.Html is
       Wrh (Pp, Hex_Image (Pc));
       Wrh (Pp, ' ' & Insn_State_Char (State) & ':');
       Wrh (Pp, "  ");
-      for I in Insn'Range loop
-         Wrh (Pp, Hex_Image (Insn (I)));
+      for I in Insn.First .. Insn.Last loop
+         Wrh (Pp, Hex_Image (Get (Insn, I)));
          Wrh (Pp, " ");
       end loop;
       Wrh (Pp, "  ");

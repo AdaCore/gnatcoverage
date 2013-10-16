@@ -57,7 +57,7 @@ package Traces_Names is
       Exec  : Exe_File_Acc;
       --  Pointer to the Exec file where this subprogram has first been found
 
-      Insns : Binary_Content_Acc;
+      Insns : Binary_Content;
       --  Subprogram binary content
 
       Traces : Traces_Base_Acc;
@@ -168,7 +168,7 @@ package Traces_Names is
    --  database).
 
    function Compute_Routine_State
-     (Insns  : Binary_Content_Acc;
+     (Insns  : Binary_Content;
       Traces : Traces_Base_Acc) return Line_State;
    --  Compute routine state from its object coverage information and from its
    --  content.

@@ -301,7 +301,7 @@ package body Decision_Map is
             Add_Code
               (Subp_Key,
                Exe_File,
-               Sec.Section_Content (Sym.First .. Sym.Last),
+               Slice (Sec.Section_Content, Sym.First, Sym.Last),
                First_Symbol_Occurrence,
                Subp_Info);
 
@@ -315,14 +315,14 @@ package body Decision_Map is
                Analyze_Routine
                  (Sym.Symbol_Name,
                   Exe_File,
-                  Sec.Section_Content (Sym.First .. Sym.Last));
+                  Slice (Sec.Section_Content, Sym.First, Sym.Last));
 
                --  Load sloc information
 
                Build_Source_Lines_For_Section
                  (Exe_File,
                   null,
-                  Sec.Section_Content (Sym.First .. Sym.Last));
+                  Slice (Sec.Section_Content, Sym.First, Sym.Last));
             end if;
          end if;
       end loop;
@@ -395,7 +395,7 @@ package body Decision_Map is
    begin
       --  Record address in SCO descriptor
 
-      Add_Address (C_SCO, Insn'First);
+      Add_Address (C_SCO, Insn.First);
 
       --  Update control flow information
 
@@ -492,7 +492,7 @@ package body Decision_Map is
                      Append (Msg, ", tag=" & Tag_Provider.Tag_Name (Tag));
                   end if;
 
-                  Report (Exec, Insn'First, To_String (Msg));
+                  Report (Exec, Insn.First, To_String (Msg));
                end;
             end if;
             return False;
@@ -589,7 +589,7 @@ package body Decision_Map is
          --  Record condition occurrence
 
          Report
-           (Exec, Insn'First,
+           (Exec, Insn.First,
             "cond branch for " & Image (C_SCO)
             & " (" & Img (Integer (Index (C_SCO))) & ")",
             Kind => Notice);
@@ -600,12 +600,12 @@ package body Decision_Map is
             DS_Top.Seen_Condition := Cond_Index;
          end if;
 
-         DS_Top.Conditional_Branches.Append (Insn'First);
+         DS_Top.Conditional_Branches.Append (Insn.First);
 
          Cond_Branch_Map.Insert
-           ((Exec, Insn'First),
+           ((Exec, Insn.First),
             Cond_Branch_Info'
-              (Last_PC             => Insn'Last,
+              (Last_PC             => Insn.Last,
                Decision_Occurrence => DS_Top,
                Condition           => C_SCO,
                Edges               =>
@@ -1462,7 +1462,7 @@ package body Decision_Map is
                Line_Len : Natural;
             begin
                Disa_For_Machine (Machine).Disassemble_Insn
-                 (Sec.Section_Content (BB.From .. BB.To),
+                 (Slice (Sec.Section_Content, BB.From, BB.To),
                   BB.From,
                   Line,
                   Line_Pos,
@@ -2175,26 +2175,26 @@ package body Decision_Map is
       end if;
 
       Context.Subprg :=
-        Get_Address_Info (Exec.all, Subprogram_Addresses, Insns'First);
+        Get_Address_Info (Exec.all, Subprogram_Addresses, Insns.First);
 
       --  First pass: instruction scan
 
       --  In this pass, we record all basic blocks, and we make a note of any
       --  conditional branch instruction that needs to be analyzed.
 
-      PC := Insns'First;
+      PC := Insns.First;
       New_Basic_Block;
       Prev_Insn_S_SCOs.Clear;
 
-      while PC <= Insns'Last loop
+      while PC <= Insns.Last loop
          Insn_Len :=
            Disa_For_Machine (Machine).
-             Get_Insn_Length (Insns (PC .. Insns'Last));
+             Get_Insn_Length (Slice (Insns, PC, Insns.Last));
 
          declare
             LI   : Line_Info_Access;
             Insn : Binary_Content renames
-                     Insns (PC .. PC + Pc_Type (Insn_Len) - 1);
+                     Slice (Insns, PC, PC + Pc_Type (Insn_Len) - 1);
 
             Branch      : Branch_Kind;
             Flag_Indir  : Boolean;
@@ -2272,15 +2272,15 @@ package body Decision_Map is
             if Branch /= Br_None then
                Analyze_Branch : declare
                   BB : Basic_Block :=
-                         (From                   => Current_Basic_Block_Start,
-                          To_PC                  => Insn'First,
-                          To                     => Insn'Last,
-                          Branch_Dest            => Branch_Dest,
-                          FT_Dest                => FT_Dest,
-                          Branch                 => Branch,
-                          Cond                   => Flag_Cond,
-                          Statements             => Current_Basic_Block_S_Map,
-                          others                 => <>);
+                         (From        => Current_Basic_Block_Start,
+                          To_PC       => Insn.First,
+                          To          => Insn.Last,
+                          Branch_Dest => Branch_Dest,
+                          FT_Dest     => FT_Dest,
+                          Branch      => Branch,
+                          Cond        => Flag_Cond,
+                          Statements  => Current_Basic_Block_S_Map,
+                          others      => <>);
 
                   SCO            : SCO_Id;
                   Tag            : SC_Tag;
@@ -2319,8 +2319,8 @@ package body Decision_Map is
                               --  Queue for later processing
 
                               Pending_Cond_Branches.Append
-                                ((Insn_First  => Insn'First,
-                                  Insn_Last   => Insn'Last,
+                                ((Insn_First  => Insn.First,
+                                  Insn_Last   => Insn.Last,
                                   Tag         => Tsloc.Tag,
                                   C_SCO       => SCO,
                                   Branch_Dest => Branch_Dest,
@@ -2384,9 +2384,8 @@ package body Decision_Map is
          begin
             Analyze_Conditional_Branch
               (Exec        => Exec,
-               Insn        => Insns
-                                (Cond_Branch.Insn_First ..
-                                 Cond_Branch.Insn_Last),
+               Insn        =>
+                 Slice (Insns, Cond_Branch.Insn_First, Cond_Branch.Insn_Last),
                Tag         => Cond_Branch.Tag,
                C_SCO       => Cond_Branch.C_SCO,
                Branch_Dest => Cond_Branch.Branch_Dest,

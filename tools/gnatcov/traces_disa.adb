@@ -19,6 +19,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 
 with Disassemblers;     use Disassemblers;
+with Elf_Arch;          use Elf_Arch;
 with Interfaces;        use Interfaces;
 with Hex_Images;        use Hex_Images;
 with Elf_Disassemblers; use Elf_Disassemblers;
@@ -71,7 +72,7 @@ package body Traces_Disa is
       Disa_For_Machine (Machine).
         Disassemble_Insn (Insn, Pc, Line, Line_Pos, Insn_Len, Sym);
 
-      if Insn_Len /= Insn'Length then
+      if Elf_Arch.Elf_Addr (Insn_Len) /= Length (Insn) then
          raise Constraint_Error;
       end if;
       return Line (1 .. Line_Pos - 1);
@@ -93,7 +94,7 @@ package body Traces_Disa is
       if Switches.Debug_Break_Long_Instructions then
          while
             --  Make sure we process each byte of the given instruction.
-            Off <= Insn'Last
+            Off <= Insn.Last
             and then Off >= Addr --  And handle overflow
          loop
             --  Each dump line must start with indentation, the memory address
@@ -108,8 +109,8 @@ package body Traces_Disa is
             --  disassembly must appear on the first line.
 
             I := 0;
-            while I < 8 and then Off - Addr + I < Insn'Length loop
-               Put (Hex_Image (Insn (Off + I)));
+            while I < 8 and then Off - Addr + I < Length (Insn) loop
+               Put (Hex_Image (Get (Insn, Off + I)));
                Put (' ');
                I := I + 1;
             end loop;
@@ -133,11 +134,11 @@ package body Traces_Disa is
          Put (' ');
          Disp_State_Char (State);
          Put (":  ");
-         for I in Insn'Range loop
-            Put (Hex_Image (Insn (I)));
+         for I in Insn.First .. Insn.Last loop
+            Put (Hex_Image (Get (Insn, I)));
             Put (' ');
          end loop;
-         for I in Insn'Length .. 4 loop
+         for I in Length (Insn) .. 4 loop
             Put ("   ");
          end loop;
          Put ("  ");
@@ -161,12 +162,13 @@ package body Traces_Disa is
       Pc : Pc_Type;
       Insn_Len : Natural := 0;
    begin
-      Pc := Insns'First;
-      while Pc <= Insns'Last loop
+      Pc := Insns.First;
+      while Pc <= Insns.Last loop
          Insn_Len :=
            Disa_For_Machine (Machine).Get_Insn_Length
-                                        (Insns (Pc .. Insns'Last));
-         Cb.all (Pc, State, Insns (Pc .. Pc + Pc_Type (Insn_Len - 1)), Sym);
+                                        (Slice (Insns, Pc, Insns.Last));
+         Cb.all
+           (Pc, State, Slice (Insns, Pc, Pc + Pc_Type (Insn_Len - 1)), Sym);
          Pc := Pc + Pc_Type (Insn_Len);
 
          --  Handle wrap around.
@@ -179,7 +181,7 @@ package body Traces_Disa is
       when Program_Error =>
          raise;
       when Error : others =>
-         Abort_Disassembler_Error (Pc, Insns (Pc .. Insns'Last), Error);
+         Abort_Disassembler_Error (Pc, Slice (Insns, Pc, Insns.Last), Error);
    end For_Each_Insn;
 
    -------------------------
@@ -201,12 +203,12 @@ package body Traces_Disa is
       Next_Addr : Pc_Type;
       State : Insn_State;
    begin
-      Init (Base, It, Insns'First);
+      Init (Base, It, Insns.First);
       Get_Next_Trace (E, It);
-      Addr := Insns'First;
+      Addr := Insns.First;
 
       loop
-         Next_Addr := Insns'Last;
+         Next_Addr := Insns.Last;
 
          --  Find matching trace
          --  Note: object coverage data is piggy-backed in the traces database
@@ -228,8 +230,8 @@ package body Traces_Disa is
             end if;
          end if;
 
-         For_Each_Insn (Insns (Addr .. Next_Addr), State, Cb, Sym);
-         exit when Next_Addr >= Insns'Last;
+         For_Each_Insn (Slice (Insns, Addr, Next_Addr), State, Cb, Sym);
+         exit when Next_Addr >= Insns.Last;
          Addr := Next_Addr + 1;
       end loop;
    end Disp_Assembly_Lines;
@@ -278,8 +280,8 @@ package body Traces_Disa is
             end loop;
 
             Load_Section_Content (Exe, Sec);
-            For_Each_Insn (Sec.Section_Content (E.First .. E.Last), Covered,
-                           Textio_Disassemble_Cb'Access, Exe);
+            For_Each_Insn (Slice (Sec.Section_Content, E.First, E.Last),
+                           Covered, Textio_Disassemble_Cb'Access, Exe);
          end if;
       end Disp_Entry;
 

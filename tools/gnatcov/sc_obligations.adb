@@ -1315,8 +1315,8 @@ package body SC_Obligations is
 
    begin
       pragma Assert
-        (PC in TP.Current_Routine.Insns'First + TP.Current_Routine.Offset
-            .. TP.Current_Routine.Insns'Last  + TP.Current_Routine.Offset);
+        (PC in TP.Current_Routine.Insns.First + TP.Current_Routine.Offset
+            .. TP.Current_Routine.Insns.Last  + TP.Current_Routine.Offset);
 
       if CU /= No_CU_Id then
          CUI := CU_Vector.Element (CU);

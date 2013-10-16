@@ -53,9 +53,9 @@ package body Traces_Dump is
             Put (State_Char (Compute_Routine_State (Info.Insns, Info.Traces)));
          end if;
 
-         if Info.Insns /= null then
-            Put (": " & Hex_Image (Info.Insns'First)
-                 & '-' & Hex_Image (Info.Insns'Last));
+         if Is_Loaded (Info.Insns) then
+            Put (": " & Hex_Image (Info.Insns.First)
+                 & '-' & Hex_Image (Info.Insns.Last));
          end if;
          New_Line;
 
@@ -63,14 +63,14 @@ package body Traces_Dump is
             if Flag_Show_Asm then
                if Info.Exec = null then
                   Disp_Assembly_Lines
-                    (Info.Insns.all,
+                    (Info.Insns,
                      Info.Traces.all,
                      Textio_Disassemble_Cb'Access,
                      Disa_Symbolize.Nul_Symbolizer);
 
                else
                   Disp_Assembly_Lines
-                    (Info.Insns.all,
+                    (Info.Insns,
                      Info.Traces.all,
                      Textio_Disassemble_Cb'Access,
                      Info.Exec.all);
@@ -124,7 +124,7 @@ package body Traces_Dump is
          Routine_State : constant Line_State :=
                            Compute_Routine_State (Info.Insns, Info.Traces);
       begin
-         if Info.Insns = null then
+         if not Is_Loaded (Info.Insns) then
             Put_Line
               (Report.all,
                Key_To_Name (Key).all & " not found in executable(s)");

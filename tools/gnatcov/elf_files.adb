@@ -17,7 +17,6 @@
 ------------------------------------------------------------------------------
 
 with Ada.Directories;
-with Ada.Unchecked_Deallocation;
 
 with Interfaces; use Interfaces;
 
@@ -61,22 +60,31 @@ package body Elf_Files is
    procedure Open_File (File : out Elf_File; Filename : String) is
       Basename : constant String := Ada.Directories.Simple_Name (Filename);
    begin
-      File := (Filename   => new String'(Filename),
-               Status     => Status_Ok,
-               Need_Swap  => False,
-               Fd         => Invalid_FD,
-               Size       => 0,
-               Time_Stamp => Invalid_Time,
-               CRC32      => 0,
-               Ehdr       => <>,
-               Shdr       => null,
-               Sh_Strtab  => null);
+      File := (Filename         => new String'(Filename),
+               Fd               => Invalid_FD,
+               File             => Invalid_Mapped_File,
+               Status           => Status_Ok,
+               Need_Swap        => False,
+               Size             => 0,
+               Time_Stamp       => Invalid_Time,
+               CRC32            => 0,
+               Ehdr_Map         => Invalid_Mapped_Region,
+               Shdr_Map         => Invalid_Mapped_Region,
+               Sh_Strtab_Map    => Invalid_Mapped_Region,
+               Ehdr             => null,
+               Shdr             => null,
+               Sh_Strtab        => null);
 
       --  Open the file
 
       loop
          File.Fd := Open_Read (File.Filename.all, Binary);
-         exit when File.Fd /= Invalid_FD;
+         if File.Fd /= Invalid_FD then
+            --  Stop when opening succeeded
+
+            File.File := Open_Read (File.Filename.all);
+            exit;
+         end if;
 
          --  If open failed and Filename includes a directory name, try again
          --  with just the base name, else bail out.
@@ -94,12 +102,27 @@ package body Elf_Files is
       File.Time_Stamp := File_Time_Stamp (File.Fd);
 
       --  Read the Ehdr
-
-      if Read (File.Fd, File.Ehdr'Address, Elf_Ehdr_Size) /= Elf_Ehdr_Size then
+      File.Ehdr_Map := Read
+        (File.File, 0, File_Size (Elf_Ehdr_Size));
+      if Natural (GNATCOLL.Mmap.Last (File.Ehdr_Map)) /= Elf_Ehdr_Size then
          File.Status := Status_Read_Error;
-         Close (File.Fd);
+         Close (File.File);
          File.Fd := Invalid_FD;
          raise Error with File.Filename.all & ": failed to read ELF header";
+      end if;
+
+      --  Make it mutable if byte-swapping is needed
+
+      File.Ehdr := To_Elf_Ehdr_Var_Acc (Data (File.Ehdr_Map).all'Address);
+      File.Need_Swap := File.Ehdr.E_Ident (EI_DATA) /= My_Data;
+
+      if File.Need_Swap then
+         Make_Mutable (File, File.Ehdr_Map);
+         File.Ehdr := To_Elf_Ehdr_Var_Acc (Data (File.Ehdr_Map).all'Address);
+      end if;
+
+      if File.Need_Swap then
+         Elf_Ehdr_Swap (File.Ehdr.all);
       end if;
 
       if File.Ehdr.E_Ident (EI_MAG0) /= ELFMAG0
@@ -108,7 +131,7 @@ package body Elf_Files is
         or else File.Ehdr.E_Ident (EI_MAG3) /= ELFMAG3
       then
          File.Status := Status_Bad_Magic;
-         Close (File.Fd);
+         Close (File.File);
          File.Fd := Invalid_FD;
 
          --  Specialize error message for the case where the user passed a
@@ -130,15 +153,9 @@ package body Elf_Files is
         or File.Ehdr.E_Ident (EI_VERSION) /= EV_CURRENT
       then
          File.Status := Status_Bad_Class;
-         Close (File.Fd);
+         Close (File.File);
          File.Fd := Invalid_FD;
          raise Error with "unexpected ELF class or version";
-      end if;
-
-      File.Need_Swap := File.Ehdr.E_Ident (EI_DATA) /= My_Data;
-
-      if File.Need_Swap then
-         Elf_Ehdr_Swap (File.Ehdr);
       end if;
 
       File.CRC32 := Compute_CRC32 (File);
@@ -149,15 +166,9 @@ package body Elf_Files is
    ----------------
 
    procedure Close_File (File : in out Elf_File) is
-      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Elf_Shdr_Arr, Elf_Shdr_Arr_Acc);
-      procedure Unchecked_Deallocation is new Ada.Unchecked_Deallocation
-        (Elf_Strtab, Elf_Strtab_Acc);
    begin
-      Close (File.Fd);
+      Close (File.File);
       File.Fd := Invalid_FD;
-      Unchecked_Deallocation (File.Shdr);
-      Unchecked_Deallocation (File.Sh_Strtab);
 
       --  Note: File.Filename may be referenced later on to produce error
       --  messages, so we don't deallocate it.
@@ -213,7 +224,8 @@ package body Elf_Files is
    ---------------
 
    procedure Load_Shdr (File : in out Elf_File) is
-      Size : Natural;
+      Length      : constant Unsigned_16 := File.Ehdr.E_Shnum;
+      Size        : File_Size;
 
    begin
       if Get_Ehdr (File).E_Shentsize /= Elf_Half (Elf_Shdr_Size) then
@@ -223,61 +235,86 @@ package body Elf_Files is
          return;
       end if;
 
-      File.Shdr := new Elf_Shdr_Arr (0 .. File.Ehdr.E_Shnum);
+      Size := File_Size (Length) * File_Size (Elf_Shdr_Size);
+      File.Shdr_Map := Read
+        (File    => File.File,
+         Offset  => File_Size (File.Ehdr.E_Shoff),
+         Length  => Size,
+         Mutable => File.Need_Swap);
+      File.Shdr := To_Elf_Shdr_Arr_Acc (Data (File.Shdr_Map).all'Address);
 
-      Lseek (File.Fd, Long_Integer (File.Ehdr.E_Shoff), Seek_Set);
-
-      Size := Natural (File.Ehdr.E_Shnum) * Elf_Shdr_Size;
-
-      if Read (File.Fd, File.Shdr (0)'Address, Size) /= Size then
+      if File_Size (GNATCOLL.Mmap.Last (File.Shdr_Map)) /= Size then
          raise Error;
       end if;
 
       if File.Need_Swap then
-         for I in 1 .. File.Ehdr.E_Shnum loop
-            Elf_Shdr_Swap (File.Shdr (I - 1));
+         for Shdr of File.Shdr.all loop
+            Elf_Shdr_Swap (Shdr);
          end loop;
       end if;
 
+      File.Sh_Strtab_Map := Load_Section (File, File.Ehdr.E_Shstrndx);
       File.Sh_Strtab :=
-        new Elf_Strtab (0 .. File.Shdr (File.Ehdr.E_Shstrndx).Sh_Size);
-      Load_Section (File, File.Ehdr.E_Shstrndx, File.Sh_Strtab (0)'Address);
+        To_Elf_Strtab_Acc (Data (File.Sh_Strtab_Map).all'Address);
    end Load_Shdr;
 
+   -------------------------------
+   -- Enable_Section_Relocation --
+   -------------------------------
+
+   procedure Enable_Section_Relocation (File : in out Elf_File) is
+   begin
+      pragma Assert (File.Shdr /= null);
+
+      Make_Mutable (File, File.Shdr_Map);
+      File.Shdr := To_Elf_Shdr_Arr_Acc (Data (File.Shdr_Map).all'Address);
+   end Enable_Section_Relocation;
+
    ------------------
    -- Load_Section --
    ------------------
 
-   procedure Load_Section
-     (File : Elf_File;
-      Shdr : Elf_Shdr_Acc;
-      Addr : Address)
-   is
-      Size : Natural;
-
+   function Load_Section
+     (File : Elf_File; Index : Elf_Half) return Mapped_Region is
    begin
-      Lseek (File.Fd, Long_Integer (Shdr.Sh_Offset), Seek_Set);
-      Size := Natural (Shdr.Sh_Size);
-      if Read (File.Fd, Addr, Size) /= Size then
-         raise Error;
-      end if;
+      return Load_Section (File, Get_Shdr (File, Index));
    end Load_Section;
 
    ------------------
    -- Load_Section --
    ------------------
 
-   procedure Load_Section
-     (File  : Elf_File;
-      Index : Elf_Half;
-      Addr  : Address)
+   function Load_Section
+     (File : Elf_File; Shdr : Elf_Shdr_Acc) return Mapped_Region
    is
+      Result : constant Mapped_Region := Read
+        (File.File, File_Size (Shdr.Sh_Offset), File_Size (Shdr.Sh_Size));
    begin
-      if File.Shdr = null then
+      if File_Size (Last (Result)) /= File_Size (Shdr.Sh_Size) then
          raise Error;
       end if;
-      Load_Section (File, Get_Shdr (File, Index), Addr);
+      return Result;
    end Load_Section;
+
+   ------------------
+   -- Make_Mutable --
+   ------------------
+
+   procedure Make_Mutable
+     (File : Elf_File; Region : in out Mapped_Region) is
+   begin
+      --  If the region is already mutable (this can happen, for instance, if
+      --  it was byte-swapped), do not risk losing changes remapping it.
+
+      if not Is_Mutable (Region) then
+         Read
+           (File    => File.File,
+            Region  => Region,
+            Offset  => Offset (Region),
+            Length  => File_Size (Last (Region)),
+            Mutable => True);
+      end if;
+   end Make_Mutable;
 
    --------------
    -- Get_Ehdr --
@@ -285,7 +322,7 @@ package body Elf_Files is
 
    function Get_Ehdr (File : Elf_File) return Elf_Ehdr is
    begin
-      return File.Ehdr;
+      return File.Ehdr.all;
    end Get_Ehdr;
 
    --------------
@@ -294,7 +331,7 @@ package body Elf_Files is
 
    function Get_Shdr (File : Elf_File; Index : Elf_Half) return Elf_Shdr_Acc is
    begin
-      if Index >= File.Ehdr.E_Shnum then
+      if Index >= Get_Shdr_Num (File) then
          raise Constraint_Error;
       end if;
       return File.Shdr (Index)'Access;
@@ -316,10 +353,7 @@ package body Elf_Files is
    function Get_Section_Length (File : Elf_File; Index : Elf_Half)
                                       return Elf_Addr is
    begin
-      if Index >= File.Ehdr.E_Shnum then
-         raise Constraint_Error;
-      end if;
-      return File.Shdr (Index).Sh_Size;
+      return Get_Shdr (File, Index).Sh_Size;
    end Get_Section_Length;
 
    --  Load a section in memory.  Only the file length bytes are loaded
@@ -385,7 +419,7 @@ package body Elf_Files is
       I : Elf_Half;
    begin
       I := Get_Shdr_By_Name (File, Name);
-      if I = 0 then
+      if I = SHN_UNDEF then
          return null;
       else
          return File.Shdr (I)'Access;
@@ -425,18 +459,13 @@ package body Elf_Files is
    -------------------
 
    function Compute_CRC32 (File : Elf_File) return Unsigned_32 is
-      C      : CRC32;
-      Buffer : String (Integer range 1 .. 2 ** 12);
-      Size   : Integer;
+      C              : CRC32;
+      Content        : Mapped_Region := Read (File.File);
+      Content_Length : constant Integer := Integer (Length (File.File));
    begin
       Initialize (C);
-      loop
-         Size := Read (File.Fd, Buffer'Address, Buffer'Length);
-         exit when Size < 1;
-         Update (C, Buffer (1 .. Size));
-      end loop;
-
-      Lseek (File.Fd, 0, 0);
+      Update (C, String (Data (Content).all (1 .. Content_Length)));
+      Free (Content);
       return Get_Value (C);
    end Compute_CRC32;
 

@@ -30,7 +30,7 @@ package body Coverage.Tags is
                           Get_Address_Info
                             (Exec => Subp_Info.Exec.all,
                              Kind => Subprogram_Addresses,
-                             PC   => Subp_Info.Insns'First);
+                             PC   => Subp_Info.Insns.First);
    begin
       TP.Current_Routine := Subp_Info;
       TP.Current_Subp    := Subprogram_Info;
