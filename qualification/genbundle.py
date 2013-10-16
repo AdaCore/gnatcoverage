@@ -594,10 +594,6 @@ class QMAT:
                 os.path.join (self.o.testsuite_dir, CTXDATA_FILE))
             suite_treeref = suite_ctxdata.treeref
 
-        elif self.o.str_dir:
-            suite_treeref = None # until we can do better ...
-            suite_ctxdata = None
-
         if not suite_treeref:
             print "info: unable to check tree consistency in this setup"
         else:
@@ -863,14 +859,6 @@ def commandline():
         )
 
     op.add_option (
-        "--str-dir", dest="str_dir", default=None,
-        help = (
-            "Name of a directory where the STR report has been pre-built. "
-            "Expect this to designate a sphinx ready subdir, with a Makefile "
-            "and a populated source/ sub-sudir.")
-        )
-
-    op.add_option (
         "--devmode", dest="devmode", action="store_true", default=False,
         help = (
             "State that we're in ongoing development mode, relaxing internal "
@@ -997,17 +985,6 @@ def check_valid(options, args):
             )
      for part in options.parts]
 
-    exit_if (
-        'str-rst' in options.parts and 'str' in options.parts,
-        ("Complete STR is incompatible with rest-only STR.")
-        )
-
-    exit_if (
-        'str-rst' in options.parts and options.str_dir,
-        ("Producing rest-only STR is incompatible with fetching "
-         "pre-built STR rest sources.")
-        )
-
     # GIT aspects:
 
     exit_if (
@@ -1035,8 +1012,6 @@ if __name__ == "__main__":
 
     if options.testsuite_dir and not raccess_in (options.testsuite_dir):
         options.testsuite_dir = os.path.abspath (options.testsuite_dir)
-    if options.str_dir:
-        options.str_dir = os.path.abspath (options.str_dir)
 
     # Instanciate our helper and proceed with the base directory setup:
 
