@@ -257,6 +257,8 @@ class SubsetIndexTable(ArtifactImporter):
 
         req = len([a for a in artifacts if class_to_string(a) == 'rq'])
         reqg = len([a for a in artifacts if class_to_string(a) == 'rqg'])
+        tcg = len([a for a in artifacts if class_to_string(a) == 'tcg'])
+        tc = len([a for a in artifacts if class_to_string(a) == 'tc'])
 
         for a in artifacts:
 
@@ -271,7 +273,10 @@ class SubsetIndexTable(ArtifactImporter):
                    ("Requirements Groups" if (req == 0 and reqg > 1) else
                     ("Requirement" if (req == 1 and reqg == 0) else
                      ("Requirements" if (req > 1 and reqg == 0) else
-                      "")))))
+                      ("Testcases and Groups" if (tc > 0 and tcg > 0) else
+                       ("Testcases" if (tc > 0 and tcg == 0) else
+                        ("Testcases Groups" if (tc == 0 and tcg > 0) else
+                         ("")))))))))
 
         output = writer.csv_table(
             items,
@@ -374,7 +379,6 @@ class TestCaseImporter(ArtifactImporter):
 
 
         # Managing the list of the sources
-        result += writer.directive('rubric', content=None, argument="Sources")
 
         driver_list = []
         driver_list_qmref = []
@@ -428,10 +432,10 @@ class TestCaseImporter(ArtifactImporter):
         helper_list.sort()
         helper_list_qmref.sort()
 
-        headers = ["Functional", "Drivers", "Helpers"]
+        headers = ["Functional Sources", "Drivers Sources", "Helpers Sources"]
 
         if consolidation_list:
-            headers += ["Consolidation"]
+            headers += ["Consolidation Sources"]
             consolidation_list.sort()
             consolidation_list_qmref.sort()
 
@@ -456,7 +460,6 @@ class TestCaseImporter(ArtifactImporter):
                                      driver_list,
                                      helper_list,
                                      fillvalue="")
-
 
         html_content = writer.csv_table([k for k in for_table_qmref],
                                         headers)
