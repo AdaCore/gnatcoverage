@@ -2,6 +2,10 @@ Compliance to guidance
 ======================
 This section contains compliance matrices with the guidance contained in section 12.2 of DO-178B. 
 
+**Note:** in the following, we always use the term "verification tool" to
+indicate the software level of the tool following the DO-178B taxonomy. This
+term is equivalent to TQL5 for DO-178C.
+
 .. csv-table:: **Section 12.2**
    :delim: |
    :header: "Section", "Data", "Notes"
