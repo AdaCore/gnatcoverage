@@ -22,7 +22,7 @@ In order to finalize the qualification of GNATcoverage, the user needs to perfor
 
 #. **Update the Software Accomplishment Summary (SAS).** The SAS needs to be updated:
 
-   * for Table A-7 : achievement of objective 5, 6, or 7, depending on the criticality level of the embedded application
+   * for Table A-7 : achievement of objective 5, 6, or 7, depending on the application criticality level
    * for qualification status of GNATcoverage : refer to the Software Tests Results document of the qualification kit.
 
 .. rubric:: GNATcoverage usage

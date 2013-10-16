@@ -20,5 +20,5 @@ If all items above are the same in the two environments, then they are
 considered equivalent for the purpose of GNATcoverage usage.
 
 The values corresponding to the environment where the qualification activities
-were performed are summarized in the "Operational Environment" section of the
-TOR document.
+were performed are summarized in the "Execution Context Summary" section of the
+STR document.
