@@ -104,9 +104,8 @@ def is_consolidation(a):
 
 def is_helper(source_resource):
 
-
-    return not (is_test_driver(source_resource)
-                or is_functional_source(source_resource))
+    return not(is_test_driver(source_resource)
+               or is_functional_source(source_resource))
 
 
 def is_driver(source_resource):
@@ -218,6 +217,7 @@ class TCIndexImporter(ArtifactImporter):
 
         output += writer.only(html_table, "html")
         output += writer.only(pdf_table, "latex")
+        output += "|\n\n"
 
         links = []
         for a in artifacts:
@@ -422,9 +422,8 @@ class TestCaseImporter(ArtifactImporter):
         if req_parent:
         # Creates a retro-link to navigate backward in the pdf
         # (from a TC to its requirement)
-            result += writer.paragraph("Requirement :")
-            result += writer.qmref(req_parent.full_name) + '\n\n'
-
+            result += writer.paragraph("**Requirement**: %s\n\n" %
+                                       writer.qmref(req_parent.full_name))
 
         # Managing the list of the sources
 
@@ -519,6 +518,8 @@ class TestCaseImporter(ArtifactImporter):
 
         result += writer.only(latex_content, "latex")
 
+        result += "|\n\n"
+
         return result
 
 
@@ -547,37 +548,57 @@ class SourceCodeImporter(ArtifactImporter):
         if isinstance(artifact, Conso_Sources):
 
             result += writer.paragraph_title(artifact.name)
-            result += writer.code_block(artifact.location.get_content(), "bash")
+            result += writer.code_block(artifact.location.get_content(),
+                                        "bash")
 
         return result
 
 
+class IndexImporter(ArtifactImporter):
+
+    def qmlink_to_rest(self, parent, artifacts):
+
+        indexes = []
+
+        output = ""
+
+        artifacts.sort(key=lambda a: a.full_name)
+
+        if artifacts:
+            for art in artifacts:
+
+                if is_test_case(art):
+                    output += '%s %s\n\n' % (
+                              art.full_name,
+                              writer.role('ref',
+                                          'refers to <%s>' %
+                                          art.full_name.replace('/', '_')[1:]))
+
+        return output, indexes
+
+
 class TestCasesImporter(ArtifactImporter):
 
-    def header_of_first_parent_after_head(self, artifact, head):
-       """
-       Get the first line of the 'last' parent before the 'head' requirement
-       """
+    def short_descs_of_main_ancestors(self, artifact, head):
+        """
+        Get the first line of both itself and the ancestor
+        if the ancestor name is ended with 'head'
+        """
 
-       parent = artifact.relative_to
-       first_line = None
+        parent = artifact.relative_to
+        desc = None
+        main_desc = None
 
-       if parent is not None:
+        if parent is not None:
 
-          if parent.full_name.endswith(head):
-               for item in artifact.contents(class_to_content_key(artifact)):
-                   content = item.get_content()
+            if parent.full_name.endswith(head):
+                main_desc = get_short_description(parent)
+                desc = get_short_description(artifact)
+            else:
+                main_desc, desc = self.short_descs_of_main_ancestors(parent,
+                                                                     head)
 
-                   for line in content.splitlines():
-                       line = line.strip()
-                       if len(line) > 0:
-                           first_line = line
-                           break
-          else:
-              first_line = self.header_of_first_parent_after_head(parent, head)
-
-       return first_line
-
+        return main_desc, desc
 
     def get_testcases(self, artifact):
         result = []
@@ -638,22 +659,22 @@ class TestCasesImporter(ArtifactImporter):
             links_dict = OrderedDict()
 
             for l in links_stmt:
-                first_line = self.header_of_first_parent_after_head(l[0], "stmt")
+                main_desc, desc = self.short_descs_of_main_ancestors(l[0],
+                                                                     "stmt")
 
-                if first_line not in links_dict:
-                    links_dict[first_line] = []
+                if desc not in links_dict:
+                    links_dict[desc] = []
 
-                links_dict[first_line].append(l)
+                links_dict[desc].append(l)
 
-            pdf_output += writer.subsection('Statement Coverage (SC) \
-                                            assesments') + '\n'
+            pdf_output += writer.subsection('%s' % main_desc) + '\n'
 
-            for first_line in links_dict.keys():
+            for desc in links_dict.keys():
 
-                pdf_output += writer.subsubsection(first_line) + '\n'
+                pdf_output += writer.subsubsection(desc) + '\n'
 
                 pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                             for l in links_dict[first_line]],
+                                             for l in links_dict[desc]],
                                              hidden=True)
 
         # decision
@@ -665,26 +686,25 @@ class TestCasesImporter(ArtifactImporter):
             links_dict = OrderedDict()
 
             for l in links_dec:
-                first_line = self.header_of_first_parent_after_head(l[0], "decision")
+                main_desc, desc = self.short_descs_of_main_ancestors(l[0],
+                                                                     "decision"
+                                                                     )
 
-                if first_line not in links_dict:
-                    links_dict[first_line] = []
+                if desc not in links_dict:
+                    links_dict[desc] = []
 
-                links_dict[first_line].append(l)
+                links_dict[desc].append(l)
 
+            pdf_output += writer.raw("\\newpage", "latex")
+            pdf_output += writer.subsection('%s' % main_desc) + '\n'
 
-            pdf_output += writer.raw ("\\newpage", "latex")
-            pdf_output += writer.subsection('Decision Coverage (DC) \
-                                            assesments') + '\n'
+            for desc in links_dict.keys():
 
-            for first_line in links_dict.keys():
-
-                pdf_output += writer.subsubsection(first_line) + '\n'
+                pdf_output += writer.subsubsection(desc) + '\n'
 
                 pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                             for l in links_dict[first_line]],
+                                             for l in links_dict[desc]],
                                              hidden=True)
-
 
         links_mcdc = [l for l in links
                       if not is_source(l[0]) and "mcdc" in l[0].full_name]
@@ -694,32 +714,38 @@ class TestCasesImporter(ArtifactImporter):
             links_dict = OrderedDict()
 
             for l in links_mcdc:
-                first_line = self.header_of_first_parent_after_head(l[0], "mcdc")
+                main_desc, desc = self.short_descs_of_main_ancestors(l[0],
+                                                                     "mcdc")
 
-                if first_line not in links_dict:
-                    links_dict[first_line] = []
+                if desc not in links_dict:
+                    links_dict[desc] = []
 
-                links_dict[first_line].append(l)
+                links_dict[desc].append(l)
 
-            pdf_output += writer.raw ("\\newpage", "latex")
-            pdf_output += writer.subsection('Modified Condition / \
-                                            Decision Coverage (MCDC) \
-                                            assesments') + '\n'
+            pdf_output += writer.raw("\\newpage", "latex")
+            pdf_output += writer.subsection('%s' % main_desc) + '\n'
 
-            for first_line in links_dict.keys():
+            for desc in links_dict.keys():
 
-                pdf_output += writer.subsubsection(first_line) + '\n'
+                pdf_output += writer.subsubsection(desc) + '\n'
 
                 pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
-                                             for l in links_dict[first_line]],
+                                             for l in links_dict[desc]],
                                              hidden=True)
 
         links_rep = [l for l in links
                      if not is_source(l[0]) and "Report" in l[0].full_name]
 
         if links_rep:
-            pdf_output += writer.section('Language-independent \
-                                            Test Cases') + '\n'
+
+            main_desc, desc = self.short_descs_of_main_ancestors(links_rep[0][0],
+                                                                 "Report")
+
+            section = "Language Independant Test Cases"
+
+            pdf_output += writer.section('%s' % section) + '\n'
+            pdf_output += writer.subsection('%s' % main_desc) + '\n'
+
             pdf_output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                          for l in links_rep],
                                          hidden=True)
