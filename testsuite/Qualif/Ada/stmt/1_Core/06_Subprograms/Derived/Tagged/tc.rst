@@ -1,5 +1,4 @@
-complex overridings for tagged types
-====================================
+**complex overridings for tagged types**
 
 Check SC for complex overridings for tagged types
 

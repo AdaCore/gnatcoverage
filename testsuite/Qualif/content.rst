@@ -54,5 +54,6 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
 
 .. qmlink:: ToplevelIndexImporter
 
+   Index
    Appendix
 

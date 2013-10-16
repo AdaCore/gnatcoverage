@@ -1,4 +1,3 @@
-nested block statements
-=======================
+**nested block statements**
 
 Check SC with nested block statements

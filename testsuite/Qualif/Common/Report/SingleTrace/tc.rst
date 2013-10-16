@@ -1,5 +1,4 @@
-Expectations on a case involving a single trace and expected violations
-=======================================================================
+**Expectations on a case involving a single trace and expected violations**
 
 Check output report compliance to expectations on a case involving a single
 trace and expected violations.

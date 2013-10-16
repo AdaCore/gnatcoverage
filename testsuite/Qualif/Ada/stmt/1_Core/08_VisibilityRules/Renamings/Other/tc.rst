@@ -1,5 +1,4 @@
-package and subprogram renamings
-================================
+**package and subprogram renamings**
 
 Check that package and subprogram renamings are handled correctly
 

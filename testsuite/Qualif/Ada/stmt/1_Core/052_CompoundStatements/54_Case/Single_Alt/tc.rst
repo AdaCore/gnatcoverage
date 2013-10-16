@@ -1,5 +1,4 @@
-CASE statements executed only once, selecting a single alternative
-==================================================================
+**CASE statements executed only once, selecting a single alternative**
 
 Check SC with CASE statements executed only once, selecting a single
 alternative for each

@@ -1,5 +1,4 @@
-multiple statements located on the same source line
-===================================================
+**multiple statements located on the same source line**
 
 Check that multiple statements located on the same source line are
 handled properly.

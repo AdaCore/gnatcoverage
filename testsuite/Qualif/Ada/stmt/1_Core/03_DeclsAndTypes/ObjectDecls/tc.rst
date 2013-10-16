@@ -1,5 +1,4 @@
-Object Declarations involving static or fixed-sized stack allocation
-====================================================================
+**Object Declarations involving static or fixed-sized stack allocation**
 
 Check SC of Object Declarations involving static or fixed-sized stack
 allocations only.

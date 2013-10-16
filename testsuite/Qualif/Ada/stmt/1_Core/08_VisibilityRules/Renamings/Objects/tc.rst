@@ -1,5 +1,4 @@
-object renamings
-================
+**object renamings**
 
 Check that object renamings are handled correctly
 

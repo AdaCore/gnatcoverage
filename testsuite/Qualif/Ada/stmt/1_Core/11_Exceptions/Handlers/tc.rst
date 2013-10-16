@@ -1,5 +1,4 @@
-alternate exception handlers for user-defined or language-standard exceptions
-=============================================================================
+**alternate exception handlers for user-defined or language-standard exceptions**
 
 Check SC of alternate exception handlers for user-defined or 
 predefined exceptions

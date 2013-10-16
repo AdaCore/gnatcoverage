@@ -1,5 +1,4 @@
-sequences potentially skipped by exceptions that propagate through multiple levels of block nesting
-===================================================================================================
+**sequences potentially skipped by exceptions that propagate through multiple levels of block nesting**
 
 Check SC of statement sequences potentially skipped by exceptions
 that propagate through multiple levels of block nesting within a

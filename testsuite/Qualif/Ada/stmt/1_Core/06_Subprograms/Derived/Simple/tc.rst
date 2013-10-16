@@ -1,4 +1,3 @@
-simple subprogram overridings
-=============================
+**simple subprogram overridings**
 
 Check SC with simple subprogram overridings

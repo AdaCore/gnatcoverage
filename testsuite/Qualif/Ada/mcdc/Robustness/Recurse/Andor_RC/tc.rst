@@ -1,6 +1,4 @@
-Exercise a recursive evaluation of ``(A and then B) or else C``, diamondish,
-============================================================================
-
+****Exercise a recursive evaluation of ``(A and then B) or else C``, diamondish,****
 Exercise a recursive evaluation of ``(A and then B) or else C``, diamondish,
 with recursion triggered during evaluation of C.
 

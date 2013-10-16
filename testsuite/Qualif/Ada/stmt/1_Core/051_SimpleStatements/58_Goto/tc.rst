@@ -1,5 +1,4 @@
-Goto statements (ARM 5.8)
-=========================
+**Goto statements (ARM 5.8)**
 
 Check SC of Goto statements (ARM 5.8)
 

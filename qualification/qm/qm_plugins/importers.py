@@ -37,6 +37,8 @@ def class_to_content_key(a):
 
     d = {'TORReq_Set': 'set_content',
          'TORReq': 'requirement',
+         'TC': 'tc_content',
+         'TC_Set': 'tc_set_content',
          }
 
     if 'Appendix' in a.full_name:
@@ -127,8 +129,28 @@ def is_functional(source_resource):
             break
     return is_func
 
-############################################################
 
+####################################################################
+# Utils
+
+def get_short_description(artifact):
+
+    for item in artifact.contents(class_to_content_key(artifact)):
+        content = item.get_content()
+
+        for line in content.splitlines():
+            line = line.strip()
+            if len(line) > 0:
+                #  ** has to be removed
+                #  from short_description when used in tables
+                first_line = line.replace('**', '')
+                break
+
+    return first_line
+
+
+####################################################################
+# Importers
 
 class TCIndexImporter(ArtifactImporter):
 
@@ -154,18 +176,35 @@ class TCIndexImporter(ArtifactImporter):
             if is_source(a):
                 continue
 
+            if is_test_case(a):
+                reference = writer.role('ref', "%s <%s>" %
+                                        (get_short_description(a),
+                                         a.full_name.replace('/', '_')[1:]))
+            if is_test_set(a):
+                reference = writer.qmref(a.full_name)
+
             html_items.append([writer.strong(class_to_string(a)),
                                writer.strong(a.name),
-                               writer.qmref(a.full_name)])
+                               reference])
             pdf_items.append([class_to_string(a),
                               a.name,
-                              writer.qmref(a.full_name)])
+                              reference])
             for suba in self.get_recursive_relatives(a, 1):
                 # We do include in the table children artifacts only
                 # in html format.
+
+                if is_test_case(suba):
+                    subref = writer.role('ref',
+                                         '%s <%s>' %
+                                         (get_short_description(suba),
+                                          suba.full_name.replace('/', '_')[1:]
+                                          ))
+                if is_test_set(suba):
+                    subref = writer.qmref(suba.full_name)
+
                 html_items.append([class_to_string(suba),
                                    "`..` %s" % suba.name,
-                                   writer.qmref(suba.full_name)])
+                                   subref])
 
         html_table = writer.csv_table(
             html_items,
@@ -239,7 +278,8 @@ class ToplevelIndexImporter(ArtifactImporter):
 
         output = writer.only(html_top_index, "html")
 
-        links = [(a, qm.rest.DefaultImporter()) for a in artifacts]
+        links = [(a, qm.rest.DefaultImporter())
+                 for a in artifacts if "Index/.+" not in a.name]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                   for l in links if not is_test(l[0])],
@@ -363,9 +403,17 @@ class TestCaseImporter(ArtifactImporter):
 
     def to_rest(self, artifact):
 
-        result = ""
+        reference = ".. _%s:\n\n" % artifact.full_name.replace('/', '_')[1:]
 
-        result += qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
+        result_pdf = '**TEST CASE**:  %s\n\n' % artifact.full_name
+        result_html = '%s\n%s\n' % (artifact.full_name,
+                                    '=' * len(artifact.full_name))
+
+        result_pdf += qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
+        result_html += qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
+
+        result = reference + writer.only(result_pdf, "latex")
+        result += writer.only(result_html, "html")
 
         self.log_missing_TR(artifact)
 

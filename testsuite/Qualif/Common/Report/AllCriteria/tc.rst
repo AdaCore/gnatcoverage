@@ -1,5 +1,4 @@
-Expectations on a case involving a single trace and at least one violation per coverage criterion
-=================================================================================================
+**Expectations on a case involving a single trace and at least one violation per coverage criterion**
 
 Check output report compliance to expectations on a case involving a single
 trace and at least one violation per coverage criterion.

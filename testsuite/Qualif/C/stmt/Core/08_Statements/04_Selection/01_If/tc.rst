@@ -1,5 +1,4 @@
-Exercise a simple IF statement
-==============================
+**Exercise a simple IF statement**
 
 Exercise a simple IF statement
 

@@ -1,5 +1,4 @@
-IF statements taking ELSIF branches only
-========================================
+**IF statements taking ELSIF branches only**
 
 Check SC with IF statements taking ELSIF branches only.
 
