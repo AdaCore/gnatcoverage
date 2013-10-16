@@ -4,6 +4,12 @@ from qm.rest.pdfgenerator import artifact_hash
 from itertools import izip_longest
 from collections import OrderedDict
 import re
+import fileinput
+import os
+from os.path import join
+
+
+MISSING_TR_LOG = os.path.join(qm.get_project_dir(), "missing_tr_log.txt")
 
 
 def class_to_string(a):
@@ -43,6 +49,7 @@ def class_to_content_key(a):
     else:
         return None
 
+
 ##############################################################
 # Tests on artifact class
 
@@ -74,6 +81,12 @@ def is_test_set(a):
 def is_test_case(a):
     from qm import TC
     return isinstance(a, TC)
+
+
+def is_test_result(a):
+    from qm import TR
+
+    return isinstance(a, TR)
 
 
 def is_source(a):
@@ -311,6 +324,19 @@ class TestCaseImporter(ArtifactImporter):
         else:
             return self.get_first_req_relative(parent)
 
+    def log_missing_TR(self, artifact):
+
+        has_TR = False
+
+        for child in artifact.relatives:
+            has_TR = is_test_result(child)
+            if has_TR:
+                break
+
+        if not has_TR:
+            with open(MISSING_TR_LOG, 'a') as fd:
+                fd.write("No TR for artifact %s   location:  %s\n" %
+                         (artifact.full_name, artifact.location))
 
     def get_sources(self, artifact):
         """
@@ -336,13 +362,7 @@ class TestCaseImporter(ArtifactImporter):
 
         result += qm.rest.DefaultImporter().to_rest(artifact) + '\n\n'
 
-        # FYI : Olivier, here with those kind of lines you can introduce
-        # an index
-        # result += writer.directive('index', content= ...., argument= .. ?)
-        # using artifact.full_name to get the full and unique QM determination
-        # of the artifact
-        # if you actually need not the name but the reference in the document
-        # you can use  writer.qmref(artifact.full_name)
+        self.log_missing_TR(artifact)
 
         req_parent = self.get_first_req_relative(artifact)
 
@@ -553,6 +573,10 @@ class TestCasesImporter(ArtifactImporter):
 
         # We don't include the tests sources in the pdf version
         pdf_output = writer.section('Ada Test Cases') + '\n'
+
+        # cleanup missingTRfile
+        with open(MISSING_TR_LOG, 'w') as fd:
+            fd.write("")
 
         # stmt
         links_stmt = [l for l in links
