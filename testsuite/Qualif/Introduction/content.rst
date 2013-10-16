@@ -19,7 +19,7 @@ of relevance to the requested analysis.
 Organization Guidelines
 =======================
 
-Beyond this introduction and the operational environment description, most of
+Beyond this introduction and the Operational Environment description, most of
 the document describes the Tool Operational Requirements and the associated
 Testcases along the following guidelines:
 
@@ -36,13 +36,17 @@ together as the `CompoundStatements` group.
 The tool conformance to each requirement is validated by a set of
 **Testcases**, organized according to a **Testing Strategy** dedicated to this
 requirement and described together with it. Many requirements call for
-multiple testcases. As with requirements, sets of related testcases which share
-common grounds are composed and referred to as **Testcase Groups**. For a
-more detailed description of how testscase sources are organized, please refer
-to the :ref:`testsuite-overview` section of this material.
+multiple testcases. As with requirements, sets of related testcases which
+share common grounds are composed and referred to as **Testcase Groups**.
 
-For each language and coverage criterion of relevance, we distinguish among
-different categories of requirements based on expectations regarding:
+At the top of the hierarchy, collections of high level requirement groups are
+collected in **Chapters** and **Subchapters**, typically per language and
+coverage criterion of relevance. We will for example have an `Ada` chapter
+containing a `stmt` subchapter to collect the Ada Statement Coverage toplevel
+requirement groups.
+
+For language related chapters, we distinguish two main categories of
+requirement groups, addressing:
 
 * *Core coverage metrics*, for example to validate statement coverage
   assessments on conditional constructs, loops, etc.  Testcases for such
@@ -58,12 +62,24 @@ different categories of requirements based on expectations regarding:
   requirements, testcases in this category extend the set of exercised code
   samples where mutliple language features are used in combination.
 
-Orthogonally, the *output report format* is considered part of the tool
-qualified interface as well so is subject to a dedicated set of requirements
-and testcases. Some of these requirements are also implicitly validated by the
-execution of all the coverage checking testcases in other categories, where
-specific sections of the report are scanned by the testsuite harness to search
-for criteria violation messages. 
+We also have `Common` chapter to hold language independant requirements and
+testcases, essentially regarding the *output report format* which is
+considered part of the tool qualified interface. Some of these requirements
+are also implicitly validated by the execution of all the coverage checking
+testcases in other chapters, where specific sections of the report are scanned
+by the testsuite harness to search for criteria violation messages.
+
+Downtree, each Testcase is assigned a unique **Testcase Identifier**, computed
+from its local name (chosen to be representative of its purpose) and position
+in the chapter/groups hierarchy. This identifier is denoted as a path with
+slashes between each intermediate level, for example
+`/TOR/Ada/stmt/Core/CompoudStatements/Loop/Incomplete_Iteration`. These
+identifiers are used to denote individual testcases in the Software Test
+Results (STR) report produced out of testuite runs for qualification.
+
+For a more detailed description of how testscase sources are organized and how
+expected results are stated, please refer to the :ref:`testsuite-overview`
+section of this material.
 
 Abbreviations
 =============
