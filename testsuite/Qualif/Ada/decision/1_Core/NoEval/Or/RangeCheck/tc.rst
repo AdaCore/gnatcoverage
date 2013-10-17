@@ -1,4 +1,4 @@
 **"if A or else B", where both conditions involve a range check that may fail at run-time**
 
-Check DC for ``if A or else B`` where both conditions involve a range check that
+Check DC for "if A or else B" where both conditions involve a range check that
 may fail at run time.

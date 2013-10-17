@@ -8,7 +8,7 @@ evaluation is interrupted by an exception occurrence.
 We exercise a range of expressions where each condition could be made to raise
 an exception in a suite of cases, checking that
 
-* a ``decision never evaluated`` diagnostic is emitted when no evaluation
+* a "decision never evaluated" diagnostic is emitted when no evaluation
   succeeds at all, and that
 
 * exception occurrences do not influence the coverage achieved by otherwise

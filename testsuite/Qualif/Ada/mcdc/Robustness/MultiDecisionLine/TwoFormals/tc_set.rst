@@ -3,7 +3,7 @@ Exercise two distinct decisions used as subprogram actuals.
 
 Exercise two distinct decisions used as subprogram actuals.
 
-Expression variants are issued over two dimensions: ``and then`` vs ``or else``,
+Expression variants are issued over two dimensions: "and then" vs "or else",
 and operand-set-1 vs operand-set-2, with cases where
 
 * Expressions are the same, Operand sets are the same [AndAB_AndAB],
