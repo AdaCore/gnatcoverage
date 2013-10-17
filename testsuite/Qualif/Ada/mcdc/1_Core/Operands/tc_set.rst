@@ -1,5 +1,5 @@
-Decisions with various kinds of conditions, not just Boolean variables
-======================================================================
+MCDC on decisions with various kinds of conditions, not only mere Boolean variables
+===================================================================================
 
 Check the correctness of MCDC assessments on decisions featuring all the possible forms
 of conditions, not only Boolean variables.

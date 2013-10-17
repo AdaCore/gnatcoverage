@@ -1,5 +1,5 @@
-Decisions that are not entirely evaluated
-=========================================
+MCDC on decisions that are not entirely evaluated
+=================================================
 
 Check the correctness of MCDC assessments on decisions that are not entirely evaluated (don't
 yield an outcome) even though the statement they control is executed,

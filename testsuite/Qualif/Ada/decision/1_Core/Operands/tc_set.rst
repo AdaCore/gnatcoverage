@@ -1,5 +1,5 @@
-Decisions with various kinds of conditions, not just Boolean variables
-======================================================================
+DC on decisions with various kinds of conditions, not only mere Boolean variables
+=================================================================================
 
 Exercise basic decisions involving different kinds of conditions
 (such as attribute references and subprogram calls), either in isolation

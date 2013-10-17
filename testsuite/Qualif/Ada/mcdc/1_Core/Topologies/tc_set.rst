@@ -1,5 +1,5 @@
-Decisions of various topologies anywhere they may appear
-========================================================
+MCDC on decisions of various topologies anywhere they may appear
+================================================================
 
 Check the correctness of MCDC assessments on expressions of arbitrary topology
 everywhere they might appear.

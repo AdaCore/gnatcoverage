@@ -1,5 +1,5 @@
-Decision evaluations interrupted by exception occurrence
-========================================================
+DC on evaluations interrupted by exception occurrence
+=====================================================
 
 Check the correctness of DC assessments on decisions that are not entirely
 evaluated (don't yield an outcome) even though the statement they control is
