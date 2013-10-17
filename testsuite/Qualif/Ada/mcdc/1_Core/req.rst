@@ -59,4 +59,5 @@ manners, always including:
   * one set demonstrating the independent effect of all the conditions
     (*rule #3 and 3c*).
 
-
+Rules #4 and #5 are addressed by the organization of the set of testcase
+groups presented in the table above.
