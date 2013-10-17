@@ -1,21 +1,14 @@
-SC expectations for mixed statement constructs
+SC requirements for mixed statement constructs
 ==============================================
 
-SC expectations for code comprising different kinds of statements,
-representative of application code.
+.. rubric:: Requirement
 
-
-.. rubric:: Requirement(s)
-
-
-Correct coverage is reported for programs that use a combination of
-Ada constructs, with arbitrary levels of syntactic nesting
-(such as loops within tests within subprograms).
+Correct coverage shall be reported for programs that use combinations of Ada
+constructs, with arbitrary levels of syntactic nesting (such as loops within
+tests within subprograms).
 
 
 .. rubric:: Testing Strategy
-
-
 
 We exercise multiple cases with a variety of
 constructs nested within each other (For, While, Case, If), and for each case

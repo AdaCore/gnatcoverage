@@ -1,4 +1,4 @@
-SC expectations for subprogram overridings
+SC requirements for subprogram overridings
 ==========================================
 
 

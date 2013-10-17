@@ -1,4 +1,4 @@
-SC expectations for ARM chap. 5 : Simple Statements
+SC requirements for ARM chap. 5 : Simple Statements
 ===================================================
 
 

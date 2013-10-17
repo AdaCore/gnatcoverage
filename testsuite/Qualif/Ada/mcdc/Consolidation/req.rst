@@ -1,4 +1,4 @@
-MCDC expectations for the combination of multiple execution traces
+MCDC requirements for the combination of multiple execution traces
 ==================================================================
 
 .. rubric:: Requirement(s)

@@ -1,4 +1,4 @@
-SC expectations for Renaming declarations (ARM 8.5)
+SC requirements for Renaming declarations (ARM 8.5)
 ===================================================
 
 

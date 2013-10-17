@@ -1,4 +1,4 @@
-SC expectations for ARM chap. 8 : Visibility Rules
+SC requirements for ARM chap. 8 : Visibility Rules
 ==================================================
 
 

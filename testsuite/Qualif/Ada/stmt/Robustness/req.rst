@@ -1,7 +1,7 @@
-SC expectations for potentially confusing constructs
+SC requirements for potentially confusing constructs
 ====================================================
 
-SC expectations regarding potentially confusing constructs, e.g. multiple
+SC requirements regarding potentially confusing constructs, e.g. multiple
 statements sharing a line.
 
 

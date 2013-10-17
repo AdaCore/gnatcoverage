@@ -1,25 +1,17 @@
-DC expectations for potentially confusing constructs
+DC requirements for potentially confusing constructs
 ====================================================
-
-DC expectations with respect to potentially confusing constructs,
-e.g. decisions spanning multiple lines.
-
 
 .. rubric:: Requirement(s)
 
-
-Decision Coverage assessment is correct in the pressence of code
-constructs that require sophisticated analysis by the coverage tool.
-
+Decision Coverage assessment shall remain correct in the presence of code
+constructs that require sophisticated analysis by the coverage tool, e.g. on
+decisions spanning multiple lines.
 
 
 .. rubric:: Testing Strategy
 
-
-
 Check a variety of cases where simple analysis schemes could
 cause inaccuracies or errors in coverage diagnostics:
-
 
 
 .. qmlink:: TCIndexImporter

@@ -1,4 +1,4 @@
-SC expectations for Subunits (ARM 10.1.3)
+SC requirements for Subunits (ARM 10.1.3)
 =========================================
 
 

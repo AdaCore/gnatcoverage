@@ -1,4 +1,4 @@
-SC expectations for ARM chap. 5 : Compound Statements
+SC requirements for ARM chap. 5 : Compound Statements
 =====================================================
 
 All the SC requirements apply to each statement nested in

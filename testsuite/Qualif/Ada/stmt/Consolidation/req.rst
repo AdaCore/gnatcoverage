@@ -1,4 +1,4 @@
-SC expectations for the combination of multiple execution traces
+SC requirements for the combination of multiple execution traces
 ================================================================
 
 .. rubric:: Requirement(s)

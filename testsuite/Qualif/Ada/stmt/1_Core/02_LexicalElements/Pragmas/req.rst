@@ -1,4 +1,4 @@
-SC expectations for Pragmas (ARM 2.8)
+SC requirements for Pragmas (ARM 2.8)
 =====================================
 
 

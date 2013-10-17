@@ -1,13 +1,7 @@
-DC expectations for combination of multiple execution traces
-============================================================
+DC requirements the for combination of multiple execution traces
+================================================================
 
-DC expectations regarding the combination of multiple
-execution traces.
-
-
-.. rubric:: Requirement(s)
-
-
+.. rubric:: Requirement
 
 When the coverage achieved by multiple execution traces is evaluated, a
 decision coverage violation shall only be reported when it would have been
@@ -15,8 +9,6 @@ reported for each trace individually.
 
 
 .. rubric:: Testing Strategy
-
-
 
 We exercise consolidation of traces obtained for single test vector invocations
 over a range of basic decisions.

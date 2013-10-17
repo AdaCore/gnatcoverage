@@ -1,18 +1,13 @@
-SC expectations for ARM chap. 3 : Declarations and Types
+SC requirements for ARM chap. 3 : Declarations and Types
 ========================================================
 
-
-.. rubric:: Requirement(s)
-
-
+.. rubric:: Requirement
 
 Declarations that were never elaborated as part of the program execution shall
 be reported as uncovered.
 
 
 .. rubric:: Testing Strategy
-
-
 
 Test programs are provided for all the ARM chapter 3 elements that are relevant
 to structural coverage analysis:

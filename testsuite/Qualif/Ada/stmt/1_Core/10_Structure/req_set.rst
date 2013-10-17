@@ -1,4 +1,4 @@
-SC expectations for ARM chap. 10 : Program Structure
+SC requirements for ARM chap. 10 : Program Structure
 ====================================================
 
 

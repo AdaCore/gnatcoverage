@@ -1,4 +1,4 @@
-SC expectations for ARM chap. 12 : Generic Units
+SC requirements for ARM chap. 12 : Generic Units
 ================================================
 
 

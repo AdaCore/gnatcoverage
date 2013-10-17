@@ -1,4 +1,4 @@
-SC expectations for ARM chap. 11 : Exceptions
+SC requirements for ARM chap. 11 : Exceptions
 =============================================
 
 

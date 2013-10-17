@@ -1,4 +1,4 @@
-MCDC expectations for exemption regions
+MCDC requirements for exemption regions
 =======================================
 
 .. rubric:: Requirement(s)

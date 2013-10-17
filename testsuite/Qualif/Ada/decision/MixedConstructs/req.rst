@@ -1,7 +1,7 @@
-DC expectations for mixed statement and decision constructs
+DC requirements for mixed statement and decision constructs
 ===========================================================
 
-DC expectations for combinations of statement and decision constructs
+DC requirements for combinations of statement and decision constructs
 representative of application code.
 
 

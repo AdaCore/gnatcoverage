@@ -1,4 +1,4 @@
-SC expectations for Inlining effects
+SC requirements for Inlining effects
 ====================================
 
 

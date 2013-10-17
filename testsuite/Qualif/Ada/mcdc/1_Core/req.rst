@@ -1,10 +1,6 @@
 Core MCDC requirements
 ======================
 
-Core expectations for MCDC assessments.
-All the other sub-sections rely on this one.
-
-
 .. rubric:: Requirement(s)
 
 For MCDC assessments, the tool focuses on decisions used to influence

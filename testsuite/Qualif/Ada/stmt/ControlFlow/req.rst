@@ -1,16 +1,11 @@
-SC expectations for statement sequences and control-flow transfers
+SC requirements for statement sequences and control-flow transfers
 ==================================================================
 
-SC expectations for statement sequences and control-flow transfers.
+.. rubric:: Requirement
 
-
-.. rubric:: Requirement(s)
-
-
-
-Statement coverage is assessed for straightline sequences (basic
-blocks) of statements, and combinations of such using jump-like
-control flow transfers (goto, return, raise, exit).
+Statement coverage shall be assessed correctly for straightline sequences
+(basic blocks) of statements, and combinations of such using jump-like control
+flow transfers (goto, return, raise, exit).
 
 Check the following:
 

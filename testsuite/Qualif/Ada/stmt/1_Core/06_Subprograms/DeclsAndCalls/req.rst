@@ -1,4 +1,4 @@
-SC expectations for subprogram declarations and calls
+SC requirements for subprogram declarations and calls
 =====================================================
 
 

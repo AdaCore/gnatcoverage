@@ -1,15 +1,10 @@
-SC expectations for exemption regions
+SC requirements for exemption regions
 =====================================
 
-SC expectations regarding exemption regions.
+.. rubric:: Requirement
 
-
-.. rubric:: Requirement(s)
-
-
-
-Proper behavior of the Coverage Exemptions facility involves
-the following set of rules:
+For proper behavior of the Coverage Exemptions facility, the
+following set of rules shall be obeyed:
 
 ====== ======================================================================
 Rule # Description
@@ -34,8 +29,6 @@ Rule # Description
 
 
 .. rubric:: Testing Strategy
-
-
 
 The following set of testcases checks compliance with this requirement.
 The testcases are partitioned into sections
