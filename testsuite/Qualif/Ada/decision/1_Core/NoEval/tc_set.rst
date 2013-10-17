@@ -1,9 +1,9 @@
-Decisions that are not entirely evaluated (i.e., interruption by exception occurrence)
-======================================================================================
+Decision evaluations interrupted by exception occurrence
+========================================================
 
-Check the correctness of DC assessments on decisions that are not entirely evaluated (don't yield
-an outcome) even though the statement they control is executed, typically when
-evaluation is interrupted by an exception occurrence.
+Check the correctness of DC assessments on decisions that are not entirely
+evaluated (don't yield an outcome) even though the statement they control is
+executed, typically when evaluation is interrupted by an exception occurrence.
 
 We exercise a range of expressions where each condition could be made to raise
 an exception in a suite of cases, checking that

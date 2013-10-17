@@ -1,8 +1,5 @@
-Decisions featuring various forms of conditions, not just Boolean variables
-===========================================================================
-
-Check the correctness of DC assessments on decisions with various kinds
-of conditions, not only Boolean variables.
+Decisions with various kinds of conditions, not just Boolean variables
+======================================================================
 
 Exercise basic decisions involving different kinds of conditions
 (such as attribute references and subprogram calls), either in isolation

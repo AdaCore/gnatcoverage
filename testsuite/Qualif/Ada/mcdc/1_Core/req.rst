@@ -24,9 +24,7 @@ Rule #  Description
 
 .. rubric:: Testing Strategy
 
-The testing strategy is similar to the one chosen for the DC core requirement,
-with the following set of testcases:
-
+As for DC, we validate al the rules with three main groups of testscase:
 
 .. qmlink:: SubsetIndexImporter
 
