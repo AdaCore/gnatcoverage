@@ -1,5 +1,5 @@
-Core Statement Coverage (SC) requirements
-=========================================
+Core SC requirements
+====================
 
 All the other SC-related sections rely on this group.
 
