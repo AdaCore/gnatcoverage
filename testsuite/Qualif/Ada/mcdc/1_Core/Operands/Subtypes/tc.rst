@@ -1,5 +1,2 @@
-**Check MCDC on a simple decision where conditions are of a Boolean subtype or**
-
-Check MCDC on a simple decision where conditions are of a Boolean subtype or
-derived type.
+**MCDC on a simple decision involving a Boolean sub or derived type**
 

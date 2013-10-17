@@ -1,6 +1,3 @@
-**Check MCDC on "A and then Call (B or else C)", where the nested decision may be**
+**MCDC on "A and then F(B or else C)" where the nested decision may be shortcircuited**
 
-Check MCDC on "A and then Call (B or else C)", where the nested decision may be
-unevaluated because of short-circuit semantics from A False at the outer
-level.
 
