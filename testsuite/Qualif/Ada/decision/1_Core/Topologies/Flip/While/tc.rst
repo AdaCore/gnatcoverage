@@ -1,3 +1,1 @@
-**"not V", used to control a WHILE statement**
-
-Check DC for "not V" used to control a WHILE statement.
+**DC on "not A" used to control a WHILE statement**

@@ -1,3 +1,1 @@
-**"A and B", used to control an IF/ELSE statement**
-
-Check DC for "A and B" used to control an IF/ELSE statement.
+**DC on "A and B" used to control an IF/ELSE statement**

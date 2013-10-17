@@ -1,3 +1,1 @@
-**Standalone Boolean variable "B used to control a WHILE statement**
-
-Check DC for a standalone Boolean variable "B" used to control a WHILE statement.
+**DC on lone "B" used to control a WHILE statement**

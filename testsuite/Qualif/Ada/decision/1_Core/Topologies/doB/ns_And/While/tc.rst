@@ -1,3 +1,1 @@
-**"A and B", used to control a WHILE statement**
-
-Check DC for "A and B" used to control a WHILE statement.
+**DC on "A and B" used to control a WHILE statement**

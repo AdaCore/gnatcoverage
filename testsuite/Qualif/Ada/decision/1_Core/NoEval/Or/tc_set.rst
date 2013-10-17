@@ -1,7 +1,5 @@
-DC testcases for a decision of the form "A or else B"
-=====================================================
-
-DC testcases for a decision of the form "A or else B"
+Check DC on a decision of the form "A or else B"
+================================================
 
 .. qmlink:: TCIndexImporter
 
