@@ -1,4 +1,1 @@
-**Check MCDC on "A and then B"**
-
-Check MCDC on "A and then B"
-used to control a Case statement.
+**MCDC on "A and then B" used to control a Case statement**

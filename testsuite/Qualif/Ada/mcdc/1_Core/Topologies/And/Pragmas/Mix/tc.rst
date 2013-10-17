@@ -1,4 +1,1 @@
-**Check MCDC on "A and then B" in Preconditions attached to a mix of**
-
-Check MCDC on "A and then B" in Preconditions attached to a mix of
-subprogram declarations or body declarative parts.
+**MCDC on "A and then B" used a Precondition on subprogram declaration or in declarative part**

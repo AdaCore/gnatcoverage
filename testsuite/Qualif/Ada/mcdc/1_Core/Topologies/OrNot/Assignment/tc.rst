@@ -1,4 +1,1 @@
-**Check MCDC on "A or else (not B)"**
-
-Check MCDC on "A or else (not B)"
-on the RHS of an Assignment statement.
+**MCDC on "A or else (not B)" used on the RHS of an Assignment statement**

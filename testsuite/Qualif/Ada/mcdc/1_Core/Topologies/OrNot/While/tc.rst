@@ -1,4 +1,1 @@
-**Check MCDC on "A or else (not B)"**
-
-Check MCDC on "A or else (not B)"
-used as a While statement control.
+**MCDC on "A or else (not B)" used as a While statement control**

@@ -1,4 +1,1 @@
-**Check MCDC on "(not A) and then B"**
-
-Check MCDC on "(not A) and then B"
-used as an array index.
+**MCDC on "(not A) and then B" used as an array index**

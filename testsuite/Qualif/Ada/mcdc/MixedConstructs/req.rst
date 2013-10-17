@@ -1,5 +1,5 @@
-MCDC requirements for mixes of various statement and decision constructs
-========================================================================
+MCDC requirements for mixed statement and decision constructs
+=============================================================
 
 .. rubric:: Requirement(s)
 

@@ -1,4 +1,2 @@
-**Check MCDC on "A or else B" as a Precondition attached to a subprogram**
+**MCDC on "A or else B" used as a Precondition attached to a subprogram declaration**
 
-Check MCDC on "A or else B" as a Precondition attached to a subprogram
-declaration.
