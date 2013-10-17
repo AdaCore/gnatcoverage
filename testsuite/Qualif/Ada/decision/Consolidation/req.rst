@@ -1,4 +1,4 @@
-DC requirements the for combination of multiple execution traces
+DC requirements for the combination of multiple execution traces
 ================================================================
 
 .. rubric:: Requirement

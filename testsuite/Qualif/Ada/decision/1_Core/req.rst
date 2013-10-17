@@ -1,5 +1,5 @@
-Core Decision Coverage (DC) requirements
-========================================
+Core DC requirements
+====================
 
 Core expectations for Decision Coverage
 (DC) assessments. All the other DC-related sections rely on this one.

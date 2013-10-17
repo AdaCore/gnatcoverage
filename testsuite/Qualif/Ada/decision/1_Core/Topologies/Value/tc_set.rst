@@ -1,8 +1,5 @@
-Check DC on a decision of the simplest possible form, not involving any Boolean operator
-========================================================================================
-
-Check DC for simple decisions
-(not involving any boolean operator), in various contexts.
+Check DC on a single condition decision in various contexts
+===========================================================
 
 .. qmlink:: TCIndexImporter
 
