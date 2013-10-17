@@ -274,7 +274,7 @@ class ToplevelIndexImporter(ArtifactImporter):
         html_top_index += writer.csv_table(
             items,
             headers=["Chapter", "Description"],
-            widths=[40, 60])
+            widths=[30, 70])
 
         output = writer.only(html_top_index, "html")
 
