@@ -90,8 +90,7 @@ package body Coverage is
 
    function MCDC_Coverage_Enabled return Boolean is
    begin
-      return Any_Coverage_Enabled
-        ((MCDC_Coverage_Level => True, others => False));
+      return Levels (MCDC) or else Levels (UC_MCDC);
    end MCDC_Coverage_Enabled;
 
    ----------------
