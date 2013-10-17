@@ -1,9 +1,8 @@
-Check MCDC on decisions with diamonds in
-========================================
+Check MCDC on decisions for which the binary decision flow is not a tree
+========================================================================
 
-Check MCDC on decisions with diamonds in
-the control-flow binary decision diagram, representative of situations
-where object branch coverage does not imply mcdc.
+This group is representative of situations where object branch coverage does
+not imply MCDC.
 
 .. qmlink:: TCIndexImporter
 
