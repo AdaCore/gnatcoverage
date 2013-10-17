@@ -23,10 +23,11 @@ Beyond this introduction and the Operational Environment description, most of
 the document describes the Tool Operational Requirements and the associated
 Testcases along the following guidelines:
 
-A **Tool Operational Requirement** (or **TOR**) describes the proper behavior
-of the GNATcoverage tool for a specific language construct with regards to a
-given coverage criterion. For example, how shall the tool behave on Ada `if`
-statements when performing Decision Coverage assessments.
+A **Tool Operational Requirement** (abbreviated as **TOR** or **Requirement**)
+describes the proper behavior of the GNATcoverage tool for a specific language
+construct with regards to a given coverage criterion. For example, how shall
+the tool behave on Ada `if` statements when performing Decision Coverage
+assessments.
 
 To help expose a structured organization, related requirements are bundled
 together as named **Requirement Groups**. For example, the Statement Coverage
@@ -38,6 +39,17 @@ The tool conformance to each requirement is validated by a set of
 requirement and described together with it. Many requirements call for
 multiple testcases. As with requirements, sets of related testcases which
 share common grounds are composed and referred to as **Testcase Groups**.
+
+Throughout this document, tables introducing local sets of qualification
+artifacts are inserted to list items of interest at the point where the table
+appears. For example a table listing all the testcases and groups attached to
+a given requirement is always included within the testing strategy description
+for this requirement. Each line in such a table designates a particular
+testcase, requirement or group artifact, with an abbreviation denoting the
+kind of artifact in the first column - see the :ref:`abbrevs` section below
+for the list of abbrevations used. The second column on each line contains the
+artifact local name and the third column contains a short description of the
+artifact contents.
 
 At the top of the hierarchy, collections of high level requirement groups are
 collected in **Chapters** and **Subchapters**, typically per language and
