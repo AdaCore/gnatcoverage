@@ -168,7 +168,12 @@ class TCIndexImporter(ArtifactImporter):
         from qm import TC
         html_items = []
         pdf_items = []
-        output = ''
+
+        ancestor = parent.relative_to
+        output = writer.only(writer.paragraph("**Parent**: %s\n\n" %
+                                              writer.qmref(ancestor.full_name)
+                                              ),
+                             "html")
 
         for a in artifacts:
             # Don't put sources in the tables
