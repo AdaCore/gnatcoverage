@@ -183,7 +183,7 @@ MY_TESTSUITE_DIR=os.path.abspath("../testsuite")
 sys.path.append(MY_TESTSUITE_DIR)
 
 from SUITE.qdata import CTXDATA_FILE, treeref_at
-from SUITE.cutils import load_from, contents_of
+from SUITE.cutils import load_from, contents_of, output_of
 
 # =======================================================================
 # ==                         MISC UTILITY FUNCTIONS                    ==
@@ -267,6 +267,15 @@ def raccess_in (path):
 def rdir_in (path):
     components = path.split(':')
     return components[1] if len(components) > 1 else None
+
+# current git branch name, used as kit identifier:
+
+def current_branchname ():
+
+    return re.match (
+        pattern="\* (?P<branchname>\S*)",
+        string=output_of("git branch")
+        ).group('branchname')
 
 # =======================================================================
 # ==              QUALIF MATERIAL GENERATION HELPER CLASS              ==
@@ -682,22 +691,22 @@ class QMAT:
     def build_plans (self):
         self.__qm_build (part="plans")
 
-    # ----------------
-    # -- build_pack --
-    # ----------------
+    # ---------------
+    # -- build_kit --
+    # ---------------
 
-    def build_pack (self):
-        announce ("building %s package" % self.this_docformat)
+    def build_kit (self):
+        announce ("building %s kit" % self.this_docformat)
 
         os.chdir (self.rootdir)
 
-        packdir = "%s-%s" % (self.o.pname, self.this_docformat)
-        remove (packdir)
-        mkdir (packdir)
+        kitdir = "%s-%s" % (self.o.kitname, self.this_docformat)
+        remove (kitdir)
+        mkdir (kitdir)
         
-        [shutil.move (item, packdir) for item in ls(self.itemsdir()+"/*")]
+        [shutil.move (item, kitdir) for item in ls(self.itemsdir()+"/*")]
 
-        run ("zip -q -r %(packdir)s.zip %(packdir)s" % {"packdir": packdir})
+        run ("zip -q -r %(kitdir)s.zip %(kitdir)s" % {"kitdir": kitdir})
 
     # ---------------------
     # -- build_as_needed --
@@ -712,8 +721,8 @@ class QMAT:
     def do_plans (self):
         return 'plans' in self.o.parts
 
-    def do_pack (self):
-        return self.o.pname
+    def do_kit (self):
+        return self.o.kitname
 
     def build_as_needed (self, docformat):
 
@@ -740,8 +749,8 @@ class QMAT:
 
         # Build a kit package as needed:
 
-        if self.do_pack():
-            qmat.build_pack()
+        if self.do_kit():
+            qmat.build_kit()
 
 # =======================================================================
 # ==                          MAIN SCRIPT BODY                         ==
@@ -798,7 +807,7 @@ def commandline():
         )
 
     op.add_option (
-        "--package-name", dest="pname",
+        "--kit-name", dest="kitname",
         help=(
             "Base name of the .zip archive that will contain the full set of "
             "items bundled together. Ignored if the set of constructed items "
@@ -928,33 +937,33 @@ def check_valid(options, args):
 
     kitp = not options.parts
 
-    # Producing an incomplete package is forbidden:
+    # Producing an incomplete kit is forbidden:
 
     exit_if (
-        options.pname and not kitp,
-        ("No archive (--pname) may be generated with "
+        options.kitname and not kitp,
+        ("No archive (--kitname) may be generated with "
          "only parts of the kit (--parts).")
         )
 
     # If we are generating a full kit, we need to produce an archive.
     # Pick a default name if none was specified:
 
-    if kitp and not options.pname:
+    if kitp and not options.kitname:
         today = date.today()
-        options.pname = "GNATCOV-QMAT-%4d-%02d-%02d" % (
-            today.year, today.month, today.day)
+        options.kitname = "gnatcov-qualkit-%s-%4d-%02d-%02d" % (
+            current_branchname(), today.year, today.month, today.day)
 
-    # In principle, we should refuse to generate a package in devmode, as
-    # packages are presumably things to be delivered and devmode disconnects
+    # In principle, we should refuse to generate a kit in devmode, as
+    # kits are presumably things to be delivered and devmode disconnects
     # consistency checks. In practice, there are often last minute doc
     # adjustments that need to get in and forcing to re-run the tests from
     # the adjusted tree really is unfriendly. --devmode must still be provided
     # explicitly so that assembling pieces from not-quite-consistent trees
-    # is acknowledged, with manual verification of the differences for packages
+    # is acknowledged, with manual verification of the differences for kits
     # to be delivered.
 
     # exit_if (
-    #    options.pname and options.devmode,
+    #    options.kitname and options.devmode,
     #    "Producing a packaged kit is disallowed in devmode."
     #   )
 
