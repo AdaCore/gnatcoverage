@@ -37,11 +37,11 @@ source_suffix = '.rst'
 #source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = 'content'
 
 # General information about the project.
 project = u'GNATcoverage'
-copyright = u'2011, AdaCore'
+copyright = u'2013, AdaCore'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -178,7 +178,7 @@ htmlhelp_basename = 'GNATcoveragedoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'GNATcoverage.tex', u'GNATcoverage Software Test Result report',
+  ('content', 'STR.tex', u'GNATcoverage DO178B/ED-12B Qualification Material: Software Test Results',
    u'AdaCore', 'manual'),
 ]
 
@@ -211,6 +211,6 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'gnatcoverage', u'GNATcoverage Documentation',
+    ('content', 'gnatcoverage', u'GNATcoverage Documentation',
      [u'AdaCore'], 1)
 ]

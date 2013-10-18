@@ -439,23 +439,10 @@ class QMAT:
             sphinx_target_for[self.this_docformat]
             )
 
-        # We used to use a wildcard for the source name, but that didn't
-        # work because two different pdf files are generated in the same
-        # directory.  The following approach is "ugly", but also intended
-        # to be temporary!
-        if partname == 'TOR':
-            source_name = 'TOR'
-        elif partname == 'PLANS':
-            source_name = 'PLANS'
-        elif partname == 'STR':
-            source_name = 'GNATcoverage'
-        else:
-            source_name = partname
-
         this_source = (
             this_build_subdir if this_target_is_tree
             else os.path.join(this_build_subdir,
-            source_name + ".%s" % self.this_docformat)
+            partname + ".%s" % self.this_docformat)
             )
 
 

@@ -1,6 +1,6 @@
-**********************************
-GNATcoverage Software Test Results
-**********************************
+************************************************************************
+GNATcoverage DO178B/ED-12B Qualification Material: Software Test Results
+************************************************************************
 
 .. This index is useful to help locate the toplevel sources of interest
 .. and produce a meaningful PDF toc. The HTML page this produces is not
