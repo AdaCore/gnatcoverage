@@ -35,7 +35,7 @@ A part of the testing strategy used to verify a given Tool Operational Requireme
 
 .. rubric:: Tool Operational Requirement (TOR)
 
-A TOR describes the expected behavior of a tool from the point of view of the user.
+A TOR describes the expected behavior of a tool from the user point of view.
 
 
 Referenced Documents
@@ -70,7 +70,12 @@ distribution (file *share/doc/gnatcoverage/pdf/gnatcov.pdf*).
 .. rubric:: TOR document
 
 AdaCore: *GNATcoverage Tool Operational Requirements*,
-available with this qualification package (including  testcases)
+available with this qualification package and including testcases.
+
+.. rubric:: PLANS document
+
+AdaCore: *GNATcoverage Qualification Plans*,
+this document.
 
 .. rubric:: STR report
 

@@ -2,6 +2,9 @@
 Software Quality Assurance Plan
 ===============================
 
+Compliance to guidance
+======================
+
 GNATcoverage is qualified as a verification tool.
 
 .. csv-table:: Compliance matrix for Table A-9 of DO-178B
@@ -15,13 +18,27 @@ GNATcoverage is qualified as a verification tool.
 Quality Assurance Activities
 ============================
 
-This section presents the Quality Assurance activities in terms of
-objectives and outputs.
-The outputs are stored in subdirectories of the qa/ directory,
-with the subdirectory name identifying the date: qa/YYYYMMDD/
+The qualification data we produce consists in three documents, composing
+what we refer to as a *qualification kit*:
 
-Reading of GNATcoverage Qualification Material: Plans
-*****************************************************
+* The **PLANS** document, this one.
+* The **TOR** (*Tool Operational Requirements*) document, which
+  contains the description of the tool operational requirements and
+  the associated testcases.
+* The **STR** (*Software Test Results*) report, which contains a synthetic
+  summary of the testsuite run performed to assess the tool behavioral
+  correctness with respect to its intended use.
+
+This section presents the Quality Assurance (QA) activities operated over
+these documents in terms of objectives and outputs.
+
+The QA outputs for a kit are stored in a "qa" directory dedicated to the
+project for which the kit is produced. Each QA cycle is assigned a
+subdirectory there, named after the date at which the QA cycle started, in
+*YYYYMMDD* format.
+
+Reading the PLANS document
+**************************
 
 * **objectives:** 
 
