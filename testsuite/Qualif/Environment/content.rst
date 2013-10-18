@@ -1,35 +1,25 @@
 Operational Environment
 =======================
 
-The correctness of source coverage assessments performed by the tool depends
-on a few external rules that shall be obeyed. First comes a set of general
-rules that always apply:
+The correctness of the source coverage assessments performed by GNATcoverage
+relies on a few rules that shall be obeyed regarding the environment in which
+the tool operates.
+
+The table below describes the expectations assessing the Operational
+Environment equivalence described in the tool qualification *PLANS* document.
+
+.. tabularcolumns:: |p{0.05\textwidth}|p{0.30\textwidth}|p{0.60\textwidth}|
 
 .. csv-table::
-   :header: "Rule #", ""
-   :widths: 25, 60
+   :header: "Rule #", "Item", "Expectation"
+   :widths: 5, 30, 60
    :delim:  |
 
-   1 (Compiler version) | "The tool may only be used with a GNAT/GCC compiler
-   version identified as suitable by the tool provider."
-   2 (Base compilation flags) | "All the applicative code shall be compiled
-   with the ``-g -fpreserve-control-flow`` command-line options, together with
-   ``-gnateS`` for Ada sources."
-   3 (Optimization flags) | "Up to GNAT Pro 6.4.2, -O0 is the only supported
-   level. Later releases will support -O1, with or without inlining. -O2 or
-   individual optimization flags are not supported. For Ada, suppression of
-   run-time checks with ``-gnatp`` is allowed, however not mandatory."
-   4 (Coding standard) | "For DO-178B level A qualification, binary Boolean
-   operators shall be restricted to those with short-circuit semantics. These
-   are ``and then`` and ``or else`` in Ada, with the rule enforced by the
-   ``No_Direct_Boolean_Operator`` Restriction pragma in the GNAT Pro series
-   of compilers."
+   1 | GNAT Pro compiler executable name, version & host OS | powerpc-elf-gcc 7.0.3 (20130909-45) on Windows XP
+   2 | GNAT Pro compilation switches | -g -gnat05 -fpreserve-control-flow -fdump-scos
+   3 | GNAT Pro runtime profile | Zero Footprint (RTS=zfp or equivalent)
+   4 | Application coding standard | For a level A software level, the binary boolean operators used to compose decisions shall be restricted those with short-circuit semantics, as enforced by the ``No_Direct_Boolean_Operator`` Restrictions pragma for Ada.
+   5 | GNATemulator executable name, version and host OS | powerpc-elf-gnatemu 1.3.1 on Windows XP
+   6 | GNATcoverage executable name, version and host OS | gnatcov 1.2.1 on Windows XP
 
-Extra options are allowed when they are known not to influence code
-generation, as, for example, warning control options.
-
-In any case, the tool behavior correctness for a particular combination of
-versions and command-line options shall be verified by a complete testsuite
-run configured for the target qualification level, producing a *Software Test
-Results* report clear of any test failure.
 
