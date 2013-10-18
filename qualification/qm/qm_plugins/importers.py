@@ -279,7 +279,7 @@ class ToplevelIndexImporter(ArtifactImporter):
         output = writer.only(html_top_index, "html")
 
         links = [(a, qm.rest.DefaultImporter())
-                 for a in artifacts if "Index/.+" not in a.name]
+                 for a in artifacts if "Index/.+" not in a.full_name]
 
         output += writer.toctree(['/%s/content' % artifact_hash(*l)
                                   for l in links if not is_test(l[0])],
@@ -738,8 +738,10 @@ class TestCasesImporter(ArtifactImporter):
 
         if links_rep:
 
-            main_desc, desc = self.short_descs_of_main_ancestors(links_rep[0][0],
-                                                                 "Report")
+            for l in links_rep:
+                main_desc, desc =
+                self.short_descs_of_main_ancestors(l[0], "Report")
+                break
 
             section = "Language Independant Test Cases"
 
