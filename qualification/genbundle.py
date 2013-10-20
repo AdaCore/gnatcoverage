@@ -707,10 +707,25 @@ class QMAT:
 
         os.chdir (self.rootdir)
 
+        # The kit name is computed as:
+        #
+        #    gnatcov-qualkit-<kitid>-<YYYYMMDD>
+        #
+        # where <YYYYMMDD> is the kit production stamp (now), and <kitid>
+        # is the git branch from which the artifacts are taken. The git branch
+        # name might contain the "qualkit" indication already.
+
         today = date.today()
-        kitname = "gnatcov-qualkit-%s-%4d-%02d-%02d" % \
-            (current_gitbranch_at(self.repodir),
-             today.year, today.month, today.day)
+        gitbranch = current_gitbranch_at(self.repodir)
+
+        kitprefix = (
+            "gnatcov-qualkit" if "qualkit" not in gitbranch
+            else "gnatcov"
+            )
+        kitid = gitbranch
+        kitstamp = "%4d%02d%02d" % (today.year, today.month, today.day)
+
+        kitname = "%s-%s-%s" % (kitprefix, kitid, kitstamp)             
         kitdir = "%s-%s" % (kitname, self.this_docformat)
 
         remove (kitdir)
@@ -734,6 +749,7 @@ class QMAT:
         return 'plans' in self.o.parts
 
     def do_kit (self):
+        return 1
         return self.o.kitp
 
     def build_as_needed (self, docformat):
