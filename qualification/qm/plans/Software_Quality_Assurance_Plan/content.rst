@@ -30,12 +30,10 @@ what we refer to as a *qualification kit*:
   correctness with respect to its intended use.
 
 This section presents the Quality Assurance (QA) activities operated over
-these documents in terms of objectives and outputs.
-
-The QA outputs for a kit are stored in a "qa" directory dedicated to the
-project for which the kit is produced. Each QA cycle is assigned a
-subdirectory there, named after the date at which the QA cycle started, in
-*YYYYMMDD* format.
+these documents in terms of objectives and outputs. The QA outputs for a kit
+are stored in a "qa" directory dedicated to the project for which the kit is
+produced. Each QA cycle is assigned a subdirectory there, named after the date
+at which the QA cycle started, in *YYYYMMDD* format.
 
 Reading the PLANS document
 **************************
@@ -55,7 +53,7 @@ Inspection of Tool Operational Requirements (by sampling)
 
 * **objectives:** 
 
-  * Check the accuracy, completeness and consistency with plans.
+  * Check the accuracy, completeness and consistency with respect to the qualification objectives.
 
 * **output:** QA inspection report (qa/YYYYMMDD/qa_tor.doc).
 
