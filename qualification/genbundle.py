@@ -270,12 +270,19 @@ def rdir_in (path):
 
 # current git branch name, used as kit identifier:
 
-def current_branchname ():
+def current_gitbranch_at (dirname):
+    
+    cwd = os.getcwd()    
+    os.chdir(dirname)
 
-    return re.match (
+    this_branch = re.search (
         pattern="\* (?P<branchname>\S*)",
         string=output_of("git branch")
         ).group('branchname')
+    
+    os.chdir(cwd)
+
+    return this_branch
 
 # =======================================================================
 # ==              QUALIF MATERIAL GENERATION HELPER CLASS              ==
@@ -700,7 +707,12 @@ class QMAT:
 
         os.chdir (self.rootdir)
 
-        kitdir = "%s-%s" % (self.o.kitname, self.this_docformat)
+        today = date.today()
+        kitname = "gnatcov-qualkit-%s-%4d-%02d-%02d" % \
+            (current_gitbranch_at(self.repodir),
+             today.year, today.month, today.day)
+        kitdir = "%s-%s" % (kitname, self.this_docformat)
+
         remove (kitdir)
         mkdir (kitdir)
         
@@ -722,7 +734,7 @@ class QMAT:
         return 'plans' in self.o.parts
 
     def do_kit (self):
-        return self.o.kitname
+        return self.o.kitp
 
     def build_as_needed (self, docformat):
 
@@ -747,7 +759,7 @@ class QMAT:
         if self.do_plans():
             self.build_plans()
 
-        # Build a kit package as needed:
+        # Build a kit package as queried:
 
         if self.do_kit():
             qmat.build_kit()
@@ -806,13 +818,6 @@ def commandline():
             "The git branch we shall produce the material from.")
         )
 
-    op.add_option (
-        "--kit-name", dest="kitname",
-        help=(
-            "Base name of the .zip archive that will contain the full set of "
-            "items bundled together. Ignored if the set of constructed items "
-            "is specified explicitly.")
-        )
     op.add_option (
         "--docformat", dest="docformat",
         type='string', # choices=valid_docformats,
@@ -933,25 +938,9 @@ def check_valid(options, args):
         "Running the tests on a remote testsuite dir is not supported."
         )
 
-    # Are we producing a kit ? A few extra things to check if so ...
+    # Convey whether we are requested to produce a kit:
 
-    kitp = not options.parts
-
-    # Producing an incomplete kit is forbidden:
-
-    exit_if (
-        options.kitname and not kitp,
-        ("No archive (--kitname) may be generated with "
-         "only parts of the kit (--parts).")
-        )
-
-    # If we are generating a full kit, we need to produce an archive.
-    # Pick a default name if none was specified:
-
-    if kitp and not options.kitname:
-        today = date.today()
-        options.kitname = "gnatcov-qualkit-%s-%4d-%02d-%02d" % (
-            current_branchname(), today.year, today.month, today.day)
+    options.kitp = not options.parts
 
     # In principle, we should refuse to generate a kit in devmode, as
     # kits are presumably things to be delivered and devmode disconnects
@@ -961,11 +950,6 @@ def check_valid(options, args):
     # explicitly so that assembling pieces from not-quite-consistent trees
     # is acknowledged, with manual verification of the differences for kits
     # to be delivered.
-
-    # exit_if (
-    #    options.kitname and options.devmode,
-    #    "Producing a packaged kit is disallowed in devmode."
-    #   )
 
     # Settle on the set of documents we are to produce:
 
@@ -1027,7 +1011,7 @@ if __name__ == "__main__":
     if options.runtests:
         qmat.run_tests ()
 
-    # Now build the various documents for each requested format:
+    # Now build the various parts and maybe the kit for each requested format:
 
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
 
