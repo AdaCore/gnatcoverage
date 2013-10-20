@@ -33,8 +33,8 @@ In this section we provide a set of recommendations for configuration management
  * **Items 7.2.4a, 7.2.4b and 7.2.7:** with respect to these items, we suggest that the user deploy the most appropriate process depending on their own configuration management process and tools.
  * **Item 7.2.9b:** since GNATcoverage is a verification tool, the configuration management process should comply with Control Category 2.
 
-Overview of AdaCore internal configuration management process
-=============================================================
+Overview of the internal configuration management process at AdaCore
+====================================================================
 
 This section describes the internal configuration management process at
 AdaCore and is provided for informational purposes only;
