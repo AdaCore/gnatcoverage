@@ -84,7 +84,7 @@ Inspection of test execution results
     * A bug in the GNATcoverage implementation: in this case, the GNATcoverage Development Team is in charge of reporting and fixing the problem.
     * A reasonable limitation of the tool: in this case, the GNATcoverage Qualification Team is in charge of reporting and justifying the problem as part of the known limitations of the tool.
 
-* **output:** QA inspection report (qa/YYYYMMDD/qa_test_execution.doc)
+* **output:** QA inspection report (qa/YYYYMMDD/qa_str.doc)
 
 Tool conformity review
 **********************
