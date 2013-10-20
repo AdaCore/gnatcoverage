@@ -749,7 +749,6 @@ class QMAT:
         return 'plans' in self.o.parts
 
     def do_kit (self):
-        return 1
         return self.o.kitp
 
     def build_as_needed (self, docformat):
