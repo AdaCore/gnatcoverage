@@ -332,6 +332,10 @@ class QMAT:
 
         self.local_testsuite_dir = None
 
+        # A local place where the STR subdir was setup, with REST generated:
+
+        self.ready_str_dir = None
+
         # To be set prior to build_as_needed():
 
         self.this_docformat = None
@@ -657,18 +661,22 @@ class QMAT:
         else:
             self.local_testsuite_dir = self.testsuite_dir
 
-    # ---------------
-    # -- build_str --
-    # ---------------
+    # ---------------------
+    # -- prepare_str_dir --
+    # ---------------------
 
-    def build_str (self):
-        announce ("building %s STR" % self.this_docformat)
-
-        os.chdir (self.rootdir)
+    def __prepare_str_dir (self):
+        """Helper for build_str. If we haven't done it already, arrange to
+        generate the STR REST for the designated testsuite-dir, possibly
+        remote.  Fetch this dir back as needed then and remember where the
+        corresponding STR subdir (with REST generated) is located."""
+        
+        if self.ready_str_dir:
+            return
 
         # Produce REST from the tests results dropped by testsuite run.  If we
         # did not launch one just above, expect results to be available from a
-        # previous run.
+        # previous run, possibly remote:
 
         raccess = raccess_in (self.testsuite_dir)
         rdir = rdir_in (self.testsuite_dir)
@@ -681,12 +689,24 @@ class QMAT:
         prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
         run_list (prefix + [mkstr_cmd])
 
-        # Make sure we have a local copy of the testsuite, then
-        # finalize and latch the report from there:
+        # Make sure we then have a local copy of the testsuite dir and
+        # accompanying STR generated rest
 
         self.localize_testsuite_dir ()
+        self.ready_str_dir = os.path.join (self.local_testsuite_dir, "STR")
 
-        os.chdir (os.path.join (self.local_testsuite_dir, "STR"))
+    # ---------------
+    # -- build_str --
+    # ---------------
+
+    def build_str (self):
+        announce ("building %s STR" % self.this_docformat)
+
+        os.chdir (self.rootdir)
+
+        self.__prepare_str_dir()
+
+        os.chdir (self.ready_str_dir)
 
         run ("make %s" % sphinx_target_for[self.this_docformat])
 
