@@ -674,10 +674,9 @@ class QMAT:
         rdir = rdir_in (self.testsuite_dir)
 
         mkstr_cmd = (
-            "(cd %(dir)s/STR && ./mkrest.sh %(level)s %(format)s)"
+            "(cd %(dir)s/STR && ./mkrest.sh %(level)s)"
             %  {"dir"   : self.testsuite_dir if not rdir else rdir,
-                "level" : self.o.dolevel,
-                "format": sphinx_target_for[self.this_docformat]}
+                "level" : self.o.dolevel}
             )
         prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
         run_list (prefix + [mkstr_cmd])
