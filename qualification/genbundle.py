@@ -396,13 +396,33 @@ class QMAT:
         os.chdir(self.repodir)
         run ("git checkout %s" % self.o.branchname)
 
+    # -----------------
+    # -- kititem_for --
+    # -----------------
+
+    def kititem_for (self, part):
+        """The name of the filesystem entity which materializes PART in a kit
+        distribution.  This will be a subdirectory name for treeish formats
+        a-la html (e.g. TOR, which will contain content.html etc), or a
+        specific filename (e.g. PLANS.pdf) for other formats. This is what
+        latch_into sets up eventually."""
+        
+        this_item_is_tree = (self.this_docformat == 'html')
+
+        this_item_suffix = (
+            '' if this_item_is_tree else '.%s' % self.this_docformat)
+
+        return "%(part)s%(suffix)s" % {
+            "part": part.upper(),
+            "suffix": this_item_suffix }
+
     # ----------------
     # -- latch_into --
     # ----------------
 
     # Helper for the various build_ methods below, to store the just built
-    # sphinx output for a provided PARTNAME (STR, PLANS, TOR) at a TOPLEVEL
-    # dir.
+    # sphinx output for a provided PART (str, plans, tor) at a toplevel
+    # DIR.
 
     # html builds are voluminous and tree-ish. Other builds might produce
     # secondary pieces we don't need (e.g. latex sources & stuff) and we
@@ -411,13 +431,12 @@ class QMAT:
     # For tree builds, we just rename the whole sphinx build tree as our
     # result. For example:
     #
-    # build/html for PLANS gets renamed as <TOPLEVEL>/PLANS, a subdirectory
-    # where we expect index.html to be found.
+    # build/html for "plans" gets renamed as <TOPLEVEL>/PLANS, a subdirectory
+    # where we expect content.html to be found.
 
-    # For other builds, we use a wildcard copy so the actual file
-    # name doesn't matter. For example:
+    # For other builds, we just copy the actual file, for example:
     #
-    # build/pdf/TOR.pdf gets copied as <TOPLEVEL>/TOR.pdf
+    # build/pdf/TOR.pdf gets copied as <DIR>/TOR.pdf
 
     # Eventually, when all the parts are latched, we have something like :
     #
@@ -433,29 +452,24 @@ class QMAT:
     #
     # for the html versions.
 
-    def __latch_into (self, dir, partname, toplevel, copy_from=None):
+    def __latch_into (self, dir, part, toplevel, copy_from=None):
 
         this_target_is_tree = (self.this_docformat == 'html')
 
-        # Compute the target dir or file name of our copy:
-
-        this_target_suffix = (
-            '' if this_target_is_tree else '.%s' % self.this_docformat)
+        # Compute the target dir or file name for our copy:
 
         this_target = (
             dir if toplevel and this_target_is_tree
             else os.path.join (
-                dir, "%(part)s%(suffix)s" % {
-                    "part": partname,
-                    "suffix": this_target_suffix }
-                )
+                dir, self.kititem_for(part=part))
             )
 
         # Compute the source dir or file name for our copy:
 
         # The local or provided source build subdir name, assuming a
         # sphinx setup, with an html or pdf sub-subdir depending on the
-        # doc format:
+        # doc format. For file outputs, assume the builders are setup to
+        # produce PART.<docformat>, e.g. TOR.pdf:
 
         this_build_subdir = os.path.join (
             copy_from if copy_from is not None else "build",
@@ -465,7 +479,7 @@ class QMAT:
         this_source = (
             this_build_subdir if this_target_is_tree
             else os.path.join(this_build_subdir,
-            partname + ".%s" % self.this_docformat)
+            part.upper() + ".%s" % self.this_docformat)
             )
 
 
@@ -486,7 +500,7 @@ class QMAT:
             mv (this_build_subdir, this_target)
 
         print "%s %s available in %s %s" % (
-            self.this_docformat, partname,
+            self.this_docformat, part.upper(),
             this_target, "(toplevel)" if toplevel else ""
             )
 
@@ -513,8 +527,7 @@ class QMAT:
     def __qm_build (self, part):
         """Build one PART of using the Qualifying Machine."""
 
-        partname = part.upper()
-        announce ("building %s %s" % (self.this_docformat, partname))
+        announce ("building %s %s" % (self.this_docformat, part.upper()))
 
         os.chdir (
             os.path.join (self.repodir, "qualification", "qm")
@@ -523,7 +536,7 @@ class QMAT:
                  % (part, self.this_docformat))
 
         self.__latch_into (
-                dir=self.itemsdir(), partname=partname, toplevel=False)
+                dir=self.itemsdir(), part=part, toplevel=False)
 
     # ---------------
     # -- build_tor --
@@ -711,7 +724,7 @@ class QMAT:
         run ("make %s" % sphinx_target_for[self.this_docformat])
 
         self.__latch_into (
-            dir=self.itemsdir(), partname="STR", toplevel=False)
+            dir=self.itemsdir(), part='str', toplevel=False)
 
     # -----------------
     # -- build_plans --
@@ -750,9 +763,16 @@ class QMAT:
         kitname = "%s-%s-%s" % (kitprefix, kitid, kitstamp)             
         kitdir = "%s-%s" % (kitname, self.this_docformat)
 
-        remove (kitdir)
-        mkdir (kitdir)
-        
+        # If we are re-constructing a kit with some parts just rebuilt,
+        # keep the old elements in place:
+
+        if not self.o.rekit:
+            remove (kitdir)
+            mkdir (kitdir)
+        else:
+            [remove (os.path.join(kitdir, self.kititem_for(part=part)))
+             for part in self.o.parts]
+
         [shutil.move (item, kitdir) for item in ls(self.itemsdir()+"/*")]
 
         run ("zip -q -r %(kitdir)s.zip %(kitdir)s" % {"kitdir": kitdir})
@@ -904,6 +924,10 @@ def commandline():
         )
 
     op.add_option (
+        "--rekit", dest="rekit", action="store_true", default=False
+        )
+
+    op.add_option (
         "--xgnatpro", dest="xgnatpro", default=None,
         help = (
             "Version we expect <target>-gcc -v to match. "
@@ -977,7 +1001,7 @@ def check_valid(options, args):
 
     # Convey whether we are requested to produce a kit:
 
-    options.kitp = not options.parts
+    options.kitp = options.rekit or not options.parts
 
     # In principle, we should refuse to generate a kit in devmode, as
     # kits are presumably things to be delivered and devmode disconnects
