@@ -235,6 +235,9 @@ def announce (s):
 def remove (path):
     """Delete the file or directory subtree designated by PATH"""
 
+    print "from : %s" % os.getcwd()
+    print "remove : %s" % path
+
     # To prevent big damage if the input PATH argument happens to have been
     # miscomputed, we first attempt to move it locally, then remove the local
     # instance. The absence of computation on this local name makes it a tad
