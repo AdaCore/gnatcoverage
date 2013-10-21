@@ -1,4 +1,4 @@
-Compliance with guidance
+Compliance With Guidance
 ========================
 This section contains compliance matrices with the guidance contained in section 12.2 of DO-178B. 
 

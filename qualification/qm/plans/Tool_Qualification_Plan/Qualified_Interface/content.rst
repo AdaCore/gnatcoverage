@@ -7,7 +7,7 @@ For level B, GNATcoverage produces statement coverage data *and* decision covera
 
 For level A, GNATcoverage produces statement coverage data *and* decision coverage data *and* mcdc coverage data when using option --level=stmt+mcdc.
 
-GNATcoverage qualified interface
+GNATcoverage Qualified Interface
 ================================
 To obtain reports suitable for use as certification evidence, applicants shall use GNATcoverage as follows:
 
