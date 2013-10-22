@@ -744,8 +744,7 @@ class QMAT:
 # =======================================================================
 
 valid_docformats = ('html', 'pdf')
-regular_parts    = ('tor', 'plans', 'str')
-valid_parts      = regular_parts
+valid_parts      = ('tor', 'plans', 'str')
 valid_dolevels   = ('doA', 'doB', 'doC')
 valid_xada       = ('95', '2005', '2012')
 
@@ -916,7 +915,7 @@ def check_valid(options, args):
     # Settle on the set of documents we are to produce:
 
     options.parts = (
-        regular_parts if not options.parts
+        valid_parts if not options.parts
         else options.parts.split(',')
         )
 
