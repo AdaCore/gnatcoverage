@@ -737,6 +737,20 @@ class QMAT:
     # -- build_kit --
     # ---------------
 
+    def __relocate_into(self, dir, part):
+
+        the_item = self.kititem_for(part=part)
+
+        item_source_path = os.path.join (self.itemsdir(), the_item)
+        item_target_path = os.path.join (dir, the_item)
+
+        remove (item_target_path)
+
+        print "move : %s" % item_source_path
+        print "into : %s" % dir
+        
+        mv (item_source_path, dir)
+
     def build_kit (self):
         announce ("building %s kit" % self.this_docformat)
 
@@ -770,14 +784,9 @@ class QMAT:
         kitname = "%s-%s-%s" % (kitprefix, kitid, kitstamp)             
         kitdir = "%s-%s" % (kitname, self.this_docformat)
 
-        if  self.o.rekit:
-            [remove (os.path.join(kitdir, self.kititem_for(part=part)))
-             for part in self.o.parts]
-        else:
-            remove (kitdir)
-            mkdir (kitdir)
+        mkdir (kitdir)
 
-        [shutil.move (item, kitdir) for item in ls(self.itemsdir()+"/*")]
+        [self.__relocate_into (dir=kitdir, part=part) for part in self.o.parts]
 
         run ("zip -q -r %(kitdir)s.zip %(kitdir)s" % {"kitdir": kitdir})
 
