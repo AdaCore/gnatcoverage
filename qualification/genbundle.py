@@ -278,10 +278,6 @@ class QMAT:
 
         self.local_testsuite_dir = None
 
-        # A local place where the STR subdir was setup, with REST generated:
-
-        self.ready_str_dir = None
-
         # To be set prior to build_as_needed():
 
         self.this_docformat = None
@@ -489,10 +485,6 @@ class QMAT:
     # ---------------
 
     def build_tor (self):
-
-        # If we have a testsuite-dir, make sure we have a local access to it:
-
-        self.localize_testsuite_dir()
         self.__qm_build (part="tor")
 
     # ---------------------------
@@ -603,8 +595,7 @@ class QMAT:
         remote.  Fetch this dir back as needed then and remember where the
         corresponding STR subdir (with REST generated) is located."""
         
-        if self.ready_str_dir:
-            return
+        announce ("preparing STR dir @ %s" % self.o.testsuite_dir)
 
         # Produce REST from the tests results dropped by testsuite run.  If we
         # did not launch one just above, expect results to be available from a
@@ -621,12 +612,6 @@ class QMAT:
         prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
         run_list (prefix + [mkstr_cmd])
 
-        # Make sure we then have a local copy of the testsuite dir and
-        # accompanying STR generated rest
-
-        self.localize_testsuite_dir ()
-        self.ready_str_dir = os.path.join (self.local_testsuite_dir, "STR")
-
     # ---------------
     # -- build_str --
     # ---------------
@@ -634,11 +619,7 @@ class QMAT:
     def build_str (self):
         announce ("building %s STR" % self.this_docformat)
 
-        os.chdir (self.rootdir)
-
-        self.__prepare_str_dir()
-
-        os.chdir (self.ready_str_dir)
+        os.chdir (os.path.join (self.local_testsuite_dir, "STR"))
 
         run ("make %s" % sphinx_target_for[self.this_docformat])
 
@@ -731,8 +712,13 @@ class QMAT:
 
         mkdir (self.itemsdir())
 
-        # Build the STR from testsuite results (either one we just ran, or one
-        # executed externally and designated by --testsuite-dir):
+        if self.do_str() and not self.local_testsuite_dir:
+            self.__prepare_str_dir()
+        
+        self.localize_testsuite_dir ()
+
+        # Build the STR as needed, using the REST generated
+        # by prepare_str_dir above:
 
         if self.do_str():
             self.build_str()
@@ -993,7 +979,3 @@ if __name__ == "__main__":
 
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
 
-# localize_testsuite & consistency_checks across the board
-#
-# consistency_checks require a local testsuite. localize_testsuite()
-# can only run past build_str().
