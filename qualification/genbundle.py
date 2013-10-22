@@ -654,9 +654,14 @@ class QMAT:
                 )
 
             self.local_testsuite_dir = "%s_testsuite" % rhost
-            run ("rsync -rz --delete %s:%s/ %s" \
-                     % (raccess, rdir, self.local_testsuite_dir)
-                 )
+
+            if self.o.rekit:
+                print "rebuilding kit: NOT syncing %s, reusing %s instead" \
+                    % (self.o.testsuite_dir, self.local_testsuite_dir)
+            else:
+                run ("rsync -rz --delete %s:%s/ %s" \
+                         % (raccess, rdir, self.local_testsuite_dir)
+                     )
         else:
             self.local_testsuite_dir = self.o.testsuite_dir
 
