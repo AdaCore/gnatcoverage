@@ -758,20 +758,24 @@ class QMAT:
             else "gnatcov"
             )
         kitid = gitbranch
-        kitstamp = "%4d%02d%02d" % (today.year, today.month, today.day)
 
+        # If we are re-constructing a kit with some parts just rebuilt, target
+        # the specified version (stamp) and arrange to keep the old elements
+        # in place:
+
+        kitstamp = (
+            self.o.rekit if self.o.rekit
+            else "%4d%02d%02d" % (today.year, today.month, today.day)
+            )
         kitname = "%s-%s-%s" % (kitprefix, kitid, kitstamp)             
         kitdir = "%s-%s" % (kitname, self.this_docformat)
 
-        # If we are re-constructing a kit with some parts just rebuilt,
-        # keep the old elements in place:
-
-        if not self.o.rekit:
-            remove (kitdir)
-            mkdir (kitdir)
-        else:
+        if  self.o.rekit:
             [remove (os.path.join(kitdir, self.kititem_for(part=part)))
              for part in self.o.parts]
+        else:
+            remove (kitdir)
+            mkdir (kitdir)
 
         [shutil.move (item, kitdir) for item in ls(self.itemsdir()+"/*")]
 
@@ -924,7 +928,10 @@ def commandline():
         )
 
     op.add_option (
-        "--rekit", dest="rekit", action="store_true", default=False
+        "--rekit", dest="rekit", default=None,
+        help = (
+            "rebuild the specified --parts and re-package them in the "
+            "kit stamped according to this option's value (YYYYMMDD)")
         )
 
     op.add_option (
