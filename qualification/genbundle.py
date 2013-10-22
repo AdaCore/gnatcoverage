@@ -487,73 +487,148 @@ class QMAT:
     def build_tor (self):
         self.__qm_build (part="tor")
 
-    # ---------------------------
-    # -- do_consistency_checks --
-    # ---------------------------
+    # ------------------------------
+    # -- dump_kit_consistency_log --
+    # ------------------------------
 
-    def do_consistency_checks (self):
-        announce ("tree and version consistency check")
+    def __dump_tree_consistency_info (self, log, suite_ctxdata):
 
-        if options.devmode:
-            print "devmode - checks skipped"
-            return
-
-        # Check consistency of the testsuite tree ref against the clone
-        # from which we are producing documents. Check that the latter dir
-        # ref matches that of ...
-        #
-        # * The testsuite dir where we are going to run the tests when
-        #   requested so,
-        #
-        # * The testsuite dir where the tests were run otherwise
-
-        # Also check consistency of the tool versions used to execute the
-        # testsuite against expectations
-
-        self.localize_testsuite_dir()
-
-        if not self.local_testsuite_dir:
-            print "info: no testsuite-dir, unable to check tree consistency"
-
-        local_treeref = treeref_at(self.repodir)
-
-        suite_treeref = None
-        suite_ctxdata = None
-
-        if self.o.runtests:
-            suite_treeref = treeref_at(self.local_testsuite_dir)
-
-        elif self.o.testsuite_dir:
-            suite_ctxdata = load_from (
-                os.path.join (self.o.testsuite_dir, CTXDATA_FILE))
-            suite_treeref = suite_ctxdata.treeref
-
-        if not suite_treeref:
-            print "info: unable to check tree consistency in this setup"
-        else:
-            exit_if (
-                local_treeref != suite_treeref,
-                "local tree ref (%s) mismatches testsuite tree ref (%s)" % (
-                    local_treeref, suite_treeref)
-                )
+        log.write ("\n-- TREE CONSISTENCY LOG:\n")
 
         if not suite_ctxdata:
-            print "info: unable to check versions consistency in this setup"
-        else:
-            exit_if (
-                self.o.xgnatpro and not re.search (
-                    pattern=self.o.xgnatpro,
-                    string=suite_ctxdata.gnatpro.version),
-                "gnatpro version \"%s\" doesn't match expectation \"%s\"" % (
-                    suite_ctxdata.gnatpro.version, self.o.xgnatpro)
-                )
-            exit_if (
-                self.o.xgnatcov and not re.search (
-                    pattern=self.o.xgnatcov,
-                    string=suite_ctxdata.gnatcov.version),
-                "gnatcov version \"%s\" doesn't match expectation \"%s\"" % (
-                    suite_ctxdata.gnatpro.version, self.o.xgnatpro)
-                )
+            log.write (
+                "suite context info unavailable, "
+                "tree consistency unchecked\n")
+            return
+
+        os.chdir (self.repodir)
+
+        local_treeref = treeref_at(self.repodir)
+        suite_treeref = suite_ctxdata.treeref
+
+        if local_treeref == suite_treeref:
+            log.write (
+                "artifact tree ref matches testsuite (%s)\n"  % local_treeref)
+            return
+
+        log.write (
+            "local_treeref = %s , suite_treeref = %s\n"  % \
+                (local_treeref, suite_treeref)
+            )
+
+        merge_base = output_of (
+            "git merge-base %s %s" % (local_treeref, suite_treeref)
+            ).strip(' \n')
+
+        (first, next) = (
+            (suite_treeref, local_treeref) if merge_base == suite_treeref
+            else (local_treeref, suite_treeref) if merge_base == local_treeref
+            else (None, None))
+
+        if first == None:
+            log.write (
+                "!!! local and suite tree refs aren't sequential !!!\n")
+            return
+        
+        log.write (
+            "%s tree is ahead\n" % \
+                ('suite' if first == local_treeref else 'local')
+            )
+        
+        gitlog_cmd = (
+            "git rev-list --oneline %s ^%s" % (next, first))
+        log.write (
+            '\n'.join (['', gitlog_cmd, '--', output_of(gitlog_cmd), ''])
+            )
+
+    def __dump_version_consistency_info (self, log, suite_ctxdata):
+
+        log.write ("\n-- VERSION CONSISTENCY LOG:\n")
+
+        if not suite_ctxdata:
+            log.write (
+                "suite context info unavailable, "
+                "versions consistency unchecked\n")
+            return
+
+        def check_one (tool, actual, expected):
+
+            if not expected:
+                log.write (
+                    "expected %s version NOT specified\n" % tool)
+                return
+
+            note = (
+                "matches" if re.search (pattern=expected, string=actual)
+                else "doesn't match")
+            
+            log.write (
+                '%(tool)s version "%(actual)s" %(note)s ' \
+                    'expectation \"%(expected)s"\n' % {
+                        'tool'    : tool,
+                        'note'    : note,
+                        'expected': expected,
+                        'actual'  : actual
+                        }
+                )            
+        #
+
+        check_one (
+            tool = "gnatpro",
+            actual = suite_ctxdata.gnatpro.version,
+            expected = self.o.xgnatpro)
+
+        check_one (
+            tool = "gnatcov",
+            actual = suite_ctxdata.gnatcov.version,
+            expected = self.o.xgnatcov)
+
+    def __dump_tr_consistency_info (self, log):
+
+        log.write ("\n-- TOR/TR CONSISTENCY LOG:\n")
+
+        tor_tr_logfile = os.path.join (
+            self.repodir, "qualification", "qm", "missing_tr_log.txt")
+
+        if not os.path.exists (tor_tr_logfile):
+            log.write ("QM log NOT available\n")
+            return
+
+        log.write (
+            "%s TOR/TR consistency log from QM @ %s :" % \
+                ("FRESH" if self.do_tor() else "OLD", tor_tr_logfile)
+            )
+        log.write (contents_of (tor_tr_logfile))
+
+    def dump_kit_consistency_log (self):
+        announce ("dumping consistency log - format agnostic")
+        
+        logfile = os.path.join(self.rootdir, "consistency.log")
+        log = open (logfile, 'w')
+
+        log.write (
+            "artifact tree at %s (%s)\n" % (
+                self.repodir, treeref_at(self.repodir))
+            )
+        log.write (
+            "designated testsuite tree at %s (%s)\n" % \
+                (self.o.testsuite_dir,
+                 "REMOTE" if raccess_in(self.o.testsuite_dir)
+                 else "local")
+            )
+        log.write (
+            "local testsuite tree at %s\n" % self.local_testsuite_dir)        
+
+        suite_ctxdata = load_from (
+            os.path.join (self.local_testsuite_dir, CTXDATA_FILE))
+        
+        self.__dump_tree_consistency_info (log, suite_ctxdata)
+        self.__dump_version_consistency_info (log, suite_ctxdata)
+        self.__dump_tr_consistency_info (log)
+
+        log.close()
+
+        print "consistency log available at %s" % logfile
 
     # ----------------------------
     # -- localize_testsuite_dir --
@@ -822,13 +897,6 @@ def commandline():
         )
 
     op.add_option (
-        "--devmode", dest="devmode", action="store_true", default=False,
-        help = (
-            "State that we're in ongoing development mode, relaxing internal "
-            "consistency checks.")
-        )
-
-    op.add_option (
         "--rekit", dest="rekit", default=None,
         help = (
             "rebuild the specified --parts and re-package them in the "
@@ -903,15 +971,6 @@ def check_valid(options, args):
 
     options.kitp = options.rekit or not options.parts
 
-    # In principle, we should refuse to generate a kit in devmode, as
-    # kits are presumably things to be delivered and devmode disconnects
-    # consistency checks. In practice, there are often last minute doc
-    # adjustments that need to get in and forcing to re-run the tests from
-    # the adjusted tree really is unfriendly. --devmode must still be provided
-    # explicitly so that assembling pieces from not-quite-consistent trees
-    # is acknowledged, with manual verification of the differences for kits
-    # to be delivered.
-
     # Settle on the set of documents we are to produce:
 
     options.parts = (
@@ -978,3 +1037,5 @@ if __name__ == "__main__":
 
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
 
+    if options.kitp:
+        qmat.dump_kit_consistency_log()
