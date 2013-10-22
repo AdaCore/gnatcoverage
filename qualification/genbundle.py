@@ -84,7 +84,6 @@
 #     --root-dir=$HOME/my-qmat
 #     --git-source=$HOME/gnatcoverage --branch=dev-str
 #     --parts=plans
-#     --docformat=html
 #
 # Testing plans regeneration after local commit:
 #
@@ -93,21 +92,8 @@
 #      --git-pull --branch=dev-str
 #      --parts=plans
 #
-# Testing STR production, running a subset of the tests, using
-# the local testsuite and compiler on path:
-#
-#   python genbundle.py --docformat=html
-#     --work-dir=$HOME/my-qmat
-#     --git-pull --branch=dev-str
-#     --parts=str
-#     --runtests --runtests-flags="--target... --RTS... stmt/Robustness -j4"
-#     --dolevel=doB
-#
-# This example uses --runtests without specifying a testsuite-dir, so
-# the testsuite run takes place within the cloned tree in $HOME/my-qmat.
-#
-# Testing another STR production after local commits, using previous testsuite
-# results at a designated place:
+# Testing STR production, designating a local testsuite-dir where a
+# qualified testsuite run has taken place:
 #
 #   python genbundle.py --docformat=html
 #     --work-dir=$HOME/my-qmat
@@ -115,9 +101,6 @@
 #     --parts=str
 #     --testsuite-dir=$HOME/gnatcoverage/testsuite
 #     --dolevel=doB
-#
-# Note that the designated testsuite dir in this example is NOT the one
-# populated by the --runtests example before.
 #
 # Fetching remote testsuite results:
 # ==================================
@@ -131,36 +114,9 @@
 # Example kit production commands:
 # ================================
 #
-# Producing a packaged kit, with a toplevel index and a final .zip
-# archive is achieved by not restricting to specific parts, hence by
-# not passing --parts at all.
-#
-# A DO level has to be provided in this case, and variations are allowed
-# testsuite execution and results localization:
-#
-# Running the tests from the local clone this script creates:
-# -----------------------------------------------------------
-#
-#   python genbundle.py --docformat=html
-#     --root-dir=$HOME/my-qmat
-#     --branch=<project-branch>
-#     --dolevel=doA
-#     --runtests --runtests-flags=<...>
-#
-# Running the tests hosted within the designated local subdir:
-# ------------------------------------------------------------
-#
-#   python genbundle.py --docformat=html
-#     --root-dir=$HOME/my-qmat
-#     --branch=<project-branch>
-#     --dolevel=doB
-#     --runtests --runtests-flags=<...>
-#     --testsuite-dir=<...>
-#
-# Remote prefixes aren't supported in this case.
-#
-# Fetching tests results from a place where they have been run already:
-# ---------------------------------------------------------------------
+# Producing a packaged kit, with a toplevel index and a final .zip archive is
+# achieved by not restricting to specific parts, hence by not passing --parts
+# at all. A DO level has to be provided in this case:
 #
 #   python genbundle.py --docformat=html
 #     --root-dir=$HOME/my-qmat
@@ -315,16 +271,6 @@ class QMAT:
             options.rootdir if options.rootdir else options.workdir)
 
         self.repodir = os.path.join (self.rootdir, GIT_CLONE_SUBDIR)
-
-        # Where the testsuite tree is to be found, to run the
-        # tests if needed, then to fetch results from (whether we
-        # run the tests ourselves or rely on a prior run). This
-        # might include a remote access specification:
-
-        self.testsuite_dir = (
-            self.o.testsuite_dir if self.o.testsuite_dir
-            else os.path.join (self.repodir, "testsuite") if self.o.runtests
-            else None)
 
         # A local place where the testsuite tree may be found,
         # possibly after remote syncing from testsuite_dir if that
@@ -549,33 +495,6 @@ class QMAT:
         self.localize_testsuite_dir()
         self.__qm_build (part="tor")
 
-    # ---------------
-    # -- run_tests --
-    # ---------------
-
-    def run_tests (self):
-        announce ("running tests")
-
-        # Run early consistency checks before running the tests.
-        self.do_consistency_checks()
-
-        os.chdir (self.local_testsuite_dir)
-
-        # Setup the testsuite "support" directory, then launch the toplevel
-        # suite driver with the requested set of flags and in qualif mode for
-        # the level we ought to satisfy:
-
-        if not os.path.exists ("support"):
-            orisupport = os.path.join (
-                "..", "tools", "gnatcov", "examples", "support")
-            if os.path.exists (orisupport):
-                cp (source=orisupport, target="support", recursive=True)
-
-        run_list (
-            ("python testsuite.py --qualif-level=%s " % self.o.dolevel
-             + self.o.runtests_flags).strip().split()
-            )
-
     # ---------------------------
     # -- do_consistency_checks --
     # ---------------------------
@@ -649,20 +568,20 @@ class QMAT:
     # ----------------------------
 
     def localize_testsuite_dir (self):
-        """If self.testsuite_dir is remote and we haven't fetched
+        """If testsuite_dir is remote and we haven't fetched
         a local copy yet, do so. Then memorize the local location for
         future attempts."""
 
-        if not self.testsuite_dir:
+        if not self.o.testsuite_dir:
             return
 
         if self.local_testsuite_dir:
             return
 
-        raccess = raccess_in (self.testsuite_dir)
-
+        raccess = raccess_in (self.o.testsuite_dir)
+        
         if raccess:
-            rdir = rdir_in (self.testsuite_dir)
+            rdir = rdir_in (self.o.testsuite_dir)
             (login, rhost) = (
                 raccess.split('@') if '@' in raccess else (None, raccess)
                 )
@@ -672,7 +591,7 @@ class QMAT:
                      % (raccess, rdir, self.local_testsuite_dir)
                  )
         else:
-            self.local_testsuite_dir = self.testsuite_dir
+            self.local_testsuite_dir = self.o.testsuite_dir
 
     # ---------------------
     # -- prepare_str_dir --
@@ -691,12 +610,12 @@ class QMAT:
         # did not launch one just above, expect results to be available from a
         # previous run, possibly remote:
 
-        raccess = raccess_in (self.testsuite_dir)
-        rdir = rdir_in (self.testsuite_dir)
+        raccess = raccess_in (self.o.testsuite_dir)
+        rdir = rdir_in (self.o.testsuite_dir)
 
         mkstr_cmd = (
             "(cd %(dir)s/STR && ./mkrest.sh %(level)s)"
-            %  {"dir"   : self.testsuite_dir if not rdir else rdir,
+            %  {"dir"   : self.o.testsuite_dir if not rdir else rdir,
                 "level" : self.o.dolevel}
             )
         prefix = ["sh", "-c"] if not raccess else ["ssh", raccess]
@@ -914,19 +833,7 @@ def commandline():
     op.add_option (
         "--testsuite-dir", dest="testsuite_dir", default=None,
         help = (
-            "Name of a directory where the testsuite was run or is to be "
-            "run if --runtests. Defaults to the git clone testsuite subdir.")
-        )
-    op.add_option (
-        "--runtests", dest="runtests", action="store_true", default=None,
-        help="Run the tests prior to fetching results from testsuite-dir."
-        )
-    op.add_option (
-        "--runtests-flags", dest="runtests_flags", default="",
-        help=(
-            "With --runtests, pass the option value as arguments to the "
-            "testsuite toplevel driver, useful e.g. for --target, or -j."
-            )
+            "Name of a directory where the testsuite was run")
         )
 
     op.add_option (
@@ -1007,14 +914,6 @@ def check_valid(options, args):
             % options.rootdir
         )
 
-    # We don't know how to run the tests remotely
-
-    exit_if (
-        options.runtests and options.testsuite_dir
-        and raccess_in (options.testsuite_dir),
-        "Running the tests on a remote testsuite dir is not supported."
-        )
-
     # Convey whether we are requested to produce a kit:
 
     options.kitp = options.rekit or not options.parts
@@ -1041,6 +940,13 @@ def check_valid(options, args):
                 % (part, valid_parts.__str__())
             )
      for part in options.parts]
+
+    # Producing a STR requires a testsuite dir
+
+    exit_if (
+        'str' in options.parts and not options.testsuite_dir,
+        "--testsuite-dir required when producing a STR"
+        )
 
     # GIT aspects:
 
@@ -1083,12 +989,7 @@ if __name__ == "__main__":
 
     qmat.gen_qm_model()
 
-    # Start by running tests if we're requested to do so.
-
-    if options.runtests:
-        qmat.run_tests ()
-
-    # Now build the various parts and maybe the kit for each requested format:
+    # Build the various parts and maybe the kit for each requested format:
 
     [qmat.build_as_needed (docformat=f) for f in options.docformat.split(',')]
 
