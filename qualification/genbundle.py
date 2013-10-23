@@ -634,16 +634,12 @@ class QMAT:
     # -- localize_testsuite_dir --
     # ----------------------------
 
-    def localize_testsuite_dir (self):
+    def __localize_testsuite_dir (self):
         """If testsuite_dir is remote and we haven't fetched
         a local copy yet, do so. Then memorize the local location for
         future attempts."""
 
-        if not self.o.testsuite_dir:
-            return
-
-        if self.local_testsuite_dir:
-            return
+        os.chdir (self.rootdir)
 
         raccess = raccess_in (self.o.testsuite_dir)
         
@@ -659,11 +655,14 @@ class QMAT:
                 print "rebuilding kit: NOT syncing %s, reusing %s instead" \
                     % (self.o.testsuite_dir, self.local_testsuite_dir)
             else:
-                run ("rsync -rz --delete %s:%s/ %s" \
+                run ("rsync -arz --delete %s:%s/ %s" \
                          % (raccess, rdir, self.local_testsuite_dir)
                      )
         else:
             self.local_testsuite_dir = self.o.testsuite_dir
+
+        self.local_testsuite_dir = \
+            os.path.abspath (self.local_testsuite_dir)
 
     # ---------------------
     # -- prepare_str_dir --
@@ -795,7 +794,8 @@ class QMAT:
         if self.do_str() and not self.local_testsuite_dir:
             self.__prepare_str_dir()
         
-        self.localize_testsuite_dir ()
+        if self.o.testsuite_dir and not self.local_testsuite_dir:
+            self.__localize_testsuite_dir ()
 
         # Build the STR as needed, using the REST generated
         # by prepare_str_dir above:
