@@ -127,7 +127,7 @@
 # *****************************************************************************
 
 from gnatpython.ex import Run
-from gnatpython.fileutils import cp, mv, rm, mkdir, ls
+from gnatpython.fileutils import cp, mv, rm, mkdir, ls, find
 
 from datetime import date
 
@@ -485,6 +485,18 @@ class QMAT:
     # ---------------
 
     def build_tor (self):
+
+        # If we have a local testsuite dir at hand, fetch the testsresults
+        # that the QM needs to check TOR/TC consistency:
+
+        if self.local_testsuite_dir:
+            os.chdir (self.local_testsuite_dir)
+            [cp (tr, os.path.join (
+                        self.repodir, "testsuite",
+                        os.path.dirname (tr))
+                 )
+             for tr in find (root=".", pattern="tc.dump")]
+
         self.__qm_build (part="tor")
 
     # ------------------------------
@@ -595,10 +607,11 @@ class QMAT:
             return
 
         log.write (
-            "%s TOR/TR consistency log from QM @ %s :" % \
+            "%s TOR/TR consistency log from QM @ %s :\n" % \
                 ("FRESH" if self.do_tor() else "OLD", tor_tr_logfile)
             )
         log.write (contents_of (tor_tr_logfile))
+        log.write ("--\n")
 
     def dump_kit_consistency_log (self):
         announce ("dumping consistency log - format agnostic")
