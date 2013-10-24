@@ -24,9 +24,9 @@ In this section we provide a set of recommendations for configuration management
  * **Item 7.2.1:** The suggested configuration items are:
 
    #. The .zip package containing the .pdf files of the Plans (this document, plans.pdf), the Tool Operational Requirements and Test Cases and the test results.
-   #. The GNAT Pro installer containing the tool executable object code, the GNAT Pro UG.
-   #. The GNATemulator installer containing the tool executable object code.
-   #. The GNATcoverage installer containing the tool executable object code and the GNATcoverage User's Guide.
+   #. The GNAT Pro binary package, which contains the GNAT Pro executable toolset and the associated documentation, in particular the GNAT Pro User's Guide.
+   #. The GNATemulator binary package, which contains the GNATemulator executable tool and the associated documentation.
+   #. The GNATcoverage binary package, which contains the GNATcoverage executable tool and the associated documentation, in particular the GNATcoverage User's Guide.
 
  * **Item 7.2.2f:** we suggest establishing traceability between configuration items above by considering the tool executable names and versions.
  * **Item 7.2.2g:** we suggest tracing all configuration items to the GNATcoverage qualification process.
