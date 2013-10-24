@@ -282,6 +282,10 @@ class QMAT:
 
         self.this_docformat = None
 
+        # Sequence number of doc build pass we are processing:
+
+        self.passno = 0
+
     # --------------------
     # -- setup_workdir --
     # --------------------
@@ -486,10 +490,11 @@ class QMAT:
 
     def build_tor (self):
 
-        # If we have a local testsuite dir at hand, fetch the testsresults
-        # that the QM needs to check TOR/TC consistency:
+        # If we have a local testsuite dir at hand and we haven't done so
+        # already, fetch the testsresults that the QM needs to check TOR/TC
+        # consistency:
 
-        if self.local_testsuite_dir:
+        if self.local_testsuite_dir and self.passno == 1:
             os.chdir (self.local_testsuite_dir)
             [cp (tr, os.path.join (
                         self.repodir, "testsuite",
@@ -800,11 +805,12 @@ class QMAT:
 
     def build_as_needed (self, docformat):
 
+        self.passno += 1
         self.this_docformat = docformat
 
         mkdir (self.itemsdir())
 
-        if self.do_str() and not self.local_testsuite_dir:
+        if self.do_str() and self.passno == 1:
             self.__prepare_str_dir()
         
         if self.o.testsuite_dir and not self.local_testsuite_dir:
