@@ -16,5 +16,5 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 package Version is
-   Xcov_Version : constant String := "1.3.1 (20131023)";
+   Xcov_Version : constant String := "1.2.1 (20131023)";
 end Version;
