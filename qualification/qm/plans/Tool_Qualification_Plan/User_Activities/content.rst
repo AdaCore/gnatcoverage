@@ -10,7 +10,8 @@ In order to finalize the qualification of GNATcoverage, the user needs to perfor
 #. **Reference GNATcoverage in the PSAC.** The user needs to:
 
    * identify GNATcoverage as a verification tool that needs to be qualified
-   * refer to qualification kit Plans document (i.e., this document)
+   * include references to the GNATcoverage qualification kit documents that
+     were received to support this particular use of the tool.
 
 #. **Delivery Acceptance.** On delivery of GNATcoverage and its qualification kit, the user shall assess the representativeness of the qualification environment with the operational environment.
 
