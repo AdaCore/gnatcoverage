@@ -11,9 +11,9 @@ GNATcoverage is qualified as a verification tool.
    :delim: |
    :header: "Item", "Description", "Ref.", "Notes", "Activity"
 
-   1|Assurance is obtained that software development and integral processes comply with approved software plans and standards.|8.1a|For verification tools, this is limited to the compliance of tool processes with approved plans|`Reading the PLANS document`_, `Inspection of qualification data`_
+   1|Assurance is obtained that software development and integral processes comply with approved software plans and standards.|8.1a|For verification tools, this is limited to the compliance of tool processes with approved plans|:ref:`reading-plans`, :ref:`inspecting-other-data`
    2|Assurance is obtained that transition criteria for the software life cycle processes are satisfied.|8.1b|Not required for verification tools|not applicable
-   3|Software conformity review is conducted.|8.1c, 8.3e, 8.3f| Items 8.3a, 8.3b. 8.3c, 8.3d, 8.3g, 8.3h and 8.3i are not required for verification tools or CC2; 8.3f is also not required because verification tool qualification is supposed to be black-box|`Tool Conformity Review`_
+   3|Software conformity review is conducted.|8.1c, 8.3e, 8.3f| Items 8.3a, 8.3b. 8.3c, 8.3d, 8.3g, 8.3h and 8.3i are not required for verification tools or CC2; 8.3f is also not required because verification tool qualification is supposed to be black-box|:ref:`tool-conformity-review`
 
 Quality Assurance Activities
 ============================
@@ -27,6 +27,8 @@ project for which the kit is produced. Each QA cycle is assigned a
 subdirectory there, named after the date at which the QA cycle started, in
 *YYYYMMDD* format.
 
+.. _reading-plans:
+
 Reading the PLANS document
 **************************
 
@@ -35,6 +37,8 @@ Reading the PLANS document
   * Assess the compliance with qualification objectives.
 
 * **output:** QA Reading report (qa/YYYYMMDD/qa_plans.doc)
+
+.. _inspecting-other-data:
 
 Inspection of other qualification data
 **************************************
@@ -75,6 +79,8 @@ Inspection of test execution results
     * A reasonable limitation of the tool: in this case, the GNATcoverage Qualification Team is in charge of reporting and justifying the problem as part of the known limitations of the tool.
 
 * **output:** QA inspection report (qa/YYYYMMDD/qa_str.doc)
+
+.. _tool-conformity-review:
 
 Tool conformity review
 **********************
