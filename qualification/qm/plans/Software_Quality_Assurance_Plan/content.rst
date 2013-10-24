@@ -85,10 +85,8 @@ Inspection of test execution results
 Tool conformity review
 **********************
 
-The conformity review takes as input a packaged and qualifiable release of GNATcoverage.
-
 * **objectives:** 
 
-  * Record and approve software requirements deviations (8.3e).
+  * Record and approve software requirements deviations (8.3e) exposed by test failures reported in the GNATcoverage Software Test Results report provided as part of the tool qualification data.
 
-* **output:** QA inspection report qa/YYYYMMDD/qa_conformity.doc)
+* **output:** QA inspection report (qa/YYYYMMDD/qa_conformity.doc)
