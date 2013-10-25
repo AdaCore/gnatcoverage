@@ -49,7 +49,7 @@ AdaCore and is provided for informational purposes only;
 it is not related to the configuration management process deployed by the
 applicant.
 
-Version controlled items
+Version Controlled Items
 ************************
 
 Development and Verification artifacts
@@ -103,14 +103,27 @@ All repositories and mail servers are mirrored with machines physically located 
 Customer/Project specific tracking
 ----------------------------------
 
-All the verification related artifacts for a specific customer/project
-qualification are managed on a dedicated branch within our version control
-systems. Qualification kits for the specific customer/project are produced off
-that branch, which also tracks the QA cycles operated on the kits (QA reports,
-corresponding corrections, ...).
+For each specific customer/project qualification we assign an internal *kit
+identifier*, referenced for example in QA reports. All the corresponding
+verification related artifacts are managed on a dedicated *branch* within our
+version control systems. Releases of qualification kits for the specific
+customer/project are produced off that branch, which also tracks the QA cycles
+operated on the kit items (QA reports, corresponding corrections, ...). A
+typical kind of early change incorporated on the branch is the adjustment of
+the targeted operational environment parameters, to be accounted for when
+setting up the qualification environment for kit production cycles.
+
 
 Official baseline production
 ----------------------------
 
-Official baselines are generated on a customer-specific delivery for a precise operational environment. A specific folder and .zip file is created for each official release. 
+Official baselines are generated for customer-specific deliveries aimed at a
+precise operational environment and software level. Once the configuration
+management branch dedicated to such deliveries is setup, a complete testsuite
+run is performed in the corresponding qualification environment. A kit version
+number is then assigned and the qualification data documents are produced.
+The resulting set of documents is packaged as a zip file which materializes
+the kit as a whole. This kit then goes through QA as needed and all or part of
+this cycle repeats until a positive agreement on the kit "acceptability" for
+release is reached.
 
