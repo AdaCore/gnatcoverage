@@ -49,37 +49,22 @@ AdaCore and is provided for informational purposes only;
 it is not related to the configuration management process deployed by the
 applicant.
 
-Items under management control
-******************************
+Version controlled items
+************************
 
-TOR related artifacts
----------------------
+Development and Verification artifacts
+--------------------------------------
 
-As the :ref:`qualification-data` section indicates, the TOR related artifacts
-are organized as a filesystem tree.
+All the GNATcoverage development and verification artifacts are version
+controlled in our configuration management system, in particular:
 
-Each individual *requirement* maps to a filesystem directory, holding a file
-where the requirement text and testing strategy description reside.
-
-Each *testcase* associated with a requirement maps to a distinct filesystem
-subdirectory within the requirement directory subtree, holding a file which
-contains the testcase description as well as the sources of tests used to
-verify the tool behavior with respect to the testcase intent.
-
-Intermediate *groups* of requirements or testcases are composed to provide a
-structured organization, with an intermediate subdirectory assigned to each
-and a file holding the group description text located therein.
-
-Eventually, each individual artifact materializes as a distinct file in a tree
-so as to permit atomic tracking.
-
-Other development and verification artifacts
---------------------------------------------
-
-* The GNATcoverage tool source code
-* The build/test infrastructure (scripts and framework to build the tool, run
-  testsuites, monitor nightly results ...)
-* Scripts and framework to generate documentation (Qualifying Machine, ...)
+* All the TOR related artifacts (requirements, testcases, test sources, ...),
+  each materialized as a distinct file to permit atomic tracking,
+* The GNATcoverage tool source code,
+* The build/test infrastructure (framework to build the tool, run
+  testsuites, monitor results ...),
+* Framework to generate documentation (Qualifying Machine, kit construction
+  scripts...).
 
 Plans and documentation
 -----------------------
