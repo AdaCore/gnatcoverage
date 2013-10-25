@@ -2,7 +2,13 @@
 Software Configuration Management Recommendations
 =================================================
 
-The configuration management of qualification data is a responsibility of the applicant (see :qmref:`/PLANS/Tool_Qualification_Plan/User_Activities`). In this section we propose a possible approach for the configuration management of the GNATcoverage qualification data.
+As the compliance matrix below points out and as the
+:qmref:`/PLANS/Tool_Qualification_Plan/User_Activities` section of this
+document synthesizes, the configuration management of qualification data is a
+responsibility of the applicant. In this chapter we propose a possible
+approach for the configuration management of the GNATcoverage qualification
+data by the applicant and provide a high level overview of the internal
+configuration management process established at AdaCore.
 
 .. csv-table:: Compliance matrix for Table A-8
    :delim: |
@@ -16,7 +22,7 @@ The configuration management of qualification data is a responsibility of the ap
    6|Software life cycle environment control is established|7.2.9|Only item 7.2.9b applies. Up to the applicant.
 
 
-Configuration management recommendations
+Configuration Management Recommendations
 ========================================
 
 In this section we provide a set of recommendations for configuration management for the items that are the applicant's responsibility as per the compliance matrix above.
@@ -33,58 +39,54 @@ In this section we provide a set of recommendations for configuration management
  * **Items 7.2.4a, 7.2.4b and 7.2.7:** with respect to these items, we suggest that the user deploy the most appropriate process depending on their own configuration management process and tools.
  * **Item 7.2.9b:** since GNATcoverage is a verification tool, the configuration management process should comply with Control Category 2.
 
-Overview of the internal configuration management process at AdaCore
-====================================================================
+.. _adacore-cm:
+
+Overview of the AdaCore Configuration Management Process
+========================================================
 
 This section describes the internal configuration management process at
 AdaCore and is provided for informational purposes only;
 it is not related to the configuration management process deployed by the
 applicant.
 
-Configuration Management Methods
-********************************
+Items under management control
+******************************
 
-Configuration Management is technically implemented via a Subversion
-repository or a Git repository.
-The life cycle of each artifact is automatically tracked in the repository,
-and e-mail-based discussions about each artifact are also tracked.
-The mechanism used to implement this tracking uses the Customer Management
-System deployed at AdaCore: such technology has been widely used for more
-than ten years.
+TOR related artifacts
+---------------------
 
-Official baseline production
-----------------------------
-Official baselines are generated on a customer-specific delivery for a precise operational environment. A specific folder and .zip file is created for each official release. 
+As the :ref:`qualification-data` section indicates, the TOR related artifacts
+are organized as a filesystem tree.
 
-Archiving
----------
-All repositories and mail servers are mirrored with machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
+Each individual *requirement* maps to a filesystem directory, holding a file
+where the requirement text and testing strategy description reside.
 
-Activities
-**********
+Each *testcase* associated with a requirement maps to a distinct filesystem
+subdirectory within the requirement directory subtree, holding a file which
+contains the testcase description as well as the sources of tests used to
+verify the tool behavior with respect to the testcase intent.
 
-Artifact identification
------------------------
-Each atomic artifact (single requirement, test case, expected output, compilation unit) is located in a single physical file, so as to permit its atomic tracking.
+Intermediate *groups* of requirements or testcases are composed to provide a
+structured organization, with an intermediate subdirectory assigned to each
+and a file holding the group description text located therein.
+
+Eventually, each individual artifact materializes as a distinct file in a tree
+so as to permit atomic tracking.
+
+Other development and verification artifacts
+--------------------------------------------
+
+* The GNATcoverage tool source code
+* The build/test infrastructure (scripts and framework to build the tool, run
+  testsuites, monitor nightly results ...)
+* Scripts and framework to generate documentation (Qualifying Machine, ...)
 
 Plans and documentation
 -----------------------
 
-All documentation material is under Configuration Management Control. Each single part (each section) of each document is tracked automatically.
-
-Development and Verification Artifacts
---------------------------------------
-
-The tracked development and verification artifacts are:
-
-* Source code
-* Build/test infrastructure
-* Tool Operational Requirements (TOR)
-* Test Cases
-* Tests
-* Source code for tests
-* Files containing the expected output
-* Scripts to execute tests and generate documentation
+All the documentation material is also under Configuration Management Control,
+with distinct files for different sections or chapters of each document to
+permit fine grain automatic tracking.
 
 Quality Assurance Reports
 -------------------------
@@ -93,7 +95,37 @@ Quality Assurance Reports are atomically tracked exactly like any other textual 
 
 Open problems identification
 ----------------------------
+
 Open problems are tracked via emails. Each email is associated with a unique problem identified by a unique ID. Each problem is assigned with a single entity of the Development or Qualification team. The unique ID identifies the open problem within a database which permits its evolution and status (open/closed) to be tracked. All emails are saved in a database and it is possible to query it to retrieve all mails related to any open problem.
 
+Configuration Management Methods and Activities
+***********************************************
 
+Base technical support
+----------------------
+
+Configuration Management of artifacts is technically implemented via a Git or
+Subversion repository which tracks the life cycle of each artifact
+automatically.  E-mail-based discussions about each artifact are also tracked,
+using the AdaCore ticket system deployed within the whole company for more
+than fifteen years now.
+
+Archiving
+---------
+
+All repositories and mail servers are mirrored with machines physically located in Paris (France) and New York. This increases our confidence in the durability of qualification data.
+
+Customer/Project specific tracking
+----------------------------------
+
+All the verification related artifacts for a specific customer/project
+qualification are managed on a dedicated branch within our version control
+systems. Qualification kits for the specific customer/project are produced off
+that branch, which also tracks the QA cycles operated on the kits (QA reports,
+corresponding corrections, ...).
+
+Official baseline production
+----------------------------
+
+Official baselines are generated on a customer-specific delivery for a precise operational environment. A specific folder and .zip file is created for each official release. 
 
