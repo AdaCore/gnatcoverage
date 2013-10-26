@@ -46,10 +46,10 @@ appears. For example a table listing all the testcases and groups attached to
 a given requirement is always included within the testing strategy description
 for this requirement. Each line in such a table designates a particular
 testcase, requirement or group artifact, with an abbreviation denoting the
-kind of artifact in the first column - see the :ref:`abbrevs` section below
-for the list of abbrevations used. The second column on each line contains the
-artifact local name and the third column contains a short description of the
-artifact contents.
+kind of artifact in the first column, the artifact local name in the second
+column and a short description of the artifact contents in the third.  See the
+:ref:`abbrevs` section later in this chapter for the list of abbrevations used
+in the first column.
 
 At the top of the hierarchy, collections of high level requirement groups are
 collected in **Chapters** and **Subchapters**, typically per language and
@@ -92,6 +92,8 @@ Results (STR) report produced out of testuite runs for qualification.
 For a more detailed description of how testscase sources are organized and how
 expected results are stated, please refer to the :ref:`testsuite-overview`
 section of this material.
+
+.. _abbrevs:
 
 Abbreviations
 =============
