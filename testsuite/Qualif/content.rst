@@ -22,6 +22,17 @@ GNATcoverage DO-178B/ED-12B Qualification Material: Tool Operational Requirement
    Sheri Bernstein|AdaCore|bernstein@adacore.com
    Ben Brosgol|AdaCore|brosgol@adacore.com
 
+.. rubric:: List of referenced documents
+
+.. tabularcolumns:: |p{0.20\textwidth}|p{0.80\textwidth}|
+
+.. csv-table::
+   :delim: |
+   :widths: 20, 80
+   :header: "Identifier", "Referenced document"
+
+   Ada 2005 LRM|Ada 2005 Reference Manual. Language and Standard Libraries.  International Standard ISO/IEC 8652/1995(E) with Technical Corrigendum 1 and Amendment 1. Taft, S.T.; Duff, R.A.; Brukardt, R.L.; Ploedereder, E.; Leroy, P. (Eds.)
+
 .. only:: html
 
    Main Contents
