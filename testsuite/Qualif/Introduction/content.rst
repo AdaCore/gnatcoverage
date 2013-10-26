@@ -61,12 +61,12 @@ For language related chapters, we distinguish two main categories of
 requirement groups, addressing:
 
 * *Core coverage metrics*, for example to validate statement coverage
-  assessments on conditional constructs, loops, etc.  Testcases for such
-  TORs typically exercise a piece of functional code in various ways, for
-  example by causing a Boolean expression to be evaluated only True or False,
-  and verify that results are as expected in all the variations.  Programming
-  language reference manuals are a major source for identifying
-  the relevant constructs.
+  assessments on conditional constructs, loops, etc.  Testcases for such TORs
+  typically exercise a piece of functional code in various ways, for example
+  by causing a Boolean expression to be evaluated only True or False, and
+  verify that results are as expected in all the variations.  Programming
+  language Reference Manuals, such as the Ada 2005 LRM for Ada, are the major
+  source for identifying the relevant constructs.
 
 * *General coverage analysis facilities*, for example the support for
   coverage exemptions or consolidation capabilities.
