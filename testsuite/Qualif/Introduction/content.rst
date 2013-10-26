@@ -68,11 +68,14 @@ requirement groups, addressing:
   language Reference Manuals, such as the Ada 2005 LRM for Ada, are the major
   source for identifying the relevant constructs.
 
-* *General coverage analysis facilities*, for example the support for
-  coverage exemptions or consolidation capabilities.
-  In addition to validating the tool behavior with respect to the stated
-  requirements, testcases in this category extend the set of exercised code
-  samples where mutliple language features are used in combination.
+* *General coverage analysis facilities*, for example the support for coverage
+  exemptions or consolidation capabilities.  In addition to validating the
+  tool behavior with respect to the stated requirements, testcases in this
+  category are also typically designed to exercise multiple kinds of language
+  constructs mixed together. They represent a good opportunity to do so as
+  they are not directed to focus on specific contructs by the nature of the
+  requirements to exercise, unlike a core requirment on, say, *If* statements
+  for example.
 
 We also have `Common` chapter to hold language independant requirements and
 testcases, essentially regarding the *output report format* which is
