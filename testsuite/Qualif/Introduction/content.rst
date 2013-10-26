@@ -77,7 +77,7 @@ requirement groups, addressing:
   for example.
 
 We also have :ref:`language-independent-tors` chapter to hold language
-independant requirements and testcases, essentially regarding the *output
+independent requirements and testcases, essentially regarding the *output
 report format* which is considered part of the tool qualified interface. Some
 of these requirements are also implicitly validated by the execution of all
 the coverage checking testcases in other chapters, where specific sections of
