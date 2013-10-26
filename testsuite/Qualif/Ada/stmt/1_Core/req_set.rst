@@ -4,7 +4,7 @@ Core SC requirements
 All the other SC-related sections rely on this group.
 
 To ensure coverage of all the relevant language constructs, we decompose the
-material further based on the organization of the Ada Reference Manual (ARM):
+material further based on the organization of the Ada 2005 Reference Manual:
 
 
 .. qmlink:: SubsetIndexTable
