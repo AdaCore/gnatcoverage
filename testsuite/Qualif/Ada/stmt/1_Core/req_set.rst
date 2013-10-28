@@ -28,10 +28,6 @@ Several chapters are not included for the following reasons:
    ARM chap. 9 : Tasks and Synchronization | "The execution profile being
    qualified is based on Zero Foot Print run-time, which does not support any
    construct described in this chapter"
-   ARM chap. 13 : Representation Issues | "Constructs described in this
-   chapter do not result in executable code and thus are not relevant to
-   coverage analysis."
-
 
 
 .. qmlink:: SubsetIndexTocTree
