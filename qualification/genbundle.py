@@ -653,9 +653,8 @@ class QMAT:
     # ----------------------------
 
     def __localize_testsuite_dir (self):
-        """If testsuite_dir is remote and we haven't fetched
-        a local copy yet, do so. Then memorize the local location for
-        future attempts."""
+        """If testsuite_dir is remote, fetch a local copy.  Memorize the local
+        location always."""
 
         os.chdir (self.rootdir)
 
