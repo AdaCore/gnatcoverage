@@ -131,7 +131,7 @@ from gnatpython.fileutils import cp, mv, rm, mkdir, ls, find
 
 from datetime import date
 
-import optparse, sys, os.path, shutil, re
+import optparse, sys, os.path, shutil, re, hashlib
 
 # This lets us access modules that the testuite
 # code features:
@@ -297,6 +297,14 @@ class QMAT:
         mkdir (self.rootdir)
 
 
+    # ---------
+    # -- log --
+    # ---------
+
+    def log (self, line):
+        with open (os.path.join(self.rootdir, "genbundle.log"), 'a') as f:
+            f.write (line + '\n')
+                
     # ----------------
     # -- git_update --
     # ----------------
@@ -662,19 +670,15 @@ class QMAT:
         
         if raccess:
             rdir = rdir_in (self.o.testsuite_dir)
-            (login, rhost) = (
-                raccess.split('@') if '@' in raccess else (None, raccess)
+
+            self.local_testsuite_dir = hashlib.sha1(raccess).hexdigest()
+            run ("rsync -arz --delete %s:%s/ %s" % (
+                    raccess, rdir, self.local_testsuite_dir)
+                 )
+            self.log (
+                "remote testsuite-dir %s fetched as %s" % (
+                    self.o.testsuite_dir, self.local_testsuite_dir)
                 )
-
-            self.local_testsuite_dir = "%s_testsuite" % rhost
-
-            if self.o.rekit:
-                print "rebuilding kit: NOT syncing %s, reusing %s instead" \
-                    % (self.o.testsuite_dir, self.local_testsuite_dir)
-            else:
-                run ("rsync -arz --delete %s:%s/ %s" \
-                         % (raccess, rdir, self.local_testsuite_dir)
-                     )
         else:
             self.local_testsuite_dir = self.o.testsuite_dir
 
