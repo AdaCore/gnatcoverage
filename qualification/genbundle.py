@@ -681,6 +681,11 @@ class QMAT:
         self.local_testsuite_dir = \
             os.path.abspath (self.local_testsuite_dir)
 
+        # We never need the non qualif tests and must make sure we
+        # don't ever distribute them.
+
+        remove (os.path.join (self.local_testsuite_dir, "tests"))
+
     # ---------------------
     # -- prepare_str_dir --
     # ---------------------
