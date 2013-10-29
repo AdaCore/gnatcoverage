@@ -1,8 +1,8 @@
-**Exercise a simple If statement, within a While loop/If statement/Case statement nesting**
+**Exercise a simple IF statement within a WHILE/IF/CASE statement nesting**
 
-Exercise a simple If statement nested in one of the alternatives of a
-Case statement, which in turn is in a branch of an outer If statement
-that is within a While loop.
+Exercise a simple IF statement nested in one of the alternatives of a
+CASE statement, which in turn is in a branch of an outer IF statement
+that is within a WHILE loop body.
 
 Check situations where:
 

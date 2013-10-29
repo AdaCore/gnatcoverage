@@ -11,7 +11,7 @@ tests within subprograms).
 .. rubric:: Testing Strategy
 
 We exercise multiple cases with a variety of
-constructs nested within each other (For, While, Case, If), and for each case
+constructs nested within each other (FOR, WHILE, CASE, IF), and for each case
 verify the behavior in a wide range of contexts:
 
 * Loops, entered or not,
