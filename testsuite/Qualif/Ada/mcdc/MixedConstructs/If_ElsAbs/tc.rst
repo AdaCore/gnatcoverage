@@ -1,2 +1,2 @@
-**Exercise an If/Elsif construct involving complex decisions with computations**
+**Exercise an IF/ELSIF construct involving complex decisions with computations**
 

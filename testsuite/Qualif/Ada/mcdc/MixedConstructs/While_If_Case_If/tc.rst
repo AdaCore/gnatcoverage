@@ -3,7 +3,7 @@
 We implement a double testing strategy, with:
 
 * Statement coverage-oriented scenarios, exercising SC possibilities (loop
-  entered or not, If part of an If statement reached or not, Case statement
+  entered or not, IF part of an IF statement reached or not, CASE statement
   alternatives reached or not, ...) and combinations of these.
 
 * Decision coverage-oriented scenarios, exercising DC possibilities

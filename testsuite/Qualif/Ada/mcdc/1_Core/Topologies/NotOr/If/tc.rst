@@ -1,1 +1,1 @@
-**MCDC on "(not A) or else B" used as an If statement control**
+**MCDC on "(not A) or else B" used as an IF statement control**

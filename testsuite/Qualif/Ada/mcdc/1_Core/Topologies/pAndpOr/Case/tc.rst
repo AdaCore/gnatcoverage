@@ -1,1 +1,1 @@
-**MCDC on "(A and then B) or else C" used to control a Case statement**
+**MCDC on "(A and then B) or else C" used to control a CASE statement**

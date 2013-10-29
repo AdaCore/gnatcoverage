@@ -1,1 +1,1 @@
-**MCDC on "A and then B" used as a While statement control**
+**MCDC on "A and then B" used as a WHILE statement control**

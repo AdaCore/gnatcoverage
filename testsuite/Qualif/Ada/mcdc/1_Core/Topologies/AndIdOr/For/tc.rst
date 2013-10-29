@@ -1,1 +1,1 @@
-**MCDC on "A and then Id(B or else C)" used as a For statement control**
+**MCDC on "A and then Id(B or else C)" used as a FOR statement control**
