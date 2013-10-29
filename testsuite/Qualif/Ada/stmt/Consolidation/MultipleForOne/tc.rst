@@ -1,7 +1,4 @@
-**Exercise a three way if statement with three different drivers**
-
-Exercise a three-way IF statement with three different
-drivers, each resulting in one of the three possible cases.
+**Exercise a three way IF statement with three different drivers**
 
 Verify that
 

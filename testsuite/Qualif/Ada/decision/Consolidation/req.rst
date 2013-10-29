@@ -22,4 +22,3 @@ vectors without repetitions.
 
    *
 
-
