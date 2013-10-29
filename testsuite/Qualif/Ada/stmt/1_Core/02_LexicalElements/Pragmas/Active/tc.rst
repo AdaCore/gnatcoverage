@@ -1,6 +1,4 @@
-**active pragmas**
-
-Check SC of active pragmas
+**Exercise SC on active pragmas**
 
 Check that active pragmas which are not elaborated are reported as
 uncovered. Exercise Assert, Debug, Precondition and Postcondition pragmas

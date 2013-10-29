@@ -1,6 +1,4 @@
-**inactive pragmas**
-
-Check SC of inactive pragmas
+**Exercise SC on inactive pragmas**
 
 Check that inactive pragmas are ignored; Place Assert pragmas at various
 locations in a number of subprogram bodies, and verify that they are never
