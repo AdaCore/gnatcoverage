@@ -1,7 +1,4 @@
-**LOOP statements that execute only a partial iteration**
+**Exeercise SC on LOOP statements that execute only a partial iteration**
 
-Check SC with LOOP statements that execute only a partial iteration
-over the nested sequence, interrupted by an exit statement
-
-Check, in particular, that the nested statements past the exit point are
+Check, in particular, that the nested statements past the EXIT point are
 reported uncovered.
