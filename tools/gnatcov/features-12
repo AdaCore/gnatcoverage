@@ -18,3 +18,8 @@ NF-12-M105-006 Extended projects in --projects (2013-01-08)
   the switch applies to the ultimate extending project. Overriding of the
   selection of units of interest from the Coverage package inproject files is
   thus properly taken into account.
+
+NF-12-M726-018 Executable consistency check (2013-09-16)
+
+  GNATcoverage now displays a warning if it notices a mismatch between analyzed
+  traces and executables.
