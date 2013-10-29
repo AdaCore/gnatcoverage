@@ -1,6 +1,4 @@
-**Variant Parts in record type declarations**
-
-Check SC related to Variant Parts in record type declarations
+**Exercise SC with variant parts in record declarations**
 
 Code that references a field in 
 the variant part of a record type declaration has the effect of an implicit

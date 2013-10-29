@@ -1,9 +1,6 @@
-**Object Declarations involving static or fixed-sized stack allocation**
+**Exercise SC on object declarations involving static or fixed-sized stack allocation**
 
-Check SC of Object Declarations involving static or fixed-sized stack
-allocations only.
-
-Check that an object declaration is reported as uncovered if and only if
+Check that such an object declaration is reported as uncovered if and only if
 it is not elaborated.
 Exercise object declarations for which we expect to have implicit
 execution of code for the initializations:

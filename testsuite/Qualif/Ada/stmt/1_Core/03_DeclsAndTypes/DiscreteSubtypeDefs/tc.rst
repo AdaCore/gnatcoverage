@@ -1,6 +1,4 @@
-**Discrete Subtype Definitions**
-
-Check SC of Discrete Subtype Definitions
+**Exercise SC on discrete subtype definitions**
 
 Check that a declaration that contains a discrete subtype definition is
 reported as uncovered if and only if the declaration is not elaborated.

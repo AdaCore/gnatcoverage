@@ -1,6 +1,4 @@
-**Subtype Indications**
-
-Check SC of Subtype Indications
+**Exercise SC on subtype indications**
 
 Check that a declaration that contains a subtype indication is reported as
 uncovered if and only if the declaration is not elaborated.

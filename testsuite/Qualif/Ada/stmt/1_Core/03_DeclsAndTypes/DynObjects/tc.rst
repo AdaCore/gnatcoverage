@@ -1,6 +1,4 @@
-**Object Declarations involving heap or stack dynamic allocation**
-
-Check SC of Object Declarations involving heap or stack dynamic allocation
+**Exercise SC on object declarations involving heap or stack dynamic allocation**
 
 Check that an object declaration is reported as uncovered if and only if
 it is not elaborated.
